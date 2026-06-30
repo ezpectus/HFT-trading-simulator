@@ -1,0 +1,120 @@
+# ── Production Makefile ──
+# Usage: make prod-up, make prod-down, make prod-logs, etc.
+
+DOCKER_COMPOSE = docker compose -f docker-compose.prod.yml
+SERVICES = exchange-simulator ai-signal-bot hft-trade-bot web-ui postgres redis prometheus grafana
+
+.PHONY: prod-up prod-down prod-build prod-rebuild prod-logs prod-ps prod-restart \
+        prod-db-migrate prod-db-backup prod-monitor prod-health prod-clean prod-stats
+
+# ── Start / Stop ──
+
+prod-up:
+	$(DOCKER_COMPOSE) up -d
+
+prod-down:
+	$(DOCKER_COMPOSE) down
+
+prod-stop:
+	$(DOCKER_COMPOSE) stop
+
+# ── Build ──
+
+prod-build:
+	$(DOCKER_COMPOSE) build
+
+prod-rebuild:
+	$(DOCKER_COMPOSE) build --no-cache
+
+# ── Monitoring ──
+
+prod-logs:
+	$(DOCKER_COMPOSE) logs -f --tail=100
+
+prod-logs-%:
+	$(DOCKER_COMPOSE) logs -f --tail=100 $*
+
+prod-ps:
+	$(DOCKER_COMPOSE) ps
+
+prod-restart:
+	$(DOCKER_COMPOSE) restart
+
+prod-restart-%:
+	$(DOCKER_COMPOSE) restart $*
+
+# ── Database ──
+
+prod-db-migrate:
+	@echo "Running database migrations..."
+	$(DOCKER_COMPOSE) exec ai-signal-bot python -c "
+import asyncio, asyncpg, os, glob
+async def main():
+    conn = await asyncpg.connect(os.environ['DATABASE_URL'])
+    for f in sorted(glob.glob('src/database/migrations/*.sql')):
+        with open(f) as fh:
+            await conn.execute(fh.read())
+        print(f'  Applied: {f}')
+    await conn.close()
+asyncio.run(main())
+"
+
+prod-db-backup:
+	@timestamp=$$(date +%Y%m%d_%H%M%S); \
+	echo "Backing up database to backup_$$timestamp.sql..."; \
+	$(DOCKER_COMPOSE) exec -T postgres pg_dump -U $$(grep POSTGRES_USER .env.prod 2>/dev/null | cut -d= -f2 || echo hft) hft > backup_$$timestamp.sql; \
+	echo "Backup complete: backup_$$timestamp.sql"
+
+prod-db-restore:
+	@test -f $(file) || (echo "Usage: make prod-db-restore file=backup_YYYYMMDD_HHMMSS.sql" && exit 1); \
+	echo "Restoring from $(file)..."; \
+	$(DOCKER_COMPOSE) exec -T postgres psql -U $$(grep POSTGRES_USER .env.prod 2>/dev/null | cut -d= -f2 || echo hft) hft < $(file); \
+	echo "Restore complete"
+
+# ── Health & Monitoring ──
+
+prod-monitor:
+	@echo "Opening Grafana at http://localhost:3001"
+	@open http://localhost:3001 2>/dev/null || xdg-open http://localhost:3001 2>/dev/null || start http://localhost:3001 2>/dev/null || echo "Open http://localhost:3001 in your browser"
+
+prod-health:
+	@echo "Checking all service health endpoints..."
+	@for port in 8765 8766 8080 9090 3000; do \
+		echo -n "  Port $$port: "; \
+		curl -s -o /dev/null -w "%{http_code}" http://localhost:$$port/health 2>/dev/null || echo -n "FAIL"; \
+		echo ""; \
+	done
+
+# ── Cleanup ──
+
+prod-clean:
+	$(DOCKER_COMPOSE) down -v --remove-orphans
+	docker system prune -f
+
+prod-stats:
+	@echo "Docker container stats:"
+	@docker stats --no-stream $$(docker compose -f docker-compose.prod.yml ps -q)
+
+# ── Deploy ──
+
+prod-deploy: prod-build prod-up prod-health
+	@echo "Production deployment complete"
+
+# ── Help ──
+
+help:
+	@echo "Production Makefile commands:"
+	@echo "  make prod-up          - Start all services"
+	@echo "  make prod-down        - Stop all services"
+	@echo "  make prod-build       - Build all images"
+	@echo "  make prod-rebuild     - Rebuild without cache"
+	@echo "  make prod-logs        - Follow all logs"
+	@echo "  make prod-logs-SERVICE - Follow specific service logs"
+	@echo "  make prod-ps          - Show container status"
+	@echo "  make prod-restart     - Restart all services"
+	@echo "  make prod-db-migrate  - Run database migrations"
+	@echo "  make prod-db-backup   - Backup database"
+	@echo "  make prod-monitor     - Open Grafana dashboard"
+	@echo "  make prod-health      - Check all health endpoints"
+	@echo "  make prod-clean       - Remove all containers and volumes"
+	@echo "  make prod-deploy      - Build, deploy, and health check"

@@ -5,7 +5,7 @@
 ### Prerequisites
 - Python 3.12+
 - Node.js 20+ (for web-ui)
-- C++20 compiler (GCC 10+, Clang 12+, or MSVC 19.29+)
+- C++20 compiler (GCC 13+, Clang 17+, or MSVC 19.29+ for V2 engine)
 - CMake 3.16+
 - Boost, OpenSSL, websocketpp, spdlog, fmt, nlohmann_json, yaml-cpp
 
@@ -44,14 +44,21 @@ python -m pytest tests/ -v
 cd ai-signal-bot
 python -m pytest tests/ -v
 
-# C++ signal engine tests
+# C++ signal engine tests (V1 + V2)
 cd hft-trade-bot
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Debug
 make -j$(nproc)
 ./test_signal_engine
+./test_signal_engine_v2
 ctest --output-on-failure
 ```
+
+# Web UI tests
+cd web-ui
+npm test          # Vitest
+npm run lint      # ESLint
+npm run build     # Production build verification
 
 ## Running the System
 
@@ -166,20 +173,23 @@ crypto-trading-simulator/
 │   └── CMakeLists.txt
 ├── web-ui/                       # React 18: browser dashboard
 │   ├── src/
-│   │   ├── components/           # 90+ UI components
-│   │   ├── panels/               # Panel registry + container
-│   │   ├── hooks/                # WebSocket, exchange data, theme, sound, etc.
+│   │   ├── components/           # 201+ UI components (191+ registered panels)
+│   │   ├── panels/               # Panel registry + container (ErrorBoundary + Suspense)
+│   │   ├── hooks/                # WebSocket, exchange data, signals, theme, sound, detachable
 │   │   └── utils/                # Indicators, performance, format, timeframes, patterns
-│   ├── .env.example              # WebSocket URL configuration
+│   ├── .env.example              # WebSocket URL + mock mode configuration
+│   ├── netlify.toml              # Netlify deployment config
+│   ├── .eslintrc.json            # ESLint configuration
 │   ├── Dockerfile                # Multi-stage (node + nginx)
 │   ├── nginx.conf
 │   └── package.json
-├── docs/                         # Documentation (10 files)
-├── .github/                      # CI templates + workflows
+├── docs/                         # Documentation (12 files)
+├── .github/                      # CI workflows + issue/PR templates
+├── logs/                         # Timestamped log files (auto-created)
 ├── docker-compose.yml            # 4-service orchestration
 ├── shared_config.yaml            # Global settings
-├── Makefile                      # install, dev, test, lint, build, docker
-├── start.bat / start.sh          # Quick-start scripts
+├── Makefile                      # install, dev, test, test-js, lint, build, docker, logs
+├── start.bat / start.sh          # Quick-start scripts (8 windows: 4 services + 4 monitors)
 └── .editorconfig
 ```
 
@@ -195,10 +205,12 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture overv
 5. Add to backtest runner
 
 ### New HFT Indicator (C++)
-1. Add function to `hft-trade-bot/src/strategies/signal_engine.h`
-2. Add vote in `SignalEngine::analyze()`
-3. Add test in `tests/test_signal_engine.cpp`
-4. Rebuild with `cmake --build build`
+1. For V1: Add function to `hft-trade-bot/src/strategies/signal_engine.h`
+2. For V2: Add inline class to `hft-trade-bot/src/strategies/signal_engine_v2.h`
+3. Add vote/weight in `SignalEngine::analyze()` or `SignalEngineV2::analyze()`
+4. Add test in `tests/test_signal_engine.cpp` or `tests/test_signal_engine_v2.cpp`
+5. Rebuild with `cmake --build build`
+6. Update `config/config.yaml` weights if needed
 
 ### New WebSocket Message Type
 1. Add to [docs/WEBSOCKET_PROTOCOL.md](docs/WEBSOCKET_PROTOCOL.md)
@@ -252,13 +264,16 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture overv
 
 ## CI Pipeline
 
-GitHub Actions runs on every push/PR:
-- Python tests for exchange-simulator and ai-signal-bot (pytest + pytest-asyncio)
-- C++ build and unit tests for hft-trade-bot
-- Web UI build (npm install + vite build)
-- Linting with ruff
-- Docker image build verification
+GitHub Actions runs on every push/PR (4 jobs):
+- **Python:** ruff lint + pytest for exchange-simulator and ai-signal-bot
+- **C++:** cmake build + V1/V2 unit tests + clang-format check
+- **JS:** npm install + ESLint + Vitest + vite build
+- **Docker:** docker-compose build verification
+
+Log files are uploaded as artifacts after each run.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the Apache License 2.0.
+
+See [LICENSE](LICENSE) for details. This project is for educational purposes only — attribution required for forks and derivatives.

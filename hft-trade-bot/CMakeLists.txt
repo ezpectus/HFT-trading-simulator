@@ -173,3 +173,61 @@ set_target_properties(test_signal_engine_v2 PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 add_test(NAME signal_engine_v2_tests COMMAND test_signal_engine_v2)
+
+# ─── V3 Production Tests ───
+
+# Helper function for test targets
+function(add_hft_test name source)
+    add_executable(${name} ${source})
+    target_include_directories(${name} PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${WEBSOCKETPP_INCLUDE_DIR}
+    )
+    target_link_libraries(${name} PRIVATE
+        Threads::Threads
+    )
+    set_target_properties(${name} PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED ON
+        INTERPROCEDURAL_OPTIMIZATION FALSE
+    )
+    add_test(NAME ${name}_tests COMMAND ${name})
+endfunction()
+
+# Order book manager tests
+add_hft_test(test_order_book tests/test_order_book.cpp)
+
+# Mean reversion v2 tests
+add_hft_test(test_mean_reversion tests/test_mean_reversion.cpp)
+
+# Market making v2 tests
+add_hft_test(test_market_making tests/test_market_making.cpp)
+
+# Risk engine tests
+add_hft_test(test_risk tests/test_risk.cpp)
+
+# Order manager tests
+add_hft_test(test_order_manager tests/test_order_manager.cpp)
+
+# Position manager v2 tests
+add_hft_test(test_position_manager tests/test_position_manager.cpp)
+
+# SHM ring buffer tests (requires rt lib for shm_open on Linux)
+add_hft_test(test_shm tests/test_shm.cpp)
+if(UNIX AND NOT APPLE)
+    target_link_libraries(test_shm PRIVATE rt)
+endif()
+
+# FIX 4.4 protocol tests
+add_hft_test(test_fix tests/test_fix.cpp)
+
+# Latency tracker tests
+add_hft_test(test_latency_tracker tests/test_latency_tracker.cpp)
+
+# ─── New unit tests (monitoring, network, exchange config) ───
+add_hft_test(test_monitoring tests/unit/test_monitoring.cpp)
+add_hft_test(test_network tests/unit/test_network.cpp)
+add_hft_test(test_exchange_config tests/unit/test_exchange_config.cpp)
+
+# ─── Integration tests ───
+add_hft_test(test_integration_signal_flow tests/integration/test_signal_flow.cpp)

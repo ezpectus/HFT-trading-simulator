@@ -9,18 +9,39 @@
 
 | Metric | Value |
 |--------|-------|
-| Components | 53+ React panels |
-| App.jsx size | ~350 lines (after registry refactor) |
-| Backend services | 3 (Exchange Simulator, AI Signal Bot, HFT Bot) |
-| Communication | WebSocket (JSON) |
+| Web UI components | 201+ React components, 191+ registered panels |
+| Advanced math models | 75+ components (15 batches, Phases 24-39) |
+| App.jsx size | ~350 lines (registry pattern) |
+| Backend services | 3 (Exchange Simulator, AI Signal Bot, HFT Bot v2.0) |
+| HFT engine | C++20 v2.0 with sub-millisecond latency, V1 fallback |
+| Communication | WebSocket (JSON), per-message deflate compression |
 | Database | SQLite (WAL) |
-| Containerization | Docker Compose |
+| Containerization | Docker Compose (4 services) |
+| CI/CD | GitHub Actions (4 jobs: Python, C++, JS, Docker) |
+| Testing | pytest (Python), C++ unit tests (30+ V2), Vitest + ESLint (JS) |
+| Logging | Timestamped logs + CSV trade logs with symlinks |
+| License | Apache 2.0 |
 
-### Key Architectural Decision: Panel Registry (2025)
-- All sidebar panels registered in `src/panels/registry.js`
-- `PanelContainer` renders panels by category with collapsible sections
+### Key Architectural Decisions
+
+#### Panel Registry (Phase 1)
+- All sidebar panels registered in `src/panels/registry.js` (191+ panels)
+- `PanelContainer` renders panels by category with ErrorBoundary + Suspense per panel
 - User can toggle panel visibility (localStorage persistence)
 - **Adding a new panel = 1 entry in registry.js, 0 changes to App.jsx**
+
+#### V2 Signal Engine (Phase 25)
+- C++20 rewrite with sub-millisecond latency
+- No heap allocations in hot path (stack arrays, ObjectPool, SPSCQueue)
+- Cache-line aligned structs (`alignas(64)`) to prevent false sharing
+- `IExchange` interface for DIP/SOLID (no concrete exchange in core)
+- CircuitBreaker (5 errors -> 30s cooldown -> half-open probe)
+- V1 engine preserved as configurable fallback
+
+#### Advanced Mathematical Models (Phases 24-39)
+- 75+ components across 15 batches (V1-V15)
+- Covers: GARCH, HMM, Kalman, Wavelets, LSTM, Autoencoder, VAE, HMC, RKHS, Topological Data Analysis, and many more
+- All client-side React components with interactive visualizations
 
 ---
 
@@ -60,8 +81,8 @@
 - **Phase 3:** Full type coverage, strict mode, codegen for WS messages
 
 ### 7. **Testing Strategy**
-- **Now:** Manual testing, Python pytest for backend
-- **Phase 2:** Vitest for React components, Playwright for E2E
+- **Now:** pytest (Python), C++ unit tests (30+ V2), Vitest + ESLint (JS), GitHub Actions CI
+- **Phase 2:** Playwright for E2E, increased Vitest coverage
 - **Phase 3:** Contract testing between services (Pact)
 - **Phase 4:** Property-based testing for trading logic (fast-check)
 
@@ -69,11 +90,21 @@
 
 ## Milestone Roadmap
 
-### Year 1 (2025–2026): Foundation
-- [x] Panel registry system (done)
+### Year 1 (2025-2026): Foundation
+- [x] Panel registry system (191+ panels)
+- [x] ErrorBoundary + Suspense per panel
+- [x] VirtualList for long lists (FillsPanel, SignalFeed)
+- [x] V2 C++ signal engine (sub-millisecond, Phase 25)
+- [x] 75+ advanced math model components (Phases 24-39)
+- [x] CI/CD pipeline (GitHub Actions: 4 jobs)
+- [x] WebSocket compression (per-message deflate)
+- [x] Config hot-reload
+- [x] Timestamped logging + CSV trade logs
+- [x] Mock mode for standalone Web UI demo
+- [x] ESLint + Vitest setup
 - [ ] TypeScript migration (incremental)
-- [ ] Component lazy loading (React.lazy + Suspense)
-- [ ] Vitest unit tests for critical components
+- [ ] React.lazy conversion for all 191+ panels
+- [ ] Component subfolder organization
 - [ ] Message schema versioning (WS protocol v2)
 - [ ] PostgreSQL migration for trade history
 - [ ] Prometheus + Grafana monitoring
@@ -212,17 +243,25 @@ web-ui/src/
 
 ## Migration Checklist
 
-- [x] Panel registry created
+- [x] Panel registry created (191+ panels)
 - [x] App.jsx refactored to use registry
 - [x] PanelContainer with collapsible categories
 - [x] localStorage visibility persistence
+- [x] ErrorBoundary + Suspense per panel
+- [x] VirtualList for long lists
+- [x] V2 C++ signal engine with V1 fallback
+- [x] 75+ advanced math model components
+- [x] CI/CD pipeline (GitHub Actions)
+- [x] WebSocket compression
+- [x] Config hot-reload
+- [x] Timestamped logging + CSV trade logs
+- [x] Mock mode for standalone demo
+- [x] ESLint + Vitest setup
 - [ ] Subfolder organization for components
 - [ ] TypeScript config (tsconfig.json)
 - [ ] First .ts/.tsx files
-- [ ] Vitest setup
 - [ ] Playwright E2E
-- [ ] CI/CD pipeline
-- [ ] Lazy loading for panels
+- [ ] Lazy loading for all 191+ panels (React.lazy)
 - [ ] Zustand store for global state
 - [ ] Message schema versioning
 
@@ -241,7 +280,7 @@ web-ui/src/
 ## Conclusion
 
 The panel registry system is the cornerstone of long-term sustainability.
-It ensures that adding the 100th panel is as easy as adding the 1st —
+It ensures that adding the 200th panel is as easy as adding the 1st —
 one entry in `registry.js`, zero changes to `App.jsx`.
 
 All future architectural decisions must answer:

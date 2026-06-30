@@ -3,14 +3,20 @@
 # Runs all four components:
 #   1. exchange-simulator  — simulated crypto exchange (WebSocket server)
 #   2. ai-signal-bot       — Python AI signal generator
-#   3. hft-trade-bot       — C++20 HFT execution engine
-#   4. web-ui              — React web dashboard (TradingView-style charts)
+#   3. hft-trade-bot       — C++20 v2.0 HFT execution engine (sub-millisecond)
+#   4. web-ui              — React web dashboard (191+ panels, TradingView-style)
 #
 # Usage:
 #   docker-compose up              # Start all services
 #   docker-compose up exchange-sim # Start only the exchange simulator
 #   docker-compose logs -f         # Follow logs
+#   docker-compose logs -f ai-signal-bot
 #   # Web UI available at http://localhost:3000
+#
+# Logs:
+#   All services write timestamped logs to /app/logs/ inside the container.
+#   Log volumes are mounted: sim-logs, ai-logs, hft-logs.
+#   Trade CSV logs: /app/logs/trades_*.csv
 
 version: "3.9"
 
@@ -25,6 +31,7 @@ services:
     volumes:
       - ./exchange-simulator/config.yaml:/app/config.yaml
       - sim-data:/app/data
+      - sim-logs:/app/logs
     command: python -m exchange_simulator --no-visualizer
     restart: unless-stopped
     healthcheck:
@@ -112,6 +119,7 @@ services:
 
 volumes:
   sim-data:
+  sim-logs:
   ai-data:
   ai-logs:
   hft-logs:

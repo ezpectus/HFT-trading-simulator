@@ -21,6 +21,7 @@
 #include <thread>
 #include <functional>
 #include <fstream>
+#include <memory>
 #include <sys/stat.h>
 
 namespace hft {

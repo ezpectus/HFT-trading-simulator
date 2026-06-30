@@ -51,6 +51,27 @@ Submit a market or limit order. Server responds with a fill notification.
 ```
 Request to close an open position at market price.
 
+#### Set Simulation Speed
+```json
+{
+  "type": "set_speed",
+  "speed": 2
+}
+```
+Set simulation speed. Valid values: `0` (pause), `1` (normal), `2` (2x), `5` (5x). All clients receive the speed change.
+
+#### Config Update (hot-reload)
+```json
+{
+  "type": "config_update",
+  "config": {
+    "volatility": { "BTC/USDT": 0.8 },
+    "fees": { "binance": { "maker": 0.0005, "taker": 0.0007 } }
+  }
+}
+```
+Hot-reload simulator parameters without restart. Supports volatility, fees, slippage, and other configurable parameters.
+
 ### Simulator → Client
 
 #### Snapshot (initial)
@@ -179,6 +200,26 @@ Request to close an open position at market price.
 }
 ```
 
+#### Speed Change (broadcast)
+```json
+{
+  "type": "speed_change",
+  "speed": 2,
+  "timestamp": 1704067500
+}
+```
+Broadcast to all clients when simulation speed changes. Speed: 0=paused, 1=normal, 2=2x, 5=5x.
+
+#### Config Updated (broadcast)
+```json
+{
+  "type": "config_updated",
+  "config": { ... },
+  "timestamp": 1704067500
+}
+```
+Broadcast to all clients when config is hot-reloaded.
+
 ---
 
 ## Port 8766: AI Signal Bot Signal Publisher
@@ -290,10 +331,14 @@ Returned in response to a `run_backtest` request. Contains results for each stra
 | 8765 | C→S | `subscribe` | Subscribe to market data |
 | 8765 | C→S | `order` | Submit order |
 | 8765 | C→S | `close_position` | Close open position |
-| 8765 | S→C | `snapshot` | Initial market state + order books |
+| 8765 | C→S | `set_speed` | Set simulation speed (0/1/2/5) |
+| 8765 | C→S | `config_update` | Hot-reload simulator parameters |
+| 8765 | S→C | `snapshot` | Initial market state + order books + accounts |
 | 8765 | S→C | `candles` | Streaming candle + price + order book + account data |
 | 8765 | S→C | `fill` | Order fill confirmation |
 | 8765 | S→C | `arbitrage_scan` | Active arbitrage opportunities |
+| 8765 | S→C | `speed_change` | Simulation speed changed (broadcast) |
+| 8765 | S→C | `config_updated` | Config hot-reloaded (broadcast) |
 | 8765 | S→C | `error` | Error message |
 | 8766 | C→S | `subscribe` | Subscribe to AI signals |
 | 8766 | C→S | `run_backtest` | Request backtest execution |
@@ -385,3 +430,47 @@ Returned in response to a `run_backtest` request. Contains results for each stra
 | equity_curve | array | Balance at each candle |
 | signals_generated | int | Total signals generated |
 | signals_valid | int | Signals that passed validation |
+
+### Closed Trade
+| Field | Type | Description |
+|-------|------|-------------|
+| symbol | string | Trading pair |
+| exchange | string | Exchange ID |
+| side | string | "BUY" (long) or "SELL" (short) |
+| quantity | float | Position size |
+| entry_price | float | Entry price |
+| exit_price | float | Exit price |
+| pnl | float | Realized PnL |
+| fee | float | Fee paid |
+| reason | string | Close reason: "MANUAL", "STOP_LOSS", "TAKE_PROFIT", "LIQUIDATION" |
+| entry_time | int | Entry timestamp |
+| exit_time | int | Exit timestamp |
+
+---
+
+## Connection Resilience
+
+All WebSocket clients implement exponential backoff auto-reconnect:
+
+| Attempt | Delay |
+|---------|-------|
+| 1 | 1s |
+| 2 | 2s |
+| 3 | 4s |
+| 4 | 8s |
+| 5 | 16s |
+| 6+ | 30s (cap) |
+
+On reconnect, clients re-send `subscribe` to get a fresh snapshot.
+
+---
+
+## Compression
+
+WebSocket per-message deflate compression is supported to reduce bandwidth for large order book and candle payloads.
+
+---
+
+## Mock Mode (Web UI)
+
+When `VITE_MOCK_MODE=true` is set, the Web UI generates synthetic data locally without connecting to any WebSocket server. All message types are simulated client-side for standalone demo purposes.

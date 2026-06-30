@@ -1,0 +1,149 @@
+name: Deploy
+
+on:
+  push:
+    tags: ["v*.*.*"]
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  deploy-web-ui:
+    name: Deploy Web UI to Netlify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web-ui/package.json
+      - run: npm ci || npm install
+        working-directory: web-ui
+      - name: Build
+        run: npm run build
+        working-directory: web-ui
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: web-ui/dist
+          production-branch: main
+          production-deploy: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from ${{ github.sha }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  build-and-push:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [exchange-simulator, ai-signal-bot, hft-trade-bot, web-ui]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.DOCKER_REGISTRY || 'ghcr.io' }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.DOCKER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/${{ matrix.service }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy docker-compose to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "docker-compose.prod.yml,.env.prod.example,Makefile.prod"
+          target: "/opt/hft/"
+
+      - name: Pull and restart services
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/hft
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --force-recreate
+            docker image prune -f
+
+  health-check:
+    name: Post-Deploy Health Check
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Check health endpoints
+        run: |
+          sleep 15
+          for endpoint in \
+            "http://${{ secrets.DEPLOY_HOST }}:8765/health" \
+            "http://${{ secrets.DEPLOY_HOST }}:8080/health" \
+            "http://${{ secrets.DEPLOY_HOST }}:3000/"; do
+            echo "Checking $endpoint..."
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$endpoint" || echo "FAIL")
+            echo "  Status: $status"
+            if [ "$status" != "200" ]; then
+              echo "WARNING: $endpoint returned $status"
+            fi
+          done
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy, health-check]
+    if: always()
+    steps:
+      - name: Discord notification
+        if: ${{ vars.DISCORD_WEBHOOK_URL != '' }}
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        with:
+          args: "Deployment ${{ github.ref_name }}: ${{ job.status == 'success' && 'SUCCESS' || 'FAILED' }}"
+
+      - name: Telegram notification
+        if: ${{ vars.TELEGRAM_BOT_TOKEN != '' }}
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            HFT Trading System deployment ${{ github.ref_name }}
+            Status: ${{ job.status == 'success' && 'SUCCESS ✅' || 'FAILED ❌' }}
+            Commit: ${{ github.sha }}

@@ -3,7 +3,10 @@ build/
 *.obj
 *.exe
 *.log
+*.csv
 .git/
 .gitignore
 logs/
 .env
+Dockerfile
+.dockerignore

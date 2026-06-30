@@ -99,3 +99,55 @@ body {
 .scrollbar-thin::-webkit-scrollbar {
   height: 3px;
 }
+
+/* Performance: skip rendering for off-screen panel containers */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 200px;
+}
+
+/* Screen reader only — for accessibility labels */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus visible — consistent keyboard focus indicator */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Prevent layout shift on canvas elements */
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+/* GPU acceleration for animated elements */
+.pulse-dot,
+.flash-green,
+.flash-red,
+.animate-slide-in {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}

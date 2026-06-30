@@ -1,0 +1,208 @@
+{
+  "dashboard": {
+    "title": "HFT Trading System Overview",
+    "tags": ["hft", "trading", "production"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "5s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Order Throughput (orders/sec)",
+        "type": "stat",
+        "datasource": "Prometheus",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(hft_orders_sent_total[1m])",
+            "legendFormat": "Sent"
+          },
+          {
+            "expr": "rate(hft_orders_filled_total[1m])",
+            "legendFormat": "Filled"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "green", "value": 50}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Fill Rate %",
+        "type": "gauge",
+        "datasource": "Prometheus",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "hft_fill_rate * 100",
+            "legendFormat": "Fill Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 50},
+                {"color": "green", "value": 80}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Active Positions",
+        "type": "stat",
+        "datasource": "Prometheus",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "hft_active_positions",
+            "legendFormat": "Positions"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Error Count (5min)",
+        "type": "stat",
+        "datasource": "Prometheus",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "increase(hft_errors_total[5m])",
+            "legendFormat": "Errors"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 50}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Latency Percentiles (μs)",
+        "type": "timeseries",
+        "datasource": "Prometheus",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {"expr": "histogram_quantile(0.50, hft_latency_us_bucket)", "legendFormat": "p50"},
+          {"expr": "histogram_quantile(0.90, hft_latency_us_bucket)", "legendFormat": "p90"},
+          {"expr": "histogram_quantile(0.99, hft_latency_us_bucket)", "legendFormat": "p99"},
+          {"expr": "histogram_quantile(0.999, hft_latency_us_bucket)", "legendFormat": "p99.9"}
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "μs"}
+        }
+      },
+      {
+        "id": 6,
+        "title": "PnL (cumulative)",
+        "type": "timeseries",
+        "datasource": "Prometheus",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {"expr": "hft_pnl_total", "legendFormat": "Total PnL"},
+          {"expr": "hft_pnl_unrealized", "legendFormat": "Unrealized PnL"}
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "currencyUSD"}
+        }
+      },
+      {
+        "id": 7,
+        "title": "Signal Rate by Strategy",
+        "type": "timeseries",
+        "datasource": "Prometheus",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "targets": [
+          {"expr": "rate(hft_signals_total{strategy=\"trend_following\"}[1m])", "legendFormat": "Trend"},
+          {"expr": "rate(hft_signals_total{strategy=\"mean_reversion\"}[1m])", "legendFormat": "Mean Rev"},
+          {"expr": "rate(hft_signals_total{strategy=\"stat_arb\"}[1m])", "legendFormat": "Stat Arb"},
+          {"expr": "rate(hft_signals_total{strategy=\"market_making\"}[1m])", "legendFormat": "MM"},
+          {"expr": "rate(hft_signals_total{strategy=\"ml_ensemble\"}[1m])", "legendFormat": "ML"}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "SHM Queue Depth",
+        "type": "timeseries",
+        "datasource": "Prometheus",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "targets": [
+          {"expr": "hft_shm_signal_queue_depth", "legendFormat": "Signal Queue"},
+          {"expr": "hft_shm_order_queue_depth", "legendFormat": "Order Queue"},
+          {"expr": "hft_shm_fill_queue_depth", "legendFormat": "Fill Queue"}
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Rejection Rate by Reason",
+        "type": "piechart",
+        "datasource": "Prometheus",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "targets": [
+          {"expr": "sum by (reason) (rate(hft_orders_rejected_total[5m]))", "legendFormat": "{{reason}}"}
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Memory Usage (MB)",
+        "type": "timeseries",
+        "datasource": "Prometheus",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "targets": [
+          {"expr": "hft_memory_usage_mb{service=\"ai-signal-bot\"}", "legendFormat": "AI Bot"},
+          {"expr": "hft_memory_usage_mb{service=\"hft-trade-bot\"}", "legendFormat": "HFT Bot"},
+          {"expr": "hft_memory_usage_mb{service=\"exchange-simulator\"}", "legendFormat": "Simulator"}
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "datasource",
+          "type": "datasource",
+          "query": "Prometheus",
+          "current": {"text": "Prometheus", "value": "Prometheus"}
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Annotations & Alerts",
+          "type": "dashboard",
+          "datasource": "Prometheus",
+          "enable": true,
+          "showIn": 0
+        }
+      ]
+    }
+  }
+}

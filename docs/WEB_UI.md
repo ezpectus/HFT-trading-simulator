@@ -1,6 +1,6 @@
 # Web UI Dashboard
 
-Browser-based trading dashboard for the crypto trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts and 90+ analytical panels.
+Browser-based trading dashboard for the crypto trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **201+ React components**, **191+ registered panels** across 7 categories, and **75+ advanced mathematical model components**.
 
 ## Features
 
@@ -15,21 +15,124 @@ Browser-based trading dashboard for the crypto trading simulator. Binance-inspir
 - **Positions Panel** — Open positions with unrealized PnL, liquidation price, leverage badge, SL/TP progress bar
 - **Trade History** — Closed trades with PnL, SL/TP reason, summary stats, CSV export
 
-### AI & Signals
+### AI and Signals
 - **AI Signal Feed** — Real-time signals with confidence, R:R, market regime, confidence distribution histogram
 - **Arbitrage Panel** — Active cross-exchange opportunities with spread/profit
 - **Bot Status** — AI + HFT bot status cards, portfolio overview, activity feed
 - **Signal Performance** — Signal hit rate tracking
 - **Market Regime** — Trending/ranging/volatile auto-detection
+- **Sentiment Indicator** — News sentiment gauge
 
-### Analytics (90+ panels in 7 categories)
-- **Order Flow** — CVD, tape, depth chart, spoofing detector, dark order flow, order flow imbalance, liquidity heatmap
-- **Technical Analysis** — Fibonacci, FVG, pattern detector/scanner, support/resistance, order blocks, candle patterns
-- **Risk & Analytics** — Monte Carlo, drawdown analysis, VaR/CVaR/beta, Kelly calculator, Greeks, volatility surface, hedging suggestions, correlation matrix, position correlation, P&L attribution
-- **Portfolio** — Markowitz optimizer, auto-rebalance, multi-account view, session stats, heatmap calendar, time-of-day performance, trade clustering
-- **Strategy** — Visual strategy builder, TWAP/VWAP execution bot, walk-forward analysis, alert webhooks, watchlist
-- **Export** — Session JSON, trade stats CSV, trade journal with tags
-- **Config** — Hot-reload simulator parameters, custom indicator builder
+### Analytics (191+ panels in 7 categories)
+
+#### Order Flow
+- Cumulative Volume Delta (CVD)
+- Real-time order flow tape
+- Depth chart (cumulative depth visualization)
+- Order book heatmap (color intensity by volume)
+- Spoofing detector
+- Dark order flow detection
+- Order flow imbalance indicator
+- Liquidity heatmap (pool levels over time)
+- Slippage simulator (4 models: linear, square-root, constant, volume-based)
+- Order flow heatmap (aggregated per-candle, absorption/momentum detection)
+- Tick speed anomaly detector
+- Put/Call ratio simulator
+- MIT order simulator
+- Market depth replay (L2 orderbook reconstruction, timeline scrubber)
+
+#### Technical Analysis
+- Fibonacci retracement levels
+- Fair Value Gap (FVG) detection
+- Candle pattern detection (doji, hammer, engulfing) with visual overlay
+- Candle pattern scanner (scan all symbols for patterns)
+- Support/resistance auto-detection with touch count
+- Order block detection (institutional zones)
+- Session-based volume profile (London/NY/Asia)
+- Volume profile + POC (Point of Control)
+- Market profile (TPO: time price opportunity)
+- Multi-timeframe comparison (side-by-side)
+- Composite Signal Dashboard (10 indicators, strength-weighted scoring)
+- Signal Confidence Scorer (8-factor confidence model)
+- Regime Adaptive Strategy (5 regimes, position sizing guidance)
+- Cross-Market Divergence (BTC dominance, ETH/BTC ratio, pair divergence)
+- Price Action Score (10 candlestick pattern scores, composite 0-100)
+- Correlation Heatmap (visual SVG matrix)
+- Signal Matrix Heatmap (8 indicators x N symbols)
+- Indicator Formula Parser (tokenizer + AST evaluator)
+
+#### Risk and Analytics
+- Monte Carlo simulation for strategy robustness
+- Drawdown recovery analysis
+- Risk dashboard (VaR, CVaR, beta)
+- Kelly criterion position sizing calculator
+- Risk parity position sizing calculator
+- Greeks calculator (Black-Scholes: delta, gamma, theta, vega, rho)
+- Volatility surface visualization
+- Volatility regime indicator (GARCH-like)
+- Correlation matrix between symbols
+- Position correlation matrix (cross-position risk)
+- Correlation-based hedging suggestions
+- Correlation-based pair trading signals
+- P&L attribution (which position contributes most)
+- P&L attribution chart (equity contribution over time)
+- Risk-adjusted return comparison (Sharpe/Sortino/Calmar side-by-side)
+- Drawdown analysis panel
+- Heatmap calendar (daily PnL heatmap by date)
+- Performance Attribution (P&L by side/symbol/strategy/hour/day)
+
+#### Portfolio
+- Portfolio optimizer (Markowitz efficient frontier)
+- Auto-rebalance portfolio to target weights
+- Multi-account aggregated view
+- Session stats card (PnL since session start, best/worst trade, win rate)
+- Time-of-day performance analysis
+- Trade clustering detection (overtrading warning)
+
+#### Strategy
+- Strategy builder (visual rule-based strategy creator, if-then conditions)
+- TWAP/VWAP execution bot strategy (sliced order execution with progress)
+- Walk-forward analysis for backtest validation
+- Alert webhook (send notifications to Discord/Telegram)
+- Custom watchlist with price tracking
+- Custom indicator builder (SMA, EMA, RSI, Bollinger with custom params)
+
+#### Export
+- Session export (full session data as JSON)
+- Trade statistics export to CSV with custom fields
+- Trade journal with tags and filtering (localStorage persistence)
+
+#### Config
+- Hot-reload simulator parameters
+- Custom indicator builder
+
+### Advanced Mathematical Models (75+ components)
+
+Phases 24-39 added 75+ advanced mathematical model components across 15 batches:
+
+| Batch | Phase | Components |
+|-------|-------|------------|
+| V1 | 24 | GARCH Volatility, Cointegration Scanner, Markov Regime Predictor, Fractal Analyzer, Kalman Filter Price, Spectral Analysis |
+| V2 | 26 | Ehlers SuperSmoother, Bayesian Price Predictor, Almgren-Chriss, Wavelet Decomposition, K-Means Clustering, Copula Dependency |
+| V3 | 27 | Hidden Markov Model, PCA, Optimal Stopping, Isolation Forest, Variational Mode Decomposition |
+| V4 | 28 | EMD + Hilbert-Huang Transform, SVM, Black-Litterman, Hawkes Process, Dynamic Time Warping |
+| V5 | 29 | LSTM Neural Network, Kelly Portfolio Sizing, Gaussian Process Regression, Markov-Switching GARCH, Empirical Dynamic Modeling |
+| V6 | 30 | Autoencoder, Optimal Transport, Rough Volatility, Transfer Entropy, Graph Theory Network |
+| V7 | 31 | Conditional VaR, Non-Stationary Spectral Analysis, Random Matrix Theory, Bayesian Structural Time Series, Topological Data Analysis |
+| V8 | 32 | Stochastic Differential Equations, Gaussian Mixture Model, Wavelet Packet Decomposition, Information Bottleneck, Affine Arithmetic |
+| V9 | 33 | Renormalization Group, Free Energy Principle, Tensor Decomposition, Compressed Sensing, Malliavin Calculus |
+| V10 | 34 | Hamiltonian Monte Carlo, RKHS, Variational Autoencoder, Schrodinger Bridge, Lie Group Symmetries |
+| V11 | 35 | Kolmogorov-Sinai Entropy, Persistent Homology Landscape, Fokker-Planck Equation, Hopf Bifurcation, Cramer-Rao Lower Bound |
+| V12 | 36 | Wasserstein Barycenters, Koopman Operator Theory, Stochastic Optimal Control, Renyi Entropy Dynamics, Pontryagin Maximum Principle |
+| V13 | 37 | Burgers Equation, Sobolev Space Regularization, Ito Calculus Generator, Banach Fixed-Point, Cesaro/Fejer Kernel |
+| V14 | 38 | Girsanov Theorem, Stone-Cech Compactification, Malliavin-Stein Sensitivity, Prokhorov Metric, Radon-Nikodym Derivative |
+| V15 | 39 | Hahn Decomposition, Cameron-Martin Formula, Arzela-Ascoli Theorem, Riesz Representation, Lax-Milgram Theorem |
+
+### Additional Indicators
+- On-balance volume (OBV), Money flow index (MFI), Williams %R, Ichimoku cloud
+- Stochastic oscillator, Average True Range (ATR), Parabolic SAR
+- ADX/DI indicator (trend strength), Commodity Channel Index (CCI)
+- Awesome Oscillator, Volume-weighted MACD
 
 ### UX Features
 - **Performance Dashboard** — Aggregate metrics, per-exchange breakdown, equity curve, drawdown chart, Sharpe/Sortino ratios, win/loss streaks
@@ -44,7 +147,13 @@ Browser-based trading dashboard for the crypto trading simulator. Binance-inspir
 - **Sound Alerts** — Fills, SL/TP hits, connection changes (Web Audio API)
 - **Dark/Light Theme** — Toggle, persisted in localStorage
 - **Mobile-responsive** — Panel toggle, responsive header/footer
-- **Live Status** — WebSocket connection indicators with exponential backoff auto-reconnect
+- **Live Status** — WebSocket connection indicators with exponential backoff auto-reconnect (1s -> 30s cap)
+- **Price Comparison** — Cross-exchange prices with spread + arb badge
+- **Ticker Tape** — All 9 prices in header, clickable
+- **Multi-leg Options** — Options strategies (straddle, strangle, iron condor)
+- **Trade Replay** — Trade replay with timeline scrubber
+- **Trade Timeline** — Visual fill sequence with timeline dots
+- **Config Panel** — Hot-reload simulator config from UI
 
 ## Quick Start
 
@@ -58,6 +167,22 @@ npm run dev
 
 Open http://localhost:3000
 
+### Mock Mode (Standalone Demo)
+
+Run the Web UI without any backend services using mock data:
+
+```bash
+cd web-ui
+VITE_MOCK_MODE=true npm run dev
+```
+
+Or set it in `.env`:
+```
+VITE_MOCK_MODE=true
+```
+
+This generates synthetic candle, orderbook, and signal data so the UI is fully interactive without the Exchange Simulator, AI Signal Bot, or HFT Trade Bot running.
+
 ### Production (Docker)
 
 ```bash
@@ -66,37 +191,52 @@ docker-compose up
 
 Open http://localhost:3000
 
+### Production (Netlify)
+
+The `netlify.toml` file is pre-configured with redirects and security headers:
+
+```bash
+cd web-ui
+npm run build
+# Deploy dist/ to Netlify
+```
+
 ## Architecture
 
 ```
 Browser (React 18 + Vite 5)
-  ├── WebSocket → Exchange Simulator (ws://localhost:8765)
-  │     ├── subscribe → snapshot, candles, fills, arbitrage_scan
-  │     └── order, close_position, set_speed → fill
-  └── WebSocket → AI Signal Bot (ws://localhost:8766)
-        ├── subscribe → signal_history, signal, market_regime
-        └── run_backtest → backtest_result
-
-Panel Registry (src/panels/registry.js)
-  ├── Category: Order Flow      (CVD, tape, depth, spoofing, dark flow, imbalance, liquidity)
-  ├── Category: Technical        (Fibonacci, FVG, patterns, S/R, order blocks)
-  ├── Category: Risk & Analytics (Monte Carlo, drawdown, VaR, Kelly, Greeks, volatility, hedging)
-  ├── Category: Portfolio        (Markowitz, rebalance, multi-account, session, heatmap, clustering)
-  ├── Category: Strategy         (builder, execution bot, walk-forward, webhook, watchlist)
-  ├── Category: Export           (session JSON, trade stats CSV, trade journal)
-  └── Category: Config           (hot-reload, indicator builder)
+  |
+  |-- WebSocket -> Exchange Simulator (ws://localhost:8765)
+  |     |-- subscribe -> snapshot, candles, fills, arbitrage_scan
+  |     |-- order, close_position, set_speed -> fill
+  |
+  |-- WebSocket -> AI Signal Bot (ws://localhost:8766)
+  |     |-- subscribe -> signal_history, signal, market_regime
+  |     |-- run_backtest -> backtest_result
+  |
+  Panel Registry (src/panels/registry.js)
+  |-- Category: Order Flow         (14 panels)
+  |-- Category: Technical Analysis  (18 panels)
+  |-- Category: Risk and Analytics  (20 panels)
+  |-- Category: Portfolio            (7 panels)
+  |-- Category: Strategy             (6 panels)
+  |-- Category: Export               (3 panels)
+  |-- Category: Config               (2 panels)
+  |-- Advanced Math Models           (75+ panels, V1-V15)
+  +-- Total: 191+ registered panels, 201+ component files
 ```
 
 ## Configuration
 
-WebSocket URLs are configured via environment variables (`.env` file, see `.env.example`):
+WebSocket URLs and mock mode are configured via environment variables (`.env` file, see `.env.example`):
 
 ```
 VITE_WS_EXCHANGE=ws://localhost:8765
 VITE_WS_SIGNALS=ws://localhost:8766
+VITE_MOCK_MODE=false
 ```
 
-Both variables are optional — defaults use localhost. For Docker, ports are mapped to host. For remote deployment, replace localhost with your server address.
+All variables are optional — defaults use localhost. For Docker, ports are mapped to host. For remote deployment, replace localhost with your server address.
 
 ## Tech Stack
 
@@ -104,32 +244,57 @@ Both variables are optional — defaults use localhost. For Docker, ports are ma
 |-----------|---------|
 | React 18 | UI framework |
 | Vite 5 | Build tool / dev server |
-| TailwindCSS 3 | Styling (dark/light theme) |
+| TailwindCSS 3 | Styling (dark/light theme via CSS variables) |
 | lightweight-charts 4 | TradingView candle charts |
 | lucide-react | Icons |
+| Vitest | Unit testing framework |
+| ESLint | Linting with React plugin |
+
+## Performance Optimizations
+
+| Optimization | Implementation |
+|-------------|----------------|
+| List Virtualization | `VirtualList.jsx` — generic windowed list renderer with overscan, applied to FillsPanel and SignalFeed |
+| Error Boundaries | `PanelErrorBoundary` — class component with retry button, wraps every panel |
+| Suspense | React.Suspense wrapper in `PanelContainer.jsx` for future lazy loading |
+| React.lazy ready | Suspense in place, ready for `React.lazy()` import conversion |
+| Panel isolation | ErrorBoundary + Suspense per panel (triple protection: error catch + loading state + graceful fallback) |
+| Connection resilience | Exponential backoff (1s -> 2s -> 4s -> 8s -> 16s -> 30s cap) with auto-reconnect |
+| localStorage persistence | Panel visibility, theme, trade journal — survives page reloads |
+
+## Testing
+
+```bash
+cd web-ui
+npm test          # Run Vitest tests
+npm run lint      # Run ESLint
+npm run build     # Production build verification
+```
+
+CI/CD runs JS lint + test as a dedicated job in GitHub Actions.
 
 ## Layout
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│ Header: Exchange | Symbol | Price | Speed | Status | Theme│
-├────────────────────────────────────┬──────────────────────┤
-│                                    │  Order Book          │
-│  Candle Chart                      │  (bids/asks/heatmap) │
-│  (TradingView + indicators)        │                      │
-│                                    ├──────────────────────┤
-│                                    │  Tabbed Panels:      │
-├────────────────────────────────────┤  - Account           │
-│  Order Form                        │  - Bots              │
-│  (BUY/SELL, SL/TP, quick-trade)   │  - Signals           │
-│                                    │  - Arbitrage         │
-├────────────────────────────────────┤  - Fills             │
-│  Sidebar: Panel Registry (90+)    │  - History           │
-│  (collapsible categories)          │  - Performance       │
-│                                    │  - Backtest          │
-├────────────────────────────────────┴──────────────────────┤
-│ StatusBar: sim time | candles | bots | funding | connections│
-└───────────────────────────────────────────────────────────┘
++---------------------------------------------------------------+
+| Header: Exchange | Symbol | Price | Speed | Status | Theme    |
++------------------------------------+--------------------------+
+|                                    |  Order Book              |
+|  Candle Chart                      |  (bids/asks/heatmap)     |
+|  (TradingView + indicators)        |                          |
+|                                    +--------------------------+
+|                                    |  Tabbed Panels:          |
++------------------------------------+  - Account               |
+|  Order Form                        |  - Bots                  |
+|  (BUY/SELL, SL/TP, quick-trade)   |  - Signals               |
+|                                    |  - Arbitrage             |
++------------------------------------+  - Fills                 |
+|  Sidebar: Panel Registry (191+)   |  - History               |
+|  (collapsible categories)          |  - Performance           |
+|                                    |  - Backtest              |
++------------------------------------+--------------------------+
+| StatusBar: sim time | candles | bots | funding | connections   |
++---------------------------------------------------------------+
 ```
 
 ## Core Components (App.jsx layout)
@@ -142,28 +307,38 @@ Both variables are optional — defaults use localhost. For Docker, ports are ma
 | OrderForm | `OrderForm.jsx` | Market/limit order with SL/TP, quick-trade, fee breakdown |
 | AccountPanel | `AccountPanel.jsx` | Per-exchange balance/equity/PnL, leaderboard, mini bars |
 | PositionsPanel | `PositionsPanel.jsx` | Open positions with liquidation, leverage, SL/TP progress |
-| SignalFeed | `SignalFeed.jsx` | AI signals with confidence histogram |
+| SignalFeed | `SignalFeed.jsx` | AI signals with confidence histogram, VirtualList rendering |
 | ArbitragePanel | `ArbitragePanel.jsx` | Active arb opportunities |
-| FillsPanel | `FillsPanel.jsx` | Recent fills with statistics |
+| FillsPanel | `FillsPanel.jsx` | Recent fills with statistics, VirtualList rendering |
 | PerformanceDashboard | `PerformanceDashboard.jsx` | Metrics, equity curve, drawdown, Sharpe/Sortino |
 | BacktestRunner | `BacktestRunner.jsx` | Backtest config and results |
 | TradeHistory | `TradeHistory.jsx` | Closed trades with PnL, CSV export |
 | BotStatus | `BotStatus.jsx` | AI + HFT bot status |
-| StatusBar | `StatusBar.jsx` | Sim time, candle count, bot activity, funding rates |
+| StatusBar | `StatusBar.jsx` | Sim time, candle count, bot activity, funding rates, latency |
 | Toast | `Toast.jsx` | Toast notification system |
 | OnboardingTutorial | `OnboardingTutorial.jsx` | First-run guide |
 | KeyboardHelp | `KeyboardHelp.jsx` | Keyboard shortcut overlay |
 
-## Panel Registry Components (90+)
+## Panel Registry System
 
-All sidebar panels are registered in `src/panels/registry.js` and rendered by `PanelContainer.jsx`. See [Architecture](ARCHITECTURE.md) for the full component list.
+All sidebar panels are registered in `src/panels/registry.js` (191+ panels, 201+ component imports) and rendered by `PanelContainer.jsx` with ErrorBoundary + Suspense per panel.
+
+### Key Infrastructure Components
+
+| Component | File | Description |
+|-----------|------|-------------|
+| PanelContainer | `PanelContainer.jsx` | Renders panels by category, ErrorBoundary + Suspense per panel, collapsible sections, localStorage visibility |
+| VirtualList | `VirtualList.jsx` | Generic windowed list renderer with overscan for performance |
+| DetachablePanel | `DetachablePanel.jsx` | Popup panel wrapper for multi-monitor support |
+| PanelErrorBoundary | (in PanelContainer) | Class component error boundary with retry button |
 
 ### Hooks
 
 | Hook | File | Description |
 |------|------|-------------|
-| useWebSocket | `useWebSocket.js` | Generic WebSocket with exponential backoff |
+| useWebSocket | `useWebSocket.js` | Generic WebSocket with exponential backoff (1s-30s cap) |
 | useExchangeData | `useExchangeData.js` | Candles, prices, orderbooks, accounts, fills, arbitrage |
+| useSignalData | `useSignalData.js` | AI signals, regime, backtest results, send backtest requests |
 | useDetachablePanels | `useDetachablePanels.js` | Multi-monitor popup panel support |
 | useSoundAlerts | `useSoundAlerts.js` | Web Audio API sound notifications |
 | useTheme | `useTheme.js` | Dark/light theme toggle |
@@ -174,7 +349,7 @@ All sidebar panels are registered in `src/panels/registry.js` and rendered by `P
 
 | Utility | File | Description |
 |---------|------|-------------|
-| indicators | `indicators.js` | EMA, RSI, SMA, BB, VWAP, ATR, ADX, OBV, MFI, Williams %R, Stochastic, CCI, AO, SAR |
+| indicators | `indicators.js` | EMA, RSI, SMA, BB, VWAP, ATR, ADX, OBV, MFI, Williams %R, Stochastic, CCI, AO, SAR, MACD |
 | performance | `performance.js` | Aggregate metrics, equity curve, drawdown, Sharpe/Sortino |
 | format | `format.js` | Number/price formatting |
 | timeframes | `timeframes.js` | Multi-timeframe candle aggregation |
@@ -186,3 +361,16 @@ All sidebar panels are registered in `src/panels/registry.js` and rendered by `P
 npm run build    # Output to dist/
 npm run preview  # Preview production build
 ```
+
+## CLI Monitor Scripts
+
+Four CLI monitor scripts provide terminal-based monitoring alongside the Web UI:
+
+| Script | Location | Description |
+|--------|----------|-------------|
+| `monitor.py` | `ai-signal-bot/` | Live signal feed, bot log tail, signal history |
+| `monitor.py` | `hft-trade-bot/` | C++ process status, color-coded log tail |
+| `error_monitor.py` | root | Unified error+warning viewer across all services |
+| `price_monitor.py` | root | Dual WS connection, live prices + signals + fills |
+
+Use `start.bat` (Windows) or `start.sh` (Linux/Mac) to launch all 4 services + 4 monitors in 8 terminal windows.

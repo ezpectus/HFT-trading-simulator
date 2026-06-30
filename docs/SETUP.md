@@ -4,7 +4,7 @@
 
 - **Python 3.12+** (for exchange-simulator and ai-signal-bot)
 - **Node.js 20+** (for web-ui)
-- **C++20 compiler** (GCC 10+, Clang 12+, or MSVC 19.29+) and **CMake 3.16+** (for hft-trade-bot)
+- **C++20 compiler** (GCC 13+, Clang 17+, or MSVC 19.29+) and **CMake 3.16+** (for hft-trade-bot v2.0)
 - **Docker** (optional, for containerized deployment)
 
 ## Quick Start (Docker)
@@ -20,6 +20,19 @@ docker-compose up
 # View logs
 docker-compose logs -f ai-signal-bot
 ```
+
+## Quick Start (Web UI Only — Mock Mode)
+
+Run the Web UI standalone without any backend services:
+
+```bash
+cd web-ui
+npm install
+VITE_MOCK_MODE=true npm run dev
+# Open http://localhost:3000
+```
+
+This generates synthetic market data client-side for demo purposes. No Python, C++, or Docker required.
 
 ## Manual Setup
 
@@ -64,7 +77,7 @@ python run_backtest.py --optimize
 python run_backtest.py --db data/trading.db --symbol BTC/USDT
 ```
 
-### 3. HFT Trade Bot (C++)
+### 3. HFT Trade Bot (C++20 v2.0)
 
 #### Build
 
@@ -89,6 +102,28 @@ sudo apt install -y \
     libyaml-cpp-dev
 ```
 
+#### V2 Engine (optional, recommended for performance)
+
+The V2 engine requires GCC 13+ or Clang 17+ for full C++20 support. It uses:
+- `-O3`, `-flto` (LTO), `-msse4.2`, `-ffast-math` compiler flags
+- Cache-line aligned structs (`alignas(64)`)
+- Lock-free SPSC queue and object pool (no heap allocations in hot path)
+
+Enable V2 in `config/config.yaml`:
+```yaml
+signal_engine_v2:
+  enabled: true
+  weights:
+    ema: 0.25
+    rsi: 0.15
+    obi: 0.20
+    vwap: 0.10
+    adx: 0.10
+    pressure: 0.20
+```
+
+Set `enabled: false` to use the V1 fallback engine.
+
 #### Run
 
 ```bash
@@ -97,7 +132,7 @@ sudo apt install -y \
 
 ## Running All Components
 
-Open four terminals (or use `start.bat` / `start.sh`):
+Open four terminals (or use `start.bat` / `start.sh` which opens 8 windows: 4 services + 4 monitors):
 
 **Terminal 1 — Exchange Simulator:**
 ```bash
@@ -197,11 +232,13 @@ crypto-trading-simulator/
 │
 ├── web-ui/                       # Browser dashboard (React 18)
 │   ├── src/
-│   │   ├── components/           # 90+ UI components
-│   │   ├── panels/               # Panel registry + container
-│   │   ├── hooks/                # WebSocket, exchange data, signals, theme, sound
+│   │   ├── components/           # 201+ UI components (191+ registered panels)
+│   │   ├── panels/               # Panel registry + container (ErrorBoundary + Suspense)
+│   │   ├── hooks/                # WebSocket, exchange data, signals, theme, sound, detachable
 │   │   └── utils/                # Indicators, performance, format, timeframes, patterns
-│   ├── .env.example              # WebSocket URL configuration
+│   ├── .env.example              # WebSocket URL + mock mode configuration
+│   ├── netlify.toml              # Netlify deployment config
+│   ├── .eslintrc.json            # ESLint configuration
 │   ├── Dockerfile                # Multi-stage (node build + nginx serve)
 │   ├── nginx.conf                # SPA routing + caching
 │   ├── package.json
@@ -209,18 +246,19 @@ crypto-trading-simulator/
 │   ├── tailwind.config.js
 │   └── postcss.config.js
 │
-├── docs/                         # Documentation (10 files)
-├── .github/                      # CI templates + workflows
+├── docs/                         # Documentation (12 files)
+├── .github/                      # CI workflows + issue/PR templates
+├── logs/                         # Timestamped log files (auto-created)
 ├── docker-compose.yml            # 4-service orchestration
 ├── shared_config.yaml            # Global settings
-├── Makefile                      # install, dev, test, lint, build, docker
-├── start.bat / start.sh          # Quick-start scripts (Windows/Linux)
+├── Makefile                      # install, dev, test, test-js, lint, build, docker, logs
+├── start.bat / start.sh          # Quick-start scripts (8 windows: 4 services + 4 monitors)
 ├── .editorconfig                 # IDE coding style
 ├── .gitignore
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── README.md
-└── LICENSE
+└── LICENSE                       # Apache 2.0
 ```
 
 ## Troubleshooting
@@ -247,8 +285,21 @@ crypto-trading-simulator/
 - Check WebSocket status indicators in the header (green = connected)
 - Verify exchange simulator is broadcasting
 - Check `.env` file WebSocket URLs (see `web-ui/.env.example`)
-- WebSocket uses exponential backoff (1s → 30s cap)
+- WebSocket uses exponential backoff (1s -> 30s cap)
+- Try mock mode: `VITE_MOCK_MODE=true npm run dev` to verify UI works without backend
 
 ### npm install fails
 - Ensure Node.js 20+ is installed: `node --version`
 - Delete `node_modules/` and retry: `npm cache clean --force && npm install`
+
+### Finding log files
+- All services write timestamped logs to `logs/` directory
+- `logs/<service>_latest.log` — symlink to most recent log
+- `logs/trades_latest.csv` — symlink to most recent trade CSV
+- Use `make logs` to view latest log files for all services
+
+### CLI Monitor Scripts
+- `ai-signal-bot/monitor.py` — live signal feed and bot log tail
+- `hft-trade-bot/monitor.py` — C++ process status and color-coded log tail
+- `error_monitor.py` — unified error+warning viewer across all services
+- `price_monitor.py` — dual WS connection, live prices + signals + fills

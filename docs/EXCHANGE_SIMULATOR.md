@@ -163,12 +163,110 @@ The visualizer displays real-time market data in the terminal:
 
 Enable with: `python -m exchange_simulator` (default: visualizer on)
 
+## Arbitrage Detection
+
+The simulator continuously scans for cross-exchange arbitrage opportunities:
+
+- Detects price discrepancies between exchanges for the same symbol
+- Calculates net spread after fees and slippage
+- Estimates maximum profitable quantity
+- Tracks active, closed, and expired opportunities
+- Broadcasts `arbitrage_scan` messages to all connected clients
+- Auto-executes arbitrage when spread exceeds configurable threshold
+
+## Funding Rates
+
+Per-exchange funding rates are charged to open positions:
+
+- Configurable funding interval (default: every 8 hours simulated)
+- Positive funding: longs pay shorts
+- Negative funding: shorts pay longs
+- Funding rate history tracked and broadcast to clients
+- Visualized in Web UI as funding rate history chart
+
+## Market Impact
+
+Large orders move the price based on order size relative to available liquidity:
+
+- Price impact proportional to `order_quantity / available_depth`
+- Temporary impact (price recovers) and permanent impact (price stays)
+- Configurable impact factor per exchange
+- Prevents unrealistic fills on large orders
+
+## News Event Simulation
+
+Simulates sudden market-moving events:
+
+- Random volatility spikes at configurable intervals
+- Price jumps with magnitude proportional to event severity
+- Event types: positive news (bullish spike), negative news (bearish spike), neutral (volatility increase only)
+- Toast notifications in Web UI when events occur
+- Configurable event frequency and severity
+
+## Liquidation Engine
+
+Auto-closes positions when margin falls below maintenance level:
+
+- Monitors unrealized PnL on every price update
+- Calculates liquidation price based on leverage and maintenance margin
+- Auto-closes position at market price when margin < maintenance
+- Liquidation reason recorded in trade history
+- Liquidation map panel in Web UI shows estimated liquidation levels
+
+## Partial Fills
+
+Large orders are split across multiple order book levels:
+
+- Order quantity consumed level by level from the book
+- Each level filled at its respective price
+- Average fill price reported to client
+- Remaining quantity stays as pending if limit order
+
+## Order Rejection
+
+Orders can be rejected with descriptive reasons:
+
+- **Insufficient margin** — not enough balance for position
+- **Max position size** — order exceeds configured maximum
+- **No price data** — symbol not available on selected exchange
+- Rejection messages sent to client with reason field
+
+## Data Export
+
+Export simulated market data for offline analysis:
+
+```bash
+# CSV export
+python -m exchange_simulator --export --export-dir data/exports
+
+# Parquet export (requires pyarrow)
+python -m exchange_simulator --export --export-format parquet
+```
+
+Exports include: candles, trades, account history, and order book snapshots.
+
+## Logging
+
+All services write timestamped log files to the `logs/` directory:
+
+- `logs/exchange_simulator_YYYYMMDD_HHMMSS.log` — service log
+- `logs/exchange_simulator_latest.log` — symlink to most recent
+- `logs/trades_YYYYMMDD_HHMMSS.csv` — CSV trade log (every fill, SL/TP, arb execution)
+- `logs/trades_latest.csv` — symlink to most recent trade CSV
+
+Use `make logs` to view latest log files for all services.
+
 ## Configuration
 
 See `exchange-simulator/config.yaml` for all parameters:
 
-- Exchange settings (fees, slippage, symbols)
-- Market parameters (timeframe, drift, seed, warmup)
-- Account settings (initial balance, leverage)
+- Exchange settings (fees, slippage, symbols, price offsets)
+- Market parameters (timeframe, drift, seed, warmup, volatility per symbol)
+- Account settings (initial balance, leverage, max position size)
 - Visualizer settings (refresh rate, chart dimensions)
-- WebSocket server (host, port)
+- WebSocket server (host, port, compression)
+- Funding rates (interval, rate per exchange)
+- News events (frequency, severity range)
+- Market impact (factor per exchange)
+- Arbitrage (auto-execute threshold, expiry timeout)
+- Liquidation (maintenance margin percentage)

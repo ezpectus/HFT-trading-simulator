@@ -1,4 +1,4 @@
-.PHONY: help install dev dev-exchange dev-signals dev-ui test test-exchange test-signals lint build docker-up docker-down clean
+.PHONY: help install dev dev-exchange dev-signals dev-ui test test-exchange test-signals test-js lint build docker-up docker-down clean logs
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -23,6 +23,7 @@ dev-ui: ## Start only web UI
 test: ## Run all tests
 	cd exchange-simulator && python -m pytest tests/ -v
 	cd ai-signal-bot && python -m pytest tests/ -v
+	cd web-ui && npx vitest run --passWithNoTests
 
 test-exchange: ## Run exchange simulator tests
 	cd exchange-simulator && python -m pytest tests/ -v
@@ -30,9 +31,13 @@ test-exchange: ## Run exchange simulator tests
 test-signals: ## Run AI signal bot tests
 	cd ai-signal-bot && python -m pytest tests/ -v
 
-lint: ## Run linter on all Python code
+test-js: ## Run JS tests
+	cd web-ui && npx vitest run --coverage
+
+lint: ## Run linters on all code
 	cd exchange-simulator && ruff check .
 	cd ai-signal-bot && ruff check .
+	cd web-ui && npx eslint src/ --max-warnings 0
 
 build: ## Build web UI for production
 	cd web-ui && npm run build
@@ -44,7 +49,20 @@ docker-down: ## Stop all Docker services
 	docker-compose down
 
 clean: ## Clean build artifacts
-	rm -rf web-ui/dist web-ui/node_modules
+	rm -rf web-ui/dist web-ui/node_modules web-ui/coverage
 	rm -rf hft-trade-bot/build
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type d -name .pytest_cache -exec rm -rf {} +
+
+logs: ## View latest log files
+	@echo "=== Exchange Simulator ==="
+	@tail -20 logs/exchange_simulator_latest.log 2>/dev/null || echo "No log file found"
+	@echo ""
+	@echo "=== AI Signal Bot ==="
+	@tail -20 logs/ai_signal_bot_latest.log 2>/dev/null || echo "No log file found"
+	@echo ""
+	@echo "=== HFT Trade Bot ==="
+	@tail -20 logs/hft_trade_bot_latest.log 2>/dev/null || echo "No log file found"
+	@echo ""
+	@echo "=== Latest Trades CSV ==="
+	@head -5 logs/trades_latest.csv 2>/dev/null || echo "No trades CSV found"

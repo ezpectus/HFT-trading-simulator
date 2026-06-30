@@ -1,0 +1,3 @@
+Explain in 2-3 sentences why a {direction} signal was generated for {symbol}
+at price {price}. Key indicators: RSI={rsi}, ADX={adx}, EMA trend={ema_trend}.
+Provide a clear, actionable explanation for a trader.

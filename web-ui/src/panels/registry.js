@@ -630,3 +630,30 @@ export const DEFAULT_VISIBLE = PANELS.map(p => p.id)
 export function getPanelsByCategory(categoryId) {
   return PANELS.filter(p => p.category === categoryId)
 }
+
+// Preload all panels in a category by triggering their lazy imports.
+// Called on hover to warm up the chunk cache before the user clicks.
+const _preloadedCategories = new Set()
+export function preloadCategory(categoryId) {
+  if (_preloadedCategories.has(categoryId)) return
+  _preloadedCategories.add(categoryId)
+  const panels = getPanelsByCategory(categoryId)
+  for (const panel of panels) {
+    // Trigger the lazy import promise without rendering
+    const cmp = panel.component
+    if (cmp && typeof cmp._payload !== 'undefined') {
+      // React.lazy stores the import promise internally; calling .then() triggers fetch
+      try {
+        const payload = cmp._payload
+        if (payload && typeof payload.then === 'function') {
+          payload.then(() => {}).catch(() => {})
+        } else if (payload && payload._status === -1) {
+          // Not yet started
+          payload._result().then(() => {}).catch(() => {})
+        }
+      } catch {
+        // Fallback: read the lazy component's internal import function
+      }
+    }
+  }
+}

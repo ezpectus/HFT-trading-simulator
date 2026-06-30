@@ -6,9 +6,16 @@ to all connected WebSocket clients (AI Signal Bot, HFT Trade Bot).
 import asyncio
 import json
 import logging
+import os
+import sys
+import time
 from typing import Set
 
 import websockets
+
+# Add project root for trade_csv_logger
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from trade_csv_logger import TradeCsvLogger
 
 from exchange_simulator.exchange import SimulatedExchange
 from exchange_simulator.market_simulator import MarketSimulator
@@ -45,6 +52,8 @@ class ExchangeWebSocketServer:
         self._tick_interval = 1.0  # seconds between candles (adjustable via set_speed)
         self._replay_paused = False
         self._replay_offset = 0
+        self.trade_logger = TradeCsvLogger()
+        logger.info(f"Trade CSV log: {self.trade_logger.path}")
 
     async def start(self) -> None:
         """Start the WebSocket server."""
@@ -156,6 +165,18 @@ class ExchangeWebSocketServer:
                     f"{data['symbol']} @ {order.filled_price:.2f} "
                     f"fee={order.fee:.4f} | {exchange_id}"
                 )
+                self.trade_logger.log_fill({
+                    "timestamp": time.time(),
+                    "exchange": exchange_id,
+                    "symbol": data["symbol"],
+                    "side": data["side"],
+                    "type": data.get("order_type", "MARKET"),
+                    "price": order.filled_price,
+                    "quantity": order.filled_quantity,
+                    "fee": order.fee,
+                    "order_id": order.id,
+                    "status": "FILLED",
+                })
             elif order.status.value == "REJECTED":
                 reason = order.rejection_reason or "UNKNOWN"
                 logger.info(
@@ -378,6 +399,18 @@ class ExchangeWebSocketServer:
                             f"  {reason or 'SL/TP'} CLOSED: {order.symbol} @ {order.filled_price:.2f} "
                             f"qty={order.filled_quantity:.4f} | {ex_id}"
                         )
+                        self.trade_logger.log_fill({
+                            "timestamp": time.time(),
+                            "exchange": ex_id,
+                            "symbol": order.symbol,
+                            "side": order.side.value,
+                            "type": "SL/TP",
+                            "price": order.filled_price,
+                            "quantity": order.filled_quantity,
+                            "fee": order.fee,
+                            "order_id": order.id,
+                            "status": f"CLOSED_{reason or 'SLTP'}",
+                        })
                         fill_msg = json.dumps({
                             "type": "fill",
                             "order": order.to_dict(),
@@ -422,6 +455,16 @@ class ExchangeWebSocketServer:
                                     f"sell={opp.sell_exchange}@{opp.sell_price:.2f} "
                                     f"qty={exec_qty:.4f} profit~${opp.net_spread * exec_qty:.2f}"
                                 )
+                                self.trade_logger.log_batch([
+                                    {"timestamp": time.time(), "exchange": opp.buy_exchange, "symbol": opp.symbol,
+                                     "side": "BUY", "type": "ARB", "price": buy_order.filled_price,
+                                     "quantity": buy_order.filled_quantity, "fee": buy_order.fee,
+                                     "order_id": buy_order.id, "status": "ARB_BUY"},
+                                    {"timestamp": time.time(), "exchange": opp.sell_exchange, "symbol": opp.symbol,
+                                     "side": "SELL", "type": "ARB", "price": sell_order.filled_price,
+                                     "quantity": sell_order.filled_quantity, "fee": sell_order.fee,
+                                     "order_id": sell_order.id, "status": "ARB_SELL"},
+                                ])
 
             # Build order book snapshots
             orderbooks = {}

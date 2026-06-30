@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Activity, Radio, TrendingUp, AlertTriangle, BarChart3, FlaskConical, History, ArrowRightLeft, Bot } from 'lucide-react'
 import { useExchangeData, useSignalData } from './hooks/useExchangeData'
+import { useMockExchangeData, useMockSignalData, IS_MOCK } from './hooks/useMockData'
 import { useToasts, ToastContainer } from './components/Toast'
+import MockModeBanner from './components/MockModeBanner'
 import Header from './components/Header'
 import CandleChart from './components/CandleChart'
 import OrderBook from './components/OrderBook'
@@ -41,8 +43,8 @@ export default function App() {
   const [mobilePanel, setMobilePanel] = useState('chart') // chart | sidebar
   const { detachPanel, updateDetached, isDetached } = useDetachablePanels()
 
-  const exchange = useExchangeData()
-  const signals = useSignalData()
+  const exchange = IS_MOCK ? useMockExchangeData() : useExchangeData()
+  const signals = IS_MOCK ? useMockSignalData() : useSignalData()
   const { toasts, addToast, removeToast } = useToasts()
   const { play: playSound, setEnabled: setSoundEnabled } = useSoundAlerts(true)
   const [soundOn, setSoundOn] = useState(true)
@@ -208,6 +210,7 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col bg-bg-900 overflow-hidden">
+      <MockModeBanner />
       <OnboardingTutorial />
       <KeyboardHelp />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
@@ -258,7 +261,7 @@ export default function App() {
         </div>
       )}
 
-      <div className={'flex-1 flex gap-1 p-1 overflow-hidden ' + (isMobile ? 'flex-col' : 'flex-row')}>
+      <div id="main-content" role="main" className={'flex-1 flex gap-1 p-1 overflow-hidden ' + (isMobile ? 'flex-col' : 'flex-row')}>
         {/* Left: Chart + Order Form */}
         <div className={'flex flex-col gap-1 min-w-0 ' + (isMobile ? (mobilePanel === 'chart' ? 'flex-1' : 'hidden') : 'flex-1')}>
           <DetachablePanel panelId="chart" onDetach={handleDetach} isDetached={isDetached('chart')}>
@@ -408,16 +411,18 @@ export default function App() {
 }
 
 function TabButton({ active, onClick, icon, children }) {
+  const Icon = icon
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
+      aria-pressed={active}
+      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue rounded-sm ${
         active
           ? 'text-accent-blue border-b-2 border-accent-blue bg-bg-700'
           : 'text-gray-400 hover:text-gray-200 hover:bg-bg-700'
       }`}
     >
-      {icon}
+      {Icon && <Icon size={14} aria-hidden="true" />}
       {children}
     </button>
   )

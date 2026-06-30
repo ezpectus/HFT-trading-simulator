@@ -1,8 +1,8 @@
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronRight, Eye, EyeOff, Settings2 } from 'lucide-react'
-import { CATEGORIES, PANELS, DEFAULT_VISIBLE, getPanelsByCategory } from './registry'
+import { CATEGORIES, PANELS, DEFAULT_VISIBLE, getPanelsByCategory, preloadCategory } from './registry'
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
-import PanelLoadingFallback from '../components/PanelLoadingFallback'
+import ChunkRetryBoundary from '../components/ChunkRetryBoundary'
 
 const VISIBILITY_KEY = 'trading-sim-panel-visibility'
 const COLLAPSED_KEY = 'trading-sim-panel-collapsed'
@@ -44,6 +44,13 @@ export default function PanelContainer({ context }) {
   const toggleCategory = (catId) => {
     setCollapsed(prev => ({ ...prev, [catId]: !prev[catId] }))
   }
+
+  // Preload all panels in a category on hover (desktop only)
+  const handleCategoryHover = useCallback((catId) => {
+    if (window.matchMedia('(hover: hover)').matches) {
+      preloadCategory(catId)
+    }
+  }, [])
 
   const visibleCount = visible.length
   const totalCount = PANELS.length
@@ -105,7 +112,10 @@ export default function PanelContainer({ context }) {
             {/* Category header */}
             <button
               onClick={() => toggleCategory(cat.id)}
-              className="w-full flex items-center gap-1 px-1 py-0.5 text-[9px] text-gray-500 uppercase hover:text-gray-400 transition-colors sticky top-0 bg-bg-900/80 backdrop-blur-sm z-10"
+              onMouseEnter={() => handleCategoryHover(cat.id)}
+              aria-expanded={!isCollapsed}
+              aria-controls={`category-${cat.id}`}
+              className="w-full flex items-center gap-1 px-1 py-0.5 text-[9px] text-gray-500 uppercase hover:text-gray-400 transition-colors sticky top-0 bg-bg-900/80 backdrop-blur-sm z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-blue rounded"
             >
               {isCollapsed ? <ChevronRight size={10} /> : <ChevronDown size={10} />}
               <span className="font-medium">{cat.label}</span>
@@ -114,15 +124,15 @@ export default function PanelContainer({ context }) {
 
             {/* Panels */}
             {!isCollapsed && (
-              <div className="space-y-1 mt-0.5">
+              <div id={`category-${cat.id}`} role="tabpanel" className="space-y-1 mt-0.5">
                 {visiblePanels.map(panel => {
                   const Component = panel.component
                   const props = panel.props(context)
                   return (
                     <PanelErrorBoundary key={panel.id} panelName={panel.name}>
-                      <Suspense fallback={<PanelLoadingFallback name={panel.name} />}>
+                      <ChunkRetryBoundary panelName={panel.name}>
                         <Component {...props} />
-                      </Suspense>
+                      </ChunkRetryBoundary>
                     </PanelErrorBoundary>
                   )
                 })}

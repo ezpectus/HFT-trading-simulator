@@ -1,0 +1,41 @@
+# ── HFT Trade Bot Production Dockerfile (C++) ──
+FROM gcc:13-bookworm AS builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake libboost-system-dev libssl-dev \
+    libspdlog-dev libfmt-dev nlohmann-json3-dev \
+    libyaml-cpp-dev libwebsocketpp-dev libasio-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY . .
+
+RUN cmake -B build -DCMAKE_BUILD_TYPE=Release \
+    -DUSE_CCACHE=OFF -DUSE_UNITY_BUILD=ON \
+    && cmake --build build -j$(nproc) --target hft_trade_bot
+
+# ── Runtime stage ──
+FROM debian:bookworm-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libboost-system1.81.0 libssl3 libspdlog1.10-fmt \
+    libyaml-cpp0.7 curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r appuser && useradd -r -g appuser appuser
+
+COPY --from=builder /app/build/hft_trade_bot /app/hft_trade_bot
+COPY --from=builder /app/config /app/config
+
+RUN chown -R appuser:appuser /app
+
+USER appuser
+
+EXPOSE 8767
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
+    CMD curl -f http://localhost:8767/health || exit 1
+
+CMD ["/app/hft_trade_bot"]

@@ -95,6 +95,7 @@ logs/
 *.sqlite3
 *.log
 *.parquet
+*.csv
 *.csv.gz
 backtest_charts/
 charts/
@@ -161,3 +162,18 @@ build_log.txt
 TODO.md
 notes.txt
 scratch/
+reorganize_components.py
+web-ui/coverage/
+
+# ─── Logs ───
+logs/
+*.log
+!**/run_logger.py
+!**/trade_csv_logger.py
+
+# ─── Trade CSV logs ───
+logs/*.csv
+logs/*.csv.gz
+
+# ─── Netlify ───
+.netlify/

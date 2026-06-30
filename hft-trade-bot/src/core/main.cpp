@@ -101,8 +101,8 @@ int main(int argc, char* argv[]) {
     // Load config
     Config config = Config::load(config_path);
 
-    // Initialize logger
-    Logger::init(config.log_level, config.log_file);
+    // Initialize logger (timestamped file in logs/ directory)
+    Logger::init(config.log_level, "logs");
 
     spdlog::info("=" + std::string(60, '='));
     spdlog::info("  HFT TRADE BOT v2.0.0");

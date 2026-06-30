@@ -24,6 +24,7 @@ import time
 
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from run_logger import setup_run_logging
 
 from config import SignalBotConfig
 from src.communication import ExchangeClient, SignalPublisher
@@ -37,18 +38,9 @@ from src.strategies import (
 from src.technical_analysis import adx, atr, bollinger_bands, ema, macd, rsi
 
 
-def setup_logging(level: str, log_file: str) -> logging.Logger:
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
-    logging.basicConfig(
-        level=getattr(logging, level.upper(), logging.INFO),
-        format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
-        datefmt="%H:%M:%S",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler(log_file, encoding="utf-8"),
-        ],
-    )
-    return logging.getLogger("ai_signal_bot")
+def setup_logging(level: str, log_file: str) -> tuple[logging.Logger, str]:
+    """Setup logging with timestamped file output."""
+    return setup_run_logging("ai_signal_bot", level=level)
 
 
 class AISignalBot:
@@ -318,10 +310,13 @@ def main():
     args = parser.parse_args()
 
     config = SignalBotConfig.load(args.config)
-    setup_logging(config.log_level, config.log_file)
+    logger, log_path = setup_logging(config.log_level, config.log_file)
 
     bot = AISignalBot(config)
-    asyncio.run(bot.run(show_dashboard=args.dashboard))
+    try:
+        asyncio.run(bot.run(show_dashboard=args.dashboard))
+    finally:
+        logger.info(f"Run complete. Log file: {log_path}")
 
 
 if __name__ == "__main__":

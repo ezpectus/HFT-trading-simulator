@@ -1,0 +1,5 @@
+Assess the risk of entering a {direction} position for {symbol} at {price}.
+Current volatility (ATR)={atr}, leverage={leverage}x.
+Identify the top 3 risk factors and suggest appropriate position sizing.
+Respond in JSON format with keys: risk_level (low/medium/high),
+volatility_pct, suggested_position_size_pct, max_leverage, risk_factors (array).

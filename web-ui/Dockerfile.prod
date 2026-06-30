@@ -1,0 +1,32 @@
+# ── Web UI Production Dockerfile ──
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --production=false
+
+COPY . .
+RUN npm run build
+
+# ── Runtime stage ──
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN addgroup -r appuser && adduser -r -g appuser appuser
+
+COPY --from=builder /app/build /app/build
+COPY --from=builder /app/package*.json /app/
+RUN npm ci --production && npm cache clean --force
+
+RUN chown -R appuser:appuser /app
+
+USER appuser
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
+    CMD wget -q --spider http://localhost:3000/ || exit 1
+
+CMD ["npm", "start"]

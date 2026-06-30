@@ -9,13 +9,19 @@ Usage:
 """
 import argparse
 import asyncio
+import csv
 import logging
 import os
 import sys
 import threading
 import time
+from datetime import datetime
 
 import yaml
+
+# Add project root for run_logger
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from run_logger import setup_run_logging
 
 from exchange_simulator.exchange import SimulatedExchange
 from exchange_simulator.market_simulator import MarketSimulator
@@ -35,13 +41,9 @@ def load_config(path: str = None) -> dict:
         return yaml.safe_load(f)
 
 
-def setup_logging(level: str = "INFO") -> logging.Logger:
-    logging.basicConfig(
-        level=getattr(logging, level.upper(), logging.INFO),
-        format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
-        datefmt="%H:%M:%S",
-    )
-    return logging.getLogger("exchange_simulator")
+def setup_logging(level: str = "INFO") -> tuple[logging.Logger, str]:
+    """Setup logging with timestamped file output."""
+    return setup_run_logging("exchange_simulator", level=level)
 
 
 def build_exchanges(config: dict) -> tuple[dict[str, SimulatedExchange], MarketSimulator]:
@@ -174,7 +176,7 @@ def main():
 
     config = load_config(args.config)
     config = validate_or_exit(config)
-    logger = setup_logging(args.log_level)
+    logger, log_path = setup_logging(args.log_level)
 
     exchanges, market = build_exchanges(config)
 
@@ -182,6 +184,7 @@ def main():
     logger.info("  CRYPTO EXCHANGE SIMULATOR v1.0.0")
     logger.info("  3 Exchanges | 3 Symbols | Paper Trading")
     logger.info("=" * 60)
+    logger.info(f"  Log file: {log_path}")
 
     if args.export:
         # Run a short simulation to generate data, then export
@@ -216,6 +219,8 @@ def main():
         asyncio.run(run_websocket_server(exchanges, market, config, logger))
     except KeyboardInterrupt:
         logger.info("Shutting down...")
+    finally:
+        logger.info(f"Run complete. Log file: {log_path}")
 
 
 if __name__ == "__main__":

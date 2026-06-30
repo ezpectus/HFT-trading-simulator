@@ -18,8 +18,8 @@ Brief description of changes.
 
 ## Testing
 - [ ] Python tests pass (`pytest tests/ -v`)
-- [ ] C++ tests pass (`./test_signal_engine`)
-- [ ] Lint passes (`ruff check .`)
+- [ ] C++ tests pass (`./test_signal_engine` and `./test_signal_engine_v2`)
+- [ ] Lint passes (`ruff check .` and `npm run lint`)
 - [ ] Web UI builds (`npm run build`)
 - [ ] Docker builds (`docker build`)
 

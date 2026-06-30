@@ -597,18 +597,27 @@
 - [x] Kleppmann audit passed: WebSocket exponential backoff, JSON parse try/catch, state sync on reconnect, candle dedup via Map, 500-candle memory cap, localStorage try/catch everywhere
 
 ## Architecture Milestones
-- [x] Panel registry system (replaces 53+ manual imports in App.jsx)
+- [x] Panel registry system (191+ panels, replaces manual imports in App.jsx)
 - [x] PanelContainer with collapsible categories + localStorage visibility
+- [x] ErrorBoundary + Suspense per panel (triple protection)
+- [x] VirtualList for long lists (FillsPanel, SignalFeed)
 - [x] ARCHITECTURE_ROADMAP.md (5-20 year sustainability plan)
 - [x] Kleppmann audit: data corruption fix, exponential backoff, error logging (see AUDIT_2025.md)
+- [x] V2 C++ signal engine with sub-millisecond latency (Phase 25)
+- [x] 75+ advanced math model components (Phases 24-39)
+- [x] CI/CD pipeline (GitHub Actions: 4 jobs)
+- [x] WebSocket compression (per-message deflate)
+- [x] Config hot-reload
+- [x] Timestamped logging + CSV trade logs with symlinks
+- [x] Mock mode for standalone Web UI demo
+- [x] ESLint + Vitest setup
+- [x] Netlify deployment configuration
 - [ ] Component subfolder organization (order-flow, technical, risk, etc.)
 - [ ] TypeScript migration (incremental, file-by-file)
-- [ ] React.lazy + Suspense for panel lazy loading
-- [ ] Vitest unit test setup
+- [ ] React.lazy + Suspense for all 191+ panels (full code splitting)
 - [ ] Playwright E2E tests
 - [ ] Zustand global state store
 - [ ] Message schema versioning (WS protocol v2)
-- [ ] CI/CD pipeline (GitHub Actions)
 - [ ] PostgreSQL migration for persistent data
 - [ ] Prometheus + Grafana monitoring
 - [ ] Consolidate duplicate journal systems (useTradeJournal + TradeJournal)

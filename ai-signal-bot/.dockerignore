@@ -10,6 +10,8 @@ logs/
 *.db-wal
 *.log
 *.parquet
+*.csv
+*.csv.gz
 backtest_charts/
 charts/
 .pytest_cache/
@@ -18,3 +20,5 @@ charts/
 .env
 .venv/
 trading.db*
+Dockerfile
+.dockerignore

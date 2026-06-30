@@ -25,7 +25,13 @@ services:
       start_period: 10s
     restart: unless-stopped
     networks:
-      - trading-prod
+      - backend
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
 
   # ── Redis — hot state caching, session state, rate limiting ──
   redis:
@@ -44,7 +50,13 @@ services:
       start_period: 5s
     restart: unless-stopped
     networks:
-      - trading-prod
+      - backend
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
 
   # ── Prometheus — metrics scraping ──
   prometheus:
@@ -63,7 +75,13 @@ services:
       start_period: 10s
     restart: unless-stopped
     networks:
-      - trading-prod
+      - monitoring
+      - frontend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
 
   # ── Grafana — dashboards and visualization ──
   grafana:
@@ -113,7 +131,13 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - trading-prod
+      - backend
+      - frontend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
 
   # ── AI Signal Bot (Python) — strategy signals + real market data ──
   ai-signal-bot:
@@ -151,7 +175,14 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - trading-prod
+      - backend
+      - frontend
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
 
   # ── HFT Trade Bot (C++) — low-latency execution ──
   hft-trade-bot:
@@ -179,7 +210,12 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - trading-prod
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '2'
 
   # ── Web UI (React + nginx) — dashboard with 200+ panels ──
   web-ui:
@@ -203,7 +239,12 @@ services:
       retries: 3
       start_period: 5s
     networks:
-      - trading-prod
+      - frontend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
 
 volumes:
   pg-data:
@@ -216,5 +257,10 @@ volumes:
   hft-logs:
 
 networks:
-  trading-prod:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
+  monitoring:
     driver: bridge

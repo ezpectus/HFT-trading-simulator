@@ -1678,14 +1678,71 @@
 
 ---
 
-## Phase 40: Future Enhancements [PLANNED]
+## Phase 40: Documentation & Infrastructure Update [DONE]
 
-### 25.1 Additional Features
+### 40.1 Logging Infrastructure
+- [x] `run_logger.py` — shared timestamped Python logging module with `_latest.log` symlink
+- [x] `trade_csv_logger.py` — shared CSV trade logging module with `_latest.csv` symlink
+- [x] Timestamped log files for all services: `logs/<service>_YYYYMMDD_HHMMSS.log`
+- [x] CSV trade logging: every fill, SL/TP close, and arbitrage execution logged to `logs/trades_YYYYMMDD_HHMMSS.csv`
+- [x] HFT logger updated to generate timestamped filenames with `_latest.log` pointer
+
+### 40.2 CI/CD Improvements
+- [x] Log artifacts: GitHub Actions uploads log files as artifacts after each run
+- [x] clang-format: excluded `fix/` directory from formatting check
+- [x] JS lint job: ESLint added to test-js job
+- [x] Dependency audit job added
+
+### 40.3 Web UI Infrastructure
+- [x] `VITE_MOCK_MODE` environment variable for standalone demo without backend
+- [x] `web-ui/netlify.toml` — Netlify deployment configuration with redirects and security headers
+- [x] ESLint configuration for web-ui (`.eslintrc.json`)
+
+### 40.4 Documentation
+- [x] Comprehensive README.md rewrite as portfolio showcase with badges, Mermaid architecture diagram, categorized features, benchmarks table, and updated project structure
+- [x] CHANGELOG.md updated with all phases 1-40 in Keep a Changelog format
+- [x] ARCHITECTURE.md fully rewritten with V2 engine, 191+ panels, Mermaid diagram, updated tech stack
+- [x] WEB_UI.md updated with 191+ panels, 75+ math models, performance optimizations, mock mode, testing
+- [x] TRADING_STRATEGIES.md updated with V2 signal engine, pressure model, smart order router, adaptive order selector, Kelly sizing, backtesting
+- [x] WEBSOCKET_PROTOCOL.md updated with set_speed, config_update, speed_change, config_updated, ClosedTrade type, connection resilience, compression, mock mode
+- [x] SETUP.md updated with mock mode and timestamped logging
+- [x] EXCHANGE_SIMULATOR.md updated with new features
+- [x] FUTURE_TODO.md updated with completed items marked
+- [x] ARCHITECTURE_ROADMAP.md updated to current state
+- [x] AUDIT_2025.md updated with Phase 40 audit
+
+### 40.5 Build & Config
+- [x] Makefile: added `test-js`, `logs`, JS lint, coverage cleanup targets
+- [x] `.gitignore`: added CSV files, logs directory, trade logs, coverage, reorganize scripts
+- [x] `web-ui/.env.example`: added `VITE_MOCK_MODE` documentation
+- [x] LICENSE changed from MIT to Apache 2.0 (educational purpose, attribution required)
+
+### 40.6 Verification
+- [x] All documentation files verified and updated
+- [x] CI workflow verified: Python lint+test, C++ build+test, JS lint+test, Docker build
+- [x] Makefile targets verified: build, test, test-js, logs, clean, lint
+- [x] Logging verified: timestamped files + symlinks for all 3 services + CSV trade log
+
+---
+
+## Future Enhancements
+
+### Additional Features
 - [ ] Real-time strategy parameter tuning
 - [ ] Multi-asset portfolio optimization
 - [ ] Machine learning signal enhancement
 - [ ] Order book depth replay from real L2 data
-- [ ] Release v1.0.0 with git tag
+- [ ] React.lazy conversion for all 191+ panels (code splitting)
+- [ ] TypeScript migration
+- [ ] Zustand state management
+- [ ] Accessibility (WCAG 2.1 AA)
+- [ ] Internationalization (i18n)
+- [ ] PWA (Progressive Web App) support
+- [ ] Custom theme builder
+- [ ] Prometheus metrics export
+- [ ] Docker Compose with all services + monitors
+- [ ] WebSocket reconnection with state sync (resume from last candle)
+- [ ] Component subfolder organization for 201+ files
 
 ---
 

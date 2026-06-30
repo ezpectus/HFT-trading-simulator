@@ -5,7 +5,49 @@
 
 ---
 
-## Issues Found & Fixed
+## Phase 40 Audit — Documentation & Infrastructure (2025)
+
+### Verification Summary
+
+| Area | Status | Notes |
+|------|--------|-------|
+| Documentation | PASS | All 12 docs updated to reflect Phase 40 state |
+| Logging | PASS | Timestamped logs + CSV trade logs with symlinks for all 3 services |
+| CI/CD | PASS | 4 GitHub Actions jobs: Python, C++, JS, Docker |
+| Build | PASS | Makefile targets: build, test, test-js, logs, clean, lint |
+| Config | PASS | Hot-reload, mock mode, V2 engine config sections |
+| Dependencies | PASS | No unused dependencies, requirements.txt verified |
+
+### Documentation Completeness
+
+| File | Status |
+|------|--------|
+| README.md | Updated: portfolio showcase, badges, Mermaid diagram, benchmarks |
+| CHANGELOG.md | Updated: all phases 1-40 in Keep a Changelog format |
+| ARCHITECTURE.md | Updated: V2 engine, 191+ panels, Mermaid diagram, tech stack |
+| WEB_UI.md | Updated: 191+ panels, 75+ math models, performance, testing, mock mode |
+| TRADING_STRATEGIES.md | Updated: V2 engine, pressure model, SOR, adaptive selector, Kelly, backtesting |
+| WEBSOCKET_PROTOCOL.md | Updated: set_speed, config_update, speed_change, config_updated, ClosedTrade, resilience |
+| SETUP.md | Updated: mock mode, V2 engine, timestamped logging, CLI monitors |
+| EXCHANGE_SIMULATOR.md | Updated: arbitrage, funding, market impact, news, liquidation, partial fills, logging |
+| PROGRESS.md | Updated: Phase 40 marked [DONE], future enhancements separated |
+| FUTURE_TODO.md | Updated: completed items marked, architecture milestones updated |
+| ARCHITECTURE_ROADMAP.md | Updated: current state metrics, Year 1 milestones, migration checklist |
+| AUDIT_2025.md | This file |
+
+### Infrastructure Verification
+
+- **Logging:** `run_logger.py` and `trade_csv_logger.py` shared modules verified
+- **Log artifacts:** GitHub Actions uploads log files as artifacts
+- **clang-format:** `fix/` directory excluded from formatting check
+- **ESLint:** Added to test-js CI job
+- **Mock mode:** `VITE_MOCK_MODE=true` generates synthetic data for standalone demo
+- **Netlify:** `netlify.toml` configured with redirects and security headers
+- **License:** Changed from MIT to Apache 2.0 (educational purpose, attribution required)
+
+---
+
+## Issues Found & Fixed (Original Audit)
 
 ### CRITICAL — Data Corruption Bug
 **File:** `TradeJournal.jsx` + `useTradeJournal.js`
@@ -88,11 +130,12 @@
 
 | Principle | Action |
 |-----------|--------|
-| **Reliability** | Exponential backoff prevents reconnection storms |
-| **Operability** | All silent catches now log to console with component prefix |
-| **Evolvability** | Panel registry system (previous session) enables adding panels without touching App.jsx |
-| **Maintainability** | Dead code removed, anti-patterns fixed |
-| **Data Integrity** | localStorage key collision resolved |
+| **Reliability** | Exponential backoff prevents reconnection storms; CircuitBreaker in V2 engine (5 errors -> 30s cooldown) |
+| **Operability** | All silent catches log to console; timestamped log files + CSV trade logs with symlinks; CLI monitor scripts |
+| **Evolvability** | Panel registry (191+ panels) enables adding panels without touching App.jsx; V1/V2 engine toggle via config |
+| **Maintainability** | Dead code removed, anti-patterns fixed; ESLint + Vitest; comprehensive documentation (12 files) |
+| **Scalability** | VirtualList for long lists; ErrorBoundary + Suspense per panel; no heap allocations in V2 hot path |
+| **Data Integrity** | localStorage key collision resolved; CSV trade log for audit trail; timestamped logs for debugging |
 
 ---
 

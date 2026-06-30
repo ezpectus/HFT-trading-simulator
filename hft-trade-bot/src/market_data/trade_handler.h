@@ -8,6 +8,7 @@
 #include "../utils/low_latency.h"
 #include <array>
 #include <atomic>
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <chrono>
