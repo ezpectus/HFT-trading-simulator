@@ -1,0 +1,72 @@
+# AI Signal Bot Configuration
+# ============================
+
+trading:
+  symbols:
+    - "BTC/USDT"
+    - "ETH/USDT"
+    - "SOL/USDT"
+
+  timeframe: "5m"
+  signal_interval_seconds: 60
+  max_open_positions: 3
+  paper_trading: true
+
+# Exchange simulator connection
+exchange:
+  websocket_url: "ws://localhost:8765"
+  default_exchange: "binance"
+
+# Risk management
+risk:
+  max_risk_per_trade_pct: 2.0
+  max_daily_drawdown_pct: 8.0
+  min_confidence: 65
+  min_rr_ratio: 1.5
+  stop_loss_pct: 2.0
+  take_profit_pct: 4.0
+  max_position_size_pct: 10.0
+
+# Strategy configuration
+strategies:
+  trend_following:
+    enabled: true
+    ema_fast: 9
+    ema_slow: 21
+    adx_threshold: 25.0
+
+  mean_reversion:
+    enabled: true
+    rsi_oversold: 30
+    rsi_overbought: 70
+    bb_period: 20
+    bb_std: 2.0
+
+  fft_cycle:
+    enabled: true
+    min_data: 64
+
+  ensemble:
+    mode: "majority"    # "majority" or "weighted"
+    min_votes: 2
+
+# Technical indicators
+indicators:
+  rsi_period: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  atr_period: 14
+  adx_period: 14
+  vwap_enabled: true
+
+# Database
+database:
+  path: "data/trading.db"
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/ai_signal_bot.log"
+  trades_csv: "logs/trades.csv"
+  signals_csv: "logs/signals.csv"

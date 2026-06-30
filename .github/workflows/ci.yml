@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  python-tests:
+    name: Python Tests & Lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [exchange-simulator, ai-signal-bot]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ${{ matrix.component }}/requirements.txt
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.component }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio ruff
+
+      - name: Lint
+        working-directory: ${{ matrix.component }}
+        run: ruff check .
+
+      - name: Test
+        working-directory: ${{ matrix.component }}
+        run: python -m pytest tests/ -v --tb=short
+
+  cpp-build:
+    name: C++ Build & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake \
+            libboost-dev libboost-system-dev \
+            libssl-dev libwebsocketpp-dev \
+            libspdlog-dev libfmt-dev \
+            nlohmann-json3-dev libyaml-cpp-dev
+
+      - name: Build
+        working-directory: hft-trade-bot
+        run: |
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          make -j$(nproc)
+
+      - name: Run unit tests
+        working-directory: hft-trade-bot/build
+        run: |
+          ./test_signal_engine
+          ctest --output-on-failure
+
+  web-ui-build:
+    name: Web UI Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web-ui/package.json
+
+      - name: Install dependencies
+        working-directory: web-ui
+        run: npm ci || npm install
+
+      - name: Build
+        working-directory: web-ui
+        run: npm run build
+
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build exchange-simulator image
+        run: docker build -t exchange-sim ./exchange-simulator
+
+      - name: Build ai-signal-bot image
+        run: docker build -t ai-signal-bot ./ai-signal-bot
+
+      - name: Build web-ui image
+        run: docker build -t web-ui ./web-ui

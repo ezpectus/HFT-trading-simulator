@@ -1,0 +1,33 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Prometheus configuration for trading system metrics scraping
+# ─────────────────────────────────────────────────────────────────────────────
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: "trading-system"
+
+scrape_configs:
+  # AI Signal Bot metrics
+  - job_name: "ai-signal-bot"
+    static_configs:
+      - targets: ["ai-signal-bot:9090"]
+    metrics_path: /metrics
+
+  # HFT Trade Bot (if it exposes metrics via HTTP)
+  - job_name: "hft-trade-bot"
+    static_configs:
+      - targets: ["hft-trade-bot:9090"]
+    metrics_path: /metrics
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # PostgreSQL exporter (if enabled)
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres:9187"]
+    metrics_path: /metrics

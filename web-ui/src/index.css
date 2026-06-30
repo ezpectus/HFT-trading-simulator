@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme variables — Dark (default) */
+:root, .dark {
+  --bg-900: #0a0e17;
+  --bg-800: #0f1521;
+  --bg-700: #161b26;
+  --bg-600: #1e2433;
+  --bg-500: #2a3142;
+  --text-primary: #e2e8f0;
+  --text-secondary: #8b95a7;
+  --text-muted: #4a5568;
+  --border-color: #1e2433;
+  --scrollbar-track: #0f1521;
+  --scrollbar-thumb: #2a3142;
+  --scrollbar-hover: #3a4252;
+}
+
+/* Theme variables — Light */
+.light {
+  --bg-900: #e8ecf1;
+  --bg-800: #f1f5f9;
+  --bg-700: #ffffff;
+  --bg-600: #e2e8f0;
+  --bg-500: #cbd5e1;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-color: #e2e8f0;
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-hover: #94a3b8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+/* Trading view chart fill */
+.tv-lightweight-charts {
+  width: 100% !important;
+}
+
+/* Pulse animation for live indicator */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* Flash animation for price changes */
+@keyframes flash-green {
+  0% { background-color: rgba(34, 197, 94, 0.3); }
+  100% { background-color: transparent; }
+}
+@keyframes flash-red {
+  0% { background-color: rgba(239, 68, 68, 0.3); }
+  100% { background-color: transparent; }
+}
+.flash-green { animation: flash-green 0.5s ease-out; }
+.flash-red { animation: flash-red 0.5s ease-out; }
+
+/* Toast slide-in animation */
+@keyframes slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Thin scrollbar for ticker tape */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 3px;
+}

@@ -1,0 +1,179 @@
+"""Configuration loader for AI Signal Bot."""
+import os
+from dataclasses import dataclass, field
+from typing import Any
+
+import yaml
+
+
+@dataclass
+class SignalBotConfig:
+    raw: dict = field(default_factory=dict)
+
+    @classmethod
+    def load(cls, path: str = None) -> "SignalBotConfig":
+        if path is None:
+            path = os.path.join(os.path.dirname(__file__), "..", "config", "settings.yaml")
+            path = os.path.normpath(path)
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        return cls(raw=data)
+
+    # --- trading ---
+    @property
+    def symbols(self) -> list[str]:
+        return self.raw["trading"]["symbols"]
+
+    @property
+    def timeframe(self) -> str:
+        return self.raw["trading"]["timeframe"]
+
+    @property
+    def signal_interval(self) -> int:
+        return self.raw["trading"]["signal_interval_seconds"]
+
+    @property
+    def max_open_positions(self) -> int:
+        return self.raw["trading"]["max_open_positions"]
+
+    @property
+    def paper_trading(self) -> bool:
+        return self.raw["trading"]["paper_trading"]
+
+    # --- exchange ---
+    @property
+    def ws_url(self) -> str:
+        return self.raw["exchange"]["websocket_url"]
+
+    @property
+    def default_exchange(self) -> str:
+        return self.raw["exchange"]["default_exchange"]
+
+    # --- risk ---
+    @property
+    def max_risk_pct(self) -> float:
+        return float(self.raw["risk"]["max_risk_per_trade_pct"])
+
+    @property
+    def max_drawdown_pct(self) -> float:
+        return float(self.raw["risk"]["max_daily_drawdown_pct"])
+
+    @property
+    def min_confidence(self) -> float:
+        return float(self.raw["risk"]["min_confidence"])
+
+    @property
+    def min_rr_ratio(self) -> float:
+        return float(self.raw["risk"]["min_rr_ratio"])
+
+    @property
+    def stop_loss_pct(self) -> float:
+        return float(self.raw["risk"]["stop_loss_pct"])
+
+    @property
+    def take_profit_pct(self) -> float:
+        return float(self.raw["risk"]["take_profit_pct"])
+
+    @property
+    def max_position_size_pct(self) -> float:
+        return float(self.raw["risk"]["max_position_size_pct"])
+
+    # --- strategies ---
+    @property
+    def trend_enabled(self) -> bool:
+        return self.raw["strategies"]["trend_following"]["enabled"]
+
+    @property
+    def trend_ema_fast(self) -> int:
+        return self.raw["strategies"]["trend_following"]["ema_fast"]
+
+    @property
+    def trend_ema_slow(self) -> int:
+        return self.raw["strategies"]["trend_following"]["ema_slow"]
+
+    @property
+    def trend_adx_threshold(self) -> float:
+        return float(self.raw["strategies"]["trend_following"]["adx_threshold"])
+
+    @property
+    def meanrev_enabled(self) -> bool:
+        return self.raw["strategies"]["mean_reversion"]["enabled"]
+
+    @property
+    def meanrev_rsi_oversold(self) -> float:
+        return float(self.raw["strategies"]["mean_reversion"]["rsi_oversold"])
+
+    @property
+    def meanrev_rsi_overbought(self) -> float:
+        return float(self.raw["strategies"]["mean_reversion"]["rsi_overbought"])
+
+    @property
+    def meanrev_bb_period(self) -> int:
+        return self.raw["strategies"]["mean_reversion"]["bb_period"]
+
+    @property
+    def meanrev_bb_std(self) -> float:
+        return float(self.raw["strategies"]["mean_reversion"]["bb_std"])
+
+    @property
+    def fft_enabled(self) -> bool:
+        return self.raw.get("strategies", {}).get("fft_cycle", {}).get("enabled", False)
+
+    @property
+    def fft_min_data(self) -> int:
+        return self.raw.get("strategies", {}).get("fft_cycle", {}).get("min_data", 64)
+
+    @property
+    def ensemble_mode(self) -> str:
+        return self.raw["strategies"]["ensemble"]["mode"]
+
+    @property
+    def ensemble_min_votes(self) -> int:
+        return self.raw["strategies"]["ensemble"]["min_votes"]
+
+    # --- indicators ---
+    @property
+    def rsi_period(self) -> int:
+        return self.raw["indicators"]["rsi_period"]
+
+    @property
+    def macd_fast(self) -> int:
+        return self.raw["indicators"]["macd_fast"]
+
+    @property
+    def macd_slow(self) -> int:
+        return self.raw["indicators"]["macd_slow"]
+
+    @property
+    def macd_signal(self) -> int:
+        return self.raw["indicators"]["macd_signal"]
+
+    @property
+    def atr_period(self) -> int:
+        return self.raw["indicators"]["atr_period"]
+
+    @property
+    def adx_period(self) -> int:
+        return self.raw["indicators"]["adx_period"]
+
+    # --- database ---
+    @property
+    def db_path(self) -> str:
+        return self.raw["database"]["path"]
+
+    # --- logging ---
+    @property
+    def log_level(self) -> str:
+        return self.raw.get("logging", {}).get("level", "INFO")
+
+    @property
+    def log_file(self) -> str:
+        return self.raw.get("logging", {}).get("file", "logs/ai_signal_bot.log")
+
+    @property
+    def trades_csv(self) -> str:
+        return self.raw.get("logging", {}).get("trades_csv", "logs/trades.csv")
+
+    @property
+    def signals_csv(self) -> str:
+        return self.raw.get("logging", {}).get("signals_csv", "logs/signals.csv")

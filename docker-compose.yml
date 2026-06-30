@@ -1,0 +1,121 @@
+# Docker Compose — Crypto Trading Simulator
+# ===========================================
+# Runs all four components:
+#   1. exchange-simulator  — simulated crypto exchange (WebSocket server)
+#   2. ai-signal-bot       — Python AI signal generator
+#   3. hft-trade-bot       — C++20 HFT execution engine
+#   4. web-ui              — React web dashboard (TradingView-style charts)
+#
+# Usage:
+#   docker-compose up              # Start all services
+#   docker-compose up exchange-sim # Start only the exchange simulator
+#   docker-compose logs -f         # Follow logs
+#   # Web UI available at http://localhost:3000
+
+version: "3.9"
+
+services:
+  exchange-simulator:
+    build:
+      context: ./exchange-simulator
+      dockerfile: Dockerfile
+    container_name: exchange-sim
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./exchange-simulator/config.yaml:/app/config.yaml
+      - sim-data:/app/data
+    command: python -m exchange_simulator --no-visualizer
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8765), timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - trading-net
+
+  ai-signal-bot:
+    build:
+      context: ./ai-signal-bot
+      dockerfile: Dockerfile
+    container_name: ai-signal-bot
+    depends_on:
+      exchange-simulator:
+        condition: service_healthy
+    ports:
+      - "8766:8766"
+    volumes:
+      - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml
+      - ai-data:/app/data
+      - ai-logs:/app/logs
+    command: python run.py --dashboard
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8766), timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - trading-net
+
+  hft-trade-bot:
+    build:
+      context: ./hft-trade-bot
+      dockerfile: Dockerfile
+    container_name: hft-trade-bot
+    depends_on:
+      exchange-simulator:
+        condition: service_healthy
+      ai-signal-bot:
+        condition: service_healthy
+    volumes:
+      - ./hft-trade-bot/config:/app/config
+      - hft-logs:/app/logs
+    command: ./build/hft_trade_bot config/config.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "test", "-f", "/proc/1/cmdline"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - trading-net
+
+  web-ui:
+    build:
+      context: ./web-ui
+      dockerfile: Dockerfile
+    container_name: web-ui
+    depends_on:
+      exchange-simulator:
+        condition: service_healthy
+      ai-signal-bot:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_WS_EXCHANGE=ws://localhost:8765
+      - VITE_WS_SIGNALS=ws://localhost:8766
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - trading-net
+
+volumes:
+  sim-data:
+  ai-data:
+  ai-logs:
+  hft-logs:
+
+networks:
+  trading-net:
+    driver: bridge

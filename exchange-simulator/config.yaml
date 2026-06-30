@@ -1,0 +1,76 @@
+# Exchange Simulator Configuration
+# ================================
+
+exchanges:
+  binance:
+    name: "Binance Futures"
+    fee_pct: 0.04
+    slippage_bps: 2.0
+    symbols:
+      - BTC/USDT
+      - ETH/USDT
+      - SOL/USDT
+
+  bybit:
+    name: "Bybit Derivatives"
+    fee_pct: 0.06
+    slippage_bps: 3.0
+    symbols:
+      - BTC/USDT
+      - ETH/USDT
+      - SOL/USDT
+
+  okx:
+    name: "OKX Perpetual"
+    fee_pct: 0.05
+    slippage_bps: 2.5
+    symbols:
+      - BTC/USDT
+      - ETH/USDT
+      - SOL/USDT
+
+# Initial prices (USD)
+initial_prices:
+  BTC/USDT: 65000.0
+  ETH/USDT: 3500.0
+  SOL/USDT: 150.0
+
+# Annualized volatility per symbol
+volatility:
+  BTC/USDT: 0.75
+  ETH/USDT: 0.85
+  SOL/USDT: 1.10
+
+# Market parameters
+market:
+  timeframe: "5m"
+  timeframe_seconds: 300
+  drift: 0.0001           # tiny bullish bias per candle
+  seed: 42                # reproducible mode (null = random)
+  warmup_candles: 200     # history generated before trading starts
+  order_book_depth: 20    # levels per side
+
+# Account simulation
+account:
+  initial_balance: 10000.0
+  currency: "USDT"
+  leverage: 10
+
+# Visualizer
+visualizer:
+  enabled: true
+  refresh_interval: 0.5   # seconds between screen updates
+  chart_width: 60         # candle chart width in chars
+  chart_height: 15        # candle chart height in lines
+
+# WebSocket server (feeds data to bots)
+websocket:
+  host: "localhost"
+  port: 8765
+
+# Arbitrage detection
+arbitrage:
+  fee_pct: 0.075          # average fee per side
+  slippage_bps: 2.0       # estimated slippage
+  min_spread_bps: 5.0     # minimum net spread to report (basis points)
+  opportunity_ttl: 30.0   # seconds before opportunity expires

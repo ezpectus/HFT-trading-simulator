@@ -1,0 +1,51 @@
+# Shared Configuration — Global Trading System Settings
+# =======================================================
+# This file defines shared parameters used by all components.
+# Individual components have their own config files for component-specific settings.
+
+system:
+  name: "Crypto Trading Simulator"
+  version: "1.0.0"
+  mode: "paper_trading"  # paper_trading | live (live not implemented)
+
+# Symbols traded across all components
+symbols:
+  - BTC/USDT
+  - ETH/USDT
+  - SOL/USDT
+
+# Exchanges (simulated)
+exchanges:
+  - binance
+  - bybit
+  - okx
+
+# Default exchange for order execution
+default_exchange: binance
+
+# Global risk parameters (shared between AI Signal Bot and HFT Trade Bot)
+risk:
+  max_risk_per_trade_pct: 2.0
+  max_daily_drawdown_pct: 8.0
+  min_confidence: 65.0
+  min_rr_ratio: 1.5
+  max_open_positions: 3
+  max_position_size_pct: 10.0
+
+# Timeframe
+timeframe: "5m"
+timeframe_seconds: 300
+
+# Account
+initial_balance: 10000.0
+currency: "USDT"
+leverage: 10
+
+# Communication
+websocket:
+  exchange_simulator:
+    host: localhost
+    port: 8765
+  ai_signal_bot:
+    host: localhost
+    port: 8766

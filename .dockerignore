@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Build artifacts
+web-ui/dist
+web-ui/node_modules
+hft-trade-bot/build
+ai-signal-bot/__pycache__
+exchange-simulator/__pycache__
+**/*.pyc
+**/*.o
+**/*.a
+
+# Docker
+**/Dockerfile
+**/docker-compose*.yml
+
+# CI / Scripts
+.github
+Makefile
+*.bat
+*.sh
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.log
+_convert_lazy.js

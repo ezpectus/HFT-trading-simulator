@@ -1,0 +1,84 @@
+# HFT Trade Bot Configuration
+# =============================
+
+trading:
+  symbols:
+    - "BTC/USDT"
+    - "ETH/USDT"
+    - "SOL/USDT"
+  signal_interval_seconds: 60
+  max_open_positions: 3
+  paper_trading: true
+
+exchange:
+  websocket_url: "ws://localhost:8765"
+  default_exchange: "binance"
+
+risk:
+  max_risk_per_trade_pct: 2.0
+  max_daily_drawdown_pct: 8.0
+  min_confidence: 65.0
+  min_rr_ratio: 1.5
+  stop_loss_pct: 2.0
+  take_profit_pct: 4.0
+  max_position_size_pct: 10.0
+
+hft_strategies:
+  fast_ema_enabled: true
+  fast_ema_period: 9
+  slow_ema_period: 21
+  obi_enabled: true           # Order Book Imbalance
+  vwap_enabled: true
+  pressure_model_enabled: true
+  fft_enabled: true            # FFT spectral analysis (requires >=64 candles)
+  fft_min_candles: 64
+
+# ─── Signal Engine V2 (native C++, no Python/LLM) ───
+signal_engine_v2:
+  enabled: true
+  ema_fast_period: 21
+  ema_slow_period: 50
+  rsi_period: 14
+  adx_period: 14
+  obi_levels: 20
+  atr_period: 14
+  sl_atr_mult: 1.5            # Stop loss = entry - 1.5×ATR (long)
+  tp_atr_mult: 3.0            # Take profit = entry + 3.0×ATR (long)
+  cooldown_ms: 5000            # Min time between signals (per symbol)
+  buy_threshold: 0.3           # Composite score > 0.3 → BUY
+  sell_threshold: -0.3         # Composite score < -0.3 → SELL
+  min_confidence: 60           # 0-100, reject below this
+
+# ─── Pressure Model (L2 microstructure) ───
+pressure_model:
+  toxic_size_threshold: 5.0    # Trades > 5× median size = toxic
+  obi_threshold: 0.15          # |OBI| > 0.15 = significant
+  pressure_threshold: 0.2      # |pressure| > 0.2 = significant
+
+# ─── Smart Order Router V2 ───
+smart_order_router:
+  enabled: true
+  strategy: 3                  # 0=BestPrice, 1=LowestLatency, 2=LowestFees, 3=BestEffective, 4=DepthAware
+  toxic_threshold: 5           # Skip exchange with ≥5 toxic events
+
+# ─── Adaptive Order Type Selection ───
+adaptive_order_selector:
+  enabled: true
+  high_confidence: 80          # ≥80 + tight spread → IOC
+  low_confidence: 60           # <60 or wide spread → PostOnly
+  emergency_confidence: 95     # ≥95 → FOK (urgent)
+  gtd_seconds: 30              # GTD order expiry
+
+# ─── Latency Optimization ───
+latency_optimization:
+  thread_pinning_enabled: false # Pin execution thread to dedicated core
+  execution_core_id: 0          # CPU core ID for thread pinning
+  latency_histogram_enabled: true # Track P50/P95/P99/P99.9 latency
+
+logging:
+  level: "info"
+  file: "logs/hft_trade_bot.log"
+
+ai_signal_bot:
+  enabled: true
+  websocket_url: "ws://localhost:8766"

@@ -1,0 +1,204 @@
+import { Wifi, WifiOff, TrendingUp, TrendingDown, Zap, Pause, Play, FastForward, Volume2, VolumeX, Sun, Moon } from 'lucide-react'
+import { formatPrice } from '../utils/format'
+
+const SYMBOL_SHORT = {
+  'BTC/USDT': 'BTC',
+  'ETH/USDT': 'ETH',
+  'SOL/USDT': 'SOL',
+}
+
+const SPEED_OPTIONS = [
+  { value: 0, label: 'Pause', icon: Pause },
+  { value: 1, label: '1x', icon: Play },
+  { value: 2, label: '2x', icon: FastForward },
+  { value: 5, label: '5x', icon: FastForward },
+]
+
+export default function Header({
+  exchanges,
+  symbols,
+  selectedExchange,
+  selectedSymbol,
+  onExchangeChange,
+  onSymbolChange,
+  currentPrice,
+  priceChange,
+  allPrices,
+  exchangeConnected,
+  signalConnected,
+  simSpeed,
+  onSpeedChange,
+  soundOn,
+  onSoundToggle,
+  theme,
+  onThemeToggle,
+  timeframes,
+  selectedTimeframe,
+  onTimeframeChange,
+}) {
+  const change = priceChange || 0
+  const isUp = change >= 0
+
+  return (
+    <header className="flex flex-col bg-bg-800 border-b border-bg-600 shrink-0">
+      {/* Main header row */}
+      <div className="flex items-center gap-2 px-2 py-2 sm:gap-4 sm:px-4 flex-wrap">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <Zap className="w-5 h-5 text-accent-yellow" />
+          <span className="font-bold text-sm">Trading Sim</span>
+        </div>
+
+        {/* Exchange selector */}
+        <div className="flex gap-1">
+          {exchanges.map(ex => (
+            <button
+              key={ex}
+              onClick={() => onExchangeChange(ex)}
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors capitalize ${
+                selectedExchange === ex
+                  ? 'bg-accent-blue text-white'
+                  : 'bg-bg-600 text-gray-400 hover:bg-bg-500'
+              }`}
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
+
+        <div className="w-px h-5 bg-bg-600" />
+
+        {/* Symbol selector */}
+        <div className="flex gap-1">
+          {symbols.map(s => (
+            <button
+              key={s}
+              onClick={() => onSymbolChange(s)}
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                selectedSymbol === s
+                  ? 'bg-accent-yellow text-bg-900'
+                  : 'bg-bg-600 text-gray-400 hover:bg-bg-500'
+              }`}
+            >
+              {SYMBOL_SHORT[s] || s}
+            </button>
+          ))}
+        </div>
+
+        {/* Timeframe selector */}
+        <div className="flex gap-0.5">
+          {timeframes.map(tf => (
+            <button
+              key={tf.label}
+              onClick={() => onTimeframeChange(tf)}
+              className={'px-2 py-1 text-[10px] font-medium rounded transition-colors ' +
+                (selectedTimeframe.label === tf.label
+                  ? 'bg-accent-purple text-white'
+                  : 'bg-bg-600 text-gray-400 hover:bg-bg-500')}
+            >
+              {tf.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Price + change */}
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-lg font-semibold">
+            ${formatPrice(currentPrice)}
+          </span>
+          <span className={`flex items-center gap-0.5 text-xs font-medium ${isUp ? 'text-accent-green' : 'text-accent-red'}`}>
+            {isUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+            {isUp ? '+' : ''}{change.toFixed(2)}%
+          </span>
+        </div>
+
+        {/* Sim speed control */}
+        <div className="flex items-center gap-0.5 bg-bg-700 rounded p-0.5">
+          {SPEED_OPTIONS.map(opt => {
+            const Icon = opt.icon
+            const isActive = simSpeed === opt.value
+            return (
+              <button
+                key={opt.value}
+                onClick={() => onSpeedChange(opt.value)}
+                className={`flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                  isActive
+                    ? opt.value === 0
+                      ? 'bg-accent-red/20 text-accent-red'
+                      : 'bg-accent-blue text-white'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+                title={opt.label}
+              >
+                <Icon size={10} />
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Sound toggle */}
+        <button
+          onClick={onSoundToggle}
+          className={'p-1 rounded transition-colors ' + (soundOn ? 'text-accent-green hover:bg-bg-700' : 'text-gray-600 hover:bg-bg-700')}
+          title={soundOn ? 'Sound on' : 'Sound off'}
+        >
+          {soundOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
+        </button>
+
+        {/* Theme toggle */}
+        <button
+          onClick={onThemeToggle}
+          className="p-1 rounded transition-colors text-gray-400 hover:bg-bg-700"
+          title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+        >
+          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
+
+        {/* Connection status */}
+        <div className="flex items-center gap-3 text-xs">
+          <div className={`flex items-center gap-1.5 ${exchangeConnected ? 'text-accent-green' : 'text-accent-red'}`}>
+            {exchangeConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
+            <span className="hidden sm:inline">Exchange</span>
+            {exchangeConnected && <span className="w-1.5 h-1.5 rounded-full bg-accent-green pulse-dot" />}
+          </div>
+          <div className={`flex items-center gap-1.5 ${signalConnected ? 'text-accent-green' : 'text-gray-500'}`}>
+            {signalConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
+            <span className="hidden sm:inline">AI Signals</span>
+            {signalConnected && <span className="w-1.5 h-1.5 rounded-full bg-accent-green pulse-dot" />}
+          </div>
+        </div>
+      </div>
+
+      {/* Ticker tape — all prices across exchanges */}
+      {allPrices && exchangeConnected && (
+        <div className="flex items-center gap-0 px-4 py-1 border-t border-bg-700 overflow-x-auto scrollbar-thin">
+          {exchanges.map(ex => (
+            <div key={ex} className="flex items-center gap-2 px-2 shrink-0">
+              <span className="text-[9px] text-gray-600 uppercase">{ex}</span>
+              {symbols.map(sym => {
+                const price = allPrices[ex]?.[sym]
+                if (!price) return null
+                const isActive = ex === selectedExchange && sym === selectedSymbol
+                return (
+                  <button
+                    key={`${ex}|${sym}`}
+                    onClick={() => { onExchangeChange(ex); onSymbolChange(sym) }}
+                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                      isActive ? 'bg-bg-600 text-gray-200' : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    <span className="text-gray-600">{SYMBOL_SHORT[sym] || sym}</span>
+                    <span>${formatPrice(price, 0)}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </header>
+  )
+}

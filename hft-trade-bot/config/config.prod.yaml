@@ -1,0 +1,209 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Production configuration — real exchanges, real DB, real risk limits
+# ─────────────────────────────────────────────────────────────────────────────
+
+system:
+  mode: production          # production | simulator
+  version: "3.0.0"
+  log_level: info           # trace | debug | info | warn | error
+  log_file: logs/hft_trade_bot.log
+
+# ── Exchange configuration ──
+exchange:
+  # Active exchanges (first = primary for order routing)
+  active:
+    - binance
+    - okx
+    - bybit
+
+  # Fallback to simulator if all real exchanges are down
+  fallback_to_simulator: true
+  simulator_ws_url: "ws://exchange-simulator:8765"
+
+  binance:
+    enabled: true
+    ws_url: "wss://fstream.binance.com"
+    rest_url: "https://fapi.binance.com"
+    api_key: "${BINANCE_API_KEY}"
+    api_secret: "${BINANCE_API_SECRET}"
+    rate_limit:
+      weight_per_min: 1200
+      orders_per_10s: 300
+      orders_per_min: 1200
+    fees:
+      maker_bps: 0.02
+      taker_bps: 0.04
+
+  okx:
+    enabled: true
+    ws_url: "wss://ws.okx.com:8443"
+    rest_url: "https://www.okx.com"
+    api_key: "${OKX_API_KEY}"
+    api_secret: "${OKX_API_SECRET}"
+    passphrase: "${OKX_PASSPHRASE}"
+    inst_type: "SWAP"
+    rate_limit:
+      req_per_2s: 20
+      order_req_per_2s: 60
+    fees:
+      maker_bps: 0.02
+      taker_bps: 0.05
+
+  bybit:
+    enabled: true
+    ws_url: "wss://stream.bybit.com"
+    rest_url: "https://api.bybit.com"
+    api_key: "${BYBIT_API_KEY}"
+    api_secret: "${BYBIT_API_SECRET}"
+    category: "linear"
+    rate_limit:
+      orders_per_min: 120
+      queries_per_min: 600
+    fees:
+      maker_bps: 0.01
+      taker_bps: 0.06
+
+# ── SHM IPC configuration ──
+ipc:
+  enabled: true
+  signals:
+    shm_name: "/hft_signals"
+    capacity: 4096
+  fills:
+    shm_name: "/hft_fills"
+    capacity: 4096
+  market_data:
+    shm_name: "/hft_market"
+    max_symbols: 10
+  kill_switch:
+    shm_name: "/hft_kill_switch"
+    trigger_file: "/tmp/kill_switch"
+    poll_interval_ms: 1000
+
+# ── FIX 4.4 session configuration ──
+fix:
+  enabled: false  # Enable when connecting to FIX gateway
+  sender_comp_id: "HFTBOT"
+  target_comp_id: "EXCHANGE"
+  seq_file: "logs/fix_seq.txt"
+  heart_bt_int: 30
+  username: "${FIX_USERNAME}"
+  password: "${FIX_PASSWORD}"
+
+# ── Signal engine v2 ──
+signal_engine_v2:
+  enabled: true
+  weights:
+    ema: 0.20
+    rsi: 0.15
+    obi: 0.20
+    vwap: 0.15
+    adx: 0.10
+    pressure: 0.20
+  thresholds:
+    min_confidence: 70
+    min_composite: 0.35
+  periods:
+    ema_fast: 9
+    ema_slow: 21
+    rsi_period: 14
+    adx_period: 14
+    vwap_window: 60
+
+# ── Pressure model ──
+pressure_model:
+  enabled: true
+  obi_levels: [5, 10, 20]
+  toxicity_threshold: 0.7
+  microprice_enabled: true
+
+# ── Smart order router ──
+smart_order_router:
+  strategy: best_effective  # best_price | lowest_latency | lowest_fees | best_effective | depth_aware
+  anti_toxic_backoff: true
+  toxic_threshold: 5
+  toxic_cooldown_seconds: 30
+
+# ── Adaptive order selector ──
+adaptive_order_selector:
+  enabled: true
+  default_type: ioc  # market | ioc | fok | gtd | post_only
+  gtd_timeout_ms: 5000
+  post_only_retries: 3
+
+# ── Risk management (production) ──
+risk:
+  max_risk_per_trade_pct: 1.0     # 1% of equity per trade
+  max_daily_drawdown_pct: 5.0     # 5% daily drawdown limit
+  min_confidence: 70.0
+  min_rr_ratio: 2.0
+  max_position_size_pct: 5.0      # 5% of equity per position
+  max_open_positions: 5
+
+  # Production limits
+  max_position_qty: 5.0           # Max qty per symbol
+  max_total_exposure: 50000.0     # Max total notional (USD)
+  daily_loss_limit: 2000.0        # Max daily loss (USD) → kill switch
+  max_drawdown_pct: 0.10          # 10% max drawdown from peak
+  max_orders_per_second: 20       # Order rate throttle
+  min_margin_ratio: 0.05          # 5% minimum margin
+  max_leverage: 10                # Max leverage allowed
+
+  # Blacklisted symbols
+  blacklisted_symbols: []
+
+  # Kill switch
+  kill_switch:
+    enabled: true
+    trigger_file: "/tmp/kill_switch"
+    auto_cancel_orders: true
+    auto_close_positions: true
+
+# ── Database (PostgreSQL) ──
+database:
+  dsn: "${POSTGRES_DSN}"
+  pool_min: 2
+  pool_max: 10
+  persist_trades: true
+  persist_signals: true
+  persist_positions: true
+  persist_candles: true
+
+# ── Redis (hot state cache) ──
+redis:
+  url: "${REDIS_URL}"
+  enabled: true
+  cache_ttl: 60  # seconds
+
+# ── Prometheus metrics ──
+metrics:
+  enabled: true
+  port: 9090
+  host: "0.0.0.0"
+
+# ── Symbols to trade ──
+symbols:
+  - name: BTCUSDT
+    id: 0
+    max_leverage: 20
+  - name: ETHUSDT
+    id: 1
+    max_leverage: 20
+  - name: SOLUSDT
+    id: 2
+    max_leverage: 10
+  - name: BNBUSDT
+    id: 3
+    max_leverage: 10
+  - name: XRPUSDT
+    id: 4
+    max_leverage: 10
+
+# ── Latency optimization ──
+latency_optimization:
+  thread_pinning: true
+  signal_thread_core: 0
+  execution_thread_core: 1
+  market_data_core: 2
+  spsc_queue_capacity: 16384
+  object_pool_size: 1024

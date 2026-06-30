@@ -1,0 +1,6 @@
+# Exchange Simulator — Requirements
+websockets>=12.0
+pyyaml>=6.0
+aiohttp>=3.9
+pytest>=7.0
+pytest-asyncio>=0.23.0

@@ -1,0 +1,220 @@
+# Production Docker Compose — full trading system with real exchange connectivity
+# Usage: docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+version: "3.9"
+
+services:
+  # ── PostgreSQL — trades, signals, positions, candles persistence ──
+  postgres:
+    image: postgres:16-alpine
+    container_name: trading-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-trading}
+      POSTGRES_USER: ${POSTGRES_USER:-trader}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trader_secure_2024}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-trader} -d ${POSTGRES_DB:-trading}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - trading-prod
+
+  # ── Redis — hot state caching, session state, rate limiting ──
+  redis:
+    image: redis:7-alpine
+    container_name: trading-redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - trading-prod
+
+  # ── Prometheus — metrics scraping ──
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: trading-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prom-data:/prometheus
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - trading-prod
+
+  # ── Grafana — dashboards and visualization ──
+  grafana:
+    image: grafana/grafana:latest
+    container_name: trading-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/trading-overview.json
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - trading-prod
+
+  # ── Exchange Simulator (Python) — market simulation for fallback ──
+  exchange-simulator:
+    build:
+      context: ./exchange-simulator
+      dockerfile: Dockerfile
+    container_name: trading-exchange-sim
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./exchange-simulator/config.yaml:/app/config.yaml:ro
+      - sim-data:/app/data
+    command: python -m exchange_simulator --no-visualizer
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8765), timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - trading-prod
+
+  # ── AI Signal Bot (Python) — strategy signals + real market data ──
+  ai-signal-bot:
+    build:
+      context: ./ai-signal-bot
+      dockerfile: Dockerfile
+    container_name: trading-ai-signal-bot
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      exchange-simulator:
+        condition: service_healthy
+    ports:
+      - "8766:8766"
+      - "9091:9090"  # Prometheus metrics
+    env_file:
+      - .env.prod
+    environment:
+      - POSTGRES_DSN=postgresql://${POSTGRES_USER:-trader}:${POSTGRES_PASSWORD:-trader_secure_2024}@postgres:5432/${POSTGRES_DB:-trading}
+      - REDIS_URL=redis://redis:6379/0
+      - EXCHANGE_MODE=${EXCHANGE_MODE:-simulator}
+    volumes:
+      - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml:ro
+      - ai-data:/app/data
+      - ai-logs:/app/logs
+      - /dev/shm:/dev/shm  # SHM IPC with C++ bot
+    command: python run.py --dashboard --metrics
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8766), timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - trading-prod
+
+  # ── HFT Trade Bot (C++) — low-latency execution ──
+  hft-trade-bot:
+    build:
+      context: ./hft-trade-bot
+      dockerfile: Dockerfile
+    container_name: trading-hft-bot
+    depends_on:
+      ai-signal-bot:
+        condition: service_healthy
+    env_file:
+      - .env.prod
+    environment:
+      - EXCHANGE_MODE=${EXCHANGE_MODE:-simulator}
+    volumes:
+      - ./hft-trade-bot/config:/app/config:ro
+      - hft-logs:/app/logs
+      - /dev/shm:/dev/shm  # SHM IPC with Python bot
+    command: ./build/hft_trade_bot config/config.prod.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "test", "-f", "/proc/1/cmdline"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - trading-prod
+
+  # ── Web UI (React + nginx) — dashboard with 200+ panels ──
+  web-ui:
+    build:
+      context: ./web-ui
+      dockerfile: Dockerfile
+    container_name: trading-web-ui
+    depends_on:
+      ai-signal-bot:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_WS_EXCHANGE=ws://localhost:8765
+      - VITE_WS_SIGNALS=ws://localhost:8766
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - trading-prod
+
+volumes:
+  pg-data:
+  redis-data:
+  prom-data:
+  grafana-data:
+  sim-data:
+  ai-data:
+  ai-logs:
+  hft-logs:
+
+networks:
+  trading-prod:
+    driver: bridge

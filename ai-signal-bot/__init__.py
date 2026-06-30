@@ -1,0 +1,2 @@
+"""AI Signal Bot — package init."""
+__version__ = "1.0.0"
