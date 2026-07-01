@@ -105,9 +105,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake ccache \
             libboost-dev libboost-system-dev libboost-random-dev \
-            libssl-dev libwebsocketpp-dev \
+            libssl-dev libwebsocketpp-dev libasio-dev \
             libspdlog-dev libfmt-dev \
             nlohmann-json3-dev libyaml-cpp-dev
+          # Patch websocketpp C++17/C++20 incompatibility (template-id in destructor)
+          sudo sed -i 's/~endpoint<connection,config>()/{}/g' /usr/include/websocketpp/endpoint.hpp
+          sudo sed -i 's/~basic<concurrency,names>()/{}/g' /usr/include/websocketpp/logger/basic.hpp
           if [ "${{ matrix.compiler }}" = "clang-17" ]; then
             wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
             sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main"

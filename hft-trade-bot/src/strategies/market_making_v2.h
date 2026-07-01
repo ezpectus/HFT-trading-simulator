@@ -45,7 +45,7 @@ public:
         double confidence{0.0};
     };
 
-    explicit MarketMakingV2(const Config& cfg = {})
+    explicit MarketMakingV2(const Config& cfg = Config{})
         : config_(cfg) {}
 
     // Process market data and generate quotes.

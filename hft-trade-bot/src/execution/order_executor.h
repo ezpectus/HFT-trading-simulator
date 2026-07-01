@@ -15,7 +15,7 @@
 namespace hft {
 
 using json = nlohmann::json;
-using WSClient = websocketpp::client<websocketpp::config::asio_tls_client>;
+using WSClient = websocketpp::client<websocketpp::config::asio_client>;
 using MessageHandler = std::function<void(const json&)>;
 
 class OrderExecutor {
@@ -26,10 +26,6 @@ public:
     bool connect() {
         try {
             client_.init_asio();
-            client_.set_tls_init_handler([](websocketpp::connection_hdl) {
-                return websocketpp::lib::make_shared<boost::asio::ssl::context>(
-                    boost::asio::ssl::context::tlsv12);
-            });
 
             websocketpp::lib::error_code ec;
             auto con = client_.get_connection(ws_url_, ec);

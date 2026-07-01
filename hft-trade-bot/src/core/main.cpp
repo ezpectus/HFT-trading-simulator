@@ -515,7 +515,7 @@ int main(int argc, char* argv[]) {
             }
         } else {
             // ─── Fallback: V1 signal engine ───
-            SignalEngine::EngineParams engine_params;
+            SignalEngine::Params engine_params;
             engine_params.fast_ema_period = config.fast_ema_period;
             engine_params.slow_ema_period = config.slow_ema_period;
             engine_params.obi_enabled = config.obi_enabled;

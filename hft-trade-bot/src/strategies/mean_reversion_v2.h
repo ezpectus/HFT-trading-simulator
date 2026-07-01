@@ -80,7 +80,7 @@ public:
         double confidence{0.0};  // 0-100
     };
 
-    explicit MeanReversionV2(const Config& cfg = {})
+    explicit MeanReversionV2(const Config& cfg = Config{})
         : config_(cfg)
         , kalman_(cfg.kalman_process_var, cfg.kalman_measurement_var)
     {}

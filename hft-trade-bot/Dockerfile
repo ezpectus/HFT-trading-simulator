@@ -19,6 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy source and build
 COPY . .
+
+# Patch websocketpp C++17/C++20 incompatibility (template-id in destructor)
+RUN sed -i 's/~endpoint<connection,config>()/{}/g' /usr/include/websocketpp/endpoint.hpp \
+    && sed -i 's/~basic<concurrency,names>()/{}/g' /usr/include/websocketpp/logger/basic.hpp
+
 RUN mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j$(nproc)
 
 # ── Runtime stage: slim image with only runtime libs ──

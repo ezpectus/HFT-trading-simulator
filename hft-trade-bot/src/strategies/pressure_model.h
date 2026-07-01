@@ -26,7 +26,7 @@ public:
         double large_order_percentile{0.9}; // Top 10% = large
     };
 
-    explicit PressureModel(const Params& params = {}) : params_(params) {}
+    explicit PressureModel(const Params& params = Params{}) : params_(params) {}
 
     // Main analysis — takes L2 order book + recent trade flow
     // trades: array of {buyer_initiated: bool, quantity: double}

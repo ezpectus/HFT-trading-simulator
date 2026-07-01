@@ -31,7 +31,7 @@ public:
 
     // Time-based constructor: interval in seconds
     CandleAggregator(const std::string& symbol, const std::string& exchange,
-                     int64_t interval_seconds, CandleCallback callback = {})
+                     int64_t interval_seconds, CandleCallback callback = CandleCallback{})
         : symbol_(symbol)
         , exchange_(exchange)
         , mode_(CandleMode::TIME)

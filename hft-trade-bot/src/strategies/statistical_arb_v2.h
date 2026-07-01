@@ -47,7 +47,7 @@ public:
         double confidence{0.0};
     };
 
-    explicit StatisticalArbV2(const Config& cfg = {})
+    explicit StatisticalArbV2(const Config& cfg = Config{})
         : config_(cfg)
         , hedge_kalman_(cfg.kalman_process_var, cfg.kalman_measurement_var)
     {}

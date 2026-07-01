@@ -209,7 +209,7 @@ private:
 // ─────────────────────────────────────────────────────────────────────────────
 class ReconnectionManager {
 public:
-    explicit ReconnectionManager(ReconnectPolicy policy = {})
+    explicit ReconnectionManager(ReconnectPolicy policy = ReconnectPolicy{})
         : policy_(policy), state_(ConnectionState::DISCONNECTED) {}
 
     void on_connect() noexcept {

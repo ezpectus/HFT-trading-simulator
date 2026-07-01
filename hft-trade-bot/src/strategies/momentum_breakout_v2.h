@@ -48,7 +48,7 @@ public:
         bool adx_confirmed{false};
     };
 
-    explicit MomentumBreakoutV2(const Config& cfg = {})
+    explicit MomentumBreakoutV2(const Config& cfg = Config{})
         : config_(cfg)
         , ema_fast_(cfg.ema_fast)
         , ema_mid_(cfg.ema_mid)

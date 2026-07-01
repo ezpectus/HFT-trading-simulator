@@ -67,7 +67,7 @@ public:
         double maintenance_margin_ratio{0.005};  // 0.5%
     };
 
-    explicit PositionManagerV2(const Config& cfg = {}) : config_(cfg) {}
+    explicit PositionManagerV2(const Config& cfg = Config{}) : config_(cfg) {}
 
     // On fill — update or open position
     void on_fill(const std::string& symbol, const std::string& exchange,

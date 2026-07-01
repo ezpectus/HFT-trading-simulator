@@ -124,7 +124,7 @@ public:
         bool prefer_maker{true};       // Prefer maker (limit) when possible
     };
 
-    explicit SmartOrderRouterV2(const RoutingConfig& config = {}) : config_(config) {}
+    explicit SmartOrderRouterV2(const RoutingConfig& config = RoutingConfig{}) : config_(config) {}
 
     // Register an exchange
     void add_exchange(IExchange* exchange) {
