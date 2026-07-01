@@ -136,7 +136,7 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
     )
   }
 
-  const { qty, currentPrice, executionPrice, priceImpact, slippagePct, spread, bestBid, bestAsk, topLiquidity, fee, feeRate, grossValue, actualValue, slippageCost, totalRoundTrip, effectivePrice, slippagePctOfTotal, feePctOfTotal, twapSavings, twapSavingsPct, orderVsLiquidity, liquidityZone, liquidityColor } = data
+  const { qty, executionPrice, priceImpact, slippagePct, spread, bestBid, bestAsk, topLiquidity, fee, feeRate, grossValue, actualValue, slippageCost, totalRoundTrip, effectivePrice, slippagePctOfTotal, feePctOfTotal, twapSavings, twapSavingsPct, orderVsLiquidity, liquidityZone, liquidityColor } = data
 
   return (
     <div className="bg-bg-700 rounded-lg p-2.5">
