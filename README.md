@@ -203,7 +203,7 @@ Open **http://localhost:3000** in your browser.
 ### Linux/macOS
 
 ```bash
-git clone https://github.com/yourusername/hft-trading-system.git
+git clone https://github.com/ezpectus/HFT-trading-simulator
 cd hft-trading-system
 
 # Install all dependencies
@@ -216,7 +216,7 @@ cd hft-trading-system
 ### Docker
 
 ```bash
-git clone https://github.com/yourusername/hft-trading-system.git
+git clone https://github.com/ezpectus/HFT-trading-simulator
 cd hft-trading-system
 docker-compose up
 ```
