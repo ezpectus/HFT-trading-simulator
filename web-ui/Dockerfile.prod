@@ -3,6 +3,12 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Build-time args for Vite env vars (inlined at build time, not runtime)
+ARG VITE_WS_EXCHANGE=ws://localhost:8765
+ARG VITE_WS_SIGNALS=ws://localhost:8766
+ENV VITE_WS_EXCHANGE=${VITE_WS_EXCHANGE}
+ENV VITE_WS_SIGNALS=${VITE_WS_SIGNALS}
+
 COPY package*.json ./
 RUN npm ci --production=false
 

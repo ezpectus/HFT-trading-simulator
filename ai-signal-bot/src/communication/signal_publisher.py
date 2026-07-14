@@ -7,6 +7,8 @@ requests from the Web UI.
 Protocol:
   → {"type": "signal", "symbol": "BTC/USDT", "direction": "LONG", ...}
   → {"type": "signal_history", "signals": [...]}
+  → {"type": "market_regime", "symbol": ..., "regime": ...}
+  → {"type": "circuit_breaker_status", "state": "CLOSED", "consecutive_failures": 0, ...}
   → {"type": "backtest_result", "results": {...}}
   ← {"type": "subscribe", "client": "hft_trade_bot"}
   ← {"type": "run_backtest", "strategy": "trend", "candles": 500, ...}
@@ -61,6 +63,8 @@ class SignalPublisher:
         self._running = True
         logger.info(f"Signal publisher started on ws://{self.host}:{self.port}")
 
+        asyncio.create_task(self._broadcast_circuit_breaker_status())
+
     async def stop(self) -> None:
         """Stop the server."""
         self._running = False
@@ -84,8 +88,18 @@ class SignalPublisher:
                     "signals": self._signal_history[-20:],
                     "count": len(self._signal_history),
                 }))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to send signal history: {e}")
+
+        # Send current circuit breaker status on connect
+        try:
+            await websocket.send(json.dumps({
+                "type": "circuit_breaker_status",
+                **self.circuit_breaker.get_status(),
+                "timestamp": int(time.time()),
+            }))
+        except Exception as e:
+            logger.warning(f"Failed to send circuit breaker status: {e}")
 
         try:
             async for message in websocket:
@@ -172,6 +186,32 @@ class SignalPublisher:
                 disconnected.add(ws)
         self._clients -= disconnected
 
+    async def _broadcast_circuit_breaker_status(self) -> None:
+        """Periodically broadcast circuit breaker status to all connected clients."""
+        state_map = {"CLOSED": 0, "OPEN": 1, "HALF_OPEN": 2}
+        while self._running:
+            await asyncio.sleep(5)
+            if not self._clients:
+                continue
+
+            status = self.circuit_breaker.get_status()
+            state_val = state_map.get(status["state"], 0)
+            self.metrics.set_circuit_breaker_state(state_val)
+
+            msg = json.dumps({
+                "type": "circuit_breaker_status",
+                **status,
+                "timestamp": int(time.time()),
+            })
+
+            disconnected = set()
+            for ws in self._clients:
+                try:
+                    await ws.send(msg)
+                except Exception:
+                    disconnected.add(ws)
+            self._clients -= disconnected
+
     async def _run_backtest(self, params: dict) -> dict:
         """Run a backtest and return results as JSON.
 
@@ -189,11 +229,6 @@ class SignalPublisher:
         Returns:
             Dict with type "backtest_result" and results data.
         """
-        import sys
-        import os
-
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
         from src.backtesting import Backtester
         from src.strategies import (
             EnsembleVoter, FFTCycleStrategy, MeanReversionStrategy,

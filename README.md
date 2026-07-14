@@ -2,7 +2,7 @@
 
 ![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF.svg)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-61dafb.svg)
-![Coverage](https://img.shields.io/badge/coverage-75%2B%20tests-6e9f18.svg)
+![Coverage](https://img.shields.io/badge/tests-2500%2B%20cases-6e9f18.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 ![Live Demo](https://img.shields.io/badge/demo-coming%20soon-orange.svg)
 ![Panels](https://img.shields.io/badge/panels-191+-61dafb.svg)
@@ -11,7 +11,7 @@
 
 > **An educational high-frequency trading simulator with a C++20 signal engine, 75+ advanced quantitative models, 191+ dashboard panels, FIX 4.4 protocol support, and shared-memory IPC. Zero real money, zero risk, 100% educational.**
 
-**Live Demo:** _coming soon_ | **Documentation:** [docs/](docs/) | **Setup:** [docs/SETUP.md](docs/SETUP.md)
+**Live Demo:** _coming soon_ | **Documentation:** [docs/](docs/) | **Setup:** [docs/SETUP.md](docs/SETUP.md) | **Math Models:** [docs/MATH_MODELS.md](docs/MATH_MODELS.md)
 
 ---
 
@@ -187,8 +187,8 @@ graph TB
 
 ```bat
 REM 1. Clone the repository
-git clone https://github.com/ezpectus/HFT-trading-simulator
-cd hft-trading-system
+git clone https://github.com/ezpectus/HFT-trading-simulator.git
+cd HFT-trading-simulator
 
 REM 2. Install all dependencies (Python + C++ + Node.js)
 install-deps.bat
@@ -203,8 +203,8 @@ Open **http://localhost:3000** in your browser.
 ### Linux/macOS
 
 ```bash
-git clone https://github.com/ezpectus/HFT-trading-simulator
-cd hft-trading-system
+git clone https://github.com/ezpectus/HFT-trading-simulator.git
+cd HFT-trading-simulator
 
 # Install all dependencies
 ./no-docker.sh install
@@ -216,8 +216,8 @@ cd hft-trading-system
 ### Docker
 
 ```bash
-git clone https://github.com/ezpectus/HFT-trading-simulator
-cd hft-trading-system
+git clone https://github.com/ezpectus/HFT-trading-simulator.git
+cd HFT-trading-simulator
 docker-compose up
 ```
 
@@ -307,8 +307,6 @@ hft-trading-system/
 ├── run_logger.py                    # Shared timestamped run logging
 ├── trade_csv_logger.py              # Shared CSV trade logging
 ├── logs/                            # Runtime logs + CSV trades (gitignored)
-├── docs/                            # Documentation (10 files)
-├── .github/                         # CI workflows + issue/PR templates
 ├── docker-compose.yml               # 4-service orchestration (development)
 ├── docker-compose.prod.yml          # Production: 4 services + PostgreSQL + Redis + Prometheus + Grafana
 ├── shared_config.yaml               # Global settings
@@ -322,7 +320,8 @@ hft-trading-system/
 ├── monitoring/                      # Prometheus config + Grafana dashboards
 ├── .editorconfig
 ├── .gitignore
-├── CHANGELOG.md
+├── docs/                            # Documentation (8 files)
+├── .github/                         # CI workflows + issue/PR templates
 ├── CONTRIBUTING.md
 ├── README.md
 └── LICENSE
@@ -430,15 +429,13 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 | Document | Description |
 |----------|-------------|
 | [Architecture](docs/ARCHITECTURE.md) | System design, component overview, data flow, C++ V2 engine |
-| [Architecture Roadmap](docs/ARCHITECTURE_ROADMAP.md) | 5-20 year sustainability plan |
 | [Trading Strategies](docs/TRADING_STRATEGIES.md) | All strategies, HFT V2 engine, pressure model, routing |
 | [WebSocket Protocol](docs/WEBSOCKET_PROTOCOL.md) | All message types, v2 schema, compression, reconnection |
 | [Web UI](docs/WEB_UI.md) | 191+ panels, performance, testing, accessibility, PWA |
 | [Exchange Simulator](docs/EXCHANGE_SIMULATOR.md) | Price generation, order book, liquidation engine |
 | [Setup Guide](docs/SETUP.md) | Installation, mock mode, troubleshooting |
-| [Progress & Roadmap](docs/PROGRESS.md) | 41 phases of implementation history |
-| [Future TODO](docs/FUTURE_TODO.md) | Feature backlog with priority levels |
-| [Code Audit](docs/AUDIT_2025.md) | Kleppmann principles audit results |
+| [Mathematical Models](docs/MATH_MODELS.md) | Detailed breakdown of all 75+ quant models with formulas and file references |
+| [Changelog](docs/CHANGELOG.md) | Version history and notable changes |
 
 ---
 
@@ -458,6 +455,24 @@ Each component has its own YAML config file:
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, testing instructions, and pull request guidelines.
+
+---
+
+## HFT Skills — AI Knowledge Base
+
+This project includes [`hft-skills/`](hft-skills/README.md) — a library of **538+ production-grade skills** for AI agents working on HFT systems. Skills cover 7 domains:
+
+| Domain | Skills | Focus |
+|--------|--------|-------|
+| `coding-skills/` | 15 | Clean Code, SOLID, DDD, Microservices, Testing |
+| `skills/` | 152 | Lock-free queues, SHM IPC, WebSocket, FIX, SIMD, CUDA |
+| `patterns/` | 94 | GoF, Distributed, Resilience, SDLC patterns |
+| `quant-models/` | 95 | Black-Scholes, Heston, GARCH, Kalman, Almgren-Chriss |
+| `math-models/` | 124 | Stochastic calculus, SDEs, Gaussian processes, HJB |
+| `algorithms/` | 48 | VWAP/TWAP, Smart Order Router, Market Making, Arbitrage |
+| `audit/` | 10 | Concurrency, Memory safety, Latency, Security audits |
+
+Each skill follows the [agentskills.io](https://agentskills.io) standard with YAML frontmatter for fast discovery. Compatible with Claude Code, Cursor, Windsurf, GitHub Copilot, and any MCP-compatible agent.
 
 ---
 

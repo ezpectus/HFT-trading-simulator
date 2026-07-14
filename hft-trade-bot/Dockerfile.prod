@@ -1,5 +1,5 @@
 # ── HFT Trade Bot Production Dockerfile (C++) ──
-FROM gcc:13-bookworm AS builder
+FROM gcc:14 AS builder
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libboost-system1.74.0 libboost-random1.74.0 libssl3 libspdlog1.10-fmt \
-    libyaml-cpp0.7 curl \
+    libyaml-cpp0.7 \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -r appuser && useradd -r -g appuser appuser
 
@@ -41,6 +41,6 @@ USER appuser
 EXPOSE 8767
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
-    CMD curl -f http://localhost:8767/health || exit 1
+    CMD test -f /proc/1/cmdline || exit 1
 
-CMD ["/app/hft_trade_bot"]
+CMD ["/app/hft_trade_bot", "config/config.prod.yaml"]

@@ -105,6 +105,10 @@ class SignalValidator:
 
         # Check duplicate signal (same symbol within last 5 minutes)
         now = datetime.now()
+        # Clean up stale entries to prevent unbounded growth
+        stale = [s for s, t in self._recent_signals.items() if now - t > timedelta(minutes=10)]
+        for s in stale:
+            del self._recent_signals[s]
         if signal.symbol in self._recent_signals:
             last_time = self._recent_signals[signal.symbol]
             if now - last_time < timedelta(minutes=5):

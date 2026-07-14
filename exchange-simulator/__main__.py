@@ -20,7 +20,9 @@ from datetime import datetime
 import yaml
 
 # Add project root for run_logger
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _proj_root not in sys.path:
+    sys.path.insert(0, _proj_root)
 from run_logger import setup_run_logging
 
 from exchange_simulator.exchange import SimulatedExchange
@@ -43,7 +45,8 @@ def load_config(path: str = None) -> dict:
 
 def setup_logging(level: str = "INFO") -> tuple[logging.Logger, str]:
     """Setup logging with timestamped file output."""
-    return setup_run_logging("exchange_simulator", level=level)
+    fmt = os.environ.get("LOG_FORMAT", "text")
+    return setup_run_logging("exchange_simulator", level=level, format_type=fmt)
 
 
 def build_exchanges(config: dict) -> tuple[dict[str, SimulatedExchange], MarketSimulator]:
@@ -181,7 +184,7 @@ def main():
     exchanges, market = build_exchanges(config)
 
     logger.info("=" * 60)
-    logger.info("  CRYPTO EXCHANGE SIMULATOR v1.0.0")
+    logger.info("  HFT TRADING SIMULATOR v2.2.0")
     logger.info("  3 Exchanges | 3 Symbols | Paper Trading")
     logger.info("=" * 60)
     logger.info(f"  Log file: {log_path}")

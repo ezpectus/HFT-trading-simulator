@@ -24,8 +24,37 @@ public:
         : ws_url_(ws_url), exchange_id_(exchange_id) {}
 
     bool connect() {
+        should_reconnect_ = true;
+        return do_connect();
+    }
+
+    bool do_connect() {
         try {
             client_.init_asio();
+
+            client_.set_open_handler([this](websocketpp::connection_hdl hdl) {
+                connection_ = hdl;
+                connected_ = true;
+                reconnect_delay_ = 1000;
+                spdlog::info("OrderExecutor connected to {}", ws_url_);
+            });
+
+            client_.set_close_handler([this](websocketpp::connection_hdl) {
+                connected_ = false;
+                spdlog::warn("OrderExecutor disconnected");
+                if (should_reconnect_) {
+                    spdlog::info("Reconnecting in {}ms...", reconnect_delay_);
+                    auto delay = reconnect_delay_;
+                    reconnect_delay_ = std::min(reconnect_delay_ * 2, 30000);
+                    std::thread([this, delay]() {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+                        if (should_reconnect_) {
+                            if (ws_thread_.joinable()) ws_thread_.join();
+                            do_connect();
+                        }
+                    }).detach();
+                }
+            });
 
             websocketpp::lib::error_code ec;
             auto con = client_.get_connection(ws_url_, ec);
@@ -35,12 +64,9 @@ public:
             }
 
             client_.connect(con);
-            connection_ = con->get_handle();
 
             // Run client in background thread
             ws_thread_ = std::thread([this]() { client_.run(); });
-            connected_ = true;
-            spdlog::info("OrderExecutor connected to {}", ws_url_);
             return true;
         } catch (const std::exception& e) {
             spdlog::error("OrderExecutor connect failed: {}", e.what());
@@ -49,11 +75,12 @@ public:
     }
 
     void disconnect() {
+        should_reconnect_ = false;
         if (connected_) {
             client_.close(connection_, websocketpp::close::status::normal, "shutdown");
-            if (ws_thread_.joinable()) ws_thread_.join();
-            connected_ = false;
         }
+        if (ws_thread_.joinable()) ws_thread_.join();
+        connected_ = false;
     }
 
     // Submit order to exchange simulator
@@ -168,6 +195,8 @@ private:
     websocketpp::connection_hdl connection_;
     std::thread ws_thread_;
     std::atomic<bool> connected_{false};
+    std::atomic<bool> should_reconnect_{false};
+    int reconnect_delay_{1000}; // ms, exponential backoff up to 30s
 };
 
 } // namespace hft

@@ -6,16 +6,18 @@
 
 #include "fix_message.h"
 #include <string_view>
-#include <unordered_map>
-#include <vector>
+#include <array>
+#include <algorithm>
 
 namespace hft::fix {
 
 class FixDecoder {
 public:
+    static constexpr size_t MAX_FIELDS = 64;
+
     // Parse a raw FIX message buffer (zero-copy — views point into buffer)
     bool decode(const char* data, size_t len) {
-        fields_.clear();
+        field_count_ = 0;
         data_ = data;
         len_ = len;
 
@@ -39,9 +41,12 @@ public:
             const char* soh = static_cast<const char*>(memchr(eq + 1, SOH, end - eq - 1));
             if (!soh) break;
 
-            // Store pointer to value (zero-copy)
-            std::string_view value(eq + 1, soh - eq - 1);
-            fields_[tag] = value;
+            // Store pointer to value (zero-copy, flat array)
+            if (field_count_ < MAX_FIELDS) {
+                fields_[field_count_].tag = tag;
+                fields_[field_count_].value = std::string_view(eq + 1, soh - eq - 1);
+                ++field_count_;
+            }
 
             p = soh + 1;
         }
@@ -56,23 +61,31 @@ public:
 
     // Check if a field exists
     bool has_field(int tag) const {
-        return fields_.find(tag) != fields_.end();
+        for (size_t i = 0; i < field_count_; ++i)
+            if (fields_[i].tag == tag) return true;
+        return false;
     }
 
     // Get field value as string_view (zero-copy, points into original buffer)
     std::string_view get(int tag) const {
-        auto it = fields_.find(tag);
-        if (it == fields_.end()) return {};
-        return it->second;
+        for (size_t i = 0; i < field_count_; ++i)
+            if (fields_[i].tag == tag) return fields_[i].value;
+        return {};
     }
 
-    // Get field as integer
+    // Get field as integer (handles negative numbers)
     int64_t get_int(int tag) const {
         auto sv = get(tag);
         if (sv.empty()) return 0;
         int64_t v = 0;
-        for (char c : sv) v = v * 10 + (c - '0');
-        return v;
+        bool negative = false;
+        size_t start = 0;
+        if (sv[0] == '-') { negative = true; start = 1; }
+        for (size_t i = start; i < sv.size(); ++i) {
+            if (sv[i] < '0' || sv[i] > '9') break;
+            v = v * 10 + (sv[i] - '0');
+        }
+        return negative ? -v : v;
     }
 
     // Get field as double
@@ -127,9 +140,15 @@ public:
     size_t raw_size() const { return len_; }
 
 private:
+    struct Field {
+        int tag{0};
+        std::string_view value;
+    };
+
     const char* data_{nullptr};
     size_t len_{0};
-    std::unordered_map<int, std::string_view> fields_;
+    size_t field_count_{0};
+    std::array<Field, MAX_FIELDS> fields_;
 };
 
 } // namespace hft::fix

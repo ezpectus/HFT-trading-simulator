@@ -66,8 +66,13 @@ class SimulatedExchange:
         price: Optional[float] = None,
         stop_loss: Optional[float] = None,
         take_profit: Optional[float] = None,
+        force_close: bool = False,
     ) -> Order:
-        """Submit an order and return the result."""
+        """Submit an order and return the result.
+
+        Args:
+            force_close: If True, skip margin/position checks (for SL/TP/liquidation closes).
+        """
         order_id = str(uuid.uuid4())[:8]
         order = Order(
             id=order_id,
@@ -117,19 +122,21 @@ class SimulatedExchange:
         notional = fill_price * quantity
         fee = notional * self.fee_pct / 100
 
-        # Check balance
-        margin_required = notional / self.account.leverage
-        if margin_required + fee > self.account.balance:
+        # Check max position size (50% of balance * leverage as notional cap)
+        # Use mid_price notional so slippage doesn't cause boundary rejection
+        mid_notional = mid_price * quantity
+        max_notional = self.account.balance * self.account.leverage * 0.5
+        if not force_close and mid_notional > max_notional:
             order.status = OrderStatus.REJECTED
-            order.rejection_reason = f"INSUFFICIENT_MARGIN (need ${margin_required:.2f}, have ${self.account.balance:.2f})"
+            order.rejection_reason = f"MAX_POSITION_SIZE (notional ${notional:.2f} > limit ${max_notional:.2f})"
             self._order_history.append(order)
             return order
 
-        # Check max position size (10% of balance as notional cap)
-        max_notional = self.account.balance * self.account.leverage * 0.5
-        if notional > max_notional:
+        # Check balance
+        margin_required = notional / self.account.leverage
+        if not force_close and margin_required + fee > self.account.balance:
             order.status = OrderStatus.REJECTED
-            order.rejection_reason = f"MAX_POSITION_SIZE (notional ${notional:.2f} > limit ${max_notional:.2f})"
+            order.rejection_reason = f"INSUFFICIENT_MARGIN (need ${margin_required:.2f}, have ${self.account.balance:.2f})"
             self._order_history.append(order)
             return order
 
@@ -305,29 +312,68 @@ class SimulatedExchange:
 
         for pos, reason, close_qty in positions_to_close:
             close_side = Side.SELL if pos.is_long else Side.BUY
+            current_price = self.get_price(pos.symbol)
+
+            if reason == "PARTIAL_LIQUIDATION":
+                # Handle partial close directly — don't call submit_order
+                # because it would close the entire position
+                if pos.is_long:
+                    pnl = (current_price - pos.entry_price) * close_qty
+                else:
+                    pnl = (pos.entry_price - current_price) * close_qty
+
+                self.account.balance += pnl
+                self.account.total_pnl += pnl
+                self.account.total_trades += 1
+                if pnl > 0:
+                    self.account.winning_trades += 1
+
+                self.account.trade_history.append(ClosedTrade(
+                    symbol=pos.symbol,
+                    exchange=self.exchange_id,
+                    side=pos.side.value,
+                    quantity=close_qty,
+                    entry_price=pos.entry_price,
+                    exit_price=current_price,
+                    pnl=round(pnl, 2),
+                    fee=0.0,
+                    reason=reason,
+                    opened_at=pos.opened_at,
+                ))
+
+                pos.quantity -= close_qty
+                order = Order(
+                    id=str(uuid.uuid4())[:8],
+                    symbol=pos.symbol,
+                    exchange=self.exchange_id,
+                    side=close_side,
+                    order_type=OrderType.MARKET,
+                    quantity=close_qty,
+                )
+                order.status = OrderStatus.FILLED
+                order.filled_price = current_price
+                order.filled_quantity = close_qty
+                closed_orders.append(order)
+                continue
+
             order = self.submit_order(
                 symbol=pos.symbol,
                 side=close_side,
                 quantity=close_qty,
                 order_type=OrderType.MARKET,
+                force_close=True,
             )
             order.status = OrderStatus.FILLED
 
-            # For partial liquidation, reduce position quantity instead of removing
-            if reason == "PARTIAL_LIQUIDATION":
-                pos.quantity -= close_qty
-                if self.account.trade_history:
-                    self.account.trade_history[-1].reason = reason
-            else:
-                # Full close — check if insurance fund is needed
-                if reason == "LIQUIDATION":
-                    # If balance went negative from liquidation, cover from insurance fund
-                    if self.account.balance < 0:
-                        deficit = abs(self.account.balance)
-                        self.insurance_fund += deficit
-                        self.account.balance = 0.0
-                if self.account.trade_history:
-                    self.account.trade_history[-1].reason = reason
+            # Full close — check if insurance fund is needed
+            if reason == "LIQUIDATION":
+                # If balance went negative from liquidation, cover from insurance fund
+                if self.account.balance < 0:
+                    deficit = abs(self.account.balance)
+                    self.insurance_fund += deficit
+                    self.account.balance = 0.0
+            if self.account.trade_history:
+                self.account.trade_history[-1].reason = reason
             closed_orders.append(order)
 
         return closed_orders

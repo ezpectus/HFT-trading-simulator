@@ -81,7 +81,7 @@ visualizer:
 # WebSocket server — streams data to AI Signal Bot, HFT Trade Bot, and Web UI
 websocket:
   host: "localhost"           # Bind address (0.0.0.0 for external access)
-  port: 8765                  # WebSocket port (Prometheus metrics on port+1)
+  port: 8765                  # WebSocket port (Prometheus metrics on port+10 = 8775)
 
 # Arbitrage detection — scans for cross-exchange price differences
 arbitrage:

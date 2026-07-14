@@ -1,0 +1,13 @@
+apiVersion: v2
+name: hft-trading-system
+description: HFT Trading System — exchange simulator, AI signal bot, C++ execution engine, web UI
+type: application
+version: 1.0.0
+appVersion: "2.0.0"
+keywords:
+  - hft
+  - trading
+  - cryptocurrency
+  - low-latency
+maintainers:
+  - name: HFT Team

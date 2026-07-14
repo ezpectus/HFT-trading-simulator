@@ -1,4 +1,5 @@
 // Logger — thread-safe console + file logging with timestamped filenames
+// Supports both human-readable (default) and JSON structured logging (production).
 #pragma once
 
 #include <fmt/core.h>
@@ -19,7 +20,8 @@ namespace hft {
 class Logger {
 public:
     static void init(const std::string& level = "info",
-                     const std::string& dir = "logs") {
+                     const std::string& dir = "logs",
+                     bool json = false) {
         // Create logs directory
         std::filesystem::create_directories(dir);
 
@@ -45,7 +47,14 @@ public:
 
         auto logger = std::make_shared<spdlog::logger>("hft",
             spdlog::sinks_init_list{console_sink, file_sink, latest_sink});
-        logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
+
+        if (json) {
+            // JSON structured logging — one JSON object per line
+            // Fields: ts, level, msg, thread
+            logger->set_pattern(R"({"ts":"%Y-%m-%dT%H:%M:%S.%e","level":"%l","msg":"%v","thread":%t})");
+        } else {
+            logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
+        }
 
         if (level == "debug") logger->set_level(spdlog::level::debug);
         else if (level == "trace") logger->set_level(spdlog::level::trace);

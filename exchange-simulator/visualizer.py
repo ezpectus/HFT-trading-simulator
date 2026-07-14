@@ -184,7 +184,7 @@ class TabbedVisualizer:
     def _render_header(self) -> None:
         print(f"{self.CYAN}{self.BOLD}", end="")
         print("╔" + "═" * 82 + "╗")
-        print("║" + "  ◆ CRYPTO TRADING SIMULATOR  —  Paper Trading Mode  ◆".center(82) + "║")
+        print("║" + "  ◆ HFT TRADING SIMULATOR  —  Paper Trading Mode  ◆".center(82) + "║")
         print("╠" + "═" * 82 + "╣")
         print(f"{self.RESET}", end="")
 

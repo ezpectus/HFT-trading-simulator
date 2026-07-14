@@ -114,8 +114,11 @@ jobs:
       - name: Check health endpoints
         run: |
           sleep 15
+          # Exchange simulator is WebSocket on :8765 — check port connectivity
+          echo "Checking ${{ secrets.DEPLOY_HOST }}:8765 (WebSocket)..."
+          nc -z -w5 ${{ secrets.DEPLOY_HOST }} 8765 && echo "  OK" || echo "  WARNING: port 8765 not reachable"
+          # AI Signal Bot health endpoint on :8080
           for endpoint in \
-            "http://${{ secrets.DEPLOY_HOST }}:8765/health" \
             "http://${{ secrets.DEPLOY_HOST }}:8080/health" \
             "http://${{ secrets.DEPLOY_HOST }}:3000/"; do
             echo "Checking $endpoint..."

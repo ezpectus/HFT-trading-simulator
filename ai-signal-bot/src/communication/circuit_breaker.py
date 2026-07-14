@@ -108,12 +108,13 @@ class CircuitBreaker:
             self._trip()
 
     def _trip(self) -> None:
+        failure_count = self._consecutive_failures
         self._state = BreakerState.OPEN
         self._opened_at = time.time()
         self._total_trips += 1
         self._consecutive_failures = 0
         logger.warning(
-            f"Circuit breaker tripped: {self._consecutive_failures} consecutive failures, "
+            f"Circuit breaker tripped: {failure_count} consecutive failures, "
             f"cooldown={self.config.cooldown_seconds}s (total trips: {self._total_trips})"
         )
 

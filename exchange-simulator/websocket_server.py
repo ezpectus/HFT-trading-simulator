@@ -13,25 +13,42 @@ from typing import Set
 
 import websockets
 
+try:
+    import msgpack
+    _HAS_MSGPACK = True
+except ImportError:
+    _HAS_MSGPACK = False
+
 # Add project root for trade_csv_logger
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _proj_root not in sys.path:
+    sys.path.insert(0, _proj_root)
 from trade_csv_logger import TradeCsvLogger
 
 from exchange_simulator.exchange import SimulatedExchange
 from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.arbitrage import ArbitrageDetector
+from exchange_simulator.models import Side, OrderType
 
 logger = logging.getLogger("exchange_simulator.ws")
 
 
+PROTOCOL_VERSION = 2
+
+
 class ExchangeWebSocketServer:
     """WebSocket server that streams simulated market data.
+
+    Protocol v2: all outgoing messages include "protocol_version": 2.
+    Clients can negotiate version by sending {"type": "subscribe", "protocol_version": 2}.
+    v1 clients (no version field) receive messages without the field for backwards compat.
 
     Message types:
     - "candles":  Latest OHLCV candles for all symbols
     - "orderbook": Order book snapshot
     - "account":  Account status (positions, balance)
     - "fill":     Order fill notification
+    - "welcome":  Sent on connect with protocol version and server info
     """
 
     def __init__(
@@ -52,7 +69,12 @@ class ExchangeWebSocketServer:
         self._tick_interval = 1.0  # seconds between candles (adjustable via set_speed)
         self._replay_paused = False
         self._replay_offset = 0
+        self._speed_event = asyncio.Event()
+        self._speed_event.set()  # not paused initially
+        self._trading_active = True  # bots can submit orders by default
         self.trade_logger = TradeCsvLogger()
+        self._client_versions: dict = {}  # websocket -> protocol_version
+        self._client_encodings: dict = {}  # websocket -> 'json' or 'msgpack'
         logger.info(f"Trade CSV log: {self.trade_logger.path}")
 
     async def start(self) -> None:
@@ -60,8 +82,9 @@ class ExchangeWebSocketServer:
         self._running = True
         logger.info(f"WebSocket server starting on {self.host}:{self.port}")
 
-        # Start Prometheus metrics HTTP server on port+1
-        metrics_port = self.port + 1
+        # Start Prometheus metrics HTTP server on port+10
+        # (port+1=8766 conflicts with AI Signal Bot WebSocket)
+        metrics_port = self.port + 10
         metrics_task = asyncio.create_task(self._run_metrics_server(metrics_port))
 
         async with websockets.serve(
@@ -110,16 +133,26 @@ class ExchangeWebSocketServer:
         logger.info(f"Client connected: {remote}")
 
         try:
+            # Send welcome message with protocol version
+            await self._send_json(websocket, {
+                "type": "welcome",
+                "protocol_version": PROTOCOL_VERSION,
+                "server": "exchange_simulator",
+                "trading_active": self._trading_active,
+            })
             # Send initial snapshot
             await self._send_market_snapshot(websocket)
 
             # Listen for incoming messages (orders from bots)
             async for message in websocket:
                 try:
-                    data = json.loads(message)
+                    if isinstance(message, bytes) and _HAS_MSGPACK:
+                        data = msgpack.unpackb(message, raw=False)
+                    else:
+                        data = json.loads(message)
                     await self._handle_message(websocket, data)
-                except json.JSONDecodeError:
-                    logger.warning(f"Invalid JSON from {remote}: {message}")
+                except (json.JSONDecodeError, msgpack.exceptions.UnpackException) if _HAS_MSGPACK else json.JSONDecodeError:
+                    logger.warning(f"Invalid message from {remote}: {message[:100]}")
                 except Exception as e:
                     logger.error(f"Error handling message: {e}")
 
@@ -127,6 +160,8 @@ class ExchangeWebSocketServer:
             pass
         finally:
             self.clients.discard(websocket)
+            self._client_versions.pop(websocket, None)
+            self._client_encodings.pop(websocket, None)
             logger.info(f"Client disconnected: {remote}")
 
     async def _handle_message(
@@ -136,6 +171,12 @@ class ExchangeWebSocketServer:
         msg_type = data.get("type")
 
         if msg_type == "order":
+            if not self._trading_active:
+                await websocket.send(json.dumps({
+                    "type": "error",
+                    "message": "Trading is stopped — send start_trading to enable orders",
+                }))
+                return
             # Bot wants to submit an order
             exchange_id = data.get("exchange", "binance")
             exchange = self.exchanges.get(exchange_id)
@@ -156,8 +197,6 @@ class ExchangeWebSocketServer:
                 return
 
             try:
-                from exchange_simulator.models import OrderType, Side
-
                 order = exchange.submit_order(
                     symbol=data["symbol"],
                     side=Side(data["side"]),
@@ -217,7 +256,15 @@ class ExchangeWebSocketServer:
             self.clients -= disconnected
 
         elif msg_type == "subscribe":
-            # Client subscribes — send snapshot
+            # Client subscribes — negotiate protocol version and encoding
+            client_ver = data.get("protocol_version", 1)
+            self._client_versions[websocket] = client_ver
+            encoding = data.get("encoding", "json")
+            if encoding == "msgpack" and not _HAS_MSGPACK:
+                encoding = "json"
+                logger.warning(f"Client {remote} requested msgpack but not installed — falling back to JSON")
+            self._client_encodings[websocket] = encoding
+            logger.info(f"Client {remote} subscribed (protocol v{client_ver}, encoding={encoding})")
             await self._send_market_snapshot(websocket)
 
         elif msg_type == "ping":
@@ -230,19 +277,33 @@ class ExchangeWebSocketServer:
 
         elif msg_type == "set_speed":
             speed = data.get("speed", 1)
-            self._tick_interval = {0: 999999, 1: 1.0, 2: 0.5, 5: 0.2}.get(speed, 1.0)
-            logger.info(f"  Simulation speed set to {speed}x (interval={self._tick_interval}s)")
-            await websocket.send(json.dumps({"type": "speed_set", "speed": speed}))
+            if speed == 0:
+                self._replay_paused = True
+                self._speed_event.clear()
+                logger.info("  Simulation PAUSED (speed=0)")
+                await websocket.send(json.dumps({"type": "replay_state", "paused": True}))
+            else:
+                was_paused = self._replay_paused
+                self._replay_paused = False
+                self._tick_interval = {1: 1.0, 2: 0.5, 5: 0.2}.get(speed, 1.0)
+                if was_paused:
+                    self._speed_event.set()
+                logger.info(f"  Simulation speed set to {speed}x (interval={self._tick_interval}s)")
+                await websocket.send(json.dumps({"type": "speed_set", "speed": speed}))
+                if was_paused:
+                    await websocket.send(json.dumps({"type": "replay_state", "paused": False}))
 
         elif msg_type == "replay":
             action = data.get("action", "toggle")
             if action == "pause":
                 self._replay_paused = True
+                self._speed_event.clear()
                 logger.info("  Simulation PAUSED (replay mode)")
                 await websocket.send(json.dumps({"type": "replay_state", "paused": True}))
             elif action == "resume":
                 self._replay_paused = False
                 self._replay_offset = 0
+                self._speed_event.set()
                 logger.info("  Simulation RESUMED")
                 await websocket.send(json.dumps({"type": "replay_state", "paused": False}))
             elif action == "scrub":
@@ -260,17 +321,64 @@ class ExchangeWebSocketServer:
         elif msg_type == "close_position":
             exchange_id = data.get("exchange", "binance")
             exchange = self.exchanges.get(exchange_id)
-            if exchange:
-                symbol = data["symbol"]
+            symbol = data.get("symbol")
+            if exchange and symbol:
                 for pos in exchange.account.positions:
                     if pos.symbol == symbol:
                         close_side = Side.SELL if pos.is_long else Side.BUY
-                        exchange.submit_order(
+                        close_order = exchange.submit_order(
                             symbol=symbol,
                             side=close_side,
                             quantity=pos.quantity,
+                            force_close=True,
                         )
+                        # Broadcast fill to all clients
+                        fill_msg = json.dumps({
+                            "type": "fill",
+                            "order": close_order.to_dict(),
+                        })
+                        disconnected = set()
+                        for client in self.clients:
+                            try:
+                                await client.send(fill_msg)
+                            except websockets.ConnectionClosed:
+                                disconnected.add(client)
+                        self.clients -= disconnected
                         break
+
+        elif msg_type == "start_trading":
+            self._trading_active = True
+            logger.info("Trading STARTED by client command")
+            await websocket.send(json.dumps({
+                "type": "trading_state",
+                "trading_active": True,
+            }))
+            # Broadcast to all clients
+            state_msg = json.dumps({"type": "trading_state", "trading_active": True})
+            disconnected = set()
+            for client in self.clients:
+                try:
+                    await client.send(state_msg)
+                except websockets.ConnectionClosed:
+                    disconnected.add(client)
+            self.clients -= disconnected
+
+        elif msg_type == "stop_trading":
+            self._trading_active = False
+            logger.info("Trading STOPPED by client command")
+            await websocket.send(json.dumps({
+                "type": "trading_state",
+                "trading_active": False,
+            }))
+            # Broadcast to all clients
+            state_msg = json.dumps({"type": "trading_state", "trading_active": False})
+            disconnected = set()
+            for client in self.clients:
+                try:
+                    await client.send(state_msg)
+                except websockets.ConnectionClosed:
+                    disconnected.add(client)
+            self.clients -= disconnected
 
         elif msg_type == "update_config":
             # Hot-reload config: volatility, fees, slippage
@@ -300,6 +408,58 @@ class ExchangeWebSocketServer:
                         logger.info(f"  Config hot-reload: {ex_id} leverage → {lev}x")
             await websocket.send(json.dumps({"type": "config_updated", "updates": updates}))
 
+        elif msg_type == "options_chain":
+            # Generate options chain with Greeks
+            from exchange_simulator.options_simulator import OptionsSimulator
+            symbol = data.get("symbol", "BTC/USDT")
+            prices = self.market.get_all_prices()
+            S = None
+            for ex_prices in prices.values():
+                if symbol in ex_prices:
+                    S = ex_prices[symbol]
+                    break
+            if S is None:
+                await self._send_json(websocket, {"type": "error", "message": f"Price not found for {symbol}"})
+                return
+            sigma = self.market._volatility.get(symbol, 0.8)
+            strikes = data.get("strikes", [S * 0.8, S * 0.9, S * 0.95, S, S * 1.05, S * 1.1, S * 1.2])
+            expiries = data.get("expiries", [0.0833, 0.25, 0.5, 1.0])  # 1m, 3m, 6m, 1y
+            sim = OptionsSimulator(risk_free_rate=0.05)
+            chain = sim.generate_chain(S, expiries, strikes, sigma)
+            await self._send_json(websocket, {
+                "type": "options_chain",
+                "symbol": symbol,
+                "underlying_price": S,
+                "volatility": sigma,
+                "chain": [
+                    {
+                        "strike": q.strike, "expiry": q.expiry, "type": q.option_type,
+                        "price": q.price, "delta": q.delta, "gamma": q.gamma,
+                        "theta": q.theta, "vega": q.vega, "rho": q.rho,
+                        "itm": q.in_the_money,
+                    }
+                    for q in chain
+                ],
+            })
+
+    async def _send_json(
+        self, websocket: websockets.WebSocketServerProtocol, data: dict
+    ) -> None:
+        """Send message to client with negotiated encoding and protocol version.
+
+        - v2 clients get protocol_version field injected.
+        - msgpack clients receive binary MessagePack frames.
+        - v1/json clients receive plain JSON text.
+        """
+        client_ver = self._client_versions.get(websocket, 1)
+        if client_ver >= 2 and "protocol_version" not in data:
+            data = {**data, "protocol_version": PROTOCOL_VERSION}
+        encoding = self._client_encodings.get(websocket, "json")
+        if encoding == "msgpack" and _HAS_MSGPACK:
+            await websocket.send(msgpack.packb(data, use_bin_type=True))
+        else:
+            await websocket.send(json.dumps(data))
+
     async def _send_market_snapshot(
         self, websocket: websockets.WebSocketServerProtocol
     ) -> None:
@@ -328,8 +488,9 @@ class ExchangeWebSocketServer:
                 ex_id: ex.get_account_status()
                 for ex_id, ex in self.exchanges.items()
             },
+            "trading_active": self._trading_active,
         }
-        await websocket.send(json.dumps(message))
+        await self._send_json(websocket, message)
 
     async def _send_sync_state(
         self, websocket: websockets.WebSocketServerProtocol, last_ts: int
@@ -369,21 +530,23 @@ class ExchangeWebSocketServer:
             "candles_to_funding": self.market.candles_to_next_funding,
             "news_event": self.market.get_news_event(),
             "weekend_mode": self.market.is_weekend_mode,
+            "trading_active": self._trading_active,
             "missed_candles": len(all_candles),
         }
-        await websocket.send(json.dumps(message))
+        await self._send_json(websocket, message)
         logger.info(f"  Sync state sent: {len(all_candles)} candles since ts={last_ts}")
 
     async def _broadcast_loop(self) -> None:
         """Continuously generate new candles and broadcast to all clients."""
         while self._running:
+            if self._replay_paused:
+                await self._speed_event.wait()
+                if self._replay_paused:
+                    continue
+
             await asyncio.sleep(self._tick_interval)
 
             if not self.clients:
-                continue
-
-            # Skip candle generation when paused (replay mode)
-            if self._replay_paused:
                 continue
 
             # Generate next candle
@@ -446,9 +609,9 @@ class ExchangeWebSocketServer:
                 if new_arbs:
                     arb_data = json.dumps(self.arb_detector.to_dict())
 
-                    # Auto-execute arbitrage if spread > threshold
+                    # Auto-execute arbitrage if spread > threshold (only when trading is active)
                     for opp in new_arbs:
-                        if opp.spread_bps > 20.0 and opp.max_quantity > 0.01:
+                        if opp.spread_bps > 20.0 and opp.max_quantity > 0.01 and self._trading_active:
                             # Execute: buy on buy_exchange, sell on sell_exchange
                             buy_ex = self.exchanges.get(opp.buy_exchange)
                             sell_ex = self.exchanges.get(opp.sell_exchange)
@@ -481,6 +644,17 @@ class ExchangeWebSocketServer:
                                      "quantity": sell_order.filled_quantity, "fee": sell_order.fee,
                                      "order_id": sell_order.id, "status": "ARB_SELL"},
                                 ])
+                                # Broadcast arb fills to all connected clients
+                                for fill_order in (buy_order, sell_order):
+                                    if fill_order.status.value == "FILLED":
+                                        fill_msg = json.dumps({"type": "fill", "order": fill_order.to_dict()})
+                                        disconnected = set()
+                                        for client in self.clients:
+                                            try:
+                                                await client.send(fill_msg)
+                                            except websockets.ConnectionClosed:
+                                                disconnected.add(client)
+                                        self.clients -= disconnected
 
             # Build order book snapshots
             orderbooks = {}
@@ -490,8 +664,8 @@ class ExchangeWebSocketServer:
                     orderbooks[f"{ex_id}|{symbol}"] = {
                         "exchange": ex_id,
                         "symbol": symbol,
-                        "bids": [{"price": l.price, "quantity": l.quantity} for l in ob.bids[:10]],
-                        "asks": [{"price": l.price, "quantity": l.quantity} for l in ob.asks[:10]],
+                        "bids": [{"price": l.price, "quantity": l.quantity} for l in ob.bids],
+                        "asks": [{"price": l.price, "quantity": l.quantity} for l in ob.asks],
                     }
 
             # Broadcast to all connected clients
@@ -509,6 +683,7 @@ class ExchangeWebSocketServer:
                 "candles_to_funding": self.market.candles_to_next_funding,
                 "news_event": self.market.get_news_event(),
                 "weekend_mode": self.market.is_weekend_mode,
+                "trading_active": self._trading_active,
             }
             data = json.dumps(message)
 
@@ -543,6 +718,14 @@ class ExchangeWebSocketServer:
         lines.append("# TYPE exchange_news_event_active gauge")
         lines.append(f"exchange_news_event_active {1 if self.market.get_news_event() else 0}")
 
+        lines.append("# HELP exchange_tick_interval_seconds Current tick interval in seconds")
+        lines.append("# TYPE exchange_tick_interval_seconds gauge")
+        lines.append(f"exchange_tick_interval_seconds {self._tick_interval}")
+
+        lines.append("# HELP exchange_trading_active Trading is active (1=yes, 0=stopped)")
+        lines.append("# TYPE exchange_trading_active gauge")
+        lines.append(f"exchange_trading_active {1 if self._trading_active else 0}")
+
         for ex_id, ex in self.exchanges.items():
             acc = ex.account
             labels = f'exchange="{ex_id}"'
@@ -563,7 +746,5 @@ class ExchangeWebSocketServer:
         for symbol in self.market.symbols:
             price = self.market.get_price(symbol, self.market.exchanges[0])
             lines.append(f'exchange_price{{symbol="{symbol}"}} {price:.2f}')
-
-        lines.append(f'exchange_tick_interval_seconds {self._tick_interval}')
 
         return "\n".join(lines) + "\n"

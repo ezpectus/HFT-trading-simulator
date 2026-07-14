@@ -11,8 +11,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/crypto-trading-simulator.git
-cd crypto-trading-simulator
+git clone https://github.com/ezpectus/HFT-trading-simulator.git
+cd HFT-trading-simulator
 
 # Start all components
 docker-compose up
@@ -237,7 +237,7 @@ Each component has its own config file:
 ## Project Structure
 
 ```
-crypto-trading-simulator/
+hft-trading-simulator/
 ├── exchange-simulator/           # Simulated crypto exchange (Python)
 │   ├── exchange_simulator/        # Core package
 │   │   ├── __init__.py

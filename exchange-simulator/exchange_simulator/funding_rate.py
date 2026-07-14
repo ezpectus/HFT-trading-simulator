@@ -64,7 +64,7 @@ class FundingRateSimulator:
     def check_and_apply_funding(self, perp_price: float, index_price: float,
                                  current_time: Optional[float] = None) -> Optional[FundingRateEvent]:
         """Check if funding should be applied. Returns event if funding interval reached."""
-        current_time = current_time or time.time()
+        current_time = current_time if current_time is not None else time.time()
         hour_utc = int(time.gmtime(current_time).tm_hour)
         funding_hour = hour_utc // 8 * 8  # 0, 8, or 16
 
@@ -95,7 +95,7 @@ class FundingRateSimulator:
 
     def get_next_funding_time(self, current_time: Optional[float] = None) -> float:
         """Get timestamp of next funding event."""
-        current_time = current_time or time.time()
+        current_time = current_time if current_time is not None else time.time()
         gm = time.gmtime(current_time)
         current_hour = gm.tm_hour
         next_funding_hour = ((current_hour // 8) + 1) * 8

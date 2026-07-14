@@ -122,7 +122,7 @@ public:
     size_t size() const noexcept {
         const size_t h = head_.load(std::memory_order_relaxed);
         const size_t t = tail_.load(std::memory_order_relaxed);
-        return (h - t) & MASK;
+        return h - t;
     }
 
     static constexpr size_t capacity() { return Capacity; }
@@ -157,16 +157,12 @@ public:
         return nullptr;
     }
 
-    // Release an object back to the pool.
+    // Release an object back to the pool. O(1) via pointer arithmetic.
     void release(T* obj) noexcept {
         if (!obj) return;
-        // Find the slot — linear scan is fine for small pools
-        for (size_t i = 0; i < PoolSize; ++i) {
-            if (&pool_[i].obj == obj) {
-                pool_[i].active.store(false, std::memory_order_release);
-                return;
-            }
-        }
+        // Compute slot index from pointer arithmetic — O(1)
+        auto* slot = reinterpret_cast<Slot*>(reinterpret_cast<char*>(obj) - offsetof(Slot, obj));
+        slot->active.store(false, std::memory_order_release);
     }
 
     size_t available() const noexcept {

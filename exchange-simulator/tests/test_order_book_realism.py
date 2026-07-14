@@ -257,8 +257,10 @@ class TestSpoofOrderFilledDecrement:
         ob.asks[best_ask].add_order(spoof_order)
         ob.spoof_orders_active += 1
         active_before = ob.spoof_orders_active
-        # Fill the spoof order with a BUY market order
-        fills = ob.match_market_order("BUY", spoof_qty)
+        # Fill the spoof order with a BUY market order large enough to consume
+        # all orders at the best ask level (including those from generate_depth_profile)
+        existing_qty = ob.asks[best_ask].total_visible_qty - spoof_qty
+        fills = ob.match_market_order("BUY", existing_qty + spoof_qty)
         assert len(fills) > 0
         # spoof_orders_active should have been decremented
         assert ob.spoof_orders_active == active_before - 1

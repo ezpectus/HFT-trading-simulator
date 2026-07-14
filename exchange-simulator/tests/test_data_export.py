@@ -84,8 +84,8 @@ class TestDataExporter:
         exchanges, market = setup_market
         exporter = DataExporter(exchanges, market, output_dir=str(tmp_path))
         filepath = exporter.export_positions()
-        # No open positions
-        assert filepath != ""
+        # No open positions — should return empty string
+        assert filepath == ""
 
     def test_export_summary(self, setup_market, tmp_path):
         exchanges, market = setup_market

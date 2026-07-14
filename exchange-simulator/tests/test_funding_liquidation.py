@@ -156,8 +156,8 @@ class TestLiquidation:
                                    initial_balance=10000, leverage=5)
         ex_high = SimulatedExchange("binance", "Binance", 0.0, 0.0, market,
                                     initial_balance=10000, leverage=20)
-        ex_low.submit_order("BTC/USDT", Side.BUY, 0.1)
-        ex_high.submit_order("BTC/USDT", Side.BUY, 0.1)
+        ex_low.submit_order("BTC/USDT", Side.BUY, 0.1, stop_loss=40000, take_profit=60000)
+        ex_high.submit_order("BTC/USDT", Side.BUY, 0.1, stop_loss=40000, take_profit=60000)
         # Low leverage (5x): liq at 50000 * (1 - 0.2 + 0.005) = 40250
         # High leverage (20x): liq at 50000 * (1 - 0.05 + 0.005) = 47750
         market.get_price.return_value = 47000

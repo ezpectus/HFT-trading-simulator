@@ -9,7 +9,9 @@ import argparse
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_bot_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _bot_root not in sys.path:
+    sys.path.insert(0, _bot_root)
 
 from src.utils.helpers import setup_logging, load_config, get_env
 

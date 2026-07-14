@@ -69,6 +69,7 @@ class MarketSimulator:
         self._funding_rates: dict[str, float] = {}  # per exchange
         self._funding_history: list[dict] = []  # [{timestamp, exchange, rate}]
         self._max_funding_history = 500
+        self._max_candle_history = 1000  # Cap per exchange+symbol pair
 
         # Inter-symbol correlation matrix
         # Default: BTC/ETH correlation = 0.85, others = 0.3
@@ -82,6 +83,16 @@ class MarketSimulator:
                         self._correlations[(s1, s2)] = 0.85
                     else:
                         self._correlations[(s1, s2)] = 0.3
+
+        # Pre-build per-symbol correlation lookup for O(1) access
+        self._symbol_corr: dict[str, float] = {}
+        for symbol in symbols:
+            corr = 0.5  # default correlation to market
+            for (s1, s2), c in self._correlations.items():
+                if symbol in (s1, s2):
+                    corr = c
+                    break
+            self._symbol_corr[symbol] = corr
 
         # News event state
         self._news_event: Optional[dict] = None  # {symbol, intensity, remaining}
@@ -122,6 +133,9 @@ class MarketSimulator:
             if self._news_event["remaining"] <= 0:
                 self._news_event = None
 
+        # Shared random component for correlation — drawn once per candle tick
+        z_shared = self.rng.gauss(0, 1)
+
         for symbol in self.symbols:
             base_price = self._prices[symbol]
             vol = self._volatility[symbol]
@@ -136,14 +150,9 @@ class MarketSimulator:
 
             # Correlated random draw: base z + per-symbol idiosyncratic component
             # z_shared drives correlation, z_idio drives symbol-specific movement
-            z_shared = self.rng.gauss(0, 1)
             z_idio = self.rng.gauss(0, 1)
-            # Find correlation for this symbol vs the first symbol (market factor)
-            corr = 0.5  # default correlation to market
-            for (s1, s2), c in self._correlations.items():
-                if symbol in (s1, s2):
-                    corr = c
-                    break
+            # O(1) correlation lookup from pre-built map
+            corr = self._symbol_corr.get(symbol, 0.5)
             z = corr * z_shared + math.sqrt(1 - corr * corr) * z_idio
             
             # Apply news event volatility spike
@@ -188,6 +197,11 @@ class MarketSimulator:
         self._current_ts += tf
         self._candle_count += 1
 
+        # Trim candle history to prevent unbounded memory growth
+        for key in self._candle_history:
+            if len(self._candle_history[key]) > self._max_candle_history:
+                self._candle_history[key] = self._candle_history[key][-self._max_candle_history:]
+
         # Update funding rates every funding_interval candles
         if self._candle_count % self._funding_interval == 0:
             for exchange in self.exchanges:
@@ -227,11 +241,12 @@ class MarketSimulator:
             for symbol in self.symbols:
                 history = self._candle_history.get((exchange, symbol), [])
                 total = len(history)
-                start_idx = max(0, total - 1 - start_offset)
-                end_idx = max(0, total - 1 - end_offset)
+                idx_a = max(0, total - 1 - start_offset)
+                idx_b = max(0, total - 1 - end_offset)
                 if end_offset == 0:
-                    end_idx = total
-                candles.extend(history[start_idx:end_idx])
+                    idx_b = total
+                lo, hi = min(idx_a, idx_b), max(idx_a, idx_b)
+                candles.extend(history[lo:hi])
         return candles
 
     def get_latest_candles(self) -> list[Candle]:

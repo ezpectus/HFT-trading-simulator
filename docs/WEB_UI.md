@@ -1,6 +1,6 @@
 # Web UI Dashboard
 
-Browser-based trading dashboard for the crypto trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **201+ React components**, **191+ registered panels** across 7 categories, **75+ advanced mathematical model components**, **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
+Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **201+ React components**, **191+ registered panels** across 7 categories, **75+ advanced mathematical model components**, **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
 
 ## Features
 
@@ -108,25 +108,25 @@ Browser-based trading dashboard for the crypto trading simulator. Binance-inspir
 
 ### Advanced Mathematical Models (75+ components)
 
-Phases 24-39 added 75+ advanced mathematical model components across 15 batches:
+75+ advanced mathematical model components were added across 15 batches:
 
-| Batch | Phase | Components |
-|-------|-------|------------|
-| V1 | 24 | GARCH Volatility, Cointegration Scanner, Markov Regime Predictor, Fractal Analyzer, Kalman Filter Price, Spectral Analysis |
-| V2 | 26 | Ehlers SuperSmoother, Bayesian Price Predictor, Almgren-Chriss, Wavelet Decomposition, K-Means Clustering, Copula Dependency |
-| V3 | 27 | Hidden Markov Model, PCA, Optimal Stopping, Isolation Forest, Variational Mode Decomposition |
-| V4 | 28 | EMD + Hilbert-Huang Transform, SVM, Black-Litterman, Hawkes Process, Dynamic Time Warping |
-| V5 | 29 | LSTM Neural Network, Kelly Portfolio Sizing, Gaussian Process Regression, Markov-Switching GARCH, Empirical Dynamic Modeling |
-| V6 | 30 | Autoencoder, Optimal Transport, Rough Volatility, Transfer Entropy, Graph Theory Network |
-| V7 | 31 | Conditional VaR, Non-Stationary Spectral Analysis, Random Matrix Theory, Bayesian Structural Time Series, Topological Data Analysis |
-| V8 | 32 | Stochastic Differential Equations, Gaussian Mixture Model, Wavelet Packet Decomposition, Information Bottleneck, Affine Arithmetic |
-| V9 | 33 | Renormalization Group, Free Energy Principle, Tensor Decomposition, Compressed Sensing, Malliavin Calculus |
-| V10 | 34 | Hamiltonian Monte Carlo, RKHS, Variational Autoencoder, Schrodinger Bridge, Lie Group Symmetries |
-| V11 | 35 | Kolmogorov-Sinai Entropy, Persistent Homology Landscape, Fokker-Planck Equation, Hopf Bifurcation, Cramer-Rao Lower Bound |
-| V12 | 36 | Wasserstein Barycenters, Koopman Operator Theory, Stochastic Optimal Control, Renyi Entropy Dynamics, Pontryagin Maximum Principle |
-| V13 | 37 | Burgers Equation, Sobolev Space Regularization, Ito Calculus Generator, Banach Fixed-Point, Cesaro/Fejer Kernel |
-| V14 | 38 | Girsanov Theorem, Stone-Cech Compactification, Malliavin-Stein Sensitivity, Prokhorov Metric, Radon-Nikodym Derivative |
-| V15 | 39 | Hahn Decomposition, Cameron-Martin Formula, Arzela-Ascoli Theorem, Riesz Representation, Lax-Milgram Theorem |
+| Batch | Components |
+|-------|------------|
+| V1 | GARCH Volatility, Cointegration Scanner, Markov Regime Predictor, Fractal Analyzer, Kalman Filter Price, Spectral Analysis |
+| V2 | Ehlers SuperSmoother, Bayesian Price Predictor, Almgren-Chriss, Wavelet Decomposition, K-Means Clustering, Copula Dependency |
+| V3 | Hidden Markov Model, PCA, Optimal Stopping, Isolation Forest, Variational Mode Decomposition |
+| V4 | EMD + Hilbert-Huang Transform, SVM, Black-Litterman, Hawkes Process, Dynamic Time Warping |
+| V5 | LSTM Neural Network, Kelly Portfolio Sizing, Gaussian Process Regression, Markov-Switching GARCH, Empirical Dynamic Modeling |
+| V6 | Autoencoder, Optimal Transport, Rough Volatility, Transfer Entropy, Graph Theory Network |
+| V7 | Conditional VaR, Non-Stationary Spectral Analysis, Random Matrix Theory, Bayesian Structural Time Series, Topological Data Analysis |
+| V8 | Stochastic Differential Equations, Gaussian Mixture Model, Wavelet Packet Decomposition, Information Bottleneck, Affine Arithmetic |
+| V9 | Renormalization Group, Free Energy Principle, Tensor Decomposition, Compressed Sensing, Malliavin Calculus |
+| V10 | Hamiltonian Monte Carlo, RKHS, Variational Autoencoder, Schrodinger Bridge, Lie Group Symmetries |
+| V11 | Kolmogorov-Sinai Entropy, Persistent Homology Landscape, Fokker-Planck Equation, Hopf Bifurcation, Cramer-Rao Lower Bound |
+| V12 | Wasserstein Barycenters, Koopman Operator Theory, Stochastic Optimal Control, Renyi Entropy Dynamics, Pontryagin Maximum Principle |
+| V13 | Burgers Equation, Sobolev Space Regularization, Ito Calculus Generator, Banach Fixed-Point, Cesaro/Fejer Kernel |
+| V14 | Girsanov Theorem, Stone-Cech Compactification, Malliavin-Stein Sensitivity, Prokhorov Metric, Radon-Nikodym Derivative |
+| V15 | Hahn Decomposition, Cameron-Martin Formula, Arzela-Ascoli Theorem, Riesz Representation, Lax-Milgram Theorem |
 
 ### Additional Indicators
 - On-balance volume (OBV), Money flow index (MFI), Williams %R, Ichimoku cloud

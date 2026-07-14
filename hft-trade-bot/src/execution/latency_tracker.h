@@ -88,10 +88,17 @@ public:
         auto& stats = stats_[idx];
         stats.count.fetch_add(1, std::memory_order_relaxed);
         stats.sum_us.fetch_add(us, std::memory_order_relaxed);
-        stats.min_us.store(std::min(stats.min_us.load(std::memory_order_relaxed), us),
-                          std::memory_order_relaxed);
-        stats.max_us.store(std::max(stats.max_us.load(std::memory_order_relaxed), us),
-                          std::memory_order_relaxed);
+
+        // Atomic min/max update via CAS loop
+        int64_t current_min = stats.min_us.load(std::memory_order_relaxed);
+        while (us < current_min &&
+               !stats.min_us.compare_exchange_weak(current_min, us,
+                   std::memory_order_relaxed, std::memory_order_relaxed)) {}
+
+        int64_t current_max = stats.max_us.load(std::memory_order_relaxed);
+        while (us > current_max &&
+               !stats.max_us.compare_exchange_weak(current_max, us,
+                   std::memory_order_relaxed, std::memory_order_relaxed)) {}
 
         // Update histogram
         auto& h = histograms_[idx];

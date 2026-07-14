@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom/vitest'
 
 // Mock WebSocket
 class MockWebSocket {
@@ -55,7 +55,8 @@ global.requestIdleCallback = global.requestIdleCallback || ((cb) => setTimeout(c
 global.cancelIdleCallback = global.cancelIdleCallback || ((id) => clearTimeout(id))
 
 // Mock performance.mark/measure
-if (!global.performance.mark) {
+if (!global.performance?.mark) {
+  global.performance = global.performance || {}
   global.performance.mark = () => {}
   global.performance.measure = () => {}
 }

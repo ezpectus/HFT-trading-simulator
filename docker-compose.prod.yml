@@ -107,20 +107,24 @@ services:
       start_period: 15s
     restart: unless-stopped
     networks:
-      - trading-prod
+      - monitoring
+      - frontend
 
   # ── Exchange Simulator (Python) — market simulation for fallback ──
   exchange-simulator:
     build:
       context: ./exchange-simulator
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod
     container_name: trading-exchange-sim
     ports:
       - "8765:8765"
+      - "8775:8775"
     volumes:
       - ./exchange-simulator/config.yaml:/app/config.yaml:ro
       - sim-data:/app/data
     command: python -m exchange_simulator --no-visualizer
+    environment:
+      - LOG_FORMAT=json
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8765), timeout=5)"]
@@ -141,7 +145,7 @@ services:
   ai-signal-bot:
     build:
       context: ./ai-signal-bot
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod
     container_name: trading-ai-signal-bot
     depends_on:
       postgres:
@@ -159,6 +163,7 @@ services:
       - POSTGRES_DSN=postgresql://${POSTGRES_USER:-trader}:${POSTGRES_PASSWORD:-trader_secure_2024}@postgres:5432/${POSTGRES_DB:-trading}
       - REDIS_URL=redis://redis:6379/0
       - EXCHANGE_MODE=${EXCHANGE_MODE:-simulator}
+      - LOG_FORMAT=json
     volumes:
       - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml:ro
       - ai-data:/app/data
@@ -167,7 +172,7 @@ services:
     command: python run.py --dashboard --metrics
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8766), timeout=5)"]
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8080), timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -186,7 +191,7 @@ services:
   hft-trade-bot:
     build:
       context: ./hft-trade-bot
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod
     container_name: trading-hft-bot
     depends_on:
       ai-signal-bot:
@@ -199,7 +204,7 @@ services:
       - ./hft-trade-bot/config:/app/config:ro
       - hft-logs:/app/logs
       - /dev/shm:/dev/shm  # SHM IPC with Python bot
-    command: ./build/hft_trade_bot config/config.prod.yaml
+    command: /app/hft_trade_bot config/config.prod.yaml
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "test", "-f", "/proc/1/cmdline"]
@@ -219,16 +224,16 @@ services:
   web-ui:
     build:
       context: ./web-ui
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_WS_EXCHANGE=ws://localhost:8765
+        - VITE_WS_SIGNALS=ws://localhost:8766
     container_name: trading-web-ui
     depends_on:
       ai-signal-bot:
         condition: service_healthy
     ports:
       - "3000:3000"
-    environment:
-      - VITE_WS_EXCHANGE=ws://localhost:8765
-      - VITE_WS_SIGNALS=ws://localhost:8766
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]

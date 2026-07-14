@@ -41,11 +41,11 @@ Download and install **Visual Studio Build Tools 2022**:
 
 Open Command Prompt and run:
 ```bat
-cd "s:\VSC projects\trading-system – lite"
+cd %USERPROFILE%\trading-system
 git clone https://github.com/microsoft/vcpkg.git
 cd vcpkg
 .\bootstrap-vcpkg.bat
-setx VCPKG_ROOT "s:\VSC projects\trading-system – lite\vcpkg"
+setx VCPKG_ROOT "%USERPROFILE%\trading-system\vcpkg"
 ```
 
 **Restart your terminal**, then install C++ libraries:
@@ -58,7 +58,7 @@ vcpkg install boost-system boost-random openssl spdlog fmt nlohmann-json yaml-cp
 ### Step 2b — Install websocketpp (header-only, not in vcpkg)
 
 ```bat
-cd "s:\VSC projects\trading-system – lite"
+cd %USERPROFILE%\trading-system
 git clone https://github.com/zaphoyd/websocketpp.git
 ```
 
@@ -68,14 +68,14 @@ git clone https://github.com/zaphoyd/websocketpp.git
 
 **Option A — One command (recommended):**
 ```bat
-cd "s:\VSC projects\trading-system – lite"
+cd %USERPROFILE%\trading-system
 install-deps.bat
 ```
 This installs Python packages, Node.js dependencies, and builds the C++ HFT Trade Bot.
 
 **Option B — Manual (if the script fails):**
 ```bat
-cd "s:\VSC projects\trading-system – lite"
+cd %USERPROFILE%\trading-system
 
 REM 1. Python dependencies
 cd exchange-simulator && pip install -r requirements.txt && cd ..
@@ -88,7 +88,7 @@ REM 3. C++ HFT Trade Bot
 cd hft-trade-bot
 if not exist build mkdir build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake -DWEBSOCKETPP_INCLUDE_DIR="s:\VSC projects\trading-system – lite\websocketpp"
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake -DWEBSOCKETPP_INCLUDE_DIR="%USERPROFILE%\trading-system\websocketpp"
 cmake --build . --config Release -j
 cd ..\..
 ```
@@ -96,7 +96,7 @@ cd ..\..
 ### Step 4 — Start the System
 
 ```bat
-cd "s:\VSC projects\trading-system – lite"
+cd %USERPROFILE%\trading-system
 
 REM Option A: 4 service windows (no monitors)
 no-docker.bat
@@ -410,9 +410,9 @@ python -m exchange_simulator --export --export-format parquet
 ## Project Structure
 
 ```
-crypto-trading-simulator/
+hft-trading-simulator/
 ├── exchange-simulator/           # Python: simulated crypto exchange
-│   ├── exchange_simulator/        # Core package (9 modules)
+│   ├── exchange_simulator/        # Core package (14 modules)
 │   ├── tests/                     # pytest tests
 │   ├── config.yaml
 │   ├── pyproject.toml             # ruff config
@@ -455,11 +455,11 @@ crypto-trading-simulator/
 │   │   └── utils/                # Indicators, performance, format, timeframes, patterns
 │   ├── .env.example              # WebSocket URL + mock mode configuration
 │   ├── netlify.toml              # Netlify deployment config
-│   ├── .eslintrc.json            # ESLint configuration
+│   ├── eslint.config.js          # ESLint 9 flat config
 │   ├── Dockerfile                # Multi-stage (node + nginx)
 │   ├── nginx.conf
 │   └── package.json
-├── docs/                         # Documentation (12 files)
+├── docs/                         # Documentation (8 files)
 ├── .github/                      # CI workflows + issue/PR templates
 ├── logs/                         # Timestamped log files (auto-created)
 ├── docker-compose.yml            # 4-service orchestration

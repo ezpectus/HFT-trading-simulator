@@ -34,22 +34,22 @@ MockWebSocket.CLOSED = 3
 
 let mockInstances = []
 
-beforeEach(() => {
-  mockInstances = []
-  vi.stubGlobal('WebSocket', class extends MockWebSocket {
-    constructor(...args) {
-      super(...args)
-      mockInstances.push(this)
-    }
-  })
-})
-
-afterEach(() => {
-  vi.unstubAllGlobals()
-  vi.restoreAllMocks()
-})
-
 describe('useWebSocket', () => {
+  beforeEach(() => {
+    mockInstances = []
+    vi.stubGlobal('WebSocket', class extends MockWebSocket {
+      constructor(...args) {
+        super(...args)
+        mockInstances.push(this)
+      }
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
   it('initializes with disconnected state', () => {
     const { result } = renderHook(() => useWebSocket('ws://localhost:8765', { autoConnect: false }))
     expect(result.current.connected).toBe(false)

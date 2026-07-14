@@ -21,7 +21,7 @@ COPY . .
 ENV PATH=/root/.local/bin:$PATH
 ENV PYTHONPATH=/app
 
-EXPOSE 8765
+EXPOSE 8765 8775
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
     CMD python -c "import socket; socket.create_connection(('localhost', 8765), timeout=5)" || exit 1

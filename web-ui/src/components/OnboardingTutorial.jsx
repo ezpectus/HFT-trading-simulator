@@ -7,7 +7,7 @@ const STEPS = [
   {
     icon: Zap,
     title: 'Welcome to Trading Sim',
-    body: 'A full-featured crypto trading simulator with 3 exchanges, 3 symbols, live AI signals, and real-time order execution. Includes 190+ analytic panels and 75+ mathematical models.',
+    body: 'A full-featured HFT trading simulator with 3 exchanges, 3 symbols, live AI signals, and real-time order execution. Includes 191+ analytic panels and 75+ mathematical models.',
   },
   {
     icon: CandlestickChart,

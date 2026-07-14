@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { ShoppingCart, Loader2, Calculator, AlertTriangle } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -7,10 +7,11 @@ const EXCHANGE_SLIPPAGE = { binance: 2.0, bybit: 3.0, okx: 2.5 }
 const DEFAULT_LEVERAGE = 10
 const MAINTENANCE_MARGIN_RATE = 0.005 // 0.5%
 
-export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, connected, balance }) {
+export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, connected, balance, tradingActive = true }) {
   const [side, setSide] = useState('BUY')
   const [orderType, setOrderType] = useState('MARKET')
   const [quantity, setQuantity] = useState('0.01')
+  const [limitPrice, setLimitPrice] = useState('')
   const [stopLoss, setStopLoss] = useState('')
   const [takeProfit, setTakeProfit] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -24,7 +25,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
   const qtyError = qtyNum <= 0 ? 'Quantity must be > 0' : ''
   const marginNeeded = qtyNum * currentPrice / leverage
   const marginExceeds = marginNeeded > availBalance
-  const canSubmit = connected && !submitting && qtyNum > 0 && !marginExceeds
+  const canSubmit = connected && tradingActive && !submitting && qtyNum > 0 && !marginExceeds
 
   const setQtyFromBalance = (pct) => {
     if (!currentPrice || currentPrice <= 0) return
@@ -35,7 +36,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!connected || qtyNum <= 0) return
+    if (!connected || !tradingActive || qtyNum <= 0) return
 
     setSubmitting(true)
     const order = {
@@ -45,6 +46,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
       quantity: qtyNum,
       order_type: orderType,
     }
+    if (orderType === 'LIMIT' && limitPrice) order.price = parseFloat(limitPrice)
     if (stopLoss) order.stop_loss = parseFloat(stopLoss)
     if (takeProfit) order.take_profit = parseFloat(takeProfit)
 
@@ -106,6 +108,21 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
             </button>
           ))}
         </div>
+
+        {/* Limit price (only for LIMIT orders) */}
+        {orderType === 'LIMIT' && (
+          <div>
+            <label className="text-xs text-gray-500">Limit Price</label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder={currentPrice ? formatPrice(currentPrice) : ''}
+              value={limitPrice}
+              onChange={e => setLimitPrice(e.target.value)}
+              className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
+            />
+          </div>
+        )}
 
         {/* Quantity */}
         <div>
@@ -245,6 +262,10 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
                 </span>
               </div>
               <div className="flex justify-between">
+                <span className="text-gray-500">Est. Fee</span>
+                <span className="text-gray-300">${formatPrice(fee)}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-gray-500">Liquidation Price</span>
                 <span className="text-accent-red">${formatPrice(liqPrice)}</span>
               </div>
@@ -276,7 +297,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
         <button
           type="submit"
           disabled={!canSubmit}
-          title={!connected ? 'Not connected' : marginExceeds ? 'Margin exceeds balance' : qtyError ? 'Invalid quantity' : ''}
+          title={!connected ? 'Not connected' : !tradingActive ? 'Trading is stopped' : marginExceeds ? 'Margin exceeds balance' : qtyError ? 'Invalid quantity' : ''}
           className={`py-2 text-sm font-semibold rounded transition-all ${
             side === 'BUY'
               ? 'bg-accent-green hover:bg-green-600 text-white'
@@ -285,6 +306,8 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
         >
           {submitting ? (
             <Loader2 size={16} className="animate-spin mx-auto" />
+          ) : !tradingActive ? (
+            'Trading Stopped'
           ) : (
             `${side} ${quantity} ${symbol}`
           )}

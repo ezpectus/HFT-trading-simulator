@@ -155,7 +155,7 @@ graph TB
 **Language:** C++20 (GCC 13+ / Clang 17+ / MSVC 19.50+)
 **Role:** Sub-millisecond execution engine with native signal generation
 
-**V2 Architecture (Phase 25):**
+**V2 Architecture:**
 
 The HFT bot was upgraded to v2.0.0 with a complete latency optimization overhaul and native C++ signal engine. The V1 engine is preserved as a configurable fallback.
 
@@ -354,7 +354,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 
 **Advanced Math Model components (75+):**
 
-Phases 24-39 added 75+ advanced mathematical model components across 15 batches (V1-V15), covering:
+75+ advanced mathematical model components were added across 15 batches (V1-V15), covering:
 - GARCH, Cointegration, Markov chains, Fractal analysis, Kalman filter, Spectral analysis
 - Ehlers SuperSmoother, Bayesian prediction, Almgren-Chriss, Wavelet decomposition, K-Means, Copula
 - HMM, PCA, Optimal Stopping, Isolation Forest, VMD
@@ -385,7 +385,7 @@ All sidebar analytic/strategy panels are registered in `src/panels/registry.js` 
 - **VirtualList** — FillsPanel and SignalFeed use windowed rendering for performance
 - **Detachable panels** — Panels can be popped out to separate windows for multi-monitor setups
 
-See `docs/ARCHITECTURE_ROADMAP.md` for long-term sustainability plan.
+See [docs/MATH_MODELS.md](docs/MATH_MODELS.md) for detailed mathematical model documentation.
 
 ## Data Flow
 
@@ -452,7 +452,7 @@ Logging
 8. **Protocol-first** — Message schemas are versioned and backward-compatible
 9. **Reversibility** — All architectural decisions must be reversible (V1 fallback preserved)
 10. **Error resilience** — ErrorBoundary + Suspense per panel, CircuitBreaker for exchange failures, exponential backoff for reconnections
-11. **Sustainability** — See `docs/ARCHITECTURE_ROADMAP.md` for long-term plan
+11. **Sustainability** — Modular architecture with V1 fallback, backward-compatible protocols, and configurable components
 12. **Observability** — Timestamped per-run logging, CSV trade logs, CLI monitor scripts, latency histograms, Prometheus metrics, Grafana dashboards
 13. **Production-ready** — Docker Compose production stack with PostgreSQL, Redis, Prometheus, Grafana, `.env.prod` configuration, `Makefile.prod` targets
 

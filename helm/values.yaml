@@ -1,0 +1,148 @@
+# Default values for hft-trading-system Helm chart.
+# Override via: helm install my-release ./helm -f values.yaml
+
+# ── Global ──
+global:
+  imagePullPolicy: IfNotPresent
+  logFormat: json
+  logLevel: INFO
+  shmSize: 1Gi
+
+# ── PostgreSQL ──
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  database: trading
+  user: trader
+  password: trader_secure_2024
+  storage: 10Gi
+  storageClassName: ""
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: "1"
+
+# ── Redis ──
+redis:
+  enabled: true
+  image: redis:7-alpine
+  maxmemory: 256mb
+  storage: 1Gi
+  storageClassName: ""
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 500m
+
+# ── Exchange Simulator ──
+exchangeSimulator:
+  enabled: true
+  image:
+    repository: hft-exchange-simulator
+    tag: latest
+  ports:
+    ws: 8765
+    metrics: 8775
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: "1"
+
+# ── AI Signal Bot ──
+aiSignalBot:
+  enabled: true
+  image:
+    repository: hft-ai-signal-bot
+    tag: latest
+  ports:
+    ws: 8766
+    metrics: 9090
+  env:
+    exchangeMode: simulator
+    openaiApiKey: ""
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 500m
+    limits:
+      memory: 1Gi
+      cpu: "2"
+
+# ── HFT Trade Bot (C++) ──
+hftTradeBot:
+  enabled: true
+  image:
+    repository: hft-trade-bot
+    tag: latest
+  configPath: config/config.prod.yaml
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 500m
+    limits:
+      memory: 512Mi
+      cpu: "2"
+
+# ── Web UI ──
+webUi:
+  enabled: true
+  image:
+    repository: hft-web-ui
+    tag: latest
+  port: 3000
+  wsExchange: ws://localhost:8765
+  wsSignals: ws://localhost:8766
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 500m
+
+# ── Monitoring ──
+prometheus:
+  enabled: true
+  image: prom/prometheus:latest
+  storage: 5Gi
+  storageClassName: ""
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 500m
+
+grafana:
+  enabled: true
+  image: grafana/grafana:latest
+  adminUser: admin
+  adminPassword: admin
+  storage: 2Gi
+  storageClassName: ""
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 500m
+
+# ── Ingress ──
+ingress:
+  enabled: false
+  className: nginx
+  hostname: trading.local
+  tls:
+    enabled: false
+    secretName: trading-tls

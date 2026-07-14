@@ -29,13 +29,13 @@ const mockAudioContext = {
   destination: {},
 }
 
-beforeEach(() => {
-  vi.clearAllMocks()
-  window.AudioContext = vi.fn(() => mockAudioContext)
-  window.webkitAudioContext = undefined
-})
-
 describe('PriceAlerts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    window.AudioContext = vi.fn(() => mockAudioContext)
+    window.webkitAudioContext = undefined
+  })
+
   it('renders header label', () => {
     render(<PriceAlerts currentPrice={50000} symbol="BTC/USDT" exchange="binance" />)
     expect(screen.getByText('Price Alerts')).toBeInTheDocument()

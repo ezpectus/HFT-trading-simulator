@@ -147,8 +147,8 @@ class FixSession:
                     if len(parts) >= 2:
                         self.outgoing_seq = int(parts[0])
                         self.incoming_seq = int(parts[1])
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to load seq nums from {self.seq_file}: {e}")
 
     def _save_seq_nums(self):
         try:
@@ -405,7 +405,7 @@ class FixSession:
             self._writer.close()
             try:
                 await self._writer.wait_closed()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Writer close error: {e}")
         self.state = "DISCONNECTED"
         self._save_seq_nums()

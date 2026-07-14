@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useMemo, useEffect, useRef, useCallback } from 'react'
 import { Activity, Radio, TrendingUp, AlertTriangle, BarChart3, FlaskConical, History, ArrowRightLeft, Bot, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { useExchangeData, useSignalData } from './hooks/useExchangeData'
 import { useMockExchangeData, useMockSignalData, IS_MOCK } from './hooks/useMockData'
-import { useToasts, ToastContainer } from './components/Toast'
+import { ToastContainer } from './components/Toast'
 import MockModeBanner from './components/MockModeBanner'
 import Header from './components/Header'
 import CandleChart from './components/CandleChart'
@@ -30,28 +30,78 @@ import { aggregateCandles, TIMEFRAMES } from './utils/timeframes'
 import { useSoundAlerts } from './hooks/useSoundAlerts'
 import { useTheme } from './hooks/useTheme'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
-
-const EXCHANGES = ['binance', 'bybit', 'okx']
-const SYMBOLS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT']
+import { useUIStore } from './stores/useUIStore'
+import { useTradingStore } from './stores/useTradingStore'
+import { useToastStore } from './stores/useToastStore'
 
 export default function App() {
-  const [selectedExchange, setSelectedExchange] = useState('binance')
-  const [selectedSymbol, setSelectedSymbol] = useState('BTC/USDT')
-  const [activeTab, setActiveTab] = useState('account') // account | bots | signals | arbitrage | fills | history | performance | backtest | prices
-  const [timeframe, setTimeframe] = useState(TIMEFRAMES[0])
-  const [simSpeed, setSimSpeed] = useState(1)
+  // UI state from Zustand store
+  const { selectedExchange, selectedSymbol, setSelectedExchange, setSelectedSymbol,
+          activeTab, setActiveTab, timeframe, setTimeframe,
+          simSpeed, setSimSpeed, sidebarCollapsed, setSidebarCollapsed,
+          mobilePanel, setMobilePanel, soundOn, setSoundOn,
+          EXCHANGES, SYMBOLS } = useUIStore()
+
   const isMobile = useIsMobile()
   const isTablet = useIsTablet()
-  const [mobilePanel, setMobilePanel] = useState('chart') // chart | sidebar
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { detachPanel, updateDetached, isDetached } = useDetachablePanels()
 
-  const exchange = IS_MOCK ? useMockExchangeData() : useExchangeData()
-  const signals = IS_MOCK ? useMockSignalData() : useSignalData()
-  const { toasts, addToast, removeToast, clearAll } = useToasts()
+  const realExchange = useExchangeData()
+  const realSignals = useSignalData()
+  const mockExchange = useMockExchangeData()
+  const mockSignals = useMockSignalData()
+  const exchange = IS_MOCK ? mockExchange : realExchange
+  const signals = IS_MOCK ? mockSignals : realSignals
+
+  // Toast store
+  const { toasts, addToast, removeToast, clearAll } = useToastStore()
+
   const { play: playSound, setEnabled: setSoundEnabled } = useSoundAlerts(true)
-  const [soundOn, setSoundOn] = useState(true)
   const { theme, toggleTheme } = useTheme()
+
+  // Sync exchange + signals data to Zustand trading store
+  const setExchangeData = useTradingStore((s) => s.setExchangeData)
+  const setSignalData = useTradingStore((s) => s.setSignalData)
+  const setDerivedData = useTradingStore((s) => s.setDerivedData)
+
+  useEffect(() => {
+    setExchangeData({
+      candles: exchange.candles,
+      prices: exchange.prices,
+      accounts: exchange.accounts,
+      arbitrage: exchange.arbitrage,
+      fills: exchange.fills,
+      orderbooks: exchange.orderbooks,
+      fundingRates: exchange.fundingRates,
+      candlesToFunding: exchange.candlesToFunding,
+      newsEvent: exchange.newsEvent,
+      weekendMode: exchange.weekendMode,
+      replayPaused: exchange.replayPaused,
+      tradingActive: exchange.tradingActive,
+      exchangeConnected: exchange.connected,
+      exchangeLatency: exchange.latency,
+      submitOrder: exchange.submitOrder,
+      closePosition: exchange.closePosition,
+      sendSpeedChange: exchange.sendSpeedChange,
+      sendConfigUpdate: exchange.sendConfigUpdate,
+      toggleReplay: exchange.toggleReplay,
+      scrubReplay: exchange.scrubReplay,
+      startTrading: exchange.startTrading,
+      stopTrading: exchange.stopTrading,
+    })
+  }, [exchange, setExchangeData])
+
+  useEffect(() => {
+    setSignalData({
+      signals: signals.signals,
+      regime: signals.regime,
+      backtestResult: signals.backtestResult,
+      circuitBreaker: signals.circuitBreaker,
+      signalConnected: signals.connected,
+      signalLatency: signals.latency,
+      sendSignalMessage: signals.sendSignalMessage,
+    })
+  }, [signals, setSignalData])
 
   // Track previous connection states for connection notifications
   const prevExConn = useRef(false)
@@ -126,7 +176,7 @@ export default function App() {
     'q': () => setSelectedSymbol(SYMBOLS[0]),
     'w': () => setSelectedSymbol(SYMBOLS[1]),
     'e': () => setSelectedSymbol(SYMBOLS[2]),
-    ' ': () => setSimSpeed(s => s === 0 ? 1 : 0),
+    ' ': () => useUIStore.getState().setSimSpeed(useUIStore.getState().simSpeed === 0 ? 1 : 0),
     'a': () => setActiveTab('account'),
     'b': () => setActiveTab('bots'),
     's': () => setActiveTab('signals'),
@@ -135,7 +185,7 @@ export default function App() {
     'f': () => setActiveTab('fills'),
     'h': () => setActiveTab('history'),
     't': () => setActiveTab('performance'),
-    'shift+\\': () => setSidebarCollapsed(s => !s),
+    'shift+\\': () => useUIStore.getState().setSidebarCollapsed(!useUIStore.getState().sidebarCollapsed),
   })
 
   // Handle sim speed change
@@ -143,6 +193,15 @@ export default function App() {
     setSimSpeed(speed)
     exchange.sendSpeedChange(speed)
   }, [exchange])
+
+  // Sync simSpeed when replay is paused/resumed from ReplayControls panel
+  useEffect(() => {
+    if (exchange.replayPaused && simSpeed !== 0) {
+      setSimSpeed(0)
+    } else if (!exchange.replayPaused && simSpeed === 0) {
+      setSimSpeed(1)
+    }
+  }, [exchange.replayPaused, simSpeed])
 
   // Filter candles for selected exchange + symbol, then aggregate by timeframe
   const chartCandles = useMemo(() => {
@@ -170,6 +229,11 @@ export default function App() {
     if (first === 0) return 0
     return ((last - first) / first) * 100
   }, [chartCandles])
+
+  // Sync derived data to Zustand store (for PanelContainer + registry)
+  useEffect(() => {
+    setDerivedData({ chartCandles, currentPrice, priceChange })
+  }, [chartCandles, currentPrice, priceChange, setDerivedData])
 
   // Update detached panels with live data
   useEffect(() => {
@@ -232,6 +296,9 @@ export default function App() {
         signalConnected={signals.connected}
         simSpeed={simSpeed}
         onSpeedChange={handleSpeedChange}
+        tradingActive={exchange.tradingActive}
+        onStartTrading={exchange.startTrading}
+        onStopTrading={exchange.stopTrading}
         soundOn={soundOn}
         onSoundToggle={() => {
           const next = !soundOn
@@ -282,6 +349,7 @@ export default function App() {
               currentPrice={currentPrice}
               onSubmit={exchange.submitOrder}
               connected={exchange.connected}
+              tradingActive={exchange.tradingActive}
               balance={exchange.accounts[selectedExchange]?.balance}
             />
           </div>
@@ -311,20 +379,8 @@ export default function App() {
             </DetachablePanel>
           </div>
 
-          {/* Panel Registry — all analytic/strategy panels */}
-          <PanelContainer context={{
-            exchange,
-            signals,
-            selectedExchange,
-            selectedSymbol,
-            chartCandles,
-            currentPrice,
-            SYMBOLS,
-            EXCHANGES,
-            toasts,
-            addToast,
-            setSelectedSymbol,
-          }} />
+          {/* Panel Registry — reads from Zustand stores directly */}
+          <PanelContainer />
 
           {/* Tabbed panels */}
           <div className="flex-1 bg-bg-800 rounded-lg overflow-hidden flex flex-col">
@@ -375,6 +431,8 @@ export default function App() {
                   accounts={exchange.accounts}
                   signalConnected={signals.connected}
                   exchangeConnected={exchange.connected}
+                  circuitBreaker={signals.circuitBreaker}
+                  tradingActive={exchange.tradingActive}
                 />
               )}
               {activeTab === 'signals' && (

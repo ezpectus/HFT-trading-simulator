@@ -264,6 +264,10 @@ class CircuitBreaker:
 
     @property
     def is_tripped(self) -> bool:
+        return self._tripped
+
+    def check_and_recover(self) -> bool:
+        """Check if cooldown has elapsed and auto-recover. Returns True if recovered."""
         if self._tripped:
             if time.time() - self._trip_time >= self.cooldown_seconds:
                 self._tripped = False
@@ -271,7 +275,8 @@ class CircuitBreaker:
                 logger.info(
                     f"CircuitBreaker: auto-recovered after {self.cooldown_seconds}s cooldown"
                 )
-        return self._tripped
+                return True
+        return False
 
     def on_trade_closed(self, pnl: float) -> None:
         """Record a closed trade result. Positive PnL = win, negative = loss."""
@@ -289,6 +294,7 @@ class CircuitBreaker:
 
     def filter_signal(self, signal: Signal) -> Signal:
         """If tripped, force signal to NEUTRAL. Otherwise pass through."""
+        self.check_and_recover()
         if self.is_tripped:
             return Signal(
                 symbol=signal.symbol,
@@ -332,6 +338,8 @@ class EnsembleVoter:
     def vote(self, signals: list[Signal]) -> Signal:
         """Combine multiple strategy signals into one ensemble signal."""
         # Circuit breaker: if tripped, force NEUTRAL regardless of signals
+        if self.circuit_breaker:
+            self.circuit_breaker.check_and_recover()
         if self.circuit_breaker and self.circuit_breaker.is_tripped:
             sym = signals[0].symbol if signals else ""
             entry = signals[0].entry_price if signals else 0

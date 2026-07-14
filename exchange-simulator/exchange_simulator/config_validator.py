@@ -47,11 +47,11 @@ def validate_config(config: dict) -> tuple[list[str], list[str]]:
         return errors, warnings
 
     # Validate exchanges
+    all_symbols = set()
     exchanges = config.get("exchanges", {})
     if not exchanges:
         errors.append("No exchanges defined in 'exchanges' section")
     else:
-        all_symbols = set()
         for ex_id, ex_cfg in exchanges.items():
             if not isinstance(ex_cfg, dict):
                 errors.append(f"Exchange '{ex_id}' must be a mapping")

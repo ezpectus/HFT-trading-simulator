@@ -24,6 +24,10 @@ def main():
     binary = os.path.join(project_dir, "build", build_subdir, "hft_trade_bot")
     if not os.path.exists(binary):
         binary = os.path.join(project_dir, "build", "hft_trade_bot")
+    if not os.path.exists(binary) and os.name == "nt":
+        binary = os.path.join(project_dir, "build", build_subdir, "hft_trade_bot.exe")
+    if not os.path.exists(binary) and os.name == "nt":
+        binary = os.path.join(project_dir, "build", "hft_trade_bot.exe")
 
     if not os.path.exists(binary):
         print(f"Binary not found: {binary}")

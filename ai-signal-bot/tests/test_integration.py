@@ -20,8 +20,10 @@ import time
 import pytest
 import websockets
 
-# Ensure paths are set
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+# Ensure bot root is on path (conftest.py also does this, but this allows running standalone)
+_bot_root = os.path.join(os.path.dirname(__file__), "..")
+if _bot_root not in sys.path:
+    sys.path.insert(0, _bot_root)
 
 from src.communication import ExchangeClient, SignalPublisher
 from src.strategies import (

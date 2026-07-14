@@ -211,6 +211,7 @@ const CameronMartinFormula = lazy(() => import('../components/CameronMartinFormu
 const ArzelaAscoli = lazy(() => import('../components/ArzelaAscoli'))
 const RieszRepresentation = lazy(() => import('../components/RieszRepresentation'))
 const LaxMilgram = lazy(() => import('../components/LaxMilgram'))
+const StrategyBacktest = lazy(() => import('../components/StrategyBacktest'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -593,8 +594,10 @@ export const PANELS = [
     props: (ctx) => ({ candles: ctx.exchange.candles, symbols: ctx.SYMBOLS, exchange: ctx.selectedExchange }) },
 
   // === STRATEGY & AUTOMATION ===
+  { id: 'strategy-backtest', name: 'Strategy Backtest Engine', category: 'strategy', component: StrategyBacktest,
+    props: () => ({}) },
   { id: 'execution-bot', name: 'Execution Bot (TWAP/VWAP)', category: 'strategy', component: ExecutionBot,
-    props: (ctx) => ({ currentPrice: ctx.currentPrice, onSubmit: ctx.exchange.submitOrder, connected: ctx.exchange.connected, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
+    props: (ctx) => ({ currentPrice: ctx.currentPrice, onSubmit: ctx.exchange.submitOrder, connected: ctx.exchange.connected && ctx.exchange.tradingActive, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
   { id: 'watchlist', name: 'Watchlist', category: 'strategy', component: Watchlist,
     props: (ctx) => ({ candles: ctx.exchange.candles, prices: ctx.exchange.prices, onSelectSymbol: ctx.setSelectedSymbol }) },
   { id: 'strategy-builder', name: 'Strategy Builder', category: 'strategy', component: StrategyBuilder,

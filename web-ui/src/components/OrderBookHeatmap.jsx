@@ -59,7 +59,7 @@ export default function OrderBookHeatmap({ orderbookData, currentPrice }) {
           if (b.price >= rowMin && b.price < rowMax) vol += b.qty
         }
         for (const a of snap.asks) {
-          if (a.price >= rowMin && b.price < rowMax) vol += a.qty
+          if (a.price >= rowMin && a.price < rowMax) vol += a.qty
         }
         cells.push(vol)
       }
@@ -84,7 +84,7 @@ export default function OrderBookHeatmap({ orderbookData, currentPrice }) {
     )
   }
 
-  const { grid, maxVol, minPrice, maxPrice, cols } = heatmap
+  const { grid, maxVol, cols } = heatmap
 
   function volColor(vol) {
     if (vol === 0) return 'bg-bg-600/30'

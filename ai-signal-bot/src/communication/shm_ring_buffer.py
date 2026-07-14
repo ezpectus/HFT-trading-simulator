@@ -22,7 +22,40 @@ from typing import TypeVar, Generic, Optional, List
 from dataclasses import dataclass
 from contextlib import contextmanager
 
+# Atomic helpers: use ctypes for aligned atomic-like reads/writes
+# On x86/x64, aligned 8-byte reads/writes are naturally atomic.
+# We use ctypes.c_uint64 to ensure aligned access.
+# For cross-process visibility, we rely on mmap flush/msync.
+
 IS_WINDOWS = sys.platform == 'win32'
+
+# Memory barrier: force store ordering for cross-process visibility
+if IS_WINDOWS:
+    import msvcrt
+    def _mm_barrier(mm):
+        """Flush modified pages to file for cross-process visibility."""
+        try:
+            ctypes.windll.kernel32.FlushViewOfFile(mm._mapped_view, ctypes.c_size_t(8))
+        except Exception:
+            pass
+else:
+    def _mm_barrier(mm):
+        """msync to force visibility across processes."""
+        try:
+            mm.flush()
+        except Exception:
+            pass
+
+def _atomic_read_u64(mm, offset):
+    """Read a uint64 from shared memory (aligned, naturally atomic on x86/x64)."""
+    return struct.unpack_from('<Q', mm, offset)[0]
+
+def _atomic_write_u64(mm, offset, value):
+    """Write a uint64 to shared memory with release semantics.
+    On x86/x64, aligned 8-byte stores are naturally atomic and have
+    release ordering. We flush the page for cross-process visibility."""
+    struct.pack_into('<Q', mm, offset, value)
+    _mm_barrier(mm)
 
 T = TypeVar('T')
 
@@ -131,8 +164,8 @@ class ShmRingBuffer(Generic[T]):
 
     def try_push(self, item: tuple) -> bool:
         """Non-blocking push. Returns False if buffer is full."""
-        head = struct.unpack_from('<Q', self._mm, OFF_HEAD)[0]
-        tail = struct.unpack_from('<Q', self._mm, OFF_TAIL)[0]
+        head = _atomic_read_u64(self._mm, OFF_HEAD)
+        tail = _atomic_read_u64(self._mm, OFF_TAIL)
 
         if head - tail >= self.capacity:
             return False
@@ -141,13 +174,13 @@ class ShmRingBuffer(Generic[T]):
         offset = self._data_offset + slot * self.element_size
         self.element_struct.pack_into(self._mm, offset, *item)
 
-        struct.pack_into('<Q', self._mm, OFF_HEAD, head + 1)
+        _atomic_write_u64(self._mm, OFF_HEAD, head + 1)
         return True
 
     def try_pop(self) -> Optional[tuple]:
         """Non-blocking pop. Returns None if buffer is empty."""
-        tail = struct.unpack_from('<Q', self._mm, OFF_TAIL)[0]
-        head = struct.unpack_from('<Q', self._mm, OFF_HEAD)[0]
+        tail = _atomic_read_u64(self._mm, OFF_TAIL)
+        head = _atomic_read_u64(self._mm, OFF_HEAD)
 
         if head == tail:
             return None
@@ -156,13 +189,13 @@ class ShmRingBuffer(Generic[T]):
         offset = self._data_offset + slot * self.element_size
         item = self.element_struct.unpack_from(self._mm, offset)
 
-        struct.pack_into('<Q', self._mm, OFF_TAIL, tail + 1)
+        _atomic_write_u64(self._mm, OFF_TAIL, tail + 1)
         return item
 
     def bulk_push(self, items: List[tuple]) -> int:
         """Push up to len(items) items. Returns number actually pushed."""
-        head = struct.unpack_from('<Q', self._mm, OFF_HEAD)[0]
-        tail = struct.unpack_from('<Q', self._mm, OFF_TAIL)[0]
+        head = _atomic_read_u64(self._mm, OFF_HEAD)
+        tail = _atomic_read_u64(self._mm, OFF_TAIL)
 
         available = self.capacity - (head - tail)
         to_push = min(len(items), available)
@@ -172,13 +205,13 @@ class ShmRingBuffer(Generic[T]):
             offset = self._data_offset + slot * self.element_size
             self.element_struct.pack_into(self._mm, offset, *items[i])
 
-        struct.pack_into('<Q', self._mm, OFF_HEAD, head + to_push)
+        _atomic_write_u64(self._mm, OFF_HEAD, head + to_push)
         return to_push
 
     def bulk_pop(self, max_count: int) -> List[tuple]:
         """Pop up to max_count items. Returns list of unpacked tuples."""
-        tail = struct.unpack_from('<Q', self._mm, OFF_TAIL)[0]
-        head = struct.unpack_from('<Q', self._mm, OFF_HEAD)[0]
+        tail = _atomic_read_u64(self._mm, OFF_TAIL)
+        head = _atomic_read_u64(self._mm, OFF_HEAD)
 
         available = head - tail
         to_pop = min(max_count, available)
@@ -189,13 +222,13 @@ class ShmRingBuffer(Generic[T]):
             offset = self._data_offset + slot * self.element_size
             result.append(self.element_struct.unpack_from(self._mm, offset))
 
-        struct.pack_into('<Q', self._mm, OFF_TAIL, tail + to_pop)
+        _atomic_write_u64(self._mm, OFF_TAIL, tail + to_pop)
         return result
 
     def size(self) -> int:
         """Current number of elements in the buffer."""
-        head = struct.unpack_from('<Q', self._mm, OFF_HEAD)[0]
-        tail = struct.unpack_from('<Q', self._mm, OFF_TAIL)[0]
+        head = _atomic_read_u64(self._mm, OFF_HEAD)
+        tail = _atomic_read_u64(self._mm, OFF_TAIL)
         return head - tail
 
     def empty(self) -> bool:

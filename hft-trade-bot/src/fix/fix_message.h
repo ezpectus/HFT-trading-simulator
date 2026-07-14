@@ -12,7 +12,6 @@
 #include <string_view>
 #include <array>
 #include <string>
-#include <unordered_map>
 
 namespace hft::fix {
 
@@ -108,51 +107,73 @@ public:
     void clear() { len_ = 0; }
 
     // Append a tag=value pair (SOH is appended automatically)
-    void add_tag(int tag, std::string_view value) {
-        // Write "tag=value\x01"
+    // Returns false if buffer overflow would occur.
+    bool add_tag(int tag, std::string_view value) {
+        // Calculate needed space: tag digits + '=' + value + SOH
+        char tag_buf[16];
+        int tag_len = int_to_chars(tag, tag_buf);
+        size_t needed = static_cast<size_t>(tag_len) + 1 + value.size() + 1;
+        if (len_ + needed > MAX_SIZE) return false;
+
         char* p = buf_ + len_;
-        p += int_to_chars(tag, p);
+        std::memcpy(p, tag_buf, static_cast<size_t>(tag_len));
+        p += tag_len;
         *p++ = '=';
         p += copy_sv(value, p);
         *p++ = SOH;
         len_ = static_cast<size_t>(p - buf_);
+        return true;
     }
 
-    void add_tag(int tag, int value) {
+    bool add_tag(int tag, int value) {
         char tmp[16];
         int n = int_to_chars(value, tmp);
-        add_tag(tag, std::string_view(tmp, n));
+        return add_tag(tag, std::string_view(tmp, n));
     }
 
-    void add_tag(int tag, uint64_t value) {
+    bool add_tag(int tag, uint64_t value) {
         char tmp[24];
         int n = uint_to_chars(value, tmp);
-        add_tag(tag, std::string_view(tmp, n));
+        return add_tag(tag, std::string_view(tmp, n));
     }
 
-    void add_tag(int tag, double value, int precision = 8) {
+    bool add_tag(int tag, double value, int precision = 8) {
         char tmp[32];
-        // Use snprintf for fixed precision
         int n = std::snprintf(tmp, sizeof(tmp), "%.*f", precision, value);
-        add_tag(tag, std::string_view(tmp, n));
+        return add_tag(tag, std::string_view(tmp, static_cast<size_t>(n)));
     }
 
-    void add_tag(int tag, char value) {
+    bool add_tag(int tag, char value) {
+        char tag_buf[16];
+        int tag_len = int_to_chars(tag, tag_buf);
+        size_t needed = static_cast<size_t>(tag_len) + 1 + 1 + 1;
+        if (len_ + needed > MAX_SIZE) return false;
+
         char* p = buf_ + len_;
-        p += int_to_chars(tag, p);
+        std::memcpy(p, tag_buf, static_cast<size_t>(tag_len));
+        p += tag_len;
         *p++ = '=';
         *p++ = value;
         *p++ = SOH;
         len_ = static_cast<size_t>(p - buf_);
+        return true;
     }
 
     // Finalize message: prepend BeginString + BodyLength, append CheckSum
-    // Returns the complete message as a string_view
+    // Returns the complete message as a string_view, or empty view on overflow
     std::string_view finalize(const char* begin_string = "FIX.4.4") {
-        // Calculate body length: from tag 35 to end of current buffer
-        // Body length = number of characters from tag 35 to just before CheckSum
-        // We need to insert 8=...|9=BodyLen| before the body
-        // Current buffer contains body starting from whatever was added first
+        // Calculate needed size: header + body + checksum tag
+        // Header: "8=FIX.4.4\x01" + "9=NNN\x01" (max ~20 bytes)
+        // Checksum: "10=NNN\x01" (7 bytes)
+        size_t header_len = 2 + std::strlen(begin_string) + 1;  // "8=" + begin + SOH
+        char body_len_buf[24];
+        int bl_len = std::snprintf(body_len_buf, sizeof(body_len_buf), "%zu", len_);
+        header_len += 2 + static_cast<size_t>(bl_len) + 1;  // "9=" + len + SOH
+        size_t checksum_len = 7;  // "10=NNN" + SOH
+
+        if (header_len + len_ + checksum_len > MAX_SIZE) {
+            return {};  // Overflow
+        }
 
         // Build the complete message in a temp buffer
         char temp[MAX_SIZE];
@@ -166,7 +187,7 @@ public:
 
         pos += std::snprintf(temp + pos, MAX_SIZE - pos, "9=%zu%c", body_len, SOH);
 
-        // Copy body
+        // Copy body (bounds-checked above)
         std::memcpy(temp + pos, buf_, len_);
         pos += static_cast<int>(len_);
 
@@ -179,8 +200,8 @@ public:
 
         pos += std::snprintf(temp + pos, MAX_SIZE - pos, "10=%03d%c", checksum, SOH);
 
-        // Copy to final buffer
-        std::memcpy(buf_, temp, pos);
+        // Copy to final buffer (bounds-checked above)
+        std::memcpy(buf_, temp, static_cast<size_t>(pos));
         len_ = static_cast<size_t>(pos);
 
         return std::string_view(buf_, len_);
@@ -216,11 +237,13 @@ public:
         }
         calc %= 256;
 
-        // Parse expected checksum
+        // Parse expected checksum (max 3 digits, modulo 256)
         int expected = 0;
-        while (cs_pos < end && *cs_pos >= '0' && *cs_pos <= '9') {
+        int digits = 0;
+        while (cs_pos < end && *cs_pos >= '0' && *cs_pos <= '9' && digits < 3) {
             expected = expected * 10 + (*cs_pos - '0');
             ++cs_pos;
+            ++digits;
         }
 
         return calc == expected;
@@ -268,9 +291,22 @@ private:
     static int int_to_chars(int val, char* buf) {
         if (val == 0) { buf[0] = '0'; return 1; }
         int n = 0;
-        int v = val;
+        bool negative = false;
+        unsigned int uval;
+        if (val < 0) {
+            negative = true;
+            uval = static_cast<unsigned int>(-(val + 1)) + 1;  // Safe negation
+        } else {
+            uval = static_cast<unsigned int>(val);
+        }
+        unsigned int v = uval;
         while (v > 0) { v /= 10; ++n; }
-        for (int i = n - 1; i >= 0; --i) { buf[i] = '0' + (val % 10); val /= 10; }
+        if (negative) ++n;  // Space for '-'
+        for (int i = n - 1; i >= 0; --i) {
+            buf[i] = '0' + (uval % 10);
+            uval /= 10;
+        }
+        if (negative) buf[0] = '-';
         return n;
     }
 

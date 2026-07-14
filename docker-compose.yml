@@ -1,4 +1,4 @@
-# Docker Compose — Crypto Trading Simulator
+# Docker Compose — HFT Trading System
 # ===========================================
 # Runs all four components:
 #   1. exchange-simulator  — simulated crypto exchange (WebSocket server)
@@ -26,6 +26,7 @@ services:
     container_name: exchange-sim
     ports:
       - "8765:8765"
+      - "8775:8775"
     volumes:
       - ./exchange-simulator/config.yaml:/app/config.yaml
       - sim-data:/app/data
@@ -51,11 +52,13 @@ services:
         condition: service_healthy
     ports:
       - "8766:8766"
+      - "8080:8080"
+      - "9090:9090"
     volumes:
       - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml
       - ai-data:/app/data
       - ai-logs:/app/logs
-    command: python run.py --dashboard
+    command: python run.py --dashboard --metrics
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8766), timeout=5)"]
@@ -94,6 +97,11 @@ services:
     build:
       context: ./web-ui
       dockerfile: Dockerfile
+      args:
+        # These URLs resolve in the USER'S BROWSER (not inside Docker).
+        # localhost works when Docker ports are mapped to the host.
+        - VITE_WS_EXCHANGE=ws://localhost:8765
+        - VITE_WS_SIGNALS=ws://localhost:8766
     container_name: web-ui
     depends_on:
       exchange-simulator:
@@ -102,9 +110,6 @@ services:
         condition: service_healthy
     ports:
       - "3000:3000"
-    environment:
-      - VITE_WS_EXCHANGE=ws://localhost:8765
-      - VITE_WS_SIGNALS=ws://localhost:8766
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]

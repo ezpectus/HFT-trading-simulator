@@ -61,11 +61,11 @@ def main():
 
     targets = ["hft_trade_bot"]
     if args.tests:
-        targets.append("test_signal_engine")
-        targets.append("test_signal_engine_v2")
+        # Build all targets (including all test executables defined in CMakeLists.txt)
+        targets = ["all"]
 
     build_cmd = ["cmake", "--build", build_dir, "--config", build_type,
-                 "-j", str(jobs)] + ["--target"] + targets
+                 "-j", str(jobs)] + (["--target"] + targets if targets != ["all"] else [])
     if not run(build_cmd):
         print("Build failed!")
         sys.exit(1)
@@ -76,6 +76,8 @@ def main():
     if args.tests:
         print("\nRunning tests...")
         test_cmd = ["ctest", "--output-on-failure"]
+        if os.name == "nt":
+            test_cmd.extend(["-C", build_type])
         if not run(test_cmd, cwd=build_dir):
             print("Tests failed!")
             sys.exit(1)

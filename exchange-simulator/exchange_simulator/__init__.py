@@ -9,11 +9,19 @@ import os
 import sys
 
 # Ensure the parent directory (exchange-simulator/) is on sys.path
+# so root-level modules (models.py, exchange.py, etc.) are importable.
 _parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _parent not in sys.path:
     sys.path.insert(0, _parent)
 
-# Root-level modules to register as submodules of exchange_simulator
+# Also add this directory itself so nested modules (arbitrage.py, etc.) are importable.
+_self_dir = os.path.dirname(os.path.abspath(__file__))
+if _self_dir not in sys.path:
+    sys.path.insert(0, _self_dir)
+
+# Modules to register as submodules of exchange_simulator.
+# Some live at the package root (models.py, exchange.py, etc.) and others
+# in this subdirectory (arbitrage.py, config_validator.py, etc.).
 _module_names = [
     "models",
     "market_simulator",
@@ -23,6 +31,13 @@ _module_names = [
     "data_export",
     "websocket_server",
     "visualizer",
+    "spread_analytics",
+    "order_book_realism",
+    "market_microstructure",
+    "liquidation_engine_v2",
+    "latency_simulation",
+    "funding_rate",
+    "options_simulator",
 ]
 
 for _name in _module_names:
@@ -31,7 +46,10 @@ for _name in _module_names:
         try:
             _mod = importlib.import_module(_name)
             sys.modules[_full_name] = _mod
-        except ImportError:
-            pass
+        except ImportError as _e:
+            import logging
+            logging.getLogger("exchange_simulator").debug(
+                "Could not register %s as submodule: %s", _full_name, _e
+            )
 
 __version__ = "1.0.0"

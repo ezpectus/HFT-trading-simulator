@@ -22,8 +22,11 @@ import os
 import sys
 import time
 
-# Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add project root to path for shared modules (run_logger, trade_csv_logger)
+# Note: bot root (this file's dir) is already on sys.path[0] when running `python run.py`
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
 from run_logger import setup_run_logging
 
 from config import SignalBotConfig
@@ -34,13 +37,20 @@ from src.signal_validation import SignalValidator
 from src.strategies import (
     EnsembleVoter, FFTCycleStrategy, MeanReversionStrategy,
     SignalDirection, TrendFollowingStrategy,
+    StatisticalArbitrage, StatArbConfig,
+    MarketMakingStrategy, MarketMakingConfig,
+    SentimentStrategy, SentimentConfig,
+    MLEnsembleStrategy, MLConfig,
 )
 from src.technical_analysis import adx, atr, bollinger_bands, ema, macd, rsi
+from src.llm_engine import LLMEngine, LLMConfig, MarketContext
+from src.backtesting import Backtester, BacktestPlotter, StrategyOptimizer
 
 
 def setup_logging(level: str, log_file: str) -> tuple[logging.Logger, str]:
     """Setup logging with timestamped file output."""
-    return setup_run_logging("ai_signal_bot", level=level)
+    fmt = os.environ.get("LOG_FORMAT", "text")
+    return setup_run_logging("ai_signal_bot", level=level, format_type=fmt)
 
 
 class AISignalBot:
@@ -93,17 +103,44 @@ class AISignalBot:
             self.strategies.append(FFTCycleStrategy(
                 min_data=config.fft_min_data,
             ))
+        if config.sentiment_enabled:
+            self.strategies.append(SentimentStrategy(
+                config=SentimentConfig(),
+            ))
+        if config.market_making_enabled:
+            self.strategies.append(MarketMakingStrategy(
+                config=MarketMakingConfig(),
+            ))
+        if config.ml_ensemble_enabled:
+            self.strategies.append(MLEnsembleStrategy(
+                config=MLConfig(),
+            ))
         self.ensemble = EnsembleVoter(
             mode=config.ensemble_mode,
             min_votes=config.ensemble_min_votes,
         )
 
+        # Statistical arbitrage (pairs trading — separate interface)
+        self.stat_arb = None
+        if config.statarb_enabled and len(config.symbols) >= 2:
+            self.stat_arb = StatisticalArbitrage(
+                config=StatArbConfig(
+                    zscore_entry=config.statarb_zscore_entry,
+                    zscore_exit=config.statarb_zscore_exit,
+                    recompute_interval=config.statarb_recompute_interval,
+                ),
+            )
+            self.logger.info(f"  Statistical arbitrage: pairs={[f'{config.symbols[i]}/{config.symbols[j]}' for i in range(len(config.symbols)) for j in range(i+1, len(config.symbols))]}")
+
         # State
         self._running = False
-        self._candle_cache: dict[str, list[dict]] = {}  # {symbol: [candle_dicts]}
         self._last_signal_time: float = 0
 
-    async def run(self, show_dashboard: bool = False) -> None:
+        # LLM Engine (signal explanations + market analysis)
+        self.llm_engine = LLMEngine(LLMConfig())
+        self.logger.info(f"  LLM Engine: provider={self.llm_engine.config.provider}")
+
+    async def run(self, show_dashboard: bool = False, enable_metrics: bool = False) -> None:
         """Main bot loop."""
         self.logger.info("=" * 60)
         self.logger.info("  AI SIGNAL BOT v1.0.0")
@@ -131,12 +168,31 @@ class AISignalBot:
 
         self._running = True
 
+        # Initialize LLM engine
+        await self.llm_engine.initialize()
+
         # Start WebSocket listener in background
         listen_task = asyncio.create_task(self._listen_loop())
 
         # Start signal publisher for HFT bot
         await self.signal_publisher.start()
         self.logger.info("Signal publisher running on port 8766")
+
+        # Start metrics server if enabled
+        metrics_server = None
+        prom_server = None
+        if enable_metrics:
+            from src.monitoring.health_server import HealthServer
+            metrics_server = HealthServer(port=8080)
+            await metrics_server.start()
+            self.logger.info("Health server running on port 8080")
+            try:
+                from src.monitoring.metrics import MetricsExporter
+                prom_server = MetricsExporter()
+                await prom_server.start_server(port=9090)
+                self.logger.info("Prometheus metrics server running on port 9090")
+            except Exception as e:
+                self.logger.warning(f"Prometheus metrics server failed to start: {e}")
 
         # Main signal generation loop
         try:
@@ -153,6 +209,11 @@ class AISignalBot:
             self._running = False
             listen_task.cancel()
             await self.signal_publisher.stop()
+            if prom_server:
+                await prom_server.stop_server()
+            if metrics_server:
+                await metrics_server.stop()
+            await self.llm_engine.close()
             await self.exchange.disconnect()
             self.logger.info("AI Signal Bot stopped")
 
@@ -169,24 +230,46 @@ class AISignalBot:
 
     async def _generate_signals(self) -> None:
         """Generate and validate trading signals for all symbols."""
+        # ─── Statistical arbitrage (pairs) ───
+        if self.stat_arb:
+            symbols = self.config.symbols
+            for i in range(len(symbols)):
+                for j in range(i + 1, len(symbols)):
+                    sym_a, sym_b = symbols[i], symbols[j]
+                    candles_a = self.exchange.candle_history.get(sym_a, [])
+                    candles_b = self.exchange.candle_history.get(sym_b, [])
+                    if len(candles_a) < self.config.statarb_min_data or len(candles_b) < self.config.statarb_min_data:
+                        continue
+                    try:
+                        arb_sig = self.stat_arb.analyze(sym_a, sym_b, candles_a, candles_b)
+                        if arb_sig and arb_sig.is_actionable:
+                            arb_dict = arb_sig.to_dict()
+                            arb_dict["timestamp"] = int(time.time())
+                            self.signal_logger.log(arb_dict)
+                            self.logger.info(
+                                f"StatArb Signal: {arb_sig.direction.value} {sym_a}/{sym_b} "
+                                f"conf={arb_sig.confidence:.1f} ({arb_sig.reason})"
+                            )
+                            await self.signal_publisher.broadcast_signal({
+                                "symbol": arb_sig.symbol,
+                                "direction": arb_sig.direction.value,
+                                "confidence": arb_sig.confidence,
+                                "strategy": arb_sig.strategy,
+                                "entry_price": arb_sig.entry_price,
+                                "stop_loss": arb_sig.stop_loss,
+                                "take_profit": arb_sig.take_profit,
+                                "rr_ratio": arb_sig.rr_ratio,
+                                "reason": arb_sig.reason,
+                                "signal_id": 0,
+                            })
+                    except Exception as e:
+                        self.logger.debug(f"StatArb {sym_a}/{sym_b}: {e}")
+
+        # ─── Per-symbol strategies ───
         for symbol in self.config.symbols:
-            # Get candle history from exchange
-            candle = self.exchange.latest_candles.get(symbol)
-            if not candle:
-                continue
-
-            # Build candle cache from exchange data
-            # In a real system, we'd fetch historical candles
-            # Here we accumulate from the stream
-            if symbol not in self._candle_cache:
-                self._candle_cache[symbol] = []
-            self._candle_cache[symbol].append(candle)
-            # Keep last 200 candles
-            if len(self._candle_cache[symbol]) > 200:
-                self._candle_cache[symbol] = self._candle_cache[symbol][-200:]
-
-            candles = self._candle_cache[symbol]
-            if len(candles) < 30:
+            # Get candle history from exchange client (accumulated in _process_message)
+            candles = self.exchange.candle_history.get(symbol, [])
+            if not candles or len(candles) < 30:
                 continue
 
             # Run all strategies
@@ -230,6 +313,25 @@ class AISignalBot:
             # Save to DB
             signal_id = self.db.save_signal(sig_dict, validated=True)
 
+            # Generate LLM explanation for the signal
+            try:
+                rsi_val = rsi([c["close"] for c in candles])[-1] if len(candles) >= 14 else 50.0
+                adx_val = adx(candles)[-1] if len(candles) >= 14 else 25.0
+                ema_fast_val = ema([c["close"] for c in candles], 9)[-1] if len(candles) >= 9 else 0.0
+                ema_slow_val = ema([c["close"] for c in candles], 21)[-1] if len(candles) >= 21 else 0.0
+                ema_trend = "bullish" if ema_fast_val > ema_slow_val else "bearish"
+
+                explanation = await self.llm_engine.explain_signal(
+                    symbol=symbol,
+                    direction=ensemble_signal.direction.value,
+                    price=ensemble_signal.entry_price,
+                    rsi=rsi_val,
+                    adx=adx_val,
+                    ema_trend=ema_trend,
+                )
+            except Exception:
+                explanation = ensemble_signal.reason
+
             # Broadcast signal to HFT Trade Bot via signal publisher
             await self.signal_publisher.broadcast_signal({
                 "symbol": ensemble_signal.symbol,
@@ -241,12 +343,16 @@ class AISignalBot:
                 "take_profit": ensemble_signal.take_profit,
                 "rr_ratio": ensemble_signal.rr_ratio,
                 "reason": ensemble_signal.reason,
+                "explanation": explanation,
                 "signal_id": signal_id,
             })
 
             # Execute order
             if self.config.paper_trading:
-                await self._execute_paper_order(ensemble_signal, signal_id, balance)
+                if self.exchange.is_trading_active:
+                    await self._execute_paper_order(ensemble_signal, signal_id, balance)
+                else:
+                    self.logger.info("Trading stopped — skipping paper order execution")
             else:
                 await self._execute_live_order(ensemble_signal, signal_id)
 
@@ -307,18 +413,134 @@ class AISignalBot:
         print_dashboard(self.tracker, positions, prices)
 
 
+def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
+    """Run backtest on historical data from CSV exports or database."""
+    import csv as csv_mod
+    import glob as glob_mod
+
+    def load_candles_from_csv(symbol: str) -> list[dict]:
+        """Load candles from CSV files in data/exports/."""
+        candles = []
+        # Try multiple patterns: data/exports/candles_*.csv, data/exports/*candle*.csv
+        patterns = [
+            f"data/exports/*candle*{symbol.replace('/', '_')}*.csv",
+            f"data/exports/candles_*{symbol.replace('/', '_')}*.csv",
+            f"data/exports/*{symbol.replace('/', '_')}*.csv",
+        ]
+        files = []
+        for p in patterns:
+            files = glob_mod.glob(p)
+            if files:
+                break
+        if not files:
+            # Try all candle files and filter by symbol column
+            files = glob_mod.glob("data/exports/*candle*.csv")
+        for f in sorted(files):
+            try:
+                with open(f, "r", newline="", encoding="utf-8") as fh:
+                    reader = csv_mod.DictReader(fh)
+                    for row in reader:
+                        # Filter by symbol if column exists
+                        if "symbol" in row and row["symbol"] and symbol.replace("/", "_") not in row["symbol"] and row["symbol"] != symbol:
+                            continue
+                        candles.append({
+                            "timestamp": int(float(row.get("timestamp", 0))),
+                            "open": float(row.get("open", row.get("o", 0))),
+                            "high": float(row.get("high", row.get("h", 0))),
+                            "low": float(row.get("low", row.get("l", 0))),
+                            "close": float(row.get("close", row.get("c", 0))),
+                            "volume": float(row.get("volume", row.get("v", 0))),
+                        })
+            except Exception as e:
+                logger.warning(f"  Failed to load {f}: {e}")
+        return candles
+
+    # Initialize strategies (same as live bot)
+    strategies = []
+    if config.trend_enabled:
+        strategies.append(TrendFollowingStrategy(
+            ema_fast=config.trend_ema_fast,
+            ema_slow=config.trend_ema_slow,
+        ))
+    if config.mean_reversion_enabled:
+        strategies.append(MeanReversionStrategy(
+            rsi_period=config.mean_reversion_rsi_period,
+            rsi_oversold=config.mean_reversion_rsi_oversold,
+            rsi_overbought=config.mean_reversion_rsi_overbought,
+        ))
+    if config.fft_enabled:
+        strategies.append(FFTCycleStrategy(min_data=config.fft_min_data))
+
+    if not strategies:
+        logger.error("No strategies enabled for backtesting")
+        return
+
+    # Initialize backtester
+    bt = Backtester(
+        initial_balance=10000.0,
+        fee_pct=0.075,
+        slippage_bps=2.0,
+        leverage=10,
+        max_position_pct=config.max_position_size_pct,
+        risk_per_trade_pct=config.max_risk_per_trade_pct,
+    )
+
+    plotter = BacktestPlotter()
+    all_results = {}
+
+    for symbol in config.symbols:
+        logger.info(f"Loading historical data for {symbol}...")
+        candles = load_candles_from_csv(symbol)
+        if len(candles) < 100:
+            logger.warning(f"  Only {len(candles)} candles for {symbol} — need at least 100. "
+                          f"Export data first: run exchange simulator with --export flag")
+            continue
+
+        for strategy in strategies:
+            logger.info(f"  Backtesting {strategy.name} on {symbol} ({len(candles)} candles)...")
+            try:
+                result = bt.run(candles, strategy, symbol=symbol)
+                bt.print_report(result)
+                all_results[f"{strategy.name}_{symbol}"] = result
+            except Exception as e:
+                logger.error(f"  Backtest failed: {e}")
+
+    # Save charts if any results
+    if all_results:
+        import os
+        chart_dir = "backtest_charts"
+        os.makedirs(chart_dir, exist_ok=True)
+        for name, result in all_results.items():
+            try:
+                plotter.plot_equity_curve(result, name)
+                plotter.save_all({name: result}, chart_dir)
+                logger.info(f"  Charts saved to {chart_dir}/{name}")
+            except Exception as e:
+                logger.warning(f"  Chart generation failed for {name}: {e}")
+
+    logger.info(f"Backtest complete: {len(all_results)} strategy/symbol combinations tested")
+
+
 def main():
     parser = argparse.ArgumentParser(description="AI Signal Bot")
     parser.add_argument("--config", default=None, help="Path to settings.yaml")
     parser.add_argument("--dashboard", action="store_true", help="Show periodic dashboard")
+    parser.add_argument("--metrics", action="store_true", help="Enable Prometheus metrics endpoint")
+    parser.add_argument("--backtest", action="store_true", help="Run backtest on historical data from DB instead of live trading")
     args = parser.parse_args()
 
     config = SignalBotConfig.load(args.config)
     logger, log_path = setup_logging(config.log_level, config.log_file)
 
+    if args.backtest:
+        logger.info("Running in backtest mode")
+        run_backtest(config, logger)
+        logger.info(f"Backtest complete. Log file: {log_path}")
+        return
+
     bot = AISignalBot(config)
     try:
-        asyncio.run(bot.run(show_dashboard=args.dashboard))
+        asyncio.run(bot.run(show_dashboard=args.dashboard, enable_metrics=args.metrics))
     finally:
         logger.info(f"Run complete. Log file: {log_path}")
 

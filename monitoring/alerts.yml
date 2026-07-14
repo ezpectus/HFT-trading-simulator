@@ -89,6 +89,17 @@ groups:
           summary: "Exchange Simulator is down"
           description: "Prometheus cannot scrape metrics from Exchange Simulator."
 
+      # Trading has been stopped — orders are being rejected
+      - alert: TradingStopped
+        expr: exchange_trading_active == 0
+        for: 1m
+        labels:
+          severity: warning
+          service: exchange-simulator
+        annotations:
+          summary: "Trading is STOPPED"
+          description: "Trading has been stopped via UI control. All order submissions are being rejected."
+
   # ── HFT Trade Bot alerts ──
   - name: hft-trade-bot
     rules:

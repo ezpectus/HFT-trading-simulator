@@ -29,6 +29,7 @@ export function useMockExchangeData() {
   const [newsEvent, setNewsEvent] = useState(null)
   const [weekendMode] = useState(false)
   const [replayPaused, setReplayPaused] = useState(false)
+  const [tradingActive, setTradingActive] = useState(true)
   const candleMap = useRef(new Map())
   const intervalRef = useRef(null)
   const accountsRef = useRef({})
@@ -130,13 +131,15 @@ export function useMockExchangeData() {
     setReplayPaused(prev => !prev)
   }, [])
   const scrubReplay = useCallback(() => {}, [])
+  const startTrading = useCallback(() => setTradingActive(true), [])
+  const stopTrading = useCallback(() => setTradingActive(false), [])
 
   return {
     candles, prices, accounts, arbitrage: null, fills, orderbooks,
-    fundingRates, candlesToFunding, newsEvent, weekendMode, replayPaused,
+    fundingRates, candlesToFunding, newsEvent, weekendMode, replayPaused, tradingActive,
     connected: true, latency: 0, reconnects: 0,
     submitOrder, closePosition, sendSpeedChange, sendConfigUpdate,
-    toggleReplay, scrubReplay,
+    toggleReplay, scrubReplay, startTrading, stopTrading,
   }
 }
 
@@ -181,7 +184,7 @@ export function useMockSignalData() {
   }, [])
 
   return {
-    signals, regime, backtestResult: null,
+    signals, regime, backtestResult: null, circuitBreaker: null,
     connected: true, sendSignalMessage: () => true, latency: 0,
   }
 }

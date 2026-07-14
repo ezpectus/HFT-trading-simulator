@@ -1,4 +1,4 @@
-import { Wifi, WifiOff, TrendingUp, TrendingDown, Zap, Pause, Play, FastForward, Volume2, VolumeX, Sun, Moon } from 'lucide-react'
+import { Wifi, WifiOff, TrendingUp, TrendingDown, Zap, Pause, Play, FastForward, Volume2, VolumeX, Sun, Moon, Power } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
 const SYMBOL_SHORT = {
@@ -28,6 +28,9 @@ export default function Header({
   signalConnected,
   simSpeed,
   onSpeedChange,
+  tradingActive,
+  onStartTrading,
+  onStopTrading,
   soundOn,
   onSoundToggle,
   theme,
@@ -152,6 +155,23 @@ export default function Header({
         </div>
 
         <div className="flex-1" />
+
+        {/* Start/Stop Trading master control */}
+        <button
+          onClick={tradingActive ? onStopTrading : onStartTrading}
+          disabled={!exchangeConnected}
+          aria-pressed={tradingActive}
+          aria-label={tradingActive ? 'Stop trading' : 'Start trading'}
+          title={tradingActive ? 'Trading is ON — click to stop' : 'Trading is OFF — click to start'}
+          className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-green disabled:opacity-40 disabled:cursor-not-allowed ${
+            tradingActive
+              ? 'bg-accent-green/20 text-accent-green hover:bg-accent-green/30'
+              : 'bg-accent-red/20 text-accent-red hover:bg-accent-red/30'
+          }`}
+        >
+          <Power size={12} />
+          {tradingActive ? 'TRADING' : 'STOPPED'}
+        </button>
 
         {/* Sound toggle */}
         <button

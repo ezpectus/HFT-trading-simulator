@@ -231,3 +231,19 @@ class TestSimulatedExchange:
         assert ob.exchange == "binance"
         assert len(ob.bids) > 0
         assert len(ob.asks) > 0
+
+    def test_force_close_bypasses_margin_check(self, setup):
+        ex, _ = setup
+        # Open a position first
+        ex.submit_order(symbol="BTC/USDT", side=Side.BUY, quantity=0.01)
+        assert len(ex.account.positions) == 1
+        # Drain balance to near zero
+        ex.account.balance = 0.01
+        # Normal close would be rejected (insufficient margin for fee)
+        # But force_close should bypass the check
+        close_order = ex.submit_order(
+            symbol="BTC/USDT", side=Side.SELL, quantity=0.01,
+            force_close=True,
+        )
+        assert close_order.status == OrderStatus.FILLED
+        assert len(ex.account.positions) == 0

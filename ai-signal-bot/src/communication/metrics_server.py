@@ -132,5 +132,5 @@ class MetricsServer:
             writer.close()
             try:
                 await writer.wait_closed()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Writer close error: {e}")

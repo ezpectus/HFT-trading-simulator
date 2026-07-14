@@ -16,6 +16,7 @@
 #include <functional>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 
 namespace hft::fix {
 
@@ -46,7 +47,7 @@ public:
     }
 
     ~FixSession() {
-        if (state_ != SessionState::DISCONNECTED) {
+        if (state_.load(std::memory_order_acquire) != SessionState::DISCONNECTED) {
             logout();
         }
         stop_heartbeat();
@@ -60,8 +61,9 @@ public:
     // Initiate logon
     bool logon(const std::string& username = "", const std::string& password = "",
                bool reset_seq = false) {
-        if (state_ != SessionState::DISCONNECTED) return false;
-        state_ = SessionState::CONNECTING;
+        SessionState expected = SessionState::DISCONNECTED;
+        if (!state_.compare_exchange_strong(expected, SessionState::CONNECTING,
+                std::memory_order_acq_rel)) return false;
 
         if (reset_seq) {
             outgoing_seq_ = 1;
@@ -77,15 +79,16 @@ public:
         if (sent) {
             save_seq_nums();
         } else {
-            state_ = SessionState::DISCONNECTED;
+            state_.store(SessionState::DISCONNECTED, std::memory_order_release);
         }
         return sent;
     }
 
     // Initiate logout
     bool logout(const std::string& text = "") {
-        if (state_ != SessionState::LOGGED_IN) return false;
-        state_ = SessionState::LOGGING_OUT;
+        SessionState expected = SessionState::LOGGED_IN;
+        if (!state_.compare_exchange_strong(expected, SessionState::LOGGING_OUT,
+                std::memory_order_acq_rel)) return false;
 
         auto msg = FixEncoder::build_logout(
             sender_comp_id_.c_str(), target_comp_id_.c_str(),
@@ -124,14 +127,20 @@ public:
 
         // Handle session-level messages
         if (decoder.is_logon()) {
-            state_ = SessionState::LOGGED_IN;
-            last_heartbeat_ = std::chrono::steady_clock::now();
+            state_.store(SessionState::LOGGED_IN, std::memory_order_release);
+            {
+                std::lock_guard<std::mutex> lk(hb_mutex_);
+                last_heartbeat_ = std::chrono::steady_clock::now();
+            }
             start_heartbeat();
         } else if (decoder.is_logout()) {
-            state_ = SessionState::DISCONNECTED;
+            state_.store(SessionState::DISCONNECTED, std::memory_order_release);
             stop_heartbeat();
         } else if (decoder.is_heartbeat()) {
-            last_heartbeat_ = std::chrono::steady_clock::now();
+            {
+                std::lock_guard<std::mutex> lk(hb_mutex_);
+                last_heartbeat_ = std::chrono::steady_clock::now();
+            }
             // If TestReqID present, we already responded via heartbeat
         } else if (decoder.is_test_request()) {
             // Respond with Heartbeat containing same TestReqID
@@ -145,7 +154,10 @@ public:
             );
             if (send_cb_) send_cb_(hb.data(), hb.size());
             save_seq_nums();
-            last_heartbeat_ = std::chrono::steady_clock::now();
+            {
+                std::lock_guard<std::mutex> lk(hb_mutex_);
+                last_heartbeat_ = std::chrono::steady_clock::now();
+            }
         } else if (decoder.is_resend_request()) {
             // We don't store messages for resend — send SequenceReset with GapFillFlag=Y
             // For simplicity, just acknowledge the gap
@@ -165,7 +177,10 @@ public:
         } else {
             // Application message — invoke callback
             if (app_msg_cb_) app_msg_cb_(decoder);
-            last_heartbeat_ = std::chrono::steady_clock::now();
+            {
+                std::lock_guard<std::mutex> lk(hb_mutex_);
+                last_heartbeat_ = std::chrono::steady_clock::now();
+            }
         }
     }
 
@@ -173,7 +188,7 @@ public:
     bool send_new_order(const std::string& cl_ord_id, const std::string& symbol,
                         char side, double qty, char ord_type,
                         double price = 0.0, char tif = '0', double stop_px = 0.0) {
-        if (state_ != SessionState::LOGGED_IN) return false;
+        if (state_.load(std::memory_order_acquire) != SessionState::LOGGED_IN) return false;
         auto msg = FixEncoder::build_new_order_single(
             sender_comp_id_.c_str(), target_comp_id_.c_str(),
             outgoing_seq_++, cl_ord_id.c_str(), symbol.c_str(),
@@ -187,7 +202,7 @@ public:
     // Send an OrderCancel (35=F)
     bool send_cancel(const std::string& orig_cl_ord_id, const std::string& cl_ord_id,
                      const std::string& symbol, char side) {
-        if (state_ != SessionState::LOGGED_IN) return false;
+        if (state_.load(std::memory_order_acquire) != SessionState::LOGGED_IN) return false;
         auto msg = FixEncoder::build_order_cancel(
             sender_comp_id_.c_str(), target_comp_id_.c_str(),
             outgoing_seq_++, orig_cl_ord_id.c_str(), cl_ord_id.c_str(),
@@ -198,15 +213,20 @@ public:
         return sent;
     }
 
-    SessionState state() const { return state_; }
-    bool is_logged_in() const { return state_ == SessionState::LOGGED_IN; }
+    SessionState state() const { return state_.load(std::memory_order_acquire); }
+    bool is_logged_in() const { return state_.load(std::memory_order_acquire) == SessionState::LOGGED_IN; }
     uint32_t outgoing_seq() const { return outgoing_seq_; }
     uint32_t incoming_seq() const { return incoming_seq_; }
 
     // Check for heartbeat timeout (call periodically)
     bool check_timeout() {
-        if (state_ != SessionState::LOGGED_IN) return false;
-        auto elapsed = std::chrono::steady_clock::now() - last_heartbeat_;
+        if (state_.load(std::memory_order_acquire) != SessionState::LOGGED_IN) return false;
+        std::chrono::steady_clock::time_point hb;
+        {
+            std::lock_guard<std::mutex> lk(hb_mutex_);
+            hb = last_heartbeat_;
+        }
+        auto elapsed = std::chrono::steady_clock::now() - hb;
         auto seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
         return seconds > (heart_bt_int_ * 2);
     }
@@ -216,8 +236,12 @@ private:
         heartbeat_running_ = true;
         heartbeat_thread_ = std::thread([this]() {
             while (heartbeat_running_) {
-                std::this_thread::sleep_for(std::chrono::seconds(heart_bt_int_));
-                if (!heartbeat_running_ || state_ != SessionState::LOGGED_IN) break;
+                {
+                    std::unique_lock<std::mutex> lk(hb_wake_mutex_);
+                    hb_wake_cv_.wait_for(lk, std::chrono::seconds(heart_bt_int_),
+                        [this]() { return !heartbeat_running_.load(std::memory_order_relaxed); });
+                }
+                if (!heartbeat_running_ || state_.load(std::memory_order_acquire) != SessionState::LOGGED_IN) break;
 
                 auto msg = FixEncoder::build_heartbeat(
                     sender_comp_id_.c_str(), target_comp_id_.c_str(),
@@ -231,10 +255,12 @@ private:
 
     void stop_heartbeat() {
         heartbeat_running_ = false;
+        hb_wake_cv_.notify_all();
         if (heartbeat_thread_.joinable()) heartbeat_thread_.join();
     }
 
     void load_seq_nums() {
+        std::lock_guard<std::mutex> lk(seq_mutex_);
         std::ifstream f(seq_file_path_);
         if (f) {
             f >> outgoing_seq_ >> incoming_seq_;
@@ -242,9 +268,11 @@ private:
     }
 
     void save_seq_nums() {
+        std::lock_guard<std::mutex> lk(seq_mutex_);
         std::ofstream f(seq_file_path_);
         if (f) {
-            f << outgoing_seq_ << ' ' << incoming_seq_;
+            f << outgoing_seq_.load(std::memory_order_relaxed)
+              << ' ' << incoming_seq_.load(std::memory_order_relaxed);
         }
     }
 
@@ -256,12 +284,16 @@ private:
     std::atomic<uint32_t> outgoing_seq_{1};
     std::atomic<uint32_t> incoming_seq_{1};
 
-    SessionState state_{SessionState::DISCONNECTED};
+    std::atomic<SessionState> state_{SessionState::DISCONNECTED};
     SendCallback send_cb_;
     AppMessageCallback app_msg_cb_;
 
+    std::mutex hb_mutex_;
     std::chrono::steady_clock::time_point last_heartbeat_;
 
+    std::mutex seq_mutex_;
+    std::mutex hb_wake_mutex_;
+    std::condition_variable hb_wake_cv_;
     std::atomic<bool> heartbeat_running_{false};
     std::thread heartbeat_thread_;
 };

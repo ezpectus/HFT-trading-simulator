@@ -96,8 +96,8 @@ class RealMarketDataFeed:
         for ws in self._ws_connections.values():
             try:
                 await ws.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"WS close error: {e}")
 
     async def _run_binance(self, symbols: List[str], intervals: List[str]):
         """Binance Futures WebSocket feed."""

@@ -5,6 +5,7 @@
 #include "../data/signal.h"
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <mutex>
 #include <optional>
@@ -25,6 +26,7 @@ public:
         pos.stop_loss = signal.stop_loss;
         pos.take_profit = signal.take_profit;
         positions_.push_back(std::move(pos));
+        active_symbols_.insert(signal.symbol);
     }
 
     std::optional<Position> close_position(const std::string& symbol, double exit_price) {
@@ -34,6 +36,7 @@ public:
                 Position pos = *it;
                 pos.update_pnl(exit_price);
                 positions_.erase(it);
+                active_symbols_.erase(symbol);
                 return pos;
             }
         }
@@ -62,10 +65,7 @@ public:
 
     bool has_position(const std::string& symbol) const {
         std::lock_guard<std::mutex> lock(mutex_);
-        for (const auto& pos : positions_) {
-            if (pos.symbol == symbol) return true;
-        }
-        return false;
+        return active_symbols_.count(symbol) > 0;
     }
 
     // Check SL/TP for all positions
@@ -112,6 +112,7 @@ public:
 private:
     mutable std::mutex mutex_;
     std::vector<Position> positions_;
+    std::unordered_set<std::string> active_symbols_;
 };
 
 } // namespace hft

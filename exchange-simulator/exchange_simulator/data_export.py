@@ -172,13 +172,14 @@ class DataExporter:
                     "exported_at": datetime.utcnow().isoformat(),
                 })
 
-        filename = f"positions_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
-        filepath = os.path.join(self.output_dir, filename)
         if rows:
+            filename = f"positions_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+            filepath = os.path.join(self.output_dir, filename)
             self._write_csv(rows, filepath)
             logger.info(f"Exported {len(rows)} positions to {filepath}")
         else:
             logger.info("No open positions to export")
+            return ""
         return filepath
 
     def export_all(self) -> list[str]:

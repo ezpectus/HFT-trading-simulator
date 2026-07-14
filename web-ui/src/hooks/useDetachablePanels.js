@@ -1,5 +1,19 @@
 import { useRef, useCallback } from 'react'
 
+function escapeHtml(str) {
+  if (str == null) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function fmtNum(v, decimals = 2) {
+  return escapeHtml((typeof v === 'number' ? v : 0).toFixed(decimals))
+}
+
 const PANEL_CONFIG = {
   chart: { title: 'Chart — Trading Sim', width: 800, height: 500 },
   orderbook: { title: 'Order Book — Trading Sim', width: 400, height: 600 },
@@ -91,44 +105,44 @@ export function useDetachablePanels() {
       const ob = data.orderbookData
       if (!ob) { el.innerHTML = '<p style="color:#64748b">No data</p>'; return }
       const bids = (ob.bids || []).slice(0, 15).map(b =>
-        `<div class="ob-row bid"><span>${b.quantity.toFixed(4)}</span><span>$${b.price.toFixed(2)}</span></div>`
+        `<div class="ob-row bid"><span>${fmtNum(b.quantity, 4)}</span><span>$${fmtNum(b.price, 2)}</span></div>`
       ).join('')
       const asks = (ob.asks || []).slice(0, 15).map(a =>
-        `<div class="ob-row ask"><span>$${a.price.toFixed(2)}</span><span>${a.quantity.toFixed(4)}</span></div>`
+        `<div class="ob-row ask"><span>$${fmtNum(a.price, 2)}</span><span>${fmtNum(a.quantity, 4)}</span></div>`
       ).join('')
-      el.innerHTML = `<div style="margin-bottom:8px"><span class="label">Spread</span> <span class="value">$${data.currentPrice?.toFixed(2) || '--'}</span></div><div class="asks">${asks}</div><div style="border-top:1px solid #1e2433;margin:4px 0"></div><div class="bids">${bids}</div>`
+      el.innerHTML = `<div style="margin-bottom:8px"><span class="label">Spread</span> <span class="value">$${fmtNum(data.currentPrice, 2) || '--'}</span></div><div class="asks">${asks}</div><div style="border-top:1px solid #1e2433;margin:4px 0"></div><div class="bids">${bids}</div>`
     } else if (panelId === 'account') {
       const acc = data.account
       if (!acc) { el.innerHTML = '<p style="color:#64748b">No data</p>'; return }
       const positions = (acc.positions || []).map(p =>
-        `<tr><td>${p.symbol}</td><td class="${p.side === 'LONG' ? 'green' : 'red'}">${p.side}</td><td>${p.quantity.toFixed(4)}</td><td class="${p.unrealized_pnl >= 0 ? 'green' : 'red'}">${p.unrealized_pnl >= 0 ? '+' : ''}$${p.unrealized_pnl.toFixed(2)}</td></tr>`
+        `<tr><td>${escapeHtml(p.symbol)}</td><td class="${p.side === 'LONG' ? 'green' : 'red'}">${escapeHtml(p.side)}</td><td>${fmtNum(p.quantity, 4)}</td><td class="${p.unrealized_pnl >= 0 ? 'green' : 'red'}">${p.unrealized_pnl >= 0 ? '+' : ''}$${fmtNum(p.unrealized_pnl, 2)}</td></tr>`
       ).join('')
       el.innerHTML = `
-        <div class="card"><div class="label">Balance</div><div class="value">$${acc.balance.toFixed(2)}</div></div>
-        <div class="card"><div class="label">Equity</div><div class="value">$${acc.equity.toFixed(2)}</div></div>
-        <div class="card"><div class="label">Total PnL</div><div class="value ${acc.total_pnl >= 0 ? 'green' : 'red'}">${acc.total_pnl >= 0 ? '+' : ''}$${acc.total_pnl.toFixed(2)}</div></div>
+        <div class="card"><div class="label">Balance</div><div class="value">$${fmtNum(acc.balance, 2)}</div></div>
+        <div class="card"><div class="label">Equity</div><div class="value">$${fmtNum(acc.equity, 2)}</div></div>
+        <div class="card"><div class="label">Total PnL</div><div class="value ${acc.total_pnl >= 0 ? 'green' : 'red'}">${acc.total_pnl >= 0 ? '+' : ''}$${fmtNum(acc.total_pnl, 2)}</div></div>
         <div class="card"><div class="label">Open Positions (${acc.positions?.length || 0})</div></div>
         <table><thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>uPnL</th></tr></thead><tbody>${positions}</tbody></table>
       `
     } else if (panelId === 'signals') {
       const sigs = data.signals || []
       const rows = sigs.slice(0, 20).map(s =>
-        `<tr><td>${s.symbol || ''}</td><td class="${s.direction === 'LONG' ? 'green' : 'red'}">${s.direction}</td><td>${(s.confidence * 100).toFixed(0)}%</td><td>${s.strategy || ''}</td></tr>`
+        `<tr><td>${escapeHtml(s.symbol || '')}</td><td class="${s.direction === 'LONG' ? 'green' : 'red'}">${escapeHtml(s.direction)}</td><td>${fmtNum((s.confidence || 0) * 100, 0)}%</td><td>${escapeHtml(s.strategy || '')}</td></tr>`
       ).join('')
       el.innerHTML = `<div class="card"><div class="label">Signals (${sigs.length})</div></div><table><thead><tr><th>Symbol</th><th>Dir</th><th>Conf</th><th>Strategy</th></tr></thead><tbody>${rows}</tbody></table>`
     } else if (panelId === 'arbitrage') {
       const arbs = data.arbitrage?.active || []
       const rows = arbs.slice(0, 10).map(a =>
-        `<tr><td>${a.symbol}</td><td>${a.buy_exchange}</td><td>${a.sell_exchange}</td><td class="green">${a.spread_bps.toFixed(1)}bps</td><td>$${a.estimated_profit.toFixed(2)}</td></tr>`
+        `<tr><td>${escapeHtml(a.symbol)}</td><td>${escapeHtml(a.buy_exchange)}</td><td>${escapeHtml(a.sell_exchange)}</td><td class="green">${fmtNum(a.spread_bps, 1)}bps</td><td>$${fmtNum(a.estimated_profit, 2)}</td></tr>`
       ).join('')
       el.innerHTML = `<div class="card"><div class="label">Active Arbitrage (${arbs.length})</div></div><table><thead><tr><th>Symbol</th><th>Buy</th><th>Sell</th><th>Spread</th><th>Profit</th></tr></thead><tbody>${rows}</tbody></table>`
     } else if (panelId === 'performance') {
       const m = data.metrics || {}
       el.innerHTML = `
-        <div class="card"><div class="label">Total Balance</div><div class="value">$${(m.totalBalance || 0).toFixed(2)}</div></div>
-        <div class="card"><div class="label">Total PnL</div><div class="value ${(m.totalPnl || 0) >= 0 ? 'green' : 'red'}">${(m.totalPnl || 0) >= 0 ? '+' : ''}$${(m.totalPnl || 0).toFixed(2)}</div></div>
-        <div class="card"><div class="label">Total Trades</div><div class="value">${m.totalTrades || 0}</div></div>
-        <div class="card"><div class="label">Win Rate</div><div class="value">${m.totalTrades > 0 ? ((m.winningTrades || 0) / m.totalTrades * 100).toFixed(1) : 0}%</div></div>
+        <div class="card"><div class="label">Total Balance</div><div class="value">$${fmtNum(m.totalBalance, 2)}</div></div>
+        <div class="card"><div class="label">Total PnL</div><div class="value ${(m.totalPnl || 0) >= 0 ? 'green' : 'red'}">${(m.totalPnl || 0) >= 0 ? '+' : ''}$${fmtNum(m.totalPnl, 2)}</div></div>
+        <div class="card"><div class="label">Total Trades</div><div class="value">${escapeHtml(m.totalTrades || 0)}</div></div>
+        <div class="card"><div class="label">Win Rate</div><div class="value">${m.totalTrades > 0 ? fmtNum((m.winningTrades || 0) / m.totalTrades * 100, 1) : 0}%</div></div>
       `
     } else if (panelId === 'chart') {
       const candles = data.candles || []
@@ -137,12 +151,12 @@ export function useDetachablePanels() {
       const prev = candles[candles.length - 2] || last
       const change = ((last.close - prev.close) / prev.close * 100).toFixed(2)
       el.innerHTML = `
-        <div class="card"><div class="label">${data.symbol || ''} — ${data.exchange || ''}</div></div>
-        <div class="card"><div class="label">Price</div><div class="value">$${last.close.toFixed(2)}</div></div>
-        <div class="card"><div class="label">Change</div><div class="value ${change >= 0 ? 'green' : 'red'}">${change >= 0 ? '+' : ''}${change}%</div></div>
-        <div class="card"><div class="label">OHLC</div><div style="font-size:12px">O:${last.open} H:${last.high} L:${last.low} C:${last.close}</div></div>
-        <div class="card"><div class="label">Volume</div><div class="value">${last.volume.toFixed(0)}</div></div>
-        <div class="card"><div class="label">Candles</div><div class="value">${candles.length}</div></div>
+        <div class="card"><div class="label">${escapeHtml(data.symbol || '')} — ${escapeHtml(data.exchange || '')}</div></div>
+        <div class="card"><div class="label">Price</div><div class="value">$${fmtNum(last.close, 2)}</div></div>
+        <div class="card"><div class="label">Change</div><div class="value ${change >= 0 ? 'green' : 'red'}">${change >= 0 ? '+' : ''}${escapeHtml(change)}%</div></div>
+        <div class="card"><div class="label">OHLC</div><div style="font-size:12px">O:${escapeHtml(last.open)} H:${escapeHtml(last.high)} L:${escapeHtml(last.low)} C:${escapeHtml(last.close)}</div></div>
+        <div class="card"><div class="label">Volume</div><div class="value">${fmtNum(last.volume, 0)}</div></div>
+        <div class="card"><div class="label">Candles</div><div class="value">${escapeHtml(candles.length)}</div></div>
       `
     }
   }, [])

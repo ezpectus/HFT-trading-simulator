@@ -1,0 +1,48 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-ingress
+  labels:
+    {{- include "hft-trading-system.labels" . | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.hostname }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-web-ui
+                port:
+                  number: {{ .Values.webUi.port }}
+          - path: /ws-exchange
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-exchange-simulator
+                port:
+                  number: {{ .Values.exchangeSimulator.ports.ws }}
+          - path: /ws-signals
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-ai-signal-bot
+                port:
+                  number: {{ .Values.aiSignalBot.ports.ws }}
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-grafana
+                port:
+                  number: 3000
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.hostname }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+{{- end -}}

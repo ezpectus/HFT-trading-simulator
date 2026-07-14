@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
-import { Play, Pause, Square, Clock, TrendingUp, Settings2 } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { Play, Square, Clock } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
 const STRATEGIES = [
@@ -7,7 +7,7 @@ const STRATEGIES = [
   { id: 'vwap', label: 'VWAP', desc: 'Volume-Weighted Average Price' },
 ]
 
-export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol, exchange }) {
+export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol, _exchange }) {
   const [strategy, setStrategy] = useState('twap')
   const [side, setSide] = useState('BUY')
   const [totalQty, setTotalQty] = useState(1.0)
@@ -53,12 +53,17 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
     pricesRef.current.push(price)
 
     if (onSubmit) {
-      onSubmit({
+      const order = {
         type: 'MARKET',
         side,
         quantity: sliceQty,
         symbol,
-      })
+      }
+      if (strategy === 'vwap') {
+        order.order_type = 'LIMIT'
+        order.price = orderPrice
+      }
+      onSubmit(order)
     }
 
     sliceIdxRef.current++

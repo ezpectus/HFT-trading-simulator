@@ -32,6 +32,15 @@ case "$MODE" in
     install)
         echo "[INFO] Installing dependencies..."
         echo
+
+        # Clone websocketpp if not present
+        if [ ! -f "$PROJECT_ROOT/websocketpp/websocketpp/client.hpp" ]; then
+            echo "[INFO] Cloning websocketpp (header-only library)..."
+            cd "$PROJECT_ROOT"
+            git clone https://github.com/zaphoyd/websocketpp.git
+            echo
+        fi
+
         echo "[1/4] Exchange Simulator..."
         cd "$PROJECT_ROOT/exchange-simulator"
         pip3 install -r requirements.txt
@@ -44,7 +53,7 @@ case "$MODE" in
         cd "$PROJECT_ROOT/hft-trade-bot"
         if command -v cmake &> /dev/null; then
             mkdir -p build && cd build
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_PCH=ON -DUSE_CCACHE=ON -DUSE_UNITY_BUILD=OFF
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_PCH=ON -DUSE_CCACHE=ON -DUSE_UNITY_BUILD=OFF -DWEBSOCKETPP_INCLUDE_DIR="$PROJECT_ROOT/websocketpp"
             make -j$(nproc)
             cd ..
         else
@@ -75,7 +84,7 @@ case "$MODE" in
         # Start AI Signal Bot
         echo "[2/4] Starting AI Signal Bot on :8766..."
         cd "$PROJECT_ROOT/ai-signal-bot"
-        python3 run.py --dashboard &
+        python3 run.py --dashboard --metrics &
         AI_PID=$!
         echo "  PID: $AI_PID"
 

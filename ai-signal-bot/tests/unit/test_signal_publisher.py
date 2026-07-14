@@ -4,7 +4,7 @@ import json
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from ai_signal_bot.src.communication.signal_publisher import SignalPublisher
+from src.communication.signal_publisher import SignalPublisher
 
 
 @pytest.fixture

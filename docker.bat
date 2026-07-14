@@ -53,7 +53,7 @@ goto :usage
 
 :up
 echo [INFO] Building and starting all production services...
-%COMPOSE_CMD% -f docker-compose.prod.yml --env-file .env.prod up -d --build
+!COMPOSE_CMD! -f docker-compose.prod.yml --env-file .env.prod up -d --build
 if errorlevel 1 (
     echo [ERROR] Failed to start services.
     exit /b 1
@@ -70,28 +70,28 @@ goto :end
 
 :down
 echo [INFO] Stopping all production services...
-%COMPOSE_CMD% -f docker-compose.prod.yml down
+!COMPOSE_CMD! -f docker-compose.prod.yml down
 echo [OK] All services stopped.
 goto :end
 
 :build
 echo [INFO] Building all images (no cache)...
-%COMPOSE_CMD% -f docker-compose.prod.yml build --no-cache
+!COMPOSE_CMD! -f docker-compose.prod.yml build --no-cache
 echo [OK] Build complete.
 goto :end
 
 :logs
 echo [INFO] Showing logs (Ctrl+C to exit)...
-%COMPOSE_CMD% -f docker-compose.prod.yml logs -f
+!COMPOSE_CMD! -f docker-compose.prod.yml logs -f
 goto :end
 
 :ps
-%COMPOSE_CMD% -f docker-compose.prod.yml ps
+!COMPOSE_CMD! -f docker-compose.prod.yml ps
 goto :end
 
 :restart
 echo [INFO] Restarting all services...
-%COMPOSE_CMD% -f docker-compose.prod.yml restart
+!COMPOSE_CMD! -f docker-compose.prod.yml restart
 echo [OK] All services restarted.
 goto :end
 

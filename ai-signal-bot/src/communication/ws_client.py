@@ -9,6 +9,12 @@ from typing import Callable, Optional
 
 import websockets
 
+try:
+    import msgpack
+    _HAS_MSGPACK = True
+except ImportError:
+    _HAS_MSGPACK = False
+
 logger = logging.getLogger("ai_signal_bot.ws_client")
 
 
@@ -19,12 +25,15 @@ class ExchangeClient:
     Sends orders when paper trading is disabled.
     """
 
-    def __init__(self, url: str = "ws://localhost:8765"):
+    def __init__(self, url: str = "ws://localhost:8765", encoding: str = "json"):
         self.url = url
+        self._encoding = encoding if (encoding == "msgpack" and _HAS_MSGPACK) else "json"
         self._ws: Optional[websockets.WebSocketClientProtocol] = None
         self._connected = False
+        self._trading_active = True
         self._on_message: Optional[Callable] = None
-        self._latest_candles: dict[str, dict] = {}  # {symbol: candle_dict}
+        self._latest_candles: dict[str, dict] = {}  # {symbol: latest_candle_dict}
+        self._candle_history: dict[str, list[dict]] = {}  # {symbol: [candle_dicts]}
         self._latest_prices: dict[str, dict[str, float]] = {}  # {exchange: {symbol: price}}
         self._accounts: dict[str, dict] = {}
 
@@ -33,8 +42,16 @@ class ExchangeClient:
         return self._connected
 
     @property
+    def is_trading_active(self) -> bool:
+        return self._trading_active
+
+    @property
     def latest_candles(self) -> dict[str, dict]:
         return self._latest_candles
+
+    @property
+    def candle_history(self) -> dict[str, list[dict]]:
+        return self._candle_history
 
     @property
     def latest_prices(self) -> dict[str, dict[str, float]]:
@@ -53,7 +70,7 @@ class ExchangeClient:
             self._ws = await websockets.connect(self.url, ping_interval=10)
             self._connected = True
             logger.info(f"Connected to exchange simulator: {self.url}")
-            await self._ws.send(json.dumps({"type": "subscribe"}))
+            await self._ws.send(json.dumps({"type": "subscribe", "protocol_version": 2, "encoding": self._encoding}))
             return True
         except Exception as e:
             logger.error(f"Failed to connect: {e}")
@@ -76,12 +93,15 @@ class ExchangeClient:
         try:
             async for message in self._ws:
                 try:
-                    data = json.loads(message)
+                    if isinstance(message, bytes) and _HAS_MSGPACK:
+                        data = msgpack.unpackb(message, raw=False)
+                    else:
+                        data = json.loads(message)
                     self._process_message(data)
                     if self._on_message:
                         await self._on_message(data)
-                except json.JSONDecodeError:
-                    logger.warning(f"Invalid JSON: {message}")
+                except (json.JSONDecodeError, ValueError) as e:
+                    logger.warning(f"Invalid message: {e}")
         except websockets.ConnectionClosed:
             logger.warning("Connection closed by server")
             self._connected = False
@@ -92,9 +112,28 @@ class ExchangeClient:
 
         if msg_type in ("candles", "snapshot"):
             for candle in data.get("candles", []):
-                self._latest_candles[candle["symbol"]] = candle
+                sym = candle["symbol"]
+                self._latest_candles[sym] = candle
+                # Accumulate candle history (BUG#3: previously only latest candle was kept)
+                if sym not in self._candle_history:
+                    self._candle_history[sym] = []
+                self._candle_history[sym].append(candle)
+                if len(self._candle_history[sym]) > 200:
+                    self._candle_history[sym] = self._candle_history[sym][-200:]
             self._latest_prices = data.get("prices", {})
             self._accounts = data.get("accounts", {})
+            if "trading_active" in data:
+                self._trading_active = data["trading_active"]
+        elif msg_type == "trading_state":
+            self._trading_active = data.get("trading_active", True)
+            state = "ACTIVE" if self._trading_active else "STOPPED"
+            logger.info(f"Trading state: {state}")
+        elif msg_type == "error":
+            logger.warning(f"Exchange error: {data.get('message', 'unknown')}")
+        elif msg_type == "welcome":
+            ver = data.get("protocol_version", 1)
+            self._trading_active = data.get("trading_active", True)
+            logger.info(f"Server welcome: protocol v{ver}, trading={'ACTIVE' if self._trading_active else 'STOPPED'}")
 
     async def submit_order(
         self,
@@ -108,6 +147,9 @@ class ExchangeClient:
         """Submit an order to the exchange simulator."""
         if not self._ws:
             logger.error("Not connected — cannot submit order")
+            return
+        if not self._trading_active:
+            logger.warning("Trading is stopped — order not submitted")
             return
 
         order_msg = {

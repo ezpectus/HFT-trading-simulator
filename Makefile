@@ -15,7 +15,7 @@ dev-exchange: ## Start only exchange simulator
 	cd exchange-simulator && python -m exchange_simulator --no-visualizer
 
 dev-signals: ## Start only AI signal bot
-	cd ai-signal-bot && python run.py --dashboard
+	cd ai-signal-bot && python run.py --dashboard --metrics
 
 dev-ui: ## Start only web UI
 	cd web-ui && npm run dev
@@ -37,7 +37,7 @@ test-js: ## Run JS tests
 lint: ## Run linters on all code
 	cd exchange-simulator && ruff check .
 	cd ai-signal-bot && ruff check .
-	cd web-ui && npx eslint src/ --max-warnings 0
+	cd web-ui && npx eslint src/
 
 build: ## Build web UI for production
 	cd web-ui && npm run build

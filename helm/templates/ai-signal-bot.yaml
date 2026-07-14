@@ -1,0 +1,92 @@
+{{- if .Values.aiSignalBot.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-ai-signal-bot
+  labels:
+    {{- include "hft-trading-system.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-signal-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "hft-trading-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: ai-signal-bot
+  template:
+    metadata:
+      labels:
+        {{- include "hft-trading-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: ai-signal-bot
+    spec:
+      containers:
+        - name: ai-signal-bot
+          image: "{{ .Values.aiSignalBot.image.repository }}:{{ .Values.aiSignalBot.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command: ["python", "run.py", "--dashboard", "--metrics"]
+          env:
+            - name: LOG_FORMAT
+              value: {{ .Values.global.logFormat | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.global.logLevel | quote }}
+            - name: EXCHANGE_MODE
+              value: {{ .Values.aiSignalBot.env.exchangeMode | quote }}
+            - name: OPENAI_API_KEY
+              value: {{ .Values.aiSignalBot.env.openaiApiKey | quote }}
+            - name: POSTGRES_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-postgres
+                  key: POSTGRES_DSN
+            - name: REDIS_URL
+              value: {{ printf "redis://%s-redis:6379/0" .Release.Name | quote }}
+          ports:
+            - containerPort: {{ .Values.aiSignalBot.ports.ws }}
+              name: ws
+            - containerPort: {{ .Values.aiSignalBot.ports.metrics }}
+              name: metrics
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+            - name: data
+              mountPath: /app/data
+            - name: logs
+              mountPath: /app/logs
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.aiSignalBot.ports.ws }}
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.aiSignalBot.ports.ws }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.aiSignalBot.resources | nindent 12 }}
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ .Values.global.shmSize }}
+        - name: data
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-ai-signal-bot
+  labels:
+    {{- include "hft-trading-system.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.aiSignalBot.ports.ws }}
+      name: ws
+    - port: {{ .Values.aiSignalBot.ports.metrics }}
+      name: metrics
+  selector:
+    {{- include "hft-trading-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-signal-bot
+{{- end -}}

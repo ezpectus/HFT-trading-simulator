@@ -157,6 +157,9 @@ docs/PROGRESS.md
 docs/AUDIT_2025.md
 docs/ARCHITECTURE_ROADMAP.md
 
+# ─── HFT skills (internal knowledge base, not for public repo) ───
+hft-skills/
+
 # ─── Vendored deps ───
 vcpkg/
 websocketpp/

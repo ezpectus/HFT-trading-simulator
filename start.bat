@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================
-REM  Crypto Trading Simulator — Start All Services
+REM  HFT Trading System — Start All Services
 REM  Opens 4 service windows + 4 monitor windows
 REM  Usage: start.bat [start^|stop^|install]
 REM ============================================================
@@ -59,19 +59,19 @@ cd /d "%PROJECT_ROOT%"
 goto :end
 
 :start
-echo Starting Crypto Trading Simulator...
+echo Starting HFT Trading System...
 
 REM Window 1: Exchange Simulator
 start "Exchange Simulator" cmd /k "cd /d %~dp0exchange-simulator && python -m exchange_simulator --no-visualizer"
 
 REM Wait for exchange to start
-timeout /t 3 /nobreak >nul
+ping 127.0.0.1 -n 4 >nul 2>&1
 
 REM Window 2: AI Signal Bot
-start "AI Signal Bot" cmd /k "cd /d %~dp0ai-signal-bot && python run.py --dashboard"
+start "AI Signal Bot" cmd /k "cd /d %~dp0ai-signal-bot && python run.py --dashboard --metrics"
 
 REM Wait for signal bot to start
-timeout /t 3 /nobreak >nul
+ping 127.0.0.1 -n 4 >nul 2>&1
 
 REM Window 3: HFT Trade Bot (C++ — requires build)
 if exist "%~dp0hft-trade-bot\build\Release\hft_trade_bot.exe" (
@@ -88,7 +88,7 @@ REM Window 4: Web UI
 start "Web UI" cmd /k "cd /d %~dp0web-ui && npm run dev"
 
 REM Wait for services to initialize
-timeout /t 5 /nobreak >nul
+ping 127.0.0.1 -n 6 >nul 2>&1
 
 REM Window 5: AI Signal Bot Monitor (live signal feed + bot status)
 start "AI Signal Bot Monitor" cmd /k "cd /d %~dp0ai-signal-bot && python monitor.py"
@@ -96,22 +96,14 @@ start "AI Signal Bot Monitor" cmd /k "cd /d %~dp0ai-signal-bot && python monitor
 REM Window 6: HFT Trade Bot Monitor (C++ engine status + log tail)
 start "HFT Trade Bot Monitor" cmd /k "cd /d %~dp0hft-trade-bot && python monitor.py"
 
-REM Window 7: Unified Error Monitor (errors + warnings from all services)
-start "Error Monitor" cmd /k "cd /d %~dp0 && python error_monitor.py"
-
-REM Window 8: Price & Signal Monitor (live crypto prices + strategy signals)
-start "Price & Signal Monitor" cmd /k "cd /d %~dp0 && python price_monitor.py"
-
 echo.
 echo All services started:
-echo   1. Exchange Simulator      - ws://localhost:8765
+echo   1. Exchange Simulator      - ws://localhost:8765 (metrics:8775)
 echo   2. AI Signal Bot           - ws://localhost:8766
 echo   3. HFT Trade Bot           - C++ engine (connects to :8765 + :8766)
 echo   4. Web UI                  - http://localhost:3000
 echo   5. AI Signal Bot Monitor   - live signal feed
 echo   6. HFT Trade Bot Monitor   - C++ engine status
-echo   7. Error Monitor           - unified error viewer
-echo   8. Price & Signal Monitor  - live prices + signals
 echo.
 echo Close the CLI windows to stop each service.
 goto :end
@@ -119,20 +111,18 @@ goto :end
 :stop
 echo [INFO] Stopping all services...
 taskkill /fi "WINDOWTITLE eq Exchange Simulator*" /f >nul 2>&1
+taskkill /fi "WINDOWTITLE eq AI Signal Bot Monitor*" /f >nul 2>&1
+taskkill /fi "WINDOWTITLE eq HFT Trade Bot Monitor*" /f >nul 2>&1
 taskkill /fi "WINDOWTITLE eq AI Signal Bot*" /f >nul 2>&1
 taskkill /fi "WINDOWTITLE eq HFT Trade Bot*" /f >nul 2>&1
 taskkill /fi "WINDOWTITLE eq Web UI*" /f >nul 2>&1
-taskkill /fi "WINDOWTITLE eq AI Signal Bot Monitor*" /f >nul 2>&1
-taskkill /fi "WINDOWTITLE eq HFT Trade Bot Monitor*" /f >nul 2>&1
-taskkill /fi "WINDOWTITLE eq Error Monitor*" /f >nul 2>&1
-taskkill /fi "WINDOWTITLE eq Price & Signal Monitor*" /f >nul 2>&1
 echo [OK] All services stopped.
 goto :end
 
 :usage
 echo Usage: start.bat [start^|stop^|install]
 echo.
-echo   start    - Start all 8 windows (4 services + 4 monitors) (default)
+echo   start    - Start all 6 windows (4 services + 2 monitors) (default)
 echo   stop     - Stop all services
 echo   install  - Install all dependencies (Python, C++, Node)
 goto :end

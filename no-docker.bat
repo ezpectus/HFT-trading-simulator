@@ -88,14 +88,14 @@ echo [1/4] Starting Exchange Simulator on :8765...
 start "Exchange Simulator" cmd /k "cd /d %PROJECT_ROOT%exchange-simulator && python -m exchange_simulator --no-visualizer"
 
 REM Wait for simulator to start
-timeout /t 3 /nobreak >nul
+ping 127.0.0.1 -n 4 >nul 2>&1
 
 REM Window 2: AI Signal Bot
 echo [2/4] Starting AI Signal Bot on :8766...
-start "AI Signal Bot" cmd /k "cd /d %PROJECT_ROOT%ai-signal-bot && python run.py --dashboard"
+start "AI Signal Bot" cmd /k "cd /d %PROJECT_ROOT%ai-signal-bot && python run.py --dashboard --metrics"
 
 REM Wait for signal bot
-timeout /t 3 /nobreak >nul
+ping 127.0.0.1 -n 4 >nul 2>&1
 
 REM Window 3: HFT Trade Bot
 echo [3/4] Starting HFT Trade Bot (C++ engine)...
@@ -115,8 +115,8 @@ start "Web UI" cmd /k "cd /d %PROJECT_ROOT%web-ui && npm run dev"
 
 echo.
 echo [OK] All services started in separate windows!
-echo   - Exchange Simulator:  ws://localhost:8765
-echo   - AI Signal Bot:       ws://localhost:8766
+echo   - Exchange Simulator:  ws://localhost:8765 (metrics:8775)
+echo   - AI Signal Bot:       ws://localhost:8766 (metrics:8080, 9090)
 echo   - HFT Trade Bot:       C++ engine (connects to :8765 + :8766)
 echo   - Web UI:              http://localhost:3000
 echo.

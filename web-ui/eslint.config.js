@@ -10,7 +10,7 @@ export default [
     languageOptions: {
       parserOptions: {
         ecmaFeatures: { jsx: true },
-        ecmaVersion: 2021,
+        ecmaVersion: 2022,
         sourceType: 'module',
       },
       globals: {
@@ -22,6 +22,8 @@ export default [
     rules: {
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
+      'react/jsx-uses-vars': 'error',
+      'react/jsx-uses-react': 'error',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-empty': ['error', { allowEmptyCatch: true }],

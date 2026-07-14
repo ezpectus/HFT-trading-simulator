@@ -67,14 +67,16 @@ public:
 
     // Record observed latency (called after each exchange interaction)
     void record_latency(int64_t us) noexcept {
-        // Exponential moving average
+        // Exponential moving average with CAS to prevent lost updates
         int64_t current = latency_avg_.load(std::memory_order_relaxed);
         if (current == 0) {
             latency_avg_.store(us, std::memory_order_relaxed);
         } else {
-            // EMA with α=0.1
             int64_t next = current + (us - current) / 10;
-            latency_avg_.store(next, std::memory_order_relaxed);
+            while (!latency_avg_.compare_exchange_weak(current, next,
+                       std::memory_order_relaxed, std::memory_order_relaxed)) {
+                next = current + (us - current) / 10;
+            }
         }
     }
 

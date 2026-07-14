@@ -20,6 +20,7 @@ export function useExchangeData() {
   const [newsEvent, setNewsEvent] = useState(null)
   const [weekendMode, setWeekendMode] = useState(false)
   const [replayPaused, setReplayPaused] = useState(false)
+  const [tradingActive, setTradingActive] = useState(true)
   const lastTimestampRef = useRef(0)
   const candleMap = useRef(new Map())
 
@@ -37,18 +38,21 @@ export function useExchangeData() {
             const key = `${c.exchange}|${c.symbol}|${c.timestamp}`
             candleMap.current.set(key, c)
           }
-          // Convert to sorted array (newest last)
-          const all = Array.from(candleMap.current.values())
-            .sort((a, b) => a.timestamp - b.timestamp)
-          // Keep last 500 to avoid memory growth
-          if (all.length > 500) {
-            const toRemove = all.slice(0, all.length - 500)
-            for (const c of toRemove) {
-              candleMap.current.delete(`${c.exchange}|${c.symbol}|${c.timestamp}`)
+          // Only sort + trim when map grows beyond cap (avoids O(n log n) on every message)
+          if (candleMap.current.size > 500) {
+            const all = Array.from(candleMap.current.values())
+              .sort((a, b) => a.timestamp - b.timestamp)
+            // Keep last 500
+            const toKeep = all.slice(-500)
+            candleMap.current.clear()
+            for (const c of toKeep) {
+              const key = `${c.exchange}|${c.symbol}|${c.timestamp}`
+              candleMap.current.set(key, c)
             }
-            setCandles(all.slice(-500))
+            setCandles(toKeep)
           } else {
-            setCandles(all)
+            // Incremental update: just set the latest array without full sort
+            setCandles(Array.from(candleMap.current.values()))
           }
         }
         if (data.prices) setPrices(data.prices)
@@ -58,6 +62,7 @@ export function useExchangeData() {
         if (data.candles_to_funding != null) setCandlesToFunding(data.candles_to_funding)
         if (data.news_event !== undefined) setNewsEvent(data.news_event)
         if (data.weekend_mode !== undefined) setWeekendMode(data.weekend_mode)
+        if (data.trading_active !== undefined) setTradingActive(data.trading_active)
         break
       }
       case 'fill': {
@@ -70,6 +75,10 @@ export function useExchangeData() {
       }
       case 'replay_state': {
         setReplayPaused(data.paused || false)
+        break
+      }
+      case 'trading_state': {
+        setTradingActive(data.trading_active !== false)
         break
       }
       case 'replay_candles': {
@@ -116,6 +125,14 @@ export function useExchangeData() {
     return sendExchange({ type: 'replay', action })
   }, [sendExchange, replayPaused])
 
+  const startTrading = useCallback(() => {
+    return sendExchange({ type: 'start_trading' })
+  }, [sendExchange])
+
+  const stopTrading = useCallback(() => {
+    return sendExchange({ type: 'stop_trading' })
+  }, [sendExchange])
+
   const scrubReplay = useCallback((offset) => {
     return sendExchange({ type: 'replay', action: 'scrub', offset })
   }, [sendExchange])
@@ -132,6 +149,7 @@ export function useExchangeData() {
     newsEvent,
     weekendMode,
     replayPaused,
+    tradingActive,
     connected: exchangeConnected,
     latency: exchangeLatency,
     reconnects: exchangeReconnects,
@@ -141,6 +159,8 @@ export function useExchangeData() {
     sendConfigUpdate,
     toggleReplay,
     scrubReplay,
+    startTrading,
+    stopTrading,
   }
 }
 
@@ -152,6 +172,7 @@ export function useSignalData(options = {}) {
   const [signals, setSignals] = useState([])
   const [regime, setRegime] = useState(null)
   const [backtestResult, setBacktestResult] = useState(null)
+  const [circuitBreaker, setCircuitBreaker] = useState(null)
   const onBacktestResultRef = useRef(options.onBacktestResult)
 
   useEffect(() => {
@@ -169,6 +190,15 @@ export function useSignalData(options = {}) {
       case 'market_regime':
         setRegime(data)
         break
+      case 'circuit_breaker_status':
+        setCircuitBreaker({
+          tripped: data.state === 'OPEN',
+          state: data.state,
+          consecutiveLosses: data.consecutive_failures || 0,
+          totalTrips: data.total_trips || 0,
+          totalBlocks: data.total_blocks || 0,
+        })
+        break
       case 'backtest_result':
         setBacktestResult(data)
         onBacktestResultRef.current?.(data)
@@ -182,5 +212,5 @@ export function useSignalData(options = {}) {
     onMessage: handleSignalMessage,
   })
 
-  return { signals, regime, backtestResult, connected, sendSignalMessage: send, latency: signalLatency }
+  return { signals, regime, backtestResult, circuitBreaker, connected, sendSignalMessage: send, latency: signalLatency }
 }

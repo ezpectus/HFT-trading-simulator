@@ -71,7 +71,13 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-cov
         working-directory: ${{ matrix.component }}
-      - run: python -m pytest tests/ -v --tb=short --cov=src --cov-report=xml
+      - run: |
+          if [ "${{ matrix.component }}" = "exchange-simulator" ]; then
+            COV_MOD="exchange_simulator"
+          else
+            COV_MOD="src"
+          fi
+          python -m pytest tests/ -v --tb=short --cov=$COV_MOD --cov-report=xml
         working-directory: ${{ matrix.component }}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

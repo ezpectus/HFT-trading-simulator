@@ -77,7 +77,29 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 # Find dependencies
-find_package(Boost REQUIRED COMPONENTS system random)
+# CMake 4.3 removed the FindBoost module; vcpkg's Boost install lacks sub-component configs
+# Create Boost::headers target manually using the vcpkg include path
+cmake_policy(SET CMP0167 NEW)
+# Add vcpkg installed packages to CMake prefix path for spdlog, fmt, etc.
+# Respect VCPKG_ROOT env var; fall back to common default if not set
+if(DEFINED ENV{VCPKG_ROOT})
+    list(APPEND CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows")
+    set(_VCPKG_INCLUDE_DIR "$ENV{VCPKG_ROOT}/installed/x64-windows/include")
+else()
+    list(APPEND CMAKE_PREFIX_PATH "C:/vcpkg/installed/x64-windows")
+    set(_VCPKG_INCLUDE_DIR "C:/vcpkg/installed/x64-windows/include")
+endif()
+if(NOT TARGET Boost::headers)
+    set(BOOST_INCLUDE_DIR "${_VCPKG_INCLUDE_DIR}" CACHE PATH "Boost include directory")
+    if(NOT EXISTS "${BOOST_INCLUDE_DIR}/boost/version.hpp")
+        message(FATAL_ERROR "Boost headers not found at ${BOOST_INCLUDE_DIR} — install via: vcpkg install boost")
+    endif()
+    add_library(Boost::headers INTERFACE IMPORTED)
+    set_target_properties(Boost::headers PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${BOOST_INCLUDE_DIR}"
+    )
+    message(STATUS "Boost headers found at ${BOOST_INCLUDE_DIR}")
+endif()
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -110,10 +132,13 @@ endif()
 # simdjson (optional — for fast JSON parsing in hot path)
 find_package(simdjson QUIET)
 
-# websocketpp (header-only)
-find_path(WEBSOCKETPP_INCLUDE_DIR websocketpp/client.hpp)
+# websocketpp (header-only) — check vcpkg first, then project root
+find_path(WEBSOCKETPP_INCLUDE_DIR websocketpp/client.hpp
+    PATHS "${CMAKE_SOURCE_DIR}/../websocketpp" "${_VCPKG_INCLUDE_DIR}"
+)
 if(NOT WEBSOCKETPP_INCLUDE_DIR)
-    message(FATAL_ERROR "websocketpp not found. Install with: vcpkg install websocketpp")
+    message(WARNING "websocketpp not found. Install with: vcpkg install websocketpp — targets using it will fail to compile")
+    set(WEBSOCKETPP_INCLUDE_DIR "")
 endif()
 
 # Sources
@@ -143,8 +168,7 @@ if(USE_PCH)
 endif()
 
 target_link_libraries(hft_trade_bot PRIVATE
-    Boost::system
-    Boost::random
+    Boost::headers
     OpenSSL::SSL
     OpenSSL::Crypto
     Threads::Threads
@@ -364,3 +388,18 @@ add_doctest_test(test_doctest_order_type_selector tests/test_doctest_order_type_
 
 # FIX message doctest tests (build, finalize, parse, checksum validation round-trip, field access, edge cases)
 add_doctest_test(test_doctest_fix_message tests/test_doctest_fix_message.cpp)
+
+# ─── Integration tests (doctest-based) ───
+add_doctest_test(test_integration_config tests/test_integration_config.cpp)
+target_link_libraries(test_integration_config PRIVATE yaml-cpp::yaml-cpp)
+
+add_doctest_test(test_integration_signal_engine tests/test_integration_signal_engine.cpp)
+
+add_doctest_test(test_integration_kill_switch_monitor tests/test_integration_kill_switch_monitor.cpp)
+
+if(NOT WIN32)
+    add_doctest_test(test_integration_shm tests/test_integration_shm.cpp)
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(test_integration_shm PRIVATE rt)
+    endif()
+endif()

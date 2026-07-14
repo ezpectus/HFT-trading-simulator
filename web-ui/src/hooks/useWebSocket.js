@@ -101,6 +101,12 @@ export function useWebSocket(url, options = {}) {
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
 
+    // Clear any pending reconnect timer
+    if (reconnectTimer.current) {
+      clearTimeout(reconnectTimer.current)
+      reconnectTimer.current = null
+    }
+
     try {
       // Per-message deflate: negotiate compression via WebSocket subprotocol
       // Browsers negotiate permessage-deflate automatically when supported.
@@ -136,13 +142,14 @@ export function useWebSocket(url, options = {}) {
       }
 
       ws.onmessage = (event) => {
-        // Measure latency if we have a pending ping
-        if (lastPingRef.current > 0) {
-          setLatency(Date.now() - lastPingRef.current)
-          lastPingRef.current = 0
-        }
         try {
           const data = JSON.parse(event.data)
+
+          // Measure latency only for pong responses
+          if (data.type === 'pong' && lastPingRef.current > 0) {
+            setLatency(Date.now() - lastPingRef.current)
+            lastPingRef.current = 0
+          }
 
           // Track latest timestamp for reconnection sync
           const ts = data.timestamp || data.received_at || data.time || 0
@@ -196,7 +203,10 @@ export function useWebSocket(url, options = {}) {
         reconnectTimer.current = setTimeout(() => connect(), delay)
       }
     }
-  }, [url, autoConnect, perMessageDeflate, batchInterval, batchTypes, flushBatch])
+  }, [url, autoConnect, perMessageDeflate, batchInterval, flushBatch])
+
+  // Memoize batchTypes to prevent unnecessary reconnects
+  const batchTypesKey = batchTypes.join(',')
 
   const disconnect = useCallback(() => {
     if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
@@ -237,7 +247,7 @@ export function useWebSocket(url, options = {}) {
       flushBatch()
       wsRef.current?.close()
     }
-  }, [connect, autoConnect, flushBatch])
+  }, [connect, autoConnect, flushBatch, batchTypesKey])
 
   return {
     connected, error, send, connect, disconnect, latency, reconnects,

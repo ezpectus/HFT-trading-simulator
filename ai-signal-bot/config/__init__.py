@@ -124,6 +124,38 @@ class SignalBotConfig:
         return self.raw.get("strategies", {}).get("fft_cycle", {}).get("min_data", 64)
 
     @property
+    def statarb_enabled(self) -> bool:
+        return self.raw.get("strategies", {}).get("statistical_arbitrage", {}).get("enabled", False)
+
+    @property
+    def statarb_min_data(self) -> int:
+        return self.raw.get("strategies", {}).get("statistical_arbitrage", {}).get("min_data", 100)
+
+    @property
+    def statarb_zscore_entry(self) -> float:
+        return float(self.raw.get("strategies", {}).get("statistical_arbitrage", {}).get("zscore_entry", 2.0))
+
+    @property
+    def statarb_zscore_exit(self) -> float:
+        return float(self.raw.get("strategies", {}).get("statistical_arbitrage", {}).get("zscore_exit", 0.5))
+
+    @property
+    def statarb_recompute_interval(self) -> int:
+        return self.raw.get("strategies", {}).get("statistical_arbitrage", {}).get("recompute_interval", 50)
+
+    @property
+    def market_making_enabled(self) -> bool:
+        return self.raw.get("strategies", {}).get("market_making", {}).get("enabled", False)
+
+    @property
+    def sentiment_enabled(self) -> bool:
+        return self.raw.get("strategies", {}).get("sentiment", {}).get("enabled", False)
+
+    @property
+    def ml_ensemble_enabled(self) -> bool:
+        return self.raw.get("strategies", {}).get("ml_ensemble", {}).get("enabled", False)
+
+    @property
     def ensemble_mode(self) -> str:
         return self.raw["strategies"]["ensemble"]["mode"]
 

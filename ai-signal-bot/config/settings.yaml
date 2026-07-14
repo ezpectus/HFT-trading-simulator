@@ -57,6 +57,30 @@ strategies:
     enabled: true
     min_data: 64                 # Minimum candles needed for FFT analysis
 
+  statistical_arbitrage:
+    enabled: true
+    min_data: 100                # Min candles for cointegration test
+    zscore_entry: 2.0            # Enter when z-score exceeds this
+    zscore_exit: 0.5             # Exit when z-score reverts to this
+    recompute_interval: 50       # Recompute cointegration every N steps
+
+  market_making:
+    enabled: false               # Off by default (needs inventory management)
+    gamma: 0.1                   # Risk aversion coefficient
+    sigma: 0.02                  # Volatility (annualized)
+    max_inventory: 5.0           # Max position size
+    min_spread: 0.0001           # Minimum spread (fractional)
+
+  sentiment:
+    enabled: true                # React to news events from simulator
+    fade_threshold: 0.7          # Fade if sentiment > this
+    decay_rate: 0.95             # Sentiment decay per second
+
+  ml_ensemble:
+    enabled: false               # Off by default (needs scikit-learn)
+    lookback: 200                # Feature lookback window
+    prediction_horizon: 5        # Predict return N candles ahead
+
   ensemble:
     mode: "majority"             # "majority" or "weighted"
     min_votes: 2                 # Min strategies agreeing to emit signal

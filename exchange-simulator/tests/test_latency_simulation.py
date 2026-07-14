@@ -223,7 +223,7 @@ class TestStatsAndReset:
         ls.disconnect()
         # Force several failed attempts by mocking random to return 1.0 (always fail)
         original_rng = ls._rng
-        ls._rng = type(original_rng)()
+        ls._rng = np.random.default_rng()
         ls._rng.random = lambda: 1.0  # Always fail
         for _ in range(3):
             ls.attempt_reconnect()

@@ -12,6 +12,12 @@ rule_files:
   - "alerts.yml"
 
 scrape_configs:
+  # Exchange Simulator (metrics HTTP server on port 8775)
+  - job_name: "exchange-simulator"
+    static_configs:
+      - targets: ["exchange-simulator:8775"]
+    metrics_path: /metrics
+
   # AI Signal Bot metrics
   - job_name: "ai-signal-bot"
     static_configs:

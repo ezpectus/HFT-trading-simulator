@@ -184,6 +184,214 @@ Config Config::load(const std::string& path) {
         if (ai["websocket_url"]) cfg.ai_signal_ws_url = ai["websocket_url"].as<std::string>();
     }
 
+    // ─── Production format detection ───
+    if (root["system"]) {
+        cfg.is_production = true;
+        auto sys = root["system"];
+        if (sys["mode"]) {
+            std::string mode = sys["mode"].as<std::string>();
+            cfg.paper_trading = (mode != "production");
+        }
+        if (sys["version"]) cfg.system_version = sys["version"].as<std::string>();
+        if (sys["log_level"]) cfg.log_level = sys["log_level"].as<std::string>();
+        if (sys["log_file"]) cfg.log_file = sys["log_file"].as<std::string>();
+        spdlog::info("Config: production mode detected (v{})", cfg.system_version);
+    }
+
+    // ─── Production: exchange config ───
+    if (auto ex = root["exchange"]) {
+        if (ex["active"]) {
+            cfg.active_exchanges.clear();
+            for (const auto& name : ex["active"]) {
+                cfg.active_exchanges.push_back(name.as<std::string>());
+            }
+        }
+        if (ex["fallback_to_simulator"]) cfg.fallback_to_simulator = ex["fallback_to_simulator"].as<bool>();
+        if (ex["simulator_ws_url"]) {
+            cfg.simulator_ws_url = ex["simulator_ws_url"].as<std::string>();
+            cfg.ws_url = cfg.simulator_ws_url; // Default ws_url to simulator for fallback
+        }
+
+        // Parse each exchange
+        auto parse_exchange = [](const YAML::Node& node, Config::ExchangeConfig& ec) {
+            if (!node) return;
+            if (node["enabled"]) ec.enabled = node["enabled"].as<bool>();
+            if (node["ws_url"]) ec.ws_url = node["ws_url"].as<std::string>();
+            if (node["rest_url"]) ec.rest_url = node["rest_url"].as<std::string>();
+            if (node["api_key"]) ec.api_key = node["api_key"].as<std::string>();
+            if (node["api_secret"]) ec.api_secret = node["api_secret"].as<std::string>();
+            if (node["passphrase"]) ec.passphrase = node["passphrase"].as<std::string>();
+            if (node["inst_type"]) ec.inst_type = node["inst_type"].as<std::string>();
+            if (node["category"]) ec.category = node["category"].as<std::string>();
+            if (auto fees = node["fees"]) {
+                if (fees["maker_bps"]) ec.maker_bps = fees["maker_bps"].as<double>();
+                if (fees["taker_bps"]) ec.taker_bps = fees["taker_bps"].as<double>();
+            }
+            if (auto rl = node["rate_limit"]) {
+                if (rl["weight_per_min"]) ec.rate_limit_weight_per_min = rl["weight_per_min"].as<int>();
+                if (rl["orders_per_min"]) ec.rate_limit_orders_per_min = rl["orders_per_min"].as<int>();
+            }
+        };
+        parse_exchange(ex["binance"], cfg.binance_cfg);
+        parse_exchange(ex["okx"], cfg.okx_cfg);
+        parse_exchange(ex["bybit"], cfg.bybit_cfg);
+
+        // Set default exchange to first active
+        if (!cfg.active_exchanges.empty()) {
+            cfg.default_exchange = cfg.active_exchanges[0];
+        }
+        // If any real exchange is enabled, use its ws_url
+        if (cfg.binance_cfg.enabled && !cfg.binance_cfg.ws_url.empty()) {
+            cfg.ws_url = cfg.binance_cfg.ws_url;
+        }
+    }
+
+    // ─── Production: IPC / SHM ───
+    if (auto ipc = root["ipc"]) {
+        if (ipc["enabled"]) cfg.ipc_enabled = ipc["enabled"].as<bool>();
+        if (auto sig = ipc["signals"]) {
+            if (sig["shm_name"]) cfg.ipc_signals_shm = sig["shm_name"].as<std::string>();
+            if (sig["capacity"]) cfg.ipc_signals_capacity = sig["capacity"].as<int>();
+        }
+        if (auto fills = ipc["fills"]) {
+            if (fills["shm_name"]) cfg.ipc_fills_shm = fills["shm_name"].as<std::string>();
+            if (fills["capacity"]) cfg.ipc_fills_capacity = fills["capacity"].as<int>();
+        }
+        if (auto md = ipc["market_data"]) {
+            if (md["shm_name"]) cfg.ipc_market_data_shm = md["shm_name"].as<std::string>();
+            if (md["max_symbols"]) cfg.ipc_market_data_max_symbols = md["max_symbols"].as<int>();
+        }
+        if (auto ks = ipc["kill_switch"]) {
+            if (ks["shm_name"]) cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
+            if (ks["poll_interval_ms"]) cfg.kill_switch_poll_interval_ms = ks["poll_interval_ms"].as<int>();
+        }
+    }
+
+    // ─── Production: FIX 4.4 ───
+    if (auto fix = root["fix"]) {
+        if (fix["enabled"]) cfg.fix_enabled = fix["enabled"].as<bool>();
+        if (fix["sender_comp_id"]) cfg.fix_sender_comp_id = fix["sender_comp_id"].as<std::string>();
+        if (fix["target_comp_id"]) cfg.fix_target_comp_id = fix["target_comp_id"].as<std::string>();
+        if (fix["seq_file"]) cfg.fix_seq_file = fix["seq_file"].as<std::string>();
+        if (fix["heart_bt_int"]) cfg.fix_heart_bt_int = fix["heart_bt_int"].as<int>();
+    }
+
+    // ─── Production: Signal Engine V2 weights ───
+    if (auto v2 = root["signal_engine_v2"]) {
+        if (v2["enabled"]) cfg.signal_engine_v2_enabled = v2["enabled"].as<bool>();
+        if (auto w = v2["weights"]) {
+            if (w["ema"]) cfg.v2_weight_ema = w["ema"].as<double>();
+            if (w["rsi"]) cfg.v2_weight_rsi = w["rsi"].as<double>();
+            if (w["obi"]) cfg.v2_weight_obi = w["obi"].as<double>();
+            if (w["vwap"]) cfg.v2_weight_vwap = w["vwap"].as<double>();
+            if (w["adx"]) cfg.v2_weight_adx = w["adx"].as<double>();
+            if (w["pressure"]) cfg.v2_weight_pressure = w["pressure"].as<double>();
+        }
+        if (auto th = v2["thresholds"]) {
+            if (th["min_confidence"]) cfg.v2_min_confidence = static_cast<uint8_t>(th["min_confidence"].as<int>());
+            if (th["min_composite"]) cfg.v2_min_composite = th["min_composite"].as<double>();
+        }
+        if (auto p = v2["periods"]) {
+            if (p["ema_fast"]) cfg.v2_ema_fast_period = p["ema_fast"].as<int>();
+            if (p["ema_slow"]) cfg.v2_ema_slow_period = p["ema_slow"].as<int>();
+            if (p["rsi_period"]) cfg.v2_rsi_period = p["rsi_period"].as<int>();
+            if (p["adx_period"]) cfg.v2_adx_period = p["adx_period"].as<int>();
+            if (p["vwap_window"]) cfg.v2_vwap_window = p["vwap_window"].as<int>();
+        }
+    }
+
+    // ─── Production: pressure model ───
+    if (auto pm = root["pressure_model"]) {
+        if (pm["enabled"]) cfg.pressure_model_enabled = pm["enabled"].as<bool>();
+        if (pm["toxicity_threshold"]) cfg.v2_toxic_penalty = pm["toxicity_threshold"].as<double>();
+    }
+
+    // ─── Production: smart order router ───
+    if (auto sr = root["smart_order_router"]) {
+        if (sr["strategy"]) {
+            std::string strat = sr["strategy"].as<std::string>();
+            if (strat == "best_price") cfg.router_strategy = 0;
+            else if (strat == "lowest_latency") cfg.router_strategy = 1;
+            else if (strat == "lowest_fees") cfg.router_strategy = 2;
+            else if (strat == "best_effective") cfg.router_strategy = 3;
+            else if (strat == "depth_aware") cfg.router_strategy = 4;
+        }
+        if (sr["toxic_threshold"]) cfg.router_toxic_threshold = sr["toxic_threshold"].as<int>();
+    }
+
+    // ─── Production: adaptive order selector ───
+    if (auto ao = root["adaptive_order_selector"]) {
+        if (ao["enabled"]) cfg.adaptive_order_enabled = ao["enabled"].as<bool>();
+        if (ao["gtd_timeout_ms"]) cfg.adaptive_gtd_seconds = ao["gtd_timeout_ms"].as<int>() / 1000;
+    }
+
+    // ─── Production: risk (extended) ───
+    if (auto r = root["risk"]) {
+        // Standard risk fields (same keys as dev)
+        if (r["max_risk_per_trade_pct"]) cfg.max_risk_per_trade_pct = r["max_risk_per_trade_pct"].as<double>();
+        if (r["max_daily_drawdown_pct"]) cfg.max_daily_drawdown_pct = r["max_daily_drawdown_pct"].as<double>();
+        if (r["min_confidence"]) cfg.min_confidence = r["min_confidence"].as<double>();
+        if (r["min_rr_ratio"]) cfg.min_rr_ratio = r["min_rr_ratio"].as<double>();
+        if (r["max_position_size_pct"]) cfg.max_position_size_pct = r["max_position_size_pct"].as<double>();
+        if (r["max_open_positions"]) cfg.max_open_positions = r["max_open_positions"].as<int>();
+        // Prod-specific
+        if (r["max_position_qty"]) cfg.max_position_qty = r["max_position_qty"].as<double>();
+        if (r["max_total_exposure"]) cfg.max_total_exposure = r["max_total_exposure"].as<double>();
+        if (r["daily_loss_limit"]) cfg.daily_loss_limit = r["daily_loss_limit"].as<double>();
+        if (r["max_drawdown_pct"]) cfg.max_drawdown_pct = r["max_drawdown_pct"].as<double>();
+        if (r["max_orders_per_second"]) cfg.max_orders_per_second = r["max_orders_per_second"].as<int>();
+        if (r["min_margin_ratio"]) cfg.min_margin_ratio = r["min_margin_ratio"].as<double>();
+        if (r["max_leverage"]) cfg.max_leverage = r["max_leverage"].as<int>();
+        // Kill switch in risk section
+        if (auto ks = r["kill_switch"]) {
+            if (ks["trigger_file"]) cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
+        }
+    }
+
+    // ─── Production: database ───
+    if (auto db = root["database"]) {
+        if (db["dsn"]) cfg.db_dsn = db["dsn"].as<std::string>();
+        if (db["pool_min"]) cfg.db_pool_min = db["pool_min"].as<int>();
+        if (db["pool_max"]) cfg.db_pool_max = db["pool_max"].as<int>();
+        if (db["persist_trades"]) cfg.db_persist_trades = db["persist_trades"].as<bool>();
+        if (db["persist_signals"]) cfg.db_persist_signals = db["persist_signals"].as<bool>();
+        if (db["persist_positions"]) cfg.db_persist_positions = db["persist_positions"].as<bool>();
+        if (db["persist_candles"]) cfg.db_persist_candles = db["persist_candles"].as<bool>();
+    }
+
+    // ─── Production: Redis ───
+    if (auto redis = root["redis"]) {
+        if (redis["enabled"]) cfg.redis_enabled = redis["enabled"].as<bool>();
+        if (redis["url"]) cfg.redis_url = redis["url"].as<std::string>();
+        if (redis["cache_ttl"]) cfg.redis_cache_ttl = redis["cache_ttl"].as<int>();
+    }
+
+    // ─── Production: metrics ───
+    if (auto m = root["metrics"]) {
+        if (m["enabled"]) cfg.metrics_enabled = m["enabled"].as<bool>();
+        if (m["port"]) cfg.metrics_port = m["port"].as<int>();
+        if (m["host"]) cfg.metrics_host = m["host"].as<std::string>();
+    }
+
+    // ─── Production: symbols (list of objects with name/id/max_leverage) ───
+    if (auto syms = root["symbols"]) {
+        if (syms.IsSequence() && !syms[0]["name"]) {
+            // Dev format: simple string list
+        } else if (syms.IsSequence() && syms[0]["name"]) {
+            // Prod format: list of objects
+            cfg.symbols.clear();
+            for (const auto& s : syms) {
+                cfg.symbols.push_back(s["name"].as<std::string>());
+            }
+        }
+    }
+
+    // ─── Production: latency optimization ───
+    if (auto lo = root["latency_optimization"]) {
+        if (lo["thread_pinning"]) cfg.thread_pinning_enabled = lo["thread_pinning"].as<bool>();
+        if (lo["execution_thread_core"]) cfg.execution_core_id = lo["execution_thread_core"].as<int>();
+    }
+
     validate_config(cfg);
     return cfg;
 }

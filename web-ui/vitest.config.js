@@ -3,11 +3,26 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+  ],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.js'],
+    pool: 'forks',
+    isolate: false,
+    exclude: ['**/node_modules/**', '**/dist/**'],
+    server: {
+      deps: {
+        inline: [/@testing-library\/react/, /@testing-library\/dom/, /@testing-library\/jest-dom/],
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -19,11 +34,6 @@ export default defineConfig({
         functions: 40,
         lines: 40,
       },
-    },
-  },
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
     },
   },
 })

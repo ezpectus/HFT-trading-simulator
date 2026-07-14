@@ -26,6 +26,7 @@ def mock_market():
     market.candles_to_next_funding = 50
     market.get_news_event.return_value = None
     market._volatility = {"BTC/USDT": 0.75}
+    market.get_price.return_value = 65000.0
     return market
 
 
@@ -132,7 +133,8 @@ class TestHandleMessage:
     async def test_set_speed_pause(self, server):
         ws = AsyncMock()
         await server._handle_message(ws, {"type": "set_speed", "speed": 0})
-        assert server._tick_interval == 999999
+        assert server._replay_paused is True
+        assert server._speed_event.is_set() is False
 
     @pytest.mark.asyncio
     async def test_replay_pause(self, server):
@@ -182,6 +184,59 @@ class TestHandleMessage:
         })
         assert mock_exchange.slippage_bps == 10
 
+    @pytest.mark.asyncio
+    async def test_start_trading(self, server):
+        server._trading_active = False
+        ws = AsyncMock()
+        await server._handle_message(ws, {"type": "start_trading"})
+        assert server._trading_active is True
+        sent = ws.send.call_args[0][0]
+        msg = json.loads(sent)
+        assert msg["type"] == "trading_state"
+        assert msg["trading_active"] is True
+
+    @pytest.mark.asyncio
+    async def test_stop_trading(self, server):
+        assert server._trading_active is True
+        ws = AsyncMock()
+        await server._handle_message(ws, {"type": "stop_trading"})
+        assert server._trading_active is False
+        sent = ws.send.call_args[0][0]
+        msg = json.loads(sent)
+        assert msg["type"] == "trading_state"
+        assert msg["trading_active"] is False
+
+    @pytest.mark.asyncio
+    async def test_order_rejected_when_trading_stopped(self, server, mock_exchange):
+        server._trading_active = False
+        ws = AsyncMock()
+        await server._handle_message(ws, {
+            "type": "order",
+            "exchange": "binance",
+            "symbol": "BTC/USDT",
+            "side": "BUY",
+            "quantity": 0.1,
+        })
+        sent = ws.send.call_args[0][0]
+        msg = json.loads(sent)
+        assert msg["type"] == "error"
+        assert "Trading is stopped" in msg["message"]
+        mock_exchange.submit_order.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_close_position_rejected_when_trading_stopped(self, server):
+        server._trading_active = False
+        ws = AsyncMock()
+        await server._handle_message(ws, {
+            "type": "close_position",
+            "exchange": "binance",
+            "symbol": "BTC/USDT",
+        })
+        sent = ws.send.call_args[0][0]
+        msg = json.loads(sent)
+        assert msg["type"] == "error"
+        assert "Trading is stopped" in msg["message"]
+
 
 class TestPrometheusMetrics:
     def test_metrics_format(self, server):
@@ -205,6 +260,16 @@ class TestPrometheusMetrics:
         server.clients.add(MagicMock())
         metrics = server._get_prometheus_metrics()
         assert "exchange_connected_clients 1" in metrics
+
+    def test_metrics_contain_trading_active(self, server):
+        metrics = server._get_prometheus_metrics()
+        assert "exchange_trading_active" in metrics
+        assert "exchange_trading_active 1" in metrics
+
+    def test_metrics_trading_active_zero_when_stopped(self, server):
+        server._trading_active = False
+        metrics = server._get_prometheus_metrics()
+        assert "exchange_trading_active 0" in metrics
 
 
 class TestBroadcastLoop:

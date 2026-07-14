@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-#  Crypto Trading Simulator — Start All Services
+#  HFT Trading System — Start All Services
 #  Opens 3 terminal tabs + Web UI
 # ============================================================
 
@@ -8,7 +8,7 @@ set -e
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "Starting Crypto Trading Simulator..."
+echo "Starting HFT Trading System..."
 
 # Terminal 1: Exchange Simulator
 gnome-terminal --tab --title="Exchange Simulator" -- bash -c "
@@ -24,10 +24,10 @@ sleep 3
 # Terminal 2: AI Signal Bot
 gnome-terminal --tab --title="AI Signal Bot" -- bash -c "
   cd '$ROOT_DIR/ai-signal-bot'
-  python run.py --dashboard
+  python run.py --dashboard --metrics
   exec bash
 " 2>/dev/null || xterm -title "AI Signal Bot" -e "
-  cd '$ROOT_DIR/ai-signal-bot' && python run.py --dashboard
+  cd '$ROOT_DIR/ai-signal-bot' && python run.py --dashboard --metrics
 " &
 
 sleep 3

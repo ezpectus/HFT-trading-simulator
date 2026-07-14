@@ -11,9 +11,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && groupadd -r appuser && useradd -r -g appuser appuser
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 COPY --from=builder /root/.local /home/appuser/.local
 COPY . .
@@ -26,9 +24,9 @@ ENV PATH=/home/appuser/.local/bin:$PATH
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-EXPOSE 8765
+EXPOSE 8765 8775
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
-    CMD curl -f http://localhost:8765/ || exit 1
+    CMD python -c "import socket; socket.create_connection(('localhost', 8765), timeout=5)" || exit 1
 
-CMD ["python", "-m", "exchange_simulator"]
+CMD ["python", "-m", "exchange_simulator", "--no-visualizer"]

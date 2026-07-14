@@ -2,7 +2,7 @@ import { Bot, Cpu, Radio, TrendingUp, TrendingDown, Activity, Zap, ShieldAlert, 
 import { formatPrice, formatTime, colorForSide } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
 
-export default function BotStatus({ signals, fills, accounts, signalConnected, exchangeConnected }) {
+export default function BotStatus({ signals, fills, accounts, signalConnected, exchangeConnected, circuitBreaker, tradingActive }) {
   // Derive bot activity from signals + fills
   const recentFills = fills.slice(0, 5)
   const recentSignals = signals.slice(0, 5)
@@ -98,7 +98,7 @@ export default function BotStatus({ signals, fills, accounts, signalConnected, e
             <div className="flex justify-between">
               <span className="text-gray-500">Status</span>
               <span className={exchangeConnected ? 'text-accent-green' : 'text-accent-red'}>
-                {exchangeConnected ? 'ACTIVE' : 'OFFLINE'}
+                {exchangeConnected ? (tradingActive === false ? 'STOPPED' : 'ACTIVE') : 'OFFLINE'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -120,32 +120,44 @@ export default function BotStatus({ signals, fills, accounts, signalConnected, e
       </div>
 
       {/* Circuit Breaker status */}
-      <div className={`bg-bg-700 rounded-lg p-2.5 ${signalConnected && exchangeConnected ? 'ring-1 ring-accent-green/20' : 'ring-1 ring-accent-amber/30'}`}>
+      <div className={`bg-bg-700 rounded-lg p-2.5 ${circuitBreaker?.tripped ? 'ring-1 ring-accent-red/40' : 'ring-1 ring-accent-green/20'}`}>
         <div className="flex items-center gap-1.5 mb-1.5">
-          {signalConnected && exchangeConnected ? (
-            <ShieldCheck size={14} className="text-accent-green" />
+          {circuitBreaker?.tripped ? (
+            <ShieldAlert size={14} className="text-accent-red" />
           ) : (
-            <ShieldAlert size={14} className="text-accent-amber" />
+            <ShieldCheck size={14} className="text-accent-green" />
           )}
           <span className="text-xs font-medium">Circuit Breaker</span>
         </div>
         <div className="space-y-1 text-[10px]">
           <div className="flex justify-between">
-            <span className="text-gray-500">AI Signal Bot</span>
-            <span className={signalConnected ? 'text-accent-green' : 'text-accent-amber'}>
-              {signalConnected ? 'CLOSED (healthy)' : 'OPEN (tripped)'}
+            <span className="text-gray-500">State</span>
+            <span className={circuitBreaker?.tripped ? 'text-accent-red' : 'text-accent-green'}>
+              {circuitBreaker ? circuitBreaker.state : '—'}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">HFT Trade Bot</span>
-            <span className={exchangeConnected ? 'text-accent-green' : 'text-accent-amber'}>
-              {exchangeConnected ? 'CLOSED (healthy)' : 'OPEN (tripped)'}
+            <span className="text-gray-500">Consecutive losses</span>
+            <span className="text-gray-300 font-mono">
+              {circuitBreaker ? circuitBreaker.consecutiveLosses : '—'}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Total trips</span>
+            <span className="text-gray-300 font-mono">
+              {circuitBreaker ? circuitBreaker.totalTrips : '—'}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Signals blocked</span>
+            <span className="text-gray-300 font-mono">
+              {circuitBreaker ? circuitBreaker.totalBlocks : '—'}
             </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Overall</span>
-            <span className={signalConnected && exchangeConnected ? 'text-accent-green' : 'text-accent-amber'}>
-              {signalConnected && exchangeConnected ? 'ALL OPERATIONAL' : 'DEGRADED'}
+            <span className={circuitBreaker?.tripped ? 'text-accent-red' : 'text-accent-green'}>
+              {circuitBreaker ? (circuitBreaker.tripped ? 'TRIPPED — signals blocked' : 'OPERATIONAL') : 'No data'}
             </span>
           </div>
         </div>
@@ -201,7 +213,6 @@ export default function BotStatus({ signals, fills, accounts, signalConnected, e
             {activity.slice(0, 15).map((item, i) => {
               const isSignal = item.type === 'signal'
               const isLong = item.side === 'LONG' || item.side === 'BUY'
-              const isShort = item.side === 'SHORT' || item.side === 'SELL'
               const Icon = isSignal ? Radio : isLong ? TrendingUp : TrendingDown
 
               return (

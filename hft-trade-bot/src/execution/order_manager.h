@@ -14,7 +14,6 @@
 #include <chrono>
 #include <cstdint>
 #include <cstring>
-#include <unordered_map>
 #include <string>
 #include <functional>
 
@@ -96,7 +95,7 @@ public:
 
         // Clean up stale cid_to_slot_ entry from previous order in this slot
         if (orders_[slot].client_order_id != 0) {
-            cid_to_slot_.erase(orders_[slot].client_order_id);
+            cid_erase(orders_[slot].client_order_id);
         }
 
         uint64_t cid = next_client_id_.fetch_add(1, std::memory_order_relaxed);
@@ -121,7 +120,7 @@ public:
         rec.timeout_ns = (timeout_ns > 0) ? timeout_ns : default_timeout_ns_;
         rec.reject_reason[0] = '\0';
 
-        cid_to_slot_[cid] = slot;
+        cid_insert(cid, slot);
         active_count_.fetch_add(1, std::memory_order_relaxed);
 
         // Track highest slot used to limit check_timeouts scan range
@@ -138,9 +137,9 @@ public:
 
     // On ACK from exchange
     void on_ack(uint64_t client_order_id, uint64_t exchange_order_id) noexcept {
-        auto it = cid_to_slot_.find(client_order_id);
-        if (it == cid_to_slot_.end()) return;
-        OrderRecord& rec = orders_[it->second];
+        const auto* it = cid_find(client_order_id);
+        if (!it) return;
+        OrderRecord& rec = orders_[it->slot];
         rec.order_id = exchange_order_id;
         rec.state = OrderStateV2::ACK;
         rec.ack_ns = now_ns();
@@ -150,9 +149,9 @@ public:
     // On partial fill
     void on_partial_fill(uint64_t client_order_id, double fill_qty,
                          double fill_price, double fee = 0.0) noexcept {
-        auto it = cid_to_slot_.find(client_order_id);
-        if (it == cid_to_slot_.end()) return;
-        OrderRecord& rec = orders_[it->second];
+        const auto* it = cid_find(client_order_id);
+        if (!it) return;
+        OrderRecord& rec = orders_[it->slot];
         // Update weighted average fill price
         double prev_notional = rec.avg_fill_price * rec.filled_quantity;
         double new_notional = fill_price * fill_qty;
@@ -168,28 +167,36 @@ public:
             active_count_.fetch_sub(1, std::memory_order_relaxed);
         }
 
-        if (fill_cb_) fill_cb_(rec);
+        // Copy record before callback to prevent race if callback modifies state
+        if (fill_cb_) {
+            OrderRecord copy = rec;
+            fill_cb_(copy);
+        }
     }
 
     // On full fill
     void on_fill(uint64_t client_order_id, double fill_price, double fee = 0.0) noexcept {
-        auto it = cid_to_slot_.find(client_order_id);
-        if (it == cid_to_slot_.end()) return;
-        OrderRecord& rec = orders_[it->second];
+        const auto* it = cid_find(client_order_id);
+        if (!it) return;
+        OrderRecord& rec = orders_[it->slot];
         rec.filled_quantity = rec.quantity;
         rec.avg_fill_price = fill_price;
         rec.fee = fee;
         rec.state = OrderStateV2::FILLED;
         rec.last_update_ns = now_ns();
         active_count_.fetch_sub(1, std::memory_order_relaxed);
-        if (fill_cb_) fill_cb_(rec);
+        // Copy record before callback to prevent race
+        if (fill_cb_) {
+            OrderRecord copy = rec;
+            fill_cb_(copy);
+        }
     }
 
     // On cancel
     void on_cancel(uint64_t client_order_id, const std::string& reason = "") noexcept {
-        auto it = cid_to_slot_.find(client_order_id);
-        if (it == cid_to_slot_.end()) return;
-        OrderRecord& rec = orders_[it->second];
+        const auto* it = cid_find(client_order_id);
+        if (!it) return;
+        OrderRecord& rec = orders_[it->slot];
         rec.state = OrderStateV2::CANCELED;
         rec.last_update_ns = now_ns();
         if (!reason.empty()) {
@@ -200,9 +207,9 @@ public:
 
     // On rejection
     void on_reject(uint64_t client_order_id, const std::string& reason) noexcept {
-        auto it = cid_to_slot_.find(client_order_id);
-        if (it == cid_to_slot_.end()) return;
-        OrderRecord& rec = orders_[it->second];
+        const auto* it = cid_find(client_order_id);
+        if (!it) return;
+        OrderRecord& rec = orders_[it->slot];
         rec.state = OrderStateV2::REJECTED;
         rec.last_update_ns = now_ns();
         reason.copy(rec.reject_reason, sizeof(rec.reject_reason) - 1);
@@ -211,9 +218,9 @@ public:
 
     // On expire (GTD timeout)
     void on_expire(uint64_t client_order_id) noexcept {
-        auto it = cid_to_slot_.find(client_order_id);
-        if (it == cid_to_slot_.end()) return;
-        OrderRecord& rec = orders_[it->second];
+        const auto* it = cid_find(client_order_id);
+        if (!it) return;
+        OrderRecord& rec = orders_[it->slot];
         rec.state = OrderStateV2::EXPIRED;
         rec.last_update_ns = now_ns();
         active_count_.fetch_sub(1, std::memory_order_relaxed);
@@ -240,9 +247,9 @@ public:
     // Cancel-replace (modify existing order)
     uint64_t modify_order(uint64_t client_order_id, double new_quantity,
                           double new_price) noexcept {
-        auto it = cid_to_slot_.find(client_order_id);
-        if (it == cid_to_slot_.end()) return 0;
-        OrderRecord& rec = orders_[it->second];
+        const auto* it = cid_find(client_order_id);
+        if (!it) return 0;
+        OrderRecord& rec = orders_[it->slot];
         if (rec.state != OrderStateV2::ACK && rec.state != OrderStateV2::PARTIAL) {
             return 0;
         }
@@ -291,7 +298,66 @@ private:
     }
 
     alignas(64) std::array<OrderRecord, MAX_ORDERS> orders_{};
-    std::unordered_map<uint64_t, uint64_t> cid_to_slot_;
+
+    // Flat hash map for cid→slot lookup — no heap allocations
+    // Uses linear probing with power-of-2 capacity
+    static constexpr size_t CID_MAP_CAPACITY = 8192;  // 2x MAX_ORDERS for low load factor
+    static constexpr size_t CID_MAP_MASK = CID_MAP_CAPACITY - 1;
+    struct alignas(16) SlotEntry {
+        uint64_t cid{0};   // 0 = empty
+        uint64_t slot{0};
+    };
+    std::array<SlotEntry, CID_MAP_CAPACITY> cid_to_slot_{};
+
+    // Inline find/insert/erase for flat hash map
+    const SlotEntry* cid_find(uint64_t cid) const noexcept {
+        if (cid == 0) return nullptr;
+        size_t idx = (cid * 0x9E3779B97F4A7C15ULL) & CID_MAP_MASK;
+        for (size_t i = 0; i < CID_MAP_CAPACITY; ++i) {
+            const auto& e = cid_to_slot_[idx];
+            if (e.cid == 0) return nullptr;
+            if (e.cid == cid) return &e;
+            idx = (idx + 1) & CID_MAP_MASK;
+        }
+        return nullptr;
+    }
+    void cid_insert(uint64_t cid, uint64_t slot) noexcept {
+        if (cid == 0) return;
+        size_t idx = (cid * 0x9E3779B97F4A7C15ULL) & CID_MAP_MASK;
+        for (size_t i = 0; i < CID_MAP_CAPACITY; ++i) {
+            auto& e = cid_to_slot_[idx];
+            if (e.cid == 0) {
+                e.cid = cid;
+                e.slot = slot;
+                return;
+            }
+            idx = (idx + 1) & CID_MAP_MASK;
+        }
+    }
+    void cid_erase(uint64_t cid) noexcept {
+        if (cid == 0) return;
+        size_t idx = (cid * 0x9E3779B97F4A7C15ULL) & CID_MAP_MASK;
+        for (size_t i = 0; i < CID_MAP_CAPACITY; ++i) {
+            auto& e = cid_to_slot_[idx];
+            if (e.cid == 0) return;
+            if (e.cid == cid) {
+                e.cid = 0;
+                e.slot = 0;
+                // Re-insert subsequent entries to maintain probing chain
+                size_t next = (idx + 1) & CID_MAP_MASK;
+                while (cid_to_slot_[next].cid != 0) {
+                    SlotEntry tmp = cid_to_slot_[next];
+                    cid_to_slot_[next].cid = 0;
+                    cid_to_slot_[next].slot = 0;
+                    cid_insert(tmp.cid, tmp.slot);
+                    next = (next + 1) & CID_MAP_MASK;
+                }
+                return;
+            }
+            idx = (idx + 1) & CID_MAP_MASK;
+        }
+    }
+
     std::atomic<uint64_t> next_client_id_{1};
     std::atomic<int> active_count_{0};
     std::atomic<size_t> max_slot_used_{0};

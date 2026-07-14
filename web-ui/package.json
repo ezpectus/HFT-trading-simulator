@@ -18,6 +18,8 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "lint": "eslint src/",
     "analyze": "vite-bundle-visualizer"
   },
@@ -25,7 +27,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "lightweight-charts": "^4.2.0",
-    "lucide-react": "^0.400.0"
+    "lucide-react": "^0.400.0",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.6.0",
@@ -39,6 +42,7 @@
     "eslint": "^9.6.0",
     "eslint-plugin-react": "^7.35.0",
     "globals": "^15.0.0",
+    "@playwright/test": "^1.48.0",
     "jsdom": "^24.1.0",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.4",

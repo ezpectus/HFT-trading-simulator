@@ -15,8 +15,8 @@
 #   websocket  — host/port for inter-component communication
 
 system:
-  name: "Crypto Trading Simulator"
-  version: "1.0.0"
+  name: "HFT Trading System"
+  version: "2.2.0"
   mode: "paper_trading"  # paper_trading | live (live not implemented)
 
 # Symbols traded across all components — must match exchange simulator config

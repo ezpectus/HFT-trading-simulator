@@ -1,9 +1,100 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [6.0.0] — Production Integration + Protocol v2 + Helm + Options + MessagePack + Structured Logging
+
+### Added — Production Integration (P2.x)
+
+- **P2.1: Parse config.prod.yaml in C++** — `Config::load()` now parses the nested production YAML structure with exchange adapters (Binance/OKX/Bybit), IPC channels, kill switch config, and symbol-specific min quantities. Added `is_production` flag to Config struct.
+  - Files: `hft-trade-bot/src/core/config.h`, `config.cpp`
+
+- **P2.2: Connect Real Exchange Adapters** — In production mode, `main.cpp` instantiates real exchange adapters (BinanceAdapter, OKXAdapter, BybitAdapter) from config and adds them to SmartOrderRouterV2. Simulator mode keeps using SimExchange. Production mode banner shows IPC/FIX/DB/Redis/Metrics status.
+  - Files: `hft-trade-bot/src/core/main.cpp`
+
+- **P2.3: Connect SHM IPC** — `main.cpp` now initializes ShmFillProducer (C++ creates SHM, Python opens it) and ShmSignalConsumer (Python creates SHM, C++ opens it). Signal callback converts ipc::SignalMsg to Signal struct and feeds into the same AI signal pipeline as WebSocket. Cleanup on shutdown.
+  - Files: `hft-trade-bot/src/core/main.cpp`
+
+- **P2.4: Backtesting CLI** — Added `--backtest` CLI argument to AI Signal Bot `run.py`. Loads candles from CSV files in `data/exports/`, runs all enabled strategies, prints report, saves charts using Backtester + BacktestPlotter.
+  - Files: `ai-signal-bot/run.py`
+
+### Added — Code Cleanup (P3.x)
+
+- **P3.2: Consolidate __init__.py + sys.path cleanup** — Cleaned up 17 `sys.path.insert`/`append` calls across 14 files. Removed redundant hacks in `run.py` and `run_backtest.py` (bot root already on `sys.path[0]`). All remaining inserts are guarded with `if _path not in sys.path` checks.
+  - Files: `run.py`, `run_backtest.py`, `conftest.py`, `tests/test_integration.py`, `scripts/*.py`, `signal_publisher.py`, `websocket_server.py`, `__main__.py`
+
+- **P3.3: WebSocket Protocol v2** — Added `PROTOCOL_VERSION = 2` constant. New `welcome` message on client connect with protocol version, server name, and trading state. `_send_json()` helper injects `protocol_version` for v2 clients (v1 clients get no field for backwards compat). Subscribe message accepts `protocol_version` for negotiation. Updated C++ SignalReceiver and Python ws_client to send v2 and handle welcome.
+  - Files: `exchange-simulator/websocket_server.py`, `hft-trade-bot/src/communication/signal_receiver.h`, `ai-signal-bot/src/communication/ws_client.py`
+
+### Added — Options Simulator with Greeks (P4.1)
+
+- **Black-Scholes pricing engine** — European-style options with full Greeks: delta, gamma, theta (per day), vega (per 1% vol), rho (per 1% rate). Implied volatility via Newton-Raphson. Option chain generation for multiple strikes/expiries. Put-call parity verification.
+- WebSocket `options_chain` handler — clients request chain by symbol with custom strikes/expiries.
+- Registered module in `exchange_simulator/__init__.py`.
+- **Tests**: `test_options_simulator.py` — 25 test cases (Black-Scholes, Greeks, parity, implied vol, chain generation).
+  - Files: `exchange-simulator/exchange_simulator/options_simulator.py`, `exchange-simulator/websocket_server.py`, `exchange-simulator/tests/test_options_simulator.py`
+
+### Fixed — Order Book Heatmap Bug (P4.2)
+
+- **OrderBookHeatmap.jsx** — Fixed variable bug on line 62: `b.price` → `a.price` inside asks loop (was referencing wrong variable, causing ask volume to never be counted). Removed unused `minPrice`/`maxPrice` from destructuring.
+  - Files: `web-ui/src/components/OrderBookHeatmap.jsx`
+
+### Added — Binary WebSocket Protocol / MessagePack (P4.3)
+
+- **MessagePack binary encoding** — Clients can request `encoding: "msgpack"` in subscribe message. Server tracks per-client encoding in `_client_encodings` dict. `_send_json()` sends binary MessagePack frames for msgpack clients, JSON for others. Incoming binary messages unpacked with msgpack. Falls back to JSON if msgpack not installed. Backward compatible.
+- Python `ws_client.py` — `encoding` parameter in constructor, sends `encoding` field in subscribe, handles binary frames in listen loop.
+- Added `msgpack>=1.0.0` to both `exchange-simulator/requirements.txt` and `ai-signal-bot/requirements.txt`.
+  - Files: `exchange-simulator/websocket_server.py`, `ai-signal-bot/src/communication/ws_client.py`, both `requirements.txt`
+
+### Added — C++ Integration Tests (P4.4)
+
+- 4 new integration test files:
+  - **test_integration_config.cpp** — Config YAML parsing (dev + prod formats, missing file defaults)
+  - **test_integration_shm.cpp** — SHM IPC roundtrip (fill producer push, signal consumer poll, struct size validation)
+  - **test_integration_signal_engine.cpp** — Signal Engine V2 end-to-end with OrderBookManager + CandleAggregator
+  - **test_integration_kill_switch_monitor.cpp** — Kill switch file trigger + System Monitor counters/snapshot
+- All added to CMakeLists.txt via `add_doctest_test()`. SHM tests POSIX-only. Config test links yaml-cpp.
+  - Files: `hft-trade-bot/tests/test_integration_*.cpp`, `hft-trade-bot/CMakeLists.txt`
+
+### Added — Helm Chart for Kubernetes (P4.5)
+
+- Full Helm chart structure in `helm/`:
+  - `Chart.yaml` (v1.0.0, app v2.0.0), `values.yaml` (all configurable params)
+  - Templates: postgres (StatefulSet + Secret), redis (StatefulSet), exchange-simulator (Deployment), ai-signal-bot (Deployment + SHM via emptyDir Memory), hft-trade-bot (Deployment + SHM), web-ui (Deployment), prometheus (StatefulSet + ConfigMap), grafana (StatefulSet), ingress (optional, with TLS)
+  - `_helpers.tpl` — common label helpers
+  - All services have resource limits, health checks, proper labels
+  - SHM IPC between ai-signal-bot and hft-trade-bot via shared emptyDir (Memory medium)
+  - Files: `helm/Chart.yaml`, `helm/values.yaml`, `helm/templates/*.yaml`, `helm/templates/_helpers.tpl`
+
+### Added — Structured Logging / JSON (P4.6)
+
+- **C++ logger** — `Logger::init()` accepts `json` parameter. JSON pattern: `{"ts":"...","level":"...","msg":"...","thread":N}`. `main.cpp` passes `config.is_production` to enable JSON in production.
+- **Python run_logger.py** — `JsonFormatter` class (ts, level, logger, msg, exception). `format_type` parameter in `setup_run_logging()` ("text" or "json"). Console handler always text for readability.
+- **Environment variable** — `LOG_FORMAT=json` read by exchange simulator `__main__.py` and AI Signal Bot `run.py`.
+- **docker-compose.prod.yml** — `LOG_FORMAT=json` set for exchange-simulator and ai-signal-bot services.
+  - Files: `hft-trade-bot/src/core/logger.h`, `hft-trade-bot/src/core/main.cpp`, `run_logger.py`, `exchange-simulator/__main__.py`, `ai-signal-bot/run.py`, `docker-compose.prod.yml`
+
+### Added — Session 4: Dead Code Activation
+
+- **4 AI Signal Bot strategies connected**: StatisticalArbitrage (pairs + cointegration + Kalman), MarketMakingStrategy (Avellaneda-Stoikov, disabled by default), SentimentStrategy (news events, enabled), MLEnsembleStrategy (LightGBM + HMM, disabled).
+- **LLM Engine connected** — `explain_signal()` called for every validated ensemble signal. Explanation broadcast to HFT Trade Bot as `"explanation"` field. Rule-based fallback when no OPENAI_API_KEY.
+- **Kill Switch connected** — File-based trigger (`logs/kill_switch_trigger`), `can_trade()` checked in all 4 order paths. Status: `kill=ARMED/TRIGGERED`.
+- **System Monitor connected** — Atomic counters for orders/signals/errors. Snapshot in periodic status.
+  - Files: `ai-signal-bot/run.py`, `hft-trade-bot/src/core/main.cpp`
+
+### Fixed — Session 4: BUG#23 Dual module loading
+
+- Root `exchange_simulator/__init__.py` shim and nested `exchange-simulator/exchange_simulator/__init__.py` both registered modules via `sys.modules` → double-load conflicts. Fixed: root shim replaced with simple `sys.path` redirect. `exchange_simulator.py` marked DEPRECATED.
+  - Files: `exchange_simulator/__init__.py`, `exchange_simulator.py`
+
+### Known Issues
+
+- **P3.1 BLOCKED**: Directory rename `exchange-simulator/` → `exchange_simulator/` deferred due to terminal issues. 103 references across 25 files need updating after rename.
 
 ---
 
@@ -2869,7 +2960,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.2.0] — Phase 41: Portfolio Killer Update
+## [2.2.0] — Portfolio Killer Update
 
 ### Added — Dependency Installation & Startup
 - `install-deps.bat` — one-command Windows dependency installer (Python + C++ + Node.js with automatic CMake detection and C++ build)
@@ -2920,12 +3011,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ARCHITECTURE.md — updated with production infrastructure, PWA, Web Worker, performance hooks
 - WEB_UI.md — updated with PWA, React.lazy, ChunkRetryBoundary, Vitest, Web Worker, performance hooks, manual chunks
 - SETUP.md — updated with install-deps.bat / no-docker.bat install quick start, production deployment
-- PROGRESS.md — added Phase 41
-- FUTURE_TODO.md — marked React.lazy, PWA, accessibility, Vitest, component organization as completed
+- Documentation updated across all public docs
 
 ---
 
-## [2.1.0] — Phase 40: Documentation & Infrastructure Update
+## [2.1.0] — Documentation & Infrastructure Update
 
 ### Added
 - Comprehensive README.md rewrite as portfolio showcase with badges, Mermaid architecture diagram, categorized features, benchmarks table, and updated project structure
@@ -2955,7 +3045,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.0.0] — Phase 25: HFT Trade Bot v2.0.0
+## [2.0.0] — HFT Trade Bot v2.0.0
 
 ### Added — C++20 HFT Engine V2
 
@@ -3030,11 +3120,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.9.0] — Phases 26-39: Advanced Mathematical Models V2-V15
+## [1.9.0] — Advanced Mathematical Models (65+ components)
 
 ### Added — 65+ Advanced Math Model Components
 
-#### Phase 26 (V2) — 6 components
+#### Batch 1 — 6 components
 - Ehlers SuperSmoother (2-pole super smoother, Roofing Filter, MAMA/FAMA via Hilbert Transform)
 - Bayesian Price Predictor (Beta-Binomial, Normal-Inverse-Gamma, BOCPD, Bayesian Ridge)
 - Almgren-Chriss Optimal Execution (implementation shortfall, efficient frontier)
@@ -3042,91 +3132,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - K-Means Market Clustering (K-Means++, Lloyd's algorithm, silhouette score)
 - Copula Dependency Model (Clayton, Gumbel, Gaussian, Student-t)
 
-#### Phase 27 (V3) — 5 components
+#### Batch 2 — 5 components
 - Hidden Markov Model (Baum-Welch EM, Viterbi decoding, forward-backward)
 - Principal Component Analysis (Jacobi eigenvalue, eigenportfolios, scree plot)
 - Optimal Stopping (Snell envelope, Longstaff-Schwartz Monte Carlo)
 - Isolation Forest (anomaly scoring, random isolation trees, feature importance)
 - Variational Mode Decomposition (ADMM-based, FFT/IFFT, center frequency convergence)
 
-#### Phase 28 (V4) — 5 components
+#### Batch 3 — 5 components
 - Empirical Mode Decomposition + Hilbert-Huang Transform (sifting, cubic spline, instantaneous frequency)
 - Support Vector Machine (Linear SVM via SGD, RBF SVM via SMO)
 - Black-Litterman Portfolio Allocation (equilibrium returns, investor views, posterior)
 - Hawkes Process (self-exciting conditional intensity, MLE, Ogata's thinning)
 - Dynamic Time Warping (Sakoe-Chiba band, 8 template patterns, warping path)
 
-#### Phase 29 (V5) — 5 components
+#### Batch 4 — 5 components
 - LSTM Recurrent Neural Network (BPTT with 5-step truncation, Xavier init)
 - Kelly Criterion Portfolio Sizing (multi-asset, Monte Carlo, growth curves)
 - Gaussian Process Regression (RBF/Matern/Periodic kernels, Cholesky, hyperparameter optimization)
 - Markov-Switching GARCH (Hamilton filter, Kim's smoothing, per-regime GARCH)
 - Empirical Dynamic Modeling (Takens' embedding, simplex projection, CCM causality)
 
-#### Phase 30 (V6) — 5 components
+#### Batch 5 — 5 components
 - Autoencoder (encoder/decoder, backprop, L2 regularization, anomaly detection)
 - Optimal Transport (W1/W2 Wasserstein, Sinkhorn algorithm, KS statistic)
 - Rough Volatility (fBm via Cholesky, rBergomi model, Hurst estimation)
 - Transfer Entropy (information-theoretic causality, surrogate TE, effective TE)
 - Graph Theory Network (Kruskal's MST, eigenvector/betweenness centrality, clustering coefficient)
 
-#### Phase 31 (V7) — 5 components
+#### Batch 6 — 5 components
 - Conditional Value at Risk (historical VaR, Cornish-Fisher, entropic VaR, Rockafellar-Uryasev)
 - Non-Stationary Spectral Analysis (STFT, CWT, spectrogram, Morlet wavelet)
 - Random Matrix Theory (Marchenko-Pastur law, eigenvalue cleaning, market mode)
 - Bayesian Structural Time Series (state-space, Kalman filter, trend/seasonal decomposition)
 - Topological Data Analysis (Vietoris-Rips, persistence homology, Betti numbers, diagrams)
 
-#### Phase 32 (V8) — 5 components
+#### Batch 7 — 5 components
 - Stochastic Differential Equations (Euler-Maruyama, Milstein, GBM/OU/CIR/Heston/Merton)
 - Gaussian Mixture Model (EM, BIC/AIC, regime clustering)
 - Wavelet Packet Decomposition (Daubechies-4, Coifman-Wickerhauser best basis, thresholding)
 - Information Bottleneck (Blahut-Arimoto, rate-distortion curve)
 - Affine Arithmetic (Chebyshev approximation, robust Black-Scholes, uncertainty propagation)
 
-#### Phase 33 (V9) — 5 components
+#### Batch 8 — 5 components
 - Renormalization Group (multi-scale coarse-graining, scaling exponents, fixed points)
 - Free Energy Principle (variational free energy, active inference, policy selection)
 - Tensor Decomposition (CP/ALS, multi-way factor analysis)
 - Compressed Sensing (OMP, ISTA, sparse recovery, anomaly detection)
 - Malliavin Calculus (integration by parts Greeks, unbiased pathwise sensitivities)
 
-#### Phase 34 (V10) — 5 components
+#### Batch 9 — 5 components
 - Hamiltonian Monte Carlo (leapfrog, Metropolis, Bayesian GARCH posterior)
 - Reproducing Kernel Hilbert Space (RBF/Laplacian kernels, KPCA, MMD, KRR)
 - Variational Autoencoder (encoder/decoder, ELBO, reparameterization, beta-VAE)
 - Schrodinger Bridge (entropy-regularized OT, Sinkhorn, barycentric mapping)
 - Lie Group Symmetries (Noether's theorem, symmetry breaking, Lie algebra generators)
 
-#### Phase 35 (V11) — 5 components
+#### Batch 10 — 5 components
 - Kolmogorov-Sinai Entropy (symbolic dynamics, permutation entropy, Lyapunov exponent)
 - Persistent Homology Landscape (landscape functions, L2 norm, topological change detection)
 - Fokker-Planck Equation (finite difference PDE solver, density evolution, VaR from forecast)
 - Hopf Bifurcation Analysis (AR(2) eigenvalues, complex plane, limit cycle detection)
 - Cramer-Rao Lower Bound (Fisher information, CRLB, estimator efficiency, sample size planning)
 
-#### Phase 36 (V12) — 5 components
+#### Batch 11 — 5 components
 - Wasserstein Barycenters (OT Frechet mean, quantile averaging, multi-asset consensus)
 - Koopman Operator Theory (EDMD, eigenvalues, k-step forecast)
 - Stochastic Optimal Control (HJB equation, backward Euler, optimal policy)
 - Renyi Entropy Dynamics (Renyi spectrum, Tsallis entropy, multifractal dimensions)
 - Pontryagin Maximum Principle (optimal execution, shooting method, TWAP comparison)
 
-#### Phase 37 (V13) — 5 components
+#### Batch 12 — 5 components
 - Burgers Equation (viscous Burgers PDE, Hopf-Cole transform, shock formation)
 - Sobolev Space Regularization (Tikhonov, Matern kernel, L-curve)
 - Ito Calculus Generator (infinitesimal generator, Dynkin's formula, hitting time)
 - Banach Fixed-Point Iteration (contraction mapping, Nash equilibrium, convergence)
 - Cesaro/Fejer Kernel (Cesaro mean, Fejer kernel, no Gibbs phenomenon)
 
-#### Phase 38 (V14) — 5 components
+#### Batch 13 — 5 components
 - Girsanov Theorem (measure change, Radon-Nikodym derivative, drift detection)
 - Stone-Cech Compactification (universal embedding, regime limit points)
 - Malliavin-Stein Sensitivity (IBP Greeks, variance efficiency vs finite difference)
 - Prokhorov Metric (weak convergence, distribution shift detection)
 - Radon-Nikodym Derivative (likelihood ratio, KL divergence, regime change)
 
-#### Phase 39 (V15) — 5 components
+#### Batch 14 — 5 components
 - Hahn Decomposition (signed measure, Jordan decomposition, SNR)
 - Cameron-Martin Formula (Gaussian shift theorem, drift alignment)
 - Arzela-Ascoli Theorem (equicontinuity, modulus of continuity, overfitting detection)
@@ -3134,26 +3224,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lax-Milgram Theorem (variational PDE, FEM, coercivity/boundedness)
 
 ### Registry Growth
-- Phase 26: 136 component files, ~126 registered panels
-- Phase 27: 141 component files, ~131 registered panels
-- Phase 28: 146 component files, ~136 registered panels
-- Phase 29: 151 component files, ~141 registered panels
-- Phase 30: 156 component files, ~146 registered panels
-- Phase 31: 161 component files, ~151 registered panels
-- Phase 32: 166 component files, ~156 registered panels
-- Phase 33: 171 component files, ~161 registered panels
-- Phase 34: 176 component files, ~166 registered panels
-- Phase 35: 181 component files, ~171 registered panels
-- Phase 36: 186 component files, ~176 registered panels
-- Phase 37: 191 component files, ~181 registered panels
-- Phase 38: 196 component files, ~186 registered panels
-- Phase 39: 201 component files, ~191 registered panels
+- 136 → 201 component files, ~126 → ~191 registered panels across 14 development batches
 
 ---
 
-## [1.3.0] — Phases 17-24: Composite Indicators, Audits, CLI Monitors, Math Models V1
+## [1.3.0] — Composite Indicators, CLI Monitors, Math Models V1
 
-### Added — Phase 17: Advanced Composite Indicators
+### Added — Advanced Composite Indicators
 - Composite Signal Dashboard (10 indicators, strength-weighted scoring)
 - Signal Confidence Scorer (8-factor confidence model)
 - Regime Adaptive Strategy (5 regimes, position sizing guidance)
@@ -3161,38 +3238,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance Attribution (P&L by side/symbol/strategy/hour/day)
 - Price Action Score (10 candlestick pattern scores, composite 0-100)
 
-### Added — Phase 18: New Indicators + Audit Round 2
+### Added — New Indicators
 - Tick Speed Anomaly Detector
 - Put/Call Ratio Simulator
 - Correlation Heatmap (visual SVG matrix)
 - Signal Matrix Heatmap (8 indicators x N symbols)
 - MIT Order Simulator
 
-### Added — Phase 19: Execution Analytics + Audit Round 3
+### Added — Execution Analytics
 - Slippage Simulator (4 models: linear, square-root, constant, volume-based)
 - Order Flow Heatmap (aggregated per-candle, absorption/momentum detection)
 
-### Added — Phase 20: Advanced Features + Lazy Loading
+### Added — Advanced Features + Lazy Loading
 - Market Depth Replay (L2 orderbook reconstruction, timeline scrubber)
 - Indicator Formula Parser (tokenizer + AST evaluator)
 - React.lazy + Suspense wrapper in PanelContainer
 
-### Added — Phase 21: Error Boundaries + Audit Round 4
+### Added — Error Boundaries
 - PanelErrorBoundary (class component with retry button)
 - Integrated into PanelContainer (ErrorBoundary + Suspense per panel)
 
-### Added — Phase 22: List Virtualization + Audit Round 5
+### Added — List Virtualization
 - VirtualList component (generic windowed list renderer with overscan)
 - Applied to FillsPanel and SignalFeed
 
-### Added — Phase 23: CLI Monitor Windows
+### Added — CLI Monitor Windows
 - `ai-signal-bot/monitor.py` — live signal feed, bot log tail, signal history
 - `hft-trade-bot/monitor.py` — C++ process status, color-coded log tail
 - `error_monitor.py` — unified error+warning viewer across all services
 - `price_monitor.py` — dual WS connection, live prices + signals + fills
 - `start.bat` / `start.sh` updated to 8 windows (4 services + 4 monitors)
 
-### Added — Phase 24: Advanced Mathematical Models V1 (6 components)
+### Added — Advanced Mathematical Models V1 (6 components)
 - GARCHVolatility (GARCH(1,1) MLE, EWMA, Parkinson, regime classification)
 - CointegrationScanner (Engle-Granger 2-step, ADF test, z-score signals)
 - MarkovRegimePredictor (6-state Markov chain, stationary distribution)
@@ -3200,7 +3277,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - KalmanFilterPrice (1D/2D Kalman filter, adaptive gain, velocity)
 - SpectralAnalysis (Welch PSD, DFT, spectral entropy, noise classification)
 
-### Fixed — Phases 17-22
+### Fixed — Various
 - Missing `calcMACD` in indicators.js
 - Dead code in `calcADX` (empty loop) and `calcVWAPMACD` (overwritten result)
 - Division-by-zero guards in VolatilitySurface, RiskParityCalculator, TrailingStopCalculator
@@ -3213,9 +3290,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.0] — Phases 13-16: GitHub-Ready Release, Indicators, Risk Manager, Backtest Runner
+## [1.2.0] — GitHub-Ready Release, Indicators, Risk Manager, Backtest Runner
 
-### Added — Phase 13: GitHub-Ready Release
+### Added — GitHub-Ready Release
 - 4 CI jobs: Python tests + lint, C++ build + tests, Web UI build, Docker build
 - pip caching for Python jobs, npm caching for Web UI job
 - Strict tests (no `|| true`) — failures block merge
@@ -3224,24 +3301,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker healthchecks for exchange simulator and AI signal bot
 - README badges, 4-component description, Docker quick start
 
-### Added — Phase 14: Indicators, Risk Manager, Real Order Books
+### Added — Indicators, Risk Manager, Real Order Books
 - Chart indicators: EMA 9/21/50, Bollinger Bands, RSI 14 (toggle on/off)
 - `src/risk/risk_manager.py` — RiskManager with trailing stop, breakeven, partial TP, max hold time
 - Real order book snapshots broadcast via WebSocket
 - OrderBook component uses real data with synthetic fallback
 - 20 risk manager unit tests
 
-### Added — Phase 15: Performance Dashboard
+### Added — Performance Dashboard
 - `utils/performance.js` — aggregate metrics, equity curve, drawdown calculator
 - `PerformanceDashboard.jsx` — summary cards, per-exchange breakdown, equity curve, drawdown chart
 - Signal statistics (total, long, short counts)
 
-### Added — Phase 16: Backtest Runner
+### Added — Backtest Runner
 - AI Signal Bot: backtest WebSocket endpoint (`run_backtest` messages)
 - `BacktestRunner.jsx` — config form, equity curve chart, strategy comparison table
 - `useSignalData` hook updated: handles `backtest_result`, exposes `sendSignalMessage`
 
-### Fixed — Phase 13
+### Fixed — Initial Release
 - EnsembleVoter created with empty strategies list when only "ensemble" selected
 - web-ui/.gitignore missing .env (would commit secrets)
 - BacktestRunner no timeout — added 30s safety timeout
@@ -3249,9 +3326,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] — Phases 5-12: Broadcasting, Arbitrage, Tests, Backtesting, Web UI
+## [1.1.0] — Broadcasting, Arbitrage, Tests, Backtesting, Web UI
 
-### Added — Phase 5: Signal Broadcasting, Equity Sparkline, Backtesting
+### Added — Signal Broadcasting, Equity Sparkline, Backtesting
 - SignalPublisher WebSocket server (port 8766) in AI bot
 - Broadcast validated signals to connected HFT clients
 - C++ SignalReceiver handles signal, signal_history, market_regime messages
@@ -3261,41 +3338,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance metrics: return, win rate, profit factor, Sharpe, max drawdown
 - `run_backtest.py` CLI runner
 
-### Added — Phase 6: Arbitrage Detection & Drawdown Analysis
+### Added — Arbitrage Detection & Drawdown Analysis
 - ArbitrageDetector class scanning all exchange order books
 - Net spread calculation (after fees + slippage)
 - WebSocket broadcast of arbitrage opportunities
 - C++ SignalReceiver handles `arbitrage_scan` messages
 - Drawdown analysis: longest duration, average, recovery factor, Calmar ratio
 
-### Added — Phase 7: C++ Tests & Integration Tests
+### Added — C++ Tests & Integration Tests
 - 25 C++ signal engine unit tests (FFT, EMA, RSI, OBI, VWAP, Pressure, SignalEngine)
 - CMake test target with `enable_testing()` and `ctest`
 - Python integration tests (WebSocket, candle data, strategy pipeline, SignalPublisher)
 
-### Added — Phase 8: Arbitrage Execution & Protocol Docs
+### Added — Arbitrage Execution & Protocol Docs
 - `execute_arbitrage()` in OrderExecutor (buy + sell simultaneously)
 - ArbitrageCallback in SignalReceiver (triggers on spread > 10 bps)
 - WebSocket Protocol documentation (full message spec for ports 8765 and 8766)
 
-### Added — Phase 9: Visualization, Optimization & Kelly Sizing
+### Added — Visualization, Optimization & Kelly Sizing
 - BacktestPlotter with 4 chart types (equity curve, PnL distribution, comparison, radar)
 - StrategyOptimizer with grid search, 4 fitness functions, walk-forward optimization
 - KellyPositionSizer with configurable Kelly fraction, confidence-scaled sizing
 
-### Added — Phase 10: Data Export, Config Validation & Docs
+### Added — Data Export, Config Validation & Docs
 - DataExporter module (CSV/Parquet: candles, orders, accounts, positions)
 - Python `config_validator.py` with comprehensive validation
 - C++ `validate_config()` with range checks for all parameters
 - Full CONTRIBUTING.md
 
-### Added — Phase 11: Order Book Replay & Linting
+### Added — Order Book Replay & Linting
 - OrderBookReplay — synthetic order book generation from OHLCV candles
 - OrderBookBacktester — wraps standard Backtester with order book data
 - Ruff linting configuration for both Python components
 - 22 unit tests for order book replay
 
-### Added — Phase 12: Web UI Dashboard
+### Added — Web UI Dashboard
 - React 18 + Vite 5 + TailwindCSS 3 (dark theme)
 - TradingView-style candle charts (lightweight-charts 4)
 - Binance-style order book with depth visualization
@@ -3304,15 +3381,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebSocket auto-reconnect with live status indicators
 - Docker support (port 3000, multi-stage build with nginx)
 
-### Changed — Phase 5
+### Changed — Signal Broadcasting
 - AI Signal Bot pipeline updated from 7-stage to 8-stage
 - docker-compose: port 8766 exposed, hft depends on ai-signal-bot
 
 ---
 
-## [1.0.0] — Phases 1-4: Core Architecture
+## [1.0.0] — Core Architecture
 
-### Added — Phase 1: Core Architecture
+### Added — Core Architecture
 
 #### Exchange Simulator (Python)
 - Geometric Brownian Motion price generation with per-symbol volatility
@@ -3352,14 +3429,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - .gitignore, LICENSE (MIT)
 - README.md, docs/ARCHITECTURE.md, docs/TRADING_STRATEGIES.md, docs/EXCHANGE_SIMULATOR.md, docs/SETUP.md
 
-### Added — Phase 2: Enhanced Visualizer
+### Added — Enhanced Visualizer
 - Tabbed terminal interface (BTC/ETH/SOL tabs, 1-2-3 keys)
 - Per-tab candle chart with ASCII art (color-coded bullish/bearish)
 - Per-tab order book depth visualization (10 levels bid/ask)
 - Account dashboard tab (balance, equity, PnL, positions, win rate)
 - Arrow key navigation, cross-platform input (Windows msvcrt + Unix termios)
 
-### Added — Phase 3: Tests & CI
+### Added — Tests & CI
 - Unit tests for indicators (SMA, EMA, RSI, MACD, BB, ATR, VWAP)
 - Unit tests for strategies (Trend Following, Mean Reversion, Ensemble)
 - Unit tests for signal validator and exchange simulator
@@ -3367,7 +3444,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - .dockerignore files for all components
 - CONTRIBUTING.md
 
-### Added — Phase 4: FFT Analysis & TradingView-style Visualizer
+### Added — FFT Analysis & TradingView-style Visualizer
 - Cooley-Tukey FFT implementation (radix-2, zero-padded)
 - Power spectrum computation with Hann window
 - Dominant cycle detection, spectral entropy, spectral trend score

@@ -55,6 +55,7 @@ public:
 
     // V1: Signal-level check
     CheckResult check_signal(const Signal& signal, double balance, int open_positions) const {
+        std::lock_guard<std::mutex> lk(params_mutex_);
         if (!signal.is_actionable()) {
             return {false, "Signal is neutral", 0};
         }
@@ -97,6 +98,7 @@ public:
         double available_margin,
         double current_position_qty
     ) {
+        std::lock_guard<std::mutex> lk(params_mutex_);
         // 1. Symbol blacklist
         if (params_.blacklisted_symbols.count(symbol)) {
             return {false, "Symbol blacklisted", 6};
@@ -146,15 +148,19 @@ public:
             }
         }
 
-        // 7. Order rate throttle
+        // 7. Order rate throttle (CAS-based to avoid check-then-act race)
         auto now = std::chrono::steady_clock::now();
+        auto window_start = rate_window_start_.load(std::memory_order_relaxed);
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-            now - rate_window_start_.load(std::memory_order_relaxed)).count();
+            now - window_start).count();
         if (elapsed >= 1) {
-            rate_window_start_.store(now, std::memory_order_relaxed);
-            orders_this_second_.store(0, std::memory_order_relaxed);
+            // Try to reset the window — CAS ensures only one thread resets
+            if (rate_window_start_.compare_exchange_strong(window_start, now,
+                    std::memory_order_acq_rel, std::memory_order_relaxed)) {
+                orders_this_second_.store(0, std::memory_order_relaxed);
+            }
         }
-        if (orders_this_second_.fetch_add(1) >= params_.max_orders_per_second) {
+        if (orders_this_second_.fetch_add(1, std::memory_order_relaxed) >= params_.max_orders_per_second) {
             return {false, "Order rate limit exceeded", 4};
         }
 
@@ -208,11 +214,13 @@ public:
         total_exposure_.fetch_sub(notional, std::memory_order_relaxed);
     }
 
-    // V2: Symbol blacklist management
+    // V2: Symbol blacklist management (thread-safe via params_mutex_)
     void blacklist_symbol(const std::string& symbol) {
+        std::lock_guard<std::mutex> lk(params_mutex_);
         params_.blacklisted_symbols.insert(symbol);
     }
     void unblacklist_symbol(const std::string& symbol) {
+        std::lock_guard<std::mutex> lk(params_mutex_);
         params_.blacklisted_symbols.erase(symbol);
     }
 
@@ -222,13 +230,19 @@ public:
     double peak_equity() const { return peak_equity_.load(std::memory_order_relaxed); }
     int orders_this_second() const { return orders_this_second_.load(std::memory_order_relaxed); }
 
-    const Params& params() const { return params_; }
+    const Params& params() const {
+        std::lock_guard<std::mutex> lk(params_mutex_);
+        return params_;
+    }
 
 private:
+    mutable std::mutex params_mutex_;
     Params params_;
     std::atomic<double> daily_pnl_{0.0};
     std::atomic<double> total_exposure_{0.0};
     std::atomic<double> peak_equity_{0.0};
+    static_assert(std::atomic<double>::is_always_lock_free,
+                  "std::atomic<double> must be lock-free for HFT hot path");
     std::atomic<int> orders_this_second_{0};
     std::atomic<std::chrono::steady_clock::time_point> rate_window_start_{
         std::chrono::steady_clock::now()

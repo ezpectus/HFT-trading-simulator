@@ -6,7 +6,7 @@ arbitrage detection → account management → order execution → position trac
 import pytest
 import asyncio
 
-from market_simulator import MarketSimulator
+from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.arbitrage import ArbitrageDetector, ArbStatus
 from exchange_simulator.models import (
     Candle, OrderBook, OrderBookLevel, Order, Side, OrderType, OrderStatus,
@@ -25,7 +25,7 @@ class TestMarketSimulatorDataFlow:
             volatility={"BTC/USDT": 0.8, "ETH/USDT": 1.2},
             warmup_candles=50,
         )
-        candles = sim.generate_candles()
+        candles = sim.next_candle()
         assert len(candles) == 6  # 2 symbols × 3 exchanges
         symbols = {c.symbol for c in candles}
         exchanges = {c.exchange for c in candles}
@@ -40,7 +40,7 @@ class TestMarketSimulatorDataFlow:
             volatility={"BTC/USDT": 0.8},
             warmup_candles=10,
         )
-        candles = sim.generate_candles()
+        candles = sim.next_candle()
         for c in candles:
             assert c.high >= c.open
             assert c.high >= c.close
@@ -59,7 +59,7 @@ class TestMarketSimulatorDataFlow:
         )
         # Generate multiple candles and check prices differ
         for _ in range(5):
-            candles = sim.generate_candles()
+            candles = sim.next_candle()
             prices = {c.exchange: c.close for c in candles if c.symbol == "BTC/USDT"}
             # Not all prices should be identical
             unique_prices = set(round(p, 4) for p in prices.values())
@@ -74,7 +74,7 @@ class TestMarketSimulatorDataFlow:
             warmup_candles=10,
             order_book_depth=10,
         )
-        ob = sim.get_order_book("binance", "BTC/USDT")
+        ob = sim.generate_order_book("binance", "BTC/USDT")
         assert ob is not None
         assert len(ob.bids) > 0
         assert len(ob.asks) > 0

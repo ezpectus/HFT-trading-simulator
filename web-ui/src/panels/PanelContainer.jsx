@@ -4,11 +4,14 @@ import { CATEGORIES, PANELS, DEFAULT_VISIBLE, getPanelsByCategory, preloadCatego
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
 import ChunkRetryBoundary from '../components/ChunkRetryBoundary'
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { usePanelContext } from '../stores/usePanelContext'
 
 const VISIBILITY_KEY = 'trading-sim-panel-visibility'
 const COLLAPSED_KEY = 'trading-sim-panel-collapsed'
 
-export default function PanelContainer({ context }) {
+export default function PanelContainer({ context: contextProp }) {
+  const storeContext = usePanelContext()
+  const context = contextProp || storeContext
   const [visible, setVisible] = useLocalStorage(VISIBILITY_KEY, DEFAULT_VISIBLE)
   const [collapsed, setCollapsed] = useLocalStorage(COLLAPSED_KEY, {})
   const [showSettings, setShowSettings] = useState(false)

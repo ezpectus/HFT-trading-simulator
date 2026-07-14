@@ -124,7 +124,7 @@ Fast signal generation from market microstructure:
 confidence = min(95, 35 + winning_votes x 12)
 ```
 
-### V2 Signal Engine (C++20, Phase 25)
+### V2 Signal Engine (C++20)
 
 The V2 engine is a complete rewrite optimized for sub-millisecond latency with no heap allocations in the hot path. All inline indicators use O(1) per-update algorithms with stack-allocated state.
 
