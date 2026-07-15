@@ -127,3 +127,64 @@ groups:
         annotations:
           summary: "Prometheus is down"
           description: "Prometheus self-monitoring target is unreachable."
+
+  # ── Web UI alerts ──
+  - name: web-ui
+    rules:
+      # Web UI down — health check endpoint unreachable
+      - alert: WebUiDown
+        expr: up{job="web-ui"} == 0
+        for: 30s
+        labels:
+          severity: warning
+          service: web-ui
+        annotations:
+          summary: "Web UI is down"
+          description: "Web UI health check endpoint is unreachable. Dashboard may be inaccessible."
+
+      # Web UI high response time
+      - alert: WebUiHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="web-ui"}[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: web-ui
+        annotations:
+          summary: "Web UI high response time"
+          description: "95th percentile response time is above 2 seconds. Users may experience slow page loads."
+
+      # Web UI error rate
+      - alert: WebUiHighErrorRate
+        expr: rate(http_requests_total{job="web-ui",status=~"5.."}[5m]) / rate(http_requests_total{job="web-ui"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: web-ui
+        annotations:
+          summary: "Web UI high error rate"
+          description: "More than 5% of HTTP responses are 5xx errors. Check application logs for details."
+
+  # ── WebSocket connection alerts ──
+  - name: websocket
+    rules:
+      # High reconnection rate — clients disconnecting/reconnecting frequently
+      - alert: HighWsReconnectionRate
+        expr: rate(exchange_ws_disconnections_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: exchange-simulator
+        annotations:
+          summary: "High WebSocket reconnection rate"
+          description: "Clients are disconnecting more than 0.5/s over the last 5 minutes. Check network stability or server health."
+
+      # No connected clients — all bots/UI disconnected
+      - alert: NoWsClientsConnected
+        expr: exchange_connected_clients == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: exchange-simulator
+        annotations:
+          summary: "No WebSocket clients connected"
+          description: "No clients are connected to the exchange simulator for 2+ minutes. Bots and UI may be down."

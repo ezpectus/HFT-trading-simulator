@@ -248,7 +248,7 @@ class Backtester:
         # Calculate metrics
         result.final_balance = balance
         result.equity_curve = equity_curve
-        result.total_return_pct = (balance - self.initial_balance) / self.initial_balance * 100
+        result.total_return_pct = (balance - self.initial_balance) / self.initial_balance * 100 if self.initial_balance > 0 else 0
 
         if result.trades:
             result.total_trades = len(result.trades)

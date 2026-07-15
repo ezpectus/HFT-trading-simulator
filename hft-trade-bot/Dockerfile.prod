@@ -21,13 +21,13 @@ RUN cmake -B build -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build -j$(nproc) --target hft_trade_bot
 
 # ── Runtime stage ──
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libboost-system1.74.0 libboost-random1.74.0 libssl3 libspdlog1.10-fmt \
-    libyaml-cpp0.7 \
+    libboost-system1.83.0 libboost-random1.83.0 libssl3 libspdlog1.15 \
+    libyaml-cpp0.8 libfmt10 \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -r appuser && useradd -r -g appuser appuser
 
@@ -38,7 +38,7 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
-EXPOSE 8767 9091
+EXPOSE 9091
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
     CMD wget -q --spider http://localhost:9091/health || exit 1

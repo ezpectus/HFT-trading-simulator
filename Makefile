@@ -66,3 +66,18 @@ logs: ## View latest log files
 	@echo ""
 	@echo "=== Latest Trades CSV ==="
 	@head -5 logs/trades_latest.csv 2>/dev/null || echo "No trades CSV found"
+
+ci-test: ## Run CI/CD test pipeline (all stages)
+	@./ci-test.sh all
+
+ci-quick: ## Run CI/CD quick test (skip Rust, skip C++ tests)
+	@./ci-test.sh quick
+
+benchmark: ## Run latency benchmark suite (p50/p95/p99/p999)
+	@python scripts/benchmark_suite.py --output logs/benchmark.json
+
+walk-forward: ## Run walk-forward optimization CI check
+	@python scripts/walk_forward_ci.py --output logs/walk_forward_report.json
+
+docker-hub: ## Start all services using pre-built Docker Hub images
+	@docker-compose -f docker-compose.hub.yml up -d

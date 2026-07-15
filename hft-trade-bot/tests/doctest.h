@@ -106,14 +106,19 @@ public:
 #define DOCTEST_STRINGIFY(x) #x
 #define DOCTEST_TOSTRING(x) DOCTEST_STRINGIFY(x)
 
+#define DOCTEST_CAT_I(a, b) a##b
+#define DOCTEST_CAT(a, b) DOCTEST_CAT_I(a, b)
+
 #define TEST_CASE(name) \
     static void DOCTEST_ANON_FUNC(); \
     static doctest_detail::Registrator DOCTEST_ANON_REG( \
         name, __FILE__, __LINE__, DOCTEST_ANON_FUNC); \
     static void DOCTEST_ANON_FUNC()
 
-#define DOCTEST_ANON_FUNC doctest_anon_func_##__LINE__
-#define DOCTEST_ANON_REG doctest_anon_reg_##__LINE__
+#define DOCTEST_ANON_FUNC DOCTEST_CAT(doctest_anon_func_, __LINE__)
+#define DOCTEST_ANON_REG DOCTEST_CAT(doctest_anon_reg_, __LINE__)
+
+#define TEST_SUITE(name) namespace
 
 #define CHECK(cond) \
     do { if (!(cond)) throw doctest::assertion_error( \
@@ -137,7 +142,7 @@ public:
     DOCTEST_SUBCASE_FUNC(); \
     static void DOCTEST_SUBCASE_FUNC()
 
-#define DOCTEST_SUBCASE_FUNC doctest_subcase_func_##__LINE__
+#define DOCTEST_SUBCASE_FUNC DOCTEST_CAT(doctest_subcase_func_, __LINE__)
 
 // Approx helper
 using doctest::Approx;

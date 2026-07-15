@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 #  HFT Trading System — Start All Services
-#  Opens 3 terminal tabs + Web UI
+#  Opens 6 terminal tabs + Web UI
 # ============================================================
 
 set -e
@@ -78,10 +78,10 @@ gnome-terminal --tab --title="HFT Trade Bot Monitor" -- bash -c "
 # Terminal 7: Unified Error Monitor (errors + warnings from all services)
 gnome-terminal --tab --title="Error Monitor" -- bash -c "
   cd '$ROOT_DIR'
-  python error_monitor.py
+  python error_monitor.py --follow
   exec bash
 " 2>/dev/null || xterm -title "Error Monitor" -e "
-  cd '$ROOT_DIR' && python error_monitor.py
+  cd '$ROOT_DIR' && python error_monitor.py --follow
 " &
 
 # Terminal 8: Price & Signal Monitor (live crypto prices + strategy signals)

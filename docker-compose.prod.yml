@@ -9,7 +9,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-trading}
       POSTGRES_USER: ${POSTGRES_USER:-trader}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trader_secure_2024}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env.prod}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - pg-data:/var/lib/postgresql/data
@@ -87,7 +87,7 @@ services:
     container_name: trading-grafana
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set in .env.prod}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/trading-overview.json
     volumes:
@@ -160,7 +160,7 @@ services:
     env_file:
       - .env.prod
     environment:
-      - POSTGRES_DSN=postgresql://${POSTGRES_USER:-trader}:${POSTGRES_PASSWORD:-trader_secure_2024}@postgres:5432/${POSTGRES_DB:-trading}
+      - POSTGRES_DSN=postgresql://${POSTGRES_USER:-trader}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-trading}
       - REDIS_URL=redis://redis:6379/0
       - EXCHANGE_MODE=${EXCHANGE_MODE:-simulator}
       - LOG_FORMAT=json
@@ -172,7 +172,7 @@ services:
     command: python run.py --dashboard --metrics
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8080), timeout=5)"]
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8766), timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -196,6 +196,8 @@ services:
     depends_on:
       ai-signal-bot:
         condition: service_healthy
+    ports:
+      - "9091:9091"  # Health/metrics endpoint
     env_file:
       - .env.prod
     environment:
@@ -207,7 +209,7 @@ services:
     command: /app/hft_trade_bot config/config.prod.yaml
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "test", "-f", "/proc/1/cmdline"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9091/health"]
       interval: 30s
       timeout: 10s
       retries: 3

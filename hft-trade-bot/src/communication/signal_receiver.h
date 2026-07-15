@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <string_view>
 #include <functional>
 #include <mutex>
 #include <condition_variable>
@@ -24,6 +25,7 @@
 namespace hft {
 
 using json = nlohmann::json;
+using namespace std::string_view_literals;
 using WSClient = websocketpp::client<websocketpp::config::asio_client>;
 
 class SignalReceiver {
@@ -321,7 +323,9 @@ private:
     }
 
     void handle_message_json(const json& data) {
-        std::string type = data.value("type", "");
+        // Use string_view for type comparison — avoids heap-allocating std::string on every message
+        const auto type_sv = data.value("type", ""sv);
+        std::string_view type = type_sv;
 
             if (type == "candles" || type == "snapshot" || type == "sync_state") {
                 // Check for trading_active field in broadcast
@@ -442,29 +446,28 @@ private:
                     }
                 }
 
-                // Update candle history
+                // Update candle history — take spinlock once for entire batch
                 std::vector<Candle> new_candles;
                 if (data.contains("candles")) {
-                    for (const auto& c : data["candles"]) {
-                        Candle candle;
-                        candle.timestamp = c.value("timestamp", 0);
-                        candle.open = c.value("open", 0.0);
-                        candle.high = c.value("high", 0.0);
-                        candle.low = c.value("low", 0.0);
-                        candle.close = c.value("close", 0.0);
-                        candle.volume = c.value("volume", 0.0);
-                        candle.symbol = c.value("symbol", "");
-                        candle.exchange = c.value("exchange", "");
+                    new_candles.reserve(data["candles"].size());
+                    {
+                        std::lock_guard<Spinlock> lock(data_lock_);
+                        for (const auto& c : data["candles"]) {
+                            Candle candle;
+                            candle.timestamp = c.value("timestamp", 0);
+                            candle.open = c.value("open", 0.0);
+                            candle.high = c.value("high", 0.0);
+                            candle.low = c.value("low", 0.0);
+                            candle.close = c.value("close", 0.0);
+                            candle.volume = c.value("volume", 0.0);
+                            candle.symbol = c.value("symbol", "");
+                            candle.exchange = c.value("exchange", "");
 
-                        {
-                            std::lock_guard<Spinlock> lock(data_lock_);
-                            candle_history_[candle.symbol].push_back(candle);
-                            // Keep last 200
                             auto& hist = candle_history_[candle.symbol];
+                            hist.push_back(candle);
                             if (hist.size() > 200) {
                                 hist.erase(hist.begin(), hist.end() - 200);
                             }
-                            // Sync array-based fast path
                             auto id_it = symbol_to_id_.find(candle.symbol);
                             if (id_it != symbol_to_id_.end()) {
                                 auto& arr_hist = candles_by_id_[id_it->second];
@@ -473,8 +476,8 @@ private:
                                     arr_hist.erase(arr_hist.begin(), arr_hist.end() - 200);
                                 }
                             }
+                            new_candles.push_back(candle);
                         }
-                        new_candles.push_back(candle);
                     }
                     // Callback outside mutex to prevent deadlock
                     if (candle_cb_) candle_cb_(new_candles);

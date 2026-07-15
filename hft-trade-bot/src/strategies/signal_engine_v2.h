@@ -28,8 +28,17 @@
 #include <chrono>
 #include <unordered_map>
 #include <string>
+#include <string_view>
 
 namespace hft {
+
+// Transparent string hash — enables find(const char*) / find(string_view) without allocating
+struct StringHash {
+    using is_transparent = void;
+    size_t operator()(std::string_view sv) const noexcept {
+        return std::hash<std::string_view>{}(sv);
+    }
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Inline EMA — O(1) per update, no vector allocation
@@ -75,7 +84,8 @@ public:
         return 1.0 / static_cast<double>(period);
     }
 
-    explicit InlineRSI(int period) : period_(period), inv_period_(compute_inv_period(period)) {}
+    explicit InlineRSI(int period) : period_(period), inv_period_(compute_inv_period(period)),
+        inv_period_complement_(1.0 - compute_inv_period(period)) {}
 
     void init(double first_close) noexcept { prev_close_ = first_close; count_ = 1; }
 
@@ -100,9 +110,9 @@ public:
                 avg_loss_ *= inv_period_;
             }
         } else {
-            // Wilder's smoothing: α = 1/period
-            avg_gain_ = (avg_gain_ * (period_ - 1) + gain) * inv_period_;
-            avg_loss_ = (avg_loss_ * (period_ - 1) + loss) * inv_period_;
+            // Wilder's smoothing: avg = avg * (1 - inv) + gain * inv
+            avg_gain_ = avg_gain_ * inv_period_complement_ + gain * inv_period_;
+            avg_loss_ = avg_loss_ * inv_period_complement_ + loss * inv_period_;
         }
 
         prev_close_ = close;
@@ -121,6 +131,7 @@ public:
 private:
     int period_;
     double inv_period_;
+    double inv_period_complement_;  // 1.0 - inv_period_, precomputed
     double avg_gain_{0.0};
     double avg_loss_{0.0};
     double prev_close_{0.0};
@@ -137,7 +148,8 @@ public:
         return 1.0 / static_cast<double>(period);
     }
 
-    explicit InlineADX(int period) : period_(period), inv_period_(compute_inv_period(period)) {}
+    explicit InlineADX(int period) : period_(period), inv_period_(compute_inv_period(period)),
+        inv_period_complement_(1.0 - compute_inv_period(period)) {}
 
     inline double update(double high, double low, double close) noexcept {
         if (count_ == 0) [[unlikely]] {
@@ -164,19 +176,21 @@ public:
             minus_dm_sum_ += minus_dm;
             ++count_;
             if (count_ == period_) {
-                double plus_di = (plus_dm_sum_ / (tr_sum_ + 1e-12)) * 100.0;
-                double minus_di = (minus_dm_sum_ / (tr_sum_ + 1e-12)) * 100.0;
+                double inv_tr = 1.0 / (tr_sum_ + 1e-12);
+                double plus_di = plus_dm_sum_ * inv_tr * 100.0;
+                double minus_di = minus_dm_sum_ * inv_tr * 100.0;
                 double dx = std::fabs(plus_di - minus_di) / (plus_di + minus_di + 1e-10) * 100.0;
                 adx_ = dx;
             }
         } else {
-            // Wilder's smoothing
-            tr_sum_ = tr_sum_ - (tr_sum_ * inv_period_) + tr;
-            plus_dm_sum_ = plus_dm_sum_ - (plus_dm_sum_ * inv_period_) + plus_dm;
-            minus_dm_sum_ = minus_dm_sum_ - (minus_dm_sum_ * inv_period_) + minus_dm;
+            // Wilder's smoothing — use precomputed complement: tr_sum * (1-inv) + tr
+            tr_sum_ = tr_sum_ * inv_period_complement_ + tr;
+            plus_dm_sum_ = plus_dm_sum_ * inv_period_complement_ + plus_dm;
+            minus_dm_sum_ = minus_dm_sum_ * inv_period_complement_ + minus_dm;
 
-            double plus_di = (plus_dm_sum_ / (tr_sum_ + 1e-12)) * 100.0;
-            double minus_di = (minus_dm_sum_ / (tr_sum_ + 1e-12)) * 100.0;
+            double inv_tr = 1.0 / (tr_sum_ + 1e-12);
+            double plus_di = plus_dm_sum_ * inv_tr * 100.0;
+            double minus_di = minus_dm_sum_ * inv_tr * 100.0;
             double dx = std::fabs(plus_di - minus_di) / (plus_di + minus_di + 1e-10) * 100.0;
             adx_ = (adx_ * (period_ - 1) + dx) * inv_period_;
         }
@@ -193,6 +207,7 @@ public:
 private:
     int period_;
     double inv_period_;
+    double inv_period_complement_;  // 1.0 - inv_period_, precomputed
     double tr_sum_{0.0};
     double plus_dm_sum_{0.0};
     double minus_dm_sum_{0.0};
@@ -256,7 +271,8 @@ public:
         return 1.0 / static_cast<double>(period);
     }
 
-    explicit InlineATR(int period) : period_(period), inv_period_(compute_inv_period(period)) {}
+    explicit InlineATR(int period) : period_(period), inv_period_(compute_inv_period(period)),
+        inv_period_complement_(1.0 - compute_inv_period(period)) {}
 
     inline double update(double high, double low, double close) noexcept {
         if (count_ == 0) [[unlikely]] {
@@ -274,8 +290,8 @@ public:
             ++count_;
             if (count_ == period_) atr_ *= inv_period_;
         } else {
-            // Wilder's smoothing: ATR = (ATR * (n-1) + TR) / n
-            atr_ = (atr_ * (period_ - 1) + tr) * inv_period_;
+            // Wilder's smoothing: ATR = ATR * (1 - inv) + TR * inv
+            atr_ = atr_ * inv_period_complement_ + tr * inv_period_;
         }
 
         prev_close_ = close;
@@ -288,6 +304,7 @@ public:
 private:
     int period_;
     double inv_period_;
+    double inv_period_complement_;  // 1.0 - inv_period_, precomputed
     double atr_{0.0};
     double prev_close_{0.0};
     int count_{0};
@@ -379,6 +396,8 @@ public:
 
     explicit SignalEngineV2(const Params& params) : params_(params) {}
 
+    const Params& params() const noexcept { return params_; }
+
     // ── Per-symbol cached indicator state (HFT-O21: incremental update) ──
     struct IndicatorCache {
         InlineEMA ema_fast{21};
@@ -394,11 +413,11 @@ public:
         int candle_count{0};
     };
 
-    // Get or create cache for a symbol
+    // Get or create cache for a symbol — zero-alloc lookup via transparent hash
     IndicatorCache& get_cache(const char* symbol) {
-        auto it = cache_.find(symbol);
+        auto it = cache_.find(std::string_view(symbol));
         if (it == cache_.end()) {
-            it = cache_.emplace(symbol, IndicatorCache{}).first;
+            it = cache_.emplace(std::string(symbol), IndicatorCache{}).first;
             it->second.ema_fast = InlineEMA(params_.ema_fast_period);
             it->second.ema_slow = InlineEMA(params_.ema_slow_period);
             it->second.ema_signal = InlineEMA(params_.ema_signal_period);
@@ -411,7 +430,7 @@ public:
 
     // Reset cache for a symbol (e.g. on reconnection)
     void reset_cache(const char* symbol) {
-        auto it = cache_.find(symbol);
+        auto it = cache_.find(std::string_view(symbol));
         if (it != cache_.end()) {
             it->second = IndicatorCache{};
             it->second.ema_fast = InlineEMA(params_.ema_fast_period);
@@ -508,17 +527,21 @@ public:
         // MACD = EMA(fast) - EMA(slow)
         // Signal = EMA(signal_period) of MACD
         // Score: +1 if MACD > Signal (bullish), -1 if MACD < Signal (bearish)
+        // Precompute smoothing constants + their complements to avoid subtractions in loop
         double kf = 2.0 / (params_.ema_fast_period + 1);
         double ks = 2.0 / (params_.ema_slow_period + 1);
         double ksig = 2.0 / (params_.ema_signal_period + 1);
+        double kf_inv = 1.0 - kf;
+        double ks_inv = 1.0 - ks;
+        double ksig_inv = 1.0 - ksig;
 
         double ema_f = closes[0], ema_s = closes[0];
         double macd = 0.0, signal_line = 0.0;
         bool signal_init = false;
 
         for (size_t i = 1; i < n_closes; ++i) {
-            ema_f = closes[i] * kf + ema_f * (1.0 - kf);
-            ema_s = closes[i] * ks + ema_s * (1.0 - ks);
+            ema_f = closes[i] * kf + ema_f * kf_inv;
+            ema_s = closes[i] * ks + ema_s * ks_inv;
             macd = ema_f - ema_s;
 
             // EMA of MACD line (signal line)
@@ -526,7 +549,7 @@ public:
                 signal_line = macd;
                 signal_init = true;
             } else {
-                signal_line = macd * ksig + signal_line * (1.0 - ksig);
+                signal_line = macd * ksig + signal_line * ksig_inv;
             }
         }
 
@@ -582,9 +605,11 @@ public:
         // ════ 3. Multi-Level OBI (5/10/20) with Proximity Weighting ════
         // OBI = (bid_vol - ask_vol) / (bid_vol + ask_vol)
         // Weighted by proximity: w_i = 1/(1+i)
-        double obi_5 = compute_obi_levels(ob, params_.obi_levels_5);
-        double obi_10 = compute_obi_levels(ob, params_.obi_levels_10);
-        double obi_20 = compute_weighted_obi(ob, params_.obi_levels_20);
+        // Single-pass: compute all 3 OBI levels + weighted in one loop
+        auto obi_res = compute_obi_all(ob, params_.obi_levels_5, params_.obi_levels_10, params_.obi_levels_20);
+        double obi_5 = obi_res.obi_5;
+        double obi_10 = obi_res.obi_10;
+        double obi_20 = obi_res.obi_weighted;
 
         // Blend: more weight to near levels
         double obi_combined = obi_5 * 0.5 + obi_10 * 0.3 + obi_20 * 0.2;
@@ -598,18 +623,22 @@ public:
         // VWAP = Σ(tp × vol) / Σ(vol), tp = (H+L+C)/3
         // σ = sqrt(Σ((tp - VWAP)² × vol) / Σ(vol))
         // Score: price > VWAP + N×σ → overbought (-1), price < VWAP - N×σ → oversold (+1)
+        // Two-pass: first computes VWAP, second computes variance (needs VWAP from first pass).
+        // Cache tp values in first pass to avoid recomputing in second pass.
+        alignas(32) double tp_cache[100];
         double vwap = 0.0, cum_pv = 0.0, cum_v = 0.0, cum_var = 0.0;
         for (size_t i = 0; i < n_candles; ++i) {
-            double tp = (highs[i] + lows[i] + closes[i]) / 3.0;
+            double tp = (highs[i] + lows[i] + closes[i]) * 0.3333333333333333;
+            tp_cache[i] = tp;
             cum_pv += tp * volumes[i];
             cum_v += volumes[i];
         }
         vwap = cum_v > 0 ? cum_pv / cum_v : current_price;
 
-        // Variance
+        // Variance — reuse cached tp values from first pass
         for (size_t i = 0; i < n_candles; ++i) {
-            double tp = (highs[i] + lows[i] + closes[i]) / 3.0;
-            cum_var += volumes[i] * (tp - vwap) * (tp - vwap);
+            double diff = tp_cache[i] - vwap;
+            cum_var += volumes[i] * diff * diff;
         }
         double vwap_std = cum_v > 0 ? std::sqrt(cum_var / cum_v) : 0.0;
         double upper_band = vwap + params_.vwap_band_mult * vwap_std;
@@ -714,13 +743,10 @@ public:
 
         // ════ Composite Weighted Score ════
         // ADX gates directional confidence: in ranging markets, reduce signal strength
-        double adx_normalized = std::fmin(1.0, adx_val / params_.adx_trend_threshold);
-        double trend_direction = sig.ema_score;  // EMA as primary direction
-
-        // Apply ADX filter to directional indicators
-        double directional_scale = params_.adx_trend_threshold > 0
+        double adx_normalized = (params_.adx_trend_threshold > 0.0)
             ? std::fmin(1.0, adx_val / params_.adx_trend_threshold)
             : 1.0;
+        double trend_direction = sig.ema_score;  // EMA as primary direction
 
         sig.composite_score =
             sig.ema_score * params_.w_ema +
@@ -731,7 +757,7 @@ public:
             sig.pressure_score * params_.w_pressure;
 
         // Apply ADX filter: in ranging market (ADX < threshold), reduce composite
-        sig.composite_score *= (0.5 + 0.5 * directional_scale);
+        sig.composite_score *= (0.5 + 0.5 * adx_normalized);
 
         // ════ ATR for Dynamic SL/TP ════
         double atr = 0.0;
@@ -747,7 +773,8 @@ public:
                 tr_sum += tr;
                 ++atr_count;
             }
-            atr = atr_count > 0 ? tr_sum / atr_count : current_price * 0.01;
+            // Multiply by inverse instead of dividing — saves one division
+            atr = atr_count > 0 ? tr_sum * (1.0 / atr_count) : current_price * 0.01;
         }
         if (atr < 1e-12) atr = current_price * 0.01;
 
@@ -897,9 +924,10 @@ public:
         double rsi_val = ic.rsi.value();
 
         // ── 3. OBI (always computed fresh from order book) ──
-        double obi_5 = compute_obi_levels(ob, params_.obi_levels_5);
-        double obi_10 = compute_obi_levels(ob, params_.obi_levels_10);
-        double obi_20 = compute_weighted_obi(ob, params_.obi_levels_20);
+        auto obi_res = compute_obi_all(ob, params_.obi_levels_5, params_.obi_levels_10, params_.obi_levels_20);
+        double obi_5 = obi_res.obi_5;
+        double obi_10 = obi_res.obi_10;
+        double obi_20 = obi_res.obi_weighted;
         double obi_combined = obi_5 * 0.5 + obi_10 * 0.3 + obi_20 * 0.2;
 
         // ── 4. VWAP from cache ──
@@ -1069,6 +1097,45 @@ private:
         return total > 1e-12 ? (bid_w - ask_w) / total : 0.0;
     }
 
+    // ── Combined OBI: compute obi_5, obi_10, and weighted_obi in a single pass ──
+    // Replaces 3 separate calls (35 iterations) with 1 loop (20 iterations)
+    struct OBIResult { double obi_5, obi_10, obi_weighted; };
+    static inline OBIResult compute_obi_all(const OrderBook& ob, int l5, int l10, int l20) noexcept {
+        int n = std::min(l20, static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
+        double bid_vol = 0.0, ask_vol = 0.0;
+        double bid_w = 0.0, ask_w = 0.0;
+        double obi_5 = 0.0, obi_10 = 0.0, obi_w = 0.0;
+        for (int i = 0; i < n; ++i) {
+            double bq = ob.bids[i].quantity;
+            double aq = ob.asks[i].quantity;
+            bid_vol += bq;
+            ask_vol += aq;
+            double w = 1.0 / (1.0 + i);
+            bid_w += bq * w;
+            ask_w += aq * w;
+            if (i == l5 - 1) {
+                double t = bid_vol + ask_vol;
+                obi_5 = t > 1e-12 ? (bid_vol - ask_vol) / t : 0.0;
+            }
+            if (i == l10 - 1) {
+                double t = bid_vol + ask_vol;
+                obi_10 = t > 1e-12 ? (bid_vol - ask_vol) / t : 0.0;
+            }
+        }
+        double tw = bid_w + ask_w;
+        obi_w = tw > 1e-12 ? (bid_w - ask_w) / tw : 0.0;
+        // Handle fewer levels than requested
+        if (n < l5) {
+            double t = bid_vol + ask_vol;
+            double v = t > 1e-12 ? (bid_vol - ask_vol) / t : 0.0;
+            obi_5 = obi_10 = v;
+        } else if (n < l10) {
+            double t = bid_vol + ask_vol;
+            obi_10 = t > 1e-12 ? (bid_vol - ask_vol) / t : 0.0;
+        }
+        return {obi_5, obi_10, obi_w};
+    }
+
     // ── Dynamic leverage based on confidence + ADX ──
     inline uint8_t compute_leverage(uint8_t confidence, double adx) const noexcept {
         if (!params_.dynamic_leverage) return 1;
@@ -1090,7 +1157,7 @@ private:
 
     Params params_;
     int64_t last_signal_ms_{0};
-    std::unordered_map<std::string, IndicatorCache> cache_;
+    std::unordered_map<std::string, IndicatorCache, StringHash, std::equal_to<>> cache_;
 };
 
 } // namespace hft

@@ -135,3 +135,26 @@ export function useTradeJournal() {
 export function tradeKey(trade: TradeJournalEntry): string {
   return `${trade.exchange}|${trade.symbol}|${trade.closed_at}|${trade.entry_price}`
 }
+
+export function tradeKeyFromId(id: string): string {
+  return id.replace(/_/g, '|')
+}
+
+export interface ExtractedTrade extends TradeJournalEntry {
+  id: string
+}
+
+export function extractTradesFromAccounts(accounts: Record<string, any> | null | undefined): ExtractedTrade[] {
+  if (!accounts) return []
+  const trades: ExtractedTrade[] = []
+  for (const [exId, acc] of Object.entries(accounts)) {
+    for (const t of (acc.trade_history || [])) {
+      trades.push({
+        ...t,
+        exchange: exId,
+        id: `${exId}_${t.symbol}_${t.closed_at || t.timestamp || Math.random()}`,
+      })
+    }
+  }
+  return trades.sort((a, b) => (b.closed_at || 0) - (a.closed_at || 0))
+}

@@ -82,6 +82,8 @@ services:
     volumes:
       - ./hft-trade-bot/config:/app/config
       - hft-logs:/app/logs
+    ports:
+      - "9091:9091"
     command: ./build/hft_trade_bot config/config.yaml
     restart: unless-stopped
     healthcheck:

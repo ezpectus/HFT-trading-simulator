@@ -11,6 +11,7 @@
 #include <functional>
 #include <mutex>
 #include <atomic>
+#include <cstdio>
 
 namespace hft {
 
@@ -85,7 +86,7 @@ public:
 
     // Submit order to exchange simulator
     void submit_order(const Signal& signal, double quantity, const OrderBook& ob) {
-        if (!connected_) {
+        if (!connected_) [[unlikely]] {
             spdlog::warn("Cannot submit order — not connected");
             return;
         }
@@ -96,24 +97,29 @@ public:
             price = OrderTypeSelector::limit_price(signal.side(), ob);
         }
 
-        json order_msg = {
-            {"type", "order"},
-            {"exchange", exchange_id_},
-            {"symbol", signal.symbol},
-            {"side", signal.is_long() ? "BUY" : "SELL"},
-            {"quantity", quantity},
-            {"order_type", type == OrderType::MARKET ? "MARKET" : "LIMIT"},
-            {"stop_loss", signal.stop_loss},
-            {"take_profit", signal.take_profit},
-        };
-        if (type == OrderType::LIMIT) {
-            order_msg["price"] = price;
+        // Fast path: manual JSON serialization (avoids nlohmann/json heap alloc)
+        char buf[512];
+        int n = std::snprintf(buf, sizeof(buf),
+            "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+            "\"side\":\"%s\",\"quantity\":%.8f,\"order_type\":\"%s\","
+            "\"stop_loss\":%.2f,\"take_profit\":%.2f",
+            exchange_id_.c_str(), signal.symbol.c_str(),
+            signal.is_long() ? "BUY" : "SELL",
+            quantity,
+            type == OrderType::MARKET ? "MARKET" : "LIMIT",
+            signal.stop_loss, signal.take_profit);
+
+        if (type == OrderType::LIMIT && n > 0 && n < static_cast<int>(sizeof(buf) - 32)) {
+            n += std::snprintf(buf + n, sizeof(buf) - n, ",\"price\":%.2f", price);
+        }
+        if (n > 0 && n < static_cast<int>(sizeof(buf) - 2)) {
+            buf[n++] = '}';
+            buf[n] = '\0';
         }
 
-        std::string msg = order_msg.dump();
         websocketpp::lib::error_code ec;
-        client_.send(connection_, msg, websocketpp::frame::opcode::text, ec);
-        if (ec) {
+        client_.send(connection_, std::string(buf, n), websocketpp::frame::opcode::text, ec);
+        if (ec) [[unlikely]] {
             spdlog::error("Failed to send order: {}", ec.message());
         } else {
             spdlog::info("Order sent: {} {} {:.4f} {} @ {:.2f}",
@@ -122,63 +128,57 @@ public:
         }
     }
 
-    // Close an existing position
+    // Close an existing position — manual JSON to avoid heap alloc
     void close_position(const std::string& symbol) {
-        if (!connected_) return;
+        if (!connected_) [[unlikely]] return;
 
-        json msg = {
-            {"type", "close_position"},
-            {"exchange", exchange_id_},
-            {"symbol", symbol},
-        };
+        char buf[256];
+        int n = std::snprintf(buf, sizeof(buf),
+            "{\"type\":\"close_position\",\"exchange\":\"%s\",\"symbol\":\"%s\"}",
+            exchange_id_.c_str(), symbol.c_str());
 
         websocketpp::lib::error_code ec;
-        client_.send(connection_, msg.dump(), websocketpp::frame::opcode::text, ec);
+        client_.send(connection_, std::string(buf, n), websocketpp::frame::opcode::text, ec);
         spdlog::info("Close position request: {} on {}", symbol, exchange_id_);
     }
 
     bool is_connected() const { return connected_; }
 
     // Execute arbitrage: buy on one exchange, sell on another
+    // Manual JSON serialization — avoids 2x nlohmann::json heap allocations
     void execute_arbitrage(const std::string& symbol,
                            const std::string& buy_exchange,
                            const std::string& sell_exchange,
                            double quantity,
                            double buy_price, double sell_price) {
-        if (!connected_) {
+        if (!connected_) [[unlikely]] {
             spdlog::warn("Cannot execute arbitrage — not connected");
             return;
         }
 
-        // Buy on the cheaper exchange
-        json buy_msg = {
-            {"type", "order"},
-            {"exchange", buy_exchange},
-            {"symbol", symbol},
-            {"side", "BUY"},
-            {"quantity", quantity},
-            {"order_type", "MARKET"},
-        };
+        // Buy on the cheaper exchange — snprintf to stack buffer
+        char buy_buf[384];
+        int bn = std::snprintf(buy_buf, sizeof(buy_buf),
+            "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+            "\"side\":\"BUY\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
+            buy_exchange.c_str(), symbol.c_str(), quantity);
 
         // Sell on the more expensive exchange
-        json sell_msg = {
-            {"type", "order"},
-            {"exchange", sell_exchange},
-            {"symbol", symbol},
-            {"side", "SELL"},
-            {"quantity", quantity},
-            {"order_type", "MARKET"},
-        };
+        char sell_buf[384];
+        int sn = std::snprintf(sell_buf, sizeof(sell_buf),
+            "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+            "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
+            sell_exchange.c_str(), symbol.c_str(), quantity);
 
         websocketpp::lib::error_code ec;
-        client_.send(connection_, buy_msg.dump(), websocketpp::frame::opcode::text, ec);
-        if (ec) {
+        client_.send(connection_, std::string(buy_buf, bn), websocketpp::frame::opcode::text, ec);
+        if (ec) [[unlikely]] {
             spdlog::error("Arb buy order failed: {}", ec.message());
             return;
         }
 
-        client_.send(connection_, sell_msg.dump(), websocketpp::frame::opcode::text, ec);
-        if (ec) {
+        client_.send(connection_, std::string(sell_buf, sn), websocketpp::frame::opcode::text, ec);
+        if (ec) [[unlikely]] {
             spdlog::error("Arb sell order failed: {}", ec.message());
             return;
         }

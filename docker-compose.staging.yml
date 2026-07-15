@@ -98,6 +98,8 @@ services:
     volumes:
       - ./hft-trade-bot/config:/app/config
       - staging-hft-logs:/app/logs
+    ports:
+      - "19092:9091"
     command: ./build/hft_trade_bot config/config.yaml
     environment:
       - LOG_FORMAT=json

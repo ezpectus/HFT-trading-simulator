@@ -17,7 +17,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.js'],
     pool: 'forks',
     isolate: false,
-    exclude: ['**/node_modules/**', '**/dist/**'],
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     server: {
       deps: {
         inline: [/@testing-library\/react/, /@testing-library\/dom/, /@testing-library\/jest-dom/],

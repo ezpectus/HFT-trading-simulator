@@ -351,8 +351,40 @@ class EnsembleVoter:
                 reason=f"Circuit breaker active ({self.circuit_breaker.consecutive_losses} losses)",
             )
 
-        actionable = [s for s in signals if s.is_actionable]
-        if not actionable:
+        # Single-pass accumulation — avoids creating 3 intermediate lists
+        long_count = 0
+        short_count = 0
+        long_score = 0.0
+        short_score = 0.0
+        long_agg = [0.0, 0.0, 0.0, 0.0]  # confidence, entry, sl, tp
+        short_agg = [0.0, 0.0, 0.0, 0.0]
+        long_strategies = []
+        short_strategies = []
+        first_actionable = None
+
+        for s in signals:
+            if not s.is_actionable:
+                continue
+            if first_actionable is None:
+                first_actionable = s
+            if s.direction == SignalDirection.LONG:
+                long_count += 1
+                long_score += s.confidence
+                long_agg[0] += s.confidence
+                long_agg[1] += s.entry_price
+                long_agg[2] += s.stop_loss
+                long_agg[3] += s.take_profit
+                long_strategies.append(s.strategy)
+            elif s.direction == SignalDirection.SHORT:
+                short_count += 1
+                short_score += s.confidence
+                short_agg[0] += s.confidence
+                short_agg[1] += s.entry_price
+                short_agg[2] += s.stop_loss
+                short_agg[3] += s.take_profit
+                short_strategies.append(s.strategy)
+
+        if first_actionable is None:
             return Signal(
                 symbol=signals[0].symbol if signals else "",
                 direction=SignalDirection.NEUTRAL,
@@ -361,59 +393,58 @@ class EnsembleVoter:
                 reason="No actionable signals",
             )
 
-        longs = [s for s in actionable if s.direction == SignalDirection.LONG]
-        shorts = [s for s in actionable if s.direction == SignalDirection.SHORT]
-
         if self.mode == "weighted":
-            long_score = sum(s.confidence for s in longs)
-            short_score = sum(s.confidence for s in shorts)
-
-            if long_score > short_score and len(longs) >= self.min_votes:
-                winner = longs
-            elif short_score > long_score and len(shorts) >= self.min_votes:
-                winner = shorts
+            if long_score > short_score and long_count >= self.min_votes:
+                winner_count = long_count
+                winner_agg = long_agg
+                winner_strategies = long_strategies
+                direction = SignalDirection.LONG
+            elif short_score > long_score and short_count >= self.min_votes:
+                winner_count = short_count
+                winner_agg = short_agg
+                winner_strategies = short_strategies
+                direction = SignalDirection.SHORT
             else:
                 return Signal(
-                    symbol=actionable[0].symbol,
+                    symbol=first_actionable.symbol,
                     direction=SignalDirection.NEUTRAL,
                     confidence=0, strategy=self.name,
-                    entry_price=actionable[0].entry_price,
+                    entry_price=first_actionable.entry_price,
                     stop_loss=0, take_profit=0,
-                    reason=f"Insufficient votes (L:{len(longs)}/S:{len(shorts)})",
+                    reason=f"Insufficient votes (L:{long_count}/S:{short_count})",
                 )
         else:
-            # Majority mode
-            if len(longs) > len(shorts) and len(longs) >= self.min_votes:
-                winner = longs
-            elif len(shorts) > len(longs) and len(shorts) >= self.min_votes:
-                winner = shorts
+            if long_count > short_count and long_count >= self.min_votes:
+                winner_count = long_count
+                winner_agg = long_agg
+                winner_strategies = long_strategies
+                direction = SignalDirection.LONG
+            elif short_count > long_count and short_count >= self.min_votes:
+                winner_count = short_count
+                winner_agg = short_agg
+                winner_strategies = short_strategies
+                direction = SignalDirection.SHORT
             else:
                 return Signal(
-                    symbol=actionable[0].symbol,
+                    symbol=first_actionable.symbol,
                     direction=SignalDirection.NEUTRAL,
                     confidence=0, strategy=self.name,
-                    entry_price=actionable[0].entry_price,
+                    entry_price=first_actionable.entry_price,
                     stop_loss=0, take_profit=0,
-                    reason=f"Split vote (L:{len(longs)}/S:{len(shorts)})",
+                    reason=f"Split vote (L:{long_count}/S:{short_count})",
                 )
 
-        # Aggregate winning signals
-        direction = winner[0].direction
-        avg_confidence = sum(s.confidence for s in winner) / len(winner)
-        avg_entry = sum(s.entry_price for s in winner) / len(winner)
-        avg_sl = sum(s.stop_loss for s in winner) / len(winner)
-        avg_tp = sum(s.take_profit for s in winner) / len(winner)
-
-        strategies = ", ".join(s.strategy for s in winner)
+        # Aggregate winning signals — divide accumulated sums by count
+        inv_count = 1.0 / winner_count
         return Signal(
-            symbol=winner[0].symbol,
+            symbol=first_actionable.symbol,
             direction=direction,
-            confidence=round(avg_confidence, 1),
+            confidence=round(winner_agg[0] * inv_count, 1),
             strategy=self.name,
-            entry_price=avg_entry,
-            stop_loss=avg_sl,
-            take_profit=avg_tp,
-            reason=f"Ensemble ({strategies}): {len(winner)} votes",
+            entry_price=winner_agg[1] * inv_count,
+            stop_loss=winner_agg[2] * inv_count,
+            take_profit=winner_agg[3] * inv_count,
+            reason=f"Ensemble ({', '.join(winner_strategies)}): {winner_count} votes",
         )
 
 

@@ -1,0 +1,118 @@
+# Docker Hub — Pre-built Images
+# ====================================
+# Uses pre-built images from Docker Hub instead of building from source.
+# No compilation required — just `docker-compose -f docker-compose.hub.yml up`.
+#
+# Images:
+#   ezpectus/hft-exchange-simulator:latest
+#   ezpectus/hft-ai-signal-bot:latest
+#   ezpectus/hft-trade-bot:latest
+#   ezpectus/hft-web-ui:latest
+#
+# Usage:
+#   docker-compose -f docker-compose.hub.yml up
+#   docker-compose -f docker-compose.hub.yml up -d        # detached
+#   docker-compose -f docker-compose.hub.yml logs -f      # follow logs
+#   docker-compose -f docker-compose.hub.yml down          # stop all
+#
+# Web UI: http://localhost:3000
+
+services:
+  exchange-simulator:
+    image: ezpectus/hft-exchange-simulator:latest
+    container_name: exchange-sim
+    ports:
+      - "8765:8765"
+      - "8775:8775"
+    volumes:
+      - ./exchange_simulator/config.yaml:/app/config.yaml
+      - sim-data:/app/data
+      - sim-logs:/app/logs
+    command: python -m exchange_simulator --no-visualizer
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8765), timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - trading-net
+
+  ai-signal-bot:
+    image: ezpectus/hft-ai-signal-bot:latest
+    container_name: ai-signal-bot
+    depends_on:
+      exchange-simulator:
+        condition: service_healthy
+    ports:
+      - "8766:8766"
+      - "8080:8080"
+      - "9090:9090"
+    volumes:
+      - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml
+      - ai-data:/app/data
+      - ai-logs:/app/logs
+    command: python run.py --dashboard --metrics
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8766), timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - trading-net
+
+  hft-trade-bot:
+    image: ezpectus/hft-trade-bot:latest
+    container_name: hft-trade-bot
+    depends_on:
+      exchange-simulator:
+        condition: service_healthy
+      ai-signal-bot:
+        condition: service_healthy
+    volumes:
+      - ./hft-trade-bot/config:/app/config
+      - hft-logs:/app/logs
+    command: ./build/hft_trade_bot config/config.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "test", "-f", "/proc/1/cmdline"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - trading-net
+
+  web-ui:
+    image: ezpectus/hft-web-ui:latest
+    container_name: web-ui
+    depends_on:
+      exchange-simulator:
+        condition: service_healthy
+      ai-signal-bot:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - trading-net
+
+volumes:
+  sim-data:
+  sim-logs:
+  ai-data:
+  ai-logs:
+  hft-logs:
+
+networks:
+  trading-net:
+    driver: bridge

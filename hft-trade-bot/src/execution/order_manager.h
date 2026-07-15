@@ -263,9 +263,9 @@ public:
 
     // Getters
     const OrderRecord* get_order(uint64_t client_order_id) const noexcept {
-        auto it = cid_to_slot_.find(client_order_id);
-        if (it == cid_to_slot_.end()) return nullptr;
-        return &orders_[it->second];
+        const SlotEntry* entry = cid_find(client_order_id);
+        if (!entry) return nullptr;
+        return &orders_[entry->slot];
     }
 
     int active_count() const noexcept {

@@ -1,0 +1,252 @@
+# Default values for hft-trading-simulator
+# This is a YAML-formatted file declaring all configurable parameters.
+
+global:
+  imageRegistry: ghcr.io/ezpectus/hft-trading-simulator
+  imagePullPolicy: IfNotPresent
+  imageTag: latest
+  imagePullSecrets: []
+
+# ── Exchange Simulator ──
+exchangeSimulator:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: exchange_simulator
+    tag: ""
+  service:
+    type: ClusterIP
+    wsPort: 8765
+    metricsPort: 8775
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+  env:
+    LOG_LEVEL: INFO
+    SIM_MODE: realistic
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+
+# ── AI Signal Bot ──
+aiSignalBot:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ai-signal-bot
+    tag: ""
+  service:
+    type: ClusterIP
+    wsPort: 8766
+    metricsPort: 9090
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 1Gi
+  env:
+    LOG_LEVEL: INFO
+    SIGNAL_CONFIDENCE_THRESHOLD: "0.6"
+    LLM_ENABLED: "false"
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# ── HFT Trade Bot (C++) ──
+hftTradeBot:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: hft-trade-bot
+    tag: ""
+  service:
+    type: ClusterIP
+    metricsPort: 9091
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 512Mi
+    limits:
+      cpu: 4000m
+      memory: 1Gi
+  env:
+    LOG_LEVEL: info
+    SIGNAL_ENGINE_V3: "false"
+  # HFT bot should not be autoscaled — stateful
+  autoscaling:
+    enabled: false
+
+# ── Web UI ──
+webUi:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: web-ui
+    tag: ""
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: hft.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: hft-tls
+        hosts:
+          - hft.example.com
+
+# ── TimescaleDB ──
+timescaledb:
+  enabled: true
+  image:
+    repository: timescale/timescaledb
+    tag: latest-pg16
+  service:
+    type: ClusterIP
+    port: 5432
+  persistence:
+    enabled: true
+    storageClass: standard
+    accessModes:
+      - ReadWriteOnce
+    size: 50Gi
+  auth:
+    username: hft
+    database: hft_trading
+    existingSecret: hft-db-secret
+    secretKeys:
+      adminPasswordKey: password
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+# ── Redis ──
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: 7-alpine
+  service:
+    type: ClusterIP
+    port: 6379
+  persistence:
+    enabled: true
+    storageClass: standard
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ── Jaeger (distributed tracing) ──
+jaeger:
+  enabled: true
+  image:
+    repository: jaegertracing/all-in-one
+    tag: "1.62"
+  service:
+    type: ClusterIP
+    uiPort: 16686
+    otlpPort: 4317
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ── Prometheus ──
+prometheus:
+  enabled: true
+  image:
+    repository: prom/prometheus
+    tag: v3.0.0
+  service:
+    type: ClusterIP
+    port: 9090
+  persistence:
+    enabled: true
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+# ── Grafana ──
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "11.4.0"
+  service:
+    type: ClusterIP
+    port: 3000
+  persistence:
+    enabled: true
+    size: 5Gi
+  adminPassword: "admin"
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: grafana.hft.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+
+# ── Pod disruption budgets ──
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ── Network policy ──
+networkPolicy:
+  enabled: false
+
+# ── Node selector ──
+nodeSelector: {}
+
+# ── Tolerations ──
+tolerations: []
+
+# ── Affinity ──
+affinity: {}

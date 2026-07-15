@@ -1,0 +1,21 @@
+# SOPS (Secrets OPerationS) configuration for encrypted secrets
+# ================================================================
+#
+# Usage:
+#   1. Install: brew install sops age (macOS) / apt install sops age (Linux)
+#   2. Generate age key: age-keygen -o keys.txt
+#   3. Edit secrets: sops deploy/k8s/secrets.enc.yaml
+#   4. Decrypt for local dev: sops -d deploy/k8s/secrets.enc.yaml > .env
+#
+# This file tells SOPS which keys to use and which fields to encrypt.
+
+creation_rules:
+  # Encrypt all YAML files in k8s/ directory
+  - path_regex: deploy/k8s/.*\.enc\.yaml$
+    age: "age1qhpyprq6g8e8z2u0xrq2q3q4q5q6q7q8q9r0s1t2u3v4w5x6y7z8"
+    # Replace with your actual age public key from: age-keygen -o keys.txt
+
+  # Encrypt .env files
+  - path_regex: \.env\.enc$
+    age: "age1qhpyprq6g8e8z2u0xrq2q3q4q5q6q7q8q9r0s1t2u3v4w5x6y7z8"
+    encrypted_regex: '^(api_key|api_secret|password|token|secret|private_key|passphrase)$'

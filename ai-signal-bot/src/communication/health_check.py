@@ -40,9 +40,9 @@ class HealthAggregator:
         port: int = 9092,
     ):
         self.services = services or {
-            "ai-signal-bot": "http://localhost:9091/health",
-            "exchange-simulator": "http://localhost:9090/health",
-            "hft-trade-bot": "http://localhost:9093/health",
+            "ai-signal-bot": "http://localhost:9090/health",
+            "exchange-simulator": "http://localhost:8775/health",
+            "hft-trade-bot": "http://localhost:9091/health",
         }
         self.port = port
         self._runner: Optional[web.AppRunner] = None

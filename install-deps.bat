@@ -28,7 +28,7 @@ echo [OK] Python %PY_VER% found
 REM ── Check Node ────────────────────────────────────────────
 where npm >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] npm not found. Install Node.js 20+ from https://nodejs.org
+    echo [ERROR] npm not found. Install Node.js 22+ from https://nodejs.org
     exit /b 1
 )
 for /f "tokens=1 delims= " %%v in ('npm --version 2^>^&1') do set NPM_VER=%%v

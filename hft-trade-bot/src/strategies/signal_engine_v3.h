@@ -28,8 +28,18 @@
 #include <cstring>
 #include <array>
 #include <string>
+#include <string_view>
+#include <unordered_map>
 
 namespace hft {
+
+// Transparent string hash for unordered_map — enables find(string_view) without allocating
+struct StringHash {
+    using is_transparent = void;
+    size_t operator()(std::string_view sv) const noexcept {
+        return std::hash<std::string_view>{}(sv);
+    }
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HMM Regime States
@@ -129,7 +139,8 @@ public:
     static double log_gaussian(double x, double mean, double var) noexcept {
         if (var < 1e-15) var = 1e-15;
         double diff = x - mean;
-        return -0.5 * (std::log(2.0 * M_PI * var) + diff * diff / var);
+        double inv_var = 1.0 / var;
+        return -0.5 * (std::log(2.0 * M_PI) + std::log(var) + diff * diff * inv_var);
     }
 
     // Update HMM with a new price observation
@@ -150,21 +161,22 @@ public:
 
         // Forward recursion: log_alpha_j = log(emission_j) + log_sum_i(log_alpha_i + log_trans_ij)
         StateLogProbs new_alpha{};
+        double trans_sum[N_STATES][N_STATES];
         for (int j = 0; j < N_STATES; ++j) {
             double emit_lp = log_gaussian(log_ret, emit_mean_[j][0], emit_var_[j][0])
                            + log_gaussian(vol_proxy, emit_mean_[j][1], emit_var_[j][1]);
 
+            // Cache log_alpha[i] + log_trans[i][j] — avoid recomputing for max + sum
             double max_logsum = -1e300;
             for (int i = 0; i < N_STATES; ++i) {
-                double val = log_alpha_[i] + log_trans_[i][j];
-                if (val > max_logsum) max_logsum = val;
+                trans_sum[i][j] = log_alpha_[i] + log_trans_[i][j];
+                if (trans_sum[i][j] > max_logsum) max_logsum = trans_sum[i][j];
             }
 
             // log-sum-exp trick
             double sum = 0.0;
             for (int i = 0; i < N_STATES; ++i) {
-                double val = log_alpha_[i] + log_trans_[i][j] - max_logsum;
-                sum += std::exp(val);
+                sum += std::exp(trans_sum[i][j] - max_logsum);
             }
             new_alpha[j] = emit_lp + max_logsum + std::log(sum);
         }
@@ -261,13 +273,13 @@ private:
     OnlineHMM hmm_;
     Params params_;
 
-    // Per-symbol HMM state
+    // Per-symbol HMM state — transparent hash enables find(string_view) without allocation
     struct HMMState {
         OnlineHMM hmm;
         double last_price = 0.0;
         bool initialized = false;
     };
-    std::unordered_map<std::string, HMMState> hmm_states_;
+    std::unordered_map<std::string, HMMState, StringHash, std::equal_to<>> hmm_states_;
 
 public:
     explicit SignalEngineV3(const SignalEngineV2::Params& v2_params = {},
@@ -289,8 +301,12 @@ public:
         if (n == 0) return base;
 
         // Get or create HMM state for this symbol
-        std::string sym_key(symbol);
-        auto& state = hmm_states_[sym_key];
+        // Avoid heap allocation on every call: find first, only construct string if missing
+        auto it = hmm_states_.find(std::string_view(symbol));
+        if (it == hmm_states_.end()) {
+            it = hmm_states_.emplace(std::string(symbol), HMMState{}).first;
+        }
+        auto& state = it->second;
         double current_price = candles[n - 1].close;
 
         // Initialize or update HMM
@@ -411,9 +427,12 @@ public:
 
         if (n == 0) return base;
 
-        // Same HMM regime gating as above
-        std::string sym_key(symbol);
-        auto& state = hmm_states_[sym_key];
+        // Same HMM regime gating as above — avoid heap allocation with find+emplace
+        auto it = hmm_states_.find(std::string_view(symbol));
+        if (it == hmm_states_.end()) {
+            it = hmm_states_.emplace(std::string(symbol), HMMState{}).first;
+        }
+        auto& state = it->second;
         double current_price = candles[n - 1].close;
 
         if (!state.initialized) {
@@ -486,20 +505,20 @@ public:
     SignalEngineV2& v2() noexcept { return v2_engine_; }
 
     RegimeState current_regime(const char* symbol) const noexcept {
-        auto it = hmm_states_.find(std::string(symbol));
+        auto it = hmm_states_.find(std::string_view(symbol));
         if (it == hmm_states_.end()) return RegimeState::RANGING;
         return it->second.hmm.most_likely_state();
     }
 
     double regime_confidence(const char* symbol) const noexcept {
-        auto it = hmm_states_.find(std::string(symbol));
+        auto it = hmm_states_.find(std::string_view(symbol));
         if (it == hmm_states_.end()) return 0.0;
         RegimeState s = it->second.hmm.most_likely_state();
         return it->second.hmm.state_probability(s);
     }
 
     double current_volatility(const char* symbol) const noexcept {
-        auto it = hmm_states_.find(std::string(symbol));
+        auto it = hmm_states_.find(std::string_view(symbol));
         if (it == hmm_states_.end()) return 0.0;
         return it->second.hmm.current_volatility();
     }

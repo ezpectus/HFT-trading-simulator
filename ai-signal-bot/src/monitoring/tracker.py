@@ -1,4 +1,5 @@
 """Monitoring — performance tracking, logging, and CLI dashboard."""
+import csv
 import logging
 import os
 import time
@@ -79,19 +80,20 @@ class SignalLogger:
                 f.write("timestamp,symbol,direction,confidence,strategy,entry,sl,tp,rr,reason\n")
 
     def log(self, signal_dict: dict) -> None:
-        with open(self.path, "a", encoding="utf-8") as f:
-            f.write(
-                f"{signal_dict.get('timestamp', '')},"
-                f"{signal_dict['symbol']},"
-                f"{signal_dict['direction']},"
-                f"{signal_dict['confidence']},"
-                f"{signal_dict['strategy']},"
-                f"{signal_dict['entry_price']},"
-                f"{signal_dict['stop_loss']},"
-                f"{signal_dict['take_profit']},"
-                f"{signal_dict.get('rr_ratio', 0):.2f},"
-                f"{signal_dict.get('reason', '')}\n"
-            )
+        with open(self.path, "a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                signal_dict.get('timestamp', ''),
+                signal_dict['symbol'],
+                signal_dict['direction'],
+                signal_dict['confidence'],
+                signal_dict['strategy'],
+                signal_dict['entry_price'],
+                signal_dict['stop_loss'],
+                signal_dict['take_profit'],
+                f"{signal_dict.get('rr_ratio', 0):.2f}",
+                signal_dict.get('reason', ''),
+            ])
 
 
 class TradeLogger:
@@ -107,19 +109,20 @@ class TradeLogger:
                 f.write("timestamp,symbol,exchange,side,qty,entry,exit,pnl,fee,status\n")
 
     def log(self, trade_dict: dict) -> None:
-        with open(self.path, "a", encoding="utf-8") as f:
-            f.write(
-                f"{trade_dict.get('timestamp', '')},"
-                f"{trade_dict['symbol']},"
-                f"{trade_dict.get('exchange', '')},"
-                f"{trade_dict['side']},"
-                f"{trade_dict['quantity']},"
-                f"{trade_dict['entry_price']},"
-                f"{trade_dict.get('exit_price', '')},"
-                f"{trade_dict.get('pnl', '')},"
-                f"{trade_dict.get('fee', 0)},"
-                f"{trade_dict.get('status', 'OPEN')}\n"
-            )
+        with open(self.path, "a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                trade_dict.get('timestamp', ''),
+                trade_dict['symbol'],
+                trade_dict.get('exchange', ''),
+                trade_dict['side'],
+                trade_dict['quantity'],
+                trade_dict['entry_price'],
+                trade_dict.get('exit_price', ''),
+                trade_dict.get('pnl', ''),
+                trade_dict.get('fee', 0),
+                trade_dict.get('status', 'OPEN'),
+            ])
 
 
 def print_dashboard(tracker: PerformanceTracker, positions: list[dict], prices: dict) -> None:

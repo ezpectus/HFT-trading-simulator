@@ -69,6 +69,12 @@ signal_engine_v2:
   sell_threshold: -0.3          # Composite score < -0.3 → SELL
   min_confidence: 60            # 0-100, reject signals below this
 
+# ─── Signal Engine V3 (HMM regime detection, optional) ───
+# Extends V2 with Hidden Markov Model regime detection.
+# When enabled, V3 replaces V2 in the analyze() call path.
+signal_engine_v3:
+  enabled: false                # Off by default — opt-in
+
 # ─── Pressure Model (L2 microstructure) ───
 pressure_model:
   toxic_size_threshold: 5.0     # Trades > 5× median size = toxic

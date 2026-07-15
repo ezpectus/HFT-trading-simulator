@@ -8,12 +8,11 @@
 
 namespace hft::ipc {
 
-#pragma pack(push, 1)
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Signal struct — 32 bytes
 // Python: struct.Struct('<Q B B f f f f B 3x')
 // ─────────────────────────────────────────────────────────────────────────────
+#pragma pack(push, 1)
 struct SignalMsg {
     uint64_t timestamp;    // ns since epoch
     uint8_t  symbol_id;    // 0=BTC, 1=ETH, 2=SOL, ...
@@ -23,15 +22,17 @@ struct SignalMsg {
     float    sl;           // Stop loss
     float    tp;           // Take profit
     uint8_t  leverage;     // 1-125
-    uint8_t  pad_[3];      // Align to 32 bytes
+    uint8_t  pad_[5];      // Align to 32 bytes
 };
 
 static_assert(sizeof(SignalMsg) == 32, "SignalMsg must be 32 bytes");
+#pragma pack(pop)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fill struct — 28 bytes
 // Python: struct.Struct('<Q B B f f f B 5x')
 // ─────────────────────────────────────────────────────────────────────────────
+#pragma pack(push, 1)
 struct FillMsg {
     uint64_t timestamp;    // ns since epoch
     uint8_t  symbol_id;    // 0=BTC, 1=ETH, ...
@@ -44,11 +45,13 @@ struct FillMsg {
 };
 
 static_assert(sizeof(FillMsg) == 28, "FillMsg must be 28 bytes");
+#pragma pack(pop)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MarketSnapshot struct — 28 bytes
 // Python: struct.Struct('<Q B 3x f f f f')
 // ─────────────────────────────────────────────────────────────────────────────
+#pragma pack(push, 1)
 struct MarketSnapshotMsg {
     uint64_t timestamp;    // ns since epoch
     uint8_t  symbol_id;    // 0=BTC, 1=ETH, ...
@@ -60,10 +63,12 @@ struct MarketSnapshotMsg {
 };
 
 static_assert(sizeof(MarketSnapshotMsg) == 28, "MarketSnapshotMsg must be 28 bytes");
+#pragma pack(pop)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KillSwitch struct — 16 bytes
 // ─────────────────────────────────────────────────────────────────────────────
+#pragma pack(push, 1)
 struct KillSwitchMsg {
     uint64_t timestamp;
     uint8_t  active;       // 1=kill switch activated, 0=normal
@@ -72,6 +77,7 @@ struct KillSwitchMsg {
 };
 
 static_assert(sizeof(KillSwitchMsg) == 16, "KillSwitchMsg must be 16 bytes");
+#pragma pack(pop)
 
 // Symbol ID mapping
 enum class SymbolId : uint8_t {
@@ -107,7 +113,5 @@ enum class Side : uint8_t {
     BUY = 0,
     SELL = 1,
 };
-
-#pragma pack(pop)
 
 } // namespace hft::ipc

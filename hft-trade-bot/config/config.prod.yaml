@@ -139,6 +139,12 @@ signal_engine_v2:
     adx_period: 14                         # ADX lookback
     vwap_window: 60                        # VWAP calculation window
 
+# ── Signal engine v3 (HMM regime detection, optional) ──
+# Extends V2 with Hidden Markov Model regime detection.
+# When enabled, V3 replaces V2 in the analyze() call path.
+signal_engine_v3:
+  enabled: false                           # Off by default — opt-in
+
 # ── Pressure model ──
 # L2 microstructure toxicity detection
 pressure_model:
@@ -213,7 +219,7 @@ redis:
 # Metrics endpoint for monitoring
 metrics:
   enabled: true
-  port: 9090                               # Metrics HTTP server port
+  port: 9091                               # Metrics HTTP server port (matches docker-compose + prometheus)
   host: "0.0.0.0"                          # Bind to all interfaces
 
 # ── Symbols to trade ──

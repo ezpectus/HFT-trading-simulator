@@ -3,8 +3,36 @@
 #include <spdlog/spdlog.h>
 #include <filesystem>
 #include <algorithm>
+#include <cstdlib>
 
 namespace hft {
+
+// Expand ${VAR} environment variable references in a string.
+// Returns the original string if no ${} pattern is found.
+// If the env var is not set, expands to empty string (fail-safe).
+static std::string expand_env(const std::string& s) {
+    std::string result;
+    result.reserve(s.size());
+    size_t i = 0;
+    while (i < s.size()) {
+        if (i + 1 < s.size() && s[i] == '$' && s[i + 1] == '{') {
+            size_t end = s.find('}', i + 2);
+            if (end == std::string::npos) {
+                result += s.substr(i);
+                break;
+            }
+            std::string var_name = s.substr(i + 2, end - i - 2);
+            const char* val = std::getenv(var_name.c_str());
+            if (val) {
+                result += val;
+            }
+            i = end + 1;
+        } else {
+            result += s[i++];
+        }
+    }
+    return result;
+}
 
 // Validate config values and log warnings for out-of-range parameters.
 static void validate_config(const Config& cfg) {
@@ -223,9 +251,9 @@ Config Config::load(const std::string& path) {
             if (node["enabled"]) ec.enabled = node["enabled"].as<bool>();
             if (node["ws_url"]) ec.ws_url = node["ws_url"].as<std::string>();
             if (node["rest_url"]) ec.rest_url = node["rest_url"].as<std::string>();
-            if (node["api_key"]) ec.api_key = node["api_key"].as<std::string>();
-            if (node["api_secret"]) ec.api_secret = node["api_secret"].as<std::string>();
-            if (node["passphrase"]) ec.passphrase = node["passphrase"].as<std::string>();
+            if (node["api_key"]) ec.api_key = expand_env(node["api_key"].as<std::string>());
+            if (node["api_secret"]) ec.api_secret = expand_env(node["api_secret"].as<std::string>());
+            if (node["passphrase"]) ec.passphrase = expand_env(node["passphrase"].as<std::string>());
             if (node["inst_type"]) ec.inst_type = node["inst_type"].as<std::string>();
             if (node["category"]) ec.category = node["category"].as<std::string>();
             if (auto fees = node["fees"]) {
@@ -240,6 +268,16 @@ Config Config::load(const std::string& path) {
         parse_exchange(ex["binance"], cfg.binance_cfg);
         parse_exchange(ex["okx"], cfg.okx_cfg);
         parse_exchange(ex["bybit"], cfg.bybit_cfg);
+
+        // Warn if credentials are missing after env var expansion
+        if (cfg.is_production) {
+            if (cfg.binance_cfg.enabled && cfg.binance_cfg.api_key.empty())
+                spdlog::warn("Binance API key is empty — set BINANCE_API_KEY env var");
+            if (cfg.okx_cfg.enabled && cfg.okx_cfg.api_key.empty())
+                spdlog::warn("OKX API key is empty — set OKX_API_KEY env var");
+            if (cfg.bybit_cfg.enabled && cfg.bybit_cfg.api_key.empty())
+                spdlog::warn("Bybit API key is empty — set BYBIT_API_KEY env var");
+        }
 
         // Set default exchange to first active
         if (!cfg.active_exchanges.empty()) {
@@ -360,7 +398,7 @@ Config Config::load(const std::string& path) {
 
     // ─── Production: database ───
     if (auto db = root["database"]) {
-        if (db["dsn"]) cfg.db_dsn = db["dsn"].as<std::string>();
+        if (db["dsn"]) cfg.db_dsn = expand_env(db["dsn"].as<std::string>());
         if (db["pool_min"]) cfg.db_pool_min = db["pool_min"].as<int>();
         if (db["pool_max"]) cfg.db_pool_max = db["pool_max"].as<int>();
         if (db["persist_trades"]) cfg.db_persist_trades = db["persist_trades"].as<bool>();
@@ -372,7 +410,7 @@ Config Config::load(const std::string& path) {
     // ─── Production: Redis ───
     if (auto redis = root["redis"]) {
         if (redis["enabled"]) cfg.redis_enabled = redis["enabled"].as<bool>();
-        if (redis["url"]) cfg.redis_url = redis["url"].as<std::string>();
+        if (redis["url"]) cfg.redis_url = expand_env(redis["url"].as<std::string>());
         if (redis["cache_ttl"]) cfg.redis_cache_ttl = redis["cache_ttl"].as<int>();
     }
 

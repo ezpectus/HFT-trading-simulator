@@ -330,7 +330,7 @@ class LLMEngine:
             summary = f"{ctx.symbol} is in consolidation: RSI={ctx.rsi:.1f}, ADX={ctx.adx:.1f}, regime={ctx.regime}"
 
         risk_factors = []
-        if ctx.atr / ctx.price > 0.03:
+        if ctx.price > 0 and ctx.atr / ctx.price > 0.03:
             risk_factors.append("High volatility (ATR > 3% of price)")
         if abs(ctx.order_book_imbalance) > 0.5:
             risk_factors.append("Extreme order book imbalance — possible reversal risk")

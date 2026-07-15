@@ -1,11 +1,7 @@
 import { useState, useMemo } from 'react'
 import { BookOpen, Tag, Search, X } from 'lucide-react'
 import { formatUsd } from '../utils/format'
-import { useTradeJournal } from '../hooks/useTradeJournal'
-
-function tradeKeyFromId(id) {
-  return id.replace(/_/g, '|')
-}
+import { useTradeJournal, tradeKeyFromId, extractTradesFromAccounts } from '../hooks/useTradeJournal'
 
 const TAG_COLORS = {
   'momentum': 'bg-accent-blue/20 text-accent-blue',
@@ -29,15 +25,7 @@ export default function TradeJournal({ accounts }) {
   const [noteText, setNoteText] = useState('')
   const [noteTags, setNoteTags] = useState([])
 
-  const allTrades = useMemo(() => {
-    const trades = []
-    for (const [exId, acc] of Object.entries(accounts || {})) {
-      for (const t of (acc.trade_history || [])) {
-        trades.push({ ...t, exchange: exId, id: `${exId}_${t.symbol}_${t.closed_at || t.timestamp || Math.random()}` })
-      }
-    }
-    return trades.sort((a, b) => (b.closed_at || 0) - (a.closed_at || 0))
-  }, [accounts])
+  const allTrades = useMemo(() => extractTradesFromAccounts(accounts), [accounts])
 
   const filteredTrades = useMemo(() => {
     return allTrades.filter(t => {

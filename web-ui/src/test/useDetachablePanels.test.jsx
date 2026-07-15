@@ -18,25 +18,71 @@ class MockBroadcastChannel {
   close() {}
 }
 
-// Mock popup window
+// Mock popup window with proper DOM API
 function createMockPopup() {
-  const contentEl = {
-    innerHTML: '',
+  const elements = []
+
+  function createMockEl(tagName) {
+    const el = {
+      tagName: tagName.toUpperCase(),
+      className: '',
+      id: '',
+      textContent: '',
+      style: { cssText: '' },
+      _children: [],
+      _attrs: {},
+      appendChild(child) { this._children.push(child); return child },
+      removeChild(child) {
+        const idx = this._children.indexOf(child)
+        if (idx >= 0) this._children.splice(idx, 1)
+        return child
+      },
+      addEventListener: vi.fn(),
+      get firstChild() { return this._children[0] || null },
+      setAttribute(k, v) { this._attrs[k] = v },
+      getAttribute(k) { return this._attrs[k] },
+    }
+    elements.push(el)
+    return el
   }
+
+  const contentEl = createMockEl('div')
+  contentEl.id = 'content'
+
+  const headEl = createMockEl('head')
+  const bodyEl = createMockEl('body')
+
   const docEl = {
     _contentEl: contentEl,
+    _elements: elements,
+    _head: headEl,
+    _body: bodyEl,
+    title: '',
     getElementById(id) {
       if (id === 'content') return contentEl
-      return null
+      return elements.find(e => e.id === id) || null
     },
-    write: vi.fn(),
-    close: vi.fn(),
+    createElement(tag) { return createMockEl(tag) },
+    head: headEl,
+    body: bodyEl,
   }
+
   return {
     closed: false,
     document: docEl,
     close: vi.fn(() => { this.closed = true }),
   }
+}
+
+// Helper: get all text content from an element and its children
+function getAllText(el) {
+  let text = el.textContent || ''
+  if (el._children) {
+    for (const child of el._children) {
+      text += ' ' + getAllText(child)
+    }
+  }
+  return text
 }
 
 describe('useDetachablePanels', () => {
@@ -81,11 +127,12 @@ describe('useDetachablePanels', () => {
     expect(openSpy).toHaveBeenCalled()
   })
 
-  it('detachPanel writes HTML to popup document', () => {
+  it('detachPanel creates DOM elements in popup document', () => {
     const { result } = renderHook(() => useDetachablePanels())
     act(() => result.current.detachPanel('chart', { candles: [] }))
-    expect(mockPopup.document.write).toHaveBeenCalled()
-    expect(mockPopup.document.close).toHaveBeenCalled()
+    expect(mockPopup.document.title).toContain('Chart')
+    expect(mockPopup.document._head._children.length).toBeGreaterThan(0)
+    expect(mockPopup.document._body._children.length).toBeGreaterThan(0)
   })
 
   it('detachPanel ignores unknown panel ID', () => {
@@ -147,8 +194,9 @@ describe('useDetachablePanels', () => {
       },
       currentPrice: 50050,
     }))
-    expect(mockPopup.document._contentEl.innerHTML).toContain('50000')
-    expect(mockPopup.document._contentEl.innerHTML).toContain('50100')
+    const text = getAllText(mockPopup.document._contentEl)
+    expect(text).toContain('50000')
+    expect(text).toContain('50100')
   })
 
   it('updateDetached updates popup content for account', () => {
@@ -161,8 +209,9 @@ describe('useDetachablePanels', () => {
         positions: [{ symbol: 'BTC/USDT', side: 'LONG', quantity: 0.5, unrealized_pnl: 250 }],
       },
     }))
-    expect(mockPopup.document._contentEl.innerHTML).toContain('10000')
-    expect(mockPopup.document._contentEl.innerHTML).toContain('10500')
+    const text = getAllText(mockPopup.document._contentEl)
+    expect(text).toContain('10000')
+    expect(text).toContain('10500')
   })
 
   it('updateDetached updates popup content for signals', () => {
@@ -170,8 +219,9 @@ describe('useDetachablePanels', () => {
     act(() => result.current.detachPanel('signals', {
       signals: [{ symbol: 'BTC/USDT', direction: 'LONG', confidence: 0.85, strategy: 'momentum' }],
     }))
-    expect(mockPopup.document._contentEl.innerHTML).toContain('BTC/USDT')
-    expect(mockPopup.document._contentEl.innerHTML).toContain('85%')
+    const text = getAllText(mockPopup.document._contentEl)
+    expect(text).toContain('BTC/USDT')
+    expect(text).toContain('85%')
   })
 
   it('updateDetached updates popup content for arbitrage', () => {
@@ -181,8 +231,9 @@ describe('useDetachablePanels', () => {
         active: [{ symbol: 'BTC/USDT', buy_exchange: 'binance', sell_exchange: 'okx', spread_bps: 5.2, estimated_profit: 25.0 }],
       },
     }))
-    expect(mockPopup.document._contentEl.innerHTML).toContain('binance')
-    expect(mockPopup.document._contentEl.innerHTML).toContain('okx')
+    const text = getAllText(mockPopup.document._contentEl)
+    expect(text).toContain('binance')
+    expect(text).toContain('okx')
   })
 
   it('updateDetached updates popup content for performance', () => {
@@ -190,8 +241,9 @@ describe('useDetachablePanels', () => {
     act(() => result.current.detachPanel('performance', {
       metrics: { totalBalance: 50000, totalPnl: 5000, totalTrades: 100, winningTrades: 60 },
     }))
-    expect(mockPopup.document._contentEl.innerHTML).toContain('50000')
-    expect(mockPopup.document._contentEl.innerHTML).toContain('60.0%')
+    const text = getAllText(mockPopup.document._contentEl)
+    expect(text).toContain('50000')
+    expect(text).toContain('60.0%')
   })
 
   it('updateDetached updates popup content for chart with candles', () => {
@@ -204,20 +256,23 @@ describe('useDetachablePanels', () => {
         { open: 50000, high: 51200, low: 49900, close: 51000, volume: 150 },
       ],
     }))
-    expect(mockPopup.document._contentEl.innerHTML).toContain('51000')
-    expect(mockPopup.document._contentEl.innerHTML).toContain('BTC/USDT')
+    const text = getAllText(mockPopup.document._contentEl)
+    expect(text).toContain('51000')
+    expect(text).toContain('BTC/USDT')
   })
 
   it('updateDetached shows no data for orderbook without data', () => {
     const { result } = renderHook(() => useDetachablePanels())
     act(() => result.current.detachPanel('orderbook', {}))
-    expect(mockPopup.document._contentEl.innerHTML).toContain('No data')
+    const text = getAllText(mockPopup.document._contentEl)
+    expect(text).toContain('No data')
   })
 
   it('updateDetached shows no candles for chart without data', () => {
     const { result } = renderHook(() => useDetachablePanels())
     act(() => result.current.detachPanel('chart', { candles: [] }))
-    expect(mockPopup.document._contentEl.innerHTML).toContain('No candles')
+    const text = getAllText(mockPopup.document._contentEl)
+    expect(text).toContain('No candles')
   })
 
   it('updateDetached does nothing for non-detached panel', () => {

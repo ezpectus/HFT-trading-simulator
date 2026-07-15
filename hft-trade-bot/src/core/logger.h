@@ -1,5 +1,6 @@
 // Logger — thread-safe console + file logging with timestamped filenames
 // Supports both human-readable (default) and JSON structured logging (production).
+// Production mode uses rotating file sinks to prevent unbounded log growth.
 #pragma once
 
 #include <fmt/core.h>
@@ -7,6 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 #include <chrono>
 #include <ctime>
 #include <filesystem>
@@ -42,8 +44,21 @@ public:
         std::string latest_path = dir + "/hft_trade_bot_latest.log";
 
         auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_path, true);
-        auto latest_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(latest_path, true);
+
+        std::shared_ptr<spdlog::sinks::sink> file_sink;
+        std::shared_ptr<spdlog::sinks::sink> latest_sink;
+
+        if (json) {
+            // Production: rotating file sinks — 50MB max, 5 rotated files kept
+            file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+                log_path, 50 * 1024 * 1024, 5, true);
+            latest_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+                latest_path, 50 * 1024 * 1024, 3, true);
+        } else {
+            // Development: basic file sinks (truncate on each run)
+            file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_path, true);
+            latest_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(latest_path, true);
+        }
 
         auto logger = std::make_shared<spdlog::logger>("hft",
             spdlog::sinks_init_list{console_sink, file_sink, latest_sink});

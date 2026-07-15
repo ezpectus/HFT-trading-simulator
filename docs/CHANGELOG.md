@@ -96,6 +96,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **P3.1 DONE**: Directory renamed `exchange-simulator/` → `exchange_simulator/`. All 103 references across 25 files updated.
 
+### Added — Performance Optimization Rounds 8-10 (2026-07-15)
+
+**Round 8 (C++ pressure model + Python exchange):**
+- Multi-level OBI: 3 separate `compute_obi()` calls merged into single-pass loop with level-5/10/20 snapshots. 35 → 20 iterations.
+- Toxicity detection: 2 loops (count + volume) merged into 1. Half the iterations.
+- Python `_update_position`: O(n) linear scan → O(1) dict lookup (`_positions_by_symbol`).
+- Python `uuid.uuid4()` in `check_stop_loss_take_profit` replaced with atomic counter (latent crash fix).
+- Python order book incremental update: paired bid/ask loops → `zip()` loop, halving RNG calls.
+- Files: `pressure_model.h`, `exchange.py`, `market_simulator.py`
+
+**Round 9 (C++ V2 engine + router + Python WS):**
+- V2 engine OBI: added `compute_obi_all()` — 3 calls → 1 single-pass function. Applied to `analyze()` and `analyze_incremental()`.
+- Smart order router: `fee / 10000.0` division → `fee * 0.0001` multiplication.
+- Arb fill broadcast: `json.dumps()` → `orjson.dumps()` when available.
+- Cached `time.time()` as `arb_ts` for arb fill logging.
+- Files: `signal_engine_v2.h`, `smart_order_router_v2.h`, `websocket_server.py`
+
+**Round 10 (C++ indicators + position manager + Python client):**
+- InlineRSI/ADX/ATR: precomputed `inv_period_complement_` (1.0 - inv_period_) — Wilder's smoothing uses `avg * complement + gain * inv` instead of `(avg * (n-1) + gain) / n`. Better ILP, fewer operations.
+- InlineADX: 2 DI divisions → 1 division + 2 multiplications via precomputed `inv_tr`.
+- Position manager `has_position(string)`: O(n) linear scan → O(1) `unordered_set` lookup. `open_symbol_names_` maintained in `on_fill()`.
+- Python ws_client: `json.loads()` → `orjson.loads()` for market data parsing (3-5x faster).
+- Files: `signal_engine_v2.h`, `position_manager_v2.h`, `ws_client.py`
+
+**Documentation:**
+- PERFORMANCE.md: 10 new walkthrough examples (#14-23) with before/after code + impact analysis. Total: 23 examples.
+- CONTRIBUTING.md: expanded performance guidelines (precomputed complements, transparent hash, single-pass, unordered_set, orjson.loads, deque, dict/set lookups) + 6 new code review checklist items.
+- README.md: benchmarks table updated with 4 new metrics (Wilder's smoothing, market data parsing, optimization walkthroughs, SHM packed structs).
+- AUDIT_2026_07.md: Rounds 8-10 entries added. Summary table updated with performance optimization count.
+- .gitignore: added internal docs (PLANNING_NON_TECHNICAL.md, HFT_OPTIMIZATION_IDEAS.md, MASTERPLAN.md) to hide from public repo.
+
 ---
 
 ## [5.3.9] — FixMessage.parse() checksum validation fix + doctest tests

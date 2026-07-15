@@ -1,7 +1,7 @@
-import { useMemo, useCallback, useState } from 'react'
-import { History, TrendingUp, TrendingDown, Crown, AlertCircle, Download, NotebookPen, X, Check, FileText, ArrowUpDown } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { History, Crown, AlertCircle, Download, NotebookPen, X, Check, FileText, ArrowUpDown } from 'lucide-react'
 import { formatPrice, formatUsd, formatTime, colorForSide } from '../utils/format'
-import { useTradeJournal, tradeKey } from '../hooks/useTradeJournal'
+import { useTradeJournal, tradeKey, extractTradesFromAccounts } from '../hooks/useTradeJournal'
 import VirtualList from './VirtualList'
 import { EmptyState } from './LoadingSkeleton'
 
@@ -11,29 +11,6 @@ const SORT_OPTIONS = [
   { id: 'symbol', label: 'Symbol' },
 ]
 
-function exportTradesCSV(trades) {
-  const headers = ['Exchange', 'Symbol', 'Side', 'Entry Price', 'Exit Price', 'Quantity', 'PnL', 'Reason', 'Closed At']
-  const rows = trades.map(t => [
-    t.exchange,
-    t.symbol,
-    t.side,
-    t.entry_price,
-    t.exit_price,
-    t.quantity,
-    t.pnl,
-    t.reason || 'MANUAL',
-    new Date(t.closed_at * 1000).toISOString(),
-  ])
-  const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `trades_${Date.now()}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
 export default function TradeHistory({ accounts }) {
   const journal = useTradeJournal()
   const [expandedKey, setExpandedKey] = useState(null)
@@ -41,16 +18,11 @@ export default function TradeHistory({ accounts }) {
   const [sortMode, setSortMode] = useState('date')
 
   const { allTrades, bestTrade, worstTrade, totalPnl, wins, losses } = useMemo(() => {
-    const trades = []
-    for (const [exId, acc] of Object.entries(accounts || {})) {
-      for (const trade of (acc.trade_history || [])) {
-        trades.push({ ...trade, exchange: exId })
-      }
-    }
-    trades.sort((a, b) => {
+    const baseTrades = extractTradesFromAccounts(accounts)
+    const trades = baseTrades.sort((a, b) => {
       if (sortMode === 'pnl') return b.pnl - a.pnl
       if (sortMode === 'symbol') return a.symbol.localeCompare(b.symbol)
-      return b.closed_at - a.closed_at
+      return (b.closed_at || 0) - (a.closed_at || 0)
     })
 
     let best = null, worst = null, pnl = 0, w = 0, l = 0
@@ -89,7 +61,7 @@ export default function TradeHistory({ accounts }) {
           <div className="text-[10px] text-gray-500 uppercase">Trade History Summary</div>
           <div className="flex gap-1">
             <button
-              onClick={() => exportTradesCSV(allTrades)}
+              onClick={() => journal.exportJournalCSV(allTrades)}
               className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
               title="Export trades as CSV"
             >
@@ -182,7 +154,7 @@ export default function TradeHistory({ accounts }) {
         itemHeight={80}
         maxHeight={400}
         overscan={5}
-        renderItem={(trade, i) => {
+        renderItem={(trade, _i) => {
         const isWin = trade.pnl >= 0
         const isBest = bestTrade && trade.closed_at === bestTrade.closed_at && trade.symbol === bestTrade.symbol
         const isWorst = worstTrade && trade.closed_at === worstTrade.closed_at && trade.symbol === worstTrade.symbol

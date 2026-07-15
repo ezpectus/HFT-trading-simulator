@@ -188,9 +188,11 @@ public:
             int64_t latency = ex->estimated_latency_us();
 
             // Effective price: for buy, price + fee; for sell, price - fee
+            // Precompute fee fraction to avoid division per exchange
+            double fee_fraction = fee * 0.0001;  // fee / 10000.0
             double effective_price = is_buy
-                ? price * (1.0 + fee / 10000.0)
-                : price * (1.0 - fee / 10000.0);
+                ? price * (1.0 + fee_fraction)
+                : price * (1.0 - fee_fraction);
 
             double score;
             switch (config_.strategy) {

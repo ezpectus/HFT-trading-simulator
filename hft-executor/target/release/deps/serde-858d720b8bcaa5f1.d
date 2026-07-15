@@ -1,0 +1,14 @@
+s:\VSC projects\trading-system – lite\hft-executor\target\release\deps\serde-858d720b8bcaa5f1.d: C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs s:\VSC\ projects\trading-system\ –\ lite\hft-executor\target\release\build\serde-080949b6170771c9\out/private.rs
+
+s:\VSC projects\trading-system – lite\hft-executor\target\release\deps\libserde-858d720b8bcaa5f1.rlib: C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs s:\VSC\ projects\trading-system\ –\ lite\hft-executor\target\release\build\serde-080949b6170771c9\out/private.rs
+
+s:\VSC projects\trading-system – lite\hft-executor\target\release\deps\libserde-858d720b8bcaa5f1.rmeta: C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs s:\VSC\ projects\trading-system\ –\ lite\hft-executor\target\release\build\serde-080949b6170771c9\out/private.rs
+
+C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs:
+C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs:
+C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs:
+C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs:
+C:\Users\stepa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs:
+s:\VSC\ projects\trading-system\ –\ lite\hft-executor\target\release\build\serde-080949b6170771c9\out/private.rs:
+
+# env-dep:OUT_DIR=s:\\VSC projects\\trading-system – lite\\hft-executor\\target\\release\\build\\serde-080949b6170771c9\\out

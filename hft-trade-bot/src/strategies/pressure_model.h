@@ -57,10 +57,40 @@ public:
             result.spread_bps > 5.0 ? PressureResult::SpreadRegime::WIDE :
             PressureResult::SpreadRegime::NORMAL;
 
-        // ── Multi-level OBI ──
-        result.obi_5 = compute_obi(ob, params_.obi_levels_5);
-        result.obi_10 = compute_obi(ob, params_.obi_levels_10);
-        result.obi_20 = compute_obi(ob, params_.obi_levels_20);
+        // ── Multi-level OBI — single pass for 5/10/20 levels ──
+        // Previously 3 separate compute_obi() calls, each iterating from level 0.
+        // Now: one loop, snapshot cumulative volumes at 5, 10, 20.
+        {
+            int n = std::min(params_.obi_levels_20, static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
+            double bid_vol = 0.0, ask_vol = 0.0;
+            for (int i = 0; i < n; ++i) {
+                bid_vol += ob.bids[i].quantity;
+                ask_vol += ob.asks[i].quantity;
+                double total = bid_vol + ask_vol;
+                if (i == params_.obi_levels_5 - 1) {
+                    result.obi_5 = total > 0 ? (bid_vol - ask_vol) / total : 0.0;
+                }
+                if (i == params_.obi_levels_10 - 1) {
+                    result.obi_10 = total > 0 ? (bid_vol - ask_vol) / total : 0.0;
+                }
+                if (i == params_.obi_levels_20 - 1) {
+                    result.obi_20 = total > 0 ? (bid_vol - ask_vol) / total : 0.0;
+                }
+            }
+            // If fewer levels than 20, compute with what we have
+            if (n < params_.obi_levels_5) {
+                double total = bid_vol + ask_vol;
+                result.obi_5 = result.obi_10 = result.obi_20 =
+                    total > 0 ? (bid_vol - ask_vol) / total : 0.0;
+            } else if (n < params_.obi_levels_10) {
+                double total = bid_vol + ask_vol;
+                result.obi_10 = result.obi_20 =
+                    total > 0 ? (bid_vol - ask_vol) / total : 0.0;
+            } else if (n < params_.obi_levels_20) {
+                double total = bid_vol + ask_vol;
+                result.obi_20 = total > 0 ? (bid_vol - ask_vol) / total : 0.0;
+            }
+        }
 
         // Distance-weighted OBI — closer levels have more weight
         result.obi_weighted = compute_weighted_obi(ob, params_.obi_levels_20);
@@ -169,26 +199,20 @@ private:
 
         double toxic_threshold = median * params_.toxic_size_threshold;
         int toxic_count = 0;
-        int aggressive_count = 0;
 
+        // Single pass: count toxic trades + accumulate volumes
+        double toxic_vol = 0.0, total_vol = 0.0;
         for (size_t i = 0; i < count; ++i) {
+            total_vol += trades[i].quantity;
             if (trades[i].quantity > toxic_threshold) {
                 ++toxic_count;
+                toxic_vol += trades[i].quantity;
             }
         }
-        aggressive_count = static_cast<int>(count);  // All provided trades are aggressive
 
         // Toxic score: ratio of toxic trades to total, scaled by size ratio
         double toxic_ratio = static_cast<double>(toxic_count) / static_cast<double>(count);
-        double size_ratio = 0.0;
-        if (toxic_count > 0) {
-            double toxic_vol = 0.0, total_vol = 0.0;
-            for (size_t i = 0; i < count; ++i) {
-                total_vol += trades[i].quantity;
-                if (trades[i].quantity > toxic_threshold) toxic_vol += trades[i].quantity;
-            }
-            size_ratio = total_vol > 0 ? toxic_vol / total_vol : 0.0;
-        }
+        double size_ratio = total_vol > 0 ? toxic_vol / total_vol : 0.0;
 
         // Combined: 0.5 * count_ratio + 0.5 * volume_ratio
         return std::min(1.0, toxic_ratio * 0.5 + size_ratio * 0.5);

@@ -28,18 +28,18 @@ RUN sed -i 's/endpoint<connection,config>/endpoint/g' /usr/include/websocketpp/e
 RUN mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j$(nproc)
 
 # ── Runtime stage: slim image with only runtime libs ──
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 WORKDIR /app
 
 # Install runtime libraries only (no -dev packages)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libboost-system1.74.0 \
-    libboost-random1.74.0 \
+    libboost-system1.83.0 \
+    libboost-random1.83.0 \
     libssl3 \
-    libspdlog1.10 \
-    libfmt9 \
-    libyaml-cpp0.7 \
+    libspdlog1.15 \
+    libfmt10 \
+    libyaml-cpp0.8 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy built binary and config from builder

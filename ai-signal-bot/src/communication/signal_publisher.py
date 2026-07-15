@@ -19,6 +19,7 @@ import logging
 import math
 import random
 import time
+from collections import deque
 from typing import Optional
 
 import websockets
@@ -42,7 +43,7 @@ class SignalPublisher:
         self.host = host
         self.port = port
         self._clients: set = set()
-        self._signal_history: list[dict] = []
+        self._signal_history: deque = deque(maxlen=100)
         self._max_history = 100
         self._server: Optional[websockets.WebSocketServer] = None
         self._running = False
@@ -89,21 +90,25 @@ class SignalPublisher:
         # Send signal history on connect
         if self._signal_history:
             try:
-                await websocket.send(json.dumps({
+                hist_data = {
                     "type": "signal_history",
-                    "signals": self._signal_history[-20:],
+                    "signals": list(self._signal_history)[-20:],
                     "count": len(self._signal_history),
-                }, separators=(',', ':')))
+                }
+                msg = orjson.dumps(hist_data) if _HAS_ORJSON else json.dumps(hist_data, separators=(',', ':'))
+                await websocket.send(msg)
             except Exception as e:
                 logger.warning(f"Failed to send signal history: {e}")
 
         # Send current circuit breaker status on connect
         try:
-            await websocket.send(json.dumps({
+            cb_data = {
                 "type": "circuit_breaker_status",
                 **self.circuit_breaker.get_status(),
                 "timestamp": int(time.time()),
-            }, separators=(',', ':')))
+            }
+            msg = orjson.dumps(cb_data) if _HAS_ORJSON else json.dumps(cb_data, separators=(',', ':'))
+            await websocket.send(msg)
         except Exception as e:
             logger.warning(f"Failed to send circuit breaker status: {e}")
 
@@ -149,8 +154,6 @@ class SignalPublisher:
         signal = dict(signal)  # copy to avoid mutating caller's dict
         signal["timestamp"] = int(time.time())
         self._signal_history.append(signal)
-        if len(self._signal_history) > self._max_history:
-            self._signal_history = self._signal_history[-self._max_history:]
         self.metrics.record_signal_sent()
 
         if not self._clients:
@@ -161,11 +164,12 @@ class SignalPublisher:
         else:
             msg = json.dumps({"type": "signal", **signal}, separators=(',', ':'))
         disconnected = set()
-        for ws in self._clients:
+        async def _send(ws):
             try:
                 await ws.send(msg)
             except Exception:
                 disconnected.add(ws)
+        await asyncio.gather(*[_send(ws) for ws in self._clients], return_exceptions=True)
 
         self._clients -= disconnected
         logger.info(
@@ -201,11 +205,12 @@ class SignalPublisher:
             }, separators=(',', ':'))
 
         disconnected = set()
-        for ws in self._clients:
+        async def _send_regime(ws):
             try:
                 await ws.send(msg)
             except Exception:
                 disconnected.add(ws)
+        await asyncio.gather(*[_send_regime(ws) for ws in self._clients], return_exceptions=True)
         self._clients -= disconnected
 
     async def _broadcast_circuit_breaker_status(self) -> None:
@@ -234,11 +239,12 @@ class SignalPublisher:
                 }, separators=(',', ':'))
 
             disconnected = set()
-            for ws in self._clients:
+            async def _send_cb(ws):
                 try:
                     await ws.send(msg)
                 except Exception:
                     disconnected.add(ws)
+            await asyncio.gather(*[_send_cb(ws) for ws in self._clients], return_exceptions=True)
             self._clients -= disconnected
 
     async def _run_backtest(self, params: dict) -> dict:
@@ -265,14 +271,14 @@ class SignalPublisher:
         )
         from src.risk.risk_manager import RiskConfig
 
-        n_candles = params.get("candles", 500)
-        balance = params.get("balance", 10000)
-        symbol = params.get("symbol", "BTC/USDT")
-        initial_price = params.get("initial_price", 65000)
-        volatility = params.get("volatility", 0.75)
-        strategy_name = params.get("strategy", "all")
-        use_trailing = params.get("trailing_stop", False)
-        use_breakeven = params.get("breakeven", False)
+        n_candles = max(10, min(int(params.get("candles", 500)), 10000))
+        balance = max(1.0, float(params.get("balance", 10000)))
+        symbol = str(params.get("symbol", "BTC/USDT"))[:32]
+        initial_price = max(0.01, float(params.get("initial_price", 65000)))
+        volatility = max(0.0, min(float(params.get("volatility", 0.75)), 5.0))
+        strategy_name = str(params.get("strategy", "all"))[:32]
+        use_trailing = bool(params.get("trailing_stop", False))
+        use_breakeven = bool(params.get("breakeven", False))
 
         # Generate synthetic candles
         rng = random.Random(42)

@@ -1,0 +1,76 @@
+{{- if .Values.exchangeSimulator.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hft.fullname" . }}-exchange-simulator
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+    app.kubernetes.io/component: exchange-simulator
+spec:
+  {{- if not .Values.exchangeSimulator.autoscaling.enabled }}
+  replicas: {{ .Values.exchangeSimulator.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "hft.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: exchange-simulator
+  template:
+    metadata:
+      labels:
+        {{- include "hft.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: exchange-simulator
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: exchange-simulator
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.exchangeSimulator.image.repository }}:{{ .Values.exchangeSimulator.image.tag | default .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: ws
+              containerPort: 8765
+              protocol: TCP
+            - name: metrics
+              containerPort: 8775
+              protocol: TCP
+          env:
+            {{- range $k, $v := .Values.exchangeSimulator.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.exchangeSimulator.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hft.fullname" . }}-exchange-simulator
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.exchangeSimulator.service.type }}
+  ports:
+    - name: ws
+      port: {{ .Values.exchangeSimulator.service.wsPort }}
+      targetPort: ws
+    - name: metrics
+      port: {{ .Values.exchangeSimulator.service.metricsPort }}
+      targetPort: metrics
+  selector:
+    {{- include "hft.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: exchange-simulator
+{{- end }}

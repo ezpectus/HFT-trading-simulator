@@ -4,13 +4,15 @@ Each exchange (Binance, Bybit, OKX) has its own fee structure and slippage
 model. Orders are matched against the simulated order book.
 """
 import time
-import uuid
 from typing import Optional
 
 from exchange_simulator.models import (
     Account, ClosedTrade, Order, OrderBook, OrderStatus, OrderType, Position, Side,
 )
 from exchange_simulator.market_simulator import MarketSimulator
+
+# Constant for market impact and partial fill calculations
+_TYPICAL_VOLUME = 500.0
 
 
 class SimulatedExchange:
@@ -41,8 +43,11 @@ class SimulatedExchange:
             leverage=leverage,
         )
         self._order_history: list[Order] = []
+        self._order_counter: int = 0
         self.insurance_fund: float = 0.0
         self.partial_liquidation_ratio: float = 0.5  # 50% partial liq before full
+        # O(1) position lookup by symbol — maintained alongside account.positions
+        self._positions_by_symbol: dict[str, Position] = {}
 
     @property
     def symbols(self) -> list[str]:
@@ -73,7 +78,19 @@ class SimulatedExchange:
         Args:
             force_close: If True, skip margin/position checks (for SL/TP/liquidation closes).
         """
-        order_id = str(uuid.uuid4())[:8]
+        order_id = f"{self._order_counter:08x}"
+        self._order_counter += 1
+
+        if quantity <= 0 or quantity != quantity:  # NaN check
+            order = Order(
+                id=order_id, symbol=symbol, exchange=self.exchange_id,
+                side=side, order_type=order_type, quantity=quantity, price=price,
+            )
+            order.status = OrderStatus.REJECTED
+            order.rejection_reason = f"INVALID_QUANTITY (qty={quantity})"
+            self._order_history.append(order)
+            return order
+
         order = Order(
             id=order_id,
             symbol=symbol,
@@ -100,9 +117,8 @@ class SimulatedExchange:
 
         # Market impact: large orders move price further
         # Impact = k * (qty / typical_volume) where k is impact coefficient
-        typical_volume = 500.0  # baseline volume for impact calc
         impact_coeff = 0.001  # 10bps per typical_volume unit
-        order_ratio = quantity / typical_volume
+        order_ratio = quantity / _TYPICAL_VOLUME
         if order_ratio > 0.1:  # only apply for non-trivial sizes
             impact = mid_price * impact_coeff * order_ratio
             if side == Side.BUY:
@@ -133,7 +149,8 @@ class SimulatedExchange:
             return order
 
         # Check balance
-        margin_required = notional / self.account.leverage
+        lev = self.account.leverage if self.account.leverage > 0 else 1
+        margin_required = notional / lev
         if not force_close and margin_required + fee > self.account.balance:
             order.status = OrderStatus.REJECTED
             order.rejection_reason = f"INSUFFICIENT_MARGIN (need ${margin_required:.2f}, have ${self.account.balance:.2f})"
@@ -148,11 +165,9 @@ class SimulatedExchange:
         order.slippage = round(slippage_amount, 4)
 
         # Partial fill simulation for large orders
-        # If order is large relative to typical volume, split across levels
-        typical_vol = 500.0
-        if quantity > typical_vol * 0.5:
+        if quantity > _TYPICAL_VOLUME * 0.5:
             # Simulate partial fill at worse price for portion of order
-            fill_ratio = min(1.0, typical_vol / quantity)
+            fill_ratio = min(1.0, _TYPICAL_VOLUME / quantity)
             if fill_ratio < 1.0:
                 # First portion fills at normal price, rest at worse price
                 worse_price = fill_price * (1 + (1 - fill_ratio) * 0.001 * (1 if side == Side.BUY else -1))
@@ -177,12 +192,8 @@ class SimulatedExchange:
         take_profit: Optional[float],
     ) -> None:
         """Update positions based on filled order."""
-        # Check if we have an opposite position to close
-        existing = None
-        for p in self.account.positions:
-            if p.symbol == order.symbol:
-                existing = p
-                break
+        # O(1) lookup by symbol — replaces linear scan through positions list
+        existing = self._positions_by_symbol.get(order.symbol)
 
         if existing:
             if existing.side != order.side:
@@ -213,6 +224,7 @@ class SimulatedExchange:
                 ))
 
                 self.account.positions.remove(existing)
+                del self._positions_by_symbol[order.symbol]
                 return
             else:
                 # Same side — add to position (simplified)
@@ -247,6 +259,7 @@ class SimulatedExchange:
             take_profit=take_profit,
         )
         self.account.positions.append(position)
+        self._positions_by_symbol[order.symbol] = position
 
     def check_stop_loss_take_profit(self) -> list[Order]:
         """Check all positions for SL/TP/liquidation triggers and close them.
@@ -264,15 +277,16 @@ class SimulatedExchange:
             pos.update_pnl(current_price)
 
             # Calculate liquidation prices
+            lev = self.account.leverage if self.account.leverage > 0 else 1
             if pos.is_long:
-                liq_price = pos.entry_price * (1 - 1/self.account.leverage + 0.005)
+                liq_price = pos.entry_price * (1 - 1/lev + 0.005)
                 partial_liq_price = pos.entry_price * (
-                    1 - 1/self.account.leverage * self.partial_liquidation_ratio + 0.005
+                    1 - 1/lev * self.partial_liquidation_ratio + 0.005
                 )
             else:
-                liq_price = pos.entry_price * (1 + 1/self.account.leverage - 0.005)
+                liq_price = pos.entry_price * (1 + 1/lev - 0.005)
                 partial_liq_price = pos.entry_price * (
-                    1 + 1/self.account.leverage * self.partial_liquidation_ratio - 0.005
+                    1 + 1/lev * self.partial_liquidation_ratio - 0.005
                 )
 
             # Full liquidation check
@@ -342,8 +356,9 @@ class SimulatedExchange:
                 ))
 
                 pos.quantity -= close_qty
+                self._order_counter += 1
                 order = Order(
-                    id=str(uuid.uuid4())[:8],
+                    id=f"ord-{self._order_counter:08d}",
                     symbol=pos.symbol,
                     exchange=self.exchange_id,
                     side=close_side,

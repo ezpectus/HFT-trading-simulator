@@ -1,0 +1,81 @@
+{{- if .Values.timescaledb.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "hft.fullname" . }}-timescaledb
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+    app.kubernetes.io/component: timescaledb
+spec:
+  serviceName: {{ include "hft.fullname" . }}-timescaledb
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "hft.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: timescaledb
+  template:
+    metadata:
+      labels:
+        {{- include "hft.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: timescaledb
+    spec:
+      containers:
+        - name: timescaledb
+          image: "{{ .Values.timescaledb.image.repository }}:{{ .Values.timescaledb.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_USER
+              value: {{ .Values.timescaledb.auth.username | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.timescaledb.auth.database | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.auth.existingSecret }}
+                  key: {{ .Values.timescaledb.auth.secretKeys.adminPasswordKey }}
+          resources:
+            {{- toYaml .Values.timescaledb.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ .Values.timescaledb.auth.username | quote }}]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ .Values.timescaledb.auth.username | quote }}]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          {{- toYaml .Values.timescaledb.persistence.accessModes | nindent 10 }}
+        storageClassName: {{ .Values.timescaledb.persistence.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.timescaledb.persistence.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hft.fullname" . }}-timescaledb
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.timescaledb.service.type }}
+  ports:
+    - name: postgres
+      port: {{ .Values.timescaledb.service.port }}
+      targetPort: postgres
+  selector:
+    {{- include "hft.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: timescaledb
+{{- end }}

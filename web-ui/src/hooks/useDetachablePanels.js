@@ -1,17 +1,7 @@
 import { useRef, useCallback } from 'react'
 
-function escapeHtml(str) {
-  if (str == null) return ''
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
 function fmtNum(v, decimals = 2) {
-  return escapeHtml((typeof v === 'number' ? v : 0).toFixed(decimals))
+  return (typeof v === 'number' ? v : 0).toFixed(decimals)
 }
 
 const PANEL_CONFIG = {
@@ -54,39 +44,48 @@ export function useDetachablePanels() {
 
     popupsRef.current[panelId] = popup
 
-    // Write minimal HTML shell
-    popup.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${config.title}</title>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { background: #0f1521; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
-          #root { width: 100vw; height: 100vh; }
-          .header { padding: 6px 10px; background: #161b26; border-bottom: 1px solid #1e2433; font-size: 11px; color: #64748b; display: flex; justify-content: space-between; }
-          .content { padding: 8px; overflow: auto; height: calc(100vh - 30px); }
-          .ob-row { display: flex; justify-content: space-between; padding: 2px 6px; font-size: 10px; }
-          .bid { color: #22c55e; } .ask { color: #ef4444; }
-          .card { background: #161b26; border-radius: 6px; padding: 10px; margin-bottom: 6px; }
-          .label { font-size: 9px; color: #64748b; text-transform: uppercase; }
-          .value { font-size: 16px; font-weight: bold; }
-          .green { color: #22c55e; } .red { color: #ef4444; }
-          table { width: 100%; border-collapse: collapse; font-size: 10px; }
-          th { text-align: left; color: #64748b; padding: 4px; border-bottom: 1px solid #1e2433; }
-          td { padding: 3px 4px; border-bottom: 1px solid #161b26; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <span>${config.title}</span>
-          <span style="cursor:pointer" onclick="window.close()">[x]</span>
-        </div>
-        <div class="content" id="content">Loading...</div>
-      </body>
-      </html>
-    `)
-    popup.document.close()
+    // Build DOM via createElement (no document.write / innerHTML injection)
+    const doc = popup.document
+    doc.title = config.title
+
+    // <style>
+    const style = doc.createElement('style')
+    style.textContent = `
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #0f1521; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
+      .header { padding: 6px 10px; background: #161b26; border-bottom: 1px solid #1e2433; font-size: 11px; color: #64748b; display: flex; justify-content: space-between; }
+      .content { padding: 8px; overflow: auto; height: calc(100vh - 30px); }
+      .ob-row { display: flex; justify-content: space-between; padding: 2px 6px; font-size: 10px; }
+      .bid { color: #22c55e; } .ask { color: #ef4444; }
+      .card { background: #161b26; border-radius: 6px; padding: 10px; margin-bottom: 6px; }
+      .label { font-size: 9px; color: #64748b; text-transform: uppercase; }
+      .value { font-size: 16px; font-weight: bold; }
+      .green { color: #22c55e; } .red { color: #ef4444; }
+      table { width: 100%; border-collapse: collapse; font-size: 10px; }
+      th { text-align: left; color: #64748b; padding: 4px; border-bottom: 1px solid #1e2433; }
+      td { padding: 3px 4px; border-bottom: 1px solid #161b26; }
+    `
+    doc.head.appendChild(style)
+
+    // Header bar
+    const header = doc.createElement('div')
+    header.className = 'header'
+    const titleSpan = doc.createElement('span')
+    titleSpan.textContent = config.title
+    const closeSpan = doc.createElement('span')
+    closeSpan.textContent = '[x]'
+    closeSpan.style.cursor = 'pointer'
+    closeSpan.addEventListener('click', () => popup.close())
+    header.appendChild(titleSpan)
+    header.appendChild(closeSpan)
+    doc.body.appendChild(header)
+
+    // Content container
+    const content = doc.createElement('div')
+    content.className = 'content'
+    content.id = 'content'
+    content.textContent = 'Loading...'
+    doc.body.appendChild(content)
 
     // Send initial data
     const ch = getChannel()
@@ -98,66 +97,140 @@ export function useDetachablePanels() {
 
   const updatePopupContent = useCallback((popup, panelId, data) => {
     if (!popup || popup.closed) return
-    const el = popup.document.getElementById('content')
+    const doc = popup.document
+    const el = doc.getElementById('content')
     if (!el) return
+
+    // Clear previous content
+    while (el.firstChild) el.removeChild(el.firstChild)
+
+    const createCard = (label, valueText, valueClass = '') => {
+      const card = doc.createElement('div')
+      card.className = 'card'
+      const lbl = doc.createElement('div')
+      lbl.className = 'label'
+      lbl.textContent = label
+      const val = doc.createElement('div')
+      val.className = 'value ' + valueClass
+      val.textContent = valueText
+      card.appendChild(lbl)
+      card.appendChild(val)
+      return card
+    }
+
+    const createTable = (headers, rows) => {
+      const table = doc.createElement('table')
+      const thead = doc.createElement('thead')
+      const htr = doc.createElement('tr')
+      for (const h of headers) {
+        const th = doc.createElement('th')
+        th.textContent = h
+        htr.appendChild(th)
+      }
+      thead.appendChild(htr)
+      const tbody = doc.createElement('tbody')
+      for (const row of rows) {
+        const tr = doc.createElement('tr')
+        for (const cell of row) {
+          const td = doc.createElement('td')
+          if (cell.cls) td.className = cell.cls
+          td.textContent = cell.text
+          tr.appendChild(td)
+        }
+        tbody.appendChild(tr)
+      }
+      table.appendChild(thead)
+      table.appendChild(tbody)
+      return table
+    }
 
     if (panelId === 'orderbook') {
       const ob = data.orderbookData
-      if (!ob) { el.innerHTML = '<p style="color:#64748b">No data</p>'; return }
-      const bids = (ob.bids || []).slice(0, 15).map(b =>
-        `<div class="ob-row bid"><span>${fmtNum(b.quantity, 4)}</span><span>$${fmtNum(b.price, 2)}</span></div>`
-      ).join('')
-      const asks = (ob.asks || []).slice(0, 15).map(a =>
-        `<div class="ob-row ask"><span>$${fmtNum(a.price, 2)}</span><span>${fmtNum(a.quantity, 4)}</span></div>`
-      ).join('')
-      el.innerHTML = `<div style="margin-bottom:8px"><span class="label">Spread</span> <span class="value">$${fmtNum(data.currentPrice, 2) || '--'}</span></div><div class="asks">${asks}</div><div style="border-top:1px solid #1e2433;margin:4px 0"></div><div class="bids">${bids}</div>`
+      if (!ob) { el.textContent = 'No data'; return }
+      const spreadCard = createCard('Spread', '$' + fmtNum(data.currentPrice, 2) || '--')
+      el.appendChild(spreadCard)
+      const asksDiv = doc.createElement('div')
+      for (const a of (ob.asks || []).slice(0, 15)) {
+        const row = doc.createElement('div')
+        row.className = 'ob-row ask'
+        const s1 = doc.createElement('span'); s1.textContent = '$' + fmtNum(a.price, 2)
+        const s2 = doc.createElement('span'); s2.textContent = fmtNum(a.quantity, 4)
+        row.appendChild(s1); row.appendChild(s2)
+        asksDiv.appendChild(row)
+      }
+      el.appendChild(asksDiv)
+      const sep = doc.createElement('div')
+      sep.style.cssText = 'border-top:1px solid #1e2433;margin:4px 0'
+      el.appendChild(sep)
+      const bidsDiv = doc.createElement('div')
+      for (const b of (ob.bids || []).slice(0, 15)) {
+        const row = doc.createElement('div')
+        row.className = 'ob-row bid'
+        const s1 = doc.createElement('span'); s1.textContent = fmtNum(b.quantity, 4)
+        const s2 = doc.createElement('span'); s2.textContent = '$' + fmtNum(b.price, 2)
+        row.appendChild(s1); row.appendChild(s2)
+        bidsDiv.appendChild(row)
+      }
+      el.appendChild(bidsDiv)
     } else if (panelId === 'account') {
       const acc = data.account
-      if (!acc) { el.innerHTML = '<p style="color:#64748b">No data</p>'; return }
-      const positions = (acc.positions || []).map(p =>
-        `<tr><td>${escapeHtml(p.symbol)}</td><td class="${p.side === 'LONG' ? 'green' : 'red'}">${escapeHtml(p.side)}</td><td>${fmtNum(p.quantity, 4)}</td><td class="${p.unrealized_pnl >= 0 ? 'green' : 'red'}">${p.unrealized_pnl >= 0 ? '+' : ''}$${fmtNum(p.unrealized_pnl, 2)}</td></tr>`
-      ).join('')
-      el.innerHTML = `
-        <div class="card"><div class="label">Balance</div><div class="value">$${fmtNum(acc.balance, 2)}</div></div>
-        <div class="card"><div class="label">Equity</div><div class="value">$${fmtNum(acc.equity, 2)}</div></div>
-        <div class="card"><div class="label">Total PnL</div><div class="value ${acc.total_pnl >= 0 ? 'green' : 'red'}">${acc.total_pnl >= 0 ? '+' : ''}$${fmtNum(acc.total_pnl, 2)}</div></div>
-        <div class="card"><div class="label">Open Positions (${acc.positions?.length || 0})</div></div>
-        <table><thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>uPnL</th></tr></thead><tbody>${positions}</tbody></table>
-      `
+      if (!acc) { el.textContent = 'No data'; return }
+      el.appendChild(createCard('Balance', '$' + fmtNum(acc.balance, 2)))
+      el.appendChild(createCard('Equity', '$' + fmtNum(acc.equity, 2)))
+      el.appendChild(createCard('Total PnL', (acc.total_pnl >= 0 ? '+' : '') + '$' + fmtNum(acc.total_pnl, 2), acc.total_pnl >= 0 ? 'green' : 'red'))
+      el.appendChild(createCard('Open Positions (' + (acc.positions?.length || 0) + ')', ''))
+      const rows = (acc.positions || []).map(p => [
+        { text: p.symbol },
+        { text: p.side, cls: p.side === 'LONG' ? 'green' : 'red' },
+        { text: fmtNum(p.quantity, 4) },
+        { text: (p.unrealized_pnl >= 0 ? '+' : '') + '$' + fmtNum(p.unrealized_pnl, 2), cls: p.unrealized_pnl >= 0 ? 'green' : 'red' },
+      ])
+      el.appendChild(createTable(['Symbol', 'Side', 'Qty', 'uPnL'], rows))
     } else if (panelId === 'signals') {
       const sigs = data.signals || []
-      const rows = sigs.slice(0, 20).map(s =>
-        `<tr><td>${escapeHtml(s.symbol || '')}</td><td class="${s.direction === 'LONG' ? 'green' : 'red'}">${escapeHtml(s.direction)}</td><td>${fmtNum((s.confidence || 0) * 100, 0)}%</td><td>${escapeHtml(s.strategy || '')}</td></tr>`
-      ).join('')
-      el.innerHTML = `<div class="card"><div class="label">Signals (${sigs.length})</div></div><table><thead><tr><th>Symbol</th><th>Dir</th><th>Conf</th><th>Strategy</th></tr></thead><tbody>${rows}</tbody></table>`
+      el.appendChild(createCard('Signals (' + sigs.length + ')', ''))
+      const rows = sigs.slice(0, 20).map(s => [
+        { text: s.symbol || '' },
+        { text: s.direction, cls: s.direction === 'LONG' ? 'green' : 'red' },
+        { text: fmtNum((s.confidence || 0) * 100, 0) + '%' },
+        { text: s.strategy || '' },
+      ])
+      el.appendChild(createTable(['Symbol', 'Dir', 'Conf', 'Strategy'], rows))
     } else if (panelId === 'arbitrage') {
       const arbs = data.arbitrage?.active || []
-      const rows = arbs.slice(0, 10).map(a =>
-        `<tr><td>${escapeHtml(a.symbol)}</td><td>${escapeHtml(a.buy_exchange)}</td><td>${escapeHtml(a.sell_exchange)}</td><td class="green">${fmtNum(a.spread_bps, 1)}bps</td><td>$${fmtNum(a.estimated_profit, 2)}</td></tr>`
-      ).join('')
-      el.innerHTML = `<div class="card"><div class="label">Active Arbitrage (${arbs.length})</div></div><table><thead><tr><th>Symbol</th><th>Buy</th><th>Sell</th><th>Spread</th><th>Profit</th></tr></thead><tbody>${rows}</tbody></table>`
+      el.appendChild(createCard('Active Arbitrage (' + arbs.length + ')', ''))
+      const rows = arbs.slice(0, 10).map(a => [
+        { text: a.symbol },
+        { text: a.buy_exchange },
+        { text: a.sell_exchange },
+        { text: fmtNum(a.spread_bps, 1) + 'bps', cls: 'green' },
+        { text: '$' + fmtNum(a.estimated_profit, 2) },
+      ])
+      el.appendChild(createTable(['Symbol', 'Buy', 'Sell', 'Spread', 'Profit'], rows))
     } else if (panelId === 'performance') {
       const m = data.metrics || {}
-      el.innerHTML = `
-        <div class="card"><div class="label">Total Balance</div><div class="value">$${fmtNum(m.totalBalance, 2)}</div></div>
-        <div class="card"><div class="label">Total PnL</div><div class="value ${(m.totalPnl || 0) >= 0 ? 'green' : 'red'}">${(m.totalPnl || 0) >= 0 ? '+' : ''}$${fmtNum(m.totalPnl, 2)}</div></div>
-        <div class="card"><div class="label">Total Trades</div><div class="value">${escapeHtml(m.totalTrades || 0)}</div></div>
-        <div class="card"><div class="label">Win Rate</div><div class="value">${m.totalTrades > 0 ? fmtNum((m.winningTrades || 0) / m.totalTrades * 100, 1) : 0}%</div></div>
-      `
+      el.appendChild(createCard('Total Balance', '$' + fmtNum(m.totalBalance, 2)))
+      el.appendChild(createCard('Total PnL', ((m.totalPnl || 0) >= 0 ? '+' : '') + '$' + fmtNum(m.totalPnl, 2), (m.totalPnl || 0) >= 0 ? 'green' : 'red'))
+      el.appendChild(createCard('Total Trades', String(m.totalTrades || 0)))
+      el.appendChild(createCard('Win Rate', (m.totalTrades > 0 ? fmtNum((m.winningTrades || 0) / m.totalTrades * 100, 1) : '0') + '%'))
     } else if (panelId === 'chart') {
       const candles = data.candles || []
-      if (candles.length === 0) { el.innerHTML = '<p style="color:#64748b">No candles</p>'; return }
+      if (candles.length === 0) { el.textContent = 'No candles'; return }
       const last = candles[candles.length - 1]
       const prev = candles[candles.length - 2] || last
       const change = ((last.close - prev.close) / prev.close * 100).toFixed(2)
-      el.innerHTML = `
-        <div class="card"><div class="label">${escapeHtml(data.symbol || '')} — ${escapeHtml(data.exchange || '')}</div></div>
-        <div class="card"><div class="label">Price</div><div class="value">$${fmtNum(last.close, 2)}</div></div>
-        <div class="card"><div class="label">Change</div><div class="value ${change >= 0 ? 'green' : 'red'}">${change >= 0 ? '+' : ''}${escapeHtml(change)}%</div></div>
-        <div class="card"><div class="label">OHLC</div><div style="font-size:12px">O:${escapeHtml(last.open)} H:${escapeHtml(last.high)} L:${escapeHtml(last.low)} C:${escapeHtml(last.close)}</div></div>
-        <div class="card"><div class="label">Volume</div><div class="value">${fmtNum(last.volume, 0)}</div></div>
-        <div class="card"><div class="label">Candles</div><div class="value">${escapeHtml(candles.length)}</div></div>
-      `
+      el.appendChild(createCard((data.symbol || '') + ' — ' + (data.exchange || ''), ''))
+      el.appendChild(createCard('Price', '$' + fmtNum(last.close, 2)))
+      el.appendChild(createCard('Change', (change >= 0 ? '+' : '') + change + '%', change >= 0 ? 'green' : 'red'))
+      const ohlcCard = doc.createElement('div')
+      ohlcCard.className = 'card'
+      const ohlcLabel = doc.createElement('div'); ohlcLabel.className = 'label'; ohlcLabel.textContent = 'OHLC'
+      const ohlcVal = doc.createElement('div'); ohlcVal.style.fontSize = '12px'
+      ohlcVal.textContent = 'O:' + last.open + ' H:' + last.high + ' L:' + last.low + ' C:' + last.close
+      ohlcCard.appendChild(ohlcLabel); ohlcCard.appendChild(ohlcVal)
+      el.appendChild(ohlcCard)
+      el.appendChild(createCard('Volume', fmtNum(last.volume, 0)))
+      el.appendChild(createCard('Candles', String(candles.length)))
     }
   }, [])
 

@@ -157,6 +157,8 @@ class BacktestEngine:
         size_mult = min(confidence / 50.0, 2.0)
 
         position_value = self.equity * self.config.position_size_pct * size_mult
+        if price <= 0:
+            return
         qty = position_value / price
 
         # Apply slippage
@@ -288,7 +290,7 @@ class BacktestEngine:
 
         # Sharpe ratio (per-bar returns)
         if len(self.equity_curve) > 1:
-            returns = np.diff(self.equity_curve) / np.array(self.equity_curve[:-1])
+            returns = np.diff(self.equity_curve) / np.maximum(np.array(self.equity_curve[:-1]), 1e-10)
             returns = returns[returns != 0]
             if len(returns) > 0:
                 mean_ret = returns.mean()

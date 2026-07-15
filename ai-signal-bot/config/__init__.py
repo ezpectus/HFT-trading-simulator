@@ -1,9 +1,15 @@
 """Configuration loader for AI Signal Bot."""
+import logging
 import os
 from dataclasses import dataclass, field
 from typing import Any
 
 import yaml
+
+logger = logging.getLogger(__name__)
+
+
+REQUIRED_SECTIONS = ["trading", "exchange", "risk", "strategies", "indicators"]
 
 
 @dataclass
@@ -11,13 +17,110 @@ class SignalBotConfig:
     raw: dict = field(default_factory=dict)
 
     @classmethod
-    def load(cls, path: str = None) -> "SignalBotConfig":
+    def load(cls, path: str = None, validate: bool = True) -> "SignalBotConfig":
         if path is None:
             path = os.path.join(os.path.dirname(__file__), "..", "config", "settings.yaml")
             path = os.path.normpath(path)
         with open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
-        return cls(raw=data)
+        cfg = cls(raw=data)
+        if validate:
+            errors, warnings = cfg.validate()
+            for w in warnings:
+                logger.warning(f"Config: {w}")
+            if errors:
+                for e in errors:
+                    logger.error(f"Config ERROR: {e}")
+                raise ValueError(f"Invalid config: {len(errors)} error(s). See log for details.")
+        return cfg
+
+    def validate(self) -> tuple[list[str], list[str]]:
+        """Validate config values. Returns (errors, warnings)."""
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        # Check required sections
+        for section in REQUIRED_SECTIONS:
+            if section not in self.raw:
+                errors.append(f"Missing required section: '{section}'")
+
+        if errors:
+            return errors, warnings
+
+        # Trading section
+        trading = self.raw.get("trading", {})
+        if not trading.get("symbols"):
+            errors.append("trading.symbols must be a non-empty list")
+        if trading.get("signal_interval_seconds", 0) < 1:
+            errors.append("trading.signal_interval_seconds must be >= 1")
+        if trading.get("max_open_positions", 0) < 1:
+            errors.append("trading.max_open_positions must be >= 1")
+
+        # Exchange section
+        exchange = self.raw.get("exchange", {})
+        if not exchange.get("websocket_url"):
+            errors.append("exchange.websocket_url is required")
+        if not exchange.get("default_exchange"):
+            errors.append("exchange.default_exchange is required")
+
+        # Risk section
+        risk = self.raw.get("risk", {})
+        if not (0 < risk.get("max_risk_per_trade_pct", 0) <= 100):
+            errors.append("risk.max_risk_per_trade_pct must be in (0, 100]")
+        if not (0 < risk.get("max_daily_drawdown_pct", 0) <= 100):
+            errors.append("risk.max_daily_drawdown_pct must be in (0, 100]")
+        if not (0 <= risk.get("min_confidence", 0) <= 100):
+            errors.append("risk.min_confidence must be in [0, 100]")
+        if risk.get("min_rr_ratio", 0) <= 0:
+            errors.append("risk.min_rr_ratio must be > 0")
+        if risk.get("stop_loss_pct", 0) <= 0:
+            errors.append("risk.stop_loss_pct must be > 0")
+        if risk.get("take_profit_pct", 0) <= 0:
+            errors.append("risk.take_profit_pct must be > 0")
+        if risk.get("max_position_size_pct", 0) <= 0:
+            errors.append("risk.max_position_size_pct must be > 0")
+
+        # Strategy params
+        strategies = self.raw.get("strategies", {})
+        tf = strategies.get("trend_following", {})
+        if tf.get("ema_fast", 0) >= tf.get("ema_slow", 999):
+            errors.append("strategies.trend_following.ema_fast must be < ema_slow")
+        if tf.get("adx_threshold", 0) <= 0:
+            errors.append("strategies.trend_following.adx_threshold must be > 0")
+
+        mr = strategies.get("mean_reversion", {})
+        if mr.get("rsi_oversold", 50) >= mr.get("rsi_overbought", 50):
+            errors.append("strategies.mean_reversion.rsi_oversold must be < rsi_overbought")
+        if mr.get("bb_std", 0) <= 0:
+            errors.append("strategies.mean_reversion.bb_std must be > 0")
+
+        # Ensemble
+        ens = strategies.get("ensemble", {})
+        if ens.get("min_votes", 0) < 1:
+            errors.append("strategies.ensemble.min_votes must be >= 1")
+        if ens.get("mode") not in ("majority", "weighted", "confidence_weighted"):
+            warnings.append(f"strategies.ensemble.mode='{ens.get('mode')}' — expected 'majority' or 'weighted'")
+
+        # Indicators
+        indicators = self.raw.get("indicators", {})
+        for key in ("rsi_period", "macd_fast", "macd_slow", "macd_signal", "atr_period", "adx_period"):
+            val = indicators.get(key, 0)
+            if val < 1:
+                errors.append(f"indicators.{key} must be >= 1")
+        if indicators.get("macd_fast", 0) >= indicators.get("macd_slow", 999):
+            errors.append("indicators.macd_fast must be < macd_slow")
+
+        # Warnings for suspicious values
+        if risk.get("max_risk_per_trade_pct", 0) > 10:
+            warnings.append("risk.max_risk_per_trade_pct > 10% — high risk per trade")
+        if risk.get("max_daily_drawdown_pct", 0) > 20:
+            warnings.append("risk.max_daily_drawdown_pct > 20% — high daily drawdown limit")
+        if risk.get("stop_loss_pct", 0) > 10:
+            warnings.append("risk.stop_loss_pct > 10% — wide stop loss")
+        if trading.get("max_open_positions", 0) > 10:
+            warnings.append("trading.max_open_positions > 10 — many concurrent positions")
+
+        return errors, warnings
 
     # --- trading ---
     @property

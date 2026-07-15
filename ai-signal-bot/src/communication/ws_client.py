@@ -5,6 +5,7 @@ Also sends trading signals to the HFT Trade Bot via a separate WebSocket connect
 import asyncio
 import json
 import logging
+from collections import deque
 from typing import Callable, Optional
 
 import websockets
@@ -101,6 +102,8 @@ class ExchangeClient:
                 try:
                     if isinstance(message, bytes) and _HAS_MSGPACK:
                         data = msgpack.unpackb(message, raw=False)
+                    elif _HAS_ORJSON:
+                        data = orjson.loads(message)
                     else:
                         data = json.loads(message)
                     self._process_message(data)
@@ -117,15 +120,17 @@ class ExchangeClient:
         msg_type = data.get("type")
 
         if msg_type in ("candles", "snapshot"):
-            for candle in data.get("candles", []):
-                sym = candle["symbol"]
-                self._latest_candles[sym] = candle
-                # Accumulate candle history (BUG#3: previously only latest candle was kept)
-                if sym not in self._candle_history:
-                    self._candle_history[sym] = []
-                self._candle_history[sym].append(candle)
-                if len(self._candle_history[sym]) > 200:
-                    self._candle_history[sym] = self._candle_history[sym][-200:]
+            candles = data.get("candles")
+            if candles:
+                for candle in candles:
+                    sym = candle["symbol"]
+                    self._latest_candles[sym] = candle
+                    # Accumulate candle history — use deque for O(1) trim
+                    hist = self._candle_history.get(sym)
+                    if hist is None:
+                        hist = deque(maxlen=200)
+                        self._candle_history[sym] = hist
+                    hist.append(candle)
             self._latest_prices = data.get("prices", {})
             self._accounts = data.get("accounts", {})
             if "trading_active" in data:

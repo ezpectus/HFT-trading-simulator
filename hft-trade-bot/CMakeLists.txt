@@ -56,9 +56,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -flto")
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fsanitize=address -fsanitize=undefined")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG /GL /utf-8")
-    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi /fsanitize=address /utf-8")
-    add_compile_options(/utf-8)
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG /GL /utf-8 /Zc:preprocessor")
+    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi /fsanitize=address /utf-8 /Zc:preprocessor")
+    add_compile_options(/utf-8 /Zc:preprocessor)
 endif()
 
 # Enable LTO in linker as well (GCC/Clang only — MSVC uses per-target IPO)
@@ -128,28 +128,39 @@ if(USE_PGO AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID ST
 endif()
 
 # Find dependencies
-# CMake 4.3 removed the FindBoost module; vcpkg's Boost install lacks sub-component configs
-# Create Boost::headers target manually using the vcpkg include path
-cmake_policy(SET CMP0167 NEW)
-# Add vcpkg installed packages to CMake prefix path for spdlog, fmt, etc.
-# Respect VCPKG_ROOT env var; fall back to common default if not set
-if(DEFINED ENV{VCPKG_ROOT})
-    list(APPEND CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows")
-    set(_VCPKG_INCLUDE_DIR "$ENV{VCPKG_ROOT}/installed/x64-windows/include")
-else()
-    list(APPEND CMAKE_PREFIX_PATH "C:/vcpkg/installed/x64-windows")
-    set(_VCPKG_INCLUDE_DIR "C:/vcpkg/installed/x64-windows/include")
-endif()
-if(NOT TARGET Boost::headers)
-    set(BOOST_INCLUDE_DIR "${_VCPKG_INCLUDE_DIR}" CACHE PATH "Boost include directory")
-    if(NOT EXISTS "${BOOST_INCLUDE_DIR}/boost/version.hpp")
-        message(FATAL_ERROR "Boost headers not found at ${BOOST_INCLUDE_DIR} — install via: vcpkg install boost")
+# Boost: on Linux use system install (apt), on Windows use vcpkg
+if(UNIX AND NOT APPLE)
+    # Linux: Boost installed via apt (libboost-system-dev, libboost-random-dev)
+    find_package(Boost REQUIRED COMPONENTS system random)
+    if(NOT TARGET Boost::headers)
+        find_path(BOOST_INCLUDE_DIR boost/version.hpp)
+        add_library(Boost::headers INTERFACE IMPORTED)
+        set_target_properties(Boost::headers PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${BOOST_INCLUDE_DIR}"
+        )
     endif()
-    add_library(Boost::headers INTERFACE IMPORTED)
-    set_target_properties(Boost::headers PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${BOOST_INCLUDE_DIR}"
-    )
-    message(STATUS "Boost headers found at ${BOOST_INCLUDE_DIR}")
+    message(STATUS "Boost found via system packages (Linux)")
+else()
+    # Windows / macOS: vcpkg
+    cmake_policy(SET CMP0167 NEW)
+    if(DEFINED ENV{VCPKG_ROOT})
+        list(APPEND CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows")
+        set(_VCPKG_INCLUDE_DIR "$ENV{VCPKG_ROOT}/installed/x64-windows/include")
+    else()
+        list(APPEND CMAKE_PREFIX_PATH "C:/vcpkg/installed/x64-windows")
+        set(_VCPKG_INCLUDE_DIR "C:/vcpkg/installed/x64-windows/include")
+    endif()
+    if(NOT TARGET Boost::headers)
+        set(BOOST_INCLUDE_DIR "${_VCPKG_INCLUDE_DIR}" CACHE PATH "Boost include directory")
+        if(NOT EXISTS "${BOOST_INCLUDE_DIR}/boost/version.hpp")
+            message(FATAL_ERROR "Boost headers not found at ${BOOST_INCLUDE_DIR} — install via: vcpkg install boost")
+        endif()
+        add_library(Boost::headers INTERFACE IMPORTED)
+        set_target_properties(Boost::headers PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${BOOST_INCLUDE_DIR}"
+        )
+        message(STATUS "Boost headers found at ${BOOST_INCLUDE_DIR}")
+    endif()
 endif()
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
@@ -359,6 +370,9 @@ function(add_doctest_test name source)
         CXX_STANDARD_REQUIRED ON
         INTERPROCEDURAL_OPTIMIZATION FALSE
     )
+    if(MSVC)
+        target_compile_options(${name} PRIVATE /Zc:preprocessor)
+    endif()
     add_test(NAME ${name}_tests COMMAND ${name})
 endfunction()
 
@@ -439,6 +453,12 @@ add_doctest_test(test_doctest_order_type_selector tests/test_doctest_order_type_
 
 # FIX message doctest tests (build, finalize, parse, checksum validation round-trip, field access, edge cases)
 add_doctest_test(test_doctest_fix_message tests/test_doctest_fix_message.cpp)
+
+# Property-based tests (random market data + invariant checking: SL/TP always closes, PnL consistency, weighted avg entry)
+add_doctest_test(test_doctest_property_based tests/test_doctest_property_based.cpp)
+
+# Signal Engine V3 doctest tests (HMM regime detection, state transitions, regime gating, multi-symbol)
+add_doctest_test(test_doctest_signal_engine_v3 tests/test_doctest_signal_engine_v3.cpp)
 
 # ─── Integration tests (doctest-based) ───
 add_doctest_test(test_integration_config tests/test_integration_config.cpp)

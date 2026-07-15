@@ -1,0 +1,81 @@
+{{- if .Values.hftTradeBot.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "hft.fullname" . }}-hft-trade-bot
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hft-trade-bot
+spec:
+  serviceName: {{ include "hft.fullname" . }}-hft-trade-bot
+  replicas: {{ .Values.hftTradeBot.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "hft.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: hft-trade-bot
+  template:
+    metadata:
+      labels:
+        {{- include "hft.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: hft-trade-bot
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: hft-trade-bot
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.hftTradeBot.image.repository }}:{{ .Values.hftTradeBot.image.tag | default .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.hftTradeBot.service.metricsPort }}
+              protocol: TCP
+          env:
+            {{- range $k, $v := .Values.hftTradeBot.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            - name: JAEGER_ENDPOINT
+              value: "http://{{ include "hft.fullname" . }}-jaeger:4317"
+            - name: REDIS_HOST
+              value: {{ include "hft.fullname" . }}-redis
+          resources:
+            {{- toYaml .Values.hftTradeBot.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hft.fullname" . }}-hft-trade-bot
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.hftTradeBot.service.type }}
+  ports:
+    - name: metrics
+      port: {{ .Values.hftTradeBot.service.metricsPort }}
+      targetPort: metrics
+  selector:
+    {{- include "hft.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: hft-trade-bot
+{{- end }}

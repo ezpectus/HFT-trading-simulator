@@ -11,14 +11,16 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
-
-# Copy application source
+# Create non-root user and copy packages
+RUN groupadd -r appuser && useradd -r -g appuser -m appuser
+COPY --from=builder /root/.local /home/appuser/.local
 COPY . .
 
+RUN chown -R appuser:appuser /app
+USER appuser
+
 # Ensure user packages are on PATH
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/home/appuser/.local/bin:$PATH
 ENV PYTHONPATH=/app
 
 EXPOSE 8765 8775

@@ -315,7 +315,7 @@ int main(int argc, char* argv[]) {
     SystemMonitor sys_monitor;
 
     // ─── Health check HTTP server — /health endpoint for k8s probes ───
-    HealthServer health_server(config.is_production ? 9091 : 9091);
+    HealthServer health_server(config.is_production ? config.metrics_port : 9091);
     health_server.start(&sys_monitor);
 
     // AI signal state (declared early — used by both WebSocket and SHM IPC callbacks)
@@ -471,6 +471,10 @@ int main(int argc, char* argv[]) {
     while (g_running) {
         ScopedLatency loop_timer(total_loop_hist);
 
+        // Cache balance for this tick — avoids repeated atomic loads
+        const double current_balance = balance.load(std::memory_order_relaxed);
+        const bool can_trade = receiver.is_trading_active() && kill_switch.can_trade();
+
         // Update position PnL
         receiver.get_all_prices_into(prices_cache);
         pos_mgr.update_all_pnl(prices_cache);
@@ -491,7 +495,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Process arbitrage opportunities (highest priority)
-        if (has_arb_opportunity.load() && receiver.is_trading_active() && kill_switch.can_trade()) {
+        if (has_arb_opportunity.load() && can_trade) {
             ArbOpportunity arb;
             {
                 arb_lock.lock();
@@ -514,14 +518,14 @@ int main(int argc, char* argv[]) {
 
         // Process AI Signal Bot signals (slow path — higher confidence)
         // Drain all queued signals from SPSC queue (lock-free)
-        while (receiver.is_trading_active() && kill_switch.can_trade()) {
+        while (can_trade) {
             Signal ai_sig;
             if (!ai_signal_queue.pop(ai_sig)) break;
 
             // Risk check
-            auto risk_result = risk_mgr.check_signal(ai_sig, balance.load(std::memory_order_relaxed), pos_mgr.position_count());
+            auto risk_result = risk_mgr.check_signal(ai_sig, current_balance, pos_mgr.position_count());
             if (risk_result.passed && !pos_mgr.has_position(ai_sig.symbol)) {
-                double qty = risk_mgr.calculate_position_size(ai_sig, balance.load(std::memory_order_relaxed));
+                double qty = risk_mgr.calculate_position_size(ai_sig, current_balance);
                 if (qty > 0) {
                     spdlog::info("AI Signal execution: {} {} conf={:.1f} entry={:.2f} ({})",
                         ai_sig.direction, ai_sig.symbol, ai_sig.confidence,
@@ -539,7 +543,7 @@ int main(int argc, char* argv[]) {
         }
 
         // ─── Run Signal Engine V2 for each symbol (fast path) ───
-        if (config.signal_engine_v2_enabled && receiver.is_trading_active() && kill_switch.can_trade()) {
+        if (config.signal_engine_v2_enabled && can_trade) {
             for (const auto& [symbol, sym_cstr, sym_id] : symbol_entries) {
                 ScopedLatency signal_timer(signal_latency_hist);
 
@@ -606,14 +610,14 @@ int main(int argc, char* argv[]) {
 
                 // Risk check
                 ScopedLatency risk_timer(risk_check_hist);
-                auto risk_result = risk_mgr.check_signal(sig, balance.load(std::memory_order_relaxed), pos_mgr.position_count());
+                auto risk_result = risk_mgr.check_signal(sig, current_balance, pos_mgr.position_count());
                 if (!risk_result.passed) continue;
 
-                // Check if we already have a position for this symbol
-                if (pos_mgr.has_position(symbol)) continue;
+                // Check if we already have a position for this symbol (HFT-O11: numeric ID)
+                if (pos_mgr.has_position_by_id(sym_id)) continue;
 
                 // Calculate position size
-                double qty = risk_mgr.calculate_position_size(sig, balance.load(std::memory_order_relaxed));
+                double qty = risk_mgr.calculate_position_size(sig, current_balance);
                 if (qty <= 0) continue;
 
                 // ─── Smart order routing ───
@@ -654,9 +658,12 @@ int main(int argc, char* argv[]) {
 
                     // Record toxic event on all exchanges if detected
                     if (pressure.toxic_score >= 0.5) {
-                        sim_binance.record_toxic_event();
-                        sim_okx.record_toxic_event();
-                        sim_bybit.record_toxic_event();
+                        if (sim_binance) sim_binance->record_toxic_event();
+                        if (sim_okx) sim_okx->record_toxic_event();
+                        if (sim_bybit) sim_bybit->record_toxic_event();
+                        if (real_binance) real_binance->record_toxic_event();
+                        if (real_okx) real_okx->record_toxic_event();
+                        if (real_bybit) real_bybit->record_toxic_event();
                     }
                 }
 
@@ -738,11 +745,11 @@ int main(int argc, char* argv[]) {
                     sig.take_profit = fast_sig.take_profit;
                     sig.reason = fast_sig.reason;
 
-                    auto risk_result = risk_mgr.check_signal(sig, balance.load(std::memory_order_relaxed), pos_mgr.position_count());
+                    auto risk_result = risk_mgr.check_signal(sig, current_balance, pos_mgr.position_count());
                     if (!risk_result.passed) continue;
                     if (pos_mgr.has_position(symbol)) continue;
 
-                    double qty = risk_mgr.calculate_position_size(sig, balance.load(std::memory_order_relaxed));
+                    double qty = risk_mgr.calculate_position_size(sig, current_balance);
                     if (qty <= 0) continue;
 
                     spdlog::info("HFT v1 Signal: {} {} conf={:.1f} entry={:.2f} ({})",

@@ -179,27 +179,50 @@ public:
     ShmRingBuffer(ShmRingBuffer&&) = delete;
     ShmRingBuffer& operator=(ShmRingBuffer&&) = delete;
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Lock-free SPSC (Single-Producer Single-Consumer) ring buffer.
+    //
+    // Why lock-free? Mutex lock/unlock costs ~25ns per call. In HFT, we process
+    // ticks every ~100μs — a mutex would consume 0.05% of the budget per push.
+    // This ring buffer uses atomic head/tail counters instead:
+    //
+    //   - Producer writes data_[head], then publishes head+1 (release fence)
+    //   - Consumer reads head (acquire fence), then reads data_[tail], publishes tail+1
+    //   - The acquire/release pair guarantees: if consumer sees head=N, it also
+    //     sees all writes that happened before head was stored
+    //
+    // Power-of-2 capacity: slot = head & mask_ (bitwise AND) instead of
+    // head % capacity (integer modulo). AND is 1 cycle; modulo is 10-20 cycles.
+    // ─────────────────────────────────────────────────────────────────────────
+
     // Non-blocking push. Returns false if buffer is full.
     bool try_push(const T& item) noexcept {
+        // Relaxed load of our own head — no other thread writes it (SPSC)
         const uint64_t head = header_->head.load(std::memory_order_relaxed);
+        // Acquire load of tail — see consumer's progress
         const uint64_t tail = header_->tail.load(std::memory_order_acquire);
 
         // Check if full: head - tail == capacity
+        // Works with uint64 wraparound: subtraction is correct even on overflow
         if (head - tail >= capacity_) {
             return false; // Buffer full
         }
 
+        // Bitwise AND instead of modulo — requires power-of-2 capacity
         const uint64_t slot = head & mask_;
         std::memcpy(&data_[slot], &item, sizeof(T));
 
-        // Release: make data visible before publishing head
+        // Release store: ensures memcpy completes before head is published.
+        // Consumer's acquire load of head will see the written data.
         header_->head.store(head + 1, std::memory_order_release);
         return true;
     }
 
     // Non-blocking pop. Returns false if buffer is empty.
     bool try_pop(T& out) noexcept {
+        // Relaxed load of our own tail — no other thread writes it (SPSC)
         const uint64_t tail = header_->tail.load(std::memory_order_relaxed);
+        // Acquire load of head — see producer's progress
         const uint64_t head = header_->head.load(std::memory_order_acquire);
 
         // Check if empty: head == tail
@@ -210,7 +233,8 @@ public:
         const uint64_t slot = tail & mask_;
         std::memcpy(&out, &data_[slot], sizeof(T));
 
-        // Release: make read visible before publishing tail
+        // Release store: ensures memcpy read completes before tail advances.
+        // Producer's acquire load of tail will see the slot is free.
         header_->tail.store(tail + 1, std::memory_order_release);
         return true;
     }

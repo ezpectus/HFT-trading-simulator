@@ -155,7 +155,11 @@ api_keys/
 docs/FUTURE_TODO.md
 docs/PROGRESS.md
 docs/AUDIT_2025.md
+docs/AUDIT_2026_07.md
 docs/ARCHITECTURE_ROADMAP.md
+docs/PLANNING_NON_TECHNICAL.md
+docs/HFT_OPTIMIZATION_IDEAS.md
+docs/MASTERPLAN.md
 
 # ─── HFT skills (internal knowledge base, not for public repo) ───
 hft-skills/

@@ -27,7 +27,7 @@ scrape_configs:
   # HFT Trade Bot (if it exposes metrics via HTTP)
   - job_name: "hft-trade-bot"
     static_configs:
-      - targets: ["hft-trade-bot:9090"]
+      - targets: ["hft-trade-bot:9091"]
     metrics_path: /metrics
 
   # Prometheus self-monitoring

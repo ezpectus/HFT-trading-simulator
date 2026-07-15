@@ -1,0 +1,18 @@
+apiVersion: v2
+name: hft-trading-simulator
+description: Educational HFT trading simulator — C++20 signal engine, Python AI, React UI
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - hft
+  - trading
+  - simulator
+  - educational
+  - cpp
+  - python
+  - react
+sources:
+  - https://github.com/ezpectus/HFT-trading-simulator
+maintainers:
+  - name: ezpectus

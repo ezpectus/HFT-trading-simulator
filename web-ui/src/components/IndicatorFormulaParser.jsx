@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Calculator, Plus, Trash2, FunctionSquare, AlertCircle } from 'lucide-react'
+import { Calculator, FunctionSquare, AlertCircle } from 'lucide-react'
 import { calcSMA, calcEMA, calcRSI, calcATR, calcBollingerBands, calcMACD } from '../utils/indicators'
 
 const AVAILABLE_FUNCTIONS = [
@@ -83,7 +83,7 @@ function parsePrimary(tokens, pos, ctx) {
     return { result: { type: 'num', value: token.value }, pos: pos + 1 }
   }
   if (token.type === 'var') {
-    if (!ctx.vars.hasOwnProperty(token.value)) throw new Error(`Unknown variable: ${token.value}`)
+    if (!Object.prototype.hasOwnProperty.call(ctx.vars, token.value)) throw new Error(`Unknown variable: ${token.value}`)
     return { result: { type: 'var', name: token.value }, pos: pos + 1 }
   }
   if (token.type === 'op' && token.value === '(') {

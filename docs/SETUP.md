@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **Python 3.12+** (for exchange_simulator and ai-signal-bot)
-- **Node.js 20+** (for web-ui)
+- **Node.js 22+** (for web-ui)
 - **C++20 compiler** (GCC 13+, Clang 17+, or MSVC 19.29+) and **CMake 3.16+** (for hft-trade-bot v2.0)
 - **Docker** (optional, for containerized deployment)
 
@@ -352,7 +352,7 @@ hft-trading-simulator/
 - Try mock mode: `VITE_MOCK_MODE=true npm run dev` to verify UI works without backend
 
 ### npm install fails
-- Ensure Node.js 20+ is installed: `node --version`
+- Ensure Node.js 22+ is installed: `node --version`
 - Delete `node_modules/` and retry: `npm cache clean --force && npm install`
 
 ### Finding log files

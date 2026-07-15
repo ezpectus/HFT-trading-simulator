@@ -214,6 +214,11 @@ const ArzelaAscoli = lazy(() => import('../components/ArzelaAscoli'))
 const RieszRepresentation = lazy(() => import('../components/RieszRepresentation'))
 const LaxMilgram = lazy(() => import('../components/LaxMilgram'))
 const StrategyBacktest = lazy(() => import('../components/StrategyBacktest'))
+const BacktestComparison = lazy(() => import('../components/BacktestComparison'))
+const StrategyMarketplace = lazy(() => import('../components/StrategyMarketplace'))
+const SessionReplay = lazy(() => import('../components/SessionReplay'))
+const SessionReportExport = lazy(() => import('../components/SessionReportExport'))
+const CompetitionFramework = lazy(() => import('../components/CompetitionFramework'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -602,12 +607,22 @@ export const PANELS = [
   // === STRATEGY & AUTOMATION ===
   { id: 'strategy-backtest', name: 'Strategy Backtest Engine', category: 'strategy', component: StrategyBacktest,
     props: () => ({}) },
+  { id: 'backtest-comparison', name: 'Backtest Comparison', category: 'strategy', component: BacktestComparison,
+    props: () => ({}) },
   { id: 'execution-bot', name: 'Execution Bot (TWAP/VWAP)', category: 'strategy', component: ExecutionBot,
     props: (ctx) => ({ currentPrice: ctx.currentPrice, onSubmit: ctx.exchange.submitOrder, connected: ctx.exchange.connected && ctx.exchange.tradingActive, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
   { id: 'watchlist', name: 'Watchlist', category: 'strategy', component: Watchlist,
     props: (ctx) => ({ candles: ctx.exchange.candles, prices: ctx.exchange.prices, onSelectSymbol: ctx.setSelectedSymbol }) },
   { id: 'strategy-builder', name: 'Strategy Builder', category: 'strategy', component: StrategyBuilder,
     props: (ctx) => ({ currentPrice: ctx.currentPrice }) },
+  { id: 'strategy-marketplace', name: 'Strategy Marketplace', category: 'strategy', component: StrategyMarketplace,
+    props: () => ({}) },
+  { id: 'competition', name: 'Strategy Competition', category: 'strategy', component: CompetitionFramework,
+    props: () => ({}) },
+  { id: 'session-replay', name: 'Session Replay', category: 'export', component: SessionReplay,
+    props: (ctx) => ({ accounts: ctx.exchange.accounts, fills: ctx.exchange.fills, signals: ctx.signals.signals, candles: ctx.exchange.candles, prices: ctx.exchange.prices, orderbooks: ctx.exchange.orderbooks, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
+  { id: 'session-report', name: 'Session Report (PDF)', category: 'export', component: SessionReportExport,
+    props: (ctx) => ({ accounts: ctx.exchange.accounts, fills: ctx.exchange.fills, candles: ctx.exchange.candles, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
   { id: 'alert-webhook', name: 'Alert Webhooks', category: 'strategy', component: AlertWebhook,
     props: (ctx) => ({ fills: ctx.exchange.fills, toasts: ctx.toasts }) },
   { id: 'trade-journal', name: 'Trade Journal', category: 'strategy', component: TradeJournal,

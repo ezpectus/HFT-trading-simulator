@@ -139,24 +139,25 @@ class MarketSimulator:
         # Shared random component for correlation — drawn once per candle tick
         z_shared = self.rng.gauss(0, 1)
 
+        # Hoist invariant computation outside symbol loop
+        candles_per_year = 365 * 24 * 3600 / tf
+        sqrt_cpy = math.sqrt(candles_per_year)
+
         for symbol in self.symbols:
             base_price = self._prices[symbol]
             vol = self._volatility[symbol]
 
             # Per-candle volatility from annualized vol
-            candles_per_year = 365 * 24 * 3600 / tf
-            sigma = vol / math.sqrt(candles_per_year)
+            sigma = vol / sqrt_cpy
 
             # Apply weekend/holiday mode — reduced volatility
             if self._weekend_mode:
                 sigma *= self._weekend_vol_mult
 
             # Correlated random draw: base z + per-symbol idiosyncratic component
-            # z_shared drives correlation, z_idio drives symbol-specific movement
             z_idio = self.rng.gauss(0, 1)
-            # O(1) correlation lookup from pre-built map
             corr = self._symbol_corr.get(symbol, 0.5)
-            z = corr * z_shared + math.sqrt(1 - corr * corr) * z_idio
+            z = corr * z_shared + math.sqrt(1.0 - corr * corr) * z_idio
             
             # Apply news event volatility spike
             news_mult = 1.0
@@ -300,14 +301,14 @@ class MarketSimulator:
             old_mid = (cached.bids[0].price + cached.asks[0].price) / 2.0
             if old_mid > 0:
                 ratio = mid_price / old_mid
-                # Update cached order book in-place
                 cached.timestamp = self._current_ts
-                for level in cached.bids:
-                    level.price = round(level.price * ratio, 2)
-                    level.quantity = round(level.quantity * (0.9 + self.rng.random() * 0.2), 4)
-                for level in cached.asks:
-                    level.price = round(level.price * ratio, 2)
-                    level.quantity = round(level.quantity * (0.9 + self.rng.random() * 0.2), 4)
+                # Iterate bid+ask pairs together — one rng call per pair instead of two
+                for bid_level, ask_level in zip(cached.bids, cached.asks):
+                    bid_level.price = round(bid_level.price * ratio, 2)
+                    ask_level.price = round(ask_level.price * ratio, 2)
+                    perturb = 0.9 + self.rng.random() * 0.2
+                    bid_level.quantity = round(bid_level.quantity * perturb, 4)
+                    ask_level.quantity = round(ask_level.quantity * perturb, 4)
                 return cached
 
         # Full generation (first call or after cache miss)

@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           sudo apt-get update && sudo apt-get install -y clang-format
-          find hft-trade-bot/src -name "*.h" -o -name "*.cpp" \
+          find hft-trade-bot/src hft-trade-bot/tests -name "*.h" -o -name "*.cpp" \
             -not -path "*/fix/*" \
             | xargs clang-format --dry-run --Werror
 
@@ -351,10 +351,72 @@ jobs:
       - uses: github/codeql-action/autobuild@v3
       - uses: github/codeql-action/analyze@v3
 
+  test-windows:
+    name: Test (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web-ui/package.json
+      - name: Install Python deps (Exchange Simulator)
+        run: pip install -r requirements.txt
+        working-directory: exchange_simulator
+      - name: Install Python deps (AI Signal Bot)
+        run: pip install -r requirements.txt
+        working-directory: ai-signal-bot
+      - name: Run Exchange Simulator tests
+        run: python -m pytest tests/ -v --tb=short -q
+        working-directory: exchange_simulator
+      - name: Run AI Signal Bot tests
+        run: python -m pytest tests/ -v --tb=short -q
+        working-directory: ai-signal-bot
+      - name: Install Web UI deps
+        run: npm ci || npm install
+        working-directory: web-ui
+      - name: Run Web UI tests
+        run: npx vitest run --reporter=verbose
+        working-directory: web-ui
+
+  test-e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web-ui/package.json
+      - name: Install Web UI deps
+        run: npm ci || npm install
+        working-directory: web-ui
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: web-ui
+      - name: Run Playwright E2E tests (mock mode)
+        run: npx playwright test --reporter=github
+        env:
+          VITE_MOCK_MODE: "true"
+        working-directory: web-ui
+      - name: Upload E2E screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: web-ui/screenshots/
+          if-no-files-found: ignore
+
   test-summary:
     name: All Tests Passed
     runs-on: ubuntu-latest
-    needs: [lint-python, lint-cpp, lint-js, test-python, test-cpp, test-cpp-msvc, test-js, build-js, build-docker, audit-deps, security-bandit, security-codeql]
+    needs: [lint-python, lint-cpp, lint-js, test-python, test-cpp, test-cpp-msvc, test-js, test-windows, test-e2e, build-js, build-docker, audit-deps, security-bandit, security-codeql]
     if: always()
     steps:
       - name: Check all job results
@@ -362,7 +424,7 @@ jobs:
           echo "Aggregating results from all CI jobs..."
           ALL_PASSED=true
 
-          for job in lint-python lint-cpp lint-js test-python test-cpp test-cpp-msvc test-js build-js build-docker audit-deps security-bandit security-codeql; do
+          for job in lint-python lint-cpp lint-js test-python test-cpp test-cpp-msvc test-js test-windows test-e2e build-js build-docker audit-deps security-bandit security-codeql; do
             RESULT="${{ toJSON(needs.${job}.result) }}"
             echo "  $job: $RESULT"
             if [ "$RESULT" != "success" ]; then

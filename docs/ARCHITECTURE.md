@@ -2,7 +2,7 @@
 
 ## Overview
 
-The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 201+ React components, 191+ registered UI panels, 75+ advanced mathematical models, PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana.
+The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 201+ React components, 191+ registered UI panels, 75+ advanced mathematical models, PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
 
 ```mermaid
 graph TB

@@ -230,6 +230,8 @@ class AISignalBot:
 
     async def _generate_signals(self) -> None:
         """Generate and validate trading signals for all symbols."""
+        now_ts = int(time.time())  # Cache once per tick — avoid repeated syscalls
+
         # ─── Statistical arbitrage (pairs) ───
         if self.stat_arb:
             symbols = self.config.symbols
@@ -244,7 +246,7 @@ class AISignalBot:
                         arb_sig = self.stat_arb.analyze(sym_a, sym_b, candles_a, candles_b)
                         if arb_sig and arb_sig.is_actionable:
                             arb_dict = arb_sig.to_dict()
-                            arb_dict["timestamp"] = int(time.time())
+                            arb_dict["timestamp"] = now_ts
                             self.signal_logger.log(arb_dict)
                             self.logger.info(
                                 f"StatArb Signal: {arb_sig.direction.value} {sym_a}/{sym_b} "
@@ -287,7 +289,7 @@ class AISignalBot:
 
             # Log signal
             sig_dict = ensemble_signal.to_dict()
-            sig_dict["timestamp"] = int(time.time())
+            sig_dict["timestamp"] = now_ts
             self.signal_logger.log(sig_dict)
             self.logger.info(
                 f"Signal: {ensemble_signal.direction.value} {symbol} "
@@ -315,10 +317,11 @@ class AISignalBot:
 
             # Generate LLM explanation for the signal
             try:
-                rsi_val = rsi([c["close"] for c in candles])[-1] if len(candles) >= 14 else 50.0
+                closes = [c["close"] for c in candles]
+                rsi_val = rsi(closes)[-1] if len(closes) >= 14 else 50.0
                 adx_val = adx(candles)[-1] if len(candles) >= 14 else 25.0
-                ema_fast_val = ema([c["close"] for c in candles], 9)[-1] if len(candles) >= 9 else 0.0
-                ema_slow_val = ema([c["close"] for c in candles], 21)[-1] if len(candles) >= 21 else 0.0
+                ema_fast_val = ema(closes, 9)[-1] if len(closes) >= 9 else 0.0
+                ema_slow_val = ema(closes, 21)[-1] if len(closes) >= 21 else 0.0
                 ema_trend = "bullish" if ema_fast_val > ema_slow_val else "bearish"
 
                 explanation = await self.llm_engine.explain_signal(
@@ -332,20 +335,10 @@ class AISignalBot:
             except Exception:
                 explanation = ensemble_signal.reason
 
-            # Broadcast signal to HFT Trade Bot via signal publisher
-            await self.signal_publisher.broadcast_signal({
-                "symbol": ensemble_signal.symbol,
-                "direction": ensemble_signal.direction.value,
-                "confidence": ensemble_signal.confidence,
-                "strategy": ensemble_signal.strategy,
-                "entry_price": ensemble_signal.entry_price,
-                "stop_loss": ensemble_signal.stop_loss,
-                "take_profit": ensemble_signal.take_profit,
-                "rr_ratio": ensemble_signal.rr_ratio,
-                "reason": ensemble_signal.reason,
-                "explanation": explanation,
-                "signal_id": signal_id,
-            })
+            # Broadcast signal — reuse sig_dict, add explanation + signal_id
+            sig_dict["explanation"] = explanation
+            sig_dict["signal_id"] = signal_id
+            await self.signal_publisher.broadcast_signal(sig_dict)
 
             # Execute order
             if self.config.paper_trading:
@@ -369,7 +362,7 @@ class AISignalBot:
 
         # Cap at max position size
         max_notional = balance * self.config.max_position_size_pct / 100
-        max_qty = max_notional / signal.entry_price
+        max_qty = max_notional / signal.entry_price if signal.entry_price > 0 else 0
         quantity = min(quantity, max_qty)
 
         if quantity <= 0:

@@ -21,7 +21,7 @@ fi
 
 # Check Node
 if ! command -v npm &> /dev/null; then
-    echo "[ERROR] npm not found. Please install Node.js 20+."
+    echo "[ERROR] npm not found. Please install Node.js 22+."
     exit 1
 fi
 

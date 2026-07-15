@@ -1,0 +1,103 @@
+{{- if .Values.aiSignalBot.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hft.fullname" . }}-ai-signal-bot
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-signal-bot
+spec:
+  {{- if not .Values.aiSignalBot.autoscaling.enabled }}
+  replicas: {{ .Values.aiSignalBot.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "hft.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: ai-signal-bot
+  template:
+    metadata:
+      labels:
+        {{- include "hft.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: ai-signal-bot
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: ai-signal-bot
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.aiSignalBot.image.repository }}:{{ .Values.aiSignalBot.image.tag | default .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: ws
+              containerPort: 8766
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.aiSignalBot.service.metricsPort }}
+              protocol: TCP
+          env:
+            {{- range $k, $v := .Values.aiSignalBot.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            - name: JAEGER_ENDPOINT
+              value: "http://{{ include "hft.fullname" . }}-jaeger:4317"
+            - name: TIMESCALEDB_HOST
+              value: {{ include "hft.fullname" . }}-timescaledb
+            - name: REDIS_HOST
+              value: {{ include "hft.fullname" . }}-redis
+          resources:
+            {{- toYaml .Values.aiSignalBot.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+{{- if .Values.aiSignalBot.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "hft.fullname" . }}-ai-signal-bot
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "hft.fullname" . }}-ai-signal-bot
+  minReplicas: {{ .Values.aiSignalBot.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.aiSignalBot.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.aiSignalBot.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hft.fullname" . }}-ai-signal-bot
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.aiSignalBot.service.type }}
+  ports:
+    - name: ws
+      port: {{ .Values.aiSignalBot.service.wsPort }}
+      targetPort: ws
+    - name: metrics
+      port: {{ .Values.aiSignalBot.service.metricsPort }}
+      targetPort: metrics
+  selector:
+    {{- include "hft.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-signal-bot
+{{- end }}

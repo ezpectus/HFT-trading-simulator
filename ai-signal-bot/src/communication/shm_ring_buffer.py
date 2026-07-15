@@ -272,7 +272,7 @@ class ShmRingBuffer(Generic[T]):
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Signal struct (32 bytes): timestamp, symbol_id, action, confidence, price, sl, tp, leverage
-SIGNAL_STRUCT = struct.Struct('<Q B B f f f f B 3x')  # 32 bytes
+SIGNAL_STRUCT = struct.Struct('<Q B B f f f f B 5x')  # 32 bytes
 
 # Fill struct (28 bytes): timestamp, symbol_id, side, qty, price, fee, exchange_id
 FILL_STRUCT = struct.Struct('<Q B B f f f B 5x')  # 28 bytes

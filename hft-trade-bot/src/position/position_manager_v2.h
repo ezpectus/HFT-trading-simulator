@@ -11,12 +11,14 @@
 #include "../utils/low_latency.h"
 #include <array>
 #include <atomic>
+#include <bitset>
 #include <cmath>
 #include <cstdint>
 #include <string>
 #include <string_view>
 #include <cstdio>
 #include <unordered_map>
+#include <unordered_set>
 #include <mutex>
 #include <vector>
 
@@ -28,6 +30,7 @@ namespace hft {
 struct PositionV2 {
     std::string symbol;
     std::string exchange;
+    uint16_t symbol_id{0xFFFF};     // HFT-O11: numeric symbol ID for fast path
     Side side{Side::BUY};
     double quantity{0.0};           // Net position (always positive)
     double entry_price{0.0};        // Weighted average entry
@@ -75,7 +78,7 @@ public:
     // On fill — update or open position
     void on_fill(const std::string& symbol, const std::string& exchange,
                  Side side, double qty, double price, double fee = 0.0,
-                 int leverage = 1) noexcept {
+                 int leverage = 1, uint16_t symbol_id = 0xFFFF) noexcept {
         std::lock_guard<Spinlock> lk(lock_);
         // Build key without heap allocation using stack buffer
         char key_buf[128];
@@ -83,10 +86,13 @@ public:
         std::string_view key_sv(key_buf, key_len);
         auto& pos = positions_[std::string(key_sv)];
 
+        const bool was_open = pos.is_open();
+
         if (!pos.is_open()) {
             // Open new position
             pos.symbol = symbol;
             pos.exchange = exchange;
+            pos.symbol_id = symbol_id;
             pos.side = side;
             pos.quantity = qty;
             pos.entry_price = price;
@@ -128,6 +134,18 @@ public:
             }
         }
 
+        // Maintain atomic counter, bitset, and name set on open/close transitions
+        const bool is_open_now = pos.is_open();
+        if (!was_open && is_open_now) {
+            open_positions_count_.fetch_add(1, std::memory_order_relaxed);
+            if (symbol_id < 256) open_symbols_.set(symbol_id);
+            open_symbol_names_.insert(symbol);
+        } else if (was_open && !is_open_now) {
+            open_positions_count_.fetch_sub(1, std::memory_order_relaxed);
+            if (symbol_id < 256) open_symbols_.reset(symbol_id);
+            open_symbol_names_.erase(symbol);
+        }
+
         pos.total_fees += fee;
         pos.last_update_ns = now_ns();
     }
@@ -161,13 +179,19 @@ public:
         return {};
     }
 
-    // Check if position exists
+    // Check if position exists — O(1) via open_symbol_names_ set
     bool has_position(const std::string& symbol) const noexcept {
         std::lock_guard<Spinlock> lk(lock_);
-        for (const auto& [key, pos] : positions_) {
-            if (pos.symbol == symbol && pos.is_open()) return true;
-        }
-        return false;
+        return open_symbol_names_.count(symbol) > 0;
+    }
+
+    // HFT-O11: Fast path — check position by numeric symbol ID (no string compare)
+    // Uses bitset for O(1) lookup — no spinlock needed (bitset is updated under lock,
+    // but reads are atomic for single-bit tests on most platforms)
+    bool has_position_by_id(uint16_t symbol_id) const noexcept {
+        if (symbol_id >= 256) [[unlikely]] return false;
+        std::lock_guard<Spinlock> lk(lock_);
+        return open_symbols_.test(symbol_id);
     }
 
     // Get all open positions
@@ -230,13 +254,9 @@ public:
         return total;
     }
 
+    // O(1) open position count — uses atomic counter maintained in add_fill
     int open_position_count() const noexcept {
-        std::lock_guard<Spinlock> lk(lock_);
-        int count = 0;
-        for (const auto& [key, pos] : positions_) {
-            if (pos.is_open()) ++count;
-        }
-        return count;
+        return open_positions_count_.load(std::memory_order_relaxed);
     }
 
     // Check SL/TP for all positions
@@ -297,6 +317,9 @@ public:
     void reset() noexcept {
         std::lock_guard<Spinlock> lk(lock_);
         positions_.clear();
+        open_symbol_names_.clear();
+        open_positions_count_.store(0, std::memory_order_relaxed);
+        open_symbols_.reset();
     }
 
 private:
@@ -309,6 +332,12 @@ private:
     Config config_;
     mutable Spinlock lock_;
     std::unordered_map<std::string, PositionV2> positions_;
+    // O(1) open position count — maintained in add_fill on open/close transitions
+    std::atomic<int> open_positions_count_{0};
+    // O(1) position lookup by symbol ID — bitset updated in add_fill
+    std::bitset<256> open_symbols_{};
+    // O(1) position lookup by symbol name — set updated in on_fill
+    std::unordered_set<std::string> open_symbol_names_;
 };
 
 } // namespace hft

@@ -21,10 +21,35 @@ This document describes all WebSocket message types exchanged between the three 
 #### Subscribe
 ```json
 {
-  "type": "subscribe"
+  "type": "subscribe",
+  "protocol_version": 2,
+  "encoding": "json"
 }
 ```
-Client subscribes to market data stream. Server responds with a snapshot.
+Client subscribes to market data stream. Server responds with a `welcome` message, then a `snapshot`.
+
+- `protocol_version`: Protocol version for feature negotiation (default: 2)
+- `encoding`: `"json"` (default) or `"msgpack"` for binary MessagePack frames
+
+#### Welcome
+```json
+{
+  "type": "welcome",
+  "protocol_version": 2,
+  "server_name": "exchange_simulator",
+  "trading_active": true
+}
+```
+Server responds to `subscribe` with server info and current trading state.
+
+#### Sync State (reconnect)
+```json
+{
+  "type": "sync_state",
+  "last_timestamp": 1704067500
+}
+```
+On reconnect, send `sync_state` with the last received timestamp to get missed data.
 
 #### Order
 ```json
@@ -71,6 +96,23 @@ Set simulation speed. Valid values: `0` (pause), `1` (normal), `2` (2x), `5` (5x
 }
 ```
 Hot-reload simulator parameters without restart. Supports volatility, fees, slippage, and other configurable parameters.
+
+#### Options Chain Request
+```json
+{
+  "type": "options_chain",
+  "symbol": "BTC/USDT"
+}
+```
+Request options chain with Greeks (Black-Scholes pricing). Server responds with `options_chain` result.
+
+#### Ping
+```json
+{
+  "type": "ping"
+}
+```
+Latency measurement. Server responds with `pong`.
 
 ### Simulator → Client
 
@@ -196,9 +238,68 @@ Hot-reload simulator parameters without restart. Supports volatility, fees, slip
 ```json
 {
   "type": "error",
-  "message": "Unknown exchange: invalid_name"
+  "message": "Unknown exchange: invalid_name",
+  "code": "UNKNOWN_EXCHANGE"
 }
 ```
+Error message. `code` is optional.
+
+#### Fills Batch
+```json
+{
+  "type": "fills_batch",
+  "fills": [ { ... }, { ... } ]
+}
+```
+Batched fill notifications — multiple fills in one message for efficiency.
+
+#### Position Update
+```json
+{
+  "type": "position",
+  "symbol": "BTC/USDT",
+  "exchange": "binance",
+  "side": "LONG",
+  "quantity": 0.5,
+  "entry_price": 65050.0,
+  "unrealized_pnl": 25.0,
+  "leverage": 10
+}
+```
+Position update after fill or price change.
+
+#### Trading State
+```json
+{
+  "type": "trading_state",
+  "trading_active": false,
+  "reason": "Manual stop via UI"
+}
+```
+Broadcast when trading is started/stopped. All clients should block order submission when `trading_active` is false.
+
+#### Pong
+```json
+{
+  "type": "pong"
+}
+```
+Response to `ping` for latency measurement.
+
+#### Options Chain Response
+```json
+{
+  "type": "options_chain",
+  "symbol": "BTC/USDT",
+  "calls": [
+    { "strike": 66000, "expiry": "2024-12-27", "price": 1200.0, "delta": 0.65, "gamma": 0.0001, "theta": -15.2, "vega": 45.3, "rho": 12.1 }
+  ],
+  "puts": [
+    { "strike": 66000, "expiry": "2024-12-27", "price": 800.0, "delta": -0.35, "gamma": 0.0001, "theta": -12.1, "vega": 45.3, "rho": -8.5 }
+  ]
+}
+```
+Options chain with Black-Scholes Greeks (delta, gamma, theta, vega, rho).
 
 #### Speed Change (broadcast)
 ```json
@@ -249,6 +350,18 @@ Broadcast to all clients when config is hot-reloaded.
 }
 ```
 Request a backtest run. `strategy` can be `"all"`, `"trend"`, `"mean_reversion"`, `"fft"`, or `"ensemble"`. Server responds with a `backtest_result` message.
+
+#### Compare Backtests
+```json
+{
+  "type": "compare_backtests",
+  "backtests": [
+    { "name": "Trend Following", "total_return_pct": 12.5, "sharpe_ratio": 1.85, ... },
+    { "name": "Mean Reversion", "total_return_pct": 8.2, "sharpe_ratio": 1.42, ... }
+  ]
+}
+```
+Request comparison of multiple backtest results. Server responds with `comparison_result`.
 
 ### AI Signal Bot → HFT Bot / Web UI
 
@@ -322,30 +435,53 @@ Broadcast when FFT cycle analysis detects a regime change.
 ```
 Returned in response to a `run_backtest` request. Contains results for each strategy with equity curve and metrics.
 
+#### Comparison Result
+```json
+{
+  "type": "comparison_result",
+  "metrics": { "Trend Following": { ... }, "Mean Reversion": { ... } },
+  "equity_curves": { "Trend Following": [...], "Mean Reversion": [...] },
+  "significance_tests": [ { ... } ],
+  "best": { "name": "Trend Following", "total_return_pct": 12.5 }
+}
+```
+Returned in response to `compare_backtests`. Includes statistical significance tests and best strategy.
+
 ---
 
 ## Message Type Summary
 
 | Port | Direction | Type | Description |
 |------|-----------|------|-------------|
-| 8765 | C→S | `subscribe` | Subscribe to market data |
+| 8765 | C→S | `subscribe` | Subscribe to market data (with protocol_version, encoding) |
+| 8765 | C→S | `sync_state` | Request missed data on reconnect |
 | 8765 | C→S | `order` | Submit order |
 | 8765 | C→S | `close_position` | Close open position |
 | 8765 | C→S | `set_speed` | Set simulation speed (0/1/2/5) |
 | 8765 | C→S | `config_update` | Hot-reload simulator parameters |
+| 8765 | C→S | `options_chain` | Request options chain with Greeks |
+| 8765 | C→S | `ping` | Latency measurement |
+| 8765 | S→C | `welcome` | Server info on connect |
 | 8765 | S→C | `snapshot` | Initial market state + order books + accounts |
 | 8765 | S→C | `candles` | Streaming candle + price + order book + account data |
 | 8765 | S→C | `fill` | Order fill confirmation |
+| 8765 | S→C | `fills_batch` | Batched fill notifications |
+| 8765 | S→C | `position` | Position update |
+| 8765 | S→C | `trading_state` | Trading active/stopped broadcast |
 | 8765 | S→C | `arbitrage_scan` | Active arbitrage opportunities |
 | 8765 | S→C | `speed_change` | Simulation speed changed (broadcast) |
 | 8765 | S→C | `config_updated` | Config hot-reloaded (broadcast) |
+| 8765 | S→C | `options_chain` | Options chain with Greeks (response) |
+| 8765 | S→C | `pong` | Latency response |
 | 8765 | S→C | `error` | Error message |
 | 8766 | C→S | `subscribe` | Subscribe to AI signals |
 | 8766 | C→S | `run_backtest` | Request backtest execution |
+| 8766 | C→S | `compare_backtests` | Request backtest comparison |
 | 8766 | S→C | `signal` | Validated trading signal |
 | 8766 | S→C | `signal_history` | Historical signals on connect |
 | 8766 | S→C | `market_regime` | FFT regime update |
 | 8766 | S→C | `backtest_result` | Backtest results with equity curves |
+| 8766 | S→C | `comparison_result` | Backtest comparison with significance tests |
 
 ---
 
@@ -474,3 +610,58 @@ WebSocket per-message deflate compression is supported to reduce bandwidth for l
 ## Mock Mode (Web UI)
 
 When `VITE_MOCK_MODE=true` is set, the Web UI generates synthetic data locally without connecting to any WebSocket server. All message types are simulated client-side for standalone demo purposes.
+
+---
+
+## Message Encoding
+
+Clients can request binary MessagePack frames instead of JSON by sending `encoding: "msgpack"` in the `subscribe` message. This reduces bandwidth by ~40-60% for large order book and candle payloads.
+
+| Encoding | Format | Use Case |
+|----------|--------|----------|
+| `json` (default) | UTF-8 JSON text | Debugging, web clients |
+| `msgpack` | Binary frames | Production, bandwidth-sensitive |
+
+Both encodings carry the same message structure — only the wire format differs. The server tracks per-client encoding preference.
+
+---
+
+## Order Types Reference
+
+| Type | Description | Behavior |
+|------|-------------|----------|
+| `MARKET` | Market order | Fills at best available price |
+| `LIMIT` | Limit order | Fills at specified price or better |
+| `IOC` | Immediate or Cancel | Fills what's available, cancels rest |
+| `FOK` | Fill or Kill | Fills entirely or cancels |
+| `GTD` | Good Till Date | Expires at specified time |
+| `POST_ONLY` | Post-Only | Never matches (maker only) |
+
+---
+
+## Connection Lifecycle
+
+```
+Client                          Server
+  │                               │
+  ├── subscribe ──────────────────►
+  │                               │
+  ◄───────────────── welcome ─────┤
+  ◄───────────────── snapshot ────┤
+  │                               │
+  ◄───────────────── candles ─────┤  (streaming)
+  ◄───────────────── orderbook ───┤
+  │                               │
+  ├── order ──────────────────────►
+  │                               │
+  ◄───────────────── fill ────────┤
+  ◄───────────────── position ────┤
+  │                               │
+  ├── ping ───────────────────────►
+  ◄───────────────── pong ────────┤
+  │                               │
+  │  (disconnected)               │
+  ├── sync_state ─────────────────►
+  ◄───────────────── snapshot ────┤  (missed data)
+  │                               │
+```

@@ -11,7 +11,7 @@ You need these tools before running any install scripts. Install them in order.
 | # | Tool | Version | Why | How to install |
 |---|------|---------|-----|----------------|
 | 1 | Python | 3.12+ | Exchange Simulator + AI Signal Bot | https://python.org/downloads — check "Add to PATH" |
-| 2 | Node.js | 20+ | Web UI (includes npm) | https://nodejs.org — LTS version |
+| 2 | Node.js | 22+ | Web UI (includes npm) | https://nodejs.org — LTS version |
 | 3 | CMake | 3.16+ | C++ build system | https://cmake.org/download — Windows x64 Installer, check "Add to PATH" |
 | 4 | C++ compiler | C++20 | HFT Trade Bot engine | See per-OS instructions below |
 | 5 | vcpkg | latest | C++ libraries (Windows only) | See Windows setup below |
@@ -361,7 +361,7 @@ cd hft-trade-bot/build
 ctest --output-on-failure
 ```
 
-Test files are in `hft-trade-bot/tests/`. Current coverage: 27 doctest test files (risk_manager, pressure_model, signal_engine, position_manager, momentum_breakout, market_making, statistical_arb, mean_reversion, smart_order_router, order_manager, latency_tracker, position_manager_v1, portfolio_risk, pre_trade_risk, position_manager_v2, candle_aggregator, trade_handler, order_book_manager, kill_switch, shm_heartbeat, shm_market_data, shm_bulk, adaptive_order_selector, system_monitor, order_type_selector, fix_message, signal_engine_v2) + 10 CTest-based test files, 680+ test cases covering:
+Test files are in `hft-trade-bot/tests/`. Current coverage: 29 doctest test files (risk_manager, pressure_model, signal_engine, position_manager, momentum_breakout, market_making, statistical_arb, mean_reversion, smart_order_router, order_manager, latency_tracker, position_manager_v1, portfolio_risk, pre_trade_risk, position_manager_v2, candle_aggregator, trade_handler, order_book_manager, kill_switch, shm_heartbeat, shm_market_data, shm_bulk, adaptive_order_selector, system_monitor, order_type_selector, fix_message, signal_engine_v2, property_based, signal_engine_v3) + 10 CTest-based test files, 700+ test cases covering:
 
 ### CI Pipeline
 
@@ -540,13 +540,68 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture overv
 5. Update documentation if needed
 6. Submit a pull request with a clear description
 
+## Performance Guidelines
+
+When modifying C++ hot-path code (signal engine, order executor, SHM, risk manager):
+
+- **No heap allocations** — use stack buffers (`char buf[512]`), not `std::string` or `std::vector`
+- **No exceptions** — mark functions `noexcept`, avoid `throw`
+- **Branchless where possible** — `std::fmax(x, 0.0)` instead of `if (x > 0) x else 0`
+- **`[[likely]]`/`[[unlikely]]`** — annotate branches for branch predictor hints
+- **Precompute reciprocals** — `double inv = 1.0 / n;` then multiply, don't divide in loops
+- **Precompute smoothing complements** — `double complement = 1.0 - inv;` for Wilder's EMA, avoids `x * (n-1)` dependency chain
+- **Transparent hash + `string_view`** — `std::unordered_map<std::string, V, StringHash, std::equal_to<>>` for zero-alloc lookups
+- **`memcpy` for bulk data** — not per-element loops (SIMD-optimized internally)
+- **Cache-line align shared atomics** — `alignas(64)` to prevent false sharing
+- **`acquire`/`release` memory ordering** — not `seq_cst` (unnecessary fences)
+- **Power-of-2 buffer sizes** — enables bitmask (`&`) instead of modulo (`%`)
+- **Single-pass multi-level computation** — compute OBI 5/10/20 in one loop, not three
+- **`unordered_set` for existence checks** — O(1) `count()` instead of O(n) linear scan through map values
+
+See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for detailed explanations and benchmarks.
+
+For Python code in the broadcast loop or signal generation:
+- Use `orjson.dumps()` and `orjson.loads()` instead of `json.dumps()`/`json.loads()` when available
+- Use `asyncio.gather()` for concurrent WebSocket sends, not sequential `await`
+- Prefer `msgpack` for binary serialization when bandwidth matters
+- Hoist loop-invariant computations outside loops (e.g., `candles_per_year = ...` before `for symbol in ...`)
+- Reuse computed arrays instead of recomputing list comprehensions
+- Replace `uuid.uuid4()` with monotonic counters for session-scoped IDs
+- Use `collections.deque(maxlen=N)` for fixed-size history buffers — O(1) append, auto-eviction
+- Use `dict`/`set` for O(1) lookups instead of linear `list` scans
+- Cache `int(time.time())` once per tick — avoids redundant `clock_gettime()` syscalls
+
+### Code Review Checklist for Performance
+
+When reviewing a PR that touches hot-path code, check:
+
+- [ ] **C++: No `new`/`malloc`/`std::string` in hot path** — use stack buffers
+- [ ] **C++: No `json::dump()` for known message formats** — use `snprintf`
+- [ ] **C++: No mutex on read-only data** — if params don't change during trading, skip the lock
+- [ ] **C++: `[[unlikely]]` on rejection/error branches** — success path should be fall-through
+- [ ] **C++: No redundant `is_actionable()` checks** — if caller already checked, don't re-check
+- [ ] **C++: `noexcept` on hot-path functions** — compiler can skip exception handling code
+- [ ] **Python: No `uuid.uuid4()` in per-order paths** — use counter
+- [ ] **Python: No sequential `await ws.send()` to multiple clients** — use `asyncio.gather`
+- [ ] **Python: No loop-invariant computation inside loops** — hoist outside
+- [ ] **Python: No recomputed list comprehensions** — compute once, reuse
+- [ ] **C++: No linear scan for existence checks** — use `unordered_set`, `bitset`, or atomic counter
+- [ ] **C++: No division in tight loops** — precompute reciprocal or use multiplication
+- [ ] **C++: No separate passes when one suffices** — merge loops that iterate the same data
+- [ ] **Python: No `json.loads()` when `orjson` is available** — 3-5x faster
+- [ ] **Python: No `list` slicing for history** — use `deque(maxlen=N)`
+- [ ] **Python: No `list` scan for membership** — use `dict` or `set`
+- [ ] **Both: Profile before and after** — include benchmark numbers in PR description
+- Avoid creating new objects in hot loops — reuse buffers
+
 ## CI Pipeline
 
-GitHub Actions runs on every push/PR (4 jobs):
-- **Python:** ruff lint + pytest for exchange_simulator and ai-signal-bot
-- **C++:** cmake build + V1/V2 unit tests + clang-format check
-- **JS:** npm install + ESLint + Vitest + vite build
-- **Docker:** docker-compose build verification
+GitHub Actions runs on every push/PR (13 jobs):
+- **Lint**: ruff (Python), clang-format (C++ src + tests), ESLint (JS)
+- **Test**: pytest (Python exchange_simulator + ai-signal-bot), ctest (C++ gcc-13 + clang-17 + MSVC), vitest (JS), Windows (Python + JS)
+- **Build**: Docker images for all 4 services, Vite bundle size check
+- **Security**: Bandit (Python), CodeQL (Python + JS), npm dependency audit
+- **Test count**: Asserts minimum test file floors per language to catch accidental deletion
 
 Log files are uploaded as artifacts after each run.
 

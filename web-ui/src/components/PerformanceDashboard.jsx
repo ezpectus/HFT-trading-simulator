@@ -4,6 +4,12 @@ import { BarChart3, TrendingUp, TrendingDown, DollarSign, Percent, Award, Activi
 import { calcAggregateMetrics, buildEquityCurve, calcDrawdown, calcSharpeRatio, calcSortinoRatio, formatMetric } from '../utils/performance'
 import { EmptyState } from './LoadingSkeleton'
 
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]))
+}
+
 function exportPDF(accounts, metrics, allTrades, sharpe, sortino) {
   const win = window.open('', '_blank')
   if (!win) return
@@ -15,14 +21,14 @@ function exportPDF(accounts, metrics, allTrades, sharpe, sortino) {
 
   const rows = allTrades.slice(0, 50).map(t => `
     <tr>
-      <td>${t.symbol || ''}</td>
-      <td>${t.exchange || ''}</td>
-      <td style="color:${t.side === 'BUY' ? '#22c55e' : '#ef4444'}">${t.side || ''}</td>
+      <td>${escapeHtml(t.symbol)}</td>
+      <td>${escapeHtml(t.exchange)}</td>
+      <td style="color:${t.side === 'BUY' ? '#22c55e' : '#ef4444'}">${escapeHtml(t.side)}</td>
       <td>$${(t.entry_price || 0).toFixed(2)}</td>
       <td>$${(t.exit_price || 0).toFixed(2)}</td>
       <td>${t.quantity || 0}</td>
       <td style="color:${(t.pnl || 0) >= 0 ? '#22c55e' : '#ef4444'}">${(t.pnl || 0) >= 0 ? '+' : ''}$${(t.pnl || 0).toFixed(2)}</td>
-      <td>${t.reason || 'MANUAL'}</td>
+      <td>${escapeHtml(t.reason) || 'MANUAL'}</td>
     </tr>
   `).join('')
 

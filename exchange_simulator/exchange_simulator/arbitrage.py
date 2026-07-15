@@ -157,6 +157,9 @@ class ArbitrageDetector:
                     if net_spread <= 0:
                         continue
 
+                    if buy_price <= 0:
+                        continue
+
                     spread_bps = net_spread / buy_price * 10000
                     if spread_bps < self.min_spread_bps:
                         continue

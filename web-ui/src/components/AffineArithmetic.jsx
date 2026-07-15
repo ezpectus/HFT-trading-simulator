@@ -20,6 +20,12 @@ import React, { useMemo, useState } from 'react'
 //
 //   Applications: robust pricing, risk bounds with correlated uncertainties
 
+function erf(x) {
+  const t = 1 / (1 + 0.3275911 * Math.abs(x))
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x)
+  return x >= 0 ? y : -y
+}
+
 class Affine {
   constructor(center, coeffs = {}) {
     this.center = center
@@ -167,11 +173,6 @@ const robustOptionPrice = (S, K, T, r, sigmaLo, sigmaHi) => {
 
   // N(d1) approximation
   const normCdf = (x) => 0.5 * (1 + erf(x / Math.sqrt(2)))
-  const erf = (x) => {
-    const t = 1 / (1 + 0.3275911 * Math.abs(x))
-    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x)
-    return x >= 0 ? y : -y
-  }
 
   const priceLow = S * normCdf(d1Low) - K * Math.exp(-r * T) * normCdf(d1Low - sigmaLow * Math.sqrt(T))
   const priceHigh = S * normCdf(d1High) - K * Math.exp(-r * T) * normCdf(d1High - sigmaHigh * Math.sqrt(T))
@@ -213,12 +214,6 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
 
     // Robust option pricing
     const option = robustOptionPrice(S0, K, T, riskFreeRate, sigmaLo, sigmaHi)
-
-    // Interval arithmetic comparison (ignores correlations)
-    const intervalPriceLo = Math.min(
-      S0 * 0.5 * (1 + erf((option.d1Low) / Math.sqrt(2))) - K * Math.exp(-riskFreeRate * T) * 0.5 * (1 + erf((option.d1Low - sigmaLo * Math.sqrt(T)) / Math.sqrt(2))),
-      S0 * 0.5 * (1 + erf((option.d1High) / Math.sqrt(2))) - K * Math.exp(-riskFreeRate * T) * 0.5 * (1 + erf((option.d1High - sigmaHi * Math.sqrt(T)) / Math.sqrt(2)))
-    )
 
     // Robust portfolio: equal-weight with uncertain returns
     const recentRets = returns.slice(-20)

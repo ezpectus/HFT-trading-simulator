@@ -75,7 +75,7 @@ class MarketMakingStrategy:
 
     def _estimate_volatility(self, price: float) -> float:
         """Estimate realized volatility from recent returns."""
-        if self._prev_price > 0:
+        if self._prev_price > 0 and price > 0:
             ret = math.log(price / self._prev_price)
             self.returns_history.append(ret)
         self._prev_price = price

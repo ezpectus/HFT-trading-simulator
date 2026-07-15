@@ -145,7 +145,7 @@ class FeatureEngineer:
                 np.mean(np.abs(np.diff(np.log(w_closes[-10:])))) if len(w_closes) >= 11 else 0,  # Mean abs return
                 np.sum(np.diff(w_volumes) > 0) / max(len(w_volumes) - 1, 1),  # Volume up ratio
                 (w_closes[-1] - w_closes[0]) / max(np.sum(np.abs(np.diff(w_closes))), 1e-8),  # Efficiency ratio
-                np.corrcoef(w_closes[-10:], w_volumes[-10:])[0, 1] if len(w_closes) >= 10 else 0,  # Price-volume corr
+                (lambda c: 0.0 if math.isnan(c) else c)(np.corrcoef(w_closes[-10:], w_volumes[-10:])[0, 1]) if len(w_closes) >= 10 else 0,  # Price-volume corr
                 np.sum(w_volumes[-5:] * np.sign(np.diff(w_closes[-6:]))) / max(np.sum(w_volumes[-5:]), 1e-8),  # Volume-weighted direction
                 FeatureEngineer._range_expansion(w_highs, w_lows, min(10, len(w_closes))),  # Range expansion
                 FeatureEngineer._gap(w_closes, min(5, len(w_closes) - 1)),  # Gap
@@ -379,6 +379,9 @@ class MLEnsembleStrategy:
         """Create labels: 1 if return > 0 over horizon, 0 otherwise."""
         labels = []
         for i in range(len(closes) - horizon):
+            if closes[i] < 1e-8:
+                labels.append(0)
+                continue
             ret = (closes[i + horizon] / closes[i] - 1)
             labels.append(1 if ret > 0 else 0)
         return np.array(labels)
@@ -437,7 +440,8 @@ class MLEnsembleStrategy:
             }
 
         # Train HMM on returns
-        returns = np.diff(np.log(closes))
+        safe_closes = np.maximum(closes, 1e-8)
+        returns = np.diff(np.log(safe_closes))
         for r in returns:
             self.hmm.update(r)
 

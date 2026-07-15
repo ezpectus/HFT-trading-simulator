@@ -1,0 +1,129 @@
+{{- if .Values.webUi.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hft.fullname" . }}-web-ui
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web-ui
+spec:
+  {{- if not .Values.webUi.autoscaling.enabled }}
+  replicas: {{ .Values.webUi.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "hft.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web-ui
+  template:
+    metadata:
+      labels:
+        {{- include "hft.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: web-ui
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: web-ui
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.webUi.image.repository }}:{{ .Values.webUi.image.tag | default .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          env:
+            - name: VITE_WS_URL
+              value: "ws://{{ include "hft.fullname" . }}-exchange-simulator:{{ .Values.exchangeSimulator.service.wsPort }}"
+          resources:
+            {{- toYaml .Values.webUi.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+{{- if .Values.webUi.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "hft.fullname" . }}-web-ui
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "hft.fullname" . }}-web-ui
+  minReplicas: {{ .Values.webUi.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.webUi.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.webUi.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hft.fullname" . }}-web-ui
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.webUi.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.webUi.service.port }}
+      targetPort: http
+  selector:
+    {{- include "hft.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: web-ui
+{{- if .Values.webUi.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "hft.fullname" . }}-web-ui
+  labels:
+    {{- include "hft.labels" . | nindent 4 }}
+  annotations:
+    {{- range $k, $v := .Values.webUi.ingress.annotations }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.webUi.ingress.className }}
+  {{- if .Values.webUi.ingress.tls }}
+  tls:
+    {{- range .Values.webUi.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.webUi.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "hft.fullname" $ }}-web-ui
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

@@ -24,7 +24,7 @@ if errorlevel 1 (
 REM Check Node
 where npm >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] npm not found. Please install Node.js 20+.
+    echo [ERROR] npm not found. Please install Node.js 22+.
     exit /b 1
 )
 

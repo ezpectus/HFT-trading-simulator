@@ -70,8 +70,8 @@ public:
         : histogram_bins_(histogram_bins)
     {
         for (auto& h : histograms_) {
-            h.bin_counts.fill(0);
-            h.total_count = 0;
+            for (auto& c : h.bin_counts) c.store(0, std::memory_order_relaxed);
+            h.total_count.store(0, std::memory_order_relaxed);
         }
     }
 

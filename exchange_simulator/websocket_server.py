@@ -91,6 +91,8 @@ class ExchangeWebSocketServer:
         self._last_orderbooks: dict = {}  # "ex|symbol" -> {"bids": {price: qty}, "asks": {price: qty}}
         self._delta_bid_buf: dict = {}  # Reused buffer for delta computation
         self._delta_ask_buf: dict = {}  # Reused buffer for delta computation
+        self._total_connections: int = 0
+        self._total_disconnections: int = 0
         logger.info(f"Trade CSV log: {self.trade_logger.path}")
 
         # SHM market data publisher (HFT-O16 — bypass WebSocket for C++ bot)
@@ -203,6 +205,7 @@ class ExchangeWebSocketServer:
     ) -> None:
         """Handle a connected client — receive orders, send market data."""
         self.clients.add(websocket)
+        self._total_connections += 1
         remote = websocket.remote_address
         logger.info(f"Client connected: {remote}")
 
@@ -242,6 +245,7 @@ class ExchangeWebSocketServer:
             self.clients.discard(websocket)
             self._client_versions.pop(websocket, None)
             self._client_encodings.pop(websocket, None)
+            self._total_disconnections += 1
             logger.info(f"Client disconnected: {remote}")
 
     async def _handle_message(
@@ -342,9 +346,9 @@ class ExchangeWebSocketServer:
             encoding = data.get("encoding", "json")
             if encoding == "msgpack" and not _HAS_MSGPACK:
                 encoding = "json"
-                logger.warning(f"Client {remote} requested msgpack but not installed — falling back to JSON")
+                logger.warning(f"Client {websocket.remote_address} requested msgpack but not installed — falling back to JSON")
             self._client_encodings[websocket] = encoding
-            logger.info(f"Client {remote} subscribed (protocol v{client_ver}, encoding={encoding})")
+            logger.info(f"Client {websocket.remote_address} subscribed (protocol v{client_ver}, encoding={encoding})")
             await self._send_market_snapshot(websocket)
 
         elif msg_type == "ping":
@@ -639,33 +643,35 @@ class ExchangeWebSocketServer:
         last = self._last_orderbooks.get(key)
 
         if last is None:
-            # No prior state — caller should send full snapshot
-            # Store copies since we reuse the buffers
+            # No prior state — store copies since we reuse the buffers
             self._last_orderbooks[key] = {
                 "bids": dict(current_bids),
                 "asks": dict(current_asks),
             }
             return None  # signal: send full
 
+        last_bids = last["bids"]
+        last_asks = last["asks"]
+
         bid_changes = []
         for price, qty in current_bids.items():
-            old_qty = last["bids"].get(price)
+            old_qty = last_bids.get(price)
             if old_qty is None or abs(old_qty - qty) > 1e-12:
                 bid_changes.append({"p": price, "q": qty})
-        for price, old_qty in last["bids"].items():
+        for price in last_bids:
             if price not in current_bids:
                 bid_changes.append({"p": price, "q": 0.0})
 
         ask_changes = []
         for price, qty in current_asks.items():
-            old_qty = last["asks"].get(price)
+            old_qty = last_asks.get(price)
             if old_qty is None or abs(old_qty - qty) > 1e-12:
                 ask_changes.append({"p": price, "q": qty})
-        for price, old_qty in last["asks"].items():
+        for price in last_asks:
             if price not in current_asks:
                 ask_changes.append({"p": price, "q": 0.0})
 
-        # Update stored state with copies
+        # Store copies for next tick's comparison
         self._last_orderbooks[key] = {
             "bids": dict(current_bids),
             "asks": dict(current_asks),
@@ -743,11 +749,14 @@ class ExchangeWebSocketServer:
                     else:
                         fill_msg = json.dumps({"type": "fills_batch", "orders": batched_fills}, separators=(',', ':'))
                     disconnected = set()
-                    for client in self.clients:
+                    async def _send_fill(client, payload):
                         try:
-                            await client.send(fill_msg)
+                            await client.send(payload)
                         except websockets.ConnectionClosed:
                             disconnected.add(client)
+                    await asyncio.gather(*[
+                        _send_fill(c, fill_msg) for c in self.clients
+                    ], return_exceptions=True)
                     self.clients -= disconnected
 
             # Scan for arbitrage opportunities
@@ -755,7 +764,11 @@ class ExchangeWebSocketServer:
             if self.arb_detector:
                 new_arbs = self.arb_detector.scan()
                 if new_arbs:
-                    arb_data = json.dumps(self.arb_detector.to_dict())
+                    arb_dict = self.arb_detector.to_dict()
+                    if _HAS_ORJSON:
+                        arb_data = orjson.dumps(arb_dict)
+                    else:
+                        arb_data = json.dumps(arb_dict, separators=(',', ':'))
 
                     # Auto-execute arbitrage if spread > threshold (only when trading is active)
                     for opp in new_arbs:
@@ -782,26 +795,34 @@ class ExchangeWebSocketServer:
                                     f"sell={opp.sell_exchange}@{opp.sell_price:.2f} "
                                     f"qty={exec_qty:.4f} profit~${opp.net_spread * exec_qty:.2f}"
                                 )
+                                # Broadcast arb fills to all connected clients
+                                arb_ts = time.time()
                                 self.trade_logger.log_batch([
-                                    {"timestamp": time.time(), "exchange": opp.buy_exchange, "symbol": opp.symbol,
+                                    {"timestamp": arb_ts, "exchange": opp.buy_exchange, "symbol": opp.symbol,
                                      "side": "BUY", "type": "ARB", "price": buy_order.filled_price,
                                      "quantity": buy_order.filled_quantity, "fee": buy_order.fee,
                                      "order_id": buy_order.id, "status": "ARB_BUY"},
-                                    {"timestamp": time.time(), "exchange": opp.sell_exchange, "symbol": opp.symbol,
+                                    {"timestamp": arb_ts, "exchange": opp.sell_exchange, "symbol": opp.symbol,
                                      "side": "SELL", "type": "ARB", "price": sell_order.filled_price,
                                      "quantity": sell_order.filled_quantity, "fee": sell_order.fee,
                                      "order_id": sell_order.id, "status": "ARB_SELL"},
                                 ])
-                                # Broadcast arb fills to all connected clients
                                 for fill_order in (buy_order, sell_order):
                                     if fill_order.status.value == "FILLED":
-                                        fill_msg = json.dumps({"type": "fill", "order": fill_order.to_dict()})
+                                        fill_payload = {"type": "fill", "order": fill_order.to_dict()}
+                                        if _HAS_ORJSON:
+                                            fill_msg = orjson.dumps(fill_payload)
+                                        else:
+                                            fill_msg = json.dumps(fill_payload, separators=(',', ':'))
                                         disconnected = set()
-                                        for client in self.clients:
+                                        async def _send_arb_fill(client, payload):
                                             try:
-                                                await client.send(fill_msg)
+                                                await client.send(payload)
                                             except websockets.ConnectionClosed:
                                                 disconnected.add(client)
+                                        await asyncio.gather(*[
+                                            _send_arb_fill(c, fill_msg) for c in self.clients
+                                        ], return_exceptions=True)
                                         self.clients -= disconnected
 
             # Build order book — delta updates (only changed levels)
@@ -860,15 +881,19 @@ class ExchangeWebSocketServer:
             else:
                 data = json.dumps(message, separators=(',', ':'))
 
-            # Send to all clients
+            # Send to all clients — concurrent via asyncio.gather
             disconnected = set()
-            for client in self.clients:
+            async def _send_to_client(client, payload, extra=None):
                 try:
-                    await client.send(data)
-                    if arb_data:
-                        await client.send(arb_data)
+                    await client.send(payload)
+                    if extra:
+                        await client.send(extra)
                 except websockets.ConnectionClosed:
                     disconnected.add(client)
+
+            await asyncio.gather(*[
+                _send_to_client(c, data, arb_data) for c in self.clients
+            ], return_exceptions=True)
 
             self.clients -= disconnected
 
@@ -898,6 +923,14 @@ class ExchangeWebSocketServer:
         lines.append("# HELP exchange_trading_active Trading is active (1=yes, 0=stopped)")
         lines.append("# TYPE exchange_trading_active gauge")
         lines.append(f"exchange_trading_active {1 if self._trading_active else 0}")
+
+        lines.append("# HELP exchange_ws_connections_total Total WebSocket client connections")
+        lines.append("# TYPE exchange_ws_connections_total counter")
+        lines.append(f"exchange_ws_connections_total {self._total_connections}")
+
+        lines.append("# HELP exchange_ws_disconnections_total Total WebSocket client disconnections")
+        lines.append("# TYPE exchange_ws_disconnections_total counter")
+        lines.append(f"exchange_ws_disconnections_total {self._total_disconnections}")
 
         for ex_id, ex in self.exchanges.items():
             acc = ex.account

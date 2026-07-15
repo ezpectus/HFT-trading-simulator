@@ -183,6 +183,8 @@ class RiskManager:
         self, state: PositionRiskState, current_price: float
     ) -> Optional[float]:
         """Check if stop loss should be moved to breakeven."""
+        if state.entry_price <= 0:
+            return None
         trigger = self.config.breakeven_trigger_pct
         buffer = self.config.breakeven_buffer_pct
 
@@ -229,6 +231,8 @@ class RiskManager:
         self, state: PositionRiskState, current_price: float
     ) -> float:
         """Check if partial take profit should be triggered. Returns % to close."""
+        if state.entry_price <= 0:
+            return 0.0
         trigger = self.config.partial_tp_trigger_pct
 
         if state.side == "LONG":

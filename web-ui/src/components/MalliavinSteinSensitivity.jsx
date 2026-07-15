@@ -35,7 +35,6 @@ const randNormal = () => {
 
 // Monte Carlo option pricing with Malliavin-Stein Greeks
 const priceAndGreeks = (S0, K, T, r, sigma, nSims, method) => {
-  const dt = T
   let priceSum = 0, deltaSum = 0, gammaSum = 0, vegaSum = 0
   let priceSqSum = 0, deltaSqSum = 0, gammaSqSum = 0
   const payoffs = []
@@ -112,15 +111,15 @@ const priceAndGreeks = (S0, K, T, r, sigma, nSims, method) => {
 }
 
 const normalPDF = (x) => Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI)
-const normalCDF = (x) => 0.5 * (1 + erf(x / Math.sqrt(2)))
-const erf = (x) => {
+function erf(x) {
   const t = 1 / (1 + 0.3275911 * Math.abs(x))
   const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x)
   return x >= 0 ? y : -y
 }
+const normalCDF = (x) => 0.5 * (1 + erf(x / Math.sqrt(2)))
 
 export default function MalliavinSteinSensitivity({ candles, symbol, exchange }) {
-  const [lookback, setLookback] = useState(100)
+  const [lookback] = useState(100)
   const [nSims, setNSims] = useState(10000)
   const [K, setK] = useState(1.0)
   const [T, setT] = useState(0.25)
