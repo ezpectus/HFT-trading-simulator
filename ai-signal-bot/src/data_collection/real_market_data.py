@@ -62,8 +62,9 @@ class RealMarketDataFeed:
     Normalizes all data to internal format and invokes callbacks.
     """
 
-    def __init__(self, exchanges: List[str] = None):
+    def __init__(self, exchanges: List[str] = None, testnet: bool = False):
         self.exchanges = exchanges or ["binance"]
+        self.testnet = testnet
         self._ws_connections: Dict[str, object] = {}
         self._running = False
         self._reconnect_delay = 1.0
@@ -116,7 +117,10 @@ class RealMarketDataFeed:
             for iv in intervals:
                 streams.append(f"{sym_lower}@kline_{iv}")
 
-        url = f"wss://fstream.binance.com/stream?streams=" + "/".join(streams)
+        if self.testnet:
+            url = f"wss://stream.binancefuture.com/stream?streams=" + "/".join(streams)
+        else:
+            url = f"wss://fstream.binance.com/stream?streams=" + "/".join(streams)
 
         while self._running:
             try:

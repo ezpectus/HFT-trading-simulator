@@ -4,26 +4,26 @@ import { useState, useEffect, useRef } from 'react'
  * useAnimatedNumber — animates a number from its previous value to the new value.
  * Uses requestAnimationFrame for smooth 60fps transitions.
  *
- * @param {number} value - The target value to animate to
- * @param {number} duration - Animation duration in ms (default: 300)
- * @returns {number} - The currently displayed (animated) value
+ * @param value - The target value to animate to
+ * @param duration - Animation duration in ms (default: 300)
+ * @returns The currently displayed (animated) value
  *
  * Usage:
  *   const animatedBalance = useAnimatedNumber(balance)
  *   <span>${animatedBalance.toFixed(2)}</span>
  */
-export function useAnimatedNumber(value, duration = 300) {
-  const [displayValue, setDisplayValue] = useState(value)
-  const prevValueRef = useRef(value)
-  const rafRef = useRef(null)
-  const startTimeRef = useRef(0)
+export function useAnimatedNumber(value: number, duration: number = 300): number {
+  const [displayValue, setDisplayValue] = useState<number>(value)
+  const prevValueRef = useRef<number>(value)
+  const rafRef = useRef<number | null>(null)
+  const startTimeRef = useRef<number>(0)
 
   useEffect(() => {
     const prevValue = prevValueRef.current
     if (value === prevValue) return
 
     startTimeRef.current = performance.now()
-    const animate = (now) => {
+    const animate = (now: number) => {
       const elapsed = now - startTimeRef.current
       const progress = Math.min(1, elapsed / duration)
       // Ease-out cubic

@@ -4,6 +4,7 @@ import { useExchangeData, useSignalData } from './hooks/useExchangeData'
 import { useMockExchangeData, useMockSignalData, IS_MOCK } from './hooks/useMockData'
 import { ToastContainer } from './components/Toast'
 import MockModeBanner from './components/MockModeBanner'
+import { ReconnectBanner } from './components/ReconnectBanner'
 import Header from './components/Header'
 import CandleChart from './components/CandleChart'
 import OrderBook from './components/OrderBook'
@@ -279,6 +280,22 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col bg-bg-900 overflow-hidden">
       <MockModeBanner />
+      {!IS_MOCK && (
+        <div className="flex flex-col gap-1 px-2 pt-1">
+          <ReconnectBanner
+            label="Exchange Simulator"
+            connected={exchange.connected}
+            nextReconnectIn={exchange.nextReconnectIn}
+            onReconnect={() => exchange.connect()}
+          />
+          <ReconnectBanner
+            label="AI Signal Bot"
+            connected={signals.connected}
+            nextReconnectIn={signals.nextReconnectIn}
+            onReconnect={() => signals.connect()}
+          />
+        </div>
+      )}
       <OnboardingTutorial />
       <KeyboardHelp />
       <ToastContainer toasts={toasts} onRemove={removeToast} onClearAll={clearAll} />

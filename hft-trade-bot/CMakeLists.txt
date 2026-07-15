@@ -28,6 +28,14 @@ endif()
 
 # ─── Unity build option ───
 option(USE_UNITY_BUILD "Enable unity build for faster compilation" OFF)
+
+# ─── HFT-O24: Custom allocator (mimalloc/jemalloc) ───
+option(USE_MIMALLOC "Link mimalloc allocator" OFF)
+option(USE_JEMALLOC "Link jemalloc allocator" OFF)
+
+# ─── HFT-O23: Profile-Guided Optimization (PGO) ───
+option(USE_PGO "Enable profile-guided optimization (requires two-pass build)" OFF)
+set(PGO_PROFILE_DIR "${CMAKE_BINARY_DIR}/pgo-profile" CACHE PATH "PGO profile data directory")
 if(USE_UNITY_BUILD)
     set(CMAKE_UNITY_BUILD ON)
     message(STATUS "Unity build enabled")
@@ -74,6 +82,49 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 
     add_compile_options(-ffast-math -fno-math-errno)
     add_compile_options(-finline-functions -finline-limit=1000)
+endif()
+
+# ─── HFT-O24: Link custom allocator ───
+if(USE_MIMALLOC)
+    find_package(mimalloc CONFIG QUIET)
+    if(TARGET mimalloc)
+        link_libraries(mimalloc)
+        message(STATUS "mimalloc linked — custom allocator enabled")
+    else()
+        message(WARNING "mimalloc not found — build with -DUSE_MIMALLOC=ON after installing mimalloc")
+    endif()
+elseif(USE_JEMALLOC)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(JEMALLOC IMPORTED_TARGET jemalloc)
+    endif()
+    if(JEMALLOC_FOUND)
+        link_libraries(PkgConfig::JEMALLOC)
+        message(STATUS "jemalloc linked — custom allocator enabled")
+    else()
+        find_library(JEMALLOC_LIB NAMES jemalloc)
+        if(JEMALLOC_LIB)
+            link_libraries(${JEMALLOC_LIB})
+            message(STATUS "jemalloc linked (fallback) — custom allocator enabled")
+        else()
+            message(WARNING "jemalloc not found — build with -DUSE_JEMALLOC=ON after installing jemalloc-dev")
+        endif()
+    endif()
+endif()
+
+# ─── HFT-O23: Profile-Guided Optimization (PGO) ───
+# Two-pass build:
+#   Pass 1: cmake -DUSE_PGO=ON -DCMAKE_BUILD_TYPE=Profile .. && cmake --build . --config Profile
+#           Run the binary with representative workload to generate profile data
+#   Pass 2: cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build . --config Release
+#           The profile data is automatically used by the Release build
+if(USE_PGO AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
+    # Profile generation build type
+    set(CMAKE_CXX_FLAGS_PROFILE "-O3 -DNDEBUG -fprofile-generate=${PGO_PROFILE_DIR}")
+    set(CMAKE_C_FLAGS_PROFILE "-O3 -DNDEBUG -fprofile-generate=${PGO_PROFILE_DIR}")
+    # Release build uses the generated profile
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use=${PGO_PROFILE_DIR} -fprofile-correction")
+    message(STATUS "PGO enabled: build Profile first, run workload, then build Release")
 endif()
 
 # Find dependencies

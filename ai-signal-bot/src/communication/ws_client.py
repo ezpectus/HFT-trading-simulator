@@ -15,6 +15,12 @@ try:
 except ImportError:
     _HAS_MSGPACK = False
 
+try:
+    import orjson
+    _HAS_ORJSON = True
+except ImportError:
+    _HAS_ORJSON = False
+
 logger = logging.getLogger("ai_signal_bot.ws_client")
 
 
@@ -70,7 +76,7 @@ class ExchangeClient:
             self._ws = await websockets.connect(self.url, ping_interval=10)
             self._connected = True
             logger.info(f"Connected to exchange simulator: {self.url}")
-            await self._ws.send(json.dumps({"type": "subscribe", "protocol_version": 2, "encoding": self._encoding}))
+            await self._ws.send(json.dumps({"type": "subscribe", "protocol_version": 2, "encoding": self._encoding}, separators=(',', ':')))
             return True
         except Exception as e:
             logger.error(f"Failed to connect: {e}")
@@ -162,7 +168,10 @@ class ExchangeClient:
             "stop_loss": stop_loss,
             "take_profit": take_profit,
         }
-        await self._ws.send(json.dumps(order_msg))
+        if _HAS_ORJSON:
+            await self._ws.send(orjson.dumps(order_msg))
+        else:
+            await self._ws.send(json.dumps(order_msg, separators=(',', ':')))
         logger.info(f"Order sent: {side} {quantity} {symbol} on {exchange}")
 
     async def close_position(self, symbol: str, exchange: str = "binance") -> None:
@@ -174,7 +183,10 @@ class ExchangeClient:
             "exchange": exchange,
             "symbol": symbol,
         }
-        await self._ws.send(json.dumps(msg))
+        if _HAS_ORJSON:
+            await self._ws.send(orjson.dumps(msg))
+        else:
+            await self._ws.send(json.dumps(msg, separators=(',', ':')))
         logger.info(f"Close position request: {symbol} on {exchange}")
 
     async def reconnect(self) -> bool:

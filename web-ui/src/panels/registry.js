@@ -55,6 +55,7 @@ const HedgingSuggestions = lazy(() => import('../components/HedgingSuggestions')
 const VolatilitySurface = lazy(() => import('../components/VolatilitySurface'))
 const RiskParityCalculator = lazy(() => import('../components/RiskParityCalculator'))
 const GreeksCalculator = lazy(() => import('../components/GreeksCalculator'))
+const OptionsStrategySimulator = lazy(() => import('../components/OptionsStrategySimulator'))
 const MultiLegOptions = lazy(() => import('../components/MultiLegOptions'))
 const KellyCalculator = lazy(() => import('../components/KellyCalculator'))
 const DrawdownAnalysis = lazy(() => import('../components/DrawdownAnalysis'))
@@ -115,6 +116,7 @@ const ExpectedValueCalculator = lazy(() => import('../components/ExpectedValueCa
 const RegimeSwitching = lazy(() => import('../components/RegimeSwitching'))
 const SmartMoneyConcepts = lazy(() => import('../components/SmartMoneyConcepts'))
 const LiquidityGrabDetector = lazy(() => import('../components/LiquidityGrabDetector'))
+const CustomIndicatorPlugin = lazy(() => import('../components/CustomIndicatorPlugin'))
 const VolumeAnomalyDetector = lazy(() => import('../components/VolumeAnomalyDetector'))
 const MultiTimeframeConfluence = lazy(() => import('../components/MultiTimeframeConfluence'))
 const OrderFlowAbsorption = lazy(() => import('../components/OrderFlowAbsorption'))
@@ -337,6 +339,8 @@ export const PANELS = [
     props: (ctx) => ({ candles: ctx.exchange.candles, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
   { id: 'liquidity-grab', name: 'Liquidity Grab Detector', category: 'technical', component: LiquidityGrabDetector,
     props: (ctx) => ({ candles: ctx.exchange.candles, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
+  { id: 'custom-indicator', name: 'Custom Indicator Plugin', category: 'technical', component: CustomIndicatorPlugin,
+    props: (ctx) => ({ candles: ctx.exchange.candles, symbol: ctx.selectedSymbol }) },
   { id: 'volume-anomaly', name: 'Volume Anomaly Detector', category: 'technical', component: VolumeAnomalyDetector,
     props: (ctx) => ({ candles: ctx.exchange.candles, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
   { id: 'mtf-confluence', name: 'Multi-Timeframe Confluence', category: 'technical', component: MultiTimeframeConfluence,
@@ -576,6 +580,8 @@ export const PANELS = [
   { id: 'kelly', name: 'Kelly Criterion', category: 'portfolio', component: KellyCalculator,
     props: (ctx) => ({ accounts: ctx.exchange.accounts }) },
   { id: 'greeks', name: 'Greeks Calculator', category: 'portfolio', component: GreeksCalculator,
+    props: (ctx) => ({ currentPrice: ctx.currentPrice }) },
+  { id: 'options-strategy-sim', name: 'Options Strategy P&L', category: 'portfolio', component: OptionsStrategySimulator,
     props: (ctx) => ({ currentPrice: ctx.currentPrice }) },
   { id: 'multi-leg-options', name: 'Multi-Leg Options', category: 'portfolio', component: MultiLegOptions,
     props: (ctx) => ({ currentPrice: ctx.currentPrice }) },

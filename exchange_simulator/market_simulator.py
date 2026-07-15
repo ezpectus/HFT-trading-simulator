@@ -57,6 +57,9 @@ class MarketSimulator:
         for i, exchange in enumerate(exchanges):
             self._exchange_offset[exchange] = 1.0 + (i * 0.0002)  # 2bps per exchange
 
+        # Cached order books for incremental updates (avoids full regen every tick)
+        self._ob_cache: dict[tuple[str, str], OrderBook] = {}
+
         # Per-exchange volatility multiplier — different exchanges have slightly different vol
         self._exchange_vol_mult: dict[str, float] = {}
         for i, exchange in enumerate(exchanges):
@@ -279,12 +282,35 @@ class MarketSimulator:
         return result
 
     def generate_order_book(self, exchange: str, symbol: str) -> OrderBook:
-        """Generate a realistic order book around the current price."""
+        """Generate a realistic order book around the current price.
+        
+        Uses cached order book when available — only scales prices by the
+        price change ratio and perturbs quantities slightly, avoiding
+        order_book_depth * 4 random calls per tick.
+        """
         mid_price = self.get_price(symbol, exchange)
         if mid_price == 0:
             return OrderBook(symbol=symbol, exchange=exchange)
 
-        # Spread varies by symbol volatility
+        cache_key = (exchange, symbol)
+        cached = self._ob_cache.get(cache_key)
+
+        if cached is not None and cached.bids and cached.asks:
+            # Incremental update: scale prices by ratio, perturb quantities
+            old_mid = (cached.bids[0].price + cached.asks[0].price) / 2.0
+            if old_mid > 0:
+                ratio = mid_price / old_mid
+                # Update cached order book in-place
+                cached.timestamp = self._current_ts
+                for level in cached.bids:
+                    level.price = round(level.price * ratio, 2)
+                    level.quantity = round(level.quantity * (0.9 + self.rng.random() * 0.2), 4)
+                for level in cached.asks:
+                    level.price = round(level.price * ratio, 2)
+                    level.quantity = round(level.quantity * (0.9 + self.rng.random() * 0.2), 4)
+                return cached
+
+        # Full generation (first call or after cache miss)
         vol = self._volatility.get(symbol, 0.8)
         spread_bps = max(1.0, vol * 10)  # basis points
         half_spread = mid_price * spread_bps / 10000
@@ -306,13 +332,15 @@ class MarketSimulator:
             bids.append(OrderBookLevel(price=round(bid_price, 2), quantity=round(bid_qty, 4)))
             asks.append(OrderBookLevel(price=round(ask_price, 2), quantity=round(ask_qty, 4)))
 
-        return OrderBook(
+        ob = OrderBook(
             symbol=symbol,
             exchange=exchange,
             bids=bids,
             asks=asks,
             timestamp=self._current_ts,
         )
+        self._ob_cache[cache_key] = ob
+        return ob
 
     @property
     def current_timestamp(self) -> int:

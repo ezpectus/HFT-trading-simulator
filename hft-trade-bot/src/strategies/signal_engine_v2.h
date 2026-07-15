@@ -26,6 +26,8 @@
 #include <cstdint>
 #include <cstring>
 #include <chrono>
+#include <unordered_map>
+#include <string>
 
 namespace hft {
 
@@ -352,6 +354,15 @@ public:
         double tp_atr_mult{3.0};
         int atr_period{14};
 
+        // ── Adaptive SL/TP (volatility regime) ──
+        bool adaptive_sl_tp{true};
+        double low_vol_atr_pct{0.005};     // ATR < 0.5% of price → low vol regime
+        double high_vol_atr_pct{0.02};     // ATR > 2% of price → high vol regime
+        double low_vol_sl_mult{1.0};       // tighter SL in low vol
+        double low_vol_tp_mult{2.0};       // tighter TP in low vol
+        double high_vol_sl_mult{2.5};      // wider SL in high vol
+        double high_vol_tp_mult{5.0};      // wider TP in high vol
+
         // ── Leverage ──
         bool dynamic_leverage{true};
         uint8_t max_leverage{5};
@@ -367,6 +378,50 @@ public:
     };
 
     explicit SignalEngineV2(const Params& params) : params_(params) {}
+
+    // ── Per-symbol cached indicator state (HFT-O21: incremental update) ──
+    struct IndicatorCache {
+        InlineEMA ema_fast{21};
+        InlineEMA ema_slow{50};
+        InlineEMA ema_signal{9};
+        InlineRSI rsi{14};
+        InlineADX adx{14};
+        InlineATR atr{14};
+        InlineVWAP vwap;
+        double prev_macd{0.0};
+        bool initialized{false};
+        int64_t last_candle_ts{0};
+        int candle_count{0};
+    };
+
+    // Get or create cache for a symbol
+    IndicatorCache& get_cache(const char* symbol) {
+        auto it = cache_.find(symbol);
+        if (it == cache_.end()) {
+            it = cache_.emplace(symbol, IndicatorCache{}).first;
+            it->second.ema_fast = InlineEMA(params_.ema_fast_period);
+            it->second.ema_slow = InlineEMA(params_.ema_slow_period);
+            it->second.ema_signal = InlineEMA(params_.ema_signal_period);
+            it->second.rsi = InlineRSI(params_.rsi_period);
+            it->second.adx = InlineADX(params_.adx_period);
+            it->second.atr = InlineATR(params_.atr_period);
+        }
+        return it->second;
+    }
+
+    // Reset cache for a symbol (e.g. on reconnection)
+    void reset_cache(const char* symbol) {
+        auto it = cache_.find(symbol);
+        if (it != cache_.end()) {
+            it->second = IndicatorCache{};
+            it->second.ema_fast = InlineEMA(params_.ema_fast_period);
+            it->second.ema_slow = InlineEMA(params_.ema_slow_period);
+            it->second.ema_signal = InlineEMA(params_.ema_signal_period);
+            it->second.rsi = InlineRSI(params_.rsi_period);
+            it->second.adx = InlineADX(params_.adx_period);
+            it->second.atr = InlineATR(params_.atr_period);
+        }
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Main analysis — takes full PressureResult. No heap allocations.
@@ -696,6 +751,20 @@ public:
         }
         if (atr < 1e-12) atr = current_price * 0.01;
 
+        // ── Adaptive SL/TP: adjust multipliers based on volatility regime ──
+        double effective_sl_mult = params_.sl_atr_mult;
+        double effective_tp_mult = params_.tp_atr_mult;
+        if (params_.adaptive_sl_tp && current_price > 0.0) {
+            double atr_pct = atr / current_price;
+            if (atr_pct < params_.low_vol_atr_pct) {
+                effective_sl_mult = params_.low_vol_sl_mult;
+                effective_tp_mult = params_.low_vol_tp_mult;
+            } else if (atr_pct > params_.high_vol_atr_pct) {
+                effective_sl_mult = params_.high_vol_sl_mult;
+                effective_tp_mult = params_.high_vol_tp_mult;
+            }
+        }
+
         // ════ Direction + Confidence + Leverage ════
         if (sig.composite_score > params_.buy_threshold) {
             sig.direction = FastSignal::Direction::LONG;
@@ -704,8 +773,8 @@ public:
             t = std::fmax(0.0, std::fmin(1.0, t));
             sig.confidence = static_cast<uint8_t>(std::fmin(100.0, 60.0 + t * 40.0));
             sig.entry_price = current_price;
-            sig.stop_loss = current_price - params_.sl_atr_mult * atr;
-            sig.take_profit = current_price + params_.tp_atr_mult * atr;
+            sig.stop_loss = current_price - effective_sl_mult * atr;
+            sig.take_profit = current_price + effective_tp_mult * atr;
 
             // Dynamic leverage
             sig.leverage = compute_leverage(sig.confidence, adx_val);
@@ -726,8 +795,8 @@ public:
             t = std::fmax(0.0, std::fmin(1.0, t));
             sig.confidence = static_cast<uint8_t>(std::fmin(100.0, 60.0 + t * 40.0));
             sig.entry_price = current_price;
-            sig.stop_loss = current_price + params_.sl_atr_mult * atr;
-            sig.take_profit = current_price - params_.tp_atr_mult * atr;
+            sig.stop_loss = current_price + effective_sl_mult * atr;
+            sig.take_profit = current_price - effective_tp_mult * atr;
 
             sig.leverage = compute_leverage(sig.confidence, adx_val);
 
@@ -749,7 +818,227 @@ public:
         return sig;
     }
 
-    const Params& params() const noexcept { return params_; }
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Incremental analysis — uses cached indicator state for O(1) per-tick updates.
+    // Falls back to full analyze_raw when cache is cold or stale.
+    // Only the last candle is processed; prior candles assumed already ingested.
+    // ═══════════════════════════════════════════════════════════════════════════
+    FastSignal analyze_incremental(
+        const char* symbol,
+        const Candle* candles, size_t n,
+        const OrderBook& ob,
+        const PressureResult& pressure,
+        int64_t timestamp_ns
+    ) noexcept {
+        if (n == 0) {
+            FastSignal sig;
+            sig.set_symbol(symbol);
+            sig.set_reason("No candles");
+            return sig;
+        }
+
+        IndicatorCache& ic = get_cache(symbol);
+        const Candle& latest = candles[n - 1];
+
+        // Cold start or stale cache → seed from full history, then use last candle
+        if (!ic.initialized || ic.candle_count < params_.ema_slow_period + params_.ema_signal_period + 2) {
+            // Seed indicators from full candle history
+            for (size_t i = 0; i < n; ++i) {
+                ic.ema_fast.update(candles[i].close);
+                ic.ema_slow.update(candles[i].close);
+                double macd = ic.ema_fast.value() - ic.ema_slow.value();
+                ic.ema_signal.update(macd);
+                ic.rsi.update(candles[i].close);
+                ic.adx.update(candles[i].high, candles[i].low, candles[i].close);
+                ic.atr.update(candles[i].high, candles[i].low, candles[i].close);
+                ic.vwap.update(candles[i].high, candles[i].low, candles[i].close, candles[i].volume);
+            }
+            ic.candle_count = static_cast<int>(n);
+            ic.last_candle_ts = latest.timestamp;
+            ic.initialized = true;
+        } else {
+            // Incremental: only update with the latest candle
+            // Check if this is a new candle (timestamp changed) or same candle update
+            if (latest.timestamp != ic.last_candle_ts) {
+                ic.ema_fast.update(latest.close);
+                ic.ema_slow.update(latest.close);
+                double macd = ic.ema_fast.value() - ic.ema_slow.value();
+                ic.ema_signal.update(macd);
+                ic.rsi.update(latest.close);
+                ic.adx.update(latest.high, latest.low, latest.close);
+                ic.atr.update(latest.high, latest.low, latest.close);
+                ic.vwap.update(latest.high, latest.low, latest.close, latest.volume);
+                ic.candle_count++;
+                ic.last_candle_ts = latest.timestamp;
+            }
+            // If same timestamp, indicators are already current — skip update
+        }
+
+        // Cooldown check
+        int64_t now_ms = timestamp_ns / 1'000'000;
+        if (now_ms - last_signal_ms_ < params_.cooldown_ms) [[unlikely]] {
+            FastSignal sig;
+            sig.set_symbol(symbol);
+            sig.timestamp = timestamp_ns;
+            sig.set_reason("Cooldown active");
+            return sig;
+        }
+
+        double current_price = latest.close;
+
+        // ── 1. EMA / MACD from cache ──
+        double macd = ic.ema_fast.value() - ic.ema_slow.value();
+        double signal_line = ic.ema_signal.value();
+        double macd_diff = macd - signal_line;
+        double macd_scale = std::fabs(ic.ema_slow.value()) > 1e-12 ? std::fabs(ic.ema_slow.value()) : 1.0;
+        double ema_norm = macd_diff / (macd_scale * 0.001);
+
+        // ── 2. RSI from cache ──
+        double rsi_val = ic.rsi.value();
+
+        // ── 3. OBI (always computed fresh from order book) ──
+        double obi_5 = compute_obi_levels(ob, params_.obi_levels_5);
+        double obi_10 = compute_obi_levels(ob, params_.obi_levels_10);
+        double obi_20 = compute_weighted_obi(ob, params_.obi_levels_20);
+        double obi_combined = obi_5 * 0.5 + obi_10 * 0.3 + obi_20 * 0.2;
+
+        // ── 4. VWAP from cache ──
+        double vwap = ic.vwap.value();
+        double vwap_std = ic.vwap.std_dev();
+
+        // ── 5. ADX from cache ──
+        double adx_val = ic.adx.value();
+
+        // ── 6. Pressure model (always fresh) ──
+        double body_dir = 0.0;
+        {
+            double buy_p = 0.0, sell_p = 0.0;
+            int lookback = std::min(params_.body_direction_lookback, static_cast<int>(n) - 1);
+            for (int i = static_cast<int>(n) - lookback; i < static_cast<int>(n); ++i) {
+                if (i < 1) continue;
+                double body = candles[i].close - candles[i - 1].close;
+                double vol = candles[i].volume;
+                buy_p += std::fmax(body, 0.0) * vol;
+                sell_p += std::fmax(-body, 0.0) * vol;
+            }
+            double total = buy_p + sell_p;
+            body_dir = total > 1e-12 ? (buy_p - sell_p) / total : 0.0;
+        }
+        double raw_pressure =
+            pressure.obi_weighted * 0.3 +
+            pressure.trade_imbalance * 0.3 +
+            body_dir * 0.4;
+        raw_pressure *= (1.0 - pressure.toxic_score * params_.toxic_penalty);
+
+        // ── Build FastSignal from cached values ──
+        FastSignal sig;
+        sig.set_symbol(symbol);
+        sig.timestamp = timestamp_ns;
+        sig.direction = FastSignal::Direction::NEUTRAL;
+        sig.confidence = 0;
+        sig.leverage = 1;
+
+        sig.ema_score = std::fmax(-1.0, std::fmin(1.0, ema_norm));
+
+        double rsi_mid = (params_.rsi_overbought + params_.rsi_oversold) / 2.0;
+        double rsi_range = (params_.rsi_overbought - params_.rsi_oversold) / 2.0;
+        sig.rsi_score = std::fmax(-1.0, std::fmin(1.0, (rsi_mid - rsi_val) / rsi_range));
+
+        sig.obi_score = std::fmax(-1.0, std::fmin(1.0,
+            std::fabs(obi_combined) > params_.obi_threshold
+                ? (obi_combined > 0 ? 1.0 : -1.0)
+                : obi_combined / params_.obi_threshold
+        ));
+
+        double band_width = params_.vwap_band_mult * vwap_std;
+        if (band_width > 1e-12) {
+            sig.vwap_score = std::fmax(-1.0, std::fmin(1.0, (vwap - current_price) / band_width));
+        } else {
+            double dev_bps = vwap > 0 ? (current_price - vwap) / vwap * 10000.0 : 0.0;
+            sig.vwap_score = std::fmax(-1.0, std::fmin(1.0, -dev_bps / params_.vwap_dev_threshold));
+        }
+
+        sig.adx_score = adx_val;
+
+        sig.pressure_score = std::fmax(-1.0, std::fmin(1.0,
+            std::fabs(raw_pressure) > params_.pressure_threshold
+                ? (raw_pressure > 0 ? 1.0 : -1.0)
+                : raw_pressure / params_.pressure_threshold
+        ));
+
+        // Composite
+        double adx_normalized = std::fmin(1.0, adx_val / params_.adx_trend_threshold);
+        double directional_scale = params_.adx_trend_threshold > 0
+            ? std::fmin(1.0, adx_val / params_.adx_trend_threshold) : 1.0;
+
+        sig.composite_score =
+            sig.ema_score * params_.w_ema +
+            sig.rsi_score * params_.w_rsi +
+            sig.obi_score * params_.w_obi +
+            sig.vwap_score * params_.w_vwap +
+            sig.ema_score * adx_normalized * params_.w_adx +
+            sig.pressure_score * params_.w_pressure;
+        sig.composite_score *= (0.5 + 0.5 * directional_scale);
+
+        // ATR from cache
+        double atr = ic.atr.value();
+        if (atr < 1e-12) atr = current_price * 0.01;
+
+        // Adaptive SL/TP
+        double effective_sl_mult = params_.sl_atr_mult;
+        double effective_tp_mult = params_.tp_atr_mult;
+        if (params_.adaptive_sl_tp && current_price > 0.0) {
+            double atr_pct = atr / current_price;
+            if (atr_pct < params_.low_vol_atr_pct) {
+                effective_sl_mult = params_.low_vol_sl_mult;
+                effective_tp_mult = params_.low_vol_tp_mult;
+            } else if (atr_pct > params_.high_vol_atr_pct) {
+                effective_sl_mult = params_.high_vol_sl_mult;
+                effective_tp_mult = params_.high_vol_tp_mult;
+            }
+        }
+
+        // Direction + confidence
+        if (sig.composite_score > params_.buy_threshold) {
+            sig.direction = FastSignal::Direction::LONG;
+            double t = (sig.composite_score - params_.buy_threshold) / (1.0 - params_.buy_threshold);
+            t = std::fmax(0.0, std::fmin(1.0, t));
+            sig.confidence = static_cast<uint8_t>(std::fmin(100.0, 60.0 + t * 40.0));
+            sig.entry_price = current_price;
+            sig.stop_loss = current_price - effective_sl_mult * atr;
+            sig.take_profit = current_price + effective_tp_mult * atr;
+            sig.leverage = compute_leverage(sig.confidence, adx_val);
+            char buf[48];
+            std::snprintf(buf, sizeof(buf),
+                "L comp=%+.2f E=%+.2f R=%+.2f O=%+.2f V=%+.2f A=%.0f P=%+.2f",
+                sig.composite_score, sig.ema_score, sig.rsi_score,
+                sig.obi_score, sig.vwap_score, adx_val, sig.pressure_score);
+            sig.set_reason(buf);
+            last_signal_ms_ = now_ms;
+        } else if (sig.composite_score < params_.sell_threshold) {
+            sig.direction = FastSignal::Direction::SHORT;
+            double t = (-sig.composite_score + params_.sell_threshold) / (1.0 + params_.sell_threshold);
+            t = std::fmax(0.0, std::fmin(1.0, t));
+            sig.confidence = static_cast<uint8_t>(std::fmin(100.0, 60.0 + t * 40.0));
+            sig.entry_price = current_price;
+            sig.stop_loss = current_price + effective_sl_mult * atr;
+            sig.take_profit = current_price - effective_tp_mult * atr;
+            sig.leverage = compute_leverage(sig.confidence, adx_val);
+            char buf[48];
+            std::snprintf(buf, sizeof(buf),
+                "S comp=%+.2f E=%+.2f R=%+.2f O=%+.2f V=%+.2f A=%.0f P=%+.2f",
+                sig.composite_score, sig.ema_score, sig.rsi_score,
+                sig.obi_score, sig.vwap_score, adx_val, sig.pressure_score);
+            sig.set_reason(buf);
+            last_signal_ms_ = now_ms;
+        } else {
+            char buf[48];
+            std::snprintf(buf, sizeof(buf), "N comp=%+.2f ADX=%.0f", sig.composite_score, adx_val);
+            sig.set_reason(buf);
+        }
+
+        return sig;
+    }
 
     // Reset cooldown (for testing)
     void reset_cooldown() noexcept { last_signal_ms_ = 0; }
@@ -801,6 +1090,7 @@ private:
 
     Params params_;
     int64_t last_signal_ms_{0};
+    std::unordered_map<std::string, IndicatorCache> cache_;
 };
 
 } // namespace hft

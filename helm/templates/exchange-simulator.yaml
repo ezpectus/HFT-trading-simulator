@@ -2,24 +2,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-exchange-simulator
+  name: {{ .Release.Name }}-exchange_simulator
   labels:
     {{- include "hft-trading-system.labels" . | nindent 4 }}
-    app.kubernetes.io/component: exchange-simulator
+    app.kubernetes.io/component: exchange_simulator
 spec:
   replicas: 1
   selector:
     matchLabels:
       {{- include "hft-trading-system.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: exchange-simulator
+      app.kubernetes.io/component: exchange_simulator
   template:
     metadata:
       labels:
         {{- include "hft-trading-system.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: exchange-simulator
+        app.kubernetes.io/component: exchange_simulator
     spec:
       containers:
-        - name: exchange-simulator
+        - name: exchange_simulator
           image: "{{ .Values.exchangeSimulator.image.repository }}:{{ .Values.exchangeSimulator.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           command: ["python", "-m", "exchange_simulator", "--no-visualizer"]
@@ -49,7 +49,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Release.Name }}-exchange-simulator
+  name: {{ .Release.Name }}-exchange_simulator
   labels:
     {{- include "hft-trading-system.labels" . | nindent 4 }}
 spec:
@@ -61,5 +61,5 @@ spec:
       name: metrics
   selector:
     {{- include "hft-trading-system.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: exchange-simulator
+    app.kubernetes.io/component: exchange_simulator
 {{- end -}}

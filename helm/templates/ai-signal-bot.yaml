@@ -18,6 +18,7 @@ spec:
         {{- include "hft-trading-system.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: ai-signal-bot
     spec:
+      shareProcessNamespace: true
       containers:
         - name: ai-signal-bot
           image: "{{ .Values.aiSignalBot.image.repository }}:{{ .Values.aiSignalBot.image.tag }}"
@@ -63,6 +64,37 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.aiSignalBot.resources | nindent 12 }}
+        {{- if .Values.hftTradeBot.enabled }}
+        - name: hft-trade-bot
+          image: "{{ .Values.hftTradeBot.image.repository }}:{{ .Values.hftTradeBot.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command: ["/app/hft_trade_bot", {{ .Values.hftTradeBot.configPath | quote }}]
+          env:
+            - name: LOG_FORMAT
+              value: {{ .Values.global.logFormat | quote }}
+          ports:
+            - containerPort: 9091
+              name: health
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+            - name: logs
+              mountPath: /app/logs
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9091
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9091
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.hftTradeBot.resources | nindent 12 }}
+        {{- end }}
       volumes:
         - name: shm
           emptyDir:

@@ -16,7 +16,7 @@ echo.
 
 REM ── 1. Python: Exchange Simulator ─────────────────────────
 echo [1/5] Python tests — Exchange Simulator...
-cd /d "%PROJECT_ROOT%exchange-simulator"
+cd /d "%PROJECT_ROOT%exchange_simulator"
 python -m pytest tests/ -v --tb=short 2>&1
 if errorlevel 1 (
     echo [FAIL] Exchange Simulator tests failed

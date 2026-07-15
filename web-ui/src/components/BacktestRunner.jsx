@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createChart, ColorType } from 'lightweight-charts'
-import { Play, Loader2, Settings, TrendingUp, BarChart3, Save, Trash2, GitCompare, Download } from 'lucide-react'
+import { Play, Loader2, Settings, TrendingUp, BarChart3, Save, Trash2, GitCompare, Download, Share2 } from 'lucide-react'
 
 const STRATEGIES = [
   { id: 'all', label: 'All Strategies' },
@@ -28,6 +28,9 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
   const [error, setError] = useState(null)
   const [savedBacktests, setSavedBacktests] = useState([])
   const [showCompare, setShowCompare] = useState(false)
+  const [comparisonResult, setComparisonResult] = useState(null)
+  const [selectedForCompare, setSelectedForCompare] = useState(new Set())
+  const [compareLoading, setCompareLoading] = useState(false)
 
   // Load saved backtests from localStorage
   useEffect(() => {
@@ -83,6 +86,75 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
     URL.revokeObjectURL(url)
   }
 
+  const [shareLink, setShareLink] = useState('')
+
+  const handleShareLink = () => {
+    if (!result?.results) return
+    const summary = {
+      v: 1,
+      sym: symbol,
+      cfg: { s: config.strategy, c: config.candles, b: config.balance },
+      res: Object.entries(result.results).map(([name, r]) => ({
+        n: name,
+        ret: r.total_return_pct,
+        tr: r.total_trades,
+        wr: r.win_rate,
+        pf: r.profit_factor,
+        dd: r.max_drawdown_pct,
+        sh: r.sharpe_ratio,
+        fb: r.final_balance,
+      })),
+    }
+    try {
+      const encoded = btoa(JSON.stringify(summary))
+      const link = `${window.location.origin}${window.location.pathname}#bt=${encoded}`
+      navigator.clipboard.writeText(link).then(() => {
+        setShareLink(link)
+        setTimeout(() => setShareLink(''), 3000)
+      }).catch(() => {
+        setShareLink(link)
+        setTimeout(() => setShareLink(''), 5000)
+      })
+    } catch {
+      setError('Failed to generate share link')
+    }
+  }
+
+  const toggleSelectForCompare = (id) => {
+    setSelectedForCompare(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleRunComparison = () => {
+    const selected = savedBacktests.filter(bt => selectedForCompare.has(bt.id))
+    if (selected.length < 2) return
+
+    setCompareLoading(true)
+    setComparisonResult(null)
+
+    sendSignalMessage({
+      type: 'compare_backtests',
+      backtests: selected.map(bt => ({
+        name: bt.label,
+        results: bt.results,
+      })),
+    })
+
+    setTimeout(() => {
+      setCompareLoading(prev => {
+        if (prev) {
+          setError('Comparison timed out — no response from server')
+          return false
+        }
+        return prev
+      })
+    }, 15000)
+  }
+
   const chartContainerRef = useRef(null)
   const chartRef = useRef(null)
   const seriesRef = useRef({})
@@ -136,7 +208,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
     for (const key of Object.keys(seriesRef.current)) {
       try {
         chartRef.current.removeSeries(seriesRef.current[key])
-      } catch (e) {
+      } catch {
         // series already removed
       }
     }
@@ -195,13 +267,20 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
     }, 30000)
   }
 
-  // Listen for backtest_result from props
+  // Listen for backtest_result or comparison_result from props
   useEffect(() => {
     if (backtestResult) {
-      setResult(backtestResult)
-      setRunning(false)
-      if (backtestResult.error) setError(backtestResult.error)
-      else setError(null)
+      if (backtestResult.type === 'comparison_result') {
+        setComparisonResult(backtestResult)
+        setCompareLoading(false)
+        if (backtestResult.error) setError(backtestResult.error)
+        else setError(null)
+      } else {
+        setResult(backtestResult)
+        setRunning(false)
+        if (backtestResult.error) setError(backtestResult.error)
+        else setError(null)
+      }
     }
   }, [backtestResult])
 
@@ -348,6 +427,13 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
               <Download size={10} />
               CSV
             </button>
+            <button
+              onClick={handleShareLink}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors"
+            >
+              <Share2 size={10} />
+              {shareLink ? 'Copied!' : 'Share'}
+            </button>
             {savedBacktests.length > 0 && (
               <button
                 onClick={() => setShowCompare(!showCompare)}
@@ -360,16 +446,27 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
             )}
           </div>
 
-          {/* Comparison view */}
+          {/* Comparison view — side-by-side panel */}
           {showCompare && savedBacktests.length > 0 && (
-            <div className="bg-bg-700 rounded-lg p-2">
-              <div className="flex items-center gap-2 px-1 py-1 mb-2">
+            <div className="bg-bg-700 rounded-lg p-2 space-y-2">
+              <div className="flex items-center gap-2 px-1 py-1">
                 <GitCompare size={12} className="text-accent-purple" />
-                <span className="text-xs text-gray-400 font-medium">Saved Backtests Comparison</span>
+                <span className="text-xs text-gray-400 font-medium">Side-by-Side Comparison</span>
+                {selectedForCompare.size >= 2 && (
+                  <button
+                    onClick={handleRunComparison}
+                    disabled={compareLoading || !connected}
+                    className="ml-auto flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 transition-colors disabled:opacity-50"
+                  >
+                    {compareLoading ? <Loader2 size={10} className="animate-spin" /> : <Play size={10} />}
+                    Run Comparison ({selectedForCompare.size})
+                  </button>
+                )}
               </div>
               <table className="w-full text-[9px]">
                 <thead>
                   <tr className="text-gray-500 border-b border-bg-600">
+                    <th className="text-left py-1 w-6"></th>
                     <th className="text-left py-1">Run</th>
                     <th className="text-right">Return</th>
                     <th className="text-right">Trades</th>
@@ -386,9 +483,18 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
                     )[0]
                     if (!best) return null
                     const [, r] = best
+                    const isSelected = selectedForCompare.has(bt.id)
                     return (
-                      <tr key={bt.id} className="border-b border-bg-600/50">
-                        <td className="py-1 text-gray-300 truncate max-w-[120px]" title={bt.label}>
+                      <tr key={bt.id} className={'border-b border-bg-600/50 ' + (isSelected ? 'bg-accent-purple/10' : '')}>
+                        <td className="py-1">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectForCompare(bt.id)}
+                            className="accent-purple-500 w-3 h-3"
+                          />
+                        </td>
+                        <td className="py-1 text-gray-300 truncate max-w-[100px]" title={bt.label}>
                           {bt.label}
                         </td>
                         <td className={'text-right font-medium ' + (r.total_return_pct >= 0 ? 'text-green-400' : 'text-red-400')}>
@@ -411,6 +517,103 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
                   })}
                 </tbody>
               </table>
+
+              {/* Comparison results */}
+              {comparisonResult && !comparisonResult.error && (
+                <div className="space-y-2 pt-2 border-t border-bg-600">
+                  {/* Best by metrics */}
+                  <div className="grid grid-cols-2 gap-1 text-[10px]">
+                    <div className="bg-bg-800 rounded px-2 py-1">
+                      <span className="text-gray-500">Best Sharpe: </span>
+                      <span className="text-accent-blue font-medium">{comparisonResult.best_by_sharpe}</span>
+                    </div>
+                    <div className="bg-bg-800 rounded px-2 py-1">
+                      <span className="text-gray-500">Best Return: </span>
+                      <span className="text-green-400 font-medium">{comparisonResult.best_by_return}</span>
+                    </div>
+                    <div className="bg-bg-800 rounded px-2 py-1">
+                      <span className="text-gray-500">Best Calmar: </span>
+                      <span className="text-accent-purple font-medium">{comparisonResult.best_by_calmar}</span>
+                    </div>
+                    <div className="bg-bg-800 rounded px-2 py-1">
+                      <span className="text-gray-500">Best PF: </span>
+                      <span className="text-yellow-400 font-medium">{comparisonResult.best_by_profit_factor}</span>
+                    </div>
+                  </div>
+
+                  {/* Overlaid equity curves from comparison */}
+                  {comparisonResult.equity_curves && Object.keys(comparisonResult.equity_curves).length > 0 && (
+                    <div className="bg-bg-800 rounded p-2">
+                      <div className="text-[10px] text-gray-500 mb-1">Overlaid Equity Curves</div>
+                      <ComparisonChart curves={comparisonResult.equity_curves} />
+                    </div>
+                  )}
+
+                  {/* Significance tests */}
+                  {comparisonResult.significance_tests && Object.keys(comparisonResult.significance_tests).length > 0 && (
+                    <div className="bg-bg-800 rounded p-2">
+                      <div className="text-[10px] text-gray-500 mb-1">Statistical Significance (bootstrap)</div>
+                      <table className="w-full text-[9px]">
+                        <thead>
+                          <tr className="text-gray-500 border-b border-bg-600">
+                            <th className="text-left py-1">Pair</th>
+                            <th className="text-right">p-value</th>
+                            <th className="text-right">Significant</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(comparisonResult.significance_tests).map(([pair, test]) => (
+                            <tr key={pair} className="border-b border-bg-600/30">
+                              <td className="py-1 text-gray-400 truncate max-w-[120px]" title={pair}>{pair}</td>
+                              <td className="text-right text-gray-400">{test.p_value?.toFixed(4)}</td>
+                              <td className={'text-right ' + (test.significant ? 'text-green-400' : 'text-gray-500')}>
+                                {test.significant ? 'Yes' : 'No'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Detailed comparison table */}
+                  {comparisonResult.rows && comparisonResult.rows.length > 0 && (
+                    <div className="bg-bg-800 rounded p-2">
+                      <div className="text-[10px] text-gray-500 mb-1">Detailed Metrics</div>
+                      <table className="w-full text-[9px]">
+                        <thead>
+                          <tr className="text-gray-500 border-b border-bg-600">
+                            <th className="text-left py-1">Name</th>
+                            <th className="text-right">Return%</th>
+                            <th className="text-right">Sharpe</th>
+                            <th className="text-right">Sortino</th>
+                            <th className="text-right">Calmar</th>
+                            <th className="text-right">MaxDD%</th>
+                            <th className="text-right">Win%</th>
+                            <th className="text-right">PF</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {comparisonResult.rows.map((row, idx) => (
+                            <tr key={idx} className="border-b border-bg-600/30">
+                              <td className="py-1 text-gray-300 truncate max-w-[80px]" title={row.name}>{row.name}</td>
+                              <td className={'text-right ' + (row.total_return_pct >= 0 ? 'text-green-400' : 'text-red-400')}>
+                                {row.total_return_pct > 0 ? '+' : ''}{row.total_return_pct?.toFixed(2)}
+                              </td>
+                              <td className="text-right text-gray-400">{row.sharpe_ratio?.toFixed(3)}</td>
+                              <td className="text-right text-gray-400">{row.sortino_ratio?.toFixed(3)}</td>
+                              <td className="text-right text-gray-400">{row.calmar_ratio?.toFixed(3)}</td>
+                              <td className="text-right text-red-400">{row.max_drawdown_pct?.toFixed(2)}</td>
+                              <td className="text-right text-gray-400">{row.win_rate?.toFixed(1)}</td>
+                              <td className="text-right text-gray-400">{row.profit_factor?.toFixed(3)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -517,4 +720,64 @@ function Metric({ label, value, color = 'text-gray-200' }) {
       <div className={`font-medium ${color}`}>{value}</div>
     </div>
   )
+}
+
+function ComparisonChart({ curves }) {
+  const containerRef = useRef(null)
+  const chartRef = useRef(null)
+  const seriesRef = useRef({})
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const chart = createChart(containerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: '#0f1521' },
+        textColor: '#8b95a7',
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: 10,
+      },
+      grid: {
+        vertLines: { color: '#161b26' },
+        horzLines: { color: '#161b26' },
+      },
+      rightPriceScale: { borderColor: '#1e2433' },
+      timeScale: { borderColor: '#1e2433' },
+      width: containerRef.current.clientWidth,
+      height: 120,
+    })
+    chartRef.current = chart
+
+    const ro = new ResizeObserver(() => {
+      if (containerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({ width: containerRef.current.clientWidth })
+      }
+    })
+    ro.observe(containerRef.current)
+
+    return () => {
+      ro.disconnect()
+      chart.remove()
+      chartRef.current = null
+      seriesRef.current = {}
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!chartRef.current || !curves) return
+    for (const key of Object.keys(seriesRef.current)) {
+      try { chartRef.current.removeSeries(seriesRef.current[key]) } catch { /* */ }
+    }
+    seriesRef.current = {}
+
+    Object.entries(curves).forEach(([name, data], idx) => {
+      const color = COLORS[idx % COLORS.length]
+      const series = chartRef.current.addLineSeries({
+        color, lineWidth: 2, priceLineVisible: false, lastValueVisible: true, title: name,
+      })
+      series.setData((data || []).map((v, i) => ({ time: i, value: v })))
+      seriesRef.current[name] = series
+    })
+  }, [curves])
+
+  return <div ref={containerRef} className="h-[120px]" />
 }

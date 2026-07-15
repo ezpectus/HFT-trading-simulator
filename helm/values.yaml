@@ -44,7 +44,7 @@ redis:
 exchangeSimulator:
   enabled: true
   image:
-    repository: hft-exchange-simulator
+    repository: hft-exchange_simulator
     tag: latest
   ports:
     ws: 8765

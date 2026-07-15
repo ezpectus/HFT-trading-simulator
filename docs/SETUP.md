@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- **Python 3.12+** (for exchange-simulator and ai-signal-bot)
+- **Python 3.12+** (for exchange_simulator and ai-signal-bot)
 - **Node.js 20+** (for web-ui)
 - **C++20 compiler** (GCC 13+, Clang 17+, or MSVC 19.29+) and **CMake 3.16+** (for hft-trade-bot v2.0)
 - **Docker** (optional, for containerized deployment)
@@ -95,7 +95,7 @@ See [Makefile.prod](Makefile.prod) for all production commands.
 ### 1. Exchange Simulator
 
 ```bash
-cd exchange-simulator
+cd exchange_simulator
 pip install -r requirements.txt
 
 # Run with terminal visualizer
@@ -192,7 +192,7 @@ Open four terminals (or use `start.bat` / `start.sh` which opens 8 windows: 4 se
 
 **Terminal 1 — Exchange Simulator:**
 ```bash
-cd exchange-simulator
+cd exchange_simulator
 python -m exchange_simulator
 ```
 
@@ -222,7 +222,7 @@ Each component has its own config file:
 
 | Component | Config File |
 |-----------|------------|
-| Exchange Simulator | `exchange-simulator/config.yaml` |
+| Exchange Simulator | `exchange_simulator/config.yaml` |
 | AI Signal Bot | `ai-signal-bot/config/settings.yaml` |
 | HFT Trade Bot | `hft-trade-bot/config/config.yaml` |
 | Shared settings | `shared_config.yaml` |
@@ -238,7 +238,7 @@ Each component has its own config file:
 
 ```
 hft-trading-simulator/
-├── exchange-simulator/           # Simulated crypto exchange (Python)
+├── exchange_simulator/           # Simulated crypto exchange (Python)
 │   ├── exchange_simulator/        # Core package
 │   │   ├── __init__.py
 │   │   ├── __main__.py            # Entry point

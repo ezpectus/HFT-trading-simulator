@@ -258,7 +258,7 @@ Use `make logs` to view latest log files for all services.
 
 ## Configuration
 
-See `exchange-simulator/config.yaml` for all parameters:
+See `exchange_simulator/config.yaml` for all parameters:
 
 - Exchange settings (fees, slippage, symbols, price offsets)
 - Market parameters (timeframe, drift, seed, warmup, volatility per symbol)

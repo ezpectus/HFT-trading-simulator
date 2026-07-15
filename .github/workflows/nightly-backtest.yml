@@ -1,0 +1,195 @@
+name: Nightly Walk-Forward Backtest
+
+on:
+  schedule:
+    # Run at 02:00 UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-backtest
+  cancel-in-progress: false
+
+jobs:
+  walk-forward:
+    name: Walk-Forward Backtest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ai-signal-bot/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+        working-directory: ai-signal-bot
+
+      - name: Generate walk-forward test data
+        run: |
+          python -c "
+          import json, os, random, math
+          os.makedirs('data/exports', exist_ok=True)
+          random.seed(42)
+          # Generate 1 year of 1m candles for BTC/USDT
+          candles = []
+          price = 65000.0
+          start_time = 1704067200  # 2024-01-01
+          for i in range(525600):  # 1 year of minutes
+              dt = i * 60
+              ret = random.gauss(0, 0.0003)
+              trend = math.sin(i / 10000) * 0.0001
+              price *= (1 + ret + trend)
+              vol = random.uniform(0.5, 5.0) * (1 + abs(ret) * 100)
+              candles.append({
+                  'time': start_time + dt,
+                  'open': price,
+                  'high': price * (1 + abs(random.gauss(0, 0.0001))),
+                  'low': price * (1 - abs(random.gauss(0, 0.0001))),
+                  'close': price * (1 + ret),
+                  'volume': vol,
+              })
+          with open('data/exports/btc_usdt_1m.csv', 'w') as f:
+              f.write('time,open,high,low,close,volume\n')
+              for c in candles:
+                  f.write(f\"{c['time']},{c['open']:.2f},{c['high']:.2f},{c['low']:.2f},{c['close']:.2f},{c['volume']:.4f}\n\")
+          print(f'Generated {len(candles)} candles')
+          "
+        working-directory: ai-signal-bot
+
+      - name: Run walk-forward backtest
+        run: |
+          python -c "
+          import json, sys, os
+          sys.path.insert(0, '.')
+          from src.backtesting.backtester import Backtester
+          from src.strategies.trend_following import TrendFollowingStrategy
+          from src.strategies.mean_reversion import MeanReversionStrategy
+
+          # Walk-forward parameters
+          WINDOW_DAYS = 30
+          STEP_DAYS = 7
+          TOTAL_DAYS = 365
+
+          results = []
+
+          for start_day in range(0, TOTAL_DAYS - WINDOW_DAYS, STEP_DAYS):
+              start_ts = 1704067200 + start_day * 86400
+              end_ts = start_ts + WINDOW_DAYS * 86400
+
+              for StrategyClass in [TrendFollowingStrategy, MeanReversionStrategy]:
+                  try:
+                      strategy = StrategyClass()
+                      bt = Backtester(
+                          strategy=strategy,
+                          initial_balance=10000,
+                          commission=0.0004,
+                          slippage=0.0001,
+                      )
+                      result = bt.run(
+                          data_file='data/exports/btc_usdt_1m.csv',
+                          start_time=start_ts,
+                          end_time=end_ts,
+                      )
+                      results.append({
+                          'strategy': strategy.__class__.__name__,
+                          'window_start': start_day,
+                          'window_end': start_day + WINDOW_DAYS,
+                          'total_return_pct': result.get('total_return_pct', 0),
+                          'total_trades': result.get('total_trades', 0),
+                          'win_rate': result.get('win_rate', 0),
+                          'sharpe_ratio': result.get('sharpe_ratio', 0),
+                          'max_drawdown_pct': result.get('max_drawdown_pct', 0),
+                          'profit_factor': result.get('profit_factor', 0),
+                          'final_balance': result.get('final_balance', 10000),
+                      })
+                  except Exception as e:
+                      print(f'  Window {start_day}-{start_day+WINDOW_DAYS} {StrategyClass.__name__}: ERROR ({e})')
+                      results.append({
+                          'strategy': StrategyClass.__name__,
+                          'window_start': start_day,
+                          'window_end': start_day + WINDOW_DAYS,
+                          'error': str(e),
+                          'total_return_pct': 0,
+                          'total_trades': 0,
+                      })
+
+          # Summary
+          print('\n=== Walk-Forward Backtest Summary ===')
+          print(f'Windows: {len(results)}')
+          profitable = [r for r in results if r.get('total_return_pct', 0) > 0]
+          print(f'Profitable windows: {len(profitable)}/{len(results)} ({100*len(profitable)/max(len(results),1):.0f}%)')
+
+          # Per-strategy summary
+          strategies = set(r['strategy'] for r in results)
+          for s in strategies:
+              s_results = [r for r in results if r['strategy'] == s and 'error' not in r]
+              if not s_results:
+                  continue
+              avg_return = sum(r['total_return_pct'] for r in s_results) / len(s_results)
+              avg_sharpe = sum(r['sharpe_ratio'] for r in s_results) / len(s_results)
+              total_trades = sum(r['total_trades'] for r in s_results)
+              print(f'\n  {s}:')
+              print(f'    Avg return per window: {avg_return:.2f}%')
+              print(f'    Avg Sharpe: {avg_sharpe:.2f}')
+              print(f'    Total trades: {total_trades}')
+
+          # Save results
+          with open('walk_forward_results.json', 'w') as f:
+              json.dump(results, f, indent=2)
+          print('\nResults saved to walk_forward_results.json')
+          "
+        working-directory: ai-signal-bot
+
+      - name: Check performance regression
+        run: |
+          python -c "
+          import json
+          with open('walk_forward_results.json') as f:
+              results = json.load(f)
+
+          # Check if any strategy has consistently negative returns
+          strategies = set(r['strategy'] for r in results)
+          regressions = []
+
+          for s in strategies:
+              s_results = [r for r in results if r['strategy'] == s and 'error' not in r]
+              if not s_results:
+                  continue
+              avg_return = sum(r['total_return_pct'] for r in s_results) / len(s_results)
+              if avg_return < -5.0:
+                  regressions.append(f'{s}: avg return {avg_return:.2f}%')
+
+          if regressions:
+              print('::warning::Performance regression detected:')
+              for r in regressions:
+                  print(f'  {r}')
+          else:
+              print('No performance regressions detected ✅')
+          "
+        working-directory: ai-signal-bot
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: walk-forward-results
+          path: ai-signal-bot/walk_forward_results.json
+          retention-days: 30
+
+      - name: Create issue on regression
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Nightly Walk-Forward Backtest Regression',
+              body: 'The nightly walk-forward backtest detected a performance regression. See artifacts for details.',
+              labels: ['regression', 'nightly-backtest']
+            })

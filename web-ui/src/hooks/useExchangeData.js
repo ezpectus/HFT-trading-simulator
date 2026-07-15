@@ -58,6 +58,39 @@ export function useExchangeData() {
         if (data.prices) setPrices(data.prices)
         if (data.accounts) setAccounts(data.accounts)
         if (data.orderbooks) setOrderbooks(data.orderbooks)
+        if (data.orderbook_deltas) {
+          setOrderbooks(prev => {
+            const next = { ...prev }
+            for (const [key, delta] of Object.entries(data.orderbook_deltas)) {
+              const existing = next[key]
+              if (!existing) continue  // Need full snapshot first
+              const updated = { ...existing }
+              const applyDeltas = (side, changes) => {
+                const levels = [...updated[side]]
+                for (const ch of changes) {
+                  const idx = levels.findIndex(l => l.price === ch.p)
+                  if (ch.q > 0) {
+                    if (idx >= 0) {
+                      levels[idx] = { price: ch.p, quantity: ch.q }
+                    } else {
+                      levels.push({ price: ch.p, quantity: ch.q })
+                    }
+                  } else if (idx >= 0) {
+                    levels.splice(idx, 1)
+                  }
+                }
+                levels.sort((a, b) =>
+                  side === 'bids' ? b.price - a.price : a.price - b.price
+                )
+                return levels
+              }
+              if (delta.bids) updated.bids = applyDeltas('bids', delta.bids)
+              if (delta.asks) updated.asks = applyDeltas('asks', delta.asks)
+              next[key] = updated
+            }
+            return next
+          })
+        }
         if (data.funding_rates) setFundingRates(data.funding_rates)
         if (data.candles_to_funding != null) setCandlesToFunding(data.candles_to_funding)
         if (data.news_event !== undefined) setNewsEvent(data.news_event)
@@ -98,7 +131,7 @@ export function useExchangeData() {
     }
   }, [])
 
-  const { connected: exchangeConnected, send: sendExchange, latency: exchangeLatency, reconnects: exchangeReconnects } = useWebSocket(WS_EXCHANGE, {
+  const { connected: exchangeConnected, send: sendExchange, latency: exchangeLatency, reconnects: exchangeReconnects, connect: exchangeConnect, nextReconnectIn: exchangeNextReconnect } = useWebSocket(WS_EXCHANGE, {
     onMessage: handleExchangeMessage,
     syncOnReconnect: true,
     getLastTimestamp: () => lastTimestampRef.current,
@@ -153,6 +186,8 @@ export function useExchangeData() {
     connected: exchangeConnected,
     latency: exchangeLatency,
     reconnects: exchangeReconnects,
+    connect: exchangeConnect,
+    nextReconnectIn: exchangeNextReconnect,
     submitOrder,
     closePosition,
     sendSpeedChange,
@@ -203,14 +238,17 @@ export function useSignalData(options = {}) {
         setBacktestResult(data)
         onBacktestResultRef.current?.(data)
         break
+      case 'comparison_result':
+        setBacktestResult(data)
+        break
       default:
         break
     }
   }, [])
 
-  const { connected, send, latency: signalLatency } = useWebSocket(WS_SIGNALS, {
+  const { connected, send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect } = useWebSocket(WS_SIGNALS, {
     onMessage: handleSignalMessage,
   })
 
-  return { signals, regime, backtestResult, circuitBreaker, connected, sendSignalMessage: send, latency: signalLatency }
+  return { signals, regime, backtestResult, circuitBreaker, connected, sendSignalMessage: send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect }
 }

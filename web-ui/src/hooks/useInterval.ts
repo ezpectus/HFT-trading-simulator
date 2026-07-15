@@ -7,8 +7,8 @@ import { useRef, useEffect } from 'react'
  * the latest state/props without requiring the interval to be reset.
  * Pass `null` as delay to pause the interval.
  *
- * @param {Function} callback - Function to call on each interval tick
- * @param {number|null} delay - Interval in ms, or null to pause
+ * @param callback - Function to call on each interval tick
+ * @param delay - Interval in ms, or null to pause
  *
  * @example
  * // Tick every second
@@ -20,7 +20,7 @@ import { useRef, useEffect } from 'react'
  * const [running, setRunning] = useState(true)
  * useInterval(() => fetchData(), running ? 5000 : null)
  */
-export function useInterval(callback, delay) {
+export function useInterval(callback: () => void, delay: number | null): void {
   const savedCallback = useRef(callback)
 
   useEffect(() => {

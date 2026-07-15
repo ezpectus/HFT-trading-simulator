@@ -12,6 +12,7 @@
 #include <chrono>
 #include <string>
 #include <string_view>
+#include <cstdio>
 
 namespace hft {
 
@@ -106,21 +107,21 @@ public:
 
     std::string format_json() const {
         auto s = snapshot();
-        return std::string("{\"orders_sent\":") + std::to_string(s.orders_sent) +
-               ",\"orders_filled\":" + std::to_string(s.orders_filled) +
-               ",\"orders_rejected\":" + std::to_string(s.orders_rejected) +
-               ",\"orders_canceled\":" + std::to_string(s.orders_canceled) +
-               ",\"signals_received\":" + std::to_string(s.signals_received) +
-               ",\"signals_processed\":" + std::to_string(s.signals_processed) +
-               ",\"errors\":" + std::to_string(s.errors) +
-               ",\"reconnects\":" + std::to_string(s.reconnects) +
-               ",\"shm_drops\":" + std::to_string(s.shm_drops) +
-               ",\"heartbeats_sent\":" + std::to_string(s.heartbeats_sent) +
-               ",\"heartbeats_missed\":" + std::to_string(s.heartbeats_missed) +
-               ",\"fill_rate\":" + std::to_string(s.fill_rate) +
-               ",\"rejection_rate\":" + std::to_string(s.rejection_rate) +
-               ",\"uptime_seconds\":" + std::to_string(s.uptime_seconds) +
-               "}";
+        char buf[512];
+        int n = std::snprintf(buf, sizeof(buf),
+            "{\"orders_sent\":%llu,\"orders_filled\":%llu,\"orders_rejected\":%llu,"
+            "\"orders_canceled\":%llu,\"signals_received\":%llu,\"signals_processed\":%llu,"
+            "\"errors\":%llu,\"reconnects\":%llu,\"shm_drops\":%llu,\"heartbeats_sent\":%llu,"
+            "\"heartbeats_missed\":%llu,\"fill_rate\":%.4f,\"rejection_rate\":%.4f,"
+            "\"uptime_seconds\":%llu}",
+            (unsigned long long)s.orders_sent, (unsigned long long)s.orders_filled,
+            (unsigned long long)s.orders_rejected, (unsigned long long)s.orders_canceled,
+            (unsigned long long)s.signals_received, (unsigned long long)s.signals_processed,
+            (unsigned long long)s.errors, (unsigned long long)s.reconnects,
+            (unsigned long long)s.shm_drops, (unsigned long long)s.heartbeats_sent,
+            (unsigned long long)s.heartbeats_missed, s.fill_rate, s.rejection_rate,
+            (unsigned long long)s.uptime_seconds);
+        return std::string(buf, n);
     }
 
 private:
@@ -183,15 +184,21 @@ struct HealthStatus {
     }
 
     std::string format_json() const {
-        return std::string("{\"healthy\":") + (is_healthy() ? "true" : "false") +
-               ",\"shm_healthy\":" + (shm_healthy ? "true" : "false") +
-               ",\"exchange_connected\":" + (exchange_connected ? "true" : "false") +
-               ",\"signal_engine_active\":" + (signal_engine_active ? "true" : "false") +
-               ",\"last_signal_age_ms\":" + std::to_string(last_signal_age_ms) +
-               ",\"last_fill_age_ms\":" + std::to_string(last_fill_age_ms) +
-               ",\"error_count_5min\":" + std::to_string(error_count_5min) +
-               ",\"memory_usage_mb\":" + std::to_string(memory_usage_mb) +
-               "}";
+        char buf[256];
+        int n = std::snprintf(buf, sizeof(buf),
+            "{\"healthy\":%s,\"shm_healthy\":%s,\"exchange_connected\":%s,"
+            "\"signal_engine_active\":%s,\"last_signal_age_ms\":%llu,"
+            "\"last_fill_age_ms\":%llu,\"error_count_5min\":%lld,"
+            "\"memory_usage_mb\":%.2f}",
+            is_healthy() ? "true" : "false",
+            shm_healthy ? "true" : "false",
+            exchange_connected ? "true" : "false",
+            signal_engine_active ? "true" : "false",
+            (unsigned long long)last_signal_age_ms,
+            (unsigned long long)last_fill_age_ms,
+            (long long)error_count_5min,
+            memory_usage_mb);
+        return std::string(buf, n);
     }
 };
 

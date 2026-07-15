@@ -50,16 +50,23 @@ class RealExchangeClient:
     """REST client for real exchange account/position info."""
 
     def __init__(self, exchange: str, api_key: str, api_secret: str,
-                 passphrase: str = "", base_url: str = ""):
+                 passphrase: str = "", base_url: str = "", testnet: bool = False):
         self.exchange = exchange
         self.api_key = api_key
         self.api_secret = api_secret
         self.passphrase = passphrase
+        self.testnet = testnet
 
         if exchange == "binance":
-            self.base_url = base_url or "https://fapi.binance.com"
+            if testnet:
+                self.base_url = base_url or "https://testnet.binancefuture.com"
+            else:
+                self.base_url = base_url or "https://fapi.binance.com"
         elif exchange == "okx":
-            self.base_url = base_url or "https://www.okx.com"
+            if testnet:
+                self.base_url = base_url or "https://testnet.okx.com"
+            else:
+                self.base_url = base_url or "https://www.okx.com"
         elif exchange == "bybit":
             self.base_url = base_url or "https://api.bybit.com"
         else:

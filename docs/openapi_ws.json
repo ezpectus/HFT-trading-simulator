@@ -1,0 +1,308 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "HFT Trading System WebSocket API",
+    "version": "2.0.0",
+    "description": "WebSocket message protocol for the HFT Trading System. All messages are JSON objects with a `type` field.\n\n## Connections\n- **Exchange Simulator**: `ws://localhost:8765` — Market data, order execution\n- **AI Signal Bot**: `ws://localhost:8766` — Trading signals, backtest results\n\n## Protocol Version\nClients should send `protocol_version: 2` in the subscribe message. The server responds with a `welcome` message.\n\n## Message Encoding\nClients can request `encoding: \"msgpack\"` for binary MessagePack frames instead of JSON.\n\n## Reconnection\nOn reconnect, send `sync_state` with the last timestamp to receive missed data."
+  },
+  "servers": [
+    {
+      "url": "ws://localhost:8765",
+      "description": "Exchange Simulator WebSocket"
+    },
+    {
+      "url": "ws://localhost:8766",
+      "description": "AI Signal Bot WebSocket"
+    }
+  ],
+  "tags": [
+    { "name": "subscription", "description": "Connection and subscription management" },
+    { "name": "market_data", "description": "Market data updates (candles, orderbook, prices)" },
+    { "name": "orders", "description": "Order submission, fills, position updates" },
+    { "name": "signals", "description": "AI trading signals" },
+    { "name": "backtest", "description": "Backtest execution and results" },
+    { "name": "system", "description": "System status, ping/pong, errors" }
+  ],
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Subscribe": {
+        "type": "object",
+        "description": "Client → Server: Subscribe to market data stream",
+        "properties": {
+          "type": { "type": "string", "example": "subscribe" },
+          "protocol_version": { "type": "integer", "example": 2, "description": "Protocol version for feature negotiation" },
+          "encoding": { "type": "string", "enum": ["json", "msgpack"], "default": "json", "description": "Preferred message encoding" }
+        },
+        "required": ["type"]
+      },
+      "Welcome": {
+        "type": "object",
+        "description": "Server → Client: Welcome message on connect",
+        "properties": {
+          "type": { "type": "string", "example": "welcome" },
+          "protocol_version": { "type": "integer", "example": 2 },
+          "server_name": { "type": "string", "example": "exchange_simulator" },
+          "trading_active": { "type": "boolean", "example": true }
+        }
+      },
+      "SyncState": {
+        "type": "object",
+        "description": "Client → Server: Request missed data on reconnect",
+        "properties": {
+          "type": { "type": "string", "example": "sync_state" },
+          "last_timestamp": { "type": "number", "description": "Last received message timestamp" }
+        },
+        "required": ["type", "last_timestamp"]
+      },
+      "Candle": {
+        "type": "object",
+        "description": "Server → Client: OHLCV candle update",
+        "properties": {
+          "type": { "type": "string", "example": "candle" },
+          "symbol": { "type": "string", "example": "BTC/USDT" },
+          "exchange": { "type": "string", "example": "binance" },
+          "time": { "type": "number", "description": "Candle open time (unix seconds)" },
+          "open": { "type": "number" },
+          "high": { "type": "number" },
+          "low": { "type": "number" },
+          "close": { "type": "number" },
+          "volume": { "type": "number" }
+        },
+        "required": ["type", "symbol", "time", "open", "high", "low", "close", "volume"]
+      },
+      "Snapshot": {
+        "type": "object",
+        "description": "Server → Client: Market data snapshot (price + orderbook)",
+        "properties": {
+          "type": { "type": "string", "example": "snapshot" },
+          "symbol": { "type": "string", "example": "BTC/USDT" },
+          "exchange": { "type": "string", "example": "binance" },
+          "price": { "type": "number" },
+          "bid": { "type": "number" },
+          "ask": { "type": "number" },
+          "timestamp": { "type": "number" },
+          "orderbook": {
+            "type": "object",
+            "properties": {
+              "bids": { "type": "array", "items": { "type": "array", "items": { "type": "number" }, "description": "[price, quantity]" } },
+              "asks": { "type": "array", "items": { "type": "array", "items": { "type": "number" }, "description": "[price, quantity]" } }
+            }
+          }
+        },
+        "required": ["type", "symbol", "price", "timestamp"]
+      },
+      "OrderBook": {
+        "type": "object",
+        "description": "Server → Client: Full order book update",
+        "properties": {
+          "type": { "type": "string", "example": "orderbook" },
+          "symbol": { "type": "string" },
+          "exchange": { "type": "string" },
+          "bids": { "type": "array", "items": { "type": "object", "properties": { "price": { "type": "number" }, "quantity": { "type": "number" } } } },
+          "asks": { "type": "array", "items": { "type": "object", "properties": { "price": { "type": "number" }, "quantity": { "type": "number" } } } },
+          "timestamp": { "type": "number" }
+        },
+        "required": ["type", "symbol", "bids", "asks"]
+      },
+      "SubmitOrder": {
+        "type": "object",
+        "description": "Client → Server: Submit a new order",
+        "properties": {
+          "type": { "type": "string", "example": "submit_order" },
+          "symbol": { "type": "string", "example": "BTC/USDT" },
+          "exchange": { "type": "string", "example": "binance" },
+          "side": { "type": "string", "enum": ["BUY", "SELL"] },
+          "quantity": { "type": "number", "description": "Order size in base currency" },
+          "price": { "type": "number", "description": "Limit price (omit for market orders)" },
+          "order_type": { "type": "string", "enum": ["MARKET", "LIMIT", "IOC", "FOK", "GTD", "POST_ONLY"] },
+          "leverage": { "type": "integer", "minimum": 1, "maximum": 100 }
+        },
+        "required": ["type", "symbol", "side", "quantity"]
+      },
+      "Fill": {
+        "type": "object",
+        "description": "Server → Client: Order fill notification",
+        "properties": {
+          "type": { "type": "string", "example": "fill" },
+          "symbol": { "type": "string" },
+          "exchange": { "type": "string" },
+          "side": { "type": "string", "enum": ["BUY", "SELL"] },
+          "quantity": { "type": "number" },
+          "price": { "type": "number" },
+          "fee": { "type": "number" },
+          "order_id": { "type": "string" },
+          "received_at": { "type": "number" }
+        },
+        "required": ["type", "symbol", "side", "quantity", "price"]
+      },
+      "FillsBatch": {
+        "type": "object",
+        "description": "Server → Client: Batched fill notifications (multiple fills in one message)",
+        "properties": {
+          "type": { "type": "string", "example": "fills_batch" },
+          "fills": { "type": "array", "items": { "$ref": "#/components/schemas/Fill" } }
+        },
+        "required": ["type", "fills"]
+      },
+      "Position": {
+        "type": "object",
+        "description": "Server → Client: Position update",
+        "properties": {
+          "type": { "type": "string", "example": "position" },
+          "symbol": { "type": "string" },
+          "exchange": { "type": "string" },
+          "side": { "type": "string", "enum": ["LONG", "SHORT"] },
+          "quantity": { "type": "number" },
+          "entry_price": { "type": "number" },
+          "unrealized_pnl": { "type": "number" },
+          "leverage": { "type": "integer" }
+        },
+        "required": ["type", "symbol", "side", "quantity"]
+      },
+      "Signal": {
+        "type": "object",
+        "description": "Server → Client: AI trading signal (from AI Signal Bot)",
+        "properties": {
+          "type": { "type": "string", "example": "signal" },
+          "symbol": { "type": "string" },
+          "direction": { "type": "string", "enum": ["BUY", "SELL", "HOLD"] },
+          "confidence": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "strategy": { "type": "string", "example": "hft_signal_engine_v3" },
+          "entry_price": { "type": "number" },
+          "stop_loss": { "type": "number" },
+          "take_profit": { "type": "number" },
+          "reason": { "type": "string" },
+          "explanation": { "type": "string", "description": "LLM-generated explanation" },
+          "timestamp": { "type": "number" }
+        },
+        "required": ["type", "symbol", "direction", "confidence"]
+      },
+      "RunBacktest": {
+        "type": "object",
+        "description": "Client → Server: Request a backtest run (to AI Signal Bot)",
+        "properties": {
+          "type": { "type": "string", "example": "run_backtest" },
+          "strategy": { "type": "string", "example": "trend_following" },
+          "symbol": { "type": "string", "example": "BTC/USDT" },
+          "start_date": { "type": "string", "format": "date" },
+          "end_date": { "type": "string", "format": "date" },
+          "initial_balance": { "type": "number", "example": 10000 }
+        },
+        "required": ["type", "strategy"]
+      },
+      "BacktestResult": {
+        "type": "object",
+        "description": "Server → Client: Backtest result",
+        "properties": {
+          "type": { "type": "string", "example": "backtest_result" },
+          "strategy": { "type": "string" },
+          "total_return_pct": { "type": "number" },
+          "sharpe_ratio": { "type": "number" },
+          "sortino_ratio": { "type": "number" },
+          "calmar_ratio": { "type": "number" },
+          "max_drawdown_pct": { "type": "number" },
+          "win_rate": { "type": "number" },
+          "profit_factor": { "type": "number" },
+          "total_trades": { "type": "integer" },
+          "final_equity": { "type": "number" },
+          "equity_curve": { "type": "array", "items": { "type": "object", "properties": { "time": { "type": "number" }, "value": { "type": "number" } } } }
+        },
+        "required": ["type", "strategy", "total_return_pct", "total_trades"]
+      },
+      "CompareBacktests": {
+        "type": "object",
+        "description": "Client → Server: Request comparison of multiple backtests",
+        "properties": {
+          "type": { "type": "string", "example": "compare_backtests" },
+          "backtests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "total_return_pct": { "type": "number" },
+                "sharpe_ratio": { "type": "number" },
+                "sortino_ratio": { "type": "number" },
+                "calmar_ratio": { "type": "number" },
+                "max_drawdown_pct": { "type": "number" },
+                "win_rate": { "type": "number" },
+                "profit_factor": { "type": "number" },
+                "total_trades": { "type": "integer" },
+                "final_equity": { "type": "number" },
+                "equity_curve": { "type": "array", "items": { "type": "object" } }
+              }
+            }
+          }
+        },
+        "required": ["type", "backtests"]
+      },
+      "ComparisonResult": {
+        "type": "object",
+        "description": "Server → Client: Backtest comparison result",
+        "properties": {
+          "type": { "type": "string", "example": "comparison_result" },
+          "metrics": { "type": "object" },
+          "equity_curves": { "type": "object" },
+          "significance_tests": { "type": "array" },
+          "best": { "type": "object" }
+        }
+      },
+      "TradingState": {
+        "type": "object",
+        "description": "Server → Client: Trading active/stopped state change",
+        "properties": {
+          "type": { "type": "string", "example": "trading_state" },
+          "trading_active": { "type": "boolean" },
+          "reason": { "type": "string" }
+        },
+        "required": ["type", "trading_active"]
+      },
+      "Ping": {
+        "type": "object",
+        "description": "Client → Server: Latency measurement",
+        "properties": {
+          "type": { "type": "string", "example": "ping" }
+        },
+        "required": ["type"]
+      },
+      "Pong": {
+        "type": "object",
+        "description": "Server → Client: Latency response",
+        "properties": {
+          "type": { "type": "string", "example": "pong" }
+        },
+        "required": ["type"]
+      },
+      "Error": {
+        "type": "object",
+        "description": "Server → Client: Error message",
+        "properties": {
+          "type": { "type": "string", "example": "error" },
+          "message": { "type": "string" },
+          "code": { "type": "string" }
+        },
+        "required": ["type", "message"]
+      },
+      "OptionsChain": {
+        "type": "object",
+        "description": "Client → Server: Request options chain",
+        "properties": {
+          "type": { "type": "string", "example": "options_chain" },
+          "symbol": { "type": "string", "example": "BTC/USDT" }
+        },
+        "required": ["type", "symbol"]
+      },
+      "OptionsChainResult": {
+        "type": "object",
+        "description": "Server → Client: Options chain with Greeks",
+        "properties": {
+          "type": { "type": "string", "example": "options_chain" },
+          "symbol": { "type": "string" },
+          "calls": { "type": "array", "items": { "type": "object" } },
+          "puts": { "type": "array", "items": { "type": "object" } }
+        }
+      }
+    }
+  }
+}

@@ -78,7 +78,7 @@ This installs Python packages, Node.js dependencies, and builds the C++ HFT Trad
 cd %USERPROFILE%\trading-system
 
 REM 1. Python dependencies
-cd exchange-simulator && pip install -r requirements.txt && cd ..
+cd exchange_simulator && pip install -r requirements.txt && cd ..
 cd ai-signal-bot && pip install -r requirements.txt && cd ..
 
 REM 2. Web UI dependencies
@@ -164,7 +164,7 @@ cd /path/to/trading-system
 cd /path/to/trading-system
 
 # 1. Python dependencies
-cd exchange-simulator && pip3 install -r requirements.txt && cd ..
+cd exchange_simulator && pip3 install -r requirements.txt && cd ..
 cd ai-signal-bot && pip3 install -r requirements.txt && cd ..
 
 # 2. Web UI dependencies
@@ -204,7 +204,7 @@ For full setup instructions, see [docs/SETUP.md](docs/SETUP.md).
 
 ```bash
 # Exchange simulator tests
-cd exchange-simulator
+cd exchange_simulator
 python -m pytest tests/ -v
 
 # AI signal bot tests
@@ -249,7 +249,7 @@ docker-compose up
 
 # Or run individually:
 # 1. Exchange simulator
-cd exchange-simulator
+cd exchange_simulator
 python -m exchange_simulator
 
 # 2. AI Signal Bot
@@ -315,7 +315,7 @@ Test files are in `web-ui/src/test/`. Current coverage: 37 test files, 458+ test
 ### Python (pytest)
 
 ```bash
-cd exchange-simulator
+cd exchange_simulator
 python -m pytest tests/ -v --tb=short --cov=src --cov-report=xml
 
 cd ai-signal-bot
@@ -374,7 +374,7 @@ All tests run automatically on push/PR via GitHub Actions (`.github/workflows/ci
 ## Data Export
 
 ```bash
-cd exchange-simulator
+cd exchange_simulator
 
 # Export all data to CSV
 python -m exchange_simulator --export --export-dir data/exports
@@ -411,7 +411,7 @@ python -m exchange_simulator --export --export-format parquet
 
 ```
 hft-trading-simulator/
-├── exchange-simulator/           # Python: simulated crypto exchange
+├── exchange_simulator/           # Python: simulated crypto exchange
 │   ├── exchange_simulator/        # Core package (14 modules)
 │   ├── tests/                     # pytest tests
 │   ├── config.yaml
@@ -523,10 +523,10 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture overv
 5. Integrate into backtester if applicable
 
 ### New Exchange Simulator Feature
-1. Add config fields to `exchange-simulator/config.yaml`
+1. Add config fields to `exchange_simulator/config.yaml`
 2. Implement in appropriate module (`exchange.py`, `market_simulator.py`, etc.)
 3. Add validation to `config_validator.py`
-4. Write tests in `exchange-simulator/tests/`
+4. Write tests in `exchange_simulator/tests/`
 5. Update `docs/EXCHANGE_SIMULATOR.md` if needed
 
 ## Pull Requests
@@ -543,7 +543,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture overv
 ## CI Pipeline
 
 GitHub Actions runs on every push/PR (4 jobs):
-- **Python:** ruff lint + pytest for exchange-simulator and ai-signal-bot
+- **Python:** ruff lint + pytest for exchange_simulator and ai-signal-bot
 - **C++:** cmake build + V1/V2 unit tests + clang-format check
 - **JS:** npm install + ESLint + Vitest + vite build
 - **Docker:** docker-compose build verification

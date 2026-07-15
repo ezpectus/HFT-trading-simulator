@@ -65,10 +65,10 @@ data:
     scrape_configs:
       - job_name: 'exchange-simulator'
         static_configs:
-          - targets: ['{{ .Release.Name }}-exchange-simulator:8775']
+          - targets: ['{{ .Release.Name }}-exchange_simulator:{{ .Values.exchangeSimulator.ports.metrics }}']
       - job_name: 'ai-signal-bot'
         static_configs:
-          - targets: ['{{ .Release.Name }}-ai-signal-bot:9090']
+          - targets: ['{{ .Release.Name }}-ai-signal-bot:{{ .Values.aiSignalBot.ports.metrics }}']
 ---
 apiVersion: v1
 kind: Service

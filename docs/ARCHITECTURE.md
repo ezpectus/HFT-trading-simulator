@@ -42,7 +42,7 @@ graph TB
 
 ## Components
 
-### 1. Exchange Simulator (`exchange-simulator/`)
+### 1. Exchange Simulator (`exchange_simulator/`)
 
 **Language:** Python 3.12+
 **Role:** Simulates 3 crypto exchanges with realistic market microstructure

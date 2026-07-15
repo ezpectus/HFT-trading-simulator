@@ -1,43 +1,6 @@
-{{- if .Values.hftTradeBot.enabled -}}
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ .Release.Name }}-hft-trade-bot
-  labels:
-    {{- include "hft-trading-system.labels" . | nindent 4 }}
-    app.kubernetes.io/component: hft-trade-bot
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      {{- include "hft-trading-system.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: hft-trade-bot
-  template:
-    metadata:
-      labels:
-        {{- include "hft-trading-system.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: hft-trade-bot
-    spec:
-      containers:
-        - name: hft-trade-bot
-          image: "{{ .Values.hftTradeBot.image.repository }}:{{ .Values.hftTradeBot.image.tag }}"
-          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-          command: ["/app/hft_trade_bot", {{ .Values.hftTradeBot.configPath | quote }}]
-          env:
-            - name: LOG_FORMAT
-              value: {{ .Values.global.logFormat | quote }}
-          volumeMounts:
-            - name: shm
-              mountPath: /dev/shm
-            - name: logs
-              mountPath: /app/logs
-          resources:
-            {{- toYaml .Values.hftTradeBot.resources | nindent 12 }}
-      volumes:
-        - name: shm
-          emptyDir:
-            medium: Memory
-            sizeLimit: {{ .Values.global.shmSize }}
-        - name: logs
-          emptyDir: {}
-{{- end -}}
+{{- /*
+  HFT Trade Bot is deployed as a sidecar container in the ai-signal-bot pod
+  to share /dev/shm for SHM IPC. See ai-signal-bot.yaml for the Deployment.
+  This file is intentionally empty — hftTradeBot.enabled is checked in
+  ai-signal-bot.yaml to conditionally add the sidecar container.
+*/ -}}

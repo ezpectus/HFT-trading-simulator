@@ -113,14 +113,14 @@ services:
   # ── Exchange Simulator (Python) — market simulation for fallback ──
   exchange-simulator:
     build:
-      context: ./exchange-simulator
+      context: ./exchange_simulator
       dockerfile: Dockerfile.prod
     container_name: trading-exchange-sim
     ports:
       - "8765:8765"
       - "8775:8775"
     volumes:
-      - ./exchange-simulator/config.yaml:/app/config.yaml:ro
+      - ./exchange_simulator/config.yaml:/app/config.yaml:ro
       - sim-data:/app/data
     command: python -m exchange_simulator --no-visualizer
     environment:

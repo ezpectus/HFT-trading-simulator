@@ -16,7 +16,7 @@ echo ""
 
 # ── 1. Python: Exchange Simulator ─────────────────────────
 echo "[1/5] Python tests — Exchange Simulator..."
-cd "$PROJECT_ROOT/exchange-simulator"
+cd "$PROJECT_ROOT/exchange_simulator"
 python3 -m pytest tests/ -v --tb=short || EXIT_CODE=1
 echo ""
 cd "$PROJECT_ROOT"

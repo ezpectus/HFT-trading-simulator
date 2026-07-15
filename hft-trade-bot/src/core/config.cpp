@@ -156,6 +156,11 @@ Config Config::load(const std::string& path) {
         if (sr["toxic_threshold"]) cfg.router_toxic_threshold = sr["toxic_threshold"].as<int>();
     }
 
+    // Signal Engine V3 — HMM regime detection
+    if (auto v3 = root["signal_engine_v3"]) {
+        if (v3["enabled"]) cfg.signal_engine_v3_enabled = v3["enabled"].as<bool>();
+    }
+
     // Adaptive order selector v2
     if (auto ao = root["adaptive_order_selector"]) {
         if (ao["enabled"]) cfg.adaptive_order_enabled = ao["enabled"].as<bool>();
@@ -317,6 +322,11 @@ Config Config::load(const std::string& path) {
             else if (strat == "depth_aware") cfg.router_strategy = 4;
         }
         if (sr["toxic_threshold"]) cfg.router_toxic_threshold = sr["toxic_threshold"].as<int>();
+    }
+
+    // ─── Production: Signal Engine V3 (HMM regime detection) ───
+    if (auto v3 = root["signal_engine_v3"]) {
+        if (v3["enabled"]) cfg.signal_engine_v3_enabled = v3["enabled"].as<bool>();
     }
 
     // ─── Production: adaptive order selector ───

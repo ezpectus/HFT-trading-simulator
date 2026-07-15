@@ -1,0 +1,37 @@
+# Binance Testnet Configuration
+# ================================
+# Get your testnet API keys at: https://testnet.binancefuture.com
+#
+# Usage:
+#   python run.py --exchange-mode real --testnet --api-key YOUR_KEY --api-secret YOUR_SECRET
+#
+# Or set environment variables:
+#   BINANCE_TESTNET_API_KEY=your_key
+#   BINANCE_TESTNET_API_SECRET=your_secret
+
+exchange:
+  mode: real          # simulator | real | fallback
+  testnet: true
+  name: binance
+  api_key: ${BINANCE_TESTNET_API_KEY}
+  api_secret: ${BINANCE_TESTNET_API_SECRET}
+
+  symbols:
+    - BTC/USDT
+    - ETH/USDT
+    - SOL/USDT
+
+  intervals:
+    - 1m
+    - 5m
+    - 15m
+
+# Testnet URLs (automatically used when testnet=true):
+#   REST:   https://testnet.binancefuture.com
+#   WS:     wss://stream.binancefuture.com
+#
+# Note: Binance testnet has:
+#   - Same API as production
+#   - Fake money (100,000 USDT initial balance)
+#   - Real market data (prices match production)
+#   - Simulated order execution

@@ -1,13 +1,15 @@
 # HFT Trading System
 
-![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF.svg)
+![CI](https://img.shields.io/github/actions/workflow/status/ezpectus/HFT-TradeBot--Lite-version/ci.yml?branch=main&label=CI)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-61dafb.svg)
-![Coverage](https://img.shields.io/badge/tests-2500%2B%20cases-6e9f18.svg)
+[![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
+![Tests](https://img.shields.io/badge/tests-2500%2B%20cases-6e9f18.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 ![Live Demo](https://img.shields.io/badge/demo-coming%20soon-orange.svg)
 ![Panels](https://img.shields.io/badge/panels-191+-61dafb.svg)
 ![Math Models](https://img.shields.io/badge/math%20models-75+-a855f7.svg)
 ![Languages](https://img.shields.io/badge/languages-C%2B%2B20%20%7C%20Python%20%7C%20React-00599C.svg)
+![Security](https://img.shields.io/badge/security-Bandit%20%2B%20CodeQL-red.svg)
 
 > **An educational high-frequency trading simulator with a C++20 signal engine, 75+ advanced quantitative models, 191+ dashboard panels, FIX 4.4 protocol support, and shared-memory IPC. Zero real money, zero risk, 100% educational.**
 
@@ -234,7 +236,50 @@ VITE_MOCK_MODE=true npm run dev
 
 ## Screenshots
 
-_Screenshots will be added here._
+> **Capture screenshots:** Start the system with `make dev` or `VITE_MOCK_MODE=true npm run dev` in `web-ui/`, then run:
+> ```bash
+> cd web-ui && npx playwright test e2e/screenshots.spec.js
+> ```
+> Screenshots are saved to `web-ui/screenshots/`.
+
+### Dashboard Overview
+
+![Dashboard Main](web-ui/screenshots/dashboard-main.png)
+
+### Market Data & Charts
+
+![Market Data](web-ui/screenshots/panel-market-data.png)
+
+### Order Book
+
+![Order Book](web-ui/screenshots/panel-orderbook.png)
+
+### Backtest Runner
+
+![Backtest Runner](web-ui/screenshots/panel-backtest.png)
+
+### Signal Engine
+
+![Signal Engine](web-ui/screenshots/panel-signal-engine.png)
+
+### Positions
+
+![Positions](web-ui/screenshots/panel-positions.png)
+
+### Mobile View
+
+![Mobile](web-ui/screenshots/dashboard-mobile.png)
+
+### Demo GIF
+
+> **Record a demo GIF:** Use [OBS Studio](https://obsproject.com/) or [asciinema](https://asciinema.org/) to record a session, then convert to GIF:
+> ```bash
+> # Using ffmpeg to convert a recording to GIF
+> ffmpeg -i recording.mp4 -vf "fps=10,scale=1280:-1" -loop 0 demo.gif
+> ```
+> Save as `docs/demo.gif` and embed below:
+
+![Demo GIF](docs/demo.gif)
 
 ---
 
@@ -259,7 +304,7 @@ _Screenshots will be added here._
 
 ```
 hft-trading-system/
-├── exchange-simulator/              # Python: simulated crypto exchange (14 modules)
+├── exchange_simulator/              # Python: simulated crypto exchange (14 modules)
 │   ├── exchange_simulator/           # Core package
 │   ├── tests/                        # pytest tests
 │   ├── config.yaml
@@ -445,7 +490,7 @@ Each component has its own YAML config file:
 
 | Component | Config |
 |-----------|--------|
-| Exchange Simulator | [`exchange-simulator/config.yaml`](exchange-simulator/config.yaml) |
+| Exchange Simulator | [`exchange_simulator/config.yaml`](exchange_simulator/config.yaml) |
 | AI Signal Bot | [`ai-signal-bot/config/settings.yaml`](ai-signal-bot/config/settings.yaml) |
 | HFT Trade Bot | [`hft-trade-bot/config/config.yaml`](hft-trade-bot/config/config.yaml) |
 | Shared | [`shared_config.yaml`](shared_config.yaml) |

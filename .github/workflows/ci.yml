@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        component: [exchange-simulator, ai-signal-bot]
+        component: [exchange_simulator, ai-signal-bot]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: web-ui/package.json
       - run: npm ci || npm install
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        component: [exchange-simulator, ai-signal-bot]
+        component: [exchange_simulator, ai-signal-bot]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -72,7 +72,7 @@ jobs:
           pip install pytest pytest-asyncio pytest-cov
         working-directory: ${{ matrix.component }}
       - run: |
-          if [ "${{ matrix.component }}" = "exchange-simulator" ]; then
+          if [ "${{ matrix.component }}" = "exchange_simulator" ]; then
             COV_MOD="exchange_simulator"
           else
             COV_MOD="src"
@@ -203,7 +203,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: web-ui/package.json
       - run: npm ci || npm install
@@ -234,7 +234,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: web-ui/package.json
       - run: npm ci || npm install
@@ -261,7 +261,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [exchange-simulator, ai-signal-bot, hft-trade-bot, web-ui]
+        service: [exchange_simulator, ai-signal-bot, hft-trade-bot, web-ui]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -282,7 +282,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: web-ui/package.json
       - run: npm ci || npm install
@@ -298,10 +298,63 @@ jobs:
           fi
         working-directory: web-ui
 
+  security-bandit:
+    name: Security Scan (Bandit)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [exchange_simulator, ai-signal-bot]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install bandit[toml]
+      - run: bandit -r . -ll -ii -q -f json -o bandit-report.json || true
+        working-directory: ${{ matrix.component }}
+      - name: Display Bandit results
+        run: bandit -r . -ll -ii -q || true
+        working-directory: ${{ matrix.component }}
+      - name: Check for high-severity issues
+        run: |
+          if [ -f bandit-report.json ]; then
+            HIGH_COUNT=$(python -c "import json; d=json.load(open('bandit-report.json')); print(d.get('results', []).__len__())" 2>/dev/null || echo "0")
+            echo "Bandit issues found: $HIGH_COUNT"
+            if [ "$HIGH_COUNT" -gt 0 ]; then
+              echo "::warning::$HIGH_COUNT Bandit security issues in ${{ matrix.component }}"
+            fi
+          fi
+        working-directory: ${{ matrix.component }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bandit-${{ matrix.component }}
+          path: ${{ matrix.component }}/bandit-report.json
+          if-no-files-found: ignore
+
+  security-codeql:
+    name: Security Scan (CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      matrix:
+        language: [python, javascript]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
+
   test-summary:
     name: All Tests Passed
     runs-on: ubuntu-latest
-    needs: [lint-python, lint-cpp, lint-js, test-python, test-cpp, test-cpp-msvc, test-js, build-js, build-docker, audit-deps]
+    needs: [lint-python, lint-cpp, lint-js, test-python, test-cpp, test-cpp-msvc, test-js, build-js, build-docker, audit-deps, security-bandit, security-codeql]
     if: always()
     steps:
       - name: Check all job results
@@ -309,7 +362,7 @@ jobs:
           echo "Aggregating results from all CI jobs..."
           ALL_PASSED=true
 
-          for job in lint-python lint-cpp lint-js test-python test-cpp test-cpp-msvc test-js build-js build-docker audit-deps; do
+          for job in lint-python lint-cpp lint-js test-python test-cpp test-cpp-msvc test-js build-js build-docker audit-deps security-bandit security-codeql; do
             RESULT="${{ toJSON(needs.${job}.result) }}"
             echo "  $job: $RESULT"
             if [ "$RESULT" != "success" ]; then
@@ -335,7 +388,7 @@ jobs:
         run: |
           echo "=== Test File Count Summary ==="
 
-          PY_COUNT=$(find exchange-simulator/tests ai-signal-bot/tests -name "test_*.py" -type f 2>/dev/null | wc -l)
+          PY_COUNT=$(find exchange_simulator/tests ai-signal-bot/tests -name "test_*.py" -type f 2>/dev/null | wc -l)
           CPP_DOCTEST_COUNT=$(find hft-trade-bot/tests -name "test_doctest_*.cpp" -type f 2>/dev/null | wc -l)
           CPP_CTEST_COUNT=$(find hft-trade-bot/tests -name "test_*.cpp" -not -name "test_doctest_*" -not -name "test_fix*" -type f 2>/dev/null | wc -l)
           JS_COUNT=$(find web-ui/src/test -name "*.test.*" -type f 2>/dev/null | wc -l)
@@ -390,7 +443,7 @@ jobs:
           # Count actual test cases (not just files) for visibility
           echo ""
           echo "=== Test Case Count (approximate) ==="
-          PY_CASES=$(grep -rE "^\s*(def test_|class Test)" exchange-simulator/tests ai-signal-bot/tests --include="*.py" 2>/dev/null | wc -l)
+          PY_CASES=$(grep -rE "^\s*(def test_|class Test)" exchange_simulator/tests ai-signal-bot/tests --include="*.py" 2>/dev/null | wc -l)
           CPP_DOCTEST_CASES=$(grep -rE "TEST_CASE\(" hft-trade-bot/tests --include="test_doctest_*.cpp" 2>/dev/null | wc -l)
           JS_CASES=$(grep -rE "^\s*(it|test)\(" web-ui/src/test --include="*.test.*" 2>/dev/null | wc -l)
           TOTAL_CASES=$((PY_CASES + CPP_DOCTEST_CASES + JS_CASES))

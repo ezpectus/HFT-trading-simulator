@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import os
+import struct
 import sys
 import time
 from typing import Set
@@ -18,6 +19,18 @@ try:
     _HAS_MSGPACK = True
 except ImportError:
     _HAS_MSGPACK = False
+
+try:
+    import orjson
+    _HAS_ORJSON = True
+except ImportError:
+    _HAS_ORJSON = False
+
+try:
+    import multiprocessing.shared_memory as shm_mod
+    _HAS_SHM = True
+except ImportError:
+    _HAS_SHM = False
 
 # Add project root for trade_csv_logger
 _proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -75,7 +88,68 @@ class ExchangeWebSocketServer:
         self.trade_logger = TradeCsvLogger()
         self._client_versions: dict = {}  # websocket -> protocol_version
         self._client_encodings: dict = {}  # websocket -> 'json' or 'msgpack'
+        self._last_orderbooks: dict = {}  # "ex|symbol" -> {"bids": {price: qty}, "asks": {price: qty}}
+        self._delta_bid_buf: dict = {}  # Reused buffer for delta computation
+        self._delta_ask_buf: dict = {}  # Reused buffer for delta computation
         logger.info(f"Trade CSV log: {self.trade_logger.path}")
+
+        # SHM market data publisher (HFT-O16 — bypass WebSocket for C++ bot)
+        self._shm_market = None
+        self._shm_symbol_ids: dict = {}  # symbol -> uint8 id
+        self._shm_struct = struct.Struct('<Q B 3x f f f f')  # MarketSnapshotMsg: 28 bytes
+        self._shm_slot_size = 64  # alignas(64) SnapshotSlot
+        self._shm_seq_offset = 0  # seq is first field in SnapshotSlot
+        self._shm_data_offset = 8  # data starts after seq (8 bytes)
+        self._shm_max_symbols = int(os.environ.get("SHM_MARKET_MAX_SYMBOLS", "10"))
+        self._shm_enabled = os.environ.get("SHM_MARKET_ENABLED", "0") == "1"
+        if self._shm_enabled and _HAS_SHM:
+            self._init_shm_market()
+
+    def _init_shm_market(self) -> None:
+        """Initialize shared memory segment for market data publishing."""
+        shm_name = os.environ.get("SHM_MARKET_NAME", "/hft_market")
+        try:
+            try:
+                self._shm_market = shm_mod.SharedMemory(name=shm_name)
+            except FileNotFoundError:
+                total_size = 8 + self._shm_max_symbols * self._shm_slot_size
+                self._shm_market = shm_mod.SharedMemory(name=shm_name, create=True, size=total_size)
+                self._shm_market.buf[:8] = struct.pack('<Q', self._shm_max_symbols)
+            # Build symbol ID mapping from market symbols
+            for i, sym in enumerate(sorted(self.market.symbols.keys())):
+                if i >= self._shm_max_symbols:
+                    break
+                self._shm_symbol_ids[sym] = i
+            logger.info(f"SHM market data publisher ready (shm={shm_name}, symbols={len(self._shm_symbol_ids)})")
+        except Exception as e:
+            logger.warning(f"SHM market data publisher init failed: {e}")
+            self._shm_market = None
+
+    def _publish_shm_snapshot(self, timestamp_ns: int) -> None:
+        """Write market snapshots to shared memory for C++ bot to read (HFT-O16)."""
+        if not self._shm_market:
+            return
+        try:
+            prices = self.market.get_all_prices()
+            for sym, sid in self._shm_symbol_ids.items():
+                price = prices.get(sym, 0.0)
+                if price <= 0:
+                    continue
+                bid = price * 0.9999
+                ask = price * 1.0001
+                volume = 1000.0
+                snap = self._shm_struct.pack(timestamp_ns, sid, bid, ask, price, volume)
+                slot_offset = 8 + sid * self._shm_slot_size
+                # Increment seq (odd = write in progress)
+                seq_offset = slot_offset
+                seq_bytes = self._shm_market.buf[seq_offset:seq_offset+8]
+                seq = struct.unpack('<Q', bytes(seq_bytes))[0]
+                self._shm_market.buf[seq_offset:seq_offset+8] = struct.pack('<Q', seq + 1)
+                self._shm_market.buf[slot_offset + self._shm_data_offset:
+                                    slot_offset + self._shm_data_offset + len(snap)] = snap
+                self._shm_market.buf[seq_offset:seq_offset+8] = struct.pack('<Q', seq + 2)
+        except Exception:
+            pass
 
     async def start(self) -> None:
         """Start the WebSocket server."""
@@ -147,12 +221,18 @@ class ExchangeWebSocketServer:
             async for message in websocket:
                 try:
                     if isinstance(message, bytes) and _HAS_MSGPACK:
-                        data = msgpack.unpackb(message, raw=False)
+                        try:
+                            data = msgpack.unpackb(message, raw=False)
+                        except (msgpack.exceptions.UnpackException, ValueError):
+                            logger.warning(f"Invalid msgpack from {remote}: {message[:100]}")
+                            continue
                     else:
-                        data = json.loads(message)
+                        try:
+                            data = json.loads(message)
+                        except (json.JSONDecodeError, TypeError):
+                            logger.warning(f"Invalid JSON from {remote}: {message[:100]}")
+                            continue
                     await self._handle_message(websocket, data)
-                except (json.JSONDecodeError, msgpack.exceptions.UnpackException) if _HAS_MSGPACK else json.JSONDecodeError:
-                    logger.warning(f"Invalid message from {remote}: {message[:100]}")
                 except Exception as e:
                     logger.error(f"Error handling message: {e}")
 
@@ -457,8 +537,10 @@ class ExchangeWebSocketServer:
         encoding = self._client_encodings.get(websocket, "json")
         if encoding == "msgpack" and _HAS_MSGPACK:
             await websocket.send(msgpack.packb(data, use_bin_type=True))
+        elif _HAS_ORJSON:
+            await websocket.send(orjson.dumps(data))
         else:
-            await websocket.send(json.dumps(data))
+            await websocket.send(json.dumps(data, separators=(',', ':')))
 
     async def _send_market_snapshot(
         self, websocket: websockets.WebSocketServerProtocol
@@ -536,6 +618,68 @@ class ExchangeWebSocketServer:
         await self._send_json(websocket, message)
         logger.info(f"  Sync state sent: {len(all_candles)} candles since ts={last_ts}")
 
+    def _compute_orderbook_delta(self, key: str, bids: list, asks: list) -> tuple[dict, dict] | None:
+        """Compute delta between current and last-sent order book for a symbol.
+
+        Returns (full_snapshot, delta) where:
+        - full_snapshot is the complete orderbook dict (used if no prior state)
+        - delta is {"bids": [{"p":..,"q":..}|{"p":..,"q":0}], "asks": [...]} with only changed levels
+        - Returns (full_snapshot, None) if no prior state (first send or after reset)
+        """
+        # Reuse persistent dicts to avoid allocation per tick
+        current_bids = self._delta_bid_buf
+        current_asks = self._delta_ask_buf
+        current_bids.clear()
+        current_asks.clear()
+        for l in bids:
+            current_bids[l.price] = l.quantity
+        for l in asks:
+            current_asks[l.price] = l.quantity
+
+        last = self._last_orderbooks.get(key)
+
+        if last is None:
+            # No prior state — caller should send full snapshot
+            # Store copies since we reuse the buffers
+            self._last_orderbooks[key] = {
+                "bids": dict(current_bids),
+                "asks": dict(current_asks),
+            }
+            return None  # signal: send full
+
+        bid_changes = []
+        for price, qty in current_bids.items():
+            old_qty = last["bids"].get(price)
+            if old_qty is None or abs(old_qty - qty) > 1e-12:
+                bid_changes.append({"p": price, "q": qty})
+        for price, old_qty in last["bids"].items():
+            if price not in current_bids:
+                bid_changes.append({"p": price, "q": 0.0})
+
+        ask_changes = []
+        for price, qty in current_asks.items():
+            old_qty = last["asks"].get(price)
+            if old_qty is None or abs(old_qty - qty) > 1e-12:
+                ask_changes.append({"p": price, "q": qty})
+        for price, old_qty in last["asks"].items():
+            if price not in current_asks:
+                ask_changes.append({"p": price, "q": 0.0})
+
+        # Update stored state with copies
+        self._last_orderbooks[key] = {
+            "bids": dict(current_bids),
+            "asks": dict(current_asks),
+        }
+
+        if not bid_changes and not ask_changes:
+            return {}  # no changes at all
+
+        return {"bids": bid_changes, "asks": ask_changes}
+
+    def _reset_orderbook_deltas(self) -> None:
+        """Reset delta tracking — next broadcast sends full snapshots."""
+        self._last_orderbooks.clear()
+
     async def _broadcast_loop(self) -> None:
         """Continuously generate new candles and broadcast to all clients."""
         while self._running:
@@ -568,7 +712,8 @@ class ExchangeWebSocketServer:
                         for note in notifications:
                             logger.info(f"  FUNDING: {ex_id} rate={rate:.6f} | {note}")
 
-                # Broadcast SL/TP/Liquidation fills to all clients
+                # Broadcast SL/TP/Liquidation fills to all clients (batched)
+                batched_fills = []
                 for order in closed_orders:
                     if order.status.value == "FILLED":
                         reason = ""
@@ -590,17 +735,20 @@ class ExchangeWebSocketServer:
                             "order_id": order.id,
                             "status": f"CLOSED_{reason or 'SLTP'}",
                         })
-                        fill_msg = json.dumps({
-                            "type": "fill",
-                            "order": order.to_dict(),
-                        })
-                        disconnected = set()
-                        for client in self.clients:
-                            try:
-                                await client.send(fill_msg)
-                            except websockets.ConnectionClosed:
-                                disconnected.add(client)
-                        self.clients -= disconnected
+                        batched_fills.append(order.to_dict())
+
+                if batched_fills:
+                    if _HAS_ORJSON:
+                        fill_msg = orjson.dumps({"type": "fills_batch", "orders": batched_fills})
+                    else:
+                        fill_msg = json.dumps({"type": "fills_batch", "orders": batched_fills}, separators=(',', ':'))
+                    disconnected = set()
+                    for client in self.clients:
+                        try:
+                            await client.send(fill_msg)
+                        except websockets.ConnectionClosed:
+                            disconnected.add(client)
+                    self.clients -= disconnected
 
             # Scan for arbitrage opportunities
             arb_data = None
@@ -656,17 +804,34 @@ class ExchangeWebSocketServer:
                                                 disconnected.add(client)
                                         self.clients -= disconnected
 
-            # Build order book snapshots
+            # Build order book — delta updates (only changed levels)
             orderbooks = {}
+            orderbook_deltas = {}
             for ex_id in self.exchanges:
                 for symbol in self.market.symbols:
                     ob = self.market.generate_order_book(ex_id, symbol)
-                    orderbooks[f"{ex_id}|{symbol}"] = {
-                        "exchange": ex_id,
-                        "symbol": symbol,
-                        "bids": [{"price": l.price, "quantity": l.quantity} for l in ob.bids],
-                        "asks": [{"price": l.price, "quantity": l.quantity} for l in ob.asks],
-                    }
+                    key = f"{ex_id}|{symbol}"
+                    delta = self._compute_orderbook_delta(key, ob.bids, ob.asks)
+                    if delta is None:
+                        # No prior state — send full snapshot
+                        orderbooks[key] = {
+                            "exchange": ex_id,
+                            "symbol": symbol,
+                            "bids": [{"price": l.price, "quantity": l.quantity} for l in ob.bids],
+                            "asks": [{"price": l.price, "quantity": l.quantity} for l in ob.asks],
+                        }
+                    elif delta:
+                        # Has changes — send delta
+                        orderbook_deltas[key] = {
+                            "exchange": ex_id,
+                            "symbol": symbol,
+                            "bids": delta["bids"],
+                            "asks": delta["asks"],
+                        }
+                    # If delta is {} — no changes, skip entirely
+
+            # Publish market data to SHM (HFT-O16 — bypass WebSocket for C++ bot)
+            self._publish_shm_snapshot(int(time.time_ns()))
 
             # Broadcast to all connected clients
             message = {
@@ -674,7 +839,6 @@ class ExchangeWebSocketServer:
                 "timestamp": self.market.current_timestamp,
                 "candles": [c.to_dict() for c in candles],
                 "prices": self.market.get_all_prices(),
-                "orderbooks": orderbooks,
                 "accounts": {
                     ex_id: ex.get_account_status()
                     for ex_id, ex in self.exchanges.items()
@@ -685,7 +849,16 @@ class ExchangeWebSocketServer:
                 "weekend_mode": self.market.is_weekend_mode,
                 "trading_active": self._trading_active,
             }
-            data = json.dumps(message)
+            # Include full orderbooks only if there are any (first send or new symbol)
+            if orderbooks:
+                message["orderbooks"] = orderbooks
+            # Include deltas if there are any changed levels
+            if orderbook_deltas:
+                message["orderbook_deltas"] = orderbook_deltas
+            if _HAS_ORJSON:
+                data = orjson.dumps(message)
+            else:
+                data = json.dumps(message, separators=(',', ':'))
 
             # Send to all clients
             disconnected = set()

@@ -1,11 +1,36 @@
 /** Performance metrics calculations from account and trade data. */
 
-/**
- * Calculate performance metrics from account data.
- * @param {Object} accounts - Account data per exchange
- * @returns {Object} Aggregated metrics
- */
-export function calcAggregateMetrics(accounts) {
+interface AccountData {
+  balance?: number
+  equity?: number
+  total_pnl?: number
+  pnl?: number
+  total_fees?: number
+  fees?: number
+  total_trades?: number
+  winning_trades?: number
+  positions?: unknown[]
+}
+
+interface ExchangeRef {
+  id: string
+  pnl: number
+}
+
+export interface AggregateMetrics {
+  totalBalance: number
+  totalEquity: number
+  totalPnl: number
+  totalFees: number
+  totalTrades: number
+  avgWinRate: number
+  totalPositions: number
+  bestExchange: ExchangeRef | null
+  worstExchange: ExchangeRef | null
+  exchangeCount?: number
+}
+
+export function calcAggregateMetrics(accounts: Record<string, AccountData>): AggregateMetrics {
   if (!accounts || Object.keys(accounts).length === 0) {
     return {
       totalBalance: 0,
@@ -23,7 +48,7 @@ export function calcAggregateMetrics(accounts) {
   const entries = Object.entries(accounts)
   let totalBalance = 0, totalEquity = 0, totalPnl = 0, totalFees = 0
   let totalTrades = 0, totalWins = 0, totalPositions = 0
-  let best = null, worst = null
+  let best: ExchangeRef | null = null, worst: ExchangeRef | null = null
 
   for (const [id, acc] of entries) {
     const balance = acc.balance || 0
@@ -60,18 +85,25 @@ export function calcAggregateMetrics(accounts) {
   }
 }
 
-/**
- * Build equity curve from fills history.
- * @param {Array} fills - Order fills
- * @param {number} initialBalance - Starting balance
- * @returns {Array} Equity curve points [{ time, value }]
- */
-export function buildEquityCurve(fills, initialBalance = 10000) {
+interface Fill {
+  received_at?: number
+  timestamp?: number
+  fee?: number
+  quantity?: number
+  price?: number
+  side?: string
+}
+
+interface EquityPoint {
+  time: number
+  value: number
+}
+
+export function buildEquityCurve(fills: Fill[], initialBalance: number = 10000): EquityPoint[] {
   if (!fills || fills.length === 0) {
     return [{ time: 0, value: initialBalance }]
   }
 
-  // Sort fills by time (oldest first)
   const sorted = [...fills].sort((a, b) => {
     const ta = a.received_at || a.timestamp || 0
     const tb = b.received_at || b.timestamp || 0
@@ -79,16 +111,10 @@ export function buildEquityCurve(fills, initialBalance = 10000) {
   })
 
   let balance = initialBalance
-  const curve = [{ time: 0, value: initialBalance }]
+  const curve: EquityPoint[] = [{ time: 0, value: initialBalance }]
 
   for (const fill of sorted) {
-    // Estimate PnL from fill (simplified: use fee as cost, price difference for closes)
     const fee = fill.fee || 0
-    const qty = fill.quantity || 0
-    const price = fill.price || 0
-    const side = fill.side || 'BUY'
-
-    // Simple: deduct fees, track notional
     balance -= fee
     curve.push({
       time: fill.received_at || fill.timestamp || Date.now(),
@@ -99,16 +125,11 @@ export function buildEquityCurve(fills, initialBalance = 10000) {
   return curve
 }
 
-/**
- * Calculate drawdown series from equity curve.
- * @param {Array} equityCurve - [{ time, value }]
- * @returns {Array} Drawdown percentages [{ time, drawdown }]
- */
-export function calcDrawdown(equityCurve) {
+export function calcDrawdown(equityCurve: EquityPoint[]): { time: number; drawdown: number }[] {
   if (!equityCurve || equityCurve.length === 0) return []
 
   let peak = equityCurve[0].value
-  const drawdowns = []
+  const drawdowns: { time: number; drawdown: number }[] = []
 
   for (const point of equityCurve) {
     peak = Math.max(peak, point.value)
@@ -119,30 +140,26 @@ export function calcDrawdown(equityCurve) {
   return drawdowns
 }
 
-/**
- * Format a metric value with appropriate precision.
- */
-export function formatMetric(value, type = 'number') {
-  if (value === null || value === undefined || isNaN(value)) return '-'
+export function formatMetric(value: number | null | undefined, type: string = 'number'): string {
+  if (value === null || value === undefined || isNaN(value as number)) return '-'
 
   switch (type) {
     case 'usd':
-      return `$${value.toFixed(2)}`
+      return `$${(value as number).toFixed(2)}`
     case 'pct':
-      return `${value.toFixed(2)}%`
+      return `${(value as number).toFixed(2)}%`
     case 'int':
-      return Math.round(value).toString()
+      return Math.round(value as number).toString()
     default:
-      return value.toFixed(4)
+      return (value as number).toFixed(4)
   }
 }
 
-/**
- * Calculate Sharpe ratio from trade PnL history.
- * @param {Array} trades - Trade history with pnl field
- * @returns {number} Sharpe ratio (annualized, assuming 252 trading days)
- */
-export function calcSharpeRatio(trades) {
+interface TradeWithPnl {
+  pnl?: number
+}
+
+export function calcSharpeRatio(trades: TradeWithPnl[]): number {
   if (!trades || trades.length < 2) return 0
 
   const pnls = trades.map(t => t.pnl || 0)
@@ -154,21 +171,15 @@ export function calcSharpeRatio(trades) {
   return (mean / stdDev) * Math.sqrt(252)
 }
 
-/**
- * Calculate Sortino ratio from trade PnL history.
- * Only considers downside deviation (negative returns).
- * @param {Array} trades - Trade history with pnl field
- * @returns {number} Sortino ratio (annualized)
- */
-export function calcSortinoRatio(trades) {
+export function calcSortinoRatio(trades: TradeWithPnl[]): number {
   if (!trades || trades.length < 2) return 0
 
   const pnls = trades.map(t => t.pnl || 0)
   const mean = pnls.reduce((s, v) => s + v, 0) / pnls.length
   const downsidePnls = pnls.filter(v => v < 0)
-  
+
   if (downsidePnls.length === 0) return mean > 0 ? Infinity : 0
-  
+
   const downsideVariance = downsidePnls.reduce((s, v) => s + v * v, 0) / pnls.length
   const downsideDev = Math.sqrt(downsideVariance)
 

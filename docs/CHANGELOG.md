@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files: `run.py`, `run_backtest.py`, `conftest.py`, `tests/test_integration.py`, `scripts/*.py`, `signal_publisher.py`, `websocket_server.py`, `__main__.py`
 
 - **P3.3: WebSocket Protocol v2** — Added `PROTOCOL_VERSION = 2` constant. New `welcome` message on client connect with protocol version, server name, and trading state. `_send_json()` helper injects `protocol_version` for v2 clients (v1 clients get no field for backwards compat). Subscribe message accepts `protocol_version` for negotiation. Updated C++ SignalReceiver and Python ws_client to send v2 and handle welcome.
-  - Files: `exchange-simulator/websocket_server.py`, `hft-trade-bot/src/communication/signal_receiver.h`, `ai-signal-bot/src/communication/ws_client.py`
+  - Files: `exchange_simulator/websocket_server.py`, `hft-trade-bot/src/communication/signal_receiver.h`, `ai-signal-bot/src/communication/ws_client.py`
 
 ### Added — Options Simulator with Greeks (P4.1)
 
@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebSocket `options_chain` handler — clients request chain by symbol with custom strikes/expiries.
 - Registered module in `exchange_simulator/__init__.py`.
 - **Tests**: `test_options_simulator.py` — 25 test cases (Black-Scholes, Greeks, parity, implied vol, chain generation).
-  - Files: `exchange-simulator/exchange_simulator/options_simulator.py`, `exchange-simulator/websocket_server.py`, `exchange-simulator/tests/test_options_simulator.py`
+  - Files: `exchange_simulator/exchange_simulator/options_simulator.py`, `exchange_simulator/websocket_server.py`, `exchange_simulator/tests/test_options_simulator.py`
 
 ### Fixed — Order Book Heatmap Bug (P4.2)
 
@@ -48,8 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **MessagePack binary encoding** — Clients can request `encoding: "msgpack"` in subscribe message. Server tracks per-client encoding in `_client_encodings` dict. `_send_json()` sends binary MessagePack frames for msgpack clients, JSON for others. Incoming binary messages unpacked with msgpack. Falls back to JSON if msgpack not installed. Backward compatible.
 - Python `ws_client.py` — `encoding` parameter in constructor, sends `encoding` field in subscribe, handles binary frames in listen loop.
-- Added `msgpack>=1.0.0` to both `exchange-simulator/requirements.txt` and `ai-signal-bot/requirements.txt`.
-  - Files: `exchange-simulator/websocket_server.py`, `ai-signal-bot/src/communication/ws_client.py`, both `requirements.txt`
+- Added `msgpack>=1.0.0` to both `exchange_simulator/requirements.txt` and `ai-signal-bot/requirements.txt`.
+  - Files: `exchange_simulator/websocket_server.py`, `ai-signal-bot/src/communication/ws_client.py`, both `requirements.txt`
 
 ### Added — C++ Integration Tests (P4.4)
 
@@ -77,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Python run_logger.py** — `JsonFormatter` class (ts, level, logger, msg, exception). `format_type` parameter in `setup_run_logging()` ("text" or "json"). Console handler always text for readability.
 - **Environment variable** — `LOG_FORMAT=json` read by exchange simulator `__main__.py` and AI Signal Bot `run.py`.
 - **docker-compose.prod.yml** — `LOG_FORMAT=json` set for exchange-simulator and ai-signal-bot services.
-  - Files: `hft-trade-bot/src/core/logger.h`, `hft-trade-bot/src/core/main.cpp`, `run_logger.py`, `exchange-simulator/__main__.py`, `ai-signal-bot/run.py`, `docker-compose.prod.yml`
+  - Files: `hft-trade-bot/src/core/logger.h`, `hft-trade-bot/src/core/main.cpp`, `run_logger.py`, `exchange_simulator/__main__.py`, `ai-signal-bot/run.py`, `docker-compose.prod.yml`
 
 ### Added — Session 4: Dead Code Activation
 
@@ -89,12 +89,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed — Session 4: BUG#23 Dual module loading
 
-- Root `exchange_simulator/__init__.py` shim and nested `exchange-simulator/exchange_simulator/__init__.py` both registered modules via `sys.modules` → double-load conflicts. Fixed: root shim replaced with simple `sys.path` redirect. `exchange_simulator.py` marked DEPRECATED.
+- Root `exchange_simulator/__init__.py` shim and nested `exchange_simulator/exchange_simulator/__init__.py` both registered modules via `sys.modules` → double-load conflicts. Fixed: root shim replaced with simple `sys.path` redirect. `exchange_simulator.py` marked DEPRECATED.
   - Files: `exchange_simulator/__init__.py`, `exchange_simulator.py`
 
 ### Known Issues
 
-- **P3.1 BLOCKED**: Directory rename `exchange-simulator/` → `exchange_simulator/` deferred due to terminal issues. 103 references across 25 files need updating after rename.
+- **P3.1 DONE**: Directory renamed `exchange-simulator/` → `exchange_simulator/`. All 103 references across 25 files updated.
 
 ---
 

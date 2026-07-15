@@ -4,7 +4,7 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 install: ## Install all dependencies
-	cd exchange-simulator && pip install -r requirements.txt
+	cd exchange_simulator && pip install -r requirements.txt
 	cd ai-signal-bot && pip install -r requirements.txt
 	cd web-ui && npm install
 
@@ -12,7 +12,7 @@ dev: ## Start all services in development mode
 	docker-compose up
 
 dev-exchange: ## Start only exchange simulator
-	cd exchange-simulator && python -m exchange_simulator --no-visualizer
+	cd exchange_simulator && python -m exchange_simulator --no-visualizer
 
 dev-signals: ## Start only AI signal bot
 	cd ai-signal-bot && python run.py --dashboard --metrics
@@ -21,12 +21,12 @@ dev-ui: ## Start only web UI
 	cd web-ui && npm run dev
 
 test: ## Run all tests
-	cd exchange-simulator && python -m pytest tests/ -v
+	cd exchange_simulator && python -m pytest tests/ -v
 	cd ai-signal-bot && python -m pytest tests/ -v
 	cd web-ui && npx vitest run --passWithNoTests
 
 test-exchange: ## Run exchange simulator tests
-	cd exchange-simulator && python -m pytest tests/ -v
+	cd exchange_simulator && python -m pytest tests/ -v
 
 test-signals: ## Run AI signal bot tests
 	cd ai-signal-bot && python -m pytest tests/ -v
@@ -35,7 +35,7 @@ test-js: ## Run JS tests
 	cd web-ui && npx vitest run --coverage
 
 lint: ## Run linters on all code
-	cd exchange-simulator && ruff check .
+	cd exchange_simulator && ruff check .
 	cd ai-signal-bot && ruff check .
 	cd web-ui && npx eslint src/
 

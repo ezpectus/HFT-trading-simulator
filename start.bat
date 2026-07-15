@@ -29,7 +29,7 @@ if not exist "%PROJECT_ROOT%websocketpp\websocketpp\client.hpp" (
 )
 
 echo [1/4] Exchange Simulator...
-cd /d "%PROJECT_ROOT%exchange-simulator"
+cd /d "%PROJECT_ROOT%exchange_simulator"
 pip install -r requirements.txt
 echo.
 echo [2/4] AI Signal Bot...
@@ -62,7 +62,7 @@ goto :end
 echo Starting HFT Trading System...
 
 REM Window 1: Exchange Simulator
-start "Exchange Simulator" cmd /k "cd /d %~dp0exchange-simulator && python -m exchange_simulator --no-visualizer"
+start "Exchange Simulator" cmd /k "cd /d %~dp0exchange_simulator && python -m exchange_simulator --no-visualizer"
 
 REM Wait for exchange to start
 ping 127.0.0.1 -n 4 >nul 2>&1

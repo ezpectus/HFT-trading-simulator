@@ -12,11 +12,11 @@ echo "Starting HFT Trading System..."
 
 # Terminal 1: Exchange Simulator
 gnome-terminal --tab --title="Exchange Simulator" -- bash -c "
-  cd '$ROOT_DIR/exchange-simulator'
+  cd '$ROOT_DIR/exchange_simulator'
   python -m exchange_simulator --no-visualizer
   exec bash
 " 2>/dev/null || xterm -title "Exchange Simulator" -e "
-  cd '$ROOT_DIR/exchange-simulator' && python -m exchange_simulator --no-visualizer
+  cd '$ROOT_DIR/exchange_simulator' && python -m exchange_simulator --no-visualizer
 " &
 
 sleep 3

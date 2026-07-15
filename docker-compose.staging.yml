@@ -1,0 +1,204 @@
+# Docker Compose — Staging Environment
+# ===========================================
+# Staging configuration with:
+#   - Resource limits for all services
+#   - Structured JSON logging (LOG_FORMAT=json)
+#   - Signal Engine V3 enabled (HMM regime detection)
+#   - Prometheus + Grafana monitoring
+#   - Restart on failure with backoff
+#
+# Usage:
+#   docker-compose -f docker-compose.staging.yml up -d
+#   docker-compose -f docker-compose.staging.yml logs -f
+#   docker-compose -f docker-compose.staging.yml down
+#
+# Override: docker-compose -f docker-compose.yml -f docker-compose.staging.yml up
+
+services:
+  exchange-simulator:
+    build:
+      context: ./exchange_simulator
+      dockerfile: Dockerfile
+    container_name: staging-exchange-sim
+    ports:
+      - "18765:8765"
+      - "18775:8775"
+    volumes:
+      - ./exchange_simulator/config.yaml:/app/config.yaml
+      - staging-sim-data:/app/data
+      - staging-sim-logs:/app/logs
+    command: python -m exchange_simulator --no-visualizer
+    environment:
+      - LOG_FORMAT=json
+    restart: on-failure:5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8765), timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - staging-net
+
+  ai-signal-bot:
+    build:
+      context: ./ai-signal-bot
+      dockerfile: Dockerfile
+    container_name: staging-ai-signal-bot
+    depends_on:
+      exchange-simulator:
+        condition: service_healthy
+    ports:
+      - "18766:8766"
+      - "18080:8080"
+      - "19090:9090"
+    volumes:
+      - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml
+      - staging-ai-data:/app/data
+      - staging-ai-logs:/app/logs
+    command: python run.py --dashboard --metrics
+    environment:
+      - LOG_FORMAT=json
+    restart: on-failure:5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8766), timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - staging-net
+
+  hft-trade-bot:
+    build:
+      context: ./hft-trade-bot
+      dockerfile: Dockerfile
+    container_name: staging-hft-trade-bot
+    depends_on:
+      exchange-simulator:
+        condition: service_healthy
+      ai-signal-bot:
+        condition: service_healthy
+    volumes:
+      - ./hft-trade-bot/config:/app/config
+      - staging-hft-logs:/app/logs
+    command: ./build/hft_trade_bot config/config.yaml
+    environment:
+      - LOG_FORMAT=json
+    restart: on-failure:5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 512M
+        reservations:
+          cpus: '1.0'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "test", "-f", "/proc/1/cmdline"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - staging-net
+
+  web-ui:
+    build:
+      context: ./web-ui
+      dockerfile: Dockerfile
+      args:
+        - VITE_WS_EXCHANGE=ws://localhost:18765
+        - VITE_WS_SIGNALS=ws://localhost:18766
+    container_name: staging-web-ui
+    depends_on:
+      exchange-simulator:
+        condition: service_healthy
+      ai-signal-bot:
+        condition: service_healthy
+    ports:
+      - "13000:3000"
+    restart: on-failure:3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - staging-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: staging-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - staging-prom-data:/prometheus
+    ports:
+      - "19091:9090"
+    restart: on-failure:3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - staging-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: staging-grafana
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=staging
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - staging-grafana-data:/var/lib/grafana
+    ports:
+      - "13001:3000"
+    restart: on-failure:3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - staging-net
+
+volumes:
+  staging-sim-data:
+  staging-sim-logs:
+  staging-ai-data:
+  staging-ai-logs:
+  staging-hft-logs:
+  staging-prom-data:
+  staging-grafana-data:
+
+networks:
+  staging-net:
+    driver: bridge

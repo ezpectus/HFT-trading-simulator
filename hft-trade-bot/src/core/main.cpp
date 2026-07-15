@@ -32,13 +32,16 @@
 #include "exchange/BybitAdapter.h"
 #include "ipc/shm_signal_consumer.h"
 #include "ipc/shm_fill_producer.h"
+#include "ipc/shm_market_data.h"
 #include "ipc/shm_protocol.h"
 #include "risk/risk_manager.h"
 #include "risk/kill_switch.h"
 #include "monitoring/system_monitor.h"
+#include "monitoring/health_server.h"
 #include "position/position_manager.h"
 #include "strategies/signal_engine.h"
 #include "strategies/signal_engine_v2.h"
+#include "strategies/signal_engine_v3.h"
 #include "strategies/pressure_model.h"
 #include "utils/low_latency.h"
 
@@ -113,6 +116,7 @@ int main(int argc, char* argv[]) {
     spdlog::info("  Exchange: {}", config.default_exchange);
     spdlog::info("  Paper trading: {}", config.paper_trading);
     spdlog::info("  Signal Engine V2: {}", config.signal_engine_v2_enabled);
+    spdlog::info("  Signal Engine V3: {}", config.signal_engine_v3_enabled);
     spdlog::info("  Smart Router: {}", config.smart_router_enabled);
     spdlog::info("  Adaptive Orders: {}", config.adaptive_order_enabled);
     spdlog::info("  Thread Pinning: {}", config.thread_pinning_enabled);
@@ -201,6 +205,13 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     SignalEngineV2 engine_v2(v2_params);
+
+    // ─── Signal Engine V3 (HMM regime detection, optional) ───
+    std::unique_ptr<SignalEngineV3> engine_v3;
+    if (config.signal_engine_v3_enabled) {
+        engine_v3 = std::make_unique<SignalEngineV3>(v2_params);
+        spdlog::info("Signal Engine V3: HMM regime detection ENABLED");
+    }
 
     // ─── Pressure Model ───
     PressureModel::Params pressure_params;
@@ -303,10 +314,13 @@ int main(int argc, char* argv[]) {
     // ─── System Monitor — health metrics ───
     SystemMonitor sys_monitor;
 
+    // ─── Health check HTTP server — /health endpoint for k8s probes ───
+    HealthServer health_server(config.is_production ? 9091 : 9091);
+    health_server.start(&sys_monitor);
+
     // AI signal state (declared early — used by both WebSocket and SHM IPC callbacks)
-    std::atomic<bool> has_ai_signal{false};
-    Signal latest_ai_signal{};
-    Spinlock ai_signal_lock;
+    // SPSC queue: producer = callback thread, consumer = main loop (lock-free)
+    SPSCQueue<Signal, 16> ai_signal_queue;
 
     // ─── SHM IPC — Python↔C++ shared memory (production only) ───
     std::unique_ptr<ipc::ShmSignalConsumer> shm_signal_consumer;
@@ -338,10 +352,7 @@ int main(int argc, char* argv[]) {
                 sig.leverage = msg.leverage;
 
                 if (sig.direction == "LONG" || sig.direction == "SHORT") {
-                    ai_signal_lock.lock();
-                    latest_ai_signal = sig;
-                    ai_signal_lock.unlock();
-                    has_ai_signal = true;
+                    ai_signal_queue.push(sig);
                     sys_monitor.increment(SystemMonitor::Metric::SIGNALS_RECEIVED);
                 }
             });
@@ -352,7 +363,22 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // ─── Circuit breakers (currently unused, reserved for future integration) ───
+    // ─── SHM Market Data Consumer — bypass WebSocket for market data (HFT-O16) ───
+    std::unique_ptr<ipc::ShmMarketData> shm_market_data;
+    if (config.ipc_enabled) {
+        try {
+            shm_market_data = std::make_unique<ipc::ShmMarketData>(
+                config.ipc_market_data_shm,
+                static_cast<uint8_t>(config.ipc_market_data_max_symbols),
+                false  // C++ opens existing (Python creates)
+            );
+            spdlog::info("SHM IPC: market data consumer ready (shm={}, max_symbols={})",
+                config.ipc_market_data_shm, config.ipc_market_data_max_symbols);
+        } catch (const std::exception& e) {
+            spdlog::warn("SHM IPC: market data consumer failed to start (Python may not be running yet): {}", e.what());
+            shm_market_data.reset();
+        }
+    }
     // CircuitBreaker ws_circuit(5, 30);
     // CircuitBreaker order_circuit(5, 30);
 
@@ -363,10 +389,7 @@ int main(int argc, char* argv[]) {
     if (ai_signal_receiver) {
         ai_signal_receiver->on_signal([&](const Signal& sig) {
             if (sig.direction == "LONG" || sig.direction == "SHORT") {
-                ai_signal_lock.lock();
-                latest_ai_signal = sig;
-                ai_signal_lock.unlock();
-                has_ai_signal = true;
+                ai_signal_queue.push(sig);
                 sys_monitor.increment(SystemMonitor::Metric::SIGNALS_RECEIVED);
             }
         });
@@ -420,10 +443,29 @@ int main(int argc, char* argv[]) {
 
     spdlog::info("HFT Trade Bot v2 running. Press Ctrl+C to stop.");
 
+    // Pin main loop thread to a dedicated core for consistent low-latency execution
+    if (ThreadAffinity::pin_to_core(2)) {
+        spdlog::info("Main loop thread pinned to core 2");
+    } else {
+        spdlog::warn("Could not pin thread to core 2 — running on default scheduler");
+    }
+
     auto last_print = std::chrono::steady_clock::now();
 
     // Pre-allocate prices map for hot path reuse (avoids heap alloc per loop)
     std::unordered_map<std::string, double> prices_cache;
+    // Pre-allocate candle and order book buffers for Signal Engine V2 hot path
+    std::vector<Candle> candles_buf;
+    candles_buf.reserve(100);
+    OrderBook ob_buf;
+    // Register symbols for numeric ID-based fast path lookups (HFT-O11)
+    receiver.register_symbols(config.symbols);
+    // Pre-build (symbol, c_str, numeric_id) tuples for hot loop
+    struct SymbolEntry { std::string symbol; const char* cstr; uint16_t id; };
+    std::vector<SymbolEntry> symbol_entries;
+    for (uint16_t i = 0; i < config.symbols.size(); ++i) {
+        symbol_entries.push_back({config.symbols[i], config.symbols[i].c_str(), i});
+    }
 
     // Main loop
     while (g_running) {
@@ -471,14 +513,10 @@ int main(int argc, char* argv[]) {
         }
 
         // Process AI Signal Bot signals (slow path — higher confidence)
-        if (has_ai_signal.load() && receiver.is_trading_active() && kill_switch.can_trade()) {
+        // Drain all queued signals from SPSC queue (lock-free)
+        while (receiver.is_trading_active() && kill_switch.can_trade()) {
             Signal ai_sig;
-            {
-                ai_signal_lock.lock();
-                ai_sig = latest_ai_signal;
-                ai_signal_lock.unlock();
-                has_ai_signal = false;
-            }
+            if (!ai_signal_queue.pop(ai_sig)) break;
 
             // Risk check
             auto risk_result = risk_mgr.check_signal(ai_sig, balance.load(std::memory_order_relaxed), pos_mgr.position_count());
@@ -502,34 +540,46 @@ int main(int argc, char* argv[]) {
 
         // ─── Run Signal Engine V2 for each symbol (fast path) ───
         if (config.signal_engine_v2_enabled && receiver.is_trading_active() && kill_switch.can_trade()) {
-            for (const auto& symbol : config.symbols) {
+            for (const auto& [symbol, sym_cstr, sym_id] : symbol_entries) {
                 ScopedLatency signal_timer(signal_latency_hist);
 
-                auto candles = receiver.get_candles(symbol, 100);
-                if (candles.size() < 30) continue;
+                auto candles_count = receiver.get_candles_by_id(sym_id, 100, candles_buf);
+                if (candles_count < 30) continue;
 
-                auto ob = receiver.get_order_book(symbol);
-                if (ob.bids.empty() || ob.asks.empty()) {
+                bool ob_found = receiver.get_order_book_by_id(sym_id, ob_buf);
+                if (!ob_found || ob_buf.bids.empty() || ob_buf.asks.empty()) {
                     // Generate a simple order book from current price
-                    double price = receiver.get_price(symbol);
+                    double price = receiver.get_price_by_id(sym_id);
                     if (price == 0) continue;
-                    ob.symbol = symbol;
-                    ob.exchange = config.default_exchange;
+                    ob_buf.symbol = symbol;
+                    ob_buf.exchange = config.default_exchange;
+                    ob_buf.bids.clear();
+                    ob_buf.asks.clear();
                     for (int i = 0; i < 10; ++i) {
-                        ob.bids.push_back({price * (1.0 - 0.0001 * (i + 1)), 1.0});
-                        ob.asks.push_back({price * (1.0 + 0.0001 * (i + 1)), 1.0});
+                        ob_buf.bids.push_back({price * (1.0 - 0.0001 * (i + 1)), 1.0});
+                        ob_buf.asks.push_back({price * (1.0 + 0.0001 * (i + 1)), 1.0});
                     }
                 }
+                const auto& ob = ob_buf;
+                const auto& candles = candles_buf;
 
                 // Pressure model analysis
                 auto pressure = pressure_model.analyze(ob);
 
-                // Generate signal using V2 engine (pass full PressureResult)
+                // Generate signal using V2/V3 engine with incremental indicator cache (HFT-O21)
                 int64_t now_ns = FastSignal::now_ns();
-                auto fast_sig = engine_v2.analyze(
-                    symbol.c_str(), candles.data(), candles.size(),
-                    ob, pressure, now_ns
-                );
+                FastSignal fast_sig;
+                if (engine_v3) {
+                    fast_sig = engine_v3->analyze_incremental(
+                        sym_cstr, candles.data(), candles.size(),
+                        ob, pressure, now_ns
+                    );
+                } else {
+                    fast_sig = engine_v2.analyze_incremental(
+                        sym_cstr, candles.data(), candles.size(),
+                        ob, pressure, now_ns
+                    );
+                }
 
                 if (!fast_sig.is_actionable() || fast_sig.confidence < config.v2_min_confidence) {
                     continue;
@@ -540,7 +590,7 @@ int main(int argc, char* argv[]) {
                 sig.symbol = fast_sig.symbol;
                 sig.direction = fast_sig.dir_str();
                 sig.confidence = fast_sig.confidence;
-                sig.strategy = "hft_signal_engine_v2";
+                sig.strategy = engine_v3 ? "hft_signal_engine_v3" : "hft_signal_engine_v2";
                 sig.entry_price = fast_sig.entry_price;
                 sig.stop_loss = fast_sig.stop_loss;
                 sig.take_profit = fast_sig.take_profit;
@@ -733,8 +783,22 @@ int main(int argc, char* argv[]) {
                 snap.errors, snap.uptime_seconds, snap.fill_rate * 100.0);
         }
 
-        // Sleep between cycles (configurable, default 1s for simulator mode)
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // Event-driven wait: wake instantly when new market data arrives.
+        // 1s timeout ensures periodic status prints and SL/TP checks still run.
+        // This replaces the old 100ms polling sleep — zero dead latency on data arrival.
+        receiver.wait_for_data(1000);
+
+        // Poll SHM market data (HFT-O16 — bypass WebSocket for market data)
+        if (shm_market_data && receiver.has_shm_data()) {
+            uint8_t max_sym = shm_market_data->max_symbols();
+            for (uint8_t sid = 0; sid < max_sym; ++sid) {
+                ipc::MarketSnapshotMsg snap;
+                if (shm_market_data->read_snapshot(sid, snap)) {
+                    receiver.inject_snapshot(sid, snap.bid, snap.ask,
+                                             snap.last, snap.volume);
+                }
+            }
+        }
     }
 
     // ─── Graceful shutdown: cancel all orders before exit ───
@@ -753,6 +817,7 @@ int main(int argc, char* argv[]) {
     kill_switch.close();
     if (shm_signal_consumer) shm_signal_consumer->stop();
     if (shm_fill_producer) shm_fill_producer->close();
+    health_server.stop();
 
     // Final latency report
     if (config.latency_histogram_enabled) {

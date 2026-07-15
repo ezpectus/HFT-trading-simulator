@@ -1,6 +1,14 @@
 import { useCallback, useRef } from 'react'
 
-const SOUND_TYPES = {
+type SoundType = 'fill' | 'sl' | 'tp' | 'alert' | 'connect' | 'disconnect'
+
+interface SoundConfig {
+  freq: number
+  duration: number
+  type: OscillatorType
+}
+
+const SOUND_TYPES: Record<SoundType, SoundConfig> = {
   fill: { freq: 800, duration: 0.1, type: 'sine' },
   sl: { freq: 300, duration: 0.3, type: 'sawtooth' },
   tp: { freq: 1200, duration: 0.15, type: 'sine' },
@@ -9,15 +17,16 @@ const SOUND_TYPES = {
   disconnect: { freq: 200, duration: 0.3, type: 'sawtooth' },
 }
 
-export function useSoundAlerts(enabled = true) {
-  const ctxRef = useRef(null)
+export function useSoundAlerts(enabled: boolean = true) {
+  const ctxRef = useRef<AudioContext | null>(null)
   const enabledRef = useRef(enabled)
 
-  const ensureCtx = useCallback(() => {
+  const ensureCtx = useCallback((): AudioContext | null => {
     if (!ctxRef.current) {
       try {
-        ctxRef.current = new (window.AudioContext || window.webkitAudioContext)()
-      } catch (e) {
+        const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        ctxRef.current = new Ctor()
+      } catch {
         return null
       }
     }
@@ -27,7 +36,7 @@ export function useSoundAlerts(enabled = true) {
     return ctxRef.current
   }, [])
 
-  const play = useCallback((soundType) => {
+  const play = useCallback((soundType: SoundType) => {
     if (!enabledRef.current) return
     const config = SOUND_TYPES[soundType]
     if (!config) return
@@ -51,7 +60,7 @@ export function useSoundAlerts(enabled = true) {
     osc.stop(ctx.currentTime + config.duration)
   }, [ensureCtx])
 
-  const setEnabled = useCallback((val) => {
+  const setEnabled = useCallback((val: boolean) => {
     enabledRef.current = val
   }, [])
 

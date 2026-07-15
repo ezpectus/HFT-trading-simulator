@@ -38,9 +38,9 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
-EXPOSE 8767
+EXPOSE 8767 9091
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
-    CMD test -f /proc/1/cmdline || exit 1
+    CMD wget -q --spider http://localhost:9091/health || exit 1
 
 CMD ["/app/hft_trade_bot", "config/config.prod.yaml"]

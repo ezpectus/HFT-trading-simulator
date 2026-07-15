@@ -65,10 +65,10 @@ echo.
 echo --------------------------------------------
 echo  [1/4] Exchange Simulator (Python)
 echo --------------------------------------------
-cd /d "%PROJECT_ROOT%exchange-simulator"
+cd /d "%PROJECT_ROOT%exchange_simulator"
 pip install -r requirements.txt
 if errorlevel 1 (
-    echo [ERROR] Failed to install exchange-simulator dependencies
+    echo [ERROR] Failed to install exchange_simulator dependencies
     exit /b 1
 )
 echo [OK] Exchange Simulator dependencies installed

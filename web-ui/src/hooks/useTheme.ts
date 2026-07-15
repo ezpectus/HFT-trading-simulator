@@ -3,8 +3,10 @@ import { useLocalStorage } from './useLocalStorage'
 
 const STORAGE_KEY = 'trading-sim-theme'
 
-export function useTheme() {
-  const [theme, setTheme] = useLocalStorage(STORAGE_KEY, 'dark')
+export type Theme = 'dark' | 'light'
+
+export function useTheme(): { theme: Theme; toggleTheme: () => void } {
+  const [theme, setTheme] = useLocalStorage<Theme>(STORAGE_KEY, 'dark')
 
   useEffect(() => {
     const root = document.documentElement

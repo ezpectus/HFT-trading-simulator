@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 
-export function useMediaQuery(query) {
-  const [matches, setMatches] = useState(() => {
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return window.matchMedia(query).matches
     }
@@ -10,7 +10,7 @@ export function useMediaQuery(query) {
 
   useEffect(() => {
     const mql = window.matchMedia(query)
-    const handler = (e) => setMatches(e.matches)
+    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
     mql.addEventListener('change', handler)
     return () => mql.removeEventListener('change', handler)
   }, [query])
@@ -18,10 +18,10 @@ export function useMediaQuery(query) {
   return matches
 }
 
-export function useIsMobile() {
+export function useIsMobile(): boolean {
   return useMediaQuery('(max-width: 768px)')
 }
 
-export function useIsTablet() {
+export function useIsTablet(): boolean {
   return useMediaQuery('(max-width: 1024px)')
 }

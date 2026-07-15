@@ -1,8 +1,11 @@
-import { useState, useMemo, useEffect } from 'react'
-import { BookOpen, Tag, Search, Plus, X } from 'lucide-react'
-import { formatUsd, formatTime } from '../utils/format'
+import { useState, useMemo } from 'react'
+import { BookOpen, Tag, Search, X } from 'lucide-react'
+import { formatUsd } from '../utils/format'
+import { useTradeJournal } from '../hooks/useTradeJournal'
 
-const JOURNAL_KEY = 'trading-sim-journal-entries'
+function tradeKeyFromId(id) {
+  return id.replace(/_/g, '|')
+}
 
 const TAG_COLORS = {
   'momentum': 'bg-accent-blue/20 text-accent-blue',
@@ -18,29 +21,13 @@ const TAG_COLORS = {
 }
 
 export default function TradeJournal({ accounts }) {
-  const [entries, setEntries] = useState({})
+  const { data: entries, saveEntry, allTags: getAllTags } = useTradeJournal()
   const [filterTag, setFilterTag] = useState(null)
   const [filterWin, setFilterWin] = useState('all')
   const [search, setSearch] = useState('')
   const [activeTradeId, setActiveTradeId] = useState(null)
   const [noteText, setNoteText] = useState('')
   const [noteTags, setNoteTags] = useState([])
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(JOURNAL_KEY)
-      if (saved) setEntries(JSON.parse(saved))
-    } catch (e) {
-      console.warn('[TradeJournal] Failed to load entries:', e)
-    }
-  }, [])
-
-  const saveEntries = (next) => {
-    setEntries(next)
-    try { localStorage.setItem(JOURNAL_KEY, JSON.stringify(next)) } catch (e) {
-      console.warn('[TradeJournal] Failed to save entries:', e)
-    }
-  }
 
   const allTrades = useMemo(() => {
     const trades = []
@@ -54,31 +41,28 @@ export default function TradeJournal({ accounts }) {
 
   const filteredTrades = useMemo(() => {
     return allTrades.filter(t => {
-      const entry = entries[t.id]
-      if (filterTag && !(entry?.tags || []).includes(filterTag)) return false
+      const key = tradeKeyFromId(t.id)
+      const entry = entries[key]
+      const entryTags = typeof entry === 'object' && entry !== null ? (entry.tags || []) : []
+      const entryNote = typeof entry === 'object' && entry !== null ? entry.note : (typeof entry === 'string' ? entry : '')
+      if (filterTag && !entryTags.includes(filterTag)) return false
       if (filterWin === 'win' && (t.pnl || 0) <= 0) return false
       if (filterWin === 'loss' && (t.pnl || 0) > 0) return false
       if (search) {
         const q = search.toLowerCase()
         const matchesSymbol = t.symbol?.toLowerCase().includes(q)
-        const matchesNote = entry?.note?.toLowerCase().includes(q)
+        const matchesNote = entryNote?.toLowerCase().includes(q)
         if (!matchesSymbol && !matchesNote) return false
       }
       return true
     })
   }, [allTrades, entries, filterTag, filterWin, search])
 
-  const allTags = useMemo(() => {
-    const tags = new Set()
-    for (const entry of Object.values(entries)) {
-      for (const t of (entry.tags || [])) tags.add(t)
-    }
-    return [...tags]
-  }, [entries])
+  const allTags = useMemo(() => getAllTags(), [getAllTags])
 
   const handleSaveNote = (tradeId) => {
-    const next = { ...entries, [tradeId]: { note: noteText, tags: noteTags, savedAt: Date.now() } }
-    saveEntries(next)
+    const key = tradeKeyFromId(tradeId)
+    saveEntry(key, noteText, noteTags)
     setActiveTradeId(null)
     setNoteText('')
     setNoteTags([])
@@ -152,7 +136,10 @@ export default function TradeJournal({ accounts }) {
       {/* Trade list */}
       <div className="max-h-[200px] overflow-y-auto scrollbar-thin space-y-0.5">
         {filteredTrades.slice(0, 20).map(t => {
-          const entry = entries[t.id]
+          const key = tradeKeyFromId(t.id)
+          const entry = entries[key]
+          const entryNote = typeof entry === 'object' && entry !== null ? entry.note : (typeof entry === 'string' ? entry : '')
+          const entryTags = typeof entry === 'object' && entry !== null ? (entry.tags || []) : []
           const isWin = (t.pnl || 0) > 0
           const isEditing = activeTradeId === t.id
           return (
@@ -168,7 +155,7 @@ export default function TradeJournal({ accounts }) {
                 <button
                   onClick={() => {
                     if (isEditing) { setActiveTradeId(null) }
-                    else { setActiveTradeId(t.id); setNoteText(entry?.note || ''); setNoteTags(entry?.tags || []) }
+                    else { setActiveTradeId(t.id); setNoteText(entryNote || ''); setNoteTags(entryTags) }
                   }}
                   className="text-gray-600 hover:text-accent-blue"
                 >
@@ -177,9 +164,9 @@ export default function TradeJournal({ accounts }) {
               </div>
 
               {/* Tags */}
-              {entry?.tags?.length > 0 && !isEditing && (
+              {entryTags.length > 0 && !isEditing && (
                 <div className="flex flex-wrap gap-0.5 mt-1">
-                  {entry.tags.map(tag => (
+                  {entryTags.map(tag => (
                     <span key={tag} className={'px-1 py-0.5 text-[7px] rounded ' + (TAG_COLORS[tag] || 'bg-bg-600 text-gray-400')}>
                       {tag}
                     </span>
@@ -188,8 +175,8 @@ export default function TradeJournal({ accounts }) {
               )}
 
               {/* Note preview */}
-              {entry?.note && !isEditing && (
-                <div className="text-[8px] text-gray-500 mt-1 italic truncate">"{entry.note}"</div>
+              {entryNote && !isEditing && (
+                <div className="text-[8px] text-gray-500 mt-1 italic truncate">"{entryNote}"</div>
               )}
 
               {/* Edit mode */}

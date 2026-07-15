@@ -1,9 +1,9 @@
 // Integration test: Signal Engine V2 + Order Book Manager
 // Verifies that the signal engine correctly processes market data from the order book
 // and generates composite signals with proper indicator weights.
-#include "../src/strategy/signal_engine_v2.h"
-#include "../src/strategy/order_book_manager.h"
-#include "../src/strategy/candle_aggregator.h"
+#include "../src/strategies/signal_engine_v2.h"
+#include "../src/market_data/order_book_manager.h"
+#include "../src/market_data/candle_aggregator.h"
 #include <doctest.h>
 #include <vector>
 

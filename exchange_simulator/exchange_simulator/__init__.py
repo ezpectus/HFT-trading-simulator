@@ -8,7 +8,7 @@ import importlib
 import os
 import sys
 
-# Ensure the parent directory (exchange-simulator/) is on sys.path
+# Ensure the parent directory (exchange_simulator/) is on sys.path
 # so root-level modules (models.py, exchange.py, etc.) are importable.
 _parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _parent not in sys.path:

@@ -7,6 +7,7 @@
 
 #include "../data/types.h"
 #include "../data/signal.h"
+#include "../utils/low_latency.h"
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_client.hpp>
 #include <nlohmann/json.hpp>
@@ -15,6 +16,7 @@
 #include <string>
 #include <functional>
 #include <mutex>
+#include <condition_variable>
 #include <thread>
 #include <atomic>
 #include <deque>
@@ -36,6 +38,75 @@ public:
 
     explicit SignalReceiver(const std::string& ws_url) : ws_url_(ws_url) {}
 
+    // Register known symbols for numeric ID-based fast path lookups
+    void register_symbols(const std::vector<std::string>& symbols) {
+        symbol_to_id_.clear();
+        id_to_symbol_.clear();
+        for (uint16_t i = 0; i < symbols.size(); ++i) {
+            symbol_to_id_[symbols[i]] = i;
+            id_to_symbol_.push_back(symbols[i]);
+        }
+        prices_by_id_.assign(symbols.size(), 0.0);
+        obs_by_id_.assign(symbols.size(), OrderBook{});
+        candles_by_id_.assign(symbols.size(), {});
+    }
+
+    uint16_t symbol_id(const std::string& sym) const {
+        auto it = symbol_to_id_.find(sym);
+        return it != symbol_to_id_.end() ? it->second : 0xFFFF;
+    }
+
+    // Fast path: get price by numeric ID (no string hash lookup)
+    double get_price_by_id(uint16_t id) const {
+        std::lock_guard<Spinlock> lock(data_lock_);
+        return id < prices_by_id_.size() ? prices_by_id_[id] : 0.0;
+    }
+
+    // Fast path: get candles by numeric ID into pre-allocated buffer
+    size_t get_candles_by_id(uint16_t id, size_t n, std::vector<Candle>& out) const {
+        std::lock_guard<Spinlock> lock(data_lock_);
+        if (id >= candles_by_id_.size()) { out.clear(); return 0; }
+        const auto& hist = candles_by_id_[id];
+        if (hist.empty()) { out.clear(); return 0; }
+        size_t start = hist.size() >= n ? hist.size() - n : 0;
+        out.assign(hist.begin() + start, hist.end());
+        return out.size();
+    }
+
+    // Fast path: get order book by numeric ID into pre-allocated buffer
+    bool get_order_book_by_id(uint16_t id, OrderBook& out) const {
+        std::lock_guard<Spinlock> lock(data_lock_);
+        if (id >= obs_by_id_.size()) return false;
+        if (obs_by_id_[id].bids.empty()) return false;
+        out = obs_by_id_[id];
+        return true;
+    }
+
+    // Inject market data snapshot from SHM (HFT-O16 — bypass WebSocket)
+    void inject_snapshot(uint16_t symbol_id, double bid, double ask,
+                         double last, double volume) {
+        if (symbol_id >= id_to_symbol_.size()) return;
+        const auto& sym = id_to_symbol_[symbol_id];
+        double mid = (bid + ask) / 2.0;
+        {
+            std::lock_guard<Spinlock> lock(data_lock_);
+            prices_[sym] = mid;
+            prices_by_id_[symbol_id] = mid;
+            // Update order book with best bid/ask
+            OrderBook& ob = obs_by_id_[symbol_id];
+            ob.symbol = sym;
+            ob.exchange = "shm";
+            if (ob.bids.empty()) ob.bids.resize(1);
+            if (ob.asks.empty()) ob.asks.resize(1);
+            ob.bids[0] = {bid, volume * 0.1};
+            ob.asks[0] = {ask, volume * 0.1};
+            order_books_[sym] = ob;
+        }
+        has_new_data_.store(true, std::memory_order_release);
+    }
+
+    bool has_shm_data() const noexcept { return !id_to_symbol_.empty(); }
+
     bool connect() {
         should_reconnect_ = true;
         return do_connect();
@@ -50,8 +121,8 @@ public:
                 reconnect_delay_ = 1000; // Reset backoff on success
                 spdlog::info("SignalReceiver connected to {}", ws_url_);
 
-                // Send subscribe message with protocol version 2
-                json sub = {{"type", "subscribe"}, {"protocol_version", 2}};
+                // Send subscribe message with protocol version 2 and msgpack encoding (HFT-O15)
+                json sub = {{"type", "subscribe"}, {"protocol_version", 2}, {"encoding", "msgpack"}};
                 client_.send(hdl, sub.dump(), websocketpp::frame::opcode::text);
             });
 
@@ -74,7 +145,15 @@ public:
 
             client_.set_message_handler([this](websocketpp::connection_hdl,
                 WSClient::message_ptr msg) {
-                handle_message(msg->get_payload());
+                if (msg->get_opcode() == websocketpp::frame::opcode::binary) {
+                    // Binary frame — server sent msgpack (HFT-O15)
+                    // Convert binary payload to JSON string via nlohmann/json
+                    const auto& bin = msg->get_payload();
+                    auto data = json::from_msgpack(bin);
+                    handle_message_json(data);
+                } else {
+                    handle_message(msg->get_payload());
+                }
             });
 
             websocketpp::lib::error_code ec;
@@ -109,16 +188,32 @@ public:
     bool is_connected() const { return connected_; }
     bool is_trading_active() const { return trading_active_.load(std::memory_order_relaxed); }
 
+    // Wait for new market data or timeout. Returns true if data arrived, false on timeout.
+    // This replaces polling sleep — the main loop wakes instantly when new data arrives.
+    bool wait_for_data(int timeout_ms = 1000) {
+        std::unique_lock<std::mutex> lk(mutex_);
+        if (has_new_data_) {
+            has_new_data_ = false;
+            return true;
+        }
+        cv_.wait_for(lk, std::chrono::milliseconds(timeout_ms), [this] { return has_new_data_.load(); });
+        if (has_new_data_) {
+            has_new_data_ = false;
+            return true;
+        }
+        return false;
+    }
+
     // Get latest price for a symbol
     double get_price(const std::string& symbol) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<Spinlock> lock(data_lock_);
         auto it = prices_.find(symbol);
         return it != prices_.end() ? it->second : 0.0;
     }
 
     // Get best bid without copying the full OrderBook
     double get_best_bid(const std::string& symbol) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<Spinlock> lock(data_lock_);
         auto it = order_books_.find(symbol);
         if (it == order_books_.end() || it->second.bids.empty()) return 0.0;
         return it->second.bids[0].price;
@@ -126,7 +221,7 @@ public:
 
     // Get best ask without copying the full OrderBook
     double get_best_ask(const std::string& symbol) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<Spinlock> lock(data_lock_);
         auto it = order_books_.find(symbol);
         if (it == order_books_.end() || it->second.asks.empty()) return 0.0;
         return it->second.asks[0].price;
@@ -142,7 +237,7 @@ public:
 
     // Get bid depth without copying the full OrderBook
     double get_bid_depth(const std::string& symbol, int levels) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<Spinlock> lock(data_lock_);
         auto it = order_books_.find(symbol);
         if (it == order_books_.end()) return 0.0;
         double depth = 0.0;
@@ -153,7 +248,7 @@ public:
 
     // Get ask depth without copying the full OrderBook
     double get_ask_depth(const std::string& symbol, int levels) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<Spinlock> lock(data_lock_);
         auto it = order_books_.find(symbol);
         if (it == order_books_.end()) return 0.0;
         double depth = 0.0;
@@ -165,38 +260,68 @@ public:
     // Fill pre-allocated output map to avoid heap allocation on every call.
     // Returns number of prices written.
     size_t get_all_prices_into(std::unordered_map<std::string, double>& out) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<Spinlock> lock(data_lock_);
         out = prices_;
         return out.size();
     }
 
     // Legacy: returns a copy (allocates). Prefer get_all_prices_into for hot path.
     std::unordered_map<std::string, double> get_all_prices() const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<Spinlock> lock(data_lock_);
         return prices_;
     }
 
     // Get candle history for a symbol
     std::vector<Candle> get_candles(const std::string& symbol, size_t n = 100) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<Spinlock> lock(data_lock_);
         auto it = candle_history_.find(symbol);
         if (it == candle_history_.end()) return {};
         const auto& hist = it->second;
         return hist.size() <= n ? hist : std::vector<Candle>(hist.end() - n, hist.end());
     }
 
+    // Fill pre-allocated buffer with candle history (avoids heap allocation)
+    // Returns number of candles written.
+    size_t get_candles_into(const std::string& symbol, size_t n, std::vector<Candle>& out) const {
+        std::lock_guard<Spinlock> lock(data_lock_);
+        auto it = candle_history_.find(symbol);
+        if (it == candle_history_.end()) { out.clear(); return 0; }
+        const auto& hist = it->second;
+        size_t count = std::min(n, hist.size());
+        out.assign(hist.end() - count, hist.end());
+        return count;
+    }
+
     // Get latest order book
     OrderBook get_order_book(const std::string& symbol) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<Spinlock> lock(data_lock_);
         auto it = order_books_.find(symbol);
         return it != order_books_.end() ? it->second : OrderBook{};
     }
 
+    // Fill pre-allocated order book (avoids heap allocation for bids/asks vectors)
+    // Returns true if order book was found and filled.
+    bool get_order_book_into(const std::string& symbol, OrderBook& out) const {
+        std::lock_guard<Spinlock> lock(data_lock_);
+        auto it = order_books_.find(symbol);
+        if (it == order_books_.end()) return false;
+        out = it->second;  // Still copies, but caller can reuse buffer capacity
+        return true;
+    }
+
 private:
     void handle_message(const std::string& payload) {
-        try {
-            auto data = json::parse(payload);
-            std::string type = data.value("type", "");
+        // Exception-free JSON parse — returns null on invalid JSON
+        auto data = json::parse(payload, nullptr, false);
+        if (data.is_discarded() || !data.is_object()) {
+            spdlog::warn("Invalid JSON received (len={})", payload.size());
+            return;
+        }
+        handle_message_json(data);
+    }
+
+    void handle_message_json(const json& data) {
+        std::string type = data.value("type", "");
 
             if (type == "candles" || type == "snapshot" || type == "sync_state") {
                 // Check for trading_active field in broadcast
@@ -204,19 +329,28 @@ private:
                     trading_active_.store(data["trading_active"].get<bool>(), std::memory_order_relaxed);
                 }
 
+                // Notify main loop that new market data has arrived
+                has_new_data_.store(true, std::memory_order_release);
+                cv_.notify_one();
+
                 // Update prices
                 if (data.contains("prices")) {
+                    std::lock_guard<Spinlock> lock(data_lock_);
                     for (auto& [exchange, symbols] : data["prices"].items()) {
                         for (auto& [symbol, price] : symbols.items()) {
-                            std::lock_guard<std::mutex> lock(mutex_);
                             prices_[symbol] = price.get<double>();
+                            // Sync array-based fast path
+                            auto id_it = symbol_to_id_.find(symbol);
+                            if (id_it != symbol_to_id_.end()) {
+                                prices_by_id_[id_it->second] = price.get<double>();
+                            }
                         }
                     }
                 }
 
                 // Update order books
                 if (data.contains("orderbooks")) {
-                    std::lock_guard<std::mutex> lock(mutex_);
+                    std::lock_guard<Spinlock> lock(data_lock_);
                     for (auto& [key, ob_data] : data["orderbooks"].items()) {
                         OrderBook ob;
                         ob.symbol = ob_data.value("symbol", "");
@@ -233,6 +367,78 @@ private:
                             }
                         }
                         order_books_[ob.symbol] = std::move(ob);
+                        // Sync array-based fast path
+                        auto id_it = symbol_to_id_.find(ob.symbol);
+                        if (id_it != symbol_to_id_.end()) {
+                            obs_by_id_[id_it->second] = order_books_[ob.symbol];
+                        }
+                    }
+                }
+
+                // Apply order book deltas (incremental updates)
+                if (data.contains("orderbook_deltas")) {
+                    std::lock_guard<Spinlock> lock(data_lock_);
+                    for (auto& [key, delta_data] : data["orderbook_deltas"].items()) {
+                        std::string symbol = delta_data.value("symbol", "");
+                        auto it = order_books_.find(symbol);
+                        if (it == order_books_.end()) continue;  // Need full snapshot first
+
+                        OrderBook& ob = it->second;
+                        ob.timestamp = data.value("timestamp", 0);
+
+                        // Apply bid deltas: {"p": price, "q": qty} — q=0 means remove level
+                        if (delta_data.contains("bids")) {
+                            for (const auto& d : delta_data["bids"]) {
+                                double price = d.value("p", 0.0);
+                                double qty = d.value("q", 0.0);
+                                auto& bids = ob.bids;
+                                auto lit = std::find_if(bids.begin(), bids.end(),
+                                    [price](const PriceLevel& l) { return l.price == price; });
+                                if (qty > 0.0) {
+                                    if (lit != bids.end()) {
+                                        lit->quantity = qty;  // Update existing
+                                    } else {
+                                        // Insertion sort: find position and insert (O(n) vs O(n log n) for std::sort)
+                                        bids.push_back({price, qty});
+                                        auto cmp = [](const PriceLevel& a, const PriceLevel& b) { return a.price > b.price; };
+                                        auto last = bids.end() - 1;
+                                        while (last != bids.begin() && cmp(*last, *(last - 1))) {
+                                            std::iter_swap(last, last - 1);
+                                            --last;
+                                        }
+                                    }
+                                } else if (lit != bids.end()) {
+                                    bids.erase(lit);  // Remove level
+                                }
+                            }
+                        }
+
+                        // Apply ask deltas
+                        if (delta_data.contains("asks")) {
+                            for (const auto& d : delta_data["asks"]) {
+                                double price = d.value("p", 0.0);
+                                double qty = d.value("q", 0.0);
+                                auto& asks = ob.asks;
+                                auto lit = std::find_if(asks.begin(), asks.end(),
+                                    [price](const PriceLevel& l) { return l.price == price; });
+                                if (qty > 0.0) {
+                                    if (lit != asks.end()) {
+                                        lit->quantity = qty;
+                                    } else {
+                                        // Insertion sort: find position and insert
+                                        asks.push_back({price, qty});
+                                        auto cmp = [](const PriceLevel& a, const PriceLevel& b) { return a.price < b.price; };
+                                        auto last = asks.end() - 1;
+                                        while (last != asks.begin() && cmp(*last, *(last - 1))) {
+                                            std::iter_swap(last, last - 1);
+                                            --last;
+                                        }
+                                    }
+                                } else if (lit != asks.end()) {
+                                    asks.erase(lit);
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -251,12 +457,21 @@ private:
                         candle.exchange = c.value("exchange", "");
 
                         {
-                            std::lock_guard<std::mutex> lock(mutex_);
+                            std::lock_guard<Spinlock> lock(data_lock_);
                             candle_history_[candle.symbol].push_back(candle);
                             // Keep last 200
                             auto& hist = candle_history_[candle.symbol];
                             if (hist.size() > 200) {
                                 hist.erase(hist.begin(), hist.end() - 200);
+                            }
+                            // Sync array-based fast path
+                            auto id_it = symbol_to_id_.find(candle.symbol);
+                            if (id_it != symbol_to_id_.end()) {
+                                auto& arr_hist = candles_by_id_[id_it->second];
+                                arr_hist.push_back(candle);
+                                if (arr_hist.size() > 200) {
+                                    arr_hist.erase(arr_hist.begin(), arr_hist.end() - 200);
+                                }
                             }
                         }
                         new_candles.push_back(candle);
@@ -364,9 +579,6 @@ private:
                     }
                 }
             }
-        } catch (const std::exception& e) {
-            spdlog::warn("Failed to parse message: {}", e.what());
-        }
     }
 
     std::string ws_url_;
@@ -382,10 +594,20 @@ private:
     CandleCallback candle_cb_;
     ArbitrageCallback arb_cb_;
 
-    mutable std::mutex mutex_;
+    mutable std::mutex mutex_;  // Used only for condition_variable
+    std::condition_variable cv_;
+    std::atomic<bool> has_new_data_{false};
+    mutable Spinlock data_lock_;  // Protects prices_, order_books_, candle_history_
     std::unordered_map<std::string, double> prices_;
     std::unordered_map<std::string, std::vector<Candle>> candle_history_;
     std::unordered_map<std::string, OrderBook> order_books_;
+
+    // Numeric ID-based fast path (array lookup, no string hash)
+    std::unordered_map<std::string, uint16_t> symbol_to_id_;
+    std::vector<std::string> id_to_symbol_;
+    std::vector<double> prices_by_id_;
+    std::vector<OrderBook> obs_by_id_;
+    std::vector<std::vector<Candle>> candles_by_id_;
 };
 
 } // namespace hft

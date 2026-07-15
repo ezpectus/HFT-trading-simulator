@@ -44,7 +44,7 @@ exchange:
     - bybit
 
   fallback_to_simulator: true   # Fall back to local simulator if all real exchanges down
-  simulator_ws_url: "ws://exchange-simulator:8765"
+  simulator_ws_url: "ws://exchange_simulator:8765"
 
   binance:
     enabled: true

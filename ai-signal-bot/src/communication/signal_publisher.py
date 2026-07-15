@@ -23,6 +23,12 @@ from typing import Optional
 
 import websockets
 
+try:
+    import orjson
+    _HAS_ORJSON = True
+except ImportError:
+    _HAS_ORJSON = False
+
 from src.communication.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from src.communication.metrics_server import MetricsCollector
 
@@ -87,7 +93,7 @@ class SignalPublisher:
                     "type": "signal_history",
                     "signals": self._signal_history[-20:],
                     "count": len(self._signal_history),
-                }))
+                }, separators=(',', ':')))
             except Exception as e:
                 logger.warning(f"Failed to send signal history: {e}")
 
@@ -97,7 +103,7 @@ class SignalPublisher:
                 "type": "circuit_breaker_status",
                 **self.circuit_breaker.get_status(),
                 "timestamp": int(time.time()),
-            }))
+            }, separators=(',', ':')))
         except Exception as e:
             logger.warning(f"Failed to send circuit breaker status: {e}")
 
@@ -110,7 +116,10 @@ class SignalPublisher:
                         logger.info(f"Client subscribed: {data.get('client', 'unknown')}")
                     elif msg_type == "run_backtest":
                         result = await self._run_backtest(data)
-                        await websocket.send(json.dumps(result))
+                        await websocket.send(json.dumps(result, separators=(',', ':')))
+                    elif msg_type == "compare_backtests":
+                        result = self._compare_backtests(data)
+                        await websocket.send(json.dumps(result, separators=(',', ':')))
                 except json.JSONDecodeError:
                     logger.warning(f"Invalid JSON from {remote}: {message[:100]}")
         except websockets.ConnectionClosed:
@@ -147,7 +156,10 @@ class SignalPublisher:
         if not self._clients:
             return
 
-        msg = json.dumps({"type": "signal", **signal})
+        if _HAS_ORJSON:
+            msg = orjson.dumps({"type": "signal", **signal})
+        else:
+            msg = json.dumps({"type": "signal", **signal}, separators=(',', ':'))
         disconnected = set()
         for ws in self._clients:
             try:
@@ -169,14 +181,24 @@ class SignalPublisher:
         if not self._clients:
             return
 
-        msg = json.dumps({
-            "type": "market_regime",
-            "symbol": symbol,
-            "regime": regime,
-            "trend_score": round(trend_score, 3),
-            "cycle_strength": round(cycle_strength, 3),
-            "timestamp": int(time.time()),
-        })
+        if _HAS_ORJSON:
+            msg = orjson.dumps({
+                "type": "market_regime",
+                "symbol": symbol,
+                "regime": regime,
+                "trend_score": round(trend_score, 3),
+                "cycle_strength": round(cycle_strength, 3),
+                "timestamp": int(time.time()),
+            })
+        else:
+            msg = json.dumps({
+                "type": "market_regime",
+                "symbol": symbol,
+                "regime": regime,
+                "trend_score": round(trend_score, 3),
+                "cycle_strength": round(cycle_strength, 3),
+                "timestamp": int(time.time()),
+            }, separators=(',', ':'))
 
         disconnected = set()
         for ws in self._clients:
@@ -198,11 +220,18 @@ class SignalPublisher:
             state_val = state_map.get(status["state"], 0)
             self.metrics.set_circuit_breaker_state(state_val)
 
-            msg = json.dumps({
-                "type": "circuit_breaker_status",
-                **status,
-                "timestamp": int(time.time()),
-            })
+            if _HAS_ORJSON:
+                msg = orjson.dumps({
+                    "type": "circuit_breaker_status",
+                    **status,
+                    "timestamp": int(time.time()),
+                })
+            else:
+                msg = json.dumps({
+                    "type": "circuit_breaker_status",
+                    **status,
+                    "timestamp": int(time.time()),
+                }, separators=(',', ':'))
 
             disconnected = set()
             for ws in self._clients:
@@ -340,3 +369,52 @@ class SignalPublisher:
             "candles": n_candles,
             "results": results,
         }
+
+    def _compare_backtests(self, data: dict) -> dict:
+        """Compare multiple saved backtests side-by-side.
+
+        Args:
+            data: Dict with key "backtests" — list of {name, results} dicts.
+                  Each results dict is the per-strategy output from run_backtest.
+
+        Returns:
+            Dict with type "comparison_result" containing comparison metrics.
+        """
+        from src.backtesting.backtest_comparison import BacktestComparison, ComparisonResult
+        from src.backtesting.backtest_engine import BacktestResult
+
+        backtests = data.get("backtests", [])
+        if len(backtests) < 2:
+            return {"type": "comparison_result", "error": "Need at least 2 backtests to compare"}
+
+        comparison = BacktestComparison()
+        for bt in backtests:
+            name = bt.get("name", bt.get("label", "unknown"))
+            results = bt.get("results", {})
+            # Use the best strategy from each backtest for comparison
+            if not results:
+                continue
+            best_name = max(results, key=lambda k: results[k].get("total_return_pct", -999))
+            r = results[best_name]
+            bt_result = BacktestResult(
+                total_return_pct=r.get("total_return_pct", 0),
+                sharpe_ratio=r.get("sharpe_ratio", 0),
+                sortino_ratio=r.get("sortino_ratio", 0),
+                calmar_ratio=r.get("calmar_ratio", 0),
+                max_drawdown_pct=r.get("max_drawdown_pct", 0),
+                win_rate=r.get("win_rate", 0),
+                profit_factor=r.get("profit_factor", 0),
+                total_trades=r.get("total_trades", 0),
+                final_equity=r.get("final_balance", 0),
+                equity_curve=r.get("equity_curve", []),
+            )
+            comparison.add(name, bt_result)
+
+        if len(comparison.results) < 2:
+            return {"type": "comparison_result", "error": "Need at least 2 valid backtests"}
+
+        comp_result = comparison.compare()
+        result_dict = comp_result.to_dict()
+        result_dict["type"] = "comparison_result"
+        result_dict["equity_curves"] = comp_result.equity_curves
+        return result_dict

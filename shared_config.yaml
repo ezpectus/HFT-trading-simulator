@@ -2,7 +2,7 @@
 # =======================================================
 # This file defines shared parameters used by all components.
 # Individual components have their own config files for component-specific
-# settings (exchange-simulator/config.yaml, ai-signal-bot/config/settings.yaml,
+# settings (exchange_simulator/config.yaml, ai-signal-bot/config/settings.yaml,
 # hft-trade-bot/config/config.yaml).
 #
 # Sections:

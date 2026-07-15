@@ -81,6 +81,9 @@ struct Config {
     int router_strategy{3};  // 0=BestPrice, 1=LowestLatency, 2=LowestFees, 3=BestEffective, 4=DepthAware
     int router_toxic_threshold{5};
 
+    // Signal Engine V3 — HMM regime detection
+    bool signal_engine_v3_enabled{false};  // Off by default, opt-in
+
     // Adaptive order selector v2
     bool adaptive_order_enabled{true};
     uint8_t adaptive_high_confidence{80};

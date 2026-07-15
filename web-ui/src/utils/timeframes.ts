@@ -1,19 +1,32 @@
+export interface Candle {
+  time: number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+}
+
+export interface Timeframe {
+  label: string
+  factor: number
+  seconds: number
+}
+
 /**
  * Aggregate 1m candles into higher timeframes.
- * @param {Array} candles - array of { time, open, high, low, close, volume }
- * @param {number} factor - aggregation factor (e.g. 5 for 5m from 1m)
- * @returns {Array} aggregated candles
+ * @param candles - array of Candle
+ * @param factor - aggregation factor (e.g. 5 for 5m from 1m)
+ * @returns aggregated candles
  */
-export function aggregateCandles(candles, factor) {
+export function aggregateCandles(candles: Candle[], factor: number): Candle[] {
   if (!candles.length || factor <= 1) return candles
 
-  const result = []
-  // Group by bucket: floor(time / (factor * timeframe)) * (factor * timeframe)
-  // Since our base timeframe is 300s (5m), we use that as base
+  const result: Candle[] = []
   const baseTf = 300 // 5 minutes in seconds
   const bucketSize = baseTf * factor
 
-  const buckets = new Map()
+  const buckets = new Map<number, Candle>()
 
   for (const c of candles) {
     const bucketTime = Math.floor(c.time / bucketSize) * bucketSize
@@ -27,7 +40,7 @@ export function aggregateCandles(candles, factor) {
         volume: c.volume,
       })
     } else {
-      const bucket = buckets.get(bucketTime)
+      const bucket = buckets.get(bucketTime)!
       bucket.high = Math.max(bucket.high, c.high)
       bucket.low = Math.min(bucket.low, c.low)
       bucket.close = c.close
@@ -35,7 +48,6 @@ export function aggregateCandles(candles, factor) {
     }
   }
 
-  // Sort by time
   for (const [, candle] of buckets) {
     result.push(candle)
   }
@@ -44,7 +56,7 @@ export function aggregateCandles(candles, factor) {
   return result
 }
 
-export const TIMEFRAMES = [
+export const TIMEFRAMES: Timeframe[] = [
   { label: '5m', factor: 1, seconds: 300 },
   { label: '15m', factor: 3, seconds: 900 },
   { label: '1h', factor: 12, seconds: 3600 },

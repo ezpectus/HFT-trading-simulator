@@ -22,7 +22,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ .Release.Name }}-exchange-simulator
+                name: {{ .Release.Name }}-exchange_simulator
                 port:
                   number: {{ .Values.exchangeSimulator.ports.ws }}
           - path: /ws-signals

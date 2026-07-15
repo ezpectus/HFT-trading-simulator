@@ -1,18 +1,25 @@
-/**
- * Candle pattern detection utilities.
- * Detects common patterns from candlestick data.
- */
+import type { Candle } from './timeframes'
+
+export type PatternDirection = 'bullish' | 'bearish' | 'neutral'
+
+export interface DetectedPattern {
+  time: number
+  type: string
+  direction: PatternDirection
+  confidence: number
+  description: string
+}
 
 /**
  * Detect patterns from last N candles.
- * @param {Array} candles - [{ time, open, high, low, close, volume }]
- * @param {number} lookback - How many recent candles to analyze
- * @returns {Array} Detected patterns [{ time, type, direction, confidence }]
+ * @param candles - Array of Candle
+ * @param lookback - How many recent candles to analyze
+ * @returns Detected patterns
  */
-export function detectCandlePatterns(candles, lookback = 50) {
+export function detectCandlePatterns(candles: Candle[], lookback: number = 50): DetectedPattern[] {
   if (!candles || candles.length < 3) return []
 
-  const patterns = []
+  const patterns: DetectedPattern[] = []
   const recent = candles.slice(-lookback)
 
   for (let i = 2; i < recent.length; i++) {
@@ -26,7 +33,6 @@ export function detectCandlePatterns(candles, lookback = 50) {
     const range = c.high - c.low || 0.0001
     const bodyRatio = body / range
 
-    // Doji: very small body relative to range
     if (bodyRatio < 0.1 && range > 0) {
       patterns.push({
         time: c.time,
@@ -37,7 +43,6 @@ export function detectCandlePatterns(candles, lookback = 50) {
       })
     }
 
-    // Hammer: small body, long lower wick, small upper wick
     if (bodyRatio < 0.35 && lowerWick > body * 2 && upperWick < body * 0.5) {
       patterns.push({
         time: c.time,
@@ -48,7 +53,6 @@ export function detectCandlePatterns(candles, lookback = 50) {
       })
     }
 
-    // Shooting Star: small body, long upper wick, small lower wick
     if (bodyRatio < 0.35 && upperWick > body * 2 && lowerWick < body * 0.5) {
       patterns.push({
         time: c.time,
@@ -59,7 +63,6 @@ export function detectCandlePatterns(candles, lookback = 50) {
       })
     }
 
-    // Bullish Engulfing: prev bearish, current bullish, current body engulfs prev
     if (prev.close < prev.open && c.close > c.open) {
       if (c.close >= prev.open && c.open <= prev.close) {
         patterns.push({
@@ -72,7 +75,6 @@ export function detectCandlePatterns(candles, lookback = 50) {
       }
     }
 
-    // Bearish Engulfing: prev bullish, current bearish, current body engulfs prev
     if (prev.close > prev.open && c.close < c.open) {
       if (c.open >= prev.close && c.close <= prev.open) {
         patterns.push({
@@ -85,7 +87,6 @@ export function detectCandlePatterns(candles, lookback = 50) {
       }
     }
 
-    // Three White Soldiers: 3 consecutive bullish candles with increasing closes
     if (i >= 2) {
       if (
         prev2.close > prev2.open &&
@@ -103,7 +104,6 @@ export function detectCandlePatterns(candles, lookback = 50) {
         })
       }
 
-      // Three Black Crows: 3 consecutive bearish candles with decreasing closes
       if (
         prev2.close < prev2.open &&
         prev.close < prev.open &&
@@ -122,11 +122,10 @@ export function detectCandlePatterns(candles, lookback = 50) {
     }
   }
 
-  // Deduplicate by time+type, keep highest confidence
-  const seen = new Map()
+  const seen = new Map<string, DetectedPattern>()
   for (const p of patterns) {
     const key = p.time + '_' + p.type
-    if (!seen.has(key) || seen.get(key).confidence < p.confidence) {
+    if (!seen.has(key) || seen.get(key)!.confidence < p.confidence) {
       seen.set(key, p)
     }
   }

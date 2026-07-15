@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. v2.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            # First release — full history
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges -50)
+          else
+            COMMITS=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # Categorize commits
+          FEATURES=$(echo "$COMMITS" | grep -iE "feat|add|implement|new" || true)
+          FIXES=$(echo "$COMMITS" | grep -iE "fix|bug|patch|resolve" || true)
+          REFACTOR=$(echo "$COMMITS" | grep -iE "refactor|clean|remove|deprecat" || true)
+          PERF=$(echo "$COMMITS" | grep -iE "perf|optim|speed|latency" || true)
+          DOCS=$(echo "$COMMITS" | grep -iE "doc|readme|comment" || true)
+          TESTS=$(echo "$COMMITS" | grep -iE "test|spec|coverage" || true)
+          CI=$(echo "$COMMITS" | grep -iE "ci|workflow|action|lint" || true)
+          OTHER=$(echo "$COMMITS" | grep -ivE "feat|add|implement|new|fix|bug|patch|resolve|refactor|clean|remove|deprecat|perf|optim|speed|latency|doc|readme|comment|test|spec|coverage|ci|workflow|action|lint" || true)
+          
+          # Build changelog
+          {
+            echo "changelog<<EOF"
+            echo "## Changelog for ${{ steps.version.outputs.version }}"
+            echo ""
+            if [ -n "$PREV_TAG" ]; then
+              echo "**Full diff:** [$PREV_TAG...${{ steps.version.outputs.version }}](https://github.com/${{ github.repository }}/compare/$PREV_TAG...${{ steps.version.outputs.version }})"
+            else
+              echo "**Initial release**"
+            fi
+            echo ""
+            
+            if [ -n "$FEATURES" ]; then
+              echo "### Features"
+              echo "$FEATURES"
+              echo ""
+            fi
+            if [ -n "$FIXES" ]; then
+              echo "### Bug Fixes"
+              echo "$FIXES"
+              echo ""
+            fi
+            if [ -n "$PERF" ]; then
+              echo "### Performance"
+              echo "$PERF"
+              echo ""
+            fi
+            if [ -n "$REFACTOR" ]; then
+              echo "### Refactoring"
+              echo "$REFACTOR"
+              echo ""
+            fi
+            if [ -n "$TESTS" ]; then
+              echo "### Tests"
+              echo "$TESTS"
+              echo ""
+            fi
+            if [ -n "$CI" ]; then
+              echo "### CI/CD"
+              echo "$CI"
+              echo ""
+            fi
+            if [ -n "$DOCS" ]; then
+              echo "### Documentation"
+              echo "$DOCS"
+              echo ""
+            fi
+            if [ -n "$OTHER" ]; then
+              echo "### Other"
+              echo "$OTHER"
+              echo ""
+            fi
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false

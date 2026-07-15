@@ -14,6 +14,8 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
+#include <string_view>
+#include <cstdio>
 #include <unordered_map>
 #include <mutex>
 #include <vector>
@@ -75,8 +77,11 @@ public:
                  Side side, double qty, double price, double fee = 0.0,
                  int leverage = 1) noexcept {
         std::lock_guard<Spinlock> lk(lock_);
-        auto key = symbol + ":" + exchange;
-        auto& pos = positions_[key];
+        // Build key without heap allocation using stack buffer
+        char key_buf[128];
+        int key_len = std::snprintf(key_buf, sizeof(key_buf), "%s:%s", symbol.c_str(), exchange.c_str());
+        std::string_view key_sv(key_buf, key_len);
+        auto& pos = positions_[std::string(key_sv)];
 
         if (!pos.is_open()) {
             // Open new position
@@ -144,7 +149,9 @@ public:
                             const std::string& exchange = "") const noexcept {
         std::lock_guard<Spinlock> lk(lock_);
         if (!exchange.empty()) {
-            auto it = positions_.find(symbol + ":" + exchange);
+            char key_buf[128];
+            int key_len = std::snprintf(key_buf, sizeof(key_buf), "%s:%s", symbol.c_str(), exchange.c_str());
+            auto it = positions_.find(std::string(key_buf, key_len));
             if (it != positions_.end()) return it->second;
         } else {
             for (const auto& [key, pos] : positions_) {

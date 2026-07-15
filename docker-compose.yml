@@ -1,7 +1,7 @@
 # Docker Compose — HFT Trading System
 # ===========================================
 # Runs all four components:
-#   1. exchange-simulator  — simulated crypto exchange (WebSocket server)
+#   1. exchange_simulator  — simulated crypto exchange (WebSocket server)
 #   2. ai-signal-bot       — Python AI signal generator
 #   3. hft-trade-bot       — C++20 v2.0 HFT execution engine (sub-millisecond)
 #   4. web-ui              — React web dashboard (191+ panels, TradingView-style)
@@ -21,14 +21,14 @@
 services:
   exchange-simulator:
     build:
-      context: ./exchange-simulator
+      context: ./exchange_simulator
       dockerfile: Dockerfile
     container_name: exchange-sim
     ports:
       - "8765:8765"
       - "8775:8775"
     volumes:
-      - ./exchange-simulator/config.yaml:/app/config.yaml
+      - ./exchange_simulator/config.yaml:/app/config.yaml
       - sim-data:/app/data
       - sim-logs:/app/logs
     command: python -m exchange_simulator --no-visualizer
