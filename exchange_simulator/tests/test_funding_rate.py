@@ -67,7 +67,7 @@ class TestCheckAndApplyFunding:
     def test_first_call_returns_event(self):
         fr = FundingRateSimulator()
         # Use a fixed time at 00:xx UTC
-        t = time.mktime(time.gmtime(0))  # epoch: 00:00:00 UTC
+        t = 0  # epoch: 00:00:00 UTC
         event = fr.check_and_apply_funding(50000, 50000, current_time=t)
         assert event is not None
         assert isinstance(event, FundingRateEvent)
@@ -76,7 +76,7 @@ class TestCheckAndApplyFunding:
 
     def test_same_interval_not_repeated(self):
         fr = FundingRateSimulator()
-        t = time.mktime(time.gmtime(0))
+        t = 0  # 00:00:00 UTC
         event1 = fr.check_and_apply_funding(50000, 50000, current_time=t)
         assert event1 is not None
         # Same funding hour — should return None
@@ -85,7 +85,7 @@ class TestCheckAndApplyFunding:
 
     def test_different_interval_returns_event(self):
         fr = FundingRateSimulator()
-        t0 = time.mktime(time.gmtime(0))  # 00:00 UTC
+        t0 = 0  # 00:00 UTC
         fr.check_and_apply_funding(50000, 50000, current_time=t0)
         # Move to 08:00 UTC
         t8 = t0 + 8 * 3600
@@ -95,13 +95,13 @@ class TestCheckAndApplyFunding:
 
     def test_history_appended(self):
         fr = FundingRateSimulator()
-        t = time.mktime(time.gmtime(0))
+        t = 0  # 00:00 UTC
         fr.check_and_apply_funding(50000, 50000, current_time=t)
         assert len(fr.history) == 1
 
     def test_event_fields(self):
         fr = FundingRateSimulator()
-        t = time.mktime(time.gmtime(0))
+        t = 0  # 00:00 UTC
         event = fr.check_and_apply_funding(51000, 50000, current_time=t)
         assert event.mark_price == 51000
         assert event.index_price == 50000
@@ -147,7 +147,7 @@ class TestGetNextFundingTime:
     def test_next_funding_after_midnight(self):
         fr = FundingRateSimulator()
         # 01:00 UTC → next funding at 08:00 UTC
-        t = time.mktime(time.gmtime(0)) + 3600  # 01:00 UTC
+        t = 3600  # 01:00 UTC
         next_t = fr.get_next_funding_time(current_time=t)
         gm = time.gmtime(next_t)
         assert gm.tm_hour == 8
@@ -157,7 +157,7 @@ class TestGetNextFundingTime:
     def test_next_funding_after_8am(self):
         fr = FundingRateSimulator()
         # 09:00 UTC → next funding at 16:00 UTC
-        t = time.mktime(time.gmtime(0)) + 9 * 3600
+        t = 9 * 3600  # 09:00 UTC
         next_t = fr.get_next_funding_time(current_time=t)
         gm = time.gmtime(next_t)
         assert gm.tm_hour == 16
@@ -165,14 +165,14 @@ class TestGetNextFundingTime:
     def test_next_funding_after_4pm(self):
         fr = FundingRateSimulator()
         # 17:00 UTC → next funding at 00:00 UTC (next day)
-        t = time.mktime(time.gmtime(0)) + 17 * 3600
+        t = 17 * 3600  # 17:00 UTC
         next_t = fr.get_next_funding_time(current_time=t)
         gm = time.gmtime(next_t)
         assert gm.tm_hour == 0
 
     def test_next_funding_in_future(self):
         fr = FundingRateSimulator()
-        t = time.mktime(time.gmtime(0))
+        t = 0  # 00:00 UTC
         next_t = fr.get_next_funding_time(current_time=t)
         assert next_t > t
 
@@ -197,7 +197,7 @@ class TestGetHistory:
 
     def test_history_after_funding(self):
         fr = FundingRateSimulator()
-        t = time.mktime(time.gmtime(0))
+        t = 0  # 00:00 UTC
         fr.check_and_apply_funding(50000, 50000, current_time=t)
         hist = fr.get_history()
         assert len(hist) == 1
@@ -205,7 +205,7 @@ class TestGetHistory:
 
     def test_history_limit(self):
         fr = FundingRateSimulator()
-        t = time.mktime(time.gmtime(0))
+        t = 0  # 00:00 UTC
         # Apply 3 funding events at different intervals
         for i in range(3):
             fr.check_and_apply_funding(50000, 50000, current_time=t + i * 8 * 3600)
@@ -224,7 +224,7 @@ class TestGetStats:
 
     def test_stats_after_funding(self):
         fr = FundingRateSimulator()
-        t = time.mktime(time.gmtime(0))
+        t = 0  # 00:00 UTC
         fr.check_and_apply_funding(50000, 50000, current_time=t)
         stats = fr.get_stats()
         assert stats["symbol"] == "BTCUSDT"
@@ -236,7 +236,7 @@ class TestGetStats:
 
     def test_stats_multiple_events(self):
         fr = FundingRateSimulator()
-        t = time.mktime(time.gmtime(0))
+        t = 0  # 00:00 UTC
         for i in range(3):
             fr.check_and_apply_funding(50000 + i * 100, 50000, current_time=t + i * 8 * 3600)
         stats = fr.get_stats()

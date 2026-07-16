@@ -118,7 +118,7 @@ class MarketMicrostructure:
     def _sample_jump(self, regime_params: dict) -> float:
         """Merton jump: Poisson trigger + Gaussian jump size."""
         if self._rng.random() < regime_params["jump_prob"]:
-            jump = self._rng.normal(regime_params["jump_mu"], regime_params["jump_sigma"])
+            jump = self._rng.normal(self.config.jump_mu, self.config.jump_sigma)
             return jump
         return 0.0
 

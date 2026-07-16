@@ -122,6 +122,11 @@ def validate_config(config: dict) -> tuple[list[str], list[str]]:
         if extra_vol:
             warnings.append(f"Symbols in volatility but not in any exchange: {extra_vol}")
 
+    # Cross-reference: initial_prices vs volatility (direct)
+    price_only = price_symbols - vol_symbols
+    if price_only:
+        errors.append(f"Symbols in initial_prices but missing from volatility: {price_only}")
+
     # Validate market section
     market = config.get("market", {})
     tf = market.get("timeframe")

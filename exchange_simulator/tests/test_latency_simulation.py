@@ -217,20 +217,21 @@ class TestStatsAndReset:
         """Regression: attempt_reconnect should track attempts before resetting.
         Previously, the log message used self._reconnect_attempts after it was
         reset to 0, always showing '0 attempts'."""
+        from unittest.mock import MagicMock
         ls = LatencySimulator("binance", LatencyConfig(
             reconnect_base_delay_ms=100.0
         ))
         ls.disconnect()
-        # Force several failed attempts by mocking random to return 1.0 (always fail)
-        original_rng = ls._rng
-        ls._rng = np.random.default_rng()
-        ls._rng.random = lambda: 1.0  # Always fail
+        # Force several failed attempts by mocking rng to return 1.0 (always fail)
+        mock_rng = MagicMock()
+        mock_rng.random.return_value = 1.0  # Always fail
+        ls._rng = mock_rng
         for _ in range(3):
             ls.attempt_reconnect()
         assert ls._reconnect_attempts == 3
         assert ls.is_connected is False
         # Now succeed
-        ls._rng.random = lambda: 0.0  # Always succeed
+        mock_rng.random.return_value = 0.0  # Always succeed
         result = ls.attempt_reconnect()
         assert result is True
         assert ls._reconnect_attempts == 0  # Reset after success

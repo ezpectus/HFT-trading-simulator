@@ -77,7 +77,7 @@ class ExchangeWebSocketServer:
         self.host = host
         self.port = port
         self.arb_detector = arb_detector
-        self.clients: Set[websockets.WebSocketServerProtocol] = set()
+        self.clients: Set[websockets.ServerConnection] = set()
         self._running = False
         self._tick_interval = 1.0  # seconds between candles (adjustable via set_speed)
         self._replay_paused = False
@@ -163,7 +163,7 @@ class ExchangeWebSocketServer:
         metrics_port = self.port + 10
         metrics_task = asyncio.create_task(self._run_metrics_server(metrics_port))
 
-        async with websockets.serve(
+        async with websockets.asyncio.server.serve(
             self._handle_client, self.host, self.port,
             ping_interval=10,
             compression="deflate",
@@ -201,7 +201,7 @@ class ExchangeWebSocketServer:
         logger.info("WebSocket server stopped")
 
     async def _handle_client(
-        self, websocket: websockets.WebSocketServerProtocol
+        self, websocket: websockets.ServerConnection
     ) -> None:
         """Handle a connected client — receive orders, send market data."""
         self.clients.add(websocket)
@@ -249,7 +249,7 @@ class ExchangeWebSocketServer:
             logger.info(f"Client disconnected: {remote}")
 
     async def _handle_message(
-        self, websocket: websockets.WebSocketServerProtocol, data: dict
+        self, websocket: websockets.ServerConnection, data: dict
     ) -> None:
         """Handle incoming message from a bot."""
         msg_type = data.get("type")
@@ -403,6 +403,12 @@ class ExchangeWebSocketServer:
                 }))
 
         elif msg_type == "close_position":
+            if not self._trading_active:
+                await websocket.send(json.dumps({
+                    "type": "error",
+                    "message": "Trading is stopped — send start_trading to enable orders",
+                }))
+                return
             exchange_id = data.get("exchange", "binance")
             exchange = self.exchanges.get(exchange_id)
             symbol = data.get("symbol")
@@ -527,7 +533,7 @@ class ExchangeWebSocketServer:
             })
 
     async def _send_json(
-        self, websocket: websockets.WebSocketServerProtocol, data: dict
+        self, websocket: websockets.ServerConnection, data: dict
     ) -> None:
         """Send message to client with negotiated encoding and protocol version.
 
@@ -547,7 +553,7 @@ class ExchangeWebSocketServer:
             await websocket.send(json.dumps(data, separators=(',', ':')))
 
     async def _send_market_snapshot(
-        self, websocket: websockets.WebSocketServerProtocol
+        self, websocket: websockets.ServerConnection
     ) -> None:
         """Send current market state to a client."""
         candles = self.market.get_latest_candles()
@@ -579,7 +585,7 @@ class ExchangeWebSocketServer:
         await self._send_json(websocket, message)
 
     async def _send_sync_state(
-        self, websocket: websockets.WebSocketServerProtocol, last_ts: int
+        self, websocket: websockets.ServerConnection, last_ts: int
     ) -> None:
         """Send historical candles since last_ts for reconnection sync."""
         all_candles = []

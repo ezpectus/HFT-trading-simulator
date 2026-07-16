@@ -119,8 +119,8 @@ class TestOrderRejection:
     def test_rejected_max_position_size(self):
         market = make_market(50000)
         ex = SimulatedExchange("binance", "Binance", 0.04, 1.0, market,
-                               initial_balance=100, leverage=10)
-        order = ex.submit_order("BTC/USDT", Side.BUY, 100.0)
+                               initial_balance=6000, leverage=10)
+        order = ex.submit_order("BTC/USDT", Side.BUY, 1.0)
         assert order.status == OrderStatus.REJECTED
         assert "MAX_POSITION_SIZE" in order.rejection_reason
 

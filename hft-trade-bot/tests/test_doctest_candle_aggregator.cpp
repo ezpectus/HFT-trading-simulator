@@ -27,7 +27,7 @@ TEST_CASE("CandleAggregator: volume-based construction") {
 }
 
 TEST_CASE("CandleAggregator: tick-based construction") {
-    CandleAggregator agg("BTCUSDT", "binance", 10);
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<uint64_t>(10));
     CHECK(agg.mode() == CandleMode::TICK);
     CHECK(agg.threshold() == doctest::Approx(10.0));
 }
@@ -37,7 +37,7 @@ TEST_CASE("CandleAggregator: tick-based construction") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("CandleAggregator: time-based emits after interval") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 1, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(1), [&](const Candle& c) {
         emitted.push_back(c);
     });
 
@@ -60,7 +60,7 @@ TEST_CASE("CandleAggregator: time-based emits after interval") {
 
 TEST_CASE("CandleAggregator: time-based no emit before interval") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 5, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(5), [&](const Candle& c) {
         emitted.push_back(c);
     });
 
@@ -76,7 +76,7 @@ TEST_CASE("CandleAggregator: time-based no emit before interval") {
 
 TEST_CASE("CandleAggregator: time-based multiple bars") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 1, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(1), [&](const Candle& c) {
         emitted.push_back(c);
     });
 
@@ -128,7 +128,7 @@ TEST_CASE("CandleAggregator: volume-based no emit below threshold") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("CandleAggregator: tick-based emits at tick count") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 3, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<uint64_t>(3), [&](const Candle& c) {
         emitted.push_back(c);
     }, true);
 
@@ -142,7 +142,7 @@ TEST_CASE("CandleAggregator: tick-based emits at tick count") {
 
 TEST_CASE("CandleAggregator: tick-based no emit below count") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 5, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<uint64_t>(5), [&](const Candle& c) {
         emitted.push_back(c);
     }, true);
 
@@ -158,7 +158,7 @@ TEST_CASE("CandleAggregator: tick-based no emit below count") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("CandleAggregator: OHLC tracks high and low correctly") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 1, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(1), [&](const Candle& c) {
         emitted.push_back(c);
     });
 
@@ -177,7 +177,7 @@ TEST_CASE("CandleAggregator: OHLC tracks high and low correctly") {
 
 TEST_CASE("CandleAggregator: volume accumulates correctly") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 1, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(1), [&](const Candle& c) {
         emitted.push_back(c);
     });
 
@@ -195,7 +195,7 @@ TEST_CASE("CandleAggregator: volume accumulates correctly") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("CandleAggregator: flush emits incomplete candle") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 10, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(10), [&](const Candle& c) {
         emitted.push_back(c);
     });
 
@@ -211,7 +211,7 @@ TEST_CASE("CandleAggregator: flush emits incomplete candle") {
 
 TEST_CASE("CandleAggregator: flush on empty does nothing") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 10, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(10), [&](const Candle& c) {
         emitted.push_back(c);
     });
 
@@ -225,7 +225,7 @@ TEST_CASE("CandleAggregator: flush on empty does nothing") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("CandleAggregator: zero price first tick initializes bar") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 1, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(1), [&](const Candle& c) {
         emitted.push_back(c);
     });
 
@@ -243,7 +243,7 @@ TEST_CASE("CandleAggregator: zero price first tick initializes bar") {
 
 TEST_CASE("CandleAggregator: zero price after bar reset starts new bar") {
     std::vector<Candle> emitted;
-    CandleAggregator agg("BTCUSDT", "binance", 1, [&](const Candle& c) {
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(1), [&](const Candle& c) {
         emitted.push_back(c);
     });
 
@@ -265,7 +265,7 @@ TEST_CASE("CandleAggregator: zero price after bar reset starts new bar") {
 // Current candle access
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("CandleAggregator: current_candle returns in-progress bar") {
-    CandleAggregator agg("BTCUSDT", "binance", 10);
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(10));
 
     agg.on_trade(0, 50000.0, 1.0);
     agg.on_trade(1'000'000, 50100.0, 1.0);
@@ -277,7 +277,7 @@ TEST_CASE("CandleAggregator: current_candle returns in-progress bar") {
 }
 
 TEST_CASE("CandleAggregator: candle_count tracks total emissions") {
-    CandleAggregator agg("BTCUSDT", "binance", 1);
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(1));
 
     agg.on_trade(0, 50000.0, 1.0);
     agg.on_trade(1'000'000'000, 51000.0, 1.0);  // bar 1
@@ -291,7 +291,7 @@ TEST_CASE("CandleAggregator: candle_count tracks total emissions") {
 // No callback
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("CandleAggregator: works without callback") {
-    CandleAggregator agg("BTCUSDT", "binance", 1);
+    CandleAggregator agg("BTCUSDT", "binance", static_cast<int64_t>(1));
 
     agg.on_trade(0, 50000.0, 1.0);
     agg.on_trade(1'000'000'000, 51000.0, 1.0);

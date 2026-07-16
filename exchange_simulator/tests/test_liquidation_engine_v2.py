@@ -182,7 +182,7 @@ class TestCascade:
         engine = LiquidationEngineV2()
         positions = [
             make_long_position(qty=1.0, entry=50000, leverage=10, margin=5000),
-            Position(symbol="ETH/USDT", side="long", qty=1.0, entry=3000,
+            Position(symbol="ETH/USDT", side="long", qty=1.0, entry_price=3000,
                      leverage=10, margin=300),
         ]
         events = engine.process_cascade(positions, 45000, "BTC/USDT")

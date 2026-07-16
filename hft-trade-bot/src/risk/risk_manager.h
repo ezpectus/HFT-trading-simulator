@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <atomic>
 #include <chrono>
+#include <mutex>
 #include <cmath>
 
 namespace hft {

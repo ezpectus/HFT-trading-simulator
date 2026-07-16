@@ -10,6 +10,7 @@
 #include <string>
 
 using namespace hft;
+using namespace hft::ipc;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Helper — unique SHM name per test

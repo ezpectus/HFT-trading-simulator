@@ -333,6 +333,9 @@ class MarketSimulator:
             bids.append(OrderBookLevel(price=round(bid_price, 2), quantity=round(bid_qty, 4)))
             asks.append(OrderBookLevel(price=round(ask_price, 2), quantity=round(ask_qty, 4)))
 
+        bids.sort(key=lambda l: l.price, reverse=True)
+        asks.sort(key=lambda l: l.price)
+
         ob = OrderBook(
             symbol=symbol,
             exchange=exchange,

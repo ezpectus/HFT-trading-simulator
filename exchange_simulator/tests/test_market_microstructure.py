@@ -108,7 +108,7 @@ class TestHestonVariance:
             assert ms.variance >= 0.001
 
     def test_variance_reverts_to_theta(self):
-        cfg = MicrostructureConfig(heston_theta=0.04, heston_kappa=10.0, heston_sigma=0.01)
+        cfg = MicrostructureConfig(heston_theta=0.04, heston_kappa=10.0, heston_sigma=0.01, dt=0.01)
         ms = MarketMicrostructure(cfg)
         ms.variance = 0.5  # Start far from theta
         for _ in range(10000):

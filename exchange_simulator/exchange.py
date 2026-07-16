@@ -138,6 +138,15 @@ class SimulatedExchange:
         notional = fill_price * quantity
         fee = notional * self.fee_pct / 100
 
+        # Check balance first — if you can't afford it, reject before size check
+        lev = self.account.leverage if self.account.leverage > 0 else 1
+        margin_required = notional / lev
+        if not force_close and margin_required + fee > self.account.balance:
+            order.status = OrderStatus.REJECTED
+            order.rejection_reason = f"INSUFFICIENT_MARGIN (need ${margin_required:.2f}, have ${self.account.balance:.2f})"
+            self._order_history.append(order)
+            return order
+
         # Check max position size (50% of balance * leverage as notional cap)
         # Use mid_price notional so slippage doesn't cause boundary rejection
         mid_notional = mid_price * quantity
@@ -145,15 +154,6 @@ class SimulatedExchange:
         if not force_close and mid_notional > max_notional:
             order.status = OrderStatus.REJECTED
             order.rejection_reason = f"MAX_POSITION_SIZE (notional ${notional:.2f} > limit ${max_notional:.2f})"
-            self._order_history.append(order)
-            return order
-
-        # Check balance
-        lev = self.account.leverage if self.account.leverage > 0 else 1
-        margin_required = notional / lev
-        if not force_close and margin_required + fee > self.account.balance:
-            order.status = OrderStatus.REJECTED
-            order.rejection_reason = f"INSUFFICIENT_MARGIN (need ${margin_required:.2f}, have ${self.account.balance:.2f})"
             self._order_history.append(order)
             return order
 
@@ -279,15 +279,15 @@ class SimulatedExchange:
             # Calculate liquidation prices
             lev = self.account.leverage if self.account.leverage > 0 else 1
             if pos.is_long:
-                liq_price = pos.entry_price * (1 - 1/lev + 0.005)
-                partial_liq_price = pos.entry_price * (
+                liq_price = round(pos.entry_price * (1 - 1/lev + 0.005), 2)
+                partial_liq_price = round(pos.entry_price * (
                     1 - 1/lev * self.partial_liquidation_ratio + 0.005
-                )
+                ), 2)
             else:
-                liq_price = pos.entry_price * (1 + 1/lev - 0.005)
-                partial_liq_price = pos.entry_price * (
+                liq_price = round(pos.entry_price * (1 + 1/lev - 0.005), 2)
+                partial_liq_price = round(pos.entry_price * (
                     1 + 1/lev * self.partial_liquidation_ratio - 0.005
-                )
+                ), 2)
 
             # Full liquidation check
             is_full_liquidation = False

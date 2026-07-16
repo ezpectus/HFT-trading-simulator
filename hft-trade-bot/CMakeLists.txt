@@ -218,6 +218,10 @@ target_include_directories(hft_trade_bot PRIVATE
     ${WEBSOCKETPP_INCLUDE_DIR}
 )
 
+# websocketpp random: use C++11 std::random_device instead of boost/random
+# (boost-random is not always installed via vcpkg; websocketpp doesn't auto-detect on MSVC)
+target_compile_definitions(hft_trade_bot PRIVATE _WEBSOCKETPP_CPP11_RANDOM_DEVICE_)
+
 # ─── Precompiled headers ───
 if(USE_PCH)
     set(PCH_HEADER ${CMAKE_SOURCE_DIR}/src/pch.h)
@@ -301,6 +305,7 @@ function(add_hft_test name source)
         ${CMAKE_SOURCE_DIR}/src
         ${WEBSOCKETPP_INCLUDE_DIR}
     )
+    target_compile_definitions(${name} PRIVATE _WEBSOCKETPP_CPP11_RANDOM_DEVICE_)
     target_link_libraries(${name} PRIVATE
         Threads::Threads
     )
@@ -362,6 +367,7 @@ function(add_doctest_test name source)
         ${CMAKE_SOURCE_DIR}/tests
         ${WEBSOCKETPP_INCLUDE_DIR}
     )
+    target_compile_definitions(${name} PRIVATE _WEBSOCKETPP_CPP11_RANDOM_DEVICE_)
     target_link_libraries(${name} PRIVATE
         Threads::Threads
     )
