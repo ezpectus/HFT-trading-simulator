@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # Production stage — serve static files with nginx (non-root)
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 
 # Run nginx as the built-in `nginx` user (UID 101) for consistency with
 # other services' prod Dockerfiles (appuser). Port 3000 is non-privileged.
