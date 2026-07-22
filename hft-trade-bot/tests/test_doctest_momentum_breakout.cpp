@@ -11,27 +11,24 @@ using namespace hft;
 // ═══════════════════════════════════════════════════════════════════════════
 // Helper: feed N candles with controllable price pattern
 // ═══════════════════════════════════════════════════════════════════════════
-static MomentumBreakoutV2::Signal feed_candles(MomentumBreakoutV2& mb,
-                                                int count,
-                                                double base_price,
-                                                double spread = 1.0,
-                                                double volume = 1000.0,
-                                                double drift = 0.0) {
+static MomentumBreakoutV2::Signal feed_candles(MomentumBreakoutV2& mb, int count, double base_price,
+                                               double spread = 1.0, double volume = 1000.0,
+                                               double drift = 0.0) {
     MomentumBreakoutV2::Signal last;
     for (int i = 0; i < count; ++i) {
         double p = base_price + drift * i;
-        last = mb.on_candle(p, p + spread, p - spread, p, volume, i * 60000000000ULL);
+        last     = mb.on_candle(p, p + spread, p - spread, p, volume, i * 60000000000ULL);
     }
     return last;
 }
 
 static MomentumBreakoutV2::Signal feed_uptrend(MomentumBreakoutV2& mb, int count,
-                                                double start_price, double step = 0.5,
-                                                double spread = 1.0, double volume = 2000.0) {
+                                               double start_price, double step = 0.5,
+                                               double spread = 1.0, double volume = 2000.0) {
     MomentumBreakoutV2::Signal last;
     for (int i = 0; i < count; ++i) {
         double p = start_price + step * i;
-        last = mb.on_candle(p - step, p + spread, p - spread, p, volume, i * 60000000000ULL);
+        last     = mb.on_candle(p - step, p + spread, p - spread, p, volume, i * 60000000000ULL);
     }
     return last;
 }
@@ -42,7 +39,7 @@ static MomentumBreakoutV2::Signal feed_downtrend(MomentumBreakoutV2& mb, int cou
     MomentumBreakoutV2::Signal last;
     for (int i = 0; i < count; ++i) {
         double p = start_price - step * i;
-        last = mb.on_candle(p + step, p + spread, p - spread, p, volume, i * 60000000000ULL);
+        last     = mb.on_candle(p + step, p + spread, p - spread, p, volume, i * 60000000000ULL);
     }
     return last;
 }
@@ -63,10 +60,10 @@ TEST_CASE("MomentumBreakoutV2 default config") {
 
 TEST_CASE("MomentumBreakoutV2 custom config") {
     MomentumBreakoutV2::Config cfg;
-    cfg.ema_fast = 5;
-    cfg.ema_mid = 10;
-    cfg.ema_slow = 30;
-    cfg.ema_trend = 100;
+    cfg.ema_fast      = 5;
+    cfg.ema_mid       = 10;
+    cfg.ema_slow      = 30;
+    cfg.ema_trend     = 100;
     cfg.adx_threshold = 20.0;
     MomentumBreakoutV2 mb(cfg);
     // Should accept custom config without error
@@ -138,8 +135,8 @@ TEST_CASE("MomentumBreakoutV2 Signal default values") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MomentumBreakoutV2 generates LONG in strong uptrend") {
     MomentumBreakoutV2::Config cfg;
-    cfg.ema_trend = 50;  // Shorter for test
-    cfg.adx_threshold = 15.0;
+    cfg.ema_trend         = 50; // Shorter for test
+    cfg.adx_threshold     = 15.0;
     cfg.volume_multiplier = 1.0;
     MomentumBreakoutV2 mb(cfg);
 
@@ -159,16 +156,16 @@ TEST_CASE("MomentumBreakoutV2 generates LONG in strong uptrend") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MomentumBreakoutV2 generates SHORT in strong downtrend") {
     MomentumBreakoutV2::Config cfg;
-    cfg.ema_trend = 50;
-    cfg.adx_threshold = 15.0;
+    cfg.ema_trend         = 50;
+    cfg.adx_threshold     = 15.0;
     cfg.volume_multiplier = 1.0;
     MomentumBreakoutV2 mb(cfg);
 
     auto sig = feed_downtrend(mb, 250, 100.0, 1.0, 1.0, 5000.0);
 
     bool is_short = sig.action == MomentumBreakoutV2::Signal::Action::SHORT;
-    bool is_exit = sig.action == MomentumBreakoutV2::Signal::Action::EXIT;
-    bool is_none = sig.action == MomentumBreakoutV2::Signal::Action::NONE;
+    bool is_exit  = sig.action == MomentumBreakoutV2::Signal::Action::EXIT;
+    bool is_none  = sig.action == MomentumBreakoutV2::Signal::Action::NONE;
     CHECK((is_short || is_exit || is_none));
 }
 
@@ -177,8 +174,8 @@ TEST_CASE("MomentumBreakoutV2 generates SHORT in strong downtrend") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MomentumBreakoutV2 generates EXIT on momentum loss") {
     MomentumBreakoutV2::Config cfg;
-    cfg.ema_trend = 50;
-    cfg.adx_threshold = 15.0;
+    cfg.ema_trend         = 50;
+    cfg.adx_threshold     = 15.0;
     cfg.volume_multiplier = 1.0;
     MomentumBreakoutV2 mb(cfg);
 
@@ -188,7 +185,7 @@ TEST_CASE("MomentumBreakoutV2 generates EXIT on momentum loss") {
     auto sig = feed_downtrend(mb, 50, 200.0, 1.0, 1.0, 5000.0);
 
     // Should see EXIT as fast EMA drops below mid EMA
-    bool is_exit = sig.action == MomentumBreakoutV2::Signal::Action::EXIT;
+    bool is_exit  = sig.action == MomentumBreakoutV2::Signal::Action::EXIT;
     bool is_short = sig.action == MomentumBreakoutV2::Signal::Action::SHORT;
     CHECK((is_exit || is_short));
 }
@@ -198,8 +195,8 @@ TEST_CASE("MomentumBreakoutV2 generates EXIT on momentum loss") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MomentumBreakoutV2 confidence in valid range") {
     MomentumBreakoutV2::Config cfg;
-    cfg.ema_trend = 50;
-    cfg.adx_threshold = 15.0;
+    cfg.ema_trend         = 50;
+    cfg.adx_threshold     = 15.0;
     cfg.volume_multiplier = 1.0;
     MomentumBreakoutV2 mb(cfg);
 
@@ -216,15 +213,15 @@ TEST_CASE("MomentumBreakoutV2 confidence in valid range") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MomentumBreakoutV2 LONG has valid SL/TP") {
     MomentumBreakoutV2::Config cfg;
-    cfg.ema_trend = 50;
-    cfg.adx_threshold = 15.0;
+    cfg.ema_trend         = 50;
+    cfg.adx_threshold     = 15.0;
     cfg.volume_multiplier = 1.0;
     MomentumBreakoutV2 mb(cfg);
 
     // Feed strong uptrend
     for (int i = 0; i < 250; ++i) {
-        double p = 100.0 + 1.0 * i;
-        auto sig = mb.on_candle(p - 1.0, p + 1.0, p - 1.0, p, 5000.0, i * 60000000000ULL);
+        double p   = 100.0 + 1.0 * i;
+        auto   sig = mb.on_candle(p - 1.0, p + 1.0, p - 1.0, p, 5000.0, i * 60000000000ULL);
         if (sig.action == MomentumBreakoutV2::Signal::Action::LONG) {
             CHECK(sig.stop_loss < sig.entry_price);
             CHECK(sig.take_profit > sig.entry_price);
@@ -240,15 +237,15 @@ TEST_CASE("MomentumBreakoutV2 LONG has valid SL/TP") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MomentumBreakoutV2 SHORT has valid SL/TP") {
     MomentumBreakoutV2::Config cfg;
-    cfg.ema_trend = 50;
-    cfg.adx_threshold = 15.0;
+    cfg.ema_trend         = 50;
+    cfg.adx_threshold     = 15.0;
     cfg.volume_multiplier = 1.0;
     MomentumBreakoutV2 mb(cfg);
 
     // Feed strong downtrend
     for (int i = 0; i < 250; ++i) {
-        double p = 200.0 - 1.0 * i;
-        auto sig = mb.on_candle(p + 1.0, p + 1.0, p - 1.0, p, 5000.0, i * 60000000000ULL);
+        double p   = 200.0 - 1.0 * i;
+        auto   sig = mb.on_candle(p + 1.0, p + 1.0, p - 1.0, p, 5000.0, i * 60000000000ULL);
         if (sig.action == MomentumBreakoutV2::Signal::Action::SHORT) {
             CHECK(sig.stop_loss > sig.entry_price);
             CHECK(sig.take_profit < sig.entry_price);
@@ -263,9 +260,9 @@ TEST_CASE("MomentumBreakoutV2 SHORT has valid SL/TP") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MomentumBreakoutV2 low volume suppresses signals") {
     MomentumBreakoutV2::Config cfg;
-    cfg.ema_trend = 50;
-    cfg.adx_threshold = 15.0;
-    cfg.volume_multiplier = 5.0;  // High threshold
+    cfg.ema_trend         = 50;
+    cfg.adx_threshold     = 15.0;
+    cfg.volume_multiplier = 5.0; // High threshold
     MomentumBreakoutV2 mb(cfg);
 
     // Feed uptrend with low volume (won't meet 5x threshold)
@@ -307,14 +304,14 @@ TEST_CASE("MomentumBreakoutV2 flat market no breakout") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MomentumBreakoutV2 signal has entry price and ATR") {
     MomentumBreakoutV2::Config cfg;
-    cfg.ema_trend = 50;
-    cfg.adx_threshold = 15.0;
+    cfg.ema_trend         = 50;
+    cfg.adx_threshold     = 15.0;
     cfg.volume_multiplier = 1.0;
     MomentumBreakoutV2 mb(cfg);
 
     for (int i = 0; i < 250; ++i) {
-        double p = 100.0 + 1.0 * i;
-        auto sig = mb.on_candle(p - 1.0, p + 1.0, p - 1.0, p, 5000.0, i * 60000000000ULL);
+        double p   = 100.0 + 1.0 * i;
+        auto   sig = mb.on_candle(p - 1.0, p + 1.0, p - 1.0, p, 5000.0, i * 60000000000ULL);
         if (sig.action == MomentumBreakoutV2::Signal::Action::LONG ||
             sig.action == MomentumBreakoutV2::Signal::Action::SHORT) {
             CHECK(sig.entry_price > 0.0);

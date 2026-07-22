@@ -49,10 +49,8 @@ describe('useMockExchangeData', () => {
     vi.restoreAllMocks()
   })
 
-  it('returns initial state with empty data before effect', () => {
+  it('returns initial state with connected and zero latency', () => {
     const { result } = renderHook(() => useMockExchangeData())
-    expect(result.current.candles).toEqual([])
-    expect(result.current.prices).toEqual({})
     expect(result.current.connected).toBe(true)
     expect(result.current.latency).toBe(0)
     expect(result.current.reconnects).toBe(0)

@@ -88,10 +88,10 @@ class FundingRateSimulator:
 
     def compute_funding_payment(self, position_qty: float, funding_rate: float) -> float:
         """Compute funding payment for a position.
-        Positive = position pays, Negative = position receives.
+        Negative = position pays, Positive = position receives.
         Long positions pay positive funding, short positions receive.
         """
-        return position_qty * funding_rate
+        return -position_qty * funding_rate
 
     def get_next_funding_time(self, current_time: float | None = None) -> float:
         """Get timestamp of next funding event."""

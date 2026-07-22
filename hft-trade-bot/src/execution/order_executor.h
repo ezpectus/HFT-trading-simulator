@@ -1,31 +1,31 @@
 // Order executor — sends orders to the exchange simulator via WebSocket
 #pragma once
 
-#include "../data/types.h"
 #include "../data/signal.h"
+#include "../data/types.h"
 #include "order_type_selector.h"
-#include <websocketpp/client.hpp>
-#include <websocketpp/config/asio_client.hpp>
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cstdio>
+#include <functional>
+#include <memory>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <string>
-#include <functional>
-#include <mutex>
-#include <atomic>
-#include <cstdio>
-#include <memory>
-#include <algorithm>
 #include <thread>
-#include <chrono>
+#include <websocketpp/client.hpp>
+#include <websocketpp/config/asio_client.hpp>
 
 namespace hft {
 
-using json = nlohmann::json;
-using WSClient = websocketpp::client<websocketpp::config::asio_client>;
+using json           = nlohmann::json;
+using WSClient       = websocketpp::client<websocketpp::config::asio_client>;
 using MessageHandler = std::function<void(const json&)>;
 
 class OrderExecutor {
-public:
+  public:
     OrderExecutor(const std::string& ws_url, const std::string& exchange_id)
         : ws_url_(ws_url), exchange_id_(exchange_id), client_(std::make_unique<WSClient>()) {}
 
@@ -41,8 +41,8 @@ public:
             client_->init_asio();
 
             client_->set_open_handler([this](websocketpp::connection_hdl hdl) {
-                connection_ = hdl;
-                connected_ = true;
+                connection_      = hdl;
+                connected_       = true;
                 reconnect_delay_ = 1000;
                 spdlog::info("OrderExecutor connected to {}", ws_url_);
             });
@@ -52,7 +52,7 @@ public:
                 spdlog::warn("OrderExecutor disconnected");
                 if (should_reconnect_) {
                     spdlog::info("Reconnecting in {}ms...", reconnect_delay_);
-                    auto delay = reconnect_delay_;
+                    auto delay       = reconnect_delay_;
                     reconnect_delay_ = std::min(reconnect_delay_ * 2, 30000);
                     std::thread([this, delay]() {
                         std::this_thread::sleep_for(std::chrono::milliseconds(delay));
@@ -65,7 +65,7 @@ public:
             });
 
             websocketpp::lib::error_code ec;
-            auto con = client_->get_connection(ws_url_, ec);
+            auto                         con = client_->get_connection(ws_url_, ec);
             if (ec) {
                 spdlog::error("WebSocket connect error: {}", ec.message());
                 return false;
@@ -98,23 +98,22 @@ public:
             return;
         }
 
-        OrderType type = OrderTypeSelector::select(signal, ob);
-        double price = 0.0;
+        OrderType type  = OrderTypeSelector::select(signal, ob);
+        double    price = 0.0;
         if (type == OrderType::LIMIT) {
             price = OrderTypeSelector::limit_price(signal.side(), ob);
         }
 
         // Fast path: manual JSON serialization (avoids nlohmann/json heap alloc)
         char buf[512];
-        int n = std::snprintf(buf, sizeof(buf),
-            "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-            "\"side\":\"%s\",\"quantity\":%.8f,\"order_type\":\"%s\","
-            "\"stop_loss\":%.2f,\"take_profit\":%.2f",
-            exchange_id_.c_str(), signal.symbol.c_str(),
-            signal.is_long() ? "BUY" : "SELL",
-            quantity,
-            type == OrderType::MARKET ? "MARKET" : "LIMIT",
-            signal.stop_loss, signal.take_profit);
+        int  n = std::snprintf(buf, sizeof(buf),
+                               "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+                               "\"side\":\"%s\",\"quantity\":%.8f,\"order_type\":\"%s\","
+                               "\"stop_loss\":%.2f,\"take_profit\":%.2f",
+                               exchange_id_.c_str(), signal.symbol.c_str(),
+                               signal.is_long() ? "BUY" : "SELL", quantity,
+                               type == OrderType::MARKET ? "MARKET" : "LIMIT", signal.stop_loss,
+                               signal.take_profit);
 
         if (type == OrderType::LIMIT && n > 0 && n < static_cast<int>(sizeof(buf) - 32)) {
             n += std::snprintf(buf + n, sizeof(buf) - n, ",\"price\":%.2f", price);
@@ -125,28 +124,29 @@ public:
         }
         if (n < static_cast<int>(sizeof(buf) - 2)) {
             buf[n++] = '}';
-            buf[n] = '\0';
+            buf[n]   = '\0';
         }
 
         websocketpp::lib::error_code ec;
-        client_->send(connection_, std::string(buf, static_cast<size_t>(n)), websocketpp::frame::opcode::text, ec);
+        client_->send(connection_, std::string(buf, static_cast<size_t>(n)),
+                      websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Failed to send order: {}", ec.message());
         } else {
-            spdlog::info("Order sent: {} {} {:.4f} {} @ {:.2f}",
-                signal.is_long() ? "BUY" : "SELL",
-                signal.symbol, quantity, exchange_id_, signal.entry_price);
+            spdlog::info("Order sent: {} {} {:.4f} {} @ {:.2f}", signal.is_long() ? "BUY" : "SELL",
+                         signal.symbol, quantity, exchange_id_, signal.entry_price);
         }
     }
 
     // Close an existing position — manual JSON to avoid heap alloc
     void close_position(const std::string& symbol) {
-        if (!connected_) [[unlikely]] return;
+        if (!connected_) [[unlikely]]
+            return;
 
         char buf[256];
         int n = std::snprintf(buf, sizeof(buf),
-            "{\"type\":\"close_position\",\"exchange\":\"%s\",\"symbol\":\"%s\"}",
-            exchange_id_.c_str(), symbol.c_str());
+                              "{\"type\":\"close_position\",\"exchange\":\"%s\",\"symbol\":\"%s\"}",
+                              exchange_id_.c_str(), symbol.c_str());
 
         if (n <= 0) [[unlikely]] {
             spdlog::error("Close position JSON serialization failed");
@@ -154,7 +154,8 @@ public:
         }
 
         websocketpp::lib::error_code ec;
-        client_->send(connection_, std::string(buf, static_cast<size_t>(n)), websocketpp::frame::opcode::text, ec);
+        client_->send(connection_, std::string(buf, static_cast<size_t>(n)),
+                      websocketpp::frame::opcode::text, ec);
         spdlog::info("Close position request: {} on {}", symbol, exchange_id_);
     }
 
@@ -162,11 +163,9 @@ public:
 
     // Execute arbitrage: buy on one exchange, sell on another
     // Manual JSON serialization — avoids 2x nlohmann::json heap allocations
-    void execute_arbitrage(const std::string& symbol,
-                           const std::string& buy_exchange,
-                           const std::string& sell_exchange,
-                           double quantity,
-                           double buy_price, double sell_price) {
+    void execute_arbitrage(const std::string& symbol, const std::string& buy_exchange,
+                           const std::string& sell_exchange, double quantity, double buy_price,
+                           double sell_price) {
         if (!connected_) [[unlikely]] {
             spdlog::warn("Cannot execute arbitrage — not connected");
             return;
@@ -174,17 +173,17 @@ public:
 
         // Buy on the cheaper exchange — snprintf to stack buffer
         char buy_buf[384];
-        int bn = std::snprintf(buy_buf, sizeof(buy_buf),
-            "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-            "\"side\":\"BUY\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
-            buy_exchange.c_str(), symbol.c_str(), quantity);
+        int  bn = std::snprintf(buy_buf, sizeof(buy_buf),
+                                "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+                                "\"side\":\"BUY\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
+                                buy_exchange.c_str(), symbol.c_str(), quantity);
 
         // Sell on the more expensive exchange
         char sell_buf[384];
-        int sn = std::snprintf(sell_buf, sizeof(sell_buf),
-            "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-            "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
-            sell_exchange.c_str(), symbol.c_str(), quantity);
+        int  sn = std::snprintf(sell_buf, sizeof(sell_buf),
+                                "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+                                "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
+                                sell_exchange.c_str(), symbol.c_str(), quantity);
 
         if (bn <= 0) [[unlikely]] {
             spdlog::error("Arb buy JSON serialization failed");
@@ -192,7 +191,8 @@ public:
         }
 
         websocketpp::lib::error_code ec;
-        client_->send(connection_, std::string(buy_buf, static_cast<size_t>(bn)), websocketpp::frame::opcode::text, ec);
+        client_->send(connection_, std::string(buy_buf, static_cast<size_t>(bn)),
+                      websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Arb buy order failed: {}", ec.message());
             return;
@@ -203,7 +203,8 @@ public:
             return;
         }
 
-        client_->send(connection_, std::string(sell_buf, static_cast<size_t>(sn)), websocketpp::frame::opcode::text, ec);
+        client_->send(connection_, std::string(sell_buf, static_cast<size_t>(sn)),
+                      websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Arb sell order failed: {}", ec.message());
             return;
@@ -211,18 +212,19 @@ public:
 
         double est_profit = (sell_price - buy_price) * quantity;
         spdlog::info("ARB EXECUTED: {} buy={}@{:.2f} sell={}@{:.2f} qty={:.4f} est_profit={:.2f}",
-            symbol, buy_exchange, buy_price, sell_exchange, sell_price, quantity, est_profit);
+                     symbol, buy_exchange, buy_price, sell_exchange, sell_price, quantity,
+                     est_profit);
     }
 
-private:
-    std::string ws_url_;
-    std::string exchange_id_;
-    std::unique_ptr<WSClient> client_;
+  private:
+    std::string                 ws_url_;
+    std::string                 exchange_id_;
+    std::unique_ptr<WSClient>   client_;
     websocketpp::connection_hdl connection_;
-    std::thread ws_thread_;
-    std::atomic<bool> connected_{false};
-    std::atomic<bool> should_reconnect_{false};
-    int reconnect_delay_{1000}; // ms, exponential backoff up to 30s
+    std::thread                 ws_thread_;
+    std::atomic<bool>           connected_{false};
+    std::atomic<bool>           should_reconnect_{false};
+    int                         reconnect_delay_{1000}; // ms, exponential backoff up to 30s
 };
 
 } // namespace hft

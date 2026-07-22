@@ -21,8 +21,8 @@ void test_basic_quotes() {
     assert(q.bid_price < q.ask_price);
     assert(!q.should_cancel);
 
-    printf("  [PASS] test_basic_quotes (bid=%.4f ask=%.4f spread=%.6f)\n",
-           q.bid_price, q.ask_price, q.spread);
+    printf("  [PASS] test_basic_quotes (bid=%.4f ask=%.4f spread=%.6f)\n", q.bid_price, q.ask_price,
+           q.spread);
 }
 
 void test_inventory_skew() {
@@ -107,7 +107,7 @@ void test_size_skew() {
 
 void test_spread_clamping() {
     MarketMakingV2::Config cfg;
-    cfg.spread_cap = 0.001;   // Very tight cap
+    cfg.spread_cap   = 0.001; // Very tight cap
     cfg.spread_floor = 0.0001;
     MarketMakingV2 mm(cfg);
     mm.reset();
@@ -116,8 +116,7 @@ void test_spread_clamping() {
     assert(q.spread <= cfg.spread_cap + 1e-10);
     assert(q.spread >= cfg.spread_floor - 1e-10);
 
-    printf("  [PASS] test_spread_clamping (spread=%.6f cap=%.6f)\n",
-           q.spread, cfg.spread_cap);
+    printf("  [PASS] test_spread_clamping (spread=%.6f cap=%.6f)\n", q.spread, cfg.spread_cap);
 }
 
 int main() {

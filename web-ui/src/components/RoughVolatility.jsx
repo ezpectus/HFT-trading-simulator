@@ -235,7 +235,7 @@ export default function RoughVolatility({ candles, symbol, exchange }) {
       expectedReturn, signal, volRegime,
       currentVol, longVol,
     }
-  }, [candles, exchange, symbol, H, eta, rho, T, nSteps, nPaths, autoHurst])
+  }, [candles, exchange, symbol, hurstExp, eta, rho, T, nSteps, nPaths, autoHurst])
 
   if (!data) {
     return <div className="p-4 text-sm text-slate-400">Need at least 40 candles for {symbol} on {exchange}</div>

@@ -177,8 +177,8 @@ describe('FillsPanel', () => {
     ]
     render(<FillsPanel fills={fills} />)
     // Only 1 FILLED fill
-    expect(screen.getByText('1')).toBeInTheDocument()
     expect(screen.getByText(/1 fill/)).toBeInTheDocument()
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0)
   })
 
   it('shows recent fills count with filter indicator', () => {

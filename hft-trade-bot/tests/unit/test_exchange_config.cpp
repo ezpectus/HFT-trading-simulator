@@ -1,10 +1,10 @@
 // Unit tests for exchange-specific configuration headers
+#include "../../src/exchange/binance/binance_config.h"
+#include "../../src/exchange/bybit/bybit_config.h"
+#include "../../src/exchange/okx/okx_config.h"
 #include <cassert>
 #include <iostream>
 #include <string>
-#include "../../src/exchange/binance/binance_config.h"
-#include "../../src/exchange/okx/okx_config.h"
-#include "../../src/exchange/bybit/bybit_config.h"
 
 using namespace hft::exchange;
 
@@ -22,7 +22,7 @@ void test_binance_kline_stream() {
 
 void test_binance_combined_url() {
     std::vector<std::string> streams = {"btcusdt@depth20@100ms", "ethusdt@aggTrade"};
-    std::string url = binance::build_combined_url(streams);
+    std::string              url     = binance::build_combined_url(streams);
     assert(url.find("streams=btcusdt@depth20@100ms/ethusdt@aggTrade") != std::string::npos);
     std::cout << "  [PASS] test_binance_combined_url\n";
 }
@@ -73,7 +73,7 @@ void test_okx_rest_endpoints() {
 
 void test_bybit_subscribe() {
     std::vector<std::string> channels = {"orderbook.50", "publicTrade"};
-    std::string msg = bybit::build_subscribe_message(channels, "BTCUSDT");
+    std::string              msg      = bybit::build_subscribe_message(channels, "BTCUSDT");
     assert(msg.find("\"op\":\"subscribe\"") != std::string::npos);
     assert(msg.find("orderbook.50.BTCUSDT") != std::string::npos);
     assert(msg.find("publicTrade.BTCUSDT") != std::string::npos);
@@ -82,7 +82,7 @@ void test_bybit_subscribe() {
 
 void test_bybit_unsubscribe() {
     std::vector<std::string> channels = {"tickers"};
-    std::string msg = bybit::build_unsubscribe_message(channels, "BTCUSDT");
+    std::string              msg      = bybit::build_unsubscribe_message(channels, "BTCUSDT");
     assert(msg.find("\"op\":\"unsubscribe\"") != std::string::npos);
     assert(msg.find("tickers.BTCUSDT") != std::string::npos);
     std::cout << "  [PASS] test_bybit_unsubscribe\n";

@@ -12,19 +12,19 @@
 #pragma once
 
 #include "../utils/low_latency.h"
-#include <atomic>
-#include <unordered_set>
 #include <array>
-#include <cstdint>
+#include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <cstdint>
+#include <cstdlib>
+#include <functional>
+#include <mutex>
+#include <queue>
 #include <string>
 #include <string_view>
-#include <functional>
+#include <unordered_set>
 #include <vector>
-#include <queue>
-#include <mutex>
-#include <condition_variable>
-#include <cstdlib>
 
 namespace hft::net {
 
@@ -32,23 +32,30 @@ namespace hft::net {
 // Connection state
 // ─────────────────────────────────────────────────────────────────────────────
 enum class ConnectionState : uint8_t {
-    DISCONNECTED = 0,
-    CONNECTING = 1,
-    CONNECTED = 2,
+    DISCONNECTED  = 0,
+    CONNECTING    = 1,
+    CONNECTED     = 2,
     AUTHENTICATED = 3,
-    RECONNECTING = 4,
-    ERROR_STATE = 5,
+    RECONNECTING  = 4,
+    ERROR_STATE   = 5,
 };
 
 inline const char* connection_state_str(ConnectionState s) noexcept {
     switch (s) {
-        case ConnectionState::DISCONNECTED:  return "DISCONNECTED";
-        case ConnectionState::CONNECTING:    return "CONNECTING";
-        case ConnectionState::CONNECTED:     return "CONNECTED";
-        case ConnectionState::AUTHENTICATED: return "AUTHENTICATED";
-        case ConnectionState::RECONNECTING:  return "RECONNECTING";
-        case ConnectionState::ERROR_STATE:   return "ERROR";
-        default: return "UNKNOWN";
+    case ConnectionState::DISCONNECTED:
+        return "DISCONNECTED";
+    case ConnectionState::CONNECTING:
+        return "CONNECTING";
+    case ConnectionState::CONNECTED:
+        return "CONNECTED";
+    case ConnectionState::AUTHENTICATED:
+        return "AUTHENTICATED";
+    case ConnectionState::RECONNECTING:
+        return "RECONNECTING";
+    case ConnectionState::ERROR_STATE:
+        return "ERROR";
+    default:
+        return "UNKNOWN";
     }
 }
 
@@ -60,7 +67,7 @@ struct ReconnectPolicy {
     uint32_t max_delay_ms{30000};
     uint32_t backoff_factor{2};
     uint32_t jitter_ms{50};
-    uint32_t max_attempts{0};  // 0 = infinite
+    uint32_t max_attempts{0}; // 0 = infinite
 
     uint32_t compute_delay(uint32_t attempt) const noexcept {
         uint32_t delay = initial_delay_ms;
@@ -73,8 +80,8 @@ struct ReconnectPolicy {
         }
         // Add jitter: ±jitter_ms
         if (jitter_ms > 0) {
-            int32_t jitter = static_cast<int32_t>(jitter_ms) -
-                static_cast<int32_t>(rand() % (2 * jitter_ms));
+            int32_t jitter =
+                static_cast<int32_t>(jitter_ms) - static_cast<int32_t>(rand() % (2 * jitter_ms));
             delay = static_cast<uint32_t>(std::max(0, static_cast<int32_t>(delay) + jitter));
         }
         return delay;
@@ -85,15 +92,11 @@ struct ReconnectPolicy {
 // Watchdog — detects stale connections
 // ─────────────────────────────────────────────────────────────────────────────
 class Watchdog {
-public:
+  public:
     explicit Watchdog(uint32_t timeout_ms = 5000)
-        : timeout_ms_(timeout_ms)
-        , last_activity_ns_(now_ns())
-    {}
+        : timeout_ms_(timeout_ms), last_activity_ns_(now_ns()) {}
 
-    void feed() noexcept {
-        last_activity_ns_.store(now_ns(), std::memory_order_release);
-    }
+    void feed() noexcept { last_activity_ns_.store(now_ns(), std::memory_order_release); }
 
     bool is_alive() const noexcept {
         uint64_t elapsed = now_ns() - last_activity_ns_.load(std::memory_order_acquire);
@@ -107,13 +110,14 @@ public:
 
     void set_timeout(uint32_t ms) noexcept { timeout_ms_ = ms; }
 
-private:
+  private:
     static uint64_t now_ns() noexcept {
         return std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count();
+                   std::chrono::steady_clock::now().time_since_epoch())
+            .count();
     }
 
-    uint32_t timeout_ms_;
+    uint32_t              timeout_ms_;
     std::atomic<uint64_t> last_activity_ns_;
 };
 
@@ -121,9 +125,8 @@ private:
 // Message queue — thread-safe bounded queue with backpressure
 // ─────────────────────────────────────────────────────────────────────────────
 class MessageQueue {
-public:
-    explicit MessageQueue(size_t capacity = 1024)
-        : capacity_(capacity) {}
+  public:
+    explicit MessageQueue(size_t capacity = 1024) : capacity_(capacity) {}
 
     bool try_push(std::string&& msg) {
         std::lock_guard<Spinlock> lk(lock_);
@@ -153,27 +156,26 @@ public:
         return queue_.empty();
     }
 
-    uint64_t dropped_count() const noexcept {
-        return dropped_.load(std::memory_order_relaxed);
-    }
+    uint64_t dropped_count() const noexcept { return dropped_.load(std::memory_order_relaxed); }
 
     void clear() {
         std::lock_guard<Spinlock> lk(lock_);
-        while (!queue_.empty()) queue_.pop();
+        while (!queue_.empty())
+            queue_.pop();
     }
 
-private:
-    mutable Spinlock lock_;
+  private:
+    mutable Spinlock        lock_;
     std::queue<std::string> queue_;
-    size_t capacity_;
-    std::atomic<uint64_t> dropped_{0};
+    size_t                  capacity_;
+    std::atomic<uint64_t>   dropped_{0};
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Subscription manager — track active channel subscriptions
 // ─────────────────────────────────────────────────────────────────────────────
 class SubscriptionManager {
-public:
+  public:
     void subscribe(const std::string& channel) {
         std::lock_guard<Spinlock> lk(lock_);
         channels_.insert(channel);
@@ -199,8 +201,8 @@ public:
         return channels_.size();
     }
 
-private:
-    mutable Spinlock lock_;
+  private:
+    mutable Spinlock                lock_;
     std::unordered_set<std::string> channels_;
 };
 
@@ -208,7 +210,7 @@ private:
 // ReconnectionManager — manages reconnection attempts and state
 // ─────────────────────────────────────────────────────────────────────────────
 class ReconnectionManager {
-public:
+  public:
     ReconnectionManager() : ReconnectionManager(ReconnectPolicy{}) {}
     explicit ReconnectionManager(ReconnectPolicy policy)
         : policy_(policy), state_(ConnectionState::DISCONNECTED) {}
@@ -230,28 +232,24 @@ public:
         uint32_t attempt = attempts_.fetch_add(1, std::memory_order_relaxed) + 1;
         if (policy_.max_attempts > 0 && attempt > policy_.max_attempts) {
             state_.store(ConnectionState::DISCONNECTED, std::memory_order_release);
-            return 0;  // Give up
+            return 0; // Give up
         }
         return policy_.compute_delay(attempt);
     }
 
-    ConnectionState state() const noexcept {
-        return state_.load(std::memory_order_acquire);
-    }
+    ConnectionState state() const noexcept { return state_.load(std::memory_order_acquire); }
 
-    uint32_t attempts() const noexcept {
-        return attempts_.load(std::memory_order_relaxed);
-    }
+    uint32_t attempts() const noexcept { return attempts_.load(std::memory_order_relaxed); }
 
     bool should_retry() const noexcept {
         if (policy_.max_attempts == 0) return true;
         return attempts_.load(std::memory_order_relaxed) < policy_.max_attempts;
     }
 
-private:
-    ReconnectPolicy policy_;
+  private:
+    ReconnectPolicy              policy_;
     std::atomic<ConnectionState> state_;
-    std::atomic<uint32_t> attempts_{0};
+    std::atomic<uint32_t>        attempts_{0};
 };
 
 } // namespace hft::net

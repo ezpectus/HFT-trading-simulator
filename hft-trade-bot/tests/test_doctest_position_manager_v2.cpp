@@ -31,15 +31,15 @@ TEST_CASE("PositionV2: is_short for SELL side") {
 
 TEST_CASE("PositionV2: notional = quantity * entry_price") {
     PositionV2 pos;
-    pos.quantity = 2.0;
+    pos.quantity    = 2.0;
     pos.entry_price = 50000.0;
     CHECK(pos.notional() == doctest::Approx(100000.0));
 }
 
 TEST_CASE("PositionV2: update_unrealized long position") {
     PositionV2 pos;
-    pos.side = Side::BUY;
-    pos.quantity = 1.0;
+    pos.side        = Side::BUY;
+    pos.quantity    = 1.0;
     pos.entry_price = 50000.0;
     pos.update_unrealized(51000.0);
     CHECK(pos.unrealized_pnl == doctest::Approx(1000.0));
@@ -47,8 +47,8 @@ TEST_CASE("PositionV2: update_unrealized long position") {
 
 TEST_CASE("PositionV2: update_unrealized short position") {
     PositionV2 pos;
-    pos.side = Side::SELL;
-    pos.quantity = 1.0;
+    pos.side        = Side::SELL;
+    pos.quantity    = 1.0;
     pos.entry_price = 50000.0;
     pos.update_unrealized(49000.0);
     // Short: (entry - mark) * qty = (50000 - 49000) * 1 = 1000
@@ -64,8 +64,8 @@ TEST_CASE("PositionV2: update_unrealized zero when closed") {
 
 TEST_CASE("PositionV2: update_unrealized long negative when price drops") {
     PositionV2 pos;
-    pos.side = Side::BUY;
-    pos.quantity = 2.0;
+    pos.side        = Side::BUY;
+    pos.quantity    = 2.0;
     pos.entry_price = 50000.0;
     pos.update_unrealized(48000.0);
     CHECK(pos.unrealized_pnl == doctest::Approx(-4000.0));
@@ -293,7 +293,7 @@ TEST_CASE("PositionManagerV2: has_position returns false when never opened") {
 
 TEST_CASE("PositionManagerV2: get_position returns empty for unknown") {
     PositionManagerV2 pm;
-    auto pos = pm.get_position("UNKNOWN", "binance");
+    auto              pos = pm.get_position("UNKNOWN", "binance");
     CHECK_FALSE(pos.is_open());
 }
 

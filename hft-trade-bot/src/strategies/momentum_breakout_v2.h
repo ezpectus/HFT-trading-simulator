@@ -10,27 +10,27 @@
 #include "../data/aligned_types.h"
 #include "../strategies/signal_engine_v2.h"
 #include "../utils/low_latency.h"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <algorithm>
 
 namespace hft {
 
 class MomentumBreakoutV2 {
-public:
+  public:
     struct Config {
-        int ema_fast = 9;
-        int ema_mid = 21;
-        int ema_slow = 50;
-        int ema_trend = 200;
+        int    ema_fast          = 9;
+        int    ema_mid           = 21;
+        int    ema_slow          = 50;
+        int    ema_trend         = 200;
         double volume_multiplier = 1.5;
-        int volume_avg_period = 20;
-        int atr_period = 14;
-        double atr_multiplier = 1.5;
-        double adx_threshold = 25.0;
-        int adx_period = 14;
-        double min_confidence = 60.0;
+        int    volume_avg_period = 20;
+        int    atr_period        = 14;
+        double atr_multiplier    = 1.5;
+        double adx_threshold     = 25.0;
+        int    adx_period        = 14;
+        double min_confidence    = 60.0;
     };
 
     struct Signal {
@@ -43,20 +43,15 @@ public:
         double atr{0.0};
         double adx{0.0};
         double volume_ratio{0.0};
-        bool ema_aligned{false};
-        bool volume_confirmed{false};
-        bool adx_confirmed{false};
+        bool   ema_aligned{false};
+        bool   volume_confirmed{false};
+        bool   adx_confirmed{false};
     };
 
     MomentumBreakoutV2() : MomentumBreakoutV2(Config{}) {}
     explicit MomentumBreakoutV2(const Config& cfg)
-        : config_(cfg)
-        , ema_fast_(cfg.ema_fast)
-        , ema_mid_(cfg.ema_mid)
-        , ema_slow_(cfg.ema_slow)
-        , ema_trend_(cfg.ema_trend)
-        , adx_(cfg.adx_period)
-    {
+        : config_(cfg), ema_fast_(cfg.ema_fast), ema_mid_(cfg.ema_mid), ema_slow_(cfg.ema_slow),
+          ema_trend_(cfg.ema_trend), adx_(cfg.adx_period) {
         if (config_.volume_avg_period > static_cast<int>(vol_buffer_.size())) {
             config_.volume_avg_period = static_cast<int>(vol_buffer_.size());
         }
@@ -68,8 +63,8 @@ public:
         }
     }
 
-    Signal on_candle(double open, double high, double low, double close,
-                     double volume, uint64_t timestamp_ns) noexcept {
+    Signal on_candle(double open, double high, double low, double close, double volume,
+                     uint64_t timestamp_ns) noexcept {
         ema_fast_.update(close);
         ema_mid_.update(close);
         ema_slow_.update(close);
@@ -81,7 +76,7 @@ public:
 
         // Track EMA slope (current - previous)
         double fast_slope = ema_fast_.value() - prev_ema_fast_;
-        prev_ema_fast_ = ema_fast_.value();
+        prev_ema_fast_    = ema_fast_.value();
 
         ++candle_count_;
 
@@ -90,9 +85,9 @@ public:
         }
 
         Signal sig;
-        sig.entry_price = close;
-        sig.atr = current_atr_;
-        sig.adx = adx_.value();
+        sig.entry_price  = close;
+        sig.atr          = current_atr_;
+        sig.adx          = adx_.value();
         sig.volume_ratio = (avg_volume_ > 0.0) ? volume / avg_volume_ : 0.0;
 
         double ef = ema_fast_.value();
@@ -102,37 +97,38 @@ public:
 
         bool bullish_align = ef > em && em > es && es > et;
         bool bearish_align = ef < em && em < es && es < et;
-        sig.ema_aligned = bullish_align || bearish_align;
+        sig.ema_aligned    = bullish_align || bearish_align;
 
         sig.volume_confirmed = sig.volume_ratio >= config_.volume_multiplier;
-        sig.adx_confirmed = adx_.value() >= config_.adx_threshold;
+        sig.adx_confirmed    = adx_.value() >= config_.adx_threshold;
 
         double breakout_upper = prev_high_ + current_atr_ * config_.atr_multiplier;
         double breakout_lower = prev_low_ - current_atr_ * config_.atr_multiplier;
 
         if (sig.ema_aligned && sig.volume_confirmed && sig.adx_confirmed) {
             if (bullish_align && close > breakout_upper && fast_slope > 0.0) {
-                sig.action = Signal::Action::LONG;
-                sig.stop_loss = close - current_atr_ * 2.0;
+                sig.action      = Signal::Action::LONG;
+                sig.stop_loss   = close - current_atr_ * 2.0;
                 sig.take_profit = close + current_atr_ * 3.0;
-                sig.confidence = compute_confidence(sig);
+                sig.confidence  = compute_confidence(sig);
             } else if (bearish_align && close < breakout_lower && fast_slope < 0.0) {
-                sig.action = Signal::Action::SHORT;
-                sig.stop_loss = close + current_atr_ * 2.0;
+                sig.action      = Signal::Action::SHORT;
+                sig.stop_loss   = close + current_atr_ * 2.0;
                 sig.take_profit = close - current_atr_ * 3.0;
-                sig.confidence = compute_confidence(sig);
+                sig.confidence  = compute_confidence(sig);
             }
         }
 
-        if (sig.action == Signal::Action::NONE && candle_count_ > static_cast<uint64_t>(config_.ema_mid)) {
+        if (sig.action == Signal::Action::NONE &&
+            candle_count_ > static_cast<uint64_t>(config_.ema_mid)) {
             if (ema_fast_.value() < ema_mid_.value() && fast_slope < 0.0) {
-                sig.action = Signal::Action::EXIT;
+                sig.action     = Signal::Action::EXIT;
                 sig.confidence = 70.0;
             }
         }
 
         prev_high_ = high;
-        prev_low_ = low;
+        prev_low_  = low;
 
         return sig;
     }
@@ -145,7 +141,7 @@ public:
     double adx() const noexcept { return adx_.value(); }
     double avg_volume() const noexcept { return avg_volume_; }
 
-private:
+  private:
     void update_atr(double high, double low, double close) noexcept {
         double tr = high - low;
         if (prev_close_ > 0.0) {
@@ -163,7 +159,8 @@ private:
     void update_volume_avg(double volume) noexcept {
         if (candle_count_ < static_cast<uint64_t>(config_.volume_avg_period)) {
             vol_sum_ += volume;
-            avg_volume_ = (candle_count_ > 0) ? vol_sum_ / static_cast<double>(candle_count_ + 1) : volume;
+            avg_volume_ =
+                (candle_count_ > 0) ? vol_sum_ / static_cast<double>(candle_count_ + 1) : volume;
         } else {
             vol_sum_ += volume - vol_buffer_[vol_idx_ % config_.volume_avg_period];
             vol_buffer_[vol_idx_ % config_.volume_avg_period] = volume;
@@ -181,7 +178,7 @@ private:
         return std::min(100.0, conf);
     }
 
-    Config config_;
+    Config    config_;
     InlineEMA ema_fast_;
     InlineEMA ema_mid_;
     InlineEMA ema_slow_;
@@ -194,10 +191,10 @@ private:
     double prev_low_{0.0};
     double prev_ema_fast_{0.0};
 
-    double avg_volume_{0.0};
-    double vol_sum_{0.0};
+    double                  avg_volume_{0.0};
+    double                  vol_sum_{0.0};
     std::array<double, 256> vol_buffer_{};
-    uint64_t vol_idx_{0};
+    uint64_t                vol_idx_{0};
 
     uint64_t candle_count_{0};
 };

@@ -10,9 +10,8 @@ using namespace hft;
 // ═══════════════════════════════════════════════════════════════════════════
 // Helper: feed correlated price series
 // ═══════════════════════════════════════════════════════════════════════════
-static void feed_correlated_prices(StatisticalArbV2& sa, int count,
-                                    double base_a, double base_b,
-                                    double beta, double noise = 0.0) {
+static void feed_correlated_prices(StatisticalArbV2& sa, int count, double base_a, double base_b,
+                                   double beta, double noise = 0.0) {
     for (int i = 0; i < count; ++i) {
         double a = base_a + i * 0.5 + noise * (i % 3 - 1);
         double b = base_b + i * 0.5 / beta;
@@ -34,10 +33,10 @@ TEST_CASE("StatisticalArbV2 default config") {
 
 TEST_CASE("StatisticalArbV2 custom config") {
     StatisticalArbV2::Config cfg;
-    cfg.entry_z = 1.5;
-    cfg.exit_z = 0.3;
-    cfg.stop_z = 3.0;
-    cfg.min_samples = 50;
+    cfg.entry_z           = 1.5;
+    cfg.exit_z            = 0.3;
+    cfg.stop_z            = 3.0;
+    cfg.min_samples       = 50;
     cfg.regression_window = 100;
     StatisticalArbV2 sa(cfg);
     // Should accept custom config
@@ -71,7 +70,7 @@ TEST_CASE("StatisticalArbV2 sample_count increments") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("StatisticalArbV2 generates signals after min_samples") {
     StatisticalArbV2::Config cfg;
-    cfg.min_samples = 50;
+    cfg.min_samples       = 50;
     cfg.regression_window = 100;
     StatisticalArbV2 sa(cfg);
 
@@ -87,10 +86,10 @@ TEST_CASE("StatisticalArbV2 generates signals after min_samples") {
 
 TEST_CASE("StatisticalArbV2 STOP signal on extreme z-score") {
     StatisticalArbV2::Config cfg;
-    cfg.min_samples = 30;
+    cfg.min_samples       = 30;
     cfg.regression_window = 100;
-    cfg.stop_z = 3.0;
-    cfg.entry_z = 2.0;
+    cfg.stop_z            = 3.0;
+    cfg.entry_z           = 2.0;
     StatisticalArbV2 sa(cfg);
 
     // Build correlated history
@@ -100,17 +99,17 @@ TEST_CASE("StatisticalArbV2 STOP signal on extreme z-score") {
     // Sudden divergence — price_a jumps, price_b drops
     auto sig = sa.on_prices(200, 50, 50 * 1000000000ULL);
     // Should generate STOP or SHORT_LONG due to extreme spread
-    bool is_stop = sig.action == StatisticalArbV2::Signal::Action::STOP;
+    bool is_stop       = sig.action == StatisticalArbV2::Signal::Action::STOP;
     bool is_short_long = sig.action == StatisticalArbV2::Signal::Action::SHORT_LONG;
     CHECK((is_stop || is_short_long));
 }
 
 TEST_CASE("StatisticalArbV2 CLOSE signal when z-score reverts") {
     StatisticalArbV2::Config cfg;
-    cfg.min_samples = 30;
+    cfg.min_samples       = 30;
     cfg.regression_window = 100;
-    cfg.entry_z = 2.0;
-    cfg.exit_z = 0.5;
+    cfg.entry_z           = 2.0;
+    cfg.exit_z            = 0.5;
     StatisticalArbV2 sa(cfg);
 
     // Build correlated history
@@ -139,7 +138,7 @@ TEST_CASE("StatisticalArbV2 Signal default values") {
 
 TEST_CASE("StatisticalArbV2 signal has z_score and hedge_ratio after warmup") {
     StatisticalArbV2::Config cfg;
-    cfg.min_samples = 30;
+    cfg.min_samples       = 30;
     cfg.regression_window = 100;
     StatisticalArbV2 sa(cfg);
 
@@ -155,7 +154,7 @@ TEST_CASE("StatisticalArbV2 signal has z_score and hedge_ratio after warmup") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("StatisticalArbV2 hedge_ratio converges for correlated assets") {
     StatisticalArbV2::Config cfg;
-    cfg.min_samples = 30;
+    cfg.min_samples       = 30;
     cfg.regression_window = 100;
     StatisticalArbV2 sa(cfg);
 
@@ -168,7 +167,7 @@ TEST_CASE("StatisticalArbV2 hedge_ratio converges for correlated assets") {
 
 TEST_CASE("StatisticalArbV2 hedge_ratio for 2x relationship") {
     StatisticalArbV2::Config cfg;
-    cfg.min_samples = 30;
+    cfg.min_samples       = 30;
     cfg.regression_window = 100;
     StatisticalArbV2 sa(cfg);
 
@@ -203,7 +202,7 @@ TEST_CASE("StatisticalArbV2 reset clears state") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("StatisticalArbV2 confidence in valid range") {
     StatisticalArbV2::Config cfg;
-    cfg.min_samples = 30;
+    cfg.min_samples       = 30;
     cfg.regression_window = 100;
     StatisticalArbV2 sa(cfg);
 
@@ -231,7 +230,7 @@ TEST_CASE("CorrelationMatrix update and get") {
     CorrelationMatrix cm;
     cm.update(0, 1, 0.85);
     CHECK(cm.get(0, 1) == doctest::Approx(0.85));
-    CHECK(cm.get(1, 0) == doctest::Approx(0.85));  // Symmetric
+    CHECK(cm.get(1, 0) == doctest::Approx(0.85)); // Symmetric
 }
 
 TEST_CASE("CorrelationMatrix out of bounds returns zero") {
@@ -248,7 +247,7 @@ TEST_CASE("CorrelationMatrix find_pairs above threshold") {
     cm.update(1, 2, 0.8);
 
     auto pairs = cm.find_pairs(0.7);
-    CHECK(pairs.size() == 2);  // (0,1) and (1,2)
+    CHECK(pairs.size() == 2); // (0,1) and (1,2)
 
     // Check that (0,2) with 0.3 is not included
     bool has_02 = false;
@@ -281,7 +280,7 @@ TEST_CASE("CorrelationMatrix find_pairs all above threshold") {
 
 TEST_CASE("CorrelationMatrix update out of bounds ignored") {
     CorrelationMatrix cm;
-    cm.update(100, 0, 0.9);  // Should be ignored
+    cm.update(100, 0, 0.9); // Should be ignored
     CHECK(cm.get(100, 0) == doctest::Approx(0.0));
 }
 

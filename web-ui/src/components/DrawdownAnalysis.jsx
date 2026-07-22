@@ -5,7 +5,7 @@ import { formatUsd } from '../utils/format'
 export default function DrawdownAnalysis({ fills }) {
   const analysis = useMemo(() => {
     if (!fills?.length) {
-      return { maxDD: 0, maxDDDuration: 0, recoveries: 0, currentDD: 0, underwaterPct: 0, peaks: [] }
+      return { maxDD: 0, maxDDPct: 0, maxDDDuration: 0, recoveries: 0, currentDD: 0, underwaterPct: 0, currentEquity: 10000, peakEquity: 10000, peaks: [] }
     }
 
     // Build equity curve from fills

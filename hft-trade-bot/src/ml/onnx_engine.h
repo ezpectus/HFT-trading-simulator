@@ -27,42 +27,35 @@
 
 #ifdef USE_ONNXRUNTIME
 
-#include <onnxruntime_cxx_api.h>
-#include <vector>
-#include <string>
-#include <memory>
-#include <unordered_map>
 #include <chrono>
+#include <memory>
+#include <onnxruntime_cxx_api.h>
 #include <spdlog/spdlog.h>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace hft {
 
 class ONNXEngine {
-public:
-    explicit ONNXEngine(const std::string& model_path,
-                        int intra_op_threads = 2,
+  public:
+    explicit ONNXEngine(const std::string& model_path, int intra_op_threads = 2,
                         int inter_op_threads = 1)
-        : model_path_(model_path)
-        , intra_threads_(intra_op_threads)
-        , inter_threads_(inter_op_threads)
-        , env_(ORT_LOGGING_LEVEL_WARNING, "hft_onnx")
-        , initialized_(false)
-    {
+        : model_path_(model_path), intra_threads_(intra_op_threads),
+          inter_threads_(inter_op_threads), env_(ORT_LOGGING_LEVEL_WARNING, "hft_onnx"),
+          initialized_(false) {
         session_options_ = Ort::SessionOptions();
         session_options_.SetIntraOpNumThreads(intra_threads_);
         session_options_.SetInterOpNumThreads(inter_threads_);
-        session_options_.SetGraphOptimizationLevel(
-            GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
-        session_options_.SetOptimizedModelFilePath(
-            (model_path_ + ".optimized.onnx").c_str());
+        session_options_.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
+        session_options_.SetOptimizedModelFilePath((model_path_ + ".optimized.onnx").c_str());
     }
 
     ~ONNXEngine() = default;
 
     bool initialize() {
         try {
-            session_ = std::make_unique<Ort::Session>(
-                env_, model_path_.c_str(), session_options_);
+            session_ = std::make_unique<Ort::Session>(env_, model_path_.c_str(), session_options_);
 
             // Get input/output metadata
             Ort::AllocatorWithDefaultOptions allocator;
@@ -73,13 +66,13 @@ public:
                 input_names_.push_back(name.get());
                 input_names_ptr_.push_back(name.release());
 
-                auto type_info = session_->GetInputTypeInfo(i);
+                auto type_info   = session_->GetInputTypeInfo(i);
                 auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-                auto shape = tensor_info.GetShape();
+                auto shape       = tensor_info.GetShape();
                 input_shapes_.push_back(shape);
 
-                spdlog::info("[ONNX] Input[{}]: '{}' shape=[{}]", i,
-                             input_names_[i], format_shape(shape));
+                spdlog::info("[ONNX] Input[{}]: '{}' shape=[{}]", i, input_names_[i],
+                             format_shape(shape));
             }
 
             size_t num_outputs = session_->GetOutputCount();
@@ -92,8 +85,8 @@ public:
             }
 
             initialized_ = true;
-            spdlog::info("[ONNX] Model loaded: {} (inputs={}, outputs={})",
-                         model_path_, num_inputs, num_outputs);
+            spdlog::info("[ONNX] Model loaded: {} (inputs={}, outputs={})", model_path_, num_inputs,
+                         num_outputs);
             return true;
 
         } catch (const Ort::Exception& e) {
@@ -119,8 +112,7 @@ public:
 
         try {
             // Create input tensor
-            auto memory_info = Ort::MemoryInfo::CreateCpu(
-                OrtArenaAllocator, OrtMemTypeDefault);
+            auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 
             // Determine input shape — use dynamic batch=1
             std::vector<int64_t> input_shape;
@@ -136,45 +128,40 @@ public:
 
             // Calculate total elements from shape
             size_t total_elements = 1;
-            for (auto d : input_shape) total_elements *= d;
+            for (auto d : input_shape)
+                total_elements *= d;
 
             if (total_elements != features.size()) {
                 // Reshape: assume {1, features.size()}
-                input_shape = {1, static_cast<int64_t>(features.size())};
+                input_shape    = {1, static_cast<int64_t>(features.size())};
                 total_elements = features.size();
             }
 
             auto input_tensor = Ort::Value::CreateTensor<float>(
-                memory_info,
-                const_cast<float*>(features.data()),
-                features.size(),
-                input_shape.data(),
-                input_shape.size());
+                memory_info, const_cast<float*>(features.data()), features.size(),
+                input_shape.data(), input_shape.size());
 
             // Run inference
-            const char* input_names[] = {input_names_[0].c_str()};
+            const char* input_names[]  = {input_names_[0].c_str()};
             const char* output_names[] = {output_names_[0].c_str()};
 
-            auto output_tensors = session_->Run(
-                Ort::RunOptions{nullptr},
-                input_names, &input_tensor, 1,
-                output_names, 1);
+            auto output_tensors = session_->Run(Ort::RunOptions{nullptr}, input_names,
+                                                &input_tensor, 1, output_names, 1);
 
             // Extract output
-            auto& output_tensor = output_tensors.front();
-            auto type_info = output_tensor.GetTensorTypeAndShapeInfo();
-            auto output_shape = type_info.GetShape();
-            size_t output_size = 1;
+            auto&  output_tensor = output_tensors.front();
+            auto   type_info     = output_tensor.GetTensorTypeAndShapeInfo();
+            auto   output_shape  = type_info.GetShape();
+            size_t output_size   = 1;
             for (auto d : output_shape) {
                 if (d > 0) output_size *= d;
             }
 
-            float* output_data = output_tensor.GetTensorMutableData<float>();
+            float*             output_data = output_tensor.GetTensorMutableData<float>();
             std::vector<float> result(output_data, output_data + output_size);
 
             auto end = std::chrono::high_resolution_clock::now();
-            auto us = std::chrono::duration_cast<std::chrono::microseconds>(
-                          end - start).count();
+            auto us  = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             last_inference_us_ = us;
             inference_count_++;
 
@@ -190,33 +177,29 @@ public:
     /**
      * Run inference with named inputs (multi-input models).
      */
-    std::vector<float> infer_named(
-        const std::unordered_map<std::string, std::vector<float>>& inputs) {
+    std::vector<float>
+    infer_named(const std::unordered_map<std::string, std::vector<float>>& inputs) {
 
         if (!initialized_ || !session_) return {};
 
         try {
-            auto memory_info = Ort::MemoryInfo::CreateCpu(
-                OrtArenaAllocator, OrtMemTypeDefault);
+            auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 
-            std::vector<Ort::Value> input_tensors;
+            std::vector<Ort::Value>  input_tensors;
             std::vector<const char*> input_name_ptrs;
 
             for (size_t i = 0; i < input_names_.size(); i++) {
                 const auto& name = input_names_[i];
-                auto it = inputs.find(name);
+                auto        it   = inputs.find(name);
                 if (it == inputs.end()) {
                     spdlog::warn("[ONNX] Missing input: {}", name);
                     return {};
                 }
 
-                std::vector<int64_t> shape = {1, static_cast<int64_t>(it->second.size())};
-                auto tensor = Ort::Value::CreateTensor<float>(
-                    memory_info,
-                    const_cast<float*>(it->second.data()),
-                    it->second.size(),
-                    shape.data(),
-                    shape.size());
+                std::vector<int64_t> shape  = {1, static_cast<int64_t>(it->second.size())};
+                auto                 tensor = Ort::Value::CreateTensor<float>(
+                    memory_info, const_cast<float*>(it->second.data()), it->second.size(),
+                    shape.data(), shape.size());
                 input_tensors.push_back(std::move(tensor));
                 input_name_ptrs.push_back(name.c_str());
             }
@@ -226,14 +209,13 @@ public:
                 output_name_ptrs.push_back(name.c_str());
             }
 
-            auto output_tensors = session_->Run(
-                Ort::RunOptions{nullptr},
-                input_name_ptrs.data(), input_tensors.data(), input_tensors.size(),
-                output_name_ptrs.data(), output_name_ptrs.size());
+            auto output_tensors = session_->Run(Ort::RunOptions{nullptr}, input_name_ptrs.data(),
+                                                input_tensors.data(), input_tensors.size(),
+                                                output_name_ptrs.data(), output_name_ptrs.size());
 
-            auto& output_tensor = output_tensors.front();
-            auto type_info = output_tensor.GetTensorTypeAndShapeInfo();
-            size_t output_size = 1;
+            auto&  output_tensor = output_tensors.front();
+            auto   type_info     = output_tensor.GetTensorTypeAndShapeInfo();
+            size_t output_size   = 1;
             for (auto d : type_info.GetShape()) {
                 if (d > 0) output_size *= d;
             }
@@ -251,26 +233,26 @@ public:
     uint64_t inference_count() const { return inference_count_; }
     uint64_t error_count() const { return error_count_; }
     uint64_t last_inference_us() const { return last_inference_us_; }
-    bool is_initialized() const { return initialized_; }
+    bool     is_initialized() const { return initialized_; }
 
-private:
+  private:
     std::string model_path_;
-    int intra_threads_;
-    int inter_threads_;
+    int         intra_threads_;
+    int         inter_threads_;
 
-    Ort::Env env_;
-    Ort::SessionOptions session_options_;
+    Ort::Env                      env_;
+    Ort::SessionOptions           session_options_;
     std::unique_ptr<Ort::Session> session_;
 
-    std::vector<std::string> input_names_;
+    std::vector<std::string>             input_names_;
     std::vector<Ort::AllocatedStringPtr> input_names_ptr_;
-    std::vector<std::vector<int64_t>> input_shapes_;
-    std::vector<std::string> output_names_;
+    std::vector<std::vector<int64_t>>    input_shapes_;
+    std::vector<std::string>             output_names_;
     std::vector<Ort::AllocatedStringPtr> output_names_ptr_;
 
-    bool initialized_;
-    uint64_t inference_count_ = 0;
-    uint64_t error_count_ = 0;
+    bool     initialized_;
+    uint64_t inference_count_   = 0;
+    uint64_t error_count_       = 0;
     uint64_t last_inference_us_ = 0;
 
     static std::string format_shape(const std::vector<int64_t>& shape) {

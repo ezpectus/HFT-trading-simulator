@@ -129,11 +129,10 @@ export function useWorker(workerUrl) {
  */
 export function useIntersectionObserver(options = {}) {
   const [isVisible, setIsVisible] = useState(false)
-  const ref = useRef(null)
+  const [el, setEl] = useState(null)
 
   useEffect(() => {
-    const el = ref.current
-    if (!el) return
+    if (!el || typeof IntersectionObserver === 'undefined') return
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setIsVisible(true)
@@ -143,6 +142,10 @@ export function useIntersectionObserver(options = {}) {
 
     observer.observe(el)
     return () => observer.disconnect()
+  }, [el])
+
+  const ref = useCallback((node) => {
+    if (node !== null) setEl(node)
   }, [])
 
   return [ref, isVisible]

@@ -58,14 +58,14 @@ TEST_CASE("InlineRSI ready after period updates") {
         rsi.update(100.0 + i * 0.5);
     }
     CHECK(rsi.ready());
-    CHECK(rsi.value() > 50.0);  // Rising prices → RSI > 50
+    CHECK(rsi.value() > 50.0); // Rising prices → RSI > 50
 }
 
 TEST_CASE("InlineRSI all gains → near 100") {
     InlineRSI rsi(5);
     rsi.init(100.0);
     for (int i = 0; i < 20; ++i) {
-        rsi.update(100.0 + i + 1);  // Always increasing
+        rsi.update(100.0 + i + 1); // Always increasing
     }
     CHECK(rsi.value() > 90.0);
 }
@@ -74,7 +74,7 @@ TEST_CASE("InlineRSI all losses → near 0") {
     InlineRSI rsi(5);
     rsi.init(100.0);
     for (int i = 0; i < 20; ++i) {
-        rsi.update(100.0 - i - 1);  // Always decreasing
+        rsi.update(100.0 - i - 1); // Always decreasing
     }
     CHECK(rsi.value() < 10.0);
 }
@@ -83,7 +83,7 @@ TEST_CASE("InlineRSI flat prices → near 50") {
     InlineRSI rsi(5);
     rsi.init(100.0);
     for (int i = 0; i < 20; ++i) {
-        rsi.update(100.0);  // No change
+        rsi.update(100.0); // No change
     }
     CHECK(rsi.value() == doctest::Approx(50.0).epsilon(0.01));
 }
@@ -93,14 +93,14 @@ TEST_CASE("InlineRSI flat prices → near 50") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("InlineADX returns 0 before ready") {
     InlineADX adx(14);
-    double val = adx.update(100, 95, 98);
+    double    val = adx.update(100, 95, 98);
     CHECK(val == doctest::Approx(0.0));
 }
 
 TEST_CASE("InlineADX ready after period") {
     InlineADX adx(5);
     for (int i = 0; i < 10; ++i) {
-        adx.update(100 + i, 95 + i, 98 + i);  // Uptrending
+        adx.update(100 + i, 95 + i, 98 + i); // Uptrending
     }
     CHECK(adx.ready());
     CHECK(adx.value() > 0.0);
@@ -132,9 +132,9 @@ TEST_CASE("InlineVWAP with zero volume returns 0") {
 
 TEST_CASE("InlineVWAP deviation_bps") {
     InlineVWAP vwap;
-    vwap.update(100, 100, 100, 1000);  // VWAP = 100
+    vwap.update(100, 100, 100, 1000); // VWAP = 100
     double dev = vwap.deviation_bps(101);
-    CHECK(dev == doctest::Approx(100.0).epsilon(0.1));  // 1bp = 0.01%, 100bps = 1%
+    CHECK(dev == doctest::Approx(100.0).epsilon(0.1)); // 1bp = 0.01%, 100bps = 1%
 }
 
 TEST_CASE("InlineVWAP z_score") {
@@ -175,13 +175,12 @@ TEST_CASE("InlineVWAP std_dev zero with constant prices") {
 TEST_CASE("InlineVWAP Welford variance correctness") {
     // Regression: Welford's weighted variance should match naive computation
     InlineVWAP vwap;
-    struct DataPoint { double h, l, c, v; };
+    struct DataPoint {
+        double h, l, c, v;
+    };
     DataPoint data[] = {
-        {100, 95, 98, 1000},
-        {105, 100, 103, 1500},
-        {110, 105, 108, 2000},
-        {95, 90, 92, 800},
-        {102, 97, 100, 1200},
+        {100, 95, 98, 1000}, {105, 100, 103, 1500}, {110, 105, 108, 2000},
+        {95, 90, 92, 800},   {102, 97, 100, 1200},
     };
 
     // Naive computation
@@ -191,7 +190,7 @@ TEST_CASE("InlineVWAP Welford variance correctness") {
         total_pv += tp * d.v;
         total_v += d.v;
     }
-    double mean = total_pv / total_v;
+    double mean      = total_pv / total_v;
     double naive_var = 0;
     for (const auto& d : data) {
         double tp = (d.h + d.l + d.c) / 3.0;
@@ -214,8 +213,8 @@ TEST_CASE("InlineVWAP Welford variance correctness") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("InlineATR first update returns high-low") {
     InlineATR atr(14);
-    double val = atr.update(105, 95, 100);
-    CHECK(val == doctest::Approx(10.0));  // 105 - 95
+    double    val = atr.update(105, 95, 100);
+    CHECK(val == doctest::Approx(10.0)); // 105 - 95
 }
 
 TEST_CASE("InlineATR ready after period") {
@@ -230,7 +229,7 @@ TEST_CASE("InlineATR ready after period") {
 TEST_CASE("InlineATR with constant range converges") {
     InlineATR atr(5);
     for (int i = 0; i < 20; ++i) {
-        atr.update(105, 95, 100);  // Constant 10 range
+        atr.update(105, 95, 100); // Constant 10 range
     }
     CHECK(atr.value() == doctest::Approx(10.0).epsilon(0.1));
 }
@@ -254,7 +253,7 @@ TEST_CASE("SignalEngineV2 custom params") {
     SignalEngineV2::Params p;
     p.ema_fast_period = 10;
     p.ema_slow_period = 30;
-    p.buy_threshold = 0.5;
+    p.buy_threshold   = 0.5;
     SignalEngineV2 engine(p);
     CHECK(engine.params().ema_fast_period == 10);
     CHECK(engine.params().buy_threshold == doctest::Approx(0.5));
@@ -262,7 +261,7 @@ TEST_CASE("SignalEngineV2 custom params") {
 
 TEST_CASE("SignalEngineV2 weight sum should be 1.0") {
     SignalEngineV2::Params p;
-    double sum = p.w_ema + p.w_rsi + p.w_obi + p.w_vwap + p.w_adx + p.w_pressure;
+    double                 sum = p.w_ema + p.w_rsi + p.w_obi + p.w_vwap + p.w_adx + p.w_pressure;
     CHECK(sum == doctest::Approx(1.0).epsilon(0.001));
 }
 
@@ -271,14 +270,14 @@ TEST_CASE("SignalEngineV2 weight sum should be 1.0") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("SignalEngineV2 insufficient data returns neutral") {
     SignalEngineV2::Params p;
-    SignalEngineV2 engine(p);
+    SignalEngineV2         engine(p);
 
     // Only 5 candles — way below minimum
     Candle candles[5];
     for (int i = 0; i < 5; ++i) {
-        candles[i].close = 100.0 + i;
-        candles[i].high = 101.0 + i;
-        candles[i].low = 99.0 + i;
+        candles[i].close  = 100.0 + i;
+        candles[i].high   = 101.0 + i;
+        candles[i].low    = 99.0 + i;
         candles[i].volume = 1000;
     }
     OrderBook ob;
@@ -299,9 +298,9 @@ TEST_CASE("SignalEngineV2 cooldown blocks consecutive signals") {
     // Generate enough candles for analysis
     std::vector<Candle> candles(60);
     for (int i = 0; i < 60; ++i) {
-        candles[i].close = 100.0 + i * 0.5;
-        candles[i].high = 101.0 + i * 0.5;
-        candles[i].low = 99.0 + i * 0.5;
+        candles[i].close  = 100.0 + i * 0.5;
+        candles[i].high   = 101.0 + i * 0.5;
+        candles[i].low    = 99.0 + i * 0.5;
         candles[i].volume = 1000;
     }
     OrderBook ob;

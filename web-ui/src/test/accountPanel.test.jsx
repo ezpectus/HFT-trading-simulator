@@ -37,7 +37,7 @@ describe('AccountPanel', () => {
   it('renders exchange name in account card', () => {
     const accounts = { binance: makeAccount() }
     render(<AccountPanel accounts={accounts} />)
-    expect(screen.getByText('binance')).toBeInTheDocument()
+    expect(screen.getAllByText('binance').length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders leaderboard header', () => {
@@ -53,9 +53,9 @@ describe('AccountPanel', () => {
       bybit: makeAccount({ total_pnl: -100 }),
     }
     render(<AccountPanel accounts={accounts} />)
-    expect(screen.getByText('binance')).toBeInTheDocument()
-    expect(screen.getByText('okx')).toBeInTheDocument()
-    expect(screen.getByText('bybit')).toBeInTheDocument()
+    expect(screen.getAllByText('binance').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('okx').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('bybit').length).toBeGreaterThanOrEqual(1)
   })
 
   it('sorts leaderboard by PnL by default (descending)', () => {
@@ -143,7 +143,7 @@ describe('AccountPanel', () => {
     const accounts = { binance: {} }
     render(<AccountPanel accounts={accounts} />)
     // Should not crash, should render with 0 values
-    expect(screen.getByText('binance')).toBeInTheDocument()
+    expect(screen.getAllByText('binance').length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders recent trade PnL bars when trade_history exists', () => {
@@ -190,13 +190,13 @@ describe('AccountPanel', () => {
   it('renders win rate in account header', () => {
     const accounts = { binance: makeAccount({ win_rate: 65 }) }
     render(<AccountPanel accounts={accounts} />)
-    expect(screen.getByText(/65/)).toBeInTheDocument()
+    expect(screen.getAllByText(/65/).length).toBeGreaterThanOrEqual(1)
   })
 
   it('handles zero balance without division error', () => {
     const accounts = { binance: makeAccount({ balance: 0, total_pnl: 100 }) }
     render(<AccountPanel accounts={accounts} />)
-    expect(screen.getByText('binance')).toBeInTheDocument()
+    expect(screen.getAllByText('binance').length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders rank numbers for leaderboard', () => {

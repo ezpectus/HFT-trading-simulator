@@ -1,5 +1,6 @@
+from src.backtesting.backtest_engine import BacktestConfig, BacktestEngine
+from src.backtesting.backtest_engine import BacktestResult as BacktestEngineResult
 from src.backtesting.backtester import Backtester, BacktestResult, Trade
-from src.backtesting.backtest_engine import BacktestEngine, BacktestConfig, BacktestResult as BacktestEngineResult
 from src.backtesting.optimizer import StrategyOptimizer
 from src.backtesting.order_book_replay import OrderBookBacktester, OrderBookReplay, ReplayOrderBook
 from src.backtesting.plotter import BacktestPlotter

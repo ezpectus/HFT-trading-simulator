@@ -21,7 +21,7 @@ export default function MultiAccountView({ accounts, exchanges }) {
       const balance = acc.balance || 0
       const uPnl = acc.unrealized_pnl || 0
       const rPnl = acc.realized_pnl || 0
-      const positions = (acc.positions || []).filter(p => p.quantity > 0).length
+      const positions = Object.values(acc.positions || {}).filter(p => p.quantity > 0).length
       const fees = acc.total_fees || 0
       const trades = (acc.trade_history || []).length
 

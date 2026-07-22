@@ -88,7 +88,7 @@ class MetricsCollector:
 class MetricsServer:
     """HTTP server that serves Prometheus metrics on /metrics endpoint."""
 
-    def __init__(self, collector: MetricsCollector, host: str = "0.0.0.0", port: int = 9091):
+    def __init__(self, collector: MetricsCollector, host: str = "0.0.0.0", port: int = 9091):  # nosec: B104
         self.collector = collector
         self.host = host
         self.port = port

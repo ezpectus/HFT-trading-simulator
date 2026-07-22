@@ -271,7 +271,7 @@ export default function BanachFixedPoint({ candles, symbol, exchange }) {
       <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Banach:</strong> q {'<'} 1 implies unique fixed point (contraction) |
-        <strong> Best response:</strong> T_i(x) = argmax J_i(u_i, x_{-i}) |
+        <strong> Best response:</strong> T_i(x) = argmax J_i(u_i, x_{'{-i}'}) |
         <strong> Nash:</strong> x* = T(x*) (fixed point of best response) |
         <strong> Rate:</strong> ||e_n|| {'<='} q^n/(1-q) * ||e_0|| (geometric convergence)
       </div>

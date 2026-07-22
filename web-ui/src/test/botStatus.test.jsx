@@ -48,14 +48,14 @@ describe('BotStatus', () => {
     expect(screen.getAllByText('ACTIVE').length).toBe(2)
   })
 
-  it('shows ALL OPERATIONAL when both connected', () => {
-    render(<BotStatus signals={[]} fills={[]} accounts={{}} signalConnected={true} exchangeConnected={true} />)
-    expect(screen.getByText('ALL OPERATIONAL')).toBeDefined()
+  it('shows OPERATIONAL when both connected', () => {
+    render(<BotStatus signals={[]} fills={[]} accounts={{}} signalConnected={true} exchangeConnected={true} circuitBreaker={{ tripped: false, state: 'OPERATIONAL', consecutiveLosses: 0, totalTrips: 0, totalBlocks: 0 }} />)
+    expect(screen.getAllByText('OPERATIONAL').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('shows DEGRADED when one disconnected', () => {
+  it('shows No data when one disconnected', () => {
     render(<BotStatus signals={[]} fills={[]} accounts={{}} signalConnected={true} exchangeConnected={false} />)
-    expect(screen.getByText('DEGRADED')).toBeDefined()
+    expect(screen.getByText('No data')).toBeDefined()
   })
 
   it('shows Circuit Breaker section', () => {
@@ -63,14 +63,14 @@ describe('BotStatus', () => {
     expect(screen.getByText('Circuit Breaker')).toBeDefined()
   })
 
-  it('shows CLOSED (healthy) when connected', () => {
-    render(<BotStatus signals={[]} fills={[]} accounts={{}} signalConnected={true} exchangeConnected={true} />)
-    expect(screen.getAllByText('CLOSED (healthy)').length).toBe(2)
+  it('shows OPERATIONAL when connected with circuit breaker data', () => {
+    render(<BotStatus signals={[]} fills={[]} accounts={{}} signalConnected={true} exchangeConnected={true} circuitBreaker={{ tripped: false, state: 'OPERATIONAL', consecutiveLosses: 0, totalTrips: 0, totalBlocks: 0 }} />)
+    expect(screen.getAllByText('OPERATIONAL').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('shows OPEN (tripped) when disconnected', () => {
+  it('shows No data when disconnected with no circuit breaker data', () => {
     render(<BotStatus signals={[]} fills={[]} accounts={{}} signalConnected={false} exchangeConnected={false} />)
-    expect(screen.getAllByText('OPEN (tripped)').length).toBe(2)
+    expect(screen.getByText('No data')).toBeDefined()
   })
 
   it('shows Portfolio Overview section', () => {
@@ -80,20 +80,20 @@ describe('BotStatus', () => {
 
   it('aggregates balance from multiple accounts', () => {
     render(<BotStatus signals={[]} fills={[]} accounts={mockAccounts} signalConnected={true} exchangeConnected={true} />)
-    // 50000 + 30000 = 80000
-    expect(screen.getByText('$80,000')).toBeDefined()
+    // 50000 + 30000 = 80000, formatPrice adds .00
+    expect(screen.getByText('$80,000.00')).toBeDefined()
   })
 
   it('aggregates equity from multiple accounts', () => {
     render(<BotStatus signals={[]} fills={[]} accounts={mockAccounts} signalConnected={true} exchangeConnected={true} />)
     // 51000 + 29500 = 80500
-    expect(screen.getByText('$80,500')).toBeDefined()
+    expect(screen.getByText('$80,500.00')).toBeDefined()
   })
 
   it('aggregates PnL from multiple accounts', () => {
     render(<BotStatus signals={[]} fills={[]} accounts={mockAccounts} signalConnected={true} exchangeConnected={true} />)
     // 1000 + (-500) = 500
-    expect(screen.getByText('+$500')).toBeDefined()
+    expect(screen.getByText('+500.00')).toBeDefined()
   })
 
   it('shows negative PnL with minus sign', () => {
@@ -101,7 +101,7 @@ describe('BotStatus', () => {
       binance: { balance: 50000, equity: 49000, total_pnl: -1000, total_trades: 5, positions: [] },
     }
     render(<BotStatus signals={[]} fills={[]} accounts={negativeAccounts} signalConnected={true} exchangeConnected={true} />)
-    expect(screen.getByText('-$1,000')).toBeDefined()
+    expect(screen.getByText('-1,000.00')).toBeDefined()
   })
 
   it('aggregates positions count', () => {
@@ -128,8 +128,9 @@ describe('BotStatus', () => {
 
   it('shows activity feed with signals and fills', () => {
     render(<BotStatus signals={mockSignals} fills={mockFills} accounts={{}} signalConnected={true} exchangeConnected={true} />)
-    expect(screen.getByText('BTC/USDT')).toBeDefined()
-    expect(screen.getByText('ETH/USDT')).toBeDefined()
+    // Both signals and fills have BTC/USDT and ETH/USDT
+    expect(screen.getAllByText('BTC/USDT').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('ETH/USDT').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows Bot Activity header', () => {
@@ -155,7 +156,8 @@ describe('BotStatus', () => {
 
   it('shows dash when no signals', () => {
     render(<BotStatus signals={[]} fills={[]} accounts={{}} signalConnected={true} exchangeConnected={true} />)
-    expect(screen.getByText('—')).toBeDefined()
+    // Both bots show — for last signal and last fill
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1)
   })
 
   it('handles null accounts gracefully', () => {

@@ -14,7 +14,7 @@ export default function SessionExport({ accounts, fills, candles, signals, confi
           total_fees: acc.total_fees,
           total_trades: acc.total_trades,
           winning_trades: acc.winning_trades,
-          positions: acc.positions?.map(p => ({
+          positions: Object.values(acc.positions || {}).map(p => ({
             symbol: p.symbol,
             side: p.side,
             quantity: p.quantity,

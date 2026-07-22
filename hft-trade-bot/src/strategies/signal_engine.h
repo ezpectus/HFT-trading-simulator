@@ -8,16 +8,16 @@
 #define _USE_MATH_DEFINES
 #endif
 
-#include "../data/types.h"
 #include "../data/signal.h"
-#include <vector>
-#include <string>
-#include <deque>
-#include <cmath>
+#include "../data/types.h"
 #include <algorithm>
+#include <cmath>
 #include <complex>
-#include <valarray>
+#include <deque>
 #include <fmt/format.h>
+#include <string>
+#include <valarray>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -31,15 +31,15 @@ inline void fft(std::valarray<std::complex<double>>& a) {
     if (n <= 1) return;
 
     std::valarray<std::complex<double>> even = a[std::slice(0, n / 2, 2)];
-    std::valarray<std::complex<double>> odd = a[std::slice(1, n / 2, 2)];
+    std::valarray<std::complex<double>> odd  = a[std::slice(1, n / 2, 2)];
 
     fft(even);
     fft(odd);
 
     for (size_t k = 0; k < n / 2; ++k) {
-        double angle = -2.0 * M_PI * k / n;
+        double               angle = -2.0 * M_PI * k / n;
         std::complex<double> w(std::cos(angle), std::sin(angle));
-        a[k] = even[k] + w * odd[k];
+        a[k]         = even[k] + w * odd[k];
         a[k + n / 2] = even[k] - w * odd[k];
     }
 }
@@ -51,26 +51,28 @@ inline double spectral_trend_score(const std::vector<double>& closes) {
 
     // Pad to power of 2
     size_t n_fft = 1;
-    while (n_fft < n) n_fft <<= 1;
+    while (n_fft < n)
+        n_fft <<= 1;
 
     // Detrend
     double mean = 0.0;
-    for (auto c : closes) mean += c;
+    for (auto c : closes)
+        mean += c;
     mean /= n;
 
     std::valarray<std::complex<double>> data(0.0, n_fft);
     for (size_t i = 0; i < n; ++i) {
         // Hann window
         double w = 0.5 - 0.5 * std::cos(2.0 * M_PI * i / (n - 1));
-        data[i] = std::complex<double>((closes[i] - mean) * w, 0.0);
+        data[i]  = std::complex<double>((closes[i] - mean) * w, 0.0);
     }
 
     fft(data);
 
     // Power spectrum (first half only)
-    size_t half = n_fft / 2;
+    size_t              half = n_fft / 2;
     std::vector<double> power(half);
-    double total_power = 0.0;
+    double              total_power = 0.0;
     for (size_t i = 0; i < half; ++i) {
         power[i] = std::norm(data[i]);
         total_power += power[i];
@@ -78,24 +80,29 @@ inline double spectral_trend_score(const std::vector<double>& closes) {
     if (total_power == 0) return 0.0;
 
     // Split: low freq = trend, high freq = noise/cycle
-    size_t mid = half / 4;
+    size_t mid       = half / 4;
     double low_power = 0.0, high_power = 0.0;
-    for (size_t i = 0; i < mid; ++i) low_power += power[i];
-    for (size_t i = mid; i < half; ++i) high_power += power[i];
+    for (size_t i = 0; i < mid; ++i)
+        low_power += power[i];
+    for (size_t i = mid; i < half; ++i)
+        high_power += power[i];
 
     return (low_power - high_power) / total_power;
 }
 
 // FFT low-pass filter — smoothed price
-inline std::vector<double> fft_lowpass(const std::vector<double>& closes, double keep_ratio = 0.15) {
+inline std::vector<double> fft_lowpass(const std::vector<double>& closes,
+                                       double                     keep_ratio = 0.15) {
     size_t n = closes.size();
     if (n < 16) return closes;
 
     size_t n_fft = 1;
-    while (n_fft < n) n_fft <<= 1;
+    while (n_fft < n)
+        n_fft <<= 1;
 
     double mean = 0.0;
-    for (auto c : closes) mean += c;
+    for (auto c : closes)
+        mean += c;
     mean /= n;
 
     std::valarray<std::complex<double>> data(0.0, n_fft);
@@ -113,7 +120,8 @@ inline std::vector<double> fft_lowpass(const std::vector<double>& closes, double
 
     // Inverse FFT
     std::valarray<std::complex<double>> conj(n_fft);
-    for (size_t i = 0; i < n_fft; ++i) conj[i] = std::conj(data[i]);
+    for (size_t i = 0; i < n_fft; ++i)
+        conj[i] = std::conj(data[i]);
     fft(conj);
 
     std::vector<double> result(n);
@@ -129,13 +137,14 @@ inline std::vector<double> compute_ema(const std::vector<double>& values, int pe
     if (static_cast<int>(values.size()) < period) return result;
 
     double mult = 2.0 / (period + 1);
-    double ema = 0.0;
-    for (int i = 0; i < period; ++i) ema += values[i];
+    double ema  = 0.0;
+    for (int i = 0; i < period; ++i)
+        ema += values[i];
     ema /= period;
     result[period - 1] = ema;
 
     for (size_t i = period; i < values.size(); ++i) {
-        ema = values[i] * mult + ema * (1.0 - mult);
+        ema       = values[i] * mult + ema * (1.0 - mult);
         result[i] = ema;
     }
     return result;
@@ -149,8 +158,10 @@ inline std::vector<double> compute_rsi(const std::vector<double>& closes, int pe
     double avg_gain = 0.0, avg_loss = 0.0;
     for (int i = 1; i <= period; ++i) {
         double change = closes[i] - closes[i - 1];
-        if (change > 0) avg_gain += change;
-        else avg_loss -= change;
+        if (change > 0)
+            avg_gain += change;
+        else
+            avg_loss -= change;
     }
     avg_gain /= period;
     avg_loss /= period;
@@ -159,11 +170,11 @@ inline std::vector<double> compute_rsi(const std::vector<double>& closes, int pe
 
     for (size_t i = period + 1; i < closes.size(); ++i) {
         double change = closes[i] - closes[i - 1];
-        double gain = change > 0 ? change : 0.0;
-        double loss = change < 0 ? -change : 0.0;
-        avg_gain = (avg_gain * (period - 1) + gain) / period;
-        avg_loss = (avg_loss * (period - 1) + loss) / period;
-        result[i] = avg_loss == 0 ? 100.0 : 100.0 - 100.0 / (1.0 + avg_gain / avg_loss);
+        double gain   = change > 0 ? change : 0.0;
+        double loss   = change < 0 ? -change : 0.0;
+        avg_gain      = (avg_gain * (period - 1) + gain) / period;
+        avg_loss      = (avg_loss * (period - 1) + loss) / period;
+        result[i]     = avg_loss == 0 ? 100.0 : 100.0 - 100.0 / (1.0 + avg_gain / avg_loss);
     }
     return result;
 }
@@ -171,7 +182,7 @@ inline std::vector<double> compute_rsi(const std::vector<double>& closes, int pe
 // Order Book Imbalance — ratio of bid volume to total volume
 inline double compute_obi(const OrderBook& ob, int levels = 10) {
     double bid_vol = 0.0, ask_vol = 0.0;
-    int n = std::min(levels, static_cast<int>(ob.bids.size()));
+    int    n = std::min(levels, static_cast<int>(ob.bids.size()));
     for (int i = 0; i < n && i < static_cast<int>(ob.asks.size()); ++i) {
         bid_vol += ob.bids[i].quantity;
         ask_vol += ob.asks[i].quantity;
@@ -194,12 +205,14 @@ inline double compute_vwap(const std::vector<Candle>& candles) {
 // Price Pressure Model — compares recent buy vs sell pressure
 inline double compute_pressure(const std::vector<Candle>& candles, int lookback = 5) {
     if (candles.size() < 2u) return 0.0;
-    int n = std::min(lookback, static_cast<int>(candles.size()) - 1);
+    int    n            = std::min(lookback, static_cast<int>(candles.size()) - 1);
     double buy_pressure = 0.0, sell_pressure = 0.0;
     for (int i = static_cast<int>(candles.size()) - n; i < static_cast<int>(candles.size()); ++i) {
         double body = candles[i].close - candles[i].open;
-        if (body > 0) buy_pressure += body * candles[i].volume;
-        else sell_pressure += -body * candles[i].volume;
+        if (body > 0)
+            buy_pressure += body * candles[i].volume;
+        else
+            sell_pressure += -body * candles[i].volume;
     }
     double total = buy_pressure + sell_pressure;
     return total > 0 ? (buy_pressure - sell_pressure) / total : 0.0;
@@ -207,34 +220,34 @@ inline double compute_pressure(const std::vector<Candle>& candles, int lookback 
 
 // HFT Signal Engine — combines fast indicators into a signal
 class SignalEngine {
-public:
+  public:
     struct Params {
-        int fast_ema_period{9};
-        int slow_ema_period{21};
-        bool obi_enabled{true};
-        bool vwap_enabled{true};
-        bool pressure_enabled{true};
-        double obi_threshold{0.3};       // |OBI| > 0.3 = significant
-        double pressure_threshold{0.3};  // |pressure| > 0.3 = significant
+        int    fast_ema_period{9};
+        int    slow_ema_period{21};
+        bool   obi_enabled{true};
+        bool   vwap_enabled{true};
+        bool   pressure_enabled{true};
+        double obi_threshold{0.3};      // |OBI| > 0.3 = significant
+        double pressure_threshold{0.3}; // |pressure| > 0.3 = significant
     };
 
     explicit SignalEngine(const Params& params) : params_(params) {}
 
     struct FastSignal {
         std::string symbol;
-        std::string direction;  // "LONG", "SHORT", "NEUTRAL"
-        double confidence{};
+        std::string direction; // "LONG", "SHORT", "NEUTRAL"
+        double      confidence{};
         std::string reason;
-        double entry_price{};
-        double stop_loss{};
-        double take_profit{};
+        double      entry_price{};
+        double      stop_loss{};
+        double      take_profit{};
     };
 
     FastSignal analyze(const std::string& symbol, const std::vector<Candle>& candles,
                        const OrderBook& ob) {
         FastSignal sig;
-        sig.symbol = symbol;
-        sig.direction = "NEUTRAL";
+        sig.symbol     = symbol;
+        sig.direction  = "NEUTRAL";
         sig.confidence = 0.0;
 
         if (candles.size() < static_cast<size_t>(params_.slow_ema_period + 2)) {
@@ -245,7 +258,8 @@ public:
         // Extract closes
         std::vector<double> closes;
         closes.reserve(candles.size());
-        for (const auto& c : candles) closes.push_back(c.close);
+        for (const auto& c : candles)
+            closes.push_back(c.close);
 
         double current_price = closes.back();
 
@@ -266,7 +280,7 @@ public:
         double vwap = params_.vwap_enabled ? compute_vwap(candles) : current_price;
 
         // Score: combine signals
-        int long_votes = 0;
+        int long_votes  = 0;
         int short_votes = 0;
 
         if (bullish) long_votes++;
@@ -284,15 +298,19 @@ public:
         // FFT spectral trend score
         if (closes.size() >= 64u) {
             double fft_trend = spectral_trend_score(closes);
-            if (fft_trend > 0.2) long_votes++;
-            else if (fft_trend < -0.2) short_votes++;
+            if (fft_trend > 0.2)
+                long_votes++;
+            else if (fft_trend < -0.2)
+                short_votes++;
 
             // FFT smoothed price direction
             auto smoothed = fft_lowpass(closes, 0.15);
             if (smoothed.size() >= 3u) {
                 double slope = smoothed.back() - smoothed[smoothed.size() - 3];
-                if (slope > 0) long_votes++;
-                else if (slope < 0) short_votes++;
+                if (slope > 0)
+                    long_votes++;
+                else if (slope < 0)
+                    short_votes++;
             }
         }
 
@@ -314,21 +332,21 @@ public:
         if (atr_val == 0) atr_val = current_price * 0.01;
 
         if (long_votes >= 3 && long_votes > short_votes) {
-            sig.direction = "LONG";
-            sig.confidence = std::min(95.0, 35.0 + long_votes * 12.0);
+            sig.direction   = "LONG";
+            sig.confidence  = std::min(95.0, 35.0 + long_votes * 12.0);
             sig.entry_price = current_price;
-            sig.stop_loss = current_price - 2.0 * atr_val;
+            sig.stop_loss   = current_price - 2.0 * atr_val;
             sig.take_profit = current_price + 3.0 * atr_val;
-            sig.reason = fmt::format("HFT: {}/6 long votes (EMA={}, OBI={:.2f}, P={:.2f})",
-                long_votes, bullish ? "bull" : "bear", obi, pressure);
+            sig.reason      = fmt::format("HFT: {}/6 long votes (EMA={}, OBI={:.2f}, P={:.2f})",
+                                          long_votes, bullish ? "bull" : "bear", obi, pressure);
         } else if (short_votes >= 3 && short_votes > long_votes) {
-            sig.direction = "SHORT";
-            sig.confidence = std::min(95.0, 35.0 + short_votes * 12.0);
+            sig.direction   = "SHORT";
+            sig.confidence  = std::min(95.0, 35.0 + short_votes * 12.0);
             sig.entry_price = current_price;
-            sig.stop_loss = current_price + 2.0 * atr_val;
+            sig.stop_loss   = current_price + 2.0 * atr_val;
             sig.take_profit = current_price - 3.0 * atr_val;
-            sig.reason = fmt::format("HFT: {}/6 short votes (EMA={}, OBI={:.2f}, P={:.2f})",
-                short_votes, bullish ? "bull" : "bear", obi, pressure);
+            sig.reason      = fmt::format("HFT: {}/6 short votes (EMA={}, OBI={:.2f}, P={:.2f})",
+                                          short_votes, bullish ? "bull" : "bear", obi, pressure);
         } else {
             sig.reason = fmt::format("HFT: {}L/{}S votes, no consensus", long_votes, short_votes);
         }
@@ -336,7 +354,7 @@ public:
         return sig;
     }
 
-private:
+  private:
     Params params_;
 };
 

@@ -70,7 +70,7 @@ function createMockPopup() {
   return {
     closed: false,
     document: docEl,
-    close: vi.fn(() => { this.closed = true }),
+    close: vi.fn(function() { this.closed = true }),
   }
 }
 

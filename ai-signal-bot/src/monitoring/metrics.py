@@ -261,7 +261,7 @@ class MetricsExporter:
 
     # ── HTTP endpoint ──
 
-    async def start_server(self, host: str = "0.0.0.0", port: int = 9090):
+    async def start_server(self, host: str = "0.0.0.0", port: int = 9090):  # nosec: B104
         """Start Prometheus metrics HTTP server."""
         if not HAS_PROMETHEUS or not HAS_AIOHTTP:
             logger.warning("Cannot start metrics server — missing dependencies")

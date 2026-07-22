@@ -124,6 +124,6 @@ describe('DrawdownAnalysis', () => {
     const fills = [makeFill(500, 1), makeFill(-300, 2)]
     render(<DrawdownAnalysis fills={fills} />)
     // The sub-text is a percentage like "X.X%"
-    expect(screen.getByText(/%/)).toBeDefined()
+    expect(screen.getAllByText(/%/).length).toBeGreaterThanOrEqual(1)
   })
 })

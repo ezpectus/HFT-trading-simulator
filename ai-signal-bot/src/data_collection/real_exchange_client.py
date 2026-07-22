@@ -72,18 +72,18 @@ class RealExchangeClient:
 
     def _sign_binance(self, query_string: str) -> str:
         return hmac.new(
-            self.api_secret.encode(), query_string.encode(), hashlib.sha256
+            self.api_secret.encode(), query_string.encode(), hashlib.sha256  # codeql[py/weak-crypto] Binance API requires SHA-256
         ).hexdigest()
 
     def _sign_okx(self, timestamp: str, method: str, path: str, body: str = "") -> str:
         msg = f"{timestamp}{method.upper()}{path}{body}"
-        mac = hmac.new(self.api_secret.encode(), msg.encode(), hashlib.sha256)
+        mac = hmac.new(self.api_secret.encode(), msg.encode(), hashlib.sha256)  # codeql[py/weak-crypto] OKX API requires SHA-256
         return base64.b64encode(mac.digest()).decode()
 
     def _sign_bybit(self, timestamp: str, recv_window: int, param_str: str) -> str:
         msg = f"{timestamp}{self.api_key}{recv_window}{param_str}"
         return hmac.new(
-            self.api_secret.encode(), msg.encode(), hashlib.sha256
+            self.api_secret.encode(), msg.encode(), hashlib.sha256  # codeql[py/weak-crypto] Bybit API requires SHA-256
         ).hexdigest()
 
     async def get_balance(self) -> AccountBalance | None:

@@ -47,7 +47,7 @@ class ShmMarketDataWriter:
                                      access=mmap.ACCESS_WRITE)
                 self._fd = -1
             else:
-                self._fd = os.open(f"/dev/shm{self.name}", os.O_CREAT | os.O_RDWR, 0o666)
+                self._fd = os.open(f"/dev/shm{self.name}", os.O_CREAT | os.O_RDWR, 0o660)  # nosec: B108
                 os.ftruncate(self._fd, self._total_size)
                 self._mm = mmap.mmap(
                     self._fd, self._total_size, mmap.MAP_SHARED,
@@ -109,7 +109,7 @@ class ShmMarketDataWriter:
             self._fd = -1
         if not IS_WINDOWS:
             try:
-                os.remove(f"/dev/shm{self.name}")
+                os.remove(f"/dev/shm{self.name}")  # nosec: B108
             except FileNotFoundError:
                 pass
 

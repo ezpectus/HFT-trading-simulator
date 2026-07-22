@@ -6,8 +6,8 @@
 
 #include "../src/risk/pre_trade_risk.h"
 
-#include <thread>
 #include <chrono>
+#include <thread>
 
 using namespace hft;
 
@@ -22,7 +22,7 @@ TEST_CASE("TokenBucket: initial tokens equal burst size") {
 }
 
 TEST_CASE("TokenBucket: try_acquire decrements tokens") {
-    TokenBucket tb(1000.0, 10.0);  // high rate so refill is negligible
+    TokenBucket tb(1000.0, 10.0); // high rate so refill is negligible
     CHECK(tb.try_acquire());
     CHECK(tb.try_acquire());
     CHECK(tb.try_acquire());
@@ -31,7 +31,7 @@ TEST_CASE("TokenBucket: try_acquire decrements tokens") {
 }
 
 TEST_CASE("TokenBucket: try_acquire fails when empty") {
-    TokenBucket tb(0.01, 3.0);  // very slow refill
+    TokenBucket tb(0.01, 3.0); // very slow refill
     CHECK(tb.try_acquire());
     CHECK(tb.try_acquire());
     CHECK(tb.try_acquire());
@@ -42,14 +42,17 @@ TEST_CASE("TokenBucket: try_acquire fails when empty") {
 TEST_CASE("TokenBucket: try_acquire_n acquires multiple") {
     TokenBucket tb(0.01, 10.0);
     CHECK(tb.try_acquire_n(5.0));
-    CHECK_FALSE(tb.try_acquire_n(10.0));  // Only ~5 left
+    CHECK_FALSE(tb.try_acquire_n(10.0)); // Only ~5 left
 }
 
 TEST_CASE("TokenBucket: refills over time") {
-    TokenBucket tb(1000.0, 5.0);  // 1000/sec
+    TokenBucket tb(1000.0, 5.0); // 1000/sec
     // Consume all
-    tb.try_acquire(); tb.try_acquire(); tb.try_acquire();
-    tb.try_acquire(); tb.try_acquire();
+    tb.try_acquire();
+    tb.try_acquire();
+    tb.try_acquire();
+    tb.try_acquire();
+    tb.try_acquire();
     CHECK_FALSE(tb.try_acquire());
     // Wait for refill
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -63,12 +66,12 @@ TEST_CASE("TokenBucket: refills over time") {
 TEST_CASE("PreTradeRisk: valid order approved") {
     PreTradeRisk::Config cfg;
     cfg.max_position_per_symbol = 10.0;
-    cfg.max_total_notional = 100000.0;
-    cfg.daily_loss_limit = 5000.0;
-    cfg.max_leverage = 20.0;
-    cfg.min_margin_ratio = 0.05;
-    cfg.order_rate_per_second = 100.0;
-    cfg.order_burst_size = 100.0;
+    cfg.max_total_notional      = 100000.0;
+    cfg.daily_loss_limit        = 5000.0;
+    cfg.max_leverage            = 20.0;
+    cfg.min_margin_ratio        = 0.05;
+    cfg.order_rate_per_second   = 100.0;
+    cfg.order_burst_size        = 100.0;
 
     PreTradeRisk risk(cfg);
     auto result = risk.check("BTCUSDT", "BUY", 1.0, 50000.0, 10, 100000.0, 50000.0, 0.0, 0.0);
@@ -80,7 +83,7 @@ TEST_CASE("PreTradeRisk: blacklisted symbol rejected") {
     PreTradeRisk::Config cfg;
     cfg.blacklist.insert("DOGEUSDT");
     PreTradeRisk risk(cfg);
-    auto result = risk.check("DOGEUSDT", "BUY", 1.0, 0.10, 1, 10000.0, 5000.0, 0.0, 0.0);
+    auto         result = risk.check("DOGEUSDT", "BUY", 1.0, 0.10, 1, 10000.0, 5000.0, 0.0, 0.0);
     CHECK_FALSE(result.approved);
     CHECK(result.rejection_code == 1);
 }
@@ -89,7 +92,7 @@ TEST_CASE("PreTradeRisk: non-whitelisted symbol rejected") {
     PreTradeRisk::Config cfg;
     cfg.whitelist.insert("BTCUSDT");
     PreTradeRisk risk(cfg);
-    auto result = risk.check("ETHUSDT", "BUY", 1.0, 3000.0, 5, 100000.0, 50000.0, 0.0, 0.0);
+    auto         result = risk.check("ETHUSDT", "BUY", 1.0, 3000.0, 5, 100000.0, 50000.0, 0.0, 0.0);
     CHECK_FALSE(result.approved);
     CHECK(result.rejection_code == 2);
 }
@@ -105,7 +108,7 @@ TEST_CASE("PreTradeRisk: whitelisted symbol passes") {
 
 TEST_CASE("PreTradeRisk: leverage exceeds max rejected") {
     PreTradeRisk::Config cfg;
-    cfg.max_leverage = 10.0;
+    cfg.max_leverage     = 10.0;
     cfg.order_burst_size = 100.0;
     PreTradeRisk risk(cfg);
     auto result = risk.check("BTCUSDT", "BUY", 1.0, 50000.0, 20, 100000.0, 50000.0, 0.0, 0.0);
@@ -119,7 +122,7 @@ TEST_CASE("PreTradeRisk: leverage exceeds max rejected") {
 TEST_CASE("PreTradeRisk: position size exceeds limit rejected") {
     PreTradeRisk::Config cfg;
     cfg.max_position_per_symbol = 5.0;
-    cfg.order_burst_size = 100.0;
+    cfg.order_burst_size        = 100.0;
     PreTradeRisk risk(cfg);
     // Buying 6 when current is 0 → new_pos = 6, exceeds 5
     auto result = risk.check("BTCUSDT", "BUY", 6.0, 50000.0, 1, 1000000.0, 500000.0, 0.0, 0.0);
@@ -129,9 +132,9 @@ TEST_CASE("PreTradeRisk: position size exceeds limit rejected") {
 
 TEST_CASE("PreTradeRisk: per-symbol max position override") {
     PreTradeRisk::Config cfg;
-    cfg.max_position_per_symbol = 5.0;
+    cfg.max_position_per_symbol            = 5.0;
     cfg.per_symbol_max_position["BTCUSDT"] = 20.0;
-    cfg.order_burst_size = 100.0;
+    cfg.order_burst_size                   = 100.0;
     PreTradeRisk risk(cfg);
     // 10 BTC with per-symbol override of 20 → should pass
     auto result = risk.check("BTCUSDT", "BUY", 10.0, 50000.0, 1, 1000000.0, 500000.0, 0.0, 0.0);
@@ -141,7 +144,7 @@ TEST_CASE("PreTradeRisk: per-symbol max position override") {
 TEST_CASE("PreTradeRisk: short position reduces abs position") {
     PreTradeRisk::Config cfg;
     cfg.max_position_per_symbol = 5.0;
-    cfg.order_burst_size = 100.0;
+    cfg.order_burst_size        = 100.0;
     PreTradeRisk risk(cfg);
     // Current long 4, sell 3 → new_pos = 1, within limit
     auto result = risk.check("BTCUSDT", "SELL", 3.0, 50000.0, 1, 100000.0, 50000.0, 4.0, 200000.0);
@@ -151,10 +154,11 @@ TEST_CASE("PreTradeRisk: short position reduces abs position") {
 TEST_CASE("PreTradeRisk: sell flips long to short exceeding limit") {
     PreTradeRisk::Config cfg;
     cfg.max_position_per_symbol = 5.0;
-    cfg.order_burst_size = 100.0;
+    cfg.order_burst_size        = 100.0;
     PreTradeRisk risk(cfg);
     // Current long 2, sell 8 → new_pos = -6, |−6| > 5
-    auto result = risk.check("BTCUSDT", "SELL", 8.0, 50000.0, 1, 1000000.0, 500000.0, 2.0, 100000.0);
+    auto result =
+        risk.check("BTCUSDT", "SELL", 8.0, 50000.0, 1, 1000000.0, 500000.0, 2.0, 100000.0);
     CHECK_FALSE(result.approved);
     CHECK(result.rejection_code == 3);
 }
@@ -165,7 +169,7 @@ TEST_CASE("PreTradeRisk: sell flips long to short exceeding limit") {
 TEST_CASE("PreTradeRisk: total exposure exceeds limit rejected") {
     PreTradeRisk::Config cfg;
     cfg.max_total_notional = 100000.0;
-    cfg.order_burst_size = 100.0;
+    cfg.order_burst_size   = 100.0;
     PreTradeRisk risk(cfg);
     // Current exposure 80000, order notional 30000 → 110000 > 100000
     auto result = risk.check("BTCUSDT", "BUY", 3.0, 10000.0, 1, 1000000.0, 500000.0, 0.0, 80000.0);
@@ -176,7 +180,7 @@ TEST_CASE("PreTradeRisk: total exposure exceeds limit rejected") {
 TEST_CASE("PreTradeRisk: exposure exactly at limit passes") {
     PreTradeRisk::Config cfg;
     cfg.max_total_notional = 100000.0;
-    cfg.order_burst_size = 100.0;
+    cfg.order_burst_size   = 100.0;
     PreTradeRisk risk(cfg);
     // Current exposure 50000, order notional 50000 → 100000 == 100000 (not >)
     auto result = risk.check("BTCUSDT", "BUY", 1.0, 50000.0, 1, 1000000.0, 500000.0, 0.0, 50000.0);
@@ -202,7 +206,7 @@ TEST_CASE("PreTradeRisk: daily loss at exactly limit rejected") {
     cfg.daily_loss_limit = 5000.0;
     cfg.order_burst_size = 100.0;
     PreTradeRisk risk(cfg);
-    risk.update_daily_pnl(-5001.0);  // Just past limit
+    risk.update_daily_pnl(-5001.0); // Just past limit
     auto result = risk.check("BTCUSDT", "BUY", 1.0, 50000.0, 1, 1000000.0, 500000.0, 0.0, 0.0);
     CHECK_FALSE(result.approved);
     CHECK(result.rejection_code == 5);
@@ -224,8 +228,8 @@ TEST_CASE("PreTradeRisk: reset_daily clears loss limit") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("PreTradeRisk: rate limit exceeded after burst") {
     PreTradeRisk::Config cfg;
-    cfg.order_rate_per_second = 0.01;  // Very slow refill
-    cfg.order_burst_size = 3.0;
+    cfg.order_rate_per_second = 0.01; // Very slow refill
+    cfg.order_burst_size      = 3.0;
     PreTradeRisk risk(cfg);
     // First 3 should pass (burst), 4th should fail
     auto r1 = risk.check("BTCUSDT", "BUY", 1.0, 50000.0, 1, 1000000.0, 500000.0, 0.0, 0.0);
@@ -244,7 +248,7 @@ TEST_CASE("PreTradeRisk: rate limit exceeded after burst") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("PreTradeRisk: margin check allows reasonable order — regression test") {
     PreTradeRisk::Config cfg;
-    cfg.min_margin_ratio = 0.05;  // Keep 5% buffer
+    cfg.min_margin_ratio = 0.05; // Keep 5% buffer
     cfg.order_burst_size = 100.0;
     PreTradeRisk risk(cfg);
     // available_margin = 10000, required_margin = 5000
@@ -299,7 +303,7 @@ TEST_CASE("PreTradeRisk: dynamic blacklist add/remove") {
 
 TEST_CASE("PreTradeRisk: daily_pnl getter returns stored value") {
     PreTradeRisk::Config cfg;
-    PreTradeRisk risk(cfg);
+    PreTradeRisk         risk(cfg);
     risk.update_daily_pnl(1500.0);
     CHECK(risk.daily_pnl() == doctest::Approx(1500.0));
 }

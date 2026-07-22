@@ -66,7 +66,7 @@ export default function TrailingStopCalculator({ candles, accounts, currentPrice
     let posQty = 0
     let posSide = ''
     for (const acc of Object.values(accounts || {})) {
-      for (const pos of (acc.positions || [])) {
+      for (const pos of Object.values(acc.positions || {})) {
         if (pos.symbol === symbol) {
           hasPosition = true
           posEntry = pos.entry_price

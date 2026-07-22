@@ -27,7 +27,7 @@ const betaPDF = (x, alpha, beta) => {
 // Stirling's approximation for log(Gamma)
 const logGamma = (z) => {
   const c = [
-    76.18009172947146, -86.50532032941677, 24.01409824083091,
+    76.1800917294715, -86.5053203294168, 24.0140982408309,
     -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5
   ]
   let y = z
@@ -37,7 +37,7 @@ const logGamma = (z) => {
     y += 1
     ser += c[j] / y
   }
-  return -tmp + Math.log(2.5066282746310005 * ser / z)
+  return -tmp + Math.log(2.506628274631 * ser / z)
 }
 
 // Normal PDF

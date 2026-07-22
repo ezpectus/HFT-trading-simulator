@@ -12,6 +12,13 @@ self.addEventListener('message', (e) => {
   const { type, data, id } = e.data
   let result
 
+  // Validate message type against allowed set to prevent injection
+  const allowedTypes = ['ema', 'rsi', 'sma', 'macd', 'bollinger', 'atr', 'matrix_multiply', 'correlation', 'log_returns']
+  if (!allowedTypes.includes(type)) {
+    self.postMessage({ id, type: type || 'unknown', result: null, error: `Unknown message type: ${type}` })
+    return
+  }
+
   try {
     switch (type) {
       case 'ema':
@@ -52,6 +59,7 @@ self.addEventListener('message', (e) => {
 })
 
 function calcEMA(closes, period) {
+  if (!Array.isArray(closes)) throw new Error('closes must be an array')
   const k = 2 / (period + 1)
   const ema = new Array(closes.length).fill(NaN)
   if (closes.length < period) return ema
@@ -66,6 +74,7 @@ function calcEMA(closes, period) {
 }
 
 function calcRSI(closes, period = 14) {
+  if (!Array.isArray(closes)) throw new Error('closes must be an array')
   const rsi = new Array(closes.length).fill(NaN)
   if (closes.length < period + 1) return rsi
   let avgGain = 0, avgLoss = 0
@@ -151,6 +160,7 @@ function calcATR(highs, lows, closes, period = 14) {
 }
 
 function matmul(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b)) throw new Error('inputs must be arrays')
   const rows = a.length, cols = b[0].length, inner = b.length
   const result = new Array(rows)
   for (let i = 0; i < rows; i++) {

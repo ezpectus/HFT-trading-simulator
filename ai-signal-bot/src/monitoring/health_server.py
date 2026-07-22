@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class HealthServer:
     """HTTP health check server."""
 
-    def __init__(self, port: int = 8080, host: str = "0.0.0.0"):
+    def __init__(self, port: int = 8080, host: str = "0.0.0.0"):  # nosec: B104
         self.port = port
         self.host = host
         self._app: web.Application | None = None

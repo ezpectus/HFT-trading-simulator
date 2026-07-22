@@ -27,3 +27,9 @@ quote-style = "double"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning:matplotlib.*",
+    "ignore::DeprecationWarning:pyparsing.*",
+    "ignore::PendingDeprecationWarning:matplotlib.*",
+    "ignore::PendingDeprecationWarning:pyparsing.*",
+]

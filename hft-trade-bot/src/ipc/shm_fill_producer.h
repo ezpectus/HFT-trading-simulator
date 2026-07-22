@@ -4,17 +4,16 @@
 // Python reads fills for persistence and dashboard updates.
 #pragma once
 
-#include "shm_ring_buffer.h"
 #include "shm_protocol.h"
-#include <string>
+#include "shm_ring_buffer.h"
 #include <chrono>
+#include <string>
 
 namespace hft::ipc {
 
 class ShmFillProducer {
-public:
-    ShmFillProducer(const std::string& shm_name = "/hft_fills",
-                    uint64_t capacity = 4096)
+  public:
+    ShmFillProducer(const std::string& shm_name = "/hft_fills", uint64_t capacity = 4096)
         : shm_name_(shm_name), capacity_(capacity) {}
 
     ~ShmFillProducer() { close(); }
@@ -22,8 +21,7 @@ public:
     // Create the SHM segment (C++ creates, Python opens)
     [[nodiscard]] bool init() {
         try {
-            buffer_ = std::make_unique<ShmRingBuffer<FillMsg>>(
-                shm_name_, capacity_, true);
+            buffer_ = std::make_unique<ShmRingBuffer<FillMsg>>(shm_name_, capacity_, true);
             return true;
         } catch (const std::exception& e) {
             return false;
@@ -37,16 +35,16 @@ public:
     }
 
     // Push a fill with convenience parameters
-    bool push_fill(uint64_t timestamp, uint8_t symbol_id, uint8_t side,
-                   float qty, float price, float fee, uint8_t exchange_id) {
+    bool push_fill(uint64_t timestamp, uint8_t symbol_id, uint8_t side, float qty, float price,
+                   float fee, uint8_t exchange_id) {
         if (!buffer_) return false;
         FillMsg msg{};
-        msg.timestamp = timestamp;
-        msg.symbol_id = symbol_id;
-        msg.side = side;
-        msg.qty = qty;
-        msg.price = price;
-        msg.fee = fee;
+        msg.timestamp   = timestamp;
+        msg.symbol_id   = symbol_id;
+        msg.side        = side;
+        msg.qty         = qty;
+        msg.price       = price;
+        msg.fee         = fee;
         msg.exchange_id = exchange_id;
         return buffer_->try_push(msg);
     }
@@ -58,9 +56,7 @@ public:
     }
 
     // Current pending fills (not yet consumed by Python)
-    uint64_t pending() const {
-        return buffer_ ? buffer_->size() : 0;
-    }
+    uint64_t pending() const { return buffer_ ? buffer_->size() : 0; }
 
     // Close and unlink SHM
     void close() {
@@ -70,9 +66,9 @@ public:
         }
     }
 
-private:
-    std::string shm_name_;
-    uint64_t capacity_;
+  private:
+    std::string                             shm_name_;
+    uint64_t                                capacity_;
     std::unique_ptr<ShmRingBuffer<FillMsg>> buffer_;
 };
 

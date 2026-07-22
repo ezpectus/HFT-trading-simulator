@@ -202,6 +202,8 @@ For full setup instructions, see [docs/SETUP.md](docs/SETUP.md).
 
 ## Running Tests
 
+**All-in-one (Windows):** `run-all-tests.bat` opens 7 windows — Python lint/security, Python tests, JS lint/audit, JS tests + E2E, JS build, Docker build, C++ lint/build/tests.
+
 ```bash
 # Exchange simulator tests
 cd exchange_simulator
@@ -223,9 +225,10 @@ ctest --output-on-failure
 
 # Web UI tests
 cd web-ui
-npm test          # Vitest
+npm test          # Vitest (isolate: true, 16GB heap)
 npm run lint      # ESLint
 npm run build     # Production build verification
+npm run test:e2e  # Playwright E2E (auto-starts dev:mock server)
 
 ## Running the System
 
@@ -296,7 +299,7 @@ npx vitest run --coverage         # With coverage report
 npx vitest                        # Watch mode
 ```
 
-Test files are in `web-ui/src/test/`. Current coverage: 37 test files, 458+ tests covering:
+Test files are in `web-ui/src/test/`. Current coverage: 38 test files, 525+ tests covering:
 - Component rendering and empty states (EmptyState, SignalFeed, BotStatus, FillsPanel)
 - Form validation (OrderForm quantity/margin validation)
 - Error boundaries (retry, auto-disable after 3+ errors)
@@ -311,6 +314,24 @@ Test files are in `web-ui/src/test/`. Current coverage: 37 test files, 458+ test
 - ConfidenceScorer (8-factor confidence model, empty state <15 candles, direction bias detection, recommendation messages, candle filtering by exchange/symbol)
 - DrawdownAnalysis (max/current drawdown, duration, recoveries, underwater %, peak equity, recovery indicator, edge cases with missing pnl/timestamp)
 - Hook tests: useWebSocket (reconnect, message handling), useDebounce (timer, cleanup), useLocalStorage (persistence, JSON, remove), useKeyboardShortcuts (combos, input ignoring, preventDefault), useMediaQuery (match, cleanup, re-subscribe), useSoundAlerts (AudioContext, oscillator, enable/disable), usePerformance (debounce, throttle, batched updates, worker, intersection observer), useTradeJournal (save/get/delete notes, CSV export), useDetachablePanels (detach, update, close, popup content for all panel types), useExchangeData (snapshot, fills, arbitrage, replay, candle merge/sort, order submission, toggleReplay), useSignalData (signal_history, single signal, regime, backtest callback), useMockData (mock exchange data, mock signals, periodic updates, toggleReplay, cleanup)
+
+### Web UI E2E (Playwright)
+
+```bash
+cd web-ui
+npx playwright test                    # Run all E2E tests
+npx playwright test --headed           # With browser window
+npx playwright test e2e/smoke.spec.js  # Only smoke tests
+npx playwright test e2e/mock-mode.spec.js  # Only mock mode tests
+```
+
+Playwright automatically starts a mock-mode dev server (`npm run dev:mock`) on port 3000. Tests run against Chromium. The `playwright.config.js` uses `reuseExistingServer` in local dev, so you can keep your dev server running.
+
+Test files (in `web-ui/e2e/`):
+- `smoke.spec.js` — Header, exchange/symbol selectors, tab navigation, order form, order book, panel container, status bar
+- `trading.spec.js` — Keyboard shortcuts (exchange/symbol/tab switching, sidebar toggle), tab navigation, order form state, mock mode banner, panel settings
+- `mock-mode.spec.js` — Full mock mode: chart, exchange/symbol selectors, tab switching, sidebar, order form elements, signal feed, responsive design, console error check
+- `screenshots.spec.js` — Captures screenshots for README (dashboard, market data, order book, backtest, signal engine, positions, mobile)
 
 ### Python (pytest)
 

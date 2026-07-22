@@ -4,23 +4,22 @@
 // Runs in a dedicated thread, invokes callback on each received signal.
 #pragma once
 
-#include "shm_ring_buffer.h"
-#include "shm_protocol.h"
 #include "../data/aligned_types.h"
-#include <thread>
+#include "shm_protocol.h"
+#include "shm_ring_buffer.h"
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <string>
-#include <chrono>
+#include <thread>
 
 namespace hft::ipc {
 
 class ShmSignalConsumer {
-public:
+  public:
     using SignalCallback = std::function<void(const SignalMsg&)>;
 
-    ShmSignalConsumer(const std::string& shm_name = "/hft_signals",
-                      uint64_t capacity = 4096)
+    ShmSignalConsumer(const std::string& shm_name = "/hft_signals", uint64_t capacity = 4096)
         : shm_name_(shm_name), capacity_(capacity) {}
 
     ~ShmSignalConsumer() { stop(); }
@@ -30,8 +29,7 @@ public:
         if (running_.load(std::memory_order_relaxed)) return;
 
         // Open existing SHM segment (Python creates it)
-        buffer_ = std::make_unique<ShmRingBuffer<SignalMsg>>(
-            shm_name_, capacity_, false);
+        buffer_ = std::make_unique<ShmRingBuffer<SignalMsg>>(shm_name_, capacity_, false);
 
         callback_ = std::move(callback);
         running_.store(true, std::memory_order_relaxed);
@@ -52,13 +50,11 @@ public:
     }
 
     // Number of pending signals
-    uint64_t pending() const {
-        return buffer_ ? buffer_->size() : 0;
-    }
+    uint64_t pending() const { return buffer_ ? buffer_->size() : 0; }
 
     bool is_running() const { return running_.load(std::memory_order_relaxed); }
 
-private:
+  private:
     void run() {
         SignalMsg msg;
         while (running_.load(std::memory_order_relaxed)) {
@@ -71,11 +67,11 @@ private:
         }
     }
 
-    std::string shm_name_;
-    uint64_t capacity_;
-    std::atomic<bool> running_{false};
-    std::thread thread_;
-    SignalCallback callback_;
+    std::string                               shm_name_;
+    uint64_t                                  capacity_;
+    std::atomic<bool>                         running_{false};
+    std::thread                               thread_;
+    SignalCallback                            callback_;
     std::unique_ptr<ShmRingBuffer<SignalMsg>> buffer_;
 };
 

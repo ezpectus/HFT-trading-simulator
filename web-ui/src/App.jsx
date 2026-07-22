@@ -187,6 +187,7 @@ export default function App() {
     'h': () => setActiveTab('history'),
     't': () => setActiveTab('performance'),
     'shift+\\': () => useUIStore.getState().setSidebarCollapsed(!useUIStore.getState().sidebarCollapsed),
+    'shift+|': () => useUIStore.getState().setSidebarCollapsed(!useUIStore.getState().sidebarCollapsed),
   })
 
   // Handle sim speed change
@@ -515,10 +516,10 @@ export default function App() {
 }
 
 function TabButton({ active, onClick, icon, children }) {
-  const Icon = icon
   return (
     <button
       onClick={onClick}
+      role="tab"
       aria-pressed={active}
       className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue rounded-sm ${
         active
@@ -526,7 +527,7 @@ function TabButton({ active, onClick, icon, children }) {
           : 'text-gray-400 hover:text-gray-200 hover:bg-bg-700'
       }`}
     >
-      {Icon && <Icon size={14} aria-hidden="true" />}
+      {icon}
       {children}
     </button>
   )

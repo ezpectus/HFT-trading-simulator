@@ -3,7 +3,7 @@ import { formatTime } from '../utils/format'
 
 export default function StatusBar({ exchange, signals, selectedExchange, selectedSymbol, candleCount, exchangeLatency, signalLatency }) {
   const totalPositions = Object.values(exchange.accounts || {}).reduce(
-    (s, a) => s + (a.positions?.length || 0), 0
+    (s, a) => s + Object.keys(a.positions || {}).length, 0
   )
   const totalTrades = Object.values(exchange.accounts || {}).reduce(
     (s, a) => s + (a.total_trades || 0), 0
@@ -16,7 +16,7 @@ export default function StatusBar({ exchange, signals, selectedExchange, selecte
   )
 
   const pnlBreakdown = Object.entries(exchange.accounts || {})
-    .map(([id, a]) => `${id}: $${(a.unrealized_pnl || 0).toFixed(2)} (${a.positions?.length || 0} pos)`)
+    .map(([id, a]) => `${id}: $${(a.unrealized_pnl || 0).toFixed(2)} (${Object.keys(a.positions || {}).length} pos)`)
     .join('\n')
 
   const simTime = exchange.candles.length > 0

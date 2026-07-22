@@ -15,8 +15,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.js'],
-    pool: 'forks',
+    pool: 'threads',
     isolate: true,
+    maxWorkers: 1,
+    minWorkers: 1,
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     server: {
       deps: {

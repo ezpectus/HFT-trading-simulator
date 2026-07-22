@@ -113,7 +113,7 @@ class HealthAggregator:
         app.router.add_get("/healthz", self._handle_health)
         self._runner = web.AppRunner(app)
         await self._runner.setup()
-        self._site = web.TCPSite(self._runner, "0.0.0.0", self.port)
+        self._site = web.TCPSite(self._runner, "0.0.0.0", self.port)  # nosec: B104
         await self._site.start()
         logger.info(f"Health aggregator started on :{self.port}/health")
 

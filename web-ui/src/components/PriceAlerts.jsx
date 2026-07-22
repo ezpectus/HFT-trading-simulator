@@ -8,7 +8,7 @@ export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert })
   const [threshold, setThreshold] = useState('')
   const [direction, setDirection] = useState('above')
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const triggeredRef = useRef(new Set())
+  const [triggered, setTriggered] = useState(new Set())
   const audioCtxRef = useRef(null)
 
   const playAlertSound = useCallback(() => {
@@ -42,25 +42,39 @@ export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert })
   useEffect(() => {
     if (!currentPrice) return
     for (const alert of alerts) {
-      if (triggeredRef.current.has(alert.id)) continue
+      if (triggered.has(alert.id)) continue
       const hit = alert.direction === 'above'
         ? currentPrice >= alert.threshold
         : currentPrice <= alert.threshold
       if (hit) {
-        triggeredRef.current.add(alert.id)
+        setTriggered(prev => {
+          const next = new Set(prev)
+          next.add(alert.id)
+          return next
+        })
         playAlertSound()
         onAlert(alert)
       }
     }
-  }, [currentPrice, alerts, onAlert])
+  }, [currentPrice, alerts, onAlert, triggered, playAlertSound])
 
   // Clean up triggered alerts for removed ones
   useEffect(() => {
     const validIds = new Set(alerts.map(a => a.id))
-    for (const id of triggeredRef.current) {
-      if (!validIds.has(id)) triggeredRef.current.delete(id)
+    let needsCleanup = false
+    for (const id of triggered) {
+      if (!validIds.has(id)) needsCleanup = true
     }
-  }, [alerts])
+    if (needsCleanup) {
+      setTriggered(prev => {
+        const next = new Set(prev)
+        for (const id of next) {
+          if (!validIds.has(id)) next.delete(id)
+        }
+        return next
+      })
+    }
+  }, [alerts, triggered])
 
   const addAlert = () => {
     const t = parseFloat(threshold)
@@ -80,11 +94,15 @@ export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert })
 
   const removeAlert = (id) => {
     setAlerts(prev => prev.filter(a => a.id !== id))
-    triggeredRef.current.delete(id)
+    setTriggered(prev => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
   }
 
-  const activeAlerts = alerts.filter(a => !triggeredRef.current.has(a.id))
-  const triggeredAlerts = alerts.filter(a => triggeredRef.current.has(a.id))
+  const activeAlerts = alerts.filter(a => !triggered.has(a.id))
+  const triggeredAlerts = alerts.filter(a => triggered.has(a.id))
 
   return (
     <div className="bg-bg-700 rounded-lg p-2.5">

@@ -50,6 +50,10 @@ class MockResizeObserver {
 }
 global.ResizeObserver = MockResizeObserver
 
+// Mock requestAnimationFrame / cancelAnimationFrame
+global.requestAnimationFrame = (cb) => setTimeout(cb, 16)
+global.cancelAnimationFrame = (id) => clearTimeout(id)
+
 // Mock requestIdleCallback
 global.requestIdleCallback = global.requestIdleCallback || ((cb) => setTimeout(cb, 0))
 global.cancelIdleCallback = global.cancelIdleCallback || ((id) => clearTimeout(id))
@@ -67,3 +71,6 @@ console.warn = (...args) => {
   if (typeof args[0] === 'string' && args[0].includes('[PanelContainer]')) return
   origWarn.call(console, ...args)
 }
+
+// Suppress jsdom uncaught error events (error boundaries re-throw in React 18 dev mode)
+window.onerror = () => true

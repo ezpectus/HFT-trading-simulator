@@ -11,23 +11,26 @@ using namespace hft;
 // Mock exchange for testing
 // ═══════════════════════════════════════════════════════════════════════════
 class MockExchange : public ExchangeBase {
-public:
-    MockExchange(const std::string& id, double maker_bps, double taker_bps,
-                 double bid, double ask, double depth = 10.0)
-        : ExchangeBase(id, maker_bps, taker_bps)
-        , bid_(bid), ask_(ask), depth_(depth) {}
+  public:
+    MockExchange(const std::string& id, double maker_bps, double taker_bps, double bid, double ask,
+                 double depth = 10.0)
+        : ExchangeBase(id, maker_bps, taker_bps), bid_(bid), ask_(ask), depth_(depth) {}
 
     double best_bid(const std::string& /*symbol*/) const override { return bid_; }
     double best_ask(const std::string& /*symbol*/) const override { return ask_; }
     double mid_price(const std::string& /*symbol*/) const override { return (bid_ + ask_) / 2.0; }
-    double bid_depth(const std::string& /*symbol*/, int /*levels*/) const override { return depth_; }
-    double ask_depth(const std::string& /*symbol*/, int /*levels*/) const override { return depth_; }
+    double bid_depth(const std::string& /*symbol*/, int /*levels*/) const override {
+        return depth_;
+    }
+    double ask_depth(const std::string& /*symbol*/, int /*levels*/) const override {
+        return depth_;
+    }
 
     void set_bid(double b) { bid_ = b; }
     void set_ask(double a) { ask_ = a; }
     void set_depth(double d) { depth_ = d; }
 
-private:
+  private:
     double bid_;
     double ask_;
     double depth_;
@@ -79,16 +82,17 @@ TEST_CASE("ExchangeBase toxic event tracking") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("Router returns no available exchanges when empty") {
     SmartOrderRouterV2 router;
-    auto decision = router.route("BTC/USDT", true, 1.0);
+    auto               decision = router.route("BTC/USDT", true, 1.0);
     CHECK(std::string(decision.exchange) == "");
     CHECK(std::string(decision.reason) == "No available exchanges");
 }
 
 TEST_CASE("Router skips unavailable exchanges") {
     SmartOrderRouterV2 router;
-    MockExchange ex("binance", 2.0, 4.0, 50000, 50010);
+    MockExchange       ex("binance", 2.0, 4.0, 50000, 50010);
     // Make unavailable via toxic events
-    for (int i = 0; i < 5; ++i) ex.record_toxic_event();
+    for (int i = 0; i < 5; ++i)
+        ex.record_toxic_event();
     router.add_exchange(&ex);
     auto decision = router.route("BTC/USDT", true, 1.0);
     CHECK(std::string(decision.reason) == "No available exchanges");
@@ -150,7 +154,7 @@ TEST_CASE("Router LOWEST_LATENCY picks fastest exchange") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("Router LOWEST_FEES picks cheapest maker fee") {
     SmartOrderRouterV2::RoutingConfig cfg;
-    cfg.strategy = SmartOrderRouterV2::Strategy::LOWEST_FEES;
+    cfg.strategy     = SmartOrderRouterV2::Strategy::LOWEST_FEES;
     cfg.prefer_maker = true;
     SmartOrderRouterV2 router(cfg);
 
@@ -169,7 +173,7 @@ TEST_CASE("Router LOWEST_FEES picks cheapest maker fee") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("Router BEST_EFFECTIVE considers fees in price") {
     SmartOrderRouterV2::RoutingConfig cfg;
-    cfg.strategy = SmartOrderRouterV2::Strategy::BEST_EFFECTIVE;
+    cfg.strategy     = SmartOrderRouterV2::Strategy::BEST_EFFECTIVE;
     cfg.prefer_maker = true;
     SmartOrderRouterV2 router(cfg);
 
@@ -190,9 +194,9 @@ TEST_CASE("Router BEST_EFFECTIVE considers fees in price") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("Router DEPTH_AWARE penalizes insufficient depth") {
     SmartOrderRouterV2::RoutingConfig cfg;
-    cfg.strategy = SmartOrderRouterV2::Strategy::DEPTH_AWARE;
-    cfg.prefer_maker = true;
-    cfg.min_depth_qty = 0.0;  // Don't filter out, just penalize
+    cfg.strategy      = SmartOrderRouterV2::Strategy::DEPTH_AWARE;
+    cfg.prefer_maker  = true;
+    cfg.min_depth_qty = 0.0; // Don't filter out, just penalize
     SmartOrderRouterV2 router(cfg);
 
     // Exchange A: better price but low depth
@@ -211,13 +215,13 @@ TEST_CASE("Router DEPTH_AWARE penalizes insufficient depth") {
 
 TEST_CASE("Router filters exchanges below min_depth_qty") {
     SmartOrderRouterV2::RoutingConfig cfg;
-    cfg.strategy = SmartOrderRouterV2::Strategy::BEST_EFFECTIVE;
-    cfg.prefer_maker = true;
+    cfg.strategy      = SmartOrderRouterV2::Strategy::BEST_EFFECTIVE;
+    cfg.prefer_maker  = true;
     cfg.min_depth_qty = 1.0;
     SmartOrderRouterV2 router(cfg);
 
     MockExchange ex1("binance", 2.0, 4.0, 50000, 50000);
-    ex1.set_depth(0.5);  // Below min_depth_qty
+    ex1.set_depth(0.5); // Below min_depth_qty
     MockExchange ex2("okx", 2.0, 4.0, 50000, 50010);
     ex2.set_depth(10.0);
     router.add_exchange(&ex1);
@@ -233,8 +237,8 @@ TEST_CASE("Router filters exchanges below min_depth_qty") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("Router set_strategy changes routing behavior") {
     SmartOrderRouterV2 router;
-    MockExchange ex1("binance", 10.0, 20.0, 50000, 50000);
-    MockExchange ex2("okx", 1.0, 3.0, 50000, 50010);
+    MockExchange       ex1("binance", 10.0, 20.0, 50000, 50000);
+    MockExchange       ex2("okx", 1.0, 3.0, 50000, 50010);
     router.add_exchange(&ex1);
     router.add_exchange(&ex2);
 
@@ -251,8 +255,8 @@ TEST_CASE("Router set_strategy changes routing behavior") {
 
 TEST_CASE("Router reset_toxic_counters clears all exchanges") {
     SmartOrderRouterV2 router;
-    MockExchange ex1("binance", 2.0, 4.0, 50000, 50100);
-    MockExchange ex2("okx", 1.0, 3.0, 50000, 50100);
+    MockExchange       ex1("binance", 2.0, 4.0, 50000, 50100);
+    MockExchange       ex2("okx", 1.0, 3.0, 50000, 50100);
     ex1.record_toxic_event();
     ex2.record_toxic_event();
     router.add_exchange(&ex1);

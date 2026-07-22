@@ -79,7 +79,7 @@ class AISignalBot:
 
         # Components
         self.exchange = ExchangeClient(config.ws_url)
-        self.signal_publisher = SignalPublisher(host="0.0.0.0", port=8766)
+        self.signal_publisher = SignalPublisher(host="0.0.0.0", port=8766)  # nosec: B104
         self.db = Database(config.db_path)
         self.validator = SignalValidator(
             min_confidence=config.min_confidence,

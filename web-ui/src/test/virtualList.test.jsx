@@ -7,7 +7,7 @@ import VirtualList from '../components/VirtualList'
 
 describe('VirtualList', () => {
   const items = Array.from({ length: 100 }, (_, i) => `Item ${i}`)
-  const renderItem = ({ item }) => <div>{item}</div>
+  const renderItem = (item) => <div>{item}</div>
 
   it('renders without crashing', () => {
     const { container } = render(
@@ -46,9 +46,11 @@ describe('VirtualList', () => {
     expect(scrollContainer).toBeTruthy()
     // Simulate scroll
     fireEvent.scroll(scrollContainer, { target: { scrollTop: 500 } })
-    // After scrolling 500px, item 0 should not be visible
-    // (but it might still be in overscan, so check item ~17+)
-    expect(screen.getByText('Item 17')).toBeInTheDocument()
+    // After scrolling 500px with itemHeight=28, first visible index ~17
+    // Item 17 should be rendered (within visible window + overscan)
+    const renderedTexts = container.querySelectorAll('[style*="position: absolute"]')
+    const texts = Array.from(renderedTexts).map(el => el.textContent)
+    expect(texts).toContain('Item 17')
   })
 
   it('uses custom keyExtractor when provided', () => {
@@ -71,8 +73,9 @@ describe('VirtualList', () => {
     const { container } = render(
       <VirtualList items={items} itemHeight={50} maxHeight={300} renderItem={renderItem} />
     )
-    const innerDiv = container.querySelector('[style*="height:"]')
+    const innerDiv = container.querySelector('[style*="height: 5000px"]')
     // totalHeight = 100 * 50 = 5000
+    expect(innerDiv).toBeTruthy()
     expect(innerDiv.style.height).toBe('5000px')
   })
 })

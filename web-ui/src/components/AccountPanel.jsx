@@ -115,7 +115,7 @@ export default function AccountPanel({ accounts }) {
               />
               <Stat label="Fees" value={formatUsd(acc.total_fees)} color="text-gray-400" />
               <Stat label="Trades" value={acc.total_trades} />
-              <Stat label="Positions" value={acc.positions?.length || 0} />
+              <Stat label="Positions" value={Object.keys(acc.positions || {}).length} />
             </div>
 
             {/* Mini PnL bars from recent trades */}

@@ -18,7 +18,7 @@ LOG_FILE = os.path.join(os.path.dirname(__file__), "logs", "ai_signal_bot.log")
 SIGNALS_CSV = os.path.join(os.path.dirname(__file__), "logs", "signals.csv")
 
 def clear_screen():
-    os.system("cls" if os.name == "nt" else "clear")
+    os.system("cls" if os.name == "nt" else "clear")  # nosec: B605
 
 def read_log_tail(path, lines=15):
     """Read last N lines from log file."""

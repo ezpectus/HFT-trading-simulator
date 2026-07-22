@@ -1,9 +1,9 @@
 // Tests: Histogram buckets, percentile computation, latency budget enforcement
 #include "../src/execution/latency_tracker.h"
 #include <cassert>
-#include <cstdio>
-#include <cmath>
 #include <chrono>
+#include <cmath>
+#include <cstdio>
 #include <thread>
 
 using namespace hft;
@@ -11,9 +11,9 @@ using namespace hft;
 void test_basic_recording() {
     LatencyTracker tracker;
 
-    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 1'000'000);  // 1ms
-    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 2'000'000);  // 2ms
-    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 3'000'000);  // 3ms
+    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 1'000'000); // 1ms
+    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 2'000'000); // 2ms
+    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 3'000'000); // 3ms
 
     auto stats = tracker.get_stats(LatencyStage::SIGNAL_TO_ORDER);
     assert(stats.count == 3);
@@ -21,8 +21,7 @@ void test_basic_recording() {
     assert(stats.max_us == 3000);
 
     printf("  [PASS] test_basic_recording (n=%lld min=%lldus max=%lldus)\n",
-           static_cast<long long>(stats.count),
-           static_cast<long long>(stats.min_us),
+           static_cast<long long>(stats.count), static_cast<long long>(stats.min_us),
            static_cast<long long>(stats.max_us));
 }
 
@@ -31,7 +30,7 @@ void test_percentiles() {
 
     // Record 100 samples from 100us to 10000us
     for (int i = 1; i <= 100; ++i) {
-        tracker.record(LatencyStage::ORDER_TO_ACK, i * 100 * 1000);  // i*100us in ns
+        tracker.record(LatencyStage::ORDER_TO_ACK, i * 100 * 1000); // i*100us in ns
     }
 
     auto stats = tracker.get_stats(LatencyStage::ORDER_TO_ACK);
@@ -48,18 +47,16 @@ void test_percentiles() {
     assert(stats.p999_us >= stats.p99_us);
 
     printf("  [PASS] test_percentiles (p50=%lldus p95=%lldus p99=%lldus p999=%lldus)\n",
-           static_cast<long long>(stats.p50_us),
-           static_cast<long long>(stats.p95_us),
-           static_cast<long long>(stats.p99_us),
-           static_cast<long long>(stats.p999_us));
+           static_cast<long long>(stats.p50_us), static_cast<long long>(stats.p95_us),
+           static_cast<long long>(stats.p99_us), static_cast<long long>(stats.p999_us));
 }
 
 void test_multiple_stages() {
     LatencyTracker tracker;
 
-    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 500'000);   // 500us
-    tracker.record(LatencyStage::ORDER_TO_ACK, 1'000'000);    // 1ms
-    tracker.record(LatencyStage::ACK_TO_FILL, 5'000'000);     // 5ms
+    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 500'000); // 500us
+    tracker.record(LatencyStage::ORDER_TO_ACK, 1'000'000);  // 1ms
+    tracker.record(LatencyStage::ACK_TO_FILL, 5'000'000);   // 5ms
 
     auto s1 = tracker.get_stats(LatencyStage::SIGNAL_TO_ORDER);
     auto s2 = tracker.get_stats(LatencyStage::ORDER_TO_ACK);
@@ -78,22 +75,22 @@ void test_multiple_stages() {
 
 void test_latency_budget() {
     LatencyTracker tracker;
-    bool alert_triggered = false;
-    LatencyStage alerted_stage = LatencyStage::SIGNAL_TO_ORDER;
+    bool           alert_triggered = false;
+    LatencyStage   alerted_stage   = LatencyStage::SIGNAL_TO_ORDER;
 
     tracker.set_alert_callback([&](LatencyStage stage, int64_t us, double threshold) {
         alert_triggered = true;
-        alerted_stage = stage;
+        alerted_stage   = stage;
     });
 
-    tracker.set_budget(LatencyStage::SIGNAL_TO_ORDER, 500.0);  // 500us budget
+    tracker.set_budget(LatencyStage::SIGNAL_TO_ORDER, 500.0); // 500us budget
 
     // Under budget — no alert
-    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 300'000);  // 300us
+    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 300'000); // 300us
     assert(!alert_triggered);
 
     // Over budget — alert
-    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 1'000'000);  // 1ms
+    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 1'000'000); // 1ms
     assert(alert_triggered);
     assert(alerted_stage == LatencyStage::SIGNAL_TO_ORDER);
 
@@ -110,7 +107,7 @@ void test_scoped_measurement() {
 
     auto stats = tracker.get_stats(LatencyStage::STRATEGY_COMPUTE);
     assert(stats.count == 1);
-    assert(stats.max_us >= 50);  // At least 50us (allowing for scheduling)
+    assert(stats.max_us >= 50); // At least 50us (allowing for scheduling)
 
     printf("  [PASS] test_scoped_measurement (measured=%lldus)\n",
            static_cast<long long>(stats.max_us));

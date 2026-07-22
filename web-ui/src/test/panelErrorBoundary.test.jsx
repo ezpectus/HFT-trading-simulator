@@ -22,7 +22,7 @@ function ToggleChild({ shouldThrow }) {
 describe('PanelErrorBoundary', () => {
   it('renders children when no error', () => {
     render(
-      <PanelErrorBoundary title="Test Panel">
+      <PanelErrorBoundary panelName="Test Panel">
         <GoodChild />
       </PanelErrorBoundary>
     )
@@ -33,7 +33,7 @@ describe('PanelErrorBoundary', () => {
     // Suppress console.error for this test
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     render(
-      <PanelErrorBoundary title="Test Panel">
+      <PanelErrorBoundary panelName="Test Panel">
         <BadChild />
       </PanelErrorBoundary>
     )
@@ -44,7 +44,7 @@ describe('PanelErrorBoundary', () => {
   it('shows retry button on error', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     render(
-      <PanelErrorBoundary title="Test Panel">
+      <PanelErrorBoundary panelName="Test Panel">
         <BadChild />
       </PanelErrorBoundary>
     )
@@ -55,7 +55,7 @@ describe('PanelErrorBoundary', () => {
   it('shows disable button after 3 errors', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { rerender } = render(
-      <PanelErrorBoundary title="Test Panel" key="boundary">
+      <PanelErrorBoundary panelName="Test Panel" key="boundary">
         <BadChild />
       </PanelErrorBoundary>
     )

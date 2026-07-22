@@ -14,6 +14,11 @@ import time
 import websockets
 
 try:
+    from websockets import ServerConnection as WebSocketServerConnection
+except ImportError:
+    from websockets import WebSocketServerProtocol as WebSocketServerConnection
+
+try:
     import msgpack
     _HAS_MSGPACK = True
 except ImportError:
@@ -30,6 +35,10 @@ try:
     _HAS_SHM = True
 except ImportError:
     _HAS_SHM = False
+
+def _sanitize_log(value) -> str:
+    """Sanitize user-controlled values before logging to prevent log injection."""
+    return str(value).replace('\n', ' ').replace('\r', ' ')[:200]
 
 # Add project root for trade_csv_logger
 _proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -76,7 +85,7 @@ class ExchangeWebSocketServer:
         self.host = host
         self.port = port
         self.arb_detector = arb_detector
-        self.clients: set[websockets.ServerConnection] = set()
+        self.clients: set[WebSocketServerConnection] = set()
         self._running = False
         self._tick_interval = 1.0  # seconds between candles (adjustable via set_speed)
         self._replay_paused = False
@@ -200,7 +209,7 @@ class ExchangeWebSocketServer:
         logger.info("WebSocket server stopped")
 
     async def _handle_client(
-        self, websocket: websockets.ServerConnection
+        self, websocket: WebSocketServerConnection
     ) -> None:
         """Handle a connected client — receive orders, send market data."""
         self.clients.add(websocket)
@@ -226,13 +235,13 @@ class ExchangeWebSocketServer:
                         try:
                             data = msgpack.unpackb(message, raw=False)
                         except (msgpack.exceptions.UnpackException, ValueError):
-                            logger.warning(f"Invalid msgpack from {remote}: {message[:100]}")
+                            logger.warning(f"Invalid msgpack from {_sanitize_log(remote)}: {_sanitize_log(message[:100])}")
                             continue
                     else:
                         try:
                             data = json.loads(message)
                         except (json.JSONDecodeError, TypeError):
-                            logger.warning(f"Invalid JSON from {remote}: {message[:100]}")
+                            logger.warning(f"Invalid JSON from {_sanitize_log(remote)}: {_sanitize_log(message[:100])}")
                             continue
                     await self._handle_message(websocket, data)
                 except Exception as e:
@@ -248,7 +257,7 @@ class ExchangeWebSocketServer:
             logger.info(f"Client disconnected: {remote}")
 
     async def _handle_message(
-        self, websocket: websockets.ServerConnection, data: dict
+        self, websocket: WebSocketServerConnection, data: dict
     ) -> None:
         """Handle incoming message from a bot."""
         msg_type = data.get("type")
@@ -299,9 +308,9 @@ class ExchangeWebSocketServer:
             # Log bot trades to CLI
             if order.status.value == "FILLED":
                 logger.info(
-                    f"  ORDER FILLED: {data['side']} {float(data['quantity']):.4f} "
-                    f"{data['symbol']} @ {order.filled_price:.2f} "
-                    f"fee={order.fee:.4f} | {exchange_id}"
+                    f"  ORDER FILLED: {_sanitize_log(data['side'])} {float(data['quantity']):.4f} "
+                    f"{_sanitize_log(data['symbol'])} @ {order.filled_price:.2f} "
+                    f"fee={order.fee:.4f} | {_sanitize_log(exchange_id)}"
                 )
                 self.trade_logger.log_fill({
                     "timestamp": time.time(),
@@ -318,8 +327,8 @@ class ExchangeWebSocketServer:
             elif order.status.value == "REJECTED":
                 reason = order.rejection_reason or "UNKNOWN"
                 logger.info(
-                    f"  ORDER REJECTED: {data['side']} {data['symbol']} "
-                    f"qty={data['quantity']} | {exchange_id} | {reason}"
+                    f"  ORDER REJECTED: {_sanitize_log(data['side'])} {_sanitize_log(data['symbol'])} "
+                    f"qty={data['quantity']} | {_sanitize_log(exchange_id)} | {_sanitize_log(reason)}"
                 )
 
             # Send fill notification back
@@ -345,9 +354,9 @@ class ExchangeWebSocketServer:
             encoding = data.get("encoding", "json")
             if encoding == "msgpack" and not _HAS_MSGPACK:
                 encoding = "json"
-                logger.warning(f"Client {websocket.remote_address} requested msgpack but not installed — falling back to JSON")
+                logger.warning(f"Client {_sanitize_log(websocket.remote_address)} requested msgpack but not installed — falling back to JSON")
             self._client_encodings[websocket] = encoding
-            logger.info(f"Client {websocket.remote_address} subscribed (protocol v{client_ver}, encoding={encoding})")
+            logger.info(f"Client {_sanitize_log(websocket.remote_address)} subscribed (protocol v{_sanitize_log(client_ver)}, encoding={_sanitize_log(encoding)})")
             await self._send_market_snapshot(websocket)
 
         elif msg_type == "ping":
@@ -371,7 +380,7 @@ class ExchangeWebSocketServer:
                 self._tick_interval = {1: 1.0, 2: 0.5, 5: 0.2}.get(speed, 1.0)
                 if was_paused:
                     self._speed_event.set()
-                logger.info(f"  Simulation speed set to {speed}x (interval={self._tick_interval}s)")
+                logger.info(f"  Simulation speed set to {_sanitize_log(speed)}x (interval={self._tick_interval}s)")
                 await websocket.send(json.dumps({"type": "speed_set", "speed": speed}))
                 if was_paused:
                     await websocket.send(json.dumps({"type": "replay_state", "paused": False}))
@@ -477,24 +486,24 @@ class ExchangeWebSocketServer:
                     if symbol in self.market._volatility:
                         old = self.market._volatility[symbol]
                         self.market._volatility[symbol] = vol
-                        logger.info(f"  Config hot-reload: {symbol} volatility {old} → {vol}")
+                        logger.info(f"  Config hot-reload: {_sanitize_log(symbol)} volatility {old} → {vol}")
             if "fees" in updates:
                 for ex_id, fee in updates["fees"].items():
                     if ex_id in self.exchanges:
                         old = self.exchanges[ex_id].fee_pct
                         self.exchanges[ex_id].fee_pct = fee
-                        logger.info(f"  Config hot-reload: {ex_id} fee {old}% → {fee}%")
+                        logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} fee {old}% → {fee}%")
             if "slippage" in updates:
                 for ex_id, slip in updates["slippage"].items():
                     if ex_id in self.exchanges:
                         old = self.exchanges[ex_id].slippage_bps
                         self.exchanges[ex_id].slippage_bps = slip
-                        logger.info(f"  Config hot-reload: {ex_id} slippage {old}bps → {slip}bps")
+                        logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} slippage {old}bps → {slip}bps")
             if "leverage" in updates:
                 for ex_id, lev in updates["leverage"].items():
                     if ex_id in self.exchanges:
                         self.exchanges[ex_id].account.leverage = lev
-                        logger.info(f"  Config hot-reload: {ex_id} leverage → {lev}x")
+                        logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} leverage → {lev}x")
             await websocket.send(json.dumps({"type": "config_updated", "updates": updates}))
 
         elif msg_type == "options_chain":
@@ -532,7 +541,7 @@ class ExchangeWebSocketServer:
             })
 
     async def _send_json(
-        self, websocket: websockets.ServerConnection, data: dict
+        self, websocket: WebSocketServerConnection, data: dict
     ) -> None:
         """Send message to client with negotiated encoding and protocol version.
 
@@ -552,7 +561,7 @@ class ExchangeWebSocketServer:
             await websocket.send(json.dumps(data, separators=(',', ':')))
 
     async def _send_market_snapshot(
-        self, websocket: websockets.ServerConnection
+        self, websocket: WebSocketServerConnection
     ) -> None:
         """Send current market state to a client."""
         candles = self.market.get_latest_candles()
@@ -584,7 +593,7 @@ class ExchangeWebSocketServer:
         await self._send_json(websocket, message)
 
     async def _send_sync_state(
-        self, websocket: websockets.ServerConnection, last_ts: int
+        self, websocket: WebSocketServerConnection, last_ts: int
     ) -> None:
         """Send historical candles since last_ts for reconnection sync."""
         all_candles = []
@@ -625,7 +634,7 @@ class ExchangeWebSocketServer:
             "missed_candles": len(all_candles),
         }
         await self._send_json(websocket, message)
-        logger.info(f"  Sync state sent: {len(all_candles)} candles since ts={last_ts}")
+        logger.info(f"  Sync state sent: {len(all_candles)} candles since ts={_sanitize_log(last_ts)}")
 
     def _compute_orderbook_delta(self, key: str, bids: list, asks: list) -> tuple[dict, dict] | None:
         """Compute delta between current and last-sent order book for a symbol.

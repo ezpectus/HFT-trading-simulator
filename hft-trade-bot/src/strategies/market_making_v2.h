@@ -10,28 +10,28 @@
 #pragma once
 
 #include "../data/aligned_types.h"
-#include "../utils/low_latency.h"
 #include "../strategies/pressure_model.h"
+#include "../utils/low_latency.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <algorithm>
 
 namespace hft {
 
 class MarketMakingV2 {
-public:
+  public:
     struct Config {
-        double gamma = 0.1;            // Risk aversion parameter
-        double T_seconds = 60.0;       // Time horizon for reservation price
-        double sigma = 0.01;           // Volatility (initial estimate)
-        int sigma_window = 100;        // Window for volatility estimation
-        double k = 1.5;                // Order arrival intensity parameter
-        double spread_cap = 0.005;     // Maximum spread (0.5%)
-        double spread_floor = 0.0001;  // Minimum spread (0.01%)
-        double max_inventory = 10.0;   // Max absolute inventory
-        double inventory_penalty = 0.0001; // Per-unit inventory penalty
-        double toxicity_threshold = 0.7; // Cancel when toxicity > threshold
-        int vol_ewma_period = 50;      // EWMA period for volatility
+        double gamma              = 0.1;    // Risk aversion parameter
+        double T_seconds          = 60.0;   // Time horizon for reservation price
+        double sigma              = 0.01;   // Volatility (initial estimate)
+        int    sigma_window       = 100;    // Window for volatility estimation
+        double k                  = 1.5;    // Order arrival intensity parameter
+        double spread_cap         = 0.005;  // Maximum spread (0.5%)
+        double spread_floor       = 0.0001; // Minimum spread (0.01%)
+        double max_inventory      = 10.0;   // Max absolute inventory
+        double inventory_penalty  = 0.0001; // Per-unit inventory penalty
+        double toxicity_threshold = 0.7;    // Cancel when toxicity > threshold
+        int    vol_ewma_period    = 50;     // EWMA period for volatility
     };
 
     struct Quote {
@@ -41,13 +41,12 @@ public:
         double ask_size{0.0};
         double reservation_price{0.0};
         double spread{0.0};
-        bool should_cancel{false};     // Adverse selection trigger
+        bool   should_cancel{false}; // Adverse selection trigger
         double confidence{0.0};
     };
 
     MarketMakingV2() : MarketMakingV2(Config{}) {}
-    explicit MarketMakingV2(const Config& cfg)
-        : config_(cfg) {}
+    explicit MarketMakingV2(const Config& cfg) : config_(cfg) {}
 
     // Process market data and generate quotes.
     // q = current inventory (positive = long, negative = short)
@@ -61,7 +60,7 @@ public:
         update_volatility(mid);
 
         double sigma = current_sigma_;
-        double T = config_.T_seconds;
+        double T     = config_.T_seconds;
 
         // Time remaining (simplified: always use full T)
         double t_remaining = T;
@@ -70,26 +69,27 @@ public:
         double reservation = mid - q * config_.gamma * sigma * sigma * t_remaining;
 
         // Optimal spread: delta = gamma * sigma^2 * T + (2/gamma) * ln(1 + gamma/k)
-        double optimal_spread = config_.gamma * sigma * sigma * T
-                              + (2.0 / config_.gamma) * std::log(1.0 + config_.gamma / config_.k);
+        double optimal_spread = config_.gamma * sigma * sigma * T +
+                                (2.0 / config_.gamma) * std::log(1.0 + config_.gamma / config_.k);
 
         // Add inventory penalty
         double inventory_skew = config_.inventory_penalty * q;
 
         // Clamp spread
-        optimal_spread = std::max(config_.spread_floor, std::min(config_.spread_cap, optimal_spread));
+        optimal_spread =
+            std::max(config_.spread_floor, std::min(config_.spread_cap, optimal_spread));
 
         // Compute bid/ask around reservation price
-        double half_spread = optimal_spread / 2.0;
-        quote.bid_price = reservation - half_spread - inventory_skew;
-        quote.ask_price = reservation + half_spread - inventory_skew;
+        double half_spread      = optimal_spread / 2.0;
+        quote.bid_price         = reservation - half_spread - inventory_skew;
+        quote.ask_price         = reservation + half_spread - inventory_skew;
         quote.reservation_price = reservation;
-        quote.spread = optimal_spread;
-        last_reservation_ = reservation;
+        quote.spread            = optimal_spread;
+        last_reservation_       = reservation;
 
         // Size: skew based on inventory
-        double inventory_ratio = (config_.max_inventory > 0.0)
-            ? std::abs(q) / config_.max_inventory : 0.0;
+        double inventory_ratio =
+            (config_.max_inventory > 0.0) ? std::abs(q) / config_.max_inventory : 0.0;
         inventory_ratio = std::min(1.0, inventory_ratio);
 
         // Reduce size on the side that would increase inventory
@@ -109,7 +109,7 @@ public:
         // Adverse selection protection
         if (toxicity >= config_.toxicity_threshold) {
             quote.should_cancel = true;
-            quote.confidence = 0.0;
+            quote.confidence    = 0.0;
         } else {
             // Confidence inversely proportional to toxicity
             quote.confidence = (1.0 - toxicity) * 100.0;
@@ -118,11 +118,11 @@ public:
         // Don't quote if inventory at max
         if (std::abs(q) >= config_.max_inventory) {
             if (q > 0) {
-                quote.bid_price = 0.0;  // Don't bid (would increase long inventory)
-                quote.bid_size = 0.0;
+                quote.bid_price = 0.0; // Don't bid (would increase long inventory)
+                quote.bid_size  = 0.0;
             } else {
-                quote.ask_price = 0.0;  // Don't ask (would increase short inventory)
-                quote.ask_size = 0.0;
+                quote.ask_price = 0.0; // Don't ask (would increase short inventory)
+                quote.ask_size  = 0.0;
             }
         }
 
@@ -133,17 +133,17 @@ public:
     double reservation_price() const noexcept { return last_reservation_; }
 
     void reset() noexcept {
-        current_sigma_ = config_.sigma;
-        vol_ewma_ = config_.sigma * config_.sigma;
-        last_mid_ = 0.0;
+        current_sigma_    = config_.sigma;
+        vol_ewma_         = config_.sigma * config_.sigma;
+        last_mid_         = 0.0;
         last_reservation_ = 0.0;
-        vol_count_ = 0;
+        vol_count_        = 0;
     }
 
-private:
+  private:
     void update_volatility(double mid) noexcept {
         if (last_mid_ > 0.0 && mid > 0.0) {
-            double ret = (mid - last_mid_) / last_mid_;
+            double ret    = (mid - last_mid_) / last_mid_;
             double sq_ret = ret * ret;
 
             // EWMA volatility
@@ -151,7 +151,7 @@ private:
                 vol_ewma_ = sq_ret;
             } else {
                 double alpha = 2.0 / static_cast<double>(config_.vol_ewma_period + 1);
-                vol_ewma_ = alpha * sq_ret + (1.0 - alpha) * vol_ewma_;
+                vol_ewma_    = alpha * sq_ret + (1.0 - alpha) * vol_ewma_;
             }
 
             current_sigma_ = std::sqrt(vol_ewma_);
@@ -161,14 +161,16 @@ private:
     }
 
     Config config_;
-public:
+
+  public:
     const Config& config() const { return config_; }
-private:
-    double current_sigma_{0.01};
-    double vol_ewma_{0.0001};
-    double last_mid_{0.0};
+
+  private:
+    double   current_sigma_{0.01};
+    double   vol_ewma_{0.0001};
+    double   last_mid_{0.0};
     uint64_t vol_count_{0};
-    double last_reservation_{0.0};
+    double   last_reservation_{0.0};
 };
 
 } // namespace hft

@@ -2,7 +2,7 @@
  * Tests for useMediaQuery hook
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { useMediaQuery, useIsMobile, useIsTablet } from '../hooks/useMediaQuery'
 
 describe('useMediaQuery', () => {
@@ -89,7 +89,7 @@ describe('useMediaQuery', () => {
     expect(result.current).toBe(false)
 
     // Simulate media query change
-    handler({ matches: true })
+    act(() => handler({ matches: true }))
     expect(result.current).toBe(true)
   })
 

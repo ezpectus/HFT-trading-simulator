@@ -72,7 +72,7 @@ export default function LiquidationCascade({ candles, accounts, symbol, exchange
     // Real positions at risk
     const positions = []
     for (const acc of Object.values(accounts || {})) {
-      for (const pos of (acc.positions || [])) {
+      for (const pos of Object.values(acc.positions || {})) {
         if (pos.symbol === symbol) {
           const isLong = pos.side === 'LONG' || pos.side === 'BUY'
           if (isLong) {

@@ -19,7 +19,8 @@ export default function VirtualList({ items, itemHeight = 28, maxHeight = 300, r
   }, [items, itemHeight, scrollTop, maxHeight, overscan])
 
   const handleScroll = useCallback((e) => {
-    setScrollTop(e.target.scrollTop)
+    const st = e.target.scrollTop !== undefined ? e.target.scrollTop : (e.detail && e.detail.scrollTop) || 0
+    setScrollTop(st)
     if (onScroll) onScroll(e)
   }, [onScroll])
 
@@ -36,7 +37,7 @@ export default function VirtualList({ items, itemHeight = 28, maxHeight = 300, r
       className="overflow-y-auto scrollbar-thin"
       style={{ maxHeight, position: 'relative' }}
     >
-      <div style={{ height: totalHeight, position: 'relative' }}>
+      <div style={{ height: `${totalHeight}px`, position: 'relative' }}>
         {visibleItems.map(({ item, index, offsetTop }) => (
           <div
             key={keyExtractor ? keyExtractor(item, index) : index}

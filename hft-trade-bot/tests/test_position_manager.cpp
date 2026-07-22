@@ -37,11 +37,11 @@ void test_add_to_position() {
 void test_close_position() {
     PositionManagerV2 pm;
     pm.on_fill("BTCUSDT", "binance", Side::BUY, 1.0, 50000.0);
-    pm.on_fill("BTCUSDT", "binance", Side::SELL, 1.0, 51000.0);  // Close
+    pm.on_fill("BTCUSDT", "binance", Side::SELL, 1.0, 51000.0); // Close
 
     auto pos = pm.get_position("BTCUSDT");
     assert(!pos.is_open());
-    assert(pos.realized_pnl == 1000.0);  // (51000 - 50000) * 1.0
+    assert(pos.realized_pnl == 1000.0); // (51000 - 50000) * 1.0
 
     printf("  [PASS] test_close_position (realized_pnl=%.2f)\n", pos.realized_pnl);
 }
@@ -49,15 +49,15 @@ void test_close_position() {
 void test_partial_close() {
     PositionManagerV2 pm;
     pm.on_fill("BTCUSDT", "binance", Side::BUY, 2.0, 50000.0);
-    pm.on_fill("BTCUSDT", "binance", Side::SELL, 1.0, 51000.0);  // Partial close
+    pm.on_fill("BTCUSDT", "binance", Side::SELL, 1.0, 51000.0); // Partial close
 
     auto pos = pm.get_position("BTCUSDT");
     assert(pos.is_open());
     assert(pos.quantity == 1.0);
-    assert(pos.realized_pnl == 1000.0);  // (51000 - 50000) * 1.0
+    assert(pos.realized_pnl == 1000.0); // (51000 - 50000) * 1.0
 
-    printf("  [PASS] test_partial_close (remaining=%.2f realized=%.2f)\n",
-           pos.quantity, pos.realized_pnl);
+    printf("  [PASS] test_partial_close (remaining=%.2f realized=%.2f)\n", pos.quantity,
+           pos.realized_pnl);
 }
 
 void test_unrealized_pnl() {
@@ -68,7 +68,7 @@ void test_unrealized_pnl() {
     pm.update_mark_prices(prices);
 
     auto pos = pm.get_position("BTCUSDT");
-    assert(std::abs(pos.unrealized_pnl - 2000.0) < 1e-6);  // (52000 - 50000) * 1.0
+    assert(std::abs(pos.unrealized_pnl - 2000.0) < 1e-6); // (52000 - 50000) * 1.0
 
     assert(pm.total_unrealized_pnl() == 2000.0);
 
@@ -109,10 +109,7 @@ void test_aggregate_pnl() {
     pm.on_fill("BTCUSDT", "binance", Side::BUY, 1.0, 50000.0);
     pm.on_fill("ETHUSDT", "okx", Side::BUY, 10.0, 3000.0);
 
-    std::unordered_map<std::string, double> prices = {
-        {"BTCUSDT", 51000.0},
-        {"ETHUSDT", 3100.0}
-    };
+    std::unordered_map<std::string, double> prices = {{"BTCUSDT", 51000.0}, {"ETHUSDT", 3100.0}};
     pm.update_mark_prices(prices);
 
     // BTC unrealized: (51000 - 50000) * 1 = 1000
@@ -127,8 +124,8 @@ void test_sl_tp_check() {
     pm.on_fill("BTCUSDT", "binance", Side::BUY, 1.0, 50000.0);
 
     // Price drops below SL (entry - 2% = 49000)
-    std::unordered_map<std::string, double> prices = {{"BTCUSDT", 48000.0}};
-    auto triggers = pm.check_sl_tp(prices, 2.0, 3.0);
+    std::unordered_map<std::string, double> prices   = {{"BTCUSDT", 48000.0}};
+    auto                                    triggers = pm.check_sl_tp(prices, 2.0, 3.0);
 
     assert(!triggers.empty());
     assert(triggers[0].reason == "STOP_LOSS");

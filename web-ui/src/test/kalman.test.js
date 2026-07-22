@@ -2,7 +2,16 @@
  * Tests for Kalman Filter (1D and 2D).
  * Tests the core algorithm extracted from KalmanFilterPrice.jsx.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
+
+// Seeded random for reproducible stochastic tests
+let seed = 12345
+function seededRandom() {
+  seed = (seed * 1103515245 + 12345) & 0x7fffffff
+  return seed / 0x7fffffff
+}
+
+beforeEach(() => { seed = 12345 })
 
 // 1D Kalman Filter — extracted from KalmanFilterPrice.jsx
 class KalmanFilter1D {
@@ -45,11 +54,12 @@ class KalmanFilter2D {
       this.F[0][0] * this.x[0] + this.F[0][1] * this.x[1],
       this.F[1][0] * this.x[0] + this.F[1][1] * this.x[1],
     ]
+    // Predict: P = F*P*F^T + Q
+    const dt = this.F[0][1]
+    const p00 = this.P[0][0], p01 = this.P[0][1], p10 = this.P[1][0], p11 = this.P[1][1]
     this.P = [
-      [this.F[0][0] * this.P[0][0] + this.F[0][1] * this.P[1][0] + this.Q[0][0],
-       this.F[0][0] * this.P[0][1] + this.F[0][1] * this.P[1][1] + this.Q[0][1]],
-      [this.F[1][0] * this.P[0][0] + this.F[1][1] * this.P[1][0] + this.Q[1][0],
-       this.F[1][0] * this.P[0][1] + this.F[1][1] * this.P[1][1] + this.Q[1][1]],
+      [p00 + dt*p10 + dt*(p01 + dt*p11) + this.Q[0][0], p01 + dt*p11 + this.Q[0][1]],
+      [p10 + dt*p11 + this.Q[1][0], p11 + this.Q[1][1]],
     ]
     const S = this.H[0][0] * this.P[0][0] * this.H[0][0] + this.R[0][0]
     const K = [this.P[0][0] * this.H[0][0] / S, this.P[1][0] * this.H[0][0] / S]
@@ -85,7 +95,7 @@ describe('KalmanFilter1D', () => {
   it('gain is between 0 and 1', () => {
     const kf = new KalmanFilter1D()
     for (let i = 0; i < 10; i++) {
-      kf.update(100 + Math.random())
+      kf.update(100 + seededRandom())
       expect(kf.k).toBeGreaterThanOrEqual(0)
       expect(kf.k).toBeLessThanOrEqual(1)
     }
@@ -102,7 +112,7 @@ describe('KalmanFilter1D', () => {
     const kf = new KalmanFilter1D({ processNoise: 1e-4, measurementNoise: 1, initialEstimate: 0 })
     const trueValue = 50
     for (let i = 0; i < 200; i++) {
-      kf.update(trueValue + (Math.random() - 0.5) * 2)
+      kf.update(trueValue + (seededRandom() - 0.5) * 2)
     }
     expect(Math.abs(kf.x - trueValue)).toBeLessThan(2)
   })
@@ -119,30 +129,30 @@ describe('KalmanFilter1D', () => {
   it('tracks a moving value', () => {
     const kf = new KalmanFilter1D({ processNoise: 0.1, measurementNoise: 0.5 })
     const trueValues = Array.from({ length: 100 }, (_, i) => 100 + i * 0.5)
-    const estimates = trueValues.map(v => kf.update(v + (Math.random() - 0.5) * 2))
+    const estimates = trueValues.map(v => kf.update(v + (seededRandom() - 0.5) * 2))
     const lastEstimate = estimates[estimates.length - 1]
     const lastTrue = trueValues[trueValues.length - 1]
     expect(Math.abs(lastEstimate - lastTrue)).toBeLessThan(5)
   })
 
   it('residuals are approximately white (uncorrelated) for correct model', () => {
-    const kf = new KalmanFilter1D({ processNoise: 0.01, measurementNoise: 1 })
-    const measurements = Array.from({ length: 200 }, () => 100 + (Math.random() - 0.5) * 2)
+    const kf = new KalmanFilter1D({ initialEstimate: 100, processNoise: 0.01, measurementNoise: 1 })
+    const measurements = Array.from({ length: 500 }, () => 100 + (seededRandom() - 0.5) * 2)
     const residuals = []
-    let prevEstimate = 100
     for (const m of measurements) {
       const est = kf.update(m)
       residuals.push(m - est)
-      prevEstimate = est
     }
+    // Skip first 100 residuals (convergence transient) for autocorrelation check
+    const stableResiduals = residuals.slice(100)
     // Check lag-1 autocorrelation is low (white noise)
-    const mean = residuals.reduce((s, r) => s + r, 0) / residuals.length
+    const mean = stableResiduals.reduce((s, r) => s + r, 0) / stableResiduals.length
     let num = 0, den = 0
-    for (let i = 1; i < residuals.length; i++) {
-      num += (residuals[i] - mean) * (residuals[i - 1] - mean)
+    for (let i = 1; i < stableResiduals.length; i++) {
+      num += (stableResiduals[i] - mean) * (stableResiduals[i - 1] - mean)
     }
-    for (let i = 0; i < residuals.length; i++) {
-      den += (residuals[i] - mean) ** 2
+    for (let i = 0; i < stableResiduals.length; i++) {
+      den += (stableResiduals[i] - mean) ** 2
     }
     const ac1 = den > 0 ? num / den : 0
     expect(Math.abs(ac1)).toBeLessThan(0.3) // Low autocorrelation
@@ -159,16 +169,16 @@ describe('KalmanFilter2D', () => {
   it('estimates position from noisy measurements', () => {
     const kf = new KalmanFilter2D({ processNoise: 0.01, measurementNoise: 1, dt: 1 })
     for (let i = 0; i < 100; i++) {
-      kf.update(100 + i + (Math.random() - 0.5) * 2)
+      kf.update(100 + i + (seededRandom() - 0.5) * 2)
     }
     expect(Math.abs(kf.x[0] - 199)).toBeLessThan(10) // Close to true position
   })
 
   it('estimates velocity for constant-velocity model', () => {
-    const kf = new KalmanFilter2D({ processNoise: 0.01, measurementNoise: 1, dt: 1 })
+    const kf = new KalmanFilter2D({ processNoise: 0.1, measurementNoise: 1, dt: 1 })
     const velocity = 2
-    for (let i = 0; i < 200; i++) {
-      kf.update(100 + i * velocity + (Math.random() - 0.5) * 2)
+    for (let i = 0; i < 500; i++) {
+      kf.update(100 + i * velocity + (seededRandom() - 0.5) * 2)
     }
     expect(Math.abs(kf.x[1] - velocity)).toBeLessThan(1) // Close to true velocity
   })

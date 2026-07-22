@@ -1,7 +1,7 @@
 // Tests: FIX message encode/decode, checksum, session states
-#include "../src/fix/fix_message.h"
-#include "../src/fix/fix_encoder.h"
 #include "../src/fix/fix_decoder.h"
+#include "../src/fix/fix_encoder.h"
+#include "../src/fix/fix_message.h"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
@@ -43,7 +43,7 @@ void test_checksum_validation() {
     // Corrupt the message — should fail checksum
     char bad_data[256];
     std::memcpy(bad_data, raw.data(), raw.size());
-    bad_data[10] = 'X';  // Corrupt a byte
+    bad_data[10] = 'X'; // Corrupt a byte
 
     FixMessage bad_parsed;
     assert(!bad_parsed.parse(bad_data, raw.size()));
@@ -52,9 +52,8 @@ void test_checksum_validation() {
 }
 
 void test_new_order_single() {
-    auto msg = FixEncoder::build_new_order_single(
-        "HFTBOT", "EXCHANGE", 1, "ORD001", "BTCUSDT", '1', 1.5, '2', 50000.0, '0'
-    );
+    auto msg = FixEncoder::build_new_order_single("HFTBOT", "EXCHANGE", 1, "ORD001", "BTCUSDT", '1',
+                                                  1.5, '2', 50000.0, '0');
 
     assert(msg.size() > 0u);
 
@@ -113,9 +112,8 @@ void test_heartbeat_message() {
 }
 
 void test_order_cancel() {
-    auto msg = FixEncoder::build_order_cancel(
-        "HFTBOT", "EXCHANGE", 2, "ORD001", "ORD002", "BTCUSDT", '1'
-    );
+    auto msg =
+        FixEncoder::build_order_cancel("HFTBOT", "EXCHANGE", 2, "ORD001", "ORD002", "BTCUSDT", '1');
 
     FixDecoder decoder;
     assert(decoder.decode(msg.data(), msg.size()));
@@ -128,9 +126,8 @@ void test_order_cancel() {
 }
 
 void test_decoder_zero_copy() {
-    auto msg = FixEncoder::build_new_order_single(
-        "HFTBOT", "EXCHANGE", 1, "ORD001", "BTCUSDT", '1', 1.0, '2', 50000.0
-    );
+    auto msg = FixEncoder::build_new_order_single("HFTBOT", "EXCHANGE", 1, "ORD001", "BTCUSDT", '1',
+                                                  1.0, '2', 50000.0);
 
     FixDecoder decoder;
     assert(decoder.decode(msg.data(), msg.size()));
@@ -145,9 +142,8 @@ void test_decoder_zero_copy() {
 
 void test_field_types() {
     FixDecoder decoder;
-    auto msg = FixEncoder::build_new_order_single(
-        "HFTBOT", "EXCHANGE", 42, "ORD001", "ETHUSDT", '2', 10.5, '2', 3000.5
-    );
+    auto msg = FixEncoder::build_new_order_single("HFTBOT", "EXCHANGE", 42, "ORD001", "ETHUSDT",
+                                                  '2', 10.5, '2', 3000.5);
 
     assert(decoder.decode(msg.data(), msg.size()));
 

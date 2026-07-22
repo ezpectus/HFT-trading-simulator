@@ -23,7 +23,7 @@ export default function HedgingSuggestions({ candles, accounts, symbols, exchang
     const positions = []
     const acc = accounts?.[exchange]
     if (acc?.positions) {
-      for (const p of acc.positions) {
+      for (const p of Object.values(acc.positions || {})) {
         positions.push({
           symbol: p.symbol,
           side: p.side,

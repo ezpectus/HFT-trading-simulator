@@ -1,9 +1,9 @@
 // Unit tests for monitoring::SystemMonitor
+#include "../../src/monitoring/system_monitor.h"
 #include <cassert>
+#include <chrono>
 #include <iostream>
 #include <thread>
-#include <chrono>
-#include "../../src/monitoring/system_monitor.h"
 
 using namespace hft;
 
@@ -91,10 +91,10 @@ void test_health_status() {
     assert(hs.is_healthy());
     hs.shm_healthy = false;
     assert(!hs.is_healthy());
-    hs.shm_healthy = true;
+    hs.shm_healthy      = true;
     hs.error_count_5min = 200;
     assert(!hs.is_healthy());
-    hs.error_count_5min = 10;
+    hs.error_count_5min   = 10;
     hs.last_signal_age_ms = 20000;
     assert(!hs.is_healthy());
     std::cout << "  [PASS] test_health_status\n";
@@ -103,7 +103,7 @@ void test_health_status() {
 void test_health_json() {
     HealthStatus hs;
     hs.memory_usage_mb = 256;
-    std::string json = hs.format_json();
+    std::string json   = hs.format_json();
     assert(json.find("\"healthy\":true") != std::string::npos);
     assert(json.find("256") != std::string::npos);
     std::cout << "  [PASS] test_health_json\n";

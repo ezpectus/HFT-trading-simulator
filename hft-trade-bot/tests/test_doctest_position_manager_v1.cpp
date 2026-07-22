@@ -10,42 +10,42 @@ using namespace hft;
 // ═══════════════════════════════════════════════════════════════════════════
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
-static Signal make_long_signal(std::string symbol = "BTC/USDT",
-                                double entry = 50000, double sl = 49000, double tp = 52000) {
+static Signal make_long_signal(std::string symbol = "BTC/USDT", double entry = 50000,
+                               double sl = 49000, double tp = 52000) {
     Signal s;
-    s.symbol = symbol;
-    s.direction = "LONG";
-    s.confidence = 0.85;
-    s.strategy = "momentum";
+    s.symbol      = symbol;
+    s.direction   = "LONG";
+    s.confidence  = 0.85;
+    s.strategy    = "momentum";
     s.entry_price = entry;
-    s.stop_loss = sl;
+    s.stop_loss   = sl;
     s.take_profit = tp;
-    s.timestamp = 1000;
+    s.timestamp   = 1000;
     return s;
 }
 
-static Signal make_short_signal(std::string symbol = "BTC/USDT",
-                                 double entry = 50000, double sl = 51000, double tp = 48000) {
+static Signal make_short_signal(std::string symbol = "BTC/USDT", double entry = 50000,
+                                double sl = 51000, double tp = 48000) {
     Signal s;
-    s.symbol = symbol;
-    s.direction = "SHORT";
-    s.confidence = 0.80;
-    s.strategy = "mean_reversion";
+    s.symbol      = symbol;
+    s.direction   = "SHORT";
+    s.confidence  = 0.80;
+    s.strategy    = "mean_reversion";
     s.entry_price = entry;
-    s.stop_loss = sl;
+    s.stop_loss   = sl;
     s.take_profit = tp;
-    s.timestamp = 1000;
+    s.timestamp   = 1000;
     return s;
 }
 
 static Signal make_neutral_signal(std::string symbol = "BTC/USDT") {
     Signal s;
-    s.symbol = symbol;
-    s.direction = "NEUTRAL";
+    s.symbol      = symbol;
+    s.direction   = "NEUTRAL";
     s.entry_price = 50000;
-    s.stop_loss = 49000;
+    s.stop_loss   = 49000;
     s.take_profit = 52000;
-    s.timestamp = 1000;
+    s.timestamp   = 1000;
     return s;
 }
 
@@ -54,7 +54,7 @@ static Signal make_neutral_signal(std::string symbol = "BTC/USDT") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("Open long position creates correct position") {
     PositionManager pm;
-    auto sig = make_long_signal();
+    auto            sig = make_long_signal();
     pm.open_position(sig, 1.0, "binance");
     CHECK(pm.position_count() == 1);
     auto positions = pm.get_positions();
@@ -67,7 +67,7 @@ TEST_CASE("Open long position creates correct position") {
 
 TEST_CASE("Open short position creates SELL side") {
     PositionManager pm;
-    auto sig = make_short_signal();
+    auto            sig = make_short_signal();
     pm.open_position(sig, 2.0, "okx");
     CHECK(pm.position_count() == 1);
     auto positions = pm.get_positions();
@@ -77,7 +77,7 @@ TEST_CASE("Open short position creates SELL side") {
 
 TEST_CASE("Open position with NEUTRAL signal is rejected") {
     PositionManager pm;
-    auto sig = make_neutral_signal();
+    auto            sig = make_neutral_signal();
     pm.open_position(sig, 1.0, "binance");
     CHECK(pm.position_count() == 0);
 }
@@ -104,7 +104,7 @@ TEST_CASE("Close position returns position with pnl") {
 
 TEST_CASE("Close non-existent position returns nullopt") {
     PositionManager pm;
-    auto result = pm.close_position("DOGE/USDT", 0.10);
+    auto            result = pm.close_position("DOGE/USDT", 0.10);
     CHECK_FALSE(result.has_value());
 }
 
@@ -167,10 +167,7 @@ TEST_CASE("total_unrealized_pnl sums all positions") {
     PositionManager pm;
     pm.open_position(make_long_signal("BTC/USDT"), 1.0, "binance");
     pm.open_position(make_short_signal("ETH/USDT", 3000, 3100, 2900), 2.0, "okx");
-    std::unordered_map<std::string, double> prices = {
-        {"BTC/USDT", 51000.0},
-        {"ETH/USDT", 2900.0}
-    };
+    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 51000.0}, {"ETH/USDT", 2900.0}};
     pm.update_all_pnl(prices);
     CHECK(pm.total_unrealized_pnl() == doctest::Approx(1200.0));
 }
@@ -186,8 +183,8 @@ TEST_CASE("total_unrealized_pnl zero with no positions") {
 TEST_CASE("check_sl_tp detects stop loss for long") {
     PositionManager pm;
     pm.open_position(make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
-    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 48500.0}};
-    auto triggers = pm.check_sl_tp(prices);
+    std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 48500.0}};
+    auto                                    triggers = pm.check_sl_tp(prices);
     REQUIRE(triggers.size() == 1);
     CHECK(triggers[0].symbol == "BTC/USDT");
     CHECK(triggers[0].reason == "STOP_LOSS");
@@ -196,8 +193,8 @@ TEST_CASE("check_sl_tp detects stop loss for long") {
 TEST_CASE("check_sl_tp detects take profit for long") {
     PositionManager pm;
     pm.open_position(make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
-    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 52500.0}};
-    auto triggers = pm.check_sl_tp(prices);
+    std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 52500.0}};
+    auto                                    triggers = pm.check_sl_tp(prices);
     REQUIRE(triggers.size() == 1);
     CHECK(triggers[0].reason == "TAKE_PROFIT");
 }
@@ -205,8 +202,8 @@ TEST_CASE("check_sl_tp detects take profit for long") {
 TEST_CASE("check_sl_tp detects stop loss for short") {
     PositionManager pm;
     pm.open_position(make_short_signal("BTC/USDT", 50000, 51000, 48000), 1.0, "binance");
-    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 51500.0}};
-    auto triggers = pm.check_sl_tp(prices);
+    std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 51500.0}};
+    auto                                    triggers = pm.check_sl_tp(prices);
     REQUIRE(triggers.size() == 1);
     CHECK(triggers[0].reason == "STOP_LOSS");
 }
@@ -214,8 +211,8 @@ TEST_CASE("check_sl_tp detects stop loss for short") {
 TEST_CASE("check_sl_tp detects take profit for short") {
     PositionManager pm;
     pm.open_position(make_short_signal("BTC/USDT", 50000, 51000, 48000), 1.0, "binance");
-    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 47500.0}};
-    auto triggers = pm.check_sl_tp(prices);
+    std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 47500.0}};
+    auto                                    triggers = pm.check_sl_tp(prices);
     REQUIRE(triggers.size() == 1);
     CHECK(triggers[0].reason == "TAKE_PROFIT");
 }
@@ -223,16 +220,16 @@ TEST_CASE("check_sl_tp detects take profit for short") {
 TEST_CASE("check_sl_tp no triggers when price in range") {
     PositionManager pm;
     pm.open_position(make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
-    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 50500.0}};
-    auto triggers = pm.check_sl_tp(prices);
+    std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 50500.0}};
+    auto                                    triggers = pm.check_sl_tp(prices);
     CHECK(triggers.empty());
 }
 
 TEST_CASE("check_sl_tp skips missing price data") {
     PositionManager pm;
     pm.open_position(make_long_signal("BTC/USDT"), 1.0, "binance");
-    std::unordered_map<std::string, double> prices = {{"ETH/USDT", 3000.0}};
-    auto triggers = pm.check_sl_tp(prices);
+    std::unordered_map<std::string, double> prices   = {{"ETH/USDT", 3000.0}};
+    auto                                    triggers = pm.check_sl_tp(prices);
     CHECK(triggers.empty());
 }
 
@@ -240,10 +237,7 @@ TEST_CASE("check_sl_tp multiple positions multiple triggers") {
     PositionManager pm;
     pm.open_position(make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
     pm.open_position(make_short_signal("ETH/USDT", 3000, 3100, 2900), 2.0, "okx");
-    std::unordered_map<std::string, double> prices = {
-        {"BTC/USDT", 48500.0},
-        {"ETH/USDT", 2850.0}
-    };
-    auto triggers = pm.check_sl_tp(prices);
+    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 48500.0}, {"ETH/USDT", 2850.0}};
+    auto                                    triggers = pm.check_sl_tp(prices);
     CHECK(triggers.size() == 2);
 }

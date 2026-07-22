@@ -11,10 +11,9 @@ import asyncio
 import logging
 import os
 import tempfile
-import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ SOH = '\x01'
 
 def _fix_timestamp() -> str:
     """Generate FIX-format timestamp (tag 52) with millisecond precision."""
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     return now.strftime("%Y%m%d-%H:%M:%S.") + f"{now.microsecond // 1000:03d}"
 
 

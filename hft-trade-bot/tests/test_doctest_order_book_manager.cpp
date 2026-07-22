@@ -1,5 +1,6 @@
 // Unit tests for OrderBookManager using doctest
-// Tests: bid/ask updates, removal, snapshot, spread, OBI, microprice, crossed/locked, clear, edge cases
+// Tests: bid/ask updates, removal, snapshot, spread, OBI, microprice, crossed/locked, clear, edge
+// cases
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
@@ -7,7 +8,7 @@
 
 using namespace hft;
 
-using OB = OrderBookManager<32>;  // Small capacity for testing
+using OB = OrderBookManager<32>; // Small capacity for testing
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Empty book
@@ -67,7 +68,7 @@ TEST_CASE("OrderBookManager: reject invalid bid price") {
 TEST_CASE("OrderBookManager: zero quantity bid removes level") {
     OB ob;
     ob.update_bid(100.0, 1.0);
-    ob.update_bid(100.0, 0.0);  // triggers removal
+    ob.update_bid(100.0, 0.0); // triggers removal
     CHECK(ob.bid_level_count() == 0);
     CHECK(ob.best_bid() == doctest::Approx(0.0));
 }
@@ -258,7 +259,7 @@ TEST_CASE("OrderBookManager: bid_depth sums top N levels") {
     ob.update_bid(103.0, 3.0);
     CHECK(ob.bid_depth(2) == doctest::Approx(3.0));
     CHECK(ob.bid_depth(3) == doctest::Approx(6.0));
-    CHECK(ob.bid_depth(10) == doctest::Approx(6.0));  // only 3 levels
+    CHECK(ob.bid_depth(10) == doctest::Approx(6.0)); // only 3 levels
 }
 
 TEST_CASE("OrderBookManager: ask_depth sums top N levels") {
@@ -320,7 +321,7 @@ TEST_CASE("OrderBookManager: is_locked true when bid == ask") {
     ob.update_bid(100.0, 1.0);
     ob.update_ask(100.0, 1.0);
     CHECK(ob.is_locked() == true);
-    CHECK(ob.is_crossed() == true);  // locked is a subset of crossed
+    CHECK(ob.is_crossed() == true); // locked is a subset of crossed
 }
 
 TEST_CASE("OrderBookManager: not crossed with empty side") {
@@ -356,17 +357,17 @@ TEST_CASE("OrderBookManager: set_snapshot replaces book") {
 }
 
 TEST_CASE("OrderBookManager: set_snapshot truncates to max levels") {
-    OB ob;
+    OB                         ob;
     std::array<PriceLevel, 40> bids{};
     std::array<PriceLevel, 40> asks{};
     for (size_t i = 0; i < 40; ++i) {
-        bids[i].price = 200.0 - i;
+        bids[i].price    = 200.0 - i;
         bids[i].quantity = 1.0;
-        asks[i].price = 200.0 + i;
+        asks[i].price    = 200.0 + i;
         asks[i].quantity = 1.0;
     }
     ob.set_snapshot(bids.data(), 40, asks.data(), 40);
-    CHECK(ob.bid_level_count() == 32);  // MAX_LEVELS = 32
+    CHECK(ob.bid_level_count() == 32); // MAX_LEVELS = 32
     CHECK(ob.ask_level_count() == 32);
 }
 
@@ -396,7 +397,7 @@ TEST_CASE("OrderBookManager: full book rejects new bid level") {
     ob.update_bid(102.0, 1.0);
     ob.update_bid(103.0, 1.0);
     CHECK(ob.bid_level_count() == 4);
-    CHECK_FALSE(ob.update_bid(99.0, 1.0));  // new level, full → reject
+    CHECK_FALSE(ob.update_bid(99.0, 1.0)); // new level, full → reject
     CHECK(ob.bid_level_count() == 4);
 }
 
@@ -406,7 +407,7 @@ TEST_CASE("OrderBookManager: full book still allows update to existing level") {
     ob.update_bid(101.0, 1.0);
     ob.update_bid(102.0, 1.0);
     ob.update_bid(103.0, 1.0);
-    CHECK(ob.update_bid(100.0, 5.0));  // existing level → ok
+    CHECK(ob.update_bid(100.0, 5.0)); // existing level → ok
     CHECK(ob.bid_level_count() == 4);
     CHECK(ob.bid_level(3).quantity == doctest::Approx(5.0));
 }

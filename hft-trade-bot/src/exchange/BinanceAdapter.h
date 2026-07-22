@@ -8,45 +8,45 @@
 // Implements IExchange interface.
 #pragma once
 
-#include "ExchangeBase.h"
 #include "../data/aligned_types.h"
 #include "../utils/low_latency.h"
-#include <string>
-#include <unordered_map>
+#include "ExchangeBase.h"
 #include <atomic>
 #include <chrono>
-#include <thread>
-#include <mutex>
-#include <vector>
 #include <cstdint>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <vector>
 
 namespace hft {
 
 class BinanceAdapter : public ExchangeBase {
-public:
+  public:
     struct Config {
         std::string api_key;
         std::string api_secret;
-        std::string base_url = "https://fapi.binance.com";
-        std::string ws_url = "wss://fstream.binance.com";
-        int recv_window = 5000;
+        std::string base_url    = "https://fapi.binance.com";
+        std::string ws_url      = "wss://fstream.binance.com";
+        int         recv_window = 5000;
     };
 
     explicit BinanceAdapter(const Config& cfg)
-        : ExchangeBase("binance", 0.02, 0.04)  // 2 bps maker, 4 bps taker
-        , config_(cfg)
-    {}
+        : ExchangeBase("binance", 0.02, 0.04) // 2 bps maker, 4 bps taker
+          ,
+          config_(cfg) {}
 
     // IExchange interface
     double best_bid(const std::string& symbol) const override {
         std::lock_guard<Spinlock> lk(price_lock_);
-        auto it = bids_.find(symbol);
+        auto                      it = bids_.find(symbol);
         return it != bids_.end() ? it->second : 0.0;
     }
 
     double best_ask(const std::string& symbol) const override {
         std::lock_guard<Spinlock> lk(price_lock_);
-        auto it = asks_.find(symbol);
+        auto                      it = asks_.find(symbol);
         return it != asks_.end() ? it->second : 0.0;
     }
 
@@ -58,19 +58,19 @@ public:
 
     double bid_depth(const std::string& symbol, int /*levels*/) const override {
         std::lock_guard<Spinlock> lk(depth_lock_);
-        auto it = bid_depth_.find(symbol);
+        auto                      it = bid_depth_.find(symbol);
         return it != bid_depth_.end() ? it->second : 0.0;
     }
 
     double ask_depth(const std::string& symbol, int /*levels*/) const override {
         std::lock_guard<Spinlock> lk(depth_lock_);
-        auto it = ask_depth_.find(symbol);
+        auto                      it = ask_depth_.find(symbol);
         return it != ask_depth_.end() ? it->second : 0.0;
     }
 
     // Update market data from WebSocket feed
-    void on_book_ticker(const std::string& symbol, double bid, double bid_qty,
-                        double ask, double ask_qty) {
+    void on_book_ticker(const std::string& symbol, double bid, double bid_qty, double ask,
+                        double ask_qty) {
         std::lock_guard<Spinlock> lk(price_lock_);
         bids_[symbol] = bid;
         asks_[symbol] = ask;
@@ -80,9 +80,9 @@ public:
     }
 
     // Update depth from diff depth stream
-    void on_depth_update(const std::string& symbol,
-                         const std::vector<std::pair<double,double>>& bids,
-                         const std::vector<std::pair<double,double>>& asks) {
+    void on_depth_update(const std::string&                            symbol,
+                         const std::vector<std::pair<double, double>>& bids,
+                         const std::vector<std::pair<double, double>>& asks) {
         // In production: maintain full L2 book from diffs
         // For now, just update best bid/ask
         if (!bids.empty()) {
@@ -104,32 +104,31 @@ public:
 
     // Submit order via REST API
     struct OrderResult {
-        bool success;
+        bool        success;
         std::string order_id;
         std::string client_order_id;
         std::string status;
-        double avg_price;
-        double executed_qty;
+        double      avg_price;
+        double      executed_qty;
         std::string error;
     };
 
     OrderResult place_order(const std::string& symbol, const std::string& side,
-                            const std::string& type, double quantity,
-                            double price = 0.0,
-                            const std::string& time_in_force = "",
-                            int64_t recv_window = 5000);
+                            const std::string& type, double quantity, double price = 0.0,
+                            const std::string& time_in_force = "", int64_t recv_window = 5000);
 
     OrderResult cancel_order(const std::string& symbol, const std::string& order_id);
 
     // Rate limiting
     bool can_send_order() {
-        auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count();
-        auto window_ns = order_window_start_ns_.load(std::memory_order_relaxed);
+        auto now_ns     = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                              std::chrono::steady_clock::now().time_since_epoch())
+                              .count();
+        auto window_ns  = order_window_start_ns_.load(std::memory_order_relaxed);
         auto elapsed_ns = now_ns - window_ns;
         if (elapsed_ns >= 10'000'000'000) {
-            if (order_window_start_ns_.compare_exchange_strong(window_ns, now_ns,
-                    std::memory_order_relaxed, std::memory_order_relaxed)) {
+            if (order_window_start_ns_.compare_exchange_strong(
+                    window_ns, now_ns, std::memory_order_relaxed, std::memory_order_relaxed)) {
                 orders_in_window_.store(0, std::memory_order_relaxed);
             }
         }
@@ -142,8 +141,7 @@ public:
     }
 
     std::string depth_stream(const std::string& symbol, int /*levels*/ = 20) const {
-        return config_.ws_url + "/ws/" + symbol_lower(symbol) +
-               "@depth20@100ms";
+        return config_.ws_url + "/ws/" + symbol_lower(symbol) + "@depth20@100ms";
     }
 
     std::string agg_trade_stream(const std::string& symbol) const {
@@ -165,16 +163,17 @@ public:
 
     const Config& config() const { return config_; }
 
-private:
+  private:
     static std::string symbol_lower(const std::string& s) {
         std::string r = s;
-        for (auto& c : r) c = static_cast<char>(tolower(c));
+        for (auto& c : r)
+            c = static_cast<char>(tolower(c));
         return r;
     }
 
-    Config config_;
-    mutable Spinlock price_lock_;
-    mutable Spinlock depth_lock_;
+    Config                                  config_;
+    mutable Spinlock                        price_lock_;
+    mutable Spinlock                        depth_lock_;
     std::unordered_map<std::string, double> bids_;
     std::unordered_map<std::string, double> asks_;
     std::unordered_map<std::string, double> bid_depth_;
@@ -182,8 +181,8 @@ private:
 
     std::atomic<int64_t> order_window_start_ns_{
         std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count()
-    };
+            std::chrono::steady_clock::now().time_since_epoch())
+            .count()};
     std::atomic<int> orders_in_window_{0};
 };
 

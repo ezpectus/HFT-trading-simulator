@@ -10,8 +10,8 @@ using namespace hft;
 // ═══════════════════════════════════════════════════════════════════════════
 // Helper: create a fill on the manager
 // ═══════════════════════════════════════════════════════════════════════════
-static void fill(PositionManagerV2& pm, const char* sym, const char* exch,
-                 Side side, double qty, double price, double fee = 0.0, int lev = 1) {
+static void fill(PositionManagerV2& pm, const char* sym, const char* exch, Side side, double qty,
+                 double price, double fee = 0.0, int lev = 1) {
     pm.on_fill(sym, exch, side, qty, price, fee, lev);
 }
 
@@ -42,7 +42,7 @@ TEST_CASE("PositionV2 is_open threshold") {
     PositionV2 pos;
     pos.quantity = 0.0;
     CHECK_FALSE(pos.is_open());
-    pos.quantity = 1e-11;  // Below threshold
+    pos.quantity = 1e-11; // Below threshold
     CHECK_FALSE(pos.is_open());
     pos.quantity = 0.001;
     CHECK(pos.is_open());
@@ -50,15 +50,15 @@ TEST_CASE("PositionV2 is_open threshold") {
 
 TEST_CASE("PositionV2 notional") {
     PositionV2 pos;
-    pos.quantity = 2.0;
+    pos.quantity    = 2.0;
     pos.entry_price = 50000.0;
     CHECK(pos.notional() == doctest::Approx(100000.0));
 }
 
 TEST_CASE("PositionV2 update_unrealized long") {
     PositionV2 pos;
-    pos.side = Side::BUY;
-    pos.quantity = 1.0;
+    pos.side        = Side::BUY;
+    pos.quantity    = 1.0;
     pos.entry_price = 50000.0;
     pos.update_unrealized(51000.0);
     CHECK(pos.unrealized_pnl == doctest::Approx(1000.0));
@@ -68,8 +68,8 @@ TEST_CASE("PositionV2 update_unrealized long") {
 
 TEST_CASE("PositionV2 update_unrealized short") {
     PositionV2 pos;
-    pos.side = Side::SELL;
-    pos.quantity = 1.0;
+    pos.side        = Side::SELL;
+    pos.quantity    = 1.0;
     pos.entry_price = 50000.0;
     pos.update_unrealized(49000.0);
     CHECK(pos.unrealized_pnl == doctest::Approx(1000.0));
@@ -97,7 +97,7 @@ TEST_CASE("PositionManagerV2 open long position") {
     CHECK(pos.quantity == doctest::Approx(1.0));
     CHECK(pos.entry_price == doctest::Approx(50000.0));
     CHECK(pos.leverage == 10);
-    CHECK(pos.margin == doctest::Approx(5000.0));  // 50000/10
+    CHECK(pos.margin == doctest::Approx(5000.0)); // 50000/10
     CHECK(pos.total_fees == doctest::Approx(10.0));
 }
 
@@ -111,7 +111,7 @@ TEST_CASE("PositionManagerV2 open short position") {
     CHECK(pos.quantity == doctest::Approx(2.0));
     CHECK(pos.entry_price == doctest::Approx(3000.0));
     CHECK(pos.leverage == 5);
-    CHECK(pos.margin == doctest::Approx(1200.0));  // 6000/5
+    CHECK(pos.margin == doctest::Approx(1200.0)); // 6000/5
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -150,7 +150,7 @@ TEST_CASE("PositionManagerV2 close long position fully") {
 
     auto pos = pm.get_position("BTC/USDT", "binance");
     CHECK_FALSE(pos.is_open());
-    CHECK(pos.realized_pnl == doctest::Approx(1000.0));  // (51000-50000)*1
+    CHECK(pos.realized_pnl == doctest::Approx(1000.0)); // (51000-50000)*1
     CHECK(pos.margin == doctest::Approx(0.0));
 }
 
@@ -272,7 +272,7 @@ TEST_CASE("PositionManagerV2 get_all_positions") {
 
 TEST_CASE("PositionManagerV2 get_position not found returns empty") {
     PositionManagerV2 pm;
-    auto pos = pm.get_position("DOGE/USDT", "binance");
+    auto              pos = pm.get_position("DOGE/USDT", "binance");
     CHECK_FALSE(pos.is_open());
 }
 
@@ -284,8 +284,8 @@ TEST_CASE("PositionManagerV2 SL trigger for long") {
     fill(pm, "BTC/USDT", "binance", Side::BUY, 1.0, 50000.0);
 
     // SL distance = 50000 * 0.01 * 2.0 = 1000 → SL at 49000
-    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 48500.0}};
-    auto triggers = pm.check_sl_tp(prices, 2.0, 3.0);
+    std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 48500.0}};
+    auto                                    triggers = pm.check_sl_tp(prices, 2.0, 3.0);
     CHECK(triggers.size() == 1);
     CHECK(triggers[0].reason == "STOP_LOSS");
 }
@@ -295,8 +295,8 @@ TEST_CASE("PositionManagerV2 TP trigger for long") {
     fill(pm, "BTC/USDT", "binance", Side::BUY, 1.0, 50000.0);
 
     // TP distance = 50000 * 0.01 * 3.0 = 1500 → TP at 51500
-    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 52000.0}};
-    auto triggers = pm.check_sl_tp(prices, 2.0, 3.0);
+    std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 52000.0}};
+    auto                                    triggers = pm.check_sl_tp(prices, 2.0, 3.0);
     CHECK(triggers.size() == 1);
     CHECK(triggers[0].reason == "TAKE_PROFIT");
 }
@@ -306,8 +306,8 @@ TEST_CASE("PositionManagerV2 SL trigger for short") {
     fill(pm, "BTC/USDT", "binance", Side::SELL, 1.0, 50000.0);
 
     // SL for short: price goes up by 1000 → 51000
-    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 51500.0}};
-    auto triggers = pm.check_sl_tp(prices, 2.0, 3.0);
+    std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 51500.0}};
+    auto                                    triggers = pm.check_sl_tp(prices, 2.0, 3.0);
     CHECK(triggers.size() == 1);
     CHECK(triggers[0].reason == "STOP_LOSS");
 }
@@ -316,8 +316,8 @@ TEST_CASE("PositionManagerV2 no trigger when price in range") {
     PositionManagerV2 pm;
     fill(pm, "BTC/USDT", "binance", Side::BUY, 1.0, 50000.0);
 
-    std::unordered_map<std::string, double> prices = {{"BTC/USDT", 50500.0}};
-    auto triggers = pm.check_sl_tp(prices, 2.0, 3.0);
+    std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 50500.0}};
+    auto                                    triggers = pm.check_sl_tp(prices, 2.0, 3.0);
     CHECK(triggers.empty());
 }
 
@@ -359,7 +359,7 @@ TEST_CASE("PositionManagerV2 same symbol different exchanges") {
     fill(pm, "BTC/USDT", "okx", Side::SELL, 1.0, 50100.0);
 
     auto binance_pos = pm.get_position("BTC/USDT", "binance");
-    auto okx_pos = pm.get_position("BTC/USDT", "okx");
+    auto okx_pos     = pm.get_position("BTC/USDT", "okx");
 
     CHECK(binance_pos.is_long());
     CHECK_FALSE(okx_pos.is_long());

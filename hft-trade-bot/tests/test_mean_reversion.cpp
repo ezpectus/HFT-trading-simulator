@@ -12,7 +12,7 @@ void test_kalman_filter() {
     kf.reset(100.0);
 
     // Feed noisy measurements around 100
-    std::mt19937 rng(42);
+    std::mt19937                     rng(42);
     std::normal_distribution<double> noise(0.0, 0.1);
 
     for (int i = 0; i < 1000; ++i) {
@@ -27,8 +27,8 @@ void test_kalman_filter() {
 }
 
 void test_mean_reversion_no_signal() {
-    MeanReversionV2 mr;
-    std::mt19937 rng(42);
+    MeanReversionV2                  mr;
+    std::mt19937                     rng(42);
     std::normal_distribution<double> noise(0.0, 0.01);
 
     // Feed stable price — should not generate entry signals
@@ -83,14 +83,14 @@ void test_ou_parameter_estimation() {
     mr.reset();
 
     // Simulate OU process: dx = κ(θ - x)dt + σ dW
-    double kappa = 0.1, theta = 100.0, sigma = 0.5;
-    double x = 100.0;
-    std::mt19937 rng(42);
+    double                           kappa = 0.1, theta = 100.0, sigma = 0.5;
+    double                           x = 100.0;
+    std::mt19937                     rng(42);
     std::normal_distribution<double> noise(0.0, 1.0);
 
     for (int i = 0; i < 1000; ++i) {
         double dt = 1.0;
-        x = x + kappa * (theta - x) * dt + sigma * noise(rng) * std::sqrt(dt);
+        x         = x + kappa * (theta - x) * dt + sigma * noise(rng) * std::sqrt(dt);
         mr.on_price(static_cast<uint64_t>(i) * 1'000'000'000ULL, x);
     }
 
@@ -102,8 +102,8 @@ void test_ou_parameter_estimation() {
     // Estimated sigma should be positive
     assert(est_sigma > 0.0);
 
-    printf("  [PASS] test_ou_parameter_estimation (kappa=%.4f theta=%.2f sigma=%.4f)\n",
-           est_kappa, est_theta, est_sigma);
+    printf("  [PASS] test_ou_parameter_estimation (kappa=%.4f theta=%.2f sigma=%.4f)\n", est_kappa,
+           est_theta, est_sigma);
 }
 
 void test_half_life() {

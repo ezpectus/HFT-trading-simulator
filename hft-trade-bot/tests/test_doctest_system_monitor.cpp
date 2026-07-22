@@ -154,7 +154,7 @@ TEST_CASE("SystemMonitor: format_json contains all metric fields") {
 
 TEST_CASE("SystemMonitor: format_json is valid JSON structure") {
     SystemMonitor sm;
-    std::string json = sm.format_json();
+    std::string   json = sm.format_json();
     CHECK(json.front() == '{');
     CHECK(json.back() == '}');
 }
@@ -191,7 +191,7 @@ TEST_CASE("MemoryTracker: record_deallocation reduces current usage") {
     mt.record_allocation(2048);
     mt.record_deallocation(512);
     CHECK(mt.current_usage() == 1536);
-    CHECK(mt.total_allocated() == 2048);  // total doesn't decrease
+    CHECK(mt.total_allocated() == 2048); // total doesn't decrease
 }
 
 TEST_CASE("MemoryTracker: max_single_alloc tracks largest single allocation") {
@@ -254,13 +254,13 @@ TEST_CASE("HealthStatus: signal age just below threshold is healthy") {
 
 TEST_CASE("HealthStatus: format_json contains all fields") {
     HealthStatus hs;
-    hs.shm_healthy = true;
-    hs.exchange_connected = false;
+    hs.shm_healthy          = true;
+    hs.exchange_connected   = false;
     hs.signal_engine_active = true;
-    hs.last_signal_age_ms = 5000;
-    hs.last_fill_age_ms = 2000;
-    hs.error_count_5min = 10;
-    hs.memory_usage_mb = 128.5;
+    hs.last_signal_age_ms   = 5000;
+    hs.last_fill_age_ms     = 2000;
+    hs.error_count_5min     = 10;
+    hs.memory_usage_mb      = 128.5;
 
     std::string json = hs.format_json();
     CHECK(json.find("\"healthy\":false") != std::string::npos);

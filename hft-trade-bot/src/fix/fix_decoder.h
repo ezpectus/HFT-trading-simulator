@@ -5,24 +5,24 @@
 #pragma once
 
 #include "fix_message.h"
-#include <string_view>
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cstring>
+#include <string_view>
 
 namespace hft::fix {
 
 class FixDecoder {
-public:
+  public:
     static constexpr size_t MAX_FIELDS = 64;
 
     // Parse a raw FIX message buffer (zero-copy — views point into buffer)
     [[nodiscard]] bool decode(const char* data, size_t len) {
         field_count_ = 0;
-        data_ = data;
-        len_ = len;
+        data_        = data;
+        len_         = len;
 
-        const char* p = data;
+        const char* p   = data;
         const char* end = data + len;
 
         while (p < end) {
@@ -33,7 +33,10 @@ public:
             // Parse tag number
             int tag = 0;
             for (const char* q = p; q < eq; ++q) {
-                if (*q < '0' || *q > '9') { tag = -1; break; }
+                if (*q < '0' || *q > '9') {
+                    tag = -1;
+                    break;
+                }
                 tag = tag * 10 + (*q - '0');
             }
             if (tag < 0) break;
@@ -44,7 +47,7 @@ public:
 
             // Store pointer to value (zero-copy, flat array)
             if (field_count_ < MAX_FIELDS) {
-                fields_[field_count_].tag = tag;
+                fields_[field_count_].tag   = tag;
                 fields_[field_count_].value = std::string_view(eq + 1, soh - eq - 1);
                 ++field_count_;
             }
@@ -78,10 +81,13 @@ public:
     int64_t get_int(int tag) const {
         auto sv = get(tag);
         if (sv.empty()) return 0;
-        int64_t v = 0;
-        bool negative = false;
-        size_t start = 0;
-        if (sv[0] == '-') { negative = true; start = 1; }
+        int64_t v        = 0;
+        bool    negative = false;
+        size_t  start    = 0;
+        if (sv[0] == '-') {
+            negative = true;
+            start    = 1;
+        }
         for (size_t i = start; i < sv.size(); ++i) {
             if (sv[i] < '0' || sv[i] > '9') break;
             v = v * 10 + (sv[i] - '0');
@@ -94,7 +100,7 @@ public:
         auto sv = get(tag);
         if (sv.empty()) return 0.0;
         // Simple atof on string_view
-        char buf[32];
+        char   buf[32];
         size_t n = sv.size() < 31 ? sv.size() : 31;
         std::memcpy(buf, sv.data(), n);
         buf[n] = '\0';
@@ -109,7 +115,7 @@ public:
 
     // Convenience accessors
     std::string_view msg_type() const { return get(tag::MsgType); }
-    uint64_t seq_num() const { return static_cast<uint64_t>(get_int(tag::MsgSeqNum)); }
+    uint64_t         seq_num() const { return static_cast<uint64_t>(get_int(tag::MsgSeqNum)); }
     std::string_view sender_comp_id() const { return get(tag::SenderCompID); }
     std::string_view target_comp_id() const { return get(tag::TargetCompID); }
 
@@ -127,28 +133,28 @@ public:
     // Execution report fields
     std::string_view cl_ord_id() const { return get(tag::ClOrdID); }
     std::string_view symbol() const { return get(tag::Symbol); }
-    char side() const { return get_char(tag::Side); }
-    double last_qty() const { return get_double(tag::LastQty); }
-    double last_px() const { return get_double(tag::LastPx); }
-    double avg_px() const { return get_double(tag::AvgPx); }
-    double cum_qty() const { return get_double(tag::CumQty); }
-    double leaves_qty() const { return get_double(tag::LeavesQty); }
-    char ord_status() const { return get_char(tag::OrdStatus); }
-    char exec_type() const { return get_char(tag::ExecType); }
+    char             side() const { return get_char(tag::Side); }
+    double           last_qty() const { return get_double(tag::LastQty); }
+    double           last_px() const { return get_double(tag::LastPx); }
+    double           avg_px() const { return get_double(tag::AvgPx); }
+    double           cum_qty() const { return get_double(tag::CumQty); }
+    double           leaves_qty() const { return get_double(tag::LeavesQty); }
+    char             ord_status() const { return get_char(tag::OrdStatus); }
+    char             exec_type() const { return get_char(tag::ExecType); }
     std::string_view text() const { return get(tag::Text); }
 
     const char* raw_data() const { return data_; }
-    size_t raw_size() const { return len_; }
+    size_t      raw_size() const { return len_; }
 
-private:
+  private:
     struct Field {
-        int tag{0};
+        int              tag{0};
         std::string_view value;
     };
 
-    const char* data_{nullptr};
-    size_t len_{0};
-    size_t field_count_{0};
+    const char*                   data_{nullptr};
+    size_t                        len_{0};
+    size_t                        field_count_{0};
     std::array<Field, MAX_FIELDS> fields_;
 };
 

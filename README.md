@@ -3,7 +3,7 @@
 ![CI](https://img.shields.io/github/actions/workflow/status/ezpectus/HFT-TradeBot--Lite-version/ci.yml?branch=main&label=CI)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-61dafb.svg)
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
-![Tests](https://img.shields.io/badge/tests-2500%2B%20cases-6e9f18.svg)
+![Tests](https://img.shields.io/badge/tests-2600%2B%20cases-6e9f18.svg)
 ![Roadmap](https://img.shields.io/badge/roadmap-6%2F6%20phases%20done-00C853.svg)
 ![Strategies](https://img.shields.io/badge/strategies-34%2B-FF6B35.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
@@ -180,7 +180,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Strategy Competition** — round-robin tournament with ELO ratings, leaderboard, win/loss/draw tracking
 - **Notifications Hub** — unified alerts with filtering, sound, desktop notifications
 - **Multi-monitor** — detachable panels via popup windows with live data
-- **Keyboard shortcuts** — 1/2/3 exchange, Q/W/E symbol, Space pause, A/B/S/R/P/F/H/T tab switching, ? help
+- **Keyboard shortcuts** — 1/2/3 exchange, Q/W/E symbol, Space pause, A/B/S/R/P/F/H/T tab switching, Shift+\ sidebar toggle, ? help
 - **CLI monitors** — 4 monitor scripts (signal feed, HFT status, error viewer, price tracker)
 - **PWA** — installable, offline-capable via vite-plugin-pwa with Workbox caching
 - **Accessibility (WCAG AA)** — ARIA roles, keyboard navigation, skip-to-content link, focus-visible rings, reduced-motion support, aria-pressed on toggles, aria-live on connection status
@@ -244,7 +244,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Property-based Testing** — C++ random market data generation + invariant checking (SL/TP always closes, PnL consistency)
 - **Docker Hub Images** — `docker-compose.hub.yml` uses pre-built images (no compilation needed). All Dockerfiles include `HEALTHCHECK` and `.dockerignore`.
 - **Cross-platform** — C++ engine compiles on MSVC (Windows), GCC (Linux), and Clang (macOS). Shared memory IPC auto-detects Windows (`CreateFileMappingW`) vs POSIX (`shm_open`). Python SHM uses `mmap` with `tagname` on Windows.
-- **Vitest** — 60+ tests covering indicators, format utils, GARCH, Kalman, HMM, cointegration, K-Means, registry, VirtualList
+- **Vitest** — 525+ tests across 38 test files covering indicators, format utils, GARCH, Kalman, HMM, cointegration, K-Means, registry, VirtualList, component rendering, error boundaries, hooks
 - **Prometheus** — metrics endpoint on exchange simulator
 - **PostgreSQL** — optional database backend
 - **WebSocket compression** — per-message deflate
@@ -286,7 +286,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | SHM IPC latency | ~1-5 us | Zero-copy C++ ↔ Python, packed structs |
 | Web UI bundle size (dist) | < 5 MB | Code-split, lazy-loaded panels |
 | Web UI initial render | < 1s | Vite + React 18 |
-| Test coverage | 60+ JS, 30+ C++, 50+ Python | Unit + integration + E2E |
+| Test coverage | 525+ JS, 30+ C++, 50+ Python | Unit + integration + E2E |
 | Panel count | 191+ registered panels | Detachable, responsive |
 | Math models | 75+ advanced quantitative models | Black-Scholes to Heston |
 | Component files | 201+ React components | |
@@ -458,7 +458,7 @@ hft-trading-system/
 ├── web-ui/                          # React 18: browser dashboard (210+ files)
 │   ├── src/
 │   │   ├── components/              # 191+ UI components (React.lazy)
-│   │   ├── test/                    # Vitest test suite (60+ tests)
+│   │   ├── test/                    # Vitest test suite (525+ tests, 38 files)
 │   │   ├── panels/                  # Panel registry + container
 │   │   ├── hooks/                   # WebSocket, exchange, signals, theme, performance
 │   │   └── utils/                   # Indicators, performance, format, mock data
@@ -477,6 +477,8 @@ hft-trading-system/
 ├── Makefile                         # install, dev, test, lint, build, docker, logs
 ├── Makefile.prod                    # Production: prod-up, prod-down, prod-build, prod-logs, prod-health
 ├── build-all.bat                    # Full pipeline build + test (Python + C++ + Rust + JS)
+├── run-all-tests.bat                # All-in-one test runner (7 windows: Python, JS, C++, Docker)
+├── run-cpp-tests.bat                # C++ lint (clang-format) + build (cmake) + test (ctest)
 ├── ci-test.bat / ci-test.sh         # CI/CD test script (8 stages: py, cpp, rust, js — Windows + Linux)
 ├── scripts/                        # Benchmark suite, walk-forward CI, utility scripts
 ├── verify.bat                       # Verification script (Python + C++ + JS tests)

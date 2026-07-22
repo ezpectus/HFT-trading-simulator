@@ -178,8 +178,8 @@ export function useDetachablePanels() {
       el.appendChild(createCard('Balance', '$' + fmtNum(acc.balance, 2)))
       el.appendChild(createCard('Equity', '$' + fmtNum(acc.equity, 2)))
       el.appendChild(createCard('Total PnL', (acc.total_pnl >= 0 ? '+' : '') + '$' + fmtNum(acc.total_pnl, 2), acc.total_pnl >= 0 ? 'green' : 'red'))
-      el.appendChild(createCard('Open Positions (' + (acc.positions?.length || 0) + ')', ''))
-      const rows = (acc.positions || []).map(p => [
+      el.appendChild(createCard('Open Positions (' + Object.keys(acc.positions || {}).length + ')', ''))
+      const rows = Object.values(acc.positions || {}).map(p => [
         { text: p.symbol },
         { text: p.side, cls: p.side === 'LONG' ? 'green' : 'red' },
         { text: fmtNum(p.quantity, 4) },

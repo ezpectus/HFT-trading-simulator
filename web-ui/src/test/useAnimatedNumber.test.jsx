@@ -8,11 +8,15 @@ import { useAnimatedNumber } from '../hooks/useAnimatedNumber'
 describe('useAnimatedNumber', () => {
   let rafCallbacks
   let rafIdCounter
+  let origRAF, origCAF
 
   beforeEach(() => {
-    vi.useFakeTimers()
     rafCallbacks = []
     rafIdCounter = 0
+
+    // Store originals before mocking
+    origRAF = global.requestAnimationFrame
+    origCAF = global.cancelAnimationFrame
 
     // Mock requestAnimationFrame to capture callbacks
     global.requestAnimationFrame = vi.fn((cb) => {
@@ -24,15 +28,17 @@ describe('useAnimatedNumber', () => {
       rafCallbacks = rafCallbacks.filter(c => c.id !== id)
     })
 
-    // Mock performance.now to advance with fake timers
+    // Mock performance.now to advance manually
     let now = 0
-    global.performance.now = vi.fn(() => now)
+    global.performance.now = () => now
     global.performance.__advance = (ms) => { now += ms }
   })
 
   afterEach(() => {
-    vi.useRealTimers()
     vi.restoreAllMocks()
+    // Restore originals
+    global.requestAnimationFrame = origRAF
+    global.cancelAnimationFrame = origCAF
   })
 
   it('returns initial value immediately', () => {

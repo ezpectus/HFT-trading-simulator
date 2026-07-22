@@ -1,9 +1,9 @@
 // Unit tests for network::WebSocket client utilities
+#include "../../src/network/ws_client.h"
 #include <cassert>
+#include <chrono>
 #include <iostream>
 #include <thread>
-#include <chrono>
-#include "../../src/network/ws_client.h"
 
 using namespace hft::net;
 
@@ -20,14 +20,14 @@ void test_reconnect_policy() {
 
 void test_reconnect_jitter() {
     ReconnectPolicy rp{100, 30000, 2, 50, 0};
-    uint32_t d1 = rp.compute_delay(1);
+    uint32_t        d1 = rp.compute_delay(1);
     // With jitter=50, delay should be between 50 and 150
     assert(d1 >= 50 && d1 <= 150);
     std::cout << "  [PASS] test_reconnect_jitter\n";
 }
 
 void test_watchdog_alive() {
-    Watchdog wd(100);  // 100ms timeout
+    Watchdog wd(100); // 100ms timeout
     assert(wd.is_alive());
     std::this_thread::sleep_for(std::chrono::milliseconds(150));
     assert(!wd.is_alive());
@@ -112,7 +112,7 @@ void test_reconnection_manager() {
     assert(rm.attempts() == 1);
 
     uint32_t delay2 = rm.next_delay_ms();
-    assert(delay2 >= delay1);  // Should increase (without jitter)
+    assert(delay2 >= delay1); // Should increase (without jitter)
 
     rm.on_connect();
     assert(rm.state() == ConnectionState::CONNECTED);
@@ -121,7 +121,7 @@ void test_reconnection_manager() {
 }
 
 void test_reconnection_max_attempts() {
-    ReconnectPolicy rp{10, 100, 2, 0, 3};  // max 3 attempts
+    ReconnectPolicy     rp{10, 100, 2, 0, 3}; // max 3 attempts
     ReconnectionManager rm(rp);
     rm.on_disconnect();
     assert(rm.should_retry());

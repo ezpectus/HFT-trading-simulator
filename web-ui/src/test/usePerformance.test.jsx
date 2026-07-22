@@ -186,7 +186,19 @@ describe('useWorker', () => {
       postMessage: vi.fn(),
       terminate: vi.fn(),
     }
-    vi.stubGlobal('Worker', vi.fn(() => mockWorker))
+    class MockWorker {
+      constructor() {
+        return mockWorker
+      }
+    }
+    vi.stubGlobal('Worker', MockWorker)
+    // Mock URL constructor for jsdom — new URL(workerUrl, import.meta.url) fails otherwise
+    class MockURL {
+      constructor(url, base) {
+        this.href = `${base || ''}${url}`
+      }
+    }
+    vi.stubGlobal('URL', MockURL)
   })
   afterEach(() => vi.unstubAllGlobals())
 
@@ -209,7 +221,10 @@ describe('useWorker', () => {
   })
 
   it('handles worker creation failure gracefully', () => {
-    vi.stubGlobal('Worker', vi.fn(() => { throw new Error('fail') }))
+    class FailingWorker {
+      constructor() { throw new Error('fail') }
+    }
+    vi.stubGlobal('Worker', FailingWorker)
     const { result } = renderHook(() => useWorker('./bad-worker.js'))
     expect(() => act(() => result.current.postMessage('test'))).not.toThrow()
   })
@@ -229,10 +244,13 @@ describe('useIntersectionObserver', () => {
       unobserve: vi.fn(),
       takeRecords: vi.fn(() => []),
     }
-    vi.stubGlobal('IntersectionObserver', vi.fn((cb) => {
-      observerCallback = cb
-      return mockObserver
-    }))
+    class MockIO {
+      constructor(cb) {
+        observerCallback = cb
+        return mockObserver
+      }
+    }
+    vi.stubGlobal('IntersectionObserver', MockIO)
   })
   afterEach(() => vi.unstubAllGlobals())
 
@@ -243,21 +261,28 @@ describe('useIntersectionObserver', () => {
   })
 
   it('sets isVisible to true when intersecting', () => {
+    const div = document.createElement('div')
     const { result } = renderHook(() => useIntersectionObserver())
-    expect(result.current[1]).toBe(false)
+    // Use callback ref to set element
+    act(() => result.current[0](div))
 
     act(() => observerCallback([{ isIntersecting: true }]))
     expect(result.current[1]).toBe(true)
   })
 
   it('disconnects observer on unmount', () => {
-    const { unmount } = renderHook(() => useIntersectionObserver())
+    const div = document.createElement('div')
+    const { result, unmount } = renderHook(() => useIntersectionObserver())
+    act(() => result.current[0](div))
     unmount()
     expect(mockObserver.disconnect).toHaveBeenCalled()
   })
 
   it('does not set visible when not intersecting', () => {
+    const div = document.createElement('div')
     const { result } = renderHook(() => useIntersectionObserver())
+    act(() => result.current[0](div))
+
     act(() => observerCallback([{ isIntersecting: false }]))
     expect(result.current[1]).toBe(false)
   })

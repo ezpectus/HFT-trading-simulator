@@ -25,9 +25,9 @@
 
 // Third-party
 #include <boost/system/error_code.hpp>
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
-#include <fmt/format.h>
 #include <yaml-cpp/yaml.h>
 
 #ifdef HFT_HAS_SIMDJSON

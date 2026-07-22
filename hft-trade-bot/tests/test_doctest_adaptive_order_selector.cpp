@@ -4,8 +4,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include "../src/execution/adaptive_order_selector_v2.h"
 #include "../src/data/aligned_types.h"
+#include "../src/execution/adaptive_order_selector_v2.h"
 
 using namespace hft;
 
@@ -20,24 +20,24 @@ static AdaptiveOrderSelectorV2 make_selector() {
 // Emergency confidence → FOK
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("AdaptiveOrderSelectorV2: emergency confidence selects FOK") {
-    auto sel = make_selector();
+    auto sel    = make_selector();
     auto result = sel.select(95, true, 50000.0, 0.5, 0.0, 0.0, 1.0, 100.0, 1000000000LL);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_FOK);
-    CHECK(result.limit_price > 50000.0);  // Buy: slightly above mid
+    CHECK(result.limit_price > 50000.0); // Buy: slightly above mid
 }
 
 TEST_CASE("AdaptiveOrderSelectorV2: emergency confidence sell side") {
-    auto sel = make_selector();
+    auto sel    = make_selector();
     auto result = sel.select(99, false, 50000.0, 0.5, 0.0, 0.0, 1.0, 100.0, 1000000000LL);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_FOK);
-    CHECK(result.limit_price < 50000.0);  // Sell: slightly below mid
+    CHECK(result.limit_price < 50000.0); // Sell: slightly below mid
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Toxic → IOC
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("AdaptiveOrderSelectorV2: toxic score selects IOC") {
-    auto sel = make_selector();
+    auto sel    = make_selector();
     auto result = sel.select(70, true, 50000.0, 2.0, 0.0, 0.6, 1.0, 100.0, 0);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_IOC);
 }
@@ -53,10 +53,10 @@ TEST_CASE("AdaptiveOrderSelectorV2: non-toxic does not trigger toxic path") {
 // High confidence + tight spread → IOC
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("AdaptiveOrderSelectorV2: high confidence + tight spread selects IOC") {
-    auto sel = make_selector();
+    auto sel    = make_selector();
     auto result = sel.select(85, true, 50000.0, 0.5, 0.0, 0.0, 1.0, 100.0, 0);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_IOC);
-    CHECK(result.limit_price > 50000.0);  // Buy: slightly above mid
+    CHECK(result.limit_price > 50000.0); // Buy: slightly above mid
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -86,14 +86,14 @@ TEST_CASE("AdaptiveOrderSelectorV2: large order vs thin depth selects GTD") {
     // order_quantity/top5_depth = 50/100 = 0.5 > 0.2 threshold
     auto result = sel.select(70, true, 50000.0, 3.0, 0.1, 0.0, 50.0, 100.0, 1000000000LL);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_GTD);
-    CHECK(result.limit_price < 50000.0);  // Buy: passive side (below mid)
-    CHECK(result.expire_ns > 1000000000LL);  // Has expiry
+    CHECK(result.limit_price < 50000.0);    // Buy: passive side (below mid)
+    CHECK(result.expire_ns > 1000000000LL); // Has expiry
 }
 
 TEST_CASE("AdaptiveOrderSelectorV2: GTD expire is now + gtd_seconds") {
-    auto sel = make_selector();
-    int64_t now = 5000000000LL;
-    auto result = sel.select(70, true, 50000.0, 3.0, 0.1, 0.0, 50.0, 100.0, now);
+    auto    sel    = make_selector();
+    int64_t now    = 5000000000LL;
+    auto    result = sel.select(70, true, 50000.0, 3.0, 0.1, 0.0, 50.0, 100.0, now);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_GTD);
     // Default gtd_seconds = 30 → expire = now + 30 * 1e9
     CHECK(result.expire_ns == now + 30LL * 1000000000LL);
@@ -107,7 +107,7 @@ TEST_CASE("AdaptiveOrderSelectorV2: low confidence selects PostOnly") {
     // Low confidence, small order, non-toxic, normal spread
     auto result = sel.select(50, true, 50000.0, 2.0, 0.0, 0.0, 1.0, 100.0, 0);
     CHECK(result.kind == FastOrder::OrderKind::POST_ONLY);
-    CHECK(result.limit_price < 50000.0);  // Buy: behind best (below mid)
+    CHECK(result.limit_price < 50000.0); // Buy: behind best (below mid)
 }
 
 TEST_CASE("AdaptiveOrderSelectorV2: wide spread selects PostOnly") {
@@ -125,7 +125,7 @@ TEST_CASE("AdaptiveOrderSelectorV2: default selects IOC at mid") {
     // Medium confidence, normal spread, weak OBI, small order, non-toxic
     auto result = sel.select(70, true, 50000.0, 2.0, 0.0, 0.0, 1.0, 100.0, 0);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_IOC);
-    CHECK(result.limit_price == 50000.0);  // At mid
+    CHECK(result.limit_price == 50000.0); // At mid
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -135,7 +135,7 @@ TEST_CASE("AdaptiveOrderSelectorV2: custom emergency threshold") {
     AdaptiveOrderSelectorV2::Params params;
     params.emergency_confidence = 50;
     AdaptiveOrderSelectorV2 sel(params);
-    auto result = sel.select(55, true, 50000.0, 0.5, 0.0, 0.0, 1.0, 100.0, 0);
+    auto                    result = sel.select(55, true, 50000.0, 0.5, 0.0, 0.0, 1.0, 100.0, 0);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_FOK);
 }
 
@@ -143,7 +143,7 @@ TEST_CASE("AdaptiveOrderSelectorV2: custom toxic threshold") {
     AdaptiveOrderSelectorV2::Params params;
     params.toxic_threshold = 0.1;
     AdaptiveOrderSelectorV2 sel(params);
-    auto result = sel.select(70, true, 50000.0, 2.0, 0.0, 0.15, 1.0, 100.0, 0);
+    auto                    result = sel.select(70, true, 50000.0, 2.0, 0.0, 0.15, 1.0, 100.0, 0);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_IOC);
 }
 
@@ -195,7 +195,8 @@ TEST_CASE("AdaptiveOrderSelectorV2: bybit type mapping") {
 TEST_CASE("AdaptiveOrderSelectorV2: bybit TIF mapping") {
     using K = FastOrder::OrderKind;
     CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::MARKET), "GoodTillCancel") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::LIMIT_IOC), "ImmediateOrCancel") == 0);
+    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::LIMIT_IOC), "ImmediateOrCancel") ==
+          0);
     CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::LIMIT_FOK), "FillOrKill") == 0);
     CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::LIMIT_GTD), "GoodTillCancel") == 0);
     CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::POST_ONLY), "PostOnly") == 0);
@@ -206,17 +207,23 @@ TEST_CASE("AdaptiveOrderSelectorV2: bybit TIF mapping") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("AdaptiveOrderSelectorV2: to_exchange_type dispatches correctly") {
     using K = FastOrder::OrderKind;
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "binance"), "GTX") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "okx"), "post_only") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "bybit"), "Limit") == 0);
+    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "binance"), "GTX") ==
+          0);
+    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "okx"),
+                      "post_only") == 0);
+    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "bybit"), "Limit") ==
+          0);
     // Unknown exchange defaults to Binance
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "unknown"), "GTX") == 0);
+    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "unknown"), "GTX") ==
+          0);
 }
 
 TEST_CASE("AdaptiveOrderSelectorV2: to_exchange_tif dispatches correctly") {
     using K = FastOrder::OrderKind;
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_tif(K::LIMIT_IOC, "binance"), "IOC") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_tif(K::LIMIT_IOC, "bybit"), "ImmediateOrCancel") == 0);
+    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_tif(K::LIMIT_IOC, "binance"), "IOC") ==
+          0);
+    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_tif(K::LIMIT_IOC, "bybit"),
+                      "ImmediateOrCancel") == 0);
     // OKX embeds TIF in order type, returns "GTC"
     CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_tif(K::LIMIT_IOC, "okx"), "GTC") == 0);
 }
@@ -225,17 +232,17 @@ TEST_CASE("AdaptiveOrderSelectorV2: to_exchange_tif dispatches correctly") {
 // Sell side price direction
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("AdaptiveOrderSelectorV2: sell side prices are below mid for aggressive") {
-    auto sel = make_selector();
+    auto sel    = make_selector();
     auto result = sel.select(85, false, 50000.0, 0.5, 0.0, 0.0, 1.0, 100.0, 0);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_IOC);
-    CHECK(result.limit_price < 50000.0);  // Sell: below mid
+    CHECK(result.limit_price < 50000.0); // Sell: below mid
 }
 
 TEST_CASE("AdaptiveOrderSelectorV2: sell side PostOnly is above mid") {
-    auto sel = make_selector();
+    auto sel    = make_selector();
     auto result = sel.select(50, false, 50000.0, 2.0, 0.0, 0.0, 1.0, 100.0, 0);
     CHECK(result.kind == FastOrder::OrderKind::POST_ONLY);
-    CHECK(result.limit_price > 50000.0);  // Sell: behind best (above mid)
+    CHECK(result.limit_price > 50000.0); // Sell: behind best (above mid)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

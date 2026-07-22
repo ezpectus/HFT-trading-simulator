@@ -89,7 +89,7 @@ TEST_CASE("MarketMakingV2 short inventory skews ask up") {
         mm.generate_quotes(50000.0, 0.0, 0.0, i * 1000000000ULL);
     }
 
-    auto q_flat = mm.generate_quotes(50000.0, 0.0, 0.0, 5000000000ULL);
+    auto q_flat  = mm.generate_quotes(50000.0, 0.0, 0.0, 5000000000ULL);
     auto q_short = mm.generate_quotes(50000.0, -5.0, 0.0, 6000000000ULL);
 
     // Short inventory should skew ask higher (to avoid adding more short)
@@ -123,22 +123,22 @@ TEST_CASE("MarketMakingV2 size skew with short inventory") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MarketMakingV2 cancels on high toxicity") {
     MarketMakingV2 mm;
-    auto q = mm.generate_quotes(50000.0, 0.0, 0.8, 0);
+    auto           q = mm.generate_quotes(50000.0, 0.0, 0.8, 0);
     CHECK(q.should_cancel == true);
     CHECK(q.confidence == doctest::Approx(0.0));
 }
 
 TEST_CASE("MarketMakingV2 no cancel on low toxicity") {
     MarketMakingV2 mm;
-    auto q = mm.generate_quotes(50000.0, 0.0, 0.3, 0);
+    auto           q = mm.generate_quotes(50000.0, 0.0, 0.3, 0);
     CHECK(q.should_cancel == false);
     CHECK(q.confidence > 0.0);
 }
 
 TEST_CASE("MarketMakingV2 confidence inversely proportional to toxicity") {
     MarketMakingV2 mm;
-    auto q_low = mm.generate_quotes(50000.0, 0.0, 0.1, 0);
-    auto q_high = mm.generate_quotes(50000.0, 0.0, 0.5, 1000000000ULL);
+    auto           q_low  = mm.generate_quotes(50000.0, 0.0, 0.1, 0);
+    auto           q_high = mm.generate_quotes(50000.0, 0.0, 0.5, 1000000000ULL);
     CHECK(q_low.confidence > q_high.confidence);
 }
 
@@ -159,7 +159,7 @@ TEST_CASE("MarketMakingV2 spread within floor and cap") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MarketMakingV2 stops bidding at max long inventory") {
     MarketMakingV2 mm;
-    auto q = mm.generate_quotes(50000.0, mm.config().max_inventory, 0.0, 0);
+    auto           q = mm.generate_quotes(50000.0, mm.config().max_inventory, 0.0, 0);
     CHECK(q.bid_price == doctest::Approx(0.0));
     CHECK(q.bid_size == doctest::Approx(0.0));
     CHECK(q.ask_price > 0.0);
@@ -167,7 +167,7 @@ TEST_CASE("MarketMakingV2 stops bidding at max long inventory") {
 
 TEST_CASE("MarketMakingV2 stops asking at max short inventory") {
     MarketMakingV2 mm;
-    auto q = mm.generate_quotes(50000.0, -mm.config().max_inventory, 0.0, 0);
+    auto           q = mm.generate_quotes(50000.0, -mm.config().max_inventory, 0.0, 0);
     CHECK(q.ask_price == doctest::Approx(0.0));
     CHECK(q.ask_size == doctest::Approx(0.0));
     CHECK(q.bid_price > 0.0);
@@ -194,7 +194,7 @@ TEST_CASE("MarketMakingV2 reset clears state") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("MarketMakingV2 sigma updates with price changes") {
     MarketMakingV2 mm;
-    double sigma0 = mm.current_sigma();
+    double         sigma0 = mm.current_sigma();
 
     // Feed volatile prices
     for (int i = 0; i < 20; ++i) {

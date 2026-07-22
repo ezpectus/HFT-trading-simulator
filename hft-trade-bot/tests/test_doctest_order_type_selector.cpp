@@ -4,8 +4,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include "../src/execution/order_type_selector.h"
 #include "../src/data/types.h"
+#include "../src/execution/order_type_selector.h"
 
 using namespace hft;
 
@@ -14,7 +14,7 @@ using namespace hft;
 // ═══════════════════════════════════════════════════════════════════════════
 static OrderBook makeOB(double bidPrice, double askPrice, int levels = 1) {
     OrderBook ob;
-    ob.symbol = "BTCUSDT";
+    ob.symbol   = "BTCUSDT";
     ob.exchange = "binance";
     for (int i = 0; i < levels; i++) {
         ob.bids.push_back({bidPrice - i * 0.5, 1.0});
@@ -117,8 +117,8 @@ TEST_CASE("Position: is_long returns false for SELL") {
 
 TEST_CASE("Position: update_pnl long position profit") {
     Position pos;
-    pos.side = Side::BUY;
-    pos.quantity = 1.0;
+    pos.side        = Side::BUY;
+    pos.quantity    = 1.0;
     pos.entry_price = 50000.0;
     pos.update_pnl(51000.0);
     CHECK(pos.unrealized_pnl == doctest::Approx(1000.0));
@@ -126,8 +126,8 @@ TEST_CASE("Position: update_pnl long position profit") {
 
 TEST_CASE("Position: update_pnl long position loss") {
     Position pos;
-    pos.side = Side::BUY;
-    pos.quantity = 2.0;
+    pos.side        = Side::BUY;
+    pos.quantity    = 2.0;
     pos.entry_price = 50000.0;
     pos.update_pnl(49000.0);
     CHECK(pos.unrealized_pnl == doctest::Approx(-2000.0));
@@ -135,8 +135,8 @@ TEST_CASE("Position: update_pnl long position loss") {
 
 TEST_CASE("Position: update_pnl short position profit") {
     Position pos;
-    pos.side = Side::SELL;
-    pos.quantity = 1.0;
+    pos.side        = Side::SELL;
+    pos.quantity    = 1.0;
     pos.entry_price = 50000.0;
     pos.update_pnl(49000.0);
     CHECK(pos.unrealized_pnl == doctest::Approx(1000.0));
@@ -144,8 +144,8 @@ TEST_CASE("Position: update_pnl short position profit") {
 
 TEST_CASE("Position: update_pnl short position loss") {
     Position pos;
-    pos.side = Side::SELL;
-    pos.quantity = 2.0;
+    pos.side        = Side::SELL;
+    pos.quantity    = 2.0;
     pos.entry_price = 50000.0;
     pos.update_pnl(51000.0);
     CHECK(pos.unrealized_pnl == doctest::Approx(-2000.0));
@@ -153,8 +153,8 @@ TEST_CASE("Position: update_pnl short position loss") {
 
 TEST_CASE("Position: update_pnl zero quantity") {
     Position pos;
-    pos.side = Side::BUY;
-    pos.quantity = 0.0;
+    pos.side        = Side::BUY;
+    pos.quantity    = 0.0;
     pos.entry_price = 50000.0;
     pos.update_pnl(51000.0);
     CHECK(pos.unrealized_pnl == doctest::Approx(0.0));
@@ -162,8 +162,8 @@ TEST_CASE("Position: update_pnl zero quantity") {
 
 TEST_CASE("Position: update_pnl price equals entry") {
     Position pos;
-    pos.side = Side::BUY;
-    pos.quantity = 5.0;
+    pos.side        = Side::BUY;
+    pos.quantity    = 5.0;
     pos.entry_price = 50000.0;
     pos.update_pnl(50000.0);
     CHECK(pos.unrealized_pnl == doctest::Approx(0.0));
@@ -174,48 +174,48 @@ TEST_CASE("Position: update_pnl price equals entry") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("OrderTypeSelector: high confidence + tight spread → MARKET") {
     // spread = 0.5, mid = 50000 → spread_bps = 0.1 < 5.0
-    auto ob = makeOB(49999.75, 50000.25);
+    auto ob  = makeOB(49999.75, 50000.25);
     auto sig = makeSignal(85);
     CHECK(OrderTypeSelector::select(sig, ob) == OrderType::MARKET);
 }
 
 TEST_CASE("OrderTypeSelector: confidence exactly 80 + tight spread → MARKET") {
-    auto ob = makeOB(49999.75, 50000.25);
+    auto ob  = makeOB(49999.75, 50000.25);
     auto sig = makeSignal(80);
     CHECK(OrderTypeSelector::select(sig, ob) == OrderType::MARKET);
 }
 
 TEST_CASE("OrderTypeSelector: low confidence → LIMIT") {
     // spread is tight but confidence < 70
-    auto ob = makeOB(49999.75, 50000.25);
+    auto ob  = makeOB(49999.75, 50000.25);
     auto sig = makeSignal(60);
     CHECK(OrderTypeSelector::select(sig, ob) == OrderType::LIMIT);
 }
 
 TEST_CASE("OrderTypeSelector: wide spread → LIMIT regardless of confidence") {
     // spread = 100, mid = 50000 → spread_bps = 20 > 10.0
-    auto ob = makeOB(49950, 50050);
+    auto ob  = makeOB(49950, 50050);
     auto sig = makeSignal(90);
     CHECK(OrderTypeSelector::select(sig, ob) == OrderType::LIMIT);
 }
 
 TEST_CASE("OrderTypeSelector: medium confidence + medium spread → MARKET (default)") {
     // confidence = 75, spread_bps = 0.1 → not high conf branch, not low/wide → default MARKET
-    auto ob = makeOB(49999.75, 50000.25);
+    auto ob  = makeOB(49999.75, 50000.25);
     auto sig = makeSignal(75);
     CHECK(OrderTypeSelector::select(sig, ob) == OrderType::MARKET);
 }
 
 TEST_CASE("OrderTypeSelector: confidence 70 + tight spread → MARKET (default)") {
     // confidence = 70 → not < 70, spread_bps < 10 → default MARKET
-    auto ob = makeOB(49999.75, 50000.25);
+    auto ob  = makeOB(49999.75, 50000.25);
     auto sig = makeSignal(70);
     CHECK(OrderTypeSelector::select(sig, ob) == OrderType::MARKET);
 }
 
 TEST_CASE("OrderTypeSelector: empty order book → spread_bps 999 → LIMIT") {
     OrderBook ob;
-    auto sig = makeSignal(90);
+    auto      sig = makeSignal(90);
     // mid_price = 0 → spread_bps = 999 → LIMIT
     CHECK(OrderTypeSelector::select(sig, ob) == OrderType::LIMIT);
 }
@@ -224,7 +224,7 @@ TEST_CASE("OrderTypeSelector: spread_bps exactly 5.0 boundary → not MARKET bra
     // spread_bps = 5.0 → not < 5.0, confidence = 85 → check second branch
     // spread_bps = 5.0, not > 10, confidence 85 not < 70 → default MARKET
     // spread = 25, mid = 50000 → 5.0 bps
-    auto ob = makeOB(49987.5, 50012.5);
+    auto ob  = makeOB(49987.5, 50012.5);
     auto sig = makeSignal(85);
     CHECK(OrderTypeSelector::select(sig, ob) == OrderType::MARKET);
 }
@@ -233,7 +233,7 @@ TEST_CASE("OrderTypeSelector: spread_bps exactly 5.0 boundary → not MARKET bra
 // OrderTypeSelector::limit_price
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("OrderTypeSelector: limit_price BUY below mid") {
-    auto ob = makeOB(49999.5, 50000.5); // mid = 50000
+    auto   ob    = makeOB(49999.5, 50000.5); // mid = 50000
     double price = OrderTypeSelector::limit_price(Side::BUY, ob, 1.0);
     // offset = 50000 * 1 / 10000 = 5.0
     // BUY → mid - offset = 49995
@@ -241,14 +241,14 @@ TEST_CASE("OrderTypeSelector: limit_price BUY below mid") {
 }
 
 TEST_CASE("OrderTypeSelector: limit_price SELL above mid") {
-    auto ob = makeOB(49999.5, 50000.5); // mid = 50000
+    auto   ob    = makeOB(49999.5, 50000.5); // mid = 50000
     double price = OrderTypeSelector::limit_price(Side::SELL, ob, 1.0);
     // SELL → mid + offset = 50005
     CHECK(price == doctest::Approx(50005.0));
 }
 
 TEST_CASE("OrderTypeSelector: limit_price custom offset") {
-    auto ob = makeOB(49999.5, 50000.5); // mid = 50000
+    auto   ob    = makeOB(49999.5, 50000.5); // mid = 50000
     double price = OrderTypeSelector::limit_price(Side::BUY, ob, 2.0);
     // offset = 50000 * 2 / 10000 = 10.0
     // BUY → 49990
@@ -256,13 +256,13 @@ TEST_CASE("OrderTypeSelector: limit_price custom offset") {
 }
 
 TEST_CASE("OrderTypeSelector: limit_price zero offset returns mid") {
-    auto ob = makeOB(49999.5, 50000.5); // mid = 50000
+    auto   ob    = makeOB(49999.5, 50000.5); // mid = 50000
     double price = OrderTypeSelector::limit_price(Side::BUY, ob, 0.0);
     CHECK(price == doctest::Approx(50000.0));
 }
 
 TEST_CASE("OrderTypeSelector: limit_price empty book returns 0") {
     OrderBook ob;
-    double price = OrderTypeSelector::limit_price(Side::BUY, ob, 1.0);
+    double    price = OrderTypeSelector::limit_price(Side::BUY, ob, 1.0);
     CHECK(price == doctest::Approx(0.0));
 }

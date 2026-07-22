@@ -9,59 +9,57 @@
 #pragma once
 
 #include "../OKXAdapter.h"
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <cstdint>
 
 namespace hft::exchange::okx {
 
 // ─── Endpoints ───
-constexpr const char* WS_PUBLIC_URL = "wss://ws.okx.com/ws/v5/public";
-constexpr const char* WS_PRIVATE_URL = "wss://ws.okx.com/ws/v5/private";
-constexpr const char* REST_BASE_URL = "https://www.okx.com";
+constexpr const char* WS_PUBLIC_URL        = "wss://ws.okx.com/ws/v5/public";
+constexpr const char* WS_PRIVATE_URL       = "wss://ws.okx.com/ws/v5/private";
+constexpr const char* REST_BASE_URL        = "https://www.okx.com";
 constexpr const char* SIMULATION_WS_PUBLIC = "wss://wspap.okx.com/ws/v5/public?brokerId=9999";
-constexpr const char* SIMULATION_REST = "https://www.okx.com";
+constexpr const char* SIMULATION_REST      = "https://www.okx.com";
 
 // ─── Rate limits ───
-constexpr uint32_t RATE_LIMIT_PER_2S = 20;
-constexpr uint32_t RATE_LIMIT_ORDERS_PER_2S = 60;
+constexpr uint32_t RATE_LIMIT_PER_2S           = 20;
+constexpr uint32_t RATE_LIMIT_ORDERS_PER_2S    = 60;
 constexpr uint32_t RATE_LIMIT_REQUESTS_PER_SEC = 10;
 
 // ─── WebSocket channels ───
-constexpr const char* CHANNEL_BOOKS = "books";
-constexpr const char* CHANNEL_BOOKS5 = "books5";
-constexpr const char* CHANNEL_TRADES = "trades";
+constexpr const char* CHANNEL_BOOKS    = "books";
+constexpr const char* CHANNEL_BOOKS5   = "books5";
+constexpr const char* CHANNEL_TRADES   = "trades";
 constexpr const char* CHANNEL_CANDLE1M = "candle1m";
 constexpr const char* CHANNEL_CANDLE5M = "candle5m";
-constexpr const char* CHANNEL_TICKERS = "tickers";
-constexpr const char* CHANNEL_PRICE = "mark-price";
-constexpr const char* CHANNEL_ORDERS = "orders";
+constexpr const char* CHANNEL_TICKERS  = "tickers";
+constexpr const char* CHANNEL_PRICE    = "mark-price";
+constexpr const char* CHANNEL_ORDERS   = "orders";
 constexpr const char* CHANNEL_POSITION = "positions";
-constexpr const char* CHANNEL_ACCOUNT = "account";
+constexpr const char* CHANNEL_ACCOUNT  = "account";
 
 // ─── Order types ───
-constexpr const char* ORDER_TYPE_MARKET = "market";
-constexpr const char* ORDER_TYPE_LIMIT = "limit";
-constexpr const char* ORDER_TYPE_POST_ONLY = "post_only";
-constexpr const char* ORDER_TYPE_FOK = "fok";
-constexpr const char* ORDER_TYPE_IOC = "ioc";
+constexpr const char* ORDER_TYPE_MARKET            = "market";
+constexpr const char* ORDER_TYPE_LIMIT             = "limit";
+constexpr const char* ORDER_TYPE_POST_ONLY         = "post_only";
+constexpr const char* ORDER_TYPE_FOK               = "fok";
+constexpr const char* ORDER_TYPE_IOC               = "ioc";
 constexpr const char* ORDER_TYPE_OPTIMAL_LIMIT_IOC = "optimal_limit_ioc";
 
 // ─── Side ───
-constexpr const char* SIDE_BUY = "buy";
+constexpr const char* SIDE_BUY  = "buy";
 constexpr const char* SIDE_SELL = "sell";
 
 // ─── Position side ───
-constexpr const char* POS_SIDE_LONG = "long";
+constexpr const char* POS_SIDE_LONG  = "long";
 constexpr const char* POS_SIDE_SHORT = "short";
-constexpr const char* POS_SIDE_NET = "net";
+constexpr const char* POS_SIDE_NET   = "net";
 
 // ─── Subscription helpers ───
-inline std::string build_subscribe_args(const std::string& channel,
-                                         const std::string& inst_id) {
-    return std::string("{\"channel\":\"") + channel +
-           "\",\"instId\":\"" + inst_id + "\"}";
+inline std::string build_subscribe_args(const std::string& channel, const std::string& inst_id) {
+    return std::string("{\"channel\":\"") + channel + "\",\"instId\":\"" + inst_id + "\"}";
 }
 
 inline std::string build_subscribe_message(const std::vector<std::string>& args) {
@@ -84,13 +82,10 @@ inline std::string build_unsubscribe_message(const std::vector<std::string>& arg
     return msg;
 }
 
-inline std::string build_login_message(const std::string& api_key,
-                                        const std::string& passphrase,
-                                        const std::string& timestamp,
-                                        const std::string& sign) {
-    return std::string("{\"op\":\"login\",\"args\":[{\"apiKey\":\"") +
-           api_key + "\",\"passphrase\":\"" + passphrase +
-           "\",\"timestamp\":\"" + timestamp +
+inline std::string build_login_message(const std::string& api_key, const std::string& passphrase,
+                                       const std::string& timestamp, const std::string& sign) {
+    return std::string("{\"op\":\"login\",\"args\":[{\"apiKey\":\"") + api_key +
+           "\",\"passphrase\":\"" + passphrase + "\",\"timestamp\":\"" + timestamp +
            "\",\"sign\":\"" + sign + "\"}]}";
 }
 
@@ -137,7 +132,7 @@ inline std::string normalize_symbol(const std::string& symbol) {
     for (const char* q : {"USDT", "USDC", "BTC", "ETH"}) {
         size_t qlen = std::strlen(q);
         if (symbol.size() > qlen && symbol.substr(symbol.size() - qlen) == q) {
-            base = symbol.substr(0, symbol.size() - qlen);
+            base  = symbol.substr(0, symbol.size() - qlen);
             quote = q;
             break;
         }

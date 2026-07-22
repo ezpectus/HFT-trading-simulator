@@ -2,11 +2,11 @@
 // Core types used across the HFT trade bot.
 #pragma once
 
-#include <string>
 #include <cstdint>
-#include <optional>
-#include <vector>
 #include <ctime>
+#include <optional>
+#include <string>
+#include <vector>
 
 namespace hft {
 
@@ -23,12 +23,12 @@ inline Side string_to_side(const std::string& s) {
 }
 
 struct Candle {
-    int64_t timestamp{};
-    double open{};
-    double high{};
-    double low{};
-    double close{};
-    double volume{};
+    int64_t     timestamp{};
+    double      open{};
+    double      high{};
+    double      low{};
+    double      close{};
+    double      volume{};
     std::string symbol;
     std::string exchange;
 };
@@ -39,11 +39,11 @@ struct OrderBookLevel {
 };
 
 struct OrderBook {
-    std::string symbol;
-    std::string exchange;
+    std::string                 symbol;
+    std::string                 exchange;
     std::vector<OrderBookLevel> bids;
     std::vector<OrderBookLevel> asks;
-    int64_t timestamp{};
+    int64_t                     timestamp{};
 
     double best_bid() const { return bids.empty() ? 0.0 : bids[0].price; }
     double best_ask() const { return asks.empty() ? 0.0 : asks[0].price; }
@@ -52,39 +52,38 @@ struct OrderBook {
 };
 
 struct Order {
-    std::string id;
-    std::string symbol;
-    std::string exchange;
-    Side side{Side::BUY};
-    OrderType type{OrderType::MARKET};
-    double quantity{};
-    std::optional<double> price;  // nullopt for market orders
-    OrderStatus status{OrderStatus::PENDING};
-    double filled_price{};
-    double filled_quantity{};
-    double fee{};
-    int64_t timestamp{static_cast<int64_t>(std::time(nullptr) * 1000)};  // milliseconds
+    std::string           id;
+    std::string           symbol;
+    std::string           exchange;
+    Side                  side{Side::BUY};
+    OrderType             type{OrderType::MARKET};
+    double                quantity{};
+    std::optional<double> price; // nullopt for market orders
+    OrderStatus           status{OrderStatus::PENDING};
+    double                filled_price{};
+    double                filled_quantity{};
+    double                fee{};
+    int64_t timestamp{static_cast<int64_t>(std::time(nullptr) * 1000)}; // milliseconds
 };
 
 struct Position {
     std::string symbol;
     std::string exchange;
-    Side side{Side::BUY};
-    double quantity{};
-    double entry_price{};
-    double stop_loss{};
-    double take_profit{};
-    int64_t opened_at{static_cast<int64_t>(std::time(nullptr) * 1000)};  // milliseconds
-    double unrealized_pnl{};
-    double fees_paid{};       // cumulative fees paid
-    double funding_paid{};    // cumulative funding paid
+    Side        side{Side::BUY};
+    double      quantity{};
+    double      entry_price{};
+    double      stop_loss{};
+    double      take_profit{};
+    int64_t     opened_at{static_cast<int64_t>(std::time(nullptr) * 1000)}; // milliseconds
+    double      unrealized_pnl{};
+    double      fees_paid{};    // cumulative fees paid
+    double      funding_paid{}; // cumulative funding paid
 
     bool is_long() const { return side == Side::BUY; }
 
     void update_pnl(double current_price) {
-        unrealized_pnl = is_long()
-            ? (current_price - entry_price) * quantity
-            : (entry_price - current_price) * quantity;
+        unrealized_pnl = is_long() ? (current_price - entry_price) * quantity
+                                   : (entry_price - current_price) * quantity;
         unrealized_pnl -= fees_paid + funding_paid;
     }
 };

@@ -1,19 +1,19 @@
 // Tests: Ring buffer push/pop, overflow, bulk operations
-#include "../src/ipc/shm_ring_buffer.h"
 #include "../src/ipc/shm_protocol.h"
+#include "../src/ipc/shm_ring_buffer.h"
 #include <cassert>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
-#include <vector>
-#include <chrono>
 #include <thread>
+#include <vector>
 
 using namespace hft::ipc;
 
 // Use a simple struct for testing
 struct TestMsg {
     uint64_t id;
-    double value;
+    double   value;
 };
 
 void test_basic_push_pop() {
@@ -46,13 +46,13 @@ void test_fill_buffer() {
 
     // Should be full
     assert(rb.size() == 8);
-    assert(!rb.try_push({99, 99.0}));  // Should fail
+    assert(!rb.try_push({99, 99.0})); // Should fail
 
     // Pop all
     for (uint64_t i = 0; i < 8; ++i) {
         TestMsg out;
         assert(rb.try_pop(out));
-        assert(out.id == i);  // FIFO order
+        assert(out.id == i); // FIFO order
     }
 
     assert(rb.size() == 0);
@@ -73,7 +73,7 @@ void test_bulk_push_pop() {
     assert(pushed == 32);
     assert(rb.size() == 32);
 
-    TestMsg out[32];
+    TestMsg  out[32];
     uint64_t popped = rb.bulk_pop(out, 32);
     assert(popped == 32);
     assert(rb.size() == 0);
@@ -110,14 +110,14 @@ void test_signal_struct() {
     ShmRingBuffer<SignalMsg> rb("/hft_test_sig", 16, true);
 
     SignalMsg sig{};
-    sig.timestamp = 123456789;
-    sig.symbol_id = 0;  // BTC
-    sig.action = 1;     // LONG
+    sig.timestamp  = 123456789;
+    sig.symbol_id  = 0; // BTC
+    sig.action     = 1; // LONG
     sig.confidence = 0.85f;
-    sig.price = 50000.0f;
-    sig.sl = 49000.0f;
-    sig.tp = 52000.0f;
-    sig.leverage = 10;
+    sig.price      = 50000.0f;
+    sig.sl         = 49000.0f;
+    sig.tp         = 52000.0f;
+    sig.leverage   = 10;
 
     assert(rb.try_push(sig));
 
@@ -137,13 +137,13 @@ void test_fill_struct() {
     ShmRingBuffer<FillMsg> rb("/hft_test_fill", 16, true);
 
     FillMsg fill{};
-    fill.timestamp = 987654321;
-    fill.symbol_id = 1;  // ETH
-    fill.side = 0;       // BUY
-    fill.qty = 2.5f;
-    fill.price = 3000.0f;
-    fill.fee = 0.5f;
-    fill.exchange_id = 1;  // OKX
+    fill.timestamp   = 987654321;
+    fill.symbol_id   = 1; // ETH
+    fill.side        = 0; // BUY
+    fill.qty         = 2.5f;
+    fill.price       = 3000.0f;
+    fill.fee         = 0.5f;
+    fill.exchange_id = 1; // OKX
 
     assert(rb.try_push(fill));
 

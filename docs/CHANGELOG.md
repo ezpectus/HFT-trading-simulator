@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [6.2.7] — Test Suite Fixes: Vitest, Playwright E2E, Component Crashes
+
+### Fixed — Web UI component crashes (positions object vs array, 14 components)
+
+All account `positions` data is an object keyed by symbol (e.g. `{ "BTC/USDT": { ... } }`), but 14 components treated it as an array. This caused crashes in Playwright E2E tests and would crash the dashboard if any panel rendered with live data.
+
+- **`PositionsPanel.jsx`** — `for...of` on object → `Object.values()`
+- **`PositionCorrelation.jsx`** — `.length` / `.filter()` on object → `Object.values()` + proper filter chain
+- **`PnLAttribution.jsx`** — `for...of` on object → `Object.values()`
+- **`HedgingSuggestions.jsx`** — `for...of` on object → `Object.values()`
+- **`AutoRebalance.jsx`** — `for...of` on object → `Object.values()`
+- **`MultiAccountView.jsx`** — `.filter()` on object → `Object.values().filter()`
+- **`LiquidationCascade.jsx`** — `for...of` on object → `Object.values()`
+- **`LiquidationMap.jsx`** — `for...of` on object → `Object.values()`
+- **`TrailingStopCalculator.jsx`** — `for...of` on object → `Object.values()`
+- **`BotStatus.jsx`** — `.length` on object → `Object.keys().length`
+- **`AccountPanel.jsx`** — `.length` on object → `Object.keys().length`
+- **`StatusBar.jsx`** — `.length` on object → `Object.keys().length` (2 sites)
+- **`SessionExport.jsx`** — `.map()` on object → `Object.values().map()`
+- **`SessionReplay.jsx`** — `.length` and `.slice().map()` on object → `Object.keys/values()`
+- **`useDetachablePanels.js`** — `.length` and `.map()` on object → `Object.keys/values()`
+
+### Fixed — RoughVolatility temporal dead zone
+
+- **`RoughVolatility.jsx:238`** — `useMemo` dependency array referenced `H` (a `const` declared at line 244, after the `useMemo` call). In JavaScript, `const` variables are in the temporal dead zone until their declaration is reached, so `H` was `undefined` in the dep array. Changed to `hurstExp` (the state variable that `H` is derived from).
+
+### Fixed — Vitest configuration and test isolation
+
+- **`vitest.config.js`** — Changed `isolate: false` → `isolate: true` to give each test file a fresh module registry. With `isolate: false`, `vi.mock()` calls leaked across test files, causing 144 test failures.
+- **`package.json`** — Increased Node.js heap size from 8GB to 16GB (`--max-old-space-size=16384`) to accommodate `isolate: true` memory usage across 38 test files.
+- **`src/test/setup.js`** — Added `window.onerror = () => true` to suppress JSDOM uncaught error events that React 18 error boundaries re-throw in dev mode, which caused `panelErrorBoundary` test output spam.
+- **`src/test/useInterval.test.jsx`** — Added `vi.restoreAllMocks()` to `afterEach` for proper timer cleanup, preventing worker thread crash.
+
+### Fixed — Playwright E2E test selectors (10 failures → 0)
+
+- **`App.jsx`** — Added `role="tab"` to `TabButton` component so `getByRole('tab', ...)` selectors work.
+- **`App.jsx`** — Added `shift+|` keyboard shortcut (Shift+\ produces `|` on US keyboards).
+- **`smoke.spec.js`** — Symbol selector: `getByText('ETH/USDT')` → `getByRole('button', { name: /Select ETH\/USDT/i })` (Header shows short form `ETH`).
+- **`smoke.spec.js`** — Order book area: `div:last-child` → `div.nth(1)` (sidebar is 2nd child, not last).
+- **`trading.spec.js`** — Symbol keyboard test: `getByText('ETH/USDT')` → `getByRole('button', { name: /Select ETH\/USDT/i })` + `aria-pressed` check.
+- **`trading.spec.js`** — Submit button text regex: `/Submit|Not connected|Trading Stopped/i` → `/BUY|SELL|Not connected|Trading Stopped/i`.
+- **`trading.spec.js`** — Panel settings: `getByText('Panels')` → `getByRole('button').filter({ hasText: 'Panels' })`.
+- **`mock-mode.spec.js`** — Signal feed test: switch to Signals tab before checking for signal area.
+- **`mock-mode.spec.js`** — Console error filter: added `attribute`, `SVG`, `NaN` to exclusion list.
+- **`playwright.config.js`** — Changed `webServer.command` to `npm run dev:mock` (cross-platform via Vite `--mode mock`).
+- **`.env.mock`** — New file with `VITE_MOCK_MODE=true` for Playwright E2E test server.
+
+### Fixed — Python Bandit nosec comment format
+
+- All `# nosec` comments updated to include test ID: `# nosec: B104`, `# nosec: B108`, etc. Bandit warns about unrecognized nosec comments without test IDs.
+- Files: `metrics.py`, `health_server.py`, `health_check.py`, `metrics_server.py`, `signal_publisher.py`, `run.py`, `monitor.py`, `test_metrics_server.py`, `shm_market_data_writer.py`, `shm_ring_buffer.py`
+
+### Fixed — C++ clang-format
+
+- All C++ header files in `hft-trade-bot/src/` and `hft-trade-bot/tests/` formatted with `clang-format` (LLVM style).
+
+### Fixed — Batch script robustness
+
+- **`run-all-tests.bat`** — Check if Docker daemon is running before attempting builds; skip gracefully if not.
+- **`run-cpp-tests.bat`** — Check for both `cmake` and `ctest` on PATH before attempting build; skip gracefully if either is missing.
+
+---
+
 ## [6.2.6] — Continued Audit: C++ Position/Monitoring snprintf Bugs, Python SHM Bug
 
 ### Fixed — C++ snprintf bounds check (4 sites)

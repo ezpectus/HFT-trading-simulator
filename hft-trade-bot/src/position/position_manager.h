@@ -1,29 +1,29 @@
 // Position manager — tracks open positions and PnL
 #pragma once
 
-#include "../data/types.h"
 #include "../data/signal.h"
-#include <vector>
-#include <unordered_map>
-#include <unordered_set>
-#include <string>
+#include "../data/types.h"
 #include <mutex>
 #include <optional>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace hft {
 
 class PositionManager {
-public:
+  public:
     void open_position(const Signal& signal, double quantity, const std::string& exchange) {
         if (!signal.is_actionable()) return;
         std::lock_guard<std::mutex> lock(mutex_);
-        Position pos;
-        pos.symbol = signal.symbol;
-        pos.exchange = exchange;
-        pos.side = signal.side();
-        pos.quantity = quantity;
+        Position                    pos;
+        pos.symbol      = signal.symbol;
+        pos.exchange    = exchange;
+        pos.side        = signal.side();
+        pos.quantity    = quantity;
         pos.entry_price = signal.entry_price;
-        pos.stop_loss = signal.stop_loss;
+        pos.stop_loss   = signal.stop_loss;
         pos.take_profit = signal.take_profit;
         positions_.push_back(std::move(pos));
         active_symbols_.insert(signal.symbol);
@@ -71,13 +71,13 @@ public:
     // Check SL/TP for all positions
     struct CloseTrigger {
         std::string symbol;
-        double price;
-        std::string reason;  // "STOP_LOSS" or "TAKE_PROFIT"
+        double      price;
+        std::string reason; // "STOP_LOSS" or "TAKE_PROFIT"
     };
 
     std::vector<CloseTrigger> check_sl_tp(const std::unordered_map<std::string, double>& prices) {
         std::lock_guard<std::mutex> lock(mutex_);
-        std::vector<CloseTrigger> triggers;
+        std::vector<CloseTrigger>   triggers;
         for (const auto& pos : positions_) {
             auto it = prices.find(pos.symbol);
             if (it == prices.end()) continue;
@@ -102,16 +102,16 @@ public:
 
     double total_unrealized_pnl() const {
         std::lock_guard<std::mutex> lock(mutex_);
-        double total = 0.0;
+        double                      total = 0.0;
         for (const auto& pos : positions_) {
             total += pos.unrealized_pnl;
         }
         return total;
     }
 
-private:
-    mutable std::mutex mutex_;
-    std::vector<Position> positions_;
+  private:
+    mutable std::mutex              mutex_;
+    std::vector<Position>           positions_;
     std::unordered_set<std::string> active_symbols_;
 };
 

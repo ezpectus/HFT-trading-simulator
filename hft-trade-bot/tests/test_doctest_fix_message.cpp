@@ -96,7 +96,7 @@ TEST_CASE("FixMessage: finalize+parse round-trip validates checksum") {
     auto sv = msg.finalize();
 
     FixMessage parser;
-    bool ok = parser.parse(sv.data(), sv.size());
+    bool       ok = parser.parse(sv.data(), sv.size());
     CHECK(ok == true);
 }
 
@@ -155,7 +155,7 @@ TEST_CASE("FixMessage: round-trip with multiple tags") {
     auto sv = msg.finalize();
 
     FixMessage parser;
-    bool ok = parser.parse(sv.data(), sv.size());
+    bool       ok = parser.parse(sv.data(), sv.size());
     CHECK(ok == true);
     CHECK(parser.msg_type() == "D");
     CHECK(parser.seq_num() == 5);
@@ -178,7 +178,7 @@ TEST_CASE("FixMessage: parse empty data returns false") {
 
 TEST_CASE("FixMessage: parse data exceeding MAX_SIZE returns false") {
     FixMessage parser;
-    char huge[FixMessage::MAX_SIZE + 100];
+    char       huge[FixMessage::MAX_SIZE + 100];
     std::memset(huge, 'A', sizeof(huge));
     CHECK(parser.parse(huge, sizeof(huge)) == false);
 }
@@ -198,8 +198,10 @@ TEST_CASE("FixMessage: parse with wrong checksum returns false") {
     auto pos = copy.find("10=");
     if (pos != std::string::npos && pos + 6 < copy.size()) {
         // Flip the checksum digits
-        if (copy[pos + 3] == '0') copy[pos + 3] = '1';
-        else copy[pos + 3] = '0';
+        if (copy[pos + 3] == '0')
+            copy[pos + 3] = '1';
+        else
+            copy[pos + 3] = '0';
     }
 
     FixMessage parser;

@@ -10,16 +10,16 @@ to remain asset-agnostic while delegating all PnL arithmetic here.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class AssetType(str, Enum):
+class AssetType(StrEnum):
     SPOT = "spot"
     FUTURES = "futures"
     OPTIONS = "options"
 
 
-class OptionType(str, Enum):
+class OptionType(StrEnum):
     CALL = "call"
     PUT = "put"
 

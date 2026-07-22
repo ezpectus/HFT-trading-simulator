@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 /**
  * Persist state to localStorage with automatic JSON serialization.
@@ -10,6 +10,7 @@ export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
+  const removedRef = useRef(false)
   const [value, setValue] = useState<T>(() => {
     try {
       const stored = localStorage.getItem(key)
@@ -20,6 +21,10 @@ export function useLocalStorage<T>(
   })
 
   useEffect(() => {
+    if (removedRef.current) {
+      removedRef.current = false
+      return
+    }
     try {
       localStorage.setItem(key, JSON.stringify(value))
     } catch {
@@ -34,6 +39,8 @@ export function useLocalStorage<T>(
       // ignore
     }
     setValue(initialValue)
+    // Mark as removed so the effect doesn't immediately write back
+    removedRef.current = true
   }, [key, initialValue])
 
   return [value, setValue, remove]

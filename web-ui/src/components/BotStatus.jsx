@@ -15,7 +15,7 @@ export default function BotStatus({ signals, fills, accounts, signalConnected, e
   let totalTrades = 0
 
   for (const acc of Object.values(accounts || {})) {
-    totalPositions += acc.positions?.length || 0
+    totalPositions += Object.keys(acc.positions || {}).length
     totalBalance += acc.balance || 0
     totalEquity += acc.equity || 0
     totalPnl += acc.total_pnl || 0

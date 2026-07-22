@@ -31,19 +31,19 @@ int main(int argc, char** argv) {
 // unit tests. For advanced features (reporters, logging, fixtures, etc.),
 // replace this file with the full doctest.h.
 
-#include <functional>
-#include <vector>
-#include <string>
-#include <iostream>
 #include <cmath>
 #include <cstdlib>
+#include <functional>
+#include <iostream>
+#include <string>
+#include <vector>
 
 namespace doctest_detail {
 
 struct TestCase {
-    std::string name;
-    std::string file;
-    int line;
+    std::string           name;
+    std::string           file;
+    int                   line;
     std::function<void()> func;
 };
 
@@ -79,7 +79,8 @@ inline int run_all() {
 // ─── doctest_main entry point ─────────────────────────────────────────────
 #ifdef DOCTEST_CONFIG_IMPLEMENT
 int doctest_main(int argc, char** argv) {
-    (void)argc; (void)argv;
+    (void)argc;
+    (void)argv;
     return doctest_detail::run_all();
 }
 #endif
@@ -92,9 +93,13 @@ struct assertion_error : std::runtime_error {
 
 class Approx {
     double m_value, m_epsilon;
-public:
+
+  public:
     explicit Approx(double v) : m_value(v), m_epsilon(0.01) {}
-    Approx epsilon(double e) { m_epsilon = e; return *this; }
+    Approx epsilon(double e) {
+        m_epsilon = e;
+        return *this;
+    }
     bool operator==(double other) const {
         return std::abs(m_value - other) <= std::abs(m_value) * m_epsilon;
     }
@@ -109,20 +114,23 @@ public:
 #define DOCTEST_CAT_I(a, b) a##b
 #define DOCTEST_CAT(a, b) DOCTEST_CAT_I(a, b)
 
-#define TEST_CASE(name) \
-    static void DOCTEST_ANON_FUNC(); \
-    static doctest_detail::Registrator DOCTEST_ANON_REG( \
-        name, __FILE__, __LINE__, DOCTEST_ANON_FUNC); \
-    static void DOCTEST_ANON_FUNC()
+#define TEST_CASE(name)                                                                            \
+    static void                        DOCTEST_ANON_FUNC();                                        \
+    static doctest_detail::Registrator DOCTEST_ANON_REG(name, __FILE__, __LINE__,                  \
+                                                        DOCTEST_ANON_FUNC);                        \
+    static void                        DOCTEST_ANON_FUNC()
 
 #define DOCTEST_ANON_FUNC DOCTEST_CAT(doctest_anon_func_, __LINE__)
 #define DOCTEST_ANON_REG DOCTEST_CAT(doctest_anon_reg_, __LINE__)
 
 #define TEST_SUITE(name) namespace
 
-#define CHECK(cond) \
-    do { if (!(cond)) throw doctest::assertion_error( \
-        "CHECK failed: " DOCTEST_TOSTRING(cond) " at " __FILE__ ":" DOCTEST_TOSTRING(__LINE__)); } while(0)
+#define CHECK(cond)                                                                                \
+    do {                                                                                           \
+        if (!(cond))                                                                               \
+            throw doctest::assertion_error("CHECK failed: " DOCTEST_TOSTRING(                      \
+                cond) " at " __FILE__ ":" DOCTEST_TOSTRING(__LINE__));                             \
+    } while (0)
 
 #define CHECK_FALSE(cond) CHECK(!(cond))
 
@@ -137,9 +145,9 @@ public:
 #define REQUIRE_FALSE(cond) CHECK_FALSE(cond)
 #define REQUIRE_EQ(a, b) CHECK_EQ(a, b)
 
-#define SUBCASE(name) \
-    static void DOCTEST_SUBCASE_FUNC(); \
-    DOCTEST_SUBCASE_FUNC(); \
+#define SUBCASE(name)                                                                              \
+    static void DOCTEST_SUBCASE_FUNC();                                                            \
+    DOCTEST_SUBCASE_FUNC();                                                                        \
     static void DOCTEST_SUBCASE_FUNC()
 
 #define DOCTEST_SUBCASE_FUNC DOCTEST_CAT(doctest_subcase_func_, __LINE__)

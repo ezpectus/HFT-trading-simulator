@@ -14,7 +14,7 @@ postgres:
   image: postgres:16-alpine
   database: trading
   user: trader
-  password: ""  # Set via --set postgres.password=... or existingSecret
+  password: "change-me-in-production"  # Override via --set postgres.password=... or existingSecret
   storage: 10Gi
   storageClassName: ""
   resources:

@@ -3,11 +3,11 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include "../src/ipc/shm_ring_buffer.h"
 #include "../src/ipc/shm_protocol.h"
+#include "../src/ipc/shm_ring_buffer.h"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 using namespace hft;
 using namespace hft::ipc;
@@ -15,7 +15,7 @@ using namespace hft::ipc;
 // ═══════════════════════════════════════════════════════════════════════════
 // Helper — unique SHM name per test
 // ═══════════════════════════════════════════════════════════════════════════
-static int test_counter = 0;
+static int         test_counter = 0;
 static std::string unique_name() {
     return "/hft_rb_test_" + std::to_string(++test_counter);
 }
@@ -24,14 +24,14 @@ static std::string unique_name() {
 // Bulk push — contiguous (no wrap-around)
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("ShmRingBuffer: bulk_push contiguous") {
-    std::string name = unique_name();
+    std::string              name = unique_name();
     ShmRingBuffer<SignalMsg> rb(name, 16, true);
 
     std::vector<SignalMsg> items(4);
     for (int i = 0; i < 4; ++i) {
         items[i].timestamp = 1000 + i;
         items[i].symbol_id = i;
-        items[i].action = 1;
+        items[i].action    = 1;
     }
 
     uint64_t pushed = rb.bulk_push(items.data(), 4);
@@ -48,7 +48,7 @@ TEST_CASE("ShmRingBuffer: bulk_push contiguous") {
 }
 
 TEST_CASE("ShmRingBuffer: bulk_pop contiguous") {
-    std::string name = unique_name();
+    std::string              name = unique_name();
     ShmRingBuffer<SignalMsg> rb(name, 16, true);
 
     // Push items one by one
@@ -59,7 +59,7 @@ TEST_CASE("ShmRingBuffer: bulk_pop contiguous") {
     }
 
     std::vector<SignalMsg> out(6);
-    uint64_t popped = rb.bulk_pop(out.data(), 6);
+    uint64_t               popped = rb.bulk_pop(out.data(), 6);
     CHECK(popped == 6);
     CHECK(rb.size() == 0);
 
@@ -72,7 +72,7 @@ TEST_CASE("ShmRingBuffer: bulk_pop contiguous") {
 // Bulk push — wrap-around
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("ShmRingBuffer: bulk_push with wrap-around") {
-    std::string name = unique_name();
+    std::string              name = unique_name();
     ShmRingBuffer<SignalMsg> rb(name, 8, true);
 
     // Push 6 items, pop 6 items — head is now at slot 6
@@ -110,7 +110,7 @@ TEST_CASE("ShmRingBuffer: bulk_push with wrap-around") {
 // Bulk pop — wrap-around
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("ShmRingBuffer: bulk_pop with wrap-around") {
-    std::string name = unique_name();
+    std::string              name = unique_name();
     ShmRingBuffer<SignalMsg> rb(name, 8, true);
 
     // Push 6, pop 4 — tail is now at slot 4
@@ -133,7 +133,7 @@ TEST_CASE("ShmRingBuffer: bulk_pop with wrap-around") {
 
     // Now bulk_pop 8 — should wrap around (tail at 4, reads 4,5,6,7,0,1,2,3)
     std::vector<SignalMsg> out(8);
-    uint64_t popped = rb.bulk_pop(out.data(), 8);
+    uint64_t               popped = rb.bulk_pop(out.data(), 8);
     CHECK(popped == 8);
 
     // Expected order: 304, 305, 400, 401, 402, 403, 404, 405
@@ -151,7 +151,7 @@ TEST_CASE("ShmRingBuffer: bulk_pop with wrap-around") {
 // Bulk push — partial fill (more items than available)
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("ShmRingBuffer: bulk_push partial when nearly full") {
-    std::string name = unique_name();
+    std::string              name = unique_name();
     ShmRingBuffer<SignalMsg> rb(name, 4, true);
 
     // Fill 3 of 4 slots
@@ -177,11 +177,11 @@ TEST_CASE("ShmRingBuffer: bulk_push partial when nearly full") {
 // Bulk pop — empty buffer
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("ShmRingBuffer: bulk_pop on empty returns 0") {
-    std::string name = unique_name();
+    std::string              name = unique_name();
     ShmRingBuffer<SignalMsg> rb(name, 8, true);
 
     std::vector<SignalMsg> out(4);
-    uint64_t popped = rb.bulk_pop(out.data(), 4);
+    uint64_t               popped = rb.bulk_pop(out.data(), 4);
     CHECK(popped == 0);
 }
 
@@ -189,7 +189,7 @@ TEST_CASE("ShmRingBuffer: bulk_pop on empty returns 0") {
 // Bulk push — zero items
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("ShmRingBuffer: bulk_push zero items") {
-    std::string name = unique_name();
+    std::string              name = unique_name();
     ShmRingBuffer<SignalMsg> rb(name, 8, true);
 
     uint64_t pushed = rb.bulk_push(nullptr, 0);
@@ -201,7 +201,7 @@ TEST_CASE("ShmRingBuffer: bulk_push zero items") {
 // Full cycle: push, pop, push, pop with wrap-around
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("ShmRingBuffer: full cycle with wrap-around") {
-    std::string name = unique_name();
+    std::string              name = unique_name();
     ShmRingBuffer<SignalMsg> rb(name, 4, true);
 
     // Cycle 1: push 4, pop 4
@@ -238,7 +238,7 @@ TEST_CASE("ShmRingBuffer: full cycle with wrap-around") {
 // Bulk push then bulk pop with wrap-around in both
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("ShmRingBuffer: bulk push and pop both wrap") {
-    std::string name = unique_name();
+    std::string              name = unique_name();
     ShmRingBuffer<SignalMsg> rb(name, 4, true);
 
     // Push 3, pop 3 — head and tail at slot 3

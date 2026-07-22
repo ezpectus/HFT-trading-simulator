@@ -72,7 +72,7 @@ describe('useTradeJournal', () => {
     expect(typeof result.current.getNote).toBe('function')
     expect(typeof result.current.deleteNote).toBe('function')
     expect(typeof result.current.exportJournalCSV).toBe('function')
-    expect(result.current.notes).toBeDefined()
+    expect(result.current.data).toBeDefined()
   })
 
   it('saveNote stores a note for a trade key', () => {

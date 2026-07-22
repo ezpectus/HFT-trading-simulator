@@ -6,12 +6,12 @@
 
 #include "../data/aligned_types.h"
 #include "../utils/low_latency.h"
+#include <algorithm>
 #include <array>
 #include <atomic>
-#include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
-#include <chrono>
 
 namespace hft {
 
@@ -20,9 +20,9 @@ namespace hft {
 // ─────────────────────────────────────────────────────────────────────────────
 struct TradeEvent {
     uint64_t timestamp_ns{0};
-    double price{0.0};
-    double quantity{0.0};
-    bool is_buyer_maker{false};  // true = sell aggressor, false = buy aggressor
+    double   price{0.0};
+    double   quantity{0.0};
+    bool     is_buyer_maker{false}; // true = sell aggressor, false = buy aggressor
     uint64_t trade_id{0};
 };
 
@@ -30,7 +30,7 @@ struct TradeEvent {
 // Trade handler — rolling statistics + large trade detection
 // ─────────────────────────────────────────────────────────────────────────────
 class TradeHandler {
-public:
+  public:
     explicit TradeHandler(size_t rolling_window = 1000)
         : window_size_(std::min(rolling_window, MAX_WINDOW)) {}
 
@@ -80,14 +80,14 @@ public:
         // Large trade detection (> 3σ)
         if (vol_idx_ >= min_samples_) {
             double mean = rolling_mean_volume();
-            double sd = rolling_std_volume(mean);
+            double sd   = rolling_std_volume(mean);
             if (sd > 0.0 && trade.quantity > mean + 3.0 * sd) {
                 ++large_trade_count_;
                 last_large_trade_ = trade;
             }
         }
 
-        last_trade_ = trade;
+        last_trade_     = trade;
         last_update_ns_ = now_ns();
     }
 
@@ -120,15 +120,15 @@ public:
     }
 
     // Total volume (buy + sell)
-    double total_volume() const noexcept { return total_volume_; }
-    double buy_volume() const noexcept { return buy_volume_; }
-    double sell_volume() const noexcept { return sell_volume_; }
+    double   total_volume() const noexcept { return total_volume_; }
+    double   buy_volume() const noexcept { return buy_volume_; }
+    double   sell_volume() const noexcept { return sell_volume_; }
     uint64_t total_trades() const noexcept { return total_trades_; }
     uint64_t buy_trades() const noexcept { return buy_trades_; }
     uint64_t sell_trades() const noexcept { return sell_trades_; }
 
     // Large trade detection
-    uint64_t large_trade_count() const noexcept { return large_trade_count_; }
+    uint64_t          large_trade_count() const noexcept { return large_trade_count_; }
     const TradeEvent& last_large_trade() const noexcept { return last_large_trade_; }
     const TradeEvent& last_trade() const noexcept { return last_trade_; }
 
@@ -144,56 +144,55 @@ public:
     double rolling_std_volume(double mean) const noexcept {
         size_t n = std::min(static_cast<size_t>(vol_idx_), window_size_);
         if (n < 2) return 0.0;
-        double variance = (rolling_vol_sq_sum_ - static_cast<double>(n) * mean * mean)
-                          / static_cast<double>(n - 1);
+        double variance = (rolling_vol_sq_sum_ - static_cast<double>(n) * mean * mean) /
+                          static_cast<double>(n - 1);
         if (variance <= 0.0) return 0.0;
         return std::sqrt(variance);
     }
 
     // Reset session stats
     void reset_session() noexcept {
-        buy_volume_ = 0.0;
-        sell_volume_ = 0.0;
-        buy_trades_ = 0;
-        sell_trades_ = 0;
-        total_volume_ = 0.0;
-        total_notional_ = 0.0;
-        total_trades_ = 0;
-        write_idx_ = 0;
-        vol_idx_ = 0;
-        large_trade_count_ = 0;
-        rolling_vol_sum_ = 0.0;
-        rolling_notional_sum_ = 0.0;
+        buy_volume_                = 0.0;
+        sell_volume_               = 0.0;
+        buy_trades_                = 0;
+        sell_trades_               = 0;
+        total_volume_              = 0.0;
+        total_notional_            = 0.0;
+        total_trades_              = 0;
+        write_idx_                 = 0;
+        vol_idx_                   = 0;
+        large_trade_count_         = 0;
+        rolling_vol_sum_           = 0.0;
+        rolling_notional_sum_      = 0.0;
         rolling_vol_sum_for_stats_ = 0.0;
-        rolling_vol_sq_sum_ = 0.0;
+        rolling_vol_sq_sum_        = 0.0;
     }
 
     uint64_t last_update_ns() const noexcept { return last_update_ns_; }
 
-private:
+  private:
     static uint64_t now_ns() noexcept {
         auto tp = std::chrono::steady_clock::now();
-        return std::chrono::duration_cast<std::chrono::nanoseconds>(
-            tp.time_since_epoch()).count();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count();
     }
 
-    size_t window_size_;
+    size_t                  window_size_;
     static constexpr size_t MAX_WINDOW = 4096;
 
     // Session stats
-    double buy_volume_{0.0};
-    double sell_volume_{0.0};
-    double total_volume_{0.0};
-    double total_notional_{0.0};
+    double   buy_volume_{0.0};
+    double   sell_volume_{0.0};
+    double   total_volume_{0.0};
+    double   total_notional_{0.0};
     uint64_t buy_trades_{0};
     uint64_t sell_trades_{0};
     uint64_t total_trades_{0};
 
     // Rolling window
     std::array<TradeEvent, MAX_WINDOW> rolling_trades_{};
-    std::array<double, MAX_WINDOW> rolling_volumes_{};
-    uint64_t write_idx_{0};
-    uint64_t vol_idx_{0};
+    std::array<double, MAX_WINDOW>     rolling_volumes_{};
+    uint64_t                           write_idx_{0};
+    uint64_t                           vol_idx_{0};
 
     // Incremental running sums for O(1) rolling stats
     double rolling_vol_sum_{0.0};
@@ -203,9 +202,9 @@ private:
 
     // Large trade detection
     static constexpr size_t min_samples_ = 30;
-    uint64_t large_trade_count_{0};
-    TradeEvent last_large_trade_{};
-    TradeEvent last_trade_{};
+    uint64_t                large_trade_count_{0};
+    TradeEvent              last_large_trade_{};
+    TradeEvent              last_trade_{};
 
     uint64_t last_update_ns_{0};
 };

@@ -30,8 +30,6 @@ class TestSignalMsgAlignment:
         s = struct.Struct(self.STRUCT_FMT)
         # Expected offsets: Q=0, B=8, B=9, f=10, f=14, f=18, f=22, B=26, pad=27
         # With pragma pack(1), no padding between fields
-        # Compute offsets by packing sentinel values and checking byte positions
-        expected = [0, 8, 9, 10, 14, 18, 22, 26, 27]
         # Pack known values and verify field positions via unpack_from at expected offsets
         packed = s.pack(1, 2, 3, 4.0, 5.0, 6.0, 7.0, 8)
         # Verify timestamp at offset 0

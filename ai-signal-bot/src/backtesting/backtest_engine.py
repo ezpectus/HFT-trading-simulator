@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from src.backtesting.pnl_calculator import AssetType, PnLBreakdown, PnLCalculator, PnLConfig
+from src.backtesting.pnl_calculator import AssetType, PnLCalculator, PnLConfig
 
 logger = logging.getLogger(__name__)
 

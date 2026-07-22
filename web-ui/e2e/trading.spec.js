@@ -17,8 +17,9 @@ test.describe('Trading System UI — Trading Flows', () => {
     // Press 'w' to switch to ETH/USDT
     await page.keyboard.press('w')
     await page.waitForTimeout(200)
-    // ETH/USDT should be visible somewhere in the header
-    await expect(page.getByText('ETH/USDT').first()).toBeVisible()
+    // ETH button should be selected (aria-pressed=true)
+    const ethButton = page.getByRole('button', { name: /Select ETH\/USDT/i })
+    await expect(ethButton).toHaveAttribute('aria-pressed', 'true')
   })
 
   test('can switch tabs via keyboard shortcuts', async ({ page }) => {
@@ -66,9 +67,9 @@ test.describe('Trading System UI — Trading Flows', () => {
     // Should have a submit button
     const submitButton = orderForm.locator('button').last()
     await expect(submitButton).toBeVisible()
-    // Button text should be either "Submit Order", "Not connected", or "Trading Stopped"
+    // Button text should show side + quantity + symbol, or trading state
     const buttonText = await submitButton.textContent()
-    expect(buttonText).toMatch(/Submit|Not connected|Trading Stopped/i)
+    expect(buttonText).toMatch(/BUY|SELL|Not connected|Trading Stopped/i)
   })
 
   test('mock mode banner shows when in mock mode', async ({ page }) => {
@@ -80,8 +81,8 @@ test.describe('Trading System UI — Trading Flows', () => {
 
   test('panel settings toggle works', async ({ page }) => {
     await page.goto('/')
-    // Find the Panels settings button
-    const panelsButton = page.getByText('Panels').first()
+    // Find the Panels settings button (it's a small button with Settings2 icon)
+    const panelsButton = page.getByRole('button').filter({ hasText: 'Panels' }).first()
     await panelsButton.click()
     await page.waitForTimeout(200)
     // The toggle panel settings should appear

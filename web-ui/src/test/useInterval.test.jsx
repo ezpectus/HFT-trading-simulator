@@ -13,6 +13,7 @@ describe('useInterval', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   it('calls callback on interval', () => {

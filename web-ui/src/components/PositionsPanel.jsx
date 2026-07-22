@@ -9,7 +9,8 @@ export default function PositionsPanel({ accounts, onClose, currentPrices }) {
   const allPositions = []
 
   for (const [exId, acc] of Object.entries(accounts || {})) {
-    for (const pos of (acc.positions || [])) {
+    if (!acc) continue
+    for (const pos of Object.values(acc.positions || {})) {
       allPositions.push({ ...pos, exchange: exId, leverage: acc.leverage || LEVERAGE })
     }
   }

@@ -38,7 +38,7 @@ export function useExchangeData() {
             const key = `${c.exchange}|${c.symbol}|${c.timestamp}`
             candleMap.current.set(key, c)
           }
-          // Only sort + trim when map grows beyond cap (avoids O(n log n) on every message)
+          // Sort + trim when map grows beyond cap
           if (candleMap.current.size > 500) {
             const all = Array.from(candleMap.current.values())
               .sort((a, b) => a.timestamp - b.timestamp)
@@ -51,8 +51,8 @@ export function useExchangeData() {
             }
             setCandles(toKeep)
           } else {
-            // Incremental update: just set the latest array without full sort
-            setCandles(Array.from(candleMap.current.values()))
+            // Incremental update: sort but don't trim
+            setCandles(Array.from(candleMap.current.values()).sort((a, b) => a.timestamp - b.timestamp))
           }
         }
         if (data.prices) setPrices(data.prices)

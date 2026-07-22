@@ -13,12 +13,12 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include <random>
-#include <vector>
-#include <cmath>
-#include <unordered_map>
-#include "../src/position/position_manager_v2.h"
 #include "../src/data/types.h"
+#include "../src/position/position_manager_v2.h"
+#include <cmath>
+#include <random>
+#include <unordered_map>
+#include <vector>
 
 using namespace hft;
 
@@ -37,9 +37,7 @@ struct RNG {
         return base * (1.0 + uniform(-vol, vol));
     }
 
-    double qty(double lo = 0.01, double hi = 1.0) {
-        return uniform(lo, hi);
-    }
+    double qty(double lo = 0.01, double hi = 1.0) { return uniform(lo, hi); }
 };
 
 struct Candle {
@@ -48,13 +46,13 @@ struct Candle {
 
 std::vector<Candle> generate_candles(RNG& rng, int n, double base_price = 65000.0) {
     std::vector<Candle> candles;
-    double prev_close = base_price;
+    double              prev_close = base_price;
     for (int i = 0; i < n; ++i) {
-        double open = prev_close;
+        double open   = prev_close;
         double change = rng.uniform(-0.01, 0.01);
-        double close = open * (1.0 + change);
-        double high = std::max(open, close) * (1.0 + rng.uniform(0, 0.005));
-        double low = std::min(open, close) * (1.0 - rng.uniform(0, 0.005));
+        double close  = open * (1.0 + change);
+        double high   = std::max(open, close) * (1.0 + rng.uniform(0, 0.005));
+        double low    = std::min(open, close) * (1.0 - rng.uniform(0, 0.005));
         double volume = rng.qty(0.5, 5.0);
         candles.push_back({open, high, low, close, volume});
         prev_close = close;
@@ -66,11 +64,11 @@ std::vector<Candle> generate_candles(RNG& rng, int n, double base_price = 65000.
 
 TEST_CASE("Property: Opposite fill closes position") {
     for (uint64_t seed = 1; seed <= 100; ++seed) {
-        RNG rng(seed);
+        RNG               rng(seed);
         PositionManagerV2 mgr;
 
-        double entry = rng.price();
-        double qty = rng.qty();
+        double entry      = rng.price();
+        double qty        = rng.qty();
         double exit_price = entry * (1.0 + rng.uniform(-0.05, 0.05));
 
         // Open long via on_fill
@@ -87,11 +85,11 @@ TEST_CASE("Property: Opposite fill closes position") {
 
 TEST_CASE("Property: Unrealized PnL consistency for longs") {
     for (uint64_t seed = 1; seed <= 200; ++seed) {
-        RNG rng(seed);
+        RNG               rng(seed);
         PositionManagerV2 mgr;
 
-        double entry = rng.price();
-        double qty = rng.qty();
+        double entry   = rng.price();
+        double qty     = rng.qty();
         double current = entry * (1.0 + rng.uniform(-0.1, 0.1));
 
         mgr.on_fill("BTC/USDT", "binance", Side::BUY, qty, entry, 0.0, 1, 1);
@@ -108,11 +106,11 @@ TEST_CASE("Property: Unrealized PnL consistency for longs") {
 
 TEST_CASE("Property: Unrealized PnL consistency for shorts") {
     for (uint64_t seed = 1; seed <= 200; ++seed) {
-        RNG rng(seed);
+        RNG               rng(seed);
         PositionManagerV2 mgr;
 
-        double entry = rng.price();
-        double qty = rng.qty();
+        double entry   = rng.price();
+        double qty     = rng.qty();
         double current = entry * (1.0 + rng.uniform(-0.1, 0.1));
 
         mgr.on_fill("BTC/USDT", "binance", Side::SELL, qty, entry, 0.0, 1, 1);
@@ -129,11 +127,11 @@ TEST_CASE("Property: Unrealized PnL consistency for shorts") {
 
 TEST_CASE("Property: No position after close") {
     for (uint64_t seed = 1; seed <= 100; ++seed) {
-        RNG rng(seed);
+        RNG               rng(seed);
         PositionManagerV2 mgr;
 
         double entry = rng.price();
-        double qty = rng.qty();
+        double qty   = rng.qty();
 
         mgr.on_fill("BTC/USDT", "binance", Side::BUY, qty, entry, 0.0, 1, 1);
         REQUIRE(mgr.has_position("BTC/USDT"));
@@ -148,13 +146,13 @@ TEST_CASE("Property: No position after close") {
 
 TEST_CASE("Property: Multiple positions on different symbols are independent") {
     for (uint64_t seed = 1; seed <= 50; ++seed) {
-        RNG rng(seed);
+        RNG               rng(seed);
         PositionManagerV2 mgr;
 
         double btc_entry = rng.price(65000.0);
         double eth_entry = rng.price(3500.0);
-        double btc_qty = rng.qty();
-        double eth_qty = rng.qty();
+        double btc_qty   = rng.qty();
+        double eth_qty   = rng.qty();
 
         mgr.on_fill("BTC/USDT", "binance", Side::BUY, btc_qty, btc_entry, 0.0, 1, 1);
         mgr.on_fill("ETH/USDT", "binance", Side::SELL, eth_qty, eth_entry, 0.0, 2, 2);
@@ -170,13 +168,13 @@ TEST_CASE("Property: Multiple positions on different symbols are independent") {
 
 TEST_CASE("Property: Adding to position updates weighted average entry") {
     for (uint64_t seed = 1; seed <= 100; ++seed) {
-        RNG rng(seed);
+        RNG               rng(seed);
         PositionManagerV2 mgr;
 
         double entry1 = rng.price();
-        double qty1 = rng.qty();
+        double qty1   = rng.qty();
         double entry2 = entry1 * (1.0 + rng.uniform(-0.02, 0.02));
-        double qty2 = rng.qty();
+        double qty2   = rng.qty();
 
         mgr.on_fill("BTC/USDT", "binance", Side::BUY, qty1, entry1, 0.0, 1, 1);
         mgr.on_fill("BTC/USDT", "binance", Side::BUY, qty2, entry2, 0.0, 1, 1);
@@ -193,7 +191,7 @@ TEST_CASE("Property: Adding to position updates weighted average entry") {
 
 TEST_CASE("Property: Candle data high >= low always") {
     for (uint64_t seed = 1; seed <= 500; ++seed) {
-        RNG rng(seed);
+        RNG  rng(seed);
         auto candles = generate_candles(rng, 50);
 
         for (const auto& c : candles) {
@@ -209,12 +207,12 @@ TEST_CASE("Property: Candle data high >= low always") {
 
 TEST_CASE("Property: Position manager handles rapid open/close cycles") {
     for (uint64_t seed = 1; seed <= 50; ++seed) {
-        RNG rng(seed);
+        RNG               rng(seed);
         PositionManagerV2 mgr;
 
         for (int i = 0; i < 20; ++i) {
             double entry = rng.price();
-            double qty = rng.qty();
+            double qty   = rng.qty();
             mgr.on_fill("BTC/USDT", "binance", Side::BUY, qty, entry, 0.0, 1, 1);
             REQUIRE(mgr.has_position("BTC/USDT"));
             mgr.on_fill("BTC/USDT", "binance", Side::SELL, qty,
@@ -228,18 +226,18 @@ TEST_CASE("Property: Position manager handles rapid open/close cycles") {
 
 TEST_CASE("Property: check_sl_tp detects correct trigger direction") {
     for (uint64_t seed = 1; seed <= 100; ++seed) {
-        RNG rng(seed);
+        RNG               rng(seed);
         PositionManagerV2 mgr;
 
         double entry = rng.price();
-        double qty = rng.qty();
+        double qty   = rng.qty();
 
         // Open long
         mgr.on_fill("BTC/USDT", "binance", Side::BUY, qty, entry, 0.0, 1, 1);
 
         // Price drops significantly — should trigger SL
         double sl_price = entry * 0.95;
-        auto triggers = mgr.check_sl_tp({{"BTC/USDT", sl_price}}, 2.0, 3.0);
+        auto   triggers = mgr.check_sl_tp({{"BTC/USDT", sl_price}}, 2.0, 3.0);
         CHECK_FALSE(triggers.empty());
         CHECK(triggers[0].reason == "STOP_LOSS");
 
@@ -247,7 +245,7 @@ TEST_CASE("Property: check_sl_tp detects correct trigger direction") {
         mgr.reset();
         mgr.on_fill("BTC/USDT", "binance", Side::BUY, qty, entry, 0.0, 1, 1);
         double tp_price = entry * 1.10;
-        triggers = mgr.check_sl_tp({{"BTC/USDT", tp_price}}, 2.0, 3.0);
+        triggers        = mgr.check_sl_tp({{"BTC/USDT", tp_price}}, 2.0, 3.0);
         CHECK_FALSE(triggers.empty());
         CHECK(triggers[0].reason == "TAKE_PROFIT");
     }
@@ -255,11 +253,11 @@ TEST_CASE("Property: check_sl_tp detects correct trigger direction") {
 
 TEST_CASE("Property: realized PnL correct after close") {
     for (uint64_t seed = 1; seed <= 100; ++seed) {
-        RNG rng(seed);
+        RNG               rng(seed);
         PositionManagerV2 mgr;
 
-        double entry = rng.price();
-        double qty = rng.qty();
+        double entry      = rng.price();
+        double qty        = rng.qty();
         double exit_price = entry * (1.0 + rng.uniform(-0.05, 0.05));
 
         mgr.on_fill("BTC/USDT", "binance", Side::BUY, qty, entry, 0.0, 1, 1);
@@ -267,7 +265,7 @@ TEST_CASE("Property: realized PnL correct after close") {
 
         // Invariant: realized_pnl = (exit - entry) * qty for longs
         double expected_pnl = (exit_price - entry) * qty;
-        auto pos = mgr.get_position("BTC/USDT");
+        auto   pos          = mgr.get_position("BTC/USDT");
         CHECK(pos.realized_pnl == doctest::Approx(expected_pnl).epsilon(0.01));
     }
 }

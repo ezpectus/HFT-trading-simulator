@@ -16,8 +16,8 @@ test.describe('Trading System UI — Smoke Tests', () => {
 
   test('symbol selector works', async ({ page }) => {
     await page.goto('/')
-    // Click ETH/USDT symbol
-    const ethButton = page.getByText('ETH/USDT').first()
+    // Click ETH/USDT symbol (button has aria-label with full symbol name)
+    const ethButton = page.getByRole('button', { name: /Select ETH\/USDT/i })
     await ethButton.click()
     // Verify it's selected (active state)
     await expect(ethButton).toHaveClass(/text-white|bg-accent|font-bold|border-accent/)
@@ -41,7 +41,7 @@ test.describe('Trading System UI — Smoke Tests', () => {
   test('order book area is visible', async ({ page }) => {
     await page.goto('/')
     // The right sidebar should contain order book
-    const sidebar = page.locator('#main-content > div:last-child')
+    const sidebar = page.locator('#main-content > div').nth(1)
     await expect(sidebar).toBeVisible()
   })
 

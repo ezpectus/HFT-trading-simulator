@@ -4,37 +4,37 @@
 // No heap allocations in critical sections. Cache-line aligned for false-sharing avoidance.
 #pragma once
 
+#include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
-#include <cstdint>
 #include <cmath>
-#include <array>
-#include <new>
-#include <string>
-#include <algorithm>
-#include <numeric>
-#include <sstream>
-#include <thread>
-#include <iomanip>
+#include <cstdint>
 #include <cstdlib>
+#include <iomanip>
+#include <new>
+#include <numeric>
 #include <random>
+#include <sstream>
+#include <string>
+#include <thread>
 
 #if defined(_WIN32)
-  #ifndef NOMINMAX
-  #define NOMINMAX
-  #endif
-  #ifndef WIN32_LEAN_AND_MEAN
-  #define WIN32_LEAN_AND_MEAN
-  #endif
-  #include <windows.h>
-  #include <processthreadsapi.h>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <processthreadsapi.h>
+#include <windows.h>
 #else
-  #include <pthread.h>
-  #include <sched.h>
+#include <pthread.h>
+#include <sched.h>
 #endif
 
 #if defined(_M_X64) || defined(__x86_64__)
-  #include <immintrin.h>
+#include <immintrin.h>
 #endif
 
 namespace hft {
@@ -43,7 +43,7 @@ namespace hft {
 // Spinlock with _mm_pause — for < 1μs critical sections
 // ─────────────────────────────────────────────────────────────────────────────
 class Spinlock {
-public:
+  public:
     void lock() noexcept {
         for (;;) {
             uint32_t expected = 0;
@@ -62,22 +62,21 @@ public:
         return flag_.compare_exchange_strong(expected, 1, std::memory_order_acquire);
     }
 
-    void unlock() noexcept {
-        flag_.store(0, std::memory_order_release);
-    }
+    void unlock() noexcept { flag_.store(0, std::memory_order_release); }
 
-private:
+  private:
     alignas(64) std::atomic<uint32_t> flag_{0};
-    uint8_t padding_[60]{0};  // Pad to cache line to prevent false sharing
+    uint8_t padding_[60]{0}; // Pad to cache line to prevent false sharing
 };
 
 class SpinlockGuard {
-public:
+  public:
     explicit SpinlockGuard(Spinlock& lock) : lock_(lock) { lock_.lock(); }
     ~SpinlockGuard() { lock_.unlock(); }
-    SpinlockGuard(const SpinlockGuard&) = delete;
+    SpinlockGuard(const SpinlockGuard&)            = delete;
     SpinlockGuard& operator=(const SpinlockGuard&) = delete;
-private:
+
+  private:
     Spinlock& lock_;
 };
 
@@ -85,12 +84,11 @@ private:
 // Lock-free SPSC ring buffer — single-producer single-consumer queue
 // Capacity must be power of 2. No heap allocations.
 // ─────────────────────────────────────────────────────────────────────────────
-template <typename T, size_t Capacity>
-class SPSCQueue {
+template <typename T, size_t Capacity> class SPSCQueue {
     static_assert((Capacity & (Capacity - 1)) == 0, "Capacity must be power of 2");
     static constexpr size_t MASK = Capacity - 1;
 
-public:
+  public:
     SPSCQueue() : head_(0), tail_(0) {}
 
     // Producer: enqueue. Returns false if full.
@@ -133,7 +131,7 @@ public:
 
     static constexpr size_t capacity() { return Capacity; }
 
-private:
+  private:
     // Cache-line pad to prevent false sharing between head and tail
     alignas(64) std::atomic<size_t> head_;
     alignas(64) std::atomic<size_t> tail_;
@@ -143,9 +141,8 @@ private:
 // ─────────────────────────────────────────────────────────────────────────────
 // ObjectPool — pre-allocated, no heap alloc in hot path
 // ─────────────────────────────────────────────────────────────────────────────
-template <typename T, size_t PoolSize>
-class ObjectPool {
-public:
+template <typename T, size_t PoolSize> class ObjectPool {
+  public:
     ObjectPool() {
         for (size_t i = 0; i < PoolSize; ++i) {
             pool_[i].active = false;
@@ -156,7 +153,8 @@ public:
     T* acquire() noexcept {
         for (size_t i = 0; i < PoolSize; ++i) {
             bool expected = false;
-            if (pool_[i].active.compare_exchange_strong(expected, true, std::memory_order_acquire)) {
+            if (pool_[i].active.compare_exchange_strong(expected, true,
+                                                        std::memory_order_acquire)) {
                 return &pool_[i].obj;
             }
         }
@@ -179,10 +177,10 @@ public:
         return count;
     }
 
-private:
+  private:
     struct Slot {
         std::atomic<bool> active{false};
-        T obj{};
+        T                 obj{};
     };
     std::array<Slot, PoolSize> pool_;
 };
@@ -191,7 +189,7 @@ private:
 // ScopedLatency — microsecond-precision timer with histogram recording
 // ─────────────────────────────────────────────────────────────────────────────
 class LatencyHistogram {
-public:
+  public:
     static constexpr size_t NUM_BUCKETS = 35;
     // Buckets: 0-1μs, 1-2μs, 2-4μs, 4-8μs, ... up to ~17s
     // Each bucket i covers [2^(i/2) μs, 2^((i+1)/2) μs) — 35 μs-buckets
@@ -206,24 +204,28 @@ public:
         }
         // log2(microseconds) * 2 → bucket index
         double log_val = std::log2(microseconds) * 2.0;
-        size_t bucket = static_cast<size_t>(log_val);
+        size_t bucket  = static_cast<size_t>(log_val);
         if (bucket >= NUM_BUCKETS) bucket = NUM_BUCKETS - 1;
         buckets_[bucket].fetch_add(1, std::memory_order_relaxed);
 
         // Track min/max
         double current_min = min_.load(std::memory_order_relaxed);
-        while (microseconds < current_min && !min_.compare_exchange_weak(current_min, microseconds)) {}
+        while (microseconds < current_min &&
+               !min_.compare_exchange_weak(current_min, microseconds)) {
+        }
         double current_max = max_.load(std::memory_order_relaxed);
-        while (microseconds > current_max && !max_.compare_exchange_weak(current_max, microseconds)) {}
+        while (microseconds > current_max &&
+               !max_.compare_exchange_weak(current_max, microseconds)) {
+        }
     }
 
     struct Stats {
-        double p50{};
-        double p95{};
-        double p99{};
-        double p999{};
-        double min{};
-        double max{};
+        double   p50{};
+        double   p95{};
+        double   p99{};
+        double   p999{};
+        double   min{};
+        double   max{};
         uint64_t count{};
     };
 
@@ -236,16 +238,16 @@ public:
         stats.max = max_.load(std::memory_order_relaxed);
 
         // Compute percentiles from histogram
-        uint64_t cumulative = 0;
-        double p50_target = stats.count * 0.50;
-        double p95_target = stats.count * 0.95;
-        double p99_target = stats.count * 0.99;
-        double p999_target = stats.count * 0.999;
+        uint64_t cumulative  = 0;
+        double   p50_target  = stats.count * 0.50;
+        double   p95_target  = stats.count * 0.95;
+        double   p99_target  = stats.count * 0.99;
+        double   p999_target = stats.count * 0.999;
 
         for (size_t i = 0; i < NUM_BUCKETS; ++i) {
             uint64_t count = buckets_[i].load(std::memory_order_relaxed);
             cumulative += count;
-            double bucket_upper = std::pow(2.0, (i + 1) / 2.0);  // upper bound in μs
+            double bucket_upper = std::pow(2.0, (i + 1) / 2.0); // upper bound in μs
 
             if (stats.p50 == 0 && cumulative >= p50_target) stats.p50 = bucket_upper;
             if (stats.p95 == 0 && cumulative >= p95_target) stats.p95 = bucket_upper;
@@ -261,9 +263,7 @@ public:
         if (s.count == 0) return "no samples";
 
         std::ostringstream oss;
-        oss << std::fixed << std::setprecision(1)
-            << "n=" << s.count
-            << " min=" << s.min << "μs"
+        oss << std::fixed << std::setprecision(1) << "n=" << s.count << " min=" << s.min << "μs"
             << " P50=" << s.p50 << "μs"
             << " P95=" << s.p95 << "μs"
             << " P99=" << s.p99 << "μs"
@@ -274,26 +274,26 @@ public:
 
     void reset() noexcept {
         total_count_.store(0, std::memory_order_relaxed);
-        for (auto& b : buckets_) b.store(0, std::memory_order_relaxed);
+        for (auto& b : buckets_)
+            b.store(0, std::memory_order_relaxed);
         min_.store(1e18, std::memory_order_relaxed);
         max_.store(0.0, std::memory_order_relaxed);
     }
 
-private:
+  private:
     std::array<std::atomic<uint64_t>, NUM_BUCKETS> buckets_{};
-    std::atomic<uint64_t> total_count_{0};
-    std::atomic<double> min_{1e18};
-    std::atomic<double> max_{0.0};
+    std::atomic<uint64_t>                          total_count_{0};
+    std::atomic<double>                            min_{1e18};
+    std::atomic<double>                            max_{0.0};
 };
 
 class ScopedLatency {
-public:
+  public:
     explicit ScopedLatency(LatencyHistogram& histogram)
-        : histogram_(histogram)
-        , start_(std::chrono::steady_clock::now()) {}
+        : histogram_(histogram), start_(std::chrono::steady_clock::now()) {}
 
     ~ScopedLatency() {
-        auto end = std::chrono::steady_clock::now();
+        auto end         = std::chrono::steady_clock::now();
         auto duration_us = std::chrono::duration<double, std::micro>(end - start_).count();
         histogram_.record(duration_us);
     }
@@ -303,11 +303,11 @@ public:
         return std::chrono::duration<double, std::micro>(now - start_).count();
     }
 
-    ScopedLatency(const ScopedLatency&) = delete;
+    ScopedLatency(const ScopedLatency&)            = delete;
     ScopedLatency& operator=(const ScopedLatency&) = delete;
 
-private:
-    LatencyHistogram& histogram_;
+  private:
+    LatencyHistogram&                     histogram_;
     std::chrono::steady_clock::time_point start_;
 };
 
@@ -315,7 +315,7 @@ private:
 // Thread pinning + priority — pin execution thread to dedicated core
 // ─────────────────────────────────────────────────────────────────────────────
 class ThreadAffinity {
-public:
+  public:
     // Pin current thread to specific CPU core
     [[nodiscard]] static bool pin_to_core(int core_id) noexcept {
         if (core_id < 0 || core_id >= 64) return false;
@@ -357,7 +357,7 @@ public:
 // CircuitBreaker — 5 errors → 30s cooldown → half-open probe
 // ─────────────────────────────────────────────────────────────────────────────
 class CircuitBreaker {
-public:
+  public:
     enum class State { CLOSED, OPEN, HALF_OPEN };
 
     CircuitBreaker(int threshold = 5, int cooldown_seconds = 30)
@@ -367,14 +367,15 @@ public:
         State s = state_.load(std::memory_order_relaxed);
         if (s == State::CLOSED) return true;
         if (s == State::OPEN) {
-            auto now = std::chrono::steady_clock::now();
+            auto    now       = std::chrono::steady_clock::now();
             int64_t opened_ns = opened_at_ns_.load(std::memory_order_relaxed);
-            auto opened = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(opened_ns));
+            auto    opened =
+                std::chrono::steady_clock::time_point(std::chrono::nanoseconds(opened_ns));
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - opened).count();
             if (elapsed >= cooldown_seconds_) {
                 // Transition to half-open
                 state_.store(State::HALF_OPEN, std::memory_order_relaxed);
-                return true;  // Allow probe
+                return true; // Allow probe
             }
             return false;
         }
@@ -391,26 +392,22 @@ public:
         int count = error_count_.fetch_add(1, std::memory_order_relaxed) + 1;
         if (count >= threshold_) {
             state_.store(State::OPEN, std::memory_order_relaxed);
-            opened_at_ns_.store(
-                std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    std::chrono::steady_clock::now().time_since_epoch()).count(),
-                std::memory_order_relaxed);
+            opened_at_ns_.store(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                    std::chrono::steady_clock::now().time_since_epoch())
+                                    .count(),
+                                std::memory_order_relaxed);
         }
     }
 
-    State get_state() const noexcept {
-        return state_.load(std::memory_order_relaxed);
-    }
+    State get_state() const noexcept { return state_.load(std::memory_order_relaxed); }
 
-    int error_count() const noexcept {
-        return error_count_.load(std::memory_order_relaxed);
-    }
+    int error_count() const noexcept { return error_count_.load(std::memory_order_relaxed); }
 
-private:
-    int threshold_;
-    int cooldown_seconds_;
+  private:
+    int                threshold_;
+    int                cooldown_seconds_;
     std::atomic<State> state_{State::CLOSED};
-    std::atomic<int> error_count_{0};
+    std::atomic<int>   error_count_{0};
     // Store opened_at as nanoseconds since steady_clock epoch to ensure lock-free atomic
     std::atomic<int64_t> opened_at_ns_{0};
 };
@@ -419,23 +416,22 @@ private:
 // Retry with exponential backoff + jitter
 // ─────────────────────────────────────────────────────────────────────────────
 class RetryPolicy {
-public:
+  public:
     RetryPolicy(int max_attempts = 3, int base_delay_ms = 500, double jitter_pct = 0.3)
         : max_attempts_(max_attempts), base_delay_ms_(base_delay_ms), jitter_pct_(jitter_pct) {}
 
-    template <typename Func>
-    auto execute(Func&& func) -> decltype(func()) {
+    template <typename Func> auto execute(Func&& func) -> decltype(func()) {
         for (int attempt = 0; attempt < max_attempts_; ++attempt) {
             try {
                 return func();
             } catch (const std::exception& e) {
                 if (attempt == max_attempts_ - 1) {
-                    throw;  // Re-throw on last attempt
+                    throw; // Re-throw on last attempt
                 }
-                int delay = base_delay_ms_ * (1 << attempt);  // 500ms × 2^n
+                int delay = base_delay_ms_ * (1 << attempt); // 500ms × 2^n
                 // Add jitter: 0-30% random addition
                 static thread_local std::random_device rd;
-                static thread_local std::mt19937 gen(rd());
+                static thread_local std::mt19937       gen(rd());
                 std::uniform_real_distribution<double> dist(0.0, 1.0);
                 int jitter = static_cast<int>(delay * jitter_pct_ * dist(gen));
                 delay += jitter;
@@ -445,9 +441,9 @@ public:
         throw std::runtime_error("RetryPolicy: exhausted all attempts");
     }
 
-private:
-    int max_attempts_;
-    int base_delay_ms_;
+  private:
+    int    max_attempts_;
+    int    base_delay_ms_;
     double jitter_pct_;
 };
 

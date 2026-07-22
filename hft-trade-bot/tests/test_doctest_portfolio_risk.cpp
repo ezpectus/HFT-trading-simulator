@@ -42,9 +42,9 @@ TEST_CASE("DrawdownTracker: drawdown on decline") {
 TEST_CASE("DrawdownTracker: max drawdown tracks deepest") {
     DrawdownTracker dd;
     dd.update(10000.0);
-    dd.update(9500.0);  // 5% DD
-    dd.update(9800.0);  // 2% DD (recovered a bit)
-    dd.update(8500.0);  // 15% DD (new max)
+    dd.update(9500.0); // 5% DD
+    dd.update(9800.0); // 2% DD (recovered a bit)
+    dd.update(8500.0); // 15% DD (new max)
     CHECK(dd.max_drawdown() == doctest::Approx(0.15));
     CHECK(dd.current_drawdown() == doctest::Approx(0.15));
 }
@@ -103,7 +103,8 @@ TEST_CASE("PortfolioRisk: add_return wraps around MAX_RETURNS") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("PortfolioRisk: historical VaR returns zero with insufficient data") {
     PortfolioRisk pr;
-    for (int i = 0; i < 5; ++i) pr.add_return(0.01);
+    for (int i = 0; i < 5; ++i)
+        pr.add_return(0.01);
     auto result = pr.compute_historical_var();
     CHECK(result.var_95 == doctest::Approx(0.0));
     CHECK(result.var_99 == doctest::Approx(0.0));
@@ -113,7 +114,7 @@ TEST_CASE("PortfolioRisk: historical VaR with known returns") {
     PortfolioRisk pr;
     // Add 20 returns: -0.05 to +0.05 in steps
     for (int i = 0; i < 20; ++i) {
-        pr.add_return(-0.05 + 0.005 * i);  // -0.05, -0.045, ..., +0.045
+        pr.add_return(-0.05 + 0.005 * i); // -0.05, -0.045, ..., +0.045
     }
     auto result = pr.compute_historical_var();
     // With 20 sorted returns, idx_95 = 20*0.05 = 1, idx_99 = 20*0.01 = 0
@@ -129,7 +130,7 @@ TEST_CASE("PortfolioRisk: historical VaR with known returns") {
 TEST_CASE("PortfolioRisk: historical VaR with all positive returns") {
     PortfolioRisk pr;
     for (int i = 0; i < 20; ++i) {
-        pr.add_return(0.01 + 0.001 * i);  // all positive
+        pr.add_return(0.01 + 0.001 * i); // all positive
     }
     auto result = pr.compute_historical_var();
     // VaR should be negative (no real risk) or very small
@@ -150,7 +151,7 @@ TEST_CASE("PortfolioRisk: parametric VaR returns zero with insufficient data") {
 TEST_CASE("PortfolioRisk: parametric VaR scales with portfolio value") {
     PortfolioRisk pr;
     for (int i = 0; i < 100; ++i) {
-        pr.add_return(0.001 * (i % 5 - 2));  // some variance
+        pr.add_return(0.001 * (i % 5 - 2)); // some variance
     }
     auto r1 = pr.compute_parametric_var(10000.0);
     auto r2 = pr.compute_parametric_var(20000.0);
@@ -173,13 +174,13 @@ TEST_CASE("PortfolioRisk: parametric VaR 99 >= VaR 95") {
 // PortfolioRisk — stress testing
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("PortfolioRisk: stress test computes total loss") {
-    PortfolioRisk pr;
+    PortfolioRisk                        pr;
     std::vector<PortfolioRisk::Position> positions = {
         {"BTCUSDT", 1.0, 50000.0, 0.5},
         {"ETHUSDT", 10.0, 3000.0, 0.5},
     };
     auto scenario = PortfolioRisk::flash_crash();
-    auto result = pr.run_stress_test(positions, scenario);
+    auto result   = pr.run_stress_test(positions, scenario);
     // BTC: 1.0 * 50000 * -0.10 = -5000
     // ETH: 10.0 * 3000 * -0.12 = -3600
     // Total: -8600
@@ -187,36 +188,36 @@ TEST_CASE("PortfolioRisk: stress test computes total loss") {
 }
 
 TEST_CASE("PortfolioRisk: stress test identifies worst position") {
-    PortfolioRisk pr;
+    PortfolioRisk                        pr;
     std::vector<PortfolioRisk::Position> positions = {
         {"BTCUSDT", 1.0, 50000.0, 0.5},
         {"ETHUSDT", 10.0, 3000.0, 0.5},
     };
     auto scenario = PortfolioRisk::flash_crash();
-    auto result = pr.run_stress_test(positions, scenario);
+    auto result   = pr.run_stress_test(positions, scenario);
     // BTC loss = -5000, ETH loss = -3600 → BTC is worst
     CHECK(result.worst_symbol == "BTCUSDT");
     CHECK(result.worst_position_loss == doctest::Approx(-5000.0));
 }
 
 TEST_CASE("PortfolioRisk: stress test with no matching symbols") {
-    PortfolioRisk pr;
+    PortfolioRisk                        pr;
     std::vector<PortfolioRisk::Position> positions = {
         {"DOGEUSDT", 1000.0, 0.10, 1.0},
     };
-    auto scenario = PortfolioRisk::flash_crash();  // BTC, ETH, SOL
-    auto result = pr.run_stress_test(positions, scenario);
+    auto scenario = PortfolioRisk::flash_crash(); // BTC, ETH, SOL
+    auto result   = pr.run_stress_test(positions, scenario);
     CHECK(result.total_loss == doctest::Approx(0.0));
     CHECK(result.worst_symbol.empty());
 }
 
 TEST_CASE("PortfolioRisk: stress test with short position") {
-    PortfolioRisk pr;
+    PortfolioRisk                        pr;
     std::vector<PortfolioRisk::Position> positions = {
-        {"BTCUSDT", -1.0, 50000.0, -0.5},  // short
+        {"BTCUSDT", -1.0, 50000.0, -0.5}, // short
     };
-    auto scenario = PortfolioRisk::flash_crash();  // BTC -10%
-    auto result = pr.run_stress_test(positions, scenario);
+    auto scenario = PortfolioRisk::flash_crash(); // BTC -10%
+    auto result   = pr.run_stress_test(positions, scenario);
     // Short * price * shock = -1 * 50000 * -0.10 = +5000 (profit on crash)
     CHECK(result.total_loss == doctest::Approx(5000.0));
 }
@@ -243,18 +244,18 @@ TEST_CASE("PortfolioRisk: correlation_breakdown scenario structure") {
 // PortfolioRisk — correlation-adjusted exposure
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("PortfolioRisk: correlation adjusted exposure single position") {
-    PortfolioRisk pr;
+    PortfolioRisk                        pr;
     std::vector<PortfolioRisk::Position> positions = {
         {"BTCUSDT", 1.0, 50000.0, 1.0},
     };
-    std::vector<std::vector<double>> corr = {{1.0}};
-    double exposure = pr.correlation_adjusted_exposure(positions, corr);
+    std::vector<std::vector<double>> corr     = {{1.0}};
+    double                           exposure = pr.correlation_adjusted_exposure(positions, corr);
     // Single position: no correlation adjustment
     CHECK(exposure == doctest::Approx(50000.0));
 }
 
 TEST_CASE("PortfolioRisk: correlation adjusted exposure multiple positions") {
-    PortfolioRisk pr;
+    PortfolioRisk                        pr;
     std::vector<PortfolioRisk::Position> positions = {
         {"BTCUSDT", 1.0, 50000.0, 0.5},
         {"ETHUSDT", 10.0, 3000.0, 0.5},
@@ -271,7 +272,7 @@ TEST_CASE("PortfolioRisk: correlation adjusted exposure multiple positions") {
 }
 
 TEST_CASE("PortfolioRisk: correlation adjusted exposure with zero correlation") {
-    PortfolioRisk pr;
+    PortfolioRisk                        pr;
     std::vector<PortfolioRisk::Position> positions = {
         {"BTCUSDT", 1.0, 50000.0, 0.5},
         {"ETHUSDT", 10.0, 3000.0, 0.5},
@@ -286,13 +287,13 @@ TEST_CASE("PortfolioRisk: correlation adjusted exposure with zero correlation") 
 }
 
 TEST_CASE("PortfolioRisk: correlation adjusted exposure empty corr matrix") {
-    PortfolioRisk pr;
+    PortfolioRisk                        pr;
     std::vector<PortfolioRisk::Position> positions = {
         {"BTCUSDT", 1.0, 50000.0, 0.5},
         {"ETHUSDT", 10.0, 3000.0, 0.5},
     };
-    std::vector<std::vector<double>> corr;  // empty
-    double exposure = pr.correlation_adjusted_exposure(positions, corr);
+    std::vector<std::vector<double>> corr; // empty
+    double                           exposure = pr.correlation_adjusted_exposure(positions, corr);
     // No corr data → just sum of abs values
     CHECK(exposure == doctest::Approx(80000.0));
 }

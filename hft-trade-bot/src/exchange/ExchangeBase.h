@@ -6,23 +6,21 @@
 // market-data methods (best_bid, best_ask, mid_price, bid_depth, ask_depth).
 #pragma once
 
-#include "IExchange.h"
 #include "../utils/low_latency.h"
+#include "IExchange.h"
 #include <atomic>
 #include <string>
 
 namespace hft {
 
 class ExchangeBase : public IExchange {
-public:
+  public:
     ExchangeBase(std::string exchange_id, double maker_bps, double taker_bps)
-        : id_(std::move(exchange_id))
-        , maker_fee_(maker_bps)
-        , taker_fee_(taker_bps) {}
+        : id_(std::move(exchange_id)), maker_fee_(maker_bps), taker_fee_(taker_bps) {}
 
     const std::string& id() const override { return id_; }
-    double maker_fee_bps() const override { return maker_fee_; }
-    double taker_fee_bps() const override { return taker_fee_; }
+    double             maker_fee_bps() const override { return maker_fee_; }
+    double             taker_fee_bps() const override { return taker_fee_; }
 
     int64_t estimated_latency_us() const override {
         return latency_avg_.load(std::memory_order_relaxed);
@@ -35,35 +33,27 @@ public:
             latency_avg_.store(us, std::memory_order_relaxed);
         } else {
             int64_t next = current + (us - current) / 10;
-            while (!latency_avg_.compare_exchange_weak(current, next,
-                       std::memory_order_relaxed, std::memory_order_relaxed)) {
+            while (!latency_avg_.compare_exchange_weak(current, next, std::memory_order_relaxed,
+                                                       std::memory_order_relaxed)) {
                 next = current + (us - current) / 10;
             }
         }
     }
 
-    void record_toxic_event() override {
-        toxic_count_.fetch_add(1, std::memory_order_relaxed);
-    }
+    void record_toxic_event() override { toxic_count_.fetch_add(1, std::memory_order_relaxed); }
 
-    int toxic_event_count() const override {
-        return toxic_count_.load(std::memory_order_relaxed);
-    }
+    int toxic_event_count() const override { return toxic_count_.load(std::memory_order_relaxed); }
 
-    void reset_toxic_events() override {
-        toxic_count_.store(0, std::memory_order_relaxed);
-    }
+    void reset_toxic_events() override { toxic_count_.store(0, std::memory_order_relaxed); }
 
-    bool is_available() const override {
-        return toxic_count_.load(std::memory_order_relaxed) < 5;
-    }
+    bool is_available() const override { return toxic_count_.load(std::memory_order_relaxed) < 5; }
 
-protected:
-    std::string id_;
-    double maker_fee_;
-    double taker_fee_;
+  protected:
+    std::string          id_;
+    double               maker_fee_;
+    double               taker_fee_;
     std::atomic<int64_t> latency_avg_{0};
-    std::atomic<int> toxic_count_{0};
+    std::atomic<int>     toxic_count_{0};
 };
 
 } // namespace hft

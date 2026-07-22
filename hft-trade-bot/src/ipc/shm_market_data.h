@@ -5,25 +5,25 @@
 // Uses a single-slot update model (latest snapshot wins) for lowest latency.
 #pragma once
 
-#include "shm_ring_buffer.h"
 #include "shm_protocol.h"
-#include <string>
+#include "shm_ring_buffer.h"
 #include <atomic>
 #include <cstring>
+#include <string>
 
 #ifdef _WIN32
-  #ifndef NOMINMAX
-  #define NOMINMAX
-  #endif
-  #ifndef WIN32_LEAN_AND_MEAN
-  #define WIN32_LEAN_AND_MEAN
-  #endif
-  #include <windows.h>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 #else
-  #include <fcntl.h>
-  #include <sys/mman.h>
-  #include <sys/stat.h>
-  #include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 namespace hft::ipc {
@@ -32,31 +32,28 @@ namespace hft::ipc {
 // with an atomic sequence number for lock-free reads.
 // Writer increments seq before/after write; reader checks seq consistency.
 struct alignas(64) SnapshotSlot {
-    std::atomic<uint64_t> seq;   // Incremented on each write
-    MarketSnapshotMsg data;
-    uint8_t padding_[28];       // Fill to 64 bytes
+    std::atomic<uint64_t> seq; // Incremented on each write
+    MarketSnapshotMsg     data;
+    uint8_t               padding_[28]; // Fill to 64 bytes
 };
 
 static_assert(sizeof(SnapshotSlot) <= 64, "SnapshotSlot should fit in 1 cache line");
 
 class ShmMarketData {
-public:
-    ShmMarketData(const std::string& shm_name = "/hft_market",
-                  uint8_t max_symbols = 10, bool create = true)
-        : shm_name_(shm_name), max_symbols_(max_symbols), owns_(create)
-    {
+  public:
+    ShmMarketData(const std::string& shm_name = "/hft_market", uint8_t max_symbols = 10,
+                  bool create = true)
+        : shm_name_(shm_name), max_symbols_(max_symbols), owns_(create) {
         const uint64_t total_size = sizeof(uint64_t) + max_symbols * sizeof(SnapshotSlot);
 
 #ifdef _WIN32
         std::wstring wname(shm_name_.begin(), shm_name_.end());
         if (create) {
-            handle_ = CreateFileMappingW(
-                INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
-                0, static_cast<DWORD>(total_size), wname.c_str());
+            handle_ = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0,
+                                         static_cast<DWORD>(total_size), wname.c_str());
             if (!handle_) throw std::runtime_error("CreateFileMapping create failed: " + shm_name_);
         } else {
-            handle_ = OpenFileMappingW(
-                FILE_MAP_ALL_ACCESS, FALSE, wname.c_str());
+            handle_ = OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, wname.c_str());
             if (!handle_) throw std::runtime_error("OpenFileMapping failed: " + shm_name_);
         }
         void* ptr = MapViewOfFile(handle_, FILE_MAP_ALL_ACCESS, 0, 0, total_size);
@@ -77,8 +74,7 @@ public:
             if (fd_ < 0) throw std::runtime_error("shm_open open failed: " + shm_name_);
         }
 
-        void* ptr = mmap(nullptr, total_size, PROT_READ | PROT_WRITE,
-                         MAP_SHARED, fd_, 0);
+        void* ptr = mmap(nullptr, total_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
         if (ptr == MAP_FAILED) {
             close(fd_);
             throw std::runtime_error("mmap failed: " + shm_name_);
@@ -88,8 +84,7 @@ public:
         // Layout: [num_slots: uint64][SnapshotSlot 0][SnapshotSlot 1]...
         // Store header pointer and offset slots_ past the 8-byte header
         num_slots_ptr_ = static_cast<uint64_t*>(ptr);
-        slots_ = reinterpret_cast<SnapshotSlot*>(
-            static_cast<char*>(ptr) + sizeof(uint64_t));
+        slots_       = reinterpret_cast<SnapshotSlot*>(static_cast<char*>(ptr) + sizeof(uint64_t));
         mapped_size_ = total_size;
 
         if (create) {
@@ -112,7 +107,7 @@ public:
         }
     }
 
-    ShmMarketData(const ShmMarketData&) = delete;
+    ShmMarketData(const ShmMarketData&)            = delete;
     ShmMarketData& operator=(const ShmMarketData&) = delete;
 
     // Write a market snapshot (lock-free, seq-guarded)
@@ -150,31 +145,31 @@ public:
     }
 
     // Convenience: write latest price info
-    void write_price(uint8_t symbol_id, uint64_t timestamp,
-                     float bid, float ask, float last, float volume) {
+    void write_price(uint8_t symbol_id, uint64_t timestamp, float bid, float ask, float last,
+                     float volume) {
         MarketSnapshotMsg snap{};
         snap.timestamp = timestamp;
         snap.symbol_id = symbol_id;
-        snap.bid = bid;
-        snap.ask = ask;
-        snap.last = last;
-        snap.volume = volume;
+        snap.bid       = bid;
+        snap.ask       = ask;
+        snap.last      = last;
+        snap.volume    = volume;
         write_snapshot(symbol_id, snap);
     }
 
     uint8_t max_symbols() const { return max_symbols_; }
 
-private:
+  private:
     std::string shm_name_;
-    uint8_t max_symbols_;
-    bool owns_;
+    uint8_t     max_symbols_;
+    bool        owns_;
 #ifdef _WIN32
     HANDLE handle_{nullptr};
 #else
     int fd_{-1};
 #endif
-    uint64_t mapped_size_{0};
-    uint64_t* num_slots_ptr_{nullptr};
+    uint64_t      mapped_size_{0};
+    uint64_t*     num_slots_ptr_{nullptr};
     SnapshotSlot* slots_{nullptr};
 };
 

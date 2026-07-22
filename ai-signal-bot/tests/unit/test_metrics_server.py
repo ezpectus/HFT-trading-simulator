@@ -153,7 +153,7 @@ class TestMetricsServer:
     def test_init_defaults(self):
         mc = MetricsCollector()
         server = MetricsServer(mc)
-        assert server.host == "0.0.0.0"
+        assert server.host == "0.0.0.0"  # nosec: B104
         assert server.port == 9091
         assert server.collector is mc
 
@@ -167,7 +167,8 @@ class TestMetricsServer:
     async def test_start_creates_server(self):
         mc = MetricsCollector()
         server = MetricsServer(mc, host="127.0.0.1", port=0)
-        mock_server = AsyncMock()
+        mock_server = MagicMock()
+        mock_server.wait_closed = AsyncMock()
         with patch("asyncio.start_server", new_callable=AsyncMock, return_value=mock_server):
             await server.start()
             assert server._server is mock_server
@@ -176,7 +177,8 @@ class TestMetricsServer:
     async def test_stop_closes_server(self):
         mc = MetricsCollector()
         server = MetricsServer(mc, host="127.0.0.1", port=0)
-        mock_server = AsyncMock()
+        mock_server = MagicMock()
+        mock_server.wait_closed = AsyncMock()
         server._server = mock_server
         await server.stop()
         mock_server.close.assert_called_once()
@@ -196,7 +198,9 @@ class TestMetricsServer:
         server = MetricsServer(mc)
 
         reader = AsyncMock()
-        writer = AsyncMock()
+        writer = MagicMock()
+        writer.drain = AsyncMock()
+        writer.wait_closed = AsyncMock()
         # Simulate HTTP request: "GET /metrics HTTP/1.1\r\n\r\n"
         reader.readline.side_effect = [
             b"GET /metrics HTTP/1.1\r\n",
@@ -218,7 +222,9 @@ class TestMetricsServer:
         server = MetricsServer(mc)
 
         reader = AsyncMock()
-        writer = AsyncMock()
+        writer = MagicMock()
+        writer.drain = AsyncMock()
+        writer.wait_closed = AsyncMock()
         reader.readline.side_effect = [b"GET /metrics HTTP/1.1\r\n", b"\r\n"]
 
         await server._handle_connection(reader, writer)
@@ -231,7 +237,9 @@ class TestMetricsServer:
         server = MetricsServer(mc)
 
         reader = AsyncMock()
-        writer = AsyncMock()
+        writer = MagicMock()
+        writer.drain = AsyncMock()
+        writer.wait_closed = AsyncMock()
         reader.readline.side_effect = [b"GET /metrics HTTP/1.1\r\n", b"\r\n"]
 
         await server._handle_connection(reader, writer)

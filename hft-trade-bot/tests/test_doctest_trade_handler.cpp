@@ -1,5 +1,6 @@
 // Unit tests for TradeHandler using doctest
-// Tests: aggressor detection, VWAP, rolling stats O(1) incremental sums, large trade detection, reset
+// Tests: aggressor detection, VWAP, rolling stats O(1) incremental sums, large trade detection,
+// reset
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
@@ -11,8 +12,8 @@ using namespace hft;
 
 static TradeEvent make_trade(double price, double qty, bool is_buyer_maker = false) {
     TradeEvent t;
-    t.price = price;
-    t.quantity = qty;
+    t.price          = price;
+    t.quantity       = qty;
     t.is_buyer_maker = is_buyer_maker;
     return t;
 }
@@ -101,8 +102,8 @@ TEST_CASE("TradeHandler: session_vwap single trade") {
 
 TEST_CASE("TradeHandler: session_vwap weighted average") {
     TradeHandler th(100);
-    th.on_trade(make_trade(50000, 1.0));  // notional = 50000
-    th.on_trade(make_trade(51000, 2.0));  // notional = 102000
+    th.on_trade(make_trade(50000, 1.0)); // notional = 50000
+    th.on_trade(make_trade(51000, 2.0)); // notional = 102000
     // VWAP = (50000 + 102000) / 3 = 50666.67
     CHECK(th.session_vwap() == doctest::Approx(152000.0 / 3.0));
 }
@@ -125,7 +126,7 @@ TEST_CASE("TradeHandler: rolling_vwap equals session when within window") {
 TEST_CASE("TradeHandler: rolling_vwap excludes old trades after window wrap") {
     TradeHandler th(4);
     // Fill window: 4 trades
-    th.on_trade(make_trade(100, 1.0));   // old, will be evicted
+    th.on_trade(make_trade(100, 1.0)); // old, will be evicted
     th.on_trade(make_trade(200, 1.0));
     th.on_trade(make_trade(300, 1.0));
     th.on_trade(make_trade(400, 1.0));
@@ -166,7 +167,7 @@ TEST_CASE("TradeHandler: rolling_mean_volume after window wrap") {
     th.on_trade(make_trade(200, 20.0));
     th.on_trade(make_trade(300, 30.0));
     th.on_trade(make_trade(400, 40.0));
-    th.on_trade(make_trade(500, 50.0));  // evicts 10.0
+    th.on_trade(make_trade(500, 50.0)); // evicts 10.0
     // mean = (20+30+40+50) / 4 = 35
     CHECK(th.rolling_mean_volume() == doctest::Approx(35.0));
 }
@@ -198,7 +199,7 @@ TEST_CASE("TradeHandler: rolling_std_volume known values") {
     th.on_trade(make_trade(300, 3.0));
     th.on_trade(make_trade(400, 4.0));
     th.on_trade(make_trade(500, 5.0));
-    double mean = th.rolling_mean_volume();  // 3.0
+    double mean = th.rolling_mean_volume(); // 3.0
     CHECK(mean == doctest::Approx(3.0));
     // Sample variance = ((1-3)² + (2-3)² + (3-3)² + (4-3)² + (5-3)²) / 4
     //                = (4 + 1 + 0 + 1 + 4) / 4 = 2.5
@@ -213,7 +214,7 @@ TEST_CASE("TradeHandler: rolling_std_volume after window wrap") {
     th.on_trade(make_trade(200, 2.0));
     th.on_trade(make_trade(300, 3.0));
     th.on_trade(make_trade(400, 4.0));
-    th.on_trade(make_trade(500, 5.0));  // evicts 1.0
+    th.on_trade(make_trade(500, 5.0)); // evicts 1.0
     // volumes: 2, 3, 4, 5 → mean = 3.5
     // var = ((2-3.5)² + (3-3.5)² + (4-3.5)² + (5-3.5)²) / 3
     //     = (2.25 + 0.25 + 0.25 + 2.25) / 3 = 5/3 ≈ 1.6667

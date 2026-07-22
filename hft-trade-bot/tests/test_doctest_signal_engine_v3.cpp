@@ -5,8 +5,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include "../src/strategies/signal_engine_v3.h"
 #include "../src/strategies/pressure_model.h"
+#include "../src/strategies/signal_engine_v3.h"
 
 using namespace hft;
 
@@ -17,7 +17,7 @@ static std::vector<double> make_trending_up(int n, double start = 100.0, double 
     std::vector<double> prices(n);
     prices[0] = start;
     for (int i = 1; i < n; ++i) {
-        prices[i] = prices[i-1] * (1.0 + drift);
+        prices[i] = prices[i - 1] * (1.0 + drift);
     }
     return prices;
 }
@@ -26,7 +26,7 @@ static std::vector<double> make_trending_down(int n, double start = 100.0, doubl
     std::vector<double> prices(n);
     prices[0] = start;
     for (int i = 1; i < n; ++i) {
-        prices[i] = prices[i-1] * (1.0 + drift);
+        prices[i] = prices[i - 1] * (1.0 + drift);
     }
     return prices;
 }
@@ -37,7 +37,7 @@ static std::vector<double> make_ranging(int n, double start = 100.0, double rang
     for (int i = 1; i < n; ++i) {
         // Oscillate around start price
         double phase = static_cast<double>(i) / n * 6.28;
-        prices[i] = start + range * start * std::sin(phase);
+        prices[i]    = start + range * start * std::sin(phase);
     }
     return prices;
 }
@@ -48,25 +48,26 @@ static std::vector<double> make_volatile(int n, double start = 100.0, double vol
     // Simple LCG for reproducibility
     uint32_t seed = 42;
     for (int i = 1; i < n; ++i) {
-        seed = seed * 1103515245 + 12345;
-        double r = static_cast<double>(seed >> 16) / 32768.0 - 0.5;
-        prices[i] = prices[i-1] * (1.0 + vol * r);
+        seed      = seed * 1103515245 + 12345;
+        double r  = static_cast<double>(seed >> 16) / 32768.0 - 0.5;
+        prices[i] = prices[i - 1] * (1.0 + vol * r);
     }
     return prices;
 }
 
 // Helper: create candles from price series
-static std::vector<Candle> make_candles(const std::vector<double>& prices, const char* symbol = "BTCUSDT") {
+static std::vector<Candle> make_candles(const std::vector<double>& prices,
+                                        const char*                symbol = "BTCUSDT") {
     std::vector<Candle> candles(prices.size());
     for (size_t i = 0; i < prices.size(); ++i) {
         candles[i].timestamp = static_cast<int64_t>(i) * 300;
-        candles[i].open = prices[i];
-        candles[i].high = prices[i] * 1.001;
-        candles[i].low = prices[i] * 0.999;
-        candles[i].close = prices[i];
-        candles[i].volume = 500.0;
-        candles[i].symbol = symbol;
-        candles[i].exchange = "binance";
+        candles[i].open      = prices[i];
+        candles[i].high      = prices[i] * 1.001;
+        candles[i].low       = prices[i] * 0.999;
+        candles[i].close     = prices[i];
+        candles[i].volume    = 500.0;
+        candles[i].symbol    = symbol;
+        candles[i].exchange  = "binance";
     }
     return candles;
 }
@@ -74,7 +75,7 @@ static std::vector<Candle> make_candles(const std::vector<double>& prices, const
 // Helper: create a simple order book
 static OrderBook make_orderbook(const char* symbol = "BTCUSDT") {
     OrderBook ob;
-    ob.symbol = symbol;
+    ob.symbol   = symbol;
     ob.exchange = "binance";
     for (int i = 0; i < 20; ++i) {
         ob.bids.push_back({100.0 - i * 0.01, 10.0 + i});
@@ -87,7 +88,7 @@ static OrderBook make_orderbook(const char* symbol = "BTCUSDT") {
 // OnlineHMM tests
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("OnlineHMM initialization") {
-    OnlineHMM hmm;
+    OnlineHMM   hmm;
     RegimeState state = hmm.update(100.0);
     // First update should initialize and return RANGING
     CHECK(state == RegimeState::RANGING);
@@ -95,7 +96,7 @@ TEST_CASE("OnlineHMM initialization") {
 
 TEST_CASE("OnlineHMM detects trending up") {
     OnlineHMM hmm;
-    auto prices = make_trending_up(200, 100.0, 0.002);
+    auto      prices = make_trending_up(200, 100.0, 0.002);
 
     RegimeState last_state = RegimeState::RANGING;
     for (double p : prices) {
@@ -108,7 +109,7 @@ TEST_CASE("OnlineHMM detects trending up") {
 
 TEST_CASE("OnlineHMM detects trending down") {
     OnlineHMM hmm;
-    auto prices = make_trending_down(200, 100.0, -0.002);
+    auto      prices = make_trending_down(200, 100.0, -0.002);
 
     RegimeState last_state = RegimeState::RANGING;
     for (double p : prices) {
@@ -121,7 +122,7 @@ TEST_CASE("OnlineHMM detects trending down") {
 
 TEST_CASE("OnlineHMM detects ranging market") {
     OnlineHMM hmm;
-    auto prices = make_ranging(200, 100.0, 0.001);
+    auto      prices = make_ranging(200, 100.0, 0.001);
 
     RegimeState last_state = RegimeState::RANGING;
     for (double p : prices) {
@@ -134,7 +135,7 @@ TEST_CASE("OnlineHMM detects ranging market") {
 
 TEST_CASE("OnlineHMM detects volatile market") {
     OnlineHMM hmm;
-    auto prices = make_volatile(200, 100.0, 0.03);
+    auto      prices = make_volatile(200, 100.0, 0.03);
 
     RegimeState last_state = RegimeState::RANGING;
     for (double p : prices) {
@@ -164,8 +165,8 @@ TEST_CASE("OnlineHMM most_likely_state matches max probability") {
         hmm.update(100.0 + i * 0.005);
     }
 
-    RegimeState best = hmm.most_likely_state();
-    double best_prob = hmm.state_probability(best);
+    RegimeState best      = hmm.most_likely_state();
+    double      best_prob = hmm.state_probability(best);
 
     for (int i = 0; i < 4; ++i) {
         auto s = static_cast<RegimeState>(i);
@@ -205,7 +206,7 @@ TEST_CASE("OnlineHMM log_gaussian is correct") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("SignalEngineV3 construction with default params") {
     SignalEngineV2::Params v2_params;
-    SignalEngineV3 engine(v2_params, SignalEngineV3::Params{});
+    SignalEngineV3         engine(v2_params, SignalEngineV3::Params{});
 
     // Accessors should work
     CHECK(engine.params().trend_boost == doctest::Approx(1.3));
@@ -215,12 +216,12 @@ TEST_CASE("SignalEngineV3 construction with default params") {
 
 TEST_CASE("SignalEngineV3 returns NEUTRAL for insufficient data") {
     SignalEngineV2::Params v2_params;
-    SignalEngineV3 engine(v2_params, SignalEngineV3::Params{});
+    SignalEngineV3         engine(v2_params, SignalEngineV3::Params{});
 
     std::vector<Candle> candles(3);
-    OrderBook ob = make_orderbook();
-    PressureModel pm;
-    PressureResult pr = pm.analyze(ob);
+    OrderBook           ob = make_orderbook();
+    PressureModel       pm;
+    PressureResult      pr = pm.analyze(ob);
 
     FastSignal sig = engine.analyze("BTCUSDT", candles.data(), 3, ob, pr, 1000);
     CHECK(sig.direction == FastSignal::Direction::NEUTRAL);
@@ -228,13 +229,13 @@ TEST_CASE("SignalEngineV3 returns NEUTRAL for insufficient data") {
 
 TEST_CASE("SignalEngineV3 tracks regime per symbol") {
     SignalEngineV2::Params v2_params;
-    SignalEngineV3 engine(v2_params, SignalEngineV3::Params{});
+    SignalEngineV3         engine(v2_params, SignalEngineV3::Params{});
 
     // Feed trending-up data for BTCUSDT
-    auto btc_prices = make_trending_up(150, 100.0, 0.003);
-    auto btc_candles = make_candles(btc_prices, "BTCUSDT");
-    OrderBook ob = make_orderbook();
-    PressureModel pm;
+    auto           btc_prices  = make_trending_up(150, 100.0, 0.003);
+    auto           btc_candles = make_candles(btc_prices, "BTCUSDT");
+    OrderBook      ob          = make_orderbook();
+    PressureModel  pm;
     PressureResult pr = pm.analyze(ob);
 
     engine.analyze("BTCUSDT", btc_candles.data(), btc_candles.size(), ob, pr, 1000);
@@ -250,12 +251,12 @@ TEST_CASE("SignalEngineV3 tracks regime per symbol") {
 
 TEST_CASE("SignalEngineV3 regime confidence is between 0 and 1") {
     SignalEngineV2::Params v2_params;
-    SignalEngineV3 engine(v2_params, SignalEngineV3::Params{});
+    SignalEngineV3         engine(v2_params, SignalEngineV3::Params{});
 
-    auto prices = make_trending_up(100, 100.0, 0.002);
-    auto candles = make_candles(prices, "BTCUSDT");
-    OrderBook ob = make_orderbook();
-    PressureModel pm;
+    auto           prices  = make_trending_up(100, 100.0, 0.002);
+    auto           candles = make_candles(prices, "BTCUSDT");
+    OrderBook      ob      = make_orderbook();
+    PressureModel  pm;
     PressureResult pr = pm.analyze(ob);
 
     engine.analyze("BTCUSDT", candles.data(), candles.size(), ob, pr, 1000);
@@ -267,12 +268,12 @@ TEST_CASE("SignalEngineV3 regime confidence is between 0 and 1") {
 
 TEST_CASE("SignalEngineV3 current_volatility accessor") {
     SignalEngineV2::Params v2_params;
-    SignalEngineV3 engine(v2_params, SignalEngineV3::Params{});
+    SignalEngineV3         engine(v2_params, SignalEngineV3::Params{});
 
-    auto prices = make_volatile(100, 100.0, 0.02);
-    auto candles = make_candles(prices, "BTCUSDT");
-    OrderBook ob = make_orderbook();
-    PressureModel pm;
+    auto           prices  = make_volatile(100, 100.0, 0.02);
+    auto           candles = make_candles(prices, "BTCUSDT");
+    OrderBook      ob      = make_orderbook();
+    PressureModel  pm;
     PressureResult pr = pm.analyze(ob);
 
     engine.analyze("BTCUSDT", candles.data(), candles.size(), ob, pr, 1000);
@@ -286,10 +287,10 @@ TEST_CASE("SignalEngineV3 current_volatility accessor") {
 
 TEST_CASE("SignalEngineV3 set_params changes behavior") {
     SignalEngineV2::Params v2_params;
-    SignalEngineV3 engine(v2_params, SignalEngineV3::Params{});
+    SignalEngineV3         engine(v2_params, SignalEngineV3::Params{});
 
     SignalEngineV3::Params new_params;
-    new_params.trend_boost = 2.0;
+    new_params.trend_boost  = 2.0;
     new_params.trend_dampen = 0.3;
     engine.set_params(new_params);
 
@@ -308,19 +309,20 @@ TEST_CASE("SignalEngineV3 v2 accessor returns underlying engine") {
 
 TEST_CASE("SignalEngineV3 analyze_incremental returns valid signal") {
     SignalEngineV2::Params v2_params;
-    SignalEngineV3 engine(v2_params, SignalEngineV3::Params{});
+    SignalEngineV3         engine(v2_params, SignalEngineV3::Params{});
 
-    auto prices = make_trending_up(60, 100.0, 0.001);
-    auto candles = make_candles(prices, "BTCUSDT");
-    OrderBook ob = make_orderbook();
-    PressureModel pm;
+    auto           prices  = make_trending_up(60, 100.0, 0.001);
+    auto           candles = make_candles(prices, "BTCUSDT");
+    OrderBook      ob      = make_orderbook();
+    PressureModel  pm;
     PressureResult pr = pm.analyze(ob);
 
     // First call populates V2 cache + HMM
     engine.analyze("BTCUSDT", candles.data(), candles.size(), ob, pr, 1000);
 
     // Incremental call should use cached state
-    FastSignal sig = engine.analyze_incremental("BTCUSDT", candles.data(), candles.size(), ob, pr, 2000);
+    FastSignal sig =
+        engine.analyze_incremental("BTCUSDT", candles.data(), candles.size(), ob, pr, 2000);
 
     // Should produce a valid signal (not crash)
     CHECK(sig.timestamp == 2000);
@@ -328,10 +330,10 @@ TEST_CASE("SignalEngineV3 analyze_incremental returns valid signal") {
 
 TEST_CASE("SignalEngineV3 handles empty candles gracefully") {
     SignalEngineV2::Params v2_params;
-    SignalEngineV3 engine(v2_params, SignalEngineV3::Params{});
+    SignalEngineV3         engine(v2_params, SignalEngineV3::Params{});
 
-    OrderBook ob = make_orderbook();
-    PressureModel pm;
+    OrderBook      ob = make_orderbook();
+    PressureModel  pm;
     PressureResult pr = pm.analyze(ob);
 
     FastSignal sig = engine.analyze("BTCUSDT", nullptr, 0, ob, pr, 1000);
@@ -340,7 +342,7 @@ TEST_CASE("SignalEngineV3 handles empty candles gracefully") {
 
 TEST_CASE("SignalEngineV3 unknown symbol returns RANGING") {
     SignalEngineV2::Params v2_params;
-    SignalEngineV3 engine(v2_params, SignalEngineV3::Params{});
+    SignalEngineV3         engine(v2_params, SignalEngineV3::Params{});
 
     CHECK(engine.current_regime("UNKNOWN") == RegimeState::RANGING);
     CHECK(engine.regime_confidence("UNKNOWN") == doctest::Approx(0.0));
@@ -356,10 +358,10 @@ TEST_CASE("Regime gating: TRENDING_UP boosts LONG signals") {
     SignalEngineV3 engine(v2_params, v3_params);
 
     // Feed enough trending-up data to establish TRENDING_UP regime
-    auto prices = make_trending_up(200, 100.0, 0.003);
-    auto candles = make_candles(prices, "BTCUSDT");
-    OrderBook ob = make_orderbook();
-    PressureModel pm;
+    auto           prices  = make_trending_up(200, 100.0, 0.003);
+    auto           candles = make_candles(prices, "BTCUSDT");
+    OrderBook      ob      = make_orderbook();
+    PressureModel  pm;
     PressureResult pr = pm.analyze(ob);
 
     // Get base V2 signal first
@@ -369,7 +371,8 @@ TEST_CASE("Regime gating: TRENDING_UP boosts LONG signals") {
     FastSignal v3_sig = engine.analyze("BTCUSDT", candles.data(), candles.size(), ob, pr, 1000);
 
     // If base is LONG, V3 should boost confidence
-    if (base.direction == FastSignal::Direction::LONG && v3_sig.direction == FastSignal::Direction::LONG) {
+    if (base.direction == FastSignal::Direction::LONG &&
+        v3_sig.direction == FastSignal::Direction::LONG) {
         CHECK(v3_sig.confidence >= base.confidence);
     }
 }
@@ -377,15 +380,15 @@ TEST_CASE("Regime gating: TRENDING_UP boosts LONG signals") {
 TEST_CASE("Regime gating: RANGING caps confidence") {
     SignalEngineV2::Params v2_params;
     SignalEngineV3::Params v3_params;
-    v3_params.range_confidence_cap = 40;
+    v3_params.range_confidence_cap  = 40;
     v3_params.min_regime_confidence = 0.0;
     SignalEngineV3 engine(v2_params, v3_params);
 
     // Feed ranging data
-    auto prices = make_ranging(200, 100.0, 0.0005);
-    auto candles = make_candles(prices, "BTCUSDT");
-    OrderBook ob = make_orderbook();
-    PressureModel pm;
+    auto           prices  = make_ranging(200, 100.0, 0.0005);
+    auto           candles = make_candles(prices, "BTCUSDT");
+    OrderBook      ob      = make_orderbook();
+    PressureModel  pm;
     PressureResult pr = pm.analyze(ob);
 
     FastSignal sig = engine.analyze("BTCUSDT", candles.data(), candles.size(), ob, pr, 1000);

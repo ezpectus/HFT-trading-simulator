@@ -95,6 +95,10 @@ class ShmRingBuffer[T]:
 
     def __init__(self, name: str, element_struct: struct.Struct,
                  capacity: int, create: bool = True):
+        # Initialize early so __del__ doesn't crash on construction failure
+        self._mm = None
+        self._fd = -1
+
         if capacity <= 0 or (capacity & (capacity - 1)) != 0:
             raise ValueError("capacity must be power of 2")
 
@@ -127,10 +131,10 @@ class ShmRingBuffer[T]:
         else:
             # POSIX: use /dev/shm
             if create:
-                self._fd = os.open(f"/dev/shm{name}", os.O_CREAT | os.O_RDWR, 0o666)
+                self._fd = os.open(f"/dev/shm{name}", os.O_CREAT | os.O_RDWR, 0o660)  # nosec: B108
                 os.ftruncate(self._fd, total_size)
             else:
-                self._fd = os.open(f"/dev/shm{name}", os.O_RDWR, 0o666)
+                self._fd = os.open(f"/dev/shm{name}", os.O_RDWR, 0o660)  # nosec: B108
 
             self._mm = mmap.mmap(self._fd, total_size, mmap.MAP_SHARED,
                                  mmap.PROT_READ | mmap.PROT_WRITE)
@@ -256,7 +260,7 @@ class ShmRingBuffer[T]:
         if self._owns:
             if not IS_WINDOWS:
                 try:
-                    os.remove(f"/dev/shm{self.name}")
+                    os.remove(f"/dev/shm{self.name}")  # nosec: B108
                 except FileNotFoundError:
                     pass
             self._owns = False

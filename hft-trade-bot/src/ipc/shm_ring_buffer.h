@@ -12,24 +12,24 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
-#include <string>
-#include <stdexcept>
 #include <new>
+#include <stdexcept>
+#include <string>
 
 #ifdef _WIN32
-  #ifndef NOMINMAX
-  #define NOMINMAX
-  #endif
-  #ifndef WIN32_LEAN_AND_MEAN
-  #define WIN32_LEAN_AND_MEAN
-  #endif
-  #include <windows.h>
-  #include <fileapi.h>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <fileapi.h>
+#include <windows.h>
 #else
-  #include <fcntl.h>
-  #include <sys/mman.h>
-  #include <sys/stat.h>
-  #include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 namespace hft {
@@ -39,16 +39,16 @@ namespace hft {
 // head and tail are on separate cache lines to avoid false sharing
 // ─────────────────────────────────────────────────────────────────────────────
 struct ShmHeader {
-    uint64_t magic;           // 0xHFT42SHM for validation
-    uint64_t capacity;        // Number of elements (must be power of 2)
-    uint64_t element_size;    // Size of each element in bytes
-    uint64_t total_size;      // Total mapped size (header + data)
+    uint64_t magic;        // 0xHFT42SHM for validation
+    uint64_t capacity;     // Number of elements (must be power of 2)
+    uint64_t element_size; // Size of each element in bytes
+    uint64_t total_size;   // Total mapped size (header + data)
 
     // Producer writes head, consumer reads head — separate cache lines
-    alignas(64) std::atomic<uint64_t> head;  // Next write slot
-    alignas(64) std::atomic<uint64_t> tail;  // Next read slot
+    alignas(64) std::atomic<uint64_t> head; // Next write slot
+    alignas(64) std::atomic<uint64_t> tail; // Next read slot
 
-    uint8_t padding_[48];     // Fill to 192 bytes (3 cache lines)
+    uint8_t padding_[48]; // Fill to 192 bytes (3 cache lines)
 };
 
 static_assert(sizeof(ShmHeader) == 192, "ShmHeader must be 192 bytes (3 cache lines)");
@@ -58,21 +58,19 @@ constexpr uint64_t SHM_MAGIC = 0x484654343253484DULL; // "HFT42SHM"
 // ─────────────────────────────────────────────────────────────────────────────
 // SHM ring buffer — template on element type
 // ─────────────────────────────────────────────────────────────────────────────
-template <typename T>
-class ShmRingBuffer {
-public:
+template <typename T> class ShmRingBuffer {
+  public:
     // Create or open a shared memory ring buffer
     // name: e.g. "/hft_signals" (must start with / on POSIX)
     // capacity: must be power of 2
     // create: true to create (producer), false to open existing (consumer)
     ShmRingBuffer(const std::string& name, uint64_t capacity, bool create)
-        : name_(name), capacity_(capacity), owns_fd_(create)
-    {
+        : name_(name), capacity_(capacity), owns_fd_(create) {
         if (capacity == 0 || (capacity & (capacity - 1)) != 0) {
             throw std::runtime_error("SHM capacity must be power of 2");
         }
 
-        const uint64_t data_size = capacity * sizeof(T);
+        const uint64_t data_size  = capacity * sizeof(T);
         const uint64_t total_size = sizeof(ShmHeader) + data_size;
 
 #ifdef _WIN32
@@ -81,15 +79,13 @@ public:
         std::wstring wname(name_.begin(), name_.end());
 
         if (create) {
-            handle_ = CreateFileMappingW(
-                INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
-                0, static_cast<DWORD>(total_size), wname.c_str());
+            handle_ = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0,
+                                         static_cast<DWORD>(total_size), wname.c_str());
             if (!handle_) {
                 throw std::runtime_error("CreateFileMapping create failed: " + name_);
             }
         } else {
-            handle_ = OpenFileMappingW(
-                FILE_MAP_ALL_ACCESS, FALSE, wname.c_str());
+            handle_ = OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, wname.c_str());
             if (!handle_) {
                 throw std::runtime_error("OpenFileMapping failed: " + name_);
             }
@@ -117,8 +113,7 @@ public:
             }
         }
 
-        void* ptr = mmap(nullptr, total_size, PROT_READ | PROT_WRITE,
-                         MAP_SHARED, fd_, 0);
+        void* ptr = mmap(nullptr, total_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
         if (ptr == MAP_FAILED) {
             close(fd_);
             throw std::runtime_error("mmap failed for: " + name_);
@@ -126,13 +121,13 @@ public:
 #endif
 
         header_ = static_cast<ShmHeader*>(ptr);
-        data_ = reinterpret_cast<T*>(static_cast<char*>(ptr) + sizeof(ShmHeader));
+        data_   = reinterpret_cast<T*>(static_cast<char*>(ptr) + sizeof(ShmHeader));
 
         if (create) {
-            header_->magic = SHM_MAGIC;
-            header_->capacity = capacity;
+            header_->magic        = SHM_MAGIC;
+            header_->capacity     = capacity;
             header_->element_size = sizeof(T);
-            header_->total_size = total_size;
+            header_->total_size   = total_size;
             header_->head.store(0, std::memory_order_relaxed);
             header_->tail.store(0, std::memory_order_relaxed);
         } else {
@@ -177,10 +172,10 @@ public:
         }
     }
 
-    ShmRingBuffer(const ShmRingBuffer&) = delete;
+    ShmRingBuffer(const ShmRingBuffer&)            = delete;
     ShmRingBuffer& operator=(const ShmRingBuffer&) = delete;
-    ShmRingBuffer(ShmRingBuffer&&) = delete;
-    ShmRingBuffer& operator=(ShmRingBuffer&&) = delete;
+    ShmRingBuffer(ShmRingBuffer&&)                 = delete;
+    ShmRingBuffer& operator=(ShmRingBuffer&&)      = delete;
 
     // ─────────────────────────────────────────────────────────────────────────
     // Lock-free SPSC (Single-Producer Single-Consumer) ring buffer.
@@ -249,20 +244,18 @@ public:
         const uint64_t tail = header_->tail.load(std::memory_order_acquire);
 
         const uint64_t available = capacity_ - (head - tail);
-        const uint64_t to_push = count < available ? count : available;
+        const uint64_t to_push   = count < available ? count : available;
 
         const uint64_t start_slot = head & mask_;
-        const uint64_t first_chunk = (start_slot + to_push <= capacity_)
-            ? to_push
-            : capacity_ - start_slot;
+        const uint64_t first_chunk =
+            (start_slot + to_push <= capacity_) ? to_push : capacity_ - start_slot;
 
         // First contiguous chunk
         std::memcpy(&data_[start_slot], items, first_chunk * sizeof(T));
 
         // Wrapped chunk (if any)
         if (to_push > first_chunk) {
-            std::memcpy(&data_[0], items + first_chunk,
-                        (to_push - first_chunk) * sizeof(T));
+            std::memcpy(&data_[0], items + first_chunk, (to_push - first_chunk) * sizeof(T));
         }
 
         header_->head.store(head + to_push, std::memory_order_release);
@@ -276,20 +269,18 @@ public:
         const uint64_t head = header_->head.load(std::memory_order_acquire);
 
         const uint64_t available = head - tail;
-        const uint64_t to_pop = count < available ? count : available;
+        const uint64_t to_pop    = count < available ? count : available;
 
         const uint64_t start_slot = tail & mask_;
-        const uint64_t first_chunk = (start_slot + to_pop <= capacity_)
-            ? to_pop
-            : capacity_ - start_slot;
+        const uint64_t first_chunk =
+            (start_slot + to_pop <= capacity_) ? to_pop : capacity_ - start_slot;
 
         // First contiguous chunk
         std::memcpy(out, &data_[start_slot], first_chunk * sizeof(T));
 
         // Wrapped chunk (if any)
         if (to_pop > first_chunk) {
-            std::memcpy(out + first_chunk, &data_[0],
-                        (to_pop - first_chunk) * sizeof(T));
+            std::memcpy(out + first_chunk, &data_[0], (to_pop - first_chunk) * sizeof(T));
         }
 
         header_->tail.store(tail + to_pop, std::memory_order_release);
@@ -303,8 +294,8 @@ public:
         return head - tail;
     }
 
-    bool empty() const noexcept { return size() == 0; }
-    bool full() const noexcept { return size() >= capacity_; }
+    bool     empty() const noexcept { return size() == 0; }
+    bool     full() const noexcept { return size() >= capacity_; }
     uint64_t capacity() const noexcept { return capacity_; }
 
     // Unlink the shared memory segment (call after all processes are done)
@@ -317,28 +308,40 @@ public:
         }
     }
 
-private:
+  private:
     void cleanup_mapped(uint64_t total_size) {
 #ifdef _WIN32
-        if (header_) { UnmapViewOfFile(header_); header_ = nullptr; }
-        if (handle_) { CloseHandle(handle_); handle_ = nullptr; }
+        if (header_) {
+            UnmapViewOfFile(header_);
+            header_ = nullptr;
+        }
+        if (handle_) {
+            CloseHandle(handle_);
+            handle_ = nullptr;
+        }
 #else
-        if (header_) { munmap(header_, total_size); header_ = nullptr; }
-        if (fd_ >= 0) { close(fd_); fd_ = -1; }
+        if (header_) {
+            munmap(header_, total_size);
+            header_ = nullptr;
+        }
+        if (fd_ >= 0) {
+            close(fd_);
+            fd_ = -1;
+        }
 #endif
     }
 
     std::string name_;
-    uint64_t capacity_;
-    uint64_t mask_{0};
+    uint64_t    capacity_;
+    uint64_t    mask_{0};
 #ifdef _WIN32
     HANDLE handle_{nullptr};
 #else
     int fd_{-1};
 #endif
-    bool owns_fd_{false};
+    bool       owns_fd_{false};
     ShmHeader* header_{nullptr};
-    T* data_{nullptr};
+    T*         data_{nullptr};
 };
 
 } // namespace hft

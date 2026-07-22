@@ -1,0 +1,2401 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: trading.spec.js >> Trading System UI — Trading Flows >> can navigate through all tabs
+- Location: e2e\trading.spec.js:50:3
+
+# Error details
+
+```
+Test timeout of 30000ms exceeded.
+```
+
+```
+Error: locator.click: Test timeout of 30000ms exceeded.
+Call log:
+  - waiting for getByRole('tab', { name: /Account/i })
+
+```
+
+# Page snapshot
+
+```yaml
+- application "HFT Trading System Dashboard" [ref=e2]:
+  - generic [ref=e3]:
+    - alert [ref=e4]:
+      - img [ref=e5]
+      - generic [ref=e7]: DEMO MODE
+      - generic [ref=e8]: — Using simulated market data. No live connection required.
+      - button "Dismiss demo mode banner" [ref=e9] [cursor=pointer]:
+        - img [ref=e10]
+    - generic [ref=e14]:
+      - button [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+      - generic [ref=e19]:
+        - img [ref=e21]
+        - heading "Welcome to Trading Sim" [level=2] [ref=e23]
+      - paragraph [ref=e24]: A full-featured HFT trading simulator with 3 exchanges, 3 symbols, live AI signals, and real-time order execution. Includes 191+ analytic panels and 75+ mathematical models.
+      - generic [ref=e31]:
+        - button "Skip tutorial" [ref=e32] [cursor=pointer]
+        - button "Next" [ref=e34] [cursor=pointer]:
+          - text: Next
+          - img [ref=e35]
+    - region "Notifications" [ref=e37]:
+      - alert [ref=e38]:
+        - img [ref=e39]
+        - generic [ref=e41]: "News event: undefined undefinedx volatility spike (undefined)"
+        - button "Dismiss notification" [ref=e42] [cursor=pointer]:
+          - img [ref=e43]
+    - banner [ref=e48]:
+      - link "Skip to main content" [ref=e49] [cursor=pointer]:
+        - /url: "#main-content"
+      - generic [ref=e50]:
+        - generic "HFT Trading System" [ref=e51]:
+          - img [ref=e52]
+          - generic [ref=e54]: Trading Sim
+        - group "Exchange selector" [ref=e55]:
+          - button "Select binance exchange" [pressed] [ref=e56] [cursor=pointer]: binance
+          - button "Select bybit exchange" [ref=e57] [cursor=pointer]: bybit
+          - button "Select okx exchange" [ref=e58] [cursor=pointer]: okx
+        - group "Symbol selector" [ref=e60]:
+          - button "Select BTC/USDT" [pressed] [ref=e61] [cursor=pointer]: BTC
+          - button "Select ETH/USDT" [ref=e62] [cursor=pointer]: ETH
+          - button "Select SOL/USDT" [ref=e63] [cursor=pointer]: SOL
+        - group "Timeframe selector" [ref=e64]:
+          - button "5m" [pressed] [ref=e65] [cursor=pointer]
+          - button "15m" [ref=e66] [cursor=pointer]
+          - button "1h" [ref=e67] [cursor=pointer]
+          - button "4h" [ref=e68] [cursor=pointer]
+        - 'generic "Current price: $0.00, up 0.00 percent" [ref=e69]':
+          - generic [ref=e70]: $0.00
+          - generic [ref=e71]:
+            - img [ref=e72]
+            - text: +0.00%
+        - group "Simulation speed" [ref=e75]:
+          - button "Set speed to Pause" [ref=e76] [cursor=pointer]:
+            - img [ref=e77]
+            - text: Pause
+          - button "Set speed to 1x" [pressed] [ref=e80] [cursor=pointer]:
+            - img [ref=e81]
+            - text: 1x
+          - button "Set speed to 2x" [ref=e83] [cursor=pointer]:
+            - img [ref=e84]
+            - text: 2x
+          - button "Set speed to 5x" [ref=e87] [cursor=pointer]:
+            - img [ref=e88]
+            - text: 5x
+        - button "Stop trading" [pressed] [ref=e91] [cursor=pointer]:
+          - img [ref=e92]
+          - text: TRADING
+        - button "Turn sound off" [pressed] [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+        - button "Switch to light theme" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+        - status [ref=e106]:
+          - generic "Exchange connected" [ref=e107]:
+            - img [ref=e108]
+            - generic [ref=e112]: Exchange
+          - generic "AI Signals connected" [ref=e114]:
+            - img [ref=e115]
+            - generic [ref=e119]: AI Signals
+      - generic [ref=e121]:
+        - generic [ref=e123]: binance
+        - generic [ref=e125]: bybit
+        - generic [ref=e127]: okx
+    - main [ref=e128]:
+      - generic [ref=e129]:
+        - generic [ref=e130]:
+          - button "Detach to separate window" [ref=e131] [cursor=pointer]:
+            - img [ref=e132]
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - img [ref=e139]
+              - generic [ref=e143]: BTC/USDT
+              - generic [ref=e144]: · 0 candles
+              - button "Markers" [ref=e145] [cursor=pointer]:
+                - img [ref=e146]
+                - text: Markers
+              - generic [ref=e149]:
+                - img [ref=e150]
+                - button "EMA 9" [ref=e152] [cursor=pointer]:
+                  - img [ref=e153]
+                  - text: EMA 9
+                - button "EMA 21" [ref=e156] [cursor=pointer]:
+                  - img [ref=e157]
+                  - text: EMA 21
+                - button "EMA 50" [ref=e160] [cursor=pointer]:
+                  - img [ref=e161]
+                  - text: EMA 50
+                - button "Bollinger" [ref=e166] [cursor=pointer]:
+                  - img [ref=e167]
+                  - text: Bollinger
+                - button "VWAP" [ref=e172] [cursor=pointer]:
+                  - img [ref=e173]
+                  - text: VWAP
+                - button "RSI 14" [ref=e178] [cursor=pointer]:
+                  - img [ref=e179]
+                  - text: RSI 14
+            - table [ref=e186]:
+              - row [ref=e187]:
+                - cell
+                - cell [ref=e188]:
+                  - link "Charting by TradingView" [ref=e192] [cursor=pointer]:
+                    - /url: https://www.tradingview.com/?utm_medium=lwc-link&utm_campaign=lwc-chart&utm_source=localhost/
+                    - img [ref=e193]
+                - cell [ref=e197]
+              - row [ref=e201]:
+                - cell
+                - cell [ref=e202]
+                - cell [ref=e206]
+        - generic [ref=e210]:
+          - generic [ref=e211]:
+            - img [ref=e212]
+            - generic [ref=e216]: Place Order
+            - generic [ref=e217]: binance · BTC/USDT
+          - generic [ref=e218]:
+            - generic [ref=e219]:
+              - button "BUY / LONG" [ref=e220] [cursor=pointer]
+              - button "SELL / SHORT" [ref=e221] [cursor=pointer]
+            - generic [ref=e222]:
+              - button "MARKET" [ref=e223] [cursor=pointer]
+              - button "LIMIT" [ref=e224] [cursor=pointer]
+            - generic [ref=e225]:
+              - text: Quantity
+              - spinbutton [ref=e226]: "0.01"
+              - generic [ref=e227]:
+                - button "25%" [ref=e228] [cursor=pointer]
+                - button "50%" [ref=e229] [cursor=pointer]
+                - button "75%" [ref=e230] [cursor=pointer]
+                - button "100%" [ref=e231] [cursor=pointer]
+            - generic [ref=e232]:
+              - generic [ref=e233]: "Notional: $0.00"
+              - generic [ref=e234]:
+                - generic [ref=e235]: "Fee (0.04%):"
+                - generic [ref=e236]: $0.0000
+              - generic [ref=e237]:
+                - generic [ref=e238]: "Slippage (2bps):"
+                - generic [ref=e239]: $0.0000
+              - generic [ref=e240]:
+                - generic [ref=e241]: "Total cost:"
+                - generic [ref=e242]: $0.0000
+            - generic [ref=e243]:
+              - generic [ref=e244]:
+                - text: Stop Loss
+                - spinbutton [ref=e245]
+              - generic [ref=e246]:
+                - text: Take Profit
+                - spinbutton [ref=e247]
+            - generic [ref=e248]:
+              - generic [ref=e249]:
+                - text: "Leverage:"
+                - generic [ref=e250]: 10x
+              - slider [ref=e251]: "10"
+            - button "Show Risk Calculator" [ref=e252] [cursor=pointer]:
+              - img [ref=e253]
+              - text: Show Risk Calculator
+            - button "BUY 0.01 BTC/USDT" [ref=e255] [cursor=pointer]
+      - generic [ref=e256]:
+        - button "Collapse sidebar" [ref=e257] [cursor=pointer]:
+          - img [ref=e258]
+        - generic [ref=e262]:
+          - button "Detach to separate window" [ref=e263] [cursor=pointer]:
+            - img [ref=e264]
+          - generic [ref=e268]:
+            - generic [ref=e269]:
+              - img [ref=e270]
+              - generic [ref=e273]: Order Book
+              - button "Toggle depth heatmap" [ref=e274] [cursor=pointer]:
+                - img [ref=e275]
+              - generic [ref=e277]: 0.0 bps
+            - generic [ref=e278]:
+              - generic [ref=e279]:
+                - generic [ref=e280]:
+                  - img [ref=e281]
+                  - text: Depth Imbalance
+                - generic [ref=e283]: 0.0% BAL
+              - generic [ref=e285]:
+                - generic [ref=e286]: "0.00"
+                - generic [ref=e287]: "0.00"
+            - generic [ref=e288]:
+              - generic [ref=e289]: Cumulative Depth Profile
+              - generic "Cumulative depth profile chart" [ref=e290]
+            - generic [ref=e292]:
+              - generic [ref=e293]: Price
+              - generic [ref=e294]: Size
+              - generic [ref=e295]: Total
+            - generic [ref=e296]:
+              - generic [ref=e297]: $0.00
+              - generic [ref=e298]: spread $0.00
+        - generic [ref=e299]:
+          - generic [ref=e300]:
+            - generic [ref=e301]: 197/197 panels
+            - button "Panels" [ref=e302] [cursor=pointer]:
+              - img [ref=e303]
+              - text: Panels
+          - generic [ref=e306]:
+            - button "Order Flow 12" [expanded] [ref=e307] [cursor=pointer]:
+              - img [ref=e308]
+              - generic [ref=e310]: Order Flow
+              - generic [ref=e311]: "12"
+            - tabpanel [ref=e312]:
+              - generic [ref=e313]:
+                - generic [ref=e314]:
+                  - img [ref=e315]
+                  - text: Depth Chart
+                - generic [ref=e317]: No order book data
+              - generic [ref=e318]:
+                - generic [ref=e319]:
+                  - img [ref=e320]
+                  - text: Order Flow Imbalance
+                - generic [ref=e324]: No order book data
+              - generic [ref=e325]:
+                - generic [ref=e326]:
+                  - img [ref=e327]
+                  - text: Spoofing Detector
+                - generic [ref=e329]: No order book data
+              - generic [ref=e330]:
+                - generic [ref=e331]:
+                  - img [ref=e332]
+                  - text: Order Book Heatmap
+                - generic [ref=e334]: Collecting data...
+              - generic [ref=e335]:
+                - generic [ref=e336]:
+                  - img [ref=e337]
+                  - text: Liquidity Heatmap
+                - generic [ref=e340]: Collecting data...
+              - generic [ref=e341]:
+                - generic [ref=e342]:
+                  - img [ref=e343]
+                  - text: Execution Timeline
+                - generic [ref=e346]: No fills yet
+              - generic [ref=e347]:
+                - generic [ref=e348]:
+                  - img [ref=e349]
+                  - text: Trade Replay
+                - generic [ref=e351]: No events to replay
+              - generic [ref=e352]:
+                - generic [ref=e353]:
+                  - img [ref=e354]
+                  - text: Order Flow Tape
+                - generic [ref=e358]: Waiting for prints...
+              - generic [ref=e359]:
+                - generic [ref=e360]:
+                  - img [ref=e361]
+                  - text: Cumulative Volume Delta
+                - generic [ref=e363]: Not enough data
+              - generic [ref=e364]:
+                - generic [ref=e365]:
+                  - img [ref=e366]
+                  - text: Dark Order Flow
+                - generic [ref=e369]: No anomalous volume detected
+                - generic [ref=e370]: Detects volume spikes >2.5σ. Hidden = small body + large volume (dark pool activity).
+              - generic [ref=e371]:
+                - generic [ref=e372]:
+                  - img [ref=e373]
+                  - text: Order Flow Heatmap
+                - generic [ref=e375]: Need 10+ candles
+              - generic [ref=e376]:
+                - generic [ref=e377]:
+                  - img [ref=e378]
+                  - text: Depth Replay
+                - generic [ref=e380]: Need 10+ candles
+          - generic [ref=e381]:
+            - button "Technical Analysis 47" [expanded] [ref=e382] [cursor=pointer]:
+              - img [ref=e383]
+              - generic [ref=e385]: Technical Analysis
+              - generic [ref=e386]: "47"
+            - tabpanel [ref=e387]:
+              - generic [ref=e388]:
+                - generic [ref=e389]:
+                  - img [ref=e390]
+                  - text: Volume Profile
+                - generic [ref=e392]: Not enough data
+              - generic [ref=e393]:
+                - generic [ref=e394]:
+                  - img [ref=e395]
+                  - text: Market Profile (TPO)
+                - generic [ref=e397]: Not enough data
+              - generic [ref=e398]:
+                - generic [ref=e399]:
+                  - img [ref=e400]
+                  - text: Market Regime
+                - generic [ref=e402]: Not enough data
+              - generic [ref=e403]:
+                - generic [ref=e404]:
+                  - img [ref=e405]
+                  - text: Fibonacci Levels
+                  - button [ref=e409] [cursor=pointer]:
+                    - img [ref=e410]
+                - generic [ref=e413]: Not enough data
+              - generic [ref=e414]:
+                - generic [ref=e415]:
+                  - img [ref=e416]
+                  - text: Fair Value Gaps
+                - generic [ref=e418]: Not enough data
+              - generic [ref=e419]:
+                - generic [ref=e420]:
+                  - img [ref=e421]
+                  - text: Pattern Scanner
+                  - generic [ref=e426]: 0 found
+                - generic [ref=e427]: No patterns detected
+                - generic [ref=e428]: "Scans last 3 candles for: Doji, Hammer, Shooting Star, Engulfing, Morning/Evening Star, Marubozu, 3 Soldiers/Crows. ★ = strength."
+              - generic [ref=e429]:
+                - generic [ref=e430]:
+                  - img [ref=e431]
+                  - text: Candle Patterns
+                - generic [ref=e436]: Not enough data
+              - generic [ref=e437]:
+                - generic [ref=e438]:
+                  - img [ref=e439]
+                  - text: Support / Resistance
+                - generic [ref=e443]: Not enough data
+              - generic [ref=e444]:
+                - generic [ref=e445]:
+                  - generic [ref=e446]:
+                    - img [ref=e447]
+                    - text: Custom Indicators
+                  - button "Add" [ref=e450] [cursor=pointer]:
+                    - img [ref=e451]
+                    - text: Add
+                - generic [ref=e452]: No indicators added
+              - generic [ref=e453]:
+                - generic [ref=e454]:
+                  - img [ref=e455]
+                  - text: Custom Indicator Formula
+                - textbox "e.g. EMA(closes, 9) - EMA(closes, 21)" [ref=e458]: EMA(closes, 9) - EMA(closes, 21)
+                - generic [ref=e459]:
+                  - generic [ref=e460]: "Examples (click to use):"
+                  - generic [ref=e461]:
+                    - button "EMA(closes, 9) - EMA(clos..." [ref=e462] [cursor=pointer]
+                    - button "RSI(closes, 14) - 50" [ref=e463] [cursor=pointer]
+                    - button "MACD(closes, 12, 26, 9)" [ref=e464] [cursor=pointer]
+                    - button "closes - SMA(closes, 50)" [ref=e465] [cursor=pointer]
+                    - button "BB(closes, 20, 2) - close..." [ref=e466] [cursor=pointer]
+                    - button "ATR(highs, lows, closes, ..." [ref=e467] [cursor=pointer]
+                - generic [ref=e468]:
+                  - generic [ref=e469]:
+                    - img [ref=e470]
+                    - text: "Functions:"
+                  - generic [ref=e473]:
+                    - generic [ref=e474]:
+                      - text: SMA
+                      - generic [ref=e475]: (closes, period)
+                    - generic [ref=e476]:
+                      - text: EMA
+                      - generic [ref=e477]: (closes, period)
+                    - generic [ref=e478]:
+                      - text: RSI
+                      - generic [ref=e479]: (closes, period)
+                    - generic [ref=e480]:
+                      - text: ATR
+                      - generic [ref=e481]: (highs, lows, closes, period)
+                    - generic [ref=e482]:
+                      - text: BB
+                      - generic [ref=e483]: (closes, period, stdDev)
+                    - generic [ref=e484]:
+                      - text: MACD
+                      - generic [ref=e485]: (closes, fast, slow, signal)
+                    - generic [ref=e486]: MAX/MIN(arr, period)
+                    - generic [ref=e487]: CROSS(a, b)
+                - generic [ref=e488]: "Custom parser: supports +, -, *, /, parentheses, variables (closes, highs, lows, volumes, open) and indicator functions."
+              - generic [ref=e489]:
+                - generic [ref=e490]:
+                  - img [ref=e491]
+                  - text: OBV Indicator
+                - generic [ref=e493]: Not enough data
+              - generic [ref=e494]:
+                - generic [ref=e495]:
+                  - img [ref=e496]
+                  - text: MFI Indicator
+                - generic [ref=e499]: Not enough data
+              - generic [ref=e500]:
+                - generic [ref=e501]:
+                  - img [ref=e502]
+                  - text: Williams %R
+                - generic [ref=e505]: Not enough data
+              - generic [ref=e506]:
+                - generic [ref=e507]:
+                  - img [ref=e508]
+                  - text: Ichimoku Cloud
+                - generic [ref=e510]: Need 52+ candles
+              - generic [ref=e511]:
+                - generic [ref=e512]:
+                  - img [ref=e513]
+                  - text: Renko Chart
+                - generic [ref=e515]: Not enough data
+              - generic [ref=e516]:
+                - generic [ref=e517]:
+                  - img [ref=e518]
+                  - text: Stochastic
+                - generic [ref=e524]: Not enough data
+              - generic [ref=e525]:
+                - generic [ref=e526]:
+                  - img [ref=e527]
+                  - text: ATR
+                - generic [ref=e529]: Not enough data
+              - generic [ref=e530]:
+                - generic [ref=e531]:
+                  - img [ref=e532]
+                  - text: Parabolic SAR
+                - generic [ref=e534]: Not enough data
+              - generic [ref=e535]:
+                - generic [ref=e536]:
+                  - img [ref=e537]
+                  - text: ADX / DI
+                - generic [ref=e540]: Need 28+ candles
+              - generic [ref=e541]:
+                - generic [ref=e542]:
+                  - img [ref=e543]
+                  - text: CCI
+                - generic [ref=e549]: Need 20+ candles
+              - generic [ref=e550]:
+                - generic [ref=e551]:
+                  - img [ref=e552]
+                  - text: Awesome Oscillator
+                - generic [ref=e556]: Need 34+ candles
+              - generic [ref=e557]:
+                - generic [ref=e558]:
+                  - img [ref=e559]
+                  - text: VWAP MACD
+                - generic [ref=e561]: Need 35+ candles
+              - generic [ref=e562]:
+                - generic [ref=e563]:
+                  - img [ref=e564]
+                  - text: Heikin-Ashi
+                - generic [ref=e566]: Not enough data
+              - generic [ref=e567]:
+                - generic [ref=e568]:
+                  - img [ref=e569]
+                  - text: Multi-Timeframe
+                - generic [ref=e573]: Not enough data
+              - generic [ref=e574]:
+                - generic [ref=e575]:
+                  - img [ref=e576]
+                  - text: Point & Figure
+                - generic [ref=e578]: Not enough data
+              - generic [ref=e579]:
+                - generic [ref=e580]:
+                  - img [ref=e581]
+                  - text: Kagi Chart
+                - generic [ref=e585]: Not enough data
+              - generic [ref=e586]:
+                - generic [ref=e587]:
+                  - img [ref=e588]
+                  - text: Three-Line Break
+                - generic [ref=e592]: Not enough data
+              - generic [ref=e593]:
+                - generic [ref=e594]:
+                  - img [ref=e595]
+                  - text: Order Blocks
+                - generic [ref=e599]: No blocks detected
+              - generic [ref=e600]:
+                - generic [ref=e601]:
+                  - img [ref=e602]
+                  - text: Session Volume
+                - generic [ref=e605]: Not enough data
+              - generic [ref=e606]:
+                - generic [ref=e607]:
+                  - img [ref=e608]
+                  - text: Volatility Regime
+                - generic [ref=e610]: Need 30+ candles
+              - generic [ref=e611]:
+                - generic [ref=e612]:
+                  - img [ref=e613]
+                  - text: Tick Chart
+                - generic [ref=e616]: Not enough data
+              - generic [ref=e617]:
+                - generic [ref=e618]:
+                  - img [ref=e619]
+                  - text: Volume Clock
+                - generic [ref=e621]: Not enough volume data
+              - generic [ref=e622]:
+                - generic [ref=e623]:
+                  - img [ref=e624]
+                  - text: Liquidation Map
+                - generic [ref=e626]: Not enough data
+              - generic [ref=e627]:
+                - generic [ref=e628]:
+                  - img [ref=e629]
+                  - text: Funding Rate
+                - generic [ref=e633]: No funding data
+              - generic [ref=e634]:
+                - generic [ref=e635]:
+                  - img [ref=e636]
+                  - text: Open Interest
+                - generic [ref=e639]: Not enough data
+              - generic [ref=e640]:
+                - generic [ref=e641]:
+                  - img [ref=e642]
+                  - text: Cumulative Tick
+                - generic [ref=e644]: Not enough data
+              - generic [ref=e645]:
+                - generic [ref=e646]:
+                  - img [ref=e647]
+                  - text: Inter-Exchange Spread
+                - generic [ref=e650]: Need 2+ exchanges
+              - generic [ref=e651]:
+                - generic [ref=e652]:
+                  - img [ref=e653]
+                  - text: Footprint Chart
+                - generic [ref=e655]: Not enough data
+              - generic [ref=e656]:
+                - generic [ref=e657]:
+                  - img [ref=e658]
+                  - text: Regime Switching
+                - generic [ref=e664]: Need 30+ candles
+              - generic [ref=e665]:
+                - generic [ref=e666]:
+                  - img [ref=e667]
+                  - text: Smart Money Concepts
+                - generic [ref=e677]: Need 15+ candles
+              - generic [ref=e678]:
+                - generic [ref=e679]:
+                  - img [ref=e680]
+                  - text: Liquidity Grabs
+                - generic [ref=e682]: Not enough data
+              - generic [ref=e683]:
+                - generic [ref=e684]:
+                  - img [ref=e685]
+                  - text: Custom Indicator Plugin
+                  - generic [ref=e686]: BTC/USDT
+                - generic [ref=e687]:
+                  - button "EMA Cross" [ref=e688] [cursor=pointer]
+                  - button "RSI Divergence" [ref=e689] [cursor=pointer]
+                  - button "Volume Z-Score" [ref=e690] [cursor=pointer]
+                  - button "Price Momentum" [ref=e691] [cursor=pointer]
+                  - button "Volatility Ratio" [ref=e692] [cursor=pointer]
+                - generic [ref=e693]:
+                  - generic [ref=e694]:
+                    - textbox "Indicator name" [ref=e695]: My Indicator
+                    - textbox [ref=e696] [cursor=pointer]: "#a855f7"
+                    - generic [ref=e697]:
+                      - checkbox "Overlay" [checked] [ref=e698]
+                      - text: Overlay
+                  - generic [ref=e699]:
+                    - img [ref=e700]
+                    - 'textbox "Formula: e.g. ema(close, 9) - ema(close, 21)" [ref=e703]': ema(close, 9) - ema(close, 21)
+                - group [ref=e704]:
+                  - generic "Available functions & variables" [ref=e705] [cursor=pointer]
+                - generic [ref=e706]:
+                  - button "Run" [ref=e707] [cursor=pointer]:
+                    - img [ref=e708]
+                    - text: Run
+                  - button "Save" [ref=e710] [cursor=pointer]:
+                    - img [ref=e711]
+                    - text: Save
+              - generic [ref=e715]:
+                - generic [ref=e716]:
+                  - img [ref=e717]
+                  - text: Volume Anomaly
+                - generic [ref=e719]: Need 20+ candles
+              - generic [ref=e720]:
+                - generic [ref=e721]:
+                  - img [ref=e722]
+                  - text: MTF Confluence
+                - generic [ref=e726]: Need 30+ candles
+              - generic [ref=e727]:
+                - generic [ref=e728]:
+                  - img [ref=e729]
+                  - text: Session VWAP
+                - generic [ref=e732]: Not enough data
+              - generic [ref=e733]:
+                - generic [ref=e734]:
+                  - img [ref=e735]
+                  - text: Price Action Score
+                - generic [ref=e739]: Need 10+ candles
+              - generic [ref=e740]: Need at least 101 candles for BTC/USDT on binance
+          - generic [ref=e741]:
+            - button "Risk & Analytics 94" [expanded] [ref=e742] [cursor=pointer]:
+              - img [ref=e743]
+              - generic [ref=e745]: Risk & Analytics
+              - generic [ref=e746]: "94"
+            - tabpanel [ref=e747]:
+              - generic [ref=e748]:
+                - generic [ref=e749]:
+                  - img [ref=e750]
+                  - text: Session Stats
+                - generic [ref=e753]:
+                  - generic [ref=e754]:
+                    - img [ref=e755]
+                    - generic [ref=e758]:
+                      - generic [ref=e759]: Duration
+                      - generic [ref=e760]: 26s
+                  - generic [ref=e761]:
+                    - img [ref=e762]
+                    - generic [ref=e765]:
+                      - generic [ref=e766]: Trades
+                      - generic [ref=e767]: "0"
+                  - generic [ref=e768]:
+                    - img [ref=e769]
+                    - generic [ref=e772]:
+                      - generic [ref=e773]: Session PnL
+                      - generic [ref=e774]: +$0.00
+                  - generic [ref=e775]:
+                    - img [ref=e776]
+                    - generic [ref=e779]:
+                      - generic [ref=e780]: Win Rate
+                      - generic [ref=e781]: 0.0% (0W/0L)
+                - generic [ref=e782]:
+                  - generic [ref=e783]: "Fills received: 50"
+                  - button "Reset" [ref=e784] [cursor=pointer]
+              - generic [ref=e785]:
+                - generic [ref=e786]:
+                  - img [ref=e787]
+                  - text: PnL Heatmap — Jul 2026
+                - generic [ref=e789]:
+                  - generic [ref=e790]: Mon
+                  - generic [ref=e791]: Tue
+                  - generic [ref=e792]: Wed
+                  - generic [ref=e793]: Thu
+                  - generic [ref=e794]: Fri
+                  - generic [ref=e795]: Sat
+                  - generic [ref=e796]: Sun
+                - generic [ref=e797]:
+                  - generic [ref=e798]:
+                    - 'generic "1 Jul: +$0.00" [ref=e801]':
+                      - generic [ref=e802]: "1"
+                    - 'generic "2 Jul: +$0.00" [ref=e803]':
+                      - generic [ref=e804]: "2"
+                    - 'generic "3 Jul: +$0.00" [ref=e805]':
+                      - generic [ref=e806]: "3"
+                    - 'generic "4 Jul: +$0.00" [ref=e807]':
+                      - generic [ref=e808]: "4"
+                    - 'generic "5 Jul: +$0.00" [ref=e809]':
+                      - generic [ref=e810]: "5"
+                  - generic [ref=e811]:
+                    - 'generic "6 Jul: +$0.00" [ref=e812]':
+                      - generic [ref=e813]: "6"
+                    - 'generic "7 Jul: +$0.00" [ref=e814]':
+                      - generic [ref=e815]: "7"
+                    - 'generic "8 Jul: +$0.00" [ref=e816]':
+                      - generic [ref=e817]: "8"
+                    - 'generic "9 Jul: +$0.00" [ref=e818]':
+                      - generic [ref=e819]: "9"
+                    - 'generic "10 Jul: +$0.00" [ref=e820]':
+                      - generic [ref=e821]: "10"
+                    - 'generic "11 Jul: +$0.00" [ref=e822]':
+                      - generic [ref=e823]: "11"
+                    - 'generic "12 Jul: +$0.00" [ref=e824]':
+                      - generic [ref=e825]: "12"
+                  - generic [ref=e826]:
+                    - 'generic "13 Jul: +$0.00" [ref=e827]':
+                      - generic [ref=e828]: "13"
+                    - 'generic "14 Jul: +$0.00" [ref=e829]':
+                      - generic [ref=e830]: "14"
+                    - 'generic "15 Jul: +$0.00" [ref=e831]':
+                      - generic [ref=e832]: "15"
+                    - 'generic "16 Jul: +$0.00" [ref=e833]':
+                      - generic [ref=e834]: "16"
+                    - 'generic "17 Jul: +$0.00" [ref=e835]':
+                      - generic [ref=e836]: "17"
+                    - 'generic "18 Jul: +$0.00" [ref=e837]':
+                      - generic [ref=e838]: "18"
+                    - 'generic "19 Jul: +$0.00" [ref=e839]':
+                      - generic [ref=e840]: "19"
+                  - generic [ref=e841]:
+                    - 'generic "20 Jul: +$0.00" [ref=e842]':
+                      - generic [ref=e843]: "20"
+                    - 'generic "21 Jul: +$0.00" [ref=e844]':
+                      - generic [ref=e845]: "21"
+                    - 'generic "22 Jul: +$0.00" [ref=e846]':
+                      - generic [ref=e847]: "22"
+                    - 'generic "23 Jul: +$0.00" [ref=e848]':
+                      - generic [ref=e849]: "23"
+                    - 'generic "24 Jul: +$0.00" [ref=e850]':
+                      - generic [ref=e851]: "24"
+                    - 'generic "25 Jul: +$0.00" [ref=e852]':
+                      - generic [ref=e853]: "25"
+                    - 'generic "26 Jul: +$0.00" [ref=e854]':
+                      - generic [ref=e855]: "26"
+                  - generic [ref=e856]:
+                    - 'generic "27 Jul: +$0.00" [ref=e857]':
+                      - generic [ref=e858]: "27"
+                    - 'generic "28 Jul: +$0.00" [ref=e859]':
+                      - generic [ref=e860]: "28"
+                    - 'generic "29 Jul: +$0.00" [ref=e861]':
+                      - generic [ref=e862]: "29"
+                    - 'generic "30 Jul: +$0.00" [ref=e863]':
+                      - generic [ref=e864]: "30"
+                    - 'generic "31 Jul: +$0.00" [ref=e865]':
+                      - generic [ref=e866]: "31"
+                - generic [ref=e869]:
+                  - generic [ref=e870]:
+                    - generic [ref=e871]: Month PnL
+                    - generic [ref=e872]: +$0.00
+                  - generic [ref=e873]:
+                    - generic [ref=e874]: Best Day
+                    - generic [ref=e875]: —
+                  - generic [ref=e876]:
+                    - generic [ref=e877]: Worst Day
+                    - generic [ref=e878]: —
+              - generic [ref=e879]:
+                - generic [ref=e880]:
+                  - img [ref=e881]
+                  - text: Performance by Hour (UTC)
+                - generic [ref=e884]: No trade history yet
+              - generic [ref=e885]:
+                - generic [ref=e886]:
+                  - img [ref=e887]
+                  - text: Trade Clustering
+                - generic [ref=e889]:
+                  - img [ref=e890]
+                  - generic [ref=e892]:
+                    - generic [ref=e893]: Overtrading Detected
+                    - generic [ref=e894]: 50 trades in 5 min window
+                - generic [ref=e895]:
+                  - generic [ref=e896]:
+                    - generic [ref=e897]: Total Fills
+                    - generic [ref=e898]: "50"
+                  - generic [ref=e899]:
+                    - generic [ref=e900]: Avg Interval
+                    - generic [ref=e901]: 1s
+                  - generic [ref=e902]:
+                    - generic [ref=e903]: Max 5min
+                    - generic [ref=e904]: "50"
+                - generic [ref=e905]:
+                  - generic [ref=e906]: Trade Clusters (≥3 rapid fills)
+                  - generic [ref=e908]:
+                    - generic [ref=e909]: 50 fills
+                    - generic [ref=e910]: 25.996999979019165s span
+                    - generic [ref=e911]: SELL
+              - generic [ref=e912]:
+                - generic [ref=e913]:
+                  - img [ref=e914]
+                  - text: Correlation Matrix
+                - table [ref=e916]:
+                  - rowgroup [ref=e917]:
+                    - row "BTC ETH SOL" [ref=e918]:
+                      - columnheader [ref=e919]
+                      - columnheader "BTC" [ref=e920]
+                      - columnheader "ETH" [ref=e921]
+                      - columnheader "SOL" [ref=e922]
+                  - rowgroup [ref=e923]:
+                    - row "BTC 1.00 0.00 0.00" [ref=e924]:
+                      - cell "BTC" [ref=e925]
+                      - cell "1.00" [ref=e926]:
+                        - 'generic "BTC vs BTC: 1.000" [ref=e927]': "1.00"
+                      - cell "0.00" [ref=e928]:
+                        - 'generic "BTC vs ETH: 0.000" [ref=e929]': "0.00"
+                      - cell "0.00" [ref=e930]:
+                        - 'generic "BTC vs SOL: 0.000" [ref=e931]': "0.00"
+                    - row "ETH 0.00 1.00 0.00" [ref=e932]:
+                      - cell "ETH" [ref=e933]
+                      - cell "0.00" [ref=e934]:
+                        - 'generic "ETH vs BTC: 0.000" [ref=e935]': "0.00"
+                      - cell "1.00" [ref=e936]:
+                        - 'generic "ETH vs ETH: 1.000" [ref=e937]': "1.00"
+                      - cell "0.00" [ref=e938]:
+                        - 'generic "ETH vs SOL: 0.000" [ref=e939]': "0.00"
+                    - row "SOL 0.00 0.00 1.00" [ref=e940]:
+                      - cell "SOL" [ref=e941]
+                      - cell "0.00" [ref=e942]:
+                        - 'generic "SOL vs BTC: 0.000" [ref=e943]': "0.00"
+                      - cell "0.00" [ref=e944]:
+                        - 'generic "SOL vs ETH: 0.000" [ref=e945]': "0.00"
+                      - cell "1.00" [ref=e946]:
+                        - 'generic "SOL vs SOL: 1.000" [ref=e947]': "1.00"
+                - generic [ref=e948]:
+                  - generic [ref=e949]: 1m returns, last 100 candles
+                  - generic [ref=e950]: ■ pos■ neg
+              - generic [ref=e951]:
+                - generic [ref=e952]:
+                  - img [ref=e953]
+                  - text: Position Correlation Error
+                - generic [ref=e955]: acc.positions.filter is not a function
+                - button "Retry" [ref=e957] [cursor=pointer]:
+                  - img [ref=e958]
+                  - text: Retry
+              - generic [ref=e961]:
+                - generic [ref=e962]:
+                  - img [ref=e963]
+                  - text: Volatility Surface
+                - generic [ref=e966]: Not enough data
+              - generic [ref=e967]:
+                - generic [ref=e968]:
+                  - img [ref=e969]
+                  - text: Drawdown Analysis
+                - generic [ref=e972]:
+                  - generic [ref=e973]:
+                    - generic [ref=e974]: Max Drawdown
+                    - generic [ref=e975]: $0.000.0%
+                  - generic [ref=e976]:
+                    - generic [ref=e977]: Current DD
+                    - generic [ref=e978]: 0.00%
+                  - generic [ref=e979]:
+                    - generic [ref=e980]: Max DD Duration
+                    - generic [ref=e981]: 0 fills
+                  - generic [ref=e982]:
+                    - generic [ref=e983]: Recoveries
+                    - generic [ref=e984]: "0"
+                  - generic [ref=e985]:
+                    - generic [ref=e986]: Underwater %
+                    - generic [ref=e987]: 0.0%
+                  - generic [ref=e988]:
+                    - generic [ref=e989]: Peak Equity
+                    - generic [ref=e990]: $10,000.00
+                - generic [ref=e992]:
+                  - generic [ref=e993]: Current vs Peak
+                  - generic [ref=e994]: At peak
+              - generic [ref=e997]:
+                - generic [ref=e998]:
+                  - img [ref=e999]
+                  - text: Risk-Adjusted Returns
+                - generic [ref=e1002]:
+                  - generic [ref=e1003]:
+                    - generic [ref=e1004]:
+                      - generic [ref=e1005]:
+                        - img [ref=e1006]
+                        - generic [ref=e1008]: Sharpe
+                      - generic [ref=e1009]: "0.000"
+                    - generic [ref=e1010]: Return / total volatility
+                  - generic [ref=e1012]:
+                    - generic [ref=e1013]:
+                      - generic [ref=e1014]:
+                        - img [ref=e1015]
+                        - generic [ref=e1018]: Sortino
+                      - generic [ref=e1019]: "0.000"
+                    - generic [ref=e1020]: Return / downside volatility
+                  - generic [ref=e1022]:
+                    - generic [ref=e1023]:
+                      - generic [ref=e1024]:
+                        - img [ref=e1025]
+                        - generic [ref=e1028]: Calmar
+                      - generic [ref=e1029]: "0.000"
+                    - generic [ref=e1030]: Annual return / max drawdown
+                - generic [ref=e1032]:
+                  - generic [ref=e1033]:
+                    - generic [ref=e1034]: Max DD
+                    - generic [ref=e1035]: 0.00%
+                  - generic [ref=e1036]:
+                    - generic [ref=e1037]: Ann. Return
+                    - generic [ref=e1038]: 0.0%
+                  - generic [ref=e1039]:
+                    - generic [ref=e1040]: Profit Factor
+                    - generic [ref=e1041]: "0.00"
+                  - generic [ref=e1042]:
+                    - generic [ref=e1043]: Expectancy
+                    - generic [ref=e1044]: $0.00
+                  - generic [ref=e1045]:
+                    - generic [ref=e1046]: Gross Profit
+                    - generic [ref=e1047]: $0
+                  - generic [ref=e1048]:
+                    - generic [ref=e1049]: Gross Loss
+                    - generic [ref=e1050]: $0
+              - generic [ref=e1051]:
+                - generic [ref=e1052]:
+                  - img [ref=e1053]
+                  - text: Risk Dashboard
+                - generic [ref=e1055]: Need 10+ trades for risk metrics
+              - generic [ref=e1056]:
+                - generic [ref=e1057]:
+                  - img [ref=e1058]
+                  - text: PnL Attribution Error
+                - generic [ref=e1060]: object is not iterable (cannot read property Symbol(Symbol.iterator))
+                - button "Retry" [ref=e1062] [cursor=pointer]:
+                  - img [ref=e1063]
+                  - text: Retry
+              - generic [ref=e1066]:
+                - generic [ref=e1067]:
+                  - img [ref=e1068]
+                  - text: P&L Attribution Chart
+                - generic [ref=e1071]: Need 3+ closed trades
+              - generic [ref=e1072]:
+                - generic [ref=e1073]:
+                  - img [ref=e1074]
+                  - text: Monte Carlo Simulation
+                - generic [ref=e1076]: Need at least 5 trades (0 available)
+              - generic [ref=e1077]:
+                - generic [ref=e1078]:
+                  - img [ref=e1079]
+                  - text: Walk-Forward Analysis
+                - generic [ref=e1084]: Need at least 10 trades (0 available)
+              - generic [ref=e1085]:
+                - generic [ref=e1086]:
+                  - img [ref=e1087]
+                  - text: Sentiment Indicator
+                - generic [ref=e1090]: Not enough data
+              - generic [ref=e1091]:
+                - generic [ref=e1092]:
+                  - img [ref=e1093]
+                  - text: Fear & Greed
+                - generic [ref=e1103]: Not enough data
+              - generic [ref=e1104]:
+                - generic [ref=e1105]:
+                  - img [ref=e1106]
+                  - text: Delta Divergence
+                - generic [ref=e1111]: Not enough data
+              - generic [ref=e1112]:
+                - generic [ref=e1113]:
+                  - img [ref=e1114]
+                  - text: Risk of Ruin Calculator
+                - generic [ref=e1120]:
+                  - generic [ref=e1121]:
+                    - text: Win %
+                    - spinbutton [ref=e1122]: "45"
+                  - generic [ref=e1123]:
+                    - text: Risk %
+                    - spinbutton [ref=e1124]: "2"
+                  - generic [ref=e1125]:
+                    - text: R:R
+                    - spinbutton [ref=e1126]: "2"
+                - generic [ref=e1127]:
+                  - generic [ref=e1128]: Risk of Ruin
+                  - generic [ref=e1129]: 0.00%
+                  - generic [ref=e1130]: "MC: 0.0%"
+                - generic [ref=e1131]:
+                  - generic [ref=e1132]:
+                    - text: Edge
+                    - generic [ref=e1133]: +35.00%
+                  - generic [ref=e1134]:
+                    - text: Profit Factor
+                    - generic [ref=e1135]: "1.64"
+                  - generic [ref=e1136]:
+                    - text: BE Win Rate
+                    - generic [ref=e1137]: 33.3%
+                  - generic [ref=e1138]:
+                    - text: Current WR
+                    - generic [ref=e1139]: 45.0%
+                - generic [ref=e1140]:
+                  - generic [ref=e1141]: "Monte Carlo Drawdown (100 trades):"
+                  - generic [ref=e1142]:
+                    - generic [ref=e1143]:
+                      - text: Avg Max DD
+                      - generic [ref=e1144]: 15.7%
+                    - generic [ref=e1145]:
+                      - text: Median
+                      - generic [ref=e1146]: 15.0%
+                    - generic [ref=e1147]:
+                      - text: Worst
+                      - generic [ref=e1148]: 29.2%
+                - generic [ref=e1149]:
+                  - generic [ref=e1150]: "Sample equity curves:"
+                  - img [ref=e1151]
+                  - generic [ref=e1157]:
+                    - generic [ref=e1160]: Survived
+                    - generic [ref=e1163]: Ruined
+                - generic [ref=e1164]: Risk of Ruin = probability of losing 50% of account. Keep <1%. Lower risk% or improve edge.
+              - generic [ref=e1165]:
+                - generic [ref=e1166]:
+                  - img [ref=e1167]
+                  - text: Expected Value Calculator
+                - generic [ref=e1169]:
+                  - generic [ref=e1170]:
+                    - text: Win %
+                    - spinbutton [ref=e1171]
+                  - generic [ref=e1172]:
+                    - text: R:R
+                    - spinbutton [ref=e1173]
+                  - generic [ref=e1174]:
+                    - text: Risk %
+                    - spinbutton [ref=e1175]: "1"
+                - generic [ref=e1176]:
+                  - generic [ref=e1177]: EV per Trade
+                  - generic [ref=e1178]: +0.350%
+                  - generic [ref=e1179]: ≈ $35.00 per $10K
+                - generic [ref=e1180]:
+                  - generic [ref=e1181]:
+                    - text: Profit Factor
+                    - generic [ref=e1182]: "1.64"
+                  - generic [ref=e1183]:
+                    - text: BE Win Rate
+                    - generic [ref=e1184]: 33.3%
+                  - generic [ref=e1185]:
+                    - text: Kelly %
+                    - generic [ref=e1186]: 17.5%
+                  - generic [ref=e1187]:
+                    - text: P(5 loss)
+                    - generic [ref=e1188]: 5.03%
+                - generic [ref=e1189]:
+                  - generic [ref=e1190]: "Per Strategy EV:"
+                  - generic [ref=e1191]:
+                    - generic [ref=e1192]:
+                      - generic [ref=e1193]: market_making
+                      - generic [ref=e1194]: 0t
+                      - generic [ref=e1195]: 0%
+                      - generic [ref=e1196]: +0.00%
+                    - generic [ref=e1197]:
+                      - generic [ref=e1198]: trend_following
+                      - generic [ref=e1199]: 0t
+                      - generic [ref=e1200]: 0%
+                      - generic [ref=e1201]: +0.00%
+                    - generic [ref=e1202]:
+                      - generic [ref=e1203]: stat_arb
+                      - generic [ref=e1204]: 0t
+                      - generic [ref=e1205]: 0%
+                      - generic [ref=e1206]: +0.00%
+                    - generic [ref=e1207]:
+                      - generic [ref=e1208]: sentiment
+                      - generic [ref=e1209]: 0t
+                      - generic [ref=e1210]: 0%
+                      - generic [ref=e1211]: +0.00%
+                    - generic [ref=e1212]:
+                      - generic [ref=e1213]: mean_reversion
+                      - generic [ref=e1214]: 0t
+                      - generic [ref=e1215]: 0%
+                      - generic [ref=e1216]: +0.00%
+                - generic [ref=e1217]: EV = (WR × R:R - LR) × risk%. Positive EV = profitable system. Kelly = optimal bet size.
+              - generic [ref=e1218]:
+                - generic [ref=e1219]:
+                  - img [ref=e1220]
+                  - text: Order Flow Absorption
+                - generic [ref=e1222]: Not enough data
+              - generic [ref=e1223]:
+                - generic [ref=e1224]:
+                  - img [ref=e1225]
+                  - text: Composite Dashboard
+                - generic [ref=e1230]: Need 20+ candles
+              - generic [ref=e1231]:
+                - generic [ref=e1232]:
+                  - img [ref=e1233]
+                  - text: Confidence Scorer
+                - generic [ref=e1236]: Need 15+ candles
+              - generic [ref=e1237]:
+                - generic [ref=e1238]:
+                  - img [ref=e1239]
+                  - text: Regime Strategy
+                - generic [ref=e1249]: Need 20+ candles
+              - generic [ref=e1250]:
+                - generic [ref=e1251]:
+                  - img [ref=e1252]
+                  - text: Cross-Market
+                - generic [ref=e1255]: Need 2+ symbols
+              - generic [ref=e1256]:
+                - generic [ref=e1257]:
+                  - img [ref=e1258]
+                  - text: Performance Attribution
+                - generic [ref=e1260]: No trade history
+              - generic [ref=e1261]:
+                - generic [ref=e1262]:
+                  - img [ref=e1263]
+                  - text: Tick Speed
+                - generic [ref=e1266]: Need 15+ candles
+              - generic [ref=e1267]:
+                - generic [ref=e1268]:
+                  - img [ref=e1269]
+                  - text: Put/Call Ratio
+                - generic [ref=e1273]: Need 5+ fills
+              - generic [ref=e1274]:
+                - generic [ref=e1275]:
+                  - img [ref=e1276]
+                  - text: Signal Matrix
+                - generic [ref=e1278]: Need symbols with 20+ candles
+              - generic [ref=e1279]:
+                - generic [ref=e1280]:
+                  - img [ref=e1281]
+                  - text: Slippage Simulator
+                - generic [ref=e1283]: Need 10+ candles and valid order size
+              - generic [ref=e1284]:
+                - generic [ref=e1285]:
+                  - img [ref=e1286]
+                  - text: GARCH Volatility
+                - generic [ref=e1288]: Need 35+ candles
+              - generic [ref=e1289]:
+                - generic [ref=e1290]:
+                  - img [ref=e1291]
+                  - text: Cointegration Scanner
+                - generic [ref=e1296]: Need 50+ candles for 2+ symbols
+              - generic [ref=e1297]:
+                - generic [ref=e1298]:
+                  - img [ref=e1299]
+                  - text: Markov Regime Predictor
+                - generic [ref=e1305]: Need 40+ candles
+              - generic [ref=e1306]:
+                - generic [ref=e1307]:
+                  - img [ref=e1308]
+                  - text: Fractal Dimension Analyzer
+                - generic [ref=e1312]: Need 35+ candles
+              - generic [ref=e1313]:
+                - generic [ref=e1314]:
+                  - img [ref=e1315]
+                  - text: Kalman Filter Price
+                - generic [ref=e1317]: Need 20+ candles
+              - generic [ref=e1318]:
+                - generic [ref=e1319]:
+                  - img [ref=e1320]
+                  - text: Spectral Analysis
+                - generic [ref=e1326]: Need 32+ candles
+              - generic [ref=e1327]: Need at least 10 candles for BTC/USDT on binance
+              - generic [ref=e1328]: Need at least 30 candles for BTC/USDT on binance
+              - generic [ref=e1329]: Need at least 16 candles for BTC/USDT on binance
+              - generic [ref=e1330]: Need at least 50 candles for BTC/USDT on binance
+              - generic [ref=e1331]: Need at least 2 symbols with 30+ candles on binance
+              - generic [ref=e1332]: Need at least 50 candles for BTC/USDT on binance
+              - generic [ref=e1333]: Need at least 2 symbols with 51+ candles on binance
+              - generic [ref=e1334]: Need at least 40 candles for BTC/USDT on binance
+              - generic [ref=e1335]: Need at least 32 candles for BTC/USDT on binance
+              - generic [ref=e1336]: Need at least 32 candles for BTC/USDT on binance
+              - generic [ref=e1337]: Need at least 50 candles for BTC/USDT on binance
+              - generic [ref=e1338]: Need at least 30 candles with significant moves for BTC/USDT on binance
+              - generic [ref=e1339]: Need at least 40 candles for BTC/USDT on binance
+              - generic [ref=e1340]: Need at least 40 candles for BTC/USDT on binance
+              - generic [ref=e1341]: Need at least 55 candles for BTC/USDT on binance
+              - generic [ref=e1342]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1343]: Need at least 50 candles for BTC/USDT on binance
+              - generic [ref=e1344]: Need at least 40 candles for BTC/USDT on binance
+              - generic [ref=e1345]: Need at least 91 candles for BTC/USDT on binance
+              - generic [ref=e1346]:
+                - generic [ref=e1347]:
+                  - img [ref=e1348]
+                  - text: Rough Volatility (rBergomi) Error
+                - generic [ref=e1350]: Cannot access 'H' before initialization
+                - button "Retry" [ref=e1352] [cursor=pointer]:
+                  - img [ref=e1353]
+                  - text: Retry
+              - generic [ref=e1356]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1357]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1358]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1359]: Need at least 81 candles for BTC/USDT on binance
+              - generic [ref=e1360]: Need at least 30 candles for BTC/USDT on binance
+              - generic [ref=e1361]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1362]: Need at least 129 candles for BTC/USDT on binance
+              - generic [ref=e1363]: Need at least 102 candles for BTC/USDT on binance
+              - generic [ref=e1364]: Need at least 51 candles for BTC/USDT on binance
+              - generic [ref=e1365]: Need at least 201 candles for BTC/USDT on binance
+              - generic [ref=e1366]: Need at least 51 candles for BTC/USDT on binance
+              - generic [ref=e1367]: Need at least 65 candles for BTC/USDT on binance
+              - generic [ref=e1368]: Need at least 30 candles for BTC/USDT on binance
+              - generic [ref=e1369]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1370]: Need at least 61 candles for BTC/USDT on binance
+              - generic [ref=e1371]: Need at least 61 candles for BTC/USDT on binance
+              - generic [ref=e1372]: Need at least 121 candles for BTC/USDT on binance
+              - generic [ref=e1373]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1374]: Need at least 201 candles for BTC/USDT on binance
+              - generic [ref=e1375]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1376]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1377]: Need at least 151 candles for BTC/USDT on binance
+              - generic [ref=e1378]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1379]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1380]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1381]: Need at least 151 candles for BTC/USDT on binance
+              - generic [ref=e1382]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1383]: Need at least 81 candles for BTC/USDT on binance
+              - generic [ref=e1384]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1385]: Need at least 121 candles for BTC/USDT on binance
+              - generic [ref=e1386]: Need at least 121 candles for BTC/USDT on binance
+              - generic [ref=e1387]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1388]: Need at least 201 candles for BTC/USDT on binance
+              - generic [ref=e1389]: Need at least 201 candles for BTC/USDT on binance
+              - generic [ref=e1390]: Need at least 151 candles for BTC/USDT on binance
+              - generic [ref=e1391]: Need at least 151 candles for BTC/USDT on binance
+              - generic [ref=e1392]: Need at least 121 candles for BTC/USDT on binance
+              - generic [ref=e1393]: Need at least 121 candles for BTC/USDT on binance
+              - generic [ref=e1394]: Need at least 101 candles for BTC/USDT on binance
+          - generic [ref=e1395]:
+            - button "Portfolio & Optimization 26" [expanded] [ref=e1396] [cursor=pointer]:
+              - img [ref=e1397]
+              - generic [ref=e1399]: Portfolio & Optimization
+              - generic [ref=e1400]: "26"
+            - tabpanel [ref=e1401]:
+              - generic [ref=e1402]:
+                - generic [ref=e1404]: Almgren-Chriss Optimal Execution — BTC/USDT
+                - generic [ref=e1405]:
+                  - generic [ref=e1406]:
+                    - generic [ref=e1407]: "Order Size:"
+                    - spinbutton "Order Size:" [ref=e1408]: "100"
+                  - generic [ref=e1409]:
+                    - generic [ref=e1410]: "T (days):"
+                    - spinbutton "T (days):" [ref=e1411]: "1"
+                  - generic [ref=e1412]:
+                    - generic [ref=e1413]: "Steps:"
+                    - spinbutton "Steps:" [ref=e1414]: "20"
+                  - generic [ref=e1415]:
+                    - generic [ref=e1416]: "λ (risk aversion):"
+                    - spinbutton "λ (risk aversion):" [ref=e1417]: "0.000001"
+                  - generic [ref=e1418]:
+                    - generic [ref=e1419]: "η (temp impact):"
+                    - spinbutton "η (temp impact):" [ref=e1420]: "0.1"
+                  - generic [ref=e1421]:
+                    - generic [ref=e1422]: "γ (perm impact):"
+                    - spinbutton "γ (perm impact):" [ref=e1423]: "0.01"
+                - generic [ref=e1425]:
+                  - generic [ref=e1426]: Optimal Execution Trajectory
+                  - img [ref=e1427]:
+                    - generic [ref=e1430]: Time (days)
+                    - generic [ref=e1431]: Shares
+                    - generic [ref=e1432]: Almgren-Chriss
+                    - generic [ref=e1433]: TWAP (dashed)
+                - generic [ref=e1434]:
+                  - generic [ref=e1435]:
+                    - generic [ref=e1436]: Efficient Frontier (Cost vs Risk)
+                    - img [ref=e1437]:
+                      - generic [ref=e1441]: Risk (σ)
+                      - generic [ref=e1442]: Cost
+                    - generic [ref=e1443]: ● Optimal (green) vs TWAP (gray)
+                  - generic [ref=e1444]:
+                    - generic [ref=e1445]: Execution Schedule (first 5 + last)
+                    - generic [ref=e1446]:
+                      - generic [ref=e1447]:
+                        - generic [ref=e1448]: t=0.050
+                        - generic [ref=e1449]: "5.00"
+                        - generic [ref=e1450]: 100.0/day
+                      - generic [ref=e1451]:
+                        - generic [ref=e1452]: t=0.100
+                        - generic [ref=e1453]: "5.00"
+                        - generic [ref=e1454]: 100.0/day
+                      - generic [ref=e1455]:
+                        - generic [ref=e1456]: t=0.150
+                        - generic [ref=e1457]: "5.00"
+                        - generic [ref=e1458]: 100.0/day
+                      - generic [ref=e1459]:
+                        - generic [ref=e1460]: t=0.200
+                        - generic [ref=e1461]: "5.00"
+                        - generic [ref=e1462]: 100.0/day
+                      - generic [ref=e1463]:
+                        - generic [ref=e1464]: t=0.250
+                        - generic [ref=e1465]: "5.00"
+                        - generic [ref=e1466]: 100.0/day
+                      - generic [ref=e1467]: ...
+                      - generic [ref=e1468]:
+                        - generic [ref=e1469]: t=1.000
+                        - generic [ref=e1470]: "5.00"
+                        - generic [ref=e1471]: 100.0/day
+                - generic [ref=e1472]:
+                  - generic [ref=e1473]:
+                    - generic [ref=e1474]: E[cost] (AC)
+                    - generic [ref=e1475]: "1050.0000"
+                  - generic [ref=e1476]:
+                    - generic [ref=e1477]: σ[cost] (AC)
+                    - generic [ref=e1478]: "1.1979"
+                  - generic [ref=e1479]:
+                    - generic [ref=e1480]: E[cost] (TWAP)
+                    - generic [ref=e1481]: "1050.0000"
+                  - generic [ref=e1482]:
+                    - generic [ref=e1483]: Savings
+                    - generic [ref=e1484]: 0.0000 (0.0%)
+                  - generic [ref=e1485]:
+                    - generic [ref=e1486]: κ
+                    - generic [ref=e1487]: "0.0001"
+                - generic [ref=e1488]:
+                  - strong [ref=e1489]: "Model:"
+                  - text: σ=0.02000, η=0.1, γ=0.01, λ=1.00e-6 |
+                  - strong [ref=e1490]: "Impact:"
+                  - text: permanent=50.0000, temporary=1000.0000 |
+                  - strong [ref=e1491]: "Utility:"
+                  - text: AC=1050.0000 vs TWAP=1050.0000
+              - generic [ref=e1492]:
+                - generic [ref=e1494]: Optimal Stopping (Snell Envelope) — BTC/USDT
+                - generic [ref=e1495]:
+                  - generic [ref=e1496]:
+                    - generic [ref=e1497]: "Strike:"
+                    - spinbutton "Strike:" [ref=e1498]: "100"
+                  - generic [ref=e1499]:
+                    - generic [ref=e1500]: "T (days):"
+                    - spinbutton "T (days):" [ref=e1501]: "30"
+                  - generic [ref=e1502]:
+                    - generic [ref=e1503]: "r:"
+                    - spinbutton "r:" [ref=e1504]: "0.05"
+                  - generic [ref=e1505]:
+                    - generic [ref=e1506]: "σ (est: 0.300):"
+                    - 'spinbutton "σ (est: 0.300):" [ref=e1507]': "0.3"
+                  - generic [ref=e1508]:
+                    - generic [ref=e1509]: "Steps:"
+                    - spinbutton "Steps:" [ref=e1510]: "50"
+                  - generic [ref=e1511]:
+                    - generic [ref=e1512]: "Paths:"
+                    - spinbutton "Paths:" [ref=e1513]: "1000"
+                  - generic [ref=e1514]:
+                    - checkbox "Put" [ref=e1515]
+                    - generic [ref=e1516]: Put
+                - generic [ref=e1517]:
+                  - generic [ref=e1518]: Optimal Exercise Boundary (Binomial Tree)
+                  - img [ref=e1519]:
+                    - generic [ref=e1520]: Time steps
+                    - generic [ref=e1521]: Stock price
+                    - generic [ref=e1522]: Exercise boundary
+                    - generic [ref=e1523]: S₀ = $100.00
+                    - generic [ref=e1524]: K = $100.00
+                - generic [ref=e1525]:
+                  - generic [ref=e1526]: Exercise Probability by Time (Longstaff-Schwartz MC)
+                  - img [ref=e1527]
+                - generic [ref=e1538]:
+                  - generic [ref=e1539]:
+                    - generic [ref=e1540]: Binomial Price
+                    - generic [ref=e1541]: $3.2377
+                  - generic [ref=e1542]:
+                    - generic [ref=e1543]: LSM Price
+                    - generic [ref=e1544]: $3.3268
+                  - generic [ref=e1545]:
+                    - generic [ref=e1546]: European
+                    - generic [ref=e1547]: $3.1917
+                  - generic [ref=e1548]:
+                    - generic [ref=e1549]: Early Ex. Premium
+                    - generic [ref=e1550]: $0.1351
+                  - generic [ref=e1551]:
+                    - generic [ref=e1552]: Intrinsic
+                    - generic [ref=e1553]: $0.0000
+                - generic [ref=e1554]:
+                  - strong [ref=e1555]: "Model:"
+                  - text: Binomial (50 steps) vs LSM (1,000 paths) |
+                  - strong [ref=e1556]: "σ:"
+                  - text: "0.3000 (est: 0.3000) |"
+                  - strong [ref=e1557]: "moneyness:"
+                  - text: 1.0000 (ITM)
+              - generic [ref=e1558]: Need at least 2 symbols with 51+ candles on binance
+              - generic [ref=e1559]: Need at least 2 symbols with 51+ candles on binance
+              - generic [ref=e1560]: Need at least 3 symbols with 51+ candles on binance
+              - generic [ref=e1561]: Need at least 2 symbols with 101+ candles on binance
+              - generic [ref=e1562]: Need at least 3 symbols with 101+ candles on binance
+              - generic [ref=e1563]: Need at least 2 symbols with 100+ candles on binance
+              - generic [ref=e1564]: Need at least 201 candles
+              - generic [ref=e1565]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1566]:
+                - generic [ref=e1567]:
+                  - img [ref=e1568]
+                  - text: Hedging Suggestions Error
+                - generic [ref=e1570]: acc.positions is not iterable
+                - button "Retry" [ref=e1572] [cursor=pointer]:
+                  - img [ref=e1573]
+                  - text: Retry
+              - generic [ref=e1576]:
+                - generic [ref=e1577]:
+                  - img [ref=e1578]
+                  - text: Risk Parity Calculator
+                - generic [ref=e1580]:
+                  - generic [ref=e1581]:
+                    - generic [ref=e1582]: Capital ($)
+                    - spinbutton "Capital ($)" [ref=e1583]: "10000"
+                  - generic [ref=e1584]:
+                    - generic [ref=e1585]: Risk (%)
+                    - spinbutton "Risk (%)" [ref=e1586]: "1"
+                  - generic [ref=e1587]:
+                    - generic [ref=e1588]: Stop (%)
+                    - spinbutton "Stop (%)" [ref=e1589]: "2"
+                - table [ref=e1590]:
+                  - rowgroup [ref=e1591]:
+                    - row "Symbol Vol% Weight Capital Qty" [ref=e1592]:
+                      - columnheader "Symbol" [ref=e1593]
+                      - columnheader "Vol%" [ref=e1594]
+                      - columnheader "Weight" [ref=e1595]
+                      - columnheader "Capital" [ref=e1596]
+                      - columnheader "Qty" [ref=e1597]
+                  - rowgroup [ref=e1598]:
+                    - row "BTC 1.00% 33.3% $3333 0.0000" [ref=e1599]:
+                      - cell "BTC" [ref=e1600]
+                      - cell "1.00%" [ref=e1601]
+                      - cell "33.3%" [ref=e1602]
+                      - cell "$3333" [ref=e1603]
+                      - cell "0.0000" [ref=e1604]
+                    - row "ETH 1.00% 33.3% $3333 0.0000" [ref=e1605]:
+                      - cell "ETH" [ref=e1606]
+                      - cell "1.00%" [ref=e1607]
+                      - cell "33.3%" [ref=e1608]
+                      - cell "$3333" [ref=e1609]
+                      - cell "0.0000" [ref=e1610]
+                    - row "SOL 1.00% 33.3% $3333 0.0000" [ref=e1611]:
+                      - cell "SOL" [ref=e1612]
+                      - cell "1.00%" [ref=e1613]
+                      - cell "33.3%" [ref=e1614]
+                      - cell "$3333" [ref=e1615]
+                      - cell "0.0000" [ref=e1616]
+                - generic [ref=e1617]:
+                  - img [ref=e1618]
+                  - generic [ref=e1620]: Risk parity allocates more capital to less volatile assets. Position size = (risk × weight) / (stop% × price).
+              - generic [ref=e1621]:
+                - generic [ref=e1622]:
+                  - img [ref=e1623]
+                  - text: Portfolio Optimizer
+                - generic [ref=e1626]: Not enough data (need 20+ candles per symbol)
+              - generic [ref=e1627]:
+                - generic [ref=e1628]:
+                  - img [ref=e1629]
+                  - text: Auto-Rebalance Error
+                - generic [ref=e1631]: object is not iterable (cannot read property Symbol(Symbol.iterator))
+                - button "Retry" [ref=e1633] [cursor=pointer]:
+                  - img [ref=e1634]
+                  - text: Retry
+              - generic [ref=e1637]:
+                - generic [ref=e1638]:
+                  - img [ref=e1639]
+                  - text: Multi-Account View Error
+                - generic [ref=e1641]: (acc.positions || []).filter is not a function
+                - button "Retry" [ref=e1643] [cursor=pointer]:
+                  - img [ref=e1644]
+                  - text: Retry
+              - generic [ref=e1647]:
+                - generic [ref=e1648]:
+                  - img [ref=e1649]
+                  - text: Smart Order Router
+                - generic [ref=e1653]: No routing data available
+                - generic [ref=e1654]: Finds best exchange to BUY (lowest price) and SELL (highest price). Flags arbitrage opportunities > 0.1%.
+              - generic [ref=e1655]:
+                - generic [ref=e1656]:
+                  - img [ref=e1657]
+                  - text: Kelly Criterion Calculator
+                - generic [ref=e1661]: Need at least 5 trades for Kelly calculation
+              - generic [ref=e1662]:
+                - generic [ref=e1663]:
+                  - img [ref=e1664]
+                  - text: Greeks Calculator (Black-Scholes)
+                - generic [ref=e1666]:
+                  - button "CALL" [ref=e1667] [cursor=pointer]
+                  - button "PUT" [ref=e1668] [cursor=pointer]
+                - generic [ref=e1669]:
+                  - generic [ref=e1670]:
+                    - generic [ref=e1671]: Spot Price
+                    - spinbutton "Spot Price" [ref=e1672]: "65000"
+                  - generic [ref=e1673]:
+                    - generic [ref=e1674]: Strike
+                    - spinbutton "Strike" [ref=e1675]: "65000"
+                  - generic [ref=e1676]:
+                    - generic [ref=e1677]: Days to Expiry
+                    - spinbutton "Days to Expiry" [ref=e1678]: "30"
+                  - generic [ref=e1679]:
+                    - generic [ref=e1680]: Volatility (%)
+                    - spinbutton "Volatility (%)" [ref=e1681]: "50"
+                  - generic [ref=e1682]:
+                    - generic [ref=e1683]: Risk-free Rate (%)
+                    - spinbutton "Risk-free Rate (%)" [ref=e1684]: "5"
+                - generic [ref=e1685]:
+                  - generic [ref=e1686]:
+                    - generic [ref=e1687]: Price
+                    - generic [ref=e1688]: $3841.15
+                  - generic [ref=e1689]:
+                    - generic [ref=e1690]: Delta
+                    - generic [ref=e1691]: "0.5400"
+                  - generic [ref=e1692]:
+                    - generic [ref=e1693]: Gamma
+                    - generic [ref=e1694]: "0.000043"
+                  - generic [ref=e1695]:
+                    - generic [ref=e1696]: Theta
+                    - generic [ref=e1697]: "-65.9228/day"
+                  - generic [ref=e1698]:
+                    - generic [ref=e1699]: Vega
+                    - generic [ref=e1700]: 73.9693/%
+                  - generic [ref=e1701]:
+                    - generic [ref=e1702]: Rho
+                    - generic [ref=e1703]: 25.6903/%
+                - generic [ref=e1704]:
+                  - img [ref=e1705]
+                  - generic [ref=e1707]: Black-Scholes model. Vega/Rho per 1% change. Theta per day.
+              - generic [ref=e1708]:
+                - generic [ref=e1709]:
+                  - img [ref=e1710]
+                  - text: Options Strategy P&L Simulator
+                - generic [ref=e1712]:
+                  - generic [ref=e1713]:
+                    - generic [ref=e1714]: Spot Price
+                    - spinbutton "Spot Price" [ref=e1715]: "65000"
+                  - generic [ref=e1716]:
+                    - generic [ref=e1717]: Days to Expiry
+                    - spinbutton "Days to Expiry" [ref=e1718]: "30"
+                  - generic [ref=e1719]:
+                    - generic [ref=e1720]: Volatility (%)
+                    - spinbutton "Volatility (%)" [ref=e1721]: "50"
+                  - generic [ref=e1722]:
+                    - generic [ref=e1723]: Risk-free Rate (%)
+                    - spinbutton "Risk-free Rate (%)" [ref=e1724]: "5"
+                - generic [ref=e1725]:
+                  - button "Long Call" [ref=e1726] [cursor=pointer]
+                  - button "Long Put" [ref=e1727] [cursor=pointer]
+                  - button "Covered Call" [ref=e1728] [cursor=pointer]
+                  - button "Protective Put" [ref=e1729] [cursor=pointer]
+                  - button "Bull Call Spread" [ref=e1730] [cursor=pointer]
+                  - button "Bear Put Spread" [ref=e1731] [cursor=pointer]
+                  - button "Long Straddle" [ref=e1732] [cursor=pointer]
+                  - button "Long Strangle" [ref=e1733] [cursor=pointer]
+                  - button "Iron Condor" [ref=e1734] [cursor=pointer]
+                  - button "Call Butterfly" [ref=e1735] [cursor=pointer]
+                - generic [ref=e1736]:
+                  - generic [ref=e1737]:
+                    - combobox [ref=e1738]:
+                      - option "Buy" [selected]
+                      - option "Sell"
+                    - combobox [ref=e1739]:
+                      - option "Call" [selected]
+                      - option "Put"
+                    - spinbutton [ref=e1740]: "0"
+                    - spinbutton [ref=e1741]: "1"
+                    - generic [ref=e1742]: "@ 3841.15"
+                    - generic [ref=e1743]: "+3841.15"
+                    - button [ref=e1744] [cursor=pointer]:
+                      - img [ref=e1745]
+                  - generic [ref=e1748]:
+                    - combobox [ref=e1749]:
+                      - option "Buy"
+                      - option "Sell" [selected]
+                    - combobox [ref=e1750]:
+                      - option "Call" [selected]
+                      - option "Put"
+                    - spinbutton [ref=e1751]: "0"
+                    - spinbutton [ref=e1752]: "1"
+                    - generic [ref=e1753]: "@ 3841.15"
+                    - generic [ref=e1754]: "-3841.15"
+                    - button [ref=e1755] [cursor=pointer]:
+                      - img [ref=e1756]
+                  - button "Add Leg" [ref=e1759] [cursor=pointer]:
+                    - img [ref=e1760]
+                    - text: Add Leg
+                - generic [ref=e1761]:
+                  - generic [ref=e1762]:
+                    - generic [ref=e1763]: Net Cost
+                    - generic [ref=e1764]: "+0.00"
+                  - generic [ref=e1765]:
+                    - generic [ref=e1766]: Max Profit
+                    - generic [ref=e1767]: "+0.00"
+                  - generic [ref=e1768]:
+                    - generic [ref=e1769]: Max Loss
+                    - generic [ref=e1770]: "0.00"
+                - generic [ref=e1771]:
+                  - img [ref=e1772]
+                  - generic [ref=e1773]: "52000"
+                  - generic [ref=e1774]: "78000"
+                - generic [ref=e1775]: Price at Expiry →
+              - generic [ref=e1776]:
+                - generic [ref=e1777]:
+                  - img [ref=e1778]
+                  - text: Multi-Leg Options
+                - generic [ref=e1782]:
+                  - button "Long Straddle" [ref=e1783] [cursor=pointer]
+                  - button "Long Strangle" [ref=e1784] [cursor=pointer]
+                  - button "Iron Condor" [ref=e1785] [cursor=pointer]
+                  - button "Call Butterfly" [ref=e1786] [cursor=pointer]
+                - generic [ref=e1787]:
+                  - generic [ref=e1788]:
+                    - generic [ref=e1789]: Spot
+                    - spinbutton "Spot" [ref=e1790]: "65000"
+                  - generic [ref=e1791]:
+                    - generic [ref=e1792]: Days
+                    - spinbutton "Days" [ref=e1793]: "30"
+                  - generic [ref=e1794]:
+                    - generic [ref=e1795]: Vol %
+                    - spinbutton "Vol %" [ref=e1796]: "50"
+                - generic [ref=e1797]:
+                  - generic [ref=e1798]:
+                    - generic [ref=e1799]:
+                      - img [ref=e1800]
+                      - text: Buy Call
+                    - spinbutton [ref=e1801]: "65000"
+                    - generic [ref=e1802]: "@ $3726.98"
+                  - generic [ref=e1803]:
+                    - generic [ref=e1804]:
+                      - img [ref=e1805]
+                      - text: Buy Put
+                    - spinbutton [ref=e1806]: "60000"
+                    - generic [ref=e1807]: "@ $3726.98"
+                - img [ref=e1808]
+                - generic [ref=e1812]:
+                  - generic [ref=e1813]:
+                    - generic [ref=e1814]: Net Cost
+                    - generic [ref=e1815]: $7453.97
+                  - generic [ref=e1816]:
+                    - generic [ref=e1817]: Max Profit
+                    - generic [ref=e1818]: ∞
+                  - generic [ref=e1819]:
+                    - generic [ref=e1820]: Max Loss
+                    - generic [ref=e1821]: "-∞"
+                - generic [ref=e1822]: "Breakevens: $52,546.03 · $72,453.97"
+              - generic [ref=e1823]:
+                - generic [ref=e1824]:
+                  - img [ref=e1825]
+                  - text: Pair Trading
+                - generic [ref=e1828]: Need 2+ symbols with data
+              - generic [ref=e1829]:
+                - generic [ref=e1830]:
+                  - img [ref=e1831]
+                  - text: Whale Alerts
+                - generic [ref=e1837]: No whale activity detected
+              - generic [ref=e1838]:
+                - generic [ref=e1839]:
+                  - img [ref=e1840]
+                  - text: Position Size Optimizer
+                - generic [ref=e1842]: Not enough data
+              - generic [ref=e1843]:
+                - generic [ref=e1844]:
+                  - img [ref=e1845]
+                  - text: Liquidation Cascade
+                - generic [ref=e1847]: Not enough data
+              - generic [ref=e1848]:
+                - generic [ref=e1849]:
+                  - img [ref=e1850]
+                  - text: Trailing Stop Calculator
+                - generic [ref=e1852]: Not enough data
+              - generic [ref=e1853]:
+                - generic [ref=e1854]:
+                  - img [ref=e1855]
+                  - text: Correlation Heatmap
+                - generic [ref=e1857]: Need 2+ symbols with 10+ candles
+          - generic [ref=e1858]:
+            - button "Strategy & Automation 11" [expanded] [ref=e1859] [cursor=pointer]:
+              - img [ref=e1860]
+              - generic [ref=e1862]: Strategy & Automation
+              - generic [ref=e1863]: "11"
+            - tabpanel [ref=e1864]:
+              - generic [ref=e1865]: Need at least 101 candles for BTC/USDT on binance
+              - generic [ref=e1866]:
+                - generic [ref=e1867]:
+                  - img [ref=e1868]
+                  - text: Strategy Backtest Engine
+                  - generic [ref=e1870]: (0 candles available)
+                - generic [ref=e1871]:
+                  - generic [ref=e1872]:
+                    - generic [ref=e1873]: Balance
+                    - spinbutton [ref=e1874]: "10000"
+                  - generic [ref=e1875]:
+                    - generic [ref=e1876]: Fee %
+                    - spinbutton [ref=e1877]: "0.075"
+                  - generic [ref=e1878]:
+                    - generic [ref=e1879]: Size %
+                    - spinbutton [ref=e1880]: "10"
+                  - generic [ref=e1881]:
+                    - generic [ref=e1882]: EMA Fast
+                    - spinbutton [ref=e1883]: "9"
+                  - generic [ref=e1884]:
+                    - generic [ref=e1885]: EMA Slow
+                    - spinbutton [ref=e1886]: "21"
+                  - generic [ref=e1887]:
+                    - generic [ref=e1888]: RSI Period
+                    - spinbutton [ref=e1889]: "14"
+                - button "Run Backtest" [disabled] [ref=e1891]:
+                  - img [ref=e1892]
+                  - text: Run Backtest
+                - generic [ref=e1894]: Need at least 30 candles (have 0). Wait for data to load.
+              - generic [ref=e1895]:
+                - img [ref=e1896]
+                - heading "No backtests to compare" [level=3] [ref=e1901]
+                - paragraph [ref=e1902]: Run multiple backtests from the Strategy Backtest Engine to compare them here.
+              - generic [ref=e1903]:
+                - generic [ref=e1904]:
+                  - img [ref=e1905]
+                  - text: Execution Bot (TWAP/VWAP)
+                - generic [ref=e1908]:
+                  - button "TWAP" [ref=e1909] [cursor=pointer]
+                  - button "VWAP" [ref=e1910] [cursor=pointer]
+                - generic [ref=e1911]:
+                  - button "BUY" [ref=e1912] [cursor=pointer]
+                  - button "SELL" [ref=e1913] [cursor=pointer]
+                - generic [ref=e1914]:
+                  - generic [ref=e1915]:
+                    - generic [ref=e1916]: Total Qty
+                    - spinbutton "Total Qty" [ref=e1917]: "1"
+                  - generic [ref=e1918]:
+                    - generic [ref=e1919]: Slices
+                    - spinbutton "Slices" [ref=e1920]: "10"
+                  - generic [ref=e1921]:
+                    - generic [ref=e1922]: Interval(s)
+                    - spinbutton "Interval(s)" [ref=e1923]: "5"
+                - generic [ref=e1924]:
+                  - generic [ref=e1925]: "Per slice: 0.1000"
+                  - generic [ref=e1926]:
+                    - text: "Duration:"
+                    - generic [ref=e1927]: 50s
+                - button "Start" [ref=e1929] [cursor=pointer]:
+                  - img [ref=e1930]
+                  - text: Start
+              - generic [ref=e1932]:
+                - generic [ref=e1933]:
+                  - img [ref=e1934]
+                  - text: Watchlist
+                  - button "Symbol" [ref=e1936] [cursor=pointer]:
+                    - img [ref=e1937]
+                    - text: Symbol
+                  - button "Add symbol" [ref=e1940] [cursor=pointer]:
+                    - img [ref=e1941]
+                - generic [ref=e1942]:
+                  - generic [ref=e1943] [cursor=pointer]:
+                    - generic [ref=e1944]:
+                      - generic [ref=e1946]: BTC
+                      - generic [ref=e1947]: no data
+                    - generic [ref=e1948]:
+                      - img [ref=e1949]
+                      - text: +0.00%
+                    - button [ref=e1952]:
+                      - img [ref=e1953]
+                  - generic [ref=e1956] [cursor=pointer]:
+                    - generic [ref=e1957]:
+                      - generic [ref=e1959]: ETH
+                      - generic [ref=e1960]: no data
+                    - generic [ref=e1961]:
+                      - img [ref=e1962]
+                      - text: +0.00%
+                    - button [ref=e1965]:
+                      - img [ref=e1966]
+                  - generic [ref=e1969] [cursor=pointer]:
+                    - generic [ref=e1970]:
+                      - generic [ref=e1972]: SOL
+                      - generic [ref=e1973]: no data
+                    - generic [ref=e1974]:
+                      - img [ref=e1975]
+                      - text: +0.00%
+                    - button [ref=e1978]:
+                      - img [ref=e1979]
+              - generic [ref=e1982]:
+                - generic [ref=e1983]:
+                  - img [ref=e1984]
+                  - text: Strategy Builder
+                - generic [ref=e1986]:
+                  - textbox "Strategy name" [ref=e1987]: My Strategy
+                  - button "Save" [ref=e1988] [cursor=pointer]:
+                    - img [ref=e1989]
+                    - text: Save
+                - generic [ref=e1994]:
+                  - generic [ref=e1995]:
+                    - generic [ref=e1996]: "#1"
+                    - generic [ref=e1997]: IF
+                    - combobox [ref=e1998]:
+                      - option "Price above"
+                      - option "Price below"
+                      - option "RSI above"
+                      - option "RSI below" [selected]
+                      - option "EMA fast crosses above slow"
+                      - option "EMA fast crosses below slow"
+                      - option "Volume spike >"
+                      - option "5-candle change >"
+                    - button [ref=e1999] [cursor=pointer]:
+                      - img [ref=e2000]
+                  - generic [ref=e2003]:
+                    - spinbutton [ref=e2004]: "30"
+                    - generic [ref=e2005]: THEN
+                    - combobox [ref=e2006]:
+                      - option "BUY" [selected]
+                      - option "SELL"
+                      - option "CLOSE ALL"
+                      - option "ALERT"
+                    - spinbutton "Quantity" [ref=e2007]: "0.1"
+                - button "Add Rule" [ref=e2008] [cursor=pointer]:
+                  - img [ref=e2009]
+                  - text: Add Rule
+              - generic [ref=e2010]:
+                - generic [ref=e2011]:
+                  - img [ref=e2012]
+                  - text: Strategy Marketplace
+                  - generic [ref=e2017]: 3/3
+                - generic [ref=e2018]:
+                  - generic [ref=e2019]:
+                    - img [ref=e2020]
+                    - textbox "Search strategies..." [ref=e2023]
+                  - button "Import" [ref=e2024] [cursor=pointer]:
+                    - img [ref=e2025]
+                    - text: Import
+                - generic [ref=e2028]:
+                  - button "mean-reversion" [ref=e2029] [cursor=pointer]
+                  - button "rsi" [ref=e2030] [cursor=pointer]
+                  - button "beginner" [ref=e2031] [cursor=pointer]
+                  - button "trend-following" [ref=e2032] [cursor=pointer]
+                  - button "ema" [ref=e2033] [cursor=pointer]
+                  - button "breakout" [ref=e2034] [cursor=pointer]
+                  - button "volume" [ref=e2035] [cursor=pointer]
+                  - button "intermediate" [ref=e2036] [cursor=pointer]
+                - button "Or paste JSON directly..." [ref=e2037] [cursor=pointer]
+                - generic [ref=e2038]:
+                  - generic [ref=e2040]:
+                    - img [ref=e2041]
+                    - generic [ref=e2046]:
+                      - generic [ref=e2047]: RSI Oversold Bounce
+                      - generic [ref=e2048]: Buy when RSI < 30, sell when RSI > 70. Classic mean reversion.
+                      - generic [ref=e2049]:
+                        - generic [ref=e2050]: mean-reversion
+                        - generic [ref=e2051]: rsi
+                        - generic [ref=e2052]: beginner
+                        - generic [ref=e2053]: 2 rules
+                    - button "Export as JSON" [ref=e2055] [cursor=pointer]:
+                      - img [ref=e2056]
+                  - generic [ref=e2060]:
+                    - img [ref=e2061]
+                    - generic [ref=e2066]:
+                      - generic [ref=e2067]: EMA Crossover Trend
+                      - generic [ref=e2068]: Follow trend via EMA fast/slow crossover. Buy on golden cross, sell on death cross.
+                      - generic [ref=e2069]:
+                        - generic [ref=e2070]: trend-following
+                        - generic [ref=e2071]: ema
+                        - generic [ref=e2072]: beginner
+                        - generic [ref=e2073]: 2 rules
+                    - button "Export as JSON" [ref=e2075] [cursor=pointer]:
+                      - img [ref=e2076]
+                  - generic [ref=e2080]:
+                    - img [ref=e2081]
+                    - generic [ref=e2086]:
+                      - generic [ref=e2087]: Volume Spike Breakout
+                      - generic [ref=e2088]: Buy on volume spike > 3x average with 5-candle price change > 5%.
+                      - generic [ref=e2089]:
+                        - generic [ref=e2090]: breakout
+                        - generic [ref=e2091]: volume
+                        - generic [ref=e2092]: intermediate
+                        - generic [ref=e2093]: 2 rules
+                    - button "Export as JSON" [ref=e2095] [cursor=pointer]:
+                      - img [ref=e2096]
+              - generic [ref=e2099]:
+                - generic [ref=e2100]:
+                  - img [ref=e2101]
+                  - text: Strategy Competition
+                - generic [ref=e2107]:
+                  - generic [ref=e2108]: Select Strategies
+                  - generic [ref=e2109]:
+                    - generic [ref=e2110] [cursor=pointer]:
+                      - checkbox "Trend Following" [checked] [ref=e2111]
+                      - generic [ref=e2112]: Trend Following
+                    - generic [ref=e2113] [cursor=pointer]:
+                      - checkbox "Mean Reversion" [checked] [ref=e2114]
+                      - generic [ref=e2115]: Mean Reversion
+                    - generic [ref=e2116] [cursor=pointer]:
+                      - checkbox "RSI Divergence" [checked] [ref=e2117]
+                      - generic [ref=e2118]: RSI Divergence
+                    - generic [ref=e2119] [cursor=pointer]:
+                      - checkbox "EMA Crossover" [checked] [ref=e2120]
+                      - generic [ref=e2121]: EMA Crossover
+                    - generic [ref=e2122] [cursor=pointer]:
+                      - checkbox "Volume Breakout" [checked] [ref=e2123]
+                      - generic [ref=e2124]: Volume Breakout
+                    - generic [ref=e2125] [cursor=pointer]:
+                      - checkbox "Statistical Arbitrage" [checked] [ref=e2126]
+                      - generic [ref=e2127]: Statistical Arbitrage
+                - button "Run Tournament (6)" [ref=e2128] [cursor=pointer]:
+                  - img [ref=e2129]
+                  - text: Run Tournament (6)
+              - generic [ref=e2138]:
+                - generic [ref=e2139]:
+                  - img [ref=e2140]
+                  - text: Alert Webhooks
+                  - button [ref=e2144] [cursor=pointer]:
+                    - img [ref=e2145]
+                - generic [ref=e2146]: No webhooks configured
+                - generic [ref=e2147]: Discord/Telegram webhooks. Click test to verify. Persist in localStorage.
+              - generic [ref=e2148]:
+                - generic [ref=e2149]:
+                  - img [ref=e2150]
+                  - text: Trade Journal
+                  - generic [ref=e2153]: 0/0
+                - generic [ref=e2155]:
+                  - img [ref=e2156]
+                  - textbox "Search symbol or note..." [ref=e2159]
+                - generic [ref=e2160]:
+                  - button "All" [ref=e2161] [cursor=pointer]
+                  - button "Wins" [ref=e2162] [cursor=pointer]
+                  - button "Losses" [ref=e2163] [cursor=pointer]
+                - generic [ref=e2164]: No trades match filters
+              - generic [ref=e2165]:
+                - generic [ref=e2166]:
+                  - img [ref=e2167]
+                  - text: MIT Order Simulator
+                - generic [ref=e2171]: Need 15+ candles
+          - generic [ref=e2172]:
+            - button "Export & Tools 4" [expanded] [ref=e2173] [cursor=pointer]:
+              - img [ref=e2174]
+              - generic [ref=e2176]: Export & Tools
+              - generic [ref=e2177]: "4"
+            - tabpanel [ref=e2178]:
+              - generic [ref=e2179]:
+                - generic [ref=e2180]:
+                  - img [ref=e2181]
+                  - text: Session Replay
+                - generic [ref=e2184]:
+                  - textbox "Recording name (optional)" [ref=e2185]
+                  - button "Start Recording" [ref=e2186] [cursor=pointer]:
+                    - img [ref=e2187]
+                    - text: Start Recording
+                - button "Import Recording" [ref=e2190] [cursor=pointer]:
+                  - img [ref=e2191]
+                  - text: Import Recording
+              - generic [ref=e2194]:
+                - generic [ref=e2195]:
+                  - img [ref=e2196]
+                  - text: Session Report Export
+                - generic [ref=e2199]:
+                  - generic [ref=e2200]:
+                    - generic [ref=e2201]: PnL
+                    - generic [ref=e2202]: +$0.00
+                  - generic [ref=e2203]:
+                    - generic [ref=e2204]: Trades
+                    - generic [ref=e2205]: "0"
+                - generic [ref=e2206]:
+                  - button "Print / Save as PDF" [ref=e2207] [cursor=pointer]:
+                    - img [ref=e2208]
+                    - text: Print / Save as PDF
+                  - button "Export HTML Report" [ref=e2211] [cursor=pointer]:
+                    - img [ref=e2212]
+                    - text: Export HTML Report
+              - generic [ref=e2215]:
+                - generic [ref=e2216]:
+                  - img [ref=e2217]
+                  - text: Session Export
+                - generic [ref=e2222]:
+                  - generic [ref=e2223]:
+                    - generic [ref=e2224]: Fills
+                    - generic [ref=e2225]: "50"
+                  - generic [ref=e2226]:
+                    - generic [ref=e2227]: Candles
+                    - generic [ref=e2228]: "500"
+                  - generic [ref=e2229]:
+                    - generic [ref=e2230]: Signals
+                    - generic [ref=e2231]: "15"
+                  - generic [ref=e2232]:
+                    - generic [ref=e2233]: Accounts
+                    - generic [ref=e2234]: "3"
+                - button "Export Full Session (JSON)" [ref=e2235] [cursor=pointer]:
+                  - img [ref=e2236]
+                  - text: Export Full Session (JSON)
+                - generic [ref=e2239]: Includes accounts, fills, last 200 candles, signals
+              - generic [ref=e2240]:
+                - generic [ref=e2241]:
+                  - img [ref=e2242]
+                  - text: Trade Stats Export
+                - generic [ref=e2245]: No trades to export
+          - generic [ref=e2246]:
+            - button "Config & Session 3" [expanded] [ref=e2247] [cursor=pointer]:
+              - img [ref=e2248]
+              - generic [ref=e2250]: Config & Session
+              - generic [ref=e2251]: "3"
+            - tabpanel [ref=e2252]:
+              - generic [ref=e2253]:
+                - generic [ref=e2254]:
+                  - generic [ref=e2255]:
+                    - img [ref=e2256]
+                    - text: Price Alerts
+                  - generic [ref=e2261]:
+                    - button "Sound on" [ref=e2262] [cursor=pointer]:
+                      - img [ref=e2263]
+                    - button "Add" [ref=e2267] [cursor=pointer]:
+                      - img [ref=e2268]
+                      - text: Add
+                - generic [ref=e2269]:
+                  - img [ref=e2270]
+                  - text: No alerts set
+              - generic [ref=e2273]:
+                - generic [ref=e2274]:
+                  - img [ref=e2275]
+                  - text: Replay Mode
+                - button "Pause" [ref=e2280] [cursor=pointer]:
+                  - img [ref=e2281]
+                  - text: Pause
+              - button "Simulator Config ▼" [ref=e2285] [cursor=pointer]:
+                - img [ref=e2286]
+                - text: Simulator Config
+                - generic [ref=e2289]: ▼
+        - generic:
+          - tablist "Trading panels" [ref=e2290]:
+            - button "Account" [pressed] [ref=e2291] [cursor=pointer]:
+              - img [ref=e2292]
+              - text: Account
+            - button "Bots" [ref=e2294] [cursor=pointer]:
+              - img [ref=e2295]
+              - text: Bots
+            - button "Signals" [ref=e2298] [cursor=pointer]:
+              - img [ref=e2299]
+              - text: Signals
+            - button "Arb" [ref=e2305] [cursor=pointer]:
+              - img [ref=e2306]
+              - text: Arb
+            - button "Prices" [ref=e2309] [cursor=pointer]:
+              - img [ref=e2310]
+              - text: Prices
+            - button "Fills" [ref=e2313] [cursor=pointer]:
+              - img [ref=e2314]
+              - text: Fills
+            - button "History" [ref=e2316] [cursor=pointer]:
+              - img [ref=e2317]
+              - text: History
+            - button "Perf" [ref=e2321] [cursor=pointer]:
+              - img [ref=e2322]
+              - text: Perf
+            - button "BT" [ref=e2324] [cursor=pointer]:
+              - img [ref=e2325]
+              - text: BT
+          - generic:
+            - generic [ref=e2327]:
+              - generic [ref=e2328]:
+                - generic [ref=e2329]:
+                  - img [ref=e2330]
+                  - text: Exchange Leaderboard
+                  - button "PnL" [ref=e2336] [cursor=pointer]:
+                    - img [ref=e2337]
+                    - text: PnL
+                - generic [ref=e2340]:
+                  - generic [ref=e2341]:
+                    - generic [ref=e2342]: "1"
+                    - generic [ref=e2343]: binance
+                    - generic [ref=e2344]: 0t
+                    - generic [ref=e2345]: +0%w
+                    - generic [ref=e2346]: +$0.00
+                  - generic [ref=e2347]:
+                    - generic [ref=e2348]: "2"
+                    - generic [ref=e2349]: bybit
+                    - generic [ref=e2350]: 0t
+                    - generic [ref=e2351]: +0%w
+                    - generic [ref=e2352]: +$0.00
+                  - generic [ref=e2353]:
+                    - generic [ref=e2354]: "3"
+                    - generic [ref=e2355]: okx
+                    - generic [ref=e2356]: 0t
+                    - generic [ref=e2357]: +0%w
+                    - generic [ref=e2358]: +$0.00
+              - generic [ref=e2359]:
+                - generic [ref=e2360]:
+                  - generic [ref=e2361]: binance
+                  - generic [ref=e2362]:
+                    - generic [ref=e2363]:
+                      - img [ref=e2364]
+                      - text: "--"
+                    - generic [ref=e2367]: "-- win"
+                - generic [ref=e2368]:
+                  - generic [ref=e2369]:
+                    - generic [ref=e2370]: Balance
+                    - generic [ref=e2371]: $9,999.96
+                  - generic [ref=e2372]:
+                    - generic [ref=e2373]: Equity
+                    - generic [ref=e2374]: $9,988.32
+                  - generic [ref=e2375]:
+                    - generic [ref=e2376]: Total PnL
+                    - generic [ref=e2377]: "--"
+                  - generic [ref=e2378]:
+                    - generic [ref=e2379]: Fees
+                    - generic [ref=e2380]: "--"
+                  - generic [ref=e2382]: Trades
+                  - generic [ref=e2383]:
+                    - generic [ref=e2384]: Positions
+                    - generic [ref=e2385]: "0"
+              - generic [ref=e2386]:
+                - generic [ref=e2387]:
+                  - generic [ref=e2388]: bybit
+                  - generic [ref=e2389]:
+                    - generic [ref=e2390]:
+                      - img [ref=e2391]
+                      - text: "--"
+                    - generic [ref=e2394]: "-- win"
+                - generic [ref=e2395]:
+                  - generic [ref=e2396]:
+                    - generic [ref=e2397]: Balance
+                    - generic [ref=e2398]: $10,003.17
+                  - generic [ref=e2399]:
+                    - generic [ref=e2400]: Equity
+                    - generic [ref=e2401]: $9,988.29
+                  - generic [ref=e2402]:
+                    - generic [ref=e2403]: Total PnL
+                    - generic [ref=e2404]: "--"
+                  - generic [ref=e2405]:
+                    - generic [ref=e2406]: Fees
+                    - generic [ref=e2407]: "--"
+                  - generic [ref=e2409]: Trades
+                  - generic [ref=e2410]:
+                    - generic [ref=e2411]: Positions
+                    - generic [ref=e2412]: "0"
+              - generic [ref=e2413]:
+                - generic [ref=e2414]:
+                  - generic [ref=e2415]: okx
+                  - generic [ref=e2416]:
+                    - generic [ref=e2417]:
+                      - img [ref=e2418]
+                      - text: "--"
+                    - generic [ref=e2421]: "-- win"
+                - generic [ref=e2422]:
+                  - generic [ref=e2423]:
+                    - generic [ref=e2424]: Balance
+                    - generic [ref=e2425]: $10,000.89
+                  - generic [ref=e2426]:
+                    - generic [ref=e2427]: Equity
+                    - generic [ref=e2428]: $10,006.73
+                  - generic [ref=e2429]:
+                    - generic [ref=e2430]: Total PnL
+                    - generic [ref=e2431]: "--"
+                  - generic [ref=e2432]:
+                    - generic [ref=e2433]: Fees
+                    - generic [ref=e2434]: "--"
+                  - generic [ref=e2436]: Trades
+                  - generic [ref=e2437]:
+                    - generic [ref=e2438]: Positions
+                    - generic [ref=e2439]: "0"
+            - generic [ref=e2440]:
+              - generic [ref=e2441]:
+                - generic [ref=e2442]: Open Positions (7)
+                - generic [ref=e2443]:
+                  - generic [ref=e2444]: L:4 S:3
+                  - generic [ref=e2445]:
+                    - text: "Margin:"
+                    - generic [ref=e2446]: $1,174.71
+                  - generic [ref=e2447]: "-$20.69"
+              - generic [ref=e2448]:
+                - generic [ref=e2449]:
+                  - generic [ref=e2450]:
+                    - generic [ref=e2451]:
+                      - generic [ref=e2452]: LONG
+                      - generic [ref=e2453]: BTCUSDT
+                      - generic [ref=e2454]: binance
+                      - generic [ref=e2455]: 10x
+                    - button "Close position" [ref=e2456] [cursor=pointer]:
+                      - img [ref=e2457]
+                  - generic [ref=e2460]:
+                    - generic [ref=e2461]: "Qty: 0.0463"
+                    - generic [ref=e2462]:
+                      - text: "Entry:"
+                      - generic [ref=e2463]: $65,250.66
+                    - generic [ref=e2464]: "PnL: -$11.61"
+                    - generic [ref=e2465]:
+                      - text: "Margin:"
+                      - generic [ref=e2466]: $302.11
+                  - generic [ref=e2467]:
+                    - generic [ref=e2468]: "SL: $--"
+                    - generic [ref=e2469]: "TP: $--"
+                    - generic [ref=e2470]: "Liq: $59,051.85"
+                - generic [ref=e2473]:
+                  - generic [ref=e2474]:
+                    - generic [ref=e2475]:
+                      - generic [ref=e2476]: SHORT
+                      - generic [ref=e2477]: SOLUSDT
+                      - generic [ref=e2478]: binance
+                      - generic [ref=e2479]: 10x
+                    - button "Close position" [ref=e2480] [cursor=pointer]:
+                      - img [ref=e2481]
+                  - generic [ref=e2484]:
+                    - generic [ref=e2485]: "Qty: 0.0477"
+                    - generic [ref=e2486]:
+                      - text: "Entry:"
+                      - generic [ref=e2487]: $144.30
+                    - generic [ref=e2488]: "PnL: -$0.03"
+                    - generic [ref=e2489]:
+                      - text: "Margin:"
+                      - generic [ref=e2490]: $0.69
+                  - generic [ref=e2491]:
+                    - generic [ref=e2492]: "SL: $--"
+                    - generic [ref=e2493]: "TP: $--"
+                    - generic [ref=e2494]: "Liq: $158.01"
+                - generic [ref=e2497]:
+                  - generic [ref=e2498]:
+                    - generic [ref=e2499]:
+                      - generic [ref=e2500]: SHORT
+                      - generic [ref=e2501]: DOGEUSDT
+                      - generic [ref=e2502]: bybit
+                      - generic [ref=e2503]: 10x
+                    - button "Close position" [ref=e2504] [cursor=pointer]:
+                      - img [ref=e2505]
+                  - generic [ref=e2508]:
+                    - generic [ref=e2509]: "Qty: 0.0475"
+                    - generic [ref=e2510]:
+                      - text: "Entry:"
+                      - generic [ref=e2511]: $0.12
+                    - generic [ref=e2512]: "PnL: -$0.00"
+                    - generic [ref=e2513]:
+                      - text: "Margin:"
+                      - generic [ref=e2514]: $0.00
+                  - generic [ref=e2515]:
+                    - generic [ref=e2516]: "SL: $--"
+                    - generic [ref=e2517]: "TP: $--"
+                    - generic [ref=e2518]: "Liq: $0.13"
+                - generic [ref=e2521]:
+                  - generic [ref=e2522]:
+                    - generic [ref=e2523]:
+                      - generic [ref=e2524]: LONG
+                      - generic [ref=e2525]: BTCUSDT
+                      - generic [ref=e2526]: bybit
+                      - generic [ref=e2527]: 10x
+                    - button "Close position" [ref=e2528] [cursor=pointer]:
+                      - img [ref=e2529]
+                  - generic [ref=e2532]:
+                    - generic [ref=e2533]: "Qty: 0.0992"
+                    - generic [ref=e2534]:
+                      - text: "Entry:"
+                      - generic [ref=e2535]: $65,150.10
+                    - generic [ref=e2536]: "PnL: -$14.89"
+                    - generic [ref=e2537]:
+                      - text: "Margin:"
+                      - generic [ref=e2538]: $646.29
+                  - generic [ref=e2539]:
+                    - generic [ref=e2540]: "SL: $--"
+                    - generic [ref=e2541]: "TP: $--"
+                    - generic [ref=e2542]: "Liq: $58,960.84"
+                - generic [ref=e2545]:
+                  - generic [ref=e2546]:
+                    - generic [ref=e2547]:
+                      - generic [ref=e2548]: LONG
+                      - generic [ref=e2549]: ADAUSDT
+                      - generic [ref=e2550]: bybit
+                      - generic [ref=e2551]: 10x
+                    - button "Close position" [ref=e2552] [cursor=pointer]:
+                      - img [ref=e2553]
+                  - generic [ref=e2556]:
+                    - generic [ref=e2557]: "Qty: 0.0418"
+                    - generic [ref=e2558]:
+                      - text: "Entry:"
+                      - generic [ref=e2559]: $0.45
+                    - generic [ref=e2560]: "PnL: -$0.00"
+                    - generic [ref=e2561]:
+                      - text: "Margin:"
+                      - generic [ref=e2562]: $0.00
+                  - generic [ref=e2563]:
+                    - generic [ref=e2564]: "SL: $--"
+                    - generic [ref=e2565]: "TP: $--"
+                    - generic [ref=e2566]: "Liq: $0.41"
+                - generic [ref=e2569]:
+                  - generic [ref=e2570]:
+                    - generic [ref=e2571]:
+                      - generic [ref=e2572]: SHORT
+                      - generic [ref=e2573]: ADAUSDT
+                      - generic [ref=e2574]: okx
+                      - generic [ref=e2575]: 10x
+                    - button "Close position" [ref=e2576] [cursor=pointer]:
+                      - img [ref=e2577]
+                  - generic [ref=e2580]:
+                    - generic [ref=e2581]: "Qty: 0.0404"
+                    - generic [ref=e2582]:
+                      - text: "Entry:"
+                      - generic [ref=e2583]: $0.45
+                    - generic [ref=e2584]: "PnL: $0.00"
+                    - generic [ref=e2585]:
+                      - text: "Margin:"
+                      - generic [ref=e2586]: $0.00
+                  - generic [ref=e2587]:
+                    - generic [ref=e2588]: "SL: $--"
+                    - generic [ref=e2589]: "TP: $--"
+                    - generic [ref=e2590]: "Liq: $0.49"
+                - generic [ref=e2593]:
+                  - generic [ref=e2594]:
+                    - generic [ref=e2595]:
+                      - generic [ref=e2596]: LONG
+                      - generic [ref=e2597]: BTCUSDT
+                      - generic [ref=e2598]: okx
+                      - generic [ref=e2599]: 10x
+                    - button "Close position" [ref=e2600] [cursor=pointer]:
+                      - img [ref=e2601]
+                  - generic [ref=e2604]:
+                    - generic [ref=e2605]: "Qty: 0.0348"
+                    - generic [ref=e2606]:
+                      - text: "Entry:"
+                      - generic [ref=e2607]: $64,832.23
+                    - generic [ref=e2608]: "PnL: $5.84"
+                    - generic [ref=e2609]:
+                      - text: "Margin:"
+                      - generic [ref=e2610]: $225.62
+                  - generic [ref=e2611]:
+                    - generic [ref=e2612]: "SL: $--"
+                    - generic [ref=e2613]: "TP: $--"
+                    - generic [ref=e2614]: "Liq: $58,673.17"
+    - contentinfo "System status bar" [ref=e2617]:
+      - 'generic "Simulation time: 05:41:01" [ref=e2618]':
+        - img [ref=e2619]
+        - generic [ref=e2622]: 05:41:01
+      - generic "0 candles generated" [ref=e2624]:
+        - img [ref=e2625]
+        - generic [ref=e2629]: 0 candles
+      - 'generic "Selected market: binance BTC/USDT" [ref=e2631]':
+        - generic [ref=e2632]: binance
+        - generic [ref=e2633]: ·
+        - generic [ref=e2634]: BTC/USDT
+      - generic [ref=e2635]:
+        - generic [ref=e2636]:
+          - img [ref=e2637]
+          - generic [ref=e2640]: "AI: 15 sigs"
+        - generic [ref=e2641]:
+          - img [ref=e2642]
+          - generic [ref=e2644]: 50 fills
+      - generic [ref=e2646]:
+        - img [ref=e2647]
+        - generic [ref=e2649]: "NEWS: x vol (c)"
+      - generic [ref=e2650]:
+        - generic [ref=e2651]: "Pos: 0"
+        - generic [ref=e2652]: "Trades: 0"
+        - generic [ref=e2653]:
+          - text: "Balance:"
+          - generic [ref=e2654]: $30004
+        - 'generic "binance: $-11.64 (0 pos) bybit: $-14.89 (0 pos) okx: $5.84 (0 pos)" [ref=e2655]':
+          - img [ref=e2656]
+          - generic [ref=e2658]: "-20.69"
+      - generic [ref=e2660]:
+        - 'generic "Connection quality: EXCELLENT" [ref=e2661]': EXCELLENT
+        - generic [ref=e2662]:
+          - img [ref=e2663]
+          - generic [ref=e2667]: EX
+          - generic [ref=e2668]: 0ms
+        - generic [ref=e2669]:
+          - img [ref=e2670]
+          - generic [ref=e2674]: AI
+          - generic [ref=e2675]: 0ms
+```
+
+# Test source
+
+```ts
+  1  | import { test, expect } from '@playwright/test'
+  2  | 
+  3  | test.describe('Trading System UI — Trading Flows', () => {
+  4  |   test('can switch exchanges via keyboard shortcuts', async ({ page }) => {
+  5  |     await page.goto('/')
+  6  |     // Press '2' to switch to bybit
+  7  |     await page.keyboard.press('2')
+  8  |     // Wait a moment for state update
+  9  |     await page.waitForTimeout(200)
+  10 |     // The exchange should be updated in the header
+  11 |     const bybitButton = page.getByText('bybit', { exact: false }).first()
+  12 |     await expect(bybitButton).toBeVisible()
+  13 |   })
+  14 | 
+  15 |   test('can switch symbols via keyboard shortcuts', async ({ page }) => {
+  16 |     await page.goto('/')
+  17 |     // Press 'w' to switch to ETH/USDT
+  18 |     await page.keyboard.press('w')
+  19 |     await page.waitForTimeout(200)
+  20 |     // ETH/USDT should be visible somewhere in the header
+  21 |     await expect(page.getByText('ETH/USDT').first()).toBeVisible()
+  22 |   })
+  23 | 
+  24 |   test('can switch tabs via keyboard shortcuts', async ({ page }) => {
+  25 |     await page.goto('/')
+  26 |     // Press 's' for signals tab
+  27 |     await page.keyboard.press('s')
+  28 |     await page.waitForTimeout(200)
+  29 |     // The signals tab should be active
+  30 |     const signalsTab = page.getByRole('tab', { name: /Signals/i })
+  31 |     await expect(signalsTab).toHaveAttribute('aria-pressed', 'true')
+  32 |   })
+  33 | 
+  34 |   test('can toggle sidebar with Shift+\\', async ({ page }) => {
+  35 |     await page.goto('/')
+  36 |     // Press Shift+\ to collapse sidebar
+  37 |     await page.keyboard.press('Shift+\\')
+  38 |     await page.waitForTimeout(300)
+  39 |     // An expand button should appear
+  40 |     const expandButton = page.getByRole('button', { name: /Expand sidebar/i })
+  41 |     await expect(expandButton).toBeVisible()
+  42 |     // Click to expand again
+  43 |     await expandButton.click()
+  44 |     await page.waitForTimeout(200)
+  45 |     // Collapse button should reappear
+  46 |     const collapseButton = page.getByRole('button', { name: /Collapse sidebar/i })
+  47 |     await expect(collapseButton).toBeVisible()
+  48 |   })
+  49 | 
+  50 |   test('can navigate through all tabs', async ({ page }) => {
+  51 |     await page.goto('/')
+  52 |     const tabs = ['Account', 'Bots', 'Signals', 'Arb', 'Fills', 'History', 'Perf', 'BT']
+  53 |     for (const tabName of tabs) {
+  54 |       const tab = page.getByRole('tab', { name: new RegExp(tabName, 'i') })
+> 55 |       await tab.click()
+     |                 ^ Error: locator.click: Test timeout of 30000ms exceeded.
+  56 |       await page.waitForTimeout(100)
+  57 |       await expect(tab).toHaveAttribute('aria-pressed', 'true')
+  58 |     }
+  59 |   })
+  60 | 
+  61 |   test('order form shows trading state', async ({ page }) => {
+  62 |     await page.goto('/')
+  63 |     // The order form should be visible
+  64 |     const orderForm = page.locator('.bg-bg-800').filter({ has: page.locator('input[type="number"]') }).first()
+  65 |     await expect(orderForm).toBeVisible()
+  66 |     // Should have a submit button
+  67 |     const submitButton = orderForm.locator('button').last()
+  68 |     await expect(submitButton).toBeVisible()
+  69 |     // Button text should be either "Submit Order", "Not connected", or "Trading Stopped"
+  70 |     const buttonText = await submitButton.textContent()
+  71 |     expect(buttonText).toMatch(/Submit|Not connected|Trading Stopped/i)
+  72 |   })
+  73 | 
+  74 |   test('mock mode banner shows when in mock mode', async ({ page }) => {
+  75 |     await page.goto('/')
+  76 |     // In mock mode, the banner should be visible
+  77 |     // In real mode, it won't be — this test just checks the page loads
+  78 |     await expect(page.locator('header')).toBeVisible()
+  79 |   })
+  80 | 
+  81 |   test('panel settings toggle works', async ({ page }) => {
+  82 |     await page.goto('/')
+  83 |     // Find the Panels settings button
+  84 |     const panelsButton = page.getByText('Panels').first()
+  85 |     await panelsButton.click()
+  86 |     await page.waitForTimeout(200)
+  87 |     // The toggle panel settings should appear
+  88 |     await expect(page.getByText('Toggle Panels').first()).toBeVisible()
+  89 |   })
+  90 | })
+  91 | 
+```

@@ -10,13 +10,13 @@
 #pragma once
 
 #include "../utils/low_latency.h"
-#include <array>
 #include <algorithm>
+#include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
-#include <chrono>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace hft {
 
@@ -24,14 +24,14 @@ namespace hft {
 // Drawdown tracker — peak-to-trough, underwater curve
 // ─────────────────────────────────────────────────────────────────────────────
 class DrawdownTracker {
-public:
+  public:
     void update(double equity) noexcept {
         if (equity > peak_) {
             peak_ = equity;
         }
         current_dd_ = (peak_ > 0.0) ? (peak_ - equity) / peak_ : 0.0;
         if (current_dd_ > max_dd_) {
-            max_dd_ = current_dd_;
+            max_dd_      = current_dd_;
             max_dd_time_ = std::chrono::steady_clock::now();
         }
     }
@@ -47,15 +47,15 @@ public:
     }
 
     void reset() noexcept {
-        peak_ = 0.0;
+        peak_       = 0.0;
         current_dd_ = 0.0;
-        max_dd_ = 0.0;
+        max_dd_     = 0.0;
     }
 
-private:
-    double peak_{0.0};
-    double current_dd_{0.0};
-    double max_dd_{0.0};
+  private:
+    double                                peak_{0.0};
+    double                                current_dd_{0.0};
+    double                                max_dd_{0.0};
     std::chrono::steady_clock::time_point max_dd_time_{};
 };
 
@@ -63,26 +63,26 @@ private:
 // Portfolio risk — VaR, CVaR, stress testing
 // ─────────────────────────────────────────────────────────────────────────────
 class PortfolioRisk {
-public:
+  public:
     static constexpr size_t MAX_RETURNS = 1024;
 
     struct Position {
         std::string symbol;
-        double quantity;     // signed: + long, - short
-        double current_price;
-        double weight;       // portfolio weight (computed)
+        double      quantity; // signed: + long, - short
+        double      current_price;
+        double      weight; // portfolio weight (computed)
     };
 
     struct VaRResult {
-        double var_95;       // 95% VaR
-        double var_99;       // 99% VaR
-        double cvar_95;      // 95% CVaR (Expected Shortfall)
-        double cvar_99;      // 99% CVaR
+        double var_95;  // 95% VaR
+        double var_99;  // 99% VaR
+        double cvar_95; // 95% CVaR (Expected Shortfall)
+        double cvar_99; // 99% CVaR
     };
 
     struct StressScenario {
-        std::string name;
-        std::vector<std::pair<std::string, double>> shocks;  // symbol → pct shock
+        std::string                                 name;
+        std::vector<std::pair<std::string, double>> shocks; // symbol → pct shock
     };
 
     // Compute historical VaR from portfolio returns
@@ -108,11 +108,13 @@ public:
 
         // CVaR: average of tail beyond VaR
         double cvar_95 = 0.0;
-        for (size_t i = 0; i <= idx_95; ++i) cvar_95 += -sorted[i];
+        for (size_t i = 0; i <= idx_95; ++i)
+            cvar_95 += -sorted[i];
         cvar_95 /= static_cast<double>(idx_95 + 1);
 
         double cvar_99 = 0.0;
-        for (size_t i = 0; i <= idx_99; ++i) cvar_99 += -sorted[i];
+        for (size_t i = 0; i <= idx_99; ++i)
+            cvar_99 += -sorted[i];
         cvar_99 /= static_cast<double>(idx_99 + 1);
 
         return {var_95, var_99, cvar_95, cvar_99};
@@ -128,7 +130,8 @@ public:
 
         // Mean and std
         double sum = 0.0;
-        for (size_t i = 0; i < n; ++i) sum += returns_[(start + i) % MAX_RETURNS];
+        for (size_t i = 0; i < n; ++i)
+            sum += returns_[(start + i) % MAX_RETURNS];
         double mean = sum / static_cast<double>(n);
 
         double sq_sum = 0.0;
@@ -158,17 +161,15 @@ public:
 
     // Run stress test on current positions
     struct StressResult {
-        double total_loss;
-        double worst_position_loss;
+        double      total_loss;
+        double      worst_position_loss;
         std::string worst_symbol;
     };
 
-    StressResult run_stress_test(
-        const std::vector<Position>& positions,
-        const StressScenario& scenario
-    ) const noexcept {
-        double total_loss = 0.0;
-        double worst_loss = 0.0;
+    StressResult run_stress_test(const std::vector<Position>& positions,
+                                 const StressScenario&        scenario) const noexcept {
+        double      total_loss = 0.0;
+        double      worst_loss = 0.0;
         std::string worst_symbol;
 
         for (const auto& pos : positions) {
@@ -181,11 +182,11 @@ public:
             }
             // Loss = position_value * shock
             double pos_value = pos.quantity * pos.current_price;
-            double loss = pos_value * shock;
+            double loss      = pos_value * shock;
             total_loss += loss;
 
             if (std::abs(loss) > std::abs(worst_loss)) {
-                worst_loss = loss;
+                worst_loss   = loss;
                 worst_symbol = pos.symbol;
             }
         }
@@ -195,12 +196,11 @@ public:
 
     // Correlation-adjusted exposure
     double correlation_adjusted_exposure(
-        const std::vector<Position>& positions,
-        const std::vector<std::vector<double>>& corr_matrix
-    ) const noexcept {
+        const std::vector<Position>&            positions,
+        const std::vector<std::vector<double>>& corr_matrix) const noexcept {
         // Adjusted exposure = sqrt(w' * Σ * w) * portfolio_value
         // Simplified: sum of |position_value| adjusted by average correlation
-        double total_exposure = 0.0;
+        double total_exposure  = 0.0;
         double total_abs_value = 0.0;
 
         for (const auto& pos : positions) {
@@ -211,7 +211,7 @@ public:
         // Average correlation adjustment
         if (positions.size() > 1u && !corr_matrix.empty()) {
             double avg_corr = 0.0;
-            size_t count = 0;
+            size_t count    = 0;
             for (size_t i = 0; i < positions.size() && i < corr_matrix.size(); ++i) {
                 for (size_t j = i + 1; j < positions.size() && j < corr_matrix[i].size(); ++j) {
                     avg_corr += std::abs(corr_matrix[i][j]);
@@ -220,7 +220,7 @@ public:
             }
             if (count > 0) avg_corr /= static_cast<double>(count);
             // Diversification benefit: adjusted = total * sqrt(1 + avg_corr * (n-1) / n)
-            double n = static_cast<double>(positions.size());
+            double n       = static_cast<double>(positions.size());
             total_exposure = total_abs_value * std::sqrt(1.0 + avg_corr * (n - 1.0) / n);
         } else {
             total_exposure = total_abs_value;
@@ -239,18 +239,19 @@ public:
     }
 
     static StressScenario correlation_breakdown() {
-        return {"Correlation Breakdown", {{"BTCUSDT", -0.08}, {"ETHUSDT", 0.05}, {"SOLUSDT", -0.03}}};
+        return {"Correlation Breakdown",
+                {{"BTCUSDT", -0.08}, {"ETHUSDT", 0.05}, {"SOLUSDT", -0.03}}};
     }
 
     // Drawdown tracker
-    DrawdownTracker& drawdown() noexcept { return drawdown_; }
+    DrawdownTracker&       drawdown() noexcept { return drawdown_; }
     const DrawdownTracker& drawdown() const noexcept { return drawdown_; }
 
     size_t return_count() const noexcept { return return_count_; }
 
-private:
+  private:
     alignas(64) std::array<double, MAX_RETURNS> returns_{};
-    size_t return_count_{0};
+    size_t          return_count_{0};
     DrawdownTracker drawdown_;
 };
 

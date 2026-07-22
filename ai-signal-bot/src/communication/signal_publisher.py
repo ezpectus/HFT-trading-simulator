@@ -51,7 +51,7 @@ class _EnsembleAdapter:
 class SignalPublisher:
     """WebSocket server broadcasting AI signals to connected HFT clients."""
 
-    def __init__(self, host: str = "0.0.0.0", port: int = 8766):
+    def __init__(self, host: str = "0.0.0.0", port: int = 8766):  # nosec: B104
         self.host = host
         self.port = port
         self._clients: set = set()

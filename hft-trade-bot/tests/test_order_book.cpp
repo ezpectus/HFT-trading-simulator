@@ -49,7 +49,7 @@ void test_add_levels() {
 void test_update_existing() {
     OrderBookManager<100> ob;
     ob.update_bid(100.0, 1.0);
-    ob.update_bid(100.0, 2.5);  // Update same level
+    ob.update_bid(100.0, 2.5); // Update same level
 
     assert(ob.bid_level_count() == 1);
     assert(ob.best_bid() == 100.0);
@@ -85,11 +85,11 @@ void test_depth_and_obi() {
 
     assert(ob.bid_depth(5) == 5.0);
     assert(ob.ask_depth(5) == 5.0);
-    assert(std::abs(ob.obi(5) - 0.0) < 1e-10);  // Equal depth
+    assert(std::abs(ob.obi(5) - 0.0) < 1e-10); // Equal depth
 
     // Make bid side heavier
     ob.update_bid(100.0, 10.0);
-    assert(ob.obi(5) > 0.0);  // More bid depth
+    assert(ob.obi(5) > 0.0); // More bid depth
 
     printf("  [PASS] test_depth_and_obi\n");
 }
@@ -117,15 +117,15 @@ void test_spread_regime() {
 
     // Tight spread (< 1 bp)
     ob.update_bid(10000.0, 1.0);
-    ob.update_ask(10000.5, 1.0);  // 0.5 spread on 10000 = 0.05 bp
+    ob.update_ask(10000.5, 1.0); // 0.5 spread on 10000 = 0.05 bp
     assert(ob.spread_regime() == SpreadRegime::TIGHT);
 
     // Normal spread
-    ob.update_ask(10005.0, 1.0);  // 5 spread on 10000 = 5 bp
+    ob.update_ask(10005.0, 1.0); // 5 spread on 10000 = 5 bp
     assert(ob.spread_regime() == SpreadRegime::NORMAL);
 
     // Wide spread
-    ob.update_ask(10300.0, 1.0);  // 300 spread on 10000 = 300 bp
+    ob.update_ask(10300.0, 1.0); // 300 spread on 10000 = 300 bp
     assert(ob.spread_regime() == SpreadRegime::EXTREME);
 
     printf("  [PASS] test_spread_regime\n");

@@ -6,34 +6,34 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import PriceAlerts from '../components/PriceAlerts'
 
-// Mock AudioContext
-const mockOscillator = {
-  connect: vi.fn(),
-  start: vi.fn(),
-  stop: vi.fn(),
-  frequency: { value: 0 },
-  type: '',
-}
-const mockGain = {
-  connect: vi.fn(),
-  gain: {
-    setValueAtTime: vi.fn(),
-    linearRampToValueAtTime: vi.fn(),
-    exponentialRampToValueAtTime: vi.fn(),
-  },
-}
-const mockAudioContext = {
-  currentTime: 0,
-  createOscillator: vi.fn(() => mockOscillator),
-  createGain: vi.fn(() => mockGain),
-  destination: {},
+// Mock AudioContext — must be a proper class to work with `new`
+class MockAudioContext {
+  constructor() {
+    this.currentTime = 0
+    this.destination = {}
+    this.createOscillator = vi.fn(() => ({
+      connect: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+      frequency: { value: 0 },
+      type: '',
+    }))
+    this.createGain = vi.fn(() => ({
+      connect: vi.fn(),
+      gain: {
+        setValueAtTime: vi.fn(),
+        linearRampToValueAtTime: vi.fn(),
+        exponentialRampToValueAtTime: vi.fn(),
+      },
+    }))
+  }
 }
 
 describe('PriceAlerts', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    window.AudioContext = vi.fn(() => mockAudioContext)
-    window.webkitAudioContext = undefined
+    window.AudioContext = MockAudioContext
+    window.webkitAudioContext = MockAudioContext
   })
 
   it('renders header label', () => {

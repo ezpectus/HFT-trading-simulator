@@ -22,7 +22,7 @@ static LatencyTracker make_tracker() {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("LatencyTracker initial stats are empty") {
     auto tracker = make_tracker();
-    auto stats = tracker.get_stats(LatencyStage::SIGNAL_TO_ORDER);
+    auto stats   = tracker.get_stats(LatencyStage::SIGNAL_TO_ORDER);
     CHECK(stats.count == 0);
     CHECK(stats.sum_us == 0);
     CHECK(stats.min_us == INT64_MAX);
@@ -103,7 +103,7 @@ TEST_CASE("Percentiles differentiate across bins") {
     // bin 0: 0-156250us, bin 1: 156250-312500us, etc.
     // 500us → bin 0, 200000us → bin 1, 500000us → bin 3
     for (int i = 0; i < 50; ++i) {
-        tracker.record(LatencyStage::MARKET_DATA_PROCESS, 500'000);     // bin 0
+        tracker.record(LatencyStage::MARKET_DATA_PROCESS, 500'000); // bin 0
     }
     for (int i = 0; i < 45; ++i) {
         tracker.record(LatencyStage::MARKET_DATA_PROCESS, 200'000'000); // bin 12ish → 200000us
@@ -121,25 +121,25 @@ TEST_CASE("Percentiles differentiate across bins") {
 // Budget enforcement
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("Budget alert fires when latency exceeds threshold") {
-    auto tracker = make_tracker();
-    int alert_count = 0;
+    auto         tracker     = make_tracker();
+    int          alert_count = 0;
     LatencyStage alert_stage{};
-    int64_t alert_us = 0;
-    double alert_threshold = 0.0;
+    int64_t      alert_us        = 0;
+    double       alert_threshold = 0.0;
 
     tracker.set_alert_callback([&](LatencyStage s, int64_t us, double threshold) {
         alert_count++;
-        alert_stage = s;
-        alert_us = us;
+        alert_stage     = s;
+        alert_us        = us;
         alert_threshold = threshold;
     });
 
-    tracker.set_budget(LatencyStage::ORDER_TO_ACK, 500.0);  // 500us budget
+    tracker.set_budget(LatencyStage::ORDER_TO_ACK, 500.0); // 500us budget
     // Under budget — no alert
-    tracker.record(LatencyStage::ORDER_TO_ACK, 100'000);  // 100us
+    tracker.record(LatencyStage::ORDER_TO_ACK, 100'000); // 100us
     CHECK(alert_count == 0);
     // Over budget — alert
-    tracker.record(LatencyStage::ORDER_TO_ACK, 1'000'000);  // 1000us
+    tracker.record(LatencyStage::ORDER_TO_ACK, 1'000'000); // 1000us
     CHECK(alert_count == 1);
     CHECK(alert_stage == LatencyStage::ORDER_TO_ACK);
     CHECK(alert_us == 1000);
@@ -147,13 +147,11 @@ TEST_CASE("Budget alert fires when latency exceeds threshold") {
 }
 
 TEST_CASE("Zero budget means no alerts") {
-    auto tracker = make_tracker();
-    int alert_count = 0;
-    tracker.set_alert_callback([&](LatencyStage, int64_t, double) {
-        alert_count++;
-    });
+    auto tracker     = make_tracker();
+    int  alert_count = 0;
+    tracker.set_alert_callback([&](LatencyStage, int64_t, double) { alert_count++; });
     // Default budget is 0 → no alerts
-    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 10'000'000'000LL);  // 10s
+    tracker.record(LatencyStage::SIGNAL_TO_ORDER, 10'000'000'000LL); // 10s
     CHECK(alert_count == 0);
 }
 
@@ -194,12 +192,12 @@ TEST_CASE("Summary includes stages with data") {
     auto s = tracker.summary();
     CHECK(s.find("SIGNAL_TO_ORDER") != std::string::npos);
     CHECK(s.find("ORDER_TO_ACK") != std::string::npos);
-    CHECK(s.find("ACK_TO_FILL") == std::string::npos);  // No data for this stage
+    CHECK(s.find("ACK_TO_FILL") == std::string::npos); // No data for this stage
 }
 
 TEST_CASE("Summary empty when no data") {
     auto tracker = make_tracker();
-    auto s = tracker.summary();
+    auto s       = tracker.summary();
     CHECK(s.empty());
 }
 
@@ -236,7 +234,8 @@ TEST_CASE("latency_stage_str returns correct names") {
     CHECK(std::string(latency_stage_str(LatencyStage::ACK_TO_FILL)) == "ACK_TO_FILL");
     CHECK(std::string(latency_stage_str(LatencyStage::SIGNAL_TO_FILL)) == "SIGNAL_TO_FILL");
     CHECK(std::string(latency_stage_str(LatencyStage::ORDER_TO_FILL)) == "ORDER_TO_FILL");
-    CHECK(std::string(latency_stage_str(LatencyStage::MARKET_DATA_PROCESS)) == "MARKET_DATA_PROCESS");
+    CHECK(std::string(latency_stage_str(LatencyStage::MARKET_DATA_PROCESS)) ==
+          "MARKET_DATA_PROCESS");
     CHECK(std::string(latency_stage_str(LatencyStage::RISK_CHECK)) == "RISK_CHECK");
     CHECK(std::string(latency_stage_str(LatencyStage::STRATEGY_COMPUTE)) == "STRATEGY_COMPUTE");
 }

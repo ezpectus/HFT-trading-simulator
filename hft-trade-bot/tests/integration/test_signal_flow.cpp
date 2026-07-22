@@ -1,14 +1,14 @@
 // Integration test: Signal → SHM → Execution → Fill flow
 // Tests the full pipeline from signal reception to order fill recording.
-#include <cassert>
-#include <iostream>
-#include <thread>
-#include <chrono>
-#include <atomic>
+#include "../src/data/aligned_types.h"
 #include "../src/ipc/shm_ring_buffer.h"
 #include "../src/monitoring/system_monitor.h"
 #include "../src/network/ws_client.h"
-#include "../src/data/aligned_types.h"
+#include <atomic>
+#include <cassert>
+#include <chrono>
+#include <iostream>
+#include <thread>
 
 using namespace hft;
 
@@ -17,21 +17,22 @@ void test_signal_to_fill_pipeline() {
 
     // 1. Create SHM ring buffers
     ShmRingBuffer<FastSignal, 1024> signal_buf("/hft_test_signals", true);
-    ShmRingBuffer<FastOrder, 1024> order_buf("/hft_test_orders", true);
+    ShmRingBuffer<FastOrder, 1024>  order_buf("/hft_test_orders", true);
 
     assert(signal_buf.size() == 0);
     assert(order_buf.size() == 0);
 
     // 2. Push a signal (simulating AI bot writing)
     FastSignal sig{};
-    sig.symbol_id = 1;
-    sig.direction = 1;  // LONG
-    sig.confidence = 85.0;
-    sig.entry_price = 50000.0;
-    sig.stop_loss = 49000.0;
-    sig.take_profit = 52000.0;
+    sig.symbol_id    = 1;
+    sig.direction    = 1; // LONG
+    sig.confidence   = 85.0;
+    sig.entry_price  = 50000.0;
+    sig.stop_loss    = 49000.0;
+    sig.take_profit  = 52000.0;
     sig.timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
+                           std::chrono::steady_clock::now().time_since_epoch())
+                           .count();
 
     assert(signal_buf.try_push(sig));
     assert(signal_buf.size() == 1);
@@ -46,13 +47,14 @@ void test_signal_to_fill_pipeline() {
 
     // 4. Create order from signal
     FastOrder order{};
-    order.symbol_id = received.symbol_id;
-    order.side = 1;  // BUY
-    order.quantity = 0.1;
-    order.price = received.entry_price;
-    order.type = 0;  // MARKET
+    order.symbol_id    = received.symbol_id;
+    order.side         = 1; // BUY
+    order.quantity     = 0.1;
+    order.price        = received.entry_price;
+    order.type         = 0; // MARKET
     order.timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
+                             std::chrono::steady_clock::now().time_since_epoch())
+                             .count();
 
     assert(order_buf.try_push(order));
     assert(order_buf.size() == 1);
@@ -104,7 +106,7 @@ void test_reconnection_flow() {
 void test_watchdog_timeout_flow() {
     std::cout << "  Testing watchdog timeout flow...\n";
 
-    net::Watchdog wd(50);  // 50ms timeout
+    net::Watchdog wd(50); // 50ms timeout
     assert(wd.is_alive());
 
     // Simulate no activity
@@ -134,7 +136,7 @@ void test_message_queue_backpressure() {
     assert(mq.try_pop(out));
     assert(out == "msg0");
     assert(mq.try_push("new_msg"));
-    assert(mq.dropped_count() == 1);  // Dropped count unchanged
+    assert(mq.dropped_count() == 1); // Dropped count unchanged
 
     std::cout << "  [PASS] Message queue backpressure test\n";
 }

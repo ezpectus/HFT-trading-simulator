@@ -65,11 +65,13 @@ class DPDKTransport:
         buffer_size: int = 1024 * 1024,  # 1MB
         rx_queue_size: int = 4096,
         tx_queue_size: int = 4096,
+        bind_addr: str = "127.0.0.1",
     ):
         self.port = port
         self.buffer_size = buffer_size
         self.rx_queue_size = rx_queue_size
         self.tx_queue_size = tx_queue_size
+        self.bind_addr = bind_addr
         self._initialized = False
         self._socket: socket.socket | None = None
         self._running = False
@@ -101,7 +103,7 @@ class DPDKTransport:
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.buffer_size)
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self.buffer_size)
-            self._socket.bind(("0.0.0.0", self.port))
+            self._socket.bind((self.bind_addr, self.port))  # codeql[py/bind-all-interfaces] configurable via constructor
             self._socket.setblocking(False)
             self._initialized = True
             return True

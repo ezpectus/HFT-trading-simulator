@@ -126,8 +126,8 @@ class KellyPositionSizer:
 
         # Cap at max risk percentage
         risk_pct = min(adjusted * 100, self.max_risk_pct)
-        # Apply min_risk_pct floor whenever there is a positive Kelly edge
-        if adjusted > 0:
+        # Apply min_risk_pct floor for a positive Kelly edge with reasonable confidence
+        if adjusted > 0 and confidence_factor >= 0.5:
             risk_pct = max(risk_pct, self.min_risk_pct)
 
         risk_amount = balance * risk_pct / 100.0

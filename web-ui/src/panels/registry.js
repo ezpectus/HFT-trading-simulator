@@ -582,7 +582,7 @@ export const PANELS = [
     props: (ctx) => ({ accounts: ctx.exchange.accounts, exchanges: ctx.EXCHANGES }) },
   { id: 'smart-router', name: 'Smart Order Router', category: 'portfolio', component: SmartOrderRouter,
     props: (ctx) => ({ candles: ctx.exchange.candles, orderbooks: ctx.exchange.orderbooks, symbols: ctx.SYMBOLS, exchanges: ctx.EXCHANGES, onSubmit: ctx.exchange.submitOrder }) },
-  { id: 'kelly', name: 'Kelly Criterion', category: 'portfolio', component: KellyCalculator,
+  { id: 'kelly-calc', name: 'Kelly Criterion', category: 'portfolio', component: KellyCalculator,
     props: (ctx) => ({ accounts: ctx.exchange.accounts }) },
   { id: 'greeks', name: 'Greeks Calculator', category: 'portfolio', component: GreeksCalculator,
     props: (ctx) => ({ currentPrice: ctx.currentPrice }) },

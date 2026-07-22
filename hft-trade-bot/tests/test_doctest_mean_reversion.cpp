@@ -61,11 +61,11 @@ TEST_CASE("MeanReversionV2 default config") {
 
 TEST_CASE("MeanReversionV2 custom config") {
     MeanReversionV2::Config cfg;
-    cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.min_samples       = 30;
+    cfg.ou_window         = 100;
     cfg.entry_z_threshold = 1.5;
     MeanReversionV2 mr(cfg);
-    auto sig = mr.on_price(0, 100.0);
+    auto            sig = mr.on_price(0, 100.0);
     CHECK(sig.action == MeanReversionV2::Signal::Action::NONE);
 }
 
@@ -75,7 +75,7 @@ TEST_CASE("MeanReversionV2 custom config") {
 TEST_CASE("MeanReversionV2 returns NONE before min_samples") {
     MeanReversionV2::Config cfg;
     cfg.min_samples = 50;
-    cfg.ou_window = 100;
+    cfg.ou_window   = 100;
     MeanReversionV2 mr(cfg);
     for (int i = 0; i < 30; ++i) {
         auto sig = mr.on_price(i * 1000000000ULL, 100.0 + i * 0.1);
@@ -97,7 +97,7 @@ TEST_CASE("MeanReversionV2 price_count increments") {
 TEST_CASE("MeanReversionV2 generates signal after warmup") {
     MeanReversionV2::Config cfg;
     cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.ou_window   = 100;
     MeanReversionV2 mr(cfg);
 
     // Feed stable prices around 100
@@ -111,8 +111,8 @@ TEST_CASE("MeanReversionV2 generates signal after warmup") {
 
 TEST_CASE("MeanReversionV2 ENTER_SHORT on price spike") {
     MeanReversionV2::Config cfg;
-    cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.min_samples       = 30;
+    cfg.ou_window         = 100;
     cfg.entry_z_threshold = 1.5;
     MeanReversionV2 mr(cfg);
 
@@ -124,21 +124,21 @@ TEST_CASE("MeanReversionV2 ENTER_SHORT on price spike") {
     auto sig = mr.on_price(50 * 1000000000ULL, 120.0);
     // Should generate ENTER_SHORT or STOP (price far above fair value)
     bool is_short = sig.action == MeanReversionV2::Signal::Action::ENTER_SHORT;
-    bool is_stop = sig.action == MeanReversionV2::Signal::Action::STOP;
+    bool is_stop  = sig.action == MeanReversionV2::Signal::Action::STOP;
     CHECK((is_short || is_stop));
 }
 
 TEST_CASE("MeanReversionV2 ENTER_LONG on price drop") {
     MeanReversionV2::Config cfg;
-    cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.min_samples       = 30;
+    cfg.ou_window         = 100;
     cfg.entry_z_threshold = 1.5;
     MeanReversionV2 mr(cfg);
 
     for (int i = 0; i < 50; ++i) {
         mr.on_price(i * 1000000000ULL, 100.0);
     }
-    auto sig = mr.on_price(50 * 1000000000ULL, 80.0);
+    auto sig     = mr.on_price(50 * 1000000000ULL, 80.0);
     bool is_long = sig.action == MeanReversionV2::Signal::Action::ENTER_LONG;
     bool is_stop = sig.action == MeanReversionV2::Signal::Action::STOP;
     CHECK((is_long || is_stop));
@@ -150,7 +150,7 @@ TEST_CASE("MeanReversionV2 ENTER_LONG on price drop") {
 TEST_CASE("MeanReversionV2 current_z_score tracks last signal") {
     MeanReversionV2::Config cfg;
     cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.ou_window   = 100;
     MeanReversionV2 mr(cfg);
 
     for (int i = 0; i < 50; ++i) {
@@ -164,7 +164,7 @@ TEST_CASE("MeanReversionV2 current_z_score tracks last signal") {
 TEST_CASE("MeanReversionV2 current_z_score non-zero after price deviation") {
     MeanReversionV2::Config cfg;
     cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.ou_window   = 100;
     MeanReversionV2 mr(cfg);
 
     for (int i = 0; i < 50; ++i) {
@@ -201,7 +201,7 @@ TEST_CASE("MeanReversionV2 Signal default values") {
 TEST_CASE("MeanReversionV2 signal has fair_price after warmup") {
     MeanReversionV2::Config cfg;
     cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.ou_window   = 100;
     MeanReversionV2 mr(cfg);
 
     for (int i = 0; i < 50; ++i) {
@@ -217,7 +217,7 @@ TEST_CASE("MeanReversionV2 signal has fair_price after warmup") {
 TEST_CASE("MeanReversionV2 confidence in valid range") {
     MeanReversionV2::Config cfg;
     cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.ou_window   = 100;
     MeanReversionV2 mr(cfg);
 
     for (int i = 0; i < 50; ++i) {
@@ -236,7 +236,7 @@ TEST_CASE("MeanReversionV2 confidence in valid range") {
 TEST_CASE("MeanReversionV2 OU params accessible after warmup") {
     MeanReversionV2::Config cfg;
     cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.ou_window   = 100;
     MeanReversionV2 mr(cfg);
 
     for (int i = 0; i < 50; ++i) {
@@ -254,7 +254,7 @@ TEST_CASE("MeanReversionV2 OU params accessible after warmup") {
 TEST_CASE("MeanReversionV2 reset clears state") {
     MeanReversionV2::Config cfg;
     cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.ou_window   = 100;
     MeanReversionV2 mr(cfg);
 
     for (int i = 0; i < 50; ++i) {
@@ -274,7 +274,7 @@ TEST_CASE("MeanReversionV2 reset clears state") {
 TEST_CASE("MeanReversionV2 half_life positive after warmup") {
     MeanReversionV2::Config cfg;
     cfg.min_samples = 30;
-    cfg.ou_window = 100;
+    cfg.ou_window   = 100;
     MeanReversionV2 mr(cfg);
 
     for (int i = 0; i < 50; ++i) {

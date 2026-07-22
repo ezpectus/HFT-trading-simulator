@@ -6,8 +6,8 @@
 
 #include "../data/aligned_types.h"
 #include "../data/types.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 namespace hft {
@@ -16,13 +16,13 @@ namespace hft {
 // PressureModel — analyzes L2 order book microstructure
 // ─────────────────────────────────────────────────────────────────────────────
 class PressureModel {
-public:
+  public:
     struct Params {
-        int obi_levels_5{5};
-        int obi_levels_10{10};
-        int obi_levels_20{20};
+        int    obi_levels_5{5};
+        int    obi_levels_10{10};
+        int    obi_levels_20{20};
         double toxic_size_threshold{5.0};   // Multiplier of median level size
-        int trade_flow_lookback{20};        // Number of recent trades
+        int    trade_flow_lookback{20};     // Number of recent trades
         double large_order_percentile{0.9}; // Top 10% = large
     };
 
@@ -32,14 +32,11 @@ public:
     // Main analysis — takes L2 order book + recent trade flow
     // trades: array of {buyer_initiated: bool, quantity: double}
     struct TradeTick {
-        bool buyer_initiated;
+        bool   buyer_initiated;
         double quantity;
     };
 
-    PressureResult analyze(
-        const OrderBook& ob,
-        const TradeTick* trades, size_t n_trades
-    ) noexcept {
+    PressureResult analyze(const OrderBook& ob, const TradeTick* trades, size_t n_trades) noexcept {
         PressureResult result{};
 
         if (ob.bids.empty() || ob.asks.empty()) [[unlikely]] {
@@ -47,21 +44,22 @@ public:
         }
 
         double mid = ob.mid_price();
-        if (mid <= 0) [[unlikely]] return result;
+        if (mid <= 0) [[unlikely]]
+            return result;
 
         // ── Spread regime ──
-        double spread = ob.spread();
-        result.spread_bps = spread / mid * 10000.0;
-        result.spread_regime =
-            result.spread_bps < 1.0 ? PressureResult::SpreadRegime::TIGHT :
-            result.spread_bps > 5.0 ? PressureResult::SpreadRegime::WIDE :
-            PressureResult::SpreadRegime::NORMAL;
+        double spread        = ob.spread();
+        result.spread_bps    = spread / mid * 10000.0;
+        result.spread_regime = result.spread_bps < 1.0   ? PressureResult::SpreadRegime::TIGHT
+                               : result.spread_bps > 5.0 ? PressureResult::SpreadRegime::WIDE
+                                                         : PressureResult::SpreadRegime::NORMAL;
 
         // ── Multi-level OBI — single pass for 5/10/20 levels ──
         // Previously 3 separate compute_obi() calls, each iterating from level 0.
         // Now: one loop, snapshot cumulative volumes at 5, 10, 20.
         {
-            int n = std::min(params_.obi_levels_20, static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
+            int    n       = std::min(params_.obi_levels_20,
+                                      static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
             double bid_vol = 0.0, ask_vol = 0.0;
             for (int i = 0; i < n; ++i) {
                 bid_vol += ob.bids[i].quantity;
@@ -83,11 +81,10 @@ public:
                 result.obi_5 = result.obi_10 = result.obi_20 =
                     total > 0 ? (bid_vol - ask_vol) / total : 0.0;
             } else if (n < params_.obi_levels_10) {
-                double total = bid_vol + ask_vol;
-                result.obi_10 = result.obi_20 =
-                    total > 0 ? (bid_vol - ask_vol) / total : 0.0;
+                double total  = bid_vol + ask_vol;
+                result.obi_10 = result.obi_20 = total > 0 ? (bid_vol - ask_vol) / total : 0.0;
             } else if (n < params_.obi_levels_20) {
-                double total = bid_vol + ask_vol;
+                double total  = bid_vol + ask_vol;
                 result.obi_20 = total > 0 ? (bid_vol - ask_vol) / total : 0.0;
             }
         }
@@ -111,17 +108,13 @@ public:
         // ── Price impact prediction ──
         // impact = obi*2 + trade_imbalance*1.5 + microprice_dev*0.5 (bps)
         result.predicted_impact =
-            result.obi_weighted * 2.0 +
-            result.trade_imbalance * 1.5 +
-            result.microprice_dev * 0.5;
+            result.obi_weighted * 2.0 + result.trade_imbalance * 1.5 + result.microprice_dev * 0.5;
 
         return result;
     }
 
     // Convenience: analyze with just order book (no trade flow)
-    PressureResult analyze(const OrderBook& ob) noexcept {
-        return analyze(ob, nullptr, 0);
-    }
+    PressureResult analyze(const OrderBook& ob) noexcept { return analyze(ob, nullptr, 0); }
 
     // Get the weighted OBI for use by signal engine
     double get_obi_weighted(const OrderBook& ob) noexcept {
@@ -131,16 +124,16 @@ public:
     // Get pressure score for signal engine
     double get_pressure_score(const OrderBook& ob, const TradeTick* trades, size_t n) noexcept {
         double obi = compute_weighted_obi(ob, params_.obi_levels_20);
-        double ti = compute_trade_imbalance(trades, n);
+        double ti  = compute_trade_imbalance(trades, n);
         // Combined pressure: OBI + trade flow
         return obi * 0.6 + ti * 0.4;
     }
 
-private:
+  private:
     // ── OBI at N levels ──
     static inline double compute_obi(const OrderBook& ob, int levels) noexcept {
         double bid_vol = 0.0, ask_vol = 0.0;
-        int n = std::min(levels, static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
+        int    n = std::min(levels, static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
         for (int i = 0; i < n; ++i) {
             bid_vol += ob.bids[i].quantity;
             ask_vol += ob.asks[i].quantity;
@@ -153,7 +146,7 @@ private:
     static inline double compute_weighted_obi(const OrderBook& ob, int levels) noexcept {
         double bid_w = 0.0, ask_w = 0.0;
         double total_w = 0.0;
-        int n = std::min(levels, static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
+        int    n = std::min(levels, static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
         for (int i = 0; i < n; ++i) {
             // Weight = 1 / (1 + i) — linear decay
             double w = 1.0 / (1.0 + i);
@@ -171,15 +164,18 @@ private:
         if (!trades || n == 0) return 0.0;
         double buy_vol = 0.0, sell_vol = 0.0;
         for (size_t i = 0; i < n; ++i) {
-            if (trades[i].buyer_initiated) buy_vol += trades[i].quantity;
-            else sell_vol += trades[i].quantity;
+            if (trades[i].buyer_initiated)
+                buy_vol += trades[i].quantity;
+            else
+                sell_vol += trades[i].quantity;
         }
         double total = buy_vol + sell_vol;
         return total > 0 ? (buy_vol - sell_vol) / total : 0.0;
     }
 
     // ── Toxicity detection — large aggressive orders → toxic score [0, 1] ──
-    double compute_toxicity(const OrderBook& /*ob*/, const TradeTick* trades, size_t n) const noexcept {
+    double compute_toxicity(const OrderBook& /*ob*/, const TradeTick* trades,
+                            size_t n) const noexcept {
         if (!trades || n == 0) return 0.0;
 
         // Compute median trade size
@@ -187,9 +183,10 @@ private:
 
         // Simple approach: count trades that are > toxic_size_threshold × median
         // and are aggressive (buyer_initiated hitting asks or seller hitting bids)
-        double sizes[64];  // Stack-allocated, max 64 trades
+        double sizes[64]; // Stack-allocated, max 64 trades
         size_t count = std::min(n, static_cast<size_t>(64));
-        for (size_t i = 0; i < count; ++i) sizes[i] = trades[i].quantity;
+        for (size_t i = 0; i < count; ++i)
+            sizes[i] = trades[i].quantity;
 
         // Partial sort for median
         std::nth_element(sizes, sizes + count / 2, sizes + count);
@@ -198,7 +195,7 @@ private:
         if (median <= 0) return 0.0;
 
         double toxic_threshold = median * params_.toxic_size_threshold;
-        int toxic_count = 0;
+        int    toxic_count     = 0;
 
         // Single pass: count toxic trades + accumulate volumes
         double toxic_vol = 0.0, total_vol = 0.0;
@@ -212,7 +209,7 @@ private:
 
         // Toxic score: ratio of toxic trades to total, scaled by size ratio
         double toxic_ratio = static_cast<double>(toxic_count) / static_cast<double>(count);
-        double size_ratio = total_vol > 0 ? toxic_vol / total_vol : 0.0;
+        double size_ratio  = total_vol > 0 ? toxic_vol / total_vol : 0.0;
 
         // Combined: 0.5 * count_ratio + 0.5 * volume_ratio
         return std::min(1.0, toxic_ratio * 0.5 + size_ratio * 0.5);
@@ -222,15 +219,15 @@ private:
     // Microprice = (bid_price * ask_vol + ask_price * bid_vol) / (bid_vol + ask_vol)
     static inline double compute_microprice_dev(const OrderBook& ob) noexcept {
         if (ob.bids.empty() || ob.asks.empty()) return 0.0;
-        double bb = ob.bids[0].price;
-        double ba = ob.asks[0].price;
-        double bv = ob.bids[0].quantity;
-        double av = ob.asks[0].quantity;
+        double bb        = ob.bids[0].price;
+        double ba        = ob.asks[0].price;
+        double bv        = ob.bids[0].quantity;
+        double av        = ob.asks[0].quantity;
         double total_vol = bv + av;
         if (total_vol <= 0) return 0.0;
 
         double microprice = (bb * av + ba * bv) / total_vol;
-        double mid = (bb + ba) / 2.0;
+        double mid        = (bb + ba) / 2.0;
         return mid > 0 ? (microprice - mid) / mid * 10000.0 : 0.0;
     }
 
@@ -240,9 +237,9 @@ private:
     static inline double estimate_queue_position(const OrderBook& ob, bool is_bid) noexcept {
         if (ob.bids.empty() || ob.asks.empty()) return 1.0;
 
-        double best_size = is_bid ? ob.bids[0].quantity : ob.asks[0].quantity;
+        double best_size  = is_bid ? ob.bids[0].quantity : ob.asks[0].quantity;
         double total_size = 0.0;
-        int n = std::min(10, static_cast<int>(is_bid ? ob.bids.size() : ob.asks.size()));
+        int    n = std::min(10, static_cast<int>(is_bid ? ob.bids.size() : ob.asks.size()));
         for (int i = 0; i < n; ++i) {
             total_size += is_bid ? ob.bids[i].quantity : ob.asks[i].quantity;
         }

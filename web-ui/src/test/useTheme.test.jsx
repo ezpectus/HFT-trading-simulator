@@ -86,11 +86,11 @@ describe('useTheme', () => {
       result.current.toggleTheme()
     })
 
-    expect(localStorage.getItem('trading-sim-theme')).toBe('light')
+    expect(localStorage.getItem('trading-sim-theme')).toBe(JSON.stringify('light'))
   })
 
   it('restores theme from localStorage on init', () => {
-    localStorage.setItem('trading-sim-theme', 'light')
+    localStorage.setItem('trading-sim-theme', JSON.stringify('light'))
 
     const { result } = renderHook(() => useTheme())
     expect(result.current.theme).toBe('light')

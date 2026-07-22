@@ -20,9 +20,10 @@ function correlation(a, b) {
 export default function PositionCorrelation({ accounts, candles, exchange }) {
   const matrix = useMemo(() => {
     const acc = accounts?.[exchange]
-    if (!acc?.positions || acc.positions.length < 2) return null
+    const allPositions = Object.values(acc?.positions || {})
+    if (allPositions.length < 2) return null
 
-    const positions = acc.positions.filter(p => p.quantity > 0)
+    const positions = allPositions.filter(p => p.quantity > 0)
     if (positions.length < 2) return null
 
     // Get price series for each position's symbol

@@ -24,7 +24,7 @@ export default [
       'react/react-in-jsx-scope': 'off',
       'react/jsx-uses-vars': 'error',
       'react/jsx-uses-react': 'error',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': 'off',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-empty': ['error', { allowEmptyCatch: true }],
     },

@@ -4,22 +4,22 @@
 // V2: Production pre-trade checks (exposure, rate throttle, margin, blacklist, leverage)
 #pragma once
 
-#include "../data/types.h"
 #include "../data/signal.h"
+#include "../data/types.h"
 #include "../utils/low_latency.h"
-#include <vector>
-#include <string>
-#include <unordered_set>
-#include <unordered_map>
 #include <atomic>
 #include <chrono>
-#include <mutex>
 #include <cmath>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace hft {
 
 class RiskManager {
-public:
+  public:
     struct Params {
         // V1 signal-level params
         double max_risk_per_trade_pct{2.0};
@@ -27,14 +27,14 @@ public:
         double min_confidence{65.0};
         double min_rr_ratio{1.5};
         double max_position_size_pct{10.0};
-        int max_open_positions{3};
+        int    max_open_positions{3};
 
         // V2 production params
         double max_position_qty{10.0};       // Max qty per symbol
         double max_total_exposure{100000.0}; // Max total notional (USD)
         double daily_loss_limit{5000.0};     // Max daily loss (USD) — kill switch
         double max_drawdown_pct{0.15};       // 15% max drawdown from peak equity
-        int max_orders_per_second{50};       // Order rate throttle
+        int    max_orders_per_second{50};    // Order rate throttle
         double min_margin_ratio{0.05};       // 5% minimum margin ratio
         double max_leverage{20};             // Max leverage allowed
 
@@ -48,10 +48,10 @@ public:
     explicit RiskManager(const Params& params) : params_(params) {}
 
     struct CheckResult {
-        bool passed{false};
+        bool        passed{false};
         std::string reason;
-        int code{0};  // 0=OK, 1=max_position, 2=max_exposure, 3=daily_loss,
-                       // 4=rate_limit, 5=margin, 6=blacklisted, 7=max_leverage
+        int         code{0}; // 0=OK, 1=max_position, 2=max_exposure, 3=daily_loss,
+                             // 4=rate_limit, 5=margin, 6=blacklisted, 7=max_leverage
     };
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -84,7 +84,8 @@ public:
 
         // Daily drawdown check — only if we're in a drawdown
         if (daily_pnl_.load(std::memory_order_relaxed) < 0 && balance > 0) [[unlikely]] {
-            double drawdown_pct = std::abs(daily_pnl_.load(std::memory_order_relaxed)) / balance * 100.0;
+            double drawdown_pct =
+                std::abs(daily_pnl_.load(std::memory_order_relaxed)) / balance * 100.0;
             if (drawdown_pct >= params_.max_daily_drawdown_pct) [[unlikely]] {
                 return {false, "Daily drawdown limit reached", 3};
             }
@@ -94,16 +95,9 @@ public:
     }
 
     // V2: Production pre-trade check — call before every order submission
-    CheckResult check_order(
-        const std::string& symbol,
-        const std::string& side,
-        double quantity,
-        double price,
-        int leverage,
-        double current_equity,
-        double available_margin,
-        double current_position_qty
-    ) {
+    CheckResult check_order(const std::string& symbol, const std::string& side, double quantity,
+                            double price, int leverage, double current_equity,
+                            double available_margin, double current_position_qty) {
         std::lock_guard<std::mutex> lk(params_mutex_);
         // 1. Symbol blacklist
         if (params_.blacklisted_symbols.count(symbol)) {
@@ -117,7 +111,7 @@ public:
 
         // 3. Position size limit
         double max_qty = params_.max_position_qty;
-        auto it = params_.per_symbol_max_qty.find(symbol);
+        auto   it      = params_.per_symbol_max_qty.find(symbol);
         if (it != params_.per_symbol_max_qty.end()) {
             max_qty = it->second;
         }
@@ -135,7 +129,7 @@ public:
 
         // 4. Total exposure (notional)
         double order_notional = quantity * price;
-        double new_exposure = total_exposure_.load(std::memory_order_relaxed) + order_notional;
+        double new_exposure   = total_exposure_.load(std::memory_order_relaxed) + order_notional;
         if (new_exposure > params_.max_total_exposure) {
             return {false, "Total exposure exceeds limit", 2};
         }
@@ -155,18 +149,21 @@ public:
         }
 
         // 7. Order rate throttle (CAS-based to avoid check-then-act race)
-        auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count();
+        auto now_ns          = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                   std::chrono::steady_clock::now().time_since_epoch())
+                                   .count();
         auto window_start_ns = rate_window_start_ns_.load(std::memory_order_relaxed);
-        auto elapsed_ns = now_ns - window_start_ns;
+        auto elapsed_ns      = now_ns - window_start_ns;
         if (elapsed_ns >= 1'000'000'000) {
             // Try to reset the window — CAS ensures only one thread resets
             if (rate_window_start_ns_.compare_exchange_strong(window_start_ns, now_ns,
-                    std::memory_order_acq_rel, std::memory_order_relaxed)) {
+                                                              std::memory_order_acq_rel,
+                                                              std::memory_order_relaxed)) {
                 orders_this_second_.store(0, std::memory_order_relaxed);
             }
         }
-        if (orders_this_second_.fetch_add(1, std::memory_order_relaxed) >= params_.max_orders_per_second) {
+        if (orders_this_second_.fetch_add(1, std::memory_order_relaxed) >=
+            params_.max_orders_per_second) {
             return {false, "Order rate limit exceeded", 4};
         }
 
@@ -180,7 +177,7 @@ public:
     }
 
     double calculate_position_size(const Signal& signal, double balance) const {
-        double risk_amount = balance * params_.max_risk_per_trade_pct * 0.01;
+        double risk_amount   = balance * params_.max_risk_per_trade_pct * 0.01;
         double risk_per_unit = std::abs(signal.entry_price - signal.stop_loss);
         if (risk_per_unit <= 0) return 0.0;
 
@@ -194,8 +191,8 @@ public:
     }
 
     // V2: Update position tracking after fill
-    void on_fill(const std::string& /*symbol*/, const std::string& /*side*/,
-                 double qty, double price, double fee) {
+    void on_fill(const std::string& /*symbol*/, const std::string& /*side*/, double qty,
+                 double price, double fee) {
         total_exposure_.fetch_add(qty * price, std::memory_order_relaxed);
         daily_pnl_.fetch_sub(fee, std::memory_order_relaxed);
     }
@@ -207,8 +204,8 @@ public:
         daily_pnl_.store(realized_pnl + unrealized_pnl, std::memory_order_relaxed);
         double peak = peak_equity_.load(std::memory_order_relaxed);
         while (equity > peak) {
-            if (peak_equity_.compare_exchange_weak(peak, equity,
-                    std::memory_order_relaxed, std::memory_order_relaxed)) {
+            if (peak_equity_.compare_exchange_weak(peak, equity, std::memory_order_relaxed,
+                                                   std::memory_order_relaxed)) {
                 break;
             }
         }
@@ -242,19 +239,19 @@ public:
         return params_;
     }
 
-private:
-    mutable std::mutex params_mutex_;
-    Params params_;
+  private:
+    mutable std::mutex  params_mutex_;
+    Params              params_;
     std::atomic<double> daily_pnl_{0.0};
     std::atomic<double> total_exposure_{0.0};
     std::atomic<double> peak_equity_{0.0};
     static_assert(std::atomic<double>::is_always_lock_free,
                   "std::atomic<double> must be lock-free for HFT hot path");
-    std::atomic<int> orders_this_second_{0};
+    std::atomic<int>     orders_this_second_{0};
     std::atomic<int64_t> rate_window_start_ns_{
         std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count()
-    };
+            std::chrono::steady_clock::now().time_since_epoch())
+            .count()};
 };
 
 } // namespace hft

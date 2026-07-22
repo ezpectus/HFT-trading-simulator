@@ -1,8 +1,8 @@
 // Tests: Order state machine, partial fills, timeout, cancel-replace
 #include "../src/execution/order_manager.h"
 #include <cassert>
-#include <cstdio>
 #include <chrono>
+#include <cstdio>
 #include <thread>
 
 using namespace hft;
@@ -56,7 +56,7 @@ void test_order_partial_fill() {
 
 void test_order_full_fill() {
     OrderManager om;
-    uint64_t cid = om.create_order("BTCUSDT", "binance", Side::SELL, OrderType::MARKET, 1.0);
+    uint64_t     cid = om.create_order("BTCUSDT", "binance", Side::SELL, OrderType::MARKET, 1.0);
 
     om.on_fill(cid, 50100.0, 0.5);
     const OrderRecord* rec = om.get_order(cid);
@@ -93,12 +93,12 @@ void test_order_reject() {
 }
 
 void test_order_timeout() {
-    OrderManager om(100);  // 100ms timeout
-    bool timeout_called = false;
+    OrderManager om(100); // 100ms timeout
+    bool         timeout_called = false;
     om.set_timeout_callback([&](uint64_t) { timeout_called = true; });
 
     uint64_t cid = om.create_order("BTCUSDT", "binance", Side::BUY, OrderType::LIMIT, 1.0, 48000.0,
-                                    100 * 1'000'000);  // 100ms timeout
+                                   100 * 1'000'000); // 100ms timeout
 
     // Wait for timeout
     std::this_thread::sleep_for(std::chrono::milliseconds(150));
@@ -113,12 +113,12 @@ void test_order_timeout() {
 }
 
 void test_multiple_orders() {
-    OrderManager om;
+    OrderManager          om;
     std::vector<uint64_t> cids;
 
     for (int i = 0; i < 10; ++i) {
-        uint64_t cid = om.create_order("BTCUSDT", "binance", Side::BUY, OrderType::LIMIT,
-                                       1.0, 50000.0 - i);
+        uint64_t cid =
+            om.create_order("BTCUSDT", "binance", Side::BUY, OrderType::LIMIT, 1.0, 50000.0 - i);
         cids.push_back(cid);
     }
 
