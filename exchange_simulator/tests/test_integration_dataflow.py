@@ -3,14 +3,23 @@
 Tests the full pipeline: MarketSimulator → candle generation → order book →
 arbitrage detection → account management → order execution → position tracking.
 """
-import pytest
 import asyncio
 
-from exchange_simulator.market_simulator import MarketSimulator
+import pytest
+
 from exchange_simulator.arbitrage import ArbitrageDetector, ArbStatus
+from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.models import (
-    Candle, OrderBook, OrderBookLevel, Order, Side, OrderType, OrderStatus,
-    Account, Position, ClosedTrade,
+    Account,
+    Candle,
+    ClosedTrade,
+    Order,
+    OrderBook,
+    OrderBookLevel,
+    OrderStatus,
+    OrderType,
+    Position,
+    Side,
 )
 
 

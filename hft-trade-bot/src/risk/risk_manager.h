@@ -83,9 +83,9 @@ public:
         }
 
         // Daily drawdown check — only if we're in a drawdown
-        if (daily_pnl_ < 0) [[unlikely]] {
-            double drawdown_pct = std::abs(daily_pnl_) / balance * 100.0;
-            if (balance > 0 && drawdown_pct >= params_.max_daily_drawdown_pct) [[unlikely]] {
+        if (daily_pnl_.load(std::memory_order_relaxed) < 0 && balance > 0) [[unlikely]] {
+            double drawdown_pct = std::abs(daily_pnl_.load(std::memory_order_relaxed)) / balance * 100.0;
+            if (drawdown_pct >= params_.max_daily_drawdown_pct) [[unlikely]] {
                 return {false, "Daily drawdown limit reached", 3};
             }
         }
@@ -155,13 +155,13 @@ public:
         }
 
         // 7. Order rate throttle (CAS-based to avoid check-then-act race)
-        auto now = std::chrono::steady_clock::now();
-        auto window_start = rate_window_start_.load(std::memory_order_relaxed);
-        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-            now - window_start).count();
-        if (elapsed >= 1) {
+        auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+        auto window_start_ns = rate_window_start_ns_.load(std::memory_order_relaxed);
+        auto elapsed_ns = now_ns - window_start_ns;
+        if (elapsed_ns >= 1'000'000'000) {
             // Try to reset the window — CAS ensures only one thread resets
-            if (rate_window_start_.compare_exchange_strong(window_start, now,
+            if (rate_window_start_ns_.compare_exchange_strong(window_start_ns, now_ns,
                     std::memory_order_acq_rel, std::memory_order_relaxed)) {
                 orders_this_second_.store(0, std::memory_order_relaxed);
             }
@@ -187,6 +187,7 @@ public:
         double qty = risk_amount / risk_per_unit;
 
         double max_notional = balance * params_.max_position_size_pct * 0.01;
+        if (signal.entry_price <= 0) return 0.0;
         double max_qty = max_notional / signal.entry_price;
 
         return std::min(qty, max_qty);
@@ -250,8 +251,9 @@ private:
     static_assert(std::atomic<double>::is_always_lock_free,
                   "std::atomic<double> must be lock-free for HFT hot path");
     std::atomic<int> orders_this_second_{0};
-    std::atomic<std::chrono::steady_clock::time_point> rate_window_start_{
-        std::chrono::steady_clock::now()
+    std::atomic<int64_t> rate_window_start_ns_{
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count()
     };
 };
 

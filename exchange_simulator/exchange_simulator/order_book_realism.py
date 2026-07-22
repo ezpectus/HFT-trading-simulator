@@ -12,14 +12,14 @@ Features:
 
 from __future__ import annotations
 
-import numpy as np
+import logging
 import time
-from dataclasses import dataclass, field
-from typing import Optional
 from collections import deque
+from dataclasses import dataclass, field
 from enum import Enum
 
-import logging
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 
@@ -59,7 +59,7 @@ class PriceLevel:
         self.orders.append(order)
         self.total_visible_qty += order.visible_qty
 
-    def remove_order(self, order_id: int) -> Optional[BookOrder]:
+    def remove_order(self, order_id: int) -> BookOrder | None:
         for i, o in enumerate(self.orders):
             if o.order_id == order_id:
                 self.total_visible_qty -= o.visible_qty

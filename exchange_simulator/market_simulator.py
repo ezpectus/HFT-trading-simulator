@@ -6,7 +6,6 @@ not identical) to simulate real market conditions.
 """
 import math
 import random
-from typing import Optional
 
 from exchange_simulator.models import Candle, OrderBook, OrderBookLevel
 
@@ -26,10 +25,10 @@ class MarketSimulator:
         volatility: dict[str, float],
         timeframe_seconds: int = 300,
         drift: float = 0.0001,
-        seed: Optional[int] = 42,
+        seed: int | None = 42,
         warmup_candles: int = 200,
         order_book_depth: int = 20,
-        correlations: Optional[dict[tuple[str, str], float]] = None,
+        correlations: dict[tuple[str, str], float] | None = None,
     ):
         self.symbols = symbols
         self.exchanges = exchanges
@@ -98,7 +97,7 @@ class MarketSimulator:
             self._symbol_corr[symbol] = corr
 
         # News event state
-        self._news_event: Optional[dict] = None  # {symbol, intensity, remaining}
+        self._news_event: dict | None = None  # {symbol, intensity, remaining}
         self._news_interval = 200  # ~every 200 candles a random news event
         self._last_news_candle = 0
 
@@ -111,9 +110,14 @@ class MarketSimulator:
 
     def _warmup(self, n: int) -> None:
         for _ in range(n):
-            self._generate_candles()
+            self._generate_candles_inner()
 
-    def _generate_candles(self) -> None:
+    def generate_candles(self) -> list[Candle]:
+        """Generate one candle tick and return the latest candles for all exchange+symbol pairs."""
+        self._generate_candles_inner()
+        return self.get_latest_candles()
+
+    def _generate_candles_inner(self) -> None:
         """Generate one candle per symbol per exchange."""
         tf = self.timeframe_seconds
 
@@ -158,14 +162,14 @@ class MarketSimulator:
             z_idio = self.rng.gauss(0, 1)
             corr = self._symbol_corr.get(symbol, 0.5)
             z = corr * z_shared + math.sqrt(1.0 - corr * corr) * z_idio
-            
+
             # Apply news event volatility spike
             news_mult = 1.0
             news_drift = 0.0
             if self._news_event and self._news_event["symbol"] == symbol:
                 news_mult = self._news_event["intensity"]
                 news_drift = self._news_event["direction"] * 0.002  # directional bias during news
-            
+
             ret = self.drift + news_drift + sigma * news_mult * z
             new_base_price = base_price * math.exp(ret)
 
@@ -223,7 +227,7 @@ class MarketSimulator:
 
     def next_candle(self) -> list[Candle]:
         """Advance one timeframe and return all new candles."""
-        self._generate_candles()
+        self._generate_candles_inner()
         return self.get_latest_candles()
 
     def get_replay_candles(self, offset: int = 0) -> list[Candle]:
@@ -284,7 +288,7 @@ class MarketSimulator:
 
     def generate_order_book(self, exchange: str, symbol: str) -> OrderBook:
         """Generate a realistic order book around the current price.
-        
+
         Uses cached order book when available — only scales prices by the
         price change ratio and perturbs quantities slightly, avoiding
         order_book_depth * 4 random calls per tick.
@@ -303,7 +307,7 @@ class MarketSimulator:
                 ratio = mid_price / old_mid
                 cached.timestamp = self._current_ts
                 # Iterate bid+ask pairs together — one rng call per pair instead of two
-                for bid_level, ask_level in zip(cached.bids, cached.asks):
+                for bid_level, ask_level in zip(cached.bids, cached.asks, strict=False):
                     bid_level.price = round(bid_level.price * ratio, 2)
                     ask_level.price = round(ask_level.price * ratio, 2)
                     perturb = 0.9 + self.rng.random() * 0.2
@@ -333,8 +337,8 @@ class MarketSimulator:
             bids.append(OrderBookLevel(price=round(bid_price, 2), quantity=round(bid_qty, 4)))
             asks.append(OrderBookLevel(price=round(ask_price, 2), quantity=round(ask_qty, 4)))
 
-        bids.sort(key=lambda l: l.price, reverse=True)
-        asks.sort(key=lambda l: l.price)
+        bids.sort(key=lambda lvl: lvl.price, reverse=True)
+        asks.sort(key=lambda lvl: lvl.price)
 
         ob = OrderBook(
             symbol=symbol,
@@ -356,7 +360,7 @@ class MarketSimulator:
             ex: 0.0 for ex in self.exchanges
         }
 
-    def get_funding_history(self, exchange: Optional[str] = None, n: int = 100) -> list[dict]:
+    def get_funding_history(self, exchange: str | None = None, n: int = 100) -> list[dict]:
         """Return funding rate history. Optionally filter by exchange."""
         history = self._funding_history
         if exchange:
@@ -377,7 +381,7 @@ class MarketSimulator:
         """Candles remaining until next funding update."""
         return self._funding_interval - (self._candle_count % self._funding_interval)
 
-    def get_news_event(self) -> Optional[dict]:
+    def get_news_event(self) -> dict | None:
         """Return current active news event or None."""
         if self._news_event:
             return {
@@ -399,7 +403,7 @@ class MarketSimulator:
     def auto_check_weekend(self) -> bool:
         """Auto-detect weekend from current timestamp (Sat=5, Sun=6)."""
         import datetime
-        dt = datetime.datetime.fromtimestamp(self._current_ts, tz=datetime.timezone.utc)
+        dt = datetime.datetime.fromtimestamp(self._current_ts, tz=datetime.UTC)
         is_weekend = dt.weekday() >= 5
         self._weekend_mode = is_weekend
         return is_weekend

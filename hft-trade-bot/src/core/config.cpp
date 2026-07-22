@@ -81,6 +81,31 @@ static void validate_config(const Config& cfg) {
         spdlog::warn("Config: websocket_url '{}' should start with ws:// or wss://. "
                      "Set exchange.websocket_url in config.yaml", cfg.ws_url);
 
+    // Production risk limits
+    if (cfg.is_production) {
+        if (cfg.max_position_qty <= 0)
+            spdlog::warn("Config: max_position_qty={} should be positive", cfg.max_position_qty);
+        if (cfg.max_total_exposure <= 0)
+            spdlog::warn("Config: max_total_exposure={} should be positive", cfg.max_total_exposure);
+        if (cfg.daily_loss_limit <= 0)
+            spdlog::warn("Config: daily_loss_limit={} should be positive", cfg.daily_loss_limit);
+        if (cfg.max_orders_per_second <= 0)
+            spdlog::warn("Config: max_orders_per_second={} should be positive", cfg.max_orders_per_second);
+        if (cfg.max_leverage < 1)
+            spdlog::warn("Config: max_leverage={} should be >= 1", cfg.max_leverage);
+        if (cfg.min_margin_ratio < 0 || cfg.min_margin_ratio > 1)
+            spdlog::warn("Config: min_margin_ratio={} out of range [0, 1]", cfg.min_margin_ratio);
+        // Validate exchange fee ranges
+        for (const auto* ec : {&cfg.binance_cfg, &cfg.okx_cfg, &cfg.bybit_cfg}) {
+            if (ec->enabled) {
+                if (ec->maker_bps < 0 || ec->maker_bps > 100)
+                    spdlog::warn("Config: maker_bps={} out of range [0, 100]", ec->maker_bps);
+                if (ec->taker_bps < 0 || ec->taker_bps > 100)
+                    spdlog::warn("Config: taker_bps={} out of range [0, 100]", ec->taker_bps);
+            }
+        }
+    }
+
     spdlog::info("Config validated: {} symbols, {}s interval, max {} positions",
         cfg.symbols.size(), cfg.signal_interval_seconds, cfg.max_open_positions);
 }
@@ -305,7 +330,7 @@ Config Config::load(const std::string& path) {
             if (md["max_symbols"]) cfg.ipc_market_data_max_symbols = md["max_symbols"].as<int>();
         }
         if (auto ks = ipc["kill_switch"]) {
-            if (ks["shm_name"]) cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
+            if (ks["trigger_file"]) cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
             if (ks["poll_interval_ms"]) cfg.kill_switch_poll_interval_ms = ks["poll_interval_ms"].as<int>();
         }
     }
@@ -346,7 +371,8 @@ Config Config::load(const std::string& path) {
     // ─── Production: pressure model ───
     if (auto pm = root["pressure_model"]) {
         if (pm["enabled"]) cfg.pressure_model_enabled = pm["enabled"].as<bool>();
-        if (pm["toxicity_threshold"]) cfg.v2_toxic_penalty = pm["toxicity_threshold"].as<double>();
+        if (pm["toxicity_threshold"] || pm["toxic_penalty"])
+            cfg.v2_toxic_penalty = pm["toxicity_threshold"] ? pm["toxicity_threshold"].as<double>() : pm["toxic_penalty"].as<double>();
     }
 
     // ─── Production: smart order router ───
@@ -371,6 +397,7 @@ Config Config::load(const std::string& path) {
     if (auto ao = root["adaptive_order_selector"]) {
         if (ao["enabled"]) cfg.adaptive_order_enabled = ao["enabled"].as<bool>();
         if (ao["gtd_timeout_ms"]) cfg.adaptive_gtd_seconds = ao["gtd_timeout_ms"].as<int>() / 1000;
+        if (ao["gtd_seconds"]) cfg.adaptive_gtd_seconds = ao["gtd_seconds"].as<int>();
     }
 
     // ─── Production: risk (extended) ───
@@ -423,9 +450,9 @@ Config Config::load(const std::string& path) {
 
     // ─── Production: symbols (list of objects with name/id/max_leverage) ───
     if (auto syms = root["symbols"]) {
-        if (syms.IsSequence() && !syms[0]["name"]) {
+        if (syms.IsSequence() && !syms.empty() && !syms[0]["name"]) {
             // Dev format: simple string list
-        } else if (syms.IsSequence() && syms[0]["name"]) {
+        } else if (syms.IsSequence() && !syms.empty() && syms[0]["name"]) {
             // Prod format: list of objects
             cfg.symbols.clear();
             for (const auto& s : syms) {

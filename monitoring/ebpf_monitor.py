@@ -24,13 +24,12 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import ctypes
 import json
 import logging
 import signal
 import sys
 import time
-from typing import Dict, Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -111,9 +110,9 @@ class EBPFMonitor:
     def __init__(self, pid: int = 0, interval: float = 1.0):
         self.pid = pid
         self.interval = interval
-        self._bpf: Optional[object] = None
+        self._bpf: object | None = None
         self._running = False
-        self._stats: Dict[str, Any] = {
+        self._stats: dict[str, Any] = {
             "syscalls": {},
             "network": {},
             "latency_histogram": {},
@@ -198,7 +197,7 @@ class EBPFMonitor:
 
         print(json.dumps(report, indent=2))
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         return self._stats.copy()
 
 

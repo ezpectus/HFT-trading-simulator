@@ -4,6 +4,8 @@
 // Uses IExchange interface (DIP/SOLID) — no concrete exchange in core.
 #pragma once
 
+#include "../exchange/IExchange.h"
+#include "../exchange/ExchangeBase.h"
 #include "../data/aligned_types.h"
 #include "../data/types.h"
 #include "../utils/low_latency.h"
@@ -14,96 +16,9 @@
 #include <chrono>
 #include <cmath>
 #include <algorithm>
+#include <cstring>
 
 namespace hft {
-
-// ─────────────────────────────────────────────────────────────────────────────
-// IExchange interface — abstract exchange for dependency inversion
-// ─────────────────────────────────────────────────────────────────────────────
-class IExchange {
-public:
-    virtual ~IExchange() = default;
-
-    virtual const std::string& id() const = 0;
-    virtual double maker_fee_bps() const = 0;
-    virtual double taker_fee_bps() const = 0;
-    virtual int64_t estimated_latency_us() const = 0;
-
-    // Get best bid/ask for a symbol
-    virtual double best_bid(const std::string& symbol) const = 0;
-    virtual double best_ask(const std::string& symbol) const = 0;
-    virtual double mid_price(const std::string& symbol) const = 0;
-
-    // Get available depth at top of book
-    virtual double bid_depth(const std::string& symbol, int levels) const = 0;
-    virtual double ask_depth(const std::string& symbol, int levels) const = 0;
-
-    // Check if exchange is available (not in circuit breaker open state)
-    virtual bool is_available() const = 0;
-
-    // Record a toxic event
-    virtual void record_toxic_event() = 0;
-    virtual int toxic_event_count() const = 0;
-    virtual void reset_toxic_events() = 0;
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ExchangeBase — base implementation with latency tracking + toxic backoff
-// ─────────────────────────────────────────────────────────────────────────────
-class ExchangeBase : public IExchange {
-public:
-    ExchangeBase(std::string exchange_id, double maker_bps, double taker_bps)
-        : id_(std::move(exchange_id))
-        , maker_fee_(maker_bps)
-        , taker_fee_(taker_bps) {}
-
-    const std::string& id() const override { return id_; }
-    double maker_fee_bps() const override { return maker_fee_; }
-    double taker_fee_bps() const override { return taker_fee_; }
-
-    int64_t estimated_latency_us() const override {
-        return latency_avg_.load(std::memory_order_relaxed);
-    }
-
-    // Record observed latency (called after each exchange interaction)
-    void record_latency(int64_t us) noexcept {
-        // Exponential moving average with CAS to prevent lost updates
-        int64_t current = latency_avg_.load(std::memory_order_relaxed);
-        if (current == 0) {
-            latency_avg_.store(us, std::memory_order_relaxed);
-        } else {
-            int64_t next = current + (us - current) / 10;
-            while (!latency_avg_.compare_exchange_weak(current, next,
-                       std::memory_order_relaxed, std::memory_order_relaxed)) {
-                next = current + (us - current) / 10;
-            }
-        }
-    }
-
-    void record_toxic_event() override {
-        toxic_count_.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    int toxic_event_count() const override {
-        return toxic_count_.load(std::memory_order_relaxed);
-    }
-
-    void reset_toxic_events() override {
-        toxic_count_.store(0, std::memory_order_relaxed);
-    }
-
-    bool is_available() const override {
-        // Anti-toxic backoff: skip exchanges with ≥5 toxic events
-        return toxic_count_.load(std::memory_order_relaxed) < 5;
-    }
-
-protected:
-    std::string id_;
-    double maker_fee_;
-    double taker_fee_;
-    std::atomic<int64_t> latency_avg_{0};
-    std::atomic<int> toxic_count_{0};
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SmartOrderRouterV2 — routes orders to best exchange

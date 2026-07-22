@@ -1,11 +1,12 @@
 """Tests for data export module."""
 import csv
 import os
+
 import pytest
 
 from exchange_simulator.data_export import DataExporter
-from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.exchange import SimulatedExchange
+from exchange_simulator.market_simulator import MarketSimulator
 
 
 @pytest.fixture
@@ -40,7 +41,7 @@ class TestDataExporter:
         assert filepath.endswith(".csv")
 
         # Verify CSV content
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             assert len(rows) > 0
@@ -52,7 +53,7 @@ class TestDataExporter:
         exporter = DataExporter(exchanges, market, output_dir=str(tmp_path))
         filepath = exporter.export_candles(symbol="BTC/USDT")
         assert filepath != ""
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             for row in rows:
@@ -63,7 +64,7 @@ class TestDataExporter:
         exporter = DataExporter(exchanges, market, output_dir=str(tmp_path))
         filepath = exporter.export_candles(exchange="binance")
         assert filepath != ""
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             for row in rows:
@@ -74,7 +75,7 @@ class TestDataExporter:
         exporter = DataExporter(exchanges, market, output_dir=str(tmp_path))
         filepath = exporter.export_account_status()
         assert os.path.exists(filepath)
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             assert len(rows) == 2  # 2 exchanges
@@ -92,7 +93,7 @@ class TestDataExporter:
         exporter = DataExporter(exchanges, market, output_dir=str(tmp_path))
         filepath = exporter.export_summary()
         assert os.path.exists(filepath)
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             assert len(rows) == 1
@@ -116,7 +117,7 @@ class TestDataExporter:
     def test_export_creates_directory(self, setup_market):
         exchanges, market = setup_market
         export_dir = "test_exports_tmp"
-        exporter = DataExporter(exchanges, market, output_dir=export_dir)
+        DataExporter(exchanges, market, output_dir=export_dir)
         assert os.path.exists(export_dir)
         # Cleanup
         import shutil

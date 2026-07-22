@@ -108,7 +108,7 @@ public:
 
     // Append a tag=value pair (SOH is appended automatically)
     // Returns false if buffer overflow would occur.
-    [[nodiscard]] bool add_tag(int tag, std::string_view value) {
+    bool add_tag(int tag, std::string_view value) {
         // Calculate needed space: tag digits + '=' + value + SOH
         char tag_buf[16];
         int tag_len = int_to_chars(tag, tag_buf);
@@ -125,25 +125,27 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool add_tag(int tag, int value) {
+    bool add_tag(int tag, int value) {
         char tmp[16];
         int n = int_to_chars(value, tmp);
         return add_tag(tag, std::string_view(tmp, n));
     }
 
-    [[nodiscard]] bool add_tag(int tag, uint64_t value) {
+    bool add_tag(int tag, uint64_t value) {
         char tmp[24];
         int n = uint_to_chars(value, tmp);
         return add_tag(tag, std::string_view(tmp, n));
     }
 
-    [[nodiscard]] bool add_tag(int tag, double value, int precision = 8) {
+    bool add_tag(int tag, double value, int precision = 8) {
         char tmp[32];
         int n = std::snprintf(tmp, sizeof(tmp), "%.*f", precision, value);
+        if (n <= 0) return false;
+        n = std::min(n, static_cast<int>(sizeof(tmp) - 1));
         return add_tag(tag, std::string_view(tmp, static_cast<size_t>(n)));
     }
 
-    [[nodiscard]] bool add_tag(int tag, char value) {
+    bool add_tag(int tag, char value) {
         char tag_buf[16];
         int tag_len = int_to_chars(tag, tag_buf);
         size_t needed = static_cast<size_t>(tag_len) + 1 + 1 + 1;
@@ -168,6 +170,7 @@ public:
         size_t header_len = 2 + std::strlen(begin_string) + 1;  // "8=" + begin + SOH
         char body_len_buf[24];
         int bl_len = std::snprintf(body_len_buf, sizeof(body_len_buf), "%zu", len_);
+        if (bl_len <= 0) return {};
         header_len += 2 + static_cast<size_t>(bl_len) + 1;  // "9=" + len + SOH
         size_t checksum_len = 7;  // "10=NNN" + SOH
 

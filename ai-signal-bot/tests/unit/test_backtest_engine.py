@@ -1,9 +1,12 @@
 """Tests for BacktestEngine — run, enter/exit, metrics, edge cases."""
-import pytest
 import numpy as np
+import pytest
 
 from src.backtesting.backtest_engine import (
-    BacktestEngine, BacktestConfig, BacktestTrade, BacktestResult,
+    BacktestConfig,
+    BacktestEngine,
+    BacktestResult,
+    BacktestTrade,
 )
 
 

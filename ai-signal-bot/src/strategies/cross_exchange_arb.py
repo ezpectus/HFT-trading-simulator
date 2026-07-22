@@ -30,7 +30,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Dict, Optional, List, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -95,13 +94,13 @@ class CrossExchangeArbEngine:
 
     def __init__(
         self,
-        exchanges: Dict[str, object],
-        symbols: List[str] = None,
+        exchanges: dict[str, object],
+        symbols: list[str] | None = None,
         min_profit_bps: float = 5.0,
         max_position_usd: float = 1000.0,
         max_open_positions: int = 5,
         execution_timeout_s: float = 5.0,
-        taker_fee_bps: Dict[str, float] = None,
+        taker_fee_bps: dict[str, float] | None = None,
     ):
         self.exchanges = exchanges
         self.symbols = symbols or ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
@@ -115,9 +114,9 @@ class CrossExchangeArbEngine:
             "bybit": 6.0,    # 0.06%
         }
 
-        self.prices: Dict[str, Dict[str, ExchangePrice]] = {}
-        self.open_positions: List[ArbitrageOpportunity] = []
-        self.completed: List[ArbitrageOpportunity] = []
+        self.prices: dict[str, dict[str, ExchangePrice]] = {}
+        self.open_positions: list[ArbitrageOpportunity] = []
+        self.completed: list[ArbitrageOpportunity] = []
         self._running = False
         self._stats = {
             "opportunities_detected": 0,
@@ -153,13 +152,13 @@ class CrossExchangeArbEngine:
             except Exception as e:
                 logger.error(f"[CrossExArb] Monitor error for {symbol}: {e}")
 
-    def _detect_opportunity(self, symbol: str) -> Optional[ArbitrageOpportunity]:
+    def _detect_opportunity(self, symbol: str) -> ArbitrageOpportunity | None:
         """Detect best arbitrage opportunity for a symbol."""
         quotes = self.prices.get(symbol, {})
         if len(quotes) < 2:
             return None
 
-        best_opp: Optional[ArbitrageOpportunity] = None
+        best_opp: ArbitrageOpportunity | None = None
 
         for buy_ex, buy_quote in quotes.items():
             for sell_ex, sell_quote in quotes.items():
@@ -274,7 +273,7 @@ class CrossExchangeArbEngine:
                 f"time={opp.execution_time_ms:.0f}ms"
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             opp.error = "Execution timeout"
             opp.status = ArbStatus.FAILED
             self._stats["opportunities_failed"] += 1
@@ -283,7 +282,8 @@ class CrossExchangeArbEngine:
             opp.status = ArbStatus.FAILED
             self._stats["opportunities_failed"] += 1
         finally:
-            self.open_positions.remove(opp)
+            if opp in self.open_positions:
+                self.open_positions.remove(opp)
             self.completed.append(opp)
             if len(self.completed) > 100:
                 self.completed = self.completed[-50:]

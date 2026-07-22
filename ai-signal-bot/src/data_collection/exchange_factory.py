@@ -6,13 +6,11 @@ Supports multi-exchange and fallback from real to simulator.
 
 from __future__ import annotations
 
-import asyncio
-import time
-from dataclasses import dataclass
-from typing import Optional, Any, Protocol
-from enum import Enum
-
 import logging
+import time
+from enum import Enum
+from typing import Protocol
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,7 +29,7 @@ class ExchangeAdapter(Protocol):
     async def get_orderbook(self, symbol: str, depth: int = 10) -> dict: ...
     async def get_candles(self, symbol: str, timeframe: str = "1m", limit: int = 100) -> list[dict]: ...
     async def place_order(self, symbol: str, side: str, qty: float,
-                          order_type: str = "market", price: Optional[float] = None) -> Optional[dict]: ...
+                          order_type: str = "market", price: float | None = None) -> dict | None: ...
     async def cancel_order(self, order_id: str, symbol: str) -> bool: ...
     async def get_balance(self) -> list[dict]: ...
     async def get_positions(self) -> list[dict]: ...
@@ -63,7 +61,7 @@ class SimulatorAdapter:
         return []
 
     async def place_order(self, symbol: str, side: str, qty: float,
-                          order_type: str = "market", price: Optional[float] = None) -> Optional[dict]:
+                          order_type: str = "market", price: float | None = None) -> dict | None:
         return {"order_id": "sim_1", "symbol": symbol, "side": side, "status": "filled",
                 "qty": qty, "price": price or 50000.0}
 
@@ -84,7 +82,7 @@ class RealExchangeAdapter:
     """Exchange adapter wrapping real exchange connections."""
 
     def __init__(self, exchange: str = "binance", api_key: str = "", api_secret: str = "",
-                 testnet: bool = False):
+                 testnet: bool = False, symbols: list[str] | None = None):
         self.exchange_name = exchange
         self._market_data = None
         self._account = None
@@ -92,13 +90,15 @@ class RealExchangeAdapter:
         self._api_key = api_key
         self._api_secret = api_secret
         self._testnet = testnet
+        self._symbols = symbols or []
 
     async def initialize(self) -> None:
-        from src.data_collection.real_market_data import RealMarketDataManager
         from src.data_collection.real_account import RealAccountManager
+        from src.data_collection.real_market_data import RealMarketDataManager
 
         self._market_data = RealMarketDataManager(
-            exchange=self.exchange_name, api_key=self._api_key, api_secret=self._api_secret
+            exchange=self.exchange_name, api_key=self._api_key, api_secret=self._api_secret,
+            symbols=self._symbols,
         )
         self._account = RealAccountManager(
             exchange=self.exchange_name, api_key=self._api_key,
@@ -130,7 +130,7 @@ class RealExchangeAdapter:
         return await self._market_data.get_candles(symbol, timeframe, limit)
 
     async def place_order(self, symbol: str, side: str, qty: float,
-                          order_type: str = "market", price: Optional[float] = None) -> Optional[dict]:
+                          order_type: str = "market", price: float | None = None) -> dict | None:
         if not self._account:
             return None
         return await self._account.place_order(symbol, side, qty, order_type, price)
@@ -165,15 +165,17 @@ class ExchangeFactory:
                  exchange: str = "binance",
                  api_key: str = "", api_secret: str = "",
                  testnet: bool = False,
-                 simulator_url: str = "ws://localhost:8765"):
+                 simulator_url: str = "ws://localhost:8765",
+                 symbols: list[str] | None = None):
         self.mode = mode
         self.exchange = exchange
         self.api_key = api_key
         self.api_secret = api_secret
         self.testnet = testnet
         self.simulator_url = simulator_url
-        self._adapter: Optional[ExchangeAdapter] = None
-        self._simulator_adapter: Optional[SimulatorAdapter] = None
+        self.symbols = symbols or []
+        self._adapter: ExchangeAdapter | None = None
+        self._simulator_adapter: SimulatorAdapter | None = None
 
     async def create(self) -> ExchangeAdapter:
         """Create and initialize the appropriate exchange adapter."""
@@ -185,7 +187,8 @@ class ExchangeFactory:
         elif self.mode == ExchangeMode.REAL:
             self._adapter = RealExchangeAdapter(
                 exchange=self.exchange, api_key=self.api_key,
-                api_secret=self.api_secret, testnet=self.testnet
+                api_secret=self.api_secret, testnet=self.testnet,
+                symbols=self.symbols,
             )
             await self._adapter.initialize()
             return self._adapter
@@ -195,7 +198,8 @@ class ExchangeFactory:
             try:
                 self._adapter = RealExchangeAdapter(
                     exchange=self.exchange, api_key=self.api_key,
-                    api_secret=self.api_secret, testnet=self.testnet
+                    api_secret=self.api_secret, testnet=self.testnet,
+                    symbols=self.symbols,
                 )
                 await self._adapter.initialize()
                 # Verify health

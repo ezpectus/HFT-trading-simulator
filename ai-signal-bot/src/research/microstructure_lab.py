@@ -20,9 +20,9 @@ Usage:
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
+
 import numpy as np
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
@@ -59,16 +59,16 @@ class MicrostructureLab:
 
     def __init__(
         self,
-        trades: Optional[List[Dict]] = None,
-        book_snapshots: Optional[List[Dict]] = None,
-        price_history: Optional[np.ndarray] = None,
+        trades: list[dict] | None = None,
+        book_snapshots: list[dict] | None = None,
+        price_history: np.ndarray | None = None,
     ):
         self.trades = trades or []
         self.book_snapshots = book_snapshots or []
         self.price_history = price_history
         self.metrics = MicrostructureMetrics()
 
-    def compute_ofi(self) -> Tuple[np.ndarray, np.ndarray]:
+    def compute_ofi(self) -> tuple[np.ndarray, np.ndarray]:
         """Compute Order Flow Imbalance time series."""
         if not self.book_snapshots:
             return np.array([]), np.array([])
@@ -147,7 +147,7 @@ class MicrostructureLab:
         self.metrics.vpin = float(np.mean(vpin_values))
         return self.metrics.vpin
 
-    def compute_spread_metrics(self) -> Dict[str, float]:
+    def compute_spread_metrics(self) -> dict[str, float]:
         """Compute effective and realized spread."""
         if not self.book_snapshots:
             return {}
@@ -180,7 +180,7 @@ class MicrostructureLab:
             "spread_autocorrelation": self.metrics.spread_autocorrelation,
         }
 
-    def compute_trade_intensity(self) -> Dict[str, float]:
+    def compute_trade_intensity(self) -> dict[str, float]:
         """Estimate trade arrival rate and Hawkes process parameters."""
         if not self.trades:
             return {}

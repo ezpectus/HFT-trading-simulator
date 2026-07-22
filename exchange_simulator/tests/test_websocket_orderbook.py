@@ -1,10 +1,11 @@
 """Tests for WebSocket server order book broadcast."""
 import asyncio
 import json
+
 import pytest
 
-from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.exchange import SimulatedExchange
+from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.websocket_server import ExchangeWebSocketServer
 
 

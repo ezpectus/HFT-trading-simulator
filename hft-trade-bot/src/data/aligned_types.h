@@ -41,7 +41,7 @@ struct alignas(64) FastSignal {
 
     int64_t timestamp{0};            // nanoseconds since epoch
 
-    char symbol[16]{};               // Fixed-size, no heap alloc
+    char symbol[32]{};               // Fixed-size, no heap alloc (supports up to 31 chars)
     char reason[48]{};               // Short reason string
 
     // Composite score breakdown
@@ -96,7 +96,15 @@ struct alignas(64) FastSignal {
     }
 
     static int64_t now_ns() {
+        // Monotonic clock for latency measurements (not epoch time)
         auto tp = std::chrono::steady_clock::now();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(
+            tp.time_since_epoch()).count();
+    }
+
+    // Epoch nanoseconds for timestamps that need to compare with market data
+    static int64_t now_epoch_ns() {
+        auto tp = std::chrono::system_clock::now();
         return std::chrono::duration_cast<std::chrono::nanoseconds>(
             tp.time_since_epoch()).count();
     }
@@ -126,21 +134,21 @@ struct alignas(64) FastOrder {
     int64_t timestamp{0};
     int64_t expire_at{0};        // For GTD orders (ns since epoch)
 
-    char symbol[16]{};
-    char exchange[16]{};
+    char symbol[32]{};
+    char exchange[32]{};
     char client_order_id[32]{};  // Unique ID for idempotency
 
     uint8_t padding2_[16]{};
 
     void set_symbol(const char* s) {
         size_t i = 0;
-        while (s[i] && i < 15) { symbol[i] = s[i]; ++i; }
+        while (s[i] && i < 31) { symbol[i] = s[i]; ++i; }
         symbol[i] = '\0';
     }
 
     void set_exchange(const char* s) {
         size_t i = 0;
-        while (s[i] && i < 15) { exchange[i] = s[i]; ++i; }
+        while (s[i] && i < 31) { exchange[i] = s[i]; ++i; }
         exchange[i] = '\0';
     }
 
@@ -199,7 +207,7 @@ static_assert(sizeof(PressureResult) <= 192, "PressureResult should fit in 3 cac
 // Routing decision — output of smart order router
 // ─────────────────────────────────────────────────────────────────────────────
 struct alignas(64) RoutingDecision {
-    char exchange[16]{};
+    char exchange[32]{};
     double effective_price{0.0};  // Price after fees
     double fee_bps{0.0};
     int64_t latency_us{0};        // Estimated round-trip latency
@@ -220,7 +228,7 @@ struct alignas(64) RoutingDecision {
 
     void set_exchange(const char* s) {
         size_t i = 0;
-        while (s[i] && i < 15) { exchange[i] = s[i]; ++i; }
+        while (s[i] && i < 31) { exchange[i] = s[i]; ++i; }
         exchange[i] = '\0';
     }
 

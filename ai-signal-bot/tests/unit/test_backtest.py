@@ -1,10 +1,12 @@
 """Unit tests for backtesting engine."""
 
-import pytest
-from src.backtesting.backtest_engine import BacktestEngine, BacktestConfig, BacktestResult
-from src.backtesting.backtest_comparison import BacktestComparison
-from src.backtesting.walk_forward import WalkForwardAnalyzer
 import random
+
+import pytest
+
+from src.backtesting.backtest_comparison import BacktestComparison
+from src.backtesting.backtest_engine import BacktestConfig, BacktestEngine, BacktestResult
+from src.backtesting.walk_forward import WalkForwardAnalyzer
 
 
 def make_candles(n=200, start_price=50000.0, seed=42):
@@ -16,8 +18,8 @@ def make_candles(n=200, start_price=50000.0, seed=42):
         o = price
         c = price * (1 + ret)
         h = max(o, c) * (1 + abs(rng.gauss(0, 0.001)))
-        l = min(o, c) * (1 - abs(rng.gauss(0, 0.001)))
-        candles.append({"timestamp": i * 60, "open": o, "high": h, "low": l, "close": c, "volume": 100.0})
+        low = min(o, c) * (1 - abs(rng.gauss(0, 0.001)))
+        candles.append({"timestamp": i * 60, "open": o, "high": h, "low": low, "close": c, "volume": 100.0})
         price = c
     return candles
 

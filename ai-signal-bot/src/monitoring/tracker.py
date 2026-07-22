@@ -128,7 +128,7 @@ class TradeLogger:
 def print_dashboard(tracker: PerformanceTracker, positions: list[dict], prices: dict) -> None:
     """Print a summary dashboard to the terminal."""
     print(f"\n{'=' * 60}")
-    print(f"  AI SIGNAL BOT — Performance Dashboard")
+    print("  AI SIGNAL BOT — Performance Dashboard")
     print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'=' * 60}\n")
 

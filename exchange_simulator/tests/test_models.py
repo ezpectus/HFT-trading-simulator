@@ -1,9 +1,15 @@
 """Tests for data models — Candle, OrderBook, Order, Position, Account."""
-import pytest
-
 from exchange_simulator.models import (
-    Account, Candle, ClosedTrade, Order, OrderBook, OrderBookLevel,
-    OrderStatus, OrderType, Position, Side,
+    Account,
+    Candle,
+    ClosedTrade,
+    Order,
+    OrderBook,
+    OrderBookLevel,
+    OrderStatus,
+    OrderType,
+    Position,
+    Side,
 )
 
 

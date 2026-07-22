@@ -60,12 +60,20 @@ public:
         int64_t now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
             now.time_since_epoch()).count();
         int64_t last = last_refill_ns_.load(std::memory_order_relaxed);
+        if (now_ns <= last) return;
+
+        // CAS on last_refill_ns_ ensures only one thread performs the refill
+        if (!last_refill_ns_.compare_exchange_strong(last, now_ns,
+                std::memory_order_relaxed, std::memory_order_relaxed)) {
+            return;  // Another thread already refilled
+        }
+
         double elapsed = static_cast<double>(now_ns - last) / 1e9;
         if (elapsed <= 0.0) return;
 
         double add = elapsed * rate_;
 
-        // CAS loop: atomically update tokens_ to prevent lost refills under concurrency
+        // CAS loop: atomically update tokens_
         double current = tokens_.load(std::memory_order_relaxed);
         while (true) {
             double new_tokens = std::min(burst_, current + add);
@@ -73,10 +81,7 @@ public:
                     std::memory_order_relaxed, std::memory_order_relaxed)) {
                 break;
             }
-            // current was updated by CAS failure; retry with new value
         }
-
-        last_refill_ns_.store(now_ns, std::memory_order_relaxed);
     }
 
 private:

@@ -20,10 +20,8 @@ Response format:
     }
 """
 import asyncio
-import json
 import logging
 import time
-from typing import Optional
 
 import aiohttp
 from aiohttp import web
@@ -36,17 +34,17 @@ class HealthAggregator:
 
     def __init__(
         self,
-        services: Optional[dict[str, str]] = None,
+        services: dict[str, str] | None = None,
         port: int = 9092,
     ):
-        self.services = services or {
+        self.services = services if services is not None else {
             "ai-signal-bot": "http://localhost:9090/health",
             "exchange-simulator": "http://localhost:8775/health",
             "hft-trade-bot": "http://localhost:9091/health",
         }
         self.port = port
-        self._runner: Optional[web.AppRunner] = None
-        self._site: Optional[web.TCPSite] = None
+        self._runner: web.AppRunner | None = None
+        self._site: web.TCPSite | None = None
 
     async def _check_service(self, name: str, url: str) -> dict:
         """Check a single service health endpoint."""
@@ -68,7 +66,7 @@ class HealthAggregator:
                             "latency_ms": round(latency_ms, 2),
                             "http_status": resp.status,
                         }
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return {"status": "unhealthy", "error": "timeout"}
         except ConnectionRefusedError:
             return {"status": "unhealthy", "error": "connection refused"}
@@ -77,12 +75,19 @@ class HealthAggregator:
 
     async def _aggregate(self) -> dict:
         """Aggregate health from all services."""
+        if not self.services:
+            return {
+                "status": "healthy",
+                "services": {},
+                "timestamp": int(time.time()),
+            }
+
         tasks = [
             self._check_service(name, url)
             for name, url in self.services.items()
         ]
         results = await asyncio.gather(*tasks)
-        service_status = dict(zip(self.services.keys(), results))
+        service_status = dict(zip(self.services.keys(), results, strict=False))
 
         all_healthy = all(s["status"] == "healthy" for s in service_status.values())
         any_unhealthy = any(s["status"] == "unhealthy" for s in service_status.values())
@@ -98,9 +103,7 @@ class HealthAggregator:
     async def _handle_health(self, request: web.Request) -> web.Response:
         """HTTP handler for /health endpoint."""
         result = await self._aggregate()
-        status_code = 200 if result["status"] == "healthy" else (
-            503 if result["status"] == "unhealthy" else 200
-        )
+        status_code = 503 if result["status"] == "unhealthy" else 200
         return web.json_response(result, status=status_code)
 
     async def start(self) -> None:

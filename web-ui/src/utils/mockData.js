@@ -37,7 +37,7 @@ const BASE_PRICES = {
 }
 
 function gaussianRandom(mean = 0, std = 1) {
-  const u1 = Math.random(), u2 = Math.random()
+  const u1 = Math.max(1e-10, Math.random()), u2 = Math.random()
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
   return mean + z * std
 }

@@ -10,17 +10,21 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import socket
-import struct
-import sys
 import tempfile
 import time
-from typing import Optional, Callable, Awaitable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 SOH = '\x01'
+
+
+def _fix_timestamp() -> str:
+    """Generate FIX-format timestamp (tag 52) with millisecond precision."""
+    now = datetime.utcnow()
+    return now.strftime("%Y%m%d-%H:%M:%S.") + f"{now.microsecond // 1000:03d}"
 
 
 @dataclass
@@ -34,7 +38,7 @@ class FixMessage:
     """Parsed FIX message."""
     fields: dict[int, str] = field(default_factory=dict)
 
-    def get(self, tag: int) -> Optional[str]:
+    def get(self, tag: int) -> str | None:
         return self.fields.get(tag)
 
     def get_int(self, tag: int) -> int:
@@ -74,7 +78,7 @@ class FixMessage:
         return self.msg_type == 'W'
 
     @staticmethod
-    def parse(raw: bytes) -> 'FixMessage':
+    def parse(raw: bytes) -> FixMessage:
         """Parse raw FIX message bytes into FixMessage."""
         msg = FixMessage()
         text = raw.decode('ascii', errors='replace')
@@ -130,16 +134,16 @@ class FixSession:
         self.outgoing_seq = 1
         self.incoming_seq = 1
         self.state = "DISCONNECTED"
-        self._reader_task: Optional[asyncio.Task] = None
-        self._heartbeat_task: Optional[asyncio.Task] = None
-        self._writer: Optional[asyncio.StreamWriter] = None
+        self._reader_task: asyncio.Task | None = None
+        self._heartbeat_task: asyncio.Task | None = None
+        self._writer: asyncio.StreamWriter | None = None
         self._load_seq_nums()
 
         # Callbacks
-        self.on_execution_report: Optional[Callable[[FixMessage], Awaitable[None]]] = None
-        self.on_market_data: Optional[Callable[[FixMessage], Awaitable[None]]] = None
-        self.on_logon: Optional[Callable[[], Awaitable[None]]] = None
-        self.on_logout: Optional[Callable[[], Awaitable[None]]] = None
+        self.on_execution_report: Callable[[FixMessage], Awaitable[None]] | None = None
+        self.on_market_data: Callable[[FixMessage], Awaitable[None]] | None = None
+        self.on_logon: Callable[[], Awaitable[None]] | None = None
+        self.on_logout: Callable[[], Awaitable[None]] | None = None
 
     def _load_seq_nums(self):
         if os.path.exists(self.seq_file):
@@ -165,7 +169,7 @@ class FixSession:
             (49, self.sender_comp_id),
             (56, self.target_comp_id),
             (34, str(self.outgoing_seq)),
-            (52, time.strftime("%Y%m%d-%H:%M:%S.000000", time.gmtime())),
+            (52, _fix_timestamp()),
         ] + (extra_fields or [])
         msg = FixMessage.build(fields)
         self.outgoing_seq += 1
@@ -296,12 +300,13 @@ class FixSession:
 
                 # Parse complete messages (terminated by "10=XXX\x01")
                 while True:
-                    # Find checksum tag
-                    cs_idx = buf.find(b"10=")
+                    # Find checksum tag — must be preceded by SOH to avoid false matches in field values
+                    cs_idx = buf.find(b"\x0110=")
                     if cs_idx < 0:
                         break
+                    cs_idx += 1  # Point to the start of "10="
                     # Find SOH after checksum
-                    soh_idx = buf.find(SOH.encode('ascii'), cs_idx)
+                    soh_idx = buf.find(SOH.encode('ascii'), cs_idx + 3)
                     if soh_idx < 0:
                         break
 
@@ -313,7 +318,11 @@ class FixSession:
                     # Verify checksum
                     cs_pos = raw_msg.rfind(b"10=")
                     calc_cs = sum(raw_msg[:cs_pos]) % 256
-                    expected_cs = int(raw_msg[cs_pos+3:cs_idx+6-1].decode('ascii', errors='replace').strip())
+                    try:
+                        expected_cs = int(raw_msg[cs_pos+3:cs_pos+6].decode('ascii', errors='replace').strip())
+                    except ValueError:
+                        logger.warning("FIX checksum parse error — skipping message")
+                        continue
                     if calc_cs != expected_cs:
                         logger.warning(f"FIX checksum mismatch: calc={calc_cs} expected={expected_cs}")
                         continue

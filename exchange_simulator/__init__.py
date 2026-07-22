@@ -8,9 +8,9 @@ No real exchange API is used — this is a fully self-contained simulation
 designed for paper trading and strategy testing.
 """
 import importlib
+import logging
 import os
 import sys
-import logging
 
 _logger = logging.getLogger("exchange_simulator")
 

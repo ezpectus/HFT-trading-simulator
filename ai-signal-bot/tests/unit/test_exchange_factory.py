@@ -1,9 +1,13 @@
 """Tests for ExchangeFactory — simulator/real/fallback modes, adapter lifecycle."""
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from src.data_collection.exchange_factory import (
-    ExchangeFactory, ExchangeMode, SimulatorAdapter, RealExchangeAdapter,
+    ExchangeFactory,
+    ExchangeMode,
+    RealExchangeAdapter,
+    SimulatorAdapter,
 )
 
 

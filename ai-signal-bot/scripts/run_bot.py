@@ -4,16 +4,16 @@
 Usage: python scripts/run_bot.py [--strategy STRATEGY] [--paper] [--backtest]
 """
 
-import asyncio
 import argparse
-import sys
+import asyncio
 import os
+import sys
 
 _bot_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _bot_root not in sys.path:
     sys.path.insert(0, _bot_root)
 
-from src.utils.helpers import setup_logging, load_config, get_env
+from src.utils.helpers import get_env, load_config, setup_logging  # noqa: E402
 
 
 async def run_bot(args):
@@ -26,7 +26,6 @@ async def run_bot(args):
     logger.info(f"Starting AI Signal Bot (strategy={args.strategy}, paper={args.paper})")
 
     # Import and run the main bot
-    from src.strategies.strategies import TrendFollowingStrategy, MeanReversionStrategy, EnsembleStrategy
     from src.communication.signal_publisher import SignalPublisher
 
     publisher = SignalPublisher(ws_port=config.get("websocket_port", 8766))

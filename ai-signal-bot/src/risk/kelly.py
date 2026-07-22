@@ -56,7 +56,7 @@ class KellyPositionSizer:
         kelly_fraction: float = 0.5,    # 0.5 = half-Kelly
         max_risk_pct: float = 5.0,      # max % of balance to risk per trade
         min_risk_pct: float = 0.5,      # minimum risk per trade
-        max_position_pct: float = 20.0, # max % of balance for position notional
+        max_position_pct: float = 200.0, # max % of balance for position notional
     ):
         self.win_rate = win_rate
         self.avg_win = avg_win
@@ -120,14 +120,14 @@ class KellyPositionSizer:
         # Apply Kelly fraction (half-Kelly, quarter-Kelly, etc.)
         adjusted = raw_kelly * self.kelly_fraction
 
-        # Scale by confidence (optional)
-        adjusted *= max(0.1, min(1.0, confidence / 100.0)) if confidence > 1.0 else confidence
+        # Scale by confidence (optional). Confidence can be 0-1 or 0-100.
+        confidence_factor = max(0.1, min(1.0, confidence / 100.0)) if confidence > 1.0 else confidence
+        adjusted *= confidence_factor
 
         # Cap at max risk percentage
         risk_pct = min(adjusted * 100, self.max_risk_pct)
-        # Only apply min_risk_pct floor when Kelly edge is meaningful
-        # (avoids forcing large positions on near-zero edge signals)
-        if adjusted >= 0.01:
+        # Apply min_risk_pct floor whenever there is a positive Kelly edge
+        if adjusted > 0:
             risk_pct = max(risk_pct, self.min_risk_pct)
 
         risk_amount = balance * risk_pct / 100.0
@@ -144,13 +144,17 @@ class KellyPositionSizer:
 
         quantity = risk_amount / risk_per_unit
 
-        # Cap position notional
-        max_notional = balance * self.max_position_pct / 100.0
+        # Cap position notional, scaled by confidence
+        effective_max_position_pct = self.max_position_pct * confidence_factor
+        max_notional = balance * effective_max_position_pct / 100.0
         max_qty = max_notional / entry_price if entry_price > 0 else 0
         if quantity > max_qty:
             quantity = max_qty
             risk_amount = quantity * risk_per_unit
-            reason = f"Capped at max position {self.max_position_pct}%"
+            reason = (
+                f"Kelly: {raw_kelly:.3f} → {adjusted:.3f} "
+                f"(Capped at max position {effective_max_position_pct:.1f}%)"
+            )
         else:
             reason = f"Kelly: {raw_kelly:.3f} → {adjusted:.3f} (fraction={self.kelly_fraction})"
 

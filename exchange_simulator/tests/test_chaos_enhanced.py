@@ -20,6 +20,7 @@ Requirements:
     pip install websockets
 """
 
+import argparse
 import asyncio
 import json
 import os
@@ -27,8 +28,6 @@ import signal
 import subprocess
 import sys
 import time
-import argparse
-from typing import List, Dict, Optional, Tuple
 
 try:
     import websockets
@@ -39,7 +38,7 @@ except ImportError:
 
 class ChaosTestResult:
     def __init__(self):
-        self.steps: List[Tuple[str, bool, str]] = []
+        self.steps: list[tuple[str, bool, str]] = []
         self.passed = 0
         self.failed = 0
         self.warnings = 0
@@ -85,7 +84,7 @@ class ExchangeProcess:
     def __init__(self, project_root: str):
         self.project_root = project_root
         self.sim_dir = os.path.join(project_root, "exchange_simulator")
-        self.proc: Optional[subprocess.Popen] = None
+        self.proc: subprocess.Popen | None = None
         self.ws_url = "ws://localhost:8765"
 
     async def start(self) -> bool:
@@ -124,7 +123,7 @@ class ExchangeProcess:
             except subprocess.TimeoutExpired:
                 self.proc.terminate()
 
-    async def collect_messages(self, duration: float = 5.0) -> List[Dict]:
+    async def collect_messages(self, duration: float = 5.0) -> list[dict]:
         messages = []
         try:
             async with websockets.connect(self.ws_url) as ws:
@@ -134,13 +133,13 @@ class ExchangeProcess:
                     try:
                         msg = await asyncio.wait_for(ws.recv(), timeout=max(0.1, end - time.time()))
                         messages.append(json.loads(msg))
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         break
         except Exception:
             pass
         return messages
 
-    async def submit_order(self, symbol: str, side: str, qty: float, price: float) -> Optional[Dict]:
+    async def submit_order(self, symbol: str, side: str, qty: float, price: float) -> dict | None:
         try:
             async with websockets.connect(self.ws_url) as ws:
                 await ws.send(json.dumps({"type": "subscribe", "client": "chaos_test"}))
@@ -162,13 +161,13 @@ class ExchangeProcess:
                         data = json.loads(msg)
                         if data.get("type") in ("order_ack", "fill", "order_rejected"):
                             return data
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         break
         except Exception:
             return None
         return None
 
-    async def get_positions(self) -> List[Dict]:
+    async def get_positions(self) -> list[dict]:
         try:
             async with websockets.connect(self.ws_url) as ws:
                 await ws.send(json.dumps({"type": "subscribe", "client": "chaos_test"}))
@@ -179,7 +178,7 @@ class ExchangeProcess:
                         data = json.loads(msg)
                         if data.get("type") == "positions":
                             return data.get("data", {}).get("positions", [])
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         break
         except Exception:
             pass
@@ -278,7 +277,7 @@ async def scenario_kill_during_position(result: ChaosTestResult, exch: ExchangeP
                     if data.get("type") == "fill":
                         fill = data
                         break
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     break
             result.step("Position opened (fill received)", fill is not None,
                         f"price={fill.get('data', {}).get('price')}" if fill else "no fill")

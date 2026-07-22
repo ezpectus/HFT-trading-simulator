@@ -4,9 +4,10 @@ Tests cover: init success/failure, raw signal push, dict-to-signal conversion
 (symbol mapping, direction parsing, confidence scaling, leverage extraction),
 bulk push, pending count, close, and context manager usage.
 """
-import pytest
 import time
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from src.communication.shm_signal_producer import ShmSignalProducer
 
@@ -190,8 +191,9 @@ class TestPending:
 
 class TestClose:
     def test_close_unlinks_buffer(self, producer):
+        buf = producer._buffer
         producer.close()
-        producer._buffer.unlink.assert_called_once()
+        buf.unlink.assert_called_once()
         assert producer._buffer is None
 
     def test_close_without_buffer(self):

@@ -4,12 +4,16 @@ Tests cover: add/remove/enable/disable rules, check_rules with firing and not fi
 cooldown enforcement, exception in check_fn updates last_fired (regression),
 alert history, get_stats, disabled rules skipped.
 """
-import pytest
 import time
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from src.monitoring.alerting import (
-    AlertSystem, AlertRule, AlertSeverity, Alert,
+    Alert,
+    AlertRule,
+    AlertSeverity,
+    AlertSystem,
 )
 
 

@@ -10,13 +10,13 @@ Features:
 
 from __future__ import annotations
 
+import logging
 import time
-from dataclasses import dataclass, field
-from typing import Optional
 from collections import deque
+from dataclasses import dataclass
+
 import numpy as np
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -62,7 +62,7 @@ class FundingRateSimulator:
         return rate
 
     def check_and_apply_funding(self, perp_price: float, index_price: float,
-                                 current_time: Optional[float] = None) -> Optional[FundingRateEvent]:
+                                 current_time: float | None = None) -> FundingRateEvent | None:
         """Check if funding should be applied. Returns event if funding interval reached."""
         current_time = current_time if current_time is not None else time.time()
         hour_utc = int(time.gmtime(current_time).tm_hour)
@@ -91,9 +91,9 @@ class FundingRateSimulator:
         Positive = position pays, Negative = position receives.
         Long positions pay positive funding, short positions receive.
         """
-        return -position_qty * funding_rate
+        return position_qty * funding_rate
 
-    def get_next_funding_time(self, current_time: Optional[float] = None) -> float:
+    def get_next_funding_time(self, current_time: float | None = None) -> float:
         """Get timestamp of next funding event."""
         current_time = current_time if current_time is not None else time.time()
         gm = time.gmtime(current_time)

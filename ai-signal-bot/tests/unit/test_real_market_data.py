@@ -1,11 +1,15 @@
 """Tests for RealMarketDataFeed — data normalization, callbacks, reconnection config."""
-import pytest
 import asyncio
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from src.data_collection.real_market_data import (
-    NormalizedTicker, NormalizedCandle, NormalizedOrderBook, RealMarketDataFeed,
+    NormalizedCandle,
+    NormalizedOrderBook,
+    NormalizedTicker,
+    RealMarketDataFeed,
 )
 
 

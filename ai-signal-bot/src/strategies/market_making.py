@@ -9,23 +9,22 @@ Features:
 
 from __future__ import annotations
 
+import logging
 import math
-import time
-from dataclasses import dataclass, field
-from typing import Optional
 from collections import deque
+from dataclasses import dataclass
+
 import numpy as np
 
 from src.strategies.strategies import Signal, SignalDirection
 
-import logging
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class MarketMakingConfig:
     gamma: float = 0.1             # Risk aversion coefficient
-    sigma: float = 0.02            # Volatility (annualized)
+    sigma: float = 0.3             # Volatility (annualized)
     T: float = 1.0                 # Time horizon (normalized)
     k: float = 1.5                 # Order arrival intensity
     max_inventory: float = 5.0     # Max position size
@@ -54,7 +53,7 @@ class Quote:
 class MarketMakingStrategy:
     """Avellaneda-Stoikov market making with inventory skew."""
 
-    def __init__(self, config: MarketMakingConfig = None):
+    def __init__(self, config: MarketMakingConfig | None = None):
         self.config = config or MarketMakingConfig()
         self.name = "market_making"
         self.inventory: float = 0.0

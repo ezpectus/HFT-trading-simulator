@@ -19,15 +19,15 @@ Export:
 
 from __future__ import annotations
 
+import logging
+import random
+from collections import deque
+from dataclasses import dataclass
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-import logging
-from typing import Tuple, List, Optional
-from dataclasses import dataclass
-from collections import deque
-import random
 
 logger = logging.getLogger(__name__)
 
@@ -89,13 +89,13 @@ class ActorCritic(nn.Module):
             nn.Linear(hidden_dim // 2, 1),
         )
 
-    def forward(self, state: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         feats = self.features(state)
         logits = self.actor(feats)
         value = self.critic(feats)
         return F.softmax(logits, dim=-1), value
 
-    def get_action(self, state: torch.Tensor) -> Tuple[int, float, float]:
+    def get_action(self, state: torch.Tensor) -> tuple[int, float, float]:
         probs, value = self.forward(state.unsqueeze(0))
         dist = torch.distributions.Categorical(probs)
         action = dist.sample()
@@ -118,12 +118,12 @@ class PPOAgent:
         self.reset_buffer()
 
     def reset_buffer(self) -> None:
-        self.states: List[torch.Tensor] = []
-        self.actions: List[int] = []
-        self.log_probs: List[float] = []
-        self.rewards: List[float] = []
-        self.values: List[float] = []
-        self.dones: List[bool] = []
+        self.states: list[torch.Tensor] = []
+        self.actions: list[int] = []
+        self.log_probs: list[float] = []
+        self.rewards: list[float] = []
+        self.values: list[float] = []
+        self.dones: list[bool] = []
 
     def select_action(self, state: np.ndarray) -> int:
         state_t = torch.FloatTensor(state).to(self.device)
@@ -257,7 +257,7 @@ class DQNAgent:
             return {}
 
         batch = random.sample(self.buffer, self.config.dqn_batch_size)
-        states, actions, rewards, next_states, dones = zip(*batch)
+        states, actions, rewards, next_states, dones = zip(*batch, strict=False)
 
         states = torch.FloatTensor(np.array(states)).to(self.device)
         actions = torch.LongTensor(actions).to(self.device)
@@ -289,7 +289,6 @@ def export_rl_onnx(agent, config: RLConfig, output_path: str, algo: str = "ppo")
     """Export RL agent policy to ONNX."""
     try:
         if algo == "ppo":
-            model = agent.ac.features
             dummy = torch.randn(1, config.state_dim)
             torch.onnx.export(
                 agent.ac, dummy, output_path,

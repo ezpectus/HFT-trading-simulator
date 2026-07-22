@@ -264,7 +264,10 @@ private:
         std::lock_guard<std::mutex> lk(seq_mutex_);
         std::ifstream f(seq_file_path_);
         if (f) {
-            f >> outgoing_seq_ >> incoming_seq_;
+            uint32_t out_seq = 1, in_seq = 1;
+            f >> out_seq >> in_seq;
+            outgoing_seq_.store(out_seq, std::memory_order_relaxed);
+            incoming_seq_.store(in_seq, std::memory_order_relaxed);
         }
     }
 

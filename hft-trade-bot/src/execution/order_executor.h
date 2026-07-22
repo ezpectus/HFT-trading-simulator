@@ -7,12 +7,16 @@
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_client.hpp>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <functional>
 #include <mutex>
 #include <atomic>
 #include <cstdio>
 #include <memory>
+#include <algorithm>
+#include <thread>
+#include <chrono>
 
 namespace hft {
 
@@ -115,13 +119,17 @@ public:
         if (type == OrderType::LIMIT && n > 0 && n < static_cast<int>(sizeof(buf) - 32)) {
             n += std::snprintf(buf + n, sizeof(buf) - n, ",\"price\":%.2f", price);
         }
-        if (n > 0 && n < static_cast<int>(sizeof(buf) - 2)) {
+        if (n <= 0) [[unlikely]] {
+            spdlog::error("Order JSON serialization failed");
+            return;
+        }
+        if (n < static_cast<int>(sizeof(buf) - 2)) {
             buf[n++] = '}';
             buf[n] = '\0';
         }
 
         websocketpp::lib::error_code ec;
-        client_->send(connection_, std::string(buf, n), websocketpp::frame::opcode::text, ec);
+        client_->send(connection_, std::string(buf, static_cast<size_t>(n)), websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Failed to send order: {}", ec.message());
         } else {
@@ -140,8 +148,13 @@ public:
             "{\"type\":\"close_position\",\"exchange\":\"%s\",\"symbol\":\"%s\"}",
             exchange_id_.c_str(), symbol.c_str());
 
+        if (n <= 0) [[unlikely]] {
+            spdlog::error("Close position JSON serialization failed");
+            return;
+        }
+
         websocketpp::lib::error_code ec;
-        client_->send(connection_, std::string(buf, n), websocketpp::frame::opcode::text, ec);
+        client_->send(connection_, std::string(buf, static_cast<size_t>(n)), websocketpp::frame::opcode::text, ec);
         spdlog::info("Close position request: {} on {}", symbol, exchange_id_);
     }
 
@@ -173,14 +186,24 @@ public:
             "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
             sell_exchange.c_str(), symbol.c_str(), quantity);
 
+        if (bn <= 0) [[unlikely]] {
+            spdlog::error("Arb buy JSON serialization failed");
+            return;
+        }
+
         websocketpp::lib::error_code ec;
-        client_->send(connection_, std::string(buy_buf, bn), websocketpp::frame::opcode::text, ec);
+        client_->send(connection_, std::string(buy_buf, static_cast<size_t>(bn)), websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Arb buy order failed: {}", ec.message());
             return;
         }
 
-        client_->send(connection_, std::string(sell_buf, sn), websocketpp::frame::opcode::text, ec);
+        if (sn <= 0) [[unlikely]] {
+            spdlog::error("Arb sell JSON serialization failed");
+            return;
+        }
+
+        client_->send(connection_, std::string(sell_buf, static_cast<size_t>(sn)), websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Arb sell order failed: {}", ec.message());
             return;

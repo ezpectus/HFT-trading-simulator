@@ -24,7 +24,7 @@ import asyncio
 import logging
 import os
 import time
-from typing import Optional, Callable, Awaitable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class AlertEvent:
     symbol: str
     message: str
     timestamp: float = 0.0
-    data: dict = None
+    data: dict | None = None
 
     def __post_init__(self):
         if self.timestamp == 0.0:

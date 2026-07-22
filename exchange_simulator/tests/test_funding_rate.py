@@ -1,9 +1,12 @@
 """Tests for FundingRateSimulator — rate computation, interval detection, payments, history."""
-import pytest
 import time
 
+import pytest
+
 from exchange_simulator.funding_rate import (
-    FundingRateSimulator, FundingRateEvent, FUNDING_INTERVAL_SECONDS,
+    FUNDING_INTERVAL_SECONDS,
+    FundingRateEvent,
+    FundingRateSimulator,
 )
 
 

@@ -1,7 +1,7 @@
 """Tests for RiskManager — trailing stop, breakeven, partial TP, max hold."""
 import pytest
 
-from src.risk.risk_manager import RiskConfig, RiskManager, PositionRiskState
+from src.risk.risk_manager import PositionRiskState, RiskConfig, RiskManager
 
 
 @pytest.fixture
@@ -117,7 +117,7 @@ class TestBreakeven:
         rm.update(state, 101.0)
         assert state.breakeven_moved is True
         # Second update should not trigger breakeven again
-        actions = rm.update(state, 102.0)
+        rm.update(state, 102.0)
         # breakeven_moved is True, so _check_breakeven won't be called
         assert state.breakeven_moved is True
 

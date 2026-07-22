@@ -1,10 +1,15 @@
 """Tests for FFT analysis module."""
 import math
+
 import pytest
 
 from src.technical_analysis.fft_analysis import (
-    cycle_strength, dominant_cycles, fft_cycle_indicator,
-    fft_filter, power_spectrum, spectral_trend_score,
+    cycle_strength,
+    dominant_cycles,
+    fft_cycle_indicator,
+    fft_filter,
+    power_spectrum,
+    spectral_trend_score,
 )
 
 

@@ -1,10 +1,13 @@
 """Tests for communication CircuitBreaker and MetricsServer — signal protection and Prometheus metrics."""
-import pytest
-import time
 import asyncio
+import time
+
+import pytest
 
 from src.communication.circuit_breaker import (
-    CircuitBreaker, CircuitBreakerConfig, BreakerState,
+    BreakerState,
+    CircuitBreaker,
+    CircuitBreakerConfig,
 )
 from src.communication.metrics_server import MetricsCollector, MetricsServer
 

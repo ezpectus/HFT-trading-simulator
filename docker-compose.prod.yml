@@ -136,7 +136,13 @@ services:
       - backend
       - frontend
       - monitoring
-    deploy: (Python) — strategy signals + real market data ──
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+
+  # ── AI Signal Bot (Python) — strategy signals + real market data ──
   ai-signal-bot:
     build:
       context: ./ai-signal-bot

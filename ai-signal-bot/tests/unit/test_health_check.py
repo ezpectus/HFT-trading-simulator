@@ -3,10 +3,11 @@
 Tests cover: service health checks (healthy/degraded/unhealthy/timeout/error),
 aggregation logic, overall status computation, and HTTP handler behavior.
 """
-import pytest
 import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+
+import pytest
 
 from src.communication.health_check import HealthAggregator
 
@@ -72,7 +73,7 @@ class TestCheckServiceUnhealthy:
     @pytest.mark.asyncio
     async def test_timeout(self):
         ha = HealthAggregator()
-        with patch("aiohttp.ClientSession", side_effect=asyncio.TimeoutError()):
+        with patch("aiohttp.ClientSession", side_effect=TimeoutError()):
             result = await ha._check_service("test", "http://localhost/health")
         assert result["status"] == "unhealthy"
         assert result["error"] == "timeout"

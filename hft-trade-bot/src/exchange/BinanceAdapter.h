@@ -8,7 +8,7 @@
 // Implements IExchange interface.
 #pragma once
 
-#include "../execution/smart_order_router_v2.h"
+#include "ExchangeBase.h"
 #include "../data/aligned_types.h"
 #include "../utils/low_latency.h"
 #include <string>
@@ -74,6 +74,7 @@ public:
         std::lock_guard<Spinlock> lk(price_lock_);
         bids_[symbol] = bid;
         asks_[symbol] = ask;
+        std::lock_guard<Spinlock> lk2(depth_lock_);
         bid_depth_[symbol] = bid_qty;
         ask_depth_[symbol] = ask_qty;
     }
@@ -87,11 +88,13 @@ public:
         if (!bids.empty()) {
             std::lock_guard<Spinlock> lk(price_lock_);
             bids_[symbol] = bids[0].first;
+            std::lock_guard<Spinlock> lk2(depth_lock_);
             bid_depth_[symbol] = bids[0].second;
         }
         if (!asks.empty()) {
             std::lock_guard<Spinlock> lk(price_lock_);
             asks_[symbol] = asks[0].first;
+            std::lock_guard<Spinlock> lk2(depth_lock_);
             ask_depth_[symbol] = asks[0].second;
         }
     }
@@ -120,14 +123,17 @@ public:
 
     // Rate limiting
     bool can_send_order() {
-        auto now = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-            now - order_window_start_).count();
-        if (elapsed >= 10) {
-            order_window_start_ = now;
-            orders_in_window_ = 0;
+        auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+        auto window_ns = order_window_start_ns_.load(std::memory_order_relaxed);
+        auto elapsed_ns = now_ns - window_ns;
+        if (elapsed_ns >= 10'000'000'000) {
+            if (order_window_start_ns_.compare_exchange_strong(window_ns, now_ns,
+                    std::memory_order_relaxed, std::memory_order_relaxed)) {
+                orders_in_window_.store(0, std::memory_order_relaxed);
+            }
         }
-        return orders_in_window_.fetch_add(1) < 300;
+        return orders_in_window_.fetch_add(1, std::memory_order_relaxed) < 300;
     }
 
     // WebSocket stream URLs
@@ -174,7 +180,10 @@ private:
     std::unordered_map<std::string, double> bid_depth_;
     std::unordered_map<std::string, double> ask_depth_;
 
-    std::chrono::steady_clock::time_point order_window_start_{std::chrono::steady_clock::now()};
+    std::atomic<int64_t> order_window_start_ns_{
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count()
+    };
     std::atomic<int> orders_in_window_{0};
 };
 

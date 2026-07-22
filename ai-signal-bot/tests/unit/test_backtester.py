@@ -1,10 +1,12 @@
 """Tests for Backtester — run, position management, metrics, multi-strategy."""
-import pytest
 import numpy as np
+import pytest
 
 from src.backtesting.backtester import Backtester, BacktestResult, Trade
 from src.strategies.strategies import (
-    Signal, SignalDirection, TrendFollowingStrategy,
+    Signal,
+    SignalDirection,
+    TrendFollowingStrategy,
 )
 
 
@@ -69,7 +71,7 @@ class TestBacktesterRun:
         result = bt.run(candles, strategy, warmup=50)
         # Any open position should be closed at end
         # Check that trades with "END" reason exist if there was an open position
-        end_trades = [t for t in result.trades if t.exit_reason == "END"]
+        [t for t in result.trades if t.exit_reason == "END"]
         # Can't guarantee there's always one, but the logic should handle it
         assert isinstance(result.final_balance, float)
 
@@ -169,7 +171,7 @@ class TestMultiStrategy:
         ]
         results = bt.run_multi_strategy(candles, strategies, warmup=50)
         assert len(results) == 2
-        for name, result in results.items():
+        for _name, result in results.items():
             assert isinstance(result, BacktestResult)
 
     def test_print_comparison(self, capsys):

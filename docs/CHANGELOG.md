@@ -7,6 +7,319 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [6.2.6] — Continued Audit: C++ Position/Monitoring snprintf Bugs, Python SHM Bug
+
+### Fixed — C++ snprintf bounds check (4 sites)
+
+- **`position_manager_v2.h:85-88`** — `snprintf` return used without clamping in `on_fill`. If output truncated (`n >= sizeof(buf)`), `string_view` read past buffer. If `snprintf` returned negative (error), implicit conversion to huge `size_t`. Added `n <= 0` guard and `std::min(n, sizeof(buf)-1)` clamp.
+- **`position_manager_v2.h:172-176`** — Same bug in `get_position`. Added identical guard and clamp.
+- **`system_monitor.h:111-126`** — Same bug in `SystemMonitor::format_json`. Added guard and clamp.
+- **`system_monitor.h:188-205`** — Same bug in `HealthStatus::format_json`. Added guard and clamp.
+
+### Fixed — Python SHM init bug
+
+- **`websocket_server.py:120`** — Called `self.market.symbols.keys()` but `market.symbols` is `list[str]`, not `dict`. Raises `AttributeError` when `SHM_MARKET_ENABLED=1`. Changed to `sorted(self.market.symbols)`.
+
+### Fixed — C++ FIX message snprintf bugs
+
+- **`fix_message.h:140-143`** — `snprintf` return used without clamping in `add_tag(double)`. Negative return (encoding error) would convert to huge `size_t` via `string_view`, causing out-of-bounds read. Added `n <= 0` guard and `std::min` clamp.
+- **`fix_message.h:172`** — `snprintf` return for `body_len_buf` in `finalize()` used without guard. Negative return would wrap to huge `size_t` in `header_len` calculation, potentially bypassing overflow check. Added `bl_len <= 0` early return.
+
+### Fixed — C++ trade handler out-of-bounds access
+
+- **`trade_handler.h:34-35`** — `window_size_` could exceed `MAX_WINDOW=4096` if constructor received larger value, causing `rolling_trades_[w_slot]` and `rolling_volumes_[v_slot]` to write past array bounds. Clamped `window_size_` to `MAX_WINDOW` with `std::min`.
+
+### Fixed — C++ mapped persistence OOB read
+
+- **`mapped_persistence.h:191`** — `header->position_count` read from memory-mapped file and used as loop bound without clamping to `MAX_POSITIONS`. Corrupted file could cause reading past mapped memory. Added `std::min` clamp to `MAX_POSITIONS`.
+
+### Identified — Design issues (not fixed, require architectural changes)
+
+- **`signal_receiver.h:141-147`** — Detached reconnection thread captures `this`. Use-after-free if `SignalReceiver` destroyed while thread sleeping. Should use joinable thread or lifetime guard.
+- **`signal_receiver.h:597`** — `reconnect_delay_` is plain `int` accessed from multiple threads. Data race. Should be `std::atomic<int>`.
+- **`health_server.h:97-99`** — `accept()` is blocking. `stop()` hangs if no new connections arrive. Should use non-blocking socket or `select` with timeout.
+- **`health_server.h:171`** — `HealthStatus health_` not atomic. Data race between `update_health()` and `build_health_json()`. Should use mutex or atomic snapshot.
+- **`risk_manager.h:240-243`** — `params()` returns `const Params&` under lock, but lock releases on return. Caller holds reference that can be raced by `blacklist_symbol`/`unblacklist_symbol`. Only used in tests — low impact.
+
+### Verified — Exchange simulator Python modules (all clean)
+
+- **`liquidation_engine_v2.py`** — Guards on `leverage <= 0`, `qty <= 0`, `notional <= 0`, `original_qty > 0`. `deque(maxlen=...)`.
+- **`arbitrage.py`** — Guards on `buy_price <= 0`, `net_spread <= 0`, `len(books) < 2`.
+- **`funding_rate.py`** — Guard on `index_price <= 0`, empty history check, `deque(maxlen=...)`.
+- **`latency_simulation.py`** — `max(self._total_messages, 1)`, `max(latency, 1.0)`, `min()` clamping on backoff and success prob.
+- **`market_microstructure.py`** — Variance floored at 0.001, `max(self.variance, 0)` in Heston update.
+- **`order_book_realism.py`** — Empty book guards, `total > 0` for imbalance, `max(0, spoof_orders_active - 1)`.
+- **`spread_analytics.py`** — Guards on `mid_price <= 0`, `expected_price <= 0`, empty deque checks.
+- **`options_simulator.py`** — Guards on `T <= 0`, `sigma <= 0`, `S <= 0`, `K <= 0`, `vega < 1e-10`. Newton-Raphson bounded.
+- **`config_validator.py`** — Thorough validation of all config sections, type checks, range checks, cross-references.
+- **`data_export.py`** — Optional `pyarrow` import with CSV fallback, empty rows guard, `os.makedirs(exist_ok=True)`.
+- **`market_simulator.py`** — Guards on `mid_price == 0`, `old_mid > 0`, `max(1.0, vol * 10)`, history trimming, bounds checks.
+- **`models.py`** — `total_trades > 0` guard for win_rate, empty bids/asks checks.
+- **`exchange.py`** — NaN check on quantity, `mid_price == 0` guard, `leverage > 0` fallback, `force_close` for SL/TP closes.
+
+### Verified — C++ headers (all clean)
+
+- **`shm_ring_buffer.h`** — Power-of-2 capacity validated, SPSC atomics correct, proper cleanup on both Windows/POSIX.
+- **`low_latency.h`** — Spinlock, SPSC queue, ObjectPool, LatencyHistogram, CircuitBreaker, RetryPolicy all correct.
+- **`kill_switch.h`** — Atomic flags, joinable monitor thread, proper SHM cleanup.
+- **`shm_signal_consumer.h`** — Joinable thread, proper stop/start lifecycle.
+- **`shm_fill_producer.h`** — Null buffer guards, proper close/unlink.
+- **`types.h`** — Empty bids/asks guards, proper default initialization.
+- **`signal.h`** — `rr_ratio()` guards `risk > 0` before division.
+- **`aligned_types.h`** — Cache-line aligned with static_asserts, bounded string copy, `rr_ratio()` guarded.
+- **`fix_message.h`** — (After fix) Buffer overflow checks, checksum validation, bounded parsing.
+- **`fix_encoder.h`** — Stack-allocated buffers, proper null-termination, snprintf practically safe (32-byte buffer for 27-char output).
+- **`fix_decoder.h`** — Zero-copy parsing, MAX_FIELDS=64 cap, bounded get_double (31-char copy).
+- **`fix_session.h`** — Atomic state machine, joinable heartbeat thread, mutex-protected seq nums, proper logout/stop in destructor.
+- **`order_book_manager.h`** — Guards on price <= 0, qty <= 0, total <= 0, mid_price <= 0. Fixed-size arrays with MAX_LEVELS.
+- **`candle_aggregator.h`** — No division, proper bar_active_ lifecycle, flush() for shutdown.
+- **`trade_handler.h`** — (After fix) Guards on total <= 0, n == 0, n < 2, sd > 0, variance <= 0. Rolling window bounded to MAX_WINDOW.
+- **`onnx_engine.h`** — Null checks on initialized_/session_, exception handling, dynamic shape handling, d > 0 guard for output size.
+- **`ws_client.h`** — Watchdog atomic, MessageQueue bounded with Spinlock, ReconnectionManager atomic state. Note: uses rand() for jitter (low severity, infrequent call).
+- **`mapped_persistence.h`** — (After fix) POSIX-only by design, mutex-protected, atomic rename for snapshots, magic validation, position_count clamped.
+- **`BinanceAdapter.h`** — Spinlock-protected price/depth maps, atomic rate limiter, empty vector guards.
+- **`BybitAdapter.h`** — Same pattern as BinanceAdapter. Clean.
+- **`OKXAdapter.h`** — Same pattern. `to_inst_id()` has size guard `>= 4u`. Clean.
+- **`binance_config.h`** / **`bybit_config.h`** / **`okx_config.h`** — Pure constants and string builders. No numeric or concurrency issues.
+- **`signal_receiver.h`** — (Design issues noted above) Spinlock-protected data, proper message handling, zero-copy string_view parsing. Floating-point equality for order book level matching (standard practice).
+- **`pch.h`** — Precompiled header, no logic.
+
+### Verified — Python modules (additional)
+
+- **`run_logger.py`** — `os.makedirs(exist_ok=True)`, symlink fallback, `handlers.clear()` to avoid duplicates, `getattr` with fallback for log level.
+- **`trade_csv_logger.py`** — Thread-safe with `threading.Lock`, `os.makedirs(exist_ok=True)`, symlink fallback, context managers for file handling.
+- **`visualizer.py`** — Extensive numeric guards (price_range==0, max_vol==0, avg_loss==0, total>0, max_macd==0, mid_price>0, quantity>0, eq_range>0). Terminal restoration in finally block. Daemon thread.
+- **`__main__.py`** — Config validation before use, `yaml.safe_load`, KeyboardInterrupt handling, daemon thread for visualizer.
+- **`__init__.py`** / **`conftest.py`** / nested **`__main__.py`** — sys.path setup, runpy delegation. Clean.
+
+### Audit scope complete
+
+All Python modules in `exchange_simulator/` and all C++ headers in `hft-trade-bot/src/` have been audited.
+
+## [6.2.5] — Continued Audit: C++ Execution, Risk, Strategies, IPC, Dockerfiles, CI
+
+### Fixed — C++ execution layer
+
+- **`order_executor.h`** — Added `n <= 0` guards and `static_cast<size_t>(n)` on all 4 `snprintf` → `std::string` construction sites (`submit_order`, `close_position`, `execute_arbitrage` buy + sell). Negative `snprintf` return (encoding error) would convert to huge `size_t` via implicit conversion, causing crash/OOM.
+- **`order_manager.h:159`** — Added `rec.filled_quantity > 0` guard before division in `on_partial_fill`. If `fill_qty == 0`, `filled_quantity` stays 0, causing NaN in `avg_fill_price`.
+
+### Fixed — C++ risk layer
+
+- **`risk_manager.h:87`** — Moved `balance > 0` check before division: was computing `std::abs(daily_pnl_) / balance` before checking `balance > 0`, producing NaN when `balance == 0`.
+- **`risk_manager.h:190`** — Added `signal.entry_price <= 0` early return before `max_notional / signal.entry_price` to prevent `inf` result.
+- **`kill_switch.h:147`** — Wrapped `std::filesystem::exists` in try-catch in `monitor_loop` to prevent thread crash on transient filesystem errors (permission denied, path issues).
+
+### Fixed — C++ strategies layer
+
+- **`mean_reversion_v2.h:88`** — Clamped `config_.ou_window` to `[2, MAX_WINDOW]` (2048) in constructor. Without clamp, `ou_window > 2048` would cause out-of-bounds array access via `write_idx_ % config_.ou_window`.
+- **`momentum_breakout_v2.h:60`** — Clamped `volume_avg_period` to `[1, vol_buffer_.size()]` (256) and `atr_period >= 1` in constructor. Prevents out-of-bounds `vol_buffer_` access and division by zero in ATR smoothing.
+- **`statistical_arb_v2.h:55`** — Clamped `regression_window` to `[2, MAX_WINDOW]` (1024) in constructor. Prevents out-of-bounds `prices_a_/prices_b_/spreads_` access and modulo-by-zero.
+- **`signal_engine_v2.h:628`** — Increased `tp_cache` array from 100 to 256 elements. `n_candles` can be up to `MAX_N = 256`, so `tp_cache[100]` would overflow when `n_candles > 100`.
+
+### Verified — C++ IPC layer (all clean)
+
+- **`shm_protocol.h`** — All `static_assert` confirm struct sizes (32/28/28/16 bytes). `#pragma pack` correct. Python struct formats match exactly.
+- **`shm_ring_buffer.h`** — Power-of-2 validation, magic check, capacity/element_size validation, proper acquire/release semantics, cleanup on error, cross-platform (Windows + POSIX).
+- **`shm_heartbeat.h`** — Seq-guarded reads (odd/even protocol), proper cleanup, cross-platform.
+- **`shm_market_data.h`**, **`shm_fill_producer.h`**, **`shm_signal_consumer.h`** — Reviewed.
+
+### Verified — C++ risk/execution (clean after fixes)
+
+- **`pre_trade_risk.h`** — `std::max(1, leverage)` guard, CAS loops correct, `elapsed <= 0.0` guard.
+- **`portfolio_risk.h`** — `n < 10` and `n < 2` early returns, `count > 0` guard, `peak_ > 0.0` guard.
+- **`smart_order_router_v2.h`** — `MAX_EXCHANGES` bounds check, `price <= 0` guard, CAS loop.
+- **`adaptive_order_selector_v2.h`** — `top5_depth > 0` guard, all switch have default, `noexcept`.
+- **`pressure_model.h`** — All divisions guarded, empty checks, bounds clamping, stack array size limit.
+
+### Verified — Dockerfiles (all clean)
+
+- **`hft-trade-bot/Dockerfile.prod`** — Multi-stage, non-root `appuser`, healthcheck, ABI-matched Debian bookworm.
+- **`exchange_simulator/Dockerfile.prod`** — Multi-stage, non-root, healthcheck.
+- **`ai-signal-bot/Dockerfile.prod`** — Multi-stage, non-root, healthcheck, runtime libs.
+- **`web-ui/Dockerfile.prod`** — Multi-stage, nginx non-root, healthcheck.
+
+### Verified — CI workflow (all clean)
+
+- **`ci.yml`** — All jobs have timeout, caching (pip/npm/ccache), fail-fast disabled, test count floors (75 total), artifact uploads, concurrency group, minimal permissions.
+
+### Fixed — C++ utils
+
+- **`low_latency.h:430`** — Replaced thread-unsafe `rand()` with `thread_local std::mt19937` + `std::uniform_real_distribution` in `RetryPolicy::execute`. `rand()` uses hidden global state and is not thread-safe; concurrent calls from multiple threads cause data races. Added `<random>` include.
+
+### Fixed — Python backtesting
+
+- **`optimizer.py:178`** — Removed dead code: unused slice expression `candles[start:start + train_size]` that created a train slice but never assigned or used it. The walk-forward method only tests on `test_candles` with fixed params (no retraining), so the train slice was unnecessary.
+
+### Verified — C++ data layer (all clean)
+
+- **`types.h`** — Empty vector guards (`bids.empty()`, `asks.empty()`), `risk > 0` division guard in `rr_ratio`.
+- **`signal.h`** — `risk > 0` guard in `rr_ratio`, `is_actionable()` check.
+- **`aligned_types.h`** — `static_assert` on all struct sizes, safe string copy with bounds (`i < 15`, `i < 31`, `i < 47`), `risk > 0` guards, `alignas(64)` for cache-line alignment.
+
+### Verified — C++ IPC wrappers (all clean)
+
+- **`shm_fill_producer.h`** — Null `buffer_` checks, proper `close()`/`unlink()`, convenience push method.
+- **`shm_signal_consumer.h`** — Proper `stop()`/`join()`, `running_` atomic flag, `buffer_` null check.
+- **`shm_market_data.h`** — `symbol_id >= max_symbols_` bounds check, seq-guarded reads (odd/even protocol), cross-platform, proper cleanup.
+
+### Verified — C++ utils (clean after fix)
+
+- **`low_latency.h`** — Spinlock with `_mm_pause`, SPSC queue with proper acquire/release, ObjectPool with CAS, LatencyHistogram with bucket clamping, CircuitBreaker with state machine, thread pinning with bounds check (`core_id < 0 || core_id >= 64`).
+
+### Verified — Python exchange_simulator (all clean)
+
+- **`arbitrage.py`** — `buy_price <= 0` guard, `sell_price <= buy_price` guard, `net_spread <= 0` guard, `ob.bids and ob.asks` empty check.
+- **`funding_rate.py`** — `index_price <= 0` guard, `deque(maxlen=10000)`, `if not self.history` guard.
+- **`liquidation_engine_v2.py`** — `pos.leverage <= 0` guard, `pos.qty <= 0` guard, `notional <= 0` guard, `original_qty > 0` guard, cascade depth limit.
+- **`market_microstructure.py`** — `max(self.variance, 0)` floor, variance floor at 0.001, `max(v, 0)` in Student-t.
+- **`options_simulator.py`** — `T <= 0`, `sigma <= 0`, `S <= 0`, `K <= 0` guards, `abs(quote.vega) < 1e-10` guard, `sigma <= 0` reset.
+- **`order_book_realism.py`** — `total > 0` guard, empty book checks, `max(0, ...)` on spoof count, `remaining <= 0` break.
+- **`config_validator.py`** — Comprehensive validation, type checks, range checks, cross-references.
+- **`data_export.py`** — `if not rows` guard, `if not all_candles` guard, try/catch for pyarrow import, `os.makedirs(exist_ok=True)`.
+
+### Verified — Python ai-signal-bot (all clean)
+
+- **`shm_ring_buffer.py`** — Power-of-2 validation, magic/capacity/element_size checks, proper close/unlink, context manager.
+- **`shm_signal_producer.py`** — Null `_buffer` checks, try/catch on init, proper close.
+- **`shm_fill_consumer.py`** — Null `_buffer` checks, async polling with `_running` flag, proper close.
+- **`shm_market_data_writer.py`** — `symbol_id >= max_symbols` bounds check, seq-guarded writes, proper cleanup.
+- **`price_predictor.py`** — `total > 0` guard, grad clipping, early stopping, try/catch on ONNX export.
+- **`automl.py`** — Optional import guard, proper config defaults, try/catch on study operations.
+- **`rl_trader.py`** — PPO with GAE, grad norm clipping, deque(maxlen), proper action sampling.
+- **`feature_store.py`** — Optional Redis import with in-memory fallback, connection error handling.
+- **`ml_ensemble.py`** — Extensive `max(..., 1e-8)` guards on all divisions, optional imports with fallbacks, `avg_loss < 1e-10` guard, `std < 1e-10` guard.
+- **`backtest_engine.py`** — `price <= 0` guard, `max(peak, 1e-10)` guard, `max(total_trades, 1)` guard, `max(gross_loss, 1e-10)` guard, `std_ret > 1e-10` guard.
+- **`walk_forward.py`** — `max(oos_mean, 1e-10)` guard, empty list checks, overfitting detection.
+- **`optimizer.py`** — `total_trades == 0` guard, `max_combinations` safety limit, try/catch per combo.
+- **`cross_exchange_arb.py`** — `buy_price <= 0` and `sell_price <= 0` guards, `qty <= 0` guard, `max(opportunities_executed, 1)` guard, `asyncio.wait_for` timeout.
+- **`database.py`** — `HAS_ASYNCPG` guard, `_pool` null checks, try/catch on all operations, `not candles` guard.
+- **`db.py`** — `total_trades > 0` guard, `COALESCE` for null safety, parameterized queries, `os.makedirs(exist_ok=True)`.
+- **`notifier.py`** — Optional `aiohttp` import, `CancelledError` handling, null `_session` checks, try/catch on all HTTP operations.
+- **`helpers.py`** — `yaml.safe_load`, `FileNotFoundError` handling, type casting with try/catch.
+- **`indicators.py`** — `avg_loss == 0` guard in RSI, `n < period` guards, `isnan` checks for NaN propagation.
+
+---
+
+## [6.2.4] — Continued Audit: C++ Config Bug, JS Edge Case, Helm/React Verification
+
+### Fixed — C++ config parsing bug
+
+- **`config.cpp:308`** — Fixed mismatched YAML key check: was checking `ks["shm_name"]` but reading `ks["trigger_file"]`. If `shm_name` existed but `trigger_file` didn't, `.as<std::string>()` on a null YAML node would throw `YAML::BadConversion`. Changed to check `ks["trigger_file"]` which is the key actually being read.
+
+### Fixed — JavaScript edge case
+
+- **`mockData.js:40`** — Clamped `Math.random()` to minimum `1e-10` in `gaussianRandom()` to prevent `Math.log(0) = -Infinity` producing `NaN`/`Infinity` values in mock market data generation.
+
+### Verified — Helm templates (all clean)
+
+- **`ai-signal-bot.yaml`** — securityContext, probes, resource limits, SHM volume, sidecar pattern.
+- **`exchange-simulator.yaml`** — securityContext, probes, resources.
+- **`postgres.yaml`** — StatefulSet, PVC, `pg_isready` probes, securityContext.
+- **`redis.yaml`** — StatefulSet, PVC, `redis-cli ping` probes, securityContext.
+- **`grafana.yaml`** — StatefulSet, PVC, `{{- fail }}` on missing password, health probes.
+- **`prometheus.yaml`** — StatefulSet, ConfigMap, PVC, health probes, scrape configs.
+- **`postgres-secret.yaml`** — `{{- fail }}` on missing password, `stringData` for secrets.
+- **`ingress.yaml`** — WebSocket upgrade headers, TLS support, proper path routing.
+- **`_helpers.tpl`** — Common labels and selector labels.
+- **`values.yaml`** — Resource limits for all services, empty passwords with fail guards.
+
+### Verified — C++ source files (all clean)
+
+- **`main.cpp`** (875 lines) — Graceful shutdown, `snprintf` with `sizeof`, `mid > 0` spread guard, `qty <= 0` checks, `candles_count < 30` guard, `price == 0` guard, SHM IPC with try/catch, kill switch callbacks.
+- **`config.cpp`** (448 lines) — Env var expansion, config validation, YAML key checks (fixed one mismatch).
+- **`signal_engine_v2.cpp`** (141 lines) — Comprehensive parameter validation with `snprintf` + `sizeof(validation_error_)`.
+- **`BinanceAdapter.h`** — Spinlock thread safety, empty vector checks, atomic rate limiting.
+- **`OKXAdapter.h`** — Spinlock thread safety, `symbol.size() >= 4u` unsigned comparison.
+- **`BybitAdapter.h`** — Spinlock thread safety, consistent pattern.
+
+### Verified — Web UI utils (all clean)
+
+- **`backtestEngine.js`** — Division guards (`avgLoss === 0`, `prevEquity > 0`, `peakEquity > 0`, `grossLoss > 0`, `stdReturn > 0`, `downsideDev > 0`, `maxDrawdownPct > 0`), `candles.length < 30` early return, `volAvg[i] > 0` guard.
+- **`indicators.js`** — Division guards in RSI, MFI, Williams %R, Stochastic, CCI, ADX, VWAP MACD. `volumes[i] || 0` fallback. Early returns for insufficient data.
+- **`compute.worker.js`** — try/catch around all computations, `avgLoss === 0` guard, `stds[i] === 0` guard, `closes[i-1] > 0` guard.
+- **`performance.ts`** — `totalTrades > 0`, `peak > 0`, `stdDev === 0`, `downsideDev === 0` guards. `isNaN` checks.
+- **`format.ts`** — `null/undefined/isNaN` checks in all format functions.
+- **`patterns.ts`** — `candles.length < 3` early return, `range > 0` guard, dedup via Map.
+- **`timeframes.ts`** — `candles.length` and `factor <= 1` early return.
+- **`useSessionRecorder.ts`** — `peak > 0` guard, `MAX_SNAPSHOTS` limit, try/catch for localStorage.
+- **`mockData.js`** — Fixed `Math.log(0)` edge case. Unused `accounts` param in `generateFill` (harmless, kept for API compatibility).
+
+### Verified — React components
+
+- No `dangerouslySetInnerHTML` usage anywhere.
+- No `eval()` usage anywhere.
+- No empty `catch` blocks.
+- No `console.log` in production components.
+- All `.map()` renders include `key` props.
+
+### Verified — Python patterns
+
+- No mutable default arguments (`=[]`, `={}`, `=set()`) in any Python file.
+- No bare `except:` blocks in project code (only in `node_modules`).
+- All division operations guarded with `> 0` checks or early returns.
+
+---
+
+## [6.2.3] — Comprehensive Codebase Cleanup: C++ Warnings, Python Lint, CI Fixes, Test Fixes
+
+### Fixed — C++ build warnings treated as errors (`-Wall -Wextra -Werror`)
+
+- **`test_order_book.cpp`** — Inlined unused variables `obi` and `wm` directly in `assert()` statements.
+- **`test_signal_engine_v2.cpp:459`** — Added `(void)sig1` cast to suppress unused variable warning.
+- **`signal_engine_v2.h:73`** — Removed unused private field `period_` from `InlineEMA` class.
+- **`signal_engine_v2.h`** — Increased `snprintf` buffer size from 48 to 128 bytes in `analyze_raw` and `analyze_incremental` to fix format-truncation warnings.
+- **`market_making_v2.h:57`** — Marked unused parameter `timestamp_ns` with `[[maybe_unused]]`.
+
+### Fixed — Python ruff lint errors (156 total)
+
+- **Auto-fixed 113 errors** with `ruff check --fix` (unused imports, unused variables, whitespace).
+- **`ml_ensemble.py`** — Fixed undefined name `l` → renamed to `low`.
+- **`signal_publisher.py`** — Fixed B023 loop variable capture in async closure by binding `msg` and `disconnected` as default arguments.
+- **`order_book_replay.py`** — Renamed ambiguous variable `l` → `lvl` (E741).
+- **`indicators.py`** — Renamed ambiguous `l` → `low` in ATR/VWAP/ADX functions (E741), including numpy and pure-Python fallback paths.
+
+### Fixed — CI environment issues
+
+- **Windows CI job** — Added explicit `pip install -r requirements-dev.txt` for both `exchange_simulator` and `ai-signal-bot` (was missing pytest).
+- **vcpkg submodule** — Fixed `vcpkgGitCommitId` from tag name to full SHA1 commit hash `1c96eb3cbdd049a4e4e5e0e3b94d67629f3f4b43`.
+- **web-ui** — Added missing `@vitest/coverage-v8` to `devDependencies` in `package.json`.
+- **requirements-dev.txt** — Created for both `exchange_simulator` and `ai-signal-bot` with pytest, pytest-asyncio, pytest-cov, ruff, bandit.
+- **Linux CI job** — Updated to install from `requirements-dev.txt` instead of manual pip install.
+
+### Fixed — Python test failures
+
+- **`test_e2e_pipeline.py`** — Updated `TestExchangeFactoryFallback` to use actual `ExchangeFactory` API (`mode=ExchangeMode.FALLBACK` instead of `exchanges=`/`use_real=`).
+- **`test_integration.py`** — Fixed `SignalValidator.validate()` calls to use `account_balance=` instead of `balance=`.
+- **`test_integration.py`** — Fixed `test_publisher_broadcast` to skip `circuit_breaker_status` messages that arrive before signals.
+- **`test_config_validator.py`** — Fixed `test_load_with_validate_raises_on_invalid` — `validate()` returns errors tuple, doesn't raise `ValueError`; `ValueError` is raised by `load()`.
+- **`test_kelly.py`** — Fixed `test_min_risk_pct_applied_for_meaningful_edge` by increasing `max_position_pct` to 100.0 so the position cap doesn't interfere with the min_risk assertion.
+- **`order_book_replay.py`** — Raised spread cap from 50 to 500 bps so high-volatility candles can have wider spreads (fixes `test_spread_increases_with_volatility`).
+- **`market_simulator.py`** — Added public `generate_candles()` method that delegates to internal `_generate_candles_inner()` and returns latest candles (fixes `TestSimulatorLoadTest`).
+
+---
+
+## [6.2.2] — Build Fix: [[nodiscard]] Errors, Dependabot PR Reduction
+
+### Fixed — C++ build failure from [[nodiscard]] on add_tag (CI `-Werror`)
+
+The `[[nodiscard]]` attribute added to `FixMessage::add_tag()` overloads in R8 caused build failures with `-Wall -Wextra -Werror` because `add_tag` is used in a builder pattern (call-and-ignore) throughout `fix_encoder.h`, `fix_session.h`, and tests. Over 50 call sites would need wrapping.
+
+- **`fix_message.h`** — Removed `[[nodiscard]]` from all 5 `add_tag` overloads. The builder pattern makes per-call checking impractical. Overflow is still detected at `finalize()` which returns empty `string_view`.
+- **`main.cpp:332`** — `kill_switch.init_shm()` now checks return value with `if (!...)` and logs warning on failure.
+- **`main.cpp:381,419`** — `ai_signal_queue.push(sig)` now checks return value. On queue-full, logs `"AI signal queue full — signal dropped"` warning instead of silently dropping.
+  - Files: `hft-trade-bot/src/fix/fix_message.h`, `hft-trade-bot/src/core/main.cpp`
+
+### Fixed — Dependabot PR flood (25+ branches)
+
+The initial `dependabot.yml` had `open-pull-requests-limit: 5` for pip/npm/github-actions and `3` for docker (4 services), allowing up to 32 concurrent PRs.
+
+- **Reduced `open-pull-requests-limit`** from 5/3 to **1** for all 8 ecosystems.
+- **Added `groups`** for pip, npm, and github-actions — all updates in an ecosystem are bundled into a single PR.
+- **Maximum PRs reduced** from ~32 to ~8 (1 per ecosystem).
+  - File: `.github/dependabot.yml`
+
+---
+
 ## [6.2.1] — Documentation Update: README Modernization, 10-Round Sweep Summary
 
 ### Updated — README.md

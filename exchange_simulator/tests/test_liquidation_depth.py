@@ -1,11 +1,18 @@
 """Tests for SimulatedExchange partial liquidation, insurance fund, and depth snapshot API."""
-import pytest
 from unittest.mock import MagicMock
 
-from exchange_simulator.models import (
-    Order, OrderBook, OrderBookLevel, OrderStatus, OrderType, Position, Side,
-)
+import pytest
+
 from exchange_simulator.exchange import SimulatedExchange
+from exchange_simulator.models import (
+    Order,
+    OrderBook,
+    OrderBookLevel,
+    OrderStatus,
+    OrderType,
+    Position,
+    Side,
+)
 
 
 def make_market(price=50000.0):

@@ -6,16 +6,19 @@ confidence, and suggested SL/TP levels.
 import logging
 import math
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 logger = logging.getLogger("ai_signal_bot.strategies")
 
-from src.technical_analysis.indicators import (
-    adx, atr, bollinger_bands, ema, macd, rsi, sma, vwap,
+from src.technical_analysis.fft_analysis import fft_cycle_indicator  # noqa: E402
+from src.technical_analysis.indicators import (  # noqa: E402
+    adx,
+    atr,
+    bollinger_bands,
+    ema,
+    rsi,
 )
-from src.technical_analysis.fft_analysis import fft_cycle_indicator
 
 
 class SignalDirection(Enum):
@@ -264,6 +267,7 @@ class CircuitBreaker:
 
     @property
     def is_tripped(self) -> bool:
+        self.check_and_recover()
         return self._tripped
 
     def check_and_recover(self) -> bool:

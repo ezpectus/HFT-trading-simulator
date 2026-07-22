@@ -2,8 +2,8 @@
 import pytest
 
 from exchange_simulator.arbitrage import ArbitrageDetector, ArbitrageOpportunity, ArbStatus
-from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.exchange import SimulatedExchange
+from exchange_simulator.market_simulator import MarketSimulator
 
 
 @pytest.fixture
@@ -123,7 +123,6 @@ class TestArbitrageDetector:
             fee_pct=0.001,
             slippage_bps=0.1,
         )
-        first = detector.scan()
         first_count = detector.active_count
         second = detector.scan()
         # Second scan should find 0 new duplicates (same order books)

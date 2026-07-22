@@ -1,11 +1,12 @@
 """Tests for ExchangeWebSocketServer — message handling, validation, metrics."""
 import asyncio
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from exchange_simulator.models import OrderType, Side
 from exchange_simulator.websocket_server import ExchangeWebSocketServer
-from exchange_simulator.models import Side, OrderType
 
 
 @pytest.fixture

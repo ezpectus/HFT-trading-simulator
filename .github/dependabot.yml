@@ -5,7 +5,11 @@ updates:
     directory: "/exchange_simulator"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
+    groups:
+      python-deps:
+        patterns:
+          - "*"
     labels:
       - dependencies
       - python
@@ -15,7 +19,11 @@ updates:
     directory: "/ai-signal-bot"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
+    groups:
+      python-deps:
+        patterns:
+          - "*"
     labels:
       - dependencies
       - python
@@ -25,7 +33,11 @@ updates:
     directory: "/web-ui"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
+    groups:
+      npm-deps:
+        patterns:
+          - "*"
     labels:
       - dependencies
       - javascript
@@ -35,17 +47,21 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
+    groups:
+      github-actions:
+        patterns:
+          - "*"
     labels:
       - dependencies
       - ci
 
-  # Docker base images
+  # Docker base images — group all 4 services into 1 PR each
   - package-ecosystem: docker
     directory: "/exchange_simulator"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels:
       - dependencies
       - docker
@@ -54,7 +70,7 @@ updates:
     directory: "/ai-signal-bot"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels:
       - dependencies
       - docker
@@ -63,7 +79,7 @@ updates:
     directory: "/hft-trade-bot"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels:
       - dependencies
       - docker
@@ -72,7 +88,7 @@ updates:
     directory: "/web-ui"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels:
       - dependencies
       - docker

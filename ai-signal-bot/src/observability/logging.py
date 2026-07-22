@@ -18,9 +18,8 @@ Usage:
 from __future__ import annotations
 
 import logging
-import sys
 import os
-from typing import Optional
+import sys
 
 _configured: bool = False
 
@@ -29,7 +28,7 @@ def setup_logging(
     service: str = "ai-signal-bot",
     level: str = "INFO",
     json_logs: bool = False,
-    log_file: Optional[str] = None,
+    log_file: str | None = None,
 ) -> None:
     """Configure structured logging for the application."""
     global _configured
@@ -121,7 +120,6 @@ def setup_logging(
 
 def _add_service_context(service: str):
     """Add service name and version to every log entry."""
-    import structlog
 
     def processor(logger, method_name, event_dict):
         event_dict["service"] = service

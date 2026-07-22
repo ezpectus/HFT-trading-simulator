@@ -1,8 +1,9 @@
 """Tests for SignalPublisher — broadcast, history, client management, backtest."""
 import asyncio
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from src.communication.signal_publisher import SignalPublisher
 

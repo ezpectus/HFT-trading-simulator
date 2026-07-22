@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Optional, Callable, List
-from .shm_ring_buffer import ShmRingBuffer, FILL_STRUCT
+from collections.abc import Callable
+
+from .shm_ring_buffer import FILL_STRUCT, ShmRingBuffer
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class ShmFillConsumer:
     def __init__(self, name: str = "/hft_fills", capacity: int = 4096):
         self.name = name
         self.capacity = capacity
-        self._buffer: Optional[ShmRingBuffer] = None
+        self._buffer: ShmRingBuffer | None = None
         self._running = False
 
     def init(self) -> bool:
@@ -39,13 +40,13 @@ class ShmFillConsumer:
             logger.error(f"Failed to init SHM fill consumer: {e}")
             return False
 
-    def try_pop(self) -> Optional[tuple]:
+    def try_pop(self) -> tuple | None:
         """Non-blocking pop of a single fill. Returns None if empty."""
         if not self._buffer:
             return None
         return self._buffer.try_pop()
 
-    def bulk_pop(self, max_count: int = 256) -> List[tuple]:
+    def bulk_pop(self, max_count: int = 256) -> list[tuple]:
         """Pop up to max_count fills. Returns list of unpacked tuples."""
         if not self._buffer:
             return []

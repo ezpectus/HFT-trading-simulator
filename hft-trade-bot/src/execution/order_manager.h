@@ -51,8 +51,8 @@ inline const char* order_state_str(OrderStateV2 s) {
 struct alignas(64) OrderRecord {
     uint64_t order_id{0};
     uint64_t client_order_id{0};
-    char symbol[16]{};
-    char exchange[16]{};
+    char symbol[32]{};
+    char exchange[32]{};
     Side side{Side::BUY};
     OrderType type{OrderType::MARKET};
     double quantity{0.0};
@@ -156,7 +156,9 @@ public:
         double prev_notional = rec.avg_fill_price * rec.filled_quantity;
         double new_notional = fill_price * fill_qty;
         rec.filled_quantity += fill_qty;
-        rec.avg_fill_price = (prev_notional + new_notional) / rec.filled_quantity;
+        if (rec.filled_quantity > 0) {
+            rec.avg_fill_price = (prev_notional + new_notional) / rec.filled_quantity;
+        }
         rec.fee += fee;
         rec.state = OrderStateV2::PARTIAL;
         rec.last_update_ns = now_ns();
@@ -257,7 +259,7 @@ public:
         if (cancel_cb_) cancel_cb_(rec.client_order_id);
         rec.state = OrderStateV2::MODIFY_PENDING;
         // Create new order with modified params
-        return create_order(rec.symbol, rec.exchange, rec.side, rec.type,
+        return create_order(std::string(rec.symbol), std::string(rec.exchange), rec.side, rec.type,
                            new_quantity, new_price);
     }
 

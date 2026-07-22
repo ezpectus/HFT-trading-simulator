@@ -23,6 +23,7 @@
 #include <fstream>
 #include <memory>
 #include <filesystem>
+#include <spdlog/spdlog.h>
 
 #ifndef _WIN32
 #include <sys/stat.h>
@@ -144,8 +145,12 @@ private:
     void monitor_loop(int poll_interval_ms) {
         while (monitoring_) {
             // Check if trigger file exists
-            if (std::filesystem::exists(trigger_file_)) {
-                activate(Reason::FILE_TRIGGER);
+            try {
+                if (std::filesystem::exists(trigger_file_)) {
+                    activate(Reason::FILE_TRIGGER);
+                }
+            } catch (const std::exception& e) {
+                spdlog::warn("KillSwitch monitor error: {}", e.what());
             }
 
             std::this_thread::sleep_for(

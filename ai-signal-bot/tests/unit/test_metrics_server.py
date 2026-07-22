@@ -4,9 +4,10 @@ Tests cover: counter increments, gauge setters, Prometheus text format rendering
 HTTP server lifecycle, and HTTP response format.
 """
 import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 import pytest_asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.communication.metrics_server import MetricsCollector, MetricsServer
 

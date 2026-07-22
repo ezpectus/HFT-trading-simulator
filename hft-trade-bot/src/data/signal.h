@@ -22,7 +22,11 @@ struct Signal {
     bool is_short() const { return direction == "SHORT"; }
     bool is_actionable() const { return direction != "NEUTRAL"; }
 
-    Side side() const { return is_long() ? Side::BUY : Side::SELL; }
+    Side side() const {
+        if (is_long()) return Side::BUY;
+        if (is_short()) return Side::SELL;
+        return Side::BUY;  // NEUTRAL defaults to BUY; caller should check is_actionable() first
+    }
 
     double rr_ratio() const {
         if (is_long()) {

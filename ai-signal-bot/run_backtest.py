@@ -13,7 +13,8 @@ import random
 
 from src.backtesting import Backtester, BacktestPlotter, StrategyOptimizer
 from src.strategies import (
-    EnsembleVoter, FFTCycleStrategy, MeanReversionStrategy,
+    FFTCycleStrategy,
+    MeanReversionStrategy,
     TrendFollowingStrategy,
 )
 
@@ -103,7 +104,7 @@ def main():
     results = bt.run_multi_strategy(candles, strategies, symbol=args.symbol, warmup=50)
 
     # Print individual reports
-    for name, result in results.items():
+    for _name, result in results.items():
         bt.print_report(result)
 
     # Print comparison

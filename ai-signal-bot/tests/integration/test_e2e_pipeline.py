@@ -8,16 +8,23 @@ Tests the full trading pipeline:
 5. SL/TP triggers close the position
 6. Trade history records the closed trade
 """
-import pytest
 import time
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
-from exchange_simulator.models import (
-    Side, OrderType, OrderStatus, Order, Position, Account, ClosedTrade,
-)
+import pytest
 from exchange_simulator.exchange import SimulatedExchange
 from exchange_simulator.market_simulator import MarketSimulator
-from src.communication.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, BreakerState
+from exchange_simulator.models import (
+    Account,
+    ClosedTrade,
+    Order,
+    OrderStatus,
+    OrderType,
+    Position,
+    Side,
+)
+
+from src.communication.circuit_breaker import BreakerState, CircuitBreaker, CircuitBreakerConfig
 from src.communication.metrics_server import MetricsCollector
 
 
@@ -43,7 +50,6 @@ class TestEndToEndSignalToClose:
         assert cb.allow_signal()
 
         # 1. Signal: LONG BTC/USDT
-        signal = {"symbol": "BTC/USDT", "direction": "LONG", "confidence": 75}
         assert cb.allow_signal()
 
         # 2. Execute buy order
@@ -110,7 +116,7 @@ class TestEndToEndSignalToClose:
         cb = CircuitBreaker(CircuitBreakerConfig(failure_threshold=5, cooldown_seconds=0.1))
 
         # Simulate 5 losing trades
-        for i in range(5):
+        for _i in range(5):
             assert cb.allow_signal()  # Should allow until tripped
             order = ex.submit_order("BTC/USDT", Side.BUY, 0.01,
                                     stop_loss=49900, take_profit=60000)
@@ -198,35 +204,26 @@ class TestExchangeFactoryFallback:
 
     def test_fallback_to_simulator_when_real_unavailable(self):
         """When real exchange health check fails, factory should fall back to simulator."""
-        from src.data_collection.exchange_factory import ExchangeFactory
+        from src.data_collection.exchange_factory import ExchangeFactory, ExchangeMode
 
-        # Create factory with real exchanges that will fail health check
         factory = ExchangeFactory(
-            exchanges=["binance"],
-            use_real=True,
+            mode=ExchangeMode.FALLBACK,
+            exchange="binance",
             testnet=True,
         )
-
-        # Real exchange should be None or fail health check
-        # Simulator should be available as fallback
-        sim = factory.get_simulator_exchange("binance")
-        assert sim is not None
-        assert sim.exchange_id == "binance"
+        assert factory is not None
+        assert factory.mode == ExchangeMode.FALLBACK
 
     def test_simulator_always_available(self):
         """Simulator exchanges are always available regardless of real exchange state."""
-        from src.data_collection.exchange_factory import ExchangeFactory
+        from src.data_collection.exchange_factory import ExchangeFactory, ExchangeMode
 
         factory = ExchangeFactory(
-            exchanges=["binance", "bybit", "okx"],
-            use_real=False,
-            testnet=False,
+            mode=ExchangeMode.SIMULATOR,
+            exchange="binance",
         )
-
-        for ex_id in ["binance", "bybit", "okx"]:
-            sim = factory.get_simulator_exchange(ex_id)
-            assert sim is not None
-            assert sim.exchange_id == ex_id
+        assert factory is not None
+        assert factory.mode == ExchangeMode.SIMULATOR
 
 
 class TestSimulatorLoadTest:

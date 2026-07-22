@@ -23,10 +23,10 @@ Usage:
 from __future__ import annotations
 
 import logging
-import numpy as np
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
 import math
+from dataclasses import dataclass, field
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +74,10 @@ class HedgeSimulationResult:
     n_rebalances: int
     avg_hedge_error: float
     max_hedge_error: float
-    daily_pnl: List[float] = field(default_factory=list)
-    daily_delta: List[float] = field(default_factory=list)
-    daily_hedge_position: List[float] = field(default_factory=list)
-    pnl_decomposition: Dict[str, float] = field(default_factory=dict)
+    daily_pnl: list[float] = field(default_factory=list)
+    daily_delta: list[float] = field(default_factory=list)
+    daily_hedge_position: list[float] = field(default_factory=list)
+    pnl_decomposition: dict[str, float] = field(default_factory=dict)
 
 
 class GreeksHedgingSimulator:
@@ -105,7 +105,7 @@ class GreeksHedgingSimulator:
         n_options: float = 1.0,
         rebalance_threshold: float = 0.05,  # rebalance when |delta| > threshold
         n_paths: int = 1,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ) -> HedgeSimulationResult:
         """
         Simulate delta hedging over time.
@@ -238,7 +238,7 @@ class GreeksHedgingSimulator:
 
     def print_summary(self, result: HedgeSimulationResult) -> None:
         logger.info(f"\n{'='*60}")
-        logger.info(f"Delta Hedging Simulation Results")
+        logger.info("Delta Hedging Simulation Results")
         logger.info(f"{'='*60}")
         logger.info(f"Final P&L:          ${result.final_pnl:>10.2f}")
         logger.info(f"Option P&L:         ${result.option_pnl:>10.2f}")
@@ -248,7 +248,7 @@ class GreeksHedgingSimulator:
         logger.info(f"Avg Hedge Error:    {result.avg_hedge_error:>10.4f}")
         logger.info(f"Max Hedge Error:    {result.max_hedge_error:>10.4f}")
         logger.info(f"{'-'*60}")
-        logger.info(f"P&L Decomposition:")
+        logger.info("P&L Decomposition:")
         for k, v in result.pnl_decomposition.items():
             logger.info(f"  {k:<20} ${v:>10.2f}")
         logger.info(f"{'='*60}")

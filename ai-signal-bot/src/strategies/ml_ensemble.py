@@ -6,23 +6,22 @@ Uses scikit-learn for models (LightGBM/XGBoost optional with fallback to Gradien
 
 from __future__ import annotations
 
+import logging
 import math
-import time
-from dataclasses import dataclass, field
-from typing import Optional
 from collections import deque
+from dataclasses import dataclass
+
 import numpy as np
 
 from src.strategies.strategies import Signal, SignalDirection
 
-import logging
 logger = logging.getLogger(__name__)
 
 # Try importing ML libraries
 try:
     from sklearn.ensemble import GradientBoostingClassifier, IsolationForest
+    from sklearn.model_selection import TimeSeriesSplit  # noqa: F401
     from sklearn.preprocessing import StandardScaler
-    from sklearn.model_selection import TimeSeriesSplit
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -73,7 +72,7 @@ class FeatureEngineer:
         for i in range(window, len(closes)):
             c = closes[i]
             h = highs[i]
-            l = lows[i]
+            low = lows[i]
             v = volumes[i]
             w_closes = closes[i - window:i + 1]
             w_highs = highs[i - window:i + 1]
@@ -85,7 +84,7 @@ class FeatureEngineer:
             # Price-based features (10)
             feat.extend([
                 c,                                          # Close price
-                (h - l) / max(c, 1e-8),                     # Range ratio
+                (h - low) / max(c, 1e-8),                     # Range ratio
                 (c - w_closes.mean()) / max(w_closes.std(), 1e-8),  # Z-score
                 np.log(max(c / w_closes[0], 1e-8)),         # Log return over window
                 (c - w_closes.min()) / max(w_closes.max() - w_closes.min(), 1e-8),  # Stochastic
@@ -93,7 +92,7 @@ class FeatureEngineer:
                 w_closes[-1] / w_closes[-10] - 1 if len(w_closes) >= 10 else 0,  # 10-bar return
                 w_closes[-1] / w_closes[-20] - 1 if len(w_closes) >= 20 else 0,  # 20-bar return
                 (h - c) / max(c, 1e-8),                     # Upper shadow
-                (c - l) / max(c, 1e-8),                     # Lower shadow
+                (c - low) / max(c, 1e-8),                     # Lower shadow
             ])
 
             # Volume features (10)
@@ -326,7 +325,7 @@ class HMMRegimeDetector:
         self._fitted = True
 
     def _classify(self, ret: float) -> int:
-        dists = [abs(ret - m) / max(math.sqrt(v), 1e-5) for m, v in zip(self.state_means, self.state_vars)]
+        dists = [abs(ret - m) / max(math.sqrt(v), 1e-5) for m, v in zip(self.state_means, self.state_vars, strict=False)]
         return int(np.argmin(dists))
 
     def get_regime(self) -> str:
@@ -336,7 +335,7 @@ class HMMRegimeDetector:
 class MLEnsembleStrategy:
     """ML-based ensemble with regime detection and anomaly filtering."""
 
-    def __init__(self, config: MLConfig = None):
+    def __init__(self, config: MLConfig | None = None):
         self.config = config or MLConfig()
         self.name = "ml_ensemble"
         self.feature_engineer = FeatureEngineer()
@@ -411,7 +410,7 @@ class MLEnsembleStrategy:
         y = labels[:min_len]
 
         if len(X) < self.config.min_train_samples or len(np.unique(y)) < 2:
-            return {"trained": False, "reason": f"Insufficient samples or single class"}
+            return {"trained": False, "reason": "Insufficient samples or single class"}
 
         # Scale features
         X_scaled = self.scaler.fit_transform(X)

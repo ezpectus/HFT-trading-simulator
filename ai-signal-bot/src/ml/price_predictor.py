@@ -21,14 +21,13 @@ Export to ONNX:
 
 from __future__ import annotations
 
+import logging
+from dataclasses import dataclass
+
+import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-import numpy as np
-import logging
-from typing import Optional, Tuple
-from dataclasses import dataclass
+from torch.utils.data import DataLoader, Dataset
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +141,7 @@ class PositionalEncoding(nn.Module):
             torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model)
         )
         pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term[:pe[:, 1::2].size(1)])
         self.register_buffer("pe", pe.unsqueeze(0))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -161,7 +160,7 @@ class PriceDataset(Dataset):
     def __len__(self) -> int:
         return len(self.features) - self.lookback
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         x = self.features[idx:idx + self.lookback]
         y = self.labels[idx + self.lookback]
         return torch.FloatTensor(x), torch.LongTensor([y])
@@ -184,7 +183,7 @@ def train_model(
     val_features: np.ndarray,
     val_labels: np.ndarray,
     device: str = "cpu",
-) -> Tuple[nn.Module, dict]:
+) -> tuple[nn.Module, dict]:
     """Train price prediction model."""
     device = torch.device(device if torch.cuda.is_available() else "cpu")
     model = create_model(config).to(device)

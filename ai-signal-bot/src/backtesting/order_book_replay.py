@@ -13,10 +13,8 @@ Usage:
     # ob.bids, ob.asks, ob.mid_price, ob.spread_bps, ob.obi
 """
 import logging
-import math
 import random
 from dataclasses import dataclass, field
-from typing import Optional
 
 logger = logging.getLogger("ai_signal_bot.order_book_replay")
 
@@ -58,11 +56,11 @@ class ReplayOrderBook:
 
     @property
     def bid_volume(self) -> float:
-        return sum(l.quantity for l in self.bids)
+        return sum(lvl.quantity for lvl in self.bids)
 
     @property
     def ask_volume(self) -> float:
-        return sum(l.quantity for l in self.asks)
+        return sum(lvl.quantity for lvl in self.asks)
 
     @property
     def obi(self) -> float:
@@ -76,13 +74,13 @@ class ReplayOrderBook:
     def vwap_bid(self) -> float:
         if not self.bid_volume:
             return 0.0
-        return sum(l.price * l.quantity for l in self.bids) / self.bid_volume
+        return sum(lvl.price * lvl.quantity for lvl in self.bids) / self.bid_volume
 
     @property
     def vwap_ask(self) -> float:
         if not self.ask_volume:
             return 0.0
-        return sum(l.price * l.quantity for l in self.asks) / self.ask_volume
+        return sum(lvl.price * lvl.quantity for lvl in self.asks) / self.ask_volume
 
     def to_dict(self) -> dict:
         return {
@@ -94,8 +92,8 @@ class ReplayOrderBook:
             "obi": self.obi,
             "bid_volume": self.bid_volume,
             "ask_volume": self.ask_volume,
-            "bids": [{"price": l.price, "quantity": l.quantity} for l in self.bids],
-            "asks": [{"price": l.price, "quantity": l.quantity} for l in self.asks],
+            "bids": [{"price": lvl.price, "quantity": lvl.quantity} for lvl in self.bids],
+            "asks": [{"price": lvl.price, "quantity": lvl.quantity} for lvl in self.asks],
         }
 
 
@@ -111,7 +109,7 @@ class OrderBookReplay:
     def __init__(
         self,
         depth: int = 20,
-        seed: Optional[int] = 42,
+        seed: int | None = 42,
         base_spread_bps: float = 2.0,
         volume_decay: float = 0.92,
     ):
@@ -148,7 +146,7 @@ class OrderBookReplay:
 
         # Spread: base + proportional to candle range
         spread_bps = self.base_spread_bps + range_pct * 5000  # scale range to bps
-        spread_bps = max(1.0, min(50.0, spread_bps))
+        spread_bps = max(1.0, min(500.0, spread_bps))
         half_spread = close * spread_bps / 10000
 
         # Imbalance: bullish candle (close > open) → more bid volume
@@ -263,7 +261,7 @@ class OrderBookBacktester:
     def __init__(
         self,
         backtester,
-        replay: Optional[OrderBookReplay] = None,
+        replay: OrderBookReplay | None = None,
     ):
         self.backtester = backtester
         self.replay = replay or OrderBookReplay()
@@ -304,10 +302,11 @@ class OrderBookBacktester:
 
             strategy.analyze = analyze_with_ob
 
-        result = self.backtester.run(candles, strategy, symbol, warmup)
-
-        # Restore original method
-        if has_ob_method:
-            strategy.analyze = original_analyze
+        try:
+            result = self.backtester.run(candles, strategy, symbol, warmup)
+        finally:
+            # Restore original method
+            if has_ob_method:
+                strategy.analyze = original_analyze
 
         return result, self.order_books

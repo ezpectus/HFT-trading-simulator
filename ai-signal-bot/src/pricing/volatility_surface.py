@@ -24,15 +24,15 @@ Usage:
 from __future__ import annotations
 
 import logging
-import numpy as np
-from typing import Optional, Tuple, List
 from dataclasses import dataclass
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 try:
-    from scipy.optimize import minimize, least_squares
-    from scipy.stats import norm
+    from scipy.optimize import least_squares, minimize
+    from scipy.stats import norm  # noqa: F401
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
@@ -60,8 +60,8 @@ class VolatilitySurface:
 
     def __init__(self, model: str = "svi"):
         self.model = model
-        self.svi_params: Optional[SVIParams] = None
-        self.sabr_params: Optional[SABRParams] = None
+        self.svi_params: SVIParams | None = None
+        self.sabr_params: SABRParams | None = None
         self._calibrated = False
 
     # ── SVI ──
@@ -75,7 +75,7 @@ class VolatilitySurface:
         self,
         log_moneyness: np.ndarray,
         implied_variances: np.ndarray,
-        initial_params: Optional[Tuple] = None,
+        initial_params: tuple | None = None,
     ) -> SVIParams:
         """Calibrate SVI parameters to market data."""
         if not SCIPY_AVAILABLE:
@@ -170,7 +170,7 @@ class VolatilitySurface:
             p = SABRParams(alpha, beta, rho, nu)
             model_vols = np.array([
                 self.sabr_implied_vol(f, k, t, p)
-                for f, k, t in zip(forwards, strikes, maturities)
+                for f, k, t in zip(forwards, strikes, maturities, strict=False)
             ])
             return model_vols - implied_vols
 

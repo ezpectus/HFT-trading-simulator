@@ -2,11 +2,9 @@
 
 Uses sqlite3 (standard library) with WAL mode for concurrent access.
 """
-import json
 import os
 import sqlite3
 import time
-from typing import Optional
 
 
 class Database:
@@ -14,7 +12,9 @@ class Database:
 
     def __init__(self, path: str = "data/trading.db"):
         self.path = path
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        dir_path = os.path.dirname(path)
+        if dir_path:
+            os.makedirs(dir_path, exist_ok=True)
         self._init_db()
 
     def _conn(self) -> sqlite3.Connection:
@@ -146,7 +146,7 @@ class Database:
         conn = self._conn()
         total_signals = conn.execute("SELECT COUNT(*) FROM signals").fetchone()[0]
         total_trades = conn.execute("SELECT COUNT(*) FROM trades WHERE status='CLOSED'").fetchone()[0]
-        winning = conn.execute("SELECT COUNT(*) FROM trades WHERE pnl > 0").fetchone()[0]
+        winning = conn.execute("SELECT COUNT(*) FROM trades WHERE status='CLOSED' AND pnl > 0").fetchone()[0]
         total_pnl = conn.execute("SELECT COALESCE(SUM(pnl), 0) FROM trades WHERE status='CLOSED'").fetchone()[0]
         total_fees = conn.execute("SELECT COALESCE(SUM(fee), 0) FROM trades").fetchone()[0]
         conn.close()

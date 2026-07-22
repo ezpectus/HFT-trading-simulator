@@ -12,7 +12,7 @@ import asyncio
 import json
 import logging
 import time
-from typing import Optional, Callable, Awaitable, Dict, List
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -62,20 +62,21 @@ class RealMarketDataFeed:
     Normalizes all data to internal format and invokes callbacks.
     """
 
-    def __init__(self, exchanges: List[str] = None, testnet: bool = False):
+    def __init__(self, exchanges: list[str] | None = None, testnet: bool = False):
         self.exchanges = exchanges or ["binance"]
         self.testnet = testnet
-        self._ws_connections: Dict[str, object] = {}
+        self._ws_connections: dict[str, object] = {}
         self._running = False
         self._reconnect_delay = 1.0
+        self._reconnect_delays: dict[str, float] = {}
         self._max_reconnect_delay = 30.0
 
         # Callbacks
-        self.on_ticker: Optional[Callable[[NormalizedTicker], Awaitable[None]]] = None
-        self.on_candle: Optional[Callable[[NormalizedCandle], Awaitable[None]]] = None
-        self.on_orderbook: Optional[Callable[[NormalizedOrderBook], Awaitable[None]]] = None
+        self.on_ticker: Callable[[NormalizedTicker], Awaitable[None]] | None = None
+        self.on_candle: Callable[[NormalizedCandle], Awaitable[None]] | None = None
+        self.on_orderbook: Callable[[NormalizedOrderBook], Awaitable[None]] | None = None
 
-    async def start(self, symbols: List[str], intervals: List[str] = None):
+    async def start(self, symbols: list[str], intervals: list[str] | None = None):
         """Start WebSocket subscriptions for all configured exchanges."""
         self._running = True
         intervals = intervals or ["1m", "5m", "15m"]
@@ -100,7 +101,7 @@ class RealMarketDataFeed:
             except Exception as e:
                 logger.debug(f"WS close error: {e}")
 
-    async def _run_binance(self, symbols: List[str], intervals: List[str]):
+    async def _run_binance(self, symbols: list[str], intervals: list[str]):
         """Binance Futures WebSocket feed."""
         try:
             import websockets
@@ -118,15 +119,15 @@ class RealMarketDataFeed:
                 streams.append(f"{sym_lower}@kline_{iv}")
 
         if self.testnet:
-            url = f"wss://stream.binancefuture.com/stream?streams=" + "/".join(streams)
+            url = "wss://stream.binancefuture.com/stream?streams=" + "/".join(streams)
         else:
-            url = f"wss://fstream.binance.com/stream?streams=" + "/".join(streams)
+            url = "wss://fstream.binance.com/stream?streams=" + "/".join(streams)
 
         while self._running:
             try:
                 async with websockets.connect(url, ping_interval=20) as ws:
                     self._ws_connections["binance"] = ws
-                    self._reconnect_delay = 1.0
+                    self._reconnect_delays["binance"] = 1.0
                     logger.info(f"Binance WebSocket connected: {len(streams)} streams")
 
                     async for raw in ws:
@@ -138,8 +139,9 @@ class RealMarketDataFeed:
             except Exception as e:
                 logger.error(f"Binance WS error: {e}")
                 if self._running:
-                    await asyncio.sleep(self._reconnect_delay)
-                    self._reconnect_delay = min(self._reconnect_delay * 2, self._max_reconnect_delay)
+                    delay = self._reconnect_delays.get("binance", 1.0)
+                    await asyncio.sleep(delay)
+                    self._reconnect_delays["binance"] = min(delay * 2, self._max_reconnect_delay)
 
     async def _handle_binance_msg(self, msg: dict):
         """Handle Binance combined stream message."""
@@ -178,7 +180,7 @@ class RealMarketDataFeed:
             if self.on_candle:
                 await self.on_candle(candle)
 
-    async def _run_okx(self, symbols: List[str], intervals: List[str]):
+    async def _run_okx(self, symbols: list[str], intervals: list[str]):
         """OKX Futures WebSocket feed."""
         try:
             import websockets
@@ -191,7 +193,7 @@ class RealMarketDataFeed:
             try:
                 async with websockets.connect(url, ping_interval=20) as ws:
                     self._ws_connections["okx"] = ws
-                    self._reconnect_delay = 1.0
+                    self._reconnect_delays["okx"] = 1.0
 
                     # Subscribe to tickers and candles
                     sub_args = []
@@ -199,7 +201,7 @@ class RealMarketDataFeed:
                         inst_id = self._to_okx_inst_id(sym)
                         sub_args.append({"channel": "tickers", "instId": inst_id})
                         for iv in intervals:
-                            sub_args.append({"channel": f"candle{iv.replace('m', '')}M",
+                            sub_args.append({"channel": f"candle{iv}",
                                            "instId": inst_id})
 
                     await ws.send(json.dumps({"op": "subscribe", "args": sub_args}))
@@ -214,8 +216,9 @@ class RealMarketDataFeed:
             except Exception as e:
                 logger.error(f"OKX WS error: {e}")
                 if self._running:
-                    await asyncio.sleep(self._reconnect_delay)
-                    self._reconnect_delay = min(self._reconnect_delay * 2, self._max_reconnect_delay)
+                    delay = self._reconnect_delays.get("okx", 1.0)
+                    await asyncio.sleep(delay)
+                    self._reconnect_delays["okx"] = min(delay * 2, self._max_reconnect_delay)
 
     async def _handle_okx_msg(self, msg: dict):
         """Handle OKX WebSocket message."""
@@ -241,7 +244,7 @@ class RealMarketDataFeed:
             d = data[0]
             # OKX candle format: [ts, o, h, l, c, vol, volCcy, volCcyQuote, confirm]
             inst_id = msg.get("arg", {}).get("instId", "")
-            interval = channel.replace("candle", "").replace("M", "m")
+            interval = channel.replace("candle", "").lower()
             candle = NormalizedCandle(
                 exchange="okx",
                 symbol=inst_id,
@@ -256,7 +259,7 @@ class RealMarketDataFeed:
             if self.on_candle:
                 await self.on_candle(candle)
 
-    async def _run_bybit(self, symbols: List[str], intervals: List[str]):
+    async def _run_bybit(self, symbols: list[str], intervals: list[str]):
         """Bybit Futures WebSocket feed."""
         try:
             import websockets
@@ -269,7 +272,7 @@ class RealMarketDataFeed:
             try:
                 async with websockets.connect(url, ping_interval=20) as ws:
                     self._ws_connections["bybit"] = ws
-                    self._reconnect_delay = 1.0
+                    self._reconnect_delays["bybit"] = 1.0
 
                     # Subscribe
                     sub_args = []
@@ -291,8 +294,9 @@ class RealMarketDataFeed:
             except Exception as e:
                 logger.error(f"Bybit WS error: {e}")
                 if self._running:
-                    await asyncio.sleep(self._reconnect_delay)
-                    self._reconnect_delay = min(self._reconnect_delay * 2, self._max_reconnect_delay)
+                    delay = self._reconnect_delays.get("bybit", 1.0)
+                    await asyncio.sleep(delay)
+                    self._reconnect_delays["bybit"] = min(delay * 2, self._max_reconnect_delay)
 
     async def _handle_bybit_msg(self, msg: dict):
         """Handle Bybit WebSocket message."""
@@ -353,3 +357,90 @@ class RealMarketDataFeed:
             base = symbol[:-4]
             return f"{base}-USDT-SWAP"
         return symbol
+
+
+class RealMarketDataManager:
+    """Pull-based market data manager wrapping RealMarketDataFeed.
+
+    Caches latest data from WebSocket callbacks and provides synchronous-style
+    accessors (get_ticker, get_orderbook, get_candles) as expected by
+    RealExchangeAdapter.
+    """
+
+    def __init__(self, exchange: str = "binance",
+                 api_key: str = "", api_secret: str = "",
+                 testnet: bool = False, symbols: list[str] | None = None):
+        self.exchange_name = exchange
+        self._symbols = symbols or []
+        self._feed = RealMarketDataFeed(exchanges=[exchange], testnet=testnet)
+        self._tickers: dict[str, NormalizedTicker] = {}
+        self._orderbooks: dict[str, NormalizedOrderBook] = {}
+        self._candles: dict[str, list[NormalizedCandle]] = {}
+        self._running = False
+
+        async def _on_ticker(t: NormalizedTicker):
+            self._tickers[t.symbol] = t
+
+        async def _on_candle(c: NormalizedCandle):
+            key = f"{c.symbol}:{c.interval}"
+            clist = self._candles.setdefault(key, [])
+            clist.append(c)
+            if len(clist) > 1000:
+                clist.pop(0)
+
+        async def _on_orderbook(ob: NormalizedOrderBook):
+            self._orderbooks[ob.symbol] = ob
+
+        self._feed.on_ticker = _on_ticker
+        self._feed.on_candle = _on_candle
+        self._feed.on_orderbook = _on_orderbook
+
+    async def initialize(self) -> None:
+        """Start WebSocket feed in background."""
+        self._running = True
+        self._feed_task = asyncio.create_task(
+            self._feed.start(symbols=self._symbols, intervals=["1m", "5m", "15m"])
+        )
+        logger.info(f"[RealMarketData] Feed started for {self.exchange_name} symbols={self._symbols}")
+
+    async def close(self) -> None:
+        """Stop WebSocket feed."""
+        self._running = False
+        await self._feed.stop()
+        if hasattr(self, "_feed_task"):
+            self._feed_task.cancel()
+            try:
+                await self._feed_task
+            except asyncio.CancelledError:
+                pass
+
+    async def get_ticker(self, symbol: str) -> dict:
+        t = self._tickers.get(symbol)
+        if t:
+            return {"symbol": t.symbol, "bid": t.bid, "ask": t.ask,
+                    "last": t.last, "volume": t.volume, "timestamp": t.timestamp}
+        return {}
+
+    async def get_orderbook(self, symbol: str, depth: int = 10) -> dict:
+        ob = self._orderbooks.get(symbol)
+        if ob:
+            return {"symbol": ob.symbol,
+                    "bids": ob.bids[:depth], "asks": ob.asks[:depth],
+                    "timestamp": ob.timestamp}
+        return {}
+
+    async def get_candles(self, symbol: str, timeframe: str = "1m",
+                          limit: int = 100) -> list[dict]:
+        key = f"{symbol}:{timeframe}"
+        clist = self._candles.get(key, [])
+        return [{"timestamp": c.time, "open": c.open, "high": c.high,
+                 "low": c.low, "close": c.close, "volume": c.volume}
+                for c in clist[-limit:]]
+
+    async def start_feed(self, symbols: list[str]) -> None:
+        """Start feed with specific symbols (call after initialize or instead)."""
+        if not self._running:
+            self._running = True
+            self._feed_task = asyncio.create_task(
+                self._feed.start(symbols=symbols, intervals=["1m", "5m", "15m"])
+            )

@@ -18,32 +18,47 @@
 
 #pragma once
 
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <cstring>
 #include <cstdint>
 #include <string>
 #include <vector>
 #include <fstream>
 #include <filesystem>
+#include <mutex>
 #include <spdlog/spdlog.h>
+
+#ifdef _WIN32
+  #ifndef NOMINMAX
+  #define NOMINMAX
+  #endif
+  #ifndef WIN32_LEAN_AND_MEAN
+  #define WIN32_LEAN_AND_MEAN
+  #endif
+  #include <windows.h>
+  #include <fileapi.h>
+#else
+  #include <sys/mman.h>
+  #include <sys/stat.h>
+  #include <fcntl.h>
+  #include <unistd.h>
+#endif
 
 namespace hft {
 
 namespace fs = std::filesystem;
 
 struct MappedPosition {
-    char symbol[16];
+    char symbol[32];
     char side[8];       // "long" or "short"
     double qty;
     double entry_price;
     double current_price;
     double unrealized_pnl;
     uint64_t timestamp_ns;
-    char padding[32];   // align to 128 bytes for cache lines
-} __attribute__((packed));
+    char padding[16];   // align to 128 bytes for cache lines
+};
+
+static_assert(sizeof(MappedPosition) == 128, "MappedPosition must be 128 bytes");
 
 struct MappedAccount {
     double balance;
@@ -52,8 +67,10 @@ struct MappedAccount {
     double free_margin;
     double unrealized_pnl;
     uint64_t timestamp_ns;
-    char padding[64];   // align to 128 bytes
-} __attribute__((packed));
+    char padding[72];   // align to 128 bytes
+};
+
+static_assert(sizeof(MappedAccount) == 128, "MappedAccount must be 128 bytes");
 
 struct MappedHeader {
     uint32_t magic;
@@ -63,7 +80,9 @@ struct MappedHeader {
     uint32_t position_count;
     uint32_t reserved;
     char padding[96];   // align to 128 bytes
-} __attribute__((packed));
+};
+
+static_assert(sizeof(MappedHeader) == 128, "MappedHeader must be 128 bytes");
 
 static constexpr uint32_t MAPPED_MAGIC = 0x48465431;  // "HFT1"
 static constexpr uint32_t MAPPED_VERSION = 1;
@@ -78,7 +97,8 @@ public:
     explicit MappedPersistence(const std::string& base_dir = "/var/lib/hft/state")
         : base_dir_(base_dir)
     {
-        fs::create_directories(base_dir_);
+        std::error_code ec;
+        fs::create_directories(base_dir_, ec);
     }
 
     ~MappedPersistence() {
@@ -93,20 +113,52 @@ public:
 
         // Create or open file
         std::string path = base_dir_ + "/trading_state.bin";
+#ifdef _WIN32
+        HANDLE fd = CreateFileA(path.c_str(), GENERIC_READ | GENERIC_WRITE,
+                                FILE_SHARE_READ, nullptr, OPEN_ALWAYS,
+                                FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (fd == INVALID_HANDLE_VALUE) {
+            spdlog::error("[MappedPersist] Failed to open: {}", path);
+            return false;
+        }
+        // Ensure file size
+        LARGE_INTEGER file_size;
+        file_size.QuadPart = static_cast<LONGLONG>(MAPPED_FILE_SIZE);
+        if (!SetFilePointerEx(fd, file_size, nullptr, FILE_BEGIN) || !SetEndOfFile(fd)) {
+            spdlog::error("[MappedPersist] SetEndOfFile failed");
+            CloseHandle(fd);
+            return false;
+        }
+#else
         int fd = open(path.c_str(), O_RDWR | O_CREAT, 0644);
         if (fd < 0) {
             spdlog::error("[MappedPersist] Failed to open: {}", path);
             return false;
         }
-
         // Ensure file size
         if (ftruncate(fd, MAPPED_FILE_SIZE) != 0) {
             spdlog::error("[MappedPersist] ftruncate failed");
             close(fd);
             return false;
         }
+#endif
 
         // mmap
+#ifdef _WIN32
+        HANDLE mapping = CreateFileMapping(fd, nullptr, PAGE_READWRITE, 0, 0, nullptr);
+        if (!mapping) {
+            spdlog::error("[MappedPersist] CreateFileMapping failed");
+            CloseHandle(fd);
+            return false;
+        }
+        void* mapped = MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, MAPPED_FILE_SIZE);
+        CloseHandle(mapping);
+        if (!mapped) {
+            spdlog::error("[MappedPersist] MapViewOfFile failed");
+            CloseHandle(fd);
+            return false;
+        }
+#else
         void* mapped = mmap(nullptr, MAPPED_FILE_SIZE, 
                            PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (mapped == MAP_FAILED) {
@@ -114,6 +166,7 @@ public:
             close(fd);
             return false;
         }
+#endif
 
         // Write header
         auto* header = static_cast<MappedHeader*>(mapped);
@@ -136,9 +189,15 @@ public:
         }
 
         // Flush to disk (async — OS will sync eventually)
+#ifdef _WIN32
+        FlushViewOfFile(mapped, MAPPED_FILE_SIZE);
+        UnmapViewOfFile(mapped);
+        CloseHandle(fd);
+#else
         msync(mapped, MAPPED_FILE_SIZE, MS_ASYNC);
         munmap(mapped, MAPPED_FILE_SIZE);
         close(fd);
+#endif
 
         spdlog::debug("[MappedPersist] Saved {} positions, balance={:.2f}", 
                       header->position_count, account.balance);
@@ -162,6 +221,16 @@ public:
             return result;
         }
 
+#ifdef _WIN32
+        HANDLE fd = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ,
+                                nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (fd == INVALID_HANDLE_VALUE) return result;
+        HANDLE mapping = CreateFileMapping(fd, nullptr, PAGE_READONLY, 0, 0, nullptr);
+        if (!mapping) { CloseHandle(fd); return result; }
+        void* mapped = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, MAPPED_FILE_SIZE);
+        CloseHandle(mapping);
+        if (!mapped) { CloseHandle(fd); return result; }
+#else
         int fd = open(path.c_str(), O_RDONLY);
         if (fd < 0) return result;
 
@@ -170,12 +239,16 @@ public:
             close(fd);
             return result;
         }
+#endif
 
         auto* header = static_cast<MappedHeader*>(mapped);
         if (header->magic != MAPPED_MAGIC) {
             spdlog::warn("[MappedPersist] Invalid magic — ignoring");
-            munmap(mapped, MAPPED_FILE_SIZE);
-            close(fd);
+#ifdef _WIN32
+            UnmapViewOfFile(mapped); CloseHandle(fd);
+#else
+            munmap(mapped, MAPPED_FILE_SIZE); close(fd);
+#endif
             return result;
         }
 
@@ -188,12 +261,16 @@ public:
 
         auto* pos_array = reinterpret_cast<MappedPosition*>(
             static_cast<char*>(mapped) + sizeof(MappedHeader) + sizeof(MappedAccount));
-        for (uint32_t i = 0; i < header->position_count; i++) {
+        uint32_t pos_count = std::min(header->position_count, static_cast<uint32_t>(MAX_POSITIONS));
+        for (uint32_t i = 0; i < pos_count; i++) {
             result.positions.push_back(pos_array[i]);
         }
 
-        munmap(mapped, MAPPED_FILE_SIZE);
-        close(fd);
+#ifdef _WIN32
+        UnmapViewOfFile(mapped); CloseHandle(fd);
+#else
+        munmap(mapped, MAPPED_FILE_SIZE); close(fd);
+#endif
 
         spdlog::info("[MappedPersist] Recovered {} positions, balance={:.2f}, age={:.0f}s",
                      result.positions.size(), result.account.balance,
@@ -208,6 +285,22 @@ public:
         std::string tmp_path = base_dir_ + "/trading_state.tmp";
         std::string final_path = base_dir_ + "/trading_state.bin";
 
+#ifdef _WIN32
+        HANDLE fd = CreateFileA(tmp_path.c_str(), GENERIC_READ | GENERIC_WRITE,
+                                0, nullptr, CREATE_ALWAYS,
+                                FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (fd == INVALID_HANDLE_VALUE) return false;
+        LARGE_INTEGER file_size;
+        file_size.QuadPart = static_cast<LONGLONG>(MAPPED_FILE_SIZE);
+        if (!SetFilePointerEx(fd, file_size, nullptr, FILE_BEGIN) || !SetEndOfFile(fd)) {
+            CloseHandle(fd); return false;
+        }
+        HANDLE mapping = CreateFileMapping(fd, nullptr, PAGE_READWRITE, 0, 0, nullptr);
+        if (!mapping) { CloseHandle(fd); return false; }
+        void* mapped = MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, MAPPED_FILE_SIZE);
+        CloseHandle(mapping);
+        if (!mapped) { CloseHandle(fd); return false; }
+#else
         int fd = open(tmp_path.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
         if (fd < 0) return false;
 
@@ -221,6 +314,7 @@ public:
             close(fd);
             return false;
         }
+#endif
 
         auto* header = static_cast<MappedHeader*>(mapped);
         header->magic = MAPPED_MAGIC;
@@ -238,13 +332,20 @@ public:
             pos_array[i] = positions[i];
         }
 
+#ifdef _WIN32
+        FlushViewOfFile(mapped, MAPPED_FILE_SIZE);
+        UnmapViewOfFile(mapped);
+        CloseHandle(fd);
+#else
         msync(mapped, MAPPED_FILE_SIZE, MS_SYNC);
         munmap(mapped, MAPPED_FILE_SIZE);
         close(fd);
+#endif
 
         // Atomic rename
-        rename(tmp_path.c_str(), final_path.c_str());
-        return true;
+        std::error_code ec;
+        fs::rename(tmp_path, final_path, ec);
+        return !ec;
     }
 
 private:

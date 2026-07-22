@@ -4,7 +4,6 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 
 class Side(Enum):
@@ -85,8 +84,8 @@ class OrderBook:
         return {
             "symbol": self.symbol,
             "exchange": self.exchange,
-            "bids": [[l.price, l.quantity] for l in self.bids[:10]],
-            "asks": [[l.price, l.quantity] for l in self.asks[:10]],
+            "bids": [[lvl.price, lvl.quantity] for lvl in self.bids[:10]],
+            "asks": [[lvl.price, lvl.quantity] for lvl in self.asks[:10]],
             "timestamp": self.timestamp,
         }
 
@@ -100,13 +99,13 @@ class Order:
     side: Side
     order_type: OrderType
     quantity: float
-    price: Optional[float] = None  # None for market orders
+    price: float | None = None  # None for market orders
     status: OrderStatus = OrderStatus.PENDING
     filled_price: float = 0.0
     filled_quantity: float = 0.0
     fee: float = 0.0
     slippage: float = 0.0
-    rejection_reason: Optional[str] = None
+    rejection_reason: str | None = None
     timestamp: int = field(default_factory=lambda: int(time.time()))
 
     def to_dict(self) -> dict:

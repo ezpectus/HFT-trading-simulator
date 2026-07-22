@@ -32,7 +32,7 @@ struct TradeEvent {
 class TradeHandler {
 public:
     explicit TradeHandler(size_t rolling_window = 1000)
-        : window_size_(rolling_window) {}
+        : window_size_(std::min(rolling_window, MAX_WINDOW)) {}
 
     // Process a new trade event
     void on_trade(const TradeEvent& trade) noexcept {

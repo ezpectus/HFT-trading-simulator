@@ -3,7 +3,9 @@ import numpy as np
 import pytest
 
 from src.risk.portfolio_optimizer import (
-    PortfolioOptimizer, PortfolioResult, AssetStats,
+    AssetStats,
+    PortfolioOptimizer,
+    PortfolioResult,
 )
 
 

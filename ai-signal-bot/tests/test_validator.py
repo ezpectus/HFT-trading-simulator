@@ -1,8 +1,9 @@
 """Tests for signal validator."""
-import pytest
 import time
 from datetime import datetime, timedelta
 from unittest.mock import patch
+
+import pytest
 
 from src.signal_validation.validator import SignalValidator, ValidationResult
 from src.strategies.strategies import Signal, SignalDirection
@@ -61,6 +62,14 @@ class TestSignalValidator:
 
 
 class TestDuplicateCooldown:
+    def setup_method(self):
+        self.validator = SignalValidator(
+            min_confidence=65,
+            min_rr_ratio=1.5,
+            max_drawdown_pct=8.0,
+            max_open_positions=3,
+        )
+
     def test_duplicate_signal_within_cooldown_rejected(self):
         sig = make_signal(symbol="BTC/USDT")
         result1 = self.validator.validate(sig, account_balance=10000)
@@ -92,6 +101,14 @@ class TestDuplicateCooldown:
 
 
 class TestResetDaily:
+    def setup_method(self):
+        self.validator = SignalValidator(
+            min_confidence=65,
+            min_rr_ratio=1.5,
+            max_drawdown_pct=8.0,
+            max_open_positions=3,
+        )
+
     def test_reset_daily_clears_pnl(self):
         self.validator.update_pnl(-500)
         self.validator.reset_daily()
@@ -108,6 +125,14 @@ class TestResetDaily:
 
 
 class TestUpdatePnl:
+    def setup_method(self):
+        self.validator = SignalValidator(
+            min_confidence=65,
+            min_rr_ratio=1.5,
+            max_drawdown_pct=8.0,
+            max_open_positions=3,
+        )
+
     def test_positive_pnl_does_not_trigger_drawdown(self):
         self.validator.update_pnl(500)  # Profit, not loss
         sig = make_signal()
@@ -133,6 +158,14 @@ class TestUpdatePnl:
 
 
 class TestPositionCount:
+    def setup_method(self):
+        self.validator = SignalValidator(
+            min_confidence=65,
+            min_rr_ratio=1.5,
+            max_drawdown_pct=8.0,
+            max_open_positions=3,
+        )
+
     def test_below_max_passes(self):
         self.validator.update_position_count(2)
         sig = make_signal()
@@ -190,6 +223,14 @@ class TestCustomConfig:
 
 
 class TestValidationResult:
+    def setup_method(self):
+        self.validator = SignalValidator(
+            min_confidence=65,
+            min_rr_ratio=1.5,
+            max_drawdown_pct=8.0,
+            max_open_positions=3,
+        )
+
     def test_result_has_signal_field(self):
         sig = make_signal()
         result = self.validator.validate(sig, account_balance=10000)
@@ -212,6 +253,14 @@ class TestValidationResult:
 
 
 class TestShortSignals:
+    def setup_method(self):
+        self.validator = SignalValidator(
+            min_confidence=65,
+            min_rr_ratio=1.5,
+            max_drawdown_pct=8.0,
+            max_open_positions=3,
+        )
+
     def test_valid_short_signal_passes(self):
         sig = make_signal(direction=SignalDirection.SHORT,
                           entry=100, sl=108, tp=88)
@@ -229,6 +278,14 @@ class TestShortSignals:
 
 
 class TestZeroBalance:
+    def setup_method(self):
+        self.validator = SignalValidator(
+            min_confidence=65,
+            min_rr_ratio=1.5,
+            max_drawdown_pct=8.0,
+            max_open_positions=3,
+        )
+
     def test_zero_balance_no_drawdown_division_error(self):
         self.validator.update_pnl(-500)
         sig = make_signal()

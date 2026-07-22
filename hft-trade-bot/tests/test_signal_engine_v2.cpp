@@ -458,6 +458,7 @@ TEST(test_signal_engine_v2_cooldown) {
     int64_t now = FastSignal::now_ns();
     auto sig1 = engine.analyze("BTC/USDT", candles.data(), candles.size(),
                                 ob, pr, now);
+    (void)sig1;  // First call triggers cooldown; result not checked
     // Second call within cooldown → should be neutral
     auto sig2 = engine.analyze("BTC/USDT", candles.data(), candles.size(),
                                 ob, pr, now + 1'000'000);  // 1ms later

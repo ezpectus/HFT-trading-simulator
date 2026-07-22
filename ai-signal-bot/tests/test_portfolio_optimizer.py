@@ -1,9 +1,11 @@
 """Tests for PortfolioOptimizer — rebalance detection, target weights, trade computation."""
-import pytest
 import numpy as np
+import pytest
 
 from src.risk.portfolio_optimizer import (
-    PortfolioOptimizer, PortfolioResult, AssetStats,
+    AssetStats,
+    PortfolioOptimizer,
+    PortfolioResult,
 )
 
 

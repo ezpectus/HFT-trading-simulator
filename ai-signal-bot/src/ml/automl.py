@@ -19,15 +19,16 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Callable, Optional, Dict, Any
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 try:
     import optuna
-    from optuna.samplers import TPESampler
     from optuna.pruners import MedianPruner
+    from optuna.samplers import TPESampler
     OPTUNA_AVAILABLE = True
 except ImportError:
     OPTUNA_AVAILABLE = False
@@ -40,7 +41,7 @@ class AutoMLConfig:
     timeout: int = 3600  # 1 hour
     n_startup_trials: int = 10
     pruner_n_warmup_steps: int = 5
-    storage: Optional[str] = None  # "sqlite:///automl.db"
+    storage: str | None = None  # "sqlite:///automl.db"
     study_name: str = "hft_automl"
 
 
@@ -57,16 +58,16 @@ class AutoMLOptimizer:
 
     def __init__(
         self,
-        config: AutoMLConfig = None,
+        config: AutoMLConfig | None = None,
         strategy: str = "trend_following",
     ):
         self.config = config or AutoMLConfig()
         self.strategy = strategy
-        self.best_params: Optional[Dict] = None
+        self.best_params: dict | None = None
         self.best_value: float = float("-inf")
-        self.study: Optional[object] = None
+        self.study: object | None = None
 
-    def _default_search_space(self, trial) -> Dict[str, Any]:
+    def _default_search_space(self, trial) -> dict[str, Any]:
         """Default search space for trading strategies."""
         params = {}
 
@@ -101,14 +102,14 @@ class AutoMLOptimizer:
 
     def optimize(
         self,
-        objective_fn: Optional[Callable] = None,
-        search_space_fn: Optional[Callable] = None,
-    ) -> Dict[str, Any]:
+        objective_fn: Callable | None = None,
+        search_space_fn: Callable | None = None,
+    ) -> dict[str, Any]:
         """
         Run hyperparameter optimization.
 
         Args:
-            objective_fn: Custom objective function(trial) -> float
+            objective_fn: Custom objective function(params: dict) -> float
             search_space_fn: Custom search space function(trial) -> dict
 
         Returns:
@@ -135,7 +136,8 @@ class AutoMLOptimizer:
 
         if objective_fn is None:
             logger.warning("[AutoML] No objective function provided — using dummy")
-            objective_fn = lambda trial: 0.0
+            def objective_fn(params):
+                return 0.0
 
         space_fn = search_space_fn or self._default_search_space
 
@@ -165,7 +167,7 @@ class AutoMLOptimizer:
 
         return self.best_params
 
-    def get_param_importances(self) -> Dict[str, float]:
+    def get_param_importances(self) -> dict[str, float]:
         """Get hyperparameter importances."""
         if not self.study or not OPTUNA_AVAILABLE:
             return {}
@@ -179,7 +181,6 @@ class AutoMLOptimizer:
         if not self.study or not OPTUNA_AVAILABLE:
             return None
         try:
-            import pandas as pd
             return self.study.trials_dataframe()
         except Exception:
             return None

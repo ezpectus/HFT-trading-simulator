@@ -1,11 +1,18 @@
 """Tests for SimulatedExchange — order matching, fees, slippage, positions, SL/TP."""
-import pytest
 from unittest.mock import MagicMock
 
-from exchange_simulator.models import (
-    Account, Order, OrderBook, OrderStatus, OrderType, Position, Side,
-)
+import pytest
+
 from exchange_simulator.exchange import SimulatedExchange
+from exchange_simulator.models import (
+    Account,
+    Order,
+    OrderBook,
+    OrderStatus,
+    OrderType,
+    Position,
+    Side,
+)
 
 
 def make_market(price=50000.0):

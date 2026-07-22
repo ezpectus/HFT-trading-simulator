@@ -3,11 +3,15 @@
 Includes regression tests for fill_from_front returning (order, fill_qty) tuples
 and adverse selection tracking using actual fill qty instead of original order qty.
 """
-import pytest
 import time
 
+import pytest
+
 from exchange_simulator.order_book_realism import (
-    OrderBookRealism, PriceLevel, BookOrder, OrderType,
+    BookOrder,
+    OrderBookRealism,
+    OrderType,
+    PriceLevel,
 )
 
 

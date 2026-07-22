@@ -7,7 +7,6 @@ Usage:
     python monitor.py
 """
 import os
-import sys
 import time
 from datetime import datetime
 
@@ -40,11 +39,11 @@ def check_process():
 
 def monitor():
     print(f"\n{'=' * 60}")
-    print(f"  HFT TRADE BOT (C++) — Status Monitor")
+    print("  HFT TRADE BOT (C++) — Status Monitor")
     print(f"{'=' * 60}\n")
     print(f"  Log file:  {HFT_LOG}")
     print(f"  Binary:    {os.path.join(HFT_DIR, 'hft_trade_bot.exe') if os.name == 'nt' else os.path.join(HFT_DIR, 'hft_trade_bot')}")
-    print(f"  Starting monitor...\n")
+    print("  Starting monitor...\n")
 
     last_size = 0
     error_count = 0
@@ -71,7 +70,6 @@ def monitor():
             pass
 
         if current_size > last_size and log_lines:
-            new_lines = log_lines[-(current_size - last_size) // 50:]  # rough estimate
             for line in log_lines:
                 if "[error]" in line.lower() or "ERROR" in line:
                     error_count += 1
@@ -96,7 +94,7 @@ def monitor():
 
         # Stats
         print(f"  {'─' * 56}")
-        print(f"  Statistics (session):")
+        print("  Statistics (session):")
         print(f"  {'─' * 56}")
         print(f"  Signals received:  {signal_count}")
         print(f"  Trades executed:   {trade_count}")
@@ -106,7 +104,7 @@ def monitor():
         # Log output
         if log_lines:
             print(f"  {'─' * 56}")
-            print(f"  HFT Bot Log (last 20 lines):")
+            print("  HFT Bot Log (last 20 lines):")
             print(f"  {'─' * 56}")
             for line in log_lines[-20:]:
                 line = line.rstrip()
@@ -123,7 +121,7 @@ def monitor():
                     print(f"  {line}")
         else:
             print(f"  {'─' * 56}")
-            print(f"  No log file found. Start the HFT Trade Bot first.")
+            print("  No log file found. Start the HFT Trade Bot first.")
             print(f"  {'─' * 56}")
 
         print(f"\n{'=' * 60}")

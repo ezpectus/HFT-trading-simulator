@@ -1,6 +1,4 @@
 """Tests for config validator."""
-import pytest
-
 from exchange_simulator.config_validator import validate_config
 
 

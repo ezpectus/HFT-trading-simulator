@@ -8,11 +8,8 @@ Uses asyncpg for non-blocking async database access.
 
 from __future__ import annotations
 
-import asyncio
 import logging
-import time
-from typing import Optional, List, Dict, Any
-from dataclasses import dataclass, field
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +103,9 @@ CREATE TABLE IF NOT EXISTS candles (
     PRIMARY KEY (id, time)
 ) PARTITION BY RANGE (time);
 
+-- Create default partition (catches all dates not covered by specific partitions)
+CREATE TABLE IF NOT EXISTS candles_default PARTITION OF candles DEFAULT;
+
 -- Create default partitions for current and next month
 -- (In production, use pg_partman for automatic partition management)
 
@@ -137,7 +137,7 @@ class Database:
         self.dsn = dsn
         self.min_pool = min_pool
         self.max_pool = max_pool
-        self._pool: Optional[Any] = None  # asyncpg.Pool
+        self._pool: Any | None = None  # asyncpg.Pool
 
     async def connect(self) -> bool:
         """Initialize connection pool and create schema."""
@@ -171,7 +171,7 @@ class Database:
             self._pool = None
             logger.info("Database disconnected")
 
-    async def insert_trade(self, trade: dict) -> Optional[int]:
+    async def insert_trade(self, trade: dict) -> int | None:
         """Insert a closed trade."""
         if not self._pool:
             return None
@@ -200,7 +200,7 @@ class Database:
             logger.error(f"Failed to insert trade: {e}")
             return None
 
-    async def insert_signal(self, signal: dict) -> Optional[int]:
+    async def insert_signal(self, signal: dict) -> int | None:
         """Insert an AI signal."""
         if not self._pool:
             return None
@@ -298,7 +298,7 @@ class Database:
         except Exception as e:
             logger.error(f"Failed to insert candle: {e}")
 
-    async def insert_candles_batch(self, candles: List[dict]):
+    async def insert_candles_batch(self, candles: list[dict]):
         """Batch insert candles for efficiency."""
         if not self._pool or not candles:
             return
@@ -320,7 +320,7 @@ class Database:
         except Exception as e:
             logger.error(f"Failed to batch insert candles: {e}")
 
-    async def get_trades(self, limit: int = 100, offset: int = 0) -> List[dict]:
+    async def get_trades(self, limit: int = 100, offset: int = 0) -> list[dict]:
         """Query recent trades."""
         if not self._pool:
             return []
@@ -360,7 +360,7 @@ class Database:
             logger.error(f"Failed to get daily PnL: {e}")
             return {}
 
-    async def insert_backtest(self, bt: dict) -> Optional[int]:
+    async def insert_backtest(self, bt: dict) -> int | None:
         """Insert backtest results."""
         if not self._pool:
             return None

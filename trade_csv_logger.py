@@ -30,7 +30,7 @@ class TradeCsvLogger:
         "reason",
     ]
 
-    def __init__(self, log_dir: str = None, service_name: str = "trades") -> None:
+    def __init__(self, log_dir: str | None = None, service_name: str = "trades") -> None:
         """Initialize the trade CSV logger.
 
         Args:

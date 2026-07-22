@@ -1,11 +1,18 @@
 """Tests for exchange simulator models and market simulator."""
 import pytest
 
-from exchange_simulator.models import (
-    Account, Candle, Order, OrderBook, OrderBookLevel,
-    OrderStatus, OrderType, Position, Side,
-)
 from exchange_simulator.market_simulator import MarketSimulator
+from exchange_simulator.models import (
+    Account,
+    Candle,
+    Order,
+    OrderBook,
+    OrderBookLevel,
+    OrderStatus,
+    OrderType,
+    Position,
+    Side,
+)
 
 
 class TestCandle:

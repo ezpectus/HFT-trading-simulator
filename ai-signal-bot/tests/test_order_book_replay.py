@@ -1,10 +1,13 @@
 """Tests for order book replay module."""
 import pytest
 
-from src.backtesting.order_book_replay import (
-    OrderBookReplay, OrderBookBacktester, ReplayOrderBook, ReplayOrderBookLevel,
-)
 from src.backtesting.backtester import Backtester
+from src.backtesting.order_book_replay import (
+    OrderBookBacktester,
+    OrderBookReplay,
+    ReplayOrderBook,
+    ReplayOrderBookLevel,
+)
 from src.strategies import TrendFollowingStrategy
 
 

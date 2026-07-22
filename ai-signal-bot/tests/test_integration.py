@@ -25,12 +25,15 @@ _bot_root = os.path.join(os.path.dirname(__file__), "..")
 if _bot_root not in sys.path:
     sys.path.insert(0, _bot_root)
 
-from src.communication import ExchangeClient, SignalPublisher
-from src.strategies import (
-    EnsembleVoter, FFTCycleStrategy, MeanReversionStrategy,
-    SignalDirection, TrendFollowingStrategy,
+from src.communication import ExchangeClient, SignalPublisher  # noqa: E402
+from src.signal_validation import SignalValidator  # noqa: E402
+from src.strategies import (  # noqa: E402
+    EnsembleVoter,
+    FFTCycleStrategy,
+    MeanReversionStrategy,
+    SignalDirection,
+    TrendFollowingStrategy,
 )
-from src.signal_validation import SignalValidator
 
 
 @pytest.fixture
@@ -43,7 +46,7 @@ def event_loop():
 @pytest.fixture
 async def exchange_websocket():
     """Connect to a running exchange simulator on localhost:8765.
-    
+
     Requires the exchange simulator to be running.
     Skips test if connection fails.
     """
@@ -223,10 +226,12 @@ class TestSignalPublisher:
         }
         await publisher.broadcast_signal(test_signal)
 
-        # Client should receive it
+        # Client should receive it — may need to skip circuit_breaker_status messages
         msg = await asyncio.wait_for(ws.recv(), timeout=5.0)
         data = json.loads(msg)
-        # Could be signal_history or the signal itself
+        while data["type"] not in ("signal", "signal_history"):
+            msg = await asyncio.wait_for(ws.recv(), timeout=5.0)
+            data = json.loads(msg)
         assert data["type"] in ("signal", "signal_history")
 
         await ws.close()
@@ -268,7 +273,7 @@ class TestSignalValidator:
         )
         validator.update_position_count(0)
 
-        from src.strategies.strategies import Signal, SignalDirection
+        from src.strategies.strategies import Signal
         sig = Signal(
             symbol="BTC/USDT",
             direction=SignalDirection.LONG,
@@ -279,7 +284,7 @@ class TestSignalValidator:
             take_profit=70000,
             reason="test",
         )
-        result = validator.validate(sig, balance=10000)
+        result = validator.validate(sig, account_balance=10000)
         assert result.passed
 
     def test_low_confidence_rejected(self):
@@ -291,7 +296,7 @@ class TestSignalValidator:
         )
         validator.update_position_count(0)
 
-        from src.strategies.strategies import Signal, SignalDirection
+        from src.strategies.strategies import Signal
         sig = Signal(
             symbol="BTC/USDT",
             direction=SignalDirection.LONG,
@@ -302,7 +307,7 @@ class TestSignalValidator:
             take_profit=70000,
             reason="test",
         )
-        result = validator.validate(sig, balance=10000)
+        result = validator.validate(sig, account_balance=10000)
         assert not result.passed
 
     def test_too_many_positions(self):
@@ -314,7 +319,7 @@ class TestSignalValidator:
         )
         validator.update_position_count(3)
 
-        from src.strategies.strategies import Signal, SignalDirection
+        from src.strategies.strategies import Signal
         sig = Signal(
             symbol="BTC/USDT",
             direction=SignalDirection.LONG,
@@ -325,5 +330,5 @@ class TestSignalValidator:
             take_profit=70000,
             reason="test",
         )
-        result = validator.validate(sig, balance=10000)
+        result = validator.validate(sig, account_balance=10000)
         assert not result.passed

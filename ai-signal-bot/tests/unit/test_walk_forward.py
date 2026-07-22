@@ -4,16 +4,17 @@ Tests cover: detect_overfitting with various IS/OOS scenarios, run() with mock
 strategy factory and param grid, edge cases (empty data, insufficient data),
 window splitting logic, and overfitting score computation.
 """
-import pytest
-import numpy as np
 from unittest.mock import MagicMock, patch
 
+import numpy as np
+import pytest
+
+from src.backtesting.backtest_engine import BacktestConfig, BacktestResult
 from src.backtesting.walk_forward import (
     WalkForwardAnalyzer,
-    WalkForwardWindow,
     WalkForwardResult,
+    WalkForwardWindow,
 )
-from src.backtesting.backtest_engine import BacktestConfig, BacktestResult
 
 
 class TestWalkForwardWindow:
@@ -145,7 +146,8 @@ class TestWalkForwardRun:
         mock_engine.run.return_value = self._make_mock_result(1.5, 2.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
-            strategy_factory = lambda p: lambda s, c: {"action": "hold"}
+            def strategy_factory(p):
+                return lambda s, c: {"action": "hold"}
             result = analyzer.run(candles, strategy_factory, [{"param": 1}])
 
         assert len(result.windows) == 1
@@ -163,7 +165,8 @@ class TestWalkForwardRun:
         mock_engine.run.return_value = self._make_mock_result(2.0, 1.5)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
-            strategy_factory = lambda p: lambda s, c: {"action": "hold"}
+            def strategy_factory(p):
+                return lambda s, c: {"action": "hold"}
             result = analyzer.run(candles, strategy_factory, [{"p": 1}, {"p": 2}])
 
         # window_size = max(150//3, 10) = 50, in_sample = 30, oos = 20
@@ -185,7 +188,8 @@ class TestWalkForwardRun:
         mock_engine.run.side_effect = results * 10  # repeat for multiple calls
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
-            strategy_factory = lambda p: lambda s, c: {"action": "hold"}
+            def strategy_factory(p):
+                return lambda s, c: {"action": "hold"}
             result = analyzer.run(candles, strategy_factory, [{"p": 1}, {"p": 2}])
 
         assert len(result.windows) == 1
@@ -217,7 +221,8 @@ class TestWalkForwardRun:
         mock_engine.run.side_effect = mock_run
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
-            strategy_factory = lambda p: lambda s, c: {"action": "hold"}
+            def strategy_factory(p):
+                return lambda s, c: {"action": "hold"}
             result = analyzer.run(candles, strategy_factory, [{"p": 1}, {"p": 2}])
 
         assert result.avg_in_sample_sharpe == pytest.approx(3.0)
@@ -235,7 +240,8 @@ class TestWalkForwardRun:
         mock_engine.run.return_value = self._make_mock_result(2.0, 1.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
-            strategy_factory = lambda p: lambda s, c: {"action": "hold"}
+            def strategy_factory(p):
+                return lambda s, c: {"action": "hold"}
             result = analyzer.run(candles, strategy_factory, [{"p": 1}])
 
         assert result.overfitting_score == pytest.approx(0.0)
@@ -251,7 +257,8 @@ class TestWalkForwardRun:
         mock_engine.run.return_value = self._make_mock_result(1.5, 3.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
-            strategy_factory = lambda p: lambda s, c: {"action": "hold"}
+            def strategy_factory(p):
+                return lambda s, c: {"action": "hold"}
             result = analyzer.run(candles, strategy_factory, [{"p": 1}])
 
         # 2 windows, each OOS return_pct = 3.0 → total = 6.0
@@ -267,7 +274,8 @@ class TestWalkForwardRun:
         mock_engine.run.return_value = self._make_mock_result(2.5, 1.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
-            strategy_factory = lambda p: lambda s, c: {"action": "hold"}
+            def strategy_factory(p):
+                return lambda s, c: {"action": "hold"}
             result = analyzer.run(candles, strategy_factory, [{"p": 1}])
 
         assert result.total_sharpe == pytest.approx(result.avg_out_of_sample_sharpe)
@@ -282,7 +290,8 @@ class TestWalkForwardRun:
         mock_engine.run.return_value = self._make_mock_result(1.0, 1.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
-            strategy_factory = lambda p: lambda s, c: {"action": "hold"}
+            def strategy_factory(p):
+                return lambda s, c: {"action": "hold"}
             result = analyzer.run(candles, strategy_factory, [{"p": 1}])
 
         # window_size = max(200//2, 10) = 100, in_sample = 70, oos = 30
@@ -313,7 +322,8 @@ class TestWalkForwardRun:
         mock_engine.run.side_effect = [is_result, oos_result]
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
-            strategy_factory = lambda p: lambda s, c: {"action": "hold"}
+            def strategy_factory(p):
+                return lambda s, c: {"action": "hold"}
             result = analyzer.run(candles, strategy_factory, [{"p": 1}])
 
         w = result.windows[0]
@@ -331,8 +341,9 @@ class TestWalkForwardRun:
         mock_engine.run.return_value = self._make_mock_result(1.0, 1.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine) as mock_cls:
-            strategy_factory = lambda p: lambda s, c: {"action": "hold"}
-            result = analyzer.run(candles, strategy_factory, [{"p": 1}], config=config)
+            def strategy_factory(p):
+                return lambda s, c: {"action": "hold"}
+            analyzer.run(candles, strategy_factory, [{"p": 1}], config=config)
 
         # Verify BacktestEngine was initialized with the custom config
         mock_cls.assert_called_with(config)

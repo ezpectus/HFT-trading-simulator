@@ -6,15 +6,15 @@ performance metrics, equity curve, trade-by-trade log.
 
 from __future__ import annotations
 
+import logging
 import math
-import time
-import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Optional, Callable, Any
-from collections import defaultdict
+
 import numpy as np
 
-import logging
+from src.backtesting.pnl_calculator import AssetType, PnLBreakdown, PnLCalculator, PnLConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -87,15 +87,37 @@ class BacktestResult:
 
 
 class BacktestEngine:
-    """Full backtesting framework."""
+    """Full backtesting framework.
 
-    def __init__(self, config: BacktestConfig = None):
+    Args:
+        config: Backtest configuration (capital, fees, slippage, etc.)
+        pnl_calculator: PnL calculator for asset-specific PnL logic.
+            If None, a spot calculator is created from config values.
+    """
+
+    def __init__(
+        self,
+        config: BacktestConfig | None = None,
+        pnl_calculator: PnLCalculator | None = None,
+    ):
         self.config = config or BacktestConfig()
         self.equity: float = self.config.initial_capital
-        self.position: Optional[dict] = None  # {side, qty, entry_price, entry_time}
+        self.position: dict | None = None  # {side, qty, entry_price, entry_time}
         self.trades: list[BacktestTrade] = []
         self.equity_curve: list[float] = []
         self.peak_equity: float = self.config.initial_capital
+
+        if pnl_calculator is not None:
+            self.pnl_calculator = pnl_calculator
+        else:
+            self.pnl_calculator = PnLCalculator(
+                asset_type=AssetType.SPOT,
+                config=PnLConfig(
+                    fee_rate=self.config.fee_rate,
+                    slippage_bps=self.config.slippage_bps,
+                    funding_rate=self.config.funding_rate,
+                ),
+            )
 
     def run(
         self, candles: list[dict],
@@ -161,19 +183,13 @@ class BacktestEngine:
             return
         qty = position_value / price
 
-        # Apply slippage
-        if direction == "LONG":
-            entry_price = price * (1 + self.config.slippage_bps / 10000)
-        else:
-            entry_price = price * (1 - self.config.slippage_bps / 10000)
-
-        fee = qty * entry_price * self.config.fee_rate
-        self.equity -= fee
+        entry_fill = self.pnl_calculator.apply_entry_slippage(direction, price)
 
         self.position = {
             "side": direction,
             "qty": qty,
-            "entry_price": entry_price,
+            "entry_price": entry_fill,
+            "entry_price_raw": price,
             "entry_time": timestamp,
             "stop_loss": signal.get("stop_loss", 0),
             "take_profit": signal.get("take_profit", 0),
@@ -205,23 +221,17 @@ class BacktestEngine:
         if not self.position:
             return
 
-        # Apply slippage
-        if self.position["side"] == "LONG":
-            fill_price = exit_price * (1 - self.config.slippage_bps / 10000)
-            pnl = (fill_price - self.position["entry_price"]) * self.position["qty"]
-        else:
-            fill_price = exit_price * (1 + self.config.slippage_bps / 10000)
-            pnl = (self.position["entry_price"] - fill_price) * self.position["qty"]
-
-        fee = self.position["qty"] * fill_price * self.config.fee_rate
         hold_time = timestamp - self.position["entry_time"]
 
-        # Funding cost (simplified: 8h intervals)
-        funding_periods = hold_time / (8 * 3600)
-        funding = self.position["qty"] * fill_price * self.config.funding_rate * funding_periods
+        breakdown = self.pnl_calculator.calculate_pnl(
+            side=self.position["side"],
+            qty=self.position["qty"],
+            entry_price=self.position["entry_price_raw"],
+            exit_price=exit_price,
+            hold_time_s=hold_time,
+        )
 
-        net_pnl = pnl - fee - funding
-        self.equity += net_pnl
+        self.equity += breakdown.net_pnl
 
         trade = BacktestTrade(
             timestamp=timestamp,
@@ -229,10 +239,10 @@ class BacktestEngine:
             side=self.position["side"],
             qty=self.position["qty"],
             entry_price=self.position["entry_price"],
-            exit_price=fill_price,
-            pnl=net_pnl,
-            fee=fee,
-            funding=funding,
+            exit_price=breakdown.fill_exit_price,
+            pnl=breakdown.net_pnl,
+            fee=breakdown.entry_fee + breakdown.exit_fee,
+            funding=breakdown.funding_cost,
             hold_time_s=hold_time,
             reason=reason,
         )
@@ -243,10 +253,12 @@ class BacktestEngine:
         """Compute current equity including unrealized PnL."""
         if not self.position:
             return self.equity
-        if self.position["side"] == "LONG":
-            unrealized = (current_price - self.position["entry_price"]) * self.position["qty"]
-        else:
-            unrealized = (self.position["entry_price"] - current_price) * self.position["qty"]
+        unrealized = self.pnl_calculator.unrealized_pnl(
+            side=self.position["side"],
+            qty=self.position["qty"],
+            entry_price=self.position["entry_price"],
+            current_price=current_price,
+        )
         return self.equity + unrealized
 
     def _compute_results(self) -> BacktestResult:
@@ -295,9 +307,9 @@ class BacktestEngine:
             if len(returns) > 0:
                 mean_ret = returns.mean()
                 std_ret = returns.std()
+                # Annualize (assume 1m bars)
+                bars_per_year = 252 * 24 * 60
                 if std_ret > 1e-10:
-                    # Annualize (assume 1m bars)
-                    bars_per_year = 252 * 24 * 60
                     result.sharpe_ratio = mean_ret / std_ret * math.sqrt(bars_per_year)
 
                 # Sortino ratio

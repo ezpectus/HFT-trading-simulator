@@ -4,11 +4,14 @@ insurance fund, cascade, ADL, margin calculation correctness.
 Includes regression tests for margin calculation bug (original_qty) and
 insurance fund profit logic (min(x,0) → direct addition).
 """
-import pytest
 import time
 
+import pytest
+
 from exchange_simulator.liquidation_engine_v2 import (
-    LiquidationEngineV2, Position, LiquidationType,
+    LiquidationEngineV2,
+    LiquidationType,
+    Position,
 )
 
 

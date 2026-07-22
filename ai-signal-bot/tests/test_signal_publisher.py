@@ -1,6 +1,7 @@
 """Tests for signal publisher backtest endpoint."""
 import asyncio
 import json
+
 import pytest
 
 from src.communication.signal_publisher import SignalPublisher

@@ -9,6 +9,7 @@
 #include "../strategies/pressure_model.h"
 #include <cstdint>
 #include <cmath>
+#include <cstring>
 
 namespace hft {
 

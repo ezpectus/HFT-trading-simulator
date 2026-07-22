@@ -12,14 +12,14 @@ Features:
 
 from __future__ import annotations
 
+import logging
 import time
-from dataclasses import dataclass, field
-from typing import Optional
-from enum import Enum
 from collections import deque
+from dataclasses import dataclass
+from enum import Enum
+
 import numpy as np
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -113,13 +113,12 @@ class LiquidationEngineV2:
         return equity / notional
 
     def liquidate(self, pos: Position, mark_price: float,
-                  force_full: bool = False) -> Optional[LiquidationEvent]:
+                  force_full: bool = False) -> LiquidationEvent | None:
         """Liquidate a position. Returns liquidation event or None."""
         if pos.qty <= 0:
             return None
 
         pnl = self.compute_unrealized_pnl(pos, mark_price)
-        loss = abs(min(pnl, 0))  # Loss to insurance fund
 
         # Determine liquidation type
         if force_full or self._cascade_depth > 0:
@@ -135,6 +134,9 @@ class LiquidationEngineV2:
         pos.qty -= qty_to_close
         margin_ratio = qty_to_close / original_qty if original_qty > 0 else 0.0
         pos.margin = max(pos.margin + pnl * margin_ratio, 0)
+
+        # Loss to insurance fund — proportional to liquidated quantity
+        loss = abs(min(pnl * margin_ratio, 0))
 
         # Update insurance fund
         if pnl < 0:

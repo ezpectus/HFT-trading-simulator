@@ -16,7 +16,6 @@ Usage:
 """
 import argparse
 import asyncio
-import json
 import logging
 import os
 import sys
@@ -27,24 +26,32 @@ import time
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
-from run_logger import setup_run_logging
+from run_logger import setup_run_logging  # noqa: E402
 
-from config import SignalBotConfig
-from src.communication import ExchangeClient, SignalPublisher
-from src.database import Database
-from src.monitoring import PerformanceTracker, SignalLogger, TradeLogger, print_dashboard
-from src.signal_validation import SignalValidator
-from src.strategies import (
-    EnsembleVoter, FFTCycleStrategy, MeanReversionStrategy,
-    SignalDirection, TrendFollowingStrategy,
-    StatisticalArbitrage, StatArbConfig,
-    MarketMakingStrategy, MarketMakingConfig,
-    SentimentStrategy, SentimentConfig,
-    MLEnsembleStrategy, MLConfig,
+from config import SignalBotConfig  # noqa: E402
+from src.backtesting import Backtester, BacktestPlotter  # noqa: E402
+from src.communication import ExchangeClient, SignalPublisher  # noqa: E402
+from src.database import Database  # noqa: E402
+from src.llm_engine import LLMConfig, LLMEngine  # noqa: E402
+from src.monitoring import PerformanceTracker, SignalLogger, TradeLogger, print_dashboard  # noqa: E402
+from src.signal_validation import SignalValidator  # noqa: E402
+from src.strategies import (  # noqa: E402
+    EnsembleVoter,
+    FFTCycleStrategy,
+    MarketMakingConfig,
+    MarketMakingStrategy,
+    MeanReversionStrategy,
+    MLConfig,
+    MLEnsembleStrategy,
+    SentimentConfig,
+    SentimentStrategy,
+    Signal,
+    SignalDirection,
+    StatArbConfig,
+    StatisticalArbitrage,
+    TrendFollowingStrategy,
 )
-from src.technical_analysis import adx, atr, bollinger_bands, ema, macd, rsi
-from src.llm_engine import LLMEngine, LLMConfig, MarketContext
-from src.backtesting import Backtester, BacktestPlotter, StrategyOptimizer
+from src.technical_analysis import adx, ema, rsi  # noqa: E402
 
 
 def setup_logging(level: str, log_file: str) -> tuple[logging.Logger, str]:
@@ -125,8 +132,8 @@ class AISignalBot:
         if config.statarb_enabled and len(config.symbols) >= 2:
             self.stat_arb = StatisticalArbitrage(
                 config=StatArbConfig(
-                    zscore_entry=config.statarb_zscore_entry,
-                    zscore_exit=config.statarb_zscore_exit,
+                    entry_z=config.statarb_zscore_entry,
+                    exit_z=config.statarb_zscore_exit,
                     recompute_interval=config.statarb_recompute_interval,
                 ),
             )
@@ -157,7 +164,7 @@ class AISignalBot:
         connected = await self.exchange.connect()
         if not connected:
             self.logger.error("Failed to connect to exchange simulator. Retrying...")
-            for attempt in range(5):
+            for _attempt in range(5):
                 await asyncio.sleep(3)
                 if await self.exchange.connect():
                     connected = True
@@ -350,7 +357,7 @@ class AISignalBot:
                 await self._execute_live_order(ensemble_signal, signal_id)
 
     async def _execute_paper_order(
-        self, signal: SignalDirection, signal_id: int, balance: float
+        self, signal: Signal, signal_id: int, balance: float
     ) -> None:
         """Execute a paper trading order via the exchange simulator."""
         # Calculate position size
@@ -394,7 +401,7 @@ class AISignalBot:
             f"  Order: {side} {quantity:.4f} {signal.symbol} @ {signal.entry_price:.2f}"
         )
 
-    async def _execute_live_order(self, signal: SignalDirection, signal_id: int) -> None:
+    async def _execute_live_order(self, signal: Signal, signal_id: int) -> None:
         """Execute a live order (would connect to real exchange in production)."""
         self.logger.warning("Live trading not implemented in simulation mode")
 
@@ -430,7 +437,7 @@ def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
             files = glob_mod.glob("data/exports/*candle*.csv")
         for f in sorted(files):
             try:
-                with open(f, "r", newline="", encoding="utf-8") as fh:
+                with open(f, newline="", encoding="utf-8") as fh:
                     reader = csv_mod.DictReader(fh)
                     for row in reader:
                         # Filter by symbol if column exists
@@ -454,12 +461,14 @@ def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
         strategies.append(TrendFollowingStrategy(
             ema_fast=config.trend_ema_fast,
             ema_slow=config.trend_ema_slow,
+            adx_threshold=config.trend_adx_threshold,
         ))
-    if config.mean_reversion_enabled:
+    if config.meanrev_enabled:
         strategies.append(MeanReversionStrategy(
-            rsi_period=config.mean_reversion_rsi_period,
-            rsi_oversold=config.mean_reversion_rsi_oversold,
-            rsi_overbought=config.mean_reversion_rsi_overbought,
+            rsi_oversold=config.meanrev_rsi_oversold,
+            rsi_overbought=config.meanrev_rsi_overbought,
+            bb_period=config.meanrev_bb_period,
+            bb_std=config.meanrev_bb_std,
         ))
     if config.fft_enabled:
         strategies.append(FFTCycleStrategy(min_data=config.fft_min_data))
@@ -475,7 +484,7 @@ def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
         slippage_bps=2.0,
         leverage=10,
         max_position_pct=config.max_position_size_pct,
-        risk_per_trade_pct=config.max_risk_per_trade_pct,
+        risk_per_trade_pct=config.max_risk_pct,
     )
 
     plotter = BacktestPlotter()

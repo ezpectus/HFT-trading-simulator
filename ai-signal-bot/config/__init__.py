@@ -2,7 +2,6 @@
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import Any
 
 import yaml
 
@@ -21,7 +20,7 @@ class SignalBotConfig:
         if path is None:
             path = os.path.join(os.path.dirname(__file__), "..", "config", "settings.yaml")
             path = os.path.normpath(path)
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         cfg = cls(raw=data)
         if validate:
@@ -98,7 +97,7 @@ class SignalBotConfig:
         ens = strategies.get("ensemble", {})
         if ens.get("min_votes", 0) < 1:
             errors.append("strategies.ensemble.min_votes must be >= 1")
-        if ens.get("mode") not in ("majority", "weighted", "confidence_weighted"):
+        if ens.get("mode") not in ("majority", "weighted"):
             warnings.append(f"strategies.ensemble.mode='{ens.get('mode')}' — expected 'majority' or 'weighted'")
 
         # Indicators

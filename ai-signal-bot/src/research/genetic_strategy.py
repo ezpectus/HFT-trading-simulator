@@ -26,12 +26,13 @@ Usage:
 
 from __future__ import annotations
 
-import random
 import logging
+import random
 import time
-from typing import List, Dict, Any, Optional, Callable
-from dataclasses import dataclass, field
+from collections.abc import Callable
 from copy import deepcopy
+from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +40,10 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Chromosome:
     """A trading strategy encoded as a chromosome."""
-    indicators: Dict[str, Dict[str, float]]  # {rsi: {period: 14}, ema: {fast: 12, slow: 26}, ...}
-    entry_rules: List[Dict[str, Any]]  # [{indicator: rsi, operator: <, value: 30, action: buy}, ...]
-    exit_rules: List[Dict[str, Any]]
-    risk: Dict[str, float]  # {stop_loss: 2.0, take_profit: 4.0, max_position: 10.0}
+    indicators: dict[str, dict[str, float]]  # {rsi: {period: 14}, ema: {fast: 12, slow: 26}, ...}
+    entry_rules: list[dict[str, Any]]  # [{indicator: rsi, operator: <, value: 30, action: buy}, ...]
+    exit_rules: list[dict[str, Any]]
+    risk: dict[str, float]  # {stop_loss: 2.0, take_profit: 4.0, max_position: 10.0}
     fitness: float = 0.0
 
 
@@ -70,10 +71,10 @@ class GeneticStrategyDiscovery:
         self.elite_count = elite_count
         self.tournament_size = tournament_size
         self.max_rules = max_rules
-        self.population: List[Chromosome] = []
-        self.history: List[Dict] = []
+        self.population: list[Chromosome] = []
+        self.history: list[dict] = []
 
-    def _random_indicator_params(self, indicator: str) -> Dict[str, float]:
+    def _random_indicator_params(self, indicator: str) -> dict[str, float]:
         if indicator == "rsi":
             return {"period": random.randint(7, 28)}
         elif indicator == "ema":
@@ -92,7 +93,7 @@ class GeneticStrategyDiscovery:
             return {"period": random.randint(10, 28)}
         return {}
 
-    def _random_rule(self) -> Dict[str, Any]:
+    def _random_rule(self) -> dict[str, Any]:
         return {
             "indicator": random.choice(self.INDICATORS_POOL),
             "operator": random.choice(self.OPERATORS),
@@ -241,7 +242,7 @@ class GeneticStrategyDiscovery:
             )
 
             # Create next generation
-            next_gen: List[Chromosome] = []
+            next_gen: list[Chromosome] = []
 
             # Elitism: keep best individuals
             next_gen.extend(deepcopy(c) for c in self.population[:self.elite_count])
@@ -266,8 +267,8 @@ class GeneticStrategyDiscovery:
         logger.info(f"[GA] Evolution complete. Best fitness: {best.fitness:.4f}")
         return best
 
-    def get_history(self) -> List[Dict]:
+    def get_history(self) -> list[dict]:
         return self.history
 
-    def get_top_strategies(self, n: int = 10) -> List[Chromosome]:
+    def get_top_strategies(self, n: int = 10) -> list[Chromosome]:
         return self.population[:n]

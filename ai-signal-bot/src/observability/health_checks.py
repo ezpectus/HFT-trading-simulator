@@ -17,12 +17,11 @@ Checks:
 
 from __future__ import annotations
 
-import asyncio
-import time
 import logging
-from typing import Optional, Dict, Any
+import time
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +46,10 @@ class HealthChecker:
 
     def __init__(
         self,
-        ws_client: Optional[object] = None,
-        db_client: Optional[object] = None,
-        redis_client: Optional[object] = None,
-        exchange: Optional[object] = None,
+        ws_client: object | None = None,
+        db_client: object | None = None,
+        redis_client: object | None = None,
+        exchange: object | None = None,
     ):
         self.ws_client = ws_client
         self.db_client = db_client
@@ -74,7 +73,7 @@ class HealthChecker:
     def record_error(self) -> None:
         self._error_count += 1
 
-    async def check_liveness(self) -> Dict[str, Any]:
+    async def check_liveness(self) -> dict[str, Any]:
         """Liveness probe — is the process alive and not deadlocked?"""
         uptime = time.time() - self._start_time
         return {
@@ -83,7 +82,7 @@ class HealthChecker:
             "pid": __import__("os").getpid(),
         }
 
-    async def check_readiness(self) -> Dict[str, Any]:
+    async def check_readiness(self) -> dict[str, Any]:
         """Readiness probe — are all dependencies connected and working?"""
         components: list[ComponentHealth] = []
 
@@ -128,7 +127,7 @@ class HealthChecker:
             },
         }
 
-    async def check_status(self) -> Dict[str, Any]:
+    async def check_status(self) -> dict[str, Any]:
         """Full status report — includes liveness + readiness + config."""
         readiness = await self.check_readiness()
         liveness = await self.check_liveness()

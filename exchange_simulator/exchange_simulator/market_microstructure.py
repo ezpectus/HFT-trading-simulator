@@ -13,12 +13,12 @@ Models:
 
 from __future__ import annotations
 
-import numpy as np
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Optional
-
 import logging
+from dataclasses import dataclass
+from enum import Enum
+
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 
@@ -66,7 +66,7 @@ class MicrostructureConfig:
 class MarketMicrostructure:
     """Realistic market price generator with microstructure effects."""
 
-    def __init__(self, config: MicrostructureConfig = None):
+    def __init__(self, config: MicrostructureConfig | None = None):
         self.config = config or MicrostructureConfig()
         self.regime: MarketRegime = MarketRegime.CALM
         self.variance: float = self.config.heston_theta

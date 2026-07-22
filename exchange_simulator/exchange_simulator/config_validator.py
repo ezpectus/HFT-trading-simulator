@@ -14,7 +14,6 @@ Usage:
         sys.exit(1)
 """
 import logging
-from typing import Optional
 
 logger = logging.getLogger("exchange_simulator.config_validator")
 

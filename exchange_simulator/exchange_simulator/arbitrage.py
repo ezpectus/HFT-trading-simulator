@@ -13,9 +13,8 @@ via the WebSocket server so bots can act on them.
 """
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 from exchange_simulator.models import OrderBook
 

@@ -10,16 +10,13 @@ Usage:
     bt.print_report(results)
 """
 import logging
-import math
 from dataclasses import dataclass, field
-from typing import Optional
 
+from src.risk.risk_manager import PositionRiskState, RiskConfig, RiskManager
 from src.strategies.strategies import (
-    EnsembleVoter, Signal, SignalDirection, TrendFollowingStrategy,
-    MeanReversionStrategy, FFTCycleStrategy,
+    Signal,
+    SignalDirection,
 )
-from src.technical_analysis.indicators import atr
-from src.risk.risk_manager import RiskManager, RiskConfig, PositionRiskState
 
 logger = logging.getLogger("ai_signal_bot.backtester")
 
@@ -65,6 +62,12 @@ class BacktestResult:
     longest_drawdown_duration: int = 0   # longest drawdown period
     avg_drawdown: float = 0.0            # average drawdown during drawdown periods
     calmar_ratio: float = 0.0            # annualized return / max drawdown
+    sortino_ratio: float = 0.0           # like Sharpe but only downside deviation
+
+    @property
+    def final_equity(self) -> float:
+        """Alias for final_balance — compatibility with backtest_engine.BacktestResult."""
+        return self.final_balance
 
 
 class Backtester:
@@ -118,8 +121,8 @@ class Backtester:
         balance = self.initial_balance
         equity_curve = [balance]
 
-        current_position: Optional[dict] = None
-        risk_state: Optional[PositionRiskState] = None
+        current_position: dict | None = None
+        risk_state: PositionRiskState | None = None
         peak_equity = balance
 
         for i in range(warmup, len(candles)):
@@ -135,7 +138,8 @@ class Backtester:
                     current_position["stop_loss"] = actions["new_stop_loss"]
                 if actions.get("close_position"):
                     balance = self._close_position(
-                        current_position, current_price, actions["close_reason"], balance, result
+                        current_position, current_price, actions["close_reason"], balance, result,
+                        timestamp=current_candle.get("timestamp", 0),
                     )
                     current_position = None
                     risk_state = None
@@ -176,7 +180,8 @@ class Backtester:
                 # Close position if SL/TP hit or signal reversal
                 if exit_reason:
                     balance = self._close_position(
-                        current_position, exit_price, exit_reason, balance, result
+                        current_position, exit_price, exit_reason, balance, result,
+                        timestamp=current_candle.get("timestamp", 0),
                     )
                     current_position = None
                     risk_state = None
@@ -191,12 +196,14 @@ class Backtester:
                         if (current_position["side"] == "LONG" and new_dir == SignalDirection.SHORT) or \
                            (current_position["side"] == "SHORT" and new_dir == SignalDirection.LONG):
                             balance = self._close_position(
-                                current_position, current_price, "SIGNAL_EXIT", balance, result
+                                current_position, current_price, "SIGNAL_EXIT", balance, result,
+                                timestamp=current_candle.get("timestamp", 0),
                             )
                             current_position = None
                             risk_state = None
                             # Open new position
-                            current_position = self._open_position(signal, current_price, balance, result)
+                            current_position = self._open_position(signal, current_price, balance, result,
+                                timestamp=current_candle.get("timestamp", 0))
                             if current_position and self.risk_manager:
                                 risk_state = self.risk_manager.init_position(
                                     entry_price=current_position["entry_price"],
@@ -212,7 +219,8 @@ class Backtester:
 
                 if signal.is_actionable:
                     result.signals_valid += 1
-                    current_position = self._open_position(signal, current_price, balance, result)
+                    current_position = self._open_position(signal, current_price, balance, result,
+                        timestamp=current_candle.get("timestamp", 0))
                     if current_position and self.risk_manager:
                         risk_state = self.risk_manager.init_position(
                             entry_price=current_position["entry_price"],
@@ -240,7 +248,8 @@ class Backtester:
         # Close any remaining position at last price
         if current_position:
             balance = self._close_position(
-                current_position, candles[-1]["close"], "END", balance, result
+                current_position, candles[-1]["close"], "END", balance, result,
+                timestamp=candles[-1].get("timestamp", 0),
             )
             current_position = None
             risk_state = None
@@ -271,6 +280,12 @@ class Backtester:
                 std_ret = (sum((r - mean_ret) ** 2 for r in returns) / (len(returns) - 1)) ** 0.5
                 result.sharpe_ratio = (mean_ret / std_ret * (252 ** 0.5)) if std_ret > 0 else 0
 
+                # Sortino ratio — like Sharpe but only downside deviation
+                downside_returns = [r for r in returns if r < 0]
+                if len(downside_returns) > 0:
+                    downside_std = (sum(r ** 2 for r in downside_returns) / len(downside_returns)) ** 0.5
+                    result.sortino_ratio = (mean_ret / downside_std * (252 ** 0.5)) if downside_std > 0 else 0
+
             # Average trade duration (in candles)
             durations = [t.exit_time - t.entry_time for t in result.trades]
             result.avg_trade_duration = sum(durations) / len(durations) if durations else 0
@@ -278,18 +293,16 @@ class Backtester:
         # Drawdown analysis
         if len(equity_curve) > 1:
             peak = equity_curve[0]
-            dd_start = 0
             current_dd_duration = 0
             longest_dd = 0
             dd_amounts = []
 
-            for i, eq in enumerate(equity_curve):
+            for _i, eq in enumerate(equity_curve):
                 if eq >= peak:
                     if current_dd_duration > 0:
                         longest_dd = max(longest_dd, current_dd_duration)
                         current_dd_duration = 0
                     peak = eq
-                    dd_start = i
                 else:
                     current_dd_duration += 1
                     dd_pct = (peak - eq) / peak * 100 if peak > 0 else 0
@@ -311,7 +324,8 @@ class Backtester:
 
         return result
 
-    def _open_position(self, signal: Signal, price: float, balance: float, result: BacktestResult) -> dict:
+    def _open_position(self, signal: Signal, price: float, balance: float, result: BacktestResult,
+                        timestamp: int = 0) -> dict:
         """Open a new position from a signal."""
         # Apply slippage
         if signal.direction == SignalDirection.LONG:
@@ -343,12 +357,13 @@ class Backtester:
             "quantity": quantity,
             "stop_loss": signal.stop_loss,
             "take_profit": signal.take_profit,
-            "entry_time": signal.entry_price,  # Will be overwritten by caller
+            "entry_time": timestamp,
             "fee": fee,
         }
 
     def _close_position(self, pos: dict, exit_price: float, reason: str,
-                        balance: float, result: BacktestResult) -> float:
+                        balance: float, result: BacktestResult,
+                        timestamp: int = 0) -> float:
         """Close a position and record the trade."""
         # Apply slippage
         if pos["side"] == "LONG":
@@ -371,8 +386,8 @@ class Backtester:
             entry_price=pos["entry_price"],
             exit_price=fill_exit,
             quantity=pos["quantity"],
-            entry_time=0,
-            exit_time=0,
+            entry_time=pos.get("entry_time", 0),
+            exit_time=timestamp,
             pnl=pnl,
             pnl_pct=pnl_pct,
             exit_reason=reason,
@@ -423,11 +438,12 @@ class Backtester:
             {strategy_name: BacktestResult}
         """
         results = {}
-        for strategy in strategies:
+        for i, strategy in enumerate(strategies):
             name = strategy.name if hasattr(strategy, 'name') else strategy.__class__.__name__
-            logger.info(f"Backtesting {name}...")
+            unique_name = f"{name}_{i + 1}" if name in results else name
+            logger.info(f"Backtesting {unique_name}...")
             result = self.run(candles, strategy, symbol, warmup)
-            results[name] = result
+            results[unique_name] = result
         return results
 
     def print_comparison(self, results: dict[str, BacktestResult]) -> None:

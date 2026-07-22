@@ -1,10 +1,18 @@
 """Tests for technical analysis indicators — SMA, EMA, RSI, MACD, BB, ATR, VWAP, ADX."""
 import math
+
 import pytest
 
 from src.technical_analysis.indicators import (
-    adx, atr, bollinger_bands, ema, macd, rsi, sma, vwap,
     NAN,
+    adx,
+    atr,
+    bollinger_bands,
+    ema,
+    macd,
+    rsi,
+    sma,
+    vwap,
 )
 
 
@@ -15,8 +23,8 @@ def make_candles(closes, highs=None, lows=None, volumes=None):
     lows = lows or [c * 0.99 for c in closes]
     volumes = volumes or [1000.0] * n
     return [
-        {"close": c, "high": h, "low": l, "volume": v, "open": c, "timestamp": i * 300}
-        for i, (c, h, l, v) in enumerate(zip(closes, highs, lows, volumes))
+        {"close": c, "high": h, "low": low, "volume": v, "open": c, "timestamp": i * 300}
+        for i, (c, h, low, v) in enumerate(zip(closes, highs, lows, volumes, strict=False))
     ]
 
 

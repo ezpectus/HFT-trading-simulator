@@ -10,7 +10,6 @@ import os
 import struct
 import sys
 import time
-from typing import Set
 
 import websockets
 
@@ -36,12 +35,12 @@ except ImportError:
 _proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _proj_root not in sys.path:
     sys.path.insert(0, _proj_root)
-from trade_csv_logger import TradeCsvLogger
+from trade_csv_logger import TradeCsvLogger  # noqa: E402
 
-from exchange_simulator.exchange import SimulatedExchange
-from exchange_simulator.market_simulator import MarketSimulator
-from exchange_simulator.arbitrage import ArbitrageDetector
-from exchange_simulator.models import Side, OrderType
+from exchange_simulator.arbitrage import ArbitrageDetector  # noqa: E402
+from exchange_simulator.exchange import SimulatedExchange  # noqa: E402
+from exchange_simulator.market_simulator import MarketSimulator  # noqa: E402
+from exchange_simulator.models import OrderType, Side  # noqa: E402
 
 logger = logging.getLogger("exchange_simulator.ws")
 
@@ -70,14 +69,14 @@ class ExchangeWebSocketServer:
         market: MarketSimulator,
         host: str = "localhost",
         port: int = 8765,
-        arb_detector: ArbitrageDetector = None,
+        arb_detector: ArbitrageDetector | None = None,
     ):
         self.exchanges = exchanges
         self.market = market
         self.host = host
         self.port = port
         self.arb_detector = arb_detector
-        self.clients: Set[websockets.ServerConnection] = set()
+        self.clients: set[websockets.ServerConnection] = set()
         self._running = False
         self._tick_interval = 1.0  # seconds between candles (adjustable via set_speed)
         self._replay_paused = False
@@ -118,7 +117,7 @@ class ExchangeWebSocketServer:
                 self._shm_market = shm_mod.SharedMemory(name=shm_name, create=True, size=total_size)
                 self._shm_market.buf[:8] = struct.pack('<Q', self._shm_max_symbols)
             # Build symbol ID mapping from market symbols
-            for i, sym in enumerate(sorted(self.market.symbols.keys())):
+            for i, sym in enumerate(sorted(self.market.symbols)):
                 if i >= self._shm_max_symbols:
                     break
                 self._shm_symbol_ids[sym] = i
@@ -566,8 +565,8 @@ class ExchangeWebSocketServer:
                 orderbooks[f"{ex_id}|{symbol}"] = {
                     "exchange": ex_id,
                     "symbol": symbol,
-                    "bids": [{"price": l.price, "quantity": l.quantity} for l in ob.bids],
-                    "asks": [{"price": l.price, "quantity": l.quantity} for l in ob.asks],
+                    "bids": [{"price": lvl.price, "quantity": lvl.quantity} for lvl in ob.bids],
+                    "asks": [{"price": lvl.price, "quantity": lvl.quantity} for lvl in ob.asks],
                 }
 
         message = {
@@ -604,8 +603,8 @@ class ExchangeWebSocketServer:
                 orderbooks[f"{ex_id}|{symbol}"] = {
                     "exchange": ex_id,
                     "symbol": symbol,
-                    "bids": [{"price": l.price, "quantity": l.quantity} for l in ob.bids],
-                    "asks": [{"price": l.price, "quantity": l.quantity} for l in ob.asks],
+                    "bids": [{"price": lvl.price, "quantity": lvl.quantity} for lvl in ob.bids],
+                    "asks": [{"price": lvl.price, "quantity": lvl.quantity} for lvl in ob.asks],
                 }
 
         message = {
@@ -641,10 +640,10 @@ class ExchangeWebSocketServer:
         current_asks = self._delta_ask_buf
         current_bids.clear()
         current_asks.clear()
-        for l in bids:
-            current_bids[l.price] = l.quantity
-        for l in asks:
-            current_asks[l.price] = l.quantity
+        for lvl in bids:
+            current_bids[lvl.price] = lvl.quantity
+        for lvl in asks:
+            current_asks[lvl.price] = lvl.quantity
 
         last = self._last_orderbooks.get(key)
 
@@ -755,11 +754,11 @@ class ExchangeWebSocketServer:
                     else:
                         fill_msg = json.dumps({"type": "fills_batch", "orders": batched_fills}, separators=(',', ':'))
                     disconnected = set()
-                    async def _send_fill(client, payload):
+                    async def _send_fill(client, payload, _disc=disconnected):
                         try:
                             await client.send(payload)
                         except websockets.ConnectionClosed:
-                            disconnected.add(client)
+                            _disc.add(client)
                     await asyncio.gather(*[
                         _send_fill(c, fill_msg) for c in self.clients
                     ], return_exceptions=True)
@@ -821,11 +820,11 @@ class ExchangeWebSocketServer:
                                         else:
                                             fill_msg = json.dumps(fill_payload, separators=(',', ':'))
                                         disconnected = set()
-                                        async def _send_arb_fill(client, payload):
+                                        async def _send_arb_fill(client, payload, _disc=disconnected):
                                             try:
                                                 await client.send(payload)
                                             except websockets.ConnectionClosed:
-                                                disconnected.add(client)
+                                                _disc.add(client)
                                         await asyncio.gather(*[
                                             _send_arb_fill(c, fill_msg) for c in self.clients
                                         ], return_exceptions=True)
@@ -844,8 +843,8 @@ class ExchangeWebSocketServer:
                         orderbooks[key] = {
                             "exchange": ex_id,
                             "symbol": symbol,
-                            "bids": [{"price": l.price, "quantity": l.quantity} for l in ob.bids],
-                            "asks": [{"price": l.price, "quantity": l.quantity} for l in ob.asks],
+                            "bids": [{"price": lvl.price, "quantity": lvl.quantity} for lvl in ob.bids],
+                            "asks": [{"price": lvl.price, "quantity": lvl.quantity} for lvl in ob.asks],
                         }
                     elif delta:
                         # Has changes — send delta
@@ -889,13 +888,13 @@ class ExchangeWebSocketServer:
 
             # Send to all clients — concurrent via asyncio.gather
             disconnected = set()
-            async def _send_to_client(client, payload, extra=None):
+            async def _send_to_client(client, payload, extra=None, _disc=disconnected):
                 try:
                     await client.send(payload)
                     if extra:
                         await client.send(extra)
                 except websockets.ConnectionClosed:
-                    disconnected.add(client)
+                    _disc.add(client)
 
             await asyncio.gather(*[
                 _send_to_client(c, data, arb_data) for c in self.clients

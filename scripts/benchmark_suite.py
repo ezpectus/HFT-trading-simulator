@@ -190,7 +190,7 @@ def main():
         json.dump(report, f, indent=2)
 
     print(f"\n{'='*70}")
-    print(f"  Benchmark Suite Report")
+    print("  Benchmark Suite Report")
     print(f"  {report['timestamp']}")
     print(f"  Iterations: {args.iterations}")
     print(f"{'='*70}")

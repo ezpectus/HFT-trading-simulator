@@ -1,13 +1,18 @@
 """Unit tests for strategies."""
 
-import pytest
 import math
+
+import pytest
+
+from src.strategies.market_making import MarketMakingConfig, MarketMakingStrategy
+from src.strategies.sentiment import EventType, NewsEvent, SentimentStrategy
+from src.strategies.statistical_arbitrage import KalmanFilterHedge, StatisticalArbitrage
 from src.strategies.strategies import (
-    Signal, SignalDirection, TrendFollowingStrategy, MeanReversionStrategy,
+    MeanReversionStrategy,
+    Signal,
+    SignalDirection,
+    TrendFollowingStrategy,
 )
-from src.strategies.statistical_arbitrage import StatisticalArbitrage, KalmanFilterHedge
-from src.strategies.market_making import MarketMakingStrategy, MarketMakingConfig
-from src.strategies.sentiment import SentimentStrategy, NewsEvent, EventType
 
 
 def make_candles(n=50, start_price=50000.0, trend=0.0):
@@ -19,8 +24,8 @@ def make_candles(n=50, start_price=50000.0, trend=0.0):
         o = price
         c = price * (1 + ret)
         h = max(o, c) * 1.001
-        l = min(o, c) * 0.999
-        candles.append({"timestamp": i * 60, "open": o, "high": h, "low": l, "close": c, "volume": 100.0})
+        low = min(o, c) * 0.999
+        candles.append({"timestamp": i * 60, "open": o, "high": h, "low": low, "close": c, "volume": 100.0})
         price = c
     return candles
 

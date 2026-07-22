@@ -7,16 +7,15 @@ correlation matrix monitoring.
 
 from __future__ import annotations
 
+import logging
 import math
-import time
-from dataclasses import dataclass, field
-from typing import Optional
 from collections import deque
+from dataclasses import dataclass
+
 import numpy as np
 
 from src.strategies.strategies import Signal, SignalDirection
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -138,7 +137,7 @@ class PairConfig:
 class StatisticalArbitrage:
     """Multi-pair statistical arbitrage strategy."""
 
-    def __init__(self, config: PairConfig = None):
+    def __init__(self, config: PairConfig | None = None):
         self.config = config or PairConfig()
         self.name = "statistical_arbitrage"
         self.kalman = KalmanFilterHedge()
@@ -241,7 +240,6 @@ class StatisticalArbitrage:
 
         z = self.z_score()
         price_a = closes_a[-1]
-        price_b = closes_b[-1]
 
         if abs(z) < self.config.entry_z:
             return Signal(
@@ -288,13 +286,13 @@ class CorrelationMatrix:
         self.price_history: dict[str, deque[float]] = {
             s: deque(maxlen=lookback) for s in symbols
         }
-        self.matrix: Optional[np.ndarray] = None
+        self.matrix: np.ndarray | None = None
 
     def update(self, symbol: str, price: float) -> None:
         if symbol in self.price_history:
             self.price_history[symbol].append(price)
 
-    def compute(self) -> Optional[np.ndarray]:
+    def compute(self) -> np.ndarray | None:
         """Compute correlation matrix from price returns."""
         min_len = min(len(d) for d in self.price_history.values())
         if min_len < 10:

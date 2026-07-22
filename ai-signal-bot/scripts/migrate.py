@@ -4,17 +4,17 @@
 Usage: python scripts/migrate.py [--up] [--down N]
 """
 
-import asyncio
 import argparse
-import sys
-import os
+import asyncio
 import glob
+import os
+import sys
 
 _bot_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _bot_root not in sys.path:
     sys.path.insert(0, _bot_root)
 
-from src.utils.helpers import setup_logging, get_env
+from src.utils.helpers import get_env, setup_logging  # noqa: E402
 
 MIGRATIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                "src", "database", "migrations")
@@ -31,7 +31,7 @@ async def run_migrations(args):
         sys.exit(1)
 
     db_url = get_env("DATABASE_URL", "postgresql://hft:hft@localhost:5432/hft")
-    logger.info(f"Connecting to database...")
+    logger.info("Connecting to database...")
 
     conn = await asyncpg.connect(db_url)
 
@@ -66,7 +66,7 @@ async def run_migrations(args):
             continue
 
         logger.info(f"  Applying: {filename}")
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             sql = f.read()
 
         try:

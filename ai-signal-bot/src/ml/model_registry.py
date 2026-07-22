@@ -32,12 +32,12 @@ Usage:
 from __future__ import annotations
 
 import json
-import os
 import logging
+import os
 import time
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +56,10 @@ class ModelVersion:
     version: str
     path: str
     status: ModelStatus = ModelStatus.CANDIDATE
-    metrics: Dict[str, float] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metrics: dict[str, float] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     registered_at: float = field(default_factory=time.time)
-    promoted_at: Optional[float] = None
+    promoted_at: float | None = None
     ab_impressions: int = 0
     ab_successes: int = 0
 
@@ -84,8 +84,8 @@ class ModelRegistry:
     def __init__(self, storage_dir: str = "models/registry"):
         self.storage_dir = storage_dir
         self.index_path = os.path.join(storage_dir, "registry.json")
-        self.models: Dict[str, Dict[str, ModelVersion]] = {}
-        self.ab_tests: Dict[str, ABTest] = {}
+        self.models: dict[str, dict[str, ModelVersion]] = {}
+        self.ab_tests: dict[str, ABTest] = {}
         self._load()
 
     def _load(self) -> None:
@@ -124,8 +124,8 @@ class ModelRegistry:
         name: str,
         version: str,
         path: str,
-        metrics: Optional[Dict[str, float]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        metrics: dict[str, float] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> ModelVersion:
         """Register a new model version."""
         if name not in self.models:
@@ -146,10 +146,10 @@ class ModelRegistry:
         logger.info(f"[ModelRegistry] Registered {name}@{version} (metrics: {metrics})")
         return mv
 
-    def get(self, name: str, version: str) -> Optional[ModelVersion]:
+    def get(self, name: str, version: str) -> ModelVersion | None:
         return self.models.get(name, {}).get(version)
 
-    def get_production_model(self, name: str) -> Optional[ModelVersion]:
+    def get_production_model(self, name: str) -> ModelVersion | None:
         """Get the current production model."""
         versions = self.models.get(name, {})
         for mv in versions.values():
@@ -176,7 +176,7 @@ class ModelRegistry:
         logger.info(f"[ModelRegistry] Promoted {name}@{version} → {to_status.value}")
         return True
 
-    def rollback(self, name: str) -> Optional[ModelVersion]:
+    def rollback(self, name: str) -> ModelVersion | None:
         """Rollback to the previous production model."""
         versions = list(self.models.get(name, {}).values())
         prod_models = [v for v in versions if v.status == ModelStatus.ARCHIVED]
@@ -197,7 +197,7 @@ class ModelRegistry:
         logger.info(f"[ModelRegistry] Rolled back {name} to @{previous.version}")
         return previous
 
-    def list_versions(self, name: str) -> List[ModelVersion]:
+    def list_versions(self, name: str) -> list[ModelVersion]:
         """List all versions of a model."""
         return list(self.models.get(name, {}).values())
 
@@ -252,7 +252,7 @@ class ModelRegistry:
             ab.treatment_successes += 1
         self._save()
 
-    def get_ab_results(self, name: str) -> Optional[dict]:
+    def get_ab_results(self, name: str) -> dict | None:
         """Get A/B test results."""
         ab = self.ab_tests.get(name)
         if not ab:

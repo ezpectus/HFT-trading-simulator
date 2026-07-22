@@ -51,7 +51,14 @@ public:
     explicit StatisticalArbV2(const Config& cfg)
         : config_(cfg)
         , hedge_kalman_(cfg.kalman_process_var, cfg.kalman_measurement_var)
-    {}
+    {
+        if (config_.regression_window > static_cast<int>(MAX_WINDOW)) {
+            config_.regression_window = static_cast<int>(MAX_WINDOW);
+        }
+        if (config_.regression_window < 2) {
+            config_.regression_window = 2;
+        }
+    }
 
     // Process new prices for both assets. Returns signal.
     Signal on_prices(double price_a, double price_b, uint64_t timestamp_ns) noexcept {
@@ -138,9 +145,11 @@ public:
 private:
     double ols_regression(size_t n) noexcept {
         double sum_x = 0.0, sum_y = 0.0, sum_xy = 0.0, sum_xx = 0.0;
-        for (size_t i = 0; i < n; ++i) {
-            double x = prices_b_[i];
-            double y = prices_a_[i];
+        size_t start = static_cast<size_t>(write_idx_) % static_cast<size_t>(config_.regression_window);
+        for (size_t k = 0; k < n; ++k) {
+            size_t idx = (start + k) % static_cast<size_t>(config_.regression_window);
+            double x = prices_b_[idx];
+            double y = prices_a_[idx];
             sum_x += x;
             sum_y += y;
             sum_xy += x * y;
@@ -155,14 +164,17 @@ private:
 
     double compute_z_score(double current_spread, size_t n) noexcept {
         if (n < 2) return 0.0;
+        size_t start = static_cast<size_t>(spread_idx_) % static_cast<size_t>(config_.regression_window);
         double sum = 0.0;
-        for (size_t i = 0; i < n; ++i) {
-            sum += spreads_[i];
+        for (size_t k = 0; k < n; ++k) {
+            size_t idx = (start + k) % static_cast<size_t>(config_.regression_window);
+            sum += spreads_[idx];
         }
         double mean = sum / static_cast<double>(n);
         double sq_sum = 0.0;
-        for (size_t i = 0; i < n; ++i) {
-            double diff = spreads_[i] - mean;
+        for (size_t k = 0; k < n; ++k) {
+            size_t idx = (start + k) % static_cast<size_t>(config_.regression_window);
+            double diff = spreads_[idx] - mean;
             sq_sum += diff * diff;
         }
         double sd = std::sqrt(sq_sum / static_cast<double>(n));

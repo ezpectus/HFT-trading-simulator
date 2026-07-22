@@ -89,8 +89,7 @@ void test_depth_and_obi() {
 
     // Make bid side heavier
     ob.update_bid(100.0, 10.0);
-    double obi = ob.obi(5);
-    assert(obi > 0.0);  // More bid depth
+    assert(ob.obi(5) > 0.0);  // More bid depth
 
     printf("  [PASS] test_depth_and_obi\n");
 }
@@ -107,9 +106,8 @@ void test_mid_price_and_spread() {
     // Weighted mid
     ob.update_bid(100.0, 2.0);
     ob.update_ask(101.0, 1.0);
-    double wm = ob.weighted_mid();
     // (100 * 1 + 101 * 2) / (2 + 1) = 302/3 = 100.666...
-    assert(std::abs(wm - 100.666666) < 0.01);
+    assert(std::abs(ob.weighted_mid() - 100.666666) < 0.01);
 
     printf("  [PASS] test_mid_price_and_spread\n");
 }

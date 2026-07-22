@@ -7,15 +7,13 @@ for signals. Falls back to rule-based analysis if no API key configured.
 
 from __future__ import annotations
 
-import asyncio
 import json
-import time
-import os
-from dataclasses import dataclass, field
-from typing import Optional, Any
-from collections import deque
-
 import logging
+import os
+import time
+from dataclasses import dataclass, field
+from typing import Any
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -71,20 +69,24 @@ class LLMAnalysis:
 class LLMEngine:
     """LLM-powered market analysis engine."""
 
-    def __init__(self, config: LLMConfig = None):
+    def __init__(self, config: LLMConfig | None = None):
         self.config = config or LLMConfig()
         self._cache: dict[str, tuple[float, LLMAnalysis]] = {}
         self._request_count = 0
         self._error_count = 0
-        self._session: Optional[Any] = None
+        self._session: Any | None = None
         self._prompt_dir = os.path.join(os.path.dirname(__file__), "prompt_templates")
 
     async def initialize(self) -> None:
         """Initialize HTTP session."""
         if AIOHTTP_AVAILABLE:
             self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.config.timeout_seconds))
-        self.config.api_key = self.config.api_key or os.getenv("OPENAI_API_KEY", "")
         if not self.config.api_key:
+            if self.config.provider == "openai":
+                self.config.api_key = os.getenv("OPENAI_API_KEY", "")
+            elif self.config.provider == "anthropic":
+                self.config.api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        if not self.config.api_key and self.config.provider not in ("ollama", "none"):
             self.config.provider = "none"
             logger.info("[LLMEngine] No API key, using rule-based fallback")
         else:
@@ -99,7 +101,7 @@ class LLMEngine:
         """Load a prompt template from the prompt_templates directory."""
         path = os.path.join(self._prompt_dir, f"{name}.txt")
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 return f.read()
         except FileNotFoundError:
             return self._default_prompt(name)

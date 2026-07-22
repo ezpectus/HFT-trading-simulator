@@ -8,13 +8,11 @@ Uses latest-snapshot-wins model (single slot per symbol, seq-guarded).
 
 from __future__ import annotations
 
+import logging
 import mmap
 import os
-import sys
 import struct
-import logging
-from typing import Optional
-from dataclasses import dataclass
+import sys
 
 from .shm_ring_buffer import MARKET_SNAPSHOT_STRUCT
 
@@ -36,7 +34,7 @@ class ShmMarketDataWriter:
         self.name = name
         self.max_symbols = max_symbols
         self._fd = -1
-        self._mm: Optional[mmap.mmap] = None
+        self._mm: mmap.mmap | None = None
         self._total_size = 0
 
     def init(self) -> bool:

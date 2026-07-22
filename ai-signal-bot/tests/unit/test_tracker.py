@@ -5,10 +5,10 @@ record_trade (winning/losing, PnL/fee accumulation), win_rate edge cases,
 signals_per_hour, summary dict, SignalLogger CSV creation/logging,
 TradeLogger CSV creation/logging.
 """
-import os
 import csv
-import time
+import os
 import tempfile
+import time
 
 import pytest
 
@@ -294,7 +294,7 @@ class TestLoggerNoDirectory:
             path = os.path.join(tmpdir, "signals.csv")
             # Should not crash — os.path.dirname("signals.csv") would be ""
             # but here we use a path inside tmpdir which has a dirname
-            logger = SignalLogger(path)
+            SignalLogger(path)
             assert os.path.exists(path)
 
     def test_signal_logger_filename_only_no_crash(self):
@@ -303,7 +303,7 @@ class TestLoggerNoDirectory:
             old_cwd = os.getcwd()
             os.chdir(tmpdir)
             try:
-                logger = SignalLogger("signals.csv")
+                SignalLogger("signals.csv")
                 assert os.path.exists("signals.csv")
             finally:
                 os.chdir(old_cwd)
@@ -313,7 +313,7 @@ class TestLoggerNoDirectory:
             old_cwd = os.getcwd()
             os.chdir(tmpdir)
             try:
-                logger = TradeLogger("trades.csv")
+                TradeLogger("trades.csv")
                 assert os.path.exists("trades.csv")
             finally:
                 os.chdir(old_cwd)
@@ -321,11 +321,11 @@ class TestLoggerNoDirectory:
     def test_signal_logger_nested_directory_created(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, "nested", "deep", "signals.csv")
-            logger = SignalLogger(path)
+            SignalLogger(path)
             assert os.path.exists(path)
 
     def test_trade_logger_nested_directory_created(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, "nested", "deep", "trades.csv")
-            logger = TradeLogger(path)
+            TradeLogger(path)
             assert os.path.exists(path)

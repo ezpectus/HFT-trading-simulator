@@ -23,11 +23,10 @@ Usage:
 from __future__ import annotations
 
 import logging
-import time
+from dataclasses import dataclass
+from typing import Any
+
 import numpy as np
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field
-from enum import Enum
 
 logger = logging.getLogger(__name__)
 
@@ -62,15 +61,15 @@ class StrategyCompetition:
         self.data = data
         self.initial_capital = initial_capital
         self.elo_k = elo_k
-        self.strategies: Dict[str, Any] = {}
-        self.results: Dict[str, CompetitionResult] = {}
-        self.matchups: List[Dict] = []
+        self.strategies: dict[str, Any] = {}
+        self.results: dict[str, CompetitionResult] = {}
+        self.matchups: list[dict] = []
 
     def register(self, name: str, strategy: Any) -> None:
         self.strategies[name] = strategy
         logger.info(f"[Competition] Registered: {name}")
 
-    def run_tournament(self, backtest_fn: Optional[callable] = None) -> Dict[str, CompetitionResult]:
+    def run_tournament(self, backtest_fn: callable | None = None) -> dict[str, CompetitionResult]:
         """Run full round-robin tournament."""
         if not self.strategies:
             return {}
@@ -117,11 +116,9 @@ class StrategyCompetition:
 
         # Win determined by Sharpe ratio (risk-adjusted)
         if a.sharpe_ratio > b.sharpe_ratio * 1.1:
-            winner, loser = a, b
-            outcome = 1.0
+            winner, _loser = a, b
         elif b.sharpe_ratio > a.sharpe_ratio * 1.1:
-            winner, loser = b, a
-            outcome = 0.0
+            winner, _loser = b, a
         else:
             # Draw — too close to call
             a.draws += 1
@@ -150,7 +147,7 @@ class StrategyCompetition:
             "a_sharpe": a.sharpe_ratio, "b_sharpe": b.sharpe_ratio,
         })
 
-    def _default_backtest(self, strategy: Any, name: str) -> Dict[str, float]:
+    def _default_backtest(self, strategy: Any, name: str) -> dict[str, float]:
         """Default backtest — override with custom backtest_fn."""
         return {
             "total_return_pct": 0.0,
@@ -163,7 +160,7 @@ class StrategyCompetition:
             "final_balance": self.initial_capital,
         }
 
-    def get_leaderboard(self) -> List[CompetitionResult]:
+    def get_leaderboard(self) -> list[CompetitionResult]:
         return sorted(self.results.values(), key=lambda r: r.elo_rating, reverse=True)
 
     def print_leaderboard(self) -> None:
@@ -179,10 +176,10 @@ class StrategyCompetition:
             )
         logger.info(f"{'='*80}")
 
-    def get_matchups(self) -> List[Dict]:
+    def get_matchups(self) -> list[dict]:
         return self.matchups
 
-    def bootstrap_significance(self, name_a: str, name_b: str, n_bootstrap: int = 1000) -> Dict:
+    def bootstrap_significance(self, name_a: str, name_b: str, n_bootstrap: int = 1000) -> dict:
         """Bootstrap test for statistical significance between two strategies."""
         a = self.results[name_a]
         b = self.results[name_b]

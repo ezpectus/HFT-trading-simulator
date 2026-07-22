@@ -126,8 +126,8 @@ struct Config {
         std::string passphrase;      // OKX only
         std::string inst_type;       // OKX: SWAP
         std::string category;        // Bybit: linear
-        double maker_bps{0.02};
-        double taker_bps{0.04};
+        double maker_bps{2.0};   // Binance default: 0.02% = 2 bps
+        double taker_bps{5.0};   // Binance default: 0.05% = 5 bps
         int rate_limit_weight_per_min{1200};
         int rate_limit_orders_per_min{1200};
     };
@@ -191,6 +191,8 @@ struct Config {
     double v2_weight_vwap{0.15};
     double v2_weight_adx{0.10};
     double v2_weight_pressure{0.20};
+    // Note: v2_min_composite and v2_vwap_window are loaded from YAML
+    // but not currently used by SignalEngineV2::Params. Reserved for future use.
     double v2_min_composite{0.35};
     int v2_vwap_window{60};
 

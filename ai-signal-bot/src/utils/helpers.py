@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 import time
-import logging
-from typing import Any, Optional
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
 
 def setup_logging(level: str = "INFO", format_type: str = "json",
-                  log_file: Optional[str] = None) -> logging.Logger:
+                  log_file: str | None = None) -> logging.Logger:
     """Configure structured logging.
 
     Args:
@@ -53,7 +53,7 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         log_entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -71,7 +71,7 @@ def load_config(config_path: str = "config/settings.yaml") -> dict:
     """Load YAML configuration file."""
     try:
         import yaml
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             return yaml.safe_load(f) or {}
     except FileNotFoundError:
         return {}

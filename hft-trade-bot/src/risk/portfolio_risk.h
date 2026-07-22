@@ -91,8 +91,12 @@ public:
         if (n < 10) return {0.0, 0.0, 0.0, 0.0};
 
         // Sort returns (copy to avoid modifying original)
+        // Ring buffer safe: iterate in insertion order
         std::array<double, MAX_RETURNS> sorted;
-        for (size_t i = 0; i < n; ++i) sorted[i] = returns_[i];
+        size_t start = (return_count_ >= MAX_RETURNS) ? (return_count_ % MAX_RETURNS) : 0;
+        for (size_t i = 0; i < n; ++i) {
+            sorted[i] = returns_[(start + i) % MAX_RETURNS];
+        }
         std::sort(sorted.begin(), sorted.begin() + n);
 
         // VaR: percentile of returns (loss = negative return)
@@ -119,14 +123,17 @@ public:
         size_t n = return_count_;
         if (n < 2) return {0.0, 0.0, 0.0, 0.0};
 
+        // Ring buffer safe: iterate in insertion order
+        size_t start = (return_count_ >= MAX_RETURNS) ? (return_count_ % MAX_RETURNS) : 0;
+
         // Mean and std
         double sum = 0.0;
-        for (size_t i = 0; i < n; ++i) sum += returns_[i];
+        for (size_t i = 0; i < n; ++i) sum += returns_[(start + i) % MAX_RETURNS];
         double mean = sum / static_cast<double>(n);
 
         double sq_sum = 0.0;
         for (size_t i = 0; i < n; ++i) {
-            double diff = returns_[i] - mean;
+            double diff = returns_[(start + i) % MAX_RETURNS] - mean;
             sq_sum += diff * diff;
         }
         double sigma = std::sqrt(sq_sum / static_cast<double>(n - 1));

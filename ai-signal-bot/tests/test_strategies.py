@@ -2,7 +2,10 @@
 import pytest
 
 from src.strategies.strategies import (
-    EnsembleVoter, MeanReversionStrategy, Signal, SignalDirection,
+    EnsembleVoter,
+    MeanReversionStrategy,
+    Signal,
+    SignalDirection,
     TrendFollowingStrategy,
 )
 

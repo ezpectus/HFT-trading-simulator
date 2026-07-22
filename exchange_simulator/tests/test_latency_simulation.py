@@ -1,9 +1,11 @@
 """Tests for LatencySimulator — base latency, jitter, spikes, reconnection backoff."""
-import pytest
 import numpy as np
+import pytest
 
 from exchange_simulator.latency_simulation import (
-    LatencyConfig, LatencySimulator, EXCHANGE_LATENCY_PROFILES,
+    EXCHANGE_LATENCY_PROFILES,
+    LatencyConfig,
+    LatencySimulator,
 )
 
 

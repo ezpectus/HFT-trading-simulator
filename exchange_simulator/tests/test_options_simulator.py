@@ -1,7 +1,9 @@
 """Tests for the options simulator — Black-Scholes pricing and Greeks."""
 import math
+
 import pytest
-from exchange_simulator.options_simulator import OptionsSimulator, OptionQuote
+
+from exchange_simulator.options_simulator import OptionQuote, OptionsSimulator
 
 
 @pytest.fixture

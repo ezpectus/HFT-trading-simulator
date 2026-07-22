@@ -9,11 +9,10 @@ States:
   OPEN    — breaker tripped, signals blocked, cooldown active
   HALF_OPEN — cooldown expired, allowing a single probe signal
 """
-import time
 import logging
+import time
+from dataclasses import dataclass
 from enum import Enum
-from dataclasses import dataclass, field
-from typing import Optional
 
 logger = logging.getLogger("ai_signal_bot.circuit_breaker")
 

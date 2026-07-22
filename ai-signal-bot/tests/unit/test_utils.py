@@ -1,10 +1,20 @@
 """Unit tests for utility functions."""
 
-import pytest
 import time
+
+import pytest
+
 from src.utils.helpers import (
-    safe_divide, clamp, format_price, format_qty, format_percentage,
-    now_ms, now_us, CircuitBreaker, RateLimiter, truncate_dict,
+    CircuitBreaker,
+    RateLimiter,
+    clamp,
+    format_percentage,
+    format_price,
+    format_qty,
+    now_ms,
+    now_us,
+    safe_divide,
+    truncate_dict,
 )
 
 
@@ -13,7 +23,7 @@ class TestFormatFunctions:
         assert format_price(50000.0) == "50,000.00"
 
     def test_format_price_low(self):
-        assert "0.0000" in format_price(0.5)
+        assert "0.5000" in format_price(0.5)
 
     def test_format_qty(self):
         assert format_qty(1500.0) == "1,500.00"

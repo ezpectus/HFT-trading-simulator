@@ -1,9 +1,15 @@
 """Integration tests — end-to-end flow tests using mocks."""
 
-import pytest
 import asyncio
+
+import pytest
+
 from tests.mocks.mock_objects import (
-    MockExchange, MockWebSocket, MockDatabase, MockSHM, make_mock_candles,
+    MockDatabase,
+    MockExchange,
+    MockSHM,
+    MockWebSocket,
+    make_mock_candles,
 )
 
 

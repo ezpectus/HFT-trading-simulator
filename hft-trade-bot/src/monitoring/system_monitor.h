@@ -121,7 +121,9 @@ public:
             (unsigned long long)s.shm_drops, (unsigned long long)s.heartbeats_sent,
             (unsigned long long)s.heartbeats_missed, s.fill_rate, s.rejection_rate,
             (unsigned long long)s.uptime_seconds);
-        return std::string(buf, n);
+        if (n <= 0) return "{}";
+        n = std::min(n, static_cast<int>(sizeof(buf) - 1));
+        return std::string(buf, static_cast<size_t>(n));
     }
 
 private:
@@ -198,7 +200,9 @@ struct HealthStatus {
             (unsigned long long)last_fill_age_ms,
             (long long)error_count_5min,
             memory_usage_mb);
-        return std::string(buf, n);
+        if (n <= 0) return "{}";
+        n = std::min(n, static_cast<int>(sizeof(buf) - 1));
+        return std::string(buf, static_cast<size_t>(n));
     }
 };
 

@@ -150,7 +150,7 @@ public:
         }
 
         // Compute observations
-        double log_ret = prev_price_ > 0 ? std::log(price / prev_price_) : 0.0;
+        double log_ret = (prev_price_ > 0 && price > 0) ? std::log(price / prev_price_) : 0.0;
         vol_ewma_ = VOL_LAMBDA * vol_ewma_ + (1.0 - VOL_LAMBDA) * log_ret * log_ret;
         double vol_proxy = std::sqrt(vol_ewma_ * 252.0); // annualized
 
@@ -312,7 +312,7 @@ public:
             state.hmm.init(current_price);
             state.last_price = current_price;
             state.initialized = true;
-        } else {
+        } else if (state.last_price > 0) {
             double price_change = std::abs(current_price - state.last_price) / state.last_price;
             if (price_change > params_.hmm_update_threshold) {
                 state.hmm.update(current_price);
@@ -381,7 +381,7 @@ public:
         // Append regime info to reason
         // Format: "V2_reason | REGIME:name conf:XX%"
         const char* rname = regime_name(regime);
-        // Append to existing reason
+        // Append to existing reason — carefully respect 48-byte buffer limit
         int reason_len = 0;
         while (base.reason[reason_len] && reason_len < 47) ++reason_len;
         if (reason_len < 40) {
@@ -389,12 +389,12 @@ public:
             base.reason[reason_len + 1] = ' ';
             reason_len += 2;
             int i = 0;
-            while (rname[i] && reason_len + i < 47) {
+            while (rname[i] && reason_len + i < 44) {
                 base.reason[reason_len + i] = rname[i];
                 ++i;
             }
             reason_len += i;
-            if (reason_len < 45) {
+            if (reason_len < 44) {
                 base.reason[reason_len] = ' ';
                 // Add confidence as 2-digit
                 int conf_int = static_cast<int>(regime_conf * 100);
@@ -438,7 +438,7 @@ public:
             state.hmm.init(current_price);
             state.last_price = current_price;
             state.initialized = true;
-        } else {
+        } else if (state.last_price > 0) {
             double price_change = std::abs(current_price - state.last_price) / state.last_price;
             if (price_change > params_.hmm_update_threshold) {
                 state.hmm.update(current_price);

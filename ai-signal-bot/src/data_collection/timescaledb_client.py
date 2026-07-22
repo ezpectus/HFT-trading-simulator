@@ -20,11 +20,8 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
 import logging
-import time
-from typing import Optional, List, Dict, Any
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -212,7 +209,7 @@ class TimescaleDBClient:
         if self._pool:
             await self._pool.close()
 
-    async def insert_candles(self, symbol: str, interval: str, candles: List[dict]) -> int:
+    async def insert_candles(self, symbol: str, interval: str, candles: list[dict]) -> int:
         if not self._pool:
             return 0
 
@@ -236,8 +233,8 @@ class TimescaleDBClient:
 
     async def get_candles(
         self, symbol: str, interval: str, limit: int = 500,
-        start_time: Optional[int] = None, end_time: Optional[int] = None,
-    ) -> List[dict]:
+        start_time: int | None = None, end_time: int | None = None,
+    ) -> list[dict]:
         if not self._pool:
             return []
 
@@ -245,10 +242,10 @@ class TimescaleDBClient:
                    FROM candles WHERE symbol = $1 AND interval = $2"""
         params: list = [symbol, interval]
 
-        if start_time:
+        if start_time is not None:
             query += " AND time >= $3"
             params.append(start_time)
-        if end_time:
+        if end_time is not None:
             idx = len(params) + 1
             query += f" AND time <= ${idx}"
             params.append(end_time)
@@ -276,7 +273,7 @@ class TimescaleDBClient:
                 trade.qty, trade.timestamp, trade.order_id, trade.strategy,
             )
 
-    async def insert_trades_batch(self, trades: List[TradeRecord]) -> int:
+    async def insert_trades_batch(self, trades: list[TradeRecord]) -> int:
         if not self._pool or not trades:
             return 0
         rows = [(t.symbol, t.exchange, t.side, t.price, t.qty, t.timestamp, t.order_id, t.strategy) for t in trades]
@@ -325,7 +322,7 @@ class TimescaleDBClient:
                 record.final_balance, record.config_json,
             )
 
-    async def get_recent_trades(self, symbol: str, limit: int = 100) -> List[dict]:
+    async def get_recent_trades(self, symbol: str, limit: int = 100) -> list[dict]:
         if not self._pool:
             return []
         async with self._pool.acquire() as conn:
@@ -336,7 +333,7 @@ class TimescaleDBClient:
             )
             return [dict(r) for r in rows]
 
-    async def get_recent_signals(self, symbol: str, limit: int = 50) -> List[dict]:
+    async def get_recent_signals(self, symbol: str, limit: int = 50) -> list[dict]:
         if not self._pool:
             return []
         async with self._pool.acquire() as conn:

@@ -1,9 +1,10 @@
 """Unit tests for risk and portfolio optimization."""
 
-import pytest
 import numpy as np
-from src.risk.portfolio_optimizer import PortfolioOptimizer, PortfolioResult
+import pytest
+
 from src.risk.kelly import KellyPositionSizer
+from src.risk.portfolio_optimizer import PortfolioOptimizer, PortfolioResult
 
 
 def make_returns(n=300, n_assets=3):

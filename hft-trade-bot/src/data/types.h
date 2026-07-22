@@ -12,7 +12,7 @@ namespace hft {
 
 enum class Side { BUY, SELL };
 enum class OrderType { MARKET, LIMIT };
-enum class OrderStatus { PENDING, FILLED, REJECTED, CANCELLED };
+enum class OrderStatus { PENDING, PARTIAL, FILLED, REJECTED, CANCELLED };
 
 inline std::string side_to_string(Side s) {
     return s == Side::BUY ? "BUY" : "SELL";
@@ -63,7 +63,7 @@ struct Order {
     double filled_price{};
     double filled_quantity{};
     double fee{};
-    int64_t timestamp{static_cast<int64_t>(std::time(nullptr))};
+    int64_t timestamp{static_cast<int64_t>(std::time(nullptr) * 1000)};  // milliseconds
 };
 
 struct Position {
@@ -74,8 +74,10 @@ struct Position {
     double entry_price{};
     double stop_loss{};
     double take_profit{};
-    int64_t opened_at{static_cast<int64_t>(std::time(nullptr))};
+    int64_t opened_at{static_cast<int64_t>(std::time(nullptr) * 1000)};  // milliseconds
     double unrealized_pnl{};
+    double fees_paid{};       // cumulative fees paid
+    double funding_paid{};    // cumulative funding paid
 
     bool is_long() const { return side == Side::BUY; }
 
@@ -83,6 +85,7 @@ struct Position {
         unrealized_pnl = is_long()
             ? (current_price - entry_price) * quantity
             : (entry_price - current_price) * quantity;
+        unrealized_pnl -= fees_paid + funding_paid;
     }
 };
 

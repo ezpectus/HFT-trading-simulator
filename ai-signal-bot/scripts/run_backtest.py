@@ -4,19 +4,17 @@
 Usage: python scripts/run_backtest.py --strategy trend --symbol BTCUSDT --period 30d
 """
 
-import asyncio
 import argparse
-import sys
 import os
-import json
+import sys
 
 _bot_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _bot_root not in sys.path:
     sys.path.insert(0, _bot_root)
 
-from src.utils.helpers import setup_logging
-from src.backtesting.backtest_engine import BacktestEngine, BacktestConfig
-from src.backtesting.backtest_comparison import BacktestComparison
+from src.backtesting.backtest_comparison import BacktestComparison  # noqa: E402
+from src.backtesting.backtest_engine import BacktestConfig, BacktestEngine  # noqa: E402
+from src.utils.helpers import setup_logging  # noqa: E402
 
 
 def generate_mock_candles(n: int = 500, start_price: float = 50000.0) -> list[dict]:
@@ -49,7 +47,7 @@ def run_backtest(args):
     config = BacktestConfig(initial_capital=args.capital, fee_rate=0.0004)
     engine = BacktestEngine(config)
 
-    from src.strategies.strategies import TrendFollowingStrategy, MeanReversionStrategy
+    from src.strategies.strategies import MeanReversionStrategy, TrendFollowingStrategy
 
     strategies = {
         "trend": TrendFollowingStrategy(),

@@ -78,9 +78,21 @@ def power_spectrum(closes: list[float]) -> tuple[list[float], list[float]]:
     mean = sum(closes) / n
     detrended = [c - mean for c in closes]
 
+    # Constant/zero-variance series: return DC-dominated spectrum
+    if all(abs(d) < 1e-12 for d in detrended):
+        n_fft = 1
+        while n_fft < n:
+            n_fft <<= 1
+        half = n_fft // 2
+        freqs = [i / n_fft for i in range(half)]
+        power = [0.0] * half
+        if power:
+            power[0] = 1.0
+        return freqs, power
+
     # Apply Hann window to reduce spectral leakage
     window = [0.5 - 0.5 * math.cos(2 * math.pi * i / (n - 1)) for i in range(n)]
-    windowed = [d * w for d, w in zip(detrended, window)]
+    windowed = [d * w for d, w in zip(detrended, window, strict=False)]
 
     # Pad to power of 2
     n_fft = 1
@@ -139,13 +151,27 @@ def cycle_strength(closes: list[float]) -> float:
     if not power:
         return 0.0
 
+    # Exclude very low frequencies (DC + long-period trend) so trend dominance
+    # does not inflate the cycle-strength score.
+    skip = max(2, len(power) // 10)
+    if len(power) <= skip:
+        skip = 0
+
+    filtered_power = power[skip:]
+    total = sum(filtered_power)
+    if total <= 0:
+        return 0.0
+
+    # Renormalize so entropy is computed over the filtered distribution
+    filtered_power = [p / total for p in filtered_power]
+
     # Spectral entropy — lower entropy = more concentrated spectrum = stronger cycles
     entropy = 0.0
-    for p in power:
+    for p in filtered_power:
         if p > 0:
             entropy -= p * math.log(p)
 
-    max_entropy = math.log(len(power)) if len(power) > 1 else 1
+    max_entropy = math.log(len(filtered_power)) if len(filtered_power) > 1 else 1
     if max_entropy == 0:
         return 0.0
 

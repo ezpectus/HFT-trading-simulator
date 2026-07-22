@@ -29,13 +29,14 @@ from __future__ import annotations
 import logging
 import socket
 import time
-from typing import Optional, Callable, Dict, Any
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 try:
-    import ctypes
+    import ctypes  # noqa: F401
     _DPDK_AVAILABLE = False  # Set to True if dpdk Python bindings are available
 except ImportError:
     _DPDK_AVAILABLE = False
@@ -70,7 +71,7 @@ class DPDKTransport:
         self.rx_queue_size = rx_queue_size
         self.tx_queue_size = tx_queue_size
         self._initialized = False
-        self._socket: Optional[socket.socket] = None
+        self._socket: socket.socket | None = None
         self._running = False
         self._stats = {
             "packets_rx": 0,
@@ -162,11 +163,11 @@ class DPDKTransport:
         if self._socket:
             self._socket.close()
 
-    def _parse_packet(self, data: bytes) -> Optional[MarketDataPacket]:
+    def _parse_packet(self, data: bytes) -> MarketDataPacket | None:
         """Parse raw packet into MarketDataPacket."""
         try:
             # Simple binary format: [ts_ns:8][symbol_len:1][symbol:N][price:8][qty:8][side:1][msg_type:1]
-            if len(data) < 20:
+            if len(data) < 27:
                 return None
 
             import struct
@@ -186,7 +187,7 @@ class DPDKTransport:
         except Exception:
             return None
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         return {**self._stats, "dpdk_enabled": _DPDK_AVAILABLE}
 
     def is_dpdk_active(self) -> bool:

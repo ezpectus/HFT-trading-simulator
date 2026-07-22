@@ -6,17 +6,16 @@ export to CSV/JSON.
 
 from __future__ import annotations
 
-import json
 import csv
 import io
-import math
+import json
+import logging
 from dataclasses import dataclass, field
-from typing import Optional
+
 import numpy as np
 
-from src.backtesting.backtest_engine import BacktestResult
+from src.backtesting.backtester import BacktestResult
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -83,6 +82,10 @@ class BacktestComparison:
     def add(self, name: str, result: BacktestResult) -> None:
         """Add a backtest result for comparison."""
         self.results[name] = result
+
+    def to_csv(self) -> str:
+        """Export comparison results to CSV (delegates to compare().to_csv)."""
+        return self.compare().to_csv()
 
     def compare(self) -> ComparisonResult:
         """Run comparison across all added backtests."""

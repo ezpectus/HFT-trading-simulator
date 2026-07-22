@@ -8,7 +8,7 @@
 // Implements IExchange interface.
 #pragma once
 
-#include "../execution/smart_order_router_v2.h"
+#include "ExchangeBase.h"
 #include "../data/aligned_types.h"
 #include "../utils/low_latency.h"
 #include <string>
@@ -69,6 +69,7 @@ public:
         std::lock_guard<Spinlock> lk(price_lock_);
         bids_[symbol] = bid;
         asks_[symbol] = ask;
+        std::lock_guard<Spinlock> lk2(depth_lock_);
         bid_depth_[symbol] = bid_sz;
         ask_depth_[symbol] = ask_sz;
     }

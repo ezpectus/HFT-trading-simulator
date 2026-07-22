@@ -2,7 +2,7 @@
 import pytest
 
 from src.backtesting import Backtester, StrategyOptimizer
-from src.strategies import TrendFollowingStrategy, MeanReversionStrategy
+from src.strategies import MeanReversionStrategy, TrendFollowingStrategy
 
 
 def make_trending_candles(n=200, start=100, slope=0.3):

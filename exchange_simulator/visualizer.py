@@ -4,22 +4,20 @@ Tab switching: 1=BTC, 2=ETH, 3=SOL, A=Account, Q=Quit
 Animated real-time market data using ANSI escape codes.
 Pure Python — no external GUI dependencies.
 """
-import os
+import platform
 import sys
 import time
-import platform
-from typing import Optional
 
-from exchange_simulator.models import Account, Candle, OrderBook, Position, Side
 from exchange_simulator.exchange import SimulatedExchange
+from exchange_simulator.models import Candle
 
 # Non-blocking input
 if platform.system() == "Windows":
     import msvcrt
 else:
     import select
-    import tty
     import termios
+    import tty
 
 
 class TabbedVisualizer:
@@ -533,7 +531,7 @@ class TabbedVisualizer:
                     line = f"  {self.DIM}   0 │{'─' * len(visible_hist)}{self.RESET}"
                 else:
                     line = f"  {self.DIM}{row_val:>4.1f} │{self.RESET}"
-                    for i, h in enumerate(visible_hist):
+                    for _i, h in enumerate(visible_hist):
                         h_pos = int(h / max_macd * macd_rows) if max_macd > 0 else 0
                         if h_pos == row and h > 0:
                             line += f"{self.GREEN}█{self.RESET}"
@@ -713,7 +711,7 @@ class TabbedVisualizer:
 
     def _render_footer(self) -> None:
         tickers = []
-        for ex_id, exchange in self.exchanges.items():
+        for _ex_id, exchange in self.exchanges.items():
             for symbol in exchange.symbols:
                 price = exchange.get_price(symbol)
                 tickers.append(f"{symbol.split('/')[0]}: ${price:,.2f}")

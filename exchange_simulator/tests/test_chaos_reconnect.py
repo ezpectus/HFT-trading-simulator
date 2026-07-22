@@ -16,13 +16,13 @@ Requirements:
     pip install websockets
 """
 import asyncio
+import http.server
 import json
 import os
 import signal
 import subprocess
 import sys
 import time
-import http.server
 
 
 class ChaosTestResult:
@@ -86,7 +86,7 @@ async def receive_messages(url: str, duration: float = 5.0) -> list:
                 try:
                     msg = await asyncio.wait_for(ws.recv(), timeout=max(0.1, end - time.time()))
                     messages.append(json.loads(msg))
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     break
     except Exception:
         pass

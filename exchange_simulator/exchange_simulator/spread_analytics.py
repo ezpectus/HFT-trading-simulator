@@ -14,8 +14,7 @@ Usage:
 import logging
 import time
 from collections import deque
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -72,7 +71,7 @@ class SpreadAnalytics:
         symbol: str,
         spread: float,
         mid_price: float,
-        timestamp: Optional[float] = None,
+        timestamp: float | None = None,
     ) -> None:
         """Record a spread observation."""
         if mid_price <= 0:
@@ -119,7 +118,7 @@ class SpreadAnalytics:
             self._slippages[key] = deque(maxlen=self.window_size)
         self._slippages[key].append(slip_bps)
 
-    def get_stats(self, exchange: str, symbol: str) -> Optional[SpreadStats]:
+    def get_stats(self, exchange: str, symbol: str) -> SpreadStats | None:
         """Get aggregated spread statistics for an exchange/symbol pair."""
         key = self._key(exchange, symbol)
         if key not in self._spreads or not self._spreads[key]:

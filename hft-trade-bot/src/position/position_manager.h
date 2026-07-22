@@ -84,15 +84,15 @@ public:
             double price = it->second;
 
             if (pos.is_long()) {
-                if (price <= pos.stop_loss) {
+                if (pos.stop_loss > 0 && price <= pos.stop_loss) {
                     triggers.push_back({pos.symbol, price, "STOP_LOSS"});
-                } else if (price >= pos.take_profit) {
+                } else if (pos.take_profit > 0 && price >= pos.take_profit) {
                     triggers.push_back({pos.symbol, price, "TAKE_PROFIT"});
                 }
             } else {
-                if (price >= pos.stop_loss) {
+                if (pos.stop_loss > 0 && price >= pos.stop_loss) {
                     triggers.push_back({pos.symbol, price, "STOP_LOSS"});
-                } else if (price <= pos.take_profit) {
+                } else if (pos.take_profit > 0 && price <= pos.take_profit) {
                     triggers.push_back({pos.symbol, price, "TAKE_PROFIT"});
                 }
             }

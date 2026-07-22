@@ -8,13 +8,12 @@ Rate limiting: max 1 alert per rule per 5 minutes.
 from __future__ import annotations
 
 import asyncio
-import json
-import time
 import logging
-from dataclasses import dataclass, field
-from typing import Optional, Callable
-from enum import Enum
+import time
 from collections import defaultdict
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from enum import Enum
 
 import aiohttp
 
@@ -49,11 +48,11 @@ class Alert:
 class AlertSystem:
     """Multi-channel alert system with rate limiting."""
 
-    def __init__(self, webhook_url: Optional[str] = None,
-                 discord_webhook: Optional[str] = None,
-                 telegram_token: Optional[str] = None,
-                 telegram_chat_id: Optional[str] = None,
-                 email_smtp: Optional[str] = None):
+    def __init__(self, webhook_url: str | None = None,
+                 discord_webhook: str | None = None,
+                 telegram_token: str | None = None,
+                 telegram_chat_id: str | None = None,
+                 email_smtp: str | None = None):
         self.webhook_url = webhook_url
         self.discord_webhook = discord_webhook
         self.telegram_token = telegram_token
@@ -65,7 +64,7 @@ class AlertSystem:
         self.alert_history: list[Alert] = []
         self._max_history = 1000
         self._running = False
-        self._check_task: Optional[asyncio.Task] = None
+        self._check_task: asyncio.Task | None = None
 
     def add_rule(self, rule: AlertRule) -> None:
         """Add an alert rule."""

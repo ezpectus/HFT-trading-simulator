@@ -26,9 +26,9 @@ Usage:
 from __future__ import annotations
 
 import logging
-import numpy as np
-from typing import Optional, Dict, List
 from dataclasses import dataclass
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +68,8 @@ class PortfolioOptimizer:
     def optimize(
         self,
         returns: np.ndarray,
-        target_return: Optional[float] = None,
-        target_risk: Optional[float] = None,
+        target_return: float | None = None,
+        target_risk: float | None = None,
     ) -> OptimizationResult:
         """
         Optimize portfolio weights.
@@ -124,7 +124,7 @@ class PortfolioOptimizer:
             method="markowitz", success=result.success, message=result.message,
         )
 
-    def _min_variance(self, returns: np.ndarray, target_return: Optional[float] = None) -> OptimizationResult:
+    def _min_variance(self, returns: np.ndarray, target_return: float | None = None) -> OptimizationResult:
         """Minimize portfolio variance."""
         n_assets = returns.shape[1]
         mean_returns = np.mean(returns, axis=0)
@@ -192,8 +192,8 @@ class PortfolioOptimizer:
         self,
         returns: np.ndarray,
         market_caps: np.ndarray,
-        views: Dict[int, float],
-        view_confidences: Optional[Dict[int, float]] = None,
+        views: dict[int, float],
+        view_confidences: dict[int, float] | None = None,
         tau: float = 0.05,
     ) -> OptimizationResult:
         """
@@ -286,7 +286,7 @@ class PortfolioOptimizer:
 
     def efficient_frontier(
         self, returns: np.ndarray, n_points: int = 50
-    ) -> List[OptimizationResult]:
+    ) -> list[OptimizationResult]:
         """Compute efficient frontier."""
         if not SCIPY_AVAILABLE:
             return []

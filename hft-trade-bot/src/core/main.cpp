@@ -177,13 +177,13 @@ int main(int argc, char* argv[]) {
         config.min_rr_ratio,
         config.max_position_size_pct,
         config.max_open_positions,
-        {},  // max_position_qty (default)
-        {},  // max_total_exposure (default)
-        {},  // daily_loss_limit (default)
-        {},  // max_drawdown_pct (default)
-        {},  // max_orders_per_second (default)
-        {},  // min_margin_ratio (default)
-        {},  // max_leverage (default)
+        config.max_position_qty,
+        config.max_total_exposure,
+        config.daily_loss_limit,
+        config.max_drawdown_pct,
+        config.max_orders_per_second,
+        config.min_margin_ratio,
+        config.max_leverage,
         {},  // blacklisted_symbols (default)
         {},  // per_symbol_max_qty (default)
     });
@@ -312,7 +312,7 @@ int main(int argc, char* argv[]) {
     AdaptiveOrderSelectorV2 adaptive_selector(adaptive_params);
 
     // ─── Kill Switch — emergency stop ───
-    KillSwitch kill_switch("logs/kill_switch_trigger", "/hft_kill_switch");
+    KillSwitch kill_switch(config.kill_switch_trigger_file, "/hft_kill_switch");
     kill_switch.set_cancel_all_callback([&]() {
         spdlog::warn("KILL SWITCH: Cancelling all open orders...");
         // OrderExecutor doesn't support batch cancel yet — positions are closed below
@@ -329,9 +329,11 @@ int main(int argc, char* argv[]) {
         const char* reason_str[] = {"MANUAL", "DAILY_LOSS", "MAX_DRAWDOWN", "MARGIN_CALL", "FILE_TRIGGER"};
         spdlog::critical("KILL SWITCH ACTIVATED: reason={}", reason_str[static_cast<int>(reason)]);
     });
-    kill_switch.init_shm();
+    if (!kill_switch.init_shm()) {
+        spdlog::warn("Kill switch SHM init failed — file-based trigger still active");
+    }
     kill_switch.start_monitoring(config.kill_switch_poll_interval_ms);
-    spdlog::info("Kill switch armed (trigger: logs/kill_switch_trigger)");
+    spdlog::info("Kill switch armed (trigger: {})", config.kill_switch_trigger_file);
 
     // ─── System Monitor — health metrics ───
     SystemMonitor sys_monitor;
@@ -378,8 +380,11 @@ int main(int argc, char* argv[]) {
 
                 if (sig.direction == "LONG" || sig.direction == "SHORT") {
                     std::lock_guard<std::mutex> lk(ai_signal_queue_mtx);
-                    ai_signal_queue.push(sig);
-                    sys_monitor.increment(SystemMonitor::Metric::SIGNALS_RECEIVED);
+                    if (!ai_signal_queue.push(sig)) {
+                        spdlog::warn("AI signal queue full — signal dropped");
+                    } else {
+                        sys_monitor.increment(SystemMonitor::Metric::SIGNALS_RECEIVED);
+                    }
                 }
             });
             spdlog::info("SHM IPC: signal consumer started (shm={})", config.ipc_signals_shm);
@@ -416,8 +421,11 @@ int main(int argc, char* argv[]) {
         ai_signal_receiver->on_signal([&](const Signal& sig) {
             if (sig.direction == "LONG" || sig.direction == "SHORT") {
                 std::lock_guard<std::mutex> lk(ai_signal_queue_mtx);
-                ai_signal_queue.push(sig);
-                sys_monitor.increment(SystemMonitor::Metric::SIGNALS_RECEIVED);
+                if (!ai_signal_queue.push(sig)) {
+                    spdlog::warn("AI signal queue full — signal dropped");
+                } else {
+                    sys_monitor.increment(SystemMonitor::Metric::SIGNALS_RECEIVED);
+                }
             }
         });
     }
@@ -471,10 +479,13 @@ int main(int argc, char* argv[]) {
     spdlog::info("HFT Trade Bot v2 running. Press Ctrl+C to stop.");
 
     // Pin main loop thread to a dedicated core for consistent low-latency execution
-    if (ThreadAffinity::pin_to_core(2)) {
-        spdlog::info("Main loop thread pinned to core 2");
-    } else {
-        spdlog::warn("Could not pin thread to core 2 — running on default scheduler");
+    // Use config.execution_core_id instead of hardcoded core 2
+    if (config.thread_pinning_enabled) {
+        if (ThreadAffinity::pin_to_core(config.execution_core_id)) {
+            spdlog::info("Main loop thread pinned to core {}", config.execution_core_id);
+        } else {
+            spdlog::warn("Could not pin thread to core {} — running on default scheduler", config.execution_core_id);
+        }
     }
 
     auto last_print = std::chrono::steady_clock::now();
@@ -509,8 +520,8 @@ int main(int argc, char* argv[]) {
         // Check SL/TP triggers
         auto triggers = pos_mgr.check_sl_tp(prices_cache);
         for (const auto& trigger : triggers) {
-            spdlog::info("SL/TP triggered: {} {} @ {:.2f} ({})",
-                trigger.symbol, trigger.price, trigger.price, trigger.reason);
+            spdlog::info("SL/TP triggered: {} @ {:.2f} ({})",
+                trigger.symbol, trigger.price, trigger.reason);
             executor.close_position(trigger.symbol);
             auto closed = pos_mgr.close_position(trigger.symbol, trigger.price);
             if (closed) {

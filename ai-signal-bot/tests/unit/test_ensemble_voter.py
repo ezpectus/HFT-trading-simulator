@@ -1,10 +1,14 @@
 """Tests for EnsembleVoter — majority/weighted voting + CircuitBreaker integration."""
-import pytest
 import time
 from unittest.mock import patch
 
+import pytest
+
 from src.strategies.strategies import (
-    EnsembleVoter, Signal, SignalDirection, CircuitBreaker,
+    CircuitBreaker,
+    EnsembleVoter,
+    Signal,
+    SignalDirection,
 )
 
 

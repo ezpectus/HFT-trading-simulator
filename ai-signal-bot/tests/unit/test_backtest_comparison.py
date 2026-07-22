@@ -1,12 +1,15 @@
 """Tests for BacktestComparison — comparison, best-by-metric, bootstrap, CSV/JSON export."""
 import json
-import pytest
-import numpy as np
 
-from src.backtesting.backtest_engine import BacktestResult, BacktestTrade
+import numpy as np
+import pytest
+
 from src.backtesting.backtest_comparison import (
-    BacktestComparison, ComparisonRow, ComparisonResult,
+    BacktestComparison,
+    ComparisonResult,
+    ComparisonRow,
 )
+from src.backtesting.backtest_engine import BacktestResult, BacktestTrade
 
 
 def make_result(name="test", return_pct=10.0, sharpe=1.5, sortino=2.0,

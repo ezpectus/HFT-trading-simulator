@@ -183,7 +183,7 @@ services:
       prometheus:
         condition: service_healthy
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=staging
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-staging}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - staging-grafana-data:/var/lib/grafana

@@ -83,7 +83,9 @@ public:
         // Build key without heap allocation using stack buffer
         char key_buf[128];
         int key_len = std::snprintf(key_buf, sizeof(key_buf), "%s:%s", symbol.c_str(), exchange.c_str());
-        std::string_view key_sv(key_buf, key_len);
+        if (key_len <= 0) return;
+        key_len = std::min(key_len, static_cast<int>(sizeof(key_buf) - 1));
+        std::string_view key_sv(key_buf, static_cast<size_t>(key_len));
         auto& pos = positions_[std::string(key_sv)];
 
         const bool was_open = pos.is_open();
@@ -169,7 +171,9 @@ public:
         if (!exchange.empty()) {
             char key_buf[128];
             int key_len = std::snprintf(key_buf, sizeof(key_buf), "%s:%s", symbol.c_str(), exchange.c_str());
-            auto it = positions_.find(std::string(key_buf, key_len));
+            if (key_len <= 0) return {};
+            key_len = std::min(key_len, static_cast<int>(sizeof(key_buf) - 1));
+            auto it = positions_.find(std::string(key_buf, static_cast<size_t>(key_len)));
             if (it != positions_.end()) return it->second;
         } else {
             for (const auto& [key, pos] : positions_) {

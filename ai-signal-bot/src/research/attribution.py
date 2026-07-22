@@ -35,7 +35,6 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
@@ -62,7 +61,7 @@ class AttributionResult:
     total_allocation_effect: float
     total_selection_effect: float
     total_interaction_effect: float
-    sectors: List[SectorAttribution] = field(default_factory=list)
+    sectors: list[SectorAttribution] = field(default_factory=list)
 
 
 class BrinsonFachler:
@@ -70,10 +69,10 @@ class BrinsonFachler:
 
     def attribute(
         self,
-        portfolio_weights: Dict[str, float],
-        benchmark_weights: Dict[str, float],
-        portfolio_returns: Dict[str, float],
-        benchmark_returns: Dict[str, float],
+        portfolio_weights: dict[str, float],
+        benchmark_weights: dict[str, float],
+        portfolio_returns: dict[str, float],
+        benchmark_returns: dict[str, float],
     ) -> AttributionResult:
         """
         Perform Brinson-Fachler attribution.
@@ -97,7 +96,7 @@ class BrinsonFachler:
             benchmark_weights.get(s, 0) * benchmark_returns.get(s, 0) for s in all_sectors
         )
 
-        sector_results: List[SectorAttribution] = []
+        sector_results: list[SectorAttribution] = []
         total_alloc = 0.0
         total_select = 0.0
         total_inter = 0.0
@@ -144,7 +143,7 @@ class BrinsonFachler:
     def print_report(self, result: AttributionResult) -> None:
         """Print formatted attribution report."""
         logger.info(f"\n{'='*90}")
-        logger.info(f"Brinson-Fachler Performance Attribution Report")
+        logger.info("Brinson-Fachler Performance Attribution Report")
         logger.info(f"{'='*90}")
         logger.info(f"Portfolio Return:  {result.total_portfolio_return:>10.4f} ({result.total_portfolio_return*100:.2f}%)")
         logger.info(f"Benchmark Return:  {result.total_benchmark_return:>10.4f} ({result.total_benchmark_return*100:.2f}%)")
@@ -173,11 +172,11 @@ class BrinsonFachler:
 
     def multi_period_attribution(
         self,
-        periods: List[Dict[str, Dict[str, float]]],
-    ) -> List[AttributionResult]:
+        periods: list[dict[str, dict[str, float]]],
+    ) -> list[AttributionResult]:
         """Run attribution across multiple time periods."""
         results = []
-        for i, period in enumerate(periods):
+        for _i, period in enumerate(periods):
             result = self.attribute(
                 portfolio_weights=period["portfolio_weights"],
                 benchmark_weights=period["benchmark_weights"],

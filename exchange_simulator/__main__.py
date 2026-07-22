@@ -9,13 +9,11 @@ Usage:
 """
 import argparse
 import asyncio
-import csv
 import logging
 import os
 import sys
 import threading
 import time
-from datetime import datetime
 
 import yaml
 
@@ -23,23 +21,22 @@ import yaml
 _proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _proj_root not in sys.path:
     sys.path.insert(0, _proj_root)
-from run_logger import setup_run_logging
+from run_logger import setup_run_logging  # noqa: E402
 
-from exchange_simulator.exchange import SimulatedExchange
-from exchange_simulator.market_simulator import MarketSimulator
-from exchange_simulator.models import Side, OrderType
-from exchange_simulator.arbitrage import ArbitrageDetector
-from exchange_simulator.config_validator import validate_or_exit
-from exchange_simulator.data_export import DataExporter
-from exchange_simulator.visualizer import TabbedVisualizer
-from exchange_simulator.websocket_server import ExchangeWebSocketServer
+from exchange_simulator.arbitrage import ArbitrageDetector  # noqa: E402
+from exchange_simulator.config_validator import validate_or_exit  # noqa: E402
+from exchange_simulator.data_export import DataExporter  # noqa: E402
+from exchange_simulator.exchange import SimulatedExchange  # noqa: E402
+from exchange_simulator.market_simulator import MarketSimulator  # noqa: E402
+from exchange_simulator.visualizer import TabbedVisualizer  # noqa: E402
+from exchange_simulator.websocket_server import ExchangeWebSocketServer  # noqa: E402
 
 
-def load_config(path: str = None) -> dict:
+def load_config(path: str | None = None) -> dict:
     """Load configuration from YAML file."""
     if path is None:
         path = os.path.join(os.path.dirname(__file__), "config.yaml")
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -149,7 +146,7 @@ def run_headless(
     try:
         while True:
             candles = market.next_candle()
-            for ex_id, exchange in exchanges.items():
+            for _ex_id, exchange in exchanges.items():
                 exchange.check_stop_loss_take_profit()
                 exchange.update_positions_pnl()
 
@@ -214,7 +211,7 @@ def main():
         return
 
     if not args.no_visualizer:
-        viz_thread = run_visualizer_thread(exchanges, config, logger)
+        run_visualizer_thread(exchanges, config, logger)
         logger.info("Terminal visualizer started")
 
     # Run WebSocket server in main async loop

@@ -10,7 +10,6 @@ import os
 import argparse
 import struct
 import mmap
-import ctypes
 
 def main():
     parser = argparse.ArgumentParser(description="HFT Bot Monitor")
@@ -59,7 +58,7 @@ def main():
                 print(f"  Signals:    {counters[2]}")
                 print(f"  Errors:     {counters[3]}")
                 print("=" * 60)
-                print(f"  Press Ctrl+C to stop")
+                print("  Press Ctrl+C to stop")
 
                 time.sleep(args.interval)
         finally:

@@ -1,9 +1,13 @@
 """Tests for RealAccountManager — initialization, balance, positions, orders, health."""
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from src.data_collection.real_account import (
-    AccountBalance, AccountPosition, OpenOrder, RealAccountManager,
+    AccountBalance,
+    AccountPosition,
+    OpenOrder,
+    RealAccountManager,
 )
 
 
@@ -156,13 +160,15 @@ class TestRealAccountManagerNotInitialized:
 class TestRealAccountManagerCallbacks:
     def test_set_fill_callback(self):
         mgr = RealAccountManager()
-        cb = lambda x: None
+        def cb(x):
+            return None
         mgr.set_fill_callback(cb)
         assert mgr._on_fill_callback is cb
 
     def test_set_margin_warning_callback(self):
         mgr = RealAccountManager()
-        cb = lambda x: None
+        def cb(x):
+            return None
         mgr.set_margin_warning_callback(cb)
         assert mgr._on_margin_warning_callback is cb
 

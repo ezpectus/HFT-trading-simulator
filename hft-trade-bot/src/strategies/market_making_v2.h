@@ -54,7 +54,7 @@ public:
     // mid = current mid price
     // toxicity = pressure model toxicity score (0-1)
     Quote generate_quotes(double mid, double q, double toxicity,
-                          uint64_t timestamp_ns) noexcept {
+                          [[maybe_unused]] uint64_t timestamp_ns) noexcept {
         Quote quote;
 
         // Update volatility estimate

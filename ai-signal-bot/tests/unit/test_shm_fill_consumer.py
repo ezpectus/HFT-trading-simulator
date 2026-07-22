@@ -4,9 +4,10 @@ Tests cover: init success/failure, try_pop with/without buffer, bulk_pop with
 max_count, pending count, async polling loop with callback, stop, close,
 and context manager usage.
 """
-import pytest
 import asyncio
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from src.communication.shm_fill_consumer import ShmFillConsumer
 
@@ -110,8 +111,9 @@ def consumer_pending(c):
 
 class TestClose:
     def test_close_closes_buffer(self, consumer):
+        buf = consumer._buffer
         consumer.close()
-        consumer._buffer.close.assert_called_once()
+        buf.close.assert_called_once()
         assert consumer._buffer is None
 
     def test_close_without_buffer(self):

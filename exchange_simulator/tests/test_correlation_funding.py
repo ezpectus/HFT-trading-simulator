@@ -1,5 +1,4 @@
 """Tests for MarketSimulator multi-symbol correlation and funding rate history."""
-import pytest
 import math
 
 from exchange_simulator.market_simulator import MarketSimulator

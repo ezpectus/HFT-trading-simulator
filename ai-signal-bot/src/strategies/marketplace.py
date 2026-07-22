@@ -29,11 +29,9 @@ from __future__ import annotations
 import importlib
 import json
 import logging
-import os
-import sys
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +43,8 @@ class StrategyPlugin:
     description: str
     author: str
     module_path: str
-    config: Dict[str, Any] = field(default_factory=dict)
-    tags: List[str] = field(default_factory=list)
+    config: dict[str, Any] = field(default_factory=dict)
+    tags: list[str] = field(default_factory=list)
     min_capital: float = 0.0
     risk_level: str = "medium"  # low, medium, high
     enabled: bool = True
@@ -62,8 +60,8 @@ class StrategyMarketplace:
     ):
         self.strategies_dir = Path(strategies_dir)
         self.registry_path = Path(registry_path)
-        self.plugins: Dict[str, StrategyPlugin] = {}
-        self._loaded: Dict[str, Any] = {}
+        self.plugins: dict[str, StrategyPlugin] = {}
+        self._loaded: dict[str, Any] = {}
         self._load_registry()
 
     def _load_registry(self) -> None:
@@ -109,18 +107,18 @@ class StrategyMarketplace:
             return True
         return False
 
-    def list_installed(self) -> List[StrategyPlugin]:
+    def list_installed(self) -> list[StrategyPlugin]:
         """List all installed strategy plugins."""
         return list(self.plugins.values())
 
-    def list_available_tags(self) -> List[str]:
+    def list_available_tags(self) -> list[str]:
         """List all unique tags."""
         tags: set = set()
         for p in self.plugins.values():
             tags.update(p.tags)
         return sorted(tags)
 
-    def search(self, tag: Optional[str] = None, risk_level: Optional[str] = None) -> List[StrategyPlugin]:
+    def search(self, tag: str | None = None, risk_level: str | None = None) -> list[StrategyPlugin]:
         """Search strategies by tag or risk level."""
         results = []
         for p in self.plugins.values():
@@ -131,7 +129,7 @@ class StrategyMarketplace:
             results.append(p)
         return results
 
-    def load(self, name: str) -> Optional[Any]:
+    def load(self, name: str) -> Any | None:
         """Load and instantiate a strategy by name."""
         if name in self._loaded:
             return self._loaded[name]
@@ -158,7 +156,7 @@ class StrategyMarketplace:
             logger.error(f"[Marketplace] Failed to load {name}: {e}")
             return None
 
-    def install_from_file(self, path: str, name: Optional[str] = None) -> bool:
+    def install_from_file(self, path: str, name: str | None = None) -> bool:
         """Install a strategy from a Python file."""
         p = Path(path)
         if not p.exists() or not p.suffix == ".py":
@@ -181,10 +179,10 @@ class StrategyMarketplace:
         self.register(plugin)
         return True
 
-    def install_from_git(self, git_url: str, name: Optional[str] = None) -> bool:
+    def install_from_git(self, git_url: str, name: str | None = None) -> bool:
         """Clone a strategy from a git repository."""
-        import subprocess
         import re
+        import subprocess
 
         if not git_url.startswith(("https://", "git://")) or ".." in git_url:
             logger.error(f"[Marketplace] Rejected URL (must be https:// or git://): {git_url}")
@@ -235,12 +233,12 @@ class StrategyMarketplace:
             return True
         return False
 
-    def get_config(self, name: str) -> Optional[Dict]:
+    def get_config(self, name: str) -> dict | None:
         """Get strategy configuration."""
         plugin = self.plugins.get(name)
         return plugin.config if plugin else None
 
-    def update_config(self, name: str, config: Dict) -> bool:
+    def update_config(self, name: str, config: dict) -> bool:
         """Update strategy configuration."""
         if name in self.plugins:
             self.plugins[name].config.update(config)

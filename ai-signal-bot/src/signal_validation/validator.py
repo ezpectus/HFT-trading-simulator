@@ -6,9 +6,8 @@ Checks confidence, R:R ratio, drawdown limits, and position limits.
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional
 
-from src.strategies.strategies import Signal, SignalDirection
+from src.strategies.strategies import Signal
 
 logger = logging.getLogger("ai_signal_bot.validation")
 

@@ -51,7 +51,7 @@ public:
         return 2.0 / (static_cast<double>(period) + 1.0);
     }
 
-    explicit InlineEMA(int period) : period_(period), k_(compute_k(period)) {}
+    explicit InlineEMA(int period) : k_(compute_k(period)) {}
 
     void init(double seed) noexcept { ema_ = seed; initialized_ = true; }
 
@@ -70,7 +70,6 @@ public:
     constexpr double k() const noexcept { return k_; }
 
 private:
-    int period_;
     double k_;
     double ema_{0.0};
     bool initialized_{false};
@@ -626,9 +625,10 @@ public:
         // Score: price > VWAP + N×σ → overbought (-1), price < VWAP - N×σ → oversold (+1)
         // Two-pass: first computes VWAP, second computes variance (needs VWAP from first pass).
         // Cache tp values in first pass to avoid recomputing in second pass.
-        alignas(32) double tp_cache[100];
+        alignas(32) double tp_cache[256];
+        size_t n_vwap = std::min(n_candles, static_cast<size_t>(256));
         double vwap = 0.0, cum_pv = 0.0, cum_v = 0.0, cum_var = 0.0;
-        for (size_t i = 0; i < n_candles; ++i) {
+        for (size_t i = 0; i < n_vwap; ++i) {
             double tp = (highs[i] + lows[i] + closes[i]) * 0.3333333333333333;
             tp_cache[i] = tp;
             cum_pv += tp * volumes[i];
@@ -637,7 +637,7 @@ public:
         vwap = cum_v > 0 ? cum_pv / cum_v : current_price;
 
         // Variance — reuse cached tp values from first pass
-        for (size_t i = 0; i < n_candles; ++i) {
+        for (size_t i = 0; i < n_vwap; ++i) {
             double diff = tp_cache[i] - vwap;
             cum_var += volumes[i] * diff * diff;
         }
@@ -807,7 +807,7 @@ public:
             sig.leverage = compute_leverage(sig.confidence, adx_val);
 
             // Format reason with actual values (no heap alloc — snprintf to fixed buffer)
-            char buf[48];
+            char buf[128];
             std::snprintf(buf, sizeof(buf),
                 "L comp=%+.2f E=%+.2f R=%+.2f O=%+.2f V=%+.2f A=%.0f P=%+.2f",
                 sig.composite_score, sig.ema_score, sig.rsi_score,
@@ -827,16 +827,16 @@ public:
 
             sig.leverage = compute_leverage(sig.confidence, adx_val);
 
-            char buf[48];
-            std::snprintf(buf, sizeof(buf),
+            char buf2[128];
+            std::snprintf(buf2, sizeof(buf2),
                 "S comp=%+.2f E=%+.2f R=%+.2f O=%+.2f V=%+.2f A=%.0f P=%+.2f",
                 sig.composite_score, sig.ema_score, sig.rsi_score,
                 sig.obi_score, sig.vwap_score, adx_val, sig.pressure_score);
-            sig.set_reason(buf);
+            sig.set_reason(buf2);
 
             last_signal_ms_ = now_ms;
         } else {
-            char buf[48];
+            char buf[128];
             std::snprintf(buf, sizeof(buf),
                 "N comp=%+.2f ADX=%.0f", sig.composite_score, adx_val);
             sig.set_reason(buf);
@@ -1036,7 +1036,7 @@ public:
             sig.stop_loss = current_price - effective_sl_mult * atr;
             sig.take_profit = current_price + effective_tp_mult * atr;
             sig.leverage = compute_leverage(sig.confidence, adx_val);
-            char buf[48];
+            char buf[128];
             std::snprintf(buf, sizeof(buf),
                 "L comp=%+.2f E=%+.2f R=%+.2f O=%+.2f V=%+.2f A=%.0f P=%+.2f",
                 sig.composite_score, sig.ema_score, sig.rsi_score,
@@ -1052,15 +1052,15 @@ public:
             sig.stop_loss = current_price + effective_sl_mult * atr;
             sig.take_profit = current_price - effective_tp_mult * atr;
             sig.leverage = compute_leverage(sig.confidence, adx_val);
-            char buf[48];
-            std::snprintf(buf, sizeof(buf),
+            char buf2[128];
+            std::snprintf(buf2, sizeof(buf2),
                 "S comp=%+.2f E=%+.2f R=%+.2f O=%+.2f V=%+.2f A=%.0f P=%+.2f",
                 sig.composite_score, sig.ema_score, sig.rsi_score,
                 sig.obi_score, sig.vwap_score, adx_val, sig.pressure_score);
-            sig.set_reason(buf);
+            sig.set_reason(buf2);
             last_signal_ms_ = now_ms;
         } else {
-            char buf[48];
+            char buf[128];
             std::snprintf(buf, sizeof(buf), "N comp=%+.2f ADX=%.0f", sig.composite_score, adx_val);
             sig.set_reason(buf);
         }

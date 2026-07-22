@@ -31,10 +31,11 @@ import asyncio
 import json
 import logging
 import time
-from typing import Optional, Callable, Dict, Any, List, AsyncIterator
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class ReplayMode(Enum):
 class ReplayEvent:
     event_type: str  # candle, orderbook, trade, order, fill, signal, state
     timestamp: float
-    data: Dict[str, Any]
+    data: dict[str, Any]
     sequence: int = 0
 
 
@@ -64,14 +65,14 @@ class MarketReplay:
         self.mode = ReplayMode(mode)
         self.path = Path(path)
         self.buffer_size = buffer_size
-        self._buffer: List[ReplayEvent] = []
+        self._buffer: list[ReplayEvent] = []
         self._sequence = 0
         self._recording = False
         self._playing = False
         self._paused = False
         self._speed = 1.0
-        self._start_ts: Optional[float] = None
-        self._events: List[ReplayEvent] = []
+        self._start_ts: float | None = None
+        self._events: list[ReplayEvent] = []
 
     # ── Recording ──
 
@@ -85,7 +86,7 @@ class MarketReplay:
         self._buffer = []
         logger.info(f"[Replay] Recording to {self.path}")
 
-    def record(self, event_type: str, data: Dict[str, Any], timestamp: Optional[float] = None) -> None:
+    def record(self, event_type: str, data: dict[str, Any], timestamp: float | None = None) -> None:
         """Record an event."""
         if not self._recording:
             return
@@ -151,9 +152,9 @@ class MarketReplay:
     async def play(
         self,
         speed: float = 1.0,
-        on_event: Optional[Callable[[ReplayEvent], None]] = None,
-        start_time: Optional[float] = None,
-        end_time: Optional[float] = None,
+        on_event: Callable[[ReplayEvent], None] | None = None,
+        start_time: float | None = None,
+        end_time: float | None = None,
     ) -> None:
         """Play back recorded events at given speed."""
         if not self._events:
@@ -250,11 +251,11 @@ class MarketReplay:
         logger.info(f"[Replay] Exported {len(self._events)} events to {output_path}")
         return len(self._events)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get replay statistics."""
         if not self._events:
             return {}
-        types: Dict[str, int] = {}
+        types: dict[str, int] = {}
         for e in self._events:
             types[e.event_type] = types.get(e.event_type, 0) + 1
         return {

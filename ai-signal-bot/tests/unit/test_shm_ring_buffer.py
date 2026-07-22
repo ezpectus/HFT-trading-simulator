@@ -3,21 +3,22 @@
 Tests cover: capacity mismatch detection, element_size mismatch detection,
 magic mismatch detection, and normal consumer open with matching parameters.
 """
-import pytest
+import mmap
 import struct
 import sys
-import mmap
+
+import pytest
 
 from src.communication.shm_ring_buffer import (
-    ShmRingBuffer,
-    SHM_MAGIC,
-    SHM_HEADER_ACTUAL_SIZE,
-    OFF_MAGIC,
     OFF_CAPACITY,
     OFF_ELEMENT_SIZE,
-    OFF_TOTAL_SIZE,
     OFF_HEAD,
+    OFF_MAGIC,
     OFF_TAIL,
+    OFF_TOTAL_SIZE,
+    SHM_HEADER_ACTUAL_SIZE,
+    SHM_MAGIC,
+    ShmRingBuffer,
 )
 
 IS_WINDOWS = sys.platform == 'win32'

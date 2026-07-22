@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-exchange_simulator
+  name: {{ .Release.Name }}-exchange-simulator
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "hft-trading-system.labels" . | nindent 4 }}
@@ -25,7 +25,7 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
       containers:
-        - name: exchange_simulator
+        - name: exchange-simulator
           image: "{{ .Values.exchangeSimulator.image.repository }}:{{ .Values.exchangeSimulator.image.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
@@ -61,7 +61,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Release.Name }}-exchange_simulator
+  name: {{ .Release.Name }}-exchange-simulator
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "hft-trading-system.labels" . | nindent 4 }}

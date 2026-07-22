@@ -10,14 +10,12 @@ Features:
 
 from __future__ import annotations
 
+import logging
 import math
-import time
-from dataclasses import dataclass, field
-from typing import Optional
-from collections import deque
+from dataclasses import dataclass
+
 import numpy as np
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -50,14 +48,14 @@ class PortfolioOptimizer:
 
     def markowitz_optimize(
         self, returns: np.ndarray, symbols: list[str],
-        target_return: Optional[float] = None
+        target_return: float | None = None
     ) -> PortfolioResult:
         """Markowitz mean-variance optimization (minimum variance or target return)."""
         n = len(symbols)
         if n < 2 or returns.shape[0] < 10:
             w = np.ones(n) / n
             return PortfolioResult(
-                weights=dict(zip(symbols, w)),
+                weights=dict(zip(symbols, w, strict=False)),
                 expected_return=0.0, volatility=0.0,
                 sharpe_ratio=0.0, method="markowitz_equal"
             )
@@ -70,11 +68,16 @@ class PortfolioOptimizer:
             inv_cov = np.linalg.inv(cov)
             ones = np.ones(n)
             if target_return is not None:
+                # Cap target return to feasible range [min(mean), max(mean)]
+                feasible_min = float(np.min(mean_returns))
+                feasible_max = float(np.max(mean_returns))
+                target_return = float(np.clip(target_return, feasible_min, feasible_max))
+
                 # Target return optimization
                 A = np.vstack([
                     np.hstack([2 * cov, -mean_returns.reshape(-1, 1), -ones.reshape(-1, 1)]),
-                    np.hstack([mean_returns, np.zeros((1, 1)), np.zeros((1, 1))]),
-                    np.hstack([ones, np.zeros((1, 1)), np.zeros((1, 1))])
+                    np.hstack([mean_returns.reshape(1, -1), np.zeros((1, 1)), np.zeros((1, 1))]),
+                    np.hstack([ones.reshape(1, -1), np.zeros((1, 1)), np.zeros((1, 1))])
                 ])
                 b = np.zeros(n + 2)
                 b[n] = target_return
@@ -89,6 +92,10 @@ class PortfolioOptimizer:
             w = np.maximum(w, 0)
             w = w / max(w.sum(), 1e-10)
 
+            # If target return led to all-zero weights (infeasible), fall back to equal weights
+            if target_return is not None and w.sum() < 1e-10:
+                w = np.ones(n) / n
+
         except np.linalg.LinAlgError:
             w = np.ones(n) / n
 
@@ -97,7 +104,7 @@ class PortfolioOptimizer:
         sharpe = (port_return - self.risk_free_rate) / max(port_vol, 1e-10)
 
         return PortfolioResult(
-            weights=dict(zip(symbols, w.tolist())),
+            weights=dict(zip(symbols, w.tolist(), strict=False)),
             expected_return=port_return,
             volatility=port_vol,
             sharpe_ratio=sharpe,
@@ -106,7 +113,7 @@ class PortfolioOptimizer:
 
     def black_litterman(
         self, returns: np.ndarray, symbols: list[str],
-        views: dict[str, float], view_confidences: dict[str, float] = None
+        views: dict[str, float], view_confidences: dict[str, float] | None = None
     ) -> PortfolioResult:
         """Black-Litterman optimization with strategy views.
 
@@ -117,7 +124,7 @@ class PortfolioOptimizer:
         if n < 2 or returns.shape[0] < 10:
             w = np.ones(n) / n
             return PortfolioResult(
-                weights=dict(zip(symbols, w)),
+                weights=dict(zip(symbols, w, strict=False)),
                 expected_return=0.0, volatility=0.0,
                 sharpe_ratio=0.0, method="bl_equal"
             )
@@ -167,7 +174,7 @@ class PortfolioOptimizer:
         sharpe = (port_return - self.risk_free_rate) / max(port_vol, 1e-10)
 
         return PortfolioResult(
-            weights=dict(zip(symbols, w.tolist())),
+            weights=dict(zip(symbols, w.tolist(), strict=False)),
             expected_return=port_return,
             volatility=port_vol,
             sharpe_ratio=sharpe,
@@ -206,7 +213,7 @@ class PortfolioOptimizer:
         if n < 2 or returns.shape[0] < 10:
             w = np.ones(n) / n
             return PortfolioResult(
-                weights=dict(zip(symbols, w)),
+                weights=dict(zip(symbols, w, strict=False)),
                 expected_return=0.0, volatility=target_volatility,
                 sharpe_ratio=0.0, method="risk_parity_equal"
             )
@@ -232,7 +239,7 @@ class PortfolioOptimizer:
         sharpe = (port_return - self.risk_free_rate) / max(port_vol, 1e-10)
 
         return PortfolioResult(
-            weights=dict(zip(symbols, w.tolist())),
+            weights=dict(zip(symbols, w.tolist(), strict=False)),
             expected_return=port_return,
             volatility=port_vol,
             sharpe_ratio=sharpe,

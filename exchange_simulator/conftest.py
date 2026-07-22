@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 # Add simulator root and project root to sys.path
 _sim_root = os.path.dirname(os.path.abspath(__file__))

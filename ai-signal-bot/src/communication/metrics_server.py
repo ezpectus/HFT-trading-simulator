@@ -15,7 +15,6 @@ Metrics exposed:
 import asyncio
 import logging
 import time
-from typing import Optional
 
 logger = logging.getLogger("ai_signal_bot.metrics")
 
@@ -93,7 +92,7 @@ class MetricsServer:
         self.collector = collector
         self.host = host
         self.port = port
-        self._server: Optional[asyncio.AbstractServer] = None
+        self._server: asyncio.AbstractServer | None = None
 
     async def start(self) -> None:
         self._server = await asyncio.start_server(
@@ -122,7 +121,7 @@ class MetricsServer:
                 f"Content-Length: {len(body)}\r\n"
                 f"Connection: close\r\n"
                 f"\r\n"
-            ).encode("utf-8") + body
+            ).encode() + body
 
             writer.write(response)
             await writer.drain()

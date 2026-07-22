@@ -11,12 +11,11 @@ Models:
 
 from __future__ import annotations
 
-import numpy as np
-import time
-from dataclasses import dataclass
-from typing import Optional
-
 import logging
+from dataclasses import dataclass
+
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +41,7 @@ EXCHANGE_LATENCY_PROFILES = {
 class LatencySimulator:
     """Simulate network latency for exchange messages."""
 
-    def __init__(self, exchange: str = "binance", config: Optional[LatencyConfig] = None):
+    def __init__(self, exchange: str = "binance", config: LatencyConfig | None = None):
         self.exchange = exchange
         self.config = config or EXCHANGE_LATENCY_PROFILES.get(exchange, LatencyConfig())
         self._rng = np.random.default_rng()
@@ -96,7 +95,6 @@ class LatencySimulator:
     def attempt_reconnect(self) -> bool:
         """Attempt to reconnect. Returns True if successful."""
         self._reconnect_attempts += 1
-        delay = self._get_reconnect_delay()
         # 80% success rate after first attempt, increasing
         success_prob = min(0.8 + 0.05 * self._reconnect_attempts, 0.99)
         if self._rng.random() < success_prob:

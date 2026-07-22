@@ -74,11 +74,13 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: ${{ matrix.component }}/requirements.txt
+          cache-dependency-path: |
+            ${{ matrix.component }}/requirements.txt
+            ${{ matrix.component }}/requirements-dev.txt
       - run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio pytest-cov
+          pip install -r requirements-dev.txt
         working-directory: ${{ matrix.component }}
       - run: |
           if [ "${{ matrix.component }}" = "exchange_simulator" ]; then
@@ -192,7 +194,7 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgGitCommitId: 2023.10.19
+          vcpkgGitCommitId: 1c96eb3cbdd049a4e4e5e0e3b94d67629f3f4b43
       - name: Install C++ libraries via vcpkg
         run: |
           vcpkg install boost-system boost-random openssl spdlog fmt nlohmann-json yaml-cpp --triplet x64-windows
@@ -396,10 +398,14 @@ jobs:
           cache: npm
           cache-dependency-path: web-ui/package-lock.json
       - name: Install Python deps (Exchange Simulator)
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
         working-directory: exchange_simulator
       - name: Install Python deps (AI Signal Bot)
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
         working-directory: ai-signal-bot
       - name: Run Exchange Simulator tests
         run: python -m pytest tests/ -v --tb=short -q

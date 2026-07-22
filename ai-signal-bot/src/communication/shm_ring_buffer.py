@@ -13,14 +13,12 @@ All operations are O(1) and non-blocking.
 
 from __future__ import annotations
 
+import ctypes
 import mmap
 import os
-import sys
 import struct
-import ctypes
-from typing import TypeVar, Generic, Optional, List
-from dataclasses import dataclass
-from contextlib import contextmanager
+import sys
+from typing import TypeVar
 
 # Atomic helpers: use ctypes for aligned atomic-like reads/writes
 # On x86/x64, aligned 8-byte reads/writes are naturally atomic.
@@ -31,7 +29,6 @@ IS_WINDOWS = sys.platform == 'win32'
 
 # Memory barrier: force store ordering for cross-process visibility
 if IS_WINDOWS:
-    import msvcrt
     def _mm_barrier(mm):
         """Flush modified pages to file for cross-process visibility."""
         try:
@@ -85,7 +82,7 @@ OFF_HEAD = 64    # alignas(64)
 OFF_TAIL = 128   # alignas(64)
 
 
-class ShmRingBuffer(Generic[T]):
+class ShmRingBuffer[T]:
     """
     Shared memory SPSC ring buffer.
 
@@ -118,7 +115,14 @@ class ShmRingBuffer(Generic[T]):
             if create:
                 self._mm = mmap.mmap(-1, total_size, tagname=tag, access=access)
             else:
+                # On Windows, mmap with tagname creates the section if it doesn't exist.
+                # We validate after mapping and raise if magic doesn't match.
                 self._mm = mmap.mmap(-1, total_size, tagname=tag, access=access)
+                magic = struct.unpack_from('<Q', self._mm, OFF_MAGIC)[0]
+                if magic != SHM_MAGIC:
+                    self._mm.close()
+                    self._mm = None
+                    raise ValueError(f"SHM segment not initialized: {name} (magic mismatch)")
             self._fd = -1  # No file descriptor on Windows
         else:
             # POSIX: use /dev/shm
@@ -177,7 +181,7 @@ class ShmRingBuffer(Generic[T]):
         _atomic_write_u64(self._mm, OFF_HEAD, head + 1)
         return True
 
-    def try_pop(self) -> Optional[tuple]:
+    def try_pop(self) -> tuple | None:
         """Non-blocking pop. Returns None if buffer is empty."""
         tail = _atomic_read_u64(self._mm, OFF_TAIL)
         head = _atomic_read_u64(self._mm, OFF_HEAD)
@@ -192,7 +196,7 @@ class ShmRingBuffer(Generic[T]):
         _atomic_write_u64(self._mm, OFF_TAIL, tail + 1)
         return item
 
-    def bulk_push(self, items: List[tuple]) -> int:
+    def bulk_push(self, items: list[tuple]) -> int:
         """Push up to len(items) items. Returns number actually pushed."""
         head = _atomic_read_u64(self._mm, OFF_HEAD)
         tail = _atomic_read_u64(self._mm, OFF_TAIL)
@@ -208,7 +212,7 @@ class ShmRingBuffer(Generic[T]):
         _atomic_write_u64(self._mm, OFF_HEAD, head + to_push)
         return to_push
 
-    def bulk_pop(self, max_count: int) -> List[tuple]:
+    def bulk_pop(self, max_count: int) -> list[tuple]:
         """Pop up to max_count items. Returns list of unpacked tuples."""
         tail = _atomic_read_u64(self._mm, OFF_TAIL)
         head = _atomic_read_u64(self._mm, OFF_HEAD)

@@ -4,15 +4,14 @@ overfitting detection.
 
 from __future__ import annotations
 
-import math
-import time
+import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Optional, Callable, Any
+
 import numpy as np
 
-from src.backtesting.backtest_engine import BacktestEngine, BacktestConfig, BacktestResult
+from src.backtesting.backtest_engine import BacktestConfig, BacktestEngine, BacktestResult
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -22,8 +21,8 @@ class WalkForwardWindow:
     in_sample_end: int
     out_of_sample_start: int
     out_of_sample_end: int
-    in_sample_result: Optional[BacktestResult] = None
-    out_of_sample_result: Optional[BacktestResult] = None
+    in_sample_result: BacktestResult | None = None
+    out_of_sample_result: BacktestResult | None = None
     best_params: dict = field(default_factory=dict)
 
 
@@ -53,7 +52,7 @@ class WalkForwardAnalyzer:
         strategy_factory: Callable[[dict], Callable[[str, list[dict]], dict]],
         param_grid: list[dict],
         symbol: str = "BTCUSDT",
-        config: BacktestConfig = None
+        config: BacktestConfig | None = None
     ) -> WalkForwardResult:
         """Run walk-forward analysis.
 
@@ -66,7 +65,6 @@ class WalkForwardAnalyzer:
         in_sample_size = int(window_size * self.in_sample_ratio)
         oos_size = window_size - in_sample_size
 
-        all_oos_returns = []
         all_is_sharpes = []
         all_oos_sharpes = []
 
@@ -120,17 +118,17 @@ class WalkForwardAnalyzer:
 
         # Compute aggregate metrics
         if all_is_sharpes and all_oos_sharpes:
-            result.avg_in_sample_sharpe = np.mean(all_is_sharpes)
-            result.avg_out_of_sample_sharpe = np.mean(all_oos_sharpes)
-            result.overfitting_score = result.avg_in_sample_sharpe - result.avg_out_of_sample_sharpe
-            result.is_overfit = result.overfitting_score > 0.5  # IS much better than OOS
+            result.avg_in_sample_sharpe = float(np.mean(all_is_sharpes))
+            result.avg_out_of_sample_sharpe = float(np.mean(all_oos_sharpes))
+            result.overfitting_score = float(result.avg_in_sample_sharpe - result.avg_out_of_sample_sharpe)
+            result.is_overfit = bool(result.overfitting_score > 0.5)  # IS much better than OOS
             result.total_sharpe = result.avg_out_of_sample_sharpe
 
             # Total return across all OOS windows
-            result.total_return = sum(
+            result.total_return = float(sum(
                 w.out_of_sample_result.total_return_pct for w in result.windows
                 if w.out_of_sample_result
-            )
+            ))
 
         return result
 
@@ -141,13 +139,13 @@ class WalkForwardAnalyzer:
         if not in_sample_results or not out_of_sample_results:
             return {"overfit": False, "score": 0.0}
 
-        is_mean = np.mean(in_sample_results)
-        oos_mean = np.mean(out_of_sample_results)
+        is_mean = float(np.mean(in_sample_results))
+        oos_mean = float(np.mean(out_of_sample_results))
         gap = is_mean - oos_mean
         ratio = is_mean / max(oos_mean, 1e-10)
 
         # Overfit if IS is much better than OOS
-        overfit = gap > 0.5 or ratio > 2.0
+        overfit = bool(gap > 0.5 or ratio > 2.0)
 
         return {
             "overfit": overfit,

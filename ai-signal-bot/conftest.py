@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 # Add bot root to sys.path so `from src.` imports work
 _bot_root = os.path.dirname(os.path.abspath(__file__))

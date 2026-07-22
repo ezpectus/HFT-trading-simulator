@@ -15,12 +15,11 @@ Usage:
 """
 import logging
 import os
-from typing import Optional
 
 import matplotlib
+
 matplotlib.use("Agg")  # Non-interactive backend
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import numpy as np
 
 from src.backtesting.backtester import BacktestResult
@@ -51,13 +50,18 @@ class BacktestPlotter:
     def __init__(self, figsize=(12, 7), dpi=100):
         self.figsize = figsize
         self.dpi = dpi
-        plt.style.use("seaborn-v0_8-whitegrid")
+        for style in ("seaborn-v0_8-whitegrid", "seaborn-whitegrid"):
+            try:
+                plt.style.use(style)
+                break
+            except OSError:
+                continue
 
     def plot_equity_curve(
         self,
         result: BacktestResult,
         title: str = "Equity Curve",
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
     ) -> plt.Figure:
         """Plot equity curve with drawdown shading."""
         fig, (ax1, ax2) = plt.subplots(
@@ -125,7 +129,7 @@ class BacktestPlotter:
         self,
         result: BacktestResult,
         title: str = "Trade PnL Distribution",
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
     ) -> plt.Figure:
         """Plot trade PnL distribution histogram."""
         if not result.trades:
@@ -171,7 +175,7 @@ class BacktestPlotter:
     def plot_comparison(
         self,
         results: dict[str, BacktestResult],
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
     ) -> plt.Figure:
         """Plot equity curves of multiple strategies for comparison."""
         fig, ax = plt.subplots(figsize=self.figsize, dpi=self.dpi)
@@ -204,7 +208,7 @@ class BacktestPlotter:
     def plot_metrics_radar(
         self,
         results: dict[str, BacktestResult],
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
     ) -> plt.Figure:
         """Plot radar chart comparing key metrics across strategies."""
         metrics_labels = ["Return%", "Win%", "Profit Factor", "Sharpe", "Recovery", "Calmar"]

@@ -6,7 +6,7 @@ body length correctness, msg_type/seq_num properties, get/get_int/get_float.
 """
 import pytest
 
-from src.communication.fix_client import FixMessage, FixSession, SOH
+from src.communication.fix_client import SOH, FixMessage, FixSession
 
 
 class TestFixMessageParse:

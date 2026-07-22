@@ -7,10 +7,10 @@ C++ reads signals and executes orders.
 
 from __future__ import annotations
 
-import time
 import logging
-from typing import Optional
-from .shm_ring_buffer import ShmRingBuffer, SIGNAL_STRUCT
+import time
+
+from .shm_ring_buffer import SIGNAL_STRUCT, ShmRingBuffer
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class ShmSignalProducer:
     def __init__(self, name: str = "/hft_signals", capacity: int = 4096):
         self.name = name
         self.capacity = capacity
-        self._buffer: Optional[ShmRingBuffer] = None
+        self._buffer: ShmRingBuffer | None = None
 
     def init(self) -> bool:
         """Create the SHM segment. Must be called before push."""

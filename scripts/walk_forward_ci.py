@@ -157,7 +157,7 @@ def main():
     
     # Print summary
     print(f"\n{'='*60}")
-    print(f"  Walk-Forward Optimization CI Report")
+    print("  Walk-Forward Optimization CI Report")
     print(f"  {report['timestamp']}")
     print(f"{'='*60}")
     print(f"  Total strategies: {report['summary']['total']}")
@@ -167,7 +167,7 @@ def main():
     print(f"  Threshold: {args.threshold * 100}%")
     
     if report['alerts']:
-        print(f"\n  ALERTS:")
+        print("\n  ALERTS:")
         for alert in report['alerts']:
             print(f"    - {alert}")
     

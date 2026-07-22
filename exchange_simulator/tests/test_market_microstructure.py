@@ -1,10 +1,13 @@
 """Tests for MarketMicrostructure — regime switching, Heston vol, fat tails, jumps."""
-import pytest
 import numpy as np
+import pytest
 
 from exchange_simulator.market_microstructure import (
-    MarketMicrostructure, MicrostructureConfig, MarketRegime,
-    REGIME_TRANSITIONS, REGIME_PARAMS,
+    REGIME_PARAMS,
+    REGIME_TRANSITIONS,
+    MarketMicrostructure,
+    MarketRegime,
+    MicrostructureConfig,
 )
 
 

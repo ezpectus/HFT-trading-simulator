@@ -7,19 +7,22 @@ Uses prometheus_client for standard metric types (Counter, Gauge, Histogram).
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 try:
     from prometheus_client import (
-        Counter, Gauge, Histogram, Summary,
-        CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST,
+        CONTENT_TYPE_LATEST,
+        CollectorRegistry,
+        Counter,
+        Gauge,
+        Histogram,
+        Summary,
+        generate_latest,
     )
-    from prometheus_client.core import GaugeHistogramMetricFamily
+    from prometheus_client.core import GaugeHistogramMetricFamily  # noqa: F401
     HAS_PROMETHEUS = True
 except ImportError:
     HAS_PROMETHEUS = False

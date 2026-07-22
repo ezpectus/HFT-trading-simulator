@@ -1,11 +1,17 @@
 """Tests for SimulatedExchange funding rate and liquidation logic."""
-import pytest
 from unittest.mock import MagicMock
 
-from exchange_simulator.models import (
-    Order, OrderBook, OrderStatus, OrderType, Position, Side,
-)
+import pytest
+
 from exchange_simulator.exchange import SimulatedExchange
+from exchange_simulator.models import (
+    Order,
+    OrderBook,
+    OrderStatus,
+    OrderType,
+    Position,
+    Side,
+)
 
 
 def make_market(price=50000.0):

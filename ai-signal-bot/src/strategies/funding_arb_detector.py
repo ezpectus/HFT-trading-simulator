@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Optional, Callable, Awaitable, Dict, List
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class FundingRate:
 class ArbitrageOpportunity:
     type: ArbType
     symbol: str
-    exchanges: List[str]
+    exchanges: list[str]
     funding_rate: float
     expected_daily_return: float
     cost_estimate: float
@@ -93,12 +93,12 @@ class FundingRateArbitrageDetector:
         self.min_confidence = min_confidence
         self.cost_per_trade = cost_per_trade
 
-        self._funding_rates: Dict[str, Dict[str, FundingRate]] = {}  # exchange → symbol → rate
-        self._spot_prices: Dict[str, Dict[str, float]] = {}  # exchange → symbol → price
-        self._perp_prices: Dict[str, Dict[str, float]] = {}  # exchange → symbol → price
+        self._funding_rates: dict[str, dict[str, FundingRate]] = {}  # exchange → symbol → rate
+        self._spot_prices: dict[str, dict[str, float]] = {}  # exchange → symbol → price
+        self._perp_prices: dict[str, dict[str, float]] = {}  # exchange → symbol → price
 
-        self.on_opportunity: Optional[Callable[[ArbitrageOpportunity], Awaitable[None]]] = None
-        self._active_opportunities: Dict[str, ArbitrageOpportunity] = {}
+        self.on_opportunity: Callable[[ArbitrageOpportunity], Awaitable[None]] | None = None
+        self._active_opportunities: dict[str, ArbitrageOpportunity] = {}
 
     def update_funding_rate(self, exchange: str, symbol: str, rate: float, next_funding: int):
         if exchange not in self._funding_rates:
@@ -117,7 +117,7 @@ class FundingRateArbitrageDetector:
             self._perp_prices[exchange] = {}
         self._perp_prices[exchange][symbol] = price
 
-    def detect(self) -> List[ArbitrageOpportunity]:
+    def detect(self) -> list[ArbitrageOpportunity]:
         """Run all detection strategies and return opportunities."""
         opportunities = []
         opportunities.extend(self._detect_spot_perp())
@@ -134,7 +134,7 @@ class FundingRateArbitrageDetector:
 
         return filtered
 
-    def _detect_spot_perp(self) -> List[ArbitrageOpportunity]:
+    def _detect_spot_perp(self) -> list[ArbitrageOpportunity]:
         """Detect spot vs perp funding arbitrage."""
         results = []
 
@@ -185,7 +185,7 @@ class FundingRateArbitrageDetector:
 
         return results
 
-    def _detect_cross_exchange(self) -> List[ArbitrageOpportunity]:
+    def _detect_cross_exchange(self) -> list[ArbitrageOpportunity]:
         """Detect cross-exchange funding rate arbitrage."""
         results = []
 
@@ -238,7 +238,7 @@ class FundingRateArbitrageDetector:
 
         return results
 
-    def _detect_calendar_spread(self) -> List[ArbitrageOpportunity]:
+    def _detect_calendar_spread(self) -> list[ArbitrageOpportunity]:
         """Detect calendar spread funding arbitrage (near vs far term)."""
         results = []
 
@@ -246,7 +246,7 @@ class FundingRateArbitrageDetector:
         # Placeholder for future implementation with term structure data
         return results
 
-    def get_active_opportunities(self) -> Dict[str, ArbitrageOpportunity]:
+    def get_active_opportunities(self) -> dict[str, ArbitrageOpportunity]:
         """Return currently active opportunities."""
         return dict(self._active_opportunities)
 

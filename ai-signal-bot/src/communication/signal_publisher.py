@@ -20,7 +20,6 @@ import math
 import random
 import time
 from collections import deque
-from typing import Optional
 
 import websockets
 
@@ -30,10 +29,23 @@ try:
 except ImportError:
     _HAS_ORJSON = False
 
-from src.communication.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
+from src.communication.circuit_breaker import CircuitBreaker
 from src.communication.metrics_server import MetricsCollector
 
 logger = logging.getLogger("ai_signal_bot.signal_publisher")
+
+
+class _EnsembleAdapter:
+    """Adapter that makes EnsembleVoter compatible with Backtester's .analyze() interface."""
+
+    def __init__(self, voter, sub_strategies: list):
+        self.voter = voter
+        self.sub_strategies = sub_strategies
+        self.name = "ensemble"
+
+    def analyze(self, symbol: str, candles: list):
+        signals = [s.analyze(symbol, candles) for s in self.sub_strategies]
+        return self.voter.vote(signals)
 
 
 class SignalPublisher:
@@ -45,7 +57,7 @@ class SignalPublisher:
         self._clients: set = set()
         self._signal_history: deque = deque(maxlen=100)
         self._max_history = 100
-        self._server: Optional[websockets.WebSocketServer] = None
+        self._server: websockets.WebSocketServer | None = None
         self._running = False
         self.circuit_breaker = CircuitBreaker()
         self.metrics = MetricsCollector()
@@ -129,6 +141,8 @@ class SignalPublisher:
                     logger.warning(f"Invalid JSON from {remote}: {message[:100]}")
         except websockets.ConnectionClosed:
             pass
+        except Exception as e:
+            logger.debug(f"Client handler error: {e}")
         finally:
             self._clients.discard(websocket)
             self.metrics.set_ws_clients(len(self._clients))
@@ -153,6 +167,9 @@ class SignalPublisher:
 
         signal = dict(signal)  # copy to avoid mutating caller's dict
         signal["timestamp"] = int(time.time())
+        # Enforce max history size (allows _max_history to be changed after init)
+        if len(self._signal_history) >= self._max_history:
+            self._signal_history.popleft()
         self._signal_history.append(signal)
         self.metrics.record_signal_sent()
 
@@ -179,7 +196,7 @@ class SignalPublisher:
             f"→ {len(self._clients)} clients"
         )
 
-    async def broadcast_market_regime(self, symbol: str, regime: str, 
+    async def broadcast_market_regime(self, symbol: str, regime: str,
                                        trend_score: float, cycle_strength: float) -> None:
         """Broadcast market regime update (from FFT analysis)."""
         if not self._clients:
@@ -239,11 +256,11 @@ class SignalPublisher:
                 }, separators=(',', ':'))
 
             disconnected = set()
-            async def _send_cb(ws):
+            async def _send_cb(ws, _msg=msg, _disc=disconnected):
                 try:
-                    await ws.send(msg)
+                    await ws.send(_msg)
                 except Exception:
-                    disconnected.add(ws)
+                    _disc.add(ws)
             await asyncio.gather(*[_send_cb(ws) for ws in self._clients], return_exceptions=True)
             self._clients -= disconnected
 
@@ -265,11 +282,13 @@ class SignalPublisher:
             Dict with type "backtest_result" and results data.
         """
         from src.backtesting import Backtester
+        from src.risk.risk_manager import RiskConfig
         from src.strategies import (
-            EnsembleVoter, FFTCycleStrategy, MeanReversionStrategy,
+            EnsembleVoter,
+            FFTCycleStrategy,
+            MeanReversionStrategy,
             TrendFollowingStrategy,
         )
-        from src.risk.risk_manager import RiskConfig
 
         n_candles = max(10, min(int(params.get("candles", 500)), 10000))
         balance = max(1.0, float(params.get("balance", 10000)))
@@ -336,10 +355,14 @@ class SignalPublisher:
         if strategy_name in ("fft", "all", "ensemble"):
             strategies["FFT Cycle"] = FFTCycleStrategy(min_data=64)
         if strategy_name in ("ensemble", "all"):
-            sub_strategies = [s for n, s in strategies.items() if n != "Ensemble"]
-            strategies["Ensemble"] = EnsembleVoter(
-                strategies=sub_strategies,
-                voting_mode="confidence_weighted",
+            sub_strategies = [
+                TrendFollowingStrategy(ema_fast=9, ema_slow=21, adx_threshold=25),
+                MeanReversionStrategy(rsi_oversold=30, rsi_overbought=70, bb_period=20, bb_std=2.0),
+                FFTCycleStrategy(min_data=64),
+            ]
+            strategies["Ensemble"] = _EnsembleAdapter(
+                EnsembleVoter(mode="weighted", min_votes=2),
+                sub_strategies,
             )
 
         if not strategies:
@@ -386,7 +409,7 @@ class SignalPublisher:
         Returns:
             Dict with type "comparison_result" containing comparison metrics.
         """
-        from src.backtesting.backtest_comparison import BacktestComparison, ComparisonResult
+        from src.backtesting.backtest_comparison import BacktestComparison
         from src.backtesting.backtest_engine import BacktestResult
 
         backtests = data.get("backtests", [])

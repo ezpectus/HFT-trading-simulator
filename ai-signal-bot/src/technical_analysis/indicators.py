@@ -5,7 +5,6 @@ Returns lists aligned with input, NaN-padded where insufficient data.
 Uses NumPy for vectorized computation when available (HFT-O20).
 """
 import math
-from typing import Any
 
 try:
     import numpy as np
@@ -162,11 +161,11 @@ def atr(candles: list[dict], period: int = 14) -> list[float]:
     if n < period + 1:
         return [NAN] * n
     h = _highs(candles)
-    l = _lows(candles)
+    low = _lows(candles)
     cl = _closes(candles)
     if _HAS_NUMPY:
         ha = np.array(h, dtype=np.float64)
-        la = np.array(l, dtype=np.float64)
+        la = np.array(low, dtype=np.float64)
         ca = np.array(cl, dtype=np.float64)
         tr = np.full(n, NAN)
         tr[1:] = np.maximum(ha[1:] - la[1:], np.maximum(np.abs(ha[1:] - ca[:-1]), np.abs(la[1:] - ca[:-1])))
@@ -177,7 +176,7 @@ def atr(candles: list[dict], period: int = 14) -> list[float]:
         return result.tolist()
     tr = [NAN] * n
     for i in range(1, n):
-        tr[i] = max(h[i] - l[i], abs(h[i] - cl[i - 1]), abs(l[i] - cl[i - 1]))
+        tr[i] = max(h[i] - low[i], abs(h[i] - cl[i - 1]), abs(low[i] - cl[i - 1]))
     result = [NAN] * n
     result[period] = sum(tr[1 : period + 1]) / period
     for i in range(period + 1, n):
@@ -189,10 +188,10 @@ def vwap(candles: list[dict]) -> list[float]:
     n = len(candles)
     if _HAS_NUMPY and n > 0:
         h = np.array(_highs(candles), dtype=np.float64)
-        l = np.array(_lows(candles), dtype=np.float64)
+        low = np.array(_lows(candles), dtype=np.float64)
         cl = np.array(_closes(candles), dtype=np.float64)
         v = np.array(_volumes(candles), dtype=np.float64)
-        tp = (h + l + cl) / 3.0
+        tp = (h + low + cl) / 3.0
         cum_pv = np.cumsum(tp * v)
         cum_v = np.cumsum(v)
         result = np.where(cum_v > 0, cum_pv / np.where(cum_v == 0, 1, cum_v), NAN)
@@ -201,10 +200,10 @@ def vwap(candles: list[dict]) -> list[float]:
     cum_pv, cum_v = 0.0, 0.0
     for i, c in enumerate(candles):
         h = c["high"] if isinstance(c, dict) else c.high
-        l = c["low"] if isinstance(c, dict) else c.low
+        low = c["low"] if isinstance(c, dict) else c.low
         cl = c["close"] if isinstance(c, dict) else c.close
         v = c["volume"] if isinstance(c, dict) else c.volume
-        tp = (h + l + cl) / 3
+        tp = (h + low + cl) / 3
         cum_pv += tp * v
         cum_v += v
         if cum_v > 0:
@@ -217,11 +216,11 @@ def adx(candles: list[dict], period: int = 14) -> list[float]:
     if n < period * 2 + 1:
         return [NAN] * n
     h = _highs(candles)
-    l = _lows(candles)
+    low = _lows(candles)
     cl = _closes(candles)
     if _HAS_NUMPY:
         ha = np.array(h, dtype=np.float64)
-        la = np.array(l, dtype=np.float64)
+        la = np.array(low, dtype=np.float64)
         ca = np.array(cl, dtype=np.float64)
         up = ha[1:] - ha[:-1]
         down = la[:-1] - la[1:]
@@ -259,10 +258,10 @@ def adx(candles: list[dict], period: int = 14) -> list[float]:
     tr = [0.0] * n
     for i in range(1, n):
         up = h[i] - h[i - 1]
-        down = l[i - 1] - l[i]
+        down = low[i - 1] - low[i]
         plus_dm[i] = up if (up > down and up > 0) else 0
         minus_dm[i] = down if (down > up and down > 0) else 0
-        tr[i] = max(h[i] - l[i], abs(h[i] - cl[i - 1]), abs(l[i] - cl[i - 1]))
+        tr[i] = max(h[i] - low[i], abs(h[i] - cl[i - 1]), abs(low[i] - cl[i - 1]))
     atr_w = [NAN] * n
     pdm_w = [NAN] * n
     mdm_w = [NAN] * n

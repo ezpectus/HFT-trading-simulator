@@ -6,16 +6,14 @@ pre-positions before scheduled events, fades or follows post-event.
 
 from __future__ import annotations
 
-import math
+import logging
 import time
-from dataclasses import dataclass, field
-from typing import Optional
 from collections import deque
+from dataclasses import dataclass
 from enum import Enum
 
 from src.strategies.strategies import Signal, SignalDirection
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -84,7 +82,7 @@ class SentimentConfig:
 class SentimentStrategy:
     """News/sentiment-based trading strategy."""
 
-    def __init__(self, config: SentimentConfig = None):
+    def __init__(self, config: SentimentConfig | None = None):
         self.config = config or SentimentConfig()
         self.name = "sentiment"
         self.recent_events: deque[NewsEvent] = deque(maxlen=100)
@@ -105,7 +103,8 @@ class SentimentStrategy:
         # Add noise for unexpected events
         if not event.expected:
             import numpy as np
-            event.sentiment += np.random.normal(0, 0.2) * event.magnitude
+            rng = np.random.default_rng(seed=int(event.timestamp * 1000) % (2**32))
+            event.sentiment += rng.normal(0, 0.2) * event.magnitude
 
         self.recent_events.append(event)
         self.event_count += 1
@@ -130,7 +129,7 @@ class SentimentStrategy:
                 self.sentiment_by_symbol[sym] *= decay
         self._last_update = now
 
-    def _get_recent_event(self, symbol: str, window_s: float) -> Optional[NewsEvent]:
+    def _get_recent_event(self, symbol: str, window_s: float) -> NewsEvent | None:
         """Get most recent event for symbol within window."""
         now = time.time()
         for event in reversed(self.recent_events):
@@ -160,7 +159,6 @@ class SentimentStrategy:
             )
 
         sentiment = self.sentiment_by_symbol.get(symbol, self.current_sentiment)
-        magnitude = recent_event.magnitude if recent_event else 0.5
         event_type = recent_event.event_type if recent_event else EventType.UNKNOWN
         vol_mult = EVENT_VOLATILITY_MAP.get(event_type, 1.0)
 

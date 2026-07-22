@@ -21,9 +21,9 @@ Usage:
 from __future__ import annotations
 
 import logging
-import numpy as np
-from typing import Optional, Dict, List
 from dataclasses import dataclass
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ class RiskAnalyzer:
         self,
         returns: np.ndarray,
         portfolio_value: float = 10000.0,
-        weights: Optional[np.ndarray] = None,
+        weights: np.ndarray | None = None,
         risk_free_rate: float = 0.0,
         annualization_factor: int = 365,  # crypto trades 365 days
     ):
@@ -226,7 +226,7 @@ class RiskAnalyzer:
             description=config["description"],
         )
 
-    def stress_test_all(self) -> List[StressTestResult]:
+    def stress_test_all(self) -> list[StressTestResult]:
         """Run all stress test scenarios."""
         return [self.stress_test(s) for s in STRESS_SCENARIOS]
 

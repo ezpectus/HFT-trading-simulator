@@ -10,6 +10,7 @@ If this test passes, Python→C++ roundtrip via SHM will produce
 correct data (no garbage from misaligned fields).
 """
 import struct
+
 import pytest
 
 
@@ -29,11 +30,26 @@ class TestSignalMsgAlignment:
         s = struct.Struct(self.STRUCT_FMT)
         # Expected offsets: Q=0, B=8, B=9, f=10, f=14, f=18, f=22, B=26, pad=27
         # With pragma pack(1), no padding between fields
-        offsets = s.offset  # Available in Python 3.12+
-        if offsets:
-            expected = [0, 8, 9, 10, 14, 18, 22, 26, 27]
-            assert list(offsets) == expected, \
-                f"SignalMsg offsets: got={list(offsets)}, expected={expected}"
+        # Compute offsets by packing sentinel values and checking byte positions
+        expected = [0, 8, 9, 10, 14, 18, 22, 26, 27]
+        # Pack known values and verify field positions via unpack_from at expected offsets
+        packed = s.pack(1, 2, 3, 4.0, 5.0, 6.0, 7.0, 8)
+        # Verify timestamp at offset 0
+        assert struct.unpack_from('<Q', packed, 0)[0] == 1
+        # Verify symbol_id at offset 8
+        assert struct.unpack_from('<B', packed, 8)[0] == 2
+        # Verify action at offset 9
+        assert struct.unpack_from('<B', packed, 9)[0] == 3
+        # Verify confidence at offset 10
+        assert abs(struct.unpack_from('<f', packed, 10)[0] - 4.0) < 1e-6
+        # Verify price at offset 14
+        assert abs(struct.unpack_from('<f', packed, 14)[0] - 5.0) < 1e-6
+        # Verify sl at offset 18
+        assert abs(struct.unpack_from('<f', packed, 18)[0] - 6.0) < 1e-6
+        # Verify tp at offset 22
+        assert abs(struct.unpack_from('<f', packed, 22)[0] - 7.0) < 1e-6
+        # Verify leverage at offset 26
+        assert struct.unpack_from('<B', packed, 26)[0] == 8
 
     def test_roundtrip_known_values(self):
         """Pack known values, unpack, verify they match."""

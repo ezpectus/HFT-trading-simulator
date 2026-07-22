@@ -8,13 +8,12 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import dataclass, field, asdict
-from typing import Optional, Any
+from dataclasses import asdict, dataclass, field
 
 
 @dataclass
 class Trade:
-    id: Optional[int] = None
+    id: int | None = None
     timestamp: float = 0.0
     symbol: str = ""
     exchange: str = ""
@@ -33,7 +32,7 @@ class Trade:
         return json.dumps(self.to_dict())
 
     @classmethod
-    def from_db_row(cls, row: tuple | dict) -> "Trade":
+    def from_db_row(cls, row: tuple | dict) -> Trade:
         if isinstance(row, dict):
             return cls(
                 id=row.get("id"), timestamp=row.get("timestamp", 0),
@@ -53,7 +52,7 @@ class Trade:
 
 @dataclass
 class SignalRecord:
-    id: Optional[int] = None
+    id: int | None = None
     timestamp: float = 0.0
     symbol: str = ""
     strategy: str = ""
@@ -70,7 +69,7 @@ class SignalRecord:
         return json.dumps(self.to_dict())
 
     @classmethod
-    def from_db_row(cls, row: tuple | dict) -> "SignalRecord":
+    def from_db_row(cls, row: tuple | dict) -> SignalRecord:
         if isinstance(row, dict):
             return cls(
                 id=row.get("id"), timestamp=row.get("timestamp", 0),
@@ -86,7 +85,7 @@ class SignalRecord:
 
 @dataclass
 class PositionRecord:
-    id: Optional[int] = None
+    id: int | None = None
     timestamp: float = 0.0
     symbol: str = ""
     exchange: str = ""
@@ -105,7 +104,7 @@ class PositionRecord:
         return json.dumps(self.to_dict())
 
     @classmethod
-    def from_db_row(cls, row: tuple | dict) -> "PositionRecord":
+    def from_db_row(cls, row: tuple | dict) -> PositionRecord:
         if isinstance(row, dict):
             return cls(
                 id=row.get("id"), timestamp=row.get("timestamp", 0),
@@ -142,7 +141,7 @@ class CandleRecord:
         return json.dumps(self.to_dict())
 
     @classmethod
-    def from_db_row(cls, row: tuple | dict) -> "CandleRecord":
+    def from_db_row(cls, row: tuple | dict) -> CandleRecord:
         if isinstance(row, dict):
             return cls(
                 timestamp=row.get("timestamp", 0), symbol=row.get("symbol", ""),
@@ -159,7 +158,7 @@ class CandleRecord:
 
 @dataclass
 class BacktestRecord:
-    id: Optional[int] = None
+    id: int | None = None
     strategy: str = ""
     params: dict = field(default_factory=dict)
     start_time: float = 0.0
@@ -174,7 +173,7 @@ class BacktestRecord:
         return json.dumps(self.to_dict(), default=str)
 
     @classmethod
-    def from_db_row(cls, row: tuple | dict) -> "BacktestRecord":
+    def from_db_row(cls, row: tuple | dict) -> BacktestRecord:
         if isinstance(row, dict):
             params = row.get("params", "{}")
             results = row.get("results", "{}")
@@ -199,7 +198,7 @@ class BacktestRecord:
 
 @dataclass
 class RiskEvent:
-    id: Optional[int] = None
+    id: int | None = None
     timestamp: float = 0.0
     type: str = ""               # "daily_loss", "margin_call", "kill_switch", etc.
     severity: str = ""           # "INFO", "WARNING", "CRITICAL"
@@ -212,7 +211,7 @@ class RiskEvent:
         return json.dumps(self.to_dict(), default=str)
 
     @classmethod
-    def from_db_row(cls, row: tuple | dict) -> "RiskEvent":
+    def from_db_row(cls, row: tuple | dict) -> RiskEvent:
         if isinstance(row, dict):
             details = row.get("details", "{}")
             if isinstance(details, str):

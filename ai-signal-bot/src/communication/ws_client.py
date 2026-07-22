@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from collections import deque
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import websockets
 
@@ -35,12 +35,12 @@ class ExchangeClient:
     def __init__(self, url: str = "ws://localhost:8765", encoding: str = "json"):
         self.url = url
         self._encoding = encoding if (encoding == "msgpack" and _HAS_MSGPACK) else "json"
-        self._ws: Optional[websockets.WebSocketClientProtocol] = None
+        self._ws: websockets.WebSocketClientProtocol | None = None
         self._connected = False
         self._trading_active = True
-        self._on_message: Optional[Callable] = None
+        self._on_message: Callable | None = None
         self._latest_candles: dict[str, dict] = {}  # {symbol: latest_candle_dict}
-        self._candle_history: dict[str, list[dict]] = {}  # {symbol: [candle_dicts]}
+        self._candle_history: dict[str, deque] = {}  # {symbol: deque(candle_dicts)}
         self._latest_prices: dict[str, dict[str, float]] = {}  # {exchange: {symbol: price}}
         self._accounts: dict[str, dict] = {}
 
@@ -57,7 +57,7 @@ class ExchangeClient:
         return self._latest_candles
 
     @property
-    def candle_history(self) -> dict[str, list[dict]]:
+    def candle_history(self) -> dict[str, deque]:
         return self._candle_history
 
     @property
@@ -152,8 +152,8 @@ class ExchangeClient:
         side: str,
         quantity: float,
         exchange: str = "binance",
-        stop_loss: Optional[float] = None,
-        take_profit: Optional[float] = None,
+        stop_loss: float | None = None,
+        take_profit: float | None = None,
     ) -> None:
         """Submit an order to the exchange simulator."""
         if not self._ws:

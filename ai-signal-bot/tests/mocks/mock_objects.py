@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-import time
 import json
-from typing import Optional, Any
-from dataclasses import dataclass, field
+import time
 from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import Any
 
 
 class MockExchange:
@@ -75,7 +75,7 @@ class MockWebSocket:
     async def send(self, message: dict) -> None:
         self.messages_sent.append(message)
 
-    async def receive(self) -> Optional[dict]:
+    async def receive(self) -> dict | None:
         if self.messages_received:
             return self.messages_received.pop(0)
         return None
@@ -146,7 +146,7 @@ class MockSHM:
         self._head += 1
         return True
 
-    def try_pop(self) -> Optional[Any]:
+    def try_pop(self) -> Any | None:
         if not self.buffer:
             return None
         item = self.buffer.pop(0)
@@ -174,11 +174,11 @@ def make_mock_candles(n: int = 100, start_price: float = 50000.0, volatility: fl
         o = price
         c = price * (1 + ret)
         h = max(o, c) * (1 + abs(rng.gauss(0, volatility * 0.5)))
-        l = min(o, c) * (1 - abs(rng.gauss(0, volatility * 0.5)))
+        low = min(o, c) * (1 - abs(rng.gauss(0, volatility * 0.5)))
         candles.append({
             "timestamp": i * 60,
             "open": round(o, 2), "high": round(h, 2),
-            "low": round(l, 2), "close": round(c, 2),
+            "low": round(low, 2), "close": round(c, 2),
             "volume": rng.uniform(50, 200),
         })
         price = c

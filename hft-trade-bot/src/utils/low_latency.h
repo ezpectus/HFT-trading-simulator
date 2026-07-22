@@ -17,6 +17,7 @@
 #include <thread>
 #include <iomanip>
 #include <cstdlib>
+#include <random>
 
 #if defined(_WIN32)
   #ifndef NOMINMAX
@@ -66,7 +67,8 @@ public:
     }
 
 private:
-    std::atomic<uint32_t> flag_{0};
+    alignas(64) std::atomic<uint32_t> flag_{0};
+    uint8_t padding_[60]{0};  // Pad to cache line to prevent false sharing
 };
 
 class SpinlockGuard {
@@ -366,7 +368,8 @@ public:
         if (s == State::CLOSED) return true;
         if (s == State::OPEN) {
             auto now = std::chrono::steady_clock::now();
-            auto opened = opened_at_.load(std::memory_order_relaxed);
+            int64_t opened_ns = opened_at_ns_.load(std::memory_order_relaxed);
+            auto opened = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(opened_ns));
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - opened).count();
             if (elapsed >= cooldown_seconds_) {
                 // Transition to half-open
@@ -388,7 +391,10 @@ public:
         int count = error_count_.fetch_add(1, std::memory_order_relaxed) + 1;
         if (count >= threshold_) {
             state_.store(State::OPEN, std::memory_order_relaxed);
-            opened_at_.store(std::chrono::steady_clock::now(), std::memory_order_relaxed);
+            opened_at_ns_.store(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()).count(),
+                std::memory_order_relaxed);
         }
     }
 
@@ -405,7 +411,8 @@ private:
     int cooldown_seconds_;
     std::atomic<State> state_{State::CLOSED};
     std::atomic<int> error_count_{0};
-    std::atomic<std::chrono::steady_clock::time_point> opened_at_{};
+    // Store opened_at as nanoseconds since steady_clock epoch to ensure lock-free atomic
+    std::atomic<int64_t> opened_at_ns_{0};
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -427,7 +434,10 @@ public:
                 }
                 int delay = base_delay_ms_ * (1 << attempt);  // 500ms × 2^n
                 // Add jitter: 0-30% random addition
-                int jitter = static_cast<int>(delay * jitter_pct_ * (static_cast<double>(rand()) / RAND_MAX));
+                static thread_local std::random_device rd;
+                static thread_local std::mt19937 gen(rd());
+                std::uniform_real_distribution<double> dist(0.0, 1.0);
+                int jitter = static_cast<int>(delay * jitter_pct_ * dist(gen));
                 delay += jitter;
                 std::this_thread::sleep_for(std::chrono::milliseconds(delay));
             }

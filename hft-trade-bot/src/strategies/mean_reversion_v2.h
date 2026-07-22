@@ -84,7 +84,14 @@ public:
     explicit MeanReversionV2(const Config& cfg)
         : config_(cfg)
         , kalman_(cfg.kalman_process_var, cfg.kalman_measurement_var)
-    {}
+    {
+        if (config_.ou_window > static_cast<int>(MAX_WINDOW)) {
+            config_.ou_window = static_cast<int>(MAX_WINDOW);
+        }
+        if (config_.ou_window < 2) {
+            config_.ou_window = 2;
+        }
+    }
 
     // Process a new price tick. Returns signal action.
     Signal on_price(uint64_t timestamp_ns, double price) noexcept {
@@ -192,10 +199,12 @@ private:
             return;
         }
 
-        // Compute mean (theta) and sum of squares in a single pass
+        // Compute mean (theta) — ring buffer safe: iterate in insertion order
+        size_t start = static_cast<size_t>(write_idx_) % static_cast<size_t>(config_.ou_window);
         double sum = 0.0;
-        for (size_t i = 0; i < n; ++i) {
-            sum += residuals_[i];
+        for (size_t k = 0; k < n; ++k) {
+            size_t idx = (start + k) % static_cast<size_t>(config_.ou_window);
+            sum += residuals_[idx];
         }
         theta = sum / static_cast<double>(n);
 
@@ -203,9 +212,11 @@ private:
         // kappa = (1 - a) / dt, where dt is average time step
         double sum_xy = 0.0, sum_xx = 0.0, sum_x = 0.0, sum_y = 0.0;
         size_t count = 0;
-        for (size_t i = 1; i < n; ++i) {
-            double x = residuals_[i - 1];
-            double y = residuals_[i];
+        for (size_t k = 1; k < n; ++k) {
+            size_t idx_prev = (start + k - 1) % static_cast<size_t>(config_.ou_window);
+            size_t idx_cur  = (start + k) % static_cast<size_t>(config_.ou_window);
+            double x = residuals_[idx_prev];
+            double y = residuals_[idx_cur];
             sum_xy += x * y;
             sum_xx += x * x;
             sum_x += x;
@@ -227,14 +238,16 @@ private:
 
         double ar1_coef = (var_x > 0.0) ? cov_xy / var_x : 0.0;
 
-        // Compute average time step in seconds
+        // Compute average time step in seconds — ring buffer safe
         double avg_dt = 1.0; // Default to 1 second
         if (n >= 2) {
             double total_dt = 0.0;
             size_t dt_count = 0;
-            for (size_t i = 1; i < n; ++i) {
+            for (size_t k = 1; k < n; ++k) {
+                size_t idx_prev = (start + k - 1) % static_cast<size_t>(config_.ou_window);
+                size_t idx_cur  = (start + k) % static_cast<size_t>(config_.ou_window);
                 double dt = static_cast<double>(
-                    timestamps_[i] - timestamps_[i - 1]) / 1e9;
+                    timestamps_[idx_cur] - timestamps_[idx_prev]) / 1e9;
                 if (dt > 0.0) {
                     total_dt += dt;
                     ++dt_count;
@@ -251,8 +264,9 @@ private:
 
         // Compute residual standard deviation (reuses theta from first pass)
         double sq_sum = 0.0;
-        for (size_t i = 0; i < n; ++i) {
-            double diff = residuals_[i] - theta;
+        for (size_t k = 0; k < n; ++k) {
+            size_t idx = (start + k) % static_cast<size_t>(config_.ou_window);
+            double diff = residuals_[idx] - theta;
             sq_sum += diff * diff;
         }
         sigma = std::sqrt(sq_sum / static_cast<double>(n));

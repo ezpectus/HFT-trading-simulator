@@ -67,7 +67,7 @@ public:
     };
 
     explicit LatencyTracker(int64_t histogram_bins = 64)
-        : histogram_bins_(histogram_bins)
+        : histogram_bins_(static_cast<size_t>(histogram_bins))
     {
         for (auto& h : histograms_) {
             for (auto& c : h.bin_counts) c.store(0, std::memory_order_relaxed);
@@ -102,7 +102,7 @@ public:
 
         // Update histogram
         auto& h = histograms_[idx];
-        size_t bin = static_cast<size_t>(static_cast<double>(us) / MAX_LATENCY_US * histogram_bins_);
+        size_t bin = static_cast<size_t>(static_cast<double>(us) / MAX_LATENCY_US * static_cast<double>(histogram_bins_));
         if (bin >= histogram_bins_) bin = histogram_bins_ - 1;
         h.bin_counts[bin].fetch_add(1, std::memory_order_relaxed);
         h.total_count.fetch_add(1, std::memory_order_relaxed);
@@ -182,15 +182,15 @@ private:
         std::atomic<int64_t> total_count{0};
     };
 
-    int64_t percentile_from_histogram(const HistogramData& h, double pct, int64_t total) const noexcept {
+    size_t percentile_from_histogram(const HistogramData& h, double pct, int64_t total) const noexcept {
         int64_t target = static_cast<int64_t>(static_cast<double>(total) * pct);
         int64_t cumulative = 0;
         for (size_t i = 0; i < histogram_bins_; ++i) {
             cumulative += h.bin_counts[i].load(std::memory_order_relaxed);
             if (cumulative >= target) {
                 // Interpolate within bin
-                double bin_width = static_cast<double>(MAX_LATENCY_US) / histogram_bins_;
-                return static_cast<int64_t>(i * bin_width + bin_width * 0.5);
+                double bin_width = static_cast<double>(MAX_LATENCY_US) / static_cast<double>(histogram_bins_);
+                return static_cast<int64_t>(static_cast<double>(i) * bin_width + bin_width * 0.5);
             }
         }
         return MAX_LATENCY_US;
@@ -203,7 +203,7 @@ private:
         std::atomic<int64_t> max_us{0};
     };
 
-    int64_t histogram_bins_;
+    size_t histogram_bins_;
     alignas(64) std::array<HistogramData, NUM_STAGES> histograms_{};
     alignas(64) std::array<AtomicStats, NUM_STAGES> stats_{};
     alignas(64) std::array<std::atomic<double>, NUM_STAGES> budgets_{};

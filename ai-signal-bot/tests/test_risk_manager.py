@@ -1,7 +1,7 @@
 """Tests for risk manager module."""
 import pytest
 
-from src.risk.risk_manager import RiskManager, RiskConfig, PositionRiskState
+from src.risk.risk_manager import PositionRiskState, RiskConfig, RiskManager
 
 
 def make_state(entry=100, side="LONG", sl=95, tp=110, qty=1.0, atr=0.0):
@@ -28,7 +28,7 @@ class TestBreakeven:
         assert state.breakeven_moved is True
 
     def test_breakeven_long_not_triggered(self):
-        rm = RiskManager(RiskConfig(breakeven_enabled=True, breakeven_trigger_pct=1.0))
+        rm = RiskManager(RiskConfig(trailing_stop_enabled=False, breakeven_enabled=True, breakeven_trigger_pct=1.0))
         state = make_state(entry=100, side="LONG", sl=95)
         actions = rm.update(state, current_price=100.5)  # 0.5% move
         assert "new_stop_loss" not in actions
@@ -151,7 +151,7 @@ class TestMaxHoldTime:
     def test_max_hold_triggers_close(self):
         rm = RiskManager(RiskConfig(max_hold_candles=5))
         state = make_state(entry=100, side="LONG", sl=95)
-        for i in range(4):
+        for _i in range(4):
             actions = rm.update(state, current_price=100)
             assert "close_position" not in actions
         actions = rm.update(state, current_price=100)
@@ -161,7 +161,7 @@ class TestMaxHoldTime:
     def test_max_hold_disabled(self):
         rm = RiskManager(RiskConfig(max_hold_candles=0))
         state = make_state(entry=100, side="LONG", sl=95)
-        for i in range(100):
+        for _i in range(100):
             actions = rm.update(state, current_price=100)
             assert "close_position" not in actions
 

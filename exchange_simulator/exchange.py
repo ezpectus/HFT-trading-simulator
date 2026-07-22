@@ -3,13 +3,18 @@
 Each exchange (Binance, Bybit, OKX) has its own fee structure and slippage
 model. Orders are matched against the simulated order book.
 """
-import time
-from typing import Optional
 
-from exchange_simulator.models import (
-    Account, ClosedTrade, Order, OrderBook, OrderStatus, OrderType, Position, Side,
-)
 from exchange_simulator.market_simulator import MarketSimulator
+from exchange_simulator.models import (
+    Account,
+    ClosedTrade,
+    Order,
+    OrderBook,
+    OrderStatus,
+    OrderType,
+    Position,
+    Side,
+)
 
 # Constant for market impact and partial fill calculations
 _TYPICAL_VOLUME = 500.0
@@ -68,9 +73,9 @@ class SimulatedExchange:
         side: Side,
         quantity: float,
         order_type: OrderType = OrderType.MARKET,
-        price: Optional[float] = None,
-        stop_loss: Optional[float] = None,
-        take_profit: Optional[float] = None,
+        price: float | None = None,
+        stop_loss: float | None = None,
+        take_profit: float | None = None,
         force_close: bool = False,
     ) -> Order:
         """Submit an order and return the result.
@@ -188,8 +193,8 @@ class SimulatedExchange:
     def _update_position(
         self,
         order: Order,
-        stop_loss: Optional[float],
-        take_profit: Optional[float],
+        stop_loss: float | None,
+        take_profit: float | None,
     ) -> None:
         """Update positions based on filled order."""
         # O(1) lookup by symbol — replaces linear scan through positions list
@@ -356,6 +361,9 @@ class SimulatedExchange:
                 ))
 
                 pos.quantity -= close_qty
+                if pos.quantity <= 1e-12:
+                    self.account.positions.remove(pos)
+                    self._positions_by_symbol.pop(pos.symbol, None)
                 self._order_counter += 1
                 order = Order(
                     id=f"ord-{self._order_counter:08d}",

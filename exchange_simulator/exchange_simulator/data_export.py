@@ -18,8 +18,7 @@ Usage:
 import csv
 import logging
 import os
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 logger = logging.getLogger("exchange_simulator.data_export")
 
@@ -49,8 +48,8 @@ class DataExporter:
 
     def export_candles(
         self,
-        symbol: Optional[str] = None,
-        exchange: Optional[str] = None,
+        symbol: str | None = None,
+        exchange: str | None = None,
     ) -> str:
         """Export candle data to CSV/Parquet.
 
@@ -73,7 +72,7 @@ class DataExporter:
                         "exchange": ex_id,
                         "symbol": sym,
                         "timestamp": c.timestamp,
-                        "datetime": datetime.fromtimestamp(c.timestamp, tz=timezone.utc).isoformat(),
+                        "datetime": datetime.fromtimestamp(c.timestamp, tz=UTC).isoformat(),
                         "open": c.open,
                         "high": c.high,
                         "low": c.low,
@@ -85,7 +84,7 @@ class DataExporter:
             logger.warning("No candles to export")
             return ""
 
-        filename = f"candles_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.{self.format}"
+        filename = f"candles_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.{self.format}"
         filepath = os.path.join(self.output_dir, filename)
 
         if self.format == "parquet":
@@ -96,7 +95,7 @@ class DataExporter:
         logger.info(f"Exported {len(all_candles)} candles to {filepath}")
         return filepath
 
-    def export_orders(self, exchange: Optional[str] = None) -> str:
+    def export_orders(self, exchange: str | None = None) -> str:
         """Export order history to CSV."""
         exchange_ids = [exchange] if exchange else list(self.exchanges.keys())
 
@@ -117,14 +116,14 @@ class DataExporter:
                     "fee": o.fee,
                     "status": o.status.value,
                     "timestamp": o.timestamp,
-                    "datetime": datetime.fromtimestamp(o.timestamp, tz=timezone.utc).isoformat(),
+                    "datetime": datetime.fromtimestamp(o.timestamp, tz=UTC).isoformat(),
                 })
 
         if not all_orders:
             logger.info("No orders to export")
             return ""
 
-        filename = f"orders_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = f"orders_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
         filepath = os.path.join(self.output_dir, filename)
         self._write_csv(all_orders, filepath)
         logger.info(f"Exported {len(all_orders)} orders to {filepath}")
@@ -144,10 +143,10 @@ class DataExporter:
                 "total_trades": status["total_trades"],
                 "win_rate": status["win_rate"],
                 "open_positions": len(status["positions"]),
-                "exported_at": datetime.now(timezone.utc).isoformat(),
+                "exported_at": datetime.now(UTC).isoformat(),
             })
 
-        filename = f"accounts_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = f"accounts_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
         filepath = os.path.join(self.output_dir, filename)
         self._write_csv(rows, filepath)
         logger.info(f"Exported account status for {len(rows)} exchanges to {filepath}")
@@ -169,11 +168,11 @@ class DataExporter:
                     "take_profit": p["take_profit"],
                     "unrealized_pnl": p["unrealized_pnl"],
                     "opened_at": p.get("opened_at", ""),
-                    "exported_at": datetime.now(timezone.utc).isoformat(),
+                    "exported_at": datetime.now(UTC).isoformat(),
                 })
 
         if rows:
-            filename = f"positions_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+            filename = f"positions_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
             filepath = os.path.join(self.output_dir, filename)
             self._write_csv(rows, filepath)
             logger.info(f"Exported {len(rows)} positions to {filepath}")
@@ -200,7 +199,7 @@ class DataExporter:
     def export_summary(self) -> str:
         """Export a summary statistics file."""
         summary = {
-            "export_time": datetime.now(timezone.utc).isoformat(),
+            "export_time": datetime.now(UTC).isoformat(),
             "exchanges": len(self.exchanges),
             "symbols": len(self.market.symbols),
             "total_candles": 0,
@@ -216,7 +215,7 @@ class DataExporter:
                 summary["total_candles"] += len(candles)
             summary["total_orders"] += len(ex.get_order_history(limit=10000))
 
-        filename = f"summary_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = f"summary_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
         filepath = os.path.join(self.output_dir, filename)
         self._write_csv([summary], filepath)
         logger.info(f"Summary exported to {filepath}")

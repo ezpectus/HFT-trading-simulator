@@ -56,7 +56,17 @@ public:
         , ema_slow_(cfg.ema_slow)
         , ema_trend_(cfg.ema_trend)
         , adx_(cfg.adx_period)
-    {}
+    {
+        if (config_.volume_avg_period > static_cast<int>(vol_buffer_.size())) {
+            config_.volume_avg_period = static_cast<int>(vol_buffer_.size());
+        }
+        if (config_.volume_avg_period < 1) {
+            config_.volume_avg_period = 1;
+        }
+        if (config_.atr_period < 1) {
+            config_.atr_period = 1;
+        }
+    }
 
     Signal on_candle(double open, double high, double low, double close,
                      double volume, uint64_t timestamp_ns) noexcept {
@@ -114,7 +124,7 @@ public:
             }
         }
 
-        if (candle_count_ > static_cast<uint64_t>(config_.ema_mid)) {
+        if (sig.action == Signal::Action::NONE && candle_count_ > static_cast<uint64_t>(config_.ema_mid)) {
             if (ema_fast_.value() < ema_mid_.value() && fast_slope < 0.0) {
                 sig.action = Signal::Action::EXIT;
                 sig.confidence = 70.0;

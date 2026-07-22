@@ -10,19 +10,15 @@ Features:
 from __future__ import annotations
 
 import asyncio
-import time
-import hmac
-import hashlib
-import json
-from dataclasses import dataclass, field
-from typing import Optional, Any
-from collections import defaultdict
-
 import logging
+import time
+from dataclasses import dataclass
+from typing import Any
+
 logger = logging.getLogger(__name__)
 
 try:
-    import aiohttp
+    import aiohttp  # noqa: F401
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
@@ -101,10 +97,10 @@ class RealAccountManager:
         self.api_key = api_key
         self.api_secret = api_secret
         self.testnet = testnet
-        self._exchange: Optional[Any] = None
-        self._ws_session: Optional[Any] = None
-        self._user_data_stream_key: Optional[str] = None
-        self._listen_task: Optional[asyncio.Task] = None
+        self._exchange: Any | None = None
+        self._ws_session: Any | None = None
+        self._user_data_stream_key: str | None = None
+        self._listen_task: asyncio.Task | None = None
         self._on_fill_callback = None
         self._on_margin_warning_callback = None
 
@@ -195,7 +191,7 @@ class RealAccountManager:
             logger.error(f"[RealAccount] Failed to fetch positions: {e}")
             return []
 
-    async def get_open_orders(self, symbol: Optional[str] = None) -> list[OpenOrder]:
+    async def get_open_orders(self, symbol: str | None = None) -> list[OpenOrder]:
         """Fetch open orders."""
         if not self._exchange:
             return []
@@ -220,7 +216,7 @@ class RealAccountManager:
             logger.error(f"[RealAccount] Failed to fetch open orders: {e}")
             return []
 
-    async def get_trade_history(self, symbol: Optional[str] = None, limit: int = 100) -> list[dict]:
+    async def get_trade_history(self, symbol: str | None = None, limit: int = 100) -> list[dict]:
         """Fetch recent trade history."""
         if not self._exchange:
             return []
@@ -265,10 +261,10 @@ class RealAccountManager:
 
     async def place_order(
         self, symbol: str, side: str, quantity: float,
-        order_type: str = "market", price: Optional[float] = None,
-        leverage: int = 1, stop_loss: Optional[float] = None,
-        take_profit: Optional[float] = None
-    ) -> Optional[dict]:
+        order_type: str = "market", price: float | None = None,
+        leverage: int = 1, stop_loss: float | None = None,
+        take_profit: float | None = None
+    ) -> dict | None:
         """Place an order on the exchange."""
         if not self._exchange:
             return None
@@ -314,7 +310,7 @@ class RealAccountManager:
             logger.error(f"[RealAccount] Failed to cancel order: {e}")
             return False
 
-    async def cancel_all_orders(self, symbol: Optional[str] = None) -> int:
+    async def cancel_all_orders(self, symbol: str | None = None) -> int:
         """Cancel all open orders."""
         if not self._exchange:
             return 0

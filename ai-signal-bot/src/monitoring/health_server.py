@@ -9,12 +9,12 @@ GET /health/shm — SHM status
 from __future__ import annotations
 
 import asyncio
-import json
-import time
-from typing import Optional, Callable, Any
-from aiohttp import web, ClientSession
-
 import logging
+import time
+from collections.abc import Callable
+
+from aiohttp import web
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,9 +24,9 @@ class HealthServer:
     def __init__(self, port: int = 8080, host: str = "0.0.0.0"):
         self.port = port
         self.host = host
-        self._app: Optional[web.Application] = None
-        self._runner: Optional[web.AppRunner] = None
-        self._site: Optional[web.TCPSite] = None
+        self._app: web.Application | None = None
+        self._runner: web.AppRunner | None = None
+        self._site: web.TCPSite | None = None
         self._start_time = time.time()
         self._checks: dict[str, Callable] = {}
         self._status: dict[str, dict] = {}

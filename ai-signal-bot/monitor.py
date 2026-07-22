@@ -9,8 +9,6 @@ Usage:
 import asyncio
 import json
 import os
-import sys
-import time
 from datetime import datetime
 
 import websockets
@@ -25,7 +23,7 @@ def clear_screen():
 def read_log_tail(path, lines=15):
     """Read last N lines from log file."""
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             all_lines = f.readlines()
         return all_lines[-lines:]
     except (FileNotFoundError, PermissionError):
@@ -34,7 +32,7 @@ def read_log_tail(path, lines=15):
 def read_signals_tail(path, lines=10):
     """Read last N signal lines from CSV."""
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             all_lines = f.readlines()
         return all_lines[-lines:]
     except (FileNotFoundError, PermissionError):
@@ -42,7 +40,7 @@ def read_signals_tail(path, lines=10):
 
 async def monitor():
     print(f"\n{'=' * 60}")
-    print(f"  AI SIGNAL BOT — Live Monitor")
+    print("  AI SIGNAL BOT — Live Monitor")
     print(f"  Connecting to {WS_URL} ...")
     print(f"{'=' * 60}\n")
 
@@ -56,7 +54,7 @@ async def monitor():
             async with websockets.connect(WS_URL) as ws:
                 connected = True
                 reconnect_delay = 2
-                print(f"  [CONNECTED] Listening for signals...\n")
+                print("  [CONNECTED] Listening for signals...\n")
 
                 async for message in ws:
                     try:
@@ -82,7 +80,7 @@ async def monitor():
                     # Recent signals
                     if last_signals:
                         print(f"  {'─' * 56}")
-                        print(f"  Recent Signals:")
+                        print("  Recent Signals:")
                         print(f"  {'─' * 56}")
                         for s in last_signals[-8:]:
                             ts = datetime.now().strftime('%H:%M:%S')
@@ -108,7 +106,7 @@ async def monitor():
                     log_lines = read_log_tail(LOG_FILE, 8)
                     if log_lines:
                         print(f"  {'─' * 56}")
-                        print(f"  Bot Log (last 8 lines):")
+                        print("  Bot Log (last 8 lines):")
                         print(f"  {'─' * 56}")
                         for line in log_lines:
                             print(f"  {line.rstrip()[:80]}")
@@ -123,7 +121,7 @@ async def monitor():
             print(f"\n{'=' * 60}")
             print(f"  AI SIGNAL BOT — Live Monitor  {datetime.now().strftime('%H:%M:%S')}")
             print(f"{'=' * 60}\n")
-            print(f"  Status:     DISCONNECTED")
+            print("  Status:     DISCONNECTED")
             print(f"  Error:      {e}")
             print(f"  Retry in:   {reconnect_delay}s\n")
 
@@ -131,7 +129,7 @@ async def monitor():
             log_lines = read_log_tail(LOG_FILE, 15)
             if log_lines:
                 print(f"  {'─' * 56}")
-                print(f"  Bot Log (last 15 lines):")
+                print("  Bot Log (last 15 lines):")
                 print(f"  {'─' * 56}")
                 for line in log_lines:
                     print(f"  {line.rstrip()[:80]}")
@@ -141,7 +139,7 @@ async def monitor():
             sig_lines = read_signals_tail(SIGNALS_CSV, 5)
             if sig_lines:
                 print(f"  {'─' * 56}")
-                print(f"  Recent Signals (CSV):")
+                print("  Recent Signals (CSV):")
                 print(f"  {'─' * 56}")
                 for line in sig_lines:
                     print(f"  {line.rstrip()[:80]}")

@@ -1,6 +1,6 @@
 """Tests for spread analytics module."""
-import pytest
 import numpy as np
+import pytest
 
 from exchange_simulator.spread_analytics import (
     SpreadAnalytics,

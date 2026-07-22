@@ -1,11 +1,17 @@
 """Tests for FFT-based market cycle analysis — FFT, power spectrum, cycles, regime."""
 import math
+
 import pytest
 
 from src.technical_analysis.fft_analysis import (
-    _fft, _ifft, power_spectrum, dominant_cycles,
-    cycle_strength, spectral_trend_score, fft_filter,
+    _fft,
+    _ifft,
+    cycle_strength,
+    dominant_cycles,
     fft_cycle_indicator,
+    fft_filter,
+    power_spectrum,
+    spectral_trend_score,
 )
 
 

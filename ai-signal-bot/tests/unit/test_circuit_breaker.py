@@ -1,10 +1,13 @@
 """Tests for CircuitBreaker — consecutive loss tracking, trip, cooldown, recovery."""
-import pytest
-from unittest.mock import patch
 import time
+from unittest.mock import patch
+
+import pytest
 
 from src.strategies.strategies import (
-    CircuitBreaker, Signal, SignalDirection,
+    CircuitBreaker,
+    Signal,
+    SignalDirection,
 )
 
 

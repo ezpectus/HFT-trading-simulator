@@ -1,6 +1,7 @@
 """Tests for Kelly Criterion position sizing — compute, calculate, edge cases, from_trade_history."""
-import pytest
 from dataclasses import dataclass
+
+import pytest
 
 from src.risk.kelly import KellyPositionSizer, KellyResult
 

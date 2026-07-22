@@ -1,9 +1,17 @@
 """Tests for technical indicators."""
 import math
+
 import pytest
 
 from src.technical_analysis.indicators import (
-    adx, atr, bollinger_bands, ema, macd, rsi, sma, vwap,
+    adx,
+    atr,
+    bollinger_bands,
+    ema,
+    macd,
+    rsi,
+    sma,
+    vwap,
 )
 
 

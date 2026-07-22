@@ -24,8 +24,8 @@ Usage:
 """
 import itertools
 import logging
-from dataclasses import dataclass, field
-from typing import Callable, Optional
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from src.backtesting.backtester import Backtester, BacktestResult
 
@@ -50,7 +50,7 @@ class StrategyOptimizer:
     def __init__(
         self,
         backtester: Backtester,
-        fitness_fn: Optional[Callable[[BacktestResult], float]] = None,
+        fitness_fn: Callable[[BacktestResult], float] | None = None,
     ):
         self.backtester = backtester
         self.fitness_fn = fitness_fn or self.default_fitness
@@ -131,7 +131,7 @@ class StrategyOptimizer:
         logger.info(f"Starting grid search: {total} combinations")
 
         for i, combo in enumerate(combinations):
-            params = dict(zip(keys, combo))
+            params = dict(zip(keys, combo, strict=False))
             try:
                 strategy = strategy_class(**params)
                 result = self.backtester.run(candles, strategy, symbol, warmup)
@@ -175,7 +175,6 @@ class StrategyOptimizer:
         start = warmup
 
         while start + train_size + test_size <= total_len:
-            train_candles = candles[start:start + train_size]
             test_candles = candles[start + train_size:start + train_size + test_size]
 
             try:
@@ -198,7 +197,7 @@ class StrategyOptimizer:
     ) -> None:
         """Print top N optimization results."""
         print("\n" + "=" * 100)
-        print("  OPTIMIZATION RESULTS (Top {})".format(top_n))
+        print(f"  OPTIMIZATION RESULTS (Top {top_n})")
         print("=" * 100)
         print(f"  {'Rank':<5} {'Params':<40} {'Return%':>9} {'Trades':>7} "
               f"{'Win%':>7} {'PF':>7} {'MaxDD%':>8} {'Sharpe':>7} {'Fitness':>8}")
@@ -215,7 +214,7 @@ class StrategyOptimizer:
 
         print("=" * 100 + "\n")
 
-    def best_params(self, results: list[OptimizationResult]) -> Optional[dict]:
+    def best_params(self, results: list[OptimizationResult]) -> dict | None:
         """Get the best parameter combination."""
         if not results:
             return None

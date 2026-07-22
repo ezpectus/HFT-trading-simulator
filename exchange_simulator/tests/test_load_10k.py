@@ -16,9 +16,9 @@ Requirements:
 import argparse
 import asyncio
 import json
-import time
 import statistics
 import sys
+import time
 from collections import deque
 
 try:
@@ -153,7 +153,7 @@ async def run_load_test(url: str, duration: int, target: int):
                         last_report = now
                         last_count = results.messages_received
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     break
                 except websockets.ConnectionClosed:
                     print("Connection closed by server")

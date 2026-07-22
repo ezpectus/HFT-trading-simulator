@@ -18,8 +18,7 @@ Usage:
     print(f"Price: {quote.price}, Delta: {quote.delta}, Gamma: {quote.gamma}")
 """
 import math
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 
 @dataclass
@@ -186,7 +185,7 @@ class OptionsSimulator:
         expiries: list[float],
         strikes: list[float],
         sigma: float,
-        option_types: Optional[list[str]] = None,
+        option_types: list[str] | None = None,
     ) -> list[OptionQuote]:
         """Generate an option chain for multiple strikes and expiries.
 

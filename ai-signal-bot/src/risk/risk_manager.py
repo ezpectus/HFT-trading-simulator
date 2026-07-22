@@ -19,8 +19,7 @@ Usage:
     new_sl = rm.update_stop_loss(position, current_price, candle)
 """
 import logging
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 logger = logging.getLogger("ai_signal_bot.risk_manager")
 
@@ -181,7 +180,7 @@ class RiskManager:
 
     def _check_breakeven(
         self, state: PositionRiskState, current_price: float
-    ) -> Optional[float]:
+    ) -> float | None:
         """Check if stop loss should be moved to breakeven."""
         if state.entry_price <= 0:
             return None
@@ -207,7 +206,7 @@ class RiskManager:
 
     def _check_trailing(
         self, state: PositionRiskState, current_price: float
-    ) -> Optional[float]:
+    ) -> float | None:
         """Check if trailing stop should be updated."""
         if self.config.trailing_atr_multiplier > 0 and state.atr > 0:
             distance = state.atr * self.config.trailing_atr_multiplier

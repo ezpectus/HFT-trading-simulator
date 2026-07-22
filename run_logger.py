@@ -15,7 +15,6 @@ import logging
 import os
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
 
 class JsonFormatter(logging.Formatter):
@@ -45,7 +44,7 @@ def _project_root() -> str:
 def setup_run_logging(
     service_name: str,
     level: str = "INFO",
-    log_dir: str = None,
+    log_dir: str | None = None,
     format_type: str = "text",
 ) -> tuple[logging.Logger, str]:
     """Setup timestamped logging for a service run.

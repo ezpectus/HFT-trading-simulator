@@ -1,9 +1,10 @@
 """Tests for backtesting engine."""
 import math
+
 import pytest
 
 from src.backtesting import Backtester, BacktestResult
-from src.strategies import TrendFollowingStrategy, MeanReversionStrategy, FFTCycleStrategy
+from src.strategies import FFTCycleStrategy, MeanReversionStrategy, TrendFollowingStrategy
 
 
 def make_trending_candles(n=200, start=100, slope=0.3):

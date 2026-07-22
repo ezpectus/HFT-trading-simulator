@@ -10,13 +10,11 @@ Supports Binance, OKX, and Bybit for:
 
 from __future__ import annotations
 
-import asyncio
+import base64
 import hashlib
 import hmac
-import base64
-import time
 import logging
-from typing import Optional, Dict, List
+import time
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -88,7 +86,7 @@ class RealExchangeClient:
             self.api_secret.encode(), msg.encode(), hashlib.sha256
         ).hexdigest()
 
-    async def get_balance(self) -> Optional[AccountBalance]:
+    async def get_balance(self) -> AccountBalance | None:
         """Get account balance."""
         if self.exchange == "binance":
             return await self._binance_balance()
@@ -98,7 +96,7 @@ class RealExchangeClient:
             return await self._bybit_balance()
         return None
 
-    async def get_positions(self) -> List[Position]:
+    async def get_positions(self) -> list[Position]:
         """Get open positions."""
         if self.exchange == "binance":
             return await self._binance_positions()
@@ -108,7 +106,7 @@ class RealExchangeClient:
             return await self._bybit_positions()
         return []
 
-    async def _binance_balance(self) -> Optional[AccountBalance]:
+    async def _binance_balance(self) -> AccountBalance | None:
         import aiohttp
         ts = int(time.time() * 1000)
         params = f"timestamp={ts}&recvWindow=5000"
@@ -134,7 +132,7 @@ class RealExchangeClient:
                         )
         return None
 
-    async def _binance_positions(self) -> List[Position]:
+    async def _binance_positions(self) -> list[Position]:
         import aiohttp
         ts = int(time.time() * 1000)
         params = f"timestamp={ts}&recvWindow=5000"
@@ -166,7 +164,7 @@ class RealExchangeClient:
                     ))
         return positions
 
-    async def _okx_balance(self) -> Optional[AccountBalance]:
+    async def _okx_balance(self) -> AccountBalance | None:
         import aiohttp
         ts = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
         path = "/api/v5/account/balance"
@@ -200,7 +198,7 @@ class RealExchangeClient:
                             )
         return None
 
-    async def _okx_positions(self) -> List[Position]:
+    async def _okx_positions(self) -> list[Position]:
         import aiohttp
         ts = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
         path = "/api/v5/account/positions"
@@ -237,12 +235,11 @@ class RealExchangeClient:
                     ))
         return positions
 
-    async def _bybit_balance(self) -> Optional[AccountBalance]:
+    async def _bybit_balance(self) -> AccountBalance | None:
         import aiohttp
         ts = str(int(time.time() * 1000))
         recv_window = "5000"
-        params = '{"accountType":"UNIFIED"}'
-        param_str = f"accountType=UNIFIED"
+        param_str = "accountType=UNIFIED"
         sig = self._sign_bybit(ts, int(recv_window), param_str)
         url = f"{self.base_url}/v5/account/wallet-balance?{param_str}"
         headers = {
@@ -272,7 +269,7 @@ class RealExchangeClient:
                             )
         return None
 
-    async def _bybit_positions(self) -> List[Position]:
+    async def _bybit_positions(self) -> list[Position]:
         import aiohttp
         ts = str(int(time.time() * 1000))
         recv_window = "5000"

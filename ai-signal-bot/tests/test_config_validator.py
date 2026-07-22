@@ -1,6 +1,4 @@
 """Tests for AI Signal Bot config validator."""
-import pytest
-
 from config import SignalBotConfig
 
 
@@ -149,8 +147,9 @@ class TestConfigValidator:
         raw = _valid_raw()
         del raw["trading"]
         cfg = SignalBotConfig(raw=raw)
-        with pytest.raises(ValueError):
-            cfg.validate()
+        errors, _ = cfg.validate()
+        assert len(errors) > 0
+        assert any("trading" in e for e in errors)
 
     def test_many_positions_warning(self):
         raw = _valid_raw()

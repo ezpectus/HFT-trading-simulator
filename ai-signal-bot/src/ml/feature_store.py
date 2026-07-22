@@ -34,10 +34,9 @@ Usage:
 from __future__ import annotations
 
 import json
-import time
 import logging
-from typing import Optional, Dict, Any, List, Set
-from dataclasses import dataclass
+import time
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -69,15 +68,15 @@ class FeatureStore:
         redis_host: str = "localhost",
         redis_port: int = 6379,
         redis_db: int = 0,
-        redis_password: Optional[str] = None,
+        redis_password: str | None = None,
         ttl: int = FEATURE_TTL,
     ):
         self.ttl = ttl
-        self._redis: Optional[object] = None
+        self._redis: object | None = None
 
         if not REDIS_AVAILABLE:
             logger.warning("[FeatureStore] Redis not available — using in-memory fallback")
-            self._memory: Dict[str, Dict[str, Any]] = {}
+            self._memory: dict[str, dict[str, Any]] = {}
             return
 
         try:
@@ -97,7 +96,7 @@ class FeatureStore:
             self._redis = None
             self._memory = {}
 
-    def update_features(self, symbol: str, features: Dict[str, Any]) -> int:
+    def update_features(self, symbol: str, features: dict[str, Any]) -> int:
         """Update features for a symbol. Returns number of features set."""
         timestamp = time.time()
 
@@ -118,14 +117,14 @@ class FeatureStore:
 
         return len(features)
 
-    def get_features(self, symbol: str, feature_names: Optional[List[str]] = None) -> Dict[str, Any]:
+    def get_features(self, symbol: str, feature_names: list[str] | None = None) -> dict[str, Any]:
         """Get features for a symbol. If feature_names is None, get all."""
         if self._redis:
             key = f"{self.FEATURE_PREFIX}{symbol}"
             if feature_names:
                 raw = self._redis.hmget(key, feature_names)
                 result = {}
-                for name, data in zip(feature_names, raw):
+                for name, data in zip(feature_names, raw, strict=False):
                     if data:
                         entry = json.loads(data)
                         result[name] = entry["value"]
@@ -140,8 +139,8 @@ class FeatureStore:
             return {k: v["value"] for k, v in data.items()}
 
     def get_features_batch(
-        self, symbols: List[str], feature_names: Optional[List[str]] = None
-    ) -> Dict[str, Dict[str, Any]]:
+        self, symbols: list[str], feature_names: list[str] | None = None
+    ) -> dict[str, dict[str, Any]]:
         """Get features for multiple symbols."""
         result = {}
         for symbol in symbols:
@@ -149,15 +148,15 @@ class FeatureStore:
         return result
 
     def get_feature_vector(
-        self, symbol: str, feature_names: List[str], fill_missing: float = 0.0
-    ) -> List[float]:
+        self, symbol: str, feature_names: list[str], fill_missing: float = 0.0
+    ) -> list[float]:
         """Get features as an ordered vector for ML inference."""
         features = self.get_features(symbol, feature_names)
         return [float(features.get(name, fill_missing)) for name in feature_names]
 
     def get_feature_matrix(
-        self, symbols: List[str], feature_names: List[str], fill_missing: float = 0.0
-    ) -> List[List[float]]:
+        self, symbols: list[str], feature_names: list[str], fill_missing: float = 0.0
+    ) -> list[list[float]]:
         """Get features as a matrix (symbols × features) for batch ML inference."""
         batch = self.get_features_batch(symbols, feature_names)
         return [
@@ -165,7 +164,7 @@ class FeatureStore:
             for s in symbols
         ]
 
-    def list_features(self) -> Set[str]:
+    def list_features(self) -> set[str]:
         """List all registered feature names."""
         if self._redis:
             return set(self._redis.smembers(self.FEATURE_REGISTRY_KEY))
@@ -175,7 +174,7 @@ class FeatureStore:
                 features.update(data.keys())
             return features
 
-    def list_symbols(self) -> List[str]:
+    def list_symbols(self) -> list[str]:
         """List all symbols with features."""
         if self._redis:
             keys = self._redis.keys(f"{self.FEATURE_PREFIX}*")
@@ -190,7 +189,7 @@ class FeatureStore:
         else:
             return self._memory.pop(symbol, None) is not None
 
-    def get_feature_age(self, symbol: str, feature_name: str) -> Optional[float]:
+    def get_feature_age(self, symbol: str, feature_name: str) -> float | None:
         """Get age of a feature in seconds (time since last update)."""
         if self._redis:
             data = self._redis.hget(f"{self.FEATURE_PREFIX}{symbol}", feature_name)

@@ -25,6 +25,7 @@ public:
                      const std::string& dir = "logs",
                      bool json = false) {
         // Create logs directory
+        log_dir_ = dir;
         std::filesystem::create_directories(dir);
 
         // Generate timestamped filename: hft_trade_bot_YYYYMMDD_HHMMSS.log
@@ -66,6 +67,8 @@ public:
         if (json) {
             // JSON structured logging — one JSON object per line
             // Fields: ts, level, msg, thread
+            // Note: spdlog does not auto-escape quotes in %v. Use a custom formatter
+            // or ensure log messages do not contain unescaped double quotes.
             logger->set_pattern(R"({"ts":"%Y-%m-%dT%H:%M:%S.%e","level":"%l","msg":"%v","thread":%t})");
         } else {
             logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
@@ -82,8 +85,11 @@ public:
     }
 
     static std::string get_log_dir() {
-        return "logs";
+        return log_dir_;
     }
+
+private:
+    static inline std::string log_dir_{"logs"};
 };
 
 } // namespace hft

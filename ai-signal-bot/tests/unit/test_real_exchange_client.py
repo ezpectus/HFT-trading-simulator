@@ -1,13 +1,14 @@
 """Tests for RealExchangeClient — signing, URL defaults, dataclasses, dispatch."""
+import base64
 import hashlib
 import hmac
-import base64
+
 import pytest
 
 from src.data_collection.real_exchange_client import (
-    RealExchangeClient,
     AccountBalance,
     Position,
+    RealExchangeClient,
 )
 
 
