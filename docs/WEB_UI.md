@@ -1,6 +1,6 @@
 # Web UI Dashboard
 
-Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **201+ React components**, **191+ registered panels** across 7 categories, **75+ advanced mathematical model components**, **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
+Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **223 React components**, **197 registered panels** across 7 categories, **75+ advanced mathematical model components**, **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
 
 ## Features
 
@@ -23,7 +23,7 @@ Browser-based trading dashboard for the HFT trading simulator. Binance-inspired 
 - **Market Regime** — Trending/ranging/volatile auto-detection
 - **Sentiment Indicator** — News sentiment gauge
 
-### Analytics (191+ panels in 7 categories)
+### Analytics (197 panels in 7 categories)
 
 #### Order Flow
 - Cumulative Volume Delta (CVD)
@@ -204,7 +204,7 @@ npm run build
 ## Architecture
 
 ```
-Browser (React 18 + Vite 5)
+Browser (React 18 + Vite 8)
   |
   |-- WebSocket -> Exchange Simulator (ws://localhost:8765)
   |     |-- subscribe -> snapshot, candles, fills, arbitrage_scan
@@ -223,7 +223,7 @@ Browser (React 18 + Vite 5)
   |-- Category: Export               (3 panels)
   |-- Category: Config               (2 panels)
   |-- Advanced Math Models           (75+ panels, V1-V15)
-  +-- Total: 191+ registered panels, 201+ component files
+  +-- Total: 197 registered panels, 223 component files
 ```
 
 ## Configuration
@@ -243,7 +243,7 @@ All variables are optional — defaults use localhost. For Docker, ports are map
 | Technology | Purpose |
 |-----------|---------|
 | React 18 | UI framework |
-| Vite 5 | Build tool / dev server |
+| Vite 8 | Build tool / dev server |
 | TailwindCSS 3 | Styling (dark/light theme via CSS variables) |
 | lightweight-charts 4 | TradingView candle charts |
 | lucide-react | Icons |
@@ -259,14 +259,14 @@ All variables are optional — defaults use localhost. For Docker, ports are map
 
 | Optimization | Implementation |
 |-------------|----------------|
-| React.lazy code splitting | All 191+ panels lazy-loaded with `React.lazy()` + Suspense fallbacks |
+| React.lazy code splitting | All 197 panels lazy-loaded with `React.lazy()` + Suspense fallbacks |
 | ChunkRetryBoundary | Automatic retry on chunk load failure (3 retries with exponential backoff) |
 | Preload-on-hover | Hovering a category preloads all panels in that category |
 | List Virtualization | `VirtualList.jsx` — generic windowed list renderer with overscan, applied to FillsPanel and SignalFeed |
 | Error Boundaries | `PanelErrorBoundary` — class component with retry button, wraps every panel |
 | Suspense | React.Suspense wrapper in `PanelContainer.jsx` for lazy-loaded panels |
 | Panel isolation | ErrorBoundary + Suspense per panel (triple protection: error catch + loading state + graceful fallback) |
-| Web Worker | `compute.worker.js` — heavy indicator calculations offloaded to background thread |
+| Web Worker | Heavy indicator calculations offloaded to background thread (planned) |
 | Manual chunks | Vendor code split in `vite.config.js`: `react-vendor`, `charts-vendor`, `icons-vendor` |
 | Performance hooks | `useDebouncedValue`, `useThrottledCallback`, `useBatchedUpdates`, `useIntersectionObserver` |
 | Connection resilience | Exponential backoff (1s -> 2s -> 4s -> 8s -> 16s -> 30s cap) with auto-reconnect |
@@ -341,7 +341,7 @@ CI/CD runs JS lint + test as a dedicated job in GitHub Actions.
 |  (BUY/SELL, SL/TP, quick-trade)   |  - Signals               |
 |                                    |  - Arbitrage             |
 +------------------------------------+  - Fills                 |
-|  Sidebar: Panel Registry (191+)   |  - History               |
+|  Sidebar: Panel Registry (197)   |  - History               |
 |  (collapsible categories)          |  - Performance           |
 |                                    |  - Backtest              |
 +------------------------------------+--------------------------+
@@ -373,7 +373,7 @@ CI/CD runs JS lint + test as a dedicated job in GitHub Actions.
 
 ## Panel Registry System
 
-All sidebar panels are registered in `src/panels/registry.js` (191+ panels, 201+ component imports) and rendered by `PanelContainer.jsx` with ErrorBoundary + Suspense per panel.
+All sidebar panels are registered in `src/panels/registry.js` (197 panels, 223 component imports) and rendered by `PanelContainer.jsx` with ErrorBoundary + Suspense per panel.
 
 ### Key Infrastructure Components
 

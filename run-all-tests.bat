@@ -4,7 +4,7 @@ set ROOT=%~dp0
 
 echo.
 echo  ================================================
-echo   CI Local Test Runner - 7 windows (23 CI jobs)
+echo   CI Local Test Runner - 7 windows (16 CI jobs)
 echo  ================================================
 echo.
 echo   Window 1: Python Lint (ruff) + Security (bandit)

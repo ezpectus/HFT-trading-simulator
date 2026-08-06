@@ -57,7 +57,7 @@ struct alignas(64) FastSignal {
 
     void set_symbol(const char* s) {
         size_t i = 0;
-        while (s[i] && i < 15) {
+        while (s[i] && i < 31) {
             symbol[i] = s[i];
             ++i;
         }

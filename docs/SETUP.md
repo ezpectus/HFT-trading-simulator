@@ -288,7 +288,7 @@ hft-trading-simulator/
 │
 ├── web-ui/                       # Browser dashboard (React 18)
 │   ├── src/
-│   │   ├── components/           # 201+ UI components (191+ registered panels)
+│   │   ├── components/           # 201+ UI components (196 registered panels)
 │   │   ├── panels/               # Panel registry + container (ErrorBoundary + Suspense)
 │   │   ├── hooks/                # WebSocket, exchange data, signals, theme, sound, detachable
 │   │   └── utils/                # Indicators, performance, format, timeframes, patterns

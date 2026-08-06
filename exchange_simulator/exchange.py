@@ -414,7 +414,7 @@ class SimulatedExchange:
         """
         notifications = []
         for pos in self.account.positions:
-            notional = pos.entry_price * pos.quantity
+            notional = self.get_price(pos.symbol) * pos.quantity
             # Funding payment: positive rate means longs pay
             if pos.is_long:
                 payment = -notional * funding_rate

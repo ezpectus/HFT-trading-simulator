@@ -64,15 +64,11 @@ class KalmanFilter2D {
       this.F[1][0] * this.x[0] + this.F[1][1] * this.x[1],
     ]
 
+    const dt = this.F[0][1]
+    const p00 = this.P[0][0], p01 = this.P[0][1], p10 = this.P[1][0], p11 = this.P[1][1]
     this.P = [
-      [
-        this.F[0][0] * this.P[0][0] + this.F[0][1] * this.P[1][0] + this.Q[0][0],
-        this.F[0][0] * this.P[0][1] + this.F[0][1] * this.P[1][1] + this.Q[0][1],
-      ],
-      [
-        this.F[1][0] * this.P[0][0] + this.F[1][1] * this.P[1][0] + this.Q[1][0],
-        this.F[1][0] * this.P[0][1] + this.F[1][1] * this.P[1][1] + this.Q[1][1],
-      ],
+      [p00 + dt*p10 + dt*(p01 + dt*p11) + this.Q[0][0], p01 + dt*p11 + this.Q[0][1]],
+      [p10 + dt*p11 + this.Q[1][0], p11 + this.Q[1][1]],
     ]
 
     const S = this.H[0][0] * this.P[0][0] * this.H[0][0] + this.R[0][0]

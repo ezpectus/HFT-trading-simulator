@@ -303,7 +303,6 @@ class BacktestEngine:
         # Sharpe ratio (per-bar returns)
         if len(self.equity_curve) > 1:
             returns = np.diff(self.equity_curve) / np.maximum(np.array(self.equity_curve[:-1]), 1e-10)
-            returns = returns[returns != 0]
             if len(returns) > 0:
                 mean_ret = returns.mean()
                 std_ret = returns.std()
@@ -321,7 +320,8 @@ class BacktestEngine:
 
         # Calmar ratio
         if result.max_drawdown_pct > 0:
-            annual_return = result.total_return_pct  # Simplified
+            total_bars = len(self.equity_curve)
+            annual_return = result.total_return_pct * (252 * 24 * 60 / max(total_bars, 1))
             result.calmar_ratio = annual_return / result.max_drawdown_pct
 
         return result

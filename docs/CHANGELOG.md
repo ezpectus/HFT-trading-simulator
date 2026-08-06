@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Supply Chain Security Audit & Documentation Update
+
+### Security — Supply Chain Verification
+- Verified all 48 project dependencies against official registries (PyPI, npmjs.com, crates.io)
+- No typosquatting, fake packages, or malicious dependencies found
+- All optional Python dependencies (torch, scikit-learn, scipy, optuna, redis, asyncpg, ccxt, structlog, opentelemetry) use try/except ImportError guards
+- Lock files verified: `package-lock.json` (npm), `Cargo.lock` (Rust) present with hash verification
+- No registry redirection (`.npmrc`, `pip.conf`) found
+- Recommendation: add `pip-compile --generate-hashes` or `uv lock` for Python hash pinning
+
+### Fixed — CI
+- `nightly-backtest.yml` — incorrect import paths for `TrendFollowingStrategy` and `MeanReversionStrategy` (referenced non-existent modules `src.strategies.trend_following` and `src.strategies.mean_reversion`, both classes are in `src.strategies.strategies`)
+
+### Updated — Documentation
+- Panel count corrected from 191+ to 196 across README.md, ARCHITECTURE.md, WEB_UI.md, ROADMAP.md, SETUP.md
+- Vite version corrected from 5 to 8 across README.md, ARCHITECTURE.md, WEB_UI.md (package.json specifies `^8.1.4`)
+- Added "Supply Chain Security" section to README.md
+- ROADMAP.md date updated to 2026-08-06
+
+---
+
 ## [6.2.7] — Test Suite Fixes: Vitest, Playwright E2E, Component Crashes
 
 ### Fixed — Web UI component crashes (positions object vs array, 14 components)

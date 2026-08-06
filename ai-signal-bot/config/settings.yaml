@@ -93,7 +93,6 @@ indicators:
   macd_signal: 9
   atr_period: 14                 # Used for SL/TP volatility-based sizing
   adx_period: 14
-  vwap_enabled: true
 
 # Database
 database:

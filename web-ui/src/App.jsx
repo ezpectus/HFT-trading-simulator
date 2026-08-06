@@ -223,14 +223,14 @@ export default function App() {
   const currentPrice = exchange.prices[selectedExchange]?.[selectedSymbol] || 0
 
   // Calculate price change from recent candles
-  const priceChange = useMemo(() => {
+  const priceChange = (() => {
     const candles = chartCandles
     if (candles.length < 2) return 0
     const first = candles[0].close
     const last = candles[candles.length - 1].close
     if (first === 0) return 0
     return ((last - first) / first) * 100
-  }, [chartCandles])
+  })()
 
   // Sync derived data to Zustand store (for PanelContainer + registry)
   useEffect(() => {

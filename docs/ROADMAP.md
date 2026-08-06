@@ -1,7 +1,7 @@
 # Roadmap — Plan развития проекта
 
-> **Обновлено:** 2026-07-15
-> **Статус проекта:** C++20 HFT движок, Python AI (34+ стратегий), 191+ панелей, полный CI/CD
+> **Обновлено:** 2026-08-06
+> **Статус проекта:** C++20 HFT движок, Python AI (34+ стратегий), 197 панелей, полный CI/CD
 
 ---
 
@@ -91,9 +91,8 @@
 - ✅ SHM IPC (Python ↔ C++)
 - ✅ 34+ AI стратегий (8-stage pipeline)
 - ✅ LLM Engine (GPT + rule-based fallback)
-- ✅ 191+ web UI панелей
-- ✅ TypeScript migration (hooks + utils)
-- ✅ i18n RU/EN
+- ✅ 197 web UI панелей
+- ✅ Partial TypeScript migration (12/16 hooks, 4/7 utils in .ts)
 - ✅ Bandit + CodeQL security scans
 - ✅ Automated GitHub Releases
 - ✅ Staging environment (docker-compose.staging.yml)
@@ -101,13 +100,13 @@
 - ✅ Architecture diagrams
 - ✅ Coverage badges (Codecov)
 - ✅ Options Strategy P&L Simulator
-- ✅ Custom indicator plugin system
-- ✅ Shareable backtest links
-- ✅ Binance testnet integration
+- [x] **Custom indicator plugin system**
+- [x] **Binance testnet integration**
 - ✅ Telegram/Discord bot
 - ✅ Funding rate arbitrage detector
 - ✅ Nightly walk-forward backtest CI
 - ✅ Load testing (10k+ msg/sec)
 - ✅ Chaos testing (reconnect verification)
+- ✅ Shareable backtest links (base64-encoded URL fragment)
 - ✅ 10 rounds of hot-path optimizations (34 optimizations, 23 walkthrough examples)
 - ✅ Future optimization ideas documented (SIMD, io_uring, thread pinning, SPSC ring buffer, JIT)

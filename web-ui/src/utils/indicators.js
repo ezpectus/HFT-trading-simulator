@@ -386,15 +386,16 @@ export function calcADX(highs, lows, closes, period = 14) {
     const dx = (pdi[i] + mdi[i]) > 0
       ? Math.abs(pdi[i] - mdi[i]) / (pdi[i] + mdi[i]) * 100 : 0
 
-    if (i >= period * 2) {
-      // Simple smoothing for ADX
+    if (i === period * 2) {
       let dxSum = 0
-      for (let j = i - period + 1; j <= i; j++) {
+      for (let j = period + 1; j <= period * 2; j++) {
         const p = pdi[j], m = mdi[j]
         const d = (p + m) > 0 ? Math.abs(p - m) / (p + m) * 100 : 0
         dxSum += d
       }
       adx[i] = dxSum / period
+    } else if (i > period * 2) {
+      adx[i] = (adx[i - 1] * (period - 1) + dx) / period
     }
   }
   return { adx, pdi, mdi }

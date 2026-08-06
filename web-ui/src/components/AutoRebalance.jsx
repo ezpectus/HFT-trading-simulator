@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { RefreshCw, Play, Info } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -8,7 +8,7 @@ export default function AutoRebalance({ accounts, candles, symbols, exchange, on
   const [rebalanceLog, setRebalanceLog] = useState([])
 
   // Initialize default equal weights
-  useMemo(() => {
+  useEffect(() => {
     if (Object.keys(targetWeights).length === 0 && symbols.length > 0) {
       const w = {}
       symbols.forEach(s => { w[s] = 100 / symbols.length })

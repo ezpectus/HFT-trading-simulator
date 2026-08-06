@@ -83,9 +83,7 @@ export default function CompetitionFramework() {
       const res = runMockTournament(strategies, seed)
       setResults(res)
       setRunning(false)
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ timestamp: Date.now(), results: res }))
-      } catch { /* ignore */ }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ timestamp: Date.now(), results: res }))
     }, 800)
   }
 

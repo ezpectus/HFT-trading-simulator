@@ -135,7 +135,9 @@ class MarketMicrostructure:
         effective_vol = np.sqrt(vol) * vol_scale * intraday_mult
 
         # Student-t return (fat tails)
-        t_sample = self._sample_student_t(self.config.student_t_df)
+        t_sample = self._sample_student_t(self.config.student_t_df) / np.sqrt(
+            self.config.student_t_df / (self.config.student_t_df - 2.0)
+        )
         drift = regime_params["drift"]
         ret = drift * dt + effective_vol * t_sample * np.sqrt(dt)
 

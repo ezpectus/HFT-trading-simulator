@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Trash2, Sliders, Code, Play, Save } from 'lucide-react'
 
 const PRESETS = [
@@ -59,10 +59,7 @@ export default function CustomIndicatorPlugin({ candles, symbol }) {
   const [error, setError] = useState('')
   const [result, setResult] = useState([])
 
-  const candleData = useMemo(() => {
-    if (!candles || !candles[symbol]) return null
-    return candles[symbol]
-  }, [candles, symbol])
+  const candleData = candles?.[symbol] || null
 
   const computeSMA = (values, period) => {
     const result = []

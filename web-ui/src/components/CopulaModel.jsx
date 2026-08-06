@@ -30,10 +30,10 @@ import React, { useMemo, useState } from 'react'
 
 // Empirical CDF (rank-based)
 const empiricalCDF = (values) => {
-  const sorted = [...values].sort((a, b) => a - b)
+  const n = values.length
   return values.map(v => {
-    const idx = sorted.indexOf(v)
-    return (idx + 1) / (values.length + 1)
+    const count = values.filter(x => x <= v).length
+    return count / (n + 1)
   })
 }
 
@@ -124,15 +124,7 @@ const gumbelCDF = (u, v, theta) => {
 // Gaussian copula CDF (bivariate normal)
 const gaussianCopulaCDF = (u, v, rho) => {
   const x = normInv(u), y = normInv(v)
-  // Bivariate normal CDF approximation
-  const a = 1 / Math.sqrt(1 - rho * rho)
-  const apx = a * x
-  const bpy = a * rho * y
-  // Drezner-Priestley approximation
-  const m = x * y
-  const r = rho
-  const cdf = bivariateNormalCDF(x, y, r)
-  return cdf
+  return bivariateNormalCDF(x, y, rho)
 }
 
 // Drezner-Priestley bivariate normal CDF

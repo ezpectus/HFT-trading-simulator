@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Play, Square, Clock } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -17,7 +17,7 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
   const [progress, setProgress] = useState({ sent: 0, filled: 0, avgPrice: 0 })
   const [log, setLog] = useState([])
 
-  const sliceQty = useMemo(() => slices > 0 ? totalQty / slices : 0, [totalQty, slices])
+  const sliceQty = slices > 0 ? totalQty / slices : 0
   const sliceIdxRef = useRef(0)
   const intervalRef = useRef(null)
   const pricesRef = useRef([])

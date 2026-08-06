@@ -40,7 +40,6 @@
 #include "exchange/OKXAdapter.h"
 #include "execution/adaptive_order_selector_v2.h"
 #include "execution/order_executor.h"
-#include "execution/order_type_selector.h"
 #include "execution/smart_order_router_v2.h"
 #include "ipc/shm_fill_producer.h"
 #include "ipc/shm_market_data.h"

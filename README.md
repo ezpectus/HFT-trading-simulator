@@ -3,18 +3,18 @@
 ![CI](https://img.shields.io/github/actions/workflow/status/ezpectus/HFT-TradeBot--Lite-version/ci.yml?branch=main&label=CI)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-61dafb.svg)
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
-![Tests](https://img.shields.io/badge/tests-2600%2B%20cases-6e9f18.svg)
+![Tests](https://img.shields.io/badge/tests-114%2B%20files-6e9f18.svg)
 ![Roadmap](https://img.shields.io/badge/roadmap-6%2F6%20phases%20done-00C853.svg)
 ![Strategies](https://img.shields.io/badge/strategies-34%2B-FF6B35.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 ![Live Demo](https://img.shields.io/badge/demo-coming%20soon-orange.svg)
-![Panels](https://img.shields.io/badge/panels-191+-61dafb.svg)
+![Panels](https://img.shields.io/badge/panels-197-61dafb.svg)
 ![Math Models](https://img.shields.io/badge/math%20models-75+-a855f7.svg)
 ![Languages](https://img.shields.io/badge/languages-C%2B%2B20%20%7C%20Python%20%7C%20React-00599C.svg)
 ![Security](https://img.shields.io/badge/security-Bandit%20%2B%20CodeQL-red.svg)
-![Optimizations](https://img.shields.io/badge/optimizations-40%20in%2010%20rounds-00C853.svg)
+![Optimizations](https://img.shields.io/badge/optimizations-34%20in%2010%20rounds-00C853.svg)
 
-> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 75+ quant models, 191+ dashboard panels, ONNX ML inference, Rust executor, CUDA acceleration, and shared-memory IPC. Zero real money, zero risk, 100% educational.**
+> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 75+ quant models, 197 dashboard panels, ONNX ML inference, Rust executor, CUDA acceleration, and shared-memory IPC. Zero real money, zero risk, 100% educational.**
 
 **Live Demo:** _coming soon_ | **Documentation:** [docs/](docs/) | **Setup:** [docs/SETUP.md](docs/SETUP.md) | **Math Models:** [docs/MATH_MODELS.md](docs/MATH_MODELS.md) | **Performance:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
 
@@ -55,7 +55,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 
 ### Production Engineering
 - **Docker Compose** with health checks, restart policies, resource limits
-- **CI/CD** — 13 GitHub Actions jobs (lint, test, build, security, Windows) with `timeout-minutes`, `fail-fast: false`, `concurrency` groups, minimal `permissions`, and `fetch-depth: 0` for CodeQL
+- **CI/CD** — 16 GitHub Actions jobs (lint, test, build, security, Windows, E2E) with `timeout-minutes`, `fail-fast: false`, `concurrency` groups, minimal `permissions`, and `fetch-depth: 0` for CodeQL
 - **Prometheus + Grafana** — metrics, alerting, dashboards
 - **Helm chart** — 8-service Kubernetes deployment with TLS ingress
 - **Property-based testing** — random market data + invariant checking
@@ -101,9 +101,8 @@ This project is designed as a **hands-on HFT learning platform**. Each component
   ┌─────────────────────────────────────────────────────────────┐
   │                      WEB UI (React 18)                       │
   │                                                              │
-  │  • 191+ Panels    • PWA    • WCAG AA    • Mock Data Mode     │
+  │  • 197 Panels    • PWA    • WCAG AA    • Mock Data Mode     │
   │  • Backtest Comparison    • Reconnect Banner    • Greeks     │
-  │  • Interactive Tutorials    • Notifications Hub              │
   └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -158,9 +157,9 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | **Bayesian** | HMC, BOCPD, Black-Litterman, Bayesian Ridge |
 | **Other** | Kelly Criterion, Copula (Clayton/Gumbel/Gaussian/Student-t), Optimal Stopping (Snell), Affine Arithmetic, Stone-Cech, Arzela-Ascoli |
 
-### Web UI (191+ panels)
+### Web UI (197 panels)
 
-- **React.lazy code splitting** — all 191+ panels lazy-loaded with Suspense fallbacks
+- **React.lazy code splitting** — all 197 panels lazy-loaded with Suspense fallbacks
 - **ChunkRetryBoundary** — automatic retry on chunk load failure (3 retries with backoff)
 - **Preload-on-hover** — hovering a category preloads all panels in that category
 - **VirtualList** — windowed list rendering for large datasets
@@ -169,23 +168,21 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **OrderForm validation** — quantity validation with visual feedback, margin exceedance warning, disabled submit on invalid input
 - **SignalFeed filter** — All/Long/Short direction filter with filtered count
 - **Toast notifications** — auto-dismiss with visual progress bar, 5-toast cap, role="alert" accessibility
-- **Loading skeletons** — SkeletonRow, SkeletonCard, SkeletonTable, LoadingSpinner with shimmer animation
-- **Dark/light/auto theme** — CSS variables, persisted in localStorage, auto-mode by system theme (ThemeProvider.jsx)
+- **Loading skeletons** — EmptyState component with shimmer animation
+- **Dark/light/auto theme** — CSS variables, persisted in localStorage, auto-mode by system theme (useTheme.ts)
 - **Backtest Comparison** — side-by-side results from multiple backtest runs with 12 metrics, equity curve overlay, CSV export, best-value highlighting
 - **Reconnect Banner** — animated SVG countdown ring, urgency color-coding (yellow→orange→red), attempt counter, hover glow
-- **Interactive Tutorials** — step-by-step tutorials with code snippets, tips, quizzes, completion tracking
 - **Strategy Marketplace** — JSON strategy import/export, 3 builtin strategies, tag filtering, file upload
 - **Session Replay** — record/live playback with seek slider, play/pause, speed control (0.5x-10x), equity curve
 - **Session Report Export** — PDF/HTML report with equity curve, trade table, 8 performance metrics
 - **Strategy Competition** — round-robin tournament with ELO ratings, leaderboard, win/loss/draw tracking
-- **Notifications Hub** — unified alerts with filtering, sound, desktop notifications
 - **Multi-monitor** — detachable panels via popup windows with live data
 - **Keyboard shortcuts** — 1/2/3 exchange, Q/W/E symbol, Space pause, A/B/S/R/P/F/H/T tab switching, Shift+\ sidebar toggle, ? help
 - **CLI monitors** — 4 monitor scripts (signal feed, HFT status, error viewer, price tracker)
 - **PWA** — installable, offline-capable via vite-plugin-pwa with Workbox caching
 - **Accessibility (WCAG AA)** — ARIA roles, keyboard navigation, skip-to-content link, focus-visible rings, reduced-motion support, aria-pressed on toggles, aria-live on connection status
 - **Mock data mode** — `VITE_MOCK_MODE=true` generates synthetic market data for standalone demo without backend
-- **Web Worker** — heavy indicator calculations offloaded to compute.worker.js
+- **Web Worker** — heavy indicator calculations offloaded to web worker (planned)
 - **Performance hooks** — useDebouncedValue, useThrottledCallback, useBatchedUpdates, useIntersectionObserver
 
 ### Exchange Simulator
@@ -237,14 +234,14 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 ### Infrastructure
 
 - **Docker Compose** — 4-service orchestration with health checks, restart policies, and `depends_on: condition: service_healthy`
-- **CI/CD** (GitHub Actions) — Python tests, C++ build (gcc-13 + clang-17 + MSVC Windows), JS tests + coverage, bundle analysis, Docker build, dependency audit, Netlify deploy
+- **CI/CD** (GitHub Actions) — Python tests, C++ build (gcc-14 + clang-17 + MSVC Windows), JS tests + coverage, bundle analysis, Docker build, dependency audit, Netlify deploy
 - **CI/CD Scripts** — `ci-test.bat` / `ci-test.sh` for local full-pipeline testing (8 stages: Python, C++, Rust, JS)
 - **Benchmark Suite** — `scripts/benchmark_suite.py` measures p50/p95/p99/p999 latency per component, JSON output
 - **Walk-Forward CI** — `scripts/walk_forward_ci.py` nightly Sharpe degradation checker with alert thresholds
 - **Property-based Testing** — C++ random market data generation + invariant checking (SL/TP always closes, PnL consistency)
 - **Docker Hub Images** — `docker-compose.hub.yml` uses pre-built images (no compilation needed). All Dockerfiles include `HEALTHCHECK` and `.dockerignore`.
 - **Cross-platform** — C++ engine compiles on MSVC (Windows), GCC (Linux), and Clang (macOS). Shared memory IPC auto-detects Windows (`CreateFileMappingW`) vs POSIX (`shm_open`). Python SHM uses `mmap` with `tagname` on Windows.
-- **Vitest** — 525+ tests across 38 test files covering indicators, format utils, GARCH, Kalman, HMM, cointegration, K-Means, registry, VirtualList, component rendering, error boundaries, hooks
+- **Vitest** — 38 test files covering indicators, format utils, GARCH, Kalman, HMM, cointegration, K-Means, registry, VirtualList, component rendering, error boundaries, hooks
 - **Prometheus** — metrics endpoint on exchange simulator
 - **PostgreSQL** — optional database backend
 - **WebSocket compression** — per-message deflate
@@ -286,10 +283,10 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | SHM IPC latency | ~1-5 us | Zero-copy C++ ↔ Python, packed structs |
 | Web UI bundle size (dist) | < 5 MB | Code-split, lazy-loaded panels |
 | Web UI initial render | < 1s | Vite + React 18 |
-| Test coverage | 525+ JS, 30+ C++, 50+ Python | Unit + integration + E2E |
-| Panel count | 191+ registered panels | Detachable, responsive |
+| Test coverage | 38 JS files, 47 C++ files, 30+ Python files | Unit + integration + E2E |
+| Panel count | 197 registered panels | Detachable, responsive |
 | Math models | 75+ advanced quantitative models | Black-Scholes to Heston |
-| Component files | 201+ React components | |
+| Component files | 223 React components | |
 | Optimization walkthroughs | 23 examples | Before/after code + impact analysis |
 
 > See [Performance Guide](docs/PERFORMANCE.md) for detailed optimization techniques, latency budget breakdown, and benchmarking instructions.
@@ -302,8 +299,8 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 
 ```bat
 REM 1. Clone the repository
-git clone https://github.com/ezpectus/HFT-trading-simulator.git
-cd HFT-trading-simulator
+git clone https://github.com/ezpectus/HFT-TradeBot--Lite-version.git
+cd HFT-TradeBot--Lite-version
 
 REM 2. Install all dependencies (Python + C++ + Node.js)
 install-deps.bat
@@ -318,8 +315,8 @@ Open **http://localhost:3000** in your browser.
 ### Linux/macOS
 
 ```bash
-git clone https://github.com/ezpectus/HFT-trading-simulator.git
-cd HFT-trading-simulator
+git clone https://github.com/ezpectus/HFT-TradeBot--Lite-version.git
+cd HFT-TradeBot--Lite-version
 
 # Install all dependencies
 ./no-docker.sh install
@@ -331,8 +328,8 @@ cd HFT-trading-simulator
 ### Docker
 
 ```bash
-git clone https://github.com/ezpectus/HFT-trading-simulator.git
-cd HFT-trading-simulator
+git clone https://github.com/ezpectus/HFT-TradeBot--Lite-version.git
+cd HFT-TradeBot--Lite-version
 docker-compose up
 ```
 
@@ -362,10 +359,12 @@ VITE_MOCK_MODE=true npm run dev
 ### Market Data & Charts
 
 ![Market Data](web-ui/screenshots/panel-market-data.png)
+> _Screenshot coming soon_
 
 ### Order Book
 
 ![Order Book](web-ui/screenshots/panel-orderbook.png)
+> _Screenshot coming soon_
 
 ### Backtest Runner
 
@@ -374,10 +373,12 @@ VITE_MOCK_MODE=true npm run dev
 ### Signal Engine
 
 ![Signal Engine](web-ui/screenshots/panel-signal-engine.png)
+> _Screenshot coming soon_
 
 ### Positions
 
 ![Positions](web-ui/screenshots/panel-positions.png)
+> _Screenshot coming soon_
 
 ### Mobile View
 
@@ -393,6 +394,7 @@ VITE_MOCK_MODE=true npm run dev
 > Save as `docs/demo.gif` and embed below:
 
 ![Demo GIF](docs/demo.gif)
+> _Demo GIF coming soon_
 
 ---
 
@@ -405,7 +407,7 @@ VITE_MOCK_MODE=true npm run dev
 | HFT Trade Bot | C++20 | Boost, websocketpp, spdlog, fmt, nlohmann/json, yaml-cpp, ONNX Runtime |
 | Rust Executor | Rust 1.75 | crossbeam, tokio, serde, cxx |
 | GPU Acceleration | CUDA 12 | cuBLAS, custom kernels |
-| Web UI | JavaScript (ES2021) | React 18, Vite 5, TailwindCSS 3, lightweight-charts 4, lucide-react |
+| Web UI | JavaScript (ES2021) | React 18, Vite 8, TailwindCSS 3, lightweight-charts 4, lucide-react |
 | Communication | - | WebSocket (JSON/MessagePack), per-message deflate, SHM IPC |
 | Database | - | SQLite (WAL mode), PostgreSQL (optional), Redis (feature store) |
 | Containerization | - | Docker, docker-compose, Helm (Kubernetes) |
@@ -451,14 +453,14 @@ hft-trading-system/
 │   │   ├── fix/                     # FIX 4.4 protocol
 │   │   ├── exchange/               # Binance, OKX, Bybit adapters
 │   │   └── utils/                   # Low-latency primitives (SPSC, spinlock, pool)
-│   ├── tests/                       # C++ unit tests (30+)
+│   ├── tests/                       # C++ unit tests (47 files)
 │   ├── config/config.yaml
 │   ├── CMakeLists.txt
 │   └── Dockerfile
 ├── web-ui/                          # React 18: browser dashboard (210+ files)
 │   ├── src/
-│   │   ├── components/              # 191+ UI components (React.lazy)
-│   │   ├── test/                    # Vitest test suite (525+ tests, 38 files)
+│   │   ├── components/              # 223 UI components (React.lazy)
+│   │   ├── test/                    # Vitest test suite (38 files)
 │   │   ├── panels/                  # Panel registry + container
 │   │   ├── hooks/                   # WebSocket, exchange, signals, theme, performance
 │   │   └── utils/                   # Indicators, performance, format, mock data
@@ -484,13 +486,13 @@ hft-trading-system/
 ├── verify.bat                       # Verification script (Python + C++ + JS tests)
 ├── no-docker.bat / no-docker.sh     # Start all 4 services without Docker (Windows + Linux)
 ├── docker.bat / docker.sh           # Production Docker management (up, down, build, logs, ps)
-├── start.bat / start.sh             # Quick-start scripts (8 windows: 4 services + 4 monitors)
+├── start.bat / start.sh             # Quick-start scripts (Windows: 6 windows, Linux: 8 windows)
 ├── .env.prod.example                # Production environment template
 ├── helm/                            # Kubernetes Helm chart (8 services, ingress, TLS)
 ├── monitoring/                      # Prometheus config + Grafana dashboards
 ├── .editorconfig
 ├── .gitignore
-├── docs/                            # Documentation (17 files)
+├── docs/                            # Documentation (21 files)
 ├── .github/                         # CI workflows + issue/PR templates (bug, feature, good-first-issue)
 ├── CONTRIBUTING.md                  # Architecture guide, coding standards, PR process
 ├── README.md
@@ -553,7 +555,7 @@ See [Makefile.prod](Makefile.prod) for all production commands.
 
 ## CLI Monitor Windows
 
-`start.bat` (Windows) and `start.sh` (Linux) open 8 terminal windows:
+`start.bat` (Windows, 6 windows) and `start.sh` (Linux, 8 windows) open terminal windows:
 
 ### Service Windows (4)
 
@@ -603,7 +605,7 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 | [Trading Strategies](docs/TRADING_STRATEGIES.md) | All strategies, HFT V2/V3 engine, pressure model, routing |
 | [WebSocket Protocol](docs/WEBSOCKET_PROTOCOL.md) | All 29 message types, v2 schema, compression, reconnection, lifecycle |
 | [Performance Guide](docs/PERFORMANCE.md) | Optimization techniques, latency budget, benchmarking, contributor checklist |
-| [Web UI](docs/WEB_UI.md) | 191+ panels, performance, testing, accessibility, PWA |
+| [Web UI](docs/WEB_UI.md) | 197 panels, performance, testing, accessibility, PWA |
 | [Exchange Simulator](docs/EXCHANGE_SIMULATOR.md) | Price generation, order book, liquidation engine |
 | [Setup Guide](docs/SETUP.md) | Installation, mock mode, troubleshooting |
 | [Mathematical Models](docs/MATH_MODELS.md) | Detailed breakdown of all 75+ quant models with formulas and file references |
@@ -634,10 +636,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, testin
 
 ## HFT Skills — AI Knowledge Base
 
-This project includes [`hft-skills/`](hft-skills/README.md) — a library of **538+ production-grade skills** for AI agents working on HFT systems. Skills cover 7 domains:
+This project includes [`hft-skills/`](hft-skills/README.md) — a planned library of AI agent skills for HFT systems. The directory structure covers 7 domains (skill files coming soon):
 
-| Domain | Skills | Focus |
-|--------|--------|-------|
+| Domain | Planned | Focus |
+|--------|---------|-------|
 | `coding-skills/` | 15 | Clean Code, SOLID, DDD, Microservices, Testing |
 | `skills/` | 152 | Lock-free queues, SHM IPC, WebSocket, FIX, SIMD, CUDA |
 | `patterns/` | 94 | GoF, Distributed, Resilience, SDLC patterns |
@@ -646,7 +648,7 @@ This project includes [`hft-skills/`](hft-skills/README.md) — a library of **5
 | `algorithms/` | 48 | VWAP/TWAP, Smart Order Router, Market Making, Arbitrage |
 | `audit/` | 10 | Concurrency, Memory safety, Latency, Security audits |
 
-Each skill follows the [agentskills.io](https://agentskills.io) standard with YAML frontmatter for fast discovery. Compatible with Claude Code, Cursor, Windsurf, GitHub Copilot, and any MCP-compatible agent.
+Skills will follow the [agentskills.io](https://agentskills.io) standard with YAML frontmatter for fast discovery. Compatible with Claude Code, Cursor, Windsurf, GitHub Copilot, and any MCP-compatible agent.
 
 ---
 
@@ -674,6 +676,21 @@ Each skill follows the [agentskills.io](https://agentskills.io) standard with YA
 
 ### FIX port conflicts
 - Default FIX port is 8767; check no other process is using it
+
+---
+
+## Supply Chain Security
+
+All project dependencies have been verified against official registries (PyPI, npm, crates.io):
+
+- **48 unique packages** checked across Python (`requirements.txt`, `requirements-dev.txt`), npm (`package.json`), and Rust (`Cargo.toml`)
+- **No typosquatting** — all package names match official registry entries exactly
+- **No fake/malicious packages** — every package verified on PyPI, npmjs.com, or crates.io with significant download counts
+- **Lock files present** — `package-lock.json` (npm) and `Cargo.lock` (Rust) provide hash verification
+- **No registry redirection** — no `.npmrc` or `pip.conf` found pointing to third-party registries
+- **Optional dependencies guarded** — `torch`, `scikit-learn`, `scipy`, `optuna`, `redis`, `asyncpg`, `ccxt`, `structlog`, `opentelemetry` all use `try/except ImportError` fallbacks
+
+**Recommendation:** Add `pip-compile --generate-hashes` or `uv lock` for Python hash pinning (currently missing — pip does not verify package hashes without `--require-hashes`).
 
 ---
 

@@ -163,6 +163,7 @@ docs/ARCHITECTURE_ROADMAP.md
 docs/PLANNING_NON_TECHNICAL.md
 docs/HFT_OPTIMIZATION_IDEAS.md
 docs/MASTERPLAN.md
+audit/
 
 # ─── HFT skills (internal knowledge base, not for public repo) ───
 hft-skills/

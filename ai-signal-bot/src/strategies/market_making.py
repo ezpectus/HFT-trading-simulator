@@ -63,6 +63,7 @@ class MarketMakingStrategy:
         self.order_count: int = 0
         self.total_pnl: float = 0.0
         self._prev_price: float = 0.0
+        self._last_sigma: float = self.config.sigma
 
     def update_inventory(self, delta: float) -> None:
         """Update inventory after a fill."""
@@ -87,15 +88,14 @@ class MarketMakingStrategy:
 
     def _reservation_price(self, mid: float, t: float) -> float:
         """Avellaneda-Stoikov reservation price."""
-        sigma = self._estimate_volatility(mid)
+        self._last_sigma = self._estimate_volatility(mid)
         q = self.inventory
         gamma = self.config.gamma
         # r = s - q * gamma * sigma^2 * (T - t)
-        return mid - q * gamma * sigma * sigma * (self.config.T - t)
+        return mid - q * gamma * self._last_sigma * self._last_sigma * (self.config.T - t)
 
-    def _optimal_spread(self, t: float) -> float:
+    def _optimal_spread(self, sigma: float, t: float) -> float:
         """Avellaneda-Stoikov optimal spread."""
-        sigma = self._estimate_volatility(1.0)  # Vol doesn't depend on price level
         gamma = self.config.gamma
         k = self.config.k
         T_t = self.config.T - t
@@ -118,7 +118,7 @@ class MarketMakingStrategy:
         if self.inventory >= self.config.max_inventory:
             # Only quote ask side
             r = self._reservation_price(mid_price, t)
-            spread = self._optimal_spread(t)
+            spread = self._optimal_spread(self._last_sigma, t)
             ask = r + spread / 2
             return Quote(
                 bid_price=0, ask_price=ask, bid_size=0, ask_size=1.0,
@@ -127,7 +127,7 @@ class MarketMakingStrategy:
             )
         elif self.inventory <= -self.config.max_inventory:
             r = self._reservation_price(mid_price, t)
-            spread = self._optimal_spread(t)
+            spread = self._optimal_spread(self._last_sigma, t)
             bid = r - spread / 2
             return Quote(
                 bid_price=bid, ask_price=0, bid_size=1.0, ask_size=0,
@@ -137,7 +137,7 @@ class MarketMakingStrategy:
 
         # Normal quoting
         r = self._reservation_price(mid_price, t)
-        spread = self._optimal_spread(t)
+        spread = self._optimal_spread(self._last_sigma, t)
         spread = min(max(spread, self.config.min_spread), self.config.max_spread)
 
         bid = r - spread / 2

@@ -244,7 +244,7 @@ class OrderBookRealism:
         remaining = qty
         side_book = self.asks if side == "BUY" else self.bids  # BUY takes from asks
 
-        prices = sorted(side_book.keys())
+        prices = sorted(side_book.keys(), reverse=(side == "SELL"))
         for price in prices:
             if remaining <= 0:
                 break

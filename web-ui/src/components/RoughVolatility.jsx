@@ -101,7 +101,7 @@ const simulateRBergomi = (H, eta, rho, xi0, T, nSteps, nPaths = 50) => {
 
     for (let t = 1; t < nSteps; t++) {
       const tH = Math.pow(t * dt, 2 * H)
-      vol[t] = xi0 * Math.exp(eta * W_H[t] * Math.sqrt(dt) - 0.5 * eta * eta * tH)
+      vol[t] = xi0 * Math.exp(eta * W_H[t] * Math.pow(dt, H) - 0.5 * eta * eta * tH)
 
       // Price: dS = S·√v·dW
       const volT = Math.sqrt(Math.max(0, vol[t]))

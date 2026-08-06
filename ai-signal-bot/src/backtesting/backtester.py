@@ -278,7 +278,7 @@ class Backtester:
             if len(returns) > 1:
                 mean_ret = sum(returns) / len(returns)
                 std_ret = (sum((r - mean_ret) ** 2 for r in returns) / (len(returns) - 1)) ** 0.5
-                result.sharpe_ratio = (mean_ret / std_ret * (252 ** 0.5)) if std_ret > 0 else 0
+                result.sharpe_ratio = (mean_ret / std_ret * (252 ** 0.5)) if std_ret > 0 else 0  # Assumes ~1 trade/day
 
                 # Sortino ratio — like Sharpe but only downside deviation
                 downside_returns = [r for r in returns if r < 0]

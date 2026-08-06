@@ -2,7 +2,7 @@
 
 ## Overview
 
-The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 201+ React components, 191+ registered UI panels, 75+ advanced mathematical models, PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
+The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 201+ React components, 196 registered UI panels, 75+ advanced mathematical models, PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
 
 ```mermaid
 graph TB
@@ -26,7 +26,7 @@ graph TB
     end
 
     subgraph "Web UI (React 18)"
-        UI["Web UI Dashboard<br/>201+ Components | 191+ Panels<br/>75+ Math Models | 7 Categories<br/>React.lazy | PWA | Web Worker<br/>Vitest | WCAG AA | Mock Mode"]
+        UI["Web UI Dashboard<br/>201+ Components | 196 Panels<br/>75+ Math Models | 7 Categories<br/>React.lazy | PWA | Web Worker<br/>Vitest | WCAG AA | Mock Mode"]
         UI --- WS8765
         UI --- WS8766
         UI -->|Orders| WS8765
@@ -280,8 +280,8 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 
 ### 4. Web UI Dashboard (`web-ui/`)
 
-**Language:** JavaScript (React 18 + Vite 5)
-**Role:** Browser-based trading dashboard with 201+ components and 191+ registered panels
+**Language:** JavaScript (React 18 + Vite 8)
+**Role:** Browser-based trading dashboard with 201+ components and 196 registered panels
 
 | Feature | Implementation |
 |---------|---------------|
@@ -320,9 +320,9 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 | Accessibility | WCAG AA: ARIA roles, keyboard nav, skip-to-content, focus-visible, reduced-motion, aria-live |
 | Keyboard shortcuts | 1/2/3 exchange, Q/W/E symbol, Space pause, A/B/S/R/P/F/H/T tab switching, ? help overlay |
 | Error handling | PanelErrorBoundary with error count tracking, auto-disable after 3+ errors, re-enable option |
-| Loading states | SkeletonRow, SkeletonCard, SkeletonTable, LoadingSpinner, EmptyState with shimmer animation |
+| Loading states | EmptyState component with shimmer animation |
 | Toast notifications | Auto-dismiss with visual progress bar, 5-toast cap, role="alert" for accessibility, clearAll button when 2+ toasts |
-| Testing | Vitest test framework (37 test files, 458+ tests) with @testing-library/react + jsdom |
+| Testing | Vitest test framework (38 test files, 458+ tests) with @testing-library/react + jsdom |
 | State persistence | useLocalStorage generic hook (theme, panel visibility, trade journal, watchlist, sort preferences) |
 | Search & filter | SignalFeed symbol/reason search, FillsPanel symbol/side/exchange search, ArbitragePanel symbol/exchange search, PriceComparison symbol search — all with useDebounce (300ms) |
 | Sortable tables | Watchlist (symbol/price/change%), AccountPanel leaderboard (PnL/win%/balance), TradeHistory (date/PnL/symbol), PerformanceDashboard per-exchange (PnL/win%/balance) |
@@ -332,7 +332,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 
 **Key files:**
 - `src/App.jsx` — Main layout with tabbed panels, keyboard shortcuts, toast notifications, sound alerts
-- `src/panels/registry.js` — Panel registry (191+ panels, 7 categories, 201+ component imports)
+- `src/panels/registry.js` — Panel registry (197 panels, 7 categories, 201+ component imports)
 - `src/panels/PanelContainer.jsx` — ErrorBoundary + Suspense per panel, collapsible categories, localStorage visibility
 - `src/components/VirtualList.jsx` — Generic windowed list renderer with overscan
 - `src/hooks/useWebSocket.js` — Generic WebSocket hook with exponential backoff auto-reconnect
@@ -377,7 +377,7 @@ All sidebar analytic/strategy panels are registered in `src/panels/registry.js` 
 
 - **Zero-touch extensibility** — Adding a panel = 1 entry in registry.js, 0 changes to App.jsx
 - **Categorized rendering** — 7 categories: Order Flow, Technical Analysis, Risk and Analytics, Portfolio, Strategy, Export, Config
-- **191+ registered panels** — 201+ component files across all categories
+- **197 registered panels** — 223 component files across all categories
 - **User-toggleable visibility** — Each panel can be shown/hidden, persisted in localStorage
 - **Collapsible categories** — Users can collapse entire sections
 - **ErrorBoundary + Suspense** — Each panel wrapped in ErrorBoundary and Suspense (triple protection)
@@ -427,7 +427,7 @@ Logging
 | Exchange Simulator | Python 3.12, asyncio, websockets | v2.2.0 |
 | AI Signal Bot | Python 3.12, asyncio, SQLite (WAL), matplotlib | v2.2.0 |
 | HFT Trade Bot | C++20, Boost, websocketpp, spdlog, yaml-cpp | v2.0.0 |
-| Web UI | React 18, Vite 5, TailwindCSS 3, lightweight-charts 4, PWA | v2.2.0 |
+| Web UI | React 18, Vite 8, TailwindCSS 3, lightweight-charts 4, PWA | v2.2.0 |
 | Communication | WebSocket (JSON), per-message deflate compression | - |
 | Database | SQLite (WAL mode) — dev, PostgreSQL 16 — prod | - |
 | Caching | Redis 7 (production) | - |
@@ -448,7 +448,7 @@ Logging
 4. **Low-latency design** — C++20 engine with cache-line alignment, lock-free queues, no heap allocations in hot path
 5. **Configurable** — All parameters in YAML config files with validation
 6. **Reproducible** — Random seed for deterministic simulation
-7. **Registry over monolith** — Extensible features use registry pattern (191+ panels, 7 categories)
+7. **Registry over monolith** — Extensible features use registry pattern (197 panels, 7 categories)
 8. **Protocol-first** — Message schemas are versioned and backward-compatible
 9. **Reversibility** — All architectural decisions must be reversible (V1 fallback preserved)
 10. **Error resilience** — ErrorBoundary + Suspense per panel, CircuitBreaker for exchange failures, exponential backoff for reconnections

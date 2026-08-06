@@ -75,8 +75,8 @@ jobs:
           import json, sys, os
           sys.path.insert(0, '.')
           from src.backtesting.backtester import Backtester
-          from src.strategies.trend_following import TrendFollowingStrategy
-          from src.strategies.mean_reversion import MeanReversionStrategy
+          from src.strategies.strategies import TrendFollowingStrategy
+          from src.strategies.strategies import MeanReversionStrategy
 
           # Walk-forward parameters
           WINDOW_DAYS = 30

@@ -89,6 +89,7 @@ interface Fill {
   received_at?: number
   timestamp?: number
   fee?: number
+  pnl?: number
   quantity?: number
   price?: number
   side?: string
@@ -115,7 +116,8 @@ export function buildEquityCurve(fills: Fill[], initialBalance: number = 10000):
 
   for (const fill of sorted) {
     const fee = fill.fee || 0
-    balance -= fee
+    const pnl = fill.pnl || 0
+    balance += pnl - fee
     curve.push({
       time: fill.received_at || fill.timestamp || Date.now(),
       value: balance,
@@ -168,7 +170,7 @@ export function calcSharpeRatio(trades: TradeWithPnl[]): number {
   const stdDev = Math.sqrt(variance)
 
   if (stdDev === 0) return 0
-  return (mean / stdDev) * Math.sqrt(252)
+  return (mean / stdDev) * Math.sqrt(252)  // Assumes ~1 trade/day
 }
 
 export function calcSortinoRatio(trades: TradeWithPnl[]): number {
@@ -180,7 +182,7 @@ export function calcSortinoRatio(trades: TradeWithPnl[]): number {
 
   if (downsidePnls.length === 0) return mean > 0 ? Infinity : 0
 
-  const downsideVariance = downsidePnls.reduce((s, v) => s + v * v, 0) / pnls.length
+  const downsideVariance = downsidePnls.reduce((s, v) => s + v * v, 0) / downsidePnls.length
   const downsideDev = Math.sqrt(downsideVariance)
 
   if (downsideDev === 0) return 0
