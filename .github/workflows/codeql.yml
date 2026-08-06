@@ -3,8 +3,22 @@ name: CodeQL
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'vcpkg/**'
+      - 'web-ui/node_modules/**'
+      - 'websocketpp/**'
+      - '**/*.md'
+      - 'docs/**'
+      - 'audit/**'
   pull_request:
     branches: [master]
+    paths-ignore:
+      - 'vcpkg/**'
+      - 'web-ui/node_modules/**'
+      - 'websocketpp/**'
+      - '**/*.md'
+      - 'docs/**'
+      - 'audit/**'
   schedule:
     - cron: '0 0 * * 0'
 
@@ -30,6 +44,11 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
+          config: |
+            paths-ignore:
+              - 'vcpkg/**'
+              - 'web-ui/node_modules/**'
+              - 'websocketpp/**'
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
