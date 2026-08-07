@@ -107,30 +107,30 @@ describe('Watchlist', () => {
 
   it('shows sort button with default Symbol label', () => {
     render(<Watchlist candles={[]} prices={{}} />)
-    expect(screen.getByText('Symbol')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Symbol/ })).toBeInTheDocument()
   })
 
   it('cycles sort mode on click', () => {
     render(<Watchlist candles={[]} prices={{}} />)
-    const sortButton = screen.getByText('Symbol').closest('button')
+    const sortButton = screen.getByRole('button', { name: /Symbol/ })
     fireEvent.click(sortButton)
-    expect(screen.getByText('Price')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Price/ })).toBeInTheDocument()
   })
 
   it('cycles sort mode through all options', () => {
     render(<Watchlist candles={[]} prices={{}} />)
     // Symbol → Price
-    let sortButton = screen.getByText('Symbol').closest('button')
+    let sortButton = screen.getByRole('button', { name: /Symbol/ })
     fireEvent.click(sortButton)
-    expect(screen.getByText('Price')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Price/ })).toBeInTheDocument()
     // Price → Change %
-    sortButton = screen.getByText('Price').closest('button')
+    sortButton = screen.getByRole('button', { name: /Price/ })
     fireEvent.click(sortButton)
-    expect(screen.getByText('Change %')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Change/ })).toBeInTheDocument()
     // Change % → Symbol
-    sortButton = screen.getByText('Change %').closest('button')
+    sortButton = screen.getByRole('button', { name: /Change/ })
     fireEvent.click(sortButton)
-    expect(screen.getByText('Symbol')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Symbol/ })).toBeInTheDocument()
   })
 
   it('displays price from candles', () => {
@@ -207,7 +207,7 @@ describe('Watchlist', () => {
     ]
     render(<Watchlist candles={candles} prices={{}} />)
     // Cycle to Price sort
-    const sortButton = screen.getByText('Symbol').closest('button')
+    const sortButton = screen.getByRole('button', { name: /Symbol/ })
     fireEvent.click(sortButton)
     // BTC should be first (highest price)
     const symbols = screen.getAllByText(/BTC|ETH|SOL/)

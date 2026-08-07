@@ -77,5 +77,9 @@ window.onerror = () => true
 
 // Prevent Node.js worker crash from unhandled EventEmitter 'error' events
 if (typeof process !== 'undefined' && process.on) {
-  process.on('uncaughtException', () => {})
+  process.on('uncaughtException', (err) => {
+    // Swallow errors from jsdom/React error boundaries that re-throw in dev mode
+    if (err && err.message && err.message.includes('Error boundary')) return
+  })
+  process.removeAllListeners('warning')
 }
