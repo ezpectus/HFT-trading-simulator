@@ -52,6 +52,7 @@ void test_adverse_selection() {
     auto q = mm.generate_quotes(100.0, 0.0, 0.8, 0);
     assert(q.should_cancel);
     assert(q.confidence == 0.0);
+    (void)q;
 
     printf("  [PASS] test_adverse_selection\n");
 }

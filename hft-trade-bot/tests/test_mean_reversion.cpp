@@ -37,6 +37,7 @@ void test_mean_reversion_no_signal() {
         if (i < 100) {
             assert(sig.action == MeanReversionV2::Signal::Action::NONE);
         }
+        (void)sig;
     }
 
     printf("  [PASS] test_mean_reversion_no_signal\n");
@@ -55,6 +56,7 @@ void test_mean_reversion_entry_signal() {
     auto sig = mr.on_price(200'000'000'000ULL, 105.0);
     // z-score should be positive (price above fair value)
     assert(sig.z_score > 0.0 || sig.action == MeanReversionV2::Signal::Action::NONE);
+    (void)sig;
 
     printf("  [PASS] test_mean_reversion_entry_signal\n");
 }
@@ -74,6 +76,7 @@ void test_mean_reversion_exit_signal() {
 
     // After reversion, z-score should be small
     assert(std::abs(sig.z_score) < 3.0);
+    (void)sig;
 
     printf("  [PASS] test_mean_reversion_exit_signal\n");
 }
