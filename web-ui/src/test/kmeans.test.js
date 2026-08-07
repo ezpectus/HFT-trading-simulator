@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for K-Means clustering (K-Means++ init, Lloyd's iterations, silhouette).
  * Tests the core algorithms extracted from KMeansClustering.jsx.

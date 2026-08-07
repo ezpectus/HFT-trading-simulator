@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for Kalman Filter (1D and 2D).
  * Tests the core algorithm extracted from KalmanFilterPrice.jsx.

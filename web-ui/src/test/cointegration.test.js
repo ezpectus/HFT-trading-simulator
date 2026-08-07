@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for Cointegration (Engle-Granger, ADF, z-score).
  * Tests the core algorithms extracted from CointegrationScanner.jsx.

@@ -13,8 +13,8 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.js'],
     pool: 'forks',
     isolate: false,
-    maxWorkers: 1,
-    minWorkers: 1,
+    fileParallelism: false,
+    forceExit: true,
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     server: {
       deps: {

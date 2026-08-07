@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for technical indicators (utils/indicators.js)
  */

@@ -1,4 +1,10 @@
 import '@testing-library/jest-dom/vitest'
+import { cleanup } from '@testing-library/react'
+import { afterEach } from 'vitest'
+
+afterEach(() => {
+  cleanup()
+})
 
 // Mock WebSocket
 class MockWebSocket {
@@ -73,7 +79,9 @@ console.warn = (...args) => {
 }
 
 // Suppress jsdom uncaught error events (error boundaries re-throw in React 18 dev mode)
-window.onerror = () => true
+if (typeof window !== 'undefined') {
+  window.onerror = () => true
+}
 
 // Prevent Node.js worker crash from unhandled EventEmitter 'error' events
 if (typeof process !== 'undefined' && process.on) {

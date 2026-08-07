@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for panel registry — all 197 panels have required metadata.
  */

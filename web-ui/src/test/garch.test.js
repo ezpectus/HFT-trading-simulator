@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for GARCH(1,1) volatility model.
  * Tests the core algorithm extracted from GARCHVolatility.jsx.

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for Hidden Markov Model (Baum-Welch, Viterbi, Forward).
  * Tests the core algorithms extracted from HiddenMarkovModel.jsx.
