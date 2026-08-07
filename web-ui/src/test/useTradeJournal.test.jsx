@@ -5,37 +5,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useTradeJournal, tradeKey } from '../hooks/useTradeJournal'
 
-// Mock useLocalStorage to avoid actual localStorage interactions
-vi.mock('../hooks/useLocalStorage', () => ({
-  useLocalStorage: vi.fn((key, initial) => {
-    let value = initial
-    const setValue = (updater) => {
-      if (typeof updater === 'function') {
-        value = updater(value)
-      } else {
-        value = updater
-      }
-    }
-    const stateRef = { current: value }
-    const getter = () => stateRef.current
-    const setter = (v) => {
-      stateRef.current = typeof v === 'function' ? v(stateRef.current) : v
-    }
-    // Return a tuple-like that updates both ref and local
-    return [
-      new Proxy({}, {
-        get(_, prop) {
-          if (prop === 'then') return undefined
-          return stateRef.current
-        }
-      }),
-      (updater) => {
-        stateRef.current = typeof updater === 'function' ? updater(stateRef.current) : updater
-      }
-    ]
-  })
-}))
-
 describe('tradeKey', () => {
   it('generates key from trade properties', () => {
     const trade = {
@@ -55,9 +24,7 @@ describe('tradeKey', () => {
 })
 
 describe('useTradeJournal', () => {
-  // Use real localStorage for these tests
   beforeEach(() => {
-    vi.unmock('../hooks/useLocalStorage')
     vi.resetModules()
     localStorage.clear()
   })

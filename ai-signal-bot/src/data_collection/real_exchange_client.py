@@ -20,6 +20,16 @@ from dataclasses import dataclass
 logger = logging.getLogger(__name__)
 
 
+def _hmac_sha256_hex(key: bytes, message: bytes) -> str:
+    """Compute HMAC-SHA256 hex digest — used for exchange API request signing."""
+    return hmac.new(key, message, hashlib.sha256).hexdigest()
+
+
+def _hmac_sha256_b64(key: bytes, message: bytes) -> str:
+    """Compute HMAC-SHA256 base64 digest — used for exchange API request signing."""
+    return base64.b64encode(hmac.new(key, message, hashlib.sha256).digest()).decode()
+
+
 @dataclass
 class AccountBalance:
     exchange: str
@@ -71,20 +81,15 @@ class RealExchangeClient:
             self.base_url = base_url
 
     def _sign_binance(self, query_string: str) -> str:
-        return hmac.new(
-            self.api_secret.encode(), query_string.encode(), hashlib.sha256  # codeql[py/weak-crypto] codeql[py/weak-sensitive-data-hashing] Binance API HMAC-SHA256 signing
-        ).hexdigest()
+        return _hmac_sha256_hex(self.api_secret.encode(), query_string.encode())
 
     def _sign_okx(self, timestamp: str, method: str, path: str, body: str = "") -> str:
         msg = f"{timestamp}{method.upper()}{path}{body}"
-        mac = hmac.new(self.api_secret.encode(), msg.encode(), hashlib.sha256)  # codeql[py/weak-crypto] codeql[py/weak-sensitive-data-hashing] OKX API HMAC-SHA256 signing
-        return base64.b64encode(mac.digest()).decode()
+        return _hmac_sha256_b64(self.api_secret.encode(), msg.encode())
 
     def _sign_bybit(self, timestamp: str, recv_window: int, param_str: str) -> str:
         msg = f"{timestamp}{self.api_key}{recv_window}{param_str}"
-        return hmac.new(
-            self.api_secret.encode(), msg.encode(), hashlib.sha256  # codeql[py/weak-crypto] codeql[py/weak-sensitive-data-hashing] Bybit API HMAC-SHA256 signing
-        ).hexdigest()
+        return _hmac_sha256_hex(self.api_secret.encode(), msg.encode())
 
     async def get_balance(self) -> AccountBalance | None:
         """Get account balance."""

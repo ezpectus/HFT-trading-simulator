@@ -65,6 +65,7 @@
   },
   "overrides": {
     "esbuild": "^0.25.0",
-    "fast-uri": ">=4.1.2"
+    "fast-uri": ">=4.1.2",
+    "js-yaml": ">=4.3.1"
   }
 }

@@ -505,9 +505,9 @@ Config Config::load(const std::string& path) {
 
     // ─── Production: symbols (list of objects with name/id/max_leverage) ───
     if (auto syms = root["symbols"]) {
-        if (syms.IsSequence() && !syms.empty() && !syms[0]["name"]) {
+        if (syms.IsSequence() && syms.size() > 0 && !syms[0]["name"]) {
             // Dev format: simple string list
-        } else if (syms.IsSequence() && !syms.empty() && syms[0]["name"]) {
+        } else if (syms.IsSequence() && syms.size() > 0 && syms[0]["name"]) {
             // Prod format: list of objects
             cfg.symbols.clear();
             for (const auto& s : syms) {

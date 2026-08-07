@@ -195,6 +195,7 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgGitCommitId: 1c96eb3cbdd049a4e4e5e0e3b94d67629f3f4b43
+          vcpkgDirectory: ${{ github.workspace }}/vcpkg
       - name: Install C++ libraries via vcpkg
         run: |
           vcpkg install boost-system boost-random openssl spdlog fmt nlohmann-json yaml-cpp --triplet x64-windows

@@ -180,7 +180,7 @@ int main(int argc, char* argv[]) {
         config.max_drawdown_pct,
         config.max_orders_per_second,
         config.min_margin_ratio,
-        config.max_leverage,
+        static_cast<double>(config.max_leverage),
         {}, // blacklisted_symbols (default)
         {}, // per_symbol_max_qty (default)
     });
