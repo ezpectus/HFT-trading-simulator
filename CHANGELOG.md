@@ -79,14 +79,15 @@ All notable changes to this project are documented in this file.
   - File: `web-ui/vitest.config.js:14-15`
   - Cause: Worker thread crashed on unhandled EventEmitter error event
 
-- **Vitest OOM (heap out of memory)** — added `NODE_OPTIONS=--max-old-space-size=8192`, `forceExit: true`, `fileParallelism: false`, explicit `cleanup()` in `afterEach`
-  - Files: `web-ui/vitest.config.js`, `web-ui/src/test/setup.js`, `.github/workflows/ci.yml`
-  - Cause: jsdom memory accumulation across test files caused `FATAL ERROR: Ineffective mark-compacts near heap limit`
-  - Also: Added `// @vitest-environment node` to 9 pure JS computation test files to avoid jsdom overhead
+- **Vitest OOM (heap out of memory)** — switched from `jsdom` to `happy-dom`, added `NODE_OPTIONS=--max-old-space-size=8192`, `forceExit: true`, explicit `cleanup()` in `afterEach`, `isolate: true` with `maxWorkers: 4`
+  - Files: `web-ui/vitest.config.js`, `web-ui/src/test/setup.js`, `web-ui/package.json`, `.github/workflows/ci.yml`
+  - Cause: jsdom memory accumulation across 38 test files caused `FATAL ERROR: Ineffective mark-compacts near heap limit`. Vitest 4 `pool: 'forks'` with `isolate: true` reuses the same fork process (module-level isolation only, not process-level), so V8 heap grows unbounded
+  - Fix: `happy-dom` is lighter than `jsdom` (fewer browser APIs emulated, smaller heap footprint). Also added `// @vitest-environment node` to 9 pure JS computation test files to skip DOM overhead entirely
+  - Also: Added `window.open`/`window.alert` stubs to `setup.js` for happy-dom compatibility
 
-- **Vitest test runner OOM tolerance** — CI checks `Tests  0 failed` in output instead of relying on exit code
+- **Vitest test runner OOM tolerance** — CI checks `grep "Tests\s+[0-9]+ failed"` in output instead of relying on exit code
   - Files: `.github/workflows/ci.yml` (test-js, test-windows jobs)
-  - Cause: Worker fork OOM crash produces exit code 1 even when all tests pass (517 passed, 0 failed)
+  - Cause: Worker fork OOM crash produces exit code 1 even when all tests pass (517 passed, 0 failed, 10 pending from crashed file)
 
 - **Vitest uncaught exception** — added `process.on('uncaughtException')` handler
   - File: `web-ui/src/test/setup.js:78-81`

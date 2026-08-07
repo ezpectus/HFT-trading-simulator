@@ -56,6 +56,12 @@ class MockResizeObserver {
 }
 global.ResizeObserver = MockResizeObserver
 
+// happy-dom doesn't implement window.open/alert — add stubs so vi.spyOn works
+if (typeof window !== 'undefined') {
+  if (!window.open) window.open = () => null
+  if (!window.alert) window.alert = () => {}
+}
+
 // Mock requestAnimationFrame / cancelAnimationFrame
 global.requestAnimationFrame = (cb) => setTimeout(cb, 16)
 global.cancelAnimationFrame = (id) => clearTimeout(id)

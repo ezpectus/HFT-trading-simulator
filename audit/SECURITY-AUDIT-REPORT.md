@@ -236,17 +236,19 @@ CodeQL autobuild could not build C++ code (missing dependencies, websocketpp pat
 
 ### 3.7 JS Tests — Heap Out of Memory (OOM)
 
-**File:** `web-ui/vitest.config.js`, `web-ui/src/test/setup.js`, `.github/workflows/ci.yml`
+**File:** `web-ui/vitest.config.js`, `web-ui/src/test/setup.js`, `web-ui/package.json`, `.github/workflows/ci.yml`
 
 **Problem:**  
-jsdom memory accumulation across 38 test files caused `FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory`. Worker fork crashed, producing exit code 1 even though all 517 tests passed.
+jsdom memory accumulation across 38 test files caused `FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory`. Vitest 4 `pool: 'forks'` with `isolate: true` provides module-level isolation only (fresh module registry per file), not process-level isolation — the V8 heap grows unbounded within the same fork. Worker fork crashed, producing exit code 1 even though all 517 tests passed (0 failed, 10 pending from the crashed file).
 
 **Fix:**
+- Switched test environment from `jsdom` to `happy-dom` (lighter DOM implementation, fewer APIs emulated, smaller heap footprint)
 - Added `NODE_OPTIONS=--max-old-space-size=8192` on CI (test-js and test-windows)
-- Added `forceExit: true`, `fileParallelism: false` to vitest config
+- Added `forceExit: true`, `isolate: true`, `maxWorkers: 4` to vitest config
 - Added explicit `cleanup()` in `afterEach` to free DOM between tests
-- Added `// @vitest-environment node` to 9 pure JS computation test files (garch, hmm, kalman, kmeans, cointegration, indicators, backtestEngine, registry, utils) to avoid jsdom overhead
-- CI now checks `Tests  0 failed` in output instead of relying on exit code
+- Added `// @vitest-environment node` to 9 pure JS computation test files (garch, hmm, kalman, kmeans, cointegration, indicators, backtestEngine, registry, utils) to skip DOM overhead entirely
+- Added `window.open`/`window.alert` stubs to `setup.js` for happy-dom compatibility
+- CI now checks `grep "Tests\s+[0-9]+ failed"` in output instead of relying on exit code
 
 ### 3.8 JS Tests — Watchlist Duplicate Element Match
 

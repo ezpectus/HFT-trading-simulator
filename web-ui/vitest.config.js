@@ -8,12 +8,13 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom',
+    environment: 'happy-dom',
     globals: true,
     setupFiles: ['./src/test/setup.js'],
     pool: 'forks',
-    isolate: false,
-    fileParallelism: false,
+    isolate: true,
+    maxWorkers: 4,
+    minWorkers: 1,
     forceExit: true,
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     server: {
