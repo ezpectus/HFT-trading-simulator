@@ -196,11 +196,8 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
             if (batchQueueRef.current.length > 0) flushBatch()
             handlersRef.current.onMessage?.(data)
           }
-        } catch (e) {
-          const raw = typeof event.data === 'string' ? event.data : String(event.data)
-          const dataLen = raw.length
-          const errName = (e as Error)?.name || 'Error'
-          console.error(`[useWebSocket] Failed to parse message (${dataLen} bytes): ${errName}`)
+        } catch {
+          console.error('[useWebSocket] Failed to parse message')
         }
       }
 
