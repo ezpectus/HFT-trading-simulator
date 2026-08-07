@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { dismissOnboarding } from './dismiss-onboarding.js'
+import { dismissOnboarding, closeOverlays } from './dismiss-onboarding.js'
 
 test.describe('Trading System UI — Smoke Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,11 +8,13 @@ test.describe('Trading System UI — Smoke Tests', () => {
 
   test('page loads with header', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     await expect(page.locator('header')).toBeVisible()
   })
 
   test('exchange selector is visible', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     const header = page.locator('header')
     await expect(header).toBeVisible()
     // Should have exchange buttons (binance, bybit, okx)
@@ -21,6 +23,7 @@ test.describe('Trading System UI — Smoke Tests', () => {
 
   test('symbol selector works', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     // Click ETH/USDT symbol (button has aria-label with full symbol name)
     const ethButton = page.getByRole('button', { name: /Select ETH\/USDT/i })
     await ethButton.click()
@@ -30,6 +33,7 @@ test.describe('Trading System UI — Smoke Tests', () => {
 
   test('tab navigation works', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     // Click on Bots tab
     const botsTab = page.getByRole('tab', { name: /Bots/i })
     await botsTab.click()
@@ -39,12 +43,14 @@ test.describe('Trading System UI — Smoke Tests', () => {
 
   test('order form is visible', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     // Order form should be visible in the left panel
     await expect(page.locator('input[type="number"]').first()).toBeVisible()
   })
 
   test('order book area is visible', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     // The right sidebar should contain order book
     const sidebar = page.locator('#main-content > div').nth(1)
     await expect(sidebar).toBeVisible()
@@ -52,12 +58,14 @@ test.describe('Trading System UI — Smoke Tests', () => {
 
   test('panel container is visible', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     // Panel container with panel count should be visible
     await expect(page.getByText(/panels/i).first()).toBeVisible()
   })
 
   test('status bar is visible at bottom', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     // Status bar should be at the bottom — check for status text
     await expect(page.locator('body')).toBeVisible()
   })

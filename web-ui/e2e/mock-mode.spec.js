@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { dismissOnboarding } from './dismiss-onboarding.js'
+import { dismissOnboarding, closeOverlays } from './dismiss-onboarding.js'
 
 test.beforeEach(async ({ page }) => {
   await dismissOnboarding(page)
@@ -9,6 +9,7 @@ test.describe('Web UI — Mock Mode', () => {
   test('loads page in mock mode and shows dashboard', async ({ page }) => {
     // Mock mode is enabled via VITE_MOCK_MODE=true in .env or env var
     await page.goto('/')
+    await closeOverlays(page)
     
     // Header should be visible
     await expect(page.locator('header')).toBeVisible({ timeout: 10000 })
@@ -20,6 +21,7 @@ test.describe('Web UI — Mock Mode', () => {
 
   test('shows candle chart panel', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     
     // Chart container should appear (either canvas or div with chart-related class)
     const chartArea = page.locator('[class*="chart"], [class*="candle"], canvas').first()
@@ -28,6 +30,7 @@ test.describe('Web UI — Mock Mode', () => {
 
   test('shows exchange selector', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     
     // Exchange buttons or dropdown should be present
     const exchangeSelector = page.locator('button, select').filter({ hasText: /binance|bybit|okx/i }).first()
@@ -36,6 +39,7 @@ test.describe('Web UI — Mock Mode', () => {
 
   test('shows symbol selector', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     
     // Symbol buttons or dropdown should be present
     const symbolSelector = page.locator('button, select').filter({ hasText: /BTC|ETH|SOL/i }).first()
@@ -46,6 +50,7 @@ test.describe('Web UI — Mock Mode', () => {
 test.describe('Web UI — Navigation', () => {
   test('can switch tabs', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     
     // Find tab-like elements in header or nav
     const tabs = page.locator('[role="tab"], button[class*="tab"]').first()
@@ -58,6 +63,7 @@ test.describe('Web UI — Navigation', () => {
 
   test('can toggle sidebar', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     
     // Just verify the page is still functional after load
     await expect(page.locator('body')).toBeVisible()
@@ -67,6 +73,7 @@ test.describe('Web UI — Navigation', () => {
 test.describe('Web UI — Order Form', () => {
   test('order form is visible', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     
     // Order form should have buy/sell buttons or quantity input
     const orderForm = page.locator('input[type="number"], button').filter({ hasText: /buy|sell|long|short/i }).first()
@@ -75,6 +82,7 @@ test.describe('Web UI — Order Form', () => {
 
   test('buy and sell buttons exist', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     
     // Look for buy/long button
     const buyBtn = page.locator('button').filter({ hasText: /buy|long/i }).first()
@@ -90,6 +98,7 @@ test.describe('Web UI — Order Form', () => {
 test.describe('Web UI — Signal Feed', () => {
   test('signal feed panel exists', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     
     // Switch to Signals tab to show signal feed
     const signalsTab = page.getByRole('tab', { name: /Signals/i })
@@ -106,6 +115,7 @@ test.describe('Web UI — Responsive', () => {
   test('page renders on mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 })
     await page.goto('/')
+    await closeOverlays(page)
     
     await expect(page.locator('body')).toBeVisible({ timeout: 10000 })
     
@@ -118,6 +128,7 @@ test.describe('Web UI — Responsive', () => {
   test('page renders on tablet viewport', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 })
     await page.goto('/')
+    await closeOverlays(page)
     
     await expect(page.locator('body')).toBeVisible({ timeout: 10000 })
   })
@@ -133,6 +144,7 @@ test.describe('Web UI — No Console Errors', () => {
     })
     
     await page.goto('/')
+    await closeOverlays(page)
     await page.waitForTimeout(3000)
     
     // Filter out expected errors (WebSocket connection failures in mock mode, etc.)

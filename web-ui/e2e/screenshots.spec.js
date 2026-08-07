@@ -1,5 +1,5 @@
 import { test } from '@playwright/test'
-import { dismissOnboarding } from './dismiss-onboarding.js'
+import { dismissOnboarding, closeOverlays } from './dismiss-onboarding.js'
 
 const SCREENSHOTS_DIR = 'screenshots'
 
@@ -12,6 +12,7 @@ test.describe('Screenshot capture for README', () => {
 
   test('capture main dashboard', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     await page.waitForTimeout(3000) // Wait for data to load
 
     // Take full page screenshot
@@ -23,6 +24,7 @@ test.describe('Screenshot capture for README', () => {
 
   test('capture market data panel', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     await page.waitForTimeout(3000)
 
     // Try to find and click on market data / chart panel
@@ -34,6 +36,7 @@ test.describe('Screenshot capture for README', () => {
 
   test('capture order book panel', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     await page.waitForTimeout(3000)
 
     const orderBook = page.locator('[data-panel-id="orderbook"], .panel:has-text("Order Book")').first()
@@ -44,6 +47,7 @@ test.describe('Screenshot capture for README', () => {
 
   test('capture backtest runner', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     await page.waitForTimeout(2000)
 
     // Find and click backtest panel/tab
@@ -61,6 +65,7 @@ test.describe('Screenshot capture for README', () => {
 
   test('capture signal engine panel', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     await page.waitForTimeout(3000)
 
     const signalPanel = page.locator('[data-panel-id="signal-engine"], .panel:has-text("Signal Engine")').first()
@@ -71,6 +76,7 @@ test.describe('Screenshot capture for README', () => {
 
   test('capture positions panel', async ({ page }) => {
     await page.goto('/')
+    await closeOverlays(page)
     await page.waitForTimeout(3000)
 
     const positionsPanel = page.locator('[data-panel-id="positions"], .panel:has-text("Positions")').first()
@@ -82,6 +88,7 @@ test.describe('Screenshot capture for README', () => {
   test('capture mobile view', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
+    await closeOverlays(page)
     await page.waitForTimeout(3000)
 
     await page.screenshot({
