@@ -510,7 +510,8 @@ int main(int argc, char* argv[]) {
     };
     std::vector<SymbolEntry> symbol_entries;
     for (size_t i = 0; i < config.symbols.size(); ++i) {
-        symbol_entries.push_back({config.symbols[i], config.symbols[i].c_str(), static_cast<uint16_t>(i)});
+        symbol_entries.push_back(
+            {config.symbols[i], config.symbols[i].c_str(), static_cast<uint16_t>(i)});
     }
 
     // Main loop

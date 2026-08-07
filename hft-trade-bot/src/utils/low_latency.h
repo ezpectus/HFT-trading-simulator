@@ -66,7 +66,7 @@ class Spinlock {
 
   private:
     alignas(64) std::atomic<uint32_t> flag_{0};
-    uint8_t padding_[60]{0}; // Pad to cache line to prevent false sharing
+    [[maybe_unused]] uint8_t padding_[60]{0}; // Pad to cache line to prevent false sharing
 };
 
 class SpinlockGuard {

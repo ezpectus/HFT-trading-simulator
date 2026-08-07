@@ -1138,7 +1138,8 @@ class SignalEngineV2 {
         if (confidence >= params_.emergency_confidence_threshold &&
             adx > params_.emergency_adx_threshold) {
             lev = params_.max_leverage;
-        } else if (confidence >= (params_.min_confidence + params_.emergency_confidence_threshold) / 2) {
+        } else if (confidence >=
+                   (params_.min_confidence + params_.emergency_confidence_threshold) / 2) {
             // Scale: 75→3, 85→5 (if ADX strong)
             lev = params_.high_confidence_leverage;
             if (adx > params_.adx_trend_threshold) {
