@@ -2,9 +2,10 @@
 // The OnboardingTutorial component shows on first visit (no localStorage key).
 // In CI, Playwright uses fresh browser contexts, so the modal always appears
 // and blocks all clicks with its fixed inset-0 z-50 overlay.
+//
+// Strategy: inject CSS with !important via addInitScript (runs before any page JS).
+// CSS !important survives React re-renders — unlike DOM removal which React undoes.
 export async function dismissOnboarding(page) {
-  // Pre-set localStorage so OnboardingTutorial never renders,
-  // AND install a MutationObserver to remove the modal if it still appears.
   await page.addInitScript(() => {
     try {
       localStorage.setItem('trading-sim-onboarded', '1')
@@ -12,52 +13,32 @@ export async function dismissOnboarding(page) {
       // ignore
     }
 
-    // MutationObserver: remove onboarding modal as soon as it's added to DOM
-    const removeOnboarding = () => {
-      const modal = document.querySelector('.fixed.inset-0.z-50')
-      if (modal && modal.textContent.includes('Trading Sim')) {
-        modal.remove()
-        return true
-      }
-      return false
-    }
-
-    // Try immediately (in case DOM is already loaded)
-    if (!removeOnboarding()) {
-      // Set up observer to catch it when React renders
-      const obs = new MutationObserver(() => removeOnboarding())
-      const start = () => {
-        removeOnboarding()
-        obs.observe(document.body, { childList: true, subtree: true })
-        // Stop observing after 5s to avoid leak
-        setTimeout(() => obs.disconnect(), 5000)
-      }
-      if (document.body) {
-        start()
-      } else {
-        document.addEventListener('DOMContentLoaded', start)
-      }
-    }
+    // Inject CSS to hide onboarding modal and notification toasts
+    // !important overrides React's display:flex/inline styles across re-renders
+    const style = document.createElement('style')
+    style.id = 'e2e-overlay-hider'
+    style.textContent = [
+      '.fixed.inset-0.z-50 { display: none !important; }',
+      '[role="region"][aria-label="Notifications"] { display: none !important; }',
+    ].join('\n')
+    ;(document.head || document.documentElement).appendChild(style)
   })
 }
 
-// Fallback: remove onboarding modal from DOM and hide notification toasts
+// Fallback: add CSS via Playwright's addStyleTag after page load
 // Call this after page.goto('/') to ensure no overlays block clicks
 export async function closeOverlays(page) {
-  // Wait briefly for React to render
-  await page.waitForTimeout(500)
+  // Check if CSS was already injected by addInitScript
+  const hasStyle = await page.evaluate(() => {
+    return !!document.getElementById('e2e-overlay-hider')
+  }).catch(() => false)
 
-  // Remove onboarding modal from DOM if present
-  await page.evaluate(() => {
-    const modal = document.querySelector('.fixed.inset-0.z-50')
-    if (modal && modal.textContent.includes('Trading Sim')) {
-      modal.remove()
-    }
-  }).catch(() => {})
-
-  // Hide notification toasts that may intercept clicks in bottom-right
-  await page.evaluate(() => {
-    const notifications = document.querySelector('[role="region"][aria-label="Notifications"]')
-    if (notifications) notifications.style.display = 'none'
-  }).catch(() => {})
+  if (!hasStyle) {
+    await page.addStyleTag({
+      content: [
+        '.fixed.inset-0.z-50 { display: none !important; }',
+        '[role="region"][aria-label="Notifications"] { display: none !important; }',
+      ].join('\n'),
+    }).catch(() => {})
+  }
 }
