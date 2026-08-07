@@ -150,3 +150,5 @@ All notable changes to this project are documented in this file.
 - Created `SECURITY.md` — vulnerability reporting policy and security measures
 - Created `audit/SECURITY-AUDIT-REPORT.md` — detailed audit report with all fixes
 - Created `CHANGELOG.md` — this file
+- Created `docs/QUALITY_AND_SECURITY_GUIDE.md` — comprehensive guide covering CI/CD pipeline, testing strategy, compilation verification, security audit, attack surface analysis, local verification checklist, and emergency procedures
+- Updated `docs/ROADMAP.md` — trimmed from 6 phases to 3 versions (v2.5–v2.7), removed over-engineered items (SIMD, LSTM/PPO, Redis, PostgreSQL, Kubernetes, etc.) with rationale for each removal

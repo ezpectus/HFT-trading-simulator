@@ -1,112 +1,73 @@
-# Roadmap — Plan развития проекта
+# Roadmap — Future Versions
 
-> **Обновлено:** 2026-08-06
-> **Статус проекта:** C++20 HFT движок, Python AI (34+ стратегий), 197 панелей, полный CI/CD
-
----
-
-## Фаза 1: Production Hardening (1-2 недели)
-**Цель: довести систему до production-ready состояния**
-
-- [x] **Kubernetes Helm Chart** — деплой в k8s вместо docker-compose, autoscaling, rolling updates
-- [x] **TimescaleDB integration** — хранение исторических данных вместо CSV, time-series оптимизация
-- [x] **Distributed tracing** — Jaeger/Zipkin для трейсинга запросов через все 4 компонента
-- [x] **Structured logging** — единый JSON логгинг (C++ spdlog есть, Python нужен structlog)
-- [x] **Health checks v2** — liveness/readiness probes для k8s, глубокие проверки (WS, SHM, ордера)
-- [x] **Secret management** — Vault или SOPS для API ключей вместо env vars
-
-## Фаза 2: ML & AI Enhancement (2-3 недели)
-**Цель: добавить deep learning и продвинутую ML-инференцию**
-
-- [x] **ONNX Runtime в C++** — инференс ML моделей прямо в HFT боте, без Python round-trip
-- [x] **LSTM/Transformer price prediction** — PyTorch модель для краткосрочного прогноза цен
-- [x] **Reinforcement Learning trader** — PPO/DQN агент, обученный на симуляторе
-- [x] **AutoML pipeline** — автоматический подбор гиперпараметров через Optuna
-- [x] **Model registry** — версия моделей, A/B тестирование, rollback
-- [x] **Feature store** — переиспользуемые фичи между стратегиями (Redis + Feast)
-
-## Фаза 3: Advanced Trading Features (2-3 недели)
-**Цель: расширить торговые возможности**
-
-- [x] **Cross-exchange arbitrage engine** — реальное исполнение арбитража Binance/OKX/Bybit
-- [x] **Portfolio optimizer** — Markowitz, Black-Litterman, risk parity с rebalancing
-- [x] **VaR/CVaR stress testing** — Monte Carlo VaR, historical scenario replay (2008, COVID, FTX)
-- [x] **Volatility surface modeling** — SVI/SABR модели для options pricing
-- [x] **Strategy marketplace** — загрузка/шаринг стратегий в виде плагинов
-- [x] **Market replay** — запись/воспроизведение сессии для бэктестинга
-
-## Фаза 4: Platform & UX (2-3 недели)
-**Цель: сделать платформу удобнее для пользователей**
-
-- [x] **Strategy builder UI** — drag-and-drop конструктор стратегий из блоков
-- [x] **Notifications hub** — alerts в Web UI при сигналах/ошибках
-- [x] **Dark/light/auto theme** — auto-mode по системной теме
-
-## Фаза 5: Performance & Scale (1-2 недели)
-**Цель: выжать максимум из железа**
-
-- [x] **Rust order executor** — альтернатива C++ с memory safety, comparable latency
-- [x] **GPU acceleration** — CUDA/OpenCL для ML инференса и Monte Carlo
-- [x] **DPDK / kernel bypass** — bypass TCP/IP для сетевого стека
-- [x] **FPGA prototype** — исследование FPGA для order matching (образовательная цель)
-- [x] **eBPF monitoring** — low-overhead профайлинг сетевого стека
-- [x] **Memory-mapped persistence** — zero-copy логирование ордеров
-- [x] **Hot-path optimization (10 rounds, 34 optimizations)** — Wilder's smoothing precomputed complement, single-pass OBI, transparent hash, unordered_set lookups, orjson everywhere, asyncio.gather, deque, dict/set O(1) lookups. 23 walkthrough examples in PERFORMANCE.md.
-
-## Фаза 6: Research & Education (ongoing)
-**Цель: усилить образовательную ценность проекта**
-
-- [x] **Interactive tutorials** — встроенные туториалы с пошаговым обучением
-- [x] **Strategy backtesting competitions** — leaderboard, автоматическая оценка
-- [x] **Genetic algorithm strategy discovery** — автоматическая эволюция стратегий
-- [x] **Market microstructure lab** — инструменты для исследования микроструктуры
-- [x] **Brinson-Fachler performance attribution** — разложение P&L по факторам
-- [x] **Options Greeks hedging simulator** — delta-neutral, gamma scalping
-- [x] **Educational content** — статьи/видео по каждому компоненту системы
+> **Updated:** August 7, 2026  
+> **Project:** HFT Trading System — Lite Version  
+> **Principle:** Keep it lite. No over-engineering. Only features that add real value to a simulation/educational trading system.
 
 ---
 
-## Приоритеты
+## v2.5.0 — Testing & Refactoring
 
-| Приоритет | Задача | Фаза | Почему |
-|-----------|--------|------|--------|
-| 🔴 High | TimescaleDB | 1 | CSV файлы — бутылочное горлышко |
-| 🔴 High | ONNX в C++ | 2 | Убрать Python round-trip для ML |
-| 🔴 High | Helm chart | 1 | Production деплой |
-| 🟡 Medium | LSTM/Transformer | 2 | ML апгрейд |
-| 🟡 Medium | VaR/CVaR | 3 | Risk management |
-| 🟡 Medium | Mobile app | 4 | UX |
-| 🟢 Low | FPGA/DPU | 5 | Исследование |
-| 🟢 Low | Strategy marketplace | 3 | Сообщество |
+**Goal: solidify test coverage for existing components**
+
+- [ ] Add `useLocalStorage` tests (initial value, persistence, remove, JSON serialization)
+- [ ] Add `VirtualList` tests (scroll position, item rendering, dynamic height)
+- [ ] Add `CandleChart` tests (indicator toggle, data update, marker rendering)
+- [ ] Add `OrderBook` tests (real data parsing, synthetic fallback, imbalance calc)
+- [ ] Add `Header` tests (exchange/symbol/timeframe selection, keyboard shortcuts)
+- [ ] Refactor `useTheme`, `useTradeJournal`, `PanelContainer` to use `useLocalStorage` hook
+
+**Rationale:** These are core UI components with zero test coverage. Adding tests prevents regressions and documents expected behavior.
 
 ---
 
-## Что уже сделано (completed)
+## v2.6.0 — Performance & Optimization
 
-- ✅ C++20 Signal Engine V2 + V3 (HMM regime detection)
-- ✅ Smart Order Router V2 (5 стратегий)
-- ✅ Adaptive Order Selector V2
-- ✅ Pressure Model (toxicity, microprice)
-- ✅ FIX 4.4 Protocol
-- ✅ SHM IPC (Python ↔ C++)
-- ✅ 34+ AI стратегий (8-stage pipeline)
-- ✅ LLM Engine (GPT + rule-based fallback)
-- ✅ 197 web UI панелей
-- ✅ Partial TypeScript migration (12/16 hooks, 4/7 utils in .ts)
-- ✅ Bandit + CodeQL security scans
-- ✅ Automated GitHub Releases
-- ✅ Staging environment (docker-compose.staging.yml)
-- ✅ OpenAPI/Swagger WS documentation
-- ✅ Architecture diagrams
-- ✅ Coverage badges (Codecov)
-- ✅ Options Strategy P&L Simulator
-- [x] **Custom indicator plugin system**
-- [x] **Binance testnet integration**
-- ✅ Telegram/Discord bot
-- ✅ Funding rate arbitrage detector
-- ✅ Nightly walk-forward backtest CI
-- ✅ Load testing (10k+ msg/sec)
-- ✅ Chaos testing (reconnect verification)
-- ✅ Shareable backtest links (base64-encoded URL fragment)
-- ✅ 10 rounds of hot-path optimizations (34 optimizations, 23 walkthrough examples)
-- ✅ Future optimization ideas documented (SIMD, io_uring, thread pinning, SPSC ring buffer, JIT)
+**Goal: keep the UI responsive under heavy data load**
+
+- [ ] Add Web Worker for indicator calculations (EMA/RSI/BB/VWAP off main thread)
+- [ ] Implement candle data incremental updates (`setData` vs `update`) in CandleChart
+- [ ] Add `requestIdleCallback` for non-critical panel rendering
+- [ ] Profile and optimize `registry.js` lazy loading (preload critical panels)
+- [ ] Add LRU cache for aggregated candles in `timeframes.js`
+
+**Rationale:** The UI currently does all indicator calculations on the main thread, causing jank with 197 panels. Web Workers + LRU cache are simple, proven solutions — not over-engineering.
+
+---
+
+## v2.7.0 — Trading Features (Optional)
+
+**Goal: add practical trading features if the system is actually used for simulation trading**
+
+- [ ] Add trailing stop-loss to `OrderForm` (auto-adjust SL on price movement)
+- [ ] Add position scaling (add to existing position) in `OrderForm`
+- [ ] Add order book depth chart (cumulative bid/ask visualization)
+
+**Rationale:** Trailing stop-loss and position scaling are basic trading features that any simulation should have. The depth chart is a natural extension of the existing OrderBook panel.  
+**Skipped:** OCO orders, multi-symbol correlation overlay — cool but nobody will use them in a lite simulator.
+
+---
+
+## What was removed and why
+
+The following items from the original roadmap were **removed** as over-engineering for a lite project:
+
+| Removed item | Reason |
+|-------------|--------|
+| SIMD AVX2/SSE4.2 indicator calculations | HFT-level optimization, not needed for a simulator |
+| Lock-free MPMC queue for signal pipeline | Over-engineered for single-user simulation |
+| Backpressure-aware order executor | No real order routing in a simulator |
+| Heatmap-based latency profiler | Nice-to-have, not critical |
+| Config hot-reload via SIGHUP | Just restart the bot |
+| LSTM-based price prediction (PyTorch) | Separate R&D project, not a feature |
+| Reinforcement learning agent (PPO) | Same — research, not product |
+| Sentiment analysis from news events | Scope creep |
+| Walk-forward optimization with stability scoring | Already have backtesting, this is gold-plating |
+| Monte Carlo permutation tests | Academic exercise, not practical |
+| Redis pub/sub alternative to WebSocket | Full architecture change |
+| PostgreSQL/TimescaleDB storage | Full architecture change |
+| Grafana alerting rules | Ops tooling, not app features |
+| Kubernetes manifests | Lite = docker-compose, not k8s |
+| End-to-end integration tests (3 frameworks) | Already have Vitest + Playwright + pytest + CTest |
+
+**Bottom line:** v2.8–v3.0 from the original roadmap would turn this into a full HFT platform requiring a dev team. That's not what "lite" means. If you want those features, fork the repo and build a full version.
