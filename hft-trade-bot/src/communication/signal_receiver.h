@@ -45,8 +45,8 @@ class SignalReceiver {
     void register_symbols(const std::vector<std::string>& symbols) {
         symbol_to_id_.clear();
         id_to_symbol_.clear();
-        for (uint16_t i = 0; i < symbols.size(); ++i) {
-            symbol_to_id_[symbols[i]] = i;
+        for (size_t i = 0; i < symbols.size(); ++i) {
+            symbol_to_id_[symbols[i]] = static_cast<uint16_t>(i);
             id_to_symbol_.push_back(symbols[i]);
         }
         prices_by_id_.assign(symbols.size(), 0.0);
