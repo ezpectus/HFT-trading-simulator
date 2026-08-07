@@ -3,7 +3,7 @@
   "private": true,
   "version": "2.0.0",
   "type": "module",
-  "description": "HFT Trading System Dashboard — 191+ panels, 75+ math models, React 18 + Vite 8",
+  "description": "HFT Trading System Dashboard — 197 panels, 75+ math models, React 18 + Vite 8",
   "keywords": [
     "trading",
     "hft",
@@ -54,7 +54,7 @@
     "eslint-plugin-react": "^7.35.0",
     "globals": "^15.0.0",
     "jsdom": "^24.1.0",
-    "postcss": "^8.4.39",
+    "postcss": "^8.5.0",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.5.0",
     "vite": "^8.1.4",
