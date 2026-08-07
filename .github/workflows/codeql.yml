@@ -24,7 +24,7 @@ on:
 
 jobs:
   analyze:
-    name: Analyze
+    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -34,7 +34,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [python, javascript]
+        include:
+          - language: python
+          - language: javascript
+          - language: cpp
 
     steps:
       - name: Checkout repository
@@ -50,7 +53,22 @@ jobs:
               - 'web-ui/node_modules/**'
               - 'websocketpp/**'
 
-      - name: Autobuild
+      - name: Build C++ (manual)
+        if: matrix.language == 'cpp'
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            cmake libboost-dev libboost-system-dev libboost-random-dev \
+            libssl-dev libspdlog-dev libfmt-dev nlohmann-json3-dev \
+            libyaml-cpp-dev libasio-dev libwebsocketpp-dev
+          sudo sed -i 's/endpoint<connection,config>/endpoint/g' /usr/include/websocketpp/endpoint.hpp
+          sudo sed -i 's/basic<concurrency,names>/basic/g' /usr/include/websocketpp/logger/basic.hpp
+          sudo sed -i 's/stub<concurrency,names>/stub/g' /usr/include/websocketpp/logger/stub.hpp
+          cd hft-trade-bot
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug -DUSE_CCACHE=OFF -DUSE_UNITY_BUILD=OFF
+          cmake --build build -j$(nproc) --target hft_trade_bot || true
+
+      - name: Autobuild (non-C++)
+        if: matrix.language != 'cpp'
         uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
