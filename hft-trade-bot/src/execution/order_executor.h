@@ -108,11 +108,11 @@ class OrderExecutor {
         char buf[512];
         int  n = std::snprintf(buf, sizeof(buf),
                                "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-                               "\"side\":\"%s\",\"quantity\":%.8f,\"order_type\":\"%s\","
-                               "\"stop_loss\":%.2f,\"take_profit\":%.2f",
+                                "\"side\":\"%s\",\"quantity\":%.8f,\"order_type\":\"%s\","
+                                "\"stop_loss\":%.2f,\"take_profit\":%.2f",
                                exchange_id_.c_str(), signal.symbol.c_str(),
-                               signal.is_long() ? "BUY" : "SELL", quantity,
-                               type == OrderType::MARKET ? "MARKET" : "LIMIT", signal.stop_loss,
+                              signal.is_long() ? "BUY" : "SELL", quantity,
+                              type == OrderType::MARKET ? "MARKET" : "LIMIT", signal.stop_loss,
                                signal.take_profit);
 
         if (type == OrderType::LIMIT && n > 0 && n < static_cast<int>(sizeof(buf) - 32)) {
@@ -144,9 +144,9 @@ class OrderExecutor {
             return;
 
         char buf[256];
-        int n = std::snprintf(buf, sizeof(buf),
-                              "{\"type\":\"close_position\",\"exchange\":\"%s\",\"symbol\":\"%s\"}",
-                              exchange_id_.c_str(), symbol.c_str());
+        int  n = std::snprintf(buf, sizeof(buf),
+                               "{\"type\":\"close_position\",\"exchange\":\"%s\",\"symbol\":\"%s\"}",
+                               exchange_id_.c_str(), symbol.c_str());
 
         if (n <= 0) [[unlikely]] {
             spdlog::error("Close position JSON serialization failed");
@@ -175,14 +175,14 @@ class OrderExecutor {
         char buy_buf[384];
         int  bn = std::snprintf(buy_buf, sizeof(buy_buf),
                                 "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-                                "\"side\":\"BUY\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
+                                 "\"side\":\"BUY\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
                                 buy_exchange.c_str(), symbol.c_str(), quantity);
 
         // Sell on the more expensive exchange
         char sell_buf[384];
         int  sn = std::snprintf(sell_buf, sizeof(sell_buf),
                                 "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-                                "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
+                                 "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
                                 sell_exchange.c_str(), symbol.c_str(), quantity);
 
         if (bn <= 0) [[unlikely]] {

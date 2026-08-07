@@ -328,6 +328,7 @@ add_hft_test(test_market_making tests/test_market_making.cpp)
 
 # Risk engine tests
 add_hft_test(test_risk tests/test_risk.cpp)
+target_link_libraries(test_risk PRIVATE fmt::fmt spdlog::spdlog)
 
 # Order manager tests
 add_hft_test(test_order_manager tests/test_order_manager.cpp)

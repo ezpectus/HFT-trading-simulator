@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test'
+import { dismissOnboarding } from './dismiss-onboarding.js'
 
 test.describe('Trading System UI — Smoke Tests', () => {
+  test.beforeEach(async ({ page }) => {
+    await dismissOnboarding(page)
+  })
+
   test('page loads with header', async ({ page }) => {
     await page.goto('/')
     await expect(page.locator('header')).toBeVisible()

@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { dismissOnboarding } from './dismiss-onboarding.js'
+
+test.beforeEach(async ({ page }) => {
+  await dismissOnboarding(page)
+})
 
 test.describe('Trading System UI — Trading Flows', () => {
   test('can switch exchanges via keyboard shortcuts', async ({ page }) => {

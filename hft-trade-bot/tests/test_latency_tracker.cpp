@@ -79,6 +79,8 @@ void test_latency_budget() {
     LatencyStage   alerted_stage   = LatencyStage::SIGNAL_TO_ORDER;
 
     tracker.set_alert_callback([&](LatencyStage stage, int64_t us, double threshold) {
+        (void)us;
+        (void)threshold;
         alert_triggered = true;
         alerted_stage   = stage;
     });

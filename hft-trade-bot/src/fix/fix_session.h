@@ -235,7 +235,7 @@ class FixSession {
                     break;
 
                 auto msg = FixEncoder::build_heartbeat(sender_comp_id_.c_str(),
-                                                       target_comp_id_.c_str(), outgoing_seq_++);
+                                                        target_comp_id_.c_str(), outgoing_seq_++);
                 if (send_cb_) send_cb_(msg.data(), msg.size());
                 save_seq_nums();
             }

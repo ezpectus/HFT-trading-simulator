@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { dismissOnboarding } from './dismiss-onboarding.js'
+
+test.beforeEach(async ({ page }) => {
+  await dismissOnboarding(page)
+})
 
 test.describe('Web UI — Mock Mode', () => {
   test('loads page in mock mode and shows dashboard', async ({ page }) => {

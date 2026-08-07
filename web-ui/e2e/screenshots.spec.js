@@ -1,4 +1,5 @@
 import { test } from '@playwright/test'
+import { dismissOnboarding } from './dismiss-onboarding.js'
 
 const SCREENSHOTS_DIR = 'screenshots'
 
@@ -6,6 +7,7 @@ test.describe('Screenshot capture for README', () => {
   test.beforeEach(async ({ page }) => {
     // Set a consistent viewport for all screenshots
     await page.setViewportSize({ width: 1920, height: 1080 })
+    await dismissOnboarding(page)
   })
 
   test('capture main dashboard', async ({ page }) => {

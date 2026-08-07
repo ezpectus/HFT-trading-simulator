@@ -84,8 +84,8 @@ TEST_CASE("KillSwitch: activated_at is zero before activation") {
 TEST_CASE("KillSwitch: activate sets activated_at timestamp") {
     KillSwitch ks;
     auto       before = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                            std::chrono::system_clock::now().time_since_epoch())
-                            .count();
+                      std::chrono::system_clock::now().time_since_epoch())
+                      .count();
     ks.activate();
     auto after = std::chrono::duration_cast<std::chrono::nanoseconds>(
                      std::chrono::system_clock::now().time_since_epoch())

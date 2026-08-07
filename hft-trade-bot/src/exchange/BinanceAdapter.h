@@ -121,9 +121,9 @@ class BinanceAdapter : public ExchangeBase {
 
     // Rate limiting
     bool can_send_order() {
-        auto now_ns     = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                              std::chrono::steady_clock::now().time_since_epoch())
-                              .count();
+        auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                          std::chrono::steady_clock::now().time_since_epoch())
+                          .count();
         auto window_ns  = order_window_start_ns_.load(std::memory_order_relaxed);
         auto elapsed_ns = now_ns - window_ns;
         if (elapsed_ns >= 10'000'000'000) {

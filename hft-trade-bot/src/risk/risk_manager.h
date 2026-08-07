@@ -149,9 +149,9 @@ class RiskManager {
         }
 
         // 7. Order rate throttle (CAS-based to avoid check-then-act race)
-        auto now_ns          = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                   std::chrono::steady_clock::now().time_since_epoch())
-                                   .count();
+        auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                          std::chrono::steady_clock::now().time_since_epoch())
+                          .count();
         auto window_start_ns = rate_window_start_ns_.load(std::memory_order_relaxed);
         auto elapsed_ns      = now_ns - window_start_ns;
         if (elapsed_ns >= 1'000'000'000) {

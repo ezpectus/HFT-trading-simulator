@@ -111,10 +111,10 @@ class SystemMonitor {
         int  n = std::snprintf(
             buf, sizeof(buf),
             "{\"orders_sent\":%llu,\"orders_filled\":%llu,\"orders_rejected\":%llu,"
-            "\"orders_canceled\":%llu,\"signals_received\":%llu,\"signals_processed\":%llu,"
-            "\"errors\":%llu,\"reconnects\":%llu,\"shm_drops\":%llu,\"heartbeats_sent\":%llu,"
-            "\"heartbeats_missed\":%llu,\"fill_rate\":%.4f,\"rejection_rate\":%.4f,"
-            "\"uptime_seconds\":%llu}",
+             "\"orders_canceled\":%llu,\"signals_received\":%llu,\"signals_processed\":%llu,"
+             "\"errors\":%llu,\"reconnects\":%llu,\"shm_drops\":%llu,\"heartbeats_sent\":%llu,"
+             "\"heartbeats_missed\":%llu,\"fill_rate\":%.4f,\"rejection_rate\":%.4f,"
+             "\"uptime_seconds\":%llu}",
             (unsigned long long)s.orders_sent, (unsigned long long)s.orders_filled,
             (unsigned long long)s.orders_rejected, (unsigned long long)s.orders_canceled,
             (unsigned long long)s.signals_received, (unsigned long long)s.signals_processed,
@@ -188,9 +188,9 @@ struct HealthStatus {
         int  n = std::snprintf(
             buf, sizeof(buf),
             "{\"healthy\":%s,\"shm_healthy\":%s,\"exchange_connected\":%s,"
-            "\"signal_engine_active\":%s,\"last_signal_age_ms\":%llu,"
-            "\"last_fill_age_ms\":%llu,\"error_count_5min\":%lld,"
-            "\"memory_usage_mb\":%.2f}",
+             "\"signal_engine_active\":%s,\"last_signal_age_ms\":%llu,"
+             "\"last_fill_age_ms\":%llu,\"error_count_5min\":%lld,"
+             "\"memory_usage_mb\":%.2f}",
             is_healthy() ? "true" : "false", shm_healthy ? "true" : "false",
             exchange_connected ? "true" : "false", signal_engine_active ? "true" : "false",
             (unsigned long long)last_signal_age_ms, (unsigned long long)last_fill_age_ms,

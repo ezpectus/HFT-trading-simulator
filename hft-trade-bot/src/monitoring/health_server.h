@@ -107,8 +107,8 @@ class HealthServer {
                 buf[n] = '\0';
                 std::string_view req(buf, n);
 
-                bool is_health  = (req.find("GET /health") != std::string_view::npos) ||
-                                  (req.find("GET / ") != std::string_view::npos);
+                bool is_health = (req.find("GET /health") != std::string_view::npos) ||
+                                 (req.find("GET / ") != std::string_view::npos);
                 bool is_metrics = (req.find("GET /metrics") != std::string_view::npos);
 
                 std::string body;
