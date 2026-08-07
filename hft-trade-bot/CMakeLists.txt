@@ -329,6 +329,17 @@ add_hft_test(test_market_making tests/test_market_making.cpp)
 # Risk engine tests
 add_hft_test(test_risk tests/test_risk.cpp)
 target_link_libraries(test_risk PRIVATE fmt::fmt spdlog::spdlog)
+# Fallback: on some distros (Ubuntu 24.04) the fmt::fmt CMake target may be
+# header-only, causing undefined references to fmt::v9 symbols at link time.
+# Link the actual shared library directly to resolve this.
+find_library(FMT_LIBRARY NAMES fmt)
+find_library(SPDLOG_LIBRARY NAMES spdlog)
+if(FMT_LIBRARY)
+    target_link_libraries(test_risk PRIVATE ${FMT_LIBRARY})
+endif()
+if(SPDLOG_LIBRARY)
+    target_link_libraries(test_risk PRIVATE ${SPDLOG_LIBRARY})
+endif()
 
 # Order manager tests
 add_hft_test(test_order_manager tests/test_order_manager.cpp)
@@ -439,6 +450,13 @@ add_doctest_test(test_doctest_order_book_manager tests/test_doctest_order_book_m
 
 # Kill switch doctest tests (activate/deactivate, reason+timestamp recording regression, callbacks, idempotency)
 add_doctest_test(test_doctest_kill_switch tests/test_doctest_kill_switch.cpp)
+target_link_libraries(test_doctest_kill_switch PRIVATE fmt::fmt spdlog::spdlog)
+if(FMT_LIBRARY)
+    target_link_libraries(test_doctest_kill_switch PRIVATE ${FMT_LIBRARY})
+endif()
+if(SPDLOG_LIBRARY)
+    target_link_libraries(test_doctest_kill_switch PRIVATE ${SPDLOG_LIBRARY})
+endif()
 
 # SHM heartbeat doctest tests (writer/reader round-trip, seq consistency, is_alive, age_ms, auto heartbeat)
 add_doctest_test(test_doctest_shm_heartbeat tests/test_doctest_shm_heartbeat.cpp)
@@ -474,6 +492,13 @@ target_link_libraries(test_integration_config PRIVATE yaml-cpp::yaml-cpp)
 add_doctest_test(test_integration_signal_engine tests/test_integration_signal_engine.cpp)
 
 add_doctest_test(test_integration_kill_switch_monitor tests/test_integration_kill_switch_monitor.cpp)
+target_link_libraries(test_integration_kill_switch_monitor PRIVATE fmt::fmt spdlog::spdlog)
+if(FMT_LIBRARY)
+    target_link_libraries(test_integration_kill_switch_monitor PRIVATE ${FMT_LIBRARY})
+endif()
+if(SPDLOG_LIBRARY)
+    target_link_libraries(test_integration_kill_switch_monitor PRIVATE ${SPDLOG_LIBRARY})
+endif()
 
 if(NOT WIN32)
     add_doctest_test(test_integration_shm tests/test_integration_shm.cpp)
