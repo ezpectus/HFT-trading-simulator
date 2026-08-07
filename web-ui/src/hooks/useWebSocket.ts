@@ -198,9 +198,9 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
           }
         } catch (e) {
           const raw = typeof event.data === 'string' ? event.data : String(event.data)
-          const sanitized = raw.replace(/[\n\r]/g, ' ').slice(0, 200)
-          const errMsg = String(e).replace(/[\n\r]/g, ' ').slice(0, 200)
-          console.error('[useWebSocket] Failed to parse message:', errMsg, sanitized)
+          const dataLen = raw.length
+          const errName = (e as Error)?.name || 'Error'
+          console.error(`[useWebSocket] Failed to parse message (${dataLen} bytes): ${errName}`)
         }
       }
 
