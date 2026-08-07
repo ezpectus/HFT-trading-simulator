@@ -8,6 +8,7 @@
 #include <thread>
 #include <vector>
 
+using namespace hft;
 using namespace hft::ipc;
 
 // Use a simple struct for testing
@@ -18,7 +19,7 @@ struct TestMsg {
 
 void test_basic_push_pop() {
     // Create SHM ring buffer
-    ShmRingBuffer<TestMsg> rb("/hft_test_rb", 16, true);
+    hft::ShmRingBuffer<TestMsg> rb("/hft_test_rb", 16, true);
 
     TestMsg msg{1, 42.0};
     assert(rb.try_push(msg));
@@ -37,7 +38,7 @@ void test_basic_push_pop() {
 }
 
 void test_fill_buffer() {
-    ShmRingBuffer<TestMsg> rb("/hft_test_rb2", 8, true);
+    hft::ShmRingBuffer<TestMsg> rb("/hft_test_rb2", 8, true);
 
     // Fill to capacity
     for (uint64_t i = 0; i < 8; ++i) {
@@ -62,7 +63,7 @@ void test_fill_buffer() {
 }
 
 void test_bulk_push_pop() {
-    ShmRingBuffer<TestMsg> rb("/hft_test_rb3", 64, true);
+    hft::ShmRingBuffer<TestMsg> rb("/hft_test_rb3", 64, true);
 
     std::vector<TestMsg> msgs;
     for (uint64_t i = 0; i < 32; ++i) {
@@ -88,7 +89,7 @@ void test_bulk_push_pop() {
 }
 
 void test_wraparound() {
-    ShmRingBuffer<TestMsg> rb("/hft_test_rb4", 4, true);
+    hft::ShmRingBuffer<TestMsg> rb("/hft_test_rb4", 4, true);
 
     // Push and pop multiple times to test wraparound
     for (int cycle = 0; cycle < 10; ++cycle) {
@@ -107,7 +108,7 @@ void test_wraparound() {
 }
 
 void test_signal_struct() {
-    ShmRingBuffer<SignalMsg> rb("/hft_test_sig", 16, true);
+    hft::ShmRingBuffer<SignalMsg> rb("/hft_test_sig", 16, true);
 
     SignalMsg sig{};
     sig.timestamp  = 123456789;
@@ -134,7 +135,7 @@ void test_signal_struct() {
 }
 
 void test_fill_struct() {
-    ShmRingBuffer<FillMsg> rb("/hft_test_fill", 16, true);
+    hft::ShmRingBuffer<FillMsg> rb("/hft_test_fill", 16, true);
 
     FillMsg fill{};
     fill.timestamp   = 987654321;
@@ -159,7 +160,7 @@ void test_fill_struct() {
 }
 
 void test_header_magic() {
-    ShmRingBuffer<TestMsg> rb("/hft_test_magic", 8, true);
+    hft::ShmRingBuffer<TestMsg> rb("/hft_test_magic", 8, true);
 
     // Verify magic number is set
     // The header should have been initialized with SHM_MAGIC

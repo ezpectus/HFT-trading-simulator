@@ -121,8 +121,8 @@ class PreTradeRisk {
     // Check if an order is allowed. O(1), lock-free for most checks.
     Result check(const std::string& symbol,
                  const std::string& side, // "BUY" or "SELL"
-                 double quantity, double price, int leverage, double current_equity,
-                 double available_margin,
+                 double quantity, double price, int leverage,
+                 [[maybe_unused]] double current_equity, double available_margin,
                  double current_position_qty, // signed: + long, - short
                  double current_total_exposure) noexcept {
         // 1. Blacklist

@@ -157,7 +157,7 @@ class FixEncoder {
         auto ts =
             std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
         // FIX format: YYYYMMDD-HH:MM:SS.ssssss
-        char        time_buf[32];
+        char        time_buf[64];
         std::time_t t = std::chrono::system_clock::to_time_t(now);
         std::tm     tm_val;
 #ifdef _WIN32
@@ -165,7 +165,7 @@ class FixEncoder {
 #else
         gmtime_r(&t, &tm_val);
 #endif
-        auto us = ts % 1000000;
+        auto us = static_cast<long long>(ts % 1000000);
         std::snprintf(time_buf, sizeof(time_buf), "%04d%02d%02d-%02d:%02d:%02d.%06lld",
                       tm_val.tm_year + 1900, tm_val.tm_mon + 1, tm_val.tm_mday, tm_val.tm_hour,
                       tm_val.tm_min, tm_val.tm_sec, us);

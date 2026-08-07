@@ -218,9 +218,7 @@ class FixMessage {
 
         // Verify checksum
         // Find last SOH before "10="
-        int         checksum = 0;
-        const char* p        = data;
-        const char* end      = data + len;
+        const char* end = data + len;
 
         // Find "10=" tag
         const char* cs_pos = nullptr;
