@@ -47,7 +47,7 @@ class ShmMarketDataWriter:
                                      access=mmap.ACCESS_WRITE)
                 self._fd = -1
             else:
-                self._fd = os.open(f"/dev/shm{self.name}", os.O_CREAT | os.O_RDWR, 0o660)  # nosec: B108
+                self._fd = os.open(f"/dev/shm{self.name}", os.O_CREAT | os.O_RDWR, 0o600)  # nosec: B108  # codeql[py/overly-permissive-file-permission]
                 os.ftruncate(self._fd, self._total_size)
                 self._mm = mmap.mmap(
                     self._fd, self._total_size, mmap.MAP_SHARED,

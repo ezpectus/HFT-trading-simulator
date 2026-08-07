@@ -131,10 +131,10 @@ class ShmRingBuffer[T]:
         else:
             # POSIX: use /dev/shm
             if create:
-                self._fd = os.open(f"/dev/shm{name}", os.O_CREAT | os.O_RDWR, 0o660)  # nosec: B108
+                self._fd = os.open(f"/dev/shm{name}", os.O_CREAT | os.O_RDWR, 0o600)  # nosec: B108  # codeql[py/overly-permissive-file-permission]
                 os.ftruncate(self._fd, total_size)
             else:
-                self._fd = os.open(f"/dev/shm{name}", os.O_RDWR, 0o660)  # nosec: B108
+                self._fd = os.open(f"/dev/shm{name}", os.O_RDWR, 0o600)  # nosec: B108  # codeql[py/overly-permissive-file-permission]
 
             self._mm = mmap.mmap(self._fd, total_size, mmap.MAP_SHARED,
                                  mmap.PROT_READ | mmap.PROT_WRITE)

@@ -328,7 +328,7 @@ class ExchangeWebSocketServer:
                 reason = order.rejection_reason or "UNKNOWN"
                 logger.info(
                     f"  ORDER REJECTED: {_sanitize_log(data['side'])} {_sanitize_log(data['symbol'])} "
-                    f"qty={data['quantity']} | {_sanitize_log(exchange_id)} | {_sanitize_log(reason)}"
+                    f"qty={_sanitize_log(str(data['quantity']))} | {_sanitize_log(exchange_id)} | {_sanitize_log(reason)}"
                 )
 
             # Send fill notification back
@@ -486,24 +486,24 @@ class ExchangeWebSocketServer:
                     if symbol in self.market._volatility:
                         old = self.market._volatility[symbol]
                         self.market._volatility[symbol] = vol
-                        logger.info(f"  Config hot-reload: {_sanitize_log(symbol)} volatility {old} → {vol}")
+                        logger.info(f"  Config hot-reload: {_sanitize_log(symbol)} volatility {_sanitize_log(str(old))} → {_sanitize_log(str(vol))}")
             if "fees" in updates:
                 for ex_id, fee in updates["fees"].items():
                     if ex_id in self.exchanges:
                         old = self.exchanges[ex_id].fee_pct
                         self.exchanges[ex_id].fee_pct = fee
-                        logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} fee {old}% → {fee}%")
+                        logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} fee {_sanitize_log(str(old))}% → {_sanitize_log(str(fee))}%")
             if "slippage" in updates:
                 for ex_id, slip in updates["slippage"].items():
                     if ex_id in self.exchanges:
                         old = self.exchanges[ex_id].slippage_bps
                         self.exchanges[ex_id].slippage_bps = slip
-                        logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} slippage {old}bps → {slip}bps")
+                        logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} slippage {_sanitize_log(str(old))}bps → {_sanitize_log(str(slip))}bps")
             if "leverage" in updates:
                 for ex_id, lev in updates["leverage"].items():
                     if ex_id in self.exchanges:
                         self.exchanges[ex_id].account.leverage = lev
-                        logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} leverage → {lev}x")
+                        logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} leverage → {_sanitize_log(str(lev))}x")
             await websocket.send(json.dumps({"type": "config_updated", "updates": updates}))
 
         elif msg_type == "options_chain":
