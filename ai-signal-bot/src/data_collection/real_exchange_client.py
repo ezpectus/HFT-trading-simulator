@@ -11,7 +11,6 @@ Supports Binance, OKX, and Bybit for:
 from __future__ import annotations
 
 import base64
-import hashlib
 import hmac
 import logging
 import time
@@ -22,14 +21,12 @@ logger = logging.getLogger(__name__)
 
 def _hmac_sha256_hex(key: bytes, message: bytes) -> str:
     """Compute HMAC-SHA256 hex digest — used for exchange API request signing."""
-    return hmac.new(key, message, hashlib.sha256).hexdigest()  # codeql[py/weak-sensitive-data-hashing] : Exchange API HMAC-SHA256 signing, not password hashing
+    return hmac.digest(key, message, 'sha256').hex()
 
 
 def _hmac_sha256_b64(key: bytes, message: bytes) -> str:
     """Compute HMAC-SHA256 base64 digest — used for exchange API request signing."""
-    return base64.b64encode(  # codeql[py/weak-sensitive-data-hashing] : Exchange API HMAC-SHA256 signing, not password hashing
-        hmac.new(key, message, hashlib.sha256).digest()
-    ).decode()
+    return base64.b64encode(hmac.digest(key, message, 'sha256')).decode()
 
 
 @dataclass
