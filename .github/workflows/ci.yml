@@ -192,20 +192,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: 1c96eb3cbdd049a4e4e5e0e3b94d67629f3f4b43
-          vcpkgDirectory: ${{ github.workspace }}/vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git ${{ github.workspace }}/vcpkg
+          cd ${{ github.workspace }}/vcpkg
+          git checkout 1c96eb3cbdd049a4e4e5e0e3b94d67629f3f4b43
+          .\bootstrap-vcpkg.bat -disableMetrics
+          echo "$((Get-Location).Path)" >> $env:GITHUB_PATH
       - name: Install C++ libraries via vcpkg
         run: |
-          vcpkg install boost-system boost-random openssl spdlog fmt nlohmann-json yaml-cpp --triplet x64-windows
+          ${{ github.workspace }}/vcpkg/vcpkg install boost-system boost-random openssl spdlog fmt nlohmann-json yaml-cpp --triplet x64-windows
       - name: Clone websocketpp
         run: git clone https://github.com/zaphoyd/websocketpp.git
       - name: Configure CMake
         working-directory: hft-trade-bot
         run: |
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake `
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake `
             -DWEBSOCKETPP_INCLUDE_DIR=../websocketpp
       - name: Build
         working-directory: hft-trade-bot
