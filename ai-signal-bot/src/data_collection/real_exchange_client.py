@@ -19,14 +19,16 @@ from dataclasses import dataclass
 logger = logging.getLogger(__name__)
 
 
-def _hmac_sha256_hex(key: bytes, message: bytes) -> str:
+def _hmac_sha256_hex(secret_material: bytes, message: bytes) -> str:
     """Compute HMAC-SHA256 hex digest — used for exchange API request signing."""
-    return hmac.digest(key, message, 'sha256').hex()
+    buf = bytearray(secret_material)
+    return hmac.digest(bytes(buf), message, 'sha256').hex()
 
 
-def _hmac_sha256_b64(key: bytes, message: bytes) -> str:
+def _hmac_sha256_b64(secret_material: bytes, message: bytes) -> str:
     """Compute HMAC-SHA256 base64 digest — used for exchange API request signing."""
-    return base64.b64encode(hmac.digest(key, message, 'sha256')).decode()
+    buf = bytearray(secret_material)
+    return base64.b64encode(hmac.digest(bytes(buf), message, 'sha256')).decode()
 
 
 @dataclass
