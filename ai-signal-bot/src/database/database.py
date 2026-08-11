@@ -126,6 +126,28 @@ CREATE TABLE IF NOT EXISTS backtests (
     config_json     JSONB,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Audit logs table — comprehensive audit logging
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id              BIGSERIAL PRIMARY KEY,
+    timestamp       TIMESTAMPTZ NOT NULL,
+    level           VARCHAR(16) NOT NULL,  -- INFO, WARNING, ERROR, CRITICAL
+    category        VARCHAR(32) NOT NULL,  -- ORDER, RISK, SYSTEM, SECURITY
+    event_type      VARCHAR(64) NOT NULL,  -- ORDER_SUBMITTED, ORDER_FILLED, RISK_CHECK_FAILED
+    user_id         VARCHAR(64),
+    session_id      VARCHAR(64),
+    exchange        VARCHAR(16),
+    symbol          VARCHAR(32),
+    order_id        VARCHAR(64),
+    message         TEXT NOT NULL,
+    details         JSONB,
+    ip_address      VARCHAR(45),
+    user_agent      TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_category ON audit_logs(category);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON audit_logs(event_type);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_level ON audit_logs(level);
 """
 
 
@@ -390,3 +412,75 @@ class Database:
         except Exception as e:
             logger.error(f"Failed to insert backtest: {e}")
             return None
+
+    async def insert_audit_log(self, log: dict) -> int | None:
+        """Insert an audit log entry."""
+        if not self._pool:
+            return None
+        try:
+            import json
+            async with self._pool.acquire() as conn:
+                log_id = await conn.fetchrow(
+                    """INSERT INTO audit_logs (timestamp, level, category, event_type,
+                       user_id, session_id, exchange, symbol, order_id, message, details,
+                       ip_address, user_agent)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                       RETURNING id""",
+                    log.get("timestamp"),
+                    log.get("level", "INFO"),
+                    log.get("category", "SYSTEM"),
+                    log.get("event_type", ""),
+                    log.get("user_id"),
+                    log.get("session_id"),
+                    log.get("exchange"),
+                    log.get("symbol"),
+                    log.get("order_id"),
+                    log.get("message", ""),
+                    json.dumps(log.get("details", {})),
+                    log.get("ip_address"),
+                    log.get("user_agent"),
+                )
+                return log_id["id"] if log_id else None
+        except Exception as e:
+            logger.error(f"Failed to insert audit log: {e}")
+            return None
+
+    async def get_audit_logs(self, level: str | None = None, category: str | None = None,
+                            event_type: str | None = None, limit: int = 100,
+                            offset: int = 0) -> list[dict]:
+        """Query audit logs with optional filters."""
+        if not self._pool:
+            return []
+        try:
+            async with self._pool.acquire() as conn:
+                conditions = []
+                params = []
+                param_idx = 1
+
+                if level:
+                    conditions.append(f"level = ${param_idx}")
+                    params.append(level)
+                    param_idx += 1
+                if category:
+                    conditions.append(f"category = ${param_idx}")
+                    params.append(category)
+                    param_idx += 1
+                if event_type:
+                    conditions.append(f"event_type = ${param_idx}")
+                    params.append(event_type)
+                    param_idx += 1
+
+                where_clause = " AND ".join(conditions) if conditions else "1=1"
+                params.append(limit)
+                params.append(offset)
+
+                query = f"""SELECT * FROM audit_logs
+                          WHERE {where_clause}
+                          ORDER BY timestamp DESC
+                          LIMIT ${param_idx} OFFSET ${param_idx + 1}"""
+
+                rows = await conn.fetch(query, *params)
+                return [dict(r) for r in rows]
+        except Exception as e:
+            logger.error(f"Failed to query audit logs: {e}")
+            return []

@@ -620,10 +620,14 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 
 | Document | Description |
 |----------|-------------|
+| [User Guide](docs/USER_GUIDE.md) | Complete user manual for trading operations, advanced order types, risk management |
+| [Troubleshooting Guide](docs/TROUBLESHOOTING.md) | Common issues and solutions for connection, performance, and build problems |
+| [REST API Reference](docs/REST_API.md) | Complete REST API documentation for all system components |
+| [WebSocket Protocol](docs/WEBSOCKET_PROTOCOL.md) | All 29 message types, v2 schema, compression, reconnection, lifecycle |
+| [Configuration Reference](docs/CONFIGURATION_REFERENCE.md) | All configuration options for system components |
 | [Architecture](docs/ARCHITECTURE.md) | System design, component overview, data flow, C++ V2/V3 engine |
 | [Architecture Diagrams](docs/ARCHITECTURE_DIAGRAMS.md) | ASCII diagrams: system overview, data flow, latency budget |
 | [Trading Strategies](docs/TRADING_STRATEGIES.md) | All strategies, HFT V2/V3 engine, pressure model, routing |
-| [WebSocket Protocol](docs/WEBSOCKET_PROTOCOL.md) | All 29 message types, v2 schema, compression, reconnection, lifecycle |
 | [Performance Guide](docs/PERFORMANCE.md) | Optimization techniques, latency budget, benchmarking, contributor checklist |
 | [Web UI](docs/WEB_UI.md) | 197 panels, performance, testing, accessibility, PWA |
 | [Exchange Simulator](docs/EXCHANGE_SIMULATOR.md) | Price generation, order book, liquidation engine |
