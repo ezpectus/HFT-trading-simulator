@@ -260,9 +260,9 @@ VITE_ENABLE_SYMBOL_SEARCH=true
 
 All components expose Prometheus metrics:
 
-**Exchange Simulator:** `http://localhost:8775/metrics`
-**AI Signal Bot:** `http://localhost:8080/metrics`
-**HFT Trade Bot:** `http://localhost:9091/metrics`
+**Exchange Simulator:** `http://localhost:8765/health` (health check)
+**AI Signal Bot:** `http://localhost:8766/health` (health check)
+**HFT Trade Bot:** `http://localhost:9091/health` (health check)
 
 ### Grafana Dashboards
 
@@ -327,10 +327,10 @@ Response:
 ```json
 {
   "status": "healthy",
-  "version": "3.0.0",
+  "version": "2.2.0",
   "uptime": 3600,
   "connections": 5,
-  "symbols": 49
+  "symbols": 50
 }
 ```
 
@@ -344,7 +344,7 @@ Response:
 ```json
 {
   "status": "healthy",
-  "version": "3.0.0",
+  "version": "2.2.0",
   "uptime": 3600,
   "signals_generated": 150,
   "active_positions": 3
@@ -359,7 +359,7 @@ curl http://localhost:9091/health
 
 Response:
 ```bash
-HFT Trade Bot v3.0.0 - Healthy
+HFT Trade Bot v2.0.0 - Healthy
 Uptime: 3600s
 Active Positions: 3
 Orders Processed: 150

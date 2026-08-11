@@ -6,9 +6,42 @@ The exchange simulator generates realistic cryptocurrency market data using **Ge
 
 ## Price Generation
 
-### Geometric Brownian Motion
+### Real-Time Price Feed Integration
 
-Price evolution follows the GBM formula:
+The exchange simulator supports real-time price feeds from external cryptocurrency exchanges:
+
+**Supported APIs:**
+- Binance API (priority 1, rate limit: 1200 req/min)
+- Coinbase Pro API (priority 2, rate limit: 1000 req/min)
+
+**Features:**
+- Automatic failover between APIs
+- Rate limiting per API
+- Caching layer (configurable TTL, default: 5 seconds)
+- Data normalization across different API formats
+- Hybrid mode: Real price feeds + simulated microstructure for realistic trading
+
+**Configuration:**
+```yaml
+price_feed:
+  enabled: true
+  hybrid_mode: true
+  apis:
+    - name: binance
+      enabled: true
+      priority: 1
+      rate_limit: 1200
+    - name: coinbase
+      enabled: true
+      priority: 2
+      rate_limit: 1000
+  cache_ttl: 5
+  failover_enabled: true
+```
+
+### Geometric Brownian Motion (Fallback)
+
+When real-time price feeds are disabled or unavailable, price evolution follows the GBM formula:
 
 ```
 S(t+1) = S(t) × exp(μ + σ × Z)
@@ -69,6 +102,36 @@ The order book is generated around the current mid-price:
 - Checked against current market price
 - If price is achievable, filled at limit price
 - Otherwise, order stays pending
+
+### Advanced Order Types
+
+The simulator supports four advanced order types:
+
+**Stop-Limit Orders:**
+- Trigger at a stop price, execute as a limit order
+- Buy stop: triggers when market price >= stop price
+- Sell stop: triggers when market price <= stop price
+- Provides price control compared to stop-market orders
+
+**Trailing Stop Orders:**
+- Dynamic stop price that follows favorable price movements
+- Configurable trail amount (percentage or absolute value)
+- Stop price moves only in the favorable direction
+- Useful for profit protection and trend following
+
+**OCO (One-Cancels-the-Other) Orders:**
+- Two linked orders where one cancels the other
+- Commonly used for take-profit + stop-loss pairs
+- Ensures only one order from the group can execute
+- Automatic cancellation when one order fills
+
+**Iceberg Orders:**
+- Large orders split into visible and hidden portions
+- Only a small visible quantity shown in order book
+- Hidden quantity replenished as visible portion fills
+- Reduces market impact from large orders
+
+See [Advanced Order Types](ADVANCED_ORDER_TYPES.md) for detailed documentation.
 
 ### Fees
 - Applied as percentage of notional value
@@ -255,6 +318,45 @@ All services write timestamped log files to the `logs/` directory:
 - `logs/trades_latest.csv` — symlink to most recent trade CSV
 
 Use `make logs` to view latest log files for all services.
+
+## Audit Logging
+
+The exchange simulator includes comprehensive audit logging for all system events:
+
+**Features:**
+- Thread-safe storage with locks for concurrent access
+- In-memory cache (configurable max entries, default: 10,000)
+- File persistence in JSONL format
+- Real-time callbacks for event notification
+- Comprehensive filtering (event type, exchange, symbol, time range)
+- Export options (JSON and CSV)
+- Lifecycle tracking (orders, positions, accounts)
+
+**Event Types Logged:**
+- Order events: `ORDER_SUBMITTED`, `ORDER_FILLED`, `ORDER_CANCELLED`, `ORDER_REJECTED`
+- Position events: `POSITION_OPENED`, `POSITION_CLOSED`, `POSITION_MODIFIED`
+- Account events: `ACCOUNT_BALANCE_CHANGE`
+- System events: `CONFIG_CHANGE`, `SYSTEM_START`, `SYSTEM_STOP`, `ERROR`, `WARNING`
+
+**Configuration:**
+```yaml
+audit:
+  enabled: true
+  max_memory_entries: 10000
+  log_file_path: logs/audit.log
+  enable_file_logging: true
+  enable_callbacks: true
+```
+
+**Web UI Integration:**
+The web UI includes an `AuditLogViewer` component for visualizing audit logs with:
+- Real-time display
+- Expandable details
+- Search and filtering
+- Export (JSON/CSV)
+- Color coding by event type
+
+See [Audit Logging](AUDIT_LOGGING.md) for detailed documentation.
 
 ## Configuration
 

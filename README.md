@@ -3,8 +3,8 @@
 ![CI](https://img.shields.io/github/actions/workflow/status/ezpectus/HFT-TradeBot--Lite-version/ci.yml?branch=main&label=CI)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-61dafb.svg)
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
-![Tests](https://img.shields.io/badge/tests-114%2B%20files-6e9f18.svg)
-![Roadmap](https://img.shields.io/badge/roadmap-6%2F6%20phases%20done-00C853.svg)
+![Tests](https://img.shields.io/badge/tests-484%2B%20passing-6e9f18.svg)
+![Roadmap](https://img.shields.io/badge/roadmap-9%2F9%20phases%20done-00C853.svg)
 ![Strategies](https://img.shields.io/badge/strategies-34%2B-FF6B35.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 ![Live Demo](https://img.shields.io/badge/demo-coming%20soon-orange.svg)
@@ -79,7 +79,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
   │   (Python)      │   │   (Python)      │   │   (C++20)       │
   │                 │   │                 │   │                 │
   │  • 3 Exchanges  │   │  • 8-Stage      │   │  • Signal V2/V3 │
-  │  • 3 Symbols    │   │    Pipeline     │   │  • HMM Regime   │
+  │  • 50+ Symbols   │   │    Pipeline     │   │  • HMM Regime   │
   │  • GBM + Jumps  │   │  • 34+ Models   │   │  • Smart Router │
   │  • Order Book   │   │  • ONNX Inference│   │  • Pressure Mod │
   │  • Funding      │   │  • LSTM/Transf. │   │  • Adaptive Ord │
@@ -184,10 +184,10 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Mock data mode** — `VITE_MOCK_MODE=true` generates synthetic market data for standalone demo without backend
 - **Web Worker** — heavy indicator calculations offloaded to web worker (planned)
 - **Performance hooks** — useDebouncedValue, useThrottledCallback, useBatchedUpdates, useIntersectionObserver
-- **Exchange UI Clones** — Binance, Bybit, Coinbase themed interfaces with seamless switching
-- **Advanced order type UI** — Support for Stop-Limit, Trailing Stop, OCO, and Iceberg orders
+- **Exchange UI Clones** — Binance, Bybit, Coinbase themed interfaces with seamless switching and exchange-specific theming
+- **Advanced order type UI** — Support for Stop-Limit, Trailing Stop, OCO, and Iceberg orders with parameter validation
 - **Audit Log Viewer** — Real-time audit log display with filtering, search, and export (JSON/CSV)
-- **Symbol search and filtering** — Search across 50+ symbols with category-based filtering
+- **Symbol search and filtering** — Search across 50+ symbols with category-based filtering and lazy loading
 
 ### Exchange Simulator
 
@@ -196,16 +196,16 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Jump diffusion** — Merton model for sudden price jumps
 - **Stochastic volatility** — Heston-like volatility process
 - **Regime switching** — Markov-switching market regimes
-- **50+ cryptocurrency symbols** — BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, APE, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, DOT, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI
+- **50+ cryptocurrency symbols** — BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI
 - **3 simulated exchanges** (Binance, Bybit, OKX) with different fee structures and slippage
-- **Real-time price feed integration** — Multi-API connection with automatic failover, rate limiting, caching layer
+- **Real-time price feed integration** — Multi-API connection (Binance, Coinbase) with automatic failover, rate limiting, caching layer, and data normalization
 - **Hybrid market simulation** — Real price feeds + simulated microstructure for realistic trading environment
 - **Realistic order book** — depth profile, spoofing detection, iceberg orders, queue position, adverse selection
 - **Latency simulation** — per-exchange base latency, jitter, spikes, reconnection delay
 - **Funding rates** — 8-hour intervals, perpetual-spot basis, payment calculation
 - **Liquidation engine v2** — cascade liquidations, partial liquidation, liquidation price estimation, insurance fund, ADL
-- **Advanced order types** — Stop-Limit, Trailing Stop, OCO (One-Cancels-the-Other), Iceberg orders
-- **Comprehensive audit logging** — Thread-safe audit trail for all system events with filtering, search, and export
+- **Advanced order types** — Stop-Limit, Trailing Stop, OCO (One-Cancels-the-Other), Iceberg orders with full lifecycle management
+- **Comprehensive audit logging** — Thread-safe audit trail for all system events with filtering, search, and export (JSON/CSV)
 - **News event simulation** — sudden volatility spikes with directional bias
 - **Market impact model** — large orders move price
 - **Partial fill simulation** — large orders split across order book levels
@@ -292,11 +292,14 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | SHM IPC latency | ~1-5 us | Zero-copy C++ ↔ Python, packed structs |
 | Web UI bundle size (dist) | < 5 MB | Code-split, lazy-loaded panels |
 | Web UI initial render | < 1s | Vite + React 18 |
-| Test coverage | 38 JS files, 47 C++ files, 30+ Python files | Unit + integration + E2E |
+| Test coverage | 38 JS files, 47 C++ files, 49 Python files | Unit + integration + E2E (484+ tests passing) |
 | Panel count | 197 registered panels | Detachable, responsive |
 | Math models | 75+ advanced quantitative models | Black-Scholes to Heston |
 | Component files | 223 React components | |
 | Optimization walkthroughs | 23 examples | Before/after code + impact analysis |
+| Cryptocurrency symbols | 50+ trading pairs | BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI |
+| Advanced order types | 4 order types | Stop-Limit, Trailing Stop, OCO, Iceberg |
+| Price feed APIs | 2 APIs integrated | Binance, Coinbase with automatic failover |
 
 > See [Performance Guide](docs/PERFORMANCE.md) for detailed optimization techniques, latency budget breakdown, and benchmarking instructions.
 
@@ -430,9 +433,11 @@ VITE_MOCK_MODE=true npm run dev
 
 ```
 hft-trading-system/
-├── exchange_simulator/              # Python: simulated crypto exchange (14 modules)
+├── exchange_simulator/              # Python: simulated crypto exchange (15 modules)
 │   ├── exchange_simulator/           # Core package
-│   ├── tests/                        # pytest tests
+│   ├── price_feed_manager.py         # Multi-API price feed integration
+│   ├── audit_logger.py               # Comprehensive audit logging
+│   ├── tests/                        # pytest tests (49 files, 484+ tests)
 │   ├── config.yaml
 │   └── Dockerfile
 ├── ai-signal-bot/                   # Python: AI signal generation (34 modules)
@@ -619,7 +624,8 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 | [Setup Guide](docs/SETUP.md) | Installation, mock mode, troubleshooting |
 | [Mathematical Models](docs/MATH_MODELS.md) | Detailed breakdown of all 75+ quant models with formulas and file references |
 | [Educational Content](docs/EDUCATIONAL_CONTENT.md) | HFT introduction, microstructure, order types, indicators, risk management |
-| [Roadmap](docs/ROADMAP.md) | Project roadmap — all 6 phases completed |
+| [Roadmap](docs/ROADMAP.md) | Project roadmap — all 9 phases completed |
+| [Comprehensive Development Plan](COMPREHENSIVE_DEVELOPMENT_PLAN.md) | Full 9-phase development roadmap with detailed implementation plans |
 | [Changelog](docs/CHANGELOG.md) | Version history and notable changes |
 
 ---
@@ -633,7 +639,65 @@ Each component has its own YAML config file:
 | Exchange Simulator | [`exchange_simulator/config.yaml`](exchange_simulator/config.yaml) |
 | AI Signal Bot | [`ai-signal-bot/config/settings.yaml`](ai-signal-bot/config/settings.yaml) |
 | HFT Trade Bot | [`hft-trade-bot/config/config.yaml`](hft-trade-bot/config/config.yaml) |
-| Shared | [`shared_config.yaml`](shared_config.yaml) |
+| Shared | [`shared_config.yaml`](shared_config.yaml) — Contains 50+ cryptocurrency symbols configuration |
+
+### Symbol Configuration
+
+The `shared_config.yaml` file contains the complete list of 50+ cryptocurrency symbols supported across all components:
+
+```yaml
+symbols:
+  - BTC/USDT
+  - ETH/USDT
+  - SOL/USDT
+  - BNB/USDT
+  - ADA/USDT
+  - AVAX/USDT
+  - DOT/USDT
+  - LINK/USDT
+  - MATIC/USDT
+  - UNI/USDT
+  - XRP/USDT
+  - LTC/USDT
+  - ATOM/USDT
+  - NEAR/USDT
+  - FTM/USDT
+  - APE/USDT
+  - SAND/USDT
+  - MANA/USDT
+  - AXS/USDT
+  - ENJ/USDT
+  - GALA/USDT
+  - IMX/USDT
+  - GMT/USDT
+  - BCH/USDT
+  - ETC/USDT
+  - XLM/USDT
+  - ALGO/USDT
+  - VET/USDT
+  - THETA/USDT
+  - ICP/USDT
+  - HBAR/USDT
+  - EOS/USDT
+  - TRX/USDT
+  - XMR/USDT
+  - DASH/USDT
+  - ZEC/USDT
+  - KSM/USDT
+  - ACA/USDT
+  - GLM/USDT
+  - MASK/USDT
+  - LDO/USDT
+  - STG/USDT
+  - RPL/USDT
+  - FXS/USDT
+  - CRV/USDT
+  - AAVE/USDT
+  - COMP/USDT
+  - MKR/USDT
+  - SNX/USDT
+  - YFI/USDT
+```
 
 ---
 
