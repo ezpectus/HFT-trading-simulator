@@ -20,6 +20,12 @@
 
 ---
 
+## IMPORTANT: Simulated Market Environment
+
+**This is a simulated market environment for educational purposes.** The 50+ cryptocurrency symbols (BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI) are **simulated** — they are not real cryptocurrency markets. However, the AI Signal Bot and HFT Trade Bot execute **real buy/sell orders** within this simulated environment, just like they would on a real exchange. This allows for safe testing and learning of trading strategies without risking real money.
+
+---
+
 ## What You Can Learn
 
 This project is designed as a **hands-on HFT learning platform**. Each component demonstrates real-world techniques used in quantitative finance:
