@@ -50,11 +50,15 @@ graph TB
 | Feature | Implementation |
 |---------|---------------|
 | Price generation | GBM with per-symbol volatility, fat-tail jumps, news event spikes |
+| Real-time price feeds | Multi-API integration (Binance, etc.) with automatic failover, rate limiting, caching |
+| Hybrid simulation | Real price feeds + simulated microstructure for realistic trading |
 | Exchanges | Binance, Bybit, OKX (different fees, slippage, volatility multipliers) |
-| Symbols | BTC/USDT, ETH/USDT, SOL/USDT |
+| Symbols | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI) |
 | Order book | 20 levels per side, decay-based liquidity, real-time depth |
-| Order matching | Market and limit orders with slippage, partial fills, market impact |
+| Order matching | Market, limit, stop-limit, trailing stop, OCO, iceberg orders with slippage, partial fills, market impact |
+| Advanced order types | Stop-Limit (trigger + limit), Trailing Stop (dynamic stop), OCO (linked orders), Iceberg (hidden quantity) |
 | Account | Balance, positions, PnL, win rate, margin, leverage |
+| Audit logging | Thread-safe audit trail for all system events with filtering, search, export (JSON/CSV) |
 | Arbitrage | Multi-exchange spread detection, auto-execution, WebSocket broadcast |
 | Funding rates | Per-exchange, charged every 8h equivalent (96 candles) |
 | Liquidation | Auto-close when margin < maintenance level, partial liquidation (50%), insurance fund, cascade liquidations, auto-deleveraging (ADL) |
@@ -65,7 +69,7 @@ graph TB
 | CSV trade logging | Every fill, SL/TP close, arbitrage execution logged to timestamped CSV |
 | Timestamped logging | Per-run log files in `logs/` with `_latest.log` symlink |
 | Visualizer | Terminal-based candle charts, RSI, MACD, BB, FFT regime, equity sparkline |
-| Data feed | WebSocket server streaming candles, order books, accounts, fills |
+| Data feed | WebSocket server streaming candles, order books, accounts, fills, audit logs |
 | Market microstructure | Heston stochastic volatility, Student-t fat tails, Merton jump diffusion, Markov regime switching (CALM/VOLATILE/CRASH/RECOVERY), U-shaped intraday volume |
 | Latency simulation | Per-exchange base latency (Binance 50ms, OKX 80ms, Bybit 120ms), Gaussian jitter, Poisson spikes, exponential backoff reconnection |
 | Order book realism | Power-law depth profiles, spoofing detection, iceberg orders, FIFO queue positions, adverse selection (toxic flow score) |
@@ -75,11 +79,13 @@ graph TB
 | Spread analytics | Per-exchange/symbol spread tracking with P50/P90/P99 percentiles, effective slippage measurement in basis points |
 
 **Key files:**
-- `market_simulator.py` — GBM price engine with volatility multipliers
-- `exchange.py` — Order matching, account management, slippage, market impact
+- `market_simulator.py` — GBM price engine with volatility multipliers, hybrid mode with real price feeds
+- `exchange.py` — Order matching, account management, slippage, market impact, audit logging integration
 - `visualizer.py` — Terminal dashboard with ASCII charts and sparklines
-- `websocket_server.py` — WebSocket data feed, arbitrage auto-execution, CSV trade logging
-- `models.py` — Data structures (Candle, Order, Position, Account, ClosedTrade)
+- `websocket_server.py` — WebSocket data feed, arbitrage auto-execution, CSV trade logging, audit log streaming
+- `models.py` — Data structures (Candle, Order, Position, Account, ClosedTrade, AuditLog, StopLimitOrder, TrailingStopOrder, OCOGroup, IcebergOrder)
+- `audit_logger.py` — Thread-safe audit logging service with filtering, search, export
+- `price_feed_manager.py` — Multi-API price feed integration with failover, rate limiting, caching
 - `arbitrage.py` — Multi-exchange arbitrage detection
 - `config_validator.py` — Config validation with comprehensive error checking
 - `data_export.py` — CSV/Parquet data export
@@ -290,7 +296,11 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 | Multi-timeframe | 5m/15m/1h/4h toggle (frontend aggregation) |
 | Alt chart modes | Heikin-Ashi, Renko, Point & Figure, Kagi, Three-Line Break, Tick, Volume Clock |
 | Order book | Real WebSocket data, depth bars, heatmap, cumulative totals |
-| Order form | Market/limit, SL/TP, quick-trade buttons, per-exchange fee breakdown |
+| Order form | Market/limit, stop-limit, trailing stop, OCO, iceberg orders, SL/TP, quick-trade buttons, per-exchange fee breakdown |
+| Exchange UI clones | Binance, Bybit, Coinbase themed interfaces with seamless switching |
+| Audit log viewer | Real-time audit log display with filtering, search, export (JSON/CSV) |
+| Symbol search | Search across 50+ symbols with category-based filtering |
+| Exchange switcher | Dynamic theme and layout switching between exchanges |
 | Account panel | Per-exchange balance, equity, PnL, fees, win rate, PnL leaderboard |
 | Positions | Open positions with unrealized PnL, liquidation price, SL/TP progress bar |
 | Signal feed | AI signals with confidence, R:R, regime, confidence histogram |
@@ -335,6 +345,13 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 - `src/panels/registry.js` — Panel registry (197 panels, 7 categories, 201+ component imports)
 - `src/panels/PanelContainer.jsx` — ErrorBoundary + Suspense per panel, collapsible categories, localStorage visibility
 - `src/components/VirtualList.jsx` — Generic windowed list renderer with overscan
+- `src/components/AuditLogViewer.jsx` — Audit log viewer with filtering, search, export
+- `src/contexts/ExchangeContext.jsx` — Exchange theme and layout context provider
+- `src/components/ExchangeSelector.jsx` — Exchange switcher UI component
+- `src/exchanges/binance/` — Binance-themed UI components (BinanceTheme, BinanceLayout, BinanceOrderForm, BinanceOrderBook)
+- `src/exchanges/bybit/` — Bybit-themed UI components (BybitTheme, BybitLayout, BybitOrderForm, BybitOrderBook)
+- `src/exchanges/coinbase/` — Coinbase-themed UI components (CoinbaseTheme, CoinbaseLayout, CoinbaseOrderForm, CoinbaseOrderBook)
+- `src/utils/auditExport.js` — Audit log export utilities (JSON, CSV, statistics)
 - `src/hooks/useWebSocket.js` — Generic WebSocket hook with exponential backoff auto-reconnect
 - `src/hooks/useExchangeData.js` — Exchange data hook (candles, prices, orderbooks, accounts, fills, arbitrage)
 - `src/hooks/useSignalData.js` — AI signal data hook (signals, regime, backtest results)

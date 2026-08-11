@@ -184,6 +184,10 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Mock data mode** — `VITE_MOCK_MODE=true` generates synthetic market data for standalone demo without backend
 - **Web Worker** — heavy indicator calculations offloaded to web worker (planned)
 - **Performance hooks** — useDebouncedValue, useThrottledCallback, useBatchedUpdates, useIntersectionObserver
+- **Exchange UI Clones** — Binance, Bybit, Coinbase themed interfaces with seamless switching
+- **Advanced order type UI** — Support for Stop-Limit, Trailing Stop, OCO, and Iceberg orders
+- **Audit Log Viewer** — Real-time audit log display with filtering, search, and export (JSON/CSV)
+- **Symbol search and filtering** — Search across 50+ symbols with category-based filtering
 
 ### Exchange Simulator
 
@@ -192,11 +196,16 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Jump diffusion** — Merton model for sudden price jumps
 - **Stochastic volatility** — Heston-like volatility process
 - **Regime switching** — Markov-switching market regimes
+- **50+ cryptocurrency symbols** — BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, APE, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, DOT, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI
 - **3 simulated exchanges** (Binance, Bybit, OKX) with different fee structures and slippage
+- **Real-time price feed integration** — Multi-API connection with automatic failover, rate limiting, caching layer
+- **Hybrid market simulation** — Real price feeds + simulated microstructure for realistic trading environment
 - **Realistic order book** — depth profile, spoofing detection, iceberg orders, queue position, adverse selection
 - **Latency simulation** — per-exchange base latency, jitter, spikes, reconnection delay
 - **Funding rates** — 8-hour intervals, perpetual-spot basis, payment calculation
 - **Liquidation engine v2** — cascade liquidations, partial liquidation, liquidation price estimation, insurance fund, ADL
+- **Advanced order types** — Stop-Limit, Trailing Stop, OCO (One-Cancels-the-Other), Iceberg orders
+- **Comprehensive audit logging** — Thread-safe audit trail for all system events with filtering, search, and export
 - **News event simulation** — sudden volatility spikes with directional bias
 - **Market impact model** — large orders move price
 - **Partial fill simulation** — large orders split across order book levels
@@ -649,6 +658,72 @@ This project includes [`hft-skills/`](hft-skills/README.md) — a planned librar
 | `audit/` | 10 | Concurrency, Memory safety, Latency, Security audits |
 
 Skills will follow the [agentskills.io](https://agentskills.io) standard with YAML frontmatter for fast discovery. Compatible with Claude Code, Cursor, Windsurf, GitHub Copilot, and any MCP-compatible agent.
+
+---
+
+## Training and Documentation
+
+### Quick Start
+
+New to the system? Start here:
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in 5 minutes
+- **[FAQ](docs/FAQ.md)** - Common questions and answers
+
+### User Training
+
+Comprehensive guides for users:
+- **[User Training Guide](docs/USER_TRAINING.md)** - Complete user manual covering all features
+  - Basic operations (placing orders, managing positions)
+  - Advanced order types (Stop-Limit, Trailing Stop, OCO, Iceberg)
+  - Exchange UI clones (Binance, Bybit, Coinbase)
+  - Audit logging and analysis
+  - Risk management best practices
+  - Trading strategies (trend following, mean reversion, arbitrage, market making)
+
+### Developer Training
+
+Resources for developers:
+- **[Developer Training Guide](docs/DEVELOPER_TRAINING.md)** - Complete developer manual
+  - Development environment setup
+  - Architecture overview
+  - Component development (Python, C++, React)
+  - Testing strategies
+  - Code style and standards
+  - Debugging techniques
+  - Performance optimization
+  - Contributing guidelines
+
+### Video Tutorials
+
+Scripted video tutorials for visual learners:
+- **[Video Tutorial Scripts](docs/VIDEO_TUTORIALS.md)** - Scripts for creating video tutorials
+  - Getting Started (10 min)
+  - Advanced Order Types (15 min)
+  - Exchange UI Clones (12 min)
+  - Audit Logging (10 min)
+  - Risk Management (15 min)
+  - Trading Strategies (20 min)
+  - Developer Setup (15 min)
+  - Deployment (12 min)
+
+### Detailed Documentation
+
+In-depth technical documentation:
+- **[Architecture Documentation](docs/ARCHITECTURE.md)** - System architecture and design
+- **[Configuration Reference](docs/CONFIGURATION_REFERENCE.md)** - All configuration options
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Deployment procedures and best practices
+- **[Monitoring Setup Guide](docs/MONITORING_SETUP.md)** - Prometheus and Grafana setup
+- **[Rollback Procedures](docs/ROLLBACK_PROCEDURES.md)** - Emergency rollback procedures
+- **[Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md)** - Advanced order type documentation
+- **[Audit Logging](docs/AUDIT_LOGGING.md)** - Audit logging system documentation
+- **[Exchange UI Clones](docs/EXCHANGE_UI_CLONES.md)** - Exchange UI clone documentation
+
+### Additional Resources
+
+- **[Setup Guide](docs/SETUP.md)** - Detailed setup instructions
+- **[Math Models](docs/MATH_MODELS.md)** - Mathematical models used in the system
+- **[Performance Guide](docs/PERFORMANCE.md)** - Performance optimization guide
+- **[Trading Strategies](docs/TRADING_STRATEGIES.md)** - Trading strategy documentation
 
 ---
 

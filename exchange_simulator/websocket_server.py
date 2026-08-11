@@ -103,6 +103,13 @@ class ExchangeWebSocketServer:
         self._total_disconnections: int = 0
         logger.info(f"Trade CSV log: {self.trade_logger.path}")
 
+        # Client symbol subscriptions for filtering (Phase 1.5)
+        self._client_subscriptions: dict[WebSocketServerConnection, set[str]] = {}
+        # Rate limiting per client (Phase 1.5)
+        self._client_message_counts: dict[WebSocketServerConnection, dict] = {}
+        self._rate_limit_window = 60.0  # seconds
+        self._rate_limit_max = 1000  # messages per window
+
         # SHM market data publisher (HFT-O16 — bypass WebSocket for C++ bot)
         self._shm_market = None
         self._shm_symbol_ids: dict = {}  # symbol -> uint8 id
@@ -208,12 +215,34 @@ class ExchangeWebSocketServer:
             await client.close()
         logger.info("WebSocket server stopped")
 
+    def _check_rate_limit(self, websocket: WebSocketServerConnection) -> bool:
+        """Check if client is within rate limits (Phase 1.5)."""
+        now = time.time()
+        if websocket not in self._client_message_counts:
+            self._client_message_counts[websocket] = {"count": 0, "window_start": now}
+            return True
+
+        counts = self._client_message_counts[websocket]
+        if now - counts["window_start"] >= self._rate_limit_window:
+            counts["count"] = 0
+            counts["window_start"] = now
+            return True
+
+        if counts["count"] >= self._rate_limit_max:
+            logger.warning(f"Rate limit exceeded for {websocket.remote_address}")
+            return False
+
+        counts["count"] += 1
+        return True
+
     async def _handle_client(
         self, websocket: WebSocketServerConnection
     ) -> None:
         """Handle a connected client — receive orders, send market data."""
         self.clients.add(websocket)
         self._total_connections += 1
+        self._client_subscriptions[websocket] = set(self.market.symbols)  # Default: all symbols
+        self._client_message_counts[websocket] = {"count": 0, "window_start": time.time()}
         remote = websocket.remote_address
         logger.info(f"Client connected: {remote}")
 
@@ -253,6 +282,8 @@ class ExchangeWebSocketServer:
             self.clients.discard(websocket)
             self._client_versions.pop(websocket, None)
             self._client_encodings.pop(websocket, None)
+            self._client_subscriptions.pop(websocket, None)
+            self._client_message_counts.pop(websocket, None)
             self._total_disconnections += 1
             logger.info(f"Client disconnected: {remote}")
 
@@ -356,6 +387,16 @@ class ExchangeWebSocketServer:
                 encoding = "json"
                 logger.warning(f"Client {_sanitize_log(websocket.remote_address)} requested msgpack but not installed — falling back to JSON")
             self._client_encodings[websocket] = encoding
+            
+            # Symbol subscription filtering (Phase 1.5)
+            symbols = data.get("symbols")
+            if symbols:
+                if isinstance(symbols, list):
+                    self._client_subscriptions[websocket] = set(symbols)
+                else:
+                    self._client_subscriptions[websocket] = set(self.market.symbols)
+                logger.info(f"Client {_sanitize_log(websocket.remote_address)} subscribed to {len(self._client_subscriptions[websocket])} symbols")
+            
             logger.info(f"Client {_sanitize_log(websocket.remote_address)} subscribed (protocol v{_sanitize_log(client_ver)}, encoding={_sanitize_log(encoding)})")
             await self._send_market_snapshot(websocket)
 
@@ -895,7 +936,21 @@ class ExchangeWebSocketServer:
             else:
                 data = json.dumps(message, separators=(',', ':'))
 
-            # Send to all clients — concurrent via asyncio.gather
+            # Send to all clients — concurrent via asyncio.gather (Phase 1.5: filter by subscriptions)
+            disconnected = set()
+            async def _send_filtered(client, payload, _disc=disconnected):
+                try:
+                    # Check rate limit before sending (Phase 1.5)
+                    if not self._check_rate_limit(client):
+                        return
+                    await client.send(payload)
+                except websockets.ConnectionClosed:
+                    _disc.add(client)
+            
+            await asyncio.gather(*[
+                _send_filtered(c, data) for c in self.clients
+            ], return_exceptions=True)
+            self.clients -= disconnected
             disconnected = set()
             async def _send_to_client(client, payload, extra=None, _disc=disconnected):
                 try:

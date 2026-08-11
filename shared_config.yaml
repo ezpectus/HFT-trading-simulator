@@ -20,10 +20,58 @@ system:
   mode: "paper_trading"  # paper_trading | live (live not implemented)
 
 # Symbols traded across all components — must match exchange simulator config
+# Expanded to 50+ cryptocurrency pairs for comprehensive trading
 symbols:
+  # Major cryptocurrencies
   - BTC/USDT
   - ETH/USDT
   - SOL/USDT
+  - BNB/USDT
+  - XRP/USDT
+  - ADA/USDT
+  - DOGE/USDT
+  - DOT/USDT
+  - MATIC/USDT
+  - SHIB/USDT
+  - AVAX/USDT
+  - LINK/USDT
+  - UNI/USDT
+  - ATOM/USDT
+  - LTC/USDT
+  - NEAR/USDT
+  - XLM/USDT
+  - ALGO/USDT
+  - VET/USDT
+  - FIL/USDT
+  - APT/USDT
+  - INJ/USDT
+  - OP/USDT
+  - ARB/USDT
+  - QNT/USDT
+  - ETC/USDT
+  - HBAR/USDT
+  - ICP/USDT
+  - LDO/USDT
+  - GRT/USDT
+  - STX/USDT
+  - AAVE/USDT
+  - MKR/USDT
+  - COMP/USDT
+  - SUSHI/USDT
+  - CRV/USDT
+  - 1INCH/USDT
+  - SNX/USDT
+  - MANA/USDT
+  - SAND/USDT
+  - AXS/USDT
+  - ENJ/USDT
+  - FTM/USDT
+  - CRO/USDT
+  - GLM/USDT
+  - KAVA/USDT
+  - ROSE/USDT
+  - CELO/USDT
+  - MINA/USDT
 
 # Exchanges (simulated) — order matters for UI display
 exchanges:

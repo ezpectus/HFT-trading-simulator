@@ -3,11 +3,17 @@
 Generates realistic OHLCV candles for multiple symbols across multiple
 exchanges. Each exchange gets slightly different prices (correlated but
 not identical) to simulate real market conditions.
+
+Supports hybrid mode: can use real price feeds from PriceFeedManager
+while maintaining simulated microstructure (order books, correlations).
 """
+import logging
 import math
 import random
 
 from exchange_simulator.models import Candle, OrderBook, OrderBookLevel
+
+logger = logging.getLogger("exchange_simulator.market")
 
 
 class MarketSimulator:
@@ -29,6 +35,8 @@ class MarketSimulator:
         warmup_candles: int = 200,
         order_book_depth: int = 20,
         correlations: dict[tuple[str, str], float] | None = None,
+        price_feed_manager=None,
+        hybrid_mode: bool = False,
     ):
         self.symbols = symbols
         self.exchanges = exchanges
@@ -36,6 +44,8 @@ class MarketSimulator:
         self.drift = drift
         self.order_book_depth = order_book_depth
         self.rng = random.Random(seed)
+        self.price_feed_manager = price_feed_manager
+        self.hybrid_mode = hybrid_mode
 
         # Per-symbol state
         self._prices: dict[str, float] = {}
@@ -117,8 +127,45 @@ class MarketSimulator:
         self._generate_candles_inner()
         return self.get_latest_candles()
 
+    async def generate_candles_async(self) -> list[Candle]:
+        """Async version for hybrid mode with real price feeds."""
+        await self._generate_candles_inner_async()
+        return self.get_latest_candles()
+
     def _generate_candles_inner(self) -> None:
-        """Generate one candle per symbol per exchange."""
+        """Generate one candle per symbol per exchange (synchronous version)."""
+        self._generate_candles_inner_sync()
+
+    async def _generate_candles_inner_async(self) -> None:
+        """Generate one candle per symbol per exchange (async version for hybrid mode)."""
+        tf = self.timeframe_seconds
+
+        # In hybrid mode, fetch real prices from price feed manager
+        if self.hybrid_mode and self.price_feed_manager:
+            try:
+                real_prices = await self.price_feed_manager.get_all_prices()
+                for symbol, tick in real_prices.items():
+                    if symbol in self.symbols:
+                        self._prices[symbol] = tick.price
+                        # Update volatility from real data if available
+                        if hasattr(tick, 'volume') and tick.volume > 0:
+                            # Simple volatility estimation from price movement
+                            old_price = self._prices.get(symbol, tick.price)
+                            if old_price > 0:
+                                price_change = abs(tick.price - old_price) / old_price
+                                # Smooth volatility update
+                                current_vol = self._volatility.get(symbol, 0.8)
+                                estimated_vol = price_change * math.sqrt(365 * 24 * 3600 / tf)
+                                self._volatility[symbol] = 0.9 * current_vol + 0.1 * estimated_vol
+            except Exception as e:
+                # Fall back to simulated prices if real feed fails
+                logger.warning(f"Price feed error, falling back to simulation: {e}")
+
+        # Continue with synchronous candle generation
+        self._generate_candles_inner_sync()
+
+    def _generate_candles_inner_sync(self) -> None:
+        """Generate one candle per symbol per exchange (core logic)."""
         tf = self.timeframe_seconds
 
         # Check for news event trigger

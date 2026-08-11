@@ -24,6 +24,52 @@ exchanges:
       - BTC/USDT
       - ETH/USDT
       - SOL/USDT
+      - BNB/USDT
+      - XRP/USDT
+      - ADA/USDT
+      - DOGE/USDT
+      - DOT/USDT
+      - MATIC/USDT
+      - SHIB/USDT
+      - AVAX/USDT
+      - LINK/USDT
+      - UNI/USDT
+      - ATOM/USDT
+      - LTC/USDT
+      - NEAR/USDT
+      - XLM/USDT
+      - ALGO/USDT
+      - VET/USDT
+      - FIL/USDT
+      - APT/USDT
+      - INJ/USDT
+      - OP/USDT
+      - ARB/USDT
+      - QNT/USDT
+      - ETC/USDT
+      - HBAR/USDT
+      - ICP/USDT
+      - LDO/USDT
+      - GRT/USDT
+      - STX/USDT
+      - AAVE/USDT
+      - MKR/USDT
+      - COMP/USDT
+      - SUSHI/USDT
+      - CRV/USDT
+      - 1INCH/USDT
+      - SNX/USDT
+      - MANA/USDT
+      - SAND/USDT
+      - AXS/USDT
+      - ENJ/USDT
+      - FTM/USDT
+      - CRO/USDT
+      - GLM/USDT
+      - KAVA/USDT
+      - ROSE/USDT
+      - CELO/USDT
+      - MINA/USDT
 
   bybit:
     name: "Bybit Derivatives"
@@ -33,6 +79,52 @@ exchanges:
       - BTC/USDT
       - ETH/USDT
       - SOL/USDT
+      - BNB/USDT
+      - XRP/USDT
+      - ADA/USDT
+      - DOGE/USDT
+      - DOT/USDT
+      - MATIC/USDT
+      - SHIB/USDT
+      - AVAX/USDT
+      - LINK/USDT
+      - UNI/USDT
+      - ATOM/USDT
+      - LTC/USDT
+      - NEAR/USDT
+      - XLM/USDT
+      - ALGO/USDT
+      - VET/USDT
+      - FIL/USDT
+      - APT/USDT
+      - INJ/USDT
+      - OP/USDT
+      - ARB/USDT
+      - QNT/USDT
+      - ETC/USDT
+      - HBAR/USDT
+      - ICP/USDT
+      - LDO/USDT
+      - GRT/USDT
+      - STX/USDT
+      - AAVE/USDT
+      - MKR/USDT
+      - COMP/USDT
+      - SUSHI/USDT
+      - CRV/USDT
+      - 1INCH/USDT
+      - SNX/USDT
+      - MANA/USDT
+      - SAND/USDT
+      - AXS/USDT
+      - ENJ/USDT
+      - FTM/USDT
+      - CRO/USDT
+      - GLM/USDT
+      - KAVA/USDT
+      - ROSE/USDT
+      - CELO/USDT
+      - MINA/USDT
 
   okx:
     name: "OKX Perpetual"
@@ -42,19 +134,157 @@ exchanges:
       - BTC/USDT
       - ETH/USDT
       - SOL/USDT
+      - BNB/USDT
+      - XRP/USDT
+      - ADA/USDT
+      - DOGE/USDT
+      - DOT/USDT
+      - MATIC/USDT
+      - SHIB/USDT
+      - AVAX/USDT
+      - LINK/USDT
+      - UNI/USDT
+      - ATOM/USDT
+      - LTC/USDT
+      - NEAR/USDT
+      - XLM/USDT
+      - ALGO/USDT
+      - VET/USDT
+      - FIL/USDT
+      - APT/USDT
+      - INJ/USDT
+      - OP/USDT
+      - ARB/USDT
+      - QNT/USDT
+      - ETC/USDT
+      - HBAR/USDT
+      - ICP/USDT
+      - LDO/USDT
+      - GRT/USDT
+      - STX/USDT
+      - AAVE/USDT
+      - MKR/USDT
+      - COMP/USDT
+      - SUSHI/USDT
+      - CRV/USDT
+      - 1INCH/USDT
+      - SNX/USDT
+      - MANA/USDT
+      - SAND/USDT
+      - AXS/USDT
+      - ENJ/USDT
+      - FTM/USDT
+      - CRO/USDT
+      - GLM/USDT
+      - KAVA/USDT
+      - ROSE/USDT
+      - CELO/USDT
+      - MINA/USDT
 
 # Initial prices (USD) — starting reference prices for each symbol
 initial_prices:
   BTC/USDT: 65000.0
   ETH/USDT: 3500.0
   SOL/USDT: 150.0
+  BNB/USDT: 580.0
+  XRP/USDT: 0.52
+  ADA/USDT: 0.45
+  DOGE/USDT: 0.12
+  DOT/USDT: 7.2
+  MATIC/USDT: 0.58
+  SHIB/USDT: 0.000024
+  AVAX/USDT: 35.0
+  LINK/USDT: 14.5
+  UNI/USDT: 7.8
+  ATOM/USDT: 8.5
+  LTC/USDT: 85.0
+  NEAR/USDT: 5.2
+  XLM/USDT: 0.11
+  ALGO/USDT: 0.18
+  VET/USDT: 0.022
+  FIL/USDT: 5.8
+  APT/USDT: 9.5
+  INJ/USDT: 24.0
+  OP/USDT: 2.1
+  ARB/USDT: 1.15
+  QNT/USDT: 105.0
+  ETC/USDT: 28.0
+  HBAR/USDT: 0.085
+  ICP/USDT: 13.0
+  LDO/USDT: 2.0
+  GRT/USDT: 0.28
+  STX/USDT: 2.4
+  AAVE/USDT: 145.0
+  MKR/USDT: 2850.0
+  COMP/USDT: 56.0
+  SUSHI/USDT: 1.25
+  CRV/USDT: 0.42
+  1INCH/USDT: 0.28
+  SNX/USDT: 2.8
+  MANA/USDT: 0.72
+  SAND/USDT: 0.58
+  AXS/USDT: 8.5
+  ENJ/USDT: 0.28
+  FTM/USDT: 0.65
+  CRO/USDT: 0.095
+  GLM/USDT: 0.32
+  KAVA/USDT: 0.85
+  ROSE/USDT: 0.12
+  CELO/USDT: 0.95
+  MINA/USDT: 1.15
 
 # Annualized volatility per symbol — controls price movement magnitude
 # Higher = more volatile. 0.75 = 75% annual volatility (typical for BTC)
 volatility:
   BTC/USDT: 0.75
-  ETH/USDT: 0.85              # ETH slightly more volatile than BTC
-  SOL/USDT: 1.10              # SOL is more volatile (smaller cap)
+  ETH/USDT: 0.85
+  SOL/USDT: 1.10
+  BNB/USDT: 0.80
+  XRP/USDT: 0.95
+  ADA/USDT: 0.90
+  DOGE/USDT: 1.20
+  DOT/USDT: 0.95
+  MATIC/USDT: 0.95
+  SHIB/USDT: 1.50
+  AVAX/USDT: 1.05
+  LINK/USDT: 0.95
+  UNI/USDT: 0.90
+  ATOM/USDT: 0.95
+  LTC/USDT: 0.80
+  NEAR/USDT: 1.00
+  XLM/USDT: 0.90
+  ALGO/USDT: 0.85
+  VET/USDT: 0.95
+  FIL/USDT: 1.05
+  APT/USDT: 1.00
+  INJ/USDT: 1.10
+  OP/USDT: 1.05
+  ARB/USDT: 1.10
+  QNT/USDT: 0.85
+  ETC/USDT: 0.85
+  HBAR/USDT: 0.90
+  ICP/USDT: 1.05
+  LDO/USDT: 1.10
+  GRT/USDT: 1.05
+  STX/USDT: 1.00
+  AAVE/USDT: 0.90
+  MKR/USDT: 0.80
+  COMP/USDT: 0.95
+  SUSHI/USDT: 1.10
+  CRV/USDT: 1.15
+  1INCH/USDT: 1.05
+  SNX/USDT: 1.15
+  MANA/USDT: 1.20
+  SAND/USDT: 1.15
+  AXS/USDT: 1.20
+  ENJ/USDT: 1.10
+  FTM/USDT: 1.05
+  CRO/USDT: 0.95
+  GLM/USDT: 1.00
+  KAVA/USDT: 1.05
+  ROSE/USDT: 1.00
+  CELO/USDT: 0.95
+  MINA/USDT: 1.00
 
 # Market parameters — controls candle generation and simulation behavior
 market:
@@ -95,3 +325,33 @@ arbitrage:
   slippage_bps: 2.0           # Estimated slippage per trade
   min_spread_bps: 5.0         # Minimum net spread to report as opportunity (basis points)
   opportunity_ttl: 30.0       # Seconds before an opportunity expires from the list
+
+# Price feed settings — real-time price API integration
+price_feed:
+  enabled: true               # Enable real-time price feed integration
+  hybrid_mode: true            # Use real prices + simulated microstructure
+  apis:
+    binance:
+      enabled: true
+      priority: 1              # Primary API
+      rate_limit: 1200        # Requests per minute
+      websocket_url: "wss://stream.binance.com:9443/ws"
+      rest_url: "https://api.binance.com"
+    coinbase:
+      enabled: true
+      priority: 2              # Fallback API
+      rate_limit: 1000
+      websocket_url: "wss://ws-feed.exchange.coinbase.com"
+      rest_url: "https://api.exchange.coinbase.com"
+  cache_ttl: 5                # Cache TTL in seconds
+  failover_enabled: true       # Automatic failover between APIs
+  retry_attempts: 3            # Number of retry attempts on failure
+  retry_delay: 1.0             # Delay between retries in seconds
+
+# Audit logging settings — comprehensive event tracking
+audit:
+  enabled: true                # Enable audit logging
+  max_memory_entries: 10000   # Maximum in-memory log entries
+  log_file_path: "logs/audit.log"  # File path for persistent logs
+  enable_file_logging: true    # Enable file persistence
+  enable_callbacks: true       # Enable real-time callbacks

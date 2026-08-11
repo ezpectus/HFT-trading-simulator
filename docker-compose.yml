@@ -29,8 +29,13 @@ services:
       - "8775:8775"
     volumes:
       - ./exchange_simulator/config.yaml:/app/config.yaml:ro
+      - ./shared_config.yaml:/app/shared_config.yaml:ro
       - sim-data:/app/data
       - sim-logs:/app/logs
+      - sim-audit:/app/logs/audit
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
     command: python -m exchange_simulator --no-visualizer
     restart: unless-stopped
     healthcheck:
@@ -55,8 +60,12 @@ services:
       - "9090:9090"
     volumes:
       - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml:ro
+      - ./shared_config.yaml:/app/shared_config.yaml:ro
       - ai-data:/app/data
       - ai-logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
     command: python run.py --metrics
     restart: unless-stopped
     healthcheck:
@@ -80,9 +89,12 @@ services:
         condition: service_healthy
     volumes:
       - ./hft-trade-bot/config:/app/config:ro
+      - ./shared_config.yaml:/app/shared_config.yaml:ro
       - hft-logs:/app/logs
     ports:
       - "9091:9091"
+    environment:
+      - LOG_LEVEL=INFO
     command: ./build/hft_trade_bot config/config.yaml
     restart: unless-stopped
     healthcheck:
@@ -103,6 +115,10 @@ services:
         # localhost works when Docker ports are mapped to the host.
         - VITE_WS_EXCHANGE=ws://localhost:8765
         - VITE_WS_SIGNALS=ws://localhost:8766
+        - VITE_ENABLE_ADVANCED_ORDERS=true
+        - VITE_ENABLE_AUDIT_LOGS=true
+        - VITE_ENABLE_EXCHANGE_CLONES=true
+        - VITE_ENABLE_SYMBOL_SEARCH=true
     container_name: web-ui
     depends_on:
       exchange-simulator:
@@ -124,6 +140,7 @@ services:
 volumes:
   sim-data:
   sim-logs:
+  sim-audit:
   ai-data:
   ai-logs:
   hft-logs:

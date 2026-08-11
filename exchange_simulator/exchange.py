@@ -7,6 +7,7 @@ model. Orders are matched against the simulated order book.
 from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.models import (
     Account,
+    AuditEventType,
     ClosedTrade,
     Order,
     OrderBook,
@@ -15,6 +16,7 @@ from exchange_simulator.models import (
     Position,
     Side,
 )
+from exchange_simulator.audit_logger import get_audit_logger
 
 # Constant for market impact and partial fill calculations
 _TYPICAL_VOLUME = 500.0
@@ -53,6 +55,15 @@ class SimulatedExchange:
         self.partial_liquidation_ratio: float = 0.5  # 50% partial liq before full
         # O(1) position lookup by symbol — maintained alongside account.positions
         self._positions_by_symbol: dict[str, Position] = {}
+        # Audit logger
+        self._audit_logger = get_audit_logger()
+        
+        # Log system start
+        self._audit_logger.log(
+            event_type=AuditEventType.SYSTEM_START,
+            exchange=exchange_id,
+            metadata={"name": name, "initial_balance": initial_balance, "leverage": leverage},
+        )
 
     @property
     def symbols(self) -> list[str]:
@@ -94,6 +105,16 @@ class SimulatedExchange:
             order.status = OrderStatus.REJECTED
             order.rejection_reason = f"INVALID_QUANTITY (qty={quantity})"
             self._order_history.append(order)
+            
+            # Log order rejection
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_REJECTED,
+                exchange=self.exchange_id,
+                symbol=symbol,
+                order_id=order_id,
+                reason=order.rejection_reason,
+                metadata={"quantity": quantity, "order_type": order_type.value},
+            )
             return order
 
         order = Order(
@@ -111,6 +132,15 @@ class SimulatedExchange:
             order.status = OrderStatus.REJECTED
             order.rejection_reason = "NO_PRICE_DATA"
             self._order_history.append(order)
+            
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_REJECTED,
+                exchange=self.exchange_id,
+                symbol=symbol,
+                order_id=order_id,
+                reason=order.rejection_reason,
+                metadata={"order_type": order_type.value},
+            )
             return order
 
         # Apply slippage
@@ -136,6 +166,14 @@ class SimulatedExchange:
             if side == Side.BUY and price < fill_price:
                 order.status = OrderStatus.PENDING
                 self._order_history.append(order)
+                
+                self._audit_logger.log(
+                    event_type=AuditEventType.ORDER_SUBMITTED,
+                    exchange=self.exchange_id,
+                    symbol=symbol,
+                    order_id=order_id,
+                    metadata={"order_type": order_type.value, "price": price, "quantity": quantity},
+                )
                 return order
             fill_price = price
 
@@ -150,6 +188,15 @@ class SimulatedExchange:
             order.status = OrderStatus.REJECTED
             order.rejection_reason = f"INSUFFICIENT_MARGIN (need ${margin_required:.2f}, have ${self.account.balance:.2f})"
             self._order_history.append(order)
+            
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_REJECTED,
+                exchange=self.exchange_id,
+                symbol=symbol,
+                order_id=order_id,
+                reason=order.rejection_reason,
+                metadata={"margin_required": margin_required, "balance": self.account.balance},
+            )
             return order
 
         # Check max position size (50% of balance * leverage as notional cap)
@@ -160,6 +207,15 @@ class SimulatedExchange:
             order.status = OrderStatus.REJECTED
             order.rejection_reason = f"MAX_POSITION_SIZE (notional ${notional:.2f} > limit ${max_notional:.2f})"
             self._order_history.append(order)
+            
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_REJECTED,
+                exchange=self.exchange_id,
+                symbol=symbol,
+                order_id=order_id,
+                reason=order.rejection_reason,
+                metadata={"notional": notional, "max_notional": max_notional},
+            )
             return order
 
         # Fill the order
@@ -168,6 +224,23 @@ class SimulatedExchange:
         order.filled_quantity = quantity
         order.fee = round(fee, 4)
         order.slippage = round(slippage_amount, 4)
+        
+        # Log order fill
+        self._audit_logger.log(
+            event_type=AuditEventType.ORDER_FILLED,
+            exchange=self.exchange_id,
+            symbol=symbol,
+            order_id=order_id,
+            old_value=mid_price,
+            new_value=fill_price,
+            metadata={
+                "side": side.value,
+                "quantity": quantity,
+                "fee": fee,
+                "slippage": order.slippage,
+                "order_type": order_type.value,
+            },
+        )
 
         # Partial fill simulation for large orders
         if quantity > _TYPICAL_VOLUME * 0.5:
@@ -181,8 +254,19 @@ class SimulatedExchange:
                 order.slippage = round(avg_fill - mid_price, 4)
 
         # Update account
+        old_balance = self.account.balance
         self.account.balance -= fee
         self.account.total_fees += fee
+        
+        # Log balance change (fee)
+        self._audit_logger.log(
+            event_type=AuditEventType.ACCOUNT_BALANCE_CHANGE,
+            exchange=self.exchange_id,
+            old_value=old_balance,
+            new_value=self.account.balance,
+            reason="FEE",
+            metadata={"fee": fee, "order_id": order_id},
+        )
 
         # Create or close position
         self._update_position(order, stop_loss, take_profit)
@@ -208,6 +292,7 @@ class SimulatedExchange:
                 else:
                     pnl = (existing.entry_price - order.filled_price) * existing.quantity
 
+                old_balance = self.account.balance
                 self.account.balance += pnl
                 self.account.total_pnl += pnl
                 self.account.total_trades += 1
@@ -227,6 +312,33 @@ class SimulatedExchange:
                     reason="MANUAL",
                     opened_at=existing.opened_at,
                 ))
+
+                # Log position close
+                self._audit_logger.log(
+                    event_type=AuditEventType.POSITION_CLOSED,
+                    exchange=self.exchange_id,
+                    symbol=order.symbol,
+                    position_id=f"{order.symbol}_{existing.opened_at}",
+                    old_value=existing.entry_price,
+                    new_value=order.filled_price,
+                    reason="MANUAL",
+                    metadata={
+                        "side": existing.side.value,
+                        "quantity": existing.quantity,
+                        "pnl": pnl,
+                        "order_id": order.id,
+                    },
+                )
+
+                # Log balance change (PnL)
+                self._audit_logger.log(
+                    event_type=AuditEventType.ACCOUNT_BALANCE_CHANGE,
+                    exchange=self.exchange_id,
+                    old_value=old_balance,
+                    new_value=self.account.balance,
+                    reason="PNL",
+                    metadata={"pnl": pnl, "symbol": order.symbol},
+                )
 
                 self.account.positions.remove(existing)
                 del self._positions_by_symbol[order.symbol]
@@ -265,6 +377,22 @@ class SimulatedExchange:
         )
         self.account.positions.append(position)
         self._positions_by_symbol[order.symbol] = position
+        
+        # Log position open
+        self._audit_logger.log(
+            event_type=AuditEventType.POSITION_OPENED,
+            exchange=self.exchange_id,
+            symbol=order.symbol,
+            position_id=f"{order.symbol}_{position.opened_at}",
+            new_value=order.filled_price,
+            metadata={
+                "side": order.side.value,
+                "quantity": order.filled_quantity,
+                "stop_loss": stop_loss,
+                "take_profit": take_profit,
+                "order_id": order.id,
+            },
+        )
 
     def check_stop_loss_take_profit(self) -> list[Order]:
         """Check all positions for SL/TP/liquidation triggers and close them.
