@@ -2,7 +2,7 @@
 
 ## Overview
 
-The exchange simulator generates realistic cryptocurrency market data using **Geometric Brownian Motion (GBM)** — the same stochastic process used in options pricing models. No real exchange API is called; all data is synthetic.
+The exchange simulator generates realistic cryptocurrency market data using **Geometric Brownian Motion (GBM)** — the same stochastic process used in options pricing models. It supports both synthetic price generation and real-time price feed integration from external cryptocurrency exchanges (Binance, Coinbase Pro) with automatic failover and hybrid mode for realistic trading.
 
 ## Price Generation
 
@@ -82,6 +82,29 @@ Each exchange has different fee and slippage parameters:
 | OKX | 0.05 | 2.5 | 4 bps |
 
 Prices are correlated across exchanges (same random draw) with small offsets to simulate real market conditions.
+
+## Exchange UI Clones
+
+The web UI includes three exchange-themed interfaces that replicate the look and feel of popular cryptocurrency exchanges:
+
+**Supported Themes:**
+- **Binance** — Yellow/black theme with Binance-style layout
+- **Bybit** — Blue/dark theme with Bybit-style layout
+- **Coinbase** — White/blue theme with Coinbase-style layout
+
+**Features:**
+- Seamless switching between exchange themes
+- Exchange-specific color schemes and layouts
+- Keyboard shortcuts: `1` for Binance, `2` for Bybit, `3` for Coinbase
+- All themes have identical underlying functionality
+
+**Configuration:**
+```bash
+# Enable exchange UI clones in web-ui/.env
+VITE_ENABLE_EXCHANGE_CLONES=true
+```
+
+See [Web UI Documentation](WEB_UI.md) for detailed information on exchange UI clones.
 
 ## Order Book Simulation
 
@@ -367,6 +390,8 @@ See `exchange_simulator/config.yaml` for all parameters:
 - Account settings (initial balance, leverage, max position size)
 - Visualizer settings (refresh rate, chart dimensions)
 - WebSocket server (host, port, compression)
+- Price feed (enabled, hybrid mode, API configuration, caching, failover)
+- Audit logging (enabled, max memory entries, file path, callbacks)
 - Funding rates (interval, rate per exchange)
 - News events (frequency, severity range)
 - Market impact (factor per exchange)

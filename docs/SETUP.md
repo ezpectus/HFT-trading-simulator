@@ -149,6 +149,7 @@ make -j$(nproc)
 ```bash
 sudo apt install -y \
     cmake \
+    build-essential \
     libboost-dev libboost-system-dev \
     libssl-dev \
     libwebsocketpp-dev \

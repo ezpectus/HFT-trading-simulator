@@ -42,7 +42,7 @@ npm install
 ```bash
 cd hft-trade-bot
 # Install build dependencies (Ubuntu)
-sudo apt-get install cmake build-essential libspdlog-dev nlohmann-json3-dev
+sudo apt-get install cmake build-essential libspdlog-dev nlohmann-json3-dev libyaml-cpp-dev libboost-dev libssl-dev libwebsocketpp-dev libfmt-dev
 ```
 
 ## Deployment Options
