@@ -18,6 +18,12 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
   const [lastMsg, setLastMsg] = useState(null)
   const [leverage, setLeverage] = useState(DEFAULT_LEVERAGE)
   const [showRiskCalc, setShowRiskCalc] = useState(false)
+  
+  // Phase 3: Advanced order type parameters
+  const [stopPrice, setStopPrice] = useState('')  // For Stop-Limit
+  const [trailAmount, setTrailAmount] = useState('')  // For Trailing Stop
+  const [trailPercentage, setTrailPercentage] = useState(true)  // For Trailing Stop
+  const [icebergVisibleQty, setIcebergVisibleQty] = useState('')  // For Iceberg
 
   const availBalance = balance || 10000
 
@@ -49,6 +55,19 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
     if (orderType === 'LIMIT' && limitPrice) order.price = parseFloat(limitPrice)
     if (stopLoss) order.stop_loss = parseFloat(stopLoss)
     if (takeProfit) order.take_profit = parseFloat(takeProfit)
+    
+    // Phase 3: Advanced order type parameters
+    if (orderType === 'STOP_LIMIT') {
+      order.stop_price = parseFloat(stopPrice)
+      order.limit_price = parseFloat(limitPrice)
+    }
+    if (orderType === 'TRAILING_STOP') {
+      order.trail_amount = parseFloat(trailAmount)
+      order.trail_percentage = trailPercentage
+    }
+    if (orderType === 'ICEBERG') {
+      order.iceberg_visible_qty = parseFloat(icebergVisibleQty)
+    }
 
     const ok = onSubmit(order)
     setLastMsg(ok ? { type: 'success', text: 'Order submitted' } : { type: 'error', text: 'Not connected' })
@@ -94,8 +113,8 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
         </div>
 
         {/* Order type */}
-        <div className="flex gap-1">
-          {['MARKET', 'LIMIT'].map(t => (
+        <div className="flex gap-1 flex-wrap">
+          {['MARKET', 'LIMIT', 'STOP_LIMIT', 'TRAILING_STOP', 'ICEBERG'].map(t => (
             <button
               key={t}
               type="button"
@@ -104,13 +123,13 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
                 orderType === t ? 'bg-bg-500 text-white' : 'bg-bg-600 text-gray-400'
               }`}
             >
-              {t}
+              {t.replace('_', ' ')}
             </button>
           ))}
         </div>
 
-        {/* Limit price (only for LIMIT orders) */}
-        {orderType === 'LIMIT' && (
+        {/* Limit price (for LIMIT and STOP_LIMIT orders) */}
+        {(orderType === 'LIMIT' || orderType === 'STOP_LIMIT') && (
           <div>
             <label className="text-xs text-gray-500">Limit Price</label>
             <input
@@ -121,6 +140,72 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
               onChange={e => setLimitPrice(e.target.value)}
               className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
             />
+          </div>
+        )}
+
+        {/* Stop price (for STOP_LIMIT orders) */}
+        {orderType === 'STOP_LIMIT' && (
+          <div>
+            <label className="text-xs text-gray-500">Stop Price</label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder={currentPrice ? formatPrice(currentPrice * 1.02) : ''}
+              value={stopPrice}
+              onChange={e => setStopPrice(e.target.value)}
+              className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
+            />
+          </div>
+        )}
+
+        {/* Trail amount (for TRAILING_STOP orders) */}
+        {orderType === 'TRAILING_STOP' && (
+          <div>
+            <label className="text-xs text-gray-500">Trail Amount</label>
+            <input
+              type="number"
+              step="0.1"
+              placeholder="2.0"
+              value={trailAmount}
+              onChange={e => setTrailAmount(e.target.value)}
+              className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
+            />
+            <div className="flex gap-2 mt-1">
+              <label className="flex items-center gap-1 text-xs text-gray-400">
+                <input
+                  type="radio"
+                  checked={trailPercentage}
+                  onChange={() => setTrailPercentage(true)}
+                  className="accent-accent-blue"
+                />
+                Percentage
+              </label>
+              <label className="flex items-center gap-1 text-xs text-gray-400">
+                <input
+                  type="radio"
+                  checked={!trailPercentage}
+                  onChange={() => setTrailPercentage(false)}
+                  className="accent-accent-blue"
+                />
+                Absolute
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Visible quantity (for ICEBERG orders) */}
+        {orderType === 'ICEBERG' && (
+          <div>
+            <label className="text-xs text-gray-500">Visible Quantity</label>
+            <input
+              type="number"
+              step="0.001"
+              placeholder={quantity ? (parseFloat(quantity) * 0.1).toFixed(3) : ''}
+              value={icebergVisibleQty}
+              onChange={e => setIcebergVisibleQty(e.target.value)}
+              className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
+            />
+            <div className="text-[10px] text-gray-500 mt-0.5">Hidden quantity will be {quantity && icebergVisibleQty ? (parseFloat(quantity) - parseFloat(icebergVisibleQty)).toFixed(3) : '...'}</div>
           </div>
         )}
 

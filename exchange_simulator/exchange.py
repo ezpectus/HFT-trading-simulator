@@ -9,12 +9,16 @@ from exchange_simulator.models import (
     Account,
     AuditEventType,
     ClosedTrade,
+    IcebergOrder,
+    OCOGroup,
     Order,
     OrderBook,
     OrderStatus,
     OrderType,
     Position,
     Side,
+    StopLimitOrder,
+    TrailingStopOrder,
 )
 from exchange_simulator.audit_logger import get_audit_logger
 
@@ -58,6 +62,12 @@ class SimulatedExchange:
         # Audit logger
         self._audit_logger = get_audit_logger()
         
+        # Advanced order tracking (Phase 3)
+        self._pending_stop_limits: dict[str, StopLimitOrder] = {}  # order_id -> order
+        self._pending_trailing_stops: dict[str, TrailingStopOrder] = {}  # order_id -> order
+        self._pending_icebergs: dict[str, IcebergOrder] = {}  # order_id -> order
+        self._oco_groups: dict[str, OCOGroup] = {}  # group_id -> OCOGroup
+        
         # Log system start
         self._audit_logger.log(
             event_type=AuditEventType.SYSTEM_START,
@@ -78,6 +88,172 @@ class SimulatedExchange:
     def get_candles(self, symbol: str, n: int = 100):
         return self.market.get_history(self.exchange_id, symbol, n)
 
+    def check_advanced_orders(self) -> list[Order]:
+        """Check and process pending advanced orders (Phase 3).
+        
+        Returns:
+            List of orders that were filled during this check.
+        """
+        filled_orders = []
+        current_prices = {symbol: self.get_price(symbol) for symbol in self.symbols}
+
+        # Check Stop-Limit orders
+        to_remove = []
+        for order_id, order in self._pending_stop_limits.items():
+            current_price = current_prices.get(order.symbol, 0)
+            if current_price == 0:
+                continue
+            
+            if order.check_trigger(current_price):
+                # Stop price hit, now execute as limit order
+                if order.side == Side.BUY:
+                    # Buy stop-limit: buy at limit price or better
+                    if current_price <= order.limit_price:
+                        filled_order = self._execute_limit_order(order, order.limit_price)
+                        filled_orders.append(filled_order)
+                        to_remove.append(order_id)
+                else:
+                    # Sell stop-limit: sell at limit price or better
+                    if current_price >= order.limit_price:
+                        filled_order = self._execute_limit_order(order, order.limit_price)
+                        filled_orders.append(filled_order)
+                        to_remove.append(order_id)
+        
+        for order_id in to_remove:
+            self._pending_stop_limits.pop(order_id, None)
+
+        # Check Trailing Stop orders
+        to_remove = []
+        for order_id, order in self._pending_trailing_stops.items():
+            current_price = current_prices.get(order.symbol, 0)
+            if current_price == 0:
+                continue
+            
+            order.update_stop_price(current_price)
+            
+            # Check if stop price is hit
+            if order.side == Side.SELL and current_price <= order.stop_price:
+                filled_order = self._execute_market_order(order, current_price)
+                filled_orders.append(filled_order)
+                to_remove.append(order_id)
+            elif order.side == Side.BUY and current_price >= order.stop_price:
+                filled_order = self._execute_market_order(order, current_price)
+                filled_orders.append(filled_order)
+                to_remove.append(order_id)
+        
+        for order_id in to_remove:
+            self._pending_trailing_stops.pop(order_id, None)
+
+        # Check Iceberg orders
+        to_remove = []
+        for order_id, order in self._pending_icebergs.items():
+            current_price = current_prices.get(order.symbol, 0)
+            if current_price == 0:
+                continue
+            
+            # Execute visible quantity
+            if order.hidden_quantity > 0:
+                fill_price = current_price
+                if order.price and order.order_type == OrderType.LIMIT:
+                    fill_price = order.price
+                
+                filled_order = self._execute_iceberg_slice(order, fill_price)
+                filled_orders.append(filled_order)
+                
+                if order.hidden_quantity <= 0:
+                    to_remove.append(order_id)
+        
+        for order_id in to_remove:
+            self._pending_icebergs.pop(order_id, None)
+
+        return filled_orders
+
+    def _execute_limit_order(self, order: Order, price: float) -> Order:
+        """Execute a limit order at specified price (Phase 3 helper)."""
+        order.status = OrderStatus.FILLED
+        order.filled_price = round(price, 2)
+        order.filled_quantity = order.quantity
+        notional = price * order.quantity
+        order.fee = round(notional * self.fee_pct / 100, 4)
+        
+        # Update account
+        self.account.balance -= order.fee
+        self._update_position(order.symbol, order.side, order.quantity, price)
+        
+        self._audit_logger.log(
+            event_type=AuditEventType.ORDER_FILLED,
+            exchange=self.exchange_id,
+            symbol=order.symbol,
+            order_id=order.id,
+            old_value=price,
+            new_value=price,
+            metadata={"order_type": order.order_type.value, "quantity": order.quantity, "fee": order.fee},
+        )
+        
+        return order
+
+    def _execute_market_order(self, order: Order, price: float) -> Order:
+        """Execute a market order at current price (Phase 3 helper)."""
+        order.status = OrderStatus.FILLED
+        order.filled_price = round(price, 2)
+        order.filled_quantity = order.quantity
+        notional = price * order.quantity
+        order.fee = round(notional * self.fee_pct / 100, 4)
+        
+        # Update account
+        self.account.balance -= order.fee
+        self._update_position(order.symbol, order.side, order.quantity, price)
+        
+        self._audit_logger.log(
+            event_type=AuditEventType.ORDER_FILLED,
+            exchange=self.exchange_id,
+            symbol=order.symbol,
+            order_id=order.id,
+            old_value=price,
+            new_value=price,
+            metadata={"order_type": order.order_type.value, "quantity": order.quantity, "fee": order.fee},
+        )
+        
+        return order
+
+    def _execute_iceberg_slice(self, order: IcebergOrder, price: float) -> Order:
+        """Execute a slice of an iceberg order (Phase 3 helper)."""
+        slice_qty = min(order.visible_quantity, order.hidden_quantity + order.visible_quantity)
+        order.hidden_quantity -= slice_qty
+        order.replenished += 1
+        
+        slice_order = Order(
+            id=f"{order.id}_slice_{order.replenished}",
+            symbol=order.symbol,
+            exchange=self.exchange_id,
+            side=order.side,
+            order_type=OrderType.MARKET,
+            quantity=slice_qty,
+            price=price,
+        )
+        
+        slice_order.status = OrderStatus.FILLED
+        slice_order.filled_price = round(price, 2)
+        slice_order.filled_quantity = slice_qty
+        notional = price * slice_qty
+        slice_order.fee = round(notional * self.fee_pct / 100, 4)
+        
+        # Update account
+        self.account.balance -= slice_order.fee
+        self._update_position(order.symbol, order.side, slice_qty, price)
+        
+        self._audit_logger.log(
+            event_type=AuditEventType.ORDER_FILLED,
+            exchange=self.exchange_id,
+            symbol=order.symbol,
+            order_id=slice_order.id,
+            old_value=price,
+            new_value=price,
+            metadata={"order_type": "ICEBERG_SLICE", "quantity": slice_qty, "fee": slice_order.fee, "parent_order": order.id},
+        )
+        
+        return slice_order
+
     def submit_order(
         self,
         symbol: str,
@@ -88,11 +264,23 @@ class SimulatedExchange:
         stop_loss: float | None = None,
         take_profit: float | None = None,
         force_close: bool = False,
+        stop_price: float | None = None,  # Phase 3: for Stop-Limit
+        limit_price: float | None = None,  # Phase 3: for Stop-Limit
+        trail_amount: float | None = None,  # Phase 3: for Trailing Stop
+        trail_percentage: bool = True,  # Phase 3: for Trailing Stop
+        iceberg_visible_qty: float | None = None,  # Phase 3: for Iceberg
+        oco_group_id: str | None = None,  # Phase 3: for OCO
     ) -> Order:
         """Submit an order and return the result.
 
         Args:
             force_close: If True, skip margin/position checks (for SL/TP/liquidation closes).
+            stop_price: Stop price for Stop-Limit orders (Phase 3).
+            limit_price: Limit price for Stop-Limit orders (Phase 3).
+            trail_amount: Trailing amount for Trailing Stop orders (Phase 3).
+            trail_percentage: If True, trail_amount is percentage (Phase 3).
+            iceberg_visible_qty: Visible quantity for Iceberg orders (Phase 3).
+            oco_group_id: Group ID for OCO orders (Phase 3).
         """
         order_id = f"{self._order_counter:08x}"
         self._order_counter += 1
@@ -117,15 +305,88 @@ class SimulatedExchange:
             )
             return order
 
-        order = Order(
-            id=order_id,
-            symbol=symbol,
-            exchange=self.exchange_id,
-            side=side,
-            order_type=order_type,
-            quantity=quantity,
-            price=price,
-        )
+        # Phase 3: Create appropriate order type based on order_type
+        if order_type == OrderType.STOP_LIMIT:
+            if stop_price is None or limit_price is None:
+                order = Order(
+                    id=order_id, symbol=symbol, exchange=self.exchange_id,
+                    side=side, order_type=order_type, quantity=quantity, price=price,
+                )
+                order.status = OrderStatus.REJECTED
+                order.rejection_reason = "STOP_LIMIT_REQUIRES_STOP_AND_LIMIT_PRICE"
+                self._order_history.append(order)
+                self._audit_logger.log(
+                    event_type=AuditEventType.ORDER_REJECTED,
+                    exchange=self.exchange_id,
+                    symbol=symbol,
+                    order_id=order_id,
+                    reason=order.rejection_reason,
+                    metadata={"order_type": order_type.value},
+                )
+                return order
+            order = StopLimitOrder(
+                id=order_id, symbol=symbol, exchange=self.exchange_id,
+                side=side, order_type=order_type, quantity=quantity, price=price,
+                stop_price=stop_price, limit_price=limit_price, triggered=False,
+            )
+        elif order_type == OrderType.TRAILING_STOP:
+            if trail_amount is None or trail_amount <= 0:
+                order = Order(
+                    id=order_id, symbol=symbol, exchange=self.exchange_id,
+                    side=side, order_type=order_type, quantity=quantity, price=price,
+                )
+                order.status = OrderStatus.REJECTED
+                order.rejection_reason = "TRAILING_STOP_REQUIRES_TRAIL_AMOUNT"
+                self._order_history.append(order)
+                self._audit_logger.log(
+                    event_type=AuditEventType.ORDER_REJECTED,
+                    exchange=self.exchange_id,
+                    symbol=symbol,
+                    order_id=order_id,
+                    reason=order.rejection_reason,
+                    metadata={"order_type": order_type.value},
+                )
+                return order
+            order = TrailingStopOrder(
+                id=order_id, symbol=symbol, exchange=self.exchange_id,
+                side=side, order_type=order_type, quantity=quantity, price=price,
+                trail_amount=trail_amount, trail_percentage=trail_percentage,
+                stop_price=0.0, highest_price=0.0, lowest_price=0.0, activated=False,
+            )
+        elif order_type == OrderType.ICEBERG:
+            if iceberg_visible_qty is None or iceberg_visible_qty <= 0 or iceberg_visible_qty >= quantity:
+                order = Order(
+                    id=order_id, symbol=symbol, exchange=self.exchange_id,
+                    side=side, order_type=order_type, quantity=quantity, price=price,
+                )
+                order.status = OrderStatus.REJECTED
+                order.rejection_reason = "ICEBERG_REQUIRES_VALID_VISIBLE_QTY"
+                self._order_history.append(order)
+                self._audit_logger.log(
+                    event_type=AuditEventType.ORDER_REJECTED,
+                    exchange=self.exchange_id,
+                    symbol=symbol,
+                    order_id=order_id,
+                    reason=order.rejection_reason,
+                    metadata={"order_type": order_type.value},
+                )
+                return order
+            order = IcebergOrder(
+                id=order_id, symbol=symbol, exchange=self.exchange_id,
+                side=side, order_type=order_type, quantity=quantity, price=price,
+                visible_quantity=iceberg_visible_qty, hidden_quantity=quantity - iceberg_visible_qty,
+                replenished=0,
+            )
+        else:
+            order = Order(
+                id=order_id,
+                symbol=symbol,
+                exchange=self.exchange_id,
+                side=side,
+                order_type=order_type,
+                quantity=quantity,
+                price=price,
+            )
 
         mid_price = self.get_price(symbol)
         if mid_price == 0:
@@ -160,6 +421,49 @@ class SimulatedExchange:
                 fill_price += impact
             else:
                 fill_price -= impact
+
+        # Phase 3: Handle advanced order types
+        if order_type == OrderType.STOP_LIMIT:
+            # Stop-Limit: wait for stop price to trigger, then becomes limit order
+            order.status = OrderStatus.PENDING
+            self._pending_stop_limits[order_id] = order
+            self._order_history.append(order)
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_SUBMITTED,
+                exchange=self.exchange_id,
+                symbol=symbol,
+                order_id=order_id,
+                metadata={"order_type": order_type.value, "stop_price": stop_price, "limit_price": limit_price, "quantity": quantity},
+            )
+            return order
+        elif order_type == OrderType.TRAILING_STOP:
+            # Trailing Stop: track price movement and update stop price
+            order.status = OrderStatus.PENDING
+            order.highest_price = mid_price if side == Side.SELL else 0.0
+            order.lowest_price = mid_price if side == Side.BUY else 0.0
+            self._pending_trailing_stops[order_id] = order
+            self._order_history.append(order)
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_SUBMITTED,
+                exchange=self.exchange_id,
+                symbol=symbol,
+                order_id=order_id,
+                metadata={"order_type": order_type.value, "trail_amount": trail_amount, "trail_percentage": trail_percentage, "quantity": quantity},
+            )
+            return order
+        elif order_type == OrderType.ICEBERG:
+            # Iceberg: execute visible quantity first, hide the rest
+            order.status = OrderStatus.PENDING
+            self._pending_icebergs[order_id] = order
+            self._order_history.append(order)
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_SUBMITTED,
+                exchange=self.exchange_id,
+                symbol=symbol,
+                order_id=order_id,
+                metadata={"order_type": order_type.value, "visible_quantity": iceberg_visible_qty, "total_quantity": quantity},
+            )
+            return order
 
         # For limit orders, check if price is achievable
         if order_type == OrderType.LIMIT and price is not None:
