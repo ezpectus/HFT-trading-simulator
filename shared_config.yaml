@@ -89,7 +89,7 @@ risk:
   max_daily_drawdown_pct: 8.0    # Stop trading if daily loss exceeds this
   min_confidence: 65.0           # Minimum signal confidence (0-100)
   min_rr_ratio: 1.5              # Minimum risk:reward ratio
-  max_open_positions: 3          # Concurrent positions across all symbols
+  max_open_positions: 10         # Concurrent positions across all symbols (increased for 50+ symbols)
   max_position_size_pct: 10.0    # Max notional per position as % of balance
 
 # Timeframe — must match across all components for consistent candle data

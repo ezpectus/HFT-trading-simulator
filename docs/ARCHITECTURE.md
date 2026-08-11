@@ -7,7 +7,7 @@ The system is a full-stack crypto HFT trading simulation platform consisting of 
 ```mermaid
 graph TB
     subgraph "Exchange Simulator (Python)"
-        ES["Exchange Simulator<br/>GBM + Fat-Tail + Jump Diffusion<br/>3 Exchanges | 3 Symbols<br/>Order Book | Funding | Liquidation"]
+        ES["Exchange Simulator<br/>GBM + Fat-Tail + Jump Diffusion<br/>3 Exchanges | 50+ Symbols<br/>Real-time Price Feeds<br/>Order Book | Funding | Liquidation"]
         WS8765[WebSocket :8765]
         WS8765 --- ES
     end
@@ -45,15 +45,26 @@ graph TB
 ### 1. Exchange Simulator (`exchange_simulator/`)
 
 **Language:** Python 3.12+
-**Role:** Simulates 3 crypto exchanges with realistic market microstructure
+**Role:** Simulates 3 crypto exchanges with realistic market microstructure and real-time price feeds
 
 | Feature | Implementation |
+| --- | --- |
+| **Price Generation** | GBM + Fat-Tail + Jump Diffusion with hybrid mode (real price feeds + simulated microstructure) |
+| **Price Feed Manager** | Multi-API integration (Binance, Coinbase Pro, Kraken) with automatic failover and rate limiting |
+| **Symbols** | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, etc.) |
+| **Exchanges** | Binance, Bybit, OKX with distinct fee structures and slippage models |
+| **Order Types** | Market, Limit, Stop-Limit, Trailing Stop, OCO, Iceberg |
+| **Order Book** | Depth 20 with incremental delta updates for WebSocket streaming |
+| **Funding Rates** | Perpetual futures funding every 8 hours (96 candles at 5m TF) |
+| **Liquidation** | Partial liquidation at 50% before full liquidation |
+| **Audit Logging** | Comprehensive audit logging for all system events with file persistence |
+| **WebSocket** | Delta updates, symbol subscription filtering, rate limiting per client |
 |---------|---------------|
 | Price generation | GBM with per-symbol volatility, fat-tail jumps, news event spikes |
-| Real-time price feeds | Multi-API integration (Binance, etc.) with automatic failover, rate limiting, caching |
+| Real-time price feeds | Multi-API integration (Binance, Coinbase Pro, Kraken) with automatic failover, rate limiting, caching |
 | Hybrid simulation | Real price feeds + simulated microstructure for realistic trading |
 | Exchanges | Binance, Bybit, OKX (different fees, slippage, volatility multipliers) |
-| Symbols | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI) |
+| Symbols | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, DOT, MATIC, SHIB, AVAX, LINK, UNI, ATOM, LTC, NEAR, XLM, ALGO, VET, FIL, APT, INJ, OP, ARB, QNT, ETC, HBAR, ICP, LDO, GRT, STX, AAVE, MKR, COMP, SUSHI, CRV, 1INCH, SNX, MANA, SAND, AXS, ENJ, FTM, CRO, GLM, KAVA, ROSE, CELO, MINA) |
 | Order book | 20 levels per side, decay-based liquidity, real-time depth |
 | Order matching | Market, limit, stop-limit, trailing stop, OCO, iceberg orders with slippage, partial fills, market impact |
 | Advanced order types | Stop-Limit (trigger + limit), Trailing Stop (dynamic stop), OCO (linked orders), Iceberg (hidden quantity) |

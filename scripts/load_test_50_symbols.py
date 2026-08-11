@@ -8,10 +8,27 @@ from pathlib import Path
 import sys
 
 # Add exchange_simulator to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "exchange_simulator"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from exchange_simulator.exchange import SimulatedExchange
+from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.models import Side, OrderType
+
+# 50+ symbols for testing
+SYMBOLS = [
+    'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT',
+    'ADA/USDT', 'DOGE/USDT', 'DOT/USDT', 'MATIC/USDT', 'SHIB/USDT',
+    'AVAX/USDT', 'LINK/USDT', 'UNI/USDT', 'ATOM/USDT', 'LTC/USDT',
+    'NEAR/USDT', 'XLM/USDT', 'ALGO/USDT', 'VET/USDT', 'FIL/USDT',
+    'APT/USDT', 'INJ/USDT', 'OP/USDT', 'ARB/USDT', 'QNT/USDT',
+    'ETC/USDT', 'HBAR/USDT', 'ICP/USDT', 'LDO/USDT', 'GRT/USDT',
+    'STX/USDT', 'AAVE/USDT', 'MKR/USDT', 'COMP/USDT', 'SUSHI/USDT',
+    'CRV/USDT', '1INCH/USDT', 'SNX/USDT', 'MANA/USDT', 'SAND/USDT',
+    'AXS/USDT', 'ENJ/USDT', 'FTM/USDT', 'CRO/USDT', 'GLM/USDT',
+    'KAVA/USDT', 'ROSE/USDT', 'CELO/USDT', 'MINA/USDT'
+]
+
+EXCHANGES = ['binance', 'bybit', 'okx']
 
 
 def test_order_submission_latency():
@@ -20,20 +37,31 @@ def test_order_submission_latency():
     print("Order Submission Latency Test (50+ Symbols)")
     print("=" * 60)
     
-    # Create exchange with 50+ symbols
-    exchange = SimulatedExchange(
-        exchange_id="binance",
-        config_path=Path(__file__).parent.parent / "exchange_simulator" / "config.yaml",
+    # Create market simulator with 50+ symbols
+    market = MarketSimulator(
+        symbols=SYMBOLS,
+        exchanges=EXCHANGES,
+        initial_prices={s: 100.0 for s in SYMBOLS},
+        volatility={s: 0.8 for s in SYMBOLS},
     )
     
-    # Get symbols from config
-    symbols = exchange._config["exchanges"]["binance"]["symbols"]
-    print(f"Testing with {len(symbols)} symbols")
+    # Create exchange
+    exchange = SimulatedExchange(
+        exchange_id="binance",
+        name="Binance",
+        fee_pct=0.04,
+        slippage_bps=2.0,
+        market=market,
+        initial_balance=10000.0,
+        leverage=10,
+    )
+    
+    print(f"Testing with {len(SYMBOLS)} symbols")
     
     latencies = []
     
     # Submit orders for each symbol
-    for symbol in symbols[:50]:  # Test first 50 symbols
+    for symbol in SYMBOLS[:50]:  # Test first 50 symbols
         start = time.perf_counter()
         
         order = exchange.submit_order(
@@ -76,18 +104,29 @@ def test_price_update_latency():
     print("Price Update Latency Test (50+ Symbols)")
     print("=" * 60)
     
-    exchange = SimulatedExchange(
-        exchange_id="binance",
-        config_path=Path(__file__).parent.parent / "exchange_simulator" / "config.yaml",
+    market = MarketSimulator(
+        symbols=SYMBOLS,
+        exchanges=EXCHANGES,
+        initial_prices={s: 100.0 for s in SYMBOLS},
+        volatility={s: 0.8 for s in SYMBOLS},
     )
     
-    symbols = exchange._config["exchanges"]["binance"]["symbols"]
-    print(f"Testing with {len(symbols)} symbols")
+    exchange = SimulatedExchange(
+        exchange_id="binance",
+        name="Binance",
+        fee_pct=0.04,
+        slippage_bps=2.0,
+        market=market,
+        initial_balance=10000.0,
+        leverage=10,
+    )
+    
+    print(f"Testing with {len(SYMBOLS)} symbols")
     
     latencies = []
     
     # Get prices for each symbol
-    for symbol in symbols[:50]:
+    for symbol in SYMBOLS[:50]:
         start = time.perf_counter()
         
         price = exchange.get_price(symbol)
@@ -123,18 +162,29 @@ def test_order_book_latency():
     print("Order Book Latency Test (50+ Symbols)")
     print("=" * 60)
     
-    exchange = SimulatedExchange(
-        exchange_id="binance",
-        config_path=Path(__file__).parent.parent / "exchange_simulator" / "config.yaml",
+    market = MarketSimulator(
+        symbols=SYMBOLS,
+        exchanges=EXCHANGES,
+        initial_prices={s: 100.0 for s in SYMBOLS},
+        volatility={s: 0.8 for s in SYMBOLS},
     )
     
-    symbols = exchange._config["exchanges"]["binance"]["symbols"]
-    print(f"Testing with {len(symbols)} symbols")
+    exchange = SimulatedExchange(
+        exchange_id="binance",
+        name="Binance",
+        fee_pct=0.04,
+        slippage_bps=2.0,
+        market=market,
+        initial_balance=10000.0,
+        leverage=10,
+    )
+    
+    print(f"Testing with {len(SYMBOLS)} symbols")
     
     latencies = []
     
     # Get order books for each symbol
-    for symbol in symbols[:50]:
+    for symbol in SYMBOLS[:50]:
         start = time.perf_counter()
         
         order_book = exchange.get_order_book(symbol)
@@ -170,19 +220,30 @@ def test_concurrent_operations():
     print("Concurrent Operations Test (50+ Symbols)")
     print("=" * 60)
     
-    exchange = SimulatedExchange(
-        exchange_id="binance",
-        config_path=Path(__file__).parent.parent / "exchange_simulator" / "config.yaml",
+    market = MarketSimulator(
+        symbols=SYMBOLS,
+        exchanges=EXCHANGES,
+        initial_prices={s: 100.0 for s in SYMBOLS},
+        volatility={s: 0.8 for s in SYMBOLS},
     )
     
-    symbols = exchange._config["exchanges"]["binance"]["symbols"]
-    print(f"Testing with {len(symbols)} symbols")
+    exchange = SimulatedExchange(
+        exchange_id="binance",
+        name="Binance",
+        fee_pct=0.04,
+        slippage_bps=2.0,
+        market=market,
+        initial_balance=10000.0,
+        leverage=10,
+    )
+    
+    print(f"Testing with {len(SYMBOLS)} symbols")
     
     # Simulate concurrent operations
     start = time.perf_counter()
     
     # Submit orders for multiple symbols
-    for i, symbol in enumerate(symbols[:50]):
+    for i, symbol in enumerate(SYMBOLS[:50]):
         side = Side.BUY if i % 2 == 0 else Side.SELL
         exchange.submit_order(
             symbol=symbol,
@@ -192,11 +253,11 @@ def test_concurrent_operations():
         )
     
     # Get prices for all symbols
-    for symbol in symbols[:50]:
+    for symbol in SYMBOLS[:50]:
         exchange.get_price(symbol)
     
     # Get order books for all symbols
-    for symbol in symbols[:50]:
+    for symbol in SYMBOLS[:50]:
         exchange.get_order_book(symbol)
     
     end = time.perf_counter()
@@ -231,16 +292,27 @@ def test_memory_usage():
     # Get initial memory
     initial_mem = process.memory_info().rss / 1024 / 1024  # MB
     
-    exchange = SimulatedExchange(
-        exchange_id="binance",
-        config_path=Path(__file__).parent.parent / "exchange_simulator" / "config.yaml",
+    market = MarketSimulator(
+        symbols=SYMBOLS,
+        exchanges=EXCHANGES,
+        initial_prices={s: 100.0 for s in SYMBOLS},
+        volatility={s: 0.8 for s in SYMBOLS},
     )
     
-    symbols = exchange._config["exchanges"]["binance"]["symbols"]
-    print(f"Testing with {len(symbols)} symbols")
+    exchange = SimulatedExchange(
+        exchange_id="binance",
+        name="Binance",
+        fee_pct=0.04,
+        slippage_bps=2.0,
+        market=market,
+        initial_balance=10000.0,
+        leverage=10,
+    )
+    
+    print(f"Testing with {len(SYMBOLS)} symbols")
     
     # Perform operations
-    for symbol in symbols[:50]:
+    for symbol in SYMBOLS[:50]:
         exchange.submit_order(
             symbol=symbol,
             side=Side.BUY,
