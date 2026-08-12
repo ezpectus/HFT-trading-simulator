@@ -1,58 +1,72 @@
 import { Bot, Cpu, Radio, TrendingUp, TrendingDown, Activity, Zap, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { formatPrice, formatTime, colorForSide } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
+import { memo, useMemo, useCallback } from 'react'
 
-export default function BotStatus({ signals, fills, accounts, signalConnected, exchangeConnected, circuitBreaker, tradingActive }) {
+const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConnected, exchangeConnected, circuitBreaker, tradingActive }) {
   // Derive bot activity from signals + fills
-  const recentFills = fills.slice(0, 5)
-  const recentSignals = signals.slice(0, 5)
+  const recentFills = useMemo(() => fills.slice(0, 5), [fills])
+  const recentSignals = useMemo(() => signals.slice(0, 5), [signals])
 
   // Count active positions across all exchanges
-  let totalPositions = 0
-  let totalBalance = 0
-  let totalEquity = 0
-  let totalPnl = 0
-  let totalTrades = 0
+  const portfolioStats = useMemo(() => {
+    let totalPositions = 0
+    let totalBalance = 0
+    let totalEquity = 0
+    let totalPnl = 0
+    let totalTrades = 0
 
-  for (const acc of Object.values(accounts || {})) {
-    totalPositions += Object.keys(acc.positions || {}).length
-    totalBalance += acc.balance || 0
-    totalEquity += acc.equity || 0
-    totalPnl += acc.total_pnl || 0
-    totalTrades += acc.total_trades || 0
-  }
+    for (const acc of Object.values(accounts || {})) {
+      totalPositions += Object.keys(acc.positions || {}).length
+      totalBalance += acc.balance || 0
+      totalEquity += acc.equity || 0
+      totalPnl += acc.total_pnl || 0
+      totalTrades += acc.total_trades || 0
+    }
+
+    return { totalPositions, totalBalance, totalEquity, totalPnl, totalTrades }
+  }, [accounts])
 
   // Combine signals + fills into activity feed
-  const activity = []
-  for (const sig of recentSignals) {
-    activity.push({
-      type: 'signal',
-      time: sig.timestamp,
-      side: sig.direction,
-      symbol: sig.symbol,
-      detail: `${sig.confidence?.toFixed(0)}% conf`,
-      reason: sig.reason,
-    })
-  }
-  for (const fill of recentFills) {
-    if (fill.status === 'FILLED') {
+  const activity = useMemo(() => {
+    const activity = []
+    for (const sig of recentSignals) {
       activity.push({
-        type: 'fill',
-        time: fill.timestamp,
-        side: fill.side,
-        symbol: fill.symbol,
-        detail: `${fill.filled_quantity} @ $${formatPrice(fill.filled_price)}`,
-        exchange: fill.exchange,
+        type: 'signal',
+        time: sig.timestamp,
+        side: sig.direction,
+        symbol: sig.symbol,
+        detail: `${sig.confidence?.toFixed(0)}% conf`,
+        reason: sig.reason,
       })
     }
-  }
-  activity.sort((a, b) => b.time - a.time)
+    for (const fill of recentFills) {
+      if (fill.status === 'FILLED') {
+        activity.push({
+          type: 'fill',
+          time: fill.timestamp,
+          side: fill.side,
+          symbol: fill.symbol,
+          detail: `${fill.filled_quantity} @ $${formatPrice(fill.filled_price)}`,
+          exchange: fill.exchange,
+        })
+      }
+    }
+    activity.sort((a, b) => b.time - a.time)
+    return activity
+  }, [recentSignals, recentFills])
 
-  const lastSignalTime = signals.length > 0 ? signals[0].timestamp : null
-  const lastFillTime = fills.length > 0 ? fills[0].timestamp : null
+  const lastSignalTime = useMemo(() => signals.length > 0 ? signals[0].timestamp : null, [signals])
+  const lastFillTime = useMemo(() => fills.length > 0 ? fills[0].timestamp : null, [fills])
+  
   const now = Date.now() / 1000
-  const signalAge = lastSignalTime ? Math.floor(now - lastSignalTime) : null
-  const fillAge = lastFillTime ? Math.floor(now - lastFillTime) : null
+  const signalAge = useMemo(() => lastSignalTime ? Math.floor(now - lastSignalTime) : null, [lastSignalTime, now])
+  const fillAge = useMemo(() => lastFillTime ? Math.floor(now - lastFillTime) : null, [lastFillTime, now])
+
+  const formatAge = useCallback((age) => {
+    if (age === null) return '—'
+    return age < 60 ? `${age}s ago` : `${Math.floor(age / 60)}m ago`
+  }, [])
 
   return (
     <div className="p-2 space-y-2">
@@ -78,7 +92,7 @@ export default function BotStatus({ signals, fills, accounts, signalConnected, e
             <div className="flex justify-between">
               <span className="text-gray-500">Last signal</span>
               <span className="text-gray-400 font-mono">
-                {signalAge === null ? '—' : signalAge < 60 ? `${signalAge}s ago` : `${Math.floor(signalAge / 60)}m ago`}
+                {formatAge(signalAge)}
               </span>
             </div>
             <div className="flex justify-between">
@@ -108,7 +122,7 @@ export default function BotStatus({ signals, fills, accounts, signalConnected, e
             <div className="flex justify-between">
               <span className="text-gray-500">Last fill</span>
               <span className="text-gray-400 font-mono">
-                {fillAge === null ? '—' : fillAge < 60 ? `${fillAge}s ago` : `${Math.floor(fillAge / 60)}m ago`}
+                {formatAge(fillAge)}
               </span>
             </div>
             <div className="flex justify-between">
@@ -169,25 +183,25 @@ export default function BotStatus({ signals, fills, accounts, signalConnected, e
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div>
             <div className="text-gray-500 text-[10px]">Balance</div>
-            <div className="font-mono text-gray-200">${formatPrice(totalBalance)}</div>
+            <div className="font-mono text-gray-200">${formatPrice(portfolioStats.totalBalance)}</div>
           </div>
           <div>
             <div className="text-gray-500 text-[10px]">Equity</div>
-            <div className="font-mono text-gray-200">${formatPrice(totalEquity)}</div>
+            <div className="font-mono text-gray-200">${formatPrice(portfolioStats.totalEquity)}</div>
           </div>
           <div>
             <div className="text-gray-500 text-[10px]">PnL</div>
-            <div className={`font-mono ${totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
-              {totalPnl >= 0 ? '+' : ''}{formatPrice(totalPnl)}
+            <div className={`font-mono ${portfolioStats.totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
+              {portfolioStats.totalPnl >= 0 ? '+' : ''}{formatPrice(portfolioStats.totalPnl)}
             </div>
           </div>
           <div>
             <div className="text-gray-500 text-[10px]">Positions</div>
-            <div className="font-mono text-accent-blue">{totalPositions}</div>
+            <div className="font-mono text-accent-blue">{portfolioStats.totalPositions}</div>
           </div>
           <div>
             <div className="text-gray-500 text-[10px]">Trades</div>
-            <div className="font-mono text-gray-300">{totalTrades}</div>
+            <div className="font-mono text-gray-300">{portfolioStats.totalTrades}</div>
           </div>
           <div>
             <div className="text-gray-500 text-[10px]">Exchanges</div>
@@ -232,4 +246,6 @@ export default function BotStatus({ signals, fills, accounts, signalConnected, e
       </div>
     </div>
   )
-}
+})
+
+export default BotStatus
