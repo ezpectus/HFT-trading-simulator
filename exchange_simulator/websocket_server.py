@@ -54,6 +54,89 @@ from exchange_simulator.models import OrderType, Side  # noqa: E402
 logger = logging.getLogger("exchange_simulator.ws")
 
 
+class WebSocketMetrics:
+    """Tracks WebSocket broadcasting performance metrics."""
+    
+    def __init__(self):
+        self.message_sizes: list[int] = []
+        self.message_count: int = 0
+        self.bytes_sent: int = 0
+        self.compression_ratio: float = 0.0
+        self.delta_update_ratio: float = 0.0
+        self.client_count: int = 0
+        self.broadcast_latencies: list[float] = []
+        self.max_samples: int = 10000
+        self._start_time: float = time.time()
+    
+    def record_message(self, size: int, compressed_size: int = 0) -> None:
+        """Record a message size."""
+        self.message_sizes.append(size)
+        self.message_count += 1
+        self.bytes_sent += size
+        if len(self.message_sizes) > self.max_samples:
+            self.message_sizes.pop(0)
+        if compressed_size > 0:
+            self.compression_ratio = size / compressed_size if compressed_size > 0 else 0.0
+    
+    def record_broadcast_latency(self, latency_ms: float) -> None:
+        """Record broadcast latency."""
+        self.broadcast_latencies.append(latency_ms)
+        if len(self.broadcast_latencies) > self.max_samples:
+            self.broadcast_latencies.pop(0)
+    
+    def record_delta_update(self, is_delta: bool) -> None:
+        """Record whether a delta update was sent."""
+        if is_delta:
+            self.delta_update_ratio = (self.delta_update_ratio * 0.9) + (1.0 * 0.1)
+        else:
+            self.delta_update_ratio = (self.delta_update_ratio * 0.9) + (0.0 * 0.1)
+    
+    def get_avg_message_size(self) -> float:
+        """Get average message size in bytes."""
+        if not self.message_sizes:
+            return 0.0
+        return sum(self.message_sizes) / len(self.message_sizes)
+    
+    def get_p95_message_size(self) -> float:
+        """Get p95 message size in bytes."""
+        if not self.message_sizes:
+            return 0.0
+        sorted_sizes = sorted(self.message_sizes)
+        idx = int(len(sorted_sizes) * 0.95)
+        return sorted_sizes[min(idx, len(sorted_sizes) - 1)]
+    
+    def get_p95_broadcast_latency(self) -> float:
+        """Get p95 broadcast latency in ms."""
+        if not self.broadcast_latencies:
+            return 0.0
+        sorted_latencies = sorted(self.broadcast_latencies)
+        idx = int(len(sorted_latencies) * 0.95)
+        return sorted_latencies[min(idx, len(sorted_latencies) - 1)]
+    
+    def get_bandwidth_mbps(self) -> float:
+        """Get bandwidth usage in Mbps."""
+        elapsed = time.time() - self._start_time
+        if elapsed == 0:
+            return 0.0
+        bytes_per_sec = self.bytes_sent / elapsed
+        return (bytes_per_sec * 8) / 1_000_000
+    
+    def get_metrics(self) -> dict:
+        """Get all metrics as a dictionary."""
+        return {
+            "message_count": self.message_count,
+            "bytes_sent": self.bytes_sent,
+            "avg_message_size_bytes": self.get_avg_message_size(),
+            "p95_message_size_bytes": self.get_p95_message_size(),
+            "compression_ratio": self.compression_ratio,
+            "delta_update_ratio": self.delta_update_ratio,
+            "client_count": self.client_count,
+            "p95_broadcast_latency_ms": self.get_p95_broadcast_latency(),
+            "bandwidth_mbps": self.get_bandwidth_mbps(),
+            "uptime_seconds": time.time() - self._start_time,
+        }
+
+
 PROTOCOL_VERSION = 2
 
 
@@ -102,6 +185,9 @@ class ExchangeWebSocketServer:
         self._total_connections: int = 0
         self._total_disconnections: int = 0
         logger.info(f"Trade CSV log: {self.trade_logger.path}")
+
+        # WebSocket metrics for profiling
+        self.metrics = WebSocketMetrics()
 
         # Client symbol subscriptions for filtering (Phase 1.5)
         self._client_subscriptions: dict[WebSocketServerConnection, set[str]] = {}
@@ -214,6 +300,10 @@ class ExchangeWebSocketServer:
         for client in self.clients:
             await client.close()
         logger.info("WebSocket server stopped")
+
+    def get_metrics(self) -> dict:
+        """Get WebSocket broadcasting metrics."""
+        return self.metrics.get_metrics()
 
     def _check_rate_limit(self, websocket: WebSocketServerConnection) -> bool:
         """Check if client is within rate limits (Phase 1.5)."""
@@ -594,12 +684,23 @@ class ExchangeWebSocketServer:
         if client_ver >= 2 and "protocol_version" not in data:
             data = {**data, "protocol_version": PROTOCOL_VERSION}
         encoding = self._client_encodings.get(websocket, "json")
+        
+        # Track message size for metrics
+        message_bytes = b""
         if encoding == "msgpack" and _HAS_MSGPACK:
-            await websocket.send(msgpack.packb(data, use_bin_type=True))
+            message_bytes = msgpack.packb(data, use_bin_type=True)
+            await websocket.send(message_bytes)
         elif _HAS_ORJSON:
-            await websocket.send(orjson.dumps(data))
+            message_bytes = orjson.dumps(data)
+            await websocket.send(message_bytes)
         else:
-            await websocket.send(json.dumps(data, separators=(',', ':')))
+            message_str = json.dumps(data, separators=(',', ':'))
+            message_bytes = message_str.encode('utf-8')
+            await websocket.send(message_str)
+        
+        # Record metrics
+        self.metrics.record_message(len(message_bytes))
+        self.metrics.client_count = len(self.clients)
 
     async def _send_market_snapshot(
         self, websocket: WebSocketServerConnection

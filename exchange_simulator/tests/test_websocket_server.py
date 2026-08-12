@@ -1,6 +1,7 @@
 """Tests for ExchangeWebSocketServer — message handling, validation, metrics."""
 import asyncio
 import json
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -302,3 +303,88 @@ class TestBroadcastLoop:
             except asyncio.CancelledError:
                 pass
         mock_market.next_candle.assert_not_called()
+
+
+class TestWebSocketMetrics:
+    def test_metrics_initialization(self, server):
+        """Test that WebSocketMetrics is initialized correctly."""
+        assert server.metrics is not None
+        assert server.metrics.message_count == 0
+        assert server.metrics.bytes_sent == 0
+        assert server.metrics.client_count == 0
+
+    def test_get_metrics(self, server):
+        """Test that get_metrics returns correct structure."""
+        metrics = server.get_metrics()
+        assert "message_count" in metrics
+        assert "bytes_sent" in metrics
+        assert "avg_message_size_bytes" in metrics
+        assert "p95_message_size_bytes" in metrics
+        assert "compression_ratio" in metrics
+        assert "delta_update_ratio" in metrics
+        assert "client_count" in metrics
+        assert "p95_broadcast_latency_ms" in metrics
+        assert "bandwidth_mbps" in metrics
+        assert "uptime_seconds" in metrics
+
+    def test_record_message(self, server):
+        """Test that message recording works correctly."""
+        server.metrics.record_message(1000)
+        assert server.metrics.message_count == 1
+        assert server.metrics.bytes_sent == 1000
+        assert server.metrics.get_avg_message_size() == 1000.0
+
+    def test_record_message_with_compression(self, server):
+        """Test that compression ratio is calculated correctly."""
+        server.metrics.record_message(1000, compressed_size=200)
+        assert server.metrics.compression_ratio == 5.0
+
+    def test_record_delta_update(self, server):
+        """Test that delta update ratio is calculated correctly."""
+        # Record several delta updates
+        for _ in range(10):
+            server.metrics.record_delta_update(True)
+        # Ratio should be close to 1.0
+        assert server.metrics.delta_update_ratio > 0.5
+
+    def test_record_broadcast_latency(self, server):
+        """Test that broadcast latency is recorded correctly."""
+        server.metrics.record_broadcast_latency(10.5)
+        server.metrics.record_broadcast_latency(15.2)
+        server.metrics.record_broadcast_latency(8.7)
+        assert len(server.metrics.broadcast_latencies) == 3
+
+    def test_p95_message_size(self, server):
+        """Test p95 message size calculation."""
+        sizes = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+        for size in sizes:
+            server.metrics.record_message(size)
+        p95 = server.metrics.get_p95_message_size()
+        assert p95 > 900  # p95 should be close to max
+
+    def test_p95_broadcast_latency(self, server):
+        """Test p95 broadcast latency calculation."""
+        latencies = [10.0, 20.0, 30.0, 40.0, 50.0]
+        for latency in latencies:
+            server.metrics.record_broadcast_latency(latency)
+        p95 = server.metrics.get_p95_broadcast_latency()
+        assert p95 > 40.0  # p95 should be close to max
+
+    def test_bandwidth_calculation(self, server):
+        """Test bandwidth calculation in Mbps."""
+        # Simulate sending 1MB over 1 second
+        for _ in range(1000):
+            server.metrics.record_message(1000)  # 1KB per message
+        # Force elapsed time to 1 second for test
+        server.metrics._start_time = time.time() - 1.0
+        bandwidth = server.metrics.get_bandwidth_mbps()
+        # 1MB/s = 8Mbps
+        assert bandwidth > 7.0 and bandwidth < 9.0
+
+    def test_max_samples_limit(self, server):
+        """Test that message sizes are limited to max_samples."""
+        # Add more messages than max_samples
+        for i in range(15000):
+            server.metrics.record_message(i)
+        # Should be limited to max_samples
+        assert len(server.metrics.message_sizes) == server.metrics.max_samples
