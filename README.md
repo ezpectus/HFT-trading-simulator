@@ -4,7 +4,7 @@
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-61dafb.svg)
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
 ![Tests](https://img.shields.io/badge/tests-484%2B%20passing-6e9f18.svg)
-![Roadmap](https://img.shields.io/badge/roadmap-9%2F9%20phases%20done-00C853.svg)
+![Roadmap](https://img.shields.io/badge/roadmap-9%2F9%20days%20done-00C853.svg)
 ![Strategies](https://img.shields.io/badge/strategies-34%2B-FF6B35.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 ![Live Demo](https://img.shields.io/badge/demo-coming%20soon-orange.svg)
