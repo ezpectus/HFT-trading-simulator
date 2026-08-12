@@ -347,6 +347,22 @@ price_feed:
   failover_enabled: true       # Automatic failover between APIs
   retry_attempts: 3            # Number of retry attempts on failure
   retry_delay: 1.0             # Delay between retries in seconds
+  # Performance profiling configuration
+  enable_profiling: true       # Enable performance metrics collection
+  profile_interval_seconds: 60 # Metrics logging interval
+  metrics_log_file: "logs/price_feed_metrics.log"  # Metrics log file path
+  # Connection pooling configuration
+  connection_pool_size: 100    # Max connections in pool
+  connection_timeout: 30       # Connection timeout in seconds
+
+  # Request batching configuration
+  binance_batch_size: 20       # Max symbols per Binance batch request
+  coinbase_batch_size: 10      # Max symbols per Coinbase batch request
+
+  # Advanced caching configuration
+  cache_max_size: 1000         # Max entries in LRU cache
+  cache_warm_on_startup: true  # Warm cache on startup
+  use_msgpack_cache: true      # Use MessagePack for cache serialization
 
 # Audit logging settings — comprehensive event tracking
 audit:
