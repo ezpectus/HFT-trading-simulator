@@ -1,0 +1,121 @@
+{
+  "dashboard": {
+    "title": "System Overview",
+    "uid": "system-overview",
+    "tags": ["system", "overview"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "CPU Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "exchange_simulator_cpu_usage_percent",
+            "legendFormat": "Exchange Simulator"
+          },
+          {
+            "expr": "ai_signal_bot_cpu_usage_percent",
+            "legendFormat": "AI Signal Bot"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Memory Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "exchange_simulator_memory_usage_bytes / 1024 / 1024 / 1024",
+            "legendFormat": "Exchange Simulator (GB)"
+          },
+          {
+            "expr": "ai_signal_bot_memory_usage_bytes / 1024 / 1024 / 1024",
+            "legendFormat": "AI Signal Bot (GB)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytesGB"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Active Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "exchange_simulator_active_connections",
+            "legendFormat": "WebSocket Connections"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Order Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(exchange_simulator_orders_total[1m])",
+            "legendFormat": "Order Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(exchange_simulator_errors_total[1m])",
+            "legendFormat": "Exchange Simulator Errors"
+          },
+          {
+            "expr": "rate(ai_signal_bot_errors_total[1m])",
+            "legendFormat": "AI Signal Bot Errors"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Price Update Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(exchange_simulator_price_updates_total[1m])",
+            "legendFormat": "Price Updates"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      }
+    ]
+  }
+}

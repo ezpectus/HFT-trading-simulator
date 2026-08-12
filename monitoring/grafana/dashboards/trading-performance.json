@@ -1,0 +1,175 @@
+{
+  "dashboard": {
+    "title": "Trading Performance",
+    "uid": "trading-performance",
+    "tags": ["trading", "performance"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total PnL",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(ai_signal_bot_pnl_total)",
+            "legendFormat": "Total PnL"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Daily PnL",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(ai_signal_bot_pnl_daily) by (strategy)",
+            "legendFormat": "{{strategy}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Win Rate",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "avg(ai_signal_bot_win_rate) by (strategy)",
+            "legendFormat": "{{strategy}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Sharpe Ratio",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_signal_bot_sharpe_ratio",
+            "legendFormat": "{{strategy}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Drawdown",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_signal_bot_drawdown",
+            "legendFormat": "{{strategy}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Portfolio Value",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_signal_bot_portfolio_value",
+            "legendFormat": "Portfolio Value"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Trade Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(ai_signal_bot_trades_total[1m])",
+            "legendFormat": "Trade Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Signal Generation Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(ai_signal_bot_signals_generated_total[1m])",
+            "legendFormat": "{{strategy}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Open Positions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(ai_signal_bot_position_count)",
+            "legendFormat": "Total Positions"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Model Accuracy",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_signal_bot_model_accuracy",
+            "legendFormat": "{{model_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        }
+      }
+    ]
+  }
+}

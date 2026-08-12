@@ -1,0 +1,102 @@
+# Prometheus Alertmanager Configuration
+#
+# Configures notification channels (email, Slack, Discord), alert routing,
+# alert grouping, and escalation policies.
+
+global:
+  resolve_timeout: 5m
+  # SMTP configuration for email notifications
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@trading-system.com'
+  smtp_auth_username: 'alerts@trading-system.com'
+  smtp_auth_password: 'your-password'
+  smtp_require_tls: true
+
+# Route configuration
+route:
+  group_by: ['alertname', 'severity', 'component']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  
+  routes:
+    # Critical alerts go to all channels immediately
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: false
+    
+    # Warning alerts go to Slack and email
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      continue: false
+    
+    # Info alerts go to email only
+    - match:
+        severity: info
+      receiver: 'info-alerts'
+      continue: false
+
+# Receivers configuration
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'team@trading-system.com'
+        headers:
+          Subject: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.alertname }}'
+  
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'oncall@trading-system.com'
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#critical-alerts'
+        title: '[CRITICAL] {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+    discord_configs:
+      - webhook_url: 'https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK'
+        title: '[CRITICAL] {{ .GroupLabels.alertname }}'
+        description: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+  
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'team@trading-system.com'
+        headers:
+          Subject: '[WARNING] {{ .GroupLabels.alertname }}'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#warning-alerts'
+        title: '[WARNING] {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+  
+  - name: 'info-alerts'
+    email_configs:
+      - to: 'team@trading-system.com'
+        headers:
+          Subject: '[INFO] {{ .GroupLabels.alertname }}'
+
+# Inhibition rules to prevent alert spam
+inhibit_rules:
+  # If critical alert is firing, inhibit warning alerts for same component
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['component', 'alertname']
+  
+  # If critical alert is firing, inhibit info alerts for same component
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'info'
+    equal: ['component', 'alertname']
+
+# Templates for custom alert formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

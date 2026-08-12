@@ -1,0 +1,171 @@
+{
+  "dashboard": {
+    "title": "Latency Monitoring",
+    "uid": "latency-monitoring",
+    "tags": ["latency", "performance"],
+    "timezone": "browser",
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Signal Generation Latency (p50)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, ai_signal_bot_signal_generation_latency_seconds)",
+            "legendFormat": "p50"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Signal Generation Latency (p99)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, ai_signal_bot_signal_generation_latency_seconds)",
+            "legendFormat": "p99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Order Processing Latency (p50)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, exchange_simulator_order_latency_seconds)",
+            "legendFormat": "p50"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Order Processing Latency (p99)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, exchange_simulator_order_latency_seconds)",
+            "legendFormat": "p99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "WebSocket Latency (p50)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, exchange_simulator_websocket_latency_seconds)",
+            "legendFormat": "p50"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "WebSocket Latency (p99)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, exchange_simulator_websocket_latency_seconds)",
+            "legendFormat": "p99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Price Feed Latency (p50)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, exchange_simulator_price_feed_latency_seconds)",
+            "legendFormat": "{{source}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Price Feed Latency (p99)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, exchange_simulator_price_feed_latency_seconds)",
+            "legendFormat": "{{source}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Fill Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(exchange_simulator_fills_total[1m])",
+            "legendFormat": "Fill Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Order Latency Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(exchange_simulator_order_latency_seconds_bucket[1m])",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,192 @@
+# OpenTelemetry Tracing for Exchange Simulator
+#
+# Implements distributed tracing with OpenTelemetry for key operations
+# including trace context propagation and span annotations.
+
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry import propagate
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+from typing import Optional, Dict, Any
+import time
+
+
+class ExchangeSimulatorTracer:
+    """OpenTelemetry tracer for exchange simulator."""
+    
+    def __init__(self, service_name: str = "exchange-simulator",
+                 jaeger_host: str = "localhost",
+                 jaeger_port: int = 6831):
+        """
+        Initialize tracer.
+        
+        Args:
+            service_name: Service name for tracing
+            jaeger_host: Jaeger agent host
+            jaeger_port: Jaeger agent port
+        """
+        self.service_name = service_name
+        
+        # Set up tracing
+        provider = TracerProvider()
+        
+        # Configure Jaeger exporter
+        jaeger_exporter = JaegerExporter(
+            agent_host_name=jaeger_host,
+            agent_port=jaeger_port,
+        )
+        
+        provider.add_span_processor(BatchSpanProcessor(jaeger_exporter))
+        trace.set_tracer_provider(provider)
+        
+        # Configure propagator
+        propagate.set_global_textmap(TraceContextTextMapPropagator())
+        
+        self.tracer = trace.get_tracer(__name__)
+    
+    def trace_order_processing(self, symbol: str, side: str, quantity: float):
+        """
+        Trace order processing operation.
+        
+        Args:
+            symbol: Trading symbol
+            side: Order side
+            quantity: Order quantity
+        """
+        with self.tracer.start_as_current_span(
+            "order_processing",
+            attributes={
+                "symbol": symbol,
+                "side": side,
+                "quantity": str(quantity),
+                "service": self.service_name
+            }
+        ) as span:
+            # Annotate with additional context
+            span.set_attribute("order_type", "market")
+            span.add_event("order_received", {"timestamp": time.time()})
+            
+            # Simulate processing
+            time.sleep(0.001)
+            
+            span.add_event("order_processed", {"timestamp": time.time()})
+            span.set_status(trace.Status(trace.StatusCode.OK))
+    
+    def trace_price_update(self, symbol: str, price: float, source: str):
+        """
+        Trace price update operation.
+        
+        Args:
+            symbol: Trading symbol
+            price: Current price
+            source: Price source
+        """
+        with self.tracer.start_as_current_span(
+            "price_update",
+            attributes={
+                "symbol": symbol,
+                "price": str(price),
+                "source": source,
+                "service": self.service_name
+            }
+        ) as span:
+            span.add_event("price_received", {"timestamp": time.time()})
+            span.set_status(trace.Status(trace.StatusCode.OK))
+    
+    def trace_websocket_message(self, client_id: str, message_type: str):
+        """
+        Trace WebSocket message operation.
+        
+        Args:
+            client_id: Client identifier
+            message_type: Message type
+        """
+        with self.tracer.start_as_current_span(
+            "websocket_message",
+            attributes={
+                "client_id": client_id,
+                "message_type": message_type,
+                "service": self.service_name
+            }
+        ) as span:
+            span.add_event("message_sent", {"timestamp": time.time()})
+            span.set_status(trace.Status(trace.StatusCode.OK))
+    
+    def trace_database_operation(self, operation: str, table: str):
+        """
+        Trace database operation.
+        
+        Args:
+            operation: Operation type (SELECT, INSERT, UPDATE)
+            table: Table name
+        """
+        with self.tracer.start_as_current_span(
+            "database_operation",
+            attributes={
+                "operation": operation,
+                "table": table,
+                "service": self.service_name
+            }
+        ) as span:
+            span.add_event("query_started", {"timestamp": time.time()})
+            span.set_status(trace.Status(trace.StatusCode.OK))
+    
+    def inject_context(self, headers: Dict[str, str]) -> Dict[str, str]:
+        """
+        Inject trace context into headers.
+        
+        Args:
+            headers: Existing headers dictionary
+        
+        Returns:
+            Headers with trace context
+        """
+        propagate.inject(headers)
+        return headers
+    
+    def extract_context(self, headers: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Extract trace context from headers.
+        
+        Args:
+            headers: Headers with trace context
+        
+        Returns:
+            Extracted context
+        """
+        context = {}
+        propagate.extract(headers, context)
+        return context
+
+
+# Global tracer instance
+_tracer_instance: Optional[ExchangeSimulatorTracer] = None
+
+
+def get_tracer() -> ExchangeSimulatorTracer:
+    """Get or create the global tracer instance."""
+    global _tracer_instance
+    if _tracer_instance is None:
+        _tracer_instance = ExchangeSimulatorTracer()
+    return _tracer_instance
+
+
+def init_tracer(service_name: str = "exchange-simulator",
+                jaeger_host: str = "localhost",
+                jaeger_port: int = 6831) -> ExchangeSimulatorTracer:
+    """
+    Initialize the tracer.
+    
+    Args:
+        service_name: Service name
+        jaeger_host: Jaeger agent host
+        jaeger_port: Jaeger agent port
+    
+    Returns:
+        Tracer instance
+    """
+    global _tracer_instance
+    _tracer_instance = ExchangeSimulatorTracer(service_name, jaeger_host, jaeger_port)
+    return _tracer_instance
