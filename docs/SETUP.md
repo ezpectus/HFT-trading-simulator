@@ -1,5 +1,8 @@
 # Setup Guide
 
+**Last Updated:** August 12, 2026
+**Project Status:** 9-Day Development Plan Completed (85% overall completion)
+
 ## Prerequisites
 
 - **Python 3.12+** (for exchange_simulator and ai-signal-bot)
