@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 33 |
+| ✅ Fixed | 34 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **72** |
+| **TOTAL FOUND** | **73** |
 
 ---
 
@@ -847,6 +847,16 @@
 - **Root Cause:** `TradingEnv.reset()` has signature `def reset(self, prices: np.ndarray, features: Optional[np.ndarray] = None)` — `prices` is a required parameter. However, both `DQNAgent.train()` and `PPOAgent.train()` call `env.reset()` without any arguments. This causes a `TypeError: reset() missing 1 required positional argument: 'prices'` at runtime, making RL training completely non-functional.
 - **Status:** ✅ Fixed
 - **Fix:** Added `prices` and `features` optional parameters to both `DQNAgent.train()` and `PPOAgent.train()`, and pass them to `env.reset()` when provided.
+
+---
+
+## Bug #099 — LSTMModel.evaluate mixes raw and normalized data in direction accuracy calculation
+
+- **Location:** `ai-signal-bot/src/ml/lstm_model.py:268`
+- **Severity:** Medium
+- **Root Cause:** In `evaluate()`, `predictions` are computed in normalized space (using `X_norm = self._normalize(X)`), and `mse`/`mae` correctly compare against `y_norm`. However, the direction accuracy calculation at line 268 uses raw `y` (not `y_norm`) for `actual_direction`, while `pred_direction` uses normalized `predictions`. This mixes raw and normalized spaces, producing incorrect direction accuracy metrics.
+- **Status:** ✅ Fixed
+- **Fix:** Changed `actual_direction = np.sign(y[1:] - y[:-1])` to `actual_direction = np.sign(y_norm[1:] - y_norm[:-1])` to use the normalized target values consistently.
 
 ---
 

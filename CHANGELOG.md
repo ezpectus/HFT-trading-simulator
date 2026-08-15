@@ -22,6 +22,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-096]** `BacktestEngine._exit_position` in `ai-signal-bot/src/backtesting/backtest_engine.py` created `BacktestTrade` with hardcoded `symbol=""` — same as Bug #093 but in the separate BacktestEngine class.
 - **[BUG-097]** `DQNAgent` and `PPOAgent` in `ai-signal-bot/src/ml/rl_agent.py` used `list.pop(0)` for replay memory management — O(n) per operation, significantly slowing RL training. Replaced with `deque(maxlen=...)` for O(1) operations.
 - **[BUG-098]** `DQNAgent.train()` and `PPOAgent.train()` in `ai-signal-bot/src/ml/rl_agent.py` called `env.reset()` without required `prices` parameter — `TypeError` at runtime, making RL training completely non-functional.
+- **[BUG-099]** `LSTMModel.evaluate` in `ai-signal-bot/src/ml/lstm_model.py` mixed raw and normalized data in direction accuracy calculation — `actual_direction` used raw `y` while `pred_direction` used normalized predictions, producing incorrect metrics.
 
 ### Critical Audit Corrections (v4.2)
 
