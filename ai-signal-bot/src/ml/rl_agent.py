@@ -101,7 +101,10 @@ class DQNAgent:
 
         if len(self.memory) < batch_size:
             return
-        
+
+        if self.q_network_weights is None:
+            self._build_network()
+
         # Sample batch
         batch_indices = np.random.choice(len(self.memory), batch_size, replace=False)
         batch = [self.memory[i] for i in batch_indices]

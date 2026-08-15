@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Bug Fixes
 
+- **[BUG-164]** `DQNAgent.replay()` in `ai-signal-bot/src/ml/rl_agent.py` crashed with `TypeError` when `q_network_weights` was None — happened when all early actions were random (high epsilon) and the network was never built. Added None guard to build network before replay.
 - **[BUG-163]** `TradingEnv._get_observation()` in `ai-signal-bot/src/ml/environment.py` returned 63-dim observations (60 prices + 3 portfolio), but `rl_agent.RLConfig.state_size = 100` and `rl_trader.RLConfig.state_dim = 20` — both agents crashed with shape mismatch on first forward pass. Fixed by aligning all three to 63.
 - **[BUG-162]** `GreeksHedgingSimulator.simulate_delta_hedge` in `ai-signal-bot/src/research/greeks_hedging.py` didn't adjust the cash account for share transactions during hedge rebalancing — only transaction costs were deducted. This made `final_pnl` incorrect by `sum(trade_qty_i * price_i)`. Also fixed `gamma_pnl` formula which evaluated to 0 with correct cash accounting — changed to `final_pnl` (the net PnL of the delta-hedged portfolio representing gamma/theta/vega residual).
 

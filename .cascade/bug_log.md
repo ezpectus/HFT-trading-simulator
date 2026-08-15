@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 84 |
+| ✅ Fixed | 85 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **121** |
+| **TOTAL FOUND** | **122** |
 
 ---
 
@@ -1530,6 +1530,17 @@
 - **Impact:** All RL training pipelines (DQN, PPO) crash immediately when used with TradingEnv.
 - **Status:** ✅ Fixed
 - **Fix:** Set `observation_space_n = 63` in TradingEnv (was 100 placeholder), `state_size = 63` in `rl_agent.RLConfig`, and `state_dim = 63` in `rl_trader.RLConfig`. All three now match the actual observation dimension.
+
+---
+
+## Bug #164: DQNAgent.replay() crashes when q_network_weights is None
+- **File:** `ai-signal-bot/src/ml/rl_agent.py:102-106`
+- **Category:** Bug
+- **Severity:** High
+- **Root Cause:** `DQNAgent.act()` only builds the Q-network when a non-random action is selected (epsilon check fails). If all early actions are random (high epsilon), `q_network_weights` and `target_network_weights` remain None. When `replay()` is called with enough memory, it crashes on `np.dot(next_states, self.target_network_weights)` with `TypeError`.
+- **Impact:** DQN training crashes after `batch_size` random actions accumulate in replay memory.
+- **Status:** ✅ Fixed
+- **Fix:** Added a None check in `replay()` to call `self._build_network()` if weights are not initialized, ensuring the network exists before any matrix operations.
 
 ---
 
