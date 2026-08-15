@@ -10,13 +10,13 @@
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 ![Live Demo](https://img.shields.io/badge/demo-coming%20soon-orange.svg)
 ![Panels](https://img.shields.io/badge/panels-204-61dafb.svg)
-![Math Models](https://img.shields.io/badge/math%20models-38%20trading%20%2B%2040%20UI--only-a855f7.svg)
+![Math Models](https://img.shields.io/badge/math%20models-44%20trading%20%2B%2040%20UI--only-a855f7.svg)
 ![Languages](https://img.shields.io/badge/languages-C%2B%2B20%20%7C%20Python%20%7C%20React-00599C.svg)
 ![Security](https://img.shields.io/badge/security-Bandit%20%2B%20CodeQL-red.svg)
 ![Readiness](https://img.shields.io/badge/readiness-62%25-yellow.svg)
 ![Dead Code](https://img.shields.io/badge/dead%20code-CUDA%20%2B%20ONNX%20(%23ifdef)-red.svg)
 
-> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 38 quant models in trading logic (+40 UI-only), 204 dashboard panels, Rust executor, shared-memory IPC, SVI/SABR volatility surface, and optimized price feed with connection pooling, batching, and LRU cache. CUDA and ONNX code exists but is dead code behind `#ifdef` (never compiled in CI). Zero real money, zero risk, 100% educational.**
+> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 44 quant models in trading logic (+40 UI-only), 204 dashboard panels, Rust executor, shared-memory IPC, SVI/SABR volatility surface, Student-t/Merton/Heston/Markov microstructure, options strategies, and optimized price feed with connection pooling, batching, and LRU cache. CUDA and ONNX code exists but is dead code behind `#ifdef` (never compiled in CI). Zero real money, zero risk, 100% educational.**
 
 **Live Demo:** _coming soon_ | **Documentation:** [docs/](docs/) | **Setup:** [docs/SETUP.md](docs/SETUP.md) | **Math Models:** [docs/MATH_MODELS.md](docs/MATH_MODELS.md) | **Performance:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
 
@@ -89,7 +89,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
   │  • 3 Exchanges  │   │  • 8-Stage      │   │  • Signal V2/V3 │
   │  • 50+ Symbols  │   │    Pipeline     │   │  • HMM Regime   │
   │  • GBM + Jumps  │   │  • 19 Strategies│   │  • Smart Router │
-  │  • Order Book   │   │  • 38 Quant Mod │   │  • Pressure Mod │
+  │  • Order Book   │   │  • 44 Quant Mod │   │  • Pressure Mod │
   │  • Funding      │   │  • LSTM/Transf. │   │  • Adaptive Ord │
   │  • Liquidation  │   │  • RL (PPO/DQN) │   │  • FIX 4.4      │
   │  • Options      │   │  • Backtesting  │   │  • SHM IPC      │
@@ -143,19 +143,20 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Object pool** — Pre-allocated, no heap allocations in hot path
 - **V1 fallback** — Original signal engine preserved as configurable fallback
 
-### Mathematical Models (38 in Trading Logic + 40 UI-Only)
+### Mathematical Models (44 in Trading Logic + 40 UI-Only)
 
-**Honest categorization:** 38 models are implemented in actual trading logic (Python + C++). An additional 40 models exist only as React UI visualization components — they are educational visualizations, not integrated into the trading pipeline. See [docs/MATH_MODELS.md](docs/MATH_MODELS.md) for the full categorization.
+**Honest categorization:** 44 models are implemented in actual trading logic (Python + C++). An additional 40 models exist only as React UI visualization components — they are educational visualizations, not integrated into the trading pipeline. See [docs/MATH_MODELS.md](docs/MATH_MODELS.md) for the full categorization.
 
 | Category | Models (Trading Logic) |
 |----------|----------------------|
+| **Market Microstructure** | Student-t fat tails (df=4), Merton jump diffusion, Heston stochastic vol, Markov regime switching (4-state), U-shaped intraday vol |
 | **Volatility** | SVI, SABR (volatility_surface.py) |
 | **Regime Detection** | HMM (Baum-Welch, Viterbi) in C++ V3, HMMRegimeDetector in Python |
 | **Filtering** | Kalman Filter (C++ stat arb + mean rev) |
 | **Risk** | VaR, CVaR, Kelly Criterion, Isolation Forest (anomaly filter) |
 | **Technical** | EMA, RSI, MACD, Bollinger, ATR, VWAP, ADX, FFT, OBI, Pressure |
 | **Portfolio** | Markowitz, Black-Litterman, Risk Parity, Rebalancing |
-| **Options** | Black-Scholes, Binomial Tree, Greeks |
+| **Options** | Black-Scholes, Binomial Tree, Greeks, Implied Vol (Newton-Raphson), Straddle, Strangle, Iron Condor, Butterfly |
 | **Strategies** | Trend Following, Mean Reversion, FFT Cycle, Stat Arb, Market Making (Avellaneda-Stoikov), Sentiment, ML Ensemble |
 | **ML** | LSTM, Transformer, RL (PPO/DQN), AutoML, Price Predictor |
 | **Research** | Brinson-Fachler Attribution, Genetic Strategy, Greeks Hedging, Microstructure Lab |
@@ -197,23 +198,26 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 ### Exchange Simulator
 
 - **GBM price generation** with per-symbol volatility and configurable random seed
+- **Advanced microstructure models** (`market_microstructure.py`): Student-t fat tails (df=4), Merton jump diffusion (Poisson + Gaussian), Heston stochastic volatility (kappa=2, theta=0.04, rho=-0.7), Markov regime switching (4-state: CALM/VOLATILE/CRASH/RECOVERY), U-shaped intraday volatility
 - **Correlated multi-symbol** — shared random component with per-symbol correlation matrix
 - **News event simulation** — random volatility spikes (3x-8x) with directional bias, volume surge, 5-15 candle duration
 - **Market impact model** — large orders move price: `impact = mid_price * coeff * (qty / typical_volume)`
 - **Slippage simulation** — per-exchange slippage in basis points applied to all orders
 - **Partial fill simulation** — large orders split across price levels with weighted average fill price
+- **Options pricing** — Black-Scholes, Binomial Tree, Greeks (delta/gamma/theta/vega/rho), implied vol (Newton-Raphson), option chain generation
+- **Options strategies** — Straddle, Strangle, Iron Condor, Butterfly with max profit/loss, break-even calculation
 - **50+ cryptocurrency symbols** — BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI
 - **3 simulated exchanges** (Binance, Bybit, OKX) with different fee structures and slippage
 - **Real-time price feed integration** — Multi-API connection (Binance, Coinbase) with automatic failover, rate limiting, caching layer, and data normalization
 - **Hybrid market simulation** — Real price feeds + simulated microstructure for realistic trading environment
 - **Realistic order book** — depth profile, spoofing detection, iceberg orders, queue position, adverse selection
+- **Spread analytics** — per-exchange spread tracking, percentile-based slippage stats
+- **Data export** — CSV and Parquet export for candles, trades, account data
 - **Latency simulation** — per-exchange base latency, jitter, spikes, reconnection delay
 - **Funding rates** — 8-hour intervals, perpetual-spot basis, payment calculation
 - **Liquidation engine v2** — cascade liquidations, partial liquidation, liquidation price estimation, insurance fund, ADL
 - **Advanced order types** — Stop-Limit, Trailing Stop, OCO (One-Cancels-the-Other), Iceberg orders with full lifecycle management
 - **Comprehensive audit logging** — Thread-safe audit trail for all system events with filtering, search, and export (JSON/CSV)
-- **News event simulation** — sudden volatility spikes with directional bias
-- **Market impact model** — large orders move price (see above)
 - **Partial fill simulation** — large orders split across order book levels (see above)
 - **Multi-exchange arbitrage detection** — auto-execute when spread > threshold
 - **Config hot-reload** — change volatility/fees without restart
@@ -311,7 +315,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | Web UI initial render | < 1s | Vite + React 18 |
 | Test coverage | 40 JS files, 44 C++ files, 54 Python files | Unit + integration + E2E (138+ test files) |
 | Panel count | 204 registered panels | Detachable, responsive |
-| Math models | 38 in trading logic + 40 UI-only | Black-Scholes to SVI/SABR |
+| Math models | 44 in trading logic + 40 UI-only | Black-Scholes to SVI/SABR to Heston/Merton |
 | Component files | 227 React components | |
 | Optimization walkthroughs | 23 examples | Before/after code + impact analysis |
 | Cryptocurrency symbols | 50+ trading pairs | BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI |
@@ -657,7 +661,7 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 | [Web UI](docs/WEB_UI.md) | 197 panels, performance, testing, accessibility, PWA |
 | [Exchange Simulator](docs/EXCHANGE_SIMULATOR.md) | Price generation, order book, liquidation engine |
 | [Setup Guide](docs/SETUP.md) | Installation, mock mode, troubleshooting |
-| [Mathematical Models](docs/MATH_MODELS.md) | 38 models in trading logic + 40 UI-only, with formulas and file references |
+| [Mathematical Models](docs/MATH_MODELS.md) | 44 models in trading logic + 40 UI-only, with formulas and file references |
 | [Educational Content](docs/EDUCATIONAL_CONTENT.md) | HFT introduction, microstructure, order types, indicators, risk management |
 | [Roadmap](docs/ROADMAP.md) | Project roadmap — all 9 phases completed |
 | [Comprehensive Development Plan](COMPREHENSIVE_DEVELOPMENT_PLAN.md) | Full 9-phase development roadmap with detailed implementation plans |

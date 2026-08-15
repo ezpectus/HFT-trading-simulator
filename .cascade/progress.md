@@ -5,8 +5,9 @@
 | # | Date | Task | Status | Commit |
 |---|------|------|--------|--------|
 | 1 | 2026-08-15 | Deep audit v4.0 — 40+ UI-only models, CUDA/ONNX dead code | ✅ Done | 7934b9c |
-| 2 | 2026-08-15 | Deep audit v4.1 — cross-check README/ARCHITECTURE/MATH_MODELS vs code, fix v4.0 errors | ✅ Done | — |
-| 3 | 2026-08-15 | Consolidate workflow folders (.windsurf + .devin → .cascade) | 🔄 In Progress | — |
+| 2 | 2026-08-15 | Deep audit v4.1 — cross-check README/ARCHITECTURE/MATH_MODELS vs code, fix v4.0 errors | ✅ Done | a4d3ea6 |
+| 3 | 2026-08-15 | Deep audit v4.2 — found market_microstructure.py (Student-t/Merton/Heston/Markov), options_strategies.py, 6 more modules | ✅ Done | — |
+| 4 | 2026-08-15 | Consolidate workflow folders (.windsurf + .devin → .cascade) | 🔄 In Progress | — |
 
 ## Bug Fix Progress
 

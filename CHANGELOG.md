@@ -2,7 +2,39 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased] — 2026-08-15 (v4.1 — Deep Audit v2)
+## [Unreleased] — 2026-08-15 (v4.2 — Deep Audit v3)
+
+### Critical Audit Corrections (v4.2)
+
+**4 models incorrectly marked as MISSING in v4.1 — all FOUND in `exchange_simulator/exchange_simulator/market_microstructure.py` (175 lines):**
+
+1. **Student-t Returns** — v4.1 said MISSING. v4.2 found `_sample_student_t(df=4)` at line 112-116. Full implementation with chi-square scaling.
+2. **Merton Jump Diffusion** — v4.1 said MISSING. v4.2 found `_sample_jump()` at line 118-123. Poisson trigger + Gaussian jump size, per-regime params.
+3. **Heston Stochastic Volatility** — v4.1 said MISSING. v4.2 found `_update_heston_variance()` at line 102-110. Euler discretization, kappa=2.0, theta=0.04, sigma=0.3, rho=-0.7.
+4. **Markov Regime Switching** — v4.1 said MISSING. v4.2 found 4-state Markov chain (CALM/VOLATILE/CRASH/RECOVERY) at lines 25-47, 82-92. Full transition matrix with per-regime drift/vol/jump params.
+
+**Additional models found (not in v4.1 audit):**
+
+5. **U-Shaped Intraday Volatility** — `_intraday_vol_multiplier()` at line 94-100. High at open/close, low midday.
+6. **Options Strategies** — `exchange_simulator/options_strategies.py` (310 lines): Straddle, Strangle, Iron Condor, Butterfly with max profit/loss, break-even calculation.
+7. **Options Simulator** — `exchange_simulator/exchange_simulator/options_simulator.py` (232 lines): Black-Scholes + Newton-Raphson implied vol + option chain generation.
+8. **Order Book Realism** — `exchange_simulator/exchange_simulator/order_book_realism.py` (316 lines): Power-law volume decay, spoofing, iceberg, queue position, adverse selection.
+9. **Spread Analytics** — `exchange_simulator/exchange_simulator/spread_analytics.py` (188 lines): Per-exchange spread tracking, percentile stats.
+10. **Data Export** — `exchange_simulator/exchange_simulator/data_export.py` (246 lines): CSV and Parquet export.
+
+**Model count corrected:** 38 → 44 trading logic models (+6: Student-t, Merton, Heston, Markov regime, U-shaped intraday, Options strategies)
+
+**Files updated in v4.2:**
+- `docs/MATH_MODELS.md` — 4 models moved from MISSING to Trading logic, Options Strategies section added, U-shaped intraday added
+- `docs/ARCHITECTURE.md` — Price generation updated, Microstructure/Options/OrderBookRealism/SpreadAnalytics/DataExport rows added
+- `README.md` — Microstructure models added to Exchange Simulator section, Options strategies added, model count 38→44, math models table updated
+- `README_PROJECT_OVERVIEW.md` — 4 models changed from ❌ to ✅, model count 38→44
+- `MASTER_DEVELOPMENT_PLAN.md` — Model count 38→44 in badges table
+- `docs/future_development.md` — 4 models moved from MISSING to FOUND, model count 38→44
+- `.cascade/notes.md` — Updated with v4.2 findings
+- `.cascade/progress.md` — v4.2 task added
+
+## [v4.1] — 2026-08-15 (Deep Audit v2)
 
 ### Bug Fixes
 

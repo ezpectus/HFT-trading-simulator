@@ -139,6 +139,10 @@
 - ❌ **Kyle's Lambda** — нет нигде
 - ❌ **ZScore detector** — нет как отдельной модели
 - ❌ **Ornstein-Uhlenbeck** — нет нигде
+- ✅ **Student-t fat tails** — ЕСТЬ в `market_microstructure.py:112-116` (v4.2 correction)
+- ✅ **Merton jump diffusion** — ЕСТЬ в `market_microstructure.py:118-123` (v4.2 correction)
+- ✅ **Heston stochastic volatility** — ЕСТЬ в `market_microstructure.py:102-110` (v4.2 correction)
+- ✅ **Markov regime switching** — ЕСТЬ в `market_microstructure.py:25-47,82-92` (v4.2 correction)
 - ✅ **SVI/SABR volatility surface** — ЕСТЬ в коде! `ai-signal-bot/src/pricing/volatility_surface.py` (209 строк). Исправление v4.1: предыдущий аудит v4.0 ошибочно утверждал отсутствие.
 - ❌ **MAMA/FAMA** — нет нигде
 - ❌ **Hilbert Transform** — нет нигде
@@ -152,7 +156,7 @@
 
 ---
 
-**Проблема:** Документы заявляли 75+ моделей, реально 38 в trading logic + 40 UI-only. UI-only модели нужно портировать в trading logic.
+**Проблема:** Документы заявляли 75+ моделей, реально 44 в trading logic + 40 UI-only. UI-only модели нужно портировать в trading logic.
 
 ### 1.1. HMM (Hidden Markov Model) для Python — ВЫСОКИЙ
 

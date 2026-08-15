@@ -43,21 +43,52 @@ Per-exchange slippage in basis points applied to all orders.
 Large orders split across price levels with weighted average fill price.
 - **Source:** `exchange_simulator/exchange.py:549-558`
 
-### ~~Student-t Returns~~ — MISSING
-~~Replaces Gaussian with `t(df=4)` for realistic tail risk.~~
-**Not found in code.** Market simulator uses `random.gauss(0, 1)` (Gaussian). Previously claimed in docs, not implemented.
+### Student-t Returns (Fat Tails) — Trading logic
+Replaces Gaussian with `t(df=4)` for realistic tail risk.
+```
+t = Z * sqrt(df / V),  Z ~ N(0,1),  V ~ ChiSquare(df)
+```
+- **Source:** `exchange_simulator/exchange_simulator/market_microstructure.py:112-116`
+- **Function:** `_sample_student_t(df)` — scaled to unit variance
 
-### ~~Merton Jump Diffusion~~ — MISSING
-~~Jumps `J_i ~ N(mu_J, sigma_J^2)` arrive with Poisson rate `lambda`.~~
-**Not found in code.** Previously claimed in docs, not implemented.
+### Merton Jump Diffusion — Trading logic
+```
+S(t+dt) = S(t) * exp((mu - 0.5*sigma^2 - lambda*E[J])*dt + sigma*sqrt(dt)*Z + sum(J_i))
+```
+Jumps `J_i ~ N(mu_J, sigma_J^2)` arrive with Poisson rate `lambda`.
+- **Source:** `exchange_simulator/exchange_simulator/market_microstructure.py:118-123`
+- **Function:** `_sample_jump(regime_params)` — Poisson trigger + Gaussian jump size
+- **Per-regime jump params:** CALM (0.1%, 1%), VOLATILE (0.5%, 3%), CRASH (2%, 8%), RECOVERY (0.2%, 2%)
 
-### ~~Heston Stochastic Volatility~~ — MISSING
-~~`dv(t) = kappa*(theta - v(t))*dt + xi*sqrt(v(t))*dW_v`~~
-**Not found in code.** Previously claimed in docs, not implemented.
+### Heston Stochastic Volatility — Trading logic
+```
+dv(t) = kappa*(theta - v(t))*dt + xi*sqrt(v(t))*dW_v
+dW_v = rho*dW_s + sqrt(1-rho^2)*dW'    (rho = -0.7)
+```
+Euler discretization with variance floor at 0.001.
+- **Source:** `exchange_simulator/exchange_simulator/market_microstructure.py:102-110`
+- **Function:** `_update_heston_variance(dt)` — kappa=2.0, theta=0.04, sigma=0.3, rho=-0.7
 
-### ~~Markov Regime Switching~~ — MISSING
-~~4-state chain (CALM, VOLATILE, CRASH, RECOVERY)~~
-**Not found in code.** Previously claimed in docs, not implemented.
+### Markov Regime Switching — Trading logic
+4-state chain (CALM, VOLATILE, CRASH, RECOVERY) with per-state vol/drift/jump params.
+```
+Transition matrix:
+           CALM   VOL    CRASH  RECOV
+CALM      0.985  0.014  0.001  0.000
+VOLATILE  0.020  0.970  0.008  0.002
+CRASH     0.000  0.010  0.950  0.040
+RECOVERY  0.030  0.000  0.000  0.970
+```
+- **Source:** `exchange_simulator/exchange_simulator/market_microstructure.py:25-47,82-92`
+- **Function:** `_maybe_switch_regime()` — per-step Markov transition
+- **Per-regime params:** drift, vol_scale (1.0x-5.0x), jump_prob, jump_size
+
+### U-Shaped Intraday Volatility — Trading logic
+```
+vol_mult(h) = 0.7 + 0.8 * ((h/12 - 1)^2)
+```
+High at open/close, low midday. Also affects volume generation.
+- **Source:** `exchange_simulator/exchange_simulator/market_microstructure.py:94-100`
 
 ---
 
@@ -185,6 +216,20 @@ sigma_impl(K,F) = alpha/(F^(1-beta)) * [1 + ...]
 
 ### Binomial Tree
 - **Source:** `exchange_simulator/options_pricing.py`
+
+### Options Simulator (Black-Scholes + Implied Vol)
+- **Source:** `exchange_simulator/exchange_simulator/options_simulator.py` (232 lines)
+- European-style options with Newton-Raphson implied vol calculation
+- Option chain generation for multiple strikes/expiries
+- Put-call parity verification
+
+### Options Strategies — Trading logic
+- **Source:** `exchange_simulator/options_strategies.py` (310 lines)
+- **Straddle** — long/short call+put at same strike
+- **Strangle** — call+put at different strikes (cheaper than straddle)
+- **Iron Condor** — 4-leg spread (bull put + bear call)
+- **Butterfly** — 3-strike spread with max payoff at middle strike
+- Calculates: max profit, max loss, break-even points, payoff at expiry
 
 ---
 

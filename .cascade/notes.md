@@ -23,23 +23,24 @@
 - `ai-signal-bot/src/pricing/volatility_surface.py` — SVI/SABR volatility surface (EXISTS, v4.0 wrongly said missing)
 - `exchange_simulator/exchange.py` — order matching, slippage, market impact, partial fills
 - `exchange_simulator/market_simulator.py` — GBM + correlated multi-symbol + news events
+- `exchange_simulator/exchange_simulator/market_microstructure.py` — Student-t, Merton, Heston, Markov regime, U-shaped intraday vol
+- `exchange_simulator/options_strategies.py` — Straddle, Strangle, Iron Condor, Butterfly
 - `hft-executor/src/lib.rs` — Rust order executor (WS stub, 0 tests)
 - `shared_config.yaml` — global config
 
-## Known Critical Issues (audit v4.1)
+## Known Critical Issues (audit v4.2)
 
-1. README.md badges inflated — FIXED in v4.1 (75+ models → 38+40 UI-only, 34+ strategies → 19, 197 panels → 204)
+1. README.md badges inflated — FIXED in v4.1 (75+ models → 44+40 UI-only, 34+ strategies → 19, 197 panels → 204)
 2. 40+ models exist ONLY as UI (.jsx), NOT in trading pipeline
 3. CUDA/ONNX — dead code behind #ifdef, never compiled in CI
-4. ~~SVI/SABR — README claims, does NOT exist~~ → ✅ EXISTS in `volatility_surface.py` (v4.1 correction)
-5. ML models not trained (code exists, no weights)
-6. Quantum models — 0%
-7. Broker integration — 5% (FIX framework exists, not connected)
-8. Real HFT features — 10% (no co-location, DMA, PTP, GPS, tick data)
-9. 14 models don't exist ANYWHERE (Hurst, VPIN, Kyle's Lambda, etc. — SVI/SABR removed from this list in v4.1)
-10. Rust executor — WebSocket is a stub (logs JSON, no real WS), 0 tests
-11. Student-t, Merton Jump Diffusion, Heston, Markov Regime Switching — claimed in docs, NOT in code
-12. collaboration/ directory in ai-signal-bot — empty (0 files)
+4. ~~SVI/SABR — does NOT exist~~ → ✅ EXISTS in `volatility_surface.py` (v4.1 correction)
+5. ~~Student-t/Merton/Heston/Markov regime — MISSING~~ → ✅ ALL EXIST in `market_microstructure.py` (v4.2 correction)
+6. ML models not trained (code exists, no weights)
+7. Quantum models — 0%
+8. Broker integration — 5% (FIX framework exists, not connected)
+9. Real HFT features — 10% (no co-location, DMA, PTP, GPS, tick data)
+10. 10 models don't exist ANYWHERE (Hurst, VPIN, Kyle's Lambda, etc.)
+11. Rust executor — WebSocket is a stub (logs JSON, no real WS), 0 tests
 
 ## Architecture Patterns
 
@@ -50,10 +51,12 @@
 - **ML:** LSTM, Transformer, RL (PPO/DQN), AutoML, Price Predictor — NOT trained
 - **Risk:** VaR, CVaR, Kelly, stress test, position sizing
 - **Portfolio:** Markowitz, Black-Litterman, risk parity
+- **Market Microstructure:** Student-t (df=4), Merton jump diffusion, Heston stochastic vol, Markov regime switching (4-state), U-shaped intraday vol (`market_microstructure.py`)
 - **Volatility:** SVI, SABR (volatility_surface.py)
-- **Options:** Black-Scholes, Binomial Tree, Greeks (options_pricing.py)
+- **Options:** Black-Scholes, Binomial Tree, Greeks, Implied Vol, Straddle, Strangle, Iron Condor, Butterfly (`options_pricing.py`, `options_strategies.py`, `options_simulator.py`)
 - **Test files:** 138+ (54 Python + 44 C++ + 40 JS)
 - **UI:** 227 React components, 204 registered panels
+- **Trading logic models:** 44 (not 75+ as README originally claimed)
 
 ## Useful Commands
 

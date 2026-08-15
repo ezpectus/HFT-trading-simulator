@@ -65,7 +65,7 @@ graph TB
 
 | Feature | Implementation |
 | --- | --- |
-| **Price Generation** | GBM with correlated multi-symbol draws, news event spikes (3x-8x vol), market impact model, slippage, partial fills |
+| **Price Generation** | GBM (market_simulator.py) + advanced microstructure (market_microstructure.py): Student-t fat tails, Merton jump diffusion, Heston stochastic vol, Markov regime switching, U-shaped intraday vol. Plus: correlated multi-symbol, news events, market impact, slippage, partial fills |
 | **Price Feed Manager** | Multi-API integration (Binance, Coinbase Pro) with automatic failover and rate limiting |
 | **Symbols** | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, etc.) |
 | **Exchanges** | Binance, Bybit, OKX with distinct fee structures and slippage models |
@@ -76,9 +76,13 @@ graph TB
 | **Audit Logging** | Comprehensive audit logging for all system events with file persistence |
 | **WebSocket** | Delta updates, symbol subscription filtering, rate limiting per client |
 |---------|---------------|
-| Price generation | GBM with per-symbol volatility, correlated multi-symbol draws, news event spikes (3x-8x), market impact, slippage, partial fills |
+| Price generation | GBM (market_simulator.py) + Student-t/Merton/Heston/Markov regime (market_microstructure.py), correlated multi-symbol, news events, market impact, slippage, partial fills |
 | Real-time price feeds | Multi-API integration (Binance, Coinbase Pro) with automatic failover, rate limiting, caching |
-| Hybrid simulation | Real price feeds + simulated microstructure for realistic trading |
+| Microstructure | Student-t fat tails (df=4), Merton jump diffusion, Heston stochastic vol (kappa=2, theta=0.04), Markov regime switching (4-state), U-shaped intraday vol |
+| Options | Black-Scholes pricing, Binomial Tree, Greeks, implied vol (Newton-Raphson), Options strategies (Straddle, Strangle, Iron Condor, Butterfly) |
+| Order book realism | Power-law volume decay, spoofing detection, iceberg orders, queue position tracking, adverse selection |
+| Spread analytics | Per-exchange spread tracking, percentile-based slippage stats, effective cost analysis |
+| Data export | CSV and Parquet export for candles, trades, account data (backtesting/ML training) |
 | Exchanges | Binance, Bybit, OKX (different fees, slippage, volatility multipliers) |
 | Symbols | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, DOT, MATIC, SHIB, AVAX, LINK, UNI, ATOM, LTC, NEAR, XLM, ALGO, VET, FIL, APT, INJ, OP, ARB, QNT, ETC, HBAR, ICP, LDO, GRT, STX, AAVE, MKR, COMP, SUSHI, CRV, 1INCH, SNX, MANA, SAND, AXS, ENJ, FTM, CRO, GLM, KAVA, ROSE, CELO, MINA) |
 | Order book | 20 levels per side, decay-based liquidity, real-time depth |
