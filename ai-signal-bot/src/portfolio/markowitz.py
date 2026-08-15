@@ -86,7 +86,8 @@ class MarkowitzOptimizer:
                           weight_bounds: Tuple[float, float] = (0, 1),
                           sector_constraints: Optional[Dict[str, Tuple[float, float]]] = None,
                           max_turnover: Optional[float] = None,
-                          current_weights: Optional[np.ndarray] = None) -> PortfolioResult:
+                          current_weights: Optional[np.ndarray] = None,
+                          min_variance: bool = False) -> PortfolioResult:
         """
         Optimize portfolio weights.
         
@@ -117,9 +118,12 @@ class MarkowitzOptimizer:
                     # Minimize volatility for target return
                     penalty = 1000 * abs(portfolio_return - target_return)
                     return portfolio_volatility + penalty
+                elif min_variance:
+                    # Minimize volatility only
+                    return portfolio_volatility
                 else:
                     # Maximize Sharpe ratio (minimize negative Sharpe)
-                    return -portfolio_volatility if portfolio_volatility == 0 else -portfolio_return / portfolio_volatility
+                    return -portfolio_volatility if portfolio_volatility == 0 else -(portfolio_return - self.risk_free_rate) / portfolio_volatility
             
             # Constraints
             constraints = []
@@ -241,7 +245,8 @@ class MarkowitzOptimizer:
             expected_returns,
             cov_matrix,
             target_return=None,
-            weight_bounds=weight_bounds
+            weight_bounds=weight_bounds,
+            min_variance=True
         )
     
     def calculate_maximum_sharpe_portfolio(self, expected_returns: np.ndarray,

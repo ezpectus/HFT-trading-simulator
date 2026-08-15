@@ -2,47 +2,66 @@
 
 Detailed breakdown of all quantitative models in the HFT Trading System with formulas and source file references.
 
+**Honest categorization (v4.1 audit):** Models are classified as:
+- **Trading logic** — implemented in Python or C++ and integrated into the trading pipeline
+- **UI-only** — implemented as React visualization components, NOT integrated into trading logic
+- **Missing** — claimed in documentation but not found in any code
+- **Dead code** — exists in source but behind `#ifdef`, never compiled
+
 ---
 
 ## 1. Market Simulation
 
-### Geometric Brownian Motion (GBM)
+### Geometric Brownian Motion (GBM) — Trading logic
 ```
 S(t+dt) = S(t) * exp((mu - 0.5*sigma^2)*dt + sigma*sqrt(dt)*Z)
 ```
-- **Source:** `exchange-simulator/exchange_simulator/market_simulator.py`
+- **Source:** `exchange_simulator/market_simulator.py`
 
-### Student-t Returns (Fat Tails)
-Replaces Gaussian with `t(df=4)` for realistic tail risk.
-- **Source:** `exchange-simulator/exchange_simulator/market_microstructure.py`
-
-### Merton Jump Diffusion
-```
-S(t+dt) = S(t) * exp((mu - 0.5*sigma^2 - lambda*E[J])*dt + sigma*sqrt(dt)*Z + sum(J_i))
-```
-Jumps `J_i ~ N(mu_J, sigma_J^2)` arrive with Poisson rate `lambda`.
-- **Source:** `exchange-simulator/exchange_simulator/market_microstructure.py`
-
-### Heston Stochastic Volatility
-```
-dv(t) = kappa*(theta - v(t))*dt + xi*sqrt(v(t))*dW_v
-dW_v = rho*dW_s + sqrt(1-rho^2)*dW'    (rho = -0.7)
-```
-- **Source:** `exchange-simulator/exchange_simulator/market_microstructure.py`
-
-### Markov Regime Switching
-4-state chain (CALM, VOLATILE, CRASH, RECOVERY) with per-state vol/drift.
-- **Source:** `exchange-simulator/exchange_simulator/market_microstructure.py`
-
-### Inter-Symbol Correlation (Factor Model)
+### Inter-Symbol Correlation (Factor Model) — Trading logic
 ```
 z_i = corr * z_shared + sqrt(1 - corr^2) * z_idiosyncratic
 ```
-- **Source:** `exchange-simulator/exchange_simulator/market_simulator.py`
+- **Source:** `exchange_simulator/market_simulator.py`
+
+### News Event Simulation — Trading logic
+Random volatility spikes (3x-8x) with directional bias, volume surge, 5-15 candle duration.
+- **Source:** `exchange_simulator/market_simulator.py:173-184`
+
+### Market Impact Model — Trading logic
+```
+impact = mid_price * impact_coeff * (qty / typical_volume)
+fill_price += impact (buy) or fill_price -= impact (sell)
+```
+- **Source:** `exchange_simulator/exchange.py:414-423`
+
+### Slippage Simulation — Trading logic
+Per-exchange slippage in basis points applied to all orders.
+- **Source:** `exchange_simulator/exchange.py:407-412`
+
+### Partial Fill Simulation — Trading logic
+Large orders split across price levels with weighted average fill price.
+- **Source:** `exchange_simulator/exchange.py:549-558`
+
+### ~~Student-t Returns~~ — MISSING
+~~Replaces Gaussian with `t(df=4)` for realistic tail risk.~~
+**Not found in code.** Market simulator uses `random.gauss(0, 1)` (Gaussian). Previously claimed in docs, not implemented.
+
+### ~~Merton Jump Diffusion~~ — MISSING
+~~Jumps `J_i ~ N(mu_J, sigma_J^2)` arrive with Poisson rate `lambda`.~~
+**Not found in code.** Previously claimed in docs, not implemented.
+
+### ~~Heston Stochastic Volatility~~ — MISSING
+~~`dv(t) = kappa*(theta - v(t))*dt + xi*sqrt(v(t))*dW_v`~~
+**Not found in code.** Previously claimed in docs, not implemented.
+
+### ~~Markov Regime Switching~~ — MISSING
+~~4-state chain (CALM, VOLATILE, CRASH, RECOVERY)~~
+**Not found in code.** Previously claimed in docs, not implemented.
 
 ---
 
-## 2. Technical Indicators (Python)
+## 2. Technical Indicators (Python) — Trading logic
 
 All indicators in `ai-signal-bot/src/technical_analysis/indicators.py`.
 
@@ -55,13 +74,13 @@ All indicators in `ai-signal-bot/src/technical_analysis/indicators.py`.
 - **VWAP:** `VWAP = cumsum(TP*Vol) / cumsum(Vol)`, `TP = (H+L+C)/3`
 - **ADX (Wilder):** `ADX = WilderSmoothing(DX, period)`, `DX = 100*|+DI - -DI|/(+DI + -DI)`
 
-### FFT Analysis (Cooley-Tukey)
+### FFT Analysis (Cooley-Tukey) — Trading logic
 Radix-2 DFT, Hann window, power spectrum, dominant cycle, spectral entropy.
 - **Source:** `ai-signal-bot/src/technical_analysis/fft_analysis.py`
 
 ---
 
-## 3. C++ Signal Engine V2
+## 3. C++ Signal Engine V2 — Trading logic
 
 All O(1) per update, no heap allocations. Source: `hft-trade-bot/src/strategies/signal_engine_v2.h`
 
@@ -90,7 +109,7 @@ z_score = (price - VWAP) / std_dev
 
 ---
 
-## 4. Pressure Model (L2 Microstructure)
+## 4. Pressure Model (L2 Microstructure) — Trading logic
 
 Source: `hft-trade-bot/src/strategies/pressure_model.h`
 
@@ -104,7 +123,7 @@ Source: `hft-trade-bot/src/strategies/pressure_model.h`
 
 ---
 
-## 5. Risk Management
+## 5. Risk Management — Trading logic
 
 ### Kelly Criterion
 ```
@@ -122,9 +141,9 @@ Trailing stop, breakeven, partial TP, max hold time, ATR-based trailing.
 
 ---
 
-## 6. Portfolio Optimization
+## 6. Portfolio Optimization — Trading logic
 
-Source: `ai-signal-bot/src/risk/portfolio_optimizer.py`
+Source: `ai-signal-bot/src/portfolio/portfolio_optimizer.py`
 
 - **Markowitz:** `min w'Σw s.t. w'μ = target, w'1 = 1`
 - **Black-Litterman:** `posterior = [(τΣ)^-1 + P'Ω^-1 P]^-1 [(τΣ)^-1 π + P'Ω^-1 Q]`
@@ -133,18 +152,54 @@ Source: `ai-signal-bot/src/risk/portfolio_optimizer.py`
 
 ---
 
-## 7. Advanced Quantitative Models (75+)
+## 6.5. SVI/SABR Volatility Surface — Trading logic
 
-All implemented as React components in `web-ui/src/components/` with panel registry in `web-ui/src/panels/registry.js`.
+**Source:** `ai-signal-bot/src/pricing/volatility_surface.py` (209 lines)
 
-### Volatility
+### SVI (Stochastic Volatility Inspired)
+```
+w(k) = a + b * (rho*(k-m) + sqrt((k-m)^2 + sigma^2))
+```
+where `k = log(K/F)` is log-moneyness, `a` is overall level, `b` is slope, `rho` is skew, `m` is shift, `sigma` is smoothness.
+- **Functions:** `calibrate_svi()`, `svi_variance()`, `implied_vol_svi()`
+
+### SABR (Stochastic Alpha Beta Rho)
+Hagan's asymptotic implied volatility formula:
+```
+sigma_impl(K,F) = alpha/(F^(1-beta)) * [1 + ...]
+```
+- **Functions:** `calibrate_sabr()`, `sabr_implied_vol()`
+
+### Surface Generation
+`generate_surface()` — generates full volatility surface across strikes and maturities.
+
+**Note:** This was incorrectly listed as MISSING in the v4.0 audit. The code exists and is functional (depends on scipy with fallback).
+
+---
+
+## 6.6. Options Pricing — Trading logic
+
+### Black-Scholes
+- **Source:** `exchange_simulator/options_pricing.py`
+- Greeks: delta, gamma, theta, vega, rho
+
+### Binomial Tree
+- **Source:** `exchange_simulator/options_pricing.py`
+
+---
+
+## 7. UI-Only Models (40 models — NOT in trading logic)
+
+All implemented as React components in `web-ui/src/components/` with panel registry in `web-ui/src/panels/registry.js`. These are educational visualizations — they are NOT integrated into the Python or C++ trading pipeline.
+
+### Volatility — UI-only
 | Model | Formula | Component |
 |-------|---------|-----------|
 | GARCH(1,1) | `σ²(t) = ω + α*ε²(t-1) + β*σ²(t-1)` | `GARCHVolatility.jsx` |
 | Markov-Switching GARCH | Hamilton filter + Kim's smoothing | `MarkovSwitchingGARCH.jsx` |
 | Rough Volatility (rBergomi) | fBm via Cholesky, `v(t) = ξ*exp(η*W^H - 0.5*η²*t^(2H))` | `RoughVolatility.jsx` |
 
-### Regime Detection
+### Regime Detection — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | HMM | Baum-Welch EM, Viterbi decoding | `HiddenMarkovModel.jsx` |
@@ -153,14 +208,14 @@ All implemented as React components in `web-ui/src/components/` with panel regis
 | GMM | EM with BIC/AIC | `GaussianMixtureModel.jsx` |
 | Hopf Bifurcation | AR(2) eigenvalues on complex plane | `HopfBifurcation.jsx` |
 
-### Filtering & State Estimation
+### Filtering & State Estimation — UI-only
 | Model | Formula | Component |
 |-------|---------|-----------|
 | Kalman Filter | `K = P*H'*(H*P*H'+R)^-1`, `x̂ += K*(z-H*x̂)` | `KalmanFilterPrice.jsx` |
 | Bayesian Predictor | Beta-Binomial, BOCPD, Bayesian Ridge | `BayesianPricePredictor.jsx` |
 | Bayesian Structural TS | State-space + Kalman (trend+seasonal) | `BayesianStructuralTimeSeries.jsx` |
 
-### Spectral Analysis
+### Spectral Analysis — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | STFT | `STFT(t,f) = ∫ x(τ)*w(τ-t)*e^(-2πifτ) dτ` | `NonStationarySpectral.jsx` |
@@ -170,21 +225,21 @@ All implemented as React components in `web-ui/src/components/` with panel regis
 | VMD | ADMM-based, FFT/IFFT | `VariationalModeDecomposition.jsx` |
 | EMD + HHT | Sifting + cubic spline + Hilbert transform | `EmpiricalModeDecomposition.jsx` |
 
-### Optimal Execution
+### Optimal Execution — UI-only
 | Model | Formula | Component |
 |-------|---------|-----------|
 | Almgren-Chriss | `min E[x] + λ*Var[x]`, efficient frontier | `AlmgrenChriss.jsx` |
 | Pontryagin | `H = -c + p*f`, shooting method vs TWAP | `PontryaginMaximum.jsx` |
 | Stochastic Control (HJB) | `0 = min_u{c + V_t + μ*V_x + 0.5*σ²*V_xx}` | `StochasticOptimalControl.jsx` |
 
-### Risk Measures
+### Risk Measures — UI-only
 | Model | Formula | Component |
 |-------|---------|-----------|
 | CVaR | `CVaR_α = min_z{z + (1/(1-α))*E[(L-z)+]}` | `ConditionalValueAtRisk.jsx` |
 | Cramer-Rao Bound | `Var(θ̂) ≥ 1/I(θ)` | `CramerRaoBound.jsx` |
 | Isolation Forest | `s(x,n) = 2^(-E(h(x))/c(n))` | `IsolationForest.jsx` |
 
-### Causality & Information Theory
+### Causality & Information Theory — UI-only
 | Model | Formula | Component |
 |-------|---------|-----------|
 | Transfer Entropy | `TE(X→Y) = H(Y_t|Y_{t-1}) - H(Y_t|Y_{t-1},X_{t-1})` | `TransferEntropy.jsx` |
@@ -192,7 +247,7 @@ All implemented as React components in `web-ui/src/components/` with panel regis
 | Information Bottleneck | `min I(X;T) - β*I(T;Y)` via Blahut-Arimoto | `InformationBottleneck.jsx` |
 | Renyi Entropy | `H_α = (1/(1-α))*log(sum p_i^α)` | `RenyiEntropy.jsx` |
 
-### Machine Learning
+### Machine Learning — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | LSTM | BPTT (5-step truncation), Xavier init | `LSTMNeuralNetwork.jsx` |
@@ -205,20 +260,20 @@ All implemented as React components in `web-ui/src/components/` with panel regis
 | HMC | Leapfrog + Metropolis, Bayesian GARCH | `HamiltonianMonteCarlo.jsx` |
 | RKHS | RBF/Laplacian kernels, KPCA, MMD, KRR | `ReproducingKernelHilbertSpace.jsx` |
 
-### Topological Data Analysis
+### Topological Data Analysis — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | Persistent Homology | Vietoris-Rips, Betti numbers, diagrams | `TopologicalDataAnalysis.jsx` |
 | Homology Landscape | Landscape functions, L2 norm | `PersistentHomologyLandscape.jsx` |
 
-### Optimal Transport
+### Optimal Transport — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | Wasserstein W1/W2 | Sinkhorn algorithm, KS statistic | `OptimalTransport.jsx` |
 | Schrodinger Bridge | Entropy-regularized OT, barycentric mapping | `SchrodingerBridge.jsx` |
 | Wasserstein Barycenters | OT Frechet mean, quantile averaging | `WassersteinBarycenters.jsx` |
 
-### Stochastic Calculus
+### Stochastic Calculus — UI-only
 | Model | Formula | Component |
 |-------|---------|-----------|
 | SDE | Euler-Maruyama, Milstein (GBM/OU/CIR/Heston/Merton) | `StochasticDifferentialEquations.jsx` |
@@ -228,13 +283,13 @@ All implemented as React components in `web-ui/src/components/` with panel regis
 | Girsanov Theorem | Measure change, Radon-Nikodym derivative | `GirsanovTheorem.jsx` |
 | Cameron-Martin | Gaussian shift theorem, drift alignment | `CameronMartinFormula.jsx` |
 
-### Network & Graph Theory
+### Network & Graph Theory — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | Graph Theory | Kruskal's MST, eigenvector/betweenness centrality | `GraphTheoryNetwork.jsx` |
 | Tensor Decomposition | CP/ALS, multi-way factor analysis | `TensorDecomposition.jsx` |
 
-### Functional Analysis
+### Functional Analysis — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | Sobolev Regularization | Tikhonov, Matern kernel, L-curve | `SobolevSpaceRegularization.jsx` |
@@ -243,7 +298,7 @@ All implemented as React components in `web-ui/src/components/` with panel regis
 | Lax-Milgram | Variational PDE, FEM, coercivity | `LaxMilgramTheorem.jsx` |
 | Arzela-Ascoli | Equicontinuity, overfitting detection | `ArzelaAscoli.jsx` |
 
-### Measure Theory
+### Measure Theory — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | Hahn Decomposition | Jordan decomposition, SNR | `HahnDecomposition.jsx` |
@@ -251,7 +306,7 @@ All implemented as React components in `web-ui/src/components/` with panel regis
 | Prokhorov Metric | Weak convergence, distribution shift | `ProkhorovMetric.jsx` |
 | Stone-Cech | Universal embedding, regime limit points | `StoneCechCompactification.jsx` |
 
-### Physics-Inspired
+### Physics-Inspired — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | Renormalization Group | Multi-scale coarse-graining, scaling exponents | `RenormalizationGroup.jsx` |
@@ -259,19 +314,19 @@ All implemented as React components in `web-ui/src/components/` with panel regis
 | Lie Group Symmetries | Noether's theorem, Lie algebra generators | `LieGroupSymmetries.jsx` |
 | Burgers Equation | Viscous Burgers PDE, Hopf-Cole transform | `BurgersEquation.jsx` |
 
-### Signal Processing
+### Signal Processing — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | Ehlers SuperSmoother | 2-pole super smoother, MAMA/FAMA, Hilbert | `EhlersSuperSmoother.jsx` |
 | Cesaro/Fejer Kernel | Cesaro mean, no Gibbs phenomenon | `CesaroFejerKernel.jsx` |
 
-### Bayesian
+### Bayesian — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | Black-Litterman | Equilibrium returns + investor views → posterior | `BlackLitterman.jsx` |
 | Bayesian Ridge | Regularized linear regression with priors | `BayesianPricePredictor.jsx` |
 
-### Other
+### Other — UI-only
 | Model | Method | Component |
 |-------|--------|-----------|
 | Kelly Criterion | Multi-asset, Monte Carlo, growth curves | `KellyCriterionPortfolio.jsx` |
@@ -286,7 +341,23 @@ All implemented as React components in `web-ui/src/components/` with panel regis
 
 ---
 
-## 8. Funding Rate Model
+## 8. Dead Code — CUDA and ONNX (behind `#ifdef`, never compiled)
+
+### CUDA Kernels — Dead code
+- **Source:** `hft-trade-bot/src/ml/gpu_accelerator.cu`
+- **Condition:** `#ifdef USE_CUDA` (never defined in CMakeLists.txt or CI)
+- **Contents:** Batch RSI, EMA, Monte Carlo VaR, matrix multiplication, neural network inference kernels
+- **Status:** Full implementation exists but is never compiled. CMakeLists.txt does not include CUDA language.
+
+### ONNX Runtime Engine — Dead code
+- **Source:** `hft-trade-bot/src/ml/onnx_engine.h`
+- **Condition:** `#ifdef USE_ONNXRUNTIME` (never defined in CMakeLists.txt or CI)
+- **Contents:** ONNX model loading, inference API for LSTM, Transformer, Isolation Forest in C++
+- **Status:** Full API exists but is never compiled. CMakeLists.txt does not search for ONNXRuntime.
+
+---
+
+## 9. Funding Rate Model — Trading logic
 
 8-hour intervals (00:00/08:00/16:00 UTC), perpetual-spot basis:
 
@@ -300,7 +371,7 @@ payment = position_notional * rate
 
 ---
 
-## 9. Liquidation Engine
+## 10. Liquidation Engine — Trading logic
 
 ```
 liq_price_long = entry * (1 - 1/leverage + maintenance_margin)
@@ -313,7 +384,7 @@ Partial liquidation (50% at partial liq price), cascade liquidations, insurance 
 
 ---
 
-## 10. Latency Simulation
+## 11. Latency Simulation — Trading logic
 
 Per-exchange base latency (Binance 50ms, OKX 80ms, Bybit 120ms) with Gaussian jitter, Poisson spikes, exponential backoff reconnection.
 

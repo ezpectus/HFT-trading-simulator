@@ -16,6 +16,12 @@ All notable changes to this project are documented in this file.
   - Swapped guard clause order: None check first, then length check
   - File: `ai-signal-bot/src/ml/rl_agent.py:101-105`
 
+- **BUG-017** — `MarkowitzOptimizer.calculate_minimum_variance_portfolio` maximized Sharpe instead of minimizing variance
+  - Both `calculate_minimum_variance_portfolio` and `calculate_maximum_sharpe_portfolio` called `optimize_portfolio` with `target_return=None`, triggering the same Sharpe-maximization objective
+  - Added `min_variance` parameter to `optimize_portfolio`; when `True`, minimizes volatility directly
+  - Also fixed Sharpe objective to use `risk_free_rate` (was ignoring it)
+  - File: `ai-signal-bot/src/portfolio/markowitz.py:84-126,243-250`
+
 ### Added
 
 - **README_PROJECT_OVERVIEW.md** — DEEP HONEST project overview (v4.0)
