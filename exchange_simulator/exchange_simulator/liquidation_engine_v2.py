@@ -133,7 +133,12 @@ class LiquidationEngineV2:
         original_qty = pos.qty  # Capture before reduction
         pos.qty -= qty_to_close
         margin_ratio = qty_to_close / original_qty if original_qty > 0 else 0.0
-        pos.margin = max(pos.margin + pnl * margin_ratio, 0)
+        # PnL for the liquidated portion
+        liquidated_pnl = pnl * margin_ratio
+        # Margin released from the liquidated portion
+        released_margin = pos.margin * margin_ratio
+        # Remaining margin = original margin - released margin + PnL from liquidated portion
+        pos.margin = max(pos.margin - released_margin + liquidated_pnl, 0)
 
         # Loss to insurance fund — proportional to liquidated quantity
         loss = abs(min(pnl * margin_ratio, 0))

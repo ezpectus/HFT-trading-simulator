@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 20 |
+| ✅ Fixed | 21 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **59** |
+| **TOTAL FOUND** | **60** |
 
 ---
 
@@ -717,6 +717,16 @@
 - **Root Cause:** `compute_funding_payment` calculates funding as `-position_qty * funding_rate`, but real exchanges compute funding as `position_value * funding_rate` where `position_value = qty * mark_price`. Without mark_price, a 1 BTC position at $50k with 0.01% funding pays $0.0001 instead of $5.00 — 500,000x underestimate.
 - **Status:** ✅ Fixed
 - **Fix:** Added `mark_price` parameter (default 0.0 for backward compatibility). When mark_price > 0, computes `-qty * mark_price * funding_rate`. Falls back to legacy behavior when mark_price is 0.
+
+---
+
+## Bug #086 — LiquidationEngineV2.liquidate() margin update doesn't subtract released margin
+
+- **Location:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py:136`
+- **Severity:** High
+- **Root Cause:** When liquidating a partial position, the code does `pos.margin = max(pos.margin + pnl * margin_ratio, 0)`, which adds PnL from the liquidated portion but doesn't subtract the margin that was allocated to that portion. This means the remaining position's margin is inflated by the released margin amount, leading to incorrect margin accounting and potentially preventing future liquidations that should occur.
+- **Status:** ✅ Fixed
+- **Fix:** Calculate `released_margin = pos.margin * margin_ratio` and subtract it: `pos.margin = max(pos.margin - released_margin + liquidated_pnl, 0)`.
 
 ---
 

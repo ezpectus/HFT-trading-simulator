@@ -9,6 +9,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-083]** `IcebergOrder` dataclass in `exchange_simulator/models.py` missing `replenished` field — caused `TypeError` on every iceberg order submission. Added `replenished: int = 0` field and included in `to_dict()`.
 - **[BUG-084]** `MicrostructureConfig.dt` in `exchange_simulator/exchange_simulator/market_microstructure.py` used 252 (stock market days) instead of 365 (crypto 24/7/365), causing incorrect per-step dt for all microstructure price generation.
 - **[BUG-085]** `FundingRateSimulator.compute_funding_payment` in `exchange_simulator/exchange_simulator/funding_rate.py` missing `mark_price` multiplier — funding payment was underestimated by ~500,000x (qty * rate instead of qty * mark_price * rate). Added `mark_price` parameter with backward-compatible default.
+- **[BUG-086]** `LiquidationEngineV2.liquidate()` in `exchange_simulator/exchange_simulator/liquidation_engine_v2.py` didn't subtract released margin during partial liquidation, inflating remaining margin and preventing legitimate future liquidations.
 
 ### Critical Audit Corrections (v4.2)
 
