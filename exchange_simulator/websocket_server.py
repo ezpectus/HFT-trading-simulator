@@ -1037,21 +1037,7 @@ class ExchangeWebSocketServer:
             else:
                 data = json.dumps(message, separators=(',', ':'))
 
-            # Send to all clients — concurrent via asyncio.gather (Phase 1.5: filter by subscriptions)
-            disconnected = set()
-            async def _send_filtered(client, payload, _disc=disconnected):
-                try:
-                    # Check rate limit before sending (Phase 1.5)
-                    if not self._check_rate_limit(client):
-                        return
-                    await client.send(payload)
-                except websockets.ConnectionClosed:
-                    _disc.add(client)
-            
-            await asyncio.gather(*[
-                _send_filtered(c, data) for c in self.clients
-            ], return_exceptions=True)
-            self.clients -= disconnected
+            # Send to all clients — concurrent via asyncio.gather
             disconnected = set()
             async def _send_to_client(client, payload, extra=None, _disc=disconnected):
                 try:
