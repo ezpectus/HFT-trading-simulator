@@ -77,7 +77,8 @@ class TransformerModel:
         """
         # Simplified attention: scaled dot-product
         scores = np.dot(query, key.T) / np.sqrt(query.shape[-1])
-        attention_weights = np.exp(scores) / np.sum(np.exp(scores), axis=-1, keepdims=True)
+        scores_max = np.max(scores, axis=-1, keepdims=True)
+        attention_weights = np.exp(scores - scores_max) / np.sum(np.exp(scores - scores_max), axis=-1, keepdims=True)
         output = np.dot(attention_weights, value)
         
         return output
@@ -170,7 +171,8 @@ class TransformerModel:
         logits = np.dot(hidden, self.output_weights.T) + self.bias[1]
         
         # Convert to probabilities
-        probabilities = np.exp(logits) / np.sum(np.exp(logits))
+        logits_max = np.max(logits)
+        probabilities = np.exp(logits - logits_max) / np.sum(np.exp(logits - logits_max))
         
         # Get signal
         signal_idx = np.argmax(probabilities)

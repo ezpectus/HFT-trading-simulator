@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 34 |
+| ✅ Fixed | 35 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **73** |
+| **TOTAL FOUND** | **74** |
 
 ---
 
@@ -857,6 +857,16 @@
 - **Root Cause:** In `evaluate()`, `predictions` are computed in normalized space (using `X_norm = self._normalize(X)`), and `mse`/`mae` correctly compare against `y_norm`. However, the direction accuracy calculation at line 268 uses raw `y` (not `y_norm`) for `actual_direction`, while `pred_direction` uses normalized `predictions`. This mixes raw and normalized spaces, producing incorrect direction accuracy metrics.
 - **Status:** ✅ Fixed
 - **Fix:** Changed `actual_direction = np.sign(y[1:] - y[:-1])` to `actual_direction = np.sign(y_norm[1:] - y_norm[:-1])` to use the normalized target values consistently.
+
+---
+
+## Bug #100 — TransformerModel softmax doesn't subtract max before exp, causing numerical overflow
+
+- **Location:** `ai-signal-bot/src/ml/transformer_model.py:80, 173`
+- **Severity:** Medium (Numerical Stability)
+- **Root Cause:** Two softmax computations in `TransformerModel` — one in `_multi_head_attention` (line 80) and one in `generate_signal` (line 173) — compute `np.exp(scores)` without first subtracting the maximum value. When score values are large (which can happen with large feature values or during early training), `np.exp` overflows to `inf`, producing `NaN` attention weights or signal probabilities. This is a well-known numerical stability issue in softmax implementations.
+- **Status:** ✅ Fixed
+- **Fix:** Added `scores_max = np.max(scores, axis=-1, keepdims=True)` and changed to `np.exp(scores - scores_max) / np.sum(np.exp(scores - scores_max), ...)` in both locations.
 
 ---
 

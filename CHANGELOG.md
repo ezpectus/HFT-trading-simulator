@@ -23,6 +23,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-097]** `DQNAgent` and `PPOAgent` in `ai-signal-bot/src/ml/rl_agent.py` used `list.pop(0)` for replay memory management — O(n) per operation, significantly slowing RL training. Replaced with `deque(maxlen=...)` for O(1) operations.
 - **[BUG-098]** `DQNAgent.train()` and `PPOAgent.train()` in `ai-signal-bot/src/ml/rl_agent.py` called `env.reset()` without required `prices` parameter — `TypeError` at runtime, making RL training completely non-functional.
 - **[BUG-099]** `LSTMModel.evaluate` in `ai-signal-bot/src/ml/lstm_model.py` mixed raw and normalized data in direction accuracy calculation — `actual_direction` used raw `y` while `pred_direction` used normalized predictions, producing incorrect metrics.
+- **[BUG-100]** `TransformerModel` in `ai-signal-bot/src/ml/transformer_model.py` computed softmax without subtracting max before `np.exp` — numerical overflow producing `NaN` attention weights and signal probabilities when scores are large.
 
 ### Critical Audit Corrections (v4.2)
 
