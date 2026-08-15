@@ -8,7 +8,7 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 75 |
+| ✅ Fixed | 76 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
@@ -1429,7 +1429,8 @@
 - **Severity:** Medium
 - **Root Cause:** In `_handle_message`, when a sequence gap is detected (incoming_seq > expected), the code sends a ResendRequest but then unconditionally sets `self.incoming_seq = incoming_seq + 1`. If the counterparty resends the missing messages, those resent messages will have sequence numbers that are now *behind* `self.incoming_seq`, causing them to be treated as gaps again (triggering more resend requests) or silently skipped. The code should only advance `incoming_seq` for messages that are not gap-fill resent messages, or handle the case where `incoming_seq < self.incoming_seq` by skipping the message without error.
 - **Impact:** Can cause infinite resend loops or missed messages during FIX session recovery after a sequence gap.
-- **Status:** ⏳ Pending Fix
+- **Status:** ✅ Fixed
+- **Fix:** Added early return check at the top of `_handle_message`: if `incoming_seq < self.incoming_seq`, skip the message as a duplicate (resent after ResendRequest). This prevents infinite resend loops when the counterparty fills a gap by resending messages that are now behind the expected sequence number.
 
 ---
 

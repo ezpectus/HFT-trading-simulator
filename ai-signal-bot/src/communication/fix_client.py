@@ -339,6 +339,11 @@ class FixSession:
         """Handle incoming FIX message."""
         incoming_seq = msg.seq_num
 
+        # Skip already-processed messages (resent after ResendRequest)
+        if incoming_seq < self.incoming_seq:
+            logger.debug(f"FIX duplicate seq {incoming_seq} (expected {self.incoming_seq}) — skipping")
+            return
+
         # Check for gap
         if incoming_seq > self.incoming_seq:
             logger.warning(f"FIX sequence gap: expected={self.incoming_seq} got={incoming_seq}")
