@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 85 |
+| ✅ Fixed | 86 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **122** |
+| **TOTAL FOUND** | **123** |
 
 ---
 
@@ -1541,6 +1541,17 @@
 - **Impact:** DQN training crashes after `batch_size` random actions accumulate in replay memory.
 - **Status:** ✅ Fixed
 - **Fix:** Added a None check in `replay()` to call `self._build_network()` if weights are not initialized, ensuring the network exists before any matrix operations.
+
+---
+
+## Bug #165: db.py leaks SQLite connections on exceptions
+- **File:** `ai-signal-bot/src/database/db.py:27-177` (all methods)
+- **Category:** Resource Leak / Bug
+- **Severity:** Medium
+- **Root Cause:** Every method in `Database` creates a new SQLite connection via `self._conn()` but doesn't use try/finally. If an exception occurs (database locked, disk full, malformed SQL), the connection is never closed, causing connection leaks.
+- **Impact:** Under error conditions, SQLite connections accumulate, eventually causing "database is locked" errors or hitting connection limits.
+- **Status:** ✅ Fixed
+- **Fix:** Wrapped all `self._conn()` calls in `contextlib.closing()` to ensure connections are automatically closed even when exceptions occur.
 
 ---
 
