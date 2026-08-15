@@ -2,7 +2,7 @@
 
 Detailed breakdown of all quantitative models in the HFT Trading System with formulas and source file references.
 
-**Honest categorization (v4.1 audit):** Models are classified as:
+**Honest categorization (v4.3 audit):** Models are classified as:
 - **Trading logic** — implemented in Python or C++ and integrated into the trading pipeline
 - **UI-only** — implemented as React visualization components, NOT integrated into trading logic
 - **Missing** — claimed in documentation but not found in any code
