@@ -64,6 +64,7 @@ class MarketMakingStrategy:
         self.total_pnl: float = 0.0
         self._prev_price: float = 0.0
         self._last_sigma: float = self.config.sigma
+        self._avg_entry_price: float = 0.0
 
     def update_inventory(self, delta: float) -> None:
         """Update inventory after a fill."""
@@ -170,17 +171,18 @@ class MarketMakingStrategy:
         )
 
     def on_fill(self, side: str, qty: float, price: float) -> None:
-        """Record a fill."""
+        """Record a fill and update realized PnL using average cost basis."""
         if side == "BUY":
+            total_cost = self._avg_entry_price * self.inventory + price * qty
             self.inventory += qty
+            if self.inventory != 0:
+                self._avg_entry_price = total_cost / self.inventory
         else:
+            self.total_pnl += qty * (price - self._avg_entry_price)
             self.inventory -= qty
+            if abs(self.inventory) < 1e-12:
+                self._avg_entry_price = 0.0
         self.fill_count += 1
-
-        if side == "SELL":
-            self.total_pnl += qty * (price - self._prev_price)
-        else:
-            self.total_pnl -= qty * (price - self._prev_price)
 
     def analyze(self, symbol: str, candles: list[dict]) -> Signal:
         """Convert market making state to a signal (for monitoring)."""

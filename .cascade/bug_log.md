@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 70 |
+| ✅ Fixed | 74 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **109** |
+| **TOTAL FOUND** | **113** |
 
 ---
 
@@ -1398,6 +1398,37 @@
 - **Impact:** The Transformer model crashes when initialized with an odd `d_model` value. The default `d_model=64` is even, so this only triggers with custom configurations.
 - **Status:** ✅ Fixed
 - **Fix:** Sliced `div_term` to match the number of odd-indexed columns: `div_term[:pe[:, 1::2].shape[1]]`, consistent with the approach used in `price_predictor.py:144`.
+
+---
+
+## Bug #152 — market_making.py on_fill PnL uses _prev_price instead of inventory cost basis
+
+- **Location:** `ai-signal-bot/src/strategies/market_making.py:172-183`
+- **Severity:** Medium
+- **Root Cause:** The `on_fill` method computed PnL using `self._prev_price`, which is the mid price from the last `generate_quotes()` call (set in `_estimate_volatility()`), not the actual price at which inventory was acquired. This produces incorrect PnL because the reference price has no relation to the fill prices. For a market maker, PnL should be computed as the difference between the sell fill price and the average cost basis of inventory being reduced.
+- **Impact:** `total_pnl` reports incorrect values. Any downstream decision or display relying on `total_pnl` (e.g., stats, `analyze()` signal) will show wrong profitability.
+- **Status:** ✅ Fixed
+- **Fix:** Added `_avg_entry_price` field to track weighted average cost of inventory. On BUY, update average cost basis. On SELL, compute realized PnL as `qty * (price - _avg_entry_price)`. Reset average entry price to 0 when inventory reaches zero.
+
+---
+
+## Bug #153 — microstructure_lab.py Hawkes branching ratio uses sqrt(var) instead of var
+
+- **Location:** `ai-signal-bot/src/research/microstructure_lab.py:209`
+- **Severity:** Low
+- **Root Cause:** The Hawkes process branching ratio estimation uses `branching = 1 - mean_inter / np.sqrt(var_inter)`. The correct method-of-moments estimator for a branching ratio η = 1 - μ/λ where μ = 1/mean_inter (base intensity) and λ = var/mean² (total intensity) gives `η = 1 - mean²/var`. The code uses `sqrt(var)` instead of `var`, which is the standard deviation, not the variance. This produces an incorrect branching ratio estimate.
+- **Impact:** Incorrect Hawkes process parameter estimation, leading to wrong conclusions about trade self-excitation and clustering.
+- **Status:** ⏳ Pending Fix
+
+---
+
+## Bug #154 — fix_client.py incoming_seq regression on resent messages
+
+- **Location:** `ai-signal-bot/src/communication/fix_client.py:340-354`
+- **Severity:** Medium
+- **Root Cause:** In `_handle_message`, when a sequence gap is detected (incoming_seq > expected), the code sends a ResendRequest but then unconditionally sets `self.incoming_seq = incoming_seq + 1`. If the counterparty resends the missing messages, those resent messages will have sequence numbers that are now *behind* `self.incoming_seq`, causing them to be treated as gaps again (triggering more resend requests) or silently skipped. The code should only advance `incoming_seq` for messages that are not gap-fill resent messages, or handle the case where `incoming_seq < self.incoming_seq` by skipping the message without error.
+- **Impact:** Can cause infinite resend loops or missed messages during FIX session recovery after a sequence gap.
+- **Status:** ⏳ Pending Fix
 
 ---
 
