@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-15 (v4.3 — Deep Audit v4)
+
+### Documentation Corrections
+
+- **Panel count**: Fixed 204 → 197 across all docs. Verified by counting `{ id: ... }` entries in `web-ui/src/panels/registry.js` — exactly 197 React.lazy imports.
+- **Test file count**: Fixed 138+ → 172+ across all docs. Recounted: 82 Python (`test_*.py`), 46 C++ (`test_*.cpp`), 44 JS (40 unit `.test.js/.jsx` + 4 e2e `.spec.js`).
+- **Model count**: Confirmed 44 trading logic models + 40 UI-only = 84 total. Previous v4.1 had 38; v4.2 added Student-t, Merton, Heston, Markov, Options strategies (Straddle, Strangle, Iron Condor, Butterfly) = +6 → 44.
+- **Version label**: Updated all docs from v4.1 to v4.3.
+- **Readiness**: Confirmed 62% — bug fixes (BUG-076 to BUG-133) don't add features, readiness unchanged.
+- **Files updated**: README.md, docs/ARCHITECTURE.md, docs/MATH_MODELS.md, README_PROJECT_OVERVIEW.md, MASTER_DEVELOPMENT_PLAN.md, docs/future_development.md, CHANGELOG.md, .cascade/notes.md, .cascade/progress.md
+
 ## [Unreleased] — 2026-08-15 (v4.2 — Deep Audit v3)
 
 ### Bug Fixes
