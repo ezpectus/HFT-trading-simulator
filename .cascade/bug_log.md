@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 21 |
+| ✅ Fixed | 23 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **60** |
+| **TOTAL FOUND** | **62** |
 
 ---
 
@@ -727,6 +727,26 @@
 - **Root Cause:** When liquidating a partial position, the code does `pos.margin = max(pos.margin + pnl * margin_ratio, 0)`, which adds PnL from the liquidated portion but doesn't subtract the margin that was allocated to that portion. This means the remaining position's margin is inflated by the released margin amount, leading to incorrect margin accounting and potentially preventing future liquidations that should occur.
 - **Status:** ✅ Fixed
 - **Fix:** Calculate `released_margin = pos.margin * margin_ratio` and subtract it: `pos.margin = max(pos.margin - released_margin + liquidated_pnl, 0)`.
+
+---
+
+## Bug #087 — health.py imports non-existent PlainResponse instead of PlainTextResponse
+
+- **Location:** `exchange_simulator/health.py:6,112,114`
+- **Severity:** Critical
+- **Root Cause:** `from fastapi.responses import JSONResponse, PlainResponse` — `PlainResponse` does not exist in FastAPI/Starlette. The correct class is `PlainTextResponse`. This causes `ImportError` at module load time, preventing the entire health check endpoint from working.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced all `PlainResponse` with `PlainTextResponse`.
+
+---
+
+## Bug #088 — BlackScholes.calculate_gamma/vega/theta lack edge case guards causing ZeroDivisionError/ValueError
+
+- **Location:** `exchange_simulator/options_pricing.py:130,148,176`
+- **Severity:** High
+- **Root Cause:** `calculate_gamma`, `calculate_theta`, and `calculate_vega` all use `math.sqrt(T)` without checking T <= 0. `calculate_gamma` also divides by `S * sigma * math.sqrt(T)`. When T=0 or negative (expired options), these raise `ZeroDivisionError` or `ValueError` (sqrt of negative). The `_d1` method already guards these cases, but these methods don't.
+- **Status:** ✅ Fixed
+- **Fix:** Added `if T <= 0 or sigma <= 0 or S <= 0: return 0.0` guards to all three methods.
 
 ---
 

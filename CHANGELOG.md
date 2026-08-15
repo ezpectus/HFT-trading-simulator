@@ -10,6 +10,8 @@ All notable changes to this project are documented in this file.
 - **[BUG-084]** `MicrostructureConfig.dt` in `exchange_simulator/exchange_simulator/market_microstructure.py` used 252 (stock market days) instead of 365 (crypto 24/7/365), causing incorrect per-step dt for all microstructure price generation.
 - **[BUG-085]** `FundingRateSimulator.compute_funding_payment` in `exchange_simulator/exchange_simulator/funding_rate.py` missing `mark_price` multiplier — funding payment was underestimated by ~500,000x (qty * rate instead of qty * mark_price * rate). Added `mark_price` parameter with backward-compatible default.
 - **[BUG-086]** `LiquidationEngineV2.liquidate()` in `exchange_simulator/exchange_simulator/liquidation_engine_v2.py` didn't subtract released margin during partial liquidation, inflating remaining margin and preventing legitimate future liquidations.
+- **[BUG-087]** `exchange_simulator/health.py` imported non-existent `PlainResponse` instead of `PlainTextResponse` from FastAPI, causing `ImportError` and preventing the health check endpoint from loading.
+- **[BUG-088]** `BlackScholes.calculate_gamma/vega/theta` in `exchange_simulator/options_pricing.py` lacked edge case guards for T <= 0, sigma <= 0, S <= 0, causing `ZeroDivisionError` or `ValueError` on expired/at-expiry options.
 
 ### Critical Audit Corrections (v4.2)
 

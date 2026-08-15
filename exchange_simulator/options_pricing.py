@@ -126,6 +126,8 @@ class BlackScholes:
         Returns:
             Gamma value
         """
+        if T <= 0 or sigma <= 0 or S <= 0:
+            return 0.0
         d1 = self._d1(S, K, T, sigma)
         return self._pdf(d1) / (S * sigma * math.sqrt(T))
     
@@ -143,6 +145,8 @@ class BlackScholes:
         Returns:
             Theta value (per year)
         """
+        if T <= 0 or sigma <= 0 or S <= 0:
+            return 0.0
         d1 = self._d1(S, K, T, sigma)
         d2 = self._d2(d1, T, sigma)
         
@@ -172,6 +176,8 @@ class BlackScholes:
         Returns:
             Vega value (per 1% change in volatility)
         """
+        if T <= 0 or sigma <= 0 or S <= 0:
+            return 0.0
         d1 = self._d1(S, K, T, sigma)
         return S * self._pdf(d1) * math.sqrt(T) / 100
     

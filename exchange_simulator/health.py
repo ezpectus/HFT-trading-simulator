@@ -3,7 +3,7 @@
 Provides HTTP health check endpoint for monitoring and orchestration.
 """
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse, PlainResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 import os
 import sys
 import time
@@ -109,9 +109,9 @@ async def metrics():
         lines.append(f'hft_symbols_count {len(market.symbols)}')
         lines.append(f'hft_exchanges_count {len(exchanges)}')
         
-        return PlainResponse(content="\n".join(lines), media_type="text/plain; version=0.0.4; charset=utf-8")
+        return PlainTextResponse(content="\n".join(lines), media_type="text/plain; version=0.0.4; charset=utf-8")
     except Exception as e:
-        return PlainResponse(content=f"# Error: {str(e)}", media_type="text/plain; version=0.0.4; charset=utf-8", status_code=503)
+        return PlainTextResponse(content=f"# Error: {str(e)}", media_type="text/plain; version=0.0.4; charset=utf-8", status_code=503)
 
 
 if __name__ == "__main__":
