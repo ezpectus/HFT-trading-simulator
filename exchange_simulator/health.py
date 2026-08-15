@@ -4,47 +4,83 @@ Provides HTTP health check endpoint for monitoring and orchestration.
 """
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-import time
+import os
 import sys
+import time
 from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
+_proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _proj_root not in sys.path:
+    sys.path.insert(0, _proj_root)
+_this_dir = os.path.dirname(os.path.abspath(__file__))
+if _this_dir not in sys.path:
+    sys.path.insert(0, _this_dir)
 
-from exchange_simulator import SimulatedExchange
+import yaml
+from exchange_simulator.exchange import SimulatedExchange
+from exchange_simulator.market_simulator import MarketSimulator
+from exchange_simulator.models import OrderStatus
 
 app = FastAPI(title="HFT Exchange Simulator Health")
 
-# Global exchange instance
-_exchange = None
+_exchanges = None
+_market = None
+_start_time = None
 
 
-def get_exchange():
-    """Get or create exchange instance."""
-    global _exchange
-    if _exchange is None:
-        config_path = Path(__file__).parent / "config.yaml"
-        _exchange = SimulatedExchange(
-            exchange_id="binance",
-            config_path=config_path,
+def _load_config() -> dict:
+    config_path = Path(__file__).parent / "config.yaml"
+    with open(config_path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def _init():
+    global _exchanges, _market, _start_time
+    if _exchanges is None:
+        config = _load_config()
+        symbols = list(config["initial_prices"].keys())
+        exchange_ids = list(config["exchanges"].keys())
+        _market = MarketSimulator(
+            symbols=symbols,
+            exchanges=exchange_ids,
+            initial_prices=config["initial_prices"],
+            volatility=config["volatility"],
+            timeframe_seconds=config["market"]["timeframe_seconds"],
+            drift=config["market"]["drift"],
+            seed=config["market"].get("seed"),
+            warmup_candles=config["market"]["warmup_candles"],
+            order_book_depth=config["market"]["order_book_depth"],
         )
-    return _exchange
+        _exchanges = {}
+        for ex_id, ex_cfg in config["exchanges"].items():
+            _exchanges[ex_id] = SimulatedExchange(
+                exchange_id=ex_id,
+                name=ex_cfg["name"],
+                fee_pct=ex_cfg["fee_pct"],
+                slippage_bps=ex_cfg["slippage_bps"],
+                market=_market,
+                initial_balance=config["account"]["initial_balance"],
+                leverage=config["account"]["leverage"],
+            )
+        _start_time = time.time()
+    return _exchanges, _market, _start_time
 
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
     try:
-        exchange = get_exchange()
+        exchanges, market, start_time = _init()
+        first_ex = next(iter(exchanges.values()))
         
         return JSONResponse({
             "status": "healthy",
-            "version": "3.0.0",
-            "uptime": time.time() - exchange._start_time if hasattr(exchange, '_start_time') else 0,
-            "connections": len(exchange._websocket_server._clients) if exchange._websocket_server else 0,
-            "symbols": len(exchange._config["exchanges"]["binance"]["symbols"]),
-            "orders_submitted": exchange._order_history_count if hasattr(exchange, '_order_history_count') else 0,
-            "audit_logging_enabled": exchange._audit_logger is not None if hasattr(exchange, '_audit_logger') else False,
+            "version": "2.2.0",
+            "uptime": time.time() - start_time,
+            "symbols": len(market.symbols),
+            "exchanges": len(exchanges),
+            "orders_submitted": len(first_ex._order_history),
+            "audit_logging_enabled": first_ex._audit_logger is not None,
         })
     except Exception as e:
         return JSONResponse({
@@ -57,27 +93,23 @@ async def health_check():
 async def metrics():
     """Prometheus metrics endpoint."""
     try:
-        exchange = get_exchange()
+        exchanges, market, _ = _init()
         
-        metrics = []
+        lines = []
+        for ex_id, ex in exchanges.items():
+            history = ex._order_history
+            filled = sum(1 for o in history if o.status == OrderStatus.FILLED)
+            rejected = sum(1 for o in history if o.status == OrderStatus.REJECTED)
+            lines.append(f'hft_orders_submitted_total{{exchange="{ex_id}"}} {len(history)}')
+            lines.append(f'hft_orders_filled_total{{exchange="{ex_id}"}} {filled}')
+            lines.append(f'hft_orders_rejected_total{{exchange="{ex_id}"}} {rejected}')
+            if ex._audit_logger:
+                lines.append(f'hft_audit_log_entries_total{{exchange="{ex_id}"}} {len(ex._audit_logger._logs)}')
         
-        # Order metrics
-        metrics.append(f'hft_orders_submitted_total {len(exchange._order_history)}')
-        metrics.append(f'hft_orders_filled_total {sum(1 for o in exchange._order_history if o.status.value == "FILLED")}')
-        metrics.append(f'hft_orders_rejected_total {sum(1 for o in exchange._order_history if o.status.value == "REJECTED")}')
+        lines.append(f'hft_symbols_count {len(market.symbols)}')
+        lines.append(f'hft_exchanges_count {len(exchanges)}')
         
-        # WebSocket metrics
-        if exchange._websocket_server:
-            metrics.append(f'hft_websocket_connections {len(exchange._websocket_server._clients)}')
-        
-        # Symbol count
-        metrics.append(f'hft_symbols_count {len(exchange._config["exchanges"]["binance"]["symbols"])}')
-        
-        # Audit log metrics
-        if exchange._audit_logger:
-            metrics.append(f'hft_audit_log_entries_total {len(exchange._audit_logger._logs)}')
-        
-        return "\n".join(metrics)
+        return "\n".join(lines)
     except Exception as e:
         return f"# Error: {str(e)}"
 

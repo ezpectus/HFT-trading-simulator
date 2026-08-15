@@ -3,19 +3,20 @@
 ![CI](https://img.shields.io/github/actions/workflow/status/ezpectus/HFT-TradeBot--Lite-version/ci.yml?branch=main&label=CI)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-61dafb.svg)
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
-![Tests](https://img.shields.io/badge/tests-484%2B%20passing-6e9f18.svg)
+![Tests](https://img.shields.io/badge/tests-138%2B%20files-6e9f18.svg)
 ![Roadmap](https://img.shields.io/badge/roadmap-9%2F9%20days%20done-00C853.svg)
 ![Price Feed](https://img.shields.io/badge/price%20feed-Optimized-00C853.svg)
-![Strategies](https://img.shields.io/badge/strategies-34%2B-FF6B35.svg)
+![Strategies](https://img.shields.io/badge/strategies-19-FF6B35.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 ![Live Demo](https://img.shields.io/badge/demo-coming%20soon-orange.svg)
-![Panels](https://img.shields.io/badge/panels-197-61dafb.svg)
-![Math Models](https://img.shields.io/badge/math%20models-75+-a855f7.svg)
+![Panels](https://img.shields.io/badge/panels-204-61dafb.svg)
+![Math Models](https://img.shields.io/badge/math%20models-38%20trading%20%2B%2040%20UI--only-a855f7.svg)
 ![Languages](https://img.shields.io/badge/languages-C%2B%2B20%20%7C%20Python%20%7C%20React-00599C.svg)
 ![Security](https://img.shields.io/badge/security-Bandit%20%2B%20CodeQL-red.svg)
-![Optimizations](https://img.shields.io/badge/optimizations-34%20in%2010%20rounds-00C853.svg)
+![Readiness](https://img.shields.io/badge/readiness-62%25-yellow.svg)
+![Dead Code](https://img.shields.io/badge/dead%20code-CUDA%20%2B%20ONNX%20(%23ifdef)-red.svg)
 
-> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 75+ quant models, 197 dashboard panels, ONNX ML inference, Rust executor, CUDA acceleration, shared-memory IPC, and optimized price feed with connection pooling, batching, and LRU cache. Zero real money, zero risk, 100% educational.**
+> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 38 quant models in trading logic (+40 UI-only), 204 dashboard panels, Rust executor, shared-memory IPC, SVI/SABR volatility surface, and optimized price feed with connection pooling, batching, and LRU cache. CUDA and ONNX code exists but is dead code behind `#ifdef` (never compiled in CI). Zero real money, zero risk, 100% educational.**
 
 **Live Demo:** _coming soon_ | **Documentation:** [docs/](docs/) | **Setup:** [docs/SETUP.md](docs/SETUP.md) | **Math Models:** [docs/MATH_MODELS.md](docs/MATH_MODELS.md) | **Performance:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
 
@@ -86,13 +87,15 @@ This project is designed as a **hands-on HFT learning platform**. Each component
   │   (Python)      │   │   (Python)      │   │   (C++20)       │
   │                 │   │                 │   │                 │
   │  • 3 Exchanges  │   │  • 8-Stage      │   │  • Signal V2/V3 │
-  │  • 50+ Symbols   │   │    Pipeline     │   │  • HMM Regime   │
-  │  • GBM + Jumps  │   │  • 34+ Models   │   │  • Smart Router │
-  │  • Order Book   │   │  • ONNX Inference│   │  • Pressure Mod │
+  │  • 50+ Symbols  │   │    Pipeline     │   │  • HMM Regime   │
+  │  • GBM + Jumps  │   │  • 19 Strategies│   │  • Smart Router │
+  │  • Order Book   │   │  • 38 Quant Mod │   │  • Pressure Mod │
   │  • Funding      │   │  • LSTM/Transf. │   │  • Adaptive Ord │
   │  • Liquidation  │   │  • RL (PPO/DQN) │   │  • FIX 4.4      │
   │  • Options      │   │  • Backtesting  │   │  • SHM IPC      │
   │  • Arbitrage    │   │  • LLM Explain  │   │  • Rust Executr │
+  │  • SVI/SABR     │   │  • SVI/SABR     │   │  • CUDA (dead)  │
+  │                 │   │                 │   │  • ONNX (dead)  │
   └────────┬────────┘   └────────┬────────┘   └────────┬────────┘
            │                     │                     │
            │   WS :8765          │  WS :8766           │
@@ -108,7 +111,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
   ┌─────────────────────────────────────────────────────────────┐
   │                      WEB UI (React 18)                       │
   │                                                              │
-  │  • 197 Panels    • PWA    • WCAG AA    • Mock Data Mode     │
+  │  • 204 Panels   • PWA    • WCAG AA    • Mock Data Mode     │
   │  • Backtest Comparison    • Reconnect Banner    • Greeks     │
   └─────────────────────────────────────────────────────────────┘
 ```
@@ -123,9 +126,9 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 
 - **Signal Engine V2** — 6-indicator weighted composite: InlineEMA (21/50), InlineRSI (14), InlineADX (14), InlineVWAP, Order Book Imbalance, Trade Flow
 - **Signal Engine V3** — HMM regime detection (4-state: TRENDING_UP/DOWN, RANGING, VOLATILE) with online Baum-Welch adaptation, Viterbi decoding, and regime-gated signal boosting/dampening. Sub-millisecond regime switching entirely in C++.
-- **ONNX Runtime** — ML model inference directly in C++ (LSTM, Transformer, Isolation Forest) without Python round-trip
-- **Rust Order Executor** — Memory-safe alternative executor with crossbeam SPSC queue, FFI interface for C++ interop
-- **GPU Acceleration** — CUDA kernels for batch RSI, Monte Carlo VaR, matrix multiplication
+- **ONNX Runtime** — ML model inference directly in C++ (LSTM, Transformer, Isolation Forest) without Python round-trip. **Note:** Code exists behind `#ifdef USE_ONNXRUNTIME` but is never compiled in CI — classified as dead code.
+- **Rust Order Executor** — Memory-safe alternative executor with crossbeam SPSC queue, FFI interface for C++ interop. WebSocket send is a stub (logs JSON, no real WS connection).
+- **GPU Acceleration** — CUDA kernels for batch RSI, Monte Carlo VaR, matrix multiplication. **Note:** Code exists behind `#ifdef USE_CUDA` but is never compiled in CI — classified as dead code.
 - **Memory-Mapped Persistence** — Zero-copy state recovery via mmap for crash resilience
 - **Smart Order Router V2** — 5 strategies: BestPrice, LowestLatency, LowestFees, BestEffective, DepthAware; per-exchange EMA latency tracking; anti-toxic backoff
 - **Pressure Model** — Multi-level OBI (5/10/20 + distance-weighted), toxicity detection, microprice deviation, queue position estimation, spread regime classification, price impact prediction
@@ -140,33 +143,28 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Object pool** — Pre-allocated, no heap allocations in hot path
 - **V1 fallback** — Original signal engine preserved as configurable fallback
 
-### Mathematical Models (75+)
+### Mathematical Models (38 in Trading Logic + 40 UI-Only)
 
-| Category | Models |
-|----------|--------|
-| **Volatility** | GARCH(1,1), EWMA, Parkinson, Markov-Switching GARCH, Rough Volatility (rBergomi) |
-| **Regime Detection** | HMM (Baum-Welch, Viterbi), Markov Chain, K-Means Clustering, Gaussian Mixture, Hopf Bifurcation |
-| **Filtering** | Kalman Filter (1D/2D), Bayesian Price Predictor, Bayesian Structural Time Series |
-| **Spectral** | Welch PSD, STFT, CWT, Wavelet (Haar/Daubechies), Wavelet Packet, VMD, EMD/HHT |
-| **Optimal Execution** | Almgren-Chriss, Pontryagin, Stochastic Optimal Control (HJB) |
-| **Risk** | VaR, CVaR, Cramer-Rao Bound, Isolation Forest, Autoencoder, VAE |
-| **Causality** | Transfer Entropy, CCM (EDM), Granger via Girsanov |
-| **Machine Learning** | LSTM, SVM, PCA, RKHS, Compressed Sensing, DTW |
-| **Information Theory** | Renyi Entropy, Kolmogorov-Sinai, Information Bottleneck, Blahut-Arimoto |
-| **Topology** | Persistent Homology, Persistent Homology Landscape, TDA |
-| **Optimal Transport** | Wasserstein W1/W2, Sinkhorn, Schrodinger Bridge, Barycenters |
-| **Stochastic Calculus** | Ito Generator, Malliavin Calculus, Fokker-Planck, SDE (Euler/Milstein) |
-| **Network** | Graph Theory MST, Centrality, Tensor Decomposition |
-| **Functional Analysis** | Sobolev Regularization, Lax-Milgram, Riesz Representation, Banach Fixed-Point |
-| **Measure Theory** | Hahn Decomposition, Cameron-Martin, Radon-Nikodym, Prokhorov Metric |
-| **Physics-inspired** | Renormalization Group, Free Energy Principle, Lie Group Symmetries, Burgers Equation |
-| **Signal Processing** | Ehlers SuperSmoother, MAMA/FAMA, Cesaro/Fejer, Hilbert Transform |
-| **Bayesian** | HMC, BOCPD, Black-Litterman, Bayesian Ridge |
-| **Other** | Kelly Criterion, Copula (Clayton/Gumbel/Gaussian/Student-t), Optimal Stopping (Snell), Affine Arithmetic, Stone-Cech, Arzela-Ascoli |
+**Honest categorization:** 38 models are implemented in actual trading logic (Python + C++). An additional 40 models exist only as React UI visualization components — they are educational visualizations, not integrated into the trading pipeline. See [docs/MATH_MODELS.md](docs/MATH_MODELS.md) for the full categorization.
 
-### Web UI (197 panels)
+| Category | Models (Trading Logic) |
+|----------|----------------------|
+| **Volatility** | SVI, SABR (volatility_surface.py) |
+| **Regime Detection** | HMM (Baum-Welch, Viterbi) in C++ V3, HMMRegimeDetector in Python |
+| **Filtering** | Kalman Filter (C++ stat arb + mean rev) |
+| **Risk** | VaR, CVaR, Kelly Criterion, Isolation Forest (anomaly filter) |
+| **Technical** | EMA, RSI, MACD, Bollinger, ATR, VWAP, ADX, FFT, OBI, Pressure |
+| **Portfolio** | Markowitz, Black-Litterman, Risk Parity, Rebalancing |
+| **Options** | Black-Scholes, Binomial Tree, Greeks |
+| **Strategies** | Trend Following, Mean Reversion, FFT Cycle, Stat Arb, Market Making (Avellaneda-Stoikov), Sentiment, ML Ensemble |
+| **ML** | LSTM, Transformer, RL (PPO/DQN), AutoML, Price Predictor |
+| **Research** | Brinson-Fachler Attribution, Genetic Strategy, Greeks Hedging, Microstructure Lab |
 
-- **React.lazy code splitting** — all 197 panels lazy-loaded with Suspense fallbacks
+**UI-Only models (40):** GARCH(1,1), Markov-Switching GARCH, Rough Volatility, Bayesian Price Predictor, Bayesian Structural Time Series, HMC, Copula, Wavelet, Wavelet Packet, VMD, EMD/HHT, Monte Carlo, Almgren-Chriss, Pontryagin, Stochastic Optimal Control, Transfer Entropy, CCM, Girsanov, Renyi Entropy, Kolmogorov-Sinai, Information Bottleneck, Persistent Homology, Wasserstein, Sinkhorn, Schrodinger Bridge, Ito Generator, Malliavin Calculus, Fokker-Planck, SDE, Graph Theory, Tensor Decomposition, Sobolev, Lax-Milgram, Riesz, Banach, Hahn, Cameron-Martin, Radon-Nikodym, Prokhorov, Renormalization Group, and more. See [docs/MATH_MODELS.md](docs/MATH_MODELS.md) for the complete list.
+
+### Web UI (204 panels)
+
+- **React.lazy code splitting** — all 204 panels lazy-loaded with Suspense fallbacks
 - **ChunkRetryBoundary** — automatic retry on chunk load failure (3 retries with backoff)
 - **Preload-on-hover** — hovering a category preloads all panels in that category
 - **VirtualList** — windowed list rendering for large datasets
@@ -199,10 +197,11 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 ### Exchange Simulator
 
 - **GBM price generation** with per-symbol volatility and configurable random seed
-- **Fat-tail returns** — Student-t distribution for realistic tail risk
-- **Jump diffusion** — Merton model for sudden price jumps
-- **Stochastic volatility** — Heston-like volatility process
-- **Regime switching** — Markov-switching market regimes
+- **Correlated multi-symbol** — shared random component with per-symbol correlation matrix
+- **News event simulation** — random volatility spikes (3x-8x) with directional bias, volume surge, 5-15 candle duration
+- **Market impact model** — large orders move price: `impact = mid_price * coeff * (qty / typical_volume)`
+- **Slippage simulation** — per-exchange slippage in basis points applied to all orders
+- **Partial fill simulation** — large orders split across price levels with weighted average fill price
 - **50+ cryptocurrency symbols** — BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI
 - **3 simulated exchanges** (Binance, Bybit, OKX) with different fee structures and slippage
 - **Real-time price feed integration** — Multi-API connection (Binance, Coinbase) with automatic failover, rate limiting, caching layer, and data normalization
@@ -214,8 +213,8 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Advanced order types** — Stop-Limit, Trailing Stop, OCO (One-Cancels-the-Other), Iceberg orders with full lifecycle management
 - **Comprehensive audit logging** — Thread-safe audit trail for all system events with filtering, search, and export (JSON/CSV)
 - **News event simulation** — sudden volatility spikes with directional bias
-- **Market impact model** — large orders move price
-- **Partial fill simulation** — large orders split across order book levels
+- **Market impact model** — large orders move price (see above)
+- **Partial fill simulation** — large orders split across order book levels (see above)
 - **Multi-exchange arbitrage detection** — auto-execute when spread > threshold
 - **Config hot-reload** — change volatility/fees without restart
 - **Data export** — CSV and Parquet formats
@@ -229,15 +228,15 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Ensemble Voter** (majority or confidence-weighted, 3+ strategies)
 - **Statistical Arbitrage** (cointegration, Kalman hedge ratio, z-score)
 - **Market Making** (Avellaneda-Stoikov, inventory skew)
-- **ML Ensemble** (LightGBM, Isolation Forest, HMM regime)
+- **ML Ensemble** (Isolation Forest, HMM regime, GradientBoosting fallback; LightGBM/XGBoost optional)
 - **Sentiment** (news events, pre/post-positioning)
 - **Kelly Criterion position sizing** — optimal bet size from win rate and payoff ratio
 - **Backtesting engine** — historical replay with fee/slippage modeling, drawdown analysis, recovery factor, Calmar ratio, multi-strategy comparison
 - **Strategy parameter optimization** — grid search with walk-forward validation
 - **Risk manager** — trailing stop loss, breakeven moves, partial take profit, max hold time
-- **LSTM/Transformer price prediction** — PyTorch models for short-term price forecasting
-- **Reinforcement Learning trader** — PPO/DQN agents trained on simulator
-- **AutoML pipeline** — Optuna hyperparameter optimization
+- **LSTM/Transformer price prediction** — PyTorch models for short-term price forecasting (code exists, models not trained — no weights found)
+- **Reinforcement Learning trader** — PPO/DQN agents on simulator (code exists, models not trained)
+- **AutoML pipeline** — Optuna hyperparameter optimization (code exists, not run)
 - **Model registry** — versioning, A/B testing, rollback
 - **Feature store** — Redis-backed reusable features across strategies
 - **VaR/CVaR stress testing** — Monte Carlo VaR, historical scenario replay (2008, COVID, FTX)
@@ -268,7 +267,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Property-based Testing** — C++ random market data generation + invariant checking (SL/TP always closes, PnL consistency)
 - **Docker Hub Images** — `docker-compose.hub.yml` uses pre-built images (no compilation needed). All Dockerfiles include `HEALTHCHECK` and `.dockerignore`.
 - **Cross-platform** — C++ engine compiles on MSVC (Windows), GCC (Linux), and Clang (macOS). Shared memory IPC auto-detects Windows (`CreateFileMappingW`) vs POSIX (`shm_open`). Python SHM uses `mmap` with `tagname` on Windows.
-- **Vitest** — 38 test files covering indicators, format utils, GARCH, Kalman, HMM, cointegration, K-Means, registry, VirtualList, component rendering, error boundaries, hooks
+- **38 test files** covering indicators, format utils, GARCH, Kalman, HMM, cointegration, K-Means, registry, VirtualList, component rendering, error boundaries, hooks
 - **Prometheus** — metrics endpoint on exchange simulator
 - **PostgreSQL** — optional database backend
 - **WebSocket compression** — per-message deflate
@@ -310,10 +309,10 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | SHM IPC latency | ~1-5 us | Zero-copy C++ ↔ Python, packed structs |
 | Web UI bundle size (dist) | < 5 MB | Code-split, lazy-loaded panels |
 | Web UI initial render | < 1s | Vite + React 18 |
-| Test coverage | 38 JS files, 47 C++ files, 49 Python files | Unit + integration + E2E (484+ tests passing) |
-| Panel count | 197 registered panels | Detachable, responsive |
-| Math models | 75+ advanced quantitative models | Black-Scholes to Heston |
-| Component files | 223 React components | |
+| Test coverage | 40 JS files, 44 C++ files, 54 Python files | Unit + integration + E2E (138+ test files) |
+| Panel count | 204 registered panels | Detachable, responsive |
+| Math models | 38 in trading logic + 40 UI-only | Black-Scholes to SVI/SABR |
+| Component files | 227 React components | |
 | Optimization walkthroughs | 23 examples | Before/after code + impact analysis |
 | Cryptocurrency symbols | 50+ trading pairs | BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI |
 | Advanced order types | 4 order types | Stop-Limit, Trailing Stop, OCO, Iceberg |
@@ -439,9 +438,9 @@ VITE_MOCK_MODE=true npm run dev
 |-----------|----------|---------------|
 | Exchange Simulator | Python 3.12 | asyncio, websockets, pyyaml, numpy, orjson, msgpack |
 | AI Signal Bot | Python 3.12 | asyncio, websockets, sqlite3, numpy, torch, scipy, optuna, orjson |
-| HFT Trade Bot | C++20 | Boost, websocketpp, spdlog, fmt, nlohmann/json, yaml-cpp, ONNX Runtime |
+| HFT Trade Bot | C++20 | Boost, websocketpp, spdlog, fmt, nlohmann/json, yaml-cpp (ONNX Runtime: dead code, not compiled) |
 | Rust Executor | Rust 1.75 | crossbeam, tokio, serde, cxx |
-| GPU Acceleration | CUDA 12 | cuBLAS, custom kernels |
+| GPU Acceleration | CUDA 12 | cuBLAS, custom kernels (dead code behind `#ifdef`, never compiled in CI) |
 | Web UI | JavaScript (ES2021) | React 18, Vite 8, TailwindCSS 3, lightweight-charts 4, lucide-react |
 | Communication | - | WebSocket (JSON/MessagePack), per-message deflate, SHM IPC |
 | Database | - | SQLite (WAL mode), PostgreSQL (optional), Redis (feature store) |
@@ -463,13 +462,17 @@ hft-trading-system/
 │   ├── tests/                        # pytest tests (49 files, 484+ tests)
 │   ├── config.yaml
 │   └── Dockerfile
-├── ai-signal-bot/                   # Python: AI signal generation (34 modules)
+├── ai-signal-bot/                   # Python: AI signal generation (60+ modules)
 │   ├── src/                          # Source modules
-│   │   ├── strategies/              # Trend, MeanRev, FFT, Ensemble, StatArb, MM, ML
-│   │   ├── technical_analysis/      # RSI, EMA, MACD, BB, ATR, ADX, VWAP
+│   │   ├── strategies/              # Trend, MeanRev, FFT, Ensemble, StatArb, MM, ML, Arb, Sentiment
+│   │   ├── technical_analysis/      # RSI, EMA, MACD, BB, ATR, ADX, VWAP, FFT
 │   │   ├── communication/           # WebSocket, SHM, FIX
-│   │   ├── backtesting/             # Backtester, plotter, optimizer
-│   │   ├── risk/                    # Risk manager, Kelly sizing
+│   │   ├── backtesting/             # Backtester, plotter, optimizer, walk-forward
+│   │   ├── risk/                    # Risk manager, Kelly sizing, VaR, CVaR, stress test
+│   │   ├── portfolio/               # Markowitz, Black-Litterman, risk parity, rebalancing
+│   │   ├── ml/                      # LSTM, Transformer, RL, AutoML, feature store, model registry
+│   │   ├── research/                # Attribution, competition, genetic, Greeks, microstructure
+│   │   ├── pricing/                 # SVI/SABR volatility surface
 │   │   ├── signal_validation/       # Signal validator
 │   │   ├── database/                # SQLite storage
 │   │   └── monitoring/              # Performance tracking
@@ -477,27 +480,32 @@ hft-trading-system/
 │   ├── run.py                       # Main entry point
 │   └── Dockerfile
 ├── hft-executor/                    # Rust: memory-safe order executor (FFI + SPSC)
-├── hft-trade-bot/                   # C++20: HFT execution engine (40+ headers)
+├── hft-trade-bot/                   # C++20: HFT execution engine (50+ headers)
 │   ├── src/
 │   │   ├── core/                    # Main loop, config, logger
 │   │   ├── data/                    # Aligned types, signals
-│   │   ├── strategies/              # Signal Engine V2/V3, Pressure Model, StatArb
-│   │   ├── execution/               # Smart Order Router V2, Adaptive Selector
-│   │   ├── communication/           # WebSocket, SHM IPC
-│   │   ├── risk/                    # Risk manager, kill switch, portfolio risk
-│   │   ├── position/                # Position manager V2
-│   │   ├── ml/                      # ONNX inference engine
+│   │   ├── strategies/              # Signal Engine V2/V3, Pressure Model, StatArb, MeanRev, Momentum
+│   │   ├── execution/               # Smart Order Router V2, Adaptive Selector, Latency Tracker
+│   │   ├── communication/           # WebSocket, SHM IPC, signal receiver
+│   │   ├── risk/                    # Risk manager, kill switch, portfolio risk, pre-trade risk
+│   │   ├── position/                # Position manager V1/V2
+│   │   ├── ml/                      # CUDA (dead code) + ONNX (dead code)
 │   │   ├── fix/                     # FIX 4.4 protocol
 │   │   ├── exchange/               # Binance, OKX, Bybit adapters
+│   │   ├── ipc/                     # SHM ring buffer, heartbeat, market data, fills
+│   │   ├── metrics/                 # Prometheus metrics collector
+│   │   ├── tracing/                 # OpenTelemetry tracer
+│   │   ├── monitoring/              # Health server, system monitor
+│   │   ├── persistence/             # Memory-mapped persistence
 │   │   └── utils/                   # Low-latency primitives (SPSC, spinlock, pool)
-│   ├── tests/                       # C++ unit tests (47 files)
+│   ├── tests/                       # C++ unit tests (44 files)
 │   ├── config/config.yaml
 │   ├── CMakeLists.txt
 │   └── Dockerfile
-├── web-ui/                          # React 18: browser dashboard (210+ files)
+├── web-ui/                          # React 18: browser dashboard (227 components)
 │   ├── src/
-│   │   ├── components/              # 223 UI components (React.lazy)
-│   │   ├── test/                    # Vitest test suite (38 files)
+│   │   ├── components/              # 227 UI components (React.lazy)
+│   │   ├── test/                    # Vitest test suite (40 files)
 │   │   ├── panels/                  # Panel registry + container
 │   │   ├── hooks/                   # WebSocket, exchange, signals, theme, performance
 │   │   └── utils/                   # Indicators, performance, format, mock data
@@ -649,7 +657,7 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 | [Web UI](docs/WEB_UI.md) | 197 panels, performance, testing, accessibility, PWA |
 | [Exchange Simulator](docs/EXCHANGE_SIMULATOR.md) | Price generation, order book, liquidation engine |
 | [Setup Guide](docs/SETUP.md) | Installation, mock mode, troubleshooting |
-| [Mathematical Models](docs/MATH_MODELS.md) | Detailed breakdown of all 75+ quant models with formulas and file references |
+| [Mathematical Models](docs/MATH_MODELS.md) | 38 models in trading logic + 40 UI-only, with formulas and file references |
 | [Educational Content](docs/EDUCATIONAL_CONTENT.md) | HFT introduction, microstructure, order types, indicators, risk management |
 | [Roadmap](docs/ROADMAP.md) | Project roadmap — all 9 phases completed |
 | [Comprehensive Development Plan](COMPREHENSIVE_DEVELOPMENT_PLAN.md) | Full 9-phase development roadmap with detailed implementation plans |
