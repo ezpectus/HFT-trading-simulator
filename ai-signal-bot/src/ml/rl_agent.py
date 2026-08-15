@@ -357,25 +357,39 @@ class PPOAgent:
         return history
     
     def _update_policy(self):
-        """Update policy using PPO (simplified)."""
-        # Simplified PPO update
-        # In production, use proper PPO with clipping
+        """Update policy using PPO with ratio clipping."""
         batch_size = min(len(self.memory), self.config.batch_size)
-        batch = self.memory[-batch_size:]
-        
+        batch = list(self.memory)[-batch_size:]
+
         states = np.array([e[0] for e in batch])
         actions = np.array([e[1] for e in batch])
-        log_probs = np.array([e[2] for e in batch])
+        old_log_probs = np.array([e[2] for e in batch])
         rewards = np.array([e[3] for e in batch])
-        
-        # Calculate advantages (simplified)
+
+        # Calculate advantages (simplified: use returns minus baseline)
         advantages = rewards - np.mean(rewards)
-        
-        # Update policy (simplified gradient ascent)
+        advantages = advantages / (np.std(advantages) + 1e-8)
+
+        # PPO update with ratio clipping
         learning_rate = self.config.learning_rate
+        clip_eps = 0.2
+
         for i in range(batch_size):
-            # Simple policy gradient update
-            gradient = states[i] * advantages[i]
+            # Compute current log_prob
+            logits = np.dot(states[i], self.policy_weights)
+            exp_logits = np.exp(logits - np.max(logits))
+            probs = exp_logits / np.sum(exp_logits)
+            new_log_prob = np.log(probs[actions[i]] + 1e-10)
+
+            # PPO ratio
+            ratio = np.exp(new_log_prob - old_log_probs[i])
+            clipped_ratio = np.clip(ratio, 1 - clip_eps, 1 + clip_eps)
+
+            # Clipped surrogate objective
+            surrogate = min(ratio * advantages[i], clipped_ratio * advantages[i])
+
+            # Policy gradient update
+            gradient = states[i] * surrogate
             self.policy_weights[:, actions[i]] += learning_rate * gradient
     
     def save_model(self, filepath: str):

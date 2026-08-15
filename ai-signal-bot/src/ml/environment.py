@@ -135,8 +135,7 @@ class TradingEnv:
         action_taken = Action(action)
         
         if action_taken == Action.BUY:
-            if self.cash > 0:
-                # Buy as much as possible
+            if self.cash > 0 and current_price > 0:
                 buy_amount = self.cash * (1 - self.transaction_cost)
                 shares_bought = buy_amount / current_price
                 self.position += shares_bought

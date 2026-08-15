@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 49 |
+| ✅ Fixed | 55 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **88** |
+| **TOTAL FOUND** | **94** |
 
 ---
 
@@ -1007,6 +1007,66 @@
 - **Root Cause:** The SHORT and LONG signal generation computes `stop_loss=price_a * (1 + self.config.stop_z * self.spread_std / price_a)` and `take_profit=price_a * (1 + self.config.exit_z * self.spread_std / price_a)`. When `price_a` is 0, the division `self.spread_std / price_a` causes `ZeroDivisionError`. Additionally, the expression `price_a * (1 + X / price_a)` simplifies to `price_a + X`, making the division unnecessary.
 - **Status:** ✅ Fixed
 - **Fix:** Simplified expressions to `price_a + self.config.stop_z * self.spread_std` (and similarly for exit_z) with `if price_a > 0 else 0` guard. This eliminates the division entirely and is mathematically equivalent.
+
+---
+
+## Bug #115 — markowitz.py calculate_portfolio_metrics divides by zero volatility
+
+- **Location:** `ai-signal-bot/src/portfolio/markowitz.py:80`
+- **Severity:** Medium
+- **Root Cause:** `calculate_portfolio_metrics` computes `sharpe_ratio = (portfolio_return - self.risk_free_rate) / portfolio_volatility` without checking if `portfolio_volatility` is 0. When all weights are 0 or covariance matrix is zero, this causes `ZeroDivisionError`. Also `portfolio_variance` could be slightly negative due to floating point, causing `sqrt` of negative.
+- **Status:** ✅ Fixed
+- **Fix:** Added `max(portfolio_variance, 0)` guard and `if portfolio_volatility > 0 else 0.0` for Sharpe ratio.
+
+---
+
+## Bug #116 — risk_parity.py calculate_marginal_risk divides by zero volatility
+
+- **Location:** `ai-signal-bot/src/portfolio/risk_parity.py:49`
+- **Severity:** Medium
+- **Root Cause:** `calculate_marginal_risk` computes `marginal_risk = np.dot(cov_matrix, weights) / portfolio_volatility` without checking if `portfolio_volatility` is 0. When portfolio has zero variance (e.g., all-zero weights or zero covariance), this causes `ZeroDivisionError` or produces `inf`/`NaN` values that propagate through the entire risk parity optimization.
+- **Status:** ✅ Fixed
+- **Fix:** Added early return of `np.zeros_like(weights)` when `portfolio_volatility == 0`, and `max(portfolio_variance, 0)` guard.
+
+---
+
+## Bug #117 — black_litterman.py incorporate_views calls np.linalg.inv without try/except
+
+- **Location:** `ai-signal-bot/src/portfolio/black_litterman.py:91-101`
+- **Severity:** High
+- **Root Cause:** `incorporate_views` calls `np.linalg.inv` three times (on `tau * cov_matrix`, `Omega`, and `M1`) without any error handling. If any of these matrices are singular (e.g., collinear assets, zero covariance, or views that produce a singular Omega), `np.linalg.LinAlgError` is raised and the entire optimization crashes. The `portfolio_optimizer.py` version has this guard but this standalone `black_litterman.py` module does not.
+- **Status:** ✅ Fixed
+- **Fix:** Wrapped all `np.linalg.inv` calls in `try/except np.linalg.LinAlgError`, falling back to prior returns and original covariance matrix.
+
+---
+
+## Bug #118 — environment.py TradingEnv.step divides by current_price without zero check
+
+- **Location:** `ai-signal-bot/src/ml/environment.py:141`
+- **Severity:** High
+- **Root Cause:** In the BUY action handler, `shares_bought = buy_amount / current_price` doesn't check if `current_price` is 0. When price data contains 0 (e.g., bad data, delisted asset, or placeholder), this produces `inf` shares, corrupting the position state and propagating `NaN` through all subsequent portfolio value calculations and rewards.
+- **Status:** ✅ Fixed
+- **Fix:** Added `current_price > 0` to the BUY condition guard.
+
+---
+
+## Bug #119 — plotter.py drawdown calculation divides by peak without zero check
+
+- **Location:** `ai-signal-bot/src/backtesting/plotter.py:112`
+- **Severity:** Low
+- **Root Cause:** `drawdown_pct = (peak - equity) / peak * 100` doesn't guard against `peak == 0`. When equity curve starts at 0 or all values are 0, `peak` is 0, causing division by zero and producing `inf`/`NaN` values that corrupt the drawdown chart.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced with `np.where(peak > 0, (peak - equity) / peak * 100, 0)` to return 0 drawdown when peak is 0.
+
+---
+
+## Bug #120 — rl_agent.py PPO _update_policy ignores log_probs (no ratio clipping)
+
+- **Location:** `ai-signal-bot/src/ml/rl_agent.py:359-379`
+- **Severity:** High
+- **Root Cause:** `PPOAgent._update_policy` collects `log_probs` from experience but never uses them. The update is a simple policy gradient (`gradient = states[i] * advantages[i]`), not PPO. PPO's key feature is the clipped surrogate objective using the ratio `exp(new_log_prob - old_log_prob)`, which prevents destructive large policy updates. Without it, the "PPO" agent is just REINFORCE with advantage normalization — unstable and prone to catastrophic policy collapse.
+- **Status:** ✅ Fixed
+- **Fix:** Implemented proper PPO ratio computation and clipping: compute `new_log_prob` from current policy, calculate `ratio = exp(new_log_prob - old_log_prob)`, clip to `[1-eps, 1+eps]`, and use `min(ratio * advantage, clipped_ratio * advantage)` as the surrogate objective. Also added advantage normalization.
 
 ---
 

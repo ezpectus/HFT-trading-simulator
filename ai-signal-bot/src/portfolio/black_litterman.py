@@ -88,17 +88,21 @@ class BlackLittermanModel:
         
         # Calculate posterior returns
         # mu_BL = [(tau * Sigma)^-1 + P^T * Omega^-1 * P]^-1 * [(tau * Sigma)^-1 * pi + P^T * Omega^-1 * Q]
-        tau_sigma_inv = np.linalg.inv(self.tau * cov_matrix)
-        omega_inv = np.linalg.inv(Omega)
-        
-        M1 = tau_sigma_inv + np.dot(P.T, np.dot(omega_inv, P))
-        M2 = np.dot(tau_sigma_inv, prior_returns) + np.dot(P.T, np.dot(omega_inv, Q))
-        
-        posterior_returns = np.dot(np.linalg.inv(M1), M2)
-        
-        # Calculate posterior covariance
-        # Sigma_BL = Sigma + [(tau * Sigma)^-1 + P^T * Omega^-1 * P]^-1
-        posterior_covariance = cov_matrix + np.linalg.inv(M1)
+        try:
+            tau_sigma_inv = np.linalg.inv(self.tau * cov_matrix)
+            omega_inv = np.linalg.inv(Omega)
+
+            M1 = tau_sigma_inv + np.dot(P.T, np.dot(omega_inv, P))
+            M2 = np.dot(tau_sigma_inv, prior_returns) + np.dot(P.T, np.dot(omega_inv, Q))
+
+            posterior_returns = np.dot(np.linalg.inv(M1), M2)
+
+            # Calculate posterior covariance
+            # Sigma_BL = Sigma + [(tau * Sigma)^-1 + P^T * Omega^-1 * P]^-1
+            posterior_covariance = cov_matrix + np.linalg.inv(M1)
+        except np.linalg.LinAlgError:
+            posterior_returns = prior_returns
+            posterior_covariance = cov_matrix
         
         return posterior_returns, posterior_covariance
     

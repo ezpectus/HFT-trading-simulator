@@ -76,8 +76,8 @@ class MarkowitzOptimizer:
         """
         portfolio_return = np.dot(weights, expected_returns)
         portfolio_variance = np.dot(weights.T, np.dot(cov_matrix, weights))
-        portfolio_volatility = np.sqrt(portfolio_variance)
-        sharpe_ratio = (portfolio_return - self.risk_free_rate) / portfolio_volatility
+        portfolio_volatility = np.sqrt(max(portfolio_variance, 0))
+        sharpe_ratio = (portfolio_return - self.risk_free_rate) / portfolio_volatility if portfolio_volatility > 0 else 0.0
         
         return portfolio_return, portfolio_volatility, sharpe_ratio
     

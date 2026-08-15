@@ -43,9 +43,11 @@ class RiskParityOptimizer:
             Marginal risk vector (n_assets)
         """
         portfolio_variance = np.dot(weights.T, np.dot(cov_matrix, weights))
-        portfolio_volatility = np.sqrt(portfolio_variance)
+        portfolio_volatility = np.sqrt(max(portfolio_variance, 0))
         
-        # Marginal risk = (Sigma * w) / sigma_p
+        if portfolio_volatility == 0:
+            return np.zeros_like(weights)
+        
         marginal_risk = np.dot(cov_matrix, weights) / portfolio_volatility
         
         return marginal_risk

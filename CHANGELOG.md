@@ -38,6 +38,12 @@ All notable changes to this project are documented in this file.
 - **[BUG-112]** `_close_position` in `ai-signal-bot/src/backtesting/backtester.py` divided by `entry_price * quantity` without zero check — `ZeroDivisionError` when entry_price is 0 from bad data.
 - **[BUG-113]** `_execute_leg` in `ai-signal-bot/src/strategies/cross_exchange_arb.py` divided by `limit_price` without zero check in slippage calculation — `ZeroDivisionError` when limit_price is 0.
 - **[BUG-114]** `StatisticalArbitrage.analyze` in `ai-signal-bot/src/strategies/statistical_arbitrage.py` divided by `price_a` in stop_loss/take_profit calculation — `ZeroDivisionError` when price_a is 0. Simplified expression to eliminate unnecessary division.
+- **[BUG-115]** `MarkowitzOptimizer.calculate_portfolio_metrics` in `ai-signal-bot/src/portfolio/markowitz.py` divided by `portfolio_volatility` without zero check — `ZeroDivisionError` when portfolio has zero variance. Also guarded against negative variance from floating point.
+- **[BUG-116]** `RiskParityOptimizer.calculate_marginal_risk` in `ai-signal-bot/src/portfolio/risk_parity.py` divided by `portfolio_volatility` without zero check — `ZeroDivisionError` or `inf`/`NaN` propagation through risk parity optimization.
+- **[BUG-117]** `BlackLittermanModel.incorporate_views` in `ai-signal-bot/src/portfolio/black_litterman.py` called `np.linalg.inv` without try/except — `LinAlgError` crash on singular matrices (collinear assets, zero covariance).
+- **[BUG-118]** `TradingEnv.step` in `ai-signal-bot/src/ml/environment.py` divided by `current_price` without zero check in BUY action — produced `inf` shares and `NaN` rewards when price data contains 0.
+- **[BUG-119]** `BacktestPlotter.plot_equity_curve` in `ai-signal-bot/src/backtesting/plotter.py` divided by `peak` without zero check in drawdown calculation — `inf`/`NaN` when equity curve starts at 0.
+- **[BUG-120]** `PPOAgent._update_policy` in `ai-signal-bot/src/ml/rl_agent.py` collected `log_probs` but never used them — no PPO ratio clipping, making it unstable vanilla policy gradient instead of PPO. Implemented proper clipped surrogate objective with ratio computation and advantage normalization.
 
 ### Critical Audit Corrections (v4.2)
 

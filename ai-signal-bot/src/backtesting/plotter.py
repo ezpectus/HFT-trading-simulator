@@ -109,7 +109,7 @@ class BacktestPlotter:
                  family="monospace")
 
         # Drawdown chart
-        drawdown_pct = (peak - equity) / peak * 100
+        drawdown_pct = np.where(peak > 0, (peak - equity) / peak * 100, 0)
         ax2.fill_between(x, 0, drawdown_pct, color=COLORS["drawdown"], alpha=0.4)
         ax2.plot(x, drawdown_pct, color=COLORS["drawdown"], linewidth=0.8)
         ax2.set_ylabel("Drawdown (%)", fontsize=11)
