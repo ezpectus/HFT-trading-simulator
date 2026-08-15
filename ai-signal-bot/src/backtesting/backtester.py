@@ -341,7 +341,7 @@ class Backtester:
 
         quantity = risk_amount / risk_per_unit
         max_notional = balance * self.max_position_pct / 100
-        max_qty = max_notional / fill_price
+        max_qty = max_notional / fill_price if fill_price > 0 else 0
         quantity = min(quantity, max_qty)
 
         if quantity <= 0:

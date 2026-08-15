@@ -58,6 +58,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-132]** `change_pct` and `upnl_pct` in `exchange_simulator/visualizer.py` had division by zero risks — `prev.close` could be 0, and `entry_price * quantity` could be 0 even when `quantity > 0`.
 - **[BUG-133]** `DynamicPositionSizer` in `ai-signal-bot/src/risk/position_sizing.py` had 12 division-by-zero vulnerabilities across `volatility_based_sizing`, `risk_parity_sizing`, `kelly_criterion_sizing`, and `enforce_position_limits` — missing guards for `price <= 0`, `account_value <= 0`, `volatility is None`, `total_exposure == 0`, and `daily_volatility == 0`. Added early-return guards at method entry and inline guards at remaining division sites.
 - **[BUG-134]** `RiskParityOptimizer.optimize_risk_parity` in `ai-signal-bot/src/portfolio/risk_parity.py` divided by `marginal_risk` without zero check — produces `inf`/`NaN` weights when covariance matrix is degenerate (zero volatility). Also, post-clip normalization could divide by zero if all weights clipped to 0. Added `np.where` floor on marginal risk and zero-sum guards on both normalizations.
+- **[BUG-135]** `Backtester._open_position` in `ai-signal-bot/src/backtesting/backtester.py` divided by `fill_price` without zero check in `max_qty` calculation — `ZeroDivisionError` when price data contains 0 but stop_loss is non-zero (corrupted data edge case). Added `fill_price > 0` guard.
 
 ### Critical Audit Corrections (v4.2)
 

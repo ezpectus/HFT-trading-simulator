@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 69 |
+| ✅ Fixed | 70 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **108** |
+| **TOTAL FOUND** | **109** |
 
 ---
 
@@ -1212,6 +1212,16 @@
 - **Root Cause:** `optimize_risk_parity` divides `weights / marginal_risk` without checking for zero elements in `marginal_risk`. When `portfolio_volatility == 0` (degenerate covariance matrix), `calculate_marginal_risk` returns all zeros, making the division produce `inf`/`NaN` that silently corrupts the entire optimization. Additionally, the post-clip normalization at line 126 divides by `np.sum(new_weights)` which could be zero if all weights are clipped to their lower bound of 0.
 - **Status:** ✅ Fixed
 - **Fix:** Added `np.where(np.abs(marginal_risk) < 1e-12, 1e-12, marginal_risk)` floor before division. Added `weight_sum > 0` and `clip_sum > 0` guards on both normalizations, falling back to equal weights when sum is zero.
+
+---
+
+## Bug #135 — backtester.py division by zero in _open_position
+
+- **Location:** `ai-signal-bot/src/backtesting/backtester.py:344`
+- **Severity:** Low
+- **Root Cause:** `_open_position` calculates `max_qty = max_notional / fill_price` without checking `fill_price > 0`. While the `risk_per_unit <= 0` guard at line 339 catches most cases where `fill_price` is 0 (since `stop_loss` would also be 0), it's theoretically possible for `stop_loss` to be non-zero when `price` is 0 from corrupted data, allowing execution to reach the division.
+- **Status:** ✅ Fixed
+- **Fix:** Added `fill_price > 0` guard: `max_qty = max_notional / fill_price if fill_price > 0 else 0`.
 
 ---
 

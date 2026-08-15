@@ -133,6 +133,9 @@ cd hft-executor && cargo build --release
 - `ai-signal-bot/src/portfolio/black_litterman.py` (207 lines) — Black-Litterman model (no bugs)
 - `ai-signal-bot/src/portfolio/rebalancing.py` (246 lines) — Portfolio rebalancing (no bugs)
 - `ai-signal-bot/src/portfolio/risk_parity.py` (231 lines) — Risk parity optimizer (1 bug found and fixed)
+- `ai-signal-bot/src/backtesting/backtest_engine.py` (330 lines) — Full backtesting framework (no bugs)
+- `ai-signal-bot/src/backtesting/pnl_calculator.py` (280 lines) — PnL calculator (no bugs)
+- `ai-signal-bot/src/backtesting/backtester.py` (467 lines) — Historical replay backtester (1 bug found and fixed)
 
 **Bug categories this session:**
 - Division by zero: 9 bugs (#121-127, #132)
@@ -141,6 +144,7 @@ cd hft-executor && cargo build --release
 - Missing zero guard on SL/TP: 1 bug (#129)
 - Division by zero (position_sizing.py): 1 bug (#133) — 12 vulnerable division sites
 - Division by zero (risk_parity.py): 1 bug (#134) — inf/NaN from zero marginal risk
+- Division by zero (backtester.py): 1 bug (#135) — fill_price==0 edge case
 
 ## Workflow Rules
 
