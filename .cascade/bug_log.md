@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 28 |
+| ✅ Fixed | 29 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **67** |
+| **TOTAL FOUND** | **68** |
 
 ---
 
@@ -797,6 +797,16 @@
 - **Root Cause:** `_close_position` creates a `Trade` with `symbol=""` hardcoded. The `symbol` parameter is available in `run()` but is never passed to `_open_position` or stored in the position dict. This means all trade records have an empty symbol, making it impossible to attribute trades to specific symbols in multi-symbol backtests or display correct symbol in reports.
 - **Status:** ✅ Fixed
 - **Fix:** Added `symbol` parameter to `_open_position`, stored it in the position dict, and changed `_close_position` to read it from `pos.get("symbol", "")`. Updated both `_open_position` calls in `run()` to pass `symbol=symbol`.
+
+---
+
+## Bug #094 — _adf_statistic computes residuals regression with wrong variables
+
+- **Location:** `ai-signal-bot/src/strategies/statistical_arbitrage.py:52`
+- **Severity:** High
+- **Root Cause:** In `_adf_statistic`, the regression uses demeaned variables `x = y_lag - y_lag.mean()` and `y = dy - dy.mean()` to compute `beta`. However, the residuals for the standard error calculation are computed as `residuals_reg = dy - beta * y_lag`, which uses the raw (non-demeaned) variables. The correct formula should be `residuals_reg = y - beta * x` (using the same demeaned variables used for the regression). This produces incorrect standard errors, which in turn produces incorrect ADF test statistics, leading to wrong cointegration detection — the core of the statistical arbitrage strategy.
+- **Status:** ✅ Fixed
+- **Fix:** Changed `residuals_reg = dy - beta * y_lag` to `residuals_reg = y - beta * x`.
 
 ---
 

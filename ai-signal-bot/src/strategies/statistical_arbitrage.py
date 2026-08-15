@@ -49,7 +49,7 @@ def _adf_statistic(residuals: np.ndarray) -> float:
         return 0.0
     beta = np.sum(x * y) / denom
     # Standard error
-    residuals_reg = dy - beta * y_lag
+    residuals_reg = y - beta * x
     se = math.sqrt(np.sum(residuals_reg ** 2) / (n - 2)) / math.sqrt(denom)
     if se < 1e-12:
         return 0.0
