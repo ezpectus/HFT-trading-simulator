@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 88 |
+| ✅ Fixed | 89 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **125** |
+| **TOTAL FOUND** | **126** |
 
 ---
 
@@ -1574,6 +1574,18 @@
 - **Impact:** RL training crashes whenever the agent selects action 3 — frequently during exploration (epsilon-greedy random or policy sampling).
 - **Status:** ✅ Fixed
 - **Fix:** Changed `NUM_ACTIONS = 4` to `NUM_ACTIONS = 3` to match `TradingEnv.action_space_n`.
+
+---
+
+### Bug #168 — Parametric VaR/CVaR time scaling incorrectly scales mean by √t
+
+- **File:** `ai-signal-bot/src/risk/var.py:90-91`, `ai-signal-bot/src/risk/cvar.py:82-83`
+- **Category:** Math/Financial Model Bug
+- **Severity:** High
+- **Root Cause:** In `calculate_parametric_var()` and `calculate_cvar()` (parametric method), the entire VaR/CVaR expression (including mean return) was scaled by `√t`. However, the mean return scales linearly with time (`t`) while only the standard deviation scales with `√t` (square-root-of-time rule). The historical and Monte Carlo methods correctly use `√t` on the percentile (which is a single return value), but the parametric method decomposes into mean + z·std, requiring separate scaling.
+- **Impact:** Multi-day parametric VaR/CVaR is miscalculated — overstated for positive mean returns, understated for negative. This leads to incorrect capital allocation and risk assessment.
+- **Status:** ✅ Fixed
+- **Fix:** Changed parametric VaR from `var * np.sqrt(th)` to `mean * th + z_score * std * np.sqrt(th)`. Changed parametric CVaR from `cvar * np.sqrt(th)` to `mean * th - std * np.sqrt(th) * (pdf(z) / (1 - cl))`.
 
 ---
 

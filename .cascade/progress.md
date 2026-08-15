@@ -43,6 +43,7 @@
 | #165 | db.py leaks SQLite connections on exceptions (no try/finally) | ✅ Fixed | 1d4f943 | 2026-08-16 |
 | #166 | FIX ResendRequest skips all resent messages (incoming_seq incremented past gap) | ✅ Fixed | 0b394fd | 2026-08-16 |
 | #167 | rl_trader.py NUM_ACTIONS=4 but TradingEnv only supports 3 actions | ✅ Fixed | — | 2026-08-16 |
+| #168 | Parametric VaR/CVaR scales mean by √t instead of t (incorrect multi-day risk) | ✅ Fixed | — | 2026-08-16 |
 
 ## Proposals
 

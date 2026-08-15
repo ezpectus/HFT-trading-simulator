@@ -85,10 +85,9 @@ class VaRCalculator:
         
         # Calculate VaR using normal distribution
         z_score = stats.norm.ppf(1 - cl)
-        var = mean + z_score * std
-        
-        # Scale for time horizon
-        var_scaled = var * np.sqrt(th)
+
+        # Scale for time horizon: mean scales linearly, std scales by sqrt(t)
+        var_scaled = mean * th + z_score * std * np.sqrt(th)
         
         return VaRResult(
             var_value=var_scaled,

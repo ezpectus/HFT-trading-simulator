@@ -79,8 +79,8 @@ class CVaRCalculator:
             std = np.std(returns)
             z_score = stats.norm.ppf(1 - cl)
             # CVaR for normal distribution
-            cvar = mean - std * (stats.norm.pdf(z_score) / (1 - cl))
-            cvar_scaled = cvar * np.sqrt(th)
+            # Scale: mean scales linearly with t, std scales by sqrt(t)
+            cvar_scaled = mean * th - std * np.sqrt(th) * (stats.norm.pdf(z_score) / (1 - cl))
         
         elif method == 'monte_carlo':
             # Monte Carlo CVaR
