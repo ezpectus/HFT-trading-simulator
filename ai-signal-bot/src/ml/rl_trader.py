@@ -37,7 +37,7 @@ NUM_ACTIONS = 4
 
 @dataclass
 class RLConfig:
-    state_dim: int = 20  # market features
+    state_dim: int = 63  # Matches TradingEnv observation: 60 prices + 3 portfolio
     hidden_dim: int = 256
     lr_actor: float = 3e-4
     lr_critic: float = 1e-3

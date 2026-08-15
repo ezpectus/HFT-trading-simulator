@@ -55,8 +55,8 @@ class TradingEnv:
         # Action space: 3 actions (HOLD, BUY, SELL)
         self.action_space_n = 3
         
-        # Observation space: prices + portfolio state
-        self.observation_space_n = 100  # Placeholder
+        # Observation space: 60 recent prices + 3 portfolio state = 63
+        self.observation_space_n = 63
     
     def reset(self, prices: np.ndarray, features: Optional[np.ndarray] = None) -> np.ndarray:
         """

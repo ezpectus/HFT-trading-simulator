@@ -38,6 +38,7 @@
 | #085 | kelly.py from_trade_history counts break-even (pnl=0) as losses | ✅ Fixed | d83020e | 2026-08-16 |
 | #086 | risk/portfolio_optimizer.py annualization uses 252 instead of 365 in 5 places | ✅ Fixed | d83020e | 2026-08-16 |
 | #087 | position_sizing.py adjust_for_correlation includes self-correlation (diag=1.0) | ✅ Fixed | d83020e | 2026-08-16 |
+| #163 | TradingEnv observation dim (63) mismatched with RL agent state_size (100/20) | ✅ Fixed | — | 2026-08-16 |
 
 ## Proposals
 

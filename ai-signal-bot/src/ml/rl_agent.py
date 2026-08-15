@@ -15,7 +15,7 @@ from .environment import TradingEnv
 @dataclass
 class RLConfig:
     """RL agent configuration."""
-    state_size: int = 100
+    state_size: int = 63  # Matches TradingEnv observation: 60 prices + 3 portfolio
     action_size: int = 3
     learning_rate: float = 0.001
     gamma: float = 0.99

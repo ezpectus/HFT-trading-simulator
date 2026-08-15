@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 83 |
+| ✅ Fixed | 84 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **120** |
+| **TOTAL FOUND** | **121** |
 
 ---
 
@@ -1519,6 +1519,17 @@
 - **Impact:** The delta hedging simulator reports incorrect PnL, making it useless for evaluating hedging strategies. The P&L decomposition is also wrong. Anyone using this simulator to test delta hedging, gamma scalping, or compare rebalancing thresholds gets misleading results.
 - **Status:** ✅ Fixed
 - **Fix:** Added `cash -= trade_qty * price` before the transaction cost deduction in the rebalance block. Changed `gamma_pnl` formula from `final_pnl - total_hedge_pnl + total_option_pnl + total_tc` to `final_pnl` (the net PnL of the delta-hedged portfolio, representing the gamma/theta/vega residual after delta hedging).
+
+---
+
+## Bug #163: TradingEnv observation dimension mismatch with RL agents
+- **File:** `ai-signal-bot/src/ml/environment.py:59`, `ai-signal-bot/src/ml/rl_agent.py:18`, `ai-signal-bot/src/ml/rl_trader.py:40`
+- **Category:** Bug / Typing
+- **Severity:** High
+- **Root Cause:** `TradingEnv._get_observation()` returns 63-dim array (60 prices + 3 portfolio state), but `rl_agent.RLConfig.state_size = 100` and `rl_trader.RLConfig.state_dim = 20`. Both agents crash with shape mismatch on first `np.dot(state, weights)` or `nn.Linear` call.
+- **Impact:** All RL training pipelines (DQN, PPO) crash immediately when used with TradingEnv.
+- **Status:** ✅ Fixed
+- **Fix:** Set `observation_space_n = 63` in TradingEnv (was 100 placeholder), `state_size = 63` in `rl_agent.RLConfig`, and `state_dim = 63` in `rl_trader.RLConfig`. All three now match the actual observation dimension.
 
 ---
 
