@@ -34,6 +34,10 @@ All notable changes to this project are documented in this file.
 - **[BUG-108]** `_kupiec_test` in `ai-signal-bot/src/risk/var.py` produced `NaN` when all observations were violations — `0 * np.log(0)` = `NaN`, corrupting VaR backtest results.
 - **[BUG-109]** `kelly_criterion_sizing` in `ai-signal-bot/src/risk/position_sizing.py` divided by `volatility ** 2` without zero check — `ZeroDivisionError` when volatility is 0. Also allowed negative Kelly fraction leading to negative position sizes.
 - **[BUG-110]** `stress_test.py` in `ai-signal-bot/src/risk/stress_test.py` divided by `portfolio_value_before` without zero check in all 4 scenario methods — `ZeroDivisionError` when positions or prices are 0.
+- **[BUG-111]** `Backtester` in `ai-signal-bot/src/backtesting/backtester.py` didn't guard SL/TP checks against zero values — SHORT positions with `stop_loss=0` exited immediately (`high >= 0` always true), silently killing positions without explicit SL/TP.
+- **[BUG-112]** `_close_position` in `ai-signal-bot/src/backtesting/backtester.py` divided by `entry_price * quantity` without zero check — `ZeroDivisionError` when entry_price is 0 from bad data.
+- **[BUG-113]** `_execute_leg` in `ai-signal-bot/src/strategies/cross_exchange_arb.py` divided by `limit_price` without zero check in slippage calculation — `ZeroDivisionError` when limit_price is 0.
+- **[BUG-114]** `StatisticalArbitrage.analyze` in `ai-signal-bot/src/strategies/statistical_arbitrage.py` divided by `price_a` in stop_loss/take_profit calculation — `ZeroDivisionError` when price_a is 0. Simplified expression to eliminate unnecessary division.
 
 ### Critical Audit Corrections (v4.2)
 

@@ -304,9 +304,12 @@ class CrossExchangeArbEngine:
                 )
                 fill_price = result.get("avg_price", limit_price)
                 fill_qty = result.get("executed_qty", 0)
-                slippage = (fill_price - limit_price) / limit_price * 10000
-                if side == "sell":
-                    slippage = (limit_price - fill_price) / limit_price * 10000
+                if limit_price > 0:
+                    slippage = (fill_price - limit_price) / limit_price * 10000
+                    if side == "sell":
+                        slippage = (limit_price - fill_price) / limit_price * 10000
+                else:
+                    slippage = 0.0
 
                 return ExecutionResult(
                     success=fill_qty > 0,

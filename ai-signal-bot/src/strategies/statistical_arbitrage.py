@@ -255,8 +255,8 @@ class StatisticalArbitrage:
             return Signal(
                 symbol=f"{symbol_a}/{symbol_b}", direction=SignalDirection.SHORT,
                 confidence=confidence, strategy=self.name,
-                entry_price=price_a, stop_loss=price_a * (1 + self.config.stop_z * self.spread_std / price_a),
-                take_profit=price_a * (1 + self.config.exit_z * self.spread_std / price_a),
+                entry_price=price_a, stop_loss=price_a + self.config.stop_z * self.spread_std if price_a > 0 else 0,
+                take_profit=price_a + self.config.exit_z * self.spread_std if price_a > 0 else 0,
                 reason=f"Z-score={z:.2f} > {self.config.entry_z}, short {symbol_a} long {symbol_b}",
             )
         elif z < -self.config.entry_z:
@@ -265,8 +265,8 @@ class StatisticalArbitrage:
             return Signal(
                 symbol=f"{symbol_a}/{symbol_b}", direction=SignalDirection.LONG,
                 confidence=confidence, strategy=self.name,
-                entry_price=price_a, stop_loss=price_a * (1 - self.config.stop_z * self.spread_std / price_a),
-                take_profit=price_a * (1 - self.config.exit_z * self.spread_std / price_a),
+                entry_price=price_a, stop_loss=price_a - self.config.stop_z * self.spread_std if price_a > 0 else 0,
+                take_profit=price_a - self.config.exit_z * self.spread_std if price_a > 0 else 0,
                 reason=f"Z-score={z:.2f} < -{self.config.entry_z}, long {symbol_a} short {symbol_b}",
             )
 

@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 45 |
+| ✅ Fixed | 49 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **84** |
+| **TOTAL FOUND** | **88** |
 
 ---
 
@@ -967,6 +967,46 @@
 - **Root Cause:** All 4 stress test scenario methods (`crisis_2008_scenario`, `covid_crash_scenario`, `ftx_collapse_scenario`, `custom_scenario`) compute `pnl_percentage = pnl / portfolio_value_before` without checking if `portfolio_value_before` is 0. When all positions are 0 or all prices are 0, this causes `ZeroDivisionError`, crashing the stress test.
 - **Status:** ✅ Fixed
 - **Fix:** Added zero check: `pnl_percentage = pnl / portfolio_value_before if portfolio_value_before != 0 else 0.0` in all 4 methods.
+
+---
+
+## Bug #111 — backtester.py SL/TP checks missing zero guards causes immediate exit
+
+- **Location:** `ai-signal-bot/src/backtesting/backtester.py:165-178`
+- **Severity:** High
+- **Root Cause:** The SL/TP checks in the main backtest loop don't guard against `stop_loss == 0` or `take_profit == 0`. For SHORT positions, `high >= stop_loss` with `stop_loss=0` is always true (any non-negative high), causing immediate exit on the first candle. Same for LONG with `take_profit=0` and `high >= 0`. This silently kills every position that doesn't set explicit SL/TP values.
+- **Status:** ✅ Fixed
+- **Fix:** Added `> 0` guards: `if current_position["stop_loss"] > 0 and ...` and `if current_position["take_profit"] > 0 and ...` for both LONG and SHORT branches.
+
+---
+
+## Bug #112 — backtester.py pnl_pct divides by entry_price * quantity without zero check
+
+- **Location:** `ai-signal-bot/src/backtesting/backtester.py:382`
+- **Severity:** Medium
+- **Root Cause:** `_close_position` computes `pnl_pct = pnl / (pos["entry_price"] * pos["quantity"]) * 100` without checking if the denominator is 0. When `entry_price` is 0 (shouldn't happen but can from bad data), this causes `ZeroDivisionError`, crashing the backtest.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted `entry_notional = pos["entry_price"] * pos["quantity"]` and guarded: `pnl_pct = pnl / entry_notional * 100 if entry_notional > 0 else 0`.
+
+---
+
+## Bug #113 — cross_exchange_arb.py slippage calculation divides by limit_price without zero check
+
+- **Location:** `ai-signal-bot/src/strategies/cross_exchange_arb.py:307-309`
+- **Severity:** Medium
+- **Root Cause:** `_execute_leg` computes `slippage = (fill_price - limit_price) / limit_price * 10000` without checking if `limit_price` is 0. When `limit_price` is 0 (e.g., bad order data or degenerate market), this causes `ZeroDivisionError`, crashing the arbitrage execution.
+- **Status:** ✅ Fixed
+- **Fix:** Added guard: `if limit_price > 0:` compute slippage normally, `else: slippage = 0.0`.
+
+---
+
+## Bug #114 — statistical_arbitrage.py stop_loss/take_profit divide by price_a without zero check
+
+- **Location:** `ai-signal-bot/src/strategies/statistical_arbitrage.py:258-259, 268-269`
+- **Severity:** Medium
+- **Root Cause:** The SHORT and LONG signal generation computes `stop_loss=price_a * (1 + self.config.stop_z * self.spread_std / price_a)` and `take_profit=price_a * (1 + self.config.exit_z * self.spread_std / price_a)`. When `price_a` is 0, the division `self.spread_std / price_a` causes `ZeroDivisionError`. Additionally, the expression `price_a * (1 + X / price_a)` simplifies to `price_a + X`, making the division unnecessary.
+- **Status:** ✅ Fixed
+- **Fix:** Simplified expressions to `price_a + self.config.stop_z * self.spread_std` (and similarly for exit_z) with `if price_a > 0 else 0` guard. This eliminates the division entirely and is mathematically equivalent.
 
 ---
 

@@ -163,17 +163,17 @@ class Backtester:
                 exit_price = current_price
 
                 if current_position["side"] == "LONG":
-                    if current_candle["low"] <= current_position["stop_loss"]:
+                    if current_position["stop_loss"] > 0 and current_candle["low"] <= current_position["stop_loss"]:
                         exit_price = current_position["stop_loss"]
                         exit_reason = "STOP_LOSS"
-                    elif current_candle["high"] >= current_position["take_profit"]:
+                    elif current_position["take_profit"] > 0 and current_candle["high"] >= current_position["take_profit"]:
                         exit_price = current_position["take_profit"]
                         exit_reason = "TAKE_PROFIT"
                 else:
-                    if current_candle["high"] >= current_position["stop_loss"]:
+                    if current_position["stop_loss"] > 0 and current_candle["high"] >= current_position["stop_loss"]:
                         exit_price = current_position["stop_loss"]
                         exit_reason = "STOP_LOSS"
-                    elif current_candle["low"] <= current_position["take_profit"]:
+                    elif current_position["take_profit"] > 0 and current_candle["low"] <= current_position["take_profit"]:
                         exit_price = current_position["take_profit"]
                         exit_reason = "TAKE_PROFIT"
 
@@ -379,7 +379,8 @@ class Backtester:
         total_fees = pos["fee"] + exit_fee
         pnl -= total_fees
 
-        pnl_pct = pnl / (pos["entry_price"] * pos["quantity"]) * 100 if pos["quantity"] > 0 else 0
+        entry_notional = pos["entry_price"] * pos["quantity"]
+        pnl_pct = pnl / entry_notional * 100 if entry_notional > 0 else 0
 
         trade = Trade(
             symbol=pos.get("symbol", ""),
