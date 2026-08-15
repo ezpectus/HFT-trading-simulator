@@ -218,7 +218,7 @@ class SimulatedExchange:
 
     def _execute_iceberg_slice(self, order: IcebergOrder, price: float) -> Order:
         """Execute a slice of an iceberg order (Phase 3 helper)."""
-        slice_qty = min(order.visible_quantity, order.hidden_quantity + order.visible_quantity)
+        slice_qty = min(order.visible_quantity, order.hidden_quantity)
         order.hidden_quantity -= slice_qty
         order.replenished += 1
         

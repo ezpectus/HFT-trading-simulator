@@ -302,7 +302,7 @@ class IcebergOrder(Order):
     def on_fill(self, fill_quantity: float) -> tuple[float, bool]:
         """Handle fill - return (remaining_to_fill, should_replenish)."""
         self.current_slice_filled += fill_quantity
-        remaining = fill_quantity - self.current_slice_filled
+        remaining = self.slice_size - self.current_slice_filled
         
         # If current slice is filled, replenish from hidden quantity
         if self.current_slice_filled >= self.slice_size and self.slices_remaining > 0:
