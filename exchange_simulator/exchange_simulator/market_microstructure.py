@@ -58,7 +58,7 @@ class MicrostructureConfig:
     jump_lambda: float = 0.005             # Poisson jump intensity (per step)
     jump_mu: float = -0.01                 # Mean jump size (negative = crashes)
     jump_sigma: float = 0.03               # Jump size volatility
-    dt: float = 1.0 / (252 * 24 * 60)      # Per-minute step
+    dt: float = 1.0 / (365 * 24 * 60)      # Per-minute step (crypto 24/7/365)
     intraday_pattern: bool = True          # U-shaped volatility
     regime_switching: bool = True          # Enable Markov regimes
 

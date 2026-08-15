@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 18 |
+| ✅ Fixed | 19 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **57** |
+| **TOTAL FOUND** | **58** |
 
 ---
 
@@ -697,6 +697,16 @@
 - **Root Cause:** Same as #081 — `bars_per_year = 252 * 24 * 60` and Calmar annualization use 252 instead of 365.
 - **Status:** ✅ Fixed
 - **Fix:** Changed 252 to 365 in both `bars_per_year` and Calmar annualization calculations.
+
+---
+
+## Bug #084 — MicrostructureConfig dt uses 252 (stock market days) instead of 365 (crypto)
+
+- **Location:** `exchange_simulator/exchange_simulator/market_microstructure.py:61`
+- **Severity:** Medium
+- **Root Cause:** `dt = 1.0 / (252 * 24 * 60)` uses 252 stock market trading days, but this is a crypto trading system running 24/7/365. Using 252 overestimates the per-step dt, causing all microstructure price generation (Heston vol, Student-t returns, jumps) to be scaled incorrectly.
+- **Status:** ✅ Fixed
+- **Fix:** Changed `252` to `365` in the dt calculation.
 
 ---
 

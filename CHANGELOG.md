@@ -7,6 +7,7 @@ All notable changes to this project are documented in this file.
 ### Bug Fixes
 
 - **[BUG-083]** `IcebergOrder` dataclass in `exchange_simulator/models.py` missing `replenished` field — caused `TypeError` on every iceberg order submission. Added `replenished: int = 0` field and included in `to_dict()`.
+- **[BUG-084]** `MicrostructureConfig.dt` in `exchange_simulator/exchange_simulator/market_microstructure.py` used 252 (stock market days) instead of 365 (crypto 24/7/365), causing incorrect per-step dt for all microstructure price generation.
 
 ### Critical Audit Corrections (v4.2)
 
