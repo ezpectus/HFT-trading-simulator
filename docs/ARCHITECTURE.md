@@ -1,13 +1,13 @@
 # Architecture
 
 **Last Updated:** August 15, 2026
-**Project Status:** 62% overall completion (deep audit v4.1 — honest assessment)
+**Project Status:** 62% overall completion (deep audit v4.3 — honest assessment)
 
 ## Overview
 
-The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 227 React components, 204 registered UI panels, 38 mathematical models in trading logic (+40 UI-only educational visualizations), PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
+The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 227 React components, 197 registered UI panels, 44 mathematical models in trading logic (+40 UI-only educational visualizations), PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
 
-**Honest status (v4.1 audit):** CUDA and ONNX code exists behind `#ifdef` but is never compiled in CI (dead code). ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface IS implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection).
+**Honest status (v4.3 audit):** CUDA and ONNX code exists behind `#ifdef` but is never compiled in CI (dead code). ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface IS implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection).
 
 **Recent Completion (August 12, 2026):**
 - Day 9: Monitoring and Observability (Prometheus metrics, Grafana dashboards, OpenTelemetry tracing, Alertmanager)
@@ -29,7 +29,7 @@ graph TB
     end
 
     subgraph "AI Signal Bot (Python)"
-        AI["AI Signal Bot<br/>8-Stage Pipeline<br/>19 Strategies (10 Py + 6 C++ + 3 aux)<br/>38 Quant Models in Trading Logic<br/>SVI/SABR Vol Surface | Kelly Sizing<br/>ML (LSTM, Transformer, RL — untrained)<br/>Risk Manager | Backtest Engine | SQLite"]
+        AI["AI Signal Bot<br/>8-Stage Pipeline<br/>19 Strategies (10 Py + 6 C++ + 3 aux)<br/>44 Quant Models in Trading Logic<br/>SVI/SABR Vol Surface | Kelly Sizing<br/>ML (LSTM, Transformer, RL — untrained)<br/>Risk Manager | Backtest Engine | SQLite"]
         WS8766[Signal Publisher :8766]
         WS8766 --- AI
     end
@@ -42,7 +42,7 @@ graph TB
     end
 
     subgraph "Web UI (React 18)"
-        UI["Web UI Dashboard<br/>227 Components | 204 Panels<br/>38 Trading + 40 UI-Only Math Models<br/>React.lazy | PWA | WCAG AA<br/>Vitest (40 files) | Mock Mode"]
+        UI["Web UI Dashboard<br/>227 Components | 197 Panels<br/>44 Trading + 40 UI-Only Math Models<br/>React.lazy | PWA | WCAG AA<br/>Vitest (44 files) | Mock Mode"]
         UI --- WS8765
         UI --- WS8766
         UI -->|Orders| WS8765
@@ -318,7 +318,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 ### 4. Web UI Dashboard (`web-ui/`)
 
 **Language:** JavaScript (React 18 + Vite 8)
-**Role:** Browser-based trading dashboard with 227 components and 204 registered panels
+**Role:** Browser-based trading dashboard with 227 components and 197 registered panels
 
 | Feature | Implementation |
 |---------|---------------|
@@ -363,7 +363,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 | Error handling | PanelErrorBoundary with error count tracking, auto-disable after 3+ errors, re-enable option |
 | Loading states | EmptyState component with shimmer animation |
 | Toast notifications | Auto-dismiss with visual progress bar, 5-toast cap, role="alert" for accessibility, clearAll button when 2+ toasts |
-| Testing | Vitest test framework (40 test files) with @testing-library/react + jsdom |
+| Testing | Vitest test framework (44 test files: 40 unit + 4 e2e) with @testing-library/react + jsdom |
 | State persistence | useLocalStorage generic hook (theme, panel visibility, trade journal, watchlist, sort preferences) |
 | Search & filter | SignalFeed symbol/reason search, FillsPanel symbol/side/exchange search, ArbitragePanel symbol/exchange search, PriceComparison symbol search — all with useDebounce (300ms) |
 | Sortable tables | Watchlist (symbol/price/change%), AccountPanel leaderboard (PnL/win%/balance), TradeHistory (date/PnL/symbol), PerformanceDashboard per-exchange (PnL/win%/balance) |
@@ -373,7 +373,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 
 **Key files:**
 - `src/App.jsx` — Main layout with tabbed panels, keyboard shortcuts, toast notifications, sound alerts
-- `src/panels/registry.js` — Panel registry (204 panels, 7 categories, 227 component imports)
+- `src/panels/registry.js` — Panel registry (197 panels, 7 categories, 227 component imports)
 - `src/panels/PanelContainer.jsx` — ErrorBoundary + Suspense per panel, collapsible categories, localStorage visibility
 - `src/components/VirtualList.jsx` — Generic windowed list renderer with overscan
 - `src/components/AuditLogViewer.jsx` — Audit log viewer with filtering, search, export
