@@ -7,7 +7,7 @@ from typing import List, Tuple, Optional
 from dataclasses import dataclass
 from enum import Enum
 
-from options_pricing import OptionType, BlackScholes
+from exchange_simulator.options_pricing import OptionType, BlackScholes
 
 
 class StrategyType(Enum):
