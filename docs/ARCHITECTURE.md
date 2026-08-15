@@ -1,11 +1,13 @@
 # Architecture
 
-**Last Updated:** August 12, 2026
-**Project Status:** 9-Day Development Plan Completed (85% overall completion)
+**Last Updated:** August 15, 2026
+**Project Status:** 62% overall completion (deep audit v4.1 — honest assessment)
 
 ## Overview
 
-The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 201+ React components, 196 registered UI panels, 75+ advanced mathematical models, PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
+The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 227 React components, 204 registered UI panels, 38 mathematical models in trading logic (+40 UI-only educational visualizations), PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
+
+**Honest status (v4.1 audit):** CUDA and ONNX code exists behind `#ifdef` but is never compiled in CI (dead code). ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface IS implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection).
 
 **Recent Completion (August 12, 2026):**
 - Day 9: Monitoring and Observability (Prometheus metrics, Grafana dashboards, OpenTelemetry tracing, Alertmanager)
@@ -21,26 +23,26 @@ The system is a full-stack crypto HFT trading simulation platform consisting of 
 ```mermaid
 graph TB
     subgraph "Exchange Simulator (Python)"
-        ES["Exchange Simulator<br/>GBM + Fat-Tail + Jump Diffusion<br/>3 Exchanges | 50+ Symbols<br/>Real-time Price Feeds<br/>Order Book | Funding | Liquidation"]
+        ES["Exchange Simulator<br/>GBM + Correlated Multi-Symbol<br/>3 Exchanges | 50+ Symbols<br/>Real-time Price Feeds (Binance, Coinbase)<br/>Order Book | Funding | Liquidation<br/>News Events | Market Impact | Slippage"]
         WS8765[WebSocket :8765]
         WS8765 --- ES
     end
 
     subgraph "AI Signal Bot (Python)"
-        AI["AI Signal Bot<br/>8-Stage Pipeline<br/>Trend + MeanRev + FFT + Ensemble<br/>Risk Manager | Backtest Engine<br/>SQLite | Kelly Sizing"]
+        AI["AI Signal Bot<br/>8-Stage Pipeline<br/>19 Strategies (10 Py + 6 C++ + 3 aux)<br/>38 Quant Models in Trading Logic<br/>SVI/SABR Vol Surface | Kelly Sizing<br/>ML (LSTM, Transformer, RL — untrained)<br/>Risk Manager | Backtest Engine | SQLite"]
         WS8766[Signal Publisher :8766]
         WS8766 --- AI
     end
 
     subgraph "HFT Trade Bot (C++20 v2.0)"
-        HFT["HFT Trade Bot v2.0<br/>Signal Engine V2 (6 indicators)<br/>Pressure Model | Smart Order Router V2<br/>Adaptive Order Selector V2<br/>Latency Histograms | Circuit Breaker<br/>SHM IPC | FIX 4.4 Protocol"]
+        HFT["HFT Trade Bot v2.0<br/>Signal Engine V2 (6 indicators)<br/>Signal Engine V3 (HMM regime)<br/>Pressure Model | Smart Order Router V2<br/>Adaptive Order Selector V2<br/>Latency Histograms | Circuit Breaker<br/>SHM IPC | FIX 4.4 Protocol<br/>CUDA (dead code) | ONNX (dead code)"]
         HFT --- WS8765
         HFT --- WS8766
         HFT -->|Orders| WS8765
     end
 
     subgraph "Web UI (React 18)"
-        UI["Web UI Dashboard<br/>201+ Components | 196 Panels<br/>75+ Math Models | 7 Categories<br/>React.lazy | PWA | Web Worker<br/>Vitest | WCAG AA | Mock Mode"]
+        UI["Web UI Dashboard<br/>227 Components | 204 Panels<br/>38 Trading + 40 UI-Only Math Models<br/>React.lazy | PWA | WCAG AA<br/>Vitest (40 files) | Mock Mode"]
         UI --- WS8765
         UI --- WS8766
         UI -->|Orders| WS8765
@@ -63,8 +65,8 @@ graph TB
 
 | Feature | Implementation |
 | --- | --- |
-| **Price Generation** | GBM + Fat-Tail + Jump Diffusion with hybrid mode (real price feeds + simulated microstructure) |
-| **Price Feed Manager** | Multi-API integration (Binance, Coinbase Pro, Kraken) with automatic failover and rate limiting |
+| **Price Generation** | GBM with correlated multi-symbol draws, news event spikes (3x-8x vol), market impact model, slippage, partial fills |
+| **Price Feed Manager** | Multi-API integration (Binance, Coinbase Pro) with automatic failover and rate limiting |
 | **Symbols** | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, etc.) |
 | **Exchanges** | Binance, Bybit, OKX with distinct fee structures and slippage models |
 | **Order Types** | Market, Limit, Stop-Limit, Trailing Stop, OCO, Iceberg |
@@ -74,8 +76,8 @@ graph TB
 | **Audit Logging** | Comprehensive audit logging for all system events with file persistence |
 | **WebSocket** | Delta updates, symbol subscription filtering, rate limiting per client |
 |---------|---------------|
-| Price generation | GBM with per-symbol volatility, fat-tail jumps, news event spikes |
-| Real-time price feeds | Multi-API integration (Binance, Coinbase Pro, Kraken) with automatic failover, rate limiting, caching |
+| Price generation | GBM with per-symbol volatility, correlated multi-symbol draws, news event spikes (3x-8x), market impact, slippage, partial fills |
+| Real-time price feeds | Multi-API integration (Binance, Coinbase Pro) with automatic failover, rate limiting, caching |
 | Hybrid simulation | Real price feeds + simulated microstructure for realistic trading |
 | Exchanges | Binance, Bybit, OKX (different fees, slippage, volatility multipliers) |
 | Symbols | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, DOT, MATIC, SHIB, AVAX, LINK, UNI, ATOM, LTC, NEAR, XLM, ALGO, VET, FIL, APT, INJ, OP, ARB, QNT, ETC, HBAR, ICP, LDO, GRT, STX, AAVE, MKR, COMP, SUSHI, CRV, 1INCH, SNX, MANA, SAND, AXS, ENJ, FTM, CRO, GLM, KAVA, ROSE, CELO, MINA) |
@@ -312,7 +314,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 ### 4. Web UI Dashboard (`web-ui/`)
 
 **Language:** JavaScript (React 18 + Vite 8)
-**Role:** Browser-based trading dashboard with 201+ components and 196 registered panels
+**Role:** Browser-based trading dashboard with 227 components and 204 registered panels
 
 | Feature | Implementation |
 |---------|---------------|
@@ -341,7 +343,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 | Portfolio | Markowitz optimizer, auto-rebalance, multi-account, session stats, heatmap calendar |
 | Strategy | Visual strategy builder, TWAP/VWAP execution bot, walk-forward, alert webhooks |
 | Export | Session JSON, trade stats CSV, trade journal with tags |
-| Advanced math models | 75+ components: GARCH, HMM, PCA, LSTM, Kalman, Wavelet, Copula, VAE, HMC, OT, TDA, and more |
+| Advanced math models | 60+ UI components: GARCH, HMM, PCA, LSTM, Kalman, Wavelet, Copula, VAE, HMC, OT, TDA, and more (UI-only, not in trading logic) |
 | Price alerts | User-set threshold prices with toast + sound |
 | Smart order router | Best price across exchanges |
 | Multi-monitor | Detachable panels via popup windows |
@@ -357,7 +359,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 | Error handling | PanelErrorBoundary with error count tracking, auto-disable after 3+ errors, re-enable option |
 | Loading states | EmptyState component with shimmer animation |
 | Toast notifications | Auto-dismiss with visual progress bar, 5-toast cap, role="alert" for accessibility, clearAll button when 2+ toasts |
-| Testing | Vitest test framework (38 test files, 458+ tests) with @testing-library/react + jsdom |
+| Testing | Vitest test framework (40 test files) with @testing-library/react + jsdom |
 | State persistence | useLocalStorage generic hook (theme, panel visibility, trade journal, watchlist, sort preferences) |
 | Search & filter | SignalFeed symbol/reason search, FillsPanel symbol/side/exchange search, ArbitragePanel symbol/exchange search, PriceComparison symbol search — all with useDebounce (300ms) |
 | Sortable tables | Watchlist (symbol/price/change%), AccountPanel leaderboard (PnL/win%/balance), TradeHistory (date/PnL/symbol), PerformanceDashboard per-exchange (PnL/win%/balance) |
@@ -367,7 +369,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 
 **Key files:**
 - `src/App.jsx` — Main layout with tabbed panels, keyboard shortcuts, toast notifications, sound alerts
-- `src/panels/registry.js` — Panel registry (197 panels, 7 categories, 201+ component imports)
+- `src/panels/registry.js` — Panel registry (204 panels, 7 categories, 227 component imports)
 - `src/panels/PanelContainer.jsx` — ErrorBoundary + Suspense per panel, collapsible categories, localStorage visibility
 - `src/components/VirtualList.jsx` — Generic windowed list renderer with overscan
 - `src/components/AuditLogViewer.jsx` — Audit log viewer with filtering, search, export

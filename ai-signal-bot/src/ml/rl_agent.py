@@ -98,11 +98,11 @@ class DQNAgent:
         Args:
             batch_size: Batch size (uses config default if None)
         """
-        if len(self.memory) < batch_size:
-            return
-        
         if batch_size is None:
             batch_size = self.config.batch_size
+
+        if len(self.memory) < batch_size:
+            return
         
         # Sample batch
         batch_indices = np.random.choice(len(self.memory), batch_size, replace=False)

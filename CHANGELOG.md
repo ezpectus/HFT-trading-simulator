@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased] — 2026-08-15 (v4.0 — Deep Audit)
 
+### Bug Fixes (Code Audit)
+
+- **BUG-015** — `websocket_server.py` broadcast loop sent candle data twice per tick
+  - Two separate `asyncio.gather` blocks both sent the same candle message to all clients
+  - Removed first duplicate broadcast block; second block handles arb_data correctly
+  - File: `exchange_simulator/websocket_server.py:1040-1054`
+
+- **BUG-016** — `DQNAgent.replay()` TypeError when batch_size=None (default)
+  - `len(self.memory) < batch_size` was checked before `batch_size` was assigned from config
+  - Swapped guard clause order: None check first, then length check
+  - File: `ai-signal-bot/src/ml/rl_agent.py:101-105`
+
 ### Added
 
 - **README_PROJECT_OVERVIEW.md** — DEEP HONEST project overview (v4.0)
