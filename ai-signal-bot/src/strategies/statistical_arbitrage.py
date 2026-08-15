@@ -301,6 +301,9 @@ class CorrelationMatrix:
         returns = {}
         for sym, prices in self.price_history.items():
             arr = np.array(list(prices)[-min_len:])
+            if np.any(arr <= 0):
+                returns[sym] = np.zeros(min_len - 1)
+                continue
             rets = np.diff(np.log(arr))
             returns[sym] = rets
 

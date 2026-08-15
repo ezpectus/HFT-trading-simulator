@@ -91,8 +91,12 @@ class MicrostructureLab:
             timestamps.append(curr.get("timestamp", i))
 
         ofi_arr = np.array(ofi_series)
-        self.metrics.ofi_mean = float(np.mean(ofi_arr))
-        self.metrics.ofi_std = float(np.std(ofi_arr))
+        if len(ofi_arr) > 0:
+            self.metrics.ofi_mean = float(np.mean(ofi_arr))
+            self.metrics.ofi_std = float(np.std(ofi_arr))
+        else:
+            self.metrics.ofi_mean = 0.0
+            self.metrics.ofi_std = 0.0
 
         return np.array(timestamps), ofi_arr
 

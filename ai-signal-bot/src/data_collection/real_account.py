@@ -103,6 +103,7 @@ class RealAccountManager:
         self._listen_task: asyncio.Task | None = None
         self._on_fill_callback = None
         self._on_margin_warning_callback = None
+        self._leverage_cache: dict[str, int] = {}
 
     async def initialize(self) -> None:
         """Initialize exchange connection."""
@@ -269,7 +270,9 @@ class RealAccountManager:
         if not self._exchange:
             return None
         try:
-            await self.set_leverage(symbol, leverage)
+            if self._leverage_cache.get(symbol) != leverage:
+                await self.set_leverage(symbol, leverage)
+                self._leverage_cache[symbol] = leverage
             params = {}
             if stop_loss:
                 params["stopLossPrice"] = stop_loss

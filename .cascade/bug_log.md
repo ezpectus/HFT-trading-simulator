@@ -1302,6 +1302,39 @@
 
 ---
 
+## Bug #143 — real_account.py set_leverage called on every place_order
+
+- **Location:** `ai-signal-bot/src/data_collection/real_account.py:272`
+- **Severity:** Medium
+- **Root Cause:** `place_order` unconditionally calls `await self.set_leverage(symbol, leverage)` on every order placement, even when the leverage hasn't changed. `set_leverage` makes a REST API call to the exchange. In a trading system placing multiple orders per second, this doubles the API call count and risks hitting exchange rate limits.
+- **Impact:** Unnecessary REST API calls on every order, increased latency, potential rate limit violations. Exchange APIs like Binance have strict rate limits — doubling API calls can trigger IP bans or temporary suspensions.
+- **Status:** ✅ Fixed
+- **Fix:** Added `_leverage_cache: dict[str, int]` to track the last-set leverage per symbol. `place_order` now only calls `set_leverage` when `self._leverage_cache.get(symbol) != leverage`, and updates the cache after each successful call.
+
+---
+
+## Bug #144 — microstructure_lab.py compute_ofi crashes on single book snapshot
+
+- **Location:** `ai-signal-bot/src/research/microstructure_lab.py:94-95`
+- **Severity:** Low
+- **Root Cause:** `compute_ofi` iterates `range(1, len(self.book_snapshots))` to compute OFI. With only 1 book snapshot, the loop doesn't execute, leaving `ofi_series` empty. `np.mean(np.array([]))` produces `nan` with a `RuntimeWarning: Mean of empty slice`. The `nan` propagates to `metrics.ofi_mean` and `metrics.ofi_std`.
+- **Impact:** `nan` values in microstructure metrics when starting with minimal data. Downstream calculations using these metrics produce incorrect results.
+- **Status:** ✅ Fixed
+- **Fix:** Added a `len(ofi_arr) > 0` guard before computing mean and std. When the array is empty, both metrics default to 0.0.
+
+---
+
+## Bug #145 — statistical_arbitrage.py CorrelationMatrix.compute log of zero/negative prices
+
+- **Location:** `ai-signal-bot/src/strategies/statistical_arbitrage.py:304`
+- **Severity:** Medium
+- **Root Cause:** `CorrelationMatrix.compute` calculates `rets = np.diff(np.log(arr))` without checking for zero or negative prices. If any price in the history is 0 (from API outage or data corruption) or negative (impossible but could result from parsing errors), `np.log` produces `-inf` or `NaN`, which propagates through the correlation matrix and makes all pairwise correlations involving that symbol `NaN`.
+- **Impact:** Corrupted correlation matrix with `NaN` values, causing `find_pairs` to return incorrect results or crash. Cointegration analysis and pair selection are disrupted.
+- **Status:** ✅ Fixed
+- **Fix:** Added `np.any(arr <= 0)` check before applying `np.log`. When non-positive prices are detected, the symbol's returns are set to a zero array, which naturally results in 0 correlation with other symbols (handled by the existing `std > 1e-10` guard in the correlation loop).
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
