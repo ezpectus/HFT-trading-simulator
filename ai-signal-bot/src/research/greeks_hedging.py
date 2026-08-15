@@ -197,7 +197,7 @@ class GreeksHedgingSimulator:
             # P&L decomposition
             total_option_pnl = final_option_value - option_price_0 * n_options
             total_hedge_pnl = sum(hedge_position * (prices[i] - prices[i-1])
-                                  for i, hedge_position in enumerate([daily_hedge[0]] + daily_hedge[:-1], 1))
+                                  for i, hedge_position in enumerate(daily_hedge[:-1], 1))
 
             result = HedgeSimulationResult(
                 final_pnl=final_pnl,

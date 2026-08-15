@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 36 |
+| ✅ Fixed | 37 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **75** |
+| **TOTAL FOUND** | **76** |
 
 ---
 
@@ -877,6 +877,16 @@
 - **Root Cause:** `should_rebalance_volatility_based` computes `volatility_drift = abs(current_volatility - target_volatility) / target_volatility` without checking if `target_volatility` is zero. When the target volatility is 0 (e.g., a fully-cash target portfolio), this causes a `ZeroDivisionError` (or produces `inf` with NumPy), crashing the rebalancing check.
 - **Status:** ✅ Fixed
 - **Fix:** Added a guard: if `target_volatility == 0`, return `current_volatility > max_volatility_drift` (rebalance if any volatility exists when target is zero).
+
+---
+
+## Bug #102 — total_hedge_pnl calculation has off-by-one error causing IndexError
+
+- **Location:** `ai-signal-bot/src/research/greeks_hedging.py:199-200`
+- **Severity:** Critical
+- **Root Cause:** The `total_hedge_pnl` calculation uses `enumerate([daily_hedge[0]] + daily_hedge[:-1], 1)`, which prepends an extra `daily_hedge[0]` to the list. This creates `n_days + 1` elements, so `i` ranges from 1 to `n_days + 1`. But `prices` only has `n_days + 1` elements (indices 0 to `n_days`), so `prices[n_days + 1]` raises `IndexError`. The extra prepended element also doubles the hedge P&L for the first day, producing incorrect results even if the index didn't overflow.
+- **Status:** ✅ Fixed
+- **Fix:** Removed the extra `[daily_hedge[0]] +` prefix. Now uses `enumerate(daily_hedge[:-1], 1)` which correctly iterates `n_days` elements with `i` from 1 to `n_days`, matching `prices` indices.
 
 ---
 
