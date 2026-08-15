@@ -265,8 +265,9 @@ class LSTMModel:
         mae = np.mean(np.abs(predictions - y_norm.reshape(-1, 1)))
         
         # Direction accuracy
+        pred_flat = predictions.flatten()
         actual_direction = np.sign(y_norm[1:] - y_norm[:-1])
-        pred_direction = np.sign(predictions[1:] - predictions[:-1])
+        pred_direction = np.sign(pred_flat[1:] - pred_flat[:-1])
         direction_accuracy = np.mean(actual_direction == pred_direction)
         
         return {

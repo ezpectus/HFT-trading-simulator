@@ -259,7 +259,7 @@ class TransformerModel:
         
         # Calculate accuracy
         signal_map = {'LONG': 0, 'SHORT': 1, 'HOLD': 2}
-        predicted_indices = [signal_map[s] for s in predictions]
+        predicted_indices = np.array([signal_map[s] for s in predictions])
         actual_indices = np.argmax(test_signals, axis=1)
         
         accuracy = np.mean(predicted_indices == actual_indices)

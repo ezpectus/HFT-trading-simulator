@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 91 |
+| ✅ Fixed | 93 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **128** |
+| **TOTAL FOUND** | **130** |
 
 ---
 
@@ -1610,6 +1610,30 @@
 - **Impact:** Incorrect PnL reporting, stale avg_entry_price after position flips, wrong strategy evaluation. A SELL of 2 when long 1 @ 100 at price 105 recorded PnL=10 instead of 5, and the remaining short unit had no entry price tracked.
 - **Status:** ✅ Fixed
 - **Fix:** Rewrote `on_fill` to check inventory direction before processing. Splits fills that cross zero into closing portion (realizes PnL) and opening portion (updates avg_entry_price for new direction). BUY covering short: PnL = `close_qty * (avg_entry - price)`. SELL closing long: PnL = `close_qty * (price - avg_entry)`. Adding to short: updates avg_entry_price using weighted average of previous short size.
+
+---
+
+### Bug #171 — LSTMModel.evaluate direction accuracy broadcasts incorrectly (2D vs 1D)
+
+- **File:** `ai-signal-bot/src/ml/lstm_model.py:268-270`
+- **Category:** Bug / Shape Mismatch
+- **Severity:** Medium
+- **Root Cause:** In `evaluate()`, `predictions` has shape `(n, 1)` (2D) while `y_norm` has shape `(n,)` (1D). `predictions[1:] - predictions[:-1]` produces shape `(n-1, 1)` while `y_norm[1:] - y_norm[:-1]` produces shape `(n-1,)`. `np.sign` on both preserves shapes. The `==` comparison broadcasts `(n-1,)` to `(1, n-1)` and compares with `(n-1, 1)` to produce `(n-1, n-1)`, giving a meaningless direction accuracy.
+- **Impact:** Direction accuracy metric is completely wrong — returns a value close to 0.5 regardless of actual prediction quality.
+- **Status:** ✅ Fixed
+- **Fix:** Flattened `predictions` to 1D before computing `pred_direction`, ensuring both arrays have shape `(n-1,)` for correct element-wise comparison.
+
+---
+
+### Bug #172 — TransformerModel.evaluate class_accuracy fails: list indexed by boolean array
+
+- **File:** `ai-signal-bot/src/ml/transformer_model.py:262,272`
+- **Category:** Bug / TypeError
+- **Severity:** Medium
+- **Root Cause:** In `evaluate()`, `predicted_indices` was a Python list. When computing per-class accuracy, `predicted_indices[mask]` where `mask` is a numpy boolean array raises `TypeError: only integer scalar arrays can be converted to a scalar index` because Python lists don't support boolean array indexing.
+- **Impact:** `evaluate()` crashes with `TypeError` whenever any class has samples in the test set, making model evaluation impossible.
+- **Status:** ✅ Fixed
+- **Fix:** Converted `predicted_indices` to `np.array(...)` so boolean mask indexing works correctly.
 
 ---
 
