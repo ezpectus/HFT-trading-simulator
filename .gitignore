@@ -156,6 +156,10 @@ api_keys/
 .env.production
 .env.prod
 
+# ─── Cascade AI workspace (internal, not for public repo) ───
+.cascade/tasks/
+.cascade/proposals/
+
 # ─── Internal docs (not for public repo) ───
 docs/FUTURE_TODO.md
 docs/PROGRESS.md
