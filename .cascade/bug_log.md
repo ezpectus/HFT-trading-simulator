@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 17 |
+| ✅ Fixed | 18 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **56** |
+| **TOTAL FOUND** | **57** |
 
 ---
 
@@ -667,6 +667,16 @@
 - **Root Cause:** When `env.step()` returns early with `done=True` and empty `info={}`, accessing `info['trade_count']` raises `KeyError`.
 - **Status:** ✅ Fixed
 - **Fix:** Use `info.get('trade_count', 0)` and initialize `info = {}` before the loop.
+
+---
+
+## Bug #083 — IcebergOrder missing `replenished` field causes TypeError
+
+- **Location:** `exchange_simulator/models.py:281-294` (IcebergOrder dataclass)
+- **Severity:** Critical
+- **Root Cause:** `IcebergOrder` dataclass does not define a `replenished` field, but `exchange.py:439` passes `replenished=0` to the constructor and `exchange.py:279,296` accesses `order.replenished`. This causes `TypeError: __init__() got an unexpected keyword argument 'replenished'` every time an iceberg order is submitted.
+- **Status:** ✅ Fixed
+- **Fix:** Added `replenished: int = 0` field to `IcebergOrder` dataclass and included it in `to_dict()`.
 
 ---
 

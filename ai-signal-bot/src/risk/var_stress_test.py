@@ -242,7 +242,7 @@ class RiskAnalyzer:
         sharpe = (annual_mean - self.risk_free_rate) / annual_std if annual_std > 0 else 0
 
         downside = self.port_returns[self.port_returns < 0]
-        downside_std = np.std(downside) * np.sqrt(self.annualization) if len(downside) > 0 else 0
+        downside_std = np.sqrt(np.sum(downside ** 2) / len(self.port_returns)) * np.sqrt(self.annualization) if len(downside) > 0 else 0
         sortino = (annual_mean - self.risk_free_rate) / downside_std if downside_std > 0 else 0
 
         calmar = annual_mean / abs(max_dd) if max_dd != 0 else 0

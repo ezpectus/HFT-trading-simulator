@@ -283,7 +283,7 @@ class Backtester:
                 # Sortino ratio — like Sharpe but only downside deviation
                 downside_returns = [r for r in returns if r < 0]
                 if len(downside_returns) > 0:
-                    downside_std = (sum(r ** 2 for r in downside_returns) / len(downside_returns)) ** 0.5
+                    downside_std = (sum(r ** 2 for r in downside_returns) / len(returns)) ** 0.5
                     result.sortino_ratio = (mean_ret / downside_std * (365 ** 0.5)) if downside_std > 0 else 0
 
             # Average trade duration (in candles)

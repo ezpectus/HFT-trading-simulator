@@ -285,6 +285,7 @@ class IcebergOrder(Order):
     slice_size: float = 0.0  # Size of each slice
     slices_remaining: int = 0  # Number of slices left to fill
     current_slice_filled: float = 0.0  # Amount filled in current slice
+    replenished: int = 0  # Number of times hidden quantity has been replenished
 
     def __post_init__(self):
         """Initialize iceberg order parameters."""
@@ -320,6 +321,7 @@ class IcebergOrder(Order):
             "slice_size": self.slice_size,
             "slices_remaining": self.slices_remaining,
             "current_slice_filled": self.current_slice_filled,
+            "replenished": self.replenished,
         })
         return base_dict
 

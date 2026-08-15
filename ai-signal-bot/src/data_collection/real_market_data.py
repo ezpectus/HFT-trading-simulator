@@ -352,9 +352,10 @@ class RealMarketDataFeed:
 
     @staticmethod
     def _to_okx_inst_id(symbol: str) -> str:
-        """Convert BTCUSDT → BTC-USDT-SWAP."""
-        if symbol.endswith("USDT"):
-            base = symbol[:-4]
+        """Convert BTCUSDT or BTC/USDT → BTC-USDT-SWAP."""
+        clean = symbol.replace("/", "")
+        if clean.endswith("USDT"):
+            base = clean[:-4]
             return f"{base}-USDT-SWAP"
         return symbol
 

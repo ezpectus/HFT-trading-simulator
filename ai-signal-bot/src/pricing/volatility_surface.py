@@ -135,7 +135,7 @@ class VolatilitySurface:
                           ((2 - 3 * params.rho**2) * params.nu**2) / 24) * maturity)
             return params.alpha / forward**(1 - params.beta) * term1
 
-        z = (params.nu / params.alpha) * forward**((1 - params.beta) / 2) * (1 - params.beta) * np.log(forward / strike)
+        z = (params.nu / params.alpha) * (forward * strike)**((1 - params.beta) / 2) * (1 - params.beta) * np.log(forward / strike)
         x_z = np.log((np.sqrt(1 - 2 * params.rho * z + z**2) + z - params.rho) / (1 - params.rho))
 
         if abs(x_z) < 1e-10:

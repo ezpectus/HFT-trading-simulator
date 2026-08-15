@@ -314,7 +314,7 @@ class BacktestEngine:
                 # Sortino ratio
                 downside_returns = returns[returns < 0]
                 if len(downside_returns) > 0:
-                    downside_std = downside_returns.std()
+                    downside_std = np.sqrt(np.sum(downside_returns ** 2) / len(returns))
                     if downside_std > 1e-10:
                         result.sortino_ratio = mean_ret / downside_std * math.sqrt(bars_per_year)
 

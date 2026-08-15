@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased] — 2026-08-15 (v4.2 — Deep Audit v3)
 
+### Bug Fixes
+
+- **[BUG-083]** `IcebergOrder` dataclass in `exchange_simulator/models.py` missing `replenished` field — caused `TypeError` on every iceberg order submission. Added `replenished: int = 0` field and included in `to_dict()`.
+
 ### Critical Audit Corrections (v4.2)
 
 **4 models incorrectly marked as MISSING in v4.1 — all FOUND in `exchange_simulator/exchange_simulator/market_microstructure.py` (175 lines):**
