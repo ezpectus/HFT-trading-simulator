@@ -3,13 +3,16 @@
 **Дата:** 15 августа 2026
 **Назначение:** Этот документ содержит идеи для расширения и улучшения HFT Trading System.
 **Статус:** ACTIVE — идеи постоянно добавляются ИИ и пользователем
-**Версия:** 3.0 — ЧЕСТНЫЙ СРЕЗ (после аудита кода)
+**Версия:** 4.0 — ГЛУБОКИЙ АУДИТ (проверен каждый claim в README.md против кода)
 
 ---
 
 ## ОГЛАВЛЕНИЕ
 
 ```
+0.   UI-ONLY МОДЕЛИ → ПОРТИРОВАТЬ В TRADING LOGIC (40+ моделей!)
+0b.  DEAD CODE: CUDA И ONNX
+0c.  МОДЕЛИ КОТОРЫХ НЕТ ВООБЩЕ (ни в UI, ни в коде)
 1.   НЕДОСТАЮЩИЕ МАТЕМАТИЧЕСКИЕ МОДЕЛИ (критично!)
 2.   QUANTUM MODELS (0% сейчас)
 3.   BROKER INTEGRATION (5% сейчас)
@@ -28,7 +31,126 @@
 
 ---
 
-## 1. НЕДОСТАЮЩИЕ МАТЕМАТИЧЕСКИЕ МОДЕЛИ (критично!)
+## 0. UI-ONLY МОДЕЛИ → ПОРТИРОВАТЬ В TRADING LOGIC (40+ моделей!)
+
+**Проблема:** 40+ математических моделей существуют ТОЛЬКО как React UI компоненты (.jsx), но НЕ интегрированы в Python/C++ trading pipeline. Это образовательные визуализации, не trading logic.
+
+**Решение:** Портировать ключевые модели из UI в Python trading logic.
+
+### 0.1. Высокий приоритет (влияют на trading)
+
+| Модель | UI файл | Python файл (создать) | Приоритет | Время |
+|--------|---------|----------------------|-----------|-------|
+| GARCH(1,1) | `GARCHVolatility.jsx` | `src/technical_analysis/garch.py` | ВЫСОКИЙ | 1 неделя |
+| Markov-Switching GARCH | `MarkovSwitchingGARCH.jsx` | `src/technical_analysis/ms_garch.py` | ВЫСОКИЙ | 2 недели |
+| Kalman Filter | `KalmanFilterPrice.jsx` | `src/technical_analysis/kalman.py` | ВЫСОКИЙ | 3 дня |
+| Copula | `CopulaModel.jsx` | `src/technical_analysis/copula.py` | ВЫСОКИЙ | 2 недели |
+| Wavelet | `WaveletDecomposition.jsx` | `src/technical_analysis/wavelet.py` | ВЫСОКИЙ | 1 неделя |
+| Monte Carlo | `MonteCarlo.jsx` | `src/technical_analysis/monte_carlo.py` | ВЫСОКИЙ | 1 неделя |
+| Hawkes Process | `HawkesProcess.jsx` | `src/technical_analysis/hawkes.py` | СРЕДНИЙ | 2 недели |
+| Almgren-Chriss | `AlmgrenChriss.jsx` | `src/research/almgren_chriss.py` | СРЕДНИЙ | 1 неделя |
+| Optimal Stopping | `OptimalStopping.jsx` | `src/technical_analysis/optimal_stopping.py` | СРЕДНИЙ | 1 неделя |
+| K-Means Clustering | `KMeansClustering.jsx` | `src/technical_analysis/kmeans.py` | СРЕДНИЙ | 3 дня |
+| Gaussian Mixture | `GaussianMixtureModel.jsx` | `src/technical_analysis/gmm.py` | СРЕДНИЙ | 3 дня |
+| PCA | `PrincipalComponentAnalysis.jsx` | `src/technical_analysis/pca.py` | СРЕДНИЙ | 2 дня |
+| SVM | `SupportVectorMachine.jsx` | `src/ml/svm_signal.py` | СРЕДНИЙ | 3 дня |
+| Autoencoder | `Autoencoder.jsx` | `src/ml/autoencoder.py` | СРЕДНИЙ | 1 неделя |
+| VAE | `VariationalAutoencoder.jsx` | `src/ml/vae.py` | НИЗКИЙ | 2 недели |
+
+### 0.2. Средний приоритет (research / risk)
+
+| Модель | UI файл | Python файл (создать) | Время |
+|--------|---------|----------------------|-------|
+| Bayesian Price Predictor | `BayesianPricePredictor.jsx` | `src/technical_analysis/bayesian_price.py` | 1 неделя |
+| Bayesian Structural TS | `BayesianStructuralTimeSeries.jsx` | `src/technical_analysis/bayesian_sts.py` | 2 недели |
+| HMC | `HamiltonianMonteCarlo.jsx` | `src/technical_analysis/hmc.py` | 2 недели |
+| Transfer Entropy | `TransferEntropy.jsx` | `src/research/transfer_entropy.py` | 1 неделя |
+| CCM (EDM) | `EmpiricalDynamicModeling.jsx` | `src/research/ccm.py` | 1 неделя |
+| Cramer-Rao Bound | `CramerRaoBound.jsx` | `src/research/cramer_rao.py` | 3 дня |
+| Rough Volatility (rBergomi) | `RoughVolatility.jsx` | `src/technical_analysis/rbergomi.py` | 2 недели |
+| VMD | `VariationalModeDecomposition.jsx` | `src/technical_analysis/vmd.py` | 1 неделя |
+| EMD/HHT | `EmpiricalModeDecomposition.jsx` | `src/technical_analysis/emd.py` | 1 неделя |
+| DTW | `DynamicTimeWarping.jsx` | `src/technical_analysis/dtw.py` | 3 дня |
+| Compressed Sensing | `CompressedSensing.jsx` | `src/technical_analysis/compressed_sensing.py` | 1 неделя |
+| RKHS | `ReproducingKernelHilbertSpace.jsx` | `src/ml/rkhs.py` | 2 недели |
+| Koopman Operator | `KoopmanOperatorTheory.jsx` | `src/research/koopman.py` | 2 недели |
+| Random Matrix Theory | `RandomMatrixTheory.jsx` | `src/research/rmt.py` | 1 неделя |
+| Graph Theory MST | `GraphTheoryNetwork.jsx` | `src/research/graph_mst.py` | 1 неделя |
+| Tensor Decomposition | `TensorDecomposition.jsx` | `src/research/tensor_decomp.py` | 2 недели |
+| Affine Arithmetic | `AffineArithmetic.jsx` | `src/research/affine_arithmetic.py` | 1 неделя |
+| Stochastic Optimal Control | `StochasticOptimalControl.jsx` | `src/research/stochastic_control.py` | 2 недели |
+| Pontryagin Maximum | `PontryaginMaximumPrinciple.jsx` | `src/research/pontryagin.py` | 2 недели |
+| Girsanov Theorem | `GirsanovTheorem.jsx` | `src/research/girsanov.py` | 2 недели |
+| SDE (Euler/Milstein) | `StochasticDifferentialEquations.jsx` | `src/technical_analysis/sde.py` | 1 неделя |
+| Fokker-Planck | `FokkerPlanckEquation.jsx` | `src/research/fokker_planck.py` | 2 недели |
+| Ito Generator | `ItoCalculusGenerator.jsx` | `src/research/ito_generator.py` | 1 неделя |
+| Malliavin Calculus | `MalliavinCalculus.jsx` | `src/research/malliavin.py` | 3 недели |
+| Renyi Entropy | `RenyiEntropyDynamics.jsx` | `src/research/renyi_entropy.py` | 1 неделя |
+| Kolmogorov-Sinai | `KolmogorovSinaiEntropy.jsx` | `src/research/kolmogorov_sinai.py` | 1 неделя |
+| Information Bottleneck | `InformationBottleneck.jsx` | `src/research/info_bottleneck.py` | 2 недели |
+| Renormalization Group | `RenormalizationGroup.jsx` | `src/research/renormalization.py` | 3 недели |
+| Free Energy Principle | `FreeEnergyPrinciple.jsx` | `src/research/free_energy.py` | 3 недели |
+| Lie Group Symmetries | `LieGroupSymmetries.jsx` | `src/research/lie_group.py` | 3 недели |
+| Burgers Equation | `BurgersEquation.jsx` | `src/research/burgers.py` | 2 недели |
+| Sobolev Regularization | `SobolevSpaceRegularization.jsx` | `src/research/sobolev.py` | 2 недели |
+| Lax-Milgram | `LaxMilgram.jsx` | `src/research/lax_milgram.py` | 2 недели |
+| Riesz Representation | `RieszRepresentation.jsx` | `src/research/riesz.py` | 1 неделя |
+| Banach Fixed-Point | `BanachFixedPoint.jsx` | `src/research/banach.py` | 1 неделя |
+| Hahn Decomposition | `HahnDecomposition.jsx` | `src/research/hahn.py` | 1 неделя |
+| Cameron-Martin | `CameronMartinFormula.jsx` | `src/research/cameron_martin.py` | 1 неделя |
+| Radon-Nikodym | `RadonNikodymDerivative.jsx` | `src/research/radon_nikodym.py` | 1 неделя |
+| Prokhorov Metric | `ProkhorovMetric.jsx` | `src/research/prokhorov.py` | 1 неделя |
+| Stone-Cech | `StoneCechCompactification.jsx` | `src/research/stone_cech.py` | 2 недели |
+| Arzela-Ascoli | `ArzelaAscoli.jsx` | `src/research/arzela_ascoli.py` | 1 неделя |
+| Hopf Bifurcation | `HopfBifurcation.jsx` | `src/research/hopf.py` | 2 недели |
+| Ehlers SuperSmoother | `EhlersSuperSmoother.jsx` | `src/technical_analysis/ehlers_smoother.py` | 3 дня |
+| Cesaro/Fejer | `CesaroFejerKernel.jsx` | `src/technical_analysis/cesaro_fejer.py` | 3 дня |
+| Persistent Homology | `PersistentHomologyLandscape.jsx` | `src/research/persistent_homology.py` | 3 недели |
+| TDA | `TopologicalDataAnalysis.jsx` | `src/research/tda.py` | 3 недели |
+| Wasserstein/Sinkhorn | `OptimalTransport.jsx` | `src/research/optimal_transport.py` | 2 недели |
+| Wasserstein Barycenters | `WassersteinBarycenters.jsx` | `src/research/wasserstein_barycenters.py` | 2 недели |
+| Schrodinger Bridge | `SchrodingerBridge.jsx` | `src/research/schrodinger_bridge.py` | 3 недели |
+| Malliavin-Stein Sensitivity | `MalliavinSteinSensitivity.jsx` | `src/research/malliavin_stein.py` | 2 недели |
+
+---
+
+## 0b. DEAD CODE: CUDA И ONNX
+
+### 0b.1. CUDA (`gpu_accelerator.cu`) — ВЫСОКИЙ
+
+- **Описание:** Полный CUDA код есть (RSI, EMA, Monte Carlo VaR, matrix mul kernels), но за `#ifdef USE_CUDA`, никогда не компилируется в CI
+- **Решение:** Включить в CI build с CUDA toolkit, или добавить fallback CPU implementation
+- **Время:** 2 недели
+- **Файл:** `hft-trade-bot/src/ml/gpu_accelerator.cu`
+
+### 0b.2. ONNX Runtime (`onnx_engine.h`) — ВЫСОКИЙ
+
+- **Описание:** Полный ONNX код есть (session management, inference, multi-model), но за `#ifdef USE_ONNXRUNTIME`, никогда не компилируется
+- **Решение:** Включить в CI build с ONNX Runtime, или добавить fallback
+- **Время:** 2 недели
+- **Файл:** `hft-trade-bot/src/ml/onnx_engine.h`
+
+---
+
+## 0c. МОДЕЛИ КОТОРЫХ НЕТ ВООБЩЕ (ни в UI, ни в коде)
+
+- ❌ **Hurst exponent** — нет нигде
+- ❌ **VPIN** — нет нигде
+- ❌ **Kyle's Lambda** — нет нигде
+- ❌ **ZScore detector** — нет как отдельной модели
+- ❌ **Ornstein-Uhlenbeck** — нет нигде
+- ❌ **SVI/SABR volatility surface** — нет нигде (README claims!)
+- ❌ **MAMA/FAMA** — нет нигде
+- ❌ **Hilbert Transform** — нет нигде
+- ❌ **Blahut-Arimoto** — нет нигде
+- ❌ **Bayesian Ridge** — нет нигде
+- ❌ **Welch PSD** — нет нигде
+- ❌ **CWT (Continuous Wavelet Transform)** — нет нигде
+- ❌ **EWMA volatility** — нет как отдельной модели
+- ❌ **Parkinson volatility** — нет нигде
+- ❌ **BOCPD (Bayesian Online Change Point Detection)** — нет нигде
+
+---
 
 **Проблема:** Документы заявляли 75+ моделей, реально ~15-20. Эти модели НУЖНО реализовать.
 

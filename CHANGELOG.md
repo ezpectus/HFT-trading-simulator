@@ -2,57 +2,65 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased] — 2026-08-15 (v3.0 — Honest Audit)
+## [Unreleased] — 2026-08-15 (v4.0 — Deep Audit)
 
 ### Added
 
-- **README_PROJECT_OVERVIEW.md** — HONEST project overview for collaborators
-  - 9 sections covering project purpose, what really exists in code, critical gaps, honest readiness table, tech stack, real statistics, key problems, future ideas
-  - **Honest readiness: 65%** (not 85% as documents previously claimed)
-  - Documents what's actually in code vs what documents claimed
-  - Lists 12+ missing mathematical models (HMM, GARCH, Kalman, Copula, Wavelet, Monte Carlo, Hurst, VPIN, Kyle's Lambda, Hawkes, etc.)
-  - Lists 0% quantum models, 5% broker integration, 10% real HFT features
+- **README_PROJECT_OVERVIEW.md** — DEEP HONEST project overview (v4.0)
+  - 9 sections with verified-against-code findings
+  - **Honest readiness: 60%** (not 85% as README badges claim)
+  - 40+ UI-only models identified (exist as .jsx, NOT in trading logic)
+  - CUDA/ONNX dead code identified (behind #ifdef, never compiled)
+  - SVI/SABR volatility surface — README claims, does NOT exist
+  - README badges vs reality table (strategies 34+ → 16, models 75+ → ~36+40 UI-only)
 
-- **MASTER_DEVELOPMENT_PLAN.md** — HONEST development plan to 100% completion
-  - 15 sections including new critical sections: Missing Math Models, Quantum Models, Broker Integration, Real HFT Features
-  - Honest readiness table showing real vs documented percentages
-  - Detailed task breakdowns with code examples for each missing model
-  - Total estimated timeline: 38 weeks (~9 months) for all priorities
+- **MASTER_DEVELOPMENT_PLAN.md** — DEEP HONEST development plan (v4.0)
+  - 17 sections including new: UI-only models port plan (40+ models), Dead code (CUDA/ONNX), Models that don't exist at all
+  - 52-week timeline to 100% (was 38 weeks, now includes UI-only porting)
+  - Detailed table of all 40+ UI-only models with target Python files
 
-- **.windsurf/workflows/ai-monster-workflow.md** — enhanced AI workflow with AUTO-COMMIT
-  - 15-step workflow with mandatory auto-commit after EVERY change
-  - New AUTO-COMMIT RULES section: commit after every bug fix, optimization, test, doc update
+- **.windsurf/workflows/ai-monster-workflow.md** — enhanced with AUTO-COMMIT
+  - Mandatory git commit after EVERY change (rule #1)
   - New commit types: quantum, broker, hft, ml, math
-  - New principles: honesty (don't lie in docs), load (millions of users), security (hackers, DB leaks), product mindset
-  - Updated checklist with commit verification (git status must show clean tree)
-  - Updated limitations: rule #1 is auto-commit, rule #8 is honesty in documentation
+  - New principles: honesty, load, security, product mindset
+  - Checklist requires git status clean verification
 
-- **docs/future_development.md** — expanded with critical missing features
-  - 14 sections including new: Missing Math Models, Quantum Models, Broker Integration, Real HFT Features, AI Ideas section
-  - 80+ detailed ideas with priority, complexity, time estimates, dependencies, file paths
-  - New high priority items: HMM/GARCH/Kalman in Python, ML training, broker integration, DB leak prevention, auto-commit
-  - New quantum models: QAOA, VQE, quantum kernel, quantum MC, quantum annealing, QNN
-  - New broker integration: interface abstraction, Binance broker, Interactive Brokers, FIX real connection
-  - New real HFT: hardware timestamping, PTP, GPS, tick data, order book reconstruction, DMA
+- **docs/future_development.md** — expanded with deep audit findings
+  - New section 0: UI-only models → port to trading logic (40+ models with file mappings)
+  - New section 0b: Dead code (CUDA/ONNX) — enable or remove
+  - New section 0c: Models that don't exist at all (15 models)
+  - 80+ ideas total with priority, complexity, time estimates
 
 ### Changed
 
 - **.gitignore** — added internal documentation files
   - README_PROJECT_OVERVIEW.md
   - MASTER_DEVELOPMENT_PLAN.md
-  - These files are now excluded from public repo as internal planning documents
 
-### Audit Findings
+### Deep Audit Findings
 
-- **Documentation vs Reality gap identified:**
-  - Documents claimed 85% readiness — actual is ~65%
-  - Documents claimed 75+ math models — actual is ~15-20
-  - Documents claimed 34+ strategies — actual is 9
-  - Documents claimed 24+ indicators — actual is 8
-  - Quantum models: 0% (not mentioned as missing before)
-  - Broker integration: 5% (not mentioned as missing before)
-  - Real HFT features: 10% (not mentioned as missing before)
-  - ML models not trained (code exists, no trained weights)
+- **README.md badges are inflated:**
+  - "75+ math models" — ~36 in trading logic + ~40 UI-only (educational visualizations)
+  - "34+ strategies" — actually 16 (10 Python + 6 C++)
+  - "24+ indicators" — actually ~20
+  - "85% readiness" — actually ~60%
+  - "CUDA acceleration" — dead code, never compiled in CI
+  - "ONNX ML inference" — dead code, never compiled in CI
+  - "SVI/SABR volatility surface" — does NOT exist in code
+
+- **40+ models exist ONLY as UI components** (React .jsx), not in trading pipeline:
+  - GARCH, Kalman, Copula, Wavelet, Monte Carlo, Hawkes, Almgren-Chriss, SVM, PCA, K-Means, GMM, Autoencoder, VAE, Bayesian, HMC, Transfer Entropy, CCM, Girsanov, Renyi, Kolmogorov-Sinai, Information Bottleneck, Persistent Homology, Wasserstein, Sinkhorn, Schrodinger Bridge, Malliavin, Fokker-Planck, Ito, SDE, Graph Theory, Tensor Decomposition, Sobolev, Lax-Milgram, Riesz, Banach, Hahn, Cameron-Martin, Radon-Nikodym, Prokhorov, Renormalization Group, Free Energy, Lie Group, Burgers, Ehlers, Cesaro/Fejer, Hopf, Stone-Cech, Arzela-Ascoli, Optimal Stopping, Pontryagin, Stochastic Optimal Control, Cramer-Rao, Affine Arithmetic, Rough Volatility, VMD, EMD/HHT, DTW, Compressed Sensing, RKHS, Koopman, RMT
+
+- **15 models don't exist ANYWHERE** (not even as UI):
+  - Hurst exponent, VPIN, Kyle's Lambda, ZScore detector, Ornstein-Uhlenbeck, SVI/SABR, MAMA/FAMA, Hilbert Transform, Blahut-Arimoto, Bayesian Ridge, Welch PSD, CWT, EWMA volatility, Parkinson volatility, BOCPD
+
+- **CUDA/ONNX are dead code:**
+  - `gpu_accelerator.cu` — full kernels (RSI, EMA, Monte Carlo VaR, matrix mul) behind `#ifdef USE_CUDA`, never compiled
+  - `onnx_engine.h` — full ONNX Runtime API behind `#ifdef USE_ONNXRUNTIME`, never compiled
+
+- **ML models not trained:**
+  - LSTM, Transformer, RL — code exists, no trained weights
+  - LightGBM/XGBoost — optional imports with fallback, not installed
 
 ---
 
