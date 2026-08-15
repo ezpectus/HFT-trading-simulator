@@ -7,6 +7,7 @@
 ```
 .cascade/
 ├── README.md              — этот файл
+├── prompts.md             — готовые промпты для копирования в сессию
 ├── tasks/                 — ТЗ от пользователя (клади сюда .md файлы)
 ├── workflows/             — воркфлоу для AI
 │   ├── ai-monster-workflow.md   — полный автономный workflow (закон)
