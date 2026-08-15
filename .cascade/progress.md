@@ -10,6 +10,7 @@
 | 4 | 2026-08-15 | Consolidate workflow folders (.windsurf + .devin → .cascade) | 🔄 In Progress | — |
 | 5 | 2026-08-16 | Scan exchange_simulator/ source files — found & fixed 10 bugs (#066-#075) | ✅ Done | 268e858 |
 | 6 | 2026-08-16 | Scan ai-signal-bot/src/ source files — found & fixed 7 bugs (#076-#082) | ✅ Done | fa25ec5 |
+| 7 | 2026-08-16 | Scan ai-signal-bot/src/risk,ml,research — found & fixed 5 bugs (#083-#087) | ✅ Done | d83020e |
 
 ## Bug Fix Progress
 
@@ -32,6 +33,11 @@
 | #080 | RL agent info['trade_count'] KeyError on empty info dict | ✅ Fixed | fa25ec5 | 2026-08-16 |
 | #081 | Backtester annualization uses 252 (stock days) instead of 365 (crypto) | ✅ Fixed | fa25ec5 | 2026-08-16 |
 | #082 | BacktestEngine annualization uses 252 (stock days) instead of 365 (crypto) | ✅ Fixed | fa25ec5 | 2026-08-16 |
+| #083 | market_making.py volatility annualization uses 252 instead of 365 (crypto 24/7) | ✅ Fixed | d83020e | 2026-08-16 |
+| #084 | position_sizing.py volatility annualization uses 252 instead of 365 in 2 methods | ✅ Fixed | d83020e | 2026-08-16 |
+| #085 | kelly.py from_trade_history counts break-even (pnl=0) as losses | ✅ Fixed | d83020e | 2026-08-16 |
+| #086 | risk/portfolio_optimizer.py annualization uses 252 instead of 365 in 5 places | ✅ Fixed | d83020e | 2026-08-16 |
+| #087 | position_sizing.py adjust_for_correlation includes self-correlation (diag=1.0) | ✅ Fixed | d83020e | 2026-08-16 |
 
 ## Proposals
 
