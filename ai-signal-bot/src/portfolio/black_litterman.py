@@ -84,7 +84,8 @@ class BlackLittermanModel:
         for i, view in enumerate(views):
             # View uncertainty = tau * P * Sigma * P^T / confidence
             view_cov = self.tau * np.dot(P[i:i+1], np.dot(cov_matrix, P[i:i+1].T))
-            Omega[i, i] = view_cov[0, 0] / view.confidence
+            safe_confidence = max(view.confidence, 1e-10)
+            Omega[i, i] = view_cov[0, 0] / safe_confidence
         
         # Calculate posterior returns
         # mu_BL = [(tau * Sigma)^-1 + P^T * Omega^-1 * P]^-1 * [(tau * Sigma)^-1 * pi + P^T * Omega^-1 * Q]

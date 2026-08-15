@@ -103,8 +103,8 @@ class PortfolioOptimizer:
         def neg_sharpe(weights: np.ndarray) -> float:
             port_return = np.dot(weights, mean_returns)
             port_vol = np.sqrt(weights @ cov_matrix @ weights)
-            if port_vol == 0:
-                return 0
+            if port_vol < 1e-10:
+                return 1e6
             return -(port_return - self.risk_free_rate) / port_vol
 
         constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1.0}]
@@ -164,8 +164,8 @@ class PortfolioOptimizer:
 
         def risk_contribution_objective(weights: np.ndarray) -> float:
             port_vol = np.sqrt(weights @ cov_matrix @ weights)
-            if port_vol == 0:
-                return 0
+            if port_vol < 1e-10:
+                return 1e6
             marginal = cov_matrix @ weights
             contribution = weights * marginal / port_vol
             target = port_vol / n_assets
@@ -247,8 +247,8 @@ class PortfolioOptimizer:
         def neg_sharpe(weights: np.ndarray) -> float:
             port_return = np.dot(weights, bl_returns)
             port_vol = np.sqrt(weights @ bl_cov @ weights)
-            if port_vol == 0:
-                return 0
+            if port_vol < 1e-10:
+                return 1e6
             return -(port_return - self.risk_free_rate) / port_vol
 
         constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1.0}]

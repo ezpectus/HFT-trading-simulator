@@ -1335,6 +1335,39 @@
 
 ---
 
+## Bug #146 — markowitz.py objective returns -0 for zero-volatility portfolios
+
+- **Location:** `ai-signal-bot/src/portfolio/markowitz.py:126`
+- **Severity:** Medium
+- **Root Cause:** In `optimize_portfolio`, when maximizing Sharpe ratio (no `target_return`, no `min_variance`), the objective function has `return -portfolio_volatility if portfolio_volatility == 0 else -(portfolio_return - self.risk_free_rate) / portfolio_volatility`. When `portfolio_volatility == 0`, this returns `-0.0` (i.e., 0.0), which is the **minimum** possible value of the objective. The SLSQP optimizer interprets lower values as better, so it actively converges toward zero-volatility (degenerate) portfolios — putting all weight in a single asset with zero historical variance, or in assets that perfectly cancel out.
+- **Impact:** Optimizer produces degenerate portfolios with all weight concentrated in one asset when historical variance is near-zero. This leads to concentrated, non-diversified portfolios that are extremely risky in practice.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `return -portfolio_volatility` with `return 1e6` (a large positive penalty) when `portfolio_volatility < 1e-10`, making the optimizer avoid zero-volatility solutions instead of seeking them.
+
+---
+
+## Bug #147 — black_litterman.py division by zero when view confidence is 0
+
+- **Location:** `ai-signal-bot/src/portfolio/black_litterman.py:87`
+- **Severity:** Low
+- **Root Cause:** `incorporate_views` computes `Omega[i, i] = view_cov[0, 0] / view.confidence`. When `view.confidence` is 0, this causes a `ZeroDivisionError` (or produces `inf` in numpy, which propagates through the matrix inversions and corrupts the posterior returns).
+- **Impact:** Crash or `NaN`/`inf` propagation when an investor view has zero confidence. The Black-Litterman model becomes unusable.
+- **Status:** ✅ Fixed
+- **Fix:** Floored `view.confidence` with `max(view.confidence, 1e-10)` before division. When confidence is near-zero, the Omega value becomes very large, making the view irrelevant in the posterior — which is the correct economic interpretation of zero confidence.
+
+---
+
+## Bug #148 — portfolio_optimizer.py zero-volatility returns 0 in three objective functions
+
+- **Location:** `ai-signal-bot/src/strategies/portfolio_optimizer.py:106-107, 167-168, 250-251`
+- **Severity:** Medium
+- **Root Cause:** Three separate objective functions (`_markowitz`'s `neg_sharpe`, `_risk_parity`'s `risk_contribution_objective`, and `black_litterman`'s `neg_sharpe`) all return `0` when `port_vol == 0`. For Sharpe maximization (minimizing negative Sharpe), `0` is the best possible value, so the optimizer actively seeks zero-volatility degenerate portfolios. For risk parity, `0` means perfect risk equality (vacuously true when all risks are zero), again encouraging degenerate solutions.
+- **Impact:** Three different portfolio optimization methods can produce degenerate concentrated portfolios when historical covariance has zero or near-zero eigenvalues. This affects Markowitz, risk parity, and Black-Litterman optimization.
+- **Status:** ✅ Fixed
+- **Fix:** All three instances now return `1e6` (large positive penalty) when `port_vol < 1e-10`, making the optimizer avoid zero-volatility solutions. Changed exact `== 0` comparison to `< 1e-10` for floating-point safety.
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

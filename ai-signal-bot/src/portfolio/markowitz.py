@@ -123,7 +123,9 @@ class MarkowitzOptimizer:
                     return portfolio_volatility
                 else:
                     # Maximize Sharpe ratio (minimize negative Sharpe)
-                    return -portfolio_volatility if portfolio_volatility == 0 else -(portfolio_return - self.risk_free_rate) / portfolio_volatility
+                    if portfolio_volatility < 1e-10:
+                        return 1e6  # Penalize zero-volatility (degenerate) portfolios
+                    return -(portfolio_return - self.risk_free_rate) / portfolio_volatility
             
             # Constraints
             constraints = []
