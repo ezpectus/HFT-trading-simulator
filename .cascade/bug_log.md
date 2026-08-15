@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 38 |
+| ✅ Fixed | 39 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **77** |
+| **TOTAL FOUND** | **78** |
 
 ---
 
@@ -897,6 +897,16 @@
 - **Root Cause:** `compute_trade_intensity` calculates `duration = max(timestamps[-1] - timestamps[1], 1)` using `timestamps[1]` (second trade) instead of `timestamps[0]` (first trade). This excludes the first trade from the duration calculation, underestimating the total time window and overestimating the trade arrival rate.
 - **Status:** ✅ Fixed
 - **Fix:** Changed `timestamps[1]` to `timestamps[0]` so the duration spans from the first to the last trade.
+
+---
+
+## Bug #104 — TelegramNotifier and DiscordNotifier create asyncio tasks without storing references (GC risk)
+
+- **Location:** `ai-signal-bot/src/notification/notifier.py:74, 184`
+- **Severity:** High
+- **Root Cause:** Both `TelegramNotifier.start()` and `DiscordNotifier.start()` call `asyncio.create_task()` without storing the returned task reference. Python's asyncio only holds a weak reference to tasks, so the garbage collector can destroy the task before it completes, silently dropping the polling loop. Additionally, `stop()` doesn't cancel the polling task, so it keeps running after the notifier is supposed to be stopped.
+- **Status:** ✅ Fixed
+- **Fix:** Added `self._poll_task` attribute to both classes. Store the task reference in `start()`. In `stop()`, cancel the task and await its cancellation before closing the session.
 
 ---
 

@@ -54,6 +54,7 @@ class TelegramNotifier:
         self.chat_id = chat_id
         self._running = False
         self._session = None
+        self._poll_task: asyncio.Task | None = None
         self._command_handlers: dict[str, Callable] = {}
 
     def register_command(self, command: str, handler: Callable[[str], Awaitable[str]]):
@@ -71,10 +72,16 @@ class TelegramNotifier:
         logger.info("[TelegramNotifier] Started")
 
         # Start polling for updates (getUpdates)
-        asyncio.create_task(self._poll_updates())
+        self._poll_task = asyncio.create_task(self._poll_updates())
 
     async def stop(self):
         self._running = False
+        if self._poll_task:
+            self._poll_task.cancel()
+            try:
+                await self._poll_task
+            except asyncio.CancelledError:
+                pass
         if self._session:
             await self._session.close()
 
@@ -165,6 +172,7 @@ class DiscordNotifier:
         self._running = False
         self._ws = None
         self._session = None
+        self._poll_task: asyncio.Task | None = None
         self._command_handlers: dict[str, Callable] = {}
 
     def register_command(self, command: str, handler: Callable[[str], Awaitable[str]]):
@@ -181,10 +189,16 @@ class DiscordNotifier:
         self._session = aiohttp.ClientSession()
         logger.info("[DiscordNotifier] Started")
 
-        asyncio.create_task(self._poll_messages())
+        self._poll_task = asyncio.create_task(self._poll_messages())
 
     async def stop(self):
         self._running = False
+        if self._poll_task:
+            self._poll_task.cancel()
+            try:
+                await self._poll_task
+            except asyncio.CancelledError:
+                pass
         if self._ws:
             await self._ws.close()
         if self._session:
