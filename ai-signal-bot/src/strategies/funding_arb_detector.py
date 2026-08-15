@@ -127,7 +127,12 @@ class FundingRateArbitrageDetector:
         # Filter by confidence
         filtered = [o for o in opportunities if o.confidence >= self.min_confidence]
 
-        # Update active opportunities
+        # Update active opportunities: remove stale, add new
+        new_keys = {f"{o.type.value}:{o.symbol}:{','.join(o.exchanges)}" for o in filtered}
+        stale_keys = set(self._active_opportunities.keys()) - new_keys
+        for key in stale_keys:
+            del self._active_opportunities[key]
+
         for opp in filtered:
             key = f"{opp.type.value}:{opp.symbol}:{','.join(opp.exchanges)}"
             self._active_opportunities[key] = opp

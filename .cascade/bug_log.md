@@ -1258,6 +1258,50 @@
 
 ---
 
+## Bug #139 — ml_ensemble.py HMMRegimeDetector refits on every update once deque is full
+
+- **Location:** `ai-signal-bot/src/strategies/ml_ensemble.py:287-289`
+- **Severity:** High
+- **Root Cause:** `HMMRegimeDetector.update` uses `len(self._returns) % 50 == 0` to trigger periodic refitting. The deque has `maxlen=500`. Once it fills to 500 elements, `len()` stays at 500 permanently, and `500 % 50 == 0` is always True. This causes `_fit()` — an O(n) operation involving sorting 500 returns and classifying each one — to execute on every single `update()` call, turning a periodic maintenance task into a per-tick bottleneck in the ML prediction hot path.
+- **Impact:** Severe performance degradation in the ML ensemble strategy. Every candle update triggers a full HMM refit (O(n) sort + classify), potentially blocking signal generation and adding significant latency to the prediction pipeline.
+- **Status:** ✅ Fixed
+- **Fix:** Added a separate `_update_count` counter that increments on every `update()` call and is never capped by deque maxlen. Changed the refit condition from `len(self._returns) % 50 == 0` to `self._update_count % 50 == 0`, ensuring refitting only happens every 50 updates regardless of deque state.
+
+---
+
+## Bug #140 — cross_exchange_arb.py stop() doesn't cancel pending arbitrage tasks
+
+- **Location:** `ai-signal-bot/src/strategies/cross_exchange_arb.py:136-137`
+- **Severity:** High
+- **Root Cause:** `stop()` only sets `self._running = False` to stop the monitor loops, but does not cancel or await pending `_execute_arbitrage` tasks. These tasks are created via `asyncio.create_task` and stored in `_pending_tasks`. After `stop()` returns, these tasks continue running in the background, potentially placing real orders on exchanges after the engine is supposed to be shut down.
+- **Impact:** Orphaned orders on exchanges during shutdown. In a trading system, this can lead to unhedged positions, unexpected exposure, and financial loss. The arbitrage engine may execute one leg of a trade after the operator has issued a stop command.
+- **Status:** ✅ Fixed
+- **Fix:** `stop()` now cancels all pending tasks in `_pending_tasks` and awaits their completion with `asyncio.gather(..., return_exceptions=True)` to ensure clean shutdown. The `_pending_tasks` set is cleared afterward.
+
+---
+
+## Bug #141 — var.py mutable default argument in calculate_var_at_multiple_levels
+
+- **Location:** `ai-signal-bot/src/risk/var.py:140`
+- **Severity:** Low
+- **Root Cause:** `calculate_var_at_multiple_levels` has `confidence_levels: List[float] = [0.95, 0.99, 0.999]` as a default argument. In Python, mutable default arguments are created once at function definition time and shared across all calls. If any caller modifies the list (e.g., `confidence_levels.append(0.9999)`), the modification persists and affects all subsequent calls that use the default.
+- **Impact:** Incorrect VaR calculations if the default list is mutated. Risk management decisions could be based on wrong confidence levels.
+- **Status:** ✅ Fixed
+- **Fix:** Changed the default to `None` and create a new list `[0.95, 0.99, 0.999]` inside the function body when `confidence_levels is None`.
+
+---
+
+## Bug #142 — funding_arb_detector.py stale opportunities never removed from _active_opportunities
+
+- **Location:** `ai-signal-bot/src/strategies/funding_arb_detector.py:130-134`
+- **Severity:** Medium
+- **Root Cause:** `detect()` adds newly detected opportunities to `_active_opportunities` but never removes opportunities that are no longer detected (e.g., funding rate dropped below threshold, spread widened beyond max). The `get_active_opportunities()` method returns all entries ever added, including stale ones that no longer represent valid arbitrage opportunities.
+- **Impact:** Operators see stale arbitrage opportunities that no longer exist, potentially leading to incorrect trading decisions. The active opportunity count grows monotonically, misrepresenting the current market state.
+- **Status:** ✅ Fixed
+- **Fix:** Before adding new opportunities, compute the set of new keys and remove any keys in `_active_opportunities` that are not in the new set. This ensures `get_active_opportunities()` only returns currently valid opportunities.
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

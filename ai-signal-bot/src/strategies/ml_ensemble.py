@@ -278,13 +278,15 @@ class HMMRegimeDetector:
         self.state_vars = np.ones(n_states)
         self._returns: deque[float] = deque(maxlen=500)
         self._fitted = False
+        self._update_count: int = 0
 
     def update(self, ret: float) -> int:
         """Update with new return, return current regime index."""
         self._returns.append(ret)
+        self._update_count += 1
         if len(self._returns) >= 100 and not self._fitted:
             self._fit()
-        elif self._fitted and len(self._returns) % 50 == 0:
+        elif self._fitted and self._update_count % 50 == 0:
             self._fit()
 
         if self._fitted:

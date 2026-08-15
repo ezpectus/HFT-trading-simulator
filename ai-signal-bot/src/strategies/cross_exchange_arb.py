@@ -135,6 +135,11 @@ class CrossExchangeArbEngine:
 
     async def stop(self) -> None:
         self._running = False
+        for task in list(self._pending_tasks):
+            task.cancel()
+        if self._pending_tasks:
+            await asyncio.gather(*self._pending_tasks, return_exceptions=True)
+        self._pending_tasks.clear()
 
     def update_price(self, symbol: str, exchange: str, price: ExchangePrice) -> None:
         """Update price quote from an exchange."""

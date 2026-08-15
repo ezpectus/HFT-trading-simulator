@@ -137,7 +137,7 @@ class VaRCalculator:
         )
     
     def calculate_var_at_multiple_levels(self, returns: np.ndarray,
-                                        confidence_levels: List[float] = [0.95, 0.99, 0.999],
+                                        confidence_levels: Optional[List[float]] = None,
                                         method: str = 'historical') -> Dict[float, VaRResult]:
         """
         Calculate VaR at multiple confidence levels.
@@ -150,6 +150,9 @@ class VaRCalculator:
         Returns:
             Dictionary mapping confidence levels to VaR results
         """
+        if confidence_levels is None:
+            confidence_levels = [0.95, 0.99, 0.999]
+        
         results = {}
         
         for cl in confidence_levels:
