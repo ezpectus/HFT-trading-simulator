@@ -38,130 +38,6 @@ from cachetools import TTLCache
 logger = logging.getLogger("exchange_simulator.price_feed")
 
 
-def time_operation(func):
-    """Decorator to time operations and record latency."""
-    @functools.wraps(func)
-    async def wrapper(self, *args, **kwargs):
-        if hasattr(self, '_metrics') and self._metrics:
-            start = time.perf_counter()
-            try:
-                result = await func(self, *args, **kwargs)
-                latency_ms = (time.perf_counter() - start) * 1000
-                self._metrics.record_latency(func.__name__, latency_ms)
-                return result
-            except Exception as e:
-                latency_ms = (time.perf_counter() - start) * 1000
-                self._metrics.record_error(func.__name__, str(e))
-                raise
-        return await func(self, *args, **kwargs)
-    return wrapper
-
-
-class PerformanceMetrics:
-    """Tracks performance metrics for price feed operations."""
-    
-    def __init__(self):
-        self.fetch_latencies: list[float] = []
-        self.parse_latencies: list[float] = []
-        self.cache_hits: int = 0
-        self.cache_misses: int = 0
-        self.failover_count: int = 0
-        self.api_errors: dict[str, int] = defaultdict(int)
-        self.max_samples: int = 10000
-    
-    def record_latency(self, operation: str, latency_ms: float) -> None:
-        """Record a latency measurement."""
-        if operation.startswith('fetch'):
-            self._add_sample(self.fetch_latencies, latency_ms)
-        elif operation.startswith('parse'):
-            self._add_sample(self.parse_latencies, latency_ms)
-    
-    def _add_sample(self, samples: list[float], value: float) -> None:
-        """Add a sample to the list, maintaining max size."""
-        samples.append(value)
-        if len(samples) > self.max_samples:
-            samples.pop(0)
-    
-    def record_cache_hit(self) -> None:
-        """Record a cache hit."""
-        self.cache_hits += 1
-    
-    def record_cache_miss(self) -> None:
-        """Record a cache miss."""
-        self.cache_misses += 1
-    
-    def record_failover(self) -> None:
-        """Record a failover event."""
-        self.failover_count += 1
-    
-    def record_error(self, api_name: str, error: str) -> None:
-        """Record an API error."""
-        self.api_errors[api_name] += 1
-    
-    def get_fetch_p50(self) -> float:
-        """Get p50 fetch latency."""
-        return self._percentile(self.fetch_latencies, 50) if self.fetch_latencies else 0.0
-    
-    def get_fetch_p95(self) -> float:
-        """Get p95 fetch latency."""
-        return self._percentile(self.fetch_latencies, 95) if self.fetch_latencies else 0.0
-    
-    def get_fetch_p99(self) -> float:
-        """Get p99 fetch latency."""
-        return self._percentile(self.fetch_latencies, 99) if self.fetch_latencies else 0.0
-    
-    def get_parse_p50(self) -> float:
-        """Get p50 parse latency."""
-        return self._percentile(self.parse_latencies, 50) if self.parse_latencies else 0.0
-    
-    def get_parse_p95(self) -> float:
-        """Get p95 parse latency."""
-        return self._percentile(self.parse_latencies, 95) if self.parse_latencies else 0.0
-    
-    def get_parse_p99(self) -> float:
-        """Get p99 parse latency."""
-        return self._percentile(self.parse_latencies, 99) if self.parse_latencies else 0.0
-    
-    def _percentile(self, data: list[float], p: int) -> float:
-        """Calculate percentile."""
-        if not data:
-            return 0.0
-        sorted_data = sorted(data)
-        k = (len(sorted_data) - 1) * (p / 100)
-        f = int(k)
-        c = f + 1 if f + 1 < len(sorted_data) else f
-        return sorted_data[f] + (k - f) * (sorted_data[c] - sorted_data[f])
-    
-    def get_cache_hit_rate(self) -> float:
-        """Get cache hit rate as percentage."""
-        total = self.cache_hits + self.cache_misses
-        return (self.cache_hits / total * 100) if total > 0 else 0.0
-    
-    def get_metrics(self) -> dict:
-        """Get all performance metrics as a dictionary."""
-        return {
-            "fetch_latency_ms": {
-                "p50": self.get_fetch_p50(),
-                "p95": self.get_fetch_p95(),
-                "p99": self.get_fetch_p99(),
-                "samples": len(self.fetch_latencies)
-            },
-            "parse_latency_ms": {
-                "p50": self.get_parse_p50(),
-                "p95": self.get_parse_p95(),
-                "p99": self.get_parse_p99(),
-                "samples": len(self.parse_latencies)
-            },
-            "cache": {
-                "hits": self.cache_hits,
-                "misses": self.cache_misses,
-                "hit_rate_pct": self.get_cache_hit_rate()
-            },
-            "failover_count": self.failover_count,
-            "api_errors": dict(self.api_errors)
-        }
-
-
 class APIStatus(Enum):
     """Status of an API connection."""
     HEALTHY = "healthy"
@@ -376,6 +252,7 @@ class BasePriceAPI(ABC):
         self._health = APIHealth(APIStatus.HEALTHY, time.time())
         self._connection_pool_size = connection_pool_size
         self._connection_timeout = connection_timeout
+        self._session: aiohttp.ClientSession | None = None
 
     async def get_session(self) -> aiohttp.ClientSession:
         """Get or create HTTP session with connection pooling."""
@@ -767,6 +644,7 @@ class PriceFeedManager:
 
         # MessagePack configuration for binary serialization
         self._use_msgpack = self.config.get("use_msgpack", False)
+        self._cache_warm_on_startup = self.config.get("cache_warm_on_startup", False)
 
         # Initialize APIs in priority order
         self._apis = [
@@ -793,7 +671,12 @@ class PriceFeedManager:
     def get_connection_pool_stats(self) -> dict:
         """Get connection pool statistics for all APIs."""
         return {
-            api.name: api.get_connection_pool_stats() for api in self._apis
+            api.name: {
+                "pool_size": api._connection_pool_size,
+                "timeout": api._connection_timeout,
+                "session_active": api._session is not None and not api._session.closed if api._session else False,
+            }
+            for api in self._apis
         }
 
     def get_cached_price(self, symbol: str) -> PriceTick | None:
@@ -894,7 +777,7 @@ class PriceFeedManager:
             except Exception as e:
                 logger.error(f"API {api.name} failed for {symbol}: {e}")
                 if self._metrics:
-                    self._metrics.record_error(api.name, str(e))
+                    self._metrics.record_api_error(api.name)
                 if i > 0 and self._metrics:
                     self._metrics.record_failover()
 
@@ -928,54 +811,6 @@ class PriceFeedManager:
                     break
             except Exception as e:
                 logger.error(f"Failed to populate cache from {api.name}: {e}")
-
-    def get_cached_price(self, symbol: str) -> PriceTick | None:
-        """Get price from cache if available and not expired."""
-        try:
-            return self._cache[symbol]
-        except KeyError:
-            return None
-
-    def cache_price(self, symbol: str, price_data: PriceTick) -> None:
-        """Cache price data with automatic TTL."""
-        self._cache[symbol] = price_data
-        self._last_cache_update[symbol] = time.time()
-
-    def get_cache_stats(self) -> dict:
-        """Get cache statistics."""
-        return {
-            "size": len(self._cache),
-            "max_size": self._cache.maxsize,
-            "ttl": self._cache.ttl,
-            "hits": self._metrics.cache_hits if self._metrics else 0,
-            "misses": self._metrics.cache_misses if self._metrics else 0,
-            "hit_rate": self._metrics.get_cache_hit_rate() if self._metrics else 0.0,
-        }
-
-    def clear_cache(self) -> None:
-        """Clear the cache."""
-        self._cache.clear()
-        self._last_cache_update.clear()
-
-    async def warm_cache(self, symbols: list[str] | None = None) -> None:
-        """Warm the cache by fetching prices for all symbols."""
-        symbols_to_warm = symbols or self.symbols
-        logger.info(f"Warming cache for {len(symbols_to_warm)} symbols")
-        
-        # Use batch fetch for efficiency
-        primary_api = self._apis[0]
-        if primary_api.health.status != APIStatus.DOWN:
-            try:
-                # Split into batches to avoid rate limits
-                batch_size = 20
-                for i in range(0, len(symbols_to_warm), batch_size):
-                    batch = symbols_to_warm[i : i + batch_size]
-                    prices = await primary_api.get_prices(batch)
-                    for symbol, tick in prices.items():
-                        self.cache_price(symbol, tick)
-                logger.info(f"Cache warmed for {len(symbols_to_warm)} symbols")
-            except Exception as e:
-                logger.error(f"Failed to warm cache: {e}")
 
     async def _on_price_update(self, tick: PriceTick) -> None:
         """Handle price update from WebSocket."""
@@ -1034,18 +869,6 @@ class PriceFeedManager:
                     logger.error(f"Fallback API batch fetch failed: {e}")
         
         return result
-
-    def get_health_status(self) -> dict[str, dict]:
-        """Get health status of all APIs."""
-        return {
-            api.name: {
-                "status": api.health.status.value,
-                "last_success": api.health.last_success,
-                "last_error": api.health.last_error,
-                "error_count": api.health.error_count,
-            }
-            for api in self._apis
-        }
 
     def get_metrics(self) -> dict | None:
         """Get performance metrics if profiling is enabled."""
