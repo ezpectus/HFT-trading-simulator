@@ -425,7 +425,7 @@ All sidebar analytic/strategy panels are registered in `src/panels/registry.js` 
 
 - **Zero-touch extensibility** — Adding a panel = 1 entry in registry.js, 0 changes to App.jsx
 - **Categorized rendering** — 7 categories: Order Flow, Technical Analysis, Risk and Analytics, Portfolio, Strategy, Export, Config
-- **197 registered panels** — 223 component files across all categories
+- **197 registered panels** — 227 component files across all categories
 - **User-toggleable visibility** — Each panel can be shown/hidden, persisted in localStorage
 - **Collapsible categories** — Users can collapse entire sections
 - **ErrorBoundary + Suspense** — Each panel wrapped in ErrorBoundary and Suspense (triple protection)
