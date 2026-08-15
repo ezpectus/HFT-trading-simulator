@@ -9,6 +9,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-016]** `ai-signal-bot/src/ml/rl_agent.py` — `DQNAgent.replay()` checked `len(memory) < batch_size` before `batch_size` was assigned from config when `None`, causing `TypeError`. Fixed by swapping guard clause order.
 - **[BUG-017]** `ai-signal-bot/src/portfolio/markowitz.py` — `calculate_minimum_variance_portfolio` was maximizing Sharpe ratio instead of minimizing variance. Added `min_variance` parameter to `optimize_portfolio` and fixed Sharpe ratio calculation to use `risk_free_rate`.
 - **[BUG-018]** `exchange_simulator/websocket_server.py` — `_publish_shm_snapshot()` used single-level dict lookup (`prices.get(sym)`) but `get_all_prices()` returns nested `{exchange: {symbol: price}}`. SHM market data publisher never sent any price data to C++ HFT bot. Fixed by flattening using first exchange.
+- **[BUG-019]** `exchange_simulator/audit_logger.py` — `get_logs_by_session()` passed `session_id` kwarg to `get_logs()` which didn't have that parameter, causing `TypeError`. Fixed by adding `session_id` parameter to `get_logs()`.
 
 ### Documentation Corrections (v4.1 — cross-checked every claim against code)
 

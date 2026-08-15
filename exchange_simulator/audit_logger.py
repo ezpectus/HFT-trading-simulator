@@ -133,6 +133,7 @@ class AuditLogger:
         exchange: str | None = None,
         symbol: str | None = None,
         user_id: str | None = None,
+        session_id: str | None = None,
         order_id: str | None = None,
         position_id: str | None = None,
         start_time: int | None = None,
@@ -152,6 +153,8 @@ class AuditLogger:
             logs = [log for log in logs if log.symbol == symbol]
         if user_id:
             logs = [log for log in logs if log.user_id == user_id]
+        if session_id:
+            logs = [log for log in logs if log.session_id == session_id]
         if order_id:
             logs = [log for log in logs if log.order_id == order_id]
         if position_id:
