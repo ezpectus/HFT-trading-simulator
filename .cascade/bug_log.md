@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 90 |
+| ✅ Fixed | 91 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **127** |
+| **TOTAL FOUND** | **128** |
 
 ---
 
@@ -1598,6 +1598,18 @@
 - **Impact:** Take profit orders are placed on the losing side of the trade. Positions would need to move against the signal direction to hit TP, meaning profitable trades never exit at TP and losing trades hit TP instead.
 - **Status:** ✅ Fixed
 - **Fix:** Swapped the take_profit signs: SHORT now uses `price_a - exit_z * spread_std` (below entry), LONG now uses `price_a + exit_z * spread_std` (above entry).
+
+---
+
+### Bug #170 — MarketMakingStrategy.on_fill PnL wrong when inventory crosses zero
+
+- **File:** `ai-signal-bot/src/strategies/market_making.py:173-185`
+- **Category:** Logic Bug / Financial Model Bug
+- **Severity:** High
+- **Root Cause:** `on_fill` always treated SELL as closing a long position (PnL = `qty * (price - avg_entry_price)`) and never calculated PnL on BUY. When inventory was negative (short), SELL added to the short but incorrectly recorded PnL. BUY covered a short but didn't record PnL. When a fill caused inventory to cross zero (e.g., long 1, SELL 2), the full qty was used for PnL instead of splitting into close + open portions.
+- **Impact:** Incorrect PnL reporting, stale avg_entry_price after position flips, wrong strategy evaluation. A SELL of 2 when long 1 @ 100 at price 105 recorded PnL=10 instead of 5, and the remaining short unit had no entry price tracked.
+- **Status:** ✅ Fixed
+- **Fix:** Rewrote `on_fill` to check inventory direction before processing. Splits fills that cross zero into closing portion (realizes PnL) and opening portion (updates avg_entry_price for new direction). BUY covering short: PnL = `close_qty * (avg_entry - price)`. SELL closing long: PnL = `close_qty * (price - avg_entry)`. Adding to short: updates avg_entry_price using weighted average of previous short size.
 
 ---
 

@@ -171,17 +171,45 @@ class MarketMakingStrategy:
         )
 
     def on_fill(self, side: str, qty: float, price: float) -> None:
-        """Record a fill and update realized PnL using average cost basis."""
+        """Record a fill and update realized PnL using average cost basis.
+
+        Handles position direction changes (inventory crossing zero) by
+        splitting the fill into a closing portion (realizes PnL) and an
+        opening portion (updates avg_entry_price for the new direction).
+        """
         if side == "BUY":
-            total_cost = self._avg_entry_price * self.inventory + price * qty
-            self.inventory += qty
-            if self.inventory != 0:
-                self._avg_entry_price = total_cost / self.inventory
-        else:
-            self.total_pnl += qty * (price - self._avg_entry_price)
-            self.inventory -= qty
-            if abs(self.inventory) < 1e-12:
-                self._avg_entry_price = 0.0
+            if self.inventory < 0:
+                close_qty = min(qty, -self.inventory)
+                self.total_pnl += close_qty * (self._avg_entry_price - price)
+                self.inventory += close_qty
+                remaining = qty - close_qty
+                if remaining > 0:
+                    self.inventory += remaining
+                    self._avg_entry_price = price
+                elif abs(self.inventory) < 1e-12:
+                    self._avg_entry_price = 0.0
+            else:
+                total_cost = self._avg_entry_price * self.inventory + price * qty
+                self.inventory += qty
+                if self.inventory != 0:
+                    self._avg_entry_price = total_cost / self.inventory
+        else:  # SELL
+            if self.inventory > 0:
+                close_qty = min(qty, self.inventory)
+                self.total_pnl += close_qty * (price - self._avg_entry_price)
+                self.inventory -= close_qty
+                remaining = qty - close_qty
+                if remaining > 0:
+                    self.inventory -= remaining
+                    self._avg_entry_price = price
+                elif abs(self.inventory) < 1e-12:
+                    self._avg_entry_price = 0.0
+            else:
+                prev_short = abs(self.inventory)
+                total_cost = self._avg_entry_price * prev_short + price * qty
+                self.inventory -= qty
+                if self.inventory != 0:
+                    self._avg_entry_price = total_cost / abs(self.inventory)
         self.fill_count += 1
 
     def analyze(self, symbol: str, candles: list[dict]) -> Signal:

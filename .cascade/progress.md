@@ -44,7 +44,8 @@
 | #166 | FIX ResendRequest skips all resent messages (incoming_seq incremented past gap) | ✅ Fixed | 0b394fd | 2026-08-16 |
 | #167 | rl_trader.py NUM_ACTIONS=4 but TradingEnv only supports 3 actions | ✅ Fixed | — | 2026-08-16 |
 | #168 | Parametric VaR/CVaR scales mean by √t instead of t (incorrect multi-day risk) | ✅ Fixed | b723a6f | 2026-08-16 |
-| #169 | Statistical arbitrage take_profit on wrong side for both LONG and SHORT | ✅ Fixed | — | 2026-08-16 |
+| #169 | Statistical arbitrage take_profit on wrong side for both LONG and SHORT | ✅ Fixed | 69c749d | 2026-08-16 |
+| #170 | MarketMakingStrategy.on_fill PnL wrong when inventory crosses zero | ✅ Fixed | — | 2026-08-16 |
 
 ## Proposals
 
