@@ -168,8 +168,49 @@ class SimulatedExchange:
 
         return filled_orders
 
+    def _check_margin(self, order: Order, fill_price: float) -> bool:
+        """Check if account has sufficient margin for an order.
+        
+        Returns True if margin is sufficient, False otherwise.
+        Sets order.rejection_reason if check fails.
+        """
+        notional = fill_price * order.quantity
+        fee = notional * self.fee_pct / 100
+        lev = self.account.leverage if self.account.leverage > 0 else 1
+        margin_required = notional / lev
+        if margin_required + fee > self.account.balance:
+            order.status = OrderStatus.REJECTED
+            order.rejection_reason = f"INSUFFICIENT_MARGIN (need ${margin_required:.2f}, have ${self.account.balance:.2f})"
+            self._order_history.append(order)
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_REJECTED,
+                exchange=self.exchange_id,
+                symbol=order.symbol,
+                order_id=order.id,
+                reason=order.rejection_reason,
+                metadata={"margin_required": margin_required, "balance": self.account.balance},
+            )
+            return False
+        max_notional = self.account.balance * self.account.leverage * 0.5
+        if notional > max_notional:
+            order.status = OrderStatus.REJECTED
+            order.rejection_reason = f"MAX_POSITION_SIZE (notional ${notional:.2f} > limit ${max_notional:.2f})"
+            self._order_history.append(order)
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_REJECTED,
+                exchange=self.exchange_id,
+                symbol=order.symbol,
+                order_id=order.id,
+                reason=order.rejection_reason,
+                metadata={"notional": notional, "max_notional": max_notional},
+            )
+            return False
+        return True
+
     def _execute_limit_order(self, order: Order, price: float) -> Order:
         """Execute a limit order at specified price (Phase 3 helper)."""
+        if not self._check_margin(order, price):
+            return order
         order.status = OrderStatus.FILLED
         order.filled_price = round(price, 2)
         order.filled_quantity = order.quantity
@@ -194,6 +235,8 @@ class SimulatedExchange:
 
     def _execute_market_order(self, order: Order, price: float) -> Order:
         """Execute a market order at current price (Phase 3 helper)."""
+        if not self._check_margin(order, price):
+            return order
         order.status = OrderStatus.FILLED
         order.filled_price = round(price, 2)
         order.filled_quantity = order.quantity
@@ -237,6 +280,10 @@ class SimulatedExchange:
         slice_order.filled_quantity = slice_qty
         notional = price * slice_qty
         slice_order.fee = round(notional * self.fee_pct / 100, 4)
+        
+        if not self._check_margin(slice_order, price):
+            order.hidden_quantity += slice_qty
+            return slice_order
         
         # Update account
         self.account.balance -= slice_order.fee
