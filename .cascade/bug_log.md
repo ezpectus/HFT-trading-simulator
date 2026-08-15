@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 19 |
+| ✅ Fixed | 20 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **58** |
+| **TOTAL FOUND** | **59** |
 
 ---
 
@@ -707,6 +707,16 @@
 - **Root Cause:** `dt = 1.0 / (252 * 24 * 60)` uses 252 stock market trading days, but this is a crypto trading system running 24/7/365. Using 252 overestimates the per-step dt, causing all microstructure price generation (Heston vol, Student-t returns, jumps) to be scaled incorrectly.
 - **Status:** ✅ Fixed
 - **Fix:** Changed `252` to `365` in the dt calculation.
+
+---
+
+## Bug #085 — FundingRateSimulator.compute_funding_payment missing mark_price multiplier
+
+- **Location:** `exchange_simulator/exchange_simulator/funding_rate.py:89-94`
+- **Severity:** High
+- **Root Cause:** `compute_funding_payment` calculates funding as `-position_qty * funding_rate`, but real exchanges compute funding as `position_value * funding_rate` where `position_value = qty * mark_price`. Without mark_price, a 1 BTC position at $50k with 0.01% funding pays $0.0001 instead of $5.00 — 500,000x underestimate.
+- **Status:** ✅ Fixed
+- **Fix:** Added `mark_price` parameter (default 0.0 for backward compatibility). When mark_price > 0, computes `-qty * mark_price * funding_rate`. Falls back to legacy behavior when mark_price is 0.
 
 ---
 

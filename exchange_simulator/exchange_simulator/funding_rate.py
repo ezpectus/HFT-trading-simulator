@@ -86,11 +86,18 @@ class FundingRateSimulator:
         logger.info(f"[FundingRate] {self.symbol} funding={rate:.6f} ({rate*100:.4f}%) at {funding_hour}:00 UTC")
         return event
 
-    def compute_funding_payment(self, position_qty: float, funding_rate: float) -> float:
+    def compute_funding_payment(self, position_qty: float, funding_rate: float,
+                                mark_price: float = 0.0) -> float:
         """Compute funding payment for a position.
         Negative = position pays, Positive = position receives.
         Long positions pay positive funding, short positions receive.
+
+        Funding payment = position_value * funding_rate
+        where position_value = position_qty * mark_price.
+        If mark_price is 0, falls back to qty * rate (legacy behavior).
         """
+        if mark_price > 0:
+            return -position_qty * mark_price * funding_rate
         return -position_qty * funding_rate
 
     def get_next_funding_time(self, current_time: float | None = None) -> float:
