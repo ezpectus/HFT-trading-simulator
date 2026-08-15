@@ -825,7 +825,7 @@ class SimulatedExchange:
                 # If balance went negative from liquidation, cover from insurance fund
                 if self.account.balance < 0:
                     deficit = abs(self.account.balance)
-                    self.insurance_fund += deficit
+                    self.insurance_fund -= deficit
                     self.account.balance = 0.0
             if self.account.trade_history:
                 self.account.trade_history[-1].reason = reason
