@@ -233,7 +233,10 @@ class ExchangeWebSocketServer:
         if not self._shm_market:
             return
         try:
-            prices = self.market.get_all_prices()
+            all_prices = self.market.get_all_prices()
+            # Flatten {exchange: {symbol: price}} → {symbol: price} using first exchange
+            first_ex = self.market.exchanges[0] if self.market.exchanges else None
+            prices = all_prices.get(first_ex, {}) if first_ex else {}
             for sym, sid in self._shm_symbol_ids.items():
                 price = prices.get(sym, 0.0)
                 if price <= 0:
