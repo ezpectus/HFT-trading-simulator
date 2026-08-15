@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 81 |
+| ✅ Fixed | 83 |
 | 🔄 In Progress | 0 |
-| ⏳ Pending Fix | 37 |
+| ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **118** |
+| **TOTAL FOUND** | **120** |
 
 ---
 
@@ -1486,6 +1486,28 @@
 - **Impact:** During the initial fill period (first 500 samples by default), OU parameter estimation (kappa, theta, sigma) uses zero-initialized data instead of actual residuals. This produces incorrect OU parameters, leading to wrong z-scores and mean reversion signals during startup.
 - **Status:** ✅ Fixed
 - **Fix:** Changed start calculation to check if buffer is full: `(write_idx_ >= ou_window) ? (write_idx_ % ou_window) : 0`.
+
+---
+
+## Bug #160 — maybeUpdatePosition uses BASE_PRICES instead of actual price for unrealized PnL
+
+- **Location:** `web-ui/src/utils/mockData.js:226-227`
+- **Severity:** Medium
+- **Root Cause:** In `maybeUpdatePosition`, the unrealized PnL loop uses `BASE_PRICES[sym]` (a static constant) instead of the actual current `price` parameter passed to the function. For the current symbol being updated, the actual market price is available as the `price` argument but is ignored. This means unrealized PnL for all positions always reflects the static base price, never the current market price.
+- **Impact:** Unrealized PnL and account equity in mock mode never update with market price changes. Positions appear to have constant PnL regardless of price movement, making the mock demo unrealistic.
+- **Status:** ✅ Fixed
+- **Fix:** Use `sym === symbol ? price : (BASE_PRICES[sym] || price)` to use the actual current price for the symbol being updated, while keeping BASE_PRICES as fallback for other symbols.
+
+---
+
+## Bug #161 — useMockExchangeData doesn't sync pricesRef with snapshot prices
+
+- **Location:** `web-ui/src/hooks/useMockData.js:47-50`
+- **Severity:** Low
+- **Root Cause:** In `useMockExchangeData`, the initial snapshot sets `setPrices(snapshot.prices)` (React state) but never sets `pricesRef.current` to `snapshot.prices`. The `pricesRef` is initialized to `{}` and remains empty until the first interval tick updates it. In the first interval tick, `pricesRef.current[key]` is undefined for all symbols, causing all prices to fall back to 100 instead of using the actual snapshot prices.
+- **Impact:** The first batch of mock candles after initialization uses price 100 as the starting price for all symbols instead of their actual snapshot prices (e.g., 65000 for BTC). This produces a sudden price jump from 100 to the real price on the first update.
+- **Status:** ✅ Fixed
+- **Fix:** Added `pricesRef.current = snapshot.prices` after `setPrices(snapshot.prices)` to sync the ref with the snapshot data.
 
 ---
 

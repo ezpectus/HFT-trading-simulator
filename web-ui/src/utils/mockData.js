@@ -223,8 +223,8 @@ export function maybeUpdatePosition(accounts, symbol, exchange, price) {
   // Update unrealized PnL for existing positions
   for (const sym in acct.positions) {
     const pos = acct.positions[sym]
-    const basePrice = BASE_PRICES[sym] || price
-    pos.unrealized_pnl = (basePrice - pos.entry_price) * pos.quantity * (pos.side === 'BUY' ? 1 : -1)
+    const currentPrice = sym === symbol ? price : (BASE_PRICES[sym] || price)
+    pos.unrealized_pnl = (currentPrice - pos.entry_price) * pos.quantity * (pos.side === 'BUY' ? 1 : -1)
   }
 
   acct.equity = acct.balance + Object.values(acct.positions).reduce((s, p) => s + p.unrealized_pnl, 0)

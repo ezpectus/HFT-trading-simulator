@@ -48,6 +48,7 @@ export function useMockExchangeData() {
     setAccounts(snapshot.accounts)
     setOrderbooks(snapshot.orderbooks)
     accountsRef.current = snapshot.accounts
+    pricesRef.current = snapshot.prices
 
     // Periodic updates every 2 seconds
     intervalRef.current = setInterval(() => {
