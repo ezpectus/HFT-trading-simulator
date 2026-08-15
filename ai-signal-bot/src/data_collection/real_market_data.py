@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import time
+from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
@@ -376,7 +377,7 @@ class RealMarketDataManager:
         self._feed = RealMarketDataFeed(exchanges=[exchange], testnet=testnet)
         self._tickers: dict[str, NormalizedTicker] = {}
         self._orderbooks: dict[str, NormalizedOrderBook] = {}
-        self._candles: dict[str, list[NormalizedCandle]] = {}
+        self._candles: dict[str, deque[NormalizedCandle]] = {}
         self._running = False
 
         async def _on_ticker(t: NormalizedTicker):
@@ -384,10 +385,11 @@ class RealMarketDataManager:
 
         async def _on_candle(c: NormalizedCandle):
             key = f"{c.symbol}:{c.interval}"
-            clist = self._candles.setdefault(key, [])
+            clist = self._candles.get(key)
+            if clist is None:
+                clist = deque(maxlen=1000)
+                self._candles[key] = clist
             clist.append(c)
-            if len(clist) > 1000:
-                clist.pop(0)
 
         async def _on_orderbook(ob: NormalizedOrderBook):
             self._orderbooks[ob.symbol] = ob

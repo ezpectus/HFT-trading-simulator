@@ -1225,6 +1225,17 @@
 
 ---
 
+## Bug #136 — real_market_data.py O(n) list.pop(0) in HFT candle callback
+
+- **Location:** `ai-signal-bot/src/data_collection/real_market_data.py:387-390`
+- **Severity:** Medium
+- **Root Cause:** `RealMarketDataManager._on_candle` uses a regular `list` for candle caching and calls `list.pop(0)` when the cache exceeds 1000 entries. `list.pop(0)` is O(n) because all remaining elements must be shifted left. In an HFT WebSocket data path receiving candle updates at high frequency, this causes latency spikes proportional to cache size (up to 1000 element shifts per candle).
+- **Impact:** Latency spikes on every candle update after cache fills to 1000 entries. In a multi-symbol HFT system, this can cause cascading delays affecting signal generation and order placement timing.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `list` with `collections.deque(maxlen=1000)` which provides O(1) append and automatic trimming when the maxlen is exceeded. Removed the manual `pop(0)` call entirely. Updated the type annotation from `dict[str, list[NormalizedCandle]]` to `dict[str, deque[NormalizedCandle]]`.
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

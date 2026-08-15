@@ -695,10 +695,10 @@ class TabbedVisualizer:
                 point_row = int((point_val - eq_min) / eq_range * spark_height) if eq_range > 0 else 0
                 point_row = max(0, min(spark_height, point_row))
 
-                if point_row == row:
-                    line += f"{line_color}●{self.RESET}"
-                elif point_row == row and i == n - 1:
+                if point_row == row and i == n - 1:
                     line += f"{line_color}◉{self.RESET}"
+                elif point_row == row:
+                    line += f"{line_color}●{self.RESET}"
                 else:
                     line += " "
 
