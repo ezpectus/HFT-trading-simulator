@@ -17,6 +17,9 @@ description: HFT Trading System — Cascade AI full autonomous workflow. Deep co
 - **Direct messages** — user sends instructions in chat
 - **Self-discovered** — Cascade finds issues during code review and creates tasks for itself
 - **Audit report** — issues from `README_PROJECT_OVERVIEW.md` or `MASTER_DEVELOPMENT_PLAN.md`
+- **Development plan** — unchecked items from section 18 (Project Development Plan — 40% Remaining)
+- **Future development** — ideas from `docs/future_development.md`
+- **Bug log** — pending bugs from `.cascade/bug_log.md`
 
 ### 1.2 Task File Format
 
@@ -72,8 +75,15 @@ Before touching any code:
 2. **Read related files** — imports, dependencies, callers, tests
 3. **Read the test file** — understand what behavior is expected
 4. **Check for patterns** — how is this done elsewhere in the codebase?
-5. **Check `MASTER_DEVELOPMENT_PLAN.md`** — is this issue already known?
+5. **Check `MASTER_DEVELOPMENT_PLAN.md`** — is this issue already known? What's the plan?
 6. **Check `docs/future_development.md`** — is this feature already planned?
+7. **Check `README_PROJECT_OVERVIEW.md`** — what's the current honest readiness?
+8. **Check `CHANGELOG.md`** — has this been fixed/changed before?
+9. **Check `docs/ARCHITECTURE.md`** — how does this fit the architecture?
+10. **Check `docs/MATH_MODELS.md`** — is this model documented?
+11. **Check `.cascade/bug_log.md`** — is this bug already logged?
+12. **Check `.cascade/notes.md`** — is there context about this?
+13. **Check section 18 of this workflow** — is this part of the 40% remaining?
 
 ### 2.3 Dependency Tracing
 
@@ -86,22 +96,24 @@ When analyzing a change:
 5. **Is this used in strategies?** — check `src/strategies/`
 6. **Is this used in C++?** — check `hft-trade-bot/src/`
 
-### 2.4 Approach Selection — 5 Approaches Rule
+### 2.4 Approach Selection — 6 Approaches Rule
 
-For every change, consider 5 approaches:
+For every change, consider 6 approaches:
 
 1. **Minimal fix** — one-line change, does it solve the problem?
 2. **Pattern fix** — how is this solved elsewhere in the codebase?
 3. **Refactor fix** — should the surrounding code be restructured?
 4. **Architecture fix** — does this require a design change?
 5. **Alternative** — creative/unconventional solution
+6. **HFT-optimal** — solution optimized for low latency, minimal allocations, lock-free
 
 For each approach, evaluate:
-- **S** (Simplicity) — how complex? (simpler = better)
-- **R** (Risk) — what could break? (lower = better)
-- **C** (Completeness) — fixes root cause or symptom? (root = better)
+- **S** (Simplicity) — how complex? (simpler = better, 1-10)
+- **R** (Risk) — what could break? (lower = better, 1-10)
+- **C** (Completeness) — fixes root cause or symptom? (root = better, 1-10)
+- **P** (Performance) — impact on speed? (faster = better, 1-10)
 
-**Pick the simplest one that works.** Document why if choosing a more complex approach.
+**Pick the best one.** Document why.
 
 ---
 
@@ -290,12 +302,39 @@ For every bug, answer ALL before fixing:
 - **Status:** ✅ Fixed in commit HASH
 ```
 
-### 6.2 Where to Document
+### 6.2 Where to Document — FULL DOCUMENT MAP
 
-- **CHANGELOG.md** — after each fix, add entry
-- **README_PROJECT_OVERVIEW.md** — update "Deep Analysis Findings" section
-- **`.cascade/bug_log.md`** — add/update bug entry
-- **`.cascade/file_tracker.md`** — update file status
+**ALL documents that must be checked and updated during tasks:**
+
+#### Root .md files (ALWAYS keep in sync):
+
+| File | When to Check | When to Update |
+|------|--------------|----------------|
+| `README.md` | When features change | Fix badges if inflated, update features list |
+| `CHANGELOG.md` | After EVERY change | Add entry for each fix/feature/optimization |
+| `README_PROJECT_OVERVIEW.md` | When readiness changes | Update honest %, findings, gaps |
+| `MASTER_DEVELOPMENT_PLAN.md` | When tasks completed | Check off items, update timeline, add new tasks |
+| `PERFORMANCE.md` | When perf changes | Update benchmarks, latency budgets |
+
+#### docs/ folder (check when relevant):
+
+| File | When to Check | When to Update |
+|------|--------------|----------------|
+| `docs/ARCHITECTURE.md` | When architecture changes | Update component descriptions, data flow |
+| `docs/MATH_MODELS.md` | When models change | Add new models, mark UI-only vs trading logic |
+| `docs/SETUP.md` | When setup changes | Update install/run instructions |
+| `docs/PERFORMANCE.md` | When perf changes | Update optimization notes |
+| `docs/future_development.md` | When new ideas found | Add new ideas with priority/time/complexity |
+| `docs/9_DAY_DEVELOPMENT_PLAN.md` | Reference only | Historical — don't update |
+
+#### .cascade/ files (ALWAYS update):
+
+| File | When to Update |
+|------|----------------|
+| `.cascade/progress.md` | After every task — mark done with commit hash |
+| `.cascade/bug_log.md` | When bug found or fixed |
+| `.cascade/file_tracker.md` | When file read/scanned |
+| `.cascade/notes.md` | When context discovered |
 
 ---
 
@@ -415,12 +454,14 @@ Update when:
 
 1. **Critical bugs** — security vulnerabilities, data loss, crashes
 2. **User-requested tasks** — ТЗ from `.cascade/tasks/`
-3. **High-priority audit issues** — from `MASTER_DEVELOPMENT_PLAN.md`
+3. **High-priority dev plan items** — from section 18 (Phase 1: Critical)
 4. **Performance** — O(n) → O(1), caching, SIMD
 5. **Code quality** — split monolithic files, remove dead code
-6. **Missing models** — port UI-only to trading logic (GARCH, Kalman, Copula, etc.)
-7. **Documentation** — keep docs in sync, honest readiness
-8. **Tests** — add missing tests, improve coverage
+6. **Missing models** — port UI-only to trading logic (see section 18.2)
+7. **Missing features** — quantum, broker, real HFT (see section 18.3-18.5)
+8. **Documentation** — keep ALL docs in sync, honest readiness
+9. **Tests** — add missing tests, improve coverage
+10. **Ideas** — record new ideas in `docs/future_development.md`
 
 ### 9.3 When to Stop
 
@@ -477,9 +518,9 @@ Update when:
 - Answer 8 questions (section 5.1) for each bug
 - ONLY then proceed to fixing
 
-### Step 5: 5 Approaches
+### Step 5: 6 Approaches
 
-- Generate 5 approaches with S/R/C scoring
+- Generate 6 approaches with S/R/C/P scoring
 - Pick the best, document why
 
 ### Step 6: Fix
@@ -512,13 +553,23 @@ Update when:
 - Record in `docs/future_development.md`
 - Format: title, description, priority, complexity, time estimate, dependencies
 
-### Step 11: Update Documentation
+### Step 11: Update Documentation (ALL relevant docs)
 
+**Mandatory updates after each change:**
 - `CHANGELOG.md` — entry for each change
-- `README_PROJECT_OVERVIEW.md` — update findings section
+- `README_PROJECT_OVERVIEW.md` — update findings/readiness if affected
+- `MASTER_DEVELOPMENT_PLAN.md` — check off items if completed
 - `.cascade/progress.md` — update progress
 - `.cascade/bug_log.md` — update bug status
 - `.cascade/file_tracker.md` — update file status
+
+**Update when relevant:**
+- `README.md` — if features/badges need correction
+- `docs/ARCHITECTURE.md` — if architecture changed
+- `docs/MATH_MODELS.md` — if models changed
+- `docs/future_development.md` — if new ideas found
+- `PERFORMANCE.md` — if performance changed
+- `.cascade/notes.md` — if context discovered
 
 ### Step 12: Commit
 
@@ -649,11 +700,32 @@ AT END OF SESSION: FINAL COMMIT WITH STATS
 ## 16. Integration With Other Documents
 
 This workflow is used together with:
-- **MASTER_DEVELOPMENT_PLAN.md** — plan to 100% readiness
-- **README_PROJECT_OVERVIEW.md** — honest project overview
-- **docs/future_development.md** — ideas for expansion
-- **CHANGELOG.md** — history of changes
-- **`.cascade/fix-bugs.md`** — bug fix & feature implementation workflow
+
+### Planning documents (READ before starting, UPDATE after completing):
+- **MASTER_DEVELOPMENT_PLAN.md** — plan to 100% readiness, check off items
+- **README_PROJECT_OVERVIEW.md** — honest project overview, update readiness %
+- **docs/future_development.md** — ideas for expansion, add new ideas
+
+### Reference documents (READ when relevant):
+- **README.md** — public-facing readme, fix inflated badges
+- **docs/ARCHITECTURE.md** — architecture description, update if changed
+- **docs/MATH_MODELS.md** — math models reference, update if models change
+- **docs/SETUP.md** — setup instructions
+- **PERFORMANCE.md** — performance notes, update if perf changes
+- **docs/9_DAY_DEVELOPMENT_PLAN.md** — historical reference, don't update
+
+### Tracking documents (UPDATE every session):
+- **CHANGELOG.md** — history of ALL changes
+- **`.cascade/progress.md`** — task progress
+- **`.cascade/bug_log.md`** — bug tracking
+- **`.cascade/file_tracker.md`** — file scan tracking
+- **`.cascade/notes.md`** — context and learnings
+
+### Other workflows (USE when appropriate):
+- **`.cascade/workflows/deep-scan.md`** — prompt for deep code scanning
+- **`.cascade/workflows/project-analysis.md`** — prompt for structure analysis
+- **`.cascade/workflows/update-docs.md`** — prompt for documentation update
+- **`.cascade/workflows/fix-bugs.md`** — bug fix & feature implementation
 
 ---
 
@@ -666,10 +738,184 @@ Workflow is complete when:
 - All optimizations applied and committed
 - All tests written and committed
 - All improvements recorded in `docs/future_development.md`
-- Documentation updated
+- **ALL relevant documents updated** (see section 6.2 document map)
+- `MASTER_DEVELOPMENT_PLAN.md` items checked off
+- `README_PROJECT_OVERVIEW.md` readiness % updated
 - **ALL changes committed**
 - **`git status` shows clean working tree**
 - **`git log` shows all commits with meaningful messages**
+
+---
+
+## 18. Project Development Plan — 40% Remaining
+
+> Project is at 60% readiness. This section defines what needs to be done for the remaining 40%.
+> AI should work through these phases systematically, checking off items in `MASTER_DEVELOPMENT_PLAN.md`.
+
+### 18.1 Phase 1: CRITICAL (must do first)
+
+#### 18.1.1 Fix README.md — honest badges
+- [ ] Fix strategies badge: 34+ → 16 (10 Python + 6 C++)
+- [ ] Fix models badge: 75+ → ~36 trading logic + 40 UI-only
+- [ ] Fix readiness badge: 85% → 60%
+- [ ] Add "What's NOT implemented" section
+- [ ] Remove or mark SVI/SABR claim (does NOT exist)
+- [ ] Mark CUDA/ONNX as "code exists, not compiled"
+
+#### 18.1.2 Port high-priority UI-only models to trading logic
+These models exist ONLY as React .jsx — need Python implementations:
+- [ ] GARCH(1,1) → `ai-signal-bot/src/technical_analysis/garch.py`
+- [ ] Kalman Filter → `ai-signal-bot/src/technical_analysis/kalman.py`
+- [ ] Copula → `ai-signal-bot/src/technical_analysis/copula.py`
+- [ ] Wavelet Decomposition → `ai-signal-bot/src/technical_analysis/wavelet.py`
+- [ ] Monte Carlo → `ai-signal-bot/src/technical_analysis/monte_carlo.py`
+- [ ] Hawkes Process → `ai-signal-bot/src/technical_analysis/hawkes.py`
+- [ ] Almgren-Chriss → `ai-signal-bot/src/research/almgren_chriss.py`
+- [ ] Optimal Stopping → `ai-signal-bot/src/technical_analysis/optimal_stopping.py`
+- [ ] K-Means Clustering → `ai-signal-bot/src/technical_analysis/kmeans.py`
+- [ ] Gaussian Mixture → `ai-signal-bot/src/technical_analysis/gmm.py`
+- [ ] PCA → `ai-signal-bot/src/technical_analysis/pca.py`
+- [ ] SVM → `ai-signal-bot/src/ml/svm_signal.py`
+- [ ] Autoencoder → `ai-signal-bot/src/ml/autoencoder.py`
+
+#### 18.1.3 Enable or remove dead code
+- [ ] CUDA: enable in CMake CI with `USE_CUDA` flag, or add CPU fallback
+- [ ] ONNX: enable in CMake CI with `USE_ONNXRUNTIME` flag, or remove
+- [ ] Verify CUDA kernels compile (RSI, EMA, Monte Carlo VaR, matrix mul)
+- [ ] Verify ONNX engine compiles (session, inference, multi-model)
+
+#### 18.1.4 Train ML models
+- [ ] LSTM — generate training data from simulator, train, save weights
+- [ ] Transformer — generate training data, train, save weights
+- [ ] RL (PPO/DQN) — train on simulator environment, save weights
+- [ ] LightGBM — install, train on features, save model
+- [ ] XGBoost — install, train on features, save model
+- [ ] Verify ML ensemble strategy loads trained models
+
+### 18.2 Phase 2: HIGH (after critical)
+
+#### 18.2.1 Port remaining UI-only models (medium priority)
+- [ ] VAE → `ai-signal-bot/src/ml/vae.py`
+- [ ] Bayesian Price Predictor → `ai-signal-bot/src/technical_analysis/bayesian_price.py`
+- [ ] Bayesian Structural TS → `ai-signal-bot/src/technical_analysis/bayesian_sts.py`
+- [ ] HMC → `ai-signal-bot/src/technical_analysis/hmc.py`
+- [ ] Transfer Entropy → `ai-signal-bot/src/research/transfer_entropy.py`
+- [ ] CCM (EDM) → `ai-signal-bot/src/research/ccm.py`
+- [ ] Rough Volatility (rBergomi) → `ai-signal-bot/src/technical_analysis/rbergomi.py`
+- [ ] VMD → `ai-signal-bot/src/technical_analysis/vmd.py`
+- [ ] EMD/HHT → `ai-signal-bot/src/technical_analysis/emd.py`
+- [ ] DTW → `ai-signal-bot/src/technical_analysis/dtw.py`
+- [ ] Compressed Sensing → `ai-signal-bot/src/technical_analysis/compressed_sensing.py`
+- [ ] RKHS → `ai-signal-bot/src/ml/rkhs.py`
+- [ ] Koopman Operator → `ai-signal-bot/src/research/koopman.py`
+- [ ] Random Matrix Theory → `ai-signal-bot/src/research/rmt.py`
+- [ ] Graph Theory MST → `ai-signal-bot/src/research/graph_mst.py`
+- [ ] + 25 more research models (see docs/future_development.md section 0.2)
+
+#### 18.2.2 Create completely missing models (not even in UI)
+- [ ] Hurst exponent → `ai-signal-bot/src/technical_analysis/hurst.py`
+- [ ] VPIN → `ai-signal-bot/src/technical_analysis/vpin.py`
+- [ ] Kyle's Lambda → `ai-signal-bot/src/technical_analysis/kyle_lambda.py`
+- [ ] ZScore detector → `ai-signal-bot/src/technical_analysis/zscore_detector.py`
+- [ ] Ornstein-Uhlenbeck → `ai-signal-bot/src/technical_analysis/ou_process.py`
+- [ ] SVI/SABR volatility surface → `ai-signal-bot/src/technical_analysis/svi_sabr.py`
+- [ ] MAMA/FAMA → `ai-signal-bot/src/technical_analysis/mama_fama.py`
+- [ ] Hilbert Transform → `ai-signal-bot/src/technical_analysis/hilbert.py`
+- [ ] BOCPD → `ai-signal-bot/src/technical_analysis/bocpd.py`
+- [ ] EWMA volatility → `ai-signal-bot/src/technical_analysis/ewma_vol.py`
+- [ ] Parkinson volatility → `ai-signal-bot/src/technical_analysis/parkinson_vol.py`
+- [ ] + 4 more (see docs/future_development.md section 0c)
+
+#### 18.2.3 Broker integration
+- [ ] Abstract broker interface → `ai-signal-bot/src/brokers/base_broker.py`
+- [ ] Binance broker adapter → `ai-signal-bot/src/brokers/binance_broker.py`
+- [ ] Bybit broker adapter → `ai-signal-bot/src/brokers/bybit_broker.py`
+- [ ] OKX broker adapter → `ai-signal-bot/src/brokers/okx_broker.py`
+- [ ] FIX 4.4 real connection → `hft-trade-bot/src/fix/fix_session.cpp`
+- [ ] Order routing → simulator vs real broker switch
+- [ ] Paper trading mode verification
+- [ ] Live mode (with user approval only)
+
+#### 18.2.4 Real HFT features
+- [ ] Hardware timestamping → `hft-trade-bot/src/utils/timestamp.h`
+- [ ] PTP (Precision Time Protocol) support
+- [ ] GPS time sync support
+- [ ] Tick-by-tick data processing → `hft-trade-bot/src/data/tick_processor.h`
+- [ ] Order book reconstruction → `hft-trade-bot/src/data/order_book.h`
+- [ ] Market data normalization → `hft-trade-bot/src/data/normalizer.h`
+- [ ] Sub-microsecond latency measurement → `hft-trade-bot/src/utils/latency.h`
+- [ ] Co-location support framework
+- [ ] DMA (Direct Market Access) framework
+
+### 18.3 Phase 3: MEDIUM (expansion)
+
+#### 18.3.1 Quantum models
+- [ ] QAOA (Quantum Approximate Optimization Algorithm) → `ai-signal-bot/src/quantum/qaoa.py`
+- [ ] VQE (Variational Quantum Eigensolver) → `ai-signal-bot/src/quantum/vqe.py`
+- [ ] Quantum Monte Carlo → `ai-signal-bot/src/quantum/qmc.py`
+- [ ] Quantum kernels → `ai-signal-bot/src/quantum/qkernel.py`
+- [ ] Quantum annealing → `ai-signal-bot/src/quantum/annealing.py`
+- [ ] Quantum neural networks → `ai-signal-bot/src/quantum/qnn.py`
+- [ ] Quantum portfolio optimization
+- [ ] Quantum risk analysis
+
+#### 18.3.2 Web UI improvements
+- [ ] Mobile responsive design
+- [ ] Drawing tools (trend lines, Fibonacci)
+- [ ] Real-time order book visualization
+- [ ] Trade history with analytics
+- [ ] Strategy performance dashboard
+- [ ] Backtesting results visualization
+- [ ] Risk metrics real-time display
+
+#### 18.3.3 Testing coverage
+- [ ] Unit tests for all strategies (Python)
+- [ ] Unit tests for all indicators (Python)
+- [ ] Unit tests for all C++ signal engines
+- [ ] Integration tests for pipeline (simulator → bot → executor)
+- [ ] Performance regression tests
+- [ ] Security tests
+- [ ] Load tests
+
+### 18.4 Phase 4: LOW (background)
+
+#### 18.4.1 Advanced theoretical models
+- [ ] Remaining 25+ research models from docs/future_development.md
+- [ ] Persistent Homology / TDA
+- [ ] Wasserstein / Sinkhorn optimal transport
+- [ ] Schrodinger Bridge
+- [ ] Malliavin Calculus
+- [ ] Renormalization Group
+- [ ] Free Energy Principle
+- [ ] Lie Group Symmetries
+- [ ] + others (see docs/future_development.md)
+
+#### 18.4.2 Documentation polish
+- [ ] API documentation (OpenAPI/Swagger)
+- [ ] Code documentation (docstrings)
+- [ ] Architecture diagrams
+- [ ] User guide
+- [ ] Deployment guide
+
+### 18.5 Timeline Summary
+
+| Phase | Duration | Items |
+|-------|----------|-------|
+| Phase 1 (Critical) | 8-10 weeks | README fix, 13 UI-only port, CUDA/ONNX, ML training |
+| Phase 2 (High) | 15-20 weeks | 40+ UI-only port, 15 missing models, broker, real HFT |
+| Phase 3 (Medium) | 12-15 weeks | Quantum, Web UI, testing |
+| Phase 4 (Low) | 10-15 weeks | Theoretical models, docs |
+| **Total** | **45-60 weeks** | **Full 100%** |
+
+### 18.6 How AI Should Use This Plan
+
+1. **Before starting a task** — check which phase/item it belongs to
+2. **After completing a task** — check off the item in `MASTER_DEVELOPMENT_PLAN.md`
+3. **When idle** — pick next unchecked item from Phase 1, then Phase 2, etc.
+4. **When finding new issues** — add to appropriate phase in `MASTER_DEVELOPMENT_PLAN.md`
+5. **When readiness changes** — update `README_PROJECT_OVERVIEW.md` with new %
+6. **Never skip Phase 1** — critical items must be done first
+7. **Never jump to Phase 4** — without completing Phase 1-3
 
 ---
 

@@ -12,6 +12,27 @@ description: Documentation update prompt — AI updates all project docs to refl
 
 Ты — Technical Writer и Product Manager для HFT Trading System. Твоя задача — сделать документацию ЧЕСТНОЙ и составить ПЛАН до 100%.
 
+### Перед началом — прочитай ВСЕ документы:
+
+1. **`MASTER_DEVELOPMENT_PLAN.md`** — текущий план
+2. **`README_PROJECT_OVERVIEW.md`** — текущий обзор
+3. **`docs/future_development.md`** — идеи и планы
+4. **`docs/ARCHITECTURE.md`** — архитектура
+5. **`docs/MATH_MODELS.md`** — модели
+6. **`CHANGELOG.md`** — последние изменения
+7. **`README.md`** — публичный readme
+8. **`PERFORMANCE.md`** — производительность
+9. **`docs/SETUP.md`** — установка
+10. **`.cascade/notes.md`** — контекст
+11. **Section 18 of `ai-monster-workflow.md`** — план оставшихся 40%
+
+### После обновления — проверь консистентность:
+
+- `README.md` badge'ы = `README_PROJECT_OVERVIEW.md` % = `MASTER_DEVELOPMENT_PLAN.md` %
+- `docs/MATH_MODELS.md` модели = `docs/future_development.md` секция 0
+- `docs/ARCHITECTURE.md` claims = реальный код
+- `CHANGELOG.md` содержит все изменения
+
 ### Правила
 1. **Не врать** — если чего-то нет в коде, писать что нет
 2. **Не завышать** — если готовность 60%, писать 60%, не 85%

@@ -13,6 +13,28 @@ description: Deep scan prompt — AI reads every unreviewed file in HFT Trading 
 
 Ты — Senior Code Auditor для HFT Trading System. Твоя задача — глубокий анализ ВСЕГО кода проекта.
 
+### Перед сканированием — прочитай контекст:
+
+1. **`MASTER_DEVELOPMENT_PLAN.md`** — что уже сделано, что в планах
+2. **`README_PROJECT_OVERVIEW.md`** — честная готовность, пробелы
+3. **`docs/future_development.md`** — идеи, UI-only модели, missing модели
+4. **`.cascade/bug_log.md`** — известные баги
+5. **`.cascade/file_tracker.md`** — какие файлы уже просмотрены
+6. **`.cascade/notes.md`** — контекст проекта
+7. **Section 18 of `ai-monster-workflow.md`** — план оставшихся 40%
+
+### После каждого фикса — обновляй ВСЕ релевантные документы:
+
+- `CHANGELOG.md` — запись о фиксе
+- `README_PROJECT_OVERVIEW.md` — обновить findings если нужно
+- `MASTER_DEVELOPMENT_PLAN.md` — отметить выполненные пункты
+- `docs/future_development.md` — добавить новые идеи если нашёл
+- `docs/MATH_MODELS.md` — если модель добавлена/изменена
+- `.cascade/progress.md` — прогресс
+- `.cascade/bug_log.md` — статус бага
+- `.cascade/file_tracker.md` — статус файла
+- `.cascade/notes.md` — новый контекст
+
 ### Правила сканирования
 
 1. **Читаешь КАЖДЫЙ файл** который ещё не просматривал

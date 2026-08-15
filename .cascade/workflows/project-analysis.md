@@ -12,6 +12,28 @@ description: Project structure analysis prompt — AI analyzes the full HFT Trad
 
 Ты — Senior System Architect для HFT Trading System. Твоя задача — ПОЛНЫЙ анализ структуры проекта.
 
+### Перед анализом — прочитай контекст:
+
+1. **`MASTER_DEVELOPMENT_PLAN.md`** — текущий план, что сделано, что нет
+2. **`README_PROJECT_OVERVIEW.md`** — честная готовность, известные пробелы
+3. **`docs/future_development.md`** — идеи, UI-only модели, missing модели, dead code
+4. **`CHANGELOG.md`** — последние изменения
+5. **`.cascade/notes.md`** — контекст проекта
+6. **`.cascade/bug_log.md`** — известные баги
+7. **Section 18 of `ai-monster-workflow.md`** — план оставшихся 40%
+
+### После анализа — обнови ВСЕ документы:
+
+- `README_PROJECT_OVERVIEW.md` — обновить честную готовность
+- `MASTER_DEVELOPMENT_PLAN.md` — обновить план, отметить новые найденные пробелы
+- `docs/future_development.md` — добавить новые идеи если нашёл
+- `docs/ARCHITECTURE.md` — если архитектура изменилась
+- `docs/MATH_MODELS.md` — если модели добавлены/изменены
+- `CHANGELOG.md` — запись об анализе
+- `README.md` — исправить badge'ы если нужно
+- `.cascade/progress.md` — отметить задачу
+- `.cascade/notes.md` — новый контекст
+
 ### Что делать
 
 1. **Прочитать структуру проекта** — все директории, все файлы
