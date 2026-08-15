@@ -102,12 +102,28 @@ cd hft-executor && cargo build --release
 - `exchange_simulator/exchange_simulator/arbitrage.py` (295 lines) — Cross-exchange arb detector
 - `exchange_simulator/visualizer.py` (729 lines) — Terminal dashboard (2 bugs found and fixed)
 - `exchange_simulator/__main__.py` (228 lines) — Main entry point
+- `hft-trade-bot/src/core/main.cpp` (892 lines) — HFT Trade Bot main entry point (no bugs)
+- `hft-trade-bot/src/core/logger.h` (98 lines) — Thread-safe logger (no bugs)
+- `hft-trade-bot/src/strategies/signal_engine_v2.h` (1159 lines) — 6-indicator composite signal engine (no bugs)
+- `hft-trade-bot/src/strategies/signal_engine_v2.cpp` (138 lines) — Params validation (no bugs)
+- `hft-trade-bot/src/risk/risk_manager.h` (258 lines) — Pre-trade risk checks (no bugs)
+- `hft-trade-bot/src/position/position_manager.h` (119 lines) — Position tracking (no bugs)
+- `hft-trade-bot/src/execution/order_executor.h` (231 lines) — WebSocket order executor (no bugs)
+- `hft-trade-bot/src/data/types.h` (92 lines) — Core data structures (no bugs)
+- `hft-trade-bot/src/data/signal.h` (46 lines) — Signal structure (no bugs)
+- `hft-trade-bot/src/data/aligned_types.h` (268 lines) — Cache-line aligned types (no bugs)
+- `hft-trade-bot/src/exchange/ExchangeBase.h` (60 lines) — Exchange base class (no bugs)
+- `ai-signal-bot/src/communication/circuit_breaker.py` (138 lines) — Circuit breaker (no bugs)
+- `ai-signal-bot/src/communication/signal_publisher.py` (457 lines) — WebSocket signal publisher (no bugs)
+- `ai-signal-bot/src/risk/risk_manager.py` (261 lines) — Trailing stop / breakeven manager (no bugs)
+- `ai-signal-bot/src/risk/position_sizing.py` (262 lines) — Dynamic position sizer (1 bug found and fixed)
 
 **Bug categories this session:**
 - Division by zero: 9 bugs (#121-127, #132)
 - O(n) list.pop(0) performance: 2 bugs (#128, #131)
 - Logic error (PnL double-counting): 1 bug (#130)
 - Missing zero guard on SL/TP: 1 bug (#129)
+- Division by zero (position_sizing.py): 1 bug (#133) — 12 vulnerable division sites
 
 ## Workflow Rules
 

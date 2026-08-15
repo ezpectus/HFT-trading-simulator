@@ -56,6 +56,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-130]** `LiquidationEngineV2.liquidate()` in `exchange_simulator/exchange_simulator/liquidation_engine_v2.py` double-counted PnL in partial liquidation — `liquidated_pnl` was added to both remaining margin and insurance fund. Removed from margin calculation.
 - **[BUG-131]** `PerformanceMetrics` in `exchange_simulator/price_feed_manager.py` used `list.pop(0)` — O(n) per operation. Replaced with `deque(maxlen=10000)` for O(1) operations.
 - **[BUG-132]** `change_pct` and `upnl_pct` in `exchange_simulator/visualizer.py` had division by zero risks — `prev.close` could be 0, and `entry_price * quantity` could be 0 even when `quantity > 0`.
+- **[BUG-133]** `DynamicPositionSizer` in `ai-signal-bot/src/risk/position_sizing.py` had 12 division-by-zero vulnerabilities across `volatility_based_sizing`, `risk_parity_sizing`, `kelly_criterion_sizing`, and `enforce_position_limits` — missing guards for `price <= 0`, `account_value <= 0`, `volatility is None`, `total_exposure == 0`, and `daily_volatility == 0`. Added early-return guards at method entry and inline guards at remaining division sites.
 
 ### Critical Audit Corrections (v4.2)
 

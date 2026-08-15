@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 67 |
+| ✅ Fixed | 68 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **106** |
+| **TOTAL FOUND** | **107** |
 
 ---
 
@@ -1187,6 +1187,21 @@
 - **Root Cause:** `change_pct` divides by `prev.close` without zero check — if previous candle close is 0 (bad data), produces `Infinity` or `NaN`. `upnl_pct` divides by `p["entry_price"] * p["quantity"]` with only `quantity > 0` guard, but `entry_price` could still be 0, making the product 0.
 - **Status:** ✅ Fixed
 - **Fix:** Added `prev.close != 0` guard to `change_pct`. Changed `upnl_pct` to check `entry_notional > 0` (product of entry_price and quantity) instead of just `quantity > 0`.
+
+---
+
+## Bug #133 — position_sizing.py 12 division-by-zero vulnerabilities
+
+- **Location:** `ai-signal-bot/src/risk/position_sizing.py:86, 93, 95, 102, 132, 139, 179, 187, 194, 197, 258, 261`
+- **Severity:** High
+- **Root Cause:** `DynamicPositionSizer` methods perform arithmetic divisions without validating that divisors are non-zero. Specifically:
+  - `volatility_based_sizing`: divides by `price`, `daily_volatility`, and `self.account_value` without guards. Also crashes with `TypeError` if `volatility` is `None`.
+  - `risk_parity_sizing`: divides by `price * stop_loss_percentage` and `self.account_value` without guards.
+  - `kelly_criterion_sizing`: divides by `price`, `daily_volatility * 2`, and `self.account_value` without guards. Also unconditionally divides `volatility` by `np.sqrt(365)` at line 187 even when `volatility` is `None` (the `None` check at line 169 only guards `kelly_fraction` computation, not the later `daily_volatility` calculation).
+  - `enforce_position_limits`: divides by `total_exposure` and `self.account_value` without guards.
+- **Impact:** `ZeroDivisionError` crashes or `TypeError` crashes when price, account value, or volatility inputs are 0 or None. These are realistic scenarios: zero-price data from API outages, zero account value at startup, or None volatility when data is unavailable.
+- **Status:** ✅ Fixed
+- **Fix:** Added early-return guards at the top of `volatility_based_sizing`, `risk_parity_sizing`, and `kelly_criterion_sizing` that return a zero `PositionSizingResult` when `price <= 0`, `account_value <= 0`, or `volatility is None or <= 0`. Added inline guards at remaining division sites: `leverage = ... if self.account_value > 0 else 0.0`, `denom = price * daily_volatility * 2; position_size = risk_amount / denom if denom > 0 else 0.0`, and `scale_factor = ... if total_exposure > 0 else 0.0`, `return position_values / self.account_value if self.account_value > 0 else position_values * 0`.
 
 ---
 
