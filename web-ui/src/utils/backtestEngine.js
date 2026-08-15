@@ -154,7 +154,7 @@ function evaluateConditions(candles, i, indicators, rules) {
         matched = volAvg[i] > 0 && candle.volume > volAvg[i] * rule.value
         break
       case 'price_change_5':
-        if (i >= 5) {
+        if (i >= 5 && closes[i - 5] !== 0) {
           const change = ((candle.close - closes[i - 5]) / closes[i - 5]) * 100
           matched = change > rule.value
         }
@@ -250,7 +250,7 @@ export function runBacktest(candles, rules, options = {}) {
     for (const rule of triggered) {
       switch (rule.action) {
         case 'buy': {
-          if (!position) {
+          if (!position && candle.close > 0) {
             const qty = (balance * positionSizePct) / candle.close
             const fee = (qty * candle.close * feePct) / 100
             balance -= fee
@@ -264,7 +264,7 @@ export function runBacktest(candles, rules, options = {}) {
           break
         }
         case 'sell': {
-          if (!position) {
+          if (!position && candle.close > 0) {
             const qty = (balance * positionSizePct) / candle.close
             const fee = (qty * candle.close * feePct) / 100
             balance -= fee
@@ -285,6 +285,7 @@ export function runBacktest(candles, rules, options = {}) {
               : (position.entryPrice - exitPrice) * position.qty
             const fee = (position.qty * exitPrice * feePct) / 100
             balance += pnl - fee
+            const entryNotional1 = position.entryPrice * position.qty
             trades.push({
               entryTime: position.entryTime,
               exitTime: candle.time,
@@ -293,7 +294,7 @@ export function runBacktest(candles, rules, options = {}) {
               exitPrice,
               qty: position.qty,
               pnl: pnl - fee,
-              pnlPct: ((pnl - fee) / (position.entryPrice * position.qty)) * 100,
+              pnlPct: entryNotional1 !== 0 ? ((pnl - fee) / entryNotional1) * 100 : 0,
               exitReason: 'CLOSE_ALL',
             })
             position = null
@@ -333,7 +334,7 @@ export function runBacktest(candles, rules, options = {}) {
       currentDrawdownDuration = 0
     } else {
       currentDrawdownDuration++
-      const dd = (peakEquity - equity) / peakEquity
+      const dd = peakEquity > 0 ? (peakEquity - equity) / peakEquity : 0
       if (dd > maxDrawdown) {
         maxDrawdown = dd
         maxDrawdownDuration = currentDrawdownDuration
@@ -350,6 +351,7 @@ export function runBacktest(candles, rules, options = {}) {
       : (position.entryPrice - exitPrice) * position.qty
     const fee = (position.qty * exitPrice * feePct) / 100
     balance += pnl - fee
+    const entryNotional2 = position.entryPrice * position.qty
     trades.push({
       entryTime: position.entryTime,
       exitTime: lastCandle.time,
@@ -358,7 +360,7 @@ export function runBacktest(candles, rules, options = {}) {
       exitPrice,
       qty: position.qty,
       pnl: pnl - fee,
-      pnlPct: ((pnl - fee) / (position.entryPrice * position.qty)) * 100,
+      pnlPct: entryNotional2 !== 0 ? ((pnl - fee) / entryNotional2) * 100 : 0,
       exitReason: 'END',
     })
     position = null
@@ -366,7 +368,7 @@ export function runBacktest(candles, rules, options = {}) {
 
   // Compute metrics
   const finalBalance = balance
-  const totalReturnPct = ((finalBalance - initialBalance) / initialBalance) * 100
+  const totalReturnPct = initialBalance !== 0 ? ((finalBalance - initialBalance) / initialBalance) * 100 : 0
   const winningTrades = trades.filter(t => t.pnl > 0)
   const losingTrades = trades.filter(t => t.pnl <= 0)
   const totalTrades = trades.length
@@ -407,7 +409,7 @@ export function runBacktest(candles, rules, options = {}) {
   const calmarRatio = maxDrawdownPct > 0 ? annualizedReturn / maxDrawdownPct : 0
 
   // Recovery factor
-  const recoveryFactor = maxDrawdownPct > 0
+  const recoveryFactor = maxDrawdownPct > 0 && initialBalance !== 0
     ? (finalBalance - initialBalance) / (initialBalance * maxDrawdown)
     : 0
 

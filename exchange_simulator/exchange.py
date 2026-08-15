@@ -829,16 +829,16 @@ class SimulatedExchange:
                 positions_to_close.append((pos, "PARTIAL_LIQUIDATION", partial_qty))
                 continue
 
-            # SL/TP checks
+            # SL/TP checks (skip if SL or TP is 0 — means not set)
             if pos.is_long:
-                if current_price <= pos.stop_loss:
+                if pos.stop_loss > 0 and current_price <= pos.stop_loss:
                     positions_to_close.append((pos, "STOP_LOSS", pos.quantity))
-                elif current_price >= pos.take_profit:
+                elif pos.take_profit > 0 and current_price >= pos.take_profit:
                     positions_to_close.append((pos, "TAKE_PROFIT", pos.quantity))
             else:
-                if current_price >= pos.stop_loss:
+                if pos.stop_loss > 0 and current_price >= pos.stop_loss:
                     positions_to_close.append((pos, "STOP_LOSS", pos.quantity))
-                elif current_price <= pos.take_profit:
+                elif pos.take_profit > 0 and current_price <= pos.take_profit:
                     positions_to_close.append((pos, "TAKE_PROFIT", pos.quantity))
 
         for pos, reason, close_qty in positions_to_close:

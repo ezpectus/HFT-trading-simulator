@@ -44,6 +44,18 @@ All notable changes to this project are documented in this file.
 - **[BUG-118]** `TradingEnv.step` in `ai-signal-bot/src/ml/environment.py` divided by `current_price` without zero check in BUY action — produced `inf` shares and `NaN` rewards when price data contains 0.
 - **[BUG-119]** `BacktestPlotter.plot_equity_curve` in `ai-signal-bot/src/backtesting/plotter.py` divided by `peak` without zero check in drawdown calculation — `inf`/`NaN` when equity curve starts at 0.
 - **[BUG-120]** `PPOAgent._update_policy` in `ai-signal-bot/src/ml/rl_agent.py` collected `log_probs` but never used them — no PPO ratio clipping, making it unstable vanilla policy gradient instead of PPO. Implemented proper clipped surrogate objective with ratio computation and advantage normalization.
+- **[BUG-121]** `price_change_5` condition in `web-ui/src/utils/backtestEngine.js` divided by `closes[i-5]` without zero check — `Infinity`/`NaN` when candle close is 0.
+- **[BUG-122]** `buy`/`sell` actions in `web-ui/src/utils/backtestEngine.js` divided by `candle.close` without zero check — `Infinity` qty corrupting entire backtest when close is 0.
+- **[BUG-123]** `pnlPct` in `web-ui/src/utils/backtestEngine.js` close_all path divided by `entryPrice * qty` without zero check — `Infinity`/`NaN` in trade records.
+- **[BUG-124]** Drawdown calculation in `web-ui/src/utils/backtestEngine.js` divided by `peakEquity` without zero check — `Infinity` drawdown when equity starts at 0.
+- **[BUG-125]** `totalReturnPct` in `web-ui/src/utils/backtestEngine.js` divided by `initialBalance` without zero check — `Infinity`/`NaN` when initial balance is 0.
+- **[BUG-126]** `pnlPct` in `web-ui/src/utils/backtestEngine.js` END close path divided by `entryPrice * qty` without zero check — same as Bug #123 in end-of-backtest close.
+- **[BUG-127]** `recoveryFactor` in `web-ui/src/utils/backtestEngine.js` divided by `initialBalance * maxDrawdown` without `initialBalance` zero check.
+- **[BUG-128]** `WebSocketMetrics` in `exchange_simulator/websocket_server.py` used `list.pop(0)` — O(n) per operation. Replaced with `deque(maxlen=10000)` for O(1) operations.
+- **[BUG-129]** `check_stop_loss_take_profit` in `exchange_simulator/exchange.py` didn't guard against `stop_loss=0` or `take_profit=0` — shorts with `stop_loss=0` exited immediately (`price >= 0` always true), longs with `take_profit=0` exited immediately (`price >= 0` always true).
+- **[BUG-130]** `LiquidationEngineV2.liquidate()` in `exchange_simulator/exchange_simulator/liquidation_engine_v2.py` double-counted PnL in partial liquidation — `liquidated_pnl` was added to both remaining margin and insurance fund. Removed from margin calculation.
+- **[BUG-131]** `PerformanceMetrics` in `exchange_simulator/price_feed_manager.py` used `list.pop(0)` — O(n) per operation. Replaced with `deque(maxlen=10000)` for O(1) operations.
+- **[BUG-132]** `change_pct` and `upnl_pct` in `exchange_simulator/visualizer.py` had division by zero risks — `prev.close` could be 0, and `entry_price * quantity` could be 0 even when `quantity > 0`.
 
 ### Critical Audit Corrections (v4.2)
 

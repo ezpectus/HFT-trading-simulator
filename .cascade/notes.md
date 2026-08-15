@@ -81,6 +81,34 @@ cd hft-trade-bot && mkdir build && cd build && cmake .. && make
 cd hft-executor && cargo build --release
 ```
 
+## Audit Session — Bugs #121-132 (Exchange Simulator + Web UI)
+
+**Files fixed:**
+- `web-ui/src/utils/backtestEngine.js` — 7 division-by-zero guards (Bugs #121-127)
+- `exchange_simulator/websocket_server.py` — deque for O(1) metrics (Bug #128)
+- `exchange_simulator/exchange.py` — SL/TP zero guards (Bug #129)
+- `exchange_simulator/exchange_simulator/liquidation_engine_v2.py` — PnL double-count fix (Bug #130)
+- `exchange_simulator/price_feed_manager.py` — deque for O(1) metrics (Bug #131)
+- `exchange_simulator/visualizer.py` — division-by-zero guards (Bug #132)
+
+**Files scanned (no bugs found):**
+- `exchange_simulator/options_pricing.py` (420 lines) — Black-Scholes + Binomial Tree, edge cases guarded
+- `exchange_simulator/options_strategies.py` (310 lines) — straddle/strangle/iron condor/butterfly
+- `exchange_simulator/health.py` (120 lines) — FastAPI health/metrics endpoints
+- `exchange_simulator/metrics.py` (252 lines) — Prometheus metrics collector
+- `exchange_simulator/audit_logger.py` (313 lines) — Thread-safe audit logging with deque
+- `exchange_simulator/tracing.py` (193 lines) — OpenTelemetry tracing
+- `exchange_simulator/exchange_simulator/config_validator.py` (241 lines) — Config validation
+- `exchange_simulator/exchange_simulator/arbitrage.py` (295 lines) — Cross-exchange arb detector
+- `exchange_simulator/visualizer.py` (729 lines) — Terminal dashboard (2 bugs found and fixed)
+- `exchange_simulator/__main__.py` (228 lines) — Main entry point
+
+**Bug categories this session:**
+- Division by zero: 9 bugs (#121-127, #132)
+- O(n) list.pop(0) performance: 2 bugs (#128, #131)
+- Logic error (PnL double-counting): 1 bug (#130)
+- Missing zero guard on SL/TP: 1 bug (#129)
+
 ## Workflow Rules
 
 - **AUTO-COMMIT** — after EVERY file change. No exceptions.

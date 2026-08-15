@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 55 |
+| ✅ Fixed | 67 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **94** |
+| **TOTAL FOUND** | **106** |
 
 ---
 
@@ -1067,6 +1067,126 @@
 - **Root Cause:** `PPOAgent._update_policy` collects `log_probs` from experience but never uses them. The update is a simple policy gradient (`gradient = states[i] * advantages[i]`), not PPO. PPO's key feature is the clipped surrogate objective using the ratio `exp(new_log_prob - old_log_prob)`, which prevents destructive large policy updates. Without it, the "PPO" agent is just REINFORCE with advantage normalization — unstable and prone to catastrophic policy collapse.
 - **Status:** ✅ Fixed
 - **Fix:** Implemented proper PPO ratio computation and clipping: compute `new_log_prob` from current policy, calculate `ratio = exp(new_log_prob - old_log_prob)`, clip to `[1-eps, 1+eps]`, and use `min(ratio * advantage, clipped_ratio * advantage)` as the surrogate objective. Also added advantage normalization.
+
+---
+
+## Bug #121 — backtestEngine.js price_change_5 division by zero
+
+- **Location:** `web-ui/src/utils/backtestEngine.js:157-160`
+- **Severity:** Medium
+- **Root Cause:** `price_change_5` condition divides by `closes[i - 5]` without checking for zero. If a candle has `close=0` (bad data, simulation edge case), this produces `Infinity` or `NaN`, causing the condition to evaluate incorrectly.
+- **Status:** ✅ Fixed
+- **Fix:** Added `closes[i - 5] !== 0` guard to the `if` condition.
+
+---
+
+## Bug #122 — backtestEngine.js position sizing division by zero
+
+- **Location:** `web-ui/src/utils/backtestEngine.js:253-254, 267-268`
+- **Severity:** High
+- **Root Cause:** `buy` and `sell` actions compute `qty = (balance * positionSizePct) / candle.close` without checking `candle.close > 0`. If `candle.close` is 0, this produces `Infinity` qty, corrupting the entire backtest.
+- **Status:** ✅ Fixed
+- **Fix:** Added `candle.close > 0` guard to both `buy` and `sell` action conditions.
+
+---
+
+## Bug #123 — backtestEngine.js pnlPct division by zero in close_all
+
+- **Location:** `web-ui/src/utils/backtestEngine.js:296`
+- **Severity:** Medium
+- **Root Cause:** `pnlPct` calculation divides by `position.entryPrice * position.qty` without zero check. If entryPrice is 0 (from bad candle data), this produces `Infinity` or `NaN` in trade records.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted `entryNotional1` variable and used ternary `entryNotional1 !== 0 ? ... : 0`.
+
+---
+
+## Bug #124 — backtestEngine.js drawdown division by zero
+
+- **Location:** `web-ui/src/utils/backtestEngine.js:336`
+- **Severity:** Medium
+- **Root Cause:** Drawdown calculation divides by `peakEquity` without zero check. If `peakEquity` is 0 (e.g., initial balance is 0), this produces `Infinity` drawdown, corrupting max drawdown metrics.
+- **Status:** ✅ Fixed
+- **Fix:** Added `peakEquity > 0` guard to drawdown calculation.
+
+---
+
+## Bug #125 — backtestEngine.js totalReturnPct division by zero
+
+- **Location:** `web-ui/src/utils/backtestEngine.js:369`
+- **Severity:** Medium
+- **Root Cause:** `totalReturnPct` divides by `initialBalance` without zero check. If `initialBalance` is 0, this produces `Infinity` or `NaN` in backtest results.
+- **Status:** ✅ Fixed
+- **Fix:** Added `initialBalance !== 0` guard to totalReturnPct calculation.
+
+---
+
+## Bug #126 — backtestEngine.js pnlPct division by zero in END close
+
+- **Location:** `web-ui/src/utils/backtestEngine.js:361`
+- **Severity:** Medium
+- **Root Cause:** Same as Bug #123 but in the end-of-backtest position close. `pnlPct` divides by `position.entryPrice * position.qty` without zero check.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted `entryNotional2` variable and used ternary `entryNotional2 !== 0 ? ... : 0`.
+
+---
+
+## Bug #127 — backtestEngine.js recoveryFactor division by zero
+
+- **Location:** `web-ui/src/utils/backtestEngine.js:410-412`
+- **Severity:** Low
+- **Root Cause:** `recoveryFactor` divides by `initialBalance * maxDrawdown` without checking `initialBalance !== 0`. If initialBalance is 0, this produces `Infinity` or `NaN`.
+- **Status:** ✅ Fixed
+- **Fix:** Added `initialBalance !== 0` to the existing `maxDrawdownPct > 0` guard.
+
+---
+
+## Bug #128 — websocket_server.py WebSocketMetrics list.pop(0) O(n) performance
+
+- **Location:** `exchange_simulator/websocket_server.py:76-77, 84-85`
+- **Severity:** Medium
+- **Root Cause:** `WebSocketMetrics` uses `list.pop(0)` to evict old entries from `message_sizes` and `broadcast_latencies` — O(n) per operation. In an HFT system broadcasting thousands of messages per second, this causes significant CPU overhead and latency spikes as the list grows to 10,000 entries.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `list` with `deque(maxlen=10000)` for both `message_sizes` and `broadcast_latencies`. `deque` provides O(1) append and automatic eviction of old entries via `maxlen`.
+
+---
+
+## Bug #129 — exchange.py SL/TP checks don't guard against stop_loss=0 or take_profit=0
+
+- **Location:** `exchange_simulator/exchange.py:832-842`
+- **Severity:** High
+- **Root Cause:** `check_stop_loss_take_profit` checks `current_price <= pos.stop_loss` for longs and `current_price >= pos.stop_loss` for shorts without checking if `stop_loss` is 0. When SL/TP is not set, the default value is 0, which means: for longs, `current_price <= 0` is false (OK), but for shorts, `current_price >= 0` is always true, causing immediate position closure. Similarly, `take_profit=0` for longs means `current_price >= 0` is always true.
+- **Status:** ✅ Fixed
+- **Fix:** Added `pos.stop_loss > 0` and `pos.take_profit > 0` guards to all SL/TP condition checks.
+
+---
+
+## Bug #130 — liquidation_engine_v2.py PnL double-counted in partial liquidation
+
+- **Location:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py:140-141`
+- **Severity:** High
+- **Root Cause:** During partial liquidation, `liquidated_pnl` is added back to remaining position margin (`pos.margin = max(pos.margin - released_margin + liquidated_pnl, 0)`) AND also applied to the insurance fund (`self.insurance_fund += pnl * margin_ratio`). This double-counts the PnL from the liquidated portion — once in the remaining margin and once in the insurance fund. The remaining margin should only be the original margin minus the released margin; the PnL goes to the insurance fund exclusively.
+- **Status:** ✅ Fixed
+- **Fix:** Removed `+ liquidated_pnl` from the remaining margin calculation. Remaining margin is now `max(pos.margin - released_margin, 0)`.
+
+---
+
+## Bug #131 — price_feed_manager.py PerformanceMetrics list.pop(0) O(n) performance
+
+- **Location:** `exchange_simulator/price_feed_manager.py:87-88, 93-94`
+- **Severity:** Medium
+- **Root Cause:** `PerformanceMetrics` uses `list.pop(0)` to evict old entries from `fetch_latencies` and `parse_latencies` — O(n) per operation. Same pattern as Bug #128. In a high-frequency price feed system, this causes unnecessary CPU overhead.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `list` with `deque(maxlen=10000)` for both latency tracking lists. Removed manual `pop(0)` calls.
+
+---
+
+## Bug #132 — visualizer.py division by zero in change_pct and upnl_pct
+
+- **Location:** `exchange_simulator/visualizer.py:226, 615`
+- **Severity:** Medium
+- **Root Cause:** `change_pct` divides by `prev.close` without zero check — if previous candle close is 0 (bad data), produces `Infinity` or `NaN`. `upnl_pct` divides by `p["entry_price"] * p["quantity"]` with only `quantity > 0` guard, but `entry_price` could still be 0, making the product 0.
+- **Status:** ✅ Fixed
+- **Fix:** Added `prev.close != 0` guard to `change_pct`. Changed `upnl_pct` to check `entry_notional > 0` (product of entry_price and quantity) instead of just `quantity > 0`.
 
 ---
 

@@ -223,7 +223,7 @@ class TabbedVisualizer:
 
         if len(candles) >= 2:
             prev = candles[-2]
-            change_pct = ((current_price - prev.close) / prev.close) * 100
+            change_pct = ((current_price - prev.close) / prev.close) * 100 if prev.close != 0 else 0.0
         else:
             change_pct = 0.0
 
@@ -612,7 +612,8 @@ class TabbedVisualizer:
                     side_color = self.GREEN if p["side"] == "BUY" else self.RED
                     upnl = p["unrealized_pnl"]
                     upnl_color = self.GREEN if upnl >= 0 else self.RED
-                    upnl_pct = (upnl / (p["entry_price"] * p["quantity"]) * 100) if p["quantity"] > 0 else 0
+                    entry_notional = p["entry_price"] * p["quantity"]
+                    upnl_pct = (upnl / entry_notional * 100) if entry_notional > 0 else 0
 
                     print(
                         f"    {p['symbol']:<12} {side_color}{p['side']:<6}{self.RESET} "

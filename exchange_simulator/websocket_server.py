@@ -10,6 +10,7 @@ import os
 import struct
 import sys
 import time
+from collections import deque
 
 import websockets
 
@@ -58,13 +59,13 @@ class WebSocketMetrics:
     """Tracks WebSocket broadcasting performance metrics."""
     
     def __init__(self):
-        self.message_sizes: list[int] = []
+        self.message_sizes: deque[int] = deque(maxlen=10000)
         self.message_count: int = 0
         self.bytes_sent: int = 0
         self.compression_ratio: float = 0.0
         self.delta_update_ratio: float = 0.0
         self.client_count: int = 0
-        self.broadcast_latencies: list[float] = []
+        self.broadcast_latencies: deque[float] = deque(maxlen=10000)
         self.max_samples: int = 10000
         self._start_time: float = time.time()
     
@@ -73,16 +74,12 @@ class WebSocketMetrics:
         self.message_sizes.append(size)
         self.message_count += 1
         self.bytes_sent += size
-        if len(self.message_sizes) > self.max_samples:
-            self.message_sizes.pop(0)
         if compressed_size > 0:
             self.compression_ratio = size / compressed_size if compressed_size > 0 else 0.0
     
     def record_broadcast_latency(self, latency_ms: float) -> None:
         """Record broadcast latency."""
         self.broadcast_latencies.append(latency_ms)
-        if len(self.broadcast_latencies) > self.max_samples:
-            self.broadcast_latencies.pop(0)
     
     def record_delta_update(self, is_delta: bool) -> None:
         """Record whether a delta update was sent."""

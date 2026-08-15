@@ -26,7 +26,7 @@ import logging
 import statistics
 import time
 from abc import ABC, abstractmethod
-from collections import defaultdict
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable
@@ -73,8 +73,8 @@ class PerformanceMetrics:
     """Tracks performance metrics for price feed operations."""
 
     def __init__(self):
-        self.fetch_latencies: list[float] = []
-        self.parse_latencies: list[float] = []
+        self.fetch_latencies: deque[float] = deque(maxlen=10000)
+        self.parse_latencies: deque[float] = deque(maxlen=10000)
         self.cache_hits: int = 0
         self.cache_misses: int = 0
         self.failover_count: int = 0
@@ -84,14 +84,10 @@ class PerformanceMetrics:
     def record_fetch_latency(self, latency_ms: float) -> None:
         """Record a fetch operation latency."""
         self.fetch_latencies.append(latency_ms)
-        if len(self.fetch_latencies) > self._max_samples:
-            self.fetch_latencies.pop(0)
 
     def record_parse_latency(self, latency_ms: float) -> None:
         """Record a parse operation latency."""
         self.parse_latencies.append(latency_ms)
-        if len(self.parse_latencies) > self._max_samples:
-            self.parse_latencies.pop(0)
 
     def record_cache_hit(self) -> None:
         """Record a cache hit."""
