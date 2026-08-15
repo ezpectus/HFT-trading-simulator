@@ -178,7 +178,7 @@ class SimulatedExchange:
         
         # Update account
         self.account.balance -= order.fee
-        self._update_position(order.symbol, order.side, order.quantity, price)
+        self._update_position(order, None, None)
         
         self._audit_logger.log(
             event_type=AuditEventType.ORDER_FILLED,
@@ -202,7 +202,7 @@ class SimulatedExchange:
         
         # Update account
         self.account.balance -= order.fee
-        self._update_position(order.symbol, order.side, order.quantity, price)
+        self._update_position(order, None, None)
         
         self._audit_logger.log(
             event_type=AuditEventType.ORDER_FILLED,
@@ -240,7 +240,7 @@ class SimulatedExchange:
         
         # Update account
         self.account.balance -= slice_order.fee
-        self._update_position(order.symbol, order.side, slice_qty, price)
+        self._update_position(slice_order, None, None)
         
         self._audit_logger.log(
             event_type=AuditEventType.ORDER_FILLED,
