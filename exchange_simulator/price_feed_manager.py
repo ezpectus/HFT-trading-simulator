@@ -21,6 +21,7 @@ Features:
 
 import asyncio
 import functools
+import json
 import logging
 import statistics
 import time
@@ -452,7 +453,7 @@ class BinanceAPI(BasePriceAPI):
                         retry_count = 0  # Reset on successful connection
 
                         async for message in ws:
-                            data = message.json() if isinstance(message, str) else message
+                            data = json.loads(message) if isinstance(message, (str, bytes)) else message
                             if "s" in data:  # ticker format
                                 binance_sym = data["s"]
                                 norm_sym = self._denormalize_symbol(binance_sym)
@@ -582,12 +583,12 @@ class CoinbaseAPI(BasePriceAPI):
                             "product_ids": coinbase_symbols,
                             "channels": ["ticker"],
                         }
-                        await ws.send(subscribe_msg)
+                        await ws.send(json.dumps(subscribe_msg))
 
                         retry_count = 0
 
                         async for message in ws:
-                            data = message.json() if isinstance(message, str) else message
+                            data = json.loads(message) if isinstance(message, (str, bytes)) else message
                             if data.get("type") == "ticker":
                                 product_id = data.get("product_id", "")
                                 norm_sym = self._denormalize_symbol(product_id)

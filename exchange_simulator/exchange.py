@@ -154,7 +154,7 @@ class SimulatedExchange:
             # Execute visible quantity
             if order.hidden_quantity > 0:
                 fill_price = current_price
-                if order.price and order.order_type == OrderType.LIMIT:
+                if order.price is not None:
                     fill_price = order.price
                 
                 filled_order = self._execute_iceberg_slice(order, fill_price)
@@ -234,39 +234,49 @@ class SimulatedExchange:
         return order
 
     def _execute_market_order(self, order: Order, price: float) -> Order:
-        """Execute a market order at current price (Phase 3 helper)."""
-        if not self._check_margin(order, price):
+        """Execute a market order at current price (Phase 3 helper).
+
+        Applies slippage consistent with submit_order() so advanced orders
+        (trailing stops) experience realistic execution prices.
+        """
+        # Apply slippage
+        slippage_amount = price * self.slippage_bps / 10000
+        if order.side == Side.BUY:
+            fill_price = price + slippage_amount
+        else:
+            fill_price = price - slippage_amount
+
+        if not self._check_margin(order, fill_price):
             return order
         order.status = OrderStatus.FILLED
-        order.filled_price = round(price, 2)
+        order.filled_price = round(fill_price, 2)
         order.filled_quantity = order.quantity
-        notional = price * order.quantity
+        order.slippage = round(slippage_amount, 4)
+        notional = fill_price * order.quantity
         order.fee = round(notional * self.fee_pct / 100, 4)
-        
+
         # Update account
         self.account.balance -= order.fee
         self._update_position(order, None, None)
-        
+
         self._audit_logger.log(
             event_type=AuditEventType.ORDER_FILLED,
             exchange=self.exchange_id,
             symbol=order.symbol,
             order_id=order.id,
             old_value=price,
-            new_value=price,
-            metadata={"order_type": order.order_type.value, "quantity": order.quantity, "fee": order.fee},
+            new_value=fill_price,
+            metadata={"order_type": order.order_type.value, "quantity": order.quantity, "fee": order.fee, "slippage": order.slippage},
         )
-        
+
         return order
 
     def _execute_iceberg_slice(self, order: IcebergOrder, price: float) -> Order:
         """Execute a slice of an iceberg order (Phase 3 helper)."""
         slice_qty = min(order.visible_quantity, order.hidden_quantity)
-        order.hidden_quantity -= slice_qty
-        order.replenished += 1
-        
+
         slice_order = Order(
-            id=f"{order.id}_slice_{order.replenished}",
+            id=f"{order.id}_slice_{order.replenished + 1}",
             symbol=order.symbol,
             exchange=self.exchange_id,
             side=order.side,
@@ -274,17 +284,21 @@ class SimulatedExchange:
             quantity=slice_qty,
             price=price,
         )
-        
+
+        notional = price * slice_qty
+        slice_order.fee = round(notional * self.fee_pct / 100, 4)
+
+        if not self._check_margin(slice_order, price):
+            return slice_order
+
+        # Margin passed — commit the slice
+        order.hidden_quantity -= slice_qty
+        order.replenished += 1
+
         slice_order.status = OrderStatus.FILLED
         slice_order.filled_price = round(price, 2)
         slice_order.filled_quantity = slice_qty
-        notional = price * slice_qty
-        slice_order.fee = round(notional * self.fee_pct / 100, 4)
-        
-        if not self._check_margin(slice_order, price):
-            order.hidden_quantity += slice_qty
-            return slice_order
-        
+
         # Update account
         self.account.balance -= slice_order.fee
         self._update_position(slice_order, None, None)
@@ -649,11 +663,13 @@ class SimulatedExchange:
 
         if existing:
             if existing.side != order.side:
-                # Close position
+                close_qty = min(order.filled_quantity, existing.quantity)
+
+                # Close position (full or partial)
                 if existing.is_long:
-                    pnl = (order.filled_price - existing.entry_price) * existing.quantity
+                    pnl = (order.filled_price - existing.entry_price) * close_qty
                 else:
-                    pnl = (existing.entry_price - order.filled_price) * existing.quantity
+                    pnl = (existing.entry_price - order.filled_price) * close_qty
 
                 old_balance = self.account.balance
                 self.account.balance += pnl
@@ -667,7 +683,7 @@ class SimulatedExchange:
                     symbol=existing.symbol,
                     exchange=self.exchange_id,
                     side=existing.side.value,
-                    quantity=existing.quantity,
+                    quantity=close_qty,
                     entry_price=existing.entry_price,
                     exit_price=order.filled_price,
                     pnl=round(pnl, 2),
@@ -687,7 +703,7 @@ class SimulatedExchange:
                     reason="MANUAL",
                     metadata={
                         "side": existing.side.value,
-                        "quantity": existing.quantity,
+                        "quantity": close_qty,
                         "pnl": pnl,
                         "order_id": order.id,
                     },
@@ -703,8 +719,13 @@ class SimulatedExchange:
                     metadata={"pnl": pnl, "symbol": order.symbol},
                 )
 
-                self.account.positions.remove(existing)
-                del self._positions_by_symbol[order.symbol]
+                if close_qty >= existing.quantity:
+                    # Full close
+                    self.account.positions.remove(existing)
+                    del self._positions_by_symbol[order.symbol]
+                else:
+                    # Partial close — reduce position, keep remainder
+                    existing.quantity -= close_qty
                 return
             else:
                 # Same side — add to position (simplified)

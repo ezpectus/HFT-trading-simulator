@@ -112,7 +112,9 @@ class AuditLogger:
     
     def _notify_callbacks(self, audit_log: AuditLog) -> None:
         """Notify all registered callbacks."""
-        for callback in self._callbacks:
+        with self._lock:
+            callbacks = list(self._callbacks)
+        for callback in callbacks:
             try:
                 callback(audit_log)
             except Exception as e:
@@ -120,12 +122,14 @@ class AuditLogger:
     
     def register_callback(self, callback: Callable[[AuditLog], None]) -> None:
         """Register a callback for real-time audit log notifications."""
-        self._callbacks.append(callback)
+        with self._lock:
+            self._callbacks.append(callback)
     
     def unregister_callback(self, callback: Callable[[AuditLog], None]) -> None:
         """Unregister a callback."""
-        if callback in self._callbacks:
-            self._callbacks.remove(callback)
+        with self._lock:
+            if callback in self._callbacks:
+                self._callbacks.remove(callback)
     
     def get_logs(
         self,

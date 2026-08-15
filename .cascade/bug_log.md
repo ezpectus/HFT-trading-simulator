@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 0 |
+| ✅ Fixed | 10 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **39** |
+| **TOTAL FOUND** | **49** |
 
 ---
 
@@ -523,6 +523,100 @@
 - **Severity:** Low
 - **Root Cause:** Each run creates new browser instance
 - **Status:** ⏳ Pending Fix
+
+---
+
+## Exchange Simulator Bugs (Scan: 2026-08-16)
+
+### Bug #066: _update_position closes entire position on partial opposite-side order
+- **File:** `exchange_simulator/exchange.py:650-708`
+- **Category:** Bug
+- **Severity:** Critical
+- **Root Cause:** When closing a position with an opposite-side order, PnL was calculated on `existing.quantity` (full position) instead of `order.filled_quantity`. Selling 2 BTC with a 10 BTC long position would close all 10 BTC, not just 2.
+- **Impact:** Incorrect position sizing, wrong PnL, unexpected full position closes
+- **Status:** ✅ Fixed
+- **Fix:** Use `close_qty = min(order.filled_quantity, existing.quantity)`, calculate PnL on `close_qty`, and only remove position if fully closed; otherwise reduce `existing.quantity`.
+
+### Bug #067: BlackScholes._d1 division by zero at T=0 or sigma=0
+- **File:** `exchange_simulator/options_pricing.py:39-41`
+- **Category:** Bug
+- **Severity:** High
+- **Root Cause:** `(sigma * math.sqrt(T))` in denominator — when T=0 (at expiry) or sigma=0 (no volatility), causes ZeroDivisionError. Also `math.log(S/K)` with S<=0 or K<=0 causes ValueError.
+- **Impact:** Crash when pricing options at expiry or with zero volatility
+- **Status:** ✅ Fixed
+- **Fix:** Guard clause returns 0.0 for T<=0, sigma<=0, S<=0, or K<=0, producing intrinsic value via _cdf(0)=0.5.
+
+### Bug #068: WebSocket message parsing uses .json() on str
+- **File:** `exchange_simulator/price_feed_manager.py:455,590`
+- **Category:** Bug
+- **Severity:** High
+- **Root Cause:** `message.json()` called on WebSocket messages, but the `websockets` library returns `str` or `bytes`, not objects with a `.json()` method. Should use `json.loads(message)`.
+- **Impact:** AttributeError on every WebSocket message — real-time price feeds completely broken
+- **Status:** ✅ Fixed
+- **Fix:** Replace `message.json()` with `json.loads(message)`, added `import json`.
+
+### Bug #069: Coinbase WebSocket sends dict instead of JSON string
+- **File:** `exchange_simulator/price_feed_manager.py:585`
+- **Category:** Bug
+- **Severity:** High
+- **Root Cause:** `await ws.send(subscribe_msg)` sends a Python dict, but `websockets.send()` expects `str` or `bytes`. Coinbase never receives the subscription message.
+- **Impact:** Coinbase WebSocket never subscribes — no price updates from Coinbase
+- **Status:** ✅ Fixed
+- **Fix:** Changed to `await ws.send(json.dumps(subscribe_msg))`.
+
+### Bug #070: _execute_iceberg_slice sets FILLED before margin check
+- **File:** `exchange_simulator/exchange.py:262-286`
+- **Category:** Bug
+- **Severity:** Medium
+- **Root Cause:** `slice_order.status = OrderStatus.FILLED` was set before `_check_margin()`. If margin check failed, status was changed to REJECTED, but `hidden_quantity` and `replenished` were already modified. Order was in inconsistent state.
+- **Impact:** Iceberg orders with insufficient margin have corrupted state, hidden quantity lost
+- **Status:** ✅ Fixed
+- **Fix:** Moved margin check before any state changes. Only decrement `hidden_quantity` and increment `replenished` after margin check passes.
+
+### Bug #071: Iceberg limit price check uses wrong OrderType comparison
+- **File:** `exchange_simulator/exchange.py:157`
+- **Category:** Bug
+- **Severity:** Medium
+- **Root Cause:** `if order.price and order.order_type == OrderType.LIMIT` — but iceberg orders have `order_type = OrderType.ICEBERG`, not `LIMIT`. The condition never matched, so iceberg orders with a limit price always executed at market price.
+- **Impact:** Iceberg limit orders ignore specified price, execute at market price instead
+- **Status:** ✅ Fixed
+- **Fix:** Changed to `if order.price is not None:` to check for limit price directly.
+
+### Bug #072: _execute_market_order doesn't apply slippage
+- **File:** `exchange_simulator/exchange.py:236-260`
+- **Category:** Bug
+- **Severity:** Medium
+- **Root Cause:** Phase 3 helper `_execute_market_order()` filled at exact price with zero slippage, unlike `submit_order()` which applies `slippage_bps`. Trailing stop orders got unrealistic fills.
+- **Impact:** Advanced orders (trailing stops) bypass slippage, giving unrealistic execution prices
+- **Status:** ✅ Fixed
+- **Fix:** Added slippage calculation matching `submit_order()` logic, set `order.slippage`, and use `fill_price` for notional/fee calculations.
+
+### Bug #073: /metrics endpoint returns string instead of Prometheus format
+- **File:** `exchange_simulator/health.py:112-114`
+- **Category:** Bug
+- **Severity:** Low
+- **Root Cause:** `/metrics` endpoint returned a plain string. FastAPI wraps strings in JSON response with quotes, breaking Prometheus scraping. Error case also returned plain string instead of HTTP error.
+- **Impact:** Prometheus cannot scrape metrics — monitoring broken
+- **Status:** ✅ Fixed
+- **Fix:** Return `PlainResponse` with `media_type="text/plain; version=0.0.4; charset=utf-8"`. Error case returns 503 status.
+
+### Bug #074: AuditLogger callback registration not thread-safe
+- **File:** `exchange_simulator/audit_logger.py:113-132`
+- **Category:** Concurrency
+- **Severity:** Low
+- **Root Cause:** `register_callback()`, `unregister_callback()`, and `_notify_callbacks()` all access `self._callbacks` list without holding `self._lock`. Concurrent modification during iteration could cause RuntimeError or missed callbacks.
+- **Impact:** Rare race condition — callback list corruption in multi-threaded scenarios
+- **Status:** ✅ Fixed
+- **Fix:** Wrapped `register_callback` and `unregister_callback` in `self._lock`. `_notify_callbacks` now iterates over a copy of the list under the lock.
+
+### Bug #075: BinomialTree._calculate_parameters NaN at T=0 or sigma=0
+- **File:** `exchange_simulator/options_pricing.py:279-283`
+- **Category:** Bug
+- **Severity:** Medium
+- **Root Cause:** When T=0, `dt=0`, `u=exp(0)=1`, `d=1`, `p=(1-1)/(1-1)=0/0=NaN`. NaN propagates through all option values.
+- **Impact:** NaN option prices at expiry or with zero volatility
+- **Status:** ✅ Fixed
+- **Fix:** Guard clause returns `u=1.0, d=1.0, p=0.5` for T<=0, sigma<=0, or steps<=0.
 
 ---
 

@@ -38,6 +38,8 @@ class BlackScholes:
     
     def _d1(self, S: float, K: float, T: float, sigma: float) -> float:
         """Calculate d1 parameter."""
+        if T <= 0 or sigma <= 0 or S <= 0 or K <= 0:
+            return 0.0
         return (math.log(S / K) + (self.r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
     
     def _d2(self, d1: float, T: float, sigma: float) -> float:
@@ -276,6 +278,8 @@ class BinomialTree:
     
     def _calculate_parameters(self, S: float, K: float, T: float, sigma: float) -> Tuple[float, float, float]:
         """Calculate binomial tree parameters."""
+        if T <= 0 or sigma <= 0 or self.steps <= 0:
+            return 1.0, 1.0, 0.5
         dt = T / self.steps
         u = math.exp(sigma * math.sqrt(dt))
         d = 1 / u
