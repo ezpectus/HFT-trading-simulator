@@ -353,6 +353,14 @@ class ExchangeWebSocketServer:
             # Listen for incoming messages (orders from bots)
             async for message in websocket:
                 try:
+                    # Rate limit check (Phase 1.5)
+                    if not self._check_rate_limit(websocket):
+                        await websocket.send(json.dumps({
+                            "type": "error",
+                            "message": "Rate limit exceeded — too many messages",
+                        }))
+                        continue
+
                     if isinstance(message, bytes) and _HAS_MSGPACK:
                         try:
                             data = msgpack.unpackb(message, raw=False)

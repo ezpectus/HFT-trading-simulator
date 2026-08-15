@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 24 |
+| ✅ Fixed | 25 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **63** |
+| **TOTAL FOUND** | **64** |
 
 ---
 
@@ -757,6 +757,16 @@
 - **Root Cause:** `CoinbaseAPI.subscribe_websocket` creates a WebSocket handler task with `asyncio.create_task(_ws_handler())` but doesn't store the reference (unlike `BinanceAPI` which stores it in `self._ws_task`). This means: (1) the task can be garbage collected before completion, (2) there's no way to cancel it on close, (3) `CoinbaseAPI.close()` doesn't exist so the WebSocket connection leaks.
 - **Status:** ✅ Fixed
 - **Fix:** Added `self._ws_task` attribute to `CoinbaseAPI.__init__`, stored the task reference, and added `close()` method that cancels the task and calls `super().close()`.
+
+---
+
+## Bug #090 — WebSocket server _check_rate_limit defined but never called
+
+- **Location:** `exchange_simulator/websocket_server.py:311-329,354`
+- **Severity:** High
+- **Root Cause:** The `_check_rate_limit` method is defined and per-client tracking state is initialized in `_handle_client`, but the method is never called before processing incoming messages. This means any connected client can send unlimited messages (orders, config changes, etc.) without any rate limiting, enabling DoS via message flooding.
+- **Status:** ✅ Fixed
+- **Fix:** Added `_check_rate_limit(websocket)` call at the start of the message processing loop in `_handle_client`. If rate limit exceeded, sends an error message and skips processing.
 
 ---
 
