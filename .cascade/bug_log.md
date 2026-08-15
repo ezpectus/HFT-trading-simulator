@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 32 |
+| ✅ Fixed | 33 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **71** |
+| **TOTAL FOUND** | **72** |
 
 ---
 
@@ -837,6 +837,16 @@
 - **Root Cause:** Both `DQNAgent.remember()` and `PPOAgent.remember()` use `self.memory.pop(0)` on a Python list to enforce the memory size limit. `list.pop(0)` is O(n) because it shifts all remaining elements. With `memory_size=10000`, every experience after the buffer is full requires shifting 9999 elements, significantly slowing training.
 - **Status:** ✅ Fixed
 - **Fix:** Replaced `self.memory = []` with `self.memory: deque = deque(maxlen=config.memory_size)` in both agents. Removed the manual `pop(0)` check since `deque` with `maxlen` automatically discards the oldest element when appending.
+
+---
+
+## Bug #098 — TradingEnv.reset() requires prices parameter but RL agents call it without arguments
+
+- **Location:** `ai-signal-bot/src/ml/rl_agent.py:159, 329` (call sites) and `ai-signal-bot/src/ml/environment.py:61` (definition)
+- **Severity:** Critical
+- **Root Cause:** `TradingEnv.reset()` has signature `def reset(self, prices: np.ndarray, features: Optional[np.ndarray] = None)` — `prices` is a required parameter. However, both `DQNAgent.train()` and `PPOAgent.train()` call `env.reset()` without any arguments. This causes a `TypeError: reset() missing 1 required positional argument: 'prices'` at runtime, making RL training completely non-functional.
+- **Status:** ✅ Fixed
+- **Fix:** Added `prices` and `features` optional parameters to both `DQNAgent.train()` and `PPOAgent.train()`, and pass them to `env.reset()` when provided.
 
 ---
 

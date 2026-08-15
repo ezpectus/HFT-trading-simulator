@@ -135,13 +135,16 @@ class DQNAgent:
         """Update target network with current network weights."""
         self.target_network_weights = self.q_network_weights.copy()
     
-    def train(self, env: TradingEnv, episodes: int = 1000) -> Dict:
+    def train(self, env: TradingEnv, episodes: int = 1000,
+              prices: np.ndarray = None, features: np.ndarray = None) -> Dict:
         """
         Train agent in environment.
         
         Args:
             env: Trading environment
             episodes: Number of training episodes
+            prices: Price data for environment reset
+            features: Optional feature data for environment reset
         
         Returns:
             Training history dictionary
@@ -156,7 +159,7 @@ class DQNAgent:
         }
         
         for episode in range(episodes):
-            state = env.reset()
+            state = env.reset(prices, features) if prices is not None else env.reset()
             total_reward = 0
             done = False
             steps = 0
@@ -300,13 +303,16 @@ class PPOAgent:
         """
         self.memory.append((state, action, log_prob, reward, value, done))
     
-    def train(self, env: TradingEnv, episodes: int = 1000) -> Dict:
+    def train(self, env: TradingEnv, episodes: int = 1000,
+              prices: np.ndarray = None, features: np.ndarray = None) -> Dict:
         """
         Train agent in environment.
         
         Args:
             env: Trading environment
             episodes: Number of training episodes
+            prices: Price data for environment reset
+            features: Optional feature data for environment reset
         
         Returns:
             Training history dictionary
@@ -321,7 +327,7 @@ class PPOAgent:
         }
         
         for episode in range(episodes):
-            state = env.reset()
+            state = env.reset(prices, features) if prices is not None else env.reset()
             total_reward = 0
             done = False
             steps = 0
