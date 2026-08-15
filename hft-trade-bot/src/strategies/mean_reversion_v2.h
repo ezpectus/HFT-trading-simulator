@@ -123,12 +123,12 @@ class MeanReversionV2 {
         double kappa, theta, sigma;
         estimate_ou_params(kappa, theta, sigma);
 
-        // Compute z-score: z = (price - theta) / sigma
+        // Compute z-score: z = (residual - theta) / sigma
         // For OU process: residual = price - fair_price
         // z-score of residual relative to OU equilibrium
         double z = 0.0;
         if (sigma > 0.0) {
-            z = (price - theta) / sigma;
+            z = (residual - theta) / sigma;
         }
 
         // Half-life: ln(2) / kappa
@@ -205,7 +205,9 @@ class MeanReversionV2 {
         }
 
         // Compute mean (theta) — ring buffer safe: iterate in insertion order
-        size_t start = static_cast<size_t>(write_idx_) % static_cast<size_t>(config_.ou_window);
+        size_t start = (write_idx_ >= static_cast<uint64_t>(config_.ou_window))
+                           ? (static_cast<size_t>(write_idx_) % static_cast<size_t>(config_.ou_window))
+                           : 0;
         double sum   = 0.0;
         for (size_t k = 0; k < n; ++k) {
             size_t idx = (start + k) % static_cast<size_t>(config_.ou_window);

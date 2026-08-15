@@ -142,7 +142,9 @@ class StatisticalArbV2 {
     double ols_regression(size_t n) noexcept {
         double sum_x = 0.0, sum_y = 0.0, sum_xy = 0.0, sum_xx = 0.0;
         size_t start =
-            static_cast<size_t>(write_idx_) % static_cast<size_t>(config_.regression_window);
+            (write_idx_ >= static_cast<uint64_t>(config_.regression_window))
+                ? (static_cast<size_t>(write_idx_) % static_cast<size_t>(config_.regression_window))
+                : 0;
         for (size_t k = 0; k < n; ++k) {
             size_t idx = (start + k) % static_cast<size_t>(config_.regression_window);
             double x   = prices_b_[idx];
@@ -162,7 +164,9 @@ class StatisticalArbV2 {
     double compute_z_score(double current_spread, size_t n) noexcept {
         if (n < 2) return 0.0;
         size_t start =
-            static_cast<size_t>(spread_idx_) % static_cast<size_t>(config_.regression_window);
+            (spread_idx_ >= static_cast<uint64_t>(config_.regression_window))
+                ? (static_cast<size_t>(spread_idx_) % static_cast<size_t>(config_.regression_window))
+                : 0;
         double sum = 0.0;
         for (size_t k = 0; k < n; ++k) {
             size_t idx = (start + k) % static_cast<size_t>(config_.regression_window);

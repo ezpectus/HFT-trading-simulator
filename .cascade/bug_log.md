@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 76 |
+| ✅ Fixed | 81 |
 | 🔄 In Progress | 0 |
-| ⏳ Pending Fix | 39 |
+| ⏳ Pending Fix | 37 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **113** |
+| **TOTAL FOUND** | **118** |
 
 ---
 
@@ -1431,6 +1431,61 @@
 - **Impact:** Can cause infinite resend loops or missed messages during FIX session recovery after a sequence gap.
 - **Status:** ✅ Fixed
 - **Fix:** Added early return check at the top of `_handle_message`: if `incoming_seq < self.incoming_seq`, skip the message as a duplicate (resent after ResendRequest). This prevents infinite resend loops when the counterparty fills a gap by resending messages that are now behind the expected sequence number.
+
+---
+
+## Bug #155 — PortfolioRisk::add_return ring buffer doesn't wrap after filling
+
+- **Location:** `hft-trade-bot/src/risk/portfolio_risk.h:157-159`
+- **Severity:** High
+- **Root Cause:** In `add_return`, `return_count_` is capped at `MAX_RETURNS` with `if (return_count_ < MAX_RETURNS) ++return_count_`. Once the buffer fills, `return_count_` stays at `MAX_RETURNS`, so all subsequent writes go to `returns_[MAX_RETURNS % MAX_RETURNS]` = `returns_[0]` only. This means only index 0 gets overwritten repeatedly while the rest of the buffer becomes stale. The ring buffer never wraps around.
+- **Impact:** After the buffer fills (1024 returns), VaR and CVaR calculations use stale data with only the most recent return at index 0 being current. This produces incorrect risk metrics for the portfolio.
+- **Status:** ✅ Fixed
+- **Fix:** Removed the cap on `return_count_` so it keeps incrementing, allowing `return_count_ % MAX_RETURNS` to wrap the write position correctly. Also capped `n` in `compute_historical_var` and `compute_parametric_var` with `std::min(return_count_, MAX_RETURNS)` to prevent out-of-bounds access on the `sorted` array.
+
+---
+
+## Bug #156 — DrawdownTracker::underwater_duration_seconds uses max_dd_time_ instead of peak_time_
+
+- **Location:** `hft-trade-bot/src/risk/portfolio_risk.h:44-47`
+- **Severity:** Medium
+- **Root Cause:** `underwater_duration_seconds()` returns `now - max_dd_time_`, where `max_dd_time_` is the timestamp when the *maximum* drawdown was recorded. Underwater duration should measure how long the equity has been below its peak, i.e., `now - peak_time_` (time since the last peak was set). Using `max_dd_time_` gives "time since worst drawdown" which is a different metric.
+- **Impact:** Incorrect underwater duration reporting. If the max drawdown occurred early but equity is still below a later peak, the duration would be overestimated. If a new peak was set after the max drawdown, the duration would be underestimated.
+- **Status:** ✅ Fixed
+- **Fix:** Added `peak_time_` member variable, set it in `update()` when a new peak is recorded, and use it in `underwater_duration_seconds()`. Also reset `peak_time_` in `reset()`.
+
+---
+
+## Bug #157 — MeanReversionV2 z-score uses price instead of residual
+
+- **Location:** `hft-trade-bot/src/strategies/mean_reversion_v2.h:126-131`
+- **Severity:** High
+- **Root Cause:** The z-score is computed as `z = (price - theta) / sigma`, but `theta` is the mean of the residuals (price - fair_price) estimated by the OU process, not the mean of prices. The correct z-score should be `z = (residual - theta) / sigma` where `residual = price - fair_price`. Using `price` instead of `residual` conflates the fair price level with the residual mean, producing z-scores that are biased by the absolute price level.
+- **Impact:** Incorrect z-score computation leads to wrong mean reversion signals. When prices are high (e.g., BTC at $60k), the z-score would be massively positive because `price` >> `theta` (which is near 0 as a mean of residuals), triggering persistent ENTER_SHORT signals even when the actual residual is small.
+- **Status:** ✅ Fixed
+- **Fix:** Changed `z = (price - theta) / sigma` to `z = (residual - theta) / sigma` where `residual = price - fair_price` is already computed earlier in the function.
+
+---
+
+## Bug #158 — StatisticalArbV2 ring buffer start calculation wrong when buffer not full
+
+- **Location:** `hft-trade-bot/src/strategies/statistical_arb_v2.h:144-147, 166-169`
+- **Severity:** High
+- **Root Cause:** In `ols_regression` and `compute_z_score`, the ring buffer `start` index is computed as `write_idx_ % regression_window` and `spread_idx_ % regression_window` respectively. When the buffer is not yet full (`write_idx_ < regression_window`), this evaluates to `write_idx_` itself, which points *past* the last written entry. The iteration then reads from uninitialized array elements (zero-initialized) instead of the actual data at indices 0 to `write_idx_-1`.
+- **Impact:** During the initial fill period (first 500 samples by default), OLS regression and z-score computation use zero-initialized data instead of actual price/spread data. This produces incorrect hedge ratios and z-scores, leading to wrong pair trading signals during startup.
+- **Status:** ✅ Fixed
+- **Fix:** Changed start calculation to check if the buffer is full: `(write_idx_ >= regression_window) ? (write_idx_ % regression_window) : 0`. Same fix applied to `compute_z_score` with `spread_idx_`.
+
+---
+
+## Bug #159 — MeanReversionV2 estimate_ou_params ring buffer start wrong when buffer not full
+
+- **Location:** `hft-trade-bot/src/strategies/mean_reversion_v2.h:207-210`
+- **Severity:** High
+- **Root Cause:** Same ring buffer start calculation issue as Bug #158. In `estimate_ou_params`, `start` is computed as `write_idx_ % ou_window`. When `write_idx_ < ou_window` (buffer not full), this evaluates to `write_idx_`, which points past the last written entry into uninitialized (zero) data. The function then iterates from this incorrect start position, reading zeros instead of actual residual data.
+- **Impact:** During the initial fill period (first 500 samples by default), OU parameter estimation (kappa, theta, sigma) uses zero-initialized data instead of actual residuals. This produces incorrect OU parameters, leading to wrong z-scores and mean reversion signals during startup.
+- **Status:** ✅ Fixed
+- **Fix:** Changed start calculation to check if buffer is full: `(write_idx_ >= ou_window) ? (write_idx_ % ou_window) : 0`.
 
 ---
 

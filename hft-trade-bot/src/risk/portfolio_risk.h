@@ -27,7 +27,8 @@ class DrawdownTracker {
   public:
     void update(double equity) noexcept {
         if (equity > peak_) {
-            peak_ = equity;
+            peak_      = equity;
+            peak_time_ = std::chrono::steady_clock::now();
         }
         current_dd_ = (peak_ > 0.0) ? (peak_ - equity) / peak_ : 0.0;
         if (current_dd_ > max_dd_) {
@@ -43,13 +44,14 @@ class DrawdownTracker {
     // Underwater duration (seconds since last peak)
     double underwater_duration_seconds() const noexcept {
         auto now = std::chrono::steady_clock::now();
-        return std::chrono::duration<double>(now - max_dd_time_).count();
+        return std::chrono::duration<double>(now - peak_time_).count();
     }
 
     void reset() noexcept {
         peak_       = 0.0;
         current_dd_ = 0.0;
         max_dd_     = 0.0;
+        peak_time_  = std::chrono::steady_clock::now();
     }
 
   private:
@@ -57,6 +59,7 @@ class DrawdownTracker {
     double                                current_dd_{0.0};
     double                                max_dd_{0.0};
     std::chrono::steady_clock::time_point max_dd_time_{};
+    std::chrono::steady_clock::time_point peak_time_{};
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -87,7 +90,7 @@ class PortfolioRisk {
 
     // Compute historical VaR from portfolio returns
     VaRResult compute_historical_var() const noexcept {
-        size_t n = return_count_;
+        size_t n = std::min(return_count_, MAX_RETURNS);
         if (n < 10) return {0.0, 0.0, 0.0, 0.0};
 
         // Sort returns (copy to avoid modifying original)
@@ -122,7 +125,7 @@ class PortfolioRisk {
 
     // Compute parametric VaR (assumes normal distribution)
     VaRResult compute_parametric_var(double portfolio_value) const noexcept {
-        size_t n = return_count_;
+        size_t n = std::min(return_count_, MAX_RETURNS);
         if (n < 2) return {0.0, 0.0, 0.0, 0.0};
 
         // Ring buffer safe: iterate in insertion order
@@ -156,7 +159,7 @@ class PortfolioRisk {
     // Add a portfolio return sample
     void add_return(double ret) noexcept {
         returns_[return_count_ % MAX_RETURNS] = ret;
-        if (return_count_ < MAX_RETURNS) ++return_count_;
+        ++return_count_;
     }
 
     // Run stress test on current positions
