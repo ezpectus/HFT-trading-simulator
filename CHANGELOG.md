@@ -15,6 +15,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-089]** `CoinbaseAPI.subscribe_websocket` in `exchange_simulator/price_feed_manager.py` didn't store WebSocket task reference — task could be GC'd, no cancellation on close, connection leak. Added `_ws_task` attribute and `close()` method.
 - **[BUG-090]** `ExchangeWebSocketServer._check_rate_limit` in `exchange_simulator/websocket_server.py` was defined but never called — clients could send unlimited messages without rate limiting, enabling DoS via message flooding.
 - **[BUG-091]** `adx` NumPy path in `ai-signal-bot/src/technical_analysis/indicators.py` used `isinstance(v, float)` to check for NaN, but `numpy.float64` is not a Python `float`, causing ADX to always return all-NaN values when NumPy is available.
+- **[BUG-092]** `calculate_position_size` in `ai-signal-bot/src/risk/position_sizing.py` passed `risk_per_trade` as the 4th positional arg to `kelly_criterion_sizing`, which was bound to `expected_return` instead — Kelly criterion used 2% expected return instead of 15%, dramatically under-sizing positions.
 
 ### Critical Audit Corrections (v4.2)
 

@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 26 |
+| ✅ Fixed | 27 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **65** |
+| **TOTAL FOUND** | **66** |
 
 ---
 
@@ -777,6 +777,16 @@
 - **Root Cause:** In the NumPy code path of the `adx` function, the `dx_start` search uses `isinstance(v, float) and math.isnan(v)` to find the first non-NaN DX value. However, `v` is a `numpy.float64` (from `np.full(n, NAN)`), and `isinstance(numpy.float64, float)` returns `False` in standard Python. This means the `isinstance` check always fails, so the condition `not (isinstance(v, float) and math.isnan(v))` is always `True` (even for NaN values), causing `dx_start` to be 0 regardless. The ADX result is then computed from NaN values, producing all-NaN output. The same bug exists at line 253 for the `dx[i]` check. The non-NumPy path at line 284 correctly uses `math.isnan(v)` without the `isinstance` guard.
 - **Status:** ✅ Fixed
 - **Fix:** Replaced `isinstance(v, float) and math.isnan(v)` with `np.isnan(v)` at line 249, and `isinstance(dx[i], float) and math.isnan(dx[i])` with `np.isnan(dx[i])` at line 253.
+
+---
+
+## Bug #092 — calculate_position_size passes risk_per_trade as expected_return to kelly_criterion_sizing
+
+- **Location:** `ai-signal-bot/src/risk/position_sizing.py:66`
+- **Severity:** High
+- **Root Cause:** `calculate_position_size` calls `self.kelly_criterion_sizing(signal, price, volatility, risk_per_trade)` with `risk_per_trade` as the 4th positional argument. However, `kelly_criterion_sizing`'s signature is `(self, signal, price, volatility, expected_return=0.15, risk_per_trade=0.02)`, so `risk_per_trade` (0.02) is bound to `expected_return` instead. This means Kelly criterion uses 2% expected return instead of the default 15%, dramatically under-sizing positions. The actual `risk_per_trade` parameter falls back to its default 0.02, so the risk cap happens to work correctly by coincidence.
+- **Status:** ✅ Fixed
+- **Fix:** Changed the call to use keyword argument: `self.kelly_criterion_sizing(signal, price, volatility, risk_per_trade=risk_per_trade)`.
 
 ---
 

@@ -63,7 +63,7 @@ class DynamicPositionSizer:
         elif method == 'risk_parity':
             return self.risk_parity_sizing(signal, price, risk_per_trade)
         elif method == 'kelly':
-            return self.kelly_criterion_sizing(signal, price, volatility, risk_per_trade)
+            return self.kelly_criterion_sizing(signal, price, volatility, risk_per_trade=risk_per_trade)
         else:
             raise ValueError(f"Unknown method: {method}")
     
