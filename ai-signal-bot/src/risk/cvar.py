@@ -183,7 +183,8 @@ class CVaRCalculator:
         # Hill estimator: excesses over the threshold
         # Sort descending so threshold is at the end
         tail_losses_sorted = np.sort(tail_losses)[::-1]  # descending
-        excesses = tail_losses_sorted[:-1] / tail_losses_sorted[-1]
+        threshold_val = max(tail_losses_sorted[-1], 1e-12)
+        excesses = tail_losses_sorted[:-1] / threshold_val
         log_excesses = np.log(excesses)
 
         n = len(log_excesses)

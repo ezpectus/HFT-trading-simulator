@@ -1247,6 +1247,17 @@
 
 ---
 
+## Bug #138 — cvar.py division by zero in Hill estimator
+
+- **Location:** `ai-signal-bot/src/risk/cvar.py:186`
+- **Severity:** Medium
+- **Root Cause:** `_calculate_tail_index` computes `excesses = tail_losses_sorted[:-1] / tail_losses_sorted[-1]` where `tail_losses_sorted[-1]` is the smallest absolute loss value in the tail. When returns are mostly positive or the threshold percentile lands near zero, this denominator can be 0, causing a `ZeroDivisionError` or producing `inf`/`NaN` that propagates through the tail index calculation.
+- **Impact:** Crash when computing tail risk measures for portfolios with mostly positive returns or flat return distributions. The tail index is used in extreme value theory analysis for risk management decisions.
+- **Status:** ✅ Fixed
+- **Fix:** Floored the denominator with `max(tail_losses_sorted[-1], 1e-12)` before division, preventing division by zero while preserving numerical accuracy for normal cases.
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
