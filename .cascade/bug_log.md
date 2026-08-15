@@ -1511,6 +1511,17 @@
 
 ---
 
+## Bug #162 — greeks_hedging.py simulate_delta_hedge missing cash adjustment for share transactions
+
+- **Location:** `ai-signal-bot/src/research/greeks_hedging.py:175-176, 219`
+- **Severity:** High
+- **Root Cause:** The `simulate_delta_hedge` method tracks a `cash` variable that starts as `option_price_0 * n_options + delta_0 * n_options * prices[0]` (option premium + initial hedge proceeds). When rebalancing the hedge, the code only deducts transaction costs from cash (`cash -= tc`) but doesn't account for the cost/proceeds of buying/selling shares (`cash -= trade_qty * price`). This makes `cash` incorrect by `sum(trade_qty_i * price_i)` across all rebalances. Since `final_pnl = cash + final_hedge_value - final_option_value`, the reported final PnL is wrong. Additionally, the `gamma_pnl` formula `final_pnl - total_hedge_pnl + total_option_pnl + total_tc` evaluates to 0 with correct cash accounting (since `final_pnl = -total_option_pnl + total_hedge_pnl - total_tc`), which is also incorrect.
+- **Impact:** The delta hedging simulator reports incorrect PnL, making it useless for evaluating hedging strategies. The P&L decomposition is also wrong. Anyone using this simulator to test delta hedging, gamma scalping, or compare rebalancing thresholds gets misleading results.
+- **Status:** ✅ Fixed
+- **Fix:** Added `cash -= trade_qty * price` before the transaction cost deduction in the rebalance block. Changed `gamma_pnl` formula from `final_pnl - total_hedge_pnl + total_option_pnl + total_tc` to `final_pnl` (the net PnL of the delta-hedged portfolio, representing the gamma/theta/vega residual after delta hedging).
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

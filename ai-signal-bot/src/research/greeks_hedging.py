@@ -173,6 +173,7 @@ class GreeksHedgingSimulator:
 
                 if hedge_error > rebalance_threshold * n_options:
                     trade_qty = target_hedge - hedge_position
+                    cash -= trade_qty * price
                     tc = abs(trade_qty) * price * self.tc_bps / 10000
                     total_tc += tc
                     cash -= tc
@@ -215,7 +216,7 @@ class GreeksHedgingSimulator:
                     "hedge_pnl": total_hedge_pnl,
                     "transaction_costs": total_tc,
                     "net_pnl": final_pnl,
-                    "gamma_pnl": final_pnl - total_hedge_pnl + total_option_pnl + total_tc,
+                    "gamma_pnl": final_pnl,
                 },
             )
             all_results.append(result)

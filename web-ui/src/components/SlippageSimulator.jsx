@@ -101,7 +101,7 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
       const sliceImpact = slippageModel === 'square-root'
         ? Math.sqrt(sliceQty / topLiquidity) * 0.3
         : (sliceQty / topLiquidity) * 0.5
-      twapSlippage += Math.min(sliceImpact, 5) * sliceQty
+      twapSlippage += Math.min(sliceImpact, 5) / 100 * currentPrice * sliceQty
     }
     const twapSavings = slippageCost - twapSlippage
     const twapSavingsPct = slippageCost > 0 ? (twapSavings / slippageCost) * 100 : 0

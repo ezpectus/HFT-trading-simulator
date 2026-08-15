@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-16 (v4.4 — Bug Scan Continuation)
+
+### Bug Fixes
+
+- **[BUG-162]** `GreeksHedgingSimulator.simulate_delta_hedge` in `ai-signal-bot/src/research/greeks_hedging.py` didn't adjust the cash account for share transactions during hedge rebalancing — only transaction costs were deducted. This made `final_pnl` incorrect by `sum(trade_qty_i * price_i)`. Also fixed `gamma_pnl` formula which evaluated to 0 with correct cash accounting — changed to `final_pnl` (the net PnL of the delta-hedged portfolio representing gamma/theta/vega residual).
+
 ## [Unreleased] — 2026-08-15 (v4.3 — Deep Audit v4)
 
 ### Documentation Corrections

@@ -398,7 +398,7 @@ export function runBacktest(candles, rules, options = {}) {
   // Sortino ratio (only downside deviation)
   const downsideReturns = returns.filter(r => r < 0)
   const downsideDev = downsideReturns.length > 1
-    ? Math.sqrt(downsideReturns.reduce((s, r) => s + r * r, 0) / downsideReturns.length)
+    ? Math.sqrt(downsideReturns.reduce((s, r) => s + r * r, 0) / returns.length)
     : 0
   const sortinoRatio = downsideDev > 0
     ? (avgReturn / downsideDev) * Math.sqrt(periodsPerYear)

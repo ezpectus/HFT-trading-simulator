@@ -214,9 +214,9 @@ export function calcIchimoku(highs, lows, closes) {
       for (let j = i - 51; j <= i; j++) { if (highs[j] > hh) hh = highs[j]; if (lows[j] < ll) ll = lows[j] }
       senkouB[i + 26] = midpoint(hh, ll)
     }
-    // Chikou Span: close shifted -26
-    if (i + 26 < n) {
-      chikou[i + 26] = closes[i]
+    // Chikou Span: close shifted -26 (current close plotted 26 periods back)
+    if (i >= 26) {
+      chikou[i - 26] = closes[i]
     }
   }
   return { tenkan, kijun, senkouA, senkouB, chikou }
