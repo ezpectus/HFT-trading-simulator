@@ -16,6 +16,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-090]** `ExchangeWebSocketServer._check_rate_limit` in `exchange_simulator/websocket_server.py` was defined but never called — clients could send unlimited messages without rate limiting, enabling DoS via message flooding.
 - **[BUG-091]** `adx` NumPy path in `ai-signal-bot/src/technical_analysis/indicators.py` used `isinstance(v, float)` to check for NaN, but `numpy.float64` is not a Python `float`, causing ADX to always return all-NaN values when NumPy is available.
 - **[BUG-092]** `calculate_position_size` in `ai-signal-bot/src/risk/position_sizing.py` passed `risk_per_trade` as the 4th positional arg to `kelly_criterion_sizing`, which was bound to `expected_return` instead — Kelly criterion used 2% expected return instead of 15%, dramatically under-sizing positions.
+- **[BUG-093]** `Backtester._close_position` in `ai-signal-bot/src/backtesting/backtester.py` created `Trade` with hardcoded `symbol=""` — all trade records had empty symbol, making multi-symbol backtests impossible to attribute.
 
 ### Critical Audit Corrections (v4.2)
 

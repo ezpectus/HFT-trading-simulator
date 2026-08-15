@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 27 |
+| ✅ Fixed | 28 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **66** |
+| **TOTAL FOUND** | **67** |
 
 ---
 
@@ -787,6 +787,16 @@
 - **Root Cause:** `calculate_position_size` calls `self.kelly_criterion_sizing(signal, price, volatility, risk_per_trade)` with `risk_per_trade` as the 4th positional argument. However, `kelly_criterion_sizing`'s signature is `(self, signal, price, volatility, expected_return=0.15, risk_per_trade=0.02)`, so `risk_per_trade` (0.02) is bound to `expected_return` instead. This means Kelly criterion uses 2% expected return instead of the default 15%, dramatically under-sizing positions. The actual `risk_per_trade` parameter falls back to its default 0.02, so the risk cap happens to work correctly by coincidence.
 - **Status:** ✅ Fixed
 - **Fix:** Changed the call to use keyword argument: `self.kelly_criterion_sizing(signal, price, volatility, risk_per_trade=risk_per_trade)`.
+
+---
+
+## Bug #093 — Backtester._close_position creates Trade with empty symbol="" instead of actual symbol
+
+- **Location:** `ai-signal-bot/src/backtesting/backtester.py:384`
+- **Severity:** Medium
+- **Root Cause:** `_close_position` creates a `Trade` with `symbol=""` hardcoded. The `symbol` parameter is available in `run()` but is never passed to `_open_position` or stored in the position dict. This means all trade records have an empty symbol, making it impossible to attribute trades to specific symbols in multi-symbol backtests or display correct symbol in reports.
+- **Status:** ✅ Fixed
+- **Fix:** Added `symbol` parameter to `_open_position`, stored it in the position dict, and changed `_close_position` to read it from `pos.get("symbol", "")`. Updated both `_open_position` calls in `run()` to pass `symbol=symbol`.
 
 ---
 

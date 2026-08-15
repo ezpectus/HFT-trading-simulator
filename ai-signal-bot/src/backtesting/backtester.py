@@ -203,7 +203,7 @@ class Backtester:
                             risk_state = None
                             # Open new position
                             current_position = self._open_position(signal, current_price, balance, result,
-                                timestamp=current_candle.get("timestamp", 0))
+                                timestamp=current_candle.get("timestamp", 0), symbol=symbol)
                             if current_position and self.risk_manager:
                                 risk_state = self.risk_manager.init_position(
                                     entry_price=current_position["entry_price"],
@@ -220,7 +220,7 @@ class Backtester:
                 if signal.is_actionable:
                     result.signals_valid += 1
                     current_position = self._open_position(signal, current_price, balance, result,
-                        timestamp=current_candle.get("timestamp", 0))
+                        timestamp=current_candle.get("timestamp", 0), symbol=symbol)
                     if current_position and self.risk_manager:
                         risk_state = self.risk_manager.init_position(
                             entry_price=current_position["entry_price"],
@@ -325,7 +325,7 @@ class Backtester:
         return result
 
     def _open_position(self, signal: Signal, price: float, balance: float, result: BacktestResult,
-                        timestamp: int = 0) -> dict:
+                        timestamp: int = 0, symbol: str = "") -> dict:
         """Open a new position from a signal."""
         # Apply slippage
         if signal.direction == SignalDirection.LONG:
@@ -352,6 +352,7 @@ class Backtester:
         fee = notional * self.fee_pct / 100
 
         return {
+            "symbol": symbol,
             "side": signal.direction.value,
             "entry_price": fill_price,
             "quantity": quantity,
@@ -381,7 +382,7 @@ class Backtester:
         pnl_pct = pnl / (pos["entry_price"] * pos["quantity"]) * 100 if pos["quantity"] > 0 else 0
 
         trade = Trade(
-            symbol="",
+            symbol=pos.get("symbol", ""),
             side=pos["side"],
             entry_price=pos["entry_price"],
             exit_price=fill_exit,
