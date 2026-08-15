@@ -61,6 +61,7 @@ class SignalPublisher:
         self._running = False
         self.circuit_breaker = CircuitBreaker()
         self.metrics = MetricsCollector()
+        self._cb_broadcast_task: asyncio.Task | None = None
 
     @property
     def client_count(self) -> int:
@@ -82,11 +83,17 @@ class SignalPublisher:
         self._running = True
         logger.info(f"Signal publisher started on ws://{self.host}:{self.port}")
 
-        asyncio.create_task(self._broadcast_circuit_breaker_status())
+        self._cb_broadcast_task = asyncio.create_task(self._broadcast_circuit_breaker_status())
 
     async def stop(self) -> None:
         """Stop the server."""
         self._running = False
+        if self._cb_broadcast_task:
+            self._cb_broadcast_task.cancel()
+            try:
+                await self._cb_broadcast_task
+            except asyncio.CancelledError:
+                pass
         if self._server:
             self._server.close()
             await self._server.wait_closed()

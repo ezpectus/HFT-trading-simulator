@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 40 |
+| ✅ Fixed | 42 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **79** |
+| **TOTAL FOUND** | **81** |
 
 ---
 
@@ -917,6 +917,26 @@
 - **Root Cause:** `LLMEngine.analyze_market` adds entries to `self._cache` on every call but never evicts stale entries. The cache only checks TTL on read, but expired entries remain in the dict indefinitely. Over time, with many symbols and price levels, the cache grows without bound, causing a memory leak.
 - **Status:** ✅ Fixed
 - **Fix:** Added two fixes: (1) delete expired cache entries immediately when found during lookup, (2) when cache exceeds 100 entries, proactively evict all stale entries.
+
+---
+
+## Bug #106 — RateLimiter.acquire divides by zero when rate is 0
+
+- **Location:** `ai-signal-bot/src/utils/helpers.py:207`
+- **Severity:** Medium
+- **Root Cause:** `RateLimiter.acquire` computes `wait = (1.0 - self._tokens) / self.rate` without checking if `self.rate` is 0. When rate is 0, this causes `ZeroDivisionError`, crashing the caller. A rate of 0 is a valid configuration meaning "no requests allowed" or could result from a misconfiguration.
+- **Status:** ✅ Fixed
+- **Fix:** Added a guard: if `self.rate <= 0`, sleep briefly (10ms) and retry the loop instead of dividing by zero.
+
+---
+
+## Bug #107 — SignalPublisher.start creates asyncio task without storing reference (GC risk)
+
+- **Location:** `ai-signal-bot/src/communication/signal_publisher.py:85`
+- **Severity:** High
+- **Root Cause:** `SignalPublisher.start()` calls `asyncio.create_task(self._broadcast_circuit_breaker_status())` without storing the task reference. Python's asyncio only holds a weak reference to tasks, so the garbage collector can destroy the task before it completes, silently stopping circuit breaker status broadcasts. Additionally, `stop()` doesn't cancel the task, so it keeps running after the publisher is supposed to be stopped.
+- **Status:** ✅ Fixed
+- **Fix:** Added `self._cb_broadcast_task` attribute. Store the task reference in `start()`. In `stop()`, cancel the task and await its cancellation before closing the server.
 
 ---
 

@@ -204,5 +204,8 @@ class RateLimiter:
             if self._tokens >= 1.0:
                 self._tokens -= 1.0
                 return True
+            if self.rate <= 0:
+                await asyncio.sleep(0.01)
+                continue
             wait = (1.0 - self._tokens) / self.rate
             await asyncio.sleep(wait)

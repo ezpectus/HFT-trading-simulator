@@ -29,6 +29,8 @@ All notable changes to this project are documented in this file.
 - **[BUG-103]** `compute_trade_intensity` in `ai-signal-bot/src/research/microstructure_lab.py` used `timestamps[1]` instead of `timestamps[0]` for duration — excluded first trade, underestimating duration and overestimating arrival rate.
 - **[BUG-104]** `TelegramNotifier` and `DiscordNotifier` in `ai-signal-bot/src/notification/notifier.py` created `asyncio.create_task()` without storing reference — task could be GC'd, silently dropping polling loop. `stop()` also didn't cancel the task.
 - **[BUG-105]** `LLMEngine._cache` in `ai-signal-bot/src/llm_engine/engine.py` grew unbounded — expired cache entries were never evicted, causing memory leak over time.
+- **[BUG-106]** `RateLimiter.acquire` in `ai-signal-bot/src/utils/helpers.py` divided by `self.rate` without zero check — `ZeroDivisionError` when rate is 0.
+- **[BUG-107]** `SignalPublisher.start` in `ai-signal-bot/src/communication/signal_publisher.py` created `asyncio.create_task()` without storing reference — task could be GC'd, silently stopping circuit breaker status broadcasts. `stop()` also didn't cancel the task.
 
 ### Critical Audit Corrections (v4.2)
 
