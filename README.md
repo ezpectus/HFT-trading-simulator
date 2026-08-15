@@ -3,7 +3,7 @@
 ![CI](https://img.shields.io/github/actions/workflow/status/ezpectus/HFT-TradeBot--Lite-version/ci.yml?branch=main&label=CI)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-61dafb.svg)
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
-![Tests](https://img.shields.io/badge/tests-170%2B%20files-6e9f18.svg)
+![Tests](https://img.shields.io/badge/tests-172%2B%20files-6e9f18.svg)
 ![Roadmap](https://img.shields.io/badge/roadmap-9%2F9%20days%20done-00C853.svg)
 ![Price Feed](https://img.shields.io/badge/price%20feed-Optimized-00C853.svg)
 ![Strategies](https://img.shields.io/badge/strategies-19-FF6B35.svg)
@@ -13,7 +13,7 @@
 ![Math Models](https://img.shields.io/badge/math%20models-44%20trading%20%2B%2040%20UI--only-a855f7.svg)
 ![Languages](https://img.shields.io/badge/languages-C%2B%2B20%20%7C%20Python%20%7C%20React-00599C.svg)
 ![Security](https://img.shields.io/badge/security-Bandit%20%2B%20CodeQL-red.svg)
-![Readiness](https://img.shields.io/badge/readiness-63%25-yellow.svg)
+![Readiness](https://img.shields.io/badge/readiness-62%25-yellow.svg)
 ![Dead Code](https://img.shields.io/badge/dead%20code-CUDA%20%2B%20ONNX%20(%23ifdef)-red.svg)
 
 > **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 44 quant models in trading logic (+40 UI-only), 197 dashboard panels, Rust executor, shared-memory IPC, SVI/SABR volatility surface, Student-t/Merton/Heston/Markov microstructure, options strategies, and optimized price feed with connection pooling, batching, and LRU cache. CUDA and ONNX code exists but is dead code behind `#ifdef` (never compiled in CI). Zero real money, zero risk, 100% educational.**
@@ -313,7 +313,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | SHM IPC latency | ~1-5 us | Zero-copy C++ ↔ Python, packed structs |
 | Web UI bundle size (dist) | < 5 MB | Code-split, lazy-loaded panels |
 | Web UI initial render | < 1s | Vite + React 18 |
-| Test coverage | 45 JS files, 45 C++ files, 82 Python files | Unit + integration + E2E (170+ test files) |
+| Test coverage | 44 JS files, 46 C++ files, 82 Python files | Unit + integration + E2E (172+ test files) |
 | Panel count | 197 registered panels | Detachable, responsive |
 | Math models | 44 in trading logic + 40 UI-only | Black-Scholes to SVI/SABR to Heston/Merton |
 | Component files | 227 React components | |
