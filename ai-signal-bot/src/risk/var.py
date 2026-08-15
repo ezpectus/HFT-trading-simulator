@@ -230,6 +230,9 @@ class VaRCalculator:
         if violations == 0:
             return 0.0  # No violations = conservative model, passes test
         
+        if violations == total_observations:
+            return float('inf')  # All violations = model completely wrong
+        
         p = 1 - confidence_level
         n = total_observations
         x = violations

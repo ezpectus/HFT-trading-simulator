@@ -166,10 +166,13 @@ class DynamicPositionSizer:
         # Kelly fraction: f = (mu - r) / sigma^2
         # Assuming risk-free rate of 2%
         risk_free_rate = 0.02
-        kelly_fraction = (expected_return - risk_free_rate) / (volatility ** 2)
+        if volatility is None or volatility <= 0:
+            kelly_fraction = 0.0
+        else:
+            kelly_fraction = (expected_return - risk_free_rate) / (volatility ** 2)
         
-        # Cap Kelly fraction at 0.25 (quarter Kelly for safety)
-        kelly_fraction = min(kelly_fraction, 0.25)
+        # Floor at 0 (no edge → no trade) and cap at 0.25 (quarter Kelly for safety)
+        kelly_fraction = max(0.0, min(kelly_fraction, 0.25))
         
         # Position size
         position_value = self.account_value * kelly_fraction

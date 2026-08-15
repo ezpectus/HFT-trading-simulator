@@ -56,7 +56,7 @@ class StressTestScenario:
         portfolio_value_after = np.sum(shocked_prices * positions)
         
         pnl = portfolio_value_after - portfolio_value_before
-        pnl_percentage = pnl / portfolio_value_before
+        pnl_percentage = pnl / portfolio_value_before if portfolio_value_before != 0 else 0.0
         
         # Margin requirement increases during crisis
         margin_requirement = abs(pnl) * 0.5  # 50% of loss as margin
@@ -99,7 +99,7 @@ class StressTestScenario:
         portfolio_value_after = np.sum(shocked_prices * positions)
         
         pnl = portfolio_value_after - portfolio_value_before
-        pnl_percentage = pnl / portfolio_value_before
+        pnl_percentage = pnl / portfolio_value_before if portfolio_value_before != 0 else 0.0
         
         margin_requirement = abs(pnl) * 0.4
         liquidity_impact = 0.03  # 3% liquidity cost
@@ -146,7 +146,7 @@ class StressTestScenario:
         portfolio_value_after = np.sum(shocked_prices * positions)
         
         pnl = portfolio_value_after - portfolio_value_before
-        pnl_percentage = pnl / portfolio_value_before
+        pnl_percentage = pnl / portfolio_value_before if portfolio_value_before != 0 else 0.0
         
         margin_requirement = abs(pnl) * 0.6  # Higher margin for crypto
         liquidity_impact = 0.10  # 10% liquidity cost (crypto illiquidity)
@@ -186,7 +186,7 @@ class StressTestScenario:
         portfolio_value_after = np.sum(shocked_prices * positions)
         
         pnl = portfolio_value_after - portfolio_value_before
-        pnl_percentage = pnl / portfolio_value_before
+        pnl_percentage = pnl / portfolio_value_before if portfolio_value_before != 0 else 0.0
         
         margin_requirement = abs(pnl) * 0.5
         liquidity_impact = np.std(price_shocks) * 0.05  # Liquidity based on volatility

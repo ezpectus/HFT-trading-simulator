@@ -31,6 +31,9 @@ All notable changes to this project are documented in this file.
 - **[BUG-105]** `LLMEngine._cache` in `ai-signal-bot/src/llm_engine/engine.py` grew unbounded — expired cache entries were never evicted, causing memory leak over time.
 - **[BUG-106]** `RateLimiter.acquire` in `ai-signal-bot/src/utils/helpers.py` divided by `self.rate` without zero check — `ZeroDivisionError` when rate is 0.
 - **[BUG-107]** `SignalPublisher.start` in `ai-signal-bot/src/communication/signal_publisher.py` created `asyncio.create_task()` without storing reference — task could be GC'd, silently stopping circuit breaker status broadcasts. `stop()` also didn't cancel the task.
+- **[BUG-108]** `_kupiec_test` in `ai-signal-bot/src/risk/var.py` produced `NaN` when all observations were violations — `0 * np.log(0)` = `NaN`, corrupting VaR backtest results.
+- **[BUG-109]** `kelly_criterion_sizing` in `ai-signal-bot/src/risk/position_sizing.py` divided by `volatility ** 2` without zero check — `ZeroDivisionError` when volatility is 0. Also allowed negative Kelly fraction leading to negative position sizes.
+- **[BUG-110]** `stress_test.py` in `ai-signal-bot/src/risk/stress_test.py` divided by `portfolio_value_before` without zero check in all 4 scenario methods — `ZeroDivisionError` when positions or prices are 0.
 
 ### Critical Audit Corrections (v4.2)
 

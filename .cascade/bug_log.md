@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 42 |
+| ✅ Fixed | 45 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **81** |
+| **TOTAL FOUND** | **84** |
 
 ---
 
@@ -937,6 +937,36 @@
 - **Root Cause:** `SignalPublisher.start()` calls `asyncio.create_task(self._broadcast_circuit_breaker_status())` without storing the task reference. Python's asyncio only holds a weak reference to tasks, so the garbage collector can destroy the task before it completes, silently stopping circuit breaker status broadcasts. Additionally, `stop()` doesn't cancel the task, so it keeps running after the publisher is supposed to be stopped.
 - **Status:** ✅ Fixed
 - **Fix:** Added `self._cb_broadcast_task` attribute. Store the task reference in `start()`. In `stop()`, cancel the task and await its cancellation before closing the server.
+
+---
+
+## Bug #108 — _kupiec_test produces NaN when all observations are violations
+
+- **Location:** `ai-signal-bot/src/risk/var.py:238`
+- **Severity:** Medium
+- **Root Cause:** `_kupiec_test` computes `lr = 2 * (x * np.log(x / (n * p)) + (n - x) * np.log((n - x) / (n * (1 - p))))`. When `violations == total_observations` (i.e., `x == n`), the term `(n - x) * np.log((n - x) / ...)` becomes `0 * np.log(0)` = `0 * (-inf)` = `NaN`. This corrupts the entire Kupiec test result, making the VaR backtest report unreliable.
+- **Status:** ✅ Fixed
+- **Fix:** Added an early return `float('inf')` when `violations == total_observations`, indicating the model is completely wrong.
+
+---
+
+## Bug #109 — kelly_criterion_sizing divides by zero when volatility is 0 and allows negative Kelly fraction
+
+- **Location:** `ai-signal-bot/src/risk/position_sizing.py:169`
+- **Severity:** High
+- **Root Cause:** `kelly_criterion_sizing` computes `kelly_fraction = (expected_return - risk_free_rate) / (volatility ** 2)` without checking if `volatility` is 0 or None. When volatility is 0, this causes `ZeroDivisionError`. Additionally, when `expected_return < risk_free_rate`, `kelly_fraction` goes negative, leading to negative position sizes (shorting when the intent is to size a long position).
+- **Status:** ✅ Fixed
+- **Fix:** Added guard: if `volatility is None or volatility <= 0`, set `kelly_fraction = 0.0`. Floored `kelly_fraction` at 0.0 before capping at 0.25.
+
+---
+
+## Bug #110 — stress_test.py divides by portfolio_value_before without zero check in all 4 scenario methods
+
+- **Location:** `ai-signal-bot/src/risk/stress_test.py:59, 102, 149, 189`
+- **Severity:** Medium
+- **Root Cause:** All 4 stress test scenario methods (`crisis_2008_scenario`, `covid_crash_scenario`, `ftx_collapse_scenario`, `custom_scenario`) compute `pnl_percentage = pnl / portfolio_value_before` without checking if `portfolio_value_before` is 0. When all positions are 0 or all prices are 0, this causes `ZeroDivisionError`, crashing the stress test.
+- **Status:** ✅ Fixed
+- **Fix:** Added zero check: `pnl_percentage = pnl / portfolio_value_before if portfolio_value_before != 0 else 0.0` in all 4 methods.
 
 ---
 
