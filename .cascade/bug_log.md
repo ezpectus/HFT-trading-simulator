@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 31 |
+| ✅ Fixed | 32 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **70** |
+| **TOTAL FOUND** | **71** |
 
 ---
 
@@ -827,6 +827,16 @@
 - **Root Cause:** Same as Bug #093 but in `BacktestEngine` (separate from `Backtester`). `_exit_position` creates a `BacktestTrade` with `symbol=""` hardcoded. The `symbol` parameter is available in `run()` but is not passed through to `_check_exit` or `_exit_position`. All trade records have an empty symbol.
 - **Status:** ✅ Fixed
 - **Fix:** Added `symbol` parameter to `_exit_position` and `_check_exit`, passed `symbol=symbol` from `run()` through all call chains.
+
+---
+
+## Bug #097 — DQNAgent and PPOAgent use list.pop(0) for replay memory (O(n) instead of O(1))
+
+- **Location:** `ai-signal-bot/src/ml/rl_agent.py:67-68, 303-304`
+- **Severity:** Medium (Performance)
+- **Root Cause:** Both `DQNAgent.remember()` and `PPOAgent.remember()` use `self.memory.pop(0)` on a Python list to enforce the memory size limit. `list.pop(0)` is O(n) because it shifts all remaining elements. With `memory_size=10000`, every experience after the buffer is full requires shifting 9999 elements, significantly slowing training.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `self.memory = []` with `self.memory: deque = deque(maxlen=config.memory_size)` in both agents. Removed the manual `pop(0)` check since `deque` with `maxlen` automatically discards the oldest element when appending.
 
 ---
 

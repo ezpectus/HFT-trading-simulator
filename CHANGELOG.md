@@ -20,6 +20,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-094]** `_adf_statistic` in `ai-signal-bot/src/strategies/statistical_arbitrage.py` computed regression residuals with raw variables instead of demeaned variables, producing incorrect ADF test statistics and wrong cointegration detection.
 - **[BUG-095]** `_monitor_loop` in `ai-signal-bot/src/strategies/cross_exchange_arb.py` created `asyncio.create_task` without storing reference — task could be GC'd before completion, silently dropping arbitrage executions.
 - **[BUG-096]** `BacktestEngine._exit_position` in `ai-signal-bot/src/backtesting/backtest_engine.py` created `BacktestTrade` with hardcoded `symbol=""` — same as Bug #093 but in the separate BacktestEngine class.
+- **[BUG-097]** `DQNAgent` and `PPOAgent` in `ai-signal-bot/src/ml/rl_agent.py` used `list.pop(0)` for replay memory management — O(n) per operation, significantly slowing RL training. Replaced with `deque(maxlen=...)` for O(1) operations.
 
 ### Critical Audit Corrections (v4.2)
 

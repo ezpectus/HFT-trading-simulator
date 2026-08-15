@@ -6,6 +6,7 @@
 import numpy as np
 from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass
+from collections import deque
 import pickle
 
 from .environment import TradingEnv
@@ -36,7 +37,7 @@ class DQNAgent:
             config: RL configuration
         """
         self.config = config
-        self.memory = []
+        self.memory: deque = deque(maxlen=config.memory_size)
         self.epsilon = config.epsilon
         
         # Simplified Q-network (in production, use PyTorch/TensorFlow)
@@ -64,9 +65,6 @@ class DQNAgent:
             next_state: Next state
             done: Episode done flag
         """
-        if len(self.memory) >= self.config.memory_size:
-            self.memory.pop(0)
-        
         self.memory.append((state, action, reward, next_state, done))
     
     def act(self, state: np.ndarray, training: bool = True) -> int:
@@ -232,7 +230,7 @@ class PPOAgent:
             config: RL configuration
         """
         self.config = config
-        self.memory = []
+        self.memory: deque = deque(maxlen=config.memory_size)
         self.is_trained = False
         
         # Simplified policy and value networks
@@ -300,9 +298,6 @@ class PPOAgent:
             value: State value
             done: Episode done flag
         """
-        if len(self.memory) >= self.config.memory_size:
-            self.memory.pop(0)
-        
         self.memory.append((state, action, log_prob, reward, value, done))
     
     def train(self, env: TradingEnv, episodes: int = 1000) -> Dict:
