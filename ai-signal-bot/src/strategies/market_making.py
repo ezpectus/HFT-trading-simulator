@@ -156,6 +156,8 @@ class MarketMakingStrategy:
             bid_size = base_size
             ask_size = base_size
 
+        self.order_count += 1
+
         # Confidence based on spread width and toxicity
         confidence = max(0, 100 - (spread / self.config.max_spread) * 50 - self.toxicity_score * 30)
 
@@ -174,6 +176,11 @@ class MarketMakingStrategy:
         else:
             self.inventory -= qty
         self.fill_count += 1
+
+        if side == "SELL":
+            self.total_pnl += qty * (price - self._prev_price)
+        else:
+            self.total_pnl -= qty * (price - self._prev_price)
 
     def analyze(self, symbol: str, candles: list[dict]) -> Signal:
         """Convert market making state to a signal (for monitoring)."""

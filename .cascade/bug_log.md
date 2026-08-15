@@ -1236,6 +1236,17 @@
 
 ---
 
+## Bug #137 — market_making.py order_count never incremented, total_pnl never updated
+
+- **Location:** `ai-signal-bot/src/strategies/market_making.py:63, 170-176, 218-227`
+- **Severity:** Medium
+- **Root Cause:** `order_count` is initialized to 0 but never incremented anywhere in the class. `get_stats()` computes `fill_rate = fill_count / max(order_count, 1)` which always equals `fill_count` (a meaningless metric). `total_pnl` is initialized to 0.0 but never updated in `on_fill`, so it always reports 0.0. These are critical MM monitoring metrics.
+- **Impact:** Strategy monitoring reports incorrect fill_rate (always equals fill_count) and total_pnl (always 0.0), misleading operators about strategy performance and preventing spread optimization.
+- **Status:** ✅ Fixed
+- **Fix:** Increment `order_count` in `generate_quotes` on the normal quoting path (each call represents one quote pair = one order opportunity). Update `total_pnl` in `on_fill` using mark-to-market PnL: for SELL fills, PnL = qty * (fill_price - prev_price); for BUY fills, PnL = -qty * (fill_price - prev_price).
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
