@@ -18,6 +18,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-092]** `calculate_position_size` in `ai-signal-bot/src/risk/position_sizing.py` passed `risk_per_trade` as the 4th positional arg to `kelly_criterion_sizing`, which was bound to `expected_return` instead — Kelly criterion used 2% expected return instead of 15%, dramatically under-sizing positions.
 - **[BUG-093]** `Backtester._close_position` in `ai-signal-bot/src/backtesting/backtester.py` created `Trade` with hardcoded `symbol=""` — all trade records had empty symbol, making multi-symbol backtests impossible to attribute.
 - **[BUG-094]** `_adf_statistic` in `ai-signal-bot/src/strategies/statistical_arbitrage.py` computed regression residuals with raw variables instead of demeaned variables, producing incorrect ADF test statistics and wrong cointegration detection.
+- **[BUG-095]** `_monitor_loop` in `ai-signal-bot/src/strategies/cross_exchange_arb.py` created `asyncio.create_task` without storing reference — task could be GC'd before completion, silently dropping arbitrage executions.
 
 ### Critical Audit Corrections (v4.2)
 

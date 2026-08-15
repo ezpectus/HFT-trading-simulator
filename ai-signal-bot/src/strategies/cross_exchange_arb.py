@@ -118,6 +118,7 @@ class CrossExchangeArbEngine:
         self.open_positions: list[ArbitrageOpportunity] = []
         self.completed: list[ArbitrageOpportunity] = []
         self._running = False
+        self._pending_tasks: set[asyncio.Task] = set()
         self._stats = {
             "opportunities_detected": 0,
             "opportunities_executed": 0,
@@ -148,7 +149,9 @@ class CrossExchangeArbEngine:
                 opp = self._detect_opportunity(symbol)
                 if opp and len(self.open_positions) < self.max_open_positions:
                     self._stats["opportunities_detected"] += 1
-                    asyncio.create_task(self._execute_arbitrage(opp))
+                    task = asyncio.create_task(self._execute_arbitrage(opp))
+                    self._pending_tasks.add(task)
+                    task.add_done_callback(self._pending_tasks.discard)
             except Exception as e:
                 logger.error(f"[CrossExArb] Monitor error for {symbol}: {e}")
 

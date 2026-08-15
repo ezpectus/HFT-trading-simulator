@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 29 |
+| ✅ Fixed | 30 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **68** |
+| **TOTAL FOUND** | **69** |
 
 ---
 
@@ -807,6 +807,16 @@
 - **Root Cause:** In `_adf_statistic`, the regression uses demeaned variables `x = y_lag - y_lag.mean()` and `y = dy - dy.mean()` to compute `beta`. However, the residuals for the standard error calculation are computed as `residuals_reg = dy - beta * y_lag`, which uses the raw (non-demeaned) variables. The correct formula should be `residuals_reg = y - beta * x` (using the same demeaned variables used for the regression). This produces incorrect standard errors, which in turn produces incorrect ADF test statistics, leading to wrong cointegration detection — the core of the statistical arbitrage strategy.
 - **Status:** ✅ Fixed
 - **Fix:** Changed `residuals_reg = dy - beta * y_lag` to `residuals_reg = y - beta * x`.
+
+---
+
+## Bug #095 — _monitor_loop creates asyncio task without storing reference
+
+- **Location:** `ai-signal-bot/src/strategies/cross_exchange_arb.py:151`
+- **Severity:** High
+- **Root Cause:** `_monitor_loop` creates an `asyncio.create_task(self._execute_arbitrage(opp))` but doesn't store the task reference. The task can be garbage collected before completion, silently dropping arbitrage executions. This is the same class of bug as Bug #089.
+- **Status:** ✅ Fixed
+- **Fix:** Added `self._pending_tasks: set[asyncio.Task] = set()`, store the task in the set, and use `task.add_done_callback(self._pending_tasks.discard)` for automatic cleanup.
 
 ---
 
