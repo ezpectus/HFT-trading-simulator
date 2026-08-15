@@ -2,6 +2,39 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-15
+
+### Added
+
+- **README_PROJECT_OVERVIEW.md** — comprehensive project overview for collaborators (adapted from other project structure)
+  - 11 sections covering project purpose, architecture, current status, tech stack, statistics, features, security, infrastructure, documentation, and usage
+  - 85% overall completion status documented
+  - Educational simulator context emphasized
+
+- **MASTER_DEVELOPMENT_PLAN.md** — detailed development plan to 100% completion (adapted from other project structure)
+  - 13 sections covering all components: Exchange Simulator, AI Signal Bot, HFT Trade Bot, Web UI, Monitoring, Testing, Infrastructure, Security, Documentation
+  - Detailed task breakdowns with time estimates for each component
+  - Total estimated timeline: 14-20 weeks (3.5-5 months) for high/medium priority items
+
+- **.windsurf/workflows/ai-monster-workflow.md** — detailed AI workflow for deep code analysis and bug fixing
+  - 15-step workflow: file selection, deep reading, bug finding (20-50 per session), 5 fix variants per bug, optimization, CUDA/GPU usage, testing, load/security checks, improvement proposals, documentation updates, commits
+  - Emphasizes no over-engineering, advanced concepts without complexity, and continuous improvement
+  - Checklist for each file to ensure comprehensive analysis
+
+- **docs/future_development.md** — detailed ideas for project expansion
+  - 10 sections covering: Exchange Simulator, AI Signal Bot, HFT Trade Bot, Web UI, Monitoring, Infrastructure, Security, Documentation, Machine Learning, Testing
+  - 50+ detailed ideas with priority, complexity, time estimates, dependencies, and notes
+  - Prioritized: High (GPU acceleration, Production Kubernetes, Mobile responsiveness, Security tests), Medium (Additional ML models, Model explainability, A/B testing), Low (FPGA, Service mesh, Video tutorials)
+
+### Changed
+
+- **.gitignore** — added internal documentation files
+  - README_PROJECT_OVERVIEW.md
+  - MASTER_DEVELOPMENT_PLAN.md
+  - These files are now excluded from public repo as internal planning documents
+
+---
+
 ## [Unreleased] — 2026-08-07
 
 ### Security Fixes
