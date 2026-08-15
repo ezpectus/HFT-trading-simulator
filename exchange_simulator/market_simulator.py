@@ -146,11 +146,10 @@ class MarketSimulator:
                 real_prices = await self.price_feed_manager.get_all_prices()
                 for symbol, tick in real_prices.items():
                     if symbol in self.symbols:
+                        old_price = self._prices.get(symbol, tick.price)
                         self._prices[symbol] = tick.price
                         # Update volatility from real data if available
                         if hasattr(tick, 'volume') and tick.volume > 0:
-                            # Simple volatility estimation from price movement
-                            old_price = self._prices.get(symbol, tick.price)
                             if old_price > 0:
                                 price_change = abs(tick.price - old_price) / old_price
                                 # Smooth volatility update
