@@ -163,9 +163,13 @@ class PortfolioOptimizer:
         try:
             inv_cov_full = np.linalg.inv(cov)
             ones = np.ones(n)
-            w = inv_cov_full @ posterior_returns / (ones @ inv_cov_full @ posterior_returns)
-            w = np.maximum(w, 0)
-            w = w / max(w.sum(), 1e-10)
+            denominator = ones @ inv_cov_full @ posterior_returns
+            if abs(denominator) < 1e-10:
+                w = np.ones(n) / n
+            else:
+                w = inv_cov_full @ posterior_returns / denominator
+                w = np.maximum(w, 0)
+                w = w / max(w.sum(), 1e-10)
         except np.linalg.LinAlgError:
             w = np.ones(n) / n
 

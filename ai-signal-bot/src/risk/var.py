@@ -230,14 +230,22 @@ class VaRCalculator:
         Returns:
             Kupiec test statistic
         """
-        if violations == 0:
-            return 0.0  # No violations = conservative model, passes test
-        
-        if violations == total_observations:
-            return float('inf')  # All violations = model completely wrong
-        
         p = 1 - confidence_level
         n = total_observations
+
+        if violations == 0:
+            # lim x->0+ of x*log(x/(n*p)) = 0, so LR = -2*n*log(1-p)
+            # 0 violations when expected > 0 means model is too conservative
+            if n == 0 or p == 0:
+                return 0.0
+            return -2 * n * np.log(1 - p)
+
+        if violations == total_observations:
+            # lim (n-x)->0+ of (n-x)*log((n-x)/(n*(1-p))) = 0, so LR = -2*n*log(p)
+            if p == 0:
+                return float('inf')
+            return -2 * n * np.log(p)
+
         x = violations
         
         # Likelihood ratio test

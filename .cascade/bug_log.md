@@ -1368,6 +1368,39 @@
 
 ---
 
+## Bug #149 — portfolio_optimizer.py Black-Litterman division by near-zero denominator
+
+- **Location:** `ai-signal-bot/src/risk/portfolio_optimizer.py:166`
+- **Severity:** High
+- **Root Cause:** The Black-Litterman weight calculation computes `w = inv_cov_full @ posterior_returns / (ones @ inv_cov_full @ posterior_returns)`. The denominator `ones @ inv_cov_full @ posterior_returns` can be near-zero or negative when posterior returns are close to zero or when the inverse covariance matrix produces offsetting values. This leads to exploding weights, NaN values, or all-negative weights (which get clipped to zero by `np.maximum(w, 0)`, resulting in a degenerate all-zero portfolio).
+- **Impact:** Portfolio optimization via Black-Litterman can produce invalid or degenerate allocations when posterior returns are near-zero, leading to division by zero or extremely large weight values.
+- **Status:** ✅ Fixed
+- **Fix:** Added a guard checking `abs(denominator) < 1e-10` before division. When the denominator is near-zero, the method falls back to equal weights (`np.ones(n) / n`), consistent with the existing `LinAlgError` fallback.
+
+---
+
+## Bug #150 — var.py Kupiec test incorrectly passes when violations=0
+
+- **Location:** `ai-signal-bot/src/risk/var.py:233-234`
+- **Severity:** Medium
+- **Root Cause:** The `_kupiec_test` method returned `0.0` when `violations == 0`, causing the VaR backtest to always pass (0 < 3.84 chi-square critical value). However, zero violations when the expected number of violations `n * p > 0` indicates the VaR model is overly conservative — it is systematically overestimating risk. The proper Kupiec likelihood ratio when x=0 is `-2 * n * log(1 - p)`, which for typical values (n=250, p=0.05) gives ≈25.6, well above the 3.84 threshold. Similarly, when `violations == total_observations`, the code returned `inf` instead of the proper limit `-2 * n * log(p)`.
+- **Impact:** VaR models that are too conservative (overestimating risk) incorrectly pass the Kupiec backtest, masking a model calibration failure. This could lead to excessive capital reserves or missed trading opportunities.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced the early return of `0.0` with the proper mathematical limit: `-2 * n * np.log(1 - p)` when violations=0, and `-2 * n * np.log(p)` when violations=n. Added edge case guards for `n == 0` and `p == 0`.
+
+---
+
+## Bug #151 — transformer_model.py positional encoding shape mismatch when d_model is odd
+
+- **Location:** `ai-signal-bot/src/ml/transformer_model.py:61`
+- **Severity:** Low
+- **Root Cause:** The positional encoding computes `div_term = np.exp(np.arange(0, d_model, 2) * ...)` which produces `(d_model + 1) // 2` elements when `d_model` is odd. The assignment `pe[:, 1::2] = np.cos(position * div_term)` tries to assign this into `pe[:, 1::2]` which has only `d_model // 2` columns, causing a shape mismatch ValueError. The even-indexed assignment `pe[:, 0::2]` works because it has `(d_model + 1) // 2` columns matching `div_term`.
+- **Impact:** The Transformer model crashes when initialized with an odd `d_model` value. The default `d_model=64` is even, so this only triggers with custom configurations.
+- **Status:** ✅ Fixed
+- **Fix:** Sliced `div_term` to match the number of odd-indexed columns: `div_term[:pe[:, 1::2].shape[1]]`, consistent with the approach used in `price_predictor.py:144`.
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
