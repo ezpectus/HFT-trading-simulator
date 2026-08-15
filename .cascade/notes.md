@@ -6,7 +6,7 @@
 - **Version:** 3.0.0
 - **Stack:** Python 3.12 (simulator, signal bot), C++20 (trade bot), Rust (executor), React 18 (web UI)
 - **Components:** Exchange Simulator, AI Signal Bot, HFT Trade Bot, hft-executor, Web UI
-- **Honest readiness:** 62% (v4.1 audit — not 85% as README badges originally claimed)
+- **Honest readiness:** 62% (v4.3 audit — not 85% as README badges originally claimed)
 
 ## Key Files
 
@@ -28,9 +28,9 @@
 - `hft-executor/src/lib.rs` — Rust order executor (WS stub, 0 tests)
 - `shared_config.yaml` — global config
 
-## Known Critical Issues (audit v4.2)
+## Known Critical Issues (audit v4.3)
 
-1. README.md badges inflated — FIXED in v4.1 (75+ models → 44+40 UI-only, 34+ strategies → 19, 197 panels → 204)
+1. README.md badges inflated — FIXED in v4.3 (75+ models → 44+40 UI-only, 34+ strategies → 19, 197 panels confirmed correct)
 2. 40+ models exist ONLY as UI (.jsx), NOT in trading pipeline
 3. CUDA/ONNX — dead code behind #ifdef, never compiled in CI
 4. ~~SVI/SABR — does NOT exist~~ → ✅ EXISTS in `volatility_surface.py` (v4.1 correction)
@@ -54,8 +54,8 @@
 - **Market Microstructure:** Student-t (df=4), Merton jump diffusion, Heston stochastic vol, Markov regime switching (4-state), U-shaped intraday vol (`market_microstructure.py`)
 - **Volatility:** SVI, SABR (volatility_surface.py)
 - **Options:** Black-Scholes, Binomial Tree, Greeks, Implied Vol, Straddle, Strangle, Iron Condor, Butterfly (`options_pricing.py`, `options_strategies.py`, `options_simulator.py`)
-- **Test files:** 138+ (54 Python + 44 C++ + 40 JS)
-- **UI:** 227 React components, 204 registered panels
+- **Test files:** 172+ (82 Python + 46 C++ + 44 JS)
+- **UI:** 227 React components, 197 registered panels
 - **Trading logic models:** 44 (not 75+ as README originally claimed)
 
 ## Useful Commands
@@ -136,6 +136,11 @@ cd hft-executor && cargo build --release
 - `ai-signal-bot/src/backtesting/backtest_engine.py` (330 lines) — Full backtesting framework (no bugs)
 - `ai-signal-bot/src/backtesting/pnl_calculator.py` (280 lines) — PnL calculator (no bugs)
 - `ai-signal-bot/src/backtesting/backtester.py` (467 lines) — Historical replay backtester (1 bug found and fixed)
+- `ai-signal-bot/src/backtesting/plotter.py` (277 lines) — Backtest visualization (no bugs)
+- `ai-signal-bot/src/backtesting/optimizer.py` (222 lines) — Grid search optimizer (no bugs)
+- `ai-signal-bot/src/backtesting/walk_forward.py` (157 lines) — Walk-forward analysis (no bugs)
+- `ai-signal-bot/src/backtesting/backtest_comparison.py` (186 lines) — Backtest comparison (no bugs)
+- `ai-signal-bot/src/backtesting/order_book_replay.py` (313 lines) — Order book replay (no bugs)
 
 **Bug categories this session:**
 - Division by zero: 9 bugs (#121-127, #132)
