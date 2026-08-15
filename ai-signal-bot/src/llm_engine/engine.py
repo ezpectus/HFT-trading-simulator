@@ -157,6 +157,14 @@ class LLMEngine:
             if now - cached_time < self.config.cache_ttl_seconds:
                 cached_result.cached = True
                 return cached_result
+            else:
+                del self._cache[cache_key]
+
+        # Evict stale entries to prevent unbounded cache growth
+        if len(self._cache) > 100:
+            stale_keys = [k for k, (t, _) in self._cache.items() if now - t >= self.config.cache_ttl_seconds]
+            for k in stale_keys:
+                del self._cache[k]
 
         if self.config.provider == "none" or not self.config.api_key:
             return self._rule_based_analysis(ctx)

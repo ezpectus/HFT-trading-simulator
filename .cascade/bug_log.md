@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 39 |
+| ✅ Fixed | 40 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **78** |
+| **TOTAL FOUND** | **79** |
 
 ---
 
@@ -907,6 +907,16 @@
 - **Root Cause:** Both `TelegramNotifier.start()` and `DiscordNotifier.start()` call `asyncio.create_task()` without storing the returned task reference. Python's asyncio only holds a weak reference to tasks, so the garbage collector can destroy the task before it completes, silently dropping the polling loop. Additionally, `stop()` doesn't cancel the polling task, so it keeps running after the notifier is supposed to be stopped.
 - **Status:** ✅ Fixed
 - **Fix:** Added `self._poll_task` attribute to both classes. Store the task reference in `start()`. In `stop()`, cancel the task and await its cancellation before closing the session.
+
+---
+
+## Bug #105 — LLMEngine._cache grows unbounded — memory leak
+
+- **Location:** `ai-signal-bot/src/llm_engine/engine.py:155-159`
+- **Severity:** Medium
+- **Root Cause:** `LLMEngine.analyze_market` adds entries to `self._cache` on every call but never evicts stale entries. The cache only checks TTL on read, but expired entries remain in the dict indefinitely. Over time, with many symbols and price levels, the cache grows without bound, causing a memory leak.
+- **Status:** ✅ Fixed
+- **Fix:** Added two fixes: (1) delete expired cache entries immediately when found during lookup, (2) when cache exceeds 100 entries, proactively evict all stale entries.
 
 ---
 
