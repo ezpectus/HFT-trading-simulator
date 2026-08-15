@@ -31,8 +31,8 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
-# Actions: 0=hold, 1=buy, 2=sell, 3=close_position
-NUM_ACTIONS = 4
+# Actions: 0=hold, 1=buy, 2=sell (matches TradingEnv)
+NUM_ACTIONS = 3
 
 
 @dataclass

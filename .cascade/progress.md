@@ -41,7 +41,8 @@
 | #163 | TradingEnv observation dim (63) mismatched with RL agent state_size (100/20) | ✅ Fixed | ee611ee | 2026-08-16 |
 | #164 | DQNAgent.replay() crashes when q_network_weights is None (all random early actions) | ✅ Fixed | d4d7fa7 | 2026-08-16 |
 | #165 | db.py leaks SQLite connections on exceptions (no try/finally) | ✅ Fixed | 1d4f943 | 2026-08-16 |
-| #166 | FIX ResendRequest skips all resent messages (incoming_seq incremented past gap) | ✅ Fixed | — | 2026-08-16 |
+| #166 | FIX ResendRequest skips all resent messages (incoming_seq incremented past gap) | ✅ Fixed | 0b394fd | 2026-08-16 |
+| #167 | rl_trader.py NUM_ACTIONS=4 but TradingEnv only supports 3 actions | ✅ Fixed | — | 2026-08-16 |
 
 ## Proposals
 

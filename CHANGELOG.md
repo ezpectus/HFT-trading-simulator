@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Bug Fixes
 
+- **[BUG-167]** `rl_trader.py` defined `NUM_ACTIONS = 4` (including close_position) but `TradingEnv` only supports 3 actions (HOLD, BUY, SELL). Agent selecting action 3 crashed with `ValueError`. Changed to `NUM_ACTIONS = 3`.
 - **[BUG-166]** FIX `_handle_message` in `ai-signal-bot/src/communication/fix_client.py` incremented `incoming_seq` past a sequence gap after sending ResendRequest, causing all resent messages to be skipped as duplicates. Added `return` after ResendRequest to preserve `incoming_seq` at the expected value.
 - **[BUG-165]** `Database` in `ai-signal-bot/src/database/db.py` leaked SQLite connections on exceptions — every method used `conn = self._conn()` without try/finally, so exceptions left connections open. Wrapped all calls in `contextlib.closing()` for automatic cleanup.
 - **[BUG-164]** `DQNAgent.replay()` in `ai-signal-bot/src/ml/rl_agent.py` crashed with `TypeError` when `q_network_weights` was None — happened when all early actions were random (high epsilon) and the network was never built. Added None guard to build network before replay.

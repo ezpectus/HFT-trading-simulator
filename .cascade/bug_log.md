@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 87 |
+| ✅ Fixed | 88 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **124** |
+| **TOTAL FOUND** | **125** |
 
 ---
 
@@ -1563,6 +1563,17 @@
 - **Impact:** Lost execution reports, market data, and order acknowledgements during any FIX message loss or reordering. Critical for order management reliability.
 - **Status:** ✅ Fixed
 - **Fix:** Added `return` after sending ResendRequest to prevent incrementing `incoming_seq` past the gap. The out-of-sequence message is discarded, and `incoming_seq` stays at the expected value so resent messages are processed correctly when they arrive.
+
+---
+
+## Bug #167: rl_trader.py NUM_ACTIONS=4 but TradingEnv only supports 3 actions
+- **File:** `ai-signal-bot/src/ml/rl_trader.py:35`
+- **Category:** Bug
+- **Severity:** High
+- **Root Cause:** `NUM_ACTIONS = 4` (hold, buy, sell, close_position) but `TradingEnv` only supports 3 actions (HOLD=0, BUY=1, SELL=2). When PPO or DQN agent selects action 3, `TradingEnv.step()` calls `Action(3)` which raises `ValueError` since the `Action` enum only has values 0-2.
+- **Impact:** RL training crashes whenever the agent selects action 3 — frequently during exploration (epsilon-greedy random or policy sampling).
+- **Status:** ✅ Fixed
+- **Fix:** Changed `NUM_ACTIONS = 4` to `NUM_ACTIONS = 3` to match `TradingEnv.action_space_n`.
 
 ---
 
