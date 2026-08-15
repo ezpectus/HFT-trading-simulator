@@ -97,14 +97,17 @@ class MarketSimulator:
                         self._correlations[(s1, s2)] = 0.3
 
         # Pre-build per-symbol correlation lookup for O(1) access
+        # Use the strongest (max absolute) correlation when multiple pairs involve the same symbol
         self._symbol_corr: dict[str, float] = {}
         for symbol in symbols:
-            corr = 0.5  # default correlation to market
+            best_corr = 0.5  # default correlation to market
+            best_abs = 0.0
             for (s1, s2), c in self._correlations.items():
                 if symbol in (s1, s2):
-                    corr = c
-                    break
-            self._symbol_corr[symbol] = corr
+                    if abs(c) > best_abs:
+                        best_corr = c
+                        best_abs = abs(c)
+            self._symbol_corr[symbol] = best_corr
 
         # News event state
         self._news_event: dict | None = None  # {symbol, intensity, remaining}
