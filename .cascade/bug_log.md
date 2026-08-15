@@ -8,7 +8,7 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 74 |
+| ✅ Fixed | 75 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
@@ -1418,7 +1418,8 @@
 - **Severity:** Low
 - **Root Cause:** The Hawkes process branching ratio estimation uses `branching = 1 - mean_inter / np.sqrt(var_inter)`. The correct method-of-moments estimator for a branching ratio η = 1 - μ/λ where μ = 1/mean_inter (base intensity) and λ = var/mean² (total intensity) gives `η = 1 - mean²/var`. The code uses `sqrt(var)` instead of `var`, which is the standard deviation, not the variance. This produces an incorrect branching ratio estimate.
 - **Impact:** Incorrect Hawkes process parameter estimation, leading to wrong conclusions about trade self-excitation and clustering.
-- **Status:** ⏳ Pending Fix
+- **Status:** ✅ Fixed
+- **Fix:** Changed formula from `1 - mean_inter / np.sqrt(var_inter)` to `1 - mean_inter ** 2 / var_inter`. The method-of-moments estimator for Hawkes branching ratio is η = 1 - E[T]²/Var[T] (1 - 1/Fano_factor), not 1 - E[T]/σ[T].
 
 ---
 

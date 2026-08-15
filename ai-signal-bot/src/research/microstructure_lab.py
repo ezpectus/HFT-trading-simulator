@@ -206,7 +206,7 @@ class MicrostructureLab:
             var_inter = np.var(inter_arrivals)
             # Method of moments for Hawkes
             if var_inter > mean_inter and mean_inter > 0:
-                branching = 1 - mean_inter / np.sqrt(var_inter)
+                branching = 1 - mean_inter ** 2 / var_inter
                 self.metrics.hawkes_alpha = float(max(0, min(branching, 0.95)))
                 self.metrics.hawkes_beta = float(1.0 / mean_inter)
 
