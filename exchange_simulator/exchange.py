@@ -526,6 +526,18 @@ class SimulatedExchange:
                     metadata={"order_type": order_type.value, "price": price, "quantity": quantity},
                 )
                 return order
+            if side == Side.SELL and price > fill_price:
+                order.status = OrderStatus.PENDING
+                self._order_history.append(order)
+                
+                self._audit_logger.log(
+                    event_type=AuditEventType.ORDER_SUBMITTED,
+                    exchange=self.exchange_id,
+                    symbol=symbol,
+                    order_id=order_id,
+                    metadata={"order_type": order_type.value, "price": price, "quantity": quantity},
+                )
+                return order
             fill_price = price
 
         # Calculate fee
