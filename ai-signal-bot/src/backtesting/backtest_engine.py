@@ -149,7 +149,7 @@ class BacktestEngine:
 
             # Update unrealized PnL and check SL/TP
             if self.position:
-                self._check_exit(current_price, timestamp, candle)
+                self._check_exit(current_price, timestamp, candle, symbol=symbol)
 
             # If no position, check for entry
             if not self.position:
@@ -168,7 +168,7 @@ class BacktestEngine:
             last_candle = candles[-1]
             last_price = last_candle["close"] if isinstance(last_candle, dict) else last_candle.close
             last_ts = last_candle.get("timestamp", len(candles) * 60) if isinstance(last_candle, dict) else len(candles) * 60
-            self._exit_position(last_price, last_ts, "End of backtest")
+            self._exit_position(last_price, last_ts, "End of backtest", symbol=symbol)
 
         return self._compute_results()
 
@@ -195,7 +195,8 @@ class BacktestEngine:
             "take_profit": signal.get("take_profit", 0),
         }
 
-    def _check_exit(self, current_price: float, timestamp: float, candle: dict) -> None:
+    def _check_exit(self, current_price: float, timestamp: float, candle: dict,
+                    symbol: str = "") -> None:
         """Check if current position should be exited (SL/TP)."""
         if not self.position:
             return
@@ -206,17 +207,18 @@ class BacktestEngine:
         if self.position["side"] == "LONG":
             # Check stop loss
             if self.position["stop_loss"] > 0 and low <= self.position["stop_loss"]:
-                self._exit_position(self.position["stop_loss"], timestamp, "Stop loss")
+                self._exit_position(self.position["stop_loss"], timestamp, "Stop loss", symbol=symbol)
             # Check take profit
             elif self.position["take_profit"] > 0 and high >= self.position["take_profit"]:
-                self._exit_position(self.position["take_profit"], timestamp, "Take profit")
+                self._exit_position(self.position["take_profit"], timestamp, "Take profit", symbol=symbol)
         else:
             if self.position["stop_loss"] > 0 and high >= self.position["stop_loss"]:
-                self._exit_position(self.position["stop_loss"], timestamp, "Stop loss")
+                self._exit_position(self.position["stop_loss"], timestamp, "Stop loss", symbol=symbol)
             elif self.position["take_profit"] > 0 and low <= self.position["take_profit"]:
-                self._exit_position(self.position["take_profit"], timestamp, "Take profit")
+                self._exit_position(self.position["take_profit"], timestamp, "Take profit", symbol=symbol)
 
-    def _exit_position(self, exit_price: float, timestamp: float, reason: str) -> None:
+    def _exit_position(self, exit_price: float, timestamp: float, reason: str,
+                        symbol: str = "") -> None:
         """Exit current position."""
         if not self.position:
             return
@@ -235,7 +237,7 @@ class BacktestEngine:
 
         trade = BacktestTrade(
             timestamp=timestamp,
-            symbol="",
+            symbol=symbol,
             side=self.position["side"],
             qty=self.position["qty"],
             entry_price=self.position["entry_price"],

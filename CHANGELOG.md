@@ -19,6 +19,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-093]** `Backtester._close_position` in `ai-signal-bot/src/backtesting/backtester.py` created `Trade` with hardcoded `symbol=""` — all trade records had empty symbol, making multi-symbol backtests impossible to attribute.
 - **[BUG-094]** `_adf_statistic` in `ai-signal-bot/src/strategies/statistical_arbitrage.py` computed regression residuals with raw variables instead of demeaned variables, producing incorrect ADF test statistics and wrong cointegration detection.
 - **[BUG-095]** `_monitor_loop` in `ai-signal-bot/src/strategies/cross_exchange_arb.py` created `asyncio.create_task` without storing reference — task could be GC'd before completion, silently dropping arbitrage executions.
+- **[BUG-096]** `BacktestEngine._exit_position` in `ai-signal-bot/src/backtesting/backtest_engine.py` created `BacktestTrade` with hardcoded `symbol=""` — same as Bug #093 but in the separate BacktestEngine class.
 
 ### Critical Audit Corrections (v4.2)
 

@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 30 |
+| ✅ Fixed | 31 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **69** |
+| **TOTAL FOUND** | **70** |
 
 ---
 
@@ -817,6 +817,16 @@
 - **Root Cause:** `_monitor_loop` creates an `asyncio.create_task(self._execute_arbitrage(opp))` but doesn't store the task reference. The task can be garbage collected before completion, silently dropping arbitrage executions. This is the same class of bug as Bug #089.
 - **Status:** ✅ Fixed
 - **Fix:** Added `self._pending_tasks: set[asyncio.Task] = set()`, store the task in the set, and use `task.add_done_callback(self._pending_tasks.discard)` for automatic cleanup.
+
+---
+
+## Bug #096 — BacktestEngine._exit_position creates BacktestTrade with empty symbol=""
+
+- **Location:** `ai-signal-bot/src/backtesting/backtest_engine.py:238`
+- **Severity:** Medium
+- **Root Cause:** Same as Bug #093 but in `BacktestEngine` (separate from `Backtester`). `_exit_position` creates a `BacktestTrade` with `symbol=""` hardcoded. The `symbol` parameter is available in `run()` but is not passed through to `_check_exit` or `_exit_position`. All trade records have an empty symbol.
+- **Status:** ✅ Fixed
+- **Fix:** Added `symbol` parameter to `_exit_position` and `_check_exit`, passed `symbol=symbol` from `run()` through all call chains.
 
 ---
 
