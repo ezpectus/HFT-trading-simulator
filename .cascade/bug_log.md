@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 25 |
+| ✅ Fixed | 26 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **64** |
+| **TOTAL FOUND** | **65** |
 
 ---
 
@@ -767,6 +767,16 @@
 - **Root Cause:** The `_check_rate_limit` method is defined and per-client tracking state is initialized in `_handle_client`, but the method is never called before processing incoming messages. This means any connected client can send unlimited messages (orders, config changes, etc.) without any rate limiting, enabling DoS via message flooding.
 - **Status:** ✅ Fixed
 - **Fix:** Added `_check_rate_limit(websocket)` call at the start of the message processing loop in `_handle_client`. If rate limit exceeded, sends an error message and skips processing.
+
+---
+
+## Bug #091 — adx NumPy path dx_start search uses isinstance(v, float) which fails for numpy.float64
+
+- **Location:** `ai-signal-bot/src/technical_analysis/indicators.py:249`
+- **Severity:** High
+- **Root Cause:** In the NumPy code path of the `adx` function, the `dx_start` search uses `isinstance(v, float) and math.isnan(v)` to find the first non-NaN DX value. However, `v` is a `numpy.float64` (from `np.full(n, NAN)`), and `isinstance(numpy.float64, float)` returns `False` in standard Python. This means the `isinstance` check always fails, so the condition `not (isinstance(v, float) and math.isnan(v))` is always `True` (even for NaN values), causing `dx_start` to be 0 regardless. The ADX result is then computed from NaN values, producing all-NaN output. The same bug exists at line 253 for the `dx[i]` check. The non-NumPy path at line 284 correctly uses `math.isnan(v)` without the `isinstance` guard.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `isinstance(v, float) and math.isnan(v)` with `np.isnan(v)` at line 249, and `isinstance(dx[i], float) and math.isnan(dx[i])` with `np.isnan(dx[i])` at line 253.
 
 ---
 

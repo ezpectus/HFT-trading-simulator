@@ -246,11 +246,11 @@ def adx(candles: list[dict], period: int = 14) -> list[float]:
                 if denom > 0:
                     dx[i] = 100 * abs(pdi - mdi) / denom
         result = np.full(n, NAN)
-        dx_start = next((i for i, v in enumerate(dx) if not (isinstance(v, float) and math.isnan(v))), -1)
+        dx_start = next((i for i, v in enumerate(dx) if not np.isnan(v)), -1)
         if dx_start >= 0 and dx_start + period <= n:
             result[dx_start + period - 1] = sum(dx[dx_start : dx_start + period]) / period
             for i in range(dx_start + period, n):
-                if not (isinstance(dx[i], float) and math.isnan(dx[i])):
+                if not np.isnan(dx[i]):
                     result[i] = (result[i - 1] * (period - 1) + dx[i]) / period
         return result.tolist()
     plus_dm = [0.0] * n
