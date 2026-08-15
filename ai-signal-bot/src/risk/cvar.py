@@ -172,17 +172,24 @@ class CVaRCalculator:
         """
         # Sort returns
         sorted_returns = np.sort(returns)
-        
-        # Get tail (left tail for losses)
+
+        # Get tail (left tail for losses) — use absolute values for Hill estimator
         tail_threshold = np.percentile(sorted_returns, (1 - threshold) * 100)
-        tail_returns = sorted_returns[sorted_returns < tail_threshold]
-        
-        if len(tail_returns) < 10:
+        tail_losses = np.abs(sorted_returns[sorted_returns < tail_threshold])
+
+        if len(tail_losses) < 10:
             return float('inf')  # Not enough data
-        
-        # Hill estimator
-        n = len(tail_returns)
-        tail_index = n / np.sum(np.log(tail_returns / tail_returns[-1]))
+
+        # Hill estimator: excesses over the threshold
+        # Sort descending so threshold is at the end
+        tail_losses_sorted = np.sort(tail_losses)[::-1]  # descending
+        excesses = tail_losses_sorted[:-1] / tail_losses_sorted[-1]
+        log_excesses = np.log(excesses)
+
+        n = len(log_excesses)
+        if n == 0 or np.sum(log_excesses) == 0:
+            return float('inf')
+        tail_index = n / np.sum(log_excesses)
         
         return tail_index
     

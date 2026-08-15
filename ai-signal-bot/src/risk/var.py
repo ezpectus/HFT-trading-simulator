@@ -228,7 +228,7 @@ class VaRCalculator:
             Kupiec test statistic
         """
         if violations == 0:
-            return float('inf')
+            return 0.0  # No violations = conservative model, passes test
         
         p = 1 - confidence_level
         n = total_observations

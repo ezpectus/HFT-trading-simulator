@@ -11,6 +11,8 @@ All notable changes to this project are documented in this file.
 - **[BUG-018]** `exchange_simulator/websocket_server.py` — `_publish_shm_snapshot()` used single-level dict lookup (`prices.get(sym)`) but `get_all_prices()` returns nested `{exchange: {symbol: price}}`. SHM market data publisher never sent any price data to C++ HFT bot. Fixed by flattening using first exchange.
 - **[BUG-019]** `exchange_simulator/audit_logger.py` — `get_logs_by_session()` passed `session_id` kwarg to `get_logs()` which didn't have that parameter, causing `TypeError`. Fixed by adding `session_id` parameter to `get_logs()`.
 - **[BUG-020]** `exchange_simulator/options_strategies.py` — Used non-absolute import `from options_pricing import ...` which fails with `ModuleNotFoundError` when CWD is not `exchange_simulator/`. Fixed to use `from exchange_simulator.options_pricing import ...`.
+- **[BUG-021]** `ai-signal-bot/src/risk/var.py` — `_kupiec_test()` returned `float('inf')` when `violations == 0`, causing `backtest_var()` to mark conservative VaR models as failed (`inf < 3.84` = `False`). Fixed to return `0.0` (passes test, correct for conservative models).
+- **[BUG-022]** `ai-signal-bot/src/risk/cvar.py` — `_calculate_tail_index()` (Hill estimator) computed `np.log(tail_returns / tail_returns[-1])` on negative left-tail returns, producing `nan`/`inf`. Fixed by using absolute values of losses and computing excesses over threshold correctly.
 
 ### Documentation Corrections (v4.1 — cross-checked every claim against code)
 
