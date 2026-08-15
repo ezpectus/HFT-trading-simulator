@@ -121,6 +121,8 @@ class RebalancingStrategy:
         Returns:
             True if rebalancing should occur
         """
+        if target_volatility == 0:
+            return current_volatility > max_volatility_drift
         volatility_drift = abs(current_volatility - target_volatility) / target_volatility
         return volatility_drift > max_volatility_drift
     

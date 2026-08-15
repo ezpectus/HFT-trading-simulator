@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 35 |
+| ✅ Fixed | 36 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **74** |
+| **TOTAL FOUND** | **75** |
 
 ---
 
@@ -867,6 +867,16 @@
 - **Root Cause:** Two softmax computations in `TransformerModel` — one in `_multi_head_attention` (line 80) and one in `generate_signal` (line 173) — compute `np.exp(scores)` without first subtracting the maximum value. When score values are large (which can happen with large feature values or during early training), `np.exp` overflows to `inf`, producing `NaN` attention weights or signal probabilities. This is a well-known numerical stability issue in softmax implementations.
 - **Status:** ✅ Fixed
 - **Fix:** Added `scores_max = np.max(scores, axis=-1, keepdims=True)` and changed to `np.exp(scores - scores_max) / np.sum(np.exp(scores - scores_max), ...)` in both locations.
+
+---
+
+## Bug #101 — should_rebalance_volatility_based divides by zero when target_volatility is 0
+
+- **Location:** `ai-signal-bot/src/portfolio/rebalancing.py:124`
+- **Severity:** Medium
+- **Root Cause:** `should_rebalance_volatility_based` computes `volatility_drift = abs(current_volatility - target_volatility) / target_volatility` without checking if `target_volatility` is zero. When the target volatility is 0 (e.g., a fully-cash target portfolio), this causes a `ZeroDivisionError` (or produces `inf` with NumPy), crashing the rebalancing check.
+- **Status:** ✅ Fixed
+- **Fix:** Added a guard: if `target_volatility == 0`, return `current_volatility > max_volatility_drift` (rebalance if any volatility exists when target is zero).
 
 ---
 

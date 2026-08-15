@@ -24,6 +24,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-098]** `DQNAgent.train()` and `PPOAgent.train()` in `ai-signal-bot/src/ml/rl_agent.py` called `env.reset()` without required `prices` parameter — `TypeError` at runtime, making RL training completely non-functional.
 - **[BUG-099]** `LSTMModel.evaluate` in `ai-signal-bot/src/ml/lstm_model.py` mixed raw and normalized data in direction accuracy calculation — `actual_direction` used raw `y` while `pred_direction` used normalized predictions, producing incorrect metrics.
 - **[BUG-100]** `TransformerModel` in `ai-signal-bot/src/ml/transformer_model.py` computed softmax without subtracting max before `np.exp` — numerical overflow producing `NaN` attention weights and signal probabilities when scores are large.
+- **[BUG-101]** `should_rebalance_volatility_based` in `ai-signal-bot/src/portfolio/rebalancing.py` divided by `target_volatility` without zero check — `ZeroDivisionError` when target volatility is 0 (e.g., fully-cash target portfolio).
 
 ### Critical Audit Corrections (v4.2)
 
