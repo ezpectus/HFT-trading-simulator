@@ -3,7 +3,7 @@
 **Дата:** 15 августа 2026
 **Назначение:** Этот документ содержит идеи для расширения и улучшения HFT Trading System.
 **Статус:** ACTIVE — идеи постоянно добавляются ИИ и пользователем
-**Версия:** 4.0 — ГЛУБОКИЙ АУДИТ (проверен каждый claim в README.md против кода)
+**Версия:** 4.1 — ГЛУБОКИЙ АУДИТ v2 (проверен каждый claim в README.md/ARCHITECTURE.md/MATH_MODELS.md против кода, исправлены ошибки v4.0)
 
 ---
 
@@ -139,7 +139,7 @@
 - ❌ **Kyle's Lambda** — нет нигде
 - ❌ **ZScore detector** — нет как отдельной модели
 - ❌ **Ornstein-Uhlenbeck** — нет нигде
-- ❌ **SVI/SABR volatility surface** — нет нигде (README claims!)
+- ✅ **SVI/SABR volatility surface** — ЕСТЬ в коде! `ai-signal-bot/src/pricing/volatility_surface.py` (209 строк). Исправление v4.1: предыдущий аудит v4.0 ошибочно утверждал отсутствие.
 - ❌ **MAMA/FAMA** — нет нигде
 - ❌ **Hilbert Transform** — нет нигде
 - ❌ **Blahut-Arimoto** — нет нигде
@@ -152,7 +152,7 @@
 
 ---
 
-**Проблема:** Документы заявляли 75+ моделей, реально ~15-20. Эти модели НУЖНО реализовать.
+**Проблема:** Документы заявляли 75+ моделей, реально 38 в trading logic + 40 UI-only. UI-only модели нужно портировать в trading logic.
 
 ### 1.1. HMM (Hidden Markov Model) для Python — ВЫСОКИЙ
 

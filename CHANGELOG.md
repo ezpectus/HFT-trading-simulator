@@ -2,7 +2,77 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased] — 2026-08-15 (v4.0 — Deep Audit)
+## [Unreleased] — 2026-08-15 (v4.1 — Deep Audit v2)
+
+### Documentation Corrections (v4.1 — cross-checked every claim against code)
+
+- **README.md** — fixed all inflated badges and false claims:
+  - Strategies: 34+ → 19 (10 Python + 6 C++ + 3 auxiliary)
+  - Math models: 75+ → 38 in trading logic + 40 UI-only
+  - Panels: 197 → 204 (verified via registry.js count)
+  - Components: 223 → 227
+  - Tests: 484+ passing → 138+ test files (54 Py + 44 C++ + 40 JS)
+  - Added readiness badge: 62% (was claiming 85%)
+  - Added dead code badge: CUDA + ONNX (#ifdef)
+  - Architecture diagram: fixed mangled layout, added honest feature lists
+  - Exchange Simulator: removed false claims (Student-t, Merton, Heston, Markov regime switching — none exist in code)
+  - Added honest news event, market impact, slippage, partial fill descriptions
+  - ML models: added "not trained" notes to LSTM/Transformer/RL/AutoML claims
+  - Rust executor: noted WebSocket is a stub
+  - Technology stack: marked CUDA and ONNX as dead code
+
+- **docs/ARCHITECTURE.md** — corrected:
+  - Project status: 85% → 62% (honest assessment)
+  - Components: 201+ → 227, Panels: 196 → 204
+  - Math models: 75+ → 38 trading + 40 UI-only
+  - Mermaid diagram: updated all component descriptions with honest claims
+  - Price generation: removed "Fat-Tail + Jump Diffusion" (not in code), added correlated multi-symbol, news events, market impact, slippage, partial fills
+  - Price feeds: removed Kraken (only Binance + Coinbase Pro integrated)
+  - Test files: 38 → 40 (Vitest)
+  - Added honest status paragraph about CUDA/ONNX dead code, untrained ML, UI-only models, SVI/SABR existence, Rust WS stub
+
+- **docs/MATH_MODELS.md** — major restructure:
+  - Added honest categorization header: Trading logic / UI-only / Missing / Dead code
+  - Section 1: Marked Student-t, Merton Jump Diffusion, Heston, Markov Regime Switching as MISSING (with strikethrough)
+  - Added News Event, Market Impact, Slippage, Partial Fill as Trading logic
+  - Added Section 6.5: SVI/SABR Volatility Surface — Trading logic (209 lines, full implementation)
+  - Added Section 6.6: Options Pricing (Black-Scholes, Binomial Tree) — Trading logic
+  - Section 7: Renamed from "75+" to "40 UI-Only (NOT in trading logic)" with UI-only labels on all subsections
+  - Added Section 8: Dead Code — CUDA and ONNX (behind #ifdef, never compiled)
+  - All remaining sections tagged with "Trading logic" label
+
+- **README_PROJECT_OVERVIEW.md** — v4.1 corrections:
+  - SVI/SABR: corrected from "MISSING" to "100% EXISTS" (was wrong in v4.0)
+  - Exchange Simulator: added news events, market impact, partial fills, slippage (found in code)
+  - Removed false claims: Student-t, Merton, Heston, Markov regime switching
+  - Panel count: 197 → 204, Components: 223 → 227
+  - Test files: 138+ (54 Py + 44 C++ + 40 JS)
+  - Honest readiness table: 62% (was 60% in v4.0, +2% from SVI/SABR correction)
+  - Rust executor: 70% → 65% (WS stub confirmed, 0 tests)
+  - AI Signal Bot: 60% → 62% (SVI/SABR found, DPDK module found, data collection found)
+  - Added collaboration/ empty directory finding
+
+- **MASTER_DEVELOPMENT_PLAN.md** — v4.1 corrections:
+  - Overall readiness: 60% → 62%
+  - Updated readiness table with v4.1 findings
+  - Fixed badges vs reality table with corrected counts
+  - SVI/SABR: corrected from "MISSING" to "EXISTS"
+
+- **docs/future_development.md** — v4.1 corrections:
+  - SVI/SABR: moved from "MISSING" to "EXISTS" with correction note
+  - Model count: "~15-20" → "38 in trading logic + 40 UI-only"
+
+### v4.0 Audit Errors Corrected in v4.1
+
+1. **SVI/SABR** — v4.0 claimed MISSING. v4.1 found full implementation in `ai-signal-bot/src/pricing/volatility_surface.py` (209 lines, SVI + SABR + surface generation)
+2. **News event simulation** — v4.0 claimed MISSING. v4.1 found in `market_simulator.py:173-184` (random volatility spikes 3x-8x)
+3. **Market impact model** — v4.0 claimed MISSING. v4.1 found in `exchange.py:414-423` (impact = mid_price * coeff * qty/typical_volume)
+4. **Partial fill simulation** — v4.0 claimed MISSING. v4.1 found in `exchange.py:549-558` (large orders split across price levels)
+5. **Slippage simulation** — v4.0 didn't mention. v4.1 found in `exchange.py:407-412` (per-exchange slippage in basis points)
+6. **Panel count** — v4.0 said 197. v4.1 verified 204 via registry.js grep count.
+7. **Component count** — v4.0 said 223. v4.1 verified 227.
+
+## [v4.0] — 2026-08-15 (Deep Audit)
 
 ### Bug Fixes (Code Audit)
 
@@ -29,8 +99,8 @@ All notable changes to this project are documented in this file.
   - **Honest readiness: 60%** (not 85% as README badges claim)
   - 40+ UI-only models identified (exist as .jsx, NOT in trading logic)
   - CUDA/ONNX dead code identified (behind #ifdef, never compiled)
-  - SVI/SABR volatility surface — README claims, does NOT exist
-  - README badges vs reality table (strategies 34+ → 16, models 75+ → ~36+40 UI-only)
+  - **SVI/SABR volatility surface** — ✅ EXISTS in code (corrected in v4.1, was wrongly marked as missing in v4.0)
+  - README badges vs reality table (strategies 34+ → 19, models 75+ → 38 trading + 40 UI-only)
 
 - **MASTER_DEVELOPMENT_PLAN.md** — DEEP HONEST development plan (v4.0)
   - 17 sections including new: UI-only models port plan (40+ models), Dead code (CUDA/ONNX), Models that don't exist at all
@@ -57,20 +127,19 @@ All notable changes to this project are documented in this file.
 
 ### Deep Audit Findings
 
-- **README.md badges are inflated:**
-  - "75+ math models" — ~36 in trading logic + ~40 UI-only (educational visualizations)
-  - "34+ strategies" — actually 16 (10 Python + 6 C++)
-  - "24+ indicators" — actually ~20
-  - "85% readiness" — actually ~60%
+- **README.md badges are inflated (v4.0 findings, corrected in v4.1):**
+  - "75+ math models" — 38 in trading logic + 40 UI-only (educational visualizations)
+  - "34+ strategies" — actually 19 (10 Python + 6 C++ + 3 auxiliary)
+  - "85% readiness" — actually 62%
   - "CUDA acceleration" — dead code, never compiled in CI
   - "ONNX ML inference" — dead code, never compiled in CI
-  - "SVI/SABR volatility surface" — does NOT exist in code
+  - "SVI/SABR volatility surface" — ✅ EXISTS in code (v4.0 wrongly said missing)
 
 - **40+ models exist ONLY as UI components** (React .jsx), not in trading pipeline:
   - GARCH, Kalman, Copula, Wavelet, Monte Carlo, Hawkes, Almgren-Chriss, SVM, PCA, K-Means, GMM, Autoencoder, VAE, Bayesian, HMC, Transfer Entropy, CCM, Girsanov, Renyi, Kolmogorov-Sinai, Information Bottleneck, Persistent Homology, Wasserstein, Sinkhorn, Schrodinger Bridge, Malliavin, Fokker-Planck, Ito, SDE, Graph Theory, Tensor Decomposition, Sobolev, Lax-Milgram, Riesz, Banach, Hahn, Cameron-Martin, Radon-Nikodym, Prokhorov, Renormalization Group, Free Energy, Lie Group, Burgers, Ehlers, Cesaro/Fejer, Hopf, Stone-Cech, Arzela-Ascoli, Optimal Stopping, Pontryagin, Stochastic Optimal Control, Cramer-Rao, Affine Arithmetic, Rough Volatility, VMD, EMD/HHT, DTW, Compressed Sensing, RKHS, Koopman, RMT
 
 - **15 models don't exist ANYWHERE** (not even as UI):
-  - Hurst exponent, VPIN, Kyle's Lambda, ZScore detector, Ornstein-Uhlenbeck, SVI/SABR, MAMA/FAMA, Hilbert Transform, Blahut-Arimoto, Bayesian Ridge, Welch PSD, CWT, EWMA volatility, Parkinson volatility, BOCPD
+  - Hurst exponent, VPIN, Kyle's Lambda, ZScore detector, Ornstein-Uhlenbeck, ~~SVI/SABR~~ (✅ found in v4.1), MAMA/FAMA, Hilbert Transform, Blahut-Arimoto, Bayesian Ridge, Welch PSD, CWT, EWMA volatility, Parkinson volatility, BOCPD
 
 - **CUDA/ONNX are dead code:**
   - `gpu_accelerator.cu` — full kernels (RSI, EMA, Monte Carlo VaR, matrix mul) behind `#ifdef USE_CUDA`, never compiled
