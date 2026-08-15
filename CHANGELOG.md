@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Bug Fixes
 
+- **[BUG-169]** Statistical arbitrage `take_profit` in `ai-signal-bot/src/strategies/statistical_arbitrage.py` was on the wrong side for both LONG and SHORT signals — SHORT TP was above entry (should be below), LONG TP was below entry (should be above). Swapped the signs so TP is on the profitable side.
 - **[BUG-168]** Parametric VaR/CVaR in `ai-signal-bot/src/risk/var.py` and `cvar.py` scaled the entire expression (mean + z·std) by `√t`, but mean return scales linearly with `t` while only std scales with `√t`. Multi-day parametric VaR/CVaR was miscalculated. Fixed to `mean * t + z * std * √t`.
 - **[BUG-167]** `rl_trader.py` defined `NUM_ACTIONS = 4` (including close_position) but `TradingEnv` only supports 3 actions (HOLD, BUY, SELL). Agent selecting action 3 crashed with `ValueError`. Changed to `NUM_ACTIONS = 3`.
 - **[BUG-166]** FIX `_handle_message` in `ai-signal-bot/src/communication/fix_client.py` incremented `incoming_seq` past a sequence gap after sending ResendRequest, causing all resent messages to be skipped as duplicates. Added `return` after ResendRequest to preserve `incoming_seq` at the expected value.

@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 89 |
+| ✅ Fixed | 90 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **126** |
+| **TOTAL FOUND** | **127** |
 
 ---
 
@@ -1586,6 +1586,18 @@
 - **Impact:** Multi-day parametric VaR/CVaR is miscalculated — overstated for positive mean returns, understated for negative. This leads to incorrect capital allocation and risk assessment.
 - **Status:** ✅ Fixed
 - **Fix:** Changed parametric VaR from `var * np.sqrt(th)` to `mean * th + z_score * std * np.sqrt(th)`. Changed parametric CVaR from `cvar * np.sqrt(th)` to `mean * th - std * np.sqrt(th) * (pdf(z) / (1 - cl))`.
+
+---
+
+### Bug #169 — Statistical arbitrage take_profit on wrong side for both LONG and SHORT
+
+- **File:** `ai-signal-bot/src/strategies/statistical_arbitrage.py:258-259,268-269`
+- **Category:** Logic Bug
+- **Severity:** High
+- **Root Cause:** In `StatisticalArbitrage.analyze()`, the `take_profit` for SHORT signals was set to `price_a + exit_z * spread_std` (above entry, but short profits when price drops). The `take_profit` for LONG signals was set to `price_a - exit_z * spread_std` (below entry, but long profits when price rises). The TP direction was swapped — the same sign as `stop_loss` was used without flipping for take profit.
+- **Impact:** Take profit orders are placed on the losing side of the trade. Positions would need to move against the signal direction to hit TP, meaning profitable trades never exit at TP and losing trades hit TP instead.
+- **Status:** ✅ Fixed
+- **Fix:** Swapped the take_profit signs: SHORT now uses `price_a - exit_z * spread_std` (below entry), LONG now uses `price_a + exit_z * spread_std` (above entry).
 
 ---
 
