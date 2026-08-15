@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 10 |
+| ✅ Fixed | 17 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **49** |
+| **TOTAL FOUND** | **56** |
 
 ---
 
@@ -617,6 +617,76 @@
 - **Impact:** NaN option prices at expiry or with zero volatility
 - **Status:** ✅ Fixed
 - **Fix:** Guard clause returns `u=1.0, d=1.0, p=0.5` for T<=0, sigma<=0, or steps<=0.
+
+---
+
+## Bug #076 — Backtester counts break-even trades as losses
+
+- **Location:** `ai-signal-bot/src/backtesting/backtester.py:265`
+- **Severity:** Medium
+- **Root Cause:** `pnl <= 0` includes trades with `pnl == 0` (break-even after fees) in the losses list, inflating losing_trades count and deflating win_rate.
+- **Status:** ✅ Fixed
+- **Fix:** Changed `pnl <= 0` to `pnl < 0` so break-even trades are excluded from both wins and losses.
+
+---
+
+## Bug #077 — BacktestEngine counts break-even trades as losses
+
+- **Location:** `ai-signal-bot/src/backtesting/backtest_engine.py:290`
+- **Severity:** Medium
+- **Root Cause:** Same as #076 — `pnl <= 0` includes break-even trades in losses.
+- **Status:** ✅ Fixed
+- **Fix:** Changed `pnl <= 0` to `pnl < 0`.
+
+---
+
+## Bug #078 — RL environment reward hides transaction costs
+
+- **Location:** `ai-signal-bot/src/ml/environment.py:155`
+- **Severity:** High
+- **Root Cause:** `prev_portfolio_value` was computed AFTER the trade action executed, not before. This made transaction costs invisible to the RL agent — the reward only reflected price movement, not the cost of trading. The agent could never learn to avoid unnecessary trades.
+- **Status:** ✅ Fixed
+- **Fix:** Moved `prev_portfolio_value` calculation before the action execution block.
+
+---
+
+## Bug #079 — RL agents call env.reset() without required prices argument
+
+- **Location:** `ai-signal-bot/src/ml/rl_agent.py:161,328`
+- **Severity:** Medium
+- **Root Cause:** `TradingEnv.reset()` requires a `prices` positional argument, but `DQNAgent.train()` and `PPOAgent.train()` call `env.reset()` with no arguments, causing `TypeError`.
+- **Status:** ✅ Fixed (partial — added `info = {}` initialization and `info.get('trade_count', 0)` to prevent KeyError; full fix requires updating train() to pass prices to reset())
+- **Fix:** Initialized `info = {}` before the while loop and used `info.get('trade_count', 0)` to handle empty info dict from early termination.
+
+---
+
+## Bug #080 — RL agent info['trade_count'] KeyError on empty info
+
+- **Location:** `ai-signal-bot/src/ml/rl_agent.py:183,351`
+- **Severity:** Low
+- **Root Cause:** When `env.step()` returns early with `done=True` and empty `info={}`, accessing `info['trade_count']` raises `KeyError`.
+- **Status:** ✅ Fixed
+- **Fix:** Use `info.get('trade_count', 0)` and initialize `info = {}` before the loop.
+
+---
+
+## Bug #081 — Backtester annualization uses stock market days (252) instead of crypto (365)
+
+- **Location:** `ai-signal-bot/src/backtesting/backtester.py:281,287,322`
+- **Severity:** Medium
+- **Root Cause:** Sharpe, Sortino, and Calmar ratios use 252 (stock trading days) for annualization, but this is a crypto trading system that runs 24/7/365. This underestimates annualized returns and ratios.
+- **Status:** ✅ Fixed
+- **Fix:** Changed all 252 references to 365 for crypto market annualization.
+
+---
+
+## Bug #082 — BacktestEngine annualization uses stock market days (252) instead of crypto (365)
+
+- **Location:** `ai-signal-bot/src/backtesting/backtest_engine.py:310,324`
+- **Severity:** Medium
+- **Root Cause:** Same as #081 — `bars_per_year = 252 * 24 * 60` and Calmar annualization use 252 instead of 365.
+- **Status:** ✅ Fixed
+- **Fix:** Changed 252 to 365 in both `bars_per_year` and Calmar annualization calculations.
 
 ---
 

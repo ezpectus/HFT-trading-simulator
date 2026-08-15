@@ -127,6 +127,9 @@ class TradingEnv:
         current_price = self.prices[self.current_step]
         next_price = self.prices[self.current_step + 1]
         
+        # Capture portfolio value BEFORE action for reward calculation
+        prev_portfolio_value = self.cash + self.position * current_price
+        
         # Execute action
         reward = 0.0
         action_taken = Action(action)
@@ -139,7 +142,7 @@ class TradingEnv:
                 self.position += shares_bought
                 self.cash = 0
                 self.trade_count += 1
-        
+    
         elif action_taken == Action.SELL:
             if self.position > 0:
                 # Sell all position
@@ -147,12 +150,11 @@ class TradingEnv:
                 self.cash += sell_value
                 self.position = 0
                 self.trade_count += 1
-        
+
         # Calculate portfolio value
         self.portfolio_value = self.cash + self.position * next_price
-        
+
         # Calculate reward (PnL)
-        prev_portfolio_value = self.cash + self.position * current_price
         reward = (self.portfolio_value - prev_portfolio_value) / self.initial_cash
         
         # Move to next step

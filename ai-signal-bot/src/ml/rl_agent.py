@@ -162,6 +162,7 @@ class DQNAgent:
             total_reward = 0
             done = False
             steps = 0
+            info = {}
             
             while not done:
                 action = self.act(state, training=True)
@@ -180,7 +181,7 @@ class DQNAgent:
             
             history['episode_rewards'].append(total_reward)
             history['episode_lengths'].append(steps)
-            history['total_trades'].append(info['trade_count'])
+            history['total_trades'].append(info.get('trade_count', 0))
         
         self.is_trained = True
         return history
@@ -329,6 +330,7 @@ class PPOAgent:
             total_reward = 0
             done = False
             steps = 0
+            info = {}
             
             while not done:
                 action, log_prob = self.get_action(state)
@@ -348,7 +350,7 @@ class PPOAgent:
             
             history['episode_rewards'].append(total_reward)
             history['episode_lengths'].append(steps)
-            history['total_trades'].append(info['trade_count'])
+            history['total_trades'].append(info.get('trade_count', 0))
         
         self.is_trained = True
         return history

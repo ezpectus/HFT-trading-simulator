@@ -287,7 +287,7 @@ class BacktestEngine:
         # Trade statistics
         result.total_trades = len(self.trades)
         wins = [t for t in self.trades if t.pnl > 0]
-        losses = [t for t in self.trades if t.pnl <= 0]
+        losses = [t for t in self.trades if t.pnl < 0]
         result.winning_trades = len(wins)
         result.losing_trades = len(losses)
         result.win_rate = len(wins) / max(result.total_trades, 1) * 100
@@ -307,7 +307,7 @@ class BacktestEngine:
                 mean_ret = returns.mean()
                 std_ret = returns.std()
                 # Annualize (assume 1m bars)
-                bars_per_year = 252 * 24 * 60
+                bars_per_year = 365 * 24 * 60
                 if std_ret > 1e-10:
                     result.sharpe_ratio = mean_ret / std_ret * math.sqrt(bars_per_year)
 
@@ -321,7 +321,7 @@ class BacktestEngine:
         # Calmar ratio
         if result.max_drawdown_pct > 0:
             total_bars = len(self.equity_curve)
-            annual_return = result.total_return_pct * (252 * 24 * 60 / max(total_bars, 1))
+            annual_return = result.total_return_pct * (365 * 24 * 60 / max(total_bars, 1))
             result.calmar_ratio = annual_return / result.max_drawdown_pct
 
         return result

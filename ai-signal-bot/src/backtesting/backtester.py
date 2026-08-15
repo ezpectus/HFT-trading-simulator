@@ -262,7 +262,7 @@ class Backtester:
         if result.trades:
             result.total_trades = len(result.trades)
             wins = [t for t in result.trades if t.pnl > 0]
-            losses = [t for t in result.trades if t.pnl <= 0]
+            losses = [t for t in result.trades if t.pnl < 0]
             result.winning_trades = len(wins)
             result.losing_trades = len(losses)
             result.win_rate = len(wins) / len(result.trades) * 100 if result.trades else 0
@@ -278,13 +278,13 @@ class Backtester:
             if len(returns) > 1:
                 mean_ret = sum(returns) / len(returns)
                 std_ret = (sum((r - mean_ret) ** 2 for r in returns) / (len(returns) - 1)) ** 0.5
-                result.sharpe_ratio = (mean_ret / std_ret * (252 ** 0.5)) if std_ret > 0 else 0  # Assumes ~1 trade/day
+                result.sharpe_ratio = (mean_ret / std_ret * (365 ** 0.5)) if std_ret > 0 else 0  # Crypto: 365 days/yr, ~1 trade/day
 
                 # Sortino ratio — like Sharpe but only downside deviation
                 downside_returns = [r for r in returns if r < 0]
                 if len(downside_returns) > 0:
                     downside_std = (sum(r ** 2 for r in downside_returns) / len(downside_returns)) ** 0.5
-                    result.sortino_ratio = (mean_ret / downside_std * (252 ** 0.5)) if downside_std > 0 else 0
+                    result.sortino_ratio = (mean_ret / downside_std * (365 ** 0.5)) if downside_std > 0 else 0
 
             # Average trade duration (in candles)
             durations = [t.exit_time - t.entry_time for t in result.trades]
@@ -319,7 +319,7 @@ class Backtester:
             # Calmar ratio: annualized return / max drawdown
             total_bars = len(equity_curve)
             if total_bars > 0 and result.max_drawdown_pct > 0:
-                annualized_return = result.total_return_pct * (252 * 24 * 12 / total_bars)  # ~5min bars
+                annualized_return = result.total_return_pct * (365 * 24 * 12 / total_bars)  # ~5min bars, crypto 24/7
                 result.calmar_ratio = annualized_return / result.max_drawdown_pct
 
         return result
