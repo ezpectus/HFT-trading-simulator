@@ -117,6 +117,22 @@ cd hft-executor && cargo build --release
 - `ai-signal-bot/src/communication/signal_publisher.py` (457 lines) — WebSocket signal publisher (no bugs)
 - `ai-signal-bot/src/risk/risk_manager.py` (261 lines) — Trailing stop / breakeven manager (no bugs)
 - `ai-signal-bot/src/risk/position_sizing.py` (262 lines) — Dynamic position sizer (1 bug found and fixed)
+- `ai-signal-bot/src/risk/var.py` (244 lines) — VaR calculator (no bugs)
+- `ai-signal-bot/src/risk/kelly.py` (211 lines) — Kelly criterion sizer (no bugs)
+- `ai-signal-bot/src/risk/cvar.py` (224 lines) — Conditional VaR calculator (no bugs)
+- `ai-signal-bot/src/risk/stress_test.py` (258 lines) — Stress test scenarios (no bugs)
+- `ai-signal-bot/src/risk/var_stress_test.py` (261 lines) — VaR stress testing (no bugs)
+- `ai-signal-bot/src/risk/portfolio_optimizer.py` (295 lines) — Portfolio optimizer (no bugs)
+- `ai-signal-bot/src/strategies/strategies.py` (576 lines) — Trend/mean-rev/FFT/ensemble (no bugs)
+- `ai-signal-bot/src/strategies/market_making.py` (228 lines) — Avellaneda-Stoikov MM (no bugs)
+- `ai-signal-bot/src/strategies/funding_arb_detector.py` (266 lines) — Funding arb detector (no bugs)
+- `ai-signal-bot/src/strategies/sentiment.py` (237 lines) — Sentiment strategy (no bugs)
+- `ai-signal-bot/src/strategies/marketplace.py` (248 lines) — Strategy plugin marketplace (no bugs)
+- `ai-signal-bot/src/strategies/ml_ensemble.py` (551 lines) — ML ensemble with HMM regime (no bugs)
+- `ai-signal-bot/src/portfolio/markowitz.py` (272 lines) — Markowitz optimizer (no bugs)
+- `ai-signal-bot/src/portfolio/black_litterman.py` (207 lines) — Black-Litterman model (no bugs)
+- `ai-signal-bot/src/portfolio/rebalancing.py` (246 lines) — Portfolio rebalancing (no bugs)
+- `ai-signal-bot/src/portfolio/risk_parity.py` (231 lines) — Risk parity optimizer (1 bug found and fixed)
 
 **Bug categories this session:**
 - Division by zero: 9 bugs (#121-127, #132)
@@ -124,6 +140,7 @@ cd hft-executor && cargo build --release
 - Logic error (PnL double-counting): 1 bug (#130)
 - Missing zero guard on SL/TP: 1 bug (#129)
 - Division by zero (position_sizing.py): 1 bug (#133) — 12 vulnerable division sites
+- Division by zero (risk_parity.py): 1 bug (#134) — inf/NaN from zero marginal risk
 
 ## Workflow Rules
 

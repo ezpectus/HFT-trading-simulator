@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 68 |
+| ✅ Fixed | 69 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **107** |
+| **TOTAL FOUND** | **108** |
 
 ---
 
@@ -1202,6 +1202,16 @@
 - **Impact:** `ZeroDivisionError` crashes or `TypeError` crashes when price, account value, or volatility inputs are 0 or None. These are realistic scenarios: zero-price data from API outages, zero account value at startup, or None volatility when data is unavailable.
 - **Status:** ✅ Fixed
 - **Fix:** Added early-return guards at the top of `volatility_based_sizing`, `risk_parity_sizing`, and `kelly_criterion_sizing` that return a zero `PositionSizingResult` when `price <= 0`, `account_value <= 0`, or `volatility is None or <= 0`. Added inline guards at remaining division sites: `leverage = ... if self.account_value > 0 else 0.0`, `denom = price * daily_volatility * 2; position_size = risk_amount / denom if denom > 0 else 0.0`, and `scale_factor = ... if total_exposure > 0 else 0.0`, `return position_values / self.account_value if self.account_value > 0 else position_values * 0`.
+
+---
+
+## Bug #134 — risk_parity.py division by zero in optimize_risk_parity
+
+- **Location:** `ai-signal-bot/src/portfolio/risk_parity.py:119, 126`
+- **Severity:** Medium
+- **Root Cause:** `optimize_risk_parity` divides `weights / marginal_risk` without checking for zero elements in `marginal_risk`. When `portfolio_volatility == 0` (degenerate covariance matrix), `calculate_marginal_risk` returns all zeros, making the division produce `inf`/`NaN` that silently corrupts the entire optimization. Additionally, the post-clip normalization at line 126 divides by `np.sum(new_weights)` which could be zero if all weights are clipped to their lower bound of 0.
+- **Status:** ✅ Fixed
+- **Fix:** Added `np.where(np.abs(marginal_risk) < 1e-12, 1e-12, marginal_risk)` floor before division. Added `weight_sum > 0` and `clip_sum > 0` guards on both normalizations, falling back to equal weights when sum is zero.
 
 ---
 

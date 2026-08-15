@@ -116,14 +116,18 @@ class RiskParityOptimizer:
             marginal_risk = self.calculate_marginal_risk(weights, cov_matrix)
             
             # Calculate new weights: w_new = w_old / marginal_risk
-            new_weights = weights / marginal_risk
+            # Guard against zero marginal risk (degenerate covariance)
+            safe_marginal_risk = np.where(np.abs(marginal_risk) < 1e-12, 1e-12, marginal_risk)
+            new_weights = weights / safe_marginal_risk
             
             # Normalize to sum to 1
-            new_weights = new_weights / np.sum(new_weights)
+            weight_sum = np.sum(new_weights)
+            new_weights = new_weights / weight_sum if weight_sum > 0 else np.ones(n_assets) / n_assets
             
             # Apply bounds
             new_weights = np.clip(new_weights, weight_bounds[0], weight_bounds[1])
-            new_weights = new_weights / np.sum(new_weights)
+            clip_sum = np.sum(new_weights)
+            new_weights = new_weights / clip_sum if clip_sum > 0 else np.ones(n_assets) / n_assets
             
             # Check convergence
             if np.linalg.norm(new_weights - weights) < tolerance:
