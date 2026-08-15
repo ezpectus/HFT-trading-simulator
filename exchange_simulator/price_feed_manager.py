@@ -511,6 +511,7 @@ class CoinbaseAPI(BasePriceAPI):
         self._rest_base = "https://api.exchange.coinbase.com"
         self._ws_base = "wss://ws-feed.exchange.coinbase.com"
         self._symbol_map: dict[str, str] = {}
+        self._ws_task: asyncio.Task | None = None
 
     def _normalize_symbol(self, symbol: str) -> str:
         """Convert BTC/USDT to BTC-USDT."""
@@ -612,7 +613,17 @@ class CoinbaseAPI(BasePriceAPI):
                     logger.error(f"Coinbase WebSocket error (attempt {retry_count}/{max_retries}): {e}")
                     await asyncio.sleep(delay)
 
-        asyncio.create_task(_ws_handler())
+        self._ws_task = asyncio.create_task(_ws_handler())
+
+    async def close(self) -> None:
+        """Close WebSocket and HTTP session."""
+        if self._ws_task:
+            self._ws_task.cancel()
+            try:
+                await self._ws_task
+            except asyncio.CancelledError:
+                pass
+        await super().close()
 
 
 class PriceFeedManager:

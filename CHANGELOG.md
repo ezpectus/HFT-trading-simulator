@@ -12,6 +12,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-086]** `LiquidationEngineV2.liquidate()` in `exchange_simulator/exchange_simulator/liquidation_engine_v2.py` didn't subtract released margin during partial liquidation, inflating remaining margin and preventing legitimate future liquidations.
 - **[BUG-087]** `exchange_simulator/health.py` imported non-existent `PlainResponse` instead of `PlainTextResponse` from FastAPI, causing `ImportError` and preventing the health check endpoint from loading.
 - **[BUG-088]** `BlackScholes.calculate_gamma/vega/theta` in `exchange_simulator/options_pricing.py` lacked edge case guards for T <= 0, sigma <= 0, S <= 0, causing `ZeroDivisionError` or `ValueError` on expired/at-expiry options.
+- **[BUG-089]** `CoinbaseAPI.subscribe_websocket` in `exchange_simulator/price_feed_manager.py` didn't store WebSocket task reference — task could be GC'd, no cancellation on close, connection leak. Added `_ws_task` attribute and `close()` method.
 
 ### Critical Audit Corrections (v4.2)
 

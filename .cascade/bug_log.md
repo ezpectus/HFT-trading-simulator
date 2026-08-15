@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 23 |
+| ✅ Fixed | 24 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **62** |
+| **TOTAL FOUND** | **63** |
 
 ---
 
@@ -747,6 +747,16 @@
 - **Root Cause:** `calculate_gamma`, `calculate_theta`, and `calculate_vega` all use `math.sqrt(T)` without checking T <= 0. `calculate_gamma` also divides by `S * sigma * math.sqrt(T)`. When T=0 or negative (expired options), these raise `ZeroDivisionError` or `ValueError` (sqrt of negative). The `_d1` method already guards these cases, but these methods don't.
 - **Status:** ✅ Fixed
 - **Fix:** Added `if T <= 0 or sigma <= 0 or S <= 0: return 0.0` guards to all three methods.
+
+---
+
+## Bug #089 — CoinbaseAPI.subscribe_websocket doesn't store WebSocket task reference
+
+- **Location:** `exchange_simulator/price_feed_manager.py:615`
+- **Severity:** High
+- **Root Cause:** `CoinbaseAPI.subscribe_websocket` creates a WebSocket handler task with `asyncio.create_task(_ws_handler())` but doesn't store the reference (unlike `BinanceAPI` which stores it in `self._ws_task`). This means: (1) the task can be garbage collected before completion, (2) there's no way to cancel it on close, (3) `CoinbaseAPI.close()` doesn't exist so the WebSocket connection leaks.
+- **Status:** ✅ Fixed
+- **Fix:** Added `self._ws_task` attribute to `CoinbaseAPI.__init__`, stored the task reference, and added `close()` method that cancels the task and calls `super().close()`.
 
 ---
 
