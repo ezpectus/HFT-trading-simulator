@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 37 |
+| ✅ Fixed | 38 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 39 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **76** |
+| **TOTAL FOUND** | **77** |
 
 ---
 
@@ -887,6 +887,16 @@
 - **Root Cause:** The `total_hedge_pnl` calculation uses `enumerate([daily_hedge[0]] + daily_hedge[:-1], 1)`, which prepends an extra `daily_hedge[0]` to the list. This creates `n_days + 1` elements, so `i` ranges from 1 to `n_days + 1`. But `prices` only has `n_days + 1` elements (indices 0 to `n_days`), so `prices[n_days + 1]` raises `IndexError`. The extra prepended element also doubles the hedge P&L for the first day, producing incorrect results even if the index didn't overflow.
 - **Status:** ✅ Fixed
 - **Fix:** Removed the extra `[daily_hedge[0]] +` prefix. Now uses `enumerate(daily_hedge[:-1], 1)` which correctly iterates `n_days` elements with `i` from 1 to `n_days`, matching `prices` indices.
+
+---
+
+## Bug #103 — compute_trade_intensity uses timestamps[1] instead of timestamps[0] for duration
+
+- **Location:** `ai-signal-bot/src/research/microstructure_lab.py:193`
+- **Severity:** Medium
+- **Root Cause:** `compute_trade_intensity` calculates `duration = max(timestamps[-1] - timestamps[1], 1)` using `timestamps[1]` (second trade) instead of `timestamps[0]` (first trade). This excludes the first trade from the duration calculation, underestimating the total time window and overestimating the trade arrival rate.
+- **Status:** ✅ Fixed
+- **Fix:** Changed `timestamps[1]` to `timestamps[0]` so the duration spans from the first to the last trade.
 
 ---
 

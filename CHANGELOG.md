@@ -26,6 +26,7 @@ All notable changes to this project are documented in this file.
 - **[BUG-100]** `TransformerModel` in `ai-signal-bot/src/ml/transformer_model.py` computed softmax without subtracting max before `np.exp` — numerical overflow producing `NaN` attention weights and signal probabilities when scores are large.
 - **[BUG-101]** `should_rebalance_volatility_based` in `ai-signal-bot/src/portfolio/rebalancing.py` divided by `target_volatility` without zero check — `ZeroDivisionError` when target volatility is 0 (e.g., fully-cash target portfolio).
 - **[BUG-102]** `total_hedge_pnl` in `ai-signal-bot/src/research/greeks_hedging.py` had off-by-one error — prepended extra `daily_hedge[0]` caused `IndexError` (accessing `prices[n_days+1]`) and doubled first-day hedge P&L.
+- **[BUG-103]** `compute_trade_intensity` in `ai-signal-bot/src/research/microstructure_lab.py` used `timestamps[1]` instead of `timestamps[0]` for duration — excluded first trade, underestimating duration and overestimating arrival rate.
 
 ### Critical Audit Corrections (v4.2)
 

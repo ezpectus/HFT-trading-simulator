@@ -190,7 +190,7 @@ class MicrostructureLab:
             return {}
 
         # Simple arrival rate
-        duration = max(timestamps[-1] - timestamps[1], 1)
+        duration = max(timestamps[-1] - timestamps[0], 1)
         rate = len(timestamps) / duration
         self.metrics.trade_arrival_rate = float(rate)
 
