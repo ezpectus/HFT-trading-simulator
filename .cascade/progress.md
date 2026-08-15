@@ -9,7 +9,7 @@
 | 3 | 2026-08-15 | Deep audit v4.2 — found market_microstructure.py (Student-t/Merton/Heston/Markov), options_strategies.py, 6 more modules | ✅ Done | — |
 | 4 | 2026-08-15 | Consolidate workflow folders (.windsurf + .devin → .cascade) | 🔄 In Progress | — |
 | 5 | 2026-08-16 | Scan exchange_simulator/ source files — found & fixed 10 bugs (#066-#075) | ✅ Done | 268e858 |
-| 6 | 2026-08-16 | Scan ai-signal-bot/src/ source files — found & fixed 7 bugs (#076-#082) | ✅ Done | — |
+| 6 | 2026-08-16 | Scan ai-signal-bot/src/ source files — found & fixed 7 bugs (#076-#082) | ✅ Done | fa25ec5 |
 
 ## Bug Fix Progress
 
@@ -25,13 +25,13 @@
 | #073 | /metrics endpoint returns string instead of Prometheus format | ✅ Fixed | 268e858 | 2026-08-16 |
 | #074 | AuditLogger callback registration not thread-safe | ✅ Fixed | 268e858 | 2026-08-16 |
 | #075 | BinomialTree._calculate_parameters NaN at T=0 or sigma=0 | ✅ Fixed | 268e858 | 2026-08-16 |
-| #076 | Backtester counts break-even trades (pnl=0) as losses | ✅ Fixed | — | 2026-08-16 |
-| #077 | BacktestEngine counts break-even trades (pnl=0) as losses | ✅ Fixed | — | 2026-08-16 |
-| #078 | RL environment reward hides transaction costs from agent | ✅ Fixed | — | 2026-08-16 |
-| #079 | RL agents call env.reset() without required prices argument | ✅ Fixed | — | 2026-08-16 |
-| #080 | RL agent info['trade_count'] KeyError on empty info dict | ✅ Fixed | — | 2026-08-16 |
-| #081 | Backtester annualization uses 252 (stock days) instead of 365 (crypto) | ✅ Fixed | — | 2026-08-16 |
-| #082 | BacktestEngine annualization uses 252 (stock days) instead of 365 (crypto) | ✅ Fixed | — | 2026-08-16 |
+| #076 | Backtester counts break-even trades (pnl=0) as losses | ✅ Fixed | fa25ec5 | 2026-08-16 |
+| #077 | BacktestEngine counts break-even trades (pnl=0) as losses | ✅ Fixed | fa25ec5 | 2026-08-16 |
+| #078 | RL environment reward hides transaction costs from agent | ✅ Fixed | fa25ec5 | 2026-08-16 |
+| #079 | RL agents call env.reset() without required prices argument | ✅ Fixed | fa25ec5 | 2026-08-16 |
+| #080 | RL agent info['trade_count'] KeyError on empty info dict | ✅ Fixed | fa25ec5 | 2026-08-16 |
+| #081 | Backtester annualization uses 252 (stock days) instead of 365 (crypto) | ✅ Fixed | fa25ec5 | 2026-08-16 |
+| #082 | BacktestEngine annualization uses 252 (stock days) instead of 365 (crypto) | ✅ Fixed | fa25ec5 | 2026-08-16 |
 
 ## Proposals
 

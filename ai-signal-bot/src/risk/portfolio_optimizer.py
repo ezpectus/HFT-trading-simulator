@@ -60,8 +60,8 @@ class PortfolioOptimizer:
                 sharpe_ratio=0.0, method="markowitz_equal"
             )
 
-        cov = np.cov(returns.T) * 252  # Annualized
-        mean_returns = returns.mean(axis=0) * 252  # Annualized
+        cov = np.cov(returns.T) * 365  # Annualized (crypto 24/7)
+        mean_returns = returns.mean(axis=0) * 365  # Annualized (crypto 24/7)
 
         # Minimum variance portfolio (simplified: no short selling constraint via projection)
         try:
@@ -129,7 +129,7 @@ class PortfolioOptimizer:
                 sharpe_ratio=0.0, method="bl_equal"
             )
 
-        cov = np.cov(returns.T) * 252
+        cov = np.cov(returns.T) * 365  # Annualized (crypto 24/7)
         market_weights = np.ones(n) / n  # Equal weight as prior
         risk_aversion = 2.5
 
@@ -218,7 +218,7 @@ class PortfolioOptimizer:
                 sharpe_ratio=0.0, method="risk_parity_equal"
             )
 
-        cov = np.cov(returns.T) * 252
+        cov = np.cov(returns.T) * 365  # Annualized (crypto 24/7)
         vols = np.sqrt(np.diag(cov))
 
         # Inverse volatility weighting
@@ -233,7 +233,7 @@ class PortfolioOptimizer:
             w = np.minimum(w, 1.0)  # No leverage
             w = w / max(w.sum(), 1e-10)
 
-        mean_returns = returns.mean(axis=0) * 252
+        mean_returns = returns.mean(axis=0) * 365  # Annualized (crypto 24/7)
         port_return = w @ mean_returns
         port_vol = math.sqrt(max(w @ cov @ w, 0))
         sharpe = (port_return - self.risk_free_rate) / max(port_vol, 1e-10)

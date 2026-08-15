@@ -195,7 +195,7 @@ class KellyPositionSizer:
             return KellyPositionSizer(kelly_fraction=kelly_fraction, max_risk_pct=max_risk_pct)
 
         wins = [t for t in trades if t.pnl > 0]
-        losses = [t for t in trades if t.pnl <= 0]
+        losses = [t for t in trades if t.pnl < 0]
 
         win_rate = len(wins) / len(trades) if trades else 0.5
         avg_win = sum(t.pnl for t in wins) / len(wins) if wins else 0

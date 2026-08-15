@@ -83,8 +83,8 @@ class DynamicPositionSizer:
             PositionSizingResult with volatility-based position
         """
         # Convert annual volatility to daily
-        daily_volatility = volatility / np.sqrt(252)
-        
+        daily_volatility = volatility / np.sqrt(365)
+
         # Risk amount
         risk_amount = self.account_value * risk_per_trade
         
@@ -181,7 +181,7 @@ class DynamicPositionSizer:
         position_value = position_size * price
         
         # Risk amount (stop loss based on volatility)
-        daily_volatility = volatility / np.sqrt(252)
+        daily_volatility = volatility / np.sqrt(365)
         risk_amount = position_value * daily_volatility * 2  # 2x volatility as stop
         
         # Cap risk
@@ -217,9 +217,9 @@ class DynamicPositionSizer:
         adjusted_sizes = position_sizes.copy()
         
         for i in range(n_assets):
-            # Calculate average correlation with other positions
-            correlations = correlation_matrix[i, :]
-            avg_correlation = np.mean(np.abs(correlations))
+            # Calculate average correlation with other positions (exclude self-correlation)
+            correlations = np.delete(correlation_matrix[i, :], i)
+            avg_correlation = np.mean(np.abs(correlations)) if len(correlations) > 0 else 0.0
             
             # Reduce position size if highly correlated
             if avg_correlation > 0.7:

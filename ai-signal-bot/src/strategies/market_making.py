@@ -84,7 +84,7 @@ class MarketMakingStrategy:
             return self.config.sigma
 
         arr = np.array(self.returns_history)
-        return max(arr.std() * math.sqrt(252 * 24 * 60), 0.001)  # Per-minute vol annualized
+        return max(arr.std() * math.sqrt(365 * 24 * 60), 0.001)  # Per-minute vol annualized, crypto 24/7
 
     def _reservation_price(self, mid: float, t: float) -> float:
         """Avellaneda-Stoikov reservation price."""
