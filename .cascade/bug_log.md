@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 86 |
+| ✅ Fixed | 87 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **123** |
+| **TOTAL FOUND** | **124** |
 
 ---
 
@@ -1552,6 +1552,17 @@
 - **Impact:** Under error conditions, SQLite connections accumulate, eventually causing "database is locked" errors or hitting connection limits.
 - **Status:** ✅ Fixed
 - **Fix:** Wrapped all `self._conn()` calls in `contextlib.closing()` to ensure connections are automatically closed even when exceptions occur.
+
+---
+
+## Bug #166: FIX ResendRequest skips all resent messages (incoming_seq incremented past gap)
+- **File:** `ai-signal-bot/src/communication/fix_client.py:348-360`
+- **Category:** Bug / HFT-specific
+- **Severity:** High
+- **Root Cause:** When a FIX sequence gap is detected (`incoming_seq > self.incoming_seq`), the code sends a ResendRequest but then unconditionally executes `self.incoming_seq = incoming_seq + 1`. This increments `incoming_seq` past the entire gap, so when the resent messages arrive (with seq nums from the original gap), they are all skipped as duplicates (`incoming_seq < self.incoming_seq`). All messages in the gap are permanently lost.
+- **Impact:** Lost execution reports, market data, and order acknowledgements during any FIX message loss or reordering. Critical for order management reliability.
+- **Status:** ✅ Fixed
+- **Fix:** Added `return` after sending ResendRequest to prevent incrementing `incoming_seq` past the gap. The out-of-sequence message is discarded, and `incoming_seq` stays at the expected value so resent messages are processed correctly when they arrive.
 
 ---
 

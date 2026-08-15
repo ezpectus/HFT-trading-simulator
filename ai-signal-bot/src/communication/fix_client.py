@@ -355,6 +355,8 @@ class FixSession:
             if self._writer:
                 self._writer.write(resend)
                 await self._writer.drain()
+            # Do not increment incoming_seq — wait for resent messages to fill the gap
+            return
 
         self.incoming_seq = incoming_seq + 1
         self._save_seq_nums()
