@@ -118,6 +118,9 @@ class VolatilitySurface:
         if not self.svi_params:
             return 0.5  # fallback 50% vol
         total_var = self.svi_variance(log_moneyness, self.svi_params)
+        if total_var < 0:
+            logger.warning(f"[VolSurface] SVI produced negative variance: {total_var}")
+            return 0.5
         return np.sqrt(total_var / maturity_years) if maturity_years > 0 else np.sqrt(total_var)
 
     # ── SABR ──
@@ -126,6 +129,9 @@ class VolatilitySurface:
         self, forward: float, strike: float, maturity: float, params: SABRParams
     ) -> float:
         """Hagan's SABR implied volatility formula."""
+        if forward <= 0 or strike <= 0:
+            logger.warning("[VolSurface] SABR requires positive forward and strike")
+            return 0.5
         if abs(forward - strike) < 1e-10:
             # ATM formula
             term1 = (1 + (((1 - params.beta)**2 * params.alpha**2) /

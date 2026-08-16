@@ -1637,6 +1637,182 @@
 
 ---
 
+## Bug #173 — real_exchange_client.py creates new aiohttp.ClientSession per API call
+
+- **Location:** `ai-signal-bot/src/data_collection/real_exchange_client.py` (all 6 REST methods)
+- **Severity:** Medium
+- **Root Cause:** Each of the 6 REST methods (`_binance_balance`, `_binance_positions`, `_okx_balance`, `_okx_positions`, `_bybit_balance`, `_bybit_positions`) created its own `aiohttp.ClientSession()` via `async with aiohttp.ClientSession() as session:`. This creates and destroys a connection pool per call, causing unnecessary TCP handshake overhead and socket churn. The aiohttp documentation explicitly recommends sharing a single ClientSession across requests.
+- **Impact:** Performance degradation under high-frequency API calls. Each call incurs connection setup/teardown overhead instead of reusing persistent connections.
+- **Status:** ✅ Fixed
+- **Fix:** Added shared `_session` field with `initialize()` and `close()` lifecycle methods. Added `_get_session()` helper that lazily creates the session. All 6 methods now use `await self._get_session()` instead of creating a new session per call.
+
+---
+
+## Bug #174 — market_replay.py uses time.time() for elapsed timing
+
+- **Location:** `ai-signal-bot/src/data_collection/market_replay.py:183,198,228`
+- **Severity:** Low
+- **Root Cause:** The `play()` and `seek()` methods use `time.time()` to compute elapsed time for replay scheduling. `time.time()` is wall-clock time that can jump backward or forward on NTP adjustments, system clock changes, or DST transitions. This causes replay timing to be incorrect — events may fire too early, too late, or out of order after a clock adjustment.
+- **Impact:** Replay timing can be disrupted by system clock changes, making market replay unreliable for testing.
+- **Status:** ✅ Fixed
+- **Fix:** Changed all three occurrences of `time.time()` used for elapsed timing to `time.monotonic()`, which is immune to system clock adjustments.
+
+---
+
+## Bug #175 — llm_engine/engine.py cache key uses int(price) causing collisions
+
+- **Location:** `ai-signal-bot/src/llm_engine/engine.py:151`
+- **Severity:** Medium
+- **Root Cause:** The LLM response cache key is `f"{ctx.symbol}_{int(ctx.price)}"`. Using `int(ctx.price)` means all prices within the same integer range (e.g., 65000.10 and 65000.99) share the same cache key. For high-frequency trading where price movements within a single integer are significant, this causes stale LLM responses to be returned for materially different market conditions.
+- **Impact:** LLM analysis results are cached too aggressively, returning stale signals for prices that have moved significantly within the same integer range.
+- **Status:** ✅ Fixed
+- **Fix:** Changed `int(ctx.price)` to `round(ctx.price, 2)` for more granular caching that distinguishes price movements at the cent level.
+
+---
+
+## Bug #176 — model_registry.py select_ab_model doesn't persist impression counts
+
+- **Location:** `ai-signal-bot/src/ml/model_registry.py:237-242`
+- **Severity:** Medium
+- **Root Cause:** `select_ab_model()` increments `ab.treatment_impressions` or `ab.control_impressions` but never calls `self._save()`. The impression counts are only persisted when `record_ab_outcome()` is called later. If the process restarts between `select_ab_model()` and `record_ab_outcome()`, the impression count is lost, skewing the A/B test results.
+- **Impact:** A/B test impression counts are lost on restart, producing incorrect success rate calculations and potentially wrong promotion decisions.
+- **Status:** ✅ Fixed
+- **Fix:** Added `self._save()` call after each impression counter increment in `select_ab_model()`.
+
+---
+
+## Bug #177 — feature_store.py list_symbols uses KEYS command blocking Redis
+
+- **Location:** `ai-signal-bot/src/ml/feature_store.py:180`
+- **Severity:** Medium
+- **Root Cause:** `list_symbols()` uses `self._redis.keys(f"{self.FEATURE_PREFIX}*")` which is O(N) and blocks the Redis server for the entire scan. In production with many symbols, this can block all other Redis operations for seconds, causing timeouts in the trading system.
+- **Impact:** Redis blocking under production load, potentially causing feature store timeouts and delayed trading signals.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `KEYS` with `SCAN` using cursor-based iteration (`self._redis.scan(cursor=cursor, match=..., count=100)`), which is non-blocking and returns results incrementally.
+
+---
+
+## Bug #178 — real_account.py place_order doesn't validate quantity > 0
+
+- **Location:** `ai-signal-bot/src/data_collection/real_account.py:272-278`
+- **Severity:** High
+- **Root Cause:** `place_order()` sends the order to the exchange without validating that `quantity > 0`. A zero or negative quantity would be sent to the exchange API, which could return an error, or worse, some exchanges may interpret it unpredictably. This is a critical safety check for real money trading.
+- **Impact:** Invalid orders sent to real exchanges, potentially causing API errors, unexpected behavior, or account issues.
+- **Status:** ✅ Fixed
+- **Fix:** Added `if quantity <= 0:` check before the exchange API call, returning `None` and logging an error.
+
+---
+
+## Bug #179 — real_market_data.py start_feed creates duplicate WebSocket connections
+
+- **Location:** `ai-signal-bot/src/data_collection/real_market_data.py:446-452`
+- **Severity:** Medium
+- **Root Cause:** `start_feed()` checks `if not self._running:` before creating a new feed task, but if `start_feed()` is called again after the first call (e.g., by a retry logic or misconfiguration), the `_running` flag is already `True` but the method silently does nothing — no warning or error. More importantly, if `close()` was called but `_running` wasn't reset, a new feed task would be created while the old WebSocket is still closing.
+- **Impact:** Silent failure to start feed or potential duplicate WebSocket connections, leading to wasted resources and duplicate market data events.
+- **Status:** ✅ Fixed
+- **Fix:** Added `else` branch with a warning log when `start_feed()` is called while a feed is already running.
+
+---
+
+## Bug #180 — volatility_surface.py implied_vol_svi returns nan on negative variance
+
+- **Location:** `ai-signal-bot/src/pricing/volatility_surface.py:116-124`
+- **Severity:** Medium
+- **Root Cause:** `implied_vol_svi()` computes `np.sqrt(total_var / maturity_years)` without checking if `total_var` is negative. Bad SVI calibration can produce negative variance values, and `np.sqrt()` of a negative number returns `nan` (with a RuntimeWarning). This `nan` would propagate through all downstream volatility calculations.
+- **Impact:** `nan` implied volatility from bad SVI calibration propagates to option pricing, Greeks, and hedging calculations, producing garbage results.
+- **Status:** ✅ Fixed
+- **Fix:** Added `if total_var < 0:` check with a warning log and fallback to 0.5 (50% vol) return value.
+
+---
+
+## Bug #181 — volatility_surface.py sabr_implied_vol doesn't validate forward/strike > 0
+
+- **Location:** `ai-signal-bot/src/pricing/volatility_surface.py:128-135`
+- **Severity:** Medium
+- **Root Cause:** `sabr_implied_vol()` computes `(forward * strike)**((1 - params.beta) / 2)` and `np.log(forward / strike)` without checking that `forward` and `strike` are positive. Negative or zero values produce complex numbers, `nan`, or `ZeroDivisionError`, crashing the function or producing garbage implied vol.
+- **Impact:** SABR implied vol calculation crashes or returns garbage for invalid inputs (zero/negative forward or strike).
+- **Status:** ✅ Fixed
+- **Fix:** Added `if forward <= 0 or strike <= 0:` check at the top of the method with a warning log and 0.5 fallback.
+
+---
+
+## Bug #182 — helpers.py RateLimiter.acquire() infinite loops when rate <= 0
+
+- **Location:** `ai-signal-bot/src/utils/helpers.py:200-211`
+- **Severity:** Medium
+- **Root Cause:** `acquire()` checks `if self.rate <= 0:` inside the `while True` loop but only sleeps 0.01s and continues, never accumulating tokens (since `elapsed * self.rate` = 0 when rate=0). This creates an infinite loop that blocks the event loop and prevents any progress.
+- **Impact:** Any caller with `rate=0` (e.g., misconfigured rate limiter) hangs forever, blocking the async event loop.
+- **Status:** ✅ Fixed
+- **Fix:** Moved `if self.rate <= 0: return False` to the top of the method, before the loop, so it fails fast instead of spinning.
+
+---
+
+## Bug #183 — real_market_data.py _to_okx_inst_id doesn't handle perpetual swap notation
+
+- **Location:** `ai-signal-bot/src/data_collection/real_market_data.py:354-364`
+- **Severity:** Medium
+- **Root Cause:** `_to_okx_inst_id()` converts symbols like `BTC/USDT` to `BTC-USDT-SWAP`, but doesn't handle the ccxt perpetual swap notation `BTC/USDT:USDT`. After `replace("/", "")`, this becomes `BTCUSDT:USDT`, and since it ends with `USDT` (from `:USDT`), the code strips the last 4 chars to get `BTCUSDT:` and produces `BTCUSDT:-USDT-SWAP` — an invalid OKX instrument ID.
+- **Impact:** OKX WebSocket subscriptions fail for symbols using ccxt perpetual swap notation, preventing market data from being received.
+- **Status:** ✅ Fixed
+- **Fix:** Added `if ":" in clean: clean = clean.split(":")[0]` before the USDT suffix check to strip the `:USDT` settlement currency notation.
+
+---
+
+## Bug #184 — fft_analysis.py power_spectrum calls sum(power) twice
+
+- **Location:** `ai-signal-bot/src/technical_analysis/fft_analysis.py:112`
+- **Severity:** Low
+- **Root Cause:** The normalization line `total_power = sum(power) if sum(power) > 0 else 1` calls `sum(power)` twice — once in the condition and once in the assignment. For large power spectra (e.g., 4096+ elements), this doubles the computation cost unnecessarily.
+- **Impact:** Minor performance overhead — O(2N) instead of O(N) for power normalization.
+- **Status:** ✅ Fixed
+- **Fix:** Computed `total_power = sum(power)` once, then used `if total_power > 0:` for the condition.
+
+---
+
+## Bug #185 — real_account.py close() doesn't handle exceptions from _ws_session.close()
+
+- **Location:** `ai-signal-bot/src/data_collection/real_account.py:144`
+- **Severity:** Low
+- **Root Cause:** `close()` calls `await self._ws_session.close()` without try/except. If the WebSocket session is already closed or the connection is broken, this raises an exception that prevents `close()` from completing, potentially leaving the exchange connection (`self._exchange`) unclosed.
+- **Impact:** `close()` can fail partway through, leaving exchange connections open and causing resource leaks.
+- **Status:** ✅ Fixed
+- **Fix:** Wrapped `self._ws_session.close()` in try/except with debug-level logging.
+
+---
+
+## Bug #186 — real_market_data.py Binance bookTicker last price uses ask price
+
+- **Location:** `ai-signal-bot/src/data_collection/real_market_data.py:159`
+- **Severity:** Medium
+- **Root Cause:** When parsing Binance `@bookTicker` WebSocket messages, the `last` field of `NormalizedTicker` was set to `float(data.get("a", 0))` — the ask price. The bookTicker stream only contains bid (`b`) and ask (`a`) prices, not the last traded price. Using the ask price as `last` is misleading because it suggests the last trade happened at the ask, which is not necessarily true.
+- **Impact:** Downstream strategies that use `ticker.last` for decision-making get the ask price instead of the actual last traded price, leading to incorrect signal generation.
+- **Status:** ✅ Fixed
+- **Fix:** Set `last=0.0` for bookTicker messages (since bookTicker has no last traded price). The actual last traded price should come from the `@aggTrade` stream.
+
+---
+
+## Bug #187 — timescaledb_client.py insert_candles uses direct key access on dict
+
+- **Location:** `ai-signal-bot/src/data_collection/timescaledb_client.py:217-223`
+- **Severity:** Medium
+- **Root Cause:** `insert_candles()` accesses candle fields with `c["open"]`, `c["high"]`, `c["low"]`, `c["close"]`, `c["volume"]` — direct key access that raises `KeyError` if any field is missing. Candle data from different sources may use different field names (e.g., `o` vs `open`, `h` vs `high`) or may omit some fields.
+- **Impact:** `insert_candles()` crashes with `KeyError` when receiving candle data with non-standard field names or missing fields, preventing market data from being stored.
+- **Status:** ✅ Fixed
+- **Fix:** Changed all direct key accesses to `.get()` with 0.0 default values: `c.get("open", 0)`, `c.get("high", 0)`, etc.
+
+---
+
+## Bug #188 — helpers.py truncate_dict produces max_items+1 keys
+
+- **Location:** `ai-signal-bot/src/utils/helpers.py:141-148`
+- **Severity:** Low
+- **Root Cause:** `truncate_dict()` takes `max_items` items from the dict, then adds a `"..._truncated"` key on top, producing `max_items + 1` keys total. This exceeds the `max_items` limit by 1. If the caller expects at most `max_items` keys (e.g., for a log entry with size limits), the result is one key too many.
+- **Impact:** Truncated dicts exceed the specified max_items limit by 1 key, potentially causing log entry size issues.
+- **Status:** ✅ Fixed
+- **Fix:** Changed to take `max_items - 1` items, reserving one slot for the `"..._truncated"` key, so the total is exactly `max_items`.
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

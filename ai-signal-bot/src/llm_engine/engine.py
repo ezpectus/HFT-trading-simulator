@@ -148,7 +148,7 @@ class LLMEngine:
 
     async def analyze_market(self, ctx: MarketContext) -> LLMAnalysis:
         """Analyze market conditions using LLM."""
-        cache_key = f"{ctx.symbol}_{int(ctx.price)}"
+        cache_key = f"{ctx.symbol}_{round(ctx.price, 2)}"
         now = time.time()
 
         # Check cache

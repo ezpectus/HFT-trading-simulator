@@ -217,8 +217,8 @@ class TimescaleDBClient:
         for c in candles:
             rows.append((
                 symbol, interval, int(c.get("time", c.get("timestamp", 0))),
-                float(c["open"]), float(c["high"]), float(c["low"]),
-                float(c["close"]), float(c["volume"]),
+                float(c.get("open", 0)), float(c.get("high", 0)), float(c.get("low", 0)),
+                float(c.get("close", 0)), float(c.get("volume", 0)),
                 c.get("exchange", "simulator"),
             ))
 

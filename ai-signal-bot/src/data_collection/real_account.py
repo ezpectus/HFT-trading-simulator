@@ -142,7 +142,10 @@ class RealAccountManager:
         if self._exchange:
             await self._exchange.close()
         if self._ws_session:
-            await self._ws_session.close()
+            try:
+                await self._ws_session.close()
+            except Exception as e:
+                logger.debug(f"[RealAccount] WS session close error: {e}")
 
     async def get_balance(self) -> list[AccountBalance]:
         """Fetch account balances."""
@@ -268,6 +271,9 @@ class RealAccountManager:
     ) -> dict | None:
         """Place an order on the exchange."""
         if not self._exchange:
+            return None
+        if quantity <= 0:
+            logger.error(f"[RealAccount] Invalid quantity: {quantity}")
             return None
         try:
             if self._leverage_cache.get(symbol) != leverage:

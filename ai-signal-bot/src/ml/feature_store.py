@@ -177,8 +177,16 @@ class FeatureStore:
     def list_symbols(self) -> list[str]:
         """List all symbols with features."""
         if self._redis:
-            keys = self._redis.keys(f"{self.FEATURE_PREFIX}*")
-            return [k.replace(self.FEATURE_PREFIX, "") for k in keys]
+            symbols = []
+            cursor = 0
+            while True:
+                cursor, keys = self._redis.scan(
+                    cursor=cursor, match=f"{self.FEATURE_PREFIX}*", count=100
+                )
+                symbols.extend(k.replace(self.FEATURE_PREFIX, "") for k in keys)
+                if cursor == 0:
+                    break
+            return symbols
         else:
             return list(self._memory.keys())
 

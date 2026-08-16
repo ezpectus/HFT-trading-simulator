@@ -156,7 +156,7 @@ class RealMarketDataFeed:
                 symbol=symbol,
                 bid=float(data.get("b", 0)),
                 ask=float(data.get("a", 0)),
-                last=float(data.get("a", 0)),
+                last=0.0,  # bookTicker has no last traded price; updated by aggTrade
                 volume=0.0,
                 timestamp=int(data.get("T", time.time() * 1000)),
             )
@@ -355,6 +355,9 @@ class RealMarketDataFeed:
     def _to_okx_inst_id(symbol: str) -> str:
         """Convert BTCUSDT or BTC/USDT → BTC-USDT-SWAP."""
         clean = symbol.replace("/", "")
+        # Handle perpetual swap notation: BTC/USDT:USDT → BTCUSDT
+        if ":" in clean:
+            clean = clean.split(":")[0]
         if clean.endswith("USDT"):
             base = clean[:-4]
             return f"{base}-USDT-SWAP"
@@ -447,3 +450,5 @@ class RealMarketDataManager:
             self._feed_task = asyncio.create_task(
                 self._feed.start(symbols=symbols, intervals=["1m", "5m", "15m"])
             )
+        else:
+            logger.warning("[RealMarketData] Feed already running — call close() first")

@@ -142,9 +142,9 @@ def truncate_dict(d: dict, max_items: int = 100) -> dict:
     """Truncate dict to max items (for logging)."""
     if len(d) <= max_items:
         return d
-    items = list(d.items())[:max_items]
+    items = list(d.items())[:max_items - 1]
     result = dict(items)
-    result["..._truncated"] = len(d) - max_items
+    result["..._truncated"] = len(d) - (max_items - 1)
     return result
 
 
@@ -199,13 +199,12 @@ class RateLimiter:
 
     async def acquire(self) -> bool:
         import asyncio
+        if self.rate <= 0:
+            return False
         while True:
             self._refill()
             if self._tokens >= 1.0:
                 self._tokens -= 1.0
                 return True
-            if self.rate <= 0:
-                await asyncio.sleep(0.01)
-                continue
             wait = (1.0 - self._tokens) / self.rate
             await asyncio.sleep(wait)

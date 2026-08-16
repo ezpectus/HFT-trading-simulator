@@ -46,8 +46,8 @@
 | #168 | Parametric VaR/CVaR scales mean by √t instead of t (incorrect multi-day risk) | ✅ Fixed | b723a6f | 2026-08-16 |
 | #169 | Statistical arbitrage take_profit on wrong side for both LONG and SHORT | ✅ Fixed | 69c749d | 2026-08-16 |
 | #170 | MarketMakingStrategy.on_fill PnL wrong when inventory crosses zero | ✅ Fixed | 464abb2 | 2026-08-16 |
-| #171 | LSTMModel.evaluate direction accuracy broadcasts 2D vs 1D incorrectly | ✅ Fixed | — | 2026-08-16 |
-| #172 | TransformerModel.evaluate class_accuracy crashes: list indexed by boolean array | ✅ Fixed | — | 2026-08-16 |
+| #171 | LSTMModel.evaluate direction accuracy broadcasts 2D vs 1D incorrectly | ✅ Fixed | a1ebb4a | 2026-08-16 |
+| #172 | TransformerModel.evaluate class_accuracy crashes: list indexed by boolean array | ✅ Fixed | a1ebb4a | 2026-08-16 |
 
 ## Proposals
 

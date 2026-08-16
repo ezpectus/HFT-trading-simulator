@@ -236,9 +236,11 @@ class ModelRegistry:
         import random
         if random.random() < ab.traffic_split:
             ab.treatment_impressions += 1
+            self._save()
             return ab.treatment_version
         else:
             ab.control_impressions += 1
+            self._save()
             return ab.control_version
 
     def record_ab_outcome(self, name: str, version: str, success: bool) -> None:

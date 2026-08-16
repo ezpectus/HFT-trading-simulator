@@ -180,7 +180,7 @@ class MarketReplay:
 
         # Calculate timing
         first_ts = events[0].timestamp
-        self._start_ts = time.time()
+        self._start_ts = time.monotonic()
 
         logger.info(f"[Replay] Playing {len(events)} events at {speed}x speed")
 
@@ -195,7 +195,7 @@ class MarketReplay:
             # Calculate delay
             event_offset = event.timestamp - first_ts
             expected_time = event_offset / speed
-            elapsed = time.time() - self._start_ts
+            elapsed = time.monotonic() - self._start_ts
             delay = expected_time - elapsed
 
             if delay > 0:
@@ -225,7 +225,7 @@ class MarketReplay:
     def seek(self, timestamp: float) -> None:
         """Seek to a specific timestamp in the recording."""
         # Will be applied on next play
-        self._start_ts = time.time() - timestamp
+        self._start_ts = time.monotonic() - timestamp
 
     # ── Export ──
 

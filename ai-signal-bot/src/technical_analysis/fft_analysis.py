@@ -109,8 +109,9 @@ def power_spectrum(closes: list[float]) -> tuple[list[float], list[float]]:
     freqs = [i / n_fft for i in range(half)]
 
     # Normalize power
-    total_power = sum(power) if sum(power) > 0 else 1
-    power = [p / total_power for p in power]
+    total_power = sum(power)
+    if total_power > 0:
+        power = [p / total_power for p in power]
 
     return freqs, power
 

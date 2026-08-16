@@ -85,6 +85,21 @@ class RealExchangeClient:
         else:
             self.base_url = base_url
 
+        self._session = None
+
+    async def initialize(self) -> None:
+        """Initialize shared HTTP session."""
+        import aiohttp
+        self._session = aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=10)
+        )
+
+    async def close(self) -> None:
+        """Close shared HTTP session."""
+        if self._session:
+            await self._session.close()
+            self._session = None
+
     def _sign_binance(self, query_string: str) -> str:
         return _hmac_sha256_hex(self.api_secret.encode(), query_string.encode())
 
@@ -116,6 +131,12 @@ class RealExchangeClient:
             return await self._bybit_positions()
         return []
 
+    async def _get_session(self):
+        """Get or create shared HTTP session."""
+        if self._session is None:
+            await self.initialize()
+        return self._session
+
     async def _binance_balance(self) -> AccountBalance | None:
         import aiohttp
         ts = int(time.time() * 1000)
@@ -124,18 +145,18 @@ class RealExchangeClient:
         url = f"{self.base_url}/fapi/v2/balance?{params}&signature={sig}"
         headers = {"X-MBX-APIKEY": self.api_key}
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as resp:
-                if resp.status != 200:
-                    logger.error(f"Binance balance error: {resp.status}")
-                    return None
-                data = await resp.json()
-                for asset in data:
-                    if asset.get("asset") == "USDT":
-                        return AccountBalance(
-                            exchange="binance",
-                            total_balance=float(asset.get("balance", 0)),
-                            available_balance=float(asset.get("availableBalance", 0)),
+        session = await self._get_session()
+        async with session.get(url, headers=headers) as resp:
+            if resp.status != 200:
+                logger.error(f"Binance balance error: {resp.status}")
+                return None
+            data = await resp.json()
+            for asset in data:
+                if asset.get("asset") == "USDT":
+                    return AccountBalance(
+                        exchange="binance",
+                        total_balance=float(asset.get("balance", 0)),
+                        available_balance=float(asset.get("availableBalance", 0)),
                             unrealized_pnl=float(asset.get("crossUnPnl", 0)),
                             margin_used=float(asset.get("maintMargin", 0)),
                             currency="USDT",
@@ -151,18 +172,18 @@ class RealExchangeClient:
         headers = {"X-MBX-APIKEY": self.api_key}
 
         positions = []
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as resp:
-                if resp.status != 200:
-                    return []
-                data = await resp.json()
-                for p in data:
-                    amt = float(p.get("positionAmt", 0))
-                    if amt == 0:
-                        continue
-                    positions.append(Position(
-                        exchange="binance",
-                        symbol=p.get("symbol", ""),
+        session = await self._get_session()
+        async with session.get(url, headers=headers) as resp:
+            if resp.status != 200:
+                return []
+            data = await resp.json()
+            for p in data:
+                amt = float(p.get("positionAmt", 0))
+                if amt == 0:
+                    continue
+                positions.append(Position(
+                    exchange="binance",
+                    symbol=p.get("symbol", ""),
                         side="LONG" if amt > 0 else "SHORT",
                         size=abs(amt),
                         entry_price=float(p.get("entryPrice", 0)),
@@ -188,18 +209,18 @@ class RealExchangeClient:
         }
         url = f"{self.base_url}{path}"
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as resp:
-                if resp.status != 200:
-                    return None
-                data = await resp.json()
-                if data.get("code") != "0":
-                    return None
-                for d in data.get("data", []):
-                    for detail in d.get("details", []):
-                        if detail.get("ccy") == "USDT":
-                            return AccountBalance(
-                                exchange="okx",
+        session = await self._get_session()
+        async with session.get(url, headers=headers) as resp:
+            if resp.status != 200:
+                return None
+            data = await resp.json()
+            if data.get("code") != "0":
+                return None
+            for d in data.get("data", []):
+                for detail in d.get("details", []):
+                    if detail.get("ccy") == "USDT":
+                        return AccountBalance(
+                            exchange="okx",
                                 total_balance=float(detail.get("cashBal", 0)),
                                 available_balance=float(detail.get("availBal", 0)),
                                 unrealized_pnl=float(detail.get("upl", 0)),
@@ -222,18 +243,18 @@ class RealExchangeClient:
         url = f"{self.base_url}{path}"
 
         positions = []
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as resp:
-                if resp.status != 200:
-                    return []
-                data = await resp.json()
-                for p in data.get("data", []):
-                    pos = float(p.get("pos", 0))
-                    if pos == 0:
-                        continue
-                    positions.append(Position(
-                        exchange="okx",
-                        symbol=p.get("instId", ""),
+        session = await self._get_session()
+        async with session.get(url, headers=headers) as resp:
+            if resp.status != 200:
+                return []
+            data = await resp.json()
+            for p in data.get("data", []):
+                pos = float(p.get("pos", 0))
+                if pos == 0:
+                    continue
+                positions.append(Position(
+                    exchange="okx",
+                    symbol=p.get("instId", ""),
                         side="LONG" if pos > 0 else "SHORT",
                         size=abs(pos),
                         entry_price=float(p.get("avgPx", 0)),
@@ -260,18 +281,18 @@ class RealExchangeClient:
             "X-BAPI-RECV-WINDOW": recv_window,
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as resp:
-                if resp.status != 200:
-                    return None
-                data = await resp.json()
-                result = data.get("result", {}).get("list", [])
-                for account in result:
-                    for coin in account.get("coin", []):
-                        if coin.get("coin") == "USDT":
-                            return AccountBalance(
-                                exchange="bybit",
-                                total_balance=float(coin.get("walletBalance", 0)),
+        session = await self._get_session()
+        async with session.get(url, headers=headers) as resp:
+            if resp.status != 200:
+                return None
+            data = await resp.json()
+            result = data.get("result", {}).get("list", [])
+            for account in result:
+                for coin in account.get("coin", []):
+                    if coin.get("coin") == "USDT":
+                        return AccountBalance(
+                            exchange="bybit",
+                            total_balance=float(coin.get("walletBalance", 0)),
                                 available_balance=float(coin.get("availableToWithdraw", 0)),
                                 unrealized_pnl=float(coin.get("unrealisedPnl", 0)),
                                 margin_used=float(coin.get("totalPositionIM", 0)),
@@ -295,18 +316,18 @@ class RealExchangeClient:
         }
 
         positions = []
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as resp:
-                if resp.status != 200:
-                    return []
-                data = await resp.json()
-                for p in data.get("result", {}).get("list", []):
-                    size = float(p.get("size", 0))
-                    if size == 0:
-                        continue
-                    positions.append(Position(
-                        exchange="bybit",
-                        symbol=p.get("symbol", ""),
+        session = await self._get_session()
+        async with session.get(url, headers=headers) as resp:
+            if resp.status != 200:
+                return []
+            data = await resp.json()
+            for p in data.get("result", {}).get("list", []):
+                size = float(p.get("size", 0))
+                if size == 0:
+                    continue
+                positions.append(Position(
+                    exchange="bybit",
+                    symbol=p.get("symbol", ""),
                         side=p.get("side", ""),
                         size=size,
                         entry_price=float(p.get("avgPrice", 0)),
