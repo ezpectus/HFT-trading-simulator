@@ -8,11 +8,12 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 99 |
+| ✅ Fixed | 146 |
 | 🔄 In Progress | 0 |
-| ⏳ Pending Fix | 35 |
+| ⏳ Pending Fix | 0 |
+| ❌ N/A (files not in lite) | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **136** |
+| **TOTAL FOUND** | **181** |
 
 ---
 
@@ -24,7 +25,7 @@
 - **Severity:** Critical
 - **Root Cause:** `JWT_SECRET=${JWT_SECRET:-change-this-in-production}` — if env var not set, uses known insecure secret
 - **Impact:** Token forgery, full auth bypass if deployed without setting JWT_SECRET
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #002: SSRF protection bypass via IP encoding
 - **File:** `app/routers/_common.py:950-970`
@@ -32,7 +33,7 @@
 - **Severity:** Critical
 - **Root Cause:** `validate_external_url()` uses `host.startswith("10.")` string prefix matching. Bypassable with hex IP (`0x7f000001`), decimal IP (`2130706433`), IPv6-mapped IPv4 (`::ffff:127.0.0.1`), short form (`127.1`), DNS rebinding
 - **Impact:** Attacker can make server fetch internal resources (AWS metadata, internal APIs, DB)
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ---
 
@@ -44,7 +45,7 @@
 - **Severity:** High
 - **Root Cause:** `__version__ = "8.0.0"` but `pyproject.toml` and `main.py` say `8.7.7`. Dockerfile label also `8.0.0`
 - **Impact:** Incorrect version in API responses, health checks, Docker images
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #004: No Postgres pool cleanup on shutdown
 - **File:** `app/main.py:118-144`
@@ -52,7 +53,7 @@
 - **Severity:** High
 - **Root Cause:** `lifespan` shutdown handler closes browser pool and artifact cleanup but not Postgres connection pool
 - **Impact:** Connection leaks in production, especially during rolling deployments
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #005: In-memory rate limiting doesn't work in multi-worker
 - **File:** `app/middleware.py`
@@ -60,7 +61,7 @@
 - **Severity:** High
 - **Root Cause:** When Redis not configured, rate limiting uses in-memory token buckets. Each uvicorn worker has separate state
 - **Impact:** Rate limits are per-worker, allowing N*max_requests where N = worker count
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #006: Test fixtures don't override all 140+ repos
 - **File:** `tests/conftest.py`
@@ -68,7 +69,7 @@
 - **Severity:** High
 - **Root Cause:** `authed_client` fixture overrides ~13 repos but app has 140+. Unoverridden repos use global singletons
 - **Impact:** Cross-test contamination via shared state, flaky tests
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #007: No SSRF bypass tests
 - **File:** `tests/`
@@ -76,7 +77,7 @@
 - **Severity:** High
 - **Root Cause:** No test cases for hex IP, decimal IP, IPv6-mapped IPv4, DNS rebinding, URL encoding bypasses
 - **Impact:** SSRF vulnerabilities may go undetected in future changes
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #008: mypy `ignore_errors` for app.models
 - **File:** `pyproject.toml:65-70`
@@ -84,7 +85,7 @@
 - **Severity:** High
 - **Root Cause:** `ignore_errors = true` for entire 6851-line models module
 - **Impact:** All type errors in models go completely undetected
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #009: Star imports cause mypy name-defined suppression
 - **File:** `pyproject.toml:73-75`
@@ -92,7 +93,7 @@
 - **Severity:** High
 - **Root Cause:** All 70+ router files use `from ._common import *`, mypy can't resolve names, `name-defined` disabled
 - **Impact:** Typos and undefined names go undetected in all router files
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #010: Synchronous Postgres in async context
 - **File:** `app/deps.py`
@@ -100,7 +101,7 @@
 - **Severity:** High
 - **Root Cause:** `psycopg` (not async) used for Postgres. Sync DB calls block FastAPI event loop
 - **Impact:** Request handling blocked during database operations
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #011: CLI not linted in CI
 - **File:** `.github/workflows/ci.yml:18`
@@ -108,7 +109,7 @@
 - **Severity:** High
 - **Root Cause:** CI runs `ruff check app/ tests/ cli.py` but CLI is a package (`cli/`), not a file
 - **Impact:** CLI code not linted, linting errors go undetected
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #012: Star import hub _common.py (979 lines)
 - **File:** `app/routers/_common.py:1-979`
@@ -116,7 +117,7 @@
 - **Severity:** High
 - **Root Cause:** 979-line file re-exports hundreds of symbols, all routers do `from ._common import *`
 - **Impact:** Untraceable dependencies, circular import risk, namespace pollution, mypy disabled
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ---
 
@@ -128,7 +129,7 @@
 - **Severity:** Medium
 - **Root Cause:** All Pydantic models in single file
 - **Impact:** Navigation difficult, merge conflicts, slow IDE
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #014: Monolithic repository.py (17540 lines)
 - **File:** `app/repository.py`
@@ -136,7 +137,7 @@
 - **Severity:** Medium
 - **Root Cause:** All repo interfaces + InMemory implementations in single file
 - **Impact:** Largest file in project, extremely difficult to maintain
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #015: 140+ repetitive singleton getters in deps.py
 - **File:** `app/deps.py:1161-1498`
@@ -144,7 +145,7 @@
 - **Severity:** Medium
 - **Root Cause:** Hundreds of lines of identical `get_xxx_repository()` boilerplate
 - **Impact:** Code bloat, maintenance burden
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #016: All singletons instantiated at module load time
 - **File:** `app/deps.py`
@@ -152,7 +153,7 @@
 - **Severity:** Medium
 - **Root Cause:** All 140+ repos created when `deps.py` is imported
 - **Impact:** Slow startup, high memory usage
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #017: Backend selection logic repeated for every repo
 - **File:** `app/deps.py`
@@ -160,7 +161,7 @@
 - **Severity:** Medium
 - **Root Cause:** `if _BACKEND == "postgres" ... elif "sqlite" ... else ...` repeated 140+ times
 - **Impact:** Error-prone, difficult to add new backends
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #018: Template seeding at module load time
 - **File:** `app/deps.py:1157-1158`
@@ -168,7 +169,7 @@
 - **Severity:** Medium
 - **Root Cause:** `for _t in get_builtin_templates(): _template_repository.save(_t)` runs at import time
 - **Impact:** Seeding runs in tests, potential duplicate data
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #019: Login rate limiting in module-level dicts
 - **File:** `app/auth.py`
@@ -176,7 +177,7 @@
 - **Severity:** Medium
 - **Root Cause:** `_login_attempts` dict is module-level, shared per-worker not per-server
 - **Impact:** Login rate limiting bypass in multi-worker deployments
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #020: No LLM API error handling/retry
 - **File:** `app/llm.py:598-622`
@@ -184,7 +185,7 @@
 - **Severity:** Medium
 - **Root Cause:** `_llm_call()` doesn't catch API errors (rate limits, timeouts, auth errors)
 - **Impact:** Run failures due to transient LLM API issues
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #021: JSON parsing without error handling
 - **File:** `app/llm.py:621`
@@ -192,7 +193,7 @@
 - **Severity:** Medium
 - **Root Cause:** `json.loads(raw)` — if LLM returns invalid JSON, raises `JSONDecodeError`
 - **Impact:** Run failures due to LLM returning non-JSON responses
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #022: No timeout on LLM calls
 - **File:** `app/llm.py`
@@ -200,7 +201,7 @@
 - **Severity:** Medium
 - **Root Cause:** OpenAI client created without explicit timeout
 - **Impact:** Run hangs if LLM is slow to respond
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #023: InMemory repos not thread-safe
 - **File:** `app/repository.py`
@@ -208,7 +209,7 @@
 - **Severity:** Medium
 - **Root Cause:** InMemory implementations use plain dicts, no locks
 - **Impact:** Data corruption in concurrent access
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #024: No pagination in many list() methods
 - **File:** `app/repository.py`
@@ -216,7 +217,7 @@
 - **Severity:** Medium
 - **Root Cause:** Many `list()` methods return all records without pagination
 - **Impact:** Memory issues with large datasets
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #025: Inconsistent list_by_user None handling
 - **File:** `app/repository.py`
@@ -224,7 +225,7 @@
 - **Severity:** Medium
 - **Root Cause:** Some repos return all records when user_id is None, others filter
 - **Impact:** Potential data leakage between users
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #026: CSRF may break API clients
 - **File:** `app/middleware.py`
@@ -232,7 +233,7 @@
 - **Severity:** Medium
 - **Root Cause:** CSRF middleware checks double-submit cookies, API clients don't handle cookies
 - **Impact:** CLI and SDK clients may fail on POST/PUT/DELETE
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #027: Retry logic duplicates execution code
 - **File:** `app/pipeline.py:45-66`
@@ -240,7 +241,7 @@
 - **Severity:** Medium
 - **Root Cause:** Run execution and result processing duplicated in initial and retry paths
 - **Impact:** Maintenance burden, risk of divergence
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #028: Stale run cleanup not scheduled
 - **File:** `app/pipeline.py:112-136`
@@ -248,7 +249,7 @@
 - **Severity:** Medium
 - **Root Cause:** `cleanup_stale_runs()` exists but is never called by any scheduler
 - **Impact:** Stale runs remain in RUNNING/PLANNING/QUEUED indefinitely
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #029: Exception handling too broad in pipeline
 - **File:** `app/pipeline.py:74`
@@ -256,7 +257,7 @@
 - **Severity:** Medium
 - **Root Cause:** Catches `KeyError`, `AttributeError`, `TypeError` which may mask programming errors
 - **Impact:** Bugs in runner/pipeline masked as run failures
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #030: from-suite endpoint doesn't pass email_repo
 - **File:** `app/routers/runs.py:142`
@@ -264,7 +265,7 @@
 - **Severity:** Medium
 - **Root Cause:** `create_run_from_suite` calls `_execute_suite_run` without `email_repo`
 - **Impact:** No email notifications for suite-based runs
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #031: Encryption key development fallback
 - **File:** `app/security.py`
@@ -272,7 +273,7 @@
 - **Severity:** Medium
 - **Root Cause:** Encryption key defaults to development value when not set
 - **Impact:** Secrets encrypted with weak key in misconfigured production
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #032: CLI no error handling for network errors
 - **File:** `cli/commands.py`
@@ -280,7 +281,7 @@
 - **Severity:** Medium
 - **Root Cause:** Uses `httpx.Client` without catching `ConnectError`, `TimeoutException`
 - **Impact:** Unhandled exception traceback when server unreachable
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #033: CLI no timeout on run polling
 - **File:** `cli/_common.py:117`
@@ -288,7 +289,7 @@
 - **Severity:** Medium
 - **Root Cause:** `_poll_run` polls indefinitely, no timeout
 - **Impact:** CLI hangs on stuck runs
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #034: No Postgres/SQLite integration tests
 - **File:** `tests/`
@@ -296,7 +297,7 @@
 - **Severity:** Medium
 - **Root Cause:** All tests use InMemory repos, no integration tests for Postgres/SQLite
 - **Impact:** Bugs in Postgres/SQLite implementations go undetected
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #035: CORS defaults to wildcard
 - **File:** `docker-compose.yml`
@@ -304,7 +305,7 @@
 - **Severity:** Medium
 - **Root Cause:** `CORS_ORIGINS=${CORS_ORIGINS:-*}` defaults to wildcard
 - **Impact:** CORS allows all origins if not configured
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #036: Coverage omits Postgres repos
 - **File:** `pyproject.toml`
@@ -312,7 +313,7 @@
 - **Severity:** Medium
 - **Root Cause:** `omit = ["app/postgres_repos.py"]` excludes PG from coverage
 - **Impact:** False confidence in coverage numbers
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #037: Ruff per-file ignores for routers and CLI
 - **File:** `pyproject.toml`
@@ -320,7 +321,7 @@
 - **Severity:** Medium
 - **Root Cause:** F403, F405, F401, E402, F811, F821 disabled for routers and CLI
 - **Impact:** Unused imports and undefined names go undetected
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #038: No Postgres/Redis service containers in CI
 - **File:** `.github/workflows/ci.yml`
@@ -328,7 +329,7 @@
 - **Severity:** Medium
 - **Root Cause:** CI only runs tests with InMemory repos
 - **Impact:** Postgres/SQLite/Redis code paths not tested in CI
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #039: Duplicate imports in _common.py
 - **File:** `app/routers/_common.py`
@@ -336,7 +337,7 @@
 - **Severity:** Medium
 - **Root Cause:** `behavior_importer`, `performance`, `permissions`, `onprem`, `visual_diff`, `nl_dashboard` imported both at top level and in try/except blocks
 - **Impact:** Code confusion, potential shadowing
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ---
 
@@ -347,182 +348,182 @@
 - **Category:** Code Quality
 - **Severity:** Low
 - **Root Cause:** `BrowserConfig`, `AutoHealSuggestion`, `CoverageGap` appear twice in `__all__`
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #041: Middleware ordering
 - **File:** `app/main.py`
 - **Category:** Code Quality
 - **Severity:** Low
 - **Root Cause:** CSRF added last (executes first), rate limit should be outermost
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #042: Static files without caching headers
 - **File:** `app/main.py:299-311`
 - **Category:** Performance
 - **Severity:** Low
 - **Root Cause:** No Cache-Control headers on static file endpoints
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #043: Error messages hardcoded in English
 - **File:** `app/errors.py`
 - **Category:** Bug
 - **Severity:** Low
 - **Root Cause:** No i18n for error messages
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #044: TOTP window not configurable
 - **File:** `app/security.py`
 - **Category:** Bug
 - **Severity:** Low
 - **Root Cause:** TOTP verification uses fixed window
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #045: No Retry-After header on 429
 - **File:** `app/middleware.py`
 - **Category:** Bug
 - **Severity:** Low
 - **Root Cause:** Rate limit response doesn't include `Retry-After` header
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #046: Path traversal protection incomplete
 - **File:** `app/routers/_common.py:900-914`
 - **Category:** Security
 - **Severity:** Low
 - **Root Cause:** `validate_user_path` doesn't use `Path.resolve()` for robust validation
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #047: CLI star import
 - **File:** `cli/commands.py:5`
 - **Category:** Code Quality
 - **Severity:** Low
 - **Root Cause:** `from ._common import *`
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #048: CLI commands.py is 2587 lines
 - **File:** `cli/commands.py`
 - **Category:** Code Quality
 - **Severity:** Low
 - **Root Cause:** All CLI commands in single file
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #049: TypeScript SDK uses cross-fetch
 - **File:** `sdk/typescript/src/index.ts`
 - **Category:** Code Quality
 - **Severity:** Low
 - **Root Cause:** `cross-fetch` unnecessary for Node >=18
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #050: Go SDK no context support
 - **File:** `sdk/go/e2eqa/client.go`
 - **Category:** Bug
 - **Severity:** Low
 - **Root Cause:** Methods don't accept `context.Context`
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #051: Dockerfile version label hardcoded
 - **File:** `Dockerfile:16`
 - **Category:** Bug
 - **Severity:** Low
 - **Root Cause:** `LABEL org.opencontainers.image.version="8.0.0"` should be 8.7.7
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #052: passlib+bcrypt both pinned
 - **File:** `requirements.txt`
 - **Category:** Code Quality
 - **Severity:** Low
 - **Root Cause:** `passlib[bcrypt]==1.7.4` and `bcrypt==4.2.1` both listed, potential conflict
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #053: pydantic+pydantic[email] both listed
 - **File:** `requirements.txt`
 - **Category:** Code Quality
 - **Severity:** Low
 - **Root Cause:** Redundant — `pydantic[email]` includes `pydantic`
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #054: openai exact pin
 - **File:** `requirements.txt`
 - **Category:** Code Quality
 - **Severity:** Low
 - **Root Cause:** `openai==1.58.1` misses security patches
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #055: pip-audit ignores vulnerability without explanation
 - **File:** `.github/workflows/ci.yml`
 - **Category:** Security
 - **Severity:** Low
 - **Root Cause:** `--ignore-vuln PYSEC-2026-1325` without documentation
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #056: No pip caching in CI
 - **File:** `.github/workflows/ci.yml`
 - **Category:** Performance
 - **Severity:** Low
 - **Root Cause:** No `cache: pip` in setup-python
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #057: Coverage doesn't gate build
 - **File:** `.github/workflows/ci.yml`
 - **Category:** Testing
 - **Severity:** Low
 - **Root Cause:** `build` job doesn't depend on `coverage` job
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #058: Version-based test naming
 - **File:** `tests/test_v*.py`
 - **Category:** Code Quality
 - **Severity:** Low
 - **Root Cause:** `test_v2.py`...`test_v80.py` — hard to find tests for specific features
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #059: test_coverage_boost.py is 117KB
 - **File:** `tests/test_coverage_boost.py`
 - **Category:** Code Quality
 - **Severity:** Low
 - **Root Cause:** Largest test file, likely auto-generated
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #060: No security headers
 - **File:** `app/main.py`
 - **Category:** Security
 - **Severity:** Low
 - **Root Cause:** No HSTS, X-Frame-Options, X-Content-Type-Options, CSP headers
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #061: No HTTPS enforcement
 - **File:** `app/main.py`
 - **Category:** Security
 - **Severity:** Low
 - **Root Cause:** No HTTPS redirect middleware
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #062: performance_profile not stored
 - **File:** `app/pipeline.py:45` / `app/runner.py`
 - **Category:** Bug
 - **Severity:** Low
 - **Root Cause:** `runner.run()` returns `performance_profile` but it's never saved
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #063: Temperature hardcoded to 0 in LLM
 - **File:** `app/llm.py:614`
 - **Category:** Bug
 - **Severity:** Low
 - **Root Cause:** `temperature=0` not configurable
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #064: No token usage tracking for LLM
 - **File:** `app/llm.py`
 - **Category:** Bug
 - **Severity:** Low
 - **Root Cause:** LLM token usage not tracked or logged
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ### Bug #065: No browser pool reuse
 - **File:** `app/runner.py`
 - **Category:** Performance
 - **Severity:** Low
 - **Root Cause:** Each run creates new browser instance
-- **Status:** ⏳ Pending Fix
+- **Status:** ❌ N/A (files not in lite version)
 
 ---
 
