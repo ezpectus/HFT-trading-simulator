@@ -98,6 +98,29 @@ export function useTradeJournal() {
     return [...tags]
   }, [data])
 
+  const exportTradesCSV = useCallback((trades: TradeJournalEntry[]) => {
+    const headers = ['Exchange', 'Symbol', 'Side', 'Entry Price', 'Exit Price', 'Quantity', 'PnL', 'Reason', 'Closed At']
+    const rows = trades.map(t => [
+      t.exchange,
+      t.symbol,
+      t.side,
+      t.entry_price,
+      t.exit_price,
+      t.quantity,
+      t.pnl,
+      t.reason || 'MANUAL',
+      new Date(t.closed_at * 1000).toISOString(),
+    ])
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `trades_${Date.now()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [])
+
   const exportJournalCSV = useCallback((trades: TradeJournalEntry[]) => {
     const headers = ['Exchange', 'Symbol', 'Side', 'Entry Price', 'Exit Price', 'Quantity', 'PnL', 'Reason', 'Closed At', 'Note', 'Tags']
     const rows = trades.map(t => {
@@ -129,7 +152,7 @@ export function useTradeJournal() {
     URL.revokeObjectURL(url)
   }, [data])
 
-  return { data, saveEntry, saveNote, getNote, getEntry, getTags, deleteEntry, deleteNote, allTags, exportJournalCSV }
+  return { data, saveEntry, saveNote, getNote, getEntry, getTags, deleteEntry, deleteNote, allTags, exportTradesCSV, exportJournalCSV }
 }
 
 export function tradeKey(trade: TradeJournalEntry): string {

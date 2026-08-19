@@ -61,7 +61,7 @@ export default function TradeHistory({ accounts }) {
           <div className="text-[10px] text-gray-500 uppercase">Trade History Summary</div>
           <div className="flex gap-1">
             <button
-              onClick={() => journal.exportJournalCSV(allTrades)}
+              onClick={() => journal.exportTradesCSV(allTrades)}
               className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
               title="Export trades as CSV"
             >

@@ -430,17 +430,27 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
             />
             <RiskStat
               label="Profit Factor"
-              value={metrics.totalTrades > 0 ? (metrics.avgWinRate / 100 * 1.5).toFixed(2) : '--'}
+              value={(() => {
+                const gp = allTrades.filter(t => (t.pnl || 0) > 0).reduce((s, t) => s + t.pnl, 0)
+                const gl = Math.abs(allTrades.filter(t => (t.pnl || 0) < 0).reduce((s, t) => s + t.pnl, 0))
+                return gl > 0 ? (gp / gl).toFixed(2) : gp > 0 ? '∞' : '--'
+              })()}
               color="text-gray-200"
             />
             <RiskStat
               label="Avg Win"
-              value={metrics.totalTrades > 0 ? `$${(metrics.totalPnl / Math.max(metrics.winningTrades, 1)).toFixed(2)}` : '--'}
+              value={(() => {
+                const wins = allTrades.filter(t => (t.pnl || 0) > 0)
+                return wins.length > 0 ? `$${(wins.reduce((s, t) => s + t.pnl, 0) / wins.length).toFixed(2)}` : '--'
+              })()}
               color="text-accent-green"
             />
             <RiskStat
               label="Avg Loss"
-              value={metrics.totalTrades > 0 ? `$${(metrics.totalPnl / Math.max(metrics.totalTrades - metrics.winningTrades, 1)).toFixed(2)}` : '--'}
+              value={(() => {
+                const losses = allTrades.filter(t => (t.pnl || 0) < 0)
+                return losses.length > 0 ? `$${(Math.abs(losses.reduce((s, t) => s + t.pnl, 0)) / losses.length).toFixed(2)}` : '--'
+              })()}
               color="text-accent-red"
             />
             <RiskStat

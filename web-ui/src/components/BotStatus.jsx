@@ -1,7 +1,7 @@
 import { Bot, Cpu, Radio, TrendingUp, TrendingDown, Activity, Zap, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { formatPrice, formatTime, colorForSide } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
-import { memo, useMemo, useCallback } from 'react'
+import { memo, useMemo, useCallback, useState, useEffect } from 'react'
 
 const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConnected, exchangeConnected, circuitBreaker, tradingActive }) {
   // Derive bot activity from signals + fills
@@ -58,8 +58,13 @@ const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConn
 
   const lastSignalTime = useMemo(() => signals.length > 0 ? signals[0].timestamp : null, [signals])
   const lastFillTime = useMemo(() => fills.length > 0 ? fills[0].timestamp : null, [fills])
-  
-  const now = Date.now() / 1000
+
+  const [now, setNow] = useState(() => Date.now() / 1000)
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now() / 1000), 1000)
+    return () => clearInterval(id)
+  }, [])
+
   const signalAge = useMemo(() => lastSignalTime ? Math.floor(now - lastSignalTime) : null, [lastSignalTime, now])
   const fillAge = useMemo(() => lastFillTime ? Math.floor(now - lastFillTime) : null, [lastFillTime, now])
 

@@ -6,8 +6,13 @@ function makeCandles(n, startPrice = 65000) {
   const candles = []
   let price = startPrice
   const baseTs = 1704067200
+  let seed = 12345
+  const rand = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff
+    return seed / 0x7fffffff
+  }
   for (let i = 0; i < n; i++) {
-    const change = Math.sin(i / 10) * 100 + (Math.random() - 0.5) * 50
+    const change = Math.sin(i / 10) * 100 + (rand() - 0.5) * 50
     const open = price
     const close = price + change
     const high = Math.max(open, close) + Math.abs(change) * 0.3
@@ -18,7 +23,7 @@ function makeCandles(n, startPrice = 65000) {
       high,
       low,
       close,
-      volume: 100 + Math.random() * 500,
+      volume: 100 + rand() * 500,
     })
     price = close
   }
@@ -86,5 +91,20 @@ describe('backtestEngine', () => {
     const result = runBacktest(candles, rules, { initialBalance: 10000 })
     expect(result.totalTrades).toBeGreaterThan(0)
     expect(result.trades[result.trades.length - 1].exitReason).toBe('END')
+  })
+
+  it('calculates Sharpe and Sortino ratios', () => {
+    const candles = makeCandles(200)
+    const rules = [
+      { id: 1, condition: 'rsi_below', value: 50, action: 'buy', qty: 0.1 },
+      { id: 2, condition: 'rsi_above', value: 50, action: 'close_all', qty: 0.1 },
+    ]
+    const result = runBacktest(candles, rules, { initialBalance: 10000 })
+    expect(result.totalTrades).toBeGreaterThan(0)
+    expect(result.sharpeRatio).toBeDefined()
+    expect(typeof result.sharpeRatio).toBe('number')
+    expect(result.sortinoRatio).toBeDefined()
+    expect(typeof result.sortinoRatio).toBe('number')
+    expect(isFinite(result.sortinoRatio)).toBe(true)
   })
 })

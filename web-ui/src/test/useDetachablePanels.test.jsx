@@ -217,7 +217,7 @@ describe('useDetachablePanels', () => {
   it('updateDetached updates popup content for signals', () => {
     const { result } = renderHook(() => useDetachablePanels())
     act(() => result.current.detachPanel('signals', {
-      signals: [{ symbol: 'BTC/USDT', direction: 'LONG', confidence: 0.85, strategy: 'momentum' }],
+      signals: [{ symbol: 'BTC/USDT', direction: 'LONG', confidence: 85, strategy: 'momentum' }],
     }))
     const text = getAllText(mockPopup.document._contentEl)
     expect(text).toContain('BTC/USDT')

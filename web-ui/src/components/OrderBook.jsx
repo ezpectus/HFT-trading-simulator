@@ -193,7 +193,7 @@ function OrderBookRow({ row, maxTotal, maxQty, side, heatmap }) {
           style={{
             width: qtyPct + '%',
             background: side === 'bid'
-              ? 'linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.15))'
+              ? 'linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.15))'
               : 'linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.15))',
           }}
         />

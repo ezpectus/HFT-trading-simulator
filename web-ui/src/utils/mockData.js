@@ -106,8 +106,8 @@ export function generateOrderBook(symbol, exchange, midPrice) {
     const askPrice = midPrice + spread / 2 + midPrice * depthFactor * 0.001
     const size = Math.abs(gaussianRandom(5, 2)) * (1 + i * 0.1)
 
-    bids.push({ price: Number(bidPrice.toFixed(6)), size: Number(size.toFixed(4)) })
-    asks.push({ price: Number(askPrice.toFixed(6)), size: Number(size.toFixed(4)) })
+    bids.push({ price: Number(bidPrice.toFixed(6)), quantity: Number(size.toFixed(4)) })
+    asks.push({ price: Number(askPrice.toFixed(6)), quantity: Number(size.toFixed(4)) })
   }
 
   return {

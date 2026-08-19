@@ -6,6 +6,11 @@ import { renderHook } from '@testing-library/react'
 import { render, screen } from '@testing-library/react'
 import VirtualList from '../components/VirtualList'
 import BotStatus from '../components/BotStatus'
+import {
+  getPerformanceSummary,
+  getPerformanceBudgets,
+  resetMetrics,
+} from '../utils/performanceMonitor'
 
 describe('Web UI Performance Tests', () => {
   
@@ -141,22 +146,23 @@ describe('Web UI Performance Tests', () => {
 
   describe('Performance Monitor', () => {
     it('should track custom metrics', () => {
-      // This would require importing the performance monitor
-      // For now, we'll just verify the module structure
-      expect(true).toBe(true)
+      resetMetrics()
+      const summary = getPerformanceSummary()
+      expect(summary).toBeDefined()
+      expect(typeof summary).toBe('object')
+      expect(summary).toHaveProperty('metrics')
+      expect(summary).toHaveProperty('violations')
+      expect(summary).toHaveProperty('overall')
     })
 
     it('should enforce performance budgets', () => {
-      // Test budget enforcement logic
-      const budgets = {
-        LCP: 2500,
-        FID: 100,
-        CLS: 0.1,
-      }
-      
-      expect(budgets.LCP).toBe(2500)
-      expect(budgets.FID).toBe(100)
-      expect(budgets.CLS).toBe(0.1)
+      const budgets = getPerformanceBudgets()
+      expect(budgets).toBeDefined()
+      expect(budgets.LCP).toBeGreaterThan(0)
+      expect(budgets.FID).toBeGreaterThan(0)
+      expect(budgets.CLS).toBeGreaterThan(0)
+      expect(budgets.TTFB).toBeGreaterThan(0)
+      expect(budgets.FCP).toBeGreaterThan(0)
     })
   })
 

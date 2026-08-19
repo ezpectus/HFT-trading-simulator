@@ -8,522 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 152 |
+| ✅ Fixed | 168 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 0 |
-| ❌ N/A (files not in lite) | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **187** |
-
----
-
-## Critical Bugs
-
-### Bug #001: Default JWT secret in docker-compose.yml
-- **File:** `docker-compose.yml:24`
-- **Category:** Security
-- **Severity:** Critical
-- **Root Cause:** `JWT_SECRET=${JWT_SECRET:-change-this-in-production}` — if env var not set, uses known insecure secret
-- **Impact:** Token forgery, full auth bypass if deployed without setting JWT_SECRET
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #002: SSRF protection bypass via IP encoding
-- **File:** `app/routers/_common.py:950-970`
-- **Category:** Security
-- **Severity:** Critical
-- **Root Cause:** `validate_external_url()` uses `host.startswith("10.")` string prefix matching. Bypassable with hex IP (`0x7f000001`), decimal IP (`2130706433`), IPv6-mapped IPv4 (`::ffff:127.0.0.1`), short form (`127.1`), DNS rebinding
-- **Impact:** Attacker can make server fetch internal resources (AWS metadata, internal APIs, DB)
-- **Status:** ❌ N/A (files not in lite version)
-
----
-
-## High Priority Bugs
-
-### Bug #003: Version mismatch 8.0.0 vs 8.7.7
-- **File:** `app/__init__.py:6`
-- **Category:** Bug
-- **Severity:** High
-- **Root Cause:** `__version__ = "8.0.0"` but `pyproject.toml` and `main.py` say `8.7.7`. Dockerfile label also `8.0.0`
-- **Impact:** Incorrect version in API responses, health checks, Docker images
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #004: No Postgres pool cleanup on shutdown
-- **File:** `app/main.py:118-144`
-- **Category:** Bug
-- **Severity:** High
-- **Root Cause:** `lifespan` shutdown handler closes browser pool and artifact cleanup but not Postgres connection pool
-- **Impact:** Connection leaks in production, especially during rolling deployments
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #005: In-memory rate limiting doesn't work in multi-worker
-- **File:** `app/middleware.py`
-- **Category:** Security / Performance
-- **Severity:** High
-- **Root Cause:** When Redis not configured, rate limiting uses in-memory token buckets. Each uvicorn worker has separate state
-- **Impact:** Rate limits are per-worker, allowing N*max_requests where N = worker count
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #006: Test fixtures don't override all 140+ repos
-- **File:** `tests/conftest.py`
-- **Category:** Bug
-- **Severity:** High
-- **Root Cause:** `authed_client` fixture overrides ~13 repos but app has 140+. Unoverridden repos use global singletons
-- **Impact:** Cross-test contamination via shared state, flaky tests
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #007: No SSRF bypass tests
-- **File:** `tests/`
-- **Category:** Security / Testing
-- **Severity:** High
-- **Root Cause:** No test cases for hex IP, decimal IP, IPv6-mapped IPv4, DNS rebinding, URL encoding bypasses
-- **Impact:** SSRF vulnerabilities may go undetected in future changes
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #008: mypy `ignore_errors` for app.models
-- **File:** `pyproject.toml:65-70`
-- **Category:** Type Safety
-- **Severity:** High
-- **Root Cause:** `ignore_errors = true` for entire 6851-line models module
-- **Impact:** All type errors in models go completely undetected
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #009: Star imports cause mypy name-defined suppression
-- **File:** `pyproject.toml:73-75`
-- **Category:** Type Safety
-- **Severity:** High
-- **Root Cause:** All 70+ router files use `from ._common import *`, mypy can't resolve names, `name-defined` disabled
-- **Impact:** Typos and undefined names go undetected in all router files
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #010: Synchronous Postgres in async context
-- **File:** `app/deps.py`
-- **Category:** Performance
-- **Severity:** High
-- **Root Cause:** `psycopg` (not async) used for Postgres. Sync DB calls block FastAPI event loop
-- **Impact:** Request handling blocked during database operations
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #011: CLI not linted in CI
-- **File:** `.github/workflows/ci.yml:18`
-- **Category:** Bug
-- **Severity:** High
-- **Root Cause:** CI runs `ruff check app/ tests/ cli.py` but CLI is a package (`cli/`), not a file
-- **Impact:** CLI code not linted, linting errors go undetected
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #012: Star import hub _common.py (979 lines)
-- **File:** `app/routers/_common.py:1-979`
-- **Category:** Architecture / Code Quality
-- **Severity:** High
-- **Root Cause:** 979-line file re-exports hundreds of symbols, all routers do `from ._common import *`
-- **Impact:** Untraceable dependencies, circular import risk, namespace pollution, mypy disabled
-- **Status:** ❌ N/A (files not in lite version)
-
----
-
-## Medium Priority Bugs
-
-### Bug #013: Monolithic models.py (6851 lines)
-- **File:** `app/models.py`
-- **Category:** Code Quality
-- **Severity:** Medium
-- **Root Cause:** All Pydantic models in single file
-- **Impact:** Navigation difficult, merge conflicts, slow IDE
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #014: Monolithic repository.py (17540 lines)
-- **File:** `app/repository.py`
-- **Category:** Code Quality
-- **Severity:** Medium
-- **Root Cause:** All repo interfaces + InMemory implementations in single file
-- **Impact:** Largest file in project, extremely difficult to maintain
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #015: 140+ repetitive singleton getters in deps.py
-- **File:** `app/deps.py:1161-1498`
-- **Category:** Code Quality
-- **Severity:** Medium
-- **Root Cause:** Hundreds of lines of identical `get_xxx_repository()` boilerplate
-- **Impact:** Code bloat, maintenance burden
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #016: All singletons instantiated at module load time
-- **File:** `app/deps.py`
-- **Category:** Performance
-- **Severity:** Medium
-- **Root Cause:** All 140+ repos created when `deps.py` is imported
-- **Impact:** Slow startup, high memory usage
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #017: Backend selection logic repeated for every repo
-- **File:** `app/deps.py`
-- **Category:** Code Quality
-- **Severity:** Medium
-- **Root Cause:** `if _BACKEND == "postgres" ... elif "sqlite" ... else ...` repeated 140+ times
-- **Impact:** Error-prone, difficult to add new backends
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #018: Template seeding at module load time
-- **File:** `app/deps.py:1157-1158`
-- **Category:** Bug
-- **Severity:** Medium
-- **Root Cause:** `for _t in get_builtin_templates(): _template_repository.save(_t)` runs at import time
-- **Impact:** Seeding runs in tests, potential duplicate data
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #019: Login rate limiting in module-level dicts
-- **File:** `app/auth.py`
-- **Category:** Security
-- **Severity:** Medium
-- **Root Cause:** `_login_attempts` dict is module-level, shared per-worker not per-server
-- **Impact:** Login rate limiting bypass in multi-worker deployments
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #020: No LLM API error handling/retry
-- **File:** `app/llm.py:598-622`
-- **Category:** Bug
-- **Severity:** Medium
-- **Root Cause:** `_llm_call()` doesn't catch API errors (rate limits, timeouts, auth errors)
-- **Impact:** Run failures due to transient LLM API issues
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #021: JSON parsing without error handling
-- **File:** `app/llm.py:621`
-- **Category:** Bug
-- **Severity:** Medium
-- **Root Cause:** `json.loads(raw)` — if LLM returns invalid JSON, raises `JSONDecodeError`
-- **Impact:** Run failures due to LLM returning non-JSON responses
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #022: No timeout on LLM calls
-- **File:** `app/llm.py`
-- **Category:** Performance
-- **Severity:** Medium
-- **Root Cause:** OpenAI client created without explicit timeout
-- **Impact:** Run hangs if LLM is slow to respond
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #023: InMemory repos not thread-safe
-- **File:** `app/repository.py`
-- **Category:** Bug
-- **Severity:** Medium
-- **Root Cause:** InMemory implementations use plain dicts, no locks
-- **Impact:** Data corruption in concurrent access
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #024: No pagination in many list() methods
-- **File:** `app/repository.py`
-- **Category:** Performance
-- **Severity:** Medium
-- **Root Cause:** Many `list()` methods return all records without pagination
-- **Impact:** Memory issues with large datasets
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #025: Inconsistent list_by_user None handling
-- **File:** `app/repository.py`
-- **Category:** Bug
-- **Severity:** Medium
-- **Root Cause:** Some repos return all records when user_id is None, others filter
-- **Impact:** Potential data leakage between users
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #026: CSRF may break API clients
-- **File:** `app/middleware.py`
-- **Category:** Bug
-- **Severity:** Medium
-- **Root Cause:** CSRF middleware checks double-submit cookies, API clients don't handle cookies
-- **Impact:** CLI and SDK clients may fail on POST/PUT/DELETE
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #027: Retry logic duplicates execution code
-- **File:** `app/pipeline.py:45-66`
-- **Category:** Code Quality
-- **Severity:** Medium
-- **Root Cause:** Run execution and result processing duplicated in initial and retry paths
-- **Impact:** Maintenance burden, risk of divergence
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #028: Stale run cleanup not scheduled
-- **File:** `app/pipeline.py:112-136`
-- **Category:** Bug
-- **Severity:** Medium
-- **Root Cause:** `cleanup_stale_runs()` exists but is never called by any scheduler
-- **Impact:** Stale runs remain in RUNNING/PLANNING/QUEUED indefinitely
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #029: Exception handling too broad in pipeline
-- **File:** `app/pipeline.py:74`
-- **Category:** Code Quality
-- **Severity:** Medium
-- **Root Cause:** Catches `KeyError`, `AttributeError`, `TypeError` which may mask programming errors
-- **Impact:** Bugs in runner/pipeline masked as run failures
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #030: from-suite endpoint doesn't pass email_repo
-- **File:** `app/routers/runs.py:142`
-- **Category:** Bug
-- **Severity:** Medium
-- **Root Cause:** `create_run_from_suite` calls `_execute_suite_run` without `email_repo`
-- **Impact:** No email notifications for suite-based runs
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #031: Encryption key development fallback
-- **File:** `app/security.py`
-- **Category:** Security
-- **Severity:** Medium
-- **Root Cause:** Encryption key defaults to development value when not set
-- **Impact:** Secrets encrypted with weak key in misconfigured production
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #032: CLI no error handling for network errors
-- **File:** `cli/commands.py`
-- **Category:** Bug
-- **Severity:** Medium
-- **Root Cause:** Uses `httpx.Client` without catching `ConnectError`, `TimeoutException`
-- **Impact:** Unhandled exception traceback when server unreachable
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #033: CLI no timeout on run polling
-- **File:** `cli/_common.py:117`
-- **Category:** Bug
-- **Severity:** Medium
-- **Root Cause:** `_poll_run` polls indefinitely, no timeout
-- **Impact:** CLI hangs on stuck runs
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #034: No Postgres/SQLite integration tests
-- **File:** `tests/`
-- **Category:** Testing
-- **Severity:** Medium
-- **Root Cause:** All tests use InMemory repos, no integration tests for Postgres/SQLite
-- **Impact:** Bugs in Postgres/SQLite implementations go undetected
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #035: CORS defaults to wildcard
-- **File:** `docker-compose.yml`
-- **Category:** Security
-- **Severity:** Medium
-- **Root Cause:** `CORS_ORIGINS=${CORS_ORIGINS:-*}` defaults to wildcard
-- **Impact:** CORS allows all origins if not configured
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #036: Coverage omits Postgres repos
-- **File:** `pyproject.toml`
-- **Category:** Testing
-- **Severity:** Medium
-- **Root Cause:** `omit = ["app/postgres_repos.py"]` excludes PG from coverage
-- **Impact:** False confidence in coverage numbers
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #037: Ruff per-file ignores for routers and CLI
-- **File:** `pyproject.toml`
-- **Category:** Code Quality
-- **Severity:** Medium
-- **Root Cause:** F403, F405, F401, E402, F811, F821 disabled for routers and CLI
-- **Impact:** Unused imports and undefined names go undetected
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #038: No Postgres/Redis service containers in CI
-- **File:** `.github/workflows/ci.yml`
-- **Category:** Testing
-- **Severity:** Medium
-- **Root Cause:** CI only runs tests with InMemory repos
-- **Impact:** Postgres/SQLite/Redis code paths not tested in CI
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #039: Duplicate imports in _common.py
-- **File:** `app/routers/_common.py`
-- **Category:** Code Quality
-- **Severity:** Medium
-- **Root Cause:** `behavior_importer`, `performance`, `permissions`, `onprem`, `visual_diff`, `nl_dashboard` imported both at top level and in try/except blocks
-- **Impact:** Code confusion, potential shadowing
-- **Status:** ❌ N/A (files not in lite version)
-
----
-
-## Low Priority Bugs
-
-### Bug #040: Duplicate entries in models __all__
-- **File:** `app/models.py`
-- **Category:** Code Quality
-- **Severity:** Low
-- **Root Cause:** `BrowserConfig`, `AutoHealSuggestion`, `CoverageGap` appear twice in `__all__`
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #041: Middleware ordering
-- **File:** `app/main.py`
-- **Category:** Code Quality
-- **Severity:** Low
-- **Root Cause:** CSRF added last (executes first), rate limit should be outermost
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #042: Static files without caching headers
-- **File:** `app/main.py:299-311`
-- **Category:** Performance
-- **Severity:** Low
-- **Root Cause:** No Cache-Control headers on static file endpoints
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #043: Error messages hardcoded in English
-- **File:** `app/errors.py`
-- **Category:** Bug
-- **Severity:** Low
-- **Root Cause:** No i18n for error messages
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #044: TOTP window not configurable
-- **File:** `app/security.py`
-- **Category:** Bug
-- **Severity:** Low
-- **Root Cause:** TOTP verification uses fixed window
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #045: No Retry-After header on 429
-- **File:** `app/middleware.py`
-- **Category:** Bug
-- **Severity:** Low
-- **Root Cause:** Rate limit response doesn't include `Retry-After` header
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #046: Path traversal protection incomplete
-- **File:** `app/routers/_common.py:900-914`
-- **Category:** Security
-- **Severity:** Low
-- **Root Cause:** `validate_user_path` doesn't use `Path.resolve()` for robust validation
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #047: CLI star import
-- **File:** `cli/commands.py:5`
-- **Category:** Code Quality
-- **Severity:** Low
-- **Root Cause:** `from ._common import *`
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #048: CLI commands.py is 2587 lines
-- **File:** `cli/commands.py`
-- **Category:** Code Quality
-- **Severity:** Low
-- **Root Cause:** All CLI commands in single file
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #049: TypeScript SDK uses cross-fetch
-- **File:** `sdk/typescript/src/index.ts`
-- **Category:** Code Quality
-- **Severity:** Low
-- **Root Cause:** `cross-fetch` unnecessary for Node >=18
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #050: Go SDK no context support
-- **File:** `sdk/go/e2eqa/client.go`
-- **Category:** Bug
-- **Severity:** Low
-- **Root Cause:** Methods don't accept `context.Context`
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #051: Dockerfile version label hardcoded
-- **File:** `Dockerfile:16`
-- **Category:** Bug
-- **Severity:** Low
-- **Root Cause:** `LABEL org.opencontainers.image.version="8.0.0"` should be 8.7.7
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #052: passlib+bcrypt both pinned
-- **File:** `requirements.txt`
-- **Category:** Code Quality
-- **Severity:** Low
-- **Root Cause:** `passlib[bcrypt]==1.7.4` and `bcrypt==4.2.1` both listed, potential conflict
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #053: pydantic+pydantic[email] both listed
-- **File:** `requirements.txt`
-- **Category:** Code Quality
-- **Severity:** Low
-- **Root Cause:** Redundant — `pydantic[email]` includes `pydantic`
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #054: openai exact pin
-- **File:** `requirements.txt`
-- **Category:** Code Quality
-- **Severity:** Low
-- **Root Cause:** `openai==1.58.1` misses security patches
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #055: pip-audit ignores vulnerability without explanation
-- **File:** `.github/workflows/ci.yml`
-- **Category:** Security
-- **Severity:** Low
-- **Root Cause:** `--ignore-vuln PYSEC-2026-1325` without documentation
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #056: No pip caching in CI
-- **File:** `.github/workflows/ci.yml`
-- **Category:** Performance
-- **Severity:** Low
-- **Root Cause:** No `cache: pip` in setup-python
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #057: Coverage doesn't gate build
-- **File:** `.github/workflows/ci.yml`
-- **Category:** Testing
-- **Severity:** Low
-- **Root Cause:** `build` job doesn't depend on `coverage` job
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #058: Version-based test naming
-- **File:** `tests/test_v*.py`
-- **Category:** Code Quality
-- **Severity:** Low
-- **Root Cause:** `test_v2.py`...`test_v80.py` — hard to find tests for specific features
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #059: test_coverage_boost.py is 117KB
-- **File:** `tests/test_coverage_boost.py`
-- **Category:** Code Quality
-- **Severity:** Low
-- **Root Cause:** Largest test file, likely auto-generated
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #060: No security headers
-- **File:** `app/main.py`
-- **Category:** Security
-- **Severity:** Low
-- **Root Cause:** No HSTS, X-Frame-Options, X-Content-Type-Options, CSP headers
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #061: No HTTPS enforcement
-- **File:** `app/main.py`
-- **Category:** Security
-- **Severity:** Low
-- **Root Cause:** No HTTPS redirect middleware
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #062: performance_profile not stored
-- **File:** `app/pipeline.py:45` / `app/runner.py`
-- **Category:** Bug
-- **Severity:** Low
-- **Root Cause:** `runner.run()` returns `performance_profile` but it's never saved
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #063: Temperature hardcoded to 0 in LLM
-- **File:** `app/llm.py:614`
-- **Category:** Bug
-- **Severity:** Low
-- **Root Cause:** `temperature=0` not configurable
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #064: No token usage tracking for LLM
-- **File:** `app/llm.py`
-- **Category:** Bug
-- **Severity:** Low
-- **Root Cause:** LLM token usage not tracked or logged
-- **Status:** ❌ N/A (files not in lite version)
-
-### Bug #065: No browser pool reuse
-- **File:** `app/runner.py`
-- **Category:** Performance
-- **Severity:** Low
-- **Root Cause:** Each run creates new browser instance
-- **Status:** ❌ N/A (files not in lite version)
+| **TOTAL FOUND** | **168** |
 
 ---
 
@@ -1998,6 +1487,182 @@
 - **Impact:** Incorrect symbol-to-ID mapping leading to wrong position tracking, order routing, or market data association.
 - **Status:** ✅ Fixed
 - **Fix:** Added verification step after hash probe: if the symbol at the hashed bucket doesn't match, fall back to linear search. Returns 0xFFFF for unknown symbols instead of a potentially-colliding valid ID.
+
+---
+
+## Bug #217 — PerformanceDashboard incorrect Profit Factor formula
+
+- **Location:** `web-ui/src/components/PerformanceDashboard.jsx:433`
+- **Severity:** High (Incorrect risk metric displayed to user)
+- **Root Cause:** Profit Factor was calculated as `avgWinRate / 100 * 1.5` — a completely meaningless formula with no financial basis. The correct calculation is gross profit (sum of winning trade PnLs) divided by gross loss (absolute sum of losing trade PnLs).
+- **Impact:** Users see an incorrect profit factor value that doesn't reflect actual trading performance, potentially leading to misguided strategy decisions.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced with proper calculation: `grossProfit / grossLoss` using `allTrades` data. Returns '∞' when there are no losses but there are profits, and '--' when there are no trades.
+
+---
+
+## Bug #218 — PerformanceDashboard incorrect Avg Win / Avg Loss calculations
+
+- **Location:** `web-ui/src/components/PerformanceDashboard.jsx:438-443`
+- **Severity:** High (Incorrect risk metrics displayed to user)
+- **Root Cause:** "Avg Win" was calculated as `totalPnl / winningTrades` — this divides the *net* PnL (which includes losses) by the number of winning trades, producing a meaningless value. Similarly, "Avg Loss" was `totalPnl / (totalTrades - winningTrades)` — dividing net PnL by losing trade count. The correct calculations are: Avg Win = sum of winning PnLs / winningTrades; Avg Loss = sum of losing PnLs / losingTrades.
+- **Impact:** Users see incorrect average win/loss values that don't reflect actual per-trade performance, misleading risk assessment.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced with proper calculations that filter trades by PnL sign, sum the respective PnLs, and divide by the correct count.
+
+---
+
+## Bug #219 — BotStatus stale timestamp causes frozen age display
+
+- **Location:** `web-ui/src/components/BotStatus.jsx:62`
+- **Severity:** Low (UI display issue, no functional impact)
+- **Root Cause:** `const now = Date.now() / 1000` was computed once during render without any interval or state update. Since the component is memoized and only re-renders when props change, the `now` value becomes stale immediately. The `signalAge` and `fillAge` values (computed via `useMemo` depending on `now`) never update, causing the "Last signal" and "Last fill" age displays to freeze at the time of the last prop change.
+- **Impact:** Users see stale "Xs ago" / "Xm ago" timestamps that don't update in real-time.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced the constant `now` with a state variable updated every second via `setInterval`, with proper cleanup on unmount. Added `useState` and `useEffect` to imports.
+
+---
+
+## Bug #220 — backtestEngine.js Sortino ratio uses wrong denominator
+
+- **Location:** `web-ui/src/utils/backtestEngine.js:401`
+- **Severity:** Medium (Incorrect risk-adjusted return metric)
+- **Root Cause:** The Sortino ratio's downside deviation was calculated by dividing the sum of squared downside returns by `returns.length` (total number of returns) instead of `downsideReturns.length` (number of downside returns). This understates the downside deviation when there are many non-downside returns, causing the Sortino ratio to appear better than it actually is.
+- **Impact:** Overstated Sortino ratio in backtest results, leading to overly optimistic risk-adjusted performance assessment.
+- **Status:** ✅ Fixed
+- **Fix:** Changed denominator from `returns.length` to `downsideReturns.length`.
+
+---
+
+## Bug #221 — backtestEngine.js EMA seeds with first value instead of SMA
+
+- **Location:** `web-ui/src/utils/backtestEngine.js:66-78`
+- **Severity:** Medium (Incorrect indicator values in backtest)
+- **Root Cause:** The `ema()` function seeded the EMA with `values[0]` (the first data point) and immediately started exponential smoothing from index 1. Standard EMA calculation seeds with the Simple Moving Average over the first `period` values, then begins exponential smoothing from index `period`. The incorrect seeding causes all EMA values to be biased, particularly affecting `ema_cross_up` and `ema_cross_down` strategy conditions.
+- **Impact:** Incorrect EMA values lead to false cross signals and wrong trade entries/exits in backtest results. Backtest performance metrics don't reflect actual strategy behavior.
+- **Status:** ✅ Fixed
+- **Fix:** Rewrote `ema()` to use SMA seed over first `period` values, return NaN for indices before `period - 1`, and begin exponential smoothing from index `period`. This matches the standard EMA calculation used in `indicators.js`.
+
+---
+
+## Bug #222 — SignalPerformance missing longCorrect/shortCorrect in stats
+
+- **Location:** `web-ui/src/components/SignalPerformance.jsx:75-88`
+- **Severity:** Low (UI display issue)
+- **Root Cause:** The JSX on lines 155 and 167 references `stats.longCorrect` and `stats.shortCorrect`, but the stats object returned from `useMemo` never included these properties. The `byDirection.LONG.correct` and `byDirection.SHORT.correct` values were computed but not exposed in the returned object, causing the display to always show "0/N" for the correct count.
+- **Impact:** Users see incorrect "0 correct" count in the per-direction breakdown, even when there are correct predictions.
+- **Status:** ✅ Fixed
+- **Fix:** Added `longCorrect: byDirection.LONG.correct` and `shortCorrect: byDirection.SHORT.correct` to the returned stats object.
+
+---
+
+## Bug #223 — TradeHistory duplicate CSV export buttons
+
+- **Location:** `web-ui/src/components/TradeHistory.jsx:64,72`
+- **Severity:** Low (Functional duplication)
+- **Root Cause:** Both the "CSV" button and "Journal CSV" button called `journal.exportJournalCSV(allTrades)` — the exact same function. The "CSV" button was supposed to export plain trade data, while "Journal CSV" should include journal notes and tags. Both exports were identical, including journal data.
+- **Impact:** Users cannot export a clean trade CSV without journal notes — both buttons produce the same output.
+- **Status:** ✅ Fixed
+- **Fix:** Added `exportTradesCSV` function to `useTradeJournal` hook that exports only trade data (no notes/tags). Changed the "CSV" button to call `journal.exportTradesCSV(allTrades)`.
+
+---
+
+## Bug #224 — performance.ts Sortino ratio uses wrong denominator
+
+- **Location:** `web-ui/src/utils/performance.ts:185`
+- **Severity:** Medium (Incorrect risk-adjusted return metric)
+- **Root Cause:** Same bug as #220 in backtestEngine.js — the Sortino ratio's downside variance divides by `pnls.length` (total trades) instead of `downsidePnls.length` (downside trades only). This understates the downside deviation, causing the Sortino ratio to appear better than it actually is.
+- **Impact:** Overstated Sortino ratio in the RiskAdjustedComparison component, leading to overly optimistic risk-adjusted performance assessment.
+- **Status:** ✅ Fixed
+- **Fix:** Changed denominator from `pnls.length` to `downsidePnls.length`.
+
+---
+
+## Bug #225 — RiskAdjustedComparison passes wrong data type to Sharpe/Sortino
+
+- **Location:** `web-ui/src/components/RiskAdjustedComparison.jsx:10-11`
+- **Severity:** High (Risk metrics always return 0)
+- **Root Cause:** `calcSharpeRatio` and `calcSortinoRatio` from `performance.ts` expect arrays of objects with a `pnl` property (trade data), but were passed `equityCurve` which contains `EquityPoint` objects with `time` and `value` properties. Since equity points don't have a `pnl` property, `t.pnl || 0` always evaluates to `0`, making both Sharpe and Sortino ratios always return `0`.
+- **Impact:** Sharpe and Sortino ratios in the RiskAdjustedComparison panel always display as 0.000, providing no useful risk-adjusted performance information to the user.
+- **Status:** ✅ Fixed
+- **Fix:** Changed to pass `fills` (which have `pnl` properties) instead of `equityCurve` to both `calcSharpeRatio` and `calcSortinoRatio`.
+
+---
+
+## Bug #226 — OrderBook heatmap gradient uses red for both bid and ask
+
+- **Location:** `web-ui/src/components/OrderBook.jsx:195-197`
+- **Severity:** Low (Visual bug in heatmap)
+- **Root Cause:** The heatmap gradient for the bid side used `rgba(239, 68, 68, 0.15)` (red) instead of `rgba(34, 197, 94, 0.15)` (green). Both bid and ask sides had identical red gradients, making the heatmap color-coding meaningless for distinguishing bid/ask intensity.
+- **Impact:** Heatmap visual provides no color distinction between bid and ask sides when high-quantity levels are highlighted.
+- **Status:** ✅ Fixed
+- **Fix:** Changed bid gradient to use green `rgba(34, 197, 94, 0.15)` while keeping ask gradient red.
+
+---
+
+## Bug #227 — mockData.js generateOrderBook returns `size` instead of `quantity`
+
+- **Location:** `web-ui/src/utils/mockData.js:109-110`
+- **Severity:** Medium (Mock mode order book broken)
+- **Root Cause:** `generateOrderBook` returns bid/ask objects with a `size` property, but `OrderBook.jsx` accesses `b.quantity` when processing real orderbook data. In mock mode, `b.quantity` is `undefined`, causing `cumBid += undefined` to produce `NaN`, which propagates to all cumulative totals and the imbalance calculation.
+- **Impact:** Order book panel shows NaN values or falls back to synthetic data when in mock mode, defeating the purpose of mock order book generation.
+- **Status:** ✅ Fixed
+- **Fix:** Renamed `size` to `quantity` in the returned bid/ask objects to match the property name expected by `OrderBook.jsx`.
+
+---
+
+## Bug #228 — Detached orderbook panel shows price instead of spread
+
+- **Location:** `web-ui/src/hooks/useDetachablePanels.js:150`
+- **Severity:** Low (Incorrect label in detached panel)
+- **Root Cause:** The detached orderbook panel creates a card labeled "Spread" but displays `data.currentPrice` (the current mid-price) instead of the actual spread (best ask - best bid).
+- **Impact:** Users see the current price labeled as "Spread" in the detached orderbook window, which is misleading.
+- **Status:** ✅ Fixed
+- **Fix:** Calculate actual spread from `ob.asks[0].price - ob.bids[0].price` and display that instead.
+
+---
+
+## Bug #229 — Detached signals panel doubles confidence values
+
+- **Location:** `web-ui/src/hooks/useDetachablePanels.js:195`
+- **Severity:** Low (Incorrect display in detached panel)
+- **Root Cause:** Signal confidence is multiplied by 100 (`(s.confidence || 0) * 100`), but signals already have confidence in the 0-100 range (e.g., `50 + Math.random() * 45` in mock data, or 0-100 from the AI signal bot). This causes the detached signals panel to show confidence values like 5000% instead of 50%.
+- **Impact:** Detached signals panel shows wildly incorrect confidence percentages (5000%+ instead of 50%+).
+- **Status:** ✅ Fixed
+- **Fix:** Removed the `* 100` multiplication, displaying `s.confidence` directly since it's already in 0-100 range.
+
+---
+
+## Bug #230 — performance.test.js three no-op tests with expect(true).toBe(true)
+
+- **Location:** `web-ui/src/test/performance.test.js:146,156,170`
+- **Severity:** Low (Weak test coverage)
+- **Root Cause:** Three tests in the Performance Monitor and Bundle Size sections were no-ops: "should track custom metrics" (`expect(true).toBe(true)`), "should enforce performance budgets" (tested that literal object values equal themselves), and "should have manual chunks configured" (`expect(true).toBe(true)`). These provide zero actual test coverage and give false confidence.
+- **Impact:** Performance monitoring module is not actually tested. Regressions in `getPerformanceSummary`, `getPerformanceBudgets`, or performance budgets would not be caught.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced "should track custom metrics" with real test that calls `getPerformanceSummary()` and verifies return structure (metrics, violations, overall). Replaced "should enforce performance budgets" with real test that calls `getPerformanceBudgets()` and verifies all budget values are positive. Left "should have manual chunks configured" as-is since it requires checking vite.config.js which is a config test, not a unit test.
+
+---
+
+## Bug #231 — backtestEngine.test.js uses Math.random() making tests non-deterministic
+
+- **Location:** `web-ui/src/test/backtestEngine.test.js:10,21`
+- **Severity:** Low (Flaky test risk)
+- **Root Cause:** `makeCandles()` uses `Math.random()` for price changes and volume, making test results non-deterministic. Different random seeds can produce different trade counts, P&L values, and edge cases. This can cause tests to pass or fail unpredictably.
+- **Impact:** Tests may occasionally fail on certain random sequences (e.g., if RSI never crosses 50, the "executes trades with rsi_below buy rule" test would fail). Also makes debugging test failures difficult since the input data changes every run.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `Math.random()` with a seeded linear congruential generator (LCG) that produces deterministic pseudo-random values. Same seed produces same candle sequence every run.
+
+---
+
+## Bug #232 — useDetachablePanels.test.jsx signal confidence test data mismatched with fix
+
+- **Location:** `web-ui/src/test/useDetachablePanels.test.jsx:220`
+- **Severity:** Low (Test would fail after Bug #229 fix)
+- **Root Cause:** Test data used `confidence: 0.85` (0-1 range) and expected `85%` in output. After Bug #229 fix removed the `* 100` multiplication, `fmtNum(0.85, 0)` produces `"1"` not `"85"`. The test data should use `confidence: 85` (0-100 range) to match real signal format.
+- **Impact:** Test would fail after Bug #229 fix, since the output would show "1%" instead of "85%".
+- **Status:** ✅ Fixed
+- **Fix:** Changed test data from `confidence: 0.85` to `confidence: 85`.
 
 ---
 

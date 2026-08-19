@@ -182,7 +182,7 @@ export function calcSortinoRatio(trades: TradeWithPnl[]): number {
 
   if (downsidePnls.length === 0) return mean > 0 ? Infinity : 0
 
-  const downsideVariance = downsidePnls.reduce((s, v) => s + v * v, 0) / pnls.length
+  const downsideVariance = downsidePnls.reduce((s, v) => s + v * v, 0) / downsidePnls.length
   const downsideDev = Math.sqrt(downsideVariance)
 
   if (downsideDev === 0) return 0

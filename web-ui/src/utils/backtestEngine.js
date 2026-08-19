@@ -65,15 +65,14 @@
 
 function ema(values, period) {
   const k = 2 / (period + 1)
-  const result = []
-  let prev = values[0]
-  for (let i = 0; i < values.length; i++) {
-    if (i === 0) {
-      result.push(prev)
-    } else {
-      prev = values[i] * k + prev * (1 - k)
-      result.push(prev)
-    }
+  const result = new Array(values.length).fill(NaN)
+  if (values.length < period) return result
+  let sma = 0
+  for (let i = 0; i < period; i++) sma += values[i]
+  sma /= period
+  result[period - 1] = sma
+  for (let i = period; i < values.length; i++) {
+    result[i] = values[i] * k + result[i - 1] * (1 - k)
   }
   return result
 }
@@ -398,7 +397,7 @@ export function runBacktest(candles, rules, options = {}) {
   // Sortino ratio (only downside deviation)
   const downsideReturns = returns.filter(r => r < 0)
   const downsideDev = downsideReturns.length > 1
-    ? Math.sqrt(downsideReturns.reduce((s, r) => s + r * r, 0) / returns.length)
+    ? Math.sqrt(downsideReturns.reduce((s, r) => s + r * r, 0) / downsideReturns.length)
     : 0
   const sortinoRatio = downsideDev > 0
     ? (avgReturn / downsideDev) * Math.sqrt(periodsPerYear)

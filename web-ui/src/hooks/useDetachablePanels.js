@@ -147,7 +147,8 @@ export function useDetachablePanels() {
     if (panelId === 'orderbook') {
       const ob = data.orderbookData
       if (!ob) { el.textContent = 'No data'; return }
-      const spreadCard = createCard('Spread', '$' + fmtNum(data.currentPrice, 2) || '--')
+      const spreadVal = ob.bids?.length && ob.asks?.length ? fmtNum(ob.asks[0].price - ob.bids[0].price, 2) : '--'
+      const spreadCard = createCard('Spread', '$' + spreadVal)
       el.appendChild(spreadCard)
       const asksDiv = doc.createElement('div')
       for (const a of (ob.asks || []).slice(0, 15)) {
@@ -192,7 +193,7 @@ export function useDetachablePanels() {
       const rows = sigs.slice(0, 20).map(s => [
         { text: s.symbol || '' },
         { text: s.direction, cls: s.direction === 'LONG' ? 'green' : 'red' },
-        { text: fmtNum((s.confidence || 0) * 100, 0) + '%' },
+        { text: fmtNum(s.confidence || 0, 0) + '%' },
         { text: s.strategy || '' },
       ])
       el.appendChild(createTable(['Symbol', 'Dir', 'Conf', 'Strategy'], rows))

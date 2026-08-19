@@ -7,8 +7,8 @@ export default function RiskAdjustedComparison({ accounts, fills }) {
     const agg = calcAggregateMetrics(accounts)
     const equityCurve = buildEquityCurve(fills, 10000)
     const drawdown = calcDrawdown(equityCurve)
-    const sharpe = calcSharpeRatio(equityCurve)
-    const sortino = calcSortinoRatio(equityCurve)
+    const sharpe = calcSharpeRatio(fills)
+    const sortino = calcSortinoRatio(fills)
 
     // Calmar ratio = annualized return / max drawdown
     const maxDD = drawdown.length > 0 ? Math.max(...drawdown.map(d => d.drawdown)) : 0

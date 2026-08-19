@@ -80,6 +80,8 @@ export default function SignalPerformance({ signals, fills }) {
       hitRate,
       longHitRate,
       shortHitRate,
+      longCorrect: byDirection.LONG.correct,
+      shortCorrect: byDirection.SHORT.correct,
       longTotal: byDirection.LONG.total,
       shortTotal: byDirection.SHORT.total,
       avgReturn: matched > 0 ? (totalReturn / matched) : 0,
