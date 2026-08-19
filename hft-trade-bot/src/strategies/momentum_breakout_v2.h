@@ -159,6 +159,7 @@ class MomentumBreakoutV2 {
     void update_volume_avg(double volume) noexcept {
         if (candle_count_ < static_cast<uint64_t>(config_.volume_avg_period)) {
             vol_sum_ += volume;
+            vol_buffer_[candle_count_ % config_.volume_avg_period] = volume;
             avg_volume_ =
                 (candle_count_ > 0) ? vol_sum_ / static_cast<double>(candle_count_ + 1) : volume;
         } else {
