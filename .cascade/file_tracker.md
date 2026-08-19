@@ -706,3 +706,191 @@
 4. **Update Summary table** at the top with current counts
 5. **Never delete files from the list** — mark as ✅ when done
 6. **Read files in order** — top to bottom, don't skip
+
+---
+
+## hft-trade-bot/src/ — C++ HFT Trade Bot
+
+### core/ — Core Engine
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `core/config.h` | ✅ | all | 0 | Config loader with YAML, env overrides |
+| 2 | `core/logger.h` | ✅ | all | 0 | Spdlog wrapper, async logging |
+| 3 | `core/order_book_manager.h` | ✅ | all | 0 | L2 order book with price-level map, O(1) updates |
+| 4 | `core/risk_manager.h` | ✅ | all | 0 | Pre-trade risk checks, position limits, drawdown |
+| 5 | `core/signal.h` | ✅ | all | 0 | Signal struct with action, confidence, SL/TP |
+| 6 | `core/spinlock.h` | ✅ | all | 0 | Spinlock with backoff, PAUSE/YIELD |
+| 7 | `core/types.h` | ✅ | all | 0 | Enum types for Side, Action, Exchange, Symbol |
+
+### data/ — Data Layer
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `data/market_data_types.h` | ✅ | all | 0 | L1/L2 quote, trade, candle structs |
+
+### exchange/ — Exchange Adapters
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `exchange/BinanceAdapter.h` | ✅ | all | 0 | Binance WebSocket + REST adapter |
+| 2 | `exchange/BybitAdapter.h` | ✅ | all | 0 | Bybit adapter |
+| 3 | `exchange/OKXAdapter.h` | ✅ | all | 0 | OKX adapter, symbol normalization |
+| 4 | `exchange/IExchange.h` | ✅ | all | 0 | Exchange interface |
+
+### execution/ — Order Execution
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `execution/order_executor.h` | ✅ | all | 0 | WebSocket order submission, reconnect |
+| 2 | `execution/order_manager.h` | ✅ | all | 0 | Order lifecycle state machine, partial fills |
+| 3 | `execution/order_type_selector.h` | ✅ | all | 0 | Market/Limit selection by confidence + spread |
+
+### fix/ — FIX 4.4 Protocol
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `fix/fix_message.h` | ✅ | all | 0 | FIX message builder/parser, pre-allocated buffer |
+| 2 | `fix/fix_encoder.h` | ✅ | all | 0 | FIX message encoder (Logon, Order, Cancel) |
+| 3 | `fix/fix_decoder.h` | ✅ | all | 0 | Zero-copy FIX parser, O(1) tag lookup |
+| 4 | `fix/fix_session.h` | ✅ | all | 0 | FIX session state machine, seqnum persistence |
+
+### ipc/ — Inter-Process Communication
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `ipc/shm_protocol.h` | ✅ | all | 0 | SHM signal/fill/market structs, cross-language |
+| 2 | `ipc/shm_ring_buffer.h` | ✅ | all | 0 | Lock-free SPSC ring buffer, atomic head/tail |
+| 3 | `ipc/shm_signal_consumer.h` | ✅ | all | 0 | SHM signal consumer, dedicated poll thread |
+| 4 | `ipc/shm_fill_producer.h` | ✅ | all | 0 | SHM fill producer for Python |
+| 5 | `ipc/shm_heartbeat.h` | ✅ | all | 0 | Seqlock heartbeat writer/reader |
+| 6 | `ipc/shm_market_data.h` | ✅ | all | 0 | Multi-slot market data SHM with seqlock |
+
+### market_data/ — Market Data Processing
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `market_data/candle_aggregator.h` | ✅ | all | 0 | OHLCV aggregation by time/volume/ticks |
+| 2 | `market_data/trade_handler.h` | ✅ | all | 0 | Aggressor detection, rolling VWAP, large trades |
+
+### metrics/ — Metrics Collection
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `metrics/metrics_collector.h` | ✅ | all | 0 | Counter, Gauge, Histogram for Prometheus |
+| 2 | `metrics/metrics_collector.cpp` | ✅ | all | 2 | Bug #195: Prometheus #TYPE with labels; Bug #196: Missing HistogramBuckets ctor |
+
+### ml/ — Machine Learning (Conditional Compilation)
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `ml/gpu_accelerator.cu` | ✅ | all | 0 | CUDA kernels, dead code without USE_CUDA |
+| 2 | `ml/onnx_engine.h` | ✅ | all | 0 | ONNX inference, dead code without USE_ONNXRUNTIME |
+
+### monitoring/ — System Monitoring
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `monitoring/health_server.h` | ✅ | all | 0 | HTTP health/metrics server, raw sockets |
+| 2 | `monitoring/system_monitor.h` | ✅ | all | 0 | Atomic counters, JSON snapshot, MemoryTracker |
+
+### network/ — Networking
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `network/ws_client.h` | ✅ | all | 0 | Async WebSocket, backoff, watchdog, message queue |
+
+### persistence/ — State Persistence
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `persistence/mapped_persistence.h` | ✅ | all | 0 | Memory-mapped state, atomic save via rename |
+
+### position/ — Position Management
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `position/position_manager.h` | ✅ | all | 1 | Bug #198: Duplicate positions for same symbol |
+| 2 | `position/position_manager_v2.h` | ✅ | all | 1 | Bug #197: Unbounded memory growth from stale closed positions |
+
+### strategies/ — Trading Strategies
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `strategies/market_making_v2.h` | ✅ | all | 0 | Avellaneda-Stoikov, inventory skew, adverse selection |
+| 2 | `strategies/mean_reversion_v2.h` | ✅ | all | 0 | OU model, Kalman filter, z-score, half-life |
+| 3 | `strategies/momentum_breakout_v2.h` | ✅ | all | 1 | Bug #199: vol_buffer_ not populated during warmup |
+| 4 | `strategies/pressure_model.h` | ✅ | all | 0 | Multi-level OBI, toxicity, microprice, queue position |
+| 5 | `strategies/signal_engine_v3.h` | ✅ | all | 0 | HMM regime detection, Viterbi, Baum-Welch, signal gating |
+| 6 | `strategies/simd_indicators.h` | ✅ | all | 0 | AVX2 EMA, RSI, SMA, VWAP with scalar fallback |
+| 7 | `strategies/statistical_arb_v2.h` | ✅ | all | 0 | Cointegration, Kalman hedge ratio, z-score |
+
+### tracing/ — Distributed Tracing
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `tracing/tracer.h` | ✅ | all | 0 | Span, StatusCode, Tracer interface |
+| 2 | `tracing/tracer.cpp` | ✅ | all | 0 | Placeholder OTel impl, no real export |
+
+### Other hft-trade-bot files
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `src/pch.h` | ✅ | all | 0 | Precompiled header, stdlib + boost/fmt/json/spdlog/yaml |
+| 2 | `src/__init__.py` | ✅ | all | 0 | Empty package init |
+
+---
+
+## hft-executor/src/ — Rust Order Executor
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `hft-executor/src/lib.rs` | ✅ | all | 0 | FFI order executor, crossbeam channel, stats, no bugs |
+
+---
+
+## web-ui/src/ — React Web UI
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `src/App.jsx` | ✅ | all | 0 | Main app, Zustand stores, tabbed panels, mobile responsive |
+| 2 | `src/hooks/useWebSocket.ts` | ✅ | all | 0 | Ring buffer, batch merge, backoff, ping/pong latency |
+| 3 | `src/hooks/useExchangeData.js` | ✅ | all | 0 | Exchange WS hook, candle merge, orderbook deltas |
+| 4 | `src/hooks/useMockData.js` | ✅ | all | 0 | Mock data generator for dev mode |
+| 5 | `src/stores/useUIStore.js` | ✅ | all | 0 | Zustand UI state (exchange, symbol, tabs, layout) |
+| 6 | `src/stores/useTradingStore.js` | ✅ | all | 0 | Zustand trading data store |
+| 7 | `src/utils/timeframes.ts` | ✅ | all | 0 | Candle aggregation, TIMEFRAMES constant |
+| 8 | `src/utils/indicators.js` | ✅ | all | 0 | EMA, RSI, SMA, Bollinger, OBV, MFI, ADX, MACD, etc. |
+
+---
+
+## hft-trade-bot/tests/ — C++ Unit Tests
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1 | `tests/test_doctest_position_manager_v2.cpp` | ✅ | all | 0 | 444 lines, comprehensive V2 tests |
+| 2 | `tests/test_doctest_momentum_breakout.cpp` | ✅ | all | 0 | 325 lines, EMA/volume/ADX/signal tests |
+
+---
+
+## docs/ — Documentation (21 files)
+
+| # | File | Status | Lines Read | Bugs | Notes |
+|---|------|--------|------------|------|-------|
+| 1-21 | `docs/*.md` | ✅ | skimmed | 0 | Documentation only, no code bugs |
+
+---
+
+## Audit Summary — HFT Trade Bot
+
+**Total files read:** 45+ across hft-trade-bot, hft-executor, web-ui, tests, docs
+**Total bugs found:** 5 (Bug #195 through Bug #199)
+**Bugs fixed:** 5
+
+| Bug # | File | Description | Fix |
+|-------|------|-------------|-----|
+| #195 | `metrics/metrics_collector.cpp` | Prometheus #TYPE lines included labels, invalid format | Extract family name without labels for TYPE line |
+| #196 | `metrics/metrics_collector.cpp` | HistogramBuckets constructor declared but not defined | Added constructor definition in .cpp |
+| #197 | `position/position_manager_v2.h` | Closed positions never erased from map → unbounded growth | Added `positions_.erase()` on close transition |
+| #198 | `position/position_manager.h` | Duplicate positions for same symbol → orphaned entries | Check existing position, update instead of push_back |
+| #199 | `strategies/momentum_breakout_v2.h` | vol_buffer_ not populated during warmup → corrupted avg | Added `vol_buffer_[...] = volume` in warmup branch |
