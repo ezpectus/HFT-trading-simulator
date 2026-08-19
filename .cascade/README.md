@@ -8,7 +8,7 @@
 .cascade/
 ├── README.md              — этот файл
 ├── prompts.md             — готовые промпты для копирования в сессию
-├── tasks/                 — 50 role-based промптов (1 промпт = 1 специалист)
+├── tasks/                 — 100 role-based промптов (1 промпт = 1 специалист)
 │   ├── 01-ceo.md                — CEO: стратегия, видение
 │   ├── 02-cto.md                — CTO: архитектура, технологии
 │   ├── 03-principal-engineer.md — Principal Eng: качество, anti-AI-slop
@@ -59,8 +59,58 @@
 │   ├── 48-migration.md          — Migration: порты, UI→trading
 │   ├── 49-tech-debt.md          — Tech Debt: приоритизация долга
 │   └── 50-expansion.md          — Expansion: расширение во всех направлениях
+│   ├── 51-cro.md                — CRO: риск-стратегия
+│   ├── 52-cdo.md                — CDO: стратегия данных
+│   ├── 53-eng-manager.md        — Eng Manager: координация
+│   ├── 54-release-manager.md    — Release Manager: релизы
+│   ├── 55-distinguished-engineer.md — Distinguished Eng: сложнейшие проблемы
+│   ├── 56-staff-engineer.md     — Staff Eng: cross-cutting concerns
+│   ├── 57-head-of-research.md   — Head of Research: research roadmap
+│   ├── 58-lead-trader.md        — Lead Trader: торговые стратегии
+│   ├── 59-phd-mathematician.md  — PhD Math: stochastic calculus
+│   ├── 60-numerical-analyst.md  — Numerical: finite differences, MC
+│   ├── 61-optimization.md       — Optimization: convex/non-convex
+│   ├── 62-probability.md        — Probability: martingales
+│   ├── 63-game-theory.md        — Game Theory: auctions
+│   ├── 64-information-theory.md — Info Theory: entropy, KL
+│   ├── 65-topology-geometry.md  — Topology: persistent homology
+│   ├── 66-differential-equations.md — DiffEq: ODE/PDE/SDE
+│   ├── 67-market-maker.md       — Market Maker: MM стратегии
+│   ├── 68-arbitrage.md          — Arbitrage: cross-exchange
+│   ├── 69-statarb-researcher.md — StatArb: cointegration
+│   ├── 70-latency-arbitrage.md  — Latency Arb: microsecond
+│   ├── 71-volatility-trader.md  — Vol Trader: vol arbitrage
+│   ├── 72-event-driven.md       — Event-Driven: news, on-chain
+│   ├── 73-deep-learning.md      — Deep Learning: CNN, Transformer
+│   ├── 74-reinforcement-learning.md — RL: PPO, SAC, DQN
+│   ├── 75-nlp-sentiment.md      — NLP: FinBERT, sentiment
+│   ├── 76-time-series.md        — Time Series: ARIMA, GARCH
+│   ├── 77-mlops.md              — MLOps: versioning, drift
+│   ├── 78-data-engineer.md      — Data Eng: pipelines, ETL
+│   ├── 79-data-architect.md     — Data Architect: schema
+│   ├── 80-realtime-data.md      — Real-time Data: streaming
+│   ├── 81-feature-store.md      — Feature Store: features
+│   ├── 82-network-engineer.md   — Network: TCP, kernel bypass
+│   ├── 83-hardware-engineer.md  — Hardware: FPGA, CUDA
+│   ├── 84-systems-programmer.md — Systems: kernel, drivers
+│   ├── 85-cloud-architect.md    — Cloud: K8s, multi-region
+│   ├── 86-capacity-planner.md   — Capacity: scaling
+│   ├── 87-chaos-engineer.md     — Chaos: fault injection
+│   ├── 88-perf-testing.md       — Perf Testing: benchmarks
+│   ├── 89-security-testing.md   — Security Testing: pentest
+│   ├── 90-property-testing.md   — Property Testing: Hypothesis
+│   ├── 91-distributed-systems.md — Distributed: consensus
+│   ├── 92-concurrent-programming.md — Concurrent: lock-free
+│   ├── 93-caching.md            — Caching: Redis, LRU
+│   ├── 94-microservices.md      — Microservices: decomposition
+│   ├── 95-rd-lead.md            — R&D Lead: pipeline
+│   ├── 96-academic-liaison.md   — Academic: papers
+│   ├── 97-tech-scout.md         — Tech Scout: new tech
+│   ├── 98-prototype-engineer.md — Prototype: rapid PoC
+│   ├── 99-ux-researcher.md      — UX Research: usability
+│   └── 100-compliance.md        — Compliance: regulatory
 ├── workflows/             — воркфлоу для AI
-│   ├── orchestration.md         — МАСТЕР-ОРКЕСТРАЦИЯ: 50 ролей, как выбирать
+│   ├── orchestration.md         — МАСТЕР-ОРКЕСТРАЦИЯ: 100 ролей, как выбирать
 │   ├── ai-monster-workflow.md   — полный автономный workflow (закон)
 │   ├── deep-scan.md             — промпт для глубокого сканирования кода
 │   ├── project-analysis.md      — промпт для анализа структуры проекта
@@ -100,7 +150,7 @@
 
 | Файл | Назначение |
 |------|------------|
-| `orchestration.md` | **МАСТЕР**: 50 ролей, мульти-роль сценарии, направления расширения |
+| `orchestration.md` | **МАСТЕР**: 100 ролей, мульти-роль сценарии, направления расширения |
 | `ai-monster-workflow.md` | Полный автономный workflow — закон для AI |
 | `deep-scan.md` | Промпт: глубокий скан всего кода, 6 подходов, 20-50 багов |
 | `project-analysis.md` | Промпт: анализ структуры проекта, пробелы, готовность |

@@ -79,7 +79,7 @@ git add -A; git commit -m "<type>: <description>"; git push
 
 ---
 
-## ОРГАНИЗАЦИОННАЯ СТРУКТУРА — 50 РОЛЕЙ
+## ОРГАНИЗАЦИОННАЯ СТРУКТУРА — 100 РОЛЕЙ
 
 ### 🏢 Executive (5)
 
@@ -178,6 +178,115 @@ git add -A; git commit -m "<type>: <description>"; git push
 
 ---
 
+## РОЛИ 51-100 — ВЫСОКОУРОВНЕВЫЕ СПЕЦИАЛИСТЫ
+
+### 🏛 Executive+ (4)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 51 | Chief Risk Officer | `tasks/51-cro.md` | Риск-стратегия на уровне компании |
+| 52 | Chief Data Officer | `tasks/52-cdo.md` | Стратегия данных, governance |
+| 53 | Engineering Manager | `tasks/53-eng-manager.md` | Координация инженеров, спринты |
+| 54 | Release Manager | `tasks/54-release-manager.md` | Релизы, versioning, changelog |
+
+### 🎓 Senior/Principal (4)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 55 | Distinguished Engineer | `tasks/55-distinguished-engineer.md` | Сложнейшие технические проблемы, визионер |
+| 56 | Staff Engineer | `tasks/56-staff-engineer.md` | Cross-cutting concerns, стандарты |
+| 57 | Head of Research | `tasks/57-head-of-research.md` | Research roadmap, приоритизация моделей |
+| 58 | Lead Trader | `tasks/58-lead-trader.md` | Торговые стратегии, PnL управление |
+
+### 📐 Advanced Mathematics (8)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 59 | PhD Mathematician | `tasks/59-phd-mathematician.md` | Stochastic calculus, PDE, measure theory |
+| 60 | Numerical Analyst | `tasks/60-numerical-analyst.md` | Finite differences, Monte Carlo, quadrature |
+| 61 | Optimization Specialist | `tasks/61-optimization.md` | Convex/non-convex optimization |
+| 62 | Probability Theory | `tasks/62-probability.md` | Martingales, stopping times, limit theorems |
+| 63 | Game Theory | `tasks/63-game-theory.md` | Auction theory, mechanism design |
+| 64 | Information Theory | `tasks/64-information-theory.md` | Entropy, transfer entropy, KL divergence |
+| 65 | Topology/Geometry | `tasks/65-topology-geometry.md` | Persistent homology, optimal transport |
+| 66 | Differential Equations | `tasks/66-differential-equations.md` | ODE/PDE/SDE solvers |
+
+### 💹 Advanced Trading (6)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 67 | Market Maker | `tasks/67-market-maker.md` | MM стратегии, inventory management |
+| 68 | Arbitrage Specialist | `tasks/68-arbitrage.md` | Cross-exchange, triangular, stat arb |
+| 69 | StatArb Researcher | `tasks/69-statarb-researcher.md` | Cointegration, pairs, mean reversion |
+| 70 | Latency Arbitrage | `tasks/70-latency-arbitrage.md` | Microsecond price differences |
+| 71 | Volatility Trader | `tasks/71-volatility-trader.md` | Vol arbitrage, straddles, IV vs RV |
+| 72 | Event-Driven Trader | `tasks/72-event-driven.md` | News, on-chain events, announcements |
+
+### 🧠 Advanced ML/AI (5)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 73 | Deep Learning | `tasks/73-deep-learning.md` | CNN, LSTM, Transformer, autoencoder |
+| 74 | Reinforcement Learning | `tasks/74-reinforcement-learning.md` | PPO, SAC, DQN, multi-agent |
+| 75 | NLP/Sentiment | `tasks/75-nlp-sentiment.md` | FinBERT, news, social media |
+| 76 | Time Series | `tasks/76-time-series.md` | ARIMA, GARCH, state space, Prophet |
+| 77 | MLOps | `tasks/77-mlops.md` | Model versioning, drift, A/B testing |
+
+### 🗄 Data Engineering (4)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 78 | Data Engineer | `tasks/78-data-engineer.md` | Pipelines, ETL, data quality |
+| 79 | Data Architect | `tasks/79-data-architect.md` | Schema design, data architecture |
+| 80 | Real-time Data | `tasks/80-realtime-data.md` | Streaming, WebSocket, low-latency data |
+| 81 | Feature Store | `tasks/81-feature-store.md` | Feature engineering, caching, serving |
+
+### 🖥 Advanced Infrastructure (5)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 82 | Network Engineer | `tasks/82-network-engineer.md` | TCP/UDP, kernel bypass, NIC tuning |
+| 83 | Hardware Engineer | `tasks/83-hardware-engineer.md` | FPGA, CUDA, ASIC, co-location |
+| 84 | Systems Programmer | `tasks/84-systems-programmer.md` | Kernel, drivers, memory management |
+| 85 | Cloud Architect | `tasks/85-cloud-architect.md` | K8s, multi-region, auto-scaling |
+| 86 | Capacity Planner | `tasks/86-capacity-planner.md` | Resource planning, scaling scenarios |
+
+### 🛡 Advanced Quality (4)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 87 | Chaos Engineer | `tasks/87-chaos-engineer.md` | Fault injection, resilience testing |
+| 88 | Perf Testing | `tasks/88-perf-testing.md` | Load testing, benchmarks |
+| 89 | Security Testing | `tasks/89-security-testing.md` | Penetration testing, vulnerabilities |
+| 90 | Property-Based Testing | `tasks/90-property-testing.md` | Hypothesis, invariant testing |
+
+### ⚡ Advanced Backend (4)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 91 | Distributed Systems | `tasks/91-distributed-systems.md` | Consensus, replication, sharding |
+| 92 | Concurrent Programming | `tasks/92-concurrent-programming.md` | Lock-free, async, parallelism |
+| 93 | Caching Specialist | `tasks/93-caching.md` | Cache design, invalidation, Redis |
+| 94 | Microservices Architect | `tasks/94-microservices.md` | Service decomposition, API gateway |
+
+### 🔬 Research & Innovation (4)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 95 | R&D Lead | `tasks/95-rd-lead.md` | R&D pipeline, prototype → production |
+| 96 | Academic Liaison | `tasks/96-academic-liaison.md` | Papers, publications, literature review |
+| 97 | Technology Scout | `tasks/97-tech-scout.md` | New technologies, tools, frameworks |
+| 98 | Prototype Engineer | `tasks/98-prototype-engineer.md` | Rapid prototyping, proof of concept |
+
+### 📋 Business/Product (2)
+
+| # | Роль | Файл | Когда использовать |
+|---|------|------|-------------------|
+| 99 | UX Researcher | `tasks/99-ux-researcher.md` | User research, usability testing |
+| 100 | Compliance Officer | `tasks/100-compliance.md` | Regulatory compliance, audit trail |
+
+---
+
 ## КАК ИСПОЛЬЗОВАТЬ
 
 ### Для пользователя
@@ -211,6 +320,51 @@ git add -A; git commit -m "<type>: <description>"; git push
 18. **Конкуренты?** → Competitive Analyst (46)
 19. **Инновации?** → Innovation Researcher (13)
 20. **Интеграция?** → Integration Engineer (26)
+21. **Сложная математика?** → PhD Mathematician (59) → Numerical Analyst (60)
+22. **Optimization?** → Optimization Specialist (61)
+23. **Probability?** → Probability Theory (62)
+24. **Game theory?** → Game Theory (63)
+25. **Information theory?** → Information Theory (64)
+26. **Topology?** → Topology/Geometry (65)
+27. **Differential equations?** → Differential Equations (66)
+28. **Market making?** → Market Maker (67)
+29. **Arbitrage?** → Arbitrage Specialist (68) → StatArb (69)
+30. **Latency arb?** → Latency Arbitrage (70) → HFT Engineer (15)
+31. **Volatility trading?** → Volatility Trader (71)
+32. **Event-driven?** → Event-Driven Trader (72) → NLP (75)
+33. **Deep learning?** → Deep Learning (73)
+34. **RL?** → Reinforcement Learning (74)
+35. **Time series?** → Time Series (76)
+36. **MLOps?** → MLOps (77)
+37. **Data pipeline?** → Data Engineer (78) → Data Architect (79)
+38. **Real-time data?** → Real-time Data (80)
+39. **Features?** → Feature Store (81)
+40. **Network?** → Network Engineer (82)
+41. **FPGA/hardware?** → Hardware Engineer (83)
+42. **Low-level systems?** → Systems Programmer (84)
+43. **Cloud?** → Cloud Architect (85)
+44. **Capacity?** → Capacity Planner (86)
+45. **Resilience?** → Chaos Engineer (87)
+46. **Benchmarks?** → Perf Testing (88)
+47. **Security testing?** → Security Testing (89)
+48. **Property tests?** → Property-Based Testing (90)
+49. **Distributed?** → Distributed Systems (91)
+50. **Concurrency?** → Concurrent Programming (92)
+51. **Caching?** → Caching (93)
+52. **Microservices?** → Microservices (94)
+53. **R&D?** → R&D Lead (95) → Prototype Engineer (98)
+54. **Academic?** → Academic Liaison (96)
+55. **New tech?** → Technology Scout (97)
+56. **UX research?** → UX Researcher (99)
+57. **Compliance?** → Compliance Officer (100)
+58. **Risk strategy?** → CRO (51)
+59. **Data strategy?** → CDO (52)
+60. **Coordination?** → Engineering Manager (53)
+61. **Release?** → Release Manager (54)
+62. **Hardest problems?** → Distinguished Engineer (55)
+63. **Cross-cutting?** → Staff Engineer (56)
+64. **Research direction?** → Head of Research (57)
+65. **Trading strategy?** → Lead Trader (58)
 
 ### Мульти-роль сценарии
 
@@ -224,7 +378,25 @@ git add -A; git commit -m "<type>: <description>"; git push
 → Performance Engineer (24) профилирует → HFT Engineer (15) оптимизирует → Code Reviewer (29) ревьюит → Tech Writer (41) документирует
 
 **Сценарий: "Планирование будущего"**
-→ CEO (01) видение → CTO (02) архитектура → Technical Planner (45) план → Expansion Planner (50) расширение → Product Manager (05) roadmap
+ CEO (01) видение → CTO (02) архитектура → Technical Planner (45) план → Expansion Planner (50) расширение → Product Manager (05) roadmap
+
+**Сценарий: "Сложная математическая модель"**
+ Head of Research (57) направление → PhD Mathematician (59) математика → Numerical Analyst (60) численные методы → Quant Developer (07) реализация → QA (27) тесты → Academic Liaison (96) литература
+
+**Сценарий: "Market making стратегия"**
+ Lead Trader (58) стратегия → Market Maker (67) реализация → Game Theory (63) равновесие → Risk Manager (16) риски → HFT Engineer (15) оптимизация → QA (27) тесты
+
+**Сценарий: "ML модель в production"**
+ ML Researcher (08) research → Deep Learning (73) архитектура → MLOps (77) pipeline → Feature Store (81) фичи → QA (27) тесты → Performance (24) оптимизация
+
+**Сценарий: "Distributed trading system"**
+ CTO (02) архитектура → Distributed Systems (91) consensus → Concurrent Programming (92) parallelism → Microservices (94) decomposition → SRE (22) мониторинг → Chaos (87) resilience
+
+**Сценарий: "Hardware acceleration"**
+ Innovation (13) research → Hardware Engineer (83) FPGA/CUDA → Systems Programmer (84) low-level → HFT Engineer (15) integration → Performance (24) benchmark
+
+**Сценарий: "Compliance и audit"**
+ Compliance Officer (100) требования → Security (23) реализация → Audit (43) проверка → Tech Writer (41) документация → Changelog (44) запись
 
 ---
 
@@ -279,4 +451,4 @@ git add -A; git commit -m "<type>: <description>"; git push
 
 ---
 
-*50 ролей. Каждый — специалист. Каждый — с правилами. Никакого AI slop. Principal engineer спит спокойно.*
+*100 ролей. Полная команда квант-трейдинг компании. Каждый — специалист. Каждый — с правилами. Никакого AI slop. Principal engineer спит спокойно.*
