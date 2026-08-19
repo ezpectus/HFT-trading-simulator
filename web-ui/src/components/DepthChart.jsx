@@ -25,8 +25,8 @@ export default function DepthChart({ orderbookData, currentPrice }) {
     })
 
     const maxCum = Math.max(bidCum, askCum, 0.001)
-    const minPrice = Math.min(bids[bids.length - 1].price, asks[asks.length - 1].price)
-    const maxPrice = Math.max(bids[0].price, asks[0].price)
+    const minPrice = Math.min(bids[bids.length - 1].price, asks[0].price)
+    const maxPrice = Math.max(bids[0].price, asks[asks.length - 1].price)
     const priceRange = maxPrice - minPrice || 1
 
     return { bidPoints, askPoints, maxCum, minPrice, maxPrice, priceRange }
@@ -53,7 +53,6 @@ export default function DepthChart({ orderbookData, currentPrice }) {
     const x = ((p.price - minPrice) / priceRange) * W
     const y = H - (p.cumQty / maxCum) * H
     if (i === 0) return `M ${x} ${H} L ${x} ${y}`
-    const prevX = ((bidPoints[i - 1].price - minPrice) / priceRange) * W
     return `L ${x} ${y}`
   }).join(' ')
 
@@ -61,7 +60,6 @@ export default function DepthChart({ orderbookData, currentPrice }) {
     const x = ((p.price - minPrice) / priceRange) * W
     const y = H - (p.cumQty / maxCum) * H
     if (i === 0) return `M ${x} ${y}`
-    const prevX = ((askPoints[i - 1].price - minPrice) / priceRange) * W
     return `L ${x} ${y}`
   }).join(' ')
 

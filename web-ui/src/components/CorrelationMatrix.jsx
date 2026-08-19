@@ -104,7 +104,7 @@ export default function CorrelationMatrix({ candles, exchange, symbols }) {
       </table>
 
       <div className="mt-1.5 text-[8px] text-gray-600 flex items-center justify-between">
-        <span>1m returns, last 100 candles</span>
+        <span>closing prices, last 100 candles</span>
         <span>
           <span className="text-accent-green">■</span> pos
           <span className="text-accent-red ml-1">■</span> neg

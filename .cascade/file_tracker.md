@@ -883,9 +883,9 @@
 
 ## Audit Summary — HFT Trade Bot
 
-**Total files read:** 45+ across hft-trade-bot, hft-executor, web-ui, tests, docs
-**Total bugs found:** 5 (Bug #195 through Bug #199)
-**Bugs fixed:** 5
+**Total files read:** 60+ across hft-trade-bot, hft-executor, web-ui, tests, docs
+**Total bugs found:** 10 (Bug #195 through Bug #204)
+**Bugs fixed:** 10
 
 | Bug # | File | Description | Fix |
 |-------|------|-------------|-----|
@@ -894,3 +894,8 @@
 | #197 | `position/position_manager_v2.h` | Closed positions never erased from map → unbounded growth | Added `positions_.erase()` on close transition |
 | #198 | `position/position_manager.h` | Duplicate positions for same symbol → orphaned entries | Check existing position, update instead of push_back |
 | #199 | `strategies/momentum_breakout_v2.h` | vol_buffer_ not populated during warmup → corrupted avg | Added `vol_buffer_[...] = volume` in warmup branch |
+| #200 | `web-ui/src/components/DepthChart.jsx` | Wrong maxPrice/minPrice: uses asks[0] for max, asks[last] for min (backwards) | Swapped ask indices to use asks[0] for min, asks[last] for max |
+| #201 | `web-ui/src/components/ConditionalValueAtRisk.jsx` | Wrong candles data access (nested object vs flat array) → component never renders | Changed to filter pattern consistent with all other components |
+| #202 | `web-ui/src/components/AccountPanel.jsx` | Division by zero in PnL pct when initial balance is 0 | Guard on `initialBalance > 0` instead of `balance > 0` |
+| #203 | `web-ui/src/components/DepthChart.jsx` | Dead code: unused prevX variables in path calculations | Removed unused variable declarations |
+| #204 | `web-ui/src/components/CorrelationMatrix.jsx` | Misleading label says "1m returns" but uses raw price levels | Updated label to "closing prices" |

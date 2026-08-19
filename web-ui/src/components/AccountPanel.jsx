@@ -87,7 +87,8 @@ export default function AccountPanel({ accounts }) {
         const pnlPositive = acc.total_pnl >= 0
         const trades = acc.trade_history || []
         const recentTrades = trades.slice(-10)
-        const pnlPct = acc.balance > 0 ? (acc.total_pnl / (acc.balance - acc.total_pnl) * 100) : 0
+        const initialBalance = acc.balance - acc.total_pnl
+        const pnlPct = initialBalance > 0 ? (acc.total_pnl / initialBalance * 100) : 0
 
         return (
           <div key={exId} className="bg-bg-700 rounded-lg p-3">

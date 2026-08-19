@@ -144,12 +144,12 @@ export default function ConditionalValueAtRisk({ candles, symbols, exchange }) {
   const [optimize, setOptimize] = useState(true)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange] || !symbols || symbols.length < 2) return null
+    if (!candles || !symbols || symbols.length < 2) return null
 
     const allReturns = []
     const validSymbols = []
     for (const sym of symbols) {
-      const cds = candles[exchange]?.[sym]
+      const cds = candles.filter(c => c.exchange === exchange && c.symbol === sym)
       if (!cds || cds.length < lookback + 1) continue
       const prices = cds.slice(-lookback - 1).map(c => c.close)
       allReturns.push(computeReturns(prices))

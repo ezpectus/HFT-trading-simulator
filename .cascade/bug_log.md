@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 93 |
+| ✅ Fixed | 98 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **130** |
+| **TOTAL FOUND** | **135** |
 
 ---
 
@@ -1810,6 +1810,61 @@
 - **Impact:** Truncated dicts exceed the specified max_items limit by 1 key, potentially causing log entry size issues.
 - **Status:** ✅ Fixed
 - **Fix:** Changed to take `max_items - 1` items, reserving one slot for the `"..._truncated"` key, so the total is exactly `max_items`.
+
+---
+
+## Bug #200 — DepthChart.jsx wrong maxPrice/minPrice calculation in orderbook depth
+
+- **Location:** `web-ui/src/components/DepthChart.jsx:28-29`
+- **Severity:** Medium (UI correctness)
+- **Root Cause:** In a standard orderbook, bids are sorted descending (best/highest first) and asks are sorted ascending (best/lowest first). The code computed `minPrice = Math.min(bids[last].price, asks[last].price)` and `maxPrice = Math.max(bids[0].price, asks[0].price)`. This uses `asks[last]` (highest ask) for minPrice and `asks[0]` (lowest ask) for maxPrice, which is backwards. The correct calculation is `minPrice = Math.min(bids[last].price, asks[0].price)` (lowest bid or lowest ask) and `maxPrice = Math.max(bids[0].price, asks[last].price)` (highest bid or highest ask).
+- **Impact:** Depth chart x-axis is compressed and doesn't show the full ask range. The chart misrepresents the orderbook depth visualization.
+- **Status:** ✅ Fixed
+- **Fix:** Swapped the ask indices: `minPrice` now uses `asks[0]` (lowest ask), `maxPrice` now uses `asks[asks.length - 1]` (highest ask).
+
+---
+
+## Bug #201 — ConditionalValueAtRisk.jsx wrong candles data access pattern
+
+- **Location:** `web-ui/src/components/ConditionalValueAtRisk.jsx:147-152`
+- **Severity:** High (Component never renders)
+- **Root Cause:** The component accesses candles as a nested object `candles[exchange][sym]`, but the app passes candles as a flat array of candle objects with `c.exchange` and `c.symbol` properties. This means `candles?.[exchange]` is always undefined, so the component always returns null and shows "Need at least 2 symbols...".
+- **Impact:** The entire CVaR/Expected Shortfall risk analysis panel is non-functional. Users can never see portfolio risk metrics.
+- **Status:** ✅ Fixed
+- **Fix:** Changed to `candles.filter(c => c.exchange === exchange && c.symbol === sym)` pattern, consistent with all other components.
+
+---
+
+## Bug #202 — AccountPanel.jsx division by zero in PnL percentage calculation
+
+- **Location:** `web-ui/src/components/AccountPanel.jsx:90`
+- **Severity:** Low (Display issue)
+- **Root Cause:** PnL percentage is calculated as `acc.total_pnl / (acc.balance - acc.total_pnl) * 100`. When `acc.balance - acc.total_pnl` equals 0 (e.g., initial balance was 0 and all current balance is from PnL), this produces `Infinity` or `NaN`. The original guard `acc.balance > 0` doesn't protect against this case.
+- **Impact:** PnL percentage displays as `Infinity%` or `NaN%` for accounts that started with zero balance.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted `initialBalance = acc.balance - acc.total_pnl` and changed guard to `initialBalance > 0`.
+
+---
+
+## Bug #203 — DepthChart.jsx dead code: unused prevX variables
+
+- **Location:** `web-ui/src/components/DepthChart.jsx:56,64`
+- **Severity:** Low (Dead code)
+- **Root Cause:** In the `bidPath` and `askPath` map functions, a variable `prevX` is calculated but never used. The path string only uses the current point's `x` coordinate, not the previous one.
+- **Impact:** No functional impact, but indicates copy-paste error and adds unnecessary computation.
+- **Status:** ✅ Fixed
+- **Fix:** Removed both unused `prevX` variable declarations.
+
+---
+
+## Bug #204 — CorrelationMatrix.jsx misleading label says "1m returns" but uses price levels
+
+- **Location:** `web-ui/src/components/CorrelationMatrix.jsx:107`
+- **Severity:** Low (Misleading documentation)
+- **Root Cause:** The footer label says "1m returns, last 100 candles" but the correlation function operates on raw closing prices, not 1-minute returns. Correlation of price levels can show spurious correlation (non-stationary series), while correlation of returns is the standard financial metric.
+- **Impact:** Users are misled about what the correlation matrix represents. May lead to incorrect trading decisions based on spurious price-level correlation.
+- **Status:** ✅ Fixed
+- **Fix:** Updated label to "closing prices, last 100 candles" to accurately reflect the computation.
 
 ---
 
