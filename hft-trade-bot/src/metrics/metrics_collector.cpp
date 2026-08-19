@@ -8,6 +8,7 @@
 #include <thread>
 #include <sstream>
 #include <iomanip>
+#include <set>
 
 namespace hft {
 namespace metrics {
@@ -138,30 +139,52 @@ std::string MetricsCollector::generate_prometheus_output() {
     std::lock_guard<std::mutex> lock(metrics_mutex_);
     std::stringstream output;
     
+    std::set<std::string> seen_types;
+    
     // Export counters
-    for (const auto& [name, value] : counters_) {
-        output << "# TYPE " << name << " counter\n";
-        output << name << " " << value << "\n";
+    for (const auto& [key, value] : counters_) {
+        std::string family = key.substr(0, key.find('{'));
+        if (seen_types.insert(family).second) {
+            output << "# TYPE " << family << " counter\n";
+        }
+        output << key << " " << value << "\n";
     }
     
     // Export gauges
-    for (const auto& [name, value] : gauges_) {
-        output << "# TYPE " << name << " gauge\n";
-        output << name << " " << std::fixed << std::setprecision(2) << value << "\n";
+    for (const auto& [key, value] : gauges_) {
+        std::string family = key.substr(0, key.find('{'));
+        if (seen_types.insert(family).second) {
+            output << "# TYPE " << family << " gauge\n";
+        }
+        output << key << " " << std::fixed << std::setprecision(2) << value << "\n";
     }
     
     // Export histograms
-    for (const auto& [name, histogram] : histograms_) {
-        output << "# TYPE " << name << " histogram\n";
+    for (const auto& [key, histogram] : histograms_) {
+        std::string family = key.substr(0, key.find('{'));
+        if (seen_types.insert(family).second) {
+            output << "# TYPE " << family << " histogram\n";
+        }
         const auto& buckets = histogram.get_buckets();
         const auto& counts = histogram.get_counts();
         
-        for (size_t i = 0; i < buckets.size(); ++i) {
-            output << name << "_bucket{le=\"" << buckets[i] << "\"} " << counts[i] << "\n";
+        std::string labels = (key.find('{') != std::string::npos) ? key.substr(key.find('{')) : "";
+        if (labels.empty()) {
+            for (size_t i = 0; i < buckets.size(); ++i) {
+                output << family << "_bucket{le=\"" << buckets[i] << "\"} " << counts[i] << "\n";
+            }
+            output << family << "_bucket{le=\"+Inf\"} " << histogram.get_total_count() << "\n";
+            output << family << "_sum " << histogram.get_sum() << "\n";
+            output << family << "_count " << histogram.get_total_count() << "\n";
+        } else {
+            for (size_t i = 0; i < buckets.size(); ++i) {
+                std::string bucket_labels = labels.substr(0, labels.size() - 1) + ",le=\"" + std::to_string(buckets[i]) + "\"}";
+                output << family << "_bucket" << bucket_labels << " " << counts[i] << "\n";
+            }
+            output << family << "_bucket" << labels.substr(0, labels.size() - 1) << ",le=\"+Inf\"} " << histogram.get_total_count() << "\n";
+            output << family << "_sum" << labels << " " << histogram.get_sum() << "\n";
+            output << family << "_count" << labels << " " << histogram.get_total_count() << "\n";
         }
-        output << name << "_bucket{le=\"+Inf\"} " << histogram.get_total_count() << "\n";
-        output << name << "_sum " << histogram.get_sum() << "\n";
-        output << name << "_count " << histogram.get_total_count() << "\n";
     }
     
     return output.str();
@@ -178,6 +201,9 @@ void MetricsCollector::http_server_loop() {
 }
 
 // HistogramBuckets implementation
+HistogramBuckets::HistogramBuckets(const std::vector<double>& buckets)
+    : buckets_(buckets), counts_(buckets.size(), 0), total_count_(0), sum_(0.0) {}
+
 void HistogramBuckets::observe(double value) {
     total_count_++;
     sum_ += value;
