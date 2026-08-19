@@ -219,6 +219,12 @@ int main(int argc, char* argv[]) {
     v2_params.high_confidence_leverage       = config.v2_high_confidence_leverage;
     v2_params.emergency_confidence_threshold = config.v2_emergency_confidence_threshold;
     v2_params.emergency_adx_threshold        = config.v2_emergency_adx_threshold;
+    v2_params.w_ema                          = config.v2_weight_ema;
+    v2_params.w_rsi                          = config.v2_weight_rsi;
+    v2_params.w_obi                          = config.v2_weight_obi;
+    v2_params.w_vwap                         = config.v2_weight_vwap;
+    v2_params.w_adx                          = config.v2_weight_adx;
+    v2_params.w_pressure                     = config.v2_weight_pressure;
     if (!v2_params.validate()) {
         spdlog::error("Signal Engine V2 params invalid: {}", v2_params.validation_error());
         return 1;

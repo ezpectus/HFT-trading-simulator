@@ -415,9 +415,10 @@ Config Config::load(const std::string& path) {
     // ─── Production: pressure model ───
     if (auto pm = root["pressure_model"]) {
         if (pm["enabled"]) cfg.pressure_model_enabled = pm["enabled"].as<bool>();
-        if (pm["toxicity_threshold"] || pm["toxic_penalty"])
-            cfg.v2_toxic_penalty = pm["toxicity_threshold"] ? pm["toxicity_threshold"].as<double>()
-                                                            : pm["toxic_penalty"].as<double>();
+        if (pm["toxicity_threshold"])
+            cfg.v2_pressure_threshold = pm["toxicity_threshold"].as<double>();
+        if (pm["toxic_penalty"])
+            cfg.v2_toxic_penalty = pm["toxic_penalty"].as<double>();
     }
 
     // ─── Production: smart order router ───
@@ -446,7 +447,7 @@ Config Config::load(const std::string& path) {
     // ─── Production: adaptive order selector ───
     if (auto ao = root["adaptive_order_selector"]) {
         if (ao["enabled"]) cfg.adaptive_order_enabled = ao["enabled"].as<bool>();
-        if (ao["gtd_timeout_ms"]) cfg.adaptive_gtd_seconds = ao["gtd_timeout_ms"].as<int>() / 1000;
+        if (ao["gtd_timeout_ms"]) cfg.adaptive_gtd_seconds = (ao["gtd_timeout_ms"].as<int>() + 999) / 1000;
         if (ao["gtd_seconds"]) cfg.adaptive_gtd_seconds = ao["gtd_seconds"].as<int>();
     }
 
