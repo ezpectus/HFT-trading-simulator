@@ -147,6 +147,8 @@ class PositionManagerV2 {
             open_positions_count_.fetch_sub(1, std::memory_order_relaxed);
             if (symbol_id < 256) open_symbols_.reset(symbol_id);
             open_symbol_names_.erase(symbol);
+            // Remove stale entry from map to prevent unbounded growth
+            positions_.erase(std::string(key_sv));
         }
 
         pos.total_fees += fee;

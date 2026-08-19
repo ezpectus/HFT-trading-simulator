@@ -17,6 +17,17 @@ class PositionManager {
     void open_position(const Signal& signal, double quantity, const std::string& exchange) {
         if (!signal.is_actionable()) return;
         std::lock_guard<std::mutex> lock(mutex_);
+        // Check if position already exists for this symbol — update instead of duplicate
+        for (auto& pos : positions_) {
+            if (pos.symbol == signal.symbol) {
+                pos.side        = signal.side();
+                pos.quantity    = quantity;
+                pos.entry_price = signal.entry_price;
+                pos.stop_loss   = signal.stop_loss;
+                pos.take_profit = signal.take_profit;
+                return;
+            }
+        }
         Position                    pos;
         pos.symbol      = signal.symbol;
         pos.exchange    = exchange;
