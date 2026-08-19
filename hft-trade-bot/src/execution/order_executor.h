@@ -43,7 +43,7 @@ class OrderExecutor {
             client_->set_open_handler([this](websocketpp::connection_hdl hdl) {
                 connection_      = hdl;
                 connected_       = true;
-                reconnect_delay_ = 1000;
+                reconnect_delay_.store(1000, std::memory_order_relaxed);
                 spdlog::info("OrderExecutor connected to {}", ws_url_);
             });
 
@@ -51,9 +51,9 @@ class OrderExecutor {
                 connected_ = false;
                 spdlog::warn("OrderExecutor disconnected");
                 if (should_reconnect_) {
-                    spdlog::info("Reconnecting in {}ms...", reconnect_delay_);
-                    auto delay       = reconnect_delay_;
-                    reconnect_delay_ = std::min(reconnect_delay_ * 2, 30000);
+                    int delay = reconnect_delay_.load(std::memory_order_relaxed);
+                    spdlog::info("Reconnecting in {}ms...", delay);
+                    reconnect_delay_.store(std::min(delay * 2, 30000), std::memory_order_relaxed);
                     std::thread([this, delay]() {
                         std::this_thread::sleep_for(std::chrono::milliseconds(delay));
                         if (should_reconnect_) {
@@ -224,7 +224,7 @@ class OrderExecutor {
     std::thread                 ws_thread_;
     std::atomic<bool>           connected_{false};
     std::atomic<bool>           should_reconnect_{false};
-    int                         reconnect_delay_{1000}; // ms, exponential backoff up to 30s
+    std::atomic<int>           reconnect_delay_{1000}; // ms, exponential backoff up to 30s
 };
 
 } // namespace hft

@@ -264,7 +264,9 @@ class OrderManager {
         }
         // Cancel old order first
         if (cancel_cb_) cancel_cb_(rec.client_order_id);
-        rec.state = OrderStateV2::MODIFY_PENDING;
+        rec.state          = OrderStateV2::CANCELED;
+        rec.last_update_ns = now_ns();
+        active_count_.fetch_sub(1, std::memory_order_relaxed);
         // Create new order with modified params
         return create_order(std::string(rec.symbol), std::string(rec.exchange), rec.side, rec.type,
                             new_quantity, new_price);

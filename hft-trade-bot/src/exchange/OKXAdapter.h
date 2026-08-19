@@ -11,6 +11,7 @@
 #include "../data/aligned_types.h"
 #include "../utils/low_latency.h"
 #include "ExchangeBase.h"
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <string>
@@ -76,9 +77,11 @@ class OKXAdapter : public ExchangeBase {
 
     // OKX uses instrument IDs like "BTC-USDT-SWAP"
     static std::string to_inst_id(const std::string& symbol) {
-        // Convert "BTCUSDT" → "BTC-USDT-SWAP"
-        if (symbol.size() >= 4u && symbol.substr(symbol.size() - 4) == "USDT") {
-            std::string base = symbol.substr(0, symbol.size() - 4);
+        // Convert "BTC/USDT" or "BTCUSDT" → "BTC-USDT-SWAP"
+        std::string clean = symbol;
+        clean.erase(std::remove(clean.begin(), clean.end(), '/'), clean.end());
+        if (clean.size() >= 4u && clean.substr(clean.size() - 4) == "USDT") {
+            std::string base = clean.substr(0, clean.size() - 4);
             return base + "-USDT-SWAP";
         }
         return symbol;
