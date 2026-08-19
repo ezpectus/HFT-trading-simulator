@@ -48,6 +48,22 @@
 | #170 | MarketMakingStrategy.on_fill PnL wrong when inventory crosses zero | ✅ Fixed | 464abb2 | 2026-08-16 |
 | #171 | LSTMModel.evaluate direction accuracy broadcasts 2D vs 1D incorrectly | ✅ Fixed | a1ebb4a | 2026-08-16 |
 | #172 | TransformerModel.evaluate class_accuracy crashes: list indexed by boolean array | ✅ Fixed | a1ebb4a | 2026-08-16 |
+| #173 | real_exchange_client.py creates new aiohttp.ClientSession per API call | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #174 | market_replay.py uses time.time() for elapsed timing (NTP jump risk) | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #175 | llm_engine cache key uses int(price) causing collisions | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #176 | model_registry select_ab_model doesn't persist impression counts | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #177 | feature_store list_symbols uses KEYS command blocking Redis | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #178 | real_account place_order doesn't validate quantity > 0 | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #179 | real_market_data start_feed creates duplicate WebSocket connections | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #180 | volatility_surface implied_vol_svi returns nan on negative variance | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #181 | volatility_surface sabr_implied_vol doesn't validate forward/strike > 0 | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #182 | helpers RateLimiter.acquire() infinite loops when rate <= 0 | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #183 | real_market_data _to_okx_inst_id doesn't handle perpetual swap notation | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #184 | fft_analysis power_spectrum calls sum(power) twice | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #185 | real_account close() doesn't handle exceptions from _ws_session.close() | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #186 | Binance bookTicker last price uses ask price instead of 0.0 | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #187 | timescaledb_client insert_candles uses direct key access on dict | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #188 | helpers truncate_dict produces max_items+1 keys | ✅ Fixed | 86b8215 | 2026-08-15 |
 
 ## Proposals
 
@@ -60,7 +76,7 @@
 | Category | Total | Read ✅ | Partial 🔄 | Pending ⏳ |
 |----------|-------|--------|-----------|------------|
 | exchange-simulator/src/ | ~56 | 56 | 0 | 0 |
-| ai-signal-bot/src/ | ~100+ | 25 | 0 | 75+ |
+| ai-signal-bot/src/ | ~100+ | 100+ | 0 | 0 |
 | hft-trade-bot/src/ | ~50+ | 5 | 0 | 45+ |
 | hft-executor/src/ | 3 | 1 | 0 | 2 |
 | web-ui/src/components/ | 227 | 0 | 0 | 227 |
