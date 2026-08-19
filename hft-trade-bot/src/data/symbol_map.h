@@ -72,8 +72,8 @@ class SymbolMap {
     std::unordered_map<uint16_t, std::string> id_to_symbol_;
 };
 
-// Perfect hash lookup table for known symbols (compile-time)
-// This provides O(1) lookup without runtime hash computation
+// Compile-time symbol lookup table for known symbols
+// Uses FNV-1a hash for initial bucket probe, with verification to handle collisions.
 class PerfectSymbolMap {
   public:
     // Compile-time known symbols (can be extended)
@@ -91,10 +91,20 @@ class PerfectSymbolMap {
     };
     static constexpr size_t NUM_KNOWN_SYMBOLS = sizeof(KNOWN_SYMBOLS) / sizeof(KNOWN_SYMBOLS[0]);
 
-    // Get ID using perfect hash (O(1))
+    // Get ID for a known symbol. Returns 0xFFFF if not found.
+    // Uses hash for initial probe, then verifies to avoid collisions.
     [[nodiscard]] static uint16_t get_id(std::string_view symbol) {
-        uint64_t hash = symbol_hash(symbol);
-        return static_cast<uint16_t>(hash % NUM_KNOWN_SYMBOLS);
+        uint16_t bucket = static_cast<uint16_t>(symbol_hash(symbol) % NUM_KNOWN_SYMBOLS);
+        if (bucket < NUM_KNOWN_SYMBOLS && symbol == KNOWN_SYMBOLS[bucket]) {
+            return bucket;
+        }
+        // Hash collision or unknown symbol — fall back to linear search
+        for (size_t i = 0; i < NUM_KNOWN_SYMBOLS; ++i) {
+            if (symbol == KNOWN_SYMBOLS[i]) {
+                return static_cast<uint16_t>(i);
+            }
+        }
+        return 0xFFFF; // Not found
     }
 
     // Get symbol from ID (O(1))

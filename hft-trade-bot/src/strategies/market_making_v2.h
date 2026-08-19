@@ -46,7 +46,7 @@ class MarketMakingV2 {
     };
 
     MarketMakingV2() : MarketMakingV2(Config{}) {}
-    explicit MarketMakingV2(const Config& cfg) : config_(cfg) {}
+    explicit MarketMakingV2(const Config& cfg) : config_(cfg), current_sigma_(cfg.sigma) {}
 
     // Process market data and generate quotes.
     // q = current inventory (positive = long, negative = short)

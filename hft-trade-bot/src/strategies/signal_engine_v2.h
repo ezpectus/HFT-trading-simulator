@@ -596,7 +596,7 @@ class SignalEngineV2 {
         // In the neutral zone (30-70): linear scale from 50
         double rsi_mid   = (params_.rsi_overbought + params_.rsi_oversold) / 2.0;
         double rsi_range = (params_.rsi_overbought - params_.rsi_oversold) / 2.0;
-        sig.rsi_score    = (rsi_mid - rsi_val) / rsi_range; // +1 oversold, -1 overbought
+        sig.rsi_score    = rsi_range > 1e-12 ? (rsi_mid - rsi_val) / rsi_range : 0.0;
         sig.rsi_score    = std::fmax(-1.0, std::fmin(1.0, sig.rsi_score));
 
         // ════ 3. Multi-Level OBI (5/10/20) with Proximity Weighting ════
@@ -614,7 +614,9 @@ class SignalEngineV2 {
         sig.obi_score =
             std::fmax(-1.0, std::fmin(1.0, std::fabs(obi_combined) > params_.obi_threshold
                                                ? (obi_combined > 0 ? 1.0 : -1.0)
-                                               : obi_combined / params_.obi_threshold));
+                                               : (params_.obi_threshold > 1e-12
+                                                      ? obi_combined / params_.obi_threshold
+                                                      : 0.0)));
 
         // ════ 4. VWAP Deviation with Standard Deviation Bands ════
         // VWAP = Σ(tp × vol) / Σ(vol), tp = (H+L+C)/3
@@ -649,7 +651,9 @@ class SignalEngineV2 {
         } else {
             // Fallback: use bps deviation
             double dev_bps = vwap > 0 ? (current_price - vwap) / vwap * 10000.0 : 0.0;
-            sig.vwap_score = -dev_bps / params_.vwap_dev_threshold;
+            sig.vwap_score = params_.vwap_dev_threshold > 1e-12
+                                 ? -dev_bps / params_.vwap_dev_threshold
+                                 : 0.0;
         }
         sig.vwap_score = std::fmax(-1.0, std::fmin(1.0, sig.vwap_score));
 
@@ -701,7 +705,9 @@ class SignalEngineV2 {
         sig.adx_score = adx_val; // Raw 0-100
 
         // ADX filter factor: 0 when ADX=0, 1 when ADX=threshold, >1 when strong
-        double adx_filter = adx_val / params_.adx_trend_threshold;
+        double adx_filter = params_.adx_trend_threshold > 1e-12
+                                ? adx_val / params_.adx_trend_threshold
+                                : 0.0;
         adx_filter        = std::fmax(0.0, std::fmin(1.5, adx_filter));
 
         // ════ 6. Pressure Model — Body Direction + Trade Flow + Toxicity ════
@@ -738,7 +744,9 @@ class SignalEngineV2 {
         sig.pressure_score =
             std::fmax(-1.0, std::fmin(1.0, std::fabs(raw_pressure) > params_.pressure_threshold
                                                ? (raw_pressure > 0 ? 1.0 : -1.0)
-                                               : raw_pressure / params_.pressure_threshold));
+                                               : (params_.pressure_threshold > 1e-12
+                                                      ? raw_pressure / params_.pressure_threshold
+                                                      : 0.0)));
 
         // ════ Composite Weighted Score ════
         // ADX gates directional confidence: in ranging markets, reduce signal strength
@@ -755,22 +763,31 @@ class SignalEngineV2 {
         // Apply ADX filter: in ranging market (ADX < threshold), reduce composite
         sig.composite_score *= (0.5 + 0.5 * adx_normalized);
 
-        // ════ ATR for Dynamic SL/TP ════
+        // ════ ATR for Dynamic SL/TP (Wilder's smoothing — matches InlineATR) ════
         double atr = 0.0;
         {
-            double tr_sum    = 0.0;
+            int    atr_p     = params_.atr_period;
             int    atr_count = 0;
-            size_t start     = n_candles - static_cast<size_t>(params_.atr_period);
-            for (size_t i = start; i < n_candles; ++i) {
-                if (i == 0) continue;
-                double tr =
-                    std::fmax(highs[i] - lows[i], std::fmax(std::fabs(highs[i] - closes[i - 1]),
-                                                            std::fabs(lows[i] - closes[i - 1])));
-                tr_sum += tr;
+            double prev_cl   = 0.0;
+            for (size_t i = 0; i < n_candles; ++i) {
+                double tr = (i > 0)
+                                ? std::fmax(highs[i] - lows[i],
+                                            std::fmax(std::fabs(highs[i] - closes[i - 1]),
+                                                      std::fabs(lows[i] - closes[i - 1])))
+                                : highs[i] - lows[i];
+                if (atr_count == 0) {
+                    atr = tr;
+                } else if (atr_count < atr_p) {
+                    atr += tr;
+                    if (atr_count + 1 == atr_p) atr /= static_cast<double>(atr_p);
+                } else {
+                    double inv_p = 1.0 / static_cast<double>(atr_p);
+                    atr = atr * (1.0 - inv_p) + tr * inv_p;
+                }
                 ++atr_count;
+                prev_cl = closes[i];
             }
-            // Multiply by inverse instead of dividing — saves one division
-            atr = atr_count > 0 ? tr_sum * (1.0 / atr_count) : current_price * 0.01;
+            (void)prev_cl;
         }
         if (atr < 1e-12) atr = current_price * 0.01;
 
@@ -791,8 +808,8 @@ class SignalEngineV2 {
         // ════ Direction + Confidence + Leverage ════
         if (sig.composite_score > params_.buy_threshold) {
             sig.direction = FastSignal::Direction::LONG;
-            double t =
-                (sig.composite_score - params_.buy_threshold) / (1.0 - params_.buy_threshold);
+            double denom = 1.0 - params_.buy_threshold;
+            double t = denom > 1e-12 ? (sig.composite_score - params_.buy_threshold) / denom : 1.0;
             t               = std::fmax(0.0, std::fmin(1.0, t));
             sig.confidence  = static_cast<uint8_t>(std::fmin(100.0, 60.0 + t * 40.0));
             sig.entry_price = current_price;
@@ -813,8 +830,8 @@ class SignalEngineV2 {
             last_signal_ms_ = now_ms;
         } else if (sig.composite_score < params_.sell_threshold) {
             sig.direction = FastSignal::Direction::SHORT;
-            double t =
-                (-sig.composite_score + params_.sell_threshold) / (1.0 + params_.sell_threshold);
+            double denom = 1.0 + params_.sell_threshold;
+            double t = denom > 1e-12 ? (-sig.composite_score + params_.sell_threshold) / denom : 1.0;
             t               = std::fmax(0.0, std::fmin(1.0, t));
             sig.confidence  = static_cast<uint8_t>(std::fmin(100.0, 60.0 + t * 40.0));
             sig.entry_price = current_price;
@@ -963,19 +980,21 @@ class SignalEngineV2 {
 
         double rsi_mid   = (params_.rsi_overbought + params_.rsi_oversold) / 2.0;
         double rsi_range = (params_.rsi_overbought - params_.rsi_oversold) / 2.0;
-        sig.rsi_score    = std::fmax(-1.0, std::fmin(1.0, (rsi_mid - rsi_val) / rsi_range));
+        sig.rsi_score    = std::fmax(-1.0, std::fmin(1.0, rsi_range > 1e-12 ? (rsi_mid - rsi_val) / rsi_range : 0.0));
 
         sig.obi_score =
             std::fmax(-1.0, std::fmin(1.0, std::fabs(obi_combined) > params_.obi_threshold
                                                ? (obi_combined > 0 ? 1.0 : -1.0)
-                                               : obi_combined / params_.obi_threshold));
+                                               : (params_.obi_threshold > 1e-12
+                                                      ? obi_combined / params_.obi_threshold
+                                                      : 0.0)));
 
         double band_width = params_.vwap_band_mult * vwap_std;
         if (band_width > 1e-12) {
             sig.vwap_score = std::fmax(-1.0, std::fmin(1.0, (vwap - current_price) / band_width));
         } else {
             double dev_bps = vwap > 0 ? (current_price - vwap) / vwap * 10000.0 : 0.0;
-            sig.vwap_score = std::fmax(-1.0, std::fmin(1.0, -dev_bps / params_.vwap_dev_threshold));
+            sig.vwap_score = std::fmax(-1.0, std::fmin(1.0, params_.vwap_dev_threshold > 1e-12 ? -dev_bps / params_.vwap_dev_threshold : 0.0));
         }
 
         sig.adx_score = adx_val;
@@ -983,10 +1002,12 @@ class SignalEngineV2 {
         sig.pressure_score =
             std::fmax(-1.0, std::fmin(1.0, std::fabs(raw_pressure) > params_.pressure_threshold
                                                ? (raw_pressure > 0 ? 1.0 : -1.0)
-                                               : raw_pressure / params_.pressure_threshold));
+                                               : (params_.pressure_threshold > 1e-12
+                                                      ? raw_pressure / params_.pressure_threshold
+                                                      : 0.0)));
 
         // Composite
-        double adx_normalized    = std::fmin(1.0, adx_val / params_.adx_trend_threshold);
+        double adx_normalized    = params_.adx_trend_threshold > 1e-12 ? std::fmin(1.0, adx_val / params_.adx_trend_threshold) : 0.0;
         double directional_scale = params_.adx_trend_threshold > 0
                                        ? std::fmin(1.0, adx_val / params_.adx_trend_threshold)
                                        : 1.0;
@@ -1018,8 +1039,8 @@ class SignalEngineV2 {
         // Direction + confidence
         if (sig.composite_score > params_.buy_threshold) {
             sig.direction = FastSignal::Direction::LONG;
-            double t =
-                (sig.composite_score - params_.buy_threshold) / (1.0 - params_.buy_threshold);
+            double denom = 1.0 - params_.buy_threshold;
+            double t = denom > 1e-12 ? (sig.composite_score - params_.buy_threshold) / denom : 1.0;
             t               = std::fmax(0.0, std::fmin(1.0, t));
             sig.confidence  = static_cast<uint8_t>(std::fmin(100.0, 60.0 + t * 40.0));
             sig.entry_price = current_price;
@@ -1035,8 +1056,8 @@ class SignalEngineV2 {
             last_signal_ms_ = now_ms;
         } else if (sig.composite_score < params_.sell_threshold) {
             sig.direction = FastSignal::Direction::SHORT;
-            double t =
-                (-sig.composite_score + params_.sell_threshold) / (1.0 + params_.sell_threshold);
+            double denom = 1.0 + params_.sell_threshold;
+            double t = denom > 1e-12 ? (-sig.composite_score + params_.sell_threshold) / denom : 1.0;
             t               = std::fmax(0.0, std::fmin(1.0, t));
             sig.confidence  = static_cast<uint8_t>(std::fmin(100.0, 60.0 + t * 40.0));
             sig.entry_price = current_price;

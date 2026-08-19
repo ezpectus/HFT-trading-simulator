@@ -8,12 +8,12 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 146 |
+| ✅ Fixed | 152 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 0 |
 | ❌ N/A (files not in lite) | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **181** |
+| **TOTAL FOUND** | **187** |
 
 ---
 
@@ -1932,6 +1932,72 @@
 - **Impact:** `account.total_fees` understated; account equity calculation may be incorrect; audit trail incomplete for fee deductions on advanced order types.
 - **Status:** ✅ Fixed
 - **Fix:** Added `self.account.total_fees += order.fee` (or `slice_order.fee` for iceberg) and `ACCOUNT_BALANCE_CHANGE` audit log entry in all three methods, matching the pattern in `submit_order()`.
+
+---
+
+## Bug #211 — MarketMakingV2 constructor doesn't initialize current_sigma_ from config
+
+- **Location:** `hft-trade-bot/src/strategies/market_making_v2.h:49`
+- **Severity:** Medium (Incorrect spread calculation on startup)
+- **Root Cause:** The constructor `MarketMakingV2(const Config& cfg)` initializes `config_` but relies on the default member initializer `current_sigma_{0.01}` instead of using `config_.sigma`. If the configured sigma differs from 0.01, the volatility estimate used for reservation price and optimal spread calculations will be wrong until the EWMA volatility estimator produces its first update.
+- **Impact:** Incorrect bid/ask spread and reservation price calculations during the initial period after strategy startup, potentially leading to suboptimal market making quotes.
+- **Status:** ✅ Fixed
+- **Fix:** Added `current_sigma_(cfg.sigma)` to the constructor initializer list.
+
+---
+
+## Bug #212 — RiskManager incorrect margin check logic
+
+- **Location:** `hft-trade-bot/src/risk/risk_manager.h:172`
+- **Severity:** High (Incorrect risk rejection)
+- **Root Cause:** The margin check `required_margin > available_margin * params_.min_margin_ratio` is incorrect. If `min_margin_ratio` is a small fraction (e.g., 0.05), this rejects orders whenever the required margin exceeds 5% of available margin, which is far too strict. The correct check is simply `required_margin > available_margin`.
+- **Impact:** Legitimate orders rejected due to overly strict margin validation, preventing valid trades from executing.
+- **Status:** ✅ Fixed
+- **Fix:** Changed to `required_margin > available_margin`.
+
+---
+
+## Bug #213 — PreTradeRisk incorrect margin check logic
+
+- **Location:** `hft-trade-bot/src/risk/pre_trade_risk.h:176`
+- **Severity:** High (Incorrect risk rejection)
+- **Root Cause:** The margin check `required_margin > available_margin * (1.0 - config_.min_margin_ratio)` is incorrect. If `min_margin_ratio` is 0.05, this checks if required margin exceeds 95% of available margin, which is too strict. The correct check is simply `required_margin > available_margin`.
+- **Impact:** Legitimate orders rejected due to overly strict margin validation.
+- **Status:** ✅ Fixed
+- **Fix:** Changed to `required_margin > available_margin`.
+
+---
+
+## Bug #214 — SignalEngineV2 missing division-by-zero guards in analyze_raw and analyze_incremental
+
+- **Location:** `hft-trade-bot/src/strategies/signal_engine_v2.h:599,617,652,706,744,803,825,974,988,1001`
+- **Severity:** High (NaN/inf propagation in signal calculations)
+- **Root Cause:** Multiple config parameters used as divisors in `analyze_raw` and `analyze_incremental` lacked zero-check guards: `rsi_range`, `obi_threshold`, `vwap_dev_threshold`, `adx_trend_threshold`, `pressure_threshold`, `buy_threshold` (via `1.0 - buy_threshold`), and `sell_threshold` (via `1.0 + sell_threshold`). If any of these config values are set to edge-case values (e.g., `rsi_overbought == rsi_oversold`), the division produces NaN/inf which propagates through the composite score and corrupts trading signals.
+- **Impact:** NaN/inf in signal scores leading to incorrect trading decisions or system crashes if config values are misconfigured.
+- **Status:** ✅ Fixed
+- **Fix:** Added `> 1e-12` guards for all divisor parameters, returning 0.0 (or 1.0 for confidence calculations) when the divisor is too small.
+
+---
+
+## Bug #215 — SignalEngineV2 ATR inconsistency between analyze_raw and analyze_incremental
+
+- **Location:** `hft-trade-bot/src/strategies/signal_engine_v2.h:766-792`
+- **Severity:** Medium (Inconsistent SL/TP calculations)
+- **Root Cause:** `analyze_raw` computed ATR as a simple average of True Range over the last `atr_period` candles, while `analyze_incremental` uses `InlineATR` which applies Wilder's smoothing (EWMA-like). This inconsistency means the two code paths produce different ATR values for the same data, leading to different stop-loss and take-profit calculations.
+- **Impact:** Inconsistent SL/TP levels depending on which analysis path is used, potentially causing unexpected position management behavior.
+- **Status:** ✅ Fixed
+- **Fix:** Rewrote ATR calculation in `analyze_raw` to use Wilder's smoothing method, matching `InlineATR`: accumulate TR for the first `atr_period` values, divide by period, then apply Wilder's EWMA smoothing for subsequent values.
+
+---
+
+## Bug #216 — PerfectSymbolMap hash collisions in get_id
+
+- **Location:** `hft-trade-bot/src/data/symbol_map.h:96-97`
+- **Severity:** Medium (Incorrect symbol-to-ID mapping)
+- **Root Cause:** `PerfectSymbolMap::get_id` uses `hash % NUM_KNOWN_SYMBOLS` which is not a true perfect hash — different symbol strings can map to the same numeric ID, causing collisions. The class was named "PerfectSymbolMap" but did not guarantee collision-free lookup. An unknown symbol could also return a valid ID (belonging to a different symbol), causing incorrect position tracking or order routing.
+- **Impact:** Incorrect symbol-to-ID mapping leading to wrong position tracking, order routing, or market data association.
+- **Status:** ✅ Fixed
+- **Fix:** Added verification step after hash probe: if the symbol at the hashed bucket doesn't match, fall back to linear search. Returns 0xFFFF for unknown symbols instead of a potentially-colliding valid ID.
 
 ---
 

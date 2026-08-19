@@ -169,7 +169,7 @@ class RiskManager {
 
         // 8. Margin check
         double required_margin = order_notional / std::max(1, leverage);
-        if (required_margin > available_margin * params_.min_margin_ratio) {
+        if (required_margin > available_margin) {
             return {false, "Insufficient margin", 5};
         }
 

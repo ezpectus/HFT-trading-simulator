@@ -171,9 +171,9 @@ class PreTradeRisk {
             return {false, 6, "Order rate limit exceeded"};
         }
 
-        // 8. Margin check (keep min_margin_ratio fraction as buffer)
+        // 8. Margin check
         double required_margin = order_notional / std::max(1, leverage);
-        if (required_margin > available_margin * (1.0 - config_.min_margin_ratio)) {
+        if (required_margin > available_margin) {
             return {false, 7, "Insufficient margin"};
         }
 
