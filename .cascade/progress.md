@@ -64,6 +64,7 @@
 | #186 | Binance bookTicker last price uses ask price instead of 0.0 | ✅ Fixed | 86b8215 | 2026-08-15 |
 | #187 | timescaledb_client insert_candles uses direct key access on dict | ✅ Fixed | 86b8215 | 2026-08-15 |
 | #188 | helpers truncate_dict produces max_items+1 keys | ✅ Fixed | 86b8215 | 2026-08-15 |
+| #210 | exchange.py missing total_fees update and audit log in advanced order execution | ✅ Fixed | — | 2026-08-16 |
 
 ## Proposals
 

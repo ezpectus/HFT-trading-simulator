@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 98 |
+| ✅ Fixed | 99 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 35 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **135** |
+| **TOTAL FOUND** | **136** |
 
 ---
 
@@ -1920,6 +1920,17 @@
 - **Impact:** No functional impact, but indicates copy-paste error and adds unnecessary computation.
 - **Status:** ✅ Fixed
 - **Fix:** Removed the dead `liquidated_pnl` variable.
+
+---
+
+## Bug #210 — exchange.py missing total_fees update and audit log in advanced order execution
+
+- **Location:** `exchange_simulator/exchange.py:220-243, 268-291, 322-345`
+- **Severity:** Medium (Accounting inconsistency / audit trail gap)
+- **Root Cause:** The three Phase 3 helper methods — `_execute_limit_order`, `_execute_market_order`, and `_execute_iceberg_slice` — deduct fees from `account.balance` but fail to update `account.total_fees` and fail to log the `ACCOUNT_BALANCE_CHANGE` audit event. The `submit_order()` method correctly does both (lines 635-646). This means `total_fees` is underreported when stop-limit, trailing stop, or iceberg orders execute, and the audit log is missing balance change entries for these order types.
+- **Impact:** `account.total_fees` understated; account equity calculation may be incorrect; audit trail incomplete for fee deductions on advanced order types.
+- **Status:** ✅ Fixed
+- **Fix:** Added `self.account.total_fees += order.fee` (or `slice_order.fee` for iceberg) and `ACCOUNT_BALANCE_CHANGE` audit log entry in all three methods, matching the pattern in `submit_order()`.
 
 ---
 

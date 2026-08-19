@@ -218,9 +218,19 @@ class SimulatedExchange:
         order.fee = round(notional * self.fee_pct / 100, 4)
         
         # Update account
+        old_balance = self.account.balance
         self.account.balance -= order.fee
+        self.account.total_fees += order.fee
         self._update_position(order, None, None)
         
+        self._audit_logger.log(
+            event_type=AuditEventType.ACCOUNT_BALANCE_CHANGE,
+            exchange=self.exchange_id,
+            old_value=old_balance,
+            new_value=self.account.balance,
+            reason="FEE",
+            metadata={"fee": order.fee, "order_id": order.id},
+        )
         self._audit_logger.log(
             event_type=AuditEventType.ORDER_FILLED,
             exchange=self.exchange_id,
@@ -256,9 +266,19 @@ class SimulatedExchange:
         order.fee = round(notional * self.fee_pct / 100, 4)
 
         # Update account
+        old_balance = self.account.balance
         self.account.balance -= order.fee
+        self.account.total_fees += order.fee
         self._update_position(order, None, None)
 
+        self._audit_logger.log(
+            event_type=AuditEventType.ACCOUNT_BALANCE_CHANGE,
+            exchange=self.exchange_id,
+            old_value=old_balance,
+            new_value=self.account.balance,
+            reason="FEE",
+            metadata={"fee": order.fee, "order_id": order.id},
+        )
         self._audit_logger.log(
             event_type=AuditEventType.ORDER_FILLED,
             exchange=self.exchange_id,
@@ -300,9 +320,19 @@ class SimulatedExchange:
         slice_order.filled_quantity = slice_qty
 
         # Update account
+        old_balance = self.account.balance
         self.account.balance -= slice_order.fee
+        self.account.total_fees += slice_order.fee
         self._update_position(slice_order, None, None)
         
+        self._audit_logger.log(
+            event_type=AuditEventType.ACCOUNT_BALANCE_CHANGE,
+            exchange=self.exchange_id,
+            old_value=old_balance,
+            new_value=self.account.balance,
+            reason="FEE",
+            metadata={"fee": slice_order.fee, "order_id": slice_order.id},
+        )
         self._audit_logger.log(
             event_type=AuditEventType.ORDER_FILLED,
             exchange=self.exchange_id,
