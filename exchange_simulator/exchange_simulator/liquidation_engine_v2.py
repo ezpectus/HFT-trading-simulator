@@ -133,8 +133,6 @@ class LiquidationEngineV2:
         original_qty = pos.qty  # Capture before reduction
         pos.qty -= qty_to_close
         margin_ratio = qty_to_close / original_qty if original_qty > 0 else 0.0
-        # PnL for the liquidated portion
-        liquidated_pnl = pnl * margin_ratio
         # Margin released from the liquidated portion
         released_margin = pos.margin * margin_ratio
         # Remaining margin = original margin - released margin

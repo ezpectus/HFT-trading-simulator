@@ -1868,6 +1868,61 @@
 
 ---
 
+## Bug #205 — latency_simulation.py non-deterministic RNG breaks reproducibility
+
+- **Location:** `exchange_simulator/exchange_simulator/latency_simulation.py:47`
+- **Severity:** Medium (Reproducibility)
+- **Root Cause:** `LatencySimulator.__init__` creates `self._rng = np.random.default_rng()` without a seed, while all other simulator components (`OrderBookRealism`, `LiquidationEngineV2`, `FundingRateSimulator`, `MarketMicrostructure`) use `seed=42`. This means latency simulations produce different results each run, breaking reproducibility of backtests and strategy tests that include latency modeling.
+- **Impact:** Backtests with latency simulation cannot be replicated. Results vary across runs even with identical inputs, making A/B comparisons unreliable.
+- **Status:** ✅ Fixed
+- **Fix:** Added `seed: int = 42` parameter to `__init__` and pass it to `np.random.default_rng(seed=seed)`, consistent with all other simulators and `config.yaml` `seed: 42`.
+
+---
+
+## Bug #206 — order_book_realism.py spoof_orders_active can go negative
+
+- **Location:** `exchange_simulator/exchange_simulator/order_book_realism.py:238`
+- **Severity:** Low (Stats correctness)
+- **Root Cause:** In `process_spoof_cancellations()`, `self.spoof_orders_active -= cancelled` is applied without a `max(0, ...)` guard. In contrast, `match_market_order()` correctly uses `max(0, self.spoof_orders_active - 1)` when consuming spoof orders. If spoof orders are consumed by matching and then `process_spoof_cancellations` runs, the count could become inconsistent and go negative in edge cases.
+- **Impact:** `spoof_orders_active` stat could report a negative number, misleading monitoring and analytics.
+- **Status:** ✅ Fixed
+- **Fix:** Changed to `self.spoof_orders_active = max(0, self.spoof_orders_active - cancelled)`, consistent with the guard used in `match_market_order()`.
+
+---
+
+## Bug #207 — market_replay.py seek() mixes monotonic time with recording timestamps
+
+- **Location:** `ai-signal-bot/src/data_collection/market_replay.py:228`
+- **Severity:** Medium (Playback correctness)
+- **Root Cause:** `seek()` sets `self._start_ts = time.monotonic() - timestamp`, but `timestamp` is a recording timestamp (Unix epoch seconds from `time.time()`), while `_start_ts` is compared with `time.monotonic()` (monotonic clock, arbitrary epoch). In `play()`, the delay calculation is `delay = (event.timestamp - first_ts) / speed - (time.monotonic() - self._start_ts)`. Setting `_start_ts = time.monotonic() - timestamp` mixes time scales, making the seek offset completely wrong — playback would jump to an arbitrary position or produce huge delays.
+- **Impact:** Seek functionality is completely broken. Users cannot jump to a specific timestamp during replay.
+- **Status:** ✅ Fixed
+- **Fix:** Changed to `self._start_ts = time.monotonic() - offset` where `offset` is the relative offset from the first event's timestamp: `offset = (timestamp - self._events[0].timestamp) / self._speed` if events are loaded.
+
+---
+
+## Bug #208 — fix_client.py sequence gap discards current message without queuing
+
+- **Location:** `ai-signal-bot/src/communication/fix_client.py:348-359`
+- **Severity:** Medium (Protocol compliance / data loss)
+- **Root Cause:** When a sequence gap is detected (`incoming_seq > self.incoming_seq`), the code sends a ResendRequest for `[self.incoming_seq, incoming_seq - 1]` and returns without processing the current message. The current message (seq = `incoming_seq`) is not included in the resend range and is not queued for later processing. It is permanently lost. The FIX protocol requires the receiver to either queue the out-of-sequence message or include it in the resend range.
+- **Impact:** Messages received during a sequence gap are silently dropped. Execution reports or market data messages could be lost, leading to missing trades or stale prices.
+- **Status:** ✅ Fixed
+- **Fix:** Added a pending message queue. When a gap is detected, the current message is stored in `self._pending_messages`. After the gap is filled (incoming_seq catches up), pending messages are processed in order.
+
+---
+
+## Bug #209 — liquidation_engine_v2.py dead variable liquidated_pnl
+
+- **Location:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py:137`
+- **Severity:** Low (Dead code)
+- **Root Cause:** `liquidated_pnl = pnl * margin_ratio` is computed on line 137 but never used. The same expression is recomputed on line 145 as `loss = abs(min(pnl * margin_ratio, 0))`. The `liquidated_pnl` variable is dead code that adds confusion.
+- **Impact:** No functional impact, but indicates copy-paste error and adds unnecessary computation.
+- **Status:** ✅ Fixed
+- **Fix:** Removed the dead `liquidated_pnl` variable.
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

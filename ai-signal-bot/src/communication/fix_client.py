@@ -136,6 +136,7 @@ class FixSession:
         self._reader_task: asyncio.Task | None = None
         self._heartbeat_task: asyncio.Task | None = None
         self._writer: asyncio.StreamWriter | None = None
+        self._pending_messages: list[FixMessage] = []
         self._load_seq_nums()
 
         # Callbacks
@@ -347,7 +348,9 @@ class FixSession:
         # Check for gap
         if incoming_seq > self.incoming_seq:
             logger.warning(f"FIX sequence gap: expected={self.incoming_seq} got={incoming_seq}")
-            # Send ResendRequest
+            # Queue the current message for later processing
+            self._pending_messages.append(msg)
+            # Send ResendRequest for missing messages
             resend = self._build_msg("2", [
                 (7, str(self.incoming_seq)),
                 (16, str(incoming_seq - 1)),
@@ -361,6 +364,21 @@ class FixSession:
         self.incoming_seq = incoming_seq + 1
         self._save_seq_nums()
 
+        await self._process_message(msg)
+
+        # Process any pending messages that are now in sequence
+        while self._pending_messages:
+            next_pending = self._pending_messages[0]
+            if next_pending.seq_num == self.incoming_seq:
+                self._pending_messages.pop(0)
+                self.incoming_seq = next_pending.seq_num + 1
+                self._save_seq_nums()
+                await self._process_message(next_pending)
+            else:
+                break
+
+    async def _process_message(self, msg: FixMessage):
+        """Process a single FIX message by dispatching to callbacks."""
         if msg.is_logon:
             self.state = "LOGGED_IN"
             logger.info("FIX session logged in")

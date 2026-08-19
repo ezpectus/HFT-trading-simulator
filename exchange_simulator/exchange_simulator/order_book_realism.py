@@ -235,7 +235,7 @@ class OrderBookRealism:
                     to_remove.append(price)
             for p in to_remove:
                 del side_book[p]
-        self.spoof_orders_active -= cancelled
+        self.spoof_orders_active = max(0, self.spoof_orders_active - cancelled)
         return cancelled
 
     def match_market_order(self, side: str, qty: float) -> list[dict]:

@@ -223,9 +223,17 @@ class MarketReplay:
         self._paused = False
 
     def seek(self, timestamp: float) -> None:
-        """Seek to a specific timestamp in the recording."""
-        # Will be applied on next play
-        self._start_ts = time.monotonic() - timestamp
+        """Seek to a specific timestamp in the recording.
+
+        Adjusts _start_ts so that events at `timestamp` play now.
+        Uses relative offset from first event to avoid mixing time scales.
+        """
+        if not self._events:
+            self.load()
+        if not self._events:
+            return
+        offset = (timestamp - self._events[0].timestamp) / max(self._speed, 1.0)
+        self._start_ts = time.monotonic() - offset
 
     # ── Export ──
 

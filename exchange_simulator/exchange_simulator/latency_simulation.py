@@ -41,10 +41,11 @@ EXCHANGE_LATENCY_PROFILES = {
 class LatencySimulator:
     """Simulate network latency for exchange messages."""
 
-    def __init__(self, exchange: str = "binance", config: LatencyConfig | None = None):
+    def __init__(self, exchange: str = "binance", config: LatencyConfig | None = None,
+                 seed: int = 42):
         self.exchange = exchange
         self.config = config or EXCHANGE_LATENCY_PROFILES.get(exchange, LatencyConfig())
-        self._rng = np.random.default_rng()
+        self._rng = np.random.default_rng(seed=seed)
         self._reconnect_attempts = 0
         self._is_connected = True
         self._total_messages = 0
