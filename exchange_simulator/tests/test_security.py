@@ -54,6 +54,13 @@ def mock_exchange():
     ex.account.leverage = 1
     ex.account.positions = []
     ex.get_account_status.return_value = {"balance": 100000, "equity": 100000}
+    # Configure submit_order to return a serializable mock order
+    fill_order = MagicMock()
+    fill_order.to_dict.return_value = {"id": "test_fill", "status": "FILLED", "symbol": "BTC/USDT", "side": "BUY", "quantity": 1.0, "price": 65000.0, "filled_price": 65000.0, "fee": 0.0}
+    fill_order.status.value = "FILLED"
+    fill_order.filled_price = 65000.0
+    fill_order.fee = 0.0
+    ex.submit_order.return_value = fill_order
     return ex
 
 

@@ -4,7 +4,7 @@ import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from ai_signal_bot.src.communication.ws_connection_pool import (
+from src.communication.ws_connection_pool import (
     PooledConnection,
     WebSocketConnectionPool,
 )

@@ -276,6 +276,7 @@ async def test_msgpack_serialization():
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Requires live Binance API — skipped in CI/offline")
 async def test_cache_warming():
     """Test that cache warming works correctly."""
     symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]

@@ -3,10 +3,10 @@
 
 import numpy as np
 import pytest
-from ai_signal_bot.src.portfolio.black_litterman import BlackLittermanModel, View
-from ai_signal_bot.src.portfolio.markowitz import EfficientFrontierPoint, MarkowitzOptimizer, PortfolioResult
-from ai_signal_bot.src.portfolio.rebalancing import RebalanceOrder, RebalanceTrigger, RebalancingStrategy
-from ai_signal_bot.src.portfolio.risk_parity import RiskContribution, RiskParityOptimizer
+from src.portfolio.black_litterman import BlackLittermanModel, View
+from src.portfolio.markowitz import EfficientFrontierPoint, MarkowitzOptimizer, PortfolioResult
+from src.portfolio.rebalancing import RebalanceOrder, RebalanceTrigger, RebalancingStrategy
+from src.portfolio.risk_parity import RiskContribution, RiskParityOptimizer
 
 
 class TestMarkowitzOptimizer:

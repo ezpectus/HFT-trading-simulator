@@ -3,10 +3,10 @@
 
 import numpy as np
 import pytest
-from ai_signal_bot.src.risk.cvar import CVaRCalculator, CVaRResult
-from ai_signal_bot.src.risk.position_sizing import DynamicPositionSizer, PositionSizingResult
-from ai_signal_bot.src.risk.stress_test import StressTestResult, StressTestScenario
-from ai_signal_bot.src.risk.var import VaRCalculator, VaRResult
+from src.risk.cvar import CVaRCalculator, CVaRResult
+from src.risk.position_sizing import DynamicPositionSizer, PositionSizingResult
+from src.risk.stress_test import StressTestResult, StressTestScenario
+from src.risk.var import VaRCalculator, VaRResult
 
 
 class TestVaRCalculator:

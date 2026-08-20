@@ -14,9 +14,12 @@ from exchange_simulator.metrics import (
 
 def _clear_prometheus_metrics():
     """Unregister exchange_simulator metrics to avoid duplicate registration errors."""
-    names_to_remove = [n for n in list(REGISTRY._names_to_collectors) if 'exchange_simulator' in n]
-    for name in names_to_remove:
-        REGISTRY.unregister(REGISTRY._names_to_collectors[name])
+    collectors = set()
+    for name in list(REGISTRY._names_to_collectors):
+        if 'exchange_simulator' in name:
+            collectors.add(REGISTRY._names_to_collectors[name])
+    for c in collectors:
+        REGISTRY.unregister(c)
 
 
 @pytest.fixture
@@ -116,6 +119,7 @@ def test_update_error_rate(metrics: ExchangeSimulatorMetrics) -> None:
 
 def test_get_metrics_returns_instance() -> None:
     """get_metrics should return a singleton instance."""
+    _clear_prometheus_metrics()
     m1 = get_metrics()
     m2 = get_metrics()
     assert m1 is m2

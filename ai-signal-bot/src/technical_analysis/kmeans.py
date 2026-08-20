@@ -11,12 +11,6 @@ from __future__ import annotations
 import random
 import math
 
-try:
-    import numpy as np
-    _HAS_NUMPY = True
-except ImportError:
-    _HAS_NUMPY = False
-
 DEFAULT_MAX_ITER = 100
 DEFAULT_TOL = 1e-6
 MIN_VARIANCE = 1e-10

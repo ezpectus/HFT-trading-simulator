@@ -3,11 +3,11 @@
 
 import numpy as np
 import pytest
-from ai_signal_bot.src.ml.environment import Action, TradingEnv
-from ai_signal_bot.src.ml.feature_store import FeatureStore
-from ai_signal_bot.src.ml.lstm_model import LSTMConfig, LSTMModel
-from ai_signal_bot.src.ml.rl_agent import DQNAgent, PPOAgent, RLConfig
-from ai_signal_bot.src.ml.transformer_model import TransformerConfig, TransformerModel
+from src.ml.environment import Action, TradingEnv
+from src.ml.feature_store import FeatureStore
+from src.ml.lstm_model import LSTMConfig, LSTMModel
+from src.ml.rl_agent import DQNAgent, PPOAgent, RLConfig
+from src.ml.transformer_model import TransformerConfig, TransformerModel
 
 
 class TestLSTMModel:

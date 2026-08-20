@@ -84,7 +84,7 @@ class OptionsStrategies:
         else:
             # Short straddle: break-evens at K +/- total_premium
             break_evens = [K - total_premium, K + total_premium]
-            max_profit = total_premium
+            max_profit = -total_premium  # Premium received (positive)
             max_loss = float('inf')  # Unlimited downside
 
         return StrategyResult(
@@ -135,7 +135,7 @@ class OptionsStrategies:
         else:
             # Short strangle: break-evens at K_call + premium and K_put - premium
             break_evens = [K_put - total_premium, K_call + total_premium]
-            max_profit = total_premium
+            max_profit = -total_premium  # Premium received (positive)
             max_loss = float('inf')
 
         return StrategyResult(

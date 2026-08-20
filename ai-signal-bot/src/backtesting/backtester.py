@@ -460,7 +460,7 @@ class Backtester:
             "=" * 60,
             "",
         ]
-        logger.info("\n".join(lines))
+        print("\n".join(lines))
 
     def run_multi_strategy(
         self,
