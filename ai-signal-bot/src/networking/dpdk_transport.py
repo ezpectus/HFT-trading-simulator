@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import logging
 import socket
+import struct
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -94,7 +95,7 @@ class DPDKTransport:
                 self._initialized = True
                 logger.info("[DPDK] Initialized successfully")
                 return True
-            except Exception as e:
+            except (OSError, RuntimeError) as e:
                 logger.warning(f"[DPDK] Init failed: {e}, falling back to sockets")
 
         # Fallback: raw UDP socket
@@ -107,7 +108,7 @@ class DPDKTransport:
             self._socket.setblocking(False)
             self._initialized = True
             return True
-        except Exception as e:
+        except (OSError, RuntimeError) as e:
             logger.error(f"[DPDK] Socket fallback failed: {e}")
             return False
 
@@ -124,7 +125,8 @@ class DPDKTransport:
             if _DPDK_AVAILABLE:
                 # DPDK polling: rte_eth_rx_burst()
                 # packets = rte_eth_rx_burst(port_id, queue_id, bufs, BURST_SIZE)
-                pass
+                logger.warning("[DPDK] DPDK rx_burst not implemented — falling back to socket")
+                time.sleep(0.0001)
             else:
                 # Socket fallback
                 try:
@@ -137,7 +139,7 @@ class DPDKTransport:
                         on_packet(packet)
                 except BlockingIOError:
                     time.sleep(0.0001)  # 100μs sleep
-                except Exception as e:
+                except (OSError, struct.error, UnicodeDecodeError) as e:
                     self._stats["rx_drops"] += 1
                     logger.debug(f"[DPDK] RX error: {e}")
 
@@ -148,14 +150,15 @@ class DPDKTransport:
 
         if _DPDK_AVAILABLE:
             # DPDK TX: rte_eth_tx_burst()
-            pass
+            logger.warning("[DPDK] DPDK tx_burst not implemented — falling back to socket")
+            return False
         else:
             try:
                 self._socket.sendto(data, dest)
                 self._stats["packets_tx"] += 1
                 self._stats["bytes_tx"] += len(data)
                 return True
-            except Exception as e:
+            except (OSError, RuntimeError) as e:
                 logger.debug(f"[DPDK] TX error: {e}")
                 return False
         return True
@@ -172,7 +175,6 @@ class DPDKTransport:
             if len(data) < 27:
                 return None
 
-            import struct
             ts_ns = struct.unpack_from("!Q", data, 0)[0]
             sym_len = data[8]
             symbol = data[9:9+sym_len].decode("ascii")
@@ -186,7 +188,7 @@ class DPDKTransport:
                 timestamp_ns=ts_ns, symbol=symbol, price=price,
                 qty=qty, side=side, msg_type=msg_type,
             )
-        except Exception:
+        except (struct.error, UnicodeDecodeError, IndexError):
             return None
 
     def get_stats(self) -> dict[str, Any]:
