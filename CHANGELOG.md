@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v5.1 — Autonomous Sprint 7: print() Cleanup + except Exception Narrowing)
+
+### Code Quality Fixes
+
+- **[QUAL-021]** Replaced `print()` with `logger.info()` in `ai-signal-bot/src/backtesting/backtester.py` — `print_report` (25 calls) and `print_comparison` (7 calls) now use joined lines + single `logger.info()`.
+- **[QUAL-022]** Replaced `print()` with `logger.info()` in `ai-signal-bot/src/monitoring/tracker.py` — `print_dashboard` (17 calls) now uses joined lines + single `logger.info()`.
+- **[QUAL-023]** Narrowed 7 `except Exception` catches in `ai-signal-bot/run.py` to specific types (OSError, RuntimeError, ConnectionError, ValueError, KeyError, TypeError, ZeroDivisionError, asyncio.TimeoutError).
+- **[QUAL-024]** Narrowed 14 `except Exception` catches in `ai-signal-bot/tests/unit/test_shm_ring_buffer.py` to `(OSError, ValueError, struct.error, BufferError)`.
+- **[QUAL-025]** Narrowed 10 `except Exception` catches across 8 scripts/monitoring files to specific types.
+
+### Audit Results
+
+- **0** `print()` in production code (src/ modules)
+- **0** `except Exception` in production code (src/ modules, run.py)
+- **0** `except Exception` in test code (all test files narrowed)
+- **0** source files > 500 lines
+
 ## [Unreleased] — 2026-08-20 (v5.0 — Autonomous Sprint 6: exchange_simulator File Size Compliance + Test Quality)
 
 ### Code Quality Fixes

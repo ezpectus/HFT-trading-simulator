@@ -1837,6 +1837,56 @@
 
 ---
 
+### QUAL-021: `print()` in production code — `backtester.py` (32 calls)
+- **Location:** `ai-signal-bot/src/backtesting/backtester.py` — `print_report` (25 calls), `print_comparison` (7 calls)
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `print()` used for formatted report output instead of `logger.info()`, violating "0 print() in production code" rule.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced all 32 `print()` calls with joined lines list + single `logger.info("\n".join(lines))` per method. Pattern matches Sprint 5 fix for `optimizer.py`.
+- **Commit:** 2b78410
+
+---
+
+### QUAL-022: `print()` in production code — `tracker.py` (17 calls)
+- **Location:** `ai-signal-bot/src/monitoring/tracker.py` — `print_dashboard` function
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `print()` used for dashboard output instead of `logger.info()`, violating "0 print() in production code" rule.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced all 17 `print()` calls with joined lines list + single `logger.info("\n".join(lines))`.
+- **Commit:** 3d235ce
+
+---
+
+### QUAL-023: `except Exception` in production code — `run.py` (7 catches)
+- **Location:** `ai-signal-bot/run.py` — MetricsExporter, listen loop, StatArb, LLM, CSV load, backtest, chart generation
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Broad `except Exception` catches in main entry point violate code quality rules requiring specific exception types.
+- **Status:** ✅ Fixed
+- **Fix:** Narrowed all 7 catches to context-specific types: (OSError, RuntimeError, ConnectionError) for network, (ValueError, KeyError, TypeError, ZeroDivisionError) for computation, (asyncio.TimeoutError) for async ops.
+- **Commit:** 6dee5dc
+
+---
+
+### QUAL-024: `except Exception` in test code — `test_shm_ring_buffer.py` (14 catches)
+- **Location:** `ai-signal-bot/tests/unit/test_shm_ring_buffer.py`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** All 14 test methods used `except Exception` as SHM environment guard before `pytest.skip()`.
+- **Status:** ✅ Fixed
+- **Fix:** Narrowed all 14 catches to `(OSError, ValueError, struct.error, BufferError)` — covers SHM creation, mmap, struct packing, and buffer errors.
+- **Commit:** a57ec49
+
+---
+
+### QUAL-025: `except Exception` in scripts/monitoring files (10 catches in 8 files)
+- **Location:** `monitoring/ebpf_monitor.py` (3), `ai-signal-bot/scripts/migrate.py` (1), `ai-signal-bot/tests/unit/test_shm_market_data_writer.py` (1), `hft-trade-bot/monitor.py` (1), `hft-trade-bot/scripts/monitor.py` (1), `price_monitor.py` (1), `scripts/load_test_50_symbols.py` (1), `scripts/test_config_consistency.py` (1)
+- **Severity:** P3 (Code Quality)
+- **Root Cause:** Broad `except Exception` catches in utility scripts and monitoring tools.
+- **Status:** ✅ Fixed
+- **Fix:** Narrowed all 10 catches to context-specific types: eBPF init/poll/parse errors, SQL migration errors, SHM guard skips, process check OSError, websocket/network errors, test runner errors.
+- **Commit:** 902715d
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
