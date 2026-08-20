@@ -182,7 +182,7 @@ class Database:
             logger.info(f"Database connected: {self.dsn}")
             return True
 
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Database connection failed: {e}")
             return False
 
@@ -218,7 +218,7 @@ class Database:
                     trade.get("closed_at"),
                 )
                 return trade_id["id"] if trade_id else None
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to insert trade: {e}")
             return None
 
@@ -253,7 +253,7 @@ class Database:
                     signal.get("timestamp"),
                 )
                 return signal_id["id"] if signal_id else None
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to insert signal: {e}")
             return None
 
@@ -281,7 +281,7 @@ class Database:
                     float(position.get("margin", 0)),
                     float(position.get("liq_price", 0)),
                 )
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to upsert position: {e}")
 
     async def delete_position(self, exchange: str, symbol: str):
@@ -294,7 +294,7 @@ class Database:
                     "DELETE FROM positions WHERE exchange=$1 AND symbol=$2",
                     exchange, symbol
                 )
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to delete position: {e}")
 
     async def insert_candle(self, candle: dict):
@@ -317,7 +317,7 @@ class Database:
                     float(candle.get("volume", 0)),
                     candle.get("time"),
                 )
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to insert candle: {e}")
 
     async def insert_candles_batch(self, candles: list[dict]):
@@ -339,7 +339,7 @@ class Database:
                        ON CONFLICT DO NOTHING""",
                     records
                 )
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to batch insert candles: {e}")
 
     async def get_trades(self, limit: int = 100, offset: int = 0) -> list[dict]:
@@ -353,7 +353,7 @@ class Database:
                     limit, offset
                 )
                 return [dict(r) for r in rows]
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to query trades: {e}")
             return []
 
@@ -378,7 +378,7 @@ class Database:
                     "trades": int(r["trade_count"]),
                     "wins": int(r["wins"]),
                 } for r in rows}
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to get daily PnL: {e}")
             return {}
 
@@ -409,7 +409,7 @@ class Database:
                     json.dumps(bt.get("config", {})),
                 )
                 return bt_id["id"] if bt_id else None
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to insert backtest: {e}")
             return None
 
@@ -441,7 +441,7 @@ class Database:
                     log.get("user_agent"),
                 )
                 return log_id["id"] if log_id else None
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to insert audit log: {e}")
             return None
 
@@ -481,6 +481,6 @@ class Database:
 
                 rows = await conn.fetch(query, *params)
                 return [dict(r) for r in rows]
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to query audit logs: {e}")
             return []
