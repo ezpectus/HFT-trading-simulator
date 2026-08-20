@@ -161,8 +161,15 @@ class SentimentStrategy:
         sentiment = self.sentiment_by_symbol.get(symbol, self.current_sentiment)
         event_type = recent_event.event_type if recent_event else EventType.UNKNOWN
         vol_mult = EVENT_VOLATILITY_MAP.get(event_type, 1.0)
+        current_atr = self._compute_atr(candles, price)
+        sl_distance = current_atr * 2 * vol_mult
+        tp_distance = current_atr * 3 * vol_mult
 
-        # Compute ATR for SL/TP
+        return self._sentiment_signal(symbol, price, sentiment, event_type, sl_distance, tp_distance)
+
+    @staticmethod
+    def _compute_atr(candles: list[dict], price: float) -> float:
+        """Compute ATR(14) from candles, fallback to 1% of price."""
         closes = [c["close"] if isinstance(c, dict) else c.close for c in candles[-14:]]
         highs = [c["high"] if isinstance(c, dict) else c.high for c in candles[-14:]]
         lows = [c["low"] if isinstance(c, dict) else c.low for c in candles[-14:]]
@@ -171,61 +178,32 @@ class SentimentStrategy:
             for i in range(1, len(closes)):
                 tr = max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1]))
                 trs.append(tr)
-            current_atr = sum(trs[-14:]) / max(len(trs), 1)
-        else:
-            current_atr = price * 0.01
+            return sum(trs[-14:]) / max(len(trs), 1)
+        return price * 0.01
 
-        # Wider SL/TP for high-volatility events
-        sl_distance = current_atr * 2 * vol_mult
-        tp_distance = current_atr * 3 * vol_mult
-
-        # Sentiment-based signal
+    def _sentiment_signal(
+        self, symbol: str, price: float, sentiment: float,
+        event_type: EventType, sl_distance: float, tp_distance: float,
+    ) -> Signal:
+        """Build signal from sentiment value with fade/follow logic."""
         if sentiment > self.config.fade_threshold:
-            # Extreme positive sentiment → fade (contrarian)
-            confidence = min(90, 40 + abs(sentiment) * 30)
-            return Signal(
-                symbol=symbol, direction=SignalDirection.SHORT,
-                confidence=int(confidence), strategy=self.name,
-                entry_price=price, stop_loss=price + sl_distance,
-                take_profit=price - tp_distance,
-                reason=f"Fade extreme positive sentiment ({sentiment:.2f}) from {event_type.value}",
-            )
-        elif sentiment < -self.config.fade_threshold:
-            # Extreme negative sentiment → fade
-            confidence = min(90, 40 + abs(sentiment) * 30)
-            return Signal(
-                symbol=symbol, direction=SignalDirection.LONG,
-                confidence=int(confidence), strategy=self.name,
-                entry_price=price, stop_loss=price - sl_distance,
-                take_profit=price + tp_distance,
-                reason=f"Fade extreme negative sentiment ({sentiment:.2f}) from {event_type.value}",
-            )
-        elif sentiment > self.config.follow_threshold:
-            # Moderate positive → follow
-            confidence = min(80, 30 + abs(sentiment) * 40)
-            return Signal(
-                symbol=symbol, direction=SignalDirection.LONG,
-                confidence=int(confidence), strategy=self.name,
-                entry_price=price, stop_loss=price - sl_distance,
-                take_profit=price + tp_distance,
-                reason=f"Follow positive sentiment ({sentiment:.2f}) from {event_type.value}",
-            )
-        elif sentiment < -self.config.follow_threshold:
-            # Moderate negative → follow
-            confidence = min(80, 30 + abs(sentiment) * 40)
-            return Signal(
-                symbol=symbol, direction=SignalDirection.SHORT,
-                confidence=int(confidence), strategy=self.name,
-                entry_price=price, stop_loss=price + sl_distance,
-                take_profit=price - tp_distance,
-                reason=f"Follow negative sentiment ({sentiment:.2f}) from {event_type.value}",
-            )
-
-        return Signal(
-            symbol=symbol, direction=SignalDirection.NEUTRAL,
-            confidence=0, strategy=self.name, entry_price=price,
-            stop_loss=0, take_profit=0, reason=f"Sentiment {sentiment:.2f} in neutral zone",
-        )
+            return Signal(symbol, SignalDirection.SHORT, int(min(90, 40 + abs(sentiment) * 30)),
+                          self.name, price, price + sl_distance, price - tp_distance,
+                          f"Fade extreme positive sentiment ({sentiment:.2f}) from {event_type.value}")
+        if sentiment < -self.config.fade_threshold:
+            return Signal(symbol, SignalDirection.LONG, int(min(90, 40 + abs(sentiment) * 30)),
+                          self.name, price, price - sl_distance, price + tp_distance,
+                          f"Fade extreme negative sentiment ({sentiment:.2f}) from {event_type.value}")
+        if sentiment > self.config.follow_threshold:
+            return Signal(symbol, SignalDirection.LONG, int(min(80, 30 + abs(sentiment) * 40)),
+                          self.name, price, price - sl_distance, price + tp_distance,
+                          f"Follow positive sentiment ({sentiment:.2f}) from {event_type.value}")
+        if sentiment < -self.config.follow_threshold:
+            return Signal(symbol, SignalDirection.SHORT, int(min(80, 30 + abs(sentiment) * 40)),
+                          self.name, price, price + sl_distance, price - tp_distance,
+                          f"Follow negative sentiment ({sentiment:.2f}) from {event_type.value}")
+        return Signal(symbol, SignalDirection.NEUTRAL, 0, self.name, price, 0, 0,
+                      f"Sentiment {sentiment:.2f} in neutral zone")
 
     def get_stats(self) -> dict:
         return {
