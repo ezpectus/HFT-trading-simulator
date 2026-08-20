@@ -69,7 +69,7 @@ async def wait_for_ws(url: str, timeout: float = 30) -> bool:
             async with websockets.connect(url, close_timeout=1) as ws:
                 await ws.send(json.dumps({"type": "subscribe"}))
                 return True
-        except Exception:
+        except (OSError, RuntimeError, websockets.WebSocketException, asyncio.TimeoutError):
             await asyncio.sleep(0.5)
     return False
 
@@ -88,7 +88,7 @@ async def receive_messages(url: str, duration: float = 5.0) -> list:
                     messages.append(json.loads(msg))
                 except TimeoutError:
                     break
-    except Exception:
+    except (OSError, RuntimeError, ValueError, json.JSONDecodeError):
         pass
     return messages
 

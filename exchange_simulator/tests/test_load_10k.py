@@ -159,7 +159,7 @@ async def run_load_test(url: str, duration: int, target: int):
                     print("Connection closed by server")
                     break
 
-    except Exception as e:
+    except (OSError, RuntimeError, ValueError, TypeError, json.JSONDecodeError, websockets.WebSocketException) as e:
         print(f"Error: {e}", file=sys.stderr)
         return results
 

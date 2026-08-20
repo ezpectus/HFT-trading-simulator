@@ -106,7 +106,7 @@ class ExchangeProcess:
                 async with websockets.connect(self.ws_url, close_timeout=1) as ws:
                     await ws.send(json.dumps({"type": "subscribe"}))
                     return True
-            except Exception:
+            except (OSError, RuntimeError, websockets.WebSocketException, asyncio.TimeoutError):
                 await asyncio.sleep(0.5)
         return False
 
@@ -115,7 +115,7 @@ class ExchangeProcess:
             if sys.platform == "win32":
                 try:
                     self.proc.send_signal(signal.CTRL_BREAK_EVENT)
-                except Exception:
+                except (OSError, ValueError, RuntimeError):
                     pass
             self.proc.kill()
             try:
@@ -135,7 +135,7 @@ class ExchangeProcess:
                         messages.append(json.loads(msg))
                     except TimeoutError:
                         break
-        except Exception:
+        except (OSError, RuntimeError, ValueError, json.JSONDecodeError):
             pass
         return messages
 
@@ -163,7 +163,7 @@ class ExchangeProcess:
                             return data
                     except TimeoutError:
                         break
-        except Exception:
+        except (OSError, RuntimeError, ValueError, json.JSONDecodeError):
             return None
         return None
 
@@ -180,7 +180,7 @@ class ExchangeProcess:
                             return data.get("data", {}).get("positions", [])
                     except TimeoutError:
                         break
-        except Exception:
+        except (OSError, RuntimeError, ValueError, json.JSONDecodeError):
             pass
         return []
 
@@ -281,7 +281,7 @@ async def scenario_kill_during_position(result: ChaosTestResult, exch: ExchangeP
                     break
             result.step("Position opened (fill received)", fill is not None,
                         f"price={fill.get('data', {}).get('price')}" if fill else "no fill")
-    except Exception as e:
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError, asyncio.TimeoutError) as e:
         result.step("Position opened", False, str(e))
         exch.kill()
         return False
