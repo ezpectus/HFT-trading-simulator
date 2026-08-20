@@ -10,8 +10,8 @@ Both are re-exported here for backward compatibility.
 import logging
 import math
 
-from src.strategies.circuit_breaker import CircuitBreaker  # noqa: F401
-from src.strategies.signal import Signal, SignalDirection  # noqa: F401
+from src.strategies.circuit_breaker import CircuitBreaker
+from src.strategies.signal import Signal, SignalDirection
 from src.technical_analysis.fft_analysis import fft_cycle_indicator  # noqa: E402
 from src.technical_analysis.indicators import (  # noqa: E402
     adx,

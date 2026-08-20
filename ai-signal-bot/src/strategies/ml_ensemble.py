@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from src.strategies.ml_features import FeatureEngineer  # noqa: F401 (re-export)
+from src.strategies.ml_features import FeatureEngineer
 from src.strategies.strategies import Signal, SignalDirection
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 # Try importing ML libraries
 try:
     from sklearn.ensemble import GradientBoostingClassifier, IsolationForest
-    from sklearn.model_selection import TimeSeriesSplit  # noqa: F401
     from sklearn.preprocessing import StandardScaler
     SKLEARN_AVAILABLE = True
 except ImportError:

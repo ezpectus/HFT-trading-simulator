@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 
 try:
     from scipy.optimize import least_squares, minimize
-    from scipy.stats import norm  # noqa: F401
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False

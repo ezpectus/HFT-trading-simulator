@@ -10,6 +10,7 @@ Features:
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import logging
 import time
 from dataclasses import dataclass
@@ -17,11 +18,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-try:
-    import aiohttp  # noqa: F401
-    AIOHTTP_AVAILABLE = True
-except ImportError:
-    AIOHTTP_AVAILABLE = False
+AIOHTTP_AVAILABLE = importlib.util.find_spec("aiohttp") is not None
 
 try:
     import ccxt.async_support as ccxt

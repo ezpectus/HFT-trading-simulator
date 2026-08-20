@@ -22,7 +22,6 @@ try:
         Summary,
         generate_latest,
     )
-    from prometheus_client.core import GaugeHistogramMetricFamily  # noqa: F401
     HAS_PROMETHEUS = True
 except ImportError:
     HAS_PROMETHEUS = False

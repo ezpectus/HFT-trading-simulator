@@ -36,11 +36,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-try:
-    import ctypes  # noqa: F401
-    _DPDK_AVAILABLE = False  # Set to True if dpdk Python bindings are available
-except ImportError:
-    _DPDK_AVAILABLE = False
+_DPDK_AVAILABLE = False  # Set to True if dpdk Python bindings are available
 
 
 @dataclass
