@@ -4,6 +4,8 @@ Extracted from websocket_server.py for file-size compliance.
 Handles incoming client messages: orders, subscriptions, replay controls,
 trading state, config updates, and options chain requests.
 """
+from __future__ import annotations
+
 import json
 import time
 

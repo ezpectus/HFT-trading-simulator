@@ -123,6 +123,18 @@ Update:   S = H*P*H^T + R, K = P*H^T*S^-1, x += K*(z - H*x), P = (I - K*H)*P
 ```
 - **Source:** `ai-signal-bot/src/technical_analysis/kalman.py` (Sprint 55, ported from UI-only KalmanFilterPrice.jsx)
 
+### Principal Component Analysis (PCA) — Trading logic
+Covariance-based PCA with SVD eigendecomposition for multi-asset return decomposition.
+```
+Center: X_c = X - mean(X)
+SVD: X_c = U * S * V^T
+Eigenvalues: λ_i = S_i^2 / (n-1)
+Explained variance ratio: λ_i / Σλ_j
+Scores: X_c * V (projection onto principal components)
+```
+Applications: factor extraction (PC1=market factor), risk decomposition, eigenportfolio construction.
+- **Source:** `ai-signal-bot/src/technical_analysis/pca.py` (Sprint 56, ported from UI-only PrincipalComponentAnalysis.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

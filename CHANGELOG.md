@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 56 — PCA Ported to Trading Logic)
+
+### Added
+- **[FEAT-342]** Created `ai-signal-bot/src/technical_analysis/pca.py` — PCA via SVD eigendecomposition ported from UI-only PrincipalComponentAnalysis.jsx. PCAResult class with eigenvalues, explained variance ratio, cumulative variance, components, scores. numpy SVD with pure Python Jacobi fallback.
+- **[TEST-343]** Created `ai-signal-bot/tests/test_pca.py` — 14 tests covering empty input, single sample, identity matrix, known correlated data, explained variance sum, cumulative variance, n_components limit, mean computation, scores dimensions, eigenvalue ordering, orthogonal data, constant data
+
+### Changed
+- Updated `ai-signal-bot/src/technical_analysis/__init__.py` — added PCAResult, compute_pca exports
+- Updated `docs/MATH_MODELS.md` — added PCA section under Technical Indicators
+- Updated `docs/future_development.md` — marked PCA as ✅ DONE (Sprint 56)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 55 — Kalman Filter Ported to Trading Logic)
 
 ### Added

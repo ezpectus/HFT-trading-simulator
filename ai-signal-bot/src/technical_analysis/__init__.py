@@ -22,10 +22,15 @@ from src.technical_analysis.kalman import (
     kalman_filter_1d,
     kalman_filter_2d,
 )
+from src.technical_analysis.pca import (
+    PCAResult,
+    compute_pca,
+)
 
 __all__ = [
     "adx", "atr", "bollinger_bands", "ema", "macd", "rsi", "sma", "vwap",
     "dominant_cycles", "cycle_strength", "spectral_trend_score",
     "fft_filter", "fft_cycle_indicator", "power_spectrum",
     "KalmanFilter1D", "KalmanFilter2D", "kalman_filter_1d", "kalman_filter_2d",
+    "PCAResult", "compute_pca",
 ]

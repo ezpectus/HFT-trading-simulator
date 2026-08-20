@@ -8,7 +8,7 @@ import logging
 try:
     from websockets import ServerConnection as WebSocketServerConnection  # noqa: F401
 except ImportError:
-    pass
+    WebSocketServerConnection = None  # type: ignore[assignment,misc]
 
 try:
     import msgpack  # noqa: F401

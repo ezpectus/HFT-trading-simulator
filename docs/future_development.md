@@ -52,7 +52,7 @@
 | Optimal Stopping | `OptimalStopping.jsx` | `src/technical_analysis/optimal_stopping.py` | СРЕДНИЙ | 1 неделя |
 | K-Means Clustering | `KMeansClustering.jsx` | `src/technical_analysis/kmeans.py` | СРЕДНИЙ | 3 дня |
 | Gaussian Mixture | `GaussianMixtureModel.jsx` | `src/technical_analysis/gmm.py` | СРЕДНИЙ | 3 дня |
-| PCA | `PrincipalComponentAnalysis.jsx` | `src/technical_analysis/pca.py` | СРЕДНИЙ | 2 дня |
+| ~~PCA~~ | `PrincipalComponentAnalysis.jsx` | `src/technical_analysis/pca.py` | ✅ DONE (Sprint 56) |
 | SVM | `SupportVectorMachine.jsx` | `src/ml/svm_signal.py` | СРЕДНИЙ | 3 дня |
 | Autoencoder | `Autoencoder.jsx` | `src/ml/autoencoder.py` | СРЕДНИЙ | 1 неделя |
 | VAE | `VariationalAutoencoder.jsx` | `src/ml/vae.py` | НИЗКИЙ | 2 недели |
