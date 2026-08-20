@@ -6,6 +6,8 @@
 #pragma once
 
 #include <map>
+#include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <mutex>
@@ -72,6 +74,9 @@ public:
 private:
     std::string serialize_labels(const std::map<std::string, std::string>& labels) const;
     void http_server_loop();
+    void export_counters(std::stringstream& output, std::set<std::string>& seen_types);
+    void export_gauges(std::stringstream& output, std::set<std::string>& seen_types);
+    void export_histograms(std::stringstream& output, std::set<std::string>& seen_types);
     
     int metrics_port_;
     std::atomic<bool> http_server_running_;
