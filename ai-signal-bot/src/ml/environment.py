@@ -115,8 +115,7 @@ class TradingEnv:
         return observation
     
     def step(self, action: int) -> tuple[np.ndarray, float, bool, dict]:
-        """
-        Execute one step in environment.
+        """Execute one step in environment.
         
         Args:
             action: Action to take (0=HOLD, 1=BUY, 2=SELL)
@@ -129,53 +128,45 @@ class TradingEnv:
         
         current_price = self.prices[self.current_step]
         next_price = self.prices[self.current_step + 1]
-        
-        # Capture portfolio value BEFORE action for reward calculation
         prev_portfolio_value = self.cash + self.position * current_price
         
-        # Execute action
-        reward = 0.0
-        action_taken = Action(action)
+        self._execute_action(action, current_price)
         
+        self.portfolio_value = self.cash + self.position * next_price
+        reward = (self.portfolio_value - prev_portfolio_value) / self.initial_cash
+        
+        self.current_step += 1
+        self.total_reward += reward
+        done = self.current_step >= len(self.prices) - 1
+        
+        info = self._build_step_info()
+        return self._get_observation(), reward, done, info
+    
+    def _execute_action(self, action: int, current_price: float) -> None:
+        """Execute trading action at current price."""
+        action_taken = Action(action)
         if action_taken == Action.BUY:
             if self.cash > 0 and current_price > 0:
                 buy_amount = self.cash * (1 - self.transaction_cost)
-                shares_bought = buy_amount / current_price
-                self.position += shares_bought
+                self.position += buy_amount / current_price
                 self.cash = 0
                 self.trade_count += 1
-    
         elif action_taken == Action.SELL:
             if self.position > 0:
-                # Sell all position
                 sell_value = self.position * current_price * (1 - self.transaction_cost)
                 self.cash += sell_value
                 self.position = 0
                 self.trade_count += 1
-
-        # Calculate portfolio value
-        self.portfolio_value = self.cash + self.position * next_price
-
-        # Calculate reward (PnL)
-        reward = (self.portfolio_value - prev_portfolio_value) / self.initial_cash
-        
-        # Move to next step
-        self.current_step += 1
-        self.total_reward += reward
-        
-        # Check if done
-        done = self.current_step >= len(self.prices) - 1
-        
-        # Info
-        info = {
+    
+    def _build_step_info(self) -> dict:
+        """Build info dict for step return."""
+        return {
             'portfolio_value': self.portfolio_value,
             'position': self.position,
             'cash': self.cash,
             'trade_count': self.trade_count,
             'total_reward': self.total_reward
         }
-        
-        return self._get_observation(), reward, done, info
     
     def render(self):
         """Render current state (optional, debug-level logging)."""

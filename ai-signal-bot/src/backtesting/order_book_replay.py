@@ -124,74 +124,53 @@ class OrderBookReplay:
         symbol: str = "BTC/USDT",
         exchange: str = "backtest",
     ) -> ReplayOrderBook:
-        """Generate an order book snapshot from a single candle.
-
-        Args:
-            candle: Dict with open, high, low, close, volume, timestamp
-            symbol: Trading symbol
-            exchange: Exchange identifier
-
-        Returns:
-            ReplayOrderBook with bid/ask levels
-        """
+        """Generate an order book snapshot from a single candle."""
         close = candle["close"]
         high = candle["high"]
         low = candle["low"]
         volume = candle.get("volume", 100.0)
         ts = candle.get("timestamp", 0)
 
-        # Estimate volatility from candle range
-        candle_range = high - low
-        range_pct = candle_range / close if close > 0 else 0.01
-
-        # Spread: base + proportional to candle range
-        spread_bps = self.base_spread_bps + range_pct * 5000  # scale range to bps
-        spread_bps = max(1.0, min(500.0, spread_bps))
-        half_spread = close * spread_bps / 10000
-
-        # Imbalance: bullish candle (close > open) → more bid volume
-        open_p = candle.get("open", close)
-        body = close - open_p
-        body_pct = body / close if close > 0 else 0
-        # Map body_pct to imbalance shift [-0.3, 0.3]
-        imbalance_shift = max(-0.3, min(0.3, body_pct * 20))
-
-        # Base quantity per level
+        half_spread = self._calc_half_spread(close, high, low)
+        imbalance_shift = self._calc_imbalance_shift(close, candle.get("open", close))
         base_qty = volume / self.depth if volume > 0 else 10.0
 
-        bids: list[ReplayOrderBookLevel] = []
-        asks: list[ReplayOrderBookLevel] = []
-
-        for i in range(self.depth):
-            # Price levels with increasing distance
-            bid_price = close - half_spread * (1 + i * (1 + self.rng.random() * 0.3))
-            ask_price = close + half_spread * (1 + i * (1 + self.rng.random() * 0.3))
-
-            # Volume decays with depth, with random noise
-            decay = self.volume_decay ** i
-            bid_qty = base_qty * decay * (0.5 + self.rng.random()) * (1 + imbalance_shift)
-            ask_qty = base_qty * decay * (0.5 + self.rng.random()) * (1 - imbalance_shift)
-
-            # Ensure positive quantities
-            bid_qty = max(0.001, bid_qty)
-            ask_qty = max(0.001, ask_qty)
-
-            bids.append(ReplayOrderBookLevel(
-                price=round(bid_price, 2),
-                quantity=round(bid_qty, 4),
-            ))
-            asks.append(ReplayOrderBookLevel(
-                price=round(ask_price, 2),
-                quantity=round(ask_qty, 4),
-            ))
+        bids, asks = self._generate_levels(close, half_spread, base_qty, imbalance_shift)
 
         return ReplayOrderBook(
-            symbol=symbol,
-            exchange=exchange,
-            timestamp=ts,
-            bids=bids,
-            asks=asks,
+            symbol=symbol, exchange=exchange, timestamp=ts,
+            bids=bids, asks=asks,
         )
+
+    def _calc_half_spread(self, close: float, high: float, low: float) -> float:
+        """Calculate half-spread from candle range."""
+        candle_range = high - low
+        range_pct = candle_range / close if close > 0 else 0.01
+        spread_bps = self.base_spread_bps + range_pct * 5000
+        spread_bps = max(1.0, min(500.0, spread_bps))
+        return close * spread_bps / 10000
+
+    def _calc_imbalance_shift(self, close: float, open_p: float) -> float:
+        """Calculate order book imbalance from candle body."""
+        body = close - open_p
+        body_pct = body / close if close > 0 else 0
+        return max(-0.3, min(0.3, body_pct * 20))
+
+    def _generate_levels(
+        self, close: float, half_spread: float, base_qty: float, imbalance_shift: float,
+    ) -> tuple[list[ReplayOrderBookLevel], list[ReplayOrderBookLevel]]:
+        """Generate bid and ask levels for the order book."""
+        bids: list[ReplayOrderBookLevel] = []
+        asks: list[ReplayOrderBookLevel] = []
+        for i in range(self.depth):
+            bid_price = close - half_spread * (1 + i * (1 + self.rng.random() * 0.3))
+            ask_price = close + half_spread * (1 + i * (1 + self.rng.random() * 0.3))
+            decay = self.volume_decay ** i
+            bid_qty = max(0.001, base_qty * decay * (0.5 + self.rng.random()) * (1 + imbalance_shift))
+            ask_qty = max(0.001, base_qty * decay * (0.5 + self.rng.random()) * (1 - imbalance_shift))
+            bids.append(ReplayOrderBookLevel(price=round(bid_price, 2), quantity=round(bid_qty, 4)))
+            asks.append(ReplayOrderBookLevel(price=round(ask_price, 2), quantity=round(ask_qty, 4)))
+        return bids, asks
 
     def replay_series(
         self,

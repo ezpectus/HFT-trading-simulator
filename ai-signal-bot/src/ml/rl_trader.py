@@ -149,62 +149,73 @@ class PPOAgent:
         values = torch.FloatTensor(self.values).to(self.device)
         dones = torch.FloatTensor(self.dones).to(self.device)
 
-        # Compute GAE
+        advantages, returns = self._compute_gae(rewards, values, dones)
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+
+        metrics = self._ppo_update(states, actions, old_log_probs, advantages, returns)
+        self.reset_buffer()
+        return metrics
+
+    def _compute_gae(
+        self, rewards: torch.Tensor, values: torch.Tensor, dones: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Compute Generalized Advantage Estimation."""
         advantages = torch.zeros_like(rewards)
         returns = torch.zeros_like(rewards)
         gae = 0.0
         for t in reversed(range(len(rewards))):
-            if t == len(rewards) - 1:
-                next_value = 0.0
-            else:
-                next_value = values[t + 1]
+            next_value = values[t + 1] if t < len(rewards) - 1 else 0.0
             delta = rewards[t] + self.config.gamma * next_value * (1 - dones[t]) - values[t]
             gae = delta + self.config.gamma * self.config.gae_lambda * (1 - dones[t]) * gae
             advantages[t] = gae
             returns[t] = advantages[t] + values[t]
+        return advantages, returns
 
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-
-        # PPO update
+    def _ppo_update(
+        self, states: torch.Tensor, actions: torch.Tensor,
+        old_log_probs: torch.Tensor, advantages: torch.Tensor, returns: torch.Tensor,
+    ) -> dict:
+        """Run PPO optimization epochs."""
         metrics = {"policy_loss": 0, "value_loss": 0, "entropy": 0}
         n_updates = 0
-
         for _ in range(self.config.ppo_epochs):
             idx = torch.randperm(len(states))
             for i in range(0, len(states), self.config.batch_size):
                 batch_idx = idx[i:i + self.config.batch_size]
                 if len(batch_idx) < 4:
                     continue
-
-                probs, value = self.ac(states[batch_idx])
-                dist = torch.distributions.Categorical(probs)
-                log_probs = dist.log_prob(actions[batch_idx])
-                entropy = dist.entropy().mean()
-
-                ratio = torch.exp(log_probs - old_log_probs[batch_idx])
-                surr1 = ratio * advantages[batch_idx]
-                surr2 = torch.clamp(ratio, 1 - self.config.clip_eps, 1 + self.config.clip_eps) * advantages[batch_idx]
-                policy_loss = -torch.min(surr1, surr2).mean()
-
-                value_loss = F.mse_loss(value.squeeze(), returns[batch_idx])
-
-                loss = policy_loss + self.config.value_coef * value_loss - self.config.entropy_coef * entropy
-
-                self.optimizer.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.config.max_grad_norm)
-                self.optimizer.step()
-
-                metrics["policy_loss"] += policy_loss.item()
-                metrics["value_loss"] += value_loss.item()
-                metrics["entropy"] += entropy.item()
+                self._ppo_step(states, actions, old_log_probs, advantages, returns, batch_idx, metrics)
                 n_updates += 1
-
         for k in metrics:
             metrics[k] /= max(n_updates, 1)
-
-        self.reset_buffer()
         return metrics
+
+    def _ppo_step(
+        self, states: torch.Tensor, actions: torch.Tensor,
+        old_log_probs: torch.Tensor, advantages: torch.Tensor, returns: torch.Tensor,
+        batch_idx: torch.Tensor, metrics: dict,
+    ) -> None:
+        """Execute a single PPO optimization step."""
+        probs, value = self.ac(states[batch_idx])
+        dist = torch.distributions.Categorical(probs)
+        log_probs = dist.log_prob(actions[batch_idx])
+        entropy = dist.entropy().mean()
+
+        ratio = torch.exp(log_probs - old_log_probs[batch_idx])
+        surr1 = ratio * advantages[batch_idx]
+        surr2 = torch.clamp(ratio, 1 - self.config.clip_eps, 1 + self.config.clip_eps) * advantages[batch_idx]
+        policy_loss = -torch.min(surr1, surr2).mean()
+        value_loss = F.mse_loss(value.squeeze(), returns[batch_idx])
+        loss = policy_loss + self.config.value_coef * value_loss - self.config.entropy_coef * entropy
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.config.max_grad_norm)
+        self.optimizer.step()
+
+        metrics["policy_loss"] += policy_loss.item()
+        metrics["value_loss"] += value_loss.item()
+        metrics["entropy"] += entropy.item()
 
 
 # ── DQN ──

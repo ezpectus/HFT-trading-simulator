@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 26 — Long Function Refactoring Batch 2)
+
+### Changed
+- **[QUAL-095]** Refactored 5 more functions exceeding 60 lines:
+  - `backtesting/order_book_replay.py` — `from_candle` 75→23 lines (3 helpers: `_calc_half_spread`, `_calc_imbalance_shift`, `_generate_levels`)
+  - `ml/rl_trader.py` — `PPOTrader.update` 71→17 lines (3 helpers: `_compute_gae`, `_ppo_update`, `_ppo_step`)
+  - `risk/portfolio_optimizer.py` — `black_litterman` 74→25 lines (3 helpers: `_build_views`, `_compute_posterior`, `_optimize_bl_weights`)
+  - `ml/environment.py` — `TradingEnvironment.step` 63→27 lines (2 helpers: `_execute_action`, `_build_step_info`)
+  - `communication/signal_publisher.py` — `_run_backtest` 72→33 lines (2 helpers: `_parse_backtest_params`, `_build_risk_config`)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 25 — Long Function Refactoring)
 
 ### Changed

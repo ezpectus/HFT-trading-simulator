@@ -129,49 +129,11 @@ class PortfolioOptimizer:
                 sharpe_ratio=0.0, method="bl_equal"
             )
 
-        cov = np.cov(returns.T) * 365  # Annualized (crypto 24/7)
-        market_weights = np.ones(n) / n  # Equal weight as prior
-        risk_aversion = 2.5
-
-        # Prior: implied returns from market portfolio
-        pi = risk_aversion * cov @ market_weights
-
-        # Views
-        P = np.zeros((len(views), n))
-        Q = np.zeros(len(views))
-        omega = np.zeros((len(views), len(views)))
-
-        for i, (sym, view_ret) in enumerate(views.items()):
-            if sym in symbols:
-                P[i, symbols.index(sym)] = 1.0
-                Q[i] = view_ret
-                conf = (view_confidences or {}).get(sym, 0.5)
-                omega[i, i] = 1.0 / max(conf, 0.01)
-
-        # Posterior returns
-        try:
-            tau = 0.025
-            inv_cov = np.linalg.inv(cov * tau)
-            inv_omega = np.linalg.inv(omega)
-            posterior_returns = np.linalg.inv(inv_cov + P.T @ inv_omega @ P) @ (
-                inv_cov @ pi + P.T @ inv_omega @ Q
-            )
-        except np.linalg.LinAlgError:
-            posterior_returns = pi
-
-        # Optimize with posterior returns
-        try:
-            inv_cov_full = np.linalg.inv(cov)
-            ones = np.ones(n)
-            denominator = ones @ inv_cov_full @ posterior_returns
-            if abs(denominator) < 1e-10:
-                w = np.ones(n) / n
-            else:
-                w = inv_cov_full @ posterior_returns / denominator
-                w = np.maximum(w, 0)
-                w = w / max(w.sum(), 1e-10)
-        except np.linalg.LinAlgError:
-            w = np.ones(n) / n
+        cov = np.cov(returns.T) * 365
+        pi = 2.5 * cov @ (np.ones(n) / n)
+        P, Q, omega = self._build_views(views, symbols, view_confidences)
+        posterior_returns = self._compute_posterior(pi, cov, P, Q, omega)
+        w = self._optimize_bl_weights(posterior_returns, cov, n)
 
         port_return = w @ posterior_returns
         port_vol = math.sqrt(max(w @ cov @ w, 0))
@@ -179,11 +141,57 @@ class PortfolioOptimizer:
 
         return PortfolioResult(
             weights=dict(zip(symbols, w.tolist(), strict=False)),
-            expected_return=port_return,
-            volatility=port_vol,
-            sharpe_ratio=sharpe,
-            method="black_litterman"
+            expected_return=port_return, volatility=port_vol,
+            sharpe_ratio=sharpe, method="black_litterman"
         )
+
+    def _build_views(
+        self, views: dict[str, float], symbols: list[str],
+        view_confidences: dict[str, float] | None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Build P, Q, omega matrices from strategy views."""
+        n = len(symbols)
+        P = np.zeros((len(views), n))
+        Q = np.zeros(len(views))
+        omega = np.zeros((len(views), len(views)))
+        for i, (sym, view_ret) in enumerate(views.items()):
+            if sym in symbols:
+                P[i, symbols.index(sym)] = 1.0
+                Q[i] = view_ret
+                conf = (view_confidences or {}).get(sym, 0.5)
+                omega[i, i] = 1.0 / max(conf, 0.01)
+        return P, Q, omega
+
+    def _compute_posterior(
+        self, pi: np.ndarray, cov: np.ndarray,
+        P: np.ndarray, Q: np.ndarray, omega: np.ndarray,
+    ) -> np.ndarray:
+        """Compute posterior expected returns using Black-Litterman formula."""
+        try:
+            tau = 0.025
+            inv_cov = np.linalg.inv(cov * tau)
+            inv_omega = np.linalg.inv(omega)
+            return np.linalg.inv(inv_cov + P.T @ inv_omega @ P) @ (
+                inv_cov @ pi + P.T @ inv_omega @ Q
+            )
+        except np.linalg.LinAlgError:
+            return pi
+
+    def _optimize_bl_weights(
+        self, posterior_returns: np.ndarray, cov: np.ndarray, n: int,
+    ) -> np.ndarray:
+        """Optimize portfolio weights from posterior returns."""
+        try:
+            inv_cov_full = np.linalg.inv(cov)
+            ones = np.ones(n)
+            denominator = ones @ inv_cov_full @ posterior_returns
+            if abs(denominator) < 1e-10:
+                return np.ones(n) / n
+            w = inv_cov_full @ posterior_returns / denominator
+            w = np.maximum(w, 0)
+            return w / max(w.sum(), 1e-10)
+        except np.linalg.LinAlgError:
+            return np.ones(n) / n
 
     def kelly_criterion(
         self, win_rate: float, win_loss_ratio: float,

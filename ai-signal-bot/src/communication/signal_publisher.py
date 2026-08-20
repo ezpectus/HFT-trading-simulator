@@ -272,77 +272,65 @@ class SignalPublisher:
             self._clients -= disconnected
 
     async def _run_backtest(self, params: dict) -> dict:
-        """Run a backtest and return results as JSON.
-
-        Args:
-            params: Dict with keys:
-                - strategy: "trend" | "mean_reversion" | "fft" | "ensemble" | "all"
-                - candles: number of synthetic candles (default 500)
-                - balance: initial balance (default 10000)
-                - symbol: trading symbol (default "BTC/USDT")
-                - initial_price: starting price (default 65000)
-                - volatility: price volatility (default 0.75)
-                - trailing_stop: bool
-                - breakeven: bool
-
-        Returns:
-            Dict with type "backtest_result" and results data.
-        """
+        """Run a backtest and return results as JSON."""
         from src.backtesting import Backtester
         from src.risk.risk_manager import RiskConfig
-        from src.strategies import (
-            EnsembleVoter,
-            FFTCycleStrategy,
-            MeanReversionStrategy,
-            TrendFollowingStrategy,
+
+        bt_params = self._parse_backtest_params(params)
+        candles = self._generate_synthetic_candles(
+            bt_params["candles"], bt_params["initial_price"], bt_params["volatility"]
         )
-
-        n_candles = max(10, min(int(params.get("candles", 500)), 10000))
-        balance = max(1.0, float(params.get("balance", 10000)))
-        symbol = str(params.get("symbol", "BTC/USDT"))[:32]
-        initial_price = max(0.01, float(params.get("initial_price", 65000)))
-        volatility = max(0.0, min(float(params.get("volatility", 0.75)), 5.0))
-        strategy_name = str(params.get("strategy", "all"))[:32]
-        use_trailing = bool(params.get("trailing_stop", False))
-        use_breakeven = bool(params.get("breakeven", False))
-
-        candles = self._generate_synthetic_candles(n_candles, initial_price, volatility)
-
-        risk_config = None
-        if use_trailing or use_breakeven:
-            risk_config = RiskConfig(
-                trailing_stop_enabled=use_trailing,
-                trailing_distance_pct=2.0,
-                breakeven_enabled=use_breakeven,
-                breakeven_trigger_pct=1.0,
-            )
-
+        risk_config = self._build_risk_config(bt_params)
         bt = Backtester(
-            initial_balance=balance,
-            fee_pct=0.075,
-            slippage_bps=2.0,
-            risk_config=risk_config,
+            initial_balance=bt_params["balance"],
+            fee_pct=0.075, slippage_bps=2.0, risk_config=risk_config,
         )
-
-        strategies = self._build_strategies(strategy_name)
+        strategies = self._build_strategies(bt_params["strategy"])
         if not strategies:
-            return {"type": "backtest_result", "error": f"Unknown strategy: {strategy_name}"}
+            return {"type": "backtest_result", "error": f"Unknown strategy: {bt_params['strategy']}"}
 
         results = {}
         for name, strat in strategies.items():
-            result = bt.run(candles, strat, symbol=symbol, warmup=50)
+            result = bt.run(candles, strat, symbol=bt_params["symbol"], warmup=50)
             results[name] = self._format_backtest_result(result)
 
-        logger.info(f"Backtest completed: {strategy_name}, {n_candles} candles, {len(results)} strategies")
+        logger.info(f"Backtest completed: {bt_params['strategy']}, {bt_params['candles']} candles, {len(results)} strategies")
         self.metrics.record_backtest()
 
         return {
             "type": "backtest_result",
-            "strategy": strategy_name,
-            "symbol": symbol,
-            "candles": n_candles,
+            "strategy": bt_params["strategy"],
+            "symbol": bt_params["symbol"],
+            "candles": bt_params["candles"],
             "results": results,
         }
+
+    @staticmethod
+    def _parse_backtest_params(params: dict) -> dict:
+        """Parse and validate backtest parameters."""
+        return {
+            "candles": max(10, min(int(params.get("candles", 500)), 10000)),
+            "balance": max(1.0, float(params.get("balance", 10000))),
+            "symbol": str(params.get("symbol", "BTC/USDT"))[:32],
+            "initial_price": max(0.01, float(params.get("initial_price", 65000))),
+            "volatility": max(0.0, min(float(params.get("volatility", 0.75)), 5.0)),
+            "strategy": str(params.get("strategy", "all"))[:32],
+            "trailing_stop": bool(params.get("trailing_stop", False)),
+            "breakeven": bool(params.get("breakeven", False)),
+        }
+
+    @staticmethod
+    def _build_risk_config(bt_params: dict) -> "RiskConfig | None":
+        """Build RiskConfig from backtest params if trailing/breakeven enabled."""
+        from src.risk.risk_manager import RiskConfig
+        if not (bt_params["trailing_stop"] or bt_params["breakeven"]):
+            return None
+        return RiskConfig(
+            trailing_stop_enabled=bt_params["trailing_stop"],
+            trailing_distance_pct=2.0,
+            breakeven_enabled=bt_params["breakeven"],
+            breakeven_trigger_pct=1.0,
+        )
 
     @staticmethod
     def _generate_synthetic_candles(n_candles: int, initial_price: float, volatility: float) -> list[dict]:

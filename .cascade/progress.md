@@ -28,6 +28,7 @@
 | 22 | 2026-08-20 | Sprint 15 (Autonomous): Python long function audit, 5 functions refactored (markowitz.optimize_portfolio 107→24, backtester.run 91→39, backtest_engine._compute_results 63→15, exchange.get_depth_snapshot 52→28, market_simulator.__init__ 96→31), 12 helpers extracted, 0 forbidden patterns (TODO/FIXME/HACK/NotImplementedError/type:ignore/bare except/import */print in prod), docs audit v5.9 | ✅ Done | — |
 | 23 | 2026-08-20 | Sprint 24 (Autonomous): File size compliance — split test_untested_modules.py (1098 lines) into 8 focused test files + conftest.py for shared fixtures, all under 500 lines | ✅ Done | — |
 | 24 | 2026-08-20 | Sprint 25 (Autonomous): Long function refactoring — 5 functions >60 lines refactored (logging.setup_logging 94→32, walk_forward.run 85→25, price_predictor.train_model 81→25, indicators.adx 77→10, risk_manager.update 77→24), 20 helpers extracted, docs audit v6.0 | ✅ Done | — |
+| 25 | 2026-08-20 | Sprint 26 (Autonomous): Long function refactoring batch 2 — 5 functions >60 lines refactored (order_book_replay.from_candle 75→23, rl_trader.update 71→17, portfolio_optimizer.black_litterman 74→25, environment.step 63→27, signal_publisher._run_backtest 72→33), 13 helpers extracted | ✅ Done | — |
 
 ## Bug Fix Progress
 
@@ -314,6 +315,18 @@
 | 5 | `risk/risk_manager.py` | `RiskManager.update` | 77 | 24 | `_track_peak_trough`, `_check_breakeven_action`, `_check_trailing_action`, `_check_partial_tp_action`, `_check_max_hold` |
 
 **Sprint 25 result:** 5 functions refactored, 20 helpers extracted. All 5 functions now under 40-line limit. Full re-audit: 0 TODO/FIXME, 0 old typing imports, 0 bare except, 0 except Exception, 0 import *, 0 global mutable, 0 pass (all legitimate).
+
+**Sprint 26 — Long Function Refactoring Batch 2 (>60 lines):**
+
+| # | File | Function | Before | After | Helpers Extracted |
+|---|------|----------|--------|-------|-------------------|
+| 1 | `backtesting/order_book_replay.py` | `OrderBookReplay.from_candle` | 75 | 23 | `_calc_half_spread`, `_calc_imbalance_shift`, `_generate_levels` |
+| 2 | `ml/rl_trader.py` | `PPOTrader.update` | 71 | 17 | `_compute_gae`, `_ppo_update`, `_ppo_step` |
+| 3 | `risk/portfolio_optimizer.py` | `PortfolioOptimizer.black_litterman` | 74 | 25 | `_build_views`, `_compute_posterior`, `_optimize_bl_weights` |
+| 4 | `ml/environment.py` | `TradingEnvironment.step` | 63 | 27 | `_execute_action`, `_build_step_info` |
+| 5 | `communication/signal_publisher.py` | `SignalPublisher._run_backtest` | 72 | 33 | `_parse_backtest_params`, `_build_risk_config` |
+
+**Sprint 26 result:** 5 functions refactored, 13 helpers extracted. All 5 functions now under 40-line limit.
 
 ## Proposals
 
