@@ -502,7 +502,7 @@ Day 3 (Aug 14): C++ HFT Bot Optimization
 
 ### Overview
 
-Focus on optimizing the Web UI to achieve sub-2s initial load time and improve rendering performance for 197 panels.
+Focus on optimizing the Web UI to achieve sub-2s initial load time and improve rendering performance for 204 panels.
 
 ### Morning Session (4 hours)
 

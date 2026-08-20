@@ -111,7 +111,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
   ┌─────────────────────────────────────────────────────────────┐
   │                      WEB UI (React 18)                       │
   │                                                              │
-  │  • 197 Panels   • PWA    • WCAG AA    • Mock Data Mode     │
+  │  • 204 Panels   • PWA    • WCAG AA    • Mock Data Mode     │
   │  • Backtest Comparison    • Reconnect Banner    • Greeks     │
   └─────────────────────────────────────────────────────────────┘
 ```
@@ -163,9 +163,9 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 
 **UI-Only models (40):** GARCH(1,1), Markov-Switching GARCH, Rough Volatility, Bayesian Price Predictor, Bayesian Structural Time Series, HMC, Copula, Wavelet, Wavelet Packet, VMD, EMD/HHT, Monte Carlo, Almgren-Chriss, Pontryagin, Stochastic Optimal Control, Transfer Entropy, CCM, Girsanov, Renyi Entropy, Kolmogorov-Sinai, Information Bottleneck, Persistent Homology, Wasserstein, Sinkhorn, Schrodinger Bridge, Ito Generator, Malliavin Calculus, Fokker-Planck, SDE, Graph Theory, Tensor Decomposition, Sobolev, Lax-Milgram, Riesz, Banach, Hahn, Cameron-Martin, Radon-Nikodym, Prokhorov, Renormalization Group, and more. See [docs/MATH_MODELS.md](docs/MATH_MODELS.md) for the complete list.
 
-### Web UI (197 panels)
+### Web UI (204 panels)
 
-- **React.lazy code splitting** — all 197 panels lazy-loaded with Suspense fallbacks
+- **React.lazy code splitting** — all 204 panels lazy-loaded with Suspense fallbacks
 - **ChunkRetryBoundary** — automatic retry on chunk load failure (3 retries with backoff)
 - **Preload-on-hover** — hovering a category preloads all panels in that category
 - **VirtualList** — windowed list rendering for large datasets
@@ -313,8 +313,8 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | SHM IPC latency | ~1-5 us | Zero-copy C++ ↔ Python, packed structs |
 | Web UI bundle size (dist) | < 5 MB | Code-split, lazy-loaded panels |
 | Web UI initial render | < 1s | Vite + React 18 |
-| Test coverage | 44 JS files, 46 C++ files, 82 Python files | Unit + integration + E2E (172+ test files) |
-| Panel count | 197 registered panels | Detachable, responsive |
+| Test coverage | 40 JS files, 48 C++ files, 94 Python files | Unit + integration + E2E (182 test files) |
+| Panel count | 204 registered panels | Detachable, responsive |
 | Math models | 44 in trading logic + 40 UI-only | Black-Scholes to SVI/SABR to Heston/Merton |
 | Component files | 227 React components | |
 | Optimization walkthroughs | 23 examples | Before/after code + impact analysis |
@@ -658,7 +658,7 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 | [Architecture Diagrams](docs/ARCHITECTURE_DIAGRAMS.md) | ASCII diagrams: system overview, data flow, latency budget |
 | [Trading Strategies](docs/TRADING_STRATEGIES.md) | All strategies, HFT V2/V3 engine, pressure model, routing |
 | [Performance Guide](docs/PERFORMANCE.md) | Optimization techniques, latency budget, benchmarking, contributor checklist |
-| [Web UI](docs/WEB_UI.md) | 197 panels, performance, testing, accessibility, PWA |
+| [Web UI](docs/WEB_UI.md) | 204 panels, performance, testing, accessibility, PWA |
 | [Exchange Simulator](docs/EXCHANGE_SIMULATOR.md) | Price generation, order book, liquidation engine |
 | [Setup Guide](docs/SETUP.md) | Installation, mock mode, troubleshooting |
 | [Mathematical Models](docs/MATH_MODELS.md) | 44 models in trading logic + 40 UI-only, with formulas and file references |
