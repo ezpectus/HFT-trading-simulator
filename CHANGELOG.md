@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 58 — DTW and SVM Ported to Trading Logic)
+
+### Added
+- **[FEAT-348]** Created `ai-signal-bot/src/technical_analysis/dtw.py` — Dynamic Time Warping with O(n*m) DP, Sakoe-Chiba band, warping path backtracking. DTWResult class. Pattern templates (double bottom, head & shoulders, etc.), find_best_match(), normalize(), extract_windows(), compute_returns(). Ported from UI-only DynamicTimeWarping.jsx.
+- **[FEAT-349]** Created `ai-signal-bot/src/ml/svm_signal.py` — Linear SVM via SGD with hinge loss. SVMResult class. Feature extraction (mean, vol, skew, kurt, last ret, momentum, RSI, AC1), standardize(), predict(). Ported from UI-only SupportVectorMachine.jsx.
+- **[TEST-350]** Created `ai-signal-bot/tests/test_dtw.py` — 16 tests covering empty, single element, identical, shifted, different lengths, window constraint, symmetric distance, normalize, extract_windows, compute_returns, find_best_match
+- **[TEST-351]** Created `ai-signal-bot/tests/test_svm.py` — 15 tests covering empty, linearly separable, deterministic seed, predictions, accuracy, weights dimension, predict, standardize, feature extraction
+
+### Changed
+- Updated `ai-signal-bot/src/technical_analysis/__init__.py` — added DTW exports
+- Updated `ai-signal-bot/src/ml/__init__.py` — added SVM exports
+- Updated `docs/MATH_MODELS.md` — added DTW and SVM sections
+- Updated `docs/future_development.md` — marked DTW and SVM as ✅ DONE (Sprint 58)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 57 — K-Means and GMM Ported to Trading Logic)
 
 ### Added

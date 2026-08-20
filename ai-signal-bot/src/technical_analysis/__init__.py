@@ -35,6 +35,15 @@ from src.technical_analysis.gmm import (
     GMMResult,
     fit_gmm,
 )
+from src.technical_analysis.dtw import (
+    DTWResult,
+    compute_returns as dtw_compute_returns,
+    dtw,
+    extract_windows,
+    find_best_match,
+    normalize as dtw_normalize,
+    PATTERN_TEMPLATES,
+)
 
 __all__ = [
     "adx", "atr", "bollinger_bands", "ema", "macd", "rsi", "sma", "vwap",
@@ -44,4 +53,6 @@ __all__ = [
     "PCAResult", "compute_pca",
     "KMeansResult", "kmeans", "extract_kmeans_features",
     "GMMResult", "fit_gmm",
+    "DTWResult", "dtw", "dtw_compute_returns", "extract_windows",
+    "find_best_match", "dtw_normalize", "PATTERN_TEMPLATES",
 ]

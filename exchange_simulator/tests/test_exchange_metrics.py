@@ -1,6 +1,7 @@
 """Unit tests for exchange_simulator/metrics.py — ExchangeSimulatorMetrics."""
 
 import pytest
+from prometheus_client import REGISTRY
 
 from exchange_simulator.metrics import (
     ExchangeSimulatorMetrics,
@@ -11,9 +12,17 @@ from exchange_simulator.metrics import (
 # ─── Fixtures ───
 
 
+def _clear_prometheus_metrics():
+    """Unregister exchange_simulator metrics to avoid duplicate registration errors."""
+    names_to_remove = [n for n in list(REGISTRY._names_to_collectors) if 'exchange_simulator' in n]
+    for name in names_to_remove:
+        REGISTRY.unregister(REGISTRY._names_to_collectors[name])
+
+
 @pytest.fixture
 def metrics() -> ExchangeSimulatorMetrics:
     """Create a fresh metrics instance (don't start server)."""
+    _clear_prometheus_metrics()
     return ExchangeSimulatorMetrics(metrics_port=9999)
 
 

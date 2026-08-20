@@ -53,7 +53,7 @@
 | ~~K-Means Clustering~~ | `KMeansClustering.jsx` | `src/technical_analysis/kmeans.py` | ✅ DONE (Sprint 57) |
 | ~~Gaussian Mixture~~ | `GaussianMixtureModel.jsx` | `src/technical_analysis/gmm.py` | ✅ DONE (Sprint 57) |
 | ~~PCA~~ | `PrincipalComponentAnalysis.jsx` | `src/technical_analysis/pca.py` | ✅ DONE (Sprint 56) |
-| SVM | `SupportVectorMachine.jsx` | `src/ml/svm_signal.py` | СРЕДНИЙ | 3 дня |
+| ~~SVM~~ | `SupportVectorMachine.jsx` | `src/ml/svm_signal.py` | ✅ DONE (Sprint 58) |
 | Autoencoder | `Autoencoder.jsx` | `src/ml/autoencoder.py` | СРЕДНИЙ | 1 неделя |
 | VAE | `VariationalAutoencoder.jsx` | `src/ml/vae.py` | НИЗКИЙ | 2 недели |
 
@@ -70,7 +70,7 @@
 | Rough Volatility (rBergomi) | `RoughVolatility.jsx` | `src/technical_analysis/rbergomi.py` | 2 недели |
 | VMD | `VariationalModeDecomposition.jsx` | `src/technical_analysis/vmd.py` | 1 неделя |
 | EMD/HHT | `EmpiricalModeDecomposition.jsx` | `src/technical_analysis/emd.py` | 1 неделя |
-| DTW | `DynamicTimeWarping.jsx` | `src/technical_analysis/dtw.py` | 3 дня |
+| ~~DTW~~ | `DynamicTimeWarping.jsx` | `src/technical_analysis/dtw.py` | ✅ DONE (Sprint 58) |
 | Compressed Sensing | `CompressedSensing.jsx` | `src/technical_analysis/compressed_sensing.py` | 1 неделя |
 | RKHS | `ReproducingKernelHilbertSpace.jsx` | `src/ml/rkhs.py` | 2 недели |
 | Koopman Operator | `KoopmanOperatorTheory.jsx` | `src/research/koopman.py` | 2 недели |

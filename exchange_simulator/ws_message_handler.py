@@ -193,10 +193,27 @@ class MessageHandlerMixin:
     async def _submit_exchange_order(self, websocket, exchange, data: dict):
         """Submit order to exchange and return result or None on error."""
         try:
+            quantity = float(data["quantity"])
+        except (ValueError, TypeError, KeyError) as e:
+            await websocket.send(json.dumps({
+                "type": "error",
+                "message": f"Invalid quantity: {e}",
+            }))
+            return None
+
+        import math
+        if math.isnan(quantity) or math.isinf(quantity) or quantity <= 0:
+            await websocket.send(json.dumps({
+                "type": "error",
+                "message": f"Quantity must be a positive finite number, got {quantity}",
+            }))
+            return None
+
+        try:
             return exchange.submit_order(
                 symbol=data["symbol"],
                 side=Side(data["side"]),
-                quantity=float(data["quantity"]),
+                quantity=quantity,
                 order_type=OrderType(data.get("order_type", "MARKET")),
                 price=data.get("price"),
                 stop_loss=data.get("stop_loss"),

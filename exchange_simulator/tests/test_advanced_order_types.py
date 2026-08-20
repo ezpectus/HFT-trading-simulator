@@ -395,10 +395,10 @@ class TestIcebergOrder:
             slice_size=0.1,
         )
 
-        # Partial fill
+        # Partial fill of 0.05 on a 0.1 slice → 0.05 remaining in slice
         remaining, should_replenish = order.on_fill(0.05)
 
-        assert remaining == 0.0
+        assert remaining == 0.05
         assert should_replenish is False
         assert order.current_slice_filled == 0.05
 

@@ -220,8 +220,7 @@ class TestOptionsStrategies:
 
         result = os.calculate_straddle(S=100, K=100, T=0.25, sigma=0.2, long=True)
 
-        assert result.max_loss < 0  # Limited loss
-        assert result.max_loss == pytest.approx(result.max_loss * -1)  # Loss equals premium
+        assert result.max_loss < 0  # Limited loss (equals premium paid)
         assert result.max_profit == float('inf')  # Unlimited profit
         assert len(result.break_evens) == 2
 

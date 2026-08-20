@@ -172,17 +172,17 @@ class OptionsStrategies:
         # Iron condor: short put spread + short call spread
         # Short put spread: short K_put_low, long K_put_high
         # Short call spread: short K_call_high, long K_call_low
-        net_premium = (put_low_price - put_high_price) + (call_high_price - call_low_price)
+        net_premium = (put_high_price - put_low_price) + (call_low_price - call_high_price)
 
         # Calculate payoff at various stock prices
         payoff_at_expiry = []
         min_price = int(min(K_put_low, K_put_high) * 0.5)
         max_price = int(max(K_call_high, K_call_low) * 1.5)
         for price in range(min_price, max_price + 1, 1):
-            # Put spread payoff
-            put_spread_payoff = max(0, K_put_low - price) - max(0, K_put_high - price)
-            # Call spread payoff
-            call_spread_payoff = max(0, price - K_call_high) - max(0, price - K_call_low)
+            # Put spread payoff (short K_put_low, long K_put_high)
+            put_spread_payoff = max(0, K_put_high - price) - max(0, K_put_low - price)
+            # Call spread payoff (short K_call_high, long K_call_low)
+            call_spread_payoff = max(0, price - K_call_low) - max(0, price - K_call_high)
             total_payoff = put_spread_payoff + call_spread_payoff + net_premium
             payoff_at_expiry.append((float(price), total_payoff))
 

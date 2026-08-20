@@ -156,6 +156,28 @@ BIC = -2L + k_params·log(N), AIC = -2L + 2·k_params
 ```
 - **Source:** `ai-signal-bot/src/technical_analysis/gmm.py` (Sprint 57, ported from UI-only GaussianMixtureModel.jsx)
 
+### Dynamic Time Warping (DTW) — Trading logic
+Measures similarity between temporal sequences that may vary in speed.
+```
+D[i,j] = d(x_i, y_j) + min(D[i-1,j], D[i,j-1], D[i-1,j-1])
+where d(a,b) = (a-b)²
+Sakoe-Chiba band: |i - j| ≤ w (window constraint)
+Distance = sqrt(D[n,m])
+```
+Applications: pattern matching, signal classification, regime detection.
+- **Source:** `ai-signal-bot/src/technical_analysis/dtw.py` (Sprint 58, ported from UI-only DynamicTimeWarping.jsx)
+
+### Support Vector Machine (SVM) — Trading logic
+Linear SVM via SGD with hinge loss for binary price direction classification.
+```
+Objective: minimize ½||w||² + C·Σ max(0, 1 - y_i·(w·x_i + b))
+Hinge loss: L(y, f(x)) = max(0, 1 - y·f(x))
+Sub-gradient: ∂L/∂w = -y·x if margin < 1, else 0
+Decision: f(x) = sign(w·x + b)
+```
+Features: mean, vol, skew, kurt, last return, momentum, RSI, autocorrelation.
+- **Source:** `ai-signal-bot/src/ml/svm_signal.py` (Sprint 58, ported from UI-only SupportVectorMachine.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic
