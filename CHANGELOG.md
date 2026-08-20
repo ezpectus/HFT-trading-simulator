@@ -2,6 +2,39 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v4.9 — Autonomous Sprint 5: File Size Compliance + Final Test Coverage + print() Fix)
+
+### Code Quality Fixes
+
+- **[QUAL-013]** Extracted `Signal` and `SignalDirection` from `strategies/strategies.py` to `strategies/signal.py` (576→395 lines, below 500-line limit). Backward-compatible re-export maintained.
+- **[QUAL-014]** Extracted `CircuitBreaker` from `strategies/strategies.py` to `strategies/circuit_breaker.py`. Backward-compatible re-export maintained.
+- **[QUAL-015]** Replaced `print()` with `logger.info()` in `backtesting/optimizer.py` `print_results` method (7 print calls → 1 logger.info call).
+
+### Test Coverage
+
+- **[TEST-015]** Added `tests/unit/test_untested_modules.py` — 90+ tests covering 8 previously untested modules: `VolatilitySurface` (SVI params, SABR params, variance, implied vol, surface generation, calibration), `RiskAnalyzer` (historical/parametric/MC VaR, CVaR, stress tests, all metrics, multi-asset), `MarketMakingStrategy` (quotes, inventory, toxicity, fills, PnL, direction change, analyze, stats), `SentimentStrategy` (event types, sentiment/volatility maps, news events, fade/follow signals, decay, stats), `StatisticalArbitrage` (Kalman filter, cointegration, spread, z-score, analyze, CorrelationMatrix, find_pairs), `OrderBookReplay` (from_candle, deterministic, replay_series, imbalance injection, OrderBookBacktester), `BacktestPlotter` (equity curve, trade PnL, comparison, radar, save_all), `StrategyOptimizer` (fitness functions, grid search, walk-forward, best_params, print_results).
+
+### Documentation Updates
+
+- Updated `docs/ARCHITECTURE.md` audit version to v4.5, noted Signal/CircuitBreaker extraction.
+- Updated `docs/MATH_MODELS.md` audit version to v4.5.
+
+### Audit Results
+
+- **0** `except Exception` in production code (verified across all modules)
+- **0** `print()` in production code
+- **0** `pass` stubs in production code
+- **0** bare `except:`
+- **0** `TODO/FIXME/HACK/XXX`
+- **0** `NotImplementedError`
+- **0** `type: ignore`
+- **0** `from x import *`
+- **0** `global` mutable state (3 singleton-init flags in observability — justified)
+- **7** `Any` annotations — all have justification comments
+- **0** source files > 500 lines
+- **46 unit test files** with ~1,230 test functions/classes
+- **0** untested source modules (all src/ modules now have dedicated test files)
+
 ## [Unreleased] — 2026-08-20 (v4.8 — Autonomous Sprint 4: Any Justification + Test Coverage Expansion)
 
 ### Code Quality Fixes

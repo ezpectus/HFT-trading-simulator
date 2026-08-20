@@ -1757,6 +1757,36 @@
 
 ---
 
+### QUAL-013: `strategies/strategies.py` exceeds 500-line limit (576 lines)
+- **Location:** `ai-signal-bot/src/strategies/strategies.py`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** File contained Signal, SignalDirection, CircuitBreaker, TrendFollowingStrategy, MeanReversionStrategy, EnsembleVoter, and FFTCycleStrategy — totaling 576 lines.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted `Signal` and `SignalDirection` to `strategies/signal.py` (48 lines) and `CircuitBreaker` to `strategies/circuit_breaker.py` (79 lines). Both re-exported from `strategies.py` for backward compatibility. File now 395 lines.
+- **Commit:** c4194d9
+
+---
+
+### QUAL-014: `print()` in production code — `backtesting/optimizer.py`
+- **Location:** `ai-signal-bot/src/backtesting/optimizer.py:193-215` (`print_results` method)
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `print_results` used 7 `print()` calls for output instead of `logger.info()`.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced all `print()` calls with a single `logger.info()` call using joined lines.
+- **Commit:** 077e407
+
+---
+
+### QUAL-015: 8 source modules without dedicated test files
+- **Location:** `pricing/volatility_surface.py`, `risk/var_stress_test.py`, `strategies/market_making.py`, `strategies/sentiment.py`, `strategies/statistical_arbitrage.py`, `backtesting/order_book_replay.py`, `backtesting/plotter.py`, `backtesting/optimizer.py`
+- **Severity:** P2 (Test Coverage)
+- **Root Cause:** These modules were identified during Sprint 5 audit as lacking dedicated unit test files.
+- **Status:** ✅ Fixed
+- **Fix:** Added `tests/unit/test_untested_modules.py` with 90+ tests covering all 8 modules.
+- **Commit:** 95b0511
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
