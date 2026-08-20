@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 46 — README CUDA/ONNX Cleanup)
+
+### Updated
+- **[DOC-309]** Updated `README.md` — removed stale CUDA/ONNX dead code badge and description (files removed in Sprint 43)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 45 — Stale Docs: CUDA/ONNX References)
 
 ### Updated

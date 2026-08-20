@@ -14,9 +14,9 @@
 ![Languages](https://img.shields.io/badge/languages-C%2B%2B20%20%7C%20Python%20%7C%20React-00599C.svg)
 ![Security](https://img.shields.io/badge/security-Bandit%20%2B%20CodeQL-red.svg)
 ![Readiness](https://img.shields.io/badge/readiness-66%25-yellow.svg)
-![Dead Code](https://img.shields.io/badge/dead%20code-CUDA%20%2B%20ONNX%20(%23ifdef)%20%7C%20Python%20removed-red.svg)
+![Dead Code](https://img.shields.io/badge/dead%20code-removed-00C853.svg)
 
-> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 44 quant models in trading logic (+40 UI-only), 204 dashboard panels, Rust executor, shared-memory IPC, SVI/SABR volatility surface, Student-t/Merton/Heston/Markov microstructure, options strategies, and optimized price feed with connection pooling, batching, and LRU cache. CUDA and ONNX code exists but is dead code behind `#ifdef` (never compiled in CI). Zero real money, zero risk, 100% educational.**
+> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 44 quant models in trading logic (+40 UI-only), 204 dashboard panels, Rust executor, shared-memory IPC, SVI/SABR volatility surface, Student-t/Merton/Heston/Markov microstructure, options strategies, and optimized price feed with connection pooling, batching, and LRU cache. Zero real money, zero risk, 100% educational.**
 
 **Live Demo:** _coming soon_ | **Documentation:** [docs/](docs/) | **Setup:** [docs/SETUP.md](docs/SETUP.md) | **Math Models:** [docs/MATH_MODELS.md](docs/MATH_MODELS.md) | **Performance:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
 
