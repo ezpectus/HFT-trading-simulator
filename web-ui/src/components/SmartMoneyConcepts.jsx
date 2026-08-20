@@ -179,7 +179,7 @@ export default function SmartMoneyConcepts({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Brain size={12} className="text-accent-purple" />
           Smart Money Concepts
@@ -195,14 +195,14 @@ export default function SmartMoneyConcepts({ candles, symbol, exchange }) {
   const trendBg = currentTrend === 'bullish' ? 'bg-accent-green/10' : currentTrend === 'bearish' ? 'bg-accent-red/10' : 'bg-bg-800'
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Brain size={12} className="text-accent-purple" />
         Smart Money Concepts
       </div>
 
       {/* Current structure */}
-      <div className={'rounded px-2 py-1.5 mb-2 text-center ' + trendBg}>
+      <div className={' px-2 py-1.5 mb-2 text-center ' + trendBg}>
         <div className="text-[8px] text-gray-600">Market Structure</div>
         <div className={'text-sm font-bold capitalize ' + trendColor}>{currentTrend}</div>
         {lastStructure && (
@@ -234,11 +234,11 @@ export default function SmartMoneyConcepts({ candles, symbol, exchange }) {
 
       {/* Structure stats */}
       <div className="grid grid-cols-2 gap-1 mt-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">BOS count</span>
           <div className="font-mono text-gray-300">{totalBOS}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">CHoCH count</span>
           <div className="font-mono text-gray-300">{totalCHoCH}</div>
         </div>
@@ -250,7 +250,7 @@ export default function SmartMoneyConcepts({ candles, symbol, exchange }) {
           <div className="text-[8px] text-gray-600 mb-1">Unmitigated Order Blocks:</div>
           <div className="space-y-0.5">
             {activeOBs.map((ob, i) => (
-              <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+              <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
                 <span className={ob.type === 'bullish' ? 'text-accent-green' : 'text-accent-red'}>
                   {ob.type === 'bullish' ? '↑ Bull OB' : '↓ Bear OB'}
                 </span>
@@ -267,7 +267,7 @@ export default function SmartMoneyConcepts({ candles, symbol, exchange }) {
           <div className="text-[8px] text-gray-600 mb-1">Unfilled FVGs:</div>
           <div className="space-y-0.5">
             {activeFVGs.map((fvg, i) => (
-              <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+              <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
                 <span className={fvg.type === 'bullish' ? 'text-accent-green' : 'text-accent-red'}>
                   {fvg.type === 'bullish' ? '↑ Bull FVG' : '↓ Bear FVG'}
                 </span>

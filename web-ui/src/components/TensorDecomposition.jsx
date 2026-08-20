@@ -267,7 +267,7 @@ export default function TensorDecomposition({ candles, symbols, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Tensor Decomposition (CP/ALS) — {exchange}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -275,22 +275,22 @@ export default function TensorDecomposition({ candles, symbols, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">CP rank:</span>
-          <input type="number" value={rank} onChange={e => setRank(Math.max(1, Math.min(6, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={rank} onChange={e => setRank(Math.max(1, Math.min(6, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Max iterations:</span>
-          <input type="number" value={maxIter} onChange={e => setMaxIter(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={maxIter} onChange={e => setMaxIter(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* ALS convergence */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">ALS Convergence: Reconstruction Error (rank={data.cp.rank})</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
           <path d={data.errors.map((e, i) => `${i === 0 ? 'M' : 'L'} ${sxErr(i)} ${syErr(e)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
@@ -300,7 +300,7 @@ export default function TensorDecomposition({ candles, symbols, exchange }) {
       </div>
 
       {/* Asset factor matrix (A) */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Factor Matrix A: Assets × Rank (latent asset factors)</div>
         <div className="space-y-1">
           {data.assetFactors.map((af, i) => (
@@ -308,9 +308,9 @@ export default function TensorDecomposition({ candles, symbols, exchange }) {
               <span className="text-slate-400 w-20 truncate">{af.sym}</span>
               {af.factors.map((v, r) => (
                 <div key={r} className="flex items-center gap-1">
-                  <div className="w-16 bg-slate-900 rounded h-3 relative">
+                  <div className="w-16 bg-slate-900  h-3 relative">
                     <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
-                    <div className="h-full rounded absolute" style={{
+                    <div className="h-full  absolute" style={{
                       width: `${Math.min(50, Math.abs(v) * 50)}%`,
                       background: factorColors[r],
                       left: v >= 0 ? '50%' : `${50 - Math.min(50, Math.abs(v) * 50)}%`
@@ -326,7 +326,7 @@ export default function TensorDecomposition({ candles, symbols, exchange }) {
       </div>
 
       {/* Feature factor matrix (C) */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Factor Matrix C: Features × Rank (latent feature loadings)</div>
         <div className="space-y-1">
           {data.featureLabels.map((label, k) => (
@@ -334,9 +334,9 @@ export default function TensorDecomposition({ candles, symbols, exchange }) {
               <span className="text-slate-400 w-20">{label}</span>
               {data.cp.C[k].map((v, r) => (
                 <div key={r} className="flex items-center gap-1">
-                  <div className="w-16 bg-slate-900 rounded h-3 relative">
+                  <div className="w-16 bg-slate-900  h-3 relative">
                     <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
-                    <div className="h-full rounded absolute" style={{
+                    <div className="h-full  absolute" style={{
                       width: `${Math.min(50, Math.abs(v) * 50)}%`,
                       background: factorColors[r],
                       left: v >= 0 ? '50%' : `${50 - Math.min(50, Math.abs(v) * 50)}%`
@@ -351,12 +351,12 @@ export default function TensorDecomposition({ candles, symbols, exchange }) {
       </div>
 
       {/* Factor weights */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Factor Weights (λ_r)</div>
         <div className="flex items-center gap-3">
           {data.cp.weights.map((w, r) => (
             <div key={r} className="flex items-center gap-2 text-xs">
-              <span className="w-3 h-3 rounded" style={{ background: factorColors[r] }} />
+              <span className="w-3 h-3 " style={{ background: factorColors[r] }} />
               <span className="text-slate-400">Factor {r + 1}:</span>
               <span className="font-mono" style={{ color: factorColors[r] }}>{w.toFixed(4)}</span>
             </div>
@@ -365,29 +365,29 @@ export default function TensorDecomposition({ candles, symbols, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Assets</div>
           <div className="text-cyan-400 font-mono">{data.nAssets}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Timeframes</div>
           <div className="text-amber-400 font-mono">{data.nTF}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Features</div>
           <div className="text-purple-400 font-mono">{data.nFeatures}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">CP rank</div>
           <div className="text-emerald-400 font-mono">{data.cp.rank}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Reconstruction</div>
           <div className="text-slate-300 font-mono">{(data.reconQuality * 100).toFixed(1)}%</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Model:</strong> T ≈ Σ_r λ_r · a_r ∘ b_r ∘ c_r (CP decomposition) |
         <strong> Algorithm:</strong> ALS (Alternating Least Squares) |

@@ -216,7 +216,7 @@ export default function FokkerPlanckEquation({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Fokker-Planck Equation (Density Evolution) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -224,7 +224,7 @@ export default function FokkerPlanckEquation({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Model:</span>
-          <select value={modelType} onChange={e => setModelType(e.target.value)} className="bg-slate-800 border border-slate-600 rounded text-slate-200 px-1">
+          <select value={modelType} onChange={e => setModelType(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
             <option value="ou">Ornstein-Uhlenbeck</option>
             <option value="gbm">Geometric Brownian Motion</option>
             <option value="const">Constant Drift-Diffusion</option>
@@ -232,26 +232,26 @@ export default function FokkerPlanckEquation({ candles, symbol, exchange }) {
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Steps:</span>
-          <input type="number" value={nSteps} onChange={e => setNSteps(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nSteps} onChange={e => setNSteps(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Δt:</span>
-          <input type="number" step="0.005" value={dt} onChange={e => setDt(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.005" value={dt} onChange={e => setDt(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Horizon:</span>
-          <input type="number" value={horizon} onChange={e => setHorizon(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={horizon} onChange={e => setHorizon(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Density evolution */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Probability Density Evolution: p(x, t) — Initial → Forecast → Stationary</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -277,9 +277,9 @@ export default function FokkerPlanckEquation({ candles, symbol, exchange }) {
       </div>
 
       {/* Density evolution heatmap */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Density Evolution Over Time (time → x)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           {data.result.history.map((p, t) => {
             const cellW = (W - 2 * P) / data.result.history.length
             return p.map((val, i) => {
@@ -295,29 +295,29 @@ export default function FokkerPlanckEquation({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">κ (mean rev)</div>
           <div className="text-cyan-400 font-mono">{data.params.kappa.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">θ (long-term)</div>
           <div className="text-emerald-400 font-mono">{data.params.theta.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">σ (diffusion)</div>
           <div className="text-amber-400 font-mono">{data.params.sigmaOU.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">VaR 5%</div>
           <div className="text-red-400 font-mono">{data.var5.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">KL divergence</div>
           <div className="text-purple-400 font-mono">{data.klDiv.toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> PDE:</strong> ∂p/∂t = -∂/∂x[μ·p] + (1/2)·∂²/∂x²[σ²·p] |
         <strong> Scheme:</strong> finite difference (explicit, {nSteps} steps, Δt={dt}) |

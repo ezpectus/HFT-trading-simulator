@@ -34,7 +34,7 @@ export default function DepthChart({ orderbookData, currentPrice }) {
 
   if (!depthData) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <BarChart3 size={12} className="text-accent-blue" />
           Depth Chart
@@ -71,7 +71,7 @@ export default function DepthChart({ orderbookData, currentPrice }) {
   const priceX = currentPrice ? ((currentPrice - minPrice) / priceRange) * W : 50
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <BarChart3 size={12} className="text-accent-blue" />
         Depth Chart

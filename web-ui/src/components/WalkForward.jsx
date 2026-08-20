@@ -71,7 +71,7 @@ export default function WalkForward({ accounts }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <GitCompare size={12} className="text-accent-blue" />
         Walk-Forward Analysis
@@ -92,14 +92,14 @@ export default function WalkForward({ accounts }) {
                 min="5"
                 value={windowSize}
                 onChange={e => setWindowSize(Math.max(5, Number(e.target.value)))}
-                className="w-12 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none"
+                className="w-12 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none"
               />
               trades
             </label>
             <button
               onClick={runAnalysis}
               disabled={running || allTrades.length < windowSize * 2}
-              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 disabled:opacity-50"
+              className="flex items-center gap-1 px-2 py-1 text-[10px]  bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 disabled:opacity-50"
             >
               <Play size={10} />
               {running ? 'Running...' : 'Run'}
@@ -109,7 +109,7 @@ export default function WalkForward({ accounts }) {
           {results && (
             <>
               {/* Robustness score */}
-              <div className="bg-bg-600/50 rounded px-2 py-1.5 mb-2">
+              <div className="bg-bg-600/50  px-2 py-1.5 mb-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] text-gray-500">Robustness Score</span>
                   <span className={'text-sm font-bold ' + (results.robustnessScore > 60 ? 'text-accent-green' : results.robustnessScore > 30 ? 'text-accent-yellow' : 'text-accent-red')}>
@@ -126,11 +126,11 @@ export default function WalkForward({ accounts }) {
 
               {/* Summary stats */}
               <div className="grid grid-cols-2 gap-2 mb-2 text-[9px]">
-                <div className="bg-bg-600/50 rounded px-2 py-1">
+                <div className="bg-bg-600/50  px-2 py-1">
                   <div className="text-gray-600">Consistent Segments</div>
                   <div className="font-mono text-gray-300">{results.consistentSegments}/{results.totalSegments}</div>
                 </div>
-                <div className="bg-bg-600/50 rounded px-2 py-1">
+                <div className="bg-bg-600/50  px-2 py-1">
                   <div className="text-gray-600">Avg Degradation</div>
                   <div className={'font-mono ' + (results.avgDegradation >= 0 ? 'text-accent-green' : 'text-accent-red')}>
                     {results.avgDegradation >= 0 ? '+' : ''}{results.avgDegradation.toFixed(1)}%
@@ -141,7 +141,7 @@ export default function WalkForward({ accounts }) {
               {/* Segment results */}
               <div className="max-h-[120px] overflow-y-auto scrollbar-thin space-y-0.5">
                 {results.segments.map(seg => (
-                  <div key={seg.index} className="bg-bg-600/30 rounded px-1.5 py-1 text-[8px]">
+                  <div key={seg.index} className="bg-bg-600/30  px-1.5 py-1 text-[8px]">
                     <div className="flex items-center justify-between mb-0.5">
                       <span className="text-gray-500">Seg {seg.index + 1}</span>
                       <span className="text-gray-600">train {seg.trainCount} · test {seg.testCount}</span>

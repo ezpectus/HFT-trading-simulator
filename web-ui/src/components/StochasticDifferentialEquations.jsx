@@ -265,7 +265,7 @@ export default function StochasticDifferentialEquations({ candles, symbol, excha
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Stochastic Differential Equations — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -273,7 +273,7 @@ export default function StochasticDifferentialEquations({ candles, symbol, excha
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Model:</span>
-          <select value={model} onChange={e => setModel(e.target.value)} className="bg-slate-800 border border-slate-600 rounded text-slate-200 px-1">
+          <select value={model} onChange={e => setModel(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
             <option value="gbm">GBM (Geometric Brownian)</option>
             <option value="ou">Ornstein-Uhlenbeck</option>
             <option value="cir">CIR (Cox-Ingersoll-Ross)</option>
@@ -283,7 +283,7 @@ export default function StochasticDifferentialEquations({ candles, symbol, excha
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Scheme:</span>
-          <select value={scheme} onChange={e => setScheme(e.target.value)} className="bg-slate-800 border border-slate-600 rounded text-slate-200 px-1">
+          <select value={scheme} onChange={e => setScheme(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
             <option value="euler">Euler-Maruyama</option>
             <option value="milstein">Milstein (strong 1.0)</option>
           </select>
@@ -294,11 +294,11 @@ export default function StochasticDifferentialEquations({ candles, symbol, excha
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Paths:</span>
-          <input type="number" value={nPaths} onChange={e => setNPaths(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nPaths} onChange={e => setNPaths(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">T (days):</span>
-          <input type="number" value={Math.round(T * 365)} onChange={e => setT(Math.max(1, +e.target.value) / 365)} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={Math.round(T * 365)} onChange={e => setT(Math.max(1, +e.target.value) / 365)} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
@@ -306,43 +306,43 @@ export default function StochasticDifferentialEquations({ candles, symbol, excha
         <div className="flex items-center gap-3 flex-wrap text-xs">
           <label className="flex items-center gap-1">
             <span className="text-slate-400">μ (drift):</span>
-            <input type="number" step="0.01" value={mu} onChange={e => setMu(+e.target.value)} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+            <input type="number" step="0.01" value={mu} onChange={e => setMu(+e.target.value)} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
           </label>
           <label className="flex items-center gap-1">
             <span className="text-slate-400">σ (vol):</span>
-            <input type="number" step="0.01" value={sigma} onChange={e => setSigma(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+            <input type="number" step="0.01" value={sigma} onChange={e => setSigma(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
           </label>
           {(model === 'ou' || model === 'cir' || model === 'heston') && (
             <label className="flex items-center gap-1">
               <span className="text-slate-400">κ/θ (reversion):</span>
-              <input type="number" step="0.5" value={model === 'ou' ? theta : kappa} onChange={e => model === 'ou' ? setTheta(Math.max(0.1, +e.target.value)) : setKappa(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+              <input type="number" step="0.5" value={model === 'ou' ? theta : kappa} onChange={e => model === 'ou' ? setTheta(Math.max(0.1, +e.target.value)) : setKappa(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
             </label>
           )}
           {(model === 'cir' || model === 'heston') && (
             <label className="flex items-center gap-1">
               <span className="text-slate-400">ξ (vol of vol):</span>
-              <input type="number" step="0.05" value={xi} onChange={e => setXi(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+              <input type="number" step="0.05" value={xi} onChange={e => setXi(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
             </label>
           )}
           {model === 'heston' && (
             <label className="flex items-center gap-1">
               <span className="text-slate-400">ρ (correlation):</span>
-              <input type="number" step="0.1" value={rho} onChange={e => setRho(Math.max(-0.99, Math.min(0.99, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+              <input type="number" step="0.1" value={rho} onChange={e => setRho(Math.max(-0.99, Math.min(0.99, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
             </label>
           )}
           {model === 'merton' && (
             <label className="flex items-center gap-1">
               <span className="text-slate-400">λ (jump rate):</span>
-              <input type="number" step="1" value={lambda} onChange={e => setLambda(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+              <input type="number" step="1" value={lambda} onChange={e => setLambda(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
             </label>
           )}
         </div>
       )}
 
       {/* Price paths */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Simulated Paths ({model.toUpperCase()}, {nPaths} paths, {scheme})</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -368,9 +368,9 @@ export default function StochasticDifferentialEquations({ candles, symbol, excha
 
       {/* Volatility paths (Heston only) */}
       {data.volSim && (
-        <div className="bg-slate-800 rounded p-3">
+        <div className="bg-slate-800  p-3">
           <div className="text-xs text-slate-400 mb-1">Stochastic Volatility Paths (Heston variance)</div>
-          <svg width={W} height={200} className="bg-slate-900 rounded">
+          <svg width={W} height={200} className="bg-slate-900 ">
             <line x1={P} y1={170} x2={W - P} y2={170} stroke="#334155" />
             {data.volSim.slice(0, 20).map((vol, i) => (
               <path key={i} d={vol.map((v, t) => `${t === 0 ? 'M' : 'L'} ${sxP(t)} ${syV(v)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={0.5} opacity={0.2} />
@@ -380,29 +380,29 @@ export default function StochasticDifferentialEquations({ candles, symbol, excha
       )}
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">S₀</div>
           <div className="text-cyan-400 font-mono">${data.S0.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">E[S_T]</div>
           <div className="text-amber-400 font-mono">${data.meanFinal.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Expected return</div>
           <div className="font-mono" style={{ color: sigColor }}>{(data.expectedReturn * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">90% CI width</div>
           <div className="text-purple-400 font-mono">{(data.ciWidth * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Median</div>
           <div className="text-emerald-400 font-mono">${data.median.toFixed(2)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Model:</strong> {model.toUpperCase()} ({scheme}) |
         <strong> μ:</strong> {data.usedMu.toFixed(4)} |
         <strong> σ:</strong> {data.usedSigma.toFixed(4)} |

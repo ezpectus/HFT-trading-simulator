@@ -147,7 +147,7 @@ export default function LiquidityGrabDetector({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Crosshair size={12} className="text-accent-yellow" />
           Liquidity Grabs
@@ -160,7 +160,7 @@ export default function LiquidityGrabDetector({ candles, symbol, exchange }) {
   const { recentGrabs, activeHighs, activeLows, nearestHigh, nearestLow, lastPrice, candleBars, liquidityLines, grabMarkers, totalGrabs } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Crosshair size={12} className="text-accent-yellow" />
         Liquidity Grab Detector
@@ -168,7 +168,7 @@ export default function LiquidityGrabDetector({ candles, symbol, exchange }) {
 
       {/* Nearest liquidity */}
       <div className="grid grid-cols-2 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Nearest High</span>
           {nearestHigh ? (
             <div className="font-mono text-accent-red">{formatPrice(nearestHigh.price)}
@@ -176,7 +176,7 @@ export default function LiquidityGrabDetector({ candles, symbol, exchange }) {
             </div>
           ) : <div className="text-gray-700">—</div>}
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Nearest Low</span>
           {nearestLow ? (
             <div className="font-mono text-accent-green">{formatPrice(nearestLow.price)}
@@ -219,7 +219,7 @@ export default function LiquidityGrabDetector({ candles, symbol, exchange }) {
           <div className="text-[8px] text-gray-600 mb-1">Recent grabs ({totalGrabs} total):</div>
           <div className="space-y-0.5">
             {recentGrabs.map((g, i) => (
-              <div key={i} className="flex items-center gap-1 text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+              <div key={i} className="flex items-center gap-1 text-[8px] bg-bg-800  px-1.5 py-0.5">
                 {g.direction === 'bullish' ? (
                   <TrendingUp size={8} className="text-accent-green shrink-0" />
                 ) : (
@@ -237,13 +237,13 @@ export default function LiquidityGrabDetector({ candles, symbol, exchange }) {
 
       {/* Warning */}
       {recentGrabs.length > 0 && recentGrabs[recentGrabs.length - 1].direction === 'bullish' && (
-        <div className="mt-1.5 bg-accent-green/10 border border-accent-green/20 rounded px-1.5 py-0.5 flex items-center gap-1">
+        <div className="mt-1.5 bg-accent-green/10 border border-accent-green/20  px-1.5 py-0.5 flex items-center gap-1">
           <AlertTriangle size={9} className="text-accent-green shrink-0" />
           <span className="text-[8px] text-accent-green">Recent sell-side grab = potential long entry</span>
         </div>
       )}
       {recentGrabs.length > 0 && recentGrabs[recentGrabs.length - 1].direction === 'bearish' && (
-        <div className="mt-1.5 bg-accent-red/10 border border-accent-red/20 rounded px-1.5 py-0.5 flex items-center gap-1">
+        <div className="mt-1.5 bg-accent-red/10 border border-accent-red/20  px-1.5 py-0.5 flex items-center gap-1">
           <AlertTriangle size={9} className="text-accent-red shrink-0" />
           <span className="text-[8px] text-accent-red">Recent buy-side grab = potential short entry</span>
         </div>

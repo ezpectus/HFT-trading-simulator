@@ -64,7 +64,7 @@ export default function SmartOrderRouter({ candles, orderbooks, symbols, exchang
   }, [candles, orderbooks, symbols, exchanges])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Route size={12} className="text-accent-blue" />
         Smart Order Router
@@ -72,11 +72,11 @@ export default function SmartOrderRouter({ candles, orderbooks, symbols, exchang
 
       <div className="space-y-1.5">
         {routing.map(r => (
-          <div key={r.symbol} className="bg-bg-600/50 rounded p-1.5">
+          <div key={r.symbol} className="bg-bg-600/50  p-1.5">
             <div className="flex items-center gap-1.5 mb-1">
               <span className="text-[10px] font-medium text-gray-300">{r.symbol.split('/')[0]}</span>
               {r.arbPct > 0.1 && (
-                <span className="text-[8px] px-1 rounded bg-accent-yellow/20 text-accent-yellow">
+                <span className="text-[8px] px-1  bg-accent-yellow/20 text-accent-yellow">
                   ARB {r.arbPct.toFixed(2)}%
                 </span>
               )}

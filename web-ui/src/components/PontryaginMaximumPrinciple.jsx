@@ -173,7 +173,7 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Pontryagin Maximum Principle (Optimal Execution) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -181,30 +181,30 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">κ (exec cost):</span>
-          <input type="number" step="0.01" value={kappa} onChange={e => setKappa(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.01" value={kappa} onChange={e => setKappa(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">λ (impact):</span>
-          <input type="number" step="0.005" value={lambda} onChange={e => setLambda(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.005" value={lambda} onChange={e => setLambda(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">η (risk):</span>
-          <input type="number" step="0.01" value={eta} onChange={e => setEta(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.01" value={eta} onChange={e => setEta(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">X₀ (inventory):</span>
-          <input type="number" step="0.1" value={X0} onChange={e => setX0(+e.target.value)} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.1" value={X0} onChange={e => setX0(+e.target.value)} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">T (horizon):</span>
-          <input type="number" step="0.1" value={T} onChange={e => setT(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.1" value={T} onChange={e => setT(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Inventory trajectory */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Optimal Inventory x(t): PMP vs TWAP</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
@@ -221,9 +221,9 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
       </div>
 
       {/* Trade rate */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Optimal Trade Rate u*(t) (control signal)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
@@ -242,9 +242,9 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
       </div>
 
       {/* Costate p(t) */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Costate p(t) (shadow price of inventory)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
@@ -256,7 +256,7 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
       </div>
 
       {/* Cost comparison */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Execution Cost Comparison</div>
         <div className="space-y-1">
           {[
@@ -266,8 +266,8 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
           ].sort((a, b) => a.cost - b.cost).map((c, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
               <span className="text-slate-400 w-24">{c.label}</span>
-              <div className="flex-1 bg-slate-900 rounded h-3 relative">
-                <div className="h-full rounded" style={{ width: `${Math.min(100, c.cost / data.immediateCost * 100)}%`, background: c.color }} />
+              <div className="flex-1 bg-slate-900  h-3 relative">
+                <div className="h-full " style={{ width: `${Math.min(100, c.cost / data.immediateCost * 100)}%`, background: c.color }} />
               </div>
               <span className="font-mono w-24" style={{ color: c.color }}>{c.cost.toFixed(6)}</span>
             </div>
@@ -276,29 +276,29 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">PMP cost</div>
           <div className="text-cyan-400 font-mono">{data.result.totalCost.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">TWAP cost</div>
           <div className="text-amber-400 font-mono">{data.result.twapCost.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Savings</div>
           <div className="text-emerald-400 font-mono">{data.savingsPct.toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">u*(0) rate</div>
           <div className="text-purple-400 font-mono">{data.currentU.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Direction</div>
           <div className="font-mono" style={{ color: sigColor }}>{data.tradeDirection}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> PMP:</strong> H = ½κu² + λu²x + ηx² + p·u, u* = -p/(κ+2λx) |
         <strong> State:</strong> x'=u (inventory), Costate: p'=-λu²-2ηx |

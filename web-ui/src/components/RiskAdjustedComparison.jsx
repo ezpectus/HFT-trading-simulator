@@ -78,7 +78,7 @@ export default function RiskAdjustedComparison({ accounts, fills }) {
   ]
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Award size={12} className="text-accent-yellow" />
         Risk-Adjusted Returns
@@ -87,7 +87,7 @@ export default function RiskAdjustedComparison({ accounts, fills }) {
       {/* Ratio cards */}
       <div className="space-y-1.5 mb-2">
         {ratios.map(r => (
-          <div key={r.name} className="bg-bg-600/50 rounded px-2 py-1.5">
+          <div key={r.name} className="bg-bg-600/50  px-2 py-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <r.icon size={11} className={r.color} />
@@ -125,7 +125,7 @@ export default function RiskAdjustedComparison({ accounts, fills }) {
 
 function Cell({ label, value, color }) {
   return (
-    <div className="bg-bg-600/50 rounded px-2 py-1">
+    <div className="bg-bg-600/50  px-2 py-1">
       <div className="text-[8px] text-gray-600 uppercase">{label}</div>
       <div className={`text-[10px] font-mono ${color}`}>{value}</div>
     </div>

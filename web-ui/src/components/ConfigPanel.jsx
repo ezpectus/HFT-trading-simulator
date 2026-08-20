@@ -30,7 +30,7 @@ export default function ConfigPanel({ onConfigUpdate, fundingRates, weekendMode 
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase w-full"
@@ -75,7 +75,7 @@ export default function ConfigPanel({ onConfigUpdate, fundingRates, weekendMode 
                   max="1"
                   value={fees[ex]}
                   onChange={e => setFees(prev => ({ ...prev, [ex]: parseFloat(e.target.value) }))}
-                  className="w-16 bg-bg-600 text-gray-200 text-[10px] rounded px-1.5 py-0.5 border border-bg-500 font-mono"
+                  className="w-16 bg-bg-600 text-gray-200 text-[10px]  px-1.5 py-0.5 border border-bg-500 font-mono"
                 />
                 <span className="text-[10px] text-gray-600">%</span>
               </div>
@@ -95,7 +95,7 @@ export default function ConfigPanel({ onConfigUpdate, fundingRates, weekendMode 
                   max="20"
                   value={slippage[ex]}
                   onChange={e => setSlippage(prev => ({ ...prev, [ex]: parseFloat(e.target.value) }))}
-                  className="w-16 bg-bg-600 text-gray-200 text-[10px] rounded px-1.5 py-0.5 border border-bg-500 font-mono"
+                  className="w-16 bg-bg-600 text-gray-200 text-[10px]  px-1.5 py-0.5 border border-bg-500 font-mono"
                 />
                 <span className="text-[10px] text-gray-600">bps</span>
               </div>
@@ -115,7 +115,7 @@ export default function ConfigPanel({ onConfigUpdate, fundingRates, weekendMode 
                   max="100"
                   value={leverage[ex]}
                   onChange={e => setLeverage(prev => ({ ...prev, [ex]: parseInt(e.target.value) }))}
-                  className="w-16 bg-bg-600 text-gray-200 text-[10px] rounded px-1.5 py-0.5 border border-bg-500 font-mono"
+                  className="w-16 bg-bg-600 text-gray-200 text-[10px]  px-1.5 py-0.5 border border-bg-500 font-mono"
                 />
                 <span className="text-[10px] text-gray-600">x</span>
               </div>
@@ -144,14 +144,14 @@ export default function ConfigPanel({ onConfigUpdate, fundingRates, weekendMode 
           <div className="flex gap-1 pt-1">
             <button
               onClick={handleSave}
-              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-[10px]  bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors"
             >
               <Save size={10} />
               Apply
             </button>
             <button
               onClick={handleReset}
-              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-bg-600 text-gray-500 hover:text-gray-300 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-[10px]  bg-bg-600 text-gray-500 hover:text-gray-300 transition-colors"
             >
               <RotateCcw size={10} />
               Reset

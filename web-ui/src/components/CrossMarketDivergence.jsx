@@ -117,7 +117,7 @@ export default function CrossMarketDivergence({ candles, symbols, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Globe size={12} className="text-accent-teal" />
           Cross-Market
@@ -130,7 +130,7 @@ export default function CrossMarketDivergence({ candles, symbols, exchange }) {
   const { symbolData, symList, topDivergences, btcDominance, ethBtcRatio, totalDivergences } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Globe size={12} className="text-accent-teal" />
         Cross-Market Divergence
@@ -138,7 +138,7 @@ export default function CrossMarketDivergence({ candles, symbols, exchange }) {
 
       {/* BTC dominance */}
       {btcDominance && (
-        <div className="bg-bg-800 rounded px-2 py-1.5 mb-2">
+        <div className="bg-bg-800  px-2 py-1.5 mb-2">
           <div className="text-[8px] text-gray-600 mb-0.5">BTC vs Alts</div>
           <div className="flex items-center justify-between text-[9px]">
             <span className="font-mono text-accent-orange">BTC: {btcDominance.btcChange >= 0 ? '+' : ''}{btcDominance.btcChange.toFixed(2)}%</span>
@@ -154,7 +154,7 @@ export default function CrossMarketDivergence({ candles, symbols, exchange }) {
 
       {/* ETH/BTC ratio */}
       {ethBtcRatio && (
-        <div className="bg-bg-800 rounded px-2 py-1 mb-2 flex justify-between text-[8px]">
+        <div className="bg-bg-800  px-2 py-1 mb-2 flex justify-between text-[8px]">
           <span className="text-gray-600">ETH/BTC ratio</span>
           <span className={'font-mono ' + (ethBtcRatio.ethStronger ? 'text-accent-green' : 'text-accent-red')}>
             {ethBtcRatio.change >= 0 ? '+' : ''}{ethBtcRatio.change.toFixed(3)}%
@@ -169,7 +169,7 @@ export default function CrossMarketDivergence({ candles, symbols, exchange }) {
           {symList.slice(0, 8).map(sym => {
             const d = symbolData[sym]
             return (
-              <div key={sym} className="flex items-center justify-between text-[7px] bg-bg-800 rounded px-1 py-0.5">
+              <div key={sym} className="flex items-center justify-between text-[7px] bg-bg-800  px-1 py-0.5">
                 <span className="text-gray-500 truncate">{sym.split('/')[0]}</span>
                 <span className={'font-mono ' + (d.change >= 0 ? 'text-accent-green' : 'text-accent-red')}>
                   {d.change >= 0 ? '+' : ''}{d.change.toFixed(2)}%
@@ -189,7 +189,7 @@ export default function CrossMarketDivergence({ candles, symbols, exchange }) {
           </div>
           <div className="space-y-0.5">
             {topDivergences.map((d, i) => (
-              <div key={i} className="bg-bg-800 rounded px-1.5 py-0.5">
+              <div key={i} className="bg-bg-800  px-1.5 py-0.5">
                 <div className="flex items-center justify-between text-[8px]">
                   <span className="text-gray-400">{d.pair}</span>
                   <span className="text-accent-yellow">Divergent</span>

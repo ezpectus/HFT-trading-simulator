@@ -324,7 +324,7 @@ export default function SupportVectorMachine({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Support Vector Machine — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal} ({data.confidence.toFixed(0)}%)
         </span>
       </div>
@@ -332,44 +332,44 @@ export default function SupportVectorMachine({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Kernel:</span>
-          <select value={kernelType} onChange={e => setKernelType(e.target.value)} className="bg-slate-800 border border-slate-600 rounded text-slate-200 px-1">
+          <select value={kernelType} onChange={e => setKernelType(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
             <option value="linear">Linear</option>
             <option value="rbf">RBF (Gaussian)</option>
           </select>
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">C (reg):</span>
-          <input type="number" step="0.1" value={C} onChange={e => setC(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.1" value={C} onChange={e => setC(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         {kernelType === 'rbf' && (
           <label className="flex items-center gap-1">
             <span className="text-slate-400">γ (gamma):</span>
-            <input type="number" step="0.1" value={gamma} onChange={e => setGamma(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+            <input type="number" step="0.1" value={gamma} onChange={e => setGamma(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
           </label>
         )}
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(5, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(5, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         {kernelType === 'linear' && (
           <label className="flex items-center gap-1">
             <span className="text-slate-400">Epochs:</span>
-            <input type="number" value={epochs} onChange={e => setEpochs(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+            <input type="number" value={epochs} onChange={e => setEpochs(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
           </label>
         )}
       </div>
 
       {/* Feature importance (linear only) */}
       {data.featureImportance && (
-        <div className="bg-slate-800 rounded p-3">
+        <div className="bg-slate-800  p-3">
           <div className="text-xs text-slate-400 mb-2">Feature Importance (|w| weights)</div>
           <div className="space-y-1">
             {data.featureImportance.map((fi, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">
                 <span className="text-slate-400 w-24">{fi.name}</span>
-                <div className="flex-1 bg-slate-900 rounded h-4 relative">
+                <div className="flex-1 bg-slate-900  h-4 relative">
                   <div
-                    className="h-full rounded absolute"
+                    className="h-full  absolute"
                     style={{
                       width: `${(fi.absWeight / data.featureImportance[0].absWeight) * 100}%`,
                       background: fi.weight >= 0 ? '#22c55e' : '#ef4444',
@@ -386,7 +386,7 @@ export default function SupportVectorMachine({ candles, symbol, exchange }) {
       )}
 
       {/* Confusion matrix */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Test Set Confusion Matrix</div>
         {(() => {
           const tp = data.testPreds.filter((p, i) => p === 1 && data.yTest[i] === 1).length
@@ -399,36 +399,36 @@ export default function SupportVectorMachine({ candles, symbol, exchange }) {
               <div className="text-emerald-400">Actual UP</div>
               <div className="text-red-400">Actual DOWN</div>
               <div className="text-emerald-400">Pred UP</div>
-              <div className="bg-emerald-900/40 rounded p-2 font-mono">{tp}</div>
-              <div className="bg-red-900/40 rounded p-2 font-mono">{fp}</div>
+              <div className="bg-emerald-900/40  p-2 font-mono">{tp}</div>
+              <div className="bg-red-900/40  p-2 font-mono">{fp}</div>
               <div className="text-red-400">Pred DOWN</div>
-              <div className="bg-red-900/40 rounded p-2 font-mono">{fn}</div>
-              <div className="bg-emerald-900/40 rounded p-2 font-mono">{tn}</div>
+              <div className="bg-red-900/40  p-2 font-mono">{fn}</div>
+              <div className="bg-emerald-900/40  p-2 font-mono">{tn}</div>
             </div>
           )
         })()}
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Train Accuracy</div>
           <div className="text-cyan-400 font-mono">{(data.trainAccuracy * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Test Accuracy</div>
           <div className="text-emerald-400 font-mono">{(data.testAccuracy * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Train/Test</div>
           <div className="text-slate-300 font-mono">{data.nTrain}/{data.nTest}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Support Vectors</div>
           <div className="text-amber-400 font-mono">{data.nSV}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.signal} (f(x)={data.currentPred.toFixed(4)}, confidence={data.confidence.toFixed(0)}%) |
         <strong> Kernel:</strong> {kernelType}{kernelType === 'rbf' ? ` (γ=${gamma})` : ''} |
         <strong> C:</strong> {C}

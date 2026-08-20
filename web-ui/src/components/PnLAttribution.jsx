@@ -106,7 +106,7 @@ export default function PnLAttribution({ accounts }) {
   const maxAbs = Math.max(...symbolList.map(s => Math.abs(s.total)), 1)
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <PieChart size={12} className="text-accent-blue" />
         P&L Attribution
@@ -114,26 +114,26 @@ export default function PnLAttribution({ accounts }) {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-2 mb-2 text-[9px]">
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Unrealized</div>
           <div className={'font-mono ' + (totalUPnl >= 0 ? 'text-accent-green' : 'text-accent-red')}>
             {totalUPnl >= 0 ? '+' : ''}{formatUsd(totalUPnl)}
           </div>
         </div>
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Realized</div>
           <div className={'font-mono ' + (totalRPnl >= 0 ? 'text-accent-green' : 'text-accent-red')}>
             {totalRPnl >= 0 ? '+' : ''}{formatUsd(totalRPnl)}
           </div>
         </div>
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Fees</div>
           <div className="font-mono text-accent-red">-{formatUsd(totalFees)}</div>
         </div>
       </div>
 
       {/* Net total */}
-      <div className="bg-bg-600/50 rounded px-2 py-1.5 mb-2">
+      <div className="bg-bg-600/50  px-2 py-1.5 mb-2">
         <div className="flex items-center justify-between">
           <span className="text-[9px] text-gray-500">Net Total</span>
           <span className={'text-sm font-bold font-mono ' + (netTotal >= 0 ? 'text-accent-green' : 'text-accent-red')}>
@@ -149,9 +149,9 @@ export default function PnLAttribution({ accounts }) {
           {symbolList.slice(0, 6).map(s => (
             <div key={s.symbol} className="flex items-center gap-1.5">
               <span className="text-[9px] text-gray-400 w-12 shrink-0">{s.symbol.split('/')[0]}</span>
-              <div className="flex-1 h-3 bg-bg-600 rounded-sm overflow-hidden relative">
+              <div className="flex-1 h-3 bg-bg-600  overflow-hidden relative">
                 <div
-                  className={'absolute h-full rounded-sm ' + (s.total >= 0 ? 'bg-accent-green/60 left-1/2' : 'bg-accent-red/60 right-1/2')}
+                  className={'absolute h-full  ' + (s.total >= 0 ? 'bg-accent-green/60 left-1/2' : 'bg-accent-red/60 right-1/2')}
                   style={{ width: `${(Math.abs(s.total) / maxAbs) * 50}%` }}
                 />
                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-bg-500" />
@@ -169,7 +169,7 @@ export default function PnLAttribution({ accounts }) {
         <div className="text-[8px] text-gray-600 uppercase mb-1">By Exchange</div>
         <div className="space-y-0.5">
           {exchangeList.map(e => (
-            <div key={e.exchange} className="flex items-center justify-between bg-bg-600/30 rounded px-1.5 py-0.5 text-[9px]">
+            <div key={e.exchange} className="flex items-center justify-between bg-bg-600/30  px-1.5 py-0.5 text-[9px]">
               <span className="text-gray-400">{e.exchange}</span>
               <span className="text-gray-600">{e.positions} pos</span>
               <span className={'font-mono ' + (e.total >= 0 ? 'text-accent-green' : 'text-accent-red')}>

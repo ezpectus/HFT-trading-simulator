@@ -35,7 +35,7 @@ export default function SignalFeed({ signals, regime }) {
     <div className="p-2 space-y-1">
       {/* Market regime */}
       {regime && (
-        <div className="bg-bg-700 rounded-lg p-2 mb-2">
+        <div className="bg-bg-700 p-2 mb-2 border border-bg-600">
           <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
             <Activity size={12} />
             <span>Market Regime</span>
@@ -57,7 +57,7 @@ export default function SignalFeed({ signals, regime }) {
 
       {/* Signal confidence distribution */}
       {signals.length > 0 && (
-        <div className="bg-bg-700 rounded-lg p-2 mb-2">
+        <div className="bg-bg-700 p-2 mb-2 border border-bg-600">
           <div className="text-[10px] text-gray-500 mb-1.5">Confidence Distribution</div>
           {(() => {
             const buckets = [0, 0, 0, 0, 0] // 0-20, 20-40, 40-60, 60-80, 80-100
@@ -73,7 +73,7 @@ export default function SignalFeed({ signals, regime }) {
                 {buckets.map((count, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-0.5" title={`${labels[i]}%: ${count} signals`}>
                     <div
-                      className={`w-full rounded-sm ${colors[i]}`}
+                      className={`w-full ${colors[i]}`}
                       style={{ height: `${(count / maxB) * 24}px` }}
                     />
                     <span className="text-[8px] text-gray-600 font-mono">{count}</span>
@@ -99,7 +99,7 @@ export default function SignalFeed({ signals, regime }) {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search..."
-                className="w-16 bg-bg-600 border border-bg-500 rounded pl-4 pr-1 py-0.5 text-[9px] text-gray-200 outline-none focus:border-accent-blue"
+                className="w-16 bg-bg-600 border border-bg-500  pl-4 pr-1 py-0.5 text-[9px] text-gray-200 outline-none focus:border-accent-blue"
                 aria-label="Search signals by symbol or reason"
               />
             </div>
@@ -109,7 +109,7 @@ export default function SignalFeed({ signals, regime }) {
                 key={f.value}
                 onClick={() => setFilter(f.value)}
                 aria-pressed={filter === f.value}
-                className={`px-1.5 py-0.5 text-[9px] font-medium rounded transition-colors ${
+                className={`px-1.5 py-0.5 text-[9px] font-medium  transition-colors ${
                   filter === f.value
                     ? 'bg-bg-500 text-gray-200'
                     : 'text-gray-500 hover:text-gray-300'
@@ -139,7 +139,7 @@ export default function SignalFeed({ signals, regime }) {
             const Icon = isLong ? TrendingUp : isShort ? TrendingDown : Minus
 
             return (
-              <div className="bg-bg-700 rounded p-2 text-xs mx-px">
+              <div className="bg-bg-700  p-2 text-xs mx-px">
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-1.5">
                     <Icon size={14} className={colorForSide(sig.direction)} />

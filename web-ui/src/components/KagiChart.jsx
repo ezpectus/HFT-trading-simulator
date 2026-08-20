@@ -111,7 +111,7 @@ export default function KagiChart({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <GitBranch size={12} className="text-accent-purple" />
           Kagi Chart
@@ -124,7 +124,7 @@ export default function KagiChart({ candles, symbol, exchange }) {
   const { segments, lastLine, reversal, signal, signalColor } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <GitBranch size={12} className="text-accent-purple" />
         Kagi Chart
@@ -169,7 +169,7 @@ export default function KagiChart({ candles, symbol, exchange }) {
       </div>
 
       {reversal && (
-        <div className="mt-1.5 bg-accent-yellow/10 border border-accent-yellow/20 rounded px-1.5 py-0.5">
+        <div className="mt-1.5 bg-accent-yellow/10 border border-accent-yellow/20  px-1.5 py-0.5">
           <span className="text-[8px] text-accent-yellow">
             Direction reversal — Kagi flipped to {lastLine.dir}
           </span>

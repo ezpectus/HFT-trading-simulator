@@ -76,7 +76,7 @@ export default function TickChart({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Hash size={12} className="text-accent-teal" />
           Tick Chart
@@ -89,7 +89,7 @@ export default function TickChart({ candles, symbol, exchange }) {
   const { pricePath, cvdPath, dots, upCount, downCount, momentum, lastPrice, avgVol, tickCount } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Hash size={12} className="text-accent-teal" />
         Tick Chart

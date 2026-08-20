@@ -124,7 +124,7 @@ export default function RiskOfRuin({ accounts, fills }) {
   const riskColor = riskOfRuin < 1 ? 'text-accent-green' : riskOfRuin < 5 ? 'text-accent-yellow' : riskOfRuin < 20 ? 'text-accent-orange' : 'text-accent-red'
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Skull size={12} className="text-accent-red" />
         Risk of Ruin Calculator
@@ -132,7 +132,7 @@ export default function RiskOfRuin({ accounts, fills }) {
 
       {/* Use actual stats if available */}
       {actualWinRate !== null && (
-        <div className="mb-2 bg-bg-800 rounded px-2 py-1 text-[8px]">
+        <div className="mb-2 bg-bg-800  px-2 py-1 text-[8px]">
           <span className="text-gray-600">Actual stats: </span>
           <span className="text-gray-300 font-mono">{actualTrades} trades, {actualWinRate.toFixed(1)}% win rate</span>
         </div>
@@ -149,7 +149,7 @@ export default function RiskOfRuin({ accounts, fills }) {
             min="1"
             max="99"
             onChange={e => setWinRate(Number(e.target.value) || 45)}
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -161,7 +161,7 @@ export default function RiskOfRuin({ accounts, fills }) {
             min="0.1"
             max="10"
             onChange={e => setRiskPct(Number(e.target.value) || 2)}
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -173,13 +173,13 @@ export default function RiskOfRuin({ accounts, fills }) {
             min="0.5"
             max="10"
             onChange={e => setRewardRatio(Number(e.target.value) || 2)}
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
         </div>
       </div>
 
       {/* Risk of Ruin */}
-      <div className="bg-bg-800 rounded px-2 py-2 mb-2 text-center">
+      <div className="bg-bg-800  px-2 py-2 mb-2 text-center">
         <div className="text-[8px] text-gray-600">Risk of Ruin</div>
         <div className={'text-xl font-bold ' + riskColor}>{riskOfRuin.toFixed(2)}%</div>
         <div className="text-[8px] text-gray-600">MC: {mcRuinPct.toFixed(1)}%</div>
@@ -187,23 +187,23 @@ export default function RiskOfRuin({ accounts, fills }) {
 
       {/* Edge & metrics */}
       <div className="grid grid-cols-2 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Edge</span>
           <div className={'font-mono ' + (edge > 0 ? 'text-accent-green' : 'text-accent-red')}>
             {edge >= 0 ? '+' : ''}{(edge * 100).toFixed(2)}%
           </div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Profit Factor</span>
           <div className={'font-mono ' + (profitFactor > 1 ? 'text-accent-green' : 'text-accent-red')}>
             {profitFactor.toFixed(2)}
           </div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">BE Win Rate</span>
           <div className="font-mono text-gray-400">{breakevenWinRate.toFixed(1)}%</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Current WR</span>
           <div className={'font-mono ' + (wr >= breakevenWinRate ? 'text-accent-green' : 'text-accent-red')}>
             {wr.toFixed(1)}%
@@ -212,7 +212,7 @@ export default function RiskOfRuin({ accounts, fills }) {
       </div>
 
       {/* Drawdown stats */}
-      <div className="bg-bg-800 rounded px-2 py-1.5 mb-2">
+      <div className="bg-bg-800  px-2 py-1.5 mb-2">
         <div className="text-[8px] text-gray-600 mb-1">Monte Carlo Drawdown (100 trades):</div>
         <div className="grid grid-cols-3 gap-1 text-[8px]">
           <div>

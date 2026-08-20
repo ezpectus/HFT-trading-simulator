@@ -217,7 +217,7 @@ export default function FractalAnalyzer({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Waves size={12} className="text-accent-purple" />
           Fractal Dimension Analyzer
@@ -230,7 +230,7 @@ export default function FractalAnalyzer({ candles, symbol, exchange }) {
   const { hurst, fd, dfa, acf, acfConfidence, behavior, behaviorColor, efficiency } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Waves size={12} className="text-accent-purple" />
         Hurst Exponent + Fractal Dimension
@@ -238,22 +238,22 @@ export default function FractalAnalyzer({ candles, symbol, exchange }) {
 
       {/* Main metrics */}
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Hurst (H)</span>
           <div className="font-mono text-accent-purple text-[11px]">{hurst.H.toFixed(4)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Fractal Dim.</span>
           <div className="font-mono text-accent-teal text-[11px]">{fd.FD.toFixed(4)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">DFA α</span>
           <div className="font-mono text-accent-orange text-[11px]">{dfa ? dfa.alpha.toFixed(4) : 'N/A'}</div>
         </div>
       </div>
 
       {/* Behavior classification */}
-      <div className="bg-bg-800 rounded px-2 py-1 mb-2 flex items-center justify-between">
+      <div className="bg-bg-800  px-2 py-1 mb-2 flex items-center justify-between">
         <span className="text-[8px] text-gray-600">Behavior:</span>
         <span className={'text-[10px] font-bold ' + behaviorColor}>{behavior}</span>
       </div>

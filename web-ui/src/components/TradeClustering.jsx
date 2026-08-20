@@ -59,7 +59,7 @@ export default function TradeClustering({ fills }) {
   }, [fills])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <BarChart3 size={12} className="text-accent-yellow" />
         Trade Clustering
@@ -67,7 +67,7 @@ export default function TradeClustering({ fills }) {
 
       {/* Overtrading warning */}
       {analysis.overtrading ? (
-        <div className="flex items-center gap-2 bg-accent-red/20 border border-accent-red/30 rounded px-2 py-1.5 mb-2">
+        <div className="flex items-center gap-2 bg-accent-red/20 border border-accent-red/30  px-2 py-1.5 mb-2">
           <AlertTriangle size={14} className="text-accent-red shrink-0" />
           <div>
             <div className="text-[10px] font-medium text-accent-red">Overtrading Detected</div>
@@ -75,7 +75,7 @@ export default function TradeClustering({ fills }) {
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-2 bg-accent-green/10 border border-accent-green/20 rounded px-2 py-1.5 mb-2">
+        <div className="flex items-center gap-2 bg-accent-green/10 border border-accent-green/20  px-2 py-1.5 mb-2">
           <CheckCircle size={14} className="text-accent-green shrink-0" />
           <div className="text-[10px] text-gray-400">Normal trading frequency</div>
         </div>
@@ -107,7 +107,7 @@ export default function TradeClustering({ fills }) {
           <div className="text-[8px] text-gray-600 uppercase mb-1">Trade Clusters (≥3 rapid fills)</div>
           <div className="space-y-0.5 max-h-[100px] overflow-y-auto scrollbar-thin">
             {analysis.clusters.map((c, i) => (
-              <div key={i} className="flex items-center justify-between bg-bg-600/50 rounded px-1.5 py-1 text-[9px]">
+              <div key={i} className="flex items-center justify-between bg-bg-600/50  px-1.5 py-1 text-[9px]">
                 <span className="text-gray-400">{c.count} fills</span>
                 <span className="text-gray-600">{c.duration}s span</span>
                 <span className={c.side === 'BUY' ? 'text-accent-green' : 'text-accent-red'}>{c.side}</span>

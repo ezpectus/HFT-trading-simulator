@@ -144,7 +144,7 @@ export default function OrderFlowAbsorption({ candles, fills, orderbooks, symbol
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Shield size={12} className="text-accent-teal" />
           Order Flow Absorption
@@ -157,7 +157,7 @@ export default function OrderFlowAbsorption({ candles, fills, orderbooks, symbol
   const { candleBars, markers, recentEvents, obImbalance, totalEvents, bullEvents, bearEvents } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Shield size={12} className="text-accent-teal" />
         Order Flow Absorption Detector
@@ -185,15 +185,15 @@ export default function OrderFlowAbsorption({ candles, fills, orderbooks, symbol
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-1 mt-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Total</span>
           <div className="font-mono text-gray-300">{totalEvents}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Bullish</span>
           <div className="font-mono text-accent-green">{bullEvents}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Bearish</span>
           <div className="font-mono text-accent-red">{bearEvents}</div>
         </div>
@@ -201,7 +201,7 @@ export default function OrderFlowAbsorption({ candles, fills, orderbooks, symbol
 
       {/* Order book imbalance */}
       {obImbalance && (
-        <div className="mt-2 bg-bg-800 rounded px-2 py-1.5">
+        <div className="mt-2 bg-bg-800  px-2 py-1.5">
           <div className="text-[8px] text-gray-600 mb-1">Order Book Imbalance:</div>
           <div className="flex h-2 rounded-full overflow-hidden mb-1">
             <div className="bg-accent-green" style={{ width: `${obImbalance.bidPct}%` }} />
@@ -220,7 +220,7 @@ export default function OrderFlowAbsorption({ candles, fills, orderbooks, symbol
           <div className="text-[8px] text-gray-600 mb-1">Recent absorption:</div>
           <div className="space-y-0.5">
             {recentEvents.map((a, i) => (
-              <div key={i} className="bg-bg-800 rounded px-1.5 py-0.5">
+              <div key={i} className="bg-bg-800  px-1.5 py-0.5">
                 <div className="flex items-center gap-1 text-[8px]">
                   {a.type === 'bullish' ? <TrendingUp size={8} className="text-accent-green" /> : <TrendingDown size={8} className="text-accent-red" />}
                   <span className={a.type === 'bullish' ? 'text-accent-green' : 'text-accent-red'}>{a.label}</span>

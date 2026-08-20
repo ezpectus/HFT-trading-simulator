@@ -345,7 +345,7 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">K-Means Market Clustering — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: colors[data.currentCluster] + '22', color: colors[data.currentCluster] }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: colors[data.currentCluster] + '22', color: colors[data.currentCluster] }}>
           {data.currentRegime?.label || 'Unknown'}
         </span>
       </div>
@@ -353,11 +353,11 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">K:</span>
-          <input type="number" value={k} onChange={e => setK(Math.max(2, Math.min(8, +e.target.value)))} disabled={autoK} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200 disabled:opacity-40" />
+          <input type="number" value={k} onChange={e => setK(Math.max(2, Math.min(8, +e.target.value)))} disabled={autoK} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200 disabled:opacity-40" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(5, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(5, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={autoK} onChange={e => setAutoK(e.target.checked)} />
@@ -366,9 +366,9 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
       </div>
 
       {/* Scatter: volatility vs return */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Feature Space: Volatility vs Return (colored by cluster)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#475569" strokeDasharray="3,3" />
@@ -405,7 +405,7 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
       {/* Cluster stats */}
       <div className="grid grid-cols-2 gap-2">
         {data.clusterStats.map((cs, ci) => (
-          <div key={ci} className="bg-slate-800 rounded p-2 text-xs" style={{ borderLeft: `3px solid ${colors[ci]}` }}>
+          <div key={ci} className="bg-slate-800  p-2 text-xs" style={{ borderLeft: `3px solid ${colors[ci]}` }}>
             <div className="flex justify-between">
               <span className="font-bold" style={{ color: colors[ci] }}>{cs.label}</span>
               <span className="text-slate-400">{cs.count} pts</span>
@@ -419,7 +419,7 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
 
       {/* Elbow / silhouette */}
       {data.elbowData.length > 1 && (
-        <div className="bg-slate-800 rounded p-3">
+        <div className="bg-slate-800  p-3">
           <div className="text-xs text-slate-400 mb-1">Optimal K Selection (Silhouette Score)</div>
           <div className="flex items-end gap-3 h-20">
             {data.elbowData.map((e, i) => (
@@ -440,19 +440,19 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
       )}
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Best K</div>
           <div className="text-cyan-400 font-mono">{data.bestK}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Silhouette</div>
           <div className="text-emerald-400 font-mono">{data.bestSilhouette.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">WCSS</div>
           <div className="text-amber-400 font-mono">{data.wcss.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Transitions</div>
           <div className="text-purple-400 font-mono">{data.transitions.length}</div>
         </div>
@@ -460,7 +460,7 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
 
       {/* Recent transitions */}
       {data.transitions.length > 0 && (
-        <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+        <div className="text-xs text-slate-400 bg-slate-800  p-2">
           <strong>Recent regime transitions:</strong>{' '}
           {data.transitions.slice(-3).map((t, i) => (
             <span key={i}>

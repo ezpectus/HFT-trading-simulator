@@ -248,7 +248,7 @@ export default function EhlersSuperSmoother({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Ehlers SuperSmoother — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.sig.signal}
         </span>
       </div>
@@ -256,11 +256,11 @@ export default function EhlersSuperSmoother({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">SS Period:</span>
-          <input type="number" value={period} onChange={e => setPeriod(Math.max(2, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={period} onChange={e => setPeriod(Math.max(2, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">HP Period:</span>
-          <input type="number" value={hpPeriod} onChange={e => setHpPeriod(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={hpPeriod} onChange={e => setHpPeriod(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={showMAMA} onChange={e => setShowMAMA(e.target.checked)} />
@@ -272,7 +272,7 @@ export default function EhlersSuperSmoother({ candles, symbol, exchange }) {
         </label>
       </div>
 
-      <svg width={W} height={H} className="bg-slate-900 rounded border border-slate-700">
+      <svg width={W} height={H} className="bg-slate-900  border border-slate-700">
         <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
         <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -289,25 +289,25 @@ export default function EhlersSuperSmoother({ candles, symbol, exchange }) {
       </svg>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">SS Lag</div>
           <div className="text-cyan-400 font-mono">{data.ssLag} bars</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">RF Lag</div>
           <div className="text-amber-400 font-mono">{data.rfLag} bars</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">SNR</div>
           <div className="text-emerald-400 font-mono">{data.snr.toFixed(2)} dB</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Signal</div>
           <div className="font-mono" style={{ color: sigColor }}>{data.sig.signal}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Reason:</strong> {data.sig.reason} | <strong>Price:</strong> ${data.currentPrice.toFixed(2)} | <strong>SS:</strong> ${data.ssValue.toFixed(2)} | <strong>MAMA:</strong> ${data.mamaValue.toFixed(2)} | <strong>FAMA:</strong> ${data.famaValue.toFixed(2)}
       </div>
     </div>

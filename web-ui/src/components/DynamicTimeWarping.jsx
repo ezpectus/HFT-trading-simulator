@@ -202,7 +202,7 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Dynamic Time Warping — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -210,11 +210,11 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Window size:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">DTW band:</span>
-          <input type="number" value={dtwWindow} onChange={e => setDtwWindow(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={dtwWindow} onChange={e => setDtwWindow(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={scanAll} onChange={e => setScanAll(e.target.checked)} />
@@ -223,7 +223,7 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
         {!scanAll && (
           <label className="flex items-center gap-1">
             <span className="text-slate-400">Template:</span>
-            <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)} className="bg-slate-800 border border-slate-600 rounded text-slate-200 px-1">
+            <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
               {Object.keys(TEMPLATES).map(name => (
                 <option key={name} value={name}>{name}</option>
               ))}
@@ -233,11 +233,11 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
       </div>
 
       {/* Current window vs best match */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">
           {scanAll ? `Current Window vs Best Pattern: ${data.bestMatch?.name}` : `Best Historical Match for ${selectedTemplate}`}
         </div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" strokeDasharray="3,2" />
 
           {/* Current window */}
@@ -279,7 +279,7 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
       </div>
 
       {/* Results ranking */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">
           {scanAll ? 'Pattern Matching Results (all templates)' : `Top 5 Historical Matches for ${selectedTemplate}`}
         </div>
@@ -288,9 +288,9 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
             <div key={i} className="flex items-center gap-3 text-xs">
               <span className="text-slate-500 w-4">{i + 1}</span>
               <span className="text-slate-300 w-32">{r.name}</span>
-              <div className="flex-1 bg-slate-900 rounded h-3">
+              <div className="flex-1 bg-slate-900  h-3">
                 <div
-                  className="h-full rounded"
+                  className="h-full "
                   style={{
                     width: `${r.similarity * 100}%`,
                     background: i === 0 ? '#22c55e' : `hsl(${200 + i * 20}, 60%, 50%)`
@@ -306,9 +306,9 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
 
       {/* Forward projection */}
       {data.projection && (
-        <div className="bg-slate-800 rounded p-3">
+        <div className="bg-slate-800  p-3">
           <div className="text-xs text-slate-400 mb-1">Forward Projection (10 candles after best match)</div>
-          <svg width={W} height={80} className="bg-slate-900 rounded">
+          <svg width={W} height={80} className="bg-slate-900 ">
             <path
               d={data.projection.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sx(i, data.projection.length)} ${40 - v * 0.5}`).join(' ')}
               fill="none" stroke="#22c55e" strokeWidth={2}
@@ -318,25 +318,25 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
       )}
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Best Match</div>
           <div className="text-cyan-400 font-mono text-[10px]">{data.bestMatch?.name || 'N/A'}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">DTW Distance</div>
           <div className="text-amber-400 font-mono">{data.bestMatch?.distance.toFixed(4) || 'N/A'}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Similarity</div>
           <div className="text-emerald-400 font-mono">{data.bestMatch?.similarity.toFixed(4) || 'N/A'}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Patterns</div>
           <div className="text-slate-300 font-mono">{data.results.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> DTW band:</strong> ±{dtwWindow} |
         <strong> Window:</strong> {windowSize} candles

@@ -56,13 +56,13 @@ export default function TradeHistory({ accounts }) {
   return (
     <div className="p-2 space-y-1">
       {/* Summary stats */}
-      <div className="bg-bg-700 rounded-lg p-2.5 mb-2">
+      <div className="bg-bg-700  p-2.5 mb-2">
         <div className="flex items-center justify-between mb-1.5">
           <div className="text-[10px] text-gray-500 uppercase">Trade History Summary</div>
           <div className="flex gap-1">
             <button
               onClick={() => journal.exportTradesCSV(allTrades)}
-              className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
+              className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
               title="Export trades as CSV"
             >
               <Download size={10} />
@@ -70,7 +70,7 @@ export default function TradeHistory({ accounts }) {
             </button>
             <button
               onClick={() => journal.exportJournalCSV(allTrades)}
-              className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
+              className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
               title="Export trades with journal notes as CSV"
             >
               <FileText size={10} />
@@ -108,7 +108,7 @@ export default function TradeHistory({ accounts }) {
       {(bestTrade || worstTrade) && (
         <div className="grid grid-cols-2 gap-2 mb-2">
           {bestTrade && (
-            <div className="bg-accent-green/10 border border-accent-green/20 rounded-lg p-2">
+            <div className="bg-accent-green/10 border border-accent-green/20  p-2">
               <div className="flex items-center gap-1 text-[10px] text-accent-green mb-1">
                 <Crown size={10} /> Best Trade
               </div>
@@ -121,7 +121,7 @@ export default function TradeHistory({ accounts }) {
             </div>
           )}
           {worstTrade && (
-            <div className="bg-accent-red/10 border border-accent-red/20 rounded-lg p-2">
+            <div className="bg-accent-red/10 border border-accent-red/20  p-2">
               <div className="flex items-center gap-1 text-[10px] text-accent-red mb-1">
                 <AlertCircle size={10} /> Worst Trade
               </div>
@@ -169,7 +169,7 @@ export default function TradeHistory({ accounts }) {
         const isExpanded = expandedKey === tKey
 
         return (
-          <div className={'bg-bg-700 rounded p-2 text-xs ' + (isBest ? 'ring-1 ring-accent-green/30' : isWorst ? 'ring-1 ring-accent-red/30' : '')}>
+          <div className={'bg-bg-700  p-2 text-xs ' + (isBest ? 'ring-1 ring-accent-green/30' : isWorst ? 'ring-1 ring-accent-red/30' : '')}>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 {isBest && <Crown size={10} className="text-accent-green" />}
@@ -179,7 +179,7 @@ export default function TradeHistory({ accounts }) {
                 </span>
                 <span className="text-gray-300">{trade.symbol}</span>
                 <span className="text-gray-500 text-[10px]">{trade.exchange}</span>
-                <span className={'text-[9px] px-1 rounded ' + reasonColor + ' bg-bg-800'}>
+                <span className={'text-[9px] px-1  ' + reasonColor + ' bg-bg-800'}>
                   {reasonLabel}
                 </span>
               </div>
@@ -193,7 +193,7 @@ export default function TradeHistory({ accounts }) {
                       setNoteDraft(journal.getNote(tKey))
                     }
                   }}
-                  className={'p-0.5 rounded transition-colors ' + (hasNote ? 'text-accent-yellow' : 'text-gray-600 hover:text-gray-400')}
+                  className={'p-0.5  transition-colors ' + (hasNote ? 'text-accent-yellow' : 'text-gray-600 hover:text-gray-400')}
                   title={hasNote ? 'Edit note' : 'Add note'}
                 >
                   <NotebookPen size={10} />
@@ -239,7 +239,7 @@ export default function TradeHistory({ accounts }) {
                   onChange={e => setNoteDraft(e.target.value)}
                   placeholder="Add your analysis, lessons learned, or strategy notes..."
                   rows={3}
-                  className="w-full bg-bg-600 text-gray-200 text-[11px] rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-yellow resize-none"
+                  className="w-full bg-bg-600 text-gray-200 text-[11px]  px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-yellow resize-none"
                   autoFocus
                 />
                 <div className="flex gap-1 mt-1">
@@ -248,7 +248,7 @@ export default function TradeHistory({ accounts }) {
                       journal.saveNote(tKey, noteDraft)
                       setExpandedKey(null)
                     }}
-                    className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors"
+                    className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors"
                   >
                     <Check size={10} />
                     Save
@@ -259,14 +259,14 @@ export default function TradeHistory({ accounts }) {
                       setNoteDraft('')
                       setExpandedKey(null)
                     }}
-                    className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-bg-600 text-gray-500 hover:text-accent-red transition-colors"
+                    className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-bg-600 text-gray-500 hover:text-accent-red transition-colors"
                   >
                     <X size={10} />
                     Delete
                   </button>
                   <button
                     onClick={() => setExpandedKey(null)}
-                    className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-bg-600 text-gray-500 hover:text-gray-300 transition-colors ml-auto"
+                    className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-bg-600 text-gray-500 hover:text-gray-300 transition-colors ml-auto"
                   >
                     Cancel
                   </button>

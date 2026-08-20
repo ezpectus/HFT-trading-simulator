@@ -280,7 +280,7 @@ export default function Autoencoder({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Autoencoder Anomaly Detection — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -288,26 +288,26 @@ export default function Autoencoder({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Hidden dim:</span>
-          <input type="number" value={hiddenDim} onChange={e => setHiddenDim(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={hiddenDim} onChange={e => setHiddenDim(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Epochs:</span>
-          <input type="number" value={epochs} onChange={e => setEpochs(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={epochs} onChange={e => setEpochs(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Learning rate:</span>
-          <input type="number" step="0.001" value={lr} onChange={e => setLr(Math.max(0.0001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.001" value={lr} onChange={e => setLr(Math.max(0.0001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Threshold (σ):</span>
-          <input type="number" step="0.1" value={threshold} onChange={e => setThreshold(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.1" value={threshold} onChange={e => setThreshold(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Training loss */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Training Loss (MSE + L2) over Epochs</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
           <path d={data.losses.map((l, i) => `${i === 0 ? 'M' : 'L'} ${sxLoss(i)} ${syLoss(l)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
@@ -316,9 +316,9 @@ export default function Autoencoder({ candles, symbol, exchange }) {
       </div>
 
       {/* Reconstruction error */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Reconstruction Error (last 60 points) — Anomaly Detection</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -341,9 +341,9 @@ export default function Autoencoder({ candles, symbol, exchange }) {
       </div>
 
       {/* Latent space */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Latent Space (first 2 dimensions of {data.model.hiddenDim})</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={W / 2} y1={P} x2={W / 2} y2={H - P} stroke="#334155" />
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
           {data.latent2D.map((p, i) => {
@@ -354,29 +354,29 @@ export default function Autoencoder({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Input dim</div>
           <div className="text-cyan-400 font-mono">{data.inputDim}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Hidden dim</div>
           <div className="text-amber-400 font-mono">{data.model.hiddenDim}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Current error</div>
           <div className="font-mono" style={{ color: sigColor }}>{data.currentError.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Z-score</div>
           <div className="font-mono" style={{ color: sigColor }}>{data.zScore.toFixed(2)}σ</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Anomalies</div>
           <div className="text-red-400 font-mono">{data.anomalies.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Architecture:</strong> {data.inputDim}→{data.model.hiddenDim}→{data.inputDim} (compression ratio: {(data.inputDim / data.model.hiddenDim).toFixed(1)}×) |
         <strong> Training:</strong> {epochs} epochs, lr={lr}, L2=0.001 |
         <strong> Threshold:</strong> μ + {threshold}σ = {data.anomalyThreshold.toFixed(4)}

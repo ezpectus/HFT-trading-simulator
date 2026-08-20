@@ -265,7 +265,7 @@ export default function PersistentHomologyLandscape({ candles, symbol, exchange 
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Persistent Homology Landscape — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -273,22 +273,22 @@ export default function PersistentHomologyLandscape({ candles, symbol, exchange 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Embed dim:</span>
-          <input type="number" value={embedDim} onChange={e => setEmbedDim(Math.max(2, Math.min(6, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={embedDim} onChange={e => setEmbedDim(Math.max(2, Math.min(6, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(20, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(20, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Persistence landscape */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Persistence Landscape λ_k(t) (vectorized topology)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -303,9 +303,9 @@ export default function PersistentHomologyLandscape({ candles, symbol, exchange 
       </div>
 
       {/* Persistence diagram */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Persistence Diagram (birth vs death)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -322,9 +322,9 @@ export default function PersistentHomologyLandscape({ candles, symbol, exchange 
       </div>
 
       {/* Sliding window L2 norm */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Sliding Window: Landscape L2 Norm (topological complexity)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -342,7 +342,7 @@ export default function PersistentHomologyLandscape({ candles, symbol, exchange 
       </div>
 
       {/* Top features */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Top Persistent Features (H₀)</div>
         <div className="space-y-1">
           {data.topFeatures.slice(0, 5).map((f, i) => (
@@ -351,8 +351,8 @@ export default function PersistentHomologyLandscape({ candles, symbol, exchange 
               <span className="text-cyan-400 font-mono w-24">birth: {f.birth.toFixed(4)}</span>
               <span className="text-amber-400 font-mono w-24">death: {f.death.toFixed(4)}</span>
               <span className="text-emerald-400 font-mono w-24">persist: {f.persistence.toFixed(4)}</span>
-              <div className="flex-1 bg-slate-900 rounded h-3 relative">
-                <div className="h-full rounded" style={{ width: `${Math.min(100, f.persistence / data.topFeatures[0].persistence * 100)}%`, background: layerColors[i] }} />
+              <div className="flex-1 bg-slate-900  h-3 relative">
+                <div className="h-full " style={{ width: `${Math.min(100, f.persistence / data.topFeatures[0].persistence * 100)}%`, background: layerColors[i] }} />
               </div>
             </div>
           ))}
@@ -360,29 +360,29 @@ export default function PersistentHomologyLandscape({ candles, symbol, exchange 
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">L2 norm</div>
           <div className="text-cyan-400 font-mono">{data.fullNorm.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">H₀ features</div>
           <div className="text-emerald-400 font-mono">{data.fullDiagram.filter(d => d.death !== Infinity).length}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Max persist</div>
           <div className="text-amber-400 font-mono">{data.topFeatures[0]?.persistence.toFixed(4) || '0'}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Current norm</div>
           <div className="text-purple-400 font-mono">{data.currentNorm.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">μ + 2σ</div>
           <div className="text-red-400 font-mono">{(data.normMean + 2 * data.normStd).toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Landscape:</strong> λ_k(t) = max(min(t-b, d-t), 0) (piecewise linear) |
         <strong> L2 norm:</strong> ||λ||₂ = (Σ_k ∫|λ_k|²dt)^(1/2) |

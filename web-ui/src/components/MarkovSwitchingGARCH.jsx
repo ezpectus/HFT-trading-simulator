@@ -256,7 +256,7 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Markov-Switching GARCH — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.currentLabel} → {data.signal}
         </span>
       </div>
@@ -264,18 +264,18 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Regimes:</span>
-          <input type="number" value={nRegimes} onChange={e => setNRegimes(Math.max(2, Math.min(4, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nRegimes} onChange={e => setNRegimes(Math.max(2, Math.min(4, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Regime probability */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Smoothed Regime Probabilities (Kim's filter)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={syProb(0.5)} x2={W - P} y2={syProb(0.5)} stroke="#475569" strokeDasharray="3,3" />
@@ -300,9 +300,9 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
       </div>
 
       {/* Combined volatility */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Combined Volatility (regime-weighted GARCH)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -327,7 +327,7 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
       </div>
 
       {/* Transition matrix */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Transition Matrix</div>
         <div className="grid gap-1 text-xs text-center" style={{ gridTemplateColumns: `auto repeat(${data.nRegimes}, 1fr)` }}>
           <div></div>
@@ -338,7 +338,7 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
             <React.Fragment key={i}>
               <div className="text-slate-400 text-right pr-2">{data.regimeLabels[i]}</div>
               {row.map((p, j) => (
-                <div key={j} className="bg-slate-900 rounded p-1 font-mono" style={{ color: p > 0.5 ? regimeColors[i] : '#64748b' }}>
+                <div key={j} className="bg-slate-900  p-1 font-mono" style={{ color: p > 0.5 ? regimeColors[i] : '#64748b' }}>
                   {(p * 100).toFixed(1)}%
                 </div>
               ))}
@@ -348,29 +348,29 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Current Regime</div>
           <div className="font-mono" style={{ color: regimeColors[data.currentRegime] }}>{data.currentLabel}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Regime Prob</div>
           <div className="text-cyan-400 font-mono">{(data.currentProb * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Current Vol</div>
           <div className="text-amber-400 font-mono">{(data.currentVol * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Exp. Duration</div>
           <div className="text-purple-400 font-mono">{data.expectedDuration.toFixed(1)} days</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Transitions</div>
           <div className="text-slate-300 font-mono">{data.transitions.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Log-Lik:</strong> {data.logLik.toFixed(2)} |
         <strong> Regime vols:</strong> {data.regimeVols.map(v => (v * 100).toFixed(1) + '%').join(', ')}

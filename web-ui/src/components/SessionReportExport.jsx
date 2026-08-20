@@ -208,20 +208,20 @@ export default function SessionReportExport({ accounts, fills, candles, symbol, 
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <FileText size={12} className="text-accent-blue" />
         Session Report Export
       </div>
 
       <div className="grid grid-cols-2 gap-1 mb-2 text-[9px]">
-        <div className="bg-bg-600/50 rounded p-1.5 text-center">
+        <div className="bg-bg-600/50  p-1.5 text-center">
           <div className="text-gray-600">PnL</div>
           <div className={`font-mono font-bold ${totalPnL >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
             {totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(2)}
           </div>
         </div>
-        <div className="bg-bg-600/50 rounded p-1.5 text-center">
+        <div className="bg-bg-600/50  p-1.5 text-center">
           <div className="text-gray-600">Trades</div>
           <div className="font-mono font-bold text-gray-200">{totalTrades}</div>
         </div>
@@ -231,7 +231,7 @@ export default function SessionReportExport({ accounts, fills, candles, symbol, 
         <button
           onClick={handlePrint}
           disabled={generating}
-          className="w-full flex items-center justify-center gap-1 py-1 text-[10px] rounded bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-1 py-1 text-[10px]  bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 disabled:opacity-50"
         >
           <FileText size={10} />
           {generating ? 'Generating...' : 'Print / Save as PDF'}
@@ -239,7 +239,7 @@ export default function SessionReportExport({ accounts, fills, candles, symbol, 
         <button
           onClick={handleExport}
           disabled={generating}
-          className="w-full flex items-center justify-center gap-1 py-1 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-1 py-1 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 disabled:opacity-50"
         >
           <Download size={10} />
           Export HTML Report

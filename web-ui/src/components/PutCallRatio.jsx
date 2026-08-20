@@ -78,7 +78,7 @@ export default function PutCallRatio({ fills, candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Scale size={12} className="text-accent-teal" />
           Put/Call Ratio
@@ -96,14 +96,14 @@ export default function PutCallRatio({ fills, candles, symbol, exchange }) {
   const xStep = w / Math.max(rollingRatios.length - 1, 1)
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Scale size={12} className="text-accent-teal" />
         Put/Call Ratio (Sim)
       </div>
 
       {/* Main ratio */}
-      <div className="bg-bg-800 rounded px-2 py-2 mb-2 text-center">
+      <div className="bg-bg-800  px-2 py-2 mb-2 text-center">
         <div className="text-[8px] text-gray-600">Buy/Sell Ratio</div>
         <div className={'text-xl font-bold ' + sentimentColor}>{ratio > 10 ? '10+' : ratio.toFixed(2)}</div>
         <div className={'text-[10px] font-medium ' + sentimentColor}>{sentiment}</div>
@@ -147,19 +147,19 @@ export default function PutCallRatio({ fills, candles, symbol, exchange }) {
 
       {/* Breakdown */}
       <div className="space-y-0.5 mb-2">
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-500">Volume-weighted</span>
           <span className="font-mono text-gray-400">{volRatio > 10 ? '10+' : volRatio.toFixed(2)}</span>
           <span className="text-gray-600">{formatPrice(buyVol)} / {formatPrice(sellVol)}</span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-500">Smart money (large)</span>
           <span className={'font-mono ' + (largeRatio > 1.3 ? 'text-accent-green' : largeRatio < 0.75 ? 'text-accent-red' : 'text-gray-400')}>
             {largeRatio > 10 ? '10+' : largeRatio.toFixed(2)}
           </span>
           <span className="text-gray-600">B/S ratio</span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-500">Retail (small)</span>
           <span className={'font-mono ' + (smallRatio > 1.3 ? 'text-accent-green' : smallRatio < 0.75 ? 'text-accent-red' : 'text-gray-400')}>
             {smallRatio > 10 ? '10+' : smallRatio.toFixed(2)}
@@ -169,7 +169,7 @@ export default function PutCallRatio({ fills, candles, symbol, exchange }) {
       </div>
 
       {/* Divergence */}
-      <div className="bg-bg-800 rounded px-2 py-1 mb-1 flex items-center gap-1">
+      <div className="bg-bg-800  px-2 py-1 mb-1 flex items-center gap-1">
         <Activity size={9} className="text-accent-yellow shrink-0" />
         <span className={'text-[8px] ' + divColor}>{divLabel}</span>
         <span className="text-gray-700 ml-auto">Δ {divergence >= 0 ? '+' : ''}{divergence.toFixed(2)}</span>

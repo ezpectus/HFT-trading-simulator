@@ -99,7 +99,7 @@ export default function VolumeAnomalyDetector({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Zap size={12} className="text-accent-orange" />
           Volume Anomaly
@@ -114,7 +114,7 @@ export default function VolumeAnomalyDetector({ candles, symbol, exchange }) {
   const zColor = Math.abs(lastZ) > 2.5 ? 'text-accent-red' : Math.abs(lastZ) > 1.5 ? 'text-accent-yellow' : 'text-gray-400'
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Zap size={12} className="text-accent-orange" />
         Volume Anomaly Detector
@@ -122,15 +122,15 @@ export default function VolumeAnomalyDetector({ candles, symbol, exchange }) {
 
       {/* Current status */}
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Current Vol</span>
           <div className="font-mono text-gray-300">{formatVolume(lastVol)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Avg Vol</span>
           <div className="font-mono text-gray-400">{formatVolume(avgVol)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Z-Score</span>
           <div className={'font-mono font-bold ' + zColor}>{lastZ >= 0 ? '+' : ''}{lastZ.toFixed(2)}</div>
         </div>
@@ -172,19 +172,19 @@ export default function VolumeAnomalyDetector({ candles, symbol, exchange }) {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-1 mt-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Spikes</span>
           <div className="font-mono text-accent-orange">{spikeCount}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Droughts</span>
           <div className="font-mono text-accent-blue">{droughtCount}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Bull</span>
           <div className="font-mono text-accent-green">{bullAnomalies}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Bear</span>
           <div className="font-mono text-accent-red">{bearAnomalies}</div>
         </div>
@@ -196,7 +196,7 @@ export default function VolumeAnomalyDetector({ candles, symbol, exchange }) {
           <div className="text-[8px] text-gray-600 mb-1">Recent anomalies:</div>
           <div className="space-y-0.5">
             {recentAnomalies.map((a, i) => (
-              <div key={i} className="flex items-center gap-1 text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+              <div key={i} className="flex items-center gap-1 text-[8px] bg-bg-800  px-1.5 py-0.5">
                 {a.type === 'spike' ? <Zap size={8} className="text-accent-orange" /> : <BarChart3 size={8} className="text-accent-blue" />}
                 <span className={a.type === 'spike' ? 'text-accent-orange' : 'text-accent-blue'}>
                   {a.type === 'spike' ? 'Volume spike' : 'Volume drought'}
@@ -213,7 +213,7 @@ export default function VolumeAnomalyDetector({ candles, symbol, exchange }) {
 
       {/* Alert */}
       {Math.abs(lastZ) > 2.5 && (
-        <div className="mt-1.5 bg-accent-orange/10 border border-accent-orange/20 rounded px-1.5 py-0.5 flex items-center gap-1">
+        <div className="mt-1.5 bg-accent-orange/10 border border-accent-orange/20  px-1.5 py-0.5 flex items-center gap-1">
           <AlertTriangle size={9} className="text-accent-orange shrink-0" />
           <span className="text-[8px] text-accent-orange">
             {lastZ > 0 ? 'Volume spike detected' : 'Volume drought detected'} — {lastZ > 0 ? 'institutional activity' : 'low interest'}

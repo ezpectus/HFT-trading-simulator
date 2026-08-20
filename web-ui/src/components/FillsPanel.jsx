@@ -56,7 +56,7 @@ export default function FillsPanel({ fills }) {
   return (
     <div className="p-2 space-y-1">
       {/* Stats summary */}
-      <div className="bg-bg-700 rounded-lg p-2.5 mb-2">
+      <div className="bg-bg-700  p-2.5 mb-2">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] text-gray-500 uppercase">Fill Statistics</span>
           <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-bg-600 text-gray-400 font-mono">
@@ -110,7 +110,7 @@ export default function FillsPanel({ fills }) {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search..."
-            className="w-16 bg-bg-600 border border-bg-500 rounded pl-4 pr-1 py-0.5 text-[9px] text-gray-200 outline-none focus:border-accent-blue"
+            className="w-16 bg-bg-600 border border-bg-500  pl-4 pr-1 py-0.5 text-[9px] text-gray-200 outline-none focus:border-accent-blue"
             aria-label="Search fills by symbol, side, or exchange"
           />
         </div>
@@ -122,7 +122,7 @@ export default function FillsPanel({ fills }) {
         renderItem={(fill, _i) => {
           const isFilled = fill.status === 'FILLED'
           return (
-            <div className="bg-bg-700 rounded p-2 text-xs mx-px">
+            <div className="bg-bg-700  p-2 text-xs mx-px">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-1.5">
                   {isFilled ? (

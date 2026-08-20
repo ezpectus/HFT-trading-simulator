@@ -192,7 +192,7 @@ export default function KalmanFilterPrice({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Crosshair size={12} className="text-accent-cyan" />
           Kalman Filter Price
@@ -214,7 +214,7 @@ export default function KalmanFilterPrice({ candles, symbol, exchange }) {
   const trendColor = trend === 'UP' ? 'text-accent-green' : trend === 'DOWN' ? 'text-accent-red' : 'text-gray-400'
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Crosshair size={12} className="text-accent-cyan" />
         Kalman Filter Price Estimator
@@ -224,11 +224,11 @@ export default function KalmanFilterPrice({ candles, symbol, exchange }) {
       <div className="flex items-center gap-1 mb-2">
         <button
           onClick={() => setModelType('1d')}
-          className={'text-[8px] px-2 py-0.5 rounded ' + (modelType === '1d' ? 'bg-accent-cyan/20 text-accent-cyan' : 'bg-bg-600 text-gray-500')}
+          className={'text-[8px] px-2 py-0.5  ' + (modelType === '1d' ? 'bg-accent-cyan/20 text-accent-cyan' : 'bg-bg-600 text-gray-500')}
         >1D (price only)</button>
         <button
           onClick={() => setModelType('2d')}
-          className={'text-[8px] px-2 py-0.5 rounded ' + (modelType === '2d' ? 'bg-accent-cyan/20 text-accent-cyan' : 'bg-bg-600 text-gray-500')}
+          className={'text-[8px] px-2 py-0.5  ' + (modelType === '2d' ? 'bg-accent-cyan/20 text-accent-cyan' : 'bg-bg-600 text-gray-500')}
         >2D (price + velocity)</button>
       </div>
 
@@ -258,15 +258,15 @@ export default function KalmanFilterPrice({ candles, symbol, exchange }) {
 
       {/* Estimates */}
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Raw Price</span>
           <div className="font-mono text-gray-300">${formatPrice(lastPrice)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">KF Estimate</span>
           <div className="font-mono text-accent-cyan">${formatPrice(lastEstimate)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Trend</span>
           <div className={'font-mono font-bold ' + trendColor}>{trend}</div>
         </div>

@@ -101,7 +101,7 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
   const pct = slices > 0 ? (progress.sent / slices * 100).toFixed(0) : 0
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Clock size={12} className="text-accent-green" />
         Execution Bot (TWAP/VWAP)
@@ -113,7 +113,7 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
           <button
             key={s.id}
             onClick={() => setStrategy(s.id)}
-            className={'flex-1 py-1 text-[10px] rounded transition-colors ' +
+            className={'flex-1 py-1 text-[10px]  transition-colors ' +
               (strategy === s.id ? 'bg-accent-green/20 text-accent-green' : 'bg-bg-600 text-gray-400 hover:bg-bg-500')}
             title={s.desc}
           >
@@ -126,14 +126,14 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
       <div className="flex gap-1 mb-2">
         <button
           onClick={() => setSide('BUY')}
-          className={'flex-1 py-1 text-[10px] rounded transition-colors ' +
+          className={'flex-1 py-1 text-[10px]  transition-colors ' +
             (side === 'BUY' ? 'bg-accent-green/20 text-accent-green' : 'bg-bg-600 text-gray-400')}
         >
           BUY
         </button>
         <button
           onClick={() => setSide('SELL')}
-          className={'flex-1 py-1 text-[10px] rounded transition-colors ' +
+          className={'flex-1 py-1 text-[10px]  transition-colors ' +
             (side === 'SELL' ? 'bg-accent-red/20 text-accent-red' : 'bg-bg-600 text-gray-400')}
         >
           SELL
@@ -150,7 +150,7 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
             value={totalQty}
             onChange={e => setTotalQty(Number(e.target.value))}
             disabled={running}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-green disabled:opacity-50"
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-green disabled:opacity-50"
           />
         </label>
         <label className="flex flex-col gap-0.5">
@@ -160,7 +160,7 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
             value={slices}
             onChange={e => setSlices(Number(e.target.value))}
             disabled={running}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-green disabled:opacity-50"
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-green disabled:opacity-50"
           />
         </label>
         <label className="flex flex-col gap-0.5">
@@ -170,7 +170,7 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
             value={intervalSec}
             onChange={e => setIntervalSec(Number(e.target.value))}
             disabled={running}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-green disabled:opacity-50"
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-green disabled:opacity-50"
           />
         </label>
       </div>
@@ -203,7 +203,7 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
           <button
             onClick={startExecution}
             disabled={!connected}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] rounded bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px]  bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors disabled:opacity-50"
           >
             <Play size={10} />
             Start
@@ -211,7 +211,7 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
         ) : (
           <button
             onClick={stopExecution}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] rounded bg-accent-red/20 text-accent-red hover:bg-accent-red/30 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px]  bg-accent-red/20 text-accent-red hover:bg-accent-red/30 transition-colors"
           >
             <Square size={10} />
             Stop

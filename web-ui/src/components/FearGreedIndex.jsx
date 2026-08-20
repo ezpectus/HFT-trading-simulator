@@ -88,7 +88,7 @@ export default function FearGreedIndex({ candles, signals, fills, symbol, exchan
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Brain size={12} className="text-accent-purple" />
           Fear & Greed
@@ -108,7 +108,7 @@ export default function FearGreedIndex({ candles, signals, fills, symbol, exchan
   const needleY = cy - r * Math.cos(rad)
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Brain size={12} className="text-accent-purple" />
         Fear & Greed Index

@@ -149,7 +149,7 @@ export default function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Brain size={12} className="text-accent-purple" />
           Regime Strategy
@@ -162,20 +162,20 @@ export default function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
   const { regime, regimeColor, strat, lastPrice, lastEma9, lastEma21, lastAtr, suggestedEntry, suggestedStop, suggestedTarget, trendStrength, volRatio, smaSpread, lastRsi } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Brain size={12} className="text-accent-purple" />
         Regime Adaptive Strategy
       </div>
 
       {/* Regime badge */}
-      <div className="rounded px-2 py-1.5 mb-2 text-center" style={{ backgroundColor: regimeColor + '15' }}>
+      <div className=" px-2 py-1.5 mb-2 text-center" style={{ backgroundColor: regimeColor + '15' }}>
         <div className="text-[8px] text-gray-600">Detected Regime</div>
         <div className="text-sm font-bold" style={{ color: regimeColor }}>{regime}</div>
       </div>
 
       {/* Strategy recommendation */}
-      <div className="bg-bg-800 rounded p-2 mb-2">
+      <div className="bg-bg-800  p-2 mb-2">
         <div className="flex items-center gap-1 mb-1">
           <Target size={9} className="text-accent-blue" />
           <span className="text-[9px] font-medium text-gray-300">Recommended Strategy</span>
@@ -186,15 +186,15 @@ export default function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
 
       {/* Entry/Stop/Target */}
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-1">
+        <div className="bg-bg-800  px-1.5 py-1">
           <span className="text-gray-600">Entry</span>
           <div className="font-mono text-accent-blue">{formatPrice(suggestedEntry)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-1">
+        <div className="bg-bg-800  px-1.5 py-1">
           <span className="text-gray-600">Stop</span>
           <div className="font-mono text-accent-red">{formatPrice(suggestedStop)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-1">
+        <div className="bg-bg-800  px-1.5 py-1">
           <span className="text-gray-600">Target</span>
           <div className="font-mono text-accent-green">{formatPrice(suggestedTarget)}</div>
         </div>
@@ -202,19 +202,19 @@ export default function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
 
       {/* Strategy details */}
       <div className="space-y-0.5 mb-2">
-        <div className="flex justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Indicators</span>
           <span className="text-gray-400 text-right">{strat.indicators}</span>
         </div>
-        <div className="flex justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Risk Level</span>
           <span className="text-gray-400">{strat.risk}</span>
         </div>
-        <div className="flex justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Position Size</span>
           <span className="text-gray-400">{strat.positionSize}</span>
         </div>
-        <div className="flex justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Confidence</span>
           <span className={strat.confidence === 'High' ? 'text-accent-green' : strat.confidence === 'Medium' ? 'text-accent-yellow' : 'text-accent-red'}>
             {strat.confidence}
@@ -224,19 +224,19 @@ export default function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
 
       {/* Regime metrics */}
       <div className="grid grid-cols-4 gap-1 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Trend Str</span>
           <div className="font-mono text-gray-400">{(trendStrength * 100).toFixed(0)}%</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Vol Ratio</span>
           <div className="font-mono text-gray-400">{volRatio.toFixed(2)}x</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">SMA Spread</span>
           <div className="font-mono text-gray-400">{smaSpread.toFixed(2)}%</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">RSI</span>
           <div className="font-mono text-gray-400">{lastRsi.toFixed(0)}</div>
         </div>

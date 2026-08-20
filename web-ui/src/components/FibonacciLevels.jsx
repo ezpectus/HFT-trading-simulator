@@ -57,7 +57,7 @@ export default function FibonacciLevels({ candles, currentPrice }) {
   }, [candles, currentPrice])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <GitBranch size={12} className="text-accent-purple" />
         Fibonacci Levels
@@ -78,7 +78,7 @@ export default function FibonacciLevels({ candles, currentPrice }) {
         <>
           {/* Trend badge */}
           <div className="flex items-center gap-2 mb-2 text-[9px]">
-            <span className={'px-1.5 py-0.5 rounded font-medium ' +
+            <span className={'px-1.5 py-0.5  font-medium ' +
               (fibData.isUptrend ? 'bg-accent-green/20 text-accent-green' : 'bg-accent-red/20 text-accent-red')}>
               {fibData.isUptrend ? '↗ Uptrend' : '↘ Downtrend'}
             </span>
@@ -95,7 +95,7 @@ export default function FibonacciLevels({ candles, currentPrice }) {
               return (
                 <div
                   key={l.label}
-                  className={'flex items-center gap-2 px-1.5 py-0.5 rounded ' +
+                  className={'flex items-center gap-2 px-1.5 py-0.5  ' +
                     (isNearest ? 'bg-bg-600 ring-1 ring-accent-blue/30' : '')}
                 >
                   <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: l.color }} />

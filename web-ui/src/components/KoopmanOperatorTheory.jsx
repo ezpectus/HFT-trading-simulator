@@ -248,7 +248,7 @@ export default function KoopmanOperatorTheory({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Koopman Operator Theory (EDMD) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -256,26 +256,26 @@ export default function KoopmanOperatorTheory({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Poly deg:</span>
-          <input type="number" value={maxPoly} onChange={e => setMaxPoly(Math.max(1, Math.min(4, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={maxPoly} onChange={e => setMaxPoly(Math.max(1, Math.min(4, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Fourier modes:</span>
-          <input type="number" value={nFourier} onChange={e => setNFourier(Math.max(0, Math.min(6, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nFourier} onChange={e => setNFourier(Math.max(0, Math.min(6, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Forecast steps:</span>
-          <input type="number" value={forecastSteps} onChange={e => setForecastSteps(Math.max(1, Math.min(30, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={forecastSteps} onChange={e => setForecastSteps(Math.max(1, Math.min(30, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Eigenvalue spectrum */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Koopman Eigenvalue Spectrum (dominant modes, |λ| ≤ 1 = stable)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={syEig(1)} x2={W - P} y2={syEig(1)} stroke="#475569" strokeWidth={1} strokeDasharray="3,3" />
@@ -293,9 +293,9 @@ export default function KoopmanOperatorTheory({ candles, symbol, exchange }) {
       </div>
 
       {/* Forecast vs actual */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Koopman Forecast vs Actual Returns ({forecastSteps} steps ahead)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
@@ -317,14 +317,14 @@ export default function KoopmanOperatorTheory({ candles, symbol, exchange }) {
       </div>
 
       {/* Mode amplitudes */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Koopman Mode Amplitudes (|λ_i|)</div>
         <div className="space-y-1">
           {data.eigenvalues.slice(0, 5).map((e, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
               <span className="text-slate-400 w-12">Mode {i + 1}</span>
-              <div className="flex-1 bg-slate-900 rounded h-3 relative">
-                <div className="h-full rounded" style={{ width: `${(e.modulus / maxEig) * 100}%`, background: ['#06b6d4', '#f59e0b', '#a855f7', '#22c55e', '#ef4444'][i] }} />
+              <div className="flex-1 bg-slate-900  h-3 relative">
+                <div className="h-full " style={{ width: `${(e.modulus / maxEig) * 100}%`, background: ['#06b6d4', '#f59e0b', '#a855f7', '#22c55e', '#ef4444'][i] }} />
               </div>
               <span className="font-mono w-20" style={{ color: ['#06b6d4', '#f59e0b', '#a855f7', '#22c55e', '#ef4444'][i] }}>λ={e.value.toFixed(6)}</span>
             </div>
@@ -333,29 +333,29 @@ export default function KoopmanOperatorTheory({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Dict dim</div>
           <div className="text-cyan-400 font-mono">{data.dim}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">|λ₁| dominant</div>
           <div className="text-emerald-400 font-mono">{data.dominantModulus.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Recon MSE</div>
           <div className="text-amber-400 font-mono">{data.reconError.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">N modes</div>
           <div className="text-purple-400 font-mono">{data.eigenvalues.length}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Forecast dir</div>
           <div className="font-mono" style={{ color: sigColor }}>{data.forecasts[0] > 0 ? 'UP' : 'DOWN'}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> EDMD:</strong> K ≈ A·G⁻¹ (Extended DMD) |
         <strong> Dictionary:</strong> Ψ(x) = [1, x, x², sin(ωx), cos(ωx), ...] |

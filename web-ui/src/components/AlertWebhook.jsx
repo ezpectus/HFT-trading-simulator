@@ -85,7 +85,7 @@ export default function AlertWebhook({ fills, toasts }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Webhook size={12} className="text-accent-blue" />
         Alert Webhooks
@@ -100,20 +100,20 @@ export default function AlertWebhook({ fills, toasts }) {
 
       {/* Add form */}
       {showAdd && (
-        <div className="bg-bg-600/50 rounded p-2 mb-2 space-y-1.5">
+        <div className="bg-bg-600/50  p-2 mb-2 space-y-1.5">
           <input
             type="text"
             value={newName}
             onChange={e => setNewName(e.target.value)}
             placeholder="Name (e.g. Discord #alerts)"
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-blue"
           />
           <input
             type="text"
             value={newUrl}
             onChange={e => setNewUrl(e.target.value)}
             placeholder="Webhook URL (https://discord.com/api/webhooks/...)"
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
           {/* Event types */}
           <div className="flex flex-wrap gap-1">
@@ -121,7 +121,7 @@ export default function AlertWebhook({ fills, toasts }) {
               <button
                 key={ev.id}
                 onClick={() => toggleEvent(ev.id)}
-                className={'px-1.5 py-0.5 text-[8px] rounded transition-colors ' +
+                className={'px-1.5 py-0.5 text-[8px]  transition-colors ' +
                   (newEvents.includes(ev.id) ? 'bg-accent-blue/20 text-accent-blue' : 'bg-bg-600 text-gray-500')}
               >
                 {ev.label}
@@ -130,7 +130,7 @@ export default function AlertWebhook({ fills, toasts }) {
           </div>
           <button
             onClick={addWebhook}
-            className="w-full py-1 text-[10px] rounded bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30"
+            className="w-full py-1 text-[10px]  bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30"
           >
             Add Webhook
           </button>
@@ -145,7 +145,7 @@ export default function AlertWebhook({ fills, toasts }) {
       ) : (
         <div className="space-y-1">
           {webhooks.map(hook => (
-            <div key={hook.id} className="bg-bg-600/50 rounded p-1.5 group">
+            <div key={hook.id} className="bg-bg-600/50  p-1.5 group">
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => toggleWebhook(hook.id)}
@@ -174,7 +174,7 @@ export default function AlertWebhook({ fills, toasts }) {
                 {hook.events.map(ev => {
                   const eventLabel = EVENT_TYPES.find(e => e.id === ev)?.label || ev
                   return (
-                    <span key={ev} className="px-1 py-0.5 text-[7px] rounded bg-bg-600 text-gray-500">
+                    <span key={ev} className="px-1 py-0.5 text-[7px]  bg-bg-600 text-gray-500">
                       {eventLabel}
                     </span>
                   )

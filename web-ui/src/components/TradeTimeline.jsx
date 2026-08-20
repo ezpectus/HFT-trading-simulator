@@ -23,7 +23,7 @@ export default function TradeTimeline({ fills, symbol, selectedExchange }) {
   }, [recentFills])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Clock size={12} className="text-accent-green" />
         Execution Timeline
@@ -47,7 +47,7 @@ export default function TradeTimeline({ fills, symbol, selectedExchange }) {
             return (
               <div
                 key={f.id || i}
-                className="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-bg-600/50 transition-colors"
+                className="flex items-center gap-2 py-1 px-1.5  hover:bg-bg-600/50 transition-colors"
               >
                 {/* Timeline dot + line */}
                 <div className="flex flex-col items-center shrink-0">

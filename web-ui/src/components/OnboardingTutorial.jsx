@@ -72,7 +72,7 @@ export default function OnboardingTutorial() {
 
         {/* Icon */}
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-accent-blue/20 flex items-center justify-center">
+          <div className="w-10 h-10  bg-accent-blue/20 flex items-center justify-center">
             <Icon size={20} className="text-accent-blue" />
           </div>
           <h2 className="text-base font-semibold text-gray-200">{current.title}</h2>
@@ -104,7 +104,7 @@ export default function OnboardingTutorial() {
             {step > 0 && (
               <button
                 onClick={() => setStep(step - 1)}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded bg-bg-600 text-gray-300 hover:bg-bg-500 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs  bg-bg-600 text-gray-300 hover:bg-bg-500 transition-colors"
               >
                 <ChevronLeft size={12} />
                 Back
@@ -112,7 +112,7 @@ export default function OnboardingTutorial() {
             )}
             <button
               onClick={() => isLast ? handleClose() : setStep(step + 1)}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs rounded bg-accent-blue text-white hover:bg-accent-blue/80 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs  bg-accent-blue text-white hover:bg-accent-blue/80 transition-colors"
             >
               {isLast ? 'Get Started' : 'Next'}
               {!isLast && <ChevronRight size={12} />}

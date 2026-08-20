@@ -16,11 +16,12 @@ export default {
           500: 'var(--bg-500)',
         },
         accent: {
-          blue: '#3b82f6',
-          green: '#22c55e',
-          red: '#ef4444',
-          yellow: '#eab308',
-          purple: '#a855f7',
+          blue: '#4d8dff',
+          green: '#0ecb81',
+          red: '#f6465d',
+          yellow: '#f0b90b',
+          purple: '#9b7bff',
+          orange: '#f5a623',
         },
       },
       fontFamily: {

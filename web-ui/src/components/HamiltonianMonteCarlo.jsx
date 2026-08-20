@@ -231,7 +231,7 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Hamiltonian Monte Carlo (Bayesian GARCH) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -239,30 +239,30 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Samples:</span>
-          <input type="number" value={nSamples} onChange={e => setNSamples(Math.max(100, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nSamples} onChange={e => setNSamples(Math.max(100, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Step size ε:</span>
-          <input type="number" step="0.001" value={stepSize} onChange={e => setStepSize(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.001" value={stepSize} onChange={e => setStepSize(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Leapfrog L:</span>
-          <input type="number" value={nLeapfrog} onChange={e => setNLeapfrog(Math.max(5, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nLeapfrog} onChange={e => setNLeapfrog(Math.max(5, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Burn-in:</span>
-          <input type="number" value={burnIn} onChange={e => setBurnIn(Math.max(0, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={burnIn} onChange={e => setBurnIn(Math.max(0, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Trace plots */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Posterior Trace Plots (MCMC convergence check)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -277,9 +277,9 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
       </div>
 
       {/* Log posterior */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Log Posterior Trace (burn-in removed)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
           <path d={data.logPostHistory.map((lp, i) => `${i === 0 ? 'M' : 'L'} ${sxTrace(i, data.logPostHistory.length)} ${syLP(lp)}`).join(' ')} fill="none" stroke="#22c55e" strokeWidth={1.5} />
@@ -288,7 +288,7 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
       </div>
 
       {/* Posterior distributions */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Posterior Distributions (GARCH parameters)</div>
         <div className="space-y-1">
           {data.postStats.map((stat, i) => (
@@ -297,9 +297,9 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
               <span className="font-mono w-20" style={{ color: paramColors[i] }}>μ={stat.mean.toFixed(4)}</span>
               <span className="text-slate-500 font-mono w-20">σ={stat.std.toFixed(4)}</span>
               <span className="text-slate-500 font-mono w-32">95% CI: [{stat.p025.toFixed(4)}, {stat.p975.toFixed(4)}]</span>
-              <div className="flex-1 bg-slate-900 rounded h-3 relative">
+              <div className="flex-1 bg-slate-900  h-3 relative">
                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
-                <div className="h-full rounded absolute" style={{
+                <div className="h-full  absolute" style={{
                   width: `${Math.min(50, Math.abs(stat.mean) * 100)}%`,
                   background: paramColors[i],
                   left: stat.mean >= 0 ? '50%' : `${50 - Math.min(50, Math.abs(stat.mean) * 100)}%`
@@ -311,29 +311,29 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Post samples</div>
           <div className="text-cyan-400 font-mono">{data.nPost}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Accept rate</div>
           <div className="text-emerald-400 font-mono">{(data.acceptRate * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Persistence</div>
           <div className="text-amber-400 font-mono">{data.persistence.mean.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Long-run var</div>
           <div className="text-purple-400 font-mono">{data.longRunVar.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Pers. std</div>
           <div className="text-slate-300 font-mono">{data.persistence.std.toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> H:</strong> H(q,p) = U(q) + K(p), U = -log p(q|D) |
         <strong> Leapfrog:</strong> symplectic integrator (ε={stepSize}, L={nLeapfrog}) |

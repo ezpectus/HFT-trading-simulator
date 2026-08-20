@@ -59,7 +59,7 @@ function Toast({ toast, onRemove }) {
 
   return (
     <div
-      className={`relative overflow-hidden flex items-start gap-2 px-3 py-2 rounded-lg bg-bg-800 border ${border} ${bg} shadow-lg animate-slide-in`}
+      className={`relative overflow-hidden flex items-start gap-2 px-3 py-2  bg-bg-800 border ${border} ${bg} shadow-lg animate-slide-in`}
       role="alert"
     >
       <Icon size={16} className={`${color} shrink-0 mt-0.5`} aria-hidden="true" />

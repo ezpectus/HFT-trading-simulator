@@ -237,7 +237,7 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Gaussian Mixture Model (EM) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.currentLabel} → {data.signal}
         </span>
       </div>
@@ -245,7 +245,7 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Max K:</span>
-          <input type="number" value={maxK} onChange={e => setMaxK(Math.max(1, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={maxK} onChange={e => setMaxK(Math.max(1, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={autoK} onChange={e => setAutoK(e.target.checked)} />
@@ -253,14 +253,14 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Histogram + GMM density */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Return Distribution + GMM Fit (K={data.bestModel.k})</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -296,9 +296,9 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
       </div>
 
       {/* BIC/AIC model selection */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Model Selection: BIC / AIC vs K</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -318,9 +318,9 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
       </div>
 
       {/* Regime over time */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Regime Assignment Over Time (last 60 bars)</div>
-        <svg width={W} height={80} className="bg-slate-900 rounded">
+        <svg width={W} height={80} className="bg-slate-900 ">
           {data.regimeOverTime.map((r, i) => {
             const x = P + (i / data.regimeOverTime.length) * (W - 2 * P)
             return <rect key={i} x={x} y={10} width={Math.max(1, (W - 2 * P) / data.regimeOverTime.length - 0.5)} height={60} fill={regimeColors[r]} opacity={0.6} />
@@ -329,18 +329,18 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
       </div>
 
       {/* Component details */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Mixture Components (K={data.bestModel.k})</div>
         <div className="space-y-1">
           {data.bestModel.mus.map((mu, j) => (
             <div key={j} className="flex items-center gap-3 text-xs">
-              <span className="w-3 h-3 rounded" style={{ background: regimeColors[j] }} />
+              <span className="w-3 h-3 " style={{ background: regimeColors[j] }} />
               <span className="text-slate-400 w-20">{data.regimeLabels[j]}</span>
               <span className="text-cyan-400 font-mono w-20">μ={(mu * 100).toFixed(4)}%</span>
               <span className="text-amber-400 font-mono w-20">σ={(Math.sqrt(data.bestModel.sigmas2[j]) * 100).toFixed(4)}%</span>
               <span className="text-purple-400 font-mono w-20">π={(data.bestModel.pis[j] * 100).toFixed(1)}%</span>
-              <div className="flex-1 bg-slate-900 rounded h-3 relative">
-                <div className="h-full rounded" style={{ width: `${data.bestModel.pis[j] * 100}%`, background: regimeColors[j] }} />
+              <div className="flex-1 bg-slate-900  h-3 relative">
+                <div className="h-full " style={{ width: `${data.bestModel.pis[j] * 100}%`, background: regimeColors[j] }} />
               </div>
             </div>
           ))}
@@ -348,29 +348,29 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Best K</div>
           <div className="text-cyan-400 font-mono">{data.bestModel.k}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Log-likelihood</div>
           <div className="text-emerald-400 font-mono">{data.bestModel.logLik.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">BIC</div>
           <div className="text-amber-400 font-mono">{data.bestModel.bic.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Current regime</div>
           <div className="font-mono" style={{ color: regimeColors[data.currentRegime] }}>{data.currentLabel}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Regime prob</div>
           <div className="text-purple-400 font-mono">{(data.currentProb * 100).toFixed(1)}%</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Algorithm:</strong> EM (E-step: posterior γ, M-step: update μ,σ²,π) |
         <strong> Init:</strong> K-means |
         <strong> Selection:</strong> BIC = -2L + k·log(N) |

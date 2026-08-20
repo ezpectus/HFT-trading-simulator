@@ -89,7 +89,7 @@ export default function ExpectedValueCalculator({ accounts, fills, signals }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Calculator size={12} className="text-accent-green" />
           Expected Value
@@ -104,7 +104,7 @@ export default function ExpectedValueCalculator({ accounts, fills, signals }) {
   const evColor = evPerTrade > 0 ? 'text-accent-green' : 'text-accent-red'
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Calculator size={12} className="text-accent-green" />
         Expected Value Calculator
@@ -112,7 +112,7 @@ export default function ExpectedValueCalculator({ accounts, fills, signals }) {
 
       {/* Actual stats */}
       {totalTrades > 0 && (
-        <div className="mb-2 bg-bg-800 rounded px-2 py-1 text-[8px]">
+        <div className="mb-2 bg-bg-800  px-2 py-1 text-[8px]">
           <span className="text-gray-600">Actual: </span>
           <span className="text-gray-300 font-mono">{totalTrades} trades, {winRate.toFixed(1)}% WR, {actualRR.toFixed(2)} R:R</span>
         </div>
@@ -127,7 +127,7 @@ export default function ExpectedValueCalculator({ accounts, fills, signals }) {
             value={customWinRate}
             placeholder={winRate.toFixed(0) || '45'}
             onChange={e => setCustomWinRate(e.target.value)}
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -137,7 +137,7 @@ export default function ExpectedValueCalculator({ accounts, fills, signals }) {
             value={customRR}
             placeholder={actualRR.toFixed(1) || '2'}
             onChange={e => setCustomRR(e.target.value)}
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -148,13 +148,13 @@ export default function ExpectedValueCalculator({ accounts, fills, signals }) {
             step="0.1"
             min="0.1"
             onChange={e => setCustomRisk(Number(e.target.value) || 1)}
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
         </div>
       </div>
 
       {/* EV result */}
-      <div className="bg-bg-800 rounded px-2 py-2 mb-2 text-center">
+      <div className="bg-bg-800  px-2 py-2 mb-2 text-center">
         <div className="text-[8px] text-gray-600">EV per Trade</div>
         <div className={'text-xl font-bold ' + evColor}>
           {evPerTrade >= 0 ? '+' : ''}{evPerTrade.toFixed(3)}%
@@ -166,19 +166,19 @@ export default function ExpectedValueCalculator({ accounts, fills, signals }) {
 
       {/* Metrics */}
       <div className="grid grid-cols-2 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Profit Factor</span>
           <div className={'font-mono ' + (profitFactor > 1 ? 'text-accent-green' : 'text-accent-red')}>{profitFactor.toFixed(2)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">BE Win Rate</span>
           <div className="font-mono text-gray-400">{breakevenWR.toFixed(1)}%</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Kelly %</span>
           <div className={'font-mono ' + (kellyPct > 0 ? 'text-accent-green' : 'text-accent-red')}>{kellyPct.toFixed(1)}%</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">P(5 loss)</span>
           <div className="font-mono text-accent-yellow">{losingStreakProb.toFixed(2)}%</div>
         </div>
@@ -190,7 +190,7 @@ export default function ExpectedValueCalculator({ accounts, fills, signals }) {
           <div className="text-[8px] text-gray-600 mb-1">Per Strategy EV:</div>
           <div className="space-y-0.5">
             {strategyList.map((s, i) => (
-              <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+              <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
                 <span className="text-gray-400 truncate flex-1">{s.name}</span>
                 <span className="font-mono text-gray-500 w-10 text-right">{s.total}t</span>
                 <span className="font-mono text-gray-400 w-10 text-right">{s.winRate.toFixed(0)}%</span>

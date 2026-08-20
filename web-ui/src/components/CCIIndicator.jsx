@@ -52,7 +52,7 @@ export default function CCIIndicator({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Radio size={12} className="text-accent-blue" />
           CCI
@@ -65,7 +65,7 @@ export default function CCIIndicator({ candles, symbol, exchange }) {
   const { last, signal, signalColor, trend, path, zeroY, obY, osY } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Radio size={12} className="text-accent-blue" />
         Commodity Channel Index

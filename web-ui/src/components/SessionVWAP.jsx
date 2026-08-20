@@ -99,7 +99,7 @@ export default function SessionVWAP({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Clock size={12} className="text-accent-blue" />
           Session VWAP
@@ -112,7 +112,7 @@ export default function SessionVWAP({ candles, symbol, exchange }) {
   const { sessionComparisons, currentSession, lastPrice, signal, signalColor } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Clock size={12} className="text-accent-blue" />
         Session VWAP
@@ -131,14 +131,14 @@ export default function SessionVWAP({ candles, symbol, exchange }) {
       </div>
 
       {/* Signal */}
-      <div className="bg-bg-800 rounded px-2 py-1 mb-2 text-center">
+      <div className="bg-bg-800  px-2 py-1 mb-2 text-center">
         <span className={'text-[10px] font-medium ' + signalColor}>{signal}</span>
       </div>
 
       {/* Per-session VWAP */}
       <div className="space-y-1">
         {sessionComparisons.map((s, i) => (
-          <div key={i} className="bg-bg-800 rounded px-1.5 py-1">
+          <div key={i} className="bg-bg-800  px-1.5 py-1">
             <div className="flex items-center justify-between text-[9px] mb-0.5">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />

@@ -35,7 +35,7 @@ export default function PatternDetector({ candles, symbol }) {
 
   if (!candles || candles.length < 5) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Scan size={12} className="text-accent-purple" />
           Candle Patterns
@@ -48,7 +48,7 @@ export default function PatternDetector({ candles, symbol }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase">
           <Scan size={12} className="text-accent-purple" />
@@ -71,7 +71,7 @@ export default function PatternDetector({ candles, symbol }) {
             const config = PATTERN_COLORS[p.type] || PATTERN_COLORS.DOJI
             const Icon = config.icon
             return (
-              <div key={i} className={'flex items-center gap-2 rounded px-2 py-1 text-[10px] ' + config.bg}>
+              <div key={i} className={'flex items-center gap-2  px-2 py-1 text-[10px] ' + config.bg}>
                 <Icon size={10} className={config.color + ' shrink-0'} />
                 <span className={config.color + ' font-medium'}>
                   {PATTERN_LABELS[p.type] || p.type}

@@ -245,7 +245,7 @@ export default function IndicatorFormulaParser({ candles, symbol, exchange }) {
   ]
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Calculator size={12} className="text-accent-teal" />
         Custom Indicator Formula
@@ -257,14 +257,14 @@ export default function IndicatorFormulaParser({ candles, symbol, exchange }) {
           value={formula}
           onChange={e => setFormula(e.target.value)}
           rows={2}
-          className="w-full bg-bg-800 text-[10px] font-mono text-gray-300 rounded px-2 py-1 border border-bg-600 focus:border-accent-teal outline-none resize-none"
+          className="w-full bg-bg-800 text-[10px] font-mono text-gray-300  px-2 py-1 border border-bg-600 focus:border-accent-teal outline-none resize-none"
           placeholder="e.g. EMA(closes, 9) - EMA(closes, 21)"
         />
       </div>
 
       {/* Error */}
       {error && (
-        <div className="bg-accent-red/10 border border-accent-red/20 rounded px-2 py-1 mb-2 flex items-center gap-1">
+        <div className="bg-accent-red/10 border border-accent-red/20  px-2 py-1 mb-2 flex items-center gap-1">
           <AlertCircle size={10} className="text-accent-red shrink-0" />
           <span className="text-[8px] text-accent-red">{error}</span>
         </div>
@@ -278,7 +278,7 @@ export default function IndicatorFormulaParser({ candles, symbol, exchange }) {
             <button
               key={i}
               onClick={() => setFormula(ex)}
-              className="text-[7px] bg-bg-600 hover:bg-bg-500 text-gray-400 rounded px-1.5 py-0.5 transition-colors"
+              className="text-[7px] bg-bg-600 hover:bg-bg-500 text-gray-400  px-1.5 py-0.5 transition-colors"
             >
               {ex.length > 25 ? ex.slice(0, 25) + '...' : ex}
             </button>
@@ -293,16 +293,16 @@ export default function IndicatorFormulaParser({ candles, symbol, exchange }) {
         </div>
         <div className="grid grid-cols-2 gap-px">
           {AVAILABLE_FUNCTIONS.map(f => (
-            <div key={f.name} className="bg-bg-800 rounded px-1.5 py-0.5 text-[7px]">
+            <div key={f.name} className="bg-bg-800  px-1.5 py-0.5 text-[7px]">
               <span className="text-accent-teal font-mono">{f.name}</span>
               <span className="text-gray-600">({f.params.join(', ')})</span>
             </div>
           ))}
-          <div className="bg-bg-800 rounded px-1.5 py-0.5 text-[7px]">
+          <div className="bg-bg-800  px-1.5 py-0.5 text-[7px]">
             <span className="text-accent-teal font-mono">MAX/MIN</span>
             <span className="text-gray-600">(arr, period)</span>
           </div>
-          <div className="bg-bg-800 rounded px-1.5 py-0.5 text-[7px]">
+          <div className="bg-bg-800  px-1.5 py-0.5 text-[7px]">
             <span className="text-accent-teal font-mono">CROSS</span>
             <span className="text-gray-600">(a, b)</span>
           </div>
@@ -313,28 +313,28 @@ export default function IndicatorFormulaParser({ candles, symbol, exchange }) {
       {result && !error && (
         <>
           <div className="grid grid-cols-4 gap-1 mb-2 text-[8px]">
-            <div className="bg-bg-800 rounded px-1.5 py-0.5">
+            <div className="bg-bg-800  px-1.5 py-0.5">
               <span className="text-gray-600">Current</span>
               <div className="font-mono text-gray-300">{result.last.toFixed(4)}</div>
             </div>
-            <div className="bg-bg-800 rounded px-1.5 py-0.5">
+            <div className="bg-bg-800  px-1.5 py-0.5">
               <span className="text-gray-600">Change</span>
               <div className={'font-mono ' + (result.change >= 0 ? 'text-accent-green' : 'text-accent-red')}>
                 {result.change >= 0 ? '+' : ''}{result.change.toFixed(2)}%
               </div>
             </div>
-            <div className="bg-bg-800 rounded px-1.5 py-0.5">
+            <div className="bg-bg-800  px-1.5 py-0.5">
               <span className="text-gray-600">Min</span>
               <div className="font-mono text-gray-500">{result.min.toFixed(4)}</div>
             </div>
-            <div className="bg-bg-800 rounded px-1.5 py-0.5">
+            <div className="bg-bg-800  px-1.5 py-0.5">
               <span className="text-gray-600">Max</span>
               <div className="font-mono text-gray-500">{result.max.toFixed(4)}</div>
             </div>
           </div>
 
           {/* Signal */}
-          <div className="bg-bg-800 rounded px-2 py-1 mb-2 flex items-center justify-between">
+          <div className="bg-bg-800  px-2 py-1 mb-2 flex items-center justify-between">
             <span className="text-[8px] text-gray-600">Signal:</span>
             <span className={'text-[10px] font-bold ' +
               (result.signal === 'bull' || result.signal === 'bull_cross' ? 'text-accent-green' :

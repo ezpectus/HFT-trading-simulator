@@ -74,7 +74,7 @@ export default function OptionsPricing() {
             type="number"
             value={params.S}
             onChange={(e) => handleParamChange('S', e.target.value)}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -83,7 +83,7 @@ export default function OptionsPricing() {
             type="number"
             value={params.K}
             onChange={(e) => handleParamChange('K', e.target.value)}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -93,7 +93,7 @@ export default function OptionsPricing() {
             step="0.01"
             value={params.T}
             onChange={(e) => handleParamChange('T', e.target.value)}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -103,7 +103,7 @@ export default function OptionsPricing() {
             step="0.01"
             value={params.sigma}
             onChange={(e) => handleParamChange('sigma', e.target.value)}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -113,7 +113,7 @@ export default function OptionsPricing() {
             step="0.01"
             value={params.r}
             onChange={(e) => handleParamChange('r', e.target.value)}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -121,7 +121,7 @@ export default function OptionsPricing() {
           <select
             value={optionType}
             onChange={(e) => setOptionType(e.target.value)}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           >
             <option value="call">Call</option>
             <option value="put">Put</option>
@@ -130,7 +130,7 @@ export default function OptionsPricing() {
       </div>
 
       {/* Results */}
-      <div className="bg-bg-700 rounded-lg p-3">
+      <div className="bg-bg-700  p-3">
         <div className="text-[10px] text-gray-500 uppercase mb-2">Option Price</div>
         <div className="text-2xl font-mono text-accent-green">
           ${results.price.toFixed(2)}
@@ -138,7 +138,7 @@ export default function OptionsPricing() {
       </div>
 
       {/* Greeks */}
-      <div className="bg-bg-700 rounded-lg p-3">
+      <div className="bg-bg-700  p-3">
         <div className="text-[10px] text-gray-500 uppercase mb-2 flex items-center gap-1">
           <Activity size={12} />
           Greeks
@@ -168,7 +168,7 @@ export default function OptionsPricing() {
       </div>
 
       {/* Moneyness */}
-      <div className="bg-bg-700 rounded-lg p-3">
+      <div className="bg-bg-700  p-3">
         <div className="text-[10px] text-gray-500 uppercase mb-2">Moneyness</div>
         <div className="flex items-center gap-2">
           {params.S > params.K ? (

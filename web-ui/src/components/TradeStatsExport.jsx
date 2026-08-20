@@ -109,7 +109,7 @@ export default function TradeStatsExport({ accounts, fills }) {
 
   if (!stats) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Download size={12} className="text-accent-green" />
           Trade Stats Export
@@ -120,7 +120,7 @@ export default function TradeStatsExport({ accounts, fills }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Download size={12} className="text-accent-green" />
         Trade Stats Export
@@ -128,15 +128,15 @@ export default function TradeStatsExport({ accounts, fills }) {
 
       {/* Quick stats */}
       <div className="grid grid-cols-3 gap-2 mb-2 text-[9px]">
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Trades</div>
           <div className="text-gray-300 font-mono">{stats.totalTrades}</div>
         </div>
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Win Rate</div>
           <div className="text-gray-300 font-mono">{stats.winRate.toFixed(0)}%</div>
         </div>
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">P Factor</div>
           <div className={'font-mono ' + (stats.profitFactor > 1.5 ? 'text-accent-green' : stats.profitFactor > 1 ? 'text-accent-yellow' : 'text-accent-red')}>
             {stats.profitFactor.toFixed(2)}
@@ -147,7 +147,7 @@ export default function TradeStatsExport({ accounts, fills }) {
       {/* Per symbol */}
       <div className="space-y-0.5 mb-2 max-h-[80px] overflow-y-auto scrollbar-thin">
         {Object.entries(stats.bySymbol).map(([sym, s]) => (
-          <div key={sym} className="flex items-center gap-1.5 text-[8px] bg-bg-600/30 rounded px-1.5 py-0.5">
+          <div key={sym} className="flex items-center gap-1.5 text-[8px] bg-bg-600/30  px-1.5 py-0.5">
             <span className="text-gray-400">{sym.split('/')[0]}</span>
             <span className="text-gray-600">{s.trades} trades</span>
             <span className={'ml-auto font-mono ' + (s.pnl >= 0 ? 'text-accent-green' : 'text-accent-red')}>
@@ -161,14 +161,14 @@ export default function TradeStatsExport({ accounts, fills }) {
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={exportCSV}
-          className="flex items-center justify-center gap-1 py-1.5 text-[10px] rounded bg-accent-green/20 text-accent-green hover:bg-accent-green/30"
+          className="flex items-center justify-center gap-1 py-1.5 text-[10px]  bg-accent-green/20 text-accent-green hover:bg-accent-green/30"
         >
           <Download size={11} />
           CSV Export
         </button>
         <button
           onClick={exportSummary}
-          className="flex items-center justify-center gap-1 py-1.5 text-[10px] rounded bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30"
+          className="flex items-center justify-center gap-1 py-1.5 text-[10px]  bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30"
         >
           <FileText size={11} />
           Summary .txt

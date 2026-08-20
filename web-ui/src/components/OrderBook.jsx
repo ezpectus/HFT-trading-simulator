@@ -71,12 +71,12 @@ const OrderBook = memo(function OrderBook({ exchange, symbol, currentPrice, orde
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-bg-600">
-        <BookOpen size={16} className="text-accent-blue" />
-        <span className="text-sm font-medium">Order Book</span>
+      <div className="flex items-center gap-2 px-3 py-1 border-b border-bg-600">
+        <BookOpen size={14} className="text-accent-yellow" />
+        <span className="text-xs font-medium">Order Book</span>
         <button
           onClick={() => setHeatmapMode(!heatmapMode)}
-          className={'ml-auto p-0.5 rounded transition-colors ' + (heatmapMode ? 'text-accent-orange bg-bg-600' : 'text-gray-500 hover:bg-bg-600')}
+          className={'ml-auto p-0.5  transition-colors ' + (heatmapMode ? 'text-accent-orange bg-bg-600' : 'text-gray-500 hover:bg-bg-600')}
           title="Toggle depth heatmap"
         >
           <Flame size={12} />
@@ -145,7 +145,7 @@ const OrderBook = memo(function OrderBook({ exchange, symbol, currentPrice, orde
 
       {/* Spread / mid price */}
       <div className="px-3 py-1 border-y border-bg-600 bg-bg-700 flex items-center justify-between">
-        <span className="font-mono text-sm font-semibold text-accent-blue">
+        <span className="font-mono text-sm font-semibold text-accent-yellow">
           ${formatPrice(currentPrice)}
         </span>
         <span className="text-[10px] text-gray-500">

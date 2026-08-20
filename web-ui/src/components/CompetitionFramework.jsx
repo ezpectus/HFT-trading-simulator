@@ -90,7 +90,7 @@ export default function CompetitionFramework() {
   const sortedResults = results || []
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Trophy size={12} className="text-accent-yellow" />
         Strategy Competition
@@ -116,7 +116,7 @@ export default function CompetitionFramework() {
       <button
         onClick={runTournament}
         disabled={running || selected.size < 2}
-        className="w-full flex items-center justify-center gap-1 py-1 text-[10px] rounded bg-accent-yellow/20 text-accent-yellow hover:bg-accent-yellow/30 disabled:opacity-50 mb-2"
+        className="w-full flex items-center justify-center gap-1 py-1 text-[10px]  bg-accent-yellow/20 text-accent-yellow hover:bg-accent-yellow/30 disabled:opacity-50 mb-2"
       >
         {running ? <RefreshCw size={10} className="animate-spin" /> : <Swords size={10} />}
         {running ? 'Running...' : `Run Tournament (${selected.size})`}
@@ -129,7 +129,7 @@ export default function CompetitionFramework() {
           </div>
           <div className="space-y-0.5">
             {sortedResults.map(r => (
-              <div key={r.id} className={`flex items-center gap-1.5 px-1.5 py-1 rounded ${r.rank === 1 ? 'bg-accent-yellow/10' : 'bg-bg-600/40'}`}>
+              <div key={r.id} className={`flex items-center gap-1.5 px-1.5 py-1  ${r.rank === 1 ? 'bg-accent-yellow/10' : 'bg-bg-600/40'}`}>
                 <span className={`text-[10px] font-bold w-4 ${r.rank === 1 ? 'text-accent-yellow' : r.rank === 2 ? 'text-gray-300' : r.rank === 3 ? 'text-accent-orange' : 'text-gray-600'}`}>
                   {r.rank}
                 </span>

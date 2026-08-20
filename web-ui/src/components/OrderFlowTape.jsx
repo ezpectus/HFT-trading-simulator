@@ -78,7 +78,7 @@ export default function OrderFlowTape({ fills, candles, symbol, selectedExchange
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Printer size={12} className="text-accent-green" />
         Order Flow Tape
@@ -95,7 +95,7 @@ export default function OrderFlowTape({ fills, candles, symbol, selectedExchange
               return (
                 <div
                   key={p.id}
-                  className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] font-mono ${i === 0 ? 'bg-bg-600/70' : 'bg-bg-600/20'}`}
+                  className={`flex items-center gap-1.5 px-1.5 py-0.5  text-[9px] font-mono ${i === 0 ? 'bg-bg-600/70' : 'bg-bg-600/20'}`}
                 >
                   <span className="text-gray-600 w-10">{formatTime(p.time)}</span>
                   <span className={isBuy ? 'text-accent-green' : 'text-accent-red'}>

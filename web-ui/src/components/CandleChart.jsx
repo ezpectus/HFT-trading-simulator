@@ -4,12 +4,12 @@ import { CandlestickChart, Activity, Eye, EyeOff, MapPin } from 'lucide-react'
 import { calcEMA, calcRSI, calcBollingerBands } from '../utils/indicators'
 
 const INDICATORS = [
-  { id: 'ema9', label: 'EMA 9', color: '#3b82f6' },
-  { id: 'ema21', label: 'EMA 21', color: '#eab308' },
-  { id: 'ema50', label: 'EMA 50', color: '#a855f7' },
-  { id: 'bb', label: 'Bollinger', color: '#64748b' },
-  { id: 'vwap', label: 'VWAP', color: '#f97316' },
-  { id: 'rsi', label: 'RSI 14', color: '#22c55e' },
+  { id: 'ema9', label: 'EMA 9', color: '#4d8dff' },
+  { id: 'ema21', label: 'EMA 21', color: '#f0b90b' },
+  { id: 'ema50', label: 'EMA 50', color: '#9b7bff' },
+  { id: 'bb', label: 'Bollinger', color: '#5e6673' },
+  { id: 'vwap', label: 'VWAP', color: '#f5a623' },
+  { id: 'rsi', label: 'RSI 14', color: '#0ecb81' },
 ]
 
 const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, selectedExchange }) {
@@ -45,54 +45,54 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: '#0f1521' },
-        textColor: '#8b95a7',
+        background: { type: ColorType.Solid, color: '#0b0e11' },
+        textColor: '#848e9c',
         fontFamily: 'JetBrains Mono, monospace',
       },
       grid: {
-        vertLines: { color: '#161b26' },
-        horzLines: { color: '#161b26' },
+        vertLines: { color: '#1e2530' },
+        horzLines: { color: '#1e2530' },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: '#3b82f6', width: 1, style: 3 },
-        horzLine: { color: '#3b82f6', width: 1, style: 3 },
+        vertLine: { color: '#f0b90b', width: 1, style: 3 },
+        horzLine: { color: '#f0b90b', width: 1, style: 3 },
       },
-      rightPriceScale: { borderColor: '#1e2433' },
-      timeScale: { borderColor: '#1e2433', timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderColor: '#1e2530' },
+      timeScale: { borderColor: '#1e2530', timeVisible: true, secondsVisible: false },
       width: chartContainerRef.current.clientWidth,
       height: chartContainerRef.current.clientHeight,
     })
 
     const candleSeries = chart.addCandlestickSeries({
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      borderUpColor: '#22c55e',
-      borderDownColor: '#ef4444',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
+      upColor: '#0ecb81',
+      downColor: '#f6465d',
+      borderUpColor: '#0ecb81',
+      borderDownColor: '#f6465d',
+      wickUpColor: '#0ecb81',
+      wickDownColor: '#f6465d',
     })
 
     const volumeSeries = chart.addHistogramSeries({
       priceFormat: { type: 'volume' },
       priceScaleId: '',
-      color: '#2a3142',
+      color: '#2b333f',
     })
     volumeSeries.priceScale().applyOptions({
       scaleMargins: { top: 0.85, bottom: 0 },
     })
 
     // EMA series
-    emaSeriesRef.current.ema9 = chart.addLineSeries({ color: '#3b82f6', lineWidth: 1, priceLineVisible: false, lastValueVisible: false })
-    emaSeriesRef.current.ema21 = chart.addLineSeries({ color: '#eab308', lineWidth: 1, priceLineVisible: false, lastValueVisible: false })
-    emaSeriesRef.current.ema50 = chart.addLineSeries({ color: '#a855f7', lineWidth: 1, priceLineVisible: false, lastValueVisible: false })
+    emaSeriesRef.current.ema9 = chart.addLineSeries({ color: '#4d8dff', lineWidth: 1, priceLineVisible: false, lastValueVisible: false })
+    emaSeriesRef.current.ema21 = chart.addLineSeries({ color: '#f0b90b', lineWidth: 1, priceLineVisible: false, lastValueVisible: false })
+    emaSeriesRef.current.ema50 = chart.addLineSeries({ color: '#9b7bff', lineWidth: 1, priceLineVisible: false, lastValueVisible: false })
 
     // Bollinger Bands
-    bbSeriesRef.current.upper = chart.addLineSeries({ color: 'rgba(100, 116, 139, 0.5)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, lineStyle: 2 })
-    bbSeriesRef.current.lower = chart.addLineSeries({ color: 'rgba(100, 116, 139, 0.5)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, lineStyle: 2 })
+    bbSeriesRef.current.upper = chart.addLineSeries({ color: 'rgba(94, 102, 115, 0.5)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, lineStyle: 2 })
+    bbSeriesRef.current.lower = chart.addLineSeries({ color: 'rgba(94, 102, 115, 0.5)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, lineStyle: 2 })
 
     // VWAP
-    vwapSeriesRef.current = chart.addLineSeries({ color: '#f97316', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, lineStyle: 0 })
+    vwapSeriesRef.current = chart.addLineSeries({ color: '#f5a623', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, lineStyle: 0 })
 
     chartRef.current = chart
     candleSeriesRef.current = candleSeries
@@ -131,23 +131,23 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
     if (activeIndicators.rsi && rsiContainerRef.current && !rsiChartRef.current) {
       const rsiChart = createChart(rsiContainerRef.current, {
         layout: {
-          background: { type: ColorType.Solid, color: '#0f1521' },
-          textColor: '#8b95a7',
+          background: { type: ColorType.Solid, color: '#0b0e11' },
+          textColor: '#848e9c',
           fontFamily: 'JetBrains Mono, monospace',
           fontSize: 10,
         },
         grid: {
-          vertLines: { color: '#161b26' },
-          horzLines: { color: '#161b26' },
+          vertLines: { color: '#1e2530' },
+          horzLines: { color: '#1e2530' },
         },
-        rightPriceScale: { borderColor: '#1e2433' },
-        timeScale: { borderColor: '#1e2433', timeVisible: true, secondsVisible: false },
+        rightPriceScale: { borderColor: '#1e2530' },
+        timeScale: { borderColor: '#1e2530', timeVisible: true, secondsVisible: false },
         width: rsiContainerRef.current.clientWidth,
         height: rsiContainerRef.current.clientHeight,
       })
 
       const rsiSeries = rsiChart.addLineSeries({
-        color: '#22c55e', lineWidth: 1, priceLineVisible: false, lastValueVisible: true,
+        color: '#0ecb81', lineWidth: 1, priceLineVisible: false, lastValueVisible: true,
       })
 
       rsiChartRef.current = rsiChart
@@ -264,7 +264,7 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
         <span className="text-sm font-medium">{symbol}</span>
         <span className="text-xs text-gray-500">· {candles.length} candles</span>
         {regime && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+          <span className={`text-[10px] px-1.5 py-0.5  font-medium ${
             regime.regime === 'TRENDING' ? 'bg-blue-500/20 text-accent-blue' :
             regime.regime === 'RANGING' ? 'bg-yellow-500/20 text-accent-yellow' :
             'bg-gray-500/20 text-gray-400'
@@ -276,7 +276,7 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
         {/* Trade markers toggle */}
         <button
           onClick={() => setShowMarkers(!showMarkers)}
-          className={`flex items-center gap-1 px-2 py-0.5 text-[10px] rounded transition-colors ${
+          className={`flex items-center gap-1 px-2 py-0.5 text-[10px]  transition-colors ${
             showMarkers ? 'bg-accent-green/20 text-accent-green' : 'text-gray-500 hover:text-gray-300'
           }`}
           title="Toggle trade markers"
@@ -290,7 +290,7 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
             <button
               key={ind.id}
               onClick={() => toggleIndicator(ind.id)}
-              className={`flex items-center gap-1 px-2 py-0.5 text-[10px] rounded transition-colors ${
+              className={`flex items-center gap-1 px-2 py-0.5 text-[10px]  transition-colors ${
                 activeIndicators[ind.id] ? '' : 'text-gray-500 hover:text-gray-300'
               }`}
               style={activeIndicators[ind.id] ? { backgroundColor: ind.color + '33', color: ind.color } : {}}

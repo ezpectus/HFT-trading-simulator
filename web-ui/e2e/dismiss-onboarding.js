@@ -25,6 +25,19 @@ export async function dismissOnboarding(page) {
   })
 }
 
+// Robust navigation helper — retries page.goto on transient browser/server failures
+export async function gotoWithRetry(page, url, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded' })
+      return
+    } catch (e) {
+      if (attempt === retries) throw e
+      await page.waitForTimeout(1000)
+    }
+  }
+}
+
 // Fallback: add CSS via Playwright's addStyleTag after page load
 // Call this after page.goto('/') to ensure no overlays block clicks
 export async function closeOverlays(page) {

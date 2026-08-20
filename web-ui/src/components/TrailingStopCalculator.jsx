@@ -104,7 +104,7 @@ export default function TrailingStopCalculator({ candles, accounts, currentPrice
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Crosshair size={12} className="text-accent-blue" />
           Trailing Stop Calculator
@@ -117,7 +117,7 @@ export default function TrailingStopCalculator({ candles, accounts, currentPrice
   const { stopLoss, stopDistance, stopDistancePct, lastAtr, atrRatio, lastEma, highestHigh, lowestLow, hasPosition, posEntry, posQty, posSide, posPnlAtStop, allMethods } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Crosshair size={12} className="text-accent-blue" />
         Trailing Stop Calculator
@@ -127,14 +127,14 @@ export default function TrailingStopCalculator({ candles, accounts, currentPrice
       <div className="flex gap-1 mb-2">
         <button
           onClick={() => setSide('long')}
-          className={'flex-1 py-1 text-[10px] rounded ' + (side === 'long' ? 'bg-accent-green/20 text-accent-green' : 'bg-bg-600 text-gray-500')}
+          className={'flex-1 py-1 text-[10px]  ' + (side === 'long' ? 'bg-accent-green/20 text-accent-green' : 'bg-bg-600 text-gray-500')}
         >
           <TrendingUp size={10} className="inline mr-0.5" />
           Long
         </button>
         <button
           onClick={() => setSide('short')}
-          className={'flex-1 py-1 text-[10px] rounded ' + (side === 'short' ? 'bg-accent-red/20 text-accent-red' : 'bg-bg-600 text-gray-500')}
+          className={'flex-1 py-1 text-[10px]  ' + (side === 'short' ? 'bg-accent-red/20 text-accent-red' : 'bg-bg-600 text-gray-500')}
         >
           <TrendingDown size={10} className="inline mr-0.5" />
           Short
@@ -146,7 +146,7 @@ export default function TrailingStopCalculator({ candles, accounts, currentPrice
         <select
           value={method}
           onChange={e => setMethod(e.target.value)}
-          className="w-full bg-bg-800 border border-bg-600 rounded px-1.5 py-1 text-[10px] text-gray-200 outline-none focus:border-accent-blue"
+          className="w-full bg-bg-800 border border-bg-600  px-1.5 py-1 text-[10px] text-gray-200 outline-none focus:border-accent-blue"
         >
           <option value="atr">ATR Trailing</option>
           <option value="chandelier">Chandelier Exit</option>
@@ -166,13 +166,13 @@ export default function TrailingStopCalculator({ candles, accounts, currentPrice
             min="0.5"
             max="5"
             onChange={e => setAtrMult(Number(e.target.value) || 2)}
-            className="w-14 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-14 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
         </div>
       )}
 
       {/* Results */}
-      <div className="bg-bg-800 rounded px-2 py-1.5 mb-2">
+      <div className="bg-bg-800  px-2 py-1.5 mb-2">
         <div className="text-[8px] text-gray-600">Trailing Stop</div>
         <div className={'text-sm font-mono font-bold ' + (side === 'long' ? 'text-accent-red' : 'text-accent-red')}>
           {formatPrice(stopLoss)}
@@ -184,7 +184,7 @@ export default function TrailingStopCalculator({ candles, accounts, currentPrice
       <div className="space-y-0.5 mb-2">
         <div className="text-[8px] text-gray-600">All methods:</div>
         {allMethods.map((m, i) => (
-          <div key={i} className="flex justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+          <div key={i} className="flex justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
             <span className="text-gray-500">{m.name}</span>
             <span className="font-mono text-gray-400">{formatPrice(m.stop)} ({((m.dist / currentPrice) * 100).toFixed(2)}%)</span>
           </div>
@@ -193,11 +193,11 @@ export default function TrailingStopCalculator({ candles, accounts, currentPrice
 
       {/* ATR info */}
       <div className="grid grid-cols-2 gap-1 text-[8px] mb-2">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">ATR(14)</span>
           <div className="font-mono text-gray-300">{formatPrice(lastAtr)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">ATR Ratio</span>
           <div className={'font-mono ' + (atrRatio > 1.5 ? 'text-accent-yellow' : 'text-gray-400')}>{atrRatio.toFixed(2)}x</div>
         </div>
@@ -205,7 +205,7 @@ export default function TrailingStopCalculator({ candles, accounts, currentPrice
 
       {/* Position info */}
       {hasPosition && (
-        <div className="bg-bg-800 rounded px-2 py-1.5 mb-2">
+        <div className="bg-bg-800  px-2 py-1.5 mb-2">
           <div className="text-[8px] text-gray-600 mb-0.5">Your Position ({posSide})</div>
           <div className="grid grid-cols-2 gap-1 text-[8px]">
             <div>

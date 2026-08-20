@@ -105,7 +105,7 @@ export default function MarketProfile({ candles, symbol, exchange }) {
 
   if (!profile) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <BarChart3 size={12} className="text-accent-orange" />
           Market Profile (TPO)
@@ -118,7 +118,7 @@ export default function MarketProfile({ candles, symbol, exchange }) {
   const { levels, pocLevel, vaHigh, vaLow, maxVol, currentPrice, totalTpos } = profile
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <BarChart3 size={12} className="text-accent-orange" />
         Market Profile (TPO)
@@ -160,7 +160,7 @@ export default function MarketProfile({ candles, symbol, exchange }) {
             return (
               <div key={i} className={'flex items-center h-[10px] ' + (isPOC ? 'bg-accent-yellow/10' : inVA ? 'bg-bg-600/20' : '')}>
                 <div
-                  className={'h-1.5 rounded-sm ' + (isPOC ? 'bg-accent-yellow' : inVA ? 'bg-accent-blue/60' : 'bg-gray-600')}
+                  className={'h-1.5  ' + (isPOC ? 'bg-accent-yellow' : inVA ? 'bg-accent-blue/60' : 'bg-gray-600')}
                   style={{ width: `${widthPct}%` }}
                 />
               </div>

@@ -59,7 +59,7 @@ export default function GreeksCalculator({ currentPrice }) {
   }, [currentPrice, strike, daysToExpiry, volatility, riskFreeRate, type])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Sigma size={12} className="text-accent-purple" />
         Greeks Calculator (Black-Scholes)
@@ -69,14 +69,14 @@ export default function GreeksCalculator({ currentPrice }) {
       <div className="flex gap-1 mb-2">
         <button
           onClick={() => setType('call')}
-          className={'flex-1 py-1 text-[10px] rounded transition-colors ' +
+          className={'flex-1 py-1 text-[10px]  transition-colors ' +
             (type === 'call' ? 'bg-accent-green/20 text-accent-green' : 'bg-bg-600 text-gray-400')}
         >
           CALL
         </button>
         <button
           onClick={() => setType('put')}
-          className={'flex-1 py-1 text-[10px] rounded transition-colors ' +
+          className={'flex-1 py-1 text-[10px]  transition-colors ' +
             (type === 'put' ? 'bg-accent-red/20 text-accent-red' : 'bg-bg-600 text-gray-400')}
         >
           PUT
@@ -91,7 +91,7 @@ export default function GreeksCalculator({ currentPrice }) {
             type="number"
             value={currentPrice || strike}
             readOnly
-            className="bg-bg-800/50 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-500 font-mono"
+            className="bg-bg-800/50 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-500 font-mono"
           />
         </label>
         <label className="flex flex-col gap-0.5">
@@ -100,7 +100,7 @@ export default function GreeksCalculator({ currentPrice }) {
             type="number"
             value={strike}
             onChange={e => setStrike(Number(e.target.value))}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple"
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple"
           />
         </label>
         <label className="flex flex-col gap-0.5">
@@ -109,7 +109,7 @@ export default function GreeksCalculator({ currentPrice }) {
             type="number"
             value={daysToExpiry}
             onChange={e => setDaysToExpiry(Number(e.target.value))}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple"
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple"
           />
         </label>
         <label className="flex flex-col gap-0.5">
@@ -118,7 +118,7 @@ export default function GreeksCalculator({ currentPrice }) {
             type="number"
             value={volatility}
             onChange={e => setVolatility(Number(e.target.value))}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple"
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple"
           />
         </label>
         <label className="flex flex-col gap-0.5">
@@ -127,7 +127,7 @@ export default function GreeksCalculator({ currentPrice }) {
             type="number"
             value={riskFreeRate}
             onChange={e => setRiskFreeRate(Number(e.target.value))}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple"
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple"
           />
         </label>
       </div>
@@ -152,7 +152,7 @@ export default function GreeksCalculator({ currentPrice }) {
 
 function GreekStat({ label, value, color }) {
   return (
-    <div className="bg-bg-600/50 rounded px-2 py-1">
+    <div className="bg-bg-600/50  px-2 py-1">
       <div className="text-[8px] text-gray-600 uppercase">{label}</div>
       <div className={`text-[11px] font-mono font-medium ${color}`}>{value}</div>
     </div>

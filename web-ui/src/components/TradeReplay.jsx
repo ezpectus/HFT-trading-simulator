@@ -81,7 +81,7 @@ export default function TradeReplay({ fills, candles, symbol, selectedExchange }
 
   if (totalSteps === 0) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Play size={12} className="text-accent-green" />
           Trade Replay
@@ -94,7 +94,7 @@ export default function TradeReplay({ fills, candles, symbol, selectedExchange }
   const progressPct = totalSteps > 1 ? (step / (totalSteps - 1)) * 100 : 0
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Play size={12} className="text-accent-green" />
         Trade Replay
@@ -103,7 +103,7 @@ export default function TradeReplay({ fills, candles, symbol, selectedExchange }
 
       {/* Current event display */}
       {currentEvent && (
-        <div className="bg-bg-600/50 rounded p-2 mb-2">
+        <div className="bg-bg-600/50  p-2 mb-2">
           {currentEvent.type === 'candle' ? (
             <div className="grid grid-cols-4 gap-1 text-[9px]">
               <div><span className="text-gray-600">O</span> <span className="text-gray-300 font-mono">${formatPrice(currentEvent.data.open)}</span></div>
@@ -138,26 +138,26 @@ export default function TradeReplay({ fills, candles, symbol, selectedExchange }
 
       {/* Controls */}
       <div className="flex items-center gap-1 mb-2">
-        <button onClick={() => handleJump(0)} className="p-1 rounded bg-bg-600 text-gray-400 hover:text-gray-200" title="Start">
+        <button onClick={() => handleJump(0)} className="p-1  bg-bg-600 text-gray-400 hover:text-gray-200" title="Start">
           <Rewind size={11} />
         </button>
-        <button onClick={() => handleStep(-1)} className="p-1 rounded bg-bg-600 text-gray-400 hover:text-gray-200" title="Step back">
+        <button onClick={() => handleStep(-1)} className="p-1  bg-bg-600 text-gray-400 hover:text-gray-200" title="Step back">
           <SkipBack size={11} />
         </button>
-        <button onClick={handlePlayPause} className="p-1.5 rounded bg-accent-green/20 text-accent-green hover:bg-accent-green/30" title="Play/Pause">
+        <button onClick={handlePlayPause} className="p-1.5  bg-accent-green/20 text-accent-green hover:bg-accent-green/30" title="Play/Pause">
           {playing ? <Pause size={12} /> : <Play size={12} />}
         </button>
-        <button onClick={() => handleStep(1)} className="p-1 rounded bg-bg-600 text-gray-400 hover:text-gray-200" title="Step forward">
+        <button onClick={() => handleStep(1)} className="p-1  bg-bg-600 text-gray-400 hover:text-gray-200" title="Step forward">
           <SkipForward size={11} />
         </button>
-        <button onClick={() => handleJump(1)} className="p-1 rounded bg-bg-600 text-gray-400 hover:text-gray-200" title="End">
+        <button onClick={() => handleJump(1)} className="p-1  bg-bg-600 text-gray-400 hover:text-gray-200" title="End">
           <FastForward size={11} />
         </button>
         <div className="flex-1" />
         <select
           value={speed}
           onChange={e => setSpeed(Number(e.target.value))}
-          className="bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-300 outline-none"
+          className="bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-300 outline-none"
         >
           <option value={0.5}>0.5x</option>
           <option value={1}>1x</option>

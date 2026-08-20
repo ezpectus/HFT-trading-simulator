@@ -65,7 +65,7 @@ export default function CorrelationMatrix({ candles, exchange, symbols }) {
   const shortNames = symbols.map(s => s.split('/')[0])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Grid3x3 size={12} className="text-accent-purple" />
         Correlation Matrix
@@ -91,7 +91,7 @@ export default function CorrelationMatrix({ candles, exchange, symbols }) {
               {row.map((corr, j) => (
                 <td key={j} className="p-0.5">
                   <div
-                    className={'text-[9px] font-mono text-center rounded py-1 ' + corrColor(corr)}
+                    className={'text-[9px] font-mono text-center  py-1 ' + corrColor(corr)}
                     title={`${shortNames[i]} vs ${shortNames[j]}: ${corr.toFixed(3)}`}
                   >
                     {corr.toFixed(2)}

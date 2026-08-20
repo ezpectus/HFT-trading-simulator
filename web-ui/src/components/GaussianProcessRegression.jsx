@@ -277,7 +277,7 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Gaussian Process Regression — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -285,7 +285,7 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Kernel:</span>
-          <select value={kernelType} onChange={e => setKernelType(e.target.value)} className="bg-slate-800 border border-slate-600 rounded text-slate-200 px-1">
+          <select value={kernelType} onChange={e => setKernelType(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
             <option value="rbf">RBF (Squared Exp)</option>
             <option value="matern">Matérn 5/2</option>
             <option value="periodic">Periodic</option>
@@ -299,32 +299,32 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
           <>
             <label className="flex items-center gap-1">
               <span className="text-slate-400">σ_f:</span>
-              <input type="number" step="0.1" value={sigmaF} onChange={e => setSigmaF(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+              <input type="number" step="0.1" value={sigmaF} onChange={e => setSigmaF(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
             </label>
             <label className="flex items-center gap-1">
               <span className="text-slate-400">l (length):</span>
-              <input type="number" step="0.5" value={lengthScale} onChange={e => setLengthScale(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+              <input type="number" step="0.5" value={lengthScale} onChange={e => setLengthScale(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
             </label>
             <label className="flex items-center gap-1">
               <span className="text-slate-400">σ_n (noise):</span>
-              <input type="number" step="0.01" value={sigmaN} onChange={e => setSigmaN(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+              <input type="number" step="0.01" value={sigmaN} onChange={e => setSigmaN(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
             </label>
           </>
         )}
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Train points:</span>
-          <input type="number" value={nTrain} onChange={e => setNTrain(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nTrain} onChange={e => setNTrain(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Predict ahead:</span>
-          <input type="number" value={nPredict} onChange={e => setNPredict(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nPredict} onChange={e => setNPredict(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* GP prediction chart */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">GP Posterior: Mean ± 2σ Confidence Band</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -365,29 +365,29 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Log ML</div>
           <div className="text-cyan-400 font-mono">{data.logML.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">RMSE</div>
           <div className="text-amber-400 font-mono">{data.rmse.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Pred Price</div>
           <div className="text-emerald-400 font-mono">${data.predictedPrice.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Pred Return</div>
           <div className="font-mono" style={{ color: sigColor }}>{(data.predictedReturn * 100).toFixed(3)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Uncertainty</div>
           <div className="text-purple-400 font-mono">{(data.uncertainty * 100).toFixed(2)}%</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Hyperparams:</strong> σ_f={data.params.sigmaF.toFixed(3)}, l={data.params.lengthScale.toFixed(2)}, σ_n={data.params.sigmaN.toFixed(4)} |
         <strong> Kernel:</strong> {kernelType} |
         <strong> Cholesky:</strong> O(n³) decomposition |

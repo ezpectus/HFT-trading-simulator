@@ -88,7 +88,7 @@ export default function SpoofingDetector({ orderbookData, currentPrice }) {
 
   if (!analysis) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <ShieldAlert size={12} className="text-accent-red" />
           Spoofing Detector
@@ -101,7 +101,7 @@ export default function SpoofingDetector({ orderbookData, currentPrice }) {
   const { suspiciousBids, suspiciousAsks, bidLayering, askLayering, score, signal, signalColor, pressure, pressureColor } = analysis
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <ShieldAlert size={12} className="text-accent-red" />
         Spoofing Detector
@@ -147,13 +147,13 @@ export default function SpoofingDetector({ orderbookData, currentPrice }) {
       {/* Layering */}
       {(bidLayering > 0 || askLayering > 0) && (
         <div className="grid grid-cols-2 gap-2 text-[9px] mb-2">
-          <div className="bg-bg-600/50 rounded px-2 py-1">
+          <div className="bg-bg-600/50  px-2 py-1">
             <div className="text-gray-600">Bid Layering</div>
             <div className={bidLayering > 1 ? 'text-accent-red font-mono' : 'text-gray-300 font-mono'}>
               {bidLayering} clusters
             </div>
           </div>
-          <div className="bg-bg-600/50 rounded px-2 py-1">
+          <div className="bg-bg-600/50  px-2 py-1">
             <div className="text-gray-600">Ask Layering</div>
             <div className={askLayering > 1 ? 'text-accent-red font-mono' : 'text-gray-300 font-mono'}>
               {askLayering} clusters
@@ -197,7 +197,7 @@ function detectLayering(orders, avgSize) {
 function SuspiciousRow({ order, side }) {
   const isBid = side === 'bid'
   return (
-    <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-bg-600/50">
+    <div className="flex items-center gap-1.5 px-1.5 py-0.5  bg-bg-600/50">
       <div className={'w-1.5 h-1.5 rounded-full ' + (isBid ? 'bg-accent-green' : 'bg-accent-red')} />
       <span className={'text-[9px] font-mono ' + (isBid ? 'text-accent-green' : 'text-accent-red')}>
         ${formatPrice(order.price)}

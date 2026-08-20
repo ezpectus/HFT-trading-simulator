@@ -70,7 +70,7 @@ export default function PositionsPanel({ accounts, onClose, currentPrices }) {
           const dangerPct = nearSL ? slProgress : 0
 
           return (
-            <div key={i} className="bg-bg-700 rounded p-2 text-xs">
+            <div key={i} className="bg-bg-700  p-2 text-xs">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-1.5">
                   <span className={`font-semibold ${colorForSide(pos.side)}`}>
@@ -78,7 +78,7 @@ export default function PositionsPanel({ accounts, onClose, currentPrices }) {
                   </span>
                   <span className="text-gray-300">{pos.symbol}</span>
                   <span className="text-gray-500 text-[10px]">{pos.exchange}</span>
-                  <span className="text-[9px] px-1 rounded bg-bg-600 text-gray-400">{pos.leverage}x</span>
+                  <span className="text-[9px] px-1  bg-bg-600 text-gray-400">{pos.leverage}x</span>
                   {dangerPct > 70 && (
                     <AlertTriangle size={10} className="text-accent-red animate-pulse" />
                   )}

@@ -104,7 +104,7 @@ export default function PairTradingSignals({ candles, symbols, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Link2 size={12} className="text-accent-blue" />
           Pair Trading
@@ -117,7 +117,7 @@ export default function PairTradingSignals({ candles, symbols, exchange }) {
   const { pairs } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Link2 size={12} className="text-accent-blue" />
         Pair Trading Signals
@@ -125,7 +125,7 @@ export default function PairTradingSignals({ candles, symbols, exchange }) {
 
       <div className="space-y-1.5">
         {pairs.map((p, i) => (
-          <div key={i} className="bg-bg-800 rounded p-1.5">
+          <div key={i} className="bg-bg-800  p-1.5">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1">
                 <ArrowRightLeft size={9} className="text-gray-500" />

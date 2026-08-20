@@ -143,7 +143,7 @@ export default function MarkovRegimePredictor({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Shuffle size={12} className="text-accent-teal" />
           Markov Regime Predictor
@@ -165,14 +165,14 @@ export default function MarkovRegimePredictor({ candles, symbol, exchange }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Shuffle size={12} className="text-accent-teal" />
         Markov Chain Regime Predictor
       </div>
 
       {/* Current regime */}
-      <div className="bg-bg-800 rounded px-2 py-1 mb-2 flex items-center justify-between">
+      <div className="bg-bg-800  px-2 py-1 mb-2 flex items-center justify-between">
         <span className="text-[8px] text-gray-600">Current Regime:</span>
         <span className={'text-[10px] font-bold ' + (regimeColors[currentRegime] || 'text-gray-400')}>
           {currentRegime.replace('_', ' ')}
@@ -181,15 +181,15 @@ export default function MarkovRegimePredictor({ candles, symbol, exchange }) {
 
       {/* Distribution stats */}
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Skewness</span>
           <div className="font-mono text-gray-400">{skew.toFixed(3)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Kurtosis</span>
           <div className="font-mono text-gray-400">{kurt.toFixed(3)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Samples</span>
           <div className="font-mono text-gray-400">{regimeSequence.length}</div>
         </div>
@@ -273,9 +273,9 @@ export default function MarkovRegimePredictor({ candles, symbol, exchange }) {
         <div className="flex gap-px">
           {stationary.map((prob, i) => (
             <div key={i} className="flex-1 text-center">
-              <div className="h-8 bg-bg-600 rounded-sm overflow-hidden flex flex-col justify-end">
+              <div className="h-8 bg-bg-600  overflow-hidden flex flex-col justify-end">
                 <div
-                  className={'rounded-sm ' + (
+                  className={' ' + (
                     regimes[i] === 'CALM' ? 'bg-accent-green' :
                     regimes[i] === 'RANGING' ? 'bg-accent-yellow' :
                     regimes[i] === 'TRENDING_UP' ? 'bg-accent-blue' :

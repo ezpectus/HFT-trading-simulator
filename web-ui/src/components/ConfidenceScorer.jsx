@@ -139,7 +139,7 @@ export default function ConfidenceScorer({ candles, signals, fills, symbol, exch
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Gauge size={12} className="text-accent-green" />
           Confidence Scorer
@@ -152,14 +152,14 @@ export default function ConfidenceScorer({ candles, signals, fills, symbol, exch
   const { factors, avgScore, confidence, confidenceColor, direction, bullFactors, bearFactors } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Gauge size={12} className="text-accent-green" />
         Signal Confidence Scorer
       </div>
 
       {/* Score gauge */}
-      <div className="bg-bg-800 rounded px-2 py-2 mb-2 text-center">
+      <div className="bg-bg-800  px-2 py-2 mb-2 text-center">
         <div className="text-[8px] text-gray-600">Confidence Level</div>
         <div className={'text-xl font-bold ' + confidenceColor}>{confidence}</div>
         <div className="text-[10px] font-mono text-gray-400">{avgScore.toFixed(0)}/100</div>
@@ -182,7 +182,7 @@ export default function ConfidenceScorer({ candles, signals, fills, symbol, exch
       {/* Factors */}
       <div className="space-y-0.5">
         {factors.map((f, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+          <div key={i} className="flex items-center gap-1.5 text-[8px] bg-bg-800  px-1.5 py-0.5">
             {f.direction === 'bull' ? <TrendingUp size={7} className="text-accent-green shrink-0" /> :
              f.direction === 'bear' ? <TrendingDown size={7} className="text-accent-red shrink-0" /> :
              <AlertCircle size={7} className="text-gray-500 shrink-0" />}
@@ -200,7 +200,7 @@ export default function ConfidenceScorer({ candles, signals, fills, symbol, exch
       </div>
 
       {/* Recommendation */}
-      <div className="mt-2 bg-bg-800 rounded px-2 py-1 flex items-center gap-1">
+      <div className="mt-2 bg-bg-800  px-2 py-1 flex items-center gap-1">
         {avgScore > 60 ? (
           <>
             <CheckCircle2 size={10} className="text-accent-green shrink-0" />

@@ -82,7 +82,7 @@ export default function MITOrderSimulator({ candles, accounts, currentPrice, sym
 
   if (!analysis) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Target size={12} className="text-accent-purple" />
           MIT Order Simulator
@@ -95,7 +95,7 @@ export default function MITOrderSimulator({ candles, accounts, currentPrice, sym
   const { lastAtr, recentHigh, recentLow, buyTouch, sellTouch, targetPrice, distance, distancePct, probTouch, stopLoss, takeProfit, risk, reward, rr, balance, orderValue, sufficientBalance } = analysis
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Target size={12} className="text-accent-purple" />
         MIT Order Simulator
@@ -105,14 +105,14 @@ export default function MITOrderSimulator({ candles, accounts, currentPrice, sym
       <div className="flex gap-1 mb-2">
         <button
           onClick={() => setSide('BUY')}
-          className={'flex-1 py-1 text-[10px] font-medium rounded transition-colors ' +
+          className={'flex-1 py-1 text-[10px] font-medium  transition-colors ' +
             (side === 'BUY' ? 'bg-accent-green text-white' : 'bg-bg-600 text-gray-400')}
         >
           Buy MIT
         </button>
         <button
           onClick={() => setSide('SELL')}
-          className={'flex-1 py-1 text-[10px] font-medium rounded transition-colors ' +
+          className={'flex-1 py-1 text-[10px] font-medium  transition-colors ' +
             (side === 'SELL' ? 'bg-accent-red text-white' : 'bg-bg-600 text-gray-400')}
         >
           Sell MIT
@@ -151,11 +151,11 @@ export default function MITOrderSimulator({ candles, accounts, currentPrice, sym
             value={touchPrice}
             onChange={e => setTouchPrice(e.target.value)}
             placeholder={side === 'BUY' ? buyTouch.toFixed(2) : sellTouch.toFixed(2)}
-            className="w-full bg-bg-800 text-[10px] text-gray-300 rounded px-2 py-1 border border-bg-600 focus:border-accent-blue outline-none"
+            className="w-full bg-bg-800 text-[10px] text-gray-300  px-2 py-1 border border-bg-600 focus:border-accent-blue outline-none"
           />
         )}
         {autoCalc && (
-          <div className="bg-bg-800 rounded px-2 py-1 text-[10px] font-mono text-gray-300">
+          <div className="bg-bg-800  px-2 py-1 text-[10px] font-mono text-gray-300">
             {formatPrice(side === 'BUY' ? buyTouch : sellTouch)}
           </div>
         )}
@@ -168,44 +168,44 @@ export default function MITOrderSimulator({ candles, accounts, currentPrice, sym
           value={quantity}
           onChange={e => setQuantity(e.target.value)}
           step="0.01"
-          className="w-full bg-bg-800 text-[10px] text-gray-300 rounded px-2 py-1 border border-bg-600 focus:border-accent-blue outline-none"
+          className="w-full bg-bg-800 text-[10px] text-gray-300  px-2 py-1 border border-bg-600 focus:border-accent-blue outline-none"
           placeholder="Quantity"
         />
       </div>
 
       {/* Analysis */}
       <div className="space-y-0.5 mb-2">
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Current Price</span>
           <span className="font-mono text-gray-400">{formatPrice(currentPrice)}</span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Touch Price</span>
           <span className={'font-mono ' + (side === 'BUY' ? 'text-accent-green' : 'text-accent-red')}>
             {formatPrice(targetPrice)} ({distancePct.toFixed(2)}%)
           </span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Touch Probability</span>
           <span className={'font-mono ' + (probTouch > 60 ? 'text-accent-green' : probTouch < 30 ? 'text-accent-red' : 'text-accent-yellow')}>
             {probTouch.toFixed(0)}%
           </span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Stop Loss</span>
           <span className="font-mono text-accent-red">{formatPrice(stopLoss)}</span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Take Profit</span>
           <span className="font-mono text-accent-green">{formatPrice(takeProfit)}</span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">R:R Ratio</span>
           <span className={'font-mono ' + (rr > 2 ? 'text-accent-green' : rr > 1 ? 'text-accent-yellow' : 'text-accent-red')}>
             1:{rr.toFixed(2)}
           </span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Order Value</span>
           <span className={'font-mono ' + (sufficientBalance ? 'text-gray-400' : 'text-accent-red')}>
             ${formatPrice(orderValue)} {!sufficientBalance && '(insufficient)'}
@@ -214,7 +214,7 @@ export default function MITOrderSimulator({ candles, accounts, currentPrice, sym
       </div>
 
       {/* Range context */}
-      <div className="bg-bg-800 rounded px-2 py-1 mb-2">
+      <div className="bg-bg-800  px-2 py-1 mb-2">
         <div className="text-[8px] text-gray-600 mb-0.5">20-bar Range:</div>
         <div className="flex justify-between text-[8px] font-mono">
           <span className="text-accent-red">L: {formatPrice(recentLow)}</span>
@@ -227,7 +227,7 @@ export default function MITOrderSimulator({ candles, accounts, currentPrice, sym
       <button
         onClick={handleSubmit}
         disabled={!sufficientBalance || !onSubmit}
-        className={'w-full py-1.5 text-[10px] font-medium rounded transition-colors flex items-center justify-center gap-1 ' +
+        className={'w-full py-1.5 text-[10px] font-medium  transition-colors flex items-center justify-center gap-1 ' +
           (side === 'BUY'
             ? 'bg-accent-green text-white hover:bg-accent-green/80 disabled:opacity-50'
             : 'bg-accent-red text-white hover:bg-accent-red/80 disabled:opacity-50')}

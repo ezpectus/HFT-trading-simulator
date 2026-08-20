@@ -55,7 +55,7 @@ export default function AwesomeOscillator({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Waves size={12} className="text-accent-blue" />
           Awesome Oscillator
@@ -68,7 +68,7 @@ export default function AwesomeOscillator({ candles, symbol, exchange }) {
   const { last, saucer, zeroCross, bars } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Waves size={12} className="text-accent-blue" />
         Awesome Oscillator
@@ -106,13 +106,13 @@ export default function AwesomeOscillator({ candles, symbol, exchange }) {
 
       <div className="mt-1.5 space-y-0.5">
         {saucer && (
-          <div className="flex items-center gap-1 bg-accent-yellow/10 border border-accent-yellow/20 rounded px-1.5 py-0.5">
+          <div className="flex items-center gap-1 bg-accent-yellow/10 border border-accent-yellow/20  px-1.5 py-0.5">
             {saucer === 'Bullish Saucer' ? <TrendingUp size={9} className="text-accent-green" /> : <TrendingDown size={9} className="text-accent-red" />}
             <span className={'text-[8px] ' + (saucer === 'Bullish Saucer' ? 'text-accent-green' : 'text-accent-red')}>{saucer}</span>
           </div>
         )}
         {zeroCross && (
-          <div className="flex items-center gap-1 bg-accent-blue/10 border border-accent-blue/20 rounded px-1.5 py-0.5">
+          <div className="flex items-center gap-1 bg-accent-blue/10 border border-accent-blue/20  px-1.5 py-0.5">
             <span className="text-[8px] text-accent-blue">Zero-line cross — momentum shift</span>
           </div>
         )}

@@ -328,7 +328,7 @@ export default function EmpiricalDynamicModeling({ candles, symbol, exchange, sy
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Empirical Dynamic Modeling (EDM) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -336,22 +336,22 @@ export default function EmpiricalDynamicModeling({ candles, symbol, exchange, sy
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Max E:</span>
-          <input type="number" value={maxE} onChange={e => setMaxE(Math.max(3, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={maxE} onChange={e => setMaxE(Math.max(3, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Max τ:</span>
-          <input type="number" value={maxTau} onChange={e => setMaxTau(Math.max(5, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={maxTau} onChange={e => setMaxTau(Math.max(5, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Forecast steps:</span>
-          <input type="number" value={forecastSteps} onChange={e => setForecastSteps(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={forecastSteps} onChange={e => setForecastSteps(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Mutual information for τ */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Mutual Information → optimal τ = {data.optTau}</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
           {data.mis.map((mi, i) => {
@@ -365,9 +365,9 @@ export default function EmpiricalDynamicModeling({ candles, symbol, exchange, sy
       </div>
 
       {/* FNN for E */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">False Nearest Neighbors → optimal E = {data.optE}</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={H - P - 0.05 * (H - 2 * P)} x2={W - P} y2={H - P - 0.05 * (H - 2 * P)} stroke="#ef4444" strokeDasharray="3,3" />
@@ -388,9 +388,9 @@ export default function EmpiricalDynamicModeling({ candles, symbol, exchange, sy
 
       {/* CCM convergence */}
       {data.ccmResults && (
-        <div className="bg-slate-800 rounded p-3">
+        <div className="bg-slate-800  p-3">
           <div className="text-xs text-slate-400 mb-1">CCM: {symbol} ← {data.ccmTargetSymbol} (causality test)</div>
-          <svg width={W} height={H} className="bg-slate-900 rounded">
+          <svg width={W} height={H} className="bg-slate-900 ">
             <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
             <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
             <line x1={P} y1={H - P - (H - 2 * P)} x2={W - P} y2={H - P - (H - 2 * P)} stroke="#475569" strokeDasharray="3,3" />
@@ -409,7 +409,7 @@ export default function EmpiricalDynamicModeling({ candles, symbol, exchange, sy
       )}
 
       {/* Forecast table */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Simplex Projection Forecast (E={data.optE}, τ={data.optTau})</div>
         <div className="space-y-1">
           {data.forecasts.map((f, i) => (
@@ -424,25 +424,25 @@ export default function EmpiricalDynamicModeling({ candles, symbol, exchange, sy
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Optimal τ</div>
           <div className="text-cyan-400 font-mono">{data.optTau}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Optimal E</div>
           <div className="text-emerald-400 font-mono">{data.optE}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Forecast ρ</div>
           <div className="text-amber-400 font-mono">{data.forecastRho.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">CCM ρ</div>
           <div className="text-purple-400 font-mono">{data.ccmResults ? data.ccmResults[data.ccmResults.length - 1]?.rho.toFixed(4) : 'N/A'}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Method:</strong> Takens embedding + simplex projection |
         <strong> CCM:</strong> {data.ccmTargetSymbol ? `${symbol} ← ${data.ccmTargetSymbol}` : 'N/A'}

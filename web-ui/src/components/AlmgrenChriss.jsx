@@ -190,35 +190,35 @@ export default function AlmgrenChriss({ candles, symbol, exchange, currentPrice 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Order Size:</span>
-          <input type="number" value={orderSize} onChange={e => setOrderSize(Math.max(1, +e.target.value))} className="w-20 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={orderSize} onChange={e => setOrderSize(Math.max(1, +e.target.value))} className="w-20 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">T (days):</span>
-          <input type="number" step="0.1" value={timeHorizon} onChange={e => setTimeHorizon(Math.max(0.1, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.1" value={timeHorizon} onChange={e => setTimeHorizon(Math.max(0.1, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Steps:</span>
-          <input type="number" value={nSteps} onChange={e => setNSteps(Math.max(2, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nSteps} onChange={e => setNSteps(Math.max(2, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">λ (risk aversion):</span>
-          <input type="number" step="0.0000001" value={riskAversion} onChange={e => setRiskAversion(Math.max(1e-10, +e.target.value))} className="w-24 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.0000001" value={riskAversion} onChange={e => setRiskAversion(Math.max(1e-10, +e.target.value))} className="w-24 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">η (temp impact):</span>
-          <input type="number" step="0.01" value={eta} onChange={e => setEta(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.01" value={eta} onChange={e => setEta(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">γ (perm impact):</span>
-          <input type="number" step="0.001" value={gamma} onChange={e => setGamma(Math.max(0, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.001" value={gamma} onChange={e => setGamma(Math.max(0, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       <div className="flex gap-3">
         {/* Trajectory */}
-        <div className="flex-1 bg-slate-800 rounded p-3">
+        <div className="flex-1 bg-slate-800  p-3">
           <div className="text-xs text-slate-400 mb-1">Optimal Execution Trajectory</div>
-          <svg width={W} height={H} className="bg-slate-900 rounded">
+          <svg width={W} height={H} className="bg-slate-900 ">
             <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
             <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
             <path d={trajPath} fill="none" stroke="#06b6d4" strokeWidth={2} />
@@ -233,9 +233,9 @@ export default function AlmgrenChriss({ candles, symbol, exchange, currentPrice 
 
       <div className="flex gap-3">
         {/* Efficient frontier */}
-        <div className="flex-1 bg-slate-800 rounded p-3">
+        <div className="flex-1 bg-slate-800  p-3">
           <div className="text-xs text-slate-400 mb-1">Efficient Frontier (Cost vs Risk)</div>
-          <svg width={fW} height={fH} className="bg-slate-900 rounded">
+          <svg width={fW} height={fH} className="bg-slate-900 ">
             <line x1={P} y1={fH - P} x2={fW - P} y2={fH - P} stroke="#334155" />
             <line x1={P} y1={P} x2={P} y2={fH - P} stroke="#334155" />
             <path d={frontierPath} fill="none" stroke="#f59e0b" strokeWidth={2} />
@@ -250,7 +250,7 @@ export default function AlmgrenChriss({ candles, symbol, exchange, currentPrice 
         </div>
 
         {/* Trade schedule */}
-        <div className="flex-1 bg-slate-800 rounded p-3">
+        <div className="flex-1 bg-slate-800  p-3">
           <div className="text-xs text-slate-400 mb-1">Execution Schedule (first 5 + last)</div>
           <div className="space-y-1 text-xs font-mono max-h-48 overflow-auto">
             {result.trades.slice(0, 5).map((t, i) => (
@@ -277,29 +277,29 @@ export default function AlmgrenChriss({ candles, symbol, exchange, currentPrice 
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">E[cost] (AC)</div>
           <div className="text-cyan-400 font-mono">{result.expectedCost.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">σ[cost] (AC)</div>
           <div className="text-amber-400 font-mono">{result.stdDev.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">E[cost] (TWAP)</div>
           <div className="text-slate-300 font-mono">{result.twapCost.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Savings</div>
           <div className="text-emerald-400 font-mono">{savings.toFixed(4)} ({savingsPct.toFixed(1)}%)</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">κ</div>
           <div className="text-purple-400 font-mono">{result.kappa.toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Model:</strong> σ={sigma.toFixed(5)}, η={eta}, γ={gamma}, λ={riskAversion.toExponential(2)} |
         <strong> Impact:</strong> permanent={result.permImpactCost.toFixed(4)}, temporary={result.tempImpactCost.toFixed(4)} |
         <strong> Utility:</strong> AC={result.utility.toFixed(4)} vs TWAP={result.twapUtility.toFixed(4)}

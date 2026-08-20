@@ -34,7 +34,7 @@ export default function ArbitragePanel({ arbitrage }) {
   return (
     <div className="p-2 space-y-2">
       {/* Stats */}
-      <div className="bg-bg-700 rounded-lg p-2">
+      <div className="bg-bg-700  p-2">
         <div className="grid grid-cols-2 gap-2 text-xs">
           <Stat label="Detected" value={stats.total_detected || 0} />
           <Stat label="Closed" value={stats.total_closed || 0} />
@@ -55,7 +55,7 @@ export default function ArbitragePanel({ arbitrage }) {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search..."
-            className="w-16 bg-bg-600 border border-bg-500 rounded pl-4 pr-1 py-0.5 text-[9px] text-gray-200 outline-none focus:border-accent-blue"
+            className="w-16 bg-bg-600 border border-bg-500  pl-4 pr-1 py-0.5 text-[9px] text-gray-200 outline-none focus:border-accent-blue"
             aria-label="Search arbitrage by symbol or exchange"
           />
         </div>
@@ -63,7 +63,7 @@ export default function ArbitragePanel({ arbitrage }) {
 
       <div className="space-y-1">
         {filteredActive.map((arb, i) => (
-          <div key={i} className="bg-bg-700 rounded p-2 text-xs">
+          <div key={i} className="bg-bg-700  p-2 text-xs">
             <div className="flex items-center justify-between mb-1">
               <span className="font-medium text-gray-200">{arb.symbol}</span>
               <span className="text-accent-green font-mono">

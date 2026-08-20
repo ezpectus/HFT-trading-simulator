@@ -116,7 +116,7 @@ export default function MarketDepthReplay({ candles, orderbooks, fills, symbol, 
 
   if (!replayData) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Film size={12} className="text-accent-purple" />
           Depth Replay
@@ -131,7 +131,7 @@ export default function MarketDepthReplay({ candles, orderbooks, fills, symbol, 
   const progress = currentIdx >= 0 ? ((currentIdx + 1) / totalFrames) * 100 : 0
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Film size={12} className="text-accent-purple" />
         Market Depth Replay
@@ -141,21 +141,21 @@ export default function MarketDepthReplay({ candles, orderbooks, fills, symbol, 
       <div className="flex items-center gap-1 mb-2">
         <button
           onClick={() => handleStep(-1)}
-          className="p-1 bg-bg-600 rounded hover:bg-bg-500 transition-colors"
+          className="p-1 bg-bg-600  hover:bg-bg-500 transition-colors"
           title="Step back"
         >
           <SkipBack size={12} className="text-gray-400" />
         </button>
         <button
           onClick={handlePlayPause}
-          className="p-1.5 bg-accent-purple rounded hover:bg-accent-purple/80 transition-colors"
+          className="p-1.5 bg-accent-purple  hover:bg-accent-purple/80 transition-colors"
           title="Play/Pause"
         >
           {playing ? <Pause size={12} className="text-white" /> : <Play size={12} className="text-white" />}
         </button>
         <button
           onClick={() => handleStep(1)}
-          className="p-1 bg-bg-600 rounded hover:bg-bg-500 transition-colors"
+          className="p-1 bg-bg-600  hover:bg-bg-500 transition-colors"
           title="Step forward"
         >
           <SkipForward size={12} className="text-gray-400" />
@@ -166,7 +166,7 @@ export default function MarketDepthReplay({ candles, orderbooks, fills, symbol, 
             <button
               key={s}
               onClick={() => setSpeed(s)}
-              className={'px-1 text-[8px] rounded transition-colors ' +
+              className={'px-1 text-[8px]  transition-colors ' +
                 (speed === s ? 'bg-accent-purple text-white' : 'bg-bg-600 text-gray-400')}
             >
               {s}x
@@ -195,15 +195,15 @@ export default function MarketDepthReplay({ candles, orderbooks, fills, symbol, 
       {frame ? (
         <>
           <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-            <div className="bg-bg-800 rounded px-1.5 py-0.5">
+            <div className="bg-bg-800  px-1.5 py-0.5">
               <span className="text-gray-600 flex items-center gap-0.5"><Clock size={7} /> Time</span>
               <div className="font-mono text-gray-400">{frame.time}</div>
             </div>
-            <div className="bg-bg-800 rounded px-1.5 py-0.5">
+            <div className="bg-bg-800  px-1.5 py-0.5">
               <span className="text-gray-600">Mid Price</span>
               <div className="font-mono text-gray-300">{formatPrice(frame.midPrice)}</div>
             </div>
-            <div className="bg-bg-800 rounded px-1.5 py-0.5">
+            <div className="bg-bg-800  px-1.5 py-0.5">
               <span className="text-gray-600">Spread</span>
               <div className="font-mono text-gray-400">{formatPrice(frame.spread)}</div>
             </div>
@@ -232,7 +232,7 @@ export default function MarketDepthReplay({ candles, orderbooks, fills, symbol, 
             <div className="text-[8px] text-gray-600 mb-0.5">Depth Snapshot (10 levels):</div>
             <div className="space-y-px">
               {frame.asks.slice(0, 5).reverse().map((a, i) => (
-                <div key={'a' + i} className="flex items-center justify-between text-[8px] bg-accent-red/5 px-1.5 py-px rounded-sm">
+                <div key={'a' + i} className="flex items-center justify-between text-[8px] bg-accent-red/5 px-1.5 py-px ">
                   <span className="text-accent-red font-mono">{formatPrice(a.price)}</span>
                   <div className="flex-1 mx-2 h-1.5 bg-bg-600 rounded-full overflow-hidden">
                     <div className="h-full bg-accent-red/40" style={{ width: `${frame.asks[0]?.quantity > 0 ? (a.quantity / frame.asks[0].quantity) * 100 : 0}%` }} />
@@ -244,7 +244,7 @@ export default function MarketDepthReplay({ candles, orderbooks, fills, symbol, 
                 {formatPrice(frame.midPrice)} ← mid
               </div>
               {frame.bids.slice(0, 5).map((b, i) => (
-                <div key={'b' + i} className="flex items-center justify-between text-[8px] bg-accent-green/5 px-1.5 py-px rounded-sm">
+                <div key={'b' + i} className="flex items-center justify-between text-[8px] bg-accent-green/5 px-1.5 py-px ">
                   <span className="text-accent-green font-mono">{formatPrice(b.price)}</span>
                   <div className="flex-1 mx-2 h-1.5 bg-bg-600 rounded-full overflow-hidden">
                     <div className="h-full bg-accent-green/40" style={{ width: `${frame.bids[0]?.quantity > 0 ? (b.quantity / frame.bids[0].quantity) * 100 : 0}%` }} />
@@ -261,7 +261,7 @@ export default function MarketDepthReplay({ candles, orderbooks, fills, symbol, 
               <div className="text-[8px] text-gray-600 mb-0.5">Fills at this candle ({frame.fillCount}):</div>
               <div className="space-y-0.5">
                 {frame.fills.slice(0, 3).map((f, i) => (
-                  <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+                  <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
                     <span className={f.side === 'BUY' ? 'text-accent-green' : 'text-accent-red'}>
                       {f.side} {f.filled_quantity?.toFixed(4) || '--'}
                     </span>

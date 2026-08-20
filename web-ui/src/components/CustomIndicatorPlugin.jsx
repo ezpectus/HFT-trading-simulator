@@ -182,7 +182,7 @@ export default function CustomIndicatorPlugin({ candles, symbol }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Sliders size={12} className="text-accent-purple" />
         Custom Indicator Plugin
@@ -194,7 +194,7 @@ export default function CustomIndicatorPlugin({ candles, symbol }) {
         {PRESETS.map(p => (
           <button key={p.name}
             onClick={() => loadPreset(p)}
-            className="px-1.5 py-0.5 text-[8px] rounded bg-bg-600 text-gray-600 hover:text-accent-purple">
+            className="px-1.5 py-0.5 text-[8px]  bg-bg-600 text-gray-600 hover:text-accent-purple">
             {p.name}
           </button>
         ))}
@@ -205,9 +205,9 @@ export default function CustomIndicatorPlugin({ candles, symbol }) {
         <div className="flex gap-1">
           <input type="text" value={name} onChange={e => setName(e.target.value)}
             placeholder="Indicator name"
-            className="flex-1 bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple" />
+            className="flex-1 bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple" />
           <input type="color" value={color} onChange={e => setColor(e.target.value)}
-            className="w-7 h-6 bg-bg-800 border border-bg-600 rounded cursor-pointer" />
+            className="w-7 h-6 bg-bg-800 border border-bg-600  cursor-pointer" />
           <label className="flex items-center gap-0.5 text-[8px] text-gray-500">
             <input type="checkbox" checked={showOverlay} onChange={e => setShowOverlay(e.target.checked)} />
             Overlay
@@ -217,7 +217,7 @@ export default function CustomIndicatorPlugin({ candles, symbol }) {
           <Code size={10} className="absolute left-1.5 top-1.5 text-gray-600" />
           <textarea value={formula} onChange={e => setFormula(e.target.value)}
             placeholder="Formula: e.g. ema(close, 9) - ema(close, 21)"
-            className="w-full bg-bg-800 border border-bg-600 rounded pl-6 pr-1.5 py-1 text-[9px] font-mono text-gray-200 outline-none focus:border-accent-purple resize-none"
+            className="w-full bg-bg-800 border border-bg-600  pl-6 pr-1.5 py-1 text-[9px] font-mono text-gray-200 outline-none focus:border-accent-purple resize-none"
             rows={2} />
         </div>
       </div>
@@ -252,18 +252,18 @@ export default function CustomIndicatorPlugin({ candles, symbol }) {
       {/* Actions */}
       <div className="flex gap-1 mb-2">
         <button onClick={evaluate}
-          className="flex items-center gap-0.5 px-2 py-0.5 text-[9px] rounded bg-accent-blue/20 text-accent-blue">
+          className="flex items-center gap-0.5 px-2 py-0.5 text-[9px]  bg-accent-blue/20 text-accent-blue">
           <Play size={9} /> Run
         </button>
         <button onClick={addIndicator}
-          className="flex items-center gap-0.5 px-2 py-0.5 text-[9px] rounded bg-accent-green/20 text-accent-green">
+          className="flex items-center gap-0.5 px-2 py-0.5 text-[9px]  bg-accent-green/20 text-accent-green">
           <Save size={9} /> Save
         </button>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="text-[9px] text-accent-red bg-accent-red/10 rounded px-1.5 py-1 mb-2">
+        <div className="text-[9px] text-accent-red bg-accent-red/10  px-1.5 py-1 mb-2">
           {error}
         </div>
       )}
@@ -274,13 +274,13 @@ export default function CustomIndicatorPlugin({ candles, symbol }) {
           <div className="text-[8px] text-gray-600 uppercase mb-0.5">Last 5 values</div>
           <div className="flex gap-1">
             {result.slice(-5).map((v, i) => (
-              <span key={i} className="text-[9px] font-mono text-gray-400 bg-bg-600/40 rounded px-1.5 py-0.5">
+              <span key={i} className="text-[9px] font-mono text-gray-400 bg-bg-600/40  px-1.5 py-0.5">
                 {v != null ? v.toFixed(4) : 'null'}
               </span>
             ))}
           </div>
           {/* Mini chart */}
-          <div className="relative h-[60px] bg-bg-800 rounded border border-bg-600 mt-1 overflow-hidden">
+          <div className="relative h-[60px] bg-bg-800  border border-bg-600 mt-1 overflow-hidden">
             <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 200 60">
               {(() => {
                 const valid = result.filter(v => v != null)
@@ -306,7 +306,7 @@ export default function CustomIndicatorPlugin({ candles, symbol }) {
         <div className="space-y-0.5">
           <div className="text-[8px] text-gray-600 uppercase">Saved Indicators</div>
           {indicators.map(ind => (
-            <div key={ind.id} className="flex items-center gap-1.5 bg-bg-600/40 rounded p-1">
+            <div key={ind.id} className="flex items-center gap-1.5 bg-bg-600/40  p-1">
               <div className="w-2 h-2 rounded-full" style={{ background: ind.color }} />
               <span className="text-[9px] text-gray-300">{ind.name}</span>
               <span className="text-[8px] text-gray-600 truncate flex-1">{ind.formula}</span>

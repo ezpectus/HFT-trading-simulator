@@ -86,7 +86,7 @@ export default function InterExchangeSpread({ candles, prices, symbols, exchange
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <ArrowLeftRight size={12} className="text-accent-blue" />
           Inter-Exchange Spread
@@ -99,14 +99,14 @@ export default function InterExchangeSpread({ candles, prices, symbols, exchange
   const { spreads, opportunities } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <ArrowLeftRight size={12} className="text-accent-blue" />
         Inter-Exchange Spread Tracker
       </div>
 
       {opportunities > 0 && (
-        <div className="mb-2 bg-accent-yellow/10 border border-accent-yellow/20 rounded px-1.5 py-1 flex items-center gap-1">
+        <div className="mb-2 bg-accent-yellow/10 border border-accent-yellow/20  px-1.5 py-1 flex items-center gap-1">
           <AlertCircle size={9} className="text-accent-yellow shrink-0" />
           <span className="text-[8px] text-accent-yellow">
             {opportunities} arbitrage opportunity({opportunities > 1 ? 's' : ''}) detected (&gt;0.1%)
@@ -116,7 +116,7 @@ export default function InterExchangeSpread({ candles, prices, symbols, exchange
 
       <div className="space-y-1.5">
         {spreads.map((s, i) => (
-          <div key={i} className="bg-bg-800 rounded p-1.5">
+          <div key={i} className="bg-bg-800  p-1.5">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1">
                 <span className="text-[10px] font-mono text-gray-300">{s.symbol.split('/')[0]}</span>

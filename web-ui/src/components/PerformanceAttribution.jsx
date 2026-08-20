@@ -110,7 +110,7 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <BarChart3 size={12} className="text-accent-purple" />
           Performance Attribution
@@ -123,7 +123,7 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
   const { sideStats, symbolStats, reasonStats, hourStats, dowStats, bestSymbol, worstSymbol, bestReason, worstReason, bestHour, worstHour, totalPnl, totalWinRate, totalTrades, maxHourPnl } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <BarChart3 size={12} className="text-accent-purple" />
         Performance Attribution
@@ -131,15 +131,15 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Trades</span>
           <div className="font-mono text-gray-300">{totalTrades}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Win Rate</span>
           <div className="font-mono text-gray-400">{totalWinRate.toFixed(0)}%</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Total P&L</span>
           <div className={'font-mono ' + (totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red')}>
             {totalPnl >= 0 ? '+' : ''}{totalPnl.toFixed(2)}
@@ -149,7 +149,7 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
 
       {/* Best/Worst */}
       <div className="grid grid-cols-2 gap-1 mb-2">
-        <div className="bg-accent-green/10 border border-accent-green/20 rounded px-1.5 py-1">
+        <div className="bg-accent-green/10 border border-accent-green/20  px-1.5 py-1">
           <div className="flex items-center gap-1">
             <Award size={8} className="text-accent-green" />
             <span className="text-[8px] text-accent-green">Best</span>
@@ -157,7 +157,7 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
           <div className="text-[8px] text-gray-400 mt-0.5">{bestSymbol?.name}</div>
           <div className="text-[8px] font-mono text-accent-green">+{bestSymbol?.pnl.toFixed(2)}</div>
         </div>
-        <div className="bg-accent-red/10 border border-accent-red/20 rounded px-1.5 py-1">
+        <div className="bg-accent-red/10 border border-accent-red/20  px-1.5 py-1">
           <div className="flex items-center gap-1">
             <TrendingDown size={8} className="text-accent-red" />
             <span className="text-[8px] text-accent-red">Worst</span>
@@ -172,7 +172,7 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
         <div className="text-[8px] text-gray-600 mb-0.5">By Side:</div>
         <div className="grid grid-cols-2 gap-1">
           {sideStats.map((s, i) => (
-            <div key={i} className="bg-bg-800 rounded px-1.5 py-0.5 text-[8px]">
+            <div key={i} className="bg-bg-800  px-1.5 py-0.5 text-[8px]">
               <div className="flex justify-between">
                 <span className="text-gray-500">{s.name}</span>
                 <span className="font-mono text-gray-400">{s.count}t</span>
@@ -193,7 +193,7 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
         <div className="text-[8px] text-gray-600 mb-0.5">By Symbol:</div>
         <div className="space-y-0.5">
           {symbolStats.map((s, i) => (
-            <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+            <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
               <span className="text-gray-400 w-16 truncate">{s.name}</span>
               <span className="text-gray-600">{s.count}t</span>
               <span className="text-gray-500">WR {s.winRate.toFixed(0)}%</span>
@@ -211,7 +211,7 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
           <div className="text-[8px] text-gray-600 mb-0.5">By Strategy:</div>
           <div className="space-y-0.5">
             {reasonStats.map((s, i) => (
-              <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+              <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
                 <span className="text-gray-400 w-20 truncate">{s.name}</span>
                 <span className="text-gray-600">{s.count}t</span>
                 <span className="text-gray-500">WR {s.winRate.toFixed(0)}%</span>
@@ -235,7 +235,7 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
             return (
               <div
                 key={h}
-                className="flex-1 rounded-sm"
+                className="flex-1 "
                 style={{
                   backgroundColor: pnl > 0 ? `rgba(34,197,94,${0.2 + intensity * 0.8})` :
                     pnl < 0 ? `rgba(239,68,68,${0.2 + intensity * 0.8})` : '#1e293b',
@@ -255,7 +255,7 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
         <div className="text-[8px] text-gray-600 mb-0.5">By Day:</div>
         <div className="space-y-0.5">
           {dowStats.map((s, i) => (
-            <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+            <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
               <span className="text-gray-400 w-8">{s.dayName}</span>
               <span className="text-gray-600">{s.count}t</span>
               <span className="text-gray-500">WR {s.winRate.toFixed(0)}%</span>

@@ -213,20 +213,20 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">δ (risk aversion):</span>
-          <input type="number" step="0.1" value={riskAversion} onChange={e => setRiskAversion(Math.max(0.1, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.1" value={riskAversion} onChange={e => setRiskAversion(Math.max(0.1, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">τ (prior uncertainty):</span>
-          <input type="number" step="0.01" value={tau} onChange={e => setTau(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.01" value={tau} onChange={e => setTau(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Views editor */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Investor Views</div>
         <div className="space-y-2">
           {views.map((view, vi) => (
@@ -245,7 +245,7 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
                       newViews[vi] = { ...view, assets: newAssets }
                       setViews(newViews)
                     }}
-                    className="w-12 px-1 bg-slate-900 border border-slate-700 rounded text-slate-200"
+                    className="w-12 px-1 bg-slate-900 border border-slate-700  text-slate-200"
                   />
                 </label>
               ))}
@@ -257,7 +257,7 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
                   newViews[vi] = { ...view, return: +e.target.value }
                   setViews(newViews)
                 }}
-                className="w-16 px-1 bg-slate-900 border border-slate-700 rounded text-slate-200"
+                className="w-16 px-1 bg-slate-900 border border-slate-700  text-slate-200"
               />
               <span className="text-slate-400">conf:</span>
               <input
@@ -267,7 +267,7 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
                   newViews[vi] = { ...view, confidence: Math.max(0.01, Math.min(1, +e.target.value)) }
                   setViews(newViews)
                 }}
-                className="w-12 px-1 bg-slate-900 border border-slate-700 rounded text-slate-200"
+                className="w-12 px-1 bg-slate-900 border border-slate-700  text-slate-200"
               />
               <button
                 onClick={() => setViews(views.filter((_, i) => i !== vi))}
@@ -283,9 +283,9 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
       </div>
 
       {/* Weight comparison chart */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Portfolio Weights: Market vs Black-Litterman</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           {data.validSymbols.map((sym, si) => {
             const barW = 60
             const x = P + si * (barW + 20)
@@ -316,7 +316,7 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
       </div>
 
       {/* Returns comparison */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Expected Returns: Equilibrium (π) vs Posterior</div>
         <div className="space-y-1">
           {data.validSymbols.map((sym, si) => (
@@ -334,25 +334,25 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Assets</div>
           <div className="text-cyan-400 font-mono">{data.validSymbols.length}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Views</div>
           <div className="text-amber-400 font-mono">{data.validViews?.length || 0}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Long Positions</div>
           <div className="text-emerald-400 font-mono">{data.posteriorWeights.filter(w => w > 0).length}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Short Positions</div>
           <div className="text-red-400 font-mono">{data.posteriorWeights.filter(w => w < 0).length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Model:</strong> δ={riskAversion}, τ={tau} |
         <strong> Max weight:</strong> {Math.max(...data.posteriorWeights.map(Math.abs)).toFixed(4)} |
         <strong> Gross exposure:</strong> {(data.posteriorWeights.reduce((a, b) => a + Math.abs(b), 0) * 100).toFixed(1)}%

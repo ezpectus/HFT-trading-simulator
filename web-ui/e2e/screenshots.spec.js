@@ -1,5 +1,5 @@
 import { test } from '@playwright/test'
-import { dismissOnboarding, closeOverlays } from './dismiss-onboarding.js'
+import { dismissOnboarding, closeOverlays, gotoWithRetry } from './dismiss-onboarding.js'
 
 const SCREENSHOTS_DIR = 'screenshots'
 
@@ -11,7 +11,7 @@ test.describe('Screenshot capture for README', () => {
   })
 
   test('capture main dashboard', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     await page.waitForTimeout(3000) // Wait for data to load
 
@@ -23,7 +23,7 @@ test.describe('Screenshot capture for README', () => {
   })
 
   test('capture market data panel', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     await page.waitForTimeout(3000)
 
@@ -35,7 +35,7 @@ test.describe('Screenshot capture for README', () => {
   })
 
   test('capture order book panel', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     await page.waitForTimeout(3000)
 
@@ -46,12 +46,12 @@ test.describe('Screenshot capture for README', () => {
   })
 
   test('capture backtest runner', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     await page.waitForTimeout(2000)
 
-    // Find and click backtest panel/tab
-    const backtestTab = page.locator('[data-panel-id="backtest"], button:has-text("Backtest"), .panel:has-text("Backtest")').first()
+    // Find and click backtest panel/tab (labeled "BT" in the UI)
+    const backtestTab = page.getByRole('tab', { name: /^BT$/i })
     if (await backtestTab.isVisible()) {
       await backtestTab.click().catch(() => {})
       await page.waitForTimeout(1000)
@@ -64,7 +64,7 @@ test.describe('Screenshot capture for README', () => {
   })
 
   test('capture signal engine panel', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     await page.waitForTimeout(3000)
 
@@ -75,7 +75,7 @@ test.describe('Screenshot capture for README', () => {
   })
 
   test('capture positions panel', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     await page.waitForTimeout(3000)
 
@@ -87,7 +87,7 @@ test.describe('Screenshot capture for README', () => {
 
   test('capture mobile view', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     await page.waitForTimeout(3000)
 

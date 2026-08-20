@@ -66,7 +66,7 @@ export default function KeyboardHelp() {
                 {s.keys.map(k => (
                   <kbd
                     key={k}
-                    className="px-2 py-0.5 text-[10px] font-mono rounded bg-bg-600 border border-bg-500 text-gray-300 shadow-sm"
+                    className="px-2 py-0.5 text-[10px] font-mono  bg-bg-600 border border-bg-500 text-gray-300 shadow-sm"
                   >
                     {k}
                   </kbd>
@@ -77,7 +77,7 @@ export default function KeyboardHelp() {
         </div>
 
         <div className="mt-4 text-[10px] text-gray-600 text-center">
-          Press <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-bg-600 border border-bg-500">?</kbd> anytime to toggle this help
+          Press <kbd className="px-1.5 py-0.5 text-[10px] font-mono  bg-bg-600 border border-bg-500">?</kbd> anytime to toggle this help
         </div>
       </div>
     </div>

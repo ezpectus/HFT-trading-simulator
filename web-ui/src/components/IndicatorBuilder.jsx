@@ -85,7 +85,7 @@ export default function IndicatorBuilder({ candles, onIndicatorsChange }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase">
           <LineChart size={12} className="text-accent-green" />
@@ -93,7 +93,7 @@ export default function IndicatorBuilder({ candles, onIndicatorsChange }) {
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors"
+          className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors"
         >
           <Plus size={10} />
           Add
@@ -107,7 +107,7 @@ export default function IndicatorBuilder({ candles, onIndicatorsChange }) {
             <button
               key={def.id}
               onClick={() => addIndicator(def)}
-              className="px-2 py-1 text-[10px] rounded bg-bg-600 text-gray-300 hover:bg-bg-500 transition-colors"
+              className="px-2 py-1 text-[10px]  bg-bg-600 text-gray-300 hover:bg-bg-500 transition-colors"
               style={{ borderLeft: `2px solid ${def.color}` }}
             >
               {def.label}
@@ -125,7 +125,7 @@ export default function IndicatorBuilder({ candles, onIndicatorsChange }) {
         const def = INDICATOR_DEFS.find(d => d.id === ind.type)
         if (!def) return null
         return (
-          <div key={ind.id} className="bg-bg-600 rounded p-2 mb-1.5">
+          <div key={ind.id} className="bg-bg-600  p-2 mb-1.5">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full" style={{ background: ind.color }} />
@@ -149,7 +149,7 @@ export default function IndicatorBuilder({ candles, onIndicatorsChange }) {
                     step={p.step || 1}
                     value={ind.params[p.id]}
                     onChange={e => updateParam(ind.id, p.id, e.target.value)}
-                    className="w-12 bg-bg-700 text-gray-200 text-[10px] rounded px-1 py-0.5 border border-bg-500 font-mono"
+                    className="w-12 bg-bg-700 text-gray-200 text-[10px]  px-1 py-0.5 border border-bg-500 font-mono"
                   />
                 </div>
               ))}

@@ -81,7 +81,7 @@ export default function CumulativeTickIndex({ candles, fills, symbol, exchange }
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Activity size={12} className="text-accent-teal" />
           Cumulative Tick
@@ -94,7 +94,7 @@ export default function CumulativeTickIndex({ candles, fills, symbol, exchange }
   const { cumTick, tickPath, zeroY, upTicks, downTicks, tickRatio, breadthThrust, volTickRatio, fillTickRatio, compositeTick, signal, signalColor, buyFills, sellFills } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Activity size={12} className="text-accent-teal" />
         Cumulative Tick Index
@@ -121,27 +121,27 @@ export default function CumulativeTickIndex({ candles, fills, symbol, exchange }
 
       {/* Breadth metrics */}
       <div className="grid grid-cols-2 gap-1 mt-2 text-[8px]">
-        <div className="flex justify-between bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Up Ticks</span>
           <span className="text-accent-green font-mono">{upTicks}</span>
         </div>
-        <div className="flex justify-between bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Down Ticks</span>
           <span className="text-accent-red font-mono">{downTicks}</span>
         </div>
-        <div className="flex justify-between bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Tick Ratio</span>
           <span className="font-mono text-gray-300">{(tickRatio * 100).toFixed(0)}%</span>
         </div>
-        <div className="flex justify-between bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Vol Ratio</span>
           <span className="font-mono text-gray-300">{(volTickRatio * 100).toFixed(0)}%</span>
         </div>
-        <div className="flex justify-between bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Breadth (10)</span>
           <span className="font-mono text-gray-300">{(breadthThrust * 100).toFixed(0)}%</span>
         </div>
-        <div className="flex justify-between bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Fill Ratio</span>
           <span className="font-mono text-gray-300">{(fillTickRatio * 100).toFixed(0)}%</span>
         </div>

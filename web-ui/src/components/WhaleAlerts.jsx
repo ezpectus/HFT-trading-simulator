@@ -83,7 +83,7 @@ export default function WhaleAlerts({ fills, candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Fish size={12} className="text-accent-purple" />
           Whale Alerts
@@ -96,14 +96,14 @@ export default function WhaleAlerts({ fills, candles, symbol, exchange }) {
   const { whaleFills, whaleBuys, whaleSells, totalWhaleVolume, buyVolume, sellVolume, buySellRatio, netFlow, flowDirection, flowColor, largest, whaleImpactPct, timeline, whaleThreshold } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Fish size={12} className="text-accent-purple" />
         Whale Alert Monitor
       </div>
 
       {/* Flow summary */}
-      <div className={'rounded px-2 py-1 mb-2 text-center ' + (netFlow >= 0 ? 'bg-accent-green/10' : 'bg-accent-red/10')}>
+      <div className={' px-2 py-1 mb-2 text-center ' + (netFlow >= 0 ? 'bg-accent-green/10' : 'bg-accent-red/10')}>
         <span className={'text-[10px] font-bold ' + flowColor}>
           {netFlow >= 0 ? '↑' : '↓'} {flowDirection.toUpperCase()}
         </span>
@@ -114,19 +114,19 @@ export default function WhaleAlerts({ fills, candles, symbol, exchange }) {
 
       {/* Stats grid */}
       <div className="grid grid-cols-4 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1 py-0.5">
+        <div className="bg-bg-800  px-1 py-0.5">
           <span className="text-gray-600">Buys</span>
           <div className="font-mono text-accent-green">{whaleBuys}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1 py-0.5">
+        <div className="bg-bg-800  px-1 py-0.5">
           <span className="text-gray-600">Sells</span>
           <div className="font-mono text-accent-red">{whaleSells}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1 py-0.5">
+        <div className="bg-bg-800  px-1 py-0.5">
           <span className="text-gray-600">B/S Ratio</span>
           <div className="font-mono text-gray-300">{buySellRatio === Infinity ? '∞' : buySellRatio.toFixed(2)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1 py-0.5">
+        <div className="bg-bg-800  px-1 py-0.5">
           <span className="text-gray-600">Impact</span>
           <div className={'font-mono ' + (whaleImpactPct > 20 ? 'text-accent-yellow' : 'text-gray-400')}>
             {whaleImpactPct.toFixed(0)}%
@@ -161,7 +161,7 @@ export default function WhaleAlerts({ fills, candles, symbol, exchange }) {
           const price = f.filled_price || f.price || 0
           const isBuy = f.side === 'BUY'
           return (
-            <div key={i} className="flex items-center gap-1 text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+            <div key={i} className="flex items-center gap-1 text-[8px] bg-bg-800  px-1.5 py-0.5">
               {isBuy ? <TrendingUp size={7} className="text-accent-green shrink-0" /> : <TrendingDown size={7} className="text-accent-red shrink-0" />}
               <span className={'font-mono ' + (isBuy ? 'text-accent-green' : 'text-accent-red')}>{f.side}</span>
               <span className="font-mono text-gray-300">{formatVolume(qty)}</span>
@@ -174,7 +174,7 @@ export default function WhaleAlerts({ fills, candles, symbol, exchange }) {
       </div>
 
       {whaleImpactPct > 20 && (
-        <div className="mt-1.5 bg-accent-yellow/10 border border-accent-yellow/20 rounded px-1.5 py-0.5 flex items-center gap-1">
+        <div className="mt-1.5 bg-accent-yellow/10 border border-accent-yellow/20  px-1.5 py-0.5 flex items-center gap-1">
           <AlertCircle size={9} className="text-accent-yellow shrink-0" />
           <span className="text-[8px] text-accent-yellow">
             High whale impact: {whaleImpactPct.toFixed(0)}% of avg candle volume

@@ -91,7 +91,7 @@ export default function SignalPerformance({ signals, fills }) {
 
   if (!stats || stats.matched === 0) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Target size={12} className="text-accent-purple" />
           Signal Performance
@@ -104,7 +104,7 @@ export default function SignalPerformance({ signals, fills }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase">
           <Target size={12} className="text-accent-purple" />
@@ -148,7 +148,7 @@ export default function SignalPerformance({ signals, fills }) {
 
       {/* Per-direction breakdown */}
       <div className="grid grid-cols-2 gap-2 text-[10px]">
-        <div className="bg-bg-800 rounded px-2 py-1">
+        <div className="bg-bg-800  px-2 py-1">
           <div className="flex items-center gap-1 text-gray-500 mb-0.5">
             <TrendingUp size={9} className="text-accent-green" />
             LONG
@@ -160,7 +160,7 @@ export default function SignalPerformance({ signals, fills }) {
             </span>
           </div>
         </div>
-        <div className="bg-bg-800 rounded px-2 py-1">
+        <div className="bg-bg-800  px-2 py-1">
           <div className="flex items-center gap-1 text-gray-500 mb-0.5">
             <TrendingDown size={9} className="text-accent-red" />
             SHORT

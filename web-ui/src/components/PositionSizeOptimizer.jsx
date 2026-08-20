@@ -88,7 +88,7 @@ export default function PositionSizeOptimizer({ candles, accounts, currentPrice,
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Calculator size={12} className="text-accent-green" />
           Position Size Optimizer
@@ -101,7 +101,7 @@ export default function PositionSizeOptimizer({ candles, accounts, currentPrice,
   const { stopLoss, stopDistance, stopDistancePct, riskAmount, positionSize, positionValue, marginRequired, tp1, tp2, tp3, marginPct, isOverleveraged, isStopTooWide, accountEquity, lastAtr, kellySize } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Calculator size={12} className="text-accent-green" />
         Position Size Optimizer
@@ -118,7 +118,7 @@ export default function PositionSizeOptimizer({ candles, accounts, currentPrice,
             min="0.1"
             max="10"
             onChange={e => setRiskPct(Number(e.target.value) || 1)}
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1.5 py-1 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1.5 py-1 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -130,7 +130,7 @@ export default function PositionSizeOptimizer({ candles, accounts, currentPrice,
             min="1"
             max="100"
             onChange={e => setLeverage(Number(e.target.value) || 1)}
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1.5 py-1 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1.5 py-1 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
         </div>
       </div>
@@ -140,7 +140,7 @@ export default function PositionSizeOptimizer({ candles, accounts, currentPrice,
         <select
           value={stopMethod}
           onChange={e => setStopMethod(e.target.value)}
-          className="w-full bg-bg-800 border border-bg-600 rounded px-1.5 py-1 text-[10px] text-gray-200 outline-none focus:border-accent-blue"
+          className="w-full bg-bg-800 border border-bg-600  px-1.5 py-1 text-[10px] text-gray-200 outline-none focus:border-accent-blue"
         >
           <option value="atr">ATR (1.5x)</option>
           <option value="atr2">ATR (2x)</option>
@@ -157,40 +157,40 @@ export default function PositionSizeOptimizer({ candles, accounts, currentPrice,
             value={manualStop}
             onChange={e => setManualStop(e.target.value)}
             placeholder={formatPrice(currentPrice * 0.98)}
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1.5 py-1 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  px-1.5 py-1 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-blue"
           />
         </div>
       )}
 
       {/* Results */}
       <div className="space-y-1">
-        <div className="bg-bg-800 rounded px-2 py-1.5">
+        <div className="bg-bg-800  px-2 py-1.5">
           <div className="text-[8px] text-gray-600">Position Size</div>
           <div className="text-sm font-mono font-bold text-accent-green">{positionSize.toFixed(4)}</div>
           <div className="text-[8px] text-gray-500">≈ ${positionValue.toFixed(2)} notional</div>
         </div>
 
         <div className="grid grid-cols-2 gap-1 text-[8px]">
-          <div className="bg-bg-800 rounded px-1.5 py-1">
+          <div className="bg-bg-800  px-1.5 py-1">
             <span className="text-gray-600">Risk $</span>
             <div className="font-mono text-accent-red">${riskAmount.toFixed(2)}</div>
           </div>
-          <div className="bg-bg-800 rounded px-1.5 py-1">
+          <div className="bg-bg-800  px-1.5 py-1">
             <span className="text-gray-600">Margin</span>
             <div className="font-mono text-gray-300">${marginRequired.toFixed(2)}</div>
           </div>
-          <div className="bg-bg-800 rounded px-1.5 py-1">
+          <div className="bg-bg-800  px-1.5 py-1">
             <span className="text-gray-600">Stop</span>
             <div className="font-mono text-accent-red">{formatPrice(stopLoss)}</div>
           </div>
-          <div className="bg-bg-800 rounded px-1.5 py-1">
+          <div className="bg-bg-800  px-1.5 py-1">
             <span className="text-gray-600">Stop %</span>
             <div className="font-mono text-gray-400">{stopDistancePct.toFixed(2)}%</div>
           </div>
         </div>
 
         {/* TP targets */}
-        <div className="bg-bg-800 rounded px-2 py-1.5">
+        <div className="bg-bg-800  px-2 py-1.5">
           <div className="text-[8px] text-gray-600 mb-1">Take Profit Targets</div>
           <div className="grid grid-cols-3 gap-1 text-[8px]">
             <div>
@@ -209,7 +209,7 @@ export default function PositionSizeOptimizer({ candles, accounts, currentPrice,
         </div>
 
         {/* Kelly suggestion */}
-        <div className="bg-bg-800 rounded px-2 py-1 flex justify-between text-[8px]">
+        <div className="bg-bg-800  px-2 py-1 flex justify-between text-[8px]">
           <span className="text-gray-600">Half-Kelly size</span>
           <span className="font-mono text-gray-400">{kellySize.toFixed(4)} ({(kellySize * currentPrice).toFixed(0)}$)</span>
         </div>
@@ -217,7 +217,7 @@ export default function PositionSizeOptimizer({ candles, accounts, currentPrice,
 
       {/* Warnings */}
       {(isOverleveraged || isStopTooWide) && (
-        <div className="mt-2 bg-accent-red/10 border border-accent-red/20 rounded px-1.5 py-1 space-y-0.5">
+        <div className="mt-2 bg-accent-red/10 border border-accent-red/20  px-1.5 py-1 space-y-0.5">
           {isOverleveraged && (
             <div className="flex items-center gap-1">
               <AlertTriangle size={8} className="text-accent-red shrink-0" />

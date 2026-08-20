@@ -164,7 +164,7 @@ export default function StrategyBacktest() {
   const isProfit = result && result.totalReturnPct > 0
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5 space-y-2">
+    <div className="bg-bg-700  p-2.5 space-y-2">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase">
         <BarChart3 size={12} className="text-accent-blue" />
         Strategy Backtest Engine
@@ -194,7 +194,7 @@ export default function StrategyBacktest() {
         <button
           onClick={handleRun}
           disabled={running || backtestCandles.length < 30}
-          className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] rounded bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 disabled:opacity-50 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px]  bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 disabled:opacity-50 transition-colors"
         >
           {running ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />}
           {running ? 'Running...' : 'Run Backtest'}
@@ -202,7 +202,7 @@ export default function StrategyBacktest() {
         {result && !result.error && (
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-1 px-2 py-1.5 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors"
+            className="flex items-center gap-1 px-2 py-1.5 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors"
             title="Export trades as CSV"
           >
             <Download size={11} /> CSV
@@ -238,7 +238,7 @@ export default function StrategyBacktest() {
           </div>
 
           {/* Equity curve */}
-          <div className="h-[120px] bg-bg-800 rounded" ref={chartContainerRef} />
+          <div className="h-[120px] bg-bg-800 " ref={chartContainerRef} />
 
           {/* Trade list toggle */}
           <button
@@ -249,7 +249,7 @@ export default function StrategyBacktest() {
           </button>
 
           {showTrades && result.trades.length > 0 && (
-            <div className="max-h-[150px] overflow-y-auto scrollbar-thin bg-bg-800 rounded p-1">
+            <div className="max-h-[150px] overflow-y-auto scrollbar-thin bg-bg-800  p-1">
               <table className="w-full text-[8px] font-mono">
                 <thead>
                   <tr className="text-gray-600 border-b border-bg-600">
@@ -301,7 +301,7 @@ function ConfigInput({ label, value, onChange, step = '1' }) {
         step={step}
         value={value}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+        className="w-full bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none focus:border-accent-blue"
       />
     </div>
   )
@@ -309,7 +309,7 @@ function ConfigInput({ label, value, onChange, step = '1' }) {
 
 function Metric({ label, value, color }) {
   return (
-    <div className="bg-bg-800 rounded p-1">
+    <div className="bg-bg-800  p-1">
       <div className="text-[7px] text-gray-600 uppercase">{label}</div>
       <div className={`text-[10px] font-mono font-medium ${color}`}>{value}</div>
     </div>

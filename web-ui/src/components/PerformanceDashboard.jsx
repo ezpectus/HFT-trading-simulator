@@ -113,28 +113,31 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
   // Create equity curve chart
   useEffect(() => {
     if (!equityContainerRef.current) return
+    const w = equityContainerRef.current.clientWidth
+    const h = equityContainerRef.current.clientHeight
+    if (w < 10 || h < 10) return
 
     const chart = createChart(equityContainerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: '#0f1521' },
-        textColor: '#8b95a7',
+        background: { type: ColorType.Solid, color: '#121620' },
+        textColor: '#848e9c',
         fontFamily: 'JetBrains Mono, monospace',
         fontSize: 10,
       },
       grid: {
-        vertLines: { color: '#161b26' },
-        horzLines: { color: '#161b26' },
+        vertLines: { color: '#1e2530' },
+        horzLines: { color: '#1e2530' },
       },
-      rightPriceScale: { borderColor: '#1e2433' },
-      timeScale: { borderColor: '#1e2433', timeVisible: true },
-      width: equityContainerRef.current.clientWidth,
-      height: equityContainerRef.current.clientHeight,
+      rightPriceScale: { borderColor: '#1e2530' },
+      timeScale: { borderColor: '#1e2530', timeVisible: true },
+      width: w,
+      height: h,
     })
 
     const series = chart.addAreaSeries({
-      lineColor: '#3b82f6',
-      topColor: 'rgba(59, 130, 246, 0.3)',
-      bottomColor: 'rgba(59, 130, 246, 0.0)',
+      lineColor: '#f0b90b',
+      topColor: 'rgba(240, 185, 11, 0.25)',
+      bottomColor: 'rgba(240, 185, 11, 0.0)',
       lineWidth: 2,
       priceLineVisible: false,
     })
@@ -162,28 +165,31 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
   // Create drawdown chart
   useEffect(() => {
     if (!ddContainerRef.current) return
+    const w = ddContainerRef.current.clientWidth
+    const h = ddContainerRef.current.clientHeight
+    if (w < 10 || h < 10) return
 
     const chart = createChart(ddContainerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: '#0f1521' },
-        textColor: '#8b95a7',
+        background: { type: ColorType.Solid, color: '#121620' },
+        textColor: '#848e9c',
         fontFamily: 'JetBrains Mono, monospace',
         fontSize: 10,
       },
       grid: {
-        vertLines: { color: '#161b26' },
-        horzLines: { color: '#161b26' },
+        vertLines: { color: '#1e2530' },
+        horzLines: { color: '#1e2530' },
       },
-      rightPriceScale: { borderColor: '#1e2433' },
-      timeScale: { borderColor: '#1e2433', timeVisible: true },
-      width: ddContainerRef.current.clientWidth,
-      height: ddContainerRef.current.clientHeight,
+      rightPriceScale: { borderColor: '#1e2530' },
+      timeScale: { borderColor: '#1e2530', timeVisible: true },
+      width: w,
+      height: h,
     })
 
     const series = chart.addAreaSeries({
-      lineColor: '#ef4444',
-      topColor: 'rgba(239, 68, 68, 0.2)',
-      bottomColor: 'rgba(239, 68, 68, 0.0)',
+      lineColor: '#f6465d',
+      topColor: 'rgba(246, 70, 93, 0.2)',
+      bottomColor: 'rgba(246, 70, 93, 0.0)',
       lineWidth: 1,
       priceLineVisible: false,
     })
@@ -232,7 +238,7 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
   const longSignals = signals?.filter(s => s.direction === 'LONG').length || 0
   const shortSignals = signals?.filter(s => s.direction === 'SHORT').length || 0
 
-  if (metrics.totalTrades === 0 && !accounts) {
+  if (metrics.totalTrades === 0 && Object.keys(accounts || {}).length === 0) {
     return (
       <EmptyState
         icon={BarChart3}
@@ -248,7 +254,7 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
       <div className="flex justify-end">
         <button
           onClick={() => exportPDF(accounts, metrics, allTrades, sharpe, sortino)}
-          className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-bg-700 text-gray-400 hover:bg-bg-600 hover:text-gray-200 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-[10px] bg-bg-700 text-gray-400 hover:bg-bg-600 hover:text-gray-200 transition-colors"
           title="Export performance report as PDF"
         >
           <FileDown size={10} />
@@ -257,7 +263,7 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         <MetricCard
           icon={<DollarSign size={14} />}
           label="Total Balance"
@@ -274,13 +280,13 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
           icon={pnlPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
           label="Total PnL"
           value={formatMetric(metrics.totalPnl, 'usd')}
-          color={pnlPositive ? 'text-green-400' : 'text-red-400'}
+          color={pnlPositive ? 'text-accent-green' : 'text-accent-red'}
         />
         <MetricCard
           icon={<Percent size={14} />}
           label="Win Rate"
           value={formatMetric(metrics.avgWinRate, 'pct')}
-          color={metrics.avgWinRate >= 50 ? 'text-green-400' : 'text-yellow-400'}
+          color={metrics.avgWinRate >= 50 ? 'text-accent-green' : 'text-accent-yellow'}
         />
         <MetricCard
           icon={<BarChart3 size={14} />}
@@ -298,7 +304,7 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
 
       {/* Per-exchange breakdown */}
       {accounts && Object.keys(accounts).length > 0 && (
-        <div className="bg-bg-700 rounded-lg p-3">
+        <div className="bg-bg-700 p-3 border border-bg-600">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-gray-400 font-medium">Per-Exchange Breakdown</span>
             <button
@@ -319,7 +325,7 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
                   <span className="text-gray-300 capitalize">{id}</span>
                   <div className="flex gap-3">
                     <span className="text-gray-400">${(acc.balance || 0).toFixed(2)}</span>
-                    <span className={pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                    <span className={pnl >= 0 ? 'text-accent-green' : 'text-accent-red'}>
                       {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}
                     </span>
                     <span className="text-gray-500">{winRate.toFixed(1)}%</span>
@@ -332,18 +338,18 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
       )}
 
       {/* Equity curve chart */}
-      <div className="bg-bg-700 rounded-lg p-2">
+      <div className="bg-bg-700 p-2 border border-bg-600">
         <div className="flex items-center gap-2 px-1 py-1 mb-1">
-          <TrendingUp size={12} className="text-accent-blue" />
+          <TrendingUp size={12} className="text-accent-yellow" />
           <span className="text-xs text-gray-400 font-medium">Equity Curve</span>
         </div>
         <div ref={equityContainerRef} className="h-[120px]" />
       </div>
 
       {/* Drawdown chart */}
-      <div className="bg-bg-700 rounded-lg p-2">
+      <div className="bg-bg-700 p-2 border border-bg-600">
         <div className="flex items-center gap-2 px-1 py-1 mb-1">
-          <TrendingDown size={12} className="text-red-400" />
+          <TrendingDown size={12} className="text-accent-red" />
           <span className="text-xs text-gray-400 font-medium">Drawdown</span>
         </div>
         <div ref={ddContainerRef} className="h-[80px]" />
@@ -351,7 +357,7 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
 
       {/* Signal stats */}
       {signalCount > 0 && (
-        <div className="bg-bg-700 rounded-lg p-3">
+        <div className="bg-bg-700 p-3 border border-bg-600">
           <div className="text-xs text-gray-400 mb-2 font-medium">Signal Statistics</div>
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div>
@@ -360,11 +366,11 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
             </div>
             <div>
               <div className="text-gray-500">Long</div>
-              <div className="text-green-400 font-medium">{longSignals}</div>
+              <div className="text-accent-green font-medium">{longSignals}</div>
             </div>
             <div>
               <div className="text-gray-500">Short</div>
-              <div className="text-red-400 font-medium">{shortSignals}</div>
+              <div className="text-accent-red font-medium">{shortSignals}</div>
             </div>
           </div>
         </div>
@@ -396,7 +402,7 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
         const currentStreak = curWinStreak > 0 ? curWinStreak : -curLossStreak
 
         return (
-          <div className="bg-bg-700 rounded-lg p-3">
+          <div className="bg-bg-700 p-3 border border-bg-600">
             <div className="text-xs text-gray-400 mb-2 font-medium">Streak Tracking</div>
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="text-center">
@@ -420,7 +426,7 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
 
       {/* Risk metrics */}
       {metrics.totalTrades > 0 && (
-        <div className="bg-bg-700 rounded-lg p-3">
+        <div className="bg-bg-700 p-3 border border-bg-600">
           <div className="text-xs text-gray-400 mb-2 font-medium">Risk Metrics</div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <RiskStat
@@ -469,7 +475,7 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
 
       {/* Sharpe / Sortino */}
       {allTrades.length >= 2 && (
-        <div className="bg-bg-700 rounded-lg p-3">
+        <div className="bg-bg-700 p-3 border border-bg-600">
           <div className="text-xs text-gray-400 mb-2 font-medium">Risk-Adjusted Returns</div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <RiskStat
@@ -494,7 +500,7 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
 
 function MetricCard({ icon, label, value, color }) {
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5 transition-all duration-200 hover:bg-bg-600/50 hover:scale-[1.02] animate-fadein">
+    <div className="bg-bg-700 p-2.5 border border-bg-600 transition-all duration-200 hover:bg-bg-600/50 animate-fadein">
       <div className="flex items-center gap-1.5 text-gray-500 mb-1">
         {icon}
         <span className="text-[10px] uppercase tracking-wide">{label}</span>

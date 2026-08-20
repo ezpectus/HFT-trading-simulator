@@ -42,7 +42,7 @@ export default function TimeOfDayPerformance({ accounts }) {
   const { byHour, maxAbsPnl, maxTrades, bestHour, worstHour, activeHours } = hourlyStats
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Clock size={12} className="text-accent-blue" />
         Performance by Hour (UTC)
@@ -66,9 +66,9 @@ export default function TimeOfDayPerformance({ accounts }) {
                     {h.toString().padStart(2, '0')}h
                   </span>
                   {/* PnL bar */}
-                  <div className="flex-1 h-3 bg-bg-600/30 rounded-sm overflow-hidden relative">
+                  <div className="flex-1 h-3 bg-bg-600/30  overflow-hidden relative">
                     <div
-                      className={'absolute h-full rounded-sm ' + (s.pnl >= 0 ? 'bg-accent-green/60 left-1/2' : 'bg-accent-red/60 right-1/2')}
+                      className={'absolute h-full  ' + (s.pnl >= 0 ? 'bg-accent-green/60 left-1/2' : 'bg-accent-red/60 right-1/2')}
                       style={{ width: `${widthPct}%` }}
                     />
                     <div className="absolute left-1/2 top-0 bottom-0 w-px bg-bg-500" />
@@ -76,7 +76,7 @@ export default function TimeOfDayPerformance({ accounts }) {
                   {/* Trade count indicator */}
                   <div className="w-8 flex items-end h-3">
                     <div
-                      className="w-full bg-accent-blue/30 rounded-sm"
+                      className="w-full bg-accent-blue/30 "
                       style={{ height: `${tradeHeight}%` }}
                       title={`${s.trades} trades`}
                     />

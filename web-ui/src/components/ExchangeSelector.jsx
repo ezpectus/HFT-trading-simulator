@@ -16,7 +16,7 @@ export default function ExchangeSelector() {
               key={exchangeId}
               onClick={() => switchExchange(exchangeId)}
               className={`
-                px-3 py-1.5 text-xs font-medium rounded transition-all
+                px-3 py-1.5 text-xs font-medium  transition-all
                 ${isSelected 
                   ? 'text-white shadow-lg' 
                   : 'text-gray-400 hover:text-gray-200 hover:bg-bg-700'

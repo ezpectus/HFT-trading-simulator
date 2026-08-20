@@ -37,7 +37,7 @@ export default function PriceComparison({ prices, symbols, selectedSymbol, excha
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search..."
-            className="w-16 bg-bg-600 border border-bg-500 rounded pl-4 pr-1 py-0.5 text-[9px] text-gray-200 outline-none focus:border-accent-blue"
+            className="w-16 bg-bg-600 border border-bg-500  pl-4 pr-1 py-0.5 text-[9px] text-gray-200 outline-none focus:border-accent-blue"
             aria-label="Search symbols"
           />
         </div>
@@ -61,12 +61,12 @@ export default function PriceComparison({ prices, symbols, selectedSymbol, excha
         return (
           <div
             key={sym}
-            className={`bg-bg-700 rounded-lg p-2.5 ${isSelected ? 'ring-1 ring-accent-blue' : ''}`}
+            className={`bg-bg-700  p-2.5 ${isSelected ? 'ring-1 ring-accent-blue' : ''}`}
           >
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-medium text-gray-300">{sym}</span>
               {spreadBps > 5 && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent-green/20 text-accent-green font-medium">
+                <span className="text-[9px] px-1.5 py-0.5  bg-accent-green/20 text-accent-green font-medium">
                   ARB {spreadBps.toFixed(1)}bps
                 </span>
               )}
@@ -79,7 +79,7 @@ export default function PriceComparison({ prices, symbols, selectedSymbol, excha
                 return (
                   <div
                     key={exchange}
-                    className={`rounded p-1.5 text-center ${
+                    className={` p-1.5 text-center ${
                       isLowest ? 'bg-accent-red/10' : isHighest ? 'bg-accent-green/10' : 'bg-bg-600'
                     }`}
                   >

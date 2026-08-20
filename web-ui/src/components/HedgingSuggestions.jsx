@@ -89,7 +89,7 @@ export default function HedgingSuggestions({ candles, accounts, symbols, exchang
 
   if (!suggestions.hasPositions) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Shield size={12} className="text-accent-blue" />
           Hedging Suggestions
@@ -101,7 +101,7 @@ export default function HedgingSuggestions({ candles, accounts, symbols, exchang
 
   if (suggestions.suggestions.length === 0) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Shield size={12} className="text-accent-blue" />
           Hedging Suggestions
@@ -112,7 +112,7 @@ export default function HedgingSuggestions({ candles, accounts, symbols, exchang
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Shield size={12} className="text-accent-blue" />
         Hedging Suggestions
@@ -120,12 +120,12 @@ export default function HedgingSuggestions({ candles, accounts, symbols, exchang
 
       <div className="space-y-1.5">
         {suggestions.suggestions.map((h, i) => (
-          <div key={i} className="bg-bg-600/50 rounded p-1.5">
+          <div key={i} className="bg-bg-600/50  p-1.5">
             {/* Position → Hedge */}
             <div className="flex items-center gap-1.5 mb-1">
               <div className="flex items-center gap-1">
                 <span className="text-[10px] font-medium text-gray-300">{h.symbol.split('/')[0]}</span>
-                <span className={'text-[8px] px-1 rounded ' + (h.side === 'LONG' ? 'bg-accent-green/20 text-accent-green' : 'bg-accent-red/20 text-accent-red')}>
+                <span className={'text-[8px] px-1  ' + (h.side === 'LONG' ? 'bg-accent-green/20 text-accent-green' : 'bg-accent-red/20 text-accent-red')}>
                   {h.side}
                 </span>
                 <span className="text-[8px] text-gray-600">{h.quantity.toFixed(4)}</span>
@@ -133,7 +133,7 @@ export default function HedgingSuggestions({ candles, accounts, symbols, exchang
               <ArrowRightLeft size={10} className="text-gray-600" />
               <div className="flex items-center gap-1">
                 <span className="text-[10px] font-medium text-accent-blue">{h.hedgeSymbol.split('/')[0]}</span>
-                <span className={'text-[8px] px-1 rounded ' + (h.hedgeSide === 'LONG' ? 'bg-accent-green/20 text-accent-green' : 'bg-accent-red/20 text-accent-red')}>
+                <span className={'text-[8px] px-1  ' + (h.hedgeSide === 'LONG' ? 'bg-accent-green/20 text-accent-green' : 'bg-accent-red/20 text-accent-red')}>
                   {h.hedgeSide}
                 </span>
                 <span className="text-[8px] text-gray-600">{h.hedgeQty.toFixed(4)}</span>

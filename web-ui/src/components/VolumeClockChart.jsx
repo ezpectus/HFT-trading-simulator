@@ -67,7 +67,7 @@ export default function VolumeClockChart({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <BarChart3 size={12} className="text-accent-orange" />
           Volume Clock
@@ -80,7 +80,7 @@ export default function VolumeClockChart({ candles, symbol, exchange }) {
   const { renderedBars, upCount, downCount, lastBar, reversal, avgCandles, barCount } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <BarChart3 size={12} className="text-accent-orange" />
         Volume Clock Chart
@@ -93,7 +93,7 @@ export default function VolumeClockChart({ candles, symbol, exchange }) {
           type="number"
           value={targetVolume}
           onChange={e => setTargetVolume(Number(e.target.value) || 1000)}
-          className="w-20 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+          className="w-20 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none focus:border-accent-blue"
         />
         <span className="text-gray-600">{barCount} bars</span>
       </div>
@@ -129,7 +129,7 @@ export default function VolumeClockChart({ candles, symbol, exchange }) {
       </div>
 
       {reversal && (
-        <div className="mt-1.5 bg-accent-yellow/10 border border-accent-yellow/20 rounded px-1.5 py-0.5">
+        <div className="mt-1.5 bg-accent-yellow/10 border border-accent-yellow/20  px-1.5 py-0.5">
           <span className="text-[8px] text-accent-yellow">
             Bar color reversal — momentum shift
           </span>

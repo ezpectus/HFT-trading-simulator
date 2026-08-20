@@ -153,7 +153,7 @@ export default function PointAndFigure({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Grid3x3 size={12} className="text-accent-teal" />
           Point & Figure
@@ -166,7 +166,7 @@ export default function PointAndFigure({ candles, symbol, exchange }) {
   const { grid, visible, size, autoBox, reversal, signal, signalColor, lastDir } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Grid3x3 size={12} className="text-accent-teal" />
         Point & Figure Chart
@@ -180,14 +180,14 @@ export default function PointAndFigure({ candles, symbol, exchange }) {
           value={boxSize || ''}
           placeholder={autoBox.toFixed(2)}
           onChange={e => setBoxSize(Number(e.target.value) || 0)}
-          className="w-14 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+          className="w-14 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none focus:border-accent-blue"
         />
         <span className="text-gray-600">Rev:</span>
         <input
           type="number"
           value={reverseBoxes}
           onChange={e => setReverseBoxes(Number(e.target.value) || 3)}
-          className="w-10 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none focus:border-accent-blue"
+          className="w-10 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none focus:border-accent-blue"
         />
       </div>
 
@@ -223,7 +223,7 @@ export default function PointAndFigure({ candles, symbol, exchange }) {
       </div>
 
       {reversal && (
-        <div className="mt-1 bg-accent-yellow/10 border border-accent-yellow/20 rounded px-1.5 py-0.5">
+        <div className="mt-1 bg-accent-yellow/10 border border-accent-yellow/20  px-1.5 py-0.5">
           <span className="text-[8px] text-accent-yellow">Column reversal detected</span>
         </div>
       )}

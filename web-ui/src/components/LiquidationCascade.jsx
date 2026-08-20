@@ -104,7 +104,7 @@ export default function LiquidationCascade({ candles, accounts, symbol, exchange
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Flame size={12} className="text-accent-red" />
           Liquidation Cascade
@@ -117,7 +117,7 @@ export default function LiquidationCascade({ candles, accounts, symbol, exchange
   const { price, triggerPrice, cascade, totalDrop, totalForcedVol, positions, triggeredPositions, currentPrice, maxImpact } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Flame size={12} className="text-accent-red" />
         Liquidation Cascade Simulator
@@ -139,15 +139,15 @@ export default function LiquidationCascade({ candles, accounts, symbol, exchange
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-1">
+        <div className="bg-bg-800  px-1.5 py-1">
           <span className="text-gray-600">Start Price</span>
           <div className="font-mono text-gray-300">{formatPrice(price)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-1">
+        <div className="bg-bg-800  px-1.5 py-1">
           <span className="text-gray-600">End Price</span>
           <div className="font-mono text-accent-red">{formatPrice(currentPrice)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-1">
+        <div className="bg-bg-800  px-1.5 py-1">
           <span className="text-gray-600">Total Drop</span>
           <div className="font-mono text-accent-red font-bold">{totalDrop.toFixed(2)}%</div>
         </div>
@@ -180,7 +180,7 @@ export default function LiquidationCascade({ candles, accounts, symbol, exchange
       </div>
 
       {/* Forced volume */}
-      <div className="bg-bg-800 rounded px-2 py-1 mb-2 flex justify-between text-[8px]">
+      <div className="bg-bg-800  px-2 py-1 mb-2 flex justify-between text-[8px]">
         <span className="text-gray-600">Total Forced Volume</span>
         <span className="font-mono text-accent-red">{formatVolume(totalForcedVol)}</span>
       </div>
@@ -190,7 +190,7 @@ export default function LiquidationCascade({ candles, accounts, symbol, exchange
         <div className="mt-2 pt-1.5 border-t border-bg-600">
           <div className="text-[8px] text-gray-600 mb-1">Your positions at risk:</div>
           {triggeredPositions.length > 0 ? (
-            <div className="bg-accent-red/10 border border-accent-red/20 rounded px-1.5 py-1">
+            <div className="bg-accent-red/10 border border-accent-red/20  px-1.5 py-1">
               <div className="flex items-center gap-1">
                 <Zap size={9} className="text-accent-red" />
                 <span className="text-[8px] text-accent-red font-bold">

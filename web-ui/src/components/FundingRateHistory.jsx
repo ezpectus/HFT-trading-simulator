@@ -49,7 +49,7 @@ export default function FundingRateHistory({ fundingRates, candlesToFunding, sym
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Percent size={12} className="text-accent-blue" />
           Funding Rate
@@ -62,7 +62,7 @@ export default function FundingRateHistory({ fundingRates, candlesToFunding, sym
   const { rates, sorted, avgRate, skew, path, zeroY, maxRate } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Percent size={12} className="text-accent-blue" />
         Funding Rate History
@@ -113,13 +113,13 @@ export default function FundingRateHistory({ fundingRates, candlesToFunding, sym
 
       {/* Annualized + countdown */}
       <div className="grid grid-cols-2 gap-1 mt-2 text-[8px]">
-        <div className="flex justify-between bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Annualized</span>
           <span className={'font-mono ' + (avgRate >= 0 ? 'text-accent-red' : 'text-accent-green')}>
             {(avgRate * 365 * 3 * 100).toFixed(2)}%
           </span>
         </div>
-        <div className="flex justify-between bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex justify-between bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600 flex items-center gap-0.5">
             <Clock size={7} /> Next
           </span>

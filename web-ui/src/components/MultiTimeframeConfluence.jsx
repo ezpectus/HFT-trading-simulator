@@ -107,7 +107,7 @@ export default function MultiTimeframeConfluence({ candles, symbol, exchange }) 
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Layers size={12} className="text-accent-blue" />
           MTF Confluence
@@ -120,14 +120,14 @@ export default function MultiTimeframeConfluence({ candles, symbol, exchange }) 
   const { validTFs, confluenceScore, consensus, consensusColor, totalBull, totalBear, perfectAlignment, allBull, allBear } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Layers size={12} className="text-accent-blue" />
         Multi-Timeframe Confluence
       </div>
 
       {/* Confluence score */}
-      <div className="bg-bg-800 rounded px-2 py-2 mb-2 text-center">
+      <div className="bg-bg-800  px-2 py-2 mb-2 text-center">
         <div className="text-[8px] text-gray-600">Confluence Score</div>
         <div className={'text-xl font-bold ' + consensusColor}>
           {confluenceScore >= 0 ? '+' : ''}{confluenceScore.toFixed(0)}
@@ -137,7 +137,7 @@ export default function MultiTimeframeConfluence({ candles, symbol, exchange }) 
 
       {/* Perfect alignment */}
       {perfectAlignment && (
-        <div className={'mb-2 rounded px-1.5 py-1 flex items-center gap-1 ' + (allBull ? 'bg-accent-green/10' : 'bg-accent-red/10')}>
+        <div className={'mb-2  px-1.5 py-1 flex items-center gap-1 ' + (allBull ? 'bg-accent-green/10' : 'bg-accent-red/10')}>
           <CheckCircle2 size={10} className={allBull ? 'text-accent-green' : 'text-accent-red'} />
           <span className={'text-[8px] ' + (allBull ? 'text-accent-green' : 'text-accent-red')}>
             Perfect alignment: all timeframes {allBull ? 'bullish' : 'bearish'}
@@ -148,7 +148,7 @@ export default function MultiTimeframeConfluence({ candles, symbol, exchange }) 
       {/* Per-timeframe breakdown */}
       <div className="space-y-1.5">
         {validTFs.map((tf, i) => (
-          <div key={i} className="bg-bg-800 rounded p-1.5">
+          <div key={i} className="bg-bg-800  p-1.5">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[9px] text-gray-400 font-medium">{tf.label} ({tf.name})</span>
               <span className={'text-[9px] font-mono ' + (tf.score > 0 ? 'text-accent-green' : tf.score < 0 ? 'text-accent-red' : 'text-gray-400')}>
@@ -178,11 +178,11 @@ export default function MultiTimeframeConfluence({ candles, symbol, exchange }) 
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-1 mt-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5 flex justify-between">
+        <div className="bg-bg-800  px-1.5 py-0.5 flex justify-between">
           <span className="text-gray-600">Total Bull</span>
           <span className="font-mono text-accent-green">{totalBull}</span>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5 flex justify-between">
+        <div className="bg-bg-800  px-1.5 py-0.5 flex justify-between">
           <span className="text-gray-600">Total Bear</span>
           <span className="font-mono text-accent-red">{totalBear}</span>
         </div>

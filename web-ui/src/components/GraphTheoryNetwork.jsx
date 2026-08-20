@@ -237,7 +237,7 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Graph Theory: Correlation Network — {exchange}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -245,19 +245,19 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">|ρ| threshold:</span>
-          <input type="number" step="0.1" value={edgeThreshold} onChange={e => setEdgeThreshold(Math.max(0, Math.min(1, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.1" value={edgeThreshold} onChange={e => setEdgeThreshold(Math.max(0, Math.min(1, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       <div className="flex gap-4">
         {/* Network graph */}
-        <div className="bg-slate-800 rounded p-3">
+        <div className="bg-slate-800  p-3">
           <div className="text-xs text-slate-400 mb-1">Minimum Spanning Tree (Mantegna)</div>
-          <svg width={W} height={H} className="bg-slate-900 rounded">
+          <svg width={W} height={H} className="bg-slate-900 ">
             {/* MST edges */}
             {data.mst.map((e, i) => (
               <line
@@ -303,7 +303,7 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
 
         {/* Centrality table */}
         <div className="flex-1 space-y-3">
-          <div className="bg-slate-800 rounded p-3">
+          <div className="bg-slate-800  p-3">
             <div className="text-xs text-slate-400 mb-2">Node Centralities</div>
             <div className="space-y-1 max-h-48 overflow-auto">
               {data.validSymbols.map((sym, i) => (
@@ -319,7 +319,7 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
           </div>
 
           {/* Correlation matrix heatmap */}
-          <div className="bg-slate-800 rounded p-3">
+          <div className="bg-slate-800  p-3">
             <div className="text-xs text-slate-400 mb-2">Correlation Matrix</div>
             <div className="grid gap-px text-[8px]" style={{ gridTemplateColumns: `auto repeat(${data.n}, 1fr)` }}>
               <div></div>
@@ -343,29 +343,29 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Nodes</div>
           <div className="text-cyan-400 font-mono">{data.n}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">MST edges</div>
           <div className="text-emerald-400 font-mono">{data.mst.length}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Avg |ρ|</div>
           <div className="text-amber-400 font-mono">{data.avgCorr.toFixed(3)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">MST avg ρ</div>
           <div className="text-purple-400 font-mono">{data.mstAvgCorr.toFixed(3)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Hub</div>
           <div className="text-orange-400 font-mono text-[10px]">{data.hub}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> MST distance:</strong> d = √(2(1-ρ)) |
         <strong> Filtered edges:</strong> {data.filteredEdges.length} (|ρ| {'>'} {edgeThreshold}) |

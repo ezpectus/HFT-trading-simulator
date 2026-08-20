@@ -65,7 +65,7 @@ export default function MultiAccountView({ accounts, exchanges }) {
 
   if (aggregated.exchangeCount === 0) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Layers size={12} className="text-accent-purple" />
           Multi-Account View
@@ -78,14 +78,14 @@ export default function MultiAccountView({ accounts, exchanges }) {
   const { perExchange, totalEquity, totalBalance, totalUPnl, totalRPnl, totalPositions, totalFees, totalTrades, allocations, best, worst } = aggregated
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Layers size={12} className="text-accent-purple" />
         Multi-Account Aggregated
       </div>
 
       {/* Total summary */}
-      <div className="bg-bg-600/50 rounded p-2 mb-2">
+      <div className="bg-bg-600/50  p-2 mb-2">
         <div className="flex items-center gap-1.5 mb-1">
           <Wallet size={11} className="text-gray-500" />
           <span className="text-[9px] text-gray-500">Total Equity</span>
@@ -123,11 +123,11 @@ export default function MultiAccountView({ accounts, exchanges }) {
           const isBest = best && best[0] === exId
           const isWorst = worst && worst[0] === exId
           return (
-            <div key={exId} className="bg-bg-600/40 rounded p-1.5">
+            <div key={exId} className="bg-bg-600/40  p-1.5">
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[10px] font-medium text-gray-300">{exId}</span>
-                {isBest && <span className="text-[7px] px-1 rounded bg-accent-green/20 text-accent-green">BEST</span>}
-                {isWorst && <span className="text-[7px] px-1 rounded bg-accent-red/20 text-accent-red">WORST</span>}
+                {isBest && <span className="text-[7px] px-1  bg-accent-green/20 text-accent-green">BEST</span>}
+                {isWorst && <span className="text-[7px] px-1  bg-accent-red/20 text-accent-red">WORST</span>}
                 <span className="text-[8px] text-gray-600 ml-auto">{data.positions} pos · {data.trades} trades</span>
               </div>
               <div className="flex items-center gap-2 text-[8px]">
@@ -151,7 +151,7 @@ export default function MultiAccountView({ accounts, exchanges }) {
       {/* Allocation bar */}
       <div className="mb-1">
         <div className="text-[8px] text-gray-600 uppercase mb-0.5">Equity Allocation</div>
-        <div className="flex h-3 rounded-sm overflow-hidden">
+        <div className="flex h-3  overflow-hidden">
           {Object.entries(allocations).map(([exId, pct]) => {
             const colors = { binance: 'bg-accent-yellow/60', bybit: 'bg-accent-orange/60', okx: 'bg-accent-blue/60' }
             return (

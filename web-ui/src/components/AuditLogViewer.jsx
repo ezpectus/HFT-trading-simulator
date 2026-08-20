@@ -95,23 +95,23 @@ export default function AuditLogViewer({ auditLogs = [], onExport, onFilter }) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-800 rounded-lg overflow-hidden">
+    <div className="flex flex-col h-full bg-bg-800  overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-bg-600">
         <h3 className="text-sm font-medium text-white">Audit Logs</h3>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="p-1.5 rounded hover:bg-bg-700 transition-colors"
+            className="p-1.5  hover:bg-bg-700 transition-colors"
             title="Toggle filters"
           >
             <Filter size={16} className="text-gray-400" />
           </button>
           <div className="relative group">
-            <button className="p-1.5 rounded hover:bg-bg-700 transition-colors" title="Export">
+            <button className="p-1.5  hover:bg-bg-700 transition-colors" title="Export">
               <Download size={16} className="text-gray-400" />
             </button>
-            <div className="absolute right-0 top-full mt-1 bg-bg-700 border border-bg-600 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+            <div className="absolute right-0 top-full mt-1 bg-bg-700 border border-bg-600  shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
               <button
                 onClick={() => handleExport('json')}
                 className="block w-full px-4 py-2 text-xs text-left hover:bg-bg-600 text-gray-300"
@@ -140,13 +140,13 @@ export default function AuditLogViewer({ auditLogs = [], onExport, onFilter }) {
                 placeholder="Search logs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded bg-bg-700 border border-bg-600 text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue"
+                className="w-full pl-8 pr-3 py-1.5 text-xs  bg-bg-700 border border-bg-600 text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue"
               />
             </div>
             <select
               value={selectedEventType}
               onChange={(e) => setSelectedEventType(e.target.value)}
-              className="px-3 py-1.5 text-xs rounded bg-bg-700 border border-bg-600 text-white focus:outline-none focus:border-accent-blue"
+              className="px-3 py-1.5 text-xs  bg-bg-700 border border-bg-600 text-white focus:outline-none focus:border-accent-blue"
             >
               {eventTypes.map(type => (
                 <option key={type} value={type}>{type.replace('_', ' ')}</option>
@@ -155,7 +155,7 @@ export default function AuditLogViewer({ auditLogs = [], onExport, onFilter }) {
             <select
               value={selectedExchange}
               onChange={(e) => setSelectedExchange(e.target.value)}
-              className="px-3 py-1.5 text-xs rounded bg-bg-700 border border-bg-600 text-white focus:outline-none focus:border-accent-blue"
+              className="px-3 py-1.5 text-xs  bg-bg-700 border border-bg-600 text-white focus:outline-none focus:border-accent-blue"
             >
               {exchanges.map(exch => (
                 <option key={exch} value={exch}>{exch}</option>
@@ -164,7 +164,7 @@ export default function AuditLogViewer({ auditLogs = [], onExport, onFilter }) {
             <select
               value={selectedSymbol}
               onChange={(e) => setSelectedSymbol(e.target.value)}
-              className="px-3 py-1.5 text-xs rounded bg-bg-700 border border-bg-600 text-white focus:outline-none focus:border-accent-blue"
+              className="px-3 py-1.5 text-xs  bg-bg-700 border border-bg-600 text-white focus:outline-none focus:border-accent-blue"
             >
               {symbols.map(sym => (
                 <option key={sym} value={sym}>{sym}</option>
@@ -178,19 +178,19 @@ export default function AuditLogViewer({ auditLogs = [], onExport, onFilter }) {
                 type="date"
                 value={dateRange.start}
                 onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                className="px-2 py-1 text-xs rounded bg-bg-700 border border-bg-600 text-white focus:outline-none focus:border-accent-blue"
+                className="px-2 py-1 text-xs  bg-bg-700 border border-bg-600 text-white focus:outline-none focus:border-accent-blue"
               />
               <span className="text-gray-500 text-xs">to</span>
               <input
                 type="date"
                 value={dateRange.end}
                 onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                className="px-2 py-1 text-xs rounded bg-bg-700 border border-bg-600 text-white focus:outline-none focus:border-accent-blue"
+                className="px-2 py-1 text-xs  bg-bg-700 border border-bg-600 text-white focus:outline-none focus:border-accent-blue"
               />
             </div>
             <button
               onClick={clearFilters}
-              className="px-2 py-1 text-xs rounded bg-bg-700 border border-bg-600 text-gray-400 hover:text-white hover:bg-bg-600 transition-colors"
+              className="px-2 py-1 text-xs  bg-bg-700 border border-bg-600 text-gray-400 hover:text-white hover:bg-bg-600 transition-colors"
             >
               Clear
             </button>
@@ -217,7 +217,7 @@ export default function AuditLogViewer({ auditLogs = [], onExport, onFilter }) {
                   <div className="mt-0.5">{getEventIcon(log.event_type)}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded border ${getEventColor(log.event_type)}`}>
+                      <span className={`px-2 py-0.5 text-xs font-medium  border ${getEventColor(log.event_type)}`}>
                         {log.event_type.replace('_', ' ')}
                       </span>
                       <span className="text-xs text-gray-500">{formatTimestamp(log.timestamp)}</span>
@@ -232,7 +232,7 @@ export default function AuditLogViewer({ auditLogs = [], onExport, onFilter }) {
                       {log.reason || log.order_id || log.position_id || 'System event'}
                     </p>
                     {expandedLog === log.id && (
-                      <div className="mt-2 p-2 bg-bg-900 rounded text-xs space-y-1">
+                      <div className="mt-2 p-2 bg-bg-900  text-xs space-y-1">
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <span className="text-gray-500">User ID:</span>
@@ -270,7 +270,7 @@ export default function AuditLogViewer({ auditLogs = [], onExport, onFilter }) {
                         {Object.keys(log.metadata).length > 0 && (
                           <div className="mt-2">
                             <span className="text-gray-500">Metadata:</span>
-                            <pre className="mt-1 p-2 bg-bg-800 rounded overflow-x-auto text-gray-300">
+                            <pre className="mt-1 p-2 bg-bg-800  overflow-x-auto text-gray-300">
                               {JSON.stringify(log.metadata, null, 2)}
                             </pre>
                           </div>

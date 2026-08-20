@@ -277,27 +277,27 @@ export default function OptimalStopping({ candles, symbol, exchange, currentPric
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Strike:</span>
-          <input type="number" value={strike} onChange={e => setStrike(Math.max(0.01, +e.target.value))} className="w-20 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={strike} onChange={e => setStrike(Math.max(0.01, +e.target.value))} className="w-20 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">T (days):</span>
-          <input type="number" value={Math.round(T * 365)} onChange={e => setT(Math.max(1, +e.target.value) / 365)} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={Math.round(T * 365)} onChange={e => setT(Math.max(1, +e.target.value) / 365)} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">r:</span>
-          <input type="number" step="0.01" value={r} onChange={e => setR(+e.target.value)} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.01" value={r} onChange={e => setR(+e.target.value)} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">σ (est: {estSigma.toFixed(3)}):</span>
-          <input type="number" step="0.01" value={sigma} onChange={e => setSigma(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.01" value={sigma} onChange={e => setSigma(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Steps:</span>
-          <input type="number" value={nSteps} onChange={e => setNSteps(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nSteps} onChange={e => setNSteps(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Paths:</span>
-          <input type="number" value={nPaths} onChange={e => setNPaths(Math.max(100, +e.target.value))} className="w-20 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nPaths} onChange={e => setNPaths(Math.max(100, +e.target.value))} className="w-20 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={isCall} onChange={e => setIsCall(e.target.checked)} />
@@ -306,9 +306,9 @@ export default function OptimalStopping({ candles, symbol, exchange, currentPric
       </div>
 
       {/* Exercise boundary */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Optimal Exercise Boundary (Binomial Tree)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -343,9 +343,9 @@ export default function OptimalStopping({ candles, symbol, exchange, currentPric
       </div>
 
       {/* Exercise probability (LSM) */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Exercise Probability by Time (Longstaff-Schwartz MC)</div>
-        <svg width={W} height={120} className="bg-slate-900 rounded">
+        <svg width={W} height={120} className="bg-slate-900 ">
           {lsm.exerciseProb.map((prob, t) => {
             const x = P + (t / nSteps) * (W - 2 * P)
             const w = (W - 2 * P) / nSteps
@@ -356,29 +356,29 @@ export default function OptimalStopping({ candles, symbol, exchange, currentPric
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Binomial Price</div>
           <div className="text-cyan-400 font-mono">${binomial.price.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">LSM Price</div>
           <div className="text-emerald-400 font-mono">${lsm.price.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">European</div>
           <div className="text-slate-300 font-mono">${lsm.euroPrice.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Early Ex. Premium</div>
           <div className="text-amber-400 font-mono">${lsm.earlyExercisePremium.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Intrinsic</div>
           <div className="text-slate-300 font-mono">${Math.max(0, isCall ? S0 - strike : strike - S0).toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Model:</strong> Binomial ({nSteps} steps) vs LSM ({nPaths.toLocaleString()} paths) |
         <strong> σ:</strong> {sigma.toFixed(4)} (est: {estSigma.toFixed(4)}) |
         <strong> moneyness:</strong> {(S0 / strike).toFixed(4)} ({S0 > strike ? (isCall ? 'ITM' : 'OTM') : (isCall ? 'OTM' : 'ITM')})

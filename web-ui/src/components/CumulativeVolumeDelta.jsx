@@ -64,7 +64,7 @@ export default function CumulativeVolumeDelta({ candles, symbol, exchange }) {
 
   if (!cvdData) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Activity size={12} className="text-accent-blue" />
           Cumulative Volume Delta
@@ -93,7 +93,7 @@ export default function CumulativeVolumeDelta({ candles, symbol, exchange }) {
   const sellPct = 100 - buyPct
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Activity size={12} className="text-accent-blue" />
         Cumulative Volume Delta
@@ -101,7 +101,7 @@ export default function CumulativeVolumeDelta({ candles, symbol, exchange }) {
 
       {/* Divergence warning */}
       {divergence && (
-        <div className="flex items-center gap-1.5 bg-accent-yellow/10 border border-accent-yellow/20 rounded px-2 py-1 mb-2">
+        <div className="flex items-center gap-1.5 bg-accent-yellow/10 border border-accent-yellow/20  px-2 py-1 mb-2">
           <span className="text-[9px] text-accent-yellow font-medium">⚠ DIVERGENCE</span>
           <span className="text-[8px] text-gray-500">
             Price {priceUp ? '↑' : '↓'} but CVD {cvdUp ? '↑' : '↓'}
@@ -146,7 +146,7 @@ export default function CumulativeVolumeDelta({ candles, symbol, exchange }) {
 
       {/* Buy/Sell bar */}
       <div className="mt-1.5">
-        <div className="flex h-2 rounded-sm overflow-hidden">
+        <div className="flex h-2  overflow-hidden">
           <div className="bg-accent-green/60" style={{ width: `${buyPct}%` }} />
           <div className="bg-accent-red/60" style={{ width: `${sellPct}%` }} />
         </div>

@@ -83,7 +83,7 @@ export default function DrawdownAnalysis({ fills }) {
   }, [fills])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <TrendingDown size={12} className="text-accent-red" />
         Drawdown Analysis
@@ -124,7 +124,7 @@ export default function DrawdownAnalysis({ fills }) {
       </div>
 
       {/* Recovery indicator */}
-      <div className="bg-bg-600/50 rounded px-2 py-1.5">
+      <div className="bg-bg-600/50  px-2 py-1.5">
         <div className="flex items-center justify-between text-[9px]">
           <span className="text-gray-500">Current vs Peak</span>
           <span className={analysis.currentDD < 0.1 ? 'text-accent-green' : 'text-accent-yellow'}>
@@ -144,7 +144,7 @@ export default function DrawdownAnalysis({ fills }) {
 
 function Stat({ label, value, sub, color = 'text-gray-200' }) {
   return (
-    <div className="bg-bg-600/50 rounded px-2 py-1">
+    <div className="bg-bg-600/50  px-2 py-1">
       <div className="text-[8px] text-gray-600 uppercase">{label}</div>
       <div className={`text-[11px] font-mono font-medium ${color}`}>
         {value}

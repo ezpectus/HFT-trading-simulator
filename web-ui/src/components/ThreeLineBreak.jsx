@@ -78,7 +78,7 @@ export default function ThreeLineBreak({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Layers3 size={12} className="text-accent-teal" />
           Three-Line Break
@@ -91,7 +91,7 @@ export default function ThreeLineBreak({ candles, symbol, exchange }) {
   const { renderedBlocks, lastBlock, reversal, streak, upCount, downCount } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Layers3 size={12} className="text-accent-teal" />
         Three-Line Break
@@ -142,7 +142,7 @@ export default function ThreeLineBreak({ candles, symbol, exchange }) {
       </div>
 
       {reversal && (
-        <div className="mt-1.5 bg-accent-yellow/10 border border-accent-yellow/20 rounded px-1.5 py-0.5">
+        <div className="mt-1.5 bg-accent-yellow/10 border border-accent-yellow/20  px-1.5 py-0.5">
           <span className="text-[8px] text-accent-yellow">
             Reversal: trend flipped to {lastBlock.dir === 'up' ? 'Bullish' : 'Bearish'}
           </span>

@@ -268,7 +268,7 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Affine Arithmetic (Uncertainty Propagation) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -276,30 +276,30 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Uncertainty (%):</span>
-          <input type="number" step="5" value={uncertaintyPct} onChange={e => setUncertaintyPct(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="5" value={uncertaintyPct} onChange={e => setUncertaintyPct(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Strike (%):</span>
-          <input type="number" step="0.05" value={strikePct} onChange={e => setStrikePct(Math.max(0.5, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.05" value={strikePct} onChange={e => setStrikePct(Math.max(0.5, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">T (days):</span>
-          <input type="number" value={T_days} onChange={e => setT_days(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={T_days} onChange={e => setT_days(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">r (risk-free):</span>
-          <input type="number" step="0.01" value={riskFreeRate} onChange={e => setRiskFreeRate(+e.target.value)} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.01" value={riskFreeRate} onChange={e => setRiskFreeRate(+e.target.value)} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Robust option price */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Robust Black-Scholes Option Price (uncertain σ)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -334,7 +334,7 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
       </div>
 
       {/* Affine propagation chain */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Affine Propagation Chain</div>
         <div className="space-y-2">
           <div className="flex items-center gap-3 text-xs">
@@ -360,7 +360,7 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
       </div>
 
       {/* Volatility uncertainty */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Volatility Uncertainty Bounds</div>
         <div className="flex items-center gap-3 text-xs">
           <span className="text-slate-400 w-24">σ estimate:</span>
@@ -373,29 +373,29 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">S₀</div>
           <div className="text-cyan-400 font-mono">${data.S0.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">K (strike)</div>
           <div className="text-amber-400 font-mono">${data.K.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">σ (vol)</div>
           <div className="text-purple-400 font-mono">{(data.sigma * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Option spread</div>
           <div className="text-emerald-400 font-mono">{(data.optionSpread * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Noise symbols</div>
           <div className="text-slate-300 font-mono">{Affine.nextId}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Method:</strong> Affine form â = a₀ + Σ a_i·ε_i, ε_i ∈ [-1,1] |
         <strong> Advantage:</strong> Tracks correlations (vs interval arithmetic dependency problem) |

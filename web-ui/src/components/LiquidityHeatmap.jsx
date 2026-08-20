@@ -83,7 +83,7 @@ export default function LiquidityHeatmap({ orderbookData, currentPrice }) {
 
   if (!heatmap) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Droplets size={12} className="text-accent-blue" />
           Liquidity Heatmap
@@ -105,7 +105,7 @@ export default function LiquidityHeatmap({ orderbookData, currentPrice }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Droplets size={12} className="text-accent-blue" />
         Liquidity Heatmap
@@ -130,7 +130,7 @@ export default function LiquidityHeatmap({ orderbookData, currentPrice }) {
               {row.cells.map((cell, ci) => (
                 <div
                   key={ci}
-                  className={'flex-1 rounded-sm ' + liqColor(cell.total, maxLiq)}
+                  className={'flex-1  ' + liqColor(cell.total, maxLiq)}
                   title={`$${formatPrice(row.mid, 0)}: liq ${cell.total.toFixed(4)}`}
                 />
               ))}
@@ -145,7 +145,7 @@ export default function LiquidityHeatmap({ orderbookData, currentPrice }) {
           <div className="text-[8px] text-gray-600 uppercase mb-1">Persistent Liquidity Pools</div>
           <div className="space-y-0.5">
             {pools.slice(0, 5).map((p, i) => (
-              <div key={i} className="flex items-center gap-1.5 text-[8px] bg-bg-600/40 rounded px-1.5 py-0.5">
+              <div key={i} className="flex items-center gap-1.5 text-[8px] bg-bg-600/40  px-1.5 py-0.5">
                 <span className={'w-1.5 h-1.5 rounded-full ' + (p.dominantSide === 'bid' ? 'bg-accent-green' : 'bg-accent-red')} />
                 <span className="font-mono text-gray-300">${formatPrice(p.price, 0)}</span>
                 <span className="text-gray-600">{p.avgLiq.toFixed(3)} avg</span>
@@ -161,11 +161,11 @@ export default function LiquidityHeatmap({ orderbookData, currentPrice }) {
         <div className="flex items-center gap-1">
           <span>Low</span>
           <div className="flex gap-0.5">
-            <div className="w-3 h-2 bg-bg-600/20 rounded-sm" />
-            <div className="w-3 h-2 bg-accent-blue/10 rounded-sm" />
-            <div className="w-3 h-2 bg-accent-blue/30 rounded-sm" />
-            <div className="w-3 h-2 bg-accent-blue/60 rounded-sm" />
-            <div className="w-3 h-2 bg-accent-blue rounded-sm" />
+            <div className="w-3 h-2 bg-bg-600/20 " />
+            <div className="w-3 h-2 bg-accent-blue/10 " />
+            <div className="w-3 h-2 bg-accent-blue/30 " />
+            <div className="w-3 h-2 bg-accent-blue/60 " />
+            <div className="w-3 h-2 bg-accent-blue " />
           </div>
           <span>High</span>
         </div>

@@ -83,7 +83,7 @@ export default function MonteCarlo({ accounts }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Dice5 size={12} className="text-accent-purple" />
         Monte Carlo Simulation
@@ -102,7 +102,7 @@ export default function MonteCarlo({ accounts }) {
               <select
                 value={runs}
                 onChange={e => setRuns(Number(e.target.value))}
-                className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 outline-none"
+                className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none"
               >
                 <option value={100}>100</option>
                 <option value={500}>500</option>
@@ -112,7 +112,7 @@ export default function MonteCarlo({ accounts }) {
             <button
               onClick={handleRun}
               disabled={running}
-              className="flex items-center gap-1 px-3 py-1.5 text-[10px] rounded bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1 px-3 py-1.5 text-[10px]  bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 transition-colors disabled:opacity-50"
             >
               <Play size={10} />
               {running ? 'Running...' : 'Run'}
@@ -122,7 +122,7 @@ export default function MonteCarlo({ accounts }) {
           {result && (
             <>
               {/* Profit probability */}
-              <div className="bg-bg-600/50 rounded px-2 py-1.5 mb-2">
+              <div className="bg-bg-600/50  px-2 py-1.5 mb-2">
                 <div className="text-[8px] text-gray-600 uppercase">Profit Probability</div>
                 <div className={'text-lg font-bold ' + (result.profitProb >= 50 ? 'text-accent-green' : 'text-accent-red')}>
                   {result.profitProb.toFixed(1)}%
@@ -163,7 +163,7 @@ export default function MonteCarlo({ accounts }) {
 
 function PStat({ label, value, color, small }) {
   return (
-    <div className="bg-bg-600/50 rounded px-2 py-1">
+    <div className="bg-bg-600/50  px-2 py-1">
       <div className="text-[8px] text-gray-600 uppercase">{label}</div>
       <div className={`${small ? 'text-[8px]' : 'text-[11px]'} font-mono ${color}`}>{value}</div>
     </div>

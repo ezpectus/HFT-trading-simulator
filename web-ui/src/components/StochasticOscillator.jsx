@@ -48,7 +48,7 @@ export default function StochasticOscillator({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Shuffle size={12} className="text-accent-blue" />
           Stochastic
@@ -61,7 +61,7 @@ export default function StochasticOscillator({ candles, symbol, exchange }) {
   const { lastK, lastD, signal, signalColor, trend, kPath, dPath } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Shuffle size={12} className="text-accent-blue" />
         Stochastic Oscillator

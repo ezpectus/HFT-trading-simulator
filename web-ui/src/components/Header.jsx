@@ -43,34 +43,34 @@ export default function Header({
   const isUp = change >= 0
 
   return (
-    <header className="flex flex-col bg-bg-800 border-b border-bg-600 shrink-0" role="banner">
+    <header className="flex flex-col bg-bg-800 border-b border-bg-600 shrink-0 select-none" role="banner">
       {/* Skip link for keyboard users */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-3 focus:py-1.5 focus:bg-accent-blue focus:text-white focus:rounded focus:text-sm"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-3 focus:py-1.5 focus:bg-accent-blue focus:text-white focus: focus:text-sm"
       >
         Skip to main content
       </a>
       {/* Main header row */}
-      <div className="flex items-center gap-2 px-2 py-2 sm:gap-4 sm:px-4 flex-wrap">
+      <div className="flex items-center gap-2 px-3 py-1.5 sm:gap-3 sm:px-4 flex-nowrap overflow-x-auto scrollbar-thin">
         {/* Logo */}
-        <div className="flex items-center gap-2" aria-label="HFT Trading System">
-          <Zap className="w-5 h-5 text-accent-yellow" aria-hidden="true" />
-          <span className="font-bold text-sm">Trading Sim</span>
+        <div className="flex items-center gap-1.5 shrink-0" aria-label="HFT Trading System">
+          <Zap className="w-4 h-4 text-accent-yellow" aria-hidden="true" />
+          <span className="font-bold text-sm tracking-tight">HFT<span className="text-accent-yellow">Sim</span></span>
         </div>
 
         {/* Exchange selector */}
-        <div className="flex gap-1" role="group" aria-label="Exchange selector">
+        <div className="flex gap-0.5 shrink-0" role="group" aria-label="Exchange selector">
           {exchanges.map(ex => (
             <button
               key={ex}
               onClick={() => onExchangeChange(ex)}
               aria-pressed={selectedExchange === ex}
               aria-label={`Select ${ex} exchange`}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors capitalize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue ${
+              className={`px-2.5 py-1 text-xs font-medium transition-colors capitalize focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-blue ${
                 selectedExchange === ex
-                  ? 'bg-accent-blue text-white'
-                  : 'bg-bg-600 text-gray-400 hover:bg-bg-500'
+                  ? 'text-accent-yellow'
+                  : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               {ex}
@@ -78,20 +78,20 @@ export default function Header({
           ))}
         </div>
 
-        <div className="w-px h-5 bg-bg-600" />
+        <div className="w-px h-4 bg-bg-600 shrink-0" />
 
         {/* Symbol selector */}
-        <div className="flex gap-1" role="group" aria-label="Symbol selector">
+        <div className="flex gap-0.5 shrink-0" role="group" aria-label="Symbol selector">
           {symbols.map(s => (
             <button
               key={s}
               onClick={() => onSymbolChange(s)}
               aria-pressed={selectedSymbol === s}
               aria-label={`Select ${s}`}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-yellow ${
+              className={`px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-yellow ${
                 selectedSymbol === s
-                  ? 'bg-accent-yellow text-bg-900'
-                  : 'bg-bg-600 text-gray-400 hover:bg-bg-500'
+                  ? 'text-accent-yellow font-semibold'
+                  : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               {SYMBOL_SHORT[s] || s}
@@ -100,16 +100,16 @@ export default function Header({
         </div>
 
         {/* Timeframe selector */}
-        <div className="flex gap-0.5" role="group" aria-label="Timeframe selector">
+        <div className="flex gap-0.5 shrink-0" role="group" aria-label="Timeframe selector">
           {timeframes.map(tf => (
             <button
               key={tf.label}
               onClick={() => onTimeframeChange(tf)}
               aria-pressed={selectedTimeframe.label === tf.label}
-              className={'px-2 py-1 text-[10px] font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-purple ' +
+              className={'px-2 py-1 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-purple ' +
                 (selectedTimeframe.label === tf.label
-                  ? 'bg-accent-purple text-white'
-                  : 'bg-bg-600 text-gray-400 hover:bg-bg-500')}
+                  ? 'text-accent-purple font-semibold'
+                  : 'text-gray-500 hover:text-gray-300')}
             >
               {tf.label}
             </button>
@@ -117,18 +117,18 @@ export default function Header({
         </div>
 
         {/* Price + change */}
-        <div className="flex items-center gap-2" aria-label={`Current price: $${formatPrice(currentPrice)}, ${isUp ? 'up' : 'down'} ${Math.abs(change).toFixed(2)} percent`}>
-          <span className="font-mono text-lg font-semibold" aria-hidden="true">
+        <div className="flex items-baseline gap-2 shrink-0" aria-label={`Current price: $${formatPrice(currentPrice)}, ${isUp ? 'up' : 'down'} ${Math.abs(change).toFixed(2)} percent`}>
+          <span className="font-mono text-base font-semibold text-text-primary" aria-hidden="true">
             ${formatPrice(currentPrice)}
           </span>
-          <span className={`flex items-center gap-0.5 text-xs font-medium ${isUp ? 'text-accent-green' : 'text-accent-red'}`} aria-hidden="true">
-            {isUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+          <span className={`flex items-center gap-0.5 text-xs font-mono ${isUp ? 'text-accent-green' : 'text-accent-red'}`} aria-hidden="true">
+            {isUp ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
             {isUp ? '+' : ''}{change.toFixed(2)}%
           </span>
         </div>
 
         {/* Sim speed control */}
-        <div className="flex items-center gap-0.5 bg-bg-700 rounded p-0.5" role="group" aria-label="Simulation speed">
+        <div className="flex items-center gap-0.5 bg-bg-700  p-0.5 shrink-0" role="group" aria-label="Simulation speed">
           {SPEED_OPTIONS.map(opt => {
             const Icon = opt.icon
             const isActive = simSpeed === opt.value
@@ -138,7 +138,7 @@ export default function Header({
                 onClick={() => onSpeedChange(opt.value)}
                 aria-pressed={isActive}
                 aria-label={`Set speed to ${opt.label}`}
-                className={`flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue ${
+                className={`flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-medium  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue ${
                   isActive
                     ? opt.value === 0
                       ? 'bg-accent-red/20 text-accent-red'
@@ -163,10 +163,10 @@ export default function Header({
           aria-pressed={tradingActive}
           aria-label={tradingActive ? 'Stop trading' : 'Start trading'}
           title={tradingActive ? 'Trading is ON — click to stop' : 'Trading is OFF — click to start'}
-          className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-green disabled:opacity-40 disabled:cursor-not-allowed ${
+          className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-green disabled:opacity-40 disabled:cursor-not-allowed ${
             tradingActive
-              ? 'bg-accent-green/20 text-accent-green hover:bg-accent-green/30'
-              : 'bg-accent-red/20 text-accent-red hover:bg-accent-red/30'
+              ? 'text-accent-green hover:bg-accent-green/10'
+              : 'text-accent-red hover:bg-accent-red/10'
           }`}
         >
           <Power size={12} />
@@ -178,7 +178,7 @@ export default function Header({
           onClick={onSoundToggle}
           aria-pressed={soundOn}
           aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'}
-          className={'p-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-green ' + (soundOn ? 'text-accent-green hover:bg-bg-700' : 'text-gray-600 hover:bg-bg-700')}
+          className={'p-1  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-green ' + (soundOn ? 'text-accent-green hover:bg-bg-700' : 'text-gray-600 hover:bg-bg-700')}
           title={soundOn ? 'Sound on' : 'Sound off'}
         >
           {soundOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
@@ -188,7 +188,7 @@ export default function Header({
         <button
           onClick={onThemeToggle}
           aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          className="p-1 rounded transition-colors text-gray-400 hover:bg-bg-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-yellow"
+          className="p-1  transition-colors text-gray-400 hover:bg-bg-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-yellow"
           title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
         >
           {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
@@ -196,14 +196,14 @@ export default function Header({
 
         {/* Connection status */}
         <div className="flex items-center gap-3 text-xs" role="status" aria-live="polite">
-          <div className={`flex items-center gap-1.5 ${exchangeConnected ? 'text-accent-green' : 'text-accent-red'}`} aria-label={`Exchange ${exchangeConnected ? 'connected' : 'disconnected'}`}>
-            {exchangeConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
-            <span className="hidden sm:inline">Exchange</span>
+          <div className={`flex items-center gap-1 ${exchangeConnected ? 'text-accent-green' : 'text-accent-red'}`} aria-label={`Exchange ${exchangeConnected ? 'connected' : 'disconnected'}`}>
+            {exchangeConnected ? <Wifi size={13} /> : <WifiOff size={13} />}
+            <span className="hidden sm:inline text-xs">EX</span>
             {exchangeConnected && <span className="w-1.5 h-1.5 rounded-full bg-accent-green pulse-dot" />}
           </div>
-          <div className={`flex items-center gap-1.5 ${signalConnected ? 'text-accent-green' : 'text-gray-500'}`} aria-label={`AI Signals ${signalConnected ? 'connected' : 'disconnected'}`}>
-            {signalConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
-            <span className="hidden sm:inline">AI Signals</span>
+          <div className={`flex items-center gap-1 ${signalConnected ? 'text-accent-green' : 'text-gray-500'}`} aria-label={`AI Signals ${signalConnected ? 'connected' : 'disconnected'}`}>
+            {signalConnected ? <Wifi size={13} /> : <WifiOff size={13} />}
+            <span className="hidden sm:inline text-xs">AI</span>
             {signalConnected && <span className="w-1.5 h-1.5 rounded-full bg-accent-green pulse-dot" />}
           </div>
         </div>
@@ -211,7 +211,7 @@ export default function Header({
 
       {/* Ticker tape — all prices across exchanges */}
       {allPrices && exchangeConnected && (
-        <div className="flex items-center gap-0 px-4 py-1 border-t border-bg-700 overflow-x-auto scrollbar-thin">
+        <div className="flex items-center gap-0 px-3 py-0.5 border-t border-bg-700 overflow-x-auto scrollbar-thin">
           {exchanges.map(ex => (
             <div key={ex} className="flex items-center gap-2 px-2 shrink-0">
               <span className="text-[9px] text-gray-600 uppercase">{ex}</span>
@@ -223,7 +223,7 @@ export default function Header({
                   <button
                     key={`${ex}|${sym}`}
                     onClick={() => { onExchangeChange(ex); onSymbolChange(sym) }}
-                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                    className={`flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono transition-colors ${
                       isActive ? 'bg-bg-600 text-gray-200' : 'text-gray-500 hover:text-gray-300'
                     }`}
                   >

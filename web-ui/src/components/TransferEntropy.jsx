@@ -214,7 +214,7 @@ export default function TransferEntropy({ candles, symbol, exchange, symbols }) 
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Transfer Entropy (Causality) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -222,33 +222,33 @@ export default function TransferEntropy({ candles, symbol, exchange, symbols }) 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">k (Y history):</span>
-          <input type="number" value={k} onChange={e => setK(Math.max(1, Math.min(3, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={k} onChange={e => setK(Math.max(1, Math.min(3, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">l (X history):</span>
-          <input type="number" value={l} onChange={e => setL(Math.max(1, Math.min(3, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={l} onChange={e => setL(Math.max(1, Math.min(3, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Bins:</span>
-          <input type="number" value={nBins} onChange={e => setNBins(Math.max(2, Math.min(10, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nBins} onChange={e => setNBins(Math.max(2, Math.min(10, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Net TE bar chart */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Net Transfer Entropy: {symbol} ↔ other symbols</div>
         <div className="space-y-1">
           {data.results.map((r, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
               <span className="text-slate-400 w-32 truncate">{r.target}</span>
-              <div className="flex-1 bg-slate-900 rounded h-4 relative">
+              <div className="flex-1 bg-slate-900  h-4 relative">
                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
                 <div
-                  className="h-full rounded absolute"
+                  className="h-full  absolute"
                   style={{
                     width: `${(Math.abs(r.netTE) / maxTE) * 50}%`,
                     background: r.netTE >= 0 ? '#22c55e' : '#ef4444',
@@ -266,9 +266,9 @@ export default function TransferEntropy({ candles, symbol, exchange, symbols }) 
       </div>
 
       {/* Directional TE comparison */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Directional Transfer Entropy</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -293,25 +293,25 @@ export default function TransferEntropy({ candles, symbol, exchange, symbols }) 
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Self-TE</div>
           <div className="text-cyan-400 font-mono">{data.selfTE.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Pairs tested</div>
           <div className="text-amber-400 font-mono">{data.results.length - 1}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Strongest link</div>
           <div className="text-emerald-400 font-mono text-[10px]">{data.results[1]?.target || 'N/A'}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Max |net TE|</div>
           <div className="text-purple-400 font-mono">{Math.max(...data.results.map(r => Math.abs(r.netTE))).toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Method:</strong> TE_{k},{l} with {nBins}-bin quantization |
         <strong> Surrogates:</strong> 5 shuffles per direction |

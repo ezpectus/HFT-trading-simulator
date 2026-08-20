@@ -89,7 +89,7 @@ export default function FairValueGap({ candles, symbol, exchange }) {
 
   if (!gaps) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Zap size={12} className="text-accent-yellow" />
           Fair Value Gaps
@@ -103,7 +103,7 @@ export default function FairValueGap({ candles, symbol, exchange }) {
   const filled = gaps.filter(g => g.filled)
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Zap size={12} className="text-accent-yellow" />
         Fair Value Gaps
@@ -150,7 +150,7 @@ export default function FairValueGap({ candles, symbol, exchange }) {
 function GapRow({ gap }) {
   const isBull = gap.type === 'bullish'
   return (
-    <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-bg-600/50 text-[9px]">
+    <div className="flex items-center gap-1.5 px-1.5 py-0.5  bg-bg-600/50 text-[9px]">
       <span className={isBull ? 'text-accent-green' : 'text-accent-red'}>
         {isBull ? <TrendingUp size={9} className="inline" /> : <TrendingDown size={9} className="inline" />}
       </span>

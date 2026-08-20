@@ -75,7 +75,7 @@ export default function StrategyBuilder({ currentPrice }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <FlaskConical size={12} className="text-accent-purple" />
         Strategy Builder
@@ -87,12 +87,12 @@ export default function StrategyBuilder({ currentPrice }) {
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
-          className="flex-1 bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple"
+          className="flex-1 bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple"
           placeholder="Strategy name"
         />
         <button
           onClick={saveStrategy}
-          className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30"
+          className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30"
         >
           <Save size={10} />
           Save
@@ -104,14 +104,14 @@ export default function StrategyBuilder({ currentPrice }) {
         {rules.map((rule, i) => {
           const cond = CONDITIONS.find(c => c.id === rule.condition)
           return (
-            <div key={rule.id} className="bg-bg-600/50 rounded p-1.5">
+            <div key={rule.id} className="bg-bg-600/50  p-1.5">
               <div className="flex items-center gap-1 mb-1">
                 <span className="text-[8px] text-gray-600 font-mono">#{i + 1}</span>
                 <span className="text-[8px] text-gray-500">IF</span>
                 <select
                   value={rule.condition}
                   onChange={e => updateRule(rule.id, 'condition', e.target.value)}
-                  className="flex-1 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 outline-none"
+                  className="flex-1 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 outline-none"
                 >
                   {CONDITIONS.map(c => (
                     <option key={c.id} value={c.id}>{c.label}</option>
@@ -128,7 +128,7 @@ export default function StrategyBuilder({ currentPrice }) {
                     step="0.1"
                     value={rule.value}
                     onChange={e => updateRule(rule.id, 'value', Number(e.target.value))}
-                    className="w-16 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none"
+                    className="w-16 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none"
                   />
                 )}
                 {cond?.unit && <span className="text-[8px] text-gray-600">{cond.unit}</span>}
@@ -136,7 +136,7 @@ export default function StrategyBuilder({ currentPrice }) {
                 <select
                   value={rule.action}
                   onChange={e => updateRule(rule.id, 'action', e.target.value)}
-                  className="bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] outline-none"
+                  className="bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] outline-none"
                 >
                   {ACTIONS.map(a => (
                     <option key={a.id} value={a.id}>{a.label}</option>
@@ -148,7 +148,7 @@ export default function StrategyBuilder({ currentPrice }) {
                     step="0.01"
                     value={rule.qty}
                     onChange={e => updateRule(rule.id, 'qty', Number(e.target.value))}
-                    className="w-12 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none"
+                    className="w-12 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none"
                     title="Quantity"
                   />
                 )}
@@ -161,7 +161,7 @@ export default function StrategyBuilder({ currentPrice }) {
       {/* Add rule button */}
       <button
         onClick={addRule}
-        className="w-full flex items-center justify-center gap-1 py-1 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors mb-2"
+        className="w-full flex items-center justify-center gap-1 py-1 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors mb-2"
       >
         <Plus size={10} />
         Add Rule
@@ -173,7 +173,7 @@ export default function StrategyBuilder({ currentPrice }) {
           <div className="text-[8px] text-gray-600 uppercase mb-1">Saved Strategies</div>
           <div className="space-y-0.5 max-h-[80px] overflow-y-auto scrollbar-thin">
             {savedStrategies.map(s => (
-              <div key={s.id} className="flex items-center gap-1.5 px-1.5 py-1 rounded bg-bg-600/50 group">
+              <div key={s.id} className="flex items-center gap-1.5 px-1.5 py-1  bg-bg-600/50 group">
                 <button
                   onClick={() => loadStrategy(s.id)}
                   className="flex-1 text-left text-[9px] text-gray-400 hover:text-gray-200"

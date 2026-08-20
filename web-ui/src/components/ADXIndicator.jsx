@@ -56,7 +56,7 @@ export default function ADXIndicator({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Gauge size={12} className="text-accent-purple" />
           ADX / DI
@@ -69,7 +69,7 @@ export default function ADXIndicator({ candles, symbol, exchange }) {
   const { lastAdx, lastPdi, lastMdi, strength, strengthColor, direction, directionColor, diCross, adxPath, pdiPath, mdiPath } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Gauge size={12} className="text-accent-purple" />
         ADX / DI Indicator
@@ -113,7 +113,7 @@ export default function ADXIndicator({ candles, symbol, exchange }) {
       </div>
 
       {diCross && (
-        <div className="mt-1 bg-accent-yellow/10 border border-accent-yellow/20 rounded px-1.5 py-0.5">
+        <div className="mt-1 bg-accent-yellow/10 border border-accent-yellow/20  px-1.5 py-0.5">
           <span className="text-[8px] text-accent-yellow">DI cross detected — momentum shift</span>
         </div>
       )}

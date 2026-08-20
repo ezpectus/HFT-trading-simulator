@@ -60,7 +60,7 @@ export default function HeatmapCalendar({ accounts }) {
   const worstDay = Object.entries(dailyPnl).sort((a, b) => a[1] - b[1])[0]
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Calendar size={12} className="text-accent-green" />
         PnL Heatmap — {MONTHS[month]} {year}
@@ -80,7 +80,7 @@ export default function HeatmapCalendar({ accounts }) {
             {week.map((cell, ci) => (
               <div
                 key={ci}
-                className={'aspect-square rounded flex flex-col items-center justify-center text-[8px] font-mono ' +
+                className={'aspect-square  flex flex-col items-center justify-center text-[8px] font-mono ' +
                   (cell ? pnlColor(cell.pnl) : 'bg-transparent')}
                 title={cell ? `${cell.day} ${MONTHS[month]}: ${cell.pnl >= 0 ? '+' : ''}${formatUsd(cell.pnl)}` : ''}
               >

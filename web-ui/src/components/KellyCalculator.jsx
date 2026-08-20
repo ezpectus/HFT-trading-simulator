@@ -43,7 +43,7 @@ export default function KellyCalculator({ accounts }) {
   }, [accounts, fractionalKelly])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Percent size={12} className="text-accent-blue" />
         Kelly Criterion Calculator
@@ -70,7 +70,7 @@ export default function KellyCalculator({ accounts }) {
                 <button
                   key={f}
                   onClick={() => setFractionalKelly(f)}
-                  className={'flex-1 py-1 text-[10px] rounded transition-colors ' +
+                  className={'flex-1 py-1 text-[10px]  transition-colors ' +
                     (fractionalKelly === f ? 'bg-accent-blue/20 text-accent-blue' : 'bg-bg-600 text-gray-400 hover:bg-bg-500')}
                 >
                   {f}x
@@ -81,13 +81,13 @@ export default function KellyCalculator({ accounts }) {
 
           {/* Kelly results */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-bg-600/50 rounded px-2 py-1.5">
+            <div className="bg-bg-600/50  px-2 py-1.5">
               <div className="text-[8px] text-gray-600 uppercase">Full Kelly</div>
               <div className={'text-sm font-mono font-bold ' + (stats.kelly > 0 ? 'text-accent-green' : 'text-accent-red')}>
                 {stats.kelly > 0 ? '+' : ''}{stats.kelly.toFixed(2)}%
               </div>
             </div>
-            <div className="bg-bg-600/50 rounded px-2 py-1.5 border border-accent-blue/30">
+            <div className="bg-bg-600/50  px-2 py-1.5 border border-accent-blue/30">
               <div className="text-[8px] text-accent-blue uppercase">Suggested ({fractionalKelly}x)</div>
               <div className="text-sm font-mono font-bold text-accent-blue">
                 {stats.suggested.toFixed(2)}%
@@ -110,7 +110,7 @@ export default function KellyCalculator({ accounts }) {
 
 function Stat({ label, value, color = 'text-gray-200' }) {
   return (
-    <div className="bg-bg-600/50 rounded px-2 py-1">
+    <div className="bg-bg-600/50  px-2 py-1">
       <div className="text-[8px] text-gray-600 uppercase">{label}</div>
       <div className={`text-[11px] font-mono ${color}`}>{value}</div>
     </div>

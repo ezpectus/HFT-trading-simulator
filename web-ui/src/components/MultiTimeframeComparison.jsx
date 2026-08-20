@@ -82,7 +82,7 @@ export default function MultiTimeframeComparison({ candles, symbol, exchange }) 
 
   if (!analysis) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Layers size={12} className="text-accent-blue" />
           Multi-Timeframe
@@ -95,7 +95,7 @@ export default function MultiTimeframeComparison({ candles, symbol, exchange }) 
   const { results, bullCount, bearCount, consensus, consensusColor, total } = analysis
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Layers size={12} className="text-accent-blue" />
         Multi-Timeframe Analysis
@@ -116,7 +116,7 @@ export default function MultiTimeframeComparison({ candles, symbol, exchange }) 
       {/* Per-timeframe breakdown */}
       <div className="space-y-1">
         {results.map(r => (
-          <div key={r.label} className="bg-bg-800 rounded px-2 py-1.5">
+          <div key={r.label} className="bg-bg-800  px-2 py-1.5">
             {!r.valid ? (
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-gray-500 font-mono">{r.label}</span>

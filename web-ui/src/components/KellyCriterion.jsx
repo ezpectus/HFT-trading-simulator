@@ -251,45 +251,45 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Fraction:</span>
-          <input type="number" step="0.1" value={fraction} onChange={e => setFraction(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.1" value={fraction} onChange={e => setFraction(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Max leverage:</span>
-          <input type="number" step="0.5" value={maxLeverage} onChange={e => setMaxLeverage(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.5" value={maxLeverage} onChange={e => setMaxLeverage(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Single asset Kelly */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Single Asset Kelly (binary outcome model)</div>
         <div className="flex items-center gap-3 flex-wrap text-xs mb-2">
           <label className="flex items-center gap-1">
             <span className="text-slate-400">Win prob:</span>
-            <input type="number" step="0.01" value={winProb} onChange={e => setWinProb(Math.max(0.01, Math.min(0.99, +e.target.value)))} className="w-12 px-1 bg-slate-900 border border-slate-700 rounded text-slate-200" />
+            <input type="number" step="0.01" value={winProb} onChange={e => setWinProb(Math.max(0.01, Math.min(0.99, +e.target.value)))} className="w-12 px-1 bg-slate-900 border border-slate-700  text-slate-200" />
           </label>
           <label className="flex items-center gap-1">
             <span className="text-slate-400">Win/loss ratio:</span>
-            <input type="number" step="0.1" value={winLossRatio} onChange={e => setWinLossRatio(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-900 border border-slate-700 rounded text-slate-200" />
+            <input type="number" step="0.1" value={winLossRatio} onChange={e => setWinLossRatio(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-900 border border-slate-700  text-slate-200" />
           </label>
         </div>
         <div className="grid grid-cols-4 gap-2 text-xs">
-          <div className="bg-slate-900 rounded p-2">
+          <div className="bg-slate-900  p-2">
             <div className="text-slate-400">f* (full Kelly)</div>
             <div className="text-cyan-400 font-mono">{(singleAsset.fStar * 100).toFixed(2)}%</div>
           </div>
-          <div className="bg-slate-900 rounded p-2">
+          <div className="bg-slate-900  p-2">
             <div className="text-slate-400">f (fractional)</div>
             <div className="text-amber-400 font-mono">{(singleAsset.fractional * 100).toFixed(2)}%</div>
           </div>
-          <div className="bg-slate-900 rounded p-2">
+          <div className="bg-slate-900  p-2">
             <div className="text-slate-400">Edge (p·b - q)</div>
             <div className="text-emerald-400 font-mono">{singleAsset.edge.toFixed(4)}</div>
           </div>
-          <div className="bg-slate-900 rounded p-2">
+          <div className="bg-slate-900  p-2">
             <div className="text-slate-400">Growth rate</div>
             <div className="text-purple-400 font-mono">{(singleAsset.growthRate * 100).toFixed(4)}%</div>
           </div>
@@ -297,9 +297,9 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
       </div>
 
       {/* Growth rate vs fraction */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Growth Rate vs Kelly Fraction (multi-asset)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={sy(0)} x2={W - P} y2={sy(0)} stroke="#475569" strokeDasharray="3,3" />
@@ -314,7 +314,7 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
       </div>
 
       {/* Multi-asset weights */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Multi-Asset Kelly Weights (f* = Σ⁻¹·μ)</div>
         <div className="space-y-1">
           {multiAsset.validSymbols.map((sym, i) => (
@@ -329,10 +329,10 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
               <span className="text-slate-500 font-mono w-20">σ={multiAsset.vols[i].toFixed(4)}</span>
               <span className="text-slate-500 font-mono w-20">Sh={multiAsset.sharpes[i].toFixed(3)}</span>
               {/* Weight bar */}
-              <div className="flex-1 bg-slate-900 rounded h-3 relative">
+              <div className="flex-1 bg-slate-900  h-3 relative">
                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
                 <div
-                  className="h-full rounded absolute"
+                  className="h-full  absolute"
                   style={{
                     width: `${Math.min(50, Math.abs(multiAsset.clamped[i]) * 20)}%`,
                     background: multiAsset.clamped[i] >= 0 ? '#22c55e' : '#ef4444',
@@ -346,9 +346,9 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
       </div>
 
       {/* Monte Carlo simulation */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Monte Carlo Simulation (1 year, 500 paths per asset)</div>
-        <svg width={W} height={120} className="bg-slate-900 rounded">
+        <svg width={W} height={120} className="bg-slate-900 ">
           {multiAsset.simulations.map((sim, i) => {
             const colors = ['#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899']
             const path = sim.samplePath.map((w, t) => `${t === 0 ? 'M' : 'L'} ${P + (t / 252) * (W - 2 * P)} ${110 - Math.min(100, w * 30)}`).join(' ')
@@ -365,25 +365,25 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Gross Exposure</div>
           <div className="text-amber-400 font-mono">{(multiAsset.grossExposure * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Portfolio Growth</div>
           <div className="text-emerald-400 font-mono">{(multiAsset.growthRate * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Long Positions</div>
           <div className="text-cyan-400 font-mono">{multiAsset.clamped.filter(w => w > 0).length}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Short Positions</div>
           <div className="text-red-400 font-mono">{multiAsset.clamped.filter(w => w < 0).length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Model:</strong> f* = Σ⁻¹·μ (multi-asset Kelly) |
         <strong> Fraction:</strong> {fraction}× Kelly |
         <strong> Max leverage:</strong> {maxLeverage}× |

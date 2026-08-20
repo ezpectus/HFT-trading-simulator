@@ -133,7 +133,7 @@ export default function DeltaDivergence({ candles, fills, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Split size={12} className="text-accent-yellow" />
           Delta Divergence
@@ -146,24 +146,24 @@ export default function DeltaDivergence({ candles, fills, symbol, exchange }) {
   const { pricePath, deltaPath, divergences, rsiDivergences, lastDelta, lastCumDelta, lastPrice } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Split size={12} className="text-accent-yellow" />
         Delta Divergence Detector
       </div>
 
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Price</span>
           <div className="font-mono text-gray-300">{formatPrice(lastPrice)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Delta</span>
           <div className={'font-mono ' + (lastDelta >= 0 ? 'text-accent-green' : 'text-accent-red')}>
             {lastDelta >= 0 ? '+' : ''}{lastDelta.toFixed(0)}
           </div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Cum Δ</span>
           <div className={'font-mono ' + (lastCumDelta >= 0 ? 'text-accent-green' : 'text-accent-red')}>
             {lastCumDelta >= 0 ? '+' : ''}{lastCumDelta.toFixed(0)}

@@ -101,7 +101,7 @@ export default function RiskDashboard({ accounts, candles, symbols, exchange }) 
   }, [accounts, candles, exchange, confidence])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Shield size={12} className="text-accent-red" />
         Risk Dashboard
@@ -119,7 +119,7 @@ export default function RiskDashboard({ accounts, candles, symbols, exchange }) 
               <button
                 key={c}
                 onClick={() => setConfidence(c)}
-                className={'flex-1 py-1 text-[10px] rounded transition-colors ' +
+                className={'flex-1 py-1 text-[10px]  transition-colors ' +
                   (confidence === c ? 'bg-accent-red/20 text-accent-red' : 'bg-bg-600 text-gray-400')}
               >
                 {c}%
@@ -156,7 +156,7 @@ export default function RiskDashboard({ accounts, candles, symbols, exchange }) 
           </div>
 
           {/* Beta interpretation */}
-          <div className="bg-bg-600/50 rounded px-2 py-1.5 mb-2">
+          <div className="bg-bg-600/50  px-2 py-1.5 mb-2">
             <div className="flex items-center justify-between text-[9px]">
               <span className="text-gray-500">Portfolio Beta</span>
               <span className={'font-mono font-bold ' + (risk.beta > 1.5 ? 'text-accent-red' : risk.beta > 1 ? 'text-accent-yellow' : 'text-accent-green')}>
@@ -190,7 +190,7 @@ export default function RiskDashboard({ accounts, candles, symbols, exchange }) 
 
 function RiskStat({ label, value, sub, color, icon: Icon }) {
   return (
-    <div className="bg-bg-600/50 rounded px-2 py-1.5">
+    <div className="bg-bg-600/50  px-2 py-1.5">
       <div className="flex items-center gap-1 text-[8px] text-gray-600 uppercase">
         <Icon size={9} /> {label}
       </div>
@@ -202,7 +202,7 @@ function RiskStat({ label, value, sub, color, icon: Icon }) {
 
 function Cell({ label, value, color = 'text-gray-300' }) {
   return (
-    <div className="bg-bg-600/50 rounded px-2 py-1">
+    <div className="bg-bg-600/50  px-2 py-1">
       <div className="text-[8px] text-gray-600 uppercase">{label}</div>
       <div className={`text-[10px] font-mono ${color}`}>{value}</div>
     </div>

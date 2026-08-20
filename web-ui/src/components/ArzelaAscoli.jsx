@@ -204,7 +204,7 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Arzela-Ascoli Theorem (Equicontinuity) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -212,7 +212,7 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Indicator:</span>
-          <select value={indicatorType} onChange={e => setIndicatorType(e.target.value)} className="bg-slate-800 border border-slate-600 rounded text-slate-200 px-1">
+          <select value={indicatorType} onChange={e => setIndicatorType(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
             <option value="sma">SMA</option>
             <option value="ema">EMA</option>
             <option value="wma">WMA</option>
@@ -221,18 +221,18 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Max param:</span>
-          <input type="number" value={maxParam} onChange={e => setMaxParam(Math.max(6, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={maxParam} onChange={e => setMaxParam(Math.max(6, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Indicator family */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Indicator Family F = {'{f_p : p=2,4,...,' + maxParam + '}'} (varying parameter)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
@@ -246,9 +246,9 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
       </div>
 
       {/* Family modulus of continuity */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Family Modulus of Continuity: omega_F(delta) = sup_f omega_f(delta) (equicontinuity check)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -264,9 +264,9 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
       </div>
 
       {/* Individual moduli */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Individual omega(1) per parameter (outliers = overfitting candidates)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -283,29 +283,29 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Bound M</div>
           <div className="text-cyan-400 font-mono">{data.M.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">omega_F(1)</div>
           <div className="text-purple-400 font-mono">{data.familyModulus[0].omega.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Bounded</div>
           <div className="font-mono" style={{ color: data.pointwiseBounded ? '#22c55e' : '#ef4444' }}>{data.pointwiseBounded ? 'YES' : 'NO'}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Equicont.</div>
           <div className="font-mono" style={{ color: data.equicontinuous ? '#22c55e' : '#ef4444' }}>{data.equicontinuous ? 'YES' : 'NO'}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Outliers</div>
           <div className="text-amber-400 font-mono">{data.outliers.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Arzela-Ascoli:</strong> F relatively compact iff bounded + equicontinuous |
         <strong> Modulus:</strong> omega_f(delta) = sup|f(x)-f(y)| for |x-y|{'<'}delta |

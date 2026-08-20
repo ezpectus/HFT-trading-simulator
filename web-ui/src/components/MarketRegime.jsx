@@ -96,7 +96,7 @@ export default function MarketRegime({ candles, symbol, exchange }) {
 
   if (!regime) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Activity size={12} className="text-accent-blue" />
           Market Regime
@@ -109,7 +109,7 @@ export default function MarketRegime({ candles, symbol, exchange }) {
   const { type, color, Icon, dx, plusDI, minusDI, volPct, slopePct, volTrend, confidence, trendStrength } = regime
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Activity size={12} className="text-accent-blue" />
         Market Regime
@@ -117,7 +117,7 @@ export default function MarketRegime({ candles, symbol, exchange }) {
 
       {/* Regime badge */}
       <div className="flex items-center gap-2 mb-2">
-        <div className={'flex items-center gap-1.5 px-2 py-1 rounded ' + (color === 'text-accent-green' ? 'bg-accent-green/20' : color === 'text-accent-red' ? 'bg-accent-red/20' : color === 'text-accent-yellow' ? 'bg-accent-yellow/20' : 'bg-bg-600')}>
+        <div className={'flex items-center gap-1.5 px-2 py-1  ' + (color === 'text-accent-green' ? 'bg-accent-green/20' : color === 'text-accent-red' ? 'bg-accent-red/20' : color === 'text-accent-yellow' ? 'bg-accent-yellow/20' : 'bg-bg-600')}>
           <Icon size={14} className={color} />
           <span className={'text-[11px] font-bold ' + color}>{type}</span>
         </div>
@@ -155,7 +155,7 @@ export default function MarketRegime({ candles, symbol, exchange }) {
 
 function Metric({ label, value, color }) {
   return (
-    <div className="bg-bg-600/50 rounded px-2 py-1">
+    <div className="bg-bg-600/50  px-2 py-1">
       <div className="text-[8px] text-gray-600 uppercase">{label}</div>
       <div className={`text-[10px] font-mono ${color}`}>{value}</div>
     </div>

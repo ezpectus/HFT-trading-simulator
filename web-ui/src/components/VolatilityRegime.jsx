@@ -83,7 +83,7 @@ export default function VolatilityRegime({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Zap size={12} className="text-accent-yellow" />
           Volatility Regime
@@ -96,14 +96,14 @@ export default function VolatilityRegime({ candles, symbol, exchange }) {
   const { currentVol, avgVol, volRatio, regime, regimeColor, regimeBg, volTrend, path, areaPath, lastAtr, price } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Zap size={12} className="text-accent-yellow" />
         Volatility Regime
       </div>
 
       {/* Regime badge */}
-      <div className={'rounded px-2 py-1 mb-2 text-center ' + regimeBg}>
+      <div className={' px-2 py-1 mb-2 text-center ' + regimeBg}>
         <span className={'text-xs font-bold ' + regimeColor}>{regime}</span>
         <span className="text-[8px] text-gray-600 ml-1.5">({volRatio.toFixed(2)}x avg)</span>
       </div>

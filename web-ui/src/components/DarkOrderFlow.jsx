@@ -52,7 +52,7 @@ export default function DarkOrderFlow({ candles, symbol, exchange: selectedExcha
   }, [candles, symbol, selectedExchange])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Eye size={12} className="text-accent-purple" />
         Dark Order Flow
@@ -67,7 +67,7 @@ export default function DarkOrderFlow({ candles, symbol, exchange: selectedExcha
           {anomalies.map((a, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 py-1 px-1.5 rounded bg-bg-600/50"
+              className="flex items-center gap-2 py-1 px-1.5  bg-bg-600/50"
             >
               <div className={'shrink-0 ' + (a.isBullish ? 'text-accent-green' : 'text-accent-red')}>
                 {a.isHidden ? (

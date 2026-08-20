@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { dismissOnboarding, closeOverlays } from './dismiss-onboarding.js'
+import { dismissOnboarding, closeOverlays, gotoWithRetry } from './dismiss-onboarding.js'
 
 test.beforeEach(async ({ page }) => {
   await dismissOnboarding(page)
@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 test.describe('Web UI — Mock Mode', () => {
   test('loads page in mock mode and shows dashboard', async ({ page }) => {
     // Mock mode is enabled via VITE_MOCK_MODE=true in .env or env var
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     // Header should be visible
@@ -20,7 +20,7 @@ test.describe('Web UI — Mock Mode', () => {
   })
 
   test('shows candle chart panel', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     // Chart container should appear (either canvas or div with chart-related class)
@@ -29,7 +29,7 @@ test.describe('Web UI — Mock Mode', () => {
   })
 
   test('shows exchange selector', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     // Exchange buttons or dropdown should be present
@@ -38,7 +38,7 @@ test.describe('Web UI — Mock Mode', () => {
   })
 
   test('shows symbol selector', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     // Symbol buttons or dropdown should be present
@@ -49,7 +49,7 @@ test.describe('Web UI — Mock Mode', () => {
 
 test.describe('Web UI — Navigation', () => {
   test('can switch tabs', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     // Find tab-like elements in header or nav
@@ -62,7 +62,7 @@ test.describe('Web UI — Navigation', () => {
   })
 
   test('can toggle sidebar', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     // Just verify the page is still functional after load
@@ -72,7 +72,7 @@ test.describe('Web UI — Navigation', () => {
 
 test.describe('Web UI — Order Form', () => {
   test('order form is visible', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     // Order form should have buy/sell buttons or quantity input
@@ -81,7 +81,7 @@ test.describe('Web UI — Order Form', () => {
   })
 
   test('buy and sell buttons exist', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     // Look for buy/long button
@@ -97,7 +97,7 @@ test.describe('Web UI — Order Form', () => {
 
 test.describe('Web UI — Signal Feed', () => {
   test('signal feed panel exists', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     // Switch to Signals tab to show signal feed
@@ -106,7 +106,7 @@ test.describe('Web UI — Signal Feed', () => {
     await page.waitForTimeout(500)
     
     // Signal feed should be somewhere on the page
-    const signalArea = page.locator('[class*="signal"], [class*="feed"]').first()
+    const signalArea = page.getByText(/Market Regime|Confidence Distribution|Signal Feed|No signals/i).first()
     await expect(signalArea).toBeVisible({ timeout: 10000 })
   })
 })
@@ -114,7 +114,7 @@ test.describe('Web UI — Signal Feed', () => {
 test.describe('Web UI — Responsive', () => {
   test('page renders on mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 })
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     await expect(page.locator('body')).toBeVisible({ timeout: 10000 })
@@ -127,7 +127,7 @@ test.describe('Web UI — Responsive', () => {
 
   test('page renders on tablet viewport', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 })
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     
     await expect(page.locator('body')).toBeVisible({ timeout: 10000 })
@@ -143,7 +143,7 @@ test.describe('Web UI — No Console Errors', () => {
       }
     })
     
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     await page.waitForTimeout(3000)
     

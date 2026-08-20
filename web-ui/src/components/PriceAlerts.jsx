@@ -105,7 +105,7 @@ export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert })
   const triggeredAlerts = alerts.filter(a => triggered.has(a.id))
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase">
           <BellRing size={12} className="text-accent-yellow" />
@@ -114,14 +114,14 @@ export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert })
         <div className="flex items-center gap-1">
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-1 rounded text-gray-500 hover:text-gray-300 transition-colors"
+            className="p-1  text-gray-500 hover:text-gray-300 transition-colors"
             title={soundEnabled ? 'Sound on' : 'Sound off'}
           >
             {soundEnabled ? <Volume2 size={11} /> : <VolumeX size={11} />}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
+            className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
           >
             <Plus size={10} />
             Add
@@ -131,21 +131,21 @@ export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert })
 
       {/* Add alert form */}
       {showForm && (
-        <div className="mb-2 p-2 bg-bg-800 rounded space-y-1.5">
+        <div className="mb-2 p-2 bg-bg-800  space-y-1.5">
           <div className="text-[10px] text-gray-500">
             Alert when {symbol} on {exchange} goes:
           </div>
           <div className="flex gap-1">
             <button
               onClick={() => setDirection('above')}
-              className={'flex-1 py-1 text-[10px] rounded ' + (direction === 'above' ? 'bg-accent-green/20 text-accent-green' : 'bg-bg-600 text-gray-500')}
+              className={'flex-1 py-1 text-[10px]  ' + (direction === 'above' ? 'bg-accent-green/20 text-accent-green' : 'bg-bg-600 text-gray-500')}
             >
               <TrendingUp size={10} className="inline mr-0.5" />
               Above
             </button>
             <button
               onClick={() => setDirection('below')}
-              className={'flex-1 py-1 text-[10px] rounded ' + (direction === 'below' ? 'bg-accent-red/20 text-accent-red' : 'bg-bg-600 text-gray-500')}
+              className={'flex-1 py-1 text-[10px]  ' + (direction === 'below' ? 'bg-accent-red/20 text-accent-red' : 'bg-bg-600 text-gray-500')}
             >
               <TrendingDown size={10} className="inline mr-0.5" />
               Below
@@ -157,12 +157,12 @@ export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert })
             value={threshold}
             onChange={e => setThreshold(e.target.value)}
             placeholder={currentPrice ? formatPrice(currentPrice) : 'Price...'}
-            className="w-full px-2 py-1 text-xs bg-bg-600 rounded border border-bg-500 text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full px-2 py-1 text-xs bg-bg-600  border border-bg-500 text-gray-200 focus:outline-none focus:border-accent-blue"
             autoFocus
           />
           <button
             onClick={addAlert}
-            className="w-full py-1 text-[10px] rounded bg-accent-blue text-white hover:bg-blue-600 transition-colors"
+            className="w-full py-1 text-[10px]  bg-accent-blue text-white hover:bg-blue-600 transition-colors"
           >
             Set Alert
           </button>
@@ -182,7 +182,7 @@ export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert })
             const distancePct = currentPrice > 0 ? (distance / currentPrice * 100) : 0
             const isAbove = alert.direction === 'above'
             return (
-              <div key={alert.id} className="flex items-center gap-1.5 text-[10px] bg-bg-800 rounded px-2 py-1">
+              <div key={alert.id} className="flex items-center gap-1.5 text-[10px] bg-bg-800  px-2 py-1">
                 {isAbove ? (
                   <TrendingUp size={10} className="text-accent-green shrink-0" />
                 ) : (
@@ -205,7 +205,7 @@ export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert })
 
           {/* Triggered alerts */}
           {triggeredAlerts.map(alert => (
-            <div key={alert.id} className="flex items-center gap-1.5 text-[10px] bg-accent-yellow/10 rounded px-2 py-1 ring-1 ring-accent-yellow/20">
+            <div key={alert.id} className="flex items-center gap-1.5 text-[10px] bg-accent-yellow/10  px-2 py-1 ring-1 ring-accent-yellow/20">
               <BellRing size={10} className="text-accent-yellow shrink-0 animate-pulse" />
               <span className="font-mono text-accent-yellow">${formatPrice(alert.threshold)}</span>
               <span className="text-gray-500 flex-1">Triggered!</span>

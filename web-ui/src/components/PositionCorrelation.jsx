@@ -92,7 +92,7 @@ export default function PositionCorrelation({ accounts, candles, exchange }) {
 
   if (!matrix) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Grid3x3 size={12} className="text-accent-orange" />
           Position Correlation
@@ -113,14 +113,14 @@ export default function PositionCorrelation({ accounts, candles, exchange }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Grid3x3 size={12} className="text-accent-orange" />
         Position Correlation
       </div>
 
       {/* Average correlation */}
-      <div className="flex items-center justify-between bg-bg-600/50 rounded px-2 py-1.5 mb-2">
+      <div className="flex items-center justify-between bg-bg-600/50  px-2 py-1.5 mb-2">
         <span className="text-[9px] text-gray-500">Avg Portfolio Correlation</span>
         <span className={'text-sm font-mono font-bold ' + (avgCorr > 0.5 ? 'text-accent-red' : avgCorr > 0.2 ? 'text-accent-yellow' : 'text-accent-green')}>
           {avgCorr.toFixed(2)}
@@ -129,7 +129,7 @@ export default function PositionCorrelation({ accounts, candles, exchange }) {
 
       {/* Warning */}
       {highCorrPairs.length > 0 && (
-        <div className="flex items-center gap-1.5 bg-accent-red/10 border border-accent-red/20 rounded px-2 py-1 mb-2">
+        <div className="flex items-center gap-1.5 bg-accent-red/10 border border-accent-red/20  px-2 py-1 mb-2">
           <AlertTriangle size={11} className="text-accent-red shrink-0" />
           <span className="text-[8px] text-accent-red">
             {highCorrPairs.length} high-correlation pair(s) detected — diversification risk
@@ -155,7 +155,7 @@ export default function PositionCorrelation({ accounts, candles, exchange }) {
                 const c = corrMatrix[`${s1}|${s2}`]
                 return (
                   <td key={s2} className="text-center p-0.5">
-                    <span className={'inline-block w-full py-0.5 rounded font-mono ' + corrColor(c)}>
+                    <span className={'inline-block w-full py-0.5  font-mono ' + corrColor(c)}>
                       {c.toFixed(2)}
                     </span>
                   </td>
@@ -171,7 +171,7 @@ export default function PositionCorrelation({ accounts, candles, exchange }) {
         <div className="space-y-0.5">
           <div className="text-[8px] text-gray-600 uppercase">High Correlation Pairs</div>
           {highCorrPairs.map((p, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-[9px] bg-bg-600/30 rounded px-1.5 py-0.5">
+            <div key={i} className="flex items-center gap-1.5 text-[9px] bg-bg-600/30  px-1.5 py-0.5">
               <span className="text-gray-400">{p.a.split('/')[0]}</span>
               <span className="text-gray-600">↔</span>
               <span className="text-gray-400">{p.b.split('/')[0]}</span>

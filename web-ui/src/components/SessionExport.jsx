@@ -79,26 +79,26 @@ export default function SessionExport({ accounts, fills, candles, signals, confi
   }, [accounts, fills, candles, signals])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <FileJson size={12} className="text-accent-blue" />
         Session Export
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-2 text-[9px]">
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Fills</div>
           <div className="font-mono text-gray-300">{(fills || []).length}</div>
         </div>
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Candles</div>
           <div className="font-mono text-gray-300">{(candles || []).length}</div>
         </div>
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Signals</div>
           <div className="font-mono text-gray-300">{(signals || []).length}</div>
         </div>
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Accounts</div>
           <div className="font-mono text-gray-300">{Object.keys(accounts || {}).length}</div>
         </div>
@@ -106,7 +106,7 @@ export default function SessionExport({ accounts, fills, candles, signals, confi
 
       <button
         onClick={exportJSON}
-        className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] rounded bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px]  bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 transition-colors"
       >
         <Download size={11} />
         Export Full Session (JSON)

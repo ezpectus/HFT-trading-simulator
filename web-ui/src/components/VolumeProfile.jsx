@@ -78,7 +78,7 @@ export default function VolumeProfile({ candles, symbol }) {
 
   if (!profile) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <BarChart3 size={12} className="text-accent-orange" />
           Volume Profile
@@ -91,7 +91,7 @@ export default function VolumeProfile({ candles, symbol }) {
   const { bins, pocIdx, pocPrice, vaLow, vaHigh, maxBinVol } = profile
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <BarChart3 size={12} className="text-accent-orange" />
         Volume Profile
@@ -128,7 +128,7 @@ export default function VolumeProfile({ candles, symbol }) {
                 {formatPrice((bin.min + bin.max) / 2, 0)}
               </div>
               {/* Bar container */}
-              <div className="flex-1 relative h-3 bg-bg-600/30 rounded-sm overflow-hidden">
+              <div className="flex-1 relative h-3 bg-bg-600/30  overflow-hidden">
                 {/* Buy volume (green) */}
                 <div
                   className="absolute left-0 top-0 h-full bg-accent-green/40"

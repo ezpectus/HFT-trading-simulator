@@ -86,7 +86,7 @@ export default function PnLAttributionChart({ accounts }) {
 
   if (!chartData) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <LineChart size={12} className="text-accent-green" />
           P&L Attribution Chart
@@ -99,7 +99,7 @@ export default function PnLAttributionChart({ accounts }) {
   const { totalPath, symbolPaths, symbolColors, zeroY, W, H, totalCum, attribution, topContributor, tradeCount, symbols } = chartData
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <LineChart size={12} className="text-accent-green" />
         P&L Attribution Over Time
@@ -138,7 +138,7 @@ export default function PnLAttributionChart({ accounts }) {
       <div className="space-y-0.5">
         {attribution.map(a => (
           <div key={a.symbol} className="flex items-center gap-1.5 text-[8px]">
-            <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: symbolColors[a.symbol] || '#888' }} />
+            <span className="w-2 h-2 " style={{ backgroundColor: symbolColors[a.symbol] || '#888' }} />
             <span className="text-gray-400 w-10">{a.symbol.split('/')[0]}</span>
             <div className="flex-1 h-1.5 bg-bg-600 rounded-full overflow-hidden relative">
               <div

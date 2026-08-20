@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { dismissOnboarding, closeOverlays } from './dismiss-onboarding.js'
+import { dismissOnboarding, closeOverlays, gotoWithRetry } from './dismiss-onboarding.js'
 
 test.beforeEach(async ({ page }) => {
   await dismissOnboarding(page)
@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('Trading System UI — Trading Flows', () => {
   test('can switch exchanges via keyboard shortcuts', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     // Press '2' to switch to bybit
     await page.keyboard.press('2')
@@ -19,7 +19,7 @@ test.describe('Trading System UI — Trading Flows', () => {
   })
 
   test('can switch symbols via keyboard shortcuts', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     // Press 'w' to switch to ETH/USDT
     await page.keyboard.press('w')
@@ -30,7 +30,7 @@ test.describe('Trading System UI — Trading Flows', () => {
   })
 
   test('can switch tabs via keyboard shortcuts', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     // Press 's' for signals tab
     await page.keyboard.press('s')
@@ -41,7 +41,7 @@ test.describe('Trading System UI — Trading Flows', () => {
   })
 
   test('can toggle sidebar with Shift+\\', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     // Press Shift+\ to collapse sidebar
     await page.keyboard.press('Shift+\\')
@@ -58,19 +58,19 @@ test.describe('Trading System UI — Trading Flows', () => {
   })
 
   test('can navigate through all tabs', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    const tabs = ['Account', 'Bots', 'Signals', 'Arb', 'Fills', 'History', 'Perf', 'BT']
-    for (const tabName of tabs) {
-      const tab = page.getByRole('tab', { name: new RegExp(tabName, 'i') })
+    const tabIds = ['tab-account', 'tab-bots', 'tab-signals', 'tab-arbitrage', 'tab-fills', 'tab-history', 'tab-performance', 'tab-backtest']
+    for (const testId of tabIds) {
+      const tab = page.getByTestId(testId)
       await tab.click()
-      await page.waitForTimeout(100)
+      await page.waitForTimeout(200)
       await expect(tab).toHaveAttribute('aria-pressed', 'true')
     }
   })
 
   test('order form shows trading state', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     // The order form should be visible
     const orderForm = page.locator('.bg-bg-800').filter({ has: page.locator('input[type="number"]') }).first()
@@ -84,7 +84,7 @@ test.describe('Trading System UI — Trading Flows', () => {
   })
 
   test('mock mode banner shows when in mock mode', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     // In mock mode, the banner should be visible
     // In real mode, it won't be — this test just checks the page loads
@@ -92,7 +92,7 @@ test.describe('Trading System UI — Trading Flows', () => {
   })
 
   test('panel settings toggle works', async ({ page }) => {
-    await page.goto('/')
+    await gotoWithRetry(page, '/')
     await closeOverlays(page)
     // Find the Panels settings button (it's a small button with Settings2 icon)
     const panelsButton = page.getByRole('button').filter({ hasText: 'Panels' }).first()

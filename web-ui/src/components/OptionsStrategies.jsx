@@ -146,7 +146,7 @@ export default function OptionsStrategies() {
                 type="number"
                 value={params.K}
                 onChange={(e) => handleParamChange('K', e.target.value)}
-                className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+                className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
               />
             </div>
           </div>
@@ -160,7 +160,7 @@ export default function OptionsStrategies() {
                 type="number"
                 value={params.K_call}
                 onChange={(e) => handleParamChange('K_call', e.target.value)}
-                className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+                className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
               />
             </div>
             <div>
@@ -169,7 +169,7 @@ export default function OptionsStrategies() {
                 type="number"
                 value={params.K_put}
                 onChange={(e) => handleParamChange('K_put', e.target.value)}
-                className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+                className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
               />
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function OptionsStrategies() {
                 type="number"
                 value={params.K_call_high}
                 onChange={(e) => handleParamChange('K_call_high', e.target.value)}
-                className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+                className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
               />
             </div>
             <div>
@@ -192,7 +192,7 @@ export default function OptionsStrategies() {
                 type="number"
                 value={params.K_call_low}
                 onChange={(e) => handleParamChange('K_call_low', e.target.value)}
-                className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+                className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
               />
             </div>
             <div>
@@ -201,7 +201,7 @@ export default function OptionsStrategies() {
                 type="number"
                 value={params.K_put_high}
                 onChange={(e) => handleParamChange('K_put_high', e.target.value)}
-                className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+                className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
               />
             </div>
             <div>
@@ -210,7 +210,7 @@ export default function OptionsStrategies() {
                 type="number"
                 value={params.K_put_low}
                 onChange={(e) => handleParamChange('K_put_low', e.target.value)}
-                className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+                className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
               />
             </div>
           </div>
@@ -224,7 +224,7 @@ export default function OptionsStrategies() {
                 type="number"
                 value={params.K_low}
                 onChange={(e) => handleParamChange('K_low', e.target.value)}
-                className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+                className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
               />
             </div>
             <div>
@@ -233,7 +233,7 @@ export default function OptionsStrategies() {
                 type="number"
                 value={params.K_middle}
                 onChange={(e) => handleParamChange('K_middle', e.target.value)}
-                className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+                className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
               />
             </div>
             <div>
@@ -242,7 +242,7 @@ export default function OptionsStrategies() {
                 type="number"
                 value={params.K_high}
                 onChange={(e) => handleParamChange('K_high', e.target.value)}
-                className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+                className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
               />
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function OptionsStrategies() {
         <select
           value={strategy}
           onChange={(e) => setStrategy(e.target.value)}
-          className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+          className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
         >
           <option value="straddle">Straddle</option>
           <option value="strangle">Strangle</option>
@@ -281,7 +281,7 @@ export default function OptionsStrategies() {
           <select
             value={long ? 'long' : 'short'}
             onChange={(e) => setLong(e.target.value === 'long')}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           >
             <option value="long">Long</option>
             <option value="short">Short</option>
@@ -297,7 +297,7 @@ export default function OptionsStrategies() {
             type="number"
             value={params.S}
             onChange={(e) => handleParamChange('S', e.target.value)}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -307,7 +307,7 @@ export default function OptionsStrategies() {
             step="0.01"
             value={params.T}
             onChange={(e) => handleParamChange('T', e.target.value)}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -317,7 +317,7 @@ export default function OptionsStrategies() {
             step="0.01"
             value={params.sigma}
             onChange={(e) => handleParamChange('sigma', e.target.value)}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           />
         </div>
         <div>
@@ -327,7 +327,7 @@ export default function OptionsStrategies() {
             step="0.01"
             value={params.r}
             onChange={(e) => handleParamChange('r', e.target.value)}
-            className="w-full bg-bg-700 border border-bg-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
+            className="w-full bg-bg-700 border border-bg-600  px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-blue"
           />
         </div>
       </div>
@@ -337,7 +337,7 @@ export default function OptionsStrategies() {
 
       {/* Results */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-bg-700 rounded-lg p-3">
+        <div className="bg-bg-700  p-3">
           <div className="text-[10px] text-gray-500 uppercase mb-1 flex items-center gap-1">
             <TrendingUp size={12} />
             Max Profit
@@ -346,7 +346,7 @@ export default function OptionsStrategies() {
             {results.maxProfit === Infinity ? '∞' : `$${results.maxProfit.toFixed(2)}`}
           </div>
         </div>
-        <div className="bg-bg-700 rounded-lg p-3">
+        <div className="bg-bg-700  p-3">
           <div className="text-[10px] text-gray-500 uppercase mb-1 flex items-center gap-1">
             <TrendingDown size={12} />
             Max Loss
@@ -358,14 +358,14 @@ export default function OptionsStrategies() {
       </div>
 
       {/* Break-evens */}
-      <div className="bg-bg-700 rounded-lg p-3">
+      <div className="bg-bg-700  p-3">
         <div className="text-[10px] text-gray-500 uppercase mb-2 flex items-center gap-1">
           <AlertTriangle size={12} />
           Break-even Points
         </div>
         <div className="flex gap-2">
           {results.breakEvens.map((be, i) => (
-            <div key={i} className="bg-bg-600 rounded px-2 py-1">
+            <div key={i} className="bg-bg-600  px-2 py-1">
               <span className="text-xs font-mono text-gray-200">${be.toFixed(2)}</span>
             </div>
           ))}

@@ -10,6 +10,7 @@ import CandleChart from './components/CandleChart'
 import OrderBook from './components/OrderBook'
 import OrderForm from './components/OrderForm'
 import DetachablePanel from './components/DetachablePanel'
+import PanelErrorBoundary from './components/PanelErrorBoundary'
 import KeyboardHelp from './components/KeyboardHelp'
 import StatusBar from './components/StatusBar'
 import PanelContainer from './panels/PanelContainer'
@@ -36,16 +37,17 @@ const TradeHistory = lazy(() => import('./components/TradeHistory'))
 const BotStatus = lazy(() => import('./components/BotStatus'))
 const OnboardingTutorial = lazy(() => import('./components/OnboardingTutorial'))
 
-const TabButton = memo(function TabButton({ active, onClick, icon, children }) {
+const TabButton = memo(function TabButton({ active, onClick, icon, children, testId }) {
   return (
     <button
       onClick={onClick}
       role="tab"
       aria-pressed={active}
-      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue rounded-sm ${
+      data-testid={testId}
+      className={`flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-blue border-b-2 shrink-0 whitespace-nowrap ${
         active
-          ? 'text-accent-blue border-b-2 border-accent-blue bg-bg-700'
-          : 'text-gray-400 hover:text-gray-200 hover:bg-bg-700'
+          ? 'text-accent-yellow border-accent-yellow'
+          : 'text-gray-500 border-transparent hover:text-gray-300'
       }`}
     >
       {icon}
@@ -363,7 +365,7 @@ export default function App() {
           <button
             onClick={() => setMobilePanel('chart')}
             aria-label="Show chart panel"
-            className={'flex-1 py-1.5 text-xs font-medium rounded transition-colors ' +
+            className={'flex-1 py-1.5 text-xs font-medium transition-colors ' +
               (mobilePanel === 'chart' ? 'bg-accent-blue text-white' : 'bg-bg-600 text-gray-400')}
           >
             Chart
@@ -371,7 +373,7 @@ export default function App() {
           <button
             onClick={() => setMobilePanel('sidebar')}
             aria-label="Show tools panel"
-            className={'flex-1 py-1.5 text-xs font-medium rounded transition-colors ' +
+            className={'flex-1 py-1.5 text-xs font-medium transition-colors ' +
               (mobilePanel === 'sidebar' ? 'bg-accent-blue text-white' : 'bg-bg-600 text-gray-400')}
           >
             Tools
@@ -379,15 +381,15 @@ export default function App() {
         </div>
       )}
 
-      <div id="main-content" role="main" className={'flex-1 flex gap-1 p-1 overflow-hidden ' + (isMobile ? 'flex-col' : 'flex-row')}>
+      <div id="main-content" role="main" className={'flex-1 min-h-0 flex gap-px p-0 overflow-hidden bg-bg-600 ' + (isMobile ? 'flex-col' : 'flex-row')}>
         {/* Left: Chart + Order Form */}
-        <div className={'flex flex-col gap-1 min-w-0 ' + (isMobile ? (mobilePanel === 'chart' ? 'flex-1' : 'hidden') : 'flex-1')}>
+        <div className={'flex flex-col gap-px min-w-0 ' + (isMobile ? (mobilePanel === 'chart' ? 'flex-1' : 'hidden') : 'flex-1')}>
           <DetachablePanel panelId="chart" onDetach={handleDetach} isDetached={isDetached('chart')}>
             <div className="h-full">
               <CandleChart candles={chartCandles} symbol={selectedSymbol} regime={signals.regime} fills={exchange.fills} selectedExchange={selectedExchange} />
             </div>
           </DetachablePanel>
-          <div className={'bg-bg-800 rounded-lg overflow-hidden ' + (isMobile ? 'h-[180px]' : isTablet ? 'h-[160px]' : 'h-[200px]')}>
+          <div className={'bg-bg-800 overflow-hidden ' + (isMobile ? 'h-[180px]' : isTablet ? 'h-[160px]' : 'h-[200px]')}>
             <OrderForm
               exchange={selectedExchange}
               symbol={selectedSymbol}
@@ -401,19 +403,19 @@ export default function App() {
         </div>
 
         {/* Right: Order Book + Tabs */}
-        <div className={'flex flex-col gap-1 shrink-0 transition-all duration-200 ' + (isMobile ? (mobilePanel === 'sidebar' ? 'flex-1 overflow-y-auto' : 'hidden') : (sidebarCollapsed ? 'w-0 overflow-hidden' : (isTablet ? 'w-[300px]' : 'w-[340px]')))}>
+        <div className={'flex flex-col gap-px shrink-0 min-h-0 overflow-hidden transition-all duration-200 ' + (isMobile ? (mobilePanel === 'sidebar' ? 'flex-1 overflow-y-auto' : 'hidden') : (sidebarCollapsed ? 'w-0 overflow-hidden' : (isTablet ? 'w-[300px]' : 'w-[340px]')))}>
           {/* Collapse toggle button (desktop only) */}
           {!isMobile && (
             <button
               onClick={() => setSidebarCollapsed(true)}
-              className="absolute right-1 top-1 z-10 p-1 rounded bg-bg-700 text-gray-500 hover:text-gray-300 hover:bg-bg-600 transition-colors"
+              className="absolute right-1 top-1 z-10 p-1 bg-bg-700 text-gray-500 hover:text-gray-300 hover:bg-bg-600 transition-colors"
               title="Collapse sidebar (Shift+\)"
               aria-label="Collapse sidebar"
             >
               <PanelRightClose size={14} />
             </button>
           )}
-          <div className="h-[400px]">
+          <div className="h-[300px] shrink-0">
             <DetachablePanel panelId="orderbook" onDetach={handleDetach} isDetached={isDetached('orderbook')}>
               <OrderBook
                 exchange={selectedExchange}
@@ -425,40 +427,43 @@ export default function App() {
           </div>
 
           {/* Panel Registry — reads from Zustand stores directly */}
-          <PanelContainer />
+          <div className="max-h-[200px] overflow-y-auto scrollbar-thin">
+            <PanelContainer />
+          </div>
 
           {/* Tabbed panels */}
-          <div className="flex-1 bg-bg-800 rounded-lg overflow-hidden flex flex-col">
-            <div className="flex border-b border-bg-600 shrink-0" role="tablist" aria-label="Trading panels">
-              <TabButton active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<Activity size={14} />}>
+          <div className="flex-1 min-h-0 bg-bg-800 overflow-hidden flex flex-col">
+            <div className="flex border-b border-bg-600 shrink-0 overflow-x-auto scrollbar-thin" role="tablist" aria-label="Trading panels">
+              <TabButton testId="tab-account" active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<Activity size={14} />}>
                 Account
               </TabButton>
-              <TabButton active={activeTab === 'bots'} onClick={() => setActiveTab('bots')} icon={<Bot size={14} />}>
+              <TabButton testId="tab-bots" active={activeTab === 'bots'} onClick={() => setActiveTab('bots')} icon={<Bot size={14} />}>
                 Bots
               </TabButton>
-              <TabButton active={activeTab === 'signals'} onClick={() => setActiveTab('signals')} icon={<Radio size={14} />}>
+              <TabButton testId="tab-signals" active={activeTab === 'signals'} onClick={() => setActiveTab('signals')} icon={<Radio size={14} />}>
                 Signals
               </TabButton>
-              <TabButton active={activeTab === 'arbitrage'} onClick={() => setActiveTab('arbitrage')} icon={<TrendingUp size={14} />}>
+              <TabButton testId="tab-arbitrage" active={activeTab === 'arbitrage'} onClick={() => setActiveTab('arbitrage')} icon={<TrendingUp size={14} />}>
                 Arb
               </TabButton>
-              <TabButton active={activeTab === 'prices'} onClick={() => setActiveTab('prices')} icon={<ArrowRightLeft size={14} />}>
+              <TabButton testId="tab-prices" active={activeTab === 'prices'} onClick={() => setActiveTab('prices')} icon={<ArrowRightLeft size={14} />}>
                 Prices
               </TabButton>
-              <TabButton active={activeTab === 'fills'} onClick={() => setActiveTab('fills')} icon={<AlertTriangle size={14} />}>
+              <TabButton testId="tab-fills" active={activeTab === 'fills'} onClick={() => setActiveTab('fills')} icon={<AlertTriangle size={14} />}>
                 Fills
               </TabButton>
-              <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={14} />}>
+              <TabButton testId="tab-history" active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={14} />}>
                 History
               </TabButton>
-              <TabButton active={activeTab === 'performance'} onClick={() => setActiveTab('performance')} icon={<BarChart3 size={14} />}>
+              <TabButton testId="tab-performance" active={activeTab === 'performance'} onClick={() => setActiveTab('performance')} icon={<BarChart3 size={14} />}>
                 Perf
               </TabButton>
-              <TabButton active={activeTab === 'backtest'} onClick={() => setActiveTab('backtest')} icon={<FlaskConical size={14} />}>
+              <TabButton testId="tab-backtest" active={activeTab === 'backtest'} onClick={() => setActiveTab('backtest')} icon={<FlaskConical size={14} />}>
                 BT
               </TabButton>
             </div>
             <div className="flex-1 overflow-y-auto tab-content" key={activeTab}>
+              <PanelErrorBoundary panelName="Tab Content">
               <Suspense fallback={<PanelFallback />}>
               {activeTab === 'account' && (
                 <>
@@ -514,6 +519,7 @@ export default function App() {
                 />
               )}
               </Suspense>
+              </PanelErrorBoundary>
             </div>
           </div>
         </div>
@@ -522,7 +528,7 @@ export default function App() {
         {!isMobile && sidebarCollapsed && (
           <button
             onClick={() => setSidebarCollapsed(false)}
-            className="fixed right-2 top-20 z-50 p-2 rounded-lg bg-bg-700 border border-bg-600 text-gray-400 hover:text-gray-200 hover:bg-bg-600 transition-all shadow-lg"
+            className="fixed right-2 top-20 z-50 p-2 bg-bg-700 border border-bg-600 text-gray-400 hover:text-gray-200 hover:bg-bg-600 transition-all shadow-lg"
             title="Expand sidebar (Shift+\)"
             aria-label="Expand sidebar"
           >

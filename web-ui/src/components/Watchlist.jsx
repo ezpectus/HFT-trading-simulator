@@ -66,7 +66,7 @@ export default function Watchlist({ candles, prices, onSelectSymbol }) {
   }, [watchlist, candles, prices, sortMode])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Star size={12} className="text-accent-yellow" />
         Watchlist
@@ -97,12 +97,12 @@ export default function Watchlist({ candles, prices, onSelectSymbol }) {
             onChange={e => setNewSymbol(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAdd()}
             placeholder="e.g. ADA/USDT"
-            className="flex-1 bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-yellow"
+            className="flex-1 bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-yellow"
             autoFocus
           />
           <button
             onClick={handleAdd}
-            className="px-2 py-0.5 text-[10px] rounded bg-accent-yellow/20 text-accent-yellow"
+            className="px-2 py-0.5 text-[10px]  bg-accent-yellow/20 text-accent-yellow"
           >
             Add
           </button>
@@ -114,7 +114,7 @@ export default function Watchlist({ candles, prices, onSelectSymbol }) {
         {items.map(item => (
           <div
             key={item.symbol}
-            className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-bg-600/50 cursor-pointer group"
+            className="flex items-center gap-2 px-1.5 py-1  hover:bg-bg-600/50 cursor-pointer group"
             onClick={() => onSelectSymbol?.(item.symbol)}
           >
             <div className="flex-1 min-w-0">

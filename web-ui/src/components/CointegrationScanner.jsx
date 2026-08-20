@@ -215,7 +215,7 @@ export default function CointegrationScanner({ candles, symbols, exchange }) {
 
   if (pairs.length === 0) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <GitCompare size={12} className="text-accent-purple" />
           Cointegration Scanner
@@ -226,7 +226,7 @@ export default function CointegrationScanner({ candles, symbols, exchange }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <GitCompare size={12} className="text-accent-purple" />
         Cointegration Pairs Scanner
@@ -234,15 +234,15 @@ export default function CointegrationScanner({ candles, symbols, exchange }) {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Pairs Tested</span>
           <div className="font-mono text-gray-400">{pairs.length}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Cointegrated</span>
           <div className={'font-mono ' + (cointegratedPairs.length > 0 ? 'text-accent-green' : 'text-gray-500')}>{cointegratedPairs.length}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Active Signal</span>
           <div className={'font-mono ' + (topSignal ? 'text-accent-yellow' : 'text-gray-500')}>{topSignal ? 'YES' : 'NONE'}</div>
         </div>
@@ -250,7 +250,7 @@ export default function CointegrationScanner({ candles, symbols, exchange }) {
 
       {/* Top signal alert */}
       {topSignal && (
-        <div className="bg-accent-yellow/10 border border-accent-yellow/20 rounded px-2 py-1 mb-2 flex items-center gap-1">
+        <div className="bg-accent-yellow/10 border border-accent-yellow/20  px-2 py-1 mb-2 flex items-center gap-1">
           <AlertCircle size={10} className="text-accent-yellow shrink-0" />
           <span className="text-[8px] text-accent-yellow">
             {topSignal.signal === 'short_A_long_B'
@@ -265,13 +265,13 @@ export default function CointegrationScanner({ candles, symbols, exchange }) {
       {/* Pairs table */}
       <div className="space-y-1">
         {pairs.slice(0, 6).map((p, i) => (
-          <div key={i} className="bg-bg-800 rounded px-2 py-1">
+          <div key={i} className="bg-bg-800  px-2 py-1">
             <div className="flex items-center justify-between mb-0.5">
               <div className="flex items-center gap-1">
                 <Link2 size={9} className={p.isCointegrated ? 'text-accent-green' : 'text-gray-600'} />
                 <span className="text-[9px] font-mono text-gray-300">{p.symA} / {p.symB}</span>
                 {p.isCointegrated && (
-                  <span className="text-[7px] bg-accent-green/10 text-accent-green rounded px-1">
+                  <span className="text-[7px] bg-accent-green/10 text-accent-green  px-1">
                     {p.significance}
                   </span>
                 )}

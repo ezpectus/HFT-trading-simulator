@@ -54,7 +54,7 @@ export default function StrategyMarketplace() {
   const isImported = (id) => importedStrategies.some(s => s.id === id)
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Store size={12} className="text-accent-purple" />
         Strategy Marketplace
@@ -62,7 +62,7 @@ export default function StrategyMarketplace() {
       </div>
 
       {importMsg && (
-        <div className={`mb-2 px-2 py-1 rounded text-[9px] flex items-center gap-1 ${importMsg.ok ? 'bg-accent-green/20 text-accent-green' : 'bg-accent-red/20 text-accent-red'}`}>
+        <div className={`mb-2 px-2 py-1  text-[9px] flex items-center gap-1 ${importMsg.ok ? 'bg-accent-green/20 text-accent-green' : 'bg-accent-red/20 text-accent-red'}`}>
           {importMsg.ok ? <Check size={10} /> : <X size={10} />}
           {importMsg.text}
         </div>
@@ -76,12 +76,12 @@ export default function StrategyMarketplace() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search strategies..."
-            className="w-full bg-bg-800 border border-bg-600 rounded pl-6 pr-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple"
+            className="w-full bg-bg-800 border border-bg-600  pl-6 pr-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple"
           />
         </div>
         <button
           onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-1 px-2 py-0.5 text-[9px] rounded bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30"
+          className="flex items-center gap-1 px-2 py-0.5 text-[9px]  bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30"
           title="Upload strategy JSON file"
         >
           <Upload size={10} />
@@ -95,7 +95,7 @@ export default function StrategyMarketplace() {
           <button
             key={tag}
             onClick={() => setFilterTag(filterTag === tag ? null : tag)}
-            className={`px-1 py-0.5 text-[7px] rounded ${filterTag === tag ? 'bg-accent-purple/30 text-accent-purple' : (TAG_COLORS[tag] || 'bg-bg-600 text-gray-400')}`}
+            className={`px-1 py-0.5 text-[7px]  ${filterTag === tag ? 'bg-accent-purple/30 text-accent-purple' : (TAG_COLORS[tag] || 'bg-bg-600 text-gray-400')}`}
           >
             {tag}
           </button>
@@ -114,12 +114,12 @@ export default function StrategyMarketplace() {
             value={importText}
             onChange={e => setImportText(e.target.value)}
             placeholder='{"name": "My Strategy", "rules": [...], ...}'
-            className="w-full bg-bg-800 border border-bg-600 rounded px-1.5 py-1 text-[9px] text-gray-200 font-mono outline-none focus:border-accent-purple resize-none"
+            className="w-full bg-bg-800 border border-bg-600  px-1.5 py-1 text-[9px] text-gray-200 font-mono outline-none focus:border-accent-purple resize-none"
             rows={4}
           />
           <button
             onClick={handleTextImport}
-            className="w-full py-0.5 text-[9px] rounded bg-accent-purple/20 text-accent-purple"
+            className="w-full py-0.5 text-[9px]  bg-accent-purple/20 text-accent-purple"
           >
             Import from JSON
           </button>
@@ -128,7 +128,7 @@ export default function StrategyMarketplace() {
 
       <div className="space-y-1 max-h-[250px] overflow-y-auto scrollbar-thin">
         {filtered.map(s => (
-          <div key={s.id} className="bg-bg-600/40 rounded p-1.5 group">
+          <div key={s.id} className="bg-bg-600/40  p-1.5 group">
             <div className="flex items-start gap-1.5">
               <FileJson size={10} className="text-gray-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
@@ -136,15 +136,15 @@ export default function StrategyMarketplace() {
                 <div className="text-[8px] text-gray-600 truncate">{s.description}</div>
                 <div className="flex flex-wrap gap-0.5 mt-1">
                   {s.tags.map(tag => (
-                    <span key={tag} className={`px-1 py-0.5 text-[7px] rounded ${TAG_COLORS[tag] || 'bg-bg-600 text-gray-400'}`}>
+                    <span key={tag} className={`px-1 py-0.5 text-[7px]  ${TAG_COLORS[tag] || 'bg-bg-600 text-gray-400'}`}>
                       {tag}
                     </span>
                   ))}
-                  <span className="px-1 py-0.5 text-[7px] rounded bg-bg-600 text-gray-600">
+                  <span className="px-1 py-0.5 text-[7px]  bg-bg-600 text-gray-600">
                     {s.rules.length} rules
                   </span>
                   {isImported(s.id) && (
-                    <span className="px-1 py-0.5 text-[7px] rounded bg-accent-green/20 text-accent-green">imported</span>
+                    <span className="px-1 py-0.5 text-[7px]  bg-accent-green/20 text-accent-green">imported</span>
                   )}
                 </div>
               </div>

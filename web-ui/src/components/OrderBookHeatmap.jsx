@@ -74,7 +74,7 @@ export default function OrderBookHeatmap({ orderbookData, currentPrice }) {
 
   if (!heatmap) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Grid3x3 size={12} className="text-accent-orange" />
           Order Book Heatmap
@@ -96,7 +96,7 @@ export default function OrderBookHeatmap({ orderbookData, currentPrice }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Grid3x3 size={12} className="text-accent-orange" />
         Order Book Heatmap
@@ -120,7 +120,7 @@ export default function OrderBookHeatmap({ orderbookData, currentPrice }) {
               {row.cells.map((vol, ci) => (
                 <div
                   key={ci}
-                  className={'flex-1 h-3 rounded-sm ' + volColor(vol)}
+                  className={'flex-1 h-3  ' + volColor(vol)}
                   title={`$${formatPrice((row.rowMin + row.rowMax) / 2, 0)}: vol ${vol.toFixed(4)}`}
                 />
               ))}
@@ -139,11 +139,11 @@ export default function OrderBookHeatmap({ orderbookData, currentPrice }) {
         <div className="flex items-center gap-1">
           <span>Low</span>
           <div className="flex gap-0.5">
-            <div className="w-3 h-2 bg-bg-600/30 rounded-sm" />
-            <div className="w-3 h-2 bg-accent-orange/10 rounded-sm" />
-            <div className="w-3 h-2 bg-accent-orange/30 rounded-sm" />
-            <div className="w-3 h-2 bg-accent-orange/60 rounded-sm" />
-            <div className="w-3 h-2 bg-accent-orange rounded-sm" />
+            <div className="w-3 h-2 bg-bg-600/30 " />
+            <div className="w-3 h-2 bg-accent-orange/10 " />
+            <div className="w-3 h-2 bg-accent-orange/30 " />
+            <div className="w-3 h-2 bg-accent-orange/60 " />
+            <div className="w-3 h-2 bg-accent-orange " />
           </div>
           <span>High</span>
         </div>

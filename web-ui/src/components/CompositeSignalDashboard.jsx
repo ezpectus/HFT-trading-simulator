@@ -153,7 +153,7 @@ export default function CompositeSignalDashboard({ candles, signals, fills, symb
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <LayoutDashboard size={12} className="text-accent-blue" />
           Composite Dashboard
@@ -166,14 +166,14 @@ export default function CompositeSignalDashboard({ candles, signals, fills, symb
   const { indicators, bullPct, bearPct, neutralPct, netScore, consensus, consensusColor, bullCount, bearCount, totalCount } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <LayoutDashboard size={12} className="text-accent-blue" />
         Composite Signal Dashboard
       </div>
 
       {/* Consensus */}
-      <div className="bg-bg-800 rounded px-2 py-2 mb-2 text-center">
+      <div className="bg-bg-800  px-2 py-2 mb-2 text-center">
         <div className="text-[8px] text-gray-600">Aggregate Consensus</div>
         <div className={'text-lg font-bold ' + consensusColor}>{consensus}</div>
         <div className="text-[8px] text-gray-500">
@@ -196,7 +196,7 @@ export default function CompositeSignalDashboard({ candles, signals, fills, symb
       {/* Indicator list */}
       <div className="space-y-0.5">
         {indicators.map((ind, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+          <div key={i} className="flex items-center gap-1.5 text-[8px] bg-bg-800  px-1.5 py-0.5">
             {ind.signal === 'bull' ? <TrendingUp size={8} className="text-accent-green shrink-0" /> :
              ind.signal === 'bear' ? <TrendingDown size={8} className="text-accent-red shrink-0" /> :
              <Minus size={8} className="text-gray-500 shrink-0" />}

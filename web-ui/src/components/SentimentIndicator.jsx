@@ -100,7 +100,7 @@ export default function SentimentIndicator({ candles, signals, symbol, exchange 
 
   if (!sentiment) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Newspaper size={12} className="text-accent-yellow" />
           Sentiment Indicator
@@ -113,7 +113,7 @@ export default function SentimentIndicator({ candles, signals, symbol, exchange 
   const { score, label, color, Icon, priceMomentum, signalBias, volSpike, longCount, shortCount, newsItems } = sentiment
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Newspaper size={12} className="text-accent-yellow" />
         Sentiment Indicator

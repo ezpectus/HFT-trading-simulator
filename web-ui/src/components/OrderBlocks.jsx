@@ -99,7 +99,7 @@ export default function OrderBlocks({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Package size={12} className="text-accent-purple" />
           Order Blocks
@@ -112,7 +112,7 @@ export default function OrderBlocks({ candles, symbol, exchange }) {
   const { visible, activeBull, activeBear, zones, closePath, lastPrice } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Package size={12} className="text-accent-purple" />
         Order Block Detection
@@ -141,7 +141,7 @@ export default function OrderBlocks({ candles, symbol, exchange }) {
       {/* Active zones */}
       <div className="mt-2 space-y-1">
         {activeBull.length > 0 && (
-          <div className="bg-accent-green/5 border border-accent-green/15 rounded px-1.5 py-1">
+          <div className="bg-accent-green/5 border border-accent-green/15  px-1.5 py-1">
             <div className="flex items-center gap-1 mb-0.5">
               <TrendingUp size={9} className="text-accent-green" />
               <span className="text-[8px] text-accent-green font-medium">Bullish OB (Demand)</span>
@@ -155,7 +155,7 @@ export default function OrderBlocks({ candles, symbol, exchange }) {
           </div>
         )}
         {activeBear.length > 0 && (
-          <div className="bg-accent-red/5 border border-accent-red/15 rounded px-1.5 py-1">
+          <div className="bg-accent-red/5 border border-accent-red/15  px-1.5 py-1">
             <div className="flex items-center gap-1 mb-0.5">
               <TrendingDown size={9} className="text-accent-red" />
               <span className="text-[8px] text-accent-red font-medium">Bearish OB (Supply)</span>

@@ -95,7 +95,7 @@ export default function IchimokuCloud({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Cloud size={12} className="text-accent-blue" />
           Ichimoku Cloud
@@ -108,7 +108,7 @@ export default function IchimokuCloud({ candles, symbol, exchange }) {
   const { price, tenkan, kijun, senkouA, senkouB, signal, signalColor, closePath, tenkanPath, kijunPath, cloudPath, cloudBullish, tkBullish, tkCross, priceAboveCloud, priceBelowCloud } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Cloud size={12} className="text-accent-blue" />
         Ichimoku Cloud

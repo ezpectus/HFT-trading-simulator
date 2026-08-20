@@ -226,7 +226,7 @@ export default function RandomMatrixTheory({ candles, symbols, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Random Matrix Theory — {exchange}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -234,14 +234,14 @@ export default function RandomMatrixTheory({ candles, symbols, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Eigenvalue spectrum */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Eigenvalue Spectrum vs Marchenko-Pastur Bounds</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -272,15 +272,15 @@ export default function RandomMatrixTheory({ candles, symbols, exchange }) {
       </div>
 
       {/* Market mode (largest eigenvector) */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Market Mode (largest eigenvector — common factor)</div>
         <div className="space-y-1">
           {data.marketModeContrib.map((m, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
               <span className="text-slate-400 w-20 truncate">{m.sym}</span>
-              <div className="flex-1 bg-slate-900 rounded h-3 relative">
+              <div className="flex-1 bg-slate-900  h-3 relative">
                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
-                <div className="h-full rounded absolute" style={{
+                <div className="h-full  absolute" style={{
                   width: `${Math.abs(m.weight) * 50}%`,
                   background: m.weight >= 0 ? '#22c55e' : '#ef4444',
                   left: m.weight >= 0 ? '50%' : `${50 - Math.abs(m.weight) * 50}%`
@@ -293,7 +293,7 @@ export default function RandomMatrixTheory({ candles, symbols, exchange }) {
       </div>
 
       {/* Cleaned vs original correlation */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Cleaned Correlation Matrix (RMT-filtered)</div>
         <div className="grid gap-px text-[8px]" style={{ gridTemplateColumns: `auto repeat(${data.N}, 1fr)` }}>
           <div></div>
@@ -313,29 +313,29 @@ export default function RandomMatrixTheory({ candles, symbols, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">N (assets)</div>
           <div className="text-cyan-400 font-mono">{data.N}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">T (samples)</div>
           <div className="text-emerald-400 font-mono">{data.T}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Q = T/N</div>
           <div className="text-amber-400 font-mono">{data.Q.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Noise eigenvalues</div>
           <div className="text-slate-400 font-mono">{data.noiseCount}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Signal eigenvalues</div>
           <div className="text-purple-400 font-mono">{data.signalCount}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> MP bounds:</strong> [{data.lambdaMin.toFixed(3)}, {data.lambdaMax.toFixed(3)}] |
         <strong> Cleaning:</strong> noise eigenvalues replaced with average, matrix renormalized |

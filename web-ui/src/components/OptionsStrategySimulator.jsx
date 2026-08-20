@@ -144,7 +144,7 @@ export default function OptionsStrategySimulator({ currentPrice }) {
   const pnlColor = (v) => v > 0 ? 'text-accent-green' : v < 0 ? 'text-accent-red' : 'text-gray-400'
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Calculator size={12} className="text-accent-purple" />
         Options Strategy P&L Simulator
@@ -155,22 +155,22 @@ export default function OptionsStrategySimulator({ currentPrice }) {
         <label className="flex flex-col gap-0.5">
           <span className="text-[8px] text-gray-600">Spot Price</span>
           <input type="number" value={spot} onChange={e => setSpot(+e.target.value)}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple" />
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple" />
         </label>
         <label className="flex flex-col gap-0.5">
           <span className="text-[8px] text-gray-600">Days to Expiry</span>
           <input type="number" value={daysToExpiry} onChange={e => setDaysToExpiry(+e.target.value)}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple" />
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple" />
         </label>
         <label className="flex flex-col gap-0.5">
           <span className="text-[8px] text-gray-600">Volatility (%)</span>
           <input type="number" value={volatility} onChange={e => setVolatility(+e.target.value)}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple" />
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple" />
         </label>
         <label className="flex flex-col gap-0.5">
           <span className="text-[8px] text-gray-600">Risk-free Rate (%)</span>
           <input type="number" value={riskFreeRate} onChange={e => setRiskFreeRate(+e.target.value)}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple" />
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-purple" />
         </label>
       </div>
 
@@ -179,7 +179,7 @@ export default function OptionsStrategySimulator({ currentPrice }) {
         {STRATEGIES.map(s => (
           <button key={s.id}
             onClick={() => selectStrategy(s.id)}
-            className={'px-1.5 py-0.5 text-[8px] rounded ' +
+            className={'px-1.5 py-0.5 text-[8px]  ' +
               (strategyId === s.id ? 'bg-accent-purple/20 text-accent-purple' : 'bg-bg-600 text-gray-600')}>
             {s.name}
           </button>
@@ -189,22 +189,22 @@ export default function OptionsStrategySimulator({ currentPrice }) {
       {/* Legs */}
       <div className="space-y-1 mb-2">
         {legResults.map((leg, idx) => (
-          <div key={idx} className="flex items-center gap-1 bg-bg-600/40 rounded p-1">
+          <div key={idx} className="flex items-center gap-1 bg-bg-600/40  p-1">
             <select value={leg.action} onChange={e => updateLeg(idx, 'action', e.target.value)}
-              className="bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 outline-none">
+              className="bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 outline-none">
               <option value="buy">Buy</option>
               <option value="sell">Sell</option>
             </select>
             <select value={leg.type} onChange={e => updateLeg(idx, 'type', e.target.value)}
-              className="bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 outline-none">
+              className="bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 outline-none">
               <option value="call">Call</option>
               <option value="put">Put</option>
             </select>
             <input type="number" value={leg.strike || 0} onChange={e => updateLeg(idx, 'strike', +e.target.value)}
-              className="w-20 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 outline-none"
+              className="w-20 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 outline-none"
               placeholder="Strike" />
             <input type="number" value={leg.qty || 1} onChange={e => updateLeg(idx, 'qty', +e.target.value)}
-              className="w-12 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 outline-none"
+              className="w-12 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 outline-none"
               placeholder="Qty" />
             <span className="text-[9px] text-gray-500 ml-auto">
               @ {leg.optionPrice.toFixed(2)}
@@ -224,19 +224,19 @@ export default function OptionsStrategySimulator({ currentPrice }) {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1.5 mb-2">
-        <div className="bg-bg-600/40 rounded p-1.5">
+        <div className="bg-bg-600/40  p-1.5">
           <div className="text-[8px] text-gray-600 uppercase">Net Cost</div>
           <div className={'text-[11px] font-mono ' + pnlColor(netCost)}>
             {netCost >= 0 ? '+' : ''}{netCost.toFixed(2)}
           </div>
         </div>
-        <div className="bg-bg-600/40 rounded p-1.5">
+        <div className="bg-bg-600/40  p-1.5">
           <div className="text-[8px] text-gray-600 uppercase">Max Profit</div>
           <div className="text-[11px] font-mono text-accent-green">
             {maxProfit > 99999 ? '∞' : `+${maxProfit.toFixed(2)}`}
           </div>
         </div>
-        <div className="bg-bg-600/40 rounded p-1.5">
+        <div className="bg-bg-600/40  p-1.5">
           <div className="text-[8px] text-gray-600 uppercase">Max Loss</div>
           <div className="text-[11px] font-mono text-accent-red">
             {maxLoss < -99999 ? '-∞' : maxLoss.toFixed(2)}
@@ -250,7 +250,7 @@ export default function OptionsStrategySimulator({ currentPrice }) {
           <div className="text-[8px] text-gray-600 uppercase mb-0.5">Breakeven{breakevens.length > 1 ? 's' : ''}</div>
           <div className="flex gap-1">
             {breakevens.map((b, i) => (
-              <span key={i} className="text-[9px] text-gray-400 font-mono bg-bg-600/40 rounded px-1.5 py-0.5">
+              <span key={i} className="text-[9px] text-gray-400 font-mono bg-bg-600/40  px-1.5 py-0.5">
                 {b.price.toFixed(2)}
               </span>
             ))}
@@ -259,7 +259,7 @@ export default function OptionsStrategySimulator({ currentPrice }) {
       )}
 
       {/* P&L Chart */}
-      <div className="relative h-[120px] bg-bg-800 rounded border border-bg-600 overflow-hidden">
+      <div className="relative h-[120px] bg-bg-800  border border-bg-600 overflow-hidden">
         <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 400 120">
           {/* Zero line */}
           {(() => {

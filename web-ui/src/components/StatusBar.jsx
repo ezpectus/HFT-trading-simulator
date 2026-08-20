@@ -27,7 +27,7 @@ export default function StatusBar({ exchange, signals, selectedExchange, selecte
   const candlesToFunding = exchange.candlesToFunding
 
   return (
-    <footer className="flex items-center gap-2 px-2 py-1 bg-bg-800 border-t border-bg-600 text-[10px] text-gray-500 shrink-0 font-mono overflow-x-auto scrollbar-thin sm:gap-4 sm:px-3" role="contentinfo" aria-label="System status bar">
+    <footer className="flex items-center gap-2 px-3 py-0.5 bg-bg-800 border-t border-bg-600 text-[10px] text-gray-500 shrink-0 font-mono overflow-x-auto scrollbar-thin sm:gap-3" role="contentinfo" aria-label="System status bar">
       {/* Sim time */}
       <div className="flex items-center gap-1" aria-label={`Simulation time: ${simTime ? formatTime(simTime) : 'not available'}`}>
         <Clock size={11} aria-hidden="true" />
@@ -83,7 +83,7 @@ export default function StatusBar({ exchange, signals, selectedExchange, selecte
 
       {/* Circuit breaker status */}
       {signals.circuitBreaker?.tripped && (
-        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-accent-red/20 text-accent-red" title={`Circuit breaker tripped (${signals.circuitBreaker.consecutiveLosses} consecutive losses)`}>
+        <div className="flex items-center gap-1 px-2 py-0.5  bg-accent-red/20 text-accent-red" title={`Circuit breaker tripped (${signals.circuitBreaker.consecutiveLosses} consecutive losses)`}>
           <ShieldAlert size={11} />
           <span className="text-[10px] font-medium">CB TRIPPED</span>
         </div>
@@ -99,7 +99,7 @@ export default function StatusBar({ exchange, signals, selectedExchange, selecte
 
       {/* News event indicator */}
       {exchange.newsEvent && (
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-accent-red/20 text-accent-red animate-pulse">
+        <div className="flex items-center gap-1.5 px-2 py-0.5  bg-accent-red/20 text-accent-red animate-pulse">
           <Flame size={11} />
           <span className="text-[10px] font-medium">
             NEWS: {exchange.newsEvent.symbol} {exchange.newsEvent.intensity}x vol ({exchange.newsEvent.remaining}c)
@@ -109,7 +109,7 @@ export default function StatusBar({ exchange, signals, selectedExchange, selecte
 
       {/* Weekend mode indicator */}
       {exchange.weekendMode && (
-        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-bg-600 text-gray-400">
+        <div className="flex items-center gap-1 px-2 py-0.5  bg-bg-600 text-gray-400">
           <Moon size={11} />
           <span className="text-[10px] font-medium">Weekend (low vol)</span>
         </div>

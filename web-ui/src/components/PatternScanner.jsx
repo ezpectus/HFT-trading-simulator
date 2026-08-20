@@ -89,7 +89,7 @@ export default function PatternScanner({ candles, symbols, exchange }) {
   const bearishCount = scanResults.reduce((s, r) => s + r.patterns.filter(p => p.type === 'bearish').length, 0)
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Scan size={12} className="text-accent-purple" />
         Pattern Scanner
@@ -102,11 +102,11 @@ export default function PatternScanner({ candles, symbols, exchange }) {
         <>
           {/* Summary */}
           <div className="grid grid-cols-2 gap-2 mb-2 text-[9px]">
-            <div className="bg-accent-green/10 rounded px-2 py-1">
+            <div className="bg-accent-green/10  px-2 py-1">
               <span className="text-gray-600">Bullish</span>
               <span className="text-accent-green font-mono ml-2">{bullishCount}</span>
             </div>
-            <div className="bg-accent-red/10 rounded px-2 py-1">
+            <div className="bg-accent-red/10  px-2 py-1">
               <span className="text-gray-600">Bearish</span>
               <span className="text-accent-red font-mono ml-2">{bearishCount}</span>
             </div>
@@ -115,7 +115,7 @@ export default function PatternScanner({ candles, symbols, exchange }) {
           {/* Results per symbol */}
           <div className="space-y-1.5 max-h-[180px] overflow-y-auto scrollbar-thin">
             {scanResults.map(r => (
-              <div key={r.symbol} className="bg-bg-600/50 rounded p-1.5">
+              <div key={r.symbol} className="bg-bg-600/50  p-1.5">
                 <div className="flex items-center gap-1.5 mb-1">
                   <CandlestickChart size={10} className="text-gray-500" />
                   <span className="text-[10px] font-medium text-gray-300">{r.symbol.split('/')[0]}</span>
@@ -125,7 +125,7 @@ export default function PatternScanner({ candles, symbols, exchange }) {
                   {r.patterns.map((p, i) => (
                     <span
                       key={i}
-                      className={'px-1.5 py-0.5 text-[8px] rounded font-medium ' +
+                      className={'px-1.5 py-0.5 text-[8px]  font-medium ' +
                         (p.type === 'bullish' ? 'bg-accent-green/20 text-accent-green' :
                          p.type === 'bearish' ? 'bg-accent-red/20 text-accent-red' :
                          'bg-gray-500/20 text-gray-400')}

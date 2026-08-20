@@ -41,7 +41,7 @@ export default function PanelContainer({ context: contextProp }) {
         <span className="text-[8px] text-gray-600 uppercase">{visibleCount}/{totalCount} panels</span>
         <button
           onClick={() => setShowSettings(!showSettings)}
-          className={'flex items-center gap-1 px-1.5 py-0.5 text-[8px] rounded transition-colors ' +
+          className={'flex items-center gap-1 px-1.5 py-0.5 text-[8px]  transition-colors ' +
             (showSettings ? 'bg-accent-blue/20 text-accent-blue' : 'text-gray-600 hover:text-gray-400')}
         >
           <Settings2 size={9} />
@@ -51,7 +51,7 @@ export default function PanelContainer({ context: contextProp }) {
 
       {/* Panel visibility settings */}
       {showSettings && (
-        <div className="bg-bg-800 rounded-lg p-2 mb-2 max-h-[200px] overflow-y-auto scrollbar-thin">
+        <div className="bg-bg-800 p-2 mb-2 max-h-[200px] overflow-y-auto scrollbar-thin border border-bg-600">
           <div className="text-[8px] text-gray-600 uppercase mb-1">Toggle Panels</div>
           {CATEGORIES.map(cat => {
             const catPanels = getPanelsByCategory(cat.id)
@@ -64,7 +64,7 @@ export default function PanelContainer({ context: contextProp }) {
                     <button
                       key={p.id}
                       onClick={() => togglePanel(p.id)}
-                      className={'flex items-center gap-1 px-1 py-0.5 text-[8px] rounded text-left ' +
+                      className={'flex items-center gap-1 px-1 py-0.5 text-[8px]  text-left ' +
                         (visible.includes(p.id) ? 'bg-accent-green/10 text-accent-green' : 'bg-bg-600 text-gray-600')}
                     >
                       {visible.includes(p.id) ? <Eye size={8} /> : <EyeOff size={8} />}
@@ -94,7 +94,7 @@ export default function PanelContainer({ context: contextProp }) {
               onMouseEnter={() => handleCategoryHover(cat.id)}
               aria-expanded={!isCollapsed}
               aria-controls={`category-${cat.id}`}
-              className="w-full flex items-center gap-1 px-1 py-0.5 text-[9px] text-gray-500 uppercase hover:text-gray-400 transition-colors sticky top-0 bg-bg-900/80 backdrop-blur-sm z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-blue rounded"
+              className="w-full flex items-center gap-1 px-1 py-0.5 text-[9px] text-gray-500 uppercase hover:text-gray-400 transition-colors sticky top-0 bg-bg-900/80 backdrop-blur-sm z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-blue "
             >
               {isCollapsed ? <ChevronRight size={10} /> : <ChevronDown size={10} />}
               <span className="font-medium">{cat.label}</span>

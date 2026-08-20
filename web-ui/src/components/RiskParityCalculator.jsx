@@ -69,7 +69,7 @@ export default function RiskParityCalculator({ candles, symbols, exchange }) {
   }, [volatilities, totalCapital, riskPct, stopLossPct, symbols, candles, exchange])
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Calculator size={12} className="text-accent-yellow" />
         Risk Parity Calculator
@@ -83,7 +83,7 @@ export default function RiskParityCalculator({ candles, symbols, exchange }) {
             type="number"
             value={totalCapital}
             onChange={e => setTotalCapital(Number(e.target.value))}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-yellow"
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-yellow"
           />
         </label>
         <label className="flex flex-col gap-0.5">
@@ -93,7 +93,7 @@ export default function RiskParityCalculator({ candles, symbols, exchange }) {
             step="0.1"
             value={riskPct}
             onChange={e => setRiskPct(Number(e.target.value))}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-yellow"
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-yellow"
           />
         </label>
         <label className="flex flex-col gap-0.5">
@@ -103,7 +103,7 @@ export default function RiskParityCalculator({ candles, symbols, exchange }) {
             step="0.1"
             value={stopLossPct}
             onChange={e => setStopLossPct(Number(e.target.value))}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-yellow"
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-yellow"
           />
         </label>
       </div>

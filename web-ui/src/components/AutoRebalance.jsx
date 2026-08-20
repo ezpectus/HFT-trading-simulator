@@ -90,7 +90,7 @@ export default function AutoRebalance({ accounts, candles, symbols, exchange, on
 
   if (!portfolio) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <RefreshCw size={12} className="text-accent-blue" />
           Auto-Rebalance
@@ -122,14 +122,14 @@ export default function AutoRebalance({ accounts, candles, symbols, exchange, on
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <RefreshCw size={12} className="text-accent-blue" />
         Auto-Rebalance Portfolio
       </div>
 
       {/* Status */}
-      <div className={'flex items-center gap-1.5 rounded px-2 py-1 mb-2 ' +
+      <div className={'flex items-center gap-1.5  px-2 py-1 mb-2 ' +
         (portfolio.needsRebalance ? 'bg-accent-yellow/10 border border-accent-yellow/20' : 'bg-accent-green/10 border border-accent-green/20')}>
         {portfolio.needsRebalance ? (
           <>
@@ -155,7 +155,7 @@ export default function AutoRebalance({ accounts, candles, symbols, exchange, on
                 step="1"
                 value={target.toFixed(0)}
                 onChange={e => updateWeight(sym, e.target.value)}
-                className="w-10 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none"
+                className="w-10 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none"
               />
               <span className="text-[8px] text-gray-600">%</span>
               {/* Current weight bar */}
@@ -182,7 +182,7 @@ export default function AutoRebalance({ accounts, candles, symbols, exchange, on
           step="0.5"
           value={threshold}
           onChange={e => setThreshold(Number(e.target.value))}
-          className="w-10 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none"
+          className="w-10 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none"
         />
         <span className="text-[8px] text-gray-600">% drift</span>
       </div>
@@ -191,7 +191,7 @@ export default function AutoRebalance({ accounts, candles, symbols, exchange, on
       <button
         onClick={handleRebalance}
         disabled={!portfolio.needsRebalance || !onSubmit}
-        className="w-full flex items-center justify-center gap-1 py-1.5 text-[10px] rounded bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-1 py-1.5 text-[10px]  bg-accent-blue/20 text-accent-blue hover:bg-accent-blue/30 disabled:opacity-50"
       >
         <Play size={10} />
         Rebalance Now ({portfolio.trades.length} trades)

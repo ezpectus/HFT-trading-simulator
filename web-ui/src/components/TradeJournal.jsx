@@ -61,7 +61,7 @@ export default function TradeJournal({ accounts }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <BookOpen size={12} className="text-accent-blue" />
         Trade Journal
@@ -77,7 +77,7 @@ export default function TradeJournal({ accounts }) {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search symbol or note..."
-            className="w-full bg-bg-800 border border-bg-600 rounded pl-6 pr-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-blue"
+            className="w-full bg-bg-800 border border-bg-600  pl-6 pr-1.5 py-0.5 text-[10px] text-gray-200 outline-none focus:border-accent-blue"
           />
         </div>
       </div>
@@ -86,20 +86,20 @@ export default function TradeJournal({ accounts }) {
       <div className="flex gap-1 mb-2">
         <button
           onClick={() => setFilterWin('all')}
-          className={'px-1.5 py-0.5 text-[8px] rounded ' + (filterWin === 'all' ? 'bg-bg-600 text-gray-200' : 'text-gray-600')}
+          className={'px-1.5 py-0.5 text-[8px]  ' + (filterWin === 'all' ? 'bg-bg-600 text-gray-200' : 'text-gray-600')}
         >All</button>
         <button
           onClick={() => setFilterWin('win')}
-          className={'px-1.5 py-0.5 text-[8px] rounded ' + (filterWin === 'win' ? 'bg-accent-green/20 text-accent-green' : 'text-gray-600')}
+          className={'px-1.5 py-0.5 text-[8px]  ' + (filterWin === 'win' ? 'bg-accent-green/20 text-accent-green' : 'text-gray-600')}
         >Wins</button>
         <button
           onClick={() => setFilterWin('loss')}
-          className={'px-1.5 py-0.5 text-[8px] rounded ' + (filterWin === 'loss' ? 'bg-accent-red/20 text-accent-red' : 'text-gray-600')}
+          className={'px-1.5 py-0.5 text-[8px]  ' + (filterWin === 'loss' ? 'bg-accent-red/20 text-accent-red' : 'text-gray-600')}
         >Losses</button>
         {filterTag && (
           <button
             onClick={() => setFilterTag(null)}
-            className="px-1.5 py-0.5 text-[8px] rounded bg-accent-blue/20 text-accent-blue flex items-center gap-0.5"
+            className="px-1.5 py-0.5 text-[8px]  bg-accent-blue/20 text-accent-blue flex items-center gap-0.5"
           >
             {filterTag} <X size={8} />
           </button>
@@ -113,7 +113,7 @@ export default function TradeJournal({ accounts }) {
             <button
               key={tag}
               onClick={() => setFilterTag(filterTag === tag ? null : tag)}
-              className={'px-1 py-0.5 text-[7px] rounded ' + (TAG_COLORS[tag] || 'bg-bg-600 text-gray-400')}
+              className={'px-1 py-0.5 text-[7px]  ' + (TAG_COLORS[tag] || 'bg-bg-600 text-gray-400')}
             >
               {tag}
             </button>
@@ -131,7 +131,7 @@ export default function TradeJournal({ accounts }) {
           const isWin = (t.pnl || 0) > 0
           const isEditing = activeTradeId === t.id
           return (
-            <div key={t.id} className="bg-bg-600/40 rounded p-1.5">
+            <div key={t.id} className="bg-bg-600/40  p-1.5">
               <div className="flex items-center gap-1.5">
                 <span className={'text-[9px] font-medium ' + (isWin ? 'text-accent-green' : 'text-accent-red')}>
                   {t.symbol?.split('/')[0]}
@@ -155,7 +155,7 @@ export default function TradeJournal({ accounts }) {
               {entryTags.length > 0 && !isEditing && (
                 <div className="flex flex-wrap gap-0.5 mt-1">
                   {entryTags.map(tag => (
-                    <span key={tag} className={'px-1 py-0.5 text-[7px] rounded ' + (TAG_COLORS[tag] || 'bg-bg-600 text-gray-400')}>
+                    <span key={tag} className={'px-1 py-0.5 text-[7px]  ' + (TAG_COLORS[tag] || 'bg-bg-600 text-gray-400')}>
                       {tag}
                     </span>
                   ))}
@@ -174,7 +174,7 @@ export default function TradeJournal({ accounts }) {
                     value={noteText}
                     onChange={e => setNoteText(e.target.value)}
                     placeholder="Add note..."
-                    className="w-full bg-bg-800 border border-bg-600 rounded px-1.5 py-1 text-[9px] text-gray-200 outline-none focus:border-accent-blue resize-none"
+                    className="w-full bg-bg-800 border border-bg-600  px-1.5 py-1 text-[9px] text-gray-200 outline-none focus:border-accent-blue resize-none"
                     rows={2}
                   />
                   <div className="flex flex-wrap gap-0.5">
@@ -182,7 +182,7 @@ export default function TradeJournal({ accounts }) {
                       <button
                         key={tag}
                         onClick={() => toggleTag(tag)}
-                        className={'px-1 py-0.5 text-[7px] rounded ' +
+                        className={'px-1 py-0.5 text-[7px]  ' +
                           (noteTags.includes(tag) ? TAG_COLORS[tag] : 'bg-bg-600 text-gray-600')}
                       >
                         {tag}
@@ -191,7 +191,7 @@ export default function TradeJournal({ accounts }) {
                   </div>
                   <button
                     onClick={() => handleSaveNote(t.id)}
-                    className="w-full py-0.5 text-[9px] rounded bg-accent-blue/20 text-accent-blue"
+                    className="w-full py-0.5 text-[9px]  bg-accent-blue/20 text-accent-blue"
                   >
                     Save
                   </button>

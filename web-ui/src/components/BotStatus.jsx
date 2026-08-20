@@ -78,7 +78,7 @@ const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConn
       {/* Bot status cards */}
       <div className="grid grid-cols-2 gap-2">
         {/* AI Signal Bot */}
-        <div className={`bg-bg-700 rounded-lg p-2.5 ${signalConnected ? 'ring-1 ring-accent-green/30' : 'ring-1 ring-accent-red/30'}`}>
+        <div className={`bg-bg-700 p-2.5 border border-bg-600 ${signalConnected ? 'ring-1 ring-accent-green/30' : 'ring-1 ring-accent-red/30'}`}>
           <div className="flex items-center gap-1.5 mb-1.5">
             <Bot size={14} className={signalConnected ? 'text-accent-green' : 'text-accent-red'} />
             <span className="text-xs font-medium">AI Signal Bot</span>
@@ -108,7 +108,7 @@ const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConn
         </div>
 
         {/* HFT Trade Bot */}
-        <div className={`bg-bg-700 rounded-lg p-2.5 ${exchangeConnected ? 'ring-1 ring-accent-green/30' : 'ring-1 ring-accent-red/30'}`}>
+        <div className={`bg-bg-700 p-2.5 border border-bg-600 ${exchangeConnected ? 'ring-1 ring-accent-green/30' : 'ring-1 ring-accent-red/30'}`}>
           <div className="flex items-center gap-1.5 mb-1.5">
             <Cpu size={14} className={exchangeConnected ? 'text-accent-green' : 'text-accent-red'} />
             <span className="text-xs font-medium">HFT Trade Bot</span>
@@ -139,7 +139,7 @@ const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConn
       </div>
 
       {/* Circuit Breaker status */}
-      <div className={`bg-bg-700 rounded-lg p-2.5 ${circuitBreaker?.tripped ? 'ring-1 ring-accent-red/40' : 'ring-1 ring-accent-green/20'}`}>
+      <div className={`bg-bg-700 p-2.5 border border-bg-600 ${circuitBreaker?.tripped ? 'ring-1 ring-accent-red/40' : 'ring-1 ring-accent-green/20'}`}>
         <div className="flex items-center gap-1.5 mb-1.5">
           {circuitBreaker?.tripped ? (
             <ShieldAlert size={14} className="text-accent-red" />
@@ -183,7 +183,7 @@ const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConn
       </div>
 
       {/* Aggregate stats */}
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700 p-2.5 border border-bg-600">
         <div className="text-[10px] text-gray-500 uppercase mb-1.5">Portfolio Overview</div>
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div>
@@ -235,7 +235,7 @@ const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConn
               const Icon = isSignal ? Radio : isLong ? TrendingUp : TrendingDown
 
               return (
-                <div key={i} className="bg-bg-700 rounded p-2 text-xs flex items-center gap-2">
+                <div key={i} className="bg-bg-700 p-2 border border-bg-600 text-xs flex items-center gap-2">
                   <Icon size={12} className={colorForSide(item.side)} />
                   <span className={`font-semibold ${colorForSide(item.side)}`}>
                     {item.side}

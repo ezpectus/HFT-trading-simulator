@@ -47,7 +47,7 @@ export default function AccountPanel({ accounts }) {
   return (
     <div className="p-2 space-y-2">
       {/* PnL Leaderboard */}
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700 p-2.5 border border-bg-600">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1.5">
           <Trophy size={12} className="text-accent-yellow" />
           Exchange Leaderboard
@@ -64,7 +64,7 @@ export default function AccountPanel({ accounts }) {
         <div className="space-y-1">
           {leaderboard.map((item, i) => {
             const isPositive = item.pnl >= 0
-            const medal = i === 0 ? 'text-accent-yellow' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-orange-400/60' : 'text-gray-600'
+            const medal = i === 0 ? 'text-accent-yellow' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-accent-orange/60' : 'text-gray-600'
             const pnlColor = isPositive ? 'text-accent-green' : 'text-accent-red'
             const pnlSign = isPositive ? '+' : ''
             return (
@@ -91,7 +91,7 @@ export default function AccountPanel({ accounts }) {
         const pnlPct = initialBalance > 0 ? (acc.total_pnl / initialBalance * 100) : 0
 
         return (
-          <div key={exId} className="bg-bg-700 rounded-lg p-3">
+          <div key={exId} className="bg-bg-700 p-3 border border-bg-600">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium capitalize">{exId}</span>
               <div className="flex items-center gap-2">
@@ -130,7 +130,7 @@ export default function AccountPanel({ accounts }) {
                     return (
                       <div
                         key={i}
-                        className={'flex-1 rounded-sm ' + (t.pnl >= 0 ? 'bg-accent-green' : 'bg-accent-red')}
+                        className={'flex-1 ' + (t.pnl >= 0 ? 'bg-accent-green' : 'bg-accent-red')}
                         style={{ height: h + 'px' }}
                         title={t.symbol + ': ' + (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(2) + ' (' + t.reason + ')'}
                       />

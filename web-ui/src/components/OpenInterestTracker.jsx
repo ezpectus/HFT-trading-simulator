@@ -92,7 +92,7 @@ export default function OpenInterestTracker({ candles, fills, symbol, exchange }
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Eye size={12} className="text-accent-teal" />
           Open Interest
@@ -105,7 +105,7 @@ export default function OpenInterestTracker({ candles, fills, symbol, exchange }
   const { lastOI, oiChange, divergence, divergenceColor, oiPath, pricePath, volBars } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Eye size={12} className="text-accent-teal" />
         Open Interest Tracker
@@ -154,7 +154,7 @@ export default function OpenInterestTracker({ candles, fills, symbol, exchange }
 
       {/* Divergence signal */}
       {divergence && (
-        <div className="mt-2 bg-bg-800 rounded px-1.5 py-1">
+        <div className="mt-2 bg-bg-800  px-1.5 py-1">
           <div className="flex items-center gap-1">
             <Activity size={9} className={divergenceColor} />
             <span className={'text-[8px] font-medium ' + divergenceColor}>{divergence}</span>

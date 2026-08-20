@@ -65,7 +65,7 @@ export default function SupportResistance({ candles, currentPrice }) {
 
   if (!levels) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Layers size={12} className="text-accent-blue" />
           Support / Resistance
@@ -76,7 +76,7 @@ export default function SupportResistance({ candles, currentPrice }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Layers size={12} className="text-accent-blue" />
         Support / Resistance
@@ -136,7 +136,7 @@ function LevelRow({ level, type, currentPrice }) {
   const strengthColor = strength === 'strong' ? 'text-accent-yellow' : strength === 'medium' ? 'text-gray-400' : 'text-gray-600'
 
   return (
-    <div className="flex items-center gap-2 px-1.5 py-0.5 rounded hover:bg-bg-600/30">
+    <div className="flex items-center gap-2 px-1.5 py-0.5  hover:bg-bg-600/30">
       <span className={'text-[10px] font-mono ' + (type === 'resistance' ? 'text-accent-red' : 'text-accent-green')}>
         ${formatPrice(level.price)}
       </span>

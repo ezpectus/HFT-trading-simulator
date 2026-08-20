@@ -272,7 +272,7 @@ export default function CompressedSensing({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Compressed Sensing (Sparse Recovery) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.sig}
         </span>
       </div>
@@ -280,35 +280,35 @@ export default function CompressedSensing({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Method:</span>
-          <select value={method} onChange={e => setMethod(e.target.value)} className="bg-slate-800 border border-slate-600 rounded text-slate-200 px-1">
+          <select value={method} onChange={e => setMethod(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
             <option value="omp">OMP (Orthogonal Matching Pursuit)</option>
             <option value="ista">ISTA (Iterative Shrinkage)</option>
           </select>
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Sparsity k:</span>
-          <input type="number" value={sparsity} onChange={e => setSparsity(Math.max(1, Math.min(20, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={sparsity} onChange={e => setSparsity(Math.max(1, Math.min(20, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Sample ratio m/n:</span>
-          <input type="number" step="0.1" value={sampleRatio} onChange={e => setSampleRatio(Math.max(0.1, Math.min(0.9, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.1" value={sampleRatio} onChange={e => setSampleRatio(Math.max(0.1, Math.min(0.9, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         {method === 'ista' && (
           <label className="flex items-center gap-1">
             <span className="text-slate-400">λ (regularization):</span>
-            <input type="number" step="0.001" value={lambda} onChange={e => setLambda(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+            <input type="number" step="0.001" value={lambda} onChange={e => setLambda(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
           </label>
         )}
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(16, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(16, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Original vs recovered signal */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Original vs Recovered Signal (n={data.n}, m={data.m})</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
@@ -325,9 +325,9 @@ export default function CompressedSensing({ candles, symbol, exchange }) {
       </div>
 
       {/* Sparse coefficients */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Sparse Coefficients (DFT domain): Original vs Recovered</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
@@ -348,15 +348,15 @@ export default function CompressedSensing({ candles, symbol, exchange }) {
       </div>
 
       {/* Support set */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Recovered Support Set (top coefficients)</div>
         <div className="space-y-1">
           {data.support.slice(0, 10).map((s, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
               <span className="text-slate-400 w-16">Index {s.idx}</span>
-              <div className="flex-1 bg-slate-900 rounded h-3 relative">
+              <div className="flex-1 bg-slate-900  h-3 relative">
                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
-                <div className="h-full rounded absolute" style={{
+                <div className="h-full  absolute" style={{
                   width: `${Math.min(50, Math.abs(s.val) / maxCoeff * 50)}%`,
                   background: Math.abs(s.val) > 0.3 ? '#ef4444' : '#06b6d4',
                   left: s.val >= 0 ? '50%' : `${50 - Math.min(50, Math.abs(s.val) / maxCoeff * 50)}%`
@@ -370,29 +370,29 @@ export default function CompressedSensing({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">n (signal length)</div>
           <div className="text-cyan-400 font-mono">{data.n}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">m (measurements)</div>
           <div className="text-amber-400 font-mono">{data.m}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Actual sparsity</div>
           <div className="text-purple-400 font-mono">{data.actualSparsity}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">SNR (dB)</div>
           <div className="text-emerald-400 font-mono">{data.snr.toFixed(1)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Anomalies</div>
           <div className="text-red-400 font-mono">{data.anomalies.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Model:</strong> y = Φ·s, recover s via {method === 'omp' ? 'OMP (greedy)' : 'ISTA (L1 min)'} |
         <strong> Sparsifying:</strong> DFT basis |

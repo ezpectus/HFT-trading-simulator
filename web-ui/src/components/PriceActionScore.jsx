@@ -150,7 +150,7 @@ export default function PriceActionScore({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <CandlestickChart size={12} className="text-accent-orange" />
           Price Action Score
@@ -163,14 +163,14 @@ export default function PriceActionScore({ candles, symbol, exchange }) {
   const { scores, avgScore, label, labelColor, bullCount, bearCount } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <CandlestickChart size={12} className="text-accent-orange" />
         Price Action Score
       </div>
 
       {/* Score */}
-      <div className="bg-bg-800 rounded px-2 py-2 mb-2 text-center">
+      <div className="bg-bg-800  px-2 py-2 mb-2 text-center">
         <div className="text-[8px] text-gray-600">Composite Score</div>
         <div className={'text-xl font-bold ' + labelColor}>{avgScore.toFixed(0)}</div>
         <div className={'text-[10px] font-medium ' + labelColor}>{label}</div>
@@ -193,7 +193,7 @@ export default function PriceActionScore({ candles, symbol, exchange }) {
       {/* Pattern scores */}
       <div className="space-y-0.5">
         {scores.map((s, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+          <div key={i} className="flex items-center gap-1.5 text-[8px] bg-bg-800  px-1.5 py-0.5">
             {s.direction === 'bull' ? <TrendingUp size={7} className="text-accent-green shrink-0" /> :
              s.direction === 'bear' ? <TrendingDown size={7} className="text-accent-red shrink-0" /> :
              <Flame size={7} className="text-gray-500 shrink-0" />}

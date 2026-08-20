@@ -96,7 +96,7 @@ export default function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Gauge size={12} className="text-accent-yellow" />
           Tick Speed
@@ -115,14 +115,14 @@ export default function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
   const xStep = w / Math.max(recentAnoms.length - 1, 1)
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Gauge size={12} className="text-accent-yellow" />
         Tick Speed Anomaly
       </div>
 
       {/* Activity status */}
-      <div className="bg-bg-800 rounded px-2 py-1.5 mb-2 text-center">
+      <div className="bg-bg-800  px-2 py-1.5 mb-2 text-center">
         <div className="text-[8px] text-gray-600">Tick Activity</div>
         <div className={'text-sm font-bold ' + activityColor}>{activity}</div>
         <div className="text-[8px] text-gray-500">
@@ -172,7 +172,7 @@ export default function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
           {fillSpeeds.slice(-20).map((s, i) => (
             <div
               key={i}
-              className="flex-1 rounded-sm bg-accent-blue transition-all"
+              className="flex-1  bg-accent-blue transition-all"
               style={{ height: `${(s / Math.max(...fillSpeeds.slice(-20), 1)) * 100}%`, opacity: 0.3 + (s / Math.max(...fillSpeeds.slice(-20), 1)) * 0.7 }}
             />
           ))}
@@ -181,19 +181,19 @@ export default function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
 
       {/* Stats grid */}
       <div className="grid grid-cols-4 gap-1 text-[8px] mb-2">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Avg Gap</span>
           <div className="font-mono text-gray-400">{meanGap.toFixed(0)}s</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Fast Ticks</span>
           <div className="font-mono text-accent-green">{fastTicks}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Slow Ticks</span>
           <div className="font-mono text-accent-orange">{slowTicks}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Fill/Candle</span>
           <div className="font-mono text-gray-400">{meanFillSpeed.toFixed(1)}</div>
         </div>
@@ -208,7 +208,7 @@ export default function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
           </div>
           <div className="space-y-0.5">
             {anomalyEvents.slice(-3).reverse().map((a, i) => (
-              <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+              <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
                 <span className="flex items-center gap-1">
                   {a.type === 'burst' ? <Zap size={7} className="text-accent-red" /> : <AlertTriangle size={7} className="text-accent-orange" />}
                   <span className={a.type === 'burst' ? 'text-accent-red' : 'text-accent-orange'}>

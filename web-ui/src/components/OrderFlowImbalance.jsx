@@ -50,7 +50,7 @@ export default function OrderFlowImbalance({ orderbookData, currentPrice }) {
 
   if (!imbalance) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Scale size={12} className="text-accent-blue" />
           Order Flow Imbalance
@@ -63,7 +63,7 @@ export default function OrderFlowImbalance({ orderbookData, currentPrice }) {
   const { bidPct, askPct, ratio, delta, topRatio, spread, spreadPct, signal, signalColor } = imbalance
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Scale size={12} className="text-accent-blue" />
         Order Flow Imbalance
@@ -84,7 +84,7 @@ export default function OrderFlowImbalance({ orderbookData, currentPrice }) {
             Asks {askPct.toFixed(1)}% <ArrowUp size={9} />
           </span>
         </div>
-        <div className="flex h-3 rounded-sm overflow-hidden">
+        <div className="flex h-3  overflow-hidden">
           <div className="bg-accent-green/60" style={{ width: `${bidPct}%` }} />
           <div className="bg-accent-red/60" style={{ width: `${askPct}%` }} />
         </div>
@@ -92,25 +92,25 @@ export default function OrderFlowImbalance({ orderbookData, currentPrice }) {
 
       {/* Metrics */}
       <div className="grid grid-cols-2 gap-2 text-[9px]">
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">B/A Ratio</div>
           <div className={'font-mono ' + (ratio > 1 ? 'text-accent-green' : 'text-accent-red')}>
             {ratio.toFixed(2)}
           </div>
         </div>
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Delta</div>
           <div className={'font-mono ' + (delta >= 0 ? 'text-accent-green' : 'text-accent-red')}>
             {delta >= 0 ? '+' : ''}{delta.toFixed(4)}
           </div>
         </div>
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Top5 Ratio</div>
           <div className={'font-mono ' + (topRatio > 1 ? 'text-accent-green' : 'text-accent-red')}>
             {topRatio.toFixed(2)}
           </div>
         </div>
-        <div className="bg-bg-600/50 rounded px-2 py-1">
+        <div className="bg-bg-600/50  px-2 py-1">
           <div className="text-gray-600">Spread</div>
           <div className="font-mono text-gray-400">
             {spread.toFixed(2)} ({spreadPct.toFixed(3)}%)

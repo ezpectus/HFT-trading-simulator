@@ -66,7 +66,7 @@ export default function VolatilitySurface({ candles, symbols, exchange }) {
 
   if (!surface) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Box size={12} className="text-accent-purple" />
           Volatility Surface
@@ -88,7 +88,7 @@ export default function VolatilitySurface({ candles, symbols, exchange }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Box size={12} className="text-accent-purple" />
         Volatility Surface
@@ -115,7 +115,7 @@ export default function VolatilitySurface({ candles, symbols, exchange }) {
                 <td className="py-1 text-gray-300 font-medium">{sym.split('/')[0]}</td>
                 {windows.map(w => (
                   <td key={w} className="text-right px-1">
-                    <span className={'inline-block px-1.5 py-0.5 rounded font-mono ' + volColor(d.vols[w])}>
+                    <span className={'inline-block px-1.5 py-0.5  font-mono ' + volColor(d.vols[w])}>
                       {d.vols[w] !== null ? `${d.vols[w].toFixed(1)}%` : '—'}
                     </span>
                   </td>

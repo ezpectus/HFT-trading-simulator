@@ -122,7 +122,7 @@ export default function PortfolioOptimizer({ candles, symbols, exchange }) {
 
   if (!result) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <LineChart size={12} className="text-accent-blue" />
           Portfolio Optimizer
@@ -147,7 +147,7 @@ export default function PortfolioOptimizer({ candles, symbols, exchange }) {
     .join(' ')
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <LineChart size={12} className="text-accent-blue" />
         Portfolio Optimizer (Markowitz)
@@ -183,7 +183,7 @@ export default function PortfolioOptimizer({ candles, symbols, exchange }) {
             step="0.5"
             value={riskFreeRate}
             onChange={e => setRiskFreeRate(Number(e.target.value))}
-            className="w-12 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none"
+            className="w-12 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[10px] text-gray-200 font-mono outline-none"
           />
           <span>%</span>
         </label>
@@ -221,7 +221,7 @@ export default function PortfolioOptimizer({ candles, symbols, exchange }) {
 
 function PortfolioRow({ label, color, dotColor, data }) {
   return (
-    <div className="bg-bg-600/50 rounded px-2 py-1">
+    <div className="bg-bg-600/50  px-2 py-1">
       <div className="flex items-center gap-1.5 mb-0.5">
         <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
         <span className={`text-[10px] font-medium ${color}`}>{label}</span>

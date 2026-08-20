@@ -2,36 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Theme variables — Dark (default) */
+/* Theme variables — Dark (default) — Pro exchange style */
 :root, .dark {
-  --bg-900: #0a0e17;
-  --bg-800: #0f1521;
-  --bg-700: #161b26;
-  --bg-600: #1e2433;
-  --bg-500: #2a3142;
-  --text-primary: #e2e8f0;
-  --text-secondary: #8b95a7;
-  --text-muted: #4a5568;
-  --border-color: #1e2433;
-  --scrollbar-track: #0f1521;
-  --scrollbar-thumb: #2a3142;
+  --bg-900: #0b0e11;
+  --bg-800: #121620;
+  --bg-700: #181d27;
+  --bg-600: #1e2530;
+  --bg-500: #2b333f;
+  --text-primary: #eaecef;
+  --text-secondary: #848e9c;
+  --text-muted: #5e6673;
+  --border-color: #1e2530;
+  --scrollbar-track: #121620;
+  --scrollbar-thumb: #2b333f;
   --scrollbar-hover: #3a4252;
 }
 
 /* Theme variables — Light */
 .light {
-  --bg-900: #e8ecf1;
-  --bg-800: #f1f5f9;
-  --bg-700: #ffffff;
-  --bg-600: #e2e8f0;
-  --bg-500: #cbd5e1;
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --border-color: #e2e8f0;
-  --scrollbar-track: #f1f5f9;
-  --scrollbar-thumb: #cbd5e1;
-  --scrollbar-hover: #94a3b8;
+  --bg-900: #f5f6f8;
+  --bg-800: #ffffff;
+  --bg-700: #fafbfc;
+  --bg-600: #eaecef;
+  --bg-500: #d1d5db;
+  --text-primary: #1e2329;
+  --text-secondary: #474d57;
+  --text-muted: #92989f;
+  --border-color: #eaecef;
+  --scrollbar-track: #fafbfc;
+  --scrollbar-thumb: #d1d5db;
+  --scrollbar-hover: #92989f;
 }
 
 /* Light theme — improve contrast for chart text and grid lines */
@@ -150,8 +150,8 @@ body {
 
 /* Focus visible — consistent keyboard focus indicator */
 :focus-visible {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
+  outline: 2px solid #f0b90b;
+  outline-offset: 1px;
 }
 
 /* Prevent layout shift on canvas elements */

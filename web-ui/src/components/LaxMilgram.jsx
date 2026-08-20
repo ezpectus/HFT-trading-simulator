@@ -190,7 +190,7 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Lax-Milgram Theorem (Variational PDE) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -198,26 +198,26 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">eps (diffusion):</span>
-          <input type="number" step="0.005" value={eps} onChange={e => setEps(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.005" value={eps} onChange={e => setEps(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">b (advection):</span>
-          <input type="number" step="0.5" value={b} onChange={e => setB(+e.target.value)} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.5" value={b} onChange={e => setB(+e.target.value)} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">c (reaction):</span>
-          <input type="number" step="0.5" value={c} onChange={e => setC(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.5" value={c} onChange={e => setC(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Elements:</span>
-          <input type="number" value={nElements} onChange={e => setNElements(Math.max(10, Math.min(100, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={nElements} onChange={e => setNElements(Math.max(10, Math.min(100, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Solution and forcing */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Variational Solution u(x): a(u,v) = L(v) (FEM with {nElements} elements)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
@@ -238,9 +238,9 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
       </div>
 
       {/* Epsilon sweep */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Solution Family for Varying eps (diffusion coefficient): regularized solutions</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
@@ -256,7 +256,7 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
       </div>
 
       {/* Lax-Milgram conditions */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Lax-Milgram Conditions</div>
         <div className="space-y-1 text-xs">
           <div className="flex items-center gap-3">
@@ -275,29 +275,29 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">u(x_current)</div>
           <div className="text-cyan-400 font-mono">{data.uAtCurrent.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">alpha (coerc.)</div>
           <div className="text-emerald-400 font-mono">{data.solution.alpha.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">C (bound)</div>
           <div className="text-amber-400 font-mono">{data.solution.C.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">h (mesh)</div>
           <div className="text-purple-400 font-mono">{data.solution.h.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Elements</div>
           <div className="text-slate-300 font-mono">{nElements}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Lax-Milgram:</strong> a(u,v)=L(v) has unique solution iff a is bounded + coercive |
         <strong> Bilinear:</strong> a(u,v) = eps*int(u'v') + b*int(u'v) + c*int(uv) |

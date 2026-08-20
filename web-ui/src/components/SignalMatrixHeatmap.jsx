@@ -132,7 +132,7 @@ export default function SignalMatrixHeatmap({ candles, signals, fills, symbols, 
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Grid3x3 size={12} className="text-accent-blue" />
           Signal Matrix
@@ -154,7 +154,7 @@ export default function SignalMatrixHeatmap({ candles, signals, fills, symbols, 
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Grid3x3 size={12} className="text-accent-blue" />
         Signal Matrix Heatmap
@@ -238,7 +238,7 @@ export default function SignalMatrixHeatmap({ candles, signals, fills, symbols, 
         <div className="text-[8px] text-gray-600 mb-0.5">Aggregate Score:</div>
         <div className="space-y-0.5">
           {symScores.map((s, i) => (
-            <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+            <div key={i} className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
               <span className="text-gray-400 w-12">{s.symbol.split('/')[0]}</span>
               <div className="flex-1 h-1.5 bg-bg-600 rounded-full overflow-hidden mx-2">
                 <div

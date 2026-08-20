@@ -345,7 +345,7 @@ export default function RecurrentNeuralNetwork({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">LSTM Recurrent Neural Network — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -353,26 +353,26 @@ export default function RecurrentNeuralNetwork({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Hidden units:</span>
-          <input type="number" value={hiddenSize} onChange={e => setHiddenSize(Math.max(2, Math.min(32, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={hiddenSize} onChange={e => setHiddenSize(Math.max(2, Math.min(32, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Seq length:</span>
-          <input type="number" value={seqLen} onChange={e => setSeqLen(Math.max(3, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={seqLen} onChange={e => setSeqLen(Math.max(3, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Epochs:</span>
-          <input type="number" value={epochs} onChange={e => setEpochs(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={epochs} onChange={e => setEpochs(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Learning rate:</span>
-          <input type="number" step="0.001" value={lr} onChange={e => setLr(Math.max(0.0001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.001" value={lr} onChange={e => setLr(Math.max(0.0001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
       </div>
 
       {/* Loss curve */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Training Loss (MSE) over Epochs</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
           <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
           <path d={data.losses.map((l, i) => `${i === 0 ? 'M' : 'L'} ${sx(i)} ${sy(l)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
@@ -383,9 +383,9 @@ export default function RecurrentNeuralNetwork({ candles, symbol, exchange }) {
       </div>
 
       {/* Predictions vs actual */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-1">Return Predictions vs Actual (last 30 train + test)</div>
-        <svg width={W} height={H} className="bg-slate-900 rounded">
+        <svg width={W} height={H} className="bg-slate-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" strokeDasharray="3,2" />
           {/* Actual */}
           <path d={allTgts.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxPred(i)} ${syPred(v)}`).join(' ')} fill="none" stroke="#64748b" strokeWidth={1.5} opacity={0.5} />
@@ -401,29 +401,29 @@ export default function RecurrentNeuralNetwork({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Final Loss</div>
           <div className="text-cyan-400 font-mono">{data.finalLoss.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Train Dir Acc</div>
           <div className="text-emerald-400 font-mono">{(data.trainDirAcc * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Test Dir Acc</div>
           <div className="text-amber-400 font-mono">{(data.testDirAcc * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Pred Return</div>
           <div className="font-mono" style={{ color: sigColor }}>{(data.predReturn * 100).toFixed(4)}%</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Pred Price</div>
           <div className="text-slate-300 font-mono">${data.predPrice.toFixed(2)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Architecture:</strong> LSTM({hiddenSize} units) → Dense(1) |
         <strong> BPTT:</strong> 5 timesteps truncated |
         <strong> Train/Test:</strong> {data.nTrain}/{data.nTest} sequences |

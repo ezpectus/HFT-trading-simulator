@@ -165,7 +165,7 @@ export default function SpectralAnalysis({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Radio size={12} className="text-accent-pink" />
           Spectral Analysis
@@ -190,7 +190,7 @@ export default function SpectralAnalysis({ candles, symbol, exchange }) {
                      noiseLevel === 'BLUE' ? 'text-accent-blue' : 'text-gray-400'
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Radio size={12} className="text-accent-pink" />
         Spectral Analysis (Welch PSD)
@@ -198,15 +198,15 @@ export default function SpectralAnalysis({ candles, symbol, exchange }) {
 
       {/* Metrics */}
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Spec. Entropy</span>
           <div className={'font-mono ' + entropyColor}>{spectralEntropy.toFixed(3)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Concentration</span>
           <div className="font-mono text-gray-400">{(concentration * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Noise Type</span>
           <div className={'font-mono ' + noiseColor}>{noiseLevel}</div>
         </div>

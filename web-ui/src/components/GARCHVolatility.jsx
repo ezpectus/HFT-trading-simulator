@@ -186,7 +186,7 @@ export default function GARCHVolatility({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <BarChart3 size={12} className="text-accent-orange" />
           GARCH Volatility
@@ -209,7 +209,7 @@ export default function GARCHVolatility({ candles, symbol, exchange }) {
   const trendColor = volTrend === 'RISING' ? 'text-accent-red' : volTrend === 'FALLING' ? 'text-accent-green' : 'text-gray-400'
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <BarChart3 size={12} className="text-accent-orange" />
         GARCH(1,1) Volatility Forecaster
@@ -217,19 +217,19 @@ export default function GARCHVolatility({ candles, symbol, exchange }) {
 
       {/* Model parameters */}
       <div className="grid grid-cols-4 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">α (ARCH)</span>
           <div className="font-mono text-gray-400">{garch.alpha.toFixed(4)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">β (GARCH)</span>
           <div className="font-mono text-gray-400">{garch.beta.toFixed(4)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Persist.</span>
           <div className="font-mono text-gray-400">{garch.persistence.toFixed(3)}</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Half-life</span>
           <div className="font-mono text-gray-400">{isFinite(garch.halfLife) ? garch.halfLife.toFixed(1) + 'd' : '∞'}</div>
         </div>
@@ -237,15 +237,15 @@ export default function GARCHVolatility({ candles, symbol, exchange }) {
 
       {/* Volatility estimates */}
       <div className="grid grid-cols-3 gap-1 mb-2 text-[8px]">
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600 flex items-center gap-0.5"><TrendingUp size={7} /> GARCH Forecast</span>
           <div className="font-mono text-accent-orange">{garch.forecastVol.toFixed(2)}%</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">EWMA (λ=0.94)</span>
           <div className="font-mono text-accent-blue">{ewma.currentVol.toFixed(2)}%</div>
         </div>
-        <div className="bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Parkinson (H/L)</span>
           <div className="font-mono text-accent-teal">{parkinson.currentVol.toFixed(2)}%</div>
         </div>

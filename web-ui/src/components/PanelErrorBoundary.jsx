@@ -33,7 +33,7 @@ export default class PanelErrorBoundary extends Component {
     if (this.state.disabled) {
       const { panelName } = this.props
       return (
-        <div className="bg-bg-700 rounded-lg p-2.5 border border-bg-600 opacity-50">
+        <div className="bg-bg-700  p-2.5 border border-bg-600 opacity-50">
           <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
             <Ban size={12} />
             {panelName || 'Panel'} Disabled
@@ -52,18 +52,18 @@ export default class PanelErrorBoundary extends Component {
       const { panelName } = this.props
       const tooManyErrors = this.state.errorCount >= 3
       return (
-        <div className="bg-bg-700 rounded-lg p-2.5 border border-accent-red/20">
+        <div className="bg-bg-700  p-2.5 border border-accent-red/20">
           <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
             <AlertTriangle size={12} className="text-accent-red" />
             {panelName || 'Panel'} Error{this.state.errorCount > 1 && ` (${this.state.errorCount}x)`}
           </div>
-          <div className="text-[9px] text-accent-red bg-accent-red/5 rounded px-2 py-1 mb-2 font-mono break-all">
+          <div className="text-[9px] text-accent-red bg-accent-red/5  px-2 py-1 mb-2 font-mono break-all">
             {this.state.error?.message || 'Unknown render error'}
           </div>
           <div className="flex gap-1">
             <button
               onClick={this.handleReset}
-              className="flex items-center gap-1 text-[8px] text-gray-400 hover:text-gray-300 bg-bg-600 hover:bg-bg-500 rounded px-2 py-0.5 transition-colors"
+              className="flex items-center gap-1 text-[8px] text-gray-400 hover:text-gray-300 bg-bg-600 hover:bg-bg-500  px-2 py-0.5 transition-colors"
             >
               <RotateCcw size={9} />
               Retry
@@ -71,7 +71,7 @@ export default class PanelErrorBoundary extends Component {
             {tooManyErrors && (
               <button
                 onClick={this.handleDisable}
-                className="flex items-center gap-1 text-[8px] text-gray-500 hover:text-gray-400 bg-bg-600 hover:bg-bg-500 rounded px-2 py-0.5 transition-colors"
+                className="flex items-center gap-1 text-[8px] text-gray-500 hover:text-gray-400 bg-bg-600 hover:bg-bg-500  px-2 py-0.5 transition-colors"
               >
                 <Ban size={9} />
                 Disable

@@ -247,7 +247,7 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-slate-200">Wavelet Decomposition (MRA) — {symbol}</span>
-        <span className="px-2 py-0.5 text-xs rounded" style={{ background: sigColor + '22', color: sigColor }}>
+        <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
       </div>
@@ -255,18 +255,18 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Levels:</span>
-          <input type="number" value={levels} onChange={e => setLevels(Math.max(1, Math.min(8, +e.target.value)))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" value={levels} onChange={e => setLevels(Math.max(1, Math.min(8, +e.target.value)))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Wavelet:</span>
-          <select value={wavelet} onChange={e => setWavelet(e.target.value)} className="bg-slate-800 border border-slate-600 rounded text-slate-200 px-1">
+          <select value={wavelet} onChange={e => setWavelet(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
             <option value="haar">Haar (D2)</option>
             <option value="db4">Daubechies D4</option>
           </select>
         </label>
         <label className="flex items-center gap-1">
           <span className="text-slate-400">Threshold:</span>
-          <input type="number" step="0.01" value={threshold} onChange={e => setThreshold(Math.max(0, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600 rounded text-slate-200" />
+          <input type="number" step="0.01" value={threshold} onChange={e => setThreshold(Math.max(0, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={showComponents} onChange={e => setShowComponents(e.target.checked)} />
@@ -274,7 +274,7 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
         </label>
       </div>
 
-      <svg width={W} height={H} className="bg-slate-900 rounded border border-slate-700">
+      <svg width={W} height={H} className="bg-slate-900  border border-slate-700">
         <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
         <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
 
@@ -293,7 +293,7 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
       </svg>
 
       {/* Energy distribution */}
-      <div className="bg-slate-800 rounded p-3">
+      <div className="bg-slate-800  p-3">
         <div className="text-xs text-slate-400 mb-2">Energy Distribution by Scale</div>
         <div className="flex items-end gap-2 h-24">
           {data.energyPct.map((pct, i) => (
@@ -313,25 +313,25 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">SNR</div>
           <div className="text-cyan-400 font-mono">{data.snr.toFixed(2)} dB</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Price</div>
           <div className="text-slate-300 font-mono">${data.currentPrice.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Denoised</div>
           <div className="text-amber-400 font-mono">${data.denoisedPrice.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800 rounded p-2">
+        <div className="bg-slate-800  p-2">
           <div className="text-slate-400">Levels</div>
           <div className="text-purple-400 font-mono">{levels} ({wavelet})</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800 rounded p-2">
+      <div className="text-xs text-slate-400 bg-slate-800  p-2">
         <strong>Signal:</strong> {data.reason}
       </div>
     </div>

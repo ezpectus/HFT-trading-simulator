@@ -92,7 +92,7 @@ export default function LiquidationMap({ candles, accounts, symbol, exchange }) 
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Flame size={12} className="text-accent-red" />
           Liquidation Map
@@ -105,7 +105,7 @@ export default function LiquidationMap({ candles, accounts, symbol, exchange }) 
   const { price, longBars, shortBars, priceY, positions, dangerPositions } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Flame size={12} className="text-accent-red" />
         Liquidation Map
@@ -137,11 +137,11 @@ export default function LiquidationMap({ candles, accounts, symbol, exchange }) 
       {/* Legend */}
       <div className="flex items-center justify-between mt-1 text-[8px]">
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-accent-red/40 rounded-sm" />
+          <div className="w-2 h-2 bg-accent-red/40 " />
           <span className="text-gray-500">Long Liq</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-accent-orange/40 rounded-sm" />
+          <div className="w-2 h-2 bg-accent-orange/40 " />
           <span className="text-gray-500">Short Liq</span>
         </div>
       </div>
@@ -152,7 +152,7 @@ export default function LiquidationMap({ candles, accounts, symbol, exchange }) 
           <div className="text-[8px] text-gray-600 mb-1">Your Positions:</div>
           <div className="space-y-0.5">
             {positions.map((p, i) => (
-              <div key={i} className={'flex items-center justify-between text-[8px] rounded px-1 py-0.5 ' + (p.distance < 5 ? 'bg-accent-red/10' : 'bg-bg-800')}>
+              <div key={i} className={'flex items-center justify-between text-[8px]  px-1 py-0.5 ' + (p.distance < 5 ? 'bg-accent-red/10' : 'bg-bg-800')}>
                 <div className="flex items-center gap-1">
                   {p.side === 'long' ? <TrendingUp size={7} className="text-accent-green" /> : <TrendingDown size={7} className="text-accent-red" />}
                   <span className="text-gray-400">{p.leverage}x</span>
@@ -167,7 +167,7 @@ export default function LiquidationMap({ candles, accounts, symbol, exchange }) 
 
       {/* Danger warning */}
       {dangerPositions.length > 0 && (
-        <div className="mt-1.5 bg-accent-red/10 border border-accent-red/20 rounded px-1.5 py-1 flex items-center gap-1">
+        <div className="mt-1.5 bg-accent-red/10 border border-accent-red/20  px-1.5 py-1 flex items-center gap-1">
           <AlertTriangle size={9} className="text-accent-red shrink-0" />
           <span className="text-[8px] text-accent-red">
             {dangerPositions.length} position(s) within 5% of liquidation!

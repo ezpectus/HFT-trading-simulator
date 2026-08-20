@@ -107,7 +107,7 @@ export default function MultiLegOptions({ currentPrice }) {
   const payoffPath = payoffs.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xScale(p.spot)} ${yScale(p.payoff)}`).join(' ')
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Layers size={12} className="text-accent-purple" />
         Multi-Leg Options
@@ -119,7 +119,7 @@ export default function MultiLegOptions({ currentPrice }) {
           <button
             key={s.id}
             onClick={() => setStrategy(s.id)}
-            className={'py-1 text-[9px] rounded transition-colors ' +
+            className={'py-1 text-[9px]  transition-colors ' +
               (strategy === s.id ? 'bg-accent-purple/20 text-accent-purple' : 'bg-bg-600 text-gray-400 hover:bg-bg-500')}
           >
             {s.label}
@@ -132,24 +132,24 @@ export default function MultiLegOptions({ currentPrice }) {
         <label className="flex flex-col gap-0.5">
           <span className="text-[8px] text-gray-600">Spot</span>
           <input type="number" value={spot} onChange={e => setSpot(Number(e.target.value))}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple" />
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple" />
         </label>
         <label className="flex flex-col gap-0.5">
           <span className="text-[8px] text-gray-600">Days</span>
           <input type="number" value={daysToExpiry} onChange={e => setDaysToExpiry(Number(e.target.value))}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple" />
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple" />
         </label>
         <label className="flex flex-col gap-0.5">
           <span className="text-[8px] text-gray-600">Vol %</span>
           <input type="number" value={volPct} onChange={e => setVolPct(Number(e.target.value))}
-            className="bg-bg-800 border border-bg-600 rounded px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple" />
+            className="bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 font-mono outline-none focus:border-accent-purple" />
         </label>
       </div>
 
       {/* Legs */}
       <div className="space-y-0.5 mb-2">
         {analysis.legs.map(leg => (
-          <div key={leg.index} className="flex items-center gap-1.5 bg-bg-600/50 rounded px-1.5 py-1">
+          <div key={leg.index} className="flex items-center gap-1.5 bg-bg-600/50  px-1.5 py-1">
             <span className={'text-[9px] ' + (leg.side === 'buy' ? 'text-accent-green' : 'text-accent-red')}>
               {leg.side === 'buy' ? <Plus size={9} className="inline" /> : <Minus size={9} className="inline" />}
               {' '}{leg.label}
@@ -158,7 +158,7 @@ export default function MultiLegOptions({ currentPrice }) {
               type="number"
               value={strikes[`leg${leg.index}`]}
               onChange={e => setStrikes(prev => ({ ...prev, [`leg${leg.index}`]: Number(e.target.value) }))}
-              className="w-16 bg-bg-800 border border-bg-600 rounded px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none"
+              className="w-16 bg-bg-800 border border-bg-600  px-1 py-0.5 text-[9px] text-gray-200 font-mono outline-none"
             />
             <span className="text-[8px] text-gray-600">@ ${leg.price.toFixed(2)}</span>
           </div>

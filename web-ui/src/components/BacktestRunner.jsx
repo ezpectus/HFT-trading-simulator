@@ -294,7 +294,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
   return (
     <div className="p-3 space-y-3 overflow-y-auto h-full">
       {/* Config form */}
-      <div className="bg-bg-700 rounded-lg p-3">
+      <div className="bg-bg-700  p-3">
         <div className="flex items-center gap-2 mb-2">
           <Settings size={14} className="text-accent-blue" />
           <span className="text-xs text-gray-400 font-medium">Backtest Configuration</span>
@@ -306,7 +306,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
             <select
               value={config.strategy}
               onChange={e => setConfig(p => ({ ...p, strategy: e.target.value }))}
-              className="bg-bg-800 border border-bg-600 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent-blue"
+              className="bg-bg-800 border border-bg-600  px-2 py-1 text-gray-200 outline-none focus:border-accent-blue"
             >
               {STRATEGIES.map(s => (
                 <option key={s.id} value={s.id}>{s.label}</option>
@@ -320,7 +320,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
               type="number"
               value={config.candles}
               onChange={e => setConfig(p => ({ ...p, candles: e.target.value }))}
-              className="bg-bg-800 border border-bg-600 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent-blue"
+              className="bg-bg-800 border border-bg-600  px-2 py-1 text-gray-200 outline-none focus:border-accent-blue"
               min="100"
               max="5000"
             />
@@ -332,7 +332,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
               type="number"
               value={config.balance}
               onChange={e => setConfig(p => ({ ...p, balance: e.target.value }))}
-              className="bg-bg-800 border border-bg-600 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent-blue"
+              className="bg-bg-800 border border-bg-600  px-2 py-1 text-gray-200 outline-none focus:border-accent-blue"
             />
           </label>
 
@@ -342,7 +342,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
               type="number"
               value={config.initial_price}
               onChange={e => setConfig(p => ({ ...p, initial_price: e.target.value }))}
-              className="bg-bg-800 border border-bg-600 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent-blue"
+              className="bg-bg-800 border border-bg-600  px-2 py-1 text-gray-200 outline-none focus:border-accent-blue"
             />
           </label>
 
@@ -353,7 +353,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
               step="0.05"
               value={config.volatility}
               onChange={e => setConfig(p => ({ ...p, volatility: e.target.value }))}
-              className="bg-bg-800 border border-bg-600 rounded px-2 py-1 text-gray-200 outline-none focus:border-accent-blue"
+              className="bg-bg-800 border border-bg-600  px-2 py-1 text-gray-200 outline-none focus:border-accent-blue"
             />
           </label>
 
@@ -385,7 +385,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
         <button
           onClick={handleRun}
           disabled={running || !connected}
-          className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded transition-colors bg-accent-blue text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium  transition-colors bg-accent-blue text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {running ? (
             <>
@@ -403,7 +403,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
 
       {/* Error */}
       {error && (
-        <div className="bg-red-900/20 border border-red-800 rounded-lg p-2 text-xs text-red-400">
+        <div className="bg-red-900/20 border border-red-800  p-2 text-xs text-red-400">
           {error}
         </div>
       )}
@@ -415,21 +415,21 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
           <div className="flex gap-1">
             <button
               onClick={handleSaveBacktest}
-              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-[10px]  bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors"
             >
               <Save size={10} />
               Save
             </button>
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors"
             >
               <Download size={10} />
               CSV
             </button>
             <button
               onClick={handleShareLink}
-              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors"
             >
               <Share2 size={10} />
               {shareLink ? 'Copied!' : 'Share'}
@@ -437,7 +437,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
             {savedBacktests.length > 0 && (
               <button
                 onClick={() => setShowCompare(!showCompare)}
-                className={'flex items-center gap-1 px-2 py-1 text-[10px] rounded transition-colors ' +
+                className={'flex items-center gap-1 px-2 py-1 text-[10px]  transition-colors ' +
                   (showCompare ? 'bg-accent-purple/20 text-accent-purple' : 'bg-bg-600 text-gray-400 hover:bg-bg-500')}
               >
                 <GitCompare size={10} />
@@ -448,7 +448,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
 
           {/* Comparison view — side-by-side panel */}
           {showCompare && savedBacktests.length > 0 && (
-            <div className="bg-bg-700 rounded-lg p-2 space-y-2">
+            <div className="bg-bg-700  p-2 space-y-2">
               <div className="flex items-center gap-2 px-1 py-1">
                 <GitCompare size={12} className="text-accent-purple" />
                 <span className="text-xs text-gray-400 font-medium">Side-by-Side Comparison</span>
@@ -456,7 +456,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
                   <button
                     onClick={handleRunComparison}
                     disabled={compareLoading || !connected}
-                    className="ml-auto flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 transition-colors disabled:opacity-50"
+                    className="ml-auto flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 transition-colors disabled:opacity-50"
                   >
                     {compareLoading ? <Loader2 size={10} className="animate-spin" /> : <Play size={10} />}
                     Run Comparison ({selectedForCompare.size})
@@ -523,19 +523,19 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
                 <div className="space-y-2 pt-2 border-t border-bg-600">
                   {/* Best by metrics */}
                   <div className="grid grid-cols-2 gap-1 text-[10px]">
-                    <div className="bg-bg-800 rounded px-2 py-1">
+                    <div className="bg-bg-800  px-2 py-1">
                       <span className="text-gray-500">Best Sharpe: </span>
                       <span className="text-accent-blue font-medium">{comparisonResult.best_by_sharpe}</span>
                     </div>
-                    <div className="bg-bg-800 rounded px-2 py-1">
+                    <div className="bg-bg-800  px-2 py-1">
                       <span className="text-gray-500">Best Return: </span>
                       <span className="text-green-400 font-medium">{comparisonResult.best_by_return}</span>
                     </div>
-                    <div className="bg-bg-800 rounded px-2 py-1">
+                    <div className="bg-bg-800  px-2 py-1">
                       <span className="text-gray-500">Best Calmar: </span>
                       <span className="text-accent-purple font-medium">{comparisonResult.best_by_calmar}</span>
                     </div>
-                    <div className="bg-bg-800 rounded px-2 py-1">
+                    <div className="bg-bg-800  px-2 py-1">
                       <span className="text-gray-500">Best PF: </span>
                       <span className="text-yellow-400 font-medium">{comparisonResult.best_by_profit_factor}</span>
                     </div>
@@ -543,7 +543,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
 
                   {/* Overlaid equity curves from comparison */}
                   {comparisonResult.equity_curves && Object.keys(comparisonResult.equity_curves).length > 0 && (
-                    <div className="bg-bg-800 rounded p-2">
+                    <div className="bg-bg-800  p-2">
                       <div className="text-[10px] text-gray-500 mb-1">Overlaid Equity Curves</div>
                       <ComparisonChart curves={comparisonResult.equity_curves} />
                     </div>
@@ -551,7 +551,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
 
                   {/* Significance tests */}
                   {comparisonResult.significance_tests && Object.keys(comparisonResult.significance_tests).length > 0 && (
-                    <div className="bg-bg-800 rounded p-2">
+                    <div className="bg-bg-800  p-2">
                       <div className="text-[10px] text-gray-500 mb-1">Statistical Significance (bootstrap)</div>
                       <table className="w-full text-[9px]">
                         <thead>
@@ -578,7 +578,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
 
                   {/* Detailed comparison table */}
                   {comparisonResult.rows && comparisonResult.rows.length > 0 && (
-                    <div className="bg-bg-800 rounded p-2">
+                    <div className="bg-bg-800  p-2">
                       <div className="text-[10px] text-gray-500 mb-1">Detailed Metrics</div>
                       <table className="w-full text-[9px]">
                         <thead>
@@ -618,7 +618,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
           )}
 
           {/* Equity curve chart */}
-          <div className="bg-bg-700 rounded-lg p-2">
+          <div className="bg-bg-700  p-2">
             <div className="flex items-center gap-2 px-1 py-1 mb-1">
               <TrendingUp size={12} className="text-accent-blue" />
               <span className="text-xs text-gray-400 font-medium">Equity Curves</span>
@@ -627,7 +627,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
           </div>
 
           {/* Strategy comparison table */}
-          <div className="bg-bg-700 rounded-lg p-2">
+          <div className="bg-bg-700  p-2">
             <div className="flex items-center gap-2 px-1 py-1 mb-2">
               <BarChart3 size={12} className="text-accent-blue" />
               <span className="text-xs text-gray-400 font-medium">Strategy Comparison</span>
@@ -667,7 +667,7 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
 
           {/* Detailed metrics per strategy */}
           {sortedResults.map(([name, r], idx) => (
-            <div key={name} className="bg-bg-700 rounded-lg p-3">
+            <div key={name} className="bg-bg-700  p-3">
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                 <span className="text-xs text-gray-300 font-medium">{name}</span>
@@ -688,16 +688,16 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
       {/* Running skeleton */}
       {running && !result && (
         <div className="space-y-2">
-          <div className="bg-bg-700 rounded-lg p-2 animate-pulse">
-            <div className="h-3 w-32 bg-bg-600 rounded mb-2" />
-            <div className="h-[150px] bg-bg-600 rounded" />
+          <div className="bg-bg-700  p-2 animate-pulse">
+            <div className="h-3 w-32 bg-bg-600  mb-2" />
+            <div className="h-[150px] bg-bg-600 " />
           </div>
-          <div className="bg-bg-700 rounded-lg p-2 animate-pulse">
-            <div className="h-3 w-40 bg-bg-600 rounded mb-2" />
+          <div className="bg-bg-700  p-2 animate-pulse">
+            <div className="h-3 w-40 bg-bg-600  mb-2" />
             <div className="space-y-1.5">
-              <div className="h-4 bg-bg-600 rounded" />
-              <div className="h-4 bg-bg-600 rounded" />
-              <div className="h-4 bg-bg-600 rounded w-3/4" />
+              <div className="h-4 bg-bg-600 " />
+              <div className="h-4 bg-bg-600 " />
+              <div className="h-4 bg-bg-600  w-3/4" />
             </div>
           </div>
         </div>

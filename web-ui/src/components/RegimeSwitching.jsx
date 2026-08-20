@@ -141,7 +141,7 @@ export default function RegimeSwitching({ candles, symbol, exchange }) {
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <Shuffle size={12} className="text-accent-purple" />
           Regime Switching
@@ -162,14 +162,14 @@ export default function RegimeSwitching({ candles, symbol, exchange }) {
   }
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Shuffle size={12} className="text-accent-purple" />
         Regime Switching Detection
       </div>
 
       {/* Current regime */}
-      <div className="rounded px-2 py-1.5 mb-2 text-center" style={{ backgroundColor: current.color + '15' }}>
+      <div className=" px-2 py-1.5 mb-2 text-center" style={{ backgroundColor: current.color + '15' }}>
         <div className="text-[8px] text-gray-600">Current Regime</div>
         <div className="text-sm font-bold" style={{ color: current.color }}>{current.regime}</div>
         <div className="text-[8px] text-gray-500">{duration} candles in this regime</div>

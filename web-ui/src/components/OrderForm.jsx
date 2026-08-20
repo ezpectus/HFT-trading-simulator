@@ -79,9 +79,9 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-bg-600">
-        <ShoppingCart size={16} className="text-accent-blue" />
-        <span className="text-sm font-medium">Place Order</span>
+      <div className="flex items-center gap-2 px-3 py-1 border-b border-bg-600">
+        <ShoppingCart size={14} className="text-accent-yellow" />
+        <span className="text-xs font-medium">Place Order</span>
         <span className="text-xs text-gray-500 ml-auto">{exchange} · {symbol}</span>
       </div>
 
@@ -91,7 +91,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
           <button
             type="button"
             onClick={() => setSide('BUY')}
-            className={`flex-1 py-1.5 text-sm font-medium rounded transition-colors ${
+            className={`flex-1 py-1.5 text-sm font-medium transition-colors ${
               side === 'BUY'
                 ? 'bg-accent-green text-white'
                 : 'bg-bg-600 text-gray-400 hover:bg-bg-500'
@@ -102,7 +102,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
           <button
             type="button"
             onClick={() => setSide('SELL')}
-            className={`flex-1 py-1.5 text-sm font-medium rounded transition-colors ${
+            className={`flex-1 py-1.5 text-sm font-medium transition-colors ${
               side === 'SELL'
                 ? 'bg-accent-red text-white'
                 : 'bg-bg-600 text-gray-400 hover:bg-bg-500'
@@ -119,7 +119,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
               key={t}
               type="button"
               onClick={() => setOrderType(t)}
-              className={`flex-1 py-1 text-xs font-medium rounded ${
+              className={`flex-1 py-1 text-xs font-medium ${
                 orderType === t ? 'bg-bg-500 text-white' : 'bg-bg-600 text-gray-400'
               }`}
             >
@@ -138,7 +138,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
               placeholder={currentPrice ? formatPrice(currentPrice) : ''}
               value={limitPrice}
               onChange={e => setLimitPrice(e.target.value)}
-              className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
+              className="w-full bg-bg-600 text-gray-200 text-sm px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
             />
           </div>
         )}
@@ -153,7 +153,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
               placeholder={currentPrice ? formatPrice(currentPrice * 1.02) : ''}
               value={stopPrice}
               onChange={e => setStopPrice(e.target.value)}
-              className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
+              className="w-full bg-bg-600 text-gray-200 text-sm px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
             />
           </div>
         )}
@@ -168,7 +168,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
               placeholder="2.0"
               value={trailAmount}
               onChange={e => setTrailAmount(e.target.value)}
-              className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
+              className="w-full bg-bg-600 text-gray-200 text-sm px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
             />
             <div className="flex gap-2 mt-1">
               <label className="flex items-center gap-1 text-xs text-gray-400">
@@ -203,7 +203,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
               placeholder={quantity ? (parseFloat(quantity) * 0.1).toFixed(3) : ''}
               value={icebergVisibleQty}
               onChange={e => setIcebergVisibleQty(e.target.value)}
-              className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
+              className="w-full bg-bg-600 text-gray-200 text-sm px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-blue font-mono"
             />
             <div className="text-[10px] text-gray-500 mt-0.5">Hidden quantity will be {quantity && icebergVisibleQty ? (parseFloat(quantity) - parseFloat(icebergVisibleQty)).toFixed(3) : '...'}</div>
           </div>
@@ -217,7 +217,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
             step="0.001"
             value={quantity}
             onChange={e => setQuantity(e.target.value)}
-            className={`w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border font-mono focus:outline-none transition-colors ${
+            className={`w-full bg-bg-600 text-gray-200 text-sm px-2 py-1.5 border font-mono focus:outline-none transition-colors ${
               qtyError ? 'border-accent-red focus:border-accent-red' : 'border-bg-500 focus:border-accent-blue'
             }`}
           />
@@ -240,7 +240,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
                 key={pct}
                 type="button"
                 onClick={() => setQtyFromBalance(pct)}
-                className="flex-1 py-0.5 text-[10px] font-medium rounded bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
+                className="flex-1 py-0.5 text-[10px] font-medium bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
               >
                 {pct}%
               </button>
@@ -277,7 +277,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
               placeholder={currentPrice ? formatPrice(currentPrice * 0.98) : ''}
               value={stopLoss}
               onChange={e => setStopLoss(e.target.value)}
-              className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-red font-mono"
+              className="w-full bg-bg-600 text-gray-200 text-sm px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-red font-mono"
             />
           </div>
           <div>
@@ -288,7 +288,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
               placeholder={currentPrice ? formatPrice(currentPrice * 1.04) : ''}
               value={takeProfit}
               onChange={e => setTakeProfit(e.target.value)}
-              className="w-full bg-bg-600 text-gray-200 text-sm rounded px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-green font-mono"
+              className="w-full bg-bg-600 text-gray-200 text-sm px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-green font-mono"
             />
           </div>
         </div>
@@ -339,7 +339,7 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
           const marginDanger = marginPct > 80
 
           return (
-            <div className="bg-bg-700 rounded p-2 space-y-1 text-[10px] font-mono">
+            <div className="bg-bg-700  p-2 space-y-1 text-[10px] font-mono">
               <div className="flex justify-between">
                 <span className="text-gray-500">Margin Required</span>
                 <span className={marginDanger ? 'text-accent-red' : 'text-gray-300'}>
@@ -383,10 +383,10 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
           type="submit"
           disabled={!canSubmit}
           title={!connected ? 'Not connected' : !tradingActive ? 'Trading is stopped' : marginExceeds ? 'Margin exceeds balance' : qtyError ? 'Invalid quantity' : ''}
-          className={`py-2 text-sm font-semibold rounded transition-all ${
+          className={`py-2 text-sm font-semibold transition-all ${
             side === 'BUY'
-              ? 'bg-accent-green hover:bg-green-600 text-white'
-              : 'bg-accent-red hover:bg-red-600 text-white'
+              ? 'bg-accent-green hover:bg-accent-green/90 text-white'
+              : 'bg-accent-red hover:bg-accent-red/90 text-white'
           } disabled:opacity-40 disabled:cursor-not-allowed`}
         >
           {submitting ? (

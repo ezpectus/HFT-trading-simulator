@@ -43,7 +43,7 @@ export default class ChunkRetryBoundary extends Component {
 
       if (isChunkError && this.state.retryCount >= 3) {
         return (
-          <div className="bg-bg-700 rounded-lg p-2.5 border border-accent-yellow/20">
+          <div className="bg-bg-700  p-2.5 border border-accent-yellow/20">
             <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
               <AlertTriangle size={12} className="text-accent-yellow" />
               {this.props.panelName || 'Panel'} — Load Failed
@@ -53,7 +53,7 @@ export default class ChunkRetryBoundary extends Component {
             </div>
             <button
               onClick={this.handleManualRetry}
-              className="flex items-center gap-1 text-[8px] text-gray-400 hover:text-gray-300 bg-bg-600 hover:bg-bg-500 rounded px-2 py-0.5 transition-colors"
+              className="flex items-center gap-1 text-[8px] text-gray-400 hover:text-gray-300 bg-bg-600 hover:bg-bg-500  px-2 py-0.5 transition-colors"
             >
               <RotateCcw size={9} />
               Retry
@@ -64,14 +64,14 @@ export default class ChunkRetryBoundary extends Component {
 
       if (isChunkError) {
         return (
-          <div className="bg-bg-700 rounded-lg p-2.5 animate-pulse">
+          <div className="bg-bg-700  p-2.5 animate-pulse">
             <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
               <Loader2 size={12} className="text-gray-600 animate-spin" />
               {this.props.panelName || 'Loading'}…
             </div>
             <div className="space-y-1.5">
-              <div className="h-2 bg-bg-600 rounded w-3/4" />
-              <div className="h-2 bg-bg-600 rounded w-1/2" />
+              <div className="h-2 bg-bg-600  w-3/4" />
+              <div className="h-2 bg-bg-600  w-1/2" />
             </div>
           </div>
         )
@@ -83,15 +83,15 @@ export default class ChunkRetryBoundary extends Component {
 
     return (
       <Suspense fallback={
-        <div className="bg-bg-700 rounded-lg p-2.5 animate-pulse">
+        <div className="bg-bg-700  p-2.5 animate-pulse">
           <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
             <Loader2 size={12} className="text-gray-600 animate-spin" />
             {this.props.panelName || 'Loading'}…
           </div>
           <div className="space-y-1.5">
-            <div className="h-2 bg-bg-600 rounded w-3/4" />
-            <div className="h-2 bg-bg-600 rounded w-1/2" />
-            <div className="h-2 bg-bg-600 rounded w-2/3" />
+            <div className="h-2 bg-bg-600  w-3/4" />
+            <div className="h-2 bg-bg-600  w-1/2" />
+            <div className="h-2 bg-bg-600  w-2/3" />
           </div>
         </div>
       }>

@@ -126,7 +126,7 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
 
   if (!data) {
     return (
-      <div className="bg-bg-700 rounded-lg p-2.5">
+      <div className="bg-bg-700  p-2.5">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
           <FlaskConical size={12} className="text-accent-teal" />
           Slippage Simulator
@@ -139,7 +139,7 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
   const { qty, executionPrice, priceImpact, slippagePct, spread, bestBid, bestAsk, topLiquidity, fee, feeRate, grossValue, actualValue, slippageCost, totalRoundTrip, effectivePrice, slippagePctOfTotal, feePctOfTotal, twapSavings, twapSavingsPct, orderVsLiquidity, liquidityZone, liquidityColor } = data
 
   return (
-    <div className="bg-bg-700 rounded-lg p-2.5">
+    <div className="bg-bg-700  p-2.5">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <FlaskConical size={12} className="text-accent-teal" />
         Slippage Simulator
@@ -149,14 +149,14 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
       <div className="flex gap-1 mb-2">
         <button
           onClick={() => setSide('BUY')}
-          className={'flex-1 py-1 text-[10px] font-medium rounded transition-colors ' +
+          className={'flex-1 py-1 text-[10px] font-medium  transition-colors ' +
             (side === 'BUY' ? 'bg-accent-green text-white' : 'bg-bg-600 text-gray-400')}
         >
           Buy
         </button>
         <button
           onClick={() => setSide('SELL')}
-          className={'flex-1 py-1 text-[10px] font-medium rounded transition-colors ' +
+          className={'flex-1 py-1 text-[10px] font-medium  transition-colors ' +
             (side === 'SELL' ? 'bg-accent-red text-white' : 'bg-bg-600 text-gray-400')}
         >
           Sell
@@ -171,7 +171,7 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
           value={orderSize}
           onChange={e => setOrderSize(e.target.value)}
           step="10"
-          className="w-full bg-bg-800 text-[10px] text-gray-300 rounded px-2 py-1 border border-bg-600 focus:border-accent-teal outline-none"
+          className="w-full bg-bg-800 text-[10px] text-gray-300  px-2 py-1 border border-bg-600 focus:border-accent-teal outline-none"
         />
       </div>
 
@@ -190,7 +190,7 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
             <button
               key={m.id}
               onClick={() => setSlippageModel(m.id)}
-              className={'py-0.5 text-[8px] rounded transition-colors ' +
+              className={'py-0.5 text-[8px]  transition-colors ' +
                 (slippageModel === m.id ? 'bg-accent-teal text-white' : 'bg-bg-600 text-gray-400')}
             >
               {m.label}
@@ -211,7 +211,7 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
             <button
               key={f.id}
               onClick={() => setFeeTier(f.id)}
-              className={'py-0.5 text-[7px] rounded transition-colors ' +
+              className={'py-0.5 text-[7px]  transition-colors ' +
                 (feeTier === f.id ? 'bg-accent-teal text-white' : 'bg-bg-600 text-gray-400')}
             >
               {f.label}
@@ -222,35 +222,35 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
 
       {/* Results */}
       <div className="space-y-0.5 mb-2">
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Reference Price</span>
           <span className="font-mono text-gray-400">{formatPrice(currentPrice)}</span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Execution Price</span>
           <span className={'font-mono ' + (side === 'BUY' ? 'text-accent-red' : 'text-accent-green')}>
             {formatPrice(executionPrice)}
           </span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Price Impact</span>
           <span className={'font-mono ' + (slippagePct > 1 ? 'text-accent-red' : 'text-accent-yellow')}>
             {slippagePct.toFixed(3)}% ({formatPrice(Math.abs(priceImpact))})
           </span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Spread</span>
           <span className="font-mono text-gray-400">{formatPrice(spread)}</span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Fee ({(feeRate * 100).toFixed(2)}%)</span>
           <span className="font-mono text-gray-400">${formatPrice(fee)}</span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-bg-800 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-bg-800  px-1.5 py-0.5">
           <span className="text-gray-600">Slippage Cost</span>
           <span className="font-mono text-accent-orange">${formatPrice(slippageCost)}</span>
         </div>
-        <div className="flex items-center justify-between text-[8px] bg-accent-teal/10 border border-accent-teal/20 rounded px-1.5 py-0.5">
+        <div className="flex items-center justify-between text-[8px] bg-accent-teal/10 border border-accent-teal/20  px-1.5 py-0.5">
           <span className="text-accent-teal font-medium">Total Round-trip</span>
           <span className="font-mono text-accent-teal font-bold">${formatPrice(totalRoundTrip)}</span>
         </div>
@@ -270,14 +270,14 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
       </div>
 
       {/* Liquidity zone */}
-      <div className="bg-bg-800 rounded px-2 py-1 mb-2 flex items-center justify-between">
+      <div className="bg-bg-800  px-2 py-1 mb-2 flex items-center justify-between">
         <span className="text-[8px] text-gray-600">Liquidity Zone</span>
         <span className={'text-[10px] font-bold ' + liquidityColor}>{liquidityZone}</span>
         <span className="text-[8px] text-gray-700">order/liquidity: {(orderVsLiquidity * 100).toFixed(1)}%</span>
       </div>
 
       {/* TWAP comparison */}
-      <div className="bg-bg-800 rounded px-2 py-1.5 mb-2">
+      <div className="bg-bg-800  px-2 py-1.5 mb-2">
         <div className="flex items-center gap-1 mb-0.5">
           <ArrowRight size={8} className="text-accent-green" />
           <span className="text-[8px] text-gray-600">TWAP (5 slices) Savings:</span>
