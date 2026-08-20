@@ -6,7 +6,7 @@
 - **Version:** 3.0.0
 - **Stack:** Python 3.12 (simulator, signal bot), C++20 (trade bot), Rust (executor), React 18 (web UI)
 - **Components:** Exchange Simulator, AI Signal Bot, HFT Trade Bot, hft-executor, Web UI
-- **Honest readiness:** 66% (v5.9 audit — not 85% as README badges originally claimed)
+- **Honest readiness:** 66% (v6.1 audit — not 85% as README badges originally claimed)
 
 ## Key Files
 
@@ -28,7 +28,7 @@
 - `hft-executor/src/lib.rs` — Rust order executor (WS stub, 0 tests)
 - `shared_config.yaml` — global config
 
-## Known Critical Issues (audit v4.3)
+## Known Critical Issues (audit v6.1)
 
 1. README.md badges inflated — FIXED in v4.3 (75+ models → 44+40 UI-only, 34+ strategies → 19, panel count corrected 197→204 in Sprint 17)
 2. 40+ models exist ONLY as UI (.jsx), NOT in trading pipeline
@@ -54,7 +54,7 @@
 - **Market Microstructure:** Student-t (df=4), Merton jump diffusion, Heston stochastic vol, Markov regime switching (4-state), U-shaped intraday vol (`market_microstructure.py`)
 - **Volatility:** SVI, SABR (volatility_surface.py)
 - **Options:** Black-Scholes, Binomial Tree, Greeks, Implied Vol, Straddle, Strangle, Iron Condor, Butterfly (`options_pricing.py`, `options_strategies.py`, `options_simulator.py`)
-- **Test files:** 182 (94 Python + 48 C++ + 40 JS)
+- **Test files:** 208 (118 Python + 46 C++ + 44 JS)
 - **UI:** 227 React components, 204 registered panels
 - **Trading logic models:** 44 (not 75+ as README originally claimed)
 

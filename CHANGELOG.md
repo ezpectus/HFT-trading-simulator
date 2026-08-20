@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 32 — Documentation Audit & Cleanup)
+
+### Changed
+- **[DOCS-101]** Updated README.md test badge: 182→208 test files (118 Python + 46 C++ + 44 JS)
+- **[DOCS-102]** Updated ARCHITECTURE.md: audit v5.9→v6.1, added Sprints 25-31 refactoring summary (29 functions, 72 helpers, 1 deduplication)
+- **[DOCS-103]** Updated .cascade/notes.md: audit v4.3→v6.1, test count 182→208
+
+### Removed
+- **[CLEAN-104]** Deleted deprecated `test_untested_modules.py` stub (0 tests, redirect docstring from Sprint 24 split)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 31 — Final Long Function Refactoring)
 
 ### Changed

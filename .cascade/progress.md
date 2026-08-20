@@ -34,6 +34,7 @@
 | 28 | 2026-08-20 | Sprint 29 (Autonomous): Long function refactoring batch 5 — 4 functions 52-56 lines refactored (validator.validate 56→18, black_litterman.incorporate_views 55→10, kelly.calculate 55→28, greeks_hedging._simulate_single_path 52→24), 8 helpers extracted | ✅ Done | — |
 | 29 | 2026-08-20 | Sprint 30 (Autonomous): exchange_simulator long function refactoring — 3 functions 45-84 lines refactored (liquidation.check_stop_loss_take_profit 84→14, advanced_orders._execute_iceberg_slice 51→16, advanced_orders._execute_market_order 45→15), 9 helpers extracted, 1 deduplication (_finalize_order_execution shared) | ✅ Done | — |
 | 30 | 2026-08-20 | Sprint 31 (Autonomous): Final long function refactoring — 2 functions 44-46 lines refactored (rl_agent.replay 44→14, backtester.run 46→36), 3 helpers extracted | ✅ Done | — |
+| 31 | 2026-08-20 | Sprint 32 (Autonomous): Documentation audit & cleanup — removed deprecated test_untested_modules.py stub, updated README test badge (182→208), updated ARCHITECTURE.md audit v5.9→v6.1 with Sprints 25-31 summary, updated notes.md audit version & test count | ✅ Done | — |
 
 ## Bug Fix Progress
 
