@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 42 — Stale Documentation Cleanup)
+
+### Removed
+- **[DOC-305]** Removed `docs/EXCHANGE_UI_CLONES.md` — documented deleted exchange UI clone components (392 lines)
+
+### Updated
+- **[DOC-306]** Updated `docs/ARCHITECTURE.md` — removed 3 lines referencing deleted `src/exchanges/{binance,bybit,coinbase}/` directory
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 41 — Dead Code Removal)
 
 ### Removed

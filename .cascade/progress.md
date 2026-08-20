@@ -43,6 +43,7 @@
 | 37 | 2026-08-20 | Sprint 38 (Day 9: Documentation and Finalization): Created 4 user guides (Quick Start, Configuration, Trading, Development), all 9-day plan success metrics achieved, all days marked complete | ✅ Done | — |
 | 38 | 2026-08-20 | Sprint 39-40 (Days 5-6: Monitoring & Advanced Trading): Verified all Day 5 features (Prometheus, 5 Grafana dashboards, Alertmanager, tracing) and Day 6 features (options pricing, portfolio optimization, advanced risk, ML models) already implemented. Marked both days as completed in development plan | ✅ Done | — |
 | 39 | 2026-08-20 | Sprint 41 (Dead Code Removal): Removed entire web-ui/src/exchanges/ directory — 12 dead code files (~1300 lines), never imported anywhere. Fixes bugs #187 (QUAL-094) and #188 (QUAL-095). All 188 bugs now resolved | ✅ Done | — |
+| 40 | 2026-08-20 | Sprint 42 (Stale Documentation Cleanup): Removed docs/EXCHANGE_UI_CLONES.md (392 lines, documented deleted components). Updated docs/ARCHITECTURE.md — removed 3 lines referencing deleted exchanges/ directory | ✅ Done | — |
 
 ## Bug Fix Progress
 

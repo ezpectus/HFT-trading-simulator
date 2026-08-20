@@ -379,9 +379,6 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 - `src/components/AuditLogViewer.jsx` — Audit log viewer with filtering, search, export
 - `src/contexts/ExchangeContext.jsx` — Exchange theme and layout context provider
 - `src/components/ExchangeSelector.jsx` — Exchange switcher UI component
-- `src/exchanges/binance/` — Binance-themed UI components (BinanceTheme, BinanceLayout, BinanceOrderForm, BinanceOrderBook)
-- `src/exchanges/bybit/` — Bybit-themed UI components (BybitTheme, BybitLayout, BybitOrderForm, BybitOrderBook)
-- `src/exchanges/coinbase/` — Coinbase-themed UI components (CoinbaseTheme, CoinbaseLayout, CoinbaseOrderForm, CoinbaseOrderBook)
 - `src/utils/auditExport.js` — Audit log export utilities (JSON, CSV, statistics)
 - `src/hooks/useWebSocket.js` — Generic WebSocket hook with exponential backoff auto-reconnect
 - `src/hooks/useExchangeData.js` — Exchange data hook (candles, prices, orderbooks, accounts, fills, arbitrage)
