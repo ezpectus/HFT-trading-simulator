@@ -99,7 +99,7 @@ class RealMarketDataFeed:
         for ws in self._ws_connections.values():
             try:
                 await ws.close()
-            except Exception as e:
+            except (ConnectionError, OSError, RuntimeError) as e:
                 logger.debug(f"WS close error: {e}")
 
     async def _run_binance(self, symbols: list[str], intervals: list[str]):
@@ -137,7 +137,7 @@ class RealMarketDataFeed:
                         msg = json.loads(raw)
                         await self._handle_binance_msg(msg)
 
-            except Exception as e:
+            except (ConnectionError, OSError, json.JSONDecodeError) as e:
                 logger.error(f"Binance WS error: {e}")
                 if self._running:
                     delay = self._reconnect_delays.get("binance", 1.0)
@@ -214,7 +214,7 @@ class RealMarketDataFeed:
                         msg = json.loads(raw)
                         await self._handle_okx_msg(msg)
 
-            except Exception as e:
+            except (ConnectionError, OSError, json.JSONDecodeError) as e:
                 logger.error(f"OKX WS error: {e}")
                 if self._running:
                     delay = self._reconnect_delays.get("okx", 1.0)
@@ -292,7 +292,7 @@ class RealMarketDataFeed:
                         msg = json.loads(raw)
                         await self._handle_bybit_msg(msg)
 
-            except Exception as e:
+            except (ConnectionError, OSError, json.JSONDecodeError) as e:
                 logger.error(f"Bybit WS error: {e}")
                 if self._running:
                     delay = self._reconnect_delays.get("bybit", 1.0)

@@ -206,7 +206,7 @@ class MarketReplay:
                     result = on_event(event)
                     if asyncio.iscoroutine(result):
                         await result
-                except Exception as e:
+                except (TypeError, ValueError, RuntimeError, OSError) as e:
                     logger.error(f"[Replay] Event handler error: {e}")
 
         self._playing = False

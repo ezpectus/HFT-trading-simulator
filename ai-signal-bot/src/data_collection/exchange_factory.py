@@ -209,7 +209,7 @@ class ExchangeFactory:
                     return self._adapter
                 else:
                     raise ConnectionError("Health check failed")
-            except Exception as e:
+            except (ConnectionError, OSError, RuntimeError) as e:
                 logger.warning(f"[ExchangeFactory] Real exchange failed ({e}), falling back to simulator")
                 self._adapter = SimulatorAdapter(self.simulator_url)
                 await self._adapter.initialize()

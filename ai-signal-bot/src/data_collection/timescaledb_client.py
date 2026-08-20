@@ -351,5 +351,5 @@ class TimescaleDBClient:
             async with self._pool.acquire() as conn:
                 val = await conn.fetchval("SELECT 1")
                 return {"connected": val == 1, "host": self.host, "database": self.database}
-        except Exception as e:
+        except (OSError, RuntimeError) as e:
             return {"connected": False, "error": str(e)}
