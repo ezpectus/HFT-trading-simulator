@@ -106,115 +106,118 @@ class ArbitrageDetector:
         now = int(time.time())
         new_opportunities = []
 
-        # Get all symbols
         symbols = set()
         for ex in self.exchanges.values():
             symbols.update(ex.symbols)
 
         for symbol in symbols:
-            # Collect order books from all exchanges
-            books: dict[str, OrderBook] = {}
-            for ex_id, exchange in self.exchanges.items():
-                ob = exchange.get_order_book(symbol)
-                if ob.bids and ob.asks:
-                    books[ex_id] = ob
-
+            books = self._collect_order_books(symbol)
             if len(books) < 2:
                 continue
 
-            # Build price list
-            exchange_prices = []
-            for ex_id, ob in books.items():
-                exchange_prices.append({
-                    "exchange": ex_id,
-                    "best_bid": ob.best_bid,
-                    "best_ask": ob.best_ask,
-                    "bid_qty": ob.bids[0].quantity,
-                    "ask_qty": ob.asks[0].quantity,
-                })
-
-            # Check all exchange pairs
+            exchange_prices = self._build_price_list(books)
             for i, buyer in enumerate(exchange_prices):
                 for j, seller in enumerate(exchange_prices):
                     if i == j:
                         continue
-
-                    buy_price = buyer["best_ask"]
-                    sell_price = seller["best_bid"]
-
-                    if sell_price <= buy_price:
-                        continue
-
-                    # Net spread after fees + slippage
-                    buy_fee = buy_price * self.fee_pct / 100
-                    sell_fee = sell_price * self.fee_pct / 100
-                    buy_slip = buy_price * self.slippage_bps / 10000
-                    sell_slip = sell_price * self.slippage_bps / 10000
-
-                    net_spread = sell_price - buy_price - buy_fee - sell_fee - buy_slip - sell_slip
-
-                    if net_spread <= 0:
-                        continue
-
-                    if buy_price <= 0:
-                        continue
-
-                    spread_bps = net_spread / buy_price * 10000
-                    if spread_bps < self.min_spread_bps:
-                        continue
-
-                    max_qty = min(buyer["ask_qty"], seller["bid_qty"])
-                    est_profit = net_spread * max_qty
-
-                    opp = ArbitrageOpportunity(
-                        symbol=symbol,
-                        buy_exchange=buyer["exchange"],
-                        sell_exchange=seller["exchange"],
-                        buy_price=buy_price,
-                        sell_price=sell_price,
-                        gross_spread=sell_price - buy_price,
-                        net_spread=net_spread,
-                        spread_bps=spread_bps,
-                        buy_quantity=buyer["ask_qty"],
-                        sell_quantity=seller["bid_qty"],
-                        max_quantity=max_qty,
-                        estimated_profit=est_profit,
-                        timestamp=now,
-                    )
-
-                    # Check if this is a duplicate of an active opportunity
-                    is_dup = any(
-                        o.symbol == opp.symbol
-                        and o.buy_exchange == opp.buy_exchange
-                        and o.sell_exchange == opp.sell_exchange
-                        for o in self._active_opportunities
-                    )
-
-                    if not is_dup:
+                    opp = self._check_exchange_pair(symbol, buyer, seller, now)
+                    if opp and not self._is_duplicate_opp(opp):
                         new_opportunities.append(opp)
                         self._active_opportunities.append(opp)
-                        self._stats["total_detected"] += 1
-                        self._stats["total_estimated_profit"] += est_profit
-                        self._stats["best_spread_bps"] = max(
-                            self._stats["best_spread_bps"], spread_bps
-                        )
+                        self._record_stats(opp)
 
-                        logger.info(
-                            f"ARB FOUND: {symbol} "
-                            f"buy={opp.buy_exchange}@{buy_price:.2f} "
-                            f"sell={opp.sell_exchange}@{sell_price:.2f} "
-                            f"net={net_spread:.2f} ({spread_bps:.1f}bps) "
-                            f"qty={max_qty:.4f} profit=${est_profit:.2f}"
-                        )
-
-        # Expire old opportunities
         self._expire_old(now)
-
-        # Trim history
         if len(self._closed_history) > self.max_opportunities:
             self._closed_history = self._closed_history[-self.max_opportunities:]
 
         return new_opportunities
+
+    def _collect_order_books(self, symbol: str) -> dict[str, object]:
+        """Collect order books from all exchanges for a symbol."""
+        books: dict[str, OrderBook] = {}
+        for ex_id, exchange in self.exchanges.items():
+            ob = exchange.get_order_book(symbol)
+            if ob.bids and ob.asks:
+                books[ex_id] = ob
+        return books
+
+    @staticmethod
+    def _build_price_list(books: dict) -> list[dict]:
+        """Build list of best bid/ask prices from order books."""
+        exchange_prices = []
+        for ex_id, ob in books.items():
+            exchange_prices.append({
+                "exchange": ex_id,
+                "best_bid": ob.best_bid,
+                "best_ask": ob.best_ask,
+                "bid_qty": ob.bids[0].quantity,
+                "ask_qty": ob.asks[0].quantity,
+            })
+        return exchange_prices
+
+    def _check_exchange_pair(
+        self, symbol: str, buyer: dict, seller: dict, now: int,
+    ) -> ArbitrageOpportunity | None:
+        """Check if a buy/sell pair between two exchanges is profitable."""
+        buy_price = buyer["best_ask"]
+        sell_price = seller["best_bid"]
+        if sell_price <= buy_price or buy_price <= 0:
+            return None
+
+        buy_fee = buy_price * self.fee_pct / 100
+        sell_fee = sell_price * self.fee_pct / 100
+        buy_slip = buy_price * self.slippage_bps / 10000
+        sell_slip = sell_price * self.slippage_bps / 10000
+        net_spread = sell_price - buy_price - buy_fee - sell_fee - buy_slip - sell_slip
+        if net_spread <= 0:
+            return None
+
+        spread_bps = net_spread / buy_price * 10000
+        if spread_bps < self.min_spread_bps:
+            return None
+
+        max_qty = min(buyer["ask_qty"], seller["bid_qty"])
+        est_profit = net_spread * max_qty
+
+        return ArbitrageOpportunity(
+            symbol=symbol,
+            buy_exchange=buyer["exchange"],
+            sell_exchange=seller["exchange"],
+            buy_price=buy_price,
+            sell_price=sell_price,
+            gross_spread=sell_price - buy_price,
+            net_spread=net_spread,
+            spread_bps=spread_bps,
+            buy_quantity=buyer["ask_qty"],
+            sell_quantity=seller["bid_qty"],
+            max_quantity=max_qty,
+            estimated_profit=est_profit,
+            timestamp=now,
+        )
+
+    def _is_duplicate_opp(self, opp: ArbitrageOpportunity) -> bool:
+        """Check if opportunity is a duplicate of an active one."""
+        return any(
+            o.symbol == opp.symbol
+            and o.buy_exchange == opp.buy_exchange
+            and o.sell_exchange == opp.sell_exchange
+            for o in self._active_opportunities
+        )
+
+    def _record_stats(self, opp: ArbitrageOpportunity) -> None:
+        """Record opportunity in stats and log it."""
+        self._stats["total_detected"] += 1
+        self._stats["total_estimated_profit"] += opp.estimated_profit
+        self._stats["best_spread_bps"] = max(
+            self._stats["best_spread_bps"], opp.spread_bps
+        )
+        logger.info(
+            f"ARB FOUND: {opp.symbol} "
+            f"buy={opp.buy_exchange}@{opp.buy_price:.2f} "
+            f"sell={opp.sell_exchange}@{opp.sell_price:.2f} "
+            f"net={opp.net_spread:.2f} ({opp.spread_bps:.1f}bps) "
+            f"qty={opp.max_quantity:.4f} profit=${opp.estimated_profit:.2f}"
+        )
 
     def _expire_old(self, now: int) -> None:
         """Expire opportunities older than TTL."""
