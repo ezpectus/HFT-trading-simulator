@@ -649,23 +649,22 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 
 | Document | Description |
 |----------|-------------|
-| [User Guide](docs/USER_GUIDE.md) | Complete user manual for trading operations, advanced order types, risk management |
+| [FAQ](docs/FAQ.md) | Common questions about trading operations, advanced order types, risk management |
 | [Troubleshooting Guide](docs/TROUBLESHOOTING.md) | Common issues and solutions for connection, performance, and build problems |
 | [REST API Reference](docs/REST_API.md) | Complete REST API documentation for all system components |
 | [WebSocket Protocol](docs/WEBSOCKET_PROTOCOL.md) | All 29 message types, v2 schema, compression, reconnection, lifecycle |
 | [Configuration Reference](docs/CONFIGURATION_REFERENCE.md) | All configuration options for system components |
 | [Architecture](docs/ARCHITECTURE.md) | System design, component overview, data flow, C++ V2/V3 engine |
-| [Architecture Diagrams](docs/ARCHITECTURE_DIAGRAMS.md) | ASCII diagrams: system overview, data flow, latency budget |
 | [Trading Strategies](docs/TRADING_STRATEGIES.md) | All strategies, HFT V2/V3 engine, pressure model, routing |
 | [Performance Guide](docs/PERFORMANCE.md) | Optimization techniques, latency budget, benchmarking, contributor checklist |
 | [Web UI](docs/WEB_UI.md) | 204 panels, performance, testing, accessibility, PWA |
 | [Exchange Simulator](docs/EXCHANGE_SIMULATOR.md) | Price generation, order book, liquidation engine |
 | [Setup Guide](docs/SETUP.md) | Installation, mock mode, troubleshooting |
 | [Mathematical Models](docs/MATH_MODELS.md) | 44 models in trading logic + 40 UI-only, with formulas and file references |
-| [Educational Content](docs/EDUCATIONAL_CONTENT.md) | HFT introduction, microstructure, order types, indicators, risk management |
-| [Roadmap](docs/ROADMAP.md) | Project roadmap — all 9 phases completed |
-| [Comprehensive Development Plan](COMPREHENSIVE_DEVELOPMENT_PLAN.md) | Full 9-phase development roadmap with detailed implementation plans |
-| [Changelog](docs/CHANGELOG.md) | Version history and notable changes |
+| [Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md) | Iceberg, TWAP, trailing stops, OCO orders |
+| [9-Day Development Plan](docs/9_DAY_DEVELOPMENT_PLAN.md) | Project roadmap — all 9 phases completed |
+| [Master Development Plan](MASTER_DEVELOPMENT_PLAN.md) | Full 9-phase development roadmap with detailed implementation plans |
+| [Changelog](CHANGELOG.md) | Version history and notable changes |
 
 ---
 
