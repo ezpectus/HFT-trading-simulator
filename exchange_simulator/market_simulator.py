@@ -170,109 +170,98 @@ class MarketSimulator:
         """Generate one candle per symbol per exchange (core logic)."""
         tf = self.timeframe_seconds
 
-        # Check for news event trigger
-        if self._candle_count - self._last_news_candle >= self._news_interval and self.rng.random() < 0.02:
-            news_symbol = self.rng.choice(self.symbols)
-            intensity = self.rng.uniform(3, 8)  # 3x-8x volatility spike
-            duration = self.rng.randint(5, 15)  # lasts 5-15 candles
-            self._news_event = {
-                "symbol": news_symbol,
-                "intensity": intensity,
-                "remaining": duration,
-                "direction": self.rng.choice([-1, 1]),  # random direction
-            }
-            self._last_news_candle = self._candle_count
+        self._maybe_trigger_news()
 
-        # Decay news event
         if self._news_event:
             self._news_event["remaining"] -= 1
             if self._news_event["remaining"] <= 0:
                 self._news_event = None
 
-        # Shared random component for correlation — drawn once per candle tick
         z_shared = self.rng.gauss(0, 1)
-
-        # Hoist invariant computation outside symbol loop
         candles_per_year = 365 * 24 * 3600 / tf
         sqrt_cpy = math.sqrt(candles_per_year)
 
         for symbol in self.symbols:
-            base_price = self._prices[symbol]
-            vol = self._volatility[symbol]
-
-            # Per-candle volatility from annualized vol
-            sigma = vol / sqrt_cpy
-
-            # Apply weekend/holiday mode — reduced volatility
-            if self._weekend_mode:
-                sigma *= self._weekend_vol_mult
-
-            # Correlated random draw: base z + per-symbol idiosyncratic component
-            z_idio = self.rng.gauss(0, 1)
-            corr = self._symbol_corr.get(symbol, 0.5)
-            z = corr * z_shared + math.sqrt(1.0 - corr * corr) * z_idio
-
-            # Apply news event volatility spike
-            news_mult = 1.0
-            news_drift = 0.0
-            if self._news_event and self._news_event["symbol"] == symbol:
-                news_mult = self._news_event["intensity"]
-                news_drift = self._news_event["direction"] * 0.002  # directional bias during news
-
-            ret = self.drift + news_drift + sigma * news_mult * z
-            new_base_price = base_price * math.exp(ret)
-
-            for exchange in self.exchanges:
-                # Apply exchange-specific offset and volatility
-                vol_mult = self._exchange_vol_mult.get(exchange, 1.0)
-                price = new_base_price * self._exchange_offset[exchange]
-                open_p = base_price * self._exchange_offset[exchange]
-
-                # Candle OHLC with exchange-specific wick range
-                close_p = price
-                wick_range = abs(close_p - open_p) * (0.5 + self.rng.random() * 0.5) * vol_mult
-                high_p = max(open_p, close_p) + wick_range * self.rng.random()
-                low_p = min(open_p, close_p) - wick_range * self.rng.random()
-                volume = self.rng.uniform(50, 2000) * (1 + abs(ret) * 100) * vol_mult
-                if self._news_event and self._news_event["symbol"] == symbol:
-                    volume *= self._news_event["intensity"]  # volume spike during news
-
-                candle = Candle(
-                    timestamp=self._current_ts,
-                    open=round(open_p, 2),
-                    high=round(high_p, 2),
-                    low=round(low_p, 2),
-                    close=round(close_p, 2),
-                    volume=round(volume, 2),
-                    symbol=symbol,
-                    exchange=exchange,
-                )
-                self._candle_history[(exchange, symbol)].append(candle)
-
-            self._prices[symbol] = new_base_price
+            self._generate_symbol_candles(symbol, z_shared, sqrt_cpy)
 
         self._current_ts += tf
         self._candle_count += 1
 
-        # Trim candle history to prevent unbounded memory growth
         for key in self._candle_history:
             if len(self._candle_history[key]) > self._max_candle_history:
                 self._candle_history[key] = self._candle_history[key][-self._max_candle_history:]
 
-        # Update funding rates every funding_interval candles
         if self._candle_count % self._funding_interval == 0:
-            for exchange in self.exchanges:
-                # Funding rate: small random rate, typically -0.03% to +0.03%
-                base_rate = self.rng.gauss(0, 0.0002)
-                rate = round(base_rate, 6)
-                self._funding_rates[exchange] = rate
-                self._funding_history.append({
-                    "timestamp": self._current_ts,
-                    "exchange": exchange,
-                    "rate": rate,
-                })
-            if len(self._funding_history) > self._max_funding_history:
-                self._funding_history = self._funding_history[-self._max_funding_history:]
+            self._update_funding_rates()
+
+    def _maybe_trigger_news(self) -> None:
+        """Randomly trigger a news event for a symbol."""
+        if self._candle_count - self._last_news_candle >= self._news_interval and self.rng.random() < 0.02:
+            self._news_event = {
+                "symbol": self.rng.choice(self.symbols),
+                "intensity": self.rng.uniform(3, 8),
+                "remaining": self.rng.randint(5, 15),
+                "direction": self.rng.choice([-1, 1]),
+            }
+            self._last_news_candle = self._candle_count
+
+    def _generate_symbol_candles(self, symbol: str, z_shared: float, sqrt_cpy: float) -> None:
+        """Generate candles for a single symbol across all exchanges."""
+        base_price = self._prices[symbol]
+        vol = self._volatility[symbol]
+        sigma = vol / sqrt_cpy
+
+        if self._weekend_mode:
+            sigma *= self._weekend_vol_mult
+
+        z_idio = self.rng.gauss(0, 1)
+        corr = self._symbol_corr.get(symbol, 0.5)
+        z = corr * z_shared + math.sqrt(1.0 - corr * corr) * z_idio
+
+        news_mult = 1.0
+        news_drift = 0.0
+        if self._news_event and self._news_event["symbol"] == symbol:
+            news_mult = self._news_event["intensity"]
+            news_drift = self._news_event["direction"] * 0.002
+
+        ret = self.drift + news_drift + sigma * news_mult * z
+        new_base_price = base_price * math.exp(ret)
+
+        for exchange in self.exchanges:
+            vol_mult = self._exchange_vol_mult.get(exchange, 1.0)
+            price = new_base_price * self._exchange_offset[exchange]
+            open_p = base_price * self._exchange_offset[exchange]
+            close_p = price
+            wick_range = abs(close_p - open_p) * (0.5 + self.rng.random() * 0.5) * vol_mult
+            high_p = max(open_p, close_p) + wick_range * self.rng.random()
+            low_p = min(open_p, close_p) - wick_range * self.rng.random()
+            volume = self.rng.uniform(50, 2000) * (1 + abs(ret) * 100) * vol_mult
+            if self._news_event and self._news_event["symbol"] == symbol:
+                volume *= self._news_event["intensity"]
+
+            candle = Candle(
+                timestamp=self._current_ts,
+                open=round(open_p, 2), high=round(high_p, 2),
+                low=round(low_p, 2), close=round(close_p, 2),
+                volume=round(volume, 2), symbol=symbol, exchange=exchange,
+            )
+            self._candle_history[(exchange, symbol)].append(candle)
+
+        self._prices[symbol] = new_base_price
+
+    def _update_funding_rates(self) -> None:
+        """Update funding rates for all exchanges and trim history."""
+        for exchange in self.exchanges:
+            base_rate = self.rng.gauss(0, 0.0002)
+            rate = round(base_rate, 6)
+            self._funding_rates[exchange] = rate
+            self._funding_history.append({
+                "timestamp": self._current_ts,
+                "exchange": exchange,
+                "rate": rate,
+            })
+        if len(self._funding_history) > self._max_funding_history:
+            self._funding_history = self._funding_history[-self._max_funding_history:]
 
     def next_candle(self) -> list[Candle]:
         """Advance one timeframe and return all new candles."""
