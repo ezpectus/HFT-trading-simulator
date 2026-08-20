@@ -70,89 +70,101 @@ class FeatureEngineer:
 
         features = []
         for i in range(window, len(closes)):
-            c = closes[i]
-            h = highs[i]
-            low = lows[i]
-            v = volumes[i]
             w_closes = closes[i - window:i + 1]
             w_highs = highs[i - window:i + 1]
             w_lows = lows[i - window:i + 1]
             w_volumes = volumes[i - window:i + 1]
 
             feat = []
-
-            # Price-based features (10)
-            feat.extend([
-                c,                                          # Close price
-                (h - low) / max(c, 1e-8),                     # Range ratio
-                (c - w_closes.mean()) / max(w_closes.std(), 1e-8),  # Z-score
-                np.log(max(c / w_closes[0], 1e-8)),         # Log return over window
-                (c - w_closes.min()) / max(w_closes.max() - w_closes.min(), 1e-8),  # Stochastic
-                w_closes[-1] / w_closes[-5] - 1 if len(w_closes) >= 5 else 0,  # 5-bar return
-                w_closes[-1] / w_closes[-10] - 1 if len(w_closes) >= 10 else 0,  # 10-bar return
-                w_closes[-1] / w_closes[-20] - 1 if len(w_closes) >= 20 else 0,  # 20-bar return
-                (h - c) / max(c, 1e-8),                     # Upper shadow
-                (c - low) / max(c, 1e-8),                     # Lower shadow
-            ])
-
-            # Volume features (10)
-            feat.extend([
-                v,                                          # Volume
-                v / max(w_volumes.mean(), 1e-8),            # Volume ratio
-                (v - w_volumes.mean()) / max(w_volumes.std(), 1e-8),  # Volume z-score
-                np.sum(w_volumes[-5:]) / max(np.sum(w_volumes), 1e-8),  # Recent volume fraction
-                (w_volumes[-1] - w_volumes[0]) / max(w_volumes[0], 1e-8),  # Volume trend
-                np.log(max(v, 1e-8)),                       # Log volume
-                v * c,                                      # Notional
-                np.sum(w_volumes * w_closes) / max(np.sum(w_volumes), 1e-8),  # VWAP
-                (c - np.sum(w_volumes * w_closes) / max(np.sum(w_volumes), 1e-8)) / c,  # VWAP deviation
-                np.std(w_volumes) / max(np.mean(w_volumes), 1e-8),  # Volume CV
-            ])
-
-            # Technical indicators (20)
-            ema_fast = FeatureEngineer._ema(w_closes, min(5, len(w_closes)))
-            ema_slow = FeatureEngineer._ema(w_closes, min(10, len(w_closes)))
-            rsi_val = FeatureEngineer._rsi(w_closes, min(14, len(w_closes) - 1))
-            feat.extend([
-                ema_fast / max(ema_slow, 1e-8) - 1,         # EMA ratio
-                ema_fast - c,                               # EMA fast deviation
-                ema_slow - c,                               # EMA slow deviation
-                rsi_val,                                    # RSI
-                rsi_val - 50,                               # RSI centered
-                FeatureEngineer._atr(w_highs, w_lows, w_closes, min(14, len(w_closes) - 1)),  # ATR
-                FeatureEngineer._atr(w_highs, w_lows, w_closes, min(14, len(w_closes) - 1)) / max(c, 1e-8),  # ATR ratio
-                FeatureEngineer._bollinger_pos(w_closes, min(20, len(w_closes))),  # Bollinger position
-                np.mean(w_closes[-5:]) / c - 1,             # SMA5 deviation
-                np.mean(w_closes[-10:]) / c - 1,            # SMA10 deviation
-                np.mean(w_closes[-20:]) / c - 1 if len(w_closes) >= 20 else 0,  # SMA20 deviation
-                (w_highs[-20:].max() - c) / c if len(w_closes) >= 20 else 0,  # Distance from 20-high
-                (c - w_lows[-20:].min()) / c if len(w_closes) >= 20 else 0,  # Distance from 20-low
-                FeatureEngineer._momentum(w_closes, min(10, len(w_closes) - 1)),  # Momentum
-                FeatureEngineer._roc(w_closes, min(10, len(w_closes) - 1)),  # Rate of change
-                np.std(np.diff(np.log(w_closes[-20:]))) if len(w_closes) >= 21 else 0,  # Volatility
-                np.std(np.diff(np.log(w_closes[-5:]))) if len(w_closes) >= 6 else 0,  # Short vol
-                FeatureEngineer._williams_r(w_highs, w_lows, c, min(14, len(w_closes))),  # Williams %R
-                FeatureEngineer._cci(w_highs, w_lows, w_closes, min(20, len(w_closes))),  # CCI
-                FeatureEngineer._mfi(w_highs, w_lows, w_closes, w_volumes, min(14, len(w_closes) - 1)),  # MFI
-            ])
-
-            # Cross-asset / microstructure features (10)
-            feat.extend([
-                np.sum(np.diff(w_closes) > 0) / max(len(w_closes) - 1, 1),  # Up ratio
-                np.sum(np.diff(w_closes) < 0) / max(len(w_closes) - 1, 1),  # Down ratio
-                np.max(np.abs(np.diff(np.log(w_closes[-10:])))) if len(w_closes) >= 11 else 0,  # Max return
-                np.mean(np.abs(np.diff(np.log(w_closes[-10:])))) if len(w_closes) >= 11 else 0,  # Mean abs return
-                np.sum(np.diff(w_volumes) > 0) / max(len(w_volumes) - 1, 1),  # Volume up ratio
-                (w_closes[-1] - w_closes[0]) / max(np.sum(np.abs(np.diff(w_closes))), 1e-8),  # Efficiency ratio
-                (lambda c: 0.0 if math.isnan(c) else c)(np.corrcoef(w_closes[-10:], w_volumes[-10:])[0, 1]) if len(w_closes) >= 10 else 0,  # Price-volume corr
-                np.sum(w_volumes[-5:] * np.sign(np.diff(w_closes[-6:]))) / max(np.sum(w_volumes[-5:]), 1e-8),  # Volume-weighted direction
-                FeatureEngineer._range_expansion(w_highs, w_lows, min(10, len(w_closes))),  # Range expansion
-                FeatureEngineer._gap(w_closes, min(5, len(w_closes) - 1)),  # Gap
-            ])
-
+            feat.extend(FeatureEngineer._price_features(closes[i], highs[i], lows[i], w_closes))
+            feat.extend(FeatureEngineer._volume_features(volumes[i], w_volumes, w_closes))
+            feat.extend(FeatureEngineer._technical_features(w_highs, w_lows, w_closes, closes[i], w_volumes))
+            feat.extend(FeatureEngineer._microstructure_features(w_closes, w_volumes, w_highs, w_lows))
             features.append(feat)
 
         return np.array(features)
+
+    @staticmethod
+    def _price_features(c: float, h: float, low: float, w_closes: np.ndarray) -> list:
+        """Extract 10 price-based features."""
+        return [
+            c,
+            (h - low) / max(c, 1e-8),
+            (c - w_closes.mean()) / max(w_closes.std(), 1e-8),
+            np.log(max(c / w_closes[0], 1e-8)),
+            (c - w_closes.min()) / max(w_closes.max() - w_closes.min(), 1e-8),
+            w_closes[-1] / w_closes[-5] - 1 if len(w_closes) >= 5 else 0,
+            w_closes[-1] / w_closes[-10] - 1 if len(w_closes) >= 10 else 0,
+            w_closes[-1] / w_closes[-20] - 1 if len(w_closes) >= 20 else 0,
+            (h - c) / max(c, 1e-8),
+            (c - low) / max(c, 1e-8),
+        ]
+
+    @staticmethod
+    def _volume_features(v: float, w_volumes: np.ndarray, w_closes: np.ndarray) -> list:
+        """Extract 10 volume-based features."""
+        vwap = np.sum(w_volumes * w_closes) / max(np.sum(w_volumes), 1e-8)
+        return [
+            v,
+            v / max(w_volumes.mean(), 1e-8),
+            (v - w_volumes.mean()) / max(w_volumes.std(), 1e-8),
+            np.sum(w_volumes[-5:]) / max(np.sum(w_volumes), 1e-8),
+            (w_volumes[-1] - w_volumes[0]) / max(w_volumes[0], 1e-8),
+            np.log(max(v, 1e-8)),
+            v * w_closes[-1],
+            vwap,
+            (w_closes[-1] - vwap) / w_closes[-1],
+            np.std(w_volumes) / max(np.mean(w_volumes), 1e-8),
+        ]
+
+    @staticmethod
+    def _technical_features(w_highs: np.ndarray, w_lows: np.ndarray, w_closes: np.ndarray, c: float, w_volumes: np.ndarray = None) -> list:
+        """Extract 20 technical indicator features."""
+        if w_volumes is None:
+            w_volumes = w_closes
+        ema_fast = FeatureEngineer._ema(w_closes, min(5, len(w_closes)))
+        ema_slow = FeatureEngineer._ema(w_closes, min(10, len(w_closes)))
+        rsi_val = FeatureEngineer._rsi(w_closes, min(14, len(w_closes) - 1))
+        atr_val = FeatureEngineer._atr(w_highs, w_lows, w_closes, min(14, len(w_closes) - 1))
+        return [
+            ema_fast / max(ema_slow, 1e-8) - 1,
+            ema_fast - c,
+            ema_slow - c,
+            rsi_val,
+            rsi_val - 50,
+            atr_val,
+            atr_val / max(c, 1e-8),
+            FeatureEngineer._bollinger_pos(w_closes, min(20, len(w_closes))),
+            np.mean(w_closes[-5:]) / c - 1,
+            np.mean(w_closes[-10:]) / c - 1,
+            np.mean(w_closes[-20:]) / c - 1 if len(w_closes) >= 20 else 0,
+            (w_highs[-20:].max() - c) / c if len(w_closes) >= 20 else 0,
+            (c - w_lows[-20:].min()) / c if len(w_closes) >= 20 else 0,
+            FeatureEngineer._momentum(w_closes, min(10, len(w_closes) - 1)),
+            FeatureEngineer._roc(w_closes, min(10, len(w_closes) - 1)),
+            np.std(np.diff(np.log(w_closes[-20:]))) if len(w_closes) >= 21 else 0,
+            np.std(np.diff(np.log(w_closes[-5:]))) if len(w_closes) >= 6 else 0,
+            FeatureEngineer._williams_r(w_highs, w_lows, c, min(14, len(w_closes))),
+            FeatureEngineer._cci(w_highs, w_lows, w_closes, min(20, len(w_closes))),
+            FeatureEngineer._mfi(w_highs, w_lows, w_closes, w_volumes, min(14, len(w_closes) - 1)),
+        ]
+
+    @staticmethod
+    def _microstructure_features(w_closes: np.ndarray, w_volumes: np.ndarray, w_highs: np.ndarray, w_lows: np.ndarray) -> list:
+        """Extract 10 cross-asset / microstructure features."""
+        corr = np.corrcoef(w_closes[-10:], w_volumes[-10:])[0, 1] if len(w_closes) >= 10 else 0
+        return [
+            np.sum(np.diff(w_closes) > 0) / max(len(w_closes) - 1, 1),
+            np.sum(np.diff(w_closes) < 0) / max(len(w_closes) - 1, 1),
+            np.max(np.abs(np.diff(np.log(w_closes[-10:])))) if len(w_closes) >= 11 else 0,
+            np.mean(np.abs(np.diff(np.log(w_closes[-10:])))) if len(w_closes) >= 11 else 0,
+            np.sum(np.diff(w_volumes) > 0) / max(len(w_volumes) - 1, 1),
+            (w_closes[-1] - w_closes[0]) / max(np.sum(np.abs(np.diff(w_closes))), 1e-8),
+            0.0 if math.isnan(corr) else corr,
+            np.sum(w_volumes[-5:] * np.sign(np.diff(w_closes[-6:]))) / max(np.sum(w_volumes[-5:]), 1e-8),
+            FeatureEngineer._range_expansion(w_highs, w_lows, min(10, len(w_closes))),
+            FeatureEngineer._gap(w_closes, min(5, len(w_closes) - 1)),
+        ]
 
     @staticmethod
     def _ema(data: np.ndarray, period: int) -> float:
