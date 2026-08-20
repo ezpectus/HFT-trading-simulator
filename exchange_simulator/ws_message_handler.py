@@ -133,6 +133,8 @@ class MessageHandlerMixin:
             await self._handle_order(websocket, data)
         elif msg_type == "subscribe":
             await self._handle_subscribe(websocket, data)
+        elif msg_type == "unsubscribe":
+            await self._handle_unsubscribe(websocket, data)
         elif msg_type == "ping":
             await websocket.send(json.dumps({"type": "pong"}))
         elif msg_type == "sync_state":
@@ -253,6 +255,20 @@ class MessageHandlerMixin:
 
         logger.info(f"Client {_sanitize_log(websocket.remote_address)} subscribed (protocol v{_sanitize_log(client_ver)}, encoding={_sanitize_log(encoding)})")
         await self._send_market_snapshot(websocket)
+
+    async def _handle_unsubscribe(self, websocket: WebSocketServerConnection, data: dict) -> None:
+        """Handle unsubscribe request from a client."""
+        symbols = data.get("symbols", [])
+        if not symbols:
+            logger.warning(f"Unsubscribe from {_sanitize_log(websocket.remote_address)} — no symbols specified")
+            return
+        current_subs = self._client_subscriptions.get(websocket, set())
+        current_subs -= set(symbols)
+        self._client_subscriptions[websocket] = current_subs
+        logger.info(
+            f"Client {_sanitize_log(websocket.remote_address)} unsubscribed from "
+            f"{len(symbols)} symbols — {len(current_subs)} remaining"
+        )
 
     def _handle_set_speed(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle simulation speed change."""

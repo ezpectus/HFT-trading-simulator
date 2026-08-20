@@ -79,6 +79,7 @@ class ExchangeWebSocketServer(
         self._delta_ask_buf: dict = {}
         self._total_connections: int = 0
         self._total_disconnections: int = 0
+        self._sequence_number: int = 0
         logger.info(f"Trade CSV log: {self.trade_logger.path}")
 
         self.metrics = WebSocketMetrics()

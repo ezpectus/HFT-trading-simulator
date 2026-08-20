@@ -23,13 +23,26 @@ This document describes all WebSocket message types exchanged between the three 
 {
   "type": "subscribe",
   "protocol_version": 2,
-  "encoding": "json"
+  "encoding": "json",
+  "symbols": ["BTC/USDT", "ETH/USDT"]
 }
 ```
 Client subscribes to market data stream. Server responds with a `welcome` message, then a `snapshot`.
 
 - `protocol_version`: Protocol version for feature negotiation (default: 2)
 - `encoding`: `"json"` (default) or `"msgpack"` for binary MessagePack frames
+- `symbols`: Optional list of symbols to receive data for. If omitted, client receives all symbols.
+
+#### Unsubscribe
+```json
+{
+  "type": "unsubscribe",
+  "symbols": ["ETH/USDT", "SOL/USDT"]
+}
+```
+Remove symbols from the client's subscription set. Only affects future broadcasts — no response message is sent.
+
+- `symbols`: List of symbols to unsubscribe from (required)
 
 #### Welcome
 ```json
@@ -157,6 +170,7 @@ Latency measurement. Server responds with `pong`.
 ```json
 {
   "type": "candles",
+  "seq": 42,
   "timestamp": 1704067500,
   "candles": [ { ... } ],
   "prices": {
@@ -172,6 +186,14 @@ Latency measurement. Server responds with `pong`.
       "asks": [ { "price": 65101.0, "quantity": 0.8 }, ... ]
     }
   },
+  "orderbook_deltas": {
+    "binance|BTC/USDT": {
+      "exchange": "binance",
+      "symbol": "BTC/USDT",
+      "bids": [ { "p": 65099.0, "q": 1.2 } ],
+      "asks": [ { "p": 65101.0, "q": 0.0 } ]
+    }
+  },
   "accounts": {
     "binance": {
       "balance": 10000.0,
@@ -185,6 +207,14 @@ Latency measurement. Server responds with `pong`.
   }
 }
 ```
+
+**Sequence Numbers:** The `seq` field is a monotonically increasing integer. Clients can use it to detect missed messages and request `sync_state` on gaps.
+
+**Order Book Deltas:** When `orderbook_deltas` is present, only changed price levels are sent (compact `p`/`q` keys). A level with `q: 0.0` indicates removal. Full snapshots are sent for new connections and when no previous state exists.
+
+**Selective Subscription:** If a client subscribes with a specific `symbols` list, the server filters `candles`, `prices`, `orderbooks`, and `orderbook_deltas` to only include subscribed symbols.
+
+**Compression:** All connections use `permessage-deflate` compression. The server and client negotiate this automatically during the WebSocket handshake.
 
 #### Fill (order confirmation)
 ```json

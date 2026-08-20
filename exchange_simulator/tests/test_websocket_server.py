@@ -388,3 +388,167 @@ class TestWebSocketMetrics:
             server.metrics.record_message(i)
         # Should be limited to max_samples
         assert len(server.metrics.message_sizes) == server.metrics.max_samples
+
+
+class TestSequenceNumbers:
+    """Tests for sequence number tracking in broadcast messages."""
+
+    @pytest.mark.asyncio
+    async def test_seq_increments(self, server, mock_market):
+        """Test that sequence number increments with each broadcast."""
+        mock_market.next_candle.return_value = []
+        server._running = True
+        server._tick_interval = 0.01
+
+        client = AsyncMock()
+        server.clients = {client}
+        server._client_subscriptions = {client: set(mock_market.symbols)}
+
+        initial_seq = server._sequence_number
+        await server._broadcast_market_data([], {}, {}, None)
+        assert server._sequence_number == initial_seq + 1
+
+        await server._broadcast_market_data([], {}, {}, None)
+        assert server._sequence_number == initial_seq + 2
+
+    @pytest.mark.asyncio
+    async def test_seq_in_message(self, server, mock_market):
+        """Test that sequence number is included in broadcast message."""
+        mock_market.next_candle.return_value = []
+        server._running = True
+
+        client = AsyncMock()
+        server.clients = {client}
+        server._client_subscriptions = {client: set(mock_market.symbols)}
+
+        server._sequence_number = 42
+        await server._broadcast_market_data([], {}, {}, None)
+
+        sent_data = client.send.call_args[0][0]
+        msg = json.loads(sent_data)
+        assert msg["seq"] == 43
+
+
+class TestSubscriptionFiltering:
+    """Tests for selective subscription filtering in broadcast."""
+
+    @pytest.mark.asyncio
+    async def test_filtered_candles(self, server, mock_market):
+        """Test that candles are filtered by client subscription."""
+        from exchange_simulator.models import Candle
+
+        candle_btc = Candle(
+            symbol="BTC/USDT", timestamp=100, open=65000,
+            high=65100, low=64900, close=65050, volume=10.0,
+            exchange="binance",
+        )
+        candle_eth = Candle(
+            symbol="ETH/USDT", timestamp=100, open=3500,
+            high=3510, low=3490, close=3505, volume=50.0,
+            exchange="binance",
+        )
+        mock_market.next_candle.return_value = [candle_btc, candle_eth]
+
+        client = AsyncMock()
+        server.clients = {client}
+        server._client_subscriptions = {client: {"BTC/USDT"}}
+
+        await server._broadcast_market_data(
+            [candle_btc, candle_eth], {}, {}, None
+        )
+
+        sent_data = client.send.call_args[0][0]
+        msg = json.loads(sent_data)
+        symbols_in_msg = {c["symbol"] for c in msg["candles"]}
+        assert symbols_in_msg == {"BTC/USDT"}
+
+    @pytest.mark.asyncio
+    async def test_unfiltered_for_all_symbols(self, server, mock_market):
+        """Test that clients subscribed to all symbols get full data."""
+        from exchange_simulator.models import Candle
+
+        candle_btc = Candle(
+            symbol="BTC/USDT", timestamp=100, open=65000,
+            high=65100, low=64900, close=65050, volume=10.0,
+            exchange="binance",
+        )
+        candle_eth = Candle(
+            symbol="ETH/USDT", timestamp=100, open=3500,
+            high=3510, low=3490, close=3505, volume=50.0,
+            exchange="binance",
+        )
+
+        client = AsyncMock()
+        server.clients = {client}
+        server._client_subscriptions = {client: set(mock_market.symbols)}
+
+        await server._broadcast_market_data(
+            [candle_btc, candle_eth], {}, {}, None
+        )
+
+        sent_data = client.send.call_args[0][0]
+        msg = json.loads(sent_data)
+        assert len(msg["candles"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_filtered_orderbooks(self, server, mock_market):
+        """Test that orderbooks are filtered by subscription."""
+        orderbooks = {
+            "binance|BTC/USDT": {"exchange": "binance", "symbol": "BTC/USDT", "bids": [], "asks": []},
+            "binance|ETH/USDT": {"exchange": "binance", "symbol": "ETH/USDT", "bids": [], "asks": []},
+        }
+
+        client = AsyncMock()
+        server.clients = {client}
+        server._client_subscriptions = {client: {"BTC/USDT"}}
+
+        await server._broadcast_market_data([], orderbooks, {}, None)
+
+        sent_data = client.send.call_args[0][0]
+        msg = json.loads(sent_data)
+        assert "binance|BTC/USDT" in msg["orderbooks"]
+        assert "binance|ETH/USDT" not in msg["orderbooks"]
+
+
+class TestUnsubscribeHandler:
+    """Tests for the unsubscribe message handler."""
+
+    @pytest.mark.asyncio
+    async def test_unsubscribe_removes_symbols(self, server):
+        """Test that unsubscribe removes symbols from client subscription."""
+        ws = AsyncMock()
+        server._client_subscriptions[ws] = {"BTC/USDT", "ETH/USDT", "SOL/USDT"}
+
+        await server._handle_unsubscribe(ws, {
+            "type": "unsubscribe",
+            "symbols": ["ETH/USDT", "SOL/USDT"],
+        })
+
+        remaining = server._client_subscriptions[ws]
+        assert remaining == {"BTC/USDT"}
+
+    @pytest.mark.asyncio
+    async def test_unsubscribe_empty_symbols(self, server):
+        """Test that unsubscribe with no symbols is a no-op."""
+        ws = AsyncMock()
+        server._client_subscriptions[ws] = {"BTC/USDT", "ETH/USDT"}
+
+        await server._handle_unsubscribe(ws, {
+            "type": "unsubscribe",
+            "symbols": [],
+        })
+
+        assert server._client_subscriptions[ws] == {"BTC/USDT", "ETH/USDT"}
+
+    @pytest.mark.asyncio
+    async def test_unsubscribe_not_subscribed(self, server):
+        """Test that unsubscribing non-subscribed symbols is safe."""
+        ws = AsyncMock()
+        server._client_subscriptions[ws] = {"BTC/USDT"}
+
+        await server._handle_unsubscribe(ws, {
+            "type": "unsubscribe",
+            "symbols": ["DOGE/USDT"],
+        })
+
+        assert server._client_subscriptions[ws] == {"BTC/USDT"}

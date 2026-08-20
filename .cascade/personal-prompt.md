@@ -1384,13 +1384,13 @@ README.md — Project overview
 10. ЕСЛИ НЕ УВЕРЕН — НЕ ТРОГАЙ.
 
 АЛГОРИТМ:
-1. Прочитай контекст: .cascade/notes.md, .cascade/progress.md, .cascade/bug_log.md
+1. Прочитай контекст: .cascade/office-board.md, .cascade/notes.md, .cascade/progress.md, .cascade/bug_log.md
 2. Определи тип задачи → выбери роль (БЛОК 9)
 3. Ответь на 10 вопросов планирования (БЛОК 4)
 4. Прочитай related код (read_file, grep_search)
 5. Реализуй (edit, multi_edit) → проверь (read_file после edit)
 6. Тесты (БЛОК 5) → документация (БЛОК 7) → коммит (БЛОК 6)
-7. Делегируй следующей роли если нужно (БЛОК 11)
+7. Запиши результат на office-board.md → делегируй следующей роли (БЛОК 11)
 
 ЗАДАЧА: [опиши задачу здесь]
 ```

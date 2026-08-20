@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 33 — Day 2: WebSocket Optimization)
+
+### Added
+- **[FEAT-101]** WebSocket sequence numbers — monotonically increasing `seq` field in all broadcast messages for gap detection
+- **[FEAT-102]** Selective subscription filtering — server now filters candles, prices, orderbooks, and deltas by client's subscribed symbols
+- **[FEAT-103]** Unsubscribe message handler — clients can remove symbols from their subscription via `{"type": "unsubscribe", "symbols": [...]}`
+- **[FEAT-104]** WebSocket connection pool (`ws_connection_pool.py`) — reusable connections with health checks, stale eviction, and max pool size
+- **[FEAT-105]** Client-side WebSocket compression — `permessage-deflate` enabled on `ExchangeClient.connect()`
+- **[FEAT-106]** Auto-reconnect with exponential backoff — 5 attempts, delay doubling from 1s to 30s max
+
+### Changed
+- **[FEAT-107]** Refactored `_broadcast_market_data` to build per-client messages with subscription filtering
+- **[FEAT-108]** Updated `docs/WEBSOCKET_PROTOCOL.md` with unsubscribe, sequence numbers, delta updates, selective subscription, and compression documentation
+
+### Tests
+- **[TEST-101]** 8 new tests: sequence number increment/inclusion, subscription filtering (candles, orderbooks, all-symbols), unsubscribe handler (remove, empty, non-subscribed)
+- **[TEST-102]** 12 new tests for `WebSocketConnectionPool`: acquire, release, eviction, health check, close all, stats
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 32 — Documentation Audit & Cleanup)
 
 ### Changed

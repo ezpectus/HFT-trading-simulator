@@ -377,30 +377,21 @@ class BroadcastMixin:
     async def _broadcast_market_data(
         self, candles, orderbooks: dict, orderbook_deltas: dict, arb_data
     ) -> None:
-        """Broadcast market data to all connected clients."""
-        message = {
-            "type": "candles",
-            "timestamp": self.market.current_timestamp,
-            "candles": [c.to_dict() for c in candles],
-            "prices": self.market.get_all_prices(),
-            "accounts": {
-                ex_id: ex.get_account_status()
-                for ex_id, ex in self.exchanges.items()
-            },
-            "funding_rates": self.market.get_funding_rates(),
-            "candles_to_funding": self.market.candles_to_next_funding,
-            "news_event": self.market.get_news_event(),
-            "weekend_mode": self.market.is_weekend_mode,
-            "trading_active": self._trading_active,
+        """Broadcast market data to all connected clients.
+
+        Filters data per-client based on their symbol subscriptions.
+        Includes a monotonically increasing sequence number for delta sync.
+        """
+        self._sequence_number += 1
+        seq = self._sequence_number
+        all_symbols = set(self.market.symbols)
+        candle_dicts = [c.to_dict() for c in candles]
+        prices = self.market.get_all_prices()
+        accounts = {
+            ex_id: ex.get_account_status()
+            for ex_id, ex in self.exchanges.items()
         }
-        if orderbooks:
-            message["orderbooks"] = orderbooks
-        if orderbook_deltas:
-            message["orderbook_deltas"] = orderbook_deltas
-        if _HAS_ORJSON:
-            data = orjson.dumps(message)
-        else:
-            data = json.dumps(message, separators=(',', ':'))
+        funding_rates = self.market.get_funding_rates()
 
         disconnected = set()
 
@@ -412,8 +403,87 @@ class BroadcastMixin:
             except websockets.ConnectionClosed:
                 _disc.add(client)
 
-        await asyncio.gather(*[
-            _send_to_client(c, data, arb_data) for c in self.clients
-        ], return_exceptions=True)
+        tasks = []
+        for client in self.clients:
+            subs = self._client_subscriptions.get(client, all_symbols)
+            if subs == all_symbols or not subs:
+                msg = self._build_full_message(
+                    seq, candle_dicts, prices, accounts,
+                    funding_rates, orderbooks, orderbook_deltas,
+                )
+            else:
+                msg = self._build_filtered_message(
+                    seq, candle_dicts, prices, accounts,
+                    funding_rates, orderbooks, orderbook_deltas, subs,
+                )
+            if _HAS_ORJSON:
+                data = orjson.dumps(msg)
+            else:
+                data = json.dumps(msg, separators=(',', ':'))
+            tasks.append(_send_to_client(client, data, arb_data))
 
+        await asyncio.gather(*tasks, return_exceptions=True)
         self.clients -= disconnected
+
+    def _build_full_message(
+        self, seq: int, candle_dicts: list, prices: dict,
+        accounts: dict, funding_rates: dict,
+        orderbooks: dict, orderbook_deltas: dict,
+    ) -> dict:
+        """Build unfiltered broadcast message with sequence number."""
+        message = {
+            "type": "candles",
+            "seq": seq,
+            "timestamp": self.market.current_timestamp,
+            "candles": candle_dicts,
+            "prices": prices,
+            "accounts": accounts,
+            "funding_rates": funding_rates,
+            "candles_to_funding": self.market.candles_to_next_funding,
+            "news_event": self.market.get_news_event(),
+            "weekend_mode": self.market.is_weekend_mode,
+            "trading_active": self._trading_active,
+        }
+        if orderbooks:
+            message["orderbooks"] = orderbooks
+        if orderbook_deltas:
+            message["orderbook_deltas"] = orderbook_deltas
+        return message
+
+    def _build_filtered_message(
+        self, seq: int, candle_dicts: list, prices: dict,
+        accounts: dict, funding_rates: dict,
+        orderbooks: dict, orderbook_deltas: dict, subs: set[str],
+    ) -> dict:
+        """Build message filtered to client's subscribed symbols."""
+        filtered_candles = [c for c in candle_dicts if c.get("symbol") in subs]
+        filtered_prices = {
+            ex_id: {s: p for s, p in ex_prices.items() if s in subs}
+            for ex_id, ex_prices in prices.items()
+        }
+        filtered_ob = {
+            k: v for k, v in orderbooks.items()
+            if v.get("symbol") in subs
+        }
+        filtered_delta = {
+            k: v for k, v in orderbook_deltas.items()
+            if v.get("symbol") in subs
+        }
+        message = {
+            "type": "candles",
+            "seq": seq,
+            "timestamp": self.market.current_timestamp,
+            "candles": filtered_candles,
+            "prices": filtered_prices,
+            "accounts": accounts,
+            "funding_rates": funding_rates,
+            "candles_to_funding": self.market.candles_to_next_funding,
+            "news_event": self.market.get_news_event(),
+            "weekend_mode": self.market.is_weekend_mode,
+            "trading_active": self._trading_active,
+        }
+        if filtered_ob:
+            message["orderbooks"] = filtered_ob
+        if filtered_delta:
+            message["orderbook_deltas"] = filtered_delta
+        return message

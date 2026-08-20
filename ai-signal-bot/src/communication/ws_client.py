@@ -72,9 +72,14 @@ class ExchangeClient:
         self._on_message = handler
 
     async def connect(self) -> bool:
-        """Connect to the exchange simulator WebSocket."""
+        """Connect to the exchange simulator WebSocket with compression."""
         try:
-            self._ws = await websockets.connect(self.url, ping_interval=10)
+            self._ws = await websockets.connect(
+                self.url,
+                ping_interval=10,
+                compression="deflate",
+                max_size=2**20,
+            )
             self._connected = True
             logger.info(f"Connected to exchange simulator: {self.url}")
             await self._ws.send(json.dumps({"type": "subscribe", "protocol_version": 2, "encoding": self._encoding}, separators=(',', ':')))
@@ -195,7 +200,15 @@ class ExchangeClient:
         logger.info(f"Close position request: {symbol} on {exchange}")
 
     async def reconnect(self) -> bool:
-        """Attempt to reconnect."""
+        """Attempt to reconnect with exponential backoff."""
         await self.disconnect()
-        await asyncio.sleep(2)
-        return await self.connect()
+        delay = 1.0
+        max_delay = 30.0
+        for attempt in range(5):
+            logger.info(f"Reconnect attempt {attempt + 1}/5 (delay={delay:.1f}s)")
+            await asyncio.sleep(delay)
+            if await self.connect():
+                return True
+            delay = min(delay * 2, max_delay)
+        logger.error("All reconnection attempts failed")
+        return False
