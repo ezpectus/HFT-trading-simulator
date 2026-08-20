@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 28 — Long Function Refactoring Batch 4)
+
+### Changed
+- **[QUAL-097]** Refactored 5 functions in the 50-62 line range:
+  - `research/genetic_strategy.py` — `evolve` 62→17 lines (3 helpers: `_run_generation`, `_create_next_generation`, `_final_evaluation`)
+  - `ml/rl_agent.py` — `DQNAgent.train` 52→18 lines (1 helper: `_run_episode`)
+  - `ml/rl_agent.py` — `PPOAgent.train` 53→16 lines (1 helper: `_run_ppo_episode`)
+  - `ml/transformer_model.py` — `train` 53→7 lines (2 helpers: `_init_weights`, `_train_loop`)
+  - `ml/lstm_model.py` — `train` 55→9 lines (2 helpers: `_init_lstm_weights`, `_train_lstm_loop`)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 27 — Long Function Refactoring Batch 3)
 
 ### Changed

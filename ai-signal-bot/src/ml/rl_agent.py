@@ -139,55 +139,41 @@ class DQNAgent:
     
     def train(self, env: TradingEnv, episodes: int = 1000,
               prices: np.ndarray = None, features: np.ndarray = None) -> Dict:
-        """
-        Train agent in environment.
-        
-        Args:
-            env: Trading environment
-            episodes: Number of training episodes
-            prices: Price data for environment reset
-            features: Optional feature data for environment reset
-        
-        Returns:
-            Training history dictionary
-        """
+        """Train agent in environment."""
         if self.q_network_weights is None:
             self._build_network()
         
-        history = {
-            'episode_rewards': [],
-            'episode_lengths': [],
-            'total_trades': []
-        }
+        history = {'episode_rewards': [], 'episode_lengths': [], 'total_trades': []}
         
         for episode in range(episodes):
-            state = env.reset(prices, features) if prices is not None else env.reset()
-            total_reward = 0
-            done = False
-            steps = 0
-            info = {}
-            
-            while not done:
-                action = self.act(state, training=True)
-                next_state, reward, done, info = env.step(action)
-                
-                self.remember(state, action, reward, next_state, done)
-                self.replay()
-                
-                state = next_state
-                total_reward += reward
-                steps += 1
-            
-            # Update target network every 10 episodes
+            total_reward, steps, info = self._run_episode(env, prices, features)
             if episode % 10 == 0:
                 self.update_target_network()
-            
             history['episode_rewards'].append(total_reward)
             history['episode_lengths'].append(steps)
             history['total_trades'].append(info.get('trade_count', 0))
         
         self.is_trained = True
         return history
+    
+    def _run_episode(
+        self, env: TradingEnv, prices: np.ndarray | None, features: np.ndarray | None,
+    ) -> tuple[float, int, dict]:
+        """Run a single training episode. Returns (total_reward, steps, info)."""
+        state = env.reset(prices, features) if prices is not None else env.reset()
+        total_reward = 0
+        done = False
+        steps = 0
+        info = {}
+        while not done:
+            action = self.act(state, training=True)
+            next_state, reward, done, info = env.step(action)
+            self.remember(state, action, reward, next_state, done)
+            self.replay()
+            state = next_state
+            total_reward += reward
+            steps += 1
+        return total_reward, steps, info
     
     def save_model(self, filepath: str):
         """
@@ -307,56 +293,41 @@ class PPOAgent:
     
     def train(self, env: TradingEnv, episodes: int = 1000,
               prices: np.ndarray = None, features: np.ndarray = None) -> Dict:
-        """
-        Train agent in environment.
-        
-        Args:
-            env: Trading environment
-            episodes: Number of training episodes
-            prices: Price data for environment reset
-            features: Optional feature data for environment reset
-        
-        Returns:
-            Training history dictionary
-        """
+        """Train PPO agent in environment."""
         if self.policy_weights is None:
             self._build_networks()
         
-        history = {
-            'episode_rewards': [],
-            'episode_lengths': [],
-            'total_trades': []
-        }
+        history = {'episode_rewards': [], 'episode_lengths': [], 'total_trades': []}
         
         for episode in range(episodes):
-            state = env.reset(prices, features) if prices is not None else env.reset()
-            total_reward = 0
-            done = False
-            steps = 0
-            info = {}
-            
-            while not done:
-                action, log_prob = self.get_action(state)
-                value = self.get_value(state)
-                
-                next_state, reward, done, info = env.step(action)
-                
-                self.remember(state, action, log_prob, reward, value, done)
-                
-                # PPO update (simplified)
-                if len(self.memory) >= self.config.batch_size:
-                    self._update_policy()
-                
-                state = next_state
-                total_reward += reward
-                steps += 1
-            
+            total_reward, steps, info = self._run_ppo_episode(env, prices, features)
             history['episode_rewards'].append(total_reward)
             history['episode_lengths'].append(steps)
             history['total_trades'].append(info.get('trade_count', 0))
         
         self.is_trained = True
         return history
+    
+    def _run_ppo_episode(
+        self, env: TradingEnv, prices: np.ndarray | None, features: np.ndarray | None,
+    ) -> tuple[float, int, dict]:
+        """Run a single PPO training episode."""
+        state = env.reset(prices, features) if prices is not None else env.reset()
+        total_reward = 0
+        done = False
+        steps = 0
+        info = {}
+        while not done:
+            action, log_prob = self.get_action(state)
+            value = self.get_value(state)
+            next_state, reward, done, info = env.step(action)
+            self.remember(state, action, log_prob, reward, value, done)
+            if len(self.memory) >= self.config.batch_size:
+                self._update_policy()
+            state = next_state
+            total_reward += reward
+            steps += 1
+        return total_reward, steps, info
     
     def _update_policy(self):
         """Update policy using PPO with ratio clipping."""

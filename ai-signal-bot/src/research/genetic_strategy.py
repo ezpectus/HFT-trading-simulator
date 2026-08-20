@@ -207,7 +207,7 @@ class GeneticStrategyDiscovery:
 
     def evolve(
         self,
-        data: Any,  # Market data — type depends on caller (list[Candle] | pd.DataFrame)
+        data: Any,
         fitness_fn: Callable[[Chromosome], float],
         symbol: str = "BTC/USDT",
     ) -> Chromosome:
@@ -216,56 +216,49 @@ class GeneticStrategyDiscovery:
         logger.info(f"[GA] Starting evolution: pop={self.population_size}, gens={self.generations}, symbol={symbol}")
 
         for gen in range(self.generations):
-            start = time.time()
+            self._run_generation(gen, fitness_fn)
 
-            # Evaluate fitness
-            for chrom in self.population:
-                chrom.fitness = self._evaluate_fitness(chrom, fitness_fn)
+        self._final_evaluation(fitness_fn)
+        best = self.population[0]
+        logger.info(f"[GA] Evolution complete. Best fitness: {best.fitness:.4f}")
+        return best
 
-            # Sort by fitness
-            self.population.sort(key=lambda c: c.fitness, reverse=True)
-
-            best = self.population[0]
-            avg = sum(c.fitness for c in self.population) / len(self.population)
-            gen_time = time.time() - start
-
-            self.history.append({
-                "generation": gen + 1,
-                "best_fitness": best.fitness,
-                "avg_fitness": avg,
-                "time_s": round(gen_time, 2),
-            })
-
-            logger.info(
-                f"[GA] Gen {gen+1}/{self.generations}: "
-                f"best={best.fitness:.4f} avg={avg:.4f} time={gen_time:.1f}s"
-            )
-
-            # Create next generation
-            next_gen: list[Chromosome] = []
-
-            # Elitism: keep best individuals
-            next_gen.extend(deepcopy(c) for c in self.population[:self.elite_count])
-
-            # Fill rest with crossover + mutation
-            while len(next_gen) < self.population_size:
-                p1 = self._tournament_selection()
-                p2 = self._tournament_selection()
-                c1, c2 = self._crossover(p1, p2)
-                next_gen.append(self._mutate(c1))
-                if len(next_gen) < self.population_size:
-                    next_gen.append(self._mutate(c2))
-
-            self.population = next_gen
-
-        # Final evaluation
+    def _run_generation(self, gen: int, fitness_fn: Callable[[Chromosome], float]) -> None:
+        """Evaluate, log, and create next generation."""
+        start = time.time()
         for chrom in self.population:
             chrom.fitness = self._evaluate_fitness(chrom, fitness_fn)
         self.population.sort(key=lambda c: c.fitness, reverse=True)
 
         best = self.population[0]
-        logger.info(f"[GA] Evolution complete. Best fitness: {best.fitness:.4f}")
-        return best
+        avg = sum(c.fitness for c in self.population) / len(self.population)
+        gen_time = time.time() - start
+        self.history.append({
+            "generation": gen + 1, "best_fitness": best.fitness,
+            "avg_fitness": avg, "time_s": round(gen_time, 2),
+        })
+        logger.info(f"[GA] Gen {gen+1}/{self.generations}: best={best.fitness:.4f} avg={avg:.4f} time={gen_time:.1f}s")
+
+        self.population = self._create_next_generation()
+
+    def _create_next_generation(self) -> list[Chromosome]:
+        """Create next generation via elitism, crossover, and mutation."""
+        next_gen: list[Chromosome] = []
+        next_gen.extend(deepcopy(c) for c in self.population[:self.elite_count])
+        while len(next_gen) < self.population_size:
+            p1 = self._tournament_selection()
+            p2 = self._tournament_selection()
+            c1, c2 = self._crossover(p1, p2)
+            next_gen.append(self._mutate(c1))
+            if len(next_gen) < self.population_size:
+                next_gen.append(self._mutate(c2))
+        return next_gen
+
+    def _final_evaluation(self, fitness_fn: Callable[[Chromosome], float]) -> None:
+        """Final fitness evaluation and sort."""
+        for chrom in self.population:
+            chrom.fitness = self._evaluate_fitness(chrom, fitness_fn)
+        self.population.sort(key=lambda c: c.fitness, reverse=True)
 
     def get_history(self) -> list[dict]:
         return self.history

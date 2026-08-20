@@ -30,6 +30,7 @@
 | 24 | 2026-08-20 | Sprint 25 (Autonomous): Long function refactoring — 5 functions >60 lines refactored (logging.setup_logging 94→32, walk_forward.run 85→25, price_predictor.train_model 81→25, indicators.adx 77→10, risk_manager.update 77→24), 20 helpers extracted, docs audit v6.0 | ✅ Done | — |
 | 25 | 2026-08-20 | Sprint 26 (Autonomous): Long function refactoring batch 2 — 5 functions >60 lines refactored (order_book_replay.from_candle 75→23, rl_trader.update 71→17, portfolio_optimizer.black_litterman 74→25, environment.step 63→27, signal_publisher._run_backtest 72→33), 13 helpers extracted | ✅ Done | — |
 | 26 | 2026-08-20 | Sprint 27 (Autonomous): Long function refactoring batch 3 — 5 functions >60 lines refactored (options_simulator.price_option 74→24, plotter.plot_equity_curve 67→22, position_sizing.kelly_criterion_sizing 65→37, cvar.calculate_cvar 65→15, risk_parity.optimize_risk_parity 64→21), 12 helpers extracted | ✅ Done | — |
+| 27 | 2026-08-20 | Sprint 28 (Autonomous): Long function refactoring batch 4 — 5 functions 50-62 lines refactored (genetic_strategy.evolve 62→17, rl_agent.train 52→18, rl_agent.train 53→16, transformer_model.train 53→7, lstm_model.train 55→9), 7 helpers extracted | ✅ Done | — |
 
 ## Bug Fix Progress
 
@@ -340,6 +341,18 @@
 | 5 | `portfolio/risk_parity.py` | `optimize_risk_parity` | 64 | 21 | `_iterate_risk_parity` |
 
 **Sprint 27 result:** 5 functions refactored, 12 helpers extracted. All 5 functions now under 40-line limit.
+
+**Sprint 28 — Long Function Refactoring Batch 4 (50-62 lines):**
+
+| # | File | Function | Before | After | Helpers Extracted |
+|---|------|----------|--------|-------|-------------------|
+| 1 | `research/genetic_strategy.py` | `evolve` | 62 | 17 | `_run_generation`, `_create_next_generation`, `_final_evaluation` |
+| 2 | `ml/rl_agent.py` | `DQNAgent.train` | 52 | 18 | `_run_episode` |
+| 3 | `ml/rl_agent.py` | `PPOAgent.train` | 53 | 16 | `_run_ppo_episode` |
+| 4 | `ml/transformer_model.py` | `train` | 53 | 7 | `_init_weights`, `_train_loop` |
+| 5 | `ml/lstm_model.py` | `train` | 55 | 9 | `_init_lstm_weights`, `_train_lstm_loop` |
+
+**Sprint 28 result:** 5 functions refactored, 7 helpers extracted. All 5 functions now under 40-line limit. Total across Sprints 25-28: 20 functions refactored, 52 helpers extracted.
 
 ## Proposals
 
