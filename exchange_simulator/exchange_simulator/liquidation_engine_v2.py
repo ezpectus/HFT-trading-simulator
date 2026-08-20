@@ -119,39 +119,45 @@ class LiquidationEngineV2:
             return None
 
         pnl = self.compute_unrealized_pnl(pos, mark_price)
+        liq_type, qty_to_close = self._determine_liq_type(pos, force_full)
+        released_margin, loss = self._execute_liquidation(pos, pnl, qty_to_close)
 
-        # Determine liquidation type
+        event = self._create_liq_event(pos, mark_price, qty_to_close, liq_type, loss)
+        self.events.append(event)
+        self._log_liquidation(pos, qty_to_close, liq_type, loss)
+
+        if self.insurance_fund < 0:
+            self._auto_deleverage(pos, mark_price)
+
+        return event
+
+    def _determine_liq_type(self, pos: Position, force_full: bool) -> tuple[LiquidationType, float]:
+        """Determine liquidation type and quantity to close."""
         if force_full or self._cascade_depth > 0:
             liq_type = LiquidationType.FULL if force_full else LiquidationType.CASCADE
-            qty_to_close = pos.qty
-        else:
-            # Try partial liquidation first
-            liq_type = LiquidationType.PARTIAL
-            qty_to_close = pos.qty * self.partial_liq_ratio
+            return liq_type, pos.qty
+        return LiquidationType.PARTIAL, pos.qty * self.partial_liq_ratio
 
-        # Execute liquidation
-        original_qty = pos.qty  # Capture before reduction
+    def _execute_liquidation(self, pos: Position, pnl: float, qty_to_close: float) -> tuple[float, float]:
+        """Execute liquidation: reduce qty, update margin and insurance fund. Returns (released_margin, loss)."""
+        original_qty = pos.qty
         pos.qty -= qty_to_close
         margin_ratio = qty_to_close / original_qty if original_qty > 0 else 0.0
-        # Margin released from the liquidated portion
         released_margin = pos.margin * margin_ratio
-        # Remaining margin = original margin - released margin
-        # (PnL from liquidated portion goes to insurance fund, not back into margin)
         pos.margin = max(pos.margin - released_margin, 0)
-
-        # Loss to insurance fund — proportional to liquidated quantity
         loss = abs(min(pnl * margin_ratio, 0))
 
-        # Update insurance fund
         if pnl < 0:
             self.insurance_fund -= loss
         else:
-            # Profit from liquidated position goes to insurance fund
             self.insurance_fund += pnl * margin_ratio
-
         self.insurance_fund_history.append(self.insurance_fund)
+        return released_margin, loss
 
-        event = LiquidationEvent(
+    def _create_liq_event(self, pos: Position, mark_price: float, qty_to_close: float,
+                          liq_type: LiquidationType, loss: float) -> LiquidationEvent:
+        """Create a LiquidationEvent from the liquidation."""
+        return LiquidationEvent(
             timestamp=time.time(),
             symbol=pos.symbol,
             side=pos.side,
@@ -163,19 +169,15 @@ class LiquidationEngineV2:
             loss=loss,
             cascade_triggered=False,
         )
-        self.events.append(event)
 
+    def _log_liquidation(self, pos: Position, qty_to_close: float,
+                         liq_type: LiquidationType, loss: float) -> None:
+        """Log liquidation event."""
         logger.warning(
             f"[LiqEngine] {pos.symbol} {pos.side} liquidated: "
             f"qty={qty_to_close:.4f} type={liq_type.name} loss={loss:.2f} "
             f"remaining={pos.qty:.4f} insurance_fund={self.insurance_fund:.2f}"
         )
-
-        # Check for ADL
-        if self.insurance_fund < 0:
-            self._auto_deleverage(pos, mark_price)
-
-        return event
 
     def process_cascade(self, positions: list[Position], mark_price: float,
                         symbol: str) -> list[LiquidationEvent]:
