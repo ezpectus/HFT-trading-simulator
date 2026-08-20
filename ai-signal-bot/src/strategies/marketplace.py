@@ -72,7 +72,7 @@ class StrategyMarketplace:
                 data = json.load(f)
             for name, pdata in data.get("strategies", {}).items():
                 self.plugins[name] = StrategyPlugin(**pdata)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, TypeError) as e:
             logger.warning(f"[Marketplace] Failed to load registry: {e}")
 
     def _save_registry(self) -> None:
@@ -152,7 +152,7 @@ class StrategyMarketplace:
             self._loaded[name] = instance
             logger.info(f"[Marketplace] Loaded: {name}")
             return instance
-        except Exception as e:
+        except (ImportError, AttributeError, TypeError, ValueError, RuntimeError) as e:
             logger.error(f"[Marketplace] Failed to load {name}: {e}")
             return None
 
@@ -213,7 +213,7 @@ class StrategyMarketplace:
             )
             self.register(plugin)
             return True
-        except Exception as e:
+        except (OSError, RuntimeError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             logger.error(f"[Marketplace] Git install failed: {e}")
             return False
 

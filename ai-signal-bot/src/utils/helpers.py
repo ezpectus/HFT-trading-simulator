@@ -75,7 +75,7 @@ def load_config(config_path: str = "config/settings.yaml") -> dict:
             return yaml.safe_load(f) or {}
     except FileNotFoundError:
         return {}
-    except Exception as e:
+    except (OSError, ValueError, TypeError) as e:
         logging.error(f"Failed to load config {config_path}: {e}")
         return {}
 

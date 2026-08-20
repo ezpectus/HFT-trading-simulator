@@ -157,7 +157,7 @@ class CrossExchangeArbEngine:
                     task = asyncio.create_task(self._execute_arbitrage(opp))
                     self._pending_tasks.add(task)
                     task.add_done_callback(self._pending_tasks.discard)
-            except Exception as e:
+            except (RuntimeError, OSError, ValueError, TypeError) as e:
                 logger.error(f"[CrossExArb] Monitor error for {symbol}: {e}")
 
     def _detect_opportunity(self, symbol: str) -> ArbitrageOpportunity | None:
@@ -285,7 +285,7 @@ class CrossExchangeArbEngine:
             opp.error = "Execution timeout"
             opp.status = ArbStatus.FAILED
             self._stats["opportunities_failed"] += 1
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError, TypeError, KeyError) as e:
             opp.error = str(e)
             opp.status = ArbStatus.FAILED
             self._stats["opportunities_failed"] += 1
@@ -324,7 +324,7 @@ class CrossExchangeArbEngine:
                 )
             else:
                 return ExecutionResult(False, 0, 0, 0, "No place_order method")
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError, TypeError, AttributeError) as e:
             return ExecutionResult(False, 0, 0, 0, str(e))
 
     def get_stats(self) -> dict:
