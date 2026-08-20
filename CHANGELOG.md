@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 45 — Stale Docs: CUDA/ONNX References)
+
+### Updated
+- **[DOC-307]** Updated `docs/future_development.md` — replaced CUDA/ONNX dead code section (11 lines) with removal note (Sprint 43)
+- **[DOC-308]** Updated `docs/MATH_MODELS.md` — replaced CUDA/ONNX dead code section (13 lines) with removal note (Sprint 43)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 43-44 — Dead Code Removal + Rust Tests)
 
 ### Removed

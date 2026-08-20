@@ -46,6 +46,7 @@
 | 40 | 2026-08-20 | Sprint 42 (Stale Documentation Cleanup): Removed docs/EXCHANGE_UI_CLONES.md (392 lines, documented deleted components). Updated docs/ARCHITECTURE.md — removed 3 lines referencing deleted exchanges/ directory | ✅ Done | — |
 | 41 | 2026-08-20 | Sprint 43 (CUDA/ONNX Dead Code Removal): Removed gpu_accelerator.cu (221 lines) and onnx_engine.h (272 lines) — 493 lines total, never referenced in CMakeLists.txt or any source file. Both behind #ifdef guards, never compiled in CI | ✅ Done | — |
 | 42 | 2026-08-20 | Sprint 44 (Rust Executor Tests): Added 21 unit tests for hft-executor/src/lib.rs (previously 0 tests). Coverage: Order creation, submit/single/batch, stats, FFI create/submit/destroy, null safety, serialization round-trip, all 5 order types | ✅ Done | — |
+| 43 | 2026-08-20 | Sprint 45 (Stale Docs Cleanup): Updated docs/future_development.md and docs/MATH_MODELS.md — replaced CUDA/ONNX dead code sections with removal notes referencing Sprint 43 | ✅ Done | — |
 
 ## Bug Fix Progress
 

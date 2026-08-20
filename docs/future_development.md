@@ -114,21 +114,11 @@
 
 ---
 
-## 0b. DEAD CODE: CUDA И ONNX
+## 0b. ~~DEAD CODE: CUDA И ONNX~~ — REMOVED (Sprint 43)
 
-### 0b.1. CUDA (`gpu_accelerator.cu`) — ВЫСОКИЙ
-
-- **Описание:** Полный CUDA код есть (RSI, EMA, Monte Carlo VaR, matrix mul kernels), но за `#ifdef USE_CUDA`, никогда не компилируется в CI
-- **Решение:** Включить в CI build с CUDA toolkit, или добавить fallback CPU implementation
-- **Время:** 2 недели
-- **Файл:** `hft-trade-bot/src/ml/gpu_accelerator.cu`
-
-### 0b.2. ONNX Runtime (`onnx_engine.h`) — ВЫСОКИЙ
-
-- **Описание:** Полный ONNX код есть (session management, inference, multi-model), но за `#ifdef USE_ONNXRUNTIME`, никогда не компилируется
-- **Решение:** Включить в CI build с ONNX Runtime, или добавить fallback
-- **Время:** 2 недели
-- **Файл:** `hft-trade-bot/src/ml/onnx_engine.h`
+CUDA (`gpu_accelerator.cu`) and ONNX (`onnx_engine.h`) files were removed in Sprint 43.
+They were behind `#ifdef` guards, never compiled, never referenced in CMakeLists.txt.
+If CUDA/ONNX support is needed in the future, it must be implemented from scratch.
 
 ---
 

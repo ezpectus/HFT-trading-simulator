@@ -386,19 +386,11 @@ All implemented as React components in `web-ui/src/components/` with panel regis
 
 ---
 
-## 8. Dead Code — CUDA and ONNX (behind `#ifdef`, never compiled)
+## 8. ~~Dead Code — CUDA and ONNX~~ — REMOVED (Sprint 43)
 
-### CUDA Kernels — Dead code
-- **Source:** `hft-trade-bot/src/ml/gpu_accelerator.cu`
-- **Condition:** `#ifdef USE_CUDA` (never defined in CMakeLists.txt or CI)
-- **Contents:** Batch RSI, EMA, Monte Carlo VaR, matrix multiplication, neural network inference kernels
-- **Status:** Full implementation exists but is never compiled. CMakeLists.txt does not include CUDA language.
-
-### ONNX Runtime Engine — Dead code
-- **Source:** `hft-trade-bot/src/ml/onnx_engine.h`
-- **Condition:** `#ifdef USE_ONNXRUNTIME` (never defined in CMakeLists.txt or CI)
-- **Contents:** ONNX model loading, inference API for LSTM, Transformer, Isolation Forest in C++
-- **Status:** Full API exists but is never compiled. CMakeLists.txt does not search for ONNXRuntime.
+CUDA (`gpu_accelerator.cu`) and ONNX (`onnx_engine.h`) files were removed in Sprint 43.
+They were behind `#ifdef` guards, never compiled, never referenced in CMakeLists.txt.
+If CUDA/ONNX support is needed in the future, it must be implemented from scratch.
 
 ---
 
