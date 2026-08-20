@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 177 |
+| ✅ Fixed | 181 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 0 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **177** |
+| **TOTAL FOUND** | **181** |
 
 ---
 
@@ -2470,6 +2470,42 @@
 - **Root Cause:** file_tracker.md summary table and detailed listings referenced directories from a different project (app/, cli/, alembic/, static/, templates/, recorder-ext/, vscode-ext/) — none of which exist in this HFT Trading System. Additionally, notes.md had `exchange-simulator/src/market_simulator.py` (wrong: hyphen + nonexistent src/ subdir) and `cd exchange-simulator` (wrong: hyphen instead of underscore).
 - **Status:** ✅ Fixed
 - **Fix:** Rewrote file_tracker.md summary with correct project structure (ai-signal-bot/src/, exchange_simulator/, hft-trade-bot/src/, etc.). Added historical note for old detailed listings. Fixed notes.md paths to `exchange_simulator/market_simulator.py` and `cd exchange_simulator`.
+
+---
+
+### QUAL-085: self_model_predictions_total typo in metrics.py (NameError on call)
+- **Location:** `ai-signal-bot/metrics.py:113,208`
+- **Severity:** P0 (Crash)
+- **Root Cause:** `self_model_predictions_total = Counter(...)` missing `.` in `self.` — creates a local variable instead of instance attribute. Calling `record_model_prediction()` raises `NameError`.
+- **Status:** ✅ Fixed
+- **Fix:** Changed `self_model_predictions_total` → `self.model_predictions_total` in both `__init__` and `record_model_prediction()`. Also added return type hints, replaced `Optional` with `| None`, typed `dict` parameter.
+
+---
+
+### QUAL-086: print() in production code (ebpf_monitor.py)
+- **Location:** `monitoring/ebpf_monitor.py:199`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `print(json.dumps(report, indent=2))` in `_report()` method — should use `logging` not `print()`.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `print()` with `logger.info()`. Also added `Any` justification comment, type hints for `_on_syscall_event` and `signal_handler` callback params.
+
+---
+
+### QUAL-087: Wide except Exception in ai-signal-bot/monitor.py
+- **Location:** `ai-signal-bot/monitor.py:118`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `except (ConnectionRefusedError, OSError, Exception)` — catching `Exception` makes specific exceptions redundant. Violates "no wide except Exception" rule.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced with `except (ConnectionRefusedError, OSError, asyncio.TimeoutError, json.JSONDecodeError)`.
+
+---
+
+### QUAL-088: Stale 62% readiness in PERFORMANCE.md and SETUP.md
+- **Location:** `docs/PERFORMANCE.md:4`, `docs/SETUP.md:4`
+- **Severity:** P2 (Documentation)
+- **Root Cause:** Both files still reference "62% overall completion (deep audit v4.3)" while notes.md was updated to 66% (v5.9 audit) in Sprint 20.
+- **Status:** ✅ Fixed
+- **Fix:** Updated both files to "66% overall completion (v5.9 audit — honest assessment)".
 
 ---
 

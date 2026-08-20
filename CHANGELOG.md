@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 21 — Deep Audit: monitoring, root scripts, docs sync)
+
+### Fixed
+- **[QUAL-085]** P0: `ai-signal-bot/metrics.py` — `self_model_predictions_total` typo (missing `.` in `self.`) caused `NameError` on `record_model_prediction()` call. Fixed to `self.model_predictions_total`.
+- **[QUAL-085]** `ai-signal-bot/metrics.py` — Added missing return type hints, replaced `Optional[X]` with `X | None`, typed `dict` parameter as `dict[str, float]`.
+- **[QUAL-086]** `monitoring/ebpf_monitor.py` — `print()` in `_report()` replaced with `logger.info()`. Added `Any` justification comment, type hints for callback params.
+- **[QUAL-087]** `ai-signal-bot/monitor.py` — Wide `except (..., Exception)` replaced with specific `(ConnectionRefusedError, OSError, asyncio.TimeoutError, json.JSONDecodeError)`.
+- **[QUAL-088]** `docs/PERFORMANCE.md`, `docs/SETUP.md` — Stale "62% overall completion (v4.3)" updated to "66% (v5.9 audit)".
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 20 — Documentation Sync & file_tracker Rewrite)
 
 ### Fixed

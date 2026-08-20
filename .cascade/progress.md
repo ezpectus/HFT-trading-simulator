@@ -233,6 +233,20 @@
 
 **Sprint 20 result:** 4 documentation fixes. file_tracker.md now reflects actual project. All stale cross-project references eliminated.
 
+**Sprint 21 — Deep Audit: monitoring, root scripts, docs sync (QUAL-085 to QUAL-088):**
+
+| # | File | Issue | Fix | Status |
+|---|------|-------|-----|--------|
+| 1 | `ai-signal-bot/metrics.py:113,208` | P0: `self_model_predictions_total` typo (missing dot) → NameError on call | Fixed to `self.model_predictions_total` | ✅ |
+| 2 | `ai-signal-bot/metrics.py` | Missing return type hints, `Optional` instead of `| None`, untyped `dict` | Added `-> None` hints, `| None`, `dict[str, float]` | ✅ |
+| 3 | `monitoring/ebpf_monitor.py:199` | P1: `print()` in production code | Replaced with `logger.info()` | ✅ |
+| 4 | `monitoring/ebpf_monitor.py` | `Any` without justification, missing type hints on callbacks | Added justification comment, typed params | ✅ |
+| 5 | `ai-signal-bot/monitor.py:118` | P1: Wide `except Exception` alongside specific exceptions | Replaced with specific exception tuple | ✅ |
+| 6 | `docs/PERFORMANCE.md:4` | P2: Stale "62%" readiness | Updated to 66% (v5.9 audit) | ✅ |
+| 7 | `docs/SETUP.md:4` | P2: Stale "62%" readiness | Updated to 66% (v5.9 audit) | ✅ |
+
+**Sprint 21 result:** 4 bugs fixed (1×P0, 2×P1, 1×P2). Critical `self_model_predictions_total` typo would have caused NameError on any model prediction call. 3 documentation files synced.
+
 ## Proposals
 
 | # | Title | Status | Date |
