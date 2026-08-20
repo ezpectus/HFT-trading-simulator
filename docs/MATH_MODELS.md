@@ -2,11 +2,11 @@
 
 Detailed breakdown of all quantitative models in the HFT Trading System with formulas and source file references.
 
-**Honest categorization (v5.9 audit):** Models are classified as:
+**Honest categorization (v6.1 audit):** Models are classified as:
 - **Trading logic** — implemented in Python or C++ and integrated into the trading pipeline
 - **UI-only** — implemented as React visualization components, NOT integrated into trading logic
-- **Missing** — claimed in documentation but not found in any code
-- **Dead code** — exists in source but behind `#ifdef`, never compiled
+- ~~**Missing**~~ — no missing models remain (resolved in earlier sprints)
+- ~~**Dead code**~~ — CUDA/ONNX dead code removed in Sprint 43
 
 ---
 

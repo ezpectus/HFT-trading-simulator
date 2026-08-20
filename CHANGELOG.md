@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 53 — Stale Audit Version References)
+
+### Fixed
+- **[DOC-335]** Updated MATH_MODELS.md — stale audit version v5.9→v6.1, removed "Missing" and "Dead code" categories (no missing models remain, CUDA/ONNX removed in Sprint 43)
+- **[DOC-336]** Updated PERFORMANCE.md — stale audit version v5.9→v6.1
+- **[DOC-337]** Updated SETUP.md — stale audit version v5.9→v6.1
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 52 — Missing Doc Files from 9-Day Plan)
 
 ### Added

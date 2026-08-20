@@ -1,7 +1,7 @@
 # Performance Engineering Guide
 
 **Last Updated:** August 12, 2026
-**Project Status:** 66% overall completion (v5.9 audit — honest assessment)
+**Project Status:** 66% overall completion (v6.1 audit — honest assessment)
 
 > How this trading system achieves low-latency signal generation and order execution.
 
