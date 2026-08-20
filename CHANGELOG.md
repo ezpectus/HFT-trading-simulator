@@ -7,6 +7,8 @@ All notable changes to this project are documented in this file.
 ### Fixed
 - **[QUAL-090]** `README.md` — 5 broken doc links pointing to non-existent files: `docs/USER_GUIDE.md`→`docs/FAQ.md`, `docs/ARCHITECTURE_DIAGRAMS.md`→`docs/ARCHITECTURE.md`, `docs/EDUCATIONAL_CONTENT.md`→`docs/ADVANCED_ORDER_TYPES.md`, `docs/ROADMAP.md`→`docs/9_DAY_DEVELOPMENT_PLAN.md`, `COMPREHENSIVE_DEVELOPMENT_PLAN.md`→`MASTER_DEVELOPMENT_PLAN.md`.
 - **[QUAL-090]** `README.md` — Stale `docs/CHANGELOG.md` link (stops at Sprint 16) replaced with active root `CHANGELOG.md`.
+- **[QUAL-091]** `ai-signal-bot/metrics.py` — Removed incorrect `noqa: E402` on `global` statements (E402 applies to imports, not global).
+- **[QUAL-092]** 12 files in `ai-signal-bot/src/` + tests — Added `Any` justification comments on `from typing import Any` import lines per codebase rule.
 
 ---
 

@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 184 |
+| ✅ Fixed | 185 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 0 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **184** |
+| **TOTAL FOUND** | **185** |
 
 ---
 
@@ -2533,6 +2533,15 @@
 - **Root Cause:** `# noqa: E402` on `global _metrics_instance` statements — E402 is "module level import not at top of file", which doesn't apply to `global` statements. The noqa was silencing a non-existent violation.
 - **Status:** ✅ Fixed
 - **Fix:** Removed `noqa: E402` from both `global` statements, kept the justification comment.
+
+---
+
+### QUAL-092: Missing Any justification comments in 12 files
+- **Location:** `ai-signal-bot/src/` (10 files), `ai-signal-bot/tests/mocks/mock_objects.py`, `ai-signal-bot/tracing.py` (already fixed in Sprint 22)
+- **Severity:** P3 (Code Quality)
+- **Root Cause:** 12 files imported `Any` from `typing` without a justification comment on the import line, violating the codebase rule requiring justification for `Any` usage.
+- **Status:** ✅ Fixed
+- **Fix:** Added inline justification comments on all `from typing import Any` lines explaining why `Any` is used (e.g., "ccxt/aiohttp objects lack type stubs", "Optuna trial params are dynamic", "strategy objects are duck-typed", etc.).
 
 ---
 
