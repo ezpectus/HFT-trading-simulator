@@ -224,48 +224,51 @@ class BinanceAPI(BasePriceAPI):
         streams = [f"{self._normalize_symbol(s).lower()}@ticker" for s in symbols]
         url = f"{self._ws_base}/{'/'.join(streams)}"
         self._ws_callbacks.append(callback)
+        self._ws_task = asyncio.create_task(self._ws_loop(url, symbols, self._parse_binance_tick))
 
-        async def _ws_handler():
-            retry_count = 0
-            max_retries = 5
-            base_delay = 1.0
+    async def _ws_loop(self, url: str, symbols: list[str], parse_fn) -> None:
+        """Generic WebSocket reconnect loop with exponential backoff."""
+        retry_count = 0
+        max_retries = 5
+        base_delay = 1.0
 
-            while retry_count < max_retries:
-                try:
-                    async with websockets.connect(url, ping_interval=20) as ws:
-                        logger.info(f"Binance WebSocket connected for {len(symbols)} symbols")
-                        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                async with websockets.connect(url, ping_interval=20) as ws:
+                    logger.info(f"WebSocket connected for {len(symbols)} symbols")
+                    retry_count = 0
+                    async for message in ws:
+                        data = json.loads(message) if isinstance(message, (str, bytes)) else message
+                        tick = parse_fn(data)
+                        if tick:
+                            for cb in self._ws_callbacks:
+                                try:
+                                    await cb(tick)
+                                except (TypeError, ValueError, RuntimeError, OSError) as e:
+                                    logger.error(f"WebSocket callback error: {e}")
+            except (OSError, RuntimeError, websockets.WebSocketException, asyncio.TimeoutError) as e:
+                retry_count += 1
+                delay = base_delay * (2 ** retry_count)
+                logger.error(f"WebSocket error (attempt {retry_count}/{max_retries}): {e}")
+                logger.info(f"Reconnecting in {delay}s...")
+                await asyncio.sleep(delay)
 
-                        async for message in ws:
-                            data = json.loads(message) if isinstance(message, (str, bytes)) else message
-                            if "s" in data:
-                                binance_sym = data["s"]
-                                norm_sym = self._denormalize_symbol(binance_sym)
-                                tick = PriceTick(
-                                    symbol=norm_sym,
-                                    price=float(data["c"]),
-                                    timestamp=float(data["E"]) / 1000,
-                                    exchange="binance",
-                                    volume=float(data["v"]),
-                                    bid=float(data["b"]),
-                                    ask=float(data["a"]),
-                                )
-                                for cb in self._ws_callbacks:
-                                    try:
-                                        await cb(tick)
-                                    except (TypeError, ValueError, RuntimeError, OSError) as e:
-                                        logger.error(f"WebSocket callback error: {e}")
+        logger.error("WebSocket max retries exceeded")
 
-                except (OSError, RuntimeError, websockets.WebSocketException, asyncio.TimeoutError) as e:
-                    retry_count += 1
-                    delay = base_delay * (2 ** retry_count)
-                    logger.error(f"Binance WebSocket error (attempt {retry_count}/{max_retries}): {e}")
-                    logger.info(f"Reconnecting in {delay}s...")
-                    await asyncio.sleep(delay)
-
-            logger.error("Binance WebSocket max retries exceeded")
-
-        self._ws_task = asyncio.create_task(_ws_handler())
+    def _parse_binance_tick(self, data: dict) -> PriceTick | None:
+        """Parse a Binance ticker WebSocket message into a PriceTick."""
+        if "s" not in data:
+            return None
+        norm_sym = self._denormalize_symbol(data["s"])
+        return PriceTick(
+            symbol=norm_sym,
+            price=float(data["c"]),
+            timestamp=float(data["E"]) / 1000,
+            exchange="binance",
+            volume=float(data["v"]),
+            bid=float(data["b"]),
+            ask=float(data["a"]),
+        )
 
     async def close(self) -> None:
         """Close WebSocket and HTTP session."""
@@ -350,52 +353,58 @@ class CoinbaseAPI(BasePriceAPI):
     async def subscribe_websocket(self, symbols: list[str], callback) -> None:
         """Subscribe to Coinbase WebSocket."""
         coinbase_symbols = [self._normalize_symbol(s) for s in symbols]
+        self._ws_callbacks.append(callback)
+        self._ws_task = asyncio.create_task(
+            self._coinbase_ws_loop(coinbase_symbols)
+        )
 
-        async def _ws_handler():
-            retry_count = 0
-            max_retries = 5
-            base_delay = 1.0
+    async def _coinbase_ws_loop(self, coinbase_symbols: list[str]) -> None:
+        """Coinbase-specific WebSocket loop with subscribe message."""
+        retry_count = 0
+        max_retries = 5
+        base_delay = 1.0
 
-            while retry_count < max_retries:
-                try:
-                    async with websockets.connect(self._ws_base) as ws:
-                        logger.info(f"Coinbase WebSocket connected")
+        while retry_count < max_retries:
+            try:
+                async with websockets.connect(self._ws_base) as ws:
+                    logger.info("Coinbase WebSocket connected")
+                    subscribe_msg = {
+                        "type": "subscribe",
+                        "product_ids": coinbase_symbols,
+                        "channels": ["ticker"],
+                    }
+                    await ws.send(json.dumps(subscribe_msg))
+                    retry_count = 0
 
-                        subscribe_msg = {
-                            "type": "subscribe",
-                            "product_ids": coinbase_symbols,
-                            "channels": ["ticker"],
-                        }
-                        await ws.send(json.dumps(subscribe_msg))
-
-                        retry_count = 0
-
-                        async for message in ws:
-                            data = json.loads(message) if isinstance(message, (str, bytes)) else message
-                            if data.get("type") == "ticker":
-                                product_id = data.get("product_id", "")
-                                norm_sym = self._denormalize_symbol(product_id)
-                                tick = PriceTick(
-                                    symbol=norm_sym,
-                                    price=float(data.get("price", 0)),
-                                    timestamp=time.time(),
-                                    exchange="coinbase",
-                                    volume=float(data.get("volume_24h", 0)),
-                                    bid=float(data.get("best_bid", 0)),
-                                    ask=float(data.get("best_ask", 0)),
-                                )
+                    async for message in ws:
+                        data = json.loads(message) if isinstance(message, (str, bytes)) else message
+                        tick = self._parse_coinbase_tick(data)
+                        if tick:
+                            for cb in self._ws_callbacks:
                                 try:
-                                    await callback(tick)
+                                    await cb(tick)
                                 except (TypeError, ValueError, RuntimeError, OSError) as e:
                                     logger.error(f"WebSocket callback error: {e}")
+            except (OSError, RuntimeError, websockets.WebSocketException, asyncio.TimeoutError) as e:
+                retry_count += 1
+                delay = base_delay * (2 ** retry_count)
+                logger.error(f"Coinbase WebSocket error (attempt {retry_count}/{max_retries}): {e}")
+                await asyncio.sleep(delay)
 
-                except (OSError, RuntimeError, websockets.WebSocketException, asyncio.TimeoutError) as e:
-                    retry_count += 1
-                    delay = base_delay * (2 ** retry_count)
-                    logger.error(f"Coinbase WebSocket error (attempt {retry_count}/{max_retries}): {e}")
-                    await asyncio.sleep(delay)
-
-        self._ws_task = asyncio.create_task(_ws_handler())
+    def _parse_coinbase_tick(self, data: dict) -> PriceTick | None:
+        """Parse a Coinbase ticker WebSocket message into a PriceTick."""
+        if data.get("type") != "ticker":
+            return None
+        norm_sym = self._denormalize_symbol(data.get("product_id", ""))
+        return PriceTick(
+            symbol=norm_sym,
+            price=float(data.get("price", 0)),
+            timestamp=time.time(),
+            exchange="coinbase",
+            volume=float(data.get("volume_24h", 0)),
+            bid=float(data.get("best_bid", 0)),
+            ask=float(data.get("best_ask", 0)),
+        )
 
     async def close(self) -> None:
         """Close WebSocket and HTTP session."""
