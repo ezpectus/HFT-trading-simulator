@@ -126,116 +126,133 @@ class GreeksHedgingSimulator:
         all_results = []
 
         for _ in range(n_paths):
-            # Generate price path (GBM)
-            prices = np.zeros(n_days + 1)
-            prices[0] = self.s0
-            for i in range(1, n_days + 1):
-                z = np.random.standard_normal()
-                prices[i] = prices[i-1] * np.exp(
-                    (self.r - 0.5 * self.sigma**2) * dt + self.sigma * math.sqrt(dt) * z
-                )
-
-            # Initial option price and Greeks
-            T = self.t
-            greeks = black_scholes_greeks(prices[0], strike, T, self.r, self.sigma, option_type)
-            option_price_0 = greeks["price"]
-            delta_0 = greeks["delta"]
-
-            # Initial hedge: short delta shares per option
-            hedge_position = -delta_0 * n_options
-            cash = option_price_0 * n_options + delta_0 * n_options * prices[0]
-
-            daily_pnl = []
-            daily_delta = [delta_0]
-            daily_hedge = [hedge_position]
-            total_tc = 0.0
-            n_rebalances = 0
-            hedge_errors = []
-
-            for day in range(1, n_days + 1):
-                T_remaining = max(self.t - day * dt, 0.001)
-                price = prices[day]
-
-                # Update option Greeks
-                greeks = black_scholes_greeks(price, strike, T_remaining, self.r, self.sigma, option_type)
-                new_delta = greeks["delta"]
-
-                # Daily P&L
-                option_pnl = (greeks["price"] - black_scholes_greeks(
-                    prices[day-1], strike, max(self.t - (day-1) * dt, 0.001),
-                    self.r, self.sigma, option_type)["price"]) * n_options
-                hedge_pnl = hedge_position * (price - prices[day-1])
-                daily_pnl.append(option_pnl + hedge_pnl)
-
-                # Check if rebalance needed
-                target_hedge = -new_delta * n_options
-                hedge_error = abs(hedge_position - target_hedge)
-
-                if hedge_error > rebalance_threshold * n_options:
-                    trade_qty = target_hedge - hedge_position
-                    cash -= trade_qty * price
-                    tc = abs(trade_qty) * price * self.tc_bps / 10000
-                    total_tc += tc
-                    cash -= tc
-                    hedge_position = target_hedge
-                    n_rebalances += 1
-
-                hedge_errors.append(hedge_error)
-                daily_delta.append(new_delta)
-                daily_hedge.append(hedge_position)
-
-            # Final settlement
-            final_price = prices[-1]
-            if option_type == 'call':
-                payoff = max(final_price - strike, 0)
-            else:
-                payoff = max(strike - final_price, 0)
-
-            final_option_value = payoff * n_options
-            final_hedge_value = hedge_position * final_price
-            final_pnl = cash + final_hedge_value - final_option_value
-
-            # P&L decomposition
-            total_option_pnl = final_option_value - option_price_0 * n_options
-            total_hedge_pnl = sum(hedge_position * (prices[i] - prices[i-1])
-                                  for i, hedge_position in enumerate(daily_hedge[:-1], 1))
-
-            result = HedgeSimulationResult(
-                final_pnl=final_pnl,
-                hedging_pnl=total_hedge_pnl,
-                option_pnl=total_option_pnl,
-                transaction_costs=total_tc,
-                n_rebalances=n_rebalances,
-                avg_hedge_error=float(np.mean(hedge_errors)) if hedge_errors else 0,
-                max_hedge_error=float(np.max(hedge_errors)) if hedge_errors else 0,
-                daily_pnl=daily_pnl,
-                daily_delta=daily_delta,
-                daily_hedge=daily_hedge,
-                pnl_decomposition={
-                    "option_pnl": total_option_pnl,
-                    "hedge_pnl": total_hedge_pnl,
-                    "transaction_costs": total_tc,
-                    "net_pnl": final_pnl,
-                    "gamma_pnl": final_pnl,
-                },
+            prices = self._generate_price_path(n_days, dt)
+            result = self._simulate_single_path(
+                prices, option_type, strike, n_options, rebalance_threshold, dt,
             )
             all_results.append(result)
 
-        # Average across paths
         if n_paths > 1:
-            avg_result = HedgeSimulationResult(
-                final_pnl=float(np.mean([r.final_pnl for r in all_results])),
-                hedging_pnl=float(np.mean([r.hedging_pnl for r in all_results])),
-                option_pnl=float(np.mean([r.option_pnl for r in all_results])),
-                transaction_costs=float(np.mean([r.transaction_costs for r in all_results])),
-                n_rebalances=int(np.mean([r.n_rebalances for r in all_results])),
-                avg_hedge_error=float(np.mean([r.avg_hedge_error for r in all_results])),
-                max_hedge_error=float(np.mean([r.max_hedge_error for r in all_results])),
-                pnl_decomposition=all_results[0].pnl_decomposition,
-            )
-            return avg_result
-
+            return self._average_results(all_results)
         return all_results[0]
+
+    def _generate_price_path(self, n_days: int, dt: float) -> np.ndarray:
+        """Generate a single GBM price path."""
+        prices = np.zeros(n_days + 1)
+        prices[0] = self.s0
+        for i in range(1, n_days + 1):
+            z = np.random.standard_normal()
+            prices[i] = prices[i-1] * np.exp(
+                (self.r - 0.5 * self.sigma**2) * dt + self.sigma * math.sqrt(dt) * z
+            )
+        return prices
+
+    def _simulate_single_path(
+        self, prices: np.ndarray, option_type: str, strike: float,
+        n_options: float, rebalance_threshold: float, dt: float,
+    ) -> HedgeSimulationResult:
+        """Simulate delta hedging for a single price path."""
+        T = self.t
+        greeks = black_scholes_greeks(prices[0], strike, T, self.r, self.sigma, option_type)
+        option_price_0 = greeks["price"]
+        delta_0 = greeks["delta"]
+
+        hedge_position = -delta_0 * n_options
+        cash = option_price_0 * n_options + delta_0 * n_options * prices[0]
+
+        daily_pnl = []
+        daily_delta = [delta_0]
+        daily_hedge = [hedge_position]
+        total_tc = 0.0
+        n_rebalances = 0
+        hedge_errors = []
+
+        for day in range(1, len(prices)):
+            T_remaining = max(self.t - day * dt, 0.001)
+            price = prices[day]
+            greeks = black_scholes_greeks(price, strike, T_remaining, self.r, self.sigma, option_type)
+            new_delta = greeks["delta"]
+
+            option_pnl = (greeks["price"] - black_scholes_greeks(
+                prices[day-1], strike, max(self.t - (day-1) * dt, 0.001),
+                self.r, self.sigma, option_type)["price"]) * n_options
+            hedge_pnl = hedge_position * (price - prices[day-1])
+            daily_pnl.append(option_pnl + hedge_pnl)
+
+            target_hedge = -new_delta * n_options
+            hedge_error = abs(hedge_position - target_hedge)
+            if hedge_error > rebalance_threshold * n_options:
+                trade_qty = target_hedge - hedge_position
+                cash -= trade_qty * price
+                tc = abs(trade_qty) * price * self.tc_bps / 10000
+                total_tc += tc
+                cash -= tc
+                hedge_position = target_hedge
+                n_rebalances += 1
+
+            hedge_errors.append(hedge_error)
+            daily_delta.append(new_delta)
+            daily_hedge.append(hedge_position)
+
+        return self._compute_final_result(
+            prices, option_type, strike, n_options, option_price_0,
+            cash, hedge_position, total_tc, n_rebalances, hedge_errors,
+            daily_pnl, daily_delta, daily_hedge,
+        )
+
+    def _compute_final_result(
+        self, prices: np.ndarray, option_type: str, strike: float,
+        n_options: float, option_price_0: float, cash: float,
+        hedge_position: float, total_tc: float, n_rebalances: int,
+        hedge_errors: list, daily_pnl: list, daily_delta: list, daily_hedge: list,
+    ) -> HedgeSimulationResult:
+        """Compute final P&L and build result object."""
+        final_price = prices[-1]
+        if option_type == 'call':
+            payoff = max(final_price - strike, 0)
+        else:
+            payoff = max(strike - final_price, 0)
+
+        final_option_value = payoff * n_options
+        final_hedge_value = hedge_position * final_price
+        final_pnl = cash + final_hedge_value - final_option_value
+
+        total_option_pnl = final_option_value - option_price_0 * n_options
+        total_hedge_pnl = sum(hp * (prices[i] - prices[i-1])
+                              for i, hp in enumerate(daily_hedge[:-1], 1))
+
+        return HedgeSimulationResult(
+            final_pnl=final_pnl,
+            hedging_pnl=total_hedge_pnl,
+            option_pnl=total_option_pnl,
+            transaction_costs=total_tc,
+            n_rebalances=n_rebalances,
+            avg_hedge_error=float(np.mean(hedge_errors)) if hedge_errors else 0,
+            max_hedge_error=float(np.max(hedge_errors)) if hedge_errors else 0,
+            daily_pnl=daily_pnl,
+            daily_delta=daily_delta,
+            daily_hedge=daily_hedge,
+            pnl_decomposition={
+                "option_pnl": total_option_pnl,
+                "hedge_pnl": total_hedge_pnl,
+                "transaction_costs": total_tc,
+                "net_pnl": final_pnl,
+                "gamma_pnl": final_pnl,
+            },
+        )
+
+    def _average_results(self, all_results: list[HedgeSimulationResult]) -> HedgeSimulationResult:
+        """Average results across multiple Monte Carlo paths."""
+        return HedgeSimulationResult(
+            final_pnl=float(np.mean([r.final_pnl for r in all_results])),
+            hedging_pnl=float(np.mean([r.hedging_pnl for r in all_results])),
+            option_pnl=float(np.mean([r.option_pnl for r in all_results])),
+            transaction_costs=float(np.mean([r.transaction_costs for r in all_results])),
+            n_rebalances=int(np.mean([r.n_rebalances for r in all_results])),
+            avg_hedge_error=float(np.mean([r.avg_hedge_error for r in all_results])),
+            max_hedge_error=float(np.mean([r.max_hedge_error for r in all_results])),
+            pnl_decomposition=all_results[0].pnl_decomposition,
+        )
 
     def print_summary(self, result: HedgeSimulationResult) -> None:
         logger.info(f"\n{'='*60}")
