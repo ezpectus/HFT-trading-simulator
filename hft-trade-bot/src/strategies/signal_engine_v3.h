@@ -152,37 +152,41 @@ class OnlineHMM {
             return RegimeState::RANGING;
         }
 
-        // Compute observations
-        double log_ret   = (prev_price_ > 0 && price > 0) ? std::log(price / prev_price_) : 0.0;
-        vol_ewma_        = VOL_LAMBDA * vol_ewma_ + (1.0 - VOL_LAMBDA) * log_ret * log_ret;
-        double vol_proxy = std::sqrt(vol_ewma_ * 252.0); // annualized
+        double log_ret = (prev_price_ > 0 && price > 0) ? std::log(price / prev_price_) : 0.0;
+        vol_ewma_ = VOL_LAMBDA * vol_ewma_ + (1.0 - VOL_LAMBDA) * log_ret * log_ret;
+        double vol_proxy = std::sqrt(vol_ewma_ * 252.0);
 
         prev_price_ = price;
         update_count_++;
 
-        // Forward recursion: log_alpha_j = log(emission_j) + log_sum_i(log_alpha_i + log_trans_ij)
+        forward_recursion(log_ret, vol_proxy);
+
+        if (update_count_ % 50 == 0) {
+            adapt_parameters(log_ret, vol_proxy);
+        }
+
+        return most_likely_state();
+    }
+
+  private:
+    // ── Forward recursion: update log_alpha with new observation ──
+    void forward_recursion(double log_ret, double vol_proxy) noexcept {
         StateLogProbs new_alpha{};
-        double        trans_sum[N_STATES][N_STATES];
+        double trans_sum[N_STATES][N_STATES];
         for (int j = 0; j < N_STATES; ++j) {
             double emit_lp = log_gaussian(log_ret, emit_mean_[j][0], emit_var_[j][0]) +
                              log_gaussian(vol_proxy, emit_mean_[j][1], emit_var_[j][1]);
-
-            // Cache log_alpha[i] + log_trans[i][j] — avoid recomputing for max + sum
             double max_logsum = -1e300;
             for (int i = 0; i < N_STATES; ++i) {
                 trans_sum[i][j] = log_alpha_[i] + log_trans_[i][j];
                 if (trans_sum[i][j] > max_logsum) max_logsum = trans_sum[i][j];
             }
-
-            // log-sum-exp trick
             double sum = 0.0;
             for (int i = 0; i < N_STATES; ++i) {
                 sum += std::exp(trans_sum[i][j] - max_logsum);
             }
             new_alpha[j] = emit_lp + max_logsum + std::log(sum);
         }
-
-        // Normalize log_alpha (subtract max for numerical stability)
         double max_alpha = -1e300;
         for (int i = 0; i < N_STATES; ++i) {
             if (new_alpha[i] > max_alpha) max_alpha = new_alpha[i];
@@ -191,16 +195,9 @@ class OnlineHMM {
             new_alpha[i] -= max_alpha;
         }
         log_alpha_ = new_alpha;
-
-        // Online parameter adaptation (simplified Baum-Welch)
-        if (update_count_ % 50 == 0) {
-            adapt_parameters(log_ret, vol_proxy);
-        }
-
-        // Find most likely state
-        return most_likely_state();
     }
 
+  public:
     RegimeState most_likely_state() const noexcept {
         int    best    = 0;
         double best_lp = log_alpha_[0];
