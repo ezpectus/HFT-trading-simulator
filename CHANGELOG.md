@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v4.6 — Autonomous Sprint 2: Exception Narrowing + Test Coverage)
+
+### Code Quality Fixes
+
+- **[QUAL-005]** Narrowed `except Exception` to specific exception types across 8 `communication/` modules: `fix_client.py` (4 catches), `signal_publisher.py` (6 catches), `ws_client.py` (1 catch), `metrics_server.py` (2 catches), `health_check.py` (1 catch), `shm_fill_consumer.py` (1 catch), `shm_signal_producer.py` (1 catch), `shm_market_data_writer.py` (1 catch).
+- **[QUAL-006]** Narrowed `except Exception` to specific exception types across 5 `data_collection/` modules: `exchange_factory.py` (1 catch), `market_replay.py` (1 catch), `real_account.py` (13 catches), `real_market_data.py` (4 catches), `timescaledb_client.py` (1 catch).
+- **[QUAL-007]** Narrowed `except Exception` to specific exception types across 7 modules in `monitoring/`, `ml/`, `observability/`, `notification/`, `llm_engine/`, `backtesting/`: `alerting.py` (2), `health_server.py` (3), `automl.py` (2), `feature_store.py` (2), `model_registry.py` (1), `price_predictor.py` (1), `rl_trader.py` (1), `health_checks.py` (4), `tracing.py` (2), `notifier.py` (6), `engine.py` (3), `optimizer.py` (2).
+- **[QUAL-008]** Replaced 2 `pass` stubs in `networking/dpdk_transport.py` (DPDK rx_burst/tx_burst) with `logger.warning()` and narrowed 5 `except Exception` catches to specific types.
+
+### Test Coverage
+
+- **[TEST-003]** Added `tests/unit/test_db.py` — 18 tests covering `Database` init, table/index creation, save_signal, save_trade, close_trade, save_equity, get_stats, get_recent_signals, get_recent_trades.
+- **[TEST-004]** Added `tests/unit/test_notifier.py` — 20 tests covering `AlertEvent`, `TelegramNotifier`, `DiscordNotifier`, `NotifierManager`, `create_notifier_from_env`.
+- **[TEST-005]** Added `tests/unit/test_observability.py` — 15 tests covering `HealthChecker`, `HealthStatus`, `ComponentHealth`, `get_tracer` (noop), `shutdown_tracing`, `get_logger`, `bind_context`, `clear_context`.
+
 ## [Unreleased] — 2026-08-20 (v4.5 — Autonomous Sprint 1: Code Quality + Test Coverage)
 
 ### Code Quality Fixes

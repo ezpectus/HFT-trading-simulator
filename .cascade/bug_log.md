@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 172 |
+| ✅ Fixed | 176 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 0 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **172** |
+| **TOTAL FOUND** | **176** |
 
 ---
 
@@ -1695,6 +1695,34 @@
 - **Root Cause:** Sector constraints were silently skipped with `pass` — users passing `sector_constraints` have no idea they're being ignored.
 - **Status:** ✅ Fixed
 - **Fix:** Replaced `pass` with `logger.warning()` naming the skipped sector and its bounds.
+
+### QUAL-005: Broad except Exception in communication/ modules
+- **Location:** `ai-signal-bot/src/communication/` — 8 files, 17 catches
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** 17 `except Exception` catches across `fix_client.py`, `signal_publisher.py`, `ws_client.py`, `metrics_server.py`, `health_check.py`, `shm_fill_consumer.py`, `shm_signal_producer.py`, `shm_market_data_writer.py` — hides specific errors, swallows unexpected exceptions.
+- **Status:** ✅ Fixed
+- **Fix:** Narrowed to specific types: file I/O → `OSError`/`ValueError`, network → `ConnectionError`/`OSError`/`asyncio.IncompleteReadError`, websocket → `websockets.ConnectionClosed`, SHM init → `OSError`/`ValueError`/`FileNotFoundError`.
+
+### QUAL-006: Broad except Exception in data_collection/ modules
+- **Location:** `ai-signal-bot/src/data_collection/` — 5 files, 20 catches
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** 20 `except Exception` catches across `exchange_factory.py`, `market_replay.py`, `real_account.py` (13 catches), `real_market_data.py` (4 catches), `timescaledb_client.py` — ccxt API errors, WS errors, DB errors all silently caught.
+- **Status:** ✅ Fixed
+- **Fix:** Narrowed to specific types: REST API → `OSError`/`RuntimeError`/`KeyError`/`ValueError`, WS → `ConnectionError`/`OSError`/`json.JSONDecodeError`, DB → `OSError`/`RuntimeError`.
+
+### QUAL-007: Broad except Exception in monitoring/ml/observability/notification/llm_engine/backtesting
+- **Location:** 12 files across 6 directories, 28 catches
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** 28 `except Exception` catches across `alerting.py`, `health_server.py`, `automl.py`, `feature_store.py`, `model_registry.py`, `price_predictor.py`, `rl_trader.py`, `health_checks.py`, `tracing.py`, `notifier.py`, `engine.py`, `optimizer.py`.
+- **Status:** ✅ Fixed
+- **Fix:** Narrowed to context-specific types: health checks → `TypeError`/`ValueError`/`KeyError`/`RuntimeError`/`OSError`, Redis → `OSError`/`ConnectionError`/`RuntimeError`, ONNX export → `RuntimeError`/`OSError`/`ValueError`, LLM → `RuntimeError`/`OSError`/`ValueError`/`KeyError`, optuna → `RuntimeError`/`ValueError`/`KeyError`.
+
+### QUAL-008: pass stubs + broad except in dpdk_transport.py
+- **Location:** `ai-signal-bot/src/networking/dpdk_transport.py:127,151`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** DPDK rx_burst/tx_burst paths used `pass` stubs — silent no-ops when DPDK is enabled. Also 5 `except Exception` catches.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `pass` with `logger.warning()` + `return False`. Narrowed exceptions to `OSError`/`RuntimeError`/`struct.error`/`UnicodeDecodeError`/`IndexError`.
 
 ---
 

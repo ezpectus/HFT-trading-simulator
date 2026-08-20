@@ -12,6 +12,7 @@
 | 6 | 2026-08-16 | Scan ai-signal-bot/src/ source files — found & fixed 7 bugs (#076-#082) | ✅ Done | fa25ec5 |
 | 7 | 2026-08-16 | Scan ai-signal-bot/src/risk,ml,research — found & fixed 5 bugs (#083-#087) | ✅ Done | d83020e |
 | 8 | 2026-08-20 | Sprint 1 (Autonomous): Code quality fixes (print→logging, pass→warning, except→specific) + 25 new tests | ✅ Done | a0f25a1, 62f809f |
+| 9 | 2026-08-20 | Sprint 2 (Autonomous): Narrowed 60+ except Exception catches, 2 pass stubs in dpdk, +53 new tests | ✅ Done | 0325d09, cd2ea76, 3f9f7bf, 203ede3, 5badd54 |
 
 ## Bug Fix Progress
 
