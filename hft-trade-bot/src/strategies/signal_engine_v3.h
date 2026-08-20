@@ -289,126 +289,19 @@ class SignalEngineV3 {
     // Uses V2 for base signal, then applies HMM regime gating
     FastSignal analyze(const char* symbol, const Candle* candles, size_t n, const OrderBook& ob,
                        const PressureResult& pressure, int64_t timestamp_ns) noexcept {
-        // Get base signal from V2
         FastSignal base = v2_engine_.analyze(symbol, candles, n, ob, pressure, timestamp_ns);
-
         if (n == 0) return base;
 
-        // Get or create HMM state for this symbol
-        // Avoid heap allocation on every call: find first, only construct string if missing
-        auto it = hmm_states_.find(std::string_view(symbol));
-        if (it == hmm_states_.end()) {
-            it = hmm_states_.emplace(std::string(symbol), HMMState{}).first;
-        }
-        auto&  state         = it->second;
+        HMMState& state = get_or_create_hmm_state(symbol);
         double current_price = candles[n - 1].close;
+        update_hmm_state(state, current_price);
 
-        // Initialize or update HMM
-        if (!state.initialized) {
-            state.hmm.init(current_price);
-            state.last_price  = current_price;
-            state.initialized = true;
-        } else if (state.last_price > 0) {
-            double price_change = std::abs(current_price - state.last_price) / state.last_price;
-            if (price_change > params_.hmm_update_threshold) {
-                state.hmm.update(current_price);
-                state.last_price = current_price;
-            }
-        }
+        RegimeState regime = state.hmm.most_likely_state();
+        double regime_conf = state.hmm.state_probability(regime);
+        if (regime_conf < params_.min_regime_confidence) return base;
 
-        // Get current regime
-        RegimeState regime      = state.hmm.most_likely_state();
-        double      regime_conf = state.hmm.state_probability(regime);
-
-        // Apply regime gating only if confident enough
-        if (regime_conf < params_.min_regime_confidence) {
-            return base;
-        }
-
-        // Apply regime-specific adjustments
-        switch (regime) {
-        case RegimeState::TRENDING_UP:
-            if (base.direction == FastSignal::Direction::LONG) {
-                base.confidence =
-                    std::min(100u, static_cast<unsigned>(base.confidence * params_.trend_boost));
-            } else if (base.direction == FastSignal::Direction::SHORT) {
-                base.confidence = static_cast<unsigned>(base.confidence * params_.trend_dampen);
-            }
-            break;
-
-        case RegimeState::TRENDING_DOWN:
-            if (base.direction == FastSignal::Direction::SHORT) {
-                base.confidence =
-                    std::min(100u, static_cast<unsigned>(base.confidence * params_.trend_boost));
-            } else if (base.direction == FastSignal::Direction::LONG) {
-                base.confidence = static_cast<unsigned>(base.confidence * params_.trend_dampen);
-            }
-            break;
-
-        case RegimeState::RANGING:
-            // Cap confidence in ranging mode
-            if (base.confidence > static_cast<unsigned>(params_.range_confidence_cap)) {
-                base.confidence = static_cast<unsigned>(params_.range_confidence_cap);
-            }
-            break;
-
-        case RegimeState::VOLATILE:
-            // Widen stops, reduce leverage
-            if (base.stop_loss > 0 && base.entry_price > 0) {
-                double sl_distance = std::abs(base.entry_price - base.stop_loss);
-                base.stop_loss =
-                    base.entry_price + (base.stop_loss > base.entry_price
-                                            ? sl_distance * params_.volatile_stop_mult
-                                            : -sl_distance * params_.volatile_stop_mult);
-            }
-            if (base.take_profit > 0 && base.entry_price > 0) {
-                double tp_distance = std::abs(base.take_profit - base.entry_price);
-                base.take_profit =
-                    base.entry_price + (base.take_profit > base.entry_price
-                                            ? tp_distance * params_.volatile_stop_mult
-                                            : -tp_distance * params_.volatile_stop_mult);
-            }
-            base.leverage =
-                std::max(1u, static_cast<unsigned>(base.leverage * params_.volatile_leverage_mult));
-            break;
-
-        case RegimeState::NUM_STATES:
-            break;
-        }
-
-        // Append regime info to reason
-        // Format: "V2_reason | REGIME:name conf:XX%"
-        const char* rname = regime_name(regime);
-        // Append to existing reason — carefully respect 48-byte buffer limit
-        int reason_len = 0;
-        while (base.reason[reason_len] && reason_len < 47)
-            ++reason_len;
-        if (reason_len < 40) {
-            base.reason[reason_len]     = '|';
-            base.reason[reason_len + 1] = ' ';
-            reason_len += 2;
-            int i = 0;
-            while (rname[i] && reason_len + i < 44) {
-                base.reason[reason_len + i] = rname[i];
-                ++i;
-            }
-            reason_len += i;
-            if (reason_len < 44) {
-                base.reason[reason_len] = ' ';
-                // Add confidence as 2-digit
-                int conf_int = static_cast<int>(regime_conf * 100);
-                if (conf_int > 99) conf_int = 99;
-                base.reason[reason_len + 1] = '0' + (conf_int / 10);
-                base.reason[reason_len + 2] = '0' + (conf_int % 10);
-                base.reason[reason_len + 3] = '%';
-                reason_len += 4;
-            }
-            while (reason_len < 48) {
-                base.reason[reason_len] = '\0';
-                ++reason_len;
-            }
-        }
-
+        apply_regime_gating(base, regime);
+        append_regime_reason(base, regime, regime_conf);
         return base;
     }
 
@@ -416,87 +309,19 @@ class SignalEngineV3 {
     FastSignal analyze_incremental(const char* symbol, const Candle* candles, size_t n,
                                    const OrderBook& ob, const PressureResult& pressure,
                                    int64_t timestamp_ns) noexcept {
-        // Get base signal from V2 incremental
         FastSignal base =
             v2_engine_.analyze_incremental(symbol, candles, n, ob, pressure, timestamp_ns);
-
         if (n == 0) return base;
 
-        // Same HMM regime gating as above — avoid heap allocation with find+emplace
-        auto it = hmm_states_.find(std::string_view(symbol));
-        if (it == hmm_states_.end()) {
-            it = hmm_states_.emplace(std::string(symbol), HMMState{}).first;
-        }
-        auto&  state         = it->second;
+        HMMState& state = get_or_create_hmm_state(symbol);
         double current_price = candles[n - 1].close;
+        update_hmm_state(state, current_price);
 
-        if (!state.initialized) {
-            state.hmm.init(current_price);
-            state.last_price  = current_price;
-            state.initialized = true;
-        } else if (state.last_price > 0) {
-            double price_change = std::abs(current_price - state.last_price) / state.last_price;
-            if (price_change > params_.hmm_update_threshold) {
-                state.hmm.update(current_price);
-                state.last_price = current_price;
-            }
-        }
+        RegimeState regime = state.hmm.most_likely_state();
+        double regime_conf = state.hmm.state_probability(regime);
+        if (regime_conf < params_.min_regime_confidence) return base;
 
-        RegimeState regime      = state.hmm.most_likely_state();
-        double      regime_conf = state.hmm.state_probability(regime);
-
-        if (regime_conf < params_.min_regime_confidence) {
-            return base;
-        }
-
-        switch (regime) {
-        case RegimeState::TRENDING_UP:
-            if (base.direction == FastSignal::Direction::LONG) {
-                base.confidence =
-                    std::min(100u, static_cast<unsigned>(base.confidence * params_.trend_boost));
-            } else if (base.direction == FastSignal::Direction::SHORT) {
-                base.confidence = static_cast<unsigned>(base.confidence * params_.trend_dampen);
-            }
-            break;
-
-        case RegimeState::TRENDING_DOWN:
-            if (base.direction == FastSignal::Direction::SHORT) {
-                base.confidence =
-                    std::min(100u, static_cast<unsigned>(base.confidence * params_.trend_boost));
-            } else if (base.direction == FastSignal::Direction::LONG) {
-                base.confidence = static_cast<unsigned>(base.confidence * params_.trend_dampen);
-            }
-            break;
-
-        case RegimeState::RANGING:
-            if (base.confidence > static_cast<unsigned>(params_.range_confidence_cap)) {
-                base.confidence = static_cast<unsigned>(params_.range_confidence_cap);
-            }
-            break;
-
-        case RegimeState::VOLATILE:
-            if (base.stop_loss > 0 && base.entry_price > 0) {
-                double sl_distance = std::abs(base.entry_price - base.stop_loss);
-                base.stop_loss =
-                    base.entry_price + (base.stop_loss > base.entry_price
-                                            ? sl_distance * params_.volatile_stop_mult
-                                            : -sl_distance * params_.volatile_stop_mult);
-            }
-            if (base.take_profit > 0 && base.entry_price > 0) {
-                double tp_distance = std::abs(base.take_profit - base.entry_price);
-                base.take_profit =
-                    base.entry_price + (base.take_profit > base.entry_price
-                                            ? tp_distance * params_.volatile_stop_mult
-                                            : -tp_distance * params_.volatile_stop_mult);
-            }
-            base.leverage =
-                std::max(1u, static_cast<unsigned>(base.leverage * params_.volatile_leverage_mult));
-            break;
-
-        case RegimeState::NUM_STATES:
-            break;
-        }
-
+        apply_regime_gating(base, regime);
         return base;
     }
 
@@ -525,6 +350,90 @@ class SignalEngineV3 {
 
     const Params& params() const noexcept { return params_; }
     void          set_params(const Params& p) noexcept { params_ = p; }
+
+  private:
+    inline HMMState& get_or_create_hmm_state(const char* symbol) noexcept {
+        auto it = hmm_states_.find(std::string_view(symbol));
+        if (it == hmm_states_.end()) {
+            it = hmm_states_.emplace(std::string(symbol), HMMState{}).first;
+        }
+        return it->second;
+    }
+
+    inline void update_hmm_state(HMMState& state, double current_price) noexcept {
+        if (!state.initialized) {
+            state.hmm.init(current_price);
+            state.last_price  = current_price;
+            state.initialized = true;
+        } else if (state.last_price > 0) {
+            double price_change = std::abs(current_price - state.last_price) / state.last_price;
+            if (price_change > params_.hmm_update_threshold) {
+                state.hmm.update(current_price);
+                state.last_price = current_price;
+            }
+        }
+    }
+
+    inline void apply_regime_gating(FastSignal& base, RegimeState regime) const noexcept {
+        switch (regime) {
+        case RegimeState::TRENDING_UP:
+            if (base.direction == FastSignal::Direction::LONG) {
+                base.confidence = std::min(100u, static_cast<unsigned>(base.confidence * params_.trend_boost));
+            } else if (base.direction == FastSignal::Direction::SHORT) {
+                base.confidence = static_cast<unsigned>(base.confidence * params_.trend_dampen);
+            }
+            break;
+        case RegimeState::TRENDING_DOWN:
+            if (base.direction == FastSignal::Direction::SHORT) {
+                base.confidence = std::min(100u, static_cast<unsigned>(base.confidence * params_.trend_boost));
+            } else if (base.direction == FastSignal::Direction::LONG) {
+                base.confidence = static_cast<unsigned>(base.confidence * params_.trend_dampen);
+            }
+            break;
+        case RegimeState::RANGING:
+            if (base.confidence > static_cast<unsigned>(params_.range_confidence_cap)) {
+                base.confidence = static_cast<unsigned>(params_.range_confidence_cap);
+            }
+            break;
+        case RegimeState::VOLATILE:
+            if (base.stop_loss > 0 && base.entry_price > 0) {
+                double sl_dist = std::abs(base.entry_price - base.stop_loss);
+                base.stop_loss = base.entry_price + (base.stop_loss > base.entry_price
+                    ? sl_dist * params_.volatile_stop_mult : -sl_dist * params_.volatile_stop_mult);
+            }
+            if (base.take_profit > 0 && base.entry_price > 0) {
+                double tp_dist = std::abs(base.take_profit - base.entry_price);
+                base.take_profit = base.entry_price + (base.take_profit > base.entry_price
+                    ? tp_dist * params_.volatile_stop_mult : -tp_dist * params_.volatile_stop_mult);
+            }
+            base.leverage = std::max(1u, static_cast<unsigned>(base.leverage * params_.volatile_leverage_mult));
+            break;
+        case RegimeState::NUM_STATES:
+            break;
+        }
+    }
+
+    inline void append_regime_reason(FastSignal& base, RegimeState regime, double regime_conf) const noexcept {
+        const char* rname = regime_name(regime);
+        int reason_len = 0;
+        while (base.reason[reason_len] && reason_len < 47) ++reason_len;
+        if (reason_len >= 40) return;
+        base.reason[reason_len] = '|'; base.reason[reason_len + 1] = ' ';
+        reason_len += 2;
+        int i = 0;
+        while (rname[i] && reason_len + i < 44) { base.reason[reason_len + i] = rname[i]; ++i; }
+        reason_len += i;
+        if (reason_len < 44) {
+            base.reason[reason_len] = ' ';
+            int conf_int = static_cast<int>(regime_conf * 100);
+            if (conf_int > 99) conf_int = 99;
+            base.reason[reason_len + 1] = '0' + (conf_int / 10);
+            base.reason[reason_len + 2] = '0' + (conf_int % 10);
+            base.reason[reason_len + 3] = '%';
+            reason_len += 4;
+        }
+        while (reason_len < 48) { base.reason[reason_len] = '\0'; ++reason_len; }
+    }
 };
 
 } // namespace hft
