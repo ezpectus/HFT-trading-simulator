@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 30 — exchange_simulator Long Function Refactoring)
+
+### Changed
+- **[QUAL-099]** Refactored 3 functions in exchange_simulator (45-84 lines):
+  - `exchange_liquidation.py` — `check_stop_loss_take_profit` 84→14 lines (7 helpers: `_check_position_triggers`, `_compute_liq_prices`, `_is_full_liquidation`, `_is_partial_liquidation`, `_check_sl_tp`, `_close_triggered_position`, `_handle_insurance_fund_deficit`)
+  - `exchange_advanced_orders.py` — `_execute_iceberg_slice` 51→16 lines (2 helpers: `_create_iceberg_slice_order`, `_finalize_iceberg_execution`)
+  - `exchange_advanced_orders.py` — `_execute_market_order` 45→15 lines (1 shared helper: `_finalize_order_execution`, also used by `_execute_limit_order` 34→11)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 29 — Long Function Refactoring Batch 5)
 
 ### Changed

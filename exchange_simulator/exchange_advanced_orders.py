@@ -157,43 +157,13 @@ class AdvancedOrderMixin:
         order.filled_quantity = order.quantity
         notional = price * order.quantity
         order.fee = round(notional * self.fee_pct / 100, 4)
-
-        old_balance = self.account.balance
-        self.account.balance -= order.fee
-        self.account.total_fees += order.fee
-        self._update_position(order, None, None)
-
-        self._audit_logger.log(
-            event_type=AuditEventType.ACCOUNT_BALANCE_CHANGE,
-            exchange=self.exchange_id,
-            old_value=old_balance,
-            new_value=self.account.balance,
-            reason="FEE",
-            metadata={"fee": order.fee, "order_id": order.id},
-        )
-        self._audit_logger.log(
-            event_type=AuditEventType.ORDER_FILLED,
-            exchange=self.exchange_id,
-            symbol=order.symbol,
-            order_id=order.id,
-            old_value=price,
-            new_value=price,
-            metadata={"order_type": order.order_type.value, "quantity": order.quantity, "fee": order.fee},
-        )
-
+        self._finalize_order_execution(order, price, price)
         return order
 
     def _execute_market_order(self, order: Order, price: float) -> Order:
-        """Execute a market order at current price (Phase 3 helper).
-
-        Applies slippage consistent with submit_order() so advanced orders
-        (trailing stops) experience realistic execution prices.
-        """
+        """Execute a market order at current price with slippage (Phase 3 helper)."""
         slippage_amount = price * self.slippage_bps / 10000
-        if order.side == Side.BUY:
-            fill_price = price + slippage_amount
-        else:
-            fill_price = price - slippage_amount
+        fill_price = price + slippage_amount if order.side == Side.BUY else price - slippage_amount
 
         if not self._check_margin(order, fill_price):
             return order
@@ -203,7 +173,12 @@ class AdvancedOrderMixin:
         order.slippage = round(slippage_amount, 4)
         notional = fill_price * order.quantity
         order.fee = round(notional * self.fee_pct / 100, 4)
+        self._finalize_order_execution(order, price, fill_price)
+        return order
 
+    def _finalize_order_execution(self, order: Order, ref_price: float,
+                                  fill_price: float) -> None:
+        """Deduct fee, update position, and log audit events for a filled order."""
         old_balance = self.account.balance
         self.account.balance -= order.fee
         self.account.total_fees += order.fee
@@ -222,40 +197,47 @@ class AdvancedOrderMixin:
             exchange=self.exchange_id,
             symbol=order.symbol,
             order_id=order.id,
-            old_value=price,
+            old_value=ref_price,
             new_value=fill_price,
-            metadata={"order_type": order.order_type.value, "quantity": order.quantity, "fee": order.fee, "slippage": order.slippage},
+            metadata={"order_type": order.order_type.value, "quantity": order.quantity, "fee": order.fee},
         )
-
-        return order
 
     def _execute_iceberg_slice(self, order: IcebergOrder, price: float) -> Order:
         """Execute a slice of an iceberg order (Phase 3 helper)."""
         slice_qty = min(order.visible_quantity, order.hidden_quantity)
-
-        slice_order = Order(
-            id=f"{order.id}_slice_{order.replenished + 1}",
-            symbol=order.symbol,
-            exchange=self.exchange_id,
-            side=order.side,
-            order_type=OrderType.MARKET,
-            quantity=slice_qty,
-            price=price,
-        )
-
-        notional = price * slice_qty
-        slice_order.fee = round(notional * self.fee_pct / 100, 4)
+        slice_order = self._create_iceberg_slice_order(order, price, slice_qty)
 
         if not self._check_margin(slice_order, price):
             return slice_order
 
         order.hidden_quantity -= slice_qty
         order.replenished += 1
-
         slice_order.status = OrderStatus.FILLED
         slice_order.filled_price = round(price, 2)
         slice_order.filled_quantity = slice_qty
 
+        self._finalize_iceberg_execution(slice_order, order, price)
+        return slice_order
+
+    def _create_iceberg_slice_order(self, parent: IcebergOrder, price: float,
+                                    slice_qty: float) -> Order:
+        """Create a slice order from an iceberg parent order."""
+        slice_order = Order(
+            id=f"{parent.id}_slice_{parent.replenished + 1}",
+            symbol=parent.symbol,
+            exchange=self.exchange_id,
+            side=parent.side,
+            order_type=OrderType.MARKET,
+            quantity=slice_qty,
+            price=price,
+        )
+        notional = price * slice_qty
+        slice_order.fee = round(notional * self.fee_pct / 100, 4)
+        return slice_order
+
+    def _finalize_iceberg_execution(self, slice_order: Order, parent: IcebergOrder,
+                                    price: float) -> None:
+        """Deduct fee, update position, and log audit events for an iceberg slice."""
         old_balance = self.account.balance
         self.account.balance -= slice_order.fee
         self.account.total_fees += slice_order.fee
@@ -272,11 +254,10 @@ class AdvancedOrderMixin:
         self._audit_logger.log(
             event_type=AuditEventType.ORDER_FILLED,
             exchange=self.exchange_id,
-            symbol=order.symbol,
+            symbol=parent.symbol,
             order_id=slice_order.id,
             old_value=price,
             new_value=price,
-            metadata={"order_type": "ICEBERG_SLICE", "quantity": slice_qty, "fee": slice_order.fee, "parent_order": order.id},
+            metadata={"order_type": "ICEBERG_SLICE", "quantity": slice_order.filled_quantity,
+                      "fee": slice_order.fee, "parent_order": parent.id},
         )
-
-        return slice_order

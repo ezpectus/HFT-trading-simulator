@@ -32,6 +32,7 @@
 | 26 | 2026-08-20 | Sprint 27 (Autonomous): Long function refactoring batch 3 — 5 functions >60 lines refactored (options_simulator.price_option 74→24, plotter.plot_equity_curve 67→22, position_sizing.kelly_criterion_sizing 65→37, cvar.calculate_cvar 65→15, risk_parity.optimize_risk_parity 64→21), 12 helpers extracted | ✅ Done | — |
 | 27 | 2026-08-20 | Sprint 28 (Autonomous): Long function refactoring batch 4 — 5 functions 50-62 lines refactored (genetic_strategy.evolve 62→17, rl_agent.train 52→18, rl_agent.train 53→16, transformer_model.train 53→7, lstm_model.train 55→9), 7 helpers extracted | ✅ Done | — |
 | 28 | 2026-08-20 | Sprint 29 (Autonomous): Long function refactoring batch 5 — 4 functions 52-56 lines refactored (validator.validate 56→18, black_litterman.incorporate_views 55→10, kelly.calculate 55→28, greeks_hedging._simulate_single_path 52→24), 8 helpers extracted | ✅ Done | — |
+| 29 | 2026-08-20 | Sprint 30 (Autonomous): exchange_simulator long function refactoring — 3 functions 45-84 lines refactored (liquidation.check_stop_loss_take_profit 84→14, advanced_orders._execute_iceberg_slice 51→16, advanced_orders._execute_market_order 45→15), 9 helpers extracted, 1 deduplication (_finalize_order_execution shared) | ✅ Done | — |
 
 ## Bug Fix Progress
 
@@ -365,6 +366,16 @@
 | 4 | `research/greeks_hedging.py` | `_simulate_single_path` | 52 | 24 | `_simulate_day` |
 
 **Sprint 29 result:** 4 functions refactored, 8 helpers extracted. All 4 functions now under 40-line limit. Total across Sprints 25-29: 24 functions refactored, 60 helpers extracted.
+
+**Sprint 30 — exchange_simulator Long Function Refactoring (45-84 lines):**
+
+| # | File | Function | Before | After | Helpers Extracted |
+|---|------|----------|--------|-------|-------------------|
+| 1 | `exchange_liquidation.py` | `check_stop_loss_take_profit` | 84 | 14 | `_check_position_triggers`, `_compute_liq_prices`, `_is_full_liquidation`, `_is_partial_liquidation`, `_check_sl_tp`, `_close_triggered_position`, `_handle_insurance_fund_deficit` |
+| 2 | `exchange_advanced_orders.py` | `_execute_iceberg_slice` | 51 | 16 | `_create_iceberg_slice_order`, `_finalize_iceberg_execution` |
+| 3 | `exchange_advanced_orders.py` | `_execute_market_order` | 45 | 15 | `_finalize_order_execution` (shared with `_execute_limit_order`) |
+
+**Sprint 30 result:** 3 functions refactored, 9 helpers extracted. All 3 functions now under 40-line limit. Bonus: `_execute_limit_order` also reduced (34→11) via shared helper. Total across Sprints 25-30: 27 functions refactored, 69 helpers extracted.
 
 ## Proposals
 
