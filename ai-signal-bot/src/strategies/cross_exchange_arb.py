@@ -172,51 +172,41 @@ class CrossExchangeArbEngine:
             for sell_ex, sell_quote in quotes.items():
                 if buy_ex == sell_ex:
                     continue
-
-                # Buy at ask, sell at bid
-                buy_price = buy_quote.ask
-                sell_price = sell_quote.bid
-
-                if buy_price <= 0 or sell_price <= 0:
-                    continue
-
-                spread_bps = (sell_price - buy_price) / buy_price * 10000
-
-                # Calculate fees
-                buy_fee_bps = self.taker_fees.get(buy_ex, 5.0)
-                sell_fee_bps = self.taker_fees.get(sell_ex, 5.0)
-                total_fees_bps = buy_fee_bps + sell_fee_bps
-
-                net_bps = spread_bps - total_fees_bps
-
-                if net_bps < self.min_profit_bps:
-                    continue
-
-                # Position sizing — limited by min of available qty and max position
-                max_qty_by_price = self.max_position_usd / buy_price
-                qty = min(buy_quote.ask_qty, sell_quote.bid_qty, max_qty_by_price)
-                if qty <= 0:
-                    continue
-
-                gross_profit = (sell_price - buy_price) * qty
-                net_profit = gross_profit - (buy_price * qty * total_fees_bps / 10000)
-
-                opp = ArbitrageOpportunity(
-                    symbol=symbol,
-                    buy_exchange=buy_ex,
-                    sell_exchange=sell_ex,
-                    buy_price=buy_price,
-                    sell_price=sell_price,
-                    qty=qty,
-                    gross_profit_usd=gross_profit,
-                    net_profit_usd=net_profit,
-                    profit_bps=net_bps,
-                )
-
-                if not best_opp or opp.net_profit_usd > best_opp.net_profit_usd:
+                opp = self._evaluate_pair(symbol, buy_ex, buy_quote, sell_ex, sell_quote)
+                if opp and (not best_opp or opp.net_profit_usd > best_opp.net_profit_usd):
                     best_opp = opp
 
         return best_opp
+
+    def _evaluate_pair(
+        self, symbol: str, buy_ex: str, buy_quote: ExchangePrice,
+        sell_ex: str, sell_quote: ExchangePrice,
+    ) -> ArbitrageOpportunity | None:
+        """Evaluate a single exchange pair for arbitrage."""
+        buy_price = buy_quote.ask
+        sell_price = sell_quote.bid
+        if buy_price <= 0 or sell_price <= 0:
+            return None
+
+        spread_bps = (sell_price - buy_price) / buy_price * 10000
+        total_fees_bps = self.taker_fees.get(buy_ex, 5.0) + self.taker_fees.get(sell_ex, 5.0)
+        net_bps = spread_bps - total_fees_bps
+        if net_bps < self.min_profit_bps:
+            return None
+
+        max_qty_by_price = self.max_position_usd / buy_price
+        qty = min(buy_quote.ask_qty, sell_quote.bid_qty, max_qty_by_price)
+        if qty <= 0:
+            return None
+
+        gross_profit = (sell_price - buy_price) * qty
+        net_profit = gross_profit - (buy_price * qty * total_fees_bps / 10000)
+
+        return ArbitrageOpportunity(
+            symbol=symbol, buy_exchange=buy_ex, sell_exchange=sell_ex,
+            buy_price=buy_price, sell_price=sell_price, qty=qty,
+            gross_profit_usd=gross_profit, net_profit_usd=net_profit, profit_bps=net_bps,
+        )
 
     async def _execute_arbitrage(self, opp: ArbitrageOpportunity) -> None:
         """Execute both legs of the arbitrage simultaneously."""
