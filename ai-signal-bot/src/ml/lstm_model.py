@@ -3,10 +3,13 @@
 # Implements LSTM model for short-term price prediction with sequence generation,
 # normalization, and ONNX export support for C++ inference.
 
+import logging
 import numpy as np
 from typing import Tuple, Optional, List
 from dataclasses import dataclass
 import pickle
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -230,12 +233,7 @@ class LSTMModel:
         Note:
             This is a placeholder. In production, use torch.onnx.export
         """
-        # Placeholder for ONNX export
-        # In production with PyTorch:
-        # import torch
-        # import torch.onnx
-        # torch.onnx.export(self.model, dummy_input, filepath)
-        pass
+        logger.warning("save_model() is a stub — ONNX export not implemented. Filepath: %s", filepath)
     
     def evaluate(self, test_data: np.ndarray) -> dict:
         """

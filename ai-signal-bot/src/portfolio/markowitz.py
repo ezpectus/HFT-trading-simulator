@@ -3,9 +3,12 @@
 # Implements the Markowitz efficient frontier calculation and portfolio optimization
 # with support for weight constraints, sector constraints, and turnover constraints.
 
+import logging
 import numpy as np
 from typing import List, Tuple, Optional, Dict
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -143,9 +146,11 @@ class MarkowitzOptimizer:
             # Sector constraints
             if sector_constraints:
                 for sector, (min_weight, max_weight) in sector_constraints.items():
-                    # This would require asset-to-sector mapping
-                    # For now, skip sector constraints
-                    pass
+                    logger.warning(
+                        "Sector constraints require asset-to-sector mapping (not implemented). "
+                        "Skipping sector '%s' [min=%.2f, max=%.2f].",
+                        sector, min_weight, max_weight,
+                    )
             
             # Turnover constraint
             if max_turnover is not None and current_weights is not None:

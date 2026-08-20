@@ -3,10 +3,13 @@
 # Implements OpenAI Gym-compatible trading environment for RL agent training
 # with state/action/reward definition and episode management.
 
+import logging
 import numpy as np
 from typing import Tuple, Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 
 class Action(Enum):
@@ -175,16 +178,23 @@ class TradingEnv:
         return self._get_observation(), reward, done, info
     
     def render(self):
-        """Render current state (optional)."""
+        """Render current state (optional, debug-level logging)."""
         if self.current_step < len(self.prices):
-            print(f"Step: {self.current_step}")
-            print(f"Price: {self.prices[self.current_step]:.2f}")
-            print(f"Portfolio Value: {self.portfolio_value:.2f}")
-            print(f"Position: {self.position:.4f}")
-            print(f"Cash: {self.cash:.2f}")
-            print(f"Total Reward: {self.total_reward:.4f}")
-            print()
-    
+            logger.debug(
+                "Step: %d | Price: %.2f | Portfolio: %.2f | Position: %.4f | Cash: %.2f | Reward: %.4f",
+                self.current_step,
+                self.prices[self.current_step],
+                self.portfolio_value,
+                self.position,
+                self.cash,
+                self.total_reward,
+            )
+
     def close(self):
         """Clean up environment resources."""
-        pass
+        self.prices = np.array([], dtype=np.float64)
+        self.features = None
+        self.current_step = 0
+        self.position = 0.0
+        self.cash = 0.0
+        logger.debug("TradingEnv closed — resources released")

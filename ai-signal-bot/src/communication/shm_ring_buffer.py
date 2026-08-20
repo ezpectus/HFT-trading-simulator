@@ -14,11 +14,14 @@ All operations are O(1) and non-blocking.
 from __future__ import annotations
 
 import ctypes
+import logging
 import mmap
 import os
 import struct
 import sys
 from typing import TypeVar
+
+logger = logging.getLogger(__name__)
 
 # Atomic helpers: use ctypes for aligned atomic-like reads/writes
 # On x86/x64, aligned 8-byte reads/writes are naturally atomic.
@@ -33,15 +36,15 @@ if IS_WINDOWS:
         """Flush modified pages to file for cross-process visibility."""
         try:
             ctypes.windll.kernel32.FlushViewOfFile(mm._mapped_view, ctypes.c_size_t(8))
-        except Exception:
-            pass
+        except (OSError, AttributeError) as e:
+            logger.warning("SHM FlushViewOfFile failed: %s", e)
 else:
     def _mm_barrier(mm):
         """msync to force visibility across processes."""
         try:
             mm.flush()
-        except Exception:
-            pass
+        except (OSError, BufferError) as e:
+            logger.warning("SHM msync/flush failed: %s", e)
 
 def _atomic_read_u64(mm, offset):
     """Read a uint64 from shared memory (aligned, naturally atomic on x86/x64)."""
