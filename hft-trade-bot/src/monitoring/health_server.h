@@ -18,14 +18,14 @@
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 using socket_t = SOCKET;
-#define INVALID_SOCKET_VALUE INVALID_SOCKET
+constexpr socket_t kInvalidSocket = INVALID_SOCKET;
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 using socket_t = int;
-#define INVALID_SOCKET_VALUE (-1)
+constexpr socket_t kInvalidSocket = -1;
 #endif
 
 namespace hft {
@@ -62,7 +62,7 @@ class HealthServer {
   private:
     void run() {
         socket_t srv = ::socket(AF_INET, SOCK_STREAM, 0);
-        if (srv == INVALID_SOCKET_VALUE) {
+        if (srv == kInvalidSocket) {
             spdlog::error("Health server: socket() failed");
             return;
         }
@@ -94,7 +94,7 @@ class HealthServer {
 
         while (running_.load(std::memory_order_relaxed)) {
             socket_t client = ::accept(srv, nullptr, nullptr);
-            if (client == INVALID_SOCKET_VALUE) continue;
+            if (client == kInvalidSocket) continue;
 
             // Read request (minimal — just need the first line)
             char buf[512];
