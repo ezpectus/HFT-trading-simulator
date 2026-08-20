@@ -126,7 +126,6 @@ class Backtester:
         peak_equity = balance
 
         for i in range(warmup, len(candles)):
-            # Get candle window up to current point
             window = candles[:i + 1]
             current_candle = candles[i]
             current_price = current_candle["close"]
@@ -143,7 +142,6 @@ class Backtester:
                     )
                     current_position = None
                     risk_state = None
-                    # Skip to next candle after forced close
                     equity = balance
                     equity_curve.append(equity)
                     peak_equity = max(peak_equity, equity)
@@ -151,33 +149,9 @@ class Backtester:
                     result.max_drawdown_pct = max(result.max_drawdown_pct, drawdown)
                     continue
 
-            # Update existing position PnL
+            # Manage existing position or check for entry
             if current_position:
-                if current_position["side"] == "LONG":
-                    unrealized = (current_price - current_position["entry_price"]) * current_position["quantity"]
-                else:
-                    unrealized = (current_position["entry_price"] - current_price) * current_position["quantity"]
-
-                # Check SL/TP
-                exit_reason = None
-                exit_price = current_price
-
-                if current_position["side"] == "LONG":
-                    if current_position["stop_loss"] > 0 and current_candle["low"] <= current_position["stop_loss"]:
-                        exit_price = current_position["stop_loss"]
-                        exit_reason = "STOP_LOSS"
-                    elif current_position["take_profit"] > 0 and current_candle["high"] >= current_position["take_profit"]:
-                        exit_price = current_position["take_profit"]
-                        exit_reason = "TAKE_PROFIT"
-                else:
-                    if current_position["stop_loss"] > 0 and current_candle["high"] >= current_position["stop_loss"]:
-                        exit_price = current_position["stop_loss"]
-                        exit_reason = "STOP_LOSS"
-                    elif current_position["take_profit"] > 0 and current_candle["low"] <= current_position["take_profit"]:
-                        exit_price = current_position["take_profit"]
-                        exit_reason = "TAKE_PROFIT"
-
-                # Close position if SL/TP hit or signal reversal
+                exit_reason, exit_price = self._check_sl_tp(current_position, current_candle)
                 if exit_reason:
                     balance = self._close_position(
                         current_position, exit_price, exit_reason, balance, result,
@@ -186,60 +160,17 @@ class Backtester:
                     current_position = None
                     risk_state = None
                 else:
-                    # Check for signal reversal
-                    signal = strategy.analyze(symbol, window)
-                    result.signals_generated += 1
-
-                    if signal.is_actionable:
-                        result.signals_valid += 1
-                        new_dir = signal.direction
-                        if (current_position["side"] == "LONG" and new_dir == SignalDirection.SHORT) or \
-                           (current_position["side"] == "SHORT" and new_dir == SignalDirection.LONG):
-                            balance = self._close_position(
-                                current_position, current_price, "SIGNAL_EXIT", balance, result,
-                                timestamp=current_candle.get("timestamp", 0),
-                            )
-                            current_position = None
-                            risk_state = None
-                            # Open new position
-                            current_position = self._open_position(signal, current_price, balance, result,
-                                timestamp=current_candle.get("timestamp", 0), symbol=symbol)
-                            if current_position and self.risk_manager:
-                                risk_state = self.risk_manager.init_position(
-                                    entry_price=current_position["entry_price"],
-                                    side=current_position["side"],
-                                    stop_loss=current_position["stop_loss"],
-                                    take_profit=current_position["take_profit"],
-                                    quantity=current_position["quantity"],
-                                )
+                    current_position, risk_state, balance = self._handle_signal_reversal(
+                        current_position, risk_state, balance, strategy, symbol,
+                        window, current_price, current_candle, result,
+                    )
             else:
-                # No position — check for entry signal
-                signal = strategy.analyze(symbol, window)
-                result.signals_generated += 1
-
-                if signal.is_actionable:
-                    result.signals_valid += 1
-                    current_position = self._open_position(signal, current_price, balance, result,
-                        timestamp=current_candle.get("timestamp", 0), symbol=symbol)
-                    if current_position and self.risk_manager:
-                        risk_state = self.risk_manager.init_position(
-                            entry_price=current_position["entry_price"],
-                            side=current_position["side"],
-                            stop_loss=current_position["stop_loss"],
-                            take_profit=current_position["take_profit"],
-                            quantity=current_position["quantity"],
-                        )
+                current_position, risk_state = self._check_entry(
+                    strategy, symbol, window, current_price, current_candle, balance, result,
+                )
 
             # Track equity
-            if current_position:
-                if current_position["side"] == "LONG":
-                    unrealized = (current_price - current_position["entry_price"]) * current_position["quantity"]
-                else:
-                    unrealized = (current_position["entry_price"] - current_price) * current_position["quantity"]
-                equity = balance + unrealized
-            else:
-                equity = balance
-
+            equity = self._track_equity(current_position, balance, current_price)
             equity_curve.append(equity)
             peak_equity = max(peak_equity, equity)
             drawdown = (peak_equity - equity) / peak_equity * 100 if peak_equity > 0 else 0
@@ -251,78 +182,166 @@ class Backtester:
                 current_position, candles[-1]["close"], "END", balance, result,
                 timestamp=candles[-1].get("timestamp", 0),
             )
-            current_position = None
-            risk_state = None
 
         # Calculate metrics
         result.final_balance = balance
         result.equity_curve = equity_curve
         result.total_return_pct = (balance - self.initial_balance) / self.initial_balance * 100 if self.initial_balance > 0 else 0
-
-        if result.trades:
-            result.total_trades = len(result.trades)
-            wins = [t for t in result.trades if t.pnl > 0]
-            losses = [t for t in result.trades if t.pnl < 0]
-            result.winning_trades = len(wins)
-            result.losing_trades = len(losses)
-            result.win_rate = len(wins) / len(result.trades) * 100 if result.trades else 0
-            result.avg_win = sum(t.pnl for t in wins) / len(wins) if wins else 0
-            result.avg_loss = sum(t.pnl for t in losses) / len(losses) if losses else 0
-
-            gross_profit = sum(t.pnl for t in wins)
-            gross_loss = abs(sum(t.pnl for t in losses))
-            result.profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf') if gross_profit > 0 else 0
-
-            # Sharpe ratio (simplified — per-trade returns)
-            returns = [t.pnl_pct for t in result.trades]
-            if len(returns) > 1:
-                mean_ret = sum(returns) / len(returns)
-                std_ret = (sum((r - mean_ret) ** 2 for r in returns) / (len(returns) - 1)) ** 0.5
-                result.sharpe_ratio = (mean_ret / std_ret * (365 ** 0.5)) if std_ret > 0 else 0  # Crypto: 365 days/yr, ~1 trade/day
-
-                # Sortino ratio — like Sharpe but only downside deviation
-                downside_returns = [r for r in returns if r < 0]
-                if len(downside_returns) > 0:
-                    downside_std = (sum(r ** 2 for r in downside_returns) / len(returns)) ** 0.5
-                    result.sortino_ratio = (mean_ret / downside_std * (365 ** 0.5)) if downside_std > 0 else 0
-
-            # Average trade duration (in candles)
-            durations = [t.exit_time - t.entry_time for t in result.trades]
-            result.avg_trade_duration = sum(durations) / len(durations) if durations else 0
-
-        # Drawdown analysis
-        if len(equity_curve) > 1:
-            peak = equity_curve[0]
-            current_dd_duration = 0
-            longest_dd = 0
-            dd_amounts = []
-
-            for _i, eq in enumerate(equity_curve):
-                if eq >= peak:
-                    if current_dd_duration > 0:
-                        longest_dd = max(longest_dd, current_dd_duration)
-                        current_dd_duration = 0
-                    peak = eq
-                else:
-                    current_dd_duration += 1
-                    dd_pct = (peak - eq) / peak * 100 if peak > 0 else 0
-                    dd_amounts.append(dd_pct)
-
-            result.longest_drawdown_duration = max(longest_dd, current_dd_duration)
-            result.avg_drawdown = sum(dd_amounts) / len(dd_amounts) if dd_amounts else 0
-
-            # Recovery factor: net profit / max drawdown amount
-            net_profit = balance - self.initial_balance
-            max_dd_amount = result.max_drawdown_pct / 100 * max(equity_curve) if equity_curve else 0
-            result.recovery_factor = net_profit / max_dd_amount if max_dd_amount > 0 else 0
-
-            # Calmar ratio: annualized return / max drawdown
-            total_bars = len(equity_curve)
-            if total_bars > 0 and result.max_drawdown_pct > 0:
-                annualized_return = result.total_return_pct * (365 * 24 * 12 / total_bars)  # ~5min bars, crypto 24/7
-                result.calmar_ratio = annualized_return / result.max_drawdown_pct
+        self._calculate_trade_metrics(result)
+        self._calculate_drawdown_metrics(result, equity_curve, balance)
 
         return result
+
+    def _check_sl_tp(self, pos: dict, candle: dict) -> tuple[str | None, float]:
+        """Check stop-loss and take-profit conditions. Returns (exit_reason, exit_price)."""
+        exit_reason = None
+        exit_price = candle["close"]
+
+        if pos["side"] == "LONG":
+            if pos["stop_loss"] > 0 and candle["low"] <= pos["stop_loss"]:
+                exit_price = pos["stop_loss"]
+                exit_reason = "STOP_LOSS"
+            elif pos["take_profit"] > 0 and candle["high"] >= pos["take_profit"]:
+                exit_price = pos["take_profit"]
+                exit_reason = "TAKE_PROFIT"
+        else:
+            if pos["stop_loss"] > 0 and candle["high"] >= pos["stop_loss"]:
+                exit_price = pos["stop_loss"]
+                exit_reason = "STOP_LOSS"
+            elif pos["take_profit"] > 0 and candle["low"] <= pos["take_profit"]:
+                exit_price = pos["take_profit"]
+                exit_reason = "TAKE_PROFIT"
+
+        return exit_reason, exit_price
+
+    def _handle_signal_reversal(
+        self, current_position: dict, risk_state, balance: float,
+        strategy, symbol: str, window: list, current_price: float,
+        current_candle: dict, result: BacktestResult,
+    ) -> tuple[dict | None, object, float]:
+        """Check for signal reversal and open new position if needed."""
+        signal = strategy.analyze(symbol, window)
+        result.signals_generated += 1
+
+        if signal.is_actionable:
+            result.signals_valid += 1
+            new_dir = signal.direction
+            if (current_position["side"] == "LONG" and new_dir == SignalDirection.SHORT) or \
+               (current_position["side"] == "SHORT" and new_dir == SignalDirection.LONG):
+                balance = self._close_position(
+                    current_position, current_price, "SIGNAL_EXIT", balance, result,
+                    timestamp=current_candle.get("timestamp", 0),
+                )
+                current_position = None
+                risk_state = None
+                current_position = self._open_position(signal, current_price, balance, result,
+                    timestamp=current_candle.get("timestamp", 0), symbol=symbol)
+                if current_position and self.risk_manager:
+                    risk_state = self.risk_manager.init_position(
+                        entry_price=current_position["entry_price"],
+                        side=current_position["side"],
+                        stop_loss=current_position["stop_loss"],
+                        take_profit=current_position["take_profit"],
+                        quantity=current_position["quantity"],
+                    )
+        return current_position, risk_state, balance
+
+    def _check_entry(
+        self, strategy, symbol: str, window: list, current_price: float,
+        current_candle: dict, balance: float, result: BacktestResult,
+    ) -> tuple[dict | None, object]:
+        """Check for entry signal when no position is open."""
+        signal = strategy.analyze(symbol, window)
+        result.signals_generated += 1
+
+        if signal.is_actionable:
+            result.signals_valid += 1
+            current_position = self._open_position(signal, current_price, balance, result,
+                timestamp=current_candle.get("timestamp", 0), symbol=symbol)
+            if current_position and self.risk_manager:
+                risk_state = self.risk_manager.init_position(
+                    entry_price=current_position["entry_price"],
+                    side=current_position["side"],
+                    stop_loss=current_position["stop_loss"],
+                    take_profit=current_position["take_profit"],
+                    quantity=current_position["quantity"],
+                )
+                return current_position, risk_state
+        return None, None
+
+    def _track_equity(self, current_position: dict | None, balance: float, current_price: float) -> float:
+        """Calculate current equity including unrealized PnL."""
+        if current_position:
+            if current_position["side"] == "LONG":
+                unrealized = (current_price - current_position["entry_price"]) * current_position["quantity"]
+            else:
+                unrealized = (current_position["entry_price"] - current_price) * current_position["quantity"]
+            return balance + unrealized
+        return balance
+
+    def _calculate_trade_metrics(self, result: BacktestResult) -> None:
+        """Calculate trade-level performance metrics."""
+        if not result.trades:
+            return
+
+        result.total_trades = len(result.trades)
+        wins = [t for t in result.trades if t.pnl > 0]
+        losses = [t for t in result.trades if t.pnl < 0]
+        result.winning_trades = len(wins)
+        result.losing_trades = len(losses)
+        result.win_rate = len(wins) / len(result.trades) * 100 if result.trades else 0
+        result.avg_win = sum(t.pnl for t in wins) / len(wins) if wins else 0
+        result.avg_loss = sum(t.pnl for t in losses) / len(losses) if losses else 0
+
+        gross_profit = sum(t.pnl for t in wins)
+        gross_loss = abs(sum(t.pnl for t in losses))
+        result.profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf') if gross_profit > 0 else 0
+
+        returns = [t.pnl_pct for t in result.trades]
+        if len(returns) > 1:
+            mean_ret = sum(returns) / len(returns)
+            std_ret = (sum((r - mean_ret) ** 2 for r in returns) / (len(returns) - 1)) ** 0.5
+            result.sharpe_ratio = (mean_ret / std_ret * (365 ** 0.5)) if std_ret > 0 else 0
+            downside_returns = [r for r in returns if r < 0]
+            if len(downside_returns) > 0:
+                downside_std = (sum(r ** 2 for r in downside_returns) / len(returns)) ** 0.5
+                result.sortino_ratio = (mean_ret / downside_std * (365 ** 0.5)) if downside_std > 0 else 0
+
+        durations = [t.exit_time - t.entry_time for t in result.trades]
+        result.avg_trade_duration = sum(durations) / len(durations) if durations else 0
+
+    def _calculate_drawdown_metrics(self, result: BacktestResult, equity_curve: list, balance: float) -> None:
+        """Calculate drawdown-related performance metrics."""
+        if len(equity_curve) <= 1:
+            return
+
+        peak = equity_curve[0]
+        current_dd_duration = 0
+        longest_dd = 0
+        dd_amounts = []
+
+        for _i, eq in enumerate(equity_curve):
+            if eq >= peak:
+                if current_dd_duration > 0:
+                    longest_dd = max(longest_dd, current_dd_duration)
+                    current_dd_duration = 0
+                peak = eq
+            else:
+                current_dd_duration += 1
+                dd_pct = (peak - eq) / peak * 100 if peak > 0 else 0
+                dd_amounts.append(dd_pct)
+
+        result.longest_drawdown_duration = max(longest_dd, current_dd_duration)
+        result.avg_drawdown = sum(dd_amounts) / len(dd_amounts) if dd_amounts else 0
+
+        net_profit = balance - self.initial_balance
+        max_dd_amount = result.max_drawdown_pct / 100 * max(equity_curve) if equity_curve else 0
+        result.recovery_factor = net_profit / max_dd_amount if max_dd_amount > 0 else 0
+
+        total_bars = len(equity_curve)
+        if total_bars > 0 and result.max_drawdown_pct > 0:
+            annualized_return = result.total_return_pct * (365 * 24 * 12 / total_bars)
+            result.calmar_ratio = annualized_return / result.max_drawdown_pct
 
     def _open_position(self, signal: Signal, price: float, balance: float, result: BacktestResult,
                         timestamp: int = 0, symbol: str = "") -> dict:
