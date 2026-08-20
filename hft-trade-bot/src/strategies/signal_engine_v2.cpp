@@ -1,10 +1,11 @@
 // SignalEngineV2 — Params validation implementation
-#include "signal_engine_v2.h"
+#include "signal_engine_v2_params.h"
+#include <cmath>
 #include <cstdio>
 
 namespace hft {
 
-bool SignalEngineV2::Params::validate() const {
+bool SignalEngineV2Params::validate() const {
     // EMA periods
     if (ema_fast_period <= 0 || ema_slow_period <= 0 || ema_signal_period <= 0) {
         std::snprintf(validation_error_, sizeof(validation_error_),

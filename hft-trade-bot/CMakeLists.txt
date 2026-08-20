@@ -206,6 +206,8 @@ endif()
 # Sources
 set(SOURCES
     src/core/main.cpp
+    src/core/bot_setup.cpp
+    src/core/bot_loop.cpp
     src/core/config.cpp
     src/strategies/signal_engine_v2.cpp
 )

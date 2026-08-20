@@ -22,395 +22,28 @@
 
 #include "../data/aligned_types.h"
 #include "../data/types.h"
-#include <chrono>
+#include "inline_indicators.h"
+#include "obi_utils.h"
+#include "signal_engine_v2_finalize.h"
+#include "signal_engine_v2_params.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
 namespace hft {
 
-// Transparent string hash — enables find(const char*) / find(string_view) without allocating
-struct StringHash {
-    using is_transparent = void;
-    size_t operator()(std::string_view sv) const noexcept {
-        return std::hash<std::string_view>{}(sv);
-    }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Inline EMA — O(1) per update, no vector allocation
-// ─────────────────────────────────────────────────────────────────────────────
-class InlineEMA {
-  public:
-    // constexpr-friendly: k_ computed at construction time
-    static constexpr double compute_k(int period) noexcept {
-        return 2.0 / (static_cast<double>(period) + 1.0);
-    }
-
-    explicit InlineEMA(int period) : k_(compute_k(period)) {}
-
-    void init(double seed) noexcept {
-        ema_         = seed;
-        initialized_ = true;
-    }
-
-    inline double update(double value) noexcept {
-        if (!initialized_) [[unlikely]] {
-            ema_         = value;
-            initialized_ = true;
-        } else {
-            ema_ = value * k_ + ema_ * (1.0 - k_);
-        }
-        return ema_;
-    }
-
-    constexpr double value() const noexcept { return ema_; }
-    constexpr bool   ready() const noexcept { return initialized_; }
-    constexpr double k() const noexcept { return k_; }
-
-  private:
-    double k_;
-    double ema_{0.0};
-    bool   initialized_{false};
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Inline RSI — O(1) per update via Wilder's smoothing
-// ─────────────────────────────────────────────────────────────────────────────
-class InlineRSI {
-  public:
-    static constexpr double compute_inv_period(int period) noexcept {
-        return 1.0 / static_cast<double>(period);
-    }
-
-    explicit InlineRSI(int period)
-        : period_(period), inv_period_(compute_inv_period(period)),
-          inv_period_complement_(1.0 - compute_inv_period(period)) {}
-
-    void init(double first_close) noexcept {
-        prev_close_ = first_close;
-        count_      = 1;
-    }
-
-    inline double update(double close) noexcept {
-        if (count_ == 0) [[unlikely]] {
-            prev_close_ = close;
-            count_      = 1;
-            return 50.0;
-        }
-
-        double change = close - prev_close_;
-        // Branchless: gain = max(change, 0), loss = max(-change, 0)
-        double gain = std::fmax(change, 0.0);
-        double loss = std::fmax(-change, 0.0);
-
-        if (count_ < period_) [[unlikely]] {
-            avg_gain_ += gain;
-            avg_loss_ += loss;
-            ++count_;
-            if (count_ == period_) {
-                avg_gain_ *= inv_period_;
-                avg_loss_ *= inv_period_;
-            }
-        } else {
-            // Wilder's smoothing: avg = avg * (1 - inv) + gain * inv
-            avg_gain_ = avg_gain_ * inv_period_complement_ + gain * inv_period_;
-            avg_loss_ = avg_loss_ * inv_period_complement_ + loss * inv_period_;
-        }
-
-        prev_close_ = close;
-
-        if (count_ < period_) return 50.0;
-        // Branchless RSI: if avg_loss == 0 → 100
-        double rs  = avg_loss_ > 1e-12 ? avg_gain_ / avg_loss_ : 1e12;
-        double rsi = 100.0 - 100.0 / (1.0 + rs);
-        rsi_       = rsi;
-        return rsi;
-    }
-
-    constexpr double value() const noexcept { return rsi_; }
-    constexpr bool   ready() const noexcept { return count_ >= period_; }
-
-  private:
-    int    period_;
-    double inv_period_;
-    double inv_period_complement_; // 1.0 - inv_period_, precomputed
-    double avg_gain_{0.0};
-    double avg_loss_{0.0};
-    double prev_close_{0.0};
-    double rsi_{50.0};
-    int    count_{0};
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Inline ADX — trend strength, 0-100, Wilder's smoothing
-// ─────────────────────────────────────────────────────────────────────────────
-class InlineADX {
-  public:
-    static constexpr double compute_inv_period(int period) noexcept {
-        return 1.0 / static_cast<double>(period);
-    }
-
-    explicit InlineADX(int period)
-        : period_(period), inv_period_(compute_inv_period(period)),
-          inv_period_complement_(1.0 - compute_inv_period(period)) {}
-
-    inline double update(double high, double low, double close) noexcept {
-        if (count_ == 0) [[unlikely]] {
-            prev_high_  = high;
-            prev_low_   = low;
-            prev_close_ = close;
-            count_      = 1;
-            return 0.0;
-        }
-
-        double up_move   = high - prev_high_;
-        double down_move = prev_low_ - low;
-
-        // Branchless DM: +DM = up_move if (up_move > down_move && up_move > 0) else 0
-        double plus_dm  = std::fmax(up_move, 0.0) * static_cast<double>(up_move > down_move);
-        double minus_dm = std::fmax(down_move, 0.0) * static_cast<double>(down_move > up_move);
-
-        double tr = std::fmax(
-            high - low, std::fmax(std::fabs(high - prev_close_), std::fabs(low - prev_close_)));
-
-        if (count_ < period_) [[unlikely]] {
-            tr_sum_ += tr;
-            plus_dm_sum_ += plus_dm;
-            minus_dm_sum_ += minus_dm;
-            ++count_;
-            if (count_ == period_) {
-                double inv_tr   = 1.0 / (tr_sum_ + 1e-12);
-                double plus_di  = plus_dm_sum_ * inv_tr * 100.0;
-                double minus_di = minus_dm_sum_ * inv_tr * 100.0;
-                double dx = std::fabs(plus_di - minus_di) / (plus_di + minus_di + 1e-10) * 100.0;
-                adx_      = dx;
-            }
-        } else {
-            // Wilder's smoothing — use precomputed complement: tr_sum * (1-inv) + tr
-            tr_sum_       = tr_sum_ * inv_period_complement_ + tr;
-            plus_dm_sum_  = plus_dm_sum_ * inv_period_complement_ + plus_dm;
-            minus_dm_sum_ = minus_dm_sum_ * inv_period_complement_ + minus_dm;
-
-            double inv_tr   = 1.0 / (tr_sum_ + 1e-12);
-            double plus_di  = plus_dm_sum_ * inv_tr * 100.0;
-            double minus_di = minus_dm_sum_ * inv_tr * 100.0;
-            double dx       = std::fabs(plus_di - minus_di) / (plus_di + minus_di + 1e-10) * 100.0;
-            adx_            = (adx_ * (period_ - 1) + dx) * inv_period_;
-        }
-
-        prev_high_  = high;
-        prev_low_   = low;
-        prev_close_ = close;
-        return adx_;
-    }
-
-    constexpr double value() const noexcept { return adx_; }
-    constexpr bool   ready() const noexcept { return count_ >= period_; }
-
-  private:
-    int    period_;
-    double inv_period_;
-    double inv_period_complement_; // 1.0 - inv_period_, precomputed
-    double tr_sum_{0.0};
-    double plus_dm_sum_{0.0};
-    double minus_dm_sum_{0.0};
-    double adx_{0.0};
-    double prev_high_{0.0};
-    double prev_low_{0.0};
-    double prev_close_{0.0};
-    int    count_{0};
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Inline VWAP — running cumulative VWAP with variance tracking
-// ─────────────────────────────────────────────────────────────────────────────
-class InlineVWAP {
-  public:
-    inline void update(double high, double low, double close, double volume) noexcept {
-        double tp = (high + low + close) / 3.0;
-        // Welford's weighted: use previous mean for variance, then update
-        double prev_mean = cum_v_ > 0 ? cum_pv_ / cum_v_ : tp;
-        cum_pv_ += tp * volume;
-        cum_v_ += volume;
-        double new_mean = cum_pv_ / cum_v_;
-        // M2 += vol * (tp - prev_mean) * (tp - new_mean)  (Welford's weighted)
-        cum_var_ += volume * (tp - prev_mean) * (tp - new_mean);
-    }
-
-    constexpr inline double value() const noexcept { return cum_v_ > 0 ? cum_pv_ / cum_v_ : 0.0; }
-
-    inline double std_dev() const noexcept {
-        return cum_v_ > 0 ? std::sqrt(cum_var_ / cum_v_) : 0.0;
-    }
-
-    // Deviation from VWAP in bps — constexpr-compatible arithmetic
-    constexpr inline double deviation_bps(double price) const noexcept {
-        double v = value();
-        return v > 0 ? (price - v) / v * 10000.0 : 0.0;
-    }
-
-    // Z-score: (price - VWAP) / std_dev
-    inline double z_score(double price) const noexcept {
-        double sd = std_dev();
-        return sd > 1e-12 ? (price - value()) / sd : 0.0;
-    }
-
-    void reset() noexcept {
-        cum_pv_  = 0.0;
-        cum_v_   = 0.0;
-        cum_var_ = 0.0;
-    }
-
-  private:
-    double cum_pv_{0.0};
-    double cum_v_{0.0};
-    double cum_var_{0.0};
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Inline ATR — Average True Range, Wilder's smoothing
-// ─────────────────────────────────────────────────────────────────────────────
-class InlineATR {
-  public:
-    static constexpr double compute_inv_period(int period) noexcept {
-        return 1.0 / static_cast<double>(period);
-    }
-
-    explicit InlineATR(int period)
-        : period_(period), inv_period_(compute_inv_period(period)),
-          inv_period_complement_(1.0 - compute_inv_period(period)) {}
-
-    inline double update(double high, double low, double close) noexcept {
-        if (count_ == 0) [[unlikely]] {
-            prev_close_ = close;
-            atr_        = high - low;
-            ++count_;
-            return atr_;
-        }
-
-        double tr = std::fmax(
-            high - low, std::fmax(std::fabs(high - prev_close_), std::fabs(low - prev_close_)));
-
-        if (count_ < period_) [[unlikely]] {
-            atr_ += tr;
-            ++count_;
-            if (count_ == period_) atr_ *= inv_period_;
-        } else {
-            // Wilder's smoothing: ATR = ATR * (1 - inv) + TR * inv
-            atr_ = atr_ * inv_period_complement_ + tr * inv_period_;
-        }
-
-        prev_close_ = close;
-        return atr_;
-    }
-
-    constexpr double value() const noexcept { return atr_; }
-    constexpr bool   ready() const noexcept { return count_ >= period_; }
-
-  private:
-    int    period_;
-    double inv_period_;
-    double inv_period_complement_; // 1.0 - inv_period_, precomputed
-    double atr_{0.0};
-    double prev_close_{0.0};
-    int    count_{0};
-};
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SignalEngineV2 — 6-indicator weighted composite, cooldown, no heap alloc
-//
-// Output: FastSignal {direction, confidence, entry, sl, tp, leverage, timestamp,
-//                       ema_score, rsi_score, obi_score, vwap_score, adx_score,
-//                       pressure_score, composite_score}
-// ═══════════════════════════════════════════════════════════════════════════════
 class SignalEngineV2 {
   public:
-    struct Params {
-        // ── EMA crossover with signal line ──
-        int ema_fast_period{21};
-        int ema_slow_period{50};
-        int ema_signal_period{9}; // EMA of MACD line (signal line)
-
-        // ── RSI ──
-        int    rsi_period{14};
-        double rsi_overbought{70.0}; // RSI > this → bearish (overbought)
-        double rsi_oversold{30.0};   // RSI < this → bullish (oversold)
-
-        // ── OBI multi-level ──
-        int    obi_levels_5{5};
-        int    obi_levels_10{10};
-        int    obi_levels_20{20};
-        double obi_threshold{0.15}; // |OBI| > this → saturated ±1
-
-        // ── VWAP deviation ──
-        double vwap_band_mult{2.0};     // ±N standard deviations
-        double vwap_dev_threshold{5.0}; // bps threshold for scoring
-
-        // ── ADX trend filter ──
-        int    adx_period{14};
-        double adx_trend_threshold{25.0};  // ADX > this → trending market
-        double adx_strong_threshold{40.0}; // ADX > this → very strong trend
-
-        // ── Pressure model ──
-        double pressure_threshold{0.2};
-        double toxic_penalty{0.5};         // How much toxicity reduces pressure score
-        int    body_direction_lookback{5}; // Candles to look back for body direction
-
-        // ── Composite weights (must sum to 1.0) ──
-        double w_ema{0.25};
-        double w_rsi{0.15};
-        double w_obi{0.20};
-        double w_vwap{0.10};
-        double w_adx{0.10};
-        double w_pressure{0.20};
-
-        // ── Signal thresholds ──
-        double  buy_threshold{0.3};   // composite > 0.3 → LONG
-        double  sell_threshold{-0.3}; // composite < -0.3 → SHORT
-        uint8_t min_confidence{60};
-
-        // ── Cooldown ──
-        int64_t cooldown_ms{5000};
-
-        // ── SL/TP (× ATR) ──
-        double sl_atr_mult{1.5};
-        double tp_atr_mult{3.0};
-        int    atr_period{14};
-
-        // ── Adaptive SL/TP (volatility regime) ──
-        bool   adaptive_sl_tp{true};
-        double low_vol_atr_pct{0.005}; // ATR < 0.5% of price → low vol regime
-        double high_vol_atr_pct{0.02}; // ATR > 2% of price → high vol regime
-        double low_vol_sl_mult{1.0};   // tighter SL in low vol
-        double low_vol_tp_mult{2.0};   // tighter TP in low vol
-        double high_vol_sl_mult{2.5};  // wider SL in high vol
-        double high_vol_tp_mult{5.0};  // wider TP in high vol
-
-        // ── Leverage ──
-        bool    dynamic_leverage{true};
-        uint8_t max_leverage{5};
-        uint8_t high_confidence_leverage{3};
-        uint8_t emergency_confidence_threshold{85};
-        double  emergency_adx_threshold{30.0};
-
-        // ── Validation ──
-        bool        validate() const;
-        const char* validation_error() const { return validation_error_; }
-
-      private:
-        mutable char validation_error_[128]{};
-    };
+    using Params = SignalEngineV2Params;
 
     explicit SignalEngineV2(const Params& params) : params_(params) {}
 
     const Params& params() const noexcept { return params_; }
 
-    // ── Per-symbol cached indicator state (HFT-O21: incremental update) ──
     struct IndicatorCache {
         InlineEMA  ema_fast{21};
         InlineEMA  ema_slow{50};
@@ -425,7 +58,6 @@ class SignalEngineV2 {
         int        candle_count{0};
     };
 
-    // Get or create cache for a symbol — zero-alloc lookup via transparent hash
     IndicatorCache& get_cache(const char* symbol) {
         auto it = cache_.find(std::string_view(symbol));
         if (it == cache_.end()) {
@@ -440,7 +72,6 @@ class SignalEngineV2 {
         return it->second;
     }
 
-    // Reset cache for a symbol (e.g. on reconnection)
     void reset_cache(const char* symbol) {
         auto it = cache_.find(std::string_view(symbol));
         if (it != cache_.end()) {
@@ -454,12 +85,6 @@ class SignalEngineV2 {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Main analysis — takes full PressureResult. No heap allocations.
-    // candles: at least max(ema_slow+signal, adx, atr) + 2 entries
-    // ob: order book with at least obi_levels_20 depth
-    // pressure: pre-computed PressureResult from PressureModel
-    // ═══════════════════════════════════════════════════════════════════════════
     FastSignal analyze(const char* symbol, const Candle* candles, size_t n, const OrderBook& ob,
                        const PressureResult& pressure, int64_t timestamp_ns) noexcept {
         constexpr size_t MAX_N = 256;
@@ -475,9 +100,6 @@ class SignalEngineV2 {
                            timestamp_ns);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Backward-compatible overload — constructs PressureResult from doubles
-    // ═══════════════════════════════════════════════════════════════════════════
     FastSignal analyze(const char* symbol, const Candle* candles, size_t n, const OrderBook& ob,
                        double obi_weighted, double pressure_score, int64_t timestamp_ns) noexcept {
         PressureResult pr{};
@@ -487,61 +109,31 @@ class SignalEngineV2 {
         return analyze(symbol, candles, n, ob, pr, timestamp_ns);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Raw arrays overload — lowest level, for testing and hot-path callers
-    // ═══════════════════════════════════════════════════════════════════════════
     FastSignal analyze_raw(const char* symbol, const double* closes, size_t n_closes,
                            const double* highs, const double* lows, const double* volumes,
                            size_t n_candles, const OrderBook& ob, const PressureResult& pressure,
                            int64_t timestamp_ns) noexcept {
         FastSignal sig;
-        sig.set_symbol(symbol);
-        sig.timestamp  = timestamp_ns;
-        sig.direction  = FastSignal::Direction::NEUTRAL;
-        sig.confidence = 0;
-        sig.leverage   = 1;
-
-        size_t min_candles =
-            static_cast<size_t>(std::max(params_.ema_slow_period + params_.ema_signal_period,
-                                         std::max(params_.adx_period, params_.atr_period)) + 2);
-        if (n_candles < min_candles || n_closes < min_candles) [[unlikely]] {
-            sig.set_reason("Insufficient data");
+        int64_t now_ms;
+        if (!init_and_validate(sig, symbol, timestamp_ns, n_candles, n_closes, now_ms))
             return sig;
-        }
-
-        int64_t now_ms = timestamp_ns / 1'000'000;
-        if (now_ms - last_signal_ms_ < params_.cooldown_ms) [[unlikely]] {
-            sig.set_reason("Cooldown active");
-            return sig;
-        }
-
         double current_price = closes[n_closes - 1];
         double adx_val = 0.0;
-
-        sig.ema_score     = compute_ema_score_raw(closes, n_closes);
-        sig.rsi_score     = compute_rsi_score_raw(closes, n_closes);
-        sig.obi_score     = compute_obi_score(ob);
-        sig.vwap_score    = compute_vwap_score_raw(highs, lows, closes, volumes, n_candles, current_price);
-        sig.adx_score     = compute_adx_raw(highs, lows, closes, n_candles, adx_val);
+        sig.ema_score      = compute_ema_score_raw(closes, n_closes);
+        sig.rsi_score      = compute_rsi_score_raw(closes, n_closes);
+        sig.obi_score      = compute_obi_score(ob);
+        sig.vwap_score     = compute_vwap_score_raw(highs, lows, closes, volumes, n_candles, current_price);
+        sig.adx_score      = compute_adx_raw(highs, lows, closes, n_candles, adx_val);
         sig.pressure_score = compute_pressure_raw(closes, volumes, n_candles, pressure);
-
         sig.composite_score = compute_composite(sig, adx_val);
-
         double atr = compute_atr_raw(highs, lows, closes, n_candles);
         if (atr < 1e-12) atr = current_price * 0.01;
-
         double sl_mult = params_.sl_atr_mult, tp_mult = params_.tp_atr_mult;
         apply_adaptive_sl_tp(atr, current_price, sl_mult, tp_mult);
-
         finalize_signal(sig, current_price, atr, sl_mult, tp_mult, adx_val, now_ms);
         return sig;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Incremental analysis — uses cached indicator state for O(1) per-tick updates.
-    // Falls back to full analyze_raw when cache is cold or stale.
-    // Only the last candle is processed; prior candles assumed already ingested.
-    // ═══════════════════════════════════════════════════════════════════════════
     FastSignal analyze_incremental(const char* symbol, const Candle* candles, size_t n,
                                    const OrderBook& ob, const PressureResult& pressure,
                                    int64_t timestamp_ns) noexcept {
@@ -551,47 +143,64 @@ class SignalEngineV2 {
             sig.set_reason("No candles");
             return sig;
         }
-
         IndicatorCache& ic     = get_cache(symbol);
         const Candle&   latest = candles[n - 1];
         update_indicator_cache(ic, candles, n, latest);
-
-        int64_t now_ms = timestamp_ns / 1'000'000;
-        if (now_ms - last_signal_ms_ < params_.cooldown_ms) [[unlikely]] {
+        int64_t now_ms;
+        if (!check_cooldown(timestamp_ns, now_ms)) {
             FastSignal sig;
             sig.set_symbol(symbol);
             sig.timestamp = timestamp_ns;
             sig.set_reason("Cooldown active");
             return sig;
         }
-
         double current_price = latest.close;
         double adx_val = ic.adx.value();
-
         FastSignal sig;
         sig.set_symbol(symbol);
         sig.timestamp  = timestamp_ns;
         sig.direction  = FastSignal::Direction::NEUTRAL;
         sig.confidence = 0;
         sig.leverage   = 1;
-
         compute_cached_scores(sig, ic, ob, candles, n, pressure, current_price);
         sig.composite_score = compute_composite(sig, adx_val);
-
         double atr = ic.atr.value();
         if (atr < 1e-12) atr = current_price * 0.01;
-
         double sl_mult = params_.sl_atr_mult, tp_mult = params_.tp_atr_mult;
         apply_adaptive_sl_tp(atr, current_price, sl_mult, tp_mult);
         finalize_signal(sig, current_price, atr, sl_mult, tp_mult, adx_val, now_ms);
         return sig;
     }
 
-    // Reset cooldown (for testing)
     void reset_cooldown() noexcept { last_signal_ms_ = 0; }
 
   private:
-    // ── Update indicator cache (cold start seed or incremental tick) ──
+    inline bool init_and_validate(FastSignal& sig, const char* symbol, int64_t timestamp_ns,
+                                  size_t n_candles, size_t n_closes, int64_t& now_ms) noexcept {
+        sig.set_symbol(symbol);
+        sig.timestamp  = timestamp_ns;
+        sig.direction  = FastSignal::Direction::NEUTRAL;
+        sig.confidence = 0;
+        sig.leverage   = 1;
+        size_t min_candles = static_cast<size_t>(std::max(params_.ema_slow_period + params_.ema_signal_period,
+                         std::max(params_.adx_period, params_.atr_period)) + 2);
+        if (n_candles < min_candles || n_closes < min_candles) {
+            sig.set_reason("Insufficient data");
+            return false;
+        }
+        now_ms = timestamp_ns / 1'000'000;
+        if (now_ms - last_signal_ms_ < params_.cooldown_ms) {
+            sig.set_reason("Cooldown active");
+            return false;
+        }
+        return true;
+    }
+
+    inline bool check_cooldown(int64_t timestamp_ns, int64_t& now_ms) const noexcept {
+        now_ms = timestamp_ns / 1'000'000;
+        return now_ms - last_signal_ms_ >= params_.cooldown_ms;
+    }
+
     inline void update_indicator_cache(IndicatorCache& ic, const Candle* candles, size_t n,
                                        const Candle& latest) noexcept {
         if (!ic.initialized ||
@@ -623,7 +232,20 @@ class SignalEngineV2 {
         }
     }
 
-    // ── Compute scores from cached indicator values ──
+    inline double compute_body_direction(const Candle* candles, size_t n) const noexcept {
+        double buy_p = 0.0, sell_p = 0.0;
+        int lookback = std::min(params_.body_direction_lookback, static_cast<int>(n) - 1);
+        for (int i = static_cast<int>(n) - lookback; i < static_cast<int>(n); ++i) {
+            if (i < 1) continue;
+            double body = candles[i].close - candles[i - 1].close;
+            double vol = candles[i].volume;
+            buy_p += std::fmax(body, 0.0) * vol;
+            sell_p += std::fmax(-body, 0.0) * vol;
+        }
+        double total = buy_p + sell_p;
+        return total > 1e-12 ? (buy_p - sell_p) / total : 0.0;
+    }
+
     inline void compute_cached_scores(FastSignal& sig, const IndicatorCache& ic,
                                       const OrderBook& ob, const Candle* candles, size_t n,
                                       const PressureResult& pressure, double current_price) noexcept {
@@ -631,16 +253,12 @@ class SignalEngineV2 {
         double signal_line = ic.ema_signal.value();
         double macd_diff = macd - signal_line;
         double macd_scale = std::fabs(ic.ema_slow.value()) > 1e-12 ? std::fabs(ic.ema_slow.value()) : 1.0;
-        double ema_norm = macd_diff / (macd_scale * 0.001);
-        sig.ema_score = std::fmax(-1.0, std::fmin(1.0, ema_norm));
-
+        sig.ema_score = std::fmax(-1.0, std::fmin(1.0, macd_diff / (macd_scale * 0.001)));
         double rsi_val = ic.rsi.value();
         double rsi_mid = (params_.rsi_overbought + params_.rsi_oversold) / 2.0;
         double rsi_range = (params_.rsi_overbought - params_.rsi_oversold) / 2.0;
         sig.rsi_score = std::fmax(-1.0, std::fmin(1.0, rsi_range > 1e-12 ? (rsi_mid - rsi_val) / rsi_range : 0.0));
-
         sig.obi_score = compute_obi_score(ob);
-
         double vwap = ic.vwap.value();
         double vwap_std = ic.vwap.std_dev();
         double band_width = params_.vwap_band_mult * vwap_std;
@@ -651,23 +269,8 @@ class SignalEngineV2 {
             sig.vwap_score = std::fmax(-1.0, std::fmin(1.0,
                 params_.vwap_dev_threshold > 1e-12 ? -dev_bps / params_.vwap_dev_threshold : 0.0));
         }
-
         sig.adx_score = ic.adx.value();
-
-        double body_dir = 0.0;
-        {
-            double buy_p = 0.0, sell_p = 0.0;
-            int lookback = std::min(params_.body_direction_lookback, static_cast<int>(n) - 1);
-            for (int i = static_cast<int>(n) - lookback; i < static_cast<int>(n); ++i) {
-                if (i < 1) continue;
-                double body = candles[i].close - candles[i - 1].close;
-                double vol = candles[i].volume;
-                buy_p += std::fmax(body, 0.0) * vol;
-                sell_p += std::fmax(-body, 0.0) * vol;
-            }
-            double total = buy_p + sell_p;
-            body_dir = total > 1e-12 ? (buy_p - sell_p) / total : 0.0;
-        }
+        double body_dir = compute_body_direction(candles, n);
         double raw_pressure = pressure.obi_weighted * 0.3 + pressure.trade_imbalance * 0.3 + body_dir * 0.4;
         raw_pressure *= (1.0 - pressure.toxic_score * params_.toxic_penalty);
         sig.pressure_score = std::fmax(-1.0, std::fmin(1.0,
@@ -676,7 +279,6 @@ class SignalEngineV2 {
                 : (params_.pressure_threshold > 1e-12 ? raw_pressure / params_.pressure_threshold : 0.0)));
     }
 
-    // ── EMA crossover score (MACD-style) from raw closes ──
     inline double compute_ema_score_raw(const double* closes, size_t n) const noexcept {
         double kf = 2.0 / (params_.ema_fast_period + 1);
         double ks = 2.0 / (params_.ema_slow_period + 1);
@@ -694,11 +296,9 @@ class SignalEngineV2 {
         }
         double macd_diff = macd - signal_line;
         double macd_scale = std::fabs(ema_s) > 1e-12 ? std::fabs(ema_s) : 1.0;
-        double ema_norm = macd_diff / (macd_scale * 0.001);
-        return std::fmax(-1.0, std::fmin(1.0, ema_norm));
+        return std::fmax(-1.0, std::fmin(1.0, macd_diff / (macd_scale * 0.001)));
     }
 
-    // ── RSI score from raw closes (Wilder's smoothing) ──
     inline double compute_rsi_score_raw(const double* closes, size_t n) const noexcept {
         double avg_gain = 0.0, avg_loss = 0.0, prev_close = closes[0];
         int rsi_p = params_.rsi_period;
@@ -724,7 +324,6 @@ class SignalEngineV2 {
         return std::fmax(-1.0, std::fmin(1.0, score));
     }
 
-    // ── OBI score from order book ──
     inline double compute_obi_score(const OrderBook& ob) const noexcept {
         auto obi_res = compute_obi_all(ob, params_.obi_levels_5, params_.obi_levels_10, params_.obi_levels_20);
         double obi_combined = obi_res.obi_5 * 0.5 + obi_res.obi_10 * 0.3 + obi_res.obi_weighted * 0.2;
@@ -734,7 +333,6 @@ class SignalEngineV2 {
                 : (params_.obi_threshold > 1e-12 ? obi_combined / params_.obi_threshold : 0.0)));
     }
 
-    // ── VWAP deviation score from raw arrays ──
     inline double compute_vwap_score_raw(const double* highs, const double* lows,
                                          const double* closes, const double* volumes,
                                          size_t n, double current_price) const noexcept {
@@ -764,7 +362,6 @@ class SignalEngineV2 {
         return std::fmax(-1.0, std::fmin(1.0, score));
     }
 
-    // ── ADX from raw arrays (returns raw 0-100 value, sets adx_val) ──
     inline double compute_adx_raw(const double* highs, const double* lows,
                                   const double* closes, size_t n, double& adx_val) const noexcept {
         adx_val = 0.0;
@@ -799,7 +396,6 @@ class SignalEngineV2 {
         return adx_val;
     }
 
-    // ── Pressure model score from raw arrays ──
     inline double compute_pressure_raw(const double* closes, const double* volumes,
                                        size_t n, const PressureResult& pressure) const noexcept {
         double buy_p = 0.0, sell_p = 0.0;
@@ -807,9 +403,8 @@ class SignalEngineV2 {
         for (int i = static_cast<int>(n) - lookback; i < static_cast<int>(n); ++i) {
             if (i < 0) continue;
             double body = (i > 0) ? closes[i] - closes[i - 1] : 0.0;
-            double vol = volumes[i];
-            buy_p += std::fmax(body, 0.0) * vol;
-            sell_p += std::fmax(-body, 0.0) * vol;
+            buy_p += std::fmax(body, 0.0) * volumes[i];
+            sell_p += std::fmax(-body, 0.0) * volumes[i];
         }
         double total = buy_p + sell_p;
         double body_dir = total > 1e-12 ? (buy_p - sell_p) / total : 0.0;
@@ -821,18 +416,15 @@ class SignalEngineV2 {
                 : (params_.pressure_threshold > 1e-12 ? raw_pressure / params_.pressure_threshold : 0.0)));
     }
 
-    // ── Composite weighted score ──
     inline double compute_composite(const FastSignal& sig, double adx_val) const noexcept {
         double adx_normalized = (params_.adx_trend_threshold > 0.0)
             ? std::fmin(1.0, adx_val / params_.adx_trend_threshold) : 1.0;
         double composite = sig.ema_score * params_.w_ema + sig.rsi_score * params_.w_rsi +
             sig.obi_score * params_.w_obi + sig.vwap_score * params_.w_vwap +
             sig.ema_score * adx_normalized * params_.w_adx + sig.pressure_score * params_.w_pressure;
-        composite *= (0.5 + 0.5 * adx_normalized);
-        return composite;
+        return composite * (0.5 + 0.5 * adx_normalized);
     }
 
-    // ── ATR from raw arrays (Wilder's smoothing) ──
     inline double compute_atr_raw(const double* highs, const double* lows,
                                   const double* closes, size_t n) const noexcept {
         double atr = 0.0;
@@ -849,7 +441,6 @@ class SignalEngineV2 {
         return atr;
     }
 
-    // ── Adaptive SL/TP multiplier adjustment ──
     inline void apply_adaptive_sl_tp(double atr, double price, double& sl_mult, double& tp_mult) const noexcept {
         if (!params_.adaptive_sl_tp || price <= 0.0) return;
         double atr_pct = atr / price;
@@ -860,40 +451,15 @@ class SignalEngineV2 {
         }
     }
 
-    // ── Finalize signal: direction, confidence, SL/TP, leverage, reason ──
     inline void finalize_signal(FastSignal& sig, double price, double atr,
                                 double sl_mult, double tp_mult, double adx_val, int64_t now_ms) noexcept {
         if (sig.composite_score > params_.buy_threshold) {
-            sig.direction = FastSignal::Direction::LONG;
-            double denom = 1.0 - params_.buy_threshold;
-            double t = denom > 1e-12 ? (sig.composite_score - params_.buy_threshold) / denom : 1.0;
-            t = std::fmax(0.0, std::fmin(1.0, t));
-            sig.confidence = static_cast<uint8_t>(std::fmin(100.0, 60.0 + t * 40.0));
-            sig.entry_price = price;
-            sig.stop_loss = price - sl_mult * atr;
-            sig.take_profit = price + tp_mult * atr;
+            detail::set_long_signal(sig, price, atr, sl_mult, tp_mult, adx_val, params_, now_ms);
             sig.leverage = compute_leverage(sig.confidence, adx_val);
-            char buf[128];
-            std::snprintf(buf, sizeof(buf), "L comp=%+.2f E=%+.2f R=%+.2f O=%+.2f V=%+.2f A=%.0f P=%+.2f",
-                sig.composite_score, sig.ema_score, sig.rsi_score, sig.obi_score,
-                sig.vwap_score, adx_val, sig.pressure_score);
-            sig.set_reason(buf);
             last_signal_ms_ = now_ms;
         } else if (sig.composite_score < params_.sell_threshold) {
-            sig.direction = FastSignal::Direction::SHORT;
-            double denom = 1.0 + params_.sell_threshold;
-            double t = denom > 1e-12 ? (-sig.composite_score + params_.sell_threshold) / denom : 1.0;
-            t = std::fmax(0.0, std::fmin(1.0, t));
-            sig.confidence = static_cast<uint8_t>(std::fmin(100.0, 60.0 + t * 40.0));
-            sig.entry_price = price;
-            sig.stop_loss = price + sl_mult * atr;
-            sig.take_profit = price - tp_mult * atr;
+            detail::set_short_signal(sig, price, atr, sl_mult, tp_mult, adx_val, params_);
             sig.leverage = compute_leverage(sig.confidence, adx_val);
-            char buf[128];
-            std::snprintf(buf, sizeof(buf), "S comp=%+.2f E=%+.2f R=%+.2f O=%+.2f V=%+.2f A=%.0f P=%+.2f",
-                sig.composite_score, sig.ema_score, sig.rsi_score, sig.obi_score,
-                sig.vwap_score, adx_val, sig.pressure_score);
-            sig.set_reason(buf);
             last_signal_ms_ = now_ms;
         } else {
             char buf[128];
@@ -902,84 +468,14 @@ class SignalEngineV2 {
         }
     }
 
-    // ── OBI at exactly N levels ──
-    static inline double compute_obi_levels(const OrderBook& ob, int levels) noexcept {
-        double bid_vol = 0.0, ask_vol = 0.0;
-        int    n = std::min(levels, static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
-        for (int i = 0; i < n; ++i) {
-            bid_vol += ob.bids[i].quantity;
-            ask_vol += ob.asks[i].quantity;
-        }
-        double total = bid_vol + ask_vol;
-        return total > 1e-12 ? (bid_vol - ask_vol) / total : 0.0;
-    }
-
-    // ── Distance-weighted OBI — closer levels have more weight ──
-    static inline double compute_weighted_obi(const OrderBook& ob, int levels) noexcept {
-        double bid_w = 0.0, ask_w = 0.0;
-        int    n = std::min(levels, static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
-        for (int i = 0; i < n; ++i) {
-            double w = 1.0 / (1.0 + i); // Linear decay
-            bid_w += ob.bids[i].quantity * w;
-            ask_w += ob.asks[i].quantity * w;
-        }
-        double total = bid_w + ask_w;
-        return total > 1e-12 ? (bid_w - ask_w) / total : 0.0;
-    }
-
-    // ── Combined OBI: compute obi_5, obi_10, and weighted_obi in a single pass ──
-    // Replaces 3 separate calls (35 iterations) with 1 loop (20 iterations)
-    struct OBIResult {
-        double obi_5, obi_10, obi_weighted;
-    };
-    static inline OBIResult compute_obi_all(const OrderBook& ob, int l5, int l10,
-                                            int l20) noexcept {
-        int    n       = std::min(l20, static_cast<int>(std::min(ob.bids.size(), ob.asks.size())));
-        double bid_vol = 0.0, ask_vol = 0.0;
-        double bid_w = 0.0, ask_w = 0.0;
-        double obi_5 = 0.0, obi_10 = 0.0, obi_w = 0.0;
-        for (int i = 0; i < n; ++i) {
-            double bq = ob.bids[i].quantity;
-            double aq = ob.asks[i].quantity;
-            bid_vol += bq;
-            ask_vol += aq;
-            double w = 1.0 / (1.0 + i);
-            bid_w += bq * w;
-            ask_w += aq * w;
-            if (i == l5 - 1) {
-                double t = bid_vol + ask_vol;
-                obi_5    = t > 1e-12 ? (bid_vol - ask_vol) / t : 0.0;
-            }
-            if (i == l10 - 1) {
-                double t = bid_vol + ask_vol;
-                obi_10   = t > 1e-12 ? (bid_vol - ask_vol) / t : 0.0;
-            }
-        }
-        double tw = bid_w + ask_w;
-        obi_w     = tw > 1e-12 ? (bid_w - ask_w) / tw : 0.0;
-        // Handle fewer levels than requested
-        if (n < l5) {
-            double t = bid_vol + ask_vol;
-            double v = t > 1e-12 ? (bid_vol - ask_vol) / t : 0.0;
-            obi_5 = obi_10 = v;
-        } else if (n < l10) {
-            double t = bid_vol + ask_vol;
-            obi_10   = t > 1e-12 ? (bid_vol - ask_vol) / t : 0.0;
-        }
-        return {obi_5, obi_10, obi_w};
-    }
-
-    // ── Dynamic leverage based on confidence + ADX ──
     inline uint8_t compute_leverage(uint8_t confidence, double adx) const noexcept {
         if (!params_.dynamic_leverage) return 1;
-        // Branchless leverage selection
         uint8_t lev = 1;
         if (confidence >= params_.emergency_confidence_threshold &&
             adx > params_.emergency_adx_threshold) {
             lev = params_.max_leverage;
         } else if (confidence >=
                    (params_.min_confidence + params_.emergency_confidence_threshold) / 2) {
-            // Scale: 75→3, 85→5 (if ADX strong)
             lev = params_.high_confidence_leverage;
             if (adx > params_.adx_trend_threshold) {
                 lev = std::min(params_.max_leverage,

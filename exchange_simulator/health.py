@@ -2,12 +2,15 @@
 
 Provides HTTP health check endpoint for monitoring and orchestration.
 """
+import logging
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, PlainTextResponse
 import os
 import sys
 import time
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 _proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _proj_root not in sys.path:
@@ -82,10 +85,11 @@ async def health_check():
             "orders_submitted": len(first_ex._order_history),
             "audit_logging_enabled": first_ex._audit_logger is not None,
         })
-    except (RuntimeError, OSError, KeyError, ValueError, TypeError, AttributeError) as e:
+    except (RuntimeError, OSError, KeyError, ValueError, TypeError, AttributeError):
+        logger.exception("Health check failed")
         return JSONResponse({
             "status": "unhealthy",
-            "error": str(e),
+            "error": "internal error",
         }, status_code=503)
 
 
@@ -110,8 +114,9 @@ async def metrics():
         lines.append(f'hft_exchanges_count {len(exchanges)}')
         
         return PlainTextResponse(content="\n".join(lines), media_type="text/plain; version=0.0.4; charset=utf-8")
-    except (RuntimeError, OSError, KeyError, ValueError, TypeError, AttributeError) as e:
-        return PlainTextResponse(content=f"# Error: {str(e)}", media_type="text/plain; version=0.0.4; charset=utf-8", status_code=503)
+    except (RuntimeError, OSError, KeyError, ValueError, TypeError, AttributeError):
+        logger.exception("Metrics endpoint failed")
+        return PlainTextResponse(content="# Error: internal error", media_type="text/plain; version=0.0.4; charset=utf-8", status_code=503)
 
 
 if __name__ == "__main__":

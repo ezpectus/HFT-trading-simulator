@@ -2397,6 +2397,26 @@
 
 ---
 
+### QUAL-073: Long function — main() in main.cpp (790 lines)
+- **Location:** `hft-trade-bot/src/core/main.cpp:23-810`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `main()` function was 790 lines, exceeding 40-line limit by 750 lines. Contained inline initialization, signal processing, order execution, arbitrage, SL/TP, status printing, SHM polling, and shutdown logic.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 17 helper functions into `bot_setup.cpp` (10 init functions: `init_config_and_logger`, `init_core_components`, `init_signal_engines`, `init_order_routing`, `init_kill_switch`, `init_monitoring`, `init_ipc`, `init_callbacks`, `connect_all`, `init_symbol_entries`) and `bot_loop.cpp` (8 loop functions: `process_sl_tp`, `process_arbitrage`, `process_ai_signals`, `run_v2_signal_loop`, `run_v1_fallback_loop`, `print_status`, `poll_shm_market_data`, `graceful_shutdown`). All shared state encapsulated in `BotContext` struct (`bot_context.h`). `main()` reduced to 42 lines. All helper functions ≤40 lines.
+- **Commit:** (pending)
+
+---
+
+### QUAL-078: Long functions — 5 Python functions >40 lines (Sprint 15)
+- **Location:** `ai-signal-bot/src/portfolio/markowitz.py:87-194`, `ai-signal-bot/src/backtesting/backtester.py:102-193`, `ai-signal-bot/src/backtesting/backtest_engine.py:266-329`, `exchange_simulator/exchange.py:148-178`, `exchange_simulator/market_simulator.py:26-122`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** 5 functions exceeded 40-line limit: `optimize_portfolio` (107 lines), `run` (91 lines), `_compute_results` (63 lines), `get_depth_snapshot` (52 lines), `__init__` (96 lines). Missed in previous sprints due to focus on C++ and other Python modules.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 12 helper functions: `_make_objective` and `_build_constraints` (markowitz), `_process_risk_update`, `_manage_position_or_entry`, `_track_equity_and_drawdown` (backtester), `_compute_underwater_curve`, `_compute_trade_stats`, `_compute_risk_adjusted` (backtest_engine), `_build_depth_levels` (exchange), `_init_symbol_state`, `_init_exchange_params`, `_init_correlations` (market_simulator). All functions now ≤39 lines.
+- **Commit:** (pending)
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

@@ -124,23 +124,12 @@ class SimulatedExchange(
         self.update_positions_pnl()
         return self.account.to_dict()
 
-    def get_depth_snapshot(self, symbol: str, levels: int = 20) -> dict:
-        """Return a depth snapshot for a symbol -- cumulative bid/ask volumes,
-        imbalance, spread, and per-level breakdown.
-
-        Useful for REST API endpoints and depth profile visualization.
-        """
-        ob = self.get_order_book(symbol)
-        if not ob.bids or not ob.asks:
-            return {"symbol": symbol, "exchange": self.exchange_id, "bids": [], "asks": [],
-                    "spread_bps": 0, "imbalance": 0, "bid_depth": 0, "ask_depth": 0}
-
-        n = min(levels, len(ob.bids), len(ob.asks))
+    def _build_depth_levels(self, ob: OrderBook, n: int) -> tuple[list[dict], list[dict], float, float]:
+        """Build bid/ask level dicts and return cumulative volumes."""
         bid_levels = []
         ask_levels = []
         cum_bid = 0.0
         cum_ask = 0.0
-
         for i in range(n):
             cum_bid += ob.bids[i].quantity
             cum_ask += ob.asks[i].quantity
@@ -154,6 +143,19 @@ class SimulatedExchange(
                 "quantity": ob.asks[i].quantity,
                 "cumulative": round(cum_ask, 4),
             })
+        return bid_levels, ask_levels, cum_bid, cum_ask
+
+    def get_depth_snapshot(self, symbol: str, levels: int = 20) -> dict:
+        """Return a depth snapshot for a symbol -- cumulative bid/ask volumes,
+        imbalance, spread, and per-level breakdown.
+        """
+        ob = self.get_order_book(symbol)
+        if not ob.bids or not ob.asks:
+            return {"symbol": symbol, "exchange": self.exchange_id, "bids": [], "asks": [],
+                    "spread_bps": 0, "imbalance": 0, "bid_depth": 0, "ask_depth": 0}
+
+        n = min(levels, len(ob.bids), len(ob.asks))
+        bid_levels, ask_levels, cum_bid, cum_ask = self._build_depth_levels(ob, n)
 
         mid = (ob.bids[0].price + ob.asks[0].price) / 2
         spread = ob.asks[0].price - ob.bids[0].price

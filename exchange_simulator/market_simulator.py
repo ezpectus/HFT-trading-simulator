@@ -23,6 +23,45 @@ class MarketSimulator:
     Each exchange receives correlated prices with small spread differences.
     """
 
+    def _init_symbol_state(self, symbols, exchanges, initial_prices, volatility):
+        """Initialize per-symbol price, volatility, and candle history."""
+        self._prices = {}
+        self._volatility = {}
+        self._candle_history = {}
+        for symbol in symbols:
+            self._prices[symbol] = initial_prices.get(symbol, 100.0)
+            self._volatility[symbol] = volatility.get(symbol, 0.8)
+            for exchange in exchanges:
+                self._candle_history[(exchange, symbol)] = []
+
+    def _init_exchange_params(self, exchanges):
+        """Initialize per-exchange price offset and volatility multiplier."""
+        self._exchange_offset = {}
+        self._exchange_vol_mult = {}
+        for i, exchange in enumerate(exchanges):
+            self._exchange_offset[exchange] = 1.0 + (i * 0.0002)
+            self._exchange_vol_mult[exchange] = 1.0 + (i - 1) * 0.05
+
+    def _init_correlations(self, symbols, correlations):
+        """Build inter-symbol correlation matrix and per-symbol lookup."""
+        self._correlations = {}
+        if correlations:
+            self._correlations = dict(correlations)
+        else:
+            for i, s1 in enumerate(symbols):
+                for s2 in symbols[i+1:]:
+                    if "BTC" in s1 and "ETH" in s2 or "ETH" in s1 and "BTC" in s2:
+                        self._correlations[(s1, s2)] = 0.85
+                    else:
+                        self._correlations[(s1, s2)] = 0.3
+        self._symbol_corr = {}
+        for symbol in symbols:
+            best_corr, best_abs = 0.5, 0.0
+            for (s1, s2), c in self._correlations.items():
+                if symbol in (s1, s2) and abs(c) > best_abs:
+                    best_corr, best_abs = c, abs(c)
+            self._symbol_corr[symbol] = best_corr
+
     def __init__(
         self,
         symbols: list[str],
@@ -38,6 +77,7 @@ class MarketSimulator:
         price_feed_manager=None,
         hybrid_mode: bool = False,
     ):
+        """Initialize market simulator with GBM parameters and warmup."""
         self.symbols = symbols
         self.exchanges = exchanges
         self.timeframe_seconds = timeframe_seconds
@@ -47,78 +87,26 @@ class MarketSimulator:
         self.price_feed_manager = price_feed_manager
         self.hybrid_mode = hybrid_mode
 
-        # Per-symbol state
-        self._prices: dict[str, float] = {}
-        self._volatility: dict[str, float] = {}
-        self._candle_history: dict[tuple[str, str], list[Candle]] = {}
-
-        for symbol in symbols:
-            self._prices[symbol] = initial_prices.get(symbol, 100.0)
-            self._volatility[symbol] = volatility.get(symbol, 0.8)
-            for exchange in exchanges:
-                self._candle_history[(exchange, symbol)] = []
-
-        # Start timestamp: 2024-01-01 00:00:00 UTC
+        self._init_symbol_state(symbols, exchanges, initial_prices, volatility)
         self._current_ts = 1704067200
+        self._init_exchange_params(exchanges)
+        self._ob_cache = {}
 
-        # Per-exchange price offset (small spread between exchanges)
-        self._exchange_offset: dict[str, float] = {}
-        for i, exchange in enumerate(exchanges):
-            self._exchange_offset[exchange] = 1.0 + (i * 0.0002)  # 2bps per exchange
-
-        # Cached order books for incremental updates (avoids full regen every tick)
-        self._ob_cache: dict[tuple[str, str], OrderBook] = {}
-
-        # Per-exchange volatility multiplier — different exchanges have slightly different vol
-        self._exchange_vol_mult: dict[str, float] = {}
-        for i, exchange in enumerate(exchanges):
-            # binance: 1.0 (baseline), bybit: 1.05, okx: 0.95
-            self._exchange_vol_mult[exchange] = 1.0 + (i - 1) * 0.05
-
-        # Funding rate state (perp-like funding every 8h = 96 candles at 5m TF)
         self._funding_interval = 96
         self._candle_count = 0
-        self._funding_rates: dict[str, float] = {}  # per exchange
-        self._funding_history: list[dict] = []  # [{timestamp, exchange, rate}]
+        self._funding_rates = {}
+        self._funding_history = []
         self._max_funding_history = 500
-        self._max_candle_history = 1000  # Cap per exchange+symbol pair
+        self._max_candle_history = 1000
 
-        # Inter-symbol correlation matrix
-        # Default: BTC/ETH correlation = 0.85, others = 0.3
-        self._correlations: dict[tuple[str, str], float] = {}
-        if correlations:
-            self._correlations = dict(correlations)
-        else:
-            for i, s1 in enumerate(symbols):
-                for s2 in symbols[i+1:]:
-                    if "BTC" in s1 and "ETH" in s2 or "ETH" in s1 and "BTC" in s2:
-                        self._correlations[(s1, s2)] = 0.85
-                    else:
-                        self._correlations[(s1, s2)] = 0.3
+        self._init_correlations(symbols, correlations)
 
-        # Pre-build per-symbol correlation lookup for O(1) access
-        # Use the strongest (max absolute) correlation when multiple pairs involve the same symbol
-        self._symbol_corr: dict[str, float] = {}
-        for symbol in symbols:
-            best_corr = 0.5  # default correlation to market
-            best_abs = 0.0
-            for (s1, s2), c in self._correlations.items():
-                if symbol in (s1, s2):
-                    if abs(c) > best_abs:
-                        best_corr = c
-                        best_abs = abs(c)
-            self._symbol_corr[symbol] = best_corr
-
-        # News event state
-        self._news_event: dict | None = None  # {symbol, intensity, remaining}
-        self._news_interval = 200  # ~every 200 candles a random news event
+        self._news_event = None
+        self._news_interval = 200
         self._last_news_candle = 0
-
-        # Weekend/holiday mode — reduced volatility
         self._weekend_mode = False
-        self._weekend_vol_mult = 0.3  # 30% of normal vol on weekends
+        self._weekend_vol_mult = 0.3
 
-        # Warm up history
         self._warmup(warmup_candles)
 
     def _warmup(self, n: int) -> None:

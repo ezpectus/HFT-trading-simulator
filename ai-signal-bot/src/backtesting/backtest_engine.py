@@ -263,30 +263,18 @@ class BacktestEngine:
         )
         return self.equity + unrealized
 
-    def _compute_results(self) -> BacktestResult:
-        """Compute performance metrics."""
-        result = BacktestResult()
-        result.final_equity = self.equity
-        result.total_return = self.equity - self.config.initial_capital
-        result.total_return_pct = (self.equity / self.config.initial_capital - 1) * 100
-        result.equity_curve = self.equity_curve[:]
-        result.trades = self.trades[:]
-
-        # Underwater curve
+    def _compute_underwater_curve(self) -> list[float]:
+        """Compute underwater (drawdown) curve from equity curve."""
         peak = self.config.initial_capital
         underwater = []
         for eq in self.equity_curve:
             if eq > peak:
                 peak = eq
             underwater.append((peak - eq) / max(peak, 1e-10))
-        result.underwater_curve = underwater
+        return underwater
 
-        # Max drawdown
-        if underwater:
-            result.max_drawdown_pct = max(underwater) * 100
-            result.max_drawdown = max(underwater) * self.config.initial_capital
-
-        # Trade statistics
+    def _compute_trade_stats(self, result: BacktestResult) -> None:
+        """Compute trade-level statistics into result."""
         result.total_trades = len(self.trades)
         wins = [t for t in self.trades if t.pnl > 0]
         losses = [t for t in self.trades if t.pnl < 0]
@@ -296,34 +284,43 @@ class BacktestEngine:
         result.avg_win = sum(t.pnl for t in wins) / max(len(wins), 1)
         result.avg_loss = sum(t.pnl for t in losses) / max(len(losses), 1)
         result.avg_hold_time = sum(t.hold_time_s for t in self.trades) / max(result.total_trades, 1)
-
-        # Profit factor
         gross_profit = sum(t.pnl for t in wins)
         gross_loss = abs(sum(t.pnl for t in losses))
         result.profit_factor = gross_profit / max(gross_loss, 1e-10)
 
-        # Sharpe ratio (per-bar returns)
+    def _compute_risk_adjusted(self, result: BacktestResult) -> None:
+        """Compute Sharpe, Sortino, and Calmar ratios into result."""
         if len(self.equity_curve) > 1:
             returns = np.diff(self.equity_curve) / np.maximum(np.array(self.equity_curve[:-1]), 1e-10)
             if len(returns) > 0:
                 mean_ret = returns.mean()
                 std_ret = returns.std()
-                # Annualize (assume 1m bars)
                 bars_per_year = 365 * 24 * 60
                 if std_ret > 1e-10:
                     result.sharpe_ratio = mean_ret / std_ret * math.sqrt(bars_per_year)
-
-                # Sortino ratio
                 downside_returns = returns[returns < 0]
                 if len(downside_returns) > 0:
                     downside_std = np.sqrt(np.sum(downside_returns ** 2) / len(returns))
                     if downside_std > 1e-10:
                         result.sortino_ratio = mean_ret / downside_std * math.sqrt(bars_per_year)
-
-        # Calmar ratio
         if result.max_drawdown_pct > 0:
             total_bars = len(self.equity_curve)
             annual_return = result.total_return_pct * (365 * 24 * 60 / max(total_bars, 1))
             result.calmar_ratio = annual_return / result.max_drawdown_pct
 
+    def _compute_results(self) -> BacktestResult:
+        """Compute performance metrics."""
+        result = BacktestResult()
+        result.final_equity = self.equity
+        result.total_return = self.equity - self.config.initial_capital
+        result.total_return_pct = (self.equity / self.config.initial_capital - 1) * 100
+        result.equity_curve = self.equity_curve[:]
+        result.trades = self.trades[:]
+        underwater = self._compute_underwater_curve()
+        result.underwater_curve = underwater
+        if underwater:
+            result.max_drawdown_pct = max(underwater) * 100
+            result.max_drawdown = max(underwater) * self.config.initial_capital
+        self._compute_trade_stats(result)
+        self._compute_risk_adjusted(result)
         return result

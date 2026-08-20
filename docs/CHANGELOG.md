@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Supply Chain Security Audit & Documentation Update
 
+### Changed — Python Code Quality (Sprint 15)
+- Refactored 5 Python functions >40 lines: `markowitz.optimize_portfolio` (107→24), `backtester.run` (91→39), `backtest_engine._compute_results` (63→15), `exchange.get_depth_snapshot` (52→28), `market_simulator.__init__` (96→31)
+- Extracted 12 helper functions across `ai-signal-bot` and `exchange_simulator`
+- 0 forbidden patterns confirmed: TODO/FIXME/HACK/NotImplementedError/type:ignore/bare except/import */print in prod
+- Documentation audit updated to v5.9 (ARCHITECTURE.md, MATH_MODELS.md)
+
+### Changed — C++ Code Quality (Sprint 14)
+- Refactored `main()` in `hft-trade-bot/src/core/main.cpp` from 790 lines to 42 lines (QUAL-073)
+- Extracted 17 helper functions: 10 initialization helpers into `bot_setup.cpp`, 8 loop helpers into `bot_loop.cpp`
+- Encapsulated all shared state in `BotContext` struct (`bot_context.h`) with `unique_ptr` for non-default-constructible members
+- Added `bot_setup.cpp` and `bot_loop.cpp` to CMakeLists.txt build
+- All helper functions ≤40 lines, 0 forbidden patterns (TODO/FIXME/goto/printf/raw new/delete)
+- Documentation audit updated to v5.8 (ARCHITECTURE.md, MATH_MODELS.md)
+
 ### Security — Supply Chain Verification
 - Verified all 48 project dependencies against official registries (PyPI, npmjs.com, crates.io)
 - No typosquatting, fake packages, or malicious dependencies found

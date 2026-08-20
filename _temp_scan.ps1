@@ -1,0 +1,1 @@
+Get-ChildItem -Path "f:\VSC projects\trading-system – lite" -Recurse -Include *.py,*.cpp,*.h,*.rs | Where-Object { $_.FullName -notmatch 'build|node_modules|\.git|target|__pycache__|\.next' -and $_.Length -gt 20000 } | Sort-Object Length -Descending | Select-Object -First 30 | ForEach-Object { "$($_.Length) $($_.FullName)" }

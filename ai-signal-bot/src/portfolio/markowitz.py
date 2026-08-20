@@ -84,6 +84,45 @@ class MarkowitzOptimizer:
         
         return portfolio_return, portfolio_volatility, sharpe_ratio
     
+    def _make_objective(self, expected_returns, cov_matrix, target_return, min_variance):
+        """Build the objective function for scipy optimization."""
+        def objective(weights):
+            portfolio_return, portfolio_volatility, _ = self.calculate_portfolio_metrics(
+                weights, expected_returns, cov_matrix
+            )
+            if target_return is not None:
+                penalty = 1000 * abs(portfolio_return - target_return)
+                return portfolio_volatility + penalty
+            elif min_variance:
+                return portfolio_volatility
+            if portfolio_volatility < 1e-10:
+                return 1e6
+            return -(portfolio_return - self.risk_free_rate) / portfolio_volatility
+        return objective
+
+    def _build_constraints(self, expected_returns, target_return,
+                           sector_constraints, max_turnover, current_weights):
+        """Build optimization constraint list."""
+        constraints = [{'type': 'eq', 'fun': lambda w: np.sum(w) - 1}]
+        if target_return is not None:
+            constraints.append({
+                'type': 'eq',
+                'fun': lambda w: np.dot(w, expected_returns) - target_return,
+            })
+        if sector_constraints:
+            for sector, (min_w, max_w) in sector_constraints.items():
+                logger.warning(
+                    "Sector constraints require asset-to-sector mapping (not implemented). "
+                    "Skipping sector '%s' [min=%.2f, max=%.2f].",
+                    sector, min_w, max_w,
+                )
+        if max_turnover is not None and current_weights is not None:
+            constraints.append({
+                'type': 'ineq',
+                'fun': lambda w: max_turnover - np.sum(np.abs(w - current_weights)),
+            })
+        return constraints
+
     def optimize_portfolio(self, expected_returns: np.ndarray, cov_matrix: np.ndarray,
                           target_return: Optional[float] = None,
                           weight_bounds: Tuple[float, float] = (0, 1),
@@ -91,106 +130,33 @@ class MarkowitzOptimizer:
                           max_turnover: Optional[float] = None,
                           current_weights: Optional[np.ndarray] = None,
                           min_variance: bool = False) -> PortfolioResult:
-        """
-        Optimize portfolio weights.
-        
-        Args:
-            expected_returns: Expected returns vector (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            target_return: Target portfolio return (if None, maximize Sharpe ratio)
-            weight_bounds: Min and max weight bounds (default 0 to 1)
-            sector_constraints: Dict of sector name to (min, max) weight
-            max_turnover: Maximum allowed turnover
-            current_weights: Current portfolio weights for turnover constraint
-        
-        Returns:
-            PortfolioResult with optimal weights and metrics
+        """Optimize portfolio weights using scipy SLSQP.
+
+        Falls back to equal weights if scipy is not available.
         """
         n_assets = len(expected_returns)
-        
-        # Use scipy optimization if available, otherwise use simple approach
+        initial_weights = np.ones(n_assets) / n_assets
         try:
             from scipy.optimize import minimize
-            
-            # Objective function: minimize volatility for given return, or maximize Sharpe
-            def objective(weights):
-                portfolio_return, portfolio_volatility, _ = self.calculate_portfolio_metrics(
-                    weights, expected_returns, cov_matrix
-                )
-                if target_return is not None:
-                    # Minimize volatility for target return
-                    penalty = 1000 * abs(portfolio_return - target_return)
-                    return portfolio_volatility + penalty
-                elif min_variance:
-                    # Minimize volatility only
-                    return portfolio_volatility
-                else:
-                    # Maximize Sharpe ratio (minimize negative Sharpe)
-                    if portfolio_volatility < 1e-10:
-                        return 1e6  # Penalize zero-volatility (degenerate) portfolios
-                    return -(portfolio_return - self.risk_free_rate) / portfolio_volatility
-            
-            # Constraints
-            constraints = []
-            
-            # Weights sum to 1
-            constraints.append({'type': 'eq', 'fun': lambda w: np.sum(w) - 1})
-            
-            # Target return constraint
-            if target_return is not None:
-                constraints.append({
-                    'type': 'eq',
-                    'fun': lambda w: np.dot(w, expected_returns) - target_return
-                })
-            
-            # Sector constraints
-            if sector_constraints:
-                for sector, (min_weight, max_weight) in sector_constraints.items():
-                    logger.warning(
-                        "Sector constraints require asset-to-sector mapping (not implemented). "
-                        "Skipping sector '%s' [min=%.2f, max=%.2f].",
-                        sector, min_weight, max_weight,
-                    )
-            
-            # Turnover constraint
-            if max_turnover is not None and current_weights is not None:
-                constraints.append({
-                    'type': 'ineq',
-                    'fun': lambda w: max_turnover - np.sum(np.abs(w - current_weights))
-                })
-            
-            # Bounds
-            bounds = [weight_bounds] * n_assets
-            
-            # Initial guess (equal weights)
-            initial_weights = np.ones(n_assets) / n_assets
-            
-            # Optimize
-            result = minimize(
-                objective,
-                initial_weights,
-                method='SLSQP',
-                bounds=bounds,
-                constraints=constraints,
-                options={'ftol': 1e-9, 'disp': False}
+            objective = self._make_objective(expected_returns, cov_matrix, target_return, min_variance)
+            constraints = self._build_constraints(
+                expected_returns, target_return, sector_constraints, max_turnover, current_weights,
             )
-            
+            bounds = [weight_bounds] * n_assets
+            result = minimize(
+                objective, initial_weights, method='SLSQP',
+                bounds=bounds, constraints=constraints,
+                options={'ftol': 1e-9, 'disp': False},
+            )
             optimal_weights = result.x
-            
         except ImportError:
-            # Fallback to simple equal weights if scipy not available
-            optimal_weights = np.ones(n_assets) / n_assets
-        
-        # Calculate metrics
+            optimal_weights = initial_weights
         portfolio_return, portfolio_volatility, sharpe_ratio = self.calculate_portfolio_metrics(
             optimal_weights, expected_returns, cov_matrix
         )
-        
         return PortfolioResult(
-            weights=optimal_weights,
-            expected_return=portfolio_return,
-            volatility=portfolio_volatility,
-            sharpe_ratio=sharpe_ratio
+            weights=optimal_weights, expected_return=portfolio_return,
+            volatility=portfolio_volatility, sharpe_ratio=sharpe_ratio,
         )
     
     def calculate_efficient_frontier(self, expected_returns: np.ndarray, cov_matrix: np.ndarray,

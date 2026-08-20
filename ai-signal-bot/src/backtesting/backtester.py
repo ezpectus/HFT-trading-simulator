@@ -99,6 +99,56 @@ class Backtester:
         self.risk_per_trade_pct = risk_per_trade_pct
         self.risk_manager = RiskManager(risk_config) if risk_config else None
 
+    def _process_risk_update(self, current_position, risk_state, current_price,
+                              current_candle, balance, result, equity_curve, peak_equity):
+        """Update risk management; returns (position, risk_state, balance, skip_rest)."""
+        if not (current_position and self.risk_manager and risk_state):
+            return current_position, risk_state, balance, peak_equity, False
+        actions = self.risk_manager.update(risk_state, current_price, current_candle)
+        if "new_stop_loss" in actions:
+            current_position["stop_loss"] = actions["new_stop_loss"]
+        if not actions.get("close_position"):
+            return current_position, risk_state, balance, peak_equity, False
+        balance = self._close_position(
+            current_position, current_price, actions["close_reason"], balance, result,
+            timestamp=current_candle.get("timestamp", 0),
+        )
+        equity = balance
+        equity_curve.append(equity)
+        peak_equity = max(peak_equity, equity)
+        drawdown = (peak_equity - equity) / peak_equity * 100 if peak_equity > 0 else 0
+        result.max_drawdown_pct = max(result.max_drawdown_pct, drawdown)
+        return None, None, balance, peak_equity, True
+
+    def _manage_position_or_entry(self, current_position, risk_state, balance, strategy,
+                                   symbol, window, current_price, current_candle, result):
+        """Manage existing position (SL/TP, reversal) or check for new entry."""
+        if current_position:
+            exit_reason, exit_price = self._check_sl_tp(current_position, current_candle)
+            if exit_reason:
+                balance = self._close_position(
+                    current_position, exit_price, exit_reason, balance, result,
+                    timestamp=current_candle.get("timestamp", 0),
+                )
+                return None, None, balance
+            return self._handle_signal_reversal(
+                current_position, risk_state, balance, strategy, symbol,
+                window, current_price, current_candle, result,
+            )
+        return self._check_entry(
+            strategy, symbol, window, current_price, current_candle, balance, result,
+        ) + (balance,)
+
+    def _track_equity_and_drawdown(self, current_position, balance, current_price,
+                                    equity_curve, peak_equity, result):
+        """Append equity to curve and update max drawdown."""
+        equity = self._track_equity(current_position, balance, current_price)
+        equity_curve.append(equity)
+        peak_equity = max(peak_equity, equity)
+        drawdown = (peak_equity - equity) / peak_equity * 100 if peak_equity > 0 else 0
+        result.max_drawdown_pct = max(result.max_drawdown_pct, drawdown)
+        return peak_equity
+
     def run(
         self,
         candles: list[dict],
@@ -106,21 +156,10 @@ class Backtester:
         symbol: str = "BTC/USDT",
         warmup: int = 50,
     ) -> BacktestResult:
-        """Run backtest on historical candle data.
-
-        Args:
-            candles: List of candle dicts (timestamp, open, high, low, close, volume)
-            strategy: Strategy instance with .analyze(symbol, candles) -> Signal
-            symbol: Trading symbol
-            warmup: Number of candles to skip before generating signals
-
-        Returns:
-            BacktestResult with performance metrics
-        """
+        """Run backtest on historical candle data."""
         result = BacktestResult(initial_balance=self.initial_balance)
         balance = self.initial_balance
         equity_curve = [balance]
-
         current_position: dict | None = None
         risk_state: PositionRiskState | None = None
         peak_equity = balance
@@ -130,66 +169,31 @@ class Backtester:
             current_candle = candles[i]
             current_price = current_candle["close"]
 
-            # Update risk management (trailing stop, breakeven)
-            if current_position and self.risk_manager and risk_state:
-                actions = self.risk_manager.update(risk_state, current_price, current_candle)
-                if "new_stop_loss" in actions:
-                    current_position["stop_loss"] = actions["new_stop_loss"]
-                if actions.get("close_position"):
-                    balance = self._close_position(
-                        current_position, current_price, actions["close_reason"], balance, result,
-                        timestamp=current_candle.get("timestamp", 0),
-                    )
-                    current_position = None
-                    risk_state = None
-                    equity = balance
-                    equity_curve.append(equity)
-                    peak_equity = max(peak_equity, equity)
-                    drawdown = (peak_equity - equity) / peak_equity * 100 if peak_equity > 0 else 0
-                    result.max_drawdown_pct = max(result.max_drawdown_pct, drawdown)
-                    continue
+            current_position, risk_state, balance, peak_equity, skip = self._process_risk_update(
+                current_position, risk_state, current_price, current_candle,
+                balance, result, equity_curve, peak_equity,
+            )
+            if skip:
+                continue
 
-            # Manage existing position or check for entry
-            if current_position:
-                exit_reason, exit_price = self._check_sl_tp(current_position, current_candle)
-                if exit_reason:
-                    balance = self._close_position(
-                        current_position, exit_price, exit_reason, balance, result,
-                        timestamp=current_candle.get("timestamp", 0),
-                    )
-                    current_position = None
-                    risk_state = None
-                else:
-                    current_position, risk_state, balance = self._handle_signal_reversal(
-                        current_position, risk_state, balance, strategy, symbol,
-                        window, current_price, current_candle, result,
-                    )
-            else:
-                current_position, risk_state = self._check_entry(
-                    strategy, symbol, window, current_price, current_candle, balance, result,
-                )
+            current_position, risk_state, balance = self._manage_position_or_entry(
+                current_position, risk_state, balance, strategy, symbol,
+                window, current_price, current_candle, result,
+            )
+            peak_equity = self._track_equity_and_drawdown(
+                current_position, balance, current_price, equity_curve, peak_equity, result,
+            )
 
-            # Track equity
-            equity = self._track_equity(current_position, balance, current_price)
-            equity_curve.append(equity)
-            peak_equity = max(peak_equity, equity)
-            drawdown = (peak_equity - equity) / peak_equity * 100 if peak_equity > 0 else 0
-            result.max_drawdown_pct = max(result.max_drawdown_pct, drawdown)
-
-        # Close any remaining position at last price
         if current_position:
             balance = self._close_position(
                 current_position, candles[-1]["close"], "END", balance, result,
                 timestamp=candles[-1].get("timestamp", 0),
             )
-
-        # Calculate metrics
         result.final_balance = balance
         result.equity_curve = equity_curve
         result.total_return_pct = (balance - self.initial_balance) / self.initial_balance * 100 if self.initial_balance > 0 else 0
         self._calculate_trade_metrics(result)
         self._calculate_drawdown_metrics(result, equity_curve, balance)
-
         return result
 
     def _check_sl_tp(self, pos: dict, candle: dict) -> tuple[str | None, float]:
