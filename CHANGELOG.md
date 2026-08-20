@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 47 — README Deep CUDA/ONNX + Stale Link Cleanup)
+
+### Updated
+- **[DOC-310]** Updated `README.md` — removed CUDA/ONNX from architecture diagram (lines 97-98), features section (ONNX Runtime + GPU Acceleration entries), tech stack table (ONNX note + CUDA row), project structure (ml/ comment)
+- **[DOC-311]** Updated `README.md` — removed stale link to deleted `docs/EXCHANGE_UI_CLONES.md` (deleted in Sprint 42)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 46 — README CUDA/ONNX Cleanup)
 
 ### Updated

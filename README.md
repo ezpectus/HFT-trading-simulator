@@ -94,8 +94,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
   │  • Liquidation  │   │  • RL (PPO/DQN) │   │  • FIX 4.4      │
   │  • Options      │   │  • Backtesting  │   │  • SHM IPC      │
   │  • Arbitrage    │   │  • LLM Explain  │   │  • Rust Executr │
-  │  • SVI/SABR     │   │  • SVI/SABR     │   │  • CUDA (dead)  │
-  │                 │   │                 │   │  • ONNX (dead)  │
+  │  • SVI/SABR     │   │  • SVI/SABR     │   │                 │
   └────────┬────────┘   └────────┬────────┘   └────────┬────────┘
            │                     │                     │
            │   WS :8765          │  WS :8766           │
@@ -126,9 +125,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 
 - **Signal Engine V2** — 6-indicator weighted composite: InlineEMA (21/50), InlineRSI (14), InlineADX (14), InlineVWAP, Order Book Imbalance, Trade Flow
 - **Signal Engine V3** — HMM regime detection (4-state: TRENDING_UP/DOWN, RANGING, VOLATILE) with online Baum-Welch adaptation, Viterbi decoding, and regime-gated signal boosting/dampening. Sub-millisecond regime switching entirely in C++.
-- **ONNX Runtime** — ML model inference directly in C++ (LSTM, Transformer, Isolation Forest) without Python round-trip. **Note:** Code exists behind `#ifdef USE_ONNXRUNTIME` but is never compiled in CI — classified as dead code.
 - **Rust Order Executor** — Memory-safe alternative executor with crossbeam SPSC queue, FFI interface for C++ interop. WebSocket send is a stub (logs JSON, no real WS connection).
-- **GPU Acceleration** — CUDA kernels for batch RSI, Monte Carlo VaR, matrix multiplication. **Note:** Code exists behind `#ifdef USE_CUDA` but is never compiled in CI — classified as dead code.
 - **Memory-Mapped Persistence** — Zero-copy state recovery via mmap for crash resilience
 - **Smart Order Router V2** — 5 strategies: BestPrice, LowestLatency, LowestFees, BestEffective, DepthAware; per-exchange EMA latency tracking; anti-toxic backoff
 - **Pressure Model** — Multi-level OBI (5/10/20 + distance-weighted), toxicity detection, microprice deviation, queue position estimation, spread regime classification, price impact prediction
@@ -442,9 +439,8 @@ VITE_MOCK_MODE=true npm run dev
 |-----------|----------|---------------|
 | Exchange Simulator | Python 3.12 | asyncio, websockets, pyyaml, numpy, orjson, msgpack |
 | AI Signal Bot | Python 3.12 | asyncio, websockets, sqlite3, numpy, torch, scipy, optuna, orjson |
-| HFT Trade Bot | C++20 | Boost, websocketpp, spdlog, fmt, nlohmann/json, yaml-cpp (ONNX Runtime: dead code, not compiled) |
+| HFT Trade Bot | C++20 | Boost, websocketpp, spdlog, fmt, nlohmann/json, yaml-cpp |
 | Rust Executor | Rust 1.75 | crossbeam, tokio, serde, cxx |
-| GPU Acceleration | CUDA 12 | cuBLAS, custom kernels (dead code behind `#ifdef`, never compiled in CI) |
 | Web UI | JavaScript (ES2021) | React 18, Vite 8, TailwindCSS 3, lightweight-charts 4, lucide-react |
 | Communication | - | WebSocket (JSON/MessagePack), per-message deflate, SHM IPC |
 | Database | - | SQLite (WAL mode), PostgreSQL (optional), Redis (feature store) |
@@ -493,7 +489,7 @@ hft-trading-system/
 │   │   ├── communication/           # WebSocket, SHM IPC, signal receiver
 │   │   ├── risk/                    # Risk manager, kill switch, portfolio risk, pre-trade risk
 │   │   ├── position/                # Position manager V1/V2
-│   │   ├── ml/                      # CUDA (dead code) + ONNX (dead code)
+│   │   ├── ml/                      # ML model stubs (removed CUDA/ONNX in Sprint 43)
 │   │   ├── fix/                     # FIX 4.4 protocol
 │   │   ├── exchange/               # Binance, OKX, Bybit adapters
 │   │   ├── ipc/                     # SHM ring buffer, heartbeat, market data, fills
@@ -818,7 +814,6 @@ In-depth technical documentation:
 - **[Rollback Procedures](docs/ROLLBACK_PROCEDURES.md)** - Emergency rollback procedures
 - **[Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md)** - Advanced order type documentation
 - **[Audit Logging](docs/AUDIT_LOGGING.md)** - Audit logging system documentation
-- **[Exchange UI Clones](docs/EXCHANGE_UI_CLONES.md)** - Exchange UI clone documentation
 
 ### Additional Resources
 

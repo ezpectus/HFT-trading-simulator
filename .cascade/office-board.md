@@ -79,5 +79,6 @@
 - Sprint 44: Added 21 unit tests for Rust executor (previously 0 tests)
 - Sprint 45: Updated docs/future_development.md and docs/MATH_MODELS.md — removed stale CUDA/ONNX references
 - Sprint 46: Updated README.md — removed stale CUDA/ONNX dead code badge and description
+- Sprint 47: Deep README cleanup — removed CUDA/ONNX from architecture diagram, features, tech stack table, project structure. Removed stale link to deleted EXCHANGE_UI_CLONES.md
 - All 9 days of development plan: ✅ COMPLETE
 - All 188 bugs: ✅ FIXED (0 pending)
