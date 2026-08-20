@@ -148,47 +148,47 @@ class FundingRateArbitrageDetector:
             perp_prices = self._perp_prices.get(exchange, {})
 
             for symbol, funding in funding_map.items():
-                if funding.rate < self.min_funding_rate:
-                    continue
-
-                spot = spot_prices.get(symbol)
-                perp = perp_prices.get(symbol)
-                if not spot or not perp:
-                    continue
-
-                spread = abs(perp - spot) / spot
-                if spread > self.max_spread:
-                    continue
-
-                daily_funding = funding.daily
-                cost = self.cost_per_trade * 2  # entry + exit
-                net_daily = daily_funding - cost / 30  # amortize cost over 30 days
-
-                if net_daily <= 0:
-                    continue
-
-                confidence = min(100, funding.rate / self.min_funding_rate * 50 + (1 - spread / self.max_spread) * 50)
-
-                results.append(ArbitrageOpportunity(
-                    type=ArbType.SPOT_PERP,
-                    symbol=symbol,
-                    exchanges=[exchange],
-                    funding_rate=funding.rate,
-                    expected_daily_return=daily_funding,
-                    cost_estimate=cost,
-                    net_expected_return=net_daily,
-                    confidence=confidence,
-                    details={
-                        "spot_price": spot,
-                        "perp_price": perp,
-                        "spread": spread,
-                        "next_funding": funding.next_funding_time,
-                        "annualized": funding.annualized,
-                        "action": f"Buy spot {symbol}, short perp {symbol} on {exchange}",
-                    },
-                ))
+                opp = self._build_spot_perp_opp(exchange, symbol, funding, spot_prices, perp_prices)
+                if opp:
+                    results.append(opp)
 
         return results
+
+    def _build_spot_perp_opp(
+        self, exchange: str, symbol: str, funding: FundingRate,
+        spot_prices: dict[str, float], perp_prices: dict[str, float],
+    ) -> ArbitrageOpportunity | None:
+        """Build spot-perp arbitrage opportunity for a single symbol."""
+        if funding.rate < self.min_funding_rate:
+            return None
+
+        spot = spot_prices.get(symbol)
+        perp = perp_prices.get(symbol)
+        if not spot or not perp:
+            return None
+
+        spread = abs(perp - spot) / spot
+        if spread > self.max_spread:
+            return None
+
+        daily_funding = funding.daily
+        cost = self.cost_per_trade * 2
+        net_daily = daily_funding - cost / 30
+        if net_daily <= 0:
+            return None
+
+        confidence = min(100, funding.rate / self.min_funding_rate * 50 + (1 - spread / self.max_spread) * 50)
+
+        return ArbitrageOpportunity(
+            type=ArbType.SPOT_PERP, symbol=symbol, exchanges=[exchange],
+            funding_rate=funding.rate, expected_daily_return=daily_funding,
+            cost_estimate=cost, net_expected_return=net_daily, confidence=confidence,
+            details={
+                "spot_price": spot, "perp_price": perp, "spread": spread,
+                "next_funding": funding.next_funding_time, "annualized": funding.annualized,
+                "action": f"Buy spot {symbol}, short perp {symbol} on {exchange}",
+            },
+        )
 
     def _detect_cross_exchange(self) -> list[ArbitrageOpportunity]:
         """Detect cross-exchange funding rate arbitrage."""
