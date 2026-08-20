@@ -2047,6 +2047,106 @@
 
 ---
 
+### QUAL-042: Function length — `sentiment.py:SentimentStrategy.analyze()` (89 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/sentiment.py:140-228`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** ATR computation, sentiment threshold evaluation, and signal generation all inline in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 2 helpers: `_compute_atr` (12 lines) — ATR(14) calculation, `_sentiment_signal` (22 lines) — fade/follow signal generation. `analyze()` now 29 lines.
+- **Commit:** ba11f82
+
+---
+
+### QUAL-043: Function length — `strategies.py:TrendFollowingStrategy.analyze()` (82 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/strategies.py:41-123`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** EMA crossover signals and trend continuation signals inline in one method with data preparation.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 2 helpers: `_crossover_signal` (14 lines) — EMA crossover with ADX filter, `_trend_continuation_signal` (17 lines) — ongoing trend signal. `analyze()` now 33 lines.
+- **Commit:** ab4f116
+
+---
+
+### QUAL-044: Function length — `portfolio_optimizer.py:black_litterman()` (79 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/portfolio_optimizer.py:191-269`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Views matrix construction, Omega calculation, BL posterior computation, and Sharpe optimization all inline.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 4 helpers: `_build_views_matrix` (7 lines), `_build_omega` (5 lines), `_compute_bl_posterior` (12 lines), `_optimize_bl` (22 lines). `black_litterman()` now 30 lines.
+- **Commit:** d84cb6b
+
+---
+
+### QUAL-045: Function length — `cross_exchange_arb.py:_execute_arbitrage()` (78 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/cross_exchange_arb.py:221-298`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Leg execution, result checking, profit calculation, and stats recording all inline with error handling.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 2 helpers: `_execute_both_legs` (12 lines) — simultaneous leg execution with timeout, `_record_successful_arb` (18 lines) — profit/slippage stats recording. `_execute_arbitrage()` now 39 lines.
+- **Commit:** 2c029c3
+
+---
+
+### QUAL-046: Function length — `market_making.py:generate_quotes()` (65 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/market_making.py:107-171`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Toxicity check, inventory-limited quoting, normal quoting, and inventory-skewed size computation all inline.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 3 helpers: `_inventory_limited_quote` (8 lines), `_normal_quote` (14 lines), `_compute_inventory_sizes` (7 lines). `generate_quotes()` now 16 lines.
+- **Commit:** 66b82df
+
+---
+
+### QUAL-047: Function length — `statistical_arbitrage.py:analyze()` (65 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/statistical_arbitrage.py:213-277`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Cointegration check, spread update, and z-score signal generation all inline.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 1 helper: `_z_score_signal` (16 lines) — z-score entry/exit signal generation. `analyze()` now 23 lines.
+- **Commit:** 624b5d0
+
+---
+
+### QUAL-048: Function length — `cross_exchange_arb.py:_detect_opportunity()` (57 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/cross_exchange_arb.py:163-219`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Exchange pair iteration, fee calculation, position sizing, and opportunity construction all inline.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 1 helper: `_evaluate_pair` (25 lines) — single pair arbitrage evaluation. `_detect_opportunity()` now 16 lines.
+- **Commit:** a42578e
+
+---
+
+### QUAL-049: Function length — `funding_arb_detector.py:_detect_cross_exchange()` (52 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/funding_arb_detector.py:193-244`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** Symbol loop, rate sorting, differential calculation, and opportunity construction all inline.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 1 helper: `_build_cross_exchange_opp` (22 lines) — opportunity construction from rate differential. `_detect_cross_exchange()` now 22 lines.
+- **Commit:** 73e014b
+
+---
+
+### QUAL-050: Function length — `funding_arb_detector.py:_detect_spot_perp()` (50 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/funding_arb_detector.py:142-191`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** Exchange/symbol loop, spread check, funding calculation, and opportunity construction all inline.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 1 helper: `_build_spot_perp_opp` (31 lines) — single symbol spot-perp opportunity construction. `_detect_spot_perp()` now 15 lines.
+- **Commit:** c7e0075
+
+---
+
+### QUAL-051: Function length — `market_making.py:on_fill()` (41 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/market_making.py:173-213`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** BUY and SELL fill handling with direction change logic (close + open portions) all inline in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 4 helpers: `_close_short` (10 lines), `_open_long` (5 lines), `_close_long` (10 lines), `_open_short` (6 lines). `on_fill()` now 11 lines.
+- **Commit:** 36e0c07
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

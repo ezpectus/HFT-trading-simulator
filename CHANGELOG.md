@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v5.4 — Autonomous Sprint 10: Code Quality Audit + Function Length Refactoring)
+
+### Code Quality Fixes
+
+- **[QUAL-042]** Refactored `sentiment.py:SentimentStrategy.analyze()` (89→29 lines) — extracted 2 helpers: `_compute_atr`, `_sentiment_signal`.
+- **[QUAL-043]** Refactored `strategies.py:TrendFollowingStrategy.analyze()` (82→33 lines) — extracted 2 helpers: `_crossover_signal`, `_trend_continuation_signal`.
+- **[QUAL-044]** Refactored `portfolio_optimizer.py:black_litterman()` (79→30 lines) — extracted 4 helpers: `_build_views_matrix`, `_build_omega`, `_compute_bl_posterior`, `_optimize_bl`.
+- **[QUAL-045]** Refactored `cross_exchange_arb.py:_execute_arbitrage()` (78→39 lines) — extracted 2 helpers: `_execute_both_legs`, `_record_successful_arb`.
+- **[QUAL-046]** Refactored `market_making.py:generate_quotes()` (65→16 lines) — extracted 3 helpers: `_inventory_limited_quote`, `_normal_quote`, `_compute_inventory_sizes`.
+- **[QUAL-047]** Refactored `statistical_arbitrage.py:analyze()` (65→23 lines) — extracted 1 helper: `_z_score_signal`.
+- **[QUAL-048]** Refactored `cross_exchange_arb.py:_detect_opportunity()` (57→16 lines) — extracted 1 helper: `_evaluate_pair`.
+- **[QUAL-049]** Refactored `funding_arb_detector.py:_detect_cross_exchange()` (52→22 lines) — extracted 1 helper: `_build_cross_exchange_opp`.
+- **[QUAL-050]** Refactored `funding_arb_detector.py:_detect_spot_perp()` (50→15 lines) — extracted 1 helper: `_build_spot_perp_opp`.
+- **[QUAL-051]** Refactored `market_making.py:on_fill()` (41→11 lines) — extracted 4 helpers: `_close_short`, `_open_long`, `_close_long`, `_open_short`.
+
+### Audit Results
+
+- **10** functions 40-89 lines refactored (all now ≤ 39 lines)
+- **21** helper methods extracted across 7 files
+- **0** TODO/FIXME/HACK in production code
+- **0** `type: ignore` without justification
+- **0** bare `except` or `except Exception`
+- **0** `from x import *`
+- **0** `global` mutable state
+- **9** `Any` type hints — all with justification comments
+- **0** `print()` in production logic (only in visualizer terminal UI + docstring examples)
+
 ## [Unreleased] — 2026-08-20 (v5.3 — Autonomous Sprint 9: Function Length Refactoring)
 
 ### Code Quality Fixes
