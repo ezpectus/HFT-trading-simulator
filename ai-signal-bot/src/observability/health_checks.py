@@ -21,7 +21,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any  # Any: health check response values are heterogeneous
 
 logger = logging.getLogger(__name__)
 

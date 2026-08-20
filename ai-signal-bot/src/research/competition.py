@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any  # Any: strategy objects are duck-typed (any object with analyze())
 
 import numpy as np
 

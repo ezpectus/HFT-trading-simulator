@@ -12,7 +12,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any  # Any: aiohttp.ClientSession lacks type stubs
 
 logger = logging.getLogger(__name__)
 

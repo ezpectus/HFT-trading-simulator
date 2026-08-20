@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 183 |
+| ✅ Fixed | 184 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 0 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **183** |
+| **TOTAL FOUND** | **184** |
 
 ---
 
@@ -2524,6 +2524,15 @@
 - **Root Cause:** README referenced 5 non-existent files: `docs/USER_GUIDE.md`, `docs/ARCHITECTURE_DIAGRAMS.md`, `docs/EDUCATIONAL_CONTENT.md`, `docs/ROADMAP.md`, `COMPREHENSIVE_DEVELOPMENT_PLAN.md`. Also pointed to stale `docs/CHANGELOG.md` (stops at Sprint 16) instead of active root `CHANGELOG.md`.
 - **Status:** ✅ Fixed
 - **Fix:** Replaced all broken links with existing files: `docs/FAQ.md`, `docs/ARCHITECTURE.md`, `docs/ADVANCED_ORDER_TYPES.md`, `docs/9_DAY_DEVELOPMENT_PLAN.md`, `MASTER_DEVELOPMENT_PLAN.md`. Changed changelog link to root `CHANGELOG.md`.
+
+---
+
+### QUAL-091: Incorrect noqa: E402 on global statements in metrics.py
+- **Location:** `ai-signal-bot/metrics.py:281,289`
+- **Severity:** P3 (Code Quality)
+- **Root Cause:** `# noqa: E402` on `global _metrics_instance` statements — E402 is "module level import not at top of file", which doesn't apply to `global` statements. The noqa was silencing a non-existent violation.
+- **Status:** ✅ Fixed
+- **Fix:** Removed `noqa: E402` from both `global` statements, kept the justification comment.
 
 ---
 

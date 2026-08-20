@@ -21,7 +21,7 @@ import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any  # Any: Optuna trial params are dynamic
 
 logger = logging.getLogger(__name__)
 

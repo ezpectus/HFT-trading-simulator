@@ -36,7 +36,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import Any
+from typing import Any  # Any: feature values are heterogeneous (float|int|str)
 
 logger = logging.getLogger(__name__)
 

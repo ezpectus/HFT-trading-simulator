@@ -37,7 +37,7 @@ import os
 import time
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any  # Any: model metadata is user-defined and heterogeneous
 
 logger = logging.getLogger(__name__)
 

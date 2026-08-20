@@ -14,7 +14,7 @@ import importlib.util
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any  # Any: ccxt/aiohttp objects lack type stubs
 
 logger = logging.getLogger(__name__)
 

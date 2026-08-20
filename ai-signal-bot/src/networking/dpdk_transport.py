@@ -32,7 +32,7 @@ import struct
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any  # Any: DPDK stats dict values are heterogeneous
 
 logger = logging.getLogger(__name__)
 

@@ -32,7 +32,7 @@ import time
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any
+from typing import Any  # Any: rule dicts and market data are dynamically structured
 
 logger = logging.getLogger(__name__)
 

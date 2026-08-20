@@ -8,7 +8,7 @@ import os
 import sys
 import time
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any  # Any: env var defaults may be str|int|float|bool
 
 
 def setup_logging(level: str = "INFO", format_type: str = "json",
