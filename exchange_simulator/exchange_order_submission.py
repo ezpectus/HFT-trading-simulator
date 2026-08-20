@@ -341,11 +341,7 @@ class OrderSubmissionMixin:
     def _close_position(self, existing: Position, order: Order) -> None:
         """Close or partially close an existing position."""
         close_qty = min(order.filled_quantity, existing.quantity)
-
-        if existing.is_long:
-            pnl = (order.filled_price - existing.entry_price) * close_qty
-        else:
-            pnl = (existing.entry_price - order.filled_price) * close_qty
+        pnl = self._compute_close_pnl(existing, order, close_qty)
 
         old_balance = self.account.balance
         self.account.balance += pnl
@@ -361,7 +357,23 @@ class OrderSubmissionMixin:
             pnl=round(pnl, 2), fee=order.fee, reason="MANUAL",
             opened_at=existing.opened_at,
         ))
+        self._log_position_closed(existing, order, close_qty, pnl, old_balance)
 
+        if close_qty >= existing.quantity:
+            self.account.positions.remove(existing)
+            del self._positions_by_symbol[order.symbol]
+        else:
+            existing.quantity -= close_qty
+
+    def _compute_close_pnl(self, existing: Position, order: Order, close_qty: float) -> float:
+        """Compute PnL for closing a position."""
+        if existing.is_long:
+            return (order.filled_price - existing.entry_price) * close_qty
+        return (existing.entry_price - order.filled_price) * close_qty
+
+    def _log_position_closed(self, existing: Position, order: Order,
+                             close_qty: float, pnl: float, old_balance: float) -> None:
+        """Log position closed and balance change events."""
         self._audit_logger.log(
             event_type=AuditEventType.POSITION_CLOSED,
             exchange=self.exchange_id, symbol=order.symbol,
@@ -377,12 +389,6 @@ class OrderSubmissionMixin:
             new_value=self.account.balance, reason="PNL",
             metadata={"pnl": pnl, "symbol": order.symbol},
         )
-
-        if close_qty >= existing.quantity:
-            self.account.positions.remove(existing)
-            del self._positions_by_symbol[order.symbol]
-        else:
-            existing.quantity -= close_qty
 
     def _open_new_position(self, order: Order, stop_loss: float | None,
                            take_profit: float | None) -> None:
