@@ -37,74 +37,99 @@ def validate_config(config: dict) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
 
-    # Check required sections
     for section in REQUIRED_SECTIONS:
         if section not in config:
             errors.append(f"Missing required section: '{section}'")
-
     if errors:
         return errors, warnings
 
-    # Validate exchanges
-    all_symbols = set()
+    all_symbols = _validate_exchanges(config, errors, warnings)
+    initial_prices = _validate_initial_prices(config, errors)
+    volatility = _validate_volatility(config, errors, warnings)
+    _validate_cross_references(all_symbols, initial_prices, volatility, errors, warnings)
+    _validate_market(config, errors, warnings)
+    _validate_account(config, errors, warnings)
+    _validate_websocket(config, errors)
+    _validate_arbitrage(config, errors)
+    _validate_visualizer(config, errors, warnings)
+
+    return errors, warnings
+
+
+def _validate_exchanges(config: dict, errors: list[str], warnings: list[str]) -> set:
+    """Validate exchanges section. Returns set of all symbols across exchanges."""
+    all_symbols: set[str] = set()
     exchanges = config.get("exchanges", {})
     if not exchanges:
         errors.append("No exchanges defined in 'exchanges' section")
-    else:
-        for ex_id, ex_cfg in exchanges.items():
-            if not isinstance(ex_cfg, dict):
-                errors.append(f"Exchange '{ex_id}' must be a mapping")
-                continue
+        return all_symbols
 
-            if "name" not in ex_cfg:
-                errors.append(f"Exchange '{ex_id}' missing 'name'")
+    for ex_id, ex_cfg in exchanges.items():
+        if not isinstance(ex_cfg, dict):
+            errors.append(f"Exchange '{ex_id}' must be a mapping")
+            continue
+        if "name" not in ex_cfg:
+            errors.append(f"Exchange '{ex_id}' missing 'name'")
 
-            fee = ex_cfg.get("fee_pct")
-            if fee is None:
-                errors.append(f"Exchange '{ex_id}' missing 'fee_pct'")
-            elif not isinstance(fee, (int, float)):
-                errors.append(f"Exchange '{ex_id}' fee_pct must be a number")
-            elif fee < 0 or fee > 1.0:
-                errors.append(f"Exchange '{ex_id}' fee_pct={fee} out of range [0, 1.0]")
+        fee = ex_cfg.get("fee_pct")
+        if fee is None:
+            errors.append(f"Exchange '{ex_id}' missing 'fee_pct'")
+        elif not isinstance(fee, (int, float)):
+            errors.append(f"Exchange '{ex_id}' fee_pct must be a number")
+        elif fee < 0 or fee > 1.0:
+            errors.append(f"Exchange '{ex_id}' fee_pct={fee} out of range [0, 1.0]")
 
-            slip = ex_cfg.get("slippage_bps")
-            if slip is None:
-                errors.append(f"Exchange '{ex_id}' missing 'slippage_bps'")
-            elif not isinstance(slip, (int, float)):
-                errors.append(f"Exchange '{ex_id}' slippage_bps must be a number")
-            elif slip < 0 or slip > 100:
-                warnings.append(f"Exchange '{ex_id}' slippage_bps={slip} is unusually high")
+        slip = ex_cfg.get("slippage_bps")
+        if slip is None:
+            errors.append(f"Exchange '{ex_id}' missing 'slippage_bps'")
+        elif not isinstance(slip, (int, float)):
+            errors.append(f"Exchange '{ex_id}' slippage_bps must be a number")
+        elif slip < 0 or slip > 100:
+            warnings.append(f"Exchange '{ex_id}' slippage_bps={slip} is unusually high")
 
-            symbols = ex_cfg.get("symbols", [])
-            if not symbols:
-                warnings.append(f"Exchange '{ex_id}' has no symbols defined")
-            all_symbols.update(symbols)
+        symbols = ex_cfg.get("symbols", [])
+        if not symbols:
+            warnings.append(f"Exchange '{ex_id}' has no symbols defined")
+        all_symbols.update(symbols)
+    return all_symbols
 
-    # Validate initial_prices
+
+def _validate_initial_prices(config: dict, errors: list[str]) -> dict:
+    """Validate initial_prices section. Returns the initial_prices dict."""
     initial_prices = config.get("initial_prices", {})
     if not initial_prices:
         errors.append("No initial prices defined")
-    else:
-        for sym, price in initial_prices.items():
-            if not isinstance(price, (int, float)):
-                errors.append(f"Initial price for '{sym}' must be a number")
-            elif price <= 0:
-                errors.append(f"Initial price for '{sym}' must be positive, got {price}")
+        return initial_prices
+    for sym, price in initial_prices.items():
+        if not isinstance(price, (int, float)):
+            errors.append(f"Initial price for '{sym}' must be a number")
+        elif price <= 0:
+            errors.append(f"Initial price for '{sym}' must be positive, got {price}")
+    return initial_prices
 
-    # Validate volatility
+
+def _validate_volatility(config: dict, errors: list[str], warnings: list[str]) -> dict:
+    """Validate volatility section. Returns the volatility dict."""
     volatility = config.get("volatility", {})
     if not volatility:
         errors.append("No volatility defined")
-    else:
-        for sym, vol in volatility.items():
-            if not isinstance(vol, (int, float)):
-                errors.append(f"Volatility for '{sym}' must be a number")
-            elif vol <= 0 or vol > 10:
-                warnings.append(f"Volatility for '{sym}'={vol} is out of typical range [0.1, 3.0]")
+        return volatility
+    for sym, vol in volatility.items():
+        if not isinstance(vol, (int, float)):
+            errors.append(f"Volatility for '{sym}' must be a number")
+        elif vol <= 0 or vol > 10:
+            warnings.append(f"Volatility for '{sym}'={vol} is out of typical range [0.1, 3.0]")
+    return volatility
 
-    # Cross-reference: symbols in exchanges vs initial_prices
+
+def _validate_cross_references(
+    all_symbols: set, initial_prices: dict, volatility: dict,
+    errors: list[str], warnings: list[str],
+) -> None:
+    """Cross-reference symbol sets between exchanges, initial_prices, and volatility."""
     price_symbols = set(initial_prices.keys())
     vol_symbols = set(volatility.keys())
+
     if all_symbols != price_symbols:
         missing_prices = all_symbols - price_symbols
         extra_prices = price_symbols - all_symbols
@@ -121,12 +146,13 @@ def validate_config(config: dict) -> tuple[list[str], list[str]]:
         if extra_vol:
             warnings.append(f"Symbols in volatility but not in any exchange: {extra_vol}")
 
-    # Cross-reference: initial_prices vs volatility (direct)
     price_only = price_symbols - vol_symbols
     if price_only:
         errors.append(f"Symbols in initial_prices but missing from volatility: {price_only}")
 
-    # Validate market section
+
+def _validate_market(config: dict, errors: list[str], warnings: list[str]) -> None:
+    """Validate market section: timeframe, warmup, order book depth, drift."""
     market = config.get("market", {})
     tf = market.get("timeframe")
     if tf and tf not in VALID_TIMEFRAMES:
@@ -164,7 +190,9 @@ def validate_config(config: dict) -> tuple[list[str], list[str]]:
         elif abs(drift) > 0.01:
             warnings.append(f"drift={drift} is very high, market will be strongly trending")
 
-    # Validate account section
+
+def _validate_account(config: dict, errors: list[str], warnings: list[str]) -> None:
+    """Validate account section: balance, leverage."""
     account = config.get("account", {})
     balance = account.get("initial_balance")
     if balance is not None:
@@ -178,37 +206,42 @@ def validate_config(config: dict) -> tuple[list[str], list[str]]:
         elif leverage > 50:
             warnings.append(f"leverage={leverage} is very high, liquidation risk")
 
-    # Validate websocket section
+
+def _validate_websocket(config: dict, errors: list[str]) -> None:
+    """Validate websocket section: port range."""
     ws = config.get("websocket", {})
     port = ws.get("port")
     if port is not None:
         if not isinstance(port, int) or port < 1 or port > 65535:
             errors.append(f"websocket port must be 1-65535, got {port}")
 
-    # Validate arbitrage section
+
+def _validate_arbitrage(config: dict, errors: list[str]) -> None:
+    """Validate arbitrage section: min_spread, opportunity_ttl."""
     arb = config.get("arbitrage", {})
-    if arb:
-        min_spread = arb.get("min_spread_bps")
-        if min_spread is not None:
-            if not isinstance(min_spread, (int, float)) or min_spread < 0:
-                errors.append(f"arbitrage.min_spread_bps must be >= 0, got {min_spread}")
+    if not arb:
+        return
+    min_spread = arb.get("min_spread_bps")
+    if min_spread is not None:
+        if not isinstance(min_spread, (int, float)) or min_spread < 0:
+            errors.append(f"arbitrage.min_spread_bps must be >= 0, got {min_spread}")
+    ttl = arb.get("opportunity_ttl")
+    if ttl is not None:
+        if not isinstance(ttl, (int, float)) or ttl <= 0:
+            errors.append(f"arbitrage.opportunity_ttl must be positive, got {ttl}")
 
-        ttl = arb.get("opportunity_ttl")
-        if ttl is not None:
-            if not isinstance(ttl, (int, float)) or ttl <= 0:
-                errors.append(f"arbitrage.opportunity_ttl must be positive, got {ttl}")
 
-    # Validate visualizer section
+def _validate_visualizer(config: dict, errors: list[str], warnings: list[str]) -> None:
+    """Validate visualizer section: refresh_interval."""
     viz = config.get("visualizer", {})
-    if viz:
-        refresh = viz.get("refresh_interval")
-        if refresh is not None:
-            if not isinstance(refresh, (int, float)) or refresh <= 0:
-                errors.append(f"visualizer.refresh_interval must be positive, got {refresh}")
-            elif refresh < 0.1:
-                warnings.append(f"visualizer.refresh_interval={refresh} is very fast, may cause high CPU")
-
-    return errors, warnings
+    if not viz:
+        return
+    refresh = viz.get("refresh_interval")
+    if refresh is not None:
+        if not isinstance(refresh, (int, float)) or refresh <= 0:
+            errors.append(f"visualizer.refresh_interval must be positive, got {refresh}")
+        elif refresh < 0.1:
+            warnings.append(f"visualizer.refresh_interval={refresh} is very fast, may cause high CPU")
 
 
 def validate_or_exit(config: dict) -> dict:
