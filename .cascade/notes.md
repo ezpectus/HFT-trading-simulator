@@ -18,21 +18,21 @@
 - `ai-signal-bot/run.py` — main entry point
 - `hft-trade-bot/src/strategies/signal_engine_v2.h` — C++ indicators
 - `hft-trade-bot/src/strategies/signal_engine_v3.h` — HMM regime detection
-- `hft-trade-bot/src/ml/gpu_accelerator.cu` — CUDA (DEAD CODE)
-- `hft-trade-bot/src/ml/onnx_engine.h` — ONNX (DEAD CODE)
+- ~~`hft-trade-bot/src/ml/gpu_accelerator.cu`~~ — REMOVED (Sprint 43, dead code)
+- ~~`hft-trade-bot/src/ml/onnx_engine.h`~~ — REMOVED (Sprint 43, dead code)
 - `ai-signal-bot/src/pricing/volatility_surface.py` — SVI/SABR volatility surface (EXISTS, v4.0 wrongly said missing)
 - `exchange_simulator/exchange.py` — order matching, slippage, market impact, partial fills
 - `exchange_simulator/market_simulator.py` — GBM + correlated multi-symbol + news events
 - `exchange_simulator/exchange_simulator/market_microstructure.py` — Student-t, Merton, Heston, Markov regime, U-shaped intraday vol
 - `exchange_simulator/options_strategies.py` — Straddle, Strangle, Iron Condor, Butterfly
-- `hft-executor/src/lib.rs` — Rust order executor (WS stub, 0 tests)
+- `hft-executor/src/lib.rs` — Rust order executor (WS stub, tests added Sprint 44)
 - `shared_config.yaml` — global config
 
 ## Known Critical Issues (audit v6.1)
 
 1. README.md badges inflated — FIXED in v4.3 (75+ models → 44+40 UI-only, 34+ strategies → 19, panel count corrected 197→204 in Sprint 17)
 2. 40+ models exist ONLY as UI (.jsx), NOT in trading pipeline
-3. CUDA/ONNX — dead code behind #ifdef, never compiled in CI
+3. ~~CUDA/ONNX — dead code behind #ifdef, never compiled in CI~~ → ✅ REMOVED (Sprint 43)
 4. ~~SVI/SABR — does NOT exist~~ → ✅ EXISTS in `volatility_surface.py` (v4.1 correction)
 5. ~~Student-t/Merton/Heston/Markov regime — MISSING~~ → ✅ ALL EXIST in `market_microstructure.py` (v4.2 correction)
 6. ML models not trained (code exists, no weights)
