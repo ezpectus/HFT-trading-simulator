@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 19 — noqa F401 Cleanup)
+
+### Changed
+- **[QUAL-081]** Eliminated all 8 F401 `# noqa` comments:
+  - `strategies.py`: Removed F401 from `CircuitBreaker`, `Signal`, `SignalDirection` imports (all used in file)
+  - `ml_ensemble.py`: Removed F401 from `FeatureEngineer` import (used in file); removed unused `TimeSeriesSplit` import
+  - `volatility_surface.py`: Removed unused `scipy.stats.norm` import
+  - `metrics.py`: Removed unused `GaugeHistogramMetricFamily` import
+  - `dpdk_transport.py`: Removed pointless `ctypes` try/except (stdlib, always available)
+  - `real_account.py`: Replaced `import aiohttp` (availability check) with `importlib.util.find_spec()`
+
+### Remaining
+- 30 E402 `# noqa` comments in entry-point scripts (run.py, __main__.py, scripts/, tests/) — all legitimate sys.path bootstrap. Would require pip-installable package to eliminate.
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 18 — Test Coverage: 100% Module Coverage)
 
 ### Added

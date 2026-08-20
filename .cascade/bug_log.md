@@ -2441,8 +2441,8 @@
 - **Location:** 14 files across `ai-signal-bot/` and `exchange_simulator/`
 - **Severity:** P3 (Code Quality)
 - **Root Cause:** 37 `# noqa` comments suppress linter warnings. Breakdown: 22× `E402` (import order after `sys.path` manipulation — legitimate), 8× `F401` (unused imports for optional dependency probing — legitimate), 7× other. All are technically justified but could potentially be reduced by restructuring `sys.path` manipulation into a shared utility.
-- **Status:** ⏳ Pending Fix (low priority — all legitimate uses)
-- **Fix:** Consider creating a shared `sys.path` bootstrap utility to eliminate E402 noqa comments in entry-point scripts.
+- **Status:** ✅ Partially Fixed (F401 eliminated, E402 remain as legitimate)
+- **Fix:** Removed all 8 F401 noqa comments: (1) strategies.py — CircuitBreaker/Signal/SignalDirection imports ARE used, removed noqa; (2) ml_ensemble.py — FeatureEngineer IS used, removed noqa; removed unused TimeSeriesSplit import; (3) volatility_surface.py — removed unused `norm` import; (4) metrics.py — removed unused GaugeHistogramMetricFamily import; (5) dpdk_transport.py — removed pointless ctypes try/except (stdlib always available); (6) real_account.py — replaced `import aiohttp` with `importlib.util.find_spec()`. Remaining: 30 E402 noqa in entry-point scripts (run.py, __main__.py, scripts/, tests/) — all legitimate sys.path bootstrap, would require pip-installable package to eliminate.
 
 ---
 
