@@ -195,24 +195,27 @@ class StrategyOptimizer:
         results: list[OptimizationResult],
         top_n: int = 10,
     ) -> None:
-        """Print top N optimization results."""
-        print("\n" + "=" * 100)
-        print(f"  OPTIMIZATION RESULTS (Top {top_n})")
-        print("=" * 100)
-        print(f"  {'Rank':<5} {'Params':<40} {'Return%':>9} {'Trades':>7} "
-              f"{'Win%':>7} {'PF':>7} {'MaxDD%':>8} {'Sharpe':>7} {'Fitness':>8}")
-        print("-" * 100)
+        """Log top N optimization results."""
+        lines = ["=" * 100, f"  OPTIMIZATION RESULTS (Top {top_n})", "=" * 100]
+        lines.append(
+            f"  {'Rank':<5} {'Params':<40} {'Return%':>9} {'Trades':>7} "
+            f"{'Win%':>7} {'PF':>7} {'MaxDD%':>8} {'Sharpe':>7} {'Fitness':>8}"
+        )
+        lines.append("-" * 100)
 
         for i, opt in enumerate(results[:top_n]):
             r = opt.result
             params_str = ", ".join(f"{k}={v}" for k, v in opt.params.items())
             if len(params_str) > 38:
                 params_str = params_str[:35] + "..."
-            print(f"  {i + 1:<5} {params_str:<40} {r.total_return_pct:>+8.2f}% "
-                  f"{r.total_trades:>7d} {r.win_rate:>6.1f}% {r.profit_factor:>7.2f} "
-                  f"{r.max_drawdown_pct:>7.2f}% {r.sharpe_ratio:>7.2f} {opt.fitness:>8.2f}")
+            lines.append(
+                f"  {i + 1:<5} {params_str:<40} {r.total_return_pct:>+8.2f}% "
+                f"{r.total_trades:>7d} {r.win_rate:>6.1f}% {r.profit_factor:>7.2f} "
+                f"{r.max_drawdown_pct:>7.2f}% {r.sharpe_ratio:>7.2f} {opt.fitness:>8.2f}"
+            )
 
-        print("=" * 100 + "\n")
+        lines.append("=" * 100)
+        logger.info("\n".join(lines))
 
     def best_params(self, results: list[OptimizationResult]) -> dict | None:
         """Get the best parameter combination."""
