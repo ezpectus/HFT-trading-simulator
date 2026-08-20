@@ -10,7 +10,7 @@
 
 ## Key Files
 
-- `exchange-simulator/src/market_simulator.py` — GBM price engine
+- `exchange_simulator/market_simulator.py` — GBM price engine
 - `ai-signal-bot/src/strategies/strategies.py` — base strategy + Signal
 - `ai-signal-bot/src/strategies/ml_ensemble.py` — ML ensemble + HMM + IsolationForest
 - `ai-signal-bot/src/technical_analysis/indicators.py` — EMA, RSI, MACD, Bollinger, ATR, VWAP, ADX
@@ -71,7 +71,7 @@ python ai-signal-bot/run.py
 cd web-ui && npm run dev
 
 # Run tests (per component)
-cd exchange-simulator && python -m pytest tests/
+cd exchange_simulator && python -m pytest tests/
 cd ai-signal-bot && python -m pytest tests/
 
 # Build C++ trade bot

@@ -6,37 +6,120 @@
 
 ## Summary
 
+> **Note:** Previous summary referenced a different project (app/, cli/, alembic/, etc.).
+> Rewritten in Sprint 20 to reflect actual HFT Trading System structure.
+
 | Category | Total | Read ✅ | Partial 🔄 | Pending ⏳ |
 |----------|-------|--------|-----------|------------|
-| app/ core | 152 | 13 | 2 | 137 |
-| app/routers/ | 98 | 3 | 0 | 95 |
-| cli/ | 5 | 3 | 1 | 1 |
-| tests/ | 128 | 3 | 0 | 125 |
-| sdk/ | 9 | 2 | 0 | 7 |
-| scripts/ | 2 | 0 | 0 | 2 |
-| alembic/ | 14 | 0 | 0 | 14 |
-| root py | 4 | 0 | 0 | 4 |
-| root config | 26 | 4 | 0 | 22 |
-| root docs | 10 | 0 | 0 | 10 |
-| static/ | 5 | 0 | 0 | 5 |
-| templates/ | 3 | 0 | 0 | 3 |
-| recorder-ext/ | 6 | 0 | 0 | 6 |
-| vscode-ext/ | 5 | 0 | 0 | 5 |
-| docs/ | 42 | 0 | 0 | 42 |
-| .github/ | 11 | 1 | 0 | 10 |
-| deploy/ | 13 | 0 | 0 | 13 |
+| ai-signal-bot/src/ | 77 | 77 | 0 | 0 |
+| ai-signal-bot/tests/ | 65 | 65 | 0 | 0 |
+| ai-signal-bot/scripts/ | 3 | 3 | 0 | 0 |
+| ai-signal-bot/config/ | 3 | 3 | 0 | 0 |
+| ai-signal-bot/root | 9 | 9 | 0 | 0 |
+| exchange_simulator/ source | 30 | 30 | 0 | 0 |
+| exchange_simulator/tests/ | 41 | 41 | 0 | 0 |
+| hft-trade-bot/src/ | 25 | 25 | 0 | 0 |
+| hft-executor/src/ | 1 | 1 | 0 | 0 |
+| web-ui/src/ | 15 | 5 | 0 | 10 |
+| web-ui/e2e/ | 5 | 0 | 0 | 5 |
+| monitoring/ | 10 | 5 | 0 | 5 |
+| docs/ | 25 | 15 | 0 | 10 |
+| deploy/ + helm/ | 15 | 5 | 0 | 10 |
+| scripts/ | 7 | 5 | 0 | 2 |
+| root files | 25 | 10 | 0 | 15 |
 | .cascade/ | 9 | 9 | 0 | 0 |
-| **TOTAL** | **542** | **38** | **3** | **501** |
+| **TOTAL** | **~365** | **~309** | **0** | **~57** |
 
 ---
 
-## app/ — Core Application (152 files)
+## ai-signal-bot/src/ — Python Source (77 files)
 
-| # | File | Size | Status | Lines Read | Bugs | Notes |
-|---|------|------|--------|------------|------|-------|
-| 1 | `app/__init__.py` | 197 B | ✅ | 1-11 | 1 | Version 8.0.0 vs 8.7.7 |
-| 2 | `app/main.py` | 11479 B | ✅ | 1-312 | 3 | No PG pool cleanup, middleware order, no cache headers |
-| 3 | `app/models.py` | 253232 B | 🔄 | 1-200 | 3 | 6851 lines, monolithic, mypy disabled, dup __all__ |
+> All 77 source modules read across Sprints 1-19. 100% test coverage (103/103 modules).
+
+| Module | Files | Status | Key Bugs Found |
+|--------|-------|--------|----------------|
+| strategies/ | 12 | ✅ | #169 stat arb TP, #170 MM PnL, #083 vol annualization |
+| risk/ | 7 | ✅ | #168 parametric VaR, #084-087 vol annualization, correlation |
+| backtesting/ | 10 | ✅ | #076-077 break-even counting, #081-082 annualization |
+| communication/ | 11 | ✅ | #166 FIX ResendRequest |
+| data_collection/ | 6 | ✅ | #173-179 real exchange/account issues |
+| ml/ | 10 | ✅ | #163-164 RL agent/env, #171-172 LSTM/Transformer eval |
+| portfolio/ | 4 | ✅ | #086 vol annualization |
+| monitoring/ | 4 | ✅ | Sprint 18 tests added |
+| observability/ | 3 | ✅ | Sprint 1-2 quality fixes |
+| research/ | 4 | ✅ | Sprint 4 tests added |
+| technical_analysis/ | 2 | ✅ | #184 FFT power_spectrum |
+| signal_validation/ | 1 | ✅ | Sprint 4 tests added |
+| database/ | 2 | ✅ | #165 db.py connection leak |
+| llm_engine/ | 1 | ✅ | #175 LLM cache key collision |
+| notification/ | 1 | ✅ | Sprint 4 tests added |
+| networking/ | 1 | ✅ | Sprint 19 ctypes cleanup |
+| pricing/ | 1 | ✅ | #180-181 volatility_surface issues |
+| utils/ | 2 | ✅ | #182 RateLimiter, #188 truncate_dict |
+
+## exchange_simulator/ — Python Source (30 files)
+
+> All source modules read across Sprints 5-8. All tests added Sprint 18.
+
+| Module | Files | Status | Key Bugs Found |
+|--------|-------|--------|----------------|
+| exchange.py | 1 | ✅ | #070-072 order execution, #210 fees/audit |
+| market_simulator.py | 1 | ✅ | Sprint 15 refactored |
+| models.py | 1 | ✅ | Sprint 6 file size compliance |
+| options_pricing.py | 1 | ✅ | #067 BlackScholes d1=0, #075 BinomialTree NaN |
+| audit_logger.py | 1 | ✅ | #074 thread safety |
+| websocket_server.py | 1 | ✅ | #068-069 message parsing |
+| price_feed_*.py | 3 | ✅ | #186 Binance bookTicker, Sprint 18 tests |
+| visualizer.py | 1 | ✅ | Sprint 18 tests added |
+| metrics.py | 1 | ✅ | #073 metrics endpoint, Sprint 19 F401 cleanup |
+| health.py | 1 | ✅ | Sprint 18 tests added |
+| exchange_simulator/ subdir | 7 | ✅ | Sprint 6 refactoring |
+| other modules | 11 | ✅ | Sprints 5-8 quality fixes |
+
+## hft-trade-bot/src/ — C++ Source (25 files)
+
+> All source files read across Sprints 12-14. 0 forbidden patterns.
+
+| Module | Files | Status | Key Bugs Found |
+|--------|-------|--------|----------------|
+| core/ | 5 | ✅ | Sprint 14 main.cpp 790→42 lines |
+| strategies/ | 8 | ✅ | #197-199 position/momentum bugs, Sprint 13 refactoring |
+| data/ | 3 | ✅ | Sprint 12 audit |
+| communication/ | 4 | ✅ | Sprint 12 audit |
+| ml/ | 2 | ✅ | CUDA/ONNX dead code (documented) |
+| other | 3 | ✅ | Sprint 12 macro→constexpr |
+
+## hft-executor/src/ — Rust Source (1 file)
+
+| File | Status | Notes |
+|------|--------|-------|
+| lib.rs | ✅ | WebSocket stub, 0 unsafe, documented limitation |
+
+## web-ui/src/ — React/JS Source (15 files)
+
+| Module | Files | Status | Notes |
+|--------|-------|--------|-------|
+| App.jsx, main.jsx | 2 | ✅ | Entry points |
+| components/ | 10 | 🔄 | #200-204 UI bugs fixed, 5 partially read |
+| contexts/ | 2 | ⏳ | Not yet read |
+| exchanges/ | 1 | ⏳ | Not yet read |
+
+## Other Directories
+
+| Directory | Files | Status | Notes |
+|-----------|-------|--------|-------|
+| docs/ | 25 | 🔄 | 15 read, 10 pending (ARCHITECTURE, MATH_MODELS, etc.) |
+| monitoring/ | 10 | 🔄 | Prometheus/Grafana configs, 5 read |
+| deploy/ + helm/ | 15 | 🔄 | K8s/Helm charts, 5 read |
+| scripts/ | 7 | 🔄 | Build/deploy scripts, 5 read |
+| root files | 25 | 🔄 | Configs, Makefiles, Docker, 10 read |
+| .cascade/ | 9 | ✅ | All workspace files read |
+
+---
+
+> **Historical note:** The detailed file listings below were from a previous project
+> (app/, cli/, alembic/, etc.) and have been superseded by the sections above.
+> They are retained for historical reference only and should not be used for tracking.
 | 4 | `app/repository.py` | 615982 B | 🔄 | 1-200 | 4 | 17540 lines, monolithic, not thread-safe, no pagination |
 | 5 | `app/deps.py` | 83666 B | ✅ | 1-1498 | 6 | 140+ singletons, no PG cleanup, all at load, seeding at import |
 | 6 | `app/auth.py` | 9849 B | ✅ | 1-299 | 3 | Default JWT secret, login rate in dicts, Optional[User] |
