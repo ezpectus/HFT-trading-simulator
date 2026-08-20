@@ -517,6 +517,15 @@ int main(int argc, char* argv[]) {
             {config.symbols[i], config.symbols[i].c_str(), static_cast<uint16_t>(i)});
     }
 
+    // ─── Fallback V1 Signal Engine (declared before loop — preserves indicator state) ───
+    SignalEngine::Params engine_params;
+    engine_params.fast_ema_period  = config.fast_ema_period;
+    engine_params.slow_ema_period  = config.slow_ema_period;
+    engine_params.obi_enabled      = config.obi_enabled;
+    engine_params.vwap_enabled     = config.vwap_enabled;
+    engine_params.pressure_enabled = config.pressure_model_enabled;
+    SignalEngine engine_v1(engine_params);
+
     // Main loop
     while (g_running) {
         ScopedLatency loop_timer(total_loop_hist);
@@ -757,14 +766,6 @@ int main(int argc, char* argv[]) {
             // Trading stopped or kill switch active — skip signal generation
         } else {
             // ─── Fallback: V1 signal engine ───
-            // Engine created once outside the loop to preserve indicator state
-            static SignalEngine::Params engine_params;
-            engine_params.fast_ema_period  = config.fast_ema_period;
-            engine_params.slow_ema_period  = config.slow_ema_period;
-            engine_params.obi_enabled      = config.obi_enabled;
-            engine_params.vwap_enabled     = config.vwap_enabled;
-            engine_params.pressure_enabled = config.pressure_model_enabled;
-            static SignalEngine engine(engine_params);
 
             for (const auto& symbol : config.symbols) {
                 auto candles = receiver.get_candles(symbol, 100);
@@ -782,7 +783,7 @@ int main(int argc, char* argv[]) {
                     }
                 }
 
-                auto fast_sig = engine.analyze(symbol, candles, ob);
+                auto fast_sig = engine_v1.analyze(symbol, candles, ob);
 
                 if (fast_sig.direction != "NEUTRAL" &&
                     fast_sig.confidence >= config.min_confidence) {
