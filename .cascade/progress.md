@@ -39,6 +39,7 @@
 | 33 | 2026-08-20 | Sprint 34 (Day 4: Web UI Performance): React.lazy code splitting for 12 tab panels, Suspense boundaries, React.memo for TabButton/OrderBook/CandleChart, vite CSS code splitting + vendor chunks (zustand, recharts) | ✅ Done | — |
 | 34 | 2026-08-20 | Sprint 35 (Day 3: C++ HFT Bot Optimization): Verified existing SIMD/AVX2 indicators, perfect hash symbol lookup, lock-free SPSC queue, SHM IPC zero-copy. Added explicit -mavx2 flag to CMakeLists.txt | ✅ Done | — |
 | 35 | 2026-08-20 | Sprint 36 (Day 7: Testing and Quality): Property-based tests with Hypothesis (7 invariant tests), security tests (15 tests: log injection, order validation, message validation, numeric overflow, subscription security), added hypothesis to requirements-dev.txt | ✅ Done | — |
+| 36 | 2026-08-20 | Sprint 37 (Day 8: Deployment and CI/CD): Terraform IaC modules (VPC, EKS, RDS, ElastiCache, S3) with dev/prod environments, S3 backend, tfvars examples. Verified existing Helm chart with 11 templates | ✅ Done | — |
 
 ## Bug Fix Progress
 

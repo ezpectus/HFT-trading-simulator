@@ -1,0 +1,4 @@
+# Prod environment variables
+# Copy to terraform.tfvars and fill in with secure values
+
+db_password = "REPLACE_WITH_SECURE_PASSWORD"

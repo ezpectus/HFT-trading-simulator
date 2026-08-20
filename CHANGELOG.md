@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 37 — Day 8: Deployment and CI/CD)
+
+### Added
+- **[DEVOPS-201]** Terraform IaC modules — VPC (public/private subnets, NAT gateway), EKS (managed node groups, IAM roles), RDS (PostgreSQL, encryption, subnet group), ElastiCache (Redis replication group, failover), S3 (versioning, encryption, lifecycle policy, public access block)
+- **[DEVOPS-202]** Terraform environments — dev (t3.medium, 2 nodes) and prod (c5.2xlarge, 4 nodes, multi-AZ) with S3 backend and DynamoDB locking
+- **[DEVOPS-203]** Terraform README with usage instructions and module structure
+- **[DEVOPS-204]** Example tfvars files for dev and prod environments
+
+### Verified (Already Implemented)
+- **[VERIFY-201]** Helm chart — Chart.yaml, values.yaml, 11 templates (ai-signal-bot, exchange-simulator, hft-trade-bot, web-ui, ingress, postgres, redis, prometheus, grafana)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 36 — Day 7: Testing and Quality)
 
 ### Added
