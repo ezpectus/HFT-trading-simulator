@@ -23,6 +23,7 @@
 | 17 | 2026-08-20 | Sprint 10 (Autonomous): Code quality audit (0 TODO/FIXME, 0 type:ignore, 0 bare except, 0 import *, 0 global, 9 Any justified), refactored 10 functions 40-89 lines (89→29, 82→33, 79→30, 78→39, 65→16, 65→23, 57→16, 52→22, 50→15, 41→11), 21 helpers extracted, docs audit v5.4 | ✅ Done | ba11f82, ab4f116, d84cb6b, 2c029c3, 66b82df, 624b5d0, a42578e, 73e014b, c7e0075, 36e0c07 |
 | 18 | 2026-08-20 | Sprint 11 (Autonomous): Cross-repo audit (exchange_simulator + ai-signal-bot), refactored 11 functions 41-74 lines (74→36, 69→33, 63→18, 62→16, 58→27, 54→25, 44→26, 44→17, 41→21, 46+48→6+7, 50→25), 25 helpers extracted, 0 forbidden patterns, docs audit v5.5 | ✅ Done | 66d0276, 14e485a, 06c0393, c0c316c, 95c293e, 7339907, 810a2c6, 89562c2, e922582, 59ded06, 2eff6aa |
 | 19 | 2026-08-20 | Sprint 12 (Autonomous): C++ code quality audit (hft-trade-bot/src), 2 macro→constexpr (M_PI, INVALID_SOCKET), 2 long functions refactored (85→9, 53→10), 1 dead code removal, 1 static-in-loop fix, 0 TODO/FIXME/cast/new/delete/printf/goto, docs audit v5.6 | ✅ Done | b7c5def, abd7665, e8541f0, fc63356, fe4f176, 7b33abd |
+| 20 | 2026-08-20 | Sprint 13 (Autonomous): C++ signal engine refactoring, 5 functions refactored (365→44, 216→41, 123→16, 85→14, 53→20), 13 inline helpers extracted, 2 major deduplications (regime gating 49 lines, direction/confidence 60+ lines), MATH_MODELS.md updated v5.7 | ✅ Done | 8810b8c, acaac8a, 51e7847 |
 
 ## Bug Fix Progress
 

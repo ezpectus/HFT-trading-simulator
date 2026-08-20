@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v5.7 — Autonomous Sprint 13: C++ Signal Engine Refactoring)
+
+### Code Quality Fixes
+
+- **[QUAL-069]** Refactored `SignalEngineV2::analyze_raw()` (365→44 lines) — extracted 7 inline helpers: `compute_ema_score_raw`, `compute_rsi_score_raw`, `compute_obi_score`, `compute_vwap_score_raw`, `compute_adx_raw`, `compute_pressure_raw`, `compute_atr_raw`.
+- **[QUAL-070]** Refactored `SignalEngineV2::analyze_incremental()` (216→41 lines) — extracted 2 helpers: `update_indicator_cache`, `compute_cached_scores`. Reuses `compute_obi_score`, `compute_composite`, `apply_adaptive_sl_tp`, `finalize_signal` from QUAL-069.
+- **[QUAL-071]** Refactored `SignalEngineV3::analyze()` (123→16 lines) — extracted 4 helpers: `get_or_create_hmm_state`, `update_hmm_state`, `apply_regime_gating`, `append_regime_reason`.
+- **[QUAL-072]** Refactored `SignalEngineV3::analyze_incremental()` (85→14 lines) — reuses same 4 helpers from QUAL-071.
+- **[QUAL-074]** Refactored `OnlineHMM::update()` (53→20 lines) — extracted `forward_recursion` helper.
+- **[QUAL-075]** Deduplicated regime gating code in SignalEngineV3 — 49 lines of identical switch/case removed from `analyze_incremental`, now calls shared `apply_regime_gating` helper.
+- **[QUAL-076]** Deduplicated direction/confidence/SL/TP logic in SignalEngineV2 — shared `finalize_signal` and `compute_composite` helpers now used by both `analyze_raw` and `analyze_incremental`.
+- **[QUAL-077]** Updated `MATH_MODELS.md` audit version from v4.5 to v5.7.
+
+### Audit Results
+
+- **5** C++ functions refactored (365→44, 216→41, 123→16, 85→14, 53→20 lines)
+- **13** inline helpers extracted across V2 and V3 engines
+- **2** major code deduplications (regime gating 49 lines, direction/confidence logic 60+ lines)
+- **0** TODO/FIXME/HACK in C++ code
+- **0** C-style casts, raw `new`/`delete`, `printf`/`cout`, `goto`
+- **0** macro constants (all replaced with `constexpr` in Sprint 12)
+
 ## [Unreleased] — 2026-08-20 (v5.6 — Autonomous Sprint 12: C++ Code Quality Audit)
 
 ### Code Quality Fixes

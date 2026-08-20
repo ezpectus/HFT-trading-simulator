@@ -2317,6 +2317,86 @@
 
 ---
 
+### QUAL-069: Long function — SignalEngineV2::analyze_raw (365 lines)
+- **Location:** `hft-trade-bot/src/strategies/signal_engine_v2.h:493-858`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `analyze_raw` method was 365 lines, exceeding 40-line limit by 325 lines. Contained inline computation for EMA, RSI, OBI, VWAP, ADX, pressure, ATR, composite, direction/confidence, and SL/TP — all in a single function body.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 7 inline helpers: `compute_ema_score_raw`, `compute_rsi_score_raw`, `compute_obi_score`, `compute_vwap_score_raw`, `compute_adx_raw`, `compute_pressure_raw`, `compute_atr_raw`. Also extracted `compute_composite`, `apply_adaptive_sl_tp`, and `finalize_signal` shared with `analyze_incremental`. Function reduced to 44 lines.
+- **Commit:** 8810b8c
+
+---
+
+### QUAL-070: Long function — SignalEngineV2::analyze_incremental (216 lines)
+- **Location:** `hft-trade-bot/src/strategies/signal_engine_v2.h:865-1081`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `analyze_incremental` method was 216 lines, exceeding 40-line limit by 176 lines. Contained inline cache update, score computation, composite, adaptive SL/TP, and direction/confidence logic — much duplicated from `analyze_raw`.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 2 helpers: `update_indicator_cache`, `compute_cached_scores`. Reuses `compute_obi_score`, `compute_composite`, `apply_adaptive_sl_tp`, `finalize_signal` from QUAL-069. Function reduced to 41 lines.
+- **Commit:** 8810b8c
+
+---
+
+### QUAL-071: Long function — SignalEngineV3::analyze (123 lines)
+- **Location:** `hft-trade-bot/src/strategies/signal_engine_v3.h:290-413`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** `analyze` method was 123 lines, exceeding 40-line limit by 83 lines. Contained inline HMM state management, regime gating switch/case, and reason string formatting.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 4 helpers: `get_or_create_hmm_state`, `update_hmm_state`, `apply_regime_gating`, `append_regime_reason`. Function reduced to 16 lines.
+- **Commit:** acaac8a
+
+---
+
+### QUAL-072: Long function — SignalEngineV3::analyze_incremental (85 lines)
+- **Location:** `hft-trade-bot/src/strategies/signal_engine_v3.h:416-501`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** `analyze_incremental` method was 85 lines, exceeding 40-line limit by 45 lines. Contained duplicated HMM state management and regime gating code from `analyze`.
+- **Status:** ✅ Fixed
+- **Fix:** Reuses same 4 helpers from QUAL-071. Function reduced to 14 lines.
+- **Commit:** acaac8a
+
+---
+
+### QUAL-074: Long function — OnlineHMM::update (53 lines)
+- **Location:** `hft-trade-bot/src/strategies/signal_engine_v3.h:149-202`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** `update` method was 53 lines, exceeding 40-line limit by 13 lines. Contained inline forward recursion with log-sum-exp trick and normalization.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted `forward_recursion` helper containing the forward recursion, log-sum-exp, and normalization logic. Function reduced to 20 lines.
+- **Commit:** 51e7847
+
+---
+
+### QUAL-075: Code duplication — regime gating in SignalEngineV3 (49 lines duplicated)
+- **Location:** `hft-trade-bot/src/strategies/signal_engine_v3.h:329-377 vs 452-498`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Identical 49-line regime gating switch/case block duplicated between `analyze` and `analyze_incremental` methods.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted `apply_regime_gating` helper. Both methods now call the shared helper. 49 lines of duplication eliminated.
+- **Commit:** acaac8a
+
+---
+
+### QUAL-076: Code duplication — direction/confidence/SL/TP in SignalEngineV2 (60+ lines duplicated)
+- **Location:** `hft-trade-bot/src/strategies/signal_engine_v2.h:808-855 vs 720-757`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Identical direction/confidence/leverage/SL/TP/reason formatting logic duplicated between `analyze_raw` and `analyze_incremental` methods. Also duplicated composite score and adaptive SL/TP logic.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted `compute_composite`, `apply_adaptive_sl_tp`, and `finalize_signal` shared helpers. Both methods now call these helpers. 60+ lines of duplication eliminated.
+- **Commit:** 8810b8c
+
+---
+
+### QUAL-077: Documentation — MATH_MODELS.md audit version outdated
+- **Location:** `docs/MATH_MODELS.md:5`
+- **Severity:** P3 (Documentation)
+- **Root Cause:** Audit version reference was "v4.5", outdated after Sprints 5-13 brought audit to v5.7.
+- **Status:** ✅ Fixed
+- **Fix:** Updated from "v4.5" to "v5.7".
+- **Commit:** (pending)
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
