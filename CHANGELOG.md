@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 20 — Documentation Sync & file_tracker Rewrite)
+
+### Fixed
+- **[QUAL-084]** Stale `file_tracker.md` — entire summary referenced wrong project (app/, cli/, alembic/). Rewrote with correct HFT Trading System structure.
+- **[QUAL-084]** `notes.md` path errors — `exchange-simulator/src/market_simulator.py` → `exchange_simulator/market_simulator.py`, `cd exchange-simulator` → `cd exchange_simulator`.
+- **[QUAL-084]** `progress.md` Scan Coverage table — stale `exchange-simulator/src/` reference and wrong counts updated to correct project structure.
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 19 — noqa F401 Cleanup)
 
 ### Changed

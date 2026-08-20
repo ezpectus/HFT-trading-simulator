@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 176 |
+| ✅ Fixed | 177 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 0 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **176** |
+| **TOTAL FOUND** | **177** |
 
 ---
 
@@ -2461,6 +2461,15 @@
 - **Root Cause:** ARCHITECTURE.md still references "197 panels" in 6 places while the actual count from `registry.js` is 204. The overview line was updated to 204 but other references throughout the document were not synced.
 - **Status:** ✅ Fixed
 - **Fix:** Replaced all 6 occurrences of "197" with "204" in ARCHITECTURE.md panel references.
+
+---
+
+### QUAL-084: file_tracker.md references wrong project + notes.md stale paths
+- **Location:** `.cascade/file_tracker.md` (entire summary), `.cascade/notes.md:13,74`
+- **Severity:** P2 (Documentation)
+- **Root Cause:** file_tracker.md summary table and detailed listings referenced directories from a different project (app/, cli/, alembic/, static/, templates/, recorder-ext/, vscode-ext/) — none of which exist in this HFT Trading System. Additionally, notes.md had `exchange-simulator/src/market_simulator.py` (wrong: hyphen + nonexistent src/ subdir) and `cd exchange-simulator` (wrong: hyphen instead of underscore).
+- **Status:** ✅ Fixed
+- **Fix:** Rewrote file_tracker.md summary with correct project structure (ai-signal-bot/src/, exchange_simulator/, hft-trade-bot/src/, etc.). Added historical note for old detailed listings. Fixed notes.md paths to `exchange_simulator/market_simulator.py` and `cd exchange_simulator`.
 
 ---
 

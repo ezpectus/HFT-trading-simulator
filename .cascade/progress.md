@@ -222,6 +222,17 @@
 
 **Sprint 19 result:** 8 F401 noqa eliminated. 30 E402 noqa remain (legitimate sys.path bootstrap in entry-point scripts). All F401 noqa comments gone.
 
+**Sprint 20 — Documentation Sync & file_tracker.md Rewrite (QUAL-084):**
+
+| # | File | Issue | Fix | Status |
+|---|------|-------|-----|--------|
+| 1 | `.cascade/file_tracker.md` | Entire summary referenced wrong project (app/, cli/, alembic/) | Rewrote with correct HFT Trading System structure | ✅ |
+| 2 | `.cascade/notes.md:13` | `exchange-simulator/src/market_simulator.py` (wrong path) | Fixed to `exchange_simulator/market_simulator.py` | ✅ |
+| 3 | `.cascade/notes.md:74` | `cd exchange-simulator` (hyphen, wrong dir name) | Fixed to `cd exchange_simulator` | ✅ |
+| 4 | `.cascade/progress.md` Scan Coverage | Stale `exchange-simulator/src/` reference, wrong counts | Updated to correct structure | ✅ |
+
+**Sprint 20 result:** 4 documentation fixes. file_tracker.md now reflects actual project. All stale cross-project references eliminated.
+
 ## Proposals
 
 | # | Title | Status | Date |
@@ -232,14 +243,19 @@
 
 | Category | Total | Read ✅ | Partial 🔄 | Pending ⏳ |
 |----------|-------|--------|-----------|------------|
-| exchange-simulator/src/ | ~56 | 56 | 0 | 0 |
-| ai-signal-bot/src/ | ~100+ | 100+ | 0 | 0 |
-| hft-trade-bot/src/ | ~50+ | 5 | 0 | 45+ |
-| hft-executor/src/ | 3 | 1 | 0 | 2 |
-| web-ui/src/components/ | 227 | 0 | 0 | 227 |
-| web-ui/src/ | ~20 | 2 | 0 | 18 |
-| tests/ | ~172+ | 0 | 0 | 172+ |
-| docs/ | ~20 | 10 | 0 | 10 |
-| **TOTAL** | **~610+** | **48** | **0** | **562+** |
+| ai-signal-bot/src/ | 77 | 77 | 0 | 0 |
+| ai-signal-bot/tests/ | 65 | 65 | 0 | 0 |
+| exchange_simulator/ source | 30 | 30 | 0 | 0 |
+| exchange_simulator/tests/ | 41 | 41 | 0 | 0 |
+| hft-trade-bot/src/ | 25 | 25 | 0 | 0 |
+| hft-executor/src/ | 1 | 1 | 0 | 0 |
+| web-ui/src/ | 15 | 5 | 0 | 10 |
+| monitoring/ | 10 | 5 | 0 | 5 |
+| docs/ | 25 | 15 | 0 | 10 |
+| deploy/ + helm/ | 15 | 5 | 0 | 10 |
+| scripts/ | 7 | 5 | 0 | 2 |
+| root files | 25 | 10 | 0 | 15 |
+| .cascade/ | 9 | 9 | 0 | 0 |
+| **TOTAL** | **~365** | **~309** | **0** | **~57** |
 
 See `.cascade/file_tracker.md` for full file-by-file tracking.
