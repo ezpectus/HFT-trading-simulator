@@ -198,7 +198,7 @@ class AISignalBot:
                 prom_server = MetricsExporter()
                 await prom_server.start_server(port=9090)
                 self.logger.info("Prometheus metrics server running on port 9090")
-            except Exception as e:
+            except (OSError, RuntimeError, ConnectionError) as e:
                 self.logger.warning(f"Prometheus metrics server failed to start: {e}")
 
         # Main signal generation loop
@@ -229,7 +229,7 @@ class AISignalBot:
         while self._running:
             try:
                 await self.exchange.listen()
-            except Exception as e:
+            except (OSError, RuntimeError, ConnectionError, asyncio.TimeoutError) as e:
                 self.logger.error(f"Listen error: {e}")
                 if self._running:
                     await asyncio.sleep(2)
@@ -271,7 +271,7 @@ class AISignalBot:
                                 "reason": arb_sig.reason,
                                 "signal_id": 0,
                             })
-                    except Exception as e:
+                    except (ValueError, KeyError, TypeError, ZeroDivisionError) as e:
                         self.logger.debug(f"StatArb {sym_a}/{sym_b}: {e}")
 
         # ─── Per-symbol strategies ───
@@ -339,7 +339,7 @@ class AISignalBot:
                     adx=adx_val,
                     ema_trend=ema_trend,
                 )
-            except Exception:
+            except (ValueError, KeyError, TypeError, RuntimeError):
                 explanation = ensemble_signal.reason
 
             # Broadcast signal — reuse sig_dict, add explanation + signal_id
@@ -451,7 +451,7 @@ def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
                             "close": float(row.get("close", row.get("c", 0))),
                             "volume": float(row.get("volume", row.get("v", 0))),
                         })
-            except Exception as e:
+            except (OSError, ValueError, KeyError, TypeError) as e:
                 logger.warning(f"  Failed to load {f}: {e}")
         return candles
 
@@ -504,7 +504,7 @@ def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
                 result = bt.run(candles, strategy, symbol=symbol)
                 bt.print_report(result)
                 all_results[f"{strategy.name}_{symbol}"] = result
-            except Exception as e:
+            except (ValueError, KeyError, TypeError, RuntimeError, ZeroDivisionError) as e:
                 logger.error(f"  Backtest failed: {e}")
 
     # Save charts if any results
@@ -517,7 +517,7 @@ def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
                 plotter.plot_equity_curve(result, name)
                 plotter.save_all({name: result}, chart_dir)
                 logger.info(f"  Charts saved to {chart_dir}/{name}")
-            except Exception as e:
+            except (OSError, ValueError, RuntimeError) as e:
                 logger.warning(f"  Chart generation failed for {name}: {e}")
 
     logger.info(f"Backtest complete: {len(all_results)} strategy/symbol combinations tested")
