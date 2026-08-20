@@ -115,7 +115,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
   └─────────────────────────────────────────────────────────────┘
 ```
 
-> Full diagrams: [docs/ARCHITECTURE_DIAGRAMS.md](docs/ARCHITECTURE_DIAGRAMS.md)
+> Full diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
 
@@ -187,7 +187,6 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Mock data mode** — `VITE_MOCK_MODE=true` generates synthetic market data for standalone demo without backend
 - **Web Worker** — heavy indicator calculations offloaded to web worker (planned)
 - **Performance hooks** — useDebouncedValue, useThrottledCallback, useBatchedUpdates, useIntersectionObserver
-- **Exchange UI Clones** — Binance, Bybit, Coinbase themed interfaces with seamless switching and exchange-specific theming
 - **Advanced order type UI** — Support for Stop-Limit, Trailing Stop, OCO, and Iceberg orders with parameter validation
 - **Audit Log Viewer** — Real-time audit log display with filtering, search, and export (JSON/CSV)
 - **Symbol search and filtering** — Search across 50+ symbols with category-based filtering and lazy loading
@@ -656,6 +655,10 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 | [Web UI](docs/WEB_UI.md) | 204 panels, performance, testing, accessibility, PWA |
 | [Exchange Simulator](docs/EXCHANGE_SIMULATOR.md) | Price generation, order book, liquidation engine |
 | [Setup Guide](docs/SETUP.md) | Installation, mock mode, troubleshooting |
+| [Quick Start Guide](docs/guides/QUICK_START.md) | Get up and running in 5 minutes |
+| [Trading Guide](docs/guides/TRADING_GUIDE.md) | User manual: orders, positions, strategies, risk |
+| [Development Guide](docs/guides/DEVELOPMENT_GUIDE.md) | Developer manual: setup, architecture, testing, standards |
+| [Configuration Guide](docs/guides/CONFIGURATION_GUIDE.md) | All configuration options explained |
 | [Mathematical Models](docs/MATH_MODELS.md) | 44 models in trading logic + 40 UI-only, with formulas and file references |
 | [Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md) | Iceberg, TWAP, trailing stops, OCO orders |
 | [9-Day Development Plan](docs/9_DAY_DEVELOPMENT_PLAN.md) | Project roadmap — all 9 phases completed |
@@ -764,16 +767,15 @@ Skills will follow the [agentskills.io](https://agentskills.io) standard with YA
 ### Quick Start
 
 New to the system? Start here:
-- **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in 5 minutes
+- **[Quick Start Guide](docs/guides/QUICK_START.md)** - Get up and running in 5 minutes
 - **[FAQ](docs/FAQ.md)** - Common questions and answers
 
 ### User Training
 
 Comprehensive guides for users:
-- **[User Training Guide](docs/USER_TRAINING.md)** - Complete user manual covering all features
+- **[Trading Guide](docs/guides/TRADING_GUIDE.md)** - Complete user manual covering all features
   - Basic operations (placing orders, managing positions)
   - Advanced order types (Stop-Limit, Trailing Stop, OCO, Iceberg)
-  - Exchange UI clones (Binance, Bybit, Coinbase)
   - Audit logging and analysis
   - Risk management best practices
   - Trading strategies (trend following, mean reversion, arbitrage, market making)
@@ -781,7 +783,7 @@ Comprehensive guides for users:
 ### Developer Training
 
 Resources for developers:
-- **[Developer Training Guide](docs/DEVELOPER_TRAINING.md)** - Complete developer manual
+- **[Development Guide](docs/guides/DEVELOPMENT_GUIDE.md)** - Complete developer manual
   - Development environment setup
   - Architecture overview
   - Component development (Python, C++, React)
@@ -791,18 +793,9 @@ Resources for developers:
   - Performance optimization
   - Contributing guidelines
 
-### Video Tutorials
+### Configuration Guide
 
-Scripted video tutorials for visual learners:
-- **[Video Tutorial Scripts](docs/VIDEO_TUTORIALS.md)** - Scripts for creating video tutorials
-  - Getting Started (10 min)
-  - Advanced Order Types (15 min)
-  - Exchange UI Clones (12 min)
-  - Audit Logging (10 min)
-  - Risk Management (15 min)
-  - Trading Strategies (20 min)
-  - Developer Setup (15 min)
-  - Deployment (12 min)
+- **[Configuration Guide](docs/guides/CONFIGURATION_GUIDE.md)** - All configuration options explained
 
 ### Detailed Documentation
 
@@ -810,8 +803,6 @@ In-depth technical documentation:
 - **[Architecture Documentation](docs/ARCHITECTURE.md)** - System architecture and design
 - **[Configuration Reference](docs/CONFIGURATION_REFERENCE.md)** - All configuration options
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Deployment procedures and best practices
-- **[Monitoring Setup Guide](docs/MONITORING_SETUP.md)** - Prometheus and Grafana setup
-- **[Rollback Procedures](docs/ROLLBACK_PROCEDURES.md)** - Emergency rollback procedures
 - **[Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md)** - Advanced order type documentation
 - **[Audit Logging](docs/AUDIT_LOGGING.md)** - Audit logging system documentation
 

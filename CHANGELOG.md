@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 48 — README Broken Doc Links + Stale Feature Cleanup)
+
+### Fixed
+- **[DOC-312]** Fixed 7 broken doc links in `README.md`: `ARCHITECTURE_DIAGRAMS.md`→`ARCHITECTURE.md`, `QUICK_START.md`→`guides/QUICK_START.md`, `USER_TRAINING.md`→`guides/TRADING_GUIDE.md`, `DEVELOPER_TRAINING.md`→`guides/DEVELOPMENT_GUIDE.md`, removed `VIDEO_TUTORIALS.md` (never created), removed `MONITORING_SETUP.md` (never created), removed `ROLLBACK_PROCEDURES.md` (never created)
+- **[DOC-313]** Added 4 guides to main documentation table in `README.md`
+- **[DOC-314]** Removed stale "Exchange UI Clones" feature line from Web UI section (deleted in Sprint 41)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 47 — README Deep CUDA/ONNX + Stale Link Cleanup)
 
 ### Updated

@@ -80,5 +80,6 @@
 - Sprint 45: Updated docs/future_development.md and docs/MATH_MODELS.md — removed stale CUDA/ONNX references
 - Sprint 46: Updated README.md — removed stale CUDA/ONNX dead code badge and description
 - Sprint 47: Deep README cleanup — removed CUDA/ONNX from architecture diagram, features, tech stack table, project structure. Removed stale link to deleted EXCHANGE_UI_CLONES.md
+- Sprint 48: Fixed 7 broken doc links in README (ARCHITECTURE_DIAGRAMS, QUICK_START, USER_TRAINING, DEVELOPER_TRAINING, VIDEO_TUTORIALS, MONITORING_SETUP, ROLLBACK_PROCEDURES). Added 4 guides to docs table. Removed stale Exchange UI Clones feature line
 - All 9 days of development plan: ✅ COMPLETE
 - All 188 bugs: ✅ FIXED (0 pending)
