@@ -2147,6 +2147,116 @@
 
 ---
 
+### QUAL-052: Function length — `kelly.py:calculate()` (74 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/risk/kelly.py:92-165`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Kelly adjustment, risk amount computation, and position capping all inline in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 3 helpers: `_adjust_kelly`, `_compute_risk_amount`, `_cap_position`. `calculate()` now 36 lines.
+- **Commit:** 66d0276
+
+---
+
+### QUAL-053: Function length — `ws_message_handler.py:_handle_order()` (69 lines > 40 limit)
+- **Location:** `exchange_simulator/ws_message_handler.py:142-212`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Order validation, submission, logging, and broadcasting all inline in one async method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 2 helpers: `_submit_exchange_order`, `_log_order_result`. `_handle_order()` now 33 lines.
+- **Commit:** 14e485a
+
+---
+
+### QUAL-054: Function length — `liquidation_engine_v2.py:liquidate()` (63 lines > 40 limit)
+- **Location:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py:115-178`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Liquidation type determination, execution, event creation, logging, and ADL check all inline.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 4 helpers: `_determine_liq_type`, `_execute_liquidation`, `_create_liq_event`, `_log_liquidation`. `liquidate()` now 18 lines.
+- **Commit:** 06c0393
+
+---
+
+### QUAL-055: Function length — `market_simulator.py:generate_order_book()` (62 lines > 40 limit)
+- **Location:** `exchange_simulator/market_simulator.py:327-389`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Incremental update and full generation logic both inline in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 2 helpers: `_incremental_update_ob`, `_generate_full_ob`. `generate_order_book()` now 16 lines.
+- **Commit:** c0c316c
+
+---
+
+### QUAL-056: Function length — `exchange_order_submission.py:_fill_market_order()` (58 lines > 40 limit)
+- **Location:** `exchange_simulator/exchange_order_submission.py:235-293`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Margin check, logging, partial fill, and fee deduction all inline in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 4 helpers: `_check_margin_and_size`, `_log_order_filled`, `_apply_partial_fill`, `_charge_fee`. `_fill_market_order()` now 27 lines.
+- **Commit:** 95c293e
+
+---
+
+### QUAL-057: Function length — `ws_message_handler.py:_handle_client()` (54 lines > 40 limit)
+- **Location:** `exchange_simulator/ws_message_handler.py:57-110`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Client setup, message parsing, rate limiting, and cleanup all inline in one async method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 3 helpers: `_process_message`, `_parse_message`, `_cleanup_client`. `_handle_client()` now 25 lines.
+- **Commit:** 7339907
+
+---
+
+### QUAL-058: Function length — `exchange_order_submission.py:_close_position()` (44 lines > 40 limit)
+- **Location:** `exchange_simulator/exchange_order_submission.py:320-365`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** PnL computation, trade history logging, and audit logging all inline.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 2 helpers: `_compute_close_pnl`, `_log_position_closed`. `_close_position()` now 26 lines.
+- **Commit:** 810a2c6
+
+---
+
+### QUAL-059: Function length — `exchange_order_submission.py:_try_advanced_order()` (44 lines > 40 limit)
+- **Location:** `exchange_simulator/exchange_order_submission.py:163-206`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** Stop-limit, trailing stop, and iceberg order registration all inline in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 3 helpers: `_register_stop_limit`, `_register_trailing_stop`, `_register_iceberg`. `_try_advanced_order()` now 17 lines.
+- **Commit:** 89562c2
+
+---
+
+### QUAL-060: Function length — `order_book_realism.py:generate_depth_profile()` (41 lines > 40 limit)
+- **Location:** `exchange_simulator/exchange_simulator/order_book_realism.py:131-172`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** Level creation with BookOrder construction duplicated for bids and asks inline.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 1 helper: `_create_level_order`. `generate_depth_profile()` now 21 lines.
+- **Commit:** e922582
+
+---
+
+### QUAL-061: Function length — `price_feed_apis.py:subscribe_websocket()` x2 (46+48 lines > 40 limit)
+- **Location:** `exchange_simulator/price_feed_apis.py:222-268 (Binance), 350-398 (Coinbase)`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** WebSocket reconnect loop and message parsing duplicated inline in both BinanceAPI and CoinbaseAPI.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 4 helpers: `_ws_loop` (generic reconnect), `_parse_binance_tick`, `_coinbase_ws_loop`, `_parse_coinbase_tick`. Both `subscribe_websocket()` methods now ≤ 7 lines.
+- **Commit:** 59ded06
+
+---
+
+### QUAL-062: Function length — `var.py:backtest_var()` (50 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/risk/var.py:167-216`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** Rolling window VaR computation, violation counting, and Kupiec test all inline.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 1 helper: `_compute_window_var`. `backtest_var()` now 25 lines.
+- **Commit:** 2eff6aa
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
