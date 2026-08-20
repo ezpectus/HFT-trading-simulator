@@ -8,10 +8,9 @@ Verifies that configuration is consistent across all components:
 """
 import yaml
 from pathlib import Path
-from typing import Dict, List
 
 
-def load_yaml(path: Path) -> Dict:
+def load_yaml(path: Path) -> dict:
     """Load a YAML file."""
     with open(path) as f:
         return yaml.safe_load(f)
