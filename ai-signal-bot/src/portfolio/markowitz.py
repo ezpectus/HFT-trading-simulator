@@ -5,7 +5,6 @@
 
 import logging
 import numpy as np
-from typing import List, Tuple, Optional, Dict
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -65,7 +64,7 @@ class MarkowitzOptimizer:
         return np.cov(returns)
     
     def calculate_portfolio_metrics(self, weights: np.ndarray, expected_returns: np.ndarray,
-                                   cov_matrix: np.ndarray) -> Tuple[float, float, float]:
+                                   cov_matrix: np.ndarray) -> tuple[float, float, float]:
         """
         Calculate portfolio metrics.
         
@@ -124,11 +123,11 @@ class MarkowitzOptimizer:
         return constraints
 
     def optimize_portfolio(self, expected_returns: np.ndarray, cov_matrix: np.ndarray,
-                          target_return: Optional[float] = None,
-                          weight_bounds: Tuple[float, float] = (0, 1),
-                          sector_constraints: Optional[Dict[str, Tuple[float, float]]] = None,
-                          max_turnover: Optional[float] = None,
-                          current_weights: Optional[np.ndarray] = None,
+                          target_return: float | None = None,
+                          weight_bounds: tuple[float, float] = (0, 1),
+                          sector_constraints: dict[str, tuple[float, float]] | None = None,
+                          max_turnover: float | None = None,
+                          current_weights: np.ndarray | None = None,
                           min_variance: bool = False) -> PortfolioResult:
         """Optimize portfolio weights using scipy SLSQP.
 
@@ -161,7 +160,7 @@ class MarkowitzOptimizer:
     
     def calculate_efficient_frontier(self, expected_returns: np.ndarray, cov_matrix: np.ndarray,
                                     n_points: int = 50,
-                                    weight_bounds: Tuple[float, float] = (0, 1)) -> List[EfficientFrontierPoint]:
+                                    weight_bounds: tuple[float, float] = (0, 1)) -> list[EfficientFrontierPoint]:
         """
         Calculate efficient frontier points.
         
@@ -201,7 +200,7 @@ class MarkowitzOptimizer:
     
     def calculate_minimum_variance_portfolio(self, expected_returns: np.ndarray,
                                             cov_matrix: np.ndarray,
-                                            weight_bounds: Tuple[float, float] = (0, 1)) -> PortfolioResult:
+                                            weight_bounds: tuple[float, float] = (0, 1)) -> PortfolioResult:
         """
         Calculate minimum variance portfolio.
         
@@ -224,7 +223,7 @@ class MarkowitzOptimizer:
     
     def calculate_maximum_sharpe_portfolio(self, expected_returns: np.ndarray,
                                           cov_matrix: np.ndarray,
-                                          weight_bounds: Tuple[float, float] = (0, 1)) -> PortfolioResult:
+                                          weight_bounds: tuple[float, float] = (0, 1)) -> PortfolioResult:
         """
         Calculate maximum Sharpe ratio portfolio (tangency portfolio).
         

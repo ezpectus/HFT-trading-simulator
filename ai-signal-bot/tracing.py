@@ -9,7 +9,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry import propagate
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
-from typing import Optional, Dict, Any
+from typing import Any  # Any: OpenTelemetry context values are framework-defined
 import time
 
 
@@ -145,7 +145,7 @@ class AISignalBotTracer:
             span.add_event("check_started", {"timestamp": time.time()})
             span.set_status(trace.Status(trace.StatusCode.OK))
     
-    def inject_context(self, headers: Dict[str, str]) -> Dict[str, str]:
+    def inject_context(self, headers: dict[str, str]) -> dict[str, str]:
         """
         Inject trace context into headers.
         
@@ -158,7 +158,7 @@ class AISignalBotTracer:
         propagate.inject(headers)
         return headers
     
-    def extract_context(self, headers: Dict[str, str]) -> Dict[str, Any]:
+    def extract_context(self, headers: dict[str, str]) -> dict[str, Any]:
         """
         Extract trace context from headers.
         
@@ -174,7 +174,7 @@ class AISignalBotTracer:
 
 
 # Global tracer instance
-_tracer_instance: Optional[AISignalBotTracer] = None
+_tracer_instance: AISignalBotTracer | None = None
 
 
 def get_tracer() -> AISignalBotTracer:

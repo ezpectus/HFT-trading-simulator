@@ -4,7 +4,6 @@
 # and support for risk budgeting and leverage limits.
 
 import numpy as np
-from typing import List, Tuple, Optional, Dict
 from dataclasses import dataclass
 
 from .markowitz import PortfolioResult
@@ -84,8 +83,8 @@ class RiskParityOptimizer:
         return risk_contributions
     
     def optimize_risk_parity(self, cov_matrix: np.ndarray,
-                             weight_bounds: Tuple[float, float] = (0, 1),
-                             risk_budget: Optional[np.ndarray] = None,
+                             weight_bounds: tuple[float, float] = (0, 1),
+                             risk_budget: np.ndarray | None = None,
                              max_iterations: int = 1000,
                              tolerance: float = 1e-6) -> PortfolioResult:
         """
@@ -170,7 +169,7 @@ class RiskParityOptimizer:
     
     def optimize_with_leverage(self, cov_matrix: np.ndarray,
                                target_volatility: float,
-                               weight_bounds: Tuple[float, float] = (0, 1),
+                               weight_bounds: tuple[float, float] = (0, 1),
                                max_leverage: float = 2.0) -> PortfolioResult:
         """
         Optimize risk parity portfolio with leverage to achieve target volatility.

@@ -5,7 +5,6 @@
 
 import logging
 import numpy as np
-from typing import Tuple, Optional, List
 from dataclasses import dataclass
 import pickle
 
@@ -53,7 +52,7 @@ class LSTMModel:
         """Denormalize data."""
         return data * self.scaler_std + self.scaler_mean
     
-    def _create_sequences(self, data: np.ndarray, sequence_length: int) -> Tuple[np.ndarray, np.ndarray]:
+    def _create_sequences(self, data: np.ndarray, sequence_length: int) -> tuple[np.ndarray, np.ndarray]:
         """
         Create sequences for LSTM training.
         

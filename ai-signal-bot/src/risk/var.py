@@ -4,7 +4,6 @@
 # with support for multiple confidence levels and time horizons.
 
 import numpy as np
-from typing import Optional, Dict, List
 from dataclasses import dataclass
 from scipy import stats
 
@@ -33,8 +32,8 @@ class VaRCalculator:
         self.time_horizon = time_horizon
     
     def calculate_historical_var(self, returns: np.ndarray, 
-                                 confidence_level: Optional[float] = None,
-                                 time_horizon: Optional[float] = None) -> VaRResult:
+                                 confidence_level: float | None = None,
+                                 time_horizon: float | None = None) -> VaRResult:
         """
         Calculate VaR using historical simulation method.
         
@@ -63,8 +62,8 @@ class VaRCalculator:
         )
     
     def calculate_parametric_var(self, returns: np.ndarray,
-                                  confidence_level: Optional[float] = None,
-                                  time_horizon: Optional[float] = None) -> VaRResult:
+                                  confidence_level: float | None = None,
+                                  time_horizon: float | None = None) -> VaRResult:
         """
         Calculate VaR using parametric (variance-covariance) method.
         
@@ -98,8 +97,8 @@ class VaRCalculator:
     
     def calculate_monte_carlo_var(self, returns: np.ndarray,
                                     n_simulations: int = 10000,
-                                    confidence_level: Optional[float] = None,
-                                    time_horizon: Optional[float] = None) -> VaRResult:
+                                    confidence_level: float | None = None,
+                                    time_horizon: float | None = None) -> VaRResult:
         """
         Calculate VaR using Monte Carlo simulation.
         
@@ -136,8 +135,8 @@ class VaRCalculator:
         )
     
     def calculate_var_at_multiple_levels(self, returns: np.ndarray,
-                                        confidence_levels: Optional[List[float]] = None,
-                                        method: str = 'historical') -> Dict[float, VaRResult]:
+                                        confidence_levels: list[float] | None = None,
+                                        method: str = 'historical') -> dict[float, VaRResult]:
         """
         Calculate VaR at multiple confidence levels.
         

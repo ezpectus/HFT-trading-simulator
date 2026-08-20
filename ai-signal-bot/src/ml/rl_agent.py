@@ -4,7 +4,6 @@
 # experience replay, policy updates, and reward tracking.
 
 import numpy as np
-from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass
 from collections import deque
 import pickle
@@ -89,7 +88,7 @@ class DQNAgent:
         
         return np.argmax(q_values)
     
-    def replay(self, batch_size: Optional[int] = None):
+    def replay(self, batch_size: int | None = None):
         """
         Train on batch of experiences.
         

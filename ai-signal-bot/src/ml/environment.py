@@ -5,7 +5,7 @@
 
 import logging
 import numpy as np
-from typing import Tuple, Dict, Any, Optional
+from typing import Any  # Any: numpy array shapes are dynamic
 from dataclasses import dataclass
 from enum import Enum
 
@@ -61,7 +61,7 @@ class TradingEnv:
         # Observation space: 60 recent prices + 3 portfolio state = 63
         self.observation_space_n = 63
     
-    def reset(self, prices: np.ndarray, features: Optional[np.ndarray] = None) -> np.ndarray:
+    def reset(self, prices: np.ndarray, features: np.ndarray | None = None) -> np.ndarray:
         """
         Reset environment for new episode.
         
@@ -114,7 +114,7 @@ class TradingEnv:
         
         return observation
     
-    def step(self, action: int) -> Tuple[np.ndarray, float, bool, Dict]:
+    def step(self, action: int) -> tuple[np.ndarray, float, bool, dict]:
         """
         Execute one step in environment.
         

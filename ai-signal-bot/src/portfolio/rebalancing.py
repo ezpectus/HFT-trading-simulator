@@ -4,7 +4,6 @@
 # and volatility-based rebalancing triggers.
 
 import numpy as np
-from typing import List, Tuple, Optional, Dict
 from dataclasses import dataclass
 from enum import Enum
 
@@ -202,11 +201,11 @@ class RebalancingStrategy:
     
     def should_rebalance(self, current_weights: np.ndarray, target_weights: np.ndarray,
                        trigger_type: RebalanceTrigger,
-                       last_rebalance_time: Optional[float] = None,
-                       rebalance_interval: Optional[float] = None,
-                       current_time: Optional[float] = None,
-                       current_volatility: Optional[float] = None,
-                       target_volatility: Optional[float] = None,
+                       last_rebalance_time: float | None = None,
+                       rebalance_interval: float | None = None,
+                       current_time: float | None = None,
+                       current_volatility: float | None = None,
+                       target_volatility: float | None = None,
                        max_drift: float = 0.05,
                        max_volatility_drift: float = 0.1) -> bool:
         """

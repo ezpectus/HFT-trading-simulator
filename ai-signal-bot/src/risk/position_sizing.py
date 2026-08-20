@@ -4,7 +4,6 @@
 # with support for position limits and risk-based adjustments.
 
 import numpy as np
-from typing import Optional, Dict
 from dataclasses import dataclass
 
 
@@ -33,7 +32,7 @@ class DynamicPositionSizer:
         self.max_position_size = max_position_size
     
     def calculate_position_size(self, signal: str, price: float,
-                                volatility: Optional[float] = None,
+                                volatility: float | None = None,
                                 risk_per_trade: float = 0.02,
                                 method: str = 'volatility') -> PositionSizingResult:
         """

@@ -4,7 +4,6 @@
 # FTX collapse, and custom scenarios with portfolio impact analysis.
 
 import numpy as np
-from typing import Dict, List, Optional
 from dataclasses import dataclass
 
 
@@ -205,7 +204,7 @@ class StressTestScenario:
         return result
     
     def run_all_scenarios(self, current_prices: np.ndarray,
-                          positions: np.ndarray) -> List[StressTestResult]:
+                          positions: np.ndarray) -> list[StressTestResult]:
         """
         Run all predefined stress test scenarios.
         
@@ -224,7 +223,7 @@ class StressTestScenario:
         
         return results
     
-    def generate_summary(self, results: List[StressTestResult]) -> Dict:
+    def generate_summary(self, results: list[StressTestResult]) -> dict:
         """
         Generate summary of stress test results.
         

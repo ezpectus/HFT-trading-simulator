@@ -4,7 +4,6 @@
 # multi-head attention, positional encoding, and signal generation head.
 
 import numpy as np
-from typing import Tuple, Optional, List
 from dataclasses import dataclass
 import pickle
 

@@ -4,7 +4,6 @@
 # incorporation of investor views and confidence levels.
 
 import numpy as np
-from typing import List, Tuple, Optional, Dict
 from dataclasses import dataclass
 
 from .markowitz import MarkowitzOptimizer, PortfolioResult
@@ -13,8 +12,8 @@ from .markowitz import MarkowitzOptimizer, PortfolioResult
 @dataclass
 class View:
     """Investor view on asset returns."""
-    assets: List[int]  # Asset indices
-    weights: List[float]  # View weights (e.g., [1, -1] for relative view)
+    assets: list[int]  # Asset indices
+    weights: list[float]  # View weights (e.g., [1, -1] for relative view)
     expected_return: float  # Expected return of the view
     confidence: float  # Confidence level (0 to 1)
 
@@ -52,7 +51,7 @@ class BlackLittermanModel:
         return prior_returns
     
     def incorporate_views(self, prior_returns: np.ndarray, cov_matrix: np.ndarray,
-                         views: List[View]) -> Tuple[np.ndarray, np.ndarray]:
+                         views: list[View]) -> tuple[np.ndarray, np.ndarray]:
         """
         Incorporate investor views into prior returns.
         
@@ -108,8 +107,8 @@ class BlackLittermanModel:
         return posterior_returns, posterior_covariance
     
     def optimize_portfolio(self, posterior_returns: np.ndarray, posterior_covariance: np.ndarray,
-                          target_return: Optional[float] = None,
-                          weight_bounds: Tuple[float, float] = (0, 1)) -> PortfolioResult:
+                          target_return: float | None = None,
+                          weight_bounds: tuple[float, float] = (0, 1)) -> PortfolioResult:
         """
         Optimize portfolio using posterior returns and covariance.
         
@@ -131,10 +130,10 @@ class BlackLittermanModel:
     
     def calculate_black_litterman_portfolio(self, market_weights: np.ndarray,
                                           cov_matrix: np.ndarray,
-                                          views: List[View],
+                                          views: list[View],
                                           risk_aversion: float = 3.0,
-                                          target_return: Optional[float] = None,
-                                          weight_bounds: Tuple[float, float] = (0, 1)) -> PortfolioResult:
+                                          target_return: float | None = None,
+                                          weight_bounds: tuple[float, float] = (0, 1)) -> PortfolioResult:
         """
         Calculate Black-Litterman optimal portfolio.
         

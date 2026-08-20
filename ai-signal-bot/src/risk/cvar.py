@@ -4,7 +4,6 @@
 # tail risk analysis and extreme value theory support.
 
 import numpy as np
-from typing import Optional, Dict, List
 from dataclasses import dataclass
 from scipy import stats
 
@@ -37,8 +36,8 @@ class CVaRCalculator:
         self.var_calculator = VaRCalculator(confidence_level, time_horizon)
     
     def calculate_cvar(self, returns: np.ndarray,
-                      confidence_level: Optional[float] = None,
-                      time_horizon: Optional[float] = None,
+                      confidence_level: float | None = None,
+                      time_horizon: float | None = None,
                       method: str = 'historical') -> CVaRResult:
         """
         Calculate Conditional VaR (Expected Shortfall).
@@ -102,8 +101,8 @@ class CVaRCalculator:
         )
     
     def calculate_expected_shortfall(self, returns: np.ndarray,
-                                    confidence_level: Optional[float] = None,
-                                    time_horizon: Optional[float] = None) -> CVaRResult:
+                                    confidence_level: float | None = None,
+                                    time_horizon: float | None = None) -> CVaRResult:
         """
         Calculate Expected Shortfall (alias for CVaR).
         
@@ -118,7 +117,7 @@ class CVaRCalculator:
         return self.calculate_cvar(returns, confidence_level, time_horizon, method='historical')
     
     def calculate_tail_risk_measures(self, returns: np.ndarray,
-                                     confidence_level: Optional[float] = None) -> Dict:
+                                     confidence_level: float | None = None) -> dict:
         """
         Calculate tail risk measures.
         
@@ -195,7 +194,7 @@ class CVaRCalculator:
         return tail_index
     
     def analyze_stress_scenarios(self, returns: np.ndarray,
-                                 scenarios: Dict[str, float]) -> Dict:
+                                 scenarios: dict[str, float]) -> dict:
         """
         Analyze CVaR under stress scenarios.
         
