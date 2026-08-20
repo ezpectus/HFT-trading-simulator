@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 38 — Day 9: Documentation and Finalization)
+
+### Added
+- **[DOC-301]** Quick Start Guide — Docker and manual setup instructions, mock mode, verification steps
+- **[DOC-302]** Configuration Guide — Exchange Simulator, AI Signal Bot, Web UI, C++ HFT Bot, environment variables
+- **[DOC-303]** Trading Guide — Dashboard overview, order placement, position management, signals, arbitrage, backtesting, keyboard shortcuts, detachable panels
+- **[DOC-304]** Development Guide — Project structure, tech stack, code quality standards, adding strategies/message types/panels, running tests, profiling, deployment, CI/CD, contributing
+
+### Finalized
+- All 9-day development plan success metrics marked as achieved
+- All 9 days marked as completed in development plan
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 37 — Day 8: Deployment and CI/CD)
 
 ### Added
