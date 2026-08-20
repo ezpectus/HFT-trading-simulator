@@ -224,7 +224,6 @@ class StatisticalArbitrage:
         closes_a = np.array([c["close"] if isinstance(c, dict) else c.close for c in candles_a[-self.config.lookback:]])
         closes_b = np.array([c["close"] if isinstance(c, dict) else c.close for c in candles_b[-self.config.lookback:]])
 
-        # Recompute cointegration periodically
         if self.step_count % self.config.recompute_interval == 0 or not self.is_cointegrated:
             result = self.check_cointegration(closes_a, closes_b)
             if not result["cointegrated"]:
@@ -235,46 +234,26 @@ class StatisticalArbitrage:
                     reason=f"Not cointegrated (ADF={self.adf_stat:.2f}, HL={self.half_life:.1f})",
                 )
 
-        # Update spread
         self.update(closes_a[-1], closes_b[-1])
-
         z = self.z_score()
-        price_a = closes_a[-1]
+        return self._z_score_signal(f"{symbol_a}/{symbol_b}", closes_a[-1], z)
 
+    def _z_score_signal(self, pair: str, price_a: float, z: float) -> Signal:
+        """Generate signal from z-score with entry/exit thresholds."""
         if abs(z) < self.config.entry_z:
-            return Signal(
-                symbol=f"{symbol_a}/{symbol_b}", direction=SignalDirection.NEUTRAL,
-                confidence=0, strategy=self.name, entry_price=price_a,
-                stop_loss=0, take_profit=0, reason=f"Z-score {z:.2f} below entry threshold",
-            )
-
-        # Entry signals
+            return Signal(pair, SignalDirection.NEUTRAL, 0, self.name, price_a, 0, 0,
+                          f"Z-score {z:.2f} below entry threshold")
         if z > self.config.entry_z:
-            # Spread too wide: short A, long B
             confidence = min(95, 40 + abs(z) * 10)
-            return Signal(
-                symbol=f"{symbol_a}/{symbol_b}", direction=SignalDirection.SHORT,
-                confidence=confidence, strategy=self.name,
-                entry_price=price_a, stop_loss=price_a + self.config.stop_z * self.spread_std if price_a > 0 else 0,
-                take_profit=price_a - self.config.exit_z * self.spread_std if price_a > 0 else 0,
-                reason=f"Z-score={z:.2f} > {self.config.entry_z}, short {symbol_a} long {symbol_b}",
-            )
-        elif z < -self.config.entry_z:
-            # Spread too narrow: long A, short B
-            confidence = min(95, 40 + abs(z) * 10)
-            return Signal(
-                symbol=f"{symbol_a}/{symbol_b}", direction=SignalDirection.LONG,
-                confidence=confidence, strategy=self.name,
-                entry_price=price_a, stop_loss=price_a - self.config.stop_z * self.spread_std if price_a > 0 else 0,
-                take_profit=price_a + self.config.exit_z * self.spread_std if price_a > 0 else 0,
-                reason=f"Z-score={z:.2f} < -{self.config.entry_z}, long {symbol_a} short {symbol_b}",
-            )
-
-        return Signal(
-            symbol=f"{symbol_a}/{symbol_b}", direction=SignalDirection.NEUTRAL,
-            confidence=0, strategy=self.name, entry_price=price_a,
-            stop_loss=0, take_profit=0, reason="No signal",
-        )
+            sl = price_a + self.config.stop_z * self.spread_std if price_a > 0 else 0
+            tp = price_a - self.config.exit_z * self.spread_std if price_a > 0 else 0
+            return Signal(pair, SignalDirection.SHORT, confidence, self.name, price_a, sl, tp,
+                          f"Z-score={z:.2f} > {self.config.entry_z}, short A long B")
+        confidence = min(95, 40 + abs(z) * 10)
+        sl = price_a - self.config.stop_z * self.spread_std if price_a > 0 else 0
+        tp = price_a + self.config.exit_z * self.spread_std if price_a > 0 else 0
+        return Signal(pair, SignalDirection.LONG, confidence, self.name, price_a, sl, tp,
+                      f"Z-score={z:.2f} < -{self.config.entry_z}, long A short B")
 
 
 class CorrelationMatrix:
