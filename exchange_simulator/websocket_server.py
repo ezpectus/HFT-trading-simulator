@@ -221,7 +221,7 @@ class ExchangeWebSocketServer:
                     break
                 self._shm_symbol_ids[sym] = i
             logger.info(f"SHM market data publisher ready (shm={shm_name}, symbols={len(self._shm_symbol_ids)})")
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError, BufferError) as e:
             logger.warning(f"SHM market data publisher init failed: {e}")
             self._shm_market = None
 
@@ -251,8 +251,8 @@ class ExchangeWebSocketServer:
                 self._shm_market.buf[slot_offset + self._shm_data_offset:
                                     slot_offset + self._shm_data_offset + len(snap)] = snap
                 self._shm_market.buf[seq_offset:seq_offset+8] = struct.pack('<Q', seq + 2)
-        except Exception:
-            pass
+        except (OSError, ValueError, TypeError, BufferError, struct.error):
+            logger.warning("SHM snapshot write failed", exc_info=True)
 
     async def start(self) -> None:
         """Start the WebSocket server."""
@@ -371,7 +371,7 @@ class ExchangeWebSocketServer:
                             logger.warning(f"Invalid JSON from {_sanitize_log(remote)}: {_sanitize_log(message[:100])}")
                             continue
                     await self._handle_message(websocket, data)
-                except Exception as e:
+                except (RuntimeError, OSError, KeyError, ValueError, TypeError) as e:
                     logger.error(f"Error handling message: {e}")
 
         except websockets.ConnectionClosed:

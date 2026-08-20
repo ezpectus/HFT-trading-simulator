@@ -115,7 +115,7 @@ class TabbedVisualizer:
                 if rlist:
                     key = sys.stdin.read(1).encode()
                     self._handle_key(key)
-        except Exception:
+        except (OSError, ValueError, TypeError):
             pass
 
     def _handle_key(self, key: bytes) -> None:
