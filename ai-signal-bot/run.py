@@ -37,21 +37,16 @@ from src.monitoring import PerformanceTracker, SignalLogger, TradeLogger, print_
 from src.signal_validation import SignalValidator  # noqa: E402
 from src.strategies import (  # noqa: E402
     EnsembleVoter,
-    FFTCycleStrategy,
-    MarketMakingConfig,
-    MarketMakingStrategy,
-    MeanReversionStrategy,
-    MLConfig,
-    MLEnsembleStrategy,
-    SentimentConfig,
-    SentimentStrategy,
     Signal,
     SignalDirection,
-    StatArbConfig,
-    StatisticalArbitrage,
-    TrendFollowingStrategy,
 )
-from src.technical_analysis import adx, ema, rsi  # noqa: E402
+from src.utils.bot_helpers import (  # noqa: E402
+    build_stat_arb,
+    build_strategies,
+    generate_llm_explanation,
+    generate_stat_arb_signals,
+    load_candles_from_csv,
+)
 
 
 def setup_logging(level: str, log_file: str) -> tuple[logging.Logger, str]:
@@ -92,52 +87,14 @@ class AISignalBot:
         self.trade_logger = TradeLogger(config.trades_csv)
 
         # Strategies
-        self.strategies = []
-        if config.trend_enabled:
-            self.strategies.append(TrendFollowingStrategy(
-                ema_fast=config.trend_ema_fast,
-                ema_slow=config.trend_ema_slow,
-                adx_threshold=config.trend_adx_threshold,
-            ))
-        if config.meanrev_enabled:
-            self.strategies.append(MeanReversionStrategy(
-                rsi_oversold=config.meanrev_rsi_oversold,
-                rsi_overbought=config.meanrev_rsi_overbought,
-                bb_period=config.meanrev_bb_period,
-                bb_std=config.meanrev_bb_std,
-            ))
-        if config.fft_enabled:
-            self.strategies.append(FFTCycleStrategy(
-                min_data=config.fft_min_data,
-            ))
-        if config.sentiment_enabled:
-            self.strategies.append(SentimentStrategy(
-                config=SentimentConfig(),
-            ))
-        if config.market_making_enabled:
-            self.strategies.append(MarketMakingStrategy(
-                config=MarketMakingConfig(),
-            ))
-        if config.ml_ensemble_enabled:
-            self.strategies.append(MLEnsembleStrategy(
-                config=MLConfig(),
-            ))
+        self.strategies = build_strategies(config)
         self.ensemble = EnsembleVoter(
             mode=config.ensemble_mode,
             min_votes=config.ensemble_min_votes,
         )
 
         # Statistical arbitrage (pairs trading — separate interface)
-        self.stat_arb = None
-        if config.statarb_enabled and len(config.symbols) >= 2:
-            self.stat_arb = StatisticalArbitrage(
-                config=StatArbConfig(
-                    entry_z=config.statarb_zscore_entry,
-                    exit_z=config.statarb_zscore_exit,
-                    recompute_interval=config.statarb_recompute_interval,
-                ),
-            )
-            self.logger.info(f"  Statistical arbitrage: pairs={[f'{config.symbols[i]}/{config.symbols[j]}' for i in range(len(config.symbols)) for j in range(i+1, len(config.symbols))]}")
+        self.stat_arb = build_stat_arb(config, self.logger)
 
         # State
         self._running = False
@@ -237,124 +194,71 @@ class AISignalBot:
 
     async def _generate_signals(self) -> None:
         """Generate and validate trading signals for all symbols."""
-        now_ts = int(time.time())  # Cache once per tick — avoid repeated syscalls
-
-        # ─── Statistical arbitrage (pairs) ───
-        if self.stat_arb:
-            symbols = self.config.symbols
-            for i in range(len(symbols)):
-                for j in range(i + 1, len(symbols)):
-                    sym_a, sym_b = symbols[i], symbols[j]
-                    candles_a = self.exchange.candle_history.get(sym_a, [])
-                    candles_b = self.exchange.candle_history.get(sym_b, [])
-                    if len(candles_a) < self.config.statarb_min_data or len(candles_b) < self.config.statarb_min_data:
-                        continue
-                    try:
-                        arb_sig = self.stat_arb.analyze(sym_a, sym_b, candles_a, candles_b)
-                        if arb_sig and arb_sig.is_actionable:
-                            arb_dict = arb_sig.to_dict()
-                            arb_dict["timestamp"] = now_ts
-                            self.signal_logger.log(arb_dict)
-                            self.logger.info(
-                                f"StatArb Signal: {arb_sig.direction.value} {sym_a}/{sym_b} "
-                                f"conf={arb_sig.confidence:.1f} ({arb_sig.reason})"
-                            )
-                            await self.signal_publisher.broadcast_signal({
-                                "symbol": arb_sig.symbol,
-                                "direction": arb_sig.direction.value,
-                                "confidence": arb_sig.confidence,
-                                "strategy": arb_sig.strategy,
-                                "entry_price": arb_sig.entry_price,
-                                "stop_loss": arb_sig.stop_loss,
-                                "take_profit": arb_sig.take_profit,
-                                "rr_ratio": arb_sig.rr_ratio,
-                                "reason": arb_sig.reason,
-                                "signal_id": 0,
-                            })
-                    except (ValueError, KeyError, TypeError, ZeroDivisionError) as e:
-                        self.logger.debug(f"StatArb {sym_a}/{sym_b}: {e}")
-
-        # ─── Per-symbol strategies ───
+        now_ts = int(time.time())
+        await generate_stat_arb_signals(self, now_ts)
         for symbol in self.config.symbols:
-            # Get candle history from exchange client (accumulated in _process_message)
             candles = self.exchange.candle_history.get(symbol, [])
             if not candles or len(candles) < 30:
                 continue
+            await self._process_symbol(symbol, candles, now_ts)
 
-            # Run all strategies
-            signals = []
-            for strategy in self.strategies:
-                sig = strategy.analyze(symbol, candles)
-                signals.append(sig)
+    async def _process_symbol(self, symbol: str, candles: list, now_ts: int) -> None:
+        """Run strategies, ensemble vote, validate and execute for a single symbol."""
+        signals = [s.analyze(symbol, candles) for s in self.strategies]
+        ensemble_signal = self.ensemble.vote(signals)
+        self.tracker.record_signal(ensemble_signal.is_actionable)
+        if not ensemble_signal.is_actionable:
+            return
 
-            # Ensemble vote
-            ensemble_signal = self.ensemble.vote(signals)
-            self.tracker.record_signal(ensemble_signal.is_actionable)
+        sig_dict = ensemble_signal.to_dict()
+        sig_dict["timestamp"] = now_ts
+        self.signal_logger.log(sig_dict)
+        self.logger.info(
+            f"Signal: {ensemble_signal.direction.value} {symbol} "
+            f"conf={ensemble_signal.confidence:.1f} "
+            f"entry={ensemble_signal.entry_price:.2f} "
+            f"SL={ensemble_signal.stop_loss:.2f} "
+            f"TP={ensemble_signal.take_profit:.2f} "
+            f"R:R={ensemble_signal.rr_ratio:.2f} "
+            f"({ensemble_signal.reason})")
 
-            if not ensemble_signal.is_actionable:
-                continue
+        balance = self._get_account_balance()
+        if not self._validate_signal(ensemble_signal, balance):
+            return
+        await self._finalize_and_execute(symbol, ensemble_signal, sig_dict, candles, balance)
 
-            # Log signal
-            sig_dict = ensemble_signal.to_dict()
-            sig_dict["timestamp"] = now_ts
-            self.signal_logger.log(sig_dict)
-            self.logger.info(
-                f"Signal: {ensemble_signal.direction.value} {symbol} "
-                f"conf={ensemble_signal.confidence:.1f} "
-                f"entry={ensemble_signal.entry_price:.2f} "
-                f"SL={ensemble_signal.stop_loss:.2f} "
-                f"TP={ensemble_signal.take_profit:.2f} "
-                f"R:R={ensemble_signal.rr_ratio:.2f} "
-                f"({ensemble_signal.reason})"
-            )
+    def _get_account_balance(self) -> float:
+        """Get current account balance from exchange."""
+        account = self.exchange.accounts.get(self.config.default_exchange, {})
+        return account.get("balance", 10000.0)
 
-            # Validate signal
-            account = self.exchange.accounts.get(self.config.default_exchange, {})
-            balance = account.get("balance", 10000.0)
-            positions = account.get("positions", [])
-            self.validator.update_position_count(len(positions))
+    def _validate_signal(self, signal: Signal, balance: float) -> bool:
+        """Validate signal against risk rules. Returns True if passed."""
+        account = self.exchange.accounts.get(self.config.default_exchange, {})
+        positions = account.get("positions", [])
+        self.validator.update_position_count(len(positions))
+        result = self.validator.validate(signal, balance)
+        if not result.passed:
+            self.logger.info(f"  Rejected: {result.reason}")
+            return False
+        return True
 
-            result = self.validator.validate(ensemble_signal, balance)
-            if not result.passed:
-                self.logger.info(f"  Rejected: {result.reason}")
-                continue
+    async def _finalize_and_execute(self, symbol: str, signal: Signal,
+                                    sig_dict: dict, candles: list, balance: float) -> None:
+        """Save signal, generate explanation, broadcast, and execute order."""
+        signal_id = self.db.save_signal(sig_dict, validated=True)
+        explanation = await generate_llm_explanation(self, symbol, signal, candles)
+        sig_dict["explanation"] = explanation
+        sig_dict["signal_id"] = signal_id
+        await self.signal_publisher.broadcast_signal(sig_dict)
 
-            # Save to DB
-            signal_id = self.db.save_signal(sig_dict, validated=True)
-
-            # Generate LLM explanation for the signal
-            try:
-                closes = [c["close"] for c in candles]
-                rsi_val = rsi(closes)[-1] if len(closes) >= 14 else 50.0
-                adx_val = adx(candles)[-1] if len(candles) >= 14 else 25.0
-                ema_fast_val = ema(closes, 9)[-1] if len(closes) >= 9 else 0.0
-                ema_slow_val = ema(closes, 21)[-1] if len(closes) >= 21 else 0.0
-                ema_trend = "bullish" if ema_fast_val > ema_slow_val else "bearish"
-
-                explanation = await self.llm_engine.explain_signal(
-                    symbol=symbol,
-                    direction=ensemble_signal.direction.value,
-                    price=ensemble_signal.entry_price,
-                    rsi=rsi_val,
-                    adx=adx_val,
-                    ema_trend=ema_trend,
-                )
-            except (ValueError, KeyError, TypeError, RuntimeError):
-                explanation = ensemble_signal.reason
-
-            # Broadcast signal — reuse sig_dict, add explanation + signal_id
-            sig_dict["explanation"] = explanation
-            sig_dict["signal_id"] = signal_id
-            await self.signal_publisher.broadcast_signal(sig_dict)
-
-            # Execute order
-            if self.config.paper_trading:
-                if self.exchange.is_trading_active:
-                    await self._execute_paper_order(ensemble_signal, signal_id, balance)
-                else:
-                    self.logger.info("Trading stopped — skipping paper order execution")
+        if self.config.paper_trading:
+            if self.exchange.is_trading_active:
+                await self._execute_paper_order(signal, signal_id, balance)
             else:
-                await self._execute_live_order(ensemble_signal, signal_id)
+                self.logger.info("Trading stopped — skipping paper order execution")
+        else:
+            await self._execute_live_order(signal, signal_id)
 
     async def _execute_paper_order(
         self, signal: Signal, signal_id: int, balance: float
@@ -413,80 +317,34 @@ class AISignalBot:
         print_dashboard(self.tracker, positions, prices)
 
 
+def _save_backtest_charts(all_results: dict, plotter, logger: logging.Logger) -> None:
+    """Save equity curve charts for backtest results."""
+    if not all_results:
+        return
+    import os
+    chart_dir = "backtest_charts"
+    os.makedirs(chart_dir, exist_ok=True)
+    for name, result in all_results.items():
+        try:
+            plotter.plot_equity_curve(result, name)
+            plotter.save_all({name: result}, chart_dir)
+            logger.info(f"  Charts saved to {chart_dir}/{name}")
+        except (OSError, ValueError, RuntimeError) as e:
+            logger.warning(f"  Chart generation failed for {name}: {e}")
+
+
 def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
     """Run backtest on historical data from CSV exports or database."""
-    import csv as csv_mod
-    import glob as glob_mod
-
-    def load_candles_from_csv(symbol: str) -> list[dict]:
-        """Load candles from CSV files in data/exports/."""
-        candles = []
-        # Try multiple patterns: data/exports/candles_*.csv, data/exports/*candle*.csv
-        patterns = [
-            f"data/exports/*candle*{symbol.replace('/', '_')}*.csv",
-            f"data/exports/candles_*{symbol.replace('/', '_')}*.csv",
-            f"data/exports/*{symbol.replace('/', '_')}*.csv",
-        ]
-        files = []
-        for p in patterns:
-            files = glob_mod.glob(p)
-            if files:
-                break
-        if not files:
-            # Try all candle files and filter by symbol column
-            files = glob_mod.glob("data/exports/*candle*.csv")
-        for f in sorted(files):
-            try:
-                with open(f, newline="", encoding="utf-8") as fh:
-                    reader = csv_mod.DictReader(fh)
-                    for row in reader:
-                        # Filter by symbol if column exists
-                        if "symbol" in row and row["symbol"] and symbol.replace("/", "_") not in row["symbol"] and row["symbol"] != symbol:
-                            continue
-                        candles.append({
-                            "timestamp": int(float(row.get("timestamp", 0))),
-                            "open": float(row.get("open", row.get("o", 0))),
-                            "high": float(row.get("high", row.get("h", 0))),
-                            "low": float(row.get("low", row.get("l", 0))),
-                            "close": float(row.get("close", row.get("c", 0))),
-                            "volume": float(row.get("volume", row.get("v", 0))),
-                        })
-            except (OSError, ValueError, KeyError, TypeError) as e:
-                logger.warning(f"  Failed to load {f}: {e}")
-        return candles
-
-    # Initialize strategies (same as live bot)
-    strategies = []
-    if config.trend_enabled:
-        strategies.append(TrendFollowingStrategy(
-            ema_fast=config.trend_ema_fast,
-            ema_slow=config.trend_ema_slow,
-            adx_threshold=config.trend_adx_threshold,
-        ))
-    if config.meanrev_enabled:
-        strategies.append(MeanReversionStrategy(
-            rsi_oversold=config.meanrev_rsi_oversold,
-            rsi_overbought=config.meanrev_rsi_overbought,
-            bb_period=config.meanrev_bb_period,
-            bb_std=config.meanrev_bb_std,
-        ))
-    if config.fft_enabled:
-        strategies.append(FFTCycleStrategy(min_data=config.fft_min_data))
-
+    strategies = build_strategies(config)
+    strategies = [s for s in strategies if s.name in ("trend_following", "mean_reversion", "fft_cycle")]
     if not strategies:
         logger.error("No strategies enabled for backtesting")
         return
 
-    # Initialize backtester
     bt = Backtester(
-        initial_balance=10000.0,
-        fee_pct=0.075,
-        slippage_bps=2.0,
-        leverage=10,
-        max_position_pct=config.max_position_size_pct,
-        risk_per_trade_pct=config.max_risk_pct,
-    )
-
+        initial_balance=10000.0, fee_pct=0.075, slippage_bps=2.0,
+        leverage=10, max_position_pct=config.max_position_size_pct,
+        risk_per_trade_pct=config.max_risk_pct)
     plotter = BacktestPlotter()
     all_results = {}
 
@@ -497,7 +355,6 @@ def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
             logger.warning(f"  Only {len(candles)} candles for {symbol} — need at least 100. "
                           f"Export data first: run exchange simulator with --export flag")
             continue
-
         for strategy in strategies:
             logger.info(f"  Backtesting {strategy.name} on {symbol} ({len(candles)} candles)...")
             try:
@@ -507,19 +364,7 @@ def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
             except (ValueError, KeyError, TypeError, RuntimeError, ZeroDivisionError) as e:
                 logger.error(f"  Backtest failed: {e}")
 
-    # Save charts if any results
-    if all_results:
-        import os
-        chart_dir = "backtest_charts"
-        os.makedirs(chart_dir, exist_ok=True)
-        for name, result in all_results.items():
-            try:
-                plotter.plot_equity_curve(result, name)
-                plotter.save_all({name: result}, chart_dir)
-                logger.info(f"  Charts saved to {chart_dir}/{name}")
-            except (OSError, ValueError, RuntimeError) as e:
-                logger.warning(f"  Chart generation failed for {name}: {e}")
-
+    _save_backtest_charts(all_results, plotter, logger)
     logger.info(f"Backtest complete: {len(all_results)} strategy/symbol combinations tested")
 
 

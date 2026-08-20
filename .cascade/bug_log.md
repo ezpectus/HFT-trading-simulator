@@ -2417,6 +2417,33 @@
 
 ---
 
+### QUAL-079: Temp scan files left in project root
+- **Location:** Project root (`_temp_scan.ps1`, `_temp_scan2.ps1`, `_temp_scan3.ps1`)
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** Three one-off PowerShell scanning scripts were left in the project root after previous audit sprints. They are not referenced anywhere in the codebase and clutter the repository root.
+- **Status:** ✅ Fixed
+- **Fix:** Deleted all three temp scan files.
+
+---
+
+### QUAL-080: 8 source modules without dedicated unit tests
+- **Location:** `ai-signal-bot/src/risk/var.py`, `ai-signal-bot/src/risk/cvar.py`, `ai-signal-bot/src/risk/position_sizing.py`, `ai-signal-bot/src/risk/stress_test.py`, `ai-signal-bot/src/strategies/portfolio_optimizer.py`, `ai-signal-bot/src/strategies/ml_features.py`, `ai-signal-bot/src/monitoring/metrics.py`, `ai-signal-bot/src/portfolio/markowitz.py`
+- **Severity:** P3 (Test Coverage)
+- **Root Cause:** 8 source modules lack dedicated unit test files. Some are partially tested indirectly (e.g., `markowitz.py` via `test_risk.py`'s `PortfolioOptimizer` tests, `ml_features.py` via `FeatureEngineer` import in `test_ml_ensemble_funding.py`), but none have dedicated test files that exercise their full API surface.
+- **Status:** ⏳ Pending Fix
+- **Fix:** Add dedicated test files for each untested module in a future sprint.
+
+---
+
+### QUAL-081: 37 noqa comments across 14 files
+- **Location:** 14 files across `ai-signal-bot/` and `exchange_simulator/`
+- **Severity:** P3 (Code Quality)
+- **Root Cause:** 37 `# noqa` comments suppress linter warnings. Breakdown: 22× `E402` (import order after `sys.path` manipulation — legitimate), 8× `F401` (unused imports for optional dependency probing — legitimate), 7× other. All are technically justified but could potentially be reduced by restructuring `sys.path` manipulation into a shared utility.
+- **Status:** ⏳ Pending Fix (low priority — all legitimate uses)
+- **Fix:** Consider creating a shared `sys.path` bootstrap utility to eliminate E402 noqa comments in entry-point scripts.
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
