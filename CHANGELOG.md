@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 24 — File Size Compliance: test_untested_modules.py split)
+
+### Changed
+- **[QUAL-093]** Split `ai-signal-bot/tests/unit/test_untested_modules.py` (1098 lines) into 8 focused test files to comply with 500-line limit:
+  - `test_volatility_surface.py` — SVIParams, SABRParams, VolatilitySurface tests
+  - `test_var_stress_test.py` — StressScenarios, RiskAnalyzer tests
+  - `test_market_making.py` — MarketMakingConfig, MarketMakingStrategy tests
+  - `test_sentiment.py` — EventType, NewsEvent, SentimentStrategy tests
+  - `test_statistical_arbitrage.py` — KalmanFilterHedge, StatisticalArbitrage, CorrelationMatrix tests
+  - `test_order_book_replay.py` — ReplayOrderBook, OrderBookReplay, OrderBookBacktester tests
+  - `test_backtest_plotter.py` — BacktestPlotter tests
+  - `test_backtest_optimizer.py` — OptimizationResult, StrategyOptimizer tests
+- **[QUAL-093]** Created `ai-signal-bot/tests/unit/conftest.py` with shared `sample_candles` and `sample_candle` fixtures.
+- **[QUAL-093]** Replaced original `test_untested_modules.py` with deprecation notice pointing to new files.
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 23 — README Broken Doc Links Fix)
 
 ### Fixed

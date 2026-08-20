@@ -26,6 +26,7 @@
 | 20 | 2026-08-20 | Sprint 13 (Autonomous): C++ signal engine refactoring, 5 functions refactored (365→44, 216→41, 123→16, 85→14, 53→20), 13 inline helpers extracted, 2 major deduplications (regime gating 49 lines, direction/confidence 60+ lines), MATH_MODELS.md updated v5.7 | ✅ Done | 8810b8c, acaac8a, 51e7847 |
 | 21 | 2026-08-20 | Sprint 14 (Autonomous): C++ main.cpp refactoring, main() reduced from 790→42 lines, 17 helpers extracted into bot_setup.cpp (10 init functions) and bot_loop.cpp (8 loop functions), state encapsulated in BotContext struct, 0 forbidden patterns, docs audit v5.8 | ✅ Done | — |
 | 22 | 2026-08-20 | Sprint 15 (Autonomous): Python long function audit, 5 functions refactored (markowitz.optimize_portfolio 107→24, backtester.run 91→39, backtest_engine._compute_results 63→15, exchange.get_depth_snapshot 52→28, market_simulator.__init__ 96→31), 12 helpers extracted, 0 forbidden patterns (TODO/FIXME/HACK/NotImplementedError/type:ignore/bare except/import */print in prod), docs audit v5.9 | ✅ Done | — |
+| 23 | 2026-08-20 | Sprint 24 (Autonomous): File size compliance — split test_untested_modules.py (1098 lines) into 8 focused test files + conftest.py for shared fixtures, all under 500 lines | ✅ Done | — |
 
 ## Bug Fix Progress
 
@@ -283,6 +284,23 @@
 
 | 7 | `ai-signal-bot/metrics.py:281,289` | P3: Incorrect `noqa: E402` on `global` statements | Removed noqa, kept comment | ✅ |
 | 8 | 12 files in `ai-signal-bot/src/` + tests | P3: `Any` import without justification comment | Added inline justification on all import lines | ✅ |
+
+**Sprint 24 — File Size Compliance: test_untested_modules.py split (QUAL-093):**
+
+| # | File | Lines (before) | Lines (after) | Status |
+|---|------|----------------|---------------|--------|
+| 1 | `test_untested_modules.py` | 1098 | 15 (deprecation notice) | ✅ |
+| 2 | `conftest.py` (new) | — | 33 | ✅ |
+| 3 | `test_volatility_surface.py` (new) | — | 115 | ✅ |
+| 4 | `test_var_stress_test.py` (new) | — | 82 | ✅ |
+| 5 | `test_market_making.py` (new) | — | 107 | ✅ |
+| 6 | `test_sentiment.py` (new) | — | 116 | ✅ |
+| 7 | `test_statistical_arbitrage.py` (new) | — | 120 | ✅ |
+| 8 | `test_order_book_replay.py` (new) | — | 82 | ✅ |
+| 9 | `test_backtest_plotter.py` (new) | — | 98 | ✅ |
+| 10 | `test_backtest_optimizer.py` (new) | — | 210 | ✅ |
+
+**Sprint 24 result:** 1 file split into 8 focused test files + 1 conftest.py. All files under 500 lines. Shared fixtures moved to conftest.py for reuse. 0 files now exceed 500-line limit in the entire codebase.
 
 ## Proposals
 

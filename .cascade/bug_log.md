@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 185 |
+| ✅ Fixed | 186 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 0 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **185** |
+| **TOTAL FOUND** | **186** |
 
 ---
 
@@ -2542,6 +2542,16 @@
 - **Root Cause:** 12 files imported `Any` from `typing` without a justification comment on the import line, violating the codebase rule requiring justification for `Any` usage.
 - **Status:** ✅ Fixed
 - **Fix:** Added inline justification comments on all `from typing import Any` lines explaining why `Any` is used (e.g., "ccxt/aiohttp objects lack type stubs", "Optuna trial params are dynamic", "strategy objects are duck-typed", etc.).
+
+---
+
+## QUAL-093 — test_untested_modules.py exceeds 500-line limit (1098 lines)
+
+- **Location:** `ai-signal-bot/tests/unit/test_untested_modules.py`
+- **Severity:** P3 (Code Quality)
+- **Root Cause:** Single test file contained tests for 8 different modules (volatility_surface, var_stress_test, market_making, sentiment, statistical_arbitrage, order_book_replay, plotter, optimizer) totaling 1098 lines, exceeding the 500-line file size limit.
+- **Status:** ✅ Fixed
+- **Fix:** Split into 8 focused test files (`test_volatility_surface.py`, `test_var_stress_test.py`, `test_market_making.py`, `test_sentiment.py`, `test_statistical_arbitrage.py`, `test_order_book_replay.py`, `test_backtest_plotter.py`, `test_backtest_optimizer.py`). Shared fixtures (`sample_candles`, `sample_candle`) moved to `conftest.py`. Original file replaced with deprecation notice pointing to new files.
 
 ---
 
