@@ -420,9 +420,6 @@ int main(int argc, char* argv[]) {
             shm_market_data.reset();
         }
     }
-    // CircuitBreaker ws_circuit(5, 30);
-    // CircuitBreaker order_circuit(5, 30);
-
     std::atomic<double> balance{10000.0};
 
     // AI signal callback — when AI Signal Bot broadcasts a validated signal via WebSocket
