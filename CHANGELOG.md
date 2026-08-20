@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v5.3 — Autonomous Sprint 9: Function Length Refactoring)
+
+### Code Quality Fixes
+
+- **[QUAL-031]** Removed empty `ai-signal-bot/src/collaboration/` directory — dead code, no files, never referenced.
+- **[QUAL-032]** Refactored `backtester.py:run()` (224→65 lines) — extracted 6 helpers: `_check_sl_tp`, `_handle_signal_reversal`, `_check_entry`, `_track_equity`, `_calculate_trade_metrics`, `_calculate_drawdown_metrics`.
+- **[QUAL-033]** Refactored `config_validator.py:validate_config()` (185→26 lines) — extracted 9 sub-validators: `_validate_exchanges`, `_validate_initial_prices`, `_validate_volatility`, `_validate_cross_references`, `_validate_market`, `_validate_account`, `_validate_websocket`, `_validate_arbitrage`, `_validate_visualizer`.
+- **[QUAL-034]** Refactored `greeks_hedging.py:simulate_delta_hedge()` (139→16 lines) — extracted 4 helpers: `_generate_price_path`, `_simulate_single_path`, `_compute_final_result`, `_average_results`.
+- **[QUAL-035]** Refactored `signal_publisher.py:_run_backtest()` (134→46 lines) — extracted 3 helpers: `_generate_synthetic_candles`, `_build_strategies`, `_format_backtest_result`.
+- **[QUAL-036]** Refactored `metrics.py:_init_metrics()` (134→5 lines) — split into 4 category methods: `_init_counters`, `_init_gauges`, `_init_histograms`, `_init_summaries`.
+- **[QUAL-037]** Refactored `arbitrage.py:scan()` (117→33 lines) — extracted 5 helpers: `_collect_order_books`, `_build_price_list`, `_check_exchange_pair`, `_is_duplicate_opp`, `_record_stats`.
+- **[QUAL-038]** Refactored `strategies.py:EnsembleVoter.vote()` (112→33 lines) — extracted 2 helpers: `_accumulate_signals`, `_select_winner`.
+- **[QUAL-039]** Refactored `strategies.py:FFTCycle.analyze()` (104→47 lines) — extracted 3 regime helpers: `_trending_signal`, `_ranging_signal`, `_mixed_signal`.
+- **[QUAL-040]** Refactored `market_simulator.py:_generate_candles_inner_sync()` (107→27 lines) — extracted 3 helpers: `_maybe_trigger_news`, `_generate_symbol_candles`, `_update_funding_rates`.
+- **[QUAL-041]** Refactored `ml_ensemble.py:extract_features()` (96→23 lines) — extracted 4 feature-group helpers: `_price_features`, `_volume_features`, `_technical_features`, `_microstructure_features`. Fixed MFI call bug (broken walrus operator).
+
+### Audit Results
+
+- **10** functions > 100 lines refactored (all now ≤ 65 lines)
+- **49** helper methods extracted across 8 files
+- **1** bug fix (MFI walrus operator in ml_ensemble.py)
+- **1** empty directory removed
+- **0** functions > 100 lines remaining in critical modules
+
 ## [Unreleased] — 2026-08-20 (v5.2 — Autonomous Sprint 8: Dead Code Removal + Test Coverage)
 
 ### Code Quality Fixes

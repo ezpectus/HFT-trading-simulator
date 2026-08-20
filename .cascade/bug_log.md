@@ -1937,6 +1937,116 @@
 
 ---
 
+### QUAL-031: Empty directory — `ai-signal-bot/src/collaboration/`
+- **Location:** `ai-signal-bot/src/collaboration/`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** Empty directory with no files, no `__init__.py`, never referenced in any import. Previously documented in audit as empty.
+- **Status:** ✅ Fixed
+- **Fix:** Removed directory. Not tracked by git (empty), so no commit needed.
+- **Commit:** N/A (untracked directory)
+
+---
+
+### QUAL-032: Function length — `backtester.py:run()` (224 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/backtesting/backtester.py:102-325`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Monolithic backtest loop handling risk management, SL/TP checks, signal reversal, entry signals, equity tracking, and all metrics calculation in one function.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 6 helper methods: `_check_sl_tp` (21 lines), `_handle_signal_reversal` (31 lines), `_check_entry` (22 lines), `_track_equity` (9 lines), `_calculate_trade_metrics` (30 lines), `_calculate_drawdown_metrics` (32 lines). `run()` now 65 lines (orchestration only).
+- **Commit:** 23df044
+
+---
+
+### QUAL-033: Function length — `config_validator.py:validate_config()` (185 lines > 40 limit)
+- **Location:** `exchange_simulator/exchange_simulator/config_validator.py:28-211`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** All config validation logic (exchanges, prices, volatility, cross-refs, market, account, websocket, arbitrage, visualizer) in one function.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 9 sub-validators: `_validate_exchanges` (36), `_validate_initial_prices` (12), `_validate_volatility` (12), `_validate_cross_references` (28), `_validate_market` (38), `_validate_account` (14), `_validate_websocket` (7), `_validate_arbitrage` (13), `_validate_visualizer` (11). `validate_config()` now 26 lines.
+- **Commit:** 57fb68a
+
+---
+
+### QUAL-034: Function length — `greeks_hedging.py:simulate_delta_hedge()` (139 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/research/greeks_hedging.py:100-238`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Monte Carlo simulation with GBM path generation, daily hedging loop, P&L computation, and multi-path averaging all in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 4 helpers: `_generate_price_path` (10), `_simulate_single_path` (48), `_compute_final_result` (40), `_average_results` (12). `simulate_delta_hedge()` now 16 lines.
+- **Commit:** af542aa
+
+---
+
+### QUAL-035: Function length — `signal_publisher.py:_run_backtest()` (134 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/communication/signal_publisher.py:274-407`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Backtest endpoint handling candle generation, strategy selection, execution, and result formatting all in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 3 helpers: `_generate_synthetic_candles` (30), `_build_strategies` (27), `_format_backtest_result` (18). `_run_backtest()` now 46 lines.
+- **Commit:** 39ec2ef
+
+---
+
+### QUAL-036: Function length — `metrics.py:_init_metrics()` (134 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/monitoring/metrics.py:49-181`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** All Prometheus metric definitions (5 counters, 10 gauges, 3 histograms, 1 summary) in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Split into 4 category methods: `_init_counters` (22), `_init_gauges` (24), `_init_histograms` (18), `_init_summaries` (5). `_init_metrics()` now 5 lines.
+- **Commit:** 17ce6c5
+
+---
+
+### QUAL-037: Function length — `arbitrage.py:scan()` (117 lines > 40 limit)
+- **Location:** `exchange_simulator/exchange_simulator/arbitrage.py:101-217`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Order book collection, price list building, exchange pair checking, duplicate detection, and stats recording all in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 5 helpers: `_collect_order_books` (8), `_build_price_list` (12), `_check_exchange_pair` (39), `_is_duplicate_opp` (8), `_record_stats` (13). `scan()` now 33 lines.
+- **Commit:** 2c76b90
+
+---
+
+### QUAL-038: Function length — `strategies.py:EnsembleVoter.vote()` (112 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/strategies.py:214-324`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Signal accumulation, weighted/majority winner selection, and ensemble signal construction all in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 2 helpers: `_accumulate_signals` (35), `_select_winner` (50). `vote()` now 33 lines.
+- **Commit:** 922ca28
+
+---
+
+### QUAL-039: Function length — `strategies.py:FFTCycle.analyze()` (104 lines > 40 limit)
+- **Location:** `ai-signal-bot/src/strategies/strategies.py:356-459`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** All three regime signal generators (TRENDING, RANGING, MIXED) inline in analyze method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 3 regime helpers: `_trending_signal` (19), `_ranging_signal` (23), `_mixed_signal` (19). `analyze()` now 47 lines.
+- **Commit:** e7b3cdd
+
+---
+
+### QUAL-040: Function length — `market_simulator.py:_generate_candles_inner_sync()` (107 lines > 40 limit)
+- **Location:** `exchange_simulator/market_simulator.py:169-276`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** News event triggering, per-symbol candle generation, and funding rate updates all in one method.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 3 helpers: `_maybe_trigger_news` (10), `_generate_symbol_candles` (43), `_update_funding_rates` (12). `_generate_candles_inner_sync()` now 27 lines.
+- **Commit:** 695f839
+
+---
+
+### QUAL-041: Function length — `ml_ensemble.py:extract_features()` (96 lines > 40 limit) + MFI bug
+- **Location:** `ai-signal-bot/src/strategies/ml_ensemble.py:61-155`
+- **Severity:** P1 (Code Quality) + P2 (Bug)
+- **Root Cause:** All 50 feature calculations (price, volume, technical, microstructure) inline in one method. Additionally, MFI call used broken walrus operator `w_volumes if (w_volumes := w_closes) else w_closes` which passed `w_closes` as volumes instead of actual volume data.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 4 feature-group helpers: `_price_features` (14), `_volume_features` (16), `_technical_features` (30), `_microstructure_features` (15). Fixed MFI call to pass `w_volumes` parameter correctly. `extract_features()` now 23 lines.
+- **Commit:** ab6b1db
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
