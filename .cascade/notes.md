@@ -25,7 +25,7 @@
 - `exchange_simulator/market_simulator.py` — GBM + correlated multi-symbol + news events
 - `exchange_simulator/exchange_simulator/market_microstructure.py` — Student-t, Merton, Heston, Markov regime, U-shaped intraday vol
 - `exchange_simulator/options_strategies.py` — Straddle, Strangle, Iron Condor, Butterfly
-- `hft-executor/src/lib.rs` — Rust order executor (WS stub, tests added Sprint 44)
+- `hft-executor/src/lib.rs` — Rust order executor (WS stub, 21 tests added Sprint 44)
 - `shared_config.yaml` — global config
 
 ## Known Critical Issues (audit v6.1)
@@ -40,7 +40,7 @@
 8. Broker integration — 5% (FIX framework exists, not connected)
 9. Real HFT features — 10% (no co-location, DMA, PTP, GPS, tick data)
 10. 10 models don't exist ANYWHERE (Hurst, VPIN, Kyle's Lambda, etc.)
-11. Rust executor — WebSocket is a stub (logs JSON, no real WS), ~~0 tests~~ → ✅ 20 tests added (Sprint 44)
+11. Rust executor — WebSocket is a stub (logs JSON, no real WS), ~~0 tests~~ → ✅ 21 tests added (Sprint 44)
 
 ## Architecture Patterns
 

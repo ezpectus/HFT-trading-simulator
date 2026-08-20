@@ -45,7 +45,7 @@
 | 39 | 2026-08-20 | Sprint 41 (Dead Code Removal): Removed entire web-ui/src/exchanges/ directory — 12 dead code files (~1300 lines), never imported anywhere. Fixes bugs #187 (QUAL-094) and #188 (QUAL-095). All 188 bugs now resolved | ✅ Done | — |
 | 40 | 2026-08-20 | Sprint 42 (Stale Documentation Cleanup): Removed docs/EXCHANGE_UI_CLONES.md (392 lines, documented deleted components). Updated docs/ARCHITECTURE.md — removed 3 lines referencing deleted exchanges/ directory | ✅ Done | — |
 | 41 | 2026-08-20 | Sprint 43 (CUDA/ONNX Dead Code Removal): Removed gpu_accelerator.cu (221 lines) and onnx_engine.h (272 lines) — 493 lines total, never referenced in CMakeLists.txt or any source file. Both behind #ifdef guards, never compiled in CI | ✅ Done | — |
-| 42 | 2026-08-20 | Sprint 44 (Rust Executor Tests): Added 20 unit tests for hft-executor/src/lib.rs (previously 0 tests). Coverage: Order creation, submit/single/batch, stats, FFI create/submit/destroy, null safety, serialization round-trip, all 5 order types | ✅ Done | — |
+| 42 | 2026-08-20 | Sprint 44 (Rust Executor Tests): Added 21 unit tests for hft-executor/src/lib.rs (previously 0 tests). Coverage: Order creation, submit/single/batch, stats, FFI create/submit/destroy, null safety, serialization round-trip, all 5 order types | ✅ Done | — |
 
 ## Bug Fix Progress
 
