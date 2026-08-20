@@ -86,14 +86,14 @@
 | strategies/ | 8 | ✅ | #197-199 position/momentum bugs, Sprint 13 refactoring |
 | data/ | 3 | ✅ | Sprint 12 audit |
 | communication/ | 4 | ✅ | Sprint 12 audit |
-| ml/ | 2 | ✅ | CUDA/ONNX dead code (documented) |
+| ml/ | 2 | ✅ | CUDA/ONNX dead code REMOVED (Sprint 43) |
 | other | 3 | ✅ | Sprint 12 macro→constexpr |
 
 ## hft-executor/src/ — Rust Source (1 file)
 
 | File | Status | Notes |
 |------|--------|-------|
-| lib.rs | ✅ | WebSocket stub, 0 unsafe, documented limitation |
+| lib.rs | ✅ | WebSocket stub, 6 unsafe (all FFI, null-guarded), 21 tests (Sprint 44), documented limitation |
 
 ## web-ui/src/ — React/JS Source (15 files)
 

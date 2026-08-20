@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 51 — Stale Test Counts & File Tracker Fixes)
+
+### Fixed
+- **[DOC-322]** Updated README test coverage table — stale counts (40 JS, 48 C++, 94 Python = 182) corrected to actual counts (44 JS, 46 C++, 118 Python = 208), matching badge
+- **[DOC-323]** Updated README JS test file count 38→44 (30 .test.jsx + 10 .test.js + 4 .spec.js)
+- **[DOC-324]** Fixed file_tracker.md stale note for lib.rs: "0 unsafe" → "6 unsafe (all FFI, null-guarded), 21 tests (Sprint 44)"
+- **[DOC-325]** Fixed file_tracker.md stale note for ml/: "CUDA/ONNX dead code (documented)" → "CUDA/ONNX dead code REMOVED (Sprint 43)"
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 50 — Stale Panel/Model Counts in Web-UI)
 
 ### Fixed

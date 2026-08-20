@@ -52,6 +52,7 @@
 | 46 | 2026-08-20 | Sprint 48 (README Broken Links): Fixed 7 broken doc links (ARCHITECTURE_DIAGRAMS→ARCHITECTURE, QUICK_START→guides/, USER_TRAINING→guides/TRADING_GUIDE, DEVELOPER_TRAINING→guides/DEVELOPMENT_GUIDE, removed 3 never-created docs). Added 4 guides to docs table. Removed stale Exchange UI Clones feature line | ✅ Done | — |
 | 47 | 2026-08-20 | Sprint 49 (Stale exchanges/ Cleanup): Removed stale exchanges/ references from file_tracker.md, personal-prompt.md, prompts.md. Added missing contexts/ and stores/ to README web-ui project structure | ✅ Done | — |
 | 48 | 2026-08-20 | Sprint 50 (Stale Panel/Model Counts): Updated stale panel count (197/191→204) and math model count (75+→44+) in vite.config.js, package.json, index.html, OnboardingTutorial.jsx, registry.test.js | ✅ Done | — |
+| 49 | 2026-08-20 | Sprint 51 (Stale Test Counts & File Tracker): Fixed README test count discrepancy — badge says 208 but table said 182. Updated table to 44 JS + 46 C++ + 118 Python = 208. Fixed JS test count 38→44. Fixed file_tracker.md stale notes: lib.rs "0 unsafe"→"6 unsafe (all FFI)", ml/ "CUDA/ONNX dead code (documented)"→"REMOVED (Sprint 43)" | ✅ Done | — |
 
 ## Bug Fix Progress
 

@@ -267,7 +267,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **Property-based Testing** — C++ random market data generation + invariant checking (SL/TP always closes, PnL consistency)
 - **Docker Hub Images** — `docker-compose.hub.yml` uses pre-built images (no compilation needed). All Dockerfiles include `HEALTHCHECK` and `.dockerignore`.
 - **Cross-platform** — C++ engine compiles on MSVC (Windows), GCC (Linux), and Clang (macOS). Shared memory IPC auto-detects Windows (`CreateFileMappingW`) vs POSIX (`shm_open`). Python SHM uses `mmap` with `tagname` on Windows.
-- **38 test files** covering indicators, format utils, GARCH, Kalman, HMM, cointegration, K-Means, registry, VirtualList, component rendering, error boundaries, hooks
+- **44 test files** covering indicators, format utils, GARCH, Kalman, HMM, cointegration, K-Means, registry, VirtualList, component rendering, error boundaries, hooks
 - **Prometheus** — metrics endpoint on exchange simulator
 - **PostgreSQL** — optional database backend
 - **WebSocket compression** — per-message deflate
@@ -309,7 +309,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | SHM IPC latency | ~1-5 us | Zero-copy C++ ↔ Python, packed structs |
 | Web UI bundle size (dist) | < 5 MB | Code-split, lazy-loaded panels |
 | Web UI initial render | < 1s | Vite + React 18 |
-| Test coverage | 40 JS files, 48 C++ files, 94 Python files | Unit + integration + E2E (182 test files) |
+| Test coverage | 44 JS files, 46 C++ files, 118 Python files | Unit + integration + E2E (208 test files) |
 | Panel count | 204 registered panels | Detachable, responsive |
 | Math models | 44 in trading logic + 40 UI-only | Black-Scholes to SVI/SABR to Heston/Merton |
 | Component files | 227 React components | |
@@ -497,7 +497,7 @@ hft-trading-system/
 │   │   ├── monitoring/              # Health server, system monitor
 │   │   ├── persistence/             # Memory-mapped persistence
 │   │   └── utils/                   # Low-latency primitives (SPSC, spinlock, pool)
-│   ├── tests/                       # C++ unit tests (44 files)
+│   ├── tests/                       # C++ unit tests (46 files)
 │   ├── config/config.yaml
 │   ├── CMakeLists.txt
 │   └── Dockerfile
@@ -505,7 +505,7 @@ hft-trading-system/
 │   ├── src/
 │   │   ├── components/              # 227 UI components (React.lazy)
 │   │   ├── contexts/                # Exchange context, theme context
-│   │   ├── test/                    # Vitest test suite (40 files)
+│   │   ├── test/                    # Vitest test suite (44 files)
 │   │   ├── panels/                  # Panel registry + container
 │   │   ├── hooks/                   # WebSocket, exchange, signals, theme, performance
 │   │   ├── stores/                  # Zustand state stores
