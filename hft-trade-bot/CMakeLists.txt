@@ -69,7 +69,7 @@ endif()
 # Architecture-specific optimizations (Nehalem+ for SSE4.2, Haswell+ for AVX2)
 # -march=native with fallback for cross-compilation safety
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    add_compile_options(-msse4.2)
+    add_compile_options(-msse4.2 -mavx2)
 
     # Try -march=native, fall back to x86-64 if unsupported
     include(CheckCXXCompilerFlag)

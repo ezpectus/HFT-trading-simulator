@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 35 — Day 3: C++ HFT Bot Optimization)
+
+### Added
+- **[FEAT-117]** Explicit `-mavx2` compiler flag in CMakeLists.txt for GCC builds (alongside existing `-msse4.2` and `-march=native`)
+
+### Verified (Already Implemented)
+- **[VERIFY-101]** SIMD/AVX2 indicators — `simd_indicators.h` with AVX2 EMA, RSI, SMA, VWAP and scalar fallback
+- **[VERIFY-102]** Perfect hash symbol lookup — `symbol_map.h` with FNV-1a hash + `PerfectSymbolMap` for O(1) lookup
+- **[VERIFY-103]** Lock-free SPSC queue — `low_latency.h` with cache-line aligned head/tail, no heap allocations
+- **[VERIFY-104]** SHM IPC zero-copy — `shm_market_data.h` with seq-guarded lock-free reads/writes
+- **[VERIFY-105]** Performance metrics — `LatencyHistogram` for signal/risk/order/loop latency tracking
+- **[VERIFY-106]** Object pool — pre-allocated, O(1) acquire/release via pointer arithmetic
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 34 — Day 4: Web UI Performance Optimization)
 
 ### Added
