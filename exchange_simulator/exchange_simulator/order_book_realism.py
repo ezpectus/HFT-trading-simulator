@@ -134,42 +134,32 @@ class OrderBookRealism:
         self.asks.clear()
 
         for i in range(self.num_levels):
-            # Power-law: volume decays as 1/(1 + alpha * level)
             alpha = 0.15
             base_vol = self.base_qty / (1.0 + alpha * i)
-
-            # Add noise
             bid_vol = base_vol * self._rng.lognormal(0, 0.3)
             ask_vol = base_vol * self._rng.lognormal(0, 0.3)
 
             bid_price = self.mid_price - self.spread / 2 - i * self.tick_size
             ask_price = self.mid_price + self.spread / 2 + i * self.tick_size
 
-            # Create levels
-            self.bids[bid_price] = PriceLevel(price=bid_price)
-            self.asks[ask_price] = PriceLevel(price=ask_price)
+            self._create_level_order(bid_price, bid_vol, is_bid=True)
+            self._create_level_order(ask_price, ask_vol, is_bid=False)
 
-            # Add normal orders
-            bid_order = BookOrder(
-                order_id=self._next_id(), price=bid_price, quantity=bid_vol,
-                visible_qty=bid_vol, hidden_qty=0, order_type=OrderType.NORMAL,
-                timestamp=time.time(), queue_position=0, is_bid=True
-            )
-            ask_order = BookOrder(
-                order_id=self._next_id(), price=ask_price, quantity=ask_vol,
-                visible_qty=ask_vol, hidden_qty=0, order_type=OrderType.NORMAL,
-                timestamp=time.time(), queue_position=0, is_bid=False
-            )
-            self.bids[bid_price].add_order(bid_order)
-            self.asks[ask_price].add_order(ask_order)
-
-        # Occasionally add spoof orders
         if self._rng.random() < 0.15:
             self._add_spoof_order()
-
-        # Occasionally add iceberg orders
         if self._rng.random() < 0.10:
             self._add_iceberg_order()
+
+    def _create_level_order(self, price: float, volume: float, is_bid: bool) -> None:
+        """Create a price level with a normal order on the given side."""
+        side_book = self.bids if is_bid else self.asks
+        side_book[price] = PriceLevel(price=price)
+        order = BookOrder(
+            order_id=self._next_id(), price=price, quantity=volume,
+            visible_qty=volume, hidden_qty=0, order_type=OrderType.NORMAL,
+            timestamp=time.time(), queue_position=0, is_bid=is_bid,
+        )
+        side_book[price].add_order(order)
 
     def _add_spoof_order(self) -> None:
         """Add a fake large order that will likely cancel."""
