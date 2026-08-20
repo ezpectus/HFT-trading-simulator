@@ -278,7 +278,7 @@ _metrics_instance: AISignalBotMetrics | None = None
 
 def get_metrics() -> AISignalBotMetrics:
     """Get or create the global metrics instance."""
-    global _metrics_instance  # noqa: E402 — singleton pattern, module-level state
+    global _metrics_instance  # singleton pattern, module-level state
     if _metrics_instance is None:
         _metrics_instance = AISignalBotMetrics()
     return _metrics_instance
@@ -286,7 +286,7 @@ def get_metrics() -> AISignalBotMetrics:
 
 def init_metrics(metrics_port: int = 8001) -> AISignalBotMetrics:
     """Initialize and start the metrics server."""
-    global _metrics_instance  # noqa: E402 — singleton pattern, module-level state
+    global _metrics_instance  # singleton pattern, module-level state
     _metrics_instance = AISignalBotMetrics(metrics_port)
     _metrics_instance.start_metrics_server()
     return _metrics_instance
