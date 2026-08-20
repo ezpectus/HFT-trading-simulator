@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 36 — Day 7: Testing and Quality)
+
+### Added
+- **[TEST-201]** Property-based tests with Hypothesis — 7 invariant tests covering Candle round-trip, order book spread, VWAP range, order quantity validation, timestamp monotonicity, EMA range, high-low invariant
+- **[TEST-202]** Security tests — 15 tests covering log injection prevention, order validation (negative/zero/NaN/inf quantities, invalid side, missing fields), message validation (unknown types, type confusion), numeric overflow protection, subscription security (SQL injection symbols, path traversal, XSS)
+- **[TEST-203]** Added `hypothesis>=6.100.0` to `requirements-dev.txt`
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 35 — Day 3: C++ HFT Bot Optimization)
 
 ### Added

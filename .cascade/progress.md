@@ -38,6 +38,7 @@
 | 32 | 2026-08-20 | Sprint 33 (Day 2: WebSocket Optimization): Sequence numbers for delta sync, selective subscription filtering in broadcast, unsubscribe handler, WebSocket connection pool with health checks, client-side compression, auto-reconnect with exponential backoff, 20 new tests, WEBSOCKET_PROTOCOL.md updated | ✅ Done | — |
 | 33 | 2026-08-20 | Sprint 34 (Day 4: Web UI Performance): React.lazy code splitting for 12 tab panels, Suspense boundaries, React.memo for TabButton/OrderBook/CandleChart, vite CSS code splitting + vendor chunks (zustand, recharts) | ✅ Done | — |
 | 34 | 2026-08-20 | Sprint 35 (Day 3: C++ HFT Bot Optimization): Verified existing SIMD/AVX2 indicators, perfect hash symbol lookup, lock-free SPSC queue, SHM IPC zero-copy. Added explicit -mavx2 flag to CMakeLists.txt | ✅ Done | — |
+| 35 | 2026-08-20 | Sprint 36 (Day 7: Testing and Quality): Property-based tests with Hypothesis (7 invariant tests), security tests (15 tests: log injection, order validation, message validation, numeric overflow, subscription security), added hypothesis to requirements-dev.txt | ✅ Done | — |
 
 ## Bug Fix Progress
 
