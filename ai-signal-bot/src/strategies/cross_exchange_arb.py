@@ -234,27 +234,15 @@ class CrossExchangeArbEngine:
                 self._stats["opportunities_failed"] += 1
                 return
 
-            # Execute both legs simultaneously
-            buy_task = asyncio.create_task(
-                self._execute_leg(buy_client, opp.symbol, "buy", opp.qty, opp.buy_price)
+            buy_result, sell_result = await self._execute_both_legs(
+                buy_client, sell_client, opp
             )
-            sell_task = asyncio.create_task(
-                self._execute_leg(sell_client, opp.symbol, "sell", opp.qty, opp.sell_price)
-            )
-
-            buy_result, sell_result = await asyncio.wait_for(
-                asyncio.gather(buy_task, sell_task, return_exceptions=True),
-                timeout=self.execution_timeout_s,
-            )
-
             opp.execution_time_ms = (time.time() - start_time) * 1000
 
-            # Check results
             if isinstance(buy_result, Exception) or isinstance(sell_result, Exception):
                 opp.error = f"Leg error: buy={buy_result}, sell={sell_result}"
                 opp.status = ArbStatus.FAILED
                 self._stats["opportunities_failed"] += 1
-                # TODO: unwind any filled leg
                 return
 
             if not buy_result.success or not sell_result.success:
@@ -263,23 +251,7 @@ class CrossExchangeArbEngine:
                 self._stats["opportunities_failed"] += 1
                 return
 
-            # Calculate actual profit
-            actual_profit = (sell_result.fill_price - buy_result.fill_price) * min(
-                buy_result.fill_qty, sell_result.fill_qty
-            )
-            total_slippage = buy_result.slippage_bps + sell_result.slippage_bps
-
-            opp.status = ArbStatus.COMPLETED
-            self._stats["opportunities_executed"] += 1
-            self._stats["total_profit_usd"] += actual_profit
-            self._stats["total_slippage_bps"] += total_slippage
-
-            logger.info(
-                f"[CrossExArb] {opp.symbol}: buy={opp.buy_exchange}@{buy_result.fill_price:.2f} "
-                f"sell={opp.sell_exchange}@{sell_result.fill_price:.2f} "
-                f"profit=${actual_profit:.2f} slip={total_slippage:.1f}bps "
-                f"time={opp.execution_time_ms:.0f}ms"
-            )
+            self._record_successful_arb(opp, buy_result, sell_result)
 
         except TimeoutError:
             opp.error = "Execution timeout"
@@ -295,6 +267,43 @@ class CrossExchangeArbEngine:
             self.completed.append(opp)
             if len(self.completed) > 100:
                 self.completed = self.completed[-50:]
+
+    async def _execute_both_legs(
+        self, buy_client: object, sell_client: object, opp: ArbitrageOpportunity
+    ) -> tuple[ExecutionResult, ExecutionResult]:
+        """Execute buy and sell legs simultaneously with timeout."""
+        buy_task = asyncio.create_task(
+            self._execute_leg(buy_client, opp.symbol, "buy", opp.qty, opp.buy_price)
+        )
+        sell_task = asyncio.create_task(
+            self._execute_leg(sell_client, opp.symbol, "sell", opp.qty, opp.sell_price)
+        )
+        return await asyncio.wait_for(
+            asyncio.gather(buy_task, sell_task, return_exceptions=True),
+            timeout=self.execution_timeout_s,
+        )
+
+    def _record_successful_arb(
+        self, opp: ArbitrageOpportunity,
+        buy_result: ExecutionResult, sell_result: ExecutionResult,
+    ) -> None:
+        """Record stats for a successful arbitrage execution."""
+        actual_profit = (sell_result.fill_price - buy_result.fill_price) * min(
+            buy_result.fill_qty, sell_result.fill_qty
+        )
+        total_slippage = buy_result.slippage_bps + sell_result.slippage_bps
+
+        opp.status = ArbStatus.COMPLETED
+        self._stats["opportunities_executed"] += 1
+        self._stats["total_profit_usd"] += actual_profit
+        self._stats["total_slippage_bps"] += total_slippage
+
+        logger.info(
+            f"[CrossExArb] {opp.symbol}: buy={opp.buy_exchange}@{buy_result.fill_price:.2f} "
+            f"sell={opp.sell_exchange}@{sell_result.fill_price:.2f} "
+            f"profit=${actual_profit:.2f} slip={total_slippage:.1f}bps "
+            f"time={opp.execution_time_ms:.0f}ms"
+        )
 
     async def _execute_leg(
         self, client: object, symbol: str, side: str, qty: float, limit_price: float
