@@ -1,13 +1,13 @@
 # Architecture
 
-**Last Updated:** August 15, 2026
-**Project Status:** 62% overall completion (deep audit v4.3 — honest assessment)
+**Last Updated:** August 20, 2026
+**Project Status:** 62% overall completion (deep audit v4.5 — honest assessment)
 
 ## Overview
 
 The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 227 React components, 197 registered UI panels, 44 mathematical models in trading logic (+40 UI-only educational visualizations), PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
 
-**Honest status (v4.3 audit):** CUDA and ONNX code exists behind `#ifdef` but is never compiled in CI (dead code). ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface IS implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection).
+**Honest status (v4.5 audit):** CUDA and ONNX code exists behind `#ifdef` but is never compiled in CI (dead code). ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface IS implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection). Signal and CircuitBreaker extracted to separate modules (`signal.py`, `circuit_breaker.py`) for file-size compliance.
 
 **Recent Completion (August 12, 2026):**
 - Day 9: Monitoring and Observability (Prometheus metrics, Grafana dashboards, OpenTelemetry tracing, Alertmanager)
