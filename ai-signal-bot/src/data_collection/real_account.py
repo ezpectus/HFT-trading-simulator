@@ -97,8 +97,8 @@ class RealAccountManager:
         self.api_key = api_key
         self.api_secret = api_secret
         self.testnet = testnet
-        self._exchange: Any | None = None
-        self._ws_session: Any | None = None
+        self._exchange: Any | None = None  # ccxt.Exchange — ccxt has no type stubs
+        self._ws_session: Any | None = None  # aiohttp.ClientSession — duck-typed
         self._user_data_stream_key: str | None = None
         self._listen_task: asyncio.Task | None = None
         self._on_fill_callback = None

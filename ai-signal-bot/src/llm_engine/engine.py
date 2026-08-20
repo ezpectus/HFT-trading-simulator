@@ -74,7 +74,7 @@ class LLMEngine:
         self._cache: dict[str, tuple[float, LLMAnalysis]] = {}
         self._request_count = 0
         self._error_count = 0
-        self._session: Any | None = None
+        self._session: Any | None = None  # aiohttp.ClientSession — duck-typed
         self._prompt_dir = os.path.join(os.path.dirname(__file__), "prompt_templates")
 
     async def initialize(self) -> None:

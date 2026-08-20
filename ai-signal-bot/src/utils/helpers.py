@@ -81,7 +81,7 @@ def load_config(config_path: str = "config/settings.yaml") -> dict:
 
 
 def get_env(key: str, default: Any = None, cast: type = str) -> Any:
-    """Get environment variable with type casting."""
+    """Get environment variable with type casting. Any: default may be str|int|float|bool."""
     val = os.getenv(key)
     if val is None:
         return default

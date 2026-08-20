@@ -207,7 +207,7 @@ class GeneticStrategyDiscovery:
 
     def evolve(
         self,
-        data: Any,
+        data: Any,  # Market data — type depends on caller (list[Candle] | pd.DataFrame)
         fitness_fn: Callable[[Chromosome], float],
         symbol: str = "BTC/USDT",
     ) -> Chromosome:

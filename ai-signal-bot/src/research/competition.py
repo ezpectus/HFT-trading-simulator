@@ -54,7 +54,7 @@ class StrategyCompetition:
 
     def __init__(
         self,
-        data: Any = None,
+        data: Any = None,  # Market data (candles/df) — type depends on backtest engine
         initial_capital: float = 10000.0,
         elo_k: float = 32.0,
     ):
@@ -66,6 +66,7 @@ class StrategyCompetition:
         self.matchups: list[dict] = []
 
     def register(self, name: str, strategy: Any) -> None:
+        """Register a strategy. Any object with analyze() method (duck typing)."""
         self.strategies[name] = strategy
         logger.info(f"[Competition] Registered: {name}")
 
@@ -148,7 +149,7 @@ class StrategyCompetition:
         })
 
     def _default_backtest(self, strategy: Any, name: str) -> dict[str, float]:
-        """Default backtest — override with custom backtest_fn."""
+        """Default backtest — strategy is Any (duck typing). Override with custom backtest_fn."""
         return {
             "total_return_pct": 0.0,
             "sharpe_ratio": 0.0,
