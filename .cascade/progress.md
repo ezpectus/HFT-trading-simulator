@@ -11,6 +11,7 @@
 | 5 | 2026-08-16 | Scan exchange_simulator/ source files — found & fixed 10 bugs (#066-#075) | ✅ Done | 268e858 |
 | 6 | 2026-08-16 | Scan ai-signal-bot/src/ source files — found & fixed 7 bugs (#076-#082) | ✅ Done | fa25ec5 |
 | 7 | 2026-08-16 | Scan ai-signal-bot/src/risk,ml,research — found & fixed 5 bugs (#083-#087) | ✅ Done | d83020e |
+| 8 | 2026-08-20 | Sprint 1 (Autonomous): Code quality fixes (print→logging, pass→warning, except→specific) + 25 new tests | ✅ Done | a0f25a1, 62f809f |
 
 ## Bug Fix Progress
 

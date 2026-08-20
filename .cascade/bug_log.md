@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 168 |
+| ✅ Fixed | 172 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 0 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **168** |
+| **TOTAL FOUND** | **172** |
 
 ---
 
@@ -1663,6 +1663,38 @@
 - **Impact:** Test would fail after Bug #229 fix, since the output would show "1%" instead of "85%".
 - **Status:** ✅ Fixed
 - **Fix:** Changed test data from `confidence: 0.85` to `confidence: 85`.
+
+---
+
+## Sprint 1 Quality Issues (Autonomous Audit: 2026-08-20)
+
+### QUAL-001: print() in production code — TradingEnv.render()
+- **Location:** `ai-signal-bot/src/ml/environment.py:180-186`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `render()` used `print()` for 7 debug output lines — violates rule: 0 print() in production.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced with `logger.debug()` using single structured log call. Also implemented `close()` with actual resource cleanup instead of `pass` stub.
+
+### QUAL-002: pass stub in LSTMModel.export_to_onnx()
+- **Location:** `ai-signal-bot/src/ml/lstm_model.py:233-238`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `export_to_onnx()` was a `pass` stub with commented-out code — callers have no way to know export silently does nothing.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `pass` with `logger.warning()` so callers know ONNX export is not implemented.
+
+### QUAL-003: except Exception: pass in shm_ring_buffer._mm_barrier()
+- **Location:** `ai-signal-bot/src/communication/shm_ring_buffer.py:36-37,42-44`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Memory barrier functions silently swallowed all exceptions with `except Exception: pass` — hides SHM sync failures that could cause cross-process data inconsistency.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced with specific exceptions (`OSError`, `AttributeError`, `BufferError`) and `logger.warning()`.
+
+### QUAL-004: Silent pass in MarkowitzOptimizer sector constraints
+- **Location:** `ai-signal-bot/src/portfolio/markowitz.py:144-148`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Sector constraints were silently skipped with `pass` — users passing `sector_constraints` have no idea they're being ignored.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced `pass` with `logger.warning()` naming the skipped sector and its bounds.
 
 ---
 

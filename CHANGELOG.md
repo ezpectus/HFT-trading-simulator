@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v4.5 — Autonomous Sprint 1: Code Quality + Test Coverage)
+
+### Code Quality Fixes
+
+- **[QUAL-001]** `TradingEnv.render()` in `ai-signal-bot/src/ml/environment.py:180-186` used `print()` for debug output — replaced with `logging.debug()`. Also implemented `close()` with actual resource cleanup instead of `pass` stub.
+- **[QUAL-002]** `LSTMModel.export_to_onnx()` in `ai-signal-bot/src/ml/lstm_model.py:238` had `pass` stub — replaced with `logger.warning()` so callers know ONNX export is not implemented.
+- **[QUAL-003]** `shm_ring_buffer._mm_barrier()` in `ai-signal-bot/src/communication/shm_ring_buffer.py:36-37,42-44` used `except Exception: pass` — replaced with specific exceptions (`OSError`, `AttributeError`, `BufferError`) and `logger.warning()`.
+- **[QUAL-004]** `MarkowitzOptimizer` in `ai-signal-bot/src/portfolio/markowitz.py:148` silently skipped sector constraints with `pass` — replaced with `logger.warning()` so users know constraints are ignored.
+
+### Test Coverage
+
+- **[TEST-001]** Added `tests/unit/test_ws_client.py` — 15 tests covering `ExchangeClient` init, message processing (welcome, trading_state, candle snapshot, accumulation, maxlen, error, unknown), order submission (not connected, trading stopped, order sent), close position, disconnect.
+- **[TEST-002]** Added `tests/unit/test_shm_market_data_writer.py` — 10 tests covering `ShmMarketDataWriter` init, num_slots, zeroed state, write_snapshot seq updates, different slots, invalid symbol_id, write_price convenience, close, context manager.
+
 ## [Unreleased] — 2026-08-16 (v4.4 — Bug Scan Continuation)
 
 ### Bug Fixes
