@@ -26,6 +26,15 @@ from src.technical_analysis.pca import (
     PCAResult,
     compute_pca,
 )
+from src.technical_analysis.kmeans import (
+    KMeansResult,
+    extract_features as extract_kmeans_features,
+    kmeans,
+)
+from src.technical_analysis.gmm import (
+    GMMResult,
+    fit_gmm,
+)
 
 __all__ = [
     "adx", "atr", "bollinger_bands", "ema", "macd", "rsi", "sma", "vwap",
@@ -33,4 +42,6 @@ __all__ = [
     "fft_filter", "fft_cycle_indicator", "power_spectrum",
     "KalmanFilter1D", "KalmanFilter2D", "kalman_filter_1d", "kalman_filter_2d",
     "PCAResult", "compute_pca",
+    "KMeansResult", "kmeans", "extract_kmeans_features",
+    "GMMResult", "fit_gmm",
 ]

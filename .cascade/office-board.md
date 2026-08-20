@@ -89,5 +89,6 @@
 - Sprint 54: Removed stale CUDA/ONNX dead code references from ARCHITECTURE.md (status text + mermaid diagram). Updated sprint count 41→53, sprint range 9-31→1-53. Quick audit: 0 violations
 - Sprint 55: Ported Kalman Filter from UI-only to trading logic. Created kalman.py (1D + 2D implementations). 15 tests. Updated MATH_MODELS.md, future_development.md. First model port from future_development.md §0.1 high-priority list
 - Sprint 56: Ported PCA from UI-only to trading logic. Created pca.py (SVD-based with pure Python Jacobi fallback). 14 tests. Updated MATH_MODELS.md, future_development.md. Second model port from future_development.md §0.1 list
+- Sprint 57: Ported K-Means and GMM from UI-only to trading logic. Created kmeans.py (Lloyd's + K-Means++ init + feature extraction) and gmm.py (EM algorithm + BIC/AIC). 27 tests. Updated MATH_MODELS.md, future_development.md. Third and fourth model ports from future_development.md §0.1 list
 - All 9 days of development plan: ✅ COMPLETE
 - All 188 bugs: ✅ FIXED (0 pending)

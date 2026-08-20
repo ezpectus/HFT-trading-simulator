@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 57 — K-Means and GMM Ported to Trading Logic)
+
+### Added
+- **[FEAT-344]** Created `ai-signal-bot/src/technical_analysis/kmeans.py` — K-Means clustering with Lloyd's algorithm and K-Means++ initialization. KMeansResult class with labels, centroids, WCSS. Feature extraction (mean, vol, skew, kurt, MAR, AC1, R²). Ported from UI-only KMeansClustering.jsx.
+- **[FEAT-345]** Created `ai-signal-bot/src/technical_analysis/gmm.py` — 1D Gaussian Mixture Model with EM algorithm. GMMResult class with means, variances, weights, assignments, log-likelihood, BIC, AIC. K-Means initialization. Ported from UI-only GaussianMixtureModel.jsx.
+- **[TEST-346]** Created `ai-signal-bot/tests/test_kmeans.py` — 12 tests covering empty, k=0, fewer points than k, well-separated clusters, WCSS, deterministic seed, single cluster, feature extraction
+- **[TEST-347]** Created `ai-signal-bot/tests/test_gmm.py` — 15 tests covering empty, k=0, single component, two components, weights sum=1, positive variances, assignments, deterministic seed, BIC/AIC, sorted means
+
+### Changed
+- Updated `ai-signal-bot/src/technical_analysis/__init__.py` — added KMeansResult, kmeans, extract_kmeans_features, GMMResult, fit_gmm exports
+- Updated `docs/MATH_MODELS.md` — added K-Means and GMM sections under Technical Indicators
+- Updated `docs/future_development.md` — marked K-Means and GMM as ✅ DONE (Sprint 57)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 56 — PCA Ported to Trading Logic)
 
 ### Added

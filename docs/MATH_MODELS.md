@@ -135,6 +135,27 @@ Scores: X_c * V (projection onto principal components)
 Applications: factor extraction (PC1=market factor), risk decomposition, eigenportfolio construction.
 - **Source:** `ai-signal-bot/src/technical_analysis/pca.py` (Sprint 56, ported from UI-only PrincipalComponentAnalysis.jsx)
 
+### K-Means Clustering — Trading logic
+Lloyd's algorithm with K-Means++ initialization for market regime detection.
+```
+Init: K-Means++ smart centroid seeding
+Assign: label_i = argmin_c ||x_i - μ_c||²
+Update: μ_c = mean of points assigned to cluster c
+WCSS: Σ_i ||x_i - μ_{label_i}||²
+```
+Features: mean return, volatility, skewness, kurtosis, MAR, autocorrelation, trend strength (R²).
+- **Source:** `ai-signal-bot/src/technical_analysis/kmeans.py` (Sprint 57, ported from UI-only KMeansClustering.jsx)
+
+### Gaussian Mixture Model (GMM) — Trading logic
+EM algorithm for 1D Gaussian Mixture Model fitting.
+```
+p(x) = Σ_k π_k · N(x | μ_k, σ_k²)
+E-step: γ(z_nk) = π_k·N(x_n|μ_k,σ_k²) / Σ_j π_j·N(x_n|μ_j,σ_j²)
+M-step: μ_k = Σ_n γ_nk·x_n / N_k, σ_k² = Σ_n γ_nk·(x_n-μ_k)² / N_k, π_k = N_k / N
+BIC = -2L + k_params·log(N), AIC = -2L + 2·k_params
+```
+- **Source:** `ai-signal-bot/src/technical_analysis/gmm.py` (Sprint 57, ported from UI-only GaussianMixtureModel.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

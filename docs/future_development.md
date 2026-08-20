@@ -50,8 +50,8 @@
 | Hawkes Process | `HawkesProcess.jsx` | `src/technical_analysis/hawkes.py` | СРЕДНИЙ | 2 недели |
 | Almgren-Chriss | `AlmgrenChriss.jsx` | `src/research/almgren_chriss.py` | СРЕДНИЙ | 1 неделя |
 | Optimal Stopping | `OptimalStopping.jsx` | `src/technical_analysis/optimal_stopping.py` | СРЕДНИЙ | 1 неделя |
-| K-Means Clustering | `KMeansClustering.jsx` | `src/technical_analysis/kmeans.py` | СРЕДНИЙ | 3 дня |
-| Gaussian Mixture | `GaussianMixtureModel.jsx` | `src/technical_analysis/gmm.py` | СРЕДНИЙ | 3 дня |
+| ~~K-Means Clustering~~ | `KMeansClustering.jsx` | `src/technical_analysis/kmeans.py` | ✅ DONE (Sprint 57) |
+| ~~Gaussian Mixture~~ | `GaussianMixtureModel.jsx` | `src/technical_analysis/gmm.py` | ✅ DONE (Sprint 57) |
 | ~~PCA~~ | `PrincipalComponentAnalysis.jsx` | `src/technical_analysis/pca.py` | ✅ DONE (Sprint 56) |
 | SVM | `SupportVectorMachine.jsx` | `src/ml/svm_signal.py` | СРЕДНИЙ | 3 дня |
 | Autoencoder | `Autoencoder.jsx` | `src/ml/autoencoder.py` | СРЕДНИЙ | 1 неделя |
