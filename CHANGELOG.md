@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 54 — Stale CUDA/ONNX Refs in ARCHITECTURE.md)
+
+### Fixed
+- **[DOC-338]** Updated ARCHITECTURE.md — removed stale CUDA/ONNX dead code references (removed Sprint 43): line 10 "CUDA and ONNX code exists behind #ifdef" → "CUDA and ONNX dead code was removed in Sprint 43", line 38 mermaid diagram "CUDA (dead code) | ONNX (dead code)" → "Rust FFI Executor"
+- **[DOC-339]** Updated ARCHITECTURE.md — sprint count "41 development phases" → "53 development sprints", sprint range "Sprints 9-31" → "Sprints 1-53"
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 53 — Stale Audit Version References)
 
 ### Fixed

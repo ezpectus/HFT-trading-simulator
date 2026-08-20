@@ -55,6 +55,7 @@
 | 49 | 2026-08-20 | Sprint 51 (Stale Test Counts & File Tracker): Fixed README test count discrepancy — badge says 208 but table said 182. Updated table to 44 JS + 46 C++ + 118 Python = 208. Fixed JS test count 38→44. Fixed file_tracker.md stale notes: lib.rs "0 unsafe"→"6 unsafe (all FFI)", ml/ "CUDA/ONNX dead code (documented)"→"REMOVED (Sprint 43)" | ✅ Done | — |
 | 50 | 2026-08-20 | Sprint 52 (Missing Doc Files from 9-Day Plan): Created 6 doc files referenced in 9_DAY_DEVELOPMENT_PLAN.md but never created: OPTIONS_TRADING.md, PORTFOLIO_OPTIMIZATION.md, RISK_MANAGEMENT.md, MACHINE_LEARNING.md, MONITORING_GUIDE.md, TESTING.md. Updated README docs table (21→27 files) and Detailed Documentation section. Fixed notes.md stale item 10 (Hurst/VPIN/Kyle's Lambda marked RESOLVED) | ✅ Done | — |
 | 51 | 2026-08-20 | Sprint 53 (Stale Audit Version References): Fixed stale audit version v5.9→v6.1 in 3 doc files (MATH_MODELS.md, PERFORMANCE.md, SETUP.md). Removed "Missing" and "Dead code" categories from MATH_MODELS.md header (no missing models remain, CUDA/ONNX removed Sprint 43). Quick audit: 0 bare except, 0 import *, 0 raise NotImplementedError | ✅ Done | — |
+| 52 | 2026-08-20 | Sprint 54 (Stale CUDA/ONNX in ARCHITECTURE.md): Removed stale CUDA/ONNX dead code references from ARCHITECTURE.md (line 10 status text, line 38 mermaid diagram). Updated sprint count 41→53 and sprint range 9-31→1-53. Quick audit: 0 violations | ✅ Done | — |
 
 ## Bug Fix Progress
 
