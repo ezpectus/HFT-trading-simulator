@@ -306,7 +306,47 @@ class SignalPublisher:
         use_trailing = bool(params.get("trailing_stop", False))
         use_breakeven = bool(params.get("breakeven", False))
 
-        # Generate synthetic candles
+        candles = self._generate_synthetic_candles(n_candles, initial_price, volatility)
+
+        risk_config = None
+        if use_trailing or use_breakeven:
+            risk_config = RiskConfig(
+                trailing_stop_enabled=use_trailing,
+                trailing_distance_pct=2.0,
+                breakeven_enabled=use_breakeven,
+                breakeven_trigger_pct=1.0,
+            )
+
+        bt = Backtester(
+            initial_balance=balance,
+            fee_pct=0.075,
+            slippage_bps=2.0,
+            risk_config=risk_config,
+        )
+
+        strategies = self._build_strategies(strategy_name)
+        if not strategies:
+            return {"type": "backtest_result", "error": f"Unknown strategy: {strategy_name}"}
+
+        results = {}
+        for name, strat in strategies.items():
+            result = bt.run(candles, strat, symbol=symbol, warmup=50)
+            results[name] = self._format_backtest_result(result)
+
+        logger.info(f"Backtest completed: {strategy_name}, {n_candles} candles, {len(results)} strategies")
+        self.metrics.record_backtest()
+
+        return {
+            "type": "backtest_result",
+            "strategy": strategy_name,
+            "symbol": symbol,
+            "candles": n_candles,
+            "results": results,
+        }
+
+    @staticmethod
+    def _generate_synthetic_candles(n_candles: int, initial_price: float, volatility: float) -> list[dict]:
+        """Generate synthetic OHLCV candles using GBM."""
         rng = random.Random(42)
         candles = []
         price = initial_price
@@ -335,25 +375,18 @@ class SignalPublisher:
                 "volume": round(volume, 2),
             })
             price = new_price
+        return candles
 
-        # Build risk config
-        risk_config = None
-        if use_trailing or use_breakeven:
-            risk_config = RiskConfig(
-                trailing_stop_enabled=use_trailing,
-                trailing_distance_pct=2.0,
-                breakeven_enabled=use_breakeven,
-                breakeven_trigger_pct=1.0,
-            )
-
-        bt = Backtester(
-            initial_balance=balance,
-            fee_pct=0.075,
-            slippage_bps=2.0,
-            risk_config=risk_config,
+    @staticmethod
+    def _build_strategies(strategy_name: str) -> dict:
+        """Build strategy instances based on name selection."""
+        from src.strategies import (
+            EnsembleVoter,
+            FFTCycleStrategy,
+            MeanReversionStrategy,
+            TrendFollowingStrategy,
         )
 
-        # Strategy selection
         strategies = {}
         if strategy_name in ("trend", "all", "ensemble"):
             strategies["Trend Following"] = TrendFollowingStrategy(ema_fast=9, ema_slow=21, adx_threshold=25)
@@ -371,39 +404,26 @@ class SignalPublisher:
                 EnsembleVoter(mode="weighted", min_votes=2),
                 sub_strategies,
             )
+        return strategies
 
-        if not strategies:
-            return {"type": "backtest_result", "error": f"Unknown strategy: {strategy_name}"}
-
-        results = {}
-        for name, strat in strategies.items():
-            result = bt.run(candles, strat, symbol=symbol, warmup=50)
-            results[name] = {
-                "total_return_pct": round(result.total_return_pct, 2),
-                "total_trades": result.total_trades,
-                "winning_trades": result.winning_trades,
-                "losing_trades": result.losing_trades,
-                "win_rate": round(result.win_rate, 2),
-                "avg_win": round(result.avg_win, 2),
-                "avg_loss": round(result.avg_loss, 2),
-                "profit_factor": round(result.profit_factor, 2) if result.profit_factor != float('inf') else 999.99,
-                "max_drawdown_pct": round(result.max_drawdown_pct, 2),
-                "sharpe_ratio": round(result.sharpe_ratio, 2),
-                "final_balance": round(result.final_balance, 2),
-                "equity_curve": result.equity_curve,
-                "signals_generated": result.signals_generated,
-                "signals_valid": result.signals_valid,
-            }
-
-        logger.info(f"Backtest completed: {strategy_name}, {n_candles} candles, {len(results)} strategies")
-        self.metrics.record_backtest()
-
+    @staticmethod
+    def _format_backtest_result(result) -> dict:
+        """Format a BacktestResult into a JSON-serializable dict."""
         return {
-            "type": "backtest_result",
-            "strategy": strategy_name,
-            "symbol": symbol,
-            "candles": n_candles,
-            "results": results,
+            "total_return_pct": round(result.total_return_pct, 2),
+            "total_trades": result.total_trades,
+            "winning_trades": result.winning_trades,
+            "losing_trades": result.losing_trades,
+            "win_rate": round(result.win_rate, 2),
+            "avg_win": round(result.avg_win, 2),
+            "avg_loss": round(result.avg_loss, 2),
+            "profit_factor": round(result.profit_factor, 2) if result.profit_factor != float('inf') else 999.99,
+            "max_drawdown_pct": round(result.max_drawdown_pct, 2),
+            "sharpe_ratio": round(result.sharpe_ratio, 2),
+            "final_balance": round(result.final_balance, 2),
+            "equity_curve": result.equity_curve,
+            "signals_generated": result.signals_generated,
+            "signals_valid": result.signals_valid,
         }
 
     def _compare_backtests(self, data: dict) -> dict:
