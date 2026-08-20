@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 52 — Missing Doc Files from 9-Day Plan)
+
+### Added
+- **[DOC-326]** Created `docs/OPTIONS_TRADING.md` — Black-Scholes, Greeks, SVI/SABR, options strategies (Day 6 deliverable)
+- **[DOC-327]** Created `docs/PORTFOLIO_OPTIMIZATION.md` — Markowitz, Black-Litterman, risk parity, rebalancing (Day 6 deliverable)
+- **[DOC-328]** Created `docs/RISK_MANAGEMENT.md` — VaR, CVaR, Kelly, stress testing, position risk manager (Day 6 deliverable)
+- **[DOC-329]** Created `docs/MACHINE_LEARNING.md` — LSTM, Transformer, RL, AutoML, feature store, model registry (Day 6 deliverable)
+- **[DOC-330]** Created `docs/MONITORING_GUIDE.md` — Prometheus, Grafana, Alertmanager, tracing, health checks (Day 5 deliverable)
+- **[DOC-331]** Created `docs/TESTING.md` — 208 test files overview, Python/C++/JS/Rust test infrastructure (Day 7 deliverable)
+
+### Fixed
+- **[DOC-332]** Updated README docs table — added 6 new doc entries, updated docs count 21→27
+- **[DOC-333]** Updated README Detailed Documentation section — added 6 new doc links
+- **[DOC-334]** Fixed notes.md stale item 10 — "10 models don't exist ANYWHERE (Hurst, VPIN, Kyle's Lambda)" marked as RESOLVED (stale references removed in earlier sprints, never claimed in MATH_MODELS.md)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 51 — Stale Test Counts & File Tracker Fixes)
 
 ### Fixed

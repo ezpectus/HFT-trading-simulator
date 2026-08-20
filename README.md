@@ -538,7 +538,7 @@ hft-trading-system/
 ├── monitoring/                      # Prometheus config + Grafana dashboards
 ├── .editorconfig
 ├── .gitignore
-├── docs/                            # Documentation (21 files)
+├── docs/                            # Documentation (27 files)
 ├── .github/                         # CI workflows + issue/PR templates (bug, feature, good-first-issue)
 ├── CONTRIBUTING.md                  # Architecture guide, coding standards, PR process
 ├── README.md
@@ -663,6 +663,12 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 | [Configuration Guide](docs/guides/CONFIGURATION_GUIDE.md) | All configuration options explained |
 | [Mathematical Models](docs/MATH_MODELS.md) | 44 models in trading logic + 40 UI-only, with formulas and file references |
 | [Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md) | Iceberg, TWAP, trailing stops, OCO orders |
+| [Options Trading](docs/OPTIONS_TRADING.md) | Black-Scholes, Greeks, SVI/SABR, options strategies |
+| [Portfolio Optimization](docs/PORTFOLIO_OPTIMIZATION.md) | Markowitz, Black-Litterman, risk parity, rebalancing |
+| [Risk Management](docs/RISK_MANAGEMENT.md) | VaR, CVaR, Kelly criterion, stress testing, position risk |
+| [Machine Learning](docs/MACHINE_LEARNING.md) | LSTM, Transformer, RL agents, AutoML, feature store |
+| [Monitoring Guide](docs/MONITORING_GUIDE.md) | Prometheus, Grafana, Alertmanager, tracing, health checks |
+| [Testing](docs/TESTING.md) | 208 test files: Python, C++, JS, Rust test infrastructure |
 | [9-Day Development Plan](docs/9_DAY_DEVELOPMENT_PLAN.md) | Project roadmap — all 9 phases completed |
 | [Master Development Plan](MASTER_DEVELOPMENT_PLAN.md) | Full 9-phase development roadmap with detailed implementation plans |
 | [Changelog](CHANGELOG.md) | Version history and notable changes |
@@ -806,6 +812,12 @@ In-depth technical documentation:
 - **[Configuration Reference](docs/CONFIGURATION_REFERENCE.md)** - All configuration options
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Deployment procedures and best practices
 - **[Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md)** - Advanced order type documentation
+- **[Options Trading](docs/OPTIONS_TRADING.md)** - Options pricing, Greeks, volatility surface
+- **[Portfolio Optimization](docs/PORTFOLIO_OPTIMIZATION.md)** - Markowitz, Black-Litterman, risk parity
+- **[Risk Management](docs/RISK_MANAGEMENT.md)** - VaR, CVaR, Kelly, stress testing
+- **[Machine Learning](docs/MACHINE_LEARNING.md)** - LSTM, Transformer, RL, AutoML
+- **[Monitoring Guide](docs/MONITORING_GUIDE.md)** - Prometheus, Grafana, Alertmanager, tracing
+- **[Testing](docs/TESTING.md)** - Test infrastructure and coverage
 - **[Audit Logging](docs/AUDIT_LOGGING.md)** - Audit logging system documentation
 
 ### Additional Resources

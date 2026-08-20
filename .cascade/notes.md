@@ -39,7 +39,7 @@
 7. Quantum models — 0%
 8. Broker integration — 5% (FIX framework exists, not connected)
 9. Real HFT features — 10% (no co-location, DMA, PTP, GPS, tick data)
-10. 10 models don't exist ANYWHERE (Hurst, VPIN, Kyle's Lambda, etc.)
+10. ~~10 models don't exist ANYWHERE (Hurst, VPIN, Kyle's Lambda, etc.)~~ → ✅ RESOLVED (stale references removed from docs in earlier sprints; these models were never claimed in MATH_MODELS.md)
 11. Rust executor — WebSocket is a stub (logs JSON, no real WS), ~~0 tests~~ → ✅ 21 tests added (Sprint 44)
 
 ## Architecture Patterns
