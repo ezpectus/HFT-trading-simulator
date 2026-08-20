@@ -30,7 +30,7 @@ import signal
 import struct
 import sys
 import time
-from typing import Any
+from typing import Any  # Any: BCC event data is untyped C struct payload
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ class EBPFMonitor:
             logger.error(f"[eBPF] Init failed: {e}")
             return False
 
-    def _on_syscall_event(self, cpu, data, size):
+    def _on_syscall_event(self, cpu: int, data: Any, size: int) -> None:
         """Handle syscall event from eBPF."""
         try:
             event = self._bpf["events"].event(data)
@@ -181,7 +181,7 @@ class EBPFMonitor:
         logger.info("[eBPF] Monitoring stopped")
 
     def _report(self) -> None:
-        """Print current stats as JSON."""
+        """Log current stats as JSON."""
         report = {
             "timestamp": time.time(),
             "pid": self.pid,
@@ -196,7 +196,7 @@ class EBPFMonitor:
                 "max_latency_us": round(stats["max_latency_ns"] / 1000, 2),
             }
 
-        print(json.dumps(report, indent=2))
+        logger.info(json.dumps(report, indent=2))
 
     def get_stats(self) -> dict[str, Any]:
         return self._stats.copy()
@@ -210,7 +210,7 @@ def main():
 
     monitor = EBPFMonitor(pid=args.pid, interval=args.interval)
 
-    def signal_handler(sig, frame):
+    def signal_handler(sig: int, frame: Any) -> None:  # noqa: ARG001 — signal API requires these params
         monitor.stop()
         sys.exit(0)
 

@@ -4,7 +4,6 @@
 # for signal generation, PnL, win rate, and system resources.
 
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
-from typing import Optional
 
 
 class AISignalBotMetrics:
@@ -110,7 +109,7 @@ class AISignalBotMetrics:
         )
         
         # Model metrics
-        self_model_predictions_total = Counter(
+        self.model_predictions_total = Counter(
             'ai_signal_bot_model_predictions_total',
             'Total number of model predictions',
             ['model_type']
@@ -135,11 +134,11 @@ class AISignalBotMetrics:
             ['symbol']
         )
     
-    def start_metrics_server(self):
+    def start_metrics_server(self) -> None:
         """Start the Prometheus metrics HTTP server."""
         start_http_server(self.metrics_port)
     
-    def record_signal(self, strategy: str, signal_type: str, latency: float):
+    def record_signal(self, strategy: str, signal_type: str, latency: float) -> None:
         """
         Record a signal generation.
         
@@ -151,7 +150,7 @@ class AISignalBotMetrics:
         self.signals_generated_total.labels(strategy=strategy, signal_type=signal_type).inc()
         self.signal_generation_latency.labels(strategy=strategy).observe(latency)
     
-    def record_trade(self, symbol: str, side: str):
+    def record_trade(self, symbol: str, side: str) -> None:
         """
         Record a trade execution.
         
@@ -161,7 +160,7 @@ class AISignalBotMetrics:
         """
         self.trades_total.labels(symbol=symbol, side=side).inc()
     
-    def update_pnl(self, symbol: str, strategy: str, total_pnl: float, daily_pnl: float):
+    def update_pnl(self, symbol: str, strategy: str, total_pnl: float, daily_pnl: float) -> None:
         """
         Update PnL metrics.
         
@@ -174,7 +173,7 @@ class AISignalBotMetrics:
         self.pnl_total.labels(symbol=symbol, strategy=strategy).set(total_pnl)
         self.pnl_daily.labels(symbol=symbol, strategy=strategy).set(daily_pnl)
     
-    def update_performance_metrics(self, strategy: str, win_rate: float, sharpe_ratio: float, drawdown: float):
+    def update_performance_metrics(self, strategy: str, win_rate: float, sharpe_ratio: float, drawdown: float) -> None:
         """
         Update performance metrics.
         
@@ -188,7 +187,7 @@ class AISignalBotMetrics:
         self.sharpe_ratio.labels(strategy=strategy).set(sharpe_ratio)
         self.drawdown.labels(strategy=strategy).set(drawdown)
     
-    def record_error(self, error_type: str, component: str):
+    def record_error(self, error_type: str, component: str) -> None:
         """
         Record an error.
         
@@ -198,16 +197,16 @@ class AISignalBotMetrics:
         """
         self.errors_total.labels(error_type=error_type, component=component).inc()
     
-    def record_model_prediction(self, model_type: str):
+    def record_model_prediction(self, model_type: str) -> None:
         """
         Record a model prediction.
         
         Args:
             model_type: Type of model (LSTM, Transformer, etc.)
         """
-        self_model_predictions_total.labels(model_type=model_type).inc()
+        self.model_predictions_total.labels(model_type=model_type).inc()
     
-    def update_model_accuracy(self, model_type: str, accuracy: float):
+    def update_model_accuracy(self, model_type: str, accuracy: float) -> None:
         """
         Update model accuracy.
         
@@ -217,7 +216,7 @@ class AISignalBotMetrics:
         """
         self.model_accuracy.labels(model_type=model_type).set(accuracy)
     
-    def update_portfolio_metrics(self, portfolio_value: float, currency: str, positions: dict):
+    def update_portfolio_metrics(self, portfolio_value: float, currency: str, positions: dict[str, float]) -> None:
         """
         Update portfolio metrics.
         
@@ -231,7 +230,7 @@ class AISignalBotMetrics:
         for symbol, count in positions.items():
             self.position_count.labels(symbol=symbol).set(count)
     
-    def update_system_metrics(self, cpu_usage: float, memory_usage: float):
+    def update_system_metrics(self, cpu_usage: float, memory_usage: float) -> None:
         """
         Update system resource metrics.
         
@@ -242,7 +241,7 @@ class AISignalBotMetrics:
         self.cpu_usage.set(cpu_usage)
         self.memory_usage.set(memory_usage)
     
-    def update_signal_rate(self, strategy: str, rate: float):
+    def update_signal_rate(self, strategy: str, rate: float) -> None:
         """
         Update signal rate gauge.
         
@@ -252,7 +251,7 @@ class AISignalBotMetrics:
         """
         self.signal_rate.labels(strategy=strategy).set(rate)
     
-    def update_trade_rate(self, symbol: str, rate: float):
+    def update_trade_rate(self, symbol: str, rate: float) -> None:
         """
         Update trade rate gauge.
         
@@ -262,7 +261,7 @@ class AISignalBotMetrics:
         """
         self.trade_rate.labels(symbol=symbol).set(rate)
     
-    def update_error_rate(self, component: str, rate: float):
+    def update_error_rate(self, component: str, rate: float) -> None:
         """
         Update error rate gauge.
         
@@ -274,28 +273,20 @@ class AISignalBotMetrics:
 
 
 # Global metrics instance
-_metrics_instance: Optional[AISignalBotMetrics] = None
+_metrics_instance: AISignalBotMetrics | None = None
 
 
 def get_metrics() -> AISignalBotMetrics:
     """Get or create the global metrics instance."""
-    global _metrics_instance
+    global _metrics_instance  # noqa: E402 — singleton pattern, module-level state
     if _metrics_instance is None:
         _metrics_instance = AISignalBotMetrics()
     return _metrics_instance
 
 
 def init_metrics(metrics_port: int = 8001) -> AISignalBotMetrics:
-    """
-    Initialize and start the metrics server.
-    
-    Args:
-        metrics_port: Port for metrics HTTP server
-    
-    Returns:
-        Metrics instance
-    """
-    global _metrics_instance
+    """Initialize and start the metrics server."""
+    global _metrics_instance  # noqa: E402 — singleton pattern, module-level state
     _metrics_instance = AISignalBotMetrics(metrics_port)
     _metrics_instance.start_metrics_server()
     return _metrics_instance
