@@ -70,32 +70,39 @@ class BacktestPlotter:
         )
 
         equity = np.array(result.equity_curve)
-        n = len(equity)
-        x = np.arange(n)
+        x = np.arange(len(equity))
+        peak = np.maximum.accumulate(equity)
 
-        # Equity curve
+        self._plot_equity_line(ax1, x, equity, result, title)
+        self._plot_metrics_box(ax1, result)
+        self._plot_drawdown(ax2, x, equity, peak)
+
+        plt.tight_layout()
+        if save_path:
+            fig.savefig(save_path, dpi=self.dpi, bbox_inches="tight")
+            logger.info(f"Saved equity curve to {save_path}")
+        return fig
+
+    @staticmethod
+    def _plot_equity_line(
+        ax1, x: np.ndarray, equity: np.ndarray,
+        result: BacktestResult, title: str,
+    ) -> None:
+        """Plot equity curve with profit/loss shading and peak line."""
         ax1.plot(x, equity, color=COLORS["equity"], linewidth=1.5, label="Equity")
-        ax1.axhline(
-            y=result.initial_balance, color=COLORS["benchmark"],
-            linestyle="--", linewidth=0.8, label="Initial Balance",
-        )
-        ax1.fill_between(x, result.initial_balance, equity,
-                         where=equity >= result.initial_balance,
-                         color=COLORS["profit"], alpha=0.15)
-        ax1.fill_between(x, result.initial_balance, equity,
-                         where=equity < result.initial_balance,
-                         color=COLORS["loss"], alpha=0.15)
-
-        # Peak line for drawdown reference
+        ax1.axhline(y=result.initial_balance, color=COLORS["benchmark"], linestyle="--", linewidth=0.8, label="Initial Balance")
+        ax1.fill_between(x, result.initial_balance, equity, where=equity >= result.initial_balance, color=COLORS["profit"], alpha=0.15)
+        ax1.fill_between(x, result.initial_balance, equity, where=equity < result.initial_balance, color=COLORS["loss"], alpha=0.15)
         peak = np.maximum.accumulate(equity)
         ax1.plot(x, peak, color=COLORS["benchmark"], linewidth=0.5, alpha=0.5, label="Peak")
-
         ax1.set_title(title, fontsize=14, fontweight="bold")
         ax1.set_ylabel("Balance ($)", fontsize=11)
         ax1.legend(loc="upper left", fontsize=9)
         ax1.grid(True, alpha=0.3)
 
-        # Metrics box
+    @staticmethod
+    def _plot_metrics_box(ax1, result: BacktestResult) -> None:
+        """Add metrics text box to equity plot."""
         metrics_text = (
             f"Return: {result.total_return_pct:+.2f}%\n"
             f"Max DD: {result.max_drawdown_pct:.2f}%\n"
@@ -108,7 +115,11 @@ class BacktestPlotter:
                  bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.8),
                  family="monospace")
 
-        # Drawdown chart
+    @staticmethod
+    def _plot_drawdown(
+        ax2, x: np.ndarray, equity: np.ndarray, peak: np.ndarray,
+    ) -> None:
+        """Plot drawdown subplot."""
         drawdown_pct = np.where(peak > 0, (peak - equity) / peak * 100, 0)
         ax2.fill_between(x, 0, drawdown_pct, color=COLORS["drawdown"], alpha=0.4)
         ax2.plot(x, drawdown_pct, color=COLORS["drawdown"], linewidth=0.8)
@@ -116,14 +127,6 @@ class BacktestPlotter:
         ax2.set_xlabel("Bar", fontsize=11)
         ax2.invert_yaxis()
         ax2.grid(True, alpha=0.3)
-
-        plt.tight_layout()
-
-        if save_path:
-            fig.savefig(save_path, dpi=self.dpi, bbox_inches="tight")
-            logger.info(f"Saved equity curve to {save_path}")
-
-        return fig
 
     def plot_trade_pnl(
         self,

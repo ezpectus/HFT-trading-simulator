@@ -29,6 +29,7 @@
 | 23 | 2026-08-20 | Sprint 24 (Autonomous): File size compliance — split test_untested_modules.py (1098 lines) into 8 focused test files + conftest.py for shared fixtures, all under 500 lines | ✅ Done | — |
 | 24 | 2026-08-20 | Sprint 25 (Autonomous): Long function refactoring — 5 functions >60 lines refactored (logging.setup_logging 94→32, walk_forward.run 85→25, price_predictor.train_model 81→25, indicators.adx 77→10, risk_manager.update 77→24), 20 helpers extracted, docs audit v6.0 | ✅ Done | — |
 | 25 | 2026-08-20 | Sprint 26 (Autonomous): Long function refactoring batch 2 — 5 functions >60 lines refactored (order_book_replay.from_candle 75→23, rl_trader.update 71→17, portfolio_optimizer.black_litterman 74→25, environment.step 63→27, signal_publisher._run_backtest 72→33), 13 helpers extracted | ✅ Done | — |
+| 26 | 2026-08-20 | Sprint 27 (Autonomous): Long function refactoring batch 3 — 5 functions >60 lines refactored (options_simulator.price_option 74→24, plotter.plot_equity_curve 67→22, position_sizing.kelly_criterion_sizing 65→37, cvar.calculate_cvar 65→15, risk_parity.optimize_risk_parity 64→21), 12 helpers extracted | ✅ Done | — |
 
 ## Bug Fix Progress
 
@@ -327,6 +328,18 @@
 | 5 | `communication/signal_publisher.py` | `SignalPublisher._run_backtest` | 72 | 33 | `_parse_backtest_params`, `_build_risk_config` |
 
 **Sprint 26 result:** 5 functions refactored, 13 helpers extracted. All 5 functions now under 40-line limit.
+
+**Sprint 27 — Long Function Refactoring Batch 3 (>60 lines):**
+
+| # | File | Function | Before | After | Helpers Extracted |
+|---|------|----------|--------|-------|-------------------|
+| 1 | `exchange_simulator/options_simulator.py` | `price_option` | 74 | 24 | `_intrinsic_quote`, `_zero_quote`, `_calc_price_delta_rho`, `_calc_gamma_vega_theta` |
+| 2 | `backtesting/plotter.py` | `plot_equity_curve` | 67 | 22 | `_plot_equity_line`, `_plot_metrics_box`, `_plot_drawdown` |
+| 3 | `risk/position_sizing.py` | `kelly_criterion_sizing` | 65 | 37 | `_calc_kelly_fraction` |
+| 4 | `risk/cvar.py` | `calculate_cvar` | 65 | 15 | `_calc_var`, `_calc_cvar_tail`, `_cvar_historical`, `_cvar_parametric`, `_cvar_monte_carlo` |
+| 5 | `portfolio/risk_parity.py` | `optimize_risk_parity` | 64 | 21 | `_iterate_risk_parity` |
+
+**Sprint 27 result:** 5 functions refactored, 12 helpers extracted. All 5 functions now under 40-line limit.
 
 ## Proposals
 

@@ -39,66 +39,65 @@ class CVaRCalculator:
                       confidence_level: float | None = None,
                       time_horizon: float | None = None,
                       method: str = 'historical') -> CVaRResult:
-        """
-        Calculate Conditional VaR (Expected Shortfall).
-        
-        Args:
-            returns: Historical returns
-            confidence_level: Confidence level (uses default if None)
-            time_horizon: Time horizon in days (uses default if None)
-            method: VaR calculation method ('historical', 'parametric', 'monte_carlo')
-        
-        Returns:
-            CVaRResult with CVaR value
-        """
+        """Calculate Conditional VaR (Expected Shortfall)."""
         cl = confidence_level or self.confidence_level
         th = time_horizon or self.time_horizon
         
-        # Calculate VaR first
-        if method == 'historical':
-            var_result = self.var_calculator.calculate_historical_var(returns, cl, th)
-        elif method == 'parametric':
-            var_result = self.var_calculator.calculate_parametric_var(returns, cl, th)
-        elif method == 'monte_carlo':
-            var_result = self.var_calculator.calculate_monte_carlo_var(returns, confidence_level=cl, time_horizon=th)
-        else:
-            raise ValueError(f"Unknown method: {method}")
-        
-        # Calculate CVaR (average of returns exceeding VaR)
-        if method == 'historical':
-            # Historical CVaR: average of returns below VaR
-            var_threshold = var_result.var_value / np.sqrt(th)  # Unscale for comparison
-            tail_returns = returns[returns < var_threshold]
-            cvar = np.mean(tail_returns) if len(tail_returns) > 0 else var_result.var_value
-            cvar_scaled = cvar * np.sqrt(th)
-        
-        elif method == 'parametric':
-            # Parametric CVaR using normal distribution
-            mean = np.mean(returns)
-            std = np.std(returns)
-            z_score = stats.norm.ppf(1 - cl)
-            # CVaR for normal distribution
-            # Scale: mean scales linearly with t, std scales by sqrt(t)
-            cvar_scaled = mean * th - std * np.sqrt(th) * (stats.norm.pdf(z_score) / (1 - cl))
-        
-        elif method == 'monte_carlo':
-            # Monte Carlo CVaR
-            n_simulations = 10000
-            mean = np.mean(returns)
-            std = np.std(returns)
-            simulated_returns = np.random.normal(mean, std, n_simulations)
-            var_threshold = var_result.var_value / np.sqrt(th)
-            tail_returns = simulated_returns[simulated_returns < var_threshold]
-            cvar = np.mean(tail_returns) if len(tail_returns) > 0 else var_result.var_value
-            cvar_scaled = cvar * np.sqrt(th)
+        var_result = self._calc_var(returns, cl, th, method)
+        cvar_scaled = self._calc_cvar_tail(returns, var_result, cl, th, method)
         
         return CVaRResult(
-            cvar_value=cvar_scaled,
-            var_value=var_result.var_value,
-            confidence_level=cl,
-            time_horizon=th,
-            method=method
+            cvar_value=cvar_scaled, var_value=var_result.var_value,
+            confidence_level=cl, time_horizon=th, method=method
         )
+    
+    def _calc_var(self, returns: np.ndarray, cl: float, th: float, method: str):
+        """Calculate VaR using specified method."""
+        if method == 'historical':
+            return self.var_calculator.calculate_historical_var(returns, cl, th)
+        elif method == 'parametric':
+            return self.var_calculator.calculate_parametric_var(returns, cl, th)
+        elif method == 'monte_carlo':
+            return self.var_calculator.calculate_monte_carlo_var(returns, confidence_level=cl, time_horizon=th)
+        else:
+            raise ValueError(f"Unknown method: {method}")
+    
+    def _calc_cvar_tail(self, returns: np.ndarray, var_result, cl: float, th: float, method: str) -> float:
+        """Calculate CVaR from tail returns beyond VaR threshold."""
+        if method == 'historical':
+            return self._cvar_historical(returns, var_result, th)
+        elif method == 'parametric':
+            return self._cvar_parametric(returns, cl, th)
+        else:
+            return self._cvar_monte_carlo(returns, var_result, th)
+    
+    @staticmethod
+    def _cvar_historical(returns: np.ndarray, var_result, th: float) -> float:
+        """Historical CVaR: average of returns below VaR."""
+        var_threshold = var_result.var_value / np.sqrt(th)
+        tail_returns = returns[returns < var_threshold]
+        cvar = np.mean(tail_returns) if len(tail_returns) > 0 else var_result.var_value
+        return cvar * np.sqrt(th)
+    
+    @staticmethod
+    def _cvar_parametric(returns: np.ndarray, cl: float, th: float) -> float:
+        """Parametric CVaR using normal distribution."""
+        mean = np.mean(returns)
+        std = np.std(returns)
+        z_score = stats.norm.ppf(1 - cl)
+        return mean * th - std * np.sqrt(th) * (stats.norm.pdf(z_score) / (1 - cl))
+    
+    @staticmethod
+    def _cvar_monte_carlo(returns: np.ndarray, var_result, th: float) -> float:
+        """Monte Carlo CVaR from simulated returns."""
+        n_simulations = 10000
+        mean = np.mean(returns)
+        std = np.std(returns)
+        simulated = np.random.normal(mean, std, n_simulations)
+        var_threshold = var_result.var_value / np.sqrt(th)
+        tail_returns = simulated[simulated < var_threshold]
+        cvar = np.mean(tail_returns) if len(tail_returns) > 0 else var_result.var_value
+        return cvar * np.sqrt(th)
     
     def calculate_expected_shortfall(self, returns: np.ndarray,
                                     confidence_level: float | None = None,

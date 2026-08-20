@@ -75,72 +75,77 @@ class OptionsSimulator:
         sigma: float,
         option_type: str = "call",
     ) -> OptionQuote:
-        """Price a European option using Black-Scholes.
-
-        Args:
-            S: Underlying price
-            K: Strike price
-            T: Time to expiry in years
-            sigma: Annualized volatility
-            option_type: "call" or "put"
-
-        Returns:
-            OptionQuote with price and all Greeks
-        """
+        """Price a European option using Black-Scholes."""
         if T <= 0:
-            # At expiry — intrinsic value
-            intrinsic = max(S - K, 0) if option_type == "call" else max(K - S, 0)
-            return OptionQuote(
-                price=intrinsic, delta=0, gamma=0, theta=0, vega=0, rho=0,
-                implied_vol=sigma, strike=K, expiry=T, option_type=option_type,
-                underlying=S, in_the_money=intrinsic > 0,
-            )
-
+            return self._intrinsic_quote(S, K, T, sigma, option_type)
         if sigma <= 0 or S <= 0 or K <= 0:
-            return OptionQuote(
-                price=0, delta=0, gamma=0, theta=0, vega=0, rho=0,
-                implied_vol=sigma, strike=K, expiry=T, option_type=option_type,
-                underlying=S, in_the_money=False,
-            )
+            return self._zero_quote(S, K, T, sigma, option_type)
 
         d1, d2 = self._d1_d2(S, K, T, sigma)
-        nd1 = self._norm_cdf(d1)
-        nd2 = self._norm_cdf(d2)
-        pd1 = self._norm_pdf(d1)
-        discount = math.exp(-self.r * T)
-
-        if option_type == "call":
-            price = S * nd1 - K * discount * nd2
-            delta = nd1
-            rho = K * T * discount * nd2 / 100.0
-        else:  # put
-            price = K * discount * self._norm_cdf(-d2) - S * self._norm_cdf(-d1)
-            delta = nd1 - 1.0
-            rho = -K * T * discount * self._norm_cdf(-d2) / 100.0
-
-        gamma = pd1 / (S * sigma * math.sqrt(T))
-        vega = S * pd1 * math.sqrt(T) / 100.0  # per 1% vol
-        theta = (
-            -(S * pd1 * sigma) / (2.0 * math.sqrt(T))
-            - self.r * K * discount * (nd2 if option_type == "call" else -self._norm_cdf(-d2))
-        ) / 365.0  # per day
-
+        price, delta, rho = self._calc_price_delta_rho(S, K, T, sigma, d1, d2, option_type)
+        gamma, vega, theta = self._calc_gamma_vega_theta(S, K, T, sigma, d1, d2, option_type)
         itm = (S > K) if option_type == "call" else (S < K)
 
         return OptionQuote(
-            price=price,
-            delta=delta,
-            gamma=gamma,
-            theta=theta,
-            vega=vega,
-            rho=rho,
-            implied_vol=sigma,
-            strike=K,
-            expiry=T,
-            option_type=option_type,
-            underlying=S,
-            in_the_money=itm,
+            price=price, delta=delta, gamma=gamma, theta=theta, vega=vega, rho=rho,
+            implied_vol=sigma, strike=K, expiry=T, option_type=option_type,
+            underlying=S, in_the_money=itm,
         )
+
+    def _intrinsic_quote(
+        self, S: float, K: float, T: float, sigma: float, option_type: str,
+    ) -> OptionQuote:
+        """Return option quote at expiry (intrinsic value)."""
+        intrinsic = max(S - K, 0) if option_type == "call" else max(K - S, 0)
+        return OptionQuote(
+            price=intrinsic, delta=0, gamma=0, theta=0, vega=0, rho=0,
+            implied_vol=sigma, strike=K, expiry=T, option_type=option_type,
+            underlying=S, in_the_money=intrinsic > 0,
+        )
+
+    @staticmethod
+    def _zero_quote(
+        S: float, K: float, T: float, sigma: float, option_type: str,
+    ) -> OptionQuote:
+        """Return zero-value option quote for invalid inputs."""
+        return OptionQuote(
+            price=0, delta=0, gamma=0, theta=0, vega=0, rho=0,
+            implied_vol=sigma, strike=K, expiry=T, option_type=option_type,
+            underlying=S, in_the_money=False,
+        )
+
+    def _calc_price_delta_rho(
+        self, S: float, K: float, T: float, sigma: float,
+        d1: float, d2: float, option_type: str,
+    ) -> tuple[float, float, float]:
+        """Calculate price, delta, and rho for call or put."""
+        discount = math.exp(-self.r * T)
+        if option_type == "call":
+            price = S * self._norm_cdf(d1) - K * discount * self._norm_cdf(d2)
+            delta = self._norm_cdf(d1)
+            rho = K * T * discount * self._norm_cdf(d2) / 100.0
+        else:
+            price = K * discount * self._norm_cdf(-d2) - S * self._norm_cdf(-d1)
+            delta = self._norm_cdf(d1) - 1.0
+            rho = -K * T * discount * self._norm_cdf(-d2) / 100.0
+        return price, delta, rho
+
+    def _calc_gamma_vega_theta(
+        self, S: float, K: float, T: float, sigma: float,
+        d1: float, d2: float, option_type: str,
+    ) -> tuple[float, float, float]:
+        """Calculate gamma, vega, and theta."""
+        pd1 = self._norm_pdf(d1)
+        sqrt_T = math.sqrt(T)
+        discount = math.exp(-self.r * T)
+        gamma = pd1 / (S * sigma * sqrt_T)
+        vega = S * pd1 * sqrt_T / 100.0
+        nd2 = self._norm_cdf(d2)
+        theta = (
+            -(S * pd1 * sigma) / (2.0 * sqrt_T)
+            - self.r * K * discount * (nd2 if option_type == "call" else -self._norm_cdf(-d2))
+        ) / 365.0
+        return gamma, vega, theta
 
     def implied_vol(
         self,

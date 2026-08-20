@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 27 — Long Function Refactoring Batch 3)
+
+### Changed
+- **[QUAL-096]** Refactored 5 more functions exceeding 60 lines:
+  - `exchange_simulator/options_simulator.py` — `price_option` 74→24 lines (4 helpers: `_intrinsic_quote`, `_zero_quote`, `_calc_price_delta_rho`, `_calc_gamma_vega_theta`)
+  - `backtesting/plotter.py` — `plot_equity_curve` 67→22 lines (3 helpers: `_plot_equity_line`, `_plot_metrics_box`, `_plot_drawdown`)
+  - `risk/position_sizing.py` — `kelly_criterion_sizing` 65→37 lines (1 helper: `_calc_kelly_fraction`)
+  - `risk/cvar.py` — `calculate_cvar` 65→15 lines (5 helpers: `_calc_var`, `_calc_cvar_tail`, `_cvar_historical`, `_cvar_parametric`, `_cvar_monte_carlo`)
+  - `portfolio/risk_parity.py` — `optimize_risk_parity` 64→21 lines (1 helper: `_iterate_risk_parity`)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 26 — Long Function Refactoring Batch 2)
 
 ### Changed

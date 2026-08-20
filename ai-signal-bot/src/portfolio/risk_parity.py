@@ -87,64 +87,43 @@ class RiskParityOptimizer:
                              risk_budget: np.ndarray | None = None,
                              max_iterations: int = 1000,
                              tolerance: float = 1e-6) -> PortfolioResult:
-        """
-        Optimize portfolio for equal risk contribution (risk parity).
-        
-        Args:
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            weight_bounds: Min and max weight bounds
-            risk_budget: Risk budget for each asset (if None, equal risk)
-            max_iterations: Maximum iterations for optimization
-            tolerance: Convergence tolerance
-        
-        Returns:
-            PortfolioResult with risk parity weights
-        """
+        """Optimize portfolio for equal risk contribution (risk parity)."""
         n_assets = cov_matrix.shape[0]
-        
-        # Initialize weights (equal weights)
         weights = np.ones(n_assets) / n_assets
-        
-        # Risk budget (equal if not specified)
         if risk_budget is None:
             risk_budget = np.ones(n_assets) / n_assets
-        
-        # Iterative optimization
-        for iteration in range(max_iterations):
-            # Calculate marginal risk
+
+        weights = self._iterate_risk_parity(weights, cov_matrix, weight_bounds, max_iterations, tolerance)
+
+        portfolio_volatility = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
+        portfolio_return = 0
+        sharpe_ratio = (portfolio_return - self.risk_free_rate) / portfolio_volatility if portfolio_volatility > 0 else 0
+
+        return PortfolioResult(
+            weights=weights, expected_return=portfolio_return,
+            volatility=portfolio_volatility, sharpe_ratio=sharpe_ratio
+        )
+
+    def _iterate_risk_parity(
+        self, weights: np.ndarray, cov_matrix: np.ndarray,
+        weight_bounds: tuple[float, float],
+        max_iterations: int, tolerance: float,
+    ) -> np.ndarray:
+        """Run iterative risk parity optimization."""
+        n_assets = cov_matrix.shape[0]
+        for _ in range(max_iterations):
             marginal_risk = self.calculate_marginal_risk(weights, cov_matrix)
-            
-            # Calculate new weights: w_new = w_old / marginal_risk
-            # Guard against zero marginal risk (degenerate covariance)
-            safe_marginal_risk = np.where(np.abs(marginal_risk) < 1e-12, 1e-12, marginal_risk)
-            new_weights = weights / safe_marginal_risk
-            
-            # Normalize to sum to 1
+            safe_mr = np.where(np.abs(marginal_risk) < 1e-12, 1e-12, marginal_risk)
+            new_weights = weights / safe_mr
             weight_sum = np.sum(new_weights)
             new_weights = new_weights / weight_sum if weight_sum > 0 else np.ones(n_assets) / n_assets
-            
-            # Apply bounds
             new_weights = np.clip(new_weights, weight_bounds[0], weight_bounds[1])
             clip_sum = np.sum(new_weights)
             new_weights = new_weights / clip_sum if clip_sum > 0 else np.ones(n_assets) / n_assets
-            
-            # Check convergence
             if np.linalg.norm(new_weights - weights) < tolerance:
                 break
-            
             weights = new_weights
-        
-        # Calculate portfolio metrics
-        portfolio_volatility = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
-        portfolio_return = 0  # Risk parity doesn't use expected returns
-        sharpe_ratio = (portfolio_return - self.risk_free_rate) / portfolio_volatility if portfolio_volatility > 0 else 0
-        
-        return PortfolioResult(
-            weights=weights,
-            expected_return=portfolio_return,
-            volatility=portfolio_volatility,
-            sharpe_ratio=sharpe_ratio
-        )
+        return weights
     
     def calculate_leverage(self, weights: np.ndarray, cov_matrix: np.ndarray,
                           target_volatility: float) -> float:
