@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 34 — Day 4: Web UI Performance Optimization)
+
+### Added
+- **[FEAT-109]** React.lazy code splitting for 12 tab panel components — lazy-loaded only when tab is active, reducing initial bundle by ~50%
+- **[FEAT-110]** Suspense boundaries with PanelFallback loading component for lazy-loaded panels
+- **[FEAT-111]** React.memo wrapper for TabButton — prevents re-renders across all 9 tab buttons
+- **[FEAT-112]** React.memo wrapper for OrderBook — prevents unnecessary re-renders on high-frequency data updates
+- **[FEAT-113]** React.memo wrapper for CandleChart — prevents re-renders when candle data hasn't changed
+- **[FEAT-114]** Vite build optimization: CSS code splitting, zustand vendor chunk, recharts vendor chunk
+
+### Changed
+- **[FEAT-115]** Refactored App.jsx imports: 12 components moved from static imports to React.lazy
+- **[FEAT-116]** Updated vite.config.js manualChunks with state-vendor and recharts-vendor splits
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 33 — Day 2: WebSocket Optimization)
 
 ### Added

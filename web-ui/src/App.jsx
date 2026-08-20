@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useCallback } from 'react'
+import { useMemo, useEffect, useRef, useCallback, lazy, Suspense, memo } from 'react'
 import { Activity, Radio, TrendingUp, AlertTriangle, BarChart3, FlaskConical, History, ArrowRightLeft, Bot, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { useExchangeData, useSignalData } from './hooks/useExchangeData'
 import { useMockExchangeData, useMockSignalData, IS_MOCK } from './hooks/useMockData'
@@ -9,21 +9,9 @@ import Header from './components/Header'
 import CandleChart from './components/CandleChart'
 import OrderBook from './components/OrderBook'
 import OrderForm from './components/OrderForm'
-import AccountPanel from './components/AccountPanel'
-import PositionsPanel from './components/PositionsPanel'
-import SignalFeed from './components/SignalFeed'
-import ArbitragePanel from './components/ArbitragePanel'
-import PriceComparison from './components/PriceComparison'
-import FillsPanel from './components/FillsPanel'
-import PerformanceDashboard from './components/PerformanceDashboard'
-import BacktestRunner from './components/BacktestRunner'
-import TradeHistory from './components/TradeHistory'
-import BotStatus from './components/BotStatus'
-import StatusBar from './components/StatusBar'
-import SignalPerformance from './components/SignalPerformance'
-import OnboardingTutorial from './components/OnboardingTutorial'
 import DetachablePanel from './components/DetachablePanel'
 import KeyboardHelp from './components/KeyboardHelp'
+import StatusBar from './components/StatusBar'
 import PanelContainer from './panels/PanelContainer'
 import { useDetachablePanels } from './hooks/useDetachablePanels'
 import { useIsMobile, useIsTablet } from './hooks/useMediaQuery'
@@ -34,6 +22,43 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useUIStore } from './stores/useUIStore'
 import { useTradingStore } from './stores/useTradingStore'
 import { useToastStore } from './stores/useToastStore'
+
+const AccountPanel = lazy(() => import('./components/AccountPanel'))
+const PositionsPanel = lazy(() => import('./components/PositionsPanel'))
+const SignalFeed = lazy(() => import('./components/SignalFeed'))
+const SignalPerformance = lazy(() => import('./components/SignalPerformance'))
+const ArbitragePanel = lazy(() => import('./components/ArbitragePanel'))
+const PriceComparison = lazy(() => import('./components/PriceComparison'))
+const FillsPanel = lazy(() => import('./components/FillsPanel'))
+const PerformanceDashboard = lazy(() => import('./components/PerformanceDashboard'))
+const BacktestRunner = lazy(() => import('./components/BacktestRunner'))
+const TradeHistory = lazy(() => import('./components/TradeHistory'))
+const BotStatus = lazy(() => import('./components/BotStatus'))
+const OnboardingTutorial = lazy(() => import('./components/OnboardingTutorial'))
+
+const TabButton = memo(function TabButton({ active, onClick, icon, children }) {
+  return (
+    <button
+      onClick={onClick}
+      role="tab"
+      aria-pressed={active}
+      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue rounded-sm ${
+        active
+          ? 'text-accent-blue border-b-2 border-accent-blue bg-bg-700'
+          : 'text-gray-400 hover:text-gray-200 hover:bg-bg-700'
+      }`}
+    >
+      {icon}
+      {children}
+    </button>
+  )
+})
+
+const PanelFallback = () => (
+  <div className="flex items-center justify-center h-full text-gray-500 text-xs">
+    Loading...
+  </div>
+)
 
 export default function App() {
   // UI state from Zustand store
@@ -297,7 +322,9 @@ export default function App() {
           />
         </div>
       )}
-      <OnboardingTutorial />
+      <Suspense fallback={<PanelFallback />}>
+        <OnboardingTutorial />
+      </Suspense>
       <KeyboardHelp />
       <ToastContainer toasts={toasts} onRemove={removeToast} onClearAll={clearAll} />
       <Header
@@ -432,6 +459,7 @@ export default function App() {
               </TabButton>
             </div>
             <div className="flex-1 overflow-y-auto tab-content" key={activeTab}>
+              <Suspense fallback={<PanelFallback />}>
               {activeTab === 'account' && (
                 <>
                   <AccountPanel accounts={exchange.accounts} />
@@ -485,6 +513,7 @@ export default function App() {
                   backtestResult={signals.backtestResult}
                 />
               )}
+              </Suspense>
             </div>
           </div>
         </div>
@@ -512,23 +541,5 @@ export default function App() {
         signalLatency={signals.latency}
       />
     </div>
-  )
-}
-
-function TabButton({ active, onClick, icon, children }) {
-  return (
-    <button
-      onClick={onClick}
-      role="tab"
-      aria-pressed={active}
-      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue rounded-sm ${
-        active
-          ? 'text-accent-blue border-b-2 border-accent-blue bg-bg-700'
-          : 'text-gray-400 hover:text-gray-200 hover:bg-bg-700'
-      }`}
-    >
-      {icon}
-      {children}
-    </button>
   )
 }

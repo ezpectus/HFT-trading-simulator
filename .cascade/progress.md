@@ -36,6 +36,7 @@
 | 30 | 2026-08-20 | Sprint 31 (Autonomous): Final long function refactoring — 2 functions 44-46 lines refactored (rl_agent.replay 44→14, backtester.run 46→36), 3 helpers extracted | ✅ Done | — |
 | 31 | 2026-08-20 | Sprint 32 (Autonomous): Documentation audit & cleanup — removed deprecated test_untested_modules.py stub, updated README test badge (182→208), updated ARCHITECTURE.md audit v5.9→v6.1 with Sprints 25-31 summary, updated notes.md audit version & test count | ✅ Done | — |
 | 32 | 2026-08-20 | Sprint 33 (Day 2: WebSocket Optimization): Sequence numbers for delta sync, selective subscription filtering in broadcast, unsubscribe handler, WebSocket connection pool with health checks, client-side compression, auto-reconnect with exponential backoff, 20 new tests, WEBSOCKET_PROTOCOL.md updated | ✅ Done | — |
+| 33 | 2026-08-20 | Sprint 34 (Day 4: Web UI Performance): React.lazy code splitting for 12 tab panels, Suspense boundaries, React.memo for TabButton/OrderBook/CandleChart, vite CSS code splitting + vendor chunks (zustand, recharts) | ✅ Done | — |
 
 ## Bug Fix Progress
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, memo } from 'react'
 import { createChart, CrosshairMode, ColorType } from 'lightweight-charts'
 import { CandlestickChart, Activity, Eye, EyeOff, MapPin } from 'lucide-react'
 import { calcEMA, calcRSI, calcBollingerBands } from '../utils/indicators'
@@ -12,7 +12,7 @@ const INDICATORS = [
   { id: 'rsi', label: 'RSI 14', color: '#22c55e' },
 ]
 
-export default function CandleChart({ candles, symbol, regime, fills, selectedExchange }) {
+const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, selectedExchange }) {
   const chartContainerRef = useRef(null)
   const rsiContainerRef = useRef(null)
   const chartRef = useRef(null)
@@ -311,4 +311,6 @@ export default function CandleChart({ candles, symbol, regime, fills, selectedEx
       )}
     </div>
   )
-}
+})
+
+export default CandleChart
