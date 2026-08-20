@@ -339,54 +339,53 @@ class MarketSimulator:
         cached = self._ob_cache.get(cache_key)
 
         if cached is not None and cached.bids and cached.asks:
-            # Incremental update: scale prices by ratio, perturb quantities
-            old_mid = (cached.bids[0].price + cached.asks[0].price) / 2.0
-            if old_mid > 0:
-                ratio = mid_price / old_mid
-                cached.timestamp = self._current_ts
-                # Iterate bid+ask pairs together — one rng call per pair instead of two
-                for bid_level, ask_level in zip(cached.bids, cached.asks, strict=False):
-                    bid_level.price = round(bid_level.price * ratio, 2)
-                    ask_level.price = round(ask_level.price * ratio, 2)
-                    perturb = 0.9 + self.rng.random() * 0.2
-                    bid_level.quantity = round(bid_level.quantity * perturb, 4)
-                    ask_level.quantity = round(ask_level.quantity * perturb, 4)
+            if self._incremental_update_ob(cached, mid_price):
                 return cached
 
-        # Full generation (first call or after cache miss)
+        ob = self._generate_full_ob(exchange, symbol, mid_price)
+        self._ob_cache[cache_key] = ob
+        return ob
+
+    def _incremental_update_ob(self, cached: OrderBook, mid_price: float) -> bool:
+        """Scale cached order book prices by ratio and perturb quantities. Returns True if updated."""
+        old_mid = (cached.bids[0].price + cached.asks[0].price) / 2.0
+        if old_mid <= 0:
+            return False
+        ratio = mid_price / old_mid
+        cached.timestamp = self._current_ts
+        for bid_level, ask_level in zip(cached.bids, cached.asks, strict=False):
+            bid_level.price = round(bid_level.price * ratio, 2)
+            ask_level.price = round(ask_level.price * ratio, 2)
+            perturb = 0.9 + self.rng.random() * 0.2
+            bid_level.quantity = round(bid_level.quantity * perturb, 4)
+            ask_level.quantity = round(ask_level.quantity * perturb, 4)
+        return True
+
+    def _generate_full_ob(self, exchange: str, symbol: str, mid_price: float) -> OrderBook:
+        """Generate a full order book from scratch."""
         vol = self._volatility.get(symbol, 0.8)
-        spread_bps = max(1.0, vol * 10)  # basis points
+        spread_bps = max(1.0, vol * 10)
         half_spread = mid_price * spread_bps / 10000
 
         bids: list[OrderBookLevel] = []
         asks: list[OrderBookLevel] = []
 
         for i in range(self.order_book_depth):
-            # Price levels with increasing distance from mid
             bid_price = mid_price - half_spread * (1 + i * (1 + self.rng.random() * 0.3))
             ask_price = mid_price + half_spread * (1 + i * (1 + self.rng.random() * 0.3))
-
-            # Quantity decreases with distance (more liquidity near mid)
             base_qty = self.rng.uniform(0.1, 5.0)
             decay = math.exp(-i * 0.15)
             bid_qty = base_qty * decay * (0.5 + self.rng.random())
             ask_qty = base_qty * decay * (0.5 + self.rng.random())
-
             bids.append(OrderBookLevel(price=round(bid_price, 2), quantity=round(bid_qty, 4)))
             asks.append(OrderBookLevel(price=round(ask_price, 2), quantity=round(ask_qty, 4)))
 
         bids.sort(key=lambda lvl: lvl.price, reverse=True)
         asks.sort(key=lambda lvl: lvl.price)
-
-        ob = OrderBook(
-            symbol=symbol,
-            exchange=exchange,
-            bids=bids,
-            asks=asks,
+        return OrderBook(
+            symbol=symbol, exchange=exchange, bids=bids, asks=asks,
             timestamp=self._current_ts,
         )
-        self._ob_cache[cache_key] = ob
-        return ob
 
     @property
     def current_timestamp(self) -> int:
