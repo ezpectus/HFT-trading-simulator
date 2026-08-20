@@ -74,40 +74,54 @@ class MessageHandlerMixin:
             await self._send_market_snapshot(websocket)
 
             async for message in websocket:
-                try:
-                    if not self._check_rate_limit(websocket):
-                        await websocket.send(json.dumps({
-                            "type": "error",
-                            "message": "Rate limit exceeded — too many messages",
-                        }))
-                        continue
-
-                    if isinstance(message, bytes) and _HAS_MSGPACK:
-                        try:
-                            data = msgpack.unpackb(message, raw=False)
-                        except (msgpack.exceptions.UnpackException, ValueError):
-                            logger.warning(f"Invalid msgpack from {_sanitize_log(remote)}: {_sanitize_log(message[:100])}")
-                            continue
-                    else:
-                        try:
-                            data = json.loads(message)
-                        except (json.JSONDecodeError, TypeError):
-                            logger.warning(f"Invalid JSON from {_sanitize_log(remote)}: {_sanitize_log(message[:100])}")
-                            continue
-                    await self._handle_message(websocket, data)
-                except (RuntimeError, OSError, KeyError, ValueError, TypeError) as e:
-                    logger.error(f"Error handling message: {e}")
+                await self._process_message(websocket, message, remote)
 
         except websockets.ConnectionClosed:
             pass
         finally:
-            self.clients.discard(websocket)
-            self._client_versions.pop(websocket, None)
-            self._client_encodings.pop(websocket, None)
-            self._client_subscriptions.pop(websocket, None)
-            self._client_message_counts.pop(websocket, None)
-            self._total_disconnections += 1
-            logger.info(f"Client disconnected: {remote}")
+            self._cleanup_client(websocket, remote)
+
+    async def _process_message(self, websocket, message, remote) -> None:
+        """Parse and dispatch a single client message."""
+        try:
+            if not self._check_rate_limit(websocket):
+                await websocket.send(json.dumps({
+                    "type": "error",
+                    "message": "Rate limit exceeded — too many messages",
+                }))
+                return
+
+            data = self._parse_message(message, remote)
+            if data is None:
+                return
+            await self._handle_message(websocket, data)
+        except (RuntimeError, OSError, KeyError, ValueError, TypeError) as e:
+            logger.error(f"Error handling message: {e}")
+
+    def _parse_message(self, message, remote) -> dict | None:
+        """Parse a message from bytes or str. Returns parsed dict or None."""
+        if isinstance(message, bytes) and _HAS_MSGPACK:
+            try:
+                return msgpack.unpackb(message, raw=False)
+            except (msgpack.exceptions.UnpackException, ValueError):
+                logger.warning(f"Invalid msgpack from {_sanitize_log(remote)}: {_sanitize_log(message[:100])}")
+                return None
+        else:
+            try:
+                return json.loads(message)
+            except (json.JSONDecodeError, TypeError):
+                logger.warning(f"Invalid JSON from {_sanitize_log(remote)}: {_sanitize_log(message[:100])}")
+                return None
+
+    def _cleanup_client(self, websocket, remote) -> None:
+        """Clean up client state on disconnect."""
+        self.clients.discard(websocket)
+        self._client_versions.pop(websocket, None)
+        self._client_encodings.pop(websocket, None)
+        self._client_subscriptions.pop(websocket, None)
+        self._client_message_counts.pop(websocket, None)
+        self._total_disconnections += 1
+        logger.info(f"Client disconnected: {remote}")
 
     async def _handle_message(
         self, websocket: WebSocketServerConnection, data: dict
