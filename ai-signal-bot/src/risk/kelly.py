@@ -117,23 +117,10 @@ class KellyPositionSizer:
                 reason="No edge (Kelly <= 0)",
             )
 
-        # Apply Kelly fraction (half-Kelly, quarter-Kelly, etc.)
-        adjusted = raw_kelly * self.kelly_fraction
-
-        # Scale by confidence (optional). Confidence can be 0-1 or 0-100.
-        confidence_factor = max(0.1, min(1.0, confidence / 100.0)) if confidence > 1.0 else confidence
-        adjusted *= confidence_factor
-
-        # Cap at max risk percentage
-        risk_pct = min(adjusted * 100, self.max_risk_pct)
-        # Apply min_risk_pct floor for a positive Kelly edge with reasonable confidence
-        if adjusted > 0 and confidence_factor >= 0.5:
-            risk_pct = max(risk_pct, self.min_risk_pct)
-
-        risk_amount = balance * risk_pct / 100.0
-
-        # Calculate quantity from risk and stop distance
+        adjusted, confidence_factor = self._adjust_kelly(raw_kelly, confidence)
+        risk_amount = self._compute_risk_amount(balance, adjusted, confidence_factor)
         risk_per_unit = abs(entry_price - stop_loss)
+
         if risk_per_unit <= 0:
             return KellyResult(
                 quantity=0.0, risk_amount=0.0,
@@ -142,9 +129,44 @@ class KellyPositionSizer:
                 reason="Invalid stop loss distance",
             )
 
-        quantity = risk_amount / risk_per_unit
+        quantity, risk_amount, reason = self._cap_position(
+            risk_amount, risk_per_unit, entry_price, balance,
+            confidence_factor, raw_kelly, adjusted,
+        )
 
-        # Cap position notional, scaled by confidence
+        logger.debug(
+            f"Kelly sizing: raw={raw_kelly:.3f} adj={adjusted:.3f} "
+            f"risk=${risk_amount:.2f} qty={quantity:.4f}"
+        )
+
+        return KellyResult(
+            quantity=quantity, risk_amount=risk_amount,
+            kelly_fraction=self.kelly_fraction,
+            raw_kelly=raw_kelly, adjusted_kelly=adjusted, reason=reason,
+        )
+
+    def _adjust_kelly(self, raw_kelly: float, confidence: float) -> tuple[float, float]:
+        """Apply Kelly fraction and confidence scaling. Returns (adjusted, confidence_factor)."""
+        adjusted = raw_kelly * self.kelly_fraction
+        confidence_factor = max(0.1, min(1.0, confidence / 100.0)) if confidence > 1.0 else confidence
+        adjusted *= confidence_factor
+        return adjusted, confidence_factor
+
+    def _compute_risk_amount(
+        self, balance: float, adjusted: float, confidence_factor: float,
+    ) -> float:
+        """Compute risk amount from adjusted Kelly."""
+        risk_pct = min(adjusted * 100, self.max_risk_pct)
+        if adjusted > 0 and confidence_factor >= 0.5:
+            risk_pct = max(risk_pct, self.min_risk_pct)
+        return balance * risk_pct / 100.0
+
+    def _cap_position(
+        self, risk_amount: float, risk_per_unit: float, entry_price: float,
+        balance: float, confidence_factor: float, raw_kelly: float, adjusted: float,
+    ) -> tuple[float, float, str]:
+        """Cap position at max notional. Returns (quantity, risk_amount, reason)."""
+        quantity = risk_amount / risk_per_unit
         effective_max_position_pct = self.max_position_pct * confidence_factor
         max_notional = balance * effective_max_position_pct / 100.0
         max_qty = max_notional / entry_price if entry_price > 0 else 0
@@ -157,20 +179,7 @@ class KellyPositionSizer:
             )
         else:
             reason = f"Kelly: {raw_kelly:.3f} → {adjusted:.3f} (fraction={self.kelly_fraction})"
-
-        logger.debug(
-            f"Kelly sizing: raw={raw_kelly:.3f} adj={adjusted:.3f} "
-            f"risk=${risk_amount:.2f} qty={quantity:.4f}"
-        )
-
-        return KellyResult(
-            quantity=quantity,
-            risk_amount=risk_amount,
-            kelly_fraction=self.kelly_fraction,
-            raw_kelly=raw_kelly,
-            adjusted_kelly=adjusted,
-            reason=reason,
-        )
+        return quantity, risk_amount, reason
 
     @staticmethod
     def from_trade_history(
