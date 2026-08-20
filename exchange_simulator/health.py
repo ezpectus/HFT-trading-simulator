@@ -3,12 +3,13 @@
 Provides HTTP health check endpoint for monitoring and orchestration.
 """
 import logging
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse, PlainTextResponse
 import os
 import sys
 import time
 from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +20,11 @@ _this_dir = os.path.dirname(os.path.abspath(__file__))
 if _this_dir not in sys.path:
     sys.path.insert(0, _this_dir)
 
-import yaml
-from exchange_simulator.exchange import SimulatedExchange
-from exchange_simulator.market_simulator import MarketSimulator
-from exchange_simulator.models import OrderStatus
+import yaml  # noqa: E402
+
+from exchange_simulator.exchange import SimulatedExchange  # noqa: E402
+from exchange_simulator.market_simulator import MarketSimulator  # noqa: E402
+from exchange_simulator.models import OrderStatus  # noqa: E402
 
 app = FastAPI(title="HFT Exchange Simulator Health")
 
@@ -75,7 +77,7 @@ async def health_check():
     try:
         exchanges, market, start_time = _init()
         first_ex = next(iter(exchanges.values()))
-        
+
         return JSONResponse({
             "status": "healthy",
             "version": "2.2.0",
@@ -98,7 +100,7 @@ async def metrics():
     """Prometheus metrics endpoint."""
     try:
         exchanges, market, _ = _init()
-        
+
         lines = []
         for ex_id, ex in exchanges.items():
             history = ex._order_history
@@ -109,10 +111,10 @@ async def metrics():
             lines.append(f'hft_orders_rejected_total{{exchange="{ex_id}"}} {rejected}')
             if ex._audit_logger:
                 lines.append(f'hft_audit_log_entries_total{{exchange="{ex_id}"}} {len(ex._audit_logger._logs)}')
-        
+
         lines.append(f'hft_symbols_count {len(market.symbols)}')
         lines.append(f'hft_exchanges_count {len(exchanges)}')
-        
+
         return PlainTextResponse(content="\n".join(lines), media_type="text/plain; version=0.0.4; charset=utf-8")
     except (RuntimeError, OSError, KeyError, ValueError, TypeError, AttributeError):
         logger.exception("Metrics endpoint failed")

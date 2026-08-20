@@ -9,8 +9,8 @@ from src.strategies.strategies import Signal, SignalDirection
 
 class TestOptimizationResult:
     def test_creation(self):
-        from src.backtesting.optimizer import OptimizationResult
         from src.backtesting.backtester import BacktestResult
+        from src.backtesting.optimizer import OptimizationResult
         result = BacktestResult(
             initial_balance=10000.0, final_balance=10500.0,
             total_return_pct=5.0, total_trades=10, winning_trades=6,
@@ -27,8 +27,8 @@ class TestOptimizationResult:
 class TestStrategyOptimizer:
     @pytest.fixture
     def optimizer(self):
-        from src.backtesting.optimizer import StrategyOptimizer
         from src.backtesting.backtester import Backtester
+        from src.backtesting.optimizer import StrategyOptimizer
 
         class MockBacktester:
             def run(self, candles, strategy, symbol, warmup=50):
@@ -48,8 +48,8 @@ class TestStrategyOptimizer:
         assert optimizer.fitness_fn is not None
 
     def test_default_fitness_no_trades(self):
-        from src.backtesting.optimizer import StrategyOptimizer
         from src.backtesting.backtester import BacktestResult
+        from src.backtesting.optimizer import StrategyOptimizer
         result = BacktestResult(
             initial_balance=10000.0, final_balance=10000.0,
             total_return_pct=0.0, total_trades=0, winning_trades=0,
@@ -61,8 +61,8 @@ class TestStrategyOptimizer:
         assert StrategyOptimizer.default_fitness(result) == -999.0
 
     def test_default_fitness_with_trades(self):
-        from src.backtesting.optimizer import StrategyOptimizer
         from src.backtesting.backtester import BacktestResult
+        from src.backtesting.optimizer import StrategyOptimizer
         result = BacktestResult(
             initial_balance=10000.0, final_balance=10500.0,
             total_return_pct=5.0, total_trades=10, winning_trades=6,
@@ -75,8 +75,8 @@ class TestStrategyOptimizer:
         assert fitness > 0
 
     def test_sharpe_fitness(self):
-        from src.backtesting.optimizer import StrategyOptimizer
         from src.backtesting.backtester import BacktestResult
+        from src.backtesting.optimizer import StrategyOptimizer
         result = BacktestResult(
             initial_balance=10000.0, final_balance=10500.0,
             total_return_pct=5.0, total_trades=10, winning_trades=6,
@@ -88,8 +88,8 @@ class TestStrategyOptimizer:
         assert StrategyOptimizer.sharpe_fitness(result) == 1.2
 
     def test_sharpe_fitness_insufficient_trades(self):
-        from src.backtesting.optimizer import StrategyOptimizer
         from src.backtesting.backtester import BacktestResult
+        from src.backtesting.optimizer import StrategyOptimizer
         result = BacktestResult(
             initial_balance=10000.0, final_balance=10000.0,
             total_return_pct=0.0, total_trades=2, winning_trades=1,
@@ -101,8 +101,8 @@ class TestStrategyOptimizer:
         assert StrategyOptimizer.sharpe_fitness(result) == -999.0
 
     def test_calmar_fitness(self):
-        from src.backtesting.optimizer import StrategyOptimizer
         from src.backtesting.backtester import BacktestResult
+        from src.backtesting.optimizer import StrategyOptimizer
         result = BacktestResult(
             initial_balance=10000.0, final_balance=10500.0,
             total_return_pct=5.0, total_trades=10, winning_trades=6,
@@ -114,8 +114,8 @@ class TestStrategyOptimizer:
         assert StrategyOptimizer.calmar_fitness(result) == 2.0
 
     def test_calmar_fitness_no_drawdown(self):
-        from src.backtesting.optimizer import StrategyOptimizer
         from src.backtesting.backtester import BacktestResult
+        from src.backtesting.optimizer import StrategyOptimizer
         result = BacktestResult(
             initial_balance=10000.0, final_balance=10000.0,
             total_return_pct=0.0, total_trades=0, winning_trades=0,
@@ -127,8 +127,8 @@ class TestStrategyOptimizer:
         assert StrategyOptimizer.calmar_fitness(result) == -999.0
 
     def test_profit_factor_fitness(self):
-        from src.backtesting.optimizer import StrategyOptimizer
         from src.backtesting.backtester import BacktestResult
+        from src.backtesting.optimizer import StrategyOptimizer
         result = BacktestResult(
             initial_balance=10000.0, final_balance=10500.0,
             total_return_pct=5.0, total_trades=10, winning_trades=6,

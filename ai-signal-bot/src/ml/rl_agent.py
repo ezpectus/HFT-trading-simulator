@@ -3,10 +3,11 @@
 # Implements PPO and DQN agents for trading strategy optimization with
 # experience replay, policy updates, and reward tracking.
 
-import numpy as np
-from dataclasses import dataclass
-from collections import deque
 import pickle
+from collections import deque
+from dataclasses import dataclass
+
+import numpy as np
 
 from .environment import TradingEnv
 
@@ -27,23 +28,23 @@ class RLConfig:
 
 class DQNAgent:
     """Deep Q-Network agent for trading (simplified implementation)."""
-    
+
     def __init__(self, config: RLConfig):
         """
         Initialize DQN agent.
-        
+
         Args:
             config: RL configuration
         """
         self.config = config
         self.memory: deque = deque(maxlen=config.memory_size)
         self.epsilon = config.epsilon
-        
+
         # Simplified Q-network (in production, use PyTorch/TensorFlow)
         self.q_network_weights = None
         self.target_network_weights = None
         self.is_trained = False
-    
+
     def _build_network(self):
         """Build Q-network (simplified)."""
         # Simplified linear network
@@ -51,12 +52,12 @@ class DQNAgent:
             self.config.state_size, self.config.action_size
         ) * 0.01
         self.target_network_weights = self.q_network_weights.copy()
-    
-    def remember(self, state: np.ndarray, action: int, reward: float, 
+
+    def remember(self, state: np.ndarray, action: int, reward: float,
                  next_state: np.ndarray, done: bool):
         """
         Store experience in replay memory.
-        
+
         Args:
             state: Current state
             action: Action taken
@@ -65,29 +66,29 @@ class DQNAgent:
             done: Episode done flag
         """
         self.memory.append((state, action, reward, next_state, done))
-    
+
     def act(self, state: np.ndarray, training: bool = True) -> int:
         """
         Select action using epsilon-greedy policy.
-        
+
         Args:
             state: Current state
             training: Whether in training mode
-        
+
         Returns:
             Action to take
         """
         if training and np.random.random() <= self.epsilon:
             return np.random.randint(self.config.action_size)
-        
+
         if self.q_network_weights is None:
             self._build_network()
-        
+
         # Q-values
         q_values = np.dot(state, self.q_network_weights)
-        
+
         return np.argmax(q_values)
-    
+
     def replay(self, batch_size: int | None = None):
         """Train on batch of experiences from replay memory."""
         if batch_size is None:
@@ -127,19 +128,19 @@ class DQNAgent:
         learning_rate = self.config.learning_rate
         gradient = np.dot(states.T, current_q - np.dot(states, self.q_network_weights)) / batch_size
         self.q_network_weights -= learning_rate * gradient
-    
+
     def update_target_network(self):
         """Update target network with current network weights."""
         self.target_network_weights = self.q_network_weights.copy()
-    
+
     def train(self, env: TradingEnv, episodes: int = 1000,
-              prices: np.ndarray = None, features: np.ndarray = None) -> Dict:
+              prices: np.ndarray = None, features: np.ndarray = None) -> dict:
         """Train agent in environment."""
         if self.q_network_weights is None:
             self._build_network()
-        
+
         history = {'episode_rewards': [], 'episode_lengths': [], 'total_trades': []}
-        
+
         for episode in range(episodes):
             total_reward, steps, info = self._run_episode(env, prices, features)
             if episode % 10 == 0:
@@ -147,10 +148,10 @@ class DQNAgent:
             history['episode_rewards'].append(total_reward)
             history['episode_lengths'].append(steps)
             history['total_trades'].append(info.get('trade_count', 0))
-        
+
         self.is_trained = True
         return history
-    
+
     def _run_episode(
         self, env: TradingEnv, prices: np.ndarray | None, features: np.ndarray | None,
     ) -> tuple[float, int, dict]:
@@ -169,11 +170,11 @@ class DQNAgent:
             total_reward += reward
             steps += 1
         return total_reward, steps, info
-    
+
     def save_model(self, filepath: str):
         """
         Save model to file.
-        
+
         Args:
             filepath: Path to save model
         """
@@ -184,20 +185,20 @@ class DQNAgent:
             'epsilon': self.epsilon,
             'is_trained': self.is_trained
         }
-        
+
         with open(filepath, 'wb') as f:
             pickle.dump(model_data, f)
-    
+
     def load_model(self, filepath: str):
         """
         Load model from file.
-        
+
         Args:
             filepath: Path to load model from
         """
         with open(filepath, 'rb') as f:
             model_data = pickle.load(f)
-        
+
         self.config = model_data['config']
         self.q_network_weights = model_data['q_network_weights']
         self.target_network_weights = model_data['target_network_weights']
@@ -207,75 +208,75 @@ class DQNAgent:
 
 class PPOAgent:
     """Proximal Policy Optimization agent for trading (simplified implementation)."""
-    
+
     def __init__(self, config: RLConfig):
         """
         Initialize PPO agent.
-        
+
         Args:
             config: RL configuration
         """
         self.config = config
         self.memory: deque = deque(maxlen=config.memory_size)
         self.is_trained = False
-        
+
         # Simplified policy and value networks
         self.policy_weights = None
         self.value_weights = None
-    
+
     def _build_networks(self):
         """Build policy and value networks (simplified)."""
         self.policy_weights = np.random.randn(
             self.config.state_size, self.config.action_size
         ) * 0.01
         self.value_weights = np.random.randn(self.config.state_size, 1) * 0.01
-    
-    def get_action(self, state: np.ndarray) -> Tuple[int, float]:
+
+    def get_action(self, state: np.ndarray) -> tuple[int, float]:
         """
         Get action from policy network.
-        
+
         Args:
             state: Current state
-        
+
         Returns:
             Tuple of (action, log_probability)
         """
         if self.policy_weights is None:
             self._build_networks()
-        
+
         # Policy logits
         logits = np.dot(state, self.policy_weights)
-        
+
         # Softmax
         exp_logits = np.exp(logits - np.max(logits))
         policy_probs = exp_logits / np.sum(exp_logits)
-        
+
         # Sample action
         action = np.random.choice(self.config.action_size, p=policy_probs)
         log_prob = np.log(policy_probs[action] + 1e-10)
-        
+
         return action, log_prob
-    
+
     def get_value(self, state: np.ndarray) -> float:
         """
         Get state value from value network.
-        
+
         Args:
             state: Current state
-        
+
         Returns:
             State value
         """
         if self.value_weights is None:
             self._build_networks()
-        
+
         return float(np.dot(state, self.value_weights)[0])
-    
+
     def remember(self, state: np.ndarray, action: int, log_prob: float,
                  reward: float, value: float, done: bool):
         """
         Store experience.
-        
+
         Args:
             state: Current state
             action: Action taken
@@ -285,24 +286,24 @@ class PPOAgent:
             done: Episode done flag
         """
         self.memory.append((state, action, log_prob, reward, value, done))
-    
+
     def train(self, env: TradingEnv, episodes: int = 1000,
-              prices: np.ndarray = None, features: np.ndarray = None) -> Dict:
+              prices: np.ndarray = None, features: np.ndarray = None) -> dict:
         """Train PPO agent in environment."""
         if self.policy_weights is None:
             self._build_networks()
-        
+
         history = {'episode_rewards': [], 'episode_lengths': [], 'total_trades': []}
-        
-        for episode in range(episodes):
+
+        for _ in range(episodes):
             total_reward, steps, info = self._run_ppo_episode(env, prices, features)
             history['episode_rewards'].append(total_reward)
             history['episode_lengths'].append(steps)
             history['total_trades'].append(info.get('trade_count', 0))
-        
+
         self.is_trained = True
         return history
-    
+
     def _run_ppo_episode(
         self, env: TradingEnv, prices: np.ndarray | None, features: np.ndarray | None,
     ) -> tuple[float, int, dict]:
@@ -323,7 +324,7 @@ class PPOAgent:
             total_reward += reward
             steps += 1
         return total_reward, steps, info
-    
+
     def _update_policy(self):
         """Update policy using PPO with ratio clipping."""
         batch_size = min(len(self.memory), self.config.batch_size)
@@ -359,11 +360,11 @@ class PPOAgent:
             # Policy gradient update
             gradient = states[i] * surrogate
             self.policy_weights[:, actions[i]] += learning_rate * gradient
-    
+
     def save_model(self, filepath: str):
         """
         Save model to file.
-        
+
         Args:
             filepath: Path to save model
         """
@@ -373,20 +374,20 @@ class PPOAgent:
             'value_weights': self.value_weights,
             'is_trained': self.is_trained
         }
-        
+
         with open(filepath, 'wb') as f:
             pickle.dump(model_data, f)
-    
+
     def load_model(self, filepath: str):
         """
         Load model from file.
-        
+
         Args:
             filepath: Path to load model from
         """
         with open(filepath, 'rb') as f:
             model_data = pickle.load(f)
-        
+
         self.config = model_data['config']
         self.policy_weights = model_data['policy_weights']
         self.value_weights = model_data['value_weights']

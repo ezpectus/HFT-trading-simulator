@@ -20,6 +20,7 @@ import math
 import random
 import time
 from collections import deque
+from typing import TYPE_CHECKING
 
 import websockets
 
@@ -31,6 +32,9 @@ except ImportError:
 
 from src.communication.circuit_breaker import CircuitBreaker
 from src.communication.metrics_server import MetricsCollector
+
+if TYPE_CHECKING:
+    from src.risk.risk_manager import RiskConfig
 
 logger = logging.getLogger("ai_signal_bot.signal_publisher")
 
@@ -274,7 +278,6 @@ class SignalPublisher:
     async def _run_backtest(self, params: dict) -> dict:
         """Run a backtest and return results as JSON."""
         from src.backtesting import Backtester
-        from src.risk.risk_manager import RiskConfig
 
         bt_params = self._parse_backtest_params(params)
         candles = self._generate_synthetic_candles(

@@ -43,7 +43,7 @@
 |--------|---------|----------------------|-----------|-------|
 | GARCH(1,1) | `GARCHVolatility.jsx` | `src/technical_analysis/garch.py` | ВЫСОКИЙ | 1 неделя |
 | Markov-Switching GARCH | `MarkovSwitchingGARCH.jsx` | `src/technical_analysis/ms_garch.py` | ВЫСОКИЙ | 2 недели |
-| Kalman Filter | `KalmanFilterPrice.jsx` | `src/technical_analysis/kalman.py` | ВЫСОКИЙ | 3 дня |
+| ~~Kalman Filter~~ | `KalmanFilterPrice.jsx` | `src/technical_analysis/kalman.py` | ✅ DONE (Sprint 55) |
 | Copula | `CopulaModel.jsx` | `src/technical_analysis/copula.py` | ВЫСОКИЙ | 2 недели |
 | Wavelet | `WaveletDecomposition.jsx` | `src/technical_analysis/wavelet.py` | ВЫСОКИЙ | 1 неделя |
 | Monte Carlo | `MonteCarlo.jsx` | `src/technical_analysis/monte_carlo.py` | ВЫСОКИЙ | 1 неделя |

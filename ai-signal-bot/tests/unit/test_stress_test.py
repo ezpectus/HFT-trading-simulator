@@ -5,7 +5,6 @@ import pytest
 
 from src.risk.stress_test import StressTestResult, StressTestScenario
 
-
 # ─── Fixtures ───
 
 

@@ -8,7 +8,6 @@ from exchange_simulator.metrics import (
     init_metrics,
 )
 
-
 # ─── Fixtures ───
 
 

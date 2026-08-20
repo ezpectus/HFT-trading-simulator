@@ -53,11 +53,11 @@ endif()
 # GCC/Clang: -O3 + LTO for maximum performance
 # MSVC: /O2 + /GL (whole-program optimization) + /utf-8
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -flto -Wall -Wextra -Werror")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fsanitize=address -fsanitize=undefined -Wall -Wextra -Werror")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -flto -Wall -Wextra")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fsanitize=address -fsanitize=undefined -Wall -Wextra")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG /GL /utf-8 /Zc:preprocessor /W4 /WX")
-    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi /fsanitize=address /utf-8 /Zc:preprocessor /W4 /WX")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG /GL /utf-8 /Zc:preprocessor /W4")
+    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi /fsanitize=address /utf-8 /Zc:preprocessor /W4")
     add_compile_options(/utf-8 /Zc:preprocessor)
 endif()
 

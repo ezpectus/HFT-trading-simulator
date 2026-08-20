@@ -4,7 +4,6 @@ Reuses active connections, performs health checks, and automatically
 reconnects stale connections. Reduces overhead from repeated handshakes.
 """
 import asyncio
-import json
 import logging
 import time
 

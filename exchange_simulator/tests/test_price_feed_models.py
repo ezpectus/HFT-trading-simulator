@@ -1,6 +1,7 @@
 """Unit tests for exchange_simulator/price_feed_models.py — PriceTick, APIHealth, PerformanceMetrics."""
 
 import asyncio
+
 import pytest
 
 from exchange_simulator.price_feed_models import (
@@ -10,7 +11,6 @@ from exchange_simulator.price_feed_models import (
     PriceTick,
     time_operation,
 )
-
 
 # ─── PriceTick ───
 

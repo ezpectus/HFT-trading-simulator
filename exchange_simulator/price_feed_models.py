@@ -9,9 +9,9 @@ import logging
 import statistics
 import time
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable
 
 logger = logging.getLogger("exchange_simulator.price_feed")
 

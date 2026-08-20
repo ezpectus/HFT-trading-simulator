@@ -5,6 +5,7 @@ Handles order creation, validation, execution, and position updates.
 """
 from exchange_simulator.models import (
     AuditEventType,
+    ClosedTrade,
     IcebergOrder,
     Order,
     OrderStatus,
@@ -13,7 +14,6 @@ from exchange_simulator.models import (
     Side,
     StopLimitOrder,
     TrailingStopOrder,
-    ClosedTrade,
 )
 
 _TYPICAL_VOLUME = 500.0

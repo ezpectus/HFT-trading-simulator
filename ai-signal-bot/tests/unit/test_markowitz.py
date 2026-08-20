@@ -9,7 +9,6 @@ from src.portfolio.markowitz import (
     PortfolioResult,
 )
 
-
 # ─── Fixtures ───
 
 

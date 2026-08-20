@@ -18,8 +18,8 @@ from exchange_simulator.exchange import SimulatedExchange
 from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.ws_broadcast import BroadcastMixin
 from exchange_simulator.ws_constants import (
-    WebSocketServerConnection,
     _HAS_SHM,
+    WebSocketServerConnection,
     logger,
 )
 from exchange_simulator.ws_message_handler import MessageHandlerMixin

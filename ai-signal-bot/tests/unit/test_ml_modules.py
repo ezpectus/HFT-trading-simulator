@@ -6,10 +6,9 @@ import time
 
 import pytest
 
-from src.ml.model_registry import ABTest, ModelRegistry, ModelStatus, ModelVersion
 from src.ml.automl import AutoMLConfig, AutoMLOptimizer
 from src.ml.feature_store import FeatureStore
-
+from src.ml.model_registry import ABTest, ModelRegistry, ModelStatus, ModelVersion
 
 # ─── Model Registry ───
 

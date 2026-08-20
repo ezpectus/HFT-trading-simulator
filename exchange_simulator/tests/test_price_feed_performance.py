@@ -14,8 +14,8 @@ from typing import List
 import pytest
 
 from exchange_simulator.price_feed_manager import (
-    PriceFeedManager,
     PerformanceMetrics,
+    PriceFeedManager,
     PriceTick,
 )
 
@@ -32,37 +32,37 @@ async def test_price_feed_latency():
         "cache_warm_on_startup": False,
         "use_msgpack_cache": False,
     }
-    
+
     manager = PriceFeedManager(
         symbols=symbols,
         enable_websocket=False,
         enable_profiling=True,
         config=config,
     )
-    
+
     latencies = []
     iterations = 20
-    
+
     try:
         for _ in range(iterations):
             start = time.perf_counter()
             tick = await manager.get_price("BTC/USDT")
             end = time.perf_counter()
-            
+
             if tick:
                 latencies.append((end - start) * 1000)  # Convert to ms
-        
+
         # Calculate p95 latency
         sorted_latencies = sorted(latencies)
         p95_idx = int(len(sorted_latencies) * 0.95)
         p95_latency = sorted_latencies[min(p95_idx, len(sorted_latencies) - 1)]
-        
+
         print(f"p95 latency: {p95_latency:.2f}ms")
         print(f"Average latency: {statistics.mean(latencies):.2f}ms")
-        
+
         # Target: p95 < 50ms
         assert p95_latency < 50.0, f"p95 latency {p95_latency:.2f}ms exceeds target of 50ms"
-        
+
     finally:
         await manager.close()
 
@@ -79,14 +79,14 @@ async def test_batch_fetch_performance():
         "cache_warm_on_startup": False,
         "use_msgpack_cache": False,
     }
-    
+
     manager = PriceFeedManager(
         symbols=symbols,
         enable_websocket=False,
         enable_profiling=False,
         config=config,
     )
-    
+
     try:
         # Measure individual fetch time
         start_individual = time.perf_counter()
@@ -94,22 +94,22 @@ async def test_batch_fetch_performance():
             await manager.get_price(symbol)
         end_individual = time.perf_counter()
         individual_time = (end_individual - start_individual) * 1000
-        
+
         # Measure batch fetch time
         start_batch = time.perf_counter()
         await manager.get_all_prices()
         end_batch = time.perf_counter()
         batch_time = (end_batch - start_batch) * 1000
-        
+
         speedup = individual_time / batch_time if batch_time > 0 else 0
-        
+
         print(f"Individual fetch time: {individual_time:.2f}ms")
         print(f"Batch fetch time: {batch_time:.2f}ms")
         print(f"Speedup: {speedup:.2f}x")
-        
+
         # Target: batch fetch should be at least 2x faster
         assert speedup >= 2.0, f"Batch fetch speedup {speedup:.2f}x below target of 2x"
-        
+
     finally:
         await manager.close()
 
@@ -126,31 +126,31 @@ async def test_cache_hit_rate():
         "cache_warm_on_startup": False,
         "use_msgpack_cache": False,
     }
-    
+
     manager = PriceFeedManager(
         symbols=symbols,
         enable_websocket=False,
         enable_profiling=True,
         config=config,
     )
-    
+
     try:
         # Initial fetch to populate cache
         await manager.get_price("BTC/USDT")
-        
+
         # Subsequent fetches should hit cache
         iterations = 50
         for _ in range(iterations):
             await manager.get_price("BTC/USDT")
-        
+
         metrics = manager.get_metrics()
         if metrics:
             hit_rate = metrics["cache"]["hit_rate_pct"]
             print(f"Cache hit rate: {hit_rate:.2f}%")
-            
+
             # Target: hit rate > 95%
             assert hit_rate > 95.0, f"Cache hit rate {hit_rate:.2f}% below target of 95%"
-        
+
     finally:
         await manager.close()
 
@@ -167,24 +167,24 @@ async def test_connection_pool_stats():
         "cache_warm_on_startup": False,
         "use_msgpack_cache": False,
     }
-    
+
     manager = PriceFeedManager(
         symbols=symbols,
         enable_websocket=False,
         enable_profiling=False,
         config=config,
     )
-    
+
     try:
         # Make some requests to populate connection pool
         await manager.get_price("BTC/USDT")
-        
+
         stats = manager.get_connection_pool_stats()
         print(f"Connection pool stats: {stats}")
-        
+
         # Verify stats are available
         assert "binance" in stats or "coinbase" in stats
-        
+
     finally:
         await manager.close()
 
@@ -201,26 +201,26 @@ async def test_cache_stats():
         "cache_warm_on_startup": False,
         "use_msgpack_cache": False,
     }
-    
+
     manager = PriceFeedManager(
         symbols=symbols,
         enable_websocket=False,
         enable_profiling=True,
         config=config,
     )
-    
+
     try:
         # Populate cache
         await manager.get_price("BTC/USDT")
-        
+
         stats = manager.get_cache_stats()
         print(f"Cache stats: {stats}")
-        
+
         # Verify stats are available
         assert "size" in stats
         assert "max_size" in stats
         assert "ttl" in stats
-        
+
     finally:
         await manager.close()
 
@@ -284,25 +284,25 @@ async def test_cache_warming():
         "cache_warm_on_startup": False,
         "use_msgpack_cache": False,
     }
-    
+
     manager = PriceFeedManager(
         symbols=symbols,
         enable_websocket=False,
         enable_profiling=True,
         config=config,
     )
-    
+
     try:
         # Warm cache
         await manager.warm_cache(symbols)
-        
+
         # Check that cache is populated
         stats = manager.get_cache_stats()
         print(f"Cache stats after warming: {stats}")
-        
+
         # Verify cache has entries
         assert stats["size"] > 0, "Cache should be populated after warming"
-        
+
     finally:
         await manager.close()
 
@@ -319,27 +319,27 @@ async def test_performance_metrics():
         "cache_warm_on_startup": False,
         "use_msgpack_cache": False,
     }
-    
+
     manager = PriceFeedManager(
         symbols=symbols,
         enable_websocket=False,
         enable_profiling=True,
         config=config,
     )
-    
+
     try:
         # Make some requests
         for _ in range(10):
             await manager.get_price("BTC/USDT")
-        
+
         metrics = manager.get_metrics()
         print(f"Performance metrics: {metrics}")
-        
+
         # Verify metrics are available
         assert metrics is not None
         assert "fetch_latencies" in metrics
         assert "cache" in metrics
-        
+
     finally:
         await manager.close()
 

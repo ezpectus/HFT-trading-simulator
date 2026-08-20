@@ -12,9 +12,8 @@ import websockets
 
 from exchange_simulator.models import OrderType, Side
 from exchange_simulator.ws_constants import (
-    WebSocketServerConnection,
     _HAS_ORJSON,
-    _HAS_SHM,
+    WebSocketServerConnection,
     _sanitize_log,
     logger,
 )
@@ -42,7 +41,7 @@ class BroadcastMixin:
         self, websocket: WebSocketServerConnection, data: dict
     ) -> None:
         """Send message to client with negotiated encoding and protocol version."""
-        from exchange_simulator.ws_constants import PROTOCOL_VERSION, _HAS_MSGPACK
+        from exchange_simulator.ws_constants import _HAS_MSGPACK, PROTOCOL_VERSION
 
         try:
             import msgpack
@@ -344,9 +343,9 @@ class BroadcastMixin:
             if fill_order.status.value == "FILLED":
                 fill_payload = {"type": "fill", "order": fill_order.to_dict()}
                 if _HAS_ORJSON:
-                    fill_msg = orjson.dumps(fill_payload)
+                    orjson.dumps(fill_payload)
                 else:
-                    fill_msg = json.dumps(fill_payload, separators=(',', ':'))
+                    json.dumps(fill_payload, separators=(',', ':'))
                 await self._broadcast_fills_batch([fill_order.to_dict()])
 
     def _build_orderbook_data(self) -> tuple[dict, dict]:

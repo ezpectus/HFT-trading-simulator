@@ -6,13 +6,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.utils.bot_helpers import (
-    build_strategies,
     build_stat_arb,
+    build_strategies,
     generate_llm_explanation,
     generate_stat_arb_signals,
     load_candles_from_csv,
 )
-
 
 # ─── Fixtures ───
 

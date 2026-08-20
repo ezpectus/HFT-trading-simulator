@@ -158,14 +158,14 @@ class StopLimitOrder(Order):
         """Check if stop price should trigger the order."""
         if self.triggered:
             return True
-        
+
         if self.side == Side.BUY:
             # Buy stop: trigger when price >= stop_price
             self.triggered = current_price >= self.stop_price
         else:
             # Sell stop: trigger when price <= stop_price
             self.triggered = current_price <= self.stop_price
-        
+
         return self.triggered
 
     def to_dict(self) -> dict:
@@ -222,7 +222,7 @@ class TrailingStopOrder(Order):
         """Check if current price triggers the trailing stop."""
         if not self.activated:
             return False
-        
+
         if self.side == Side.BUY:
             # Buy stop triggers when price >= stop_price
             return current_price >= self.stop_price
@@ -304,13 +304,13 @@ class IcebergOrder(Order):
         """Handle fill - return (remaining_to_fill, should_replenish)."""
         self.current_slice_filled += fill_quantity
         remaining = self.slice_size - self.current_slice_filled
-        
+
         # If current slice is filled, replenish from hidden quantity
         if self.current_slice_filled >= self.slice_size and self.slices_remaining > 0:
             self.slices_remaining -= 1
             self.current_slice_filled = 0
             return max(0, remaining), True
-        
+
         return max(0, remaining), False
 
     def to_dict(self) -> dict:
@@ -443,19 +443,19 @@ class AuditLog:
     symbol: str = ""
     user_id: str = "system"
     session_id: str = ""
-    
+
     # Event-specific data
     order_id: str = ""
     position_id: str = ""
     old_value: float = 0.0
     new_value: float = 0.0
     reason: str = ""
-    
+
     # Additional metadata
     metadata: dict = field(default_factory=dict)
     ip_address: str = ""
     user_agent: str = ""
-    
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,

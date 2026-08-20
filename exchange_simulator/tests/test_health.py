@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 
 from exchange_simulator.health import app
 
-
 # ─── Fixtures ───
 
 

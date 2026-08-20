@@ -72,48 +72,65 @@ jobs:
       - name: Run walk-forward backtest
         run: |
           python -c "
-          import json, sys, os
+          import json, sys, os, csv
           sys.path.insert(0, '.')
           from src.backtesting.backtester import Backtester
           from src.strategies.strategies import TrendFollowingStrategy
           from src.strategies.strategies import MeanReversionStrategy
 
+          # Load candles from CSV
+          all_candles = []
+          with open('data/exports/btc_usdt_1m.csv') as f:
+              reader = csv.DictReader(f)
+              for row in reader:
+                  all_candles.append({
+                      'time': int(row['time']),
+                      'open': float(row['open']),
+                      'high': float(row['high']),
+                      'low': float(row['low']),
+                      'close': float(row['close']),
+                      'volume': float(row['volume']),
+                  })
+          print(f'Loaded {len(all_candles)} candles')
+
           # Walk-forward parameters
           WINDOW_DAYS = 30
           STEP_DAYS = 7
           TOTAL_DAYS = 365
+          START_TS = 1704067200  # 2024-01-01
 
           results = []
 
           for start_day in range(0, TOTAL_DAYS - WINDOW_DAYS, STEP_DAYS):
-              start_ts = 1704067200 + start_day * 86400
+              start_ts = START_TS + start_day * 86400
               end_ts = start_ts + WINDOW_DAYS * 86400
+
+              # Filter candles for this window
+              window_candles = [c for c in all_candles if start_ts <= c['time'] < end_ts]
+              if len(window_candles) < 100:
+                  print(f'  Window {start_day}-{start_day+WINDOW_DAYS}: too few candles ({len(window_candles)}), skipping')
+                  continue
 
               for StrategyClass in [TrendFollowingStrategy, MeanReversionStrategy]:
                   try:
                       strategy = StrategyClass()
                       bt = Backtester(
-                          strategy=strategy,
                           initial_balance=10000,
-                          commission=0.0004,
-                          slippage=0.0001,
+                          fee_pct=0.075,
+                          slippage_bps=2.0,
                       )
-                      result = bt.run(
-                          data_file='data/exports/btc_usdt_1m.csv',
-                          start_time=start_ts,
-                          end_time=end_ts,
-                      )
+                      result = bt.run(window_candles, strategy, symbol='BTC/USDT', warmup=50)
                       results.append({
                           'strategy': strategy.__class__.__name__,
                           'window_start': start_day,
                           'window_end': start_day + WINDOW_DAYS,
-                          'total_return_pct': result.get('total_return_pct', 0),
-                          'total_trades': result.get('total_trades', 0),
-                          'win_rate': result.get('win_rate', 0),
-                          'sharpe_ratio': result.get('sharpe_ratio', 0),
-                          'max_drawdown_pct': result.get('max_drawdown_pct', 0),
-                          'profit_factor': result.get('profit_factor', 0),
-                          'final_balance': result.get('final_balance', 10000),
+                          'total_return_pct': result.total_return_pct,
+                          'total_trades': result.total_trades,
+                          'win_rate': result.win_rate,
+                          'sharpe_ratio': result.sharpe_ratio,
+                          'max_drawdown_pct': result.max_drawdown_pct,
+                          'profit_factor': result.profit_factor,
+                          'final_balance': result.final_balance,
                       })
                   except Exception as e:
                       print(f'  Window {start_day}-{start_day+WINDOW_DAYS} {StrategyClass.__name__}: ERROR ({e})')

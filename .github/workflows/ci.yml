@@ -39,8 +39,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key
+          gpg --dearmor < llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/llvm.gpg > /dev/null
+          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" | sudo tee /etc/apt/sources.list.d/llvm.list
           sudo apt-get update && sudo apt-get install -y clang-format-18
           find hft-trade-bot/src hft-trade-bot/tests \( -name "*.h" -o -name "*.cpp" \) \
             -not -path "*/fix/*" \
@@ -136,8 +137,9 @@ jobs:
           sudo sed -i 's/basic<concurrency,names>/basic/g' /usr/include/websocketpp/logger/basic.hpp
           sudo sed -i 's/stub<concurrency,names>/stub/g' /usr/include/websocketpp/logger/stub.hpp || true
           if [ "${{ matrix.compiler }}" = "clang-17" ]; then
-            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-            sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main"
+            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key
+            gpg --dearmor < llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/llvm.gpg > /dev/null
+            echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main" | sudo tee /etc/apt/sources.list.d/llvm.list
             sudo apt-get update && sudo apt-get install -y clang-17
           else
             sudo apt-get install -y gcc-14 g++-14

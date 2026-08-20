@@ -5,9 +5,9 @@ import sys
 import pytest
 
 from src.communication.shm_market_data_writer import (
-    SLOT_SIZE,
     SLOT_OFFSET_DATA,
     SLOT_OFFSET_SEQ,
+    SLOT_SIZE,
     ShmMarketDataWriter,
 )
 

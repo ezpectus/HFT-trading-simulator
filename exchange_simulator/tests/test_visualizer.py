@@ -4,7 +4,6 @@ import pytest
 
 from exchange_simulator.visualizer import TabbedVisualizer
 
-
 # ─── ANSI Color Constants ───
 
 

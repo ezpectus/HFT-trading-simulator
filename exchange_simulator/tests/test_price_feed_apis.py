@@ -5,7 +5,6 @@ import pytest
 from exchange_simulator.price_feed_apis import BinanceAPI, CoinbaseAPI
 from exchange_simulator.price_feed_models import APIStatus
 
-
 # ─── BinanceAPI ───
 
 

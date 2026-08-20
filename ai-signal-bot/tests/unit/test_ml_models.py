@@ -10,9 +10,8 @@ import pytest
 
 from src.ml.environment import Action, TradingEnv, TradingState
 from src.ml.lstm_model import LSTMConfig, LSTMModel
+from src.ml.rl_agent import DQNAgent, RLConfig
 from src.ml.transformer_model import TransformerConfig, TransformerModel
-from src.ml.rl_agent import RLConfig, DQNAgent
-
 
 # ─── TradingEnv ───
 
@@ -413,7 +412,7 @@ class TestDQNAgent:
 def test_price_predictor_import():
     """Test price_predictor module imports (skipped if torch unavailable)."""
     pytest.importorskip("torch")
-    from src.ml.price_predictor import ModelConfig, LSTMPredictor
+    from src.ml.price_predictor import LSTMPredictor, ModelConfig
     cfg = ModelConfig(model_type="lstm", input_dim=11, hidden_dim=64, num_layers=1)
     model = LSTMPredictor(cfg)
     assert model is not None

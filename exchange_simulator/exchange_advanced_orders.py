@@ -11,8 +11,6 @@ from exchange_simulator.models import (
     OrderStatus,
     OrderType,
     Side,
-    StopLimitOrder,
-    TrailingStopOrder,
 )
 
 _TYPICAL_VOLUME = 500.0

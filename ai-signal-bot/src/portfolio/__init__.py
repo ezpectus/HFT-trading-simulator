@@ -3,10 +3,10 @@
 # Contains portfolio optimization modules including Markowitz mean-variance optimization,
 # Black-Litterman model, risk parity, and portfolio rebalancing.
 
-from .markowitz import MarkowitzOptimizer
 from .black_litterman import BlackLittermanModel
-from .risk_parity import RiskParityOptimizer
+from .markowitz import MarkowitzOptimizer
 from .rebalancing import RebalancingStrategy
+from .risk_parity import RiskParityOptimizer
 
 __all__ = [
     'MarkowitzOptimizer',

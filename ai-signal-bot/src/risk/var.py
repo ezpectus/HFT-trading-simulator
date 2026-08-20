@@ -3,8 +3,9 @@
 # Implements VaR calculation using historical, parametric, and Monte Carlo methods
 # with support for multiple confidence levels and time horizons.
 
-import numpy as np
 from dataclasses import dataclass
+
+import numpy as np
 from scipy import stats
 
 
@@ -19,140 +20,140 @@ class VaRResult:
 
 class VaRCalculator:
     """Value at Risk calculator using multiple methods."""
-    
+
     def __init__(self, confidence_level: float = 0.95, time_horizon: float = 1.0):
         """
         Initialize VaR calculator.
-        
+
         Args:
             confidence_level: Confidence level (default 95%)
             time_horizon: Time horizon in days (default 1 day)
         """
         self.confidence_level = confidence_level
         self.time_horizon = time_horizon
-    
-    def calculate_historical_var(self, returns: np.ndarray, 
+
+    def calculate_historical_var(self, returns: np.ndarray,
                                  confidence_level: float | None = None,
                                  time_horizon: float | None = None) -> VaRResult:
         """
         Calculate VaR using historical simulation method.
-        
+
         Args:
             returns: Historical returns
             confidence_level: Confidence level (uses default if None)
             time_horizon: Time horizon in days (uses default if None)
-        
+
         Returns:
             VaRResult with VaR value
         """
         cl = confidence_level or self.confidence_level
         th = time_horizon or self.time_horizon
-        
+
         # Calculate VaR at confidence level
         var = np.percentile(returns, (1 - cl) * 100)
-        
+
         # Scale for time horizon (square root of time rule)
         var_scaled = var * np.sqrt(th)
-        
+
         return VaRResult(
             var_value=var_scaled,
             confidence_level=cl,
             time_horizon=th,
             method='historical'
         )
-    
+
     def calculate_parametric_var(self, returns: np.ndarray,
                                   confidence_level: float | None = None,
                                   time_horizon: float | None = None) -> VaRResult:
         """
         Calculate VaR using parametric (variance-covariance) method.
-        
+
         Args:
             returns: Historical returns
             confidence_level: Confidence level (uses default if None)
             time_horizon: Time horizon in days (uses default if None)
-        
+
         Returns:
             VaRResult with VaR value
         """
         cl = confidence_level or self.confidence_level
         th = time_horizon or self.time_horizon
-        
+
         # Calculate mean and standard deviation
         mean = np.mean(returns)
         std = np.std(returns)
-        
+
         # Calculate VaR using normal distribution
         z_score = stats.norm.ppf(1 - cl)
 
         # Scale for time horizon: mean scales linearly, std scales by sqrt(t)
         var_scaled = mean * th + z_score * std * np.sqrt(th)
-        
+
         return VaRResult(
             var_value=var_scaled,
             confidence_level=cl,
             time_horizon=th,
             method='parametric'
         )
-    
+
     def calculate_monte_carlo_var(self, returns: np.ndarray,
                                     n_simulations: int = 10000,
                                     confidence_level: float | None = None,
                                     time_horizon: float | None = None) -> VaRResult:
         """
         Calculate VaR using Monte Carlo simulation.
-        
+
         Args:
             returns: Historical returns
             n_simulations: Number of Monte Carlo simulations
             confidence_level: Confidence level (uses default if None)
             time_horizon: Time horizon in days (uses default if None)
-        
+
         Returns:
             VaRResult with VaR value
         """
         cl = confidence_level or self.confidence_level
         th = time_horizon or self.time_horizon
-        
+
         # Estimate parameters from historical returns
         mean = np.mean(returns)
         std = np.std(returns)
-        
+
         # Generate Monte Carlo simulations
         simulated_returns = np.random.normal(mean, std, n_simulations)
-        
+
         # Calculate VaR from simulations
         var = np.percentile(simulated_returns, (1 - cl) * 100)
-        
+
         # Scale for time horizon
         var_scaled = var * np.sqrt(th)
-        
+
         return VaRResult(
             var_value=var_scaled,
             confidence_level=cl,
             time_horizon=th,
             method='monte_carlo'
         )
-    
+
     def calculate_var_at_multiple_levels(self, returns: np.ndarray,
                                         confidence_levels: list[float] | None = None,
                                         method: str = 'historical') -> dict[float, VaRResult]:
         """
         Calculate VaR at multiple confidence levels.
-        
+
         Args:
             returns: Historical returns
             confidence_levels: List of confidence levels
             method: Calculation method ('historical', 'parametric', 'monte_carlo')
-        
+
         Returns:
             Dictionary mapping confidence levels to VaR results
         """
         if confidence_levels is None:
             confidence_levels = [0.95, 0.99, 0.999]
-        
+
         results = {}
-        
+
         for cl in confidence_levels:
             if method == 'historical':
                 results[cl] = self.calculate_historical_var(returns, cl)
@@ -160,11 +161,11 @@ class VaRCalculator:
                 results[cl] = self.calculate_parametric_var(returns, cl)
             elif method == 'monte_carlo':
                 results[cl] = self.calculate_monte_carlo_var(returns, confidence_level=cl)
-        
+
         return results
-    
+
     def backtest_var(self, returns: np.ndarray, var_result: VaRResult,
-                     window_size: int = 252) -> Dict:
+                     window_size: int = 252) -> dict:
         """Backtest VaR model using historical data."""
         violations = 0
         total_observations = 0
@@ -199,17 +200,17 @@ class VaRCalculator:
             z_score = stats.norm.ppf(1 - var_result.confidence_level)
             return mean + z_score * std
         return None
-    
-    def _kupiec_test(self, violations: int, total_observations: int, 
+
+    def _kupiec_test(self, violations: int, total_observations: int,
                      confidence_level: float) -> float:
         """
         Perform Kupiec test for VaR model validation.
-        
+
         Args:
             violations: Number of VaR violations
             total_observations: Total observations
             confidence_level: VaR confidence level
-        
+
         Returns:
             Kupiec test statistic
         """
@@ -230,8 +231,8 @@ class VaRCalculator:
             return -2 * n * np.log(p)
 
         x = violations
-        
+
         # Likelihood ratio test
         lr = 2 * (x * np.log(x / (n * p)) + (n - x) * np.log((n - x) / (n * (1 - p))))
-        
+
         return lr

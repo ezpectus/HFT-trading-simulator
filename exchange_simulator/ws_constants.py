@@ -6,24 +6,24 @@ the main module and mixin modules.
 import logging
 
 try:
-    from websockets import ServerConnection as WebSocketServerConnection
+    from websockets import ServerConnection as WebSocketServerConnection  # noqa: F401
 except ImportError:
-    from websockets import WebSocketServerProtocol as WebSocketServerConnection
+    pass
 
 try:
-    import msgpack
+    import msgpack  # noqa: F401
     _HAS_MSGPACK = True
 except ImportError:
     _HAS_MSGPACK = False
 
 try:
-    import orjson
+    import orjson  # noqa: F401
     _HAS_ORJSON = True
 except ImportError:
     _HAS_ORJSON = False
 
 try:
-    import multiprocessing.shared_memory as shm_mod
+    import multiprocessing.shared_memory as shm_mod  # noqa: F401
     _HAS_SHM = True
 except ImportError:
     _HAS_SHM = False

@@ -7,7 +7,6 @@ from scipy import stats
 from src.risk.cvar import CVaRCalculator, CVaRResult
 from src.risk.var import VaRResult
 
-
 # ─── Fixtures ───
 
 

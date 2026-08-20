@@ -9,14 +9,29 @@ Uses Hypothesis to generate random inputs and verify invariants:
 import pytest
 
 try:
-    from hypothesis import given, strategies as st, assume, settings
+    from hypothesis import assume, given, settings
+    from hypothesis import strategies as st
     HAS_HYPOTHESIS = True
 except ImportError:
     HAS_HYPOTHESIS = False
+    def given(**kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    def assume(condition):
+        return condition
+    def settings(**kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    class _StStub:
+        def __getattr__(self, name):
+            return lambda *a, **kw: None
+    st = _StStub()
 
 pytestmark = pytest.mark.skipif(not HAS_HYPOTHESIS, reason="hypothesis not installed")
 
-from exchange_simulator.models import Candle, OrderBook, OrderBookLevel, Side, OrderType
+from exchange_simulator.models import Candle, OrderBook, OrderBookLevel, OrderType, Side
 
 
 @given(

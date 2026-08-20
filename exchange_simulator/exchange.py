@@ -8,6 +8,10 @@ order submission -> exchange_order_submission.py,
 liquidation -> exchange_liquidation.py.
 """
 
+from exchange_simulator.audit_logger import get_audit_logger
+from exchange_simulator.exchange_advanced_orders import AdvancedOrderMixin
+from exchange_simulator.exchange_liquidation import LiquidationMixin
+from exchange_simulator.exchange_order_submission import OrderSubmissionMixin
 from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.models import (
     Account,
@@ -16,17 +20,10 @@ from exchange_simulator.models import (
     OCOGroup,
     Order,
     OrderBook,
-    OrderStatus,
-    OrderType,
     Position,
-    Side,
     StopLimitOrder,
     TrailingStopOrder,
 )
-from exchange_simulator.audit_logger import get_audit_logger
-from exchange_simulator.exchange_advanced_orders import AdvancedOrderMixin
-from exchange_simulator.exchange_liquidation import LiquidationMixin
-from exchange_simulator.exchange_order_submission import OrderSubmissionMixin
 
 
 class SimulatedExchange(

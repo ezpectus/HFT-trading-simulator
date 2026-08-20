@@ -4,7 +4,6 @@ Extracted from exchange.py for file-size compliance.
 Handles stop-loss, take-profit, partial and full liquidation checks.
 """
 from exchange_simulator.models import (
-    AuditEventType,
     ClosedTrade,
     Order,
     OrderStatus,

@@ -5,7 +5,6 @@ Contains BasePriceAPI, BinanceAPI, and CoinbaseAPI.
 """
 import asyncio
 import json
-import logging
 import time
 from abc import ABC, abstractmethod
 
@@ -152,7 +151,7 @@ class BinanceAPI(BasePriceAPI):
     async def get_price(self, symbol: str) -> PriceTick | None:
         """Get current price from REST API."""
         if not self._check_rate_limit():
-            logger.warning(f"Binance rate limit reached")
+            logger.warning("Binance rate limit reached")
             self._health.status = APIStatus.RATE_LIMITED
             return None
 

@@ -2,8 +2,7 @@
 
 import pytest
 
-from src.monitoring.metrics import MetricsExporter, HAS_PROMETHEUS
-
+from src.monitoring.metrics import HAS_PROMETHEUS, MetricsExporter
 
 # ─── Fixtures ───
 

@@ -14,13 +14,15 @@ select = [
 ignore = [
     "E501",  # line too long (handled by formatter)
     "B008",  # do not perform function call in argument defaults
+    "UP038",  # isinstance style — preference, not a bug
+    "B905",   # zip() strict= — preference, not a bug
 ]
 
 [tool.ruff.lint.isort]
 known-first-party = ["exchange_simulator"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["F401"]
+"tests/*" = ["F401", "F841", "E402", "UP035", "UP038", "B007", "B905"]  # test-specific relaxations
 
 [tool.ruff.format]
 quote-style = "double"

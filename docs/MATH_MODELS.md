@@ -109,6 +109,20 @@ All indicators in `ai-signal-bot/src/technical_analysis/indicators.py`.
 Radix-2 DFT, Hann window, power spectrum, dominant cycle, spectral entropy.
 - **Source:** `ai-signal-bot/src/technical_analysis/fft_analysis.py`
 
+### Kalman Filter (1D and 2D) — Trading logic
+1D: state = price, observation = price + noise.
+```
+Predict:  x_hat = x_hat, P = P + Q
+Update:   K = P / (P + R), x_hat += K * (z - x_hat), P = (1 - K) * P
+```
+2D: state = [position, velocity], constant velocity model.
+```
+F = [[1, dt], [0, 1]], H = [[1, 0]]
+Predict:  x = F*x, P = F*P*F^T + Q
+Update:   S = H*P*H^T + R, K = P*H^T*S^-1, x += K*(z - H*x), P = (I - K*H)*P
+```
+- **Source:** `ai-signal-bot/src/technical_analysis/kalman.py` (Sprint 55, ported from UI-only KalmanFilterPrice.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

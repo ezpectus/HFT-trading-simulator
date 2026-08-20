@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from src.strategies.cross_exchange_arb import (
-    ArbStatus,
     ArbitrageOpportunity,
+    ArbStatus,
     CrossExchangeArbEngine,
     ExchangePrice,
     ExecutionResult,

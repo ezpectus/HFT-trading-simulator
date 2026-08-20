@@ -12,7 +12,6 @@ from __future__ import annotations
 import csv
 import glob
 import logging
-import time
 from typing import TYPE_CHECKING
 
 from src.strategies import (
@@ -24,7 +23,6 @@ from src.strategies import (
     MLEnsembleStrategy,
     SentimentConfig,
     SentimentStrategy,
-    SignalDirection,
     StatArbConfig,
     StatisticalArbitrage,
     TrendFollowingStrategy,

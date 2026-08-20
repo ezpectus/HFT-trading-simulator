@@ -2,20 +2,19 @@
 import numpy as np
 import pytest
 
+from src.strategies.funding_arb_detector import (
+    ArbitrageOpportunity,
+    ArbType,
+    FundingRate,
+    FundingRateArbitrageDetector,
+)
 from src.strategies.ml_ensemble import (
     FeatureEngineer,
     HMMRegimeDetector,
     MLConfig,
     MLEnsembleStrategy,
 )
-from src.strategies.funding_arb_detector import (
-    ArbType,
-    ArbitrageOpportunity,
-    FundingRate,
-    FundingRateArbitrageDetector,
-)
 from src.strategies.strategies import Signal, SignalDirection
-
 
 # ─── Fixtures ───
 

@@ -9,7 +9,6 @@ API implementations -> price_feed_apis.py.
 """
 
 import asyncio
-import logging
 import time
 
 import aiohttp

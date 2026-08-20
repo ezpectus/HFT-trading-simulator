@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 55 — Kalman Filter Ported to Trading Logic)
+
+### Added
+- **[FEAT-340]** Created `ai-signal-bot/src/technical_analysis/kalman.py` — 1D and 2D Kalman Filter implementations ported from UI-only KalmanFilterPrice.jsx. 1D: state=price, predict/update cycle. 2D: state=[position, velocity], constant velocity model. Pure Python, numpy optional.
+- **[TEST-341]** Created `ai-signal-bot/tests/test_kalman.py` — 15 tests covering empty input, single element, constant prices, noisy prices, trending prices, NaN, convergence, custom parameters, velocity direction
+
+### Changed
+- Updated `ai-signal-bot/src/technical_analysis/__init__.py` — added KalmanFilter1D, KalmanFilter2D, kalman_filter_1d, kalman_filter_2d exports
+- Updated `docs/MATH_MODELS.md` — added Kalman Filter section under Technical Indicators
+- Updated `docs/future_development.md` — marked Kalman Filter as ✅ DONE (Sprint 55)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 54 — Stale CUDA/ONNX Refs in ARCHITECTURE.md)
 
 ### Fixed

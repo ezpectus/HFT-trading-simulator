@@ -11,10 +11,9 @@ import websockets
 
 from exchange_simulator.models import OrderType, Side
 from exchange_simulator.ws_constants import (
+    _HAS_MSGPACK,
     PROTOCOL_VERSION,
     WebSocketServerConnection,
-    _HAS_MSGPACK,
-    _HAS_ORJSON,
     _sanitize_log,
     logger,
 )
@@ -292,7 +291,6 @@ class MessageHandlerMixin:
 
     async def _handle_replay(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle replay control commands."""
-        import asyncio
         action = data.get("action", "toggle")
         if action == "pause":
             self._replay_paused = True

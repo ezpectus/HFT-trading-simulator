@@ -20,7 +20,7 @@ ignore = [
 known-first-party = ["src"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["F401"]  # unused imports in tests (fixtures)
+"tests/*" = ["F401", "F841", "E712", "UP038", "B007"]  # test-specific: unused imports, unused vars, style
 
 [tool.ruff.format]
 quote-style = "double"

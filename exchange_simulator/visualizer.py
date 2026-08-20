@@ -12,7 +12,6 @@ import sys
 import time
 
 from exchange_simulator.exchange import SimulatedExchange
-from exchange_simulator.models import Candle
 from exchange_simulator.visualizer_account import AccountMixin
 from exchange_simulator.visualizer_charts import ChartMixin
 

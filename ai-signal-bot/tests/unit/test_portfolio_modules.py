@@ -4,13 +4,12 @@ import pytest
 
 from src.portfolio.black_litterman import BlackLittermanModel, View
 from src.portfolio.rebalancing import (
-    RebalanceTrigger,
     RebalanceOrder,
     RebalanceResult,
+    RebalanceTrigger,
     RebalancingStrategy,
 )
 from src.portfolio.risk_parity import RiskContribution, RiskParityOptimizer
-
 
 # ─── Fixtures ───
 

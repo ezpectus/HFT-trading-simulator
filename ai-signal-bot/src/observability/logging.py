@@ -20,6 +20,10 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import structlog
 
 _configured: bool = False
 
@@ -85,7 +89,7 @@ def _configure_structlog(service: str, structlog) -> list:
 
 def _create_formatter(
     json_logs: bool, shared_processors: list, structlog
-) -> "structlog.stdlib.ProcessorFormatter":
+) -> structlog.stdlib.ProcessorFormatter:
     """Create a ProcessorFormatter for JSON or console output."""
     processors = [
         structlog.stdlib.ProcessorFormatter.remove_processors_meta,

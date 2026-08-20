@@ -111,7 +111,7 @@ class TestMarketMakingStrategy:
         assert sig.strategy == "market_making"
         assert sig.entry_price > 0
 
-    def test_analyze_reduce_long_inventory(self, mm):
+    def test_analyze_reduce_long_inventory(self, mm, sample_candles):
         from src.strategies.market_making import MarketMakingConfig, MarketMakingStrategy
         cfg = MarketMakingConfig(max_inventory=2.0)
         strategy = MarketMakingStrategy(cfg)

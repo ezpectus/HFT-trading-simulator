@@ -138,7 +138,6 @@ class RealExchangeClient:
         return self._session
 
     async def _binance_balance(self) -> AccountBalance | None:
-        import aiohttp
         ts = int(time.time() * 1000)
         params = f"timestamp={ts}&recvWindow=5000"
         sig = self._sign_binance(params)
@@ -164,7 +163,6 @@ class RealExchangeClient:
         return None
 
     async def _binance_positions(self) -> list[Position]:
-        import aiohttp
         ts = int(time.time() * 1000)
         params = f"timestamp={ts}&recvWindow=5000"
         sig = self._sign_binance(params)
@@ -196,7 +194,6 @@ class RealExchangeClient:
         return positions
 
     async def _okx_balance(self) -> AccountBalance | None:
-        import aiohttp
         ts = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
         path = "/api/v5/account/balance"
         sig = self._sign_okx(ts, "GET", path)
@@ -230,7 +227,6 @@ class RealExchangeClient:
         return None
 
     async def _okx_positions(self) -> list[Position]:
-        import aiohttp
         ts = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
         path = "/api/v5/account/positions"
         sig = self._sign_okx(ts, "GET", path)
@@ -267,7 +263,6 @@ class RealExchangeClient:
         return positions
 
     async def _bybit_balance(self) -> AccountBalance | None:
-        import aiohttp
         ts = str(int(time.time() * 1000))
         recv_window = "5000"
         param_str = "accountType=UNIFIED"
@@ -301,7 +296,6 @@ class RealExchangeClient:
         return None
 
     async def _bybit_positions(self) -> list[Position]:
-        import aiohttp
         ts = str(int(time.time() * 1000))
         recv_window = "5000"
         param_str = "category=linear&settleCoin=USDT"

@@ -8,10 +8,11 @@ Tests:
 - Encoding attack prevention (msgpack vs json confusion)
 """
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from exchange_simulator.models import Side, OrderType
+import pytest
+
+from exchange_simulator.models import OrderType, Side
 from exchange_simulator.websocket_server import ExchangeWebSocketServer
 from exchange_simulator.ws_constants import _sanitize_log
 

@@ -6,7 +6,6 @@ from scipy import stats
 
 from src.risk.var import VaRCalculator, VaRResult
 
-
 # ─── Fixtures ───
 
 

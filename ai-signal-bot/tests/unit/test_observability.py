@@ -11,8 +11,8 @@ from src.observability.health_checks import (
     HealthChecker,
     HealthStatus,
 )
+from src.observability.logging import bind_context, clear_context, get_logger
 from src.observability.tracing import get_tracer, shutdown_tracing
-from src.observability.logging import get_logger, bind_context, clear_context
 
 
 class TestHealthStatus:
