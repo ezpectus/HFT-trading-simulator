@@ -1787,6 +1787,56 @@
 
 ---
 
+### QUAL-016: `exchange_simulator/websocket_server.py` exceeds 500-line limit (1016 lines)
+- **Location:** `exchange_simulator/websocket_server.py`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** File contained ExchangeWebSocketServer class with all message handling, broadcast logic, Prometheus metrics, and WebSocket connection management — totaling 1016 lines.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted into 5 modules: `ws_constants.py` (shared imports/constants), `ws_metrics.py` (WebSocketMetrics class), `ws_message_handler.py` (MessageHandlerMixin), `ws_broadcast.py` (BroadcastMixin), `ws_prometheus.py` (PrometheusMixin). Main file now 201 lines using mixin inheritance.
+- **Commit:** 1e57335
+
+---
+
+### QUAL-017: `exchange_simulator/exchange.py` exceeds 500-line limit (1030 lines)
+- **Location:** `exchange_simulator/exchange.py`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** File contained SimulatedExchange class with order submission, position management, advanced order handling, and liquidation engine — totaling 1030 lines.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted into 3 mixins: `exchange_advanced_orders.py` (stop-limit, trailing stop, iceberg, margin checks), `exchange_order_submission.py` (order creation, fill logic, position updates), `exchange_liquidation.py` (SL/TP checks, partial/full liquidation). Main file now 149 lines.
+- **Commit:** c126107
+
+---
+
+### QUAL-018: `exchange_simulator/price_feed_manager.py` exceeds 500-line limit (920 lines)
+- **Location:** `exchange_simulator/price_feed_manager.py`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** File contained APIStatus, PriceTick, APIHealth, PerformanceMetrics, time_operation decorator, BasePriceAPI, BinanceAPI, CoinbaseAPI, and PriceFeedManager — totaling 920 lines.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted data models and utilities to `price_feed_models.py` (176 lines), API implementations to `price_feed_apis.py` (352 lines). Main file now 272 lines with PriceFeedManager and re-exports of all public names.
+- **Commit:** f8093b5
+
+---
+
+### QUAL-019: `exchange_simulator/visualizer.py` exceeds 500-line limit (730 lines)
+- **Location:** `exchange_simulator/visualizer.py`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** File contained TabbedVisualizer class with candle chart rendering, volume bars, technical indicators, RSI/MACD mini-charts, order book, account tab, and equity sparkline — totaling 730 lines.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted chart rendering to `visualizer_charts.py` (286 lines, ChartMixin), account/order book rendering to `visualizer_account.py` (149 lines, AccountMixin). Main file now 231 lines using mixin inheritance.
+- **Commit:** 36192d5
+
+---
+
+### QUAL-020: `except Exception` in exchange_simulator test files (9 matches)
+- **Location:** `exchange_simulator/tests/test_chaos_enhanced.py` (6 matches), `test_chaos_reconnect.py` (2 matches), `test_load_10k.py` (1 match)
+- **Severity:** P3 (Code Quality)
+- **Root Cause:** Bare `except Exception` catches in test files violate code quality rules requiring specific exception types.
+- **Status:** ✅ Fixed
+- **Fix:** Narrowed all 9 catches to specific exception types: OSError, RuntimeError, ValueError, TypeError, KeyError, json.JSONDecodeError, websockets.WebSocketException, asyncio.TimeoutError.
+- **Commit:** 22927dc
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

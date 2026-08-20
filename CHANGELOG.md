@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v5.0 — Autonomous Sprint 6: exchange_simulator File Size Compliance + Test Quality)
+
+### Code Quality Fixes
+
+- **[QUAL-016]** Refactored `exchange_simulator/websocket_server.py` (1016→201 lines) into 5 modules: `ws_constants.py` (29 lines), `ws_metrics.py` (73 lines), `ws_message_handler.py` (358 lines), `ws_broadcast.py` (362 lines), `ws_prometheus.py` (58 lines). Uses mixin pattern for composition. Backward compatible.
+- **[QUAL-017]** Refactored `exchange_simulator/exchange.py` (1030→149 lines) into 3 mixins: `exchange_advanced_orders.py` (241 lines), `exchange_order_submission.py` (354 lines), `exchange_liquidation.py` (119 lines). Backward compatible.
+- **[QUAL-018]** Refactored `exchange_simulator/price_feed_manager.py` (920→272 lines) into 2 modules: `price_feed_models.py` (176 lines), `price_feed_apis.py` (352 lines). All public names re-exported from main module.
+- **[QUAL-019]** Refactored `exchange_simulator/visualizer.py` (730→231 lines) into 2 mixins: `visualizer_charts.py` (286 lines), `visualizer_account.py` (149 lines). Backward compatible.
+- **[QUAL-020]** Narrowed 9 `except Exception` catches in `exchange_simulator/tests/` (3 test files) to specific exception types (OSError, RuntimeError, ValueError, json.JSONDecodeError, websockets.WebSocketException, asyncio.TimeoutError).
+
+### Audit Results
+
+- **0** source files > 500 lines (all exchange_simulator files now compliant)
+- **0** `except Exception` in production code or test code
+
 ## [Unreleased] — 2026-08-20 (v4.9 — Autonomous Sprint 5: File Size Compliance + Final Test Coverage + print() Fix)
 
 ### Code Quality Fixes
