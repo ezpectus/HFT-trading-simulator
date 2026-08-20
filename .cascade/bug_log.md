@@ -2257,6 +2257,66 @@
 
 ---
 
+### QUAL-063: Macro constant — `#define M_PI` in signal_engine.h + signal_engine_v3.h
+- **Location:** `hft-trade-bot/src/strategies/signal_engine.h:22-24`, `signal_engine_v3.h:34-36`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `#define` macro constants bypass type system, pollute global namespace, no scoping.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced with `inline constexpr double kPi` / `kPiV3` — type-safe, scoped, no macro pollution.
+- **Commit:** b7c5def
+
+---
+
+### QUAL-064: Macro constant — `#define INVALID_SOCKET_VALUE` in health_server.h
+- **Location:** `hft-trade-bot/src/monitoring/health_server.h:21,28`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** `#define` macro for platform-specific invalid socket value — untyped, no scoping.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced with `constexpr socket_t kInvalidSocket` — type-safe, scoped to translation unit.
+- **Commit:** abd7665
+
+---
+
+### QUAL-065: Function length — `config.cpp:validate_config()` (85 lines > 40 limit)
+- **Location:** `hft-trade-bot/src/core/config.cpp:38-122`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Risk params, trading params, and production limits validation all inline in one function.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 3 helpers: `validate_risk_params`, `validate_trading_params`, `validate_production_limits`. `validate_config()` now 9 lines.
+- **Commit:** e8541f0
+
+---
+
+### QUAL-066: Function length — `metrics_collector.cpp:generate_prometheus_output()` (53 lines > 40 limit)
+- **Location:** `hft-trade-bot/src/metrics/metrics_collector.cpp:138-191`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Counter, gauge, and histogram export all inline in one function.
+- **Status:** ✅ Fixed
+- **Fix:** Extracted 3 helpers: `export_counters`, `export_gauges`, `export_histograms`. `generate_prometheus_output()` now 10 lines.
+- **Commit:** fc63356
+
+---
+
+### QUAL-067: Dead code — commented-out CircuitBreaker in main.cpp
+- **Location:** `hft-trade-bot/src/core/main.cpp:423-424`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** Commented-out `CircuitBreaker ws_circuit(5, 30); CircuitBreaker order_circuit(5, 30);` — unused, never uncommented.
+- **Status:** ✅ Fixed
+- **Fix:** Removed 2 lines of commented-out dead code.
+- **Commit:** fe4f176
+
+---
+
+### QUAL-068: Anti-pattern — `static` local variables inside loop body in main.cpp
+- **Location:** `hft-trade-bot/src/core/main.cpp:761-767`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** `static SignalEngine::Params` and `static SignalEngine` declared inside `while` loop body — static-local-in-loop anti-pattern. While functionally correct (initialized once), it's misleading and prevents proper lifecycle management.
+- **Status:** ✅ Fixed
+- **Fix:** Moved `SignalEngine::Params engine_params` and `SignalEngine engine_v1` to function scope before the loop. Renamed from `engine` to `engine_v1` for clarity.
+- **Commit:** 7b33abd
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

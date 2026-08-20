@@ -1,13 +1,13 @@
 # Architecture
 
 **Last Updated:** August 20, 2026
-**Project Status:** 62% overall completion (deep audit v4.5 — honest assessment)
+**Project Status:** 65% overall completion (audit v5.6 — Sprints 9-12 completed)
 
 ## Overview
 
 The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 227 React components, 197 registered UI panels, 44 mathematical models in trading logic (+40 UI-only educational visualizations), PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
 
-**Honest status (v4.5 audit):** CUDA and ONNX code exists behind `#ifdef` but is never compiled in CI (dead code). ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface IS implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection). Signal and CircuitBreaker extracted to separate modules (`signal.py`, `circuit_breaker.py`) for file-size compliance.
+**Honest status (v5.6 audit):** CUDA and ONNX code exists behind `#ifdef` but is never compiled in CI (dead code). ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface IS implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection). Signal and CircuitBreaker extracted to separate modules (`signal.py`, `circuit_breaker.py`) for file-size compliance. Sprints 9-12 (August 20, 2026): 21 Python functions >40 lines refactored (all now ≤39 lines), 2 C++ functions refactored, 2 C++ macro constants replaced with `constexpr`, 1 dead code removal, 1 anti-pattern fix. 0 TODO/FIXME/HACK across both repos. 0 bare except, 0 `type: ignore`, 0 `import *`, 0 `print()` in production. 0 C-style casts, 0 raw `new`/`delete`, 0 `goto` in C++ code.
 
 **Recent Completion (August 12, 2026):**
 - Day 9: Monitoring and Observability (Prometheus metrics, Grafana dashboards, OpenTelemetry tracing, Alertmanager)

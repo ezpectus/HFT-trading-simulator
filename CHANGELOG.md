@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v5.6 — Autonomous Sprint 12: C++ Code Quality Audit)
+
+### Code Quality Fixes
+
+- **[QUAL-063]** Replaced `#define M_PI` with `inline constexpr double kPi` in `signal_engine.h` + `signal_engine_v3.h` — type-safe constant, no macro pollution.
+- **[QUAL-064]** Replaced `#define INVALID_SOCKET_VALUE` with `constexpr socket_t kInvalidSocket` in `health_server.h` — type-safe, scoped constant.
+- **[QUAL-065]** Refactored `config.cpp:validate_config()` (85→9 lines) — extracted 3 helpers: `validate_risk_params`, `validate_trading_params`, `validate_production_limits`.
+- **[QUAL-066]** Refactored `metrics_collector.cpp:generate_prometheus_output()` (53→10 lines) — extracted 3 helpers: `export_counters`, `export_gauges`, `export_histograms`.
+- **[QUAL-067]** Removed commented-out `CircuitBreaker` dead code in `main.cpp` — 2 lines of unused commented code.
+- **[QUAL-068]** Moved `static SignalEngine` from loop body to function scope in `main.cpp` — eliminates static-local-in-loop anti-pattern, preserves indicator state correctly.
+
+### Audit Results
+
+- **2** macro constants replaced with `constexpr` (C++ best practice)
+- **2** functions refactored (85→9, 53→10 lines)
+- **1** dead code removal (commented-out CircuitBreaker)
+- **1** anti-pattern fix (static local in loop → function scope)
+- **0** TODO/FIXME/HACK in C++ code
+- **0** C-style casts (all use `static_cast`/`reinterpret_cast`)
+- **0** raw `new`/`delete` (all use `std::unique_ptr`/`std::make_unique`)
+- **0** `printf`/`cout` in production (all use `spdlog`)
+- **0** `goto` statements
+
 ## [Unreleased] — 2026-08-20 (v5.5 — Autonomous Sprint 11: Cross-Repo Function Length Refactoring)
 
 ### Code Quality Fixes
