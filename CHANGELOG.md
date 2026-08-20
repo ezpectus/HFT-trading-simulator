@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v5.2 — Autonomous Sprint 8: Dead Code Removal + Test Coverage)
+
+### Code Quality Fixes
+
+- **[QUAL-026]** Removed dead code `ai-signal-bot/src/database/database.py` (487 lines) — PostgreSQL/asyncpg persistence layer, never imported. Replaced by `db.py` (SQLite).
+- **[QUAL-027]** Removed dead code `ai-signal-bot/src/database/models.py` (228 lines) — dataclass models, never imported.
+- **[QUAL-028]** Removed dead code `ai-signal-bot/src/data_collection/market_replay.py` (276 lines) — market replay recorder/player, never imported.
+- **[QUAL-029]** Removed dead code `ai-signal-bot/src/data_collection/timescaledb_client.py` (356 lines) — TimescaleDB client, never imported, no TimescaleDB dependency.
+- **[QUAL-030]** Added 18 unit tests for `ai-signal-bot/src/monitoring/health_server.py` — registration, sync/async checks, failing checks, all 6 HTTP endpoints, edge cases.
+
+### Audit Results
+
+- **1347** lines of dead code removed (4 files)
+- **18** new tests added (health_server.py)
+- **0** `except Exception` in entire codebase
+- **0** `print()` in production code
+- **0** files > 500 lines
+- **37** `noqa` comments (all justified: E402 sys.path, F401 re-exports)
+- **29** `global` statements (all justified: singleton patterns for observability)
+
 ## [Unreleased] — 2026-08-20 (v5.1 — Autonomous Sprint 7: print() Cleanup + except Exception Narrowing)
 
 ### Code Quality Fixes

@@ -1887,6 +1887,56 @@
 
 ---
 
+### QUAL-026: Dead code — `database/database.py` (487 lines)
+- **Location:** `ai-signal-bot/src/database/database.py`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** PostgreSQL/asyncpg persistence layer never imported anywhere in the project. Replaced by `database/db.py` (SQLite) which is actively used.
+- **Status:** ✅ Fixed
+- **Fix:** Removed file via `git rm`. No imports or references found in entire codebase or docs.
+- **Commit:** 6bea55b
+
+---
+
+### QUAL-027: Dead code — `database/models.py` (228 lines)
+- **Location:** `ai-signal-bot/src/database/models.py`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Dataclass models for database entities (Trade, Signal, Position, Candle, Backtest, RiskEvent) never imported. `db.py` uses its own inline models.
+- **Status:** ✅ Fixed
+- **Fix:** Removed file via `git rm`.
+- **Commit:** 6bea55b
+
+---
+
+### QUAL-028: Dead code — `data_collection/market_replay.py` (276 lines)
+- **Location:** `ai-signal-bot/src/data_collection/market_replay.py`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Market replay recorder/player never imported anywhere. Not referenced in docs.
+- **Status:** ✅ Fixed
+- **Fix:** Removed file via `git rm`.
+- **Commit:** 6bea55b
+
+---
+
+### QUAL-029: Dead code — `data_collection/timescaledb_client.py` (356 lines)
+- **Location:** `ai-signal-bot/src/data_collection/timescaledb_client.py`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** TimescaleDB client never imported. No TimescaleDB dependency in project. Not referenced in docs.
+- **Status:** ✅ Fixed
+- **Fix:** Removed file via `git rm`.
+- **Commit:** 6bea55b
+
+---
+
+### QUAL-030: Missing tests — `monitoring/health_server.py` (153 lines)
+- **Location:** `ai-signal-bot/src/monitoring/health_server.py`
+- **Severity:** P2 (Test Coverage)
+- **Root Cause:** HealthServer class used by `run.py` for health check endpoints, but had no dedicated test file.
+- **Status:** ✅ Fixed
+- **Fix:** Added `tests/unit/test_health_server.py` with 18 tests covering: check registration (2), sync/async check execution (7), HTTP endpoints (7), edge cases (5). Uses `aiohttp.test_utils.TestClient`.
+- **Commit:** 5fcd5c3
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix
