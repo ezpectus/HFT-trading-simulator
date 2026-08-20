@@ -166,38 +166,54 @@ class MarketMakingStrategy:
         """
         if side == "BUY":
             if self.inventory < 0:
-                close_qty = min(qty, -self.inventory)
-                self.total_pnl += close_qty * (self._avg_entry_price - price)
-                self.inventory += close_qty
-                remaining = qty - close_qty
-                if remaining > 0:
-                    self.inventory += remaining
-                    self._avg_entry_price = price
-                elif abs(self.inventory) < 1e-12:
-                    self._avg_entry_price = 0.0
+                self._close_short(qty, price)
             else:
-                total_cost = self._avg_entry_price * self.inventory + price * qty
-                self.inventory += qty
-                if self.inventory != 0:
-                    self._avg_entry_price = total_cost / self.inventory
-        else:  # SELL
+                self._open_long(qty, price)
+        else:
             if self.inventory > 0:
-                close_qty = min(qty, self.inventory)
-                self.total_pnl += close_qty * (price - self._avg_entry_price)
-                self.inventory -= close_qty
-                remaining = qty - close_qty
-                if remaining > 0:
-                    self.inventory -= remaining
-                    self._avg_entry_price = price
-                elif abs(self.inventory) < 1e-12:
-                    self._avg_entry_price = 0.0
+                self._close_long(qty, price)
             else:
-                prev_short = abs(self.inventory)
-                total_cost = self._avg_entry_price * prev_short + price * qty
-                self.inventory -= qty
-                if self.inventory != 0:
-                    self._avg_entry_price = total_cost / abs(self.inventory)
+                self._open_short(qty, price)
         self.fill_count += 1
+
+    def _close_short(self, qty: float, price: float) -> None:
+        """Close short position (BUY fills against negative inventory)."""
+        close_qty = min(qty, -self.inventory)
+        self.total_pnl += close_qty * (self._avg_entry_price - price)
+        self.inventory += close_qty
+        remaining = qty - close_qty
+        if remaining > 0:
+            self.inventory += remaining
+            self._avg_entry_price = price
+        elif abs(self.inventory) < 1e-12:
+            self._avg_entry_price = 0.0
+
+    def _open_long(self, qty: float, price: float) -> None:
+        """Open or add to long position (BUY fills with non-negative inventory)."""
+        total_cost = self._avg_entry_price * self.inventory + price * qty
+        self.inventory += qty
+        if self.inventory != 0:
+            self._avg_entry_price = total_cost / self.inventory
+
+    def _close_long(self, qty: float, price: float) -> None:
+        """Close long position (SELL fills against positive inventory)."""
+        close_qty = min(qty, self.inventory)
+        self.total_pnl += close_qty * (price - self._avg_entry_price)
+        self.inventory -= close_qty
+        remaining = qty - close_qty
+        if remaining > 0:
+            self.inventory -= remaining
+            self._avg_entry_price = price
+        elif abs(self.inventory) < 1e-12:
+            self._avg_entry_price = 0.0
+
+    def _open_short(self, qty: float, price: float) -> None:
+        """Open or add to short position (SELL fills with non-positive inventory)."""
+        prev_short = abs(self.inventory)
+        total_cost = self._avg_entry_price * prev_short + price * qty
+        self.inventory -= qty
+        if self.inventory != 0:
+            self._avg_entry_price = total_cost / abs(self.inventory)
 
     def analyze(self, symbol: str, candles: list[dict]) -> Signal:
         """Convert market making state to a signal (for monitoring)."""
