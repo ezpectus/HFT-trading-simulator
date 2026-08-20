@@ -115,7 +115,7 @@ async def monitor():
                     print(f"{'=' * 60}")
                     await asyncio.sleep(1)
 
-        except (ConnectionRefusedError, OSError, Exception) as e:
+        except (ConnectionRefusedError, OSError, asyncio.TimeoutError, json.JSONDecodeError) as e:
             connected = False
             clear_screen()
             print(f"\n{'=' * 60}")
