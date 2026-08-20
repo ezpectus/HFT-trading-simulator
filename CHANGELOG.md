@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 22 — Native Type Hints Migration)
+
+### Changed
+- **[QUAL-089]** Migrated 13 files from `typing.Optional/List/Dict/Tuple` to Python 3.12+ native types (`X | None`, `list`, `dict`, `tuple`). Removed unused typing imports in several files. Added `Any` justification comments in `tracing.py` and `environment.py`.
+- **[QUAL-089]** `scripts/test_config_consistency.py` — Replaced `Dict` from typing with native `dict`.
+
+### Files affected
+- `ai-signal-bot/src/ml/environment.py`, `rl_agent.py`, `lstm_model.py`, `transformer_model.py`
+- `ai-signal-bot/src/portfolio/markowitz.py`, `black_litterman.py`, `rebalancing.py`, `risk_parity.py`
+- `ai-signal-bot/src/risk/cvar.py`, `position_sizing.py`, `stress_test.py`, `var.py`
+- `ai-signal-bot/tracing.py`
+- `scripts/test_config_consistency.py`
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 21 — Deep Audit: monitoring, root scripts, docs sync)
 
 ### Fixed

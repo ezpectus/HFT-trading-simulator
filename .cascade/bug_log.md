@@ -8,11 +8,11 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 181 |
+| ✅ Fixed | 182 |
 | 🔄 In Progress | 0 |
 | ⏳ Pending Fix | 0 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **181** |
+| **TOTAL FOUND** | **182** |
 
 ---
 
@@ -2506,6 +2506,15 @@
 - **Root Cause:** Both files still reference "62% overall completion (deep audit v4.3)" while notes.md was updated to 66% (v5.9 audit) in Sprint 20.
 - **Status:** ✅ Fixed
 - **Fix:** Updated both files to "66% overall completion (v5.9 audit — honest assessment)".
+
+---
+
+### QUAL-089: Old typing imports (Optional/List/Dict/Tuple) in 13 files
+- **Location:** `ai-signal-bot/src/ml/` (4 files), `ai-signal-bot/src/portfolio/` (4 files), `ai-signal-bot/src/risk/` (4 files), `ai-signal-bot/tracing.py`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** 13 files used `from typing import Optional, List, Dict, Tuple` instead of native Python 3.12+ types (`X | None`, `list`, `dict`, `tuple`). Several files also had unused imports (e.g., `List` imported but never used).
+- **Status:** ✅ Fixed
+- **Fix:** Replaced all `Optional[X]` → `X | None`, `List[X]` → `list[X]`, `Dict[K,V]` → `dict[K,V]`, `Tuple[X,Y]` → `tuple[X,Y]`. Removed unused typing imports. Added justification comment for `Any` in `tracing.py` and `environment.py`.
 
 ---
 

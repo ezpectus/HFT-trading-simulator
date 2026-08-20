@@ -247,6 +247,27 @@
 
 **Sprint 21 result:** 4 bugs fixed (1×P0, 2×P1, 1×P2). Critical `self_model_predictions_total` typo would have caused NameError on any model prediction call. 3 documentation files synced.
 
+**Sprint 22 — Native type hints migration (QUAL-089):**
+
+| # | File | Issue | Fix | Status |
+|---|------|-------|-----|--------|
+| 1 | `src/ml/environment.py` | `Tuple`, `Dict`, `Optional` from typing | `tuple`, `dict`, `X | None` | ✅ |
+| 2 | `src/ml/rl_agent.py` | Unused `List`/`Tuple`/`Dict`, `Optional` | Removed unused, `int | None` | ✅ |
+| 3 | `src/ml/lstm_model.py` | Unused `Optional`/`List`, `Tuple` | Removed unused, `tuple` | ✅ |
+| 4 | `src/ml/transformer_model.py` | Unused `Tuple`/`Optional`/`List` | Removed all | ✅ |
+| 5 | `src/portfolio/markowitz.py` | `Tuple`, `List`, `Optional`, `Dict` | All replaced with native types | ✅ |
+| 6 | `src/portfolio/black_litterman.py` | `List`, `Tuple`, `Optional` | All replaced with native types | ✅ |
+| 7 | `src/portfolio/rebalancing.py` | Unused `List`/`Tuple`/`Dict`, `Optional` | Removed unused, `float | None` | ✅ |
+| 8 | `src/portfolio/risk_parity.py` | Unused `List`/`Optional`/`Dict`, `Tuple` | Removed unused, `tuple` | ✅ |
+| 9 | `src/risk/cvar.py` | `Optional`, `Dict` | `float | None`, `dict` | ✅ |
+| 10 | `src/risk/position_sizing.py` | Unused `Dict`, `Optional` | Removed unused, `float | None` | ✅ |
+| 11 | `src/risk/stress_test.py` | Unused `Optional`, `List`, `Dict` | Removed unused, `list`, `dict` | ✅ |
+| 12 | `src/risk/var.py` | `Optional`, `List`, `Dict` | `float | None`, `list`, `dict` | ✅ |
+| 13 | `tracing.py` | `Optional`, `Dict`, `Any` without justification | `X | None`, `dict`, `Any` with comment | ✅ |
+| 14 | `scripts/test_config_consistency.py` | `Dict` from typing | `dict` | ✅ |
+
+**Sprint 22 result:** 13 files + 1 script file migrated to Python 3.12+ native types. Many files had unused typing imports (dead code). All `Optional[X]` → `X | None`, `List` → `list`, `Dict` → `dict`, `Tuple` → `tuple`.
+
 ## Proposals
 
 | # | Title | Status | Date |
