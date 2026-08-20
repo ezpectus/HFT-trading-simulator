@@ -211,37 +211,39 @@ class FundingRateArbitrageDetector:
             high_exchange, high_funding = sorted_rates[0]
             low_exchange, low_funding = sorted_rates[-1]
 
-            rate_diff = high_funding.rate - low_funding.rate
-            if rate_diff < self.min_funding_rate:
-                continue
-
-            cost = self.cost_per_trade * 2
-            net_daily = rate_diff * 3 - cost / 30
-
-            if net_daily <= 0:
-                continue
-
-            confidence = min(100, rate_diff / self.min_funding_rate * 60 + 40)
-
-            results.append(ArbitrageOpportunity(
-                type=ArbType.CROSS_EXCHANGE,
-                symbol=symbol,
-                exchanges=[high_exchange, low_exchange],
-                funding_rate=rate_diff,
-                expected_daily_return=rate_diff * 3,
-                cost_estimate=cost,
-                net_expected_return=net_daily,
-                confidence=confidence,
-                details={
-                    "high_exchange": high_exchange,
-                    "high_rate": high_funding.rate,
-                    "low_exchange": low_exchange,
-                    "low_rate": low_funding.rate,
-                    "action": f"Short perp on {high_exchange} ({high_funding.rate:.4%}), long perp on {low_exchange} ({low_funding.rate:.4%})",
-                },
-            ))
+            opp = self._build_cross_exchange_opp(symbol, high_exchange, high_funding, low_exchange, low_funding)
+            if opp:
+                results.append(opp)
 
         return results
+
+    def _build_cross_exchange_opp(
+        self, symbol: str, high_exchange: str, high_funding: FundingRate,
+        low_exchange: str, low_funding: FundingRate,
+    ) -> ArbitrageOpportunity | None:
+        """Build cross-exchange arbitrage opportunity from funding rate differential."""
+        rate_diff = high_funding.rate - low_funding.rate
+        if rate_diff < self.min_funding_rate:
+            return None
+
+        cost = self.cost_per_trade * 2
+        net_daily = rate_diff * 3 - cost / 30
+        if net_daily <= 0:
+            return None
+
+        confidence = min(100, rate_diff / self.min_funding_rate * 60 + 40)
+
+        return ArbitrageOpportunity(
+            type=ArbType.CROSS_EXCHANGE, symbol=symbol,
+            exchanges=[high_exchange, low_exchange],
+            funding_rate=rate_diff, expected_daily_return=rate_diff * 3,
+            cost_estimate=cost, net_expected_return=net_daily, confidence=confidence,
+            details={
+                "high_exchange": high_exchange, "high_rate": high_funding.rate,
+                "low_exchange": low_exchange, "low_rate": low_funding.rate,
+                "action": f"Short perp on {high_exchange} ({high_funding.rate:.4%}), long perp on {low_exchange} ({low_funding.rate:.4%})",
+            },
+        )
 
     def _detect_calendar_spread(self) -> list[ArbitrageOpportunity]:
         """Detect calendar spread funding arbitrage (near vs far term)."""
