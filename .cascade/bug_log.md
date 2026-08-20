@@ -10,9 +10,9 @@
 |--------|-------|
 | ✅ Fixed | 186 |
 | 🔄 In Progress | 0 |
-| ⏳ Pending Fix | 0 |
+| ⏳ Pending Fix | 2 |
 | 📋 Proposal Needed | 0 |
-| **TOTAL FOUND** | **186** |
+| **TOTAL FOUND** | **188** |
 
 ---
 
@@ -2552,6 +2552,26 @@
 - **Root Cause:** Single test file contained tests for 8 different modules (volatility_surface, var_stress_test, market_making, sentiment, statistical_arbitrage, order_book_replay, plotter, optimizer) totaling 1098 lines, exceeding the 500-line file size limit.
 - **Status:** ✅ Fixed
 - **Fix:** Split into 8 focused test files (`test_volatility_surface.py`, `test_var_stress_test.py`, `test_market_making.py`, `test_sentiment.py`, `test_statistical_arbitrage.py`, `test_order_book_replay.py`, `test_backtest_plotter.py`, `test_backtest_optimizer.py`). Shared fixtures (`sample_candles`, `sample_candle`) moved to `conftest.py`. Original file replaced with deprecation notice pointing to new files.
+
+---
+
+## QUAL-094 — Code duplication in web-ui exchange OrderBook components
+
+- **Location:** `web-ui/src/exchanges/binance/BinanceOrderBook.jsx`, `web-ui/src/exchanges/bybit/BybitOrderBook.jsx`, `web-ui/src/exchanges/coinbase/CoinbaseOrderBook.jsx`
+- **Severity:** P2 (Code Quality — DRY violation)
+- **Root Cause:** Three OrderBook components are ~95% identical (~130 lines each). Same logic, same structure, only minor CSS class and label differences. ~260 lines of duplicated JSX code.
+- **Status:** ⏳ Pending Fix
+- **Fix:** Refactor into a shared `OrderBookBase` component that accepts theme and layout props from `ExchangeContext`. Exchange-specific wrappers become thin (<10 lines) components.
+
+---
+
+## QUAL-095 — Code duplication in web-ui exchange OrderForm components
+
+- **Location:** `web-ui/src/exchanges/binance/BinanceOrderForm.jsx`, `web-ui/src/exchanges/bybit/BybitOrderForm.jsx`, `web-ui/src/exchanges/coinbase/CoinbaseOrderForm.jsx`
+- **Severity:** P2 (Code Quality — DRY violation)
+- **Root Cause:** Three OrderForm components are ~90% identical (~300-346 lines each). Same state management, same handleSubmit logic, same input fields. Binance and Coinbase are nearly identical; Bybit is a compact variant. ~600 lines of duplicated JSX code.
+- **Status:** ⏳ Pending Fix
+- **Fix:** Extract shared `OrderFormBase` component with all state and logic. Exchange-specific wrappers pass theme, layout config (compact vs full), and label strings via props.
 
 ---
 
