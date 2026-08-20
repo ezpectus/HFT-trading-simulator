@@ -163,7 +163,13 @@ class TestHandleClient:
     async def test_client_added_on_connect(self, publisher):
         ws = MagicMock()
         ws.remote_address = ("127.0.0.1", 12345)
-        ws.__aiter__ = MagicMock(return_value=iter([]))
+        ws.send = AsyncMock()
+
+        async def msg_iter():
+            return
+            yield  # Make it an async generator
+
+        ws.__aiter__ = MagicMock(return_value=msg_iter())
         await publisher._handle_client(ws)
         # After disconnect, client should be removed
         assert ws not in publisher._clients
@@ -172,6 +178,7 @@ class TestHandleClient:
     async def test_subscribe_message(self, publisher):
         ws = MagicMock()
         ws.remote_address = ("127.0.0.1", 12345)
+        ws.send = AsyncMock()
 
         async def msg_iter():
             yield json.dumps({"type": "subscribe", "client": "hft_trade_bot"})
@@ -184,6 +191,7 @@ class TestHandleClient:
     async def test_invalid_json_handled(self, publisher):
         ws = MagicMock()
         ws.remote_address = ("127.0.0.1", 12345)
+        ws.send = AsyncMock()
 
         async def msg_iter():
             yield "not valid json"

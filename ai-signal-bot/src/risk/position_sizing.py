@@ -232,7 +232,7 @@ class DynamicPositionSizer:
                 adjustment_factor = max(adjustment_factor, 0.5)
                 adjusted_sizes[i] *= adjustment_factor
 
-        return adjusted_sizes
+        return np.array(adjusted_sizes)
 
     def enforce_position_limits(self, position_sizes: np.ndarray,
                                 max_single_position: float = 0.2,

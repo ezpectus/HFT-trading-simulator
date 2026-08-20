@@ -127,9 +127,9 @@ class MarketMakingStrategy:
         spread = self._optimal_spread(self._last_sigma, t)
         if ask_only:
             ask = r + spread / 2
-            return Quote(0, ask, 0, 1.0, mid_price, r, spread, 50, "Max long inventory, ask only")
+            return Quote(0, ask, 0, 1.0, mid_price, r, spread, confidence=50, reason="Max long inventory, ask only")
         bid = r - spread / 2
-        return Quote(bid, 0, 1.0, 0, mid_price, r, spread, 50, "Max short inventory, bid only")
+        return Quote(bid, 0, 1.0, 0, mid_price, r, spread, confidence=50, reason="Max short inventory, bid only")
 
     def _normal_quote(self, mid_price: float, t: float) -> Quote:
         """Generate normal two-sided quote with inventory skew."""

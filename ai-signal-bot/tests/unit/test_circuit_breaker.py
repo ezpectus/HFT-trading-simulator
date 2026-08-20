@@ -78,7 +78,7 @@ class TestTripAndRecovery:
         assert cb.is_tripped is True
 
         # Patch time to simulate cooldown passing
-        with patch('src.strategies.strategies.time.time', return_value=cb._trip_time + 2.0):
+        with patch('src.strategies.circuit_breaker.time.time', return_value=cb._trip_time + 2.0):
             assert cb.is_tripped is False
         assert cb.consecutive_losses == 0
 
@@ -88,7 +88,7 @@ class TestTripAndRecovery:
         cb.on_trade_closed(-10)
         assert cb.is_tripped is True
 
-        with patch('src.strategies.strategies.time.time', return_value=cb._trip_time + 0.5):
+        with patch('src.strategies.circuit_breaker.time.time', return_value=cb._trip_time + 0.5):
             assert cb.is_tripped is True
 
     def test_manual_reset(self, cb):

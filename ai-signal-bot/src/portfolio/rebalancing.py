@@ -103,7 +103,7 @@ class RebalancingStrategy:
         """
         drift = self.calculate_drift(current_weights, target_weights)
         max_absolute_drift = np.max(np.abs(drift))
-        return max_absolute_drift > max_drift
+        return bool(max_absolute_drift > max_drift)
 
     def should_rebalance_volatility_based(self, current_volatility: float,
                                          target_volatility: float,

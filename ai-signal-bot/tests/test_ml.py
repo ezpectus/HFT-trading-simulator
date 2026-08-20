@@ -71,7 +71,7 @@ class TestLSTMModel:
         assert isinstance(prediction, (float, np.floating))
         assert prediction > 0
 
-    def test_lstm_save_load(self):
+    def test_lstm_save_load(self, tmp_path):
         """Test model save and load."""
         config = LSTMConfig(sequence_length=10)
         model = LSTMModel(config)
@@ -80,11 +80,12 @@ class TestLSTMModel:
         model.train(data, epochs=5)
 
         # Save
-        model.save_model('/tmp/test_lstm_model.pkl')
+        model_path = str(tmp_path / "test_lstm_model.pkl")
+        model.save_model(model_path)
 
         # Load
         new_model = LSTMModel(config)
-        new_model.load_model('/tmp/test_lstm_model.pkl')
+        new_model.load_model(model_path)
 
         assert new_model.is_trained == True
         assert new_model.config == config

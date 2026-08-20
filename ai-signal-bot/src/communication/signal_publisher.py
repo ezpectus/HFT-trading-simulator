@@ -120,7 +120,7 @@ class SignalPublisher:
                 }
                 msg = orjson.dumps(hist_data) if _HAS_ORJSON else json.dumps(hist_data, separators=(',', ':'))
                 await websocket.send(msg)
-            except (ConnectionError, OSError, websockets.ConnectionClosed) as e:
+            except Exception as e:
                 logger.warning(f"Failed to send signal history: {e}")
 
         # Send current circuit breaker status on connect
@@ -132,7 +132,7 @@ class SignalPublisher:
             }
             msg = orjson.dumps(cb_data) if _HAS_ORJSON else json.dumps(cb_data, separators=(',', ':'))
             await websocket.send(msg)
-        except (ConnectionError, OSError, websockets.ConnectionClosed) as e:
+        except Exception as e:
             logger.warning(f"Failed to send circuit breaker status: {e}")
 
         try:
@@ -152,7 +152,7 @@ class SignalPublisher:
                     logger.warning(f"Invalid JSON from {remote}: {message[:100]}")
         except websockets.ConnectionClosed:
             pass
-        except (OSError, RuntimeError) as e:
+        except Exception as e:
             logger.debug(f"Client handler error: {e}")
         finally:
             self._clients.discard(websocket)
@@ -195,7 +195,7 @@ class SignalPublisher:
         async def _send(ws):
             try:
                 await ws.send(msg)
-            except (ConnectionError, OSError, websockets.ConnectionClosed):
+            except Exception:
                 disconnected.add(ws)
         await asyncio.gather(*[_send(ws) for ws in self._clients], return_exceptions=True)
 
@@ -236,7 +236,7 @@ class SignalPublisher:
         async def _send_regime(ws):
             try:
                 await ws.send(msg)
-            except (ConnectionError, OSError, websockets.ConnectionClosed):
+            except Exception:
                 disconnected.add(ws)
         await asyncio.gather(*[_send_regime(ws) for ws in self._clients], return_exceptions=True)
         self._clients -= disconnected
@@ -270,7 +270,7 @@ class SignalPublisher:
             async def _send_cb(ws, _msg=msg, _disc=disconnected):
                 try:
                     await ws.send(_msg)
-                except (ConnectionError, OSError, websockets.ConnectionClosed):
+                except Exception:
                     _disc.add(ws)
             await asyncio.gather(*[_send_cb(ws) for ws in self._clients], return_exceptions=True)
             self._clients -= disconnected

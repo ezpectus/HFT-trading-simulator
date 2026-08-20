@@ -16,7 +16,7 @@ NAN = float("nan")
 
 
 def _closes(candles: list[dict]) -> list[float]:
-    return [c["close"] if isinstance(c, dict) else c.close for c in candles]
+    return [c["close"] if isinstance(c, dict) else (c if isinstance(c, (int, float)) else c.close) for c in candles]
 
 
 def _highs(candles: list[dict]) -> list[float]:

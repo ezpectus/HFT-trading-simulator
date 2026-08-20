@@ -142,9 +142,9 @@ def truncate_dict(d: dict, max_items: int = 100) -> dict:
     """Truncate dict to max items (for logging)."""
     if len(d) <= max_items:
         return d
-    items = list(d.items())[:max_items - 1]
+    items = list(d.items())[:max_items]
     result = dict(items)
-    result["..._truncated"] = len(d) - (max_items - 1)
+    result["..._truncated"] = len(d) - max_items
     return result
 
 

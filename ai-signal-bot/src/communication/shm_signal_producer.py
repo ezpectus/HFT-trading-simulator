@@ -34,7 +34,7 @@ class ShmSignalProducer:
             )
             logger.info(f"SHM signal producer initialized: {self.name} (cap={self.capacity})")
             return True
-        except (OSError, ValueError, FileNotFoundError) as e:
+        except Exception as e:
             logger.error(f"Failed to init SHM signal producer: {e}")
             return False
 

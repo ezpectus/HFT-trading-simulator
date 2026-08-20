@@ -222,17 +222,14 @@ class VaRCalculator:
             # 0 violations when expected > 0 means model is too conservative
             if n == 0 or p == 0:
                 return 0.0
-            return -2 * n * np.log(1 - p)
+            return float(-2 * n * np.log(1 - p))
 
         if violations == total_observations:
-            # lim (n-x)->0+ of (n-x)*log((n-x)/(n*(1-p))) = 0, so LR = -2*n*log(p)
-            if p == 0:
-                return float('inf')
-            return -2 * n * np.log(p)
+            return float('inf')
 
         x = violations
 
         # Likelihood ratio test
         lr = 2 * (x * np.log(x / (n * p)) + (n - x) * np.log((n - x) / (n * (1 - p))))
 
-        return lr
+        return float(lr)

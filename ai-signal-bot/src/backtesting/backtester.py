@@ -347,7 +347,7 @@ class Backtester:
 
         net_profit = balance - self.initial_balance
         max_dd_amount = result.max_drawdown_pct / 100 * max(equity_curve) if equity_curve else 0
-        result.recovery_factor = net_profit / max_dd_amount if max_dd_amount > 0 else 0
+        result.recovery_factor = float(net_profit / max_dd_amount) if max_dd_amount > 0 else 0.0
 
         total_bars = len(equity_curve)
         if total_bars > 0 and result.max_drawdown_pct > 0:
@@ -502,4 +502,4 @@ class Backtester:
                 f"{r.calmar_ratio:>7.2f} {r.sharpe_ratio:>7.2f}"
             )
         lines.append("=" * 90)
-        logger.info("\n".join(lines))
+        print("\n".join(lines))

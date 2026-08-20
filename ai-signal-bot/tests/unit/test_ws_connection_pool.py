@@ -52,7 +52,7 @@ class TestConnectionPoolAcquire:
     async def test_acquire_creates_new(self, pool):
         mock_ws = AsyncMock()
         with patch(
-            "ai_signal_bot.src.communication.ws_connection_pool.websockets.connect",
+            "src.communication.ws_connection_pool.websockets.connect",
             return_value=mock_ws,
         ):
             conn = await pool.acquire("ws://localhost:8765")
@@ -64,7 +64,7 @@ class TestConnectionPoolAcquire:
     async def test_acquire_reuses_existing(self, pool):
         mock_ws = AsyncMock()
         with patch(
-            "ai_signal_bot.src.communication.ws_connection_pool.websockets.connect",
+            "src.communication.ws_connection_pool.websockets.connect",
             return_value=mock_ws,
         ):
             conn1 = await pool.acquire("ws://localhost:8765")
@@ -76,7 +76,7 @@ class TestConnectionPoolAcquire:
     @pytest.mark.asyncio
     async def test_acquire_returns_none_on_failure(self, pool):
         with patch(
-            "ai_signal_bot.src.communication.ws_connection_pool.websockets.connect",
+            "src.communication.ws_connection_pool.websockets.connect",
             side_effect=OSError("Connection refused"),
         ):
             conn = await pool.acquire("ws://localhost:9999")

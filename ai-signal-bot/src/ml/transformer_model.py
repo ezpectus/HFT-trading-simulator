@@ -94,8 +94,8 @@ class TransformerModel:
             Output tensor
         """
         # Simplified feed-forward
-        hidden = np.maximum(0, np.dot(x, self.feedforward_weights.T) + self.bias[0])
-        output = np.dot(hidden, self.output_weights.T) + self.bias[1]
+        hidden = np.maximum(0, np.dot(x, self.feedforward_weights) + self.bias[0])
+        output = np.dot(hidden, self.output_weights) + self.bias[1]
 
         return output
 
@@ -110,7 +110,7 @@ class TransformerModel:
     def _init_weights(self, n_features: int) -> None:
         """Initialize model weights."""
         self.attention_weights = np.random.randn(n_features, self.config.d_model) * 0.01
-        self.feedforward_weights = np.random.randn(self.config.d_model, self.config.d_ff) * 0.01
+        self.feedforward_weights = np.random.randn(n_features, self.config.d_ff) * 0.01
         self.output_weights = np.random.randn(self.config.d_ff, self.config.output_size) * 0.01
         self.bias = [np.zeros(self.config.d_ff), np.zeros(self.config.output_size)]
 
@@ -122,8 +122,8 @@ class TransformerModel:
                 batch_features = features[i:i + batch_size]
                 batch_signals = signals[i:i + batch_size]
                 attended = self._multi_head_attention(batch_features, batch_features, batch_features)
-                hidden = np.maximum(0, np.dot(attended, self.feedforward_weights.T) + self.bias[0])
-                predictions = np.dot(hidden, self.output_weights.T) + self.bias[1]
+                hidden = np.maximum(0, np.dot(attended, self.feedforward_weights) + self.bias[0])
+                predictions = np.dot(hidden, self.output_weights) + self.bias[1]
                 error = predictions - batch_signals
                 gradient = np.dot(hidden.T, error) / len(batch_features)
                 self.output_weights -= learning_rate * gradient
@@ -143,9 +143,10 @@ class TransformerModel:
             raise ValueError("Model must be trained before signal generation")
 
         # Forward pass
+        features = np.atleast_2d(features)
         attended = self._multi_head_attention(features, features, features)
-        hidden = np.maximum(0, np.dot(attended, self.feedforward_weights.T) + self.bias[0])
-        logits = np.dot(hidden, self.output_weights.T) + self.bias[1]
+        hidden = np.maximum(0, np.dot(attended, self.feedforward_weights) + self.bias[0])
+        logits = np.dot(hidden, self.output_weights) + self.bias[1]
 
         # Convert to probabilities
         logits_max = np.max(logits)

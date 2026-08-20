@@ -134,7 +134,7 @@ class StressTestScenario:
         traditional_shock = 0.8  # 20% drop in traditional assets
 
         # Apply different shocks based on asset type
-        shocked_prices = current_prices.copy()
+        shocked_prices = np.array(current_prices, dtype=float)
         n_crypto = int(len(current_prices) * crypto_exposure)
 
         shocked_prices[:n_crypto] *= crypto_shock
@@ -235,6 +235,18 @@ class StressTestScenario:
         total_scenarios = len(results)
         passed_scenarios = sum(1 for r in results if r.passed)
 
+        if not results:
+            return {
+                "total_scenarios": 0,
+                "passed_scenarios": 0,
+                "pass_rate": 0.0,
+                "worst_pnl_percentage": 0.0,
+                "best_pnl_percentage": 0.0,
+                "average_pnl_percentage": 0.0,
+                "max_margin_requirement": 0.0,
+                "max_liquidity_impact": 0.0,
+                "overall_passed": True,
+            }
         worst_pnl = min(r.pnl_percentage for r in results)
         best_pnl = max(r.pnl_percentage for r in results)
         avg_pnl = np.mean([r.pnl_percentage for r in results])

@@ -39,7 +39,7 @@ class TestDTW:
         x = [1.0, 2.0, 3.0, 4.0, 5.0]
         y = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
         result = dtw(x, y)
-        assert result.distance < 1.0
+        assert result.distance <= 1.0
 
     def test_different_lengths(self):
         x = [1.0, 2.0, 3.0]

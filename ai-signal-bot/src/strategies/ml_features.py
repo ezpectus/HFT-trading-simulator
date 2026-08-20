@@ -175,13 +175,13 @@ class FeatureEngineer:
     def _momentum(closes: np.ndarray, period: int) -> float:
         if len(closes) < period + 1:
             return 0.0
-        return closes[-1] - closes[-period]
+        return float(closes[-1] - closes[-period - 1])
 
     @staticmethod
     def _roc(closes: np.ndarray, period: int) -> float:
-        if len(closes) < period + 1 or closes[-period] < 1e-8:
+        if len(closes) < period + 1 or closes[-period - 1] < 1e-8:
             return 0.0
-        return (closes[-1] / closes[-period] - 1) * 100
+        return float((closes[-1] / closes[-period - 1] - 1) * 100)
 
     @staticmethod
     def _williams_r(highs: np.ndarray, lows: np.ndarray, close: float, period: int) -> float:

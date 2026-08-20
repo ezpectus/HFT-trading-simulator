@@ -236,7 +236,7 @@ class GreeksHedgingSimulator:
             max_hedge_error=float(np.max(hedge_errors)) if hedge_errors else 0,
             daily_pnl=daily_pnl,
             daily_delta=daily_delta,
-            daily_hedge=daily_hedge,
+            daily_hedge_position=daily_hedge,
             pnl_decomposition={
                 "option_pnl": total_option_pnl,
                 "hedge_pnl": total_hedge_pnl,
