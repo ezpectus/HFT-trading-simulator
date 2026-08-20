@@ -27,6 +27,7 @@
 | 21 | 2026-08-20 | Sprint 14 (Autonomous): C++ main.cpp refactoring, main() reduced from 790→42 lines, 17 helpers extracted into bot_setup.cpp (10 init functions) and bot_loop.cpp (8 loop functions), state encapsulated in BotContext struct, 0 forbidden patterns, docs audit v5.8 | ✅ Done | — |
 | 22 | 2026-08-20 | Sprint 15 (Autonomous): Python long function audit, 5 functions refactored (markowitz.optimize_portfolio 107→24, backtester.run 91→39, backtest_engine._compute_results 63→15, exchange.get_depth_snapshot 52→28, market_simulator.__init__ 96→31), 12 helpers extracted, 0 forbidden patterns (TODO/FIXME/HACK/NotImplementedError/type:ignore/bare except/import */print in prod), docs audit v5.9 | ✅ Done | — |
 | 23 | 2026-08-20 | Sprint 24 (Autonomous): File size compliance — split test_untested_modules.py (1098 lines) into 8 focused test files + conftest.py for shared fixtures, all under 500 lines | ✅ Done | — |
+| 24 | 2026-08-20 | Sprint 25 (Autonomous): Long function refactoring — 5 functions >60 lines refactored (logging.setup_logging 94→32, walk_forward.run 85→25, price_predictor.train_model 81→25, indicators.adx 77→10, risk_manager.update 77→24), 20 helpers extracted, docs audit v6.0 | ✅ Done | — |
 
 ## Bug Fix Progress
 
@@ -301,6 +302,18 @@
 | 10 | `test_backtest_optimizer.py` (new) | — | 210 | ✅ |
 
 **Sprint 24 result:** 1 file split into 8 focused test files + 1 conftest.py. All files under 500 lines. Shared fixtures moved to conftest.py for reuse. 0 files now exceed 500-line limit in the entire codebase.
+
+**Sprint 25 — Long Function Refactoring (>60 lines):**
+
+| # | File | Function | Before | After | Helpers Extracted |
+|---|------|----------|--------|-------|-------------------|
+| 1 | `observability/logging.py` | `setup_logging` | 94 | 32 | `_configure_structlog`, `_create_formatter`, `_setup_handlers`, `_suppress_library_noise` |
+| 2 | `backtesting/walk_forward.py` | `WalkForwardAnalyzer.run` | 85 | 25 | `_run_window`, `_optimize_in_sample`, `_test_out_of_sample`, `_compute_aggregate_metrics` |
+| 3 | `ml/price_predictor.py` | `train_model` | 81 | 25 | `_create_data_loaders`, `_train_epochs`, `_run_train_epoch`, `_run_val_epoch`, `_update_best_state` |
+| 4 | `technical_analysis/indicators.py` | `adx` | 77 | 10 | `_adx_numpy`, `_adx_pure`, `_compute_dx_numpy`, `_smooth_adx_numpy`, `_compute_dx_pure`, `_smooth_adx_pure` |
+| 5 | `risk/risk_manager.py` | `RiskManager.update` | 77 | 24 | `_track_peak_trough`, `_check_breakeven_action`, `_check_trailing_action`, `_check_partial_tp_action`, `_check_max_hold` |
+
+**Sprint 25 result:** 5 functions refactored, 20 helpers extracted. All 5 functions now under 40-line limit. Full re-audit: 0 TODO/FIXME, 0 old typing imports, 0 bare except, 0 except Exception, 0 import *, 0 global mutable, 0 pass (all legitimate).
 
 ## Proposals
 

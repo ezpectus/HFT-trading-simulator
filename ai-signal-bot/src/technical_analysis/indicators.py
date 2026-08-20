@@ -219,40 +219,40 @@ def adx(candles: list[dict], period: int = 14) -> list[float]:
     low = _lows(candles)
     cl = _closes(candles)
     if _HAS_NUMPY:
-        ha = np.array(h, dtype=np.float64)
-        la = np.array(low, dtype=np.float64)
-        ca = np.array(cl, dtype=np.float64)
-        up = ha[1:] - ha[:-1]
-        down = la[:-1] - la[1:]
-        plus_dm = np.where((up > down) & (up > 0), up, 0.0)
-        minus_dm = np.where((down > up) & (down > 0), down, 0.0)
-        tr = np.maximum(ha[1:] - la[1:], np.maximum(np.abs(ha[1:] - ca[:-1]), np.abs(la[1:] - ca[:-1])))
-        atr_w = np.full(n, NAN)
-        pdm_w = np.full(n, NAN)
-        mdm_w = np.full(n, NAN)
-        atr_w[period] = tr[:period].sum()
-        pdm_w[period] = plus_dm[:period].sum()
-        mdm_w[period] = minus_dm[:period].sum()
-        for i in range(period + 1, n):
-            atr_w[i] = atr_w[i - 1] - atr_w[i - 1] / period + tr[i - 1]
-            pdm_w[i] = pdm_w[i - 1] - pdm_w[i - 1] / period + plus_dm[i - 1]
-            mdm_w[i] = mdm_w[i - 1] - mdm_w[i - 1] / period + minus_dm[i - 1]
-        dx = np.full(n, NAN)
-        for i in range(period, n):
-            if not np.isnan(atr_w[i]) and atr_w[i] > 0:
-                pdi = 100 * pdm_w[i] / atr_w[i]
-                mdi = 100 * mdm_w[i] / atr_w[i]
-                denom = pdi + mdi
-                if denom > 0:
-                    dx[i] = 100 * abs(pdi - mdi) / denom
-        result = np.full(n, NAN)
-        dx_start = next((i for i, v in enumerate(dx) if not np.isnan(v)), -1)
-        if dx_start >= 0 and dx_start + period <= n:
-            result[dx_start + period - 1] = sum(dx[dx_start : dx_start + period]) / period
-            for i in range(dx_start + period, n):
-                if not np.isnan(dx[i]):
-                    result[i] = (result[i - 1] * (period - 1) + dx[i]) / period
-        return result.tolist()
+        return _adx_numpy(h, low, cl, n, period)
+    return _adx_pure(h, low, cl, n, period)
+
+
+def _adx_numpy(
+    h: list, low: list, cl: list, n: int, period: int,
+) -> list[float]:
+    """Compute ADX using NumPy vectorized operations."""
+    ha = np.array(h, dtype=np.float64)
+    la = np.array(low, dtype=np.float64)
+    ca = np.array(cl, dtype=np.float64)
+    up = ha[1:] - ha[:-1]
+    down = la[:-1] - la[1:]
+    plus_dm = np.where((up > down) & (up > 0), up, 0.0)
+    minus_dm = np.where((down > up) & (down > 0), down, 0.0)
+    tr = np.maximum(ha[1:] - la[1:], np.maximum(np.abs(ha[1:] - ca[:-1]), np.abs(la[1:] - ca[:-1])))
+    atr_w = np.full(n, NAN)
+    pdm_w = np.full(n, NAN)
+    mdm_w = np.full(n, NAN)
+    atr_w[period] = tr[:period].sum()
+    pdm_w[period] = plus_dm[:period].sum()
+    mdm_w[period] = minus_dm[:period].sum()
+    for i in range(period + 1, n):
+        atr_w[i] = atr_w[i - 1] - atr_w[i - 1] / period + tr[i - 1]
+        pdm_w[i] = pdm_w[i - 1] - pdm_w[i - 1] / period + plus_dm[i - 1]
+        mdm_w[i] = mdm_w[i - 1] - mdm_w[i - 1] / period + minus_dm[i - 1]
+    dx = _compute_dx_numpy(atr_w, pdm_w, mdm_w, n, period)
+    return _smooth_adx_numpy(dx, n, period).tolist()
+
+
+def _adx_pure(
+    h: list, low: list, cl: list, n: int, period: int,
+) -> list[float]:
+    """Compute ADX using pure Python (no NumPy)."""
     plus_dm = [0.0] * n
     minus_dm = [0.0] * n
     tr = [0.0] * n
@@ -272,6 +272,42 @@ def adx(candles: list[dict], period: int = 14) -> list[float]:
         atr_w[i] = atr_w[i - 1] - atr_w[i - 1] / period + tr[i]
         pdm_w[i] = pdm_w[i - 1] - pdm_w[i - 1] / period + plus_dm[i]
         mdm_w[i] = mdm_w[i - 1] - mdm_w[i - 1] / period + minus_dm[i]
+    dx = _compute_dx_pure(atr_w, pdm_w, mdm_w, n, period)
+    return _smooth_adx_pure(dx, period)
+
+
+def _compute_dx_numpy(
+    atr_w: np.ndarray, pdm_w: np.ndarray, mdm_w: np.ndarray,
+    n: int, period: int,
+) -> np.ndarray:
+    """Compute DX values from smoothed DM and ATR (NumPy path)."""
+    dx = np.full(n, NAN)
+    for i in range(period, n):
+        if not np.isnan(atr_w[i]) and atr_w[i] > 0:
+            pdi = 100 * pdm_w[i] / atr_w[i]
+            mdi = 100 * mdm_w[i] / atr_w[i]
+            denom = pdi + mdi
+            if denom > 0:
+                dx[i] = 100 * abs(pdi - mdi) / denom
+    return dx
+
+
+def _smooth_adx_numpy(dx: np.ndarray, n: int, period: int) -> np.ndarray:
+    """Smooth DX into ADX (NumPy path)."""
+    result = np.full(n, NAN)
+    dx_start = next((i for i, v in enumerate(dx) if not np.isnan(v)), -1)
+    if dx_start >= 0 and dx_start + period <= n:
+        result[dx_start + period - 1] = sum(dx[dx_start : dx_start + period]) / period
+        for i in range(dx_start + period, n):
+            if not np.isnan(dx[i]):
+                result[i] = (result[i - 1] * (period - 1) + dx[i]) / period
+    return result
+
+
+def _compute_dx_pure(
+    atr_w: list, pdm_w: list, mdm_w: list, n: int, period: int,
+) -> list[float]:
+    """Compute DX values from smoothed DM and ATR (pure Python path)."""
     dx = [NAN] * n
     for i in range(period, n):
         if not math.isnan(atr_w[i]) and atr_w[i] > 0:
@@ -280,11 +316,17 @@ def adx(candles: list[dict], period: int = 14) -> list[float]:
             denom = pdi + mdi
             if denom > 0:
                 dx[i] = 100 * abs(pdi - mdi) / denom
+    return dx
+
+
+def _smooth_adx_pure(dx: list[float], period: int) -> list[float]:
+    """Smooth DX into ADX (pure Python path)."""
+    n = len(dx)
     result = [NAN] * n
     dx_start = next((i for i, v in enumerate(dx) if not math.isnan(v)), -1)
-    if dx_start >= 0 and dx_start + period <= len(dx):
+    if dx_start >= 0 and dx_start + period <= n:
         result[dx_start + period - 1] = sum(dx[dx_start : dx_start + period]) / period
-        for i in range(dx_start + period, len(dx)):
+        for i in range(dx_start + period, n):
             if not math.isnan(dx[i]):
                 result[i] = (result[i - 1] * (period - 1) + dx[i]) / period
     return result

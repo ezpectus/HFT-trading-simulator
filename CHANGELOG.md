@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 25 — Long Function Refactoring)
+
+### Changed
+- **[QUAL-094]** Refactored 5 functions exceeding 60 lines into smaller focused helpers:
+  - `observability/logging.py` — `setup_logging` 94→32 lines (4 helpers: `_configure_structlog`, `_create_formatter`, `_setup_handlers`, `_suppress_library_noise`)
+  - `backtesting/walk_forward.py` — `WalkForwardAnalyzer.run` 85→25 lines (4 helpers: `_run_window`, `_optimize_in_sample`, `_test_out_of_sample`, `_compute_aggregate_metrics`)
+  - `ml/price_predictor.py` — `train_model` 81→25 lines (5 helpers: `_create_data_loaders`, `_train_epochs`, `_run_train_epoch`, `_run_val_epoch`, `_update_best_state`)
+  - `technical_analysis/indicators.py` — `adx` 77→10 lines (6 helpers: `_adx_numpy`, `_adx_pure`, `_compute_dx_numpy`, `_smooth_adx_numpy`, `_compute_dx_pure`, `_smooth_adx_pure`)
+  - `risk/risk_manager.py` — `RiskManager.update` 77→24 lines (5 helpers: `_track_peak_trough`, `_check_breakeven_action`, `_check_trailing_action`, `_check_partial_tp_action`, `_check_max_hold`)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 24 — File Size Compliance: test_untested_modules.py split)
 
 ### Changed

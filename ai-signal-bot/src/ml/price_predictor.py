@@ -191,48 +191,47 @@ def train_model(
         model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay
     )
     criterion = nn.CrossEntropyLoss()
+    train_loader, val_loader = _create_data_loaders(
+        config, train_features, train_labels, val_features, val_labels
+    )
 
+    best_state = {k: v.clone() for k, v in model.state_dict().items()}
+    history = {"train_loss": [], "val_loss": [], "val_acc": []}
+
+    best_val_loss, best_state = _train_epochs(
+        model, optimizer, criterion, train_loader, val_loader,
+        config, device, history, best_state
+    )
+
+    model.load_state_dict(best_state)
+    return model, history
+
+
+def _create_data_loaders(
+    config: ModelConfig,
+    train_features: np.ndarray, train_labels: np.ndarray,
+    val_features: np.ndarray, val_labels: np.ndarray,
+) -> tuple[DataLoader, DataLoader]:
+    """Create train and validation DataLoaders."""
     train_ds = PriceDataset(train_features, train_labels, config.lookback)
     val_ds = PriceDataset(val_features, val_labels, config.lookback)
     train_loader = DataLoader(train_ds, batch_size=config.batch_size, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=config.batch_size, shuffle=False)
+    return train_loader, val_loader
 
+
+def _train_epochs(
+    model: nn.Module, optimizer, criterion,
+    train_loader: DataLoader, val_loader: DataLoader,
+    config: ModelConfig, device, history: dict, best_state: dict,
+) -> tuple[float, dict]:
+    """Run training loop with early stopping. Returns best val loss and state."""
     best_val_loss = float("inf")
     patience_counter = 0
-    best_state = {k: v.clone() for k, v in model.state_dict().items()}
-    history = {"train_loss": [], "val_loss": [], "val_acc": []}
 
     for epoch in range(config.epochs):
-        model.train()
-        train_loss = 0.0
-        for batch_x, batch_y in train_loader:
-            batch_x, batch_y = batch_x.to(device), batch_y.to(device).squeeze()
-            optimizer.zero_grad()
-            logits = model(batch_x)
-            loss = criterion(logits, batch_y)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
-            train_loss += loss.item()
-
-        train_loss /= len(train_loader)
-
-        model.eval()
-        val_loss = 0.0
-        correct = 0
-        total = 0
-        with torch.no_grad():
-            for batch_x, batch_y in val_loader:
-                batch_x, batch_y = batch_x.to(device), batch_y.to(device).squeeze()
-                logits = model(batch_x)
-                loss = criterion(logits, batch_y)
-                val_loss += loss.item()
-                preds = logits.argmax(dim=1)
-                correct += (preds == batch_y).sum().item()
-                total += batch_y.size(0)
-
-        val_loss /= len(val_loader)
-        val_acc = correct / total if total > 0 else 0
+        train_loss = _run_train_epoch(model, optimizer, criterion, train_loader, device)
+        val_loss, val_acc = _run_val_epoch(model, criterion, val_loader, device)
 
         history["train_loss"].append(train_loss)
         history["val_loss"].append(val_loss)
@@ -243,18 +242,68 @@ def train_model(
             f"train_loss={train_loss:.4f} val_loss={val_loss:.4f} val_acc={val_acc:.2%}"
         )
 
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            patience_counter = 0
-            best_state = {k: v.clone() for k, v in model.state_dict().items()}
-        else:
-            patience_counter += 1
-            if patience_counter >= config.early_stop_patience:
-                logger.info(f"Early stopping at epoch {epoch+1}")
-                break
+        best_val_loss, patience_counter, best_state = _update_best_state(
+            model, val_loss, best_val_loss, patience_counter, best_state
+        )
+        if patience_counter >= config.early_stop_patience:
+            logger.info(f"Early stopping at epoch {epoch+1}")
+            break
 
-    model.load_state_dict(best_state)
-    return model, history
+    return best_val_loss, best_state
+
+
+def _run_train_epoch(
+    model: nn.Module, optimizer, criterion,
+    train_loader: DataLoader, device,
+) -> float:
+    """Run a single training epoch. Returns average loss."""
+    model.train()
+    train_loss = 0.0
+    for batch_x, batch_y in train_loader:
+        batch_x, batch_y = batch_x.to(device), batch_y.to(device).squeeze()
+        optimizer.zero_grad()
+        loss = criterion(model(batch_x), batch_y)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        optimizer.step()
+        train_loss += loss.item()
+    return train_loss / len(train_loader)
+
+
+def _run_val_epoch(
+    model: nn.Module, criterion,
+    val_loader: DataLoader, device,
+) -> tuple[float, float]:
+    """Run validation epoch. Returns (avg_loss, accuracy)."""
+    model.eval()
+    val_loss = 0.0
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for batch_x, batch_y in val_loader:
+            batch_x, batch_y = batch_x.to(device), batch_y.to(device).squeeze()
+            logits = model(batch_x)
+            val_loss += criterion(logits, batch_y).item()
+            preds = logits.argmax(dim=1)
+            correct += (preds == batch_y).sum().item()
+            total += batch_y.size(0)
+    val_loss /= len(val_loader)
+    val_acc = correct / total if total > 0 else 0
+    return val_loss, val_acc
+
+
+def _update_best_state(
+    model: nn.Module, val_loss: float,
+    best_val_loss: float, patience_counter: int, best_state: dict,
+) -> tuple[float, int, dict]:
+    """Update best model state if val loss improved. Returns (new_best, new_patience, new_state)."""
+    if val_loss < best_val_loss:
+        best_val_loss = val_loss
+        patience_counter = 0
+        best_state = {k: v.clone() for k, v in model.state_dict().items()}
+    else:
+        patience_counter += 1
+    return best_val_loss, patience_counter, best_state
 
 
 def export_onnx(model: nn.Module, config: ModelConfig, output_path: str) -> bool:

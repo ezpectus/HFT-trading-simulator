@@ -38,7 +38,6 @@ def setup_logging(
     try:
         import structlog
     except ImportError:
-        # Fallback to standard logging
         logging.basicConfig(
             level=getattr(logging, level.upper(), logging.INFO),
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -48,8 +47,23 @@ def setup_logging(
         return
 
     log_level = getattr(logging, level.upper(), logging.INFO)
+    shared_processors = _configure_structlog(service, structlog)
+    handlers = _setup_handlers(
+        json_logs, log_file, shared_processors, structlog
+    )
 
-    # Shared processors for both structlog and stdlib
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    for h in handlers:
+        root_logger.addHandler(h)
+    root_logger.setLevel(log_level)
+
+    _suppress_library_noise()
+    _configured = True
+
+
+def _configure_structlog(service: str, structlog) -> list:
+    """Configure structlog and return shared processors list."""
     shared_processors = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_logger_name,
@@ -58,7 +72,6 @@ def setup_logging(
         structlog.processors.StackInfoRenderer(),
         _add_service_context(service),
     ]
-
     structlog.configure(
         processors=shared_processors + [
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
@@ -67,55 +80,52 @@ def setup_logging(
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
+    return shared_processors
 
-    # Configure stdlib logging
-    handlers = []
+
+def _create_formatter(
+    json_logs: bool, shared_processors: list, structlog
+) -> "structlog.stdlib.ProcessorFormatter":
+    """Create a ProcessorFormatter for JSON or console output."""
+    processors = [
+        structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+    ]
     if json_logs:
-        formatter = structlog.stdlib.ProcessorFormatter(
-            foreign_pre_chain=shared_processors,
-            processors=[
-                structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-                structlog.processors.JSONRenderer(),
-            ],
-        )
+        processors.append(structlog.processors.JSONRenderer())
     else:
-        formatter = structlog.stdlib.ProcessorFormatter(
-            foreign_pre_chain=shared_processors,
-            processors=[
-                structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-                structlog.dev.ConsoleRenderer(colors=sys.stdout.isatty()),
-            ],
-        )
+        processors.append(structlog.dev.ConsoleRenderer(colors=sys.stdout.isatty()))
+    return structlog.stdlib.ProcessorFormatter(
+        foreign_pre_chain=shared_processors,
+        processors=processors,
+    )
 
+
+def _setup_handlers(
+    json_logs: bool,
+    log_file: str | None,
+    shared_processors: list,
+    structlog,
+) -> list[logging.Handler]:
+    """Create console and optional file handlers."""
+    formatter = _create_formatter(json_logs, shared_processors, structlog)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
-    handlers.append(console_handler)
+    handlers: list[logging.Handler] = [console_handler]
 
     if log_file:
+        file_formatter = _create_formatter(True, shared_processors, structlog)
         file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(
-            structlog.stdlib.ProcessorFormatter(
-                foreign_pre_chain=shared_processors,
-                processors=[
-                    structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-                    structlog.processors.JSONRenderer(),
-                ],
-            )
-        )
+        file_handler.setFormatter(file_formatter)
         handlers.append(file_handler)
 
-    root_logger = logging.getLogger()
-    root_logger.handlers.clear()
-    for h in handlers:
-        root_logger.addHandler(h)
-    root_logger.setLevel(log_level)
+    return handlers
 
-    # Reduce noise from libraries
+
+def _suppress_library_noise() -> None:
+    """Reduce log noise from common libraries."""
     logging.getLogger("asyncio").setLevel(logging.WARNING)
     logging.getLogger("websockets").setLevel(logging.WARNING)
     logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
-
-    _configured = True
 
 
 def _add_service_context(service: str):

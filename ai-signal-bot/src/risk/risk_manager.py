@@ -120,63 +120,74 @@ class RiskManager:
                 - close_reason: str
                 - partial_close_pct: float (if partial TP triggered)
         """
-        actions = {}
+        actions: dict = {}
         state.candles_held += 1
 
-        # Track peak/trough
+        self._track_peak_trough(state, current_price)
+        if candle and self.config.trailing_atr_multiplier > 0:
+            state.atr = self._calc_atr_from_candle(candle)
+
+        self._check_breakeven_action(state, current_price, actions)
+        self._check_trailing_action(state, current_price, actions)
+        self._check_partial_tp_action(state, current_price, actions)
+        self._check_max_hold(state, actions)
+
+        return actions
+
+    def _track_peak_trough(
+        self, state: PositionRiskState, current_price: float,
+    ) -> None:
+        """Update peak/trough price tracking based on position side."""
         if state.side == "LONG":
             state.peak_price = max(state.peak_price, current_price)
             state.trough_price = min(state.trough_price, current_price) if state.trough_price > 0 else current_price
         else:
-            # For SHORT: peak = best (lowest) price, trough = worst (highest) price
             state.peak_price = min(state.peak_price, current_price) if state.peak_price > 0 else current_price
             state.trough_price = max(state.trough_price, current_price)
 
-        # Recalculate ATR if candle provided
-        if candle and self.config.trailing_atr_multiplier > 0:
-            state.atr = self._calc_atr_from_candle(candle)
+    def _check_breakeven_action(
+        self, state: PositionRiskState, current_price: float, actions: dict,
+    ) -> None:
+        """Check and apply breakeven stop loss move."""
+        if not self.config.breakeven_enabled or state.breakeven_moved:
+            return
+        new_sl = self._check_breakeven(state, current_price)
+        if new_sl is not None:
+            state.current_stop_loss = new_sl
+            state.breakeven_moved = True
+            actions["new_stop_loss"] = new_sl
+            logger.info(f"RiskManager: breakeven moved to {new_sl} ({state.side} entry={state.entry_price})")
 
-        # Breakeven move
-        if self.config.breakeven_enabled and not state.breakeven_moved:
-            new_sl = self._check_breakeven(state, current_price)
-            if new_sl is not None:
-                state.current_stop_loss = new_sl
-                state.breakeven_moved = True
-                actions["new_stop_loss"] = new_sl
-                logger.info(
-                    f"RiskManager: breakeven moved to {new_sl} "
-                    f"({state.side} entry={state.entry_price})"
-                )
+    def _check_trailing_action(
+        self, state: PositionRiskState, current_price: float, actions: dict,
+    ) -> None:
+        """Check and apply trailing stop loss update."""
+        if not self.config.trailing_stop_enabled:
+            return
+        new_sl = self._check_trailing(state, current_price)
+        if new_sl is not None:
+            state.current_stop_loss = new_sl
+            actions["new_stop_loss"] = new_sl
+            logger.debug(f"RiskManager: trailing SL -> {new_sl} ({state.side} price={current_price})")
 
-        # Trailing stop
-        if self.config.trailing_stop_enabled:
-            new_sl = self._check_trailing(state, current_price)
-            if new_sl is not None:
-                state.current_stop_loss = new_sl
-                actions["new_stop_loss"] = new_sl
-                logger.debug(
-                    f"RiskManager: trailing SL -> {new_sl} "
-                    f"({state.side} price={current_price})"
-                )
+    def _check_partial_tp_action(
+        self, state: PositionRiskState, current_price: float, actions: dict,
+    ) -> None:
+        """Check and apply partial take profit."""
+        if not self.config.partial_tp_enabled or state.partial_tp_executed:
+            return
+        pct = self._check_partial_tp(state, current_price)
+        if pct > 0:
+            state.partial_tp_executed = True
+            actions["partial_close_pct"] = pct
+            logger.info(f"RiskManager: partial TP {pct}% ({state.side} price={current_price})")
 
-        # Partial take profit
-        if self.config.partial_tp_enabled and not state.partial_tp_executed:
-            pct = self._check_partial_tp(state, current_price)
-            if pct > 0:
-                state.partial_tp_executed = True
-                actions["partial_close_pct"] = pct
-                logger.info(
-                    f"RiskManager: partial TP {pct}% "
-                    f"({state.side} price={current_price})"
-                )
-
-        # Max hold time
+    def _check_max_hold(self, state: PositionRiskState, actions: dict) -> None:
+        """Check if max hold time has been reached."""
         if self.config.max_hold_candles > 0 and state.candles_held >= self.config.max_hold_candles:
             actions["close_position"] = True
             actions["close_reason"] = "MAX_HOLD_TIME"
             logger.info(f"RiskManager: max hold time reached ({state.candles_held} candles)")
-
-        return actions
 
     def _check_breakeven(
         self, state: PositionRiskState, current_price: float

@@ -65,72 +65,111 @@ class WalkForwardAnalyzer:
         in_sample_size = int(window_size * self.in_sample_ratio)
         oos_size = window_size - in_sample_size
 
-        all_is_sharpes = []
-        all_oos_sharpes = []
+        all_is_sharpes: list[float] = []
+        all_oos_sharpes: list[float] = []
 
         for w in range(self.num_windows):
-            is_start = w * oos_size
-            is_end = is_start + in_sample_size
-            oos_start = is_end
-            oos_end = oos_start + oos_size
-
-            if oos_end > total_len:
+            window = self._run_window(
+                w, candles, strategy_factory, param_grid, symbol, config,
+                in_sample_size, oos_size, total_len,
+            )
+            if window is None:
                 break
-
-            window = WalkForwardWindow(
-                in_sample_start=is_start,
-                in_sample_end=is_end,
-                out_of_sample_start=oos_start,
-                out_of_sample_end=oos_end,
-            )
-
-            # Optimize on in-sample
-            best_sharpe = -float("inf")
-            best_params = {}
-            best_is_result = None
-
-            for params in param_grid:
-                analyze_fn = strategy_factory(params)
-                engine = BacktestEngine(config)
-                is_result = engine.run(candles[is_start:is_end], analyze_fn, symbol)
-                if is_result.sharpe_ratio > best_sharpe:
-                    best_sharpe = is_result.sharpe_ratio
-                    best_params = params
-                    best_is_result = is_result
-
-            # Test on out-of-sample with best params
-            analyze_fn = strategy_factory(best_params)
-            engine = BacktestEngine(config)
-            oos_result = engine.run(candles[oos_start:oos_end], analyze_fn, symbol)
-
-            window.in_sample_result = best_is_result
-            window.out_of_sample_result = oos_result
-            window.best_params = best_params
-
             result.windows.append(window)
-            all_is_sharpes.append(best_sharpe)
-            all_oos_sharpes.append(oos_result.sharpe_ratio)
+            all_is_sharpes.append(window.in_sample_result.sharpe_ratio if window.in_sample_result else 0.0)
+            all_oos_sharpes.append(window.out_of_sample_result.sharpe_ratio if window.out_of_sample_result else 0.0)
 
-            logger.info(
-                f"[WalkForward] Window {w}: IS sharpe={best_sharpe:.2f} "
-                f"OOS sharpe={oos_result.sharpe_ratio:.2f} params={best_params}"
-            )
-
-        # Compute aggregate metrics
-        if all_is_sharpes and all_oos_sharpes:
-            result.avg_in_sample_sharpe = float(np.mean(all_is_sharpes))
-            result.avg_out_of_sample_sharpe = float(np.mean(all_oos_sharpes))
-            result.overfitting_score = float(result.avg_in_sample_sharpe - result.avg_out_of_sample_sharpe)
-            result.is_overfit = bool(result.overfitting_score > 0.5)  # IS much better than OOS
-            result.total_sharpe = result.avg_out_of_sample_sharpe
-
-            # Total return across all OOS windows
-            result.total_return = float(sum(
-                w.out_of_sample_result.total_return_pct for w in result.windows
-                if w.out_of_sample_result
-            ))
-
+        self._compute_aggregate_metrics(result, all_is_sharpes, all_oos_sharpes)
         return result
+
+    def _run_window(
+        self, window_idx: int, candles: list[dict],
+        strategy_factory: Callable[[dict], Callable[[str, list[dict]], dict]],
+        param_grid: list[dict], symbol: str,
+        config: BacktestConfig | None,
+        in_sample_size: int, oos_size: int, total_len: int,
+    ) -> WalkForwardWindow | None:
+        """Run a single walk-forward window: optimize on IS, test on OOS."""
+        is_start = window_idx * oos_size
+        is_end = is_start + in_sample_size
+        oos_start = is_end
+        oos_end = oos_start + oos_size
+        if oos_end > total_len:
+            return None
+
+        window = WalkForwardWindow(
+            in_sample_start=is_start, in_sample_end=is_end,
+            out_of_sample_start=oos_start, out_of_sample_end=oos_end,
+        )
+
+        best_sharpe, best_params, best_is_result = self._optimize_in_sample(
+            candles, strategy_factory, param_grid, symbol, config,
+            is_start, is_end,
+        )
+        oos_result = self._test_out_of_sample(
+            candles, strategy_factory, best_params, symbol, config,
+            oos_start, oos_end,
+        )
+
+        window.in_sample_result = best_is_result
+        window.out_of_sample_result = oos_result
+        window.best_params = best_params
+
+        logger.info(
+            f"[WalkForward] Window {window_idx}: IS sharpe={best_sharpe:.2f} "
+            f"OOS sharpe={oos_result.sharpe_ratio:.2f} params={best_params}"
+        )
+        return window
+
+    def _optimize_in_sample(
+        self, candles: list[dict],
+        strategy_factory: Callable[[dict], Callable[[str, list[dict]], dict]],
+        param_grid: list[dict], symbol: str,
+        config: BacktestConfig | None,
+        is_start: int, is_end: int,
+    ) -> tuple[float, dict, BacktestResult | None]:
+        """Find best parameters on in-sample data."""
+        best_sharpe = -float("inf")
+        best_params: dict = {}
+        best_is_result: BacktestResult | None = None
+        for params in param_grid:
+            analyze_fn = strategy_factory(params)
+            engine = BacktestEngine(config)
+            is_result = engine.run(candles[is_start:is_end], analyze_fn, symbol)
+            if is_result.sharpe_ratio > best_sharpe:
+                best_sharpe = is_result.sharpe_ratio
+                best_params = params
+                best_is_result = is_result
+        return best_sharpe, best_params, best_is_result
+
+    def _test_out_of_sample(
+        self, candles: list[dict],
+        strategy_factory: Callable[[dict], Callable[[str, list[dict]], dict]],
+        best_params: dict, symbol: str,
+        config: BacktestConfig | None,
+        oos_start: int, oos_end: int,
+    ) -> BacktestResult:
+        """Test best params on out-of-sample data."""
+        analyze_fn = strategy_factory(best_params)
+        engine = BacktestEngine(config)
+        return engine.run(candles[oos_start:oos_end], analyze_fn, symbol)
+
+    def _compute_aggregate_metrics(
+        self, result: WalkForwardResult,
+        all_is_sharpes: list[float], all_oos_sharpes: list[float],
+    ) -> None:
+        """Compute aggregate walk-forward metrics from window results."""
+        if not all_is_sharpes or not all_oos_sharpes:
+            return
+        result.avg_in_sample_sharpe = float(np.mean(all_is_sharpes))
+        result.avg_out_of_sample_sharpe = float(np.mean(all_oos_sharpes))
+        result.overfitting_score = float(result.avg_in_sample_sharpe - result.avg_out_of_sample_sharpe)
+        result.is_overfit = bool(result.overfitting_score > 0.5)
+        result.total_sharpe = result.avg_out_of_sample_sharpe
+        result.total_return = float(sum(
+            w.out_of_sample_result.total_return_pct for w in result.windows
+            if w.out_of_sample_result
+        ))
 
     def detect_overfitting(
         self, in_sample_results: list[float], out_of_sample_results: list[float]
