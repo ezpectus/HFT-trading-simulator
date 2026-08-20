@@ -504,9 +504,11 @@ hft-trading-system/
 ├── web-ui/                          # React 18: browser dashboard (227 components)
 │   ├── src/
 │   │   ├── components/              # 227 UI components (React.lazy)
+│   │   ├── contexts/                # Exchange context, theme context
 │   │   ├── test/                    # Vitest test suite (40 files)
 │   │   ├── panels/                  # Panel registry + container
 │   │   ├── hooks/                   # WebSocket, exchange, signals, theme, performance
+│   │   ├── stores/                  # Zustand state stores
 │   │   └── utils/                   # Indicators, performance, format, mock data
 │   ├── public/                      # Favicon, PWA icons
 │   ├── .env.example

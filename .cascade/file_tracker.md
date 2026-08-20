@@ -102,7 +102,6 @@
 | App.jsx, main.jsx | 2 | ✅ | Entry points |
 | components/ | 10 | 🔄 | #200-204 UI bugs fixed, 5 partially read |
 | contexts/ | 2 | ⏳ | Not yet read |
-| exchanges/ | 1 | ⏳ | Not yet read |
 
 ## Other Directories
 

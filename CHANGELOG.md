@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 49 — Stale exchanges/ References + README Project Structure)
+
+### Fixed
+- **[DOC-315]** Removed stale `exchanges/` references from `.cascade/file_tracker.md`, `.cascade/personal-prompt.md`, `.cascade/prompts.md` (directory deleted in Sprint 41)
+- **[DOC-316]** Added missing `contexts/` and `stores/` directories to README.md web-ui project structure section
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 48 — README Broken Doc Links + Stale Feature Cleanup)
 
 ### Fixed

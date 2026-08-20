@@ -786,7 +786,10 @@ trading-system – lite/
 │   ├── src/
 │   │   ├── components/     — UI components
 │   │   ├── contexts/       — state management
-│   │   ├── exchanges/      — exchange integration
+│   │   ├── hooks/          — WebSocket, exchange, signals, theme
+│   │   ├── panels/         — Panel registry + container
+│   │   ├── stores/         — Zustand state stores
+│   │   ├── utils/          — Indicators, performance, format, mock data
 │   │   ├── App.jsx         — main layout
 │   │   └── index.css       — styling
 │   └── e2e/                — Playwright e2e tests

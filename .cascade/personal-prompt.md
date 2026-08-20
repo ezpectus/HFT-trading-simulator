@@ -1242,7 +1242,10 @@ hft-executor/ — Rust: high-performance order executor (FFI для C++)
 web-ui/ — React/Vite/TailwindCSS: trading dashboard
   src/components/ — UI components
   src/contexts/ — state management
-  src/exchanges/ — exchange integration
+  src/hooks/ — WebSocket, exchange, signals, theme, performance
+  src/panels/ — Panel registry + container
+  src/stores/ — Zustand state stores
+  src/utils/ — Indicators, performance, format, mock data
   e2e/ — Playwright e2e tests
 monitoring/ — Prometheus, Grafana, Alertmanager
 docs/ — ARCHITECTURE.md, MATH_MODELS.md, 9_DAY_DEVELOPMENT_PLAN.md, etc.
