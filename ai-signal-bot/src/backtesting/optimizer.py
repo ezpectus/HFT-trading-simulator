@@ -137,7 +137,7 @@ class StrategyOptimizer:
                 result = self.backtester.run(candles, strategy, symbol, warmup)
                 fitness = self.fitness_fn(result)
                 results.append(OptimizationResult(params, result, fitness))
-            except Exception as e:
+            except (RuntimeError, ValueError, KeyError, OSError) as e:
                 logger.debug(f"Failed for {params}: {e}")
 
             if (i + 1) % 50 == 0:
@@ -182,7 +182,7 @@ class StrategyOptimizer:
                 result = self.backtester.run(test_candles, strategy, symbol, warmup=min(20, len(test_candles) // 3))
                 fitness = self.fitness_fn(result)
                 results.append(OptimizationResult(params, result, fitness))
-            except Exception as e:
+            except (RuntimeError, ValueError, KeyError, OSError) as e:
                 logger.debug(f"Walk-forward window failed: {e}")
 
             start += test_size

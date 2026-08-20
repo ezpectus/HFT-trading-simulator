@@ -306,6 +306,6 @@ def export_rl_onnx(agent, config: RLConfig, output_path: str, algo: str = "ppo")
             )
         logger.info(f"[RL] Exported {algo} policy to {output_path}")
         return True
-    except Exception as e:
+    except (RuntimeError, OSError, ValueError) as e:
         logger.error(f"[RL] Export failed: {e}")
         return False

@@ -115,7 +115,7 @@ class AlertSystem:
 
                     await self._send_alert(alert)
 
-            except Exception as e:
+            except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
                 logger.error(f"[AlertSystem] Error checking rule {name}: {e}")
                 self.last_fired[name] = now
 
@@ -217,7 +217,7 @@ class AlertSystem:
         while self._running:
             try:
                 await self.check_rules()
-            except Exception as e:
+            except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
                 logger.error(f"[AlertSystem] Monitor loop error: {e}")
             await asyncio.sleep(interval)
 

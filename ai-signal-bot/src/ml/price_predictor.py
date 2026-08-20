@@ -279,6 +279,6 @@ def export_onnx(model: nn.Module, config: ModelConfig, output_path: str) -> bool
         )
         logger.info(f"[ONNX] Exported to {output_path}")
         return True
-    except Exception as e:
+    except (RuntimeError, OSError, ValueError) as e:
         logger.error(f"[ONNX] Export failed: {e}")
         return False

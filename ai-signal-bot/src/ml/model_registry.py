@@ -101,7 +101,7 @@ class ModelRegistry:
                     self.models[name][ver] = ModelVersion(**vdata)
             for name, ab_data in data.get("ab_tests", {}).items():
                 self.ab_tests[name] = ABTest(**ab_data)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, TypeError) as e:
             logger.warning(f"[ModelRegistry] Failed to load: {e}")
 
     def _save(self) -> None:

@@ -178,7 +178,7 @@ class LLMEngine:
             self._cache[cache_key] = (now, analysis)
             self._request_count += 1
             return analysis
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError, KeyError) as e:
             self._error_count += 1
             logger.error(f"[LLMEngine] Analysis failed: {e}")
             return self._rule_based_analysis(ctx)
@@ -201,7 +201,7 @@ class LLMEngine:
         try:
             response = await self._call_llm(prompt)
             return response.strip()
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError, KeyError) as e:
             logger.error(f"[LLMEngine] Explain failed: {e}")
             return self._rule_based_explanation(direction, price, rsi, adx, ema_trend)
 
@@ -222,7 +222,7 @@ class LLMEngine:
         try:
             response = await self._call_llm(prompt)
             return {"assessment": response.strip(), "source": "llm"}
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError, KeyError) as e:
             logger.error(f"[LLMEngine] Risk assessment failed: {e}")
             return self._rule_based_risk(atr, leverage, price)
 

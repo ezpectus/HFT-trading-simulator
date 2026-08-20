@@ -69,7 +69,7 @@ def setup_tracing(
 
     except ImportError:
         logger.warning("[Tracing] opentelemetry not installed — run: pip install opentelemetry-distro opentelemetry-exporter-otlp")
-    except Exception as e:
+    except (RuntimeError, OSError, ValueError) as e:
         logger.warning(f"[Tracing] Failed to initialize: {e}")
 
 
@@ -106,5 +106,5 @@ def shutdown_tracing() -> None:
             provider.shutdown()
         _initialized = False
         logger.info("[Tracing] Shutdown complete")
-    except Exception as e:
+    except (RuntimeError, OSError) as e:
         logger.warning(f"[Tracing] Shutdown error: {e}")

@@ -43,7 +43,7 @@ class HealthServer:
                 if asyncio.iscoroutine(result):
                     result = await result
                 return result
-            except Exception as e:
+            except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
                 return {"healthy": False, "error": str(e)}
         return {"healthy": True, "message": "No exchange check registered"}
 
@@ -55,7 +55,7 @@ class HealthServer:
                 if asyncio.iscoroutine(result):
                     result = await result
                 return result
-            except Exception as e:
+            except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
                 return {"healthy": False, "error": str(e)}
         return {"healthy": True, "message": "No database check registered"}
 
@@ -67,7 +67,7 @@ class HealthServer:
                 if asyncio.iscoroutine(result):
                     result = await result
                 return result
-            except Exception as e:
+            except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
                 return {"healthy": False, "error": str(e)}
         return {"healthy": True, "message": "No SHM check registered"}
 

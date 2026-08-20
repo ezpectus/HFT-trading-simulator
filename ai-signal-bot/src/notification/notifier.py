@@ -111,7 +111,7 @@ class TelegramNotifier:
             async with self._session.post(url, json=payload) as resp:
                 if resp.status != 200:
                     logger.warning(f"Telegram send failed: {resp.status}")
-        except Exception as e:
+        except (OSError, RuntimeError) as e:
             logger.error(f"Telegram send error: {e}")
 
     async def _poll_updates(self):
@@ -142,7 +142,7 @@ class TelegramNotifier:
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (OSError, RuntimeError, json.JSONDecodeError) as e:
                 logger.error(f"Telegram poll error: {e}")
                 await asyncio.sleep(5)
 
@@ -155,7 +155,7 @@ class TelegramNotifier:
         if handler:
             try:
                 response = await handler(args)
-            except Exception as e:
+            except (TypeError, ValueError, RuntimeError) as e:
                 response = f"Error: {e}"
         else:
             response = f"Unknown command: /{cmd}\nAvailable: {', '.join(self._command_handlers.keys())}"
@@ -227,7 +227,7 @@ class DiscordNotifier:
             async with self._session.post(url, json=payload, headers=headers) as resp:
                 if resp.status not in (200, 201):
                     logger.warning(f"Discord send failed: {resp.status}")
-        except Exception as e:
+        except (OSError, RuntimeError) as e:
             logger.error(f"Discord send error: {e}")
 
     async def _poll_messages(self):
@@ -257,7 +257,7 @@ class DiscordNotifier:
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (OSError, RuntimeError, json.JSONDecodeError) as e:
                 logger.error(f"Discord poll error: {e}")
                 await asyncio.sleep(5)
 
@@ -270,7 +270,7 @@ class DiscordNotifier:
         if handler:
             try:
                 response = await handler(args)
-            except Exception as e:
+            except (TypeError, ValueError, RuntimeError) as e:
                 response = f"Error: {e}"
         else:
             response = f"Unknown command: /{cmd}\nAvailable: {', '.join(self._command_handlers.keys())}"

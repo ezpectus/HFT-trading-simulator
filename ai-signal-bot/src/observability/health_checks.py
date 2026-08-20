@@ -150,7 +150,7 @@ class HealthChecker:
                 return ComponentHealth("websocket", HealthStatus.HEALTHY, latency, "connected")
             else:
                 return ComponentHealth("websocket", HealthStatus.UNHEALTHY, latency, "disconnected")
-        except Exception as e:
+        except (AttributeError, TypeError, OSError) as e:
             return ComponentHealth("websocket", HealthStatus.UNHEALTHY, 0, str(e))
 
     async def _check_db(self) -> ComponentHealth:
@@ -166,7 +166,7 @@ class HealthChecker:
                 return ComponentHealth("timescaledb", HealthStatus.HEALTHY, latency, health.get("database", ""))
             else:
                 return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, latency, health.get("error", "not connected"))
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError) as e:
             return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, 0, str(e))
 
     async def _check_redis(self) -> ComponentHealth:
@@ -179,7 +179,7 @@ class HealthChecker:
                 await self.redis_client.ping()
             latency = (time.time() - start) * 1000
             return ComponentHealth("redis", HealthStatus.HEALTHY, latency, "connected")
-        except Exception as e:
+        except (OSError, ConnectionError, RuntimeError) as e:
             latency = (time.time() - start) * 1000
             return ComponentHealth("redis", HealthStatus.DEGRADED, latency, str(e))
 
@@ -196,7 +196,7 @@ class HealthChecker:
                 return ComponentHealth("exchange", HealthStatus.HEALTHY, latency, "trading active")
             else:
                 return ComponentHealth("exchange", HealthStatus.DEGRADED, latency, "trading stopped")
-        except Exception as e:
+        except (AttributeError, TypeError, OSError, RuntimeError) as e:
             return ComponentHealth("exchange", HealthStatus.UNHEALTHY, 0, str(e))
 
 

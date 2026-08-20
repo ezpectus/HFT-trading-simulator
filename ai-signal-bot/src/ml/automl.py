@@ -173,7 +173,7 @@ class AutoMLOptimizer:
             return {}
         try:
             return dict(optuna.importance.get_param_importances(self.study))
-        except Exception:
+        except (RuntimeError, ValueError, KeyError):
             return {}
 
     def get_trials_dataframe(self):
@@ -182,7 +182,7 @@ class AutoMLOptimizer:
             return None
         try:
             return self.study.trials_dataframe()
-        except Exception:
+        except (RuntimeError, ValueError, KeyError):
             return None
 
     def save_best_params(self, path: str) -> None:

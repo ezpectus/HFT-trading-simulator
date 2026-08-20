@@ -91,7 +91,7 @@ class FeatureStore:
             )
             self._redis.ping()
             logger.info(f"[FeatureStore] Connected to Redis {redis_host}:{redis_port}")
-        except Exception as e:
+        except (OSError, ConnectionError, RuntimeError) as e:
             logger.warning(f"[FeatureStore] Redis connection failed: {e} — using in-memory")
             self._redis = None
             self._memory = {}
@@ -214,6 +214,6 @@ class FeatureStore:
         if self._redis:
             try:
                 return self._redis.ping()
-            except Exception:
+            except (OSError, ConnectionError, RuntimeError):
                 return False
         return True  # in-memory always works
