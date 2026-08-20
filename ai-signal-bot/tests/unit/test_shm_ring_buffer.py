@@ -55,7 +55,7 @@ class TestConsumerValidation:
 
             consumer = make_buffer(name, TEST_STRUCT, TEST_CAPACITY, create=False)
             consumer.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
     def test_consumer_rejects_capacity_mismatch(self):
@@ -69,7 +69,7 @@ class TestConsumerValidation:
             with pytest.raises(ValueError, match="capacity mismatch"):
                 consumer = make_buffer(name, TEST_STRUCT, 128, create=False)
                 consumer.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
     def test_consumer_rejects_element_size_mismatch(self):
@@ -84,7 +84,7 @@ class TestConsumerValidation:
             with pytest.raises(ValueError, match="element_size mismatch"):
                 consumer = make_buffer(name, wrong_struct, TEST_CAPACITY, create=False)
                 consumer.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
     def test_consumer_rejects_magic_mismatch(self):
@@ -98,7 +98,7 @@ class TestConsumerValidation:
             with pytest.raises(ValueError, match="magic mismatch"):
                 consumer = make_buffer(name, TEST_STRUCT, TEST_CAPACITY, create=False)
                 consumer.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
 
@@ -112,7 +112,7 @@ class TestProducerValidation:
             stored = struct.unpack_from('<Q', buf._mm, OFF_CAPACITY)[0]
             assert stored == 128
             buf.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
     def test_producer_writes_correct_element_size(self):
@@ -122,7 +122,7 @@ class TestProducerValidation:
             stored = struct.unpack_from('<Q', buf._mm, OFF_ELEMENT_SIZE)[0]
             assert stored == TEST_STRUCT.size
             buf.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
     def test_producer_writes_magic(self):
@@ -132,7 +132,7 @@ class TestProducerValidation:
             stored = struct.unpack_from('<Q', buf._mm, OFF_MAGIC)[0]
             assert stored == SHM_MAGIC
             buf.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
 
@@ -151,7 +151,7 @@ class TestPushPop:
             assert item[0] == 42
             assert item[1] == pytest.approx(3.14)
             buf.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
     def test_pop_empty_returns_none(self):
@@ -161,7 +161,7 @@ class TestPushPop:
             assert buf.try_pop() is None
             assert buf.empty()
             buf.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
     def test_push_full_returns_false(self):
@@ -174,7 +174,7 @@ class TestPushPop:
             assert buf.try_push((99, 99.0)) is False
             assert buf.full()
             buf.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
     def test_size_after_pushes(self):
@@ -186,7 +186,7 @@ class TestPushPop:
             buf.try_push((3, 3.0))
             assert buf.size() == 3
             buf.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
 
@@ -202,7 +202,7 @@ class TestBulkOperations:
             assert pushed == 10
             assert buf.size() == 10
             buf.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
     def test_bulk_push_partial_when_full(self):
@@ -213,7 +213,7 @@ class TestBulkOperations:
             pushed = buf.bulk_push(items)
             assert pushed == 4
             buf.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
     def test_bulk_pop(self):
@@ -228,7 +228,7 @@ class TestBulkOperations:
             assert items[2][0] == 2
             assert buf.size() == 2
             buf.close()
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
 
