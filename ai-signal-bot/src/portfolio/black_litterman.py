@@ -52,58 +52,45 @@ class BlackLittermanModel:
     
     def incorporate_views(self, prior_returns: np.ndarray, cov_matrix: np.ndarray,
                          views: list[View]) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Incorporate investor views into prior returns.
-        
-        Args:
-            prior_returns: Prior returns vector (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            views: List of View objects
-        
-        Returns:
-            Tuple of (posterior_returns, posterior_covariance)
-        """
-        n_assets = len(prior_returns)
+        """Incorporate investor views into prior returns."""
         n_views = len(views)
-        
         if n_views == 0:
             return prior_returns, cov_matrix
-        
-        # Build P matrix (picking matrix for views)
+
+        P, Q, Omega = self._build_view_matrices(views, prior_returns, cov_matrix)
+        return self._compute_posterior(prior_returns, cov_matrix, P, Q, Omega)
+
+    def _build_view_matrices(
+        self, views: list[View], prior_returns: np.ndarray, cov_matrix: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Build P, Q, and Omega matrices from views."""
+        n_assets = len(prior_returns)
+        n_views = len(views)
         P = np.zeros((n_views, n_assets))
+        Q = np.array([view.expected_return for view in views])
+        Omega = np.zeros((n_views, n_views))
         for i, view in enumerate(views):
             for j, asset_idx in enumerate(view.assets):
                 P[i, asset_idx] = view.weights[j]
-        
-        # Build Q vector (view returns)
-        Q = np.array([view.expected_return for view in views])
-        
-        # Build Omega matrix (uncertainty in views)
-        Omega = np.zeros((n_views, n_views))
-        for i, view in enumerate(views):
-            # View uncertainty = tau * P * Sigma * P^T / confidence
             view_cov = self.tau * np.dot(P[i:i+1], np.dot(cov_matrix, P[i:i+1].T))
-            safe_confidence = max(view.confidence, 1e-10)
-            Omega[i, i] = view_cov[0, 0] / safe_confidence
-        
-        # Calculate posterior returns
-        # mu_BL = [(tau * Sigma)^-1 + P^T * Omega^-1 * P]^-1 * [(tau * Sigma)^-1 * pi + P^T * Omega^-1 * Q]
+            Omega[i, i] = view_cov[0, 0] / max(view.confidence, 1e-10)
+        return P, Q, Omega
+
+    def _compute_posterior(
+        self, prior_returns: np.ndarray, cov_matrix: np.ndarray,
+        P: np.ndarray, Q: np.ndarray, Omega: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute posterior returns and covariance using BL formula."""
         try:
             tau_sigma_inv = np.linalg.inv(self.tau * cov_matrix)
             omega_inv = np.linalg.inv(Omega)
-
             M1 = tau_sigma_inv + np.dot(P.T, np.dot(omega_inv, P))
             M2 = np.dot(tau_sigma_inv, prior_returns) + np.dot(P.T, np.dot(omega_inv, Q))
-
             posterior_returns = np.dot(np.linalg.inv(M1), M2)
-
-            # Calculate posterior covariance
-            # Sigma_BL = Sigma + [(tau * Sigma)^-1 + P^T * Omega^-1 * P]^-1
             posterior_covariance = cov_matrix + np.linalg.inv(M1)
         except np.linalg.LinAlgError:
             posterior_returns = prior_returns
             posterior_covariance = cov_matrix
-        
         return posterior_returns, posterior_covariance
     
     def optimize_portfolio(self, posterior_returns: np.ndarray, posterior_covariance: np.ndarray,

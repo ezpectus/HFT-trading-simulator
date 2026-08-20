@@ -96,54 +96,27 @@ class KellyPositionSizer:
         stop_loss: float,
         confidence: float = 1.0,
     ) -> KellyResult:
-        """Calculate position size using Kelly Criterion.
-
-        Args:
-            balance: Current account balance
-            entry_price: Entry price
-            stop_loss: Stop loss price
-            confidence: Signal confidence (0-1), scales Kelly fraction
-
-        Returns:
-            KellyResult with position size and metadata
-        """
+        """Calculate position size using Kelly Criterion."""
         raw_kelly = self.compute_kelly()
 
         if raw_kelly <= 0:
-            return KellyResult(
-                quantity=0.0, risk_amount=0.0,
-                kelly_fraction=self.kelly_fraction,
-                raw_kelly=raw_kelly, adjusted_kelly=0.0,
-                reason="No edge (Kelly <= 0)",
-            )
+            return KellyResult(0.0, 0.0, self.kelly_fraction, raw_kelly, 0.0, "No edge (Kelly <= 0)")
 
         adjusted, confidence_factor = self._adjust_kelly(raw_kelly, confidence)
         risk_amount = self._compute_risk_amount(balance, adjusted, confidence_factor)
         risk_per_unit = abs(entry_price - stop_loss)
 
         if risk_per_unit <= 0:
-            return KellyResult(
-                quantity=0.0, risk_amount=0.0,
-                kelly_fraction=self.kelly_fraction,
-                raw_kelly=raw_kelly, adjusted_kelly=adjusted,
-                reason="Invalid stop loss distance",
-            )
+            return KellyResult(0.0, 0.0, self.kelly_fraction, raw_kelly, adjusted, "Invalid stop loss distance")
 
         quantity, risk_amount, reason = self._cap_position(
             risk_amount, risk_per_unit, entry_price, balance,
             confidence_factor, raw_kelly, adjusted,
         )
 
-        logger.debug(
-            f"Kelly sizing: raw={raw_kelly:.3f} adj={adjusted:.3f} "
-            f"risk=${risk_amount:.2f} qty={quantity:.4f}"
-        )
+        logger.debug(f"Kelly sizing: raw={raw_kelly:.3f} adj={adjusted:.3f} risk=${risk_amount:.2f} qty={quantity:.4f}")
 
-        return KellyResult(
-            quantity=quantity, risk_amount=risk_amount,
-            kelly_fraction=self.kelly_fraction,
-            raw_kelly=raw_kelly, adjusted_kelly=adjusted, reason=reason,
-        )
+        return KellyResult(quantity, risk_amount, self.kelly_fraction, raw_kelly, adjusted, reason)
 
     def _adjust_kelly(self, raw_kelly: float, confidence: float) -> tuple[float, float]:
         """Apply Kelly fraction and confidence scaling. Returns (adjusted, confidence_factor)."""

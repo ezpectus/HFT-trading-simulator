@@ -31,6 +31,7 @@
 | 25 | 2026-08-20 | Sprint 26 (Autonomous): Long function refactoring batch 2 — 5 functions >60 lines refactored (order_book_replay.from_candle 75→23, rl_trader.update 71→17, portfolio_optimizer.black_litterman 74→25, environment.step 63→27, signal_publisher._run_backtest 72→33), 13 helpers extracted | ✅ Done | — |
 | 26 | 2026-08-20 | Sprint 27 (Autonomous): Long function refactoring batch 3 — 5 functions >60 lines refactored (options_simulator.price_option 74→24, plotter.plot_equity_curve 67→22, position_sizing.kelly_criterion_sizing 65→37, cvar.calculate_cvar 65→15, risk_parity.optimize_risk_parity 64→21), 12 helpers extracted | ✅ Done | — |
 | 27 | 2026-08-20 | Sprint 28 (Autonomous): Long function refactoring batch 4 — 5 functions 50-62 lines refactored (genetic_strategy.evolve 62→17, rl_agent.train 52→18, rl_agent.train 53→16, transformer_model.train 53→7, lstm_model.train 55→9), 7 helpers extracted | ✅ Done | — |
+| 28 | 2026-08-20 | Sprint 29 (Autonomous): Long function refactoring batch 5 — 4 functions 52-56 lines refactored (validator.validate 56→18, black_litterman.incorporate_views 55→10, kelly.calculate 55→28, greeks_hedging._simulate_single_path 52→24), 8 helpers extracted | ✅ Done | — |
 
 ## Bug Fix Progress
 
@@ -353,6 +354,17 @@
 | 5 | `ml/lstm_model.py` | `train` | 55 | 9 | `_init_lstm_weights`, `_train_lstm_loop` |
 
 **Sprint 28 result:** 5 functions refactored, 7 helpers extracted. All 5 functions now under 40-line limit. Total across Sprints 25-28: 20 functions refactored, 52 helpers extracted.
+
+**Sprint 29 — Long Function Refactoring Batch 5 (52-56 lines):**
+
+| # | File | Function | Before | After | Helpers Extracted |
+|---|------|----------|--------|-------|-------------------|
+| 1 | `signal_validation/validator.py` | `validate` | 56 | 18 | `_check_confidence`, `_check_rr_ratio`, `_check_drawdown`, `_check_max_positions`, `_check_duplicate` |
+| 2 | `portfolio/black_litterman.py` | `incorporate_views` | 55 | 10 | `_build_view_matrices`, `_compute_posterior` |
+| 3 | `risk/kelly.py` | `calculate` | 55 | 28 | (compacted constructor calls) |
+| 4 | `research/greeks_hedging.py` | `_simulate_single_path` | 52 | 24 | `_simulate_day` |
+
+**Sprint 29 result:** 4 functions refactored, 8 helpers extracted. All 4 functions now under 40-line limit. Total across Sprints 25-29: 24 functions refactored, 60 helpers extracted.
 
 ## Proposals
 

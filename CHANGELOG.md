@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 29 — Long Function Refactoring Batch 5)
+
+### Changed
+- **[QUAL-098]** Refactored 4 functions in the 52-56 line range:
+  - `signal_validation/validator.py` — `validate` 56→18 lines (5 helpers: `_check_confidence`, `_check_rr_ratio`, `_check_drawdown`, `_check_max_positions`, `_check_duplicate`)
+  - `portfolio/black_litterman.py` — `incorporate_views` 55→10 lines (2 helpers: `_build_view_matrices`, `_compute_posterior`)
+  - `risk/kelly.py` — `calculate` 55→28 lines (compacted constructor calls, removed verbose docstring)
+  - `research/greeks_hedging.py` — `_simulate_single_path` 52→24 lines (1 helper: `_simulate_day`)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 28 — Long Function Refactoring Batch 4)
 
 ### Changed

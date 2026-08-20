@@ -154,51 +154,56 @@ class GreeksHedgingSimulator:
         """Simulate delta hedging for a single price path."""
         T = self.t
         greeks = black_scholes_greeks(prices[0], strike, T, self.r, self.sigma, option_type)
-        option_price_0 = greeks["price"]
-        delta_0 = greeks["delta"]
+        hedge_position = -greeks["delta"] * n_options
+        cash = greeks["price"] * n_options + greeks["delta"] * n_options * prices[0]
 
-        hedge_position = -delta_0 * n_options
-        cash = option_price_0 * n_options + delta_0 * n_options * prices[0]
-
-        daily_pnl = []
-        daily_delta = [delta_0]
-        daily_hedge = [hedge_position]
-        total_tc = 0.0
-        n_rebalances = 0
-        hedge_errors = []
+        daily_pnl, daily_delta, daily_hedge, hedge_errors = [], [greeks["delta"]], [hedge_position], []
+        total_tc, n_rebalances = 0.0, 0
 
         for day in range(1, len(prices)):
-            T_remaining = max(self.t - day * dt, 0.001)
-            price = prices[day]
-            greeks = black_scholes_greeks(price, strike, T_remaining, self.r, self.sigma, option_type)
-            new_delta = greeks["delta"]
-
-            option_pnl = (greeks["price"] - black_scholes_greeks(
-                prices[day-1], strike, max(self.t - (day-1) * dt, 0.001),
-                self.r, self.sigma, option_type)["price"]) * n_options
-            hedge_pnl = hedge_position * (price - prices[day-1])
-            daily_pnl.append(option_pnl + hedge_pnl)
-
-            target_hedge = -new_delta * n_options
-            hedge_error = abs(hedge_position - target_hedge)
-            if hedge_error > rebalance_threshold * n_options:
-                trade_qty = target_hedge - hedge_position
-                cash -= trade_qty * price
-                tc = abs(trade_qty) * price * self.tc_bps / 10000
-                total_tc += tc
-                cash -= tc
-                hedge_position = target_hedge
-                n_rebalances += 1
-
-            hedge_errors.append(hedge_error)
-            daily_delta.append(new_delta)
-            daily_hedge.append(hedge_position)
+            cash, total_tc, n_rebalances, hedge_position = self._simulate_day(
+                day, prices, strike, option_type, n_options, dt, hedge_position, cash, total_tc,
+                n_rebalances, rebalance_threshold, daily_pnl, daily_delta, daily_hedge, hedge_errors,
+            )
 
         return self._compute_final_result(
-            prices, option_type, strike, n_options, option_price_0,
+            prices, option_type, strike, n_options, greeks["price"],
             cash, hedge_position, total_tc, n_rebalances, hedge_errors,
             daily_pnl, daily_delta, daily_hedge,
         )
+
+    def _simulate_day(
+        self, day: int, prices: np.ndarray, strike: float, option_type: str,
+        n_options: float, dt: float, hedge_position: float, cash: float,
+        total_tc: float, n_rebalances: int, rebalance_threshold: float,
+        daily_pnl: list, daily_delta: list, daily_hedge: list, hedge_errors: list,
+    ) -> tuple[float, float, int, float]:
+        """Simulate a single day of delta hedging."""
+        T_remaining = max(self.t - day * dt, 0.001)
+        price = prices[day]
+        greeks = black_scholes_greeks(price, strike, T_remaining, self.r, self.sigma, option_type)
+        new_delta = greeks["delta"]
+
+        prev_greeks = black_scholes_greeks(prices[day-1], strike, max(self.t - (day-1) * dt, 0.001), self.r, self.sigma, option_type)
+        option_pnl = (greeks["price"] - prev_greeks["price"]) * n_options
+        hedge_pnl = hedge_position * (price - prices[day-1])
+        daily_pnl.append(option_pnl + hedge_pnl)
+
+        target_hedge = -new_delta * n_options
+        hedge_error = abs(hedge_position - target_hedge)
+        if hedge_error > rebalance_threshold * n_options:
+            trade_qty = target_hedge - hedge_position
+            cash -= trade_qty * price
+            tc = abs(trade_qty) * price * self.tc_bps / 10000
+            total_tc += tc
+            cash -= tc
+            hedge_position = target_hedge
+            n_rebalances += 1
+
+        hedge_errors.append(hedge_error)
+        daily_delta.append(new_delta)
+        daily_hedge.append(hedge_position)
+        return cash, total_tc, n_rebalances, hedge_position
 
     def _compute_final_result(
         self, prices: np.ndarray, option_type: str, strike: float,

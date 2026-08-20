@@ -68,54 +68,54 @@ class SignalValidator:
         if not signal.is_actionable:
             return ValidationResult(False, "Signal is neutral", signal)
 
-        # Check confidence
-        if signal.confidence < self.min_confidence:
-            return ValidationResult(
-                False,
-                f"Confidence {signal.confidence:.1f} < min {self.min_confidence}",
-                signal,
-            )
+        checks = [
+            self._check_confidence(signal),
+            self._check_rr_ratio(signal),
+            self._check_drawdown(signal, account_balance),
+            self._check_max_positions(signal),
+            self._check_duplicate(signal),
+        ]
+        for result in checks:
+            if result is not None:
+                return result
 
-        # Check R:R ratio
+        self._recent_signals[signal.symbol] = datetime.now()
+        return ValidationResult(True, "Signal validated", signal)
+
+    def _check_confidence(self, signal: Signal) -> ValidationResult | None:
+        """Check signal confidence against minimum threshold."""
+        if signal.confidence < self.min_confidence:
+            return ValidationResult(False, f"Confidence {signal.confidence:.1f} < min {self.min_confidence}", signal)
+        return None
+
+    def _check_rr_ratio(self, signal: Signal) -> ValidationResult | None:
+        """Check risk-reward ratio against minimum threshold."""
         rr = signal.rr_ratio
         if rr < self.min_rr_ratio:
-            return ValidationResult(
-                False,
-                f"R:R ratio {rr:.2f} < min {self.min_rr_ratio}",
-                signal,
-            )
+            return ValidationResult(False, f"R:R ratio {rr:.2f} < min {self.min_rr_ratio}", signal)
+        return None
 
-        # Check daily drawdown
+    def _check_drawdown(self, signal: Signal, account_balance: float) -> ValidationResult | None:
+        """Check daily drawdown against maximum allowed."""
         drawdown_pct = abs(self._daily_pnl) / account_balance * 100 if account_balance > 0 else 0
         if self._daily_pnl < 0 and drawdown_pct >= self.max_drawdown_pct:
-            return ValidationResult(
-                False,
-                f"Daily drawdown {drawdown_pct:.1f}% >= max {self.max_drawdown_pct}%",
-                signal,
-            )
+            return ValidationResult(False, f"Daily drawdown {drawdown_pct:.1f}% >= max {self.max_drawdown_pct}%", signal)
+        return None
 
-        # Check max open positions
+    def _check_max_positions(self, signal: Signal) -> ValidationResult | None:
+        """Check if max open positions limit reached."""
         if self._open_positions >= self.max_open_positions:
-            return ValidationResult(
-                False,
-                f"Max positions reached ({self._open_positions}/{self.max_open_positions})",
-                signal,
-            )
+            return ValidationResult(False, f"Max positions reached ({self._open_positions}/{self.max_open_positions})", signal)
+        return None
 
-        # Check duplicate signal (same symbol within last 5 minutes)
+    def _check_duplicate(self, signal: Signal) -> ValidationResult | None:
+        """Check for duplicate signal within cooldown period."""
         now = datetime.now()
-        # Clean up stale entries to prevent unbounded growth
         stale = [s for s, t in self._recent_signals.items() if now - t > timedelta(minutes=10)]
         for s in stale:
             del self._recent_signals[s]
         if signal.symbol in self._recent_signals:
             last_time = self._recent_signals[signal.symbol]
             if now - last_time < timedelta(minutes=5):
-                return ValidationResult(
-                    False,
-                    f"Duplicate signal for {signal.symbol} (cooldown)",
-                    signal,
-                )
-
-        self._recent_signals[signal.symbol] = now
-        return ValidationResult(True, "Signal validated", signal)
+                return ValidationResult(False, f"Duplicate signal for {signal.symbol} (cooldown)", signal)
+        return None
