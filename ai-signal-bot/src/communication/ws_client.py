@@ -79,7 +79,7 @@ class ExchangeClient:
             logger.info(f"Connected to exchange simulator: {self.url}")
             await self._ws.send(json.dumps({"type": "subscribe", "protocol_version": 2, "encoding": self._encoding}, separators=(',', ':')))
             return True
-        except Exception as e:
+        except (OSError, websockets.WebSocketException) as e:
             logger.error(f"Failed to connect: {e}")
             self._connected = False
             return False

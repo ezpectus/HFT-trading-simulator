@@ -59,7 +59,7 @@ class ShmMarketDataWriter:
             struct.pack_into('<Q', self._mm, 0, self.max_symbols)
             logger.info(f"SHM market data writer initialized: {self.name} ({self.max_symbols} symbols)")
             return True
-        except Exception as e:
+        except (OSError, ValueError, FileNotFoundError) as e:
             logger.error(f"Failed to init SHM market data writer: {e}")
             return False
 

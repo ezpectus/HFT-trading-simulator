@@ -153,14 +153,14 @@ class FixSession:
                     if len(parts) >= 2:
                         self.outgoing_seq = int(parts[0])
                         self.incoming_seq = int(parts[1])
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 logger.warning(f"Failed to load seq nums from {self.seq_file}: {e}")
 
     def _save_seq_nums(self):
         try:
             with open(self.seq_file, 'w') as f:
                 f.write(f"{self.outgoing_seq} {self.incoming_seq}")
-        except Exception as e:
+        except OSError as e:
             logger.warning(f"Failed to save FIX seq nums: {e}")
 
     def _build_msg(self, msg_type: str, extra_fields: list[tuple[int, str]] | None = None) -> bytes:
@@ -331,7 +331,7 @@ class FixSession:
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (ConnectionError, OSError, asyncio.IncompleteReadError) as e:
                 logger.error(f"FIX read loop error: {e}")
                 self.state = "DISCONNECTED"
                 break
@@ -440,7 +440,7 @@ class FixSession:
             self._writer.close()
             try:
                 await self._writer.wait_closed()
-            except Exception as e:
+            except (ConnectionError, OSError) as e:
                 logger.debug(f"Writer close error: {e}")
         self.state = "DISCONNECTED"
         self._save_seq_nums()

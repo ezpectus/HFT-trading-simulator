@@ -125,11 +125,11 @@ class MetricsServer:
 
             writer.write(response)
             await writer.drain()
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Metrics server error: {e}")
         finally:
             writer.close()
             try:
                 await writer.wait_closed()
-            except Exception as e:
+            except (ConnectionError, OSError) as e:
                 logger.debug(f"Writer close error: {e}")

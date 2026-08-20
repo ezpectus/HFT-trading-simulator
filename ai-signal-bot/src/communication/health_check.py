@@ -70,7 +70,7 @@ class HealthAggregator:
             return {"status": "unhealthy", "error": "timeout"}
         except ConnectionRefusedError:
             return {"status": "unhealthy", "error": "connection refused"}
-        except Exception as e:
+        except (aiohttp.ClientError, OSError) as e:
             return {"status": "unhealthy", "error": str(e)}
 
     async def _aggregate(self) -> dict:
