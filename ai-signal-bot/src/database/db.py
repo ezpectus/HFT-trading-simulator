@@ -24,6 +24,15 @@ class Database:
         conn.row_factory = sqlite3.Row
         return conn
 
+    def close(self) -> None:
+        """Close database and release WAL file locks (Windows-safe)."""
+        try:
+            with closing(sqlite3.connect(self.path)) as conn:
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                conn.execute("PRAGMA journal_mode=DELETE")
+        except Exception:
+            pass
+
     def _init_db(self) -> None:
         with closing(self._conn()) as conn:
             conn.executescript("""

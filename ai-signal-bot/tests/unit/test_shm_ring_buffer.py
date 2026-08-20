@@ -63,12 +63,12 @@ class TestConsumerValidation:
         try:
             # Create with capacity 64
             producer = make_buffer(name, TEST_STRUCT, 64, create=True)
-            producer.close()
 
             # Try to open with different capacity
             with pytest.raises(ValueError, match="capacity mismatch"):
                 consumer = make_buffer(name, TEST_STRUCT, 128, create=False)
                 consumer.close()
+            producer.close()
         except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 
@@ -77,13 +77,13 @@ class TestConsumerValidation:
         try:
             # Create with TEST_STRUCT (8 bytes)
             producer = make_buffer(name, TEST_STRUCT, TEST_CAPACITY, create=True)
-            producer.close()
 
             # Try to open with different struct size (4 bytes)
             wrong_struct = struct.Struct('<I')
             with pytest.raises(ValueError, match="element_size mismatch"):
                 consumer = make_buffer(name, wrong_struct, TEST_CAPACITY, create=False)
                 consumer.close()
+            producer.close()
         except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")
 

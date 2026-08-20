@@ -91,12 +91,12 @@ class DQNAgent:
 
     def replay(self, batch_size: int | None = None):
         """Train on batch of experiences from replay memory."""
+        if self.q_network_weights is None:
+            self._build_network()
         if batch_size is None:
             batch_size = self.config.batch_size
         if len(self.memory) < batch_size:
             return
-        if self.q_network_weights is None:
-            self._build_network()
 
         states, actions, rewards, next_states, dones = self._sample_batch(batch_size)
         self._update_q_network(states, actions, rewards, next_states, dones, batch_size)

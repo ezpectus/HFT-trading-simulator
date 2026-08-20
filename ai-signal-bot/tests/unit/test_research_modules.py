@@ -303,7 +303,7 @@ def book_snapshots():
     return [
         {"timestamp": 1, "bids": [{"price": 99, "qty": 10}], "asks": [{"price": 101, "qty": 8}]},
         {"timestamp": 2, "bids": [{"price": 100, "qty": 15}], "asks": [{"price": 101, "qty": 5}]},
-        {"timestamp": 3, "bids": [{"price": 100, "qty": 12}], "asks": [{"price": 102, "qty": 10}]},
+        {"timestamp": 3, "bids": [{"price": 100, "qty": 14}], "asks": [{"price": 102, "qty": 10}]},
     ]
 
 

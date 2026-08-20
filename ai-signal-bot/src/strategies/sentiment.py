@@ -186,7 +186,7 @@ class SentimentStrategy:
         event_type: EventType, sl_distance: float, tp_distance: float,
     ) -> Signal:
         """Build signal from sentiment value with fade/follow logic."""
-        if sentiment > self.config.fade_threshold:
+        if sentiment >= self.config.fade_threshold:
             return Signal(symbol, SignalDirection.SHORT, int(min(90, 40 + abs(sentiment) * 30)),
                           self.name, price, price + sl_distance, price - tp_distance,
                           f"Fade extreme positive sentiment ({sentiment:.2f}) from {event_type.value}")

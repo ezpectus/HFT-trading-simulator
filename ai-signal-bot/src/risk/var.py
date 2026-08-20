@@ -232,4 +232,4 @@ class VaRCalculator:
         # Likelihood ratio test
         lr = 2 * (x * np.log(x / (n * p)) + (n - x) * np.log((n - x) / (n * (1 - p))))
 
-        return float(lr)
+        return float(max(0.0, lr))

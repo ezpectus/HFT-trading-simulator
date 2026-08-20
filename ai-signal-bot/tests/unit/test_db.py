@@ -14,6 +14,7 @@ def db():
         path = os.path.join(tmpdir, "test_trading.db")
         db = Database(path=path)
         yield db
+        db.close()
 
 
 def make_signal(symbol="BTC/USDT", direction="LONG", confidence=75.0):

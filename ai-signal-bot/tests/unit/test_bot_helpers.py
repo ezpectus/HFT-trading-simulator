@@ -129,7 +129,7 @@ async def test_llm_explanation_success() -> None:
     signal.direction.value = "LONG"
     signal.entry_price = 50000
     signal.reason = "EMA crossover"
-    candles = [{"close": 50000 + i * 100} for i in range(30)]
+    candles = [{"close": 50000 + i * 100, "high": 50100 + i * 100, "low": 49900 + i * 100, "open": 50000 + i * 100 - 50} for i in range(30)]
     result = await generate_llm_explanation(bot, "BTC/USDT", signal, candles)
     assert result == "Bullish trend detected"
 
@@ -143,7 +143,7 @@ async def test_llm_explanation_fallback_on_error() -> None:
     signal.direction.value = "LONG"
     signal.entry_price = 50000
     signal.reason = "EMA crossover"
-    candles = [{"close": 50000 + i * 100} for i in range(30)]
+    candles = [{"close": 50000 + i * 100, "high": 50100 + i * 100, "low": 49900 + i * 100, "open": 50000 + i * 100 - 50} for i in range(30)]
     result = await generate_llm_explanation(bot, "BTC/USDT", signal, candles)
     assert result == "EMA crossover"
 

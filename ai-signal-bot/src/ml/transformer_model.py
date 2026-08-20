@@ -148,13 +148,14 @@ class TransformerModel:
         hidden = np.maximum(0, np.dot(attended, self.feedforward_weights) + self.bias[0])
         logits = np.dot(hidden, self.output_weights) + self.bias[1]
 
-        # Convert to probabilities
-        logits_max = np.max(logits)
-        probabilities = np.exp(logits - logits_max) / np.sum(np.exp(logits - logits_max))
+        # Convert to probabilities (flatten to 1D for correct indexing)
+        logits_flat = logits.ravel()
+        logits_max = np.max(logits_flat)
+        probabilities = np.exp(logits_flat - logits_max) / np.sum(np.exp(logits_flat - logits_max))
 
         # Get signal
-        signal_idx = np.argmax(probabilities)
-        confidence = probabilities[signal_idx]
+        signal_idx = int(np.argmax(probabilities))
+        confidence = float(probabilities[signal_idx])
 
         signal_map = {0: 'LONG', 1: 'SHORT', 2: 'HOLD'}
         signal = signal_map[signal_idx]

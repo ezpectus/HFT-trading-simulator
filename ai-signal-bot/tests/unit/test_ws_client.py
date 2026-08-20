@@ -145,9 +145,10 @@ class TestDisconnect:
     @pytest.mark.asyncio
     async def test_disconnect_clears_state(self, client):
         client._ws = AsyncMock()
+        ws_mock = client._ws
         client._connected = True
         await client.disconnect()
-        client._ws.close.assert_called_once()
+        ws_mock.close.assert_called_once()
         assert client._ws is None
         assert client._connected is False
 

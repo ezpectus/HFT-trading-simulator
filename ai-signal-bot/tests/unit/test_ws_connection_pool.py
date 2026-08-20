@@ -53,7 +53,7 @@ class TestConnectionPoolAcquire:
         mock_ws = AsyncMock()
         with patch(
             "src.communication.ws_connection_pool.websockets.connect",
-            return_value=mock_ws,
+            new=AsyncMock(return_value=mock_ws),
         ):
             conn = await pool.acquire("ws://localhost:8765")
             assert conn is not None
@@ -65,7 +65,7 @@ class TestConnectionPoolAcquire:
         mock_ws = AsyncMock()
         with patch(
             "src.communication.ws_connection_pool.websockets.connect",
-            return_value=mock_ws,
+            new=AsyncMock(return_value=mock_ws),
         ):
             conn1 = await pool.acquire("ws://localhost:8765")
             await pool.release(conn1)
@@ -77,7 +77,7 @@ class TestConnectionPoolAcquire:
     async def test_acquire_returns_none_on_failure(self, pool):
         with patch(
             "src.communication.ws_connection_pool.websockets.connect",
-            side_effect=OSError("Connection refused"),
+            new=AsyncMock(side_effect=OSError("Connection refused")),
         ):
             conn = await pool.acquire("ws://localhost:9999")
             assert conn is None
@@ -106,6 +106,8 @@ class TestConnectionPoolEviction:
         conn = PooledConnection(mock_ws, "ws://localhost:8765")
         conn.last_used = time.monotonic() - 100.0
         await pool.release(conn)
+        # Mark as stale again after release reset last_used
+        conn.last_used = time.monotonic() - 100.0
 
         pool._evict_stale()
         stats = pool.pool_stats()

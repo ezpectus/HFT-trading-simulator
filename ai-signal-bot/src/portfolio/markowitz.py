@@ -197,6 +197,7 @@ class MarkowitzOptimizer:
                 volatility=result.volatility
             ))
 
+        frontier_points.sort(key=lambda p: p.volatility)
         return frontier_points
 
     def calculate_minimum_variance_portfolio(self, expected_returns: np.ndarray,

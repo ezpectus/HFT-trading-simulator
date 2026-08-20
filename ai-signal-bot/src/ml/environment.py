@@ -61,7 +61,7 @@ class TradingEnv:
         # Observation space: 60 recent prices + 3 portfolio state = 63
         self.observation_space_n = 63
 
-    def reset(self, prices: np.ndarray, features: np.ndarray | None = None) -> np.ndarray:
+    def reset(self, prices: np.ndarray | None = None, features: np.ndarray | None = None) -> np.ndarray:
         """
         Reset environment for new episode.
 
@@ -76,6 +76,8 @@ class TradingEnv:
         self.cash = self.initial_cash
         self.position = 0.0
         self.portfolio_value = self.initial_cash
+        if prices is None:
+            prices = np.random.randn(200) * 10 + 100
         self.prices = prices
         self.features = features
         self.total_reward = 0.0
