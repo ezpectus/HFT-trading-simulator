@@ -208,12 +208,12 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, nSamples, stepSize, nLeapfrog, lookback, burnIn])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'HIGH_PERSISTENCE' ? '#ef4444' : data.signal === 'LOW_PERSISTENCE' ? '#22c55e' : '#f59e0b'
-  const paramColors = ['#06b6d4', '#f59e0b', '#a855f7']
+  const sigColor = data.signal === 'HIGH_PERSISTENCE' ? '#f6465d' : data.signal === 'LOW_PERSISTENCE' ? '#0ecb81' : '#f0b90b'
+  const paramColors = ['#06b6d4', '#f0b90b', '#a855f7']
 
   // Trace plots
   const allTraceVals = data.traces.flatMap(t => t.values)
@@ -230,7 +230,7 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Hamiltonian Monte Carlo (Bayesian GARCH) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Hamiltonian Monte Carlo (Bayesian GARCH) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -238,33 +238,33 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Samples:</span>
-          <input type="number" value={nSamples} onChange={e => setNSamples(Math.max(100, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Samples:</span>
+          <input type="number" value={nSamples} onChange={e => setNSamples(Math.max(100, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Step size ε:</span>
-          <input type="number" step="0.001" value={stepSize} onChange={e => setStepSize(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Step size ε:</span>
+          <input type="number" step="0.001" value={stepSize} onChange={e => setStepSize(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Leapfrog L:</span>
-          <input type="number" value={nLeapfrog} onChange={e => setNLeapfrog(Math.max(5, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Leapfrog L:</span>
+          <input type="number" value={nLeapfrog} onChange={e => setNLeapfrog(Math.max(5, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Burn-in:</span>
-          <input type="number" value={burnIn} onChange={e => setBurnIn(Math.max(0, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Burn-in:</span>
+          <input type="number" value={burnIn} onChange={e => setBurnIn(Math.max(0, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Trace plots */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Posterior Trace Plots (MCMC convergence check)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Posterior Trace Plots (MCMC convergence check)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.traces.map((trace, i) => (
             <path key={i} d={trace.values.map((v, j) => `${j === 0 ? 'M' : 'L'} ${sxTrace(j, trace.values.length)} ${syTrace(v)}`).join(' ')} fill="none" stroke={paramColors[i]} strokeWidth={1.5} opacity={0.8} />
@@ -277,28 +277,28 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
       </div>
 
       {/* Log posterior */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Log Posterior Trace (burn-in removed)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
-          <path d={data.logPostHistory.map((lp, i) => `${i === 0 ? 'M' : 'L'} ${sxTrace(i, data.logPostHistory.length)} ${syLP(lp)}`).join(' ')} fill="none" stroke="#22c55e" strokeWidth={1.5} />
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>log p(q|D) = {data.logPostHistory[data.logPostHistory.length - 1].toFixed(2)}</text>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Log Posterior Trace (burn-in removed)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
+          <path d={data.logPostHistory.map((lp, i) => `${i === 0 ? 'M' : 'L'} ${sxTrace(i, data.logPostHistory.length)} ${syLP(lp)}`).join(' ')} fill="none" stroke="#0ecb81" strokeWidth={1.5} />
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>log p(q|D) = {data.logPostHistory[data.logPostHistory.length - 1].toFixed(2)}</text>
         </svg>
       </div>
 
       {/* Posterior distributions */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Posterior Distributions (GARCH parameters)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Posterior Distributions (GARCH parameters)</div>
         <div className="space-y-1">
           {data.postStats.map((stat, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-16">{stat.name}</span>
+              <span className="text-gray-400 w-16">{stat.name}</span>
               <span className="font-mono w-20" style={{ color: paramColors[i] }}>μ={stat.mean.toFixed(4)}</span>
-              <span className="text-slate-500 font-mono w-20">σ={stat.std.toFixed(4)}</span>
-              <span className="text-slate-500 font-mono w-32">95% CI: [{stat.p025.toFixed(4)}, {stat.p975.toFixed(4)}]</span>
-              <div className="flex-1 bg-slate-900  h-3 relative">
-                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
+              <span className="text-gray-500 font-mono w-20">σ={stat.std.toFixed(4)}</span>
+              <span className="text-gray-500 font-mono w-32">95% CI: [{stat.p025.toFixed(4)}, {stat.p975.toFixed(4)}]</span>
+              <div className="flex-1 bg-bg-900  h-3 relative">
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-bg-500" />
                 <div className="h-full  absolute" style={{
                   width: `${Math.min(50, Math.abs(stat.mean) * 100)}%`,
                   background: paramColors[i],
@@ -311,29 +311,29 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Post samples</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Post samples</div>
           <div className="text-cyan-400 font-mono">{data.nPost}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Accept rate</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Accept rate</div>
           <div className="text-emerald-400 font-mono">{(data.acceptRate * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Persistence</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Persistence</div>
           <div className="text-amber-400 font-mono">{data.persistence.mean.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Long-run var</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Long-run var</div>
           <div className="text-purple-400 font-mono">{data.longRunVar.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Pers. std</div>
-          <div className="text-slate-300 font-mono">{data.persistence.std.toFixed(4)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Pers. std</div>
+          <div className="text-gray-300 font-mono">{data.persistence.std.toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> H:</strong> H(q,p) = U(q) + K(p), U = -log p(q|D) |
         <strong> Leapfrog:</strong> symplectic integrator (ε={stepSize}, L={nLeapfrog}) |

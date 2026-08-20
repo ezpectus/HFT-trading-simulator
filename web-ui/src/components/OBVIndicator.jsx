@@ -76,12 +76,12 @@ export default function OBVIndicator({ candles, symbol, exchange }) {
       <svg viewBox="0 0 100 100" className="w-full h-[40px]" preserveAspectRatio="none">
         <defs>
           <linearGradient id="obv-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={isRising ? '#22c55e' : '#ef4444'} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={isRising ? '#22c55e' : '#ef4444'} stopOpacity="0" />
+            <stop offset="0%" stopColor={isRising ? '#0ecb81' : '#f6465d'} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={isRising ? '#0ecb81' : '#f6465d'} stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={areaPath} fill="url(#obv-grad)" />
-        <path d={path} fill="none" stroke={isRising ? '#22c55e' : '#ef4444'} strokeWidth="1.5" />
+        <path d={path} fill="none" stroke={isRising ? '#0ecb81' : '#f6465d'} strokeWidth="1.5" />
       </svg>
 
       {divergence && (

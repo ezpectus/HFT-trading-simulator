@@ -154,11 +154,11 @@ export default function NonStationarySpectral({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, windowSize, hopSize, nScales, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'HIGH_FREQ' ? '#06b6d4' : data.signal === 'LOW_FREQ' ? '#f59e0b' : '#94a3b8'
+  const sigColor = data.signal === 'HIGH_FREQ' ? '#06b6d4' : data.signal === 'LOW_FREQ' ? '#f0b90b' : '#94a3b8'
 
   // Spectrogram (STFT)
   const nFrames = data.stftResult.length
@@ -175,7 +175,7 @@ export default function NonStationarySpectral({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Non-Stationary Spectral Analysis — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Non-Stationary Spectral Analysis — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -183,29 +183,29 @@ export default function NonStationarySpectral({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(4, Math.min(64, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Window:</span>
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(4, Math.min(64, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Hop:</span>
-          <input type="number" value={hopSize} onChange={e => setHopSize(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Hop:</span>
+          <input type="number" value={hopSize} onChange={e => setHopSize(Math.max(1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Scales:</span>
-          <input type="number" value={nScales} onChange={e => setNScales(Math.max(5, Math.min(40, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Scales:</span>
+          <input type="number" value={nScales} onChange={e => setNScales(Math.max(5, Math.min(40, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* STFT Spectrogram */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">STFT Spectrogram (Hann window, |X(t,f)|²)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">STFT Spectrogram (Hann window, |X(t,f)|²)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
           {data.stftResult.map((frame, t) =>
             frame.mags.map((mag, f) => {
               const intensity = mag / maxMag
@@ -221,17 +221,17 @@ export default function NonStationarySpectral({ candles, symbol, exchange }) {
               )
             })
           )}
-          <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={10}>Time</text>
-          <text x={5} y={P + 10} fill="#475569" fontSize={10}>Freq</text>
+          <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={10}>Time</text>
+          <text x={5} y={P + 10} fill="#5e6673" fontSize={10}>Freq</text>
         </svg>
       </div>
 
       {/* CWT Scalogram */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">CWT Scalogram (Morlet wavelet, |W(t,s)|)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">CWT Scalogram (Morlet wavelet, |W(t,s)|)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
           {data.cwtResult.map((scale, s) =>
             scale.coeffs.map((c, t) => {
               const intensity = c / maxCWT
@@ -247,49 +247,49 @@ export default function NonStationarySpectral({ candles, symbol, exchange }) {
               )
             })
           )}
-          <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={10}>Time</text>
-          <text x={5} y={P + 10} fill="#475569" fontSize={10}>Scale</text>
+          <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={10}>Time</text>
+          <text x={5} y={P + 10} fill="#5e6673" fontSize={10}>Scale</text>
         </svg>
       </div>
 
       {/* Dominant frequency + entropy over time */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Dominant Frequency & Spectral Entropy over Time</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Dominant Frequency & Spectral Entropy over Time</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Dominant frequency */}
           <path d={data.domFreq.map((d, i) => `${i === 0 ? 'M' : 'L'} ${sxSpec(i)} ${H - P - d.freq * (H - 2 * P) * 2}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
 
           {/* Spectral entropy */}
-          <path d={data.spectralEntropy.map((e, i) => `${i === 0 ? 'M' : 'L'} ${sxSpec(i)} ${H - P - (e.entropy / Math.log2(nBins)) * (H - 2 * P)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2} />
+          <path d={data.spectralEntropy.map((e, i) => `${i === 0 ? 'M' : 'L'} ${sxSpec(i)} ${H - P - (e.entropy / Math.log2(nBins)) * (H - 2 * P)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={2} />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>Dominant freq</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>Spectral entropy</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>Spectral entropy</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Dom. freq</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Dom. freq</div>
           <div className="text-cyan-400 font-mono">{data.currentDom?.freq.toFixed(4) || 'N/A'}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Spectral entropy</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Spectral entropy</div>
           <div className="text-amber-400 font-mono">{data.currentEntropy?.entropy.toFixed(4) || 'N/A'}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">STFT frames</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">STFT frames</div>
           <div className="text-emerald-400 font-mono">{data.nFrames}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">CWT scales</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">CWT scales</div>
           <div className="text-purple-400 font-mono">{data.cwtResult.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> STFT:</strong> Hann window {windowSize}, hop {hopSize} |
         <strong> CWT:</strong> Morlet ω₀=6, {nScales} scales |

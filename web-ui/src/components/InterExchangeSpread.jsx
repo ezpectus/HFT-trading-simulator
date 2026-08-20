@@ -148,8 +148,8 @@ export default function InterExchangeSpread({ candles, prices, symbols, exchange
                   const zeroY = 20 - ((0 - minS) / sRange) * 16 - 2
                   return (
                     <>
-                      <line x1="0" y1={zeroY >= 0 && zeroY <= 20 ? zeroY : midY} x2="100" y2={zeroY >= 0 && zeroY <= 20 ? zeroY : midY} stroke="#64748b" strokeWidth="0.2" strokeDasharray="1 2" opacity="0.3" />
-                      <path d={path} fill="none" stroke={s.spread >= 0 ? '#22c55e' : '#ef4444'} strokeWidth="0.8" />
+                      <line x1="0" y1={zeroY >= 0 && zeroY <= 20 ? zeroY : midY} x2="100" y2={zeroY >= 0 && zeroY <= 20 ? zeroY : midY} stroke="#848e9c" strokeWidth="0.2" strokeDasharray="1 2" opacity="0.3" />
+                      <path d={path} fill="none" stroke={s.spread >= 0 ? '#0ecb81' : '#f6465d'} strokeWidth="0.8" />
                     </>
                   )
                 })()}

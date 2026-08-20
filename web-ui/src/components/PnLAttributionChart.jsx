@@ -113,7 +113,7 @@ export default function PnLAttributionChart({ accounts }) {
           <path key={s} d={symbolPaths[s]} fill="none" stroke={symbolColors[s] || '#888'} strokeWidth="0.5" opacity="0.7" />
         ))}
         {/* Total line */}
-        <path d={totalPath} fill="none" stroke={totalCum >= 0 ? '#22c55e' : '#ef4444'} strokeWidth="1" />
+        <path d={totalPath} fill="none" stroke={totalCum >= 0 ? '#0ecb81' : '#f6465d'} strokeWidth="1" />
       </svg>
 
       {/* Total + top contributor */}

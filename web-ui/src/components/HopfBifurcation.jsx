@@ -172,12 +172,12 @@ export default function HopfBifurcation({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, windowSize, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'OSCILLATORY' ? '#f59e0b' : data.signal === 'BIFURCATION' ? '#ef4444' : '#22c55e'
-  const regimeColors = { STABLE: '#22c55e', BIFURCATION: '#ef4444', LIMIT_CYCLE: '#f59e0b' }
+  const sigColor = data.signal === 'OSCILLATORY' ? '#f0b90b' : data.signal === 'BIFURCATION' ? '#f6465d' : '#0ecb81'
+  const regimeColors = { STABLE: '#0ecb81', BIFURCATION: '#f6465d', LIMIT_CYCLE: '#f0b90b' }
 
   // Bifurcation parameter over time
   const maxMu = Math.max(...data.sliding.map(s => Math.abs(s.mu)), 0.1)
@@ -192,7 +192,7 @@ export default function HopfBifurcation({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Hopf Bifurcation Analysis — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Hopf Bifurcation Analysis — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -200,42 +200,42 @@ export default function HopfBifurcation({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(15, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Window:</span>
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(15, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Bifurcation parameter μ over time */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Bifurcation Parameter μ = |λ|_max - 1 (μ {'>'} 0 → limit cycle)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#475569" strokeWidth={1.5} strokeDasharray="4,3" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Bifurcation Parameter μ = |λ|_max - 1 (μ {'>'} 0 → limit cycle)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#5e6673" strokeWidth={1.5} strokeDasharray="4,3" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.sliding.map((s, i) => (
             <line key={i} x1={sxMu(i)} y1={H / 2} x2={sxMu(i)} y2={syMu(s.mu)} stroke={regimeColors[s.regime]} strokeWidth={2} opacity={0.7} />
           ))}
 
-          <text x={W - P} y={H / 2 - 5} textAnchor="end" fill="#475569" fontSize={9}>μ = 0 (Hopf bifurcation)</text>
-          <text x={W - P} y={20} textAnchor="end" fill="#f59e0b" fontSize={9}>μ {'>'} 0 (limit cycle)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#22c55e" fontSize={9}>μ {'<'} 0 (stable)</text>
+          <text x={W - P} y={H / 2 - 5} textAnchor="end" fill="#5e6673" fontSize={9}>μ = 0 (Hopf bifurcation)</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#f0b90b" fontSize={9}>μ {'>'} 0 (limit cycle)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#0ecb81" fontSize={9}>μ {'<'} 0 (stable)</text>
         </svg>
       </div>
 
       {/* Eigenvalue trajectory in complex plane */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Eigenvalue Trajectory (AR(2) characteristic roots in complex plane)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Eigenvalue Trajectory (AR(2) characteristic roots in complex plane)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
           {/* Unit circle */}
-          <circle cx={sxEig(0)} cy={syEig(0)} r={(W - 2 * P) / (2 * maxEig) * 1.0} fill="none" stroke="#475569" strokeWidth={1.5} strokeDasharray="3,3" />
+          <circle cx={sxEig(0)} cy={syEig(0)} r={(W - 2 * P) / (2 * maxEig) * 1.0} fill="none" stroke="#5e6673" strokeWidth={1.5} strokeDasharray="3,3" />
 
-          <line x1={sxEig(-maxEig)} y1={syEig(0)} x2={sxEig(maxEig)} y2={syEig(0)} stroke="#334155" />
-          <line x1={sxEig(0)} y1={syEig(-maxEig)} x2={sxEig(0)} y2={syEig(maxEig)} stroke="#334155" />
+          <line x1={sxEig(-maxEig)} y1={syEig(0)} x2={sxEig(maxEig)} y2={syEig(0)} stroke="#1e2530" />
+          <line x1={sxEig(0)} y1={syEig(-maxEig)} x2={sxEig(0)} y2={syEig(maxEig)} stroke="#1e2530" />
 
           {/* Eigenvalue points */}
           {data.sliding.map((s, i) => {
@@ -248,18 +248,18 @@ export default function HopfBifurcation({ candles, symbol, exchange }) {
 
           {/* Current eigenvalues */}
           {data.fullEigs.map((e, i) => (
-            <circle key={`cur-${i}`} cx={sxEig(e.re)} cy={syEig(e.im)} r={6} fill="#fbbf24" stroke="#ef4444" strokeWidth={2} />
+            <circle key={`cur-${i}`} cx={sxEig(e.re)} cy={syEig(e.im)} r={6} fill="#fbbf24" stroke="#f6465d" strokeWidth={2} />
           ))}
 
-          <text x={W - P} y={20} textAnchor="end" fill="#475569" fontSize={9}>unit circle |λ|=1</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#5e6673" fontSize={9}>unit circle |λ|=1</text>
           <text x={W - P} y={34} textAnchor="end" fill="#fbbf24" fontSize={9}>current eigenvalues</text>
         </svg>
       </div>
 
       {/* Regime classification */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Regime Classification Over Time</div>
-        <svg width={W} height={60} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Regime Classification Over Time</div>
+        <svg width={W} height={60} className="bg-bg-900 ">
           {data.sliding.map((s, i) => {
             const x = sxMu(i)
             const w = Math.max(1, (W - 2 * P) / data.sliding.length - 0.5)
@@ -267,36 +267,36 @@ export default function HopfBifurcation({ candles, symbol, exchange }) {
           })}
         </svg>
         <div className="flex items-center gap-4 mt-2 text-xs">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 " style={{ background: regimeColors.STABLE }} /><span className="text-slate-400">Stable (calm)</span></span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 " style={{ background: regimeColors.BIFURCATION }} /><span className="text-slate-400">Bifurcation (transition)</span></span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 " style={{ background: regimeColors.LIMIT_CYCLE }} /><span className="text-slate-400">Limit cycle (oscillatory)</span></span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 " style={{ background: regimeColors.STABLE }} /><span className="text-gray-400">Stable (calm)</span></span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 " style={{ background: regimeColors.BIFURCATION }} /><span className="text-gray-400">Bifurcation (transition)</span></span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 " style={{ background: regimeColors.LIMIT_CYCLE }} /><span className="text-gray-400">Limit cycle (oscillatory)</span></span>
         </div>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">AR(2) a₁</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">AR(2) a₁</div>
           <div className="text-cyan-400 font-mono">{data.fullAR2.a1.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">AR(2) a₂</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">AR(2) a₂</div>
           <div className="text-emerald-400 font-mono">{data.fullAR2.a2.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">|λ|_max</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">|λ|_max</div>
           <div className="text-amber-400 font-mono">{data.fullMaxMod.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">μ (bif. param)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">μ (bif. param)</div>
           <div className="text-purple-400 font-mono">{data.fullMu.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Transitions</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Transitions</div>
           <div className="text-red-400 font-mono">{data.transitions}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> AR(2):</strong> x_t = a₁x_{'{t-1}'} + a₂x_{'{t-2}'} + ε |
         <strong> Eigenvalues:</strong> λ² - a₁λ - a₂ = 0 |

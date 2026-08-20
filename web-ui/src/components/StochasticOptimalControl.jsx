@@ -168,12 +168,12 @@ export default function StochasticOptimalControl({ candles, symbol, exchange }) 
   }, [candles, exchange, symbol, gamma, rho, lookback, nT, nX])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'LONG' ? '#22c55e' : data.signal === 'SHORT' ? '#ef4444' : '#94a3b8'
-  const sliceColors = ['#06b6d4', '#f59e0b', '#a855f7', '#22c55e']
+  const sigColor = data.signal === 'LONG' ? '#0ecb81' : data.signal === 'SHORT' ? '#f6465d' : '#94a3b8'
+  const sliceColors = ['#06b6d4', '#f0b90b', '#a855f7', '#0ecb81']
 
   // Value function slices
   const allV = data.valueSlices.flatMap(s => s.values)
@@ -193,7 +193,7 @@ export default function StochasticOptimalControl({ candles, symbol, exchange }) 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Stochastic Optimal Control (HJB) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Stochastic Optimal Control (HJB) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -201,33 +201,33 @@ export default function StochasticOptimalControl({ candles, symbol, exchange }) 
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">γ (risk aversion):</span>
-          <input type="number" step="0.5" value={gamma} onChange={e => setGamma(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">γ (risk aversion):</span>
+          <input type="number" step="0.5" value={gamma} onChange={e => setGamma(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">ρ (discount):</span>
-          <input type="number" step="0.01" value={rho} onChange={e => setRho(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">ρ (discount):</span>
+          <input type="number" step="0.01" value={rho} onChange={e => setRho(Math.max(0, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Time steps:</span>
-          <input type="number" value={nT} onChange={e => setNT(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Time steps:</span>
+          <input type="number" value={nT} onChange={e => setNT(Math.max(10, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Wealth grid:</span>
-          <input type="number" value={nX} onChange={e => setNX(Math.max(20, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Wealth grid:</span>
+          <input type="number" value={nX} onChange={e => setNX(Math.max(20, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Value function slices */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Value Function V(x, t) at Different Times</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Value Function V(x, t) at Different Times</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.valueSlices.map((slice, i) => (
             <path key={i} d={slice.values.map((v, j) => `${j === 0 ? 'M' : 'L'} ${sxV(data.xGrid[j])} ${syV(v)}`).join(' ')} fill="none" stroke={sliceColors[i]} strokeWidth={2} />
@@ -243,36 +243,36 @@ export default function StochasticOptimalControl({ candles, symbol, exchange }) 
       </div>
 
       {/* Optimal policy function u*(x) */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Optimal Policy u*(x) — Position Size vs Wealth (t=0)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Optimal Policy u*(x) — Position Size vs Wealth (t=0)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.U[0].map((u, i) => (
-            <line key={i} x1={sxV(data.xGrid[i])} y1={H / 2} x2={sxV(data.xGrid[i])} y2={syPol(u)} stroke={u > 0 ? '#22c55e' : '#ef4444'} strokeWidth={2} opacity={0.7} />
+            <line key={i} x1={sxV(data.xGrid[i])} y1={H / 2} x2={sxV(data.xGrid[i])} y2={syPol(u)} stroke={u > 0 ? '#0ecb81' : '#f6465d'} strokeWidth={2} opacity={0.7} />
           ))}
 
           <line x1={sxV(data.currentWealth)} y1={P} x2={sxV(data.currentWealth)} y2={H - P} stroke="#fbbf24" strokeWidth={1} strokeDasharray="3,3" />
           <text x={sxV(data.currentWealth)} y={P + 10} textAnchor="middle" fill="#fbbf24" fontSize={9}>current</text>
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>u* {'>'} 0 (long)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#ef4444" fontSize={9}>u* {'<'} 0 (short)</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>u* {'>'} 0 (long)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f6465d" fontSize={9}>u* {'<'} 0 (short)</text>
         </svg>
       </div>
 
       {/* Position trajectory */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Optimal Position Trajectory u*(t) (simulated wealth path)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Optimal Position Trajectory u*(t) (simulated wealth path)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.positionTrajectory.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sxU(i)} ${syU(p.position)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
           {data.positionTrajectory.map((p, i) => (
-            <circle key={i} cx={sxU(i)} cy={syU(p.position)} r={3} fill={p.position > 0 ? '#22c55e' : '#ef4444'} />
+            <circle key={i} cx={sxU(i)} cy={syU(p.position)} r={3} fill={p.position > 0 ? '#0ecb81' : '#f6465d'} />
           ))}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>u*(t) optimal position</text>
@@ -280,29 +280,29 @@ export default function StochasticOptimalControl({ candles, symbol, exchange }) 
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">u* (position)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">u* (position)</div>
           <div className="text-cyan-400 font-mono">{data.optimalPosition.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">V(x, 0)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">V(x, 0)</div>
           <div className="text-emerald-400 font-mono">{data.currentValue.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">μ (drift)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">μ (drift)</div>
           <div className="text-amber-400 font-mono">{data.mu.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">σ (vol)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">σ (vol)</div>
           <div className="text-purple-400 font-mono">{data.sigma.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Sharpe</div>
-          <div className="text-slate-300 font-mono">{data.sharpe.toFixed(4)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Sharpe</div>
+          <div className="text-gray-300 font-mono">{data.sharpe.toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> HJB:</strong> -V_t + ρV = max_u[L + μ·V_x + (1/2)σ²·V_xx] |
         <strong> Policy:</strong> u* = μ·x·(1+V_x) / (σ²x²·(γ-V_xx)) |

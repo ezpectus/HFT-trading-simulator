@@ -107,7 +107,7 @@ export default function FundingRateHistory({ fundingRates, candlesToFunding, sym
       {/* Sparkline */}
       <div className="text-[8px] text-gray-600 mb-0.5">30-period history (simulated)</div>
       <svg viewBox="0 0 100 100" className="w-full h-[30px]" preserveAspectRatio="none">
-        <line x1="0" y1={zeroY} x2="100" y2={zeroY} stroke="#64748b" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.4" />
+        <line x1="0" y1={zeroY} x2="100" y2={zeroY} stroke="#848e9c" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.4" />
         <path d={path} fill="none" stroke="#3b82f6" strokeWidth="1.2" />
       </svg>
 

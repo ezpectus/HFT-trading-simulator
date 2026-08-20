@@ -133,9 +133,9 @@ export default function RenkoChart({ candles, symbol, exchange }) {
             y={b.y}
             width={b.w}
             height={b.h}
-            fill={b.isUp ? '#22c55e' : '#ef4444'}
+            fill={b.isUp ? '#0ecb81' : '#f6465d'}
             fillOpacity="0.6"
-            stroke={b.isUp ? '#22c55e' : '#ef4444'}
+            stroke={b.isUp ? '#0ecb81' : '#f6465d'}
             strokeWidth="0.3"
           />
         ))}

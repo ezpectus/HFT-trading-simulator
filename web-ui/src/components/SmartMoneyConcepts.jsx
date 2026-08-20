@@ -217,15 +217,15 @@ export default function SmartMoneyConcepts({ candles, symbol, exchange }) {
         {candleBars.map((b, i) => (
           <g key={i}>
             <line x1={b.x + b.w / 2} y1={b.wickTop} x2={b.x + b.w / 2} y2={b.wickBot}
-              stroke={b.isBull ? '#22c55e' : '#ef4444'} strokeWidth="0.3" />
+              stroke={b.isBull ? '#0ecb81' : '#f6465d'} strokeWidth="0.3" />
             <rect x={b.x} y={b.bodyY} width={b.w} height={b.bodyH}
-              fill={b.isBull ? '#22c55e' : '#ef4444'} fillOpacity="0.5" />
+              fill={b.isBull ? '#0ecb81' : '#f6465d'} fillOpacity="0.5" />
           </g>
         ))}
         {markers.map((m, i) => (
           <g key={'m' + i}>
-            <circle cx={m.x} cy={m.y} r="1.5" fill={m.direction === 'bullish' ? '#22c55e' : '#ef4444'} />
-            <text x={m.x + 2} y={m.y + 1} fontSize="2.5" fill={m.direction === 'bullish' ? '#22c55e' : '#ef4444'}>
+            <circle cx={m.x} cy={m.y} r="1.5" fill={m.direction === 'bullish' ? '#0ecb81' : '#f6465d'} />
+            <text x={m.x + 2} y={m.y + 1} fontSize="2.5" fill={m.direction === 'bullish' ? '#0ecb81' : '#f6465d'}>
               {m.type === 'BOS' ? 'BOS' : 'CHoCH'}
             </text>
           </g>

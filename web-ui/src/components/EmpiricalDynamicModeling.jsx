@@ -318,16 +318,16 @@ export default function EmpiricalDynamicModeling({ candles, symbol, exchange, sy
   }, [candles, exchange, symbol, symbols, maxE, maxTau, forecastSteps])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 50 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 50 candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 200, P = 30
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : data.signal === 'SELL' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Empirical Dynamic Modeling (EDM) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Empirical Dynamic Modeling (EDM) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -335,65 +335,65 @@ export default function EmpiricalDynamicModeling({ candles, symbol, exchange, sy
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max E:</span>
-          <input type="number" value={maxE} onChange={e => setMaxE(Math.max(3, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max E:</span>
+          <input type="number" value={maxE} onChange={e => setMaxE(Math.max(3, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max τ:</span>
-          <input type="number" value={maxTau} onChange={e => setMaxTau(Math.max(5, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max τ:</span>
+          <input type="number" value={maxTau} onChange={e => setMaxTau(Math.max(5, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Forecast steps:</span>
-          <input type="number" value={forecastSteps} onChange={e => setForecastSteps(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Forecast steps:</span>
+          <input type="number" value={forecastSteps} onChange={e => setForecastSteps(Math.max(1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Mutual information for τ */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Mutual Information → optimal τ = {data.optTau}</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Mutual Information → optimal τ = {data.optTau}</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
           {data.mis.map((mi, i) => {
             const x = P + (i / data.mis.length) * (W - 2 * P)
             const maxMI = Math.max(...data.mis, 0.001)
             const h = (mi / maxMI) * (H - 2 * P)
             const isOpt = i === data.optTau - 1
-            return <rect key={i} x={x} y={H - P - h} width={(W - 2 * P) / data.mis.length - 2} height={h} fill={isOpt ? '#22c55e' : '#06b6d4'} opacity={isOpt ? 1 : 0.5} />
+            return <rect key={i} x={x} y={H - P - h} width={(W - 2 * P) / data.mis.length - 2} height={h} fill={isOpt ? '#0ecb81' : '#06b6d4'} opacity={isOpt ? 1 : 0.5} />
           })}
         </svg>
       </div>
 
       {/* FNN for E */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">False Nearest Neighbors → optimal E = {data.optE}</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={H - P - 0.05 * (H - 2 * P)} x2={W - P} y2={H - P - 0.05 * (H - 2 * P)} stroke="#ef4444" strokeDasharray="3,3" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">False Nearest Neighbors → optimal E = {data.optE}</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={H - P - 0.05 * (H - 2 * P)} x2={W - P} y2={H - P - 0.05 * (H - 2 * P)} stroke="#f6465d" strokeDasharray="3,3" />
           {data.fnnRatios.map((fnn, i) => {
             const x = P + (i / data.fnnRatios.length) * (W - 2 * P)
             const h = fnn * (H - 2 * P)
             const isOpt = i === data.optE - 1
             return (
               <g key={i}>
-                <rect x={x} y={H - P - h} width={(W - 2 * P) / data.fnnRatios.length - 2} height={h} fill={isOpt ? '#22c55e' : '#f59e0b'} opacity={isOpt ? 1 : 0.5} />
+                <rect x={x} y={H - P - h} width={(W - 2 * P) / data.fnnRatios.length - 2} height={h} fill={isOpt ? '#0ecb81' : '#f0b90b'} opacity={isOpt ? 1 : 0.5} />
                 <text x={x + 5} y={H - P + 12} fill="#94a3b8" fontSize={8}>E={i + 1}</text>
               </g>
             )
           })}
-          <text x={W - P} y={20} textAnchor="end" fill="#ef4444" fontSize={9}>5% threshold</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#f6465d" fontSize={9}>5% threshold</text>
         </svg>
       </div>
 
       {/* CCM convergence */}
       {data.ccmResults && (
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-1">CCM: {symbol} ← {data.ccmTargetSymbol} (causality test)</div>
-          <svg width={W} height={H} className="bg-slate-900 ">
-            <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-            <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
-            <line x1={P} y1={H - P - (H - 2 * P)} x2={W - P} y2={H - P - (H - 2 * P)} stroke="#475569" strokeDasharray="3,3" />
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-1">CCM: {symbol} ← {data.ccmTargetSymbol} (causality test)</div>
+          <svg width={W} height={H} className="bg-bg-900 ">
+            <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+            <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
+            <line x1={P} y1={H - P - (H - 2 * P)} x2={W - P} y2={H - P - (H - 2 * P)} stroke="#5e6673" strokeDasharray="3,3" />
             <path
               d={data.ccmResults.map((r, i) => `${i === 0 ? 'M' : 'L'} ${P + (r.libSize / data.ccmResults[data.ccmResults.length - 1].libSize) * (W - 2 * P)} ${H - P - Math.max(0, r.rho) * (H - 2 * P)}`).join(' ')}
               fill="none" stroke="#a855f7" strokeWidth={2}
@@ -402,47 +402,47 @@ export default function EmpiricalDynamicModeling({ candles, symbol, exchange, sy
               <circle key={i} cx={P + (r.libSize / data.ccmResults[data.ccmResults.length - 1].libSize) * (W - 2 * P)} cy={H - P - Math.max(0, r.rho) * (H - 2 * P)} r={3} fill="#a855f7" />
             ))}
             <text x={W - P} y={20} textAnchor="end" fill="#a855f7" fontSize={9}>ρ = {data.ccmResults[data.ccmResults.length - 1]?.rho.toFixed(4)}</text>
-            <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={10}>Library size</text>
-            <text x={5} y={P + 10} fill="#475569" fontSize={10}>ρ (correlation)</text>
+            <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={10}>Library size</text>
+            <text x={5} y={P + 10} fill="#5e6673" fontSize={10}>ρ (correlation)</text>
           </svg>
         </div>
       )}
 
       {/* Forecast table */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Simplex Projection Forecast (E={data.optE}, τ={data.optTau})</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Simplex Projection Forecast (E={data.optE}, τ={data.optTau})</div>
         <div className="space-y-1">
           {data.forecasts.map((f, i) => (
             <div key={i} className="flex justify-between text-xs font-mono">
-              <span className="text-slate-400">t+{f.step}</span>
+              <span className="text-gray-400">t+{f.step}</span>
               <span className="text-amber-400">pred: {(f.predicted * 100).toFixed(4)}%</span>
-              <span className="text-slate-500">actual: {f.actual !== undefined ? (f.actual * 100).toFixed(4) + '%' : 'N/A'}</span>
-              <span className="text-slate-500">err: {f.actual !== undefined ? ((f.predicted - f.actual) * 100).toFixed(4) + '%' : 'N/A'}</span>
+              <span className="text-gray-500">actual: {f.actual !== undefined ? (f.actual * 100).toFixed(4) + '%' : 'N/A'}</span>
+              <span className="text-gray-500">err: {f.actual !== undefined ? ((f.predicted - f.actual) * 100).toFixed(4) + '%' : 'N/A'}</span>
             </div>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Optimal τ</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Optimal τ</div>
           <div className="text-cyan-400 font-mono">{data.optTau}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Optimal E</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Optimal E</div>
           <div className="text-emerald-400 font-mono">{data.optE}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Forecast ρ</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Forecast ρ</div>
           <div className="text-amber-400 font-mono">{data.forecastRho.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">CCM ρ</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">CCM ρ</div>
           <div className="text-purple-400 font-mono">{data.ccmResults ? data.ccmResults[data.ccmResults.length - 1]?.rho.toFixed(4) : 'N/A'}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Method:</strong> Takens embedding + simplex projection |
         <strong> CCM:</strong> {data.ccmTargetSymbol ? `${symbol} ← ${data.ccmTargetSymbol}` : 'N/A'}

@@ -39,17 +39,17 @@ export default function RegimeSwitching({ candles, symbol, exchange }) {
 
       let regime = 'Ranging'
       let regimeId = 2
-      let color = '#64748b'
+      let color = '#848e9c'
 
       // Trend detection
       if (smaSpread > 0.5 && r > 55) {
         regime = 'Trending Up'
         regimeId = 0
-        color = '#22c55e'
+        color = '#0ecb81'
       } else if (smaSpread < -0.5 && r < 45) {
         regime = 'Trending Down'
         regimeId = 1
-        color = '#ef4444'
+        color = '#f6465d'
       }
 
       // Volatility override
@@ -192,7 +192,7 @@ export default function RegimeSwitching({ candles, symbol, exchange }) {
               <div className="flex-1 h-1.5 bg-bg-800 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full"
-                  style={{ width: `${prob * 100}%`, backgroundColor: regimeColors[name] ? '' : '#64748b' }}
+                  style={{ width: `${prob * 100}%`, backgroundColor: regimeColors[name] ? '' : '#848e9c' }}
                 />
               </div>
               <span className="font-mono text-gray-400 w-8 text-right">{(prob * 100).toFixed(0)}%</span>
@@ -206,11 +206,11 @@ export default function RegimeSwitching({ candles, symbol, exchange }) {
         <div className="text-[8px] text-gray-600 mb-1">Regime distribution:</div>
         <div className="flex h-2 rounded-full overflow-hidden">
           {distPct.map((d, i) => {
-            const colors = { 'Trending Up': '#22c55e', 'Trending Down': '#ef4444', 'Ranging': '#64748b', 'Volatile': '#f97316', 'Calm': '#3b82f6' }
+            const colors = { 'Trending Up': '#0ecb81', 'Trending Down': '#f6465d', 'Ranging': '#848e9c', 'Volatile': '#f97316', 'Calm': '#3b82f6' }
             return (
               <div
                 key={i}
-                style={{ width: `${d.pct}%`, backgroundColor: colors[d.name] || '#64748b' }}
+                style={{ width: `${d.pct}%`, backgroundColor: colors[d.name] || '#848e9c' }}
                 title={`${d.name}: ${d.pct.toFixed(0)}%`}
               />
             )

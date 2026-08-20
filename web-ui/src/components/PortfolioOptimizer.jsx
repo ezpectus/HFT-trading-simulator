@@ -161,9 +161,9 @@ export default function PortfolioOptimizer({ candles, symbols, exchange }) {
         {/* Frontier */}
         <path d={frontierPath} fill="none" stroke="#3b82f6" strokeWidth="0.8" />
         {/* Max Sharpe point */}
-        <circle cx={xScale(maxSharpe.vol)} cy={yScale(maxSharpe.return)} r="1.5" fill="#22c55e" />
+        <circle cx={xScale(maxSharpe.vol)} cy={yScale(maxSharpe.return)} r="1.5" fill="#0ecb81" />
         {/* Min vol point */}
-        <circle cx={xScale(minVol.vol)} cy={yScale(minVol.return)} r="1.5" fill="#eab308" />
+        <circle cx={xScale(minVol.vol)} cy={yScale(minVol.return)} r="1.5" fill="#f0b90b" />
         {/* Equal weight point */}
         <circle cx={xScale(equalWeight.vol)} cy={yScale(equalWeight.return)} r="1.2" fill="#8b95a7" />
       </svg>

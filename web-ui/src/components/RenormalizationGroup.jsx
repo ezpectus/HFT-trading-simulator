@@ -189,11 +189,11 @@ export default function RenormalizationGroup({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, maxScale, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'PHASE_TRANSITION' ? '#ef4444' : data.signal === 'SUBDIFFUSIVE' ? '#06b6d4' : data.signal === 'SUPERDIFFUSIVE' ? '#f59e0b' : '#22c55e'
+  const sigColor = data.signal === 'PHASE_TRANSITION' ? '#f6465d' : data.signal === 'SUBDIFFUSIVE' ? '#06b6d4' : data.signal === 'SUPERDIFFUSIVE' ? '#f0b90b' : '#0ecb81'
 
   // Volatility scaling (log-log)
   const maxVol = Math.max(...data.scales.map(s => s.vol), 0.001)
@@ -211,7 +211,7 @@ export default function RenormalizationGroup({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Renormalization Group (Multi-Scale) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Renormalization Group (Multi-Scale) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -222,21 +222,21 @@ export default function RenormalizationGroup({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max scale:</span>
-          <input type="number" value={maxScale} onChange={e => setMaxScale(Math.max(5, Math.min(50, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max scale:</span>
+          <input type="number" value={maxScale} onChange={e => setMaxScale(Math.max(5, Math.min(50, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Volatility scaling (log-log) */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Volatility Scaling: log(σ_n) vs log(n) — exponent κ = {data.volScaling.toFixed(4)}</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Volatility Scaling: log(σ_n) vs log(n) — exponent κ = {data.volScaling.toFixed(4)}</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Data points */}
           {data.scales.map((s, i) => (
@@ -248,7 +248,7 @@ export default function RenormalizationGroup({ candles, symbol, exchange }) {
             const n1 = 1, n2 = maxScale
             const v1 = data.scales[0].vol
             const v2 = v1 * Math.pow(n2 / n1, data.volScaling)
-            return <line x1={sxScale(n1)} y1={syVol(v1)} x2={sxScale(n2)} y2={syVol(v2)} stroke="#f59e0b" strokeWidth={2} strokeDasharray="5,3" />
+            return <line x1={sxScale(n1)} y1={syVol(v1)} x2={sxScale(n2)} y2={syVol(v2)} stroke="#f0b90b" strokeWidth={2} strokeDasharray="5,3" />
           })()}
 
           {/* Reference: κ=0.5 (diffusive) */}
@@ -256,42 +256,42 @@ export default function RenormalizationGroup({ candles, symbol, exchange }) {
             const n1 = 1, n2 = maxScale
             const v1 = data.scales[0].vol
             const v2 = v1 * Math.pow(n2 / n1, 0.5)
-            return <line x1={sxScale(n1)} y1={syVol(v1)} x2={sxScale(n2)} y2={syVol(v2)} stroke="#22c55e" strokeWidth={1} strokeDasharray="2,2" opacity={0.5} />
+            return <line x1={sxScale(n1)} y1={syVol(v1)} x2={sxScale(n2)} y2={syVol(v2)} stroke="#0ecb81" strokeWidth={1} strokeDasharray="2,2" opacity={0.5} />
           })()}
 
-          <text x={W - P} y={20} textAnchor="end" fill="#f59e0b" fontSize={9}>Power-law fit (κ={data.volScaling.toFixed(3)})</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#22c55e" fontSize={9}>Diffusive reference (κ=0.5)</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#f0b90b" fontSize={9}>Power-law fit (κ={data.volScaling.toFixed(3)})</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#0ecb81" fontSize={9}>Diffusive reference (κ=0.5)</text>
         </svg>
       </div>
 
       {/* RG flow */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">RG Flow: coupling g(n) = σ_n/√n vs scale n</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">RG Flow: coupling g(n) = σ_n/√n vs scale n</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.rgFlow.map((r, i) => `${i === 0 ? 'M' : 'L'} ${sxScale(r.scale)} ${syG(r.g)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={2} />
 
           {/* Fixed points */}
           {data.fixedPoints.map((fp, i) => (
             <g key={i}>
-              <circle cx={sxScale(fp.scale)} cy={syG(fp.g)} r={6} fill="#22c55e" stroke="#fbbf24" strokeWidth={2} />
-              <text x={sxScale(fp.scale) + 8} y={syG(fp.g) - 8} fill="#22c55e" fontSize={9}>FP (n={fp.scale})</text>
+              <circle cx={sxScale(fp.scale)} cy={syG(fp.g)} r={6} fill="#0ecb81" stroke="#fbbf24" strokeWidth={2} />
+              <text x={sxScale(fp.scale) + 8} y={syG(fp.g) - 8} fill="#0ecb81" fontSize={9}>FP (n={fp.scale})</text>
             </g>
           ))}
 
           <text x={W - P} y={20} textAnchor="end" fill="#a855f7" fontSize={9}>RG flow g(n)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#22c55e" fontSize={9}>Fixed points: {data.fixedPoints.length}</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#0ecb81" fontSize={9}>Fixed points: {data.fixedPoints.length}</text>
         </svg>
       </div>
 
       {/* Correlation length vs scale */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Correlation Length ξ vs Coarse-Graining Scale</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Correlation Length ξ vs Coarse-Graining Scale</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.corrLengths.map((c, i) => (
             <g key={i}>
@@ -305,45 +305,45 @@ export default function RenormalizationGroup({ candles, symbol, exchange }) {
       </div>
 
       {/* Multi-scale statistics table */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Multi-Scale Statistics</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Multi-Scale Statistics</div>
         <div className="space-y-1 max-h-32 overflow-auto">
           {data.scales.map((s, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-12">n={s.n}</span>
+              <span className="text-gray-400 w-12">n={s.n}</span>
               <span className="text-cyan-400 font-mono w-24">σ: {s.vol.toFixed(6)}</span>
               <span className="text-amber-400 font-mono w-20">κ: {s.kurt.toFixed(3)}</span>
               <span className="text-purple-400 font-mono w-20">AC1: {s.ac1.toFixed(4)}</span>
-              <span className="text-slate-500 font-mono w-20">g: {(s.vol / Math.sqrt(s.n)).toFixed(6)}</span>
+              <span className="text-gray-500 font-mono w-20">g: {(s.vol / Math.sqrt(s.n)).toFixed(6)}</span>
             </div>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Vol scaling κ</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Vol scaling κ</div>
           <div className="text-cyan-400 font-mono">{data.volScaling.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Kurt scaling</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Kurt scaling</div>
           <div className="text-amber-400 font-mono">{data.kurtScaling.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Corr. length ξ</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Corr. length ξ</div>
           <div className="text-purple-400 font-mono">{data.currentXi}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Fixed points</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Fixed points</div>
           <div className="text-emerald-400 font-mono">{data.fixedPoints.length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Max Δκurt</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Max Δκurt</div>
           <div className="text-red-400 font-mono">{data.maxKurtChange.delta.toFixed(2)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> RG:</strong> coarse-graining (n-tick aggregation) |
         <strong> Scaling:</strong> σ(λ) = λ^κ · σ(1) |

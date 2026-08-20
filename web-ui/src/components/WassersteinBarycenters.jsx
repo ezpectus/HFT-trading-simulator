@@ -190,12 +190,12 @@ export default function WassersteinBarycenters({ candles, symbols, exchange }) {
   }, [candles, exchange, symbols, nWindows, lookback, nPoints])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'WASSERSTEIN_BULLISH' ? '#22c55e' : data.signal === 'WASSERSTEIN_BEARISH' ? '#ef4444' : '#06b6d4'
-  const distColors = ['#06b6d4', '#f59e0b', '#a855f7', '#22c55e', '#ef4444', '#ec4899']
+  const sigColor = data.signal === 'WASSERSTEIN_BULLISH' ? '#0ecb81' : data.signal === 'WASSERSTEIN_BEARISH' ? '#f6465d' : '#06b6d4'
+  const distColors = ['#06b6d4', '#f0b90b', '#a855f7', '#0ecb81', '#f6465d', '#ec4899']
 
   // Quantile functions plot
   const allQ = [...data.quantiles.flat(), ...data.barycenter, ...data.euclideanQuantiles]
@@ -211,7 +211,7 @@ export default function WassersteinBarycenters({ candles, symbols, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Wasserstein Barycenters (OT Fréchet Mean) — {exchange}</span>
+        <span className="text-sm font-bold text-gray-200">Wasserstein Barycenters (OT Fréchet Mean) — {exchange}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -219,25 +219,25 @@ export default function WassersteinBarycenters({ candles, symbols, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Windows:</span>
-          <input type="number" value={nWindows} onChange={e => setNWindows(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Windows:</span>
+          <input type="number" value={nWindows} onChange={e => setNWindows(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(100, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(100, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Quantile pts:</span>
-          <input type="number" value={nPoints} onChange={e => setNPoints(Math.max(20, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Quantile pts:</span>
+          <input type="number" value={nPoints} onChange={e => setNPoints(Math.max(20, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Quantile functions */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Quantile Functions Q(u): Distributions, Barycenter, Euclidean Mean</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Quantile Functions Q(u): Distributions, Barycenter, Euclidean Mean</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Individual distributions */}
           {data.quantiles.map((q, i) => (
@@ -248,22 +248,22 @@ export default function WassersteinBarycenters({ candles, symbols, exchange }) {
           <path d={data.barycenter.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxQ(i)} ${syQ(v)}`).join(' ')} fill="none" stroke="#fbbf24" strokeWidth={2.5} />
 
           {/* Euclidean mean */}
-          <path d={data.euclideanQuantiles.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxQ(i)} ${syQ(v)}`).join(' ')} fill="none" stroke="#ef4444" strokeWidth={2} strokeDasharray="5,3" />
+          <path d={data.euclideanQuantiles.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxQ(i)} ${syQ(v)}`).join(' ')} fill="none" stroke="#f6465d" strokeWidth={2} strokeDasharray="5,3" />
 
           {data.labels.map((l, i) => (
             <text key={i} x={W - P} y={20 + i * 14} textAnchor="end" fill={distColors[i]} fontSize={9} opacity={0.6}>{l}</text>
           ))}
           <text x={W - P} y={20 + data.labels.length * 14} textAnchor="end" fill="#fbbf24" fontSize={9}>Wasserstein barycenter</text>
-          <text x={W - P} y={20 + (data.labels.length + 1) * 14} textAnchor="end" fill="#ef4444" fontSize={9}>Euclidean mean</text>
+          <text x={W - P} y={20 + (data.labels.length + 1) * 14} textAnchor="end" fill="#f6465d" fontSize={9}>Euclidean mean</text>
         </svg>
       </div>
 
       {/* Wasserstein distances from barycenter */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">W₂ Distance from Barycenter (Fréchet variance decomposition)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">W₂ Distance from Barycenter (Fréchet variance decomposition)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.distances.map((d, i) => (
             <g key={i}>
@@ -278,13 +278,13 @@ export default function WassersteinBarycenters({ candles, symbols, exchange }) {
       </div>
 
       {/* Pairwise distance matrix */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Pairwise W₂ Distances</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Pairwise W₂ Distances</div>
         <div className="space-y-1">
           {data.pairwiseDistances.map((pd, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-20">{pd.pair}</span>
-              <div className="flex-1 bg-slate-900  h-3 relative">
+              <span className="text-gray-400 w-20">{pd.pair}</span>
+              <div className="flex-1 bg-bg-900  h-3 relative">
                 <div className="h-full " style={{ width: `${(pd.dist / maxDist) * 100}%`, background: '#a855f7' }} />
               </div>
               <span className="text-purple-400 font-mono w-20">{pd.dist.toFixed(6)}</span>
@@ -295,11 +295,11 @@ export default function WassersteinBarycenters({ candles, symbols, exchange }) {
 
       {/* Multi-asset barycenter */}
       {data.multiAssetBary && (
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-1">Multi-Asset Wasserstein Barycenter (cross-asset consensus)</div>
-          <svg width={W} height={H} className="bg-slate-900 ">
-            <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-            <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-1">Multi-Asset Wasserstein Barycenter (cross-asset consensus)</div>
+          <svg width={W} height={H} className="bg-bg-900 ">
+            <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+            <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
             {data.multiAssetBary.quantiles.map((q, i) => (
               <path key={i} d={q.map((v, j) => `${j === 0 ? 'M' : 'L'} ${sxQ(j)} ${syQ(v)}`).join(' ')} fill="none" stroke={distColors[i]} strokeWidth={1} opacity={0.4} />
@@ -316,29 +316,29 @@ export default function WassersteinBarycenters({ candles, symbols, exchange }) {
       )}
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Bary. mean</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Bary. mean</div>
           <div className="text-cyan-400 font-mono">{data.baryStats.mean.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Bary. std</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Bary. std</div>
           <div className="text-emerald-400 font-mono">{data.baryStats.std.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Fréchet var</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Fréchet var</div>
           <div className="text-amber-400 font-mono">{data.frechetVar.toFixed(8)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">W₂ vs Euc.</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">W₂ vs Euc.</div>
           <div className="text-purple-400 font-mono">{data.divergence.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Windows</div>
-          <div className="text-slate-300 font-mono">{data.distributions.length}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Windows</div>
+          <div className="text-gray-300 font-mono">{data.distributions.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Barycenter:</strong> μ* = argmin Σ λ_i·W₂²(μ, μ_i) |
         <strong> 1D:</strong> Q*(u) = Σ λ_i·Q_i(u) (quantile averaging) |

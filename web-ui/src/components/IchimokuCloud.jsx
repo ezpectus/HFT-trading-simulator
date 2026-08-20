@@ -121,9 +121,9 @@ export default function IchimokuCloud({ candles, symbol, exchange }) {
 
       {/* Chart */}
       <svg viewBox="0 0 100 100" className="w-full h-[60px]" preserveAspectRatio="none">
-        {cloudPath && <path d={cloudPath} fill={cloudBullish ? '#22c55e' : '#ef4444'} opacity="0.15" />}
-        {cloudPath && <path d={cloudPath} fill="none" stroke={cloudBullish ? '#22c55e' : '#ef4444'} strokeWidth="0.4" opacity="0.4" />}
-        <path d={kijunPath} fill="none" stroke="#eab308" strokeWidth="0.8" />
+        {cloudPath && <path d={cloudPath} fill={cloudBullish ? '#0ecb81' : '#f6465d'} opacity="0.15" />}
+        {cloudPath && <path d={cloudPath} fill="none" stroke={cloudBullish ? '#0ecb81' : '#f6465d'} strokeWidth="0.4" opacity="0.4" />}
+        <path d={kijunPath} fill="none" stroke="#f0b90b" strokeWidth="0.8" />
         <path d={tenkanPath} fill="none" stroke="#3b82f6" strokeWidth="0.8" />
         <path d={closePath} fill="none" stroke="#e2e8f0" strokeWidth="1" />
       </svg>

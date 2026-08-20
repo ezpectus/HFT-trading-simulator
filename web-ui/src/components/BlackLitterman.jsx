@@ -198,43 +198,43 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
   }, [candles, exchange, symbols, riskAversion, tau, lookback, views])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 2 symbols with {lookback + 1}+ candles on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 2 symbols with {lookback + 1}+ candles on {exchange}</div>
   }
 
   const W = 600, H = 200, P = 30
-  const colors = ['#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
+  const colors = ['#06b6d4', '#0ecb81', '#f0b90b', '#f6465d', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Black-Litterman Portfolio Allocation — {exchange}</span>
+        <span className="text-sm font-bold text-gray-200">Black-Litterman Portfolio Allocation — {exchange}</span>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">δ (risk aversion):</span>
-          <input type="number" step="0.1" value={riskAversion} onChange={e => setRiskAversion(Math.max(0.1, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">δ (risk aversion):</span>
+          <input type="number" step="0.1" value={riskAversion} onChange={e => setRiskAversion(Math.max(0.1, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">τ (prior uncertainty):</span>
-          <input type="number" step="0.01" value={tau} onChange={e => setTau(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">τ (prior uncertainty):</span>
+          <input type="number" step="0.01" value={tau} onChange={e => setTau(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Views editor */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Investor Views</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Investor Views</div>
         <div className="space-y-2">
           {views.map((view, vi) => (
             <div key={vi} className="flex items-center gap-2 text-xs">
-              <span className="text-slate-400">View {vi + 1}:</span>
+              <span className="text-gray-400">View {vi + 1}:</span>
               {data.validSymbols.map((sym, si) => (
                 <label key={sym} className="flex items-center gap-1">
-                  <span className="text-slate-500">{sym}:</span>
+                  <span className="text-gray-500">{sym}:</span>
                   <input
                     type="number" step="0.1" value={view.assets[si] || 0}
                     onChange={e => {
@@ -245,11 +245,11 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
                       newViews[vi] = { ...view, assets: newAssets }
                       setViews(newViews)
                     }}
-                    className="w-12 px-1 bg-slate-900 border border-slate-700  text-slate-200"
+                    className="w-12 px-1 bg-bg-900 border border-bg-600  text-gray-200"
                   />
                 </label>
               ))}
-              <span className="text-slate-400">ret:</span>
+              <span className="text-gray-400">ret:</span>
               <input
                 type="number" step="0.001" value={view.return}
                 onChange={e => {
@@ -257,9 +257,9 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
                   newViews[vi] = { ...view, return: +e.target.value }
                   setViews(newViews)
                 }}
-                className="w-16 px-1 bg-slate-900 border border-slate-700  text-slate-200"
+                className="w-16 px-1 bg-bg-900 border border-bg-600  text-gray-200"
               />
-              <span className="text-slate-400">conf:</span>
+              <span className="text-gray-400">conf:</span>
               <input
                 type="number" step="0.1" value={view.confidence}
                 onChange={e => {
@@ -267,7 +267,7 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
                   newViews[vi] = { ...view, confidence: Math.max(0.01, Math.min(1, +e.target.value)) }
                   setViews(newViews)
                 }}
-                className="w-12 px-1 bg-slate-900 border border-slate-700  text-slate-200"
+                className="w-12 px-1 bg-bg-900 border border-bg-600  text-gray-200"
               />
               <button
                 onClick={() => setViews(views.filter((_, i) => i !== vi))}
@@ -283,9 +283,9 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
       </div>
 
       {/* Weight comparison chart */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Portfolio Weights: Market vs Black-Litterman</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Portfolio Weights: Market vs Black-Litterman</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
           {data.validSymbols.map((sym, si) => {
             const barW = 60
             const x = P + si * (barW + 20)
@@ -297,62 +297,62 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
               <g key={sym}>
                 <text x={x + barW / 2} y={H - 5} textAnchor="middle" fill="#94a3b8" fontSize={9}>{sym.slice(0, 8)}</text>
                 {/* Market weight */}
-                <rect x={x} y={H / 2 - (isLongMkt ? mktH : 0)} width={barW / 2 - 2} height={mktH} fill="#64748b" opacity={0.6} />
+                <rect x={x} y={H / 2 - (isLongMkt ? mktH : 0)} width={barW / 2 - 2} height={mktH} fill="#848e9c" opacity={0.6} />
                 {/* BL weight */}
-                <rect x={x + barW / 2 + 2} y={H / 2 - (isLongBL ? blH : 0)} width={barW / 2 - 2} height={blH} fill={isLongBL ? '#22c55e' : '#ef4444'} opacity={0.8} />
-                <text x={x + barW / 4} y={H / 2 + (isLongMkt ? 12 : -mktH - 5)} textAnchor="middle" fill="#64748b" fontSize={8}>
+                <rect x={x + barW / 2 + 2} y={H / 2 - (isLongBL ? blH : 0)} width={barW / 2 - 2} height={blH} fill={isLongBL ? '#0ecb81' : '#f6465d'} opacity={0.8} />
+                <text x={x + barW / 4} y={H / 2 + (isLongMkt ? 12 : -mktH - 5)} textAnchor="middle" fill="#848e9c" fontSize={8}>
                   {(data.wMkt[si] * 100).toFixed(1)}%
                 </text>
-                <text x={x + 3 * barW / 4} y={H / 2 + (isLongBL ? 12 : -blH - 5)} textAnchor="middle" fill={isLongBL ? '#22c55e' : '#ef4444'} fontSize={8}>
+                <text x={x + 3 * barW / 4} y={H / 2 + (isLongBL ? 12 : -blH - 5)} textAnchor="middle" fill={isLongBL ? '#0ecb81' : '#f6465d'} fontSize={8}>
                   {(data.posteriorWeights[si] * 100).toFixed(1)}%
                 </text>
               </g>
             )
           })}
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#475569" />
-          <text x={W - P} y={20} textAnchor="end" fill="#64748b" fontSize={9}>Market</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#22c55e" fontSize={9}>BL (green=long, red=short)</text>
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#5e6673" />
+          <text x={W - P} y={20} textAnchor="end" fill="#848e9c" fontSize={9}>Market</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#0ecb81" fontSize={9}>BL (green=long, red=short)</text>
         </svg>
       </div>
 
       {/* Returns comparison */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Expected Returns: Equilibrium (π) vs Posterior</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Expected Returns: Equilibrium (π) vs Posterior</div>
         <div className="space-y-1">
           {data.validSymbols.map((sym, si) => (
             <div key={sym} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-20">{sym}</span>
-              <span className="text-slate-500 font-mono w-24">π: {(data.pi[si] * 100).toFixed(3)}%</span>
-              <span className="font-mono w-24" style={{ color: data.posteriorReturns[si] >= 0 ? '#22c55e' : '#ef4444' }}>
+              <span className="text-gray-400 w-20">{sym}</span>
+              <span className="text-gray-500 font-mono w-24">π: {(data.pi[si] * 100).toFixed(3)}%</span>
+              <span className="font-mono w-24" style={{ color: data.posteriorReturns[si] >= 0 ? '#0ecb81' : '#f6465d' }}>
                 BL: {(data.posteriorReturns[si] * 100).toFixed(3)}%
               </span>
               <span className="text-amber-400 font-mono w-24">Sharpe: {data.sharpes[si].toFixed(3)}</span>
-              <span className="text-slate-500 font-mono">σ: {(Math.sqrt(Math.abs(data.cov[si][si])) * 100).toFixed(2)}%</span>
+              <span className="text-gray-500 font-mono">σ: {(Math.sqrt(Math.abs(data.cov[si][si])) * 100).toFixed(2)}%</span>
             </div>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Assets</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Assets</div>
           <div className="text-cyan-400 font-mono">{data.validSymbols.length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Views</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Views</div>
           <div className="text-amber-400 font-mono">{data.validViews?.length || 0}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Long Positions</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Long Positions</div>
           <div className="text-emerald-400 font-mono">{data.posteriorWeights.filter(w => w > 0).length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Short Positions</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Short Positions</div>
           <div className="text-red-400 font-mono">{data.posteriorWeights.filter(w => w < 0).length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Model:</strong> δ={riskAversion}, τ={tau} |
         <strong> Max weight:</strong> {Math.max(...data.posteriorWeights.map(Math.abs)).toFixed(4)} |
         <strong> Gross exposure:</strong> {(data.posteriorWeights.reduce((a, b) => a + Math.abs(b), 0) * 100).toFixed(1)}%

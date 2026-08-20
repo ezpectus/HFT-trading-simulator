@@ -304,21 +304,21 @@ export default function HiddenMarkovModel({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, nStates, nSymbols, maxIter])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 50 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 50 candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 200, P = 30
-  const colors = ['#ef4444', '#f59e0b', '#64748b', '#22c55e', '#06b6d4', '#a855f7', '#ec4899', '#14b8a6']
+  const colors = ['#f6465d', '#f0b90b', '#848e9c', '#0ecb81', '#06b6d4', '#a855f7', '#ec4899', '#14b8a6']
   const stateColors = data.stateOrder.map((_, i) => colors[i % colors.length])
   const stateColorMap = {}
   data.stateOrder.forEach((s, i) => { stateColorMap[s] = stateColors[i] })
 
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : data.signal === 'SELL' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Hidden Markov Model — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Hidden Markov Model — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -326,27 +326,27 @@ export default function HiddenMarkovModel({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">States (N):</span>
-          <input type="number" value={nStates} onChange={e => setNStates(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">States (N):</span>
+          <input type="number" value={nStates} onChange={e => setNStates(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Symbols (M):</span>
-          <input type="number" value={nSymbols} onChange={e => setNSymbols(Math.max(2, Math.min(10, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Symbols (M):</span>
+          <input type="number" value={nSymbols} onChange={e => setNSymbols(Math.max(2, Math.min(10, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">EM Iterations:</span>
-          <input type="number" value={maxIter} onChange={e => setMaxIter(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">EM Iterations:</span>
+          <input type="number" value={maxIter} onChange={e => setMaxIter(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* State sequence */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Viterbi State Sequence (most likely path)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Viterbi State Sequence (most likely path)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
           {data.states.map((s, i) => {
             const x = P + (i / data.states.length) * (W - 2 * P)
             const w = (W - 2 * P) / data.states.length
-            return <rect key={i} x={x} y={P} width={w} height={H - 2 * P} fill={stateColorMap[s] || '#475569'} opacity={0.6} />
+            return <rect key={i} x={x} y={P} width={w} height={H - 2 * P} fill={stateColorMap[s] || '#5e6673'} opacity={0.6} />
           })}
           {/* Price overlay */}
           {(() => {
@@ -360,9 +360,9 @@ export default function HiddenMarkovModel({ candles, symbol, exchange }) {
       </div>
 
       {/* Posterior probabilities */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Posterior State Probabilities (γ)</div>
-        <svg width={W} height={120} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Posterior State Probabilities (γ)</div>
+        <svg width={W} height={120} className="bg-bg-900 ">
           {data.gamma.map((probs, t) => {
             const x = P + (t / data.gamma.length) * (W - 2 * P)
             const w = (W - 2 * P) / data.gamma.length
@@ -379,21 +379,21 @@ export default function HiddenMarkovModel({ candles, symbol, exchange }) {
 
       {/* Transition matrix */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-2">Transition Matrix (A)</div>
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-2">Transition Matrix (A)</div>
           <table className="text-xs font-mono">
             <thead>
               <tr>
-                <th className="text-slate-500"></th>
+                <th className="text-gray-500"></th>
                 {data.stateOrder.map((s, i) => <th key={s} className="px-2" style={{ color: stateColors[i] }}>{data.stateStats[i].label.slice(0, 6)}</th>)}
               </tr>
             </thead>
             <tbody>
               {data.stateOrder.map((s, i) => (
                 <tr key={s}>
-                  <td className="text-slate-500 pr-2" style={{ color: stateColors[i] }}>{data.stateStats[i].label.slice(0, 6)}</td>
+                  <td className="text-gray-500 pr-2" style={{ color: stateColors[i] }}>{data.stateStats[i].label.slice(0, 6)}</td>
                   {data.stateOrder.map((s2, j) => (
-                    <td key={s2} className="px-2 text-slate-300">{(data.A[s][s2]).toFixed(3)}</td>
+                    <td key={s2} className="px-2 text-gray-300">{(data.A[s][s2]).toFixed(3)}</td>
                   ))}
                 </tr>
               ))}
@@ -401,16 +401,16 @@ export default function HiddenMarkovModel({ candles, symbol, exchange }) {
           </table>
         </div>
 
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-2">State Statistics</div>
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-2">State Statistics</div>
           <div className="space-y-1">
             {data.stateStats.map((ss, i) => (
               <div key={ss.state} className="flex items-center gap-2 text-xs">
                 <div className="w-3 h-3 " style={{ background: stateColors[i] }} />
-                <span className="text-slate-300 w-24">{ss.label}</span>
-                <span className="text-slate-400">μ={ss.mean.toFixed(3)}%</span>
-                <span className="text-slate-400">σ={ss.vol.toFixed(3)}%</span>
-                <span className="text-slate-500">({ss.count})</span>
+                <span className="text-gray-300 w-24">{ss.label}</span>
+                <span className="text-gray-400">μ={ss.mean.toFixed(3)}%</span>
+                <span className="text-gray-400">σ={ss.vol.toFixed(3)}%</span>
+                <span className="text-gray-500">({ss.count})</span>
               </div>
             ))}
           </div>
@@ -418,29 +418,29 @@ export default function HiddenMarkovModel({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Log Likelihood</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Log Likelihood</div>
           <div className="text-cyan-400 font-mono">{data.logLik.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Current State</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Current State</div>
           <div className="font-mono" style={{ color: stateColorMap[data.currentState] }}>
             {data.currentStat?.label || 'Unknown'}
           </div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Next (predicted)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Next (predicted)</div>
           <div className="font-mono" style={{ color: stateColorMap[data.predictedNext] }}>
             {data.predictedStat?.label || 'Unknown'}
           </div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">P(next)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">P(next)</div>
           <div className="text-amber-400 font-mono">{(Math.max(...data.nextStateProbs) * 100).toFixed(1)}%</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} | <strong>Viterbi log P:</strong> {data.logProb.toFixed(2)}
       </div>
     </div>

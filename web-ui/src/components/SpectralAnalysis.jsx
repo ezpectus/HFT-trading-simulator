@@ -216,7 +216,7 @@ export default function SpectralAnalysis({ candles, symbol, exchange }) {
       <div className="pt-1.5 border-t border-bg-600 mb-2">
         <div className="text-[8px] text-gray-600 mb-0.5 flex items-center gap-0.5"><Activity size={7} /> Power Spectral Density:</div>
         <svg viewBox="0 0 100 100" className="w-full h-[80px]">
-          <line x1={0} y1={90} x2={100} y2={90} stroke="#334155" strokeWidth={0.3} />
+          <line x1={0} y1={90} x2={100} y2={90} stroke="#1e2530" strokeWidth={0.3} />
           <path d={psdPath} fill="none" stroke="#ec4899" strokeWidth={1} />
           {psd.map((v, i) => (
             <rect key={i} x={toX(i) - 0.3} y={toY(v)} width={0.6} height={90 - toY(v)} fill="#ec4899" opacity={0.2} />

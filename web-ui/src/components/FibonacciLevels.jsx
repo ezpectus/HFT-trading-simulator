@@ -3,13 +3,13 @@ import { GitBranch, Eye, EyeOff } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
 const FIB_LEVELS = [
-  { level: 0, label: '0%', color: '#ef4444' },
+  { level: 0, label: '0%', color: '#f6465d' },
   { level: 0.236, label: '23.6%', color: '#f97316' },
-  { level: 0.382, label: '38.2%', color: '#eab308' },
-  { level: 0.5, label: '50.0%', color: '#22c55e' },
+  { level: 0.382, label: '38.2%', color: '#f0b90b' },
+  { level: 0.5, label: '50.0%', color: '#0ecb81' },
   { level: 0.618, label: '61.8%', color: '#3b82f6' },
   { level: 0.786, label: '78.6%', color: '#a855f7' },
-  { level: 1, label: '100%', color: '#64748b' },
+  { level: 1, label: '100%', color: '#848e9c' },
 ]
 
 export default function FibonacciLevels({ candles, currentPrice }) {

@@ -326,11 +326,11 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, k, windowSize, autoK])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 50 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 50 candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 300, P = 40
-  const colors = ['#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
+  const colors = ['#06b6d4', '#0ecb81', '#f0b90b', '#f6465d', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
 
   // Scatter plot: volatility vs return (colored by cluster)
   const allVols = data.features.map(f => f.vol)
@@ -344,7 +344,7 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">K-Means Market Clustering — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">K-Means Market Clustering — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: colors[data.currentCluster] + '22', color: colors[data.currentCluster] }}>
           {data.currentRegime?.label || 'Unknown'}
         </span>
@@ -352,26 +352,26 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">K:</span>
-          <input type="number" value={k} onChange={e => setK(Math.max(2, Math.min(8, +e.target.value)))} disabled={autoK} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200 disabled:opacity-40" />
+          <span className="text-gray-400">K:</span>
+          <input type="number" value={k} onChange={e => setK(Math.max(2, Math.min(8, +e.target.value)))} disabled={autoK} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200 disabled:opacity-40" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(5, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Window:</span>
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(5, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={autoK} onChange={e => setAutoK(e.target.checked)} />
-          <span className="text-slate-400">Auto K (silhouette)</span>
+          <span className="text-gray-400">Auto K (silhouette)</span>
         </label>
       </div>
 
       {/* Scatter: volatility vs return */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Feature Space: Volatility vs Return (colored by cluster)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#475569" strokeDasharray="3,3" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Feature Space: Volatility vs Return (colored by cluster)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#5e6673" strokeDasharray="3,3" />
 
           {data.features.map((f, i) => (
             <circle
@@ -397,20 +397,20 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
             )
           })}
 
-          <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={10}>Volatility →</text>
-          <text x={5} y={P + 10} fill="#475569" fontSize={10}>Return ↑</text>
+          <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={10}>Volatility →</text>
+          <text x={5} y={P + 10} fill="#5e6673" fontSize={10}>Return ↑</text>
         </svg>
       </div>
 
       {/* Cluster stats */}
       <div className="grid grid-cols-2 gap-2">
         {data.clusterStats.map((cs, ci) => (
-          <div key={ci} className="bg-slate-800  p-2 text-xs" style={{ borderLeft: `3px solid ${colors[ci]}` }}>
+          <div key={ci} className="bg-bg-700  p-2 text-xs" style={{ borderLeft: `3px solid ${colors[ci]}` }}>
             <div className="flex justify-between">
               <span className="font-bold" style={{ color: colors[ci] }}>{cs.label}</span>
-              <span className="text-slate-400">{cs.count} pts</span>
+              <span className="text-gray-400">{cs.count} pts</span>
             </div>
-            <div className="text-slate-400 text-[10px] mt-1">
+            <div className="text-gray-400 text-[10px] mt-1">
               μ={cs.mean?.toFixed(4)}% | σ={cs.vol?.toFixed(4)}% | R²={cs.r2?.toFixed(2)} | skew={cs.skew?.toFixed(2)}
             </div>
           </div>
@@ -419,20 +419,20 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
 
       {/* Elbow / silhouette */}
       {data.elbowData.length > 1 && (
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-1">Optimal K Selection (Silhouette Score)</div>
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-1">Optimal K Selection (Silhouette Score)</div>
           <div className="flex items-end gap-3 h-20">
             {data.elbowData.map((e, i) => (
               <div key={i} className="flex flex-col items-center flex-1">
-                <div className="text-[10px] text-slate-400 mb-1">{e.silhouette.toFixed(3)}</div>
+                <div className="text-[10px] text-gray-400 mb-1">{e.silhouette.toFixed(3)}</div>
                 <div
                   className="w-full rounded-t"
                   style={{
                     height: `${Math.max(2, e.silhouette * 200)}%`,
-                    background: e.k === data.bestK ? '#22c55e' : '#475569'
+                    background: e.k === data.bestK ? '#0ecb81' : '#5e6673'
                   }}
                 />
-                <div className="text-[10px] text-slate-500 mt-1">K={e.k}</div>
+                <div className="text-[10px] text-gray-500 mt-1">K={e.k}</div>
               </div>
             ))}
           </div>
@@ -440,27 +440,27 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
       )}
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Best K</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Best K</div>
           <div className="text-cyan-400 font-mono">{data.bestK}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Silhouette</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Silhouette</div>
           <div className="text-emerald-400 font-mono">{data.bestSilhouette.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">WCSS</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">WCSS</div>
           <div className="text-amber-400 font-mono">{data.wcss.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Transitions</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Transitions</div>
           <div className="text-purple-400 font-mono">{data.transitions.length}</div>
         </div>
       </div>
 
       {/* Recent transitions */}
       {data.transitions.length > 0 && (
-        <div className="text-xs text-slate-400 bg-slate-800  p-2">
+        <div className="text-xs text-gray-400 bg-bg-700  p-2">
           <strong>Recent regime transitions:</strong>{' '}
           {data.transitions.slice(-3).map((t, i) => (
             <span key={i}>

@@ -224,11 +224,11 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
   }, [candles, exchange, symbols, lookback, edgeThreshold])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 3 symbols with {lookback + 1}+ candles on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 3 symbols with {lookback + 1}+ candles on {exchange}</div>
   }
 
   const W = 600, H = 500, cx = W / 2, cy = H / 2, R = 180
-  const sigColor = data.signal === 'HUB' ? '#f59e0b' : '#94a3b8'
+  const sigColor = data.signal === 'HUB' ? '#f0b90b' : '#94a3b8'
 
   const nodeX = (layout) => cx + layout.x * R
   const nodeY = (layout) => cy + layout.y * R
@@ -236,7 +236,7 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Graph Theory: Correlation Network — {exchange}</span>
+        <span className="text-sm font-bold text-gray-200">Graph Theory: Correlation Network — {exchange}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -244,27 +244,27 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">|ρ| threshold:</span>
-          <input type="number" step="0.1" value={edgeThreshold} onChange={e => setEdgeThreshold(Math.max(0, Math.min(1, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">|ρ| threshold:</span>
+          <input type="number" step="0.1" value={edgeThreshold} onChange={e => setEdgeThreshold(Math.max(0, Math.min(1, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       <div className="flex gap-4">
         {/* Network graph */}
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-1">Minimum Spanning Tree (Mantegna)</div>
-          <svg width={W} height={H} className="bg-slate-900 ">
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-1">Minimum Spanning Tree (Mantegna)</div>
+          <svg width={W} height={H} className="bg-bg-900 ">
             {/* MST edges */}
             {data.mst.map((e, i) => (
               <line
                 key={i}
                 x1={nodeX(data.layout[e.a])} y1={nodeY(data.layout[e.a])}
                 x2={nodeX(data.layout[e.b])} y2={nodeY(data.layout[e.b])}
-                stroke={e.corr > 0 ? '#22c55e' : '#ef4444'}
+                stroke={e.corr > 0 ? '#0ecb81' : '#f6465d'}
                 strokeWidth={Math.max(1, Math.abs(e.corr) * 4)}
                 opacity={0.6}
               />
@@ -278,7 +278,7 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
                 <g key={i}>
                   <circle
                     cx={nodeX(node)} cy={nodeY(node)} r={size}
-                    fill={isHub ? '#f59e0b' : '#06b6d4'}
+                    fill={isHub ? '#f0b90b' : '#06b6d4'}
                     opacity={0.8}
                     stroke={isHub ? '#fbbf24' : '#0ea5e9'}
                     strokeWidth={isHub ? 3 : 1}
@@ -303,12 +303,12 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
 
         {/* Centrality table */}
         <div className="flex-1 space-y-3">
-          <div className="bg-slate-800  p-3">
-            <div className="text-xs text-slate-400 mb-2">Node Centralities</div>
+          <div className="bg-bg-700  p-3">
+            <div className="text-xs text-gray-400 mb-2">Node Centralities</div>
             <div className="space-y-1 max-h-48 overflow-auto">
               {data.validSymbols.map((sym, i) => (
                 <div key={sym} className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-400 w-24 truncate">{sym}</span>
+                  <span className="text-gray-400 w-24 truncate">{sym}</span>
                   <span className="text-cyan-400 font-mono w-12">deg={data.degrees[i]}</span>
                   <span className="text-amber-400 font-mono w-16">eig={data.eigenCent[i].toFixed(3)}</span>
                   <span className="text-emerald-400 font-mono w-16">btw={data.betwCent[i].toFixed(3)}</span>
@@ -319,14 +319,14 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
           </div>
 
           {/* Correlation matrix heatmap */}
-          <div className="bg-slate-800  p-3">
-            <div className="text-xs text-slate-400 mb-2">Correlation Matrix</div>
+          <div className="bg-bg-700  p-3">
+            <div className="text-xs text-gray-400 mb-2">Correlation Matrix</div>
             <div className="grid gap-px text-[8px]" style={{ gridTemplateColumns: `auto repeat(${data.n}, 1fr)` }}>
               <div></div>
-              {data.validSymbols.map((s, i) => <div key={i} className="text-slate-500 text-center truncate">{s.slice(0, 4)}</div>)}
+              {data.validSymbols.map((s, i) => <div key={i} className="text-gray-500 text-center truncate">{s.slice(0, 4)}</div>)}
               {data.corr.map((row, i) => (
                 <React.Fragment key={i}>
-                  <div className="text-slate-500 truncate pr-1">{data.validSymbols[i].slice(0, 6)}</div>
+                  <div className="text-gray-500 truncate pr-1">{data.validSymbols[i].slice(0, 6)}</div>
                   {row.map((c, j) => (
                     <div key={j} className="text-center font-mono" style={{
                       background: c > 0 ? `rgba(34, 197, 94, ${Math.abs(c)})` : `rgba(239, 68, 68, ${Math.abs(c)})`,
@@ -343,29 +343,29 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Nodes</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Nodes</div>
           <div className="text-cyan-400 font-mono">{data.n}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">MST edges</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">MST edges</div>
           <div className="text-emerald-400 font-mono">{data.mst.length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Avg |ρ|</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Avg |ρ|</div>
           <div className="text-amber-400 font-mono">{data.avgCorr.toFixed(3)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">MST avg ρ</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">MST avg ρ</div>
           <div className="text-purple-400 font-mono">{data.mstAvgCorr.toFixed(3)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Hub</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Hub</div>
           <div className="text-orange-400 font-mono text-[10px]">{data.hub}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> MST distance:</strong> d = √(2(1-ρ)) |
         <strong> Filtered edges:</strong> {data.filteredEdges.length} (|ρ| {'>'} {edgeThreshold}) |

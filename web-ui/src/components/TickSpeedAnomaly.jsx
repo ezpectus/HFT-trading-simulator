@@ -134,13 +134,13 @@ export default function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
       <div className="mb-2">
         <div className="text-[8px] text-gray-600 mb-0.5">Gap Z-Score (last 30):</div>
         <svg width={w} height={h} className="w-full">
-          <line x1={0} y1={h / 2} x2={w} y2={h / 2} stroke="#334155" strokeWidth={0.5} />
-          <line x1={0} y1={h * 0.2} x2={w} y2={h * 0.2} stroke="#334155" strokeWidth={0.3} strokeDasharray="2,2" />
-          <line x1={0} y1={h * 0.8} x2={w} y2={h * 0.8} stroke="#334155" strokeWidth={0.3} strokeDasharray="2,2" />
+          <line x1={0} y1={h / 2} x2={w} y2={h / 2} stroke="#1e2530" strokeWidth={0.5} />
+          <line x1={0} y1={h * 0.2} x2={w} y2={h * 0.2} stroke="#1e2530" strokeWidth={0.3} strokeDasharray="2,2" />
+          <line x1={0} y1={h * 0.8} x2={w} y2={h * 0.8} stroke="#1e2530" strokeWidth={0.3} strokeDasharray="2,2" />
           {recentAnoms.map((a, i) => {
             const x = i * xStep
             const y = h / 2 - (a.gapZ / zMax) * (h / 2 - 2)
-            const color = a.isAnomaly ? (a.type === 'burst' ? '#ef4444' : a.type === 'block' ? '#f97316' : '#eab308') : '#64748b'
+            const color = a.isAnomaly ? (a.type === 'burst' ? '#f6465d' : a.type === 'block' ? '#f97316' : '#f0b90b') : '#848e9c'
             return (
               <g key={i}>
                 {i > 0 && (
@@ -149,7 +149,7 @@ export default function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
                     y1={h / 2 - (recentAnoms[i - 1].gapZ / zMax) * (h / 2 - 2)}
                     x2={x}
                     y2={y}
-                    stroke="#475569"
+                    stroke="#5e6673"
                     strokeWidth={0.5}
                   />
                 )}

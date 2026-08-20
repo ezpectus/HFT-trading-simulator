@@ -46,7 +46,7 @@ export default function AwesomeOscillator({ candles, symbol, exchange }) {
         y: isUp ? 50 - h : 50,
         w: 100 / aoSlice.length * 0.7,
         h: h,
-        color: isUp ? (isIncreasing ? '#22c55e' : '#16a34a') : (isIncreasing ? '#ef4444' : '#dc2626'),
+        color: isUp ? (isIncreasing ? '#0ecb81' : '#16a34a') : (isIncreasing ? '#f6465d' : '#dc2626'),
       }
     }).filter(Boolean)
 
@@ -90,7 +90,7 @@ export default function AwesomeOscillator({ candles, symbol, exchange }) {
       </div>
 
       <svg viewBox="0 0 100 100" className="w-full h-[40px]" preserveAspectRatio="none">
-        <line x1="0" y1="50" x2="100" y2="50" stroke="#64748b" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.4" />
+        <line x1="0" y1="50" x2="100" y2="50" stroke="#848e9c" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.4" />
         {bars.map((b, i) => (
           <rect
             key={i}

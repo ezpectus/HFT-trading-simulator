@@ -177,11 +177,11 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, lookback, indicatorType, maxParam])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'COMPACT_FAMILY' ? '#22c55e' : data.signal === 'OUTLIERS_DETECTED' ? '#f59e0b' : '#ef4444'
+  const sigColor = data.signal === 'COMPACT_FAMILY' ? '#0ecb81' : data.signal === 'OUTLIERS_DETECTED' ? '#f0b90b' : '#f6465d'
 
   // Indicator family
   const allVals = data.family.flatMap(f => f.values)
@@ -203,7 +203,7 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Arzela-Ascoli Theorem (Equicontinuity) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Arzela-Ascoli Theorem (Equicontinuity) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -211,8 +211,8 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Indicator:</span>
-          <select value={indicatorType} onChange={e => setIndicatorType(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Indicator:</span>
+          <select value={indicatorType} onChange={e => setIndicatorType(e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             <option value="sma">SMA</option>
             <option value="ema">EMA</option>
             <option value="wma">WMA</option>
@@ -220,37 +220,37 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max param:</span>
-          <input type="number" value={maxParam} onChange={e => setMaxParam(Math.max(6, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max param:</span>
+          <input type="number" value={maxParam} onChange={e => setMaxParam(Math.max(6, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Indicator family */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Indicator Family F = {'{f_p : p=2,4,...,' + maxParam + '}'} (varying parameter)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Indicator Family F = {'{f_p : p=2,4,...,' + maxParam + '}'} (varying parameter)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.family.map((f, i) => (
             <path key={i} d={f.values.map((v, j) => `${j === 0 ? 'M' : 'L'} ${sxI(j)} ${syI(v)}`).join(' ')} fill="none" stroke={`hsl(${200 + i * 20}, 70%, 60%)`} strokeWidth={1} opacity={0.6} />
           ))}
 
-          <text x={W - P} y={20} textAnchor="end" fill="#475569" fontSize={9}>{data.family.length} indicator functions</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#5e6673" fontSize={9}>{data.family.length} indicator functions</text>
         </svg>
       </div>
 
       {/* Family modulus of continuity */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Family Modulus of Continuity: omega_F(delta) = sup_f omega_f(delta) (equicontinuity check)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Family Modulus of Continuity: omega_F(delta) = sup_f omega_f(delta) (equicontinuity check)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.familyModulus.map((m, i) => `${i === 0 ? 'M' : 'L'} ${sxM(i)} ${syM(m.omega)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={2.5} />
 
@@ -259,53 +259,53 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
           ))}
 
           <text x={W - P} y={20} textAnchor="end" fill="#a855f7" fontSize={9}>omega_F(delta) family modulus</text>
-          <text x={W - P} y={34} textAnchor="end" fill={data.equicontinuous ? '#22c55e' : '#ef4444'} fontSize={9}>{data.equicontinuous ? 'equicontinuous (omega->0)' : 'NOT equicontinuous'}</text>
+          <text x={W - P} y={34} textAnchor="end" fill={data.equicontinuous ? '#0ecb81' : '#f6465d'} fontSize={9}>{data.equicontinuous ? 'equicontinuous (omega->0)' : 'NOT equicontinuous'}</text>
         </svg>
       </div>
 
       {/* Individual moduli */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Individual omega(1) per parameter (outliers = overfitting candidates)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Individual omega(1) per parameter (outliers = overfitting candidates)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Average line */}
-          <line x1={P} y1={syP(data.individualModuli.reduce((s, m) => s + m.omega1, 0) / data.individualModuli.length)} x2={W - P} y2={syP(data.individualModuli.reduce((s, m) => s + m.omega1, 0) / data.individualModuli.length)} stroke="#475569" strokeWidth={1} strokeDasharray="3,3" />
+          <line x1={P} y1={syP(data.individualModuli.reduce((s, m) => s + m.omega1, 0) / data.individualModuli.length)} x2={W - P} y2={syP(data.individualModuli.reduce((s, m) => s + m.omega1, 0) / data.individualModuli.length)} stroke="#5e6673" strokeWidth={1} strokeDasharray="3,3" />
 
           {data.individualModuli.map((m, i) => (
-            <line key={i} x1={sxP(i) + 10} y1={H - P} x2={sxP(i) + 10} y2={syP(m.omega1)} stroke={m.omega1 > 2 * data.individualModuli.reduce((s, x) => s + x.omega1, 0) / data.individualModuli.length ? '#ef4444' : '#06b6d4'} strokeWidth={3} opacity={0.7} />
+            <line key={i} x1={sxP(i) + 10} y1={H - P} x2={sxP(i) + 10} y2={syP(m.omega1)} stroke={m.omega1 > 2 * data.individualModuli.reduce((s, x) => s + x.omega1, 0) / data.individualModuli.length ? '#f6465d' : '#06b6d4'} strokeWidth={3} opacity={0.7} />
           ))}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>omega(1) per param</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#ef4444" fontSize={9}>outlier (overfitting)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f6465d" fontSize={9}>outlier (overfitting)</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Bound M</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Bound M</div>
           <div className="text-cyan-400 font-mono">{data.M.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">omega_F(1)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">omega_F(1)</div>
           <div className="text-purple-400 font-mono">{data.familyModulus[0].omega.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Bounded</div>
-          <div className="font-mono" style={{ color: data.pointwiseBounded ? '#22c55e' : '#ef4444' }}>{data.pointwiseBounded ? 'YES' : 'NO'}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Bounded</div>
+          <div className="font-mono" style={{ color: data.pointwiseBounded ? '#0ecb81' : '#f6465d' }}>{data.pointwiseBounded ? 'YES' : 'NO'}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Equicont.</div>
-          <div className="font-mono" style={{ color: data.equicontinuous ? '#22c55e' : '#ef4444' }}>{data.equicontinuous ? 'YES' : 'NO'}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Equicont.</div>
+          <div className="font-mono" style={{ color: data.equicontinuous ? '#0ecb81' : '#f6465d' }}>{data.equicontinuous ? 'YES' : 'NO'}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Outliers</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Outliers</div>
           <div className="text-amber-400 font-mono">{data.outliers.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Arzela-Ascoli:</strong> F relatively compact iff bounded + equicontinuous |
         <strong> Modulus:</strong> omega_f(delta) = sup|f(x)-f(y)| for |x-y|{'<'}delta |

@@ -291,7 +291,7 @@ export default function FractalAnalyzer({ candles, symbol, exchange }) {
             return (
               <>
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#a855f7" strokeWidth={0.5} strokeDasharray="2,1" />
-                <polyline points={points} fill="none" stroke="#64748b" strokeWidth={0.8} />
+                <polyline points={points} fill="none" stroke="#848e9c" strokeWidth={0.8} />
                 {xs.map((x, i) => (
                   <circle key={i} cx={toX(x)} cy={toY(ys[i])} r={0.8} fill="#a855f7" />
                 ))}
@@ -306,16 +306,16 @@ export default function FractalAnalyzer({ candles, symbol, exchange }) {
       <div className="mb-2">
         <div className="text-[8px] text-gray-600 mb-0.5 flex items-center gap-0.5"><Activity size={7} /> Autocorrelation Function:</div>
         <svg viewBox="0 0 100 40" className="w-full h-[40px]">
-          <line x1={0} y1={20} x2={100} y2={20} stroke="#334155" strokeWidth={0.3} />
-          <line x1={0} y1={20 - (acfConfidence / 1) * 15} x2={100} y2={20 - (acfConfidence / 1) * 15} stroke="#ef4444" strokeWidth={0.2} strokeDasharray="1,1" />
-          <line x1={0} y1={20 + (acfConfidence / 1) * 15} x2={100} y2={20 + (acfConfidence / 1) * 15} stroke="#ef4444" strokeWidth={0.2} strokeDasharray="1,1" />
+          <line x1={0} y1={20} x2={100} y2={20} stroke="#1e2530" strokeWidth={0.3} />
+          <line x1={0} y1={20 - (acfConfidence / 1) * 15} x2={100} y2={20 - (acfConfidence / 1) * 15} stroke="#f6465d" strokeWidth={0.2} strokeDasharray="1,1" />
+          <line x1={0} y1={20 + (acfConfidence / 1) * 15} x2={100} y2={20 + (acfConfidence / 1) * 15} stroke="#f6465d" strokeWidth={0.2} strokeDasharray="1,1" />
           {acf.map((val, i) => {
             const x = (i / Math.max(acf.length - 1, 1)) * 95 + 2.5
             const barH = Math.abs(val) * 15
             const y = val >= 0 ? 20 - barH : 20
             return (
               <g key={i}>
-                <rect x={x - 1} y={y} width={2} height={barH} fill={val >= 0 ? '#3b82f6' : '#ef4444'} opacity={0.7} />
+                <rect x={x - 1} y={y} width={2} height={barH} fill={val >= 0 ? '#3b82f6' : '#f6465d'} opacity={0.7} />
               </g>
             )
           })}

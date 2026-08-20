@@ -83,9 +83,9 @@ export default function CCIIndicator({ candles, symbol, exchange }) {
       </div>
 
       <svg viewBox="0 0 100 100" className="w-full h-[40px]" preserveAspectRatio="none">
-        <line x1="0" y1={obY} x2="100" y2={obY} stroke="#ef4444" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.4" />
-        <line x1="0" y1={osY} x2="100" y2={osY} stroke="#22c55e" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.4" />
-        <line x1="0" y1={zeroY} x2="100" y2={zeroY} stroke="#64748b" strokeWidth="0.2" strokeDasharray="1 3" opacity="0.3" />
+        <line x1="0" y1={obY} x2="100" y2={obY} stroke="#f6465d" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.4" />
+        <line x1="0" y1={osY} x2="100" y2={osY} stroke="#0ecb81" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.4" />
+        <line x1="0" y1={zeroY} x2="100" y2={zeroY} stroke="#848e9c" strokeWidth="0.2" strokeDasharray="1 3" opacity="0.3" />
         <path d={path} fill="none" stroke="#3b82f6" strokeWidth="1.5" />
       </svg>
 

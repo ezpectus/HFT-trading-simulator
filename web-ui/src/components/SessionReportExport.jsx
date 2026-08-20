@@ -72,7 +72,7 @@ function generateReportHTML(accounts, fills, candles, symbol, exchange) {
     <tr>
       <td>${new Date(f.timestamp || Date.now()).toLocaleTimeString()}</td>
       <td>${f.symbol || symbol}</td>
-      <td style="color:${f.side === 'buy' ? '#22c55e' : '#ef4444'}">${(f.side || '').toUpperCase()}</td>
+      <td style="color:${f.side === 'buy' ? '#0ecb81' : '#f6465d'}">${(f.side || '').toUpperCase()}</td>
       <td>${f.quantity}</td>
       <td>$${(f.price || 0).toFixed(2)}</td>
     </tr>
@@ -90,16 +90,16 @@ function generateReportHTML(accounts, fills, candles, symbol, exchange) {
   .header { display: flex; justify-content: space-between; align-items: center; }
   .badge { background: #312e81; padding: 4px 12px; border-radius: 6px; font-size: 12px; }
   .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 20px 0; }
-  .metric-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; text-align: center; }
+  .metric-card { background: #1e293b; border: 1px solid #1e2530; border-radius: 8px; padding: 16px; text-align: center; }
   .metric-value { font-size: 24px; font-weight: bold; margin: 8px 0; }
   .metric-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; }
-  .positive { color: #22c55e; }
-  .negative { color: #ef4444; }
+  .positive { color: #0ecb81; }
+  .negative { color: #f6465d; }
   table { width: 100%; border-collapse: collapse; margin-top: 12px; }
   th { background: #1e293b; padding: 8px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; }
   td { padding: 6px 8px; border-bottom: 1px solid #1e293b; font-size: 12px; }
   .chart-container { background: #1e293b; border-radius: 8px; padding: 20px; margin: 16px 0; }
-  .footer { margin-top: 40px; font-size: 11px; color: #475569; border-top: 1px solid #1e293b; padding-top: 10px; }
+  .footer { margin-top: 40px; font-size: 11px; color: #5e6673; border-top: 1px solid #1e293b; padding-top: 10px; }
 </style>
 </head>
 <body>
@@ -159,7 +159,7 @@ function generateReportHTML(accounts, fills, candles, symbol, exchange) {
     <thead>
       <tr><th>Time</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Price</th></tr>
     </thead>
-    <tbody>${recentTrades || '<tr><td colspan="5" style="text-align:center;color:#475569">No trades yet</td></tr>'}</tbody>
+    <tbody>${recentTrades || '<tr><td colspan="5" style="text-align:center;color:#5e6673">No trades yet</td></tr>'}</tbody>
   </table>
 
   <div class="footer">

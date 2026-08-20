@@ -276,7 +276,7 @@ export default function KalmanFilterPrice({ candles, symbol, exchange }) {
       <div className="pt-1.5 border-t border-bg-600 mb-2">
         <div className="text-[8px] text-gray-600 mb-0.5 flex items-center gap-0.5"><Activity size={7} /> Price vs Kalman Estimate:</div>
         <svg viewBox="0 0 100 100" className="w-full h-[80px]">
-          <path d={rawPath} fill="none" stroke="#475569" strokeWidth={0.6} opacity={0.5} />
+          <path d={rawPath} fill="none" stroke="#5e6673" strokeWidth={0.6} opacity={0.5} />
           <path d={filteredPath} fill="none" stroke="#06b6d4" strokeWidth={1.2} />
         </svg>
         <div className="flex justify-between text-[7px] mt-0.5">
@@ -289,12 +289,12 @@ export default function KalmanFilterPrice({ candles, symbol, exchange }) {
       <div className="mb-2">
         <div className="text-[8px] text-gray-600 mb-0.5">Residuals (measurement - estimate):</div>
         <svg viewBox="0 0 100 50" className="w-full h-[40px]">
-          <line x1={0} y1={25} x2={100} y2={25} stroke="#334155" strokeWidth={0.3} />
+          <line x1={0} y1={25} x2={100} y2={25} stroke="#1e2530" strokeWidth={0.3} />
           {residuals.map((r, i) => {
             const x = toX(i)
             const y = toResY(r)
             const barH = Math.abs(25 - y)
-            return <rect key={i} x={x - 0.5} y={Math.min(25, y)} width={1} height={barH} fill={r >= 0 ? '#3b82f6' : '#ef4444'} opacity={0.6} />
+            return <rect key={i} x={x - 0.5} y={Math.min(25, y)} width={1} height={barH} fill={r >= 0 ? '#3b82f6' : '#f6465d'} opacity={0.6} />
           })}
         </svg>
       </div>
@@ -304,7 +304,7 @@ export default function KalmanFilterPrice({ candles, symbol, exchange }) {
         <div className="mb-2">
           <div className="text-[8px] text-gray-600 mb-0.5">Estimated Velocity (trend rate):</div>
           <svg viewBox="0 0 100 40" className="w-full h-[40px]">
-            <line x1={0} y1={20} x2={100} y2={20} stroke="#334155" strokeWidth={0.3} />
+            <line x1={0} y1={20} x2={100} y2={20} stroke="#1e2530" strokeWidth={0.3} />
             {(() => {
               const maxV = Math.max(...velocities.map(Math.abs)) || 1
               const toVY = (v) => 20 - (v / maxV) * 15

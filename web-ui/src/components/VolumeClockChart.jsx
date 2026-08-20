@@ -103,11 +103,11 @@ export default function VolumeClockChart({ candles, symbol, exchange }) {
         {renderedBars.map((b, i) => (
           <g key={i}>
             <line x1={b.wickX} y1={b.wickTop} x2={b.wickX} y2={b.wickBot}
-              stroke={b.isBull ? '#22c55e' : '#ef4444'} strokeWidth="0.4" />
+              stroke={b.isBull ? '#0ecb81' : '#f6465d'} strokeWidth="0.4" />
             <rect x={b.x} y={b.y} width={b.w} height={b.h}
-              fill={b.isBull ? '#22c55e' : '#ef4444'}
+              fill={b.isBull ? '#0ecb81' : '#f6465d'}
               fillOpacity="0.6"
-              stroke={b.isBull ? '#22c55e' : '#ef4444'}
+              stroke={b.isBull ? '#0ecb81' : '#f6465d'}
               strokeWidth="0.2" />
           </g>
         ))}

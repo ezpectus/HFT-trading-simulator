@@ -350,7 +350,7 @@ export default function IndicatorFormulaParser({ candles, symbol, exchange }) {
           <div className="pt-1.5 border-t border-bg-600">
             <div className="text-[8px] text-gray-600 mb-0.5">Value History:</div>
             <svg width={280} height={40} className="w-full">
-              <line x1={0} y1={20} x2={280} y2={20} stroke="#334155" strokeWidth={0.5} strokeDasharray="2,2" />
+              <line x1={0} y1={20} x2={280} y2={20} stroke="#1e2530" strokeWidth={0.5} strokeDasharray="2,2" />
               {(() => {
                 const vals = result.values.filter(v => !isNaN(v)).slice(-30)
                 if (vals.length < 2) return null
@@ -367,11 +367,11 @@ export default function IndicatorFormulaParser({ candles, symbol, exchange }) {
                           y1={38 - ((vals[i - 1] - result.min) / range) * 34}
                           x2={x}
                           y2={y}
-                          stroke={v > vals[i - 1] ? '#22c55e' : '#ef4444'}
+                          stroke={v > vals[i - 1] ? '#0ecb81' : '#f6465d'}
                           strokeWidth={0.8}
                         />
                       )}
-                      <circle cx={x} cy={y} r={1} fill="#64748b" />
+                      <circle cx={x} cy={y} r={1} fill="#848e9c" />
                     </g>
                   )
                 })

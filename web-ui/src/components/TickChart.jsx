@@ -115,7 +115,7 @@ export default function TickChart({ candles, symbol, exchange }) {
             cx={d.x}
             cy={d.y}
             r="0.8"
-            fill={d.dir === 'up' ? '#22c55e' : d.dir === 'down' ? '#ef4444' : '#64748b'}
+            fill={d.dir === 'up' ? '#0ecb81' : d.dir === 'down' ? '#f6465d' : '#848e9c'}
           />
         ))}
       </svg>
@@ -123,7 +123,7 @@ export default function TickChart({ candles, symbol, exchange }) {
       {/* CVD line */}
       <div className="text-[8px] text-gray-600 mt-1 mb-0.5">Cumulative Volume Delta</div>
       <svg viewBox="0 0 100 100" className="w-full h-[25px]" preserveAspectRatio="none">
-        <line x1="0" y1="50" x2="100" y2="50" stroke="#64748b" strokeWidth="0.2" strokeDasharray="1 3" opacity="0.3" />
+        <line x1="0" y1="50" x2="100" y2="50" stroke="#848e9c" strokeWidth="0.2" strokeDasharray="1 3" opacity="0.3" />
         <path d={cvdPath} fill="none" stroke="#3b82f6" strokeWidth="1" />
       </svg>
 

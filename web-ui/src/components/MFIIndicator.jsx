@@ -73,13 +73,13 @@ export default function MFIIndicator({ candles, symbol, exchange }) {
         {/* Gauge */}
         <svg viewBox="0 0 100 55" className="w-[80px] h-[44px] shrink-0">
           <path d="M 15 45 A 35 35 0 0 1 85 45" fill="none" stroke="#1e2433" strokeWidth="6" />
-          <path d="M 15 45 A 35 35 0 0 1 50 10" fill="none" stroke="#22c55e" strokeWidth="3" opacity="0.5" />
-          <path d="M 50 10 A 35 35 0 0 1 85 45" fill="none" stroke="#ef4444" strokeWidth="3" opacity="0.5" />
+          <path d="M 15 45 A 35 35 0 0 1 50 10" fill="none" stroke="#0ecb81" strokeWidth="3" opacity="0.5" />
+          <path d="M 50 10 A 35 35 0 0 1 85 45" fill="none" stroke="#f6465d" strokeWidth="3" opacity="0.5" />
           <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" />
           <circle cx={cx} cy={cy} r="2.5" fill="#e2e8f0" />
-          <text x="15" y="53" fontSize="6" fill="#64748b">0</text>
-          <text x="46" y="8" fontSize="6" fill="#64748b">50</text>
-          <text x="78" y="53" fontSize="6" fill="#64748b">100</text>
+          <text x="15" y="53" fontSize="6" fill="#848e9c">0</text>
+          <text x="46" y="8" fontSize="6" fill="#848e9c">50</text>
+          <text x="78" y="53" fontSize="6" fill="#848e9c">100</text>
         </svg>
 
         <div className="flex-1">
@@ -95,8 +95,8 @@ export default function MFIIndicator({ candles, symbol, exchange }) {
 
       {/* Sparkline */}
       <svg viewBox="0 0 100 100" className="w-full h-[30px] mt-1" preserveAspectRatio="none">
-        <line x1="0" y1="20" x2="100" y2="20" stroke="#ef4444" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.3" />
-        <line x1="0" y1="80" x2="100" y2="80" stroke="#22c55e" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.3" />
+        <line x1="0" y1="20" x2="100" y2="20" stroke="#f6465d" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.3" />
+        <line x1="0" y1="80" x2="100" y2="80" stroke="#0ecb81" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.3" />
         <path d={path} fill="none" stroke="#3b82f6" strokeWidth="1.2" />
       </svg>
 

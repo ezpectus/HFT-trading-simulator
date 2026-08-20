@@ -120,7 +120,7 @@ export default function LiquidationMap({ candles, accounts, symbol, exchange }) 
         {/* Long liquidation levels (left side) */}
         {longBars.map((b, i) => (
           <g key={'l' + i}>
-            <rect x="5" y={b.y - b.h / 2} width="35" height={b.h} fill="#ef4444" fillOpacity="0.3" rx="1" />
+            <rect x="5" y={b.y - b.h / 2} width="35" height={b.h} fill="#f6465d" fillOpacity="0.3" rx="1" />
             <text x="7" y={b.y + 1} fontSize="2.5" fill="#fca5a5">{b.leverage}x</text>
           </g>
         ))}

@@ -258,16 +258,16 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, uncertaintyPct, lookback, strikePct, T_days, riskFreeRate])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'HIGH_UNCERTAINTY' ? '#ef4444' : data.signal === 'MODERATE_UNCERTAINTY' ? '#f59e0b' : '#22c55e'
+  const sigColor = data.signal === 'HIGH_UNCERTAINTY' ? '#f6465d' : data.signal === 'MODERATE_UNCERTAINTY' ? '#f0b90b' : '#0ecb81'
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Affine Arithmetic (Uncertainty Propagation) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Affine Arithmetic (Uncertainty Propagation) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -275,33 +275,33 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Uncertainty (%):</span>
-          <input type="number" step="5" value={uncertaintyPct} onChange={e => setUncertaintyPct(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Uncertainty (%):</span>
+          <input type="number" step="5" value={uncertaintyPct} onChange={e => setUncertaintyPct(Math.max(0, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Strike (%):</span>
-          <input type="number" step="0.05" value={strikePct} onChange={e => setStrikePct(Math.max(0.5, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Strike (%):</span>
+          <input type="number" step="0.05" value={strikePct} onChange={e => setStrikePct(Math.max(0.5, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">T (days):</span>
-          <input type="number" value={T_days} onChange={e => setT_days(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">T (days):</span>
+          <input type="number" value={T_days} onChange={e => setT_days(Math.max(1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">r (risk-free):</span>
-          <input type="number" step="0.01" value={riskFreeRate} onChange={e => setRiskFreeRate(+e.target.value)} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">r (risk-free):</span>
+          <input type="number" step="0.01" value={riskFreeRate} onChange={e => setRiskFreeRate(+e.target.value)} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Robust option price */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Robust Black-Scholes Option Price (uncertain σ)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Robust Black-Scholes Option Price (uncertain σ)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {(() => {
             const minP = data.option.priceLo * 0.9
@@ -318,11 +318,11 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
                 <line x1={cx} y1={sy(data.option.priceHi)} x2={cx} y2={sy(data.option.priceLo)} stroke="#06b6d4" strokeWidth={1} strokeDasharray="3,2" />
 
                 {/* Center */}
-                <circle cx={cx} cy={sy(data.option.priceCenter)} r={5} fill="#f59e0b" />
+                <circle cx={cx} cy={sy(data.option.priceCenter)} r={5} fill="#f0b90b" />
 
                 {/* Labels */}
                 <text x={cx + 40} y={sy(data.option.priceHi) + 4} fill="#06b6d4" fontSize={10}>Upper: ${data.option.priceHi.toFixed(4)}</text>
-                <text x={cx + 40} y={sy(data.option.priceCenter) + 4} fill="#f59e0b" fontSize={10}>Center: ${data.option.priceCenter.toFixed(4)}</text>
+                <text x={cx + 40} y={sy(data.option.priceCenter) + 4} fill="#f0b90b" fontSize={10}>Center: ${data.option.priceCenter.toFixed(4)}</text>
                 <text x={cx + 40} y={sy(data.option.priceLo) + 4} fill="#06b6d4" fontSize={10}>Lower: ${data.option.priceLo.toFixed(4)}</text>
 
                 {/* Spread indicator */}
@@ -334,68 +334,68 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
       </div>
 
       {/* Affine propagation chain */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Affine Propagation Chain</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Affine Propagation Chain</div>
         <div className="space-y-2">
           <div className="flex items-center gap-3 text-xs">
-            <span className="text-slate-400 w-32">Price (±1%)</span>
+            <span className="text-gray-400 w-32">Price (±1%)</span>
             <span className="text-cyan-400 font-mono">[{data.positionValue.lower().toFixed(2)}, {data.positionValue.upper().toFixed(2)}]</span>
-            <span className="text-slate-500">center={data.positionValue.center.toFixed(2)}, radius={data.positionValue.radius().toFixed(2)}</span>
+            <span className="text-gray-500">center={data.positionValue.center.toFixed(2)}, radius={data.positionValue.radius().toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-3 text-xs">
-            <span className="text-slate-400 w-32">× Quantity (±5%)</span>
+            <span className="text-gray-400 w-32">× Quantity (±5%)</span>
             <span className="text-amber-400 font-mono">[{data.positionValue.lower().toFixed(2)}, {data.positionValue.upper().toFixed(2)}]</span>
           </div>
           <div className="flex items-center gap-3 text-xs">
-            <span className="text-slate-400 w-32">× Return (±{uncertaintyPct}%)</span>
+            <span className="text-gray-400 w-32">× Return (±{uncertaintyPct}%)</span>
             <span className="text-purple-400 font-mono">[{data.withReturn.lower().toFixed(2)}, {data.withReturn.upper().toFixed(2)}]</span>
-            <span className="text-slate-500">center={data.withReturn.center.toFixed(2)}, radius={data.withReturn.radius().toFixed(2)}</span>
+            <span className="text-gray-500">center={data.withReturn.center.toFixed(2)}, radius={data.withReturn.radius().toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-3 text-xs">
-            <span className="text-slate-400 w-32">Portfolio value</span>
+            <span className="text-gray-400 w-32">Portfolio value</span>
             <span className="text-emerald-400 font-mono">[{data.portfolio.lower().toFixed(6)}, {data.portfolio.upper().toFixed(6)}]</span>
-            <span className="text-slate-500">center={data.portfolio.center.toFixed(6)}, radius={data.portfolio.radius().toFixed(6)}</span>
+            <span className="text-gray-500">center={data.portfolio.center.toFixed(6)}, radius={data.portfolio.radius().toFixed(6)}</span>
           </div>
         </div>
       </div>
 
       {/* Volatility uncertainty */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Volatility Uncertainty Bounds</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Volatility Uncertainty Bounds</div>
         <div className="flex items-center gap-3 text-xs">
-          <span className="text-slate-400 w-24">σ estimate:</span>
+          <span className="text-gray-400 w-24">σ estimate:</span>
           <span className="text-cyan-400 font-mono">{(data.sigma * 100).toFixed(2)}%</span>
-          <span className="text-slate-400 w-24">σ range:</span>
+          <span className="text-gray-400 w-24">σ range:</span>
           <span className="text-amber-400 font-mono">[{(data.sigmaLo * 100).toFixed(2)}%, {(data.sigmaHi * 100).toFixed(2)}%]</span>
-          <span className="text-slate-400 w-24">Uncertainty:</span>
+          <span className="text-gray-400 w-24">Uncertainty:</span>
           <span className="text-purple-400 font-mono">±{(data.sigmaUncertainty * 100).toFixed(2)}%</span>
         </div>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">S₀</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">S₀</div>
           <div className="text-cyan-400 font-mono">${data.S0.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">K (strike)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">K (strike)</div>
           <div className="text-amber-400 font-mono">${data.K.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">σ (vol)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">σ (vol)</div>
           <div className="text-purple-400 font-mono">{(data.sigma * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Option spread</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Option spread</div>
           <div className="text-emerald-400 font-mono">{(data.optionSpread * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Noise symbols</div>
-          <div className="text-slate-300 font-mono">{Affine.nextId}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Noise symbols</div>
+          <div className="text-gray-300 font-mono">{Affine.nextId}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Method:</strong> Affine form â = a₀ + Σ a_i·ε_i, ε_i ∈ [-1,1] |
         <strong> Advantage:</strong> Tracks correlations (vs interval arithmetic dependency problem) |

@@ -10,7 +10,7 @@ const STRATEGIES = [
   { id: 'ensemble', label: 'Ensemble' },
 ]
 
-const COLORS = ['#3b82f6', '#eab308', '#a855f7', '#22c55e', '#ef4444']
+const COLORS = ['#3b82f6', '#f0b90b', '#a855f7', '#0ecb81', '#f6465d']
 const SAVED_KEY = 'trading-sim-saved-backtests'
 
 export default function BacktestRunner({ symbol, connected, sendSignalMessage, backtestResult }) {

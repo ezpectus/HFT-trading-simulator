@@ -115,8 +115,8 @@ export default function CumulativeTickIndex({ candles, fills, symbol, exchange }
 
       {/* Cumulative tick chart */}
       <svg viewBox="0 0 100 100" className="w-full h-[40px]" preserveAspectRatio="none">
-        <line x1="0" y1={zeroY} x2="100" y2={zeroY} stroke="#64748b" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.4" />
-        <path d={tickPath} fill="none" stroke={cumTick >= 0 ? '#22c55e' : '#ef4444'} strokeWidth="1.5" />
+        <line x1="0" y1={zeroY} x2="100" y2={zeroY} stroke="#848e9c" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.4" />
+        <path d={tickPath} fill="none" stroke={cumTick >= 0 ? '#0ecb81' : '#f6465d'} strokeWidth="1.5" />
       </svg>
 
       {/* Breadth metrics */}

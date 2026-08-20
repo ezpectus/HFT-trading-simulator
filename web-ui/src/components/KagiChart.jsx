@@ -145,14 +145,14 @@ export default function KagiChart({ candles, symbol, exchange }) {
 
       <svg viewBox="0 0 100 100" className="w-full h-[60px]" preserveAspectRatio="none">
         {segments.map((seg, i) => {
-          const strokeColor = seg.dir === 'up' ? '#22c55e' : seg.dir === 'down' ? '#ef4444' : '#64748b'
+          const strokeColor = seg.dir === 'up' ? '#0ecb81' : seg.dir === 'down' ? '#f6465d' : '#848e9c'
           const strokeWidth = seg.thickness === 'thick' ? 1.5 : 0.8
           if (seg.type === 'vertical') {
             return <line key={i} x1={seg.x} y1={seg.y1} x2={seg.x} y2={seg.y2}
               stroke={strokeColor} strokeWidth={strokeWidth} />
           } else {
             return <line key={i} x1={seg.x1} y1={seg.y} x2={seg.x2} y2={seg.y}
-              stroke="#64748b" strokeWidth="0.5" />
+              stroke="#848e9c" strokeWidth="0.5" />
           }
         })}
       </svg>

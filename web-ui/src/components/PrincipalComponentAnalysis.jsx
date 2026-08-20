@@ -206,18 +206,18 @@ export default function PrincipalComponentAnalysis({ candles, symbols, exchange 
   }, [candles, exchange, symbols, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 2 symbols with {lookback + 1}+ candles on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 2 symbols with {lookback + 1}+ candles on {exchange}</div>
   }
 
   const { pca, validSymbols, factorLabels, lastScores, signal, reason } = data
   const W = 700, H = 250, P = 40
-  const colors = ['#06b6d4', '#f59e0b', '#22c55e', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
-  const sigColor = signal === 'BUY' ? '#22c55e' : signal === 'SELL' ? '#ef4444' : '#94a3b8'
+  const colors = ['#06b6d4', '#f0b90b', '#0ecb81', '#f6465d', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
+  const sigColor = signal === 'BUY' ? '#0ecb81' : signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Principal Component Analysis — {exchange}</span>
+        <span className="text-sm font-bold text-gray-200">Principal Component Analysis — {exchange}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {signal}
         </span>
@@ -225,17 +225,17 @@ export default function PrincipalComponentAnalysis({ candles, symbols, exchange 
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Scree plot + cumulative */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Scree Plot — Explained Variance Ratio</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Scree Plot — Explained Variance Ratio</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {pca.eigenvalues.map((val, i) => {
             const x = P + 20 + i * 60
@@ -254,12 +254,12 @@ export default function PrincipalComponentAnalysis({ candles, symbols, exchange 
                     y1={H - P - pca.cumulative[i - 1] * (H - 2 * P)}
                     x2={x + 15}
                     y2={cumY}
-                    stroke="#f59e0b"
+                    stroke="#f0b90b"
                     strokeWidth={2}
                   />
                 )}
-                <circle cx={x + 15} cy={cumY} r={3} fill="#f59e0b" />
-                <text x={x + 15} y={cumY - 8} textAnchor="middle" fill="#f59e0b" fontSize={8}>
+                <circle cx={x + 15} cy={cumY} r={3} fill="#f0b90b" />
+                <text x={x + 15} y={cumY - 8} textAnchor="middle" fill="#f0b90b" fontSize={8}>
                   {(pca.cumulative[i] * 100).toFixed(0)}%
                 </text>
               </g>
@@ -269,13 +269,13 @@ export default function PrincipalComponentAnalysis({ candles, symbols, exchange 
       </div>
 
       {/* Eigenvector loadings */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Eigenvector Loadings (first 3 PCs)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Eigenvector Loadings (first 3 PCs)</div>
         <div className="overflow-x-auto">
           <table className="text-xs font-mono">
             <thead>
               <tr>
-                <th className="text-slate-500 px-2">Symbol</th>
+                <th className="text-gray-500 px-2">Symbol</th>
                 {factorLabels.slice(0, 3).map((label, i) => (
                   <th key={i} className="px-3" style={{ color: colors[i] }}>{label}</th>
                 ))}
@@ -284,10 +284,10 @@ export default function PrincipalComponentAnalysis({ candles, symbols, exchange 
             <tbody>
               {validSymbols.map((sym, si) => (
                 <tr key={sym}>
-                  <td className="text-slate-300 px-2">{sym}</td>
+                  <td className="text-gray-300 px-2">{sym}</td>
                   {[0, 1, 2].map(pi => (
-                    <td key={pi} className="px-3 text-slate-400">
-                      <span style={{ color: pca.eigenvectors[pi]?.[si] >= 0 ? '#22c55e' : '#ef4444' }}>
+                    <td key={pi} className="px-3 text-gray-400">
+                      <span style={{ color: pca.eigenvectors[pi]?.[si] >= 0 ? '#0ecb81' : '#f6465d' }}>
                         {(pca.eigenvectors[pi]?.[si] || 0).toFixed(4)}
                       </span>
                     </td>
@@ -300,10 +300,10 @@ export default function PrincipalComponentAnalysis({ candles, symbols, exchange 
       </div>
 
       {/* Factor scores over time */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Factor Scores Over Time (last 30 periods)</div>
-        <svg width={W} height={150} className="bg-slate-900 ">
-          <line x1={P} y1={75} x2={W - P} y2={75} stroke="#334155" strokeDasharray="3,3" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Factor Scores Over Time (last 30 periods)</div>
+        <svg width={W} height={150} className="bg-bg-900 ">
+          <line x1={P} y1={75} x2={W - P} y2={75} stroke="#1e2530" strokeDasharray="3,3" />
           {[0, 1, 2].map(pi => {
             if (!pca.scores[0]?.[pi]) return null
             const scores = pca.scores.map(s => s[pi]).slice(-30)
@@ -324,25 +324,25 @@ export default function PrincipalComponentAnalysis({ candles, symbols, exchange 
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">PC1 Variance</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">PC1 Variance</div>
           <div className="text-cyan-400 font-mono">{(pca.explainedRatio[0] * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">PC1+2+3 Cumul.</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">PC1+2+3 Cumul.</div>
           <div className="text-amber-400 font-mono">{((pca.cumulative[2] || 0) * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Symbols</div>
-          <div className="text-slate-300 font-mono">{validSymbols.length}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Symbols</div>
+          <div className="text-gray-300 font-mono">{validSymbols.length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">PC1 Label</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">PC1 Label</div>
           <div className="text-emerald-400 font-mono">{factorLabels[0]}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {reason}
       </div>
     </div>

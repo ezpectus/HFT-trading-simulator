@@ -199,7 +199,7 @@ export default function CorrelationHeatmap({ candles, symbols, exchange }) {
       <div className="flex items-center justify-between text-[7px] text-gray-600 mb-2">
         <span>-1.0</span>
         <div className="flex-1 h-2 mx-1 rounded-full" style={{
-          background: 'linear-gradient(to right, #ef4444, #f87171, #fca5a5, #475569, #86efac, #4ade80, #22c55e)'
+          background: 'linear-gradient(to right, #f6465d, #f87171, #fca5a5, #5e6673, #6ee7b7, #34d399, #0ecb81)'
         }} />
         <span>+1.0</span>
       </div>

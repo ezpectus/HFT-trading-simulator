@@ -238,11 +238,11 @@ export default function RoughVolatility({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, hurstExp, eta, rho, T, nSteps, nPaths, autoHurst])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 40 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 40 candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : data.signal === 'SELL' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   // Price paths
   const allPrices = data.paths.flat()
@@ -259,7 +259,7 @@ export default function RoughVolatility({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Rough Volatility (rBergomi) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Rough Volatility (rBergomi) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -268,38 +268,38 @@ export default function RoughVolatility({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={autoHurst} onChange={e => setAutoHurst(e.target.checked)} />
-          <span className="text-slate-400">Auto Hurst (est: {data.estH.toFixed(3)})</span>
+          <span className="text-gray-400">Auto Hurst (est: {data.estH.toFixed(3)})</span>
         </label>
         {!autoHurst && (
           <label className="flex items-center gap-1">
-            <span className="text-slate-400">H (Hurst):</span>
-            <input type="number" step="0.01" value={hurstExp} onChange={e => setHurstExp(Math.max(0.01, Math.min(0.99, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+            <span className="text-gray-400">H (Hurst):</span>
+            <input type="number" step="0.01" value={hurstExp} onChange={e => setHurstExp(Math.max(0.01, Math.min(0.99, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
           </label>
         )}
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">η (vol of vol):</span>
-          <input type="number" step="0.1" value={eta} onChange={e => setEta(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">η (vol of vol):</span>
+          <input type="number" step="0.1" value={eta} onChange={e => setEta(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">ρ (correlation):</span>
-          <input type="number" step="0.1" value={rho} onChange={e => setRho(Math.max(-0.99, Math.min(0.99, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">ρ (correlation):</span>
+          <input type="number" step="0.1" value={rho} onChange={e => setRho(Math.max(-0.99, Math.min(0.99, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">T (days):</span>
-          <input type="number" value={Math.round(T * 365)} onChange={e => setT(Math.max(1, +e.target.value) / 365)} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">T (days):</span>
+          <input type="number" value={Math.round(T * 365)} onChange={e => setT(Math.max(1, +e.target.value) / 365)} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Paths:</span>
-          <input type="number" value={nPaths} onChange={e => setNPaths(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Paths:</span>
+          <input type="number" value={nPaths} onChange={e => setNPaths(Math.max(10, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Price paths */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Simulated Price Paths (rBergomi, {data.nPaths} paths)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Simulated Price Paths (rBergomi, {data.nPaths} paths)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Individual paths (sample) */}
           {data.paths.slice(0, 20).map((path, i) => (
@@ -307,57 +307,57 @@ export default function RoughVolatility({ candles, symbol, exchange }) {
           ))}
 
           {/* Mean path */}
-          <path d={data.meanPricePath.map((p, t) => `${t === 0 ? 'M' : 'L'} ${sxP(t)} ${syP(p)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2} />
+          <path d={data.meanPricePath.map((p, t) => `${t === 0 ? 'M' : 'L'} ${sxP(t)} ${syP(p)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={2} />
 
           {/* P5/P95 */}
-          <line x1={sxP(data.nSteps - 1)} y1={syP(data.p5)} x2={sxP(data.nSteps - 1)} y2={syP(data.p95)} stroke="#22c55e" strokeWidth={2} />
-          <text x={sxP(data.nSteps - 1) + 5} y={syP(data.p95)} fill="#22c55e" fontSize={9}>P95: ${data.p95.toFixed(2)}</text>
-          <text x={sxP(data.nSteps - 1) + 5} y={syP(data.p5)} fill="#22c55e" fontSize={9}>P5: ${data.p5.toFixed(2)}</text>
-          <text x={W - P} y={20} textAnchor="end" fill="#f59e0b" fontSize={9}>Mean: ${data.meanPrice.toFixed(2)}</text>
+          <line x1={sxP(data.nSteps - 1)} y1={syP(data.p5)} x2={sxP(data.nSteps - 1)} y2={syP(data.p95)} stroke="#0ecb81" strokeWidth={2} />
+          <text x={sxP(data.nSteps - 1) + 5} y={syP(data.p95)} fill="#0ecb81" fontSize={9}>P95: ${data.p95.toFixed(2)}</text>
+          <text x={sxP(data.nSteps - 1) + 5} y={syP(data.p5)} fill="#0ecb81" fontSize={9}>P5: ${data.p5.toFixed(2)}</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#f0b90b" fontSize={9}>Mean: ${data.meanPrice.toFixed(2)}</text>
         </svg>
       </div>
 
       {/* Volatility paths */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Volatility Paths (fractional Brownian motion, H={data.usedH.toFixed(3)})</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Volatility Paths (fractional Brownian motion, H={data.usedH.toFixed(3)})</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.volPaths.slice(0, 20).map((vol, i) => (
             <path key={i} d={vol.map((v, t) => `${t === 0 ? 'M' : 'L'} ${sxP(t)} ${syV(v)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={0.5} opacity={0.2} />
           ))}
 
-          <path d={data.meanVol.map((v, t) => `${t === 0 ? 'M' : 'L'} ${sxP(t)} ${syV(v)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2} />
+          <path d={data.meanVol.map((v, t) => `${t === 0 ? 'M' : 'L'} ${sxP(t)} ${syV(v)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={2} />
           <text x={W - P} y={20} textAnchor="end" fill="#a855f7" fontSize={9}>Vol paths (purple)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>Mean vol (amber)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>Mean vol (amber)</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Hurst H</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Hurst H</div>
           <div className="text-cyan-400 font-mono">{data.usedH.toFixed(3)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">ξ₀ (init vol)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">ξ₀ (init vol)</div>
           <div className="text-amber-400 font-mono">{(data.xi0 * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">ATM vol</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">ATM vol</div>
           <div className="text-purple-400 font-mono">{(data.atmVol * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Vol skew</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Vol skew</div>
           <div className="text-emerald-400 font-mono">{data.skew.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Vol regime</div>
-          <div className="font-mono" style={{ color: data.volRegime === 'HIGH' ? '#ef4444' : data.volRegime === 'LOW' ? '#22c55e' : '#f59e0b' }}>{data.volRegime}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Vol regime</div>
+          <div className="font-mono" style={{ color: data.volRegime === 'HIGH' ? '#f6465d' : data.volRegime === 'LOW' ? '#0ecb81' : '#f0b90b' }}>{data.volRegime}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Model:</strong> rBergomi (H={data.usedH.toFixed(3)}, η={eta}, ρ={rho}) |
         <strong> Roughness:</strong> {data.usedH < 0.5 ? 'ROUGH (anti-persistent)' : 'SMOOTH (persistent)'} |
         <strong> Expected:</strong> ${data.meanPrice.toFixed(2)} ({(data.expectedReturn * 100).toFixed(2)}%) |

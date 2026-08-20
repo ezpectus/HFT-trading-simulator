@@ -108,7 +108,7 @@ export default function ParabolicSAR({ candles, symbol, exchange }) {
             cx={d.x}
             cy={d.y}
             r="0.8"
-            fill={d.isBull ? '#22c55e' : '#ef4444'}
+            fill={d.isBull ? '#0ecb81' : '#f6465d'}
           />
         ))}
       </svg>

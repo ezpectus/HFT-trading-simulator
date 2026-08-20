@@ -171,11 +171,11 @@ export default function CesaroFejerKernel({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, N, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'GIBBS_DETECTED' ? '#ef4444' : data.signal === 'CYCLE_DETECTED' ? '#f59e0b' : '#22c55e'
+  const sigColor = data.signal === 'GIBBS_DETECTED' ? '#f6465d' : data.signal === 'CYCLE_DETECTED' ? '#f0b90b' : '#0ecb81'
 
   // Data + approximations
   const allVals = [...data.cumRets, ...data.partialSums.map(p => p.value), ...data.cesaroSums.map(p => p.value)]
@@ -198,7 +198,7 @@ export default function CesaroFejerKernel({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Cesaro Summability &amp; Fejer Kernel — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Cesaro Summability &amp; Fejer Kernel — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -206,94 +206,94 @@ export default function CesaroFejerKernel({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">N (harmonics):</span>
-          <input type="number" value={N} onChange={e => setN(Math.max(1, Math.min(40, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">N (harmonics):</span>
+          <input type="number" value={N} onChange={e => setN(Math.max(1, Math.min(40, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Data + Fourier approximations */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Fourier Approximation: Raw Data vs S_N (partial sum) vs sigma_N (Cesaro mean)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Fourier Approximation: Raw Data vs S_N (partial sum) vs sigma_N (Cesaro mean)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Raw data */}
           {data.cumRets.map((v, i) => (
-            <circle key={i} cx={sxX(i)} cy={syY(v)} r={1.5} fill="#475569" opacity={0.5} />
+            <circle key={i} cx={sxX(i)} cy={syY(v)} r={1.5} fill="#5e6673" opacity={0.5} />
           ))}
 
           {/* Partial sum S_N */}
-          <path d={data.partialSums.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sxG(i)} ${syY(p.value)}`).join(' ')} fill="none" stroke="#ef4444" strokeWidth={1.5} opacity={0.7} />
+          <path d={data.partialSums.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sxG(i)} ${syY(p.value)}`).join(' ')} fill="none" stroke="#f6465d" strokeWidth={1.5} opacity={0.7} />
 
           {/* Cesaro mean sigma_N */}
-          <path d={data.cesaroSums.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sxG(i)} ${syY(p.value)}`).join(' ')} fill="none" stroke="#22c55e" strokeWidth={2.5} />
+          <path d={data.cesaroSums.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sxG(i)} ${syY(p.value)}`).join(' ')} fill="none" stroke="#0ecb81" strokeWidth={2.5} />
 
-          <text x={W - P} y={20} textAnchor="end" fill="#475569" fontSize={9}>raw data</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#ef4444" fontSize={9}>S_N (partial sum, Gibbs)</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#22c55e" fontSize={9}>sigma_N (Cesaro, no Gibbs)</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#5e6673" fontSize={9}>raw data</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f6465d" fontSize={9}>S_N (partial sum, Gibbs)</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#0ecb81" fontSize={9}>sigma_N (Cesaro, no Gibbs)</text>
         </svg>
       </div>
 
       {/* Fejer kernel */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Fejer Kernel F_N(x) = (1/(N+1)) * (sin((N+1)x/2) / sin(x/2))^2 (positive, no ringing)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Fejer Kernel F_N(x) = (1/(N+1)) * (sin((N+1)x/2) / sin(x/2))^2 (positive, no ringing)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.fejerValues.map((f, i) => `${i === 0 ? 'M' : 'L'} ${sxF(i)} ${syF(f.value)}`).join(' ')} fill="rgba(168,85,247,0.15)" stroke="#a855f7" strokeWidth={2} />
 
           <text x={W - P} y={20} textAnchor="end" fill="#a855f7" fontSize={9}>F_N(x) Fejer kernel (N={data.Nmax})</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#22c55e" fontSize={9}>F_N {'>='} 0 (non-negative)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#0ecb81" fontSize={9}>F_N {'>='} 0 (non-negative)</text>
         </svg>
       </div>
 
       {/* Residual (detrended) */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Residual: data - sigma_N (detrended signal for cycle analysis)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Residual: data - sigma_N (detrended signal for cycle analysis)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.residual.map((v, i) => (
-            <line key={i} x1={sxR(i)} y1={H / 2} x2={sxR(i)} y2={syR(v)} stroke={v > 0 ? '#22c55e' : '#ef4444'} strokeWidth={1.5} opacity={0.6} />
+            <line key={i} x1={sxR(i)} y1={H / 2} x2={sxR(i)} y2={syR(v)} stroke={v > 0 ? '#0ecb81' : '#f6465d'} strokeWidth={1.5} opacity={0.6} />
           ))}
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>residual (detrended)</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>residual (detrended)</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Gibbs overshoot</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Gibbs overshoot</div>
           <div className="text-red-400 font-mono">{(data.gibbsOvershoot * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Cesaro overshoot</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Cesaro overshoot</div>
           <div className="text-emerald-400 font-mono">{(data.cesaroOvershoot * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Dominant k</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Dominant k</div>
           <div className="text-amber-400 font-mono">{data.dominantK}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Cycle period</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Cycle period</div>
           <div className="text-purple-400 font-mono">{data.dominantPeriod.toFixed(1)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Smoothness ratio</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Smoothness ratio</div>
           <div className="text-cyan-400 font-mono">{(data.roughCesaro / (data.roughPartial + 1e-10)).toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Cesaro:</strong> sigma_N = (1/(N+1)) * sum S_n (averaged partial sums) |
         <strong> Fejer:</strong> F_N {'>='} 0, no Gibbs phenomenon |

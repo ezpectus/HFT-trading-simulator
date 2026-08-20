@@ -214,16 +214,16 @@ export default function ConditionalValueAtRisk({ candles, symbols, exchange }) {
   }, [candles, exchange, symbols, alpha, lookback, optimize])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 2 symbols with {lookback + 1}+ candles on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 2 symbols with {lookback + 1}+ candles on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'HIGH_TAIL_RISK' ? '#ef4444' : data.signal === 'MODERATE_TAIL' ? '#f59e0b' : '#22c55e'
+  const sigColor = data.signal === 'HIGH_TAIL_RISK' ? '#f6465d' : data.signal === 'MODERATE_TAIL' ? '#f0b90b' : '#0ecb81'
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Conditional VaR (Expected Shortfall) — {exchange}</span>
+        <span className="text-sm font-bold text-gray-200">Conditional VaR (Expected Shortfall) — {exchange}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -231,32 +231,32 @@ export default function ConditionalValueAtRisk({ candles, symbols, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">α (confidence):</span>
-          <input type="number" step="0.01" value={alpha} onChange={e => setAlpha(Math.max(0.5, Math.min(0.999, +e.target.value)))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">α (confidence):</span>
+          <input type="number" step="0.01" value={alpha} onChange={e => setAlpha(Math.max(0.5, Math.min(0.999, +e.target.value)))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(30, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(30, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={optimize} onChange={e => setOptimize(e.target.checked)} />
-          <span className="text-slate-400">CVaR optimization (Rockafellar-Uryasev)</span>
+          <span className="text-gray-400">CVaR optimization (Rockafellar-Uryasev)</span>
         </label>
       </div>
 
       {/* Per-asset risk metrics */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Per-Asset Risk Metrics (α = {(data.alpha * 100).toFixed(1)}%)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Per-Asset Risk Metrics (α = {(data.alpha * 100).toFixed(1)}%)</div>
         <div className="space-y-1">
           {data.perAsset.map((a, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-20 truncate">{a.sym}</span>
+              <span className="text-gray-400 w-20 truncate">{a.sym}</span>
               <span className="text-red-400 font-mono w-24">VaR: {(a.varH * 100).toFixed(3)}%</span>
               <span className="text-amber-400 font-mono w-24">CVaR: {(a.cvarH * 100).toFixed(3)}%</span>
               <span className="text-purple-400 font-mono w-24">CF-VaR: {(a.varCF * 100).toFixed(3)}%</span>
               <span className="text-cyan-400 font-mono w-24">EVaR: {(a.evar * 100).toFixed(3)}%</span>
-              <span className="text-slate-500 font-mono w-20">σ: {(a.std * 100).toFixed(2)}%</span>
-              <span className="text-slate-500 font-mono w-20">μ: {(a.mean * 100).toFixed(2)}%</span>
+              <span className="text-gray-500 font-mono w-20">σ: {(a.std * 100).toFixed(2)}%</span>
+              <span className="text-gray-500 font-mono w-20">μ: {(a.mean * 100).toFixed(2)}%</span>
             </div>
           ))}
         </div>
@@ -264,13 +264,13 @@ export default function ConditionalValueAtRisk({ candles, symbols, exchange }) {
 
       {/* CVaR-optimized weights */}
       {data.optResult && (
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-2">CVaR-Optimal Portfolio Weights (Rockafellar-Uryasev)</div>
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-2">CVaR-Optimal Portfolio Weights (Rockafellar-Uryasev)</div>
           <div className="space-y-1">
             {data.validSymbols.map((sym, i) => (
               <div key={sym} className="flex items-center gap-3 text-xs">
-                <span className="text-slate-400 w-20 truncate">{sym}</span>
-                <div className="flex-1 bg-slate-900  h-4 relative">
+                <span className="text-gray-400 w-20 truncate">{sym}</span>
+                <div className="flex-1 bg-bg-900  h-4 relative">
                   <div className="h-full " style={{ width: `${data.optResult.w[i] * 100}%`, background: '#06b6d4' }} />
                 </div>
                 <span className="text-cyan-400 font-mono w-16">{(data.optResult.w[i] * 100).toFixed(2)}%</span>
@@ -281,11 +281,11 @@ export default function ConditionalValueAtRisk({ candles, symbols, exchange }) {
       )}
 
       {/* Portfolio comparison */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Portfolio Risk Comparison</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Portfolio Risk Comparison</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
           {(() => {
             const allVars = [
               ...data.perAsset.map(a => Math.abs(a.varH)),
@@ -303,12 +303,12 @@ export default function ConditionalValueAtRisk({ candles, symbols, exchange }) {
             const x0 = P + 20
             return (
               <g>
-                <rect x={x0} y={sy(data.eqVaR)} width={barW / 2 - 1} height={H - P - sy(data.eqVaR)} fill="#64748b" opacity={0.6} />
-                <rect x={x0 + barW / 2 + 1} y={sy(data.eqCVaR)} width={barW / 2 - 1} height={H - P - sy(data.eqCVaR)} fill="#f59e0b" opacity={0.6} />
+                <rect x={x0} y={sy(data.eqVaR)} width={barW / 2 - 1} height={H - P - sy(data.eqVaR)} fill="#848e9c" opacity={0.6} />
+                <rect x={x0 + barW / 2 + 1} y={sy(data.eqCVaR)} width={barW / 2 - 1} height={H - P - sy(data.eqCVaR)} fill="#f0b90b" opacity={0.6} />
                 <text x={x0 + barW / 2} y={H - P + 12} textAnchor="middle" fill="#94a3b8" fontSize={8}>Equal</text>
                 {data.optResult && (
                   <g>
-                    <rect x={x0 + 80} y={sy(data.optResult.portVaR)} width={barW / 2 - 1} height={H - P - sy(data.optResult.portVaR)} fill="#22c55e" opacity={0.6} />
+                    <rect x={x0 + 80} y={sy(data.optResult.portVaR)} width={barW / 2 - 1} height={H - P - sy(data.optResult.portVaR)} fill="#0ecb81" opacity={0.6} />
                     <rect x={x0 + 80 + barW / 2 + 1} y={sy(data.optResult.portCVaR)} width={barW / 2 - 1} height={H - P - sy(data.optResult.portCVaR)} fill="#06b6d4" opacity={0.6} />
                     <text x={x0 + 80 + barW / 2} y={H - P + 12} textAnchor="middle" fill="#94a3b8" fontSize={8}>CVaR Opt</text>
                   </g>
@@ -320,33 +320,33 @@ export default function ConditionalValueAtRisk({ candles, symbols, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Eq Wt VaR</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Eq Wt VaR</div>
           <div className="text-red-400 font-mono">{(data.eqVaR * 100).toFixed(3)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Eq Wt CVaR</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Eq Wt CVaR</div>
           <div className="text-amber-400 font-mono">{(data.eqCVaR * 100).toFixed(3)}%</div>
         </div>
         {data.optResult && (
           <>
-            <div className="bg-slate-800  p-2">
-              <div className="text-slate-400">Opt VaR</div>
+            <div className="bg-bg-700  p-2">
+              <div className="text-gray-400">Opt VaR</div>
               <div className="text-emerald-400 font-mono">{(data.optResult.portVaR * 100).toFixed(3)}%</div>
             </div>
-            <div className="bg-slate-800  p-2">
-              <div className="text-slate-400">Opt CVaR</div>
+            <div className="bg-bg-700  p-2">
+              <div className="text-gray-400">Opt CVaR</div>
               <div className="text-cyan-400 font-mono">{(data.optResult.portCVaR * 100).toFixed(3)}%</div>
             </div>
-            <div className="bg-slate-800  p-2">
-              <div className="text-slate-400">Opt Sharpe</div>
+            <div className="bg-bg-700  p-2">
+              <div className="text-gray-400">Opt Sharpe</div>
               <div className="text-purple-400 font-mono">{data.optResult.sharpe.toFixed(3)}</div>
             </div>
           </>
         )}
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> α:</strong> {(data.alpha * 100).toFixed(1)}% |
         <strong> Methods:</strong> Historical VaR/CVaR, Cornish-Fisher VaR (skew+kurt adjusted), Entropic VaR |

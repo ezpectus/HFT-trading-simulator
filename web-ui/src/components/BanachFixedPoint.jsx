@@ -137,11 +137,11 @@ export default function BanachFixedPoint({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, lookback, maxIter, coupling])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'EQUILIBRIUM_FOUND' ? '#22c55e' : data.signal === 'CONVERGING_SLOW' ? '#f59e0b' : '#ef4444'
+  const sigColor = data.signal === 'EQUILIBRIUM_FOUND' ? '#0ecb81' : data.signal === 'CONVERGING_SLOW' ? '#f0b90b' : '#f6465d'
 
   // Trajectory in (x, y) space
   const traj = data.result.trajectory
@@ -159,7 +159,7 @@ export default function BanachFixedPoint({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Banach Fixed-Point Iteration — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Banach Fixed-Point Iteration — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -167,52 +167,52 @@ export default function BanachFixedPoint({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Coupling (c):</span>
-          <input type="number" step="0.05" value={coupling} onChange={e => setCoupling(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Coupling (c):</span>
+          <input type="number" step="0.05" value={coupling} onChange={e => setCoupling(Math.max(0, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max iterations:</span>
-          <input type="number" value={maxIter} onChange={e => setMaxIter(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max iterations:</span>
+          <input type="number" value={maxIter} onChange={e => setMaxIter(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Phase space trajectory */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Phase Space: Strategy Trajectory (momentum vs mean-reversion)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={W / 2} y1={P} x2={W / 2} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Phase Space: Strategy Trajectory (momentum vs mean-reversion)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={W / 2} y1={P} x2={W / 2} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Trajectory path */}
           <path d={traj.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxT(t.x)} ${syT(t.y)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={1.5} opacity={0.5} />
 
           {/* Iteration points */}
           {traj.map((t, i) => (
-            <circle key={i} cx={sxT(t.x)} cy={syT(t.y)} r={i === 0 ? 5 : i === traj.length - 1 ? 5 : 2} fill={i === 0 ? '#f59e0b' : i === traj.length - 1 ? '#22c55e' : '#06b6d4'} opacity={0.7} />
+            <circle key={i} cx={sxT(t.x)} cy={syT(t.y)} r={i === 0 ? 5 : i === traj.length - 1 ? 5 : 2} fill={i === 0 ? '#f0b90b' : i === traj.length - 1 ? '#0ecb81' : '#06b6d4'} opacity={0.7} />
           ))}
 
           {/* Nash equilibrium */}
-          <circle cx={sxT(data.nashX)} cy={syT(data.nashY)} r={8} fill="none" stroke="#ef4444" strokeWidth={2} />
-          <text x={sxT(data.nashX)} y={syT(data.nashY) - 12} textAnchor="middle" fill="#ef4444" fontSize={9}>Nash</text>
+          <circle cx={sxT(data.nashX)} cy={syT(data.nashY)} r={8} fill="none" stroke="#f6465d" strokeWidth={2} />
+          <text x={sxT(data.nashX)} y={syT(data.nashY) - 12} textAnchor="middle" fill="#f6465d" fontSize={9}>Nash</text>
 
-          <text x={W - P} y={20} textAnchor="end" fill="#f59e0b" fontSize={9}>start</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#22c55e" fontSize={9}>converged</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#ef4444" fontSize={9}>Nash equilibrium</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#f0b90b" fontSize={9}>start</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#0ecb81" fontSize={9}>converged</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#f6465d" fontSize={9}>Nash equilibrium</text>
         </svg>
       </div>
 
       {/* Error decay */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Convergence: log(||error||) vs iteration (linear = geometric convergence)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Convergence: log(||error||) vs iteration (linear = geometric convergence)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.errorDecay.map((e, i) => `${i === 0 ? 'M' : 'L'} ${sxE(i)} ${syE(e.logError)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={2} />
 
@@ -221,54 +221,54 @@ export default function BanachFixedPoint({ candles, symbol, exchange }) {
           ))}
 
           <text x={W - P} y={20} textAnchor="end" fill="#a855f7" fontSize={9}>log(error) per iteration</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#22c55e" fontSize={9}>slope = log(q) = {Math.log(data.q + 1e-20).toFixed(4)}</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#0ecb81" fontSize={9}>slope = log(q) = {Math.log(data.q + 1e-20).toFixed(4)}</text>
         </svg>
       </div>
 
       {/* Strategy values over iterations */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Strategy Values: x_n (momentum) and y_n (mean-reversion) per iteration</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Strategy Values: x_n (momentum) and y_n (mean-reversion) per iteration</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={traj.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxE(i)} ${syT(t.x)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
-          <path d={traj.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxE(i)} ${syT(t.y)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2} />
+          <path d={traj.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxE(i)} ${syT(t.y)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={2} />
 
           {/* Nash equilibrium lines */}
-          <line x1={P} y1={syT(data.nashX)} x2={W - P} y2={syT(data.nashX)} stroke="#22c55e" strokeWidth={1} strokeDasharray="4,3" />
-          <line x1={P} y1={syT(data.nashY)} x2={W - P} y2={syT(data.nashY)} stroke="#ef4444" strokeWidth={1} strokeDasharray="4,3" />
+          <line x1={P} y1={syT(data.nashX)} x2={W - P} y2={syT(data.nashX)} stroke="#0ecb81" strokeWidth={1} strokeDasharray="4,3" />
+          <line x1={P} y1={syT(data.nashY)} x2={W - P} y2={syT(data.nashY)} stroke="#f6465d" strokeWidth={1} strokeDasharray="4,3" />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>x_n (momentum)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>y_n (mean-reversion)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>y_n (mean-reversion)</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">q (contraction)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">q (contraction)</div>
           <div className="text-cyan-400 font-mono">{data.q.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Iterations</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Iterations</div>
           <div className="text-emerald-400 font-mono">{data.result.trajectory.length - 1}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Final error</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Final error</div>
           <div className="text-amber-400 font-mono">{data.finalError.toExponential(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Nash x*</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Nash x*</div>
           <div className="text-purple-400 font-mono">{data.nashX.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Nash y*</div>
-          <div className="text-slate-300 font-mono">{data.nashY.toFixed(6)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Nash y*</div>
+          <div className="text-gray-300 font-mono">{data.nashY.toFixed(6)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Banach:</strong> q {'<'} 1 implies unique fixed point (contraction) |
         <strong> Best response:</strong> T_i(x) = argmax J_i(u_i, x_{'{-i}'}) |

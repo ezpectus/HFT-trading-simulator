@@ -139,7 +139,7 @@ export default function VolumeAnomalyDetector({ candles, symbol, exchange }) {
       {/* Volume chart */}
       <svg viewBox="0 0 100 100" className="w-full h-[40px]" preserveAspectRatio="none">
         {/* Mean line */}
-        <line x1="0" y1={meanY} x2="100" y2={meanY} stroke="#64748b" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.4" />
+        <line x1="0" y1={meanY} x2="100" y2={meanY} stroke="#848e9c" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.4" />
         {/* Bars */}
         {bars.map((b, i) => (
           <rect
@@ -150,7 +150,7 @@ export default function VolumeAnomalyDetector({ candles, symbol, exchange }) {
             height={b.h}
             fill={b.isAnomaly
               ? (b.isHigh ? '#f97316' : '#3b82f6')
-              : (b.direction === 'bull' ? '#22c55e' : '#ef4444')}
+              : (b.direction === 'bull' ? '#0ecb81' : '#f6465d')}
             fillOpacity={b.isAnomaly ? 0.8 : 0.3}
           />
         ))}

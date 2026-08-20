@@ -97,10 +97,10 @@ export default function ADXIndicator({ candles, symbol, exchange }) {
       </div>
 
       <svg viewBox="0 0 100 100" className="w-full h-[40px]" preserveAspectRatio="none">
-        <line x1="0" y1="58" x2="100" y2="58" stroke="#eab308" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.3" />
-        <line x1="0" y1="67" x2="100" y2="67" stroke="#64748b" strokeWidth="0.2" strokeDasharray="1 3" opacity="0.3" />
-        <path d={mdiPath} fill="none" stroke="#ef4444" strokeWidth="0.8" />
-        <path d={pdiPath} fill="none" stroke="#22c55e" strokeWidth="0.8" />
+        <line x1="0" y1="58" x2="100" y2="58" stroke="#f0b90b" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.3" />
+        <line x1="0" y1="67" x2="100" y2="67" stroke="#848e9c" strokeWidth="0.2" strokeDasharray="1 3" opacity="0.3" />
+        <path d={mdiPath} fill="none" stroke="#f6465d" strokeWidth="0.8" />
+        <path d={pdiPath} fill="none" stroke="#0ecb81" strokeWidth="0.8" />
         <path d={adxPath} fill="none" stroke="#a855f7" strokeWidth="1.5" />
       </svg>
 

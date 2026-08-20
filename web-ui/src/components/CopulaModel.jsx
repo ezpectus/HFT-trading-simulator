@@ -328,11 +328,11 @@ export default function CopulaModel({ candles, symbols, exchange }) {
   }, [candles, exchange, symbols, pairA, pairB, copulaType])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 2 symbols with 30+ candles on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 2 symbols with 30+ candles on {exchange}</div>
   }
 
   const W = 500, H = 300, P = 40
-  const colors = { clayton: '#06b6d4', gumbel: '#f59e0b', gaussian: '#22c55e', studentT: '#a855f7' }
+  const colors = { clayton: '#06b6d4', gumbel: '#f0b90b', gaussian: '#0ecb81', studentT: '#a855f7' }
 
   // Scatter in copula space [0,1]²
   const sx = (u) => P + u * (W - 2 * P)
@@ -361,12 +361,12 @@ export default function CopulaModel({ candles, symbols, exchange }) {
     contourLines.push({ level, points })
   }
 
-  const sigColor = data.signal === 'RISK' ? '#ef4444' : data.signal === 'HEDGE' ? '#22c55e' : '#94a3b8'
+  const sigColor = data.signal === 'RISK' ? '#f6465d' : data.signal === 'HEDGE' ? '#0ecb81' : '#94a3b8'
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Copula Dependency Model</span>
+        <span className="text-sm font-bold text-gray-200">Copula Dependency Model</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -374,20 +374,20 @@ export default function CopulaModel({ candles, symbols, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Asset A:</span>
-          <select value={pairA} onChange={e => setPairA(+e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Asset A:</span>
+          <select value={pairA} onChange={e => setPairA(+e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             {(symbols || []).map((s, i) => <option key={i} value={i}>{s}</option>)}
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Asset B:</span>
-          <select value={pairB} onChange={e => setPairB(+e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Asset B:</span>
+          <select value={pairB} onChange={e => setPairB(+e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             {(symbols || []).map((s, i) => <option key={i} value={i}>{s}</option>)}
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Copula:</span>
-          <select value={copulaType} onChange={e => setCopulaType(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Copula:</span>
+          <select value={copulaType} onChange={e => setCopulaType(e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             <option value="clayton">Clayton (lower tail)</option>
             <option value="gumbel">Gumbel (upper tail)</option>
             <option value="gaussian">Gaussian (no tail)</option>
@@ -397,11 +397,11 @@ export default function CopulaModel({ candles, symbols, exchange }) {
 
       <div className="flex gap-3">
         {/* Copula scatter + contours */}
-        <div className="flex-1 bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-1">Copula Space: {data.a} vs {data.b} (uniform margins)</div>
-          <svg width={W} height={H} className="bg-slate-900 ">
-            <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-            <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+        <div className="flex-1 bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-1">Copula Space: {data.a} vs {data.b} (uniform margins)</div>
+          <svg width={W} height={H} className="bg-bg-900 ">
+            <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+            <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
             {/* Contour lines */}
             {contourLines.map((cl, ci) => (
@@ -423,19 +423,19 @@ export default function CopulaModel({ candles, symbols, exchange }) {
                 cx={sx(u)}
                 cy={sy(data.uB[i])}
                 r={i === data.uA.length - 1 ? 5 : 2}
-                fill={i === data.uA.length - 1 ? colors[copulaType] : '#64748b'}
+                fill={i === data.uA.length - 1 ? colors[copulaType] : '#848e9c'}
                 opacity={i === data.uA.length - 1 ? 1 : 0.4}
               />
             ))}
 
-            <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={10}>U ({data.a})</text>
-            <text x={5} y={P + 10} fill="#475569" fontSize={10}>V ({data.b})</text>
+            <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={10}>U ({data.a})</text>
+            <text x={5} y={P + 10} fill="#5e6673" fontSize={10}>V ({data.b})</text>
           </svg>
         </div>
 
         {/* Tail dependence comparison */}
-        <div className="w-64 bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-2">Tail Dependence Comparison</div>
+        <div className="w-64 bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-2">Tail Dependence Comparison</div>
           <div className="space-y-2">
             {['clayton', 'gumbel', 'gaussian'].map(ct => {
               const fit = data.fits[ct]
@@ -444,15 +444,15 @@ export default function CopulaModel({ candles, symbols, exchange }) {
                 <div key={ct} className="text-xs">
                   <div className="flex justify-between">
                     <span className="capitalize" style={{ color: colors[ct] }}>{ct}</span>
-                    <span className="text-slate-400">LL={ll.toFixed(1)}</span>
+                    <span className="text-gray-400">LL={ll.toFixed(1)}</span>
                   </div>
-                  <div className="text-slate-500 text-[10px] pl-2">
+                  <div className="text-gray-500 text-[10px] pl-2">
                     λ_L={fit.lower.toFixed(4)} | λ_U={fit.upper.toFixed(4)}
                     {ct === 'clayton' && <span> | θ={fit.theta.toFixed(3)}</span>}
                     {ct === 'gumbel' && <span> | θ={fit.theta.toFixed(3)}</span>}
                     {ct === 'gaussian' && <span> | ρ={fit.rho.toFixed(3)}</span>}
                   </div>
-                  <div className="text-slate-500 text-[10px] pl-2">
+                  <div className="text-gray-500 text-[10px] pl-2">
                     P(joint crash) = {(data.conditionalLower[ct] * 100).toFixed(2)}%
                   </div>
                 </div>
@@ -463,29 +463,29 @@ export default function CopulaModel({ candles, symbols, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Kendall τ</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Kendall τ</div>
           <div className="text-cyan-400 font-mono">{data.tau.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Spearman ρ</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Spearman ρ</div>
           <div className="text-amber-400 font-mono">{data.spearman.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Pearson r</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Pearson r</div>
           <div className="text-emerald-400 font-mono">{data.pearson.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Joint CDF</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Joint CDF</div>
           <div className="text-purple-400 font-mono">{data.jointProbs[copulaType].toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">N obs</div>
-          <div className="text-slate-300 font-mono">{data.n}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">N obs</div>
+          <div className="text-gray-300 font-mono">{data.n}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} | <strong>Current:</strong> U={data.lastU.toFixed(3)}, V={data.lastV.toFixed(3)}
       </div>
     </div>

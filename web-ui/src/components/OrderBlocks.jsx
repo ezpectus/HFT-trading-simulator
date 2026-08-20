@@ -127,9 +127,9 @@ export default function OrderBlocks({ candles, symbol, exchange }) {
             y={Math.min(z.y1, z.y2)}
             width="100"
             height={Math.abs(z.y2 - z.y1) || 1}
-            fill={z.type === 'bullish' ? '#22c55e' : '#ef4444'}
+            fill={z.type === 'bullish' ? '#0ecb81' : '#f6465d'}
             fillOpacity={z.mitigated ? 0.05 : 0.15}
-            stroke={z.type === 'bullish' ? '#22c55e' : '#ef4444'}
+            stroke={z.type === 'bullish' ? '#0ecb81' : '#f6465d'}
             strokeWidth="0.2"
             strokeDasharray={z.mitigated ? '1 2' : ''}
             strokeOpacity="0.3"

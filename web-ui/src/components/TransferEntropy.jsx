@@ -201,11 +201,11 @@ export default function TransferEntropy({ candles, symbol, exchange, symbols }) 
   }, [candles, exchange, symbol, symbols, k, l, nBins, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'INFLUENCER' ? '#22c55e' : data.signal === 'INFLUENCED' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'INFLUENCER' ? '#0ecb81' : data.signal === 'INFLUENCED' ? '#f6465d' : '#94a3b8'
 
   // Bar chart for net TE
   const maxTE = Math.max(0.01, ...data.results.map(r => Math.abs(r.netTE)))
@@ -213,7 +213,7 @@ export default function TransferEntropy({ candles, symbol, exchange, symbols }) 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Transfer Entropy (Causality) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Transfer Entropy (Causality) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -221,56 +221,56 @@ export default function TransferEntropy({ candles, symbol, exchange, symbols }) 
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">k (Y history):</span>
-          <input type="number" value={k} onChange={e => setK(Math.max(1, Math.min(3, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">k (Y history):</span>
+          <input type="number" value={k} onChange={e => setK(Math.max(1, Math.min(3, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">l (X history):</span>
-          <input type="number" value={l} onChange={e => setL(Math.max(1, Math.min(3, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">l (X history):</span>
+          <input type="number" value={l} onChange={e => setL(Math.max(1, Math.min(3, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Bins:</span>
-          <input type="number" value={nBins} onChange={e => setNBins(Math.max(2, Math.min(10, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Bins:</span>
+          <input type="number" value={nBins} onChange={e => setNBins(Math.max(2, Math.min(10, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Net TE bar chart */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Net Transfer Entropy: {symbol} ↔ other symbols</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Net Transfer Entropy: {symbol} ↔ other symbols</div>
         <div className="space-y-1">
           {data.results.map((r, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-32 truncate">{r.target}</span>
-              <div className="flex-1 bg-slate-900  h-4 relative">
-                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
+              <span className="text-gray-400 w-32 truncate">{r.target}</span>
+              <div className="flex-1 bg-bg-900  h-4 relative">
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-bg-500" />
                 <div
                   className="h-full  absolute"
                   style={{
                     width: `${(Math.abs(r.netTE) / maxTE) * 50}%`,
-                    background: r.netTE >= 0 ? '#22c55e' : '#ef4444',
+                    background: r.netTE >= 0 ? '#0ecb81' : '#f6465d',
                     left: r.netTE >= 0 ? '50%' : `${50 - (Math.abs(r.netTE) / maxTE) * 50}%`
                   }}
                 />
               </div>
-              <span className="font-mono w-16" style={{ color: r.netTE >= 0 ? '#22c55e' : '#ef4444' }}>
+              <span className="font-mono w-16" style={{ color: r.netTE >= 0 ? '#0ecb81' : '#f6465d' }}>
                 {r.netTE >= 0 ? '+' : ''}{r.netTE.toFixed(4)}
               </span>
-              <span className="text-slate-500 font-mono w-16">ETE={r.ete.toFixed(4)}</span>
+              <span className="text-gray-500 font-mono w-16">ETE={r.ete.toFixed(4)}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Directional TE comparison */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Directional Transfer Entropy</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Directional Transfer Entropy</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.results.filter(r => !r.target.includes('self')).map((r, i) => {
             const n = data.results.length - 1
@@ -281,37 +281,37 @@ export default function TransferEntropy({ candles, symbol, exchange, symbols }) 
             return (
               <g key={i}>
                 <rect x={x} y={H - P - hXY} width={12} height={hXY} fill="#06b6d4" opacity={0.8} />
-                <rect x={x + 14} y={H - P - hYX} width={12} height={hYX} fill="#f59e0b" opacity={0.8} />
+                <rect x={x + 14} y={H - P - hYX} width={12} height={hYX} fill="#f0b90b" opacity={0.8} />
                 <text x={x + 13} y={H - P + 12} textAnchor="middle" fill="#94a3b8" fontSize={8}>{r.target.slice(0, 8)}</text>
               </g>
             )
           })}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>TE({symbol}→target)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>TE(target→{symbol})</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>TE(target→{symbol})</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Self-TE</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Self-TE</div>
           <div className="text-cyan-400 font-mono">{data.selfTE.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Pairs tested</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Pairs tested</div>
           <div className="text-amber-400 font-mono">{data.results.length - 1}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Strongest link</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Strongest link</div>
           <div className="text-emerald-400 font-mono text-[10px]">{data.results[1]?.target || 'N/A'}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Max |net TE|</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Max |net TE|</div>
           <div className="text-purple-400 font-mono">{Math.max(...data.results.map(r => Math.abs(r.netTE))).toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Method:</strong> TE_{k},{l} with {nBins}-bin quantization |
         <strong> Surrogates:</strong> 5 shuffles per direction |

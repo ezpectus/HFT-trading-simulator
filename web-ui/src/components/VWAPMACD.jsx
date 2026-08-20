@@ -48,7 +48,7 @@ export default function VWAPMACD({ candles, symbol, exchange }) {
         y: v >= 0 ? 50 - h : 50,
         w: 100 / histSlice.length * 0.7,
         h,
-        color: v >= 0 ? '#22c55e' : '#ef4444',
+        color: v >= 0 ? '#0ecb81' : '#f6465d',
       }
     }).filter(Boolean)
 
@@ -116,11 +116,11 @@ export default function VWAPMACD({ candles, symbol, exchange }) {
       </div>
 
       <svg viewBox="0 0 100 100" className="w-full h-[50px]" preserveAspectRatio="none">
-        <line x1="0" y1="50" x2="100" y2="50" stroke="#64748b" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.4" />
+        <line x1="0" y1="50" x2="100" y2="50" stroke="#848e9c" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.4" />
         {bars.map((b, i) => (
           <rect key={i} x={b.x} y={b.y} width={b.w} height={b.h} fill={b.color} fillOpacity="0.5" />
         ))}
-        <path d={signalPath} fill="none" stroke="#eab308" strokeWidth="0.8" />
+        <path d={signalPath} fill="none" stroke="#f0b90b" strokeWidth="0.8" />
         <path d={macdPath} fill="none" stroke="#3b82f6" strokeWidth="1.2" />
       </svg>
 

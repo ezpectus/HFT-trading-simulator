@@ -4,9 +4,9 @@ import { formatPrice } from '../utils/format'
 
 const SESSIONS = [
   { name: 'Asia', start: 0, end: 7, color: '#8b5cf6', icon: Moon },
-  { name: 'London', start: 7, end: 13, color: '#22c55e', icon: Sunrise },
+  { name: 'London', start: 7, end: 13, color: '#0ecb81', icon: Sunrise },
   { name: 'New York', start: 13, end: 21, color: '#3b82f6', icon: Globe },
-  { name: 'Off Hours', start: 21, end: 24, color: '#64748b', icon: Sunset },
+  { name: 'Off Hours', start: 21, end: 24, color: '#848e9c', icon: Sunset },
 ]
 
 export default function SessionVWAP({ candles, symbol, exchange }) {

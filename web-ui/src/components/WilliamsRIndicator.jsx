@@ -73,11 +73,11 @@ export default function WilliamsRIndicator({ candles, symbol, exchange }) {
 
       {/* Sparkline with zones */}
       <svg viewBox="0 0 100 100" className="w-full h-[40px]" preserveAspectRatio="none">
-        <rect x="0" y="0" width="100" height="20" fill="#ef4444" opacity="0.08" />
-        <rect x="0" y="80" width="100" height="20" fill="#22c55e" opacity="0.08" />
-        <line x1="0" y1="20" x2="100" y2="20" stroke="#ef4444" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.4" />
-        <line x1="0" y1="80" x2="100" y2="80" stroke="#22c55e" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.4" />
-        <line x1="0" y1="50" x2="100" y2="50" stroke="#64748b" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.3" />
+        <rect x="0" y="0" width="100" height="20" fill="#f6465d" opacity="0.08" />
+        <rect x="0" y="80" width="100" height="20" fill="#0ecb81" opacity="0.08" />
+        <line x1="0" y1="20" x2="100" y2="20" stroke="#f6465d" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.4" />
+        <line x1="0" y1="80" x2="100" y2="80" stroke="#0ecb81" strokeWidth="0.3" strokeDasharray="2 2" opacity="0.4" />
+        <line x1="0" y1="50" x2="100" y2="50" stroke="#848e9c" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.3" />
         <path d={path} fill="none" stroke="#a855f7" strokeWidth="1.5" />
       </svg>
 

@@ -113,13 +113,13 @@ export default function CumulativeVolumeDelta({ candles, symbol, exchange }) {
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[40px]" preserveAspectRatio="none">
         <defs>
           <linearGradient id="cvdGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={cumDelta >= 0 ? '#22c55e' : '#ef4444'} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={cumDelta >= 0 ? '#22c55e' : '#ef4444'} stopOpacity="0" />
+            <stop offset="0%" stopColor={cumDelta >= 0 ? '#0ecb81' : '#f6465d'} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={cumDelta >= 0 ? '#0ecb81' : '#f6465d'} stopOpacity="0" />
           </linearGradient>
         </defs>
         <line x1="0" y1={zeroY} x2={W} y2={zeroY} stroke="#3b82f6" strokeWidth="0.3" strokeDasharray="1" />
         <path d={cvdArea} fill="url(#cvdGrad)" />
-        <path d={cvdPath} fill="none" stroke={cumDelta >= 0 ? '#22c55e' : '#ef4444'} strokeWidth="0.8" />
+        <path d={cvdPath} fill="none" stroke={cumDelta >= 0 ? '#0ecb81' : '#f6465d'} strokeWidth="0.8" />
       </svg>
 
       {/* Stats */}

@@ -116,11 +116,11 @@ export default function PutCallRatio({ fills, candles, symbol, exchange }) {
       <div className="mb-2">
         <div className="text-[8px] text-gray-600 mb-0.5">Rolling P/C (window=10):</div>
         <svg width={w} height={h} className="w-full">
-          <line x1={0} y1={h / 2} x2={w} y2={h / 2} stroke="#334155" strokeWidth={0.5} strokeDasharray="2,2" />
+          <line x1={0} y1={h / 2} x2={w} y2={h / 2} stroke="#1e2530" strokeWidth={0.5} strokeDasharray="2,2" />
           {rollingRatios.map((r, i) => {
             const x = i * xStep
             const y = h - (Math.min(r.ratio, maxR) / maxR) * (h - 2) - 1
-            const color = r.ratio > 1.3 ? '#22c55e' : r.ratio < 0.75 ? '#ef4444' : '#64748b'
+            const color = r.ratio > 1.3 ? '#0ecb81' : r.ratio < 0.75 ? '#f6465d' : '#848e9c'
             return (
               <g key={i}>
                 {i > 0 && (
@@ -129,7 +129,7 @@ export default function PutCallRatio({ fills, candles, symbol, exchange }) {
                     y1={h - (Math.min(rollingRatios[i - 1].ratio, maxR) / maxR) * (h - 2) - 1}
                     x2={x}
                     y2={y}
-                    stroke="#475569"
+                    stroke="#5e6673"
                     strokeWidth={0.5}
                   />
                 )}

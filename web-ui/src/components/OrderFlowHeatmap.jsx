@@ -180,7 +180,7 @@ export default function OrderFlowHeatmap({ candles, fills, symbol, exchange }) {
               key={j}
               x={labelW + j * cellW + cellW / 2}
               y={10}
-              fill="#64748b"
+              fill="#848e9c"
               fontSize={6}
               textAnchor="middle"
             >
@@ -196,7 +196,7 @@ export default function OrderFlowHeatmap({ candles, fills, symbol, exchange }) {
             return (
               <g key={i}>
                 {/* Time label */}
-                <text x={labelW - 2} y={y + rowH / 2 + 2} fill="#475569" fontSize={5} textAnchor="end">
+                <text x={labelW - 2} y={y + rowH / 2 + 2} fill="#5e6673" fontSize={5} textAnchor="end">
                   {new Date(c.timestamp * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                 </text>
                 {/* Volume cell */}
@@ -217,7 +217,7 @@ export default function OrderFlowHeatmap({ candles, fills, symbol, exchange }) {
                   <circle cx={labelW + cellW * 4 + cellW - 3} cy={y + 3} r={2} fill="#f97316" />
                 )}
                 {isMomentum && (
-                  <circle cx={labelW + cellW * 4 + cellW - 3} cy={y + 3} r={2} fill="#22c55e" />
+                  <circle cx={labelW + cellW * 4 + cellW - 3} cy={y + 3} r={2} fill="#0ecb81" />
                 )}
               </g>
             )
@@ -240,7 +240,7 @@ export default function OrderFlowHeatmap({ candles, fills, symbol, exchange }) {
       <div className="pt-1.5 border-t border-bg-600">
         <div className="text-[8px] text-gray-600 mb-0.5">Cumulative Delta:</div>
         <svg width={w} height={30} className="w-full">
-          <line x1={0} y1={15} x2={w} y2={15} stroke="#334155" strokeWidth={0.5} />
+          <line x1={0} y1={15} x2={w} y2={15} stroke="#1e2530" strokeWidth={0.5} />
           {recentCandles.map((c, i) => {
             const x = (i / Math.max(recentCandles.length - 1, 1)) * w
             const maxDelta = Math.max(...recentCandles.map(x => Math.abs(x.cumDelta)), 1)
@@ -253,7 +253,7 @@ export default function OrderFlowHeatmap({ candles, fills, symbol, exchange }) {
                     y1={15 - (recentCandles[i - 1].cumDelta / maxDelta) * 13}
                     x2={x}
                     y2={y}
-                    stroke={c.cumDelta > 0 ? '#22c55e' : '#ef4444'}
+                    stroke={c.cumDelta > 0 ? '#0ecb81' : '#f6465d'}
                     strokeWidth={0.8}
                   />
                 )}

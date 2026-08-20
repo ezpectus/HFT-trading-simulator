@@ -43,13 +43,13 @@ export default function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
 
     // Classify regime
     let regime = 'Ranging'
-    let regimeColor = '#64748b'
+    let regimeColor = '#848e9c'
     if (smaSpread > 0.5 && lastRsi > 55 && trendStrength > 0.5) {
       regime = 'Trending Up'
-      regimeColor = '#22c55e'
+      regimeColor = '#0ecb81'
     } else if (smaSpread < -0.5 && lastRsi < 45 && trendStrength > 0.5) {
       regime = 'Trending Down'
-      regimeColor = '#ef4444'
+      regimeColor = '#f6465d'
     }
     if (volRatio > 1.8) {
       regime = 'Volatile'

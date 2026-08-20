@@ -118,15 +118,15 @@ export default function FearGreedIndex({ candles, signals, fills, symbol, exchan
       <div className="relative flex justify-center mb-2">
         <svg viewBox="0 0 100 60" className="w-full h-[60px]">
           {/* Arc segments */}
-          <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="#ef4444" strokeWidth="6" strokeOpacity="0.3" />
+          <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="#f6465d" strokeWidth="6" strokeOpacity="0.3" />
           <path d="M 15 50 A 35 35 0 0 1 50 15" fill="none" stroke="#f97316" strokeWidth="6" strokeOpacity="0.3" />
-          <path d="M 50 15 A 35 35 0 0 1 85 50" fill="none" stroke="#22c55e" strokeWidth="6" strokeOpacity="0.3" />
+          <path d="M 50 15 A 35 35 0 0 1 85 50" fill="none" stroke="#0ecb81" strokeWidth="6" strokeOpacity="0.3" />
           {/* Needle */}
           <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" />
           <circle cx={cx} cy={cy} r="2" fill="#e2e8f0" />
           {/* Labels */}
-          <text x="12" y="56" fontSize="4" fill="#64748b">Fear</text>
-          <text x="78" y="56" fontSize="4" fill="#64748b">Greed</text>
+          <text x="12" y="56" fontSize="4" fill="#848e9c">Fear</text>
+          <text x="78" y="56" fontSize="4" fill="#848e9c">Greed</text>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
           <div className={'text-lg font-bold ' + color}>{composite.toFixed(0)}</div>

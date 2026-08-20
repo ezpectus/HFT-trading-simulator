@@ -249,11 +249,11 @@ export default function VariationalAutoencoder({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, latentDim, hiddenDim, beta, lr, nEpochs, lookback, windowSize])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'ANOMALY' ? '#ef4444' : '#22c55e'
+  const sigColor = data.signal === 'ANOMALY' ? '#f6465d' : '#0ecb81'
 
   // Loss history
   const maxLoss = Math.max(...data.lossHistory, 0.1)
@@ -275,7 +275,7 @@ export default function VariationalAutoencoder({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Variational Autoencoder (VAE) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Variational Autoencoder (VAE) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -283,109 +283,109 @@ export default function VariationalAutoencoder({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Latent dim:</span>
-          <input type="number" value={latentDim} onChange={e => setLatentDim(Math.max(1, Math.min(5, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Latent dim:</span>
+          <input type="number" value={latentDim} onChange={e => setLatentDim(Math.max(1, Math.min(5, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Hidden dim:</span>
-          <input type="number" value={hiddenDim} onChange={e => setHiddenDim(Math.max(4, Math.min(16, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Hidden dim:</span>
+          <input type="number" value={hiddenDim} onChange={e => setHiddenDim(Math.max(4, Math.min(16, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">β (KL weight):</span>
-          <input type="number" step="0.1" value={beta} onChange={e => setBeta(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">β (KL weight):</span>
+          <input type="number" step="0.1" value={beta} onChange={e => setBeta(Math.max(0, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Epochs:</span>
-          <input type="number" value={nEpochs} onChange={e => setNEpochs(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Epochs:</span>
+          <input type="number" value={nEpochs} onChange={e => setNEpochs(Math.max(10, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(4, Math.min(16, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Window:</span>
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(4, Math.min(16, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(40, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(40, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Training loss */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">VAE Training: ELBO = Reconstruction + β·KL</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">VAE Training: ELBO = Reconstruction + β·KL</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.lossHistory.map((l, i) => `${i === 0 ? 'M' : 'L'} ${sxLoss(i)} ${syLoss(l)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
-          <path d={data.reconHistory.map((l, i) => `${i === 0 ? 'M' : 'L'} ${sxLoss(i)} ${syLoss(l)}`).join(' ')} fill="none" stroke="#22c55e" strokeWidth={1.5} opacity={0.7} />
-          <path d={data.klHistory.map((l, i) => `${i === 0 ? 'M' : 'L'} ${sxLoss(i)} ${syLoss(l)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={1.5} opacity={0.7} />
+          <path d={data.reconHistory.map((l, i) => `${i === 0 ? 'M' : 'L'} ${sxLoss(i)} ${syLoss(l)}`).join(' ')} fill="none" stroke="#0ecb81" strokeWidth={1.5} opacity={0.7} />
+          <path d={data.klHistory.map((l, i) => `${i === 0 ? 'M' : 'L'} ${sxLoss(i)} ${syLoss(l)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={1.5} opacity={0.7} />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>Total ELBO</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#22c55e" fontSize={9}>Reconstruction</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#f59e0b" fontSize={9}>KL divergence</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#0ecb81" fontSize={9}>Reconstruction</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#f0b90b" fontSize={9}>KL divergence</text>
         </svg>
       </div>
 
       {/* Latent space */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Latent Space (z = μ, {latentDim}D, learned posterior)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
-          <line x1={W / 2} y1={P} x2={W / 2} y2={H - P} stroke="#334155" strokeDasharray="2,2" />
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" strokeDasharray="2,2" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Latent Space (z = μ, {latentDim}D, learned posterior)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
+          <line x1={W / 2} y1={P} x2={W / 2} y2={H - P} stroke="#1e2530" strokeDasharray="2,2" />
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" strokeDasharray="2,2" />
 
           {data.latentPoints.map((p, i) => {
             const isAnomaly = data.anomalies.some(a => a.idx === i)
-            return <circle key={i} cx={sxL(p[0])} cy={syL(p[1] || 0)} r={isAnomaly ? 6 : 3} fill={isAnomaly ? '#ef4444' : '#06b6d4'} opacity={isAnomaly ? 1 : 0.6} />
+            return <circle key={i} cx={sxL(p[0])} cy={syL(p[1] || 0)} r={isAnomaly ? 6 : 3} fill={isAnomaly ? '#f6465d' : '#06b6d4'} opacity={isAnomaly ? 1 : 0.6} />
           })}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>Normal ({data.latentPoints.length - data.anomalies.length})</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#ef4444" fontSize={9}>Anomaly ({data.anomalies.length})</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f6465d" fontSize={9}>Anomaly ({data.anomalies.length})</text>
         </svg>
       </div>
 
       {/* Reconstruction errors */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Reconstruction Error (anomaly detection)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Reconstruction Error (anomaly detection)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Threshold */}
-          <line x1={P} y1={syE(data.anomalyThreshold)} x2={W - P} y2={syE(data.anomalyThreshold)} stroke="#ef4444" strokeWidth={1.5} strokeDasharray="4,3" />
+          <line x1={P} y1={syE(data.anomalyThreshold)} x2={W - P} y2={syE(data.anomalyThreshold)} stroke="#f6465d" strokeWidth={1.5} strokeDasharray="4,3" />
 
           {data.reconErrors.map((e, i) => (
-            <line key={i} x1={sxE(i)} y1={H - P} x2={sxE(i)} y2={syE(e)} stroke={e > data.anomalyThreshold ? '#ef4444' : '#06b6d4'} strokeWidth={2} opacity={0.7} />
+            <line key={i} x1={sxE(i)} y1={H - P} x2={sxE(i)} y2={syE(e)} stroke={e > data.anomalyThreshold ? '#f6465d' : '#06b6d4'} strokeWidth={2} opacity={0.7} />
           ))}
 
-          <text x={W - P} y={syE(data.anomalyThreshold) - 5} textAnchor="end" fill="#ef4444" fontSize={9}>Threshold: {data.anomalyThreshold.toFixed(4)}</text>
+          <text x={W - P} y={syE(data.anomalyThreshold) - 5} textAnchor="end" fill="#f6465d" fontSize={9}>Threshold: {data.anomalyThreshold.toFixed(4)}</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Windows</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Windows</div>
           <div className="text-cyan-400 font-mono">{data.nWindows}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Mean recon err</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Mean recon err</div>
           <div className="text-emerald-400 font-mono">{data.meanReconError.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Anomalies</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Anomalies</div>
           <div className="text-red-400 font-mono">{data.anomalies.length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Gen. mean</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Gen. mean</div>
           <div className="text-amber-400 font-mono">{data.genMean.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Gen. std</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Gen. std</div>
           <div className="text-purple-400 font-mono">{data.genStd.toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> VAE:</strong> q_φ(z|x) → N(μ,σ²), p_θ(x|z) → N(μ_θ,σ²_θ) |
         <strong> ELBO:</strong> E[log p(x|z)] - β·KL[q(z|x)||N(0,I)] |

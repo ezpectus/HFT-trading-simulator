@@ -242,7 +242,7 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
           return {
             time: fillTime,
             position: isBuy ? 'belowBar' : 'aboveBar',
-            color: isBuy ? '#22c55e' : '#ef4444',
+            color: isBuy ? '#0ecb81' : '#f6465d',
             shape: isBuy ? 'arrowUp' : 'arrowDown',
             text: isBuy ? 'B' : 'S',
           }

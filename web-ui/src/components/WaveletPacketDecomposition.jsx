@@ -197,11 +197,11 @@ export default function WaveletPacketDecomposition({ candles, symbol, exchange }
   }, [candles, exchange, symbol, maxLevel, thresholdMethod, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'HIGH_FREQ' ? '#06b6d4' : data.signal === 'LOW_FREQ' ? '#f59e0b' : '#a855f7'
+  const sigColor = data.signal === 'HIGH_FREQ' ? '#06b6d4' : data.signal === 'LOW_FREQ' ? '#f0b90b' : '#a855f7'
 
   // Energy heatmap
   const maxE = Math.max(...data.energies.flat().filter(e => e > 0), 0.001)
@@ -209,7 +209,7 @@ export default function WaveletPacketDecomposition({ candles, symbol, exchange }
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Wavelet Packet Decomposition — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Wavelet Packet Decomposition — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -217,28 +217,28 @@ export default function WaveletPacketDecomposition({ candles, symbol, exchange }
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max level:</span>
-          <input type="number" value={maxLevel} onChange={e => setMaxLevel(Math.max(2, Math.min(7, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max level:</span>
+          <input type="number" value={maxLevel} onChange={e => setMaxLevel(Math.max(2, Math.min(7, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Threshold:</span>
-          <select value={thresholdMethod} onChange={e => setThresholdMethod(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Threshold:</span>
+          <select value={thresholdMethod} onChange={e => setThresholdMethod(e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             <option value="soft">Soft (VisuShrink)</option>
             <option value="hard">Hard</option>
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(32, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(32, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Energy heatmap */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">WPD Energy Heatmap (Daubechies-4, {data.nLevels} levels)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">WPD Energy Heatmap (Daubechies-4, {data.nLevels} levels)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.energies.map((level, l) => {
             const nodeWidth = (W - 2 * P) / level.length
@@ -264,24 +264,24 @@ export default function WaveletPacketDecomposition({ candles, symbol, exchange }
             })
           })}
 
-          <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={9}>Node index →</text>
-          <text x={5} y={P + 10} fill="#475569" fontSize={9}>Level ↓</text>
+          <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={9}>Node index →</text>
+          <text x={5} y={P + 10} fill="#5e6673" fontSize={9}>Level ↓</text>
         </svg>
       </div>
 
       {/* Energy distribution by level */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Energy Distribution: Detail vs Approximation by Level</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Energy Distribution: Detail vs Approximation by Level</div>
         <div className="space-y-1">
           {data.detailEnergies.map((d, i) => {
             const totalE = d.detail + d.approx
             const detailPct = totalE > 0 ? (d.detail / totalE) * 100 : 0
             return (
               <div key={i} className="flex items-center gap-3 text-xs">
-                <span className="text-slate-400 w-20">Level {d.level}</span>
-                <div className="flex-1 bg-slate-900  h-3 relative">
+                <span className="text-gray-400 w-20">Level {d.level}</span>
+                <div className="flex-1 bg-bg-900  h-3 relative">
                   <div className="h-full  absolute" style={{ width: `${100 - detailPct}%`, background: '#06b6d4' }} />
-                  <div className="h-full  absolute" style={{ left: `${100 - detailPct}%`, width: `${detailPct}%`, background: '#f59e0b' }} />
+                  <div className="h-full  absolute" style={{ left: `${100 - detailPct}%`, width: `${detailPct}%`, background: '#f0b90b' }} />
                 </div>
                 <span className="text-cyan-400 font-mono w-16">A:{((d.approx / data.totalEnergy) * 100).toFixed(1)}%</span>
                 <span className="text-amber-400 font-mono w-16">D:{((d.detail / data.totalEnergy) * 100).toFixed(1)}%</span>
@@ -292,16 +292,16 @@ export default function WaveletPacketDecomposition({ candles, symbol, exchange }
       </div>
 
       {/* Best basis entropy */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Best Basis Entropy (Coifman-Wickerhauser)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Best Basis Entropy (Coifman-Wickerhauser)</div>
         <div className="space-y-1">
           {data.costs.map((level, l) => (
             <div key={l} className="flex items-center gap-2 text-xs">
-              <span className="text-slate-400 w-12">L{l}</span>
+              <span className="text-gray-400 w-12">L{l}</span>
               {level.map((cost, i) => (
                 <span key={i} className="font-mono px-1 " style={{
-                  background: data.selected.has(`${l}-${i}`) ? '#22c55e22' : 'transparent',
-                  color: data.selected.has(`${l}-${i}`) ? '#22c55e' : '#64748b'
+                  background: data.selected.has(`${l}-${i}`) ? '#0ecb8122' : 'transparent',
+                  color: data.selected.has(`${l}-${i}`) ? '#0ecb81' : '#848e9c'
                 }} title={`Node (${l},${i})`}>
                   {cost.toFixed(2)}
                 </span>
@@ -312,29 +312,29 @@ export default function WaveletPacketDecomposition({ candles, symbol, exchange }
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Levels</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Levels</div>
           <div className="text-cyan-400 font-mono">{data.nLevels}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Total energy</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Total energy</div>
           <div className="text-emerald-400 font-mono">{data.totalEnergy.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Best basis nodes</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Best basis nodes</div>
           <div className="text-amber-400 font-mono">{data.selected.size}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Dominant level</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Dominant level</div>
           <div className="text-purple-400 font-mono">{data.maxDetailLevel.level}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Wavelet</div>
-          <div className="text-slate-300 font-mono">Db4</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Wavelet</div>
+          <div className="text-gray-300 font-mono">Db4</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Wavelet:</strong> Daubechies-4 (4-tap) |
         <strong> Threshold:</strong> {thresholdMethod} (VisuShrink: σ·√(2·log(N))) |

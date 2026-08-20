@@ -225,11 +225,11 @@ export default function HawkesProcess({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, mu, alpha, beta, autoFit, simT])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 30 candles with significant moves for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 30 candles with significant moves for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'TREND' ? '#22c55e' : data.signal === 'MOMENTUM' ? '#f59e0b' : '#06b6d4'
+  const sigColor = data.signal === 'TREND' ? '#0ecb81' : data.signal === 'MOMENTUM' ? '#f0b90b' : '#06b6d4'
 
   // Intensity chart
   const maxIntensity = Math.max(...data.intensityPath.map(d => d.intensity))
@@ -243,7 +243,7 @@ export default function HawkesProcess({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Hawkes Process — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Hawkes Process — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -252,40 +252,40 @@ export default function HawkesProcess({ candles, symbol, exchange }) {
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={autoFit} onChange={e => setAutoFit(e.target.checked)} />
-          <span className="text-slate-400">Auto-fit (MLE)</span>
+          <span className="text-gray-400">Auto-fit (MLE)</span>
         </label>
         {!autoFit && (
           <>
             <label className="flex items-center gap-1">
-              <span className="text-slate-400">μ (baseline):</span>
-              <input type="number" step="0.01" value={mu} onChange={e => setMu(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+              <span className="text-gray-400">μ (baseline):</span>
+              <input type="number" step="0.01" value={mu} onChange={e => setMu(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
             </label>
             <label className="flex items-center gap-1">
-              <span className="text-slate-400">α (excitation):</span>
-              <input type="number" step="0.05" value={alpha} onChange={e => setAlpha(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+              <span className="text-gray-400">α (excitation):</span>
+              <input type="number" step="0.05" value={alpha} onChange={e => setAlpha(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
             </label>
             <label className="flex items-center gap-1">
-              <span className="text-slate-400">β (decay):</span>
-              <input type="number" step="0.1" value={beta} onChange={e => setBeta(Math.max(0.1, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+              <span className="text-gray-400">β (decay):</span>
+              <input type="number" step="0.1" value={beta} onChange={e => setBeta(Math.max(0.1, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
             </label>
           </>
         )}
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Sim T:</span>
-          <input type="number" value={simT} onChange={e => setSimT(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Sim T:</span>
+          <input type="number" value={simT} onChange={e => setSimT(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Intensity over time */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Conditional Intensity λ(t) = μ + Σ α·e^(-β(t-t_i))</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Conditional Intensity λ(t) = μ + Σ α·e^(-β(t-t_i))</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Baseline */}
-          <line x1={P} y1={sy(data.params.mu)} x2={W - P} y2={sy(data.params.mu)} stroke="#64748b" strokeDasharray="4,3" />
-          <text x={W - P} y={sy(data.params.mu) - 5} textAnchor="end" fill="#64748b" fontSize={9}>μ={data.params.mu.toFixed(3)}</text>
+          <line x1={P} y1={sy(data.params.mu)} x2={W - P} y2={sy(data.params.mu)} stroke="#848e9c" strokeDasharray="4,3" />
+          <text x={W - P} y={sy(data.params.mu) - 5} textAnchor="end" fill="#848e9c" fontSize={9}>μ={data.params.mu.toFixed(3)}</text>
 
           {/* Intensity path */}
           <path
@@ -295,32 +295,32 @@ export default function HawkesProcess({ candles, symbol, exchange }) {
 
           {/* Event markers */}
           {data.events.map((t, i) => (
-            <line key={i} x1={sx(t)} y1={H - P} x2={sx(t)} y2={H - P - 5} stroke="#ef4444" strokeWidth={1} />
+            <line key={i} x1={sx(t)} y1={H - P} x2={sx(t)} y2={H - P - 5} stroke="#f6465d" strokeWidth={1} />
           ))}
 
-          <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={10}>Time (candles)</text>
-          <text x={5} y={P + 10} fill="#475569" fontSize={10}>λ(t)</text>
+          <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={10}>Time (candles)</text>
+          <text x={5} y={P + 10} fill="#5e6673" fontSize={10}>λ(t)</text>
         </svg>
       </div>
 
       {/* Simulated events */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Simulated Hawkes Process ({data.nSimulated} events)</div>
-        <svg width={W} height={80} className="bg-slate-900 ">
-          <line x1={P} y1={60} x2={W - P} y2={60} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Simulated Hawkes Process ({data.nSimulated} events)</div>
+        <svg width={W} height={80} className="bg-bg-900 ">
+          <line x1={P} y1={60} x2={W - P} y2={60} stroke="#1e2530" />
           {data.simulated.map((t, i) => (
-            <line key={i} x1={ssx(t)} y1={60} x2={ssx(t)} y2={50} stroke="#22c55e" strokeWidth={1.5} />
+            <line key={i} x1={ssx(t)} y1={60} x2={ssx(t)} y2={50} stroke="#0ecb81" strokeWidth={1.5} />
           ))}
-          <text x={W - P} y={15} textAnchor="end" fill="#22c55e" fontSize={9}>Simulated events (green ticks)</text>
+          <text x={W - P} y={15} textAnchor="end" fill="#0ecb81" fontSize={9}>Simulated events (green ticks)</text>
         </svg>
       </div>
 
       {/* Inter-arrival distribution */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Inter-Arrival Time Distribution</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Inter-Arrival Time Distribution</div>
         <div className="flex gap-4">
           <div className="flex-1">
-            <div className="text-xs text-slate-500 mb-1">Observed (mean={data.meanIA.toFixed(2)})</div>
+            <div className="text-xs text-gray-500 mb-1">Observed (mean={data.meanIA.toFixed(2)})</div>
             {(() => {
               const maxIA = Math.max(...data.interArrivals, 1)
               const bins = new Array(10).fill(0)
@@ -339,11 +339,11 @@ export default function HawkesProcess({ candles, symbol, exchange }) {
             })()}
           </div>
           <div className="flex-1">
-            <div className="text-xs text-slate-500 mb-1">Simulated (mean={data.meanSimIA.toFixed(2)})</div>
+            <div className="text-xs text-gray-500 mb-1">Simulated (mean={data.meanSimIA.toFixed(2)})</div>
             {(() => {
               const simIAs = []
               for (let i = 1; i < data.simulated.length; i++) simIAs.push(data.simulated[i] - data.simulated[i - 1])
-              if (simIAs.length === 0) return <div className="text-slate-500 text-xs">No data</div>
+              if (simIAs.length === 0) return <div className="text-gray-500 text-xs">No data</div>
               const maxIA = Math.max(...simIAs, 1)
               const bins = new Array(10).fill(0)
               for (const ia of simIAs) {
@@ -364,29 +364,29 @@ export default function HawkesProcess({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">μ (baseline)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">μ (baseline)</div>
           <div className="text-cyan-400 font-mono">{data.params.mu.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">α (excitation)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">α (excitation)</div>
           <div className="text-amber-400 font-mono">{data.params.alpha.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">β (decay)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">β (decay)</div>
           <div className="text-purple-400 font-mono">{data.params.beta.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">n = α/β</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">n = α/β</div>
           <div className="text-emerald-400 font-mono">{data.params.branchingRatio.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Log-Lik</div>
-          <div className="text-slate-300 font-mono">{data.params.logLik.toFixed(2)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Log-Lik</div>
+          <div className="text-gray-300 font-mono">{data.params.logLik.toFixed(2)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Current λ/μ:</strong> {data.intensityRatio.toFixed(2)}× |
         <strong> Max burst:</strong> {data.maxBurst} events |

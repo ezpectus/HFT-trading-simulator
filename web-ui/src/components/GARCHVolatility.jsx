@@ -271,8 +271,8 @@ export default function GARCHVolatility({ candles, symbol, exchange }) {
       <div className="pt-1.5 border-t border-bg-600">
         <div className="text-[8px] text-gray-600 mb-0.5 flex items-center gap-0.5"><Activity size={7} /> Volatility Comparison (annualized %):</div>
         <svg viewBox="0 0 100 100" className="w-full h-[100px]">
-          <line x1={0} y1={toY(minVol + volRange * 0.33)} x2={100} y2={toY(minVol + volRange * 0.33)} stroke="#334155" strokeWidth={0.3} strokeDasharray="2,1" />
-          <line x1={0} y1={toY(minVol + volRange * 0.66)} x2={100} y2={toY(minVol + volRange * 0.66)} stroke="#334155" strokeWidth={0.3} strokeDasharray="2,1" />
+          <line x1={0} y1={toY(minVol + volRange * 0.33)} x2={100} y2={toY(minVol + volRange * 0.33)} stroke="#1e2530" strokeWidth={0.3} strokeDasharray="2,1" />
+          <line x1={0} y1={toY(minVol + volRange * 0.66)} x2={100} y2={toY(minVol + volRange * 0.66)} stroke="#1e2530" strokeWidth={0.3} strokeDasharray="2,1" />
           <path d={parkPath} fill="none" stroke="#14b8a6" strokeWidth={0.8} opacity={0.6} />
           <path d={ewmaPath} fill="none" stroke="#3b82f6" strokeWidth={0.8} opacity={0.7} />
           <path d={garchPath} fill="none" stroke="#f97316" strokeWidth={1.2} />

@@ -237,11 +237,11 @@ export default function TopologicalDataAnalysis({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, embeddingDim, tau, lookback, maxFeatures])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 350, P = 30
-  const sigColor = data.signal === 'COMPLEX' ? '#ef4444' : data.signal === 'CYCLIC' ? '#a855f7' : data.signal === 'MODERATE' ? '#f59e0b' : '#22c55e'
+  const sigColor = data.signal === 'COMPLEX' ? '#f6465d' : data.signal === 'CYCLIC' ? '#a855f7' : data.signal === 'MODERATE' ? '#f0b90b' : '#0ecb81'
 
   // Persistence diagram
   const maxEps = Math.max(...data.h0.map(p => p.death), ...data.h1.map(p => p.death), 3)
@@ -251,7 +251,7 @@ export default function TopologicalDataAnalysis({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Topological Data Analysis — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Topological Data Analysis — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -259,31 +259,31 @@ export default function TopologicalDataAnalysis({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Embedding dim:</span>
-          <input type="number" value={embeddingDim} onChange={e => setEmbeddingDim(Math.max(2, Math.min(5, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Embedding dim:</span>
+          <input type="number" value={embeddingDim} onChange={e => setEmbeddingDim(Math.max(2, Math.min(5, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">τ (delay):</span>
-          <input type="number" value={tau} onChange={e => setTau(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">τ (delay):</span>
+          <input type="number" value={tau} onChange={e => setTau(Math.max(1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(40, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(40, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max points:</span>
-          <input type="number" value={maxFeatures} onChange={e => setMaxFeatures(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max points:</span>
+          <input type="number" value={maxFeatures} onChange={e => setMaxFeatures(Math.max(10, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Persistence diagram */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Persistence Diagram (H₀ = components, H₁ = loops)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Persistence Diagram (H₀ = components, H₁ = loops)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
           {/* Diagonal */}
-          <line x1={sxDiag(0)} y1={syDiag(0)} x2={sxDiag(maxEps)} y2={syDiag(maxEps)} stroke="#334155" strokeDasharray="4,3" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+          <line x1={sxDiag(0)} y1={syDiag(0)} x2={sxDiag(maxEps)} y2={syDiag(maxEps)} stroke="#1e2530" strokeDasharray="4,3" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* H₀ features */}
           {data.h0.map((p, i) => {
@@ -304,18 +304,18 @@ export default function TopologicalDataAnalysis({ candles, symbol, exchange }) {
             </g>
           ))}
 
-          <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={10}>Birth (ε)</text>
-          <text x={5} y={P + 10} fill="#475569" fontSize={10}>Death (ε)</text>
+          <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={10}>Birth (ε)</text>
+          <text x={5} y={P + 10} fill="#5e6673" fontSize={10}>Death (ε)</text>
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>H₀ ({data.h0.length} features)</text>
           <text x={W - P} y={34} textAnchor="end" fill="#a855f7" fontSize={9}>H₁ ({data.h1.length} loops)</text>
         </svg>
       </div>
 
       {/* Persistence barcode */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Persistence Barcode (H₀)</div>
-        <svg width={W} height={150} className="bg-slate-900 ">
-          <line x1={P} y1={120} x2={W - P} y2={120} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Persistence Barcode (H₀)</div>
+        <svg width={W} height={150} className="bg-bg-900 ">
+          <line x1={P} y1={120} x2={W - P} y2={120} stroke="#1e2530" />
           {data.h0.slice(0, 25).map((p, i) => {
             const y = 10 + i * 4
             const x1 = sxDiag(p.born)
@@ -323,22 +323,22 @@ export default function TopologicalDataAnalysis({ candles, symbol, exchange }) {
             const persistence = p.death - p.born
             return (
               <g key={i}>
-                <line x1={x1} y1={y} x2={x2} y2={y} stroke={persistence > 1 ? '#22c55e' : '#06b6d4'} strokeWidth={2} opacity={0.7} />
+                <line x1={x1} y1={y} x2={x2} y2={y} stroke={persistence > 1 ? '#0ecb81' : '#06b6d4'} strokeWidth={2} opacity={0.7} />
               </g>
             )
           })}
-          <text x={W - P} y={145} textAnchor="end" fill="#475569" fontSize={9}>ε (scale)</text>
+          <text x={W - P} y={145} textAnchor="end" fill="#5e6673" fontSize={9}>ε (scale)</text>
         </svg>
       </div>
 
       {/* Betti numbers */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Betti Numbers vs ε (topological complexity)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Betti Numbers vs ε (topological complexity)</div>
         <div className="space-y-1">
           {data.bettis.map((b, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-20">ε = {b.epsilon.toFixed(1)}</span>
-              <div className="flex-1 bg-slate-900  h-3 relative">
+              <span className="text-gray-400 w-20">ε = {b.epsilon.toFixed(1)}</span>
+              <div className="flex-1 bg-bg-900  h-3 relative">
                 <div className="h-full " style={{ width: `${(b.beta0 / data.nPoints) * 100}%`, background: '#06b6d4' }} />
               </div>
               <span className="text-cyan-400 font-mono w-12">β₀ = {b.beta0}</span>
@@ -348,29 +348,29 @@ export default function TopologicalDataAnalysis({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Points</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Points</div>
           <div className="text-cyan-400 font-mono">{data.nPoints}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">H₀ features</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">H₀ features</div>
           <div className="text-emerald-400 font-mono">{data.h0.length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">H₁ loops</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">H₁ loops</div>
           <div className="text-purple-400 font-mono">{data.h1.length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Max persistence</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Max persistence</div>
           <div className="text-amber-400 font-mono">{data.maxPersistence.toFixed(3)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">β₀ (ε=1.5)</div>
-          <div className="text-slate-300 font-mono">{data.currentBeta0}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">β₀ (ε=1.5)</div>
+          <div className="text-gray-300 font-mono">{data.currentBeta0}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Embedding:</strong> Takens (E={embeddingDim}, τ={tau}) |
         <strong> Complex:</strong> Vietoris-Rips filtration |

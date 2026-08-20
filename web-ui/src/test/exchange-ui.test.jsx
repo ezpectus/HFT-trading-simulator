@@ -35,7 +35,7 @@ const mockCoinbaseTheme = {
   textSecondary: '#6B7280',
   border: '#E5E7EB',
   success: '#10B981',
-  danger: '#EF4444',
+  danger: '#f6465d',
 }
 
 describe('Exchange Context', () => {

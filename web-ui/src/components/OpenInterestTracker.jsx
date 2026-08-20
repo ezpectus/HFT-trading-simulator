@@ -129,7 +129,7 @@ export default function OpenInterestTracker({ candles, fills, symbol, exchange }
         {/* Volume bars at bottom */}
         {volBars.map((b, i) => (
           <rect key={i} x={b.x - 0.5} y={100 - b.h} width="1.5" height={b.h}
-            fill={b.isUp ? '#22c55e' : '#ef4444'} fillOpacity="0.15" />
+            fill={b.isUp ? '#0ecb81' : '#f6465d'} fillOpacity="0.15" />
         ))}
         {/* OI line (teal) */}
         <path d={oiPath} fill="none" stroke="#14b8a6" strokeWidth="1.2" />

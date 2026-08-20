@@ -133,11 +133,11 @@ export default function CameronMartinFormula({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, lookback, windowSize, shiftMode])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'STRONG_DRIFT_ALIGNMENT' ? '#22c55e' : data.signal === 'ANTI_DRIFT' ? '#ef4444' : data.signal === 'DRIFT_PRESENT' ? '#f59e0b' : '#94a3b8'
+  const sigColor = data.signal === 'STRONG_DRIFT_ALIGNMENT' ? '#0ecb81' : data.signal === 'ANTI_DRIFT' ? '#f6465d' : data.signal === 'DRIFT_PRESENT' ? '#f0b90b' : '#94a3b8'
 
   // RN density
   const maxRN = Math.max(...data.grid.map(g => g.rn), 0.1)
@@ -157,7 +157,7 @@ export default function CameronMartinFormula({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Cameron-Martin Formula (Gaussian Shift) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Cameron-Martin Formula (Gaussian Shift) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -165,8 +165,8 @@ export default function CameronMartinFormula({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Shift mode:</span>
-          <select value={shiftMode} onChange={e => setShiftMode(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Shift mode:</span>
+          <select value={shiftMode} onChange={e => setShiftMode(e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             <option value="constant">Constant h(t)=c</option>
             <option value="linear">Linear h(t)=a+bt</option>
             <option value="sinusoidal">Sinusoidal h(t)=A*sin</option>
@@ -174,57 +174,57 @@ export default function CameronMartinFormula({ candles, symbol, exchange }) {
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(15, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Window:</span>
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(15, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* RN density */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Cameron-Martin RN Derivative: d(mu_h)/d(mu) = exp(h*x/sigma^2 - h^2/(2*sigma^2))</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Cameron-Martin RN Derivative: d(mu_h)/d(mu) = exp(h*x/sigma^2 - h^2/(2*sigma^2))</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
-          <line x1={P} y1={syRN(1)} x2={W - P} y2={syRN(1)} stroke="#475569" strokeWidth={1} strokeDasharray="3,3" />
+          <line x1={P} y1={syRN(1)} x2={W - P} y2={syRN(1)} stroke="#5e6673" strokeWidth={1} strokeDasharray="3,3" />
 
           <path d={data.grid.map((g, i) => `${i === 0 ? 'M' : 'L'} ${sxG(i)} ${syRN(g.rn)}`).join(' ')} fill="rgba(168,85,247,0.15)" stroke="#a855f7" strokeWidth={2} />
 
           <text x={W - P} y={20} textAnchor="end" fill="#a855f7" fontSize={9}>d(mu_h)/d(mu) (RN derivative)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#475569" fontSize={9}>RN=1 (no shift effect)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#5e6673" fontSize={9}>RN=1 (no shift effect)</text>
         </svg>
       </div>
 
       {/* Log-RN over time */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Cameron-Martin Log-Likelihood Ratio Over Time (drift alignment measure)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Cameron-Martin Log-Likelihood Ratio Over Time (drift alignment measure)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.comparisons.map((c, i) => `${i === 0 ? 'M' : 'L'} ${sxT(i)} ${syLR(c.logRN)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
 
           {data.comparisons.map((c, i) => (
-            c.logRN > 1 ? <circle key={i} cx={sxT(i)} cy={syLR(c.logRN)} r={3} fill="#22c55e" /> : null
+            c.logRN > 1 ? <circle key={i} cx={sxT(i)} cy={syLR(c.logRN)} r={3} fill="#0ecb81" /> : null
           ))}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>log d(mu_h)/d(mu)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#22c55e" fontSize={9}>strong alignment (LR{'>'}1)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#0ecb81" fontSize={9}>strong alignment (LR{'>'}1)</text>
         </svg>
       </div>
 
       {/* Cumulative */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Cumulative Cameron-Martin Log-Likelihood (shift detection trajectory)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Cumulative Cameron-Martin Log-Likelihood (shift detection trajectory)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.cumTrajectory.map((c, i) => `${i === 0 ? 'M' : 'L'} ${sxC(i)} ${syC(c.cumLogRN)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={2} />
 
@@ -233,29 +233,29 @@ export default function CameronMartinFormula({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">log-RN</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">log-RN</div>
           <div className="text-cyan-400 font-mono">{data.current.logRN.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">{'<h,x>'}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">{'<h,x>'}</div>
           <div className="text-emerald-400 font-mono">{data.current.innerProd.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">{'||h||^2'}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">{'||h||^2'}</div>
           <div className="text-amber-400 font-mono">{data.current.hNormSq.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">mu_window</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">mu_window</div>
           <div className="text-purple-400 font-mono">{data.current.muW.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">sigma_0</div>
-          <div className="text-slate-300 font-mono">{data.sig0.toFixed(6)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">sigma_0</div>
+          <div className="text-gray-300 font-mono">{data.sig0.toFixed(6)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Cameron-Martin:</strong> d(mu_h)/d(mu) = exp({'<h,x>'} - 1/2||h||^2) |
         <strong> Inner product:</strong> {'<h,x>'} = sum h_t*x_t / sigma^2 |

@@ -205,11 +205,11 @@ export default function BayesianStructuralTimeSeries({ candles, symbol, exchange
   }, [candles, exchange, symbol, period, lookback, autoOptimize, sigmaLevel, sigmaIrregular])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : data.signal === 'SELL' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   // Price + trend + forecast
   const allPrices = [...data.prices, ...data.forecastsExp]
@@ -228,7 +228,7 @@ export default function BayesianStructuralTimeSeries({ candles, symbol, exchange
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Bayesian Structural Time Series — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Bayesian Structural Time Series — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -236,91 +236,91 @@ export default function BayesianStructuralTimeSeries({ candles, symbol, exchange
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Seasonal period:</span>
-          <input type="number" value={period} onChange={e => setPeriod(Math.max(2, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Seasonal period:</span>
+          <input type="number" value={period} onChange={e => setPeriod(Math.max(2, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(30, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(30, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={autoOptimize} onChange={e => setAutoOptimize(e.target.checked)} />
-          <span className="text-slate-400">Auto-optimize</span>
+          <span className="text-gray-400">Auto-optimize</span>
         </label>
       </div>
 
       {/* Price decomposition: trend + forecast */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Price + Trend + Forecast (10-step ahead)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Price + Trend + Forecast (10-step ahead)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Actual price */}
-          <path d={data.prices.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sxP(i)} ${syP(p)}`).join(' ')} fill="none" stroke="#64748b" strokeWidth={1.5} opacity={0.7} />
+          <path d={data.prices.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sxP(i)} ${syP(p)}`).join(' ')} fill="none" stroke="#848e9c" strokeWidth={1.5} opacity={0.7} />
 
           {/* Trend (filtered) */}
           <path d={data.trendExp.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxP(i)} ${syP(t)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
 
           {/* Forecast */}
-          <line x1={sxP(data.prices.length - 1)} y1={P} x2={sxP(data.prices.length - 1)} y2={H - P} stroke="#475569" strokeDasharray="4,3" />
-          <path d={data.forecastsExp.map((f, i) => `${i === 0 ? 'M' : 'L'} ${sxP(data.prices.length - 1 + i)} ${syP(f)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4,2" />
+          <line x1={sxP(data.prices.length - 1)} y1={P} x2={sxP(data.prices.length - 1)} y2={H - P} stroke="#5e6673" strokeDasharray="4,3" />
+          <path d={data.forecastsExp.map((f, i) => `${i === 0 ? 'M' : 'L'} ${sxP(data.prices.length - 1 + i)} ${syP(f)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={2} strokeDasharray="4,2" />
 
           {/* Forecast points */}
           {data.forecastsExp.map((f, i) => (
-            <circle key={i} cx={sxP(data.prices.length - 1 + i)} cy={syP(f)} r={3} fill="#f59e0b" />
+            <circle key={i} cx={sxP(data.prices.length - 1 + i)} cy={syP(f)} r={3} fill="#f0b90b" />
           ))}
 
-          <text x={W - P} y={20} textAnchor="end" fill="#64748b" fontSize={9}>Actual</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#848e9c" fontSize={9}>Actual</text>
           <text x={W - P} y={34} textAnchor="end" fill="#06b6d4" fontSize={9}>Trend (Kalman)</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#f59e0b" fontSize={9}>Forecast</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#f0b90b" fontSize={9}>Forecast</text>
         </svg>
       </div>
 
       {/* Seasonal component */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Seasonal Component (period = {period})</div>
-        <svg width={W} height={120} className="bg-slate-900 ">
-          <line x1={P} y1={60} x2={W - P} y2={60} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Seasonal Component (period = {period})</div>
+        <svg width={W} height={120} className="bg-bg-900 ">
+          <line x1={P} y1={60} x2={W - P} y2={60} stroke="#1e2530" />
           <path d={data.seasonalExp.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxP(i)} ${60 - (Math.log(s) * 100)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={1.5} />
         </svg>
       </div>
 
       {/* Residuals */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Residuals (irregular component)</div>
-        <svg width={W} height={120} className="bg-slate-900 ">
-          <line x1={P} y1={60} x2={W - P} y2={60} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Residuals (irregular component)</div>
+        <svg width={W} height={120} className="bg-bg-900 ">
+          <line x1={P} y1={60} x2={W - P} y2={60} stroke="#1e2530" />
           {data.residuals.map((r, i) => (
-            <line key={i} x1={sxP(i)} y1={60} x2={sxP(i)} y2={60 - r * 500} stroke={r > 0 ? '#22c55e' : '#ef4444'} strokeWidth={1} opacity={0.6} />
+            <line key={i} x1={sxP(i)} y1={60} x2={sxP(i)} y2={60 - r * 500} stroke={r > 0 ? '#0ecb81' : '#f6465d'} strokeWidth={1} opacity={0.6} />
           ))}
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Log-likelihood</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Log-likelihood</div>
           <div className="text-cyan-400 font-mono">{data.totalLogLik.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">σ_level</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">σ_level</div>
           <div className="text-amber-400 font-mono">{data.params.sigmaLevel.toFixed(3)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">σ_irregular</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">σ_irregular</div>
           <div className="text-purple-400 font-mono">{data.params.sigmaIrregular.toFixed(3)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Forecast</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Forecast</div>
           <div className="text-emerald-400 font-mono">${data.forecastPrice.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Pred return</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Pred return</div>
           <div className="font-mono" style={{ color: sigColor }}>{(data.forecastReturn * 100).toFixed(3)}%</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Model:</strong> Local linear trend + seasonal (period={period}) |
         <strong> State:</strong> [level, slope, seasonal₁...seasonal_{period - 1}] |
         <strong> Kalman:</strong> prediction → update cycle |

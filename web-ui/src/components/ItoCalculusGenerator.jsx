@@ -167,11 +167,11 @@ export default function ItoCalculusGenerator({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, modelType, lookback, funcType])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'GENERATOR_POSITIVE' ? '#22c55e' : data.signal === 'GENERATOR_NEGATIVE' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'GENERATOR_POSITIVE' ? '#0ecb81' : data.signal === 'GENERATOR_NEGATIVE' ? '#f6465d' : '#94a3b8'
 
   // Precompute max f value to avoid spread operator in JSX
   const maxFVal = Math.max(data.fValues.map(Math.abs).reduce((a, b) => Math.max(a, b), 0), 0.001)
@@ -193,7 +193,7 @@ export default function ItoCalculusGenerator({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">{'It\u00f4 Calculus Generator \u2014'} {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">{'It\u00f4 Calculus Generator \u2014'} {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -201,16 +201,16 @@ export default function ItoCalculusGenerator({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Model:</span>
-          <select value={modelType} onChange={e => setModelType(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Model:</span>
+          <select value={modelType} onChange={e => setModelType(e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             <option value="ou">Ornstein-Uhlenbeck</option>
             <option value="gbm">Geometric BM</option>
             <option value="const">Constant Drift-Diffusion</option>
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Test function:</span>
-          <select value={funcType} onChange={e => setFuncType(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Test function:</span>
+          <select value={funcType} onChange={e => setFuncType(e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             <option value="identity">f(x) = x</option>
             <option value="square">{'f(x) = x\u00b2'}</option>
             <option value="exp">{'f(x) = e\u02e3'}</option>
@@ -219,39 +219,39 @@ export default function ItoCalculusGenerator({ candles, symbol, exchange }) {
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Generator A.f */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">{'Infinitesimal Generator A\u00b7f(x) = \u03bc(x)f\u2032(x) + (1/2)\u03c3\u00b2(x)f\u2033(x) \u2014'} {data.tf.name}</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">{'Infinitesimal Generator A\u00b7f(x) = \u03bc(x)f\u2032(x) + (1/2)\u03c3\u00b2(x)f\u2033(x) \u2014'} {data.tf.name}</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* f(x) */}
           <path d={data.fValues.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxAf(i)} ${syAf(v * maxAf / maxFVal)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={1.5} opacity={0.5} />
 
           {/* A.f */}
-          <path d={data.Af.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxAf(i)} ${syAf(v)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2.5} />
+          <path d={data.Af.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxAf(i)} ${syAf(v)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={2.5} />
 
           {/* Zero line for A.f */}
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#475569" strokeWidth={1} strokeDasharray="3,3" />
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#5e6673" strokeWidth={1} strokeDasharray="3,3" />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>f(x) (scaled)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>{'A\u00b7f(x) (generator)'}</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>{'A\u00b7f(x) (generator)'}</text>
         </svg>
       </div>
 
       {/* Expected hitting time */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">{'Expected Hitting Time E[\u03c4] to Mean (solving A\u00b7T = -1)'}</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">{'Expected Hitting Time E[\u03c4] to Mean (solving A\u00b7T = -1)'}</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.hittingTimes.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxHT(i)} ${syHT(v)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={2} />
 
@@ -264,42 +264,42 @@ export default function ItoCalculusGenerator({ candles, symbol, exchange }) {
       </div>
 
       {/* Stationary distribution */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">{'Stationary Distribution \u03c0(x) (invariant measure of generator)'}</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">{'Stationary Distribution \u03c0(x) (invariant measure of generator)'}</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
-          <path d={data.stationary.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxAf(i)} ${syStat(v)}`).join(' ')} fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth={2} />
+          <path d={data.stationary.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxAf(i)} ${syStat(v)}`).join(' ')} fill="rgba(34,197,94,0.15)" stroke="#0ecb81" strokeWidth={2} />
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>{'\u03c0(x) stationary (A\u00b7\u03c0 = 0)'}</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>{'\u03c0(x) stationary (A\u00b7\u03c0 = 0)'}</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">{'A\u00b7f(current)'}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">{'A\u00b7f(current)'}</div>
           <div className="text-cyan-400 font-mono">{data.afCurrent.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">{'\u03ba (mean rev)'}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">{'\u03ba (mean rev)'}</div>
           <div className="text-emerald-400 font-mono">{data.params.kappa.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">{'\u03b8 (target)'}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">{'\u03b8 (target)'}</div>
           <div className="text-amber-400 font-mono">{data.params.theta.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">{'\u03c3 (diffusion)'}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">{'\u03c3 (diffusion)'}</div>
           <div className="text-purple-400 font-mono">{data.params.sigmaOU.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">{'E[\u03c4] to mean'}</div>
-          <div className="text-slate-300 font-mono">{data.currentHittingTime.toFixed(2)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">{'E[\u03c4] to mean'}</div>
+          <div className="text-gray-300 font-mono">{data.currentHittingTime.toFixed(2)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Generator:</strong> {'A\u00b7f = \u03bc\u00b7f\u2032 + (1/2)\u03c3\u00b2\u00b7f\u2033 (infinitesimal)'} |
         <strong> Dynkin:</strong> {'E[f(X_t)] = f(x) + E[\u222bA\u00b7f ds]'} |

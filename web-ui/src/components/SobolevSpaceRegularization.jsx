@@ -191,11 +191,11 @@ export default function SobolevSpaceRegularization({ candles, symbol, exchange }
   }, [candles, exchange, symbol, s, lambda, lookback, noiseLevel])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'OVERFIT' ? '#ef4444' : data.signal === 'OVERSMOOTH' ? '#f59e0b' : '#22c55e'
+  const sigColor = data.signal === 'OVERFIT' ? '#f6465d' : data.signal === 'OVERSMOOTH' ? '#f0b90b' : '#0ecb81'
 
   // Smoothed vs noisy
   const allY = [...data.yData, ...data.normV, ...data.smoothPredictions]
@@ -215,7 +215,7 @@ export default function SobolevSpaceRegularization({ candles, symbol, exchange }
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Sobolev Space Regularization — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Sobolev Space Regularization — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -223,63 +223,63 @@ export default function SobolevSpaceRegularization({ candles, symbol, exchange }
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">s (Sobolev order):</span>
-          <select value={s} onChange={e => setS(+e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">s (Sobolev order):</span>
+          <select value={s} onChange={e => setS(+e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             <option value={1}>s=1 (Matérn 3/2)</option>
             <option value={2}>s=2 (Matérn 5/2)</option>
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">λ (regularization):</span>
-          <input type="number" step="0.01" value={lambda} onChange={e => setLambda(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">λ (regularization):</span>
+          <input type="number" step="0.01" value={lambda} onChange={e => setLambda(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Noise:</span>
-          <input type="number" step="0.1" value={noiseLevel} onChange={e => setNoiseLevel(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Noise:</span>
+          <input type="number" step="0.1" value={noiseLevel} onChange={e => setNoiseLevel(Math.max(0, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Smoothed signal */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Sobolev-Regularized Signal: Noisy Data vs Smooth Estimate (H^s, λ={lambda})</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Sobolev-Regularized Signal: Noisy Data vs Smooth Estimate (H^s, λ={lambda})</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* True signal */}
-          <path d={data.normV.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxX(data.xData[i])} ${syY(v)}`).join(' ')} fill="none" stroke="#22c55e" strokeWidth={1.5} opacity={0.5} />
+          <path d={data.normV.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxX(data.xData[i])} ${syY(v)}`).join(' ')} fill="none" stroke="#0ecb81" strokeWidth={1.5} opacity={0.5} />
 
           {/* Noisy data */}
           {data.yData.map((v, i) => (
-            <circle key={i} cx={sxX(data.xData[i])} cy={syY(v)} r={2} fill="#ef4444" opacity={0.4} />
+            <circle key={i} cx={sxX(data.xData[i])} cy={syY(v)} r={2} fill="#f6465d" opacity={0.4} />
           ))}
 
           {/* Sobolev smoothed */}
           <path d={data.smoothPredictions.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxX(data.xGrid[i])} ${syY(v)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2.5} />
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>True signal</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#ef4444" fontSize={9}>Noisy data</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>True signal</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f6465d" fontSize={9}>Noisy data</text>
           <text x={W - P} y={48} textAnchor="end" fill="#06b6d4" fontSize={9}>Sobolev estimate (H^{s})</text>
         </svg>
       </div>
 
       {/* L-curve */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">L-Curve: log(||residual||) vs log(||smoothness||) (optimal λ at corner)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">L-Curve: log(||residual||) vs log(||smoothness||) (optimal λ at corner)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.lCurve.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sxLR(p.logRes)} ${syLS(p.logSmooth)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={2} />
 
           {data.lCurve.map((p, i) => (
             <g key={i}>
-              <circle cx={sxLR(p.logRes)} cy={syLS(p.logSmooth)} r={5} fill={p.lambda === lambda ? '#fbbf24' : '#a855f7'} stroke={p.lambda === lambda ? '#ef4444' : 'none'} strokeWidth={2} />
+              <circle cx={sxLR(p.logRes)} cy={syLS(p.logSmooth)} r={5} fill={p.lambda === lambda ? '#fbbf24' : '#a855f7'} stroke={p.lambda === lambda ? '#f6465d' : 'none'} strokeWidth={2} />
               <text x={sxLR(p.logRes)} y={syLS(p.logSmooth) - 8} textAnchor="middle" fill="#94a3b8" fontSize={8}>λ={p.lambda}</text>
             </g>
           ))}
@@ -290,14 +290,14 @@ export default function SobolevSpaceRegularization({ candles, symbol, exchange }
       </div>
 
       {/* Regularization sweep */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Regularization Sweep: Residual vs Smoothness (bias-variance trade-off)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Regularization Sweep: Residual vs Smoothness (bias-variance trade-off)</div>
         <div className="space-y-1">
           {data.sweepResults.map((r, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-16">λ={r.lambda}</span>
-              <div className="flex-1 bg-slate-900  h-3 relative">
-                <div className="h-full " style={{ width: `${Math.min(100, r.residual * 200)}%`, background: '#ef4444' }} />
+              <span className="text-gray-400 w-16">λ={r.lambda}</span>
+              <div className="flex-1 bg-bg-900  h-3 relative">
+                <div className="h-full " style={{ width: `${Math.min(100, r.residual * 200)}%`, background: '#f6465d' }} />
               </div>
               <span className="text-red-400 font-mono w-20">res: {r.residual.toFixed(4)}</span>
               <span className="text-cyan-400 font-mono w-20">H¹: {r.h1Semi.toFixed(4)}</span>
@@ -307,29 +307,29 @@ export default function SobolevSpaceRegularization({ candles, symbol, exchange }
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">||f||_L²</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">||f||_L²</div>
           <div className="text-cyan-400 font-mono">{data.l2Norm.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">|f|_H¹</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">|f|_H¹</div>
           <div className="text-emerald-400 font-mono">{data.h1Semi.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Residual</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Residual</div>
           <div className="text-amber-400 font-mono">{data.residual.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">s (order)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">s (order)</div>
           <div className="text-purple-400 font-mono">{s}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">λ (reg.)</div>
-          <div className="text-slate-300 font-mono">{lambda}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">λ (reg.)</div>
+          <div className="text-gray-300 font-mono">{lambda}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Sobolev:</strong> W^{'{k,p}'} = k weak derivatives in L^p |
         <strong> Tikhonov:</strong> min ||y-f||² + λ||f||²_{'{H^s}'} |

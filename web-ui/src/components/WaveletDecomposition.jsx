@@ -126,7 +126,7 @@ const mraReconstruct = (decomp, originalLength, wavelet = 'haar') => {
     }
 
     while (currentApprox.length < originalLength) currentApprox.push(currentApprox[currentApprox.length - 1] || 0)
-    const colors = ['#f59e0b', '#22c55e', '#ef4444', '#a855f7', '#ec4899']
+    const colors = ['#f0b90b', '#0ecb81', '#f6465d', '#a855f7', '#ec4899']
     components.push({
       name: `D${level + 1}`,
       data: currentApprox.slice(0, originalLength),
@@ -230,7 +230,7 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, levels, wavelet, threshold])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 16 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 16 candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 360, P = 40
@@ -241,12 +241,12 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
   const yScale = (v) => H - P - ((v - minV) / (maxV - minV + 0.001)) * (H - 2 * P)
   const pathData = (arr) => arr.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xScale(i)} ${yScale(v)}`).join(' ')
 
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : data.signal === 'SELL' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Wavelet Decomposition (MRA) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Wavelet Decomposition (MRA) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -254,31 +254,31 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Levels:</span>
-          <input type="number" value={levels} onChange={e => setLevels(Math.max(1, Math.min(8, +e.target.value)))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Levels:</span>
+          <input type="number" value={levels} onChange={e => setLevels(Math.max(1, Math.min(8, +e.target.value)))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Wavelet:</span>
-          <select value={wavelet} onChange={e => setWavelet(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Wavelet:</span>
+          <select value={wavelet} onChange={e => setWavelet(e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             <option value="haar">Haar (D2)</option>
             <option value="db4">Daubechies D4</option>
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Threshold:</span>
-          <input type="number" step="0.01" value={threshold} onChange={e => setThreshold(Math.max(0, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Threshold:</span>
+          <input type="number" step="0.01" value={threshold} onChange={e => setThreshold(Math.max(0, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={showComponents} onChange={e => setShowComponents(e.target.checked)} />
-          <span className="text-slate-400">Show MRA components</span>
+          <span className="text-gray-400">Show MRA components</span>
         </label>
       </div>
 
-      <svg width={W} height={H} className="bg-slate-900  border border-slate-700">
-        <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-        <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <svg width={W} height={H} className="bg-bg-900  border border-bg-600">
+        <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+        <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
-        <path d={pathData(data.prices)} fill="none" stroke="#64748b" strokeWidth={1} opacity={0.3} />
+        <path d={pathData(data.prices)} fill="none" stroke="#848e9c" strokeWidth={1} opacity={0.3} />
         <path d={pathData(data.denoisedSignal)} fill="none" stroke="#06b6d4" strokeWidth={2} />
 
         {showComponents && data.components.map((comp, ci) => (
@@ -286,19 +286,19 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
         ))}
 
         <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={10}>Denoised</text>
-        <text x={W - P} y={34} textAnchor="end" fill="#64748b" fontSize={10}>Original (faded)</text>
+        <text x={W - P} y={34} textAnchor="end" fill="#848e9c" fontSize={10}>Original (faded)</text>
         {showComponents && data.components.map((comp, ci) => (
           <text key={ci} x={W - P} y={48 + ci * 12} textAnchor="end" fill={comp.color} fontSize={9}>{comp.name}</text>
         ))}
       </svg>
 
       {/* Energy distribution */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Energy Distribution by Scale</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Energy Distribution by Scale</div>
         <div className="flex items-end gap-2 h-24">
           {data.energyPct.map((pct, i) => (
             <div key={i} className="flex flex-col items-center flex-1">
-              <div className="text-[10px] text-slate-400 mb-1">{pct.toFixed(1)}%</div>
+              <div className="text-[10px] text-gray-400 mb-1">{pct.toFixed(1)}%</div>
               <div
                 className="w-full rounded-t"
                 style={{
@@ -306,32 +306,32 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
                   background: i === data.energyPct.length - 1 ? '#06b6d4' : `hsl(${30 + i * 40}, 70%, 50%)`
                 }}
               />
-              <div className="text-[10px] text-slate-500 mt-1">{i === data.energyPct.length - 1 ? 'Trend' : `D${i + 1}`}</div>
+              <div className="text-[10px] text-gray-500 mt-1">{i === data.energyPct.length - 1 ? 'Trend' : `D${i + 1}`}</div>
             </div>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">SNR</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">SNR</div>
           <div className="text-cyan-400 font-mono">{data.snr.toFixed(2)} dB</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Price</div>
-          <div className="text-slate-300 font-mono">${data.currentPrice.toFixed(2)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Price</div>
+          <div className="text-gray-300 font-mono">${data.currentPrice.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Denoised</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Denoised</div>
           <div className="text-amber-400 font-mono">${data.denoisedPrice.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Levels</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Levels</div>
           <div className="text-purple-400 font-mono">{levels} ({wavelet})</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason}
       </div>
     </div>

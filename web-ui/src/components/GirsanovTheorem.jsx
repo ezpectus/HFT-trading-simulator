@@ -121,12 +121,12 @@ export default function GirsanovTheorem({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, lookback, windowSize, sigma])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'DRIFT_CHANGE_STRONG' ? '#ef4444' : data.signal === 'DRIFT_CHANGE' ? '#f59e0b' : '#22c55e'
-  const regimeColor = data.regime === 'BULLISH' ? '#22c55e' : data.regime === 'BEARISH' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'DRIFT_CHANGE_STRONG' ? '#f6465d' : data.signal === 'DRIFT_CHANGE' ? '#f0b90b' : '#0ecb81'
+  const regimeColor = data.regime === 'BULLISH' ? '#0ecb81' : data.regime === 'BEARISH' ? '#f6465d' : '#94a3b8'
 
   // Drift trajectory
   const allMu = data.drifts.map(d => d.mu)
@@ -147,7 +147,7 @@ export default function GirsanovTheorem({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Girsanov Theorem (Measure Change) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Girsanov Theorem (Measure Change) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -158,31 +158,31 @@ export default function GirsanovTheorem({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Window:</span>
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(10, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Sigma:</span>
-          <input type="number" step="0.005" value={sigma} onChange={e => setSigma(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Sigma:</span>
+          <input type="number" step="0.005" value={sigma} onChange={e => setSigma(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Drift trajectory */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Sliding Window Drift mu(t) (annualized x252)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Sliding Window Drift mu(t) (annualized x252)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.drifts.map((d, i) => `${i === 0 ? 'M' : 'L'} ${sxMu(i)} ${syMu(d.mu)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
 
           {data.drifts.map((d, i) => (
-            <circle key={i} cx={sxMu(i)} cy={syMu(d.mu)} r={2} fill={d.mu > 0 ? '#22c55e' : '#ef4444'} opacity={0.6} />
+            <circle key={i} cx={sxMu(i)} cy={syMu(d.mu)} r={2} fill={d.mu > 0 ? '#0ecb81' : '#f6465d'} opacity={0.6} />
           ))}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>mu(t) drift estimate</text>
@@ -190,32 +190,32 @@ export default function GirsanovTheorem({ candles, symbol, exchange }) {
       </div>
 
       {/* LLR tests */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Girsanov Log-Likelihood Ratio Test (red = significant drift change, p&lt;0.05)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Girsanov Log-Likelihood Ratio Test (red = significant drift change, p&lt;0.05)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Significance threshold line (chi^2 1df, p=0.05 -> LLR=3.84) */}
-          <line x1={P} y1={syLLR(3.84)} x2={W - P} y2={syLLR(3.84)} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4,3" />
-          <text x={P + 5} y={syLLR(3.84) - 4} fill="#f59e0b" fontSize={9}>p=0.05 (LLR=3.84)</text>
+          <line x1={P} y1={syLLR(3.84)} x2={W - P} y2={syLLR(3.84)} stroke="#f0b90b" strokeWidth={1} strokeDasharray="4,3" />
+          <text x={P + 5} y={syLLR(3.84) - 4} fill="#f0b90b" fontSize={9}>p=0.05 (LLR=3.84)</text>
 
           {data.llrTests.map((t, i) => (
-            <line key={i} x1={sxLLR(i)} y1={H - P} x2={sxLLR(i)} y2={syLLR(t.llr)} stroke={t.significant ? '#ef4444' : '#06b6d4'} strokeWidth={t.significant ? 3 : 1.5} opacity={t.significant ? 1 : 0.5} />
+            <line key={i} x1={sxLLR(i)} y1={H - P} x2={sxLLR(i)} y2={syLLR(t.llr)} stroke={t.significant ? '#f6465d' : '#06b6d4'} strokeWidth={t.significant ? 3 : 1.5} opacity={t.significant ? 1 : 0.5} />
           ))}
 
-          <text x={W - P} y={20} textAnchor="end" fill="#ef4444" fontSize={9}>significant (p&lt;0.05)</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#f6465d" fontSize={9}>significant (p&lt;0.05)</text>
           <text x={W - P} y={34} textAnchor="end" fill="#06b6d4" fontSize={9}>not significant</text>
         </svg>
       </div>
 
       {/* Cumulative LLR */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Cumulative Log-Likelihood Ratio (measure change trajectory dQ/dP)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Cumulative Log-Likelihood Ratio (measure change trajectory dQ/dP)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.cumTrajectory.map((c, i) => `${i === 0 ? 'M' : 'L'} ${sxCum(i)} ${syCum(c.cumLLR)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={2} />
 
@@ -224,29 +224,29 @@ export default function GirsanovTheorem({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Current mu</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Current mu</div>
           <div className="text-cyan-400 font-mono">{data.currentDrift.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Delta mu</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Delta mu</div>
           <div className="text-amber-400 font-mono">{data.driftChange.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">LLR</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">LLR</div>
           <div className="text-purple-400 font-mono">{data.currentLLR.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">p-value</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">p-value</div>
           <div className="text-red-400 font-mono">{data.currentPValue.toExponential(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Regime</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Regime</div>
           <div className="font-mono" style={{ color: regimeColor }}>{data.regime}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Girsanov:</strong> dQ/dP = exp(-int theta dW - 1/2 int theta^2 dt) |
         <strong> Theta:</strong> theta = (mu_P - mu_Q) / sigma (market price of risk) |

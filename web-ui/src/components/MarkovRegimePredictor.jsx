@@ -250,7 +250,7 @@ export default function MarkovRegimePredictor({ candles, symbol, exchange }) {
               {matrix[i].map((prob, j) => {
                 const intensity = Math.min(prob, 1)
                 const opacity = intensity > 0.5 ? 0.7 : intensity > 0.25 ? 0.4 : intensity > 0.1 ? 0.2 : 0.05
-                const textColor = prob > 0.25 ? '#ffffff' : '#64748b'
+                const textColor = prob > 0.25 ? '#ffffff' : '#848e9c'
                 return (
                   <g key={'cell-' + i + '-' + j}>
                     <rect x={16 + j * 13} y={10 + i * 10} width={12} height={9}

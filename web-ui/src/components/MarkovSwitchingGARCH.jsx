@@ -235,12 +235,12 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, lookback, nRegimes])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : '#ef4444'
-  const regimeColors = ['#22c55e', '#ef4444', '#f59e0b', '#a855f7']
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : '#f6465d'
+  const regimeColors = ['#0ecb81', '#f6465d', '#f0b90b', '#a855f7']
 
   const N = data.returns.length
   const sx = (i) => P + (i / N) * (W - 2 * P)
@@ -255,7 +255,7 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Markov-Switching GARCH — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Markov-Switching GARCH — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.currentLabel} → {data.signal}
         </span>
@@ -263,22 +263,22 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Regimes:</span>
-          <input type="number" value={nRegimes} onChange={e => setNRegimes(Math.max(2, Math.min(4, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Regimes:</span>
+          <input type="number" value={nRegimes} onChange={e => setNRegimes(Math.max(2, Math.min(4, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Regime probability */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Smoothed Regime Probabilities (Kim's filter)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={syProb(0.5)} x2={W - P} y2={syProb(0.5)} stroke="#475569" strokeDasharray="3,3" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Smoothed Regime Probabilities (Kim's filter)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={syProb(0.5)} x2={W - P} y2={syProb(0.5)} stroke="#5e6673" strokeDasharray="3,3" />
 
           {Array.from({ length: data.nRegimes }, (_, k) => (
             <g key={k}>
@@ -294,17 +294,17 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
 
           {/* Transition markers */}
           {data.transitions.map((tr, i) => (
-            <line key={i} x1={sx(tr.time)} y1={P} x2={sx(tr.time)} y2={H - P} stroke="#475569" strokeDasharray="2,2" opacity={0.5} />
+            <line key={i} x1={sx(tr.time)} y1={P} x2={sx(tr.time)} y2={H - P} stroke="#5e6673" strokeDasharray="2,2" opacity={0.5} />
           ))}
         </svg>
       </div>
 
       {/* Combined volatility */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Combined Volatility (regime-weighted GARCH)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Combined Volatility (regime-weighted GARCH)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Regime-specific vol */}
           {data.h.map((hArr, k) => (
@@ -322,23 +322,23 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
           />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>Combined vol (annualized)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#475569" fontSize={9}>Dashed = regime-specific</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#5e6673" fontSize={9}>Dashed = regime-specific</text>
         </svg>
       </div>
 
       {/* Transition matrix */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Transition Matrix</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Transition Matrix</div>
         <div className="grid gap-1 text-xs text-center" style={{ gridTemplateColumns: `auto repeat(${data.nRegimes}, 1fr)` }}>
           <div></div>
           {data.regimeLabels.map((label, j) => (
-            <div key={j} className="text-slate-400">{label}</div>
+            <div key={j} className="text-gray-400">{label}</div>
           ))}
           {data.params.transition.map((row, i) => (
             <React.Fragment key={i}>
-              <div className="text-slate-400 text-right pr-2">{data.regimeLabels[i]}</div>
+              <div className="text-gray-400 text-right pr-2">{data.regimeLabels[i]}</div>
               {row.map((p, j) => (
-                <div key={j} className="bg-slate-900  p-1 font-mono" style={{ color: p > 0.5 ? regimeColors[i] : '#64748b' }}>
+                <div key={j} className="bg-bg-900  p-1 font-mono" style={{ color: p > 0.5 ? regimeColors[i] : '#848e9c' }}>
                   {(p * 100).toFixed(1)}%
                 </div>
               ))}
@@ -348,29 +348,29 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Current Regime</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Current Regime</div>
           <div className="font-mono" style={{ color: regimeColors[data.currentRegime] }}>{data.currentLabel}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Regime Prob</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Regime Prob</div>
           <div className="text-cyan-400 font-mono">{(data.currentProb * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Current Vol</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Current Vol</div>
           <div className="text-amber-400 font-mono">{(data.currentVol * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Exp. Duration</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Exp. Duration</div>
           <div className="text-purple-400 font-mono">{data.expectedDuration.toFixed(1)} days</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Transitions</div>
-          <div className="text-slate-300 font-mono">{data.transitions.length}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Transitions</div>
+          <div className="text-gray-300 font-mono">{data.transitions.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Log-Lik:</strong> {data.logLik.toFixed(2)} |
         <strong> Regime vols:</strong> {data.regimeVols.map(v => (v * 100).toFixed(1) + '%').join(', ')}

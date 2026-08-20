@@ -156,11 +156,11 @@ export default function BurgersEquation({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, nu, nSteps, dt, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'SHOCK_FORMATION' ? '#ef4444' : data.signal === 'WEAK_SHOCKS' ? '#f59e0b' : '#22c55e'
+  const sigColor = data.signal === 'SHOCK_FORMATION' ? '#f6465d' : data.signal === 'WEAK_SHOCKS' ? '#f0b90b' : '#0ecb81'
 
   // Solution evolution
   const allU = [...data.u0, ...data.result.finalU, ...data.result.history.flat()]
@@ -177,7 +177,7 @@ export default function BurgersEquation({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Burgers Equation (Shock Formation) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Burgers Equation (Shock Formation) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -185,52 +185,52 @@ export default function BurgersEquation({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">ν (viscosity):</span>
-          <input type="number" step="0.005" value={nu} onChange={e => setNu(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">ν (viscosity):</span>
+          <input type="number" step="0.005" value={nu} onChange={e => setNu(Math.max(0, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Steps:</span>
-          <input type="number" value={nSteps} onChange={e => setNSteps(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Steps:</span>
+          <input type="number" value={nSteps} onChange={e => setNSteps(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Δt:</span>
-          <input type="number" step="0.005" value={dt} onChange={e => setDt(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Δt:</span>
+          <input type="number" step="0.005" value={dt} onChange={e => setDt(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Burgers solution evolution */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Burgers Equation Solution u(x,t): Initial → Final (wave steepening)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Burgers Equation Solution u(x,t): Initial → Final (wave steepening)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Initial */}
           <path d={data.u0.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxX(i)} ${syU(v)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
 
           {/* Intermediate snapshots */}
           {data.result.history.slice(1, -1).map((u, k) => (
-            <path key={k} d={u.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxX(i)} ${syU(v)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={0.5} opacity={0.3} />
+            <path key={k} d={u.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxX(i)} ${syU(v)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={0.5} opacity={0.3} />
           ))}
 
           {/* Final */}
-          <path d={data.result.finalU.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxX(i)} ${syU(v)}`).join(' ')} fill="none" stroke="#ef4444" strokeWidth={2} />
+          <path d={data.result.finalU.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxX(i)} ${syU(v)}`).join(' ')} fill="none" stroke="#f6465d" strokeWidth={2} />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>u(x, 0) initial</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>intermediate</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#ef4444" fontSize={9}>u(x, T) final</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>intermediate</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#f6465d" fontSize={9}>u(x, T) final</text>
         </svg>
       </div>
 
       {/* Spacetime diagram */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Spacetime Diagram (time ↓, space →, color = u)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Spacetime Diagram (time ↓, space →, color = u)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
           {data.result.history.map((u, t) => {
             const cellH = (H - 2 * P) / data.result.history.length
             return u.map((val, i) => {
@@ -239,48 +239,48 @@ export default function BurgersEquation({ candles, symbol, exchange }) {
               return <rect key={`${t}-${i}`} x={P + i * cellW} y={P + t * cellH} width={cellW} height={cellH} fill={`hsl(${240 - intensity * 240}, 80%, ${20 + intensity * 40}%)`} opacity={0.6} />
             })
           })}
-          <text x={W - P} y={20} textAnchor="end" fill="#475569" fontSize={9}>t →</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#5e6673" fontSize={9}>t →</text>
         </svg>
       </div>
 
       {/* Energy decay */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Energy E(t) = (1/2)∫u²dx (dissipation rate)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Energy E(t) = (1/2)∫u²dx (dissipation rate)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
-          <path d={data.energyHistory.map((e, i) => `${i === 0 ? 'M' : 'L'} ${sxE(i)} ${syE(e.energy)}`).join(' ')} fill="none" stroke="#22c55e" strokeWidth={2} />
+          <path d={data.energyHistory.map((e, i) => `${i === 0 ? 'M' : 'L'} ${sxE(i)} ${syE(e.energy)}`).join(' ')} fill="none" stroke="#0ecb81" strokeWidth={2} />
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>E(t) = (1/2)∫u²dx</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>decay: {data.energyDecay.toFixed(1)}%</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>E(t) = (1/2)∫u²dx</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>decay: {data.energyDecay.toFixed(1)}%</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Shocks</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Shocks</div>
           <div className="text-red-400 font-mono">{data.totalShocks}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Max grad</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Max grad</div>
           <div className="text-amber-400 font-mono">{data.maxShockGrad.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Energy decay</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Energy decay</div>
           <div className="text-emerald-400 font-mono">{data.energyDecay.toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">ν (viscosity)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">ν (viscosity)</div>
           <div className="text-cyan-400 font-mono">{nu.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Grid pts</div>
-          <div className="text-slate-300 font-mono">{data.xGrid.length}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Grid pts</div>
+          <div className="text-gray-300 font-mono">{data.xGrid.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> PDE:</strong> ∂u/∂t + u·∂u/∂x = ν·∂²u/∂x² (viscous Burgers) |
         <strong> Inviscid:</strong> ν=0 → shock formation (characteristics cross) |

@@ -286,10 +286,10 @@ export default function BayesianPricePredictor({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, priorStrength, lookback, hazardRate])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 30 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 30 candles for {symbol} on {exchange}</div>
   }
 
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : data.signal === 'SELL' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   // Beta distribution visualization
   const W = 400, H = 120, P = 20
@@ -307,7 +307,7 @@ export default function BayesianPricePredictor({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Bayesian Price Predictor — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Bayesian Price Predictor — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -315,40 +315,40 @@ export default function BayesianPricePredictor({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Prior Strength:</span>
-          <input type="number" value={priorStrength} onChange={e => setPriorStrength(Math.max(1, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Prior Strength:</span>
+          <input type="number" value={priorStrength} onChange={e => setPriorStrength(Math.max(1, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(5, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(5, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Hazard (1/H):</span>
-          <input type="number" value={hazardRate} onChange={e => setHazardRate(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Hazard (1/H):</span>
+          <input type="number" value={hazardRate} onChange={e => setHazardRate(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         {/* Beta-Binomial posterior */}
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-1">Beta-Binomial Posterior: P(price up)</div>
-          <svg width={W} height={H} className="bg-slate-900 ">
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-1">Beta-Binomial Posterior: P(price up)</div>
+          <svg width={W} height={H} className="bg-bg-900 ">
             <path d={betaPath} fill="none" stroke="#06b6d4" strokeWidth={2} />
-            <line x1={P + data.pUp * (W - 2 * P)} y1={P} x2={P + data.pUp * (W - 2 * P)} y2={H - P} stroke="#22c55e" strokeDasharray="3,2" />
-            <line x1={P + data.ciLow * (W - 2 * P)} y1={P} x2={P + data.ciLow * (W - 2 * P)} y2={H - P} stroke="#64748b" strokeDasharray="2,2" />
-            <line x1={P + data.ciHigh * (W - 2 * P)} y1={P} x2={P + data.ciHigh * (W - 2 * P)} y2={H - P} stroke="#64748b" strokeDasharray="2,2" />
+            <line x1={P + data.pUp * (W - 2 * P)} y1={P} x2={P + data.pUp * (W - 2 * P)} y2={H - P} stroke="#0ecb81" strokeDasharray="3,2" />
+            <line x1={P + data.ciLow * (W - 2 * P)} y1={P} x2={P + data.ciLow * (W - 2 * P)} y2={H - P} stroke="#848e9c" strokeDasharray="2,2" />
+            <line x1={P + data.ciHigh * (W - 2 * P)} y1={P} x2={P + data.ciHigh * (W - 2 * P)} y2={H - P} stroke="#848e9c" strokeDasharray="2,2" />
           </svg>
-          <div className="text-xs text-slate-300 mt-1">
+          <div className="text-xs text-gray-300 mt-1">
             P(up) = <span className="text-emerald-400 font-mono">{(data.pUp * 100).toFixed(1)}%</span>
-            <span className="text-slate-500"> | 95% CI: [{(data.ciLow * 100).toFixed(1)}%, {(data.ciHigh * 100).toFixed(1)}%]</span>
+            <span className="text-gray-500"> | 95% CI: [{(data.ciLow * 100).toFixed(1)}%, {(data.ciHigh * 100).toFixed(1)}%]</span>
           </div>
-          <div className="text-xs text-slate-500">α={data.alpha.toFixed(1)}, β={data.beta.toFixed(1)}</div>
+          <div className="text-xs text-gray-500">α={data.alpha.toFixed(1)}, β={data.beta.toFixed(1)}</div>
         </div>
 
         {/* Bayesian Ridge predictions */}
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-1">Bayesian Ridge: Predicted vs Actual Returns</div>
-          <svg width={W} height={H} className="bg-slate-900 ">
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-1">Bayesian Ridge: Predicted vs Actual Returns</div>
+          <svg width={W} height={H} className="bg-bg-900 ">
             {(() => {
               const allVals = [...data.y, ...data.predictions]
               const maxV = Math.max(0.01, ...allVals.map(Math.abs))
@@ -357,47 +357,47 @@ export default function BayesianPricePredictor({ candles, symbol, exchange }) {
               const actualPath = data.y.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xp(i)} ${sc(v)}`).join(' ')
               const predPath = data.predictions.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xp(i)} ${sc(v)}`).join(' ')
               return <>
-                <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-                <path d={actualPath} fill="none" stroke="#64748b" strokeWidth={1} opacity={0.5} />
-                <path d={predPath} fill="none" stroke="#f59e0b" strokeWidth={1.5} />
+                <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+                <path d={actualPath} fill="none" stroke="#848e9c" strokeWidth={1} opacity={0.5} />
+                <path d={predPath} fill="none" stroke="#f0b90b" strokeWidth={1.5} />
               </>
             })()}
           </svg>
-          <div className="text-xs text-slate-300 mt-1">
+          <div className="text-xs text-gray-300 mt-1">
             R² = <span className="text-amber-400 font-mono">{(data.rSquared * 100).toFixed(1)}%</span>
-            <span className="text-slate-500"> | σ = {(data.noiseSigma * 100).toFixed(4)}%</span>
+            <span className="text-gray-500"> | σ = {(data.noiseSigma * 100).toFixed(4)}%</span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Posterior Mean Return</div>
-          <div className="font-mono" style={{ color: data.postMean >= 0 ? '#22c55e' : '#ef4444' }}>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Posterior Mean Return</div>
+          <div className="font-mono" style={{ color: data.postMean >= 0 ? '#0ecb81' : '#f6465d' }}>
             {(data.postMean * 100).toFixed(4)}%
           </div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Next Prediction</div>
-          <div className="font-mono" style={{ color: data.nextPred >= 0 ? '#22c55e' : '#ef4444' }}>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Next Prediction</div>
+          <div className="font-mono" style={{ color: data.nextPred >= 0 ? '#0ecb81' : '#f6465d' }}>
             {(data.nextPred * 100).toFixed(4)}%
           </div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Predicted Price</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Predicted Price</div>
           <div className="text-cyan-400 font-mono">${data.predictedPrice.toFixed(2)}</div>
-          <div className="text-slate-500 text-[10px]">[${data.predictedLow.toFixed(2)}, ${data.predictedHigh.toFixed(2)}]</div>
+          <div className="text-gray-500 text-[10px]">[${data.predictedLow.toFixed(2)}, ${data.predictedHigh.toFixed(2)}]</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Changepoints</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Changepoints</div>
           <div className="text-amber-400 font-mono">{data.changepoints.length} detected</div>
         </div>
       </div>
 
       {/* Regression weights */}
-      <div className="bg-slate-800  p-2 text-xs">
-        <div className="text-slate-400 mb-1">Bayesian Ridge Weights:</div>
-        <div className="flex gap-3 font-mono text-slate-300">
+      <div className="bg-bg-700  p-2 text-xs">
+        <div className="text-gray-400 mb-1">Bayesian Ridge Weights:</div>
+        <div className="flex gap-3 font-mono text-gray-300">
           <span>β₀={data.weights[0]?.toFixed(5)}</span>
           <span>β₁(lag1)={data.weights[1]?.toFixed(5)}</span>
           <span>β₂(lag2)={data.weights[2]?.toFixed(5)}</span>
@@ -406,7 +406,7 @@ export default function BayesianPricePredictor({ candles, symbol, exchange }) {
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.signalReason} | <strong>Current:</strong> ${data.currentPrice.toFixed(2)} → <strong>Predicted:</strong> ${data.predictedPrice.toFixed(2)}
       </div>
     </div>

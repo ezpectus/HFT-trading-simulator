@@ -114,11 +114,11 @@ export default function HeikinAshi({ candles, symbol, exchange }) {
         {renderedCandles.map((c, i) => (
           <g key={i}>
             <line x1={c.wickX} y1={c.wickTop} x2={c.wickX} y2={c.wickBot}
-              stroke={c.isGreen ? '#22c55e' : '#ef4444'} strokeWidth="0.4" />
+              stroke={c.isGreen ? '#0ecb81' : '#f6465d'} strokeWidth="0.4" />
             <rect x={c.x} y={c.y} width={c.w} height={c.h}
-              fill={c.isGreen ? '#22c55e' : '#ef4444'}
+              fill={c.isGreen ? '#0ecb81' : '#f6465d'}
               fillOpacity="0.7"
-              stroke={c.isGreen ? '#22c55e' : '#ef4444'}
+              stroke={c.isGreen ? '#0ecb81' : '#f6465d'}
               strokeWidth="0.2" />
           </g>
         ))}

@@ -169,11 +169,11 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, lookback, eps, b, c, nElements])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'VARIATIONAL_LONG' ? '#22c55e' : data.signal === 'VARIATIONAL_SHORT' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'VARIATIONAL_LONG' ? '#0ecb81' : data.signal === 'VARIATIONAL_SHORT' ? '#f6465d' : '#94a3b8'
 
   // Solution u(x) and forcing f(x)
   const maxU = Math.max(...data.grid.map(g => Math.abs(g.u)), 0.01)
@@ -189,7 +189,7 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Lax-Milgram Theorem (Variational PDE) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Lax-Milgram Theorem (Variational PDE) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -197,33 +197,33 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">eps (diffusion):</span>
-          <input type="number" step="0.005" value={eps} onChange={e => setEps(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">eps (diffusion):</span>
+          <input type="number" step="0.005" value={eps} onChange={e => setEps(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">b (advection):</span>
-          <input type="number" step="0.5" value={b} onChange={e => setB(+e.target.value)} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">b (advection):</span>
+          <input type="number" step="0.5" value={b} onChange={e => setB(+e.target.value)} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">c (reaction):</span>
-          <input type="number" step="0.5" value={c} onChange={e => setC(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">c (reaction):</span>
+          <input type="number" step="0.5" value={c} onChange={e => setC(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Elements:</span>
-          <input type="number" value={nElements} onChange={e => setNElements(Math.max(10, Math.min(100, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Elements:</span>
+          <input type="number" value={nElements} onChange={e => setNElements(Math.max(10, Math.min(100, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Solution and forcing */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Variational Solution u(x): a(u,v) = L(v) (FEM with {nElements} elements)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Variational Solution u(x): a(u,v) = L(v) (FEM with {nElements} elements)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Forcing function */}
-          <path d={data.grid.map((g, i) => `${i === 0 ? 'M' : 'L'} ${sxX(i)} ${syF(g.f)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={1.5} opacity={0.5} />
+          <path d={data.grid.map((g, i) => `${i === 0 ? 'M' : 'L'} ${sxX(i)} ${syF(g.f)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={1.5} opacity={0.5} />
 
           {/* Solution */}
           <path d={data.grid.map((g, i) => `${i === 0 ? 'M' : 'L'} ${sxX(i)} ${syU(g.u)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2.5} />
@@ -232,18 +232,18 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
           <line x1={sxX(Math.floor((data.currentReturn - data.meanR) / (4 * data.stdR + 0.001) * data.grid.length / 2 + data.grid.length / 2))} y1={P} x2={sxX(Math.floor((data.currentReturn - data.meanR) / (4 * data.stdR + 0.001) * data.grid.length / 2 + data.grid.length / 2))} y2={H - P} stroke="#fbbf24" strokeWidth={1} strokeDasharray="3,3" />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>u(x) variational solution</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>f(x) forcing function</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>f(x) forcing function</text>
           <text x={W - P} y={48} textAnchor="end" fill="#fbbf24" fontSize={9}>current position</text>
         </svg>
       </div>
 
       {/* Epsilon sweep */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Solution Family for Varying eps (diffusion coefficient): regularized solutions</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Solution Family for Varying eps (diffusion coefficient): regularized solutions</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.epsSweep.map((s, i) => (
             <path key={i} d={s.u.map((v, j) => `${j === 0 ? 'M' : 'L'} ${sxX(j)} ${syUS(v)}`).join(' ')} fill="none" stroke={`hsl(${200 + i * 30}, 70%, 60%)`} strokeWidth={1.5} opacity={0.7} />
@@ -256,48 +256,48 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
       </div>
 
       {/* Lax-Milgram conditions */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Lax-Milgram Conditions</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Lax-Milgram Conditions</div>
         <div className="space-y-1 text-xs">
           <div className="flex items-center gap-3">
-            <span className="text-slate-400 w-32">Coercivity (alpha):</span>
-            <span className="font-mono" style={{ color: data.isCoercive ? '#22c55e' : '#ef4444' }}>{data.solution.alpha.toFixed(6)} {data.isCoercive ? '(OK)' : '(FAIL)'}</span>
+            <span className="text-gray-400 w-32">Coercivity (alpha):</span>
+            <span className="font-mono" style={{ color: data.isCoercive ? '#0ecb81' : '#f6465d' }}>{data.solution.alpha.toFixed(6)} {data.isCoercive ? '(OK)' : '(FAIL)'}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-slate-400 w-32">Boundedness (C):</span>
-            <span className="font-mono" style={{ color: data.isBounded ? '#22c55e' : '#ef4444' }}>{data.solution.C.toFixed(6)} {data.isBounded ? '(OK)' : '(FAIL)'}</span>
+            <span className="text-gray-400 w-32">Boundedness (C):</span>
+            <span className="font-mono" style={{ color: data.isBounded ? '#0ecb81' : '#f6465d' }}>{data.solution.C.toFixed(6)} {data.isBounded ? '(OK)' : '(FAIL)'}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-slate-400 w-32">Lax-Milgram:</span>
-            <span className="font-mono" style={{ color: data.laxMilgramApplies ? '#22c55e' : '#ef4444' }}>{data.laxMilgramApplies ? 'APPLIES (unique solution exists)' : 'FAILS'}</span>
+            <span className="text-gray-400 w-32">Lax-Milgram:</span>
+            <span className="font-mono" style={{ color: data.laxMilgramApplies ? '#0ecb81' : '#f6465d' }}>{data.laxMilgramApplies ? 'APPLIES (unique solution exists)' : 'FAILS'}</span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">u(x_current)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">u(x_current)</div>
           <div className="text-cyan-400 font-mono">{data.uAtCurrent.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">alpha (coerc.)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">alpha (coerc.)</div>
           <div className="text-emerald-400 font-mono">{data.solution.alpha.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">C (bound)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">C (bound)</div>
           <div className="text-amber-400 font-mono">{data.solution.C.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">h (mesh)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">h (mesh)</div>
           <div className="text-purple-400 font-mono">{data.solution.h.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Elements</div>
-          <div className="text-slate-300 font-mono">{nElements}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Elements</div>
+          <div className="text-gray-300 font-mono">{nElements}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Lax-Milgram:</strong> a(u,v)=L(v) has unique solution iff a is bounded + coercive |
         <strong> Bilinear:</strong> a(u,v) = eps*int(u'v') + b*int(u'v) + c*int(uv) |

@@ -214,11 +214,11 @@ export default function SchrodingerBridge({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, nBins, epsilon, windowSize, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'DISTRIBUTION_SHIFT_UP' ? '#22c55e' : data.signal === 'DISTRIBUTION_SHIFT_DOWN' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'DISTRIBUTION_SHIFT_UP' ? '#0ecb81' : data.signal === 'DISTRIBUTION_SHIFT_DOWN' ? '#f6465d' : '#94a3b8'
 
   // Transport plan heatmap
   const maxPlan = Math.max(...data.result.plan.flat(), 0.001)
@@ -236,7 +236,7 @@ export default function SchrodingerBridge({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Schrödinger Bridge (Entropy-Regularized OT) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Schrödinger Bridge (Entropy-Regularized OT) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -245,27 +245,27 @@ export default function SchrodingerBridge({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Bins:</span>
-          <input type="number" value={nBins} onChange={e => setNBins(Math.max(4, Math.min(20, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Bins:</span>
+          <input type="number" value={nBins} onChange={e => setNBins(Math.max(4, Math.min(20, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">ε (entropy):</span>
-          <input type="number" step="0.01" value={epsilon} onChange={e => setEpsilon(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">ε (entropy):</span>
+          <input type="number" step="0.01" value={epsilon} onChange={e => setEpsilon(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Window:</span>
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(10, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Transport plan heatmap */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Transport Plan π* (Sinkhorn, ε={epsilon})</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Transport Plan π* (Sinkhorn, ε={epsilon})</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
           {data.result.plan.map((row, i) =>
             row.map((v, j) => {
               const intensity = v / maxPlan
@@ -274,42 +274,42 @@ export default function SchrodingerBridge({ candles, symbol, exchange }) {
               return <rect key={`${i}-${j}`} x={P + j * cellW} y={P + i * cellH} width={cellW - 0.5} height={cellH - 0.5} fill={`hsl(${240 - intensity * 240}, 80%, ${20 + intensity * 40}%)`} opacity={0.8} />
             })
           )}
-          <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={9}>Current →</text>
-          <text x={5} y={P + 10} fill="#475569" fontSize={9}>Past ↓</text>
+          <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={9}>Current →</text>
+          <text x={5} y={P + 10} fill="#5e6673" fontSize={9}>Past ↓</text>
         </svg>
       </div>
 
       {/* Distribution comparison */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Source (past) vs Target (current) Return Distributions</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Source (past) vs Target (current) Return Distributions</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.pastDist.probs.map((p, i) => (
             <rect key={`p-${i}`} x={sxDist(i)} y={syDist(p)} width={(W - 2 * P) / data.nBins - 1} height={H - P - syDist(p)} fill="#06b6d4" opacity={0.5} />
           ))}
           {data.currentDist.probs.map((p, i) => (
-            <rect key={`c-${i}`} x={sxDist(i)} y={syDist(p)} width={(W - 2 * P) / data.nBins - 1} height={H - P - syDist(p)} fill="#f59e0b" opacity={0.5} />
+            <rect key={`c-${i}`} x={sxDist(i)} y={syDist(p)} width={(W - 2 * P) / data.nBins - 1} height={H - P - syDist(p)} fill="#f0b90b" opacity={0.5} />
           ))}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>Past</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>Current</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>Current</text>
         </svg>
       </div>
 
       {/* Barycentric mapping (transport arrows) */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Barycentric Transport Map (where each bin moves to)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Barycentric Transport Map (where each bin moves to)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.barycentric.map((b, i) => {
             const x1 = P + ((b.source - data.pastDist.min) / (data.pastDist.max - data.pastDist.min + 0.001)) * (W - 2 * P)
             const x2 = P + ((b.target - data.pastDist.min) / (data.pastDist.max - data.pastDist.min + 0.001)) * (W - 2 * P)
             const y = H - P - b.prob / maxProb * (H - 2 * P)
-            const color = b.target > b.source ? '#22c55e' : b.target < b.source ? '#ef4444' : '#94a3b8'
+            const color = b.target > b.source ? '#0ecb81' : b.target < b.source ? '#f6465d' : '#94a3b8'
             return (
               <g key={i}>
                 <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth={2} markerEnd="url(#arrowhead)" />
@@ -328,46 +328,46 @@ export default function SchrodingerBridge({ candles, symbol, exchange }) {
       </div>
 
       {/* Sliding window displacements */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Sliding Window: Transport Displacement Over Time</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Sliding Window: Transport Displacement Over Time</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.slidingResults.map((s, i) => (
-            <line key={i} x1={sxSlide(i)} y1={H / 2} x2={sxSlide(i)} y2={sySlide(s.displacement)} stroke={s.displacement > 0 ? '#22c55e' : '#ef4444'} strokeWidth={2} opacity={0.7} />
+            <line key={i} x1={sxSlide(i)} y1={H / 2} x2={sxSlide(i)} y2={sySlide(s.displacement)} stroke={s.displacement > 0 ? '#0ecb81' : '#f6465d'} strokeWidth={2} opacity={0.7} />
           ))}
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>Shift up</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#ef4444" fontSize={9}>Shift down</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>Shift up</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f6465d" fontSize={9}>Shift down</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Wasserstein W₂</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Wasserstein W₂</div>
           <div className="text-cyan-400 font-mono">{data.wasserstein.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Transport cost</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Transport cost</div>
           <div className="text-emerald-400 font-mono">{data.result.cost.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Entropy H(π)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Entropy H(π)</div>
           <div className="text-amber-400 font-mono">{data.result.entropy.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Displacement</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Displacement</div>
           <div className="text-purple-400 font-mono">{data.weightedDisplacement.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Sinkhorn iters</div>
-          <div className="text-slate-300 font-mono">{data.result.errors.length}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Sinkhorn iters</div>
+          <div className="text-gray-300 font-mono">{data.result.errors.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Bridge:</strong> π* = argmin KL(π||π₀) s.t. marginals = p₀, p₁ |
         <strong> Sinkhorn:</strong> u=p/(Kv), v=q/(Kᵀu), K=exp(-C/ε) |

@@ -184,11 +184,11 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, windowSize, dtwWindow, selectedTemplate, scanAll])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 40 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 40 candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 280, P = 30
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : data.signal === 'SELL' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   // Chart: current window vs best match template
   const allVals = [...data.currentNorm]
@@ -201,7 +201,7 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Dynamic Time Warping — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Dynamic Time Warping — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -209,21 +209,21 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Window size:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Window size:</span>
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">DTW band:</span>
-          <input type="number" value={dtwWindow} onChange={e => setDtwWindow(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">DTW band:</span>
+          <input type="number" value={dtwWindow} onChange={e => setDtwWindow(Math.max(1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={scanAll} onChange={e => setScanAll(e.target.checked)} />
-          <span className="text-slate-400">Scan all patterns</span>
+          <span className="text-gray-400">Scan all patterns</span>
         </label>
         {!scanAll && (
           <label className="flex items-center gap-1">
-            <span className="text-slate-400">Template:</span>
-            <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+            <span className="text-gray-400">Template:</span>
+            <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
               {Object.keys(TEMPLATES).map(name => (
                 <option key={name} value={name}>{name}</option>
               ))}
@@ -233,12 +233,12 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
       </div>
 
       {/* Current window vs best match */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">
           {scanAll ? `Current Window vs Best Pattern: ${data.bestMatch?.name}` : `Best Historical Match for ${selectedTemplate}`}
         </div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" strokeDasharray="3,2" />
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" strokeDasharray="3,2" />
 
           {/* Current window */}
           <path
@@ -250,13 +250,13 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
           {data.bestMatch?.template && (
             <path
               d={data.bestMatch.template.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sx(i, data.bestMatch.template.length)} ${sy(v)}`).join(' ')}
-              fill="none" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4,3"
+              fill="none" stroke="#f0b90b" strokeWidth={2} strokeDasharray="4,3"
             />
           )}
           {data.bestMatch?.data && (
             <path
               d={data.bestMatch.data.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sx(i, data.bestMatch.data.length)} ${sy(v)}`).join(' ')}
-              fill="none" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4,3"
+              fill="none" stroke="#f0b90b" strokeWidth={2} strokeDasharray="4,3"
             />
           )}
 
@@ -268,37 +268,37 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
               <line key={k}
                 x1={sx(i, len1)} y1={sy(data.currentNorm[i])}
                 x2={sx(j, len2)} y2={sy(data.bestMatch.template?.[j] ?? data.bestMatch.data?.[j] ?? 0)}
-                stroke="#475569" strokeWidth={0.5} opacity={0.3}
+                stroke="#5e6673" strokeWidth={0.5} opacity={0.3}
               />
             ))
           })()}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={10}>Current window</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={10}>Best match (dashed)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={10}>Best match (dashed)</text>
         </svg>
       </div>
 
       {/* Results ranking */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">
           {scanAll ? 'Pattern Matching Results (all templates)' : `Top 5 Historical Matches for ${selectedTemplate}`}
         </div>
         <div className="space-y-1 max-h-40 overflow-auto">
           {data.results.slice(0, 10).map((r, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-500 w-4">{i + 1}</span>
-              <span className="text-slate-300 w-32">{r.name}</span>
-              <div className="flex-1 bg-slate-900  h-3">
+              <span className="text-gray-500 w-4">{i + 1}</span>
+              <span className="text-gray-300 w-32">{r.name}</span>
+              <div className="flex-1 bg-bg-900  h-3">
                 <div
                   className="h-full "
                   style={{
                     width: `${r.similarity * 100}%`,
-                    background: i === 0 ? '#22c55e' : `hsl(${200 + i * 20}, 60%, 50%)`
+                    background: i === 0 ? '#0ecb81' : `hsl(${200 + i * 20}, 60%, 50%)`
                   }}
                 />
               </div>
-              <span className="text-slate-400 font-mono w-20">d={r.distance.toFixed(4)}</span>
-              <span className="text-slate-400 font-mono w-20">s={r.similarity.toFixed(4)}</span>
+              <span className="text-gray-400 font-mono w-20">d={r.distance.toFixed(4)}</span>
+              <span className="text-gray-400 font-mono w-20">s={r.similarity.toFixed(4)}</span>
             </div>
           ))}
         </div>
@@ -306,37 +306,37 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
 
       {/* Forward projection */}
       {data.projection && (
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-1">Forward Projection (10 candles after best match)</div>
-          <svg width={W} height={80} className="bg-slate-900 ">
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-1">Forward Projection (10 candles after best match)</div>
+          <svg width={W} height={80} className="bg-bg-900 ">
             <path
               d={data.projection.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sx(i, data.projection.length)} ${40 - v * 0.5}`).join(' ')}
-              fill="none" stroke="#22c55e" strokeWidth={2}
+              fill="none" stroke="#0ecb81" strokeWidth={2}
             />
           </svg>
         </div>
       )}
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Best Match</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Best Match</div>
           <div className="text-cyan-400 font-mono text-[10px]">{data.bestMatch?.name || 'N/A'}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">DTW Distance</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">DTW Distance</div>
           <div className="text-amber-400 font-mono">{data.bestMatch?.distance.toFixed(4) || 'N/A'}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Similarity</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Similarity</div>
           <div className="text-emerald-400 font-mono">{data.bestMatch?.similarity.toFixed(4) || 'N/A'}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Patterns</div>
-          <div className="text-slate-300 font-mono">{data.results.length}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Patterns</div>
+          <div className="text-gray-300 font-mono">{data.results.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> DTW band:</strong> ±{dtwWindow} |
         <strong> Window:</strong> {windowSize} candles

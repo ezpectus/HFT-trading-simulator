@@ -174,7 +174,7 @@ export default function DeltaDivergence({ candles, fills, symbol, exchange }) {
       {/* Price vs Cumulative Delta chart */}
       <svg viewBox="0 0 100 100" className="w-full h-[45px]" preserveAspectRatio="none">
         <path d={pricePath} fill="none" stroke="#e2e8f0" strokeWidth="0.8" />
-        <path d={deltaPath} fill="none" stroke="#eab308" strokeWidth="1.2" strokeDasharray="1 1" />
+        <path d={deltaPath} fill="none" stroke="#f0b90b" strokeWidth="1.2" strokeDasharray="1 1" />
       </svg>
       <div className="flex items-center justify-between mt-0.5 text-[7px]">
         <div className="flex items-center gap-1">

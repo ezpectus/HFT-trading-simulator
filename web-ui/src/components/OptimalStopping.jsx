@@ -271,46 +271,46 @@ export default function OptimalStopping({ candles, symbol, exchange, currentPric
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Optimal Stopping (Snell Envelope) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Optimal Stopping (Snell Envelope) — {symbol}</span>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Strike:</span>
-          <input type="number" value={strike} onChange={e => setStrike(Math.max(0.01, +e.target.value))} className="w-20 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Strike:</span>
+          <input type="number" value={strike} onChange={e => setStrike(Math.max(0.01, +e.target.value))} className="w-20 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">T (days):</span>
-          <input type="number" value={Math.round(T * 365)} onChange={e => setT(Math.max(1, +e.target.value) / 365)} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">T (days):</span>
+          <input type="number" value={Math.round(T * 365)} onChange={e => setT(Math.max(1, +e.target.value) / 365)} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">r:</span>
-          <input type="number" step="0.01" value={r} onChange={e => setR(+e.target.value)} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">r:</span>
+          <input type="number" step="0.01" value={r} onChange={e => setR(+e.target.value)} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">σ (est: {estSigma.toFixed(3)}):</span>
-          <input type="number" step="0.01" value={sigma} onChange={e => setSigma(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">σ (est: {estSigma.toFixed(3)}):</span>
+          <input type="number" step="0.01" value={sigma} onChange={e => setSigma(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Steps:</span>
-          <input type="number" value={nSteps} onChange={e => setNSteps(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Steps:</span>
+          <input type="number" value={nSteps} onChange={e => setNSteps(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Paths:</span>
-          <input type="number" value={nPaths} onChange={e => setNPaths(Math.max(100, +e.target.value))} className="w-20 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Paths:</span>
+          <input type="number" value={nPaths} onChange={e => setNPaths(Math.max(100, +e.target.value))} className="w-20 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={isCall} onChange={e => setIsCall(e.target.checked)} />
-          <span className="text-slate-400">{isCall ? 'Call' : 'Put'}</span>
+          <span className="text-gray-400">{isCall ? 'Call' : 'Put'}</span>
         </label>
       </div>
 
       {/* Exercise boundary */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Optimal Exercise Boundary (Binomial Tree)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Optimal Exercise Boundary (Binomial Tree)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Exercise region */}
           {boundaryData.map((d, i) => {
@@ -324,7 +324,7 @@ export default function OptimalStopping({ candles, symbol, exchange, currentPric
                 y1={isCall ? sy(prev.price) : H - P}
                 x2={sx(d.step)}
                 y2={isCall ? sy(d.price) : H - P}
-                stroke="#ef4444"
+                stroke="#f6465d"
                 strokeWidth={2}
               />
             )
@@ -332,53 +332,53 @@ export default function OptimalStopping({ candles, symbol, exchange, currentPric
 
           {/* Stock price line */}
           <line x1={P} y1={sy(S0)} x2={W - P} y2={sy(S0)} stroke="#06b6d4" strokeDasharray="4,3" strokeWidth={1.5} />
-          <line x1={P} y1={sy(strike)} x2={W - P} y2={sy(strike)} stroke="#f59e0b" strokeDasharray="4,3" strokeWidth={1.5} />
+          <line x1={P} y1={sy(strike)} x2={W - P} y2={sy(strike)} stroke="#f0b90b" strokeDasharray="4,3" strokeWidth={1.5} />
 
-          <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={10}>Time steps</text>
-          <text x={5} y={P + 10} fill="#475569" fontSize={10}>Stock price</text>
-          <text x={W - P} y={20} textAnchor="end" fill="#ef4444" fontSize={10}>Exercise boundary</text>
+          <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={10}>Time steps</text>
+          <text x={5} y={P + 10} fill="#5e6673" fontSize={10}>Stock price</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#f6465d" fontSize={10}>Exercise boundary</text>
           <text x={W - P} y={34} textAnchor="end" fill="#06b6d4" fontSize={10}>S₀ = ${S0.toFixed(2)}</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#f59e0b" fontSize={10}>K = ${strike.toFixed(2)}</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#f0b90b" fontSize={10}>K = ${strike.toFixed(2)}</text>
         </svg>
       </div>
 
       {/* Exercise probability (LSM) */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Exercise Probability by Time (Longstaff-Schwartz MC)</div>
-        <svg width={W} height={120} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Exercise Probability by Time (Longstaff-Schwartz MC)</div>
+        <svg width={W} height={120} className="bg-bg-900 ">
           {lsm.exerciseProb.map((prob, t) => {
             const x = P + (t / nSteps) * (W - 2 * P)
             const w = (W - 2 * P) / nSteps
             const h = (prob / maxProb) * 80
-            return <rect key={t} x={x} y={100 - h} width={Math.max(1, w - 1)} height={h} fill="#22c55e" opacity={0.6} />
+            return <rect key={t} x={x} y={100 - h} width={Math.max(1, w - 1)} height={h} fill="#0ecb81" opacity={0.6} />
           })}
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Binomial Price</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Binomial Price</div>
           <div className="text-cyan-400 font-mono">${binomial.price.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">LSM Price</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">LSM Price</div>
           <div className="text-emerald-400 font-mono">${lsm.price.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">European</div>
-          <div className="text-slate-300 font-mono">${lsm.euroPrice.toFixed(4)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">European</div>
+          <div className="text-gray-300 font-mono">${lsm.euroPrice.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Early Ex. Premium</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Early Ex. Premium</div>
           <div className="text-amber-400 font-mono">${lsm.earlyExercisePremium.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Intrinsic</div>
-          <div className="text-slate-300 font-mono">${Math.max(0, isCall ? S0 - strike : strike - S0).toFixed(4)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Intrinsic</div>
+          <div className="text-gray-300 font-mono">${Math.max(0, isCall ? S0 - strike : strike - S0).toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Model:</strong> Binomial ({nSteps} steps) vs LSM ({nPaths.toLocaleString()} paths) |
         <strong> σ:</strong> {sigma.toFixed(4)} (est: {estSigma.toFixed(4)}) |
         <strong> moneyness:</strong> {(S0 / strike).toFixed(4)} ({S0 > strike ? (isCall ? 'ITM' : 'OTM') : (isCall ? 'OTM' : 'ITM')})

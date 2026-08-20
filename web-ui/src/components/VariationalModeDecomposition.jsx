@@ -275,12 +275,12 @@ export default function VariationalModeDecomposition({ candles, symbol, exchange
   }, [candles, exchange, symbol, K, alpha, maxIter])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 32 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 32 candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 280, P = 30
-  const colors = ['#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
-  const sigColor = data.sigDir === 'BUY' ? '#22c55e' : data.sigDir === 'SELL' ? '#ef4444' : '#94a3b8'
+  const colors = ['#06b6d4', '#0ecb81', '#f0b90b', '#f6465d', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
+  const sigColor = data.sigDir === 'BUY' ? '#0ecb81' : data.sigDir === 'SELL' ? '#f6465d' : '#94a3b8'
 
   // Y-scale for all modes (shared)
   const allModeVals = data.modes.flatMap(m => m.signal)
@@ -291,7 +291,7 @@ export default function VariationalModeDecomposition({ candles, symbol, exchange
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Variational Mode Decomposition (VMD) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Variational Mode Decomposition (VMD) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.sigDir}
         </span>
@@ -299,39 +299,39 @@ export default function VariationalModeDecomposition({ candles, symbol, exchange
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">K (modes):</span>
-          <input type="number" value={K} onChange={e => setK(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">K (modes):</span>
+          <input type="number" value={K} onChange={e => setK(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">α (bandwidth):</span>
-          <input type="number" value={alpha} onChange={e => setAlpha(Math.max(100, +e.target.value))} className="w-20 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">α (bandwidth):</span>
+          <input type="number" value={alpha} onChange={e => setAlpha(Math.max(100, +e.target.value))} className="w-20 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max iter:</span>
-          <input type="number" value={maxIter} onChange={e => setMaxIter(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max iter:</span>
+          <input type="number" value={maxIter} onChange={e => setMaxIter(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Original signal */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Original Signal (detrended)</div>
-        <svg width={W} height={100} className="bg-slate-900 ">
-          <line x1={P} y1={50} x2={W - P} y2={50} stroke="#334155" strokeDasharray="3,2" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Original Signal (detrended)</div>
+        <svg width={W} height={100} className="bg-bg-900 ">
+          <line x1={P} y1={50} x2={W - P} y2={50} stroke="#1e2530" strokeDasharray="3,2" />
           <path
             d={data.signal.map((v, i) => {
               const y = 50 - ((v - data.mean) / (Math.max(...data.signal) - Math.min(...data.signal) + 0.001)) * 35
               return `${i === 0 ? 'M' : 'L'} ${sx(i)} ${y}`
             }).join(' ')}
-            fill="none" stroke="#64748b" strokeWidth={1.5}
+            fill="none" stroke="#848e9c" strokeWidth={1.5}
           />
         </svg>
       </div>
 
       {/* Decomposed modes */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Decomposed Modes (VMF 1-{K})</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" strokeDasharray="3,2" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Decomposed Modes (VMF 1-{K})</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" strokeDasharray="3,2" />
           {data.modes.map((mode, k) => {
             const path = mode.signal.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sx(i)} ${sy(v)}`).join(' ')
             return (
@@ -347,12 +347,12 @@ export default function VariationalModeDecomposition({ candles, symbol, exchange
       </div>
 
       {/* Energy distribution */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Mode Energy Distribution</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Mode Energy Distribution</div>
         <div className="flex items-end gap-3 h-20">
           {data.modes.map((mode, k) => (
             <div key={k} className="flex flex-col items-center flex-1">
-              <div className="text-[10px] text-slate-400 mb-1">{data.energyPct[k].toFixed(1)}%</div>
+              <div className="text-[10px] text-gray-400 mb-1">{data.energyPct[k].toFixed(1)}%</div>
               <div
                 className="w-full rounded-t"
                 style={{
@@ -360,17 +360,17 @@ export default function VariationalModeDecomposition({ candles, symbol, exchange
                   background: colors[k % colors.length]
                 }}
               />
-              <div className="text-[10px] text-slate-500 mt-1">VMF{k + 1}</div>
-              <div className="text-[10px] text-slate-600">{mode.centerFreq.toFixed(3)}</div>
+              <div className="text-[10px] text-gray-500 mt-1">VMF{k + 1}</div>
+              <div className="text-[10px] text-gray-600">{mode.centerFreq.toFixed(3)}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Center frequency convergence */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Center Frequency Convergence (ADMM)</div>
-        <svg width={W} height={80} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Center Frequency Convergence (ADMM)</div>
+        <svg width={W} height={80} className="bg-bg-900 ">
           {data.centerFreqs.map((_, k) => {
             const history = data.omegaHistory.map(h => h[k] || 0)
             const maxF = Math.max(...history, 0.5)
@@ -381,25 +381,25 @@ export default function VariationalModeDecomposition({ candles, symbol, exchange
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Iterations</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Iterations</div>
           <div className="text-cyan-400 font-mono">{data.nIter}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Dominant Mode</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Dominant Mode</div>
           <div className="text-emerald-400 font-mono">VMF{data.dominantMode + 1}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Trend Mode</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Trend Mode</div>
           <div className="text-amber-400 font-mono">VMF{data.trendIdx + 1}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Residual Energy</div>
-          <div className="text-slate-300 font-mono">{(data.residual.reduce((s, v) => s + v * v, 0) / data.N).toFixed(6)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Residual Energy</div>
+          <div className="text-gray-300 font-mono">{(data.residual.reduce((s, v) => s + v * v, 0) / data.N).toFixed(6)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason}
       </div>
     </div>

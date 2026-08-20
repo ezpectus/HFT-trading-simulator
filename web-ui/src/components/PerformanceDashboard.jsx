@@ -23,11 +23,11 @@ function exportPDF(accounts, metrics, allTrades, sharpe, sortino) {
     <tr>
       <td>${escapeHtml(t.symbol)}</td>
       <td>${escapeHtml(t.exchange)}</td>
-      <td style="color:${t.side === 'BUY' ? '#22c55e' : '#ef4444'}">${escapeHtml(t.side)}</td>
+      <td style="color:${t.side === 'BUY' ? '#0ecb81' : '#f6465d'}">${escapeHtml(t.side)}</td>
       <td>$${(t.entry_price || 0).toFixed(2)}</td>
       <td>$${(t.exit_price || 0).toFixed(2)}</td>
       <td>${t.quantity || 0}</td>
-      <td style="color:${(t.pnl || 0) >= 0 ? '#22c55e' : '#ef4444'}">${(t.pnl || 0) >= 0 ? '+' : ''}$${(t.pnl || 0).toFixed(2)}</td>
+      <td style="color:${(t.pnl || 0) >= 0 ? '#0ecb81' : '#f6465d'}">${(t.pnl || 0) >= 0 ? '+' : ''}$${(t.pnl || 0).toFixed(2)}</td>
       <td>${escapeHtml(t.reason) || 'MANUAL'}</td>
     </tr>
   `).join('')
@@ -43,19 +43,19 @@ function exportPDF(accounts, metrics, allTrades, sharpe, sortino) {
         h2 { color: #8b95a7; font-size: 14px; text-transform: uppercase; margin-top: 30px; }
         .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
         .card { background: #161b26; border-radius: 8px; padding: 15px; }
-        .card .label { font-size: 11px; color: #64748b; text-transform: uppercase; }
+        .card .label { font-size: 11px; color: #848e9c; text-transform: uppercase; }
         .card .value { font-size: 22px; font-weight: bold; margin-top: 5px; }
-        .green { color: #22c55e; } .red { color: #ef4444; }
+        .green { color: #0ecb81; } .red { color: #f6465d; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-        th { text-align: left; color: #64748b; border-bottom: 1px solid #1e2433; padding: 8px; }
+        th { text-align: left; color: #848e9c; border-bottom: 1px solid #1e2433; padding: 8px; }
         td { border-bottom: 1px solid #161b26; padding: 6px 8px; }
-        .footer { margin-top: 30px; color: #475569; font-size: 11px; text-align: center; }
+        .footer { margin-top: 30px; color: #5e6673; font-size: 11px; text-align: center; }
         @media print { body { padding: 20px; } }
       </style>
     </head>
     <body>
       <h1>Trading Sim — Performance Report</h1>
-      <p style="color:#64748b">Generated: ${new Date().toLocaleString()}</p>
+      <p style="color:#848e9c">Generated: ${new Date().toLocaleString()}</p>
 
       <div class="summary">
         <div class="card"><div class="label">Total Balance</div><div class="value green">$${totalBalance.toFixed(2)}</div></div>

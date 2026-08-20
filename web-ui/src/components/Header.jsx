@@ -47,7 +47,7 @@ export default function Header({
       {/* Skip link for keyboard users */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-3 focus:py-1.5 focus:bg-accent-blue focus:text-white focus: focus:text-sm"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-3 focus:py-1.5 focus:bg-accent-blue focus:text-white focus:text-sm"
       >
         Skip to main content
       </a>

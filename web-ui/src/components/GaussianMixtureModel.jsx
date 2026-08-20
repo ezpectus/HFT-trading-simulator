@@ -214,12 +214,12 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, maxK, lookback, autoK])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : data.signal === 'SELL' ? '#ef4444' : '#94a3b8'
-  const regimeColors = ['#22c55e', '#ef4444', '#f59e0b', '#a855f7', '#06b6d4']
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
+  const regimeColors = ['#0ecb81', '#f6465d', '#f0b90b', '#a855f7', '#06b6d4']
 
   // Histogram + GMM density
   const maxHist = Math.max(...data.histProbs, ...data.gmmDensity.map(d => d.density), 0.001)
@@ -236,7 +236,7 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Gaussian Mixture Model (EM) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Gaussian Mixture Model (EM) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.currentLabel} → {data.signal}
         </span>
@@ -244,29 +244,29 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max K:</span>
-          <input type="number" value={maxK} onChange={e => setMaxK(Math.max(1, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max K:</span>
+          <input type="number" value={maxK} onChange={e => setMaxK(Math.max(1, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={autoK} onChange={e => setAutoK(e.target.checked)} />
-          <span className="text-slate-400">Auto-select K (BIC)</span>
+          <span className="text-gray-400">Auto-select K (BIC)</span>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Histogram + GMM density */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Return Distribution + GMM Fit (K={data.bestModel.k})</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Return Distribution + GMM Fit (K={data.bestModel.k})</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Histogram */}
           {data.histProbs.map((p, i) => (
-            <rect key={i} x={sxH(i)} y={syH(p)} width={(W - 2 * P) / data.nBins - 1} height={H - P - syH(p)} fill="#475569" opacity={0.4} />
+            <rect key={i} x={sxH(i)} y={syH(p)} width={(W - 2 * P) / data.nBins - 1} height={H - P - syH(p)} fill="#5e6673" opacity={0.4} />
           ))}
 
           {/* GMM density */}
@@ -291,21 +291,21 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
           })}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>GMM density</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#475569" fontSize={9}>Histogram</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#5e6673" fontSize={9}>Histogram</text>
         </svg>
       </div>
 
       {/* BIC/AIC model selection */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Model Selection: BIC / AIC vs K</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Model Selection: BIC / AIC vs K</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.models.map((m, i) => (
             <g key={i}>
-              <circle cx={sxBIC(m.k)} cy={syBIC(m.bic)} r={m.k === data.bestModel.k ? 6 : 3} fill={m.k === data.bestModel.k ? '#22c55e' : '#06b6d4'} />
-              <circle cx={sxBIC(m.k)} cy={syBIC(m.aic)} r={m.k === data.bestModel.k ? 6 : 3} fill={m.k === data.bestModel.k ? '#f59e0b' : '#a855f7'} opacity={0.6} />
+              <circle cx={sxBIC(m.k)} cy={syBIC(m.bic)} r={m.k === data.bestModel.k ? 6 : 3} fill={m.k === data.bestModel.k ? '#0ecb81' : '#06b6d4'} />
+              <circle cx={sxBIC(m.k)} cy={syBIC(m.aic)} r={m.k === data.bestModel.k ? 6 : 3} fill={m.k === data.bestModel.k ? '#f0b90b' : '#a855f7'} opacity={0.6} />
               <text x={sxBIC(m.k)} y={H - P + 12} textAnchor="middle" fill="#94a3b8" fontSize={8}>K={m.k}</text>
             </g>
           ))}
@@ -318,9 +318,9 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
       </div>
 
       {/* Regime over time */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Regime Assignment Over Time (last 60 bars)</div>
-        <svg width={W} height={80} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Regime Assignment Over Time (last 60 bars)</div>
+        <svg width={W} height={80} className="bg-bg-900 ">
           {data.regimeOverTime.map((r, i) => {
             const x = P + (i / data.regimeOverTime.length) * (W - 2 * P)
             return <rect key={i} x={x} y={10} width={Math.max(1, (W - 2 * P) / data.regimeOverTime.length - 0.5)} height={60} fill={regimeColors[r]} opacity={0.6} />
@@ -329,17 +329,17 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
       </div>
 
       {/* Component details */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Mixture Components (K={data.bestModel.k})</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Mixture Components (K={data.bestModel.k})</div>
         <div className="space-y-1">
           {data.bestModel.mus.map((mu, j) => (
             <div key={j} className="flex items-center gap-3 text-xs">
               <span className="w-3 h-3 " style={{ background: regimeColors[j] }} />
-              <span className="text-slate-400 w-20">{data.regimeLabels[j]}</span>
+              <span className="text-gray-400 w-20">{data.regimeLabels[j]}</span>
               <span className="text-cyan-400 font-mono w-20">μ={(mu * 100).toFixed(4)}%</span>
               <span className="text-amber-400 font-mono w-20">σ={(Math.sqrt(data.bestModel.sigmas2[j]) * 100).toFixed(4)}%</span>
               <span className="text-purple-400 font-mono w-20">π={(data.bestModel.pis[j] * 100).toFixed(1)}%</span>
-              <div className="flex-1 bg-slate-900  h-3 relative">
+              <div className="flex-1 bg-bg-900  h-3 relative">
                 <div className="h-full " style={{ width: `${data.bestModel.pis[j] * 100}%`, background: regimeColors[j] }} />
               </div>
             </div>
@@ -348,29 +348,29 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Best K</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Best K</div>
           <div className="text-cyan-400 font-mono">{data.bestModel.k}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Log-likelihood</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Log-likelihood</div>
           <div className="text-emerald-400 font-mono">{data.bestModel.logLik.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">BIC</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">BIC</div>
           <div className="text-amber-400 font-mono">{data.bestModel.bic.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Current regime</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Current regime</div>
           <div className="font-mono" style={{ color: regimeColors[data.currentRegime] }}>{data.currentLabel}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Regime prob</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Regime prob</div>
           <div className="text-purple-400 font-mono">{(data.currentProb * 100).toFixed(1)}%</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Algorithm:</strong> EM (E-step: posterior γ, M-step: update μ,σ²,π) |
         <strong> Init:</strong> K-means |
         <strong> Selection:</strong> BIC = -2L + k·log(N) |

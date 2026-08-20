@@ -157,7 +157,7 @@ export default function PairTradingSignals({ candles, symbols, exchange }) {
 
             {/* Spread sparkline */}
             <svg viewBox="0 0 100 30" className="w-full h-[20px] mt-1" preserveAspectRatio="none">
-              <line x1="0" y1="15" x2="100" y2="15" stroke="#64748b" strokeWidth="0.2" strokeDasharray="1 3" opacity="0.3" />
+              <line x1="0" y1="15" x2="100" y2="15" stroke="#848e9c" strokeWidth="0.2" strokeDasharray="1 3" opacity="0.3" />
               {(() => {
                 const sMin = Math.min(...p.spread)
                 const sMax = Math.max(...p.spread)

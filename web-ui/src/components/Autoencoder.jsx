@@ -255,11 +255,11 @@ export default function Autoencoder({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, hiddenDim, epochs, lr, threshold])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 40 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 40 candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.isAnomaly ? (data.zScore > 3 ? '#ef4444' : '#f59e0b') : '#22c55e'
+  const sigColor = data.isAnomaly ? (data.zScore > 3 ? '#f6465d' : '#f0b90b') : '#0ecb81'
 
   // Loss curve
   const maxLoss = Math.max(...data.losses)
@@ -279,7 +279,7 @@ export default function Autoencoder({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Autoencoder Anomaly Detection — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Autoencoder Anomaly Detection — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -287,96 +287,96 @@ export default function Autoencoder({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Hidden dim:</span>
-          <input type="number" value={hiddenDim} onChange={e => setHiddenDim(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Hidden dim:</span>
+          <input type="number" value={hiddenDim} onChange={e => setHiddenDim(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Epochs:</span>
-          <input type="number" value={epochs} onChange={e => setEpochs(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Epochs:</span>
+          <input type="number" value={epochs} onChange={e => setEpochs(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Learning rate:</span>
-          <input type="number" step="0.001" value={lr} onChange={e => setLr(Math.max(0.0001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Learning rate:</span>
+          <input type="number" step="0.001" value={lr} onChange={e => setLr(Math.max(0.0001, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Threshold (σ):</span>
-          <input type="number" step="0.1" value={threshold} onChange={e => setThreshold(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Threshold (σ):</span>
+          <input type="number" step="0.1" value={threshold} onChange={e => setThreshold(Math.max(1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Training loss */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Training Loss (MSE + L2) over Epochs</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Training Loss (MSE + L2) over Epochs</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
           <path d={data.losses.map((l, i) => `${i === 0 ? 'M' : 'L'} ${sxLoss(i)} ${syLoss(l)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>Final: {data.losses[data.losses.length - 1].toFixed(6)}</text>
         </svg>
       </div>
 
       {/* Reconstruction error */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Reconstruction Error (last 60 points) — Anomaly Detection</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Reconstruction Error (last 60 points) — Anomaly Detection</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Threshold line */}
-          <line x1={P} y1={syErr(data.anomalyThreshold)} x2={W - P} y2={syErr(data.anomalyThreshold)} stroke="#ef4444" strokeDasharray="4,3" />
-          <text x={W - P} y={syErr(data.anomalyThreshold) - 5} textAnchor="end" fill="#ef4444" fontSize={9}>threshold={data.anomalyThreshold.toFixed(4)}</text>
+          <line x1={P} y1={syErr(data.anomalyThreshold)} x2={W - P} y2={syErr(data.anomalyThreshold)} stroke="#f6465d" strokeDasharray="4,3" />
+          <text x={W - P} y={syErr(data.anomalyThreshold) - 5} textAnchor="end" fill="#f6465d" fontSize={9}>threshold={data.anomalyThreshold.toFixed(4)}</text>
 
           {/* Mean line */}
-          <line x1={P} y1={syErr(data.meanErr)} x2={W - P} y2={syErr(data.meanErr)} stroke="#64748b" strokeDasharray="3,2" />
-          <text x={W - P} y={syErr(data.meanErr) - 5} textAnchor="end" fill="#64748b" fontSize={9}>μ={data.meanErr.toFixed(4)}</text>
+          <line x1={P} y1={syErr(data.meanErr)} x2={W - P} y2={syErr(data.meanErr)} stroke="#848e9c" strokeDasharray="3,2" />
+          <text x={W - P} y={syErr(data.meanErr) - 5} textAnchor="end" fill="#848e9c" fontSize={9}>μ={data.meanErr.toFixed(4)}</text>
 
           {/* Error bars */}
           {data.reconErrors.map((e, i) => {
             const x = sxErr(i)
             const w = (W - 2 * P) / data.reconErrors.length
             const isAnom = e > data.anomalyThreshold
-            return <rect key={i} x={x} y={syErr(e)} width={Math.max(1, w - 1)} height={H - P - syErr(e)} fill={isAnom ? '#ef4444' : '#06b6d4'} opacity={isAnom ? 0.9 : 0.4} />
+            return <rect key={i} x={x} y={syErr(e)} width={Math.max(1, w - 1)} height={H - P - syErr(e)} fill={isAnom ? '#f6465d' : '#06b6d4'} opacity={isAnom ? 0.9 : 0.4} />
           })}
         </svg>
       </div>
 
       {/* Latent space */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Latent Space (first 2 dimensions of {data.model.hiddenDim})</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={W / 2} y1={P} x2={W / 2} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Latent Space (first 2 dimensions of {data.model.hiddenDim})</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={W / 2} y1={P} x2={W / 2} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
           {data.latent2D.map((p, i) => {
             const isAnom = data.reconErrors[i] > data.anomalyThreshold
-            return <circle key={i} cx={sxLat(p[0])} cy={syLat(p[1])} r={isAnom ? 5 : 2} fill={isAnom ? '#ef4444' : '#06b6d4'} opacity={isAnom ? 1 : 0.5} />
+            return <circle key={i} cx={sxLat(p[0])} cy={syLat(p[1])} r={isAnom ? 5 : 2} fill={isAnom ? '#f6465d' : '#06b6d4'} opacity={isAnom ? 1 : 0.5} />
           })}
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Input dim</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Input dim</div>
           <div className="text-cyan-400 font-mono">{data.inputDim}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Hidden dim</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Hidden dim</div>
           <div className="text-amber-400 font-mono">{data.model.hiddenDim}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Current error</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Current error</div>
           <div className="font-mono" style={{ color: sigColor }}>{data.currentError.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Z-score</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Z-score</div>
           <div className="font-mono" style={{ color: sigColor }}>{data.zScore.toFixed(2)}σ</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Anomalies</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Anomalies</div>
           <div className="text-red-400 font-mono">{data.anomalies.length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Architecture:</strong> {data.inputDim}→{data.model.hiddenDim}→{data.inputDim} (compression ratio: {(data.inputDim / data.model.hiddenDim).toFixed(1)}×) |
         <strong> Training:</strong> {epochs} epochs, lr={lr}, L2=0.001 |
         <strong> Threshold:</strong> μ + {threshold}σ = {data.anomalyThreshold.toFixed(4)}

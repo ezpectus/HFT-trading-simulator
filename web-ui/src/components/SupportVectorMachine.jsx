@@ -315,15 +315,15 @@ export default function SupportVectorMachine({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, kernelType, C, gamma, windowSize, epochs])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 50 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 50 candles for {symbol} on {exchange}</div>
   }
 
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : '#ef4444'
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : '#f6465d'
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Support Vector Machine — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Support Vector Machine — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal} ({data.confidence.toFixed(0)}%)
         </span>
@@ -331,54 +331,54 @@ export default function SupportVectorMachine({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Kernel:</span>
-          <select value={kernelType} onChange={e => setKernelType(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Kernel:</span>
+          <select value={kernelType} onChange={e => setKernelType(e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             <option value="linear">Linear</option>
             <option value="rbf">RBF (Gaussian)</option>
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">C (reg):</span>
-          <input type="number" step="0.1" value={C} onChange={e => setC(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">C (reg):</span>
+          <input type="number" step="0.1" value={C} onChange={e => setC(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         {kernelType === 'rbf' && (
           <label className="flex items-center gap-1">
-            <span className="text-slate-400">γ (gamma):</span>
-            <input type="number" step="0.1" value={gamma} onChange={e => setGamma(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+            <span className="text-gray-400">γ (gamma):</span>
+            <input type="number" step="0.1" value={gamma} onChange={e => setGamma(Math.max(0.01, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
           </label>
         )}
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Window:</span>
-          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(5, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Window:</span>
+          <input type="number" value={windowSize} onChange={e => setWindowSize(Math.max(5, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         {kernelType === 'linear' && (
           <label className="flex items-center gap-1">
-            <span className="text-slate-400">Epochs:</span>
-            <input type="number" value={epochs} onChange={e => setEpochs(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+            <span className="text-gray-400">Epochs:</span>
+            <input type="number" value={epochs} onChange={e => setEpochs(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
           </label>
         )}
       </div>
 
       {/* Feature importance (linear only) */}
       {data.featureImportance && (
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-2">Feature Importance (|w| weights)</div>
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-2">Feature Importance (|w| weights)</div>
           <div className="space-y-1">
             {data.featureImportance.map((fi, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400 w-24">{fi.name}</span>
-                <div className="flex-1 bg-slate-900  h-4 relative">
+                <span className="text-gray-400 w-24">{fi.name}</span>
+                <div className="flex-1 bg-bg-900  h-4 relative">
                   <div
                     className="h-full  absolute"
                     style={{
                       width: `${(fi.absWeight / data.featureImportance[0].absWeight) * 100}%`,
-                      background: fi.weight >= 0 ? '#22c55e' : '#ef4444',
+                      background: fi.weight >= 0 ? '#0ecb81' : '#f6465d',
                       left: fi.weight >= 0 ? '50%' : `${50 - (fi.absWeight / data.featureImportance[0].absWeight) * 50}%`
                     }}
                   />
-                  <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
+                  <div className="absolute left-1/2 top-0 bottom-0 w-px bg-bg-500" />
                 </div>
-                <span className="text-slate-500 font-mono w-16">{fi.weight.toFixed(4)}</span>
+                <span className="text-gray-500 font-mono w-16">{fi.weight.toFixed(4)}</span>
               </div>
             ))}
           </div>
@@ -386,8 +386,8 @@ export default function SupportVectorMachine({ candles, symbol, exchange }) {
       )}
 
       {/* Confusion matrix */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Test Set Confusion Matrix</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Test Set Confusion Matrix</div>
         {(() => {
           const tp = data.testPreds.filter((p, i) => p === 1 && data.yTest[i] === 1).length
           const tn = data.testPreds.filter((p, i) => p === -1 && data.yTest[i] === -1).length
@@ -410,25 +410,25 @@ export default function SupportVectorMachine({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Train Accuracy</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Train Accuracy</div>
           <div className="text-cyan-400 font-mono">{(data.trainAccuracy * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Test Accuracy</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Test Accuracy</div>
           <div className="text-emerald-400 font-mono">{(data.testAccuracy * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Train/Test</div>
-          <div className="text-slate-300 font-mono">{data.nTrain}/{data.nTest}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Train/Test</div>
+          <div className="text-gray-300 font-mono">{data.nTrain}/{data.nTest}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Support Vectors</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Support Vectors</div>
           <div className="text-amber-400 font-mono">{data.nSV}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.signal} (f(x)={data.currentPred.toFixed(4)}, confidence={data.confidence.toFixed(0)}%) |
         <strong> Kernel:</strong> {kernelType}{kernelType === 'rbf' ? ` (γ=${gamma})` : ''} |
         <strong> C:</strong> {C}

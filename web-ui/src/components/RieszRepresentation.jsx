@@ -165,11 +165,11 @@ export default function RieszRepresentation({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, lookback, nFeatures, lambda])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'RIESZ_LONG' ? '#22c55e' : data.signal === 'RIESZ_SHORT' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'RIESZ_LONG' ? '#0ecb81' : data.signal === 'RIESZ_SHORT' ? '#f6465d' : '#94a3b8'
 
   // Feature importance
   const maxImportance = Math.max(...data.featureImportance.map(f => f.norm), 0.01)
@@ -192,7 +192,7 @@ export default function RieszRepresentation({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Riesz Representation (Linear Functional) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Riesz Representation (Linear Functional) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -200,95 +200,95 @@ export default function RieszRepresentation({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Features (lags):</span>
-          <input type="number" value={nFeatures} onChange={e => setNFeatures(Math.max(3, Math.min(20, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Features (lags):</span>
+          <input type="number" value={nFeatures} onChange={e => setNFeatures(Math.max(3, Math.min(20, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lambda (reg):</span>
-          <input type="number" step="0.01" value={lambda} onChange={e => setLambda(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lambda (reg):</span>
+          <input type="number" step="0.01" value={lambda} onChange={e => setLambda(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(60, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Feature importance */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Riesz Representer Feature Importance: |u_i| (lag weights for signal extraction)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Riesz Representer Feature Importance: |u_i| (lag weights for signal extraction)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.featureImportance.map((f, i) => (
             <g key={i}>
-              <rect x={sxFI(i) + 5} y={syFI(f.norm)} width={(W - 2 * P) / data.featureImportance.length - 10} height={H - P - syFI(f.norm)} fill={data.dominant.lag === f.lag ? '#f59e0b' : '#06b6d4'} opacity={0.7} rx={3} />
-              <text x={sxFI(i) + (W - 2 * P) / data.featureImportance.length / 2} y={H - P + 14} textAnchor="middle" fill="#475569" fontSize={8}>lag{f.lag}</text>
+              <rect x={sxFI(i) + 5} y={syFI(f.norm)} width={(W - 2 * P) / data.featureImportance.length - 10} height={H - P - syFI(f.norm)} fill={data.dominant.lag === f.lag ? '#f0b90b' : '#06b6d4'} opacity={0.7} rx={3} />
+              <text x={sxFI(i) + (W - 2 * P) / data.featureImportance.length / 2} y={H - P + 14} textAnchor="middle" fill="#5e6673" fontSize={8}>lag{f.lag}</text>
             </g>
           ))}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>|u_i| normalized</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>dominant: lag{data.dominant.lag} ({(data.dominant.norm * 100).toFixed(1)}%)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>dominant: lag{data.dominant.lag} ({(data.dominant.norm * 100).toFixed(1)}%)</text>
         </svg>
       </div>
 
       {/* L(f) vs actual returns */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Riesz Functional L(f) = {'<f, u>'} vs Actual Returns (correlation={data.correlation.toFixed(4)})</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Riesz Functional L(f) = {'<f, u>'} vs Actual Returns (correlation={data.correlation.toFixed(4)})</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.lValues.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxLF(i)} ${syLF(v.lf)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
-          <path d={data.lValues.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxLF(i)} ${syY(v.actual)}`).join(' ')} fill="none" stroke="#ef4444" strokeWidth={1} opacity={0.5} />
+          <path d={data.lValues.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sxLF(i)} ${syY(v.actual)}`).join(' ')} fill="none" stroke="#f6465d" strokeWidth={1} opacity={0.5} />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>L(f) = {'<f, u>'} (Riesz)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#ef4444" fontSize={9}>actual return</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f6465d" fontSize={9}>actual return</text>
         </svg>
       </div>
 
       {/* Riesz weights */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Riesz Representer u (signed weights: positive=momentum, negative=reversal)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Riesz Representer u (signed weights: positive=momentum, negative=reversal)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.u.map((v, i) => (
-            <line key={i} x1={sxW(i) + (W - 2 * P) / data.u.length / 2} y1={H / 2} x2={sxW(i) + (W - 2 * P) / data.u.length / 2} y2={syW(v)} stroke={v > 0 ? '#22c55e' : '#ef4444'} strokeWidth={4} opacity={0.7} />
+            <line key={i} x1={sxW(i) + (W - 2 * P) / data.u.length / 2} y1={H / 2} x2={sxW(i) + (W - 2 * P) / data.u.length / 2} y2={syW(v)} stroke={v > 0 ? '#0ecb81' : '#f6465d'} strokeWidth={4} opacity={0.7} />
           ))}
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>u_i {'>'} 0 (momentum)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#ef4444" fontSize={9}>u_i {'<'} 0 (reversal)</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>u_i {'>'} 0 (momentum)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f6465d" fontSize={9}>u_i {'<'} 0 (reversal)</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">L(f) current</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">L(f) current</div>
           <div className="text-cyan-400 font-mono">{data.currentL.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">||u|| (Riesz)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">||u|| (Riesz)</div>
           <div className="text-purple-400 font-mono">{data.rieszNorm.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Correlation</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Correlation</div>
           <div className="text-emerald-400 font-mono">{data.correlation.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Dominant lag</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Dominant lag</div>
           <div className="text-amber-400 font-mono">lag{data.dominant.lag}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Dominant w</div>
-          <div className="text-slate-300 font-mono">{(data.dominant.norm * 100).toFixed(1)}%</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Dominant w</div>
+          <div className="text-gray-300 font-mono">{(data.dominant.norm * 100).toFixed(1)}%</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Riesz (Hilbert):</strong> L(f) = {'<f, u>'} for unique u in H, ||L|| = ||u|| |
         <strong> Representer:</strong> u = (K + lambda*I)^{-1} * L (regularized) |

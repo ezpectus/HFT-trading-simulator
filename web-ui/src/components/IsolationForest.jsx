@@ -228,7 +228,7 @@ export default function IsolationForest({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, nTrees, subSampleSize, threshold])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 40 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 40 candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 40
@@ -241,12 +241,12 @@ export default function IsolationForest({ candles, symbol, exchange }) {
   const maxP = Math.max(...data.prices)
   const syPrice = (p) => H - P - ((p - minP) / (maxP - minP + 0.001)) * (H - 2 * P)
 
-  const sigColor = data.isAnomaly ? '#ef4444' : '#22c55e'
+  const sigColor = data.isAnomaly ? '#f6465d' : '#0ecb81'
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Isolation Forest Anomaly Detection — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Isolation Forest Anomaly Detection — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.isAnomaly ? 'ANOMALY' : 'NORMAL'}
         </span>
@@ -254,29 +254,29 @@ export default function IsolationForest({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Trees:</span>
-          <input type="number" value={nTrees} onChange={e => setNTrees(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Trees:</span>
+          <input type="number" value={nTrees} onChange={e => setNTrees(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Sub-sample:</span>
-          <input type="number" value={subSampleSize} onChange={e => setSubSampleSize(Math.max(16, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Sub-sample:</span>
+          <input type="number" value={subSampleSize} onChange={e => setSubSampleSize(Math.max(16, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Threshold:</span>
-          <input type="number" step="0.01" value={threshold} onChange={e => setThreshold(Math.max(0.5, Math.min(0.95, +e.target.value)))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Threshold:</span>
+          <input type="number" step="0.01" value={threshold} onChange={e => setThreshold(Math.max(0.5, Math.min(0.95, +e.target.value)))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Anomaly score chart */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Anomaly Score (s → 1 = anomaly, s → 0.5 = normal)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Anomaly Score (s → 1 = anomaly, s → 0.5 = normal)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Threshold line */}
-          <line x1={P} y1={syScore(threshold)} x2={W - P} y2={syScore(threshold)} stroke="#ef4444" strokeDasharray="4,3" strokeWidth={1.5} />
-          <text x={W - P} y={syScore(threshold) - 5} textAnchor="end" fill="#ef4444" fontSize={9}>threshold={threshold}</text>
+          <line x1={P} y1={syScore(threshold)} x2={W - P} y2={syScore(threshold)} stroke="#f6465d" strokeDasharray="4,3" strokeWidth={1.5} />
+          <text x={W - P} y={syScore(threshold) - 5} textAnchor="end" fill="#f6465d" fontSize={9}>threshold={threshold}</text>
 
           {/* Score bars */}
           {data.scoresRecent.map((s, i) => {
@@ -290,7 +290,7 @@ export default function IsolationForest({ candles, symbol, exchange }) {
                 y={syScore(s)}
                 width={Math.max(1, w - 1)}
                 height={H - P - syScore(s)}
-                fill={isAnom ? '#ef4444' : '#06b6d4'}
+                fill={isAnom ? '#f6465d' : '#06b6d4'}
                 opacity={isAnom ? 0.8 : 0.4}
               />
             )
@@ -300,24 +300,24 @@ export default function IsolationForest({ candles, symbol, exchange }) {
           <path
             d={data.prices.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sx(i)} ${syPrice(p)}`).join(' ')}
             fill="none"
-            stroke="#f59e0b"
+            stroke="#f0b90b"
             strokeWidth={1.5}
             opacity={0.6}
           />
 
-          <text x={W - P} y={H - 5} textAnchor="end" fill="#475569" fontSize={10}>Time</text>
-          <text x={5} y={P + 10} fill="#475569" fontSize={10}>Score</text>
+          <text x={W - P} y={H - 5} textAnchor="end" fill="#5e6673" fontSize={10}>Time</text>
+          <text x={5} y={P + 10} fill="#5e6673" fontSize={10}>Score</text>
         </svg>
       </div>
 
       {/* Feature importance */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Feature Importance (split frequency)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Feature Importance (split frequency)</div>
         <div className="space-y-1">
           {data.featureNames.map((name, i) => (
             <div key={i} className="flex items-center gap-2 text-xs">
-              <span className="text-slate-400 w-24">{name}</span>
-              <div className="flex-1 bg-slate-900  h-4">
+              <span className="text-gray-400 w-24">{name}</span>
+              <div className="flex-1 bg-bg-900  h-4">
                 <div
                   className="h-full "
                   style={{
@@ -326,44 +326,44 @@ export default function IsolationForest({ candles, symbol, exchange }) {
                   }}
                 />
               </div>
-              <span className="text-slate-500 font-mono w-12">{(data.featureImportance[i] * 100).toFixed(1)}%</span>
+              <span className="text-gray-500 font-mono w-12">{(data.featureImportance[i] * 100).toFixed(1)}%</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Top anomalies */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Top Anomalies Detected ({data.anomalies.length} total)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Top Anomalies Detected ({data.anomalies.length} total)</div>
         <div className="space-y-1 max-h-32 overflow-auto">
           {data.anomalies.slice(0, 8).map((a, i) => (
             <div key={i} className="flex justify-between text-xs font-mono">
-              <span className="text-slate-400">#{a.index}</span>
+              <span className="text-gray-400">#{a.index}</span>
               <span className="text-red-400">score={a.score.toFixed(4)}</span>
-              <span className="text-slate-300">${a.price.toFixed(2)}</span>
-              <span className="text-slate-500">ret={a.features[0].toFixed(3)}%</span>
-              <span className="text-slate-500">vol={a.features[1].toFixed(3)}%</span>
+              <span className="text-gray-300">${a.price.toFixed(2)}</span>
+              <span className="text-gray-500">ret={a.features[0].toFixed(3)}%</span>
+              <span className="text-gray-500">vol={a.features[1].toFixed(3)}%</span>
             </div>
           ))}
-          {data.anomalies.length === 0 && <div className="text-slate-500 text-xs">No anomalies detected at threshold {threshold}</div>}
+          {data.anomalies.length === 0 && <div className="text-gray-500 text-xs">No anomalies detected at threshold {threshold}</div>}
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Current Score</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Current Score</div>
           <div className="font-mono" style={{ color: sigColor }}>{data.currentScore.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Anomalies</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Anomalies</div>
           <div className="text-red-400 font-mono">{data.anomalies.length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Normal</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Normal</div>
           <div className="text-emerald-400 font-mono">{data.normal.length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Anomaly Rate</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Anomaly Rate</div>
           <div className="text-amber-400 font-mono">{((data.anomalies.length / (data.anomalies.length + data.normal.length)) * 100).toFixed(1)}%</div>
         </div>
       </div>

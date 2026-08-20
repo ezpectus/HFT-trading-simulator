@@ -234,7 +234,7 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
   }, [multiAsset])
 
   if (!multiAsset) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 2 symbols with {lookback + 1}+ candles on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 2 symbols with {lookback + 1}+ candles on {exchange}</div>
   }
 
   const maxGrowth = Math.max(...growthCurve.map(p => p.growth))
@@ -245,97 +245,97 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Kelly Criterion Portfolio Sizing — {exchange}</span>
+        <span className="text-sm font-bold text-gray-200">Kelly Criterion Portfolio Sizing — {exchange}</span>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Fraction:</span>
-          <input type="number" step="0.1" value={fraction} onChange={e => setFraction(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Fraction:</span>
+          <input type="number" step="0.1" value={fraction} onChange={e => setFraction(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max leverage:</span>
-          <input type="number" step="0.5" value={maxLeverage} onChange={e => setMaxLeverage(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max leverage:</span>
+          <input type="number" step="0.5" value={maxLeverage} onChange={e => setMaxLeverage(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Single asset Kelly */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Single Asset Kelly (binary outcome model)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Single Asset Kelly (binary outcome model)</div>
         <div className="flex items-center gap-3 flex-wrap text-xs mb-2">
           <label className="flex items-center gap-1">
-            <span className="text-slate-400">Win prob:</span>
-            <input type="number" step="0.01" value={winProb} onChange={e => setWinProb(Math.max(0.01, Math.min(0.99, +e.target.value)))} className="w-12 px-1 bg-slate-900 border border-slate-700  text-slate-200" />
+            <span className="text-gray-400">Win prob:</span>
+            <input type="number" step="0.01" value={winProb} onChange={e => setWinProb(Math.max(0.01, Math.min(0.99, +e.target.value)))} className="w-12 px-1 bg-bg-900 border border-bg-600  text-gray-200" />
           </label>
           <label className="flex items-center gap-1">
-            <span className="text-slate-400">Win/loss ratio:</span>
-            <input type="number" step="0.1" value={winLossRatio} onChange={e => setWinLossRatio(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-900 border border-slate-700  text-slate-200" />
+            <span className="text-gray-400">Win/loss ratio:</span>
+            <input type="number" step="0.1" value={winLossRatio} onChange={e => setWinLossRatio(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-bg-900 border border-bg-600  text-gray-200" />
           </label>
         </div>
         <div className="grid grid-cols-4 gap-2 text-xs">
-          <div className="bg-slate-900  p-2">
-            <div className="text-slate-400">f* (full Kelly)</div>
+          <div className="bg-bg-900  p-2">
+            <div className="text-gray-400">f* (full Kelly)</div>
             <div className="text-cyan-400 font-mono">{(singleAsset.fStar * 100).toFixed(2)}%</div>
           </div>
-          <div className="bg-slate-900  p-2">
-            <div className="text-slate-400">f (fractional)</div>
+          <div className="bg-bg-900  p-2">
+            <div className="text-gray-400">f (fractional)</div>
             <div className="text-amber-400 font-mono">{(singleAsset.fractional * 100).toFixed(2)}%</div>
           </div>
-          <div className="bg-slate-900  p-2">
-            <div className="text-slate-400">Edge (p·b - q)</div>
+          <div className="bg-bg-900  p-2">
+            <div className="text-gray-400">Edge (p·b - q)</div>
             <div className="text-emerald-400 font-mono">{singleAsset.edge.toFixed(4)}</div>
           </div>
-          <div className="bg-slate-900  p-2">
-            <div className="text-slate-400">Growth rate</div>
+          <div className="bg-bg-900  p-2">
+            <div className="text-gray-400">Growth rate</div>
             <div className="text-purple-400 font-mono">{(singleAsset.growthRate * 100).toFixed(4)}%</div>
           </div>
         </div>
       </div>
 
       {/* Growth rate vs fraction */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Growth Rate vs Kelly Fraction (multi-asset)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={sy(0)} x2={W - P} y2={sy(0)} stroke="#475569" strokeDasharray="3,3" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Growth Rate vs Kelly Fraction (multi-asset)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={sy(0)} x2={W - P} y2={sy(0)} stroke="#5e6673" strokeDasharray="3,3" />
           <path d={growthCurve.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sx(p.fraction)} ${sy(p.growth)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
           {/* Current fraction marker */}
-          <line x1={sx(fraction)} y1={P} x2={sx(fraction)} y2={H - P} stroke="#f59e0b" strokeDasharray="4,3" />
-          <circle cx={sx(fraction)} cy={sy(growthCurve.find(p => Math.abs(p.fraction - fraction) < 0.03)?.growth || 0)} r={5} fill="#f59e0b" />
-          <text x={sx(fraction)} y={P + 10} textAnchor="middle" fill="#f59e0b" fontSize={9}>f={fraction}</text>
-          <text x={sx(1)} y={H - 5} textAnchor="middle" fill="#475569" fontSize={10}>f=1.0 (full Kelly)</text>
+          <line x1={sx(fraction)} y1={P} x2={sx(fraction)} y2={H - P} stroke="#f0b90b" strokeDasharray="4,3" />
+          <circle cx={sx(fraction)} cy={sy(growthCurve.find(p => Math.abs(p.fraction - fraction) < 0.03)?.growth || 0)} r={5} fill="#f0b90b" />
+          <text x={sx(fraction)} y={P + 10} textAnchor="middle" fill="#f0b90b" fontSize={9}>f={fraction}</text>
+          <text x={sx(1)} y={H - 5} textAnchor="middle" fill="#5e6673" fontSize={10}>f=1.0 (full Kelly)</text>
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>Growth rate (annualized)</text>
         </svg>
       </div>
 
       {/* Multi-asset weights */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Multi-Asset Kelly Weights (f* = Σ⁻¹·μ)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Multi-Asset Kelly Weights (f* = Σ⁻¹·μ)</div>
         <div className="space-y-1">
           {multiAsset.validSymbols.map((sym, i) => (
             <div key={sym} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-20">{sym}</span>
+              <span className="text-gray-400 w-20">{sym}</span>
               <span className="text-cyan-400 font-mono w-20">f*={multiAsset.fStar[i].toFixed(4)}</span>
               <span className="text-amber-400 font-mono w-20">f={multiAsset.fractional[i].toFixed(4)}</span>
-              <span className="font-mono w-20" style={{ color: multiAsset.clamped[i] >= 0 ? '#22c55e' : '#ef4444' }}>
+              <span className="font-mono w-20" style={{ color: multiAsset.clamped[i] >= 0 ? '#0ecb81' : '#f6465d' }}>
                 clamped={multiAsset.clamped[i].toFixed(4)}
               </span>
-              <span className="text-slate-500 font-mono w-20">μ={multiAsset.mu[i].toFixed(4)}</span>
-              <span className="text-slate-500 font-mono w-20">σ={multiAsset.vols[i].toFixed(4)}</span>
-              <span className="text-slate-500 font-mono w-20">Sh={multiAsset.sharpes[i].toFixed(3)}</span>
+              <span className="text-gray-500 font-mono w-20">μ={multiAsset.mu[i].toFixed(4)}</span>
+              <span className="text-gray-500 font-mono w-20">σ={multiAsset.vols[i].toFixed(4)}</span>
+              <span className="text-gray-500 font-mono w-20">Sh={multiAsset.sharpes[i].toFixed(3)}</span>
               {/* Weight bar */}
-              <div className="flex-1 bg-slate-900  h-3 relative">
-                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
+              <div className="flex-1 bg-bg-900  h-3 relative">
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-bg-500" />
                 <div
                   className="h-full  absolute"
                   style={{
                     width: `${Math.min(50, Math.abs(multiAsset.clamped[i]) * 20)}%`,
-                    background: multiAsset.clamped[i] >= 0 ? '#22c55e' : '#ef4444',
+                    background: multiAsset.clamped[i] >= 0 ? '#0ecb81' : '#f6465d',
                     left: multiAsset.clamped[i] >= 0 ? '50%' : `${50 - Math.min(50, Math.abs(multiAsset.clamped[i]) * 20)}%`
                   }}
                 />
@@ -346,11 +346,11 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
       </div>
 
       {/* Monte Carlo simulation */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Monte Carlo Simulation (1 year, 500 paths per asset)</div>
-        <svg width={W} height={120} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Monte Carlo Simulation (1 year, 500 paths per asset)</div>
+        <svg width={W} height={120} className="bg-bg-900 ">
           {multiAsset.simulations.map((sim, i) => {
-            const colors = ['#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899']
+            const colors = ['#06b6d4', '#0ecb81', '#f0b90b', '#f6465d', '#a855f7', '#ec4899']
             const path = sim.samplePath.map((w, t) => `${t === 0 ? 'M' : 'L'} ${P + (t / 252) * (W - 2 * P)} ${110 - Math.min(100, w * 30)}`).join(' ')
             return (
               <g key={i}>
@@ -365,25 +365,25 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Gross Exposure</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Gross Exposure</div>
           <div className="text-amber-400 font-mono">{(multiAsset.grossExposure * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Portfolio Growth</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Portfolio Growth</div>
           <div className="text-emerald-400 font-mono">{(multiAsset.growthRate * 100).toFixed(2)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Long Positions</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Long Positions</div>
           <div className="text-cyan-400 font-mono">{multiAsset.clamped.filter(w => w > 0).length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Short Positions</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Short Positions</div>
           <div className="text-red-400 font-mono">{multiAsset.clamped.filter(w => w < 0).length}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Model:</strong> f* = Σ⁻¹·μ (multi-asset Kelly) |
         <strong> Fraction:</strong> {fraction}× Kelly |
         <strong> Max leverage:</strong> {maxLeverage}× |

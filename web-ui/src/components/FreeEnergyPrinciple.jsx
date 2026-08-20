@@ -177,11 +177,11 @@ export default function FreeEnergyPrinciple({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, lookback, precision, lr, horizon])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : data.signal === 'SELL' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   // Free energy convergence
   const maxF = Math.max(...data.feHistory, 0.1)
@@ -203,7 +203,7 @@ export default function FreeEnergyPrinciple({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Free Energy Principle (Active Inference) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Free Energy Principle (Active Inference) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -211,58 +211,58 @@ export default function FreeEnergyPrinciple({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Precision (1/σ²):</span>
-          <input type="number" step="0.001" value={precision} onChange={e => setPrecision(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Precision (1/σ²):</span>
+          <input type="number" step="0.001" value={precision} onChange={e => setPrecision(Math.max(0.001, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Learning rate:</span>
-          <input type="number" step="0.01" value={lr} onChange={e => setLr(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Learning rate:</span>
+          <input type="number" step="0.01" value={lr} onChange={e => setLr(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(20, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Free energy convergence */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Variational Free Energy Minimization (Perception)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Variational Free Energy Minimization (Perception)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={data.feHistory.map((f, i) => `${i === 0 ? 'M' : 'L'} ${sxFE(i)} ${syFE(f)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>F = {data.currentF.toFixed(6)}</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#475569" fontSize={9}>F = ½Σ(μ-o)²/σ² + ½Σlog(σ²)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#5e6673" fontSize={9}>F = ½Σ(μ-o)²/σ² + ½Σlog(σ²)</text>
         </svg>
       </div>
 
       {/* Prediction errors */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Prediction Errors (observation - belief)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Prediction Errors (observation - belief)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
           {data.predictionErrors.map((pe, i) => (
             <g key={i}>
-              <line x1={sxPE(i)} y1={H / 2} x2={sxPE(i)} y2={syPE(pe)} stroke={pe > 0 ? '#22c55e' : '#ef4444'} strokeWidth={2} opacity={0.7} />
-              <circle cx={sxPE(i)} cy={syPE(pe)} r={3} fill={pe > 0 ? '#22c55e' : '#ef4444'} />
+              <line x1={sxPE(i)} y1={H / 2} x2={sxPE(i)} y2={syPE(pe)} stroke={pe > 0 ? '#0ecb81' : '#f6465d'} strokeWidth={2} opacity={0.7} />
+              <circle cx={sxPE(i)} cy={syPE(pe)} r={3} fill={pe > 0 ? '#0ecb81' : '#f6465d'} />
             </g>
           ))}
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>Positive PE</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#ef4444" fontSize={9}>Negative PE</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>Positive PE</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f6465d" fontSize={9}>Negative PE</text>
         </svg>
       </div>
 
       {/* Policy selection (active inference) */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Policy Selection: Expected Free Energy G(π) (Action Selection)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Policy Selection: Expected Free Energy G(π) (Action Selection)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {data.policies.map((p, i) => {
-            const colors = ['#94a3b8', '#22c55e', '#ef4444']
+            const colors = ['#94a3b8', '#0ecb81', '#f6465d']
             const isBest = i === 0
             return (
               <g key={i}>
@@ -274,20 +274,20 @@ export default function FreeEnergyPrinciple({ candles, symbol, exchange }) {
             )
           })}
 
-          <text x={W - P} y={20} textAnchor="end" fill="#475569" fontSize={9}>G = risk (KL) + ambiguity (H)</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#5e6673" fontSize={9}>G = risk (KL) + ambiguity (H)</text>
         </svg>
       </div>
 
       {/* Beliefs vs observations */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Posterior Beliefs vs Observations</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Posterior Beliefs vs Observations</div>
         <div className="space-y-1">
           {data.observations.map((o, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-12">t-{data.observations.length - i - 1}</span>
+              <span className="text-gray-400 w-12">t-{data.observations.length - i - 1}</span>
               <span className="text-cyan-400 font-mono w-24">obs: {(o * 100).toFixed(4)}%</span>
               <span className="text-amber-400 font-mono w-24">belief: {(data.mu[i] * 100).toFixed(4)}%</span>
-              <span className="font-mono w-24" style={{ color: Math.abs(o - data.mu[i]) < 0.001 ? '#22c55e' : '#ef4444' }}>
+              <span className="font-mono w-24" style={{ color: Math.abs(o - data.mu[i]) < 0.001 ? '#0ecb81' : '#f6465d' }}>
                 PE: {((o - data.mu[i]) * 100).toFixed(4)}%
               </span>
             </div>
@@ -296,29 +296,29 @@ export default function FreeEnergyPrinciple({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Free energy F</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Free energy F</div>
           <div className="text-cyan-400 font-mono">{data.currentF.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Best action</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Best action</div>
           <div className="font-mono" style={{ color: sigColor }}>{data.bestPolicy.action}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Expected G</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Expected G</div>
           <div className="text-amber-400 font-mono">{data.bestPolicy.G.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Predicted return</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Predicted return</div>
           <div className="text-purple-400 font-mono">{(data.bestPolicy.predictedReturn * 100).toFixed(4)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Precision</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Precision</div>
           <div className="text-emerald-400 font-mono">{precision}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> FEP:</strong> minimize F = KL[q||p] - log p(o) |
         <strong> Perception:</strong> gradient descent on F (update μ) |

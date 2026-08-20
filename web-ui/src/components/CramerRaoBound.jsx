@@ -189,11 +189,11 @@ export default function CramerRaoBound({ candles, symbol, exchange }) {
   }, [candles, exchange, symbol, lookback, nSamples])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'LOW_INFORMATION' ? '#ef4444' : data.signal === 'HIGH_INFORMATION' ? '#22c55e' : '#f59e0b'
+  const sigColor = data.signal === 'LOW_INFORMATION' ? '#f6465d' : data.signal === 'HIGH_INFORMATION' ? '#0ecb81' : '#f0b90b'
 
   // CRLB vs sample size
   const maxCRLB = Math.max(...data.sampleSizes.map(s => s.crlbMu), 0.001)
@@ -207,7 +207,7 @@ export default function CramerRaoBound({ candles, symbol, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Cramér-Rao Lower Bound — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Cramér-Rao Lower Bound — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -215,37 +215,37 @@ export default function CramerRaoBound({ candles, symbol, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(30, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(30, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* CRLB vs sample size */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">CRLB vs Sample Size: Var(μ̂) ≥ σ²/n (1/n decay)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">CRLB vs Sample Size: Var(μ̂) ≥ σ²/n (1/n decay)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* CRLB for mean */}
           <path d={data.sampleSizes.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxN(s.n)} ${syCRLB(s.crlbMu)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
 
           {/* CRLB for variance (scaled) */}
-          <path d={data.sampleSizes.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxN(s.n)} ${syCRLB(s.crlbVar * maxCRLB / maxCRLBVar)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2} />
+          <path d={data.sampleSizes.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxN(s.n)} ${syCRLB(s.crlbVar * maxCRLB / maxCRLBVar)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={2} />
 
           {/* Current position */}
-          <circle cx={sxN(data.n)} cy={syCRLB(data.crlbMu)} r={5} fill="#22c55e" stroke="#fff" strokeWidth={1} />
+          <circle cx={sxN(data.n)} cy={syCRLB(data.crlbMu)} r={5} fill="#0ecb81" stroke="#fff" strokeWidth={1} />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>CRLB(μ) = σ²/n</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>CRLB(σ²) = 2σ⁴/n</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#22c55e" fontSize={9}>Current (n={data.n})</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>CRLB(σ²) = 2σ⁴/n</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#0ecb81" fontSize={9}>Current (n={data.n})</text>
         </svg>
       </div>
 
       {/* Fisher information matrix (GARCH) */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Fisher Information Matrix I(θ) — GARCH(1,1)</div>
-        <svg width={W} height={120} className="bg-slate-900 ">
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Fisher Information Matrix I(θ) — GARCH(1,1)</div>
+        <svg width={W} height={120} className="bg-bg-900 ">
           {data.garchResult.fisherMatrix.map((row, i) =>
             row.map((v, j) => {
               const cellW = 100, cellH = 30
@@ -269,15 +269,15 @@ export default function CramerRaoBound({ candles, symbol, exchange }) {
       </div>
 
       {/* CRLB diagonal (GARCH) */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">CRLB = I(θ)⁻¹ diagonal (minimum variance bounds)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">CRLB = I(θ)⁻¹ diagonal (minimum variance bounds)</div>
         <div className="space-y-1">
           {data.garchResult.paramNames.map((name, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-16">{name}</span>
+              <span className="text-gray-400 w-16">{name}</span>
               <span className="text-cyan-400 font-mono w-24">CRLB: {data.garchResult.crlb[i][i].toFixed(8)}</span>
               <span className="text-emerald-400 font-mono w-24">√CRLB: {Math.sqrt(Math.max(0, data.garchResult.crlb[i][i])).toFixed(6)}</span>
-              <div className="flex-1 bg-slate-900  h-3 relative">
+              <div className="flex-1 bg-bg-900  h-3 relative">
                 <div className="h-full " style={{ width: `${Math.min(100, Math.abs(data.garchResult.crlb[i][i]) * 1000)}%`, background: '#06b6d4' }} />
               </div>
             </div>
@@ -286,29 +286,29 @@ export default function CramerRaoBound({ candles, symbol, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">I(μ) Fisher</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">I(μ) Fisher</div>
           <div className="text-cyan-400 font-mono">{data.fisherMu.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">CRLB(μ)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">CRLB(μ)</div>
           <div className="text-emerald-400 font-mono">{data.crlbMu.toFixed(8)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">CRLB(σ²)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">CRLB(σ²)</div>
           <div className="text-amber-400 font-mono">{data.crlbVar.toFixed(10)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Eff. μ̂</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Eff. μ̂</div>
           <div className="text-purple-400 font-mono">{(data.efficiencyMu * 100).toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">95% CI μ</div>
-          <div className="text-slate-300 font-mono">±{data.ciMu.toFixed(6)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">95% CI μ</div>
+          <div className="text-gray-300 font-mono">±{data.ciMu.toFixed(6)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> CRLB:</strong> Var(θ̂) ≥ 1/I(θ) (minimum variance bound) |
         <strong> Fisher:</strong> I(θ) = -E[∂²/∂θ² log L] (expected information) |

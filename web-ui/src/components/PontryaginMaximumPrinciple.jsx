@@ -149,11 +149,11 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
   }, [candles, exchange, symbol, kappa, lambda, eta, X0, T, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'SIGNIFICANT_SAVINGS' ? '#22c55e' : data.signal === 'TWAP_PREFERRED' ? '#f59e0b' : '#06b6d4'
+  const sigColor = data.signal === 'SIGNIFICANT_SAVINGS' ? '#0ecb81' : data.signal === 'TWAP_PREFERRED' ? '#f0b90b' : '#06b6d4'
 
   // Inventory trajectory
   const traj = data.result.trajectory || []
@@ -172,7 +172,7 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Pontryagin Maximum Principle (Optimal Execution) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Pontryagin Maximum Principle (Optimal Execution) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -180,74 +180,74 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">κ (exec cost):</span>
-          <input type="number" step="0.01" value={kappa} onChange={e => setKappa(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">κ (exec cost):</span>
+          <input type="number" step="0.01" value={kappa} onChange={e => setKappa(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">λ (impact):</span>
-          <input type="number" step="0.005" value={lambda} onChange={e => setLambda(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">λ (impact):</span>
+          <input type="number" step="0.005" value={lambda} onChange={e => setLambda(Math.max(0, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">η (risk):</span>
-          <input type="number" step="0.01" value={eta} onChange={e => setEta(Math.max(0, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">η (risk):</span>
+          <input type="number" step="0.01" value={eta} onChange={e => setEta(Math.max(0, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">X₀ (inventory):</span>
-          <input type="number" step="0.1" value={X0} onChange={e => setX0(+e.target.value)} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">X₀ (inventory):</span>
+          <input type="number" step="0.1" value={X0} onChange={e => setX0(+e.target.value)} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">T (horizon):</span>
-          <input type="number" step="0.1" value={T} onChange={e => setT(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">T (horizon):</span>
+          <input type="number" step="0.1" value={T} onChange={e => setT(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Inventory trajectory */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Optimal Inventory x(t): PMP vs TWAP</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Optimal Inventory x(t): PMP vs TWAP</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* PMP optimal */}
           <path d={traj.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxT(t.t)} ${syInv(t.x)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2.5} />
 
           {/* TWAP */}
-          <path d={data.twapTraj.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxT(t.t)} ${syInv(t.x)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5,3" />
+          <path d={data.twapTraj.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxT(t.t)} ${syInv(t.x)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={2} strokeDasharray="5,3" />
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>PMP optimal x*(t)</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>TWAP (linear)</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>TWAP (linear)</text>
         </svg>
       </div>
 
       {/* Trade rate */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Optimal Trade Rate u*(t) (control signal)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Optimal Trade Rate u*(t) (control signal)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
-          <path d={traj.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxT(t.t)} ${syU(t.u)}`).join(' ')} fill="none" stroke="#22c55e" strokeWidth={2} />
+          <path d={traj.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxT(t.t)} ${syU(t.u)}`).join(' ')} fill="none" stroke="#0ecb81" strokeWidth={2} />
           {traj.filter((_, i) => i % 10 === 0).map((t, i) => (
-            <circle key={i} cx={sxT(t.t)} cy={syU(t.u)} r={3} fill={t.u < 0 ? '#ef4444' : '#22c55e'} />
+            <circle key={i} cx={sxT(t.t)} cy={syU(t.u)} r={3} fill={t.u < 0 ? '#f6465d' : '#0ecb81'} />
           ))}
 
           {/* TWAP rate */}
-          <line x1={P} y1={syU(data.twapTraj[0].u)} x2={W - P} y2={syU(data.twapTraj[0].u)} stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4,3" />
+          <line x1={P} y1={syU(data.twapTraj[0].u)} x2={W - P} y2={syU(data.twapTraj[0].u)} stroke="#f0b90b" strokeWidth={1.5} strokeDasharray="4,3" />
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>u*(t) PMP optimal</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#f59e0b" fontSize={9}>TWAP constant rate</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>u*(t) PMP optimal</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#f0b90b" fontSize={9}>TWAP constant rate</text>
         </svg>
       </div>
 
       {/* Costate p(t) */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Costate p(t) (shadow price of inventory)</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" />
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Costate p(t) (shadow price of inventory)</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           <path d={traj.map((t, i) => `${i === 0 ? 'M' : 'L'} ${sxT(t.t)} ${syP(t.p)}`).join(' ')} fill="none" stroke="#a855f7" strokeWidth={2} />
 
@@ -256,17 +256,17 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
       </div>
 
       {/* Cost comparison */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Execution Cost Comparison</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Execution Cost Comparison</div>
         <div className="space-y-1">
           {[
             { label: 'PMP optimal', cost: data.result.totalCost, color: '#06b6d4' },
-            { label: 'TWAP', cost: data.result.twapCost, color: '#f59e0b' },
-            { label: 'Immediate', cost: data.immediateCost, color: '#ef4444' },
+            { label: 'TWAP', cost: data.result.twapCost, color: '#f0b90b' },
+            { label: 'Immediate', cost: data.immediateCost, color: '#f6465d' },
           ].sort((a, b) => a.cost - b.cost).map((c, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-24">{c.label}</span>
-              <div className="flex-1 bg-slate-900  h-3 relative">
+              <span className="text-gray-400 w-24">{c.label}</span>
+              <div className="flex-1 bg-bg-900  h-3 relative">
                 <div className="h-full " style={{ width: `${Math.min(100, c.cost / data.immediateCost * 100)}%`, background: c.color }} />
               </div>
               <span className="font-mono w-24" style={{ color: c.color }}>{c.cost.toFixed(6)}</span>
@@ -276,29 +276,29 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">PMP cost</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">PMP cost</div>
           <div className="text-cyan-400 font-mono">{data.result.totalCost.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">TWAP cost</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">TWAP cost</div>
           <div className="text-amber-400 font-mono">{data.result.twapCost.toFixed(6)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Savings</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Savings</div>
           <div className="text-emerald-400 font-mono">{data.savingsPct.toFixed(1)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">u*(0) rate</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">u*(0) rate</div>
           <div className="text-purple-400 font-mono">{data.currentU.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Direction</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Direction</div>
           <div className="font-mono" style={{ color: sigColor }}>{data.tradeDirection}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> PMP:</strong> H = ½κu² + λu²x + ηx² + p·u, u* = -p/(κ+2λx) |
         <strong> State:</strong> x'=u (inventory), Costate: p'=-λu²-2ηx |

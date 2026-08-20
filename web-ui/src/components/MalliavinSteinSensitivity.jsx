@@ -183,11 +183,11 @@ export default function MalliavinSteinSensitivity({ candles, symbol, exchange })
   }, [candles, exchange, symbol, lookback, nSims, K, T, r])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'GREEKS_VALID' ? '#22c55e' : data.signal === 'DELTA_MISMATCH' ? '#ef4444' : '#f59e0b'
+  const sigColor = data.signal === 'GREEKS_VALID' ? '#0ecb81' : data.signal === 'DELTA_MISMATCH' ? '#f6465d' : '#f0b90b'
 
   // Delta vs strike
   const allDeltas = data.strikeSweep.flatMap(s => [s.msDelta, s.fdDelta, s.bsDelta])
@@ -205,7 +205,7 @@ export default function MalliavinSteinSensitivity({ candles, symbol, exchange })
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Malliavin-Stein Sensitivity (Greeks via IBP) — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Malliavin-Stein Sensitivity (Greeks via IBP) — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -213,74 +213,74 @@ export default function MalliavinSteinSensitivity({ candles, symbol, exchange })
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">K (strike):</span>
-          <input type="number" step="0.05" value={K} onChange={e => setK(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">K (strike):</span>
+          <input type="number" step="0.05" value={K} onChange={e => setK(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">T (expiry):</span>
-          <input type="number" step="0.05" value={T} onChange={e => setT(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">T (expiry):</span>
+          <input type="number" step="0.05" value={T} onChange={e => setT(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">r (rate):</span>
-          <input type="number" step="0.01" value={r} onChange={e => setR(+e.target.value)} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">r (rate):</span>
+          <input type="number" step="0.01" value={r} onChange={e => setR(+e.target.value)} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Sims:</span>
-          <input type="number" value={nSims} onChange={e => setNSims(Math.max(1000, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Sims:</span>
+          <input type="number" value={nSims} onChange={e => setNSims(Math.max(1000, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Delta comparison */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Delta dC/dK: Malliavin-Stein (IBP) vs Finite Difference vs Black-Scholes</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Delta dC/dK: Malliavin-Stein (IBP) vs Finite Difference vs Black-Scholes</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* BS analytical */}
-          <path d={data.strikeSweep.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxK(i)} ${syDelta(s.bsDelta)}`).join(' ')} fill="none" stroke="#22c55e" strokeWidth={2.5} />
+          <path d={data.strikeSweep.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxK(i)} ${syDelta(s.bsDelta)}`).join(' ')} fill="none" stroke="#0ecb81" strokeWidth={2.5} />
 
           {/* Malliavin-Stein */}
           <path d={data.strikeSweep.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxK(i)} ${syDelta(s.msDelta)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={1.5} strokeDasharray="4,2" />
 
           {/* Finite difference */}
-          <path d={data.strikeSweep.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxK(i)} ${syDelta(s.fdDelta)}`).join(' ')} fill="none" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="2,2" />
+          <path d={data.strikeSweep.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxK(i)} ${syDelta(s.fdDelta)}`).join(' ')} fill="none" stroke="#f6465d" strokeWidth={1.5} strokeDasharray="2,2" />
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>BS analytical</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>BS analytical</text>
           <text x={W - P} y={34} textAnchor="end" fill="#06b6d4" fontSize={9}>Malliavin-Stein (IBP)</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#ef4444" fontSize={9}>Finite difference</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#f6465d" fontSize={9}>Finite difference</text>
         </svg>
       </div>
 
       {/* Gamma comparison */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Gamma d^2C/dK^2: Malliavin-Stein vs Finite Difference vs Black-Scholes</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Gamma d^2C/dK^2: Malliavin-Stein vs Finite Difference vs Black-Scholes</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
-          <path d={data.strikeSweep.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxK(i)} ${syGamma(s.bsGamma)}`).join(' ')} fill="none" stroke="#22c55e" strokeWidth={2.5} />
+          <path d={data.strikeSweep.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxK(i)} ${syGamma(s.bsGamma)}`).join(' ')} fill="none" stroke="#0ecb81" strokeWidth={2.5} />
           <path d={data.strikeSweep.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxK(i)} ${syGamma(s.msGamma)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={1.5} strokeDasharray="4,2" />
-          <path d={data.strikeSweep.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxK(i)} ${syGamma(s.fdGamma)}`).join(' ')} fill="none" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="2,2" />
+          <path d={data.strikeSweep.map((s, i) => `${i === 0 ? 'M' : 'L'} ${sxK(i)} ${syGamma(s.fdGamma)}`).join(' ')} fill="none" stroke="#f6465d" strokeWidth={1.5} strokeDasharray="2,2" />
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>BS analytical</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>BS analytical</text>
           <text x={W - P} y={34} textAnchor="end" fill="#06b6d4" fontSize={9}>Malliavin-Stein (IBP)</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#ef4444" fontSize={9}>Finite difference</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#f6465d" fontSize={9}>Finite difference</text>
         </svg>
       </div>
 
       {/* Standard error comparison */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Standard Error Comparison (Malliavin-Stein vs Finite Difference)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Standard Error Comparison (Malliavin-Stein vs Finite Difference)</div>
         <div className="space-y-2">
           <div className="flex items-center gap-3 text-xs">
-            <span className="text-slate-400 w-16">Delta SE</span>
+            <span className="text-gray-400 w-16">Delta SE</span>
             <span className="text-cyan-400 font-mono w-24">MS: {data.ms.deltaSE.toFixed(6)}</span>
             <span className="text-red-400 font-mono w-24">FD: {data.fd.deltaSE.toFixed(6)}</span>
             <span className="text-emerald-400 font-mono">efficiency: {data.deltaEfficiency.toFixed(1)}x</span>
           </div>
           <div className="flex items-center gap-3 text-xs">
-            <span className="text-slate-400 w-16">Gamma SE</span>
+            <span className="text-gray-400 w-16">Gamma SE</span>
             <span className="text-cyan-400 font-mono w-24">MS: {data.ms.gammaSE.toFixed(6)}</span>
             <span className="text-red-400 font-mono w-24">FD: {data.fd.gammaSE.toFixed(6)}</span>
             <span className="text-emerald-400 font-mono">efficiency: {data.gammaEfficiency.toFixed(1)}x</span>
@@ -289,29 +289,29 @@ export default function MalliavinSteinSensitivity({ candles, symbol, exchange })
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">MS Delta</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">MS Delta</div>
           <div className="text-cyan-400 font-mono">{data.ms.delta.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">BS Delta</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">BS Delta</div>
           <div className="text-emerald-400 font-mono">{data.ms.bsDelta.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">MS Gamma</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">MS Gamma</div>
           <div className="text-cyan-400 font-mono">{data.ms.gamma.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">BS Gamma</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">BS Gamma</div>
           <div className="text-emerald-400 font-mono">{data.ms.bsGamma.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">S0 / sigma</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">S0 / sigma</div>
           <div className="text-amber-400 font-mono">{data.S0.toFixed(2)} / {data.sigma.toFixed(4)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> Malliavin-Stein:</strong> E[phi(F) * D_tF/||DF||^2] = E[phi'(F)] (integration by parts) |
         <strong> Delta:</strong> weight = Z / (S0 * sigma * sqrt(T)) |

@@ -123,12 +123,12 @@ export default function VolatilityRegime({ candles, symbol, exchange }) {
       <svg viewBox="0 0 100 100" className="w-full h-[35px]" preserveAspectRatio="none">
         <defs>
           <linearGradient id="vol-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#eab308" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#eab308" stopOpacity="0" />
+            <stop offset="0%" stopColor="#f0b90b" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#f0b90b" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={areaPath} fill="url(#vol-grad)" />
-        <path d={path} fill="none" stroke="#eab308" strokeWidth="1.5" />
+        <path d={path} fill="none" stroke="#f0b90b" strokeWidth="1.5" />
       </svg>
 
       <div className="flex items-center justify-between mt-1.5">

@@ -222,7 +222,7 @@ export default function SignalMatrixHeatmap({ candles, signals, fills, symbols, 
                       y1={i * 20 + 26}
                       x2={labelW + j * cellW + cellW / 2 + 3}
                       y2={i * 20 + 26}
-                      stroke="#475569"
+                      stroke="#5e6673"
                       strokeWidth={1}
                     />
                   )}

@@ -332,12 +332,12 @@ export default function EmpiricalModeDecomposition({ candles, symbol, exchange }
   }, [candles, exchange, symbol, maxIMFs, maxIter])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 32 candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 32 candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 300, P = 30
-  const colors = ['#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
-  const sigColor = data.sigDir === 'BUY' ? '#22c55e' : data.sigDir === 'SELL' ? '#ef4444' : '#94a3b8'
+  const colors = ['#06b6d4', '#0ecb81', '#f0b90b', '#f6465d', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
+  const sigColor = data.sigDir === 'BUY' ? '#0ecb81' : data.sigDir === 'SELL' ? '#f6465d' : '#94a3b8'
 
   const allVals = [...data.imfs.flat(), ...data.residue]
   const maxAbs = Math.max(0.001, ...allVals.map(Math.abs))
@@ -347,7 +347,7 @@ export default function EmpiricalModeDecomposition({ candles, symbol, exchange }
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Empirical Mode Decomposition (EMD) + HHT — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Empirical Mode Decomposition (EMD) + HHT — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.sigDir}
         </span>
@@ -355,24 +355,24 @@ export default function EmpiricalModeDecomposition({ candles, symbol, exchange }
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Max IMFs:</span>
-          <input type="number" value={maxIMFs} onChange={e => setMaxIMFs(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Max IMFs:</span>
+          <input type="number" value={maxIMFs} onChange={e => setMaxIMFs(Math.max(2, Math.min(8, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Sift Iter:</span>
-          <input type="number" value={maxIter} onChange={e => setMaxIter(Math.max(10, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Sift Iter:</span>
+          <input type="number" value={maxIter} onChange={e => setMaxIter(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={showHilbert} onChange={e => setShowHilbert(e.target.checked)} />
-          <span className="text-slate-400">Hilbert-Huang</span>
+          <span className="text-gray-400">Hilbert-Huang</span>
         </label>
       </div>
 
       {/* IMFs */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Intrinsic Mode Functions (IMF 1-{data.imfs.length}) + Residue</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#334155" strokeDasharray="3,2" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Intrinsic Mode Functions (IMF 1-{data.imfs.length}) + Residue</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" strokeDasharray="3,2" />
           {data.imfs.map((imf, k) => {
             const yOffset = H / 2  // All share center
             const path = imf.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sx(i)} ${yOffset - (v / maxAbs) * (H / 2 - P) * 0.7}`).join(' ')
@@ -388,18 +388,18 @@ export default function EmpiricalModeDecomposition({ candles, symbol, exchange }
           {/* Residue */}
           <path
             d={data.residue.map((v, i) => `${i === 0 ? 'M' : 'L'} ${sx(i)} ${sy(v) * 0.5 + H / 4}`).join(' ')}
-            fill="none" stroke="#64748b" strokeWidth={2} strokeDasharray="4,3"
+            fill="none" stroke="#848e9c" strokeWidth={2} strokeDasharray="4,3"
           />
-          <text x={W - P} y={15 + data.imfs.length * 12} textAnchor="end" fill="#64748b" fontSize={9}>Residue (trend)</text>
+          <text x={W - P} y={15 + data.imfs.length * 12} textAnchor="end" fill="#848e9c" fontSize={9}>Residue (trend)</text>
         </svg>
       </div>
 
       {/* Hilbert-Huang: instantaneous frequency + amplitude */}
       {showHilbert && (
-        <div className="bg-slate-800  p-3">
-          <div className="text-xs text-slate-400 mb-1">Hilbert-Huang: Instantaneous Amplitude × Frequency (dominant IMF)</div>
-          <svg width={W} height={180} className="bg-slate-900 ">
-            <line x1={P} y1={160} x2={W - P} y2={160} stroke="#334155" />
+        <div className="bg-bg-700  p-3">
+          <div className="text-xs text-gray-400 mb-1">Hilbert-Huang: Instantaneous Amplitude × Frequency (dominant IMF)</div>
+          <svg width={W} height={180} className="bg-bg-900 ">
+            <line x1={P} y1={160} x2={W - P} y2={160} stroke="#1e2530" />
             {(() => {
               const dom = data.hht[data.dominantIdx]
               const maxAmp = Math.max(0.001, ...dom.amplitude)
@@ -408,7 +408,7 @@ export default function EmpiricalModeDecomposition({ candles, symbol, exchange }
                 const freq = dom.frequency[i]
                 const x = sx(i)
                 const h = (a / maxAmp) * 120
-                const colorFreq = freq > 0 ? `hsl(${Math.min(240, freq * 2000)}, 70%, 50%)` : '#334155'
+                const colorFreq = freq > 0 ? `hsl(${Math.min(240, freq * 2000)}, 70%, 50%)` : '#1e2530'
                 return <rect key={i} x={x} y={160 - h} width={Math.max(1, (W - 2 * P) / data.N - 1)} height={h} fill={colorFreq} opacity={0.7} />
               })
             })()}
@@ -420,40 +420,40 @@ export default function EmpiricalModeDecomposition({ candles, symbol, exchange }
       )}
 
       {/* Energy distribution */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">IMF Energy Distribution</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">IMF Energy Distribution</div>
         <div className="flex items-end gap-3 h-20">
           {data.imfs.map((_, k) => (
             <div key={k} className="flex flex-col items-center flex-1">
-              <div className="text-[10px] text-slate-400 mb-1">{data.energyPct[k].toFixed(1)}%</div>
+              <div className="text-[10px] text-gray-400 mb-1">{data.energyPct[k].toFixed(1)}%</div>
               <div className="w-full rounded-t" style={{ height: `${Math.max(2, data.energyPct[k])}%`, background: colors[k % colors.length] }} />
-              <div className="text-[10px] text-slate-500 mt-1">IMF{k + 1}</div>
-              <div className="text-[10px] text-slate-600">f={data.meanFreqs[k].toFixed(3)}</div>
+              <div className="text-[10px] text-gray-500 mt-1">IMF{k + 1}</div>
+              <div className="text-[10px] text-gray-600">f={data.meanFreqs[k].toFixed(3)}</div>
             </div>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">IMFs</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">IMFs</div>
           <div className="text-cyan-400 font-mono">{data.imfs.length}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Dominant</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Dominant</div>
           <div className="text-emerald-400 font-mono">IMF{data.dominantIdx + 1}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Dom. Frequency</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Dom. Frequency</div>
           <div className="text-amber-400 font-mono">{data.meanFreqs[data.dominantIdx].toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Residual Energy</div>
-          <div className="text-slate-300 font-mono">{(data.residue.reduce((s, v) => s + v * v, 0) / data.N).toFixed(6)}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Residual Energy</div>
+          <div className="text-gray-300 font-mono">{(data.residue.reduce((s, v) => s + v * v, 0) / data.N).toFixed(6)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason}
       </div>
     </div>

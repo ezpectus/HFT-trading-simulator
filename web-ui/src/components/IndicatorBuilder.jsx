@@ -5,7 +5,7 @@ import { calcSMA, calcEMA, calcRSI, calcBollingerBands } from '../utils/indicato
 const INDICATOR_DEFS = [
   { id: 'sma', label: 'SMA', fn: calcSMA, params: [{ id: 'period', label: 'Period', default: 20, min: 2, max: 200 }], color: '#3b82f6' },
   { id: 'ema', label: 'EMA', fn: calcEMA, params: [{ id: 'period', label: 'Period', default: 12, min: 2, max: 200 }], color: '#8b5cf6' },
-  { id: 'rsi', label: 'RSI', fn: calcRSI, params: [{ id: 'period', label: 'Period', default: 14, min: 2, max: 100 }], color: '#f59e0b' },
+  { id: 'rsi', label: 'RSI', fn: calcRSI, params: [{ id: 'period', label: 'Period', default: 14, min: 2, max: 100 }], color: '#f0b90b' },
   { id: 'bb', label: 'Bollinger', fn: calcBollingerBands, params: [
     { id: 'period', label: 'Period', default: 20, min: 5, max: 100 },
     { id: 'stdDev', label: 'Std Dev', default: 2, min: 0.5, max: 4, step: 0.5 },

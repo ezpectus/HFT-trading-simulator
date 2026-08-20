@@ -276,7 +276,7 @@ export default function OptionsStrategySimulator({ currentPrice }) {
               return `${x},${y}`
             }).join(' ')
             const fillColor = netCost < 0 ? 'rgba(168,85,247,0.1)' : 'rgba(34,197,94,0.1)'
-            const strokeColor = netCost < 0 ? '#a855f7' : '#22c55e'
+            const strokeColor = netCost < 0 ? '#a855f7' : '#0ecb81'
             return (
               <>
                 <polygon points={`0,120 ${points} 400,120`} fill={fillColor} />

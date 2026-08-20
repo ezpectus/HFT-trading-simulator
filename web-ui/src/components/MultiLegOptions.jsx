@@ -170,7 +170,7 @@ export default function MultiLegOptions({ currentPrice }) {
         <line x1="0" y1={zeroY} x2={W} y2={zeroY} stroke="#3b82f6" strokeWidth="0.3" strokeDasharray="1" />
         <path d={payoffPath} fill="none" stroke="#a855f7" strokeWidth="0.8" />
         {analysis.breakevens.map((be, i) => (
-          <circle key={i} cx={xScale(be)} cy={zeroY} r="1" fill="#eab308" />
+          <circle key={i} cx={xScale(be)} cy={zeroY} r="1" fill="#f0b90b" />
         ))}
       </svg>
 

@@ -144,7 +144,7 @@ export default function WhaleAlerts({ fills, candles, symbol, exchange }) {
               className="flex-1 rounded-t transition-all"
               style={{
                 height: `${t.sizeRatio * 100}%`,
-                backgroundColor: t.side === 'BUY' ? '#22c55e' : '#ef4444',
+                backgroundColor: t.side === 'BUY' ? '#0ecb81' : '#f6465d',
                 opacity: 0.6 + t.sizeRatio * 0.4,
                 minHeight: '4px',
               }}

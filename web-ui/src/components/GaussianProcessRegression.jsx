@@ -254,11 +254,11 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
   }, [candles, exchange, symbol, kernelType, sigmaF, lengthScale, sigmaN, autoOptimize, nTrain, nPredict])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least {nTrain + nPredict + 5} candles for {symbol} on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least {nTrain + nPredict + 5} candles for {symbol} on {exchange}</div>
   }
 
   const W = 800, H = 300, P = 30
-  const sigColor = data.signal === 'BUY' ? '#22c55e' : data.signal === 'SELL' ? '#ef4444' : '#94a3b8'
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   // Chart
   const allPrices = [...data.actualPrices, ...data.futureMeans, ...data.upperBound, ...data.lowerBound, ...data.futureUpper, ...data.futureLower]
@@ -276,7 +276,7 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Gaussian Process Regression — {symbol}</span>
+        <span className="text-sm font-bold text-gray-200">Gaussian Process Regression — {symbol}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -284,8 +284,8 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Kernel:</span>
-          <select value={kernelType} onChange={e => setKernelType(e.target.value)} className="bg-slate-800 border border-slate-600  text-slate-200 px-1">
+          <span className="text-gray-400">Kernel:</span>
+          <select value={kernelType} onChange={e => setKernelType(e.target.value)} className="bg-bg-700 border border-bg-500  text-gray-200 px-1">
             <option value="rbf">RBF (Squared Exp)</option>
             <option value="matern">Matérn 5/2</option>
             <option value="periodic">Periodic</option>
@@ -293,40 +293,40 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={autoOptimize} onChange={e => setAutoOptimize(e.target.checked)} />
-          <span className="text-slate-400">Auto-optimize</span>
+          <span className="text-gray-400">Auto-optimize</span>
         </label>
         {!autoOptimize && (
           <>
             <label className="flex items-center gap-1">
-              <span className="text-slate-400">σ_f:</span>
-              <input type="number" step="0.1" value={sigmaF} onChange={e => setSigmaF(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+              <span className="text-gray-400">σ_f:</span>
+              <input type="number" step="0.1" value={sigmaF} onChange={e => setSigmaF(Math.max(0.01, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
             </label>
             <label className="flex items-center gap-1">
-              <span className="text-slate-400">l (length):</span>
-              <input type="number" step="0.5" value={lengthScale} onChange={e => setLengthScale(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+              <span className="text-gray-400">l (length):</span>
+              <input type="number" step="0.5" value={lengthScale} onChange={e => setLengthScale(Math.max(0.1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
             </label>
             <label className="flex items-center gap-1">
-              <span className="text-slate-400">σ_n (noise):</span>
-              <input type="number" step="0.01" value={sigmaN} onChange={e => setSigmaN(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+              <span className="text-gray-400">σ_n (noise):</span>
+              <input type="number" step="0.01" value={sigmaN} onChange={e => setSigmaN(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
             </label>
           </>
         )}
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Train points:</span>
-          <input type="number" value={nTrain} onChange={e => setNTrain(Math.max(10, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Train points:</span>
+          <input type="number" value={nTrain} onChange={e => setNTrain(Math.max(10, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Predict ahead:</span>
-          <input type="number" value={nPredict} onChange={e => setNPredict(Math.max(1, +e.target.value))} className="w-12 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Predict ahead:</span>
+          <input type="number" value={nPredict} onChange={e => setNPredict(Math.max(1, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* GP prediction chart */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">GP Posterior: Mean ± 2σ Confidence Band</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">GP Posterior: Mean ± 2σ Confidence Band</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* Confidence band */}
           <path d={bandPath} fill="#06b6d4" opacity={0.15} />
@@ -335,18 +335,18 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
           <path d={data.meanPred.map((m, i) => `${i === 0 ? 'M' : 'L'} ${sx(i)} ${sy(m)}`).join(' ')} fill="none" stroke="#06b6d4" strokeWidth={2} />
 
           {/* Actual prices */}
-          <path d={data.actualPrices.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sx(i)} ${sy(p)}`).join(' ')} fill="none" stroke="#64748b" strokeWidth={1.5} opacity={0.7} />
+          <path d={data.actualPrices.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sx(i)} ${sy(p)}`).join(' ')} fill="none" stroke="#848e9c" strokeWidth={1.5} opacity={0.7} />
 
           {/* Future prediction */}
-          <line x1={sx(data.XTrain - 1)} y1={P} x2={sx(data.XTrain - 1)} y2={H - P} stroke="#475569" strokeDasharray="4,3" />
-          <text x={sx(data.XTrain - 1) - 5} y={P + 10} textAnchor="end" fill="#475569" fontSize={9}>train</text>
-          <text x={sx(data.XTrain - 1) + 5} y={P + 10} fill="#475569" fontSize={9}>predict</text>
+          <line x1={sx(data.XTrain - 1)} y1={P} x2={sx(data.XTrain - 1)} y2={H - P} stroke="#5e6673" strokeDasharray="4,3" />
+          <text x={sx(data.XTrain - 1) - 5} y={P + 10} textAnchor="end" fill="#5e6673" fontSize={9}>train</text>
+          <text x={sx(data.XTrain - 1) + 5} y={P + 10} fill="#5e6673" fontSize={9}>predict</text>
 
           {/* Future mean */}
           {data.futureMeans.map((m, i) => {
             const idx = data.XTrain + i
             if (idx >= data.N) return null
-            return <circle key={i} cx={sx(idx)} cy={sy(m)} r={3} fill="#f59e0b" />
+            return <circle key={i} cx={sx(idx)} cy={sy(m)} r={3} fill="#f0b90b" />
           })}
 
           {/* Future confidence */}
@@ -354,40 +354,40 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
             const idx = data.XTrain + i
             if (idx >= data.N) return null
             return (
-              <line key={i} x1={sx(idx)} y1={sy(data.futureUpper[i])} x2={sx(idx)} y2={sy(data.futureLower[i])} stroke="#f59e0b" strokeWidth={1} opacity={0.5} />
+              <line key={i} x1={sx(idx)} y1={sy(data.futureUpper[i])} x2={sx(idx)} y2={sy(data.futureLower[i])} stroke="#f0b90b" strokeWidth={1} opacity={0.5} />
             )
           })}
 
           <text x={W - P} y={20} textAnchor="end" fill="#06b6d4" fontSize={9}>GP posterior mean</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#64748b" fontSize={9}>Actual price</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#f59e0b" fontSize={9}>Future prediction</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#848e9c" fontSize={9}>Actual price</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#f0b90b" fontSize={9}>Future prediction</text>
         </svg>
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Log ML</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Log ML</div>
           <div className="text-cyan-400 font-mono">{data.logML.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">RMSE</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">RMSE</div>
           <div className="text-amber-400 font-mono">{data.rmse.toFixed(4)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Pred Price</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Pred Price</div>
           <div className="text-emerald-400 font-mono">${data.predictedPrice.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Pred Return</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Pred Return</div>
           <div className="font-mono" style={{ color: sigColor }}>{(data.predictedReturn * 100).toFixed(3)}%</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Uncertainty</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Uncertainty</div>
           <div className="text-purple-400 font-mono">{(data.uncertainty * 100).toFixed(2)}%</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Hyperparams:</strong> σ_f={data.params.sigmaF.toFixed(3)}, l={data.params.lengthScale.toFixed(2)}, σ_n={data.params.sigmaN.toFixed(4)} |
         <strong> Kernel:</strong> {kernelType} |
         <strong> Cholesky:</strong> O(n³) decomposition |

@@ -234,7 +234,7 @@ export default function RiskOfRuin({ accounts, fills }) {
       <div className="mb-2">
         <div className="text-[8px] text-gray-600 mb-1">Sample equity curves:</div>
         <svg viewBox="0 0 100 50" className="w-full h-[40px]" preserveAspectRatio="none">
-          <line x1="0" y1="25" x2="100" y2="25" stroke="#64748b" strokeWidth="0.2" strokeDasharray="1 3" opacity="0.3" />
+          <line x1="0" y1="25" x2="100" y2="25" stroke="#848e9c" strokeWidth="0.2" strokeDasharray="1 3" opacity="0.3" />
           {[...survivalPaths, ...ruinPaths].map((path, i) => {
             const isRuin = i >= survivalPaths.length
             const maxVal = startingBalance * 2
@@ -245,7 +245,7 @@ export default function RiskOfRuin({ accounts, fills }) {
               const x = (j / (path.length - 1)) * 100
               return `${j === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${toY(v).toFixed(1)}`
             }).join(' ')
-            return <path key={i} d={d} fill="none" stroke={isRuin ? '#ef4444' : '#22c55e'} strokeWidth="0.5" opacity="0.5" />
+            return <path key={i} d={d} fill="none" stroke={isRuin ? '#f6465d' : '#0ecb81'} strokeWidth="0.5" opacity="0.5" />
           })}
         </svg>
         <div className="flex items-center justify-between text-[7px] mt-0.5">

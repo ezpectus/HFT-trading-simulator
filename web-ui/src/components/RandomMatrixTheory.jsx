@@ -206,11 +206,11 @@ export default function RandomMatrixTheory({ candles, symbols, exchange }) {
   }, [candles, exchange, symbols, lookback])
 
   if (!data) {
-    return <div className="p-4 text-sm text-slate-400">Need at least 3 symbols with {lookback + 1}+ candles on {exchange}</div>
+    return <div className="p-4 text-sm text-gray-400">Need at least 3 symbols with {lookback + 1}+ candles on {exchange}</div>
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'STRONG_SIGNAL' ? '#22c55e' : data.signal === 'WEAK_SIGNAL' ? '#f59e0b' : '#ef4444'
+  const sigColor = data.signal === 'STRONG_SIGNAL' ? '#0ecb81' : data.signal === 'WEAK_SIGNAL' ? '#f0b90b' : '#f6465d'
 
   // Eigenvalue spectrum
   const maxEig = Math.max(...data.eigenvalues, data.lambdaMax + 0.5)
@@ -225,7 +225,7 @@ export default function RandomMatrixTheory({ candles, symbols, exchange }) {
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold text-slate-200">Random Matrix Theory — {exchange}</span>
+        <span className="text-sm font-bold text-gray-200">Random Matrix Theory — {exchange}</span>
         <span className="px-2 py-0.5 text-xs " style={{ background: sigColor + '22', color: sigColor }}>
           {data.signal}
         </span>
@@ -233,74 +233,74 @@ export default function RandomMatrixTheory({ candles, symbols, exchange }) {
 
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <label className="flex items-center gap-1">
-          <span className="text-slate-400">Lookback:</span>
-          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-slate-800 border border-slate-600  text-slate-200" />
+          <span className="text-gray-400">Lookback:</span>
+          <input type="number" value={lookback} onChange={e => setLookback(Math.max(50, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 
       {/* Eigenvalue spectrum */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-1">Eigenvalue Spectrum vs Marchenko-Pastur Bounds</div>
-        <svg width={W} height={H} className="bg-slate-900 ">
-          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#334155" />
-          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#334155" />
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-1">Eigenvalue Spectrum vs Marchenko-Pastur Bounds</div>
+        <svg width={W} height={H} className="bg-bg-900 ">
+          <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />
+          <line x1={P} y1={P} x2={P} y2={H - P} stroke="#1e2530" />
 
           {/* MP bounds */}
-          <line x1={sxMP(data.lambdaMin)} y1={P} x2={sxMP(data.lambdaMin)} y2={H - P} stroke="#ef4444" strokeDasharray="4,3" />
-          <line x1={sxMP(data.lambdaMax)} y1={P} x2={sxMP(data.lambdaMax)} y2={H - P} stroke="#ef4444" strokeDasharray="4,3" />
-          <text x={sxMP(data.lambdaMin)} y={P + 10} textAnchor="middle" fill="#ef4444" fontSize={9}>λ₋={data.lambdaMin.toFixed(3)}</text>
-          <text x={sxMP(data.lambdaMax)} y={P + 10} textAnchor="middle" fill="#ef4444" fontSize={9}>λ₊={data.lambdaMax.toFixed(3)}</text>
+          <line x1={sxMP(data.lambdaMin)} y1={P} x2={sxMP(data.lambdaMin)} y2={H - P} stroke="#f6465d" strokeDasharray="4,3" />
+          <line x1={sxMP(data.lambdaMax)} y1={P} x2={sxMP(data.lambdaMax)} y2={H - P} stroke="#f6465d" strokeDasharray="4,3" />
+          <text x={sxMP(data.lambdaMin)} y={P + 10} textAnchor="middle" fill="#f6465d" fontSize={9}>λ₋={data.lambdaMin.toFixed(3)}</text>
+          <text x={sxMP(data.lambdaMax)} y={P + 10} textAnchor="middle" fill="#f6465d" fontSize={9}>λ₊={data.lambdaMax.toFixed(3)}</text>
 
           {/* MP density curve */}
-          <path d={data.mpCurve.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sxMP(p.lambda)} ${syMP(p.density)}`).join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2} />
+          <path d={data.mpCurve.map((p, i) => `${i === 0 ? 'M' : 'L'} ${sxMP(p.lambda)} ${syMP(p.density)}`).join(' ')} fill="none" stroke="#f0b90b" strokeWidth={2} />
 
           {/* Eigenvalues */}
           {data.eigenvalues.map((eig, i) => {
             const isNoise = eig >= data.lambdaMin && eig <= data.lambdaMax
             return (
               <g key={i}>
-                <circle cx={sxMP(eig)} cy={syEig(eig)} r={isNoise ? 3 : 6} fill={isNoise ? '#64748b' : '#22c55e'} opacity={isNoise ? 0.5 : 1} />
-                {!isNoise && <text x={sxMP(eig)} y={syEig(eig) - 10} textAnchor="middle" fill="#22c55e" fontSize={8}>λ={eig.toFixed(2)}</text>}
+                <circle cx={sxMP(eig)} cy={syEig(eig)} r={isNoise ? 3 : 6} fill={isNoise ? '#848e9c' : '#0ecb81'} opacity={isNoise ? 0.5 : 1} />
+                {!isNoise && <text x={sxMP(eig)} y={syEig(eig) - 10} textAnchor="middle" fill="#0ecb81" fontSize={8}>λ={eig.toFixed(2)}</text>}
               </g>
             )
           })}
 
-          <text x={W - P} y={20} textAnchor="end" fill="#22c55e" fontSize={9}>Signal eigenvalues</text>
-          <text x={W - P} y={34} textAnchor="end" fill="#64748b" fontSize={9}>Noise eigenvalues</text>
-          <text x={W - P} y={48} textAnchor="end" fill="#f59e0b" fontSize={9}>MP density</text>
+          <text x={W - P} y={20} textAnchor="end" fill="#0ecb81" fontSize={9}>Signal eigenvalues</text>
+          <text x={W - P} y={34} textAnchor="end" fill="#848e9c" fontSize={9}>Noise eigenvalues</text>
+          <text x={W - P} y={48} textAnchor="end" fill="#f0b90b" fontSize={9}>MP density</text>
         </svg>
       </div>
 
       {/* Market mode (largest eigenvector) */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Market Mode (largest eigenvector — common factor)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Market Mode (largest eigenvector — common factor)</div>
         <div className="space-y-1">
           {data.marketModeContrib.map((m, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400 w-20 truncate">{m.sym}</span>
-              <div className="flex-1 bg-slate-900  h-3 relative">
-                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
+              <span className="text-gray-400 w-20 truncate">{m.sym}</span>
+              <div className="flex-1 bg-bg-900  h-3 relative">
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-bg-500" />
                 <div className="h-full  absolute" style={{
                   width: `${Math.abs(m.weight) * 50}%`,
-                  background: m.weight >= 0 ? '#22c55e' : '#ef4444',
+                  background: m.weight >= 0 ? '#0ecb81' : '#f6465d',
                   left: m.weight >= 0 ? '50%' : `${50 - Math.abs(m.weight) * 50}%`
                 }} />
               </div>
-              <span className="font-mono w-16" style={{ color: m.weight >= 0 ? '#22c55e' : '#ef4444' }}>{m.weight.toFixed(4)}</span>
+              <span className="font-mono w-16" style={{ color: m.weight >= 0 ? '#0ecb81' : '#f6465d' }}>{m.weight.toFixed(4)}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Cleaned vs original correlation */}
-      <div className="bg-slate-800  p-3">
-        <div className="text-xs text-slate-400 mb-2">Cleaned Correlation Matrix (RMT-filtered)</div>
+      <div className="bg-bg-700  p-3">
+        <div className="text-xs text-gray-400 mb-2">Cleaned Correlation Matrix (RMT-filtered)</div>
         <div className="grid gap-px text-[8px]" style={{ gridTemplateColumns: `auto repeat(${data.N}, 1fr)` }}>
           <div></div>
-          {data.validSymbols.map((s, i) => <div key={i} className="text-slate-500 text-center truncate">{s.slice(0, 4)}</div>)}
+          {data.validSymbols.map((s, i) => <div key={i} className="text-gray-500 text-center truncate">{s.slice(0, 4)}</div>)}
           {data.Cclean.map((row, i) => (
             <React.Fragment key={i}>
-              <div className="text-slate-500 truncate pr-1">{data.validSymbols[i].slice(0, 6)}</div>
+              <div className="text-gray-500 truncate pr-1">{data.validSymbols[i].slice(0, 6)}</div>
               {row.map((c, j) => (
                 <div key={j} className="text-center font-mono" style={{
                   background: c > 0 ? `rgba(34, 197, 94, ${Math.abs(c)})` : `rgba(239, 68, 68, ${Math.abs(c)})`,
@@ -313,29 +313,29 @@ export default function RandomMatrixTheory({ candles, symbols, exchange }) {
       </div>
 
       <div className="grid grid-cols-5 gap-2 text-xs">
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">N (assets)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">N (assets)</div>
           <div className="text-cyan-400 font-mono">{data.N}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">T (samples)</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">T (samples)</div>
           <div className="text-emerald-400 font-mono">{data.T}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Q = T/N</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Q = T/N</div>
           <div className="text-amber-400 font-mono">{data.Q.toFixed(2)}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Noise eigenvalues</div>
-          <div className="text-slate-400 font-mono">{data.noiseCount}</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Noise eigenvalues</div>
+          <div className="text-gray-400 font-mono">{data.noiseCount}</div>
         </div>
-        <div className="bg-slate-800  p-2">
-          <div className="text-slate-400">Signal eigenvalues</div>
+        <div className="bg-bg-700  p-2">
+          <div className="text-gray-400">Signal eigenvalues</div>
           <div className="text-purple-400 font-mono">{data.signalCount}</div>
         </div>
       </div>
 
-      <div className="text-xs text-slate-400 bg-slate-800  p-2">
+      <div className="text-xs text-gray-400 bg-bg-700  p-2">
         <strong>Signal:</strong> {data.reason} |
         <strong> MP bounds:</strong> [{data.lambdaMin.toFixed(3)}, {data.lambdaMax.toFixed(3)}] |
         <strong> Cleaning:</strong> noise eigenvalues replaced with average, matrix renormalized |
