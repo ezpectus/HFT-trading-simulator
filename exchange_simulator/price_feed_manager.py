@@ -205,7 +205,7 @@ def time_operation(operation_name: str, metrics: PerformanceMetrics) -> Callable
                 elif "parse" in operation_name.lower():
                     metrics.record_parse_latency(latency_ms)
                 return result
-            except Exception as e:
+            except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
                 latency_ms = (time.perf_counter() - start_time) * 1000
                 logger.error(f"{operation_name} failed after {latency_ms:.2f}ms: {e}")
                 raise
@@ -221,7 +221,7 @@ def time_operation(operation_name: str, metrics: PerformanceMetrics) -> Callable
                 elif "parse" in operation_name.lower():
                     metrics.record_parse_latency(latency_ms)
                 return result
-            except Exception as e:
+            except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
                 latency_ms = (time.perf_counter() - start_time) * 1000
                 logger.error(f"{operation_name} failed after {latency_ms:.2f}ms: {e}")
                 raise
@@ -388,7 +388,7 @@ class BinanceAPI(BasePriceAPI):
                     timestamp=time.time(),
                     exchange="binance",
                 )
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError, aiohttp.ClientError) as e:
             self._record_error(str(e))
             logger.error(f"Binance API error for {symbol}: {e}")
             return None
@@ -426,7 +426,7 @@ class BinanceAPI(BasePriceAPI):
                             exchange="binance",
                         )
                 return result
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError, aiohttp.ClientError) as e:
             self._record_error(str(e))
             logger.error(f"Binance batch API error: {e}")
             return {}
@@ -465,10 +465,10 @@ class BinanceAPI(BasePriceAPI):
                                 for cb in self._ws_callbacks:
                                     try:
                                         await cb(tick)
-                                    except Exception as e:
+                                    except (TypeError, ValueError, RuntimeError, OSError) as e:
                                         logger.error(f"WebSocket callback error: {e}")
 
-                except Exception as e:
+                except (OSError, RuntimeError, websockets.WebSocketException, asyncio.TimeoutError) as e:
                     retry_count += 1
                     delay = base_delay * (2 ** retry_count)
                     logger.error(f"Binance WebSocket error (attempt {retry_count}/{max_retries}): {e}")
@@ -541,7 +541,7 @@ class CoinbaseAPI(BasePriceAPI):
                     timestamp=time.time(),
                     exchange="coinbase",
                 )
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError, aiohttp.ClientError) as e:
             self._record_error(str(e))
             logger.error(f"Coinbase API error for {symbol}: {e}")
             return None
@@ -600,10 +600,10 @@ class CoinbaseAPI(BasePriceAPI):
                                 )
                                 try:
                                     await callback(tick)
-                                except Exception as e:
+                                except (TypeError, ValueError, RuntimeError, OSError) as e:
                                     logger.error(f"WebSocket callback error: {e}")
 
-                except Exception as e:
+                except (OSError, RuntimeError, websockets.WebSocketException, asyncio.TimeoutError) as e:
                     retry_count += 1
                     delay = base_delay * (2 ** retry_count)
                     logger.error(f"Coinbase WebSocket error (attempt {retry_count}/{max_retries}): {e}")
@@ -731,7 +731,7 @@ class PriceFeedManager:
                     for symbol, tick in prices.items():
                         self.cache_price(symbol, tick)
                 logger.info(f"Cache warmed for {len(symbols_to_warm)} symbols")
-            except Exception as e:
+            except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
                 logger.error(f"Failed to warm cache: {e}")
 
     def _serialize_price_tick(self, tick: PriceTick) -> bytes:
@@ -782,7 +782,7 @@ class PriceFeedManager:
                     async with self._lock:
                         self.cache_price(symbol, tick)
                     return tick
-            except Exception as e:
+            except (OSError, RuntimeError, KeyError, ValueError, TypeError, aiohttp.ClientError) as e:
                 logger.error(f"API {api.name} failed for {symbol}: {e}")
                 if self._metrics:
                     self._metrics.record_api_error(api.name)
@@ -817,7 +817,7 @@ class PriceFeedManager:
                 if prices:
                     logger.info(f"Cache populated from {api.name} for {len(prices)} symbols")
                     break
-            except Exception as e:
+            except (OSError, RuntimeError, KeyError, ValueError, TypeError, aiohttp.ClientError) as e:
                 logger.error(f"Failed to populate cache from {api.name}: {e}")
 
     async def _on_price_update(self, tick: PriceTick) -> None:
@@ -835,7 +835,7 @@ class PriceFeedManager:
                     await callback(tick)
                 else:
                     callback(tick)
-            except Exception as e:
+            except (TypeError, ValueError, RuntimeError, OSError) as e:
                 logger.error(f"Price update callback error: {e}")
 
     def get_health_status(self) -> dict[str, dict]:
@@ -862,7 +862,7 @@ class PriceFeedManager:
                 result.update(prices)
                 if len(result) == len(self.symbols):
                     return result
-            except Exception as e:
+            except (OSError, RuntimeError, KeyError, ValueError, TypeError, aiohttp.ClientError) as e:
                 logger.error(f"Primary API batch fetch failed: {e}")
         
         # If not all symbols fetched, try fallback API for remaining
@@ -873,7 +873,7 @@ class PriceFeedManager:
                 try:
                     prices = await fallback_api.get_prices(remaining_symbols)
                     result.update(prices)
-                except Exception as e:
+                except (OSError, RuntimeError, KeyError, ValueError, TypeError, aiohttp.ClientError) as e:
                     logger.error(f"Fallback API batch fetch failed: {e}")
         
         return result

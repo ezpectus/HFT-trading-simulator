@@ -159,7 +159,7 @@ class MarketSimulator:
                                 current_vol = self._volatility.get(symbol, 0.8)
                                 estimated_vol = price_change * math.sqrt(365 * 24 * 3600 / tf)
                                 self._volatility[symbol] = 0.9 * current_vol + 0.1 * estimated_vol
-            except Exception as e:
+            except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
                 # Fall back to simulated prices if real feed fails
                 logger.warning(f"Price feed error, falling back to simulation: {e}")
 

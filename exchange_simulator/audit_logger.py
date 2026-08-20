@@ -107,7 +107,7 @@ class AuditLogger:
         try:
             with open(self.log_file_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(audit_log.to_dict()) + "\n")
-        except Exception as e:
+        except (OSError, ValueError, TypeError, RuntimeError) as e:
             logger.error(f"Failed to write audit log to file: {e}")
     
     def _notify_callbacks(self, audit_log: AuditLog) -> None:
@@ -117,7 +117,7 @@ class AuditLogger:
         for callback in callbacks:
             try:
                 callback(audit_log)
-            except Exception as e:
+            except (TypeError, ValueError, RuntimeError, OSError) as e:
                 logger.error(f"Callback error: {e}")
     
     def register_callback(self, callback: Callable[[AuditLog], None]) -> None:

@@ -46,7 +46,7 @@ class StressTester:
                     self.error_count += 1
             latency = (time.time() - start) * 1000
             self.latencies.append(latency)
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
             self.error_count += 1
 
     async def high_order_rate_test(self, duration: int = 60, target_rps: int = 100):
@@ -92,7 +92,7 @@ class StressTester:
                             await asyncio.sleep(1)
                         
                         return True
-            except Exception as e:
+            except (OSError, RuntimeError, KeyError, ValueError, TypeError) as e:
                 print(f"Connection {conn_id} failed: {e}")
                 return False
         

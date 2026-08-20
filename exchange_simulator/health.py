@@ -82,7 +82,7 @@ async def health_check():
             "orders_submitted": len(first_ex._order_history),
             "audit_logging_enabled": first_ex._audit_logger is not None,
         })
-    except Exception as e:
+    except (RuntimeError, OSError, KeyError, ValueError, TypeError, AttributeError) as e:
         return JSONResponse({
             "status": "unhealthy",
             "error": str(e),
@@ -110,7 +110,7 @@ async def metrics():
         lines.append(f'hft_exchanges_count {len(exchanges)}')
         
         return PlainTextResponse(content="\n".join(lines), media_type="text/plain; version=0.0.4; charset=utf-8")
-    except Exception as e:
+    except (RuntimeError, OSError, KeyError, ValueError, TypeError, AttributeError) as e:
         return PlainTextResponse(content=f"# Error: {str(e)}", media_type="text/plain; version=0.0.4; charset=utf-8", status_code=503)
 
 

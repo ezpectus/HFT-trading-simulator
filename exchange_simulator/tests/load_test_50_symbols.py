@@ -44,7 +44,7 @@ class LoadTester:
             latency = (time.time() - start) * 1000  # Convert to ms
             self.latencies.append(latency)
             self.success_count += 1
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError, TypeError) as e:
             self.errors += 1
             print(f"REST API error: {e}")
 
@@ -57,7 +57,7 @@ class LoadTester:
             latency = (time.time() - start) * 1000
             self.latencies.append(latency)
             self.success_count += 1
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError, TypeError) as e:
             self.errors += 1
 
     async def run_rest_load_test(self, iterations: int = 100):
@@ -120,7 +120,7 @@ class LoadTester:
                     throughput = message_count / duration
                     print(f"WebSocket throughput: {throughput:.2f} messages/second")
                     
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError, TypeError) as e:
             print(f"WebSocket error: {e}")
 
     def print_results(self, test_name: str):
