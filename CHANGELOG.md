@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 50 — Stale Panel/Model Counts in Web-UI)
+
+### Fixed
+- **[DOC-317]** Updated stale panel count (197→204) and math model count (75+→44+) in `web-ui/vite.config.js` PWA manifest description
+- **[DOC-318]** Updated stale panel count (197→204) and math model count (75+→44+) in `web-ui/package.json` description
+- **[DOC-319]** Updated stale panel count (191+→204) and math model count (75+→44+) in `web-ui/index.html` meta description and OG description
+- **[DOC-320]** Updated stale panel count (191+→204) and math model count (75+→44+) in `web-ui/src/components/OnboardingTutorial.jsx` welcome text
+- **[DOC-321]** Updated stale panel count (197→204) in `web-ui/src/test/registry.test.js` comment
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 49 — Stale exchanges/ References + README Project Structure)
 
 ### Fixed

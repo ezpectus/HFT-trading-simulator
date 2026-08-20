@@ -12,7 +12,7 @@ export default defineConfig({
       manifest: {
         name: 'HFT Trading System',
         short_name: 'HFT Dash',
-        description: 'Crypto HFT trading system dashboard with 197 panels and 75+ math models',
+        description: 'Crypto HFT trading system dashboard with 204 panels and 44+ math models',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',

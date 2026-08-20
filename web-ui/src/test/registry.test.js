@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Tests for panel registry — all 197 panels have required metadata.
+ * Tests for panel registry — all 204 panels have required metadata.
  */
 import { describe, it, expect } from 'vitest'
 import { CATEGORIES, PANELS, DEFAULT_VISIBLE, getPanelsByCategory } from '../panels/registry'
