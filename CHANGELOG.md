@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 41 — Dead Code Removal)
+
+### Removed
+- **[CLEANUP-101]** Removed entire `web-ui/src/exchanges/` directory — 12 dead code files (~1300 lines): BinanceOrderBook, BinanceOrderForm, BinanceLayout, BinanceTheme, BybitOrderBook, BybitOrderForm, BybitLayout, BybitTheme, CoinbaseOrderBook, CoinbaseOrderForm, CoinbaseLayout, CoinbaseTheme. None were ever imported. Fixes bugs #187 (QUAL-094) and #188 (QUAL-095). All bugs now resolved: 188/188 fixed.
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 39-40 — Days 5-6: Monitoring & Advanced Trading)
 
 ### Verified (Already Implemented)

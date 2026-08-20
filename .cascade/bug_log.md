@@ -8,9 +8,9 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed | 186 |
+| ✅ Fixed | 188 |
 | 🔄 In Progress | 0 |
-| ⏳ Pending Fix | 2 |
+| ⏳ Pending Fix | 0 |
 | 📋 Proposal Needed | 0 |
 | **TOTAL FOUND** | **188** |
 
@@ -2560,8 +2560,8 @@
 - **Location:** `web-ui/src/exchanges/binance/BinanceOrderBook.jsx`, `web-ui/src/exchanges/bybit/BybitOrderBook.jsx`, `web-ui/src/exchanges/coinbase/CoinbaseOrderBook.jsx`
 - **Severity:** P2 (Code Quality — DRY violation)
 - **Root Cause:** Three OrderBook components are ~95% identical (~130 lines each). Same logic, same structure, only minor CSS class and label differences. ~260 lines of duplicated JSX code.
-- **Status:** ⏳ Pending Fix
-- **Fix:** Refactor into a shared `OrderBookBase` component that accepts theme and layout props from `ExchangeContext`. Exchange-specific wrappers become thin (<10 lines) components.
+- **Status:** ✅ Fixed
+- **Fix:** Removed all 3 dead code files. Components were never imported anywhere in the project. The main `OrderBook` component at `web-ui/src/components/OrderBook.jsx` is used instead. Entire `web-ui/src/exchanges/` directory removed (12 files, ~1300 lines of dead code).
 
 ---
 
@@ -2570,8 +2570,8 @@
 - **Location:** `web-ui/src/exchanges/binance/BinanceOrderForm.jsx`, `web-ui/src/exchanges/bybit/BybitOrderForm.jsx`, `web-ui/src/exchanges/coinbase/CoinbaseOrderForm.jsx`
 - **Severity:** P2 (Code Quality — DRY violation)
 - **Root Cause:** Three OrderForm components are ~90% identical (~300-346 lines each). Same state management, same handleSubmit logic, same input fields. Binance and Coinbase are nearly identical; Bybit is a compact variant. ~600 lines of duplicated JSX code.
-- **Status:** ⏳ Pending Fix
-- **Fix:** Extract shared `OrderFormBase` component with all state and logic. Exchange-specific wrappers pass theme, layout config (compact vs full), and label strings via props.
+- **Status:** ✅ Fixed
+- **Fix:** Removed all 3 dead code files. Components were never imported anywhere in the project. The main `OrderForm` component at `web-ui/src/components/OrderForm.jsx` is used instead. Entire `web-ui/src/exchanges/` directory removed (12 files, ~1300 lines of dead code).
 
 ---
 
