@@ -236,25 +236,16 @@ class OrderSubmissionMixin:
                            fill_price, mid_price, stop_loss, take_profit,
                            force_close) -> Order:
         """Fill a market/limit order after all checks pass."""
-        if order_type_limit := (order.order_type == OrderType.LIMIT and price is not None):
+        if order.order_type == OrderType.LIMIT and price is not None:
             fill_price = price
 
         notional = fill_price * quantity
         fee = notional * self.fee_pct / 100
 
-        lev = self.account.leverage if self.account.leverage > 0 else 1
-        margin_required = notional / lev
-        if not force_close and margin_required + fee > self.account.balance:
-            return self._reject_order(order_id, symbol, side, order.order_type, quantity, price,
-                                      f"INSUFFICIENT_MARGIN (need ${margin_required:.2f}, have ${self.account.balance:.2f})",
-                                      order=order)
-
-        mid_notional = mid_price * quantity
-        max_notional = self.account.balance * self.account.leverage * 0.5
-        if not force_close and mid_notional > max_notional:
-            return self._reject_order(order_id, symbol, side, order.order_type, quantity, price,
-                                      f"MAX_POSITION_SIZE (notional ${notional:.2f} > limit ${max_notional:.2f})",
-                                      order=order)
+        rejected = self._check_margin_and_size(order, order_id, symbol, side, quantity,
+                                                price, notional, fee, mid_price, force_close)
+        if rejected is not None:
+            return rejected
 
         order.status = OrderStatus.FILLED
         order.filled_price = round(fill_price, 2)
@@ -262,22 +253,56 @@ class OrderSubmissionMixin:
         order.fee = round(fee, 4)
         order.slippage = round(fill_price - mid_price, 4)
 
+        self._log_order_filled(order_id, symbol, side, quantity, fee, fill_price, mid_price)
+        self._apply_partial_fill(order, fill_price, mid_price, side, quantity)
+        self._charge_fee(order_id, fee)
+        self._update_position(order, stop_loss, take_profit)
+        self._order_history.append(order)
+        return order
+
+    def _check_margin_and_size(self, order, order_id, symbol, side, quantity, price,
+                               notional, fee, mid_price, force_close) -> Order | None:
+        """Check margin and position size limits. Returns rejected order or None."""
+        lev = self.account.leverage if self.account.leverage > 0 else 1
+        margin_required = notional / lev
+        if not force_close and margin_required + fee > self.account.balance:
+            return self._reject_order(order_id, symbol, side, order.order_type, quantity, price,
+                                      f"INSUFFICIENT_MARGIN (need ${margin_required:.2f}, have ${self.account.balance:.2f})",
+                                      order=order)
+        mid_notional = mid_price * quantity
+        max_notional = self.account.balance * self.account.leverage * 0.5
+        if not force_close and mid_notional > max_notional:
+            return self._reject_order(order_id, symbol, side, order.order_type, quantity, price,
+                                      f"MAX_POSITION_SIZE (notional ${notional:.2f} > limit ${max_notional:.2f})",
+                                      order=order)
+        return None
+
+    def _log_order_filled(self, order_id, symbol, side, quantity, fee,
+                          fill_price, mid_price) -> None:
+        """Log order filled event."""
         self._audit_logger.log(
             event_type=AuditEventType.ORDER_FILLED,
             exchange=self.exchange_id, symbol=symbol, order_id=order_id,
             old_value=mid_price, new_value=fill_price,
             metadata={"side": side.value, "quantity": quantity, "fee": fee,
-                      "slippage": order.slippage, "order_type": order.order_type.value},
+                      "slippage": round(fill_price - mid_price, 4),
+                      "order_type": "MARKET"},
         )
 
-        if quantity > _TYPICAL_VOLUME * 0.5:
-            fill_ratio = min(1.0, _TYPICAL_VOLUME / quantity)
-            if fill_ratio < 1.0:
-                worse_price = fill_price * (1 + (1 - fill_ratio) * 0.001 * (1 if side == Side.BUY else -1))
-                avg_fill = fill_price * fill_ratio + worse_price * (1 - fill_ratio)
-                order.filled_price = round(avg_fill, 2)
-                order.slippage = round(avg_fill - mid_price, 4)
+    def _apply_partial_fill(self, order, fill_price, mid_price, side, quantity) -> None:
+        """Apply partial fill logic for large orders."""
+        if quantity <= _TYPICAL_VOLUME * 0.5:
+            return
+        fill_ratio = min(1.0, _TYPICAL_VOLUME / quantity)
+        if fill_ratio >= 1.0:
+            return
+        worse_price = fill_price * (1 + (1 - fill_ratio) * 0.001 * (1 if side == Side.BUY else -1))
+        avg_fill = fill_price * fill_ratio + worse_price * (1 - fill_ratio)
+        order.filled_price = round(avg_fill, 2)
+        order.slippage = round(avg_fill - mid_price, 4)
 
+    def _charge_fee(self, order_id: str, fee: float) -> None:
+        """Deduct fee from account balance and log."""
         old_balance = self.account.balance
         self.account.balance -= fee
         self.account.total_fees += fee
@@ -287,10 +312,6 @@ class OrderSubmissionMixin:
             new_value=self.account.balance, reason="FEE",
             metadata={"fee": fee, "order_id": order_id},
         )
-
-        self._update_position(order, stop_loss, take_profit)
-        self._order_history.append(order)
-        return order
 
     def _update_position(
         self,
