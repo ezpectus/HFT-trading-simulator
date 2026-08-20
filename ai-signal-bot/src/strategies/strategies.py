@@ -56,7 +56,6 @@ class TrendFollowingStrategy:
         current_adx = adx_vals[-1] if adx_vals and not math.isnan(adx_vals[-1]) else 0
         current_atr = atr_vals[-1] if atr_vals and not math.isnan(atr_vals[-1]) else current_price * 0.01
 
-        # Check EMA crossover
         if math.isnan(ema_f[-1]) or math.isnan(ema_s[-1]) or math.isnan(ema_f[-2]) or math.isnan(ema_s[-2]):
             return Signal(
                 symbol=symbol, direction=SignalDirection.NEUTRAL,
@@ -66,61 +65,47 @@ class TrendFollowingStrategy:
 
         bullish_cross = ema_f[-1] > ema_s[-1] and ema_f[-2] <= ema_s[-2]
         bearish_cross = ema_f[-1] < ema_s[-1] and ema_f[-2] >= ema_s[-2]
-        bullish_trend = ema_f[-1] > ema_s[-1]
-        bearish_trend = ema_f[-1] < ema_s[-1]
-
-        # ADX filter
         trending = current_adx >= self.adx_threshold
 
-        if bullish_cross and trending:
-            confidence = min(95, 50 + current_adx)
-            sl = current_price - 2 * current_atr
-            tp = current_price + 3 * current_atr
-            return Signal(
-                symbol=symbol, direction=SignalDirection.LONG,
-                confidence=confidence, strategy=self.name,
-                entry_price=current_price, stop_loss=sl, take_profit=tp,
-                reason=f"EMA{self.ema_fast}>EMA{self.ema_slow} cross, ADX={current_adx:.1f}",
-            )
+        signal = self._crossover_signal(symbol, current_price, current_adx, current_atr, bullish_cross, bearish_cross, trending)
+        if signal:
+            return signal
 
-        if bearish_cross and trending:
-            confidence = min(95, 50 + current_adx)
-            sl = current_price + 2 * current_atr
-            tp = current_price - 3 * current_atr
-            return Signal(
-                symbol=symbol, direction=SignalDirection.SHORT,
-                confidence=confidence, strategy=self.name,
-                entry_price=current_price, stop_loss=sl, take_profit=tp,
-                reason=f"EMA{self.ema_fast}<EMA{self.ema_slow} cross, ADX={current_adx:.1f}",
-            )
+        return self._trend_continuation_signal(symbol, current_price, current_adx, current_atr, ema_f[-1], ema_s[-1], trending)
 
-        # No crossover but trending
-        if bullish_trend and trending and current_adx > 30:
-            return Signal(
-                symbol=symbol, direction=SignalDirection.LONG,
-                confidence=45, strategy=self.name,
-                entry_price=current_price,
-                stop_loss=current_price - 2 * current_atr,
-                take_profit=current_price + 3 * current_atr,
-                reason=f"Uptrend (ADX={current_adx:.1f}), no fresh cross",
-            )
+    def _crossover_signal(
+        self, symbol: str, price: float, adx_val: float, atr_val: float,
+        bullish: bool, bearish: bool, trending: bool,
+    ) -> Signal | None:
+        """Generate signal on fresh EMA crossover with ADX filter."""
+        if bullish and trending:
+            return Signal(symbol, SignalDirection.LONG, min(95, 50 + adx_val),
+                          self.name, price, price - 2 * atr_val, price + 3 * atr_val,
+                          f"EMA{self.ema_fast}>EMA{self.ema_slow} cross, ADX={adx_val:.1f}")
+        if bearish and trending:
+            return Signal(symbol, SignalDirection.SHORT, min(95, 50 + adx_val),
+                          self.name, price, price + 2 * atr_val, price - 3 * atr_val,
+                          f"EMA{self.ema_fast}<EMA{self.ema_slow} cross, ADX={adx_val:.1f}")
+        return None
 
-        if bearish_trend and trending and current_adx > 30:
-            return Signal(
-                symbol=symbol, direction=SignalDirection.SHORT,
-                confidence=45, strategy=self.name,
-                entry_price=current_price,
-                stop_loss=current_price + 2 * current_atr,
-                take_profit=current_price - 3 * current_atr,
-                reason=f"Downtrend (ADX={current_adx:.1f}), no fresh cross",
-            )
+    def _trend_continuation_signal(
+        self, symbol: str, price: float, adx_val: float, atr_val: float,
+        ema_f: float, ema_s: float, trending: bool,
+    ) -> Signal:
+        """Generate signal for ongoing trend without fresh crossover."""
+        bullish_trend = ema_f > ema_s
+        bearish_trend = ema_f < ema_s
 
-        return Signal(
-            symbol=symbol, direction=SignalDirection.NEUTRAL,
-            confidence=0, strategy=self.name, entry_price=current_price,
-            stop_loss=0, take_profit=0,
-            reason=f"ADX={current_adx:.1f} below threshold {self.adx_threshold}",
-        )
+        if bullish_trend and trending and adx_val > 30:
+            return Signal(symbol, SignalDirection.LONG, 45, self.name,
+                          price, price - 2 * atr_val, price + 3 * atr_val,
+                          f"Uptrend (ADX={adx_val:.1f}), no fresh cross")
+        if bearish_trend and trending and adx_val > 30:
+            return Signal(symbol, SignalDirection.SHORT, 45, self.name,
+                          price, price + 2 * atr_val, price - 3 * atr_val,
+                          f"Downtrend (ADX={adx_val:.1f}), no fresh cross")
+        return Signal(symbol, SignalDirection.NEUTRAL, 0, self.name, price, 0, 0,
+                      f"ADX={adx_val:.1f} below threshold {self.adx_threshold}")
 
 
 class MeanReversionStrategy:
