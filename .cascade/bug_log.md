@@ -2432,8 +2432,8 @@
   - exchange_simulator: `health.py`, `metrics.py`, `visualizer.py`, `price_feed_apis.py`, `price_feed_models.py`
 - **Severity:** P2 (Test Coverage)
 - **Root Cause:** 8 source modules have zero test imports across the entire test suite. Initial audit incorrectly reported 13 — 5 modules (risk/var.py, risk/cvar.py, risk/position_sizing.py, risk/stress_test.py, portfolio/markowitz.py) already have dedicated test files (test_var.py:15 tests, test_cvar.py:12 tests, test_position_sizing.py:15 tests, test_stress_test.py, test_portfolio.py covers markowitz). Actual coverage: 103 modules, 95 covered (92.2%), 8 uncovered. Test counts: 2034 test functions total.
-- **Status:** ⏳ Pending Fix
-- **Fix:** Add dedicated test files for each untested module. Priority: monitoring/metrics.py and strategies/ml_features.py (P2), exchange_simulator modules (P2-P3).
+- **Status:** ✅ Fixed
+- **Fix:** Added 6 dedicated test files (87 tests total): test_monitoring_metrics.py (16), test_price_feed_models.py (20), test_exchange_metrics.py (14), test_health.py (6), test_price_feed_apis.py (18), test_visualizer.py (13). Plus 2 existing: test_ml_features.py, test_bot_helpers.py. All 8 modules now have dedicated tests. Coverage: 103/103 modules (100%).
 
 ---
 

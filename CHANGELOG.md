@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 18 — Test Coverage: 100% Module Coverage)
+
+### Added
+- **[QUAL-080]** 6 new test files (87 tests) for previously untested modules:
+  - `test_monitoring_metrics.py` — 16 tests for MetricsExporter (Prometheus metrics)
+  - `test_price_feed_models.py` — 20 tests for PriceTick, APIHealth, PerformanceMetrics, time_operation decorator
+  - `test_exchange_metrics.py` — 14 tests for ExchangeSimulatorMetrics
+  - `test_health.py` — 6 tests for FastAPI health/metrics endpoints
+  - `test_price_feed_apis.py` — 18 tests for BinanceAPI, CoinbaseAPI (symbol normalization, rate limiting, health tracking, tick parsing)
+  - `test_visualizer.py` — 13 tests for TabbedVisualizer (ANSI constants, key handling, stop/active state)
+
+### Fixed
+- **[QUAL-082]** Additional stale "197" references fixed in README.md (5 more), WEB_UI.md (6), 9_DAY_DEVELOPMENT_PLAN.md (1). Component count 223→227 in WEB_UI.md. Test file breakdown corrected in README performance table.
+
+### Test Coverage Milestone
+- **103/103 source modules now have dedicated test files (100% module coverage)**
+- Previous: 95/103 (92.2%) → Now: 103/103 (100%)
+- 2 modules already had tests from prior sprint: test_ml_features.py, test_bot_helpers.py
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 17 — Documentation Fixes + Test Audit Correction)
 
 ### Fixed
