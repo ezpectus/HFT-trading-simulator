@@ -196,54 +196,70 @@ class PortfolioOptimizer:
         view_confidences: dict[int, float] | None = None,
         tau: float = 0.05,
     ) -> OptimizationResult:
-        """
-        Black-Litterman model combining market equilibrium with investor views.
-
-        Args:
-            returns: (n_periods, n_assets) historical returns
-            market_caps: market capitalizations for each asset
-            views: {asset_index: expected_return} investor views
-            view_confidences: confidence in each view (0-1)
-            tau: scaling parameter for prior covariance
-
-        Returns:
-            OptimizationResult with BL-optimized weights
-        """
+        """Black-Litterman model combining market equilibrium with investor views."""
         n_assets = returns.shape[1]
         cov_matrix = np.cov(returns, rowvar=False)
 
-        # Market equilibrium returns (reverse optimization)
         total_cap = np.sum(market_caps)
         if total_cap <= 0:
             return self._equal_weight(returns, "market_caps sum to 0")
+
         market_weights = market_caps / total_cap
-        risk_aversion = 2.5  # typical
+        risk_aversion = 2.5
         equilibrium_returns = risk_aversion * cov_matrix @ market_weights
 
-        # Build views matrix
+        P, Q = self._build_views_matrix(views, n_assets)
+        omega = self._build_omega(P, cov_matrix, tau, view_confidences)
+
+        bl_returns, bl_cov = self._compute_bl_posterior(
+            equilibrium_returns, cov_matrix, tau, P, Q, omega, returns
+        )
+        if bl_returns is None:
+            return self._equal_weight(returns, "BL: singular matrix in posterior")
+
+        return self._optimize_bl(bl_returns, bl_cov, market_weights)
+
+    @staticmethod
+    def _build_views_matrix(
+        views: dict[int, float], n_assets: int
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Build views matrices P and Q from investor views dict."""
         P = np.zeros((len(views), n_assets))
         Q = np.zeros(len(views))
         for i, (asset_idx, expected_ret) in enumerate(views.items()):
             P[i, asset_idx] = 1.0
             Q[i] = expected_ret
+        return P, Q
 
-        # View uncertainty (Omega)
+    @staticmethod
+    def _build_omega(
+        P: np.ndarray, cov_matrix: np.ndarray, tau: float,
+        view_confidences: dict[int, float] | None,
+    ) -> np.ndarray:
+        """Build Omega (view uncertainty matrix) from confidences or prior."""
         if view_confidences:
-            omega = np.diag([1.0 / max(c, 0.01) for c in view_confidences.values()])
-        else:
-            omega = np.diag(np.diag(P @ (tau * cov_matrix) @ P.T))
+            return np.diag([1.0 / max(c, 0.01) for c in view_confidences.values()])
+        return np.diag(np.diag(P @ (tau * cov_matrix) @ P.T))
 
-        # Black-Litterman posterior
+    def _compute_bl_posterior(
+        self, equilibrium_returns: np.ndarray, cov_matrix: np.ndarray,
+        tau: float, P: np.ndarray, Q: np.ndarray, omega: np.ndarray,
+        returns: np.ndarray,
+    ) -> tuple[np.ndarray | None, np.ndarray]:
+        """Compute Black-Litterman posterior returns and covariance."""
         tau_cov = tau * cov_matrix
         try:
             inv_matrix = np.linalg.inv(P @ tau_cov @ P.T + omega)
         except np.linalg.LinAlgError:
-            return self._equal_weight(returns, "BL: singular matrix in posterior")
+            return None, cov_matrix
         bl_returns = equilibrium_returns + tau_cov @ P.T @ inv_matrix @ (Q - P @ equilibrium_returns)
-
         bl_cov = cov_matrix + tau_cov - tau_cov @ P.T @ inv_matrix @ P @ tau_cov
+        return bl_returns, bl_cov
 
-        # Optimize with BL estimates
+    def _optimize_bl(
+        self, bl_returns: np.ndarray, bl_cov: np.ndarray, x0: np.ndarray
+    ) -> OptimizationResult:
+        """Optimize portfolio with BL estimates (max Sharpe)."""
         def neg_sharpe(weights: np.ndarray) -> float:
             port_return = np.dot(weights, bl_returns)
             port_vol = np.sqrt(weights @ bl_cov @ weights)
@@ -251,9 +267,9 @@ class PortfolioOptimizer:
                 return 1e6
             return -(port_return - self.risk_free_rate) / port_vol
 
+        n_assets = len(bl_returns)
         constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1.0}]
         bounds = [(self.min_weight, self.max_weight)] * n_assets
-        x0 = market_weights.copy()
 
         result = sco.minimize(neg_sharpe, x0, method="SLSQP", bounds=bounds, constraints=constraints)
 
