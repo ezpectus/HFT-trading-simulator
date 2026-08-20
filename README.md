@@ -3,20 +3,20 @@
 ![CI](https://img.shields.io/github/actions/workflow/status/ezpectus/HFT-TradeBot--Lite-version/ci.yml?branch=main&label=CI)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-61dafb.svg)
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
-![Tests](https://img.shields.io/badge/tests-172%2B%20files-6e9f18.svg)
+![Tests](https://img.shields.io/badge/tests-182%20files-6e9f18.svg)
 ![Roadmap](https://img.shields.io/badge/roadmap-9%2F9%20days%20done-00C853.svg)
 ![Price Feed](https://img.shields.io/badge/price%20feed-Optimized-00C853.svg)
 ![Strategies](https://img.shields.io/badge/strategies-19-FF6B35.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 ![Live Demo](https://img.shields.io/badge/demo-coming%20soon-orange.svg)
-![Panels](https://img.shields.io/badge/panels-197-61dafb.svg)
+![Panels](https://img.shields.io/badge/panels-204-61dafb.svg)
 ![Math Models](https://img.shields.io/badge/math%20models-44%20trading%20%2B%2040%20UI--only-a855f7.svg)
 ![Languages](https://img.shields.io/badge/languages-C%2B%2B20%20%7C%20Python%20%7C%20React-00599C.svg)
 ![Security](https://img.shields.io/badge/security-Bandit%20%2B%20CodeQL-red.svg)
-![Readiness](https://img.shields.io/badge/readiness-62%25-yellow.svg)
+![Readiness](https://img.shields.io/badge/readiness-66%25-yellow.svg)
 ![Dead Code](https://img.shields.io/badge/dead%20code-CUDA%20%2B%20ONNX%20(%23ifdef)%20%7C%20Python%20removed-red.svg)
 
-> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 44 quant models in trading logic (+40 UI-only), 197 dashboard panels, Rust executor, shared-memory IPC, SVI/SABR volatility surface, Student-t/Merton/Heston/Markov microstructure, options strategies, and optimized price feed with connection pooling, batching, and LRU cache. CUDA and ONNX code exists but is dead code behind `#ifdef` (never compiled in CI). Zero real money, zero risk, 100% educational.**
+> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 44 quant models in trading logic (+40 UI-only), 204 dashboard panels, Rust executor, shared-memory IPC, SVI/SABR volatility surface, Student-t/Merton/Heston/Markov microstructure, options strategies, and optimized price feed with connection pooling, batching, and LRU cache. CUDA and ONNX code exists but is dead code behind `#ifdef` (never compiled in CI). Zero real money, zero risk, 100% educational.**
 
 **Live Demo:** _coming soon_ | **Documentation:** [docs/](docs/) | **Setup:** [docs/SETUP.md](docs/SETUP.md) | **Math Models:** [docs/MATH_MODELS.md](docs/MATH_MODELS.md) | **Performance:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
 

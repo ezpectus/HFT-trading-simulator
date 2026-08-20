@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 17 — Documentation Fixes + Test Audit Correction)
+
+### Fixed
+- **[QUAL-082]** Updated README.md badges: panels 197→204, tests "172+"→"182", readiness 62%→66%. Also fixed description text "197 dashboard panels"→"204".
+- **[QUAL-083]** Replaced all 6 stale "197" references with "204" in `docs/ARCHITECTURE.md` panel references.
+
+### Audit Correction
+- **[QUAL-080]** Corrected from 13 to 8 truly untested modules. Initial audit incorrectly flagged 5 risk/portfolio modules that already have dedicated test files: `test_var.py` (15 tests), `test_cvar.py` (12 tests), `test_position_sizing.py` (15 tests), `test_stress_test.py`, and `test_portfolio.py` (MarkowitzOptimizer tests). Actual coverage: 92.2% (95/103 modules).
+
+### Test Coverage Stats (corrected)
+- 103 source modules total (77 ai-signal-bot + 26 exchange_simulator)
+- 95 covered (92.2%), 8 uncovered
+- 2034 test functions (1507 Python + 527 exchange_simulator)
+- 182 test files (94 Py + 48 C++ + 40 JS)
+
+---
+
 ## [Unreleased] — 2026-08-17 (Sprint 16 — Technical Audit: Phase 1, Step 2)
 
 ### Audit Summary
@@ -26,6 +43,13 @@ Full codebase code quality scan covering Python, C++, and Rust. Scanned for 15+ 
 
 ### Fixed
 - **[QUAL-079]** Deleted 3 temp scan files (`_temp_scan.ps1`, `_temp_scan2.ps1`, `_temp_scan3.ps1`) left in project root
+
+### Refactoring — File Size Compliance (all files now ≤500 lines)
+- **[QUAL-082]** Split `signal_engine_v2.h` (998→494 lines) — extracted `inline_indicators.h` (179), `signal_engine_v2_params.h` (88), `obi_utils.h` (92), `signal_engine_v2_finalize.h` (75). Refactored `analyze_raw` (45→≤40), `analyze_incremental` (43→≤40), `compute_cached_scores` (50→≤40) into smaller helpers.
+- **[QUAL-083]** Split `signal_receiver.h` (644→210 lines) — extracted `signal_receiver_data.h` (190) base class with data storage/accessors, `signal_receiver_handlers.h` (234) with message handlers. Refactored `handle_message_json` (271→30 lines) into 10 handler methods all ≤40 lines.
+- **[QUAL-084]** Split `ml_ensemble.py` (565→319 lines) — extracted `ml_features.py` (235) with `FeatureEngineer` class. Refactored `train()` (63→28 lines) with `_filter_anomalies`, `_extract_feature_importance`, `_train_hmm` helpers. Refactored `analyze()` (57→25 lines) with `_build_directional_signal` helper. Re-exported `FeatureEngineer` for backward compat.
+- **[QUAL-085]** Split `run.py` (552→397 lines) — extracted `bot_helpers.py` (155) with `build_strategies`, `build_stat_arb`, `generate_stat_arb_signals`, `generate_llm_explanation`, `load_candles_from_csv`. Refactored `_generate_signals` (119→9 lines) with `_process_symbol`, `_get_account_balance`, `_validate_signal`, `_finalize_and_execute` helpers. Refactored `run_backtest` (107→33 lines) with `_save_backtest_charts` helper.
+- **[QUAL-086]** Split `config.cpp` (531→60 lines) — extracted `config_validate.h` (98) with 4 validation functions, `config_parser.h` (343) with 12 parse helpers. Refactored `Config::load` (405→37 lines) into `parse_dev_config`, `parse_v2_dev`, `parse_dev_extras`, `parse_prod_system`, `parse_prod_exchanges`, `parse_prod_ipc`, `parse_prod_fix`, `parse_prod_v2_weights`, `parse_prod_router`, `parse_prod_risk`, `parse_prod_extras` helpers.
 
 ### Pending (future sprints)
 - **[QUAL-080]** 8 source modules without dedicated unit tests

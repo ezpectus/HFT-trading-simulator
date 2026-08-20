@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 16: Technical Audit & File Size Compliance
+
+### Changed — C++ File Size Compliance (Sprint 16)
+- Split `signal_engine_v2.h` (998→494 lines): extracted `inline_indicators.h`, `signal_engine_v2_params.h`, `obi_utils.h`, `signal_engine_v2_finalize.h`; refactored 3 long functions ≤40 lines
+- Split `signal_receiver.h` (644→210 lines): extracted `signal_receiver_data.h` (base class), `signal_receiver_handlers.h` (message handlers); refactored `handle_message_json` (271→30 lines) into 10 handlers
+- Split `config.cpp` (531→60 lines): extracted `config_validate.h` (98), `config_parser.h` (343); refactored `Config::load` (405→37 lines) into 16 parse/validate helpers
+
+### Changed — Python File Size Compliance (Sprint 16)
+- Split `ml_ensemble.py` (565→319 lines): extracted `ml_features.py` (235) with `FeatureEngineer`; refactored `train()` (63→28) and `analyze()` (57→25) with helpers; backward-compatible re-export
+- Split `run.py` (552→397 lines): extracted `bot_helpers.py` (155); refactored `_generate_signals` (119→9) and `run_backtest` (107→33) with helpers
+
+### Audit Results
+- All source files now ≤500 lines (C++ and Python)
+- All functions now ≤40 lines
+- 0 forbidden patterns (TODO/FIXME/HACK/raw new/delete/goto/C-style casts)
+- Rust unsafe only for FFI interop (justified)
+
+---
+
 ## [Unreleased] — Supply Chain Security Audit & Documentation Update
 
 ### Changed — Python Code Quality (Sprint 15)

@@ -106,12 +106,87 @@
 | `global` statements | ✅ Acceptable | 3 in observability (logging/tracing) — legitimate singleton pattern |
 | `noqa` comments | ⚠️ 37 found | 22× E402 (sys.path bootstrap), 8× F401 (optional deps), 7× other — all legitimate |
 | Temp files in root | ✅ Fixed | 3 `_temp_scan*.ps1` files deleted |
-| Test coverage gaps | ⚠️ 8 modules | Without dedicated unit tests (see QUAL-080) |
+| Test coverage gaps | ⚠️ 8 modules | Without dedicated unit tests (see QUAL-080, corrected) |
 
 ### New Bug Log Entries
 - QUAL-079: Temp scan files deleted ✅
-- QUAL-080: 8 modules without dedicated tests ⏳
+- QUAL-080: 8 modules without dedicated tests ⏳ (corrected from 13)
 - QUAL-081: 37 noqa comments (low priority) ⏳
+
+### Step 3: Test Coverage Audit — QA (27)
+
+**ai-signal-bot:**
+- Source modules: 77 (excluding __init__.py)
+- Test files: 65 (49 in unit/, 2 in integration/, 14 in root tests/)
+- Test functions: 1507
+- Covered modules: 74 (96.1%)
+- Uncovered: 3 modules (`strategies/ml_features.py`, `monitoring/metrics.py`, `utils/bot_helpers.py`)
+
+**exchange_simulator:**
+- Source modules: 26 (excluding __init__, __main__, conftest)
+- Test files: 27
+- Test functions: 527
+- Covered modules: 21 (80.8%)
+- Uncovered: 5 modules (`health.py`, `metrics.py`, `visualizer.py`, `price_feed_apis.py`, `price_feed_models.py`)
+
+**Total: 103 modules, 95 covered (92.2%), 8 uncovered, 2034 test functions**
+
+**Previously reported as uncovered but actually have tests:**
+- `risk/var.py` → test_var.py (15 tests) ✅
+- `risk/cvar.py` → test_cvar.py (12 tests) ✅
+- `risk/position_sizing.py` → test_position_sizing.py (15 tests) ✅
+- `risk/stress_test.py` → test_stress_test.py ✅
+- `portfolio/markowitz.py` → test_portfolio.py (MarkowitzOptimizer tests) ✅
+
+**Truly uncovered modules:**
+- `strategies/ml_features.py` — ML feature engineering, P2
+- `monitoring/metrics.py` — monitoring, P2
+- `utils/bot_helpers.py` — new file, P2
+- `exchange_simulator/health.py` — health endpoint, P2
+- `exchange_simulator/metrics.py` — metrics, P2
+- `exchange_simulator/visualizer.py` — terminal UI, P3
+- `exchange_simulator/price_feed_apis.py` — exchange APIs, P2
+- `exchange_simulator/price_feed_models.py` — data models, P2
+
+### Step 4: Documentation Audit — Tech Writer (41) + Audit (43)
+
+**README.md:**
+- Components: 227 ✅ (matches actual)
+- Panels badge: 197 ❌ (actual: 204)
+- Tests badge: "172+" ❌ (actual: 182 = 94 Py + 48 C++ + 40 JS)
+- Readiness: 62% ❌ (ARCHITECTURE.md says 66%)
+- Strategies: 19 ✅
+- Math models: 44 trading + 40 UI-only ✅
+
+**ARCHITECTURE.md:**
+- Status: 66% (discrepant with README 62%)
+- 6 stale references to "197 panels" (actual: 204)
+- Components: 227 ✅
+- Honest status paragraph ✅
+
+**docs/ directory:**
+- 21 files total, all appear current
+- No stale/duplicate files found
+- MATH_MODELS.md last updated v4.2 ✅
+
+**New bug log entries from Step 4:**
+- QUAL-082: README badges stale (panels, tests, readiness) ⏳
+- QUAL-083: ARCHITECTURE.md 6 stale "197" references ⏳
+
+### Step 5: Sprint Planning — VP Eng (04)
+
+**Sprint 17 — 2 tasks (documentation fixes):**
+
+| # | Priority | Task | Role | Status |
+|---|----------|------|------|--------|
+| 1 | P2 | QUAL-082: Fix README badges (panels 197→204, tests 172+→182, readiness 62%→66%) | Tech Writer (41) | ✅ Done |
+| 2 | P2 | QUAL-083: Fix ARCHITECTURE.md 6× "197"→"204" | Tech Writer (41) | ✅ Done |
+
+**Sprint 17 result:** Both documentation fixes applied. Risk module tests (QUAL-080a-c) cancelled — test files already exist (test_var.py, test_cvar.py, test_position_sizing.py, test_stress_test.py).
+
+**Deferred to Sprint 18:**
+- QUAL-080: 8 truly untested modules (ml_features, metrics, bot_helpers, health, exchange metrics, visualizer, price_feed_apis, price_feed_models)
+- QUAL-081: 37 noqa comments (P3, low priority)
 
 ## Proposals
 

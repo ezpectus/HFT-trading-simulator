@@ -5,7 +5,7 @@
 
 ## Overview
 
-The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 227 React components, 197 registered UI panels, 44 mathematical models in trading logic (+40 UI-only educational visualizations), PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
+The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 41 development phases to include a C++20 sub-millisecond signal engine, 227 React components, 204 registered UI panels, 44 mathematical models in trading logic (+40 UI-only educational visualizations), PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
 
 **Honest status (v5.9 audit):** CUDA and ONNX code exists behind `#ifdef` but is never compiled in CI (dead code). ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface IS implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection). Signal and CircuitBreaker extracted to separate modules (`signal.py`, `circuit_breaker.py`) for file-size compliance. Sprints 9-15 (August 20, 2026): 26 Python functions >40 lines refactored (all now ≤39 lines), 8 C++ functions refactored (365→44, 216→41, 123→16, 85→14, 53→20, 85→9, 53→10, 790→42), 2 C++ macro constants replaced with `constexpr`, 1 dead code removal, 1 anti-pattern fix, 2 major code deduplications (49+60 lines). Sprint 14: main.cpp refactored from 790→42 lines, 17 helpers extracted into bot_setup.cpp (10 init functions) and bot_loop.cpp (8 loop functions), state encapsulated in BotContext struct. Sprint 15: 5 Python functions refactored (markowitz.optimize_portfolio 107→24, backtester.run 91→39, backtest_engine._compute_results 63→15, exchange.get_depth_snapshot 52→28, market_simulator.__init__ 96→31), 12 helpers extracted. 0 TODO/FIXME/HACK across all repos. 0 bare except, 0 `type: ignore`, 0 `import *`, 0 `print()` in production. 0 C-style casts, 0 raw `new`/`delete`, 0 `goto` in C++ code.
 
@@ -42,7 +42,7 @@ graph TB
     end
 
     subgraph "Web UI (React 18)"
-        UI["Web UI Dashboard<br/>227 Components | 197 Panels<br/>44 Trading + 40 UI-Only Math Models<br/>React.lazy | PWA | WCAG AA<br/>Vitest (44 files) | Mock Mode"]
+        UI["Web UI Dashboard<br/>227 Components | 204 Panels<br/>44 Trading + 40 UI-Only Math Models<br/>React.lazy | PWA | WCAG AA<br/>Vitest (44 files) | Mock Mode"]
         UI --- WS8765
         UI --- WS8766
         UI -->|Orders| WS8765
@@ -318,7 +318,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 ### 4. Web UI Dashboard (`web-ui/`)
 
 **Language:** JavaScript (React 18 + Vite 8)
-**Role:** Browser-based trading dashboard with 227 components and 197 registered panels
+**Role:** Browser-based trading dashboard with 227 components and 204 registered panels
 
 | Feature | Implementation |
 |---------|---------------|
@@ -373,7 +373,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 
 **Key files:**
 - `src/App.jsx` — Main layout with tabbed panels, keyboard shortcuts, toast notifications, sound alerts
-- `src/panels/registry.js` — Panel registry (197 panels, 7 categories, 227 component imports)
+- `src/panels/registry.js` — Panel registry (204 panels, 7 categories, 227 component imports)
 - `src/panels/PanelContainer.jsx` — ErrorBoundary + Suspense per panel, collapsible categories, localStorage visibility
 - `src/components/VirtualList.jsx` — Generic windowed list renderer with overscan
 - `src/components/AuditLogViewer.jsx` — Audit log viewer with filtering, search, export
@@ -425,7 +425,7 @@ All sidebar analytic/strategy panels are registered in `src/panels/registry.js` 
 
 - **Zero-touch extensibility** — Adding a panel = 1 entry in registry.js, 0 changes to App.jsx
 - **Categorized rendering** — 7 categories: Order Flow, Technical Analysis, Risk and Analytics, Portfolio, Strategy, Export, Config
-- **197 registered panels** — 227 component files across all categories
+- **204 registered panels** — 227 component files across all categories
 - **User-toggleable visibility** — Each panel can be shown/hidden, persisted in localStorage
 - **Collapsible categories** — Users can collapse entire sections
 - **ErrorBoundary + Suspense** — Each panel wrapped in ErrorBoundary and Suspense (triple protection)
@@ -496,7 +496,7 @@ Logging
 4. **Low-latency design** — C++20 engine with cache-line alignment, lock-free queues, no heap allocations in hot path
 5. **Configurable** — All parameters in YAML config files with validation
 6. **Reproducible** — Random seed for deterministic simulation
-7. **Registry over monolith** — Extensible features use registry pattern (197 panels, 7 categories)
+7. **Registry over monolith** — Extensible features use registry pattern (204 panels, 7 categories)
 8. **Protocol-first** — Message schemas are versioned and backward-compatible
 9. **Reversibility** — All architectural decisions must be reversible (V1 fallback preserved)
 10. **Error resilience** — ErrorBoundary + Suspense per panel, CircuitBreaker for exchange failures, exponential backoff for reconnections

@@ -2427,11 +2427,13 @@
 ---
 
 ### QUAL-080: 8 source modules without dedicated unit tests
-- **Location:** `ai-signal-bot/src/risk/var.py`, `ai-signal-bot/src/risk/cvar.py`, `ai-signal-bot/src/risk/position_sizing.py`, `ai-signal-bot/src/risk/stress_test.py`, `ai-signal-bot/src/strategies/portfolio_optimizer.py`, `ai-signal-bot/src/strategies/ml_features.py`, `ai-signal-bot/src/monitoring/metrics.py`, `ai-signal-bot/src/portfolio/markowitz.py`
-- **Severity:** P3 (Test Coverage)
-- **Root Cause:** 8 source modules lack dedicated unit test files. Some are partially tested indirectly (e.g., `markowitz.py` via `test_risk.py`'s `PortfolioOptimizer` tests, `ml_features.py` via `FeatureEngineer` import in `test_ml_ensemble_funding.py`), but none have dedicated test files that exercise their full API surface.
+- **Location:** 
+  - ai-signal-bot: `strategies/ml_features.py`, `monitoring/metrics.py`, `utils/bot_helpers.py`
+  - exchange_simulator: `health.py`, `metrics.py`, `visualizer.py`, `price_feed_apis.py`, `price_feed_models.py`
+- **Severity:** P2 (Test Coverage)
+- **Root Cause:** 8 source modules have zero test imports across the entire test suite. Initial audit incorrectly reported 13 — 5 modules (risk/var.py, risk/cvar.py, risk/position_sizing.py, risk/stress_test.py, portfolio/markowitz.py) already have dedicated test files (test_var.py:15 tests, test_cvar.py:12 tests, test_position_sizing.py:15 tests, test_stress_test.py, test_portfolio.py covers markowitz). Actual coverage: 103 modules, 95 covered (92.2%), 8 uncovered. Test counts: 2034 test functions total.
 - **Status:** ⏳ Pending Fix
-- **Fix:** Add dedicated test files for each untested module in a future sprint.
+- **Fix:** Add dedicated test files for each untested module. Priority: monitoring/metrics.py and strategies/ml_features.py (P2), exchange_simulator modules (P2-P3).
 
 ---
 
@@ -2441,6 +2443,24 @@
 - **Root Cause:** 37 `# noqa` comments suppress linter warnings. Breakdown: 22× `E402` (import order after `sys.path` manipulation — legitimate), 8× `F401` (unused imports for optional dependency probing — legitimate), 7× other. All are technically justified but could potentially be reduced by restructuring `sys.path` manipulation into a shared utility.
 - **Status:** ⏳ Pending Fix (low priority — all legitimate uses)
 - **Fix:** Consider creating a shared `sys.path` bootstrap utility to eliminate E402 noqa comments in entry-point scripts.
+
+---
+
+### QUAL-082: README.md badges stale (panels, tests, readiness)
+- **Location:** `README.md:6,12,16`
+- **Severity:** P2 (Documentation)
+- **Root Cause:** Three badges have stale values: panels badge says 197 (actual: 204), tests badge says "172+ files" (actual: 182 files), readiness badge says 62% (ARCHITECTURE.md says 66%). The panel count was updated in ARCHITECTURE.md to 204 in a previous sprint but README was not synced. Test files grew from 172 to 182 (94 Py + 48 C++ + 40 JS). Readiness discrepancy between README (62%) and ARCHITECTURE.md (66%).
+- **Status:** ✅ Fixed
+- **Fix:** Updated README badges: panels 197→204, tests "172+"→"182", readiness 62%→66%. Also fixed description text "197 dashboard panels"→"204".
+
+---
+
+### QUAL-083: ARCHITECTURE.md has 6 stale references to "197 panels"
+- **Location:** `docs/ARCHITECTURE.md` — 6 occurrences of "197"
+- **Severity:** P2 (Documentation)
+- **Root Cause:** ARCHITECTURE.md still references "197 panels" in 6 places while the actual count from `registry.js` is 204. The overview line was updated to 204 but other references throughout the document were not synced.
+- **Status:** ✅ Fixed
+- **Fix:** Replaced all 6 occurrences of "197" with "204" in ARCHITECTURE.md panel references.
 
 ---
 
