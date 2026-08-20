@@ -106,7 +106,6 @@ class MarketMakingStrategy:
 
     def generate_quotes(self, mid_price: float, t: float = 0.5) -> Quote:
         """Generate optimal bid/ask quotes."""
-        # Check toxicity
         if self.toxicity_score > self.config.toxicity_threshold:
             return Quote(
                 bid_price=0, ask_price=0, bid_size=0, ask_size=0,
@@ -115,60 +114,48 @@ class MarketMakingStrategy:
                 reason=f"Toxicity {self.toxicity_score:.2f} > threshold"
             )
 
-        # Check max inventory
         if self.inventory >= self.config.max_inventory:
-            # Only quote ask side
-            r = self._reservation_price(mid_price, t)
-            spread = self._optimal_spread(self._last_sigma, t)
-            ask = r + spread / 2
-            return Quote(
-                bid_price=0, ask_price=ask, bid_size=0, ask_size=1.0,
-                mid_price=mid_price, reservation_price=r, spread=spread,
-                confidence=50, reason="Max long inventory, ask only"
-            )
-        elif self.inventory <= -self.config.max_inventory:
-            r = self._reservation_price(mid_price, t)
-            spread = self._optimal_spread(self._last_sigma, t)
-            bid = r - spread / 2
-            return Quote(
-                bid_price=bid, ask_price=0, bid_size=1.0, ask_size=0,
-                mid_price=mid_price, reservation_price=r, spread=spread,
-                confidence=50, reason="Max short inventory, bid only"
-            )
+            return self._inventory_limited_quote(mid_price, t, ask_only=True)
+        if self.inventory <= -self.config.max_inventory:
+            return self._inventory_limited_quote(mid_price, t, ask_only=False)
 
-        # Normal quoting
+        return self._normal_quote(mid_price, t)
+
+    def _inventory_limited_quote(self, mid_price: float, t: float, ask_only: bool) -> Quote:
+        """Generate one-sided quote when at max inventory."""
         r = self._reservation_price(mid_price, t)
         spread = self._optimal_spread(self._last_sigma, t)
-        spread = min(max(spread, self.config.min_spread), self.config.max_spread)
+        if ask_only:
+            ask = r + spread / 2
+            return Quote(0, ask, 0, 1.0, mid_price, r, spread, 50, "Max long inventory, ask only")
+        bid = r - spread / 2
+        return Quote(bid, 0, 1.0, 0, mid_price, r, spread, 50, "Max short inventory, bid only")
 
+    def _normal_quote(self, mid_price: float, t: float) -> Quote:
+        """Generate normal two-sided quote with inventory skew."""
+        r = self._reservation_price(mid_price, t)
+        spread = min(max(self._optimal_spread(self._last_sigma, t), self.config.min_spread), self.config.max_spread)
         bid = r - spread / 2
         ask = r + spread / 2
+        bid_size, ask_size = self._compute_inventory_sizes()
+        self.order_count += 1
+        confidence = max(0, 100 - (spread / self.config.max_spread) * 50 - self.toxicity_score * 30)
+        return Quote(
+            bid_price=bid, ask_price=ask, bid_size=bid_size, ask_size=ask_size,
+            mid_price=mid_price, reservation_price=r, spread=spread,
+            confidence=confidence,
+            reason=f"Inv={self.inventory:.2f} spread={spread:.6f} toxic={self.toxicity_score:.2f}"
+        )
 
-        # Inventory-skewed sizes
+    def _compute_inventory_sizes(self) -> tuple[float, float]:
+        """Compute inventory-skewed bid/ask sizes."""
         inv_ratio = abs(self.inventory) / self.config.max_inventory if self.config.max_inventory > 0 else 0
         base_size = 1.0
         if self.inventory > 0:
-            bid_size = base_size * (1.0 - inv_ratio * self.config.inventory_skew)
-            ask_size = base_size * (1.0 + inv_ratio * self.config.inventory_skew)
-        elif self.inventory < 0:
-            bid_size = base_size * (1.0 + inv_ratio * self.config.inventory_skew)
-            ask_size = base_size * (1.0 - inv_ratio * self.config.inventory_skew)
-        else:
-            bid_size = base_size
-            ask_size = base_size
-
-        self.order_count += 1
-
-        # Confidence based on spread width and toxicity
-        confidence = max(0, 100 - (spread / self.config.max_spread) * 50 - self.toxicity_score * 30)
-
-        return Quote(
-            bid_price=bid, ask_price=ask,
-            bid_size=bid_size, ask_size=ask_size,
-            mid_price=mid_price, reservation_price=r,
-            spread=spread, confidence=confidence,
-            reason=f"Inv={self.inventory:.2f} spread={spread:.6f} toxic={self.toxicity_score:.2f}"
-        )
+            return base_size * (1.0 - inv_ratio * self.config.inventory_skew), base_size * (1.0 + inv_ratio * self.config.inventory_skew)
+        if self.inventory < 0:
+            return base_size * (1.0 + inv_ratio * self.config.inventory_skew), base_size * (1.0 - inv_ratio * self.config.inventory_skew)
+        return base_size, base_size
 
     def on_fill(self, side: str, qty: float, price: float) -> None:
         """Record a fill and update realized PnL using average cost basis.
