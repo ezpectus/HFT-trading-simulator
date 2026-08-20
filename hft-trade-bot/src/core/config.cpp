@@ -36,7 +36,16 @@ static std::string expand_env(const std::string& s) {
 
 // Validate config values and log warnings for out-of-range parameters.
 static void validate_config(const Config& cfg) {
-    // Risk parameters
+    validate_risk_params(cfg);
+    validate_trading_params(cfg);
+    if (cfg.is_production) {
+        validate_production_limits(cfg);
+    }
+    spdlog::info("Config validated: {} symbols, {}s interval, max {} positions", cfg.symbols.size(),
+                 cfg.signal_interval_seconds, cfg.max_open_positions);
+}
+
+static void validate_risk_params(const Config& cfg) {
     if (cfg.max_risk_per_trade_pct <= 0 || cfg.max_risk_per_trade_pct > 100)
         spdlog::warn("Config: max_risk_per_trade_pct={} out of range (0, 100]. "
                      "Recommended: 1.0-5.0. Set risk.risk_per_trade_pct in config.yaml",
@@ -61,8 +70,9 @@ static void validate_config(const Config& cfg) {
         spdlog::warn("Config: max_position_size_pct={} out of range (0, 100]. "
                      "Recommended: 5.0-20.0. Set risk.max_position_size_pct in config.yaml",
                      cfg.max_position_size_pct);
+}
 
-    // Trading parameters
+static void validate_trading_params(const Config& cfg) {
     if (cfg.signal_interval_seconds < 1)
         spdlog::warn("Config: signal_interval_seconds={} should be >= 1. "
                      "Set trading.signal_interval_seconds in config.yaml",
@@ -74,8 +84,6 @@ static void validate_config(const Config& cfg) {
     if (cfg.symbols.empty())
         spdlog::warn("Config: no trading symbols configured. "
                      "Add symbols under trading.symbols in config.yaml");
-
-    // EMA periods
     if (cfg.fast_ema_period >= cfg.slow_ema_period)
         spdlog::warn("Config: fast_ema_period={} should be < slow_ema_period={}. "
                      "Set hft_strategies.fast_ema_period and slow_ema_period in config.yaml",
@@ -84,42 +92,33 @@ static void validate_config(const Config& cfg) {
         spdlog::warn("Config: fast_ema_period={} should be >= 2. "
                      "Set hft_strategies.fast_ema_period in config.yaml",
                      cfg.fast_ema_period);
-
-    // WebSocket URL
     if (cfg.ws_url.find("ws://") != 0 && cfg.ws_url.find("wss://") != 0)
         spdlog::warn("Config: websocket_url '{}' should start with ws:// or wss://. "
                      "Set exchange.websocket_url in config.yaml",
                      cfg.ws_url);
+}
 
-    // Production risk limits
-    if (cfg.is_production) {
-        if (cfg.max_position_qty <= 0)
-            spdlog::warn("Config: max_position_qty={} should be positive", cfg.max_position_qty);
-        if (cfg.max_total_exposure <= 0)
-            spdlog::warn("Config: max_total_exposure={} should be positive",
-                         cfg.max_total_exposure);
-        if (cfg.daily_loss_limit <= 0)
-            spdlog::warn("Config: daily_loss_limit={} should be positive", cfg.daily_loss_limit);
-        if (cfg.max_orders_per_second <= 0)
-            spdlog::warn("Config: max_orders_per_second={} should be positive",
-                         cfg.max_orders_per_second);
-        if (cfg.max_leverage < 1)
-            spdlog::warn("Config: max_leverage={} should be >= 1", cfg.max_leverage);
-        if (cfg.min_margin_ratio < 0 || cfg.min_margin_ratio > 1)
-            spdlog::warn("Config: min_margin_ratio={} out of range [0, 1]", cfg.min_margin_ratio);
-        // Validate exchange fee ranges
-        for (const auto* ec : {&cfg.binance_cfg, &cfg.okx_cfg, &cfg.bybit_cfg}) {
-            if (ec->enabled) {
-                if (ec->maker_bps < 0 || ec->maker_bps > 100)
-                    spdlog::warn("Config: maker_bps={} out of range [0, 100]", ec->maker_bps);
-                if (ec->taker_bps < 0 || ec->taker_bps > 100)
-                    spdlog::warn("Config: taker_bps={} out of range [0, 100]", ec->taker_bps);
-            }
+static void validate_production_limits(const Config& cfg) {
+    if (cfg.max_position_qty <= 0)
+        spdlog::warn("Config: max_position_qty={} should be positive", cfg.max_position_qty);
+    if (cfg.max_total_exposure <= 0)
+        spdlog::warn("Config: max_total_exposure={} should be positive", cfg.max_total_exposure);
+    if (cfg.daily_loss_limit <= 0)
+        spdlog::warn("Config: daily_loss_limit={} should be positive", cfg.daily_loss_limit);
+    if (cfg.max_orders_per_second <= 0)
+        spdlog::warn("Config: max_orders_per_second={} should be positive", cfg.max_orders_per_second);
+    if (cfg.max_leverage < 1)
+        spdlog::warn("Config: max_leverage={} should be >= 1", cfg.max_leverage);
+    if (cfg.min_margin_ratio < 0 || cfg.min_margin_ratio > 1)
+        spdlog::warn("Config: min_margin_ratio={} out of range [0, 1]", cfg.min_margin_ratio);
+    for (const auto* ec : {&cfg.binance_cfg, &cfg.okx_cfg, &cfg.bybit_cfg}) {
+        if (ec->enabled) {
+            if (ec->maker_bps < 0 || ec->maker_bps > 100)
+                spdlog::warn("Config: maker_bps={} out of range [0, 100]", ec->maker_bps);
+            if (ec->taker_bps < 0 || ec->taker_bps > 100)
+                spdlog::warn("Config: taker_bps={} out of range [0, 100]", ec->taker_bps);
         }
     }
-
-    spdlog::info("Config validated: {} symbols, {}s interval, max {} positions", cfg.symbols.size(),
-                 cfg.signal_interval_seconds, cfg.max_open_positions);
 }
 
 Config Config::load(const std::string& path) {
