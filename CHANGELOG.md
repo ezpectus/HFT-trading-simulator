@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 23 — README Broken Doc Links Fix)
+
+### Fixed
+- **[QUAL-090]** `README.md` — 5 broken doc links pointing to non-existent files: `docs/USER_GUIDE.md`→`docs/FAQ.md`, `docs/ARCHITECTURE_DIAGRAMS.md`→`docs/ARCHITECTURE.md`, `docs/EDUCATIONAL_CONTENT.md`→`docs/ADVANCED_ORDER_TYPES.md`, `docs/ROADMAP.md`→`docs/9_DAY_DEVELOPMENT_PLAN.md`, `COMPREHENSIVE_DEVELOPMENT_PLAN.md`→`MASTER_DEVELOPMENT_PLAN.md`.
+- **[QUAL-090]** `README.md` — Stale `docs/CHANGELOG.md` link (stops at Sprint 16) replaced with active root `CHANGELOG.md`.
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 22 — Native Type Hints Migration)
 
 ### Changed

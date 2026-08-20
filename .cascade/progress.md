@@ -268,6 +268,19 @@
 
 **Sprint 22 result:** 13 files + 1 script file migrated to Python 3.12+ native types. Many files had unused typing imports (dead code). All `Optional[X]` → `X | None`, `List` → `list`, `Dict` → `dict`, `Tuple` → `tuple`.
 
+**Sprint 23 — README broken doc links + docs sync (QUAL-090):**
+
+| # | File | Issue | Fix | Status |
+|---|------|-------|-----|--------|
+| 1 | `README.md:668` | `docs/CHANGELOG.md` stale (Sprint 16), root `CHANGELOG.md` active | Changed link to root `CHANGELOG.md` | ✅ |
+| 2 | `README.md:652` | `docs/USER_GUIDE.md` doesn't exist | Replaced with `docs/FAQ.md` | ✅ |
+| 3 | `README.md:658` | `docs/ARCHITECTURE_DIAGRAMS.md` doesn't exist | Replaced with `docs/ARCHITECTURE.md` | ✅ |
+| 4 | `README.md:665` | `docs/EDUCATIONAL_CONTENT.md` doesn't exist | Replaced with `docs/ADVANCED_ORDER_TYPES.md` | ✅ |
+| 5 | `README.md:666` | `docs/ROADMAP.md` doesn't exist | Replaced with `docs/9_DAY_DEVELOPMENT_PLAN.md` | ✅ |
+| 6 | `README.md:667` | `COMPREHENSIVE_DEVELOPMENT_PLAN.md` doesn't exist | Replaced with `MASTER_DEVELOPMENT_PLAN.md` | ✅ |
+
+**Sprint 23 result:** 5 broken doc links fixed in README. All doc table links now point to existing files. Stale changelog reference corrected.
+
 ## Proposals
 
 | # | Title | Status | Date |
