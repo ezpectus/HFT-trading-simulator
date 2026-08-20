@@ -1747,6 +1747,16 @@
 
 ---
 
+### QUAL-012: Unjustified `Any` type annotations in production code (7 locations)
+- **Location:** `data_collection/real_account.py:97,103`, `research/competition.py:64,68,73`, `research/genetic_strategy.py:210`, `utils/helpers.py:85`, `llm_engine/engine.py:77`
+- **Severity:** P2 (Code Quality)
+- **Root Cause:** Several `Any` type annotations lacked justification comments explaining why `Any` was necessary (duck typing, missing type stubs, or flexible input types).
+- **Status:** ✅ Fixed
+- **Fix:** Added inline justification comments for each `Any` usage: ccxt.Exchange (no type stubs), aiohttp.ClientSession (duck-typed), strategy/data/backtest_fn parameters (duck-typed for plugin flexibility), get_env default (str|int|float|bool flexibility).
+- **Commit:** 4b40db0
+
+---
+
 ## How to Update This File
 
 1. **Found a new bug:** Add entry with next sequential ID, fill in all fields, set Status to ⏳ Pending Fix

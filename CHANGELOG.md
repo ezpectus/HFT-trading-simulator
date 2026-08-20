@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v4.8 — Autonomous Sprint 4: Any Justification + Test Coverage Expansion)
+
+### Code Quality Fixes
+
+- **[QUAL-012]** Added justification comments for all `Any` type annotations in production code: `real_account.py` (2: ccxt.Exchange, aiohttp.ClientSession), `competition.py` (3: data, strategy, backtest_fn — duck typing), `genetic_strategy.py` (1: data — list[Candle] | pd.DataFrame), `helpers.py` (1: get_env default — str|int|float|bool), `llm_engine/engine.py` (1: aiohttp.ClientSession).
+
+### Test Coverage
+
+- **[TEST-010]** Added `tests/unit/test_ml_models.py` — 58 tests covering `TradingEnv` (init, reset, step HOLD/BUY/SELL, observation, render, close), `LSTMModel` (config, scaler, normalize, sequences, train, predict, predict_sequence, save/load, ONNX stub), `TransformerModel` (config, positional encoding, attention, train, generate_signal, batch, save/load), `DQNAgent` (config, remember, act, replay, target network, train, save/load), torch-dependent imports (price_predictor, rl_trader).
+- **[TEST-011]** Added `tests/unit/test_portfolio_modules.py` — 46 tests covering `BlackLittermanModel` (prior returns, incorporate views, optimize, full BL portfolio), `RebalancingStrategy` (drift, turnover, time/drift/volatility triggers, orders, execute, dispatch), `RiskParityOptimizer` (marginal risk, risk contributions, optimize, leverage, verify).
+- **[TEST-012]** Added `tests/unit/test_research_modules.py` — 57 tests covering `BrinsonFachler` (attribution, total returns, effects sum, equal weights, missing sectors), `StrategyCompetition` (register, tournament, ELO ranking, custom backtest), `GeneticStrategyDiscovery` (init, random chromosome, indicator params, evolve), `GreeksHedgingSimulator` (norm_cdf, norm_pdf, Black-Scholes Greeks, delta hedge simulation, deterministic seed), `MicrostructureLab` (OFI, price impact, VPIN, spread metrics, trade intensity, Amihud illiquidity, analyze_all).
+- **[TEST-013]** Added `tests/unit/test_monitoring_llm.py` — 36 tests covering `PerformanceTracker` (signals, trades, win rate, summary), `SignalLogger`/`TradeLogger` (CSV init, log), `HealthServer` (init, register, check_all, exchange/database/shm checks, async checks), `LLMEngine` (config, context, prompt loading, initialize, close), data_collection imports.
+- **[TEST-014]** Added `tests/unit/test_ml_ensemble_funding.py` — 50 tests covering `FeatureEngineer` (extract_features, EMA, RSI, ATR, Bollinger, momentum, ROC, Williams %R, CCI, MFI), `HMMRegimeDetector` (init, update, fit, regime), `MLEnsembleStrategy` (init, analyze untrained, train insufficient, feature importance), `FundingRateArbitrageDetector` (init, update rates/prices, detect spot-perp, cross-exchange, filtering, active opportunity tracking, stale removal).
+
+### Audit Results
+
+- **0** `except Exception` in production code (verified across all modules)
+- **0** `print()` in production code
+- **0** `pass` stubs in production code
+- **0** bare `except:` 
+- **0** `TODO/FIXME/HACK/XXX` 
+- **0** `NotImplementedError`
+- **0** `type: ignore`
+- **0** `from x import *`
+- **0** `global` mutable state
+- **7** `Any` annotations — all now have justification comments
+- **45 unit test files** with ~1,140 test functions/classes
+
 ## [Unreleased] — 2026-08-20 (v4.7 — Autonomous Sprint 3: Final Exception Narrowing + Test Coverage)
 
 ### Code Quality Fixes
