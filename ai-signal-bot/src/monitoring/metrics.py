@@ -48,134 +48,82 @@ class MetricsExporter:
 
     def _init_metrics(self):
         """Initialize all Prometheus metrics."""
+        self._init_counters()
+        self._init_gauges()
+        self._init_histograms()
+        self._init_summaries()
 
-        # ── Counters ──
+    def _init_counters(self):
+        """Initialize counter metrics."""
         self.signals_total = Counter(
-            "trading_signals_total",
-            "Total signals generated",
-            ["symbol", "direction"],
-            registry=self.registry,
+            "trading_signals_total", "Total signals generated",
+            ["symbol", "direction"], registry=self.registry,
         )
-
         self.fills_total = Counter(
-            "trading_fills_total",
-            "Total order fills",
-            ["exchange", "symbol", "side"],
-            registry=self.registry,
+            "trading_fills_total", "Total order fills",
+            ["exchange", "symbol", "side"], registry=self.registry,
         )
-
         self.orders_sent_total = Counter(
-            "trading_orders_sent_total",
-            "Total orders sent to exchanges",
-            ["exchange", "symbol", "side", "type"],
-            registry=self.registry,
+            "trading_orders_sent_total", "Total orders sent to exchanges",
+            ["exchange", "symbol", "side", "type"], registry=self.registry,
         )
-
         self.orders_rejected_total = Counter(
-            "trading_orders_rejected_total",
-            "Total orders rejected by exchange or risk manager",
-            ["exchange", "reason"],
-            registry=self.registry,
+            "trading_orders_rejected_total", "Total orders rejected by exchange or risk manager",
+            ["exchange", "reason"], registry=self.registry,
         )
-
         self.kill_switch_activations = Counter(
-            "trading_kill_switch_activations_total",
-            "Kill switch activation count",
-            ["reason"],
-            registry=self.registry,
+            "trading_kill_switch_activations_total", "Kill switch activation count",
+            ["reason"], registry=self.registry,
         )
 
-        # ── Gauges ──
-        self.current_pnl = Gauge(
-            "trading_current_pnl",
-            "Current unrealized PnL (USD)",
-            registry=self.registry,
-        )
-
-        self.daily_pnl = Gauge(
-            "trading_daily_pnl",
-            "Daily realized PnL (USD)",
-            registry=self.registry,
-        )
-
-        self.total_equity = Gauge(
-            "trading_total_equity",
-            "Total account equity (USD)",
-            registry=self.registry,
-        )
-
-        self.drawdown_pct = Gauge(
-            "trading_drawdown_pct",
-            "Current drawdown percentage from peak equity",
-            registry=self.registry,
-        )
-
-        self.open_positions = Gauge(
-            "trading_open_positions",
-            "Number of currently open positions",
-            registry=self.registry,
-        )
-
-        self.total_exposure = Gauge(
-            "trading_total_exposure",
-            "Total notional exposure (USD)",
-            registry=self.registry,
-        )
-
+    def _init_gauges(self):
+        """Initialize gauge metrics."""
+        self.current_pnl = Gauge("trading_current_pnl", "Current unrealized PnL (USD)", registry=self.registry)
+        self.daily_pnl = Gauge("trading_daily_pnl", "Daily realized PnL (USD)", registry=self.registry)
+        self.total_equity = Gauge("trading_total_equity", "Total account equity (USD)", registry=self.registry)
+        self.drawdown_pct = Gauge("trading_drawdown_pct", "Current drawdown percentage from peak equity", registry=self.registry)
+        self.open_positions = Gauge("trading_open_positions", "Number of currently open positions", registry=self.registry)
+        self.total_exposure = Gauge("trading_total_exposure", "Total notional exposure (USD)", registry=self.registry)
         self.websocket_connected = Gauge(
-            "trading_websocket_connected",
-            "WebSocket connection status (1=connected, 0=disconnected)",
-            ["endpoint"],
-            registry=self.registry,
+            "trading_websocket_connected", "WebSocket connection status (1=connected, 0=disconnected)",
+            ["endpoint"], registry=self.registry,
         )
-
         self.signal_confidence = Gauge(
-            "trading_signal_confidence",
-            "Latest signal confidence",
-            ["symbol"],
-            registry=self.registry,
+            "trading_signal_confidence", "Latest signal confidence",
+            ["symbol"], registry=self.registry,
         )
-
         self.kill_switch_active = Gauge(
-            "trading_kill_switch_active",
-            "Kill switch active status (1=active, 0=inactive)",
+            "trading_kill_switch_active", "Kill switch active status (1=active, 0=inactive)",
             registry=self.registry,
         )
-
         self.shm_buffer_size = Gauge(
-            "trading_shm_buffer_size",
-            "SHM ring buffer current size",
-            ["channel"],
-            registry=self.registry,
+            "trading_shm_buffer_size", "SHM ring buffer current size",
+            ["channel"], registry=self.registry,
         )
 
-        # ── Histograms ──
+    def _init_histograms(self):
+        """Initialize histogram metrics."""
         self.signal_latency = Histogram(
-            "trading_signal_latency_seconds",
-            "Signal generation latency",
+            "trading_signal_latency_seconds", "Signal generation latency",
             buckets=(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
             registry=self.registry,
         )
-
         self.order_latency = Histogram(
-            "trading_order_latency_seconds",
-            "Order submission to fill latency",
+            "trading_order_latency_seconds", "Order submission to fill latency",
             ["exchange"],
             buckets=(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0),
             registry=self.registry,
         )
-
         self.shm_round_trip_latency = Histogram(
-            "trading_shm_round_trip_seconds",
-            "SHM signal→fill round-trip latency",
+            "trading_shm_round_trip_seconds", "SHM signal→fill round-trip latency",
             buckets=(0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05),
             registry=self.registry,
         )
 
-        # ── Summaries ──
+    def _init_summaries(self):
+        """Initialize summary metrics."""
         self.position_hold_time = Summary(
-            "trading_position_hold_time_seconds",
-            "Position hold time",
+            "trading_position_hold_time_seconds", "Position hold time",
             registry=self.registry,
         )
 
