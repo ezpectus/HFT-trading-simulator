@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (v4.7 — Autonomous Sprint 3: Final Exception Narrowing + Test Coverage)
+
+### Code Quality Fixes
+
+- **[QUAL-009]** Narrowed `except Exception` to `(OSError, RuntimeError, KeyError, ValueError, TypeError)` across 11 catches in `database/database.py` — all asyncpg DB operations (connect, insert_trade, insert_signal, upsert_position, delete_position, insert_candle, insert_candles_batch, get_trades, get_daily_pnl, insert_backtest, insert_audit_log, get_audit_logs).
+- **[QUAL-010]** Narrowed `except Exception` to specific types across 7 catches in `strategies/` and `utils/`: `cross_exchange_arb.py` (3 catches: monitor loop, execute arb, execute leg), `marketplace.py` (3 catches: load registry, load plugin, git install), `utils/helpers.py` (1 catch: YAML config load).
+- **[QUAL-011]** Narrowed `except Exception` to specific types across 21 catches in `exchange_simulator/`: `__main__.py` (1), `audit_logger.py` (2), `health.py` (2), `market_simulator.py` (1), `price_feed_manager.py` (13: decorator async/sync, Binance/Coinbase REST API, WS callbacks, WS reconnect, cache warm/populate, price update callback, batch fetch), `tests/stress_test.py` (2), `tests/load_test_50_symbols.py` (3).
+
+### Test Coverage
+
+- **[TEST-006]** Added `tests/unit/test_dpdk_transport.py` — 20 tests covering `MarketDataPacket`, `DPDKTransport` init/initialize/send/parse_packet/stats/stop, UDP socket fallback, packet serialization.
+- **[TEST-007]** Added `tests/unit/test_cross_exchange_arb.py` — 15 tests covering `ArbStatus`, `ExchangePrice`, `ArbitrageOpportunity`, `ExecutionResult`, `CrossExchangeArbEngine` init/update_price/detect_opportunity/stats/stop/execute_leg.
+- **[TEST-008]** Added `tests/unit/test_marketplace.py` — 20 tests covering `StrategyPlugin`, `StrategyMarketplace` init/register/unregister/list/search/enable/disable/config/load with persistence.
+- **[TEST-009]** Added `tests/unit/test_ml_modules.py` — 30 tests covering `ModelRegistry` (register/get/promote/rollback/ab_test/persistence), `AutoMLOptimizer` (config/init/optimize/importances), `FeatureStore` (update/get/batch/vector/matrix/list/delete/age/health).
+
 ## [Unreleased] — 2026-08-20 (v4.6 — Autonomous Sprint 2: Exception Narrowing + Test Coverage)
 
 ### Code Quality Fixes

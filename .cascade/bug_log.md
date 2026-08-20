@@ -1724,6 +1724,27 @@
 - **Status:** ✅ Fixed
 - **Fix:** Replaced `pass` with `logger.warning()` + `return False`. Narrowed exceptions to `OSError`/`RuntimeError`/`struct.error`/`UnicodeDecodeError`/`IndexError`.
 
+### QUAL-009: Broad except Exception in database/database.py (11 catches)
+- **Location:** `ai-signal-bot/src/database/database.py:185,221,256,284,297,320,342,356,381,412,444,484`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** All asyncpg DB operations used `except Exception` — masking specific DB connection, query, type, and key errors.
+- **Status:** ✅ Fixed
+- **Fix:** Narrowed all 11 catches to `(OSError, RuntimeError, KeyError, ValueError, TypeError)` — covers asyncpg connection failures, SQL errors, dict key access, float/int conversion, and type mismatches.
+
+### QUAL-010: Broad except Exception in strategies/ + utils/ (7 catches)
+- **Location:** `ai-signal-bot/src/strategies/cross_exchange_arb.py:160,288,327`, `strategies/marketplace.py:75,155,216`, `utils/helpers.py:78`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** Arbitrage monitor/execution, strategy plugin loading, git install, and YAML config loading all used `except Exception`.
+- **Status:** ✅ Fixed
+- **Fix:** Narrowed to context-specific types: monitor loop → `(RuntimeError, OSError, ValueError, TypeError)`, execute arb → + `KeyError`, execute leg → + `AttributeError`, load registry → `(OSError, ValueError, KeyError, TypeError)`, load plugin → `(ImportError, AttributeError, TypeError, ValueError, RuntimeError)`, git install → `(OSError, RuntimeError, subprocess.CalledProcessError, subprocess.TimeoutExpired)`, YAML load → `(OSError, ValueError, TypeError)`.
+
+### QUAL-011: Broad except Exception in exchange_simulator/ (21 catches)
+- **Location:** `exchange_simulator/__main__.py:98`, `audit_logger.py:110,120`, `health.py:85,113`, `market_simulator.py:162`, `price_feed_manager.py:208,224,391,429,468,471,544,603,606,734,785,820,838,865,876`, `tests/stress_test.py:49,95`, `tests/load_test_50_symbols.py:47,60,123`
+- **Severity:** P1 (Code Quality)
+- **Root Cause:** All exchange simulator modules used `except Exception` for API calls, WebSocket handlers, cache operations, health endpoints, and test utilities.
+- **Status:** ✅ Fixed
+- **Fix:** Narrowed to context-specific types: REST API → `(OSError, RuntimeError, KeyError, ValueError, TypeError, aiohttp.ClientError)`, WS callback → `(TypeError, ValueError, RuntimeError, OSError)`, WS reconnect → `(OSError, RuntimeError, websockets.WebSocketException, asyncio.TimeoutError)`, cache → `(OSError, RuntimeError, KeyError, ValueError, TypeError)`, health endpoints → + `AttributeError`, visualizer → `(RuntimeError, OSError, ValueError, TypeError)`, test utilities → `(OSError, RuntimeError, ValueError, TypeError)`.
+
 ---
 
 ## How to Update This File
