@@ -31,9 +31,7 @@
 #include <string_view>
 #include <unordered_map>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+inline constexpr double kPiV3 = 3.14159265358979323846;
 
 namespace hft {
 
@@ -143,7 +141,7 @@ class OnlineHMM {
         if (var < 1e-15) var = 1e-15;
         double diff    = x - mean;
         double inv_var = 1.0 / var;
-        return -0.5 * (std::log(2.0 * M_PI) + std::log(var) + diff * diff * inv_var);
+        return -0.5 * (std::log(2.0 * kPiV3) + std::log(var) + diff * diff * inv_var);
     }
 
     // Update HMM with a new price observation

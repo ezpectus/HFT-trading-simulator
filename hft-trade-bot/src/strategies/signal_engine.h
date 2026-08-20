@@ -19,9 +19,7 @@
 #include <valarray>
 #include <vector>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+inline constexpr double kPi = 3.14159265358979323846;
 
 namespace hft {
 
@@ -37,7 +35,7 @@ inline void fft(std::valarray<std::complex<double>>& a) {
     fft(odd);
 
     for (size_t k = 0; k < n / 2; ++k) {
-        double               angle = -2.0 * M_PI * k / n;
+        double               angle = -2.0 * kPi * k / n;
         std::complex<double> w(std::cos(angle), std::sin(angle));
         a[k]         = even[k] + w * odd[k];
         a[k + n / 2] = even[k] - w * odd[k];
@@ -63,7 +61,7 @@ inline double spectral_trend_score(const std::vector<double>& closes) {
     std::valarray<std::complex<double>> data(0.0, n_fft);
     for (size_t i = 0; i < n; ++i) {
         // Hann window
-        double w = 0.5 - 0.5 * std::cos(2.0 * M_PI * i / (n - 1));
+        double w = 0.5 - 0.5 * std::cos(2.0 * kPi * i / (n - 1));
         data[i]  = std::complex<double>((closes[i] - mean) * w, 0.0);
     }
 
