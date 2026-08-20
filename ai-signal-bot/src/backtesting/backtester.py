@@ -184,6 +184,13 @@ class Backtester:
                 current_position, balance, current_price, equity_curve, peak_equity, result,
             )
 
+        return self._finalize_backtest(result, balance, equity_curve, current_position, candles)
+
+    def _finalize_backtest(
+        self, result: BacktestResult, balance: float, equity_curve: list,
+        current_position: dict | None, candles: list[dict],
+    ) -> BacktestResult:
+        """Close any open position and compute final metrics."""
         if current_position:
             balance = self._close_position(
                 current_position, candles[-1]["close"], "END", balance, result,

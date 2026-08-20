@@ -89,49 +89,44 @@ class DQNAgent:
         return np.argmax(q_values)
     
     def replay(self, batch_size: int | None = None):
-        """
-        Train on batch of experiences.
-        
-        Args:
-            batch_size: Batch size (uses config default if None)
-        """
+        """Train on batch of experiences from replay memory."""
         if batch_size is None:
             batch_size = self.config.batch_size
-
         if len(self.memory) < batch_size:
             return
-
         if self.q_network_weights is None:
             self._build_network()
 
-        # Sample batch
+        states, actions, rewards, next_states, dones = self._sample_batch(batch_size)
+        self._update_q_network(states, actions, rewards, next_states, dones, batch_size)
+
+        if self.epsilon > self.config.epsilon_min:
+            self.epsilon *= self.config.epsilon_decay
+
+    def _sample_batch(self, batch_size: int) -> tuple:
+        """Sample a batch from replay memory and unpack into arrays."""
         batch_indices = np.random.choice(len(self.memory), batch_size, replace=False)
         batch = [self.memory[i] for i in batch_indices]
-        
         states = np.array([e[0] for e in batch])
         actions = np.array([e[1] for e in batch])
         rewards = np.array([e[2] for e in batch])
         next_states = np.array([e[3] for e in batch])
         dones = np.array([e[4] for e in batch])
-        
-        # Calculate target Q-values
+        return states, actions, rewards, next_states, dones
+
+    def _update_q_network(self, states, actions, rewards, next_states, dones, batch_size: int) -> None:
+        """Update Q-network weights using gradient descent on sampled batch."""
         target_q_values = np.dot(next_states, self.target_network_weights)
         max_target_q = np.max(target_q_values, axis=1)
         targets = rewards + self.config.gamma * max_target_q * (1 - dones)
-        
-        # Update Q-network (simplified)
+
         current_q = np.dot(states, self.q_network_weights)
         for i in range(batch_size):
             current_q[i, actions[i]] = targets[i]
-        
-        # Gradient descent update
+
         learning_rate = self.config.learning_rate
         gradient = np.dot(states.T, current_q - np.dot(states, self.q_network_weights)) / batch_size
         self.q_network_weights -= learning_rate * gradient
-        
-        # Decay epsilon
-        if self.epsilon > self.config.epsilon_min:
-            self.epsilon *= self.config.epsilon_decay
     
     def update_target_network(self):
         """Update target network with current network weights."""

@@ -33,6 +33,7 @@
 | 27 | 2026-08-20 | Sprint 28 (Autonomous): Long function refactoring batch 4 — 5 functions 50-62 lines refactored (genetic_strategy.evolve 62→17, rl_agent.train 52→18, rl_agent.train 53→16, transformer_model.train 53→7, lstm_model.train 55→9), 7 helpers extracted | ✅ Done | — |
 | 28 | 2026-08-20 | Sprint 29 (Autonomous): Long function refactoring batch 5 — 4 functions 52-56 lines refactored (validator.validate 56→18, black_litterman.incorporate_views 55→10, kelly.calculate 55→28, greeks_hedging._simulate_single_path 52→24), 8 helpers extracted | ✅ Done | — |
 | 29 | 2026-08-20 | Sprint 30 (Autonomous): exchange_simulator long function refactoring — 3 functions 45-84 lines refactored (liquidation.check_stop_loss_take_profit 84→14, advanced_orders._execute_iceberg_slice 51→16, advanced_orders._execute_market_order 45→15), 9 helpers extracted, 1 deduplication (_finalize_order_execution shared) | ✅ Done | — |
+| 30 | 2026-08-20 | Sprint 31 (Autonomous): Final long function refactoring — 2 functions 44-46 lines refactored (rl_agent.replay 44→14, backtester.run 46→36), 3 helpers extracted | ✅ Done | — |
 
 ## Bug Fix Progress
 
@@ -376,6 +377,15 @@
 | 3 | `exchange_advanced_orders.py` | `_execute_market_order` | 45 | 15 | `_finalize_order_execution` (shared with `_execute_limit_order`) |
 
 **Sprint 30 result:** 3 functions refactored, 9 helpers extracted. All 3 functions now under 40-line limit. Bonus: `_execute_limit_order` also reduced (34→11) via shared helper. Total across Sprints 25-30: 27 functions refactored, 69 helpers extracted.
+
+**Sprint 31 — Final Long Function Refactoring (44-46 lines):**
+
+| # | File | Function | Before | After | Helpers Extracted |
+|---|------|----------|--------|-------|-------------------|
+| 1 | `ml/rl_agent.py` | `replay` | 44 | 14 | `_sample_batch`, `_update_q_network` |
+| 2 | `backtesting/backtester.py` | `run` | 46 | 36 | `_finalize_backtest` |
+
+**Sprint 31 result:** 2 functions refactored, 3 helpers extracted. All functions now under 40-line limit. Total across Sprints 25-31: 29 functions refactored, 72 helpers extracted.
 
 ## Proposals
 

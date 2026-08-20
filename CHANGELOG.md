@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 31 — Final Long Function Refactoring)
+
+### Changed
+- **[QUAL-100]** Refactored 2 final functions exceeding 40 lines:
+  - `ml/rl_agent.py` — `replay` 44→14 lines (2 helpers: `_sample_batch`, `_update_q_network`)
+  - `backtesting/backtester.py` — `run` 46→36 lines (1 helper: `_finalize_backtest`)
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 30 — exchange_simulator Long Function Refactoring)
 
 ### Changed
