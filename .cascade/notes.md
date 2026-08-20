@@ -40,7 +40,7 @@
 8. Broker integration — 5% (FIX framework exists, not connected)
 9. Real HFT features — 10% (no co-location, DMA, PTP, GPS, tick data)
 10. 10 models don't exist ANYWHERE (Hurst, VPIN, Kyle's Lambda, etc.)
-11. Rust executor — WebSocket is a stub (logs JSON, no real WS), 0 tests
+11. Rust executor — WebSocket is a stub (logs JSON, no real WS), ~~0 tests~~ → ✅ 20 tests added (Sprint 44)
 
 ## Architecture Patterns
 

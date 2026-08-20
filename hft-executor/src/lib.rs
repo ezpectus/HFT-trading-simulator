@@ -234,3 +234,230 @@ pub extern "C" fn hft_executor_destroy(exec: *mut c_void) {
         unsafe { drop(Box::from_raw(exec as *mut OrderExecutor)); }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_test_order() -> Order {
+        Order {
+            id: 0,
+            symbol: "BTC/USDT".to_string(),
+            side: OrderSide::Buy,
+            qty: 0.5,
+            price: 50000.0,
+            order_type: OrderType::Limit,
+            timestamp_ns: 0,
+        }
+    }
+
+    #[test]
+    fn test_order_creation() {
+        let order = make_test_order();
+        assert_eq!(order.symbol, "BTC/USDT");
+        assert_eq!(order.side, OrderSide::Buy);
+        assert_eq!(order.qty, 0.5);
+        assert_eq!(order.price, 50000.0);
+        assert_eq!(order.order_type, OrderType::Limit);
+    }
+
+    #[test]
+    fn test_order_side_equality() {
+        assert_ne!(OrderSide::Buy, OrderSide::Sell);
+    }
+
+    #[test]
+    fn test_order_type_variants() {
+        let types = [OrderType::Market, OrderType::Limit, OrderType::IOC, OrderType::FOK, OrderType::PostOnly];
+        for i in 0..types.len() {
+            for j in 0..types.len() {
+                if i != j {
+                    assert_ne!(types[i], types[j], "OrderType variants {} and {} should differ", i, j);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_submit_single_order() {
+        let exec = OrderExecutor::new("ws://localhost:9999");
+        let order = make_test_order();
+        assert!(exec.submit(order).is_ok());
+        assert_eq!(exec.order_count.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn test_submit_multiple_orders() {
+        let exec = OrderExecutor::new("ws://localhost:9999");
+        for _ in 0..10 {
+            let order = make_test_order();
+            assert!(exec.submit(order).is_ok());
+        }
+        assert_eq!(exec.order_count.load(Ordering::Relaxed), 10);
+    }
+
+    #[test]
+    fn test_submit_batch_orders() {
+        let exec = OrderExecutor::new("ws://localhost:9999");
+        let mut batch = SmallVec::new();
+        for _ in 0..5 {
+            batch.push(make_test_order());
+        }
+        assert!(exec.submit_batch(batch).is_ok());
+        assert_eq!(exec.order_count.load(Ordering::Relaxed), 5);
+    }
+
+    #[test]
+    fn test_submit_batch_empty() {
+        let exec = OrderExecutor::new("ws://localhost:9999");
+        let batch: SmallVec<[Order; 16]> = SmallVec::new();
+        assert!(exec.submit_batch(batch).is_ok());
+        assert_eq!(exec.order_count.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn test_stats_initial_state() {
+        let exec = OrderExecutor::new("ws://localhost:9999");
+        let stats = exec.stats();
+        assert_eq!(stats.orders_sent, 0);
+        assert_eq!(stats.fills_received, 0);
+        assert_eq!(stats.errors, 0);
+    }
+
+    #[test]
+    fn test_stats_after_submit() {
+        let exec = OrderExecutor::new("ws://localhost:9999");
+        for _ in 0..3 {
+            exec.submit(make_test_order()).unwrap();
+        }
+        let stats = exec.stats();
+        assert_eq!(stats.orders_sent, 3);
+    }
+
+    #[test]
+    fn test_ffi_create_and_destroy() {
+        let url = std::ffi::CString::new("ws://localhost:9999").unwrap();
+        let ptr = hft_executor_create(url.as_ptr());
+        assert!(!ptr.is_null());
+        hft_executor_destroy(ptr);
+    }
+
+    #[test]
+    fn test_ffi_create_null_url() {
+        let ptr = hft_executor_create(std::ptr::null());
+        assert!(ptr.is_null());
+    }
+
+    #[test]
+    fn test_ffi_submit_order() {
+        let url = std::ffi::CString::new("ws://localhost:9999").unwrap();
+        let ptr = hft_executor_create(url.as_ptr());
+        assert!(!ptr.is_null());
+
+        let symbol = std::ffi::CString::new("BTC/USDT").unwrap();
+        let result = hft_executor_submit(ptr, symbol.as_ptr(), 0, 1.0, 50000.0, 1);
+        assert_eq!(result, 0);
+
+        hft_executor_destroy(ptr);
+    }
+
+    #[test]
+    fn test_ffi_submit_sell_order() {
+        let url = std::ffi::CString::new("ws://localhost:9999").unwrap();
+        let ptr = hft_executor_create(url.as_ptr());
+        assert!(!ptr.is_null());
+
+        let symbol = std::ffi::CString::new("ETH/USDT").unwrap();
+        let result = hft_executor_submit(ptr, symbol.as_ptr(), 1, 2.0, 3000.0, 0);
+        assert_eq!(result, 0);
+
+        hft_executor_destroy(ptr);
+    }
+
+    #[test]
+    fn test_ffi_submit_all_order_types() {
+        let url = std::ffi::CString::new("ws://localhost:9999").unwrap();
+        let ptr = hft_executor_create(url.as_ptr());
+        assert!(!ptr.is_null());
+
+        let symbol = std::ffi::CString::new("BTC/USDT").unwrap();
+        for order_type in 0..5 {
+            let result = hft_executor_submit(ptr, symbol.as_ptr(), 0, 1.0, 50000.0, order_type);
+            assert_eq!(result, 0, "Order type {} should succeed", order_type);
+        }
+
+        hft_executor_destroy(ptr);
+    }
+
+    #[test]
+    fn test_ffi_submit_null_executor() {
+        let symbol = std::ffi::CString::new("BTC/USDT").unwrap();
+        let result = hft_executor_submit(std::ptr::null_mut(), symbol.as_ptr(), 0, 1.0, 50000.0, 0);
+        assert_eq!(result, -1);
+    }
+
+    #[test]
+    fn test_ffi_submit_null_symbol() {
+        let url = std::ffi::CString::new("ws://localhost:9999").unwrap();
+        let ptr = hft_executor_create(url.as_ptr());
+        assert!(!ptr.is_null());
+
+        let result = hft_executor_submit(ptr, std::ptr::null(), 0, 1.0, 50000.0, 0);
+        assert_eq!(result, -1);
+
+        hft_executor_destroy(ptr);
+    }
+
+    #[test]
+    fn test_ffi_stats_null_executor() {
+        let stats = hft_executor_stats(std::ptr::null());
+        assert_eq!(stats.orders_sent, 0);
+        assert_eq!(stats.fills_received, 0);
+        assert_eq!(stats.errors, 0);
+        assert_eq!(stats.avg_latency_ns, 0);
+    }
+
+    #[test]
+    fn test_ffi_stats_after_submit() {
+        let url = std::ffi::CString::new("ws://localhost:9999").unwrap();
+        let ptr = hft_executor_create(url.as_ptr());
+        assert!(!ptr.is_null());
+
+        let symbol = std::ffi::CString::new("BTC/USDT").unwrap();
+        hft_executor_submit(ptr, symbol.as_ptr(), 0, 1.0, 50000.0, 1);
+        hft_executor_submit(ptr, symbol.as_ptr(), 1, 2.0, 51000.0, 0);
+
+        let stats = hft_executor_stats(ptr);
+        assert_eq!(stats.orders_sent, 2);
+
+        hft_executor_destroy(ptr);
+    }
+
+    #[test]
+    fn test_ffi_destroy_null_is_safe() {
+        hft_executor_destroy(std::ptr::null_mut());
+    }
+
+    #[test]
+    fn test_order_serialization() {
+        let order = make_test_order();
+        let json = serde_json::to_string(&order);
+        assert!(json.is_ok());
+        let json_str = json.unwrap();
+        assert!(json_str.contains("BTC/USDT"));
+        assert!(json_str.contains("Buy"));
+        assert!(json_str.contains("Limit"));
+    }
+
+    #[test]
+    fn test_order_deserialization() {
+        let order = make_test_order();
+        let json = serde_json::to_string(&order).unwrap();
+        let parsed: Result<Order, _> = serde_json::from_str(&json);
+        assert!(parsed.is_ok());
+        let parsed_order = parsed.unwrap();
+        assert_eq!(parsed_order.symbol, "BTC/USDT");
+        assert_eq!(parsed_order.qty, 0.5);
+        assert_eq!(parsed_order.price, 50000.0);
+    }
+}

@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-20 (Sprint 43-44 — Dead Code Removal + Rust Tests)
+
+### Removed
+- **[CLEANUP-102]** Removed `hft-trade-bot/src/ml/gpu_accelerator.cu` (221 lines) — CUDA kernels behind `#ifdef USE_CUDA`, never referenced in CMakeLists.txt or any source file
+- **[CLEANUP-103]** Removed `hft-trade-bot/src/ml/onnx_engine.h` (272 lines) — ONNX runtime engine behind `#ifdef USE_ONNXRUNTIME`, never referenced anywhere
+
+### Added
+- **[TEST-401]** Added 20 unit tests for `hft-executor/src/lib.rs` (previously 0 tests): Order creation, submit/single/batch, stats, FFI create/submit/destroy, null safety, order serialization/deserialization, all order types
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 42 — Stale Documentation Cleanup)
 
 ### Removed

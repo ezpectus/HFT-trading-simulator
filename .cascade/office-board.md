@@ -74,5 +74,8 @@
 - Sprint 33-38: 9-day development plan implementation (Days 2-4, 7-9)
 - Sprint 39-40: Verified Days 5-6 already implemented, marked complete
 - Sprint 41: Removed 12 dead code files in web-ui/src/exchanges/ (~1300 lines), fixed bugs #187-188, all 188 bugs resolved
+- Sprint 42: Removed stale docs/EXCHANGE_UI_CLONES.md (392 lines), updated ARCHITECTURE.md
+- Sprint 43: Removed CUDA/ONNX dead code (gpu_accelerator.cu + onnx_engine.h = 493 lines, never compiled)
+- Sprint 44: Added 20 unit tests for Rust executor (previously 0 tests)
 - All 9 days of development plan: ✅ COMPLETE
 - All 188 bugs: ✅ FIXED (0 pending)
