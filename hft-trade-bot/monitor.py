@@ -34,7 +34,7 @@ def check_process():
         else:
             result = os.popen('pgrep -f hft_trade_bot').read()
             return len(result.strip()) > 0
-    except Exception:
+    except OSError:
         return False
 
 def monitor():

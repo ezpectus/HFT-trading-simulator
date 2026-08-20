@@ -249,7 +249,7 @@ def main():
         try:
             result = test_func()
             results.append((test_name, result))
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError, TypeError, KeyError) as e:
             print(f"ERROR: {e}")
             results.append((test_name, False))
     

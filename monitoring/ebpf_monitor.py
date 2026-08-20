@@ -27,6 +27,7 @@ import argparse
 import json
 import logging
 import signal
+import struct
 import sys
 import time
 from typing import Any
@@ -128,7 +129,7 @@ class EBPFMonitor:
             self._bpf["events"].open_perf_buffer(self._on_syscall_event)
             logger.info(f"[eBPF] Initialized — monitoring PID {self.pid}")
             return True
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError, TypeError) as e:
             logger.error(f"[eBPF] Init failed: {e}")
             return False
 
@@ -154,7 +155,7 @@ class EBPFMonitor:
             if latency_ns > s["max_latency_ns"]:
                 s["max_latency_ns"] = latency_ns
 
-        except Exception as e:
+        except (KeyError, TypeError, ValueError, struct.error) as e:
             logger.debug(f"[eBPF] Event parse error: {e}")
 
     def start(self) -> None:
@@ -171,7 +172,7 @@ class EBPFMonitor:
                 self._report()
             except KeyboardInterrupt:
                 break
-            except Exception as e:
+            except (OSError, RuntimeError) as e:
                 logger.error(f"[eBPF] Poll error: {e}")
                 time.sleep(1)
 

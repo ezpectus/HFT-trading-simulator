@@ -198,7 +198,7 @@ async def monitor(exchange_filter=None, symbol_filter=None):
         except KeyboardInterrupt:
             print(colorize("\n  Stopped.", "GREEN"))
             break
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError, TypeError, asyncio.TimeoutError) as e:
             print(colorize(f"\n  [ERROR] {e}", "RED"))
             await asyncio.sleep(reconnect_delay)
             reconnect_delay = min(reconnect_delay * 2, 30)

@@ -71,7 +71,7 @@ def main():
         sys.exit(1)
     except KeyboardInterrupt:
         print("\nStopped.")
-    except Exception as e:
+    except (OSError, ValueError, struct.error, BufferError) as e:
         print(f"Error: {e}")
         sys.exit(1)
 

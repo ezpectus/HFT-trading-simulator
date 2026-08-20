@@ -101,5 +101,5 @@ class TestContextManager:
                 assert ctx is w
                 assert w._mm is not None
             assert w._mm is None
-        except Exception:
+        except (OSError, ValueError, struct.error, BufferError):
             pytest.skip("SHM not available in this environment")

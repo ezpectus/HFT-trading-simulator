@@ -77,7 +77,7 @@ async def run_migrations(args):
             )
             applied_count += 1
             logger.info(f"  Done: {filename}")
-        except Exception as e:
+        except (OSError, ValueError, RuntimeError, KeyError) as e:
             logger.error(f"  Failed: {filename}: {e}")
             break
 
