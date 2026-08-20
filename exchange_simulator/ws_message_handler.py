@@ -164,8 +164,19 @@ class MessageHandlerMixin:
             }))
             return
 
+        order = await self._submit_exchange_order(websocket, exchange, data)
+        if order is None:
+            return
+
+        self._log_order_result(order, data, exchange_id)
+        fill_msg = json.dumps({"type": "fill", "order": order.to_dict()})
+        await websocket.send(fill_msg)
+        await self._broadcast_to_clients(fill_msg, exclude=websocket)
+
+    async def _submit_exchange_order(self, websocket, exchange, data: dict):
+        """Submit order to exchange and return result or None on error."""
         try:
-            order = exchange.submit_order(
+            return exchange.submit_order(
                 symbol=data["symbol"],
                 side=Side(data["side"]),
                 quantity=float(data["quantity"]),
@@ -179,8 +190,10 @@ class MessageHandlerMixin:
                 "type": "error",
                 "message": f"Invalid order parameters: {e}",
             }))
-            return
+            return None
 
+    def _log_order_result(self, order, data: dict, exchange_id: str) -> None:
+        """Log order fill or rejection and record trade."""
         if order.status.value == "FILLED":
             logger.info(
                 f"  ORDER FILLED: {_sanitize_log(data['side'])} {float(data['quantity']):.4f} "
@@ -205,10 +218,6 @@ class MessageHandlerMixin:
                 f"  ORDER REJECTED: {_sanitize_log(data['side'])} {_sanitize_log(data['symbol'])} "
                 f"qty={_sanitize_log(str(data['quantity']))} | {_sanitize_log(exchange_id)} | {_sanitize_log(reason)}"
             )
-
-        fill_msg = json.dumps({"type": "fill", "order": order.to_dict()})
-        await websocket.send(fill_msg)
-        await self._broadcast_to_clients(fill_msg, exclude=websocket)
 
     async def _handle_subscribe(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle subscription request from a client."""
