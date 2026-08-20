@@ -6,7 +6,7 @@
 - **Version:** 3.0.0
 - **Stack:** Python 3.12 (simulator, signal bot), C++20 (trade bot), Rust (executor), React 18 (web UI)
 - **Components:** Exchange Simulator, AI Signal Bot, HFT Trade Bot, hft-executor, Web UI
-- **Honest readiness:** 62% (v4.3 audit — not 85% as README badges originally claimed)
+- **Honest readiness:** 66% (v5.9 audit — not 85% as README badges originally claimed)
 
 ## Key Files
 
@@ -30,7 +30,7 @@
 
 ## Known Critical Issues (audit v4.3)
 
-1. README.md badges inflated — FIXED in v4.3 (75+ models → 44+40 UI-only, 34+ strategies → 19, 197 panels confirmed correct)
+1. README.md badges inflated — FIXED in v4.3 (75+ models → 44+40 UI-only, 34+ strategies → 19, panel count corrected 197→204 in Sprint 17)
 2. 40+ models exist ONLY as UI (.jsx), NOT in trading pipeline
 3. CUDA/ONNX — dead code behind #ifdef, never compiled in CI
 4. ~~SVI/SABR — does NOT exist~~ → ✅ EXISTS in `volatility_surface.py` (v4.1 correction)
