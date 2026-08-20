@@ -166,55 +166,40 @@ class VaRCalculator:
     
     def backtest_var(self, returns: np.ndarray, var_result: VaRResult,
                      window_size: int = 252) -> Dict:
-        """
-        Backtest VaR model using historical data.
-        
-        Args:
-            returns: Historical returns
-            var_result: VaR result to backtest
-            window_size: Rolling window size for backtesting
-        
-        Returns:
-            Dictionary with backtest results
-        """
+        """Backtest VaR model using historical data."""
         violations = 0
         total_observations = 0
-        
-        # Rolling window backtesting
+
         for i in range(window_size, len(returns)):
             window_returns = returns[i - window_size:i]
-            
-            # Calculate VaR for window
-            if var_result.method == 'historical':
-                var = np.percentile(window_returns, (1 - var_result.confidence_level) * 100)
-            elif var_result.method == 'parametric':
-                mean = np.mean(window_returns)
-                std = np.std(window_returns)
-                z_score = stats.norm.ppf(1 - var_result.confidence_level)
-                var = mean + z_score * std
-            else:
-                continue
-            
-            # Check if actual return exceeds VaR
-            if returns[i] < var:
+            var = self._compute_window_var(window_returns, var_result)
+            if var is not None and returns[i] < var:
                 violations += 1
-            
-            total_observations += 1
-        
-        # Calculate expected violations
+            if var is not None:
+                total_observations += 1
+
         expected_violations = (1 - var_result.confidence_level) * total_observations
-        
-        # Kupiec test
         kupiec_stat = self._kupiec_test(violations, total_observations, var_result.confidence_level)
-        
+
         return {
             'violations': violations,
             'total_observations': total_observations,
             'violation_rate': violations / total_observations if total_observations > 0 else 0,
             'expected_violations': expected_violations,
             'kupiec_stat': kupiec_stat,
-            'passed': kupiec_stat < 3.84  # Chi-square critical value at 95%
+            'passed': kupiec_stat < 3.84
         }
+
+    def _compute_window_var(self, window_returns: np.ndarray, var_result: VaRResult) -> float | None:
+        """Compute VaR for a rolling window. Returns None for unsupported methods."""
+        if var_result.method == 'historical':
+            return np.percentile(window_returns, (1 - var_result.confidence_level) * 100)
+        elif var_result.method == 'parametric':
+            mean = np.mean(window_returns)
+            std = np.std(window_returns)
+            z_score = stats.norm.ppf(1 - var_result.confidence_level)
+            return mean + z_score * std
+        return None
     
     def _kupiec_test(self, violations: int, total_observations: int, 
                      confidence_level: float) -> float:
