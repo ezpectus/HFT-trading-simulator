@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { History, Crown, AlertCircle, Download, NotebookPen, X, Check, FileText, ArrowUpDown } from 'lucide-react'
+import { History, Crown, AlertCircle, Download, NotebookPen, X, Check, FileText, ArrowUpDown, TrendingUp } from 'lucide-react'
 import { formatPrice, formatUsd, formatTime, colorForSide } from '../utils/format'
 import { useTradeJournal, tradeKey, extractTradesFromAccounts } from '../hooks/useTradeJournal'
 import VirtualList from './VirtualList'
@@ -56,13 +56,13 @@ export default function TradeHistory({ accounts }) {
   return (
     <div className="p-2 space-y-1">
       {/* Summary stats */}
-      <div className="bg-bg-700  p-2.5 mb-2">
+      <div className="bg-bg-700 p-2.5 mb-2 border border-bg-600">
         <div className="flex items-center justify-between mb-1.5">
           <div className="text-[10px] text-gray-500 uppercase">Trade History Summary</div>
           <div className="flex gap-1">
             <button
               onClick={() => journal.exportTradesCSV(allTrades)}
-              className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
+              className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
               title="Export trades as CSV"
             >
               <Download size={10} />
@@ -70,7 +70,7 @@ export default function TradeHistory({ accounts }) {
             </button>
             <button
               onClick={() => journal.exportJournalCSV(allTrades)}
-              className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
+              className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-bg-600 text-gray-400 hover:bg-bg-500 hover:text-gray-200 transition-colors"
               title="Export trades with journal notes as CSV"
             >
               <FileText size={10} />
@@ -104,11 +104,47 @@ export default function TradeHistory({ accounts }) {
         </div>
       </div>
 
+      {/* Cumulative PnL mini chart */}
+      {allTrades.length >= 2 && (() => {
+        const sorted = [...allTrades].sort((a, b) => (a.closed_at || 0) - (b.closed_at || 0))
+        let cum = 0
+        const points = sorted.map(t => { cum += t.pnl; return cum })
+        const maxVal = Math.max(...points, 0)
+        const minVal = Math.min(...points, 0)
+        const range = maxVal - minVal || 1
+        const W = 100, H = 40
+        const path = points.map((v, i) => {
+          const x = (i / (points.length - 1)) * W
+          const y = H - ((v - minVal) / range) * H
+          return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
+        }).join(' ')
+        const zeroY = H - ((0 - minVal) / range) * H
+        const fillColor = cum >= 0 ? 'rgba(14, 203, 129, 0.15)' : 'rgba(246, 70, 93, 0.15)'
+        const strokeColor = cum >= 0 ? '#0ecb81' : '#f6465d'
+        return (
+          <div className="bg-bg-700 p-2.5 mb-2 border border-bg-600">
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
+              <TrendingUp size={12} className="text-accent-yellow" />
+              Cumulative PnL
+            </div>
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[40px]" preserveAspectRatio="none">
+              <line x1="0" y1={zeroY} x2={W} y2={zeroY} stroke="#5e6673" strokeWidth="0.3" strokeDasharray="1,1" />
+              <path d={`${path} L ${W} ${H} L 0 ${H} Z`} fill={fillColor} />
+              <path d={path} fill="none" stroke={strokeColor} strokeWidth="0.5" />
+            </svg>
+            <div className="flex justify-between text-[9px] font-mono mt-0.5">
+              <span className="text-gray-600">{sorted.length} trades</span>
+              <span className={cum >= 0 ? 'text-accent-green' : 'text-accent-red'}>{cum >= 0 ? '+' : ''}{formatUsd(cum)}</span>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Best & worst trades */}
       {(bestTrade || worstTrade) && (
         <div className="grid grid-cols-2 gap-2 mb-2">
           {bestTrade && (
-            <div className="bg-accent-green/10 border border-accent-green/20  p-2">
+            <div className="bg-accent-green/10 border border-accent-green/20 p-2">
               <div className="flex items-center gap-1 text-[10px] text-accent-green mb-1">
                 <Crown size={10} /> Best Trade
               </div>
@@ -121,7 +157,7 @@ export default function TradeHistory({ accounts }) {
             </div>
           )}
           {worstTrade && (
-            <div className="bg-accent-red/10 border border-accent-red/20  p-2">
+            <div className="bg-accent-red/10 border border-accent-red/20 p-2">
               <div className="flex items-center gap-1 text-[10px] text-accent-red mb-1">
                 <AlertCircle size={10} /> Worst Trade
               </div>
@@ -169,7 +205,7 @@ export default function TradeHistory({ accounts }) {
         const isExpanded = expandedKey === tKey
 
         return (
-          <div className={'bg-bg-700  p-2 text-xs ' + (isBest ? 'ring-1 ring-accent-green/30' : isWorst ? 'ring-1 ring-accent-red/30' : '')}>
+          <div className={'bg-bg-700 p-2 text-xs border border-bg-600 ' + (isBest ? 'ring-1 ring-accent-green/30' : isWorst ? 'ring-1 ring-accent-red/30' : '')}>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 {isBest && <Crown size={10} className="text-accent-green" />}
@@ -179,7 +215,7 @@ export default function TradeHistory({ accounts }) {
                 </span>
                 <span className="text-gray-300">{trade.symbol}</span>
                 <span className="text-gray-500 text-[10px]">{trade.exchange}</span>
-                <span className={'text-[9px] px-1  ' + reasonColor + ' bg-bg-800'}>
+                <span className={'text-[9px] px-1 ' + reasonColor + ' bg-bg-800'}>
                   {reasonLabel}
                 </span>
               </div>
@@ -193,7 +229,7 @@ export default function TradeHistory({ accounts }) {
                       setNoteDraft(journal.getNote(tKey))
                     }
                   }}
-                  className={'p-0.5  transition-colors ' + (hasNote ? 'text-accent-yellow' : 'text-gray-600 hover:text-gray-400')}
+                  className={'p-0.5 transition-colors ' + (hasNote ? 'text-accent-yellow' : 'text-gray-600 hover:text-gray-400')}
                   title={hasNote ? 'Edit note' : 'Add note'}
                 >
                   <NotebookPen size={10} />
@@ -239,7 +275,7 @@ export default function TradeHistory({ accounts }) {
                   onChange={e => setNoteDraft(e.target.value)}
                   placeholder="Add your analysis, lessons learned, or strategy notes..."
                   rows={3}
-                  className="w-full bg-bg-600 text-gray-200 text-[11px]  px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-yellow resize-none"
+                  className="w-full bg-bg-600 text-gray-200 text-[11px] px-2 py-1.5 border border-bg-500 focus:outline-none focus:border-accent-yellow resize-none"
                   autoFocus
                 />
                 <div className="flex gap-1 mt-1">
@@ -248,7 +284,7 @@ export default function TradeHistory({ accounts }) {
                       journal.saveNote(tKey, noteDraft)
                       setExpandedKey(null)
                     }}
-                    className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors"
+                    className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors"
                   >
                     <Check size={10} />
                     Save
@@ -259,14 +295,14 @@ export default function TradeHistory({ accounts }) {
                       setNoteDraft('')
                       setExpandedKey(null)
                     }}
-                    className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-bg-600 text-gray-500 hover:text-accent-red transition-colors"
+                    className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-bg-600 text-gray-500 hover:text-accent-red transition-colors"
                   >
                     <X size={10} />
                     Delete
                   </button>
                   <button
                     onClick={() => setExpandedKey(null)}
-                    className="flex items-center gap-1 px-2 py-0.5 text-[10px]  bg-bg-600 text-gray-500 hover:text-gray-300 transition-colors ml-auto"
+                    className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-bg-600 text-gray-500 hover:text-gray-300 transition-colors ml-auto"
                   >
                     Cancel
                   </button>

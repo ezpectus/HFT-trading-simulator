@@ -34,9 +34,9 @@ export default function DepthChart({ orderbookData, currentPrice }) {
 
   if (!depthData) {
     return (
-      <div className="bg-bg-700  p-2.5">
+      <div className="bg-bg-700 p-2.5 border border-bg-600">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-1">
-          <BarChart3 size={12} className="text-accent-blue" />
+          <BarChart3 size={12} className="text-accent-yellow" />
           Depth Chart
         </div>
         <div className="text-[10px] text-gray-600 italic py-4 text-center">No order book data</div>
@@ -71,22 +71,22 @@ export default function DepthChart({ orderbookData, currentPrice }) {
   const priceX = currentPrice ? ((currentPrice - minPrice) / priceRange) * W : 50
 
   return (
-    <div className="bg-bg-700  p-2.5">
+    <div className="bg-bg-700 p-2.5 border border-bg-600">
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
-        <BarChart3 size={12} className="text-accent-blue" />
+        <BarChart3 size={12} className="text-accent-yellow" />
         Depth Chart
       </div>
 
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[80px]" preserveAspectRatio="none">
         {/* Bid area */}
-        <path d={bidFill} fill="rgba(34, 197, 94, 0.15)" stroke="#22c55e" strokeWidth="0.5" />
+        <path d={bidFill} fill="rgba(14, 203, 129, 0.15)" stroke="#0ecb81" strokeWidth="0.5" />
         {/* Ask area */}
-        <path d={askFill} fill="rgba(239, 68, 68, 0.15)" stroke="#ef4444" strokeWidth="0.5" />
+        <path d={askFill} fill="rgba(246, 70, 93, 0.15)" stroke="#f6465d" strokeWidth="0.5" />
         {/* Current price line */}
         {currentPrice && (
           <line
             x1={priceX} y1="0" x2={priceX} y2={H}
-            stroke="#8b95a7" strokeWidth="0.3" strokeDasharray="1,1"
+            stroke="#f0b90b" strokeWidth="0.3" strokeDasharray="1,1"
           />
         )}
       </svg>

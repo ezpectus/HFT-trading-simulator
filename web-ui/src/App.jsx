@@ -35,6 +35,8 @@ const PerformanceDashboard = lazy(() => import('./components/PerformanceDashboar
 const BacktestRunner = lazy(() => import('./components/BacktestRunner'))
 const TradeHistory = lazy(() => import('./components/TradeHistory'))
 const BotStatus = lazy(() => import('./components/BotStatus'))
+const DepthChart = lazy(() => import('./components/DepthChart'))
+const CorrelationHeatmap = lazy(() => import('./components/CorrelationHeatmap'))
 const OnboardingTutorial = lazy(() => import('./components/OnboardingTutorial'))
 
 const TabButton = memo(function TabButton({ active, onClick, icon, children, testId }) {
@@ -473,6 +475,10 @@ export default function App() {
                     onClose={exchange.closePosition}
                     currentPrices={exchange.prices}
                   />
+                  <DepthChart
+                    orderbookData={exchange.orderbooks[`${selectedExchange}|${selectedSymbol}`]}
+                    currentPrice={currentPrice}
+                  />
                 </>
               )}
               {activeTab === 'bots' && (
@@ -494,12 +500,19 @@ export default function App() {
               )}
               {activeTab === 'arbitrage' && <ArbitragePanel arbitrage={exchange.arbitrage} />}
               {activeTab === 'prices' && (
-                <PriceComparison
-                  prices={exchange.prices}
-                  symbols={SYMBOLS}
-                  selectedSymbol={selectedSymbol}
-                  exchanges={EXCHANGES}
-                />
+                <>
+                  <PriceComparison
+                    prices={exchange.prices}
+                    symbols={SYMBOLS}
+                    selectedSymbol={selectedSymbol}
+                    exchanges={EXCHANGES}
+                  />
+                  <CorrelationHeatmap
+                    candles={exchange.candles}
+                    symbols={SYMBOLS}
+                    exchange={selectedExchange}
+                  />
+                </>
               )}
               {activeTab === 'fills' && <FillsPanel fills={exchange.fills} />}
               {activeTab === 'history' && <TradeHistory accounts={exchange.accounts} />}
