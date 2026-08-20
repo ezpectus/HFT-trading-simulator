@@ -126,31 +126,36 @@ class TradeLogger:
 
 
 def print_dashboard(tracker: PerformanceTracker, positions: list[dict], prices: dict) -> None:
-    """Print a summary dashboard to the terminal."""
-    print(f"\n{'=' * 60}")
-    print("  AI SIGNAL BOT — Performance Dashboard")
-    print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"{'=' * 60}\n")
+    """Log a summary dashboard."""
+    lines = [
+        "",
+        "=" * 60,
+        "  AI SIGNAL BOT — Performance Dashboard",
+        f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "=" * 60,
+        "",
+    ]
 
     # Performance stats
     stats = tracker.summary()
-    print(f"  Uptime:          {stats['uptime_seconds']:.0f}s")
-    print(f"  Signals:         {stats['signals_generated']} (validated: {stats['signals_validated']}, rejected: {stats['signals_rejected']})")
-    print(f"  Trades closed:   {stats['trades_closed']} (win rate: {stats['win_rate']}%)")
-    print(f"  Total PnL:       ${stats['total_pnl']:+.2f}")
-    print(f"  Total Fees:      ${stats['total_fees']:.2f}")
-    print(f"  Signals/hr:      {stats['signals_per_hour']}\n")
+    lines.append(f"  Uptime:          {stats['uptime_seconds']:.0f}s")
+    lines.append(f"  Signals:         {stats['signals_generated']} (validated: {stats['signals_validated']}, rejected: {stats['signals_rejected']})")
+    lines.append(f"  Trades closed:   {stats['trades_closed']} (win rate: {stats['win_rate']}%)")
+    lines.append(f"  Total PnL:       ${stats['total_pnl']:+.2f}")
+    lines.append(f"  Total Fees:      ${stats['total_fees']:.2f}")
+    lines.append(f"  Signals/hr:      {stats['signals_per_hour']}")
+    lines.append("")
 
     # Current prices
     if prices:
-        print("  Current Prices:")
+        lines.append("  Current Prices:")
         rows = [(symbol, f"${price:.2f}") for symbol, price in prices.items()]
-        print(tabulate(rows, headers=["Symbol", "Price"], tablefmt="  simple"))
-        print()
+        lines.append(tabulate(rows, headers=["Symbol", "Price"], tablefmt="  simple"))
+        lines.append("")
 
     # Open positions
     if positions:
-        print("  Open Positions:")
+        lines.append("  Open Positions:")
         rows = []
         for p in positions:
             rows.append([
@@ -160,8 +165,10 @@ def print_dashboard(tracker: PerformanceTracker, positions: list[dict], prices: 
                 f"${p.get('entry_price', 0):.2f}",
                 f"${p.get('unrealized_pnl', 0):+.2f}",
             ])
-        print(tabulate(rows, headers=["Symbol", "Side", "Qty", "Entry", "uPnL"], tablefmt="  simple"))
+        lines.append(tabulate(rows, headers=["Symbol", "Side", "Qty", "Entry", "uPnL"], tablefmt="  simple"))
     else:
-        print("  No open positions")
+        lines.append("  No open positions")
 
-    print(f"\n{'=' * 60}\n")
+    lines.append("")
+    lines.append("=" * 60)
+    logger.info("\n".join(lines))
