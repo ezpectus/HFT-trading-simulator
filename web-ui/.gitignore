@@ -4,6 +4,7 @@ dist
 coverage
 screenshots
 test-results
+playwright-report
 .netlify
 .env
 .env.local
