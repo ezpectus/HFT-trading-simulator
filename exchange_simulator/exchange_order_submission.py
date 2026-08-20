@@ -168,42 +168,57 @@ class OrderSubmissionMixin:
         Returns True if the order was handled as an advanced order.
         """
         if order_type == OrderType.STOP_LIMIT:
-            order.status = OrderStatus.PENDING
-            self._pending_stop_limits[order_id] = order
-            self._order_history.append(order)
-            self._audit_logger.log(
-                event_type=AuditEventType.ORDER_SUBMITTED,
-                exchange=self.exchange_id, symbol=symbol, order_id=order_id,
-                metadata={"order_type": order_type.value, "stop_price": stop_price,
-                          "limit_price": limit_price, "quantity": quantity},
-            )
+            self._register_stop_limit(order, order_id, symbol, quantity, stop_price, limit_price)
             return True
         elif order_type == OrderType.TRAILING_STOP:
-            order.status = OrderStatus.PENDING
-            mid_price = self.get_price(symbol)
-            order.highest_price = mid_price if order.side == Side.SELL else 0.0
-            order.lowest_price = mid_price if order.side == Side.BUY else 0.0
-            self._pending_trailing_stops[order_id] = order
-            self._order_history.append(order)
-            self._audit_logger.log(
-                event_type=AuditEventType.ORDER_SUBMITTED,
-                exchange=self.exchange_id, symbol=symbol, order_id=order_id,
-                metadata={"order_type": order_type.value, "trail_amount": trail_amount,
-                          "trail_percentage": trail_percentage, "quantity": quantity},
-            )
+            self._register_trailing_stop(order, order_id, symbol, quantity, trail_amount, trail_percentage)
             return True
         elif order_type == OrderType.ICEBERG:
-            order.status = OrderStatus.PENDING
-            self._pending_icebergs[order_id] = order
-            self._order_history.append(order)
-            self._audit_logger.log(
-                event_type=AuditEventType.ORDER_SUBMITTED,
-                exchange=self.exchange_id, symbol=symbol, order_id=order_id,
-                metadata={"order_type": order_type.value, "visible_quantity": iceberg_visible_qty,
-                          "total_quantity": quantity},
-            )
+            self._register_iceberg(order, order_id, symbol, quantity, iceberg_visible_qty)
             return True
         return False
+
+    def _register_stop_limit(self, order, order_id, symbol, quantity,
+                             stop_price, limit_price) -> None:
+        """Register a stop-limit order as pending."""
+        order.status = OrderStatus.PENDING
+        self._pending_stop_limits[order_id] = order
+        self._order_history.append(order)
+        self._audit_logger.log(
+            event_type=AuditEventType.ORDER_SUBMITTED,
+            exchange=self.exchange_id, symbol=symbol, order_id=order_id,
+            metadata={"order_type": OrderType.STOP_LIMIT.value, "stop_price": stop_price,
+                      "limit_price": limit_price, "quantity": quantity},
+        )
+
+    def _register_trailing_stop(self, order, order_id, symbol, quantity,
+                                trail_amount, trail_percentage) -> None:
+        """Register a trailing stop order as pending."""
+        order.status = OrderStatus.PENDING
+        mid_price = self.get_price(symbol)
+        order.highest_price = mid_price if order.side == Side.SELL else 0.0
+        order.lowest_price = mid_price if order.side == Side.BUY else 0.0
+        self._pending_trailing_stops[order_id] = order
+        self._order_history.append(order)
+        self._audit_logger.log(
+            event_type=AuditEventType.ORDER_SUBMITTED,
+            exchange=self.exchange_id, symbol=symbol, order_id=order_id,
+            metadata={"order_type": OrderType.TRAILING_STOP.value, "trail_amount": trail_amount,
+                      "trail_percentage": trail_percentage, "quantity": quantity},
+        )
+
+    def _register_iceberg(self, order, order_id, symbol, quantity,
+                          iceberg_visible_qty) -> None:
+        """Register an iceberg order as pending."""
+        order.status = OrderStatus.PENDING
+        self._pending_icebergs[order_id] = order
+        self._order_history.append(order)
+        self._audit_logger.log(
+            event_type=AuditEventType.ORDER_SUBMITTED,
+            exchange=self.exchange_id, symbol=symbol, order_id=order_id,
+            metadata={"order_type": OrderType.ICEBERG.value, "visible_quantity": iceberg_visible_qty,
+                      "total_quantity": quantity},
+        )
 
     def _try_limit_order_pending(self, order, order_type, side, price,
                                  fill_price, order_id, symbol, quantity) -> bool:
