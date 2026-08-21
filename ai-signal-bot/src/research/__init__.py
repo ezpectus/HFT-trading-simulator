@@ -13,6 +13,15 @@ from src.research.almgren_chriss import (
     efficient_frontier,
     estimate_volatility,
 )
+from src.research.banach import (
+    BanachResult,
+    banach_analysis,
+    banach_signal,
+    best_response,
+    compute_returns as banach_compute_returns,
+    contraction_constant,
+    fixed_point_iteration,
+)
 from src.research.burgers import (
     BurgersResult,
     burgers_analysis,
@@ -275,4 +284,6 @@ __all__ = [
     "LaxResult", "lax_analysis", "lax_signal", "solve_variational", "lax_compute_returns",
     "RieszResult", "riesz_analysis", "riesz_representer", "riesz_signal",
     "riesz_compute_returns",
+    "BanachResult", "banach_analysis", "banach_signal", "best_response",
+    "contraction_constant", "fixed_point_iteration", "banach_compute_returns",
 ]

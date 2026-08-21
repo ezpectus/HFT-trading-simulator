@@ -813,6 +813,22 @@ L(f) = <f, u> vs actual correlation; signed weights (momentum/reversal).
 Signal: RIESZ_LONG (L(f) > 0.002), RIESZ_SHORT (< -0.002), NEUTRAL.
 - **Source:** `ai-signal-bot/src/research/riesz.py` (Sprint 102, ported from UI-only RieszRepresentation.jsx)
 
+### Banach Fixed-Point — Trading logic
+Contraction mapping equilibrium (Nash via best-response iteration).
+```
+Banach: T contraction with q < 1 → unique fixed point x* = T(x*)
+Convergence: ||x_n - x*|| ≤ q^n/(1-q)·||x_1 - x_0||
+2-player game (momentum vs mean-reversion):
+  T1(y) = (a1 - c1·y)/(2·b1),  T2(x) = (a2 - c2·x)/(2·b2)
+  q = sqrt(|c1·c2|/(4·b1·b2))  (spectral radius of Jacobian)
+```
+Game parameters from returns (a1 = ±0.02 by drift sign, a2 = -mean·0.5,
+b = 0.05, coupling c); fixed-point iteration with error tracking;
+analytical Nash equilibrium (determinant formula); convergence rate;
+log-error decay. Signal: EQUILIBRIUM_FOUND (q < 1, converged),
+CONVERGING_SLOW (q < 1, not converged), DIVERGING (q ≥ 1).
+- **Source:** `ai-signal-bot/src/research/banach.py` (Sprint 103, ported from UI-only BanachFixedPoint.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

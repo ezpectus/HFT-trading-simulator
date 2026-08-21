@@ -188,6 +188,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 103: Banach Fixed-Point Port
+
+### Added — Banach Fixed-Point (Sprint 103)
+- Created `ai-signal-bot/src/research/banach.py` — contraction mapping equilibrium ported from UI-only `BanachFixedPoint.jsx` into trading logic
+- 2-player game (momentum vs mean-reversion): best responses T1(y) = (a1-c1·y)/(2·b1), T2(x) = (a2-c2·x)/(2·b2)
+- Contraction constant q = sqrt(|c1·c2|/(4·b1·b2)) (spectral radius of Jacobian)
+- Fixed-point iteration with error tracking (break at 1e-8); analytical Nash equilibrium via determinant formula
+- Game parameters from returns (a1 = ±0.02 by drift sign, a2 = -mean·0.5, coupling c)
+- Convergence rate, log-error decay curve
+- Signal: EQUILIBRIUM_FOUND (q < 1, converged) / CONVERGING_SLOW (q < 1) / DIVERGING (q ≥ 1)
+- 39 new tests in `tests/test_banach.py` (best response, contraction constant, Nash convergence, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

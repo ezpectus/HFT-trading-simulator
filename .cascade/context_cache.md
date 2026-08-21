@@ -73,16 +73,17 @@
 - ✅ Sobolev Regularization (Sprint 100, расширенная таблица)
 - ✅ Lax-Milgram (Sprint 101, расширенная таблица)
 - ✅ Riesz Representation (Sprint 102, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 49 моделей**
+- ✅ Banach Fixed-Point (Sprint 103, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 50 моделей**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Banach Fixed-Point
-**UI файл:** web-ui/src/components/BanachFixedPoint.jsx
-**Python файл:** ai-signal-bot/src/research/banach.py
-**Паттерны:** riesz.py (Sprint 102), lax_milgram.py (Sprint 101)
-**Спринт:** 103
+**Модель:** Hahn Decomposition
+**UI файл:** web-ui/src/components/HahnDecomposition.jsx
+**Python файл:** ai-signal-bot/src/research/hahn.py
+**Паттерны:** banach.py (Sprint 103), riesz.py (Sprint 102)
+**Спринт:** 104
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 102:** Ported Riesz Representation from UI to trading logic (research/riesz.py). Gram matrix representer, feature importance, 34 new tests. 49 моделей всего.
+**Sprint 103:** Ported Banach Fixed-Point from UI to trading logic (research/banach.py). Contraction mapping, Nash equilibrium, 39 new tests. 50 моделей всего.
