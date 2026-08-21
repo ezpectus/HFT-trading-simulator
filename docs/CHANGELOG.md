@@ -203,6 +203,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 104: Hahn Decomposition Port
+
+### Added — Hahn Decomposition (Sprint 104)
+- Created `ai-signal-bot/src/research/hahn.py` — signed measure splitting ported from UI-only `HahnDecomposition.jsx` into trading logic
+- Return histogram bins with signed measure μ(bin) = mid·freq; Hahn sets P (signal) / N (noise) by threshold
+- Jordan decomposition: μ+ = Σ positive measures, μ- = |Σ negative|, total variation |μ| = μ+ + μ-
+- SNR = μ+/μ-; cumulative signed measure; rolling decomposition (window 30, step 7) with μ+, μ-, TV, SNR, bias
+- Signal: STRONG_SIGNAL_LONG (SNR > 2, bias > 0) / STRONG_SIGNAL_SHORT (SNR > 2, bias < 0) / WEAK_SIGNAL (SNR > 1.2) / BALANCED
+- 47 new tests in `tests/test_hahn.py` (Jordan decomposition, SNR, rolling windows, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

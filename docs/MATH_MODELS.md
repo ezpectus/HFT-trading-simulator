@@ -829,6 +829,22 @@ log-error decay. Signal: EQUILIBRIUM_FOUND (q < 1, converged),
 CONVERGING_SLOW (q < 1, not converged), DIVERGING (q ≥ 1).
 - **Source:** `ai-signal-bot/src/research/banach.py` (Sprint 103, ported from UI-only BanachFixedPoint.jsx)
 
+### Hahn Decomposition — Trading logic
+Signed measure splitting for signal/noise separation.
+```
+Hahn: X = P ∪ N, P ∩ N = ∅, μ(P) ≥ 0, μ(N) ≤ 0
+Jordan: μ = μ+ - μ-,  |μ| = μ+ + μ- (total variation)
+Signed measure: μ(bin) = E[return·1_{bin}] = mid·freq
+SNR = μ+/μ- (signal-to-noise ratio)
+```
+Return histogram bins colored by sign of μ(bin) (P = signal/long,
+N = noise/avoid); Jordan decomposition (μ+, μ-, |μ|); cumulative
+signed measure; rolling decomposition (window 30, step 7) with
+μ+, μ-, total variation, SNR, bias. Signal: STRONG_SIGNAL_LONG
+(SNR > 2, bias > 0), STRONG_SIGNAL_SHORT (SNR > 2, bias < 0),
+WEAK_SIGNAL (SNR > 1.2), BALANCED.
+- **Source:** `ai-signal-bot/src/research/hahn.py` (Sprint 104, ported from UI-only HahnDecomposition.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

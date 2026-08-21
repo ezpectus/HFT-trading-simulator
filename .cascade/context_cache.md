@@ -74,16 +74,17 @@
 - ✅ Lax-Milgram (Sprint 101, расширенная таблица)
 - ✅ Riesz Representation (Sprint 102, расширенная таблица)
 - ✅ Banach Fixed-Point (Sprint 103, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 50 моделей**
+- ✅ Hahn Decomposition (Sprint 104, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 51 модель**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Hahn Decomposition
-**UI файл:** web-ui/src/components/HahnDecomposition.jsx
-**Python файл:** ai-signal-bot/src/research/hahn.py
-**Паттерны:** banach.py (Sprint 103), riesz.py (Sprint 102)
-**Спринт:** 104
+**Модель:** Cameron-Martin
+**UI файл:** web-ui/src/components/CameronMartinFormula.jsx
+**Python файл:** ai-signal-bot/src/research/cameron_martin.py
+**Паттерны:** hahn.py (Sprint 104), girsanov.py (Sprint 88)
+**Спринт:** 105
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 103:** Ported Banach Fixed-Point from UI to trading logic (research/banach.py). Contraction mapping, Nash equilibrium, 39 new tests. 50 моделей всего.
+**Sprint 104:** Ported Hahn Decomposition from UI to trading logic (research/hahn.py). Jordan decomposition, SNR, 47 new tests. 51 модель всего.

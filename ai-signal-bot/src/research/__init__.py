@@ -74,6 +74,14 @@ from src.research.girsanov import (
     girsanov_analysis,
     girsanov_signal,
 )
+from src.research.hahn import (
+    HahnResult,
+    compute_returns as hahn_compute_returns,
+    hahn_analysis,
+    hahn_decomposition,
+    hahn_signal,
+    rolling_decomposition,
+)
 from src.research.info_bottleneck import (
     IbResult,
     compute_returns as ib_compute_returns,
@@ -286,4 +294,6 @@ __all__ = [
     "riesz_compute_returns",
     "BanachResult", "banach_analysis", "banach_signal", "best_response",
     "contraction_constant", "fixed_point_iteration", "banach_compute_returns",
+    "HahnResult", "hahn_analysis", "hahn_decomposition", "hahn_signal",
+    "rolling_decomposition", "hahn_compute_returns",
 ]

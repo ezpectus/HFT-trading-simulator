@@ -15,8 +15,8 @@
 Всего моделей:         ██████████████████████ 27/27 (100%) ✅ (+ расширенные модели)
 ```
 
-**Следующая модель:** Hahn Decomposition → `src/research/hahn.py`
-**Последний спринт:** 103 (Banach Fixed-Point)
+**Следующая модель:** Cameron-Martin → `src/research/cameron_martin.py`
+**Последний спринт:** 104 (Hahn Decomposition)
 
 ---
 
@@ -109,7 +109,7 @@
 | ~~Lax-Milgram~~ | `LaxMilgram.jsx` | `src/research/lax_milgram.py` | ✅ DONE (Sprint 101) |
 | ~~Riesz Representation~~ | `RieszRepresentation.jsx` | `src/research/riesz.py` | ✅ DONE (Sprint 102) |
 | ~~Banach Fixed-Point~~ | `BanachFixedPoint.jsx` | `src/research/banach.py` | ✅ DONE (Sprint 103) |
-| Hahn Decomposition | `HahnDecomposition.jsx` | `src/research/hahn.py` | 1 неделя |
+| ~~Hahn Decomposition~~ | `HahnDecomposition.jsx` | `src/research/hahn.py` | ✅ DONE (Sprint 104) |
 | Cameron-Martin | `CameronMartinFormula.jsx` | `src/research/cameron_martin.py` | 1 неделя |
 | Radon-Nikodym | `RadonNikodymDerivative.jsx` | `src/research/radon_nikodym.py` | 1 неделя |
 | Prokhorov Metric | `ProkhorovMetric.jsx` | `src/research/prokhorov.py` | 1 неделя |
