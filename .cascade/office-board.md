@@ -82,6 +82,63 @@
 
 ---
 
+## P4 — DOCUMENTATION FIXES (identified during docs review)
+
+### [09] VP Eng → [02] Tech Writer
+**Task:** Translate remaining Russian files in docs/theory/
+**Details:**
+  - 6 files still in Russian:
+    - ai_slop_lessons_ru.md (132KB)
+    - hft_architecture_ru.md (138KB)
+    - module_guide_ru.md (162KB)
+    - project_architecture_ru.md (141KB)
+    - quant_models_ru.md (160KB)
+    - useful_info_ru.md (128KB)
+  - English versions already exist (_en.md counterparts)
+  - Option A: Translate _ru.md files to English
+  - Option B: Delete _ru.md files if _en.md versions are authoritative
+  - Recommended: Option B (avoid duplicate maintenance)
+**Status:** TODO
+
+### [10] VP Eng → [02] Tech Writer
+**Task:** Create missing docs/PERFORMANCE.md
+**Details:**
+  - DEVELOPMENT_GUIDE.md references ../PERFORMANCE.md in See Also section
+  - File does not exist — broken link
+  - Create performance documentation covering:
+    - Python signal bot latency (~50ms target)
+    - C++ HFT engine latency (~15us target)
+    - Web UI render performance (204 lazy-loaded panels)
+    - SHM IPC latency (~10-50us)
+    - WebSocket latency (~1-5ms)
+    - Benchmark methodology and results
+  - Or remove the broken link from DEVELOPMENT_GUIDE.md
+**Status:** TODO
+
+### [11] VP Eng → [02] Tech Writer
+**Task:** Update WEB_UI.md test count — outdated
+**Details:**
+  - WEB_UI.md says "9 files, 60+ tests" (line 376)
+  - Actual: 40 unit test files + 4 E2E spec files = 44 total
+  - Table only lists 9 test files — missing 31 unit test files
+  - Update table to include all 40 unit test files
+  - Reconcile with TESTING.md which correctly says 44 files
+**File:** docs/WEB_UI.md
+**Status:** TODO
+
+### [12] VP Eng → ALL
+**Task:** Code-documentation consistency audit
+**Details:**
+  - Verify all file paths referenced in docs/ actually exist
+  - Verify config parameter names in docs match actual YAML files
+  - Verify function signatures in docs match actual source code
+  - Verify test file counts in TESTING.md match actual test files
+  - Check all cross-reference links between doc files are valid
+  - Run as automated script if possible (grep + file existence check)
+**Status:** TODO
+
+---
+
 ## P5 — FUTURE ENHANCEMENTS
 
 ### [08] CTO → ALL
