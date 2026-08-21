@@ -1,9 +1,35 @@
 # Tests for Monitoring Metrics
 # Tests Prometheus metrics endpoints, metric values, and metric types
 
+import importlib.util
+from pathlib import Path
+
 import pytest
 from prometheus_client import REGISTRY
 import time
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def _load_module(name: str, filepath: Path):
+    spec = importlib.util.spec_from_file_location(name, filepath)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_EXCHANGE_METRICS_FILE = PROJECT_ROOT / "exchange_simulator" / "metrics.py"
+_AI_SIGNAL_BOT_METRICS_FILE = PROJECT_ROOT / "ai-signal-bot" / "metrics.py"
+
+
+def _get_exchange_metrics_cls():
+    mod = _load_module("_exch_metrics", _EXCHANGE_METRICS_FILE)
+    return mod.ExchangeSimulatorMetrics
+
+
+def _get_ai_signal_bot_metrics_cls():
+    mod = _load_module("_aibot_metrics", _AI_SIGNAL_BOT_METRICS_FILE)
+    return mod.AISignalBotMetrics
 
 
 class TestExchangeSimulatorMetrics:
@@ -11,7 +37,7 @@ class TestExchangeSimulatorMetrics:
     
     def test_metrics_initialization(self):
         """Test metrics collector initialization."""
-        from exchange_simulator.metrics import ExchangeSimulatorMetrics
+        ExchangeSimulatorMetrics = _get_exchange_metrics_cls()
         
         metrics = ExchangeSimulatorMetrics(metrics_port=8000)
         
@@ -22,7 +48,7 @@ class TestExchangeSimulatorMetrics:
     
     def test_record_order(self):
         """Test order recording."""
-        from exchange_simulator.metrics import ExchangeSimulatorMetrics
+        ExchangeSimulatorMetrics = _get_exchange_metrics_cls()
         
         metrics = ExchangeSimulatorMetrics()
         
@@ -33,7 +59,7 @@ class TestExchangeSimulatorMetrics:
     
     def test_record_fill(self):
         """Test fill recording."""
-        from exchange_simulator.metrics import ExchangeSimulatorMetrics
+        ExchangeSimulatorMetrics = _get_exchange_metrics_cls()
         
         metrics = ExchangeSimulatorMetrics()
         
@@ -43,7 +69,7 @@ class TestExchangeSimulatorMetrics:
     
     def test_record_error(self):
         """Test error recording."""
-        from exchange_simulator.metrics import ExchangeSimulatorMetrics
+        ExchangeSimulatorMetrics = _get_exchange_metrics_cls()
         
         metrics = ExchangeSimulatorMetrics()
         
@@ -53,7 +79,7 @@ class TestExchangeSimulatorMetrics:
     
     def test_record_price_update(self):
         """Test price update recording."""
-        from exchange_simulator.metrics import ExchangeSimulatorMetrics
+        ExchangeSimulatorMetrics = _get_exchange_metrics_cls()
         
         metrics = ExchangeSimulatorMetrics()
         
@@ -63,7 +89,7 @@ class TestExchangeSimulatorMetrics:
     
     def test_update_system_metrics(self):
         """Test system metrics update."""
-        from exchange_simulator.metrics import ExchangeSimulatorMetrics
+        ExchangeSimulatorMetrics = _get_exchange_metrics_cls()
         
         metrics = ExchangeSimulatorMetrics()
         
@@ -75,7 +101,7 @@ class TestExchangeSimulatorMetrics:
     
     def test_update_order_rate(self):
         """Test order rate update."""
-        from exchange_simulator.metrics import ExchangeSimulatorMetrics
+        ExchangeSimulatorMetrics = _get_exchange_metrics_cls()
         
         metrics = ExchangeSimulatorMetrics()
         
@@ -89,7 +115,7 @@ class TestAISignalBotMetrics:
     
     def test_metrics_initialization(self):
         """Test metrics collector initialization."""
-        from ai_signal_bot.metrics import AISignalBotMetrics
+        AISignalBotMetrics = _get_ai_signal_bot_metrics_cls()
         
         metrics = AISignalBotMetrics(metrics_port=8001)
         
@@ -100,7 +126,7 @@ class TestAISignalBotMetrics:
     
     def test_record_signal(self):
         """Test signal recording."""
-        from ai_signal_bot.metrics import AISignalBotMetrics
+        AISignalBotMetrics = _get_ai_signal_bot_metrics_cls()
         
         metrics = AISignalBotMetrics()
         
@@ -110,7 +136,7 @@ class TestAISignalBotMetrics:
     
     def test_record_trade(self):
         """Test trade recording."""
-        from ai_signal_bot.metrics import AISignalBotMetrics
+        AISignalBotMetrics = _get_ai_signal_bot_metrics_cls()
         
         metrics = AISignalBotMetrics()
         
@@ -120,7 +146,7 @@ class TestAISignalBotMetrics:
     
     def test_update_pnl(self):
         """Test PnL update."""
-        from ai_signal_bot.metrics import AISignalBotMetrics
+        AISignalBotMetrics = _get_ai_signal_bot_metrics_cls()
         
         metrics = AISignalBotMetrics()
         
@@ -131,7 +157,7 @@ class TestAISignalBotMetrics:
     
     def test_update_performance_metrics(self):
         """Test performance metrics update."""
-        from ai_signal_bot.metrics import AISignalBotMetrics
+        AISignalBotMetrics = _get_ai_signal_bot_metrics_cls()
         
         metrics = AISignalBotMetrics()
         
@@ -143,7 +169,7 @@ class TestAISignalBotMetrics:
     
     def test_update_portfolio_metrics(self):
         """Test portfolio metrics update."""
-        from ai_signal_bot.metrics import AISignalBotMetrics
+        AISignalBotMetrics = _get_ai_signal_bot_metrics_cls()
         
         metrics = AISignalBotMetrics()
         
@@ -158,7 +184,7 @@ class TestMetricsEndpoint:
     
     def test_metrics_endpoint_content(self):
         """Test that metrics endpoint returns valid Prometheus format."""
-        from exchange_simulator.metrics import ExchangeSimulatorMetrics
+        ExchangeSimulatorMetrics = _get_exchange_metrics_cls()
         
         metrics = ExchangeSimulatorMetrics()
         metrics.record_order('BTC/USDT', 'BUY', 'FILLED', 0.01)

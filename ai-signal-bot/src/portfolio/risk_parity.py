@@ -110,17 +110,26 @@ class RiskParityOptimizer:
         weight_bounds: tuple[float, float],
         max_iterations: int, tolerance: float,
     ) -> np.ndarray:
-        """Run iterative risk parity optimization."""
+        """Run iterative risk parity optimization using risk contribution ratios."""
         n_assets = cov_matrix.shape[0]
+        target_rc = np.ones(n_assets) / n_assets
+
         for _ in range(max_iterations):
-            marginal_risk = self.calculate_marginal_risk(weights, cov_matrix)
-            safe_mr = np.where(np.abs(marginal_risk) < 1e-12, 1e-12, marginal_risk)
-            new_weights = weights / safe_mr
+            portfolio_variance = np.dot(weights.T, np.dot(cov_matrix, weights))
+            portfolio_volatility = np.sqrt(max(portfolio_variance, 1e-20))
+            marginal_risk = np.dot(cov_matrix, weights) / portfolio_volatility
+            risk_contributions = weights * marginal_risk
+            total_rc = np.sum(risk_contributions)
+            current_rc_pct = risk_contributions / total_rc if total_rc > 0 else np.ones(n_assets) / n_assets
+
+            safe_rc = np.where(np.abs(current_rc_pct) < 1e-12, 1e-12, current_rc_pct)
+            new_weights = weights * (target_rc / safe_rc)
             weight_sum = np.sum(new_weights)
             new_weights = new_weights / weight_sum if weight_sum > 0 else np.ones(n_assets) / n_assets
             new_weights = np.clip(new_weights, weight_bounds[0], weight_bounds[1])
             clip_sum = np.sum(new_weights)
             new_weights = new_weights / clip_sum if clip_sum > 0 else np.ones(n_assets) / n_assets
+            new_weights = 0.5 * weights + 0.5 * new_weights
             if np.linalg.norm(new_weights - weights) < tolerance:
                 break
             weights = new_weights

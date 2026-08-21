@@ -2,6 +2,7 @@
 import os
 import tempfile
 import time
+from contextlib import closing
 
 import pytest
 
@@ -46,14 +47,14 @@ class TestInit:
         assert os.path.exists(db.path)
 
     def test_tables_exist(self, db):
-        with db._conn() as conn:
+        with closing(db._conn()) as conn:
             tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
         assert "signals" in tables
         assert "trades" in tables
         assert "equity_curve" in tables
 
     def test_indexes_exist(self, db):
-        with db._conn() as conn:
+        with closing(db._conn()) as conn:
             indexes = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall()}
         assert "idx_signals_symbol" in indexes
         assert "idx_trades_symbol" in indexes
@@ -120,7 +121,7 @@ class TestCloseTrade:
 class TestSaveEquity:
     def test_save_equity(self, db):
         db.save_equity(balance=100000.0, equity=100500.0, open_positions=2)
-        with db._conn() as conn:
+        with closing(db._conn()) as conn:
             row = conn.execute("SELECT * FROM equity_curve ORDER BY id DESC LIMIT 1").fetchone()
         assert row["balance"] == 100000.0
         assert row["equity"] == 100500.0
