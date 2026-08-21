@@ -174,6 +174,13 @@ from src.research.renormalization import (
     scaling_exponent,
     volatility_at_scale,
 )
+from src.research.riesz import (
+    RieszResult,
+    compute_returns as riesz_compute_returns,
+    riesz_analysis,
+    riesz_representer,
+    riesz_signal,
+)
 from src.research.rmt import (
     RMTResult,
     clean_correlation,
@@ -266,4 +273,6 @@ __all__ = [
     "SobolevResult", "sobolev_analysis", "sobolev_regression", "sobolev_signal",
     "matern_kernel", "sobolev_compute_returns",
     "LaxResult", "lax_analysis", "lax_signal", "solve_variational", "lax_compute_returns",
+    "RieszResult", "riesz_analysis", "riesz_representer", "riesz_signal",
+    "riesz_compute_returns",
 ]

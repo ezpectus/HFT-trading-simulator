@@ -174,6 +174,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 102: Riesz Representation Port
+
+### Added — Riesz Representation (Sprint 102)
+- Created `ai-signal-bot/src/research/riesz.py` — linear functional representation ported from UI-only `RieszRepresentation.jsx` into trading logic
+- Features = lagged returns (nFeatures lags), target = next return; Gram matrix K = XᵀX/N, cross-covariance L = Xᵀy/N
+- Riesz representer u = (K + λI)⁻¹L via Gaussian elimination with partial pivoting
+- Feature importance |u_i| normalized; Riesz norm ||u|| (||L|| = ||u|| equality); L(f) = <f,u> vs actual correlation
+- Signed weights (u_i > 0 momentum, < 0 reversal); dominant lag detection
+- Signal: RIESZ_LONG (L(f) > 0.002) / RIESZ_SHORT (< -0.002) / NEUTRAL
+- 34 new tests in `tests/test_riesz.py` (representer solve, shrinkage, correlation, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

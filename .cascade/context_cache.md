@@ -72,16 +72,17 @@
 - ✅ Burgers Equation (Sprint 99, расширенная таблица)
 - ✅ Sobolev Regularization (Sprint 100, расширенная таблица)
 - ✅ Lax-Milgram (Sprint 101, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 48 моделей**
+- ✅ Riesz Representation (Sprint 102, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 49 моделей**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Riesz Representation
-**UI файл:** web-ui/src/components/RieszRepresentation.jsx
-**Python файл:** ai-signal-bot/src/research/riesz.py
-**Паттерны:** lax_milgram.py (Sprint 101), sobolev.py (Sprint 100)
-**Спринт:** 102
+**Модель:** Banach Fixed-Point
+**UI файл:** web-ui/src/components/BanachFixedPoint.jsx
+**Python файл:** ai-signal-bot/src/research/banach.py
+**Паттерны:** riesz.py (Sprint 102), lax_milgram.py (Sprint 101)
+**Спринт:** 103
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 101:** Ported Lax-Milgram from UI to trading logic (research/lax_milgram.py). FEM variational solver, coercivity/boundedness, 40 new tests. 48 моделей всего.
+**Sprint 102:** Ported Riesz Representation from UI to trading logic (research/riesz.py). Gram matrix representer, feature importance, 34 new tests. 49 моделей всего.

@@ -798,6 +798,21 @@ Signal: VARIATIONAL_LONG (u(x_current) > 0.01), VARIATIONAL_SHORT
 (< -0.01), NEUTRAL. Note: forcing uses |r| so u stays positive (UI quirk).
 - **Source:** `ai-signal-bot/src/research/lax_milgram.py` (Sprint 101, ported from UI-only LaxMilgram.jsx)
 
+### Riesz Representation — Trading logic
+Linear functionals as inner products for optimal signal extraction.
+```
+Riesz (Hilbert): L(f) = <f, u> for unique u in H, ||L|| = ||u||
+Riesz (Lp): L(f) = ∫ f·g dx, 1/p + 1/q = 1
+Riesz-Markov: L(f) = ∫ f dμ for unique measure μ
+Representer: u = (K + λI)^{-1}·L,  K = XᵀX/N, L = Xᵀy/N
+```
+Features = lagged returns (nFeatures lags), target = next return;
+Gram matrix + cross-covariance; Gaussian elimination with partial
+pivoting; feature importance |u_i| normalized; Riesz norm ||u||;
+L(f) = <f, u> vs actual correlation; signed weights (momentum/reversal).
+Signal: RIESZ_LONG (L(f) > 0.002), RIESZ_SHORT (< -0.002), NEUTRAL.
+- **Source:** `ai-signal-bot/src/research/riesz.py` (Sprint 102, ported from UI-only RieszRepresentation.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic
