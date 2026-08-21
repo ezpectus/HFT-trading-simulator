@@ -867,4 +867,44 @@ If CUDA/ONNX support is needed in the future, it must be implemented from scratc
 
 ---
 
+## 🔴 SLOP FIXES — исправление модулей с AI slop
+
+> Основано на PROJECT_MEGA_ANALYSIS.txt (21 августа 2026)
+> Приоритет: ВЫСОКИЙ — после завершения портирования моделей
+
+### SLOP-1: lstm_model.py — переписать или удалить
+- **Проблема:** Класс `LSTMModel` — это линейная регрессия `np.dot(X, W) + b`
+- **Хардкод:** `train()` возвращает `{'loss': 0.1, 'val_loss': 0.12}`
+- **Решение:** Переписать на PyTorch LSTM (input/forget/output gates, cell state, recurrence) ИЛИ удалить и использовать `rl_trader.py` как референс качества
+- **Тесты:** Реальные метрики обучения, не хардкод
+
+### SLOP-2: transformer_model.py — переписать или удалить
+- **Проблема:** Single-head attention (не multi-head), positional encoding не используется, обучается только последний слой
+- **Хардкод:** `train()` возвращает `{'loss': 0.15, 'accuracy': 0.65}`
+- **Решение:** Переписать на PyTorch TransformerEncoder с настоящим multi-head attention ИЛИ удалить
+
+### SLOP-3: rl_agent.py — удалить
+- **Проблема:** `DQNAgent` и `PPOAgent` — линейные модели `np.dot(state, weights)`, нет нейросетей
+- **Решение:** Удалить файл. Использовать `rl_trader.py` (настоящий PPO на PyTorch с ActorCritic, GAE, clip objective)
+- **Импорты:** Обновить все импорты `rl_agent` → `rl_trader`
+
+### SLOP-4: dpdk_transport.py — удалить или переименовать
+- **Проблема:** `_DPDK_AVAILABLE = False` (хардкод), обычный socket внутри
+- **Решение:** Удалить ИЛИ переименовать в `raw_socket_transport.py` и убрать упоминания DPDK
+
+### SLOP-5: fpga_orderbook.vhd — удалить или пометить TODO
+- **Проблема:** "10+ GHz" (физически невозможно), for loop shift = 255 clock cycles, нет тестбенча
+- **Решение:** Удалить ИЛИ добавить в начало: `-- TODO: ACADEMIC SKETCH — not synthesizable as-is`
+
+### SLOP-6: hft-executor (Rust) — дописать WebSocket send
+- **Проблема:** Ордера не отправляются (только JSON в лог), WebSocket не подключается
+- **Решение:** Implement `tokio-tungstenite` WebSocket connect + send. Заменить `crossbeam_channel::unbounded()` на bounded (lock-free SPSC)
+- **Тест:** Проверить что `fills_received > 0` после отправки
+
+### SLOP-7: README — убрать маркетинговый язык
+- **Проблема:** 15 бейджей, предложение на 40 слов, "impress with numbers" стиль
+- **Решение:** Оставить 5-6 ключевых бейджей. Разбить описание на bullet list. Убрать "Dead Code: removed", "Panels: 204" бейджи
+
+---
+
 **Конец документа**

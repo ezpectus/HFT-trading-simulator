@@ -12,6 +12,8 @@
 - **Багов P0-P1:** 0 (JS тесты не запускаются в IDE — нет npm)
 - **9-Day Plan:** ✅ ЗАВЕРШЁН (Sprint 1-59)
 - **Главный драйвер:** docs/future_development.md
+- **AI SLOP:** 5 модулей (lstm, transformer, rl_agent, dpdk, fpga) + 1 частичный (rust executor)
+- **Оценка проекта:** 7/10 (75% реально, 25% slop) — см. PROJECT_MEGA_ANALYSIS.txt
 
 ## ПРОГРЕСС ПО future_development.md
 
@@ -85,6 +87,16 @@
 **Python файл:** ai-signal-bot/src/research/radon_nikodym.py
 **Паттерны:** cameron_martin.py (Sprint 105), girsanov.py (Sprint 88)
 **Спринт:** 106
+
+## SLOP FIXES (после завершения портирования моделей)
+
+1. 🔴 `lstm_model.py` — переписать на PyTorch или удалить (сейчас линейная регрессия)
+2. 🔴 `transformer_model.py` — переписать на PyTorch или удалить (сейчас linear layer)
+3. 🔴 `rl_agent.py` — удалить, использовать `rl_trader.py` (настоящий PPO)
+4. 🟠 `dpdk_transport.py` — удалить или переименовать в raw_socket_transport
+5. 🟠 `fpga_orderbook.vhd` — удалить или пометить TODO
+6. 🟡 `hft-executor/src/lib.rs` — дописать WebSocket send через tokio-tungstenite
+7. 🟡 README — убрать лишние бейджи, упростить маркетинговый язык
 
 ## ПОСЛЕДНИЙ СПРИНТ
 

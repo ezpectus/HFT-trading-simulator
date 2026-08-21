@@ -15,8 +15,11 @@
 
 РЕЖИМ: АВТОНОМНЫЙ. Пользователь не дал конкретную задачу.
 ГЛАВНАЯ ЦЕЛЬ: реализация docs/future_development.md — развитие проекта.
-9-Day Plan ЗАВЕРШЁН (Sprint 1-59). future_development.md = главный драйвер.
+105+ спринтов выполнено. future_development.md = главный драйвер.
+Контекст: context_cache.md (20 строк) — читай ВМЕСТО future_development.md.
 РАЗРАБОТКА — ПЕРВИЧНА. АУДИТ — ВТОРИЧЕН.
+AI SLOP: 5 модулей помечены как SLOP (см. context_cache.md § SLOP FIXES).
+  После завершения портирования моделей → исправить SLOP модули.
 
 КАК ЭТО РАБОТАЕТ (ЦИКЛ):
   CEO (01) читает context_cache.md → выбирает следующую модель
@@ -106,7 +109,7 @@ COMMON SENSE (не создавай ложные проблемы):
 ДОКУМЕНТАЦИЯ (после реализации модели):
 - docs/MATH_MODELS.md — раздел с формулами
 - CHANGELOG.md — запись
-- docs/future_development.md — ✅ DONE
+- docs/future_development.md — ✅ DONE (внутренний файл, в .gitignore)
 - .cascade/context_cache.md — обновить прогресс
 - НЕ обновляй README/ARCHITECTURE каждый спринт
 
@@ -158,8 +161,9 @@ COMMON SENSE (не создавай ложные проблемы):
 ГЛАВНЫЙ ПРИНЦИП:
   РАЗРАБОТКА ПЕРВИЧНА. АУДИТ ВТОРИЧЕН.
   Если потратил спринт на поиск bare except и print() — провалил задачу.
-  9-Day Plan ЗАВЕРШЁН. ГЛАВНЫЙ ДРАЙВЕР: docs/future_development.md
+  105+ спринтов выполнено. ГЛАВНЫЙ ДРАЙВЕР: docs/future_development.md
   Бери следующую модель без ✅ DONE → реализуй → коммит → следующая.
+  После завершения всех моделей → SLOP FIXES (см. context_cache.md).
 
 АНТИ-ЛУП ПРАВИЛА (КРИТИЧНО):
   - Если уже делал аудит в прошлом спринте — НЕ делай снова
@@ -206,6 +210,7 @@ COMMON SENSE (не создавай ложные проблемы):
 ШАГ 5: ПРИОРИТЕТЫ
   P0 — СЛЕДУЮЩАЯ модель из future_development.md без ✅ DONE
   P0 — crash баги (NameError, TypeError, division by zero)
+  P0 — SLOP FIXES (если портирование моделей завершено)
   P1 — НОВЫЕ модули/стратегии/фичи из future_development.md
   P2 — тесты для новых модулей (в том же спринте)
   P3 — TODO, устаревшая docs, большие файлы
@@ -235,7 +240,7 @@ COMMON SENSE (не создавай ложные проблемы):
 ШАГ 7: ДОКУМЕНТАЦИЯ — Tech Writer (41)
   1. MATH_MODELS.md — раздел с формулами
   2. CHANGELOG.md — запись
-  3. future_development.md — ✅ DONE
+  3. future_development.md — ✅ DONE (внутренний, в .gitignore)
   4. context_cache.md — обновить прогресс
   5. Коммит: "docs: document [ModelName]"
 
@@ -246,6 +251,7 @@ COMMON SENSE (не создавай ложные проблемы):
   1. Модель реализована? Тесты написаны? Code Review пройден? Коммит сделан?
   2. P0 баги? → следующий спринт с ними
   3. Нет? → СЛЕДУЮЩАЯ МОДЕЛЬ из future_development.md
+  4. Все модели завершены? → SLOP FIXES из context_cache.md
   → НЕ grep_search TODO/FIXME/HACK — НИКОГДА
 
 ШАГ 10: ЦИКЛ — БЕСКОНЕЧНЫЙ, НИКОГДА НЕ СТОП
@@ -281,7 +287,7 @@ COMMON SENSE (не создавай ложные проблемы):
 4. Тесты: ai-signal-bot/tests/unit/test_[model_name].py
    - 5-10 тестов: normal, NaN, empty, single element, inf
    - Детерминированные (fixed seed)
-5. Документация: MATH_MODELS.md, CHANGELOG.md, future_development.md ✅ DONE
+5. Документация: MATH_MODELS.md, future_development.md ✅ DONE (CHANGELOG.md в .gitignore)
 6. Контекст: обнови context_cache.md
 7. Коммит: "math: add [ModelName] model"
 
@@ -333,8 +339,9 @@ hft-executor/ — Rust order executor
 web-ui/ — React/Vite/TailwindCSS dashboard
   src/components/math/ — UI мат модели (источник для портирования)
 monitoring/ — Prometheus, Grafana, Alertmanager
-docs/ — ARCHITECTURE.md, MATH_MODELS.md, future_development.md
-.cascade/ — AI workspace
+docs/ — ARCHITECTURE.md, MATH_MODELS.md, future_development.md (внутренние, в .gitignore)
+  docs/theory/ — личные конспекты теории (в .gitignore, не в репо)
+.cascade/ — AI workspace (внутренние, в .gitignore)
   context_cache.md — компактный контекст (ЧИТАЙ ВМЕСТО future_development.md)
   sprint_template.md — шаблон спринта
   office-board.md — доска общения (макс 50 строк)
@@ -374,9 +381,12 @@ docs/ — ARCHITECTURE.md, MATH_MODELS.md, future_development.md
 
 ЗАДАЧА: АВТОНОМНАЯ РАЗРАБОТКА — читай context_cache.md, бери следующую модель,
 реализуй, тесты, коммит, ОБНОВИ context_cache.md, СРАЗУ следующая модель.
-Если future_development.md завершён — САМ ПЛАНИРУЙ новые задачи через
+Если future_development.md завершён → SLOP FIXES (context_cache.md § SLOP FIXES):
+  lstm_model.py, transformer_model.py, rl_agent.py, dpdk_transport.py,
+  fpga_orderbook.vhd, hft-executor/lib.rs — переписать или удалить.
+Если SLOP FIXES завершены → САМ ПЛАНИРУЙ новые задачи через
 code_search/grep_search/list_dir, СОЗДАЙ новые задачи, продолжай.
-ПРОГРЕСС, НЕ ЦИКЛ. НИКОГДА НЕ СТОП. future_development.md = главный драйвер.
+ПРОГРЕСС, НЕ ЦИКЛ. НИКОГДА НЕ СТОП. context_cache.md = главный контекст.
 Никакого аудита без причины. Коммит → следующая модель → коммит → следующая → ∞
 ```
 

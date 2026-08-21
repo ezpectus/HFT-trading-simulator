@@ -14,9 +14,10 @@
 > - `.cascade/sprint_template.md` — шаблон спринта (копируй в office-board.md)
 > - `.cascade/office-board.md` — доска общения (макс 50 строк)
 >
-> **ГЛАВНЫЙ ДРАЙВЕР: docs/future_development.md** (9-Day Plan завершён, Sprint 1-59).
+> **ГЛАВНЫЙ ДРАЙВЕР: docs/future_development.md** (105+ спринтов выполнено).
 > AI читает context_cache.md, выбирает следующую модель, реализует через
 > цикл ролей (CEO → CTO → VP Eng → Dev → QA → Tech Writer), коммитит, идёт дальше.
+> После завершения моделей → SLOP FIXES (см. context_cache.md § SLOP FIXES).
 > ПРОГРЕСС, НЕ ЦИКЛ. Без указаний пользователя. Без TODO. Сама планирует, сама делает.
 
 ---
@@ -154,7 +155,7 @@ go, rustc, gcc, g++, clang, clang++
 - `.cascade/progress.md` — запись о выполненной задаче
 - `.cascade/context_cache.md` — обновить прогресс и следующую модель
 - `docs/MATH_MODELS.md` — если модель добавлена/изменена
-- `docs/future_development.md` — ✅ DONE напротив модели
+- `docs/future_development.md` — ✅ DONE напротив модели (внутренний, в .gitignore)
 
 ### 6. КОММИТ — ПОСЛЕ КАЖДОГО ИЗМЕНЕНИЯ
 
@@ -506,6 +507,17 @@ CEO (01) → CTO (02) → Tech Planner (45) → notes.md → future_development.
 2. CTO: оценивает техническую осуществимость
 3. Tech Planner: добавляет новые модели в future_development.md
 4. Продолжаем разработку по обычному циклу
+
+### Сценарий 4b: SLOP FIXES (после завершения портирования моделей)
+```
+CEO (01) → CTO (02) → VP Eng (04) → Quant Dev (07)/ML Eng (09) → QA (27) → Code Reviewer (29)
+```
+1. CEO: читает context_cache.md § SLOP FIXES — выбирает следующий SLOP модуль
+2. CTO: определяет архитектуру исправления (переписать или удалить)
+3. VP Eng: делегирует разработчику
+4. Dev: переписывает модуль (LSTM → PyTorch, Transformer → multi-head, и т.д.)
+5. QA: пишет тесты для переписанного модуля
+6. Code Reviewer: проверяет качество, коммит
 
 ### Сценарий 5: Ревью качества
 ```
@@ -1002,7 +1014,7 @@ trading-system – lite/
 |------|-----------|------------|
 | `docs/ARCHITECTURE.md` | Архитектура системы | Все роли |
 | `docs/MATH_MODELS.md` | Математические модели | Quant (06-13), Math (59-66) |
-| `docs/future_development.md` | План разработки (ГЛАВНЫЙ драйвер!) | Executive (01-05), Planning (45-50), Все роли |
+| `docs/future_development.md` | План разработки (ГЛАВНЫЙ драйвер, в .gitignore) | Executive (01-05), Planning (45-50), Все роли |
 | `docs/AUDIT_LOGGING.md` | Audit документация | Compliance (100), Security (23) |
 | `shared_config.yaml` | Общая конфигурация | Все роли |
 | `ai-signal-bot/config/settings.yaml` | Bot конфигурация | Backend (37-40), Quant (06-13) |
@@ -1048,6 +1060,9 @@ AI не ждёт указаний. Она сама планирует, расп�
 - НЕ повторяй уже сделанные модели (проверяй ✅ DONE через context_cache.md)
 - ЕСЛИ не уверен что делать → читай context_cache.md
 - После коммита: grep_search модели в future_development.md → edit ✅ DONE → обнови context_cache.md
+- После завершения всех моделей → SLOP FIXES (context_cache.md § SLOP FIXES)
+- SLOP модули: lstm_model.py, transformer_model.py, rl_agent.py, dpdk_transport.py,
+  fpga_orderbook.vhd, hft-executor/lib.rs — переписать или удалить
 
 ---
 
@@ -1059,7 +1074,8 @@ AI не ждёт указаний. Она сама планирует, расп�
 > Если пользователь не дал конкретную задачу — AI работает автономно.
 > ГЛАВНОЕ: РАЗРАБОТКА новых моделей/фич из docs/future_development.md.
 > Аудит — ТОЛЬКО быстрый чек рядом с разрабатываемым кодом.
-> 9-Day Plan ЗАВЕРШЁН (Sprint 1-59). future_development.md = главный драйвер.
+> 105+ спринтов выполнено. future_development.md = главный драйвер.
+> После завершения моделей → SLOP FIXES (context_cache.md § SLOP FIXES).
 >
 > АНТИ-ЛУП: НЕ делай аудит если делал в прошлом спринте. НЕ ищи TODO/FIXME/HACK.
 > Бери следующую модель из context_cache.md и реализуй.
@@ -1087,7 +1103,7 @@ AI не ждёт указаний. Она сама планирует, расп�
 | Тесты | QA (27) | Пишет 5-10 тестов для новой модели | Тесты |
 | Ревью | Code Reviewer (29) | read_file кода, проверка качества, коммит | Код проверен + коммит |
 | Документация | Tech Writer (41) | Обновляет MATH_MODELS.md, CHANGELOG.md | Документация + коммит |
-| Прогресс | Tech Writer (41) | Отмечает ✅ DONE в future_development.md | future_development.md обновлён |
+| Прогресс | Tech Writer (41) | Отмечает ✅ DONE в future_development.md | future_development.md обновлён (в .gitignore) |
 | Проверка | Principal (03) | Проверяет: модель + тесты + ревью + коммит | Готово? -> следующая |
 | Цикл | ALL | Берёт следующую модель. Если future_development.md завершён — САМ ПЛАНИРУЕТ новые задачи через code_search/grep_search/list_dir | ПРОГРЕСС, НЕ ЦИКЛ. НИКОГДА НЕ СТОП |
 

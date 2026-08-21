@@ -169,10 +169,30 @@ docs/ARCHITECTURE_ROADMAP.md
 docs/PLANNING_NON_TECHNICAL.md
 docs/HFT_OPTIMIZATION_IDEAS.md
 docs/MASTERPLAN.md
+docs/PROJECT_OVERVIEW.md
+docs/9_DAY_DEVELOPMENT_PLAN.md
+docs/PERFORMANCE_OPTIMIZATION.md
+docs/CHANGELOG.md
+docs/future_development.md
+docs/MATH_MODELS.md
+docs/PERFORMANCE.md
+docs/MACHINE_LEARNING.md
+docs/FAQ.md
+docs/TROUBLESHOOTING.md
+docs/openapi_ws.json
 audit/
+
+# ─── Root-level internal .md files (not for public repo) ───
 PROJECT_AUDIT.md
+PROJECT_MEGA_ANALYSIS.txt
 README_PROJECT_OVERVIEW.md
 MASTER_DEVELOPMENT_PLAN.md
+bug_log.md
+error_monitor.py
+price_monitor.py
+run_logger.py
+trade_csv_logger.py
+run_all_tests.py
 
 # ─── HFT skills (internal knowledge base, not for public repo) ───
 hft-skills/
@@ -195,6 +215,13 @@ deploy/k8s/secrets.enc.yaml
 # ─── Root-level stray files ───
 /package-lock.json
 /build/
+
+# ─── Internal analysis (not for public repo) ───
+PROJECT_MEGA_ANALYSIS.txt
+PROJECT_OVERVIEW.md
+
+# ─── Theory docs (personal study notes, not for public repo) ───
+docs/theory/
 
 # ─── Helm deploy artifacts ───
 deploy/helm/charts/
