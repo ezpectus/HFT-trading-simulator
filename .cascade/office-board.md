@@ -120,5 +120,43 @@
 - Sprint 56: Ported PCA from UI-only to trading logic. Created pca.py (SVD-based with pure Python Jacobi fallback). 14 tests. Updated MATH_MODELS.md, future_development.md. Second model port from future_development.md §0.1 list
 - Sprint 57: Ported K-Means and GMM from UI-only to trading logic. Created kmeans.py (Lloyd's + K-Means++ init + feature extraction) and gmm.py (EM algorithm + BIC/AIC). 27 tests. Updated MATH_MODELS.md, future_development.md. Third and fourth model ports from future_development.md §0.1 list
 - Sprint 58: Ported DTW and SVM from UI-only to trading logic. Created dtw.py (O(n*m) DP, Sakoe-Chiba band, warping path, pattern templates) and svm_signal.py (linear SVM via SGD, hinge loss, feature extraction). 31 tests. Updated MATH_MODELS.md, future_development.md. Fifth and sixth model ports — 7 of 15 models now ported (47%)
+- Sprint 59: Fixed all remaining Python test failures across entire project. 2487 tests pass (0 failed, 0 errors, 17 skipped). Created universal test runner (run_all_tests.py) covering all subprojects. Fixes: risk_parity convergence algorithm, SQLite Windows file locking, Prometheus registry cleanup, monitoring test paths, importlib module loading
 - All 9 days of development plan: ✅ COMPLETE
 - All 188 bugs: ✅ FIXED (0 pending)
+
+---
+
+## 📅 ПЛАН НА ЗАВТРА
+
+### Sprint 60 — Rust + JS тесты и CI интеграция
+
+**P0 — Rust тесты (hft-executor)**
+- Запустить `cargo test` в hft-executor/, проверить 21 unit test
+- Если есть failures — исправить
+- Интегрировать в `run_all_tests.py --rust`
+
+**P0 — JS тесты (web-ui)**
+- Запустить `npm run test:run` (vitest) в web-ui/
+- Запустить `npx playwright test` (E2E) в web-ui/
+- Если есть failures — исправить
+- Интегрировать в `run_all_tests.py --js`
+
+**P1 — CI/CD интеграция**
+- Обновить `.github/workflows/ci.yml` — добавить запуск `python run_all_tests.py --python` в CI
+- Добавить отдельные job'ы для Rust и JS тестов
+- Настроить артефакт: JSON отчёт тестов
+
+**P1 — Оптимизация времени тестов**
+- Root-level тесты ai-signal-bot идут 470s, ML/RL — 720s. Рассмотреть:
+  - Параллелизация через `pytest-xdist` (`-n auto`)
+  - Вынос тяжёлых ML тестов в отдельную категорию "slow"
+  - Маркировка `@pytest.mark.slow` + опция `--slow` в раннере
+
+**P2 — Покрытие тестов**
+- Запустить `pytest --cov` для ai-signal-bot и exchange_simulator
+- Найти модули с < 50% coverage
+- Добавить недостающие тесты для критических путей
+
+**P2 — Документация**
+- Обновить docs/TESTING.md — описать `run_all_tests.py` и все опции
+- Добавить раздел "Universal Test Runner" в README.md
