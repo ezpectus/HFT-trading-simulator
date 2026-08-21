@@ -178,6 +178,33 @@ Decision: f(x) = sign(w·x + b)
 Features: mean, vol, skew, kurt, last return, momentum, RSI, autocorrelation.
 - **Source:** `ai-signal-bot/src/ml/svm_signal.py` (Sprint 58, ported from UI-only SupportVectorMachine.jsx)
 
+### GARCH(1,1) Volatility — Trading logic
+Conditional variance forecasting for volatility clustering and risk management.
+```
+sigma^2_t = omega + alpha * eps^2_{t-1} + beta * sigma^2_{t-1}
+```
+Parameters estimated by MLE via gradient ascent on the Gaussian log-likelihood:
+```
+L = -0.5 * sum_t [ ln(sigma^2_t) + eps^2_t / sigma^2_t ]
+dL/d(sigma^2_t) = 0.5 * (eps^2_t - sigma^2_t) / sigma^4_t
+```
+Derived quantities:
+```
+Persistence:        alpha + beta  (stationarity requires < 1)
+Half-life:          ln(0.5) / ln(alpha + beta)
+Unconditional var:  omega / (1 - alpha - beta)
+Multi-step forecast: h=1: omega + alpha*eps^2_t + beta*sigma^2_t
+                     h>1: omega + (alpha+beta)*sigma^2_{t+h-1}
+Annualized vol:     sqrt(var) * sqrt(252) * 100 (%)
+```
+Also provides EWMA (RiskMetrics, `lambda=0.94`) and Parkinson high-low estimators:
+```
+EWMA:      sigma^2_t = lambda*sigma^2_{t-1} + (1-lambda)*eps^2_t
+Parkinson: sigma^2 = sum(ln^2(H/L)) / (4*n*ln2)
+```
+Applications: volatility forecasting, position sizing, stop-loss placement, regime detection.
+- **Source:** `ai-signal-bot/src/technical_analysis/garch.py` (Sprint 60, ported from UI-only GARCHVolatility.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

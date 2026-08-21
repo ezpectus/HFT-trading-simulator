@@ -15,8 +15,8 @@
 
 ## ПРОГРЕСС ПО future_development.md
 
-### Раздел 0.1 (высокий приоритет): 7/15 (47%)
-████████████░░░░░░░░░░ 47%
+### Раздел 0.1 (высокий приоритет): 8/15 (53%)
+████████████░░░░░░░░░░ 53%
 
 - ✅ Kalman Filter (Sprint 55)
 - ✅ PCA (Sprint 56)
@@ -24,8 +24,8 @@
 - ✅ GMM (Sprint 57)
 - ✅ SVM (Sprint 58)
 - ✅ DTW (Sprint 58)
-- ⬜ GARCH(1,1) — СЛЕДУЮЩАЯ
-- ⬜ Markov-Switching GARCH
+- ✅ GARCH(1,1) (Sprint 60)
+- ⬜ Markov-Switching GARCH — СЛЕДУЮЩАЯ
 - ⬜ Copula
 - ⬜ Wavelet
 - ⬜ Monte Carlo
@@ -52,12 +52,12 @@
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** GARCH(1,1)
-**UI файл:** web-ui/src/components/math/GARCHVolatility.jsx
-**Python файл:** ai-signal-bot/src/technical_analysis/garch.py
-**Паттерны:** kalman.py, pca.py (уже реализованные)
-**Спринт:** 60
+**Модель:** Markov-Switching GARCH
+**UI файл:** web-ui/src/components/MarkovSwitchingGARCH.jsx
+**Python файл:** ai-signal-bot/src/technical_analysis/ms_garch.py
+**Паттерны:** garch.py (Sprint 60), gmm.py (Sprint 57)
+**Спринт:** 61
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 59:** Fixed all Python test failures. 2487 tests pass. Created run_all_tests.py.
+**Sprint 60:** Ported GARCH(1,1) from UI to trading logic (garch.py). 42 new tests. 8/15 моделей раздела 0.1 (53%).

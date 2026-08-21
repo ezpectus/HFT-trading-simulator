@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 60: GARCH(1,1) Port
+
+### Added — GARCH(1,1) Volatility Model (Sprint 60)
+- Created `ai-signal-bot/src/technical_analysis/garch.py` — GARCH(1,1) conditional variance model ported from UI-only `GARCHVolatility.jsx` into trading logic
+- MLE parameter estimation via gradient ascent on Gaussian log-likelihood (sign corrected vs UI)
+- Derived quantities: persistence (α+β), half-life, unconditional variance, multi-step forecasts (h=1 exact, h>1 mean-reversion)
+- Added EWMA volatility (RiskMetrics λ=0.94) and Parkinson high-low estimators for comparison
+- Added `classify_regime` (LOW/MEDIUM/HIGH) and `log_returns` helpers
+- 42 new tests in `tests/test_garch.py` (edge cases: insufficient data, non-positive prices, stationarity, forecast convergence)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 16: Technical Audit & File Size Compliance
 
 ### Changed — C++ File Size Compliance (Sprint 16)
