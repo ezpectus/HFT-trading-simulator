@@ -46,31 +46,25 @@
 
 ---
 
-### [02] CTO → [05] Frontend Lead
-**Тема:** UI/UX Sprint — Завтрашний план работ
+### [02] CTO → ALL
+**Тема:** Sprint 60 — Testing & CI/CD
 **Задача:**
-  1. **Дизайн улучшить** — финальная полировка UI: проверить все 204+ компонентов на консистентность палитры, убрать остаточные inline-стили, выровнять спейсинг и типографику
-  2. **Убрать AI-стиль** — заменить generic "AI dashboard" внешний вид на профессиональный crypto exchange terminal: монохромный dark, минимальные акценты, строгие бордеры вместо теней
-  3. **Добавить новые мат-панели** — интегрировать оставшиеся математические компоненты в табовую навигацию (Wavelet, HMM, GMM, SVM, DTW, PCA и др.) с proper lazy-loading
-  4. **Развитие опенсорс** — подготовить проект к публичному релизу: LICENSE, CONTRIBUTING.md, CODE_OF_CONDUCT.md, issue/PR templates
-  5. **Обновить документацию** — актуализировать README.md под текущее состояние (новые фичи, скриншоты, quick start), обновить docs/ гайды
 
-**Контекст:** UI редизайн выполнен на 80% (палитра обновлена, rounded убраны, slate→theme). Осталось: финальная полировка, интеграция мат-панелей, подготовка к опенсорсу.
-**Срок:** P1
-**Статус:** NEW
+  **P0 — Тесты:**
+  1. Запустить Rust тесты (`cargo test` в `hft-executor/`)
+  2. Запустить JS тесты (`vitest` + `playwright` в `web-ui/`)
+  3. Исправить failures если есть
 
-### [03] VP Eng → [05] Frontend Lead
-**Тема:** Технические детали UI/UX спринта
-**Задача:**
-  - **Палитра:** проверить все SVG/inline hex colors → заменить на CSS variables или accent classes
-  - **Типографика:** унифицировать font-size шкалу (10/11/12/14px), убрать случайные размеры
-  - **Спейсинг:** стандартизировать padding/gap (p-2/p-2.5/p-3), убрать двойные пробелы в className
-  - **Мат-панели:** добавить ленивую загрузку для 44+ математических компонентов, сгруппировать в sub-tabs (Math Models, ML, Signal Processing, Risk)
-  - **Скриншоты:** сделать актуальные скриншоты для README (main view, chart, orderbook, signals, backtest)
-  - **README:** обновить features list, architecture diagram, quick start guide, screenshots section
-  - **Опенсорс:** MIT license, CONTRIBUTING с правилами кодстайла, PR template, issue templates (bug/feature/question)
-**Контекст:** Подготовка к публичному опенсорс-релизу на GitHub
-**Срок:** P1
+  **P1 — CI/CD и оптимизация:**
+  4. CI/CD: добавить `run_all_tests.py` в GitHub Actions
+  5. Оптимизация: `pytest-xdist` для параллелизации (root 470s + ML 720s — основное время)
+
+  **P2 — Coverage и документация:**
+  6. Coverage: `pytest --cov`, найти слабые места
+  7. Документация: обновить `TESTING.md` и `README`
+
+**Контекст:** 22 failing tests в ai-signal-bot, нужно починить и автоматизировать запуск.
+**Срок:** P0
 **Статус:** NEW
 
 ---
