@@ -7,8 +7,8 @@ import { ExchangeProvider, useExchange } from '../contexts/ExchangeContext'
 // Mock exchange components
 const mockBinanceTheme = {
   primary: '#FCD535',
-  secondary: '#1E2329',
-  background: '#161A1E',
+  background: '#0B0E11',
+  surface: '#1E2329',
   text: '#EAECEF',
   textSecondary: '#848E9C',
   border: '#2B3139',
@@ -17,36 +17,36 @@ const mockBinanceTheme = {
 }
 
 const mockBybitTheme = {
-  primary: '#F0B90B',
-  secondary: '#191919',
-  background: '#0B0E11',
-  text: '#EAECEF',
-  textSecondary: '#848E9C',
-  border: '#2A2A2A',
+  primary: '#F7A600',
+  background: '#050505',
+  surface: '#191919',
+  text: '#E0E0E0',
+  textSecondary: '#888888',
+  border: '#333333',
   success: '#00E396',
-  danger: '#FF453A',
+  danger: '#FF4560',
 }
 
 const mockCoinbaseTheme = {
   primary: '#0052FF',
-  secondary: '#FFFFFF',
-  background: '#F5F7F9',
-  text: '#050F2E',
-  textSecondary: '#6B7280',
-  border: '#E5E7EB',
-  success: '#10B981',
-  danger: '#f6465d',
+  background: '#000000',
+  surface: '#121212',
+  text: '#FFFFFF',
+  textSecondary: '#A0A0A0',
+  border: '#2A2A2A',
+  success: '#00C853',
+  danger: '#FF3D00',
 }
 
 describe('Exchange Context', () => {
   describe('ExchangeProvider', () => {
     it('should provide default exchange context', () => {
       const TestComponent = () => {
-        const { selectedExchange, setSelectedExchange } = useExchange()
+        const { selectedExchange, switchExchange } = useExchange()
         return (
           <div>
             <span data-testid="exchange">{selectedExchange}</span>
-            <button onClick={() => setSelectedExchange('bybit')}>Switch</button>
+            <button onClick={() => switchExchange('bybit')}>Switch</button>
           </div>
         )
       }
@@ -62,12 +62,12 @@ describe('Exchange Context', () => {
 
     it('should allow switching exchanges', async () => {
       const TestComponent = () => {
-        const { selectedExchange, setSelectedExchange } = useExchange()
+        const { selectedExchange, switchExchange } = useExchange()
         return (
           <div>
             <span data-testid="exchange">{selectedExchange}</span>
-            <button onClick={() => setSelectedExchange('bybit')}>Switch to Bybit</button>
-            <button onClick={() => setSelectedExchange('coinbase')}>Switch to Coinbase</button>
+            <button onClick={() => switchExchange('bybit')}>Switch to Bybit</button>
+            <button onClick={() => switchExchange('coinbase')}>Switch to Coinbase</button>
           </div>
         )
       }
@@ -102,12 +102,12 @@ describe('Exchange Context', () => {
 
     it('should update theme when exchange changes', async () => {
       const TestComponent = () => {
-        const { selectedExchange, theme, setSelectedExchange } = useExchange()
+        const { selectedExchange, theme, switchExchange } = useExchange()
         return (
           <div>
             <span data-testid="exchange">{selectedExchange}</span>
             <span data-testid="theme-primary">{theme.primary}</span>
-            <button onClick={() => setSelectedExchange('bybit')}>Switch</button>
+            <button onClick={() => switchExchange('bybit')}>Switch</button>
           </div>
         )
       }
@@ -132,7 +132,7 @@ describe('Exchange Context', () => {
 describe('Exchange Theme Consistency', () => {
   it('should have all required theme properties for Binance', () => {
     expect(mockBinanceTheme).toHaveProperty('primary')
-    expect(mockBinanceTheme).toHaveProperty('secondary')
+    expect(mockBinanceTheme).toHaveProperty('surface')
     expect(mockBinanceTheme).toHaveProperty('background')
     expect(mockBinanceTheme).toHaveProperty('text')
     expect(mockBinanceTheme).toHaveProperty('textSecondary')
@@ -143,7 +143,7 @@ describe('Exchange Theme Consistency', () => {
 
   it('should have all required theme properties for Bybit', () => {
     expect(mockBybitTheme).toHaveProperty('primary')
-    expect(mockBybitTheme).toHaveProperty('secondary')
+    expect(mockBybitTheme).toHaveProperty('surface')
     expect(mockBybitTheme).toHaveProperty('background')
     expect(mockBybitTheme).toHaveProperty('text')
     expect(mockBybitTheme).toHaveProperty('textSecondary')
@@ -154,7 +154,7 @@ describe('Exchange Theme Consistency', () => {
 
   it('should have all required theme properties for Coinbase', () => {
     expect(mockCoinbaseTheme).toHaveProperty('primary')
-    expect(mockCoinbaseTheme).toHaveProperty('secondary')
+    expect(mockCoinbaseTheme).toHaveProperty('surface')
     expect(mockCoinbaseTheme).toHaveProperty('background')
     expect(mockCoinbaseTheme).toHaveProperty('text')
     expect(mockCoinbaseTheme).toHaveProperty('textSecondary')

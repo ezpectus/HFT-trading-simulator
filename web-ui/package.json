@@ -38,6 +38,7 @@
     "lucide-react": "^0.400.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "web-vitals": "^6.1.1",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
@@ -45,6 +46,7 @@
     "@playwright/test": "^1.48.0",
     "@testing-library/jest-dom": "^6.4.6",
     "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^5.2.0",
