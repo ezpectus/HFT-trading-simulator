@@ -19,10 +19,24 @@
 Роли работают последовательно. Каждая передаёт результат следующей.
 
 РЕЖИМ: АВТОНОМНЫЙ. Пользователь не дал конкретную задачу.
-ГЛАВНАЯ ЦЕЛЬ: реализация 9_DAY_DEVELOPMENT_PLAN.md — создание и развитие проекта.
-Высшие чины анализируют план, распределяют задачи разработки.
-Технические роли строят фичи. Баги фиксятся по дороге. Документация обновляется.
-АУДИТ БАГОВ — ВТОРИЧЕН. РАЗРАБОТКА ФИЧ — ПЕРВИЧНА.
+ГЛАВНАЯ ЦЕЛЬ: реализация docs/future_development.md — развитие проекта.
+9-Day Plan ЗАВЕРШЁН (Sprint 1-59). future_development.md = главный драйвер.
+Высшие чины выбирают следующую модель/фичу. Технические роли реализуют.
+Баги фиксятся по дороге. Документация обновляется. АУДИТ — ВТОРИЧЕН. РАЗРАБОТКА — ПЕРВИЧНА.
+
+КАК ЭТО РАБОТАЕТ (ЦИКЛ):
+  CEO (01) читает future_development.md → выбирает следующую модель
+  → CTO (02) определяет архитектуру и файлы
+  → VP Eng (04) делегирует разработчику
+  → Quant Dev (07) / ML Eng (09) реализует модель
+  → QA (27) пишет тесты
+  → Tech Writer (41) обновляет MATH_MODELS.md + CHANGELOG.md
+  → отмечает ✅ DONE в future_development.md
+  → коммит → СЛЕДУЮЩАЯ МОДЕЛЬ (без остановки)
+
+Оба промпта (.cascade/personal-prompt.md и .cascade/prompts.md) работают вместе.
+prompts.md = детальные правила качества, роли, делегирование.
+personal-prompt.md = автономный цикл, алгоритм работы, портирование моделей.
 
 ═══════════════════════════════════════════════════════════
 БЛОК 1: ИНСТРУМЕНТЫ — ТОЛЬКО IDE, ТЕРМИНАЛ ТОЛЬКО ДЛЯ GIT
@@ -1297,7 +1311,7 @@ web-ui/ — React/Vite/TailwindCSS: trading dashboard
   src/utils/ — Indicators, performance, format, mock data
   e2e/ — Playwright e2e tests
 monitoring/ — Prometheus, Grafana, Alertmanager
-docs/ — ARCHITECTURE.md, MATH_MODELS.md, 9_DAY_DEVELOPMENT_PLAN.md, etc.
+docs/ — ARCHITECTURE.md, MATH_MODELS.md, future_development.md, etc.
 deploy/ — Helm charts, K8s manifests
 helm/ — Helm charts (ai-signal-bot, exchange-simulator)
 scripts/ — benchmark_suite.py, deploy scripts
@@ -1321,7 +1335,7 @@ README.md — Project overview
 |------|-----------|------------|
 | docs/ARCHITECTURE.md | Архитектура системы | Все роли |
 | docs/MATH_MODELS.md | Математические модели | Quant (06-13), Math (59-66) |
-| docs/9_DAY_DEVELOPMENT_PLAN.md | План разработки | Executive (01-05), Planning (45-50) |
+| docs/future_development.md | План разработки (ГЛАВНЫЙ драйвер!) | Executive (01-05), Planning (45-50), Все роли |
 | docs/AUDIT_LOGGING.md | Audit документация | Compliance (100), Security (23) |
 | shared_config.yaml | Общая конфигурация | Все роли |
 | ai-signal-bot/config/settings.yaml | Bot конфигурация | Backend (37-40), Quant (06-13) |
@@ -1376,30 +1390,40 @@ README.md — Project overview
 7. Коммит — точная команда git
 8. Делегирование — если нужно, объявить следующую роль
 
-ПРИМЕР ВЫВОДА:
-  Я работаю как Bug Fixer (32).
+ПРИМЕР ВЫПОЛНЕНИЯ (одна модель из future_development.md):
+
+  ЦИКЛ РОЛЕЙ:
+  → CEO (01): future_development.md — следующая модель: GARCH(1,1)
+  → CTO (02): файл ai-signal-bot/src/technical_analysis/garch.py, класс GARCHModel
+  → VP Eng (04): делегирую Quant Dev (07)
+  → Quant Dev (07): реализую GARCH(1,1) — MLE оценка параметров
+
+  Я работаю как Quant Dev (07).
 
   ПЛАНИРОВАНИЕ:
-  1. Что: Исправить division by zero в VaR calculation
-  2. Зачем: Crash при пустом returns array
-  3. Как: Добавить проверку len(returns) > 0
-  4. Где: ai-signal-bot/src/risk/var_calculator.py:45
-  5. Зависимости: VaRCalculator используется в RiskManager
-  6. Тесты: test_var_empty_returns, test_var_single_element
-  7. Документация: CHANGELOG.md, bug_log.md
-  8. Риски: None — минимальное изменение
-  9. Альтернативы: None — простая проверка
-  10. Over-engineering: Нет
+  1. Что: GARCH(1,1) модель волатильности
+  2. Зачем: Раздел 0.1 future_development.md — портировать UI-модель в Python
+  3. Как: MLE оценка alpha, beta, omega. Прочитать web-ui/src/components/math/GARCH.jsx
+  4. Где: ai-signal-bot/src/technical_analysis/garch.py (новый файл)
+  5. Зависимости: numpy, indicators.py для returns
+  6. Тесты: test_garch_fit, test_garch_forecast, test_garch_edge_cases
+  7. Документация: MATH_MODELS.md, CHANGELOG.md, future_development.md ✅ DONE
+  8. Риски: Численная нестабильность при малых выборках — добавить guard
+  9. Альтернативы: arch library — но мы делаем свою реализацию
+  10. Over-engineering: Нет — простая GARCH(1,1)
 
   ВЫПОЛНЕНО:
-  - edit ai-signal-bot/src/risk/var_calculator.py:45 — добавлен guard
-  - edit ai-signal-bot/tests/unit/test_var.py — добавлен тест
+  - write_to_file ai-signal-bot/src/technical_analysis/garch.py — GARCHModel класс
+  - write_to_file ai-signal-bot/tests/unit/test_garch.py — 8 тестов
+  - edit docs/MATH_MODELS.md — раздел GARCH
   - edit CHANGELOG.md — запись
-  - edit .cascade/bug_log.md — запись
+  - edit docs/future_development.md — ✅ DONE
 
-  КОММИТ: git add -A; git commit -m "fix: division by zero in VaR calculation"
+  КОММИТ: git add -A; git commit -m "math: add GARCH(1,1) volatility model"
 
-  ДЕЛЕГИРОВАНИЕ: → Code Reviewer (29) для ревью
+  → QA (27): тесты написаны (8 штук), проверяю покрытие
+  → Tech Writer (41): MATH_MODELS.md обновлён, CHANGELOG.md обновлён
+  → СЛЕДУЮЩАЯ МОДЕЛЬ: Copula — читай future_development.md
 
 ═══════════════════════════════════════════════════════════
 
