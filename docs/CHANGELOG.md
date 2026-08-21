@@ -48,6 +48,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 93: Rényi Entropy Port
+
+### Added — Rényi Entropy Dynamics (Sprint 93)
+- Created `ai-signal-bot/src/research/renyi_entropy.py` — order-α entropy tracking ported from UI-only `RenyiEntropyDynamics.jsx` into trading logic
+- Rényi entropy H_α = (1/(1-α))·log₂ Σ p_i^α with limits: α→0 Hartley (log₂ support), α=1 Shannon, α=2 collision, α→∞ min-entropy
+- Tsallis entropy S_q = (1 - Σ p_i^q)/(q-1) companion
+- Generalized (fractal) dimensions D_α via linear regression of H_α vs log₂(nBins) over resolutions [5..50]
+- Sliding-window H_0/H_1/H_2/H_∞ tracking; concentration ratio H_∞/H_0; efficiency H_1/H_0
+- Signal: DIVERSE (H_∞/H_0 < 0.3) / CONCENTRATED (H_∞/H_0 > 0.7) / BALANCED
+- 46 new tests in `tests/test_renyi_entropy.py` (entropy limits, uniform/deterministic distributions, fractal dimensions, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

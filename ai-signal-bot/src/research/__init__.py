@@ -95,6 +95,16 @@ from src.research.pontryagin import (
     pontryagin_analysis,
     solve_pmp,
 )
+from src.research.renyi_entropy import (
+    RenyiResult,
+    compute_returns as renyi_compute_returns,
+    generalized_dimensions,
+    histogram,
+    renyi_analysis,
+    renyi_entropy,
+    renyi_signal,
+    tsallis_entropy,
+)
 from src.research.rmt import (
     RMTResult,
     clean_correlation,
@@ -159,4 +169,6 @@ __all__ = [
     "MalliavinResult", "malliavin_analysis", "malliavin_greeks", "malliavin_signal",
     "bs_call", "bs_greeks", "norm_cdf", "random_normal", "simulate_paths",
     "malliavin_compute_returns",
+    "RenyiResult", "renyi_analysis", "renyi_entropy", "renyi_signal",
+    "tsallis_entropy", "generalized_dimensions", "histogram", "renyi_compute_returns",
 ]

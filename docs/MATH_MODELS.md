@@ -647,6 +647,25 @@ convergence curve. Signal: BUY (Δ > 0.5, ITM call), SELL (Δ < 0.1, OTM call),
 NEUTRAL (near ATM).
 - **Source:** `ai-signal-bot/src/research/malliavin.py` (Sprint 92, ported from UI-only MalliavinCalculus.jsx)
 
+### Rényi Entropy Dynamics — Trading logic
+Order-α entropy tracking of the return distribution.
+```
+Rényi entropy: H_α(X) = (1/(1-α))·log₂ Σ p_i^α
+α → 0: H_0 = log₂|support| (Hartley entropy)
+α → 1: H_1 = Shannon entropy
+α → ∞: H_∞ = -log₂ max(p_i) (min-entropy)
+α = 2: H_2 = -log₂ Σ p_i² (collision entropy)
+
+Tsallis entropy: S_q = (1 - Σ p_i^q)/(q-1)
+Generalized dimensions: D_α = slope of H_α vs log₂(nBins) (regression)
+```
+Histogram probabilities over nBins; Rényi spectrum at α = [0, 0.5, 1, 2, 3,
+5, 10, ∞]; Tsallis entropy companion; multifractal spectrum D_α via linear
+regression over resolutions [5..50]; sliding-window H_0/H_1/H_2/H_∞.
+Signal: DIVERSE (H_∞/H_0 < 0.3), CONCENTRATED (H_∞/H_0 > 0.7), BALANCED.
+Efficiency = H_1/H_0 (Shannon/Hartley).
+- **Source:** `ai-signal-bot/src/research/renyi_entropy.py` (Sprint 93, ported from UI-only RenyiEntropyDynamics.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

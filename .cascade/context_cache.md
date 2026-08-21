@@ -63,16 +63,17 @@
 - ✅ Fokker-Planck (Sprint 90, расширенная таблица)
 - ✅ Ito Generator (Sprint 91, расширенная таблица)
 - ✅ Malliavin Calculus (Sprint 92, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 39 моделей**
+- ✅ Renyi Entropy (Sprint 93, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 40 моделей**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Renyi Entropy
-**UI файл:** web-ui/src/components/RenyiEntropyDynamics.jsx
-**Python файл:** ai-signal-bot/src/research/renyi_entropy.py
-**Паттерны:** transfer_entropy.py (Sprint 73), ito_generator.py (Sprint 91)
-**Спринт:** 93
+**Модель:** Kolmogorov-Sinai
+**UI файл:** web-ui/src/components/KolmogorovSinaiEntropy.jsx
+**Python файл:** ai-signal-bot/src/research/kolmogorov_sinai.py
+**Паттерны:** renyi_entropy.py (Sprint 93), transfer_entropy.py (Sprint 73)
+**Спринт:** 94
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 92:** Ported Malliavin Calculus from UI to trading logic (research/malliavin.py). Malliavin Greeks via integration by parts, BS analytical comparison, 58 new tests. 39 моделей всего.
+**Sprint 93:** Ported Renyi Entropy from UI to trading logic (research/renyi_entropy.py). H_alpha spectrum, Tsallis, fractal dimensions, 46 new tests. 40 моделей всего.
