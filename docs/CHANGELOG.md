@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 61: Markov-Switching GARCH Port
+
+### Added — MS-GARCH Volatility Model (Sprint 61)
+- Created `ai-signal-bot/src/technical_analysis/ms_garch.py` — regime-switching GARCH ported from UI-only `MarkovSwitchingGARCH.jsx` into trading logic
+- Kim's filtering: Hamilton filter (predicted/updated regime probabilities) + backward smoothing
+- Per-regime GARCH variance paths, combined regime-weighted volatility, total log-likelihood
+- Grid search over 3 candidate 2-regime parameter sets (Calm/Volatile/Crisis), mirroring the UI
+- Helpers: `regime_signal` (BUY/SELL), `detect_regime_transitions`, `expected_regime_duration`, `simple_returns`
+- 41 new tests in `tests/test_ms_garch.py` (probability normalization, variance floor, regime detection, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 60: GARCH(1,1) Port
 
 ### Added — GARCH(1,1) Volatility Model (Sprint 60)

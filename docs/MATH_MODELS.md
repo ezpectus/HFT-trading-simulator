@@ -205,6 +205,24 @@ Parkinson: sigma^2 = sum(ln^2(H/L)) / (4*n*ln2)
 Applications: volatility forecasting, position sizing, stop-loss placement, regime detection.
 - **Source:** `ai-signal-bot/src/technical_analysis/garch.py` (Sprint 60, ported from UI-only GARCHVolatility.jsx)
 
+### Markov-Switching GARCH (MS-GARCH) — Trading logic
+Regime-switching volatility: a hidden Markov chain selects which GARCH dynamics drive returns.
+```
+Regime s_t in {0, ..., K-1}:  P(s_t = j | s_{t-1} = i) = p_ij
+In regime k:  r_t = mu_k + eps_t,  eps_t ~ N(0, h_t)
+              h_t = omega_k + alpha_k * eps^2_{t-1} + beta_k * h_{t-1}
+```
+Kim's filtering (Hamilton filter + backward smoothing):
+```
+Predicted:  P(s_t=j|F_{t-1}) = sum_i p_ij * P(s_{t-1}=i|F_{t-1})
+Update:     P(s_t=k|F_t) = pred_k * f(r_t|s_t=k) / sum_j pred_j * f(r_t|s_t=j)
+Smooth:     P(s_t=k|F_T) = P(s_t=k|F_t) * sum_j [p_kj * P(s_{t+1}=j|F_T) / P(s_{t+1}=j|F_t)]
+Log-lik:    sum_t log [ sum_k P(s_t=k|F_{t-1}) * f(r_t|s_t=k, F_{t-1}) ]
+```
+Combined volatility = regime-probability-weighted sqrt of regime variances.
+Expected regime duration = 1 / (1 - p_ii). Parameters via grid search over 2-regime sets (Calm/Volatile/Crisis).
+- **Source:** `ai-signal-bot/src/technical_analysis/ms_garch.py` (Sprint 61, ported from UI-only MarkovSwitchingGARCH.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

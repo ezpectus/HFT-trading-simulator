@@ -10,13 +10,13 @@
 ## 📊 ПРОГРЕСС
 
 ```
-Раздел 0.1 (высокий):  ████████████░░░░░░░░░░ 8/15 (53%)
+Раздел 0.1 (высокий):  █████████████░░░░░░░░░ 9/15 (60%)
 Раздел 0.2 (средний):  █░░░░░░░░░░░░░░░░░░░░ 1/12 (8%)
-Всего моделей:         ████████░░░░░░░░░░░░░░ 9/27 (33%)
+Всего моделей:         █████████░░░░░░░░░░░░░ 10/27 (37%)
 ```
 
-**Следующая модель:** Markov-Switching GARCH → `src/technical_analysis/ms_garch.py`
-**Последний спринт:** 60 (GARCH)
+**Следующая модель:** Copula → `src/technical_analysis/copula.py`
+**Последний спринт:** 61 (Markov-Switching GARCH)
 
 ---
 
@@ -55,7 +55,7 @@
 | Модель | UI файл | Python файл (создать) | Приоритет | Время |
 |--------|---------|----------------------|-----------|-------|
 | ~~GARCH(1,1)~~ | `GARCHVolatility.jsx` | `src/technical_analysis/garch.py` | ✅ DONE (Sprint 60) |
-| Markov-Switching GARCH | `MarkovSwitchingGARCH.jsx` | `src/technical_analysis/ms_garch.py` | ВЫСОКИЙ | 2 недели |
+| ~~Markov-Switching GARCH~~ | `MarkovSwitchingGARCH.jsx` | `src/technical_analysis/ms_garch.py` | ✅ DONE (Sprint 61) |
 | ~~Kalman Filter~~ | `KalmanFilterPrice.jsx` | `src/technical_analysis/kalman.py` | ✅ DONE (Sprint 55) |
 | Copula | `CopulaModel.jsx` | `src/technical_analysis/copula.py` | ВЫСОКИЙ | 2 недели |
 | Wavelet | `WaveletDecomposition.jsx` | `src/technical_analysis/wavelet.py` | ВЫСОКИЙ | 1 неделя |

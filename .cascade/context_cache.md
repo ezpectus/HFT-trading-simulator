@@ -15,8 +15,8 @@
 
 ## ПРОГРЕСС ПО future_development.md
 
-### Раздел 0.1 (высокий приоритет): 8/15 (53%)
-████████████░░░░░░░░░░ 53%
+### Раздел 0.1 (высокий приоритет): 9/15 (60%)
+█████████████░░░░░░░░░ 60%
 
 - ✅ Kalman Filter (Sprint 55)
 - ✅ PCA (Sprint 56)
@@ -25,8 +25,8 @@
 - ✅ SVM (Sprint 58)
 - ✅ DTW (Sprint 58)
 - ✅ GARCH(1,1) (Sprint 60)
-- ⬜ Markov-Switching GARCH — СЛЕДУЮЩАЯ
-- ⬜ Copula
+- ✅ Markov-Switching GARCH (Sprint 61)
+- ⬜ Copula — СЛЕДУЮЩАЯ
 - ⬜ Wavelet
 - ⬜ Monte Carlo
 - ⬜ Hawkes Process
@@ -52,12 +52,12 @@
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Markov-Switching GARCH
-**UI файл:** web-ui/src/components/MarkovSwitchingGARCH.jsx
-**Python файл:** ai-signal-bot/src/technical_analysis/ms_garch.py
-**Паттерны:** garch.py (Sprint 60), gmm.py (Sprint 57)
-**Спринт:** 61
+**Модель:** Copula
+**UI файл:** web-ui/src/components/CopulaModel.jsx
+**Python файл:** ai-signal-bot/src/technical_analysis/copula.py
+**Паттерны:** pca.py (Sprint 56), gmm.py (Sprint 57)
+**Спринт:** 62
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 60:** Ported GARCH(1,1) from UI to trading logic (garch.py). 42 new tests. 8/15 моделей раздела 0.1 (53%).
+**Sprint 61:** Ported Markov-Switching GARCH from UI to trading logic (ms_garch.py). Kim's filter, 41 new tests. 9/15 моделей раздела 0.1 (60%).
