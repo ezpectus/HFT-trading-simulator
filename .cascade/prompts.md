@@ -474,15 +474,17 @@ Bug Hunter (31) → Bug Fixer (32) → Code Reviewer (29) → QA (27) → Tech W
 4. QA: пишет тесты на исправленный баг
 5. Tech Writer: обновляет bug_log и CHANGELOG
 
-### Сценарий 2: Добавить новую модель
+### Сценарий 2: Добавить новую модель (из future_development.md)
 ```
-Quant Researcher (06) → Quant Developer (07) → QA (27) → Tech Writer (41) → Audit (43)
+CEO (01) → CTO (02) → VP Eng (04) → Quant Dev (07) → QA (27) → Tech Writer (41)
 ```
-1. Quant Researcher: исследует модель, формулы
-2. Quant Developer: реализует в коде
-3. QA: пишет тесты
-4. Tech Writer: обновляет MATH_MODELS.md
-5. Audit: проверяет док vs код
+1. CEO: читает future_development.md, выбирает следующую модель без ✅ DONE
+2. CTO: определяет файлы, класс, зависимости, читает UI-компонент
+3. VP Eng: делегирует конкретному разработчику
+4. Quant Dev: реализует модель (Python, type hints, docstrings)
+5. QA: пишет 5-10 тестов (normal, edge cases, deterministic)
+6. Tech Writer: обновляет MATH_MODELS.md, CHANGELOG.md, отмечает ✅ DONE
+→ СЛЕДУЮЩАЯ МОДЕЛЬ (возврат к CEO)
 
 ### Сценарий 3: Оптимизировать производительность
 ```
@@ -493,15 +495,14 @@ Performance (24) → HFT Engineer (15) → Code Reviewer (29) → Tech Writer (4
 3. Code Reviewer: ревьюит изменения
 4. Tech Writer: обновляет ARCHITECTURE.md
 
-### Сценарий 4: Планирование будущего
+### Сценарий 4: Планирование будущего (когда future_development.md завершён)
 ```
-CEO (01) → CTO (02) → Tech Planner (45) → Expansion (50) → PM (05)
+CEO (01) → CTO (02) → Tech Planner (45) → notes.md → future_development.md
 ```
-1. CEO: определяет видение
-2. CTO: оценивает технологии
-3. Tech Planner: составляет roadmap
-4. Expansion: планирует масштабирование
-5. PM: пишет user stories
+1. CEO: читает .cascade/notes.md — новые идеи
+2. CTO: оценивает техническую осуществимость
+3. Tech Planner: добавляет новые модели в future_development.md
+4. Продолжаем разработку по обычному циклу
 
 ### Сценарий 5: Ревью качества
 ```
@@ -653,17 +654,52 @@ UX Researcher (99) → Frontend (33) → UI/UX (34) → Data Viz (35) → QA (27
 4. Data Viz: графики
 5. QA: тестирует
 
-### Сценарий 20: Full system audit
+### Сценарий 20: Full system audit (ТОЛЬКО по запросу пользователя)
 ```
-CEO (01) → CTO (02) → Principal (03) → Static Analyst (30) → Tech Debt (49) → Audit (43) → Tech Writer (41)
+CEO (01) → CTO (02) → Principal (03) → Static Analyst (30) → Tech Debt (49) → Tech Writer (41)
 ```
 1. CEO: определяет scope
 2. CTO: архитектурный аудит
 3. Principal: quality audit
 4. Static Analyst: code patterns
 5. Tech Debt: приоритизация
-6. Audit: док vs код
-7. Tech Writer: отчёт
+6. Tech Writer: отчёт
+→ В автономном режиме этот сценарий НЕ запускается (анти-луп правила)
+
+---
+
+## 📋 КОММУНИКАЦИЯ ОФИСА — OFFICE BOARD
+
+**ФАЙЛ: `.cascade/office-board.md`** — доска задач и общения ролей.
+
+**КАК ЭТО РАБОТАЕТ (как настоящий IT-офис):**
+1. CEO (01) пишет стратегию на доску → адресует CTO (02)
+2. CTO (02) читает → пишет архитектурные задачи → адресует VP Eng (04)
+3. VP Eng (04) читает → расписывает по командам → адресует разработчикам
+4. Разработчик читает задачу → выполняет → отчитывается на доске → адресует QA
+5. QA (27) тестирует → отчитывается на доске → адресует Tech Writer
+6. Tech Writer (41) обновляет MATH_MODELS.md, CHANGELOG.md, отмечает ✅ DONE
+7. VP Eng (04) пишет итоги спринта + следующую модель
+8. → ВОЗВРАТ к шагу 1 (следующая модель из future_development.md)
+
+**ФОРМАТ СООБЩЕНИЯ НА ДОСКЕ:**
+```
+### [NN] Role Name → [NN] Role Name
+**Тема:** Краткое описание
+**Задача:** Что нужно сделать (конкретно: файлы, классы, методы)
+**Контекст:** Откуда задача, что уже сделано
+**Срок:** P0/P1/P2
+**Статус:** NEW / IN_PROGRESS / DONE / BLOCKED
+```
+
+**ПРАВИЛА ОБЩЕНИЯ:**
+- КАЖДАЯ роль пишет от своего лица — "Я, [NN] [Role Name], ..."
+- КАЖДАЯ задача имеет: от кого, кому, тему, описание, приоритет, статус
+- Статусы: NEW → IN_PROGRESS → DONE | BLOCKED
+- Когда DONE — исполнитель пишет кому передать дальше
+- Когда BLOCKED — исполнитель описывает проблему и просит помощи
+- Коммуникация ТОЛЬКО через office-board.md — не в воздух, не в мыслях
+- office-board.md обновляется КАЖДЫЙ спринт
 
 ---
 

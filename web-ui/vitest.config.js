@@ -11,15 +11,10 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     setupFiles: ['./src/test/setup.js'],
-    pool: 'forks',
+    pool: 'threads',
     isolate: true,
     maxWorkers: 2,
     minWorkers: 1,
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
     forceExit: true,
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     server: {

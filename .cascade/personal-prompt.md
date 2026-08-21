@@ -871,37 +871,38 @@ git add -A; git commit -m "<type>: <description>"; git push
 ФОРМАТ СООБЩЕНИЯ НА ДОСКЕ:
 
   ### [01] CEO → [02] CTO
-  **Тема:** Стратегия спринта 3
-  **Задача:** Проанализировать план разработки, определить архитектурные
-  приоритеты для Days 4-6. Реализовать недостающие модули.
-  **Контекст:** Day 3 завершён, нужно перейти к ML модулю и portfolio optimization.
+  **Тема:** Sprint 60 — следующая модель из future_development.md
+  **Задача:** 9-Day Plan завершён. Работаем по future_development.md.
+    Следующая модель без ✅ DONE: GARCH(1,1) (раздел 0.1).
+    CTO, подготовь архитектуру — файл, класс, зависимости.
+  **Контекст:** Sprint 59 завершён (DTW). future_development.md раздел 0.1.
   **Срок:** P0
   **Статус:** NEW
 
   ### [02] CTO → [04] VP Engineering
-  **Тема:** Архитектурные задачи спринта 3
+  **Тема:** Re: GARCH(1,1) — архитектурный план
   **Задача:** Распределить по командам:
-    - Quant Dev (07): реализовать LSTM модель (Day 4)
-    - Backend (37): реализовать portfolio rebalancing API (Day 5)
-    - ML Engineer (09): настроить ML pipeline (Day 4-5)
-    - QA (27): написать тесты для новых модулей
-  **Контекст:** CEO поручил Days 4-6. Архитектура в docs/ARCHITECTURE.md.
+    - Quant Dev (07): garch.py, класс GARCHModel, MLE оценка
+    - QA (27): test_garch.py (8 тестов)
+    - Tech Writer (41): MATH_MODELS.md, CHANGELOG.md, ✅ DONE
+  **Контекст:** future_development.md раздел 0.1. Паттерны: kalman.py, pca.py.
   **Срок:** P0
   **Статус:** NEW
 
   ### [04] VP Eng → [07] Quant Developer
-  **Тема:** Реализация LSTM модели
-  **Задача:** Создать ai-signal-bot/src/ml/lstm_model.py с классом LSTMModel.
-    Параметры: layers, hidden_size, dropout. Методы: train(), predict().
-    Type hints, docstrings, тесты.
-  **Контекст:** Day 4 плана. CTO определил архитектуру.
+  **Тема:** GARCH(1,1) модель
+  **Задача:** Создать ai-signal-bot/src/technical_analysis/garch.py.
+    Класс GARCHModel: fit(returns), forecast(horizon), update(data).
+    Прочитай web-ui/src/components/math/GARCH.jsx для формул.
+    Type hints, docstrings, файл <= 500 строк.
+  **Контекст:** future_development.md раздел 0.1. CTO определил архитектуру.
   **Срок:** P0
   **Статус:** NEW
 
   ### [07] Quant Developer → [27] QA
-  **Тема:** LSTM модель готова к тестированию
-  **Задача:** Протестировать lstm_model.py. Edge cases: пустой массив,
-    NaN, inf, разная длина последовательностей.
+  **Тема:** GARCH(1,1) готов к тестированию
+  **Задача:** Протестируй garch.py. Edge cases: пустой массив,
+    NaN, inf, 1 элемент, константные returns, нестационарный ряд.
   **Контекст:** Модель реализована, коммит a1b2c3d.
   **Срок:** P1
   **Статус:** IN_PROGRESS
@@ -922,105 +923,92 @@ git add -A; git commit -m "<type>: <description>"; git push
 ПОТОК ОБЩЕНИЯ (иерархия):
 
   CEO (01)
-    ↓ пишет стратегию
+    ↓ пишет стратегию (какая модель из future_development.md)
   CTO (02)
-    ↓ пишет архитектурные задачи
+    ↓ пишет архитектурные задачи (файлы, классы, зависимости)
   VP Eng (04)
-    ↓ расписывает по командам
+    ↓ расписывает по командам (кому делегировать)
   Team Leads: Backend (37), Frontend (33), Quant Dev (07), ML Eng (09),
               HFT (15), Risk (16), DevOps (21), QA (27), Data Eng (78)
     ↓ дают конкретные задачи
   Developers: Python Dev (39), C++ Dev (40), Test Auto (28), Bug Fixer (32),
               Refactoring (47), etc.
-    ↓ выполняют и отчитываются
+    ↓ выполняют и отчитываются на доске
   QA (27)
-    ↓ тестирует и отчитывается
+    ↓ тестирует и отчитывается на доске
   Tech Writer (41)
-    ↓ обновляет документацию
-  Audit (43)
-    ↓ проверяет соответствие плану
+    ↓ обновляет MATH_MODELS.md, CHANGELOG.md, отмечает ✅ DONE
+  → СЛЕДУЮЩАЯ МОДЕЛЬ из future_development.md (возврат к CEO)
 
 ПРИМЕР РЕАЛЬНОГО ДИАЛОГА НА ДОСКЕ:
 
   ### [01] CEO → [02] CTO
-  **Тема:** Sprint 5 — Day 5-6 плана
-  **Задача:** Команда, мы переходим к Day 5-6. Нужно реализовать
-    portfolio optimization и risk management improvements.
-    CTO, подготовь архитектурный план.
+  **Тема:** Sprint 60 — следующая модель из future_development.md
+  **Задача:** Команда, 9-Day Plan завершён. Работаем по future_development.md.
+    Следующая модель без ✅ DONE: GARCH(1,1) (раздел 0.1).
+    CTO, подготовь архитектуру — какой файл, какой класс, какие зависимости.
   **Срок:** P0
   **Статус:** NEW
 
   ### [02] CTO → [04] VP Engineering
-  **Тема:** Re: Sprint 5 — архитектурный план
+  **Тема:** Re: GARCH(1,1) — архитектурный план
   **Задача:** VP Eng, распредели:
-    - Quant Dev (07): Markowitz optimizer (ai-signal-bot/src/portfolio/markowitz.py)
-    - Risk Manager (16): VaR backtesting (Kupiec test в var_calculator.py)
-    - Backend (37): API endpoint /api/portfolio/optimize
-    - QA (27): тесты для Markowitz и VaR backtesting
-  **Контекст:** CEO поручил Day 5-6. Архитектура описана в ARCHITECTURE.md:142-160.
+    - Quant Dev (07): ai-signal-bot/src/technical_analysis/garch.py, класс GARCHModel
+      Методы: fit(returns), forecast(horizon), update(new_data)
+      Прочитать UI: web-ui/src/components/math/GARCH.jsx
+    - QA (27): тесты — test_garch.py (8 тестов: fit, forecast, edge cases)
+    - Tech Writer (41): MATH_MODELS.md — раздел GARCH, CHANGELOG.md
+  **Контекст:** future_development.md раздел 0.1. Паттерны: kalman.py, pca.py.
   **Срок:** P0
   **Статус:** NEW
 
   ### [04] VP Eng → [07] Quant Developer
-  **Тема:** Markowitz optimizer
-  **Задача:** Реализовать ai-signal-bot/src/portfolio/markowitz.py.
-    Класс MarkowitzOptimizer: min_variance(), max_sharpe(), efficient_frontier().
-    Формулы в docs/MATH_MODELS.md. Type hints, docstrings, тесты.
-  **Срок:** P0
-  **Статус:** NEW
-
-  ### [04] VP Eng → [16] Risk Manager
-  **Тема:** VaR backtesting (Kupiec)
-  **Задача:** Добавить Kupiec POF test в var_calculator.py.
-    Метод: kupiec_test(returns, var_estimates, alpha=0.05) -> KupiecResult.
-    Формула в docs/MATH_MODELS.md:VaR-Backtesting.
+  **Тема:** GARCH(1,1) модель
+  **Задача:** Реализовать ai-signal-bot/src/technical_analysis/garch.py.
+    Класс GARCHModel: MLE оценка omega, alpha, beta. forecast(horizon) -> vol.
+    Прочитай web-ui/src/components/math/GARCH.jsx для формул.
+    Прочитай ai-signal-bot/src/technical_analysis/kalman.py для паттерна.
+    Type hints, docstrings, файл <= 500 строк.
   **Срок:** P0
   **Статус:** NEW
 
   ### [07] Quant Developer → [27] QA
-  **Тема:** Markowitz optimizer готов
-  **Задача:** Протестируй markowitz.py. Edge cases: 1 актив, 2 актива,
-    корреляция = 1, корреляция = -1, NaN в returns.
-  **Контекст:** Коммит f3e4d5c. Все методы работают.
-  **Срок:** P1
-  **Статус:** IN_PROGRESS
-
-  ### [16] Risk Manager → [27] QA
-  **Тема:** Kupiec test готов
-  **Задача:** Протестируй kupiec_test(). Edge cases: пустой массив,
-    все пробои, 0 пробоев.
-  **Контекст:** Коммит a7b8c9d.
+  **Тема:** GARCH(1,1) готов к тестированию
+  **Задача:** Протестируй garch.py. Edge cases: пустой массив, NaN, inf,
+    1 элемент, константные returns, нестационарный ряд.
+  **Контекст:** Коммит a1b2c3d. Модель работает на BTC/USDT 5m данных.
   **Срок:** P1
   **Статус:** IN_PROGRESS
 
   ### [27] QA → [41] Tech Writer
-  **Тема:** Тесты для Markowitz и Kupiec готовы
-  **Задача:** Обнови MATH_MODELS.md — добавь раздел Markowitz и Kupiec.
-    Обнови CHANGELOG.md.
+  **Тема:** Тесты для GARCH готовы
+  **Задача:** Обнови MATH_MODELS.md — добавь раздел GARCH(1,1).
+    Обнови CHANGELOG.md. Отметь ✅ DONE в future_development.md.
   **Контекст:** 8 тестов написано, все проходят.
   **Срок:** P2
   **Статус:** NEW
 
   ### [04] VP Eng → ALL
-  **Тема:** Sprint 5 завершён
-  **Сообщение:** Команда, спринт 5 завершён.
-    - Markowitz optimizer: DONE (Quant Dev 07)
-    - Kupiec VaR test: DONE (Risk Manager 16)
-    - API endpoint: DONE (Backend 37)
+  **Тема:** Sprint 60 завершён
+  **Сообщение:** Команда, спринт 60 завершён.
+    - GARCH(1,1): DONE (Quant Dev 07)
     - Тесты: DONE (QA 27, 8 тестов)
     - Документация: DONE (Tech Writer 41)
-    Коммитов: 6. Фич реализовано: 3. Багов найдено: 0.
-    Переходим к Sprint 6 — Day 7 плана.
+    - future_development.md: ✅ GARCH(1,1) отмечен
+    Коммитов: 3. Моделей реализовано: 1.
+    Следующая модель: Copula (раздел 0.1). Продолжаем.
   **Статус:** INFO
 
 ОБЯЗАТЕЛЬНО:
-  - В НАЧАЛЕ каждого спринта: CEO пишет стратегию на доску
-  - CTO читает и пишет архитектурные задачи
-  - VP Eng читает и расписывает по командам
-  - Team Leads читают и дают конкретные задачи разработчикам
-  - Разработчики выполняют и отчитываются на доске
-  - В КОНЦЕ спринта: VP Eng пишет итоги на доску
+  - В НАЧАЛЕ каждого спринта: CEO пишет стратегию на доску (какая модель из future_development.md)
+  - CTO читает и пишет архитектурные задачи (файлы, классы, зависимости)
+  - VP Eng читает и расписывает по командам (кому делегировать)
+  - Разработчик читает задачу, реализует, отчитывается на доске → адресует QA
+  - QA тестирует, отчитывается на доске → адресует Tech Writer
+  - Tech Writer обновляет MATH_MODELS.md + CHANGELOG.md, отмечает ✅ DONE
+  - В КОНЦЕ спринта: VP Eng пишет итоги + следующую модель на доске
   - Файл .cascade/office-board.md обновляется КАЖДЫЙ спринт
+  - Коммуникация ТОЛЬКО через office-board.md — не в воздух, не в мыслях
 
 ═══════════════════════════════════════════════════════════
 БЛОК 12: АВТОНОМНЫЙ РЕЖИМ — 3 ФАЗЫ, 10 ШАГОВ
