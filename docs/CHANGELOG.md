@@ -216,6 +216,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 105: Cameron-Martin Port
+
+### Added — Cameron-Martin Formula (Sprint 105)
+- Created `ai-signal-bot/src/research/cameron_martin.py` — Gaussian shift theorem ported from UI-only `CameronMartinFormula.jsx` into trading logic
+- RN derivative d(μ_h)/d(μ) = exp(<h,x> - ½||h||²); inner product <h,x> = Σ h_t·x_t/σ², norm ||h||² = Σ h_t²/σ²
+- Four shift modes: constant (2μ), linear (μ(1+t/n)), sinusoidal (2μ·sin(2πt/20)), mixed (μ(1+0.5·sin(t/10)))
+- Sliding-window log-RN ratio (step = windowSize/5); optimal shift = window mean; shift efficiency
+- RN density on grid; cumulative log-RN trajectory
+- Signal: STRONG_DRIFT_ALIGNMENT (logRN > 2) / DRIFT_PRESENT (> 0.5) / ANTI_DRIFT (< -2) / NO_DRIFT_SHIFT
+- 32 new tests in `tests/test_cameron_martin.py` (shift functions, RN derivative, drift detection, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

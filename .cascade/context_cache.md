@@ -75,16 +75,17 @@
 - ✅ Riesz Representation (Sprint 102, расширенная таблица)
 - ✅ Banach Fixed-Point (Sprint 103, расширенная таблица)
 - ✅ Hahn Decomposition (Sprint 104, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 51 модель**
+- ✅ Cameron-Martin (Sprint 105, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 52 модели**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Cameron-Martin
-**UI файл:** web-ui/src/components/CameronMartinFormula.jsx
-**Python файл:** ai-signal-bot/src/research/cameron_martin.py
-**Паттерны:** hahn.py (Sprint 104), girsanov.py (Sprint 88)
-**Спринт:** 105
+**Модель:** Radon-Nikodym
+**UI файл:** web-ui/src/components/RadonNikodymDerivative.jsx
+**Python файл:** ai-signal-bot/src/research/radon_nikodym.py
+**Паттерны:** cameron_martin.py (Sprint 105), girsanov.py (Sprint 88)
+**Спринт:** 106
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 104:** Ported Hahn Decomposition from UI to trading logic (research/hahn.py). Jordan decomposition, SNR, 47 new tests. 51 модель всего.
+**Sprint 105:** Ported Cameron-Martin from UI to trading logic (research/cameron_martin.py). Gaussian shift RN derivative, 32 new tests. 52 модели всего.

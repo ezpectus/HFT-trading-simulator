@@ -845,6 +845,22 @@ signed measure; rolling decomposition (window 30, step 7) with
 WEAK_SIGNAL (SNR > 1.2), BALANCED.
 - **Source:** `ai-signal-bot/src/research/hahn.py` (Sprint 104, ported from UI-only HahnDecomposition.jsx)
 
+### Cameron-Martin Formula — Trading logic
+Gaussian shift theorem for drift-aware signal detection.
+```
+Cameron-Martin: μ_h(A) = μ(A - h) << μ iff h ∈ H_μ (CM space)
+RN derivative: d(μ_h)/d(μ) = exp(<h, x>_μ - 1/2·||h||²_μ)
+Inner product: <h, x> = Σ h_t·x_t/σ²;  Norm: ||h||² = Σ h_t²/σ²
+Shift modes: constant h=2μ, linear h=μ(1+t/n),
+             sinusoidal h=2μ·sin(2πt/20), mixed h=μ(1+0.5·sin(t/10))
+```
+Baseline Gaussian (μ₀, σ₀) from all returns; sliding-window log-RN
+ratio (step = windowSize/5); optimal shift = window mean; shift
+efficiency; RN density on grid; cumulative log-RN trajectory.
+Signal: STRONG_DRIFT_ALIGNMENT (logRN > 2), DRIFT_PRESENT (> 0.5),
+ANTI_DRIFT (< -2), NO_DRIFT_SHIFT.
+- **Source:** `ai-signal-bot/src/research/cameron_martin.py` (Sprint 105, ported from UI-only CameronMartinFormula.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

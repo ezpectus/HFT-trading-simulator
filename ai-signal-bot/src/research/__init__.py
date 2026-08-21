@@ -30,6 +30,12 @@ from src.research.burgers import (
     shock_threshold,
     solve_burgers,
 )
+from src.research.cameron_martin import (
+    CmResult,
+    cameron_martin_analysis,
+    compute_returns as cm_compute_returns,
+    shift_function,
+)
 from src.research.ccm import (
     EDMResult,
     ccm,
@@ -296,4 +302,5 @@ __all__ = [
     "contraction_constant", "fixed_point_iteration", "banach_compute_returns",
     "HahnResult", "hahn_analysis", "hahn_decomposition", "hahn_signal",
     "rolling_decomposition", "hahn_compute_returns",
+    "CmResult", "cameron_martin_analysis", "shift_function", "cm_compute_returns",
 ]
