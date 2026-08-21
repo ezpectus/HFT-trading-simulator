@@ -4,6 +4,69 @@ Guide to the monitoring and observability stack: Prometheus, Grafana, Alertmanag
 
 ---
 
+## Theory: Observability — three pillars and why each matters
+
+### Monitoring vs Observability
+
+**Monitoring:** You know what happened (after the fact). Alerts,
+dashboards. Reactive.
+
+**Observability:** You know why it happened (can debug). Metrics +
+logs + traces. Proactive + reactive.
+
+**Observability = Monitoring + Debugging capability**
+
+### Three pillars of observability
+
+| Pillar | What | Tool | Cardinality | Use case |
+|--------|------|------|-------------|----------|
+| **Metrics** | Numeric time series | Prometheus | Low (aggregated) | "P99 latency = 500us", "signals/sec = 10" |
+| **Logs** | Discrete events | structlog (JSON) | High (per-event) | "Order BTC/USDT BUY 0.05 filled at 65000" |
+| **Traces** | Request flow | OpenTelemetry + Jaeger | Medium (per-request) | "Signal → Risk → Order → Fill: 45ms total" |
+
+**Why all three?** Metrics show WHAT (latency spike). Logs show
+WHEN (which order). Traces show WHERE (which component). Without
+all three — you cannot debug.
+
+### Prometheus pull model — theory
+
+**Pull (Prometheus):** Server scrapes `/metrics` endpoint every 15s.
+- Server controls rate (backpressure)
+- No agent on target (just HTTP endpoint)
+- Service discovery (knows what to scrape)
+- Simpler security (no inbound from services)
+
+**Push (StatsD/Datadog):** Services push metrics to agent.
+- Lower latency (push immediately, don't wait 15s)
+- No scrape configuration
+- But: agent needed on each host, potential for push storms
+
+**For trading:** Pull is sufficient. 15s interval is fine for system
+health. Latency-sensitive metrics (P99) use histograms, not real-time.
+
+### Histogram vs Summary
+
+**Histogram:** Fixed buckets (10us, 50us, 100us, 500us, 1ms).
+`histogram_quantile()` computes percentiles. Aggregatable across
+instances. **Use for P50/P95/P99.**
+
+**Summary:** Client-side percentiles. Cannot aggregate. Higher
+client overhead. **Use for P99.9 when bucket boundaries are unknown.**
+
+### Alert design — theory
+
+**Alert fatigue:** Too many alerts → developers ignore them.
+Solution: alert only on actionable, sustained conditions.
+
+- `for: 5m` — condition must persist 5 minutes. Prevents flapping.
+- Severity: Critical (page), Warning (ticket), Info (log).
+- Runbook: Every alert has a runbook (what to do).
+
+**For trading:**
+- `CircuitBreakerOpen: for 0m` — immediate. Trading stopped.
+- `HighLatency: P99 > 1ms for 5m` — sustained. Not a transient spike.
+- `HighDrawdown: > 5% for 1m` — financial risk. Short window.
+
 ## Overview
 
 The system provides full observability through:
@@ -12,7 +75,22 @@ The system provides full observability through:
 - **Grafana** — 5 pre-built dashboards for real-time visualization
 - **Alertmanager** — alert routing to email, Slack, Discord
 - **OpenTelemetry** — distributed tracing with Jaeger export
+- **eBPF** — kernel-level system observability with minimal overhead
 - **Health checks** — HTTP endpoints for Kubernetes liveness/readiness
+- **Structured logging** — JSON logs with correlation IDs via structlog
+
+### Why Observability?
+
+In a distributed trading system with 4+ components, you need to know:
+- **Is the system healthy?** — health checks + Grafana dashboards
+- **Are signals being generated?** — Prometheus counters
+- **What's the latency?** — Histogram percentiles (P50/P95/P99)
+- **Where is time spent?** — Jaeger distributed traces
+- **Are we losing money?** — Real-time PnL and drawdown gauges
+- **Is the system under stress?** — eBPF kernel-level metrics
+
+Without observability, you're flying blind. In trading, undetected issues
+mean lost money — sometimes millions in minutes.
 
 **Monitoring directory:** `monitoring/`
 
@@ -189,6 +267,59 @@ await health.start()
 health.register_check("exchange", check_exchange_connection)
 health.register_check("database", check_db_connection)
 ```
+
+---
+
+## eBPF Monitoring
+
+**Source:** `monitoring/ebpf_monitor.py`
+
+**Why eBPF?** Traditional monitoring uses application-level metrics, which miss
+kernel-level events. eBPF (Extended Berkeley Packet Filter) runs sandboxed programs
+in the Linux kernel with near-zero overhead, capturing system events that are
+invisible to application-level monitoring.
+
+**What it tracks:**
+
+| Metric | Description | Why it matters |
+|--------|-------------|----------------|
+| Syscall latency | Time spent in kernel syscalls | Detects I/O bottlenecks |
+| Network packet latency | Packet processing time | Detects network issues |
+| CPU cache misses | L1/L2/L3 cache miss rate | Detects poor data locality |
+| Memory allocations | Allocation rate and size | Detects memory pressure |
+| Thread scheduling latency | Time waiting for CPU | Detects contention |
+| File I/O latency | Disk read/write latency | Detects storage bottlenecks |
+
+**Overhead:** <0.1% CPU — safe for production HFT systems.
+
+```bash
+# Run eBPF monitor (requires Linux with BPF support)
+sudo python monitoring/ebpf_monitor.py --interval 5
+```
+
+---
+
+## Structured Logging
+
+**Source:** `ai-signal-bot/src/observability/logging.py`
+
+**Why structured logging?** Plain text logs are hard to parse and search. Structured
+logging (JSON format) enables:
+
+- **Log aggregation** — ship to ELK, Loki, or Datadog
+- **Correlation IDs** — trace a single request across services
+- **Field-level search** — filter by `symbol`, `strategy`, `confidence`, etc.
+- **Machine parsing** — automated alerting on log patterns
+
+**Implementation:** Uses `structlog` with JSON renderer:
+
+```json
+{"event": "signal_generated", "symbol": "BTC/USDT", "direction": "LONG",
+ "confidence": 78.5, "strategy": "trend_following", "timestamp": "2026-08-21T15:30:00Z",
+ "correlation_id": "abc-123-def"}
+```
+
+Fallback to standard logging if `structlog` is not installed.
 
 ---
 

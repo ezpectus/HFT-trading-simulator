@@ -2,6 +2,54 @@
 
 This document describes all WebSocket message types exchanged between the three system components.
 
+## Theory: Why WebSocket instead of HTTP polling or REST?
+
+### WebSocket vs HTTP for real-time trading
+
+**HTTP polling:** Client requests data from server every N seconds.
+- Latency: N/2 average (half the polling interval)
+- Overhead: HTTP headers (~500 bytes) per request
+- Connections: new TCP connection per request (or keep-alive)
+- Server push: impossible — client must poll
+
+**WebSocket:** Persistent bidirectional connection.
+- Latency: ~1ms (message push, no polling delay)
+- Overhead: ~2-10 bytes per frame (no HTTP headers after handshake)
+- Connections: one TCP connection, reused
+- Server push: native — server pushes data immediately
+
+**For trading:** WebSocket is the only viable option. HTTP polling
+with 1s interval = 500ms average latency = too slow for HFT.
+WebSocket = ~1ms push latency.
+
+### Protocol design principles
+
+**1. Message-based, not stream-based:**
+Each message is a self-contained JSON object with a `type` field.
+Easy to parse, route, debug. Alternative: binary protocol (faster,
+but harder to debug). This project: JSON for dev, MessagePack
+optionally for production.
+
+**2. Protocol versioning:**
+`protocol_version: 2` in subscribe message. Server can support
+multiple versions. Client and server negotiate version on connect.
+
+**3. Snapshot + updates pattern:**
+- `snapshot`: Full state at subscribe time (all candles, order book)
+- `update`: Incremental changes (new candle, order book delta)
+- This is **delta encoding** — instead of sending full state each time,
+  only changes. Saves bandwidth, reduces latency.
+
+**4. Sync/reconnect pattern:**
+`sync_state` with `last_timestamp` → server sends missed data.
+Handles network disconnections gracefully. Critical for trading —
+a missed candle = a missed signal = a missed trade.
+
+**5. Encoding negotiation:**
+`encoding: "json"` (default) or `"msgpack"` (binary).
+JSON: human-readable, easy debug. MessagePack: 3-5x faster,
+30-40% smaller. Production → MessagePack. Dev → JSON.
+
 ## Connections
 
 | Source | Destination | URL | Purpose |

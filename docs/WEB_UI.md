@@ -2,6 +2,70 @@
 
 Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **227 React components**, **204 registered panels** across 7 categories, **75+ advanced mathematical model components**, **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
 
+## Theory: UI architecture and why this stack
+
+### React — why not vanilla JS or Vue/Angular?
+
+**Declarative vs imperative:** React: "UI = f(state)". Change
+state → React updates DOM. Vanilla JS: manually manipulate DOM
+(error-prone, hard to maintain).
+
+**Component model:** UI is split into reusable components. Composition
+over inheritance. 227 components = modular, testable, reusable.
+
+**Virtual DOM:** React diffs the virtual DOM, applies minimal real DOM
+updates. For 204 panels with real-time updates — critical performance.
+
+**Ecosystem:** React 18 concurrent rendering, hooks, Context API,
+React.lazy (code splitting). Mature ecosystem (TradingView charts,
+TailwindCSS, Lucide icons, shadcn/ui).
+
+### Vite — why not Create React App / Webpack?
+
+**Vite:** ES modules native dev server. Instant HMR (Hot Module
+Replacement). No bundling in dev — native ESM. Fast builds (esbuild).
+
+**CRA/Webpack:** Bundle-based. Slow dev startup (rebuild entire
+bundle). Slow HMR. Vite = 10-100x faster dev experience.
+
+### Real-time architecture — WebSocket bidirectional
+
+**Polling vs WebSocket:** (See WEBSOCKET_PROTOCOL.md theory)
+WebSocket = persistent bidirectional. UI receives real-time
+candles, order book, signals, fills. UI sends orders,
+backtest requests.
+
+**Context API for global state:**
+- ExchangeContext: current exchange, symbols, candles
+- SignalContext: AI signals, bot status
+- OrderContext: positions, fills, balance
+- ThemeContext: dark/light, accent colors
+
+**React.lazy + Suspense:** Code splitting. 204 panels = not all
+needed simultaneously. Lazy load = initial bundle smaller. Suspense
+fallback = loading spinner.
+
+### Registry pattern — 204 panels
+
+**Registry:** Single file registers all 204 panels. Adding a panel =
+1 entry, 0 changes to App.jsx. Open-Closed Principle (SOLID).
+
+**Categories:** Trading, Order Flow, Technical Analysis, Math Models,
+Risk, Portfolio, System. Each panel = self-contained component.
+
+### PWA — Progressive Web App
+
+**PWA:** Installable, offline-capable, push notifications.
+- Service worker: cache static assets, offline fallback
+- Web manifest: installable on desktop/mobile
+- For a trading dashboard: quick access, app-like experience
+
+### Accessibility — WCAG AA
+
+**WCAG AA:** Web Content Accessibility Guidelines. Keyboard
+navigation, screen reader support, color contrast >= 4.5:1.
+Trading dashboards must be accessible to all users.
+
 ## Features
 
 ### Core Trading

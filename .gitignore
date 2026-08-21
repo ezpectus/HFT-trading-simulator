@@ -157,10 +157,9 @@ api_keys/
 .env.prod
 
 # ─── Cascade AI workspace (internal, not for public repo) ───
-.cascade/tasks/
-.cascade/proposals/
+.cascade/
 
-# ─── Internal docs (not for public repo) ───
+# ─── Internal docs (deleted — content absorbed into public docs) ───
 docs/FUTURE_TODO.md
 docs/PROGRESS.md
 docs/AUDIT_2025.md
@@ -169,22 +168,6 @@ docs/ARCHITECTURE_ROADMAP.md
 docs/PLANNING_NON_TECHNICAL.md
 docs/HFT_OPTIMIZATION_IDEAS.md
 docs/MASTERPLAN.md
-docs/PROJECT_OVERVIEW.md
-docs/9_DAY_DEVELOPMENT_PLAN.md
-docs/PERFORMANCE_OPTIMIZATION.md
-docs/CHANGELOG.md
-docs/future_development.md
-docs/MATH_MODELS.md
-docs/PERFORMANCE.md
-docs/MACHINE_LEARNING.md
-docs/FAQ.md
-docs/TROUBLESHOOTING.md
-docs/openapi_ws.json
-docs/EXCHANGE_SIMULATOR.md
-docs/OPTIONS_TRADING.md
-docs/PORTFOLIO_OPTIMIZATION.md
-docs/AUDIT_LOGGING.md
-docs/CONFIGURATION_REFERENCE.md
 audit/
 
 # ─── Root-level internal .md files (not for public repo) ───

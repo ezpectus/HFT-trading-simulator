@@ -2,6 +2,61 @@
 
 This document describes the advanced order types implemented in the HFT Trading System.
 
+## Theory: Why different order types exist
+
+### Market microstructure — execution quality
+
+Order type determines **execution quality**: price, speed, certainty.
+There is no "best" order type — each is optimized for different conditions.
+
+**Trade-off triangle:**
+```
+        Speed (immediate fill)
+       / \
+      /   \
+     /     \
+  Price    Certainty
+(good price)  (guaranteed fill)
+```
+
+- **Market order:** Speed + Certainty, sacrifice Price (slippage)
+- **Limit order:** Price + no Certainty (may not fill)
+- **Stop-Limit:** Price control after trigger, no Certainty
+- **FOK:** Certainty (all or nothing), sacrifice Price (market)
+- **IOC:** Speed, partial Certainty, may not fill completely
+- **PostOnly:** Price (maker fee), no Certainty (may be rejected)
+
+### Why each order type exists
+
+| Order Type | Why it exists | When to use |
+|------------|--------------|-------------|
+| **Market** | Immediate execution. Certainty of fill. | Urgent entry/exit. High confidence signal. |
+| **Limit** | Price control. No slippage. May not fill. | Precise entry/exit. Low urgency. |
+| **Stop-Limit** | Trigger + price control. Stop loss with limit. | Stop loss where price control matters. Risk: may not fill if price gaps. |
+| **Trailing Stop** | Dynamic stop that follows price. Locks profit. | Trend following. Let profits run, cut losses. |
+| **OCO** | Automatic cancellation of opposite order. | TP + SL simultaneously. One fills → other cancelled. |
+| **Iceberg** | Hide large order size. Minimize market impact. | Large institutional orders. Stealth execution. |
+| **FOK** | All-or-nothing. No partial fills. | When partial fill is worse than no fill (hedge leg). |
+| **IOC** | Take liquidity, cancel remainder. | Aggressive entry. Take what's available, cancel rest. |
+| **GTD** | Time-limited order. Auto-cancel after timeout. | Limit order with patience limit. Wait for price, then give up. |
+| **PostOnly** | Maker-only. Earn maker fee. Never take liquidity. | Passive entry. Provide liquidity, earn spread. |
+
+### Market impact theory (Kyle, 1985)
+
+Large orders move price against the trader:
+```
+ΔP = λ × Q
+```
+- λ = Kyle's lambda (market impact coefficient)
+- Q = order quantity
+
+**Iceberg orders** reduce market impact: visible quantity small →
+market doesn't know true order size → less front-running.
+
+**Almgren-Chriss optimal execution:** Split large order into N
+smaller orders over time. Balance market impact (permanent) vs
+timing risk (volatility over execution horizon).
+
 ## Overview
 
 The system supports the following advanced order types beyond basic Market and Limit orders:

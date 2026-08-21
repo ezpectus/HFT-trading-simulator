@@ -2,6 +2,56 @@
 
 This document provides comprehensive deployment instructions for the HFT Trading System with all new features from Phases 1-7.
 
+## Theory: Deployment strategies and why different environments
+
+### Dev / Staging / Prod — why three?
+
+**Dev (Docker Compose):** Single-host, minimal resources. For
+development and testing. Fast iteration. No redundancy.
+
+**Staging (Docker Compose prod config):** Mirror of prod, but with
+mock data. For integration testing before prod deploy.
+
+**Prod (Kubernetes + Helm):** Multi-host, self-healing, rolling
+updates. High availability. Resource limits per pod.
+
+### Docker vs Kubernetes — when to use which?
+
+**Docker Compose (dev):**
+- Single host, simple, fast startup
+- `docker-compose up` = everything works
+- No self-healing, no auto-scaling
+- Sufficient for development
+
+**Kubernetes (prod):**
+- Multi-host, fault-tolerant
+- Pod crashes → auto-restart
+- Node fails → pods rescheduled
+- Rolling updates: zero-downtime deploy
+- HPA: auto-scale based on CPU/memory
+- Resource quotas: guaranteed resources per service
+
+### Blue-green vs Rolling deployment
+
+**Rolling (Kubernetes default):** Gradually replace old pods with
+new. Zero downtime, but old + new versions coexist briefly.
+
+**Blue-green:** Two identical environments (blue = current, green =
+new). Switch traffic all at once. Instant rollback (switch back).
+Requires 2x resources.
+
+**For trading:** Rolling is simpler and sufficient. Blue-green is for
+critical updates (e.g., strategy change) where old + new coexistence
+is problematic (double signals).
+
+### Infrastructure as Code (Terraform)
+
+**Why IaC, not manual AWS console?**
+- **Reproducibility:** `terraform apply` = identical environment
+- **Version control:** Infrastructure changes tracked in git
+- **DRY:** Modules (EKS, RDS, ElastiCache) reused across envs
+- **Rollback:** `git revert` + `terraform apply`
+
 ## Overview
 
 The HFT Trading System consists of 4 main components:
@@ -186,6 +236,115 @@ npm run build
 # Serve with nginx or similar
 npm run preview
 ```
+
+### Option 3: Kubernetes (Helm)
+
+**Why Kubernetes?** For production deployments requiring auto-scaling, self-healing,
+rolling updates, and centralized management across multiple nodes.
+
+#### 1. Configure Helm Values
+
+```bash
+# Edit values for your environment
+vi helm/values.yaml
+```
+
+Key values:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `exchangeSimulator.enabled` | true | Enable exchange simulator |
+| `aiSignalBot.enabled` | true | Enable AI signal bot |
+| `hftTradeBot.enabled` | true | Enable HFT trade bot |
+| `webUi.enabled` | true | Enable web UI |
+| `postgresql.enabled` | true | Enable PostgreSQL (prod) |
+| `redis.enabled` | true | Enable Redis (feature store) |
+| `prometheus.enabled` | true | Enable Prometheus |
+| `grafana.enabled` | true | Enable Grafana |
+
+#### 2. Deploy with Helm
+
+```bash
+# Install the chart
+helm install hft ./helm
+
+# Or with custom values
+helm install hft ./helm -f my-values.yaml
+
+# Upgrade
+helm upgrade hft ./helm
+
+# Uninstall
+helm uninstall hft
+```
+
+#### 3. Verify Kubernetes Deployment
+
+```bash
+kubectl get pods
+kubectl get services
+kubectl logs -f deployment/hft-ai-signal-bot
+```
+
+### Option 4: Terraform (AWS)
+
+**Why Terraform?** Provisions cloud infrastructure (EKS, RDS, ElastiCache) as code,
+enabling reproducible, version-controlled infrastructure.
+
+#### 1. Initialize Terraform
+
+```bash
+cd terraform/environments/dev
+terraform init
+```
+
+#### 2. Review the Plan
+
+```bash
+terraform plan
+```
+
+Resources provisioned:
+
+| Resource | Type | Purpose |
+|----------|------|---------|
+| EKS Cluster | `aws_eks_cluster` | Kubernetes cluster for containers |
+| EKS Node Group | `aws_eks_node_group` | Worker nodes |
+| RDS PostgreSQL | `aws_db_instance` | Production database |
+| ElastiCache Redis | `aws_elasticache_cluster` | ML feature store, cache |
+| S3 Bucket | `aws_s3_bucket` | Backup storage |
+| IAM Roles | `aws_iam_role` | Service permissions |
+
+#### 3. Apply
+
+```bash
+terraform apply
+```
+
+#### 4. Configure kubectl
+
+```bash
+aws eks update-kubeconfig --name hft-dev-cluster
+kubectl get nodes
+```
+
+#### 5. Deploy Application
+
+```bash
+helm install hft ./helm
+```
+
+### Option 5: CI/CD Pipeline
+
+GitHub Actions automates deployment on merge to main:
+
+| Workflow | Trigger | Action |
+|----------|---------|--------|
+| `ci.yml` | Push/PR | Lint, test, build, upload coverage |
+| `deploy.yml` | Tag push | Build Docker images, push to registry, deploy Web UI to Netlify |
+| `codeql.yml` | Schedule | Security analysis |
+
+See `.github/workflows/` for workflow definitions.
 
 ## Configuration
 

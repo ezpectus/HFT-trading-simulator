@@ -2,6 +2,69 @@
 
 This document describes the REST API endpoints for the HFT Trading System components.
 
+## Theory: REST API design and why REST + WebSocket
+
+### REST vs WebSocket — complementary, not competing
+
+**REST (HTTP):** Request-response. Stateless. Good for:
+- One-time queries (get symbols, get account, get history)
+- Commands (submit order, cancel order)
+- Health checks
+
+**WebSocket:** Persistent bidirectional. Good for:
+- Real-time streams (candles, order book, fills)
+- Push notifications (signals, alerts)
+
+**This project uses both:** REST for queries/commands, WebSocket
+for real-time data. This is the standard pattern (Binance, Coinbase,
+CME all use REST + WS).
+
+### REST principles (Fielding, 2000)
+
+**REST = Representational State Transfer:**
+1. **Stateless:** Each request is self-contained. Server does not store
+   client state between requests. Scale horizontally (any server
+   handles any request).
+2. **Client-Server:** Separation of concerns. UI does not know storage.
+3. **Cacheable:** Responses explicitly cacheable or not. `Cache-Control`
+   headers. Reduces latency, server load.
+4. **Uniform interface:** Resources identified by URL. HTTP methods
+   (GET/POST/PUT/DELETE) have semantic meaning.
+5. **Layered:** Client does not know how many layers are between it
+   and the server. Load balancer, cache, API gateway — transparent.
+
+### API versioning — theory
+
+**`/api/v1/...`:** Version in URL. Breaking changes = new version
+(`/api/v2/...`). Old version maintained for backward compatibility.
+
+**Why versioning:** API consumers (Web UI, external tools) should not
+break on server update. v1 → v2 migration period.
+
+### HTTP status codes for trading API
+
+| Code | Meaning | Trading context |
+|------|---------|-----------------|
+| 200 | OK | Successful query, order submitted |
+| 201 | Created | Order created, position opened |
+| 400 | Bad Request | Invalid order params, missing field |
+| 401 | Unauthorized | Missing/invalid API key |
+| 403 | Forbidden | Insufficient margin, risk limit exceeded |
+| 404 | Not Found | Symbol not found, order not found |
+| 409 | Conflict | Duplicate order, position already exists |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Error | Server bug, unexpected failure |
+| 503 | Service Unavailable | Exchange down, maintenance |
+
+### Idempotency — theory
+
+**Idempotency:** Same request twice = same result. Critical for
+trading: network failure → retry → do not want double order.
+
+**Solution:** Client-generated `client_order_id`. Server checks:
+if `client_order_id` already exists → return original result, do not
+create new order. Prevents duplicate execution on retry.
+
 ## Base URLs
 
 | Component | Base URL |

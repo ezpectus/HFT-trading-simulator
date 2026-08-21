@@ -4,6 +4,81 @@ Guide to the testing infrastructure across all components of the HFT Trading Sys
 
 ---
 
+## Theory: Test pyramid and trading-specific testing
+
+### Test pyramid (Cohn, 2009)
+
+```
+        E2E (few)           — Playwright browser tests
+       /          \
+    Integration (some)      — WebSocket flow, backtest pipeline
+   /                \
+  Unit (many)              — indicators, strategies, risk, PnL
+ /                      \
+Static (all)               — ruff, eslint, clang-format, rustfmt
+```
+
+**Why a pyramid, not an inverted (ice cream cone)?**
+- **Unit tests:** Fast (ms), isolated, deterministic. Find bugs in
+  individual functions. 118 Python + 46 C++ + 44 JS = 208 total.
+- **Integration tests:** Slower (seconds), test component interaction.
+  WebSocket connection, signal flow, backtest pipeline.
+- **E2E tests:** Slowest (minutes), test full user journey.
+  Playwright browser tests for Web UI.
+
+**Cost is inversely proportional to speed:** Unit tests are cheap to run,
+relatively expensive to write. E2E tests are expensive to run (slow),
+cheap to write. Pyramid = optimal cost/speed ratio.
+
+### Trading-specific testing challenges
+
+**1. Numerical precision:** Floating point ≠ exact.
+```python
+# Wrong:
+assert result == 0.1 + 0.2  # 0.30000000000000004
+# Right:
+assert abs(result - 0.3) < 1e-10
+```
+
+**2. Time-dependent logic:** Indicators depend on sequence order.
+Tests must use deterministic data, not random. Seeded RNG.
+
+**3. Stateful components:** Positions, equity, drawdown — stateful.
+Each test must reset state. `setUp()` / `tearDown()`.
+
+**4. Statistical tests:** Backtest results are stochastic.
+Bootstrap significance testing (BacktestComparison) for comparing
+strategies. Not a simple assert.
+
+**5. Property-based testing (Hypothesis):** Instead of writing
+specific test cases, generate random inputs satisfying properties.
+`@given(st.lists(st.floats()))` → test with 100+ random inputs.
+Finds edge cases a human wouldn't think of.
+
+### Walk-forward testing — theory
+
+**Walk-forward:** A method for detecting overfitting in strategy
+optimization. Split data into N windows:
+
+```
+Window 1: [Train IS] [Test OOS]
+Window 2:     [Train IS] [Test OOS]
+Window 3:         [Train IS] [Test OOS]
+```
+
+On each window: train on IS, test on OOS. If IS >> OOS →
+overfitting. Ratio IS/OOS > 2.0 = red flag. < 1.5 = acceptable.
+
+### Coverage theory
+
+**Line coverage:** % of lines executed. Necessary but insufficient.
+**Branch coverage:** % of branches taken. Better than line coverage.
+**Path coverage:** % of paths through code. Comprehensive but expensive.
+
+**For trading:** Focus on risk module coverage (100% branch),
+strategy edge cases (NaN, empty arrays, single element), and
+numerical precision (tolerance-based assertions).
+
 ## Overview
 
 The system has **208 test files** across three languages:

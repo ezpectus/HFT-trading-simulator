@@ -1,10 +1,72 @@
 # Architecture
 
+## Theory: Architectural patterns and why they were chosen
+
+### Microservices vs Monolith
+
+**Monolith:** One process, one language. Simple to deploy and debug.
+But: one crash = everything goes down. Cannot scale components
+independently. One language for all tasks = suboptimal.
+
+**Microservices:** Each service is independent. Different languages.
+Independent deploy, scaling, failure isolation. But: harder to deploy,
+debug, and manage IPC.
+
+**This project = polyglot microservices:** Python (AI), C++ (HFT),
+Rust (FFI), React (UI). Each language is optimized for its task.
+Trade-off: complexity in deployment, debugging, IPC — but latency
+requirements make this necessary.
+
+### Event-driven architecture
+
+Components communicate through **events** (WebSocket messages), not
+through direct function calls. Benefits:
+- **Decoupling:** Exchange Simulator doesn't know who receives data.
+  Broadcast → whoever listens.
+- **Scalability:** Adding a new subscriber = just connect to WS.
+  No changes to existing code.
+- **Failure isolation:** If AI Bot crashes, HFT Bot continues
+  working (fast path is autonomous).
+
+### Registry pattern for extensibility
+
+**Registry pattern:** Components are registered in a central registry,
+not hardcoded. Adding a component = 1 entry, 0 changes to existing code.
+- 204 UI panels registered in a single registry file
+- Strategies registered in the strategy registry
+- Exchanges registered in the exchange registry
+- Order types registered in the order type registry
+
+**Open-Closed Principle (SOLID):** Open for extension, closed for
+modification. Registry = implementation of this principle.
+
+### Dual signal path — theory
+
+**Fast path (C++, < 1ms):** Microstructure signals. OBI, pressure,
+EMA, RSI, ADX, VWAP — 6 indicators, O(1) each. ~15-25μs per analyze().
+For time-critical execution.
+
+**Slow path (Python, ~50ms):** Complex analysis. 10+ strategies,
+quant models, ML, ensemble voting, risk management. For thorough
+analysis.
+
+**Why both:** Fast path cannot do cointegration, ML, sentiment.
+Slow path cannot do sub-ms execution. Together = coverage of all
+timescales. This is **alpha diversification** — different signals
+from different data at different timescales.
+
+### Kleppmann principle — failure isolation
+
+Martin Kleppmann ("Designing Data-Intensive Applications"):
+failures in one component should not cascade. Each service runs
+independently and can be restarted without affecting others.
+Circuit breaker prevents cascade failures.
+
 ## Overview
 
 The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It includes a C++20 sub-millisecond signal engine, React-based UI, quant models in trading logic, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana.
 
-**Honest status:** ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface is implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection).
+**Status notes:** ML models (LSTM, Transformer, RL) are implemented but require trained weights before use. 60+ advanced math model components exist as React UI visualizations for educational purposes. SVI/SABR volatility surface is implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust FFI executor is experimental.
 
 ```mermaid
 graph TB
@@ -42,6 +104,27 @@ graph TB
     AI -->|Signals + Backtest Results| UI
 ```
 
+### Why This Architecture?
+
+**Polyglot microservices** — Each language is chosen for what it does best:
+- **Python** for AI/ML, quant models, and rapid strategy iteration
+- **C++20** for sub-millisecond execution where every microsecond matters
+- **Rust** for safe FFI bridging (experimental)
+- **React** for rich, interactive browser-based UI
+
+**WebSocket for inter-service communication** — Simple, bidirectional, language-agnostic.
+Each service runs independently and can be restarted without affecting others. This
+follows the Kleppmann principle: failures in one component do not cascade.
+
+**Dual signal path** — The AI Signal Bot (Python) provides deep analysis with 10+
+strategies, quant models, and risk management. The HFT Trade Bot (C++) provides
+microsecond reaction to order book changes. Together they cover both slow (thorough)
+and fast (reactive) signal generation.
+
+**Registry pattern for extensibility** — 204 panels in the Web UI are registered in
+a single registry file, not hardcoded. Adding a panel = 1 entry, 0 changes to App.jsx.
+Same pattern for strategies, exchanges, and order types.
+
 ## Components
 
 ### 1. Exchange Simulator (`exchange_simulator/`)
@@ -51,18 +134,7 @@ graph TB
 
 | Feature | Implementation |
 | --- | --- |
-| **Price Generation** | GBM (market_simulator.py) + advanced microstructure (market_microstructure.py): Student-t fat tails, Merton jump diffusion, Heston stochastic vol, Markov regime switching, U-shaped intraday vol. Plus: correlated multi-symbol, news events, market impact, slippage, partial fills |
-| **Price Feed Manager** | Multi-API integration (Binance, Coinbase Pro) with automatic failover and rate limiting |
-| **Symbols** | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, etc.) |
-| **Exchanges** | Binance, Bybit, OKX with distinct fee structures and slippage models |
-| **Order Types** | Market, Limit, Stop-Limit, Trailing Stop, OCO, Iceberg |
-| **Order Book** | Depth 20 with incremental delta updates for WebSocket streaming |
-| **Funding Rates** | Perpetual futures funding every 8 hours (96 candles at 5m TF) |
-| **Liquidation** | Partial liquidation at 50% before full liquidation |
-| **Audit Logging** | Comprehensive audit logging for all system events with file persistence |
-| **WebSocket** | Delta updates, symbol subscription filtering, rate limiting per client |
-|---------|---------------|
-| Price generation | GBM (market_simulator.py) + Student-t/Merton/Heston/Markov regime (market_microstructure.py), correlated multi-symbol, news events, market impact, slippage, partial fills |
+| **Price generation** | GBM (market_simulator.py) + Student-t/Merton/Heston/Markov regime (market_microstructure.py), correlated multi-symbol, news events, market impact, slippage, partial fills |
 | Real-time price feeds | Multi-API integration (Binance, Coinbase Pro) with automatic failover, rate limiting, caching |
 | Microstructure | Student-t fat tails (df=4), Merton jump diffusion, Heston stochastic vol (kappa=2, theta=0.04), Markov regime switching (4-state), U-shaped intraday vol |
 | Options | Black-Scholes pricing, Binomial Tree, Greeks, implied vol (Newton-Raphson), Options strategies (Straddle, Strangle, Iron Condor, Butterfly) |
