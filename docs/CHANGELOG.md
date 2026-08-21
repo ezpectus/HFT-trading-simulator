@@ -34,6 +34,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 92: Malliavin Calculus Port
+
+### Added — Malliavin Calculus (Sprint 92)
+- Created `ai-signal-bot/src/research/malliavin.py` — sensitivity (Greeks) estimation ported from UI-only `MalliavinCalculus.jsx` into trading logic
+- GBM path simulation with seeded Box-Muller RNG; σ, μ annualized from returns
+- Malliavin integration-by-parts weights: Δ = E[e^{-rT}·1{S_T>K}·(W_T/(S₀σT))], ν = E[e^{-rT}·(S_T-K)⁺·((W_T²-T)/(2σT) - W_T/σ)], Γ (simplified second-order weight)
+- Analytical Black-Scholes price + Greeks (Abramowitz-Stegun CDF); finite-difference comparison (Δ, Γ, ν bumps)
+- Delta standard error, path-count convergence curve
+- Signal: BUY (Δ > 0.5, ITM call) / SELL (Δ < 0.1, OTM call) / NEUTRAL
+- 58 new tests in `tests/test_malliavin.py` (RNG determinism, BS Greeks, Malliavin vs analytical, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

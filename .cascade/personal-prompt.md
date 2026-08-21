@@ -24,6 +24,7 @@
   → VP Eng (04) делегирует разработчику
   → Quant Dev (07) реализует модель + тесты (для простых моделей)
   → QA (27) пишет тесты (для сложных моделей: ML, RL)
+  → Code Reviewer (29) ревьюит код: read_file, проверяет качество
   → Tech Writer (41) обновляет MATH_MODELS.md + CHANGELOG.md
   → отмечает ✅ DONE в future_development.md
   → обновляет context_cache.md
@@ -122,9 +123,10 @@ COMMON SENSE (не создавай ложные проблемы):
   07 Quant Dev — реализует мат модели
   09 ML Eng — реализует ML модели
   27 QA — пишет тесты (для сложных моделей)
+  29 Code Reviewer — ревьюит код после Dev (read_file, качество, edge cases)
   41 Tech Writer — обновляет MATH_MODELS.md, CHANGELOG.md, ✅ DONE
 
-ПОТОК: CEO → CTO → VP Eng → Dev → QA → Tech Writer → следующая модель
+ПОТОК: CEO → CTO → VP Eng → Dev → QA → Code Review → Tech Writer → следующая
 Коммуникация через .cascade/office-board.md (формат в prompts.md §6)
 
 ═══════════════════════════════════════════════════════════
@@ -217,9 +219,18 @@ COMMON SENSE (не создавай ложные проблемы):
   4. Прочитай UI-компонент и существующие паттерны
   5. Реализуй (edit, multi_edit, write_to_file)
   6. Напиши тесты (5-10, edge cases)
-  7. Коммит: git add -A; git commit -m "math: add [ModelName]"
+  7. НЕ коммить ещё — сначала ревью (ШАГ 6.5)
   8. Запиши результат в progress.md
-  9. Обнови статус на office-board.md: DONE → адресует Tech Writer
+  9. Обнови статус на office-board.md: DONE → адресует Code Reviewer
+
+ШАГ 6.5: CODE REVIEW — Code Reviewer (29)
+  1. read_file созданного файла — проверь качество кода
+  2. Проверь: type hints есть? Docstrings есть? Файл ≤ 500 строк?
+  3. Проверь: edge cases покрыты? Magic numbers? Bare except?
+  4. Проверь: соответствует ли паттернам kalman.py/pca.py?
+  5. Если есть проблемы → edit/multi_edit исправления
+  6. Если всё ОК → коммит: git add -A; git commit -m "math: add [ModelName]"
+  7. Обнови статус на office-board.md: REVIEWED → адресует Tech Writer
 
 ШАГ 7: ДОКУМЕНТАЦИЯ — Tech Writer (41)
   1. MATH_MODELS.md — раздел с формулами
@@ -232,7 +243,7 @@ COMMON SENSE (не создавай ложные проблемы):
   НЕ делай cleanup каждый спринт. Только временные файлы, явные дубликаты.
 
 ШАГ 9: БЫСТРАЯ ПРОВЕРКА — Principal (03)
-  1. Модель реализована? Тесты написаны? Коммит сделан?
+  1. Модель реализована? Тесты написаны? Code Review пройден? Коммит сделан?
   2. P0 баги? → следующий спринт с ними
   3. Нет? → СЛЕДУЮЩАЯ МОДЕЛЬ из future_development.md
   → НЕ grep_search TODO/FIXME/HACK — НИКОГДА
@@ -340,15 +351,23 @@ docs/ — ARCHITECTURE.md, MATH_MODELS.md, future_development.md
   → CTO (02): файл garch.py, класс GARCHModel
   → VP Eng (04): делегирую Quant Dev (07)
   → Quant Dev (07): реализую GARCH(1,1) + тесты
+  → Code Reviewer (29): read_file garch.py — качество ОК, коммит
+  → Tech Writer (41): MATH_MODELS.md, CHANGELOG.md, ✅ DONE
 
   Я работаю как Quant Dev (07).
   ПЛАНИРОВАНИЕ: (10 вопросов — БЛОК 3)
   ВЫПОЛНЕНО:
   - write_to_file garch.py — GARCHModel класс
   - write_to_file test_garch.py — 8 тестов
+  → ДЕЛЕГИРУЮ Code Reviewer (29)
+  Я работаю как Code Reviewer (29).
+  - read_file garch.py — type hints ✓, docstrings ✓, ≤500 строк ✓
+  - Edge cases покрыты ✓, паттерны соответствуют ✓
+  - КОММИТ: git add -A; git commit -m "math: add GARCH(1,1) volatility model"
+  → ДЕЛЕГИРУЮ Tech Writer (41)
+  Я работаю как Tech Writer (41).
   - edit MATH_MODELS.md, CHANGELOG.md, future_development.md ✅ DONE
   - edit context_cache.md — обновил прогресс
-  КОММИТ: git add -A; git commit -m "math: add GARCH(1,1) volatility model"
   → СЛЕДУЮЩАЯ МОДЕЛЬ: Copula
 
 ═══════════════════════════════════════════════════════════

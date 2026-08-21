@@ -15,8 +15,8 @@
 Всего моделей:         ██████████████████████ 27/27 (100%) ✅ (+ расширенные модели)
 ```
 
-**Следующая модель:** Malliavin Calculus → `src/research/malliavin.py`
-**Последний спринт:** 91 (Ito Generator)
+**Следующая модель:** Renyi Entropy → `src/research/renyi_entropy.py`
+**Последний спринт:** 92 (Malliavin Calculus)
 
 ---
 
@@ -97,7 +97,7 @@
 | ~~SDE (Euler/Milstein)~~ | `StochasticDifferentialEquations.jsx` | `src/technical_analysis/sde.py` | ✅ DONE (Sprint 89) |
 | ~~Fokker-Planck~~ | `FokkerPlanckEquation.jsx` | `src/research/fokker_planck.py` | ✅ DONE (Sprint 90) |
 | ~~Ito Generator~~ | `ItoCalculusGenerator.jsx` | `src/research/ito_generator.py` | ✅ DONE (Sprint 91) |
-| Malliavin Calculus | `MalliavinCalculus.jsx` | `src/research/malliavin.py` | 3 недели |
+| ~~Malliavin Calculus~~ | `MalliavinCalculus.jsx` | `src/research/malliavin.py` | ✅ DONE (Sprint 92) |
 | Renyi Entropy | `RenyiEntropyDynamics.jsx` | `src/research/renyi_entropy.py` | 1 неделя |
 | Kolmogorov-Sinai | `KolmogorovSinaiEntropy.jsx` | `src/research/kolmogorov_sinai.py` | 1 неделя |
 | Information Bottleneck | `InformationBottleneck.jsx` | `src/research/info_bottleneck.py` | 2 недели |

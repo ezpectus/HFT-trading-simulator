@@ -76,6 +76,18 @@ from src.research.koopman import (
     koopman_signal,
     power_iteration,
 )
+from src.research.malliavin import (
+    MalliavinResult,
+    bs_call,
+    bs_greeks,
+    compute_returns as malliavin_compute_returns,
+    malliavin_analysis,
+    malliavin_greeks,
+    malliavin_signal,
+    norm_cdf,
+    random_normal,
+    simulate_paths,
+)
 from src.research.pontryagin import (
     PontryaginResult,
     compute_returns as pmp_compute_returns,
@@ -144,4 +156,7 @@ __all__ = [
     "fp_compute_returns",
     "ItoGeneratorResult", "ito_generator_analysis", "ito_signal", "apply_generator",
     "expected_hitting_time", "num_prime", "num_double_prime", "ito_compute_returns",
+    "MalliavinResult", "malliavin_analysis", "malliavin_greeks", "malliavin_signal",
+    "bs_call", "bs_greeks", "norm_cdf", "random_normal", "simulate_paths",
+    "malliavin_compute_returns",
 ]

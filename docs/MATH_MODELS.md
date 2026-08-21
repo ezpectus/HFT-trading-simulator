@@ -630,6 +630,23 @@ distribution. Signal: GENERATOR_POSITIVE / GENERATOR_NEGATIVE / NEUTRAL
 from A·f at the current return.
 - **Source:** `ai-signal-bot/src/research/ito_generator.py` (Sprint 91, ported from UI-only ItoCalculusGenerator.jsx)
 
+### Malliavin Calculus — Trading logic
+Sensitivity (Greeks) estimation via Malliavin integration by parts, avoiding finite differences.
+```
+Malliavin derivative: D_t W_s = 1_{t≤s}
+Integration by parts: E[φ(F)·G] = E[φ'(F)·H]  (H = Malliavin weight)
+
+Delta: Δ = E[e^{-rT}·1{S_T>K}·(W_T/(S₀σT))]
+Vega:  ν = E[e^{-rT}·(S_T-K)⁺·((W_T²-T)/(2σT) - W_T/σ)]
+Gamma: Γ = E[e^{-rT}·1{S_T>K}·(((W_T²-T)/(S₀²σ²T²)) - 1/(S₀σT))/S₀]
+```
+GBM paths with seeded Box-Muller RNG; σ, μ annualized from returns.
+Comparison: analytical Black-Scholes Greeks (Abramowitz-Stegun CDF) and
+finite-difference Greeks (Δ, Γ, ν bumps). Delta standard error, path-count
+convergence curve. Signal: BUY (Δ > 0.5, ITM call), SELL (Δ < 0.1, OTM call),
+NEUTRAL (near ATM).
+- **Source:** `ai-signal-bot/src/research/malliavin.py` (Sprint 92, ported from UI-only MalliavinCalculus.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

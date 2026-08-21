@@ -9,11 +9,11 @@
 ## 📊 ТЕКУЩИЙ СПРИНТ
 
 ### [01] CEO → [02] CTO
-**Тема:** Sprint 92 — следующая модель из future_development.md
+**Тема:** Sprint 93 — следующая модель из future_development.md
 **Задача:** Работаем по future_development.md.
-  Разделы 0.1+0.2 ЗАВЕРШЕНЫ (27/27). Расширенная таблица: Malliavin Calculus.
+  Разделы 0.1+0.2 ЗАВЕРШЕНЫ (27/27). Расширенная таблица: Renyi Entropy.
   CTO, подготовь архитектуру — файл, класс, зависимости.
-**Контекст:** Sprint 91 завершён (Ito Generator). future_development.md расширенная таблица.
+**Контекст:** Sprint 92 завершён (Malliavin Calculus). future_development.md расширенная таблица.
 **Срок:** P0
 **Статус:** NEW
 
@@ -22,11 +22,11 @@
 ## ✅ ПРЕДЫДУЩИЙ СПРИНТ
 
 ### [04] VP Eng → ALL
-**Тема:** Sprint 91 — завершён
+**Тема:** Sprint 92 — завершён
 **Сообщение:**
-  - Ported Ito Generator from UI to trading logic (research/ito_generator.py):
-    infinitesimal generator A·f = μ·f' + ½σ²·f'', Dynkin's formula,
-    expected hitting time (A·T = -1), stationary OU distribution.
-  - 31 new tests in test_ito_generator.py.
-  - 38 моделей портировано всего.
+  - Ported Malliavin Calculus from UI to trading logic (research/malliavin.py):
+    Malliavin Greeks via integration by parts (Δ, Γ, ν weights),
+    analytical BS comparison, FD comparison, delta SE, convergence.
+  - 58 new tests in test_malliavin.py.
+  - 39 моделей портировано всего.
 **Статус:** INFO

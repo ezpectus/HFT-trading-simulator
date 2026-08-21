@@ -62,16 +62,17 @@
 - ✅ SDE Euler/Milstein (Sprint 89, расширенная таблица)
 - ✅ Fokker-Planck (Sprint 90, расширенная таблица)
 - ✅ Ito Generator (Sprint 91, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 38 моделей**
+- ✅ Malliavin Calculus (Sprint 92, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 39 моделей**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Malliavin Calculus
-**UI файл:** web-ui/src/components/MalliavinCalculus.jsx
-**Python файл:** ai-signal-bot/src/research/malliavin.py
-**Паттерны:** ito_generator.py (Sprint 91), girsanov.py (Sprint 88)
-**Спринт:** 92
+**Модель:** Renyi Entropy
+**UI файл:** web-ui/src/components/RenyiEntropyDynamics.jsx
+**Python файл:** ai-signal-bot/src/research/renyi_entropy.py
+**Паттерны:** transfer_entropy.py (Sprint 73), ito_generator.py (Sprint 91)
+**Спринт:** 93
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 91:** Ported Ito Generator from UI to trading logic (research/ito_generator.py). Infinitesimal generator A·f, Dynkin, hitting time, 45 new tests. 38 моделей всего.
+**Sprint 92:** Ported Malliavin Calculus from UI to trading logic (research/malliavin.py). Malliavin Greeks via integration by parts, BS analytical comparison, 58 new tests. 39 моделей всего.
