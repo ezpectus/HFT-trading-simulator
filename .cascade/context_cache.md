@@ -74,4 +74,4 @@
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 91:** Ported Ito Generator from UI to trading logic (research/ito_generator.py). Infinitesimal generator A·f, Dynkin, hitting time, 31 new tests. 38 моделей всего.
+**Sprint 91:** Ported Ito Generator from UI to trading logic (research/ito_generator.py). Infinitesimal generator A·f, Dynkin, hitting time, 45 new tests. 38 моделей всего.

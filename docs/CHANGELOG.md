@@ -26,10 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created `ai-signal-bot/src/research/ito_generator.py` — infinitesimal generator of Itô diffusions ported from UI-only `ItoCalculusGenerator.jsx` into trading logic
 - Generator A·f(x) = μ(x)·f'(x) + ½·σ²(x)·f''(x) with analytic test functions (identity, square, exp, log, cosh) and numerical central-difference derivatives
 - Models: OU (κ from ACF(1)), GBM, constant drift-diffusion; parameter estimation from returns
-- Expected hitting time solver (A·T = -1, T(target) = 0, explicit iteration with non-negativity clamp)
+- Expected hitting time solver (A·T = -1, T(target) = 0, direct tridiagonal Thomas solve with Neumann ends; UI's explicit iteration is numerically unstable)
 - Dynkin's formula predictions E[f(X_t)] ≈ f(x) + A·f(x)·t; stationary OU distribution π(x) ∝ exp(-(x-θ)²/(2σ²/(2κ)))
 - Signal: GENERATOR_POSITIVE / GENERATOR_NEGATIVE / NEUTRAL from A·f at current return
-- 31 new tests in `tests/test_ito_generator.py` (generator math, numerical derivatives, hitting time, edge cases)
+- 45 new tests in `tests/test_ito_generator.py` (generator math, numerical derivatives, hitting time, edge cases)
 - Exported via `research/__init__.py`; documented in MATH_MODELS.md
 
 ---

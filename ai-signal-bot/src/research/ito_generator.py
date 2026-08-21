@@ -96,33 +96,65 @@ def expected_hitting_time(
     iterations: int = HIT_ITERATIONS,
     dt: float = HIT_DT,
 ) -> list[float]:
-    """Solve A·T = -1 with T(target) = 0 via explicit iteration.
+    """Solve A·T = -1 with T(target) = 0 via tridiagonal (Thomas) solve.
 
-    Finite differences:
-        μ·(T_{i+1}-T_{i-1})/(2dx) + (1/2)σ²·(T_{i+1}-2T_i+T_{i-1})/dx² = -1
+    Central-difference discretization:
+        μ_i·(T_{i+1}-T_{i-1})/(2dx) + (1/2)σ²_i·(T_{i+1}-2T_i+T_{i-1})/dx² = -1
+    Dirichlet condition T(target) = 0; Neumann (copy) conditions at the ends.
+
+    Note: the UI's explicit iteration T += dt·(-1 - A·T) is numerically
+    unstable (diverges from a zero initial guess, stuck at 0); the port
+    solves the linear system directly. `iterations`/`dt` are accepted for
+    API compatibility with the UI but not used by the direct solver.
     """
     n = len(x_grid)
     dx = x_grid[1] - x_grid[0]
-    t_values = [0.0] * n
     target_idx = max(1, min(n - 2, target_idx))
 
-    for _ in range(iterations):
-        new_t = t_values[:]
-        for i in range(1, n - 1):
-            if i == target_idx:
-                new_t[i] = 0.0
-                continue
-            x = x_grid[i]
-            m = mu_fn(x)
-            s2 = sigma_fn(x) ** 2
-            drift = m * (t_values[i + 1] - t_values[i - 1]) / (2 * dx)
-            diff = 0.5 * s2 * (t_values[i + 1] - 2 * t_values[i] + t_values[i - 1]) / (dx * dx)
-            new_t[i] = max(0.0, t_values[i] + dt * (-1.0 - drift - diff))
-        new_t[0] = new_t[1]
-        new_t[n - 1] = new_t[n - 2]
-        t_values = new_t
+    lower = [0.0] * n
+    diag = [0.0] * n
+    upper = [0.0] * n
+    rhs = [-1.0] * n
 
-    return t_values
+    for i in range(1, n - 1):
+        m = mu_fn(x_grid[i])
+        s2 = sigma_fn(x_grid[i]) ** 2
+        lower[i] = -m / (2 * dx) + 0.5 * s2 / (dx * dx)
+        diag[i] = -s2 / (dx * dx)
+        upper[i] = m / (2 * dx) + 0.5 * s2 / (dx * dx)
+
+    # Dirichlet at target: T[target] = 0
+    lower[target_idx] = 0.0
+    diag[target_idx] = 1.0
+    upper[target_idx] = 0.0
+    rhs[target_idx] = 0.0
+
+    # Neumann (copy) at boundaries: T[0] = T[1], T[n-1] = T[n-2]
+    diag[0] = 1.0
+    upper[0] = -1.0
+    rhs[0] = 0.0
+    lower[n - 1] = -1.0
+    diag[n - 1] = 1.0
+    rhs[n - 1] = 0.0
+
+    # Thomas algorithm
+    cp = [0.0] * n
+    dp = [0.0] * n
+    cp[0] = upper[0] / diag[0]
+    dp[0] = rhs[0] / diag[0]
+    for i in range(1, n):
+        denom = diag[i] - lower[i] * cp[i - 1]
+        if abs(denom) < 1e-300:
+            denom = 1e-300
+        cp[i] = upper[i] / denom if i < n - 1 else 0.0
+        dp[i] = (rhs[i] - lower[i] * dp[i - 1]) / denom
+
+    t_values = [0.0] * n
+    t_values[n - 1] = dp[n - 1]
+    for i in range(n - 2, -1, -1):
+        t_values[i] = dp[i] - cp[i] * t_values[i + 1]
+
+    return [max(0.0, v) for v in t_values]
 
 
 def ito_signal(af_current: float) -> tuple[str, str]:
