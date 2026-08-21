@@ -180,6 +180,11 @@ docs/MACHINE_LEARNING.md
 docs/FAQ.md
 docs/TROUBLESHOOTING.md
 docs/openapi_ws.json
+docs/EXCHANGE_SIMULATOR.md
+docs/OPTIONS_TRADING.md
+docs/PORTFOLIO_OPTIMIZATION.md
+docs/AUDIT_LOGGING.md
+docs/CONFIGURATION_REFERENCE.md
 audit/
 
 # ─── Root-level internal .md files (not for public repo) ───
