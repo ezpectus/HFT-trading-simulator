@@ -8,8 +8,8 @@
 
 ## ПРОЕКТ
 
-- **Тестов:** 2487 Python (0 failed, 17 skipped) + 21 Rust + 547 JS (5 failed)
-- **Багов P0-P1:** 0
+- **Тестов:** 2487 Python (0 failed, 17 skipped) + 21 Rust + 547 JS
+- **Багов P0-P1:** 0 (JS тесты не запускаются в IDE — нет npm)
 - **9-Day Plan:** ✅ ЗАВЕРШЁН (Sprint 1-59)
 - **Главный драйвер:** docs/future_development.md
 

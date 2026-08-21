@@ -12,7 +12,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.js'],
     pool: 'threads',
-    isolate: true,
+    isolate: false,
     maxWorkers: 2,
     minWorkers: 1,
     forceExit: true,
