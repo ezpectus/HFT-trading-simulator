@@ -105,6 +105,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 97: Free Energy Principle Port
+
+### Added — Free Energy Principle (Sprint 97)
+- Created `ai-signal-bot/src/research/free_energy.py` — active inference ported from UI-only `FreeEnergyPrinciple.jsx` into trading logic
+- Variational free energy F = ½·Σ(μ-o)²/σ² + ½·Σlog(σ²) for Gaussian model; precision-weighted prediction error
+- Perception: gradient descent on F with ∂F/∂μ_i = -(o_i-μ_i)/σ_i²; step clamped to min(lr, 1.9·σ²) for convergence (UI's raw step diverges for lr ≥ 2σ²)
+- Action: expected free energy G(π) = risk + ambiguity; policies HOLD/BUY/SELL with action effects ±0.001 on predicted return
+- Belief convergence history, prediction errors, policy ranking
+- Signal: HOLD / BUY / SELL (mean-reversion: belief above 0 → SELL)
+- 42 new tests in `tests/test_free_energy.py` (free energy math, belief convergence, policy selection, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

@@ -41,6 +41,16 @@ from src.research.fokker_planck import (
     fp_signal,
     solve_fokker_planck,
 )
+from src.research.free_energy import (
+    FeResult,
+    compute_free_energy,
+    compute_returns as fe_compute_returns,
+    expected_free_energy,
+    fe_analysis,
+    generate_policies,
+    log_gaussian,
+    update_beliefs,
+)
 from src.research.girsanov import (
     GirsanovResult,
     compute_returns as girsanov_compute_returns,
@@ -212,4 +222,6 @@ __all__ = [
     "RgResult", "rg_analysis", "rg_signal", "coarse_grain", "volatility_at_scale",
     "kurtosis_at_scale", "autocorrelation", "scaling_exponent", "correlation_length",
     "rg_compute_returns",
+    "FeResult", "fe_analysis", "compute_free_energy", "expected_free_energy",
+    "update_beliefs", "log_gaussian", "generate_policies", "fe_compute_returns",
 ]

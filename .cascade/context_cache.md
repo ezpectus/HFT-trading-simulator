@@ -67,16 +67,17 @@
 - ✅ Kolmogorov-Sinai (Sprint 94, расширенная таблица)
 - ✅ Information Bottleneck (Sprint 95, расширенная таблица)
 - ✅ Renormalization Group (Sprint 96, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 43 модели**
+- ✅ Free Energy Principle (Sprint 97, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 44 модели**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Free Energy Principle
-**UI файл:** web-ui/src/components/FreeEnergyPrinciple.jsx
-**Python файл:** ai-signal-bot/src/research/free_energy.py
-**Паттерны:** renormalization.py (Sprint 96), info_bottleneck.py (Sprint 95)
-**Спринт:** 97
+**Модель:** Lie Group Symmetries
+**UI файл:** web-ui/src/components/LieGroupSymmetries.jsx
+**Python файл:** ai-signal-bot/src/research/lie_group.py
+**Паттерны:** free_energy.py (Sprint 97), rmt.py (Sprint 82)
+**Спринт:** 98
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 96:** Ported Renormalization Group from UI to trading logic (research/renormalization.py). Coarse-graining, scaling exponents, RG flow, 52 new tests. 43 модели всего.
+**Sprint 97:** Ported Free Energy Principle from UI to trading logic (research/free_energy.py). Active inference, variational FE, policy selection, 42 new tests. 44 модели всего.

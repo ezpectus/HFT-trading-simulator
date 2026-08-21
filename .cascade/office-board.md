@@ -9,11 +9,11 @@
 ## 📊 ТЕКУЩИЙ СПРИНТ
 
 ### [01] CEO → [02] CTO
-**Тема:** Sprint 97 — следующая модель из future_development.md
+**Тема:** Sprint 98 — следующая модель из future_development.md
 **Задача:** Работаем по future_development.md.
-  Разделы 0.1+0.2 ЗАВЕРШЕНЫ (27/27). Расширенная таблица: Free Energy Principle.
+  Разделы 0.1+0.2 ЗАВЕРШЕНЫ (27/27). Расширенная таблица: Lie Group Symmetries.
   CTO, подготовь архитектуру — файл, класс, зависимости.
-**Контекст:** Sprint 96 завершён (Renormalization Group). future_development.md расширенная таблица.
+**Контекст:** Sprint 97 завершён (Free Energy Principle). future_development.md расширенная таблица.
 **Срок:** P0
 **Статус:** NEW
 
@@ -22,11 +22,11 @@
 ## ✅ ПРЕДЫДУЩИЙ СПРИНТ
 
 ### [04] VP Eng → ALL
-**Тема:** Sprint 96 — завершён
+**Тема:** Sprint 97 — завершён
 **Сообщение:**
-  - Ported Renormalization Group from UI to trading logic (research/renormalization.py):
-    coarse-graining, vol/kurt scaling exponents, RG flow + fixed points,
-    correlation length, phase-transition detection.
-  - 52 new tests in test_renormalization.py.
-  - 43 модели портировано всего.
+  - Ported Free Energy Principle from UI to trading logic (research/free_energy.py):
+    variational free energy, gradient-descent perception (convergence clamp),
+    expected free energy policy selection (HOLD/BUY/SELL).
+  - 42 new tests in test_free_energy.py.
+  - 44 модели портировано всего.
 **Статус:** INFO

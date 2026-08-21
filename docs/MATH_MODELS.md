@@ -719,6 +719,21 @@ Signal: PHASE_TRANSITION / SUBDIFFUSIVE / SUPERDIFFUSIVE / NORMAL;
 scale-invariant flag when κ ≈ 0.5 and fixed points exist.
 - **Source:** `ai-signal-bot/src/research/renormalization.py` (Sprint 96, ported from UI-only RenormalizationGroup.jsx)
 
+### Free Energy Principle — Trading logic
+Active inference (Friston): agents minimize variational free energy.
+```
+F = E_q[log q(x) - log p(x,o)] = KL[q(x)||p(x|o)] - log p(o)
+Gaussian model: F = ½·Σ (μ_i - o_i)²/σ_i² + ½·Σ log(σ_i²) + const
+Perception: gradient descent on F, ∂F/∂μ_i = -(o_i - μ_i)/σ_i²
+Action: G(π) = risk + ambiguity = Σ (o_pred - pref)²/(2σ²) + Σ ½·log(2πe·σ²)
+```
+Observations = last 10 returns; prior beliefs = 0; precision-weighted
+prediction error. Belief update step clamped to min(lr, 1.9·σ²) for
+convergence (UI's raw step diverges for lr ≥ 2σ²). Policies: HOLD/BUY/SELL
+with action effects ±0.001 on predicted return; best policy minimizes G.
+Signal: HOLD / BUY / SELL (mean-reversion: belief above 0 → SELL).
+- **Source:** `ai-signal-bot/src/research/free_energy.py` (Sprint 97, ported from UI-only FreeEnergyPrinciple.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic
