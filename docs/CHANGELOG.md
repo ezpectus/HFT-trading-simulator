@@ -62,6 +62,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 94: Kolmogorov-Sinai Entropy Port
+
+### Added — Kolmogorov-Sinai Entropy (Sprint 94)
+- Created `ai-signal-bot/src/research/kolmogorov_sinai.py` — chaos-theory entropy ported from UI-only `KolmogorovSinaiEntropy.jsx` into trading logic
+- Symbolic dynamics: quantile-threshold partition of returns into symbols; block entropy H_n of n-grams; KS rate h_KS = H_n - H_{n-1}
+- Permutation entropy (ordinal patterns, normalized by log₂(order!)); sample entropy (-ln(A/B), tolerance r·RMS)
+- Largest Lyapunov exponent via Rosenstein's method (embedding dim 2, nearest-neighbor divergence regression)
+- Predictability horizon 1/h_KS; sliding-window KS entropy
+- Signal: CHAOTIC (λ₁ > 0.01) / PERIODIC (h_KS < 0.01) / HIGH_ENTROPY (h_KS > 0.5) / STOCHASTIC
+- 54 new tests in `tests/test_kolmogorov_sinai.py` (symbolization, block/permutation/sample entropy, Lyapunov, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

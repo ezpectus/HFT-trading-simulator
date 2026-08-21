@@ -15,8 +15,8 @@
 Всего моделей:         ██████████████████████ 27/27 (100%) ✅ (+ расширенные модели)
 ```
 
-**Следующая модель:** Kolmogorov-Sinai → `src/research/kolmogorov_sinai.py`
-**Последний спринт:** 93 (Renyi Entropy)
+**Следующая модель:** Information Bottleneck → `src/research/info_bottleneck.py`
+**Последний спринт:** 94 (Kolmogorov-Sinai)
 
 ---
 
@@ -99,7 +99,7 @@
 | ~~Ito Generator~~ | `ItoCalculusGenerator.jsx` | `src/research/ito_generator.py` | ✅ DONE (Sprint 91) |
 | ~~Malliavin Calculus~~ | `MalliavinCalculus.jsx` | `src/research/malliavin.py` | ✅ DONE (Sprint 92) |
 | ~~Renyi Entropy~~ | `RenyiEntropyDynamics.jsx` | `src/research/renyi_entropy.py` | ✅ DONE (Sprint 93) |
-| Kolmogorov-Sinai | `KolmogorovSinaiEntropy.jsx` | `src/research/kolmogorov_sinai.py` | 1 неделя |
+| ~~Kolmogorov-Sinai~~ | `KolmogorovSinaiEntropy.jsx` | `src/research/kolmogorov_sinai.py` | ✅ DONE (Sprint 94) |
 | Information Bottleneck | `InformationBottleneck.jsx` | `src/research/info_bottleneck.py` | 2 недели |
 | Renormalization Group | `RenormalizationGroup.jsx` | `src/research/renormalization.py` | 3 недели |
 | Free Energy Principle | `FreeEnergyPrinciple.jsx` | `src/research/free_energy.py` | 3 недели |

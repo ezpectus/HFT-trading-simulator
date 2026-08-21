@@ -9,11 +9,11 @@
 ## 📊 ТЕКУЩИЙ СПРИНТ
 
 ### [01] CEO → [02] CTO
-**Тема:** Sprint 94 — следующая модель из future_development.md
+**Тема:** Sprint 95 — следующая модель из future_development.md
 **Задача:** Работаем по future_development.md.
-  Разделы 0.1+0.2 ЗАВЕРШЕНЫ (27/27). Расширенная таблица: Kolmogorov-Sinai.
+  Разделы 0.1+0.2 ЗАВЕРШЕНЫ (27/27). Расширенная таблица: Information Bottleneck.
   CTO, подготовь архитектуру — файл, класс, зависимости.
-**Контекст:** Sprint 93 завершён (Renyi Entropy). future_development.md расширенная таблица.
+**Контекст:** Sprint 94 завершён (Kolmogorov-Sinai). future_development.md расширенная таблица.
 **Срок:** P0
 **Статус:** NEW
 
@@ -22,11 +22,11 @@
 ## ✅ ПРЕДЫДУЩИЙ СПРИНТ
 
 ### [04] VP Eng → ALL
-**Тема:** Sprint 93 — завершён
+**Тема:** Sprint 94 — завершён
 **Сообщение:**
-  - Ported Renyi Entropy from UI to trading logic (research/renyi_entropy.py):
-    H_α spectrum (Hartley/Shannon/collision/min-entropy), Tsallis,
-    generalized fractal dimensions D_α, sliding-window tracking.
-  - 46 new tests in test_renyi_entropy.py.
-  - 40 моделей портировано всего.
+  - Ported Kolmogorov-Sinai from UI to trading logic (research/kolmogorov_sinai.py):
+    symbolic dynamics + block entropy, permutation entropy, sample entropy,
+    largest Lyapunov (Rosenstein), predictability horizon.
+  - 54 new tests in test_kolmogorov_sinai.py.
+  - 41 модель портировано всего.
 **Статус:** INFO

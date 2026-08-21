@@ -666,6 +666,24 @@ Signal: DIVERSE (H_∞/H_0 < 0.3), CONCENTRATED (H_∞/H_0 > 0.7), BALANCED.
 Efficiency = H_1/H_0 (Shannon/Hartley).
 - **Source:** `ai-signal-bot/src/research/renyi_entropy.py` (Sprint 93, ported from UI-only RenyiEntropyDynamics.jsx)
 
+### Kolmogorov-Sinai Entropy — Trading logic
+Rate of information production in a dynamical system (chaos theory).
+```
+KS entropy: h_KS = lim_{n→∞} (H_n - H_{n-1})  (block entropy rate)
+H_n = -Σ p(s_0...s_{n-1})·log₂ p(s_0...s_{n-1})  (symbolic n-grams)
+
+Permutation entropy: ordinal patterns, normalized by log₂(order!)
+Sample entropy: -ln(A/B), tolerance r·RMS
+Largest Lyapunov (Rosenstein): λ₁ = slope of log divergence vs lag
+Predictability horizon: 1/h_KS
+```
+Symbolic partition via quantile thresholds (nSymbols ∈ [2..6]); block
+entropies H_1..H_maxBlock; KS rate H_n - H_{n-1}; permutation entropy;
+sample entropy (m=2, r=0.2); Lyapunov spectrum via embedding dim 2;
+sliding-window KS entropy. Signal: CHAOTIC (λ₁ > 0.01), PERIODIC
+(h_KS < 0.01), HIGH_ENTROPY (h_KS > 0.5), STOCHASTIC.
+- **Source:** `ai-signal-bot/src/research/kolmogorov_sinai.py` (Sprint 94, ported from UI-only KolmogorovSinaiEntropy.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

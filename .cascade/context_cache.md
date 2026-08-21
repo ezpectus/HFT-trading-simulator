@@ -64,16 +64,17 @@
 - ✅ Ito Generator (Sprint 91, расширенная таблица)
 - ✅ Malliavin Calculus (Sprint 92, расширенная таблица)
 - ✅ Renyi Entropy (Sprint 93, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 40 моделей**
+- ✅ Kolmogorov-Sinai (Sprint 94, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 41 модель**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Kolmogorov-Sinai
-**UI файл:** web-ui/src/components/KolmogorovSinaiEntropy.jsx
-**Python файл:** ai-signal-bot/src/research/kolmogorov_sinai.py
-**Паттерны:** renyi_entropy.py (Sprint 93), transfer_entropy.py (Sprint 73)
-**Спринт:** 94
+**Модель:** Information Bottleneck
+**UI файл:** web-ui/src/components/InformationBottleneck.jsx
+**Python файл:** ai-signal-bot/src/research/info_bottleneck.py
+**Паттерны:** renyi_entropy.py (Sprint 93), kolmogorov_sinai.py (Sprint 94)
+**Спринт:** 95
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 93:** Ported Renyi Entropy from UI to trading logic (research/renyi_entropy.py). H_alpha spectrum, Tsallis, fractal dimensions, 46 new tests. 40 моделей всего.
+**Sprint 94:** Ported Kolmogorov-Sinai from UI to trading logic (research/kolmogorov_sinai.py). Symbolic dynamics, permutation/sample entropy, Lyapunov, 54 new tests. 41 модель всего.

@@ -76,6 +76,18 @@ from src.research.koopman import (
     koopman_signal,
     power_iteration,
 )
+from src.research.kolmogorov_sinai import (
+    KsResult,
+    block_entropy,
+    compute_returns as ks_compute_returns,
+    factorial,
+    ks_analysis,
+    ks_signal,
+    largest_lyapunov,
+    permutation_entropy,
+    sample_entropy,
+    symbolize,
+)
 from src.research.malliavin import (
     MalliavinResult,
     bs_call,
@@ -171,4 +183,7 @@ __all__ = [
     "malliavin_compute_returns",
     "RenyiResult", "renyi_analysis", "renyi_entropy", "renyi_signal",
     "tsallis_entropy", "generalized_dimensions", "histogram", "renyi_compute_returns",
+    "KsResult", "ks_analysis", "ks_signal", "symbolize", "block_entropy",
+    "permutation_entropy", "sample_entropy", "largest_lyapunov", "factorial",
+    "ks_compute_returns",
 ]
