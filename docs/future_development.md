@@ -15,8 +15,8 @@
 Всего моделей:         ██████████████████████ 27/27 (100%) ✅ (+ расширенные модели)
 ```
 
-**Следующая модель:** Lax-Milgram → `src/research/lax_milgram.py`
-**Последний спринт:** 100 (Sobolev Regularization)
+**Следующая модель:** Riesz Representation → `src/research/riesz.py`
+**Последний спринт:** 101 (Lax-Milgram)
 
 ---
 
@@ -106,7 +106,7 @@
 | ~~Lie Group Symmetries~~ | `LieGroupSymmetries.jsx` | `src/research/lie_group.py` | ✅ DONE (Sprint 98) |
 | ~~Burgers Equation~~ | `BurgersEquation.jsx` | `src/research/burgers.py` | ✅ DONE (Sprint 99) |
 | ~~Sobolev Regularization~~ | `SobolevSpaceRegularization.jsx` | `src/research/sobolev.py` | ✅ DONE (Sprint 100) |
-| Lax-Milgram | `LaxMilgram.jsx` | `src/research/lax_milgram.py` | 2 недели |
+| ~~Lax-Milgram~~ | `LaxMilgram.jsx` | `src/research/lax_milgram.py` | ✅ DONE (Sprint 101) |
 | Riesz Representation | `RieszRepresentation.jsx` | `src/research/riesz.py` | 1 неделя |
 | Banach Fixed-Point | `BanachFixedPoint.jsx` | `src/research/banach.py` | 1 неделя |
 | Hahn Decomposition | `HahnDecomposition.jsx` | `src/research/hahn.py` | 1 неделя |

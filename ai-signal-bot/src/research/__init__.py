@@ -103,6 +103,13 @@ from src.research.koopman import (
     koopman_signal,
     power_iteration,
 )
+from src.research.lax_milgram import (
+    LaxResult,
+    compute_returns as lax_compute_returns,
+    lax_analysis,
+    lax_signal,
+    solve_variational,
+)
 from src.research.lie_group import (
     LieResult,
     compute_returns as lie_compute_returns,
@@ -258,4 +265,5 @@ __all__ = [
     "shock_threshold", "burgers_compute_returns",
     "SobolevResult", "sobolev_analysis", "sobolev_regression", "sobolev_signal",
     "matern_kernel", "sobolev_compute_returns",
+    "LaxResult", "lax_analysis", "lax_signal", "solve_variational", "lax_compute_returns",
 ]

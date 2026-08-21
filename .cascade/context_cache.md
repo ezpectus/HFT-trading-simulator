@@ -71,16 +71,17 @@
 - ✅ Lie Group Symmetries (Sprint 98, расширенная таблица)
 - ✅ Burgers Equation (Sprint 99, расширенная таблица)
 - ✅ Sobolev Regularization (Sprint 100, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 47 моделей**
+- ✅ Lax-Milgram (Sprint 101, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 48 моделей**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Lax-Milgram
-**UI файл:** web-ui/src/components/LaxMilgram.jsx
-**Python файл:** ai-signal-bot/src/research/lax_milgram.py
-**Паттерны:** sobolev.py (Sprint 100), burgers.py (Sprint 99)
-**Спринт:** 101
+**Модель:** Riesz Representation
+**UI файл:** web-ui/src/components/RieszRepresentation.jsx
+**Python файл:** ai-signal-bot/src/research/riesz.py
+**Паттерны:** lax_milgram.py (Sprint 101), sobolev.py (Sprint 100)
+**Спринт:** 102
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 100:** Ported Sobolev Regularization from UI to trading logic (research/sobolev.py). Matérn kernel ridge regression, L-curve, 43 new tests. 47 моделей всего.
+**Sprint 101:** Ported Lax-Milgram from UI to trading logic (research/lax_milgram.py). FEM variational solver, coercivity/boundedness, 40 new tests. 48 моделей всего.

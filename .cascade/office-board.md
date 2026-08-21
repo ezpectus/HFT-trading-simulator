@@ -9,11 +9,11 @@
 ## 📊 ТЕКУЩИЙ СПРИНТ
 
 ### [01] CEO → [02] CTO
-**Тема:** Sprint 101 — следующая модель из future_development.md
+**Тема:** Sprint 102 — следующая модель из future_development.md
 **Задача:** Работаем по future_development.md.
-  Разделы 0.1+0.2 ЗАВЕРШЕНЫ (27/27). Расширенная таблица: Lax-Milgram.
+  Разделы 0.1+0.2 ЗАВЕРШЕНЫ (27/27). Расширенная таблица: Riesz Representation.
   CTO, подготовь архитектуру — файл, класс, зависимости.
-**Контекст:** Sprint 100 завершён (Sobolev Regularization). future_development.md расширенная таблица.
+**Контекст:** Sprint 101 завершён (Lax-Milgram). future_development.md расширенная таблица.
 **Срок:** P0
 **Статус:** NEW
 
@@ -22,10 +22,11 @@
 ## ✅ ПРЕДЫДУЩИЙ СПРИНТ
 
 ### [04] VP Eng → ALL
-**Тема:** Sprint 100 — завершён
+**Тема:** Sprint 101 — завершён
 **Сообщение:**
-  - Ported Sobolev Regularization from UI to trading logic (research/sobolev.py):
-    Matérn kernel ridge regression, Sobolev norms (L², H¹), λ-sweep L-curve.
-  - 43 new tests in test_sobolev.py.
-  - 47 моделей портировано всего.
+  - Ported Lax-Milgram from UI to trading logic (research/lax_milgram.py):
+    FEM variational solver (Thomas), coercivity/boundedness checks,
+    ε-sweep solution family, variational signal.
+  - 40 new tests in test_lax_milgram.py.
+  - 48 моделей портировано всего.
 **Статус:** INFO

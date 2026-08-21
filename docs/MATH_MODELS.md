@@ -781,6 +781,23 @@ penalty), residual; λ-sweep [0.001..10] with L-curve. Signal: OVERFIT
 (λ < 0.01), OVERSMOOTH (λ > 5), BALANCED.
 - **Source:** `ai-signal-bot/src/research/sobolev.py` (Sprint 100, ported from UI-only SobolevSpaceRegularization.jsx)
 
+### Lax-Milgram Theorem — Trading logic
+Variational formulation for PDEs with existence/uniqueness guarantees.
+```
+Lax-Milgram: a(u,v) = L(v) has unique solution iff a is
+1. Bounded: |a(u,v)| ≤ C·||u||·||v||
+2. Coercive: a(u,u) ≥ α·||u||² (α > 0)
+
+Bilinear form: a(u,v) = ∫[ε·u'v' + b·u'v + c·uv] dx
+FEM: linear hat functions, tridiagonal system, Thomas algorithm
+```
+Forcing f(x) = Gaussian bump at normalized current return (|r|·100);
+Dirichlet BC u(0) = u(1) = 0; coercivity α = a(u,u)/||u||² and
+boundedness C = ε/h + |b|/2 + c·h/3 checks; ε-sweep [0.001..0.5].
+Signal: VARIATIONAL_LONG (u(x_current) > 0.01), VARIATIONAL_SHORT
+(< -0.01), NEUTRAL. Note: forcing uses |r| so u stays positive (UI quirk).
+- **Source:** `ai-signal-bot/src/research/lax_milgram.py` (Sprint 101, ported from UI-only LaxMilgram.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

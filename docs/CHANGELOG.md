@@ -160,6 +160,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 101: Lax-Milgram Port
+
+### Added — Lax-Milgram Theorem (Sprint 101)
+- Created `ai-signal-bot/src/research/lax_milgram.py` — variational PDE solver ported from UI-only `LaxMilgram.jsx` into trading logic
+- Bilinear form a(u,v) = ∫[ε·u'v' + b·u'v + c·uv]dx; linear FEM with hat functions; tridiagonal Thomas solve; Dirichlet BC u(0)=u(1)=0
+- Forcing f(x) = Gaussian bump at normalized current return (|r|·100)
+- Lax-Milgram conditions: coercivity α = a(u,u)/||u||², boundedness C = ε/h + |b|/2 + c·h/3
+- ε-sweep [0.001..0.5] solution family; grid with u(x) and f(x)
+- Signal: VARIATIONAL_LONG (u > 0.01) / VARIATIONAL_SHORT (u < -0.01) / NEUTRAL
+- 40 new tests in `tests/test_lax_milgram.py` (FEM solver, Poisson reference, coercivity, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)
