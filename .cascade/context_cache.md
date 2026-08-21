@@ -66,16 +66,17 @@
 - ✅ Renyi Entropy (Sprint 93, расширенная таблица)
 - ✅ Kolmogorov-Sinai (Sprint 94, расширенная таблица)
 - ✅ Information Bottleneck (Sprint 95, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 42 модели**
+- ✅ Renormalization Group (Sprint 96, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 43 модели**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Renormalization Group
-**UI файл:** web-ui/src/components/RenormalizationGroup.jsx
-**Python файл:** ai-signal-bot/src/research/renormalization.py
-**Паттерны:** info_bottleneck.py (Sprint 95), rmt.py (Sprint 82)
-**Спринт:** 96
+**Модель:** Free Energy Principle
+**UI файл:** web-ui/src/components/FreeEnergyPrinciple.jsx
+**Python файл:** ai-signal-bot/src/research/free_energy.py
+**Паттерны:** renormalization.py (Sprint 96), info_bottleneck.py (Sprint 95)
+**Спринт:** 97
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 95:** Ported Information Bottleneck from UI to trading logic (research/info_bottleneck.py). Blahut-Arimoto, rate-distortion curve, 43 new tests. 42 модели всего.
+**Sprint 96:** Ported Renormalization Group from UI to trading logic (research/renormalization.py). Coarse-graining, scaling exponents, RG flow, 52 new tests. 43 модели всего.

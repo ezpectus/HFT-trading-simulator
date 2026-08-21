@@ -126,6 +126,18 @@ from src.research.renyi_entropy import (
     renyi_signal,
     tsallis_entropy,
 )
+from src.research.renormalization import (
+    RgResult,
+    autocorrelation,
+    coarse_grain,
+    compute_returns as rg_compute_returns,
+    correlation_length,
+    kurtosis_at_scale,
+    rg_analysis,
+    rg_signal,
+    scaling_exponent,
+    volatility_at_scale,
+)
 from src.research.rmt import (
     RMTResult,
     clean_correlation,
@@ -197,4 +209,7 @@ __all__ = [
     "ks_compute_returns",
     "IbResult", "ib_analysis", "ib_signal", "information_bottleneck",
     "kl_divergence", "ib_quantize", "ib_compute_returns",
+    "RgResult", "rg_analysis", "rg_signal", "coarse_grain", "volatility_at_scale",
+    "kurtosis_at_scale", "autocorrelation", "scaling_exponent", "correlation_length",
+    "rg_compute_returns",
 ]

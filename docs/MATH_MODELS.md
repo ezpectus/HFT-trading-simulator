@@ -702,6 +702,23 @@ argmax p(t|x); cluster statistics (size, mean X/Y). Signal: BUY/SELL from
 the current cluster's mean future-return bin vs nBins/2.
 - **Source:** `ai-signal-bot/src/research/info_bottleneck.py` (Sprint 95, ported from UI-only InformationBottleneck.jsx)
 
+### Renormalization Group — Trading logic
+Multi-scale market dynamics via coarse-graining (statistical physics).
+```
+Coarse-graining: aggregate n ticks → 1 super-tick
+Scaling hypothesis: O(λ) = λ^κ · O(1)   (κ = critical exponent)
+Correlation length: ξ = first lag with |AC| < 0.1
+Beta function: β(g) = dg/dln(λ);  fixed points β(g*) = 0
+```
+Volatility σ_n and excess kurtosis κ_n at scales n = 1..maxScale;
+vol scaling exponent via log-log regression (κ ≈ 0.5 diffusive,
+< 0.45 sub-diffusive/mean-reverting, > 0.55 super-diffusive/trending);
+RG flow g(n) = σ_n/√n with fixed-point detection; correlation length
+ξ(n) per scale; kurtosis-change phase-transition detection (Δκ > 5).
+Signal: PHASE_TRANSITION / SUBDIFFUSIVE / SUPERDIFFUSIVE / NORMAL;
+scale-invariant flag when κ ≈ 0.5 and fixed points exist.
+- **Source:** `ai-signal-bot/src/research/renormalization.py` (Sprint 96, ported from UI-only RenormalizationGroup.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

@@ -91,6 +91,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 96: Renormalization Group Port
+
+### Added — Renormalization Group (Sprint 96)
+- Created `ai-signal-bot/src/research/renormalization.py` — multi-scale market dynamics ported from UI-only `RenormalizationGroup.jsx` into trading logic
+- Coarse-graining (n-tick aggregation); volatility σ_n and excess kurtosis κ_n at scales n = 1..maxScale
+- Vol scaling exponent via log-log regression (κ ≈ 0.5 diffusive, < 0.45 sub-diffusive, > 0.55 super-diffusive)
+- RG flow g(n) = σ_n/√n with fixed-point detection (|Δg| < 0.001); correlation length ξ(n) per scale (|AC| < 0.1 decay threshold)
+- Kurtosis-change phase-transition detection (Δκ > 5); scale-invariant flag (κ ≈ 0.5 + fixed points)
+- Signal: PHASE_TRANSITION / SUBDIFFUSIVE / SUPERDIFFUSIVE / NORMAL
+- 52 new tests in `tests/test_renormalization.py` (coarse-graining, scaling exponents, autocorrelation, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

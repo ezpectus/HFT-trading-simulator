@@ -15,8 +15,8 @@
 Всего моделей:         ██████████████████████ 27/27 (100%) ✅ (+ расширенные модели)
 ```
 
-**Следующая модель:** Renormalization Group → `src/research/renormalization.py`
-**Последний спринт:** 95 (Information Bottleneck)
+**Следующая модель:** Free Energy Principle → `src/research/free_energy.py`
+**Последний спринт:** 96 (Renormalization Group)
 
 ---
 
@@ -101,7 +101,7 @@
 | ~~Renyi Entropy~~ | `RenyiEntropyDynamics.jsx` | `src/research/renyi_entropy.py` | ✅ DONE (Sprint 93) |
 | ~~Kolmogorov-Sinai~~ | `KolmogorovSinaiEntropy.jsx` | `src/research/kolmogorov_sinai.py` | ✅ DONE (Sprint 94) |
 | ~~Information Bottleneck~~ | `InformationBottleneck.jsx` | `src/research/info_bottleneck.py` | ✅ DONE (Sprint 95) |
-| Renormalization Group | `RenormalizationGroup.jsx` | `src/research/renormalization.py` | 3 недели |
+| ~~Renormalization Group~~ | `RenormalizationGroup.jsx` | `src/research/renormalization.py` | ✅ DONE (Sprint 96) |
 | Free Energy Principle | `FreeEnergyPrinciple.jsx` | `src/research/free_energy.py` | 3 недели |
 | Lie Group Symmetries | `LieGroupSymmetries.jsx` | `src/research/lie_group.py` | 3 недели |
 | Burgers Equation | `BurgersEquation.jsx` | `src/research/burgers.py` | 2 недели |
