@@ -1,3 +1,21 @@
+from src.technical_analysis.copula import (
+    CopulaFit,
+    CopulaResult,
+    clayton_cdf,
+    copula_analysis,
+    copula_from_prices,
+    copula_log_likelihood,
+    copula_signal,
+    empirical_cdf,
+    fit_copula,
+    gaussian_copula_cdf,
+    gumbel_cdf,
+    kendall_tau,
+    norm_cdf,
+    norm_inv,
+    pearson_corr,
+    spearman_rho,
+)
 from src.technical_analysis.dtw import (
     PATTERN_TEMPLATES,
     DTWResult,
@@ -93,4 +111,8 @@ __all__ = [
     "MSRegime", "MSResult", "fit_ms_garch", "ms_garch_filter", "ms_garch_volatility",
     "estimate_params", "garch_filter", "gaussian_log_pdf", "simple_returns",
     "regime_signal", "detect_regime_transitions", "expected_regime_duration",
+    "CopulaFit", "CopulaResult", "copula_analysis", "copula_from_prices",
+    "copula_log_likelihood", "copula_signal", "fit_copula",
+    "empirical_cdf", "kendall_tau", "spearman_rho", "pearson_corr",
+    "clayton_cdf", "gumbel_cdf", "gaussian_copula_cdf", "norm_inv", "norm_cdf",
 ]
