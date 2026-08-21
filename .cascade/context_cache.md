@@ -69,16 +69,17 @@
 - ✅ Renormalization Group (Sprint 96, расширенная таблица)
 - ✅ Free Energy Principle (Sprint 97, расширенная таблица)
 - ✅ Lie Group Symmetries (Sprint 98, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 45 моделей**
+- ✅ Burgers Equation (Sprint 99, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 46 моделей**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Burgers Equation
-**UI файл:** web-ui/src/components/BurgersEquation.jsx
-**Python файл:** ai-signal-bot/src/research/burgers.py
-**Паттерны:** fokker_planck.py (Sprint 90), renormalization.py (Sprint 96)
-**Спринт:** 99
+**Модель:** Sobolev Regularization
+**UI файл:** web-ui/src/components/SobolevSpaceRegularization.jsx
+**Python файл:** ai-signal-bot/src/research/sobolev.py
+**Паттерны:** burgers.py (Sprint 99), fokker_planck.py (Sprint 90)
+**Спринт:** 100
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 98:** Ported Lie Group Symmetries from UI to trading logic (research/lie_group.py). Translation/scaling/time/Galilean symmetries, Noether, 51 new tests. 45 моделей всего.
+**Sprint 99:** Ported Burgers Equation from UI to trading logic (research/burgers.py). Nonlinear PDE solver, shock detection, energy decay, 38 new tests. 46 моделей всего.

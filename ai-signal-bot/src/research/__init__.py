@@ -13,6 +13,14 @@ from src.research.almgren_chriss import (
     efficient_frontier,
     estimate_volatility,
 )
+from src.research.burgers import (
+    BurgersResult,
+    burgers_analysis,
+    burgers_signal,
+    compute_returns as burgers_compute_returns,
+    shock_threshold,
+    solve_burgers,
+)
 from src.research.ccm import (
     EDMResult,
     ccm,
@@ -238,4 +246,6 @@ __all__ = [
     "LieResult", "lie_analysis", "lie_signal", "translation_symmetry",
     "scaling_symmetry", "time_translation_symmetry", "galilean_symmetry",
     "lie_algebra_coeffs", "lie_compute_returns",
+    "BurgersResult", "burgers_analysis", "burgers_signal", "solve_burgers",
+    "shock_threshold", "burgers_compute_returns",
 ]

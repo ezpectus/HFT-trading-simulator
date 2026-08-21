@@ -750,6 +750,22 @@ Galilean (detrended residual variance via linear regression). Total breaking
 WEAK_BREAKING (> 0.005), SYMMETRIC.
 - **Source:** `ai-signal-bot/src/research/lie_group.py` (Sprint 98, ported from UI-only LieGroupSymmetries.jsx)
 
+### Burgers Equation — Trading logic
+Nonlinear PDE modeling order flow wave steepening and shock formation.
+```
+Viscous Burgers: ∂u/∂t + u·∂u/∂x = ν·∂²u/∂x²
+Inviscid (ν=0): characteristics dx/dt = u cross → shocks
+Hopf-Cole: u = -2ν·∂_x log φ → heat equation
+Numerical: u_i^{n+1} = u_i^n + Δt·[-u_i·(u_{i+1}-u_{i-1})/(2Δx)
+            + ν·(u_{i+1}-2u_i+u_{i-1})/Δx²]  (periodic BC)
+Energy: E = ½∫u²dx, dE/dt = -ν·∫(∂u/∂x)²dx ≤ 0
+```
+Normalized returns → histogram density → initial velocity field u₀ ∈ [-1,1];
+finite-difference evolution; shock detection (gradient < -2·RMS(u));
+energy/entropy histories; energy decay rate. Signal: SHOCK_FORMATION
+(> 20 shocks), WEAK_SHOCKS (> 5), SMOOTH_FLOW.
+- **Source:** `ai-signal-bot/src/research/burgers.py` (Sprint 99, ported from UI-only BurgersEquation.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

@@ -15,8 +15,8 @@
 Всего моделей:         ██████████████████████ 27/27 (100%) ✅ (+ расширенные модели)
 ```
 
-**Следующая модель:** Burgers Equation → `src/research/burgers.py`
-**Последний спринт:** 98 (Lie Group Symmetries)
+**Следующая модель:** Sobolev Regularization → `src/research/sobolev.py`
+**Последний спринт:** 99 (Burgers Equation)
 
 ---
 
@@ -104,7 +104,7 @@
 | ~~Renormalization Group~~ | `RenormalizationGroup.jsx` | `src/research/renormalization.py` | ✅ DONE (Sprint 96) |
 | ~~Free Energy Principle~~ | `FreeEnergyPrinciple.jsx` | `src/research/free_energy.py` | ✅ DONE (Sprint 97) |
 | ~~Lie Group Symmetries~~ | `LieGroupSymmetries.jsx` | `src/research/lie_group.py` | ✅ DONE (Sprint 98) |
-| Burgers Equation | `BurgersEquation.jsx` | `src/research/burgers.py` | 2 недели |
+| ~~Burgers Equation~~ | `BurgersEquation.jsx` | `src/research/burgers.py` | ✅ DONE (Sprint 99) |
 | Sobolev Regularization | `SobolevSpaceRegularization.jsx` | `src/research/sobolev.py` | 2 недели |
 | Lax-Milgram | `LaxMilgram.jsx` | `src/research/lax_milgram.py` | 2 недели |
 | Riesz Representation | `RieszRepresentation.jsx` | `src/research/riesz.py` | 1 неделя |

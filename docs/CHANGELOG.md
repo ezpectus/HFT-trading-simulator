@@ -133,6 +133,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 99: Burgers Equation Port
+
+### Added — Burgers Equation (Sprint 99)
+- Created `ai-signal-bot/src/research/burgers.py` — nonlinear PDE shock-formation model ported from UI-only `BurgersEquation.jsx` into trading logic
+- Viscous Burgers ∂u/∂t + u·∂u/∂x = ν·∂²u/∂x² with central-difference advection + diffusion, periodic boundaries
+- Normalized returns → histogram density → initial velocity field u₀ ∈ [-1,1]
+- Shock detection (gradient < -2·RMS(u)); shock times histogram; energy E = ½∫u²dx and entropy S = -∫u·log|u|dx histories; energy decay rate
+- Signal: SHOCK_FORMATION (> 20 shocks) / WEAK_SHOCKS (> 5) / SMOOTH_FLOW
+- 38 new tests in `tests/test_burgers.py` (solver stability, periodic BC, diffusion, shock detection, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)
