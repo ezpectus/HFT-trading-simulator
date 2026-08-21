@@ -70,16 +70,17 @@
 - ✅ Free Energy Principle (Sprint 97, расширенная таблица)
 - ✅ Lie Group Symmetries (Sprint 98, расширенная таблица)
 - ✅ Burgers Equation (Sprint 99, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 46 моделей**
+- ✅ Sobolev Regularization (Sprint 100, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 47 моделей**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Sobolev Regularization
-**UI файл:** web-ui/src/components/SobolevSpaceRegularization.jsx
-**Python файл:** ai-signal-bot/src/research/sobolev.py
-**Паттерны:** burgers.py (Sprint 99), fokker_planck.py (Sprint 90)
-**Спринт:** 100
+**Модель:** Lax-Milgram
+**UI файл:** web-ui/src/components/LaxMilgram.jsx
+**Python файл:** ai-signal-bot/src/research/lax_milgram.py
+**Паттерны:** sobolev.py (Sprint 100), burgers.py (Sprint 99)
+**Спринт:** 101
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 99:** Ported Burgers Equation from UI to trading logic (research/burgers.py). Nonlinear PDE solver, shock detection, energy decay, 38 new tests. 46 моделей всего.
+**Sprint 100:** Ported Sobolev Regularization from UI to trading logic (research/sobolev.py). Matérn kernel ridge regression, L-curve, 43 new tests. 47 моделей всего.

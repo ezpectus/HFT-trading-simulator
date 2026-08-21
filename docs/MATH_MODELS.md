@@ -766,6 +766,21 @@ energy/entropy histories; energy decay rate. Signal: SHOCK_FORMATION
 (> 20 shocks), WEAK_SHOCKS (> 5), SMOOTH_FLOW.
 - **Source:** `ai-signal-bot/src/research/burgers.py` (Sprint 99, ported from UI-only BurgersEquation.jsx)
 
+### Sobolev Space Regularization — Trading logic
+Smoothness-constrained estimation via Sobolev norms.
+```
+Sobolev space W^{k,2}: ||f||² = Σ_{|α|≤k} ∫|D^α f|² dx
+Tikhonov in H^s: min_f ||y-f||²_{L²} + λ·||f||²_{H^s}
+Representer theorem: f* = Σ_i α_i·K_s(x_i, ·)  (Matérn kernel)
+Matérn: s=1 → σ²e^{-r};  s=2 → σ²(1+√3r)e^{-√3r}
+```
+Rolling volatility (window 10) normalized as signal; synthetic noise
+(seeded); kernel ridge regression (K + λI)α = y via Gaussian elimination
+with partial pivoting; L² norm, H¹ seminorm (finite-difference derivative
+penalty), residual; λ-sweep [0.001..10] with L-curve. Signal: OVERFIT
+(λ < 0.01), OVERSMOOTH (λ > 5), BALANCED.
+- **Source:** `ai-signal-bot/src/research/sobolev.py` (Sprint 100, ported from UI-only SobolevSpaceRegularization.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

@@ -176,6 +176,14 @@ from src.research.rmt import (
     rmt_analysis,
     rmt_signal,
 )
+from src.research.sobolev import (
+    SobolevResult,
+    compute_returns as sobolev_compute_returns,
+    matern_kernel,
+    sobolev_analysis,
+    sobolev_regression,
+    sobolev_signal,
+)
 from src.research.stochastic_control import (
     StochasticControlResult,
     compute_returns as sc_compute_returns,
@@ -248,4 +256,6 @@ __all__ = [
     "lie_algebra_coeffs", "lie_compute_returns",
     "BurgersResult", "burgers_analysis", "burgers_signal", "solve_burgers",
     "shock_threshold", "burgers_compute_returns",
+    "SobolevResult", "sobolev_analysis", "sobolev_regression", "sobolev_signal",
+    "matern_kernel", "sobolev_compute_returns",
 ]

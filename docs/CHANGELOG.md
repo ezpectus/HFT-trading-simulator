@@ -146,6 +146,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 100: Sobolev Regularization Port
+
+### Added — Sobolev Space Regularization (Sprint 100)
+- Created `ai-signal-bot/src/research/sobolev.py` — smoothness-constrained estimation ported from UI-only `SobolevSpaceRegularization.jsx` into trading logic
+- Matérn kernels (s=1: σ²e^{-r}, s=2: σ²(1+√3r)e^{-√3r}); kernel ridge regression (K + λI)α = y via Gaussian elimination with partial pivoting
+- Rolling volatility (window 10) normalized as signal; seeded synthetic noise
+- Sobolev norms: L² norm, H¹ seminorm (finite-difference derivative penalty), residual
+- λ-sweep [0.001..10] with L-curve (log residual vs log smoothness); smooth predictions on grid
+- Signal: OVERFIT (λ < 0.01) / OVERSMOOTH (λ > 5) / BALANCED
+- 43 new tests in `tests/test_sobolev.py` (Matérn kernel, ridge regression, λ-sweep, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)
