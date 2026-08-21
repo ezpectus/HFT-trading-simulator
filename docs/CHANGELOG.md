@@ -76,6 +76,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 95: Information Bottleneck Port
+
+### Added — Information Bottleneck (Sprint 95)
+- Created `ai-signal-bot/src/research/info_bottleneck.py` — rate-distortion optimization ported from UI-only `InformationBottleneck.jsx` into trading logic
+- Objective L = I(X;T) - β·I(T;Y); X = current return, Y = future return (lag steps ahead), quantized to nBins
+- Blahut-Arimoto iterative algorithm: p(t|x) = p(t)·exp(-β·D_KL[p(y|x)||p(y|t)])/Z, p(y|t), p(t) self-consistent updates
+- Seeded RNG for deterministic p(t|x) initialization
+- Rate-distortion curve over β = [0.1, 0.5, 1, 2, 5, 10, 20, 50]; convergence history of I(X;T)/I(T;Y)
+- Cluster assignments (argmax p(t|x)), cluster statistics (size, mean X/Y)
+- Signal: BUY/SELL/NEUTRAL from current cluster's mean future-return bin vs nBins/2
+- 43 new tests in `tests/test_info_bottleneck.py` (quantization, KL divergence, Blahut-Arimoto convergence, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

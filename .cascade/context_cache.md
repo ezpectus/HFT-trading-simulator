@@ -65,16 +65,17 @@
 - ✅ Malliavin Calculus (Sprint 92, расширенная таблица)
 - ✅ Renyi Entropy (Sprint 93, расширенная таблица)
 - ✅ Kolmogorov-Sinai (Sprint 94, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 41 модель**
+- ✅ Information Bottleneck (Sprint 95, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 42 модели**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Information Bottleneck
-**UI файл:** web-ui/src/components/InformationBottleneck.jsx
-**Python файл:** ai-signal-bot/src/research/info_bottleneck.py
-**Паттерны:** renyi_entropy.py (Sprint 93), kolmogorov_sinai.py (Sprint 94)
-**Спринт:** 95
+**Модель:** Renormalization Group
+**UI файл:** web-ui/src/components/RenormalizationGroup.jsx
+**Python файл:** ai-signal-bot/src/research/renormalization.py
+**Паттерны:** info_bottleneck.py (Sprint 95), rmt.py (Sprint 82)
+**Спринт:** 96
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 94:** Ported Kolmogorov-Sinai from UI to trading logic (research/kolmogorov_sinai.py). Symbolic dynamics, permutation/sample entropy, Lyapunov, 54 new tests. 41 модель всего.
+**Sprint 95:** Ported Information Bottleneck from UI to trading logic (research/info_bottleneck.py). Blahut-Arimoto, rate-distortion curve, 43 new tests. 42 модели всего.

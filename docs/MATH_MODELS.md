@@ -684,6 +684,24 @@ sliding-window KS entropy. Signal: CHAOTIC (λ₁ > 0.01), PERIODIC
 (h_KS < 0.01), HIGH_ENTROPY (h_KS > 0.5), STOCHASTIC.
 - **Source:** `ai-signal-bot/src/research/kolmogorov_sinai.py` (Sprint 94, ported from UI-only KolmogorovSinaiEntropy.jsx)
 
+### Information Bottleneck — Trading logic
+Rate-distortion optimization compressing return signals.
+```
+Objective: L = I(X;T) - β·I(T;Y)
+I(X;T) = Σ p(x,t)·log₂[p(t|x)/p(t)]   (rate / complexity)
+I(T;Y) = Σ p(t,y)·log₂[p(y|t)/p(y)]   (distortion / relevance)
+
+Blahut-Arimoto self-consistent equations:
+p(t|x) = p(t)·exp(-β·D_KL[p(y|x)||p(y|t)]) / Z(x,β)
+p(y|t) = Σ_x p(y|x)·p(x|t)
+p(t) = Σ_x p(x)·p(t|x)
+```
+X = current return, Y = future return (lag steps ahead), quantized to
+nBins. Rate-distortion curve over β = [0.1..50]; cluster assignments via
+argmax p(t|x); cluster statistics (size, mean X/Y). Signal: BUY/SELL from
+the current cluster's mean future-return bin vs nBins/2.
+- **Source:** `ai-signal-bot/src/research/info_bottleneck.py` (Sprint 95, ported from UI-only InformationBottleneck.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic

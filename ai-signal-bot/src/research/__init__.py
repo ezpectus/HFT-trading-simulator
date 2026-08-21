@@ -47,6 +47,15 @@ from src.research.girsanov import (
     girsanov_analysis,
     girsanov_signal,
 )
+from src.research.info_bottleneck import (
+    IbResult,
+    compute_returns as ib_compute_returns,
+    ib_analysis,
+    ib_signal,
+    information_bottleneck,
+    kl_divergence,
+    quantize as ib_quantize,
+)
 from src.research.ito_generator import (
     ItoGeneratorResult,
     apply_generator,
@@ -186,4 +195,6 @@ __all__ = [
     "KsResult", "ks_analysis", "ks_signal", "symbolize", "block_entropy",
     "permutation_entropy", "sample_entropy", "largest_lyapunov", "factorial",
     "ks_compute_returns",
+    "IbResult", "ib_analysis", "ib_signal", "information_bottleneck",
+    "kl_divergence", "ib_quantize", "ib_compute_returns",
 ]
