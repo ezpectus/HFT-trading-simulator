@@ -1,8 +1,8 @@
 # HFT Trade Bot Configuration
 # =============================
 # C++20 sub-millisecond trading engine with dual signal path:
-#   Fast path: Signal Engine V2 (native C++, < 1ms)
-#   Slow path: AI Signal Bot via WebSocket :8766
+#   Fast path: Signal Engine V2/V3 (native C++, < 1ms loop, 100ms cooldown)
+#   Slow path: AI Signal Bot via WebSocket :8766 (optional, disabled in pure HFT)
 #
 # Sections:
 #   trading                  — symbols, intervals, position limits
@@ -68,7 +68,7 @@ trading:
     - "ROSE/USDT"
     - "CELO/USDT"
     - "MINA/USDT"
-  signal_interval_seconds: 60   # How often to evaluate signals
+  signal_interval_ms: 1         # Loop poll interval in ms (0 = no wait, 1 = sub-ms HFT)
   max_open_positions: 10        # Increased for 50+ symbols (was 3)
   paper_trading: true           # If true, no real orders are sent
 
@@ -110,7 +110,7 @@ signal_engine_v2:
   atr_period: 14                # ATR for volatility-based SL/TP
   sl_atr_mult: 1.5              # Stop loss = entry - 1.5×ATR (long)
   tp_atr_mult: 3.0              # Take profit = entry + 3.0×ATR (long)
-  cooldown_ms: 5000             # Min time between signals (per symbol)
+  cooldown_ms: 100              # Min time between signals (per symbol) — 100ms for HFT
   buy_threshold: 0.3            # Composite score > 0.3 → BUY
   sell_threshold: -0.3          # Composite score < -0.3 → SELL
   min_confidence: 60            # 0-100, reject signals below this

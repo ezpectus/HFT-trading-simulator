@@ -1,14 +1,14 @@
-//! High-performance order executor in Rust.
+//! Order executor in Rust — FFI callable from C++.
 //!
-//! Called from C++ via FFI for ultra-low-latency order submission.
+//! Connects to the exchange simulator via WebSocket and sends orders.
 //! Rust provides memory safety + zero-cost abstractions + no GC pauses.
 //!
 //! Features:
-//!   - Lock-free order queue (crossbeam SPSC)
-//!   - Pre-allocated order objects (no heap allocation on hot path)
+//!   - Real WebSocket connection via tokio-tungstenite
+//!   - Auto-reconnect with exponential backoff
+//!   - Fill confirmation tracking
 //!   - Batch order submission
-//!   - WebSocket connection management with auto-reconnect
-//!   - Sub-microsecond order encoding
+//!   - FFI interface for C++ interop
 //!
 //! FFI interface (callable from C++):
 //!   extern "C" {
@@ -20,17 +20,22 @@
 
 use std::ffi::{c_char, c_void, CStr};
 use std::sync::atomic::{AtomicU64, Ordering};
-use crossbeam_channel::{unbounded, Sender, Receiver};
+use std::sync::Arc;
+use std::time::Duration;
+
 use serde::{Serialize, Deserialize};
 use smallvec::SmallVec;
+use tokio::sync::mpsc;
+use tokio_tungstenite::connect_async;
+use tokio_tungstenite::tungstenite::Message;
+use futures_util::{SinkExt, StreamExt};
 
 pub struct OrderExecutor {
-    tx: Sender<Order>,
-    rx_stats: Receiver<ExecStats>,
-    order_count: AtomicU64,
-    fill_count: AtomicU64,
-    error_count: AtomicU64,
-    _handle: Option<std::thread::JoinHandle<()>>,
+    tx: mpsc::UnboundedSender<Order>,
+    order_count: Arc<AtomicU64>,
+    fill_count: Arc<AtomicU64>,
+    error_count: Arc<AtomicU64>,
+    _runtime: Option<tokio::runtime::Runtime>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,24 +65,33 @@ pub struct ExecStats {
 
 impl OrderExecutor {
     pub fn new(ws_url: &str) -> Self {
-        let (tx, rx) = unbounded();
-        let (stats_tx, stats_rx) = unbounded();
+        let (tx, rx) = mpsc::unbounded_channel();
         let url = ws_url.to_string();
 
-        let handle = std::thread::Builder::new()
-            .name("hft-executor".into())
-            .spawn(move || {
-                Self::run_loop(url, rx, stats_tx);
-            })
-            .ok();
+        let order_count = Arc::new(AtomicU64::new(0));
+        let fill_count = Arc::new(AtomicU64::new(0));
+        let error_count = Arc::new(AtomicU64::new(0));
+
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .enable_all()
+            .thread_name("hft-executor")
+            .build()
+            .expect("Failed to create tokio runtime");
+
+        runtime.spawn(Self::run_loop(
+            url,
+            rx,
+            fill_count.clone(),
+            error_count.clone(),
+        ));
 
         Self {
             tx,
-            rx_stats: stats_rx,
-            order_count: AtomicU64::new(0),
-            fill_count: AtomicU64::new(0),
-            error_count: AtomicU64::new(0),
-            _handle: handle,
+            order_count,
+            fill_count,
+            error_count,
+            _runtime: Some(runtime),
         }
     }
 
@@ -95,66 +109,108 @@ impl OrderExecutor {
     }
 
     pub fn stats(&self) -> ExecStats {
-        // Try to get latest stats from channel
-        let mut latest = ExecStats {
+        ExecStats {
             orders_sent: self.order_count.load(Ordering::Relaxed),
             fills_received: self.fill_count.load(Ordering::Relaxed),
             errors: self.error_count.load(Ordering::Relaxed),
             avg_latency_ns: 0,
-        };
-        while let Ok(s) = self.rx_stats.try_recv() {
-            latest = s;
         }
-        latest
     }
 
-    fn run_loop(url: String, rx: Receiver<Order>, stats_tx: Sender<ExecStats>) {
+    async fn run_loop(
+        url: String,
+        mut rx: mpsc::UnboundedReceiver<Order>,
+        fill_count: Arc<AtomicU64>,
+        error_count: Arc<AtomicU64>,
+    ) {
         let mut seq: u64 = 0;
-        let mut last_stats_time = std::time::Instant::now();
-        let mut latencies: Vec<u64> = Vec::with_capacity(1000);
+        let mut backoff = Duration::from_millis(500);
 
         loop {
-            match rx.recv_timeout(std::time::Duration::from_millis(100)) {
-                Ok(mut order) => {
-                    seq += 1;
-                    order.id = seq;
-                    order.timestamp_ns = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_nanos() as u64;
-
-                    // Serialize and send via WebSocket
-                    let json = serde_json::to_string(&order).unwrap_or_default();
-                    // In production: send via tokio-tungstenite WebSocket
-                    tracing::debug!("Order #{}: {}", order.id, json);
-
-                    // Simulate fill latency measurement
-                    let elapsed = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_nanos() as u64 - order.timestamp_ns;
-                    latencies.push(elapsed);
+            tracing::info!("Connecting to WebSocket: {}", url);
+            let ws = match connect_async(&url).await {
+                Ok((ws, _)) => {
+                    tracing::info!("WebSocket connected to {}", url);
+                    backoff = Duration::from_millis(500);
+                    ws
                 }
-                Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
-                    // Periodic stats
-                    if last_stats_time.elapsed() > std::time::Duration::from_secs(1) {
-                        let avg_ns = if latencies.is_empty() { 0 }
-                            else { latencies.iter().sum::<u64>() / latencies.len() as u64 };
-                        let _ = stats_tx.send(ExecStats {
-                            orders_sent: seq,
-                            fills_received: 0,
-                            errors: 0,
-                            avg_latency_ns: avg_ns,
-                        });
-                        latencies.clear();
-                        last_stats_time = std::time::Instant::now();
+                Err(e) => {
+                    tracing::warn!("WebSocket connect to {} failed: {} — retrying in {:?}", url, e, backoff);
+                    tokio::time::sleep(backoff).await;
+                    backoff = (backoff * 2).min(Duration::from_secs(10));
+                    continue;
+                }
+            };
+
+            let (mut ws_sink, mut ws_stream) = ws.split();
+
+            loop {
+                tokio::select! {
+                    order = rx.recv() => {
+                        match order {
+                            Some(mut order) => {
+                                seq += 1;
+                                order.id = seq;
+                                order.timestamp_ns = std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .unwrap()
+                                    .as_nanos() as u64;
+
+                                let json = serde_json::to_string(&order).unwrap_or_default();
+                                let msg = Message::Text(json);
+
+                                if let Err(e) = ws_sink.send(msg).await {
+                                    tracing::warn!("WebSocket send error: {} — reconnecting", e);
+                                    error_count.fetch_add(1, Ordering::Relaxed);
+                                    break;
+                                }
+                                tracing::debug!("Order #{} sent", order.id);
+                            }
+                            None => {
+                                tracing::info!("Order channel closed — shutting down executor");
+                                return;
+                            }
+                        }
+                    }
+                    msg = ws_stream.next() => {
+                        match msg {
+                            Some(Ok(Message::Text(text))) => {
+                                if Self::is_fill_message(&text) {
+                                    fill_count.fetch_add(1, Ordering::Relaxed);
+                                    tracing::debug!("Fill received: {}", text);
+                                }
+                            }
+                            Some(Ok(Message::Binary(data))) => {
+                                if let Ok(text) = std::str::from_utf8(&data) {
+                                    if Self::is_fill_message(text) {
+                                        fill_count.fetch_add(1, Ordering::Relaxed);
+                                    }
+                                }
+                            }
+                            Some(Ok(_)) => {}
+                            Some(Err(e)) => {
+                                tracing::warn!("WebSocket stream error: {} — reconnecting", e);
+                                error_count.fetch_add(1, Ordering::Relaxed);
+                                break;
+                            }
+                            None => {
+                                tracing::warn!("WebSocket closed by server — reconnecting");
+                                break;
+                            }
+                        }
                     }
                 }
-                Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
-                    break;
-                }
             }
+
+            tokio::time::sleep(backoff).await;
         }
+    }
+
+    fn is_fill_message(text: &str) -> bool {
+        text.contains("\"fill\"")
+            || text.contains("\"filled\"")
+            || text.contains("\"order_fill\"")
+            || text.contains("\"type\":\"fill\"")
     }
 }
 

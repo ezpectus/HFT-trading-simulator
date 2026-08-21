@@ -64,7 +64,8 @@ inline void parse_dev_config(Config& cfg, const YAML::Node& root) {
             cfg.symbols.clear();
             for (const auto& s : t["symbols"]) cfg.symbols.push_back(s.as<std::string>());
         }
-        if (t["signal_interval_seconds"]) cfg.signal_interval_seconds = t["signal_interval_seconds"].as<int>();
+        if (t["signal_interval_ms"]) cfg.signal_interval_ms = t["signal_interval_ms"].as<int>();
+        if (t["signal_interval_seconds"]) cfg.signal_interval_ms = t["signal_interval_seconds"].as<int>() * 1000; // backwards compat
         if (t["max_open_positions"]) cfg.max_open_positions = t["max_open_positions"].as<int>();
         if (t["paper_trading"]) cfg.paper_trading = t["paper_trading"].as<bool>();
     }

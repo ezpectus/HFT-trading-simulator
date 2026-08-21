@@ -1,22 +1,27 @@
--- FPGA Prototype: Hardware-accelerated order book matching
+-- ACADEMIC SKETCH — NOT A PRODUCTION PROTOTYPE
+--
+-- This is an educational/architectural sketch of an FPGA order book.
+-- It is NOT synthesizable as-is for production use.
+--
+-- Known limitations:
+--   - "10+ GHz" claim is incorrect. UltraScale+ runs at ~250-500 MHz.
+--     With a 250 MHz clock, 256-level shift takes ~256 cycles = ~1μs, not sub-100ns.
+--   - for loop with variable range in clocked process synthesizes to
+--     255 multiplexers with multi-cycle latency.
+--   - No testbench provided.
+--   - No XDC constraint files for Vivado.
+--   - No TCL build scripts.
+--   - Shift register approach is inefficient — BRAM + pointer indexing is preferred.
+--   - AXI4-Stream parsing cost not accounted for.
 --
 -- Target: Xilinx UltraScale+ / Intel Stratix 10
 -- Language: VHDL-2008
 --
--- Features:
---   - Price-time priority order matching at 10+ GHz
---   - 256-level order book in BRAM
---   - Sub-100ns order matching latency
---   - AXI4-Stream interface for market data input
---   - AXI4-Lite interface for configuration
---
--- Resource utilization (estimated for UltraScale+ XCU13):
+-- Resource utilization (rough estimates for UltraScale+ XCU13):
 --   LUTs: ~15,000 (2%)
 --   FFs:  ~12,000 (1%)
 --   BRAM:  18 blocks (5%)
 --   DSP:    4 blocks (<1%)
---
--- Compile: vivado -mode batch -source fpga_orderbook.tcl
 
 library ieee;
 use ieee.std_logic_1164.all;

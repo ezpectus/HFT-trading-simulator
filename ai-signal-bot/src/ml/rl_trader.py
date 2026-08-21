@@ -57,6 +57,9 @@ class RLConfig:
     dqn_epsilon_start: float = 1.0
     dqn_epsilon_end: float = 0.01
     dqn_epsilon_decay: float = 0.995
+    # Checkpointing
+    checkpoint_interval: int = 100  # Save checkpoint every N episodes
+    checkpoint_dir: str = "checkpoints"
 
 
 # ── PPO ──
@@ -217,6 +220,35 @@ class PPOAgent:
         metrics["value_loss"] += value_loss.item()
         metrics["entropy"] += entropy.item()
 
+    def save(self, path: str, episode: int = 0) -> bool:
+        """Save model, optimizer, and metadata to checkpoint file."""
+        try:
+            torch.save({
+                "algo": "ppo",
+                "episode": episode,
+                "model_state": self.ac.state_dict(),
+                "optimizer_state": self.optimizer.state_dict(),
+                "config": self.config,
+            }, path)
+            logger.info(f"[PPO] Checkpoint saved to {path} (episode={episode})")
+            return True
+        except (RuntimeError, OSError) as e:
+            logger.error(f"[PPO] Save failed: {e}")
+            return False
+
+    def load(self, path: str) -> int:
+        """Load model and optimizer from checkpoint. Returns episode number or -1 on failure."""
+        try:
+            ckpt = torch.load(path, map_location=self.device, weights_only=False)
+            self.ac.load_state_dict(ckpt["model_state"])
+            self.optimizer.load_state_dict(ckpt["optimizer_state"])
+            episode = ckpt.get("episode", 0)
+            logger.info(f"[PPO] Checkpoint loaded from {path} (episode={episode})")
+            return episode
+        except (RuntimeError, OSError, KeyError) as e:
+            logger.error(f"[PPO] Load failed: {e}")
+            return -1
+
 
 # ── DQN ──
 
@@ -294,6 +326,41 @@ class DQNAgent:
         self.epsilon = max(self.config.dqn_epsilon_end, self.epsilon * self.config.dqn_epsilon_decay)
 
         return {"q_loss": loss.item(), "epsilon": self.epsilon}
+
+    def save(self, path: str, episode: int = 0) -> bool:
+        """Save Q-networks, optimizer, and training state to checkpoint file."""
+        try:
+            torch.save({
+                "algo": "dqn",
+                "episode": episode,
+                "q_net_state": self.q_net.state_dict(),
+                "target_net_state": self.target_net.state_dict(),
+                "optimizer_state": self.optimizer.state_dict(),
+                "epsilon": self.epsilon,
+                "step_count": self.step_count,
+                "config": self.config,
+            }, path)
+            logger.info(f"[DQN] Checkpoint saved to {path} (episode={episode})")
+            return True
+        except (RuntimeError, OSError) as e:
+            logger.error(f"[DQN] Save failed: {e}")
+            return False
+
+    def load(self, path: str) -> int:
+        """Load Q-networks, optimizer, and training state. Returns episode number or -1 on failure."""
+        try:
+            ckpt = torch.load(path, map_location=self.device, weights_only=False)
+            self.q_net.load_state_dict(ckpt["q_net_state"])
+            self.target_net.load_state_dict(ckpt["target_net_state"])
+            self.optimizer.load_state_dict(ckpt["optimizer_state"])
+            self.epsilon = ckpt.get("epsilon", self.config.dqn_epsilon_end)
+            self.step_count = ckpt.get("step_count", 0)
+            episode = ckpt.get("episode", 0)
+            logger.info(f"[DQN] Checkpoint loaded from {path} (episode={episode})")
+            return episode
+        except (RuntimeError, OSError, KeyError) as e:
+            logger.error(f"[DQN] Load failed: {e}")
+            return -1
 
 
 def export_rl_onnx(agent, config: RLConfig, output_path: str, algo: str = "ppo") -> bool:

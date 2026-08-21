@@ -109,7 +109,7 @@ The system has **208 test files** across three languages:
 | Monitoring | test_alerting, test_health_check, test_health_server, test_metrics_server, test_monitoring_metrics, test_monitoring_llm, test_observability | Health, metrics, tracing, alerting |
 | Data | test_exchange_factory, test_real_account, test_real_exchange_client, test_real_market_data | Data collection |
 | Research | test_research_modules | Greeks hedging, attribution, genetic strategy |
-| Other | test_db, test_dpdk_transport, test_fft_analysis, test_indicators, test_notifier, test_bot_helpers | Database, networking, indicators |
+| Other | test_db, test_socket_transport, test_fft_analysis, test_indicators, test_notifier, test_bot_helpers | Database, networking, indicators |
 
 **Integration tests** (`ai-signal-bot/tests/integration/`): 2 files
 - `test_e2e_pipeline.py` — End-to-end signal generation → order execution

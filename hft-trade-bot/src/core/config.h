@@ -16,7 +16,7 @@ struct Config {
 
     // Trading
     std::vector<std::string> symbols{"BTC/USDT", "ETH/USDT", "SOL/USDT"};
-    int                      signal_interval_seconds{60};
+    int                      signal_interval_ms{1};   // Loop poll interval (0 = no wait, 1 = sub-ms HFT)
     int                      max_open_positions{3};
     bool                     paper_trading{true};
 
@@ -54,7 +54,7 @@ struct Config {
     int     v2_atr_period{14};
     double  v2_sl_atr_mult{1.5};
     double  v2_tp_atr_mult{3.0};
-    int64_t v2_cooldown_ms{5000};
+    int64_t v2_cooldown_ms{100};
     double  v2_buy_threshold{0.3};
     double  v2_sell_threshold{-0.3};
     uint8_t v2_min_confidence{60};

@@ -36,10 +36,10 @@ inline void validate_risk_params(const Config& cfg) {
 }
 
 inline void validate_trading_params(const Config& cfg) {
-    if (cfg.signal_interval_seconds < 1)
-        spdlog::warn("Config: signal_interval_seconds={} should be >= 1. "
-                     "Set trading.signal_interval_seconds in config.yaml",
-                     cfg.signal_interval_seconds);
+    if (cfg.signal_interval_ms < 0)
+        spdlog::warn("Config: signal_interval_ms={} should be >= 0. "
+                     "Set trading.signal_interval_ms in config.yaml (0 = no wait, 1 = sub-ms HFT)",
+                     cfg.signal_interval_ms);
     if (cfg.max_open_positions < 1)
         spdlog::warn("Config: max_open_positions={} should be >= 1. "
                      "Set trading.max_open_positions in config.yaml",
@@ -90,8 +90,8 @@ inline void validate_config(const Config& cfg) {
     if (cfg.is_production) {
         validate_production_limits(cfg);
     }
-    spdlog::info("Config validated: {} symbols, {}s interval, max {} positions", cfg.symbols.size(),
-                 cfg.signal_interval_seconds, cfg.max_open_positions);
+    spdlog::info("Config validated: {} symbols, {}ms interval, max {} positions", cfg.symbols.size(),
+                 cfg.signal_interval_ms, cfg.max_open_positions);
 }
 
 } // namespace hft::detail

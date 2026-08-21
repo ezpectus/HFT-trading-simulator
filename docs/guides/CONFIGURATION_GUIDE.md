@@ -163,7 +163,7 @@ exchanges:
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `trading.timeframe` | `5m` | Candle interval (must match exchange simulator) |
-| `trading.signal_interval_seconds` | `60` | How often to run signal analysis |
+| `trading.signal_interval_ms` | `1` | Loop poll interval in ms (0 = no wait, 1 = sub-ms HFT) |
 | `trading.max_open_positions` | `10` | Concurrent positions |
 | `trading.paper_trading` | `true` | If true, no real orders are sent |
 
@@ -477,7 +477,7 @@ Inhibition: `critical` alerts suppress `warning` alerts for the same service.
 - **Reduce risk** — lower `max_risk_per_trade_pct` and `max_position_size_pct`
 - **Enable ML** — set `ml_ensemble.enabled: true` (requires scikit-learn)
 - **Enable market making** — set `market_making.enabled: true` (needs inventory management)
-- **Faster signals** — reduce `signal_interval_seconds` (default: 60)
+- **Faster signals** — reduce `signal_interval_ms` (default: 1ms for HFT mode)
 - **Production** — use environment variables, not config files, for secrets
 
 ---

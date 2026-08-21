@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
             print_status(ctx);
         }
 
-        ctx.receiver->wait_for_data(1000);
+        ctx.receiver->wait_for_data(ctx.config.signal_interval_ms);
         poll_shm_market_data(ctx);
     }
 

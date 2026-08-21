@@ -1,12 +1,10 @@
-"""Tests for networking/dpdk_transport.py — DPDKTransport and MarketDataPacket."""
-import os
+"""Tests for networking/socket_transport.py — SocketTransport and MarketDataPacket."""
 import socket
 import struct
-import tempfile
 
 import pytest
 
-from src.networking.dpdk_transport import DPDKTransport, MarketDataPacket
+from src.networking.socket_transport import SocketTransport, MarketDataPacket
 
 
 class TestMarketDataPacket:
@@ -27,9 +25,9 @@ class TestMarketDataPacket:
         assert pkt.msg_type == "new"
 
 
-class TestDPDKTransportInit:
+class TestSocketTransportInit:
     def test_defaults(self):
-        t = DPDKTransport()
+        t = SocketTransport()
         assert t.port == 9000
         assert t.buffer_size == 1024 * 1024
         assert t.rx_queue_size == 4096
@@ -40,13 +38,13 @@ class TestDPDKTransportInit:
         assert t._running is False
 
     def test_custom_params(self):
-        t = DPDKTransport(port=8080, buffer_size=2048, bind_addr="0.0.0.0")
+        t = SocketTransport(port=8080, buffer_size=2048, bind_addr="0.0.0.0")
         assert t.port == 8080
         assert t.buffer_size == 2048
         assert t.bind_addr == "0.0.0.0"
 
     def test_initial_stats(self):
-        t = DPDKTransport()
+        t = SocketTransport()
         assert t._stats["packets_rx"] == 0
         assert t._stats["packets_tx"] == 0
         assert t._stats["bytes_rx"] == 0
@@ -55,9 +53,9 @@ class TestDPDKTransportInit:
         assert t._stats["avg_latency_ns"] == 0
 
 
-class TestDPDKTransportInitialize:
-    def test_initialize_socket_fallback(self):
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+class TestSocketTransportInitialize:
+    def test_initialize_socket(self):
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         result = t.initialize()
         assert result is True
         assert t._initialized is True
@@ -65,22 +63,22 @@ class TestDPDKTransportInitialize:
         t.stop()
 
     def test_initialize_creates_udp_socket(self):
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         t.initialize()
         assert t._socket is not None
         assert t._socket.type == socket.SOCK_DGRAM
         t.stop()
 
     def test_initialize_sets_nonblocking(self):
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         t.initialize()
         assert t._socket.getblocking() is False
         t.stop()
 
 
-class TestDPDKTransportSend:
+class TestSocketTransportSend:
     def test_send_not_initialized(self):
-        t = DPDKTransport()
+        t = SocketTransport()
         assert t.send(b"test") is False
 
     def test_send_to_receiver(self):
@@ -89,10 +87,10 @@ class TestDPDKTransportSend:
         rx_port = rx.getsockname()[1]
         rx.settimeout(2.0)
 
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         t.initialize()
 
-        data = b"hello dpdk"
+        data = b"hello socket"
         result = t.send(data, dest=("127.0.0.1", rx_port))
         assert result is True
         assert t._stats["packets_tx"] == 1
@@ -105,9 +103,9 @@ class TestDPDKTransportSend:
         t.stop()
 
 
-class TestDPDKTransportParsePacket:
+class TestSocketTransportParsePacket:
     def test_parse_valid_packet(self):
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         symbol = "BTC"
         sym_bytes = symbol.encode("ascii")
         data = struct.pack("!Q", 1234567890)
@@ -127,17 +125,17 @@ class TestDPDKTransportParsePacket:
         assert pkt.msg_type == "trade"
 
     def test_parse_short_packet(self):
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         pkt = t._parse_packet(b"short")
         assert pkt is None
 
     def test_parse_empty_packet(self):
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         pkt = t._parse_packet(b"")
         assert pkt is None
 
     def test_parse_sell_side(self):
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         symbol = "ETH"
         sym_bytes = symbol.encode("ascii")
         data = struct.pack("!Q", 99999)
@@ -153,7 +151,7 @@ class TestDPDKTransportParsePacket:
         assert pkt.msg_type == "new"
 
     def test_parse_unknown_msg_type(self):
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         symbol = "X"
         sym_bytes = symbol.encode("ascii")
         data = struct.pack("!Q", 1)
@@ -168,37 +166,35 @@ class TestDPDKTransportParsePacket:
         assert pkt.msg_type == "unknown"
 
 
-class TestDPDKTransportStats:
+class TestSocketTransportStats:
     def test_get_stats(self):
-        t = DPDKTransport()
+        t = SocketTransport()
         stats = t.get_stats()
         assert "packets_rx" in stats
         assert "packets_tx" in stats
         assert "bytes_rx" in stats
         assert "bytes_tx" in stats
         assert "rx_drops" in stats
-        assert "dpdk_enabled" in stats
-        assert stats["dpdk_enabled"] is False
 
-    def test_is_dpdk_active(self):
-        t = DPDKTransport()
-        assert t.is_dpdk_active() is False
+    def test_is_active(self):
+        t = SocketTransport()
+        assert t.is_active() is False
 
 
-class TestDPDKTransportStop:
+class TestSocketTransportStop:
     def test_stop_closes_socket(self):
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         t.initialize()
         t.stop()
         assert t._running is False
 
     def test_stop_without_init(self):
-        t = DPDKTransport()
+        t = SocketTransport()
         t.stop()
         assert t._running is False
 
     def test_stop_idempotent(self):
-        t = DPDKTransport(port=0, bind_addr="127.0.0.1")
+        t = SocketTransport(port=0, bind_addr="127.0.0.1")
         t.initialize()
         t.stop()
         t.stop()
