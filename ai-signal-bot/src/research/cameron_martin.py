@@ -3,25 +3,6 @@
 Uses the Cameron-Martin theorem to quantify how a deterministic shift
 in the drift of a Gaussian process changes the probability measure,
 enabling drift-aware signal detection.
-
-    Cameron-Martin: For a Gaussian measure μ on a Hilbert space H,
-    the shifted measure μ_h(A) = μ(A - h) is absolutely continuous
-    w.r.t. μ iff h is in the Cameron-Martin space H_μ.
-
-    Radon-Nikodym derivative:
-    d(μ_h)/d(μ) = exp(<h, x>_μ - 1/2·||h||²_μ)
-
-    For Brownian motion: dP^(h)/dP = exp(∫h dW - 1/2·∫h² dt)
-    (Cameron-Martin-Girsanov formula for deterministic shifts)
-
-    Inner product: <h, x> = Σ h_t·x_t/σ²
-    Norm: ||h||² = Σ h_t²/σ²
-
-Applications: drift detection, signal extraction from noise,
-optimal shift estimation, likelihood ratio for mean change.
-
-Ported from UI-only CameronMartinFormula.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

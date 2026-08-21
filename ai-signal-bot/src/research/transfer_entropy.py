@@ -3,16 +3,6 @@
 Measures directed information flow: TE_{X->Y} quantifies how much X's past
 reduces uncertainty about Y's future, beyond Y's own history. Unlike Granger
 causality (linear), TE captures non-linear dependencies.
-
-    TE_{X->Y} = sum p(y_{t+1}, y_t^k, x_t^l) * log2[ p(y_{t+1}|y_t^k, x_t^l) / p(y_{t+1}|y_t^k) ]
-              = sum p_all * log2[ p_all * p_yonly / (p_y * p_yx) ]
-
-    where y_t^k = [y_t, ..., y_{t-k+1}], x_t^l = [x_t, ..., x_{t-l+1}]
-
-    Effective TE (ETE) = TE - TE_surrogate (shuffle X to destroy causality)
-
-Ported from UI-only TransferEntropy.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
 """
 from __future__ import annotations
 

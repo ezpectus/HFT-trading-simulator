@@ -1,23 +1,7 @@
 """Compressed Sensing (Sparse Signal Recovery).
 
 Recovers sparse signals from undersampled observations via L1 minimization
-and greedy pursuit.
-
-    Measurement model: y = Phi * x   (Phi: m x n, m < n)
-    Recovery: min ||x||_1  s.t.  Phi*x = y
-    Guarantee: m >= C * k * log(n/k)  (RIP)
-
-    OMP (Orthogonal Matching Pursuit):
-    1. Find column of Phi most correlated with residual
-    2. Add to support set
-    3. Solve least squares on support
-    4. Update residual
-
-    ISTA (Iterative Shrinkage-Thresholding):
-    x <- soft_threshold(x - step * Phi^T(Phi*x - y), lambda*step)
-
-Ported from UI-only CompressedSensing.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
+and greedy pursuit (OMP, ISTA).
 """
 from __future__ import annotations
 

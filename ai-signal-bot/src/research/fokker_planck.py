@@ -2,21 +2,6 @@
 
 Solves the forward Kolmogorov equation to track how the probability density
 of returns evolves over time under drift and diffusion.
-
-    Fokker-Planck PDE:
-    dp/dt = -d/dx[mu(x,t)*p] + (1/2)*d^2/dx^2[sigma^2(x,t)*p]
-
-    For GBM: mu(x) = mu0*x, sigma(x) = sigma0*x
-    dp/dt = -mu0*d/dx[x*p] + (sigma0^2/2)*d^2/dx^2[x^2*p]
-
-    Numerical: explicit finite differences
-    p_i^{n+1} = p_i^n + dt*[-(F_{i+1/2}) + (F_{i-1/2})] / dx
-    where F = mu*p - (1/2)*d/dx[sigma^2*p] (probability flux)
-
-    Stationary distribution (OU): p_inf(x) ~ exp(-(x-theta)^2/(2*sigma^2/(2*kappa)))
-
-Ported from UI-only FokkerPlanckEquation.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

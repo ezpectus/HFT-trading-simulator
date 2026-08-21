@@ -2,20 +2,7 @@
 
 Implements discrete wavelet transforms with Haar (D2) and Daubechies D4
 wavelets, decomposing a price series into trend + detail components at
-multiple scales.
-
-    Haar:      scaling phi(t) = 1 on [0,1), wavelet psi(t) = 1 on [0,1/2), -1 on [1/2,1)
-    Daubechies D4: h = [(1+sqrt3)/4sqrt2, (3+sqrt3)/4sqrt2, (3-sqrt3)/4sqrt2, (1-sqrt3)/4sqrt2]
-
-    DWT:  c[j] = sum_k h[k] * s[2j+k],  d[j] = sum_k g[k] * s[2j+k]
-    IDWT: s[2j+k] += h[k]*c[j] + g[k]*d[j]
-
-MRA reconstruction: price = trend(J) + details(1..J).
-Denoising via soft thresholding of detail coefficients.
-SNR signal: BUY/SELL when trend is clear (SNR > 3 dB), HOLD when noisy (SNR < 1 dB).
-
-Ported from UI-only WaveletDecomposition.jsx into trading logic.
-Reference: future_development.md §0.1 — high priority model.
+multiple scales. Supports MRA reconstruction and soft-threshold denoising.
 """
 from __future__ import annotations
 

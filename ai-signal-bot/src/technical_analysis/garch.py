@@ -1,17 +1,8 @@
 """GARCH(1,1) volatility model for conditional variance forecasting.
 
-Implements the standard GARCH(1,1) process:
-    sigma^2_t = omega + alpha * eps^2_{t-1} + beta * sigma^2_{t-1}
-
-Parameters are estimated by maximum likelihood via gradient ascent on the
-Gaussian log-likelihood:
-    L = -0.5 * sum_t [ ln(sigma^2_t) + eps^2_t / sigma^2_t ]
-
-Also provides EWMA (RiskMetrics, lambda=0.94) and Parkinson (high-low)
-volatility estimators for comparison, mirroring the UI panel.
-
-Ported from UI-only GARCHVolatility.jsx into trading logic.
-Reference: future_development.md §0.1 — high priority model.
+Implements the standard GARCH(1,1) process with MLE parameter estimation.
+Also provides EWMA (RiskMetrics) and Parkinson (high-low) volatility
+estimators for comparison.
 """
 from __future__ import annotations
 

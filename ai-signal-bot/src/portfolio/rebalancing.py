@@ -39,68 +39,20 @@ class RebalancingStrategy:
     """Portfolio rebalancing strategy."""
 
     def __init__(self, transaction_cost: float = 0.001):
-        """
-        Initialize rebalancing strategy.
-
-        Args:
-            transaction_cost: Transaction cost as percentage (default 0.1%)
-        """
         self.transaction_cost = transaction_cost
 
     def calculate_drift(self, current_weights: np.ndarray, target_weights: np.ndarray) -> np.ndarray:
-        """
-        Calculate drift between current and target weights.
-
-        Args:
-            current_weights: Current portfolio weights (n_assets)
-            target_weights: Target portfolio weights (n_assets)
-
-        Returns:
-            Drift vector (n_assets)
-        """
         return current_weights - target_weights
 
     def calculate_turnover(self, current_weights: np.ndarray, target_weights: np.ndarray) -> float:
-        """
-        Calculate portfolio turnover.
-
-        Args:
-            current_weights: Current portfolio weights (n_assets)
-            target_weights: Target portfolio weights (n_assets)
-
-        Returns:
-            Turnover percentage
-        """
         return 0.5 * np.sum(np.abs(target_weights - current_weights))
 
     def should_rebalance_time_based(self, last_rebalance_time: float, rebalance_interval: float,
                                    current_time: float) -> bool:
-        """
-        Check if time-based rebalancing is triggered.
-
-        Args:
-            last_rebalance_time: Timestamp of last rebalance
-            rebalance_interval: Rebalancing interval in seconds
-            current_time: Current timestamp
-
-        Returns:
-            True if rebalancing should occur
-        """
         return (current_time - last_rebalance_time) >= rebalance_interval
 
     def should_rebalance_drift_based(self, current_weights: np.ndarray, target_weights: np.ndarray,
                                     max_drift: float = 0.05) -> bool:
-        """
-        Check if drift-based rebalancing is triggered.
-
-        Args:
-            current_weights: Current portfolio weights (n_assets)
-            target_weights: Target portfolio weights (n_assets)
-            max_drift: Maximum allowed drift (default 5%)
-
-        Returns:
-            True if rebalancing should occur
-        """
         drift = self.calculate_drift(current_weights, target_weights)
         max_absolute_drift = np.max(np.abs(drift))
         return bool(max_absolute_drift > max_drift)
@@ -108,17 +60,6 @@ class RebalancingStrategy:
     def should_rebalance_volatility_based(self, current_volatility: float,
                                          target_volatility: float,
                                          max_volatility_drift: float = 0.1) -> bool:
-        """
-        Check if volatility-based rebalancing is triggered.
-
-        Args:
-            current_volatility: Current portfolio volatility
-            target_volatility: Target portfolio volatility
-            max_volatility_drift: Maximum allowed volatility drift (default 10%)
-
-        Returns:
-            True if rebalancing should occur
-        """
         if target_volatility == 0:
             return current_volatility > max_volatility_drift
         volatility_drift = abs(current_volatility - target_volatility) / target_volatility
@@ -126,17 +67,6 @@ class RebalancingStrategy:
 
     def generate_rebalance_orders(self, current_weights: np.ndarray, target_weights: np.ndarray,
                                  portfolio_value: float) -> list[RebalanceOrder]:
-        """
-        Generate rebalancing orders.
-
-        Args:
-            current_weights: Current portfolio weights (n_assets)
-            target_weights: Target portfolio weights (n_assets)
-            portfolio_value: Total portfolio value
-
-        Returns:
-            List of RebalanceOrder objects
-        """
         orders = []
 
         for i in range(len(current_weights)):
@@ -167,18 +97,6 @@ class RebalancingStrategy:
 
     def execute_rebalance(self, current_weights: np.ndarray, target_weights: np.ndarray,
                         portfolio_value: float) -> RebalanceResult:
-        """
-        Execute portfolio rebalancing.
-
-        Args:
-            current_weights: Current portfolio weights (n_assets)
-            target_weights: Target portfolio weights (n_assets)
-            portfolio_value: Total portfolio value
-
-        Returns:
-            RebalanceResult with orders and new weights
-        """
-        # Generate orders
         orders = self.generate_rebalance_orders(current_weights, target_weights, portfolio_value)
 
         # Calculate turnover
@@ -207,24 +125,7 @@ class RebalancingStrategy:
                        target_volatility: float | None = None,
                        max_drift: float = 0.05,
                        max_volatility_drift: float = 0.1) -> bool:
-        """
-        Check if rebalancing should occur based on trigger type.
-
-        Args:
-            current_weights: Current portfolio weights (n_assets)
-            target_weights: Target portfolio weights (n_assets)
-            trigger_type: Type of rebalancing trigger
-            last_rebalance_time: Timestamp of last rebalance (for time-based)
-            rebalance_interval: Rebalancing interval (for time-based)
-            current_time: Current timestamp (for time-based)
-            current_volatility: Current portfolio volatility (for volatility-based)
-            target_volatility: Target portfolio volatility (for volatility-based)
-            max_drift: Maximum allowed drift (for drift-based)
-            max_volatility_drift: Maximum allowed volatility drift (for volatility-based)
-
-        Returns:
-            True if rebalancing should occur
-        """
+        """Check if rebalancing should occur based on trigger type."""
         if trigger_type == RebalanceTrigger.TIME_BASED:
             if last_rebalance_time is None or rebalance_interval is None or current_time is None:
                 return False

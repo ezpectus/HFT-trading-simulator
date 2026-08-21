@@ -1,17 +1,7 @@
 """Optimal Stopping (Snell Envelope) for American option exercise.
 
-Implements the Snell envelope for optimal exercise of American options:
-    V(T) = g(T, S_T)
-    V(t) = max(g(t, S_t), E[V(t+1) | F_t])
-    tau* = inf{t : g(t, S_t) >= E[V(t+1) | F_t]}
-
-Two pricing methods:
-    1. Binomial tree (Cox-Ross-Rubinstein) with backward induction:
-       u = exp(sigma*sqrt(dt)), d = 1/u, p = (exp(r*dt) - d) / (u - d)
-    2. Longstaff-Schwartz Monte Carlo with OLS regression (X = [1, S, S^2])
-
-Ported from UI-only OptimalStopping.jsx into trading logic.
-Reference: future_development.md §0.1 — medium priority model.
+Implements the Snell envelope for optimal exercise of American options
+via binomial tree (Cox-Ross-Rubinstein) and Longstaff-Schwartz Monte Carlo.
 """
 from __future__ import annotations
 

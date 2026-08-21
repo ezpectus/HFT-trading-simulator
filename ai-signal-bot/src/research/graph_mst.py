@@ -1,20 +1,7 @@
 """Graph Theory: Correlation Networks & Minimum Spanning Tree (MST).
 
-Constructs financial networks from return correlations:
-    1. Complete graph with correlation-based edge weights
-    2. Minimum Spanning Tree (MST) — filtered backbone (Mantegna)
-
-    Distance: d_ij = sqrt(2(1 - rho_ij))  (correlation distance)
-    MST: minimum total weight spanning tree (Kruskal's algorithm)
-
-    Network metrics:
-    - Degree centrality: C_D(i) = deg(i) / (n-1)
-    - Betweenness centrality: C_B(i) = sum_{s!=i!=t} sigma_st(i) / sigma_st
-    - Eigenvector centrality: A*x = lambda*x (power iteration)
-    - Clustering coefficient: C_i = 2*e_i / (k_i*(k_i-1))
-
-Ported from UI-only GraphTheoryNetwork.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
+Constructs financial networks from return correlations and extracts
+the minimum spanning tree backbone (Mantegna).
 """
 from __future__ import annotations
 

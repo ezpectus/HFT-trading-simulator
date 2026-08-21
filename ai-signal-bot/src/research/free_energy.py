@@ -2,29 +2,6 @@
 
 Implements the Free Energy Principle (Friston) for trading decisions:
 agents minimize variational free energy between internal model and observations.
-
-    Variational Free Energy:
-    F = E_q[log q(x) - log p(x,o)]
-      = KL[q(x) || p(x|o)] - log p(o)
-      ≤ -log p(o)  (evidence bound)
-
-    For Gaussian model:
-    F = ½·Σ (μ_i - o_i)²/σ_i² + ½·Σ log(σ_i²) + const
-      = prediction error (precision-weighted) + complexity
-
-    Active inference:
-    - Perception: minimize F over μ (gradient descent)
-    - Action: minimize expected free energy G(π) = risk + ambiguity
-      G(π) = Σ (o_pred - pref)²/(2σ²) + Σ ½·log(2πe·σ²)
-
-    Precision weighting: σ_i controls how much prediction error matters.
-
-Note: the UI's gradient step μ += lr·(o-μ)/σ² diverges when lr ≥ 2σ²
-(defaults lr=0.1, σ²=0.01 → multiplier 10); the port clamps the step to
-min(lr, 1.9·σ²) to guarantee convergence while preserving the interface.
-
-Ported from UI-only FreeEnergyPrinciple.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

@@ -2,25 +2,6 @@
 
 Uses Banach's contraction mapping theorem to find fixed points of
 market equilibrium operators, detecting convergence/divergence regimes.
-
-    Banach theorem: If T:X→X is a contraction with constant q < 1,
-    then T has a unique fixed point x* = T(x*)
-    Convergence: ||x_n - x*|| ≤ q^n/(1-q)·||x_1 - x_0||
-
-    Market equilibrium: x* = T(x*) where T is the best-response operator
-    T_i(x) = argmax_{u_i} J_i(u_i, x_{-i})  (Nash equilibrium)
-
-    2-player game:
-    Player 1: maximize a1·x - b1·x² - c1·y·x  (momentum)
-    Player 2: maximize a2·y - b2·y² - c2·x·y  (mean-reversion)
-    Best response: T1(y) = (a1 - c1·y)/(2·b1), T2(x) = (a2 - c2·x)/(2·b2)
-    Contraction constant: q = sqrt(|c1·c2|/(4·b1·b2)) (spectral radius)
-
-Applications: Nash equilibrium computation, market clearing prices,
-iterative implied volatility calibration, convergence analysis.
-
-Ported from UI-only BanachFixedPoint.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

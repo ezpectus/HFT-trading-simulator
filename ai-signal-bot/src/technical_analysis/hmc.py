@@ -2,20 +2,6 @@
 
 Momentum-based MCMC sampler using Hamiltonian dynamics to explore the
 posterior distribution of GARCH(1,1) parameters [omega, alpha, beta].
-
-    Hamiltonian: H(q, p) = U(q) + K(p)
-    U(q) = -log p(q|D)          (potential energy = negative log posterior)
-    K(p) = 0.5 * p^T * M^-1 * p (kinetic energy, M = mass matrix)
-
-    Leapfrog integrator (symplectic):
-    p_{1/2} = p - (eps/2) * grad U(q)
-    q' = q + eps * M^-1 * p_{1/2}
-    p' = p_{1/2} - (eps/2) * grad U(q')
-
-    Metropolis acceptance: alpha = min(1, exp(H(q,p) - H(q',p')))
-
-Ported from UI-only HamiltonianMonteCarlo.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
 """
 from __future__ import annotations
 

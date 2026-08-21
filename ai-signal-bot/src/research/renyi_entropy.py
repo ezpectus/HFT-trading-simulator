@@ -2,24 +2,6 @@
 
 Tracks Rényi entropy at various orders α to probe different aspects of
 the return distribution: tail behavior, concentration, and diversity.
-
-    Rényi entropy: H_α(X) = (1/(1-α))·log₂ Σ p_i^α
-    α → 0: H_0 = log₂|support| (Hartley entropy)
-    α → 1: H_1 = Shannon entropy
-    α → ∞: H_∞ = -log₂ max(p_i) (min-entropy, most conservative)
-    α = 2: H_2 = -log₂ Σ p_i² (collision entropy)
-
-    Tsallis entropy: S_q = (1 - Σ p_i^q) / (q - 1)
-    Relationship: H_α = (1/(1-α))·log(1 + (1-α)·S_α)
-
-    Generalized dimensions: D_α = slope of H_α vs log₂(1/r)
-    D_0 = box-counting, D_1 = information, D_2 = correlation dimension
-
-Applications: market efficiency across scales, tail risk assessment,
-distribution concentration, regime diversity.
-
-Ported from UI-only RenyiEntropyDynamics.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

@@ -2,22 +2,7 @@
 
 Combines a hidden Markov chain with GARCH volatility: each regime has its
 own GARCH parameters, capturing that volatility dynamics differ between
-market states (calm vs crisis).
-
-    Regime s_t in {0, ..., K-1} follows a Markov chain:
-        P(s_t = j | s_{t-1} = i) = p_ij
-
-    In regime s_t = k, returns follow:
-        r_t = mu_k + eps_t,  eps_t ~ N(0, h_t)
-        h_t = omega_k + alpha_k * eps^2_{t-1} + beta_k * h_{t-1}
-
-Estimation uses Kim's filtering approach:
-    1. Run a GARCH filter for each regime
-    2. Combine with the Hamilton filter for regime probabilities
-    3. Smooth via Kim's approximation
-
-Ported from UI-only MarkovSwitchingGARCH.jsx into trading logic.
-Reference: future_development.md §0.1 — high priority model.
+market states (calm vs crisis). Estimation uses Kim's filtering approach.
 """
 from __future__ import annotations
 

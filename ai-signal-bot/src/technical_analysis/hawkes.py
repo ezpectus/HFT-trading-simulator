@@ -2,23 +2,6 @@
 
 Models trade clustering: intensity lambda(t) increases after each event,
 capturing the empirical fact that trades cluster in bursts.
-
-    Intensity: lambda(t) = mu + sum_{t_i < t} alpha * exp(-beta * (t - t_i))
-    - mu: baseline intensity (exogenous arrivals)
-    - alpha: excitation magnitude (each event adds alpha)
-    - beta: decay rate of excitation
-
-    Branching ratio: n = alpha / beta  (n < 1 for stationarity)
-    Expected descendants per event: n / (1 - n)
-
-    Log-likelihood:
-    L = sum log(lambda(t_i)) - integral_0^T lambda(t) dt
-      = sum log(mu + alpha * R_i) - mu*T - (alpha/beta) * sum(1 - exp(-beta*(T - t_i)))
-    where R_i = sum_{j<i} exp(-beta*(t_i - t_j)) computed recursively:
-    R_i = exp(-beta*(t_i - t_{i-1})) * (1 + R_{i-1})
-
-Ported from UI-only HawkesProcess.jsx into trading logic.
-Reference: future_development.md §0.1 — medium priority model.
 """
 from __future__ import annotations
 

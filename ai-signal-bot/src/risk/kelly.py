@@ -161,17 +161,7 @@ class KellyPositionSizer:
         max_risk_pct: float = 5.0,
         min_trades: int = 10,
     ) -> "KellyPositionSizer":
-        """Create a KellyPositionSizer from trade history.
-
-        Args:
-            trades: List of trade objects with .pnl attribute
-            kelly_fraction: Kelly safety fraction
-            max_risk_pct: Max risk per trade
-            min_trades: Minimum trades needed for stats
-
-        Returns:
-            KellyPositionSizer configured with historical stats
-        """
+        """Create a KellyPositionSizer from trade history."""
         if len(trades) < min_trades:
             logger.info(f"Insufficient trades ({len(trades)} < {min_trades}), using defaults")
             return KellyPositionSizer(kelly_fraction=kelly_fraction, max_risk_pct=max_risk_pct)

@@ -2,21 +2,6 @@
 
 Simulates financial SDEs using Euler-Maruyama and Milstein schemes.
 Includes GBM, Ornstein-Uhlenbeck, CIR, Heston, and Jump-Diffusion models.
-
-    General SDE: dX_t = mu(X_t, t) dt + sigma(X_t, t) dW_t
-    Euler-Maruyama: X_{n+1} = X_n + mu*dt + sigma*sqrt(dt)*Z_n
-    Milstein (strong order 1.0):
-      X_{n+1} = X_n + mu*dt + sigma*sqrt(dt)*Z_n + 0.5*sigma*sigma'*(Z_n^2 - 1)*dt
-
-    Models:
-    GBM:  dS = mu*S dt + sigma*S dW
-    OU:   dX = theta*(mu - X) dt + sigma dW
-    CIR:  dX = kappa*(theta - X) dt + sigma*sqrt(X) dW
-    Heston: dS = mu*S dt + sqrt(v)*S dW1,  dv = kappa*(theta-v) dt + xi*sqrt(v) dW2
-    Merton: dS = mu*S dt + sigma*S dW + S*J*dN (Poisson jumps)
-
-Ported from UI-only StochasticDifferentialEquations.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

@@ -2,25 +2,6 @@
 
 Uses the Riesz representation theorem to represent linear functionals
 on Hilbert spaces as inner products, enabling optimal signal extraction.
-
-    Riesz (Hilbert): For every bounded linear functional L on H,
-    there exists unique u in H such that L(f) = <f, u> for all f in H
-    and ||L|| = ||u||
-
-    Riesz (Lp): For every bounded linear functional L on Lp,
-    there exists unique g in Lq (1/p + 1/q = 1) such that
-    L(f) = ∫ f(x)·g(x) dx
-
-    Riesz-Markov: For every positive linear functional L on C(X),
-    there exists unique measure μ such that L(f) = ∫ f dμ
-
-    Representer: u = (K + λI)^{-1}·L,  K = XᵀX/N (Gram), L = Xᵀy/N
-
-Applications: optimal signal extraction, representer theorem,
-dual space analysis, feature importance via Riesz representer.
-
-Ported from UI-only RieszRepresentation.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

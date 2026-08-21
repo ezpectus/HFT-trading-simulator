@@ -71,17 +71,7 @@ class PortfolioOptimizer:
         target_return: float | None = None,
         target_risk: float | None = None,
     ) -> OptimizationResult:
-        """
-        Optimize portfolio weights.
-
-        Args:
-            returns: (n_periods, n_assets) array of returns
-            target_return: target portfolio return (for min variance with constraint)
-            target_risk: target risk level (not used in max Sharpe)
-
-        Returns:
-            OptimizationResult with optimal weights and metrics
-        """
+        """Optimize portfolio weights."""
         if not SCIPY_AVAILABLE:
             return self._equal_weight(returns, "scipy not available")
 

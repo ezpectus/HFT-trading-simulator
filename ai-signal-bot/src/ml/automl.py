@@ -105,16 +105,7 @@ class AutoMLOptimizer:
         objective_fn: Callable | None = None,
         search_space_fn: Callable | None = None,
     ) -> dict[str, Any]:
-        """
-        Run hyperparameter optimization.
-
-        Args:
-            objective_fn: Custom objective function(params: dict) -> float
-            search_space_fn: Custom search space function(trial) -> dict
-
-        Returns:
-            Best hyperparameters found
-        """
+        """Run hyperparameter optimization."""
         if not OPTUNA_AVAILABLE:
             logger.error("[AutoML] optuna not available")
             return {}

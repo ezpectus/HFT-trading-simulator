@@ -1,23 +1,7 @@
 """Information Bottleneck (rate-distortion optimization).
 
 Finds optimal compression of return signals by trading off information
-preservation (I(X;T)) against complexity (I(T;Y)).
-
-    Objective: L = I(X;T) - β·I(T;Y)
-    where T is the compressed representation, X the input, Y the target.
-
-    I(X;T) = Σ_{x,t} p(x,t)·log₂[p(t|x)/p(t)]
-    I(T;Y) = Σ_{t,y} p(t,y)·log₂[p(y|t)/p(y)]
-
-    Self-consistent (Blahut-Arimoto) equations:
-    p(t|x) = p(t)·exp(-β·D_KL[p(y|x)||p(y|t)]) / Z(x,β)
-    p(y|t) = Σ_x p(y|x)·p(x|t)
-    p(t) = Σ_x p(x)·p(t|x)
-
-Applications: feature compression, optimal discretization, signal clustering.
-
-Ported from UI-only InformationBottleneck.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
+preservation against complexity.
 """
 from __future__ import annotations
 

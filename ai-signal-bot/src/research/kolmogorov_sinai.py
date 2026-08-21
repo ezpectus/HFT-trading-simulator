@@ -2,23 +2,6 @@
 
 Measures the rate of information production in a dynamical system.
 For chaotic systems, KS entropy is positive; for periodic systems, zero.
-
-    KS entropy: h_KS = lim_{ε→0} lim_{n→∞} (1/n)·H(s_0, ..., s_{n-1})
-    where s_i are symbolic partitions of the phase space.
-
-    Estimation methods:
-    1. Symbolic dynamics: partition returns into symbols, block entropy
-       H_n = -Σ p(s_0...s_{n-1})·log₂ p(s_0...s_{n-1})
-       h_KS = lim_{n→∞} (H_n - H_{n-1})
-    2. Permutation entropy: ordinal patterns of length n, normalized by log₂(n!)
-    3. Sample entropy: -ln(A/B) with tolerance r·std
-    4. Largest Lyapunov exponent (Rosenstein's method): λ₁ = slope of
-       log divergence vs lag (λ₁ > 0 → chaos)
-
-    Predictability horizon: 1/h_KS
-
-Ported from UI-only KolmogorovSinaiEntropy.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

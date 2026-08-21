@@ -1,18 +1,8 @@
 """Bayesian Price Predictor with conjugate priors.
 
 Estimates the probability of price direction and magnitude using four
-Bayesian models:
-
-    1. Beta-Binomial: P(up tomorrow) with Beta prior, updated by observed
-       up/down days -> posterior Beta(alpha + ups, beta + downs)
-    2. Normal-Inverse-Gamma: posterior distribution of the mean return
-       via conjugate updating of mu and sigma^2
-    3. BOCPD: Bayesian Online Changepoint Detection with hazard function
-    4. Bayesian Ridge regression: next-return prediction with coefficient
-       uncertainty (EM update of alpha/beta precisions)
-
-Ported from UI-only BayesianPricePredictor.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
+Bayesian models: Beta-Binomial, Normal-Inverse-Gamma, BOCPD, and
+Bayesian Ridge regression.
 """
 from __future__ import annotations
 

@@ -2,9 +2,6 @@
 
 Linear SVM via SGD with hinge loss. Binary classification (up/down)
 based on multi-dimensional features extracted from return windows.
-
-Ported from UI-only SupportVectorMachine.jsx into trading logic.
-Reference: future_development.md §0.1 — medium priority model.
 """
 from __future__ import annotations
 
@@ -55,19 +52,7 @@ def linear_svm(
     lr: float = DEFAULT_LR,
     seed: int | None = None,
 ) -> SVMResult:
-    """Train a linear SVM using SGD with hinge loss.
-
-    Args:
-        X: Feature matrix (n_samples x n_features).
-        y: Labels (+1 or -1).
-        C: Regularization parameter.
-        epochs: Number of training epochs.
-        lr: Initial learning rate.
-        seed: Random seed for reproducibility.
-
-    Returns:
-        SVMResult with weights, bias, accuracy, predictions.
-    """
+    """Train a linear SVM using SGD with hinge loss."""
     n = len(X)
     if n == 0:
         return SVMResult([], 0.0, 0.0, [])

@@ -2,23 +2,6 @@
 
 EMD adaptively decomposes a signal into Intrinsic Mode Functions (IMFs)
 via the sifting process; HHT computes instantaneous frequency/amplitude.
-
-    IMF criteria:
-    1. Number of extrema = number of zero crossings (+-1)
-    2. Mean of upper/lower envelopes = 0 at every point
-
-    Sifting:
-    1. Find local maxima -> upper envelope (cubic spline)
-    2. Find local minima -> lower envelope (cubic spline)
-    3. mean = (upper + lower) / 2;  h = signal - mean
-    4. Repeat until SD < threshold;  residue = signal - IMF
-
-    Hilbert Transform (FFT-based): H(f) = -j*sign(f)
-    Analytic signal: z(t) = x(t) + j*H[x(t)] = a(t)*e^(j*phi(t))
-    Instantaneous frequency: omega(t) = d(phi)/dt
-
-Ported from UI-only EmpiricalModeDecomposition.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
 """
 from __future__ import annotations
 

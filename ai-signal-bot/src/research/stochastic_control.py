@@ -2,22 +2,6 @@
 
 Solves the HJB equation for optimal trading decisions under stochastic
 dynamics, finding the value function and optimal policy.
-
-    State: dX = mu(X,t) dt + sigma(X,t) dW
-    Objective: V(x,t) = max_u E[int e^{-rho*s} L(X,u) ds + e^{-rho*T} G(X_T)]
-
-    HJB equation:
-    -V_t + rho*V = max_u [L(x,u) + mu(x,u)*V_x + (1/2)*sigma^2(x,u)*V_xx]
-
-    For portfolio: X = wealth, u = position size
-    dX = u*(mu*dt + sigma*dW)
-    L = -u^2*gamma/2 (risk penalty) + u*mu (expected return)
-
-    Optimal policy: u* = mu*x*(1 + V_x) / (sigma^2*x^2*(gamma - V_xx))
-    Numerical: backward Euler finite differences on (x, t) grid
-
-Ported from UI-only StochasticOptimalControl.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

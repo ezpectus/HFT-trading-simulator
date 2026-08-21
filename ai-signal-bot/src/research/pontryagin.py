@@ -2,23 +2,6 @@
 
 Applies the PMP to find the optimal trading trajectory minimizing
 execution cost + market impact (Almgren-Chriss with risk penalty).
-
-    State: x'(t) = u(t)  (inventory evolves with trade rate)
-    Objective: min J = int_0^T [0.5*kappa*u^2 + lambda*u^2*x + eta*x^2] dt
-      - 0.5*kappa*u^2: execution cost (quadratic in trade rate)
-      - lambda*u^2*x: temporary market impact
-      - eta*x^2: inventory risk penalty
-
-    Hamiltonian: H = 0.5*kappa*u^2 + lambda*u^2*x + eta*x^2 + p*u
-    Costate: p'(t) = -dH/dx = -lambda*u^2 - 2*eta*x
-    Optimality: dH/du = kappa*u + 2*lambda*u*x + p = 0
-      -> u* = -p / (kappa + 2*lambda*x)
-
-    Boundary: x(0) = X0, x(T) = 0, p(T) = 0
-    Solution: two-point boundary value problem (shooting method)
-
-Ported from UI-only PontryaginMaximumPrinciple.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

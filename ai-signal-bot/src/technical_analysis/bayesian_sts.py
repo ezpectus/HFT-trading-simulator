@@ -2,25 +2,6 @@
 
 State-space model decomposing a time series into trend, seasonality and
 irregular components, with 10-step-ahead forecasting.
-
-    State equation: x_t = T * x_{t-1} + R * eta_t,   eta_t ~ N(0, Q)
-    Observation:    y_t = Z * x_t + eps_t,           eps_t ~ N(0, H)
-
-    Local linear trend:
-    mu_t = mu_{t-1} + delta_{t-1} + eta^mu_t
-    delta_t = delta_{t-1} + eta^delta_t
-
-    Kalman filter:
-    Prediction: x_{t|t-1} = T*x_{t-1|t-1},  P_{t|t-1} = T*P*T^T + Q
-    Update:     K = P_pred*Z^T / (Z*P_pred*Z^T + H)
-                x_{t|t} = x_{t|t-1} + K*(y_t - Z*x_{t|t-1})
-                P_{t|t} = (I - K*Z)*P_{t|t-1}
-
-Note: the UI's covariance prediction/update were simplified (T*P + Q and a
-diagonal-only update); this port implements the correct Kalman equations.
-
-Ported from UI-only BayesianStructuralTimeSeries.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
 """
 from __future__ import annotations
 

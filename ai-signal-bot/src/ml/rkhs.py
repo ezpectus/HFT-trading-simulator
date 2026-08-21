@@ -3,21 +3,6 @@
 Maps financial time series into a high-dimensional feature space implicitly
 via kernel functions, enabling non-linear analysis without explicit feature
 engineering.
-
-    Kernel: k(x, y) = <phi(x), phi(y)>_H
-    RBF:       k(x,y) = exp(-||x-y||^2 / (2*sigma^2))
-    Laplacian: k(x,y) = exp(-||x-y|| / sigma)
-
-    Kernel PCA: eigendecomposition of centered kernel matrix K_c = H*K*H
-    Projection: PC_i(x) = sum_j alpha_ij * k(x_j, x) / sqrt(lambda_i)
-
-    MMD: MMD^2 = (1/n^2)sum k(x_i,x_j) + (1/m^2)sum k(y_i,y_j)
-               - (2/(nm))sum k(x_i,y_j)
-
-    Kernel Ridge: f(x) = sum alpha_i * k(x_i, x),  alpha = (K + lambda*I)^-1 * y
-
-Ported from UI-only ReproducingKernelHilbertSpace.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
 """
 from __future__ import annotations
 

@@ -3,9 +3,6 @@
 Covariance-based PCA with SVD eigendecomposition. Extracts latent factors
 from multi-asset return matrices for factor analysis, risk decomposition,
 and eigenportfolio construction.
-
-Ported from UI-only PrincipalComponentAnalysis.jsx into trading logic.
-Reference: future_development.md §0.1 — medium priority model.
 """
 from __future__ import annotations
 

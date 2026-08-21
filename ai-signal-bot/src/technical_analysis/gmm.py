@@ -1,10 +1,6 @@
 """Gaussian Mixture Model (GMM) with EM algorithm for regime clustering.
 
 Fits GMM to return distributions using Expectation-Maximization.
-1D implementation: p(x) = Σ_k π_k · N(x | μ_k, σ_k²)
-
-Ported from UI-only GaussianMixtureModel.jsx into trading logic.
-Reference: future_development.md §0.1 — medium priority model.
 """
 from __future__ import annotations
 

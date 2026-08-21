@@ -2,24 +2,8 @@
 
 Unlike Pearson correlation (linear only), copulas capture the full joint
 distribution structure, including tail dependence — whether assets crash
-or rally together.
-
-Implements (Sklar's theorem: F(x,y) = C(F_X(x), F_Y(y))):
-    - Empirical copula (rank-based, distribution-free)
-    - Gaussian copula (parametric, no tail dependence)
-    - Clayton copula (lower tail dependence — crashes cluster)
-    - Gumbel copula (upper tail dependence — rallies cluster)
-    - Student-t copula (symmetric tail dependence)
-
-    Clayton: C(u,v) = (u^-theta + v^-theta - 1)^(-1/theta)
-             tau = theta/(theta+2), lambda_L = 2^(-1/theta)
-    Gumbel:  C(u,v) = exp(-[(-ln u)^theta + (-ln v)^theta]^(1/theta))
-             tau = (theta-1)/theta, lambda_U = 2 - 2^(1/theta)
-    Gaussian: C(u,v) = Phi_rho(Phi^-1(u), Phi^-1(v))
-             tau = (2/pi)*arcsin(rho)
-
-Ported from UI-only CopulaModel.jsx into trading logic.
-Reference: future_development.md §0.1 — high priority model.
+or rally together. Implements empirical, Gaussian, Clayton, Gumbel, and
+Student-t copulas.
 """
 from __future__ import annotations
 

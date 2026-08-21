@@ -1,24 +1,10 @@
 # Architecture
 
-**Last Updated:** August 20, 2026
-**Project Status:** 66% overall completion (audit v6.1 — Sprints 1-53 completed)
-
 ## Overview
 
-The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It has evolved through 53 development sprints to include a C++20 sub-millisecond signal engine, 227 React components, 204 registered UI panels, 44 mathematical models in trading logic (+40 UI-only educational visualizations), PWA support, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana. The codebase has been optimized across 10 rounds (34 optimizations, 23 walkthrough examples in [PERFORMANCE.md](PERFORMANCE.md)) covering C++ hot paths (precomputed Wilder's smoothing, single-pass OBI, transparent hash, unordered_set lookups) and Python hot paths (orjson, asyncio.gather, deque, dict/set lookups).
+The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It includes a C++20 sub-millisecond signal engine, React-based UI, quant models in trading logic, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana.
 
-**Honest status (v6.1 audit):** CUDA and ONNX dead code was removed in Sprint 43 (493 lines deleted). ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface IS implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection). Signal and CircuitBreaker extracted to separate modules (`signal.py`, `circuit_breaker.py`) for file-size compliance. Sprints 9-15 (August 20, 2026): 26 Python functions >40 lines refactored, 8 C++ functions refactored (365→44, 216→41, 123→16, 85→14, 53→20, 85→9, 53→10, 790→42), 2 C++ macro constants replaced with `constexpr`, 1 dead code removal, 1 anti-pattern fix, 2 major code deduplications. Sprint 14: main.cpp refactored from 790→42 lines, 17 helpers extracted. Sprint 15: 5 Python functions refactored, 12 helpers extracted. Sprints 25-31 (August 20, 2026): 29 additional Python functions >40 lines refactored (all now ≤40 lines), 72 helpers extracted across ai-signal-bot/src and exchange_simulator. Key refactors: check_stop_loss_take_profit 84→14, logging.setup_logging 94→32, walk_forward.run 85→25, price_predictor.train_model 81→25, indicators.adx 77→10, risk_manager.update 77→24, order_book_replay.from_candle 75→23, options_simulator.price_option 74→24, rl_trader.update 71→17, portfolio_optimizer.black_litterman 74→25, environment.step 63→27, signal_publisher._run_backtest 72→33, genetic_strategy.evolve 62→17, validator.validate 56→18, rl_agent.replay 44→14, backtester.run 46→36. 1 deduplication (_finalize_order_execution shared across _execute_limit_order and _execute_market_order). 0 TODO/FIXME/HACK across all repos. 0 bare except, 0 `type: ignore`, 0 `import *`, 0 `print()` in production. 0 C-style casts, 0 raw `new`/`delete`, 0 `goto` in C++ code. 208 test files (118 Python + 46 C++ + 44 JS), 880+ Python test functions.
-
-**Recent Completion (August 12, 2026):**
-- Day 9: Monitoring and Observability (Prometheus metrics, Grafana dashboards, OpenTelemetry tracing, Alertmanager)
-- Day 8: Advanced Risk Management (VaR, CVaR, stress testing, dynamic position sizing)
-- Day 7: Machine Learning Features (LSTM, Transformer, RL agents, feature store)
-- Day 6: Options Trading (Black-Scholes, Greeks, options strategies)
-- Day 5: Portfolio Optimization (Markowitz, Black-Litterman, risk parity)
-- Day 4: Price Feed Performance Optimization (connection pooling, batching, LRU cache)
-- Day 3: WebSocket Performance Optimization (compression, delta updates)
-- Day 2: C++ HFT Bot Performance Optimization (SIMD, perfect hash)
-- Day 1: Web UI Performance Optimization (virtual scrolling, code splitting)
+**Honest status:** ML models (LSTM, Transformer, RL) have code but no trained weights. 40+ advanced math models exist only as React UI components, not integrated into trading logic. SVI/SABR volatility surface is implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust executor has a WebSocket stub (logs JSON, no real WS connection).
 
 ```mermaid
 graph TB
@@ -429,8 +415,6 @@ All sidebar analytic/strategy panels are registered in `src/panels/registry.js` 
 - **React.lazy ready** — Suspense wrapper in place for future lazy import conversion
 - **VirtualList** — FillsPanel and SignalFeed use windowed rendering for performance
 - **Detachable panels** — Panels can be popped out to separate windows for multi-monitor setups
-
-See [docs/MATH_MODELS.md](docs/MATH_MODELS.md) for detailed mathematical model documentation.
 
 ## Data Flow
 

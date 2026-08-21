@@ -101,19 +101,7 @@ class StrategyOptimizer:
         warmup: int = 50,
         max_combinations: int = 1000,
     ) -> list[OptimizationResult]:
-        """Run grid search over all parameter combinations.
-
-        Args:
-            strategy_class: Strategy class to instantiate
-            param_grid: {param_name: [values to try]}
-            candles: Historical candle data
-            symbol: Trading symbol
-            warmup: Warmup period
-            max_combinations: Safety limit
-
-        Returns:
-            List of OptimizationResult sorted by fitness (descending)
-        """
+        """Run grid search over all parameter combinations."""
         keys = list(param_grid.keys())
         value_lists = [param_grid[k] for k in keys]
         combinations = list(itertools.product(*value_lists))
@@ -157,19 +145,7 @@ class StrategyOptimizer:
         test_size: int = 50,
         warmup: int = 50,
     ) -> list[OptimizationResult]:
-        """Walk-forward optimization: train on window, test on next window.
-
-        Args:
-            strategy_class: Strategy class
-            params: Fixed parameters to test
-            candles: Full candle dataset
-            train_size: Training window size
-            test_size: Test window size
-            warmup: Warmup period
-
-        Returns:
-            List of OptimizationResult for each test window
-        """
+        """Walk-forward optimization: train on window, test on next window."""
         results = []
         total_len = len(candles)
         start = warmup

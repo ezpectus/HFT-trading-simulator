@@ -2,22 +2,6 @@
 
 Implements Takens' embedding theorem and CCM for detecting causal
 relationships in dynamical systems without parametric models.
-
-    Takens' embedding: x(t) -> [x(t), x(t-tau), ..., x(t-(E-1)*tau)]
-    E = embedding dimension, tau = time delay
-
-    Simplex projection:
-    1. Find E+1 nearest neighbors in embedding space
-    2. Weighted average of neighbors' future values
-    3. Weights: w_i = exp(-d_i/d_min)
-
-    Convergent Cross Mapping:
-    Embed Y -> shadow manifold M_Y; nearest-neighbor indices estimate X.
-    Correlation rho between estimated and actual X increases with library
-    size if X causally influences Y (Sugihara: causation implies correlation).
-
-Ported from UI-only EmpiricalDynamicModeling.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
 """
 from __future__ import annotations
 

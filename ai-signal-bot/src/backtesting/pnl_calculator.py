@@ -49,13 +49,7 @@ class PnLBreakdown:
 
 
 class PnLCalculator:
-    """Pluggable PnL calculator supporting spot, futures, and options.
-
-    Args:
-        asset_type: Type of asset being backtested
-        config: PnL configuration (fees, slippage, funding, etc.)
-        option_type: Call or put (options only)
-    """
+    """Pluggable PnL calculator supporting spot, futures, and options."""
 
     def __init__(
         self,
@@ -150,18 +144,7 @@ class PnLCalculator:
         exit_price: float,
         hold_time_s: float = 0.0,
     ) -> PnLBreakdown:
-        """Calculate full PnL breakdown for a closed position.
-
-        Args:
-            side: "LONG" or "SHORT"
-            qty: Position quantity
-            entry_price: Raw entry price (before slippage)
-            exit_price: Raw exit price (before slippage)
-            hold_time_s: Holding time in seconds (for funding)
-
-        Returns:
-            PnLBreakdown with gross PnL, fees, funding, and net PnL
-        """
+        """Calculate full PnL breakdown for a closed position."""
         fill_entry = self.apply_entry_slippage(side, entry_price)
         fill_exit = self.apply_exit_slippage(side, exit_price)
 
@@ -240,18 +223,7 @@ class PnLCalculator:
         strike_price: float,
         underlying_price: float,
     ) -> PnLBreakdown:
-        """Calculate PnL for an options position at expiry.
-
-        Args:
-            side: "LONG" (buyer) or "SHORT" (seller)
-            qty: Number of contracts
-            premium: Premium paid (long) or received (short) per contract
-            strike_price: Option strike price
-            underlying_price: Price of underlying at expiry
-
-        Returns:
-            PnLBreakdown with settlement PnL
-        """
+        """Calculate PnL for an options position at expiry."""
         intrinsic = self.options_intrinsic_value(underlying_price, strike_price)
         multiplier = self.config.contract_multiplier
 

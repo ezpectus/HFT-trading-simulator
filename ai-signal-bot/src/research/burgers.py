@@ -2,27 +2,6 @@
 
 Models order flow dynamics via the viscous Burgers equation, capturing
 nonlinear wave steepening and shock formation (sudden price jumps).
-
-    Viscous Burgers equation:
-    ∂u/∂t + u·∂u/∂x = ν·∂²u/∂x²
-
-    Inviscid (ν=0): ∂u/∂t + u·∂u/∂x = 0
-    → characteristics: dx/dt = u, shock when characteristics cross
-
-    Hopf-Cole transformation: u = -2ν·(∂/∂x) log φ
-    → transforms Burgers to heat equation ∂φ/∂t = ν·∂²φ/∂x²
-
-    Numerical (central differences, periodic boundaries):
-    u_i^{n+1} = u_i^n + Δt·[-u_i^n·(u_{i+1}^n - u_{i-1}^n)/(2Δx)
-                + ν·(u_{i+1}^n - 2u_i^n + u_{i-1}^n)/Δx²]
-
-    Energy: E = ½∫u²dx,  dE/dt = -ν·∫(∂u/∂x)²dx ≤ 0 (dissipation)
-
-Applications: order flow shock detection, price jump prediction,
-nonlinear wave propagation in microstructure.
-
-Ported from UI-only BurgersEquation.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

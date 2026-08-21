@@ -3,24 +3,6 @@
 Applies the Hahn decomposition theorem to split the return distribution
 into positive (signal) and negative (noise) sets based on a signed
 measure derived from expected value.
-
-    Hahn decomposition: X = P ∪ N, P ∩ N = ∅
-    where μ(A) ≥ 0 for all A ⊂ P (positive set)
-    and μ(A) ≤ 0 for all A ⊂ N (negative set)
-
-    Jordan decomposition: μ = μ+ - μ-
-    μ+(A) = μ(A ∩ P), μ-(A) = -μ(A ∩ N)
-    Total variation: |μ| = μ+ + μ-
-
-    For trading: signed measure = E[return·indicator]
-    P = set where expected return > 0 (signal)
-    N = set where expected return < 0 (noise/anti-signal)
-
-Applications: signal/noise separation, trade region identification,
-signed volume analysis, directional bias detection.
-
-Ported from UI-only HahnDecomposition.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

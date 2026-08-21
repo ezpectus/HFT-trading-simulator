@@ -107,18 +107,7 @@ class GreeksHedgingSimulator:
         n_paths: int = 1,
         seed: int | None = None,
     ) -> HedgeSimulationResult:
-        """
-        Simulate delta hedging over time.
-
-        Args:
-            option_type: 'call' or 'put'
-            strike: option strike price
-            n_days: simulation length in days
-            n_options: number of option contracts
-            rebalance_threshold: rebalance when delta deviation exceeds this
-            n_paths: number of Monte Carlo paths
-            seed: random seed
-        """
+        """Simulate delta hedging over time."""
         if seed is not None:
             np.random.seed(seed)
 

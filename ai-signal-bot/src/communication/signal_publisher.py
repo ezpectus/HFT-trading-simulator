@@ -160,14 +160,7 @@ class SignalPublisher:
             logger.info(f"HFT client disconnected (total: {len(self._clients)})")
 
     async def broadcast_signal(self, signal: dict) -> None:
-        """Broadcast a trading signal to all connected HFT clients.
-
-        Args:
-            signal: Signal dict with keys:
-                - symbol, direction, confidence, strategy
-                - entry_price, stop_loss, take_profit
-                - reason, timestamp
-        """
+        """Broadcast a trading signal to all connected HFT clients."""
         if not self.circuit_breaker.allow_signal():
             logger.warning(
                 f"Signal blocked by circuit breaker: {signal.get('direction', '?')} "
@@ -418,15 +411,7 @@ class SignalPublisher:
         }
 
     def _compare_backtests(self, data: dict) -> dict:
-        """Compare multiple saved backtests side-by-side.
-
-        Args:
-            data: Dict with key "backtests" — list of {name, results} dicts.
-                  Each results dict is the per-strategy output from run_backtest.
-
-        Returns:
-            Dict with type "comparison_result" containing comparison metrics.
-        """
+        """Compare multiple saved backtests side-by-side."""
         from src.backtesting.backtest_comparison import BacktestComparison
         from src.backtesting.backtest_engine import BacktestResult
 

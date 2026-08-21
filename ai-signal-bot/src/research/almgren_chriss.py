@@ -2,20 +2,6 @@
 
 Minimizes the trade-off between market impact and timing risk when
 executing a large order over a time horizon.
-
-    Objective: minimize E[cost] + lambda * Var[cost]
-    - Temporary impact: paid per trade, proportional to execution rate
-    - Permanent impact: affects all future prices, proportional to total traded
-    - Timing risk: variance of execution cost due to price volatility
-
-    Optimal trajectory: x(t) = X * sinh(kappa * (T - t)) / sinh(kappa * T)
-    where kappa = sqrt(lambda * sigma^2 / eta), X = total shares, T = horizon
-
-    Expected cost: E[cost] = 0.5 * gamma * X^2 + 0.5 * eta * sum(v_k^2) * dt
-    Variance:      Var[cost] = sigma^2 * sum(x_k^2) * dt
-
-Ported from UI-only AlmgrenChriss.jsx into trading logic.
-Reference: future_development.md §0.1 — medium priority model.
 """
 from __future__ import annotations
 

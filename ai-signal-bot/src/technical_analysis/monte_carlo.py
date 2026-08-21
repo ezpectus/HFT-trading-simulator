@@ -3,17 +3,6 @@
 Shuffles the realized PnL sequence many times to estimate the distribution
 of possible equity outcomes, answering: "how robust is this strategy to
 trade-order luck?"
-
-For each run:
-    1. Shuffle the PnL list (Fisher-Yates, seeded RNG for reproducibility)
-    2. Accumulate equity from initial balance
-    3. Record final PnL and the equity curve (for max drawdown)
-
-Outputs: percentiles (p5/p25/p50/p75/p95), profit probability, median and
-worst max drawdown, best/worst return.
-
-Ported from UI-only MonteCarlo.jsx into trading logic.
-Reference: future_development.md §0.1 — high priority model.
 """
 from __future__ import annotations
 

@@ -74,18 +74,7 @@ class BrinsonFachler:
         portfolio_returns: dict[str, float],
         benchmark_returns: dict[str, float],
     ) -> AttributionResult:
-        """
-        Perform Brinson-Fachler attribution.
-
-        Args:
-            portfolio_weights: {sector: weight} for portfolio
-            benchmark_weights: {sector: weight} for benchmark
-            portfolio_returns: {sector: return} for portfolio
-            benchmark_returns: {sector: return} for benchmark
-
-        Returns:
-            AttributionResult with full decomposition
-        """
+        """Perform Brinson-Fachler attribution."""
         all_sectors = set(list(portfolio_weights.keys()) + list(benchmark_weights.keys()))
 
         # Total returns

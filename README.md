@@ -1,24 +1,12 @@
 # HFT Trading System
 
 ![CI](https://img.shields.io/github/actions/workflow/status/ezpectus/HFT-TradeBot--Lite-version/ci.yml?branch=main&label=CI)
-![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-61dafb.svg)
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
-![Tests](https://img.shields.io/badge/tests-208%20files-6e9f18.svg)
-![Roadmap](https://img.shields.io/badge/roadmap-9%2F9%20days%20done-00C853.svg)
-![Price Feed](https://img.shields.io/badge/price%20feed-Optimized-00C853.svg)
-![Strategies](https://img.shields.io/badge/strategies-19-FF6B35.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
-![Live Demo](https://img.shields.io/badge/demo-coming%20soon-orange.svg)
-![Panels](https://img.shields.io/badge/panels-204-61dafb.svg)
-![Math Models](https://img.shields.io/badge/math%20models-44%20trading%20%2B%2040%20UI--only-a855f7.svg)
-![Languages](https://img.shields.io/badge/languages-C%2B%2B20%20%7C%20Python%20%7C%20React-00599C.svg)
-![Security](https://img.shields.io/badge/security-Bandit%20%2B%20CodeQL-red.svg)
-![Readiness](https://img.shields.io/badge/readiness-66%25-yellow.svg)
-![Dead Code](https://img.shields.io/badge/dead%20code-removed-00C853.svg)
 
-> **An educational high-frequency trading simulator with C++20 signal engine (V2+V3 HMM), 44 quant models in trading logic (+40 UI-only), 204 dashboard panels, Rust executor, shared-memory IPC, SVI/SABR volatility surface, Student-t/Merton/Heston/Markov microstructure, options strategies, and optimized price feed with connection pooling, batching, and LRU cache. Zero real money, zero risk, 100% educational.**
+> An educational high-frequency trading simulator with C++20 signal engine, quant models, Rust executor, shared-memory IPC, and options strategies. Zero real money, 100% educational.
 
-**Live Demo:** _coming soon_ | **Documentation:** [docs/](docs/) | **Setup:** [docs/SETUP.md](docs/SETUP.md) | **Math Models:** [docs/MATH_MODELS.md](docs/MATH_MODELS.md) | **Performance:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
+**Documentation:** [docs/](docs/) | **Setup:** [docs/SETUP.md](docs/SETUP.md) | **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
 
@@ -142,7 +130,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 
 ### Mathematical Models (44 in Trading Logic + 40 UI-Only)
 
-**Honest categorization:** 44 models are implemented in actual trading logic (Python + C++). An additional 40 models exist only as React UI visualization components — they are educational visualizations, not integrated into the trading pipeline. See [docs/MATH_MODELS.md](docs/MATH_MODELS.md) for the full categorization.
+**Honest categorization:** 44 models are implemented in actual trading logic (Python + C++). An additional 40 models exist as React UI visualization components — educational visualizations, not integrated into the trading pipeline.
 
 | Category | Models (Trading Logic) |
 |----------|----------------------|
@@ -158,7 +146,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | **ML** | LSTM, Transformer, RL (PPO/DQN), AutoML, Price Predictor |
 | **Research** | Brinson-Fachler Attribution, Genetic Strategy, Greeks Hedging, Microstructure Lab |
 
-**UI-Only models (40):** GARCH(1,1), Markov-Switching GARCH, Rough Volatility, Bayesian Price Predictor, Bayesian Structural Time Series, HMC, Copula, Wavelet, Wavelet Packet, VMD, EMD/HHT, Monte Carlo, Almgren-Chriss, Pontryagin, Stochastic Optimal Control, Transfer Entropy, CCM, Girsanov, Renyi Entropy, Kolmogorov-Sinai, Information Bottleneck, Persistent Homology, Wasserstein, Sinkhorn, Schrodinger Bridge, Ito Generator, Malliavin Calculus, Fokker-Planck, SDE, Graph Theory, Tensor Decomposition, Sobolev, Lax-Milgram, Riesz, Banach, Hahn, Cameron-Martin, Radon-Nikodym, Prokhorov, Renormalization Group, and more. See [docs/MATH_MODELS.md](docs/MATH_MODELS.md) for the complete list.
+**UI-Only models (40):** GARCH(1,1), Markov-Switching GARCH, Rough Volatility, Bayesian Price Predictor, Bayesian Structural Time Series, HMC, Copula, Wavelet, Wavelet Packet, VMD, EMD/HHT, Monte Carlo, Almgren-Chriss, Pontryagin, Stochastic Optimal Control, Transfer Entropy, CCM, Girsanov, Renyi Entropy, Kolmogorov-Sinai, Information Bottleneck, Persistent Homology, Wasserstein, Sinkhorn, Schrodinger Bridge, Ito Generator, Malliavin Calculus, Fokker-Planck, SDE, Graph Theory, Tensor Decomposition, Sobolev, Lax-Milgram, Riesz, Banach, Hahn, Cameron-Martin, Radon-Nikodym, Prokhorov, Renormalization Group, and more.
 
 ### Web UI (204 panels)
 
@@ -284,7 +272,6 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 - **CI hardening** — `timeout-minutes` on all jobs, `fail-fast: false` on all matrix strategies, `concurrency` groups on all workflows, minimal `permissions` (least-privilege)
 - **Secret management** — SOPS for API keys
 - **eBPF monitoring** — low-overhead syscall and network latency tracing
-- **DPDK transport** — kernel bypass networking with socket fallback
 - **Chaos testing** — kill exchange mid-trade, verify C++ bot reconnects and recovers state
 
 ---
@@ -323,7 +310,6 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 | **Memory reduction** | **35%** | **Bounded cache with LRU eviction** |
 | **Serialization speed** | **3-5x faster** | **MessagePack vs JSON** |
 
-> See [Performance Guide](docs/PERFORMANCE.md) for detailed optimization techniques, latency budget breakdown, and benchmarking instructions.
 
 ---
 
@@ -515,8 +501,6 @@ hft-trading-system/
 │   ├── netlify.toml
 │   ├── Dockerfile
 │   └── package.json
-├── run_logger.py                    # Shared timestamped run logging
-├── trade_csv_logger.py              # Shared CSV trade logging
 ├── logs/                            # Runtime logs + CSV trades (gitignored)
 ├── docker-compose.yml               # 4-service orchestration (development)
 ├── docker-compose.prod.yml          # Production: 4 services + PostgreSQL + Redis + Prometheus + Grafana
@@ -646,32 +630,21 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 
 | Document | Description |
 |----------|-------------|
-| [FAQ](docs/FAQ.md) | Common questions about trading operations, advanced order types, risk management |
-| [Troubleshooting Guide](docs/TROUBLESHOOTING.md) | Common issues and solutions for connection, performance, and build problems |
-| [REST API Reference](docs/REST_API.md) | Complete REST API documentation for all system components |
-| [WebSocket Protocol](docs/WEBSOCKET_PROTOCOL.md) | All 29 message types, v2 schema, compression, reconnection, lifecycle |
-| [Configuration Reference](docs/CONFIGURATION_REFERENCE.md) | All configuration options for system components |
 | [Architecture](docs/ARCHITECTURE.md) | System design, component overview, data flow, C++ V2/V3 engine |
-| [Trading Strategies](docs/TRADING_STRATEGIES.md) | All strategies, HFT V2/V3 engine, pressure model, routing |
-| [Performance Guide](docs/PERFORMANCE.md) | Optimization techniques, latency budget, benchmarking, contributor checklist |
-| [Web UI](docs/WEB_UI.md) | 204 panels, performance, testing, accessibility, PWA |
-| [Exchange Simulator](docs/EXCHANGE_SIMULATOR.md) | Price generation, order book, liquidation engine |
 | [Setup Guide](docs/SETUP.md) | Installation, mock mode, troubleshooting |
 | [Quick Start Guide](docs/guides/QUICK_START.md) | Get up and running in 5 minutes |
 | [Trading Guide](docs/guides/TRADING_GUIDE.md) | User manual: orders, positions, strategies, risk |
 | [Development Guide](docs/guides/DEVELOPMENT_GUIDE.md) | Developer manual: setup, architecture, testing, standards |
 | [Configuration Guide](docs/guides/CONFIGURATION_GUIDE.md) | All configuration options explained |
-| [Mathematical Models](docs/MATH_MODELS.md) | 44 models in trading logic + 40 UI-only, with formulas and file references |
+| [Trading Strategies](docs/TRADING_STRATEGIES.md) | All strategies, HFT V2/V3 engine, pressure model, routing |
+| [REST API Reference](docs/REST_API.md) | Complete REST API documentation for all system components |
+| [WebSocket Protocol](docs/WEBSOCKET_PROTOCOL.md) | All 29 message types, v2 schema, compression, reconnection, lifecycle |
+| [Web UI](docs/WEB_UI.md) | 204 panels, performance, testing, accessibility, PWA |
 | [Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md) | Iceberg, TWAP, trailing stops, OCO orders |
-| [Options Trading](docs/OPTIONS_TRADING.md) | Black-Scholes, Greeks, SVI/SABR, options strategies |
-| [Portfolio Optimization](docs/PORTFOLIO_OPTIMIZATION.md) | Markowitz, Black-Litterman, risk parity, rebalancing |
 | [Risk Management](docs/RISK_MANAGEMENT.md) | VaR, CVaR, Kelly criterion, stress testing, position risk |
-| [Machine Learning](docs/MACHINE_LEARNING.md) | LSTM, Transformer, RL agents, AutoML, feature store |
 | [Monitoring Guide](docs/MONITORING_GUIDE.md) | Prometheus, Grafana, Alertmanager, tracing, health checks |
 | [Testing](docs/TESTING.md) | 208 test files: Python, C++, JS, Rust test infrastructure |
-| [9-Day Development Plan](docs/9_DAY_DEVELOPMENT_PLAN.md) | Project roadmap — all 9 phases completed |
-| [Master Development Plan](MASTER_DEVELOPMENT_PLAN.md) | Full 9-phase development roadmap with detailed implementation plans |
-| [Changelog](CHANGELOG.md) | Version history and notable changes |
+| [Deployment Guide](docs/DEPLOYMENT.md) | Deployment procedures and best practices |
 
 ---
 
@@ -752,31 +725,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, testin
 
 ---
 
-## HFT Skills — AI Knowledge Base
-
-This project includes [`hft-skills/`](hft-skills/README.md) — a planned library of AI agent skills for HFT systems. The directory structure covers 7 domains (skill files coming soon):
-
-| Domain | Planned | Focus |
-|--------|---------|-------|
-| `coding-skills/` | 15 | Clean Code, SOLID, DDD, Microservices, Testing |
-| `skills/` | 152 | Lock-free queues, SHM IPC, WebSocket, FIX, SIMD, CUDA |
-| `patterns/` | 94 | GoF, Distributed, Resilience, SDLC patterns |
-| `quant-models/` | 95 | Black-Scholes, Heston, GARCH, Kalman, Almgren-Chriss |
-| `math-models/` | 124 | Stochastic calculus, SDEs, Gaussian processes, HJB |
-| `algorithms/` | 48 | VWAP/TWAP, Smart Order Router, Market Making, Arbitrage |
-| `audit/` | 10 | Concurrency, Memory safety, Latency, Security audits |
-
-Skills will follow the [agentskills.io](https://agentskills.io) standard with YAML frontmatter for fast discovery. Compatible with Claude Code, Cursor, Windsurf, GitHub Copilot, and any MCP-compatible agent.
-
----
-
 ## Training and Documentation
 
 ### Quick Start
 
 New to the system? Start here:
 - **[Quick Start Guide](docs/guides/QUICK_START.md)** - Get up and running in 5 minutes
-- **[FAQ](docs/FAQ.md)** - Common questions and answers
 
 ### User Training
 
@@ -809,22 +763,14 @@ Resources for developers:
 
 In-depth technical documentation:
 - **[Architecture Documentation](docs/ARCHITECTURE.md)** - System architecture and design
-- **[Configuration Reference](docs/CONFIGURATION_REFERENCE.md)** - All configuration options
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Deployment procedures and best practices
 - **[Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md)** - Advanced order type documentation
-- **[Options Trading](docs/OPTIONS_TRADING.md)** - Options pricing, Greeks, volatility surface
-- **[Portfolio Optimization](docs/PORTFOLIO_OPTIMIZATION.md)** - Markowitz, Black-Litterman, risk parity
 - **[Risk Management](docs/RISK_MANAGEMENT.md)** - VaR, CVaR, Kelly, stress testing
-- **[Machine Learning](docs/MACHINE_LEARNING.md)** - LSTM, Transformer, RL, AutoML
 - **[Monitoring Guide](docs/MONITORING_GUIDE.md)** - Prometheus, Grafana, Alertmanager, tracing
 - **[Testing](docs/TESTING.md)** - Test infrastructure and coverage
-- **[Audit Logging](docs/AUDIT_LOGGING.md)** - Audit logging system documentation
 
 ### Additional Resources
 
 - **[Setup Guide](docs/SETUP.md)** - Detailed setup instructions
-- **[Math Models](docs/MATH_MODELS.md)** - Mathematical models used in the system
-- **[Performance Guide](docs/PERFORMANCE.md)** - Performance optimization guide
 - **[Trading Strategies](docs/TRADING_STRATEGIES.md)** - Trading strategy documentation
 
 ---

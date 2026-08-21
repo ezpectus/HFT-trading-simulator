@@ -2,19 +2,6 @@
 
 Volatility follows a fractional Brownian motion with Hurst exponent H < 1/2,
 capturing the roughness observed in real volatility surfaces.
-
-    Volatility: v(t) = xi0(t) * exp(eta * W^H(t) - 0.5 * eta^2 * t^(2H))
-    where W^H is fractional Brownian motion with Hurst H
-
-    Fractional Gaussian noise (Cholesky method):
-    C(i,j) = 0.5 * (|i-j+1|^(2H) + |i-j-1|^(2H) - 2*|i-j|^(2H))
-    fGn = L * z,  z ~ N(0, I),  L = Cholesky(C)
-
-    Variance swap: E[int_0^T v(t) dt] = int_0^T xi0(t) dt
-    Implied vol skew: psi(tau) ~ tau^(H - 1/2)
-
-Ported from UI-only RoughVolatility.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
 """
 from __future__ import annotations
 

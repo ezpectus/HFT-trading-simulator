@@ -178,16 +178,7 @@ class OrderBookReplay:
         symbol: str = "BTC/USDT",
         exchange: str = "backtest",
     ) -> list[ReplayOrderBook]:
-        """Generate order book snapshots for an entire candle series.
-
-        Args:
-            candles: List of candle dicts
-            symbol: Trading symbol
-            exchange: Exchange identifier
-
-        Returns:
-            List of ReplayOrderBook, one per candle
-        """
+        """Generate order book snapshots for an entire candle series."""
         return [self.from_candle(c, symbol, exchange) for c in candles]
 
     def replay_with_imbalance_injection(
@@ -202,16 +193,6 @@ class OrderBookReplay:
 
         Simulates institutional order flow that creates temporary
         order book imbalances, useful for testing OBI-based strategies.
-
-        Args:
-            candles: List of candle dicts
-            symbol: Trading symbol
-            exchange: Exchange identifier
-            inject_interval: Every N candles, inject an imbalance
-            inject_strength: Strength of injection [0, 1]
-
-        Returns:
-            List of ReplayOrderBook with periodic imbalance shocks
         """
         books = []
         for i, candle in enumerate(candles):
@@ -253,18 +234,7 @@ class OrderBookBacktester:
         symbol: str = "BTC/USDT",
         warmup: int = 50,
     ) -> tuple:
-        """Run backtest with order book data available.
-
-        Args:
-            candles: Historical candle data
-            strategy: Strategy with optional .analyze_with_order_book() method
-            symbol: Trading symbol
-            warmup: Warmup period
-
-        Returns:
-            (BacktestResult, list[ReplayOrderBook])
-        """
-        # Generate order books for all candles
+        """Run backtest with order book data available."""
         self.order_books = self.replay.replay_series(candles, symbol)
 
         # If strategy supports order book analysis, monkey-patch the analyze call

@@ -240,4 +240,3 @@ docker-compose up -d prometheus grafana alertmanager jaeger
 
 - [Architecture](ARCHITECTURE.md) — Monitoring in system architecture
 - [Deployment](DEPLOYMENT.md) — Docker Compose, Helm, Kubernetes
-- [Performance](PERFORMANCE.md) — Latency targets and benchmarks

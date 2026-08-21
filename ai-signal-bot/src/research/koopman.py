@@ -2,21 +2,6 @@
 
 Lifts nonlinear dynamics into a high-dimensional linear space via the
 Koopman operator, enabling spectral analysis and forecasting.
-
-    Koopman operator K: g(x_t) -> g(x_{t+1}) for observable g
-    K is linear (infinite-dimensional) even for nonlinear dynamics
-
-    EDMD (Extended Dynamic Mode Decomposition):
-    Dictionary Psi(x) = [psi_1(x), ..., psi_N(x)]
-    G = sum Psi(x_t) * Psi(x_t)^T   (Gram matrix)
-    A = sum Psi(x_{t+1}) * Psi(x_t)^T
-    K ~ A * G^-1  (regularized)
-
-    Eigen-decomposition: K * phi_i = lambda_i * phi_i (power iteration + deflation)
-    Forecast: Psi(x_{t+k}) ~ sum lambda_i^k * phi_i * (phi_i^T * Psi(x_t))
-
-Ported from UI-only KoopmanOperatorTheory.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

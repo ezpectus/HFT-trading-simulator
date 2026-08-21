@@ -108,17 +108,7 @@ class RiskManager:
     ) -> dict:
         """Update risk state and return actions.
 
-        Args:
-            state: Position risk state
-            current_price: Current market price
-            candle: Current candle dict (for ATR, high/low)
-
-        Returns:
-            Dict with possible keys:
-                - new_stop_loss: float (if SL was adjusted)
-                - close_position: bool (if position should be closed)
-                - close_reason: str
-                - partial_close_pct: float (if partial TP triggered)
+        Returns dict with possible keys: new_stop_loss, close_position, close_reason, partial_close_pct.
         """
         actions: dict = {}
         state.candles_held += 1

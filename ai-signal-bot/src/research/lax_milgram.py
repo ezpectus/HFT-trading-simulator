@@ -2,24 +2,6 @@
 
 Uses the Lax-Milgram theorem to solve variational problems arising
 from PDEs in financial mathematics, ensuring existence and uniqueness.
-
-    Lax-Milgram: Let a(.,.) be a bounded coercive bilinear form on H:
-    1. Bounded: |a(u,v)| ≤ C·||u||·||v||
-    2. Coercive: a(u,u) ≥ α·||u||² (α > 0)
-    Then for any bounded linear functional L on H, there exists unique
-    u in H such that a(u,v) = L(v) for all v in H.
-
-    Example (Poisson): -u'' = f on (0,1), u(0)=u(1)=0
-    Variational: a(u,v) = ∫u'v' dx, L(v) = ∫fv dx
-
-    Bilinear form: a(u,v) = ∫[ε·u'v' + b·u'v + c·uv] dx
-    FEM: linear hat functions, tridiagonal system, Thomas algorithm
-
-Applications: option pricing PDEs, optimal stopping, finite element
-methods, variational inequality (American options).
-
-Ported from UI-only LaxMilgram.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

@@ -25,28 +25,12 @@ class StressTestScenario:
     """Stress testing scenario generator."""
 
     def __init__(self, initial_portfolio_value: float = 100000):
-        """
-        Initialize stress test scenario.
-
-        Args:
-            initial_portfolio_value: Initial portfolio value (default $100k)
-        """
         self.initial_portfolio_value = initial_portfolio_value
 
     def crisis_2008_scenario(self, current_prices: np.ndarray,
                              positions: np.ndarray) -> StressTestResult:
-        """
-        Simulate 2008 financial crisis scenario.
-
-        Args:
-            current_prices: Current asset prices
-            positions: Current positions (units)
-
-        Returns:
-            StressTestResult with crisis impact
-        """
-        # 2008 crisis: ~50% drop in equities, increased volatility
-        shock_multiplier = 0.5  # 50% drop
+        """Simulate 2008 financial crisis scenario."""
+        shock_multiplier = 0.5
 
         shocked_prices = current_prices * shock_multiplier
 
@@ -78,18 +62,8 @@ class StressTestScenario:
 
     def covid_crash_scenario(self, current_prices: np.ndarray,
                              positions: np.ndarray) -> StressTestResult:
-        """
-        Simulate COVID-19 crash scenario (March 2020).
-
-        Args:
-            current_prices: Current asset prices
-            positions: Current positions (units)
-
-        Returns:
-            StressTestResult with COVID crash impact
-        """
-        # COVID crash: ~30% drop in equities, extreme volatility
-        shock_multiplier = 0.7  # 30% drop
+        """Simulate COVID-19 crash scenario (March 2020)."""
+        shock_multiplier = 0.7
 
         shocked_prices = current_prices * shock_multiplier
 
@@ -118,19 +92,8 @@ class StressTestScenario:
     def ftx_collapse_scenario(self, current_prices: np.ndarray,
                              positions: np.ndarray,
                              crypto_exposure: float = 0.5) -> StressTestResult:
-        """
-        Simulate FTX collapse scenario (November 2022).
-
-        Args:
-            current_prices: Current asset prices
-            positions: Current positions (units)
-            crypto_exposure: Percentage of portfolio in crypto (default 50%)
-
-        Returns:
-            StressTestResult with FTX collapse impact
-        """
-        # FTX collapse: ~95% drop in FTT, contagion to other crypto
-        crypto_shock = 0.05  # 95% drop
+        """Simulate FTX collapse scenario (November 2022)."""
+        crypto_shock = 0.05
         traditional_shock = 0.8  # 20% drop in traditional assets
 
         # Apply different shocks based on asset type
@@ -166,18 +129,7 @@ class StressTestScenario:
                        positions: np.ndarray,
                        price_shocks: np.ndarray,
                        scenario_name: str = 'Custom') -> StressTestResult:
-        """
-        Simulate custom stress scenario.
-
-        Args:
-            current_prices: Current asset prices
-            positions: Current positions (units)
-            price_shocks: Price shock multipliers for each asset
-            scenario_name: Name of the scenario
-
-        Returns:
-            StressTestResult with custom scenario impact
-        """
+        """Simulate custom stress scenario."""
         shocked_prices = current_prices * price_shocks
 
         portfolio_value_before = np.sum(current_prices * positions)
@@ -204,16 +156,7 @@ class StressTestScenario:
 
     def run_all_scenarios(self, current_prices: np.ndarray,
                           positions: np.ndarray) -> list[StressTestResult]:
-        """
-        Run all predefined stress test scenarios.
-
-        Args:
-            current_prices: Current asset prices
-            positions: Current positions (units)
-
-        Returns:
-            List of StressTestResult objects
-        """
+        """Run all predefined stress test scenarios."""
         results = []
 
         results.append(self.crisis_2008_scenario(current_prices, positions))
@@ -223,15 +166,7 @@ class StressTestScenario:
         return results
 
     def generate_summary(self, results: list[StressTestResult]) -> dict:
-        """
-        Generate summary of stress test results.
-
-        Args:
-            results: List of StressTestResult objects
-
-        Returns:
-            Dictionary with summary statistics
-        """
+        """Generate summary of stress test results."""
         total_scenarios = len(results)
         passed_scenarios = sum(1 for r in results if r.passed)
 

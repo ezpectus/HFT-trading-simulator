@@ -2,19 +2,6 @@
 
 Uses Malliavin calculus to compute Greeks (sensitivities) of financial
 instruments via Monte Carlo simulation, avoiding finite differences.
-
-    Malliavin derivative: D_t W_s = 1_{t≤s} (derivative of Brownian motion)
-    Integration by parts: E[φ(F)·G] = E[φ'(F)·H]  (H = Malliavin weight)
-
-    Delta: Δ = E[e^{-rT}·1{S_T>K}·(W_T/(S₀σT))]
-    Vega:  ν = E[e^{-rT}·(S_T-K)⁺·((W_T²-T)/(2σT) - W_T/σ)]
-    Gamma: Γ = E[e^{-rT}·1{S_T>K}·(((W_T²-T)/(S₀²σ²T²)) - 1/(S₀σT))/S₀]
-
-    Advantage: pathwise sensitivities without bumping (no finite-diff bias).
-    Comparison: analytical Black-Scholes Greeks + finite-difference Greeks.
-
-Ported from UI-only MalliavinCalculus.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

@@ -62,7 +62,7 @@ class MyStrategy:
 
 2. Register in `strategies.py` and add to config
 3. Write unit tests in `tests/unit/`
-4. Update `docs/MATH_MODELS.md` if using new math
+4. Update documentation if using new math
 
 ## Adding a New WebSocket Message Type
 

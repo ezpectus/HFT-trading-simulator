@@ -23,25 +23,10 @@ class RiskParityOptimizer:
     """Risk parity portfolio optimizer."""
 
     def __init__(self, risk_free_rate: float = 0.02):
-        """
-        Initialize risk parity optimizer.
-
-        Args:
-            risk_free_rate: Annual risk-free rate (default 2%)
-        """
         self.risk_free_rate = risk_free_rate
 
     def calculate_marginal_risk(self, weights: np.ndarray, cov_matrix: np.ndarray) -> np.ndarray:
-        """
-        Calculate marginal risk contribution for each asset.
-
-        Args:
-            weights: Portfolio weights (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-
-        Returns:
-            Marginal risk vector (n_assets)
-        """
+        """Calculate marginal risk contribution for each asset."""
         portfolio_variance = np.dot(weights.T, np.dot(cov_matrix, weights))
         portfolio_volatility = np.sqrt(max(portfolio_variance, 0))
 
@@ -53,16 +38,7 @@ class RiskParityOptimizer:
         return marginal_risk
 
     def calculate_risk_contributions(self, weights: np.ndarray, cov_matrix: np.ndarray) -> list[RiskContribution]:
-        """
-        Calculate risk contribution for each asset.
-
-        Args:
-            weights: Portfolio weights (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-
-        Returns:
-            List of RiskContribution objects
-        """
+        """Calculate risk contribution for each asset."""
         marginal_risk = self.calculate_marginal_risk(weights, cov_matrix)
 
         # Risk contribution = w_i * marginal_risk_i
@@ -137,17 +113,7 @@ class RiskParityOptimizer:
 
     def calculate_leverage(self, weights: np.ndarray, cov_matrix: np.ndarray,
                           target_volatility: float) -> float:
-        """
-        Calculate required leverage to achieve target volatility.
-
-        Args:
-            weights: Portfolio weights (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            target_volatility: Target portfolio volatility
-
-        Returns:
-            Leverage factor
-        """
+        """Calculate required leverage to achieve target volatility."""
         current_volatility = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
 
         if current_volatility == 0:
@@ -160,19 +126,7 @@ class RiskParityOptimizer:
                                target_volatility: float,
                                weight_bounds: tuple[float, float] = (0, 1),
                                max_leverage: float = 2.0) -> PortfolioResult:
-        """
-        Optimize risk parity portfolio with leverage to achieve target volatility.
-
-        Args:
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            target_volatility: Target portfolio volatility
-            weight_bounds: Min and max weight bounds
-            max_leverage: Maximum allowed leverage
-
-        Returns:
-            PortfolioResult with leveraged risk parity weights
-        """
-        # Optimize risk parity
+        """Optimize risk parity portfolio with leverage to achieve target volatility."""
         result = self.optimize_risk_parity(cov_matrix, weight_bounds)
 
         # Calculate required leverage
@@ -198,17 +152,7 @@ class RiskParityOptimizer:
 
     def verify_risk_parity(self, weights: np.ndarray, cov_matrix: np.ndarray,
                           tolerance: float = 0.05) -> bool:
-        """
-        Verify if portfolio satisfies risk parity condition.
-
-        Args:
-            weights: Portfolio weights (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            tolerance: Tolerance for risk equality
-
-        Returns:
-            True if risk parity condition is satisfied
-        """
+        """Verify if portfolio satisfies risk parity condition."""
         risk_contributions = self.calculate_risk_contributions(weights, cov_matrix)
 
         # Check if all risk contributions are within tolerance

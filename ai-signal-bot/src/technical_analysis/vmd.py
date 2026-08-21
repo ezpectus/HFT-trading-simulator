@@ -2,19 +2,6 @@
 
 Non-recursive signal decomposition into K modes with compact spectral
 support, solved via ADMM (Alternating Direction Method of Multipliers).
-
-    Each mode u_k is compact around center frequency omega_k:
-    min sum_k || d_t[(delta(t) + j/(pi*t)) * u_k(t)] * e^(-j*omega_k*t) ||^2
-    subject to: sum_k u_k = f(t)
-
-    ADMM solution:
-    1. Mode update: u_hat_k(w) = (f_hat(w) - sum_{i!=k} u_hat_i + lambda_hat/2)
-                                 / (1 + 2*alpha*(w - omega_k)^2)
-    2. Center frequency: omega_k = int_0^inf w|u_hat_k(w)|^2 dw / int |u_hat_k(w)|^2 dw
-    3. Lagrange multiplier: lambda_hat += tau*(f_hat - sum_k u_hat_k)
-
-Ported from UI-only VariationalModeDecomposition.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
 """
 from __future__ import annotations
 

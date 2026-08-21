@@ -22,13 +22,6 @@ class DynamicPositionSizer:
     """Dynamic position sizer with multiple strategies."""
 
     def __init__(self, account_value: float = 100000, max_position_size: float = 0.2):
-        """
-        Initialize dynamic position sizer.
-
-        Args:
-            account_value: Total account value (default $100k)
-            max_position_size: Maximum position size as percentage (default 20%)
-        """
         self.account_value = account_value
         self.max_position_size = max_position_size
 
@@ -36,19 +29,7 @@ class DynamicPositionSizer:
                                 volatility: float | None = None,
                                 risk_per_trade: float = 0.02,
                                 method: str = 'volatility') -> PositionSizingResult:
-        """
-        Calculate position size based on specified method.
-
-        Args:
-            signal: Trading signal ('LONG', 'SHORT', 'HOLD')
-            price: Current asset price
-            volatility: Asset volatility (for volatility-based sizing)
-            risk_per_trade: Risk per trade as percentage (default 2%)
-            method: Sizing method ('volatility', 'risk_parity', 'kelly')
-
-        Returns:
-            PositionSizingResult with position details
-        """
+        """Calculate position size based on specified method."""
         if signal == 'HOLD':
             return PositionSizingResult(
                 position_size=0,
@@ -70,18 +51,7 @@ class DynamicPositionSizer:
     def volatility_based_sizing(self, signal: str, price: float,
                                 volatility: float,
                                 risk_per_trade: float = 0.02) -> PositionSizingResult:
-        """
-        Calculate position size based on volatility scaling.
-
-        Args:
-            signal: Trading signal ('LONG', 'SHORT')
-            price: Current asset price
-            volatility: Asset volatility (annualized)
-            risk_per_trade: Risk per trade as percentage
-
-        Returns:
-            PositionSizingResult with volatility-based position
-        """
+        """Calculate position size based on volatility scaling."""
         if price <= 0 or self.account_value <= 0 or volatility is None or volatility <= 0:
             return PositionSizingResult(
                 position_size=0, position_value=0,
@@ -117,17 +87,7 @@ class DynamicPositionSizer:
 
     def risk_parity_sizing(self, signal: str, price: float,
                           risk_per_trade: float = 0.02) -> PositionSizingResult:
-        """
-        Calculate position size based on risk parity (equal risk contribution).
-
-        Args:
-            signal: Trading signal ('LONG', 'SHORT')
-            price: Current asset price
-            risk_per_trade: Risk per trade as percentage
-
-        Returns:
-            PositionSizingResult with risk parity position
-        """
+        """Calculate position size based on risk parity (equal risk contribution)."""
         if price <= 0 or self.account_value <= 0:
             return PositionSizingResult(
                 position_size=0, position_value=0,
@@ -208,16 +168,7 @@ class DynamicPositionSizer:
 
     def adjust_for_correlation(self, position_sizes: np.ndarray,
                              correlation_matrix: np.ndarray) -> np.ndarray:
-        """
-        Adjust position sizes based on correlation (reduce correlated exposure).
-
-        Args:
-            position_sizes: Current position sizes
-            correlation_matrix: Correlation matrix of assets
-
-        Returns:
-            Adjusted position sizes
-        """
+        """Adjust position sizes based on correlation (reduce correlated exposure)."""
         n_assets = len(position_sizes)
         adjusted_sizes = position_sizes.copy()
 
@@ -237,17 +188,7 @@ class DynamicPositionSizer:
     def enforce_position_limits(self, position_sizes: np.ndarray,
                                 max_single_position: float = 0.2,
                                 max_total_exposure: float = 1.0) -> np.ndarray:
-        """
-        Enforce position limits.
-
-        Args:
-            position_sizes: Current position sizes
-            max_single_position: Max single position as percentage
-            max_total_exposure: Max total exposure as percentage
-
-        Returns:
-            Adjusted position sizes
-        """
+        """Enforce position limits."""
         position_values = position_sizes * self.account_value
 
         # Enforce single position limit

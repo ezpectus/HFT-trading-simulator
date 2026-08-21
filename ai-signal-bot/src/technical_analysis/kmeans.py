@@ -2,9 +2,6 @@
 
 Lloyd's algorithm with K-Means++ initialization. Clusters multi-dimensional
 features into distinct market regimes (e.g., calm trending, volatile ranging).
-
-Ported from UI-only KMeansClustering.jsx into trading logic.
-Reference: future_development.md §0.1 — medium priority model.
 """
 from __future__ import annotations
 

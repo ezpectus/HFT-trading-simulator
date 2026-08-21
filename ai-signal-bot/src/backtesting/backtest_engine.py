@@ -87,13 +87,7 @@ class BacktestResult:
 
 
 class BacktestEngine:
-    """Full backtesting framework.
-
-    Args:
-        config: Backtest configuration (capital, fees, slippage, etc.)
-        pnl_calculator: PnL calculator for asset-specific PnL logic.
-            If None, a spot calculator is created from config values.
-    """
+    """Full backtesting framework."""
 
     def __init__(
         self,

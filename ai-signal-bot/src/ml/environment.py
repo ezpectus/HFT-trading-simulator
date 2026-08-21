@@ -33,13 +33,6 @@ class TradingEnv:
     """Trading environment for reinforcement learning (simplified Gym interface)."""
 
     def __init__(self, initial_cash: float = 100000, transaction_cost: float = 0.001):
-        """
-        Initialize trading environment.
-
-        Args:
-            initial_cash: Initial cash amount
-            transaction_cost: Transaction cost as percentage
-        """
         self.initial_cash = initial_cash
         self.transaction_cost = transaction_cost
 
@@ -62,16 +55,6 @@ class TradingEnv:
         self.observation_space_n = 63
 
     def reset(self, prices: np.ndarray | None = None, features: np.ndarray | None = None) -> np.ndarray:
-        """
-        Reset environment for new episode.
-
-        Args:
-            prices: Historical price data
-            features: Additional features (optional)
-
-        Returns:
-            Initial observation
-        """
         self.current_step = 0
         self.cash = self.initial_cash
         self.position = 0.0
@@ -86,13 +69,6 @@ class TradingEnv:
         return self._get_observation()
 
     def _get_observation(self) -> np.ndarray:
-        """
-        Get current observation.
-
-        Returns:
-            Observation vector
-        """
-        # Get recent prices
         window_size = 60
         if self.current_step < window_size:
             recent_prices = np.zeros(window_size)
@@ -117,14 +93,7 @@ class TradingEnv:
         return observation
 
     def step(self, action: int) -> tuple[np.ndarray, float, bool, dict]:
-        """Execute one step in environment.
-
-        Args:
-            action: Action to take (0=HOLD, 1=BUY, 2=SELL)
-
-        Returns:
-            Tuple of (observation, reward, done, info)
-        """
+        """Execute one step in environment."""
         if self.current_step >= len(self.prices) - 1:
             return self._get_observation(), 0.0, True, {}
 

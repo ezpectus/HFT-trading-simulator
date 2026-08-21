@@ -32,51 +32,16 @@ class MarkowitzOptimizer:
     """Markowitz mean-variance portfolio optimizer."""
 
     def __init__(self, risk_free_rate: float = 0.02):
-        """
-        Initialize Markowitz optimizer.
-
-        Args:
-            risk_free_rate: Annual risk-free rate (default 2%)
-        """
         self.risk_free_rate = risk_free_rate
 
     def calculate_expected_returns(self, returns: np.ndarray) -> np.ndarray:
-        """
-        Calculate expected returns from historical returns.
-
-        Args:
-            returns: Historical returns matrix (n_assets x n_periods)
-
-        Returns:
-            Expected returns vector (n_assets)
-        """
         return np.mean(returns, axis=1)
 
     def calculate_covariance_matrix(self, returns: np.ndarray) -> np.ndarray:
-        """
-        Calculate covariance matrix from historical returns.
-
-        Args:
-            returns: Historical returns matrix (n_assets x n_periods)
-
-        Returns:
-            Covariance matrix (n_assets x n_assets)
-        """
         return np.cov(returns)
 
     def calculate_portfolio_metrics(self, weights: np.ndarray, expected_returns: np.ndarray,
                                    cov_matrix: np.ndarray) -> tuple[float, float, float]:
-        """
-        Calculate portfolio metrics.
-
-        Args:
-            weights: Portfolio weights (n_assets)
-            expected_returns: Expected returns vector (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-
-        Returns:
-            Tuple of (expected_return, volatility, sharpe_ratio)
-        """
         portfolio_return = np.dot(weights, expected_returns)
         portfolio_variance = np.dot(weights.T, np.dot(cov_matrix, weights))
         portfolio_volatility = np.sqrt(max(portfolio_variance, 0))
@@ -162,19 +127,7 @@ class MarkowitzOptimizer:
     def calculate_efficient_frontier(self, expected_returns: np.ndarray, cov_matrix: np.ndarray,
                                     n_points: int = 50,
                                     weight_bounds: tuple[float, float] = (0, 1)) -> list[EfficientFrontierPoint]:
-        """
-        Calculate efficient frontier points.
-
-        Args:
-            expected_returns: Expected returns vector (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            n_points: Number of points on the frontier
-            weight_bounds: Min and max weight bounds
-
-        Returns:
-            List of EfficientFrontierPoint objects
-        """
-        # Calculate min and max returns
+        """Calculate efficient frontier points."""
         min_return = np.min(expected_returns)
         max_return = np.max(expected_returns)
 
@@ -203,18 +156,7 @@ class MarkowitzOptimizer:
     def calculate_minimum_variance_portfolio(self, expected_returns: np.ndarray,
                                             cov_matrix: np.ndarray,
                                             weight_bounds: tuple[float, float] = (0, 1)) -> PortfolioResult:
-        """
-        Calculate minimum variance portfolio.
-
-        Args:
-            expected_returns: Expected returns vector (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            weight_bounds: Min and max weight bounds
-
-        Returns:
-            PortfolioResult with minimum variance weights
-        """
-        # Minimize volatility without return constraint
+        """Calculate minimum variance portfolio."""
         return self.optimize_portfolio(
             expected_returns,
             cov_matrix,
@@ -226,17 +168,7 @@ class MarkowitzOptimizer:
     def calculate_maximum_sharpe_portfolio(self, expected_returns: np.ndarray,
                                           cov_matrix: np.ndarray,
                                           weight_bounds: tuple[float, float] = (0, 1)) -> PortfolioResult:
-        """
-        Calculate maximum Sharpe ratio portfolio (tangency portfolio).
-
-        Args:
-            expected_returns: Expected returns vector (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            weight_bounds: Min and max weight bounds
-
-        Returns:
-            PortfolioResult with maximum Sharpe ratio weights
-        """
+        """Calculate maximum Sharpe ratio portfolio (tangency portfolio)."""
         return self.optimize_portfolio(
             expected_returns,
             cov_matrix,

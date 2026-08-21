@@ -3,26 +3,6 @@
 Analyzes financial time series through the lens of Lie group symmetries,
 detecting invariant structures and symmetry-breaking events that signal
 regime changes.
-
-    Lie group: continuous group of transformations G acting on data space
-    Lie algebra: tangent space at identity, generators X_i
-
-    Key symmetries for financial data:
-    1. Translation: T_a: x → x + a (price level invariance)
-    2. Scaling: D_λ: x → λx (volatility scaling)
-    3. Time translation: τ_s: t → t + s (stationarity)
-    4. Galilean: x → x + v·t (trend invariance)
-
-    Noether's theorem: each continuous symmetry → conserved quantity
-    Translation → momentum (mean)
-    Scaling → renormalized variance
-    Time → energy (volatility)
-
-    Symmetry breaking: when conserved quantities change → regime shift
-    Infinitesimal generator: X = ξ(x)·∂/∂x;  invariant: X·f = 0
-
-Ported from UI-only LieGroupSymmetries.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

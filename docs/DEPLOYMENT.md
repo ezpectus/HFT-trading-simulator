@@ -15,9 +15,9 @@ The HFT Trading System consists of 4 main components:
 ### System Requirements
 
 - **Operating System**: Linux (Ubuntu 20.04+ recommended) or Windows 10+
-- **Python**: 3.10+
-- **Node.js**: 18+
-- **C++ Compiler**: GCC 10+ or Clang 12+ with C++20 support
+- **Python**: 3.12+
+- **Node.js**: 22+
+- **C++ Compiler**: GCC 13+ or Clang 17+ with C++20 support
 - **Docker**: 20.10+ (for containerized deployment)
 - **Docker Compose**: 2.0+
 - **RAM**: 8GB minimum, 16GB recommended

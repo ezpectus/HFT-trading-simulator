@@ -2,18 +2,6 @@
 
 Decomposes multi-dimensional tensors using CANDECOMP/PARAFAC (CP)
 decomposition for dimensionality reduction and latent factor extraction.
-
-    Tensor: T in R^{I x J x K} (assets x time x features)
-
-    CP Decomposition (rank-R):
-    T ~ sum_{r=1}^{R} a_r o b_r o c_r
-    where a_r in R^I, b_r in R^J, c_r in R^K
-
-    ALS (Alternating Least Squares):
-    Fix all but one factor, solve least squares, iterate.
-
-Ported from UI-only TensorDecomposition.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

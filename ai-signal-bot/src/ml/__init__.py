@@ -2,6 +2,10 @@
 #
 # Contains ML modules for price prediction, signal generation, reinforcement learning,
 # and feature store for the AI signal bot.
+#
+# Note: lstm_model.py, transformer_model.py, and rl_agent.py were removed.
+# Real PyTorch implementations live in price_predictor.py (LSTM/Transformer)
+# and rl_trader.py (PPO). Use those instead.
 
 from .autoencoder import (
     AutoencoderModel,
@@ -15,7 +19,6 @@ from .autoencoder import (
 )
 from .environment import TradingEnv
 from .feature_store import FeatureStore
-from .lstm_model import LSTMModel
 from .rkhs import (
     RKHSResult,
     center_kernel,
@@ -29,7 +32,6 @@ from .rkhs import (
     rkhs_analysis,
     rkhs_signal,
 )
-from .rl_agent import DQNAgent, PPOAgent
 from .svm_signal import (
     SVMResult,
     extract_svm_features,
@@ -37,7 +39,6 @@ from .svm_signal import (
     predict as svm_predict,
     standardize as svm_standardize,
 )
-from .transformer_model import TransformerModel
 from .vae import (
     VAE,
     VAEResult,
@@ -46,10 +47,6 @@ from .vae import (
 )
 
 __all__ = [
-    'LSTMModel',
-    'TransformerModel',
-    'PPOAgent',
-    'DQNAgent',
     'TradingEnv',
     'FeatureStore',
     'SVMResult',

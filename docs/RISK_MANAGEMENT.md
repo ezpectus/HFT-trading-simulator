@@ -257,6 +257,4 @@ Edge cases: empty returns, NaN, inf, single element, all-zero returns, extreme c
 
 ## See Also
 
-- [Portfolio Optimization](PORTFOLIO_OPTIMIZATION.md) — Markowitz, Black-Litterman, risk parity
-- [Math Models](MATH_MODELS.md) — VaR, CVaR, Kelly formulas
 - [Trading Strategies](TRADING_STRATEGIES.md) — How risk limits integrate with strategies

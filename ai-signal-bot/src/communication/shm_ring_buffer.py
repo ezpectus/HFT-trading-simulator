@@ -86,15 +86,7 @@ OFF_TAIL = 128   # alignas(64)
 
 
 class ShmRingBuffer[T]:
-    """
-    Shared memory SPSC ring buffer.
-
-    Args:
-        name: POSIX shared memory name (e.g. "/hft_signals")
-        element_struct: struct.Struct for packing/unpacking elements
-        capacity: Number of elements (must be power of 2)
-        create: True to create (producer), False to open existing (consumer)
-    """
+    """Shared memory SPSC ring buffer."""
 
     def __init__(self, name: str, element_struct: struct.Struct,
                  capacity: int, create: bool = True):

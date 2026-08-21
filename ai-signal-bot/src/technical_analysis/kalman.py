@@ -2,9 +2,6 @@
 
 1D: state = price, observation = price + noise
 2D: state = [position, velocity], constant velocity model
-
-Ported from UI-only KalmanFilterPrice.jsx into trading logic.
-Reference: future_development.md §0.1 — high priority model.
 """
 from __future__ import annotations
 

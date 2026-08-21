@@ -2,9 +2,6 @@
 
 Measures similarity between temporal sequences that may vary in speed.
 Uses classic O(n*m) DP with optional Sakoe-Chiba band constraint.
-
-Ported from UI-only DynamicTimeWarping.jsx into trading logic.
-Reference: future_development.md §0.1 — medium priority model.
 """
 from __future__ import annotations
 
@@ -27,16 +24,7 @@ def dtw(
     y: list[float],
     window: int | None = None,
 ) -> DTWResult:
-    """Compute DTW distance and warping path between two sequences.
-
-    Args:
-        x: First sequence.
-        y: Second sequence.
-        window: Sakoe-Chiba band width. None = no constraint.
-
-    Returns:
-        DTWResult with distance, warping path, and raw cost.
-    """
+    """Compute DTW distance and warping path between two sequences."""
     n = len(x)
     m = len(y)
 

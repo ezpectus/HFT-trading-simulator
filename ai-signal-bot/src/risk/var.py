@@ -22,30 +22,13 @@ class VaRCalculator:
     """Value at Risk calculator using multiple methods."""
 
     def __init__(self, confidence_level: float = 0.95, time_horizon: float = 1.0):
-        """
-        Initialize VaR calculator.
-
-        Args:
-            confidence_level: Confidence level (default 95%)
-            time_horizon: Time horizon in days (default 1 day)
-        """
         self.confidence_level = confidence_level
         self.time_horizon = time_horizon
 
     def calculate_historical_var(self, returns: np.ndarray,
                                  confidence_level: float | None = None,
                                  time_horizon: float | None = None) -> VaRResult:
-        """
-        Calculate VaR using historical simulation method.
-
-        Args:
-            returns: Historical returns
-            confidence_level: Confidence level (uses default if None)
-            time_horizon: Time horizon in days (uses default if None)
-
-        Returns:
-            VaRResult with VaR value
-        """
+        """Calculate VaR using historical simulation method."""
         cl = confidence_level or self.confidence_level
         th = time_horizon or self.time_horizon
 
@@ -65,17 +48,7 @@ class VaRCalculator:
     def calculate_parametric_var(self, returns: np.ndarray,
                                   confidence_level: float | None = None,
                                   time_horizon: float | None = None) -> VaRResult:
-        """
-        Calculate VaR using parametric (variance-covariance) method.
-
-        Args:
-            returns: Historical returns
-            confidence_level: Confidence level (uses default if None)
-            time_horizon: Time horizon in days (uses default if None)
-
-        Returns:
-            VaRResult with VaR value
-        """
+        """Calculate VaR using parametric (variance-covariance) method."""
         cl = confidence_level or self.confidence_level
         th = time_horizon or self.time_horizon
 
@@ -100,18 +73,7 @@ class VaRCalculator:
                                     n_simulations: int = 10000,
                                     confidence_level: float | None = None,
                                     time_horizon: float | None = None) -> VaRResult:
-        """
-        Calculate VaR using Monte Carlo simulation.
-
-        Args:
-            returns: Historical returns
-            n_simulations: Number of Monte Carlo simulations
-            confidence_level: Confidence level (uses default if None)
-            time_horizon: Time horizon in days (uses default if None)
-
-        Returns:
-            VaRResult with VaR value
-        """
+        """Calculate VaR using Monte Carlo simulation."""
         cl = confidence_level or self.confidence_level
         th = time_horizon or self.time_horizon
 
@@ -138,17 +100,7 @@ class VaRCalculator:
     def calculate_var_at_multiple_levels(self, returns: np.ndarray,
                                         confidence_levels: list[float] | None = None,
                                         method: str = 'historical') -> dict[float, VaRResult]:
-        """
-        Calculate VaR at multiple confidence levels.
-
-        Args:
-            returns: Historical returns
-            confidence_levels: List of confidence levels
-            method: Calculation method ('historical', 'parametric', 'monte_carlo')
-
-        Returns:
-            Dictionary mapping confidence levels to VaR results
-        """
+        """Calculate VaR at multiple confidence levels."""
         if confidence_levels is None:
             confidence_levels = [0.95, 0.99, 0.999]
 
@@ -203,17 +155,7 @@ class VaRCalculator:
 
     def _kupiec_test(self, violations: int, total_observations: int,
                      confidence_level: float) -> float:
-        """
-        Perform Kupiec test for VaR model validation.
-
-        Args:
-            violations: Number of VaR violations
-            total_observations: Total observations
-            confidence_level: VaR confidence level
-
-        Returns:
-            Kupiec test statistic
-        """
+        """Perform Kupiec test for VaR model validation."""
         p = 1 - confidence_level
         n = total_observations
 

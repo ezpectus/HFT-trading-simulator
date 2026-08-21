@@ -3,19 +3,6 @@
 Applies the Marchenko-Pastur law to filter noise from empirical correlation
 matrices. Eigenvalues within the MP bound are noise; those outside contain
 genuine information.
-
-    For an N x T random matrix (T > N):
-    rho(lambda) = (Q / (2*pi)) * sqrt((lambda+ - lambda)(lambda - lambda-)) / lambda
-    where Q = T/N,  lambda+- = (1/sqrt(Q) +- 1)^2
-
-    Cleaning:
-    1. Compute correlation matrix C from returns
-    2. Eigendecompose C
-    3. Replace noise eigenvalues with MP average
-    4. Reconstruct cleaned correlation matrix (renormalized to unit diagonal)
-
-Ported from UI-only RandomMatrixTheory.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

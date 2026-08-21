@@ -23,31 +23,12 @@ class BlackLittermanModel:
     """Black-Litterman portfolio optimization model."""
 
     def __init__(self, risk_free_rate: float = 0.02, tau: float = 0.05):
-        """
-        Initialize Black-Litterman model.
-
-        Args:
-            risk_free_rate: Annual risk-free rate (default 2%)
-            tau: Uncertainty scaling parameter (default 0.05)
-        """
         self.risk_free_rate = risk_free_rate
         self.tau = tau
         self.markowitz = MarkowitzOptimizer(risk_free_rate)
 
     def calculate_prior_returns(self, market_weights: np.ndarray, cov_matrix: np.ndarray,
                                 risk_aversion: float = 3.0) -> np.ndarray:
-        """
-        Calculate prior (equilibrium) returns from market weights.
-
-        Args:
-            market_weights: Market capitalization weights (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            risk_aversion: Risk aversion parameter (default 3.0)
-
-        Returns:
-            Prior returns vector (n_assets)
-        """
-        # Equilibrium returns: pi = lambda * Sigma * w_m
         prior_returns = risk_aversion * np.dot(cov_matrix, market_weights)
         return prior_returns
 
@@ -97,18 +78,6 @@ class BlackLittermanModel:
     def optimize_portfolio(self, posterior_returns: np.ndarray, posterior_covariance: np.ndarray,
                           target_return: float | None = None,
                           weight_bounds: tuple[float, float] = (0, 1)) -> PortfolioResult:
-        """
-        Optimize portfolio using posterior returns and covariance.
-
-        Args:
-            posterior_returns: Posterior returns vector (n_assets)
-            posterior_covariance: Posterior covariance matrix (n_assets x n_assets)
-            target_return: Target portfolio return (if None, maximize Sharpe ratio)
-            weight_bounds: Min and max weight bounds
-
-        Returns:
-            PortfolioResult with optimal weights
-        """
         return self.markowitz.optimize_portfolio(
             posterior_returns,
             posterior_covariance,
@@ -122,24 +91,9 @@ class BlackLittermanModel:
                                           risk_aversion: float = 3.0,
                                           target_return: float | None = None,
                                           weight_bounds: tuple[float, float] = (0, 1)) -> PortfolioResult:
-        """
-        Calculate Black-Litterman optimal portfolio.
-
-        Args:
-            market_weights: Market capitalization weights (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            views: List of View objects
-            risk_aversion: Risk aversion parameter
-            target_return: Target portfolio return
-            weight_bounds: Min and max weight bounds
-
-        Returns:
-            PortfolioResult with optimal weights
-        """
-        # Calculate prior returns
+        """Calculate Black-Litterman optimal portfolio."""
         prior_returns = self.calculate_prior_returns(market_weights, cov_matrix, risk_aversion)
 
-        # Incorporate views
         posterior_returns, posterior_covariance = self.incorporate_views(
             prior_returns, cov_matrix, views
         )
@@ -155,22 +109,9 @@ class BlackLittermanModel:
     def compare_with_markowitz(self, market_weights: np.ndarray, cov_matrix: np.ndarray,
                                views: list[View],
                                risk_aversion: float = 3.0) -> dict[str, PortfolioResult]:
-        """
-        Compare Black-Litterman with traditional Markowitz optimization.
-
-        Args:
-            market_weights: Market capitalization weights (n_assets)
-            cov_matrix: Covariance matrix (n_assets x n_assets)
-            views: List of View objects
-            risk_aversion: Risk aversion parameter
-
-        Returns:
-            Dict with 'markowitz' and 'black_litterman' PortfolioResults
-        """
-        # Calculate prior returns
+        """Compare Black-Litterman with traditional Markowitz optimization."""
         prior_returns = self.calculate_prior_returns(market_weights, cov_matrix, risk_aversion)
 
-        # Markowitz optimization (using prior returns)
         markowitz_result = self.markowitz.optimize_portfolio(
             prior_returns,
             cov_matrix,
@@ -178,7 +119,6 @@ class BlackLittermanModel:
             weight_bounds=(0, 1)
         )
 
-        # Black-Litterman optimization
         bl_result = self.calculate_black_litterman_portfolio(
             market_weights,
             cov_matrix,

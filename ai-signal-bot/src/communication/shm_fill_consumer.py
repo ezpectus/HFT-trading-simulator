@@ -62,14 +62,7 @@ class ShmFillConsumer:
         poll_interval: float = 0.001,
         batch_size: int = 256,
     ):
-        """
-        Async polling loop: periodically pop fills and invoke callback.
-
-        Args:
-            callback: Called with list of fill tuples
-            poll_interval: Seconds between polls (default 1ms)
-            batch_size: Max fills per poll
-        """
+        """Async polling loop: periodically pop fills and invoke callback."""
         self._running = True
         logger.info("SHM fill consumer polling started")
         while self._running:

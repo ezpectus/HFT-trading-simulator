@@ -3,20 +3,6 @@
 A shallow autoencoder with tied weights compresses input into a lower-
 dimensional latent space and reconstructs it; high reconstruction error
 indicates anomalies.
-
-    Encoder: h = sigmoid(W_e * x + b_e)
-    Decoder: x_hat = sigmoid(W_d * h + b_d)
-    Loss:    L = sum(x_i - x_hat_i)^2 + lambda * ||W||^2   (MSE + L2)
-
-    Backpropagation:
-    dL/dW_d = (x - x_hat) * sigmoid'(x_hat) * h^T
-    dL/dW_e = [(x - x_hat) * sigmoid'(x_hat) * W_d] * sigmoid'(h) * x^T
-
-    Anomaly score: ||x - x_hat||^2 (reconstruction error)
-    Threshold: mean + k * std of reconstruction errors
-
-Ported from UI-only Autoencoder.jsx into trading logic.
-Reference: future_development.md §0.1 — medium priority model.
 """
 from __future__ import annotations
 

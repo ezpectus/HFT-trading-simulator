@@ -25,13 +25,6 @@ class CVaRCalculator:
     """Conditional VaR (Expected Shortfall) calculator."""
 
     def __init__(self, confidence_level: float = 0.95, time_horizon: float = 1.0):
-        """
-        Initialize CVaR calculator.
-
-        Args:
-            confidence_level: Confidence level (default 95%)
-            time_horizon: Time horizon in days (default 1 day)
-        """
         self.confidence_level = confidence_level
         self.time_horizon = time_horizon
         self.var_calculator = VaRCalculator(confidence_level, time_horizon)
@@ -103,31 +96,12 @@ class CVaRCalculator:
     def calculate_expected_shortfall(self, returns: np.ndarray,
                                     confidence_level: float | None = None,
                                     time_horizon: float | None = None) -> CVaRResult:
-        """
-        Calculate Expected Shortfall (alias for CVaR).
-
-        Args:
-            returns: Historical returns
-            confidence_level: Confidence level (uses default if None)
-            time_horizon: Time horizon in days (uses default if None)
-
-        Returns:
-            CVaRResult with Expected Shortfall value
-        """
+        """Calculate Expected Shortfall (alias for CVaR)."""
         return self.calculate_cvar(returns, confidence_level, time_horizon, method='historical')
 
     def calculate_tail_risk_measures(self, returns: np.ndarray,
                                      confidence_level: float | None = None) -> dict:
-        """
-        Calculate tail risk measures.
-
-        Args:
-            returns: Historical returns
-            confidence_level: Confidence level (uses default if None)
-
-        Returns:
-            Dictionary with tail risk measures
-        """
+        """Calculate tail risk measures."""
         cl = confidence_level or self.confidence_level
 
         # Calculate CVaR
@@ -159,17 +133,7 @@ class CVaRCalculator:
         }
 
     def _calculate_tail_index(self, returns: np.ndarray, threshold: float = 0.95) -> float:
-        """
-        Calculate tail index using Hill estimator.
-
-        Args:
-            returns: Historical returns
-            threshold: Threshold for tail (default 95th percentile)
-
-        Returns:
-            Tail index estimate
-        """
-        # Sort returns
+        """Calculate tail index using Hill estimator."""
         sorted_returns = np.sort(returns)
 
         # Get tail (left tail for losses) — use absolute values for Hill estimator
@@ -195,16 +159,7 @@ class CVaRCalculator:
 
     def analyze_stress_scenarios(self, returns: np.ndarray,
                                  scenarios: dict[str, float]) -> dict:
-        """
-        Analyze CVaR under stress scenarios.
-
-        Args:
-            returns: Historical returns
-            scenarios: Dictionary of scenario name to shock multiplier
-
-        Returns:
-            Dictionary with scenario CVaR results
-        """
+        """Analyze CVaR under stress scenarios."""
         results = {}
 
         for scenario_name, shock_multiplier in scenarios.items():

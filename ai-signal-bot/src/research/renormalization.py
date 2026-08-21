@@ -3,25 +3,6 @@
 Applies renormalization group concepts from statistical physics to analyze
 market dynamics across multiple time scales, detecting scale-invariant
 behavior and phase transitions.
-
-    Coarse-graining: aggregate n ticks → 1 super-tick
-    RG transformation: R_n[O] = O' measured at scale n
-
-    Scaling hypothesis: O(λ) = λ^κ · O(1)
-    where κ is the scaling exponent (critical exponent)
-
-    Correlation length: ξ ~ |T - T_c|^(-ν) (diverges near critical point)
-    For markets: ξ = time scale at which correlations decay
-
-    Beta function: β(g) = dg/dln(λ) (flow of coupling under RG)
-    Fixed points: β(g*) = 0 → scale-invariant behavior
-
-Applications: detect market "phase transitions" (calm → crisis),
-identify scale-invariant regimes (power-law behavior),
-multi-timeframe correlation structure.
-
-Ported from UI-only RenormalizationGroup.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

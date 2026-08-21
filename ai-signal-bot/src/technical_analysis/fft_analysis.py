@@ -211,15 +211,7 @@ def spectral_trend_score(closes: list[float]) -> float:
 
 
 def fft_filter(closes: list[float], keep_ratio: float = 0.2) -> list[float]:
-    """Low-pass filter using FFT — removes high-frequency noise.
-
-    Args:
-        closes: Price series
-        keep_ratio: Fraction of low frequencies to keep (0-1)
-
-    Returns:
-        Smoothed price series
-    """
+    """Low-pass filter using FFT — removes high-frequency noise."""
     n = len(closes)
     if n < 4:
         return closes[:]

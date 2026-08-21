@@ -2,20 +2,6 @@
 
 Applies the Girsanov theorem to change the drift of an Ito process via an
 equivalent measure change, enabling likelihood-based regime detection.
-
-    Under P: dX_t = mu_t dt + sigma dW_t
-    Under Q (Girsanov): dX_t = nu_t dt + sigma dW^Q_t
-    where W^Q_t = W_t - int_0^t (mu_s - nu_s)/sigma ds
-
-    Radon-Nikodym derivative:
-    dQ/dP = exp(-int_0^T theta_s dW_s - 1/2 int_0^T theta_s^2 ds)
-    where theta_t = (mu_t - nu_t) / sigma
-
-    Likelihood ratio test: LLR = 0.5 * theta^2 * window ~ chi^2(1) under H0
-    p-value approximation: p = exp(-LLR / 2)
-
-Ported from UI-only GirsanovTheorem.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

@@ -11,11 +11,11 @@
 
 ```
 Раздел 0.1 (высокий):  █████████████████████░ 15/15 (100%)
-Раздел 0.2 (средний):  ██████████████████████ 12/12 (100%)
-Всего моделей:         ██████████████████████ 27/27 (100%) ✅ (+ расширенные модели)
+Раздел 0.2 (средний):  ██████████████████████ 13/13 (100%)
+Всего моделей:         ██████████████████████ 28/28 (100%) ✅
 ```
 
-**Следующая модель:** Radon-Nikodym → `src/research/radon_nikodym.py`
+**Следующая модель:** Prokhorov Metric → `src/research/prokhorov.py`
 **Последний спринт:** 105 (Cameron-Martin)
 
 ---
@@ -111,7 +111,7 @@
 | ~~Banach Fixed-Point~~ | `BanachFixedPoint.jsx` | `src/research/banach.py` | ✅ DONE (Sprint 103) |
 | ~~Hahn Decomposition~~ | `HahnDecomposition.jsx` | `src/research/hahn.py` | ✅ DONE (Sprint 104) |
 | ~~Cameron-Martin~~ | `CameronMartinFormula.jsx` | `src/research/cameron_martin.py` | ✅ DONE (Sprint 105) |
-| Radon-Nikodym | `RadonNikodymDerivative.jsx` | `src/research/radon_nikodym.py` | 1 неделя |
+| ~~Radon-Nikodym~~ | `RadonNikodymDerivative.jsx` | `src/research/radon_nikodym.py` | ✅ DONE |
 | Prokhorov Metric | `ProkhorovMetric.jsx` | `src/research/prokhorov.py` | 1 неделя |
 | Stone-Cech | `StoneCechCompactification.jsx` | `src/research/stone_cech.py` | 2 недели |
 | Arzela-Ascoli | `ArzelaAscoli.jsx` | `src/research/arzela_ascoli.py` | 1 неделя |
@@ -150,12 +150,12 @@ If CUDA/ONNX support is needed in the future, it must be implemented from scratc
 - ❌ **MAMA/FAMA** — нет нигде
 - ❌ **Hilbert Transform** — нет нигде
 - ❌ **Blahut-Arimoto** — нет нигде
-- ❌ **Bayesian Ridge** — нет нигде
+- ✅ **Bayesian Ridge** — ЕСТЬ в `src/technical_analysis/bayesian_price.py`
 - ❌ **Welch PSD** — нет нигде
 - ❌ **CWT (Continuous Wavelet Transform)** — нет нигде
-- ❌ **EWMA volatility** — нет как отдельной модели
-- ❌ **Parkinson volatility** — нет нигде
-- ❌ **BOCPD (Bayesian Online Change Point Detection)** — нет нигде
+- ✅ **EWMA volatility** — ЕСТЬ в `src/technical_analysis/garch.py` (RiskMetrics)
+- ✅ **Parkinson volatility** — ЕСТЬ в `src/technical_analysis/garch.py`
+- ✅ **BOCPD (Bayesian Online Change Point Detection)** — ЕСТЬ в `src/technical_analysis/bayesian_price.py`
 
 ---
 

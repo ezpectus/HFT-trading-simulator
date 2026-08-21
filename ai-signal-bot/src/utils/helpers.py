@@ -13,13 +13,7 @@ from typing import Any  # Any: env var defaults may be str|int|float|bool
 
 def setup_logging(level: str = "INFO", format_type: str = "json",
                   log_file: str | None = None) -> logging.Logger:
-    """Configure structured logging.
-
-    Args:
-        level: LOG_LEVEL env var (DEBUG, INFO, WARNING, ERROR)
-        format_type: 'json' for structured JSON logs, 'text' for human-readable
-        log_file: Optional file path for log output
-    """
+    """Configure structured logging."""
     log_level = getattr(logging, level.upper(), logging.INFO)
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)

@@ -3,19 +3,6 @@
 Propagates uncertainty through financial calculations while tracking
 correlations between quantities (unlike interval arithmetic, avoiding the
 dependency problem).
-
-    Affine form: a_hat = a_0 + sum_{i=1}^{n} a_i * eps_i,  eps_i in [-1, 1]
-
-    Operations:
-    a_hat + b_hat = (a_0 + b_0) + sum(a_i + b_i) * eps_i
-    c * a_hat = c*a_0 + sum(c*a_i) * eps_i
-    a_hat * b_hat = a_0*b_0 + sum(a_0*b_i + b_0*a_i)*eps_i + sum_{i,j} a_i*b_j*eps_i*eps_j
-                   (nonlinear term approximated with a new noise symbol)
-    exp(a_hat): Chebyshev min-max linear approximation + new noise symbol
-    Interval: [a_0 - sum|a_i|, a_0 + sum|a_i|]
-
-Ported from UI-only AffineArithmetic.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

@@ -2,21 +2,6 @@
 
 Computes the infinitesimal generator A of an Itô diffusion, which
 characterizes the expected rate of change of functions of the process.
-
-    Itô diffusion: dX_t = μ(X_t)dt + σ(X_t)dW_t
-    Generator:      A·f(x) = μ(x)·f'(x) + (1/2)·σ²(x)·f''(x)
-
-    Dynkin's formula: E[f(X_τ)] = f(x) + E[∫₀ᵀ A·f(X_s) ds]
-    Feynman-Kac:      ∂u/∂t = A·u - r·u,  u(x,T) = g(x)
-
-    Expected hitting time: solve A·T = -1 with T(target) = 0
-    Stationary distribution (OU): π(x) ∝ exp(-(x-θ)²/(2σ²/(2κ))),  A·π = 0
-
-Applications: option pricing via PDE, expected hitting times,
-stationary distribution analysis, sensitivity to model parameters.
-
-Ported from UI-only ItoCalculusGenerator.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

@@ -2,25 +2,6 @@
 
 Uses Sobolev space norms to regularize estimates, enforcing smoothness
 constraints on functions estimated from noisy financial data.
-
-    Sobolev space W^{k,p}: functions with k weak derivatives in L^p
-    Norm: ||f||_{W^{k,2}}² = Σ_{|α|≤k} ∫ |D^α f|² dx
-
-    Tikhonov regularization in H^s (Sobolev Hilbert space):
-    min_f ||y - f||²_{L²} + λ·||f||²_{H^s}
-    = min_f Σ(y_i - f(x_i))² + λ·∫|f^(s)(x)|²dx
-
-    Representer theorem: f* = Σ_i α_i·K_s(x_i, ·)
-    where K_s is the Sobolev kernel (Matérn kernel of order s)
-
-    Matérn kernel: K_s(x,y) = (2^{1-s}/Γ(s))·(√(2s)|x-y|)^s·K_s(√(2s)|x-y|)
-    s=1: σ²·exp(-r);  s=2: σ²·(1+√3r)·exp(-√3r)
-
-Applications: smooth volatility estimation, noise removal,
-derivative pricing with smoothness constraints, trend extraction.
-
-Ported from UI-only SobolevSpaceRegularization.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 

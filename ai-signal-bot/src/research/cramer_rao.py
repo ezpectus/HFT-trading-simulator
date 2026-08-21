@@ -2,21 +2,6 @@
 
 Computes the theoretical minimum variance of any unbiased estimator via the
 Fisher information matrix.
-
-    CRLB: Var(theta_hat) >= 1 / I(theta)
-    Fisher Information: I(theta) = E[(d/dtheta log L(x|theta))^2]
-                              = -E[d^2/dtheta^2 log L(x|theta)]
-
-    Gaussian: I(mu) = n/sigma^2  ->  CRLB(mu) = sigma^2/n
-              I(sigma^2) = n/(2*sigma^4)  ->  CRLB(sigma^2) = 2*sigma^4/n
-
-    GARCH(1,1): Fisher information matrix via numerical Hessian of the
-    negative log-likelihood; CRLB = inverse of the Fisher matrix.
-
-    Efficiency: eff(theta_hat) = CRLB / Var(theta_hat)  (1 = efficient)
-
-Ported from UI-only CramerRaoBound.jsx into trading logic.
-Reference: future_development.md §0.2 — medium priority model.
 """
 from __future__ import annotations
 

@@ -2,22 +2,6 @@
 
 Learns a latent representation of return windows and generates synthetic
 scenarios; high reconstruction error indicates anomalies.
-
-    Encoder: q_phi(z|x) ~ N(mu_phi(x), sigma^2_phi(x))
-    Decoder: p_theta(x|z) ~ N(mu_theta(z), sigma^2_theta(x))
-    Prior:   p(z) = N(0, I)
-
-    ELBO: L = E_q[log p(x|z)] - beta * KL[q(z|x) || p(z)]
-        = reconstruction loss - regularization
-    Reparameterization: z = mu + sigma * eps,  eps ~ N(0, I)
-    KL (closed form): KL = -0.5 * sum(1 + logvar - mu^2 - exp(logvar))
-
-Note: the UI's backprop was simplified/buggy (transposed decoder indices,
-encoder never updated); this port implements correct backpropagation through
-both encoder and decoder with the reparameterization trick.
-
-Ported from UI-only VariationalAutoencoder.jsx into trading logic.
-Reference: future_development.md §0.1 — low priority model.
 """
 from __future__ import annotations
 

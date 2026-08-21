@@ -2,22 +2,6 @@
 
 Computes the Radon-Nikodym derivative between two probability
 measures to detect regime changes via likelihood ratio analysis.
-
-    Radon-Nikodym: dQ/dP = L(X) where Q << P (Q absolutely continuous)
-    For Gaussians: dQ/dP = exp(-1/2·Σ[(x-μ_Q)²/σ_Q² - (x-μ_P)²/σ_P²])
-                           + n·log(σ_P/σ_Q)
-
-    Likelihood ratio test: reject H0 (P=Q) if L > threshold
-    Neyman-Pearson: most powerful test at fixed alpha
-
-    Kullback-Leibler: D_KL(P||Q) = E_P[log(dP/dQ)]
-    = log(σ_Q/σ_P) + (σ_P² + (μ_P-μ_Q)²)/(2·σ_Q²) - 1/2
-
-Applications: regime detection, anomaly detection, model validation,
-change-point detection, signal-to-noise ratio estimation.
-
-Ported from UI-only RadonNikodymDerivative.jsx into trading logic.
-Reference: future_development.md §0.2 — extended model list.
 """
 from __future__ import annotations
 
