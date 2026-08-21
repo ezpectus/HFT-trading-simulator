@@ -58,6 +58,20 @@ from src.technical_analysis.kmeans import (
 from src.technical_analysis.kmeans import (
     extract_features as extract_kmeans_features,
 )
+from src.technical_analysis.ms_garch import (
+    MSRegime,
+    MSResult,
+    detect_regime_transitions,
+    estimate_params,
+    expected_regime_duration,
+    fit_ms_garch,
+    garch_filter,
+    gaussian_log_pdf,
+    ms_garch_filter,
+    ms_garch_volatility,
+    regime_signal,
+    simple_returns,
+)
 from src.technical_analysis.pca import (
     PCAResult,
     compute_pca,
@@ -76,4 +90,7 @@ __all__ = [
     "GARCHResult", "EWMAResult", "ParkinsonResult",
     "fit_garch", "garch_forecast", "garch_volatility",
     "ewma_volatility", "parkinson_volatility", "classify_regime", "log_returns",
+    "MSRegime", "MSResult", "fit_ms_garch", "ms_garch_filter", "ms_garch_volatility",
+    "estimate_params", "garch_filter", "gaussian_log_pdf", "simple_returns",
+    "regime_signal", "detect_regime_transitions", "expected_regime_duration",
 ]
