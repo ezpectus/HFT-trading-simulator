@@ -68,16 +68,17 @@
 - ✅ Information Bottleneck (Sprint 95, расширенная таблица)
 - ✅ Renormalization Group (Sprint 96, расширенная таблица)
 - ✅ Free Energy Principle (Sprint 97, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 44 модели**
+- ✅ Lie Group Symmetries (Sprint 98, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 45 моделей**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Lie Group Symmetries
-**UI файл:** web-ui/src/components/LieGroupSymmetries.jsx
-**Python файл:** ai-signal-bot/src/research/lie_group.py
-**Паттерны:** free_energy.py (Sprint 97), rmt.py (Sprint 82)
-**Спринт:** 98
+**Модель:** Burgers Equation
+**UI файл:** web-ui/src/components/BurgersEquation.jsx
+**Python файл:** ai-signal-bot/src/research/burgers.py
+**Паттерны:** fokker_planck.py (Sprint 90), renormalization.py (Sprint 96)
+**Спринт:** 99
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 97:** Ported Free Energy Principle from UI to trading logic (research/free_energy.py). Active inference, variational FE, policy selection, 42 new tests. 44 модели всего.
+**Sprint 98:** Ported Lie Group Symmetries from UI to trading logic (research/lie_group.py). Translation/scaling/time/Galilean symmetries, Noether, 51 new tests. 45 моделей всего.

@@ -95,6 +95,17 @@ from src.research.koopman import (
     koopman_signal,
     power_iteration,
 )
+from src.research.lie_group import (
+    LieResult,
+    compute_returns as lie_compute_returns,
+    galilean_symmetry,
+    lie_algebra_coeffs,
+    lie_analysis,
+    lie_signal,
+    scaling_symmetry,
+    time_translation_symmetry,
+    translation_symmetry,
+)
 from src.research.kolmogorov_sinai import (
     KsResult,
     block_entropy,
@@ -224,4 +235,7 @@ __all__ = [
     "rg_compute_returns",
     "FeResult", "fe_analysis", "compute_free_energy", "expected_free_energy",
     "update_beliefs", "log_gaussian", "generate_policies", "fe_compute_returns",
+    "LieResult", "lie_analysis", "lie_signal", "translation_symmetry",
+    "scaling_symmetry", "time_translation_symmetry", "galilean_symmetry",
+    "lie_algebra_coeffs", "lie_compute_returns",
 ]

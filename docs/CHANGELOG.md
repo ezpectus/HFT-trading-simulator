@@ -119,6 +119,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 98: Lie Group Symmetries Port
+
+### Added — Lie Group Symmetries (Sprint 98)
+- Created `ai-signal-bot/src/research/lie_group.py` — symmetry-based market analysis ported from UI-only `LieGroupSymmetries.jsx` into trading logic
+- Four symmetries over sliding windows (step = windowSize/2): translation (mean conservation), scaling (std/|mean| ratio), time translation (ACF(1)), Galilean (detrended residual variance via linear regression)
+- Symmetry breaking = std of conserved quantities across windows; total breaking = mean of four scores
+- Noether conserved quantities (momentum, normalized variance, autocorrelation, detrended variance)
+- Lie algebra generator coefficients e₁ = mean, e₂ = std, e₃ = mean/std (Sharpe-like)
+- Signal: SYMMETRY_BROKEN (> 0.01) / WEAK_BREAKING (> 0.005) / SYMMETRIC
+- 51 new tests in `tests/test_lie_group.py` (symmetry metrics, conserved quantities, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 89: SDE Port
 
 ### Added — SDE (Euler/Milstein) (Sprint 89)

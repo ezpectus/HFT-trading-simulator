@@ -734,6 +734,22 @@ with action effects ±0.001 on predicted return; best policy minimizes G.
 Signal: HOLD / BUY / SELL (mean-reversion: belief above 0 → SELL).
 - **Source:** `ai-signal-bot/src/research/free_energy.py` (Sprint 97, ported from UI-only FreeEnergyPrinciple.jsx)
 
+### Lie Group Symmetries — Trading logic
+Symmetry-based market analysis detecting invariant structures and regime shifts.
+```
+Symmetries: Translation T_a (x → x+a), Scaling D_λ (x → λx),
+            Time translation τ_s (t → t+s), Galilean (x → x+v·t)
+Noether: each continuous symmetry → conserved quantity
+Breaking: std of conserved quantities across sliding windows
+Lie algebra generators: e₁ = mean, e₂ = std, e₃ = mean/std (Sharpe-like)
+```
+Sliding-window (step = windowSize/2) analysis of returns: translation
+(mean conservation), scaling (std/|mean| ratio), time translation (ACF(1)),
+Galilean (detrended residual variance via linear regression). Total breaking
+= mean of the four breaking scores. Signal: SYMMETRY_BROKEN (> 0.01),
+WEAK_BREAKING (> 0.005), SYMMETRIC.
+- **Source:** `ai-signal-bot/src/research/lie_group.py` (Sprint 98, ported from UI-only LieGroupSymmetries.jsx)
+
 ---
 
 ## 3. C++ Signal Engine V2 — Trading logic
