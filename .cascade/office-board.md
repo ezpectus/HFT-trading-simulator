@@ -9,11 +9,11 @@
 ## 📊 ТЕКУЩИЙ СПРИНТ
 
 ### [01] CEO → [02] CTO
-**Тема:** Sprint 62 — следующая модель из future_development.md
+**Тема:** Sprint 92 — следующая модель из future_development.md
 **Задача:** Работаем по future_development.md.
-  Следующая модель без ✅ DONE: Copula (раздел 0.1).
+  Разделы 0.1+0.2 ЗАВЕРШЕНЫ (27/27). Расширенная таблица: Malliavin Calculus.
   CTO, подготовь архитектуру — файл, класс, зависимости.
-**Контекст:** Sprint 61 завершён (MS-GARCH). future_development.md раздел 0.1.
+**Контекст:** Sprint 91 завершён (Ito Generator). future_development.md расширенная таблица.
 **Срок:** P0
 **Статус:** NEW
 
@@ -22,11 +22,11 @@
 ## ✅ ПРЕДЫДУЩИЙ СПРИНТ
 
 ### [04] VP Eng → ALL
-**Тема:** Sprint 61 — завершён
+**Тема:** Sprint 91 — завершён
 **Сообщение:**
-  - Ported Markov-Switching GARCH from UI to trading logic (ms_garch.py):
-    Kim's filter (Hamilton + smoothing), per-regime GARCH paths, combined vol,
-    grid search over 3 param sets, regime_signal, transitions, expected duration.
-  - 41 new tests in test_ms_garch.py (173 technical_analysis tests pass).
-  - 9/15 моделей раздела 0.1 портировано (60%).
+  - Ported Ito Generator from UI to trading logic (research/ito_generator.py):
+    infinitesimal generator A·f = μ·f' + ½σ²·f'', Dynkin's formula,
+    expected hitting time (A·T = -1), stationary OU distribution.
+  - 31 new tests in test_ito_generator.py.
+  - 38 моделей портировано всего.
 **Статус:** INFO

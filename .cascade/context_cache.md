@@ -15,8 +15,8 @@
 
 ## ПРОГРЕСС ПО future_development.md
 
-### Раздел 0.1 (высокий приоритет): 9/15 (60%)
-█████████████░░░░░░░░░ 60%
+### Раздел 0.1 (высокий приоритет): 15/15 (100%) ✅
+█████████████████████░ 100%
 
 - ✅ Kalman Filter (Sprint 55)
 - ✅ PCA (Sprint 56)
@@ -26,38 +26,52 @@
 - ✅ DTW (Sprint 58)
 - ✅ GARCH(1,1) (Sprint 60)
 - ✅ Markov-Switching GARCH (Sprint 61)
-- ⬜ Copula — СЛЕДУЮЩАЯ
-- ⬜ Wavelet
-- ⬜ Monte Carlo
-- ⬜ Hawkes Process
-- ⬜ Almgren-Chriss
-- ⬜ Optimal Stopping
-- ⬜ Autoencoder
+- ✅ Copula (Sprint 62)
+- ✅ Wavelet (Sprint 63)
+- ✅ Monte Carlo (Sprint 64)
+- ✅ Hawkes Process (Sprint 65)
+- ✅ Almgren-Chriss (Sprint 66)
+- ✅ Optimal Stopping (Sprint 67)
+- ✅ Autoencoder (Sprint 68)
+- ✅ VAE (Sprint 69)
+- Раздел 0.1 ЗАВЕРШЁН: 15/15 (100%)
 
-### Раздел 0.2 (средний приоритет): 1/12 (8%)
-█░░░░░░░░░░░░░░░░░░░░ 8%
+### Раздел 0.2 (средний приоритет): 12/12 (100%) ✅
+██████████████████████ 100%
 
 - ✅ DTW (Sprint 58, также в 0.1)
-- ⬜ Bayesian Price Predictor
-- ⬜ Bayesian Structural TS
-- ⬜ HMC
-- ⬜ Transfer Entropy
-- ⬜ CCM (EDM)
-- ⬜ Cramer-Rao Bound
-- ⬜ Rough Volatility (rBergomi)
-- ⬜ VMD
-- ⬜ EMD/HHT
-- ⬜ Compressed Sensing
-- ⬜ RKHS
+- ✅ Bayesian Price Predictor (Sprint 70)
+- ✅ Bayesian Structural TS (Sprint 71)
+- ✅ HMC (Sprint 72)
+- ✅ Transfer Entropy (Sprint 73)
+- ✅ CCM (EDM) (Sprint 74)
+- ✅ Cramer-Rao Bound (Sprint 75)
+- ✅ Rough Volatility (rBergomi) (Sprint 76)
+- ✅ VMD (Sprint 77)
+- ✅ EMD/HHT (Sprint 78)
+- ✅ Compressed Sensing (Sprint 79)
+- ✅ RKHS (Sprint 80)
+- ✅ Koopman Operator (Sprint 81, расширенная таблица)
+- ✅ Random Matrix Theory (Sprint 82, расширенная таблица)
+- ✅ Graph Theory MST (Sprint 83, расширенная таблица)
+- ✅ Tensor Decomposition (Sprint 84, расширенная таблица)
+- ✅ Affine Arithmetic (Sprint 85, расширенная таблица)
+- ✅ Stochastic Optimal Control (Sprint 86, расширенная таблица)
+- ✅ Pontryagin Maximum (Sprint 87, расширенная таблица)
+- ✅ Girsanov Theorem (Sprint 88, расширенная таблица)
+- ✅ SDE Euler/Milstein (Sprint 89, расширенная таблица)
+- ✅ Fokker-Planck (Sprint 90, расширенная таблица)
+- ✅ Ito Generator (Sprint 91, расширенная таблица)
+- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 38 моделей**
 
 ## СЛЕДУЮЩАЯ ЗАДАЧА
 
-**Модель:** Copula
-**UI файл:** web-ui/src/components/CopulaModel.jsx
-**Python файл:** ai-signal-bot/src/technical_analysis/copula.py
-**Паттерны:** pca.py (Sprint 56), gmm.py (Sprint 57)
-**Спринт:** 62
+**Модель:** Malliavin Calculus
+**UI файл:** web-ui/src/components/MalliavinCalculus.jsx
+**Python файл:** ai-signal-bot/src/research/malliavin.py
+**Паттерны:** ito_generator.py (Sprint 91), girsanov.py (Sprint 88)
+**Спринт:** 92
 
 ## ПОСЛЕДНИЙ СПРИНТ
 
-**Sprint 61:** Ported Markov-Switching GARCH from UI to trading logic (ms_garch.py). Kim's filter, 41 new tests. 9/15 моделей раздела 0.1 (60%).
+**Sprint 91:** Ported Ito Generator from UI to trading logic (research/ito_generator.py). Infinitesimal generator A·f, Dynkin, hitting time, 31 new tests. 38 моделей всего.

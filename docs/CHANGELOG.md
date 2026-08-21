@@ -7,6 +7,416 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] — Sprint 90: Fokker-Planck Port
+
+### Added — Fokker-Planck Equation (Sprint 90)
+- Created `ai-signal-bot/src/research/fokker_planck.py` — probability density evolution ported from UI-only `FokkerPlanckEquation.jsx` into trading logic
+- Explicit finite-difference solver with probability flux F = μ·p − ½·∂/∂x[σ²·p]; absorbing boundaries + normalization
+- Models: OU (κ from ACF(1)), GBM, constant drift-diffusion; stationary OU distribution
+- Forecast density, VaR 5%, median, KL divergence D_KL(p_T || p_0)
+- Signal: BULLISH/BEARISH_DENSITY from forecast median shift
+- 20 new tests in `tests/test_fokker_planck.py` (normalization, diffusion spread, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 91: Itô Generator Port
+
+### Added — Itô Calculus Generator (Sprint 91)
+- Created `ai-signal-bot/src/research/ito_generator.py` — infinitesimal generator of Itô diffusions ported from UI-only `ItoCalculusGenerator.jsx` into trading logic
+- Generator A·f(x) = μ(x)·f'(x) + ½·σ²(x)·f''(x) with analytic test functions (identity, square, exp, log, cosh) and numerical central-difference derivatives
+- Models: OU (κ from ACF(1)), GBM, constant drift-diffusion; parameter estimation from returns
+- Expected hitting time solver (A·T = -1, T(target) = 0, explicit iteration with non-negativity clamp)
+- Dynkin's formula predictions E[f(X_t)] ≈ f(x) + A·f(x)·t; stationary OU distribution π(x) ∝ exp(-(x-θ)²/(2σ²/(2κ)))
+- Signal: GENERATOR_POSITIVE / GENERATOR_NEGATIVE / NEUTRAL from A·f at current return
+- 31 new tests in `tests/test_ito_generator.py` (generator math, numerical derivatives, hitting time, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 89: SDE Port
+
+### Added — SDE (Euler/Milstein) (Sprint 89)
+- Created `ai-signal-bot/src/technical_analysis/sde.py` — stochastic differential equation simulation ported from UI-only `StochasticDifferentialEquations.jsx` into trading logic
+- Euler-Maruyama and Milstein (strong order 1.0) schemes with seeded RNG
+- 5 models: GBM, Ornstein-Uhlenbeck, CIR (Milstein correction), Heston (stochastic vol), Merton jump-diffusion
+- Auto-estimation of μ, σ, and OU parameters from returns
+- Path percentiles (p5/p25/p50/p75/p95), mean path, 90% CI width
+- Signal: BUY/SELL from expected simulated return
+- 26 new tests in `tests/test_sde.py` (all models, determinism, positivity, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 88: Girsanov Theorem Port
+
+### Added — Girsanov Theorem (Sprint 88)
+- Created `ai-signal-bot/src/research/girsanov.py` — measure change model ported from UI-only `GirsanovTheorem.jsx` into trading logic
+- Sliding-window drift estimation with annualized drift
+- Girsanov log-likelihood ratio test between consecutive windows: LLR = ½θ²·window ~ χ²(1), p = exp(−LLR/2)
+- Cumulative LLR (Radon-Nikodym measure change trajectory)
+- Regime classification (BULLISH/BEARISH/NEUTRAL)
+- Signal: DRIFT_CHANGE_STRONG (p < 0.01) / DRIFT_CHANGE (p < 0.05) / STABLE_DRIFT
+- 20 new tests in `tests/test_girsanov.py` (window counts, regime shift detection, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 87: Pontryagin Maximum Port
+
+### Added — Pontryagin Maximum Principle (Sprint 87)
+- Created `ai-signal-bot/src/research/pontryagin.py` — optimal execution model ported from UI-only `PontryaginMaximumPrinciple.jsx` into trading logic
+- PMP: H = ½κu² + λu²x + ηx² + p·u; costate p' = −λu² − 2ηx; optimal control u* = −p/(κ+2λx)
+- Shooting method with bisection on p(0); boundary x(0)=X₀, x(T)=0
+- η calibrated to volatility (∝ σ²·252); TWAP and immediate-execution cost comparison
+- Signal: SIGNIFICANT_SAVINGS (>10% vs TWAP) / OPTIMAL_EXECUTION / TWAP_PREFERRED
+- 20 new tests in `tests/test_pontryagin.py` (shooting convergence, terminal inventory, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 86: Stochastic Optimal Control Port
+
+### Added — Stochastic Optimal Control (HJB) (Sprint 86)
+- Created `ai-signal-bot/src/research/stochastic_control.py` — HJB equation solver ported from UI-only `StochasticOptimalControl.jsx` into trading logic
+- Backward Euler finite differences on (wealth, time) grid; terminal utility log(x)
+- Optimal policy u* = μ·x·(1+V_x)/(σ²x²(γ−V_xx)) clamped to [−2, 2]
+- Value function slices, optimal position trajectory, Sharpe-like ratio
+- Signal: LONG (u* > 0.3) / SHORT (u* < −0.3) / NEUTRAL
+- 20 new tests in `tests/test_stochastic_control.py` (terminal condition, policy bounds, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 85: Affine Arithmetic Port
+
+### Added — Affine Arithmetic (Sprint 85)
+- Created `ai-signal-bot/src/research/affine_arithmetic.py` — interval uncertainty propagation ported from UI-only `AffineArithmetic.jsx` into trading logic
+- Affine forms â = a₀ + Σ aᵢ·εᵢ with noise symbols; add/sub/mul (nonlinear term → new symbol), scale, Chebyshev exp approximation
+- Correlation tracking (avoids interval-arithmetic dependency problem)
+- Robust Black-Scholes with uncertain σ (Abramowitz-Stegun erf); robust portfolio value
+- Signal: HIGH/MODERATE/LOW_UNCERTAINTY from option price spread
+- 26 new tests in `tests/test_affine_arithmetic.py` (interval containment, correlation, erf, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 84: Tensor Decomposition Port
+
+### Added — Tensor Decomposition (CP/ALS) (Sprint 84)
+- Created `ai-signal-bot/src/research/tensor_decomp.py` — multi-way data decomposition ported from UI-only `TensorDecomposition.jsx` into trading logic
+- Tensor construction: assets × (timeframes [1,5,15] × time) × features (return, vol, range, momentum, log-volume)
+- CP decomposition via ALS with seeded factor initialization; factor weights via max-normalization
+- Reconstruction quality, ALS convergence history
+- Signal: BUY/SELL from dominant factor's return + momentum loadings
+- 20 new tests in `tests/test_tensor_decomp.py` (tensor shape, ALS determinism/convergence, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 83: Graph Theory MST Port
+
+### Added — Correlation Networks & MST (Sprint 83)
+- Created `ai-signal-bot/src/research/graph_mst.py` — financial network model ported from UI-only `GraphTheoryNetwork.jsx` into trading logic
+- Correlation distance d = √(2(1−ρ)); Kruskal's minimum spanning tree
+- Degree, betweenness (BFS), eigenvector (power iteration) centralities; clustering coefficient
+- Hub detection (max degree > 2); filtered edges by |ρ| threshold
+- Signal: HUB / NEUTRAL
+- 23 new tests in `tests/test_graph_mst.py` (MST properties, centralities, clustering, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 82: Random Matrix Theory Port
+
+### Added — Random Matrix Theory (Sprint 82)
+- Created `ai-signal-bot/src/research/rmt.py` — Marchenko-Pastur noise filtering ported from UI-only `RandomMatrixTheory.jsx` into trading logic
+- MP density and bounds λ± = (1/√Q ± 1)²; correlation matrix from multiple return series
+- Jacobi eigendecomposition; cleaning: noise eigenvalues → MP average, reconstruction + unit-diagonal renormalization
+- Market mode (largest eigenvector), signal eigenvalues vs MP bound
+- Signal: STRONG_SIGNAL (max λ > 2λ₊) / WEAK_SIGNAL / PURE_NOISE
+- 23 new tests in `tests/test_rmt.py` (Jacobi, MP bounds/density, correlation, cleaning, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 81: Koopman Operator Port
+
+### Added — Koopman Operator (EDMD) (Sprint 81)
+- Created `ai-signal-bot/src/research/koopman.py` — data-driven dynamical systems ported from UI-only `KoopmanOperatorTheory.jsx` into trading logic
+- Dictionary features: constant + polynomial + Fourier
+- EDMD: G = ΨᵀΨ, A = Ψ_nextᵀΨ, K ≈ A·G⁻¹ (λ-regularized) via Gaussian elimination
+- Dominant eigenvalues via power iteration with deflation (seeded RNG)
+- Koopman forecasting: Ψ(x_{t+k}) ≈ Kᵏ·Ψ(x_t); reconstruction error
+- Signal: PERSISTENT_DYNAMICS / FAST_DECAY / NEUTRAL + BULLISH/BEARISH direction
+- 22 new tests in `tests/test_koopman.py` (dictionary, EDMD recovery, power iteration, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 80: RKHS Port
+
+### Added — RKHS Kernel Methods (Sprint 80)
+- Created `ai-signal-bot/src/ml/rkhs.py` — kernel methods ported from UI-only `ReproducingKernelHilbertSpace.jsx` into trading logic
+- RBF and Laplacian kernels; symmetric kernel matrix construction and centering (H·K·H)
+- Kernel PCA via Jacobi eigendecomposition; projections onto top components
+- MMD (Maximum Mean Discrepancy) for distribution/regime shift detection
+- Kernel Ridge Regression: α = (K + λI)⁻¹·y with Gaussian elimination; next-return prediction
+- Signal: BUY/SELL from KRR prediction, REGIME_SHIFT if MMD > 0.3
+- 27 new tests in `tests/test_rkhs.py` (kernels, centering, Jacobi, MMD, KRR, edge cases)
+- Exported via `ml/__init__.py`; documented in MATH_MODELS.md
+- **Sections 0.1 + 0.2 of future_development.md COMPLETE: 27/27 models (100%)**
+
+---
+
+## [Unreleased] — Sprint 79: Compressed Sensing Port
+
+### Added — Compressed Sensing (Sprint 79)
+- Created `ai-signal-bot/src/technical_analysis/compressed_sensing.py` — sparse signal recovery ported from UI-only `CompressedSensing.jsx` into trading logic
+- Gaussian measurement matrix (seeded), DFT basis sparsifying transform
+- OMP (Orthogonal Matching Pursuit): greedy support selection + least squares on support
+- ISTA (Iterative Shrinkage-Thresholding): L1 minimization with soft thresholding
+- Recovery SNR, support set, anomaly detection (|coeff| > 0.3)
+- Signal: ANOMALY_DETECTED / SPARSE_RECOVERED / MODERATE_RECOVERY / POOR_RECOVERY
+- 26 new tests in `tests/test_compressed_sensing.py` (sparse recovery, LS solver, DFT basis, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.2 progress: 11/12 (92%)**
+
+---
+
+## [Unreleased] — Sprint 78: EMD/HHT Port
+
+### Added — Empirical Mode Decomposition + Hilbert-Huang (Sprint 78)
+- Created `ai-signal-bot/src/technical_analysis/emd.py` — adaptive signal decomposition ported from UI-only `EmpiricalModeDecomposition.jsx` into trading logic
+- Sifting process with natural cubic spline envelopes (tridiagonal system), SD convergence criterion
+- EMD decomposition into IMFs + residue (trend); exact reconstruction
+- Hilbert transform via FFT-based analytic signal; instantaneous amplitude/phase/frequency with phase unwrapping
+- IMF energy distribution, mean instantaneous frequencies, dominant IMF detection
+- Signal: BUY/SELL from residue slope + dominant IMF slope
+- 27 new tests in `tests/test_emd.py` (spline, extrema, sifting, reconstruction, Hilbert, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.2 progress: 10/12 (83%)**
+
+---
+
+## [Unreleased] — Sprint 77: VMD Port
+
+### Added — Variational Mode Decomposition (Sprint 77)
+- Created `ai-signal-bot/src/technical_analysis/vmd.py` — non-recursive signal decomposition ported from UI-only `VariationalModeDecomposition.jsx` into trading logic
+- ADMM solution: mode update û_k = (f̂ − Σ_{i≠k} û_i + λ̂/2)/(1 + 2α(ω−ω_k)²), center-frequency update, Lagrange multiplier update
+- Cooley-Tukey radix-2 FFT with zero padding; direct-DFT inverse; mirroring extension
+- Mode energy distribution, residual, center-frequency convergence history
+- Signal: BUY/SELL from trend-mode slope + dominant-mode sign
+- 24 new tests in `tests/test_vmd.py` (FFT roundtrip, reconstruction, energy distribution, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.2 progress: 9/12 (75%)**
+
+---
+
+## [Unreleased] — Sprint 76: rBergomi Port
+
+### Added — Rough Volatility (rBergomi) (Sprint 76)
+- Created `ai-signal-bot/src/technical_analysis/rbergomi.py` — rough volatility model ported from UI-only `RoughVolatility.jsx` into trading logic
+- Fractional Gaussian noise via Cholesky decomposition of the covariance matrix (seeded RNG)
+- Fractional Brownian motion; rBergomi simulation v(t) = ξ₀·exp(η·W^H(t) − ½η²·t^(2H)) with correlated price/vol Brownian motions
+- Hurst exponent estimation from realized-volatility scaling (log RV vs log scale regression)
+- Variance swaps, ATM vol, theoretical skew τ^(H−½), price path percentiles (p5/p95)
+- Signal: BUY/SELL from expected return; vol regime HIGH/LOW/NORMAL
+- 26 new tests in `tests/test_rbergomi.py` (fGn properties, autocorrelation by Hurst, determinism, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.2 progress: 8/12 (67%)**
+
+---
+
+## [Unreleased] — Sprint 75: Cramer-Rao Bound Port
+
+### Added — Cramer-Rao Lower Bound (Sprint 75)
+- Created `ai-signal-bot/src/research/cramer_rao.py` — estimation-limit model ported from UI-only `CramerRaoBound.jsx` into trading logic
+- Gaussian Fisher information: I(μ) = n/σ², I(σ²) = n/(2σ⁴); CRLB = 1/I
+- GARCH(1,1) Fisher information matrix via numerical Hessian of negative log-likelihood; CRLB = I⁻¹ (3×3 inverse)
+- Estimator efficiency (sample mean 100% efficient), CRLB vs sample size (1/n decay), 95% CI from CRLB
+- Signal: LOW_INFORMATION / HIGH_INFORMATION / SUFFICIENT_DATA
+- 28 new tests in `tests/test_cramer_rao.py` (Fisher info, GARCH Hessian, efficiency, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.2 progress: 7/12 (58%)**
+
+---
+
+## [Unreleased] — Sprint 74: CCM/EDM Port
+
+### Added — Empirical Dynamic Modeling / CCM (Sprint 74)
+- Created `ai-signal-bot/src/research/ccm.py` — Takens embedding + Convergent Cross Mapping ported from UI-only `EmpiricalDynamicModeling.jsx` into trading logic
+- Optimal τ via first minimum of mutual information; optimal E via false nearest neighbors (< 5%)
+- Simplex projection forecast with exponential neighbor weights; forecast skill ρ
+- CCM causality test: ρ(estimated, actual) vs library size convergence
+- Signal from simplex forecast: BUY/SELL/NEUTRAL
+- 28 new tests in `tests/test_ccm.py` (embedding, MI, FNN, simplex forecast, CCM convergence, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.2 progress: 6/12 (50%)**
+
+---
+
+## [Unreleased] — Sprint 73: Transfer Entropy Port
+
+### Added — Transfer Entropy (Sprint 73)
+- Created `ai-signal-bot/src/research/transfer_entropy.py` — information-theoretic causality model ported from UI-only `TransferEntropy.jsx` into trading logic
+- TE_{X→Y} with k/l history lags and n-bin quantization; joint probability estimation from tuples
+- Surrogate TE (seeded shuffle of X) and Effective TE = TE − TE_surrogate
+- Bidirectional analysis: TE_{X→Y}, TE_{Y→X}, net TE, ETE; INFLUENCER/INFLUENCED/NEUTRAL signal
+- 22 new tests in `tests/test_transfer_entropy.py` (quantization, causal link detection, determinism, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.2 progress: 5/12 (42%)**
+
+---
+
+## [Unreleased] — Sprint 72: HMC Port
+
+### Added — Hamiltonian Monte Carlo (Sprint 72)
+- Created `ai-signal-bot/src/technical_analysis/hmc.py` — momentum-based MCMC sampler ported from UI-only `HamiltonianMonteCarlo.jsx` into trading logic
+- Hamiltonian dynamics H(q,p) = U(q) + K(p) with leapfrog symplectic integrator and Metropolis acceptance
+- Bayesian GARCH(1,1) posterior sampling: log-prior −10ω −5α −5β, stationarity constraint α + β < 1
+- Numerical gradient (central differences); seeded RNG for reproducibility
+- Posterior statistics (mean/std/95% CI), acceptance rate, persistence α+β, long-run variance
+- Signal: HIGH_PERSISTENCE (>0.98) / LOW_PERSISTENCE (<0.9) / NEUTRAL
+- 28 new tests in `tests/test_hmc.py` (posterior constraints, leapfrog energy conservation, determinism, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.2 progress: 4/12 (33%)**
+
+---
+
+## [Unreleased] — Sprint 71: Bayesian Structural TS Port
+
+### Added — Bayesian Structural Time Series (Sprint 71)
+- Created `ai-signal-bot/src/technical_analysis/bayesian_sts.py` — state-space model ported from UI-only `BayesianStructuralTimeSeries.jsx` into trading logic
+- Local linear trend + dummy seasonal state space; correct Kalman equations (T·P·Tᵀ + Q prediction, (I − K·Z)·P update) — UI's simplified covariance math corrected
+- Grid-search MLE of variance parameters (σ_level, σ_slope, σ_seasonal, σ_irregular)
+- Trend/seasonal/irregular decomposition, 10-step forecast, BUY/SELL/NEUTRAL signal from forecast return
+- 27 new tests in `tests/test_bayesian_sts.py` (transition/observation builders, filter tracking, optimization, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.2 progress: 3/12 (25%)**
+
+---
+
+## [Unreleased] — Sprint 70: Bayesian Price Predictor Port
+
+### Added — Bayesian Price Predictor (Sprint 70)
+- Created `ai-signal-bot/src/technical_analysis/bayesian_price.py` — Bayesian inference model ported from UI-only `BayesianPricePredictor.jsx` into trading logic
+- Beta-Binomial posterior P(up) with conjugate prior; 95% credible interval via Beta inverse CDF (bisection + Riemann sum)
+- Normal-Inverse-Gamma posterior of mean return
+- BOCPD (Bayesian Online Changepoint Detection) with hazard function
+- Bayesian Ridge regression with EM updates of weight/noise precisions; next-return prediction with 95% CI
+- Signal: BUY/SELL/NEUTRAL from P(up)/P(down) and predicted return
+- 27 new tests in `tests/test_bayesian_price.py` (distributions, BOCPD, ridge fit, signal, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.2 progress: 2/12 (17%)**
+
+---
+
+## [Unreleased] — Sprint 69: VAE Port
+
+### Added — Variational Autoencoder (Sprint 69)
+- Created `ai-signal-bot/src/ml/vae.py` — generative VAE ported from UI-only `VariationalAutoencoder.jsx` into trading logic
+- 2-layer encoder/decoder (sigmoid hidden, linear output), ELBO loss = reconstruction + β·KL
+- Reparameterization trick z = μ + σ·ε with seeded Box-Muller RNG
+- Full backpropagation through encoder and decoder (UI's simplified/buggy backprop corrected)
+- Return-window feature extraction, latent space, synthetic scenario generation, anomaly detection (recon error > mean + 2σ)
+- 27 new tests in `tests/test_vae.py` (shapes, loss components, training convergence, determinism, edge cases)
+- Exported via `ml/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.1 of future_development.md complete; moving to section 0.2**
+
+---
+
+## [Unreleased] — Sprint 68: Autoencoder Port
+
+### Added — Autoencoder Anomaly Detection (Sprint 68)
+- Created `ai-signal-bot/src/ml/autoencoder.py` — shallow autoencoder ported from UI-only `Autoencoder.jsx` into trading logic
+- Encoder/decoder with sigmoid activations, Xavier weight init (seeded RNG), MSE + L2 loss, full backpropagation
+- 12 technical features per 20-candle window (return, vol, range, skew, kurt, RSI, volume z-score, momentum, price deviation, autocorrelation, last-price z-score) with z-score standardization
+- Anomaly detection: reconstruction error vs mean + k·std threshold; signal NORMAL/WARNING/ANOMALY
+- 31 new tests in `tests/test_autoencoder.py` (activations, features, standardization, training determinism, anomaly detection, edge cases)
+- Exported via `ml/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 67: Optimal Stopping Port
+
+### Added — Optimal Stopping (Snell Envelope) (Sprint 67)
+- Created `ai-signal-bot/src/technical_analysis/optimal_stopping.py` — American option exercise model ported from UI-only `OptimalStopping.jsx` into trading logic
+- Binomial tree (Cox-Ross-Rubinstein) with Snell envelope backward induction; exercise boundary extraction
+- Longstaff-Schwartz Monte Carlo with OLS regression on [1, S, S²] (seeded RNG, Box-Muller)
+- Early exercise premium, exercise probability by time, European price comparison
+- `estimate_annualized_volatility` (√365) and `optimal_stopping_analysis` convenience wrapper
+- 30 new tests in `tests/test_optimal_stopping.py` (tree properties, LSM determinism, 3×3 solver, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+- **Section 0.1 of future_development.md now 100% complete (15/15 models)**
+
+---
+
+## [Unreleased] — Sprint 66: Almgren-Chriss Port
+
+### Added — Almgren-Chriss Optimal Execution (Sprint 66)
+- Created `ai-signal-bot/src/research/almgren_chriss.py` — optimal execution model ported from UI-only `AlmgrenChriss.jsx` into trading logic
+- Optimal trajectory x(t) = X·sinh(κ(T-t))/sinh(κT) with κ = √(λσ²/η); linear fallback when κ ≈ 0
+- Expected cost (permanent + temporary impact), timing-risk variance, utility E[cost] + λ·Var[cost]
+- TWAP benchmark comparison and efficient frontier over λ ∈ 10⁻³..10³
+- `estimate_volatility` from price returns; `almgren_chriss_analysis` convenience wrapper
+- 29 new tests in `tests/test_almgren_chriss.py` (trajectory properties, frontier, TWAP comparison, edge cases)
+- Exported via `research/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 65: Hawkes Process Port
+
+### Added — Hawkes Process (Sprint 65)
+- Created `ai-signal-bot/src/technical_analysis/hawkes.py` — self-exciting point process ported from UI-only `HawkesProcess.jsx` into trading logic
+- Intensity λ(t) = μ + Σ α·e^(-β(t-t_i)) with recursive R_i computation for the log-likelihood
+- MLE via grid search + fine-tuning; stationarity enforced (α < β), branching ratio n = α/β
+- Simulation via Ogata's thinning algorithm (seeded RNG for reproducibility)
+- Events extracted from significant price moves (>0.3%); signal TREND/MOMENTUM/MEAN_REVERT from branching ratio
+- 29 new tests in `tests/test_hawkes.py` (log-lik, stationarity, intensity decay, simulation bounds, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 64: Monte Carlo Port
+
+### Added — Monte Carlo Simulation (Sprint 64)
+- Created `ai-signal-bot/src/technical_analysis/monte_carlo.py` — trade-sequence robustness simulation ported from UI-only `MonteCarlo.jsx` into trading logic
+- Shuffles realized PnLs (Fisher-Yates with seeded RNG for reproducibility) across R runs
+- Outputs: percentiles p5/p25/p50/p75/p95, profit probability, median/worst max drawdown, best/worst return, mean/std
+- Accepts trade dicts (with `pnl` key) or raw PnL values; requires ≥ 5 trades
+- 26 new tests in `tests/test_monte_carlo.py` (determinism, percentiles ordering, drawdown, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 63: Wavelet Port
+
+### Added — Wavelet Decomposition (Sprint 63)
+- Created `ai-signal-bot/src/technical_analysis/wavelet.py` — multi-resolution analysis ported from UI-only `WaveletDecomposition.jsx` into trading logic
+- Discrete wavelet transforms: Haar (D2) and Daubechies D4, periodic convolution
+- Multi-level decomposition, MRA reconstruction (trend + per-level details), wavelet variance/energy distribution
+- Soft-threshold denoising and full-signal reconstruction
+- SNR-based signal: BUY/SELL (SNR > 3 dB), HOLD (SNR < 1 dB), NEUTRAL
+- 26 new tests in `tests/test_wavelet.py` (roundtrip, MRA sum property, denoising, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+
+---
+
+## [Unreleased] — Sprint 62: Copula Port
+
+### Added — Copula Dependency Model (Sprint 62)
+- Created `ai-signal-bot/src/technical_analysis/copula.py` — copula dependency model ported from UI-only `CopulaModel.jsx` into trading logic
+- 4 copulas: Clayton (lower tail), Gumbel (upper tail), Gaussian (no tail), Student-t (symmetric tail)
+- Parameters via method of moments from Kendall's τ; tail dependence λ_L/λ_U per copula
+- Dependence measures: Kendall's τ, Spearman's ρ, Pearson r; empirical CDF (rank-based) margins
+- Bivariate normal CDF via Drezner-Priestley quadrature; inverse normal via Beasley-Springer-Moro
+- Tail-risk signal: RISK/HEDGE/NEUTRAL from joint crash probability P(V<5% | U<5%)
+- 50 new tests in `tests/test_copula.py` (CDF properties, tail dependence, signal thresholds, edge cases)
+- Exported via `technical_analysis/__init__.py`; documented in MATH_MODELS.md
+
+---
+
 ## [Unreleased] — Sprint 61: Markov-Switching GARCH Port
 
 ### Added — MS-GARCH Volatility Model (Sprint 61)

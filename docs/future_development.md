@@ -10,13 +10,13 @@
 ## 📊 ПРОГРЕСС
 
 ```
-Раздел 0.1 (высокий):  █████████████░░░░░░░░░ 9/15 (60%)
-Раздел 0.2 (средний):  █░░░░░░░░░░░░░░░░░░░░ 1/12 (8%)
-Всего моделей:         █████████░░░░░░░░░░░░░ 10/27 (37%)
+Раздел 0.1 (высокий):  █████████████████████░ 15/15 (100%)
+Раздел 0.2 (средний):  ██████████████████████ 12/12 (100%)
+Всего моделей:         ██████████████████████ 27/27 (100%) ✅ (+ расширенные модели)
 ```
 
-**Следующая модель:** Copula → `src/technical_analysis/copula.py`
-**Последний спринт:** 61 (Markov-Switching GARCH)
+**Следующая модель:** Malliavin Calculus → `src/research/malliavin.py`
+**Последний спринт:** 91 (Ito Generator)
 
 ---
 
@@ -57,46 +57,46 @@
 | ~~GARCH(1,1)~~ | `GARCHVolatility.jsx` | `src/technical_analysis/garch.py` | ✅ DONE (Sprint 60) |
 | ~~Markov-Switching GARCH~~ | `MarkovSwitchingGARCH.jsx` | `src/technical_analysis/ms_garch.py` | ✅ DONE (Sprint 61) |
 | ~~Kalman Filter~~ | `KalmanFilterPrice.jsx` | `src/technical_analysis/kalman.py` | ✅ DONE (Sprint 55) |
-| Copula | `CopulaModel.jsx` | `src/technical_analysis/copula.py` | ВЫСОКИЙ | 2 недели |
-| Wavelet | `WaveletDecomposition.jsx` | `src/technical_analysis/wavelet.py` | ВЫСОКИЙ | 1 неделя |
-| Monte Carlo | `MonteCarlo.jsx` | `src/technical_analysis/monte_carlo.py` | ВЫСОКИЙ | 1 неделя |
-| Hawkes Process | `HawkesProcess.jsx` | `src/technical_analysis/hawkes.py` | СРЕДНИЙ | 2 недели |
-| Almgren-Chriss | `AlmgrenChriss.jsx` | `src/research/almgren_chriss.py` | СРЕДНИЙ | 1 неделя |
-| Optimal Stopping | `OptimalStopping.jsx` | `src/technical_analysis/optimal_stopping.py` | СРЕДНИЙ | 1 неделя |
+| ~~Copula~~ | `CopulaModel.jsx` | `src/technical_analysis/copula.py` | ✅ DONE (Sprint 62) |
+| ~~Wavelet~~ | `WaveletDecomposition.jsx` | `src/technical_analysis/wavelet.py` | ✅ DONE (Sprint 63) |
+| ~~Monte Carlo~~ | `MonteCarlo.jsx` | `src/technical_analysis/monte_carlo.py` | ✅ DONE (Sprint 64) |
+| ~~Hawkes Process~~ | `HawkesProcess.jsx` | `src/technical_analysis/hawkes.py` | ✅ DONE (Sprint 65) |
+| ~~Almgren-Chriss~~ | `AlmgrenChriss.jsx` | `src/research/almgren_chriss.py` | ✅ DONE (Sprint 66) |
+| ~~Optimal Stopping~~ | `OptimalStopping.jsx` | `src/technical_analysis/optimal_stopping.py` | ✅ DONE (Sprint 67) |
 | ~~K-Means Clustering~~ | `KMeansClustering.jsx` | `src/technical_analysis/kmeans.py` | ✅ DONE (Sprint 57) |
 | ~~Gaussian Mixture~~ | `GaussianMixtureModel.jsx` | `src/technical_analysis/gmm.py` | ✅ DONE (Sprint 57) |
 | ~~PCA~~ | `PrincipalComponentAnalysis.jsx` | `src/technical_analysis/pca.py` | ✅ DONE (Sprint 56) |
 | ~~SVM~~ | `SupportVectorMachine.jsx` | `src/ml/svm_signal.py` | ✅ DONE (Sprint 58) |
-| Autoencoder | `Autoencoder.jsx` | `src/ml/autoencoder.py` | СРЕДНИЙ | 1 неделя |
-| VAE | `VariationalAutoencoder.jsx` | `src/ml/vae.py` | НИЗКИЙ | 2 недели |
+| ~~Autoencoder~~ | `Autoencoder.jsx` | `src/ml/autoencoder.py` | ✅ DONE (Sprint 68) |
+| ~~VAE~~ | `VariationalAutoencoder.jsx` | `src/ml/vae.py` | ✅ DONE (Sprint 69) |
 
 ### 0.2. Средний приоритет (research / risk)
 
 | Модель | UI файл | Python файл (создать) | Время |
 |--------|---------|----------------------|-------|
-| Bayesian Price Predictor | `BayesianPricePredictor.jsx` | `src/technical_analysis/bayesian_price.py` | 1 неделя |
-| Bayesian Structural TS | `BayesianStructuralTimeSeries.jsx` | `src/technical_analysis/bayesian_sts.py` | 2 недели |
-| HMC | `HamiltonianMonteCarlo.jsx` | `src/technical_analysis/hmc.py` | 2 недели |
-| Transfer Entropy | `TransferEntropy.jsx` | `src/research/transfer_entropy.py` | 1 неделя |
-| CCM (EDM) | `EmpiricalDynamicModeling.jsx` | `src/research/ccm.py` | 1 неделя |
-| Cramer-Rao Bound | `CramerRaoBound.jsx` | `src/research/cramer_rao.py` | 3 дня |
-| Rough Volatility (rBergomi) | `RoughVolatility.jsx` | `src/technical_analysis/rbergomi.py` | 2 недели |
-| VMD | `VariationalModeDecomposition.jsx` | `src/technical_analysis/vmd.py` | 1 неделя |
-| EMD/HHT | `EmpiricalModeDecomposition.jsx` | `src/technical_analysis/emd.py` | 1 неделя |
+| ~~Bayesian Price Predictor~~ | `BayesianPricePredictor.jsx` | `src/technical_analysis/bayesian_price.py` | ✅ DONE (Sprint 70) |
+| ~~Bayesian Structural TS~~ | `BayesianStructuralTimeSeries.jsx` | `src/technical_analysis/bayesian_sts.py` | ✅ DONE (Sprint 71) |
+| ~~HMC~~ | `HamiltonianMonteCarlo.jsx` | `src/technical_analysis/hmc.py` | ✅ DONE (Sprint 72) |
+| ~~Transfer Entropy~~ | `TransferEntropy.jsx` | `src/research/transfer_entropy.py` | ✅ DONE (Sprint 73) |
+| ~~CCM (EDM)~~ | `EmpiricalDynamicModeling.jsx` | `src/research/ccm.py` | ✅ DONE (Sprint 74) |
+| ~~Cramer-Rao Bound~~ | `CramerRaoBound.jsx` | `src/research/cramer_rao.py` | ✅ DONE (Sprint 75) |
+| ~~Rough Volatility (rBergomi)~~ | `RoughVolatility.jsx` | `src/technical_analysis/rbergomi.py` | ✅ DONE (Sprint 76) |
+| ~~VMD~~ | `VariationalModeDecomposition.jsx` | `src/technical_analysis/vmd.py` | ✅ DONE (Sprint 77) |
+| ~~EMD/HHT~~ | `EmpiricalModeDecomposition.jsx` | `src/technical_analysis/emd.py` | ✅ DONE (Sprint 78) |
 | ~~DTW~~ | `DynamicTimeWarping.jsx` | `src/technical_analysis/dtw.py` | ✅ DONE (Sprint 58) |
-| Compressed Sensing | `CompressedSensing.jsx` | `src/technical_analysis/compressed_sensing.py` | 1 неделя |
-| RKHS | `ReproducingKernelHilbertSpace.jsx` | `src/ml/rkhs.py` | 2 недели |
-| Koopman Operator | `KoopmanOperatorTheory.jsx` | `src/research/koopman.py` | 2 недели |
-| Random Matrix Theory | `RandomMatrixTheory.jsx` | `src/research/rmt.py` | 1 неделя |
-| Graph Theory MST | `GraphTheoryNetwork.jsx` | `src/research/graph_mst.py` | 1 неделя |
-| Tensor Decomposition | `TensorDecomposition.jsx` | `src/research/tensor_decomp.py` | 2 недели |
-| Affine Arithmetic | `AffineArithmetic.jsx` | `src/research/affine_arithmetic.py` | 1 неделя |
-| Stochastic Optimal Control | `StochasticOptimalControl.jsx` | `src/research/stochastic_control.py` | 2 недели |
-| Pontryagin Maximum | `PontryaginMaximumPrinciple.jsx` | `src/research/pontryagin.py` | 2 недели |
-| Girsanov Theorem | `GirsanovTheorem.jsx` | `src/research/girsanov.py` | 2 недели |
-| SDE (Euler/Milstein) | `StochasticDifferentialEquations.jsx` | `src/technical_analysis/sde.py` | 1 неделя |
-| Fokker-Planck | `FokkerPlanckEquation.jsx` | `src/research/fokker_planck.py` | 2 недели |
-| Ito Generator | `ItoCalculusGenerator.jsx` | `src/research/ito_generator.py` | 1 неделя |
+| ~~Compressed Sensing~~ | `CompressedSensing.jsx` | `src/technical_analysis/compressed_sensing.py` | ✅ DONE (Sprint 79) |
+| ~~RKHS~~ | `ReproducingKernelHilbertSpace.jsx` | `src/ml/rkhs.py` | ✅ DONE (Sprint 80) |
+| ~~Koopman Operator~~ | `KoopmanOperatorTheory.jsx` | `src/research/koopman.py` | ✅ DONE (Sprint 81) |
+| ~~Random Matrix Theory~~ | `RandomMatrixTheory.jsx` | `src/research/rmt.py` | ✅ DONE (Sprint 82) |
+| ~~Graph Theory MST~~ | `GraphTheoryNetwork.jsx` | `src/research/graph_mst.py` | ✅ DONE (Sprint 83) |
+| ~~Tensor Decomposition~~ | `TensorDecomposition.jsx` | `src/research/tensor_decomp.py` | ✅ DONE (Sprint 84) |
+| ~~Affine Arithmetic~~ | `AffineArithmetic.jsx` | `src/research/affine_arithmetic.py` | ✅ DONE (Sprint 85) |
+| ~~Stochastic Optimal Control~~ | `StochasticOptimalControl.jsx` | `src/research/stochastic_control.py` | ✅ DONE (Sprint 86) |
+| ~~Pontryagin Maximum~~ | `PontryaginMaximumPrinciple.jsx` | `src/research/pontryagin.py` | ✅ DONE (Sprint 87) |
+| ~~Girsanov Theorem~~ | `GirsanovTheorem.jsx` | `src/research/girsanov.py` | ✅ DONE (Sprint 88) |
+| ~~SDE (Euler/Milstein)~~ | `StochasticDifferentialEquations.jsx` | `src/technical_analysis/sde.py` | ✅ DONE (Sprint 89) |
+| ~~Fokker-Planck~~ | `FokkerPlanckEquation.jsx` | `src/research/fokker_planck.py` | ✅ DONE (Sprint 90) |
+| ~~Ito Generator~~ | `ItoCalculusGenerator.jsx` | `src/research/ito_generator.py` | ✅ DONE (Sprint 91) |
 | Malliavin Calculus | `MalliavinCalculus.jsx` | `src/research/malliavin.py` | 3 недели |
 | Renyi Entropy | `RenyiEntropyDynamics.jsx` | `src/research/renyi_entropy.py` | 1 неделя |
 | Kolmogorov-Sinai | `KolmogorovSinaiEntropy.jsx` | `src/research/kolmogorov_sinai.py` | 1 неделя |
