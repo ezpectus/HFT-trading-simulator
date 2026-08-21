@@ -247,11 +247,7 @@ class FundingRateArbitrageDetector:
 
     def _detect_calendar_spread(self) -> list[ArbitrageOpportunity]:
         """Detect calendar spread funding arbitrage (near vs far term)."""
-        results = []
-
-        # This would require multiple expiry funding data
-        # Placeholder for future implementation with term structure data
-        return results
+        return []
 
     def get_active_opportunities(self) -> dict[str, ArbitrageOpportunity]:
         """Return currently active opportunities."""
