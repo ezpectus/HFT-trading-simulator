@@ -185,3 +185,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | web-ui backtestEngine: no slippage | Entry/exit at candle.close, no slippage model | CODE_AUDIT §8.238 |
 | web-ui indicators: O(n²) SMA | O(n×period) instead of O(n) rolling sum | CODE_AUDIT §8.240 |
 | web-ui mockData: only 5 of 50 symbols | Mock mode doesn't represent full trading universe | CODE_AUDIT §8.243 |
+| hft-trade-bot config: 50 symbols 3x | 50 symbols in config.yaml + shared_config + useUIStore. 3 copies | CODE_AUDIT §8.247 |
+| hft-trade-bot config: localhost WS | ws://localhost:8765 and :8766, won't work in prod | CODE_AUDIT §8.248 |
+| web-ui registry: 200+ math panels | Research-grade math (SchrodingerBridge, FokkerPlanck). Feature flag | CODE_AUDIT §8.252 |
+| web-ui vite.config: no esbuild.drop | console.log not stripped in prod build | CODE_AUDIT §8.246 |
+| web-ui e2e: no WS tests | No WebSocket, real-time, order flow e2e tests | CODE_AUDIT §8.254 |

@@ -787,3 +787,13 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R230 | web-ui mockData.js | `mockData.js` | ✅ Good | GBM with jumps, Box-Muller with 1e-10 guard, 10 news headlines, 6 strategies |
 | R231 | web-ui mockData: only 5 of 50 symbols | `mockData.js:14` | Low | 5 mock symbols vs 50 in useUIStore. Mock mode doesn't represent full universe |
 | R232 | web-ui indicators.js: 579 lines | `indicators.js` | Medium | 12 indicators in one file. Split by category or keep as utility |
+| R233 | web-ui vite.config.js | `vite.config.js` | ✅ Excellent | PWA autoUpdate, 5 manual vendor chunks, 0.0.0.0 host, es2020, cssCodeSplit |
+| R234 | web-ui vite.config: no esbuild.drop | `vite.config.js:48` | Low | No console.log stripping in prod. 6 console.log in performanceMonitor |
+| R235 | hft-trade-bot config.yaml: 50 symbols 3x | `config.yaml:20-70` | Medium | 50 symbols in config.yaml + shared_config.yaml + useUIStore.js. 3 copies |
+| R236 | hft-trade-bot config.yaml: localhost WS | `config.yaml:76,165` | Medium | ws://localhost:8765 and :8766. Won't work in K8s/Docker prod |
+| R237 | hft-trade-bot config.yaml | `config.yaml` | ✅ Good | 166 lines, 12 sections, each param commented with recommended range |
+| R238 | web-ui PanelContainer.jsx | `PanelContainer.jsx` | ✅ Good | localStorage persistence, hover preload, error boundaries, a11y, fallback context |
+| R239 | web-ui registry.js: 200+ lazy panels | `registry.js` | ✅ Good | 200+ React.lazy, 7 categories, props builders, preloadCategory. 684 lines |
+| R240 | web-ui registry.js: 200+ math panels | `registry.js` | Medium | Research-grade math (SchrodingerBridge, FokkerPlanck, etc). Feature flag or remove |
+| R241 | web-ui e2e tests | `e2e/mock-mode.spec.js` | ✅ Good | 10 Playwright tests, 5 suites, gotoWithRetry, dismissOnboarding, resilient |
+| R242 | web-ui e2e: no WS interaction tests | `e2e/` | Low | No WebSocket, real-time, order flow, signal display tests. Static UI only |

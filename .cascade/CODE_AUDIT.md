@@ -3363,3 +3363,140 @@ Only 5 symbols in mock mode, but 50 symbols in `useUIStore.js` and `shared_confi
 12 indicators in one file. While each function is well-written, 579 lines is a large file. Some indicators (Ichimoku, Parabolic SAR) are complex enough to warrant their own files.
 
 **Code reduction:** Split into `indicators/trend.js` (EMA, SMA, Ichimoku, SAR), `indicators/momentum.js` (RSI, Stochastic, WilliamsR), `indicators/volume.js` (OBV, MFI), `indicators/volatility.js` (Bollinger, ATR). Or keep as-is since it's a utility file with no side effects.
+
+### 8.245 web-ui vite.config.js: PWA + manual chunks — ✅ Excellent
+
+**Файл:** `web-ui/vite.config.js` (84 lines)
+
+- **PWA**: `VitePWA` with `autoUpdate`, manifest, SVG maskable icon, Workbox runtime caching for Google Fonts
+- **Manual chunks**: 5 vendor chunks — `react-vendor`, `charts-vendor`, `icons-vendor`, `state-vendor`, `recharts-vendor`
+- **Server**: `host: 0.0.0.0` (Docker-friendly), `port: 3000`
+- **Build**: `es2020` target, `esbuild` minify, `cssCodeSplit: true`, `chunkSizeWarningLimit: 1000`
+- **Alias**: `@` → `src/`
+
+Clean Vite config with proper code-splitting strategy. ✅
+
+### 8.246 web-ui vite.config.js: no esbuild.drop for console.log — Low
+
+**Файл:** `web-ui/vite.config.js:48-49`
+
+```javascript
+esbuild: {
+    target: 'es2020',
+},
+```
+
+No `drop: ['console', 'debugger']` in production build. `performanceMonitor.js` has 6 `console.log` calls that will appear in production. Vite supports `esbuild.drop` to strip these in production builds.
+
+**Фикс:** Add `drop: ['console']` in production: `esbuild: { target: 'es2020', drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [] }`.
+
+### 8.247 hft-trade-bot config.yaml: 50 symbols duplicated 3rd time — Medium
+
+**Файл:** `hft-trade-bot/config/config.yaml:20-70`
+
+50 symbols hardcoded in `config.yaml`, same 50 in `shared_config.yaml` and `web-ui/src/stores/useUIStore.js`. Three copies of the same list. Adding/removing a symbol requires editing 3 files.
+
+**Фикс:** Use `shared_config.yaml` as single source of truth. C++ config loader reads from shared config. Web-ui fetches from API or generates at build time.
+
+### 8.248 hft-trade-bot config.yaml: localhost WS URLs — Medium
+
+**Файл:** `hft-trade-bot/config/config.yaml:76,165`
+
+```yaml
+exchange:
+  websocket_url: "ws://localhost:8765"
+ai_signal_bot:
+  websocket_url: "ws://localhost:8766"
+```
+
+Same `localhost` issue as §8.212, §8.195. In production (K8s/Docker), `localhost` won't reach other containers/pods.
+
+**Фикс:** Use environment variable: `websocket_url: "${EXCHANGE_WS_URL:-ws://localhost:8765}"`.
+
+### 8.249 hft-trade-bot config.yaml: well-structured config — ✅ Good
+
+**Файл:** `hft-trade-bot/config/config.yaml` (166 lines)
+
+Well-documented config with comments explaining each section:
+- `trading` — symbols, signal_interval_ms (1ms HFT), max_open_positions, paper_trading
+- `exchange` — WS URL, default exchange
+- `risk` — per-trade risk, drawdown, confidence, R:R, SL/TP, position size
+- `hft_strategies` — V1 indicator toggles and periods
+- `signal_engine_v2` — 6-indicator composite with weights, ATR-based SL/TP, 100ms cooldown
+- `signal_engine_v3` — HMM regime detection (disabled by default)
+- `pressure_model` — L2 microstructure thresholds
+- `smart_order_router` — 5 strategies, toxic threshold
+- `adaptive_order_selector` — IOC/FOK/GTD/PostOnly thresholds
+- `latency_optimization` — thread pinning, histogram
+- `metrics` — Prometheus port
+- `logging` — level and file
+- `ai_signal_bot` — slow path WS connection
+
+Each parameter has a comment with recommended range. ✅
+
+### 8.250 web-ui PanelContainer.jsx: panel visibility + collapse — ✅ Good
+
+**Файл:** `web-ui/src/panels/PanelContainer.jsx` (126 lines)
+
+- **localStorage persistence**: `useLocalStorage` for visibility and collapsed state
+- **Category hover preload**: `handleCategoryHover` preloads all panels in a category on hover (desktop only via `matchMedia('(hover: hover)')`)
+- **Error boundaries**: `PanelErrorBoundary` + `ChunkRetryBoundary` per panel
+- **Accessibility**: `aria-expanded`, `aria-controls`, `role="tabpanel"`, `focus-visible:ring`
+- **Fallback context**: `contextProp || storeContext` — supports both prop-based and Zustand-based usage
+
+Clean panel container with proper error handling, accessibility, and progressive loading. ✅
+
+### 8.251 web-ui registry.js: 200+ lazy-loaded panels — ✅ Good + Medium
+
+**Файл:** `web-ui/src/panels/registry.js` (684 lines)
+
+- **200+ panels**: Each imported via `React.lazy()` — proper code-splitting, each panel is a separate chunk
+- **7 categories**: Order Flow, Technical Analysis, Risk & Analytics, Portfolio & Optimization, Strategy & Automation, Export & Tools, Config & Session
+- **Props builders**: Each panel has a `props(context)` function that extracts relevant data from the context object
+- **Helper functions**: `getPanelsByCategory`, `preloadCategory`
+
+However, 684 lines is a large file. The 200+ `lazy()` imports at the top (lines 25-221) are repetitive. Each panel follows the same pattern: `const X = lazy(() => import('../components/X'))`.
+
+**Code reduction:** Generate imports from a panel list: `const PANEL_IMPORTS = { DepthChart: () => import('../components/DepthChart'), ... }` then `const DepthChart = lazy(PANEL_IMPORTS.DepthChart)`. Or use a `require.context` pattern. ~100 lines reduction.
+
+### 8.252 web-ui registry.js: 200+ math panels — code reduction candidate — Medium
+
+**Файл:** `web-ui/src/panels/registry.js`
+
+200+ panels include advanced math models: `HawkesProcess`, `GaussianProcessRegression`, `VariationalAutoencoder`, `SchrodingerBridge`, `LieGroupSymmetries`, `KolmogorovSinaiEntropy`, `PersistentHomologyLandscape`, `FokkerPlanckEquation`, `HopfBifurcation`, `CramerRaoBound`, `WassersteinBarycenters`, `KoopmanOperatorTheory`, `StochasticOptimalControl`, `RenyiEntropyDynamics`, `PontryaginMaximumPrinciple`, `BurgersEquation`, `SobolevSpaceRegularization`, `ItoCalculusGenerator`, `BanachFixedPoint`, `CesaroFejerKernel`, `GirsanovTheorem`, `StoneCechCompactification`, `MalliavinSteinSensitivity`, `ProkhorovMetric`, `RadonNikodymDerivative`, `HahnDecomposition`, `CameronMartinFormula`, `ArzelaAscoli`, `RieszRepresentation`, `LaxMilgram`.
+
+These are research-grade mathematical models that are unlikely to be used in production trading. They add:
+- ~200 lazy import statements
+- ~200 component files (each needs to exist for the import to resolve)
+- ~200 entries in the PANELS array with props builders
+- Bundle size: each is a separate chunk, but still adds to total project size
+
+**Code reduction:** Move research panels to a separate `research-panels` package or feature flag. Only load if user explicitly enables "Research Mode". ~2000+ lines reduction in registry.js alone.
+
+### 8.253 web-ui e2e tests: Playwright with retry — ✅ Good
+
+**Файл:** `web-ui/e2e/mock-mode.spec.js` (166 lines)
+
+5 test suites:
+- **Mock Mode** (4 tests): page loads, candle chart visible, exchange selector, symbol selector
+- **Navigation** (2 tests): tab switching, sidebar toggle
+- **Order Form** (2 tests): form visible, buy/sell buttons exist
+- **Signal Feed** (1 test): signal feed panel exists
+- **Responsive** (1 test): mobile viewport renders
+
+Uses `gotoWithRetry` helper, `dismissOnboarding` helper, `closeOverlays` helper. Tests are resilient — use `.catch(() => false)` for optional elements. ✅
+
+### 8.254 web-ui e2e tests: no WebSocket interaction tests — Low
+
+**Файл:** `web-ui/e2e/`
+
+No e2e tests for:
+- WebSocket connection/disconnection
+- Real-time price updates
+- Order submission flow (click buy → fill appears)
+- Signal reception and display
+- Circuit breaker state display
+
+Tests only verify static UI elements are visible. No tests for dynamic behavior.
+
+**Фикс:** Add e2e tests that mock WebSocket server, verify real-time data flow, test order submission → fill notification, test signal reception → display.
