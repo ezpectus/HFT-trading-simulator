@@ -131,3 +131,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Alertmanager: no silence during deploy | All alerts fire on restart | CODE_AUDIT §8.78 |
 | Makefile: no C++ tests | `make test` skips 30+ C++ CTest targets | CODE_AUDIT §8.84 |
 | Rust panic=abort + unwrap | SystemTime error = immediate C++ host abort | CODE_AUDIT §8.85 |
+| deploy.sh: no health check exit | Reports success even if all services down | CODE_AUDIT §8.89 |
+| deploy.sh: rm -rf before cp | Rollback loses data if cp fails | CODE_AUDIT §8.90 |
+| deploy.sh: no backup retention | 100 deploys = 100 backup copies, no cleanup | CODE_AUDIT §8.92 |

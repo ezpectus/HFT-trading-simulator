@@ -1289,3 +1289,98 @@ panic = "abort"
 With `panic = abort`, any `unwrap()` or `expect()` panic kills the entire process immediately — no stack unwind, no cleanup. This is intentional for a cdylib (FFI library) where unwinding across the FFI boundary is UB. But combined with the `unwrap()` calls identified in §8.29, this means any `SystemTime` error or `serde_json` serialization failure = immediate process abort. The C++ host process dies.
 
 **Фикс:** Replace `unwrap()` with proper error handling (already noted in §8.29). The `panic = abort` setting itself is correct for FFI.
+
+### 8.86 exchange_simulator: config_validator — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/config_validator.py` (274 lines)
+
+The exchange_simulator has a proper config validator that checks:
+- Required sections (`exchanges`, `initial_prices`, `volatility`, `market`, `account`)
+- Value ranges, cross-references between sections
+- Returns `(errors, warnings)` tuple — errors are fatal, warnings informational
+- Called before simulator starts, exits with `sys.exit(1)` on errors
+
+This is what ai-signal-bot is missing (§8.42). The exchange_simulator does it right.
+
+### 8.87 exchange_simulator: global mutable singletons — Low
+
+**Файлы:** `exchange_simulator/exchange_simulator/audit_logger.py:296`, `health.py:43`, `metrics.py:225`, `tracing.py:165`
+
+4 global singleton instances:
+```python
+_global_audit_logger: AuditLogger | None = None
+_exchanges = None  # health.py
+_metrics_instance: ExchangeSimulatorMetrics | None = None
+_tracer_instance: ExchangeSimulatorTracer | None = None
+```
+
+Same pattern as ai-signal-bot (§8.53). Not thread-safe, but asyncio single-thread context makes this safe in practice. Low severity.
+
+### 8.88 C++ signal handling — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/bot_setup.cpp:11-13`
+
+```cpp
+static std::atomic<bool> g_running{true};
+static void signal_handler(int) { g_running = false; }
+```
+
+The C++ bot correctly handles SIGINT/SIGINT by setting `g_running = false`. The main loop checks `is_running()` and exits gracefully. This is the correct pattern — unlike the Python ai-signal-bot which has no signal handling (§8.48).
+
+**Note:** The signal handler is registered somewhere in `init_config_and_logger` (need to verify `std::signal(SIGINT, signal_handler)` call). The atomic flag ensures the signal handler is race-free.
+
+### 8.89 deploy.sh: no health check failure exit — Medium
+
+**Файл:** `scripts/deploy.sh:176-218`
+
+The health check function loops 30 times but **never exits on failure**:
+```bash
+for i in $(seq 1 $MAX_RETRIES); do
+    if curl -s http://localhost:8765/health > /dev/null 2>&1; then
+        log_info "Exchange Simulator: Healthy"
+    else
+        log_warn "Exchange Simulator: Not healthy yet"  # ← just warns
+    fi
+    sleep $RETRY_DELAY
+done
+log_info "Health checks completed"  # ← always says "completed"
+```
+
+After 30 retries (60s), if all services are still unhealthy, the script says "Health checks completed" and `deploy()` says "Deployment completed successfully". The deployment is reported as successful even if all services are down.
+
+**Фикс:** Track healthy count, exit with `exit 1` if any service is still unhealthy after all retries.
+
+### 8.90 deploy.sh: rollback uses `rm -rf` — Low
+
+**Файл:** `scripts/deploy.sh:266-267`
+
+```bash
+rm -rf exchange_simulator/data
+cp -r "$BACKUP_DIR/database/data_$TIMESTAMP" exchange_simulator/data
+```
+
+`rm -rf` before `cp` — if `cp` fails (disk full, bad backup), data is lost. No error check between `rm` and `cp`.
+
+**Фикс:** Copy to temp dir first, verify, then swap: `cp -r backup temp && mv exchange_simulator/data exchange_simulator/data.old && mv temp exchange_simulator/data`.
+
+### 8.91 deploy.sh: native mode uses `pkill -f` — Low
+
+**Файл:** `scripts/deploy.sh:101-104`
+
+```bash
+pkill -f "exchange_simulator" || true
+pkill -f "ai_signal_bot" || true
+pkill -f "hft_trade_bot" || true
+```
+
+`pkill -f` matches any process with the string in its command line. A grep command like `grep exchange_simulator` would also be killed. Not a security issue, but can kill unrelated processes.
+
+**Фикс:** Use PID files (`kill $(cat $LOG_DIR/exchange_simulator.pid)`) which are already being written in `start_native()`.
+
+### 8.92 deploy.sh: backup retention — Low
+
+**Файл:** `scripts/deploy.sh:32-62`
+
+Backups are created with timestamps but never cleaned up. After 100 deploys, `backup/` has 100 copies of config + DB. No rotation policy.
+
+**Фикс:** Add `find $BACKUP_DIR -mtime +30 -delete` to cleanup backups older than 30 days.

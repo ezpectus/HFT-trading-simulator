@@ -628,3 +628,9 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R71 | Pre-commit hooks | `.pre-commit-config.yaml` | ✅ Good | ruff, eslint, detect-private-key, check-yaml, large-files |
 | R72 | Makefile: no C++ test target | `Makefile:23` | Low | `make test` runs Python + JS but not C++ CTest. 30+ C++ tests skipped |
 | R73 | Rust panic=abort + unwrap | `Cargo.toml:25` + `lib.rs` | Low | Correct for FFI, but unwrap() = immediate abort. SystemTime error kills C++ host |
+| R74 | exchange_simulator config_validator | `config_validator.py` | ✅ Good | Validates structure, ranges, cross-refs. Returns (errors, warnings). Exits on error |
+| R75 | exchange_simulator global singletons | `audit_logger.py`, `health.py`, `metrics.py`, `tracing.py` | Low | 4 global mutable singletons. Same pattern as ai-signal-bot. Safe in asyncio |
+| R76 | C++ signal handling | `bot_setup.cpp:11-13` | ✅ Good | `atomic<bool> g_running`, signal_handler sets false, main loop checks is_running() |
+| R77 | deploy.sh: no health check failure exit | `deploy.sh:176-218` | Medium | 30 retries but never exits on failure. Reports "completed successfully" even if all down |
+| R78 | deploy.sh: rollback rm -rf before cp | `deploy.sh:266-267` | Low | rm -rf data before cp backup. If cp fails, data lost. No atomic swap |
+| R79 | deploy.sh: no backup retention | `deploy.sh:32-62` | Low | Backups never cleaned. 100 deploys = 100 copies. No rotation policy |
