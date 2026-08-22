@@ -205,3 +205,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ai-signal-bot notifier: token in URL | Bot token embedded in URL. If URL logged, token exposed in logs | CODE_AUDIT §8.295 |
 | ai-signal-bot llm_engine: no LLM response validation | No schema validation on LLM output. Malformed JSON → incorrect analysis | CODE_AUDIT §8.300 |
 | ai-signal-bot tracing: localhost endpoint | Default Jaeger endpoint localhost:4317. Won't work in K8s | CODE_AUDIT §8.293 |
+| ai-signal-bot research: 35-module mega-import | 35 modules eagerly loaded, 200+ exports. Use lazy imports | CODE_AUDIT §8.305 |
+| ai-signal-bot research: 22× duplicated compute_returns | 22 identical 3-line copies. 66 lines wasted | CODE_AUDIT §8.306 |
+| ai-signal-bot research: 35 modules code reduction | 35 research-grade math modules, ~5000+ lines. Feature-flag | CODE_AUDIT §8.307 |
+| exchange_simulator: triple metrics systems | 3 separate Prometheus metrics generators. Consolidate | CODE_AUDIT §8.316 |
+| exchange_simulator tracing: time.sleep in trace | 1ms latency added to every traced order. Tracing should be passive | CODE_AUDIT §8.313 |

@@ -844,3 +844,22 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R287 | ai-signal-bot llm_engine: cache unbounded above 100 | `engine.py:163` | Low | Cache eviction only when >100. Can temporarily exceed. Use LRU with hard cap |
 | R288 | ai-signal-bot llm_engine: no LLM response validation | `engine.py:177` | Medium | No schema validation on LLM output. Malformed JSON could produce incorrect analysis |
 | R289 | ai-signal-bot llm_engine: f-string logging | `engine.py:93` | Low | f-string formatted even when log level above INFO. Use % formatting |
+| R290 | ai-signal-bot networking/socket_transport.py | `socket_transport.py` | ✅ Good | Non-blocking UDP, 1MB buffers, binary protocol, 5 msg types, stats, CodeQL annotation |
+| R291 | ai-signal-bot socket_transport: busy-poll 100μs | `socket_transport.py:105` | Low | time.sleep(0.0001) on BlockingIOError. Use selectors or asyncio |
+| R292 | ai-signal-bot socket_transport: no graceful shutdown | `socket_transport.py:86` | Low | Blocking while loop. stop() closes socket from another thread. Use selectors with timeout |
+| R293 | ai-signal-bot research/__init__.py: 35-module mega-import | `__init__.py` | High | 35 modules eagerly loaded, 200+ exports. Use lazy imports or __getattr__ |
+| R294 | ai-signal-bot research: 22× duplicated compute_returns | `22 modules` | High | 22 identical 3-line copies. 66 lines wasted. Create _common.py |
+| R295 | ai-signal-bot research: 35 modules code reduction | `research/` | High | 35 research-grade math modules, ~5000+ lines. Feature-flag or move to separate package |
+| R296 | exchange_simulator health.py | `health.py` | ✅ Good | FastAPI /health + /metrics, lazy init, Prometheus format, 503 on error |
+| R297 | exchange_simulator health.py: accesses private attrs | `health.py:87` | Low | Accesses _order_history, _audit_logger, _logs. Add public properties |
+| R298 | exchange_simulator health.py: only first exchange | `health.py:79` | Low | Only checks first exchange. Others could be unhealthy |
+| R299 | exchange_simulator tracing.py | `tracing.py` | ✅ Good | 4 trace ops, context propagation, Jaeger exporter, global singleton |
+| R300 | exchange_simulator tracing: no graceful shutdown | `tracing.py` | Low | No shutdown() to flush spans. BatchSpanProcessor buffers async |
+| R301 | exchange_simulator tracing: time.sleep in trace | `tracing.py:72` | Low | time.sleep(0.001) adds 1ms latency to every traced order. Tracing should be passive |
+| R302 | exchange_simulator tracing: hardcoded localhost | `tracing.py:20` | Low | Default Jaeger host localhost. Read from env |
+| R303 | exchange_simulator metrics.py | `metrics.py` | ✅ Good | Counter/Gauge/Histogram, order/fill/latency/error/system metrics, start_http_server |
+| R304 | exchange_simulator: triple metrics systems | `3 files` | Medium | metrics.py (prometheus_client) + health.py (manual hft_*) + ws_prometheus.py (manual exchange_*). Consolidate |
+| R305 | exchange_simulator audit_logger.py | `audit_logger.py` | ✅ Excellent | Thread-safe Lock, deque(maxlen=10000), JSON file persistence, callbacks, UUID, 6 event types |
+| R306 | exchange_simulator audit_logger: f-string logging | `audit_logger.py:51` | Low | f-string formatted even when log level above INFO. Use % formatting |
+| R307 | exchange_simulator ws_prometheus.py | `ws_prometheus.py` | Low | Manual Prometheus format duplicates prometheus_client. Tight coupling. Consolidate |
+| R308 | f-string logging across project | `8+ modules` | Low | 8+ modules use f-string logging. Should use % formatting for lazy evaluation |

@@ -4132,3 +4132,226 @@ logger.info(f"[LLMEngine] Provider: {self.config.provider}, model: {self.config.
 Same f-string logging pattern.
 
 **Фикс:** Use `logger.info("[LLMEngine] Provider: %s, model: %s", self.config.provider, self.config.model)`.
+
+### 8.302 ai-signal-bot networking/socket_transport.py: UDP transport — ✅ Good
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py` (156 lines)
+
+- **Non-blocking UDP**: `setblocking(False)` with 100μs sleep on BlockingIOError
+- **Buffer sizes**: 1MB RX/TX via `SO_RCVBUF`/`SO_SNDBUF`
+- **Binary protocol**: `[ts_ns:8][symbol_len:1][symbol:N][price:8][qty:8][side:1][msg_type:1]` — compact
+- **MarketDataPacket dataclass**: timestamp_ns, symbol, price, qty, side, msg_type
+- **5 msg types**: new, modify, cancel, trade, snapshot
+- **Stats**: packets_rx/tx, bytes_rx/tx, rx_drops, avg_latency_ns
+- **CodeQL annotation**: `# codeql[py/bind-all-interfaces]` — documented bind address
+- **Exception handling**: Catches BlockingIOError, OSError, struct.error, UnicodeDecodeError
+
+Good UDP transport with proper non-blocking I/O and binary protocol. ✅
+
+### 8.303 ai-signal-bot socket_transport: busy-poll 100μs sleep — Low
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py:105`
+
+```python
+except BlockingIOError:
+    time.sleep(0.0001)  # 100μs sleep
+```
+
+When no data is available, the receive loop does `time.sleep(0.0001)` — a busy-poll pattern. This consumes CPU even when idle. For a low-latency system, this is acceptable, but `selectors` or `asyncio` would be more efficient.
+
+**Фикс:** Use `selectors.DefaultSelector` to wait for socket readability, or integrate with asyncio event loop.
+
+### 8.304 ai-signal-bot socket_transport: no graceful shutdown — Low
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py:86-108`
+
+`start_receive_loop` is a blocking `while self._running` loop. `stop()` sets `_running = False` and closes the socket, but the loop might be blocked on `recvfrom`. Closing the socket from another thread will raise an OSError in the loop, which is caught but logged as an error.
+
+**Фикс:** Use `selectors` with a timeout so the loop can check `_running` periodically without busy-polling.
+
+### 8.305 ai-signal-bot research/__init__.py: 35-module mega-import — High (code reduction)
+
+**Файл:** `ai-signal-bot/src/research/__init__.py` (307 lines)
+
+This file imports from **35 research modules** — all eagerly loaded on `import src.research`. The `__all__` list has **200+ exported names**. Every module is loaded even if only one is used.
+
+Modules include: affine_arithmetic, almgren_chriss, banach, burgers, cameron_martin, ccm, cramer_rao, fokker_planck, free_energy, girsanov, graph_mst, greeks_hedging, hahn, info_bottleneck, ito_generator, kolmogorov_sinai, koopman, lax_milgram, lie_group, malliavin, microstructure_lab, pontryagin, radon_nikodym, renormalization, renyi_entropy, riesz, rmt, sobolev, stochastic_control, tensor_decomp, transfer_entropy, attribution, competition, genetic_strategy.
+
+**Code reduction:** ~200 lines can be eliminated by using lazy imports or a plugin registry. Only load modules when requested.
+
+**Фикс:** Replace with `importlib.import_module()` on demand, or use `__getattr__` pattern for lazy module loading.
+
+### 8.306 ai-signal-bot research: 22× duplicated compute_returns — High (code reduction)
+
+**Файл:** 22 research modules (banach.py, burgers.py, cameron_martin.py, cramer_rao.py, fokker_planck.py, free_energy.py, girsanov.py, hahn.py, info_bottleneck.py, ito_generator.py, kolmogorov_sinai.py, koopman.py, lax_milgram.py, lie_group.py, malliavin.py, pontryagin.py, radon_nikodym.py, renormalization.py, renyi_entropy.py, riesz.py, sobolev.py, stochastic_control.py)
+
+**22 identical copies** of:
+```python
+def compute_returns(prices: list[float]) -> list[float]:
+    """Simple returns."""
+    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
+```
+
+Each copy is imported with a unique alias (e.g., `banach_compute_returns`, `burgers_compute_returns`) in `__init__.py`, making the duplication even worse.
+
+**Code reduction:** 22 × 3 lines = 66 lines eliminated. Replace with a single `compute_returns` in a shared utils module.
+
+**Фикс:** Create `src/research/_common.py` with `compute_returns`, import in each module.
+
+### 8.307 ai-signal-bot research: 35 modules — code reduction candidate — High
+
+**Файл:** `ai-signal-bot/src/research/` (35 files, ~5000+ lines total)
+
+35 research modules covering advanced mathematical concepts: Banach fixed-point, Burgers equation, Cameron-Martin, Cramér-Rao, Fokker-Planck, Free Energy, Girsanov, Hahn decomposition, Information Bottleneck, Itô generator, Kolmogorov-Sinai, Koopman, Lax-Milgram, Lie group, Malliavin calculus, Pontryagin MMP, Radon-Nikodym, Renormalization group, Rényi entropy, Riesz representation, Random Matrix Theory, Sobolev spaces, Stochastic control, Tensor decomposition, Transfer entropy, Almgren-Chriss, Affine arithmetic, CCM/EDM, Graph MST, Greeks hedging, Microstructure lab, Attribution, Competition, Genetic strategy.
+
+Most of these are research-grade mathematical tools that are unlikely to be used in production trading. They add significant code weight and import time.
+
+**Code reduction:** Feature-flag the entire `research/` directory. Only load modules when explicitly requested. Consider moving to a separate `research/` package outside the main bot.
+
+### 8.308 exchange_simulator health.py: FastAPI health + metrics — ✅ Good
+
+**Файл:** `exchange_simulator/health.py` (127 lines)
+
+- **2 endpoints**: `/health` (JSON status) and `/metrics` (Prometheus text format)
+- **Health**: status, version, uptime, symbols count, exchanges count, orders submitted, audit logging flag
+- **Metrics**: hft_orders_submitted_total, hft_orders_filled_total, hft_orders_rejected_total, hft_audit_log_entries_total, hft_symbols_count, hft_exchanges_count
+- **Lazy init**: `_init()` creates exchanges/market on first request
+- **Exception handling**: Catches RuntimeError, OSError, KeyError, ValueError, TypeError, AttributeError — returns 503
+- **Prometheus format**: Correct `# HELP` and `# TYPE` comments, `text/plain; version=0.0.4`
+
+Good health and metrics endpoints with proper error handling. ✅
+
+### 8.309 exchange_simulator health.py: accesses private attributes — Low
+
+**Файл:** `exchange_simulator/health.py:87-88,106,112-113`
+
+```python
+"orders_submitted": len(first_ex._order_history),
+"audit_logging_enabled": first_ex._audit_logger is not None,
+history = ex._order_history
+if ex._audit_logger:
+    lines.append(f'hft_audit_log_entries_total{{exchange="{ex_id}"}} {len(ex._audit_logger._logs)}')
+```
+
+Health endpoint accesses `_order_history`, `_audit_logger`, and `_audit_logger._logs` — all private attributes. This creates tight coupling between the health endpoint and the exchange implementation.
+
+**Фикс:** Add public properties or methods on `SimulatedExchange`: `order_count`, `audit_log_count`, `audit_enabled`.
+
+### 8.310 exchange_simulator health.py: only first exchange checked — Low
+
+**Файл:** `exchange_simulator/health.py:79`
+
+```python
+first_ex = next(iter(exchanges.values()))
+```
+
+Health check only reports metrics from the first exchange. If other exchanges are unhealthy, the health endpoint still reports "healthy".
+
+**Фикс:** Iterate all exchanges and report per-exchange status.
+
+### 8.311 exchange_simulator tracing.py: OpenTelemetry tracer — ✅ Good
+
+**Файл:** `exchange_simulator/tracing.py` (193 lines)
+
+- **4 trace operations**: order_processing, price_update, websocket_message, database_operation
+- **Context propagation**: `inject_context()` and `extract_context()` for distributed tracing
+- **Jaeger exporter**: Thrift-based, configurable host/port
+- **Global singleton**: `get_tracer()` with lazy init
+- **Span attributes**: symbol, side, quantity, service name, timestamps
+
+Good tracing implementation with context propagation for distributed systems. ✅
+
+### 8.312 exchange_simulator tracing: no graceful shutdown — Low
+
+**Файл:** `exchange_simulator/tracing.py`
+
+No `shutdown()` method to flush pending spans. The `BatchSpanProcessor` buffers spans and flushes asynchronously. If the process exits without flushing, traces may be lost.
+
+**Фикс:** Add `shutdown()` method that calls `provider.shutdown()` or `processor.flush()`.
+
+### 8.313 exchange_simulator tracing: time.sleep in trace_order_processing — Low
+
+**Файл:** `exchange_simulator/tracing.py:72`
+
+```python
+# Simulate processing
+time.sleep(0.001)
+```
+
+`trace_order_processing` includes a `time.sleep(0.001)` to "simulate processing". This adds 1ms latency to every traced order. This should be removed in production — tracing should be observation-only, not affect execution.
+
+**Фикс:** Remove the `time.sleep(0.001)` line. Tracing should be passive.
+
+### 8.314 exchange_simulator tracing: hardcoded localhost Jaeger — Low
+
+**Файл:** `exchange_simulator/tracing.py:20-21`
+
+```python
+jaeger_host: str = "localhost",
+jaeger_port: int = 6831,
+```
+
+Default Jaeger host is `localhost`. In K8s/Docker, this should be `jaeger` or similar service name.
+
+**Фикс:** Read from env: `os.getenv("JAEGER_HOST", "localhost")`.
+
+### 8.315 exchange_simulator metrics.py: Prometheus metrics — ✅ Good
+
+**Файл:** `exchange_simulator/metrics.py` (250 lines)
+
+- **4 metric types**: Counter, Gauge, Histogram
+- **Order metrics**: orders_total (by symbol/side/status), order_rate
+- **Fill metrics**: fills_total, fill_rate
+- **Latency histograms**: order_latency (11 buckets 1ms-5s), websocket_latency (8 buckets 0.1ms-100ms)
+- **Error metrics**: errors_total, error_rate
+- **System metrics**: active_connections, memory_usage, cpu_usage
+- **start_http_server**: Prometheus-compatible HTTP endpoint on port 8000
+
+Good Prometheus metrics with proper labeling and histogram buckets. ✅
+
+### 8.316 exchange_simulator: dual metrics systems — Medium (code reduction)
+
+**Файл:** `exchange_simulator/metrics.py` (prometheus_client) + `exchange_simulator/health.py` `/metrics` endpoint + `exchange_simulator/ws_prometheus.py` (manual Prometheus format)
+
+Three separate metrics systems:
+1. `metrics.py` — uses `prometheus_client` library with Counter/Gauge/Histogram
+2. `health.py` — manual Prometheus text format in `/metrics` endpoint
+3. `ws_prometheus.py` — manual Prometheus text format mixin for WebSocket server
+
+All three generate Prometheus-format metrics, but they don't share metric names or labels. `metrics.py` uses `exchange_simulator_*` prefix, `health.py` uses `hft_*` prefix, `ws_prometheus.py` uses `exchange_*` prefix.
+
+**Code reduction:** Consolidate into a single metrics module. Use `prometheus_client` throughout, eliminate manual format generation.
+
+### 8.317 exchange_simulator audit_logger.py: thread-safe audit logging — ✅ Excellent
+
+**Файл:** `exchange_simulator/audit_logger.py` (311 lines)
+
+- **Thread-safe**: `Lock()` protects `_logs` and `_callbacks`
+- **Bounded memory**: `deque(maxlen=10000)` — no unbounded growth
+- **File persistence**: JSON-lines format to `logs/audit.log`
+- **Callbacks**: Real-time event notification via registered callbacks
+- **UUID**: Each log entry gets a unique `uuid.uuid4()` ID
+- **6 event types**: Order lifecycle, position lifecycle, balance changes, config changes, system events, user actions
+- **Session tracking**: `user_id`, `session_id` fields
+
+Excellent audit logger with thread safety, bounded memory, and file persistence. ✅
+
+### 8.318 exchange_simulator audit_logger: f-string logging — Low
+
+**Файл:** `exchange_simulator/audit_logger.py:51`
+
+```python
+logger.info(f"AuditLogger initialized: max_entries={max_memory_entries}, file={log_file_path}")
+```
+
+Same f-string logging pattern.
+
+**Фикс:** Use `logger.info("AuditLogger initialized: max_entries=%d, file=%s", max_memory_entries, log_file_path)`.
+
+### 8.319 exchange_simulator ws_prometheus.py: manual Prometheus format — Low (code reduction)
+
+**Файл:** `exchange_simulator/ws_prometheus.py` (75 lines)
+
+Manually generates Prometheus text format strings. This duplicates what `prometheus_client` already does in `metrics.py`. The mixin accesses `self.clients`, `self.market._candle_count`, `self.market.is_weekend_mode`, `self._tick_interval`, `self._trading_active`, `self._total_connections`, `self._total_disconnections`, `self.exchanges`, `ex.account` — tight coupling.
+
+**Фикс:** Use `prometheus_client` metrics from `metrics.py` instead of manual string generation.
