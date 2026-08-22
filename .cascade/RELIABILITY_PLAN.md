@@ -810,9 +810,22 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R253 | web-ui useWebSocket.ts | `useWebSocket.ts` | ✅ Excellent | Ring buffer 5k, exp backoff 30s cap, ping/pong latency, batch merge, outgoing queue, sync on reconnect, permessage-deflate, full cleanup |
 | R254 | web-ui useWebSocket: no max reconnect limit | `useWebSocket.ts:214` | Low | Backoff capped at 30s but no max count. Reconnects indefinitely if server down |
 | R255 | web-ui useWebSocket: console.error in prod | `useWebSocket.ts:200` | Low | console.error not stripped. Add esbuild.drop in vite.config |
-| R256 | exchange_simulator config_validator.py | `config_validator.py` | ✅ Excellent | 5 required sections, 8 timeframes, 9 validators, cross-ref check, error/warning split |
-| R257 | exchange_simulator liquidation_engine_v2.py | `liquidation_engine_v2.py` | ✅ Excellent | 4 liq types, cascade 10 depth, partial liq, insurance fund, ADL, bounded deques, seeded RNG |
+| R256 | exchange_simulator config_validator.py | `config_validator.py` | Excellent | 5 required sections, 8 timeframes, 9 validators, cross-ref check, error/warning split |
+| R257 | exchange_simulator liquidation_engine_v2.py | `liquidation_engine_v2.py` | Excellent | 4 liq types, cascade 10 depth, partial liq, insurance fund, ADL, bounded deques, seeded RNG |
 | R258 | liquidation_engine_v2: ADL is a stub | `liquidation_engine_v2.py:211` | Low | ADL logs and resets fund but doesn't reduce counterparty positions. Acceptable for sim |
 | R259 | liquidation_engine_v2: fixed seed RNG | `liquidation_engine_v2.py:73` | Low | seed=42 makes cascades deterministic. Make configurable for realistic simulation |
 | R260 | liquidation_engine_v2: f-string logging | `liquidation_engine_v2.py:176` | Low | f-string formatted even when log level above WARNING. Use % formatting |
-| R261 | liquidation_engine_v2: no thread safety | `liquidation_engine_v2.py` | Low | No locks. insurance_fund, events, _cascade_depth are mutable. Add Lock or document single-thread |
+| R261 | exchange_simulator liquidation_engine_v2: no thread safety | `liquidation_engine_v2.py` | Low | No locks. insurance_fund, events, _cascade_depth are mutable. Add Lock or document single-thread |
+| R262 | exchange_simulator arbitrage.py | `arbitrage.py` | Excellent | 14-field dataclass, fee/slippage model, TTL expiry, stats tracking, cross-exchange scan |
+| R263 | exchange_simulator arbitrage: unbounded _closed_history | `arbitrage.py:84` | Low | _closed_history is plain list, no cap. Use deque(maxlen=1000) |
+| R264 | exchange_simulator funding_rate.py | `funding_rate.py` | Excellent | 8h intervals, premium+base+noise, ±0.75% clamp, bounded deque, correct payment calc |
+| R265 | exchange_simulator funding_rate: f-string logging | `funding_rate.py:86` | Low | f-string formatted even when log level above INFO. Use % formatting |
+| R266 | exchange_simulator latency_simulation.py | `latency_simulation.py` | Excellent | 4 exchange profiles, Gaussian jitter, Poisson spikes, exp backoff reconnect, async delay |
+| R267 | exchange_simulator market_microstructure.py | `market_microstructure.py` | Excellent | Student-t, Merton jumps, Heston SV, Markov 4-regime, U-shaped intraday. Most sophisticated |
+| R268 | exchange_simulator spread_analytics.py | `spread_analytics.py` | Good | Rolling deque(maxlen=1000), p50/p90/p99, BUY/SELL slippage, zero-price guards |
+| R269 | exchange_simulator order_book_realism.py | `order_book_realism.py` | Excellent | 4 order types, FIFO queue, iceberg reveal, spoofing, adverse selection, power-law decay |
+| R270 | exchange_simulator order_book_realism: recent_fills unbounded | `order_book_realism.py:116` | Low | recent_fills is plain list, no cap. Use deque(maxlen=1000) |
+| R271 | exchange_simulator options_simulator.py | `options_simulator.py` | Excellent | Black-Scholes, 5 Greeks, Newton-Raphson IV, put-call parity, option chain |
+| R272 | exchange_simulator data_export.py | `data_export.py` | Good | CSV/Parquet, 3 export types, os.makedirs safe, UTC timestamps |
+| R273 | exchange_simulator __main__.py | `__main__.py` | Clean | 15-line runpy entry point, sys.path manipulation, clean |
+| R274 | exchange_simulator: all modules seed=42 | `5 modules` | Low | All 5 RNG modules hardcode seed=42. Simulation is deterministic. Make configurable |

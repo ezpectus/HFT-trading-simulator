@@ -3771,3 +3771,159 @@ f-string in logging — the string is formatted even when log level is above WAR
 `LiquidationEngineV2` has no locks or thread safety. `insurance_fund`, `events`, `_cascade_depth` are mutable state. If the exchange simulator runs in multiple threads (e.g., one per exchange), concurrent `liquidate()` calls could corrupt state.
 
 **Фикс:** Add `threading.Lock` around `liquidate()` and `process_cascade()`. Or document that the engine is single-threaded.
+
+### 8.274 exchange_simulator arbitrage.py: cross-exchange arb detector — ✅ Excellent
+
+**Файл:** `exchange_simulator/exchange_simulator/arbitrage.py` (298 lines)
+
+- **ArbitrageOpportunity dataclass**: 14 fields — symbol, buy/sell exchange, prices, spreads (gross/net/bps), quantities, max_quantity, estimated_profit, status, TTL
+- **ArbStatus enum**: OPEN, CLOSED, EXPIRED
+- **Configurable**: fee_pct (0.075%), slippage_bps (2.0), min_spread_bps (5.0), max_opportunities (50), opportunity_ttl (30s)
+- **Stats tracking**: total_detected, total_closed, total_expired, total_estimated_profit, best_spread_bps
+- **Scan**: Collects order books across all exchanges for each symbol, builds price list, checks all buy/sell pairs
+- **TTL expiry**: Opportunities expire after 30s
+
+Excellent arbitrage detector with proper fee/slippage modeling and TTL. ✅
+
+### 8.275 exchange_simulator arbitrage: unbounded _closed_history — Low
+
+**Файл:** `exchange_simulator/exchange_simulator/arbitrage.py:84`
+
+```python
+self._closed_history: list[ArbitrageOpportunity] = []
+```
+
+`_closed_history` is a plain list with no cap. Over time, closed opportunities accumulate without bound. `_active_opportunities` is bounded by `max_opportunities=50`, but closed history is not.
+
+**Фикс:** Use `deque(maxlen=1000)` or prune periodically.
+
+### 8.276 exchange_simulator funding_rate.py: perpetual funding simulation — ✅ Excellent
+
+**Файл:** `exchange_simulator/exchange_simulator/funding_rate.py` (136 lines)
+
+- **8-hour intervals**: 00:00, 08:00, 16:00 UTC — matches real exchanges
+- **Funding rate**: premium_index × 0.1 + base_rate, with Gaussian noise, clamped to ±0.75%
+- **Funding payment**: `position_qty * mark_price * funding_rate` — correct for perpetuals
+- **Bounded history**: `deque(maxlen=10000)` — no unbounded growth
+- **Next funding time**: Correct calculation with day rollover
+- **Stats**: avg/max/min/last rate
+
+Excellent funding rate simulation matching real exchange mechanics. ✅
+
+### 8.277 exchange_simulator funding_rate: f-string logging — Low
+
+**Файл:** `exchange_simulator/exchange_simulator/funding_rate.py:86`
+
+```python
+logger.info(f"[FundingRate] {self.symbol} funding={rate:.6f} ({rate*100:.4f}%) at {funding_hour}:00 UTC")
+```
+
+Same f-string logging issue as §8.272. String formatted even when log level above INFO.
+
+**Фикс:** Use `logger.info("[FundingRate] %s funding=%.6f (%.4f%%) at %d:00 UTC", self.symbol, rate, rate*100, funding_hour)`.
+
+### 8.278 exchange_simulator latency_simulation.py: network latency model — ✅ Excellent
+
+**Файл:** `exchange_simulator/exchange_simulator/latency_simulation.py` (130 lines)
+
+- **4 exchange profiles**: Binance 50ms, OKX 80ms, Bybit 120ms, Simulator 5ms
+- **Gaussian jitter**: σ = 20% of base latency
+- **Poisson spikes**: 1 in 1000 messages, 10× base latency
+- **Reconnection**: Exponential backoff (100ms → 30s cap, factor 2.0), 80%+ success rate increasing with attempts
+- **Async delay**: `await asyncio.sleep(latency_ms / 1000.0)` — proper async integration
+- **Stats**: total_messages, total_spikes, avg_latency_ms, reconnect_attempts
+- **Reset**: Full state reset for testing
+
+Excellent latency simulation with realistic exchange profiles. ✅
+
+### 8.279 exchange_simulator market_microstructure.py: realistic price generation — ✅ Excellent
+
+**Файл:** `exchange_simulator/exchange_simulator/market_microstructure.py` (175 lines)
+
+- **5 models**: Student-t returns (df=4, fat tails), Merton jump diffusion, Heston stochastic volatility, Markov regime switching (4 regimes), U-shaped intraday volume
+- **4 regimes**: CALM, VOLATILE, CRASH, RECOVERY — with Markov transition matrix
+- **Regime params**: Per-regime drift, vol_scale, jump_prob, jump_size
+- **Heston**: Euler discretization with variance floor (0.001), κ=2.0, θ=0.04, σ=0.3, ρ=-0.7
+- **Intraday**: U-shaped vol multiplier — 1.5× at open/close, 0.7× at midday
+- **Configurable**: All parameters via `MicrostructureConfig` dataclass
+- **Reset**: Full state reset with configurable seed
+
+Excellent market microstructure model — most sophisticated price generation in the project. ✅
+
+### 8.280 exchange_simulator spread_analytics.py: spread/slippage tracking — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/spread_analytics.py` (188 lines)
+
+- **Rolling windows**: `deque(maxlen=1000)` per exchange:symbol pair — bounded
+- **SpreadRecord**: exchange, symbol, spread, mid_price, spread_bps, timestamp
+- **SpreadStats**: count, mean, p50, p90, p99, max, min — percentile-based
+- **Slippage**: BUY/SELL aware — correct sign handling
+- **Zero-price guard**: `if mid_price <= 0: return` and `if expected_price <= 0: return`
+- **Summary**: Aggregated stats across all exchange:symbol pairs
+
+Good spread analytics with proper percentile stats and bounded windows. ✅
+
+### 8.281 exchange_simulator order_book_realism.py: L2 book with spoofing — ✅ Excellent
+
+**Файл:** `exchange_simulator/exchange_simulator/order_book_realism.py` (306 lines)
+
+- **4 order types**: NORMAL, SPOOF, ICEBERG, MARKET
+- **PriceLevel**: FIFO queue with `next_queue_pos`, `add_order`, `remove_order`, `fill_from_front`
+- **Iceberg orders**: Hidden quantity revealed in 10% increments when visible portion filled
+- **Spoofing**: Fake large orders with high `cancel_prob`
+- **Adverse selection**: `toxic_flow_score` tracking, `recent_fills` list
+- **Power-law decay**: Volume decreases with distance from mid price
+- **BookOrder dataclass**: 10 fields including `queue_position`, `cancel_prob`, `visible_qty`, `hidden_qty`
+
+Excellent realistic order book with spoofing, icebergs, and adverse selection. ✅
+
+### 8.282 exchange_simulator order_book_realism: recent_fills unbounded — Low
+
+**Файл:** `exchange_simulator/exchange_simulator/order_book_realism.py:116`
+
+```python
+self.recent_fills: list[dict] = []
+```
+
+`recent_fills` is a plain list with no cap. Over time, fill records accumulate without bound.
+
+**Фикс:** Use `deque(maxlen=1000)`.
+
+### 8.283 exchange_simulator options_simulator.py: Black-Scholes with Greeks — ✅ Excellent
+
+**Файл:** `exchange_simulator/exchange_simulator/options_simulator.py` (237 lines)
+
+- **Black-Scholes**: European-style options with `_norm_cdf` (erf) and `_norm_pdf`
+- **Greeks**: delta, gamma, theta (per day), vega (per 1% vol), rho (per 1% rate)
+- **Implied volatility**: Newton-Raphson iteration
+- **Option chain**: Multiple strikes/expiries
+- **Put-call parity**: Verification
+- **OptionQuote dataclass**: 11 fields including `in_the_money` flag
+
+Excellent options simulator with complete Greeks and IV calculation. ✅
+
+### 8.284 exchange_simulator data_export.py: CSV/Parquet export — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/data_export.py` (246 lines)
+
+- **2 formats**: CSV (built-in) and Parquet (requires pyarrow)
+- **3 export types**: Candles (OHLCV), orders, accounts
+- **Summary export**: Aggregated statistics
+- **Directory creation**: `os.makedirs(output_dir, exist_ok=True)` — safe
+- **UTC timestamps**: `datetime.now(UTC)` — proper timezone handling
+
+Good data export with multiple formats and proper directory handling. ✅
+
+### 8.285 exchange_simulator __main__.py: runpy entry point — ✅ Clean
+
+**Файл:** `exchange_simulator/exchange_simulator/__main__.py` (15 lines)
+
+Clean entry point that adds parent directory to `sys.path` and runs the root-level `__main__.py` via `runpy.run_path`. ✅
+
+### 8.286 exchange_simulator: all modules use seed=42 — Low
+
+**Файл:** `liquidation_engine_v2.py:73`, `funding_rate.py:48`, `latency_simulation.py:48`, `market_microstructure.py:74`, `order_book_realism.py:106`
+
+All 5 modules that use `np.random.default_rng` hardcode `seed=42`. This makes the entire simulation deterministic — every run produces identical results. While good for testing, it means the simulator cannot produce varied market conditions across runs.
+
+**Фикс:** Make seed configurable via config.yaml: `simulation.seed: null` (null = random) or `simulation.seed: 42` (deterministic).
