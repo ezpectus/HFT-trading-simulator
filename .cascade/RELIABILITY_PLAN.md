@@ -618,3 +618,8 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R61 | Docker Compose: no resource limits | `docker-compose.yml` | Medium | No memory/CPU limits. Memory leak = host crash. Helm has limits, compose doesn't |
 | R62 | WS input: no schema validation | `signal_publisher.py:141` | Medium | `json.loads` accepts anything. No type check, no size limit. Malicious client can crash bot |
 | R63 | DB migrations: no runner | `database/migrations/` | Medium | 4 SQL files exist but no code to apply them. No version tracking. SQLite and PG schemas diverged |
+| R64 | Alertmanager hardcoded credentials | `alertmanager/config.yml:12,56,62` | Medium | SMTP password, Slack/Discord webhooks are placeholders. Critical alerts silently fail |
+| R65 | shared_config.yaml hardcoded localhost | `shared_config.yaml:108,112` | Medium | Won't work in Docker/K8s. Services communicate via names, not localhost |
+| R66 | C++ memory ordering | `hft-trade-bot/src/` | ✅ Correct | Relaxed for stats, release for signaling, CAS for min/max. Balance relaxed OK (single-threaded exec) |
+| R67 | Grafana dashboards | `grafana/dashboards/` | ✅ Good | 5 dashboards + provider config. Well-configured |
+| R68 | Alertmanager: no silence/maintenance | `alertmanager/config.yml` | Low | No auto-silence during deploy. All alerts fire on restart |

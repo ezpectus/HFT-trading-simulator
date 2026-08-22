@@ -126,3 +126,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Docker Compose: no resource limits | Memory leak = host crash | CODE_AUDIT §8.70 |
 | WS input: no schema validation | Malicious client can crash bot | CODE_AUDIT §8.71 |
 | DB migrations: no runner | 4 SQL files, no code to apply them | CODE_AUDIT §8.72 |
+| Alertmanager: placeholder credentials | SMTP password, Slack/Discord webhooks = placeholders | CODE_AUDIT §8.73 |
+| shared_config: hardcoded localhost | Won't work in Docker/K8s | CODE_AUDIT §8.74 |
+| Alertmanager: no silence during deploy | All alerts fire on restart | CODE_AUDIT §8.78 |

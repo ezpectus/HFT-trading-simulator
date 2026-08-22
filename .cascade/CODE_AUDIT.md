@@ -1144,3 +1144,71 @@ A malicious or buggy client can send `{"type": "run_backtest", "backtests": "not
 The SQLite `db.py` has its own schema initialization (`CREATE TABLE IF NOT EXISTS`), separate from these PostgreSQL migrations. Two DB backends, two schema management approaches, neither has a proper migration runner.
 
 **Фикс:** Use Alembic (Python) or `flyway` (JVM) or at minimum a `migrate.py` script that reads `migrations/*.sql` in order and tracks applied versions in a `_migrations` table.
+
+### 8.73 Alertmanager: hardcoded credentials — Medium
+
+**Файл:** `monitoring/alertmanager/config.yml:12,56,62`
+
+```yaml
+smtp_auth_password: 'your-password'
+api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+webhook_url: 'https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK'
+```
+
+Hardcoded placeholder credentials in config file. If someone deploys without changing these:
+- Email alerts fail silently (SMTP auth fails)
+- Slack/Discord alerts fail silently (404 on placeholder URL)
+- **Critical trading alerts never reach anyone**
+
+**Фикс:** Use environment variable substitution: `smtp_auth_password: '${SMTP_PASSWORD}'` or Kubernetes secrets mounted as config.
+
+### 8.74 shared_config.yaml: hardcoded localhost — Medium
+
+**Файл:** `shared_config.yaml:108,112`
+
+```yaml
+websocket:
+  exchange_simulator:
+    host: localhost  # ← won't work in Docker/K8s
+  ai_signal_bot:
+    host: localhost  # ← services have different hostnames in containers
+```
+
+In Docker Compose, services communicate via service names (`exchange-simulator`, `ai-signal-bot`), not `localhost`. In K8s, via service DNS. The shared config hardcodes `localhost`, which only works when all components run on the same machine (dev mode).
+
+**Фикс:** `host: ${EXCHANGE_SIMULATOR_HOST:-localhost}` or separate config per environment.
+
+### 8.75 C++ memory ordering — ✅ Mostly correct
+
+**Файлы:** `hft-trade-bot/src/` — 30+ atomic operations
+
+All atomics use `std::memory_order_relaxed` for stats/counters (correct — no ordering needed for independent counters). `has_new_data_.store(true, std::memory_order_release)` is correct for signaling (release fence ensures data writes are visible before the flag). `compare_exchange_weak` loops use relaxed/relaxed (correct for atomic min/max updates).
+
+**One concern:** `ctx.balance.fetch_add(closed->unrealized_pnl, std::memory_order_relaxed)` — balance is read in the main loop with `relaxed` too. If balance is updated from multiple threads (e.g., position close + order fill simultaneously), `relaxed` means threads might see stale values. However, since the main trading loop is single-threaded for order execution, this is likely fine in practice.
+
+### 8.76 Grafana dashboards — ✅ Good
+
+**Файлы:** `monitoring/grafana/dashboards/`
+
+5 dashboards exist: `ai_signal_bot_metrics.json`, `latency-monitoring.json`, `system-overview.json`, `trading-overview.json`, `trading-performance.json`. Dashboard provider config (`dashboards.yml`) exists. This is well-configured.
+
+### 8.77 ebpf monitor — ✅ Well-implemented
+
+**Файл:** `monitoring/ebpf_monitor.py` (225 lines)
+
+Advanced eBPF monitoring with:
+- Optional BCC import (`try/except ImportError`)
+- Syscall tracing, network latency, CPU cache misses
+- Signal handling for graceful shutdown (`signal.signal`)
+- JSON output for Prometheus ingestion
+- CLI args (`argparse`)
+
+Properly handles the case where BCC isn't installed (non-Linux, no root). ✅
+
+### 8.78 Alertmanager: no silence/ maintenance window support — Low
+
+**Файл:** `monitoring/alertmanager/config.yml`
+
+No silence rules or maintenance window configuration. During planned deployments, all alerts fire simultaneously (services restart → health checks fail → critical alerts). No way to auto-silence during deploy windows.
+
+**Фикс:** Add AM API silence creation in CI/CD pipeline before deploy, auto-expire after 10min.
