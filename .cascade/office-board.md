@@ -201,3 +201,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | exchange_simulator arbitrage: unbounded _closed_history | Plain list, no cap. Use deque(maxlen=1000) | CODE_AUDIT §8.275 |
 | exchange_simulator order_book_realism: recent_fills unbounded | Plain list, no cap. Use deque(maxlen=1000) | CODE_AUDIT §8.282 |
 | exchange_simulator: all modules seed=42 | 5 modules hardcode seed=42. Simulation is deterministic | CODE_AUDIT §8.286 |
+| ai-signal-bot health_checks: no liveness depth | Liveness always returns "alive". Deadlocked loop reports alive | CODE_AUDIT §8.288 |
+| ai-signal-bot notifier: token in URL | Bot token embedded in URL. If URL logged, token exposed in logs | CODE_AUDIT §8.295 |
+| ai-signal-bot llm_engine: no LLM response validation | No schema validation on LLM output. Malformed JSON → incorrect analysis | CODE_AUDIT §8.300 |
+| ai-signal-bot tracing: localhost endpoint | Default Jaeger endpoint localhost:4317. Won't work in K8s | CODE_AUDIT §8.293 |

@@ -3927,3 +3927,208 @@ Clean entry point that adds parent directory to `sys.path` and runs the root-lev
 All 5 modules that use `np.random.default_rng` hardcode `seed=42`. This makes the entire simulation deterministic — every run produces identical results. While good for testing, it means the simulator cannot produce varied market conditions across runs.
 
 **Фикс:** Make seed configurable via config.yaml: `simulation.seed: null` (null = random) or `simulation.seed: 42` (deterministic).
+
+### 8.287 ai-signal-bot observability/health_checks.py: deep health probes — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py` (221 lines)
+
+- **3 endpoints**: `/health/live` (liveness), `/health/ready` (readiness), `/health/status` (full)
+- **4 component checks**: WebSocket, TimescaleDB, Redis, exchange
+- **3 health states**: HEALTHY, DEGRADED, UNHEALTHY
+- **ComponentHealth dataclass**: name, status, latency_ms, details, last_check
+- **Metrics**: signals_total, orders_total, errors_total, last_signal_age_s, last_order_age_s
+- **Overall status logic**: All HEALTHY → HEALTHY, any UNHEALTHY → UNHEALTHY, else DEGRADED
+- **Not configured = HEALTHY**: If a component is `None`, returns HEALTHY with "not configured" — correct for optional deps
+- **Exception handling**: Each check catches specific exceptions (AttributeError, TypeError, OSError, RuntimeError, KeyError, ValueError)
+
+Excellent health check system with proper component-level probes and status aggregation. ✅
+
+### 8.288 ai-signal-bot health_checks: no liveness depth check — Medium
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py:76-83`
+
+```python
+async def check_liveness(self) -> dict[str, Any]:
+    uptime = time.time() - self._start_time
+    return {
+        "status": "alive",
+        "uptime_seconds": round(uptime, 1),
+        "pid": __import__("os").getpid(),
+    }
+```
+
+Liveness always returns `"alive"` — it only checks if the process is running, not if it's actually processing. A deadlocked event loop would still report "alive". The class tracks `_last_signal_time` and `_last_order_time` but doesn't use them in the liveness check.
+
+**Фикс:** Add staleness check: if `_last_signal_time > 0` and `time.time() - _last_signal_time > 300` (5 min no signals), return `"degraded"`. If > 600s, return `"unhealthy"`.
+
+### 8.289 ai-signal-bot health_checks: __import__("os") anti-pattern — Low
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py:82`
+
+```python
+"pid": __import__("os").getpid(),
+```
+
+Using `__import__("os")` inline instead of `import os` at the top of the file. This is an anti-pattern — it's harder to read and slower.
+
+**Фикс:** Add `import os` at the top and use `os.getpid()`.
+
+### 8.290 ai-signal-bot observability/logging.py: structlog setup — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/observability/logging.py` (171 lines)
+
+- **structlog integration**: JSON-formatted logs with correlation IDs (trace_id, span_id)
+- **Graceful fallback**: If structlog not installed, falls back to `logging.basicConfig` with simple format
+- **Two renderers**: Console (dev, colored) and JSON (prod, machine-parseable)
+- **Contextual fields**: service name, version injected into every log entry
+- **One-time config**: `_configured` flag prevents double initialization
+- **Log file support**: Optional file handler with rotation
+
+Excellent structured logging setup with proper fallback and dual renderer support. ✅
+
+### 8.291 ai-signal-bot observability/tracing.py: OpenTelemetry + Jaeger — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py` (111 lines)
+
+- **OpenTelemetry**: OTLP exporter to Jaeger, BatchSpanProcessor for async export
+- **Resource**: service.name, service.namespace, service.version — proper OTel attributes
+- **Asyncio instrumentation**: `AsyncioInstrumentor().instrument()` — traces async operations
+- **No-op fallback**: If OTel not installed, returns `NoopTracer` with `NoopSpan` — code works without tracing
+- **Graceful shutdown**: `shutdown_tracing()` flushes pending traces via `provider.shutdown()`
+- **Exception handling**: Catches ImportError, RuntimeError, OSError, ValueError
+- **One-time init**: `_initialized` flag prevents double initialization
+
+Excellent distributed tracing setup with proper fallback and shutdown. ✅
+
+### 8.292 ai-signal-bot tracing: f-string logging — Low
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py:68,73`
+
+```python
+logger.info(f"[Tracing] Initialized: {service_name} → {endpoint}")
+logger.warning(f"[Tracing] Failed to initialize: {e}")
+```
+
+Same f-string logging pattern as other modules. String formatted even when log level is above INFO/WARNING.
+
+**Фикс:** Use `logger.info("[Tracing] Initialized: %s → %s", service_name, endpoint)`.
+
+### 8.293 ai-signal-bot tracing: endpoint defaults to localhost — Low
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py:31`
+
+```python
+endpoint: str = "http://localhost:4317",
+```
+
+Default Jaeger endpoint is `localhost:4317`. In K8s/Docker, this should be `http://jaeger:4317` or similar service name.
+
+**Фикс:** Read from env var: `endpoint: str = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")`.
+
+### 8.294 ai-signal-bot notifier.py: Telegram + Discord bot — ✅ Good
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py` (334 lines)
+
+- **2 notifiers**: TelegramNotifier (polling-based) and DiscordNotifier (HTTP-based)
+- **AlertEvent dataclass**: Normalized event with type, symbol, message, timestamp, data
+- **Remote commands**: `/status`, `/positions`, `/close_all`, `/pause`, `/resume` — register_command pattern
+- **Emoji map**: Per-event-type emojis for visual clarity
+- **Env var support**: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, DISCORD_BOT_TOKEN, DISCORD_CHANNEL_ID
+- **Proper cleanup**: `stop()` cancels poll task, closes session and WS
+- **Error handling**: Catches OSError, RuntimeError, json.JSONDecodeError, asyncio.CancelledError
+- **Chat ID verification**: `if chat_id != self.chat_id: continue` — ignores messages from other chats
+
+Good notification system with proper cleanup and security. ✅
+
+### 8.295 ai-signal-bot notifier: token in URL — Medium
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py:104,122`
+
+```python
+url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+url = f"https://api.telegram.org/bot{self.token}/getUpdates"
+```
+
+The Telegram bot token is embedded in the URL. If any HTTP error is logged with the URL, the token will be exposed in logs. This is a security risk.
+
+**Фикс:** Log only the endpoint name, not the full URL. Or use Telegram's header-based auth if available. At minimum, ensure error logs don't include the URL.
+
+### 8.296 ai-signal-bot notifier: no rate limiting — Low
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py`
+
+No rate limiting on `send_alert()`. If many fills or errors happen in quick succession, the bot will send unlimited messages to Telegram/Discord, potentially hitting API rate limits (Telegram: 30 msg/sec, Discord: 5 msg/2sec per channel).
+
+**Фикс:** Add a simple rate limiter: max 10 messages per 10 seconds, with a queue for overflow.
+
+### 8.297 ai-signal-bot notifier: no retry on send failure — Low
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py:111-116`
+
+```python
+try:
+    async with self._session.post(url, json=payload) as resp:
+        if resp.status != 200:
+            logger.warning(f"Telegram send failed: {resp.status}")
+except (OSError, RuntimeError) as e:
+    logger.error(f"Telegram send error: {e}")
+```
+
+If `send_alert` fails (network error, 5xx), the alert is lost. No retry, no queue.
+
+**Фикс:** Add 1-2 retries with exponential backoff. Or queue alerts and retry later.
+
+### 8.298 ai-signal-bot llm_engine/engine.py: LLM-powered analysis — ✅ Good
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py` (394 lines)
+
+- **4 providers**: openai, anthropic, ollama, none (rule-based fallback)
+- **3 analysis types**: market_analysis, signal_explanation, risk_assessment
+- **Prompt templates**: Loadable from `prompt_templates/` directory with fallback defaults
+- **Caching**: TTL-based cache (60s default), evicts stale entries when > 100 items
+- **MarketContext**: 13 fields including RSI, EMA, ADX, ATR, Bollinger position, OBI, regime
+- **LLMAnalysis**: 8 fields including sentiment, confidence, key_levels, risk_factors
+- **API key from env**: OPENAI_API_KEY, ANTHROPIC_API_KEY — no hardcoded keys
+- **Timeout**: 10s default via `aiohttp.ClientTimeout`
+- **Rule-based fallback**: If no API key, uses `_rule_based_analysis()` — system works without LLM
+
+Good LLM engine with proper caching, fallback, and env-based API keys. ✅
+
+### 8.299 ai-signal-bot llm_engine: cache unbounded above 100 — Low
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py:163-167`
+
+```python
+if len(self._cache) > 100:
+    stale_keys = [k for k, (t, _) in self._cache.items() if now - t >= self.config.cache_ttl_seconds]
+    for k in stale_keys:
+        del self._cache[k]
+```
+
+Cache eviction only triggers when `len > 100`. Between checks, the cache can grow to 100 + N (where N is the number of entries added in one `analyze_market` call). If many symbols are analyzed simultaneously, the cache could temporarily exceed 100. This is minor but could be cleaner.
+
+**Фикс:** Use `functools.lru_cache` or a proper LRU cache with a hard cap.
+
+### 8.300 ai-signal-bot llm_engine: no input validation on LLM response — Medium
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py:177`
+
+```python
+analysis = self._parse_response(response, ctx.symbol)
+```
+
+The LLM response is parsed by `_parse_response` (not shown in the read portion). If the LLM returns malformed JSON or unexpected fields, the parse could fail silently or produce incorrect analysis. No schema validation on the LLM output.
+
+**Фикс:** Use Pydantic or JSON schema validation on the LLM response. Validate sentiment is in {bullish, bearish, neutral}, confidence is 0-100, recommendation is in {buy, sell, hold}.
+
+### 8.301 ai-signal-bot llm_engine: f-string logging — Low
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py:93`
+
+```python
+logger.info(f"[LLMEngine] Provider: {self.config.provider}, model: {self.config.model}")
+```
+
+Same f-string logging pattern.
+
+**Фикс:** Use `logger.info("[LLMEngine] Provider: %s, model: %s", self.config.provider, self.config.model)`.

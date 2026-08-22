@@ -829,3 +829,18 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R272 | exchange_simulator data_export.py | `data_export.py` | Good | CSV/Parquet, 3 export types, os.makedirs safe, UTC timestamps |
 | R273 | exchange_simulator __main__.py | `__main__.py` | Clean | 15-line runpy entry point, sys.path manipulation, clean |
 | R274 | exchange_simulator: all modules seed=42 | `5 modules` | Low | All 5 RNG modules hardcode seed=42. Simulation is deterministic. Make configurable |
+| R275 | ai-signal-bot observability/health_checks.py | `health_checks.py` | ✅ Excellent | 3 endpoints (live/ready/status), 4 component checks, 3 states, metrics, status aggregation |
+| R276 | ai-signal-bot health_checks: no liveness depth | `health_checks.py:76` | Medium | Liveness always returns "alive". Deadlocked loop reports alive. Use _last_signal_time for staleness |
+| R277 | ai-signal-bot health_checks: __import__ anti-pattern | `health_checks.py:82` | Low | `__import__("os").getpid()` instead of `import os` at top |
+| R278 | ai-signal-bot observability/logging.py | `logging.py` | ✅ Excellent | structlog with JSON, correlation IDs, graceful fallback, dual renderer, one-time config |
+| R279 | ai-signal-bot observability/tracing.py | `tracing.py` | ✅ Excellent | OpenTelemetry + Jaeger, OTLP exporter, NoopTracer fallback, graceful shutdown, one-time init |
+| R280 | ai-signal-bot tracing: f-string logging | `tracing.py:68,73` | Low | f-string formatted even when log level above INFO. Use % formatting |
+| R281 | ai-signal-bot tracing: localhost endpoint | `tracing.py:31` | Low | Default Jaeger endpoint is localhost:4317. Won't work in K8s. Read from env |
+| R282 | ai-signal-bot notifier.py | `notifier.py` | ✅ Good | Telegram+Discord, AlertEvent, remote commands, env vars, proper cleanup, chat ID verification |
+| R283 | ai-signal-bot notifier: token in URL | `notifier.py:104,122` | Medium | Bot token embedded in URL. If URL logged on error, token exposed. Log endpoint name only |
+| R284 | ai-signal-bot notifier: no rate limiting | `notifier.py` | Low | No rate limit on send_alert. Could hit Telegram/Discord API limits. Add 10msg/10s limiter |
+| R285 | ai-signal-bot notifier: no retry on send failure | `notifier.py:111` | Low | Failed alerts are lost. No retry, no queue. Add 1-2 retries with backoff |
+| R286 | ai-signal-bot llm_engine/engine.py | `engine.py` | ✅ Good | 4 providers, 3 analysis types, TTL cache, env API keys, rule-based fallback, 10s timeout |
+| R287 | ai-signal-bot llm_engine: cache unbounded above 100 | `engine.py:163` | Low | Cache eviction only when >100. Can temporarily exceed. Use LRU with hard cap |
+| R288 | ai-signal-bot llm_engine: no LLM response validation | `engine.py:177` | Medium | No schema validation on LLM output. Malformed JSON could produce incorrect analysis |
+| R289 | ai-signal-bot llm_engine: f-string logging | `engine.py:93` | Low | f-string formatted even when log level above INFO. Use % formatting |
