@@ -2970,3 +2970,122 @@ bool is_available() const override { return toxic_count_.load(std::memory_order_
 The toxic event threshold (5) is hardcoded. If an exchange has a brief connectivity issue causing 5 toxic events, it's marked unavailable. There's no way to configure this per-exchange or per-environment.
 
 **Фикс:** Make the threshold configurable via constructor parameter or config.
+
+### 8.215 Alertmanager config: hardcoded SMTP password — Medium
+
+**Файл:** `monitoring/alertmanager/config.yml:12`
+
+```yaml
+smtp_auth_password: 'your-password'
+```
+
+Hardcoded SMTP password in Alertmanager config. If this file is committed to git (which it is), the password is exposed. Even though it's a placeholder (`your-password`), someone will replace it with a real password and commit.
+
+Also: Slack webhook URL (`https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK`) and Discord webhook URL (`https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK`) are placeholders but will be replaced with real URLs containing auth tokens.
+
+**Фикс:** Use environment variable substitution in Alertmanager (supported via `--config.env-file` or `{{ .Env.SMTP_PASSWORD }}` in templates). Or use Kubernetes secrets to mount the config file.
+
+### 8.216 Alertmanager config: inhibition rules — ✅ Good
+
+**Файл:** `monitoring/alertmanager/config.yml:84-98`
+
+Two inhibition rules:
+1. Critical firing → suppress warning alerts for same component + alertname
+2. Critical firing → suppress info alerts for same component + alertname
+
+This prevents alert storms — when a critical alert fires, related warnings and info alerts are suppressed. ✅
+
+### 8.217 Alertmanager config: no silence rules — Info
+
+**Файл:** `monitoring/alertmanager/config.yml`
+
+No silence rules or maintenance windows configured. Silences must be created manually via Alertmanager API or UI. For a trading system with planned maintenance windows, automated silences would reduce false alerts during deployments.
+
+**Фикс:** Add scheduled silences via Alertmanager API or Amtool CLI in CI/CD deploy pipeline.
+
+### 8.218 web-ui useTradingStore: Zustand store — ✅ Good
+
+**Файл:** `web-ui/src/stores/useTradingStore.js` (59 lines)
+
+Clean Zustand store with 3 batch setters:
+- `setExchangeData(data)` — candles, prices, accounts, arbitrage, fills, orderbooks, etc.
+- `setSignalData(data)` — signals, regime, backtest, circuit breaker
+- `setDerivedData(data)` — chartCandles, currentPrice, priceChange
+
+Actions (submitOrder, closePosition, etc.) are stored as nullable function references set by hooks. This is a clean pattern — hooks own the WebSocket connection, store owns the state. ✅
+
+### 8.219 web-ui useUIStore: 50 symbols duplicated from shared_config.yaml — Low
+
+**Файл:** `web-ui/src/stores/useUIStore.js:7-18`
+
+50 symbols hardcoded in JavaScript, same 50 symbols in `shared_config.yaml`. If a symbol is added/removed in one place, the other is out of sync. The SYMBOL_CATEGORIES also duplicate symbol membership.
+
+**Фикс:** Generate `SYMBOLS` from `shared_config.yaml` at build time (Vite plugin or pre-build script). Or fetch from an API endpoint.
+
+### 8.220 web-ui useToastStore: setTimeout without cleanup — Low
+
+**Файл:** `web-ui/src/stores/useToastStore.js:21-23`
+
+```javascript
+setTimeout(() => {
+    set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
+}, duration)
+```
+
+`setTimeout` in `addToast` is not tracked or cleaned up. If the store is destroyed (e.g., HMR in dev), the timeout still fires and calls `set()` on a stale store. In production this is harmless (store lives for app lifetime), but in dev with HMR it can cause warnings.
+
+**Фикс:** Track timeouts in a `Set` and clear on store destruction. Or accept the warning in dev only.
+
+### 8.221 web-ui usePanelContext: bridge from Zustand to registry — ✅ Good
+
+**Файл:** `web-ui/src/stores/usePanelContext.js` (115 lines)
+
+Bridge between Zustand stores and the legacy registry pattern:
+- Reads from `useUIStore`, `useTradingStore`, `useToastStore`
+- Builds the `exchange` and `signals` objects that registry.js panel builders expect
+- `useMemo` for stable object references
+- Maintains backward compatibility with 200+ panel entries in registry.js
+
+Clean migration path from prop drilling to Zustand without rewriting all panels. ✅
+
+### 8.222 ai-signal-bot signal_publisher: 6 catch-all Exception handlers — Low
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py` (6 matches)
+
+6 `except Exception` handlers:
+- Lines 123, 135: `Failed to send signal history` / `Failed to send circuit breaker status` — acceptable, non-critical
+- Line 155: `Client handler error` — debug level, acceptable
+- Lines 191, 232, 266: `_send()` / `_send_regime()` / `_send_cb()` — catch-all to identify disconnected clients
+
+The broadcast pattern (lines 188-193) is correct: `asyncio.gather(*[_send(ws) for ws in self._clients], return_exceptions=True)` with catch-all to add failed clients to `disconnected` set. This is acceptable for WebSocket broadcast — any exception means the client is disconnected.
+
+**Фикс:** Narrow to `websockets.ConnectionClosed` + `ConnectionClosedOK` + `ConnectionClosedError` for the broadcast handlers. Keep catch-all only for the history/circuit-breaker send (unexpected errors).
+
+### 8.223 web-ui 4 Zustand stores: clean separation — ✅ Good
+
+**Файлы:** `useTradingStore.js` (59), `useUIStore.js` (92), `useToastStore.js` (30), `usePanelContext.js` (115)
+
+4 stores with clear separation of concerns:
+- `useTradingStore` — exchange + signal data (high-frequency updates)
+- `useUIStore` — UI state (selections, tabs, layout, sound)
+- `useToastStore` — toast notifications (transient)
+- `usePanelContext` — bridge to legacy registry pattern
+
+Total: 296 lines. Clean, no circular dependencies. ✅
+
+### 8.224 web-ui useUIStore: getFilteredSymbols not memoized — Low
+
+**Файл:** `web-ui/src/stores/useUIStore.js:45-61`
+
+```javascript
+getFilteredSymbols: () => {
+    const { symbolSearch, selectedCategory } = get()
+    let filtered = SYMBOLS
+    // ... filter logic ...
+    return filtered
+}
+```
+
+`getFilteredSymbols` is a function in the store, not a selector. Every call re-filters the symbol list. If called on every render (e.g., in a dropdown component), it creates a new array each time, causing unnecessary re-renders.
+
+**Фикс:** Use `useMemo` in the component, or create a selector hook: `useFilteredSymbols = () => useUIStore(useMemo(() => (s) => s.getFilteredSymbols(), []))`. Or use Zustand's `useShallow` for memoized selectors.

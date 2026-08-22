@@ -752,3 +752,16 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R195 | shared_config.yaml: localhost | `shared_config.yaml:108,112` | Medium | localhost WS host in shared config. Won't work in K8s/Docker prod |
 | R196 | shared_config.yaml: 50 symbols + 3 exchanges | `shared_config.yaml` | ✅ Good | 50 pairs, 3 exchanges, risk params match component configs, clean |
 | R197 | C++ ExchangeBase: hardcoded toxic threshold | `ExchangeBase.h:49` | Low | toxic_count < 5 hardcoded. No per-exchange/per-env configuration |
+| R198 | Alertmanager: hardcoded SMTP password | `alertmanager/config.yml:12` | Medium | smtp_auth_password 'your-password' in git. Slack/Discord webhooks too |
+| R199 | Alertmanager: inhibition rules | `config.yml:84-98` | ✅ Good | Critical suppresses warning+info for same component. Prevents alert storms |
+| R200 | Alertmanager: no silence rules | `config.yml` | Info | No maintenance windows. Manual silences only. Add scheduled silences in CI/CD |
+| R201 | web-ui useTradingStore | `useTradingStore.js` | ✅ Good | 3 batch setters, actions as nullable refs, clean Zustand pattern |
+| R202 | web-ui useUIStore: 50 symbols duplicated | `useUIStore.js:7-18` | Low | 50 symbols in JS + shared_config.yaml. Out of sync risk |
+| R203 | web-ui useToastStore: setTimeout no cleanup | `useToastStore.js:21` | Low | setTimeout not tracked. HMR dev warning. Harmless in prod |
+| R204 | web-ui usePanelContext | `usePanelContext.js` | ✅ Good | Bridge Zustand→registry, useMemo, backward compat with 200+ panels |
+| R205 | signal_publisher: 6 catch-all Exception | `signal_publisher.py` | Low | Broadcast pattern acceptable. Narrow to ConnectionClosed where possible |
+| R206 | web-ui 4 Zustand stores | `stores/*.js` | ✅ Good | Trading/UI/Toast/PanelContext. 296 lines, no circular deps |
+| R207 | web-ui useUIStore: getFilteredSymbols not memoized | `useUIStore.js:45` | Low | Re-filters on every call. New array → unnecessary re-renders |
+| R208 | Alertmanager: SMTP/Slack/Discord placeholders | `config.yml:12,56,62` | Medium | Placeholders will be replaced with real secrets and committed |
+| R209 | ai-signal-bot health_check: aiohttp session per call | `health_check.py:53` | Medium | New ClientSession per health check. Should reuse session (already noted R27) |
+| R210 | ai-signal-bot alerting: aiohttp session per alert | `alerting.py:168,190,205` | Medium | 3 new ClientSession per alert send. Should reuse session (already noted R27) |

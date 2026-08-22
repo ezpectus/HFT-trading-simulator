@@ -173,3 +173,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ BinanceAdapter: can_send_order TOCTOU | fetch_add always increments even on reject | CODE_AUDIT §8.204 |
 | web-ui App.jsx: 565 lines God component | 6 useEffects, 14 tabs, extract to hooks/components | CODE_AUDIT §8.211 |
 | shared_config.yaml: localhost | WS host localhost in shared config, won't work in prod | CODE_AUDIT §8.212 |
+| Alertmanager: hardcoded SMTP password | smtp_auth_password 'your-password' in git. Webhooks too | CODE_AUDIT §8.215 |
+| web-ui: 50 symbols duplicated | 50 symbols in JS + shared_config.yaml, out of sync risk | CODE_AUDIT §8.219 |
+| web-ui: getFilteredSymbols not memoized | Re-filters on every call, unnecessary re-renders | CODE_AUDIT §8.224 |
