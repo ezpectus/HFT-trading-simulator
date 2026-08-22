@@ -86,3 +86,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | DB busy_timeout | `database is locked` при concurrent writes | CODE_AUDIT §8.6 |
 | DB connection pooling | Каждый метод открывает/закрывает conn | CODE_AUDIT §8.7 |
 | Socket buffer tuning | OS defaults 64-128KB, bursts → drops | CODE_AUDIT §8.5 |
+| Helm probes отсутствуют | K8s pod не рестартует при hang | CODE_AUDIT §8.14 |
+| Docker healthchecks TCP | TCP проверяет порт, не готовность | CODE_AUDIT §8.9 |
+| aiohttp session per alert | Каждая отправка алерта = новая сессия | CODE_AUDIT §8.8 |
+| Top-level ErrorBoundary | Падение корневого компонента = белый экран | CODE_AUDIT §8.10 |

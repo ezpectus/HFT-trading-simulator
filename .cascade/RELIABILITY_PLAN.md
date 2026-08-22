@@ -562,3 +562,8 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R5 | SQL injection | `db.py` | ✅ Чисто | Все запросы parameterized (`?` placeholders) |
 | R6 | Unbounded structures | `src/` | ✅ Чисто | Все истории используют `deque(maxlen=...)` |
 | R7 | C++ concurrency | `hft-trade-bot/src/` | ✅ Правильно | atomics, mutexes, SPSC queue, spinlocks, CAS, cache-line alignment |
+| R8 | Resource leak: aiohttp session per alert | `alerting.py:168,190,205` | Medium | Каждая отправка алерта создаёт новую ClientSession. При частых алертах — overhead |
+| R9 | Docker healthchecks TCP вместо HTTP | `docker-compose*.yml` | Medium | TCP проверяет только порт, не готовность сервиса. exchange-simulator и ai-signal-bot |
+| R10 | Helm probes отсутствуют | `helm/templates/*.yaml` | High | K8s сервисы без liveness/readiness probes. Pod не рестартует при hang |
+| R11 | Нет top-level ErrorBoundary | `web-ui/src/App.jsx` | Low | При падении корневого компонента — белый экран |
+| R12 | Magic numbers в publisher | `signal_publisher.py` | Low | `maxlen=100`, `sleep(5)`, `Random(42)` — не из config |

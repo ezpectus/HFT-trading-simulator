@@ -387,3 +387,85 @@ conn = sqlite3.connect(self.path)
 Каждый метод (`save_signal`, `save_trade`, `save_equity`, `get_stats`) открывает новое соединение через `self._conn()`. В цикле бота это 3-4 соединения per signal cycle (60s). Не проблема для 1 бота, но при масштабировании на multiple bots → много соединений.
 
 **Фикс:** Persistent connection с reconnect logic, или connection pool.
+
+### 8.8 Resource leak: aiohttp ClientSession без close в alerting.py
+
+**Файл:** `ai-signal-bot/src/monitoring/alerting.py:168, 190, 205`
+**Severity:** Medium
+
+```python
+async with aiohttp.ClientSession() as session:
+    async with session.post(url, json=payload) as resp:
+        ...
+```
+
+Каждая отправка алерта (Discord/Telegram/Webhook) создаёт новую `ClientSession`. При частых алертах (например, circuit breaker tripping → 10 алертов/min) это утечка connector resources. `async with` закрывает сессию, но создание/уничтожение TCP connector — overhead.
+
+**Фикс:** Одна persistent `ClientSession` в `__init__`, `close()` в `stop()`.
+
+### 8.9 Docker healthchecks — TCP вместо HTTP (подтверждено)
+
+**Файлы:** `docker-compose.yml`, `docker-compose.prod.yml`, `docker-compose.staging.yml`, `docker-compose.hub.yml`
+**Severity:** Medium
+
+| Сервис | Текущий healthcheck | Проблема |
+|--------|---------------------|----------|
+| exchange-simulator | `socket.create_connection(('localhost', 8765))` | TCP, не HTTP /health |
+| ai-signal-bot | `socket.create_connection(('localhost', 8766))` | TCP, не HTTP /health |
+| hft-trade-bot | `wget http://localhost:9091/health` | ✅ HTTP |
+| web-ui | `wget http://localhost:3000/` | ⚠️ Проверяет главную страницу, не /health |
+| prometheus | `wget http://localhost:9090/-/healthy` | ✅ HTTP |
+| grafana | `wget http://localhost:3000/api/health` | ✅ HTTP |
+
+TCP healthcheck проверяет только что порт открыт, но сервис может быть hung (event loop blocked, deadlock). HTTP /health проверяет реальную готовность.
+
+### 8.10 Web UI: нет ErrorBoundary на top level — Low
+
+**Файлы:** `web-ui/src/`
+
+Найдены `PanelErrorBoundary.jsx` и `ChunkRetryBoundary.jsx` — но они используются локально для панелей. Нет top-level `<ErrorBoundary>` в `App.jsx`. Если корневой компонент падает — белый экран.
+
+### 8.11 Web UI: localStorage без try/catch в одном месте — Low
+
+**Файлы:** `web-ui/src/components/` — большинство компонентов используют `try/catch` для localStorage ✅, но `OnboardingTutorial.jsx:40` проверяет только `localStorage.getItem` без обработки `QuotaExceededError` для `setItem`.
+
+### 8.12 Type hints: `_EnsembleAdapter.analyze` без return type — Low
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py:50`
+
+```python
+def analyze(self, symbol: str, candles: list):  # ← нет -> Signal
+```
+
+В то время как все стратегии в `strategies.py` имеют `-> Signal`, `_EnsembleAdapter` не указывает return type. Это мешает статическому анализу и IDE autocomplete.
+
+### 8.13 Magic numbers в signal_publisher.py — Low
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py`
+
+- `deque(maxlen=100)` — hardcoded, не из config
+- `await asyncio.sleep(5)` в CB broadcast — hardcoded interval
+- `random.Random(42)` — seed для synthetic candles, не configurable
+
+### 8.14 Helm probes — нет (подтверждено)
+
+**Файлы:** `helm/templates/*.yaml`
+
+Grep по `livenessProbe|readinessProbe` в `helm/` — 0 результатов. Helm chart не имеет K8s probes вообще. Сервисы в K8s не имеют liveness/readiness checks.
+
+### 8.15 Clean patterns (подтверждено)
+
+| Паттерн | Статус |
+|---------|--------|
+| SQL injection | ✅ Все parameterized `?` |
+| Unbounded structures | ✅ Все `deque(maxlen=...)` |
+| C++ concurrency | ✅ atomics, mutexes, SPSC, spinlocks |
+| `import *` | ✅ 0 |
+| `eval()/exec()` | ✅ 0 |
+| `pickle` | ✅ 0 |
+| `yaml.load(` unsafe | ✅ 0 (all `safe_load`) |
+| `shell=True` | ✅ 0 |
+| Hardcoded credentials | ✅ 0 |
+| `assert` в production | ✅ 0 |
+| ErrorBoundary (web-ui) | ✅ PanelErrorBoundary + ChunkRetryBoundary (но нет top-level) |
+| localStorage try/catch (web-ui) | ✅ Почти везде (1 minor exception) |

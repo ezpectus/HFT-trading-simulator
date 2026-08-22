@@ -552,3 +552,62 @@ def _conn(self) -> sqlite3.Connection:
 ```
 
 **Why it matters at scale:** SQLite in WAL mode allows concurrent reads, but writes still serialize. With the default 5s timeout, if two writes collide (e.g., `save_signal` + `save_equity` in the same cycle), one gets `OperationalError: database is locked`. The bot crashes and restarts. With 1000 users, that's 1000 crashes per write collision. The good version sets `busy_timeout=30000` — SQLite waits up to 30s for the lock instead of failing immediately. Combined with `synchronous=NORMAL` (safe in WAL mode, 2× faster), this eliminates lock errors while maintaining durability.
+
+---
+
+### Example 15: Resource Leak — New HTTP Session Per Alert
+
+**BAD** — `monitoring/alerting.py:168,190,205`:
+```python
+async def _send_discord(self, alert):
+    payload = {...}
+    async with aiohttp.ClientSession() as session:  # ← new session every alert
+        async with session.post(self.discord_webhook, json=payload) as resp:
+            if resp.status not in (200, 204):
+                logger.error(f"Discord webhook failed: {resp.status}")
+```
+
+**GOOD**:
+```python
+class AlertSystem:
+    def __init__(self):
+        self._session: aiohttp.ClientSession | None = None
+
+    async def start(self):
+        self._session = aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=10),
+            connector=aiohttp.TCPConnector(limit=10, keepalive_timeout=30)
+        )
+
+    async def _send_discord(self, alert):
+        if not self._session:
+            return
+        payload = {...}
+        async with self._session.post(self.discord_webhook, json=payload) as resp:
+            if resp.status not in (200, 204):
+                logger.error(f"Discord webhook failed: {resp.status}")
+
+    async def stop(self):
+        if self._session:
+            await self._session.close()
+```
+
+**Why it matters at scale:** Each `aiohttp.ClientSession()` creates a new `TCPConnector` with its own connection pool. Creating and destroying a session per alert means: (1) no connection reuse — every alert opens a new TCP connection, (2) DNS lookup every time, (3) TLS handshake every time. When the circuit breaker trips and fires 10 alerts/min, that's 10 new TCP connections/min. With 1000 users, that's 10,000 unnecessary TCP connections/min. The good version creates one session with keepalive — connections are reused, DNS is cached, TLS sessions are resumed. 10× less overhead.
+
+---
+
+### Example 16: Docker Healthcheck — TCP vs HTTP
+
+**BAD** — `docker-compose.yml`:
+```yaml
+healthcheck:
+  test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8765), timeout=5)"]
+```
+
+**GOOD**:
+```yaml
+healthcheck:
+  test: ["CMD", "wget", "-q", "--spider", "http://localhost:8775/health"]
+```
+
+**Why it matters at scale:** TCP healthcheck only verifies the port is open — the process could be hung (event loop blocked, deadlock, OOM). Docker thinks the container is healthy, but the service is unresponsive. With HTTP `/health`, the endpoint checks real application state — DB connection, WS clients, internal queues. If the event loop is blocked, the HTTP server can't respond → Docker marks it unhealthy → restarts. In K8s, this is even more critical — liveness/readiness probes determine traffic routing. A TCP-probed pod receives traffic even when hung. The good version uses HTTP, which verifies actual application readiness.
