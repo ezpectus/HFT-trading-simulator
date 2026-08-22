@@ -5,195 +5,22 @@ capturing the empirical fact that trades cluster in bursts.
 """
 from __future__ import annotations
 
-import math
-import random
+from src.technical_analysis.hawkes_funcs import (
+    DEFAULT_MAX_EVENTS,
+    fit_hawkes,
+    hawkes_intensity,
+    simulate_hawkes,
+)
+from src.technical_analysis.hawkes_model import (
+    HawkesParams,
+    HawkesResult,
+    hawkes_log_lik,
+)
 
-MIN_LOG_LIK = 1e-10
 MIN_EVENTS = 5
 MIN_PRICES = 30
 DEFAULT_THRESHOLD = 0.003
 DEFAULT_SIM_T = 100
-DEFAULT_MAX_EVENTS = 300
-
-
-class HawkesParams:
-    """Fitted Hawkes process parameters."""
-
-    def __init__(
-        self,
-        mu: float,
-        alpha: float,
-        beta: float,
-        log_lik: float,
-        branching_ratio: float,
-    ) -> None:
-        self.mu = mu
-        self.alpha = alpha
-        self.beta = beta
-        self.log_lik = log_lik
-        self.branching_ratio = branching_ratio
-
-
-class HawkesResult:
-    """Container for Hawkes process analysis results."""
-
-    def __init__(
-        self,
-        events: list[float],
-        t: float,
-        params: HawkesParams,
-        intensity_path: list[dict],
-        simulated: list[float],
-        inter_arrivals: list[float],
-        mean_ia: float,
-        mean_sim_ia: float,
-        max_burst: int,
-        signal: str,
-        reason: str,
-        current_intensity: float,
-        intensity_ratio: float,
-        n_events: int,
-        n_simulated: int,
-    ) -> None:
-        self.events = events
-        self.t = t
-        self.params = params
-        self.intensity_path = intensity_path
-        self.simulated = simulated
-        self.inter_arrivals = inter_arrivals
-        self.mean_ia = mean_ia
-        self.mean_sim_ia = mean_sim_ia
-        self.max_burst = max_burst
-        self.signal = signal
-        self.reason = reason
-        self.current_intensity = current_intensity
-        self.intensity_ratio = intensity_ratio
-        self.n_events = n_events
-        self.n_simulated = n_simulated
-
-
-def hawkes_log_lik(
-    events: list[float],
-    mu: float,
-    alpha: float,
-    beta: float,
-    t: float,
-) -> float:
-    """Log-likelihood of a Hawkes process. -inf for non-stationary/invalid params."""
-    if alpha >= beta or mu <= 0 or alpha < 0 or beta <= 0:
-        return -math.inf
-
-    log_lik = 0.0
-    r = 0.0
-    for i in range(len(events)):
-        dt = events[i] - events[i - 1] if i > 0 else 0.0
-        r = math.exp(-beta * dt) * (1 + r)
-        log_lik += math.log(max(MIN_LOG_LIK, mu + alpha * r))
-
-    integral = mu * t
-    for event in events:
-        integral += (alpha / beta) * (1 - math.exp(-beta * (t - event)))
-
-    return log_lik - integral
-
-
-def fit_hawkes(events: list[float], t: float) -> HawkesParams:
-    """Grid-search MLE with fine-tuning around the best candidate."""
-    best_params = {"mu": 0.1, "alpha": 0.5, "beta": 1.0}
-    best_log_lik = -math.inf
-
-    mu_range = [0.01, 0.05, 0.1, 0.2, 0.5, 1.0]
-    alpha_range = [0.1, 0.3, 0.5, 0.7, 0.9, 1.2, 1.5]
-    beta_range = [0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 10.0]
-
-    for mu in mu_range:
-        for alpha in alpha_range:
-            for beta in beta_range:
-                if alpha >= beta:
-                    continue
-                ll = hawkes_log_lik(events, mu, alpha, beta, t)
-                if ll > best_log_lik:
-                    best_log_lik = ll
-                    best_params = {"mu": mu, "alpha": alpha, "beta": beta}
-
-    bm, ba, bb = best_params["mu"], best_params["alpha"], best_params["beta"]
-    for dm in _arange(-0.02, 0.02, 0.01):
-        for da in _arange(-0.1, 0.1, 0.05):
-            for db in _arange(-0.5, 0.5, 0.25):
-                mu = max(0.001, bm + dm)
-                alpha = max(0.01, ba + da)
-                beta = max(0.1, bb + db)
-                if alpha >= beta:
-                    continue
-                ll = hawkes_log_lik(events, mu, alpha, beta, t)
-                if ll > best_log_lik:
-                    best_log_lik = ll
-                    best_params = {"mu": mu, "alpha": alpha, "beta": beta}
-
-    return HawkesParams(
-        mu=best_params["mu"],
-        alpha=best_params["alpha"],
-        beta=best_params["beta"],
-        log_lik=best_log_lik,
-        branching_ratio=best_params["alpha"] / best_params["beta"],
-    )
-
-
-def _arange(start: float, stop: float, step: float) -> list[float]:
-    """Inclusive range with float step (mirrors JS for-loop semantics)."""
-    values: list[float] = []
-    value = start
-    while value <= stop + 1e-12:
-        values.append(value)
-        value += step
-    return values
-
-
-def hawkes_intensity(
-    t: float,
-    events: list[float],
-    mu: float,
-    alpha: float,
-    beta: float,
-) -> float:
-    """Conditional intensity at time t."""
-    intensity = mu
-    for event in events:
-        if event >= t:
-            break
-        intensity += alpha * math.exp(-beta * (t - event))
-    return intensity
-
-
-def simulate_hawkes(
-    mu: float,
-    alpha: float,
-    beta: float,
-    t: float,
-    max_events: int = DEFAULT_MAX_EVENTS,
-    seed: int | None = None,
-) -> list[float]:
-    """Simulate a Hawkes process via Ogata's thinning algorithm."""
-    rng = random.Random(seed)
-    events: list[float] = []
-    time = 0.0
-    intensity = mu
-
-    while time < t and len(events) < max_events:
-        u = rng.random()
-        if u <= 0 or intensity <= 0:
-            break
-        time += -math.log(u) / intensity
-        if time >= t:
-            break
-        new_intensity = hawkes_intensity(time, events, mu, alpha, beta)
-        if rng.random() < new_intensity / intensity:
-            events.append(time)
-            intensity = new_intensity + alpha
-        else:
-            intensity = new_intensity
-
-    return events
 
 
 def extract_events(prices: list[float], threshold: float = DEFAULT_THRESHOLD) -> list[float]:

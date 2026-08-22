@@ -67,8 +67,8 @@ def compute_free_energy(observations: list[float], beliefs: list[float], precisi
     """Variational free energy for Gaussian model."""
     f = 0.0
     for i in range(len(observations)):
-        pe = (observations[i] - beliefs[i]) ** 2 / (2 * precisions[i])
-        complexity = 0.5 * math.log(2 * math.pi * precisions[i])
+        pe = (observations[i] - beliefs[i]) ** 2 * precisions[i] / 2
+        complexity = 0.5 * math.log(2 * math.pi / precisions[i])
         f += pe + complexity
     return f
 

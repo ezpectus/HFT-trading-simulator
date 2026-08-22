@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 
 MIN_PRICES = 60
-DEFAULT_LOOKBACK = 150
+DEFAULT_LOOKBACK = 200
 DEFAULT_WINDOW_SIZE = 30
 DEFAULT_SHIFT_MODE = "constant"
 GRID_POINTS = 81
@@ -65,7 +65,7 @@ def cameron_martin_analysis(
     shift_mode: str = DEFAULT_SHIFT_MODE,
 ) -> CmResult | None:
     """Full Cameron-Martin analysis. None if insufficient data."""
-    if not prices or len(prices) < lookback + 1:
+    if not prices or len(prices) < lookback:
         return None
 
     prices = prices[-lookback:]

@@ -117,11 +117,13 @@ class MeanReversionStrategy:
 
     def __init__(
         self,
+        rsi_period: int = 14,
         rsi_oversold: float = 30,
         rsi_overbought: float = 70,
         bb_period: int = 20,
         bb_std: float = 2.0,
     ):
+        self.rsi_period = rsi_period
         self.rsi_oversold = rsi_oversold
         self.rsi_overbought = rsi_overbought
         self.bb_period = bb_period
@@ -137,7 +139,7 @@ class MeanReversionStrategy:
             )
 
         closes = [c["close"] if isinstance(c, dict) else c.close for c in candles]
-        rsi_vals = rsi(candles, 14)
+        rsi_vals = rsi(candles, self.rsi_period)
         mid, upper, lower = bollinger_bands(candles, self.bb_period, self.bb_std)
         atr_vals = atr(candles, 14)
 
@@ -190,11 +192,24 @@ class EnsembleVoter:
     """
 
     def __init__(self, mode: str = "majority", min_votes: int = 2,
-                 circuit_breaker: CircuitBreaker | None = None):
+                 circuit_breaker: CircuitBreaker | None = None,
+                 strategies: list | None = None):
         self.mode = mode
         self.min_votes = min_votes
         self.circuit_breaker = circuit_breaker
+        self.strategies = strategies or []
         self.name = "ensemble"
+
+    def analyze(self, symbol: str, candles: list[dict]) -> Signal:
+        """Run all configured strategies and combine their signals via vote()."""
+        if not self.strategies:
+            return Signal(
+                symbol=symbol, direction=SignalDirection.NEUTRAL,
+                confidence=0, strategy=self.name, entry_price=0,
+                stop_loss=0, take_profit=0, reason="No strategies configured",
+            )
+        signals = [s.analyze(symbol, candles) for s in self.strategies]
+        return self.vote(signals)
 
     def vote(self, signals: list[Signal]) -> Signal:
         """Combine multiple strategy signals into one ensemble signal."""

@@ -34,15 +34,15 @@ class VAE:
         self.latent_dim = latent_dim
         self.rng = random.Random(seed)
 
-        self.w1 = _init_weights(hidden_dim, input_dim, self.rng)
+        self.w1 = _init_weights(input_dim, hidden_dim, self.rng)
         self.b1 = _init_bias(hidden_dim)
-        self.w_mu = _init_weights(latent_dim, hidden_dim, self.rng)
+        self.w_mu = _init_weights(hidden_dim, latent_dim, self.rng)
         self.b_mu = _init_bias(latent_dim)
-        self.w_logvar = _init_weights(latent_dim, hidden_dim, self.rng)
+        self.w_logvar = _init_weights(hidden_dim, latent_dim, self.rng)
         self.b_logvar = _init_bias(latent_dim)
-        self.w2 = _init_weights(hidden_dim, latent_dim, self.rng)
+        self.w2 = _init_weights(latent_dim, hidden_dim, self.rng)
         self.b2 = _init_bias(hidden_dim)
-        self.w_out = _init_weights(input_dim, hidden_dim, self.rng)
+        self.w_out = _init_weights(hidden_dim, input_dim, self.rng)
         self.b_out = _init_bias(input_dim)
 
     def encode(self, x: list[float]) -> tuple[list[float], list[float], list[float]]:

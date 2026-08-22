@@ -82,7 +82,10 @@ def false_nearest_neighbors(x: list[float], tau: int, max_e: int = DEFAULT_MAX_E
     n = len(x)
     fnn_ratios: list[float] = []
     for e in range(1, max_e + 1):
-        n_embed = n - (e - 1) * tau
+        n_embed = n - e * tau
+        if n_embed <= 0:
+            fnn_ratios.append(0.0)
+            continue
         false_count = 0
         total_pairs = 0
         for i in range(n_embed):

@@ -65,11 +65,11 @@ def _build_transition(state_dim: int, period: int) -> list[list[float]]:
     t[0][0] = 1.0
     t[0][1] = 1.0
     t[1][1] = 1.0
-    for i in range(2, state_dim - 1):
+    for i in range(2, state_dim - 2):
         t[i][i + 1] = 1.0
     if state_dim > 2:
-        for i in range(2, state_dim):
-            t[state_dim - 1][i] = -1.0
+        for i in range(2, state_dim - 1):
+            t[state_dim - 2][i] = -1.0
     return t
 
 

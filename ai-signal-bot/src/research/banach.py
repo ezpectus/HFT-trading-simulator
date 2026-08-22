@@ -86,7 +86,7 @@ def fixed_point_iteration(
     trajectory = [{"x": x0, "y": y0, "iter": 0}]
     x = x0
     y = y0
-    errors = [{"iter": 0, "error": 0.0}]
+    errors = []
 
     for i in range(1, max_iter + 1):
         new = best_response(x, y, params)

@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 
 MIN_PRICES = 60
-DEFAULT_LOOKBACK = 120
+DEFAULT_LOOKBACK = 150
 DEFAULT_WINDOW_SIZE = 30
 DEFAULT_SIGMA = 0.02
 

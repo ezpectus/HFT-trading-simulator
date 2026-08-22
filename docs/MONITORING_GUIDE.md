@@ -371,3 +371,166 @@ docker-compose up -d prometheus grafana alertmanager jaeger
 
 - [Architecture](ARCHITECTURE.md) — Monitoring in system architecture
 - [Deployment](DEPLOYMENT.md) — Docker Compose, Helm, Kubernetes
+
+---
+
+## Hands-On Guide (No Theory, Just Clicks)
+
+> This section is for people who have never used Prometheus or Grafana before.
+> Step-by-step: what to click, what to see, what it means.
+
+### Step 1: Start Everything
+
+```bash
+# From project root:
+docker compose up
+
+# Or just monitoring (if app services are already running):
+docker compose up prometheus grafana
+```
+
+After startup, you have 6 services:
+
+| URL | What | Login |
+|-----|------|-------|
+| http://localhost:3000 | Web UI (trading dashboard) | — |
+| http://localhost:3001 | **Grafana** (charts and graphs) | admin / admin |
+| http://localhost:9099 | **Prometheus** (raw metrics) | — |
+| http://localhost:8765 | Exchange Simulator | — |
+| http://localhost:8766 | AI Signal Bot | — |
+| http://localhost:9091 | HFT Trade Bot health | — |
+
+### Step 2: Grafana — What to Look At
+
+1. Open `http://localhost:3001` in your browser
+2. Login: `admin`, password: `admin` (skip password change on first login)
+3. Left sidebar → icon with 4 squares → **Dashboards**
+4. You'll see **5 pre-loaded dashboards**:
+
+**Trading Overview** (the main one):
+- How many signals generated (signals_sent_total)
+- How many blocked by circuit breaker
+- How many WebSocket clients connected
+- Bot uptime
+
+**Latency Monitoring**:
+- p50/p95/p99/p999 latency per component
+- If C++ p99 > 1ms — something is wrong
+- If Python p99 > 100ms — that's normal
+
+**System Overview**:
+- CPU usage, memory, active connections
+- If memory keeps growing — memory leak
+
+**Trading Performance**:
+- PnL (profit/loss)
+- Drawdown (how deep in the red)
+- Win rate (% of profitable trades)
+
+**AI Signal Bot Metrics**:
+- Signals per strategy
+- Circuit breaker state (0=ok, 1=stopped, 2=half-open)
+
+### Step 3: Prometheus — Raw Metrics
+
+1. Open `http://localhost:9099`
+2. The search bar is a **PromQL** query input
+3. Try these queries:
+
+```promql
+# Total signals sent:
+ai_signal_bot_signals_sent_total
+
+# Total signals blocked by circuit breaker:
+ai_signal_bot_signals_blocked_total
+
+# Current WebSocket clients:
+ai_signal_bot_ws_clients_connected
+
+# Bot uptime in seconds:
+ai_signal_bot_uptime_seconds
+
+# All AI Signal Bot metrics (see what's available):
+{__name__=~"ai_signal_bot_.*"}
+```
+
+4. **Status → Targets** tab — shows which services are reachable:
+   - `UP` = service responds on /metrics
+   - `DOWN` = service is down or not started
+
+### Step 4: What Each Metric Type Means
+
+| Type | Meaning | Example |
+|------|---------|---------|
+| **Counter** | Only goes up (total count) | Signals sent: 1500 |
+| **Gauge** | Goes up and down (current value) | WS clients right now: 3 |
+| **Histogram** | Distribution (percentiles) | p99 latency = 500us |
+
+### Step 5: Troubleshooting
+
+**Prometheus shows DOWN for a target:**
+```bash
+# Check if the service responds:
+curl http://localhost:8775/metrics    # Exchange Simulator
+curl http://localhost:9090/metrics    # AI Signal Bot
+
+# If empty — metrics endpoint is not running in that service
+```
+
+**Grafana shows no data:**
+1. Check Prometheus targets (Status → Targets in Prometheus)
+2. In Grafana: Configuration (gear icon) → Data Sources → Prometheus → Test
+3. If Prometheus is not running — Grafana can't get data
+
+**No dashboards in Grafana:**
+1. Check that `monitoring/grafana/dashboards/` has `.json` files
+2. Check that `dashboards.yml` exists in that folder
+3. In Grafana: Dashboards → Import → Upload .json file manually
+
+**Port 3001 already in use:**
+```bash
+# Find what's using port 3001:
+netstat -ano | findstr :3001
+
+# Or change the port in docker-compose.yml:
+# ports: ["3002:3000"]  # Grafana on 3002 instead
+```
+
+### Step 6: Creating Your Own Dashboard
+
+1. In Grafana → Dashboards → **New Dashboard**
+2. Click **Add Panel**
+3. In the query bar, type a PromQL query, e.g.:
+   ```promql
+   rate(ai_signal_bot_signals_sent_total[5m])
+   ```
+   This shows signals per second over the last 5 minutes.
+4. Choose visualization type (Graph, Stat, Gauge, etc.)
+5. Click **Apply** → **Save Dashboard**
+
+### Quick Reference: PromQL Cheat Sheet
+
+```promql
+# Counter rate (per second over 5 min):
+rate(metric_name[5m])
+
+# Increase over 1 hour:
+increase(metric_name[1h])
+
+# Average over 10 min:
+avg_over_time(metric_name[10m])
+
+# p99 latency from histogram:
+histogram_quantile(0.99, rate(metric_name_bucket[5m]))
+
+# Filter by label:
+metric_name{label="value"}
+# Example:
+ai_signal_bot_signals_sent_total{strategy="trend_following"}
+
+# Sum across all labels:
+sum(metric_name)
+
+# Top 5 by value:
+topk(5, metric_name)
+```

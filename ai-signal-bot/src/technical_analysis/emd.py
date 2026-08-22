@@ -94,10 +94,6 @@ def _find_maxima(signal: list[float]) -> list[dict]:
     for i in range(1, len(signal) - 1):
         if signal[i] > signal[i - 1] and signal[i] >= signal[i + 1]:
             maxima.append({"index": i, "value": signal[i]})
-    if signal[0] > signal[1]:
-        maxima.insert(0, {"index": 0, "value": signal[0]})
-    if signal[-1] > signal[-2]:
-        maxima.append({"index": len(signal) - 1, "value": signal[-1]})
     return maxima
 
 
@@ -107,10 +103,6 @@ def _find_minima(signal: list[float]) -> list[dict]:
     for i in range(1, len(signal) - 1):
         if signal[i] < signal[i - 1] and signal[i] <= signal[i + 1]:
             minima.append({"index": i, "value": signal[i]})
-    if signal[0] < signal[1]:
-        minima.insert(0, {"index": 0, "value": signal[0]})
-    if signal[-1] < signal[-2]:
-        minima.append({"index": len(signal) - 1, "value": signal[-1]})
     return minima
 
 
