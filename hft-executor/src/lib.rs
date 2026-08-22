@@ -212,6 +212,11 @@ impl OrderExecutor {
             || text.contains("\"order_fill\"")
             || text.contains("\"type\":\"fill\"")
     }
+
+    /// Public wrapper for testing fill detection logic.
+    pub fn is_fill_message_public(text: &str) -> bool {
+        Self::is_fill_message(text)
+    }
 }
 
 // ── FFI for C++ interop ──

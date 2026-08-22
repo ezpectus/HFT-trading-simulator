@@ -340,6 +340,47 @@ jobs:
           fi
         working-directory: web-ui
 
+  test-rust:
+    name: Rust Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: hft-executor
+      - name: Build
+        run: cargo build --release
+        working-directory: hft-executor
+      - name: Test
+        run: cargo test --release
+        working-directory: hft-executor
+
+  docker-smoke:
+    name: Docker Compose Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [test-python, test-js]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start services
+        run: docker compose up -d --wait --timeout 60
+      - name: Verify Exchange Simulator
+        run: |
+          sleep 5
+          curl -sf http://localhost:8765/health || exit 1
+      - name: Verify AI Signal Bot
+        run: curl -sf http://localhost:8766/health || exit 1
+      - name: Verify Web UI
+        run: curl -sf http://localhost:3000/ || exit 1
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs --tail=50
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
+
   security-bandit:
     name: Security Scan (Bandit)
     runs-on: ubuntu-latest
@@ -481,7 +522,7 @@ jobs:
     name: All Tests Passed
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint-python, lint-cpp, lint-js, test-python, test-cpp, test-cpp-msvc, test-js, test-windows, test-e2e, build-js, build-docker, audit-deps, security-bandit, security-codeql]
+    needs: [lint-python, lint-cpp, lint-js, test-python, test-cpp, test-cpp-msvc, test-js, test-rust, test-windows, test-e2e, build-js, build-docker, docker-smoke, audit-deps, security-bandit, security-codeql]
     if: always()
     steps:
       - name: Check all job results
@@ -505,10 +546,12 @@ jobs:
           check_result "test-cpp" "${{ needs.test-cpp.result }}"
           check_result "test-cpp-msvc" "${{ needs.test-cpp-msvc.result }}"
           check_result "test-js" "${{ needs.test-js.result }}"
+          check_result "test-rust" "${{ needs.test-rust.result }}"
           check_result "test-windows" "${{ needs.test-windows.result }}"
           check_result "test-e2e" "${{ needs.test-e2e.result }}"
           check_result "build-js" "${{ needs.build-js.result }}"
           check_result "build-docker" "${{ needs.build-docker.result }}"
+          check_result "docker-smoke" "${{ needs.docker-smoke.result }}"
           check_result "audit-deps" "${{ needs.audit-deps.result }}"
           check_result "security-bandit" "${{ needs.security-bandit.result }}"
           check_result "security-codeql" "${{ needs.security-codeql.result }}"

@@ -105,6 +105,110 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 
 > Full diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
+### Data Flow Diagram (Mermaid)
+
+```mermaid
+graph TB
+    subgraph "Exchange Simulator (Python)"
+        ES[Exchange Sim<br/>:8765]
+    end
+
+    subgraph "AI Signal Bot (Python)"
+        AI[8-Stage Pipeline<br/>:8766]
+        VAL[SignalValidator]
+        RISK[RiskManager]
+        AI --> VAL --> RISK
+    end
+
+    subgraph "HFT Trade Bot (C++20)"
+        CPP[Signal Engine V2/V3<br/>:9091]
+        SHM_RX[SHM Signal Consumer]
+        SHM_TX[SHM Fill Producer]
+        CPP --> SHM_RX
+        CPP --> SHM_TX
+    end
+
+    subgraph "Rust Executor"
+        RUST[OrderExecutor<br/>tokio-tungstenite]
+    end
+
+    subgraph "Web UI (React 18)"
+        UI[204 Panels<br/>:3000]
+    end
+
+    ES -->|WebSocket :8765| AI
+    ES -->|WebSocket :8765| UI
+    AI -->|SHM IPC ~30us| SHM_RX
+    RISK -->|SHM signals| SHM_RX
+    SHM_TX -->|SHM fills ~25us| AI
+    CPP -->|FFI| RUST
+    RUST -->|WebSocket send| ES
+    AI -->|WebSocket :8766| UI
+
+    style ES fill:#4CAF50,color:#fff
+    style AI fill:#2196F3,color:#fff
+    style CPP fill:#f44336,color:#fff
+    style RUST fill:#FF9800,color:#fff
+    style UI fill:#9C27B0,color:#fff
+```
+
+---
+
+## Architecture Deep Dive
+
+### Why Three Languages?
+
+| Language | Role | Why |
+|----------|------|-----|
+| **Python** | AI Signal Bot | Rich ML ecosystem (PyTorch, scikit-learn, Optuna). 50ms latency is fine for signal generation — not the hot path. |
+| **C++20** | HFT Trade Bot | Sub-millisecond loop with zero-allocation hot path, lock-free queues, cache-line alignment. This is where every microsecond matters. |
+| **Rust** | Order Executor | Memory-safe FFI callable from C++. No GC pauses, no data races. Real WebSocket send via tokio-tungstenite with auto-reconnect. |
+
+### Why SHM IPC Instead of Just WebSocket?
+
+The hot path (Python signals → C++ execution) uses shared memory ring buffers, not WebSocket:
+
+| Metric | WebSocket | SHM IPC |
+|--------|-----------|--------|
+| Latency | ~2ms per message | ~30us per message |
+| Overhead | TCP + framing + JSON parse | memcpy + atomic flag |
+| Speedup | — | **60x faster** |
+
+WebSocket is still used for non-critical paths (Web UI, exchange simulator) where human-perceivable latency is fine.
+
+### Why PPO for Reinforcement Learning?
+
+PPO (Proximal Policy Optimization) was chosen over DQN for the primary RL agent because:
+- **On-policy** — no replay buffer, lower memory, simpler training loop
+- **Stable** — clipped objective prevents catastrophic policy updates
+- **Good for trading** — financial markets are non-stationary; on-policy adapts faster than off-policy
+- **Both implemented** — DQN is available as an alternative for comparison
+
+### Why Ensemble Voting Instead of Single Strategy?
+
+No single strategy works in all market regimes. Ensemble voting (majority or confidence-weighted) combines:
+- Trend Following (profits in trending markets)
+- Mean Reversion (profits in ranging markets)
+- FFT Cycle (profits in cyclical markets)
+- Statistical Arbitrage (profits from mispricing)
+- Sentiment (profits from news events)
+
+When 3+ strategies agree, the signal has higher confidence than any individual strategy could provide.
+
+### Latency Budget Breakdown
+
+```
+Exchange Simulator → [WS 2ms] → AI Signal Bot → [SHM 30us] → C++ HFT Bot → [Rust FFI 1us] → Order Executor → [WS 0.5ms] → Exchange
+
+Total fast path: ~3.5ms (signal to order)
+Total slow path: ~50ms (AI analysis cycle)
+
+C++ main loop: 1ms (configurable via signal_interval_ms)
+V2 signal cooldown: 100ms (prevents signal spam)
+```
+
+> Full performance details: [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
+
 ---
 
 ## Features
@@ -113,7 +217,7 @@ This project is designed as a **hands-on HFT learning platform**. Each component
 
 - **Signal Engine V2** — 6-indicator weighted composite: InlineEMA (21/50), InlineRSI (14), InlineADX (14), InlineVWAP, Order Book Imbalance, Trade Flow
 - **Signal Engine V3** — HMM regime detection (4-state: TRENDING_UP/DOWN, RANGING, VOLATILE) with online Baum-Welch adaptation, Viterbi decoding, and regime-gated signal boosting/dampening. Sub-millisecond regime switching entirely in C++.
-- **Rust Order Executor** — Memory-safe alternative executor with crossbeam SPSC queue, FFI interface for C++ interop. WebSocket send is a stub (logs JSON, no real WS connection).
+- **Rust Order Executor** — Memory-safe executor with real tokio-tungstenite WebSocket, auto-reconnect with exponential backoff, fill confirmation tracking, FFI interface for C++ interop.
 - **Memory-Mapped Persistence** — Zero-copy state recovery via mmap for crash resilience
 - **Smart Order Router V2** — 5 strategies: BestPrice, LowestLatency, LowestFees, BestEffective, DepthAware; per-exchange EMA latency tracking; anti-toxic backoff
 - **Pressure Model** — Multi-level OBI (5/10/20 + distance-weighted), toxicity detection, microprice deviation, queue position estimation, spread regime classification, price impact prediction
