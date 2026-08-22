@@ -863,3 +863,22 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R306 | exchange_simulator audit_logger: f-string logging | `audit_logger.py:51` | Low | f-string formatted even when log level above INFO. Use % formatting |
 | R307 | exchange_simulator ws_prometheus.py | `ws_prometheus.py` | Low | Manual Prometheus format duplicates prometheus_client. Tight coupling. Consolidate |
 | R308 | f-string logging across project | `8+ modules` | Low | 8+ modules use f-string logging. Should use % formatting for lazy evaluation |
+| R309 | ai-signal-bot communication/circuit_breaker.py | `circuit_breaker.py` | ✅ Excellent | 3-state CLOSED/OPEN/HALF_OPEN, configurable, half-open probes, stats, reset |
+| R310 | ai-signal-bot: 3× CircuitBreaker duplication | `3 files` | High | 3 separate CircuitBreaker implementations. Consolidate into 1 |
+| R311 | ai-signal-bot communication/ws_client.py | `ws_client.py` | ✅ Good | 3 encoding formats, compression, deque(maxlen=200), trading guard |
+| R312 | ai-signal-bot ws_client: no reconnect | `ws_client.py:119` | Medium | On ConnectionClosed, just logs. No reconnect. Bot stops receiving data |
+| R313 | ai-signal-bot communication/ws_connection_pool.py | `ws_connection_pool.py` | ✅ Excellent | Connection reuse, max 10, health checks ping/pong 5s, asyncio.Lock, stale eviction |
+| R314 | ai-signal-bot ws_pool: fire-and-forget close | `ws_connection_pool.py:106` | Low | _evict_stale creates asyncio.create_task(conn.close()) — fire-and-forget |
+| R315 | ai-signal-bot communication/fix_client.py | `fix_client.py` | ✅ Good | FIX 4.4, SOH delimiter, body length + checksum, session mgmt, seq persistence |
+| R316 | ai-signal-bot health_check: catch-all exception | `health_check.py:73` | Low | `except Exception` masks bugs. Catch specific aiohttp.ClientError, OSError |
+| R317 | ai-signal-bot communication/shm_ring_buffer.py | `shm_ring_buffer.py` | ✅ Excellent | SPSC lock-free, cache-line aligned, cross-platform, atomic ops, power-of-2, magic |
+| R318 | ai-signal-bot communication/health_check.py | `health_check.py` | ✅ Good | 3-service aggregation, parallel gather, 503 on unhealthy, 3s timeout, cleanup |
+| R319 | ai-signal-bot communication/metrics_server.py | `metrics_server.py` | ✅ Good | 7 metrics, Prometheus format, manual HTTP, no deps, proper cleanup |
+| R320 | ai-signal-bot metrics_server: not thread-safe | `metrics_server.py:25` | Low | Plain int counters, += not atomic. Use asyncio.Lock or itertools.count |
+| R321 | ai-signal-bot strategies/signal.py | `signal.py` | ✅ Excellent | SignalDirection enum, Signal dataclass, is_actionable, rr_ratio, to_dict, div-by-zero guard |
+| R322 | ai-signal-bot risk/risk_manager.py | `risk_manager.py` | ✅ Good | 4 features (trailing/breakeven/partial TP/max hold), ATR-based, PositionRiskState |
+| R323 | ai-signal-bot risk_manager: no thread safety | `risk_manager.py` | Low | PositionRiskState peak/trough could race across asyncio tasks. Use asyncio.Lock |
+| R324 | ai-signal-bot: dual health check systems | `2 files` | Medium | observability/health_checks.py + communication/health_check.py. Consolidate |
+| R325 | ai-signal-bot: dual metrics systems | `2 files` | Medium | communication/metrics_server.py + monitoring/. Consolidate |
+| R326 | ai-signal-bot communication: f-string logging | `5+ files` | Low | 5+ communication modules use f-string logging. Use % formatting |
+| R327 | ai-signal-bot: 4× health check implementations | `4 files` | Medium | observability/HealthChecker + communication/HealthAggregator + monitoring/health_server + exchange_simulator/health.py. Consolidate |

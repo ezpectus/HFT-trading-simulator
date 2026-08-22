@@ -210,3 +210,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ai-signal-bot research: 35 modules code reduction | 35 research-grade math modules, ~5000+ lines. Feature-flag | CODE_AUDIT §8.307 |
 | exchange_simulator: triple metrics systems | 3 separate Prometheus metrics generators. Consolidate | CODE_AUDIT §8.316 |
 | exchange_simulator tracing: time.sleep in trace | 1ms latency added to every traced order. Tracing should be passive | CODE_AUDIT §8.313 |
+| ai-signal-bot ws_client: no reconnect | On ConnectionClosed, just logs. No reconnect. Bot stops receiving data | CODE_AUDIT §8.323 |
+| ai-signal-bot: 3× CircuitBreaker duplication | 3 separate CircuitBreaker implementations. Consolidate into 1 | CODE_AUDIT §8.321 |
+| ai-signal-bot: dual health check systems | observability/HealthChecker + communication/HealthAggregator. Consolidate | CODE_AUDIT §8.335 |
+| ai-signal-bot: dual metrics systems | communication/metrics_server.py + monitoring/. Consolidate | CODE_AUDIT §8.336 |
+| ai-signal-bot: 4× health check implementations | 4 separate health check systems across project. Consolidate | CODE_AUDIT §8.335 |

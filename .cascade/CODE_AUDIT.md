@@ -4355,3 +4355,229 @@ Same f-string logging pattern.
 Manually generates Prometheus text format strings. This duplicates what `prometheus_client` already does in `metrics.py`. The mixin accesses `self.clients`, `self.market._candle_count`, `self.market.is_weekend_mode`, `self._tick_interval`, `self._trading_active`, `self._total_connections`, `self._total_disconnections`, `self.exchanges`, `ex.account` — tight coupling.
 
 **Фикс:** Use `prometheus_client` metrics from `metrics.py` instead of manual string generation.
+
+### 8.320 ai-signal-bot communication/circuit_breaker.py: 3-state breaker — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py` (138 lines)
+
+- **3 states**: CLOSED → OPEN → HALF_OPEN (proper circuit breaker pattern)
+- **Configurable**: failure_threshold=5, cooldown_seconds=60, half_open_max_probes=1, success_threshold=2
+- **Stats**: total_trips, total_blocks
+- **State transitions**: OPEN→HALF_OPEN on cooldown expiry (lazy in `state` property), HALF_OPEN→CLOSED on success threshold, HALF_OPEN→OPEN on failure
+- **get_status()**: Returns dict for monitoring/UI
+- **reset()**: Force reset to CLOSED
+
+Excellent circuit breaker with proper 3-state pattern, half-open probes, and stats. ✅
+
+### 8.321 ai-signal-bot: 3× CircuitBreaker duplication — High (code reduction)
+
+**Файлы:**
+1. `ai-signal-bot/src/communication/circuit_breaker.py` (138 lines) — 3-state: CLOSED/OPEN/HALF_OPEN, configurable, stats
+2. `ai-signal-bot/src/strategies/circuit_breaker.py` (85 lines) — 2-state: tripped/not, simpler
+3. `ai-signal-bot/src/utils/helpers.py:145` — Simple API call circuit breaker
+
+Three separate CircuitBreaker implementations with overlapping functionality. The communication one is the most complete (3-state with half-open). The strategies one is simpler (tripped boolean). The utils one is for API calls.
+
+**Code reduction:** Consolidate into a single configurable CircuitBreaker in `src/communication/circuit_breaker.py`. The strategies and utils versions can use it with different configs.
+
+**Фикс:** Delete `strategies/circuit_breaker.py` and `utils/helpers.py:CircuitBreaker`, import from `communication/circuit_breaker.py`.
+
+### 8.322 ai-signal-bot communication/ws_client.py: WebSocket client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py` (215 lines)
+
+- **3 encoding formats**: msgpack (fastest), orjson (fast JSON), json (fallback)
+- **Compression**: `compression="deflate"` + `ping_interval=10`
+- **Bounded history**: `deque(maxlen=200)` per symbol — no unbounded growth
+- **Message types**: candles, snapshot, trading_state, error, welcome
+- **Trading guard**: `if not self._trading_active: return` before order submission
+- **Protocol version**: Sends `protocol_version: 2` on subscribe
+
+Good WebSocket client with encoding fallback chain and bounded history. ✅
+
+### 8.323 ai-signal-bot ws_client: no reconnect logic — Medium
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py:119-121`
+
+```python
+except websockets.ConnectionClosed:
+    logger.warning("Connection closed by server")
+    self._connected = False
+```
+
+On connection close, the client just logs and sets `_connected = False`. No reconnect attempt. The bot will stop receiving market data until manually reconnected.
+
+**Фикс:** Add exponential backoff reconnect loop. Or use `websockets.connect` with `reconnect` pattern.
+
+### 8.324 ai-signal-bot communication/ws_connection_pool.py: WS pool — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/communication/ws_connection_pool.py` (152 lines)
+
+- **Connection reuse**: Pooled connections by URL, stale eviction
+- **Max pool size**: 10 connections, evicts stale on overflow
+- **Health checks**: Periodic ping/pong with 5s timeout, marks unhealthy
+- **asyncio.Lock**: Proper async lock for pool operations
+- **Compression**: `compression="deflate"`, `ping_interval=10`, `max_size=2**20`
+- **Stale timeout**: 30s idle → connection closed
+- **close_all()**: Cancels health task, closes all connections
+- **pool_stats()**: Returns per-URL connection counts
+
+Excellent connection pool with health checks, stale eviction, and proper cleanup. ✅
+
+### 8.325 ai-signal-bot ws_connection_pool: _evict_stale fire-and-forget close — Low
+
+**Файл:** `ai-signal-bot/src/communication/ws_connection_pool.py:106`
+
+```python
+asyncio.create_task(conn.close())
+```
+
+`_evict_stale` creates fire-and-forget tasks to close stale connections. These tasks may not complete before the function returns, and if the event loop stops, they could be cancelled.
+
+**Фикс:** Use `await conn.close()` directly since `_evict_stale` is called within the lock context.
+
+### 8.326 ai-signal-bot communication/fix_client.py: FIX 4.4 client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py` (447 lines)
+
+- **FIX 4.4**: Standard protocol with SOH delimiter
+- **Message parsing**: `FixMessage.parse()` handles tag=value pairs
+- **Message building**: `FixMessage.build()` computes body length + checksum
+- **Session management**: Logon/logout, heartbeat, sequence numbers
+- **Properties**: is_logon, is_logout, is_heartbeat, is_execution_report, is_market_data
+- **Timestamp**: Millisecond precision with UTC
+- **Temp file**: Sequence numbers persisted to temp file
+
+Good FIX client implementation with proper protocol handling. ✅
+
+### 8.327 ai-signal-bot fix_client: catch-all exception in _check_service — Low
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py:73`
+
+```python
+except Exception as e:
+    return {"status": "unhealthy", "error": str(e)}
+```
+
+The health aggregator's `_check_service` catches `Exception` — a catch-all that could mask unexpected errors like `TypeError` or `AttributeError` that indicate bugs.
+
+**Фикс:** Catch specific exceptions: `aiohttp.ClientError`, `OSError`, `asyncio.TimeoutError`.
+
+### 8.328 ai-signal-bot communication/shm_ring_buffer.py: Python↔C++ IPC — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py` (285 lines)
+
+- **SPSC lock-free**: Single-producer single-consumer, matches C++ `ShmRingBuffer<T>`
+- **Cache-line aligned**: head at offset 64, tail at offset 128 (alignas(64))
+- **Cross-platform**: Windows (FlushViewOfFile) + Linux (msync)
+- **Atomic operations**: Aligned uint64 reads/writes (naturally atomic on x86/x64)
+- **Power-of-2 capacity**: Enforced in constructor, enables bitwise modulo
+- **Magic number**: `0x484654343253484D` ("HFT42SHM") for validation
+- **Safe __del__**: Checks `_mm` and `_fd` before cleanup
+
+Excellent shared memory IPC implementation matching C++ binary layout. ✅
+
+### 8.329 ai-signal-bot communication/health_check.py: Health aggregator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py` (127 lines)
+
+- **3-service aggregation**: ai-signal-bot (:9090), exchange-simulator (:8775), hft-trade-bot (:9091)
+- **Parallel checks**: `asyncio.gather(*tasks)` — all services checked concurrently
+- **3 states**: healthy (all healthy), unhealthy (any unhealthy), degraded (mixed)
+- **503 on unhealthy**: Returns HTTP 503 when any service is unhealthy
+- **Timeout**: 3s per service check
+- **Proper cleanup**: `stop()` stops site + cleans up runner
+- **nosec annotation**: `# nosec: B104` on `0.0.0.0` bind
+
+Good health aggregator with parallel checks and proper HTTP status codes. ✅
+
+### 8.330 ai-signal-bot communication/metrics_server.py: Prometheus metrics — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/metrics_server.py` (136 lines)
+
+- **7 metrics**: signals_sent, signals_blocked, ws_clients, backtests, cb_trips, cb_state, uptime
+- **Prometheus format**: Correct `# HELP` + `# TYPE` comments, text/plain version=0.0.4
+- **Manual HTTP**: Uses `asyncio.start_server` — no external web framework needed
+- **Proper cleanup**: `stop()` closes server + waits
+- **nosec annotation**: `# nosec: B104` on `0.0.0.0` bind
+- **Connection handling**: Reads HTTP headers, responds, closes connection
+
+Good lightweight metrics server without external dependencies. ✅
+
+### 8.331 ai-signal-bot metrics_server: not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/communication/metrics_server.py:25-32`
+
+```python
+self._signals_sent = 0
+self._signals_blocked = 0
+```
+
+Metrics counters are plain integers incremented from async callbacks. While Python's GIL prevents true data races, `+=` is not atomic — it's read-modify-write. If multiple asyncio tasks increment simultaneously, some increments could be lost.
+
+**Фикс:** Use `asyncio.Lock` or `itertools.count` for atomic counting. Or accept the minor inaccuracy for a metrics endpoint.
+
+### 8.332 ai-signal-bot strategies/signal.py: Signal dataclass — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/strategies/signal.py` (58 lines)
+
+- **SignalDirection enum**: LONG, SHORT, NEUTRAL
+- **Signal dataclass**: symbol, direction, confidence (0-100), strategy, entry_price, SL, TP, reason, timestamp
+- **is_actionable**: `direction != NEUTRAL` — clean check
+- **rr_ratio**: Correct R:R calculation for LONG/SHORT, 0.0 for NEUTRAL
+- **to_dict()**: Serializes all fields including computed rr_ratio
+- **Risk guard**: `if risk > 0 else 0.0` — prevents division by zero
+
+Excellent signal type design — clean, minimal, correct. ✅
+
+### 8.333 ai-signal-bot risk/risk_manager.py: trailing stop + breakeven — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/risk_manager.py` (262 lines)
+
+- **4 risk features**: trailing stop, breakeven move, partial TP, max hold time
+- **ATR-based trailing**: Optional `trailing_atr_multiplier` for adaptive distance
+- **PositionRiskState**: Tracks per-position state (peak/trough price, breakeven_moved)
+- **Configurable**: All features have enable flags + configurable parameters
+- **Side-aware**: Correct SL adjustment for LONG (raise SL) and SHORT (lower SL)
+
+Good risk manager with multiple risk management features and proper position tracking. ✅
+
+### 8.334 ai-signal-bot risk_manager: no thread safety — Low
+
+**Файл:** `ai-signal-bot/src/risk/risk_manager.py`
+
+`RiskManager` manages `PositionRiskState` objects. If called from multiple asyncio tasks (e.g., processing multiple symbols concurrently), the `peak_price`/`trough_price` updates could race.
+
+**Фикс:** Use `asyncio.Lock` per position, or ensure single-threaded execution.
+
+### 8.335 ai-signal-bot: dual health check systems — Medium (code reduction)
+
+**Файлы:**
+1. `ai-signal-bot/src/observability/health_checks.py` (221 lines) — `HealthChecker` class with 4 component checks
+2. `ai-signal-bot/src/communication/health_check.py` (127 lines) — `HealthAggregator` class with 3-service aggregation
+
+Two separate health check systems:
+- `observability/health_checks.py` checks internal components (WS, DB, Redis, exchange)
+- `communication/health_check.py` aggregates external service health endpoints
+
+They don't share status format, state definitions, or response structure. `observability` uses `HealthStatus` enum (HEALTHY/DEGRADED/UNHEALTHY), `communication` uses strings ("healthy"/"degraded"/"unhealthy").
+
+**Code reduction:** Consolidate into a single health system. `HealthAggregator` can use `HealthChecker` for internal checks + aggregate external services.
+
+### 8.336 ai-signal-bot: dual metrics systems — Medium (code reduction)
+
+**Файлы:**
+1. `ai-signal-bot/src/communication/metrics_server.py` (136 lines) — Manual Prometheus text format, 7 metrics
+2. `ai-signal-bot/src/monitoring/` — Separate monitoring module with metrics
+
+Two separate metrics systems in the same bot. The communication one is lightweight (no deps), the monitoring one may use prometheus_client.
+
+**Code reduction:** Consolidate into a single metrics module.
+
+### 8.337 ai-signal-bot communication: f-string logging across 5+ files — Low
+
+**Файлы:** `ws_client.py:84,88`, `ws_connection_pool.py:65,94,97,123`, `fix_client.py`, `health_check.py:118`, `metrics_server.py:101`
+
+5+ communication modules use f-string logging. Same pattern as the rest of the project.
+
+**Фикс:** Use `%` formatting for lazy evaluation across all modules.
