@@ -591,3 +591,8 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R34 | CI/CD pipeline | `.github/workflows/ci.yml` | ✅ Excellent | 18 jobs: lint, test, build, docker, security, e2e, coverage, test-count floor |
 | R35 | CI: npm audit non-blocking | `ci.yml:332` | Low | `|| true` means high-severity vulns don't fail CI |
 | R36 | No config schema validation | `config/settings.yaml` | Medium | No pydantic/schema. Wrong type in YAML → runtime TypeError |
+| R37 | Dockerfile security | `Dockerfile*` | ✅ Good | Multi-stage, non-root, --no-install-recommends, .dockerignore. Tag pins not digests |
+| R38 | Dockerfile healthcheck TCP | `ai-signal-bot/Dockerfile:42` | Medium | TCP socket check, not HTTP /health. Same as docker-compose issue |
+| R39 | Terraform encryption | `terraform/` | Low | No encrypt/KMS/SSE config. Skeleton/stub .tf files only |
+| R40 | Dead code: tracing.py | `observability/tracing.py` | Low | 111 lines, fully implemented, never imported. 0 grep matches for setup_tracing |
+| R41 | Test coverage gaps | `tests/` | Medium | No tests for signal_publisher, ws_client, db.py, alerting, llm_engine, notifier, observability |

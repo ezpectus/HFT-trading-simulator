@@ -886,3 +886,105 @@ self._session = aiohttp.ClientSession(
 ```
 
 **Why it matters at scale:** A hardcoded 10s timeout might be fine for Binance (fast API), but too short for a slow exchange in Asia (200ms RTT + processing). When a user in Singapore connects to a US exchange, 10s might not be enough for heavy order book snapshots. To change the timeout, you need to: edit source code → commit → CI → build Docker image → deploy. That's 30+ minutes of downtime for a 1-number change. The good version puts timeouts in config — change YAML, restart pod, done in 30 seconds. With 1000 users across different regions, each needing different timeouts, hardcoded values are unworkable. Config-driven timeouts let each deployment tune to its network conditions without code changes.
+
+---
+
+### Example 25: Missing Tests on Critical Paths
+
+**BAD** — `ai-signal-bot/tests/`:
+```
+tests/
+├── unit/
+│   ├── test_strategies.py      ✅
+│   ├── test_risk_manager.py    ✅
+│   ├── test_backtester.py      ✅
+│   ├── test_signal_validator.py ✅
+│   └── ...
+└── integration/
+    └── test_e2e_pipeline.py    ✅
+
+# But these critical modules have ZERO tests:
+# - signal_publisher.py  (WS broadcast to clients)
+# - db.py                (SQLite CRUD, WAL checkpoint)
+# - alerting.py          (Discord/Telegram/webhook alerts)
+# - ws_client.py         (reconnection logic)
+# - notifier.py          (notification dispatch)
+```
+
+**GOOD**:
+```python
+# tests/unit/test_signal_publisher.py
+import pytest
+from unittest.mock import AsyncMock, MagicMock
+from src.communication.signal_publisher import SignalPublisher
+
+class TestSignalPublisher:
+    @pytest.mark.asyncio
+    async def test_broadcast_to_multiple_clients(self):
+        pub = SignalPublisher(...)
+        client1 = AsyncMock(); client2 = AsyncMock()
+        pub._clients = {client1, client2}
+        await pub.broadcast_signal({"symbol": "BTC/USDT", "direction": "LONG"})
+        client1.send.assert_called_once()
+        client2.send.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_slow_client_disconnected(self):
+        pub = SignalPublisher(...)
+        slow_client = AsyncMock()
+        slow_client.send.side_effect = asyncio.TimeoutError
+        pub._clients = {slow_client}
+        await pub.broadcast_signal({"symbol": "BTC/USDT"})
+        assert slow_client not in pub._clients  # removed
+
+# tests/unit/test_db.py
+class TestDatabase:
+    def test_insert_and_retrieve_signal(self):
+        db = Database(":memory:")
+        db.save_signal({"symbol": "BTC/USDT", "direction": "LONG"})
+        signals = db.get_recent_signals(limit=1)
+        assert len(signals) == 1
+        assert signals[0]["symbol"] == "BTC/USDT"
+```
+
+**Why it matters at scale:** Signal publisher, DB, and alerting are the backbone of the trading system. A bug in `broadcast_signal` means clients get stale or no data. A bug in `db.py` means trades are lost. A bug in `alerting.py` means critical alerts don't fire. Without tests, these bugs ship to production and are discovered by users. With 1000 users, a signal publisher bug affects all 1000 simultaneously. The good version tests the actual critical paths: broadcast to N clients, slow client removal, DB insert/retrieve, alert dispatch. Each test runs in <1s and catches regressions before they reach production. The cost of writing these tests is 2 hours. The cost of a production bug in signal publishing is 1000 users losing money.
+
+---
+
+### Example 26: Dead Code (Unused Module)
+
+**BAD** — `ai-signal-bot/src/observability/tracing.py` (111 lines):
+```python
+# Fully implemented OpenTelemetry tracing...
+def setup_tracing(service_name, endpoint, enabled=True):
+    # 30 lines of OTel setup
+    ...
+
+def get_tracer(name):
+    # 20 lines of no-op fallback
+    ...
+
+def shutdown_tracing():
+    # 15 lines of graceful shutdown
+    ...
+
+# But grep for setup_tracing|get_tracer across entire project = 0 matches
+# Nobody calls this. Nobody imports this. 111 lines of dead code.
+```
+
+**GOOD**:
+```python
+# Option A: Integrate it
+# run.py
+from src.observability.tracing import setup_tracing, shutdown_tracing
+
+setup_tracing(service_name="ai-signal-bot", endpoint=config.tracing.endpoint)
+# ... at shutdown:
+shutdown_tracing()
+
+# Option B: Remove it
+# git rm src/observability/tracing.py
+# Less code = less maintenance, fewer dependencies, smaller image
+```
+
+**Why it matters at scale:** Dead code is a liability, not an asset. It looks maintained (has docstrings, proper error handling), so developers assume it's used. They waste time reading it, understanding it, updating its dependencies. When someone finally tries to use it, it's broken — because nobody tested it, the API drifted from what callers would need. In a codebase with 1000 files, 10% dead code means 100 files of confusion. New developers spend hours reading code that does nothing. In the worst case, dead code has security vulnerabilities (outdated dependencies) that show up in audits but can't be exploited because the code is never called — but you still have to fix them. The good version is binary: either integrate it (add the 2-line call in `run.py`) or delete it. No zombie code.

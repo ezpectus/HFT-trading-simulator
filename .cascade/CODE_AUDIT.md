@@ -787,3 +787,66 @@ Same pattern — `|| true` means Bandit never fails CI. Issues are uploaded as a
 No pydantic schema or JSON Schema for config validation. If someone puts `risk_pct: "2%"` (string instead of float) in YAML, the bot loads it, then crashes at runtime when it tries `balance * risk_pct / 100` → `TypeError`.
 
 **Фикс:** Pydantic `BaseModel` for config sections: `RiskConfig`, `StrategyConfig`, `NetworkConfig`. Validate at load time with clear error messages.
+
+### 8.43 Dockerfiles — ✅ Good security practices
+
+**Файлы:** `ai-signal-bot/Dockerfile`, `Dockerfile.prod`, `hft-trade-bot/Dockerfile`
+
+| Practice | Status |
+|----------|--------|
+| Multi-stage build | ✅ All 3 |
+| Non-root user (`appuser`) | ✅ All 3 |
+| `--no-install-recommends` | ✅ All 3 |
+| `rm -rf /var/lib/apt/lists/*` | ✅ All 3 |
+| HEALTHCHECK | ✅ All 3 |
+| `.dockerignore` | ✅ All 3 |
+| Pinned base images | ⚠️ `python:3.12-slim` (minor tag, not digest) |
+
+**Единственная проблема:** Base images use tag pins (`python:3.12-slim`) not SHA digests. A supply chain attack on Docker Hub could replace the image. **Фикс:** Pin with `@sha256:...` digest.
+
+### 8.44 Dockerfile healthcheck — TCP vs HTTP (revisited)
+
+**Файлы:** `ai-signal-bot/Dockerfile:42`, `Dockerfile.prod:38`
+
+```dockerfile
+HEALTHCHECK CMD python -c "import socket; socket.create_connection(('localhost', 8766), timeout=5)" || exit 1
+```
+
+TCP socket check, not HTTP `/health`. Same issue as docker-compose healthchecks (§8.9). The C++ bot (`hft-trade-bot/Dockerfile:60`) correctly uses `wget --spider http://localhost:9091/health`.
+
+### 8.45 Terraform — placeholder only
+
+**Файл:** `terraform/README.md` — describes VPC, EKS, RDS, ElastiCache, S3
+
+Grep for `encrypt|kms|sse|bucket` in `terraform/` = 0 matches. The README describes infrastructure but the actual `.tf` files appear to be skeleton/stub files. No encryption configuration for:
+- RDS (at-rest encryption)
+- S3 (server-side encryption)
+- EKS (secrets encryption)
+
+This is expected for a lite/template project, but should be noted for production deployment.
+
+### 8.46 Dead code: `tracing.py` — never imported
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py` (111 lines)
+
+Grep for `setup_tracing|get_tracer` across entire project = 0 matches (outside `tracing.py` itself). The module is fully implemented (OpenTelemetry + Jaeger, no-op fallback, graceful shutdown) but never used. 111 lines of dead code.
+
+**Фикс:** Either integrate `setup_tracing()` into `run.py` startup, or remove the file.
+
+### 8.47 Test coverage gaps — Medium
+
+**Файлы:** `ai-signal-bot/tests/`
+
+Tests exist for: strategies, risk, backtesting, signal validation, exchange factory, circuit breaker, metrics.
+
+**Missing test coverage for:**
+- `src/communication/signal_publisher.py` — no unit tests for WS broadcast, client management
+- `src/communication/ws_client.py` — no unit tests for reconnection logic
+- `src/database/db.py` — no unit tests for CRUD operations, WAL checkpoint
+- `src/monitoring/alerting.py` — no unit tests for Discord/Telegram/webhook alerts
+- `src/llm_engine/engine.py` — no unit tests for LLM integration
+- `src/notification/notifier.py` — no unit tests
+- `src/observability/` — no unit tests (tracing, health_checks, logging)
+- `src/ml/` — limited tests (only automl, feature_store partially)
+
+These are critical paths — signal publishing, DB operations, alerting — with zero test coverage.

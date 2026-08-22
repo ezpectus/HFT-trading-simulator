@@ -105,3 +105,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | No config schema validation | Wrong type in YAML → runtime TypeError | CODE_AUDIT §8.42 |
 | No HFT alert rules | HFT errors, DB locks, CB changes not alerted | CODE_AUDIT §8.38 |
 | CI: npm audit non-blocking | High-severity vulns don't fail CI | CODE_AUDIT §8.40 |
+| Dockerfile healthcheck TCP | TCP not HTTP, same as compose | CODE_AUDIT §8.44 |
+| Dead code: tracing.py | 111 lines, never imported | CODE_AUDIT §8.46 |
+| Test coverage gaps | signal_publisher, db, alerting, llm — 0 tests | CODE_AUDIT §8.47 |
