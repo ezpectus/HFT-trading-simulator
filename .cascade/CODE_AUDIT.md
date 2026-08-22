@@ -2161,3 +2161,177 @@ Clean separation of bot loop functions:
 - `print_status`
 
 All take `BotContext&` by reference. No globals, no singletons. ✅
+
+### 8.154 C++ risk_manager.h: dual risk system (V1 + V2) — ✅ Good
+
+**Файл:** `hft-trade-bot/src/risk/risk_manager.h` (258 lines)
+
+Two risk check levels:
+- **V1 `check_signal()`** — hot path, no mutex, `[[unlikely]]` on rejection paths for I-cache optimization. Checks confidence, R:R, max positions, daily drawdown. Comment explains why no mutex (params read-only in hot path).
+- **V2 `check_order()`** — pre-trade, mutex-protected. Checks blacklist, leverage, position size, exposure, daily loss, drawdown, rate throttle, margin. CAS-based rate limiter avoids check-then-act race.
+
+Position sizing: risk-based (`risk_amount / risk_per_unit`), capped by max notional. ✅
+
+### 8.155 C++ risk_manager.h: check_order mutex on hot path — Medium
+
+**Файл:** `hft-trade-bot/src/risk/risk_manager.h:101`
+
+```cpp
+CheckResult check_order(...) {
+    std::lock_guard<std::mutex> lk(params_mutex_);
+```
+
+`check_order()` takes a mutex on every call. In HFT, this is the pre-trade check — called before every order submission. The mutex serializes all order submissions. If the bot submits 50 orders/second, the mutex contention could add microseconds.
+
+The mutex protects `params_` (blacklist, per-symbol limits) which are rarely modified. The hot-path reads could use a `std::shared_mutex` (read lock for check_order, write lock for blacklist modifications) to allow concurrent reads.
+
+**Фикс:** Use `std::shared_mutex` with `shared_lock` for `check_order()` and `unique_lock` for `blacklist_symbol()`.
+
+### 8.156 C++ risk_manager.h: daily_pnl operator+= on atomic — Low
+
+**Файл:** `hft-trade-bot/src/risk/risk_manager.h:201`
+
+```cpp
+void update_pnl(double pnl) { daily_pnl_ += pnl; }
+```
+
+`daily_pnl_` is `std::atomic<double>`. The `+=` operator on `atomic<double>` is **not atomic** — it's equivalent to `daily_pnl_.store(daily_pnl_.load() + pnl)`, which is a check-then-act race. Two threads calling `update_pnl()` concurrently can lose updates.
+
+Compare with `on_fill()` which correctly uses `fetch_sub()` (atomic). And `update_pnl_v2()` which correctly uses `store()` (overwrite, not increment).
+
+**Фикс:** Use `daily_pnl_.fetch_add(pnl, std::memory_order_relaxed)`.
+
+### 8.157 C++ pre_trade_risk.h: lock-free token bucket — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/risk/pre_trade_risk.h` (205 lines)
+
+`TokenBucket` rate limiter is fully lock-free:
+- `try_acquire()` — CAS loop on `tokens_`
+- `refill()` — CAS on `last_refill_ns_` ensures only one thread refills, then CAS loop on `tokens_`
+- `try_acquire_n()` — batch acquire for multi-token operations
+
+`PreTradeRisk::check()` is O(1), lock-free for most checks. 8 rejection codes with `const char*` reasons (no `std::string` allocation). Blacklist/whitelist support. ✅
+
+### 8.158 C++ pre_trade_risk.h: blacklist/whitelist not thread-safe — Medium
+
+**Файл:** `hft-trade-bot/src/risk/pre_trade_risk.h:189-193`
+
+```cpp
+void blacklist(const std::string& symbol) { config_.blacklist.insert(symbol); }
+void unblacklist(const std::string& symbol) { config_.blacklist.erase(symbol); }
+```
+
+`blacklist()` and `unblacklist()` modify `config_.blacklist` (an `unordered_set`) without any synchronization. `check()` reads the same set concurrently. `unordered_set::insert()` while another thread does `count()` is a data race → undefined behavior.
+
+**Фикс:** Use a `std::shared_mutex` or make the blacklist immutable after construction (copy-on-write).
+
+### 8.159 C++ portfolio_risk.h: VaR/CVaR/drawdown — ✅ Good
+
+**Файл:** `hft-trade-bot/src/risk/portfolio_risk.h` (262 lines)
+
+- `DrawdownTracker` — peak-to-trough, underwater duration, max drawdown
+- Historical VaR — sorted returns, percentile lookup
+- Parametric VaR — mean - z * sigma * portfolio_value
+- CVaR (Expected Shortfall) — average of tail beyond VaR
+- Stress test — scenario shocks
+- Fixed-size arrays for VaR/CVaR (no heap alloc in hot path)
+
+### 8.160 C++ simd_indicators.h: AVX2 indicators — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/simd_indicators.h` (228 lines)
+
+SIMD-accelerated indicator calculations:
+- `SimdEMA` — AVX2 `_mm256_fmadd_pd` for 4 doubles in parallel, scalar fallback if `__AVX2__` not defined
+- `SimdRSI` — SIMD gain/loss calculation
+- Proper `#if defined(__AVX2__)` guard with scalar fallback
+
+This is the correct way to use SIMD — compile-time guard, portable fallback, aligned data. ✅
+
+### 8.161 C++ signal_receiver.h: WebSocket client — ✅ Good
+
+**Файл:** `hft-trade-bot/src/communication/signal_receiver.h` (210 lines)
+
+- WebSocket++ client for exchange simulator + AI signal bot
+- Callback-based: `SignalCallback`, `CandleCallback`, `ArbitrageCallback`
+- Symbol registration with ID mapping
+- Private inheritance from `SignalReceiverData` (composition over inheritance)
+- Uses `nlohmann::json` for parsing (not `snprintf` like `order_executor.h`)
+
+### 8.162 Terraform: hardcoded RDS password — Medium
+
+**Файл:** `terraform/environments/dev/main.tf:31`
+
+```hcl
+variable "db_password" {
+  description = "RDS master password"
+  type        = string
+  sensitive   = true
+  default     = "ChangeMeInProduction123!"
+}
+```
+
+The `sensitive = true` flag prevents the password from being displayed in Terraform output, but the **default value** is hardcoded in the source file. If someone runs `terraform apply` without setting `db_password`, the RDS instance gets `ChangeMeInProduction123!`. This is in the dev environment, but it's still a real RDS instance with real data.
+
+**Фикс:** Remove the `default` line. Terraform will prompt for the password interactively, or it can be set via `TF_VAR_db_password` environment variable or `terraform.tfvars` (gitignored).
+
+### 8.163 Terraform: S3 backend with encryption + locking — ✅ Good
+
+**Файл:** `terraform/environments/dev/main.tf:13-19`
+
+```hcl
+backend "s3" {
+  bucket         = "hft-trading-tfstate-dev"
+  key            = "dev/terraform.tfstate"
+  region         = "us-east-1"
+  encrypt        = true
+  dynamodb_table = "hft-trading-tflock-dev"
+}
+```
+
+State encryption (`encrypt = true`) and locking (`dynamodb_table`) are configured. This prevents concurrent `terraform apply` and protects state files at rest. ✅
+
+### 8.164 Terraform: modular structure — ✅ Good
+
+**Файл:** `terraform/environments/dev/main.tf` (98 lines)
+
+Clean modular composition:
+- `vpc` module — CIDR, availability zones
+- `eks` module — node types, scaling
+- `rds` module — instance class, storage
+- `elasticache` module — Redis cache
+- `s3` module — log storage
+
+Outputs for cluster endpoint, RDS endpoint, Redis endpoint, S3 bucket. Environment-specific (dev vs prod). ✅
+
+### 8.165 verify.bat: comprehensive Windows test runner — ✅ Good
+
+**Файл:** `verify.bat` (123 lines)
+
+- 5 components: exchange_simulator, ai-signal-bot, C++ CMake, Rust cargo, web-ui
+- Error tracking with `EXIT_CODE`
+- Graceful skip if CMake not found
+- Per-component pass/fail reporting
+
+### 8.166 C++ risk_manager: duplicate risk system — Medium
+
+**Файлы:** `risk_manager.h` vs `pre_trade_risk.h`
+
+There are **two separate pre-trade risk systems**:
+1. `RiskManager::check_order()` — V2, mutex-protected, 8 checks
+2. `PreTradeRisk::check()` — lock-free, 8 checks, token bucket rate limiter
+
+Both do essentially the same thing: blacklist, leverage, position size, exposure, daily loss, rate limit, margin. This is code duplication. The `PreTradeRisk` version is better (lock-free, token bucket) but `RiskManager` is used in `BotContext`.
+
+**Фикс:** Consolidate into one risk system. Use `PreTradeRisk` (lock-free) and remove `RiskManager::check_order()`, or vice versa.
+
+### 8.167 C++ risk_manager: reset_daily not thread-safe — Low
+
+**Файл:** `hft-trade-bot/src/risk/risk_manager.h:214`
+
+```cpp
+void reset_daily() { daily_pnl_ = 0.0; }
+```
+
+Uses `operator=` on `atomic<double>` which is atomic (store), but `peak_equity_` is not reset. If the peak equity from yesterday is still set, the drawdown check will compare today's equity against yesterday's peak — incorrect.
+
+**Фикс:** Also reset `peak_equity_` and `orders_this_second_` in `reset_daily()`.

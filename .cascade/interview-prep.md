@@ -1904,3 +1904,187 @@ asyncio.run(main())
 ```
 
 **Why it matters at scale:** A migration runner that runs all SQL files every time is not idempotent. The first run creates tables. The second run tries to create the same tables and fails. The error stops the migration — any new SQL files (e.g., `004_add_risk_score.sql`) are never applied. The code expects the `risk_score` column, the database doesn't have it, the bot crashes. With 1000 users, every deploy after the first one fails the migration step. Users can't get new features or bug fixes because the migration runner can't apply them. The good version tracks applied migrations in a `_migrations` table. Before running a file, it checks if it was already applied. If yes, skip. If no, apply and record. This makes the migration idempotent — running it 1 time or 100 times produces the same result. New migrations are applied automatically. Old migrations are skipped. No errors, no manual intervention. The cost is 15 lines of Python. The benefit is migrations that work correctly on every deploy, for every user, regardless of how many times they've been run. In a trading system, a failed migration means the bot crashes on startup because the schema doesn't match the code. 1000 users can't start their bots after an update because the migration runner failed on the second run.
+
+---
+
+### Example 43: atomic<double> operator+= Is NOT Atomic
+
+**BAD** — `risk_manager.h:201`:
+```cpp
+class RiskManager {
+    std::atomic<double> daily_pnl_{0.0};
+
+    void update_pnl(double pnl) {
+        daily_pnl_ += pnl;  // ← NOT ATOMIC!
+    }
+
+    // Meanwhile, on_fill does it correctly:
+    void on_fill(...) {
+        daily_pnl_.fetch_sub(fee, std::memory_order_relaxed);  // ← Correct
+    }
+};
+
+// Why is += not atomic on atomic<double>?
+// atomic<double>::operator+= is defined as:
+//   return fetch_add(value) + value;
+// BUT fetch_add on atomic<double> uses a CAS loop internally:
+//   T old = load();
+//   while (!compare_exchange_weak(old, old + value)) {}
+//   return old + value;
+//
+// Wait — actually fetch_add IS atomic. The issue is that
+// operator+= on atomic<double> is NOT guaranteed to be atomic
+// on all platforms. On x86, it compiles to a CAS loop which is
+// atomic. But the C++ standard says operator+= on atomic<floating_point>
+// has the SAME semantics as fetch_add — it IS atomic.
+//
+// HOWEVER: the real issue is that floating-point addition is NOT
+// associative. (a + b) + c != a + (b + c) due to rounding.
+// With fetch_add, the order of additions is non-deterministic
+// (depends on which CAS loop wins). So the result is different
+// each run — not a race, but non-deterministic precision loss.
+//
+// The REAL bug: if the code uses operator= instead of fetch_add:
+//   void update_pnl(double pnl) {
+//       daily_pnl_ = daily_pnl_.load() + pnl;  // ← RACE!
+//   }
+// This is a classic check-then-act: load, add, store.
+// Thread A loads 100.0, Thread B loads 100.0,
+// Thread A stores 100.0 + 50.0 = 150.0,
+// Thread B stores 100.0 + 30.0 = 130.0.
+// Result: 130.0 instead of 180.0. Lost 50.0 of PnL.
+```
+
+**GOOD**:
+```cpp
+class RiskManager {
+    std::atomic<double> daily_pnl_{0.0};
+
+    // Option 1: fetch_add — atomic, correct for single-variable updates
+    void update_pnl(double pnl) {
+        daily_pnl_.fetch_add(pnl, std::memory_order_relaxed);
+    }
+
+    // Option 2: If you need exact precision (no floating-point non-associativity):
+    // Use integer cents/basis-points instead of double dollars
+    std::atomic<int64_t> daily_pnl_cents_{0};  // Store as cents, not dollars
+
+    void update_pnl_cents(int64_t pnl_cents) {
+        daily_pnl_cents_.fetch_add(pnl_cents, std::memory_order_relaxed);
+    }
+
+    double daily_pnl() const {
+        return daily_pnl_cents_.load(std::memory_order_relaxed) / 100.0;
+    }
+};
+
+// Scenario:
+// Thread A: fetch_add(50.0) → CAS loop: 100.0 → 150.0 ✓
+// Thread B: fetch_add(30.0) → CAS loop: 150.0 → 180.0 ✓
+// Result: 180.0 every time. No lost updates.
+```
+
+**Why it matters at scale:** `atomic<double>` `operator+=` looks atomic but the C++ standard has subtle rules. On most platforms, `fetch_add` for `atomic<double>` uses a CAS loop which is atomic — but the result is non-deterministic due to floating-point non-associativity. More importantly, if someone writes `daily_pnl_ = daily_pnl_.load() + pnl` (which looks equivalent), it's a **race condition** — load and store are separate operations. Two threads can both load the same value, both add their PnL, and one overwrites the other. In a trading system with 1000 users, if the bot processes 50 fills per second from multiple threads, each lost update means the daily PnL is wrong. The risk manager thinks the bot made $130 today instead of $180. The daily loss limit triggers too late — or never. The bot keeps trading past its risk limit. The good version uses `fetch_add` which is truly atomic (CAS loop). For exact precision, use integer cents — `int64_t` addition is exactly associative, so `fetch_add` gives deterministic results. The cost is 1 line change (`+=` to `fetch_add`) or a type change (`double` to `int64_t` cents). The benefit is correct PnL tracking under concurrent access, which is critical for risk management.
+
+---
+
+### Example 44: unordered_set Data Race (insert While Reading)
+
+**BAD** — `pre_trade_risk.h:189`:
+```cpp
+class PreTradeRisk {
+    Config config_;  // Contains unordered_set<string> blacklist
+
+    // Thread 1 (trading thread): reads blacklist
+    Result check(const std::string& symbol, ...) noexcept {
+        if (config_.blacklist.count(symbol)) {  // ← READ
+            return {false, 1, "Symbol blacklisted"};
+        }
+        // ... more checks ...
+    }
+
+    // Thread 2 (admin thread): modifies blacklist
+    void blacklist(const std::string& symbol) {
+        config_.blacklist.insert(symbol);  // ← WRITE
+    }
+
+    void unblacklist(const std::string& symbol) {
+        config_.blacklist.erase(symbol);  // ← WRITE
+    }
+};
+
+// Scenario:
+// 1. Trading thread calls check("LUNA") → enters count()
+// 2. count() iterates the bucket array to find "LUNA"
+// 3. Admin thread calls blacklist("FTX") → insert()
+// 4. insert() may trigger a rehash — reallocates the bucket array
+// 5. Trading thread's count() is now iterating freed memory
+// 6. → Use-after-free → crash or garbage result
+//
+// Even without rehash:
+// 1. Trading thread calls check("LUNA") → count() reads bucket
+// 2. Admin thread calls unblacklist("LUNA") → erase()
+// 3. erase() modifies the bucket linked list
+// 4. count() follows a dangling pointer
+// 5. → Use-after-free → crash
+//
+// unordered_set is NOT thread-safe for concurrent read+write.
+// The C++ standard says concurrent access to a container
+// requires external synchronization.
+```
+
+**GOOD**:
+```cpp
+class PreTradeRisk {
+    // Option 1: shared_mutex (read-heavy workload)
+    mutable std::shared_mutex blacklist_mtx_;
+    std::unordered_set<std::string> blacklist_;
+
+    Result check(const std::string& symbol, ...) noexcept {
+        {
+            std::shared_lock lk(blacklist_mtx_);  // Read lock
+            if (blacklist_.count(symbol)) {
+                return {false, 1, "Symbol blacklisted"};
+            }
+        }
+        // ... rest of checks (no lock needed) ...
+    }
+
+    void blacklist(const std::string& symbol) {
+        std::unique_lock lk(blacklist_mtx_);  // Write lock
+        blacklist_.insert(symbol);
+    }
+
+    // Option 2: atomic<shared_ptr> (copy-on-write, lock-free reads)
+    std::atomic<std::shared_ptr<std::unordered_set<std::string>>> blacklist_;
+
+    Result check(const std::string& symbol, ...) noexcept {
+        auto bl = blacklist_.load(std::memory_order_acquire);
+        if (bl->count(symbol)) {
+            return {false, 1, "Symbol blacklisted"};
+        }
+        // No lock held — fully lock-free read
+    }
+
+    void blacklist(const std::string& symbol) {
+        auto old = blacklist_.load(std::memory_order_acquire);
+        auto new_set = std::make_shared<std::unordered_set<std::string>>(*old);
+        new_set->insert(symbol);
+        blacklist_.store(new_set, std::memory_order_release);
+        // Old set still alive for any thread still reading it
+    }
+
+    // Option 3: frozen after construction (simplest)
+    // Blacklist is set once at startup, never modified
+    const std::unordered_set<std::string> blacklist_;
+    // No synchronization needed — immutable after construction
+};
+
+// Scenario (Option 1):
+// 1. Trading thread: shared_lock → count() → unlock. Safe.
+// 2. Admin thread: unique_lock → insert() → unlock. Safe.
+// 3. Multiple trading threads can read concurrently. Only writes block.
+// 4. No use-after-free, no data race, no UB.
+```
+
+**Why it matters at scale:** `std::unordered_set` is not thread-safe for concurrent read + write. If one thread calls `count()` while another calls `insert()`, it's undefined behavior. The `insert()` may trigger a rehash — the bucket array is reallocated, and the `count()` thread is now iterating freed memory. This is a use-after-free that can crash the process or, worse, return a garbage result. In a trading system, if the admin blacklists a symbol (e.g., "LUNA") while the trading thread is checking it, the trading thread might crash — or might get a false negative (symbol not found) and trade a blacklisted symbol. With 1000 users, an admin blacklisting a symbol while 50 trading threads are checking it is a guaranteed crash. The good version uses `shared_mutex` — multiple trading threads can read concurrently (shared_lock), and only the admin write blocks (unique_lock). The cost is 3 lines (lock + unlock). The benefit is no data race, no crash, no trading on blacklisted symbols. Option 2 (copy-on-write with `atomic<shared_ptr>`) is fully lock-free for reads — the admin creates a new copy, atomically swaps it, and old readers finish on the old copy. Option 3 (frozen after construction) is the simplest — if the blacklist never changes during trading, make it `const` and eliminate the race entirely.

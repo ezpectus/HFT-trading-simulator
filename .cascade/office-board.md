@@ -154,3 +154,9 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ bot_context: God struct | 25+ members, all coupled, hard to test | CODE_AUDIT §8.147 |
 | C++ SPSCQueue + mutex | SPSC is single-producer but mutex suggests multi-thread race | CODE_AUDIT §8.148 |
 | prod VITE_WS localhost fallback | Forgetting to set in .env.prod = broken WS | CODE_AUDIT §8.152 |
+| C++ risk_manager: check_order mutex | Serializes all order submissions, use shared_mutex | CODE_AUDIT §8.155 |
+| C++ daily_pnl += not atomic | atomic<double> += is load+store race, use fetch_add | CODE_AUDIT §8.156 |
+| C++ pre_trade_risk: blacklist race | insert/erase while check() reads = data race UB | CODE_AUDIT §8.158 |
+| C++ duplicate risk system | RiskManager + PreTradeRisk do same 8 checks | CODE_AUDIT §8.166 |
+| C++ reset_daily incomplete | peak_equity_ not reset → wrong drawdown next day | CODE_AUDIT §8.167 |
+| Terraform: hardcoded RDS password | default = "ChangeMeInProduction123!" | CODE_AUDIT §8.162 |

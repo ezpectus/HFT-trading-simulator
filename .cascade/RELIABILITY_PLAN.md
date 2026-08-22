@@ -688,3 +688,17 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R131 | docker-compose.prod: backend internal | `docker-compose.prod.yml:273` | ✅ Good | backend network internal: true — DBs not accessible from host |
 | R132 | docker-compose.prod: VITE_WS fallback | `docker-compose.prod.yml:237` | Low | Defaults to localhost without :? check. Forgetting to set = broken WS in prod |
 | R133 | C++ bot_loop.h | `bot_loop.h` | ✅ Good | Clean function separation, BotContext& by ref, no globals |
+| R134 | C++ risk_manager.h: dual V1+V2 | `risk_manager.h` | ✅ Good | V1 no-mutex hot path with [[unlikely]], V2 mutex-protected 8 checks, CAS rate limiter |
+| R135 | C++ risk_manager: check_order mutex | `risk_manager.h:101` | Medium | Mutex on every order submission serializes all orders. Use shared_mutex for read-heavy |
+| R136 | C++ risk_manager: daily_pnl += race | `risk_manager.h:201` | Low | atomic<double> += is not atomic (load+store). Use fetch_add. on_fill uses fetch_sub correctly |
+| R137 | C++ pre_trade_risk: token bucket | `pre_trade_risk.h` | ✅ Excellent | Lock-free CAS token bucket, O(1) check, const char* reasons, blacklist+whitelist |
+| R138 | C++ pre_trade_risk: blacklist not thread-safe | `pre_trade_risk.h:189` | Medium | insert/erase on unordered_set while check() reads concurrently = data race UB |
+| R139 | C++ portfolio_risk.h | `portfolio_risk.h` | ✅ Good | VaR/CVaR/drawdown/stress, fixed-size arrays, no heap alloc in hot path |
+| R140 | C++ simd_indicators.h | `simd_indicators.h` | ✅ Excellent | AVX2 EMA/RSI with _mm256_fmadd_pd, scalar fallback, compile-time guard |
+| R141 | C++ signal_receiver.h | `signal_receiver.h` | ✅ Good | WebSocket++ client, callback-based, symbol ID mapping, nlohmann/json parsing |
+| R142 | Terraform: hardcoded RDS password | `dev/main.tf:31` | Medium | default = "ChangeMeInProduction123!" — RDS gets weak password if not overridden |
+| R143 | Terraform: S3 backend encryption+locking | `dev/main.tf:13` | ✅ Good | encrypt=true, dynamodb_table for locking. State protection done right |
+| R144 | Terraform: modular structure | `dev/main.tf` | ✅ Good | VPC+EKS+RDS+ElastiCache+S3 modules, environment-specific, outputs |
+| R145 | verify.bat | `verify.bat` | ✅ Good | 5-component Windows test runner, error tracking, graceful CMake skip |
+| R146 | C++ duplicate risk system | `risk_manager.h` vs `pre_trade_risk.h` | Medium | Two systems doing same 8 checks. Consolidate to PreTradeRisk (lock-free) |
+| R147 | C++ risk_manager: reset_daily incomplete | `risk_manager.h:214` | Low | Resets daily_pnl but not peak_equity_ → drawdown compares against yesterday's peak |
