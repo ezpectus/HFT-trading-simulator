@@ -1580,3 +1580,103 @@ Clear documentation, all vars optional with localhost defaults, feature flags do
 | **Total** | **~800** | |
 
 ~800 lines removable without changing any functionality. This reduces maintenance burden, bug surface, and review time.
+
+### 8.110 Health checks v2: deep liveness/readiness — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py` (221 lines)
+
+This is the **correct** pattern — unlike the shallow health check noted in §8.45:
+- `/health/live` — process alive (uptime, PID)
+- `/health/ready` — checks WS, DB, Redis, exchange connectivity
+- `/health/status` — full report with component details
+- Returns HTTP 503 when unhealthy (K8s removes from service)
+- Per-component health: HEALTHY / DEGRADED / UNHEALTHY
+- Latency measured per check
+- Specific exception types caught (not bare `except:`)
+
+This is what §8.45 recommended. The code exists but may not be wired into the main bot startup.
+
+### 8.111 Notifier: Telegram/Discord — ✅ Good
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py` (334 lines)
+
+- Tokens from env vars (`TELEGRAM_BOT_TOKEN`, `DISCORD_BOT_TOKEN`)
+- `aiohttp.ClientSession` properly closed in `stop()`
+- `_poll_task` cancelled and awaited in `stop()`
+- Remote commands: `/status`, `/positions`, `/close_all`, `/pause`, `/resume`
+- Specific exception types (`OSError`, `RuntimeError`)
+- Chat ID validation (ignores messages from other chats)
+
+**Note:** `send_alert` doesn't retry on failure. If Telegram API is temporarily down, the alert is lost. For critical trading alerts, a retry queue would be better.
+
+### 8.112 Rust FFI: null pointer safety — ✅ Good
+
+**Файл:** `hft-executor/src/lib.rs:233-297`
+
+All FFI functions check for null pointers:
+```rust
+pub extern "C" fn hft_executor_create(ws_url: *const c_char) -> *mut c_void {
+    if ws_url.is_null() { return std::ptr::null_mut(); }
+    ...
+}
+pub extern "C" fn hft_executor_submit(exec: *mut c_void, symbol: *const c_char, ...) -> i32 {
+    if exec.is_null() || symbol.is_null() { return -1; }
+    ...
+}
+pub extern "C" fn hft_executor_destroy(exec: *mut c_void) {
+    if !exec.is_null() {
+        unsafe { drop(Box::from_raw(exec as *mut OrderExecutor)); }
+    }
+}
+```
+
+Null checks on all FFI entry points. `Box::from_raw` in destroy correctly recovers the allocation. ✅
+
+### 8.113 Rust: `is_fill_message` string matching — Low
+
+**Файл:** `hft-executor/src/lib.rs:209-214`
+
+```rust
+fn is_fill_message(text: &str) -> bool {
+    text.contains("\"fill\"")
+        || text.contains("\"filled\"")
+        || text.contains("\"order_fill\"")
+        || text.contains("\"type\":\"fill\"")
+}
+```
+
+String matching on JSON is fragile — already noted in §8.32. If the exchange sends `{"type": "fill"}` with a space after the colon, `\"type\":\"fill\"` won't match. The other 3 patterns are more robust (just checking for the presence of `"fill"` anywhere).
+
+### 8.114 Rust tests: comprehensive — ✅ Good
+
+**Файл:** `hft-executor/src/lib.rs:299-524` (226 lines of tests)
+
+22 unit tests covering:
+- Order creation, side equality, type variants
+- Single/batch/empty batch submission
+- Stats initial state and after submit
+- FFI create/destroy with valid and null pointers
+- FFI submit with null executor, null symbol, all order types
+- FFI stats with null executor and after submit
+- Order serialization/deserialization round-trip
+
+This is thorough FFI testing. ✅
+
+### 8.115 dpdk_transport.py: file missing — Medium
+
+**Файл:** `ai-signal-bot/src/networking/dpdk_transport.py`
+
+The file exists only as `.pyc` (compiled bytecode in `__pycache__/`). The source `.py` file is missing. This means:
+- The module can't be linted, audited, or modified
+- It can't be imported on a different Python version (`.pyc` is version-specific)
+- If `__pycache__` is cleaned (e.g., `git clean`), the module is gone
+
+**Фикс:** Restore the source file from git history or remove the `__pycache__` entry and the import references.
+
+### 8.116 Health checks: not wired into main bot — Medium
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py`
+
+The `HealthChecker` class and `create_health_endpoints()` function exist, but grep for `HealthChecker` or `create_health_endpoints` in `run.py` or `signal_publisher.py` shows no usage. The deep health checks are implemented but not connected to the running bot. The bot uses the shallow `health_check.py` (§8.45) instead.
+
+**Фикс:** Wire `HealthChecker` into `run.py` startup: create the checker, pass WS/DB/Redis clients, register the aiohttp handlers on the metrics/health server.

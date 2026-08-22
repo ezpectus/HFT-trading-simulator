@@ -141,3 +141,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Code reduction ~710 lines | 510 ai-signal-bot + 200 exchange_simulator | CODE_AUDIT §8.100 |
 | SECURITY.md: inaccurate WS claim | Says "validated" but no schema validation exists | CODE_AUDIT §8.107 |
 | Code reduction ~800 lines total | CircuitBreaker×3 + tracing + RateLimiter + compute_returns + exchange_sim | CODE_AUDIT §8.109 |
+| dpdk_transport.py: source missing | Only .pyc exists, can't lint or modify | CODE_AUDIT §8.115 |
+| Health checks v2: not wired | HealthChecker exists but not used in run.py | CODE_AUDIT §8.116 |

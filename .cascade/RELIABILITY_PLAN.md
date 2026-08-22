@@ -647,3 +647,9 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R90 | Docker Compose staging | `staging.yml` | ✅ Good | All 6 services have limits, JSON logging, restart backoff, health checks |
 | R91 | C++ kill switch | `kill_switch.h`, `bot_setup.cpp:217` | ✅ Excellent | Dual trigger (SHM+file), 5 reasons, auto-cancel+close, SHM fallback, poll interval |
 | R92 | SECURITY.md: inaccurate WS claim | `SECURITY.md:35` | Low | Claims WS validated but §8.71 showed no schema validation |
+| R93 | Health checks v2: deep probes | `health_checks.py` | ✅ Excellent | Liveness + readiness + status. Per-component. HTTP 503 when unhealthy. Specific exceptions |
+| R94 | Notifier: Telegram/Discord | `notifier.py` | ✅ Good | Env vars, session closed, task cancelled, chat ID validation. No retry on send failure |
+| R95 | Rust FFI: null pointer safety | `lib.rs:233-297` | ✅ Good | All FFI functions check null. Box::from_raw in destroy. 22 FFI tests |
+| R96 | Rust tests: comprehensive | `lib.rs:299-524` | ✅ Good | 22 tests: order, batch, stats, FFI null safety, serialization round-trip |
+| R97 | dpdk_transport.py: source missing | `networking/dpdk_transport.py` | Medium | Only .pyc exists. Can't lint, audit, or modify. Version-specific. git clean = gone |
+| R98 | Health checks: not wired into bot | `health_checks.py` | Medium | HealthChecker exists but not used in run.py. Bot uses shallow health_check.py instead |

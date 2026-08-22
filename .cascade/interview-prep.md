@@ -1484,3 +1484,108 @@ void save_seq_nums() {
 ```
 
 **Why it matters at scale:** Writing to a file in-place is not atomic. `std::ofstream` opens the file (truncating it to 0 bytes), then writes data, then closes (flushes). If the process crashes between truncate and flush, the file is empty. For FIX protocol sequence numbers, this is catastrophic. The exchange expects message sequence numbers to be monotonically increasing. If the bot restarts with seq=1 after sending seq=500, the exchange rejects all messages with "seq too low". The FIX session is broken. Someone must call the exchange admin to reset the sequence numbers manually. With 1000 users, that's 1000 support tickets. The good version writes to a temp file first, then atomically renames it to the target path. `rename()` is atomic on POSIX — the target file is either the old version or the new version, never empty. If the process crashes during the write, the temp file is incomplete but the original file is intact. On restart, the correct sequence numbers are loaded. The FIX session continues without intervention. The cost is 3 lines. The benefit is crash-proof persistence. In a trading system, a broken FIX session means the bot can't send orders — it's effectively down. Atomic writes are the difference between "bot restarts and continues trading" and "bot restarts but can't trade until someone calls the exchange".
+
+---
+
+### Example 37: Health Checks Implemented But Not Wired (Dead Code)
+
+**BAD** — `health_checks.py` exists but `run.py` doesn't use it:
+```python
+# health_checks.py — 221 lines of excellent code
+class HealthChecker:
+    async def check_liveness(self) -> dict:
+        return {"status": "alive", "uptime_seconds": uptime, "pid": pid}
+
+    async def check_readiness(self) -> dict:
+        components = []
+        components.append(await self._check_ws())      # WebSocket
+        components.append(await self._check_db())      # TimescaleDB
+        components.append(await self._check_redis())   # Redis
+        components.append(await self._check_exchange()) # Exchange
+        # Returns HTTP 503 if unhealthy → K8s removes pod from service
+        ...
+
+def create_health_endpoints(checker: HealthChecker):
+    # Returns aiohttp handlers for /health/live, /health/ready, /health/status
+    ...
+
+# run.py — uses the SHALLOW health check instead
+from communication.health_check import HealthCheckServer
+# HealthCheckServer just returns {"status": "ok"} — no dependency checks
+# The 221-line HealthChecker is never imported, never used
+```
+
+**GOOD**:
+```python
+# run.py — wire the deep health checker
+from observability.health_checks import HealthChecker, create_health_endpoints
+
+async def main():
+    # ... start WS client, DB, Redis, exchange ...
+
+    health_checker = HealthChecker(
+        ws_client=ws_client,
+        db_client=db_client,
+        redis_client=redis_client,
+        exchange=exchange,
+    )
+
+    live_handler, ready_handler, status_handler = create_health_endpoints(health_checker)
+
+    # Register on the existing aiohttp app
+    app = web.Application()
+    app.router.add_get("/health/live", live_handler)
+    app.router.add_get("/health/ready", ready_handler)    # K8s readinessProbe
+    app.router.add_get("/health/status", status_handler)
+
+    # K8s will now:
+    #   livenessProbe → /health/live → 200 (process alive)
+    #   readinessProbe → /health/ready → 200 (deps connected) or 503 (deps down)
+    # If DB is down → /health/ready returns 503 → K8s removes pod from service
+    #   → no traffic sent to broken pod → users don't see errors
+```
+
+**Why it matters at scale:** Writing health checks and not wiring them is worse than not writing them at all. It creates a false sense of security — "we have deep health checks" — but the running system uses a shallow `{"status": "ok"}` that returns 200 even when the database is down, Redis is unreachable, and the WebSocket is disconnected. K8s sends traffic to a broken pod because the readiness probe always returns 200. Users see errors, timeouts, and failed trades. The 221 lines of `HealthChecker` code are dead weight — they take effort to maintain but provide zero value. The good version wires the `HealthChecker` into `run.py`, passes the actual WS/DB/Redis clients, and registers the handlers on the HTTP server. Now K8s can make intelligent routing decisions: if the DB is down, the readiness probe returns 503, K8s removes the pod from the service, and users are routed to a healthy pod instead. The cost is 10 lines in `run.py`. The benefit is K8s actually knows when the pod is healthy. In a trading system with 1000 users, a broken pod that stays in rotation means every user routed to that pod gets errors. With proper health checks, K8s removes the broken pod in seconds — users never see the problem.
+
+---
+
+### Example 38: Source File Missing, Only Bytecode Exists
+
+**BAD**:
+```python
+# ai-signal-bot/src/networking/__pycache__/dpdk_transport.cpython-312.pyc
+# ↑ This is the ONLY trace of dpdk_transport.py
+# The .py source file is missing — deleted, never committed, or lost
+
+# Somewhere in the codebase:
+from networking.dpdk_transport import DPDKTransport
+# ↑ This import works on the machine with the .pyc
+# ↓ This import fails on any other machine, CI, Docker build, or after git clean
+
+# Problems:
+# 1. Can't lint the code (ruff needs .py, not .pyc)
+# 2. Can't audit the code (can't read bytecode)
+# 3. Can't modify the code (no source to edit)
+# 4. .pyc is Python-version-specific (cpython-312 won't work on 3.11)
+# 5. git clean → .pyc deleted → module gone → import fails → bot crashes
+# 6. New developer clones repo → no .pyc (gitignored) → import fails
+# 7. CI/CD builds Docker image → no .pyc → import fails → tests fail
+```
+
+**GOOD**:
+```python
+# Option A: Restore the source file
+# git log --all --diff-filter=D -- networking/dpdk_transport.py
+# git checkout <commit>^ -- networking/dpdk_transport.py
+
+# Option B: If source is truly lost, remove all references
+# grep -r "dpdk_transport" --include="*.py"
+# Remove all imports and usages
+# Delete the __pycache__ entry
+
+# Option C: If DPDK is not needed, remove the entire networking module
+# rm -rf networking/
+# Remove from __init__.py exports
+```
+
+**Why it matters at scale:** A source file that exists only as bytecode is a ticking bomb. It works on one machine, on one Python version, until someone runs `git clean` or clears `__pycache__`. Then the import fails and the bot crashes on startup. With 1000 users, any new deployment to a fresh machine (Docker build, CI/CD, new developer setup) will fail because the `.pyc` is not in git (it's gitignored). The module is effectively dead code that can't be maintained, audited, or modified. In a trading system, this means the bot can't start on any new machine. The fix is simple: either restore the source from git history, or remove all references to the module. The worst option is to do nothing — the module works "by accident" on one machine and fails everywhere else. This is how "works on my machine" bugs happen. The cost is 5 minutes of git archaeology. The benefit is the codebase is self-consistent and deployable anywhere.
