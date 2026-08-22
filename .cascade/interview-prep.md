@@ -611,3 +611,65 @@ healthcheck:
 ```
 
 **Why it matters at scale:** TCP healthcheck only verifies the port is open — the process could be hung (event loop blocked, deadlock, OOM). Docker thinks the container is healthy, but the service is unresponsive. With HTTP `/health`, the endpoint checks real application state — DB connection, WS clients, internal queues. If the event loop is blocked, the HTTP server can't respond → Docker marks it unhealthy → restarts. In K8s, this is even more critical — liveness/readiness probes determine traffic routing. A TCP-probed pod receives traffic even when hung. The good version uses HTTP, which verifies actual application readiness.
+
+---
+
+### Example 17: C++ `catch (...)` on Safety-Critical Component
+
+**BAD** — `hft-trade-bot/src/risk/kill_switch.h:64`:
+```cpp
+bool init() {
+    try {
+        shm_ = std::make_unique<ShmRingBuffer<ipc::KillSwitchMsg>>(
+            shm_name_, 64, true);
+        return true;
+    } catch (...) {
+        return false;  // ← swallows ALL exceptions, no logging
+    }
+}
+```
+
+**GOOD**:
+```cpp
+bool init() {
+    try {
+        shm_ = std::make_unique<ShmRingBuffer<ipc::KillSwitchMsg>>(
+            shm_name_, 64, true);
+        return true;
+    } catch (const std::exception& e) {
+        spdlog::error("KillSwitch SHM init failed: {}", e.what());
+        return false;
+    }
+}
+```
+
+**Why it matters at scale:** The kill switch is the last line of defense — it stops the bot when something goes wrong. If its SHM init fails silently, the kill switch doesn't work, but the bot continues trading. This is the worst possible failure mode: you think you have a safety net, but you don't. `catch (...)` swallows everything — including `std::bad_alloc` (OOM), `std::system_error` (permissions), even non-`std::exception` throws. The good version catches `std::exception` specifically and logs the error. If init fails, you see it in logs and can fix it before deploying. In a trading system with 1000 users, a non-functional kill switch could mean unlimited losses on a flash crash.
+
+---
+
+### Example 18: Missing Database Indexes
+
+**BAD** — `db.py:78-80`:
+```python
+# Only these indexes exist:
+CREATE INDEX idx_signals_symbol ON signals(symbol);
+CREATE INDEX idx_trades_symbol ON trades(symbol);
+CREATE INDEX idx_trades_status ON trades(status);
+
+# But get_stats() runs:
+conn.execute("SELECT COUNT(*) FROM trades WHERE status='CLOSED' AND pnl > 0")
+# ← full table scan! status index helps, but pnl > 0 is unindexed
+# With 100k trades: 100k rows scanned per stats call
+```
+
+**GOOD**:
+```python
+CREATE INDEX idx_signals_symbol ON signals(symbol);
+CREATE INDEX idx_signals_timestamp ON signals(timestamp);  # time queries
+CREATE INDEX idx_trades_symbol ON trades(symbol);
+CREATE INDEX idx_trades_status ON trades(status);
+CREATE INDEX idx_trades_status_pnl ON trades(status, pnl);  # composite for get_stats
+CREATE INDEX idx_equity_timestamp ON equity_curve(timestamp);  # time-based queries
+```
+
+**Why it matters at scale:** Without a composite index on `(status, pnl)`, SQLite scans every row with `status='CLOSED'` to check `pnl > 0`. With 100 trades, that's instant. With 100,000 trades (a year of trading 50 symbols), that's 100k rows per `get_stats()` call. The web UI calls `get_stats()` every refresh (5s) → 1.2M row scans/min. The good version creates a composite index — SQLite jumps directly to `status='CLOSED' AND pnl > 0` rows. O(1) lookup instead of O(N) scan. In a system with 1000 users each generating 1000 trades/day, you'd have 1M trades in a week — without indexes, `get_stats()` takes seconds, with indexes it takes milliseconds.

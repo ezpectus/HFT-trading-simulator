@@ -567,3 +567,9 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R10 | Helm probes отсутствуют | `helm/templates/*.yaml` | High | K8s сервисы без liveness/readiness probes. Pod не рестартует при hang |
 | R11 | Нет top-level ErrorBoundary | `web-ui/src/App.jsx` | Low | При падении корневого компонента — белый экран |
 | R12 | Magic numbers в publisher | `signal_publisher.py` | Low | `maxlen=100`, `sleep(5)`, `Random(42)` — не из config |
+| R13 | Missing DB indexes (timestamp, composite) | `db.py:78-80` | Medium | `get_stats` full-scan на `trades WHERE status='CLOSED' AND pnl > 0`. equity_curve без индекса |
+| R14 | C++ `catch (...)` без логирования | `kill_switch.h:64` | Low | Kill switch — safety-critical. Silent failure = kill switch не работает, бот торгует дальше |
+| R15 | No CORS configuration | `signal_publisher.py`, `exchange_simulator/` | Low | WebSocket не требует CORS, но HTTP endpoints (metrics, health) заблокированы для браузера |
+| R16 | No PropTypes/TypeScript в web-ui | `web-ui/src/` | Low | Нет runtime prop validation. Wrong prop type = silent failure или crash |
+| R17 | Env secrets handling | `ai-signal-bot/` | ✅ Clean | All via `os.getenv()` / `os.environ.get()`, no hardcoded secrets |
+| R18 | Docker-compose secrets | `docker-compose*.yml` | ✅ Clean | No secrets in compose files, all via env vars / `.env` |

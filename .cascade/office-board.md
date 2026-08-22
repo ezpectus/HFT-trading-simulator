@@ -90,3 +90,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Docker healthchecks TCP | TCP проверяет порт, не готовность | CODE_AUDIT §8.9 |
 | aiohttp session per alert | Каждая отправка алерта = новая сессия | CODE_AUDIT §8.8 |
 | Top-level ErrorBoundary | Падение корневого компонента = белый экран | CODE_AUDIT §8.10 |
+| Missing DB indexes | `get_stats` full-scan, equity_curve без индекса | CODE_AUDIT §8.16 |
+| C++ `catch(...)` kill switch | Safety-critical silent failure | CODE_AUDIT §8.17 |
+| No PropTypes/TypeScript | Нет runtime prop validation в web-ui | CODE_AUDIT §8.19 |

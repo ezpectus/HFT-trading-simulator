@@ -494,7 +494,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | Day | Date | Task | Status | Commit |
 |-----|------|------|--------|--------|
 | 1 | 2026-08-22 | Split hawkes.py → hawkes_model.py + hawkes_funcs.py + facade. 38 tests pass. | ✅ Done | 3c6919b |
-| — | 2026-08-22 | Full project grep audit — 26 grep findings + 12 reliability findings (race condition, DB timeout, DB pool, socket buffers, SQL clean, deque clean, C++ correct, aiohttp session leak, Docker TCP healthchecks, Helm probes missing, ErrorBoundary missing, magic numbers). Updated CODE_AUDIT.md (§7+§8.1-8.15), RELIABILITY_PLAN.md (R1-R12), office-board.md (18 gap items), interview-prep.md (16 bad vs good code examples + reliability talking points) | ✅ Done | — |
+| — | 2026-08-22 | Full project grep audit — 26 grep findings + 18 reliability findings (R1-R18: race condition, DB timeout/pool/indexes, socket buffers, SQL clean, deque clean, C++ correct + catch-all, aiohttp session leak, Docker TCP healthchecks, Helm probes missing, ErrorBoundary missing, magic numbers, CORS, PropTypes, env secrets clean, docker secrets clean). Updated CODE_AUDIT.md (§7+§8.1-8.21), RELIABILITY_PLAN.md (R1-R18), office-board.md (22 gap items), interview-prep.md (18 bad vs good code examples + reliability talking points) | ✅ Done | — |
 | 2 | 2026-08-23 | compute_returns дедупликация (20+ модулей) | ⏳ Next | — |
 | 3 | 2026-08-24 | quantize и другие хелперы | ⏳ Pending | — |
 | 4 | 2026-08-25 | research/__init__.py упрощение | ⏳ Pending | — |

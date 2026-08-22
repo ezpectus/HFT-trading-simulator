@@ -469,3 +469,69 @@ Grep по `livenessProbe|readinessProbe` в `helm/` — 0 результатов
 | `assert` в production | ✅ 0 |
 | ErrorBoundary (web-ui) | ✅ PanelErrorBoundary + ChunkRetryBoundary (но нет top-level) |
 | localStorage try/catch (web-ui) | ✅ Почти везде (1 minor exception) |
+
+### 8.16 Missing DB indexes for timestamp queries — Medium
+
+**Файл:** `ai-signal-bot/src/database/db.py:78-80`
+
+Existing indexes:
+```sql
+CREATE INDEX idx_signals_symbol ON signals(symbol);
+CREATE INDEX idx_trades_symbol ON trades(symbol);
+CREATE INDEX idx_trades_status ON trades(status);
+```
+
+Missing indexes:
+- `signals(timestamp)` — `get_recent_signals` does `ORDER BY id DESC` (OK, id is PK), but time-based queries would need this
+- `trades(status, pnl)` — `get_stats` queries `WHERE status='CLOSED' AND pnl > 0` — composite index needed
+- `equity_curve(timestamp)` — no index at all on equity_curve, time-based queries full-scan
+
+**Фикс:** Add `CREATE INDEX idx_trades_status_pnl ON trades(status, pnl);` and `CREATE INDEX idx_equity_timestamp ON equity_curve(timestamp);`
+
+### 8.17 C++ `catch (...)` — silent swallow — Low
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h:64`
+
+```cpp
+try {
+    shm_ = std::make_unique<ShmRingBuffer<ipc::KillSwitchMsg>>(shm_name_, 64, true);
+    return true;
+} catch (...) {
+    return false;  // ← swallows ALL exceptions, no logging
+}
+```
+
+Kill switch is safety-critical. If SHM init fails silently, the kill switch doesn't work, but the bot continues trading. This is the worst possible failure mode for a safety system.
+
+**Фикс:** `catch (const std::exception& e) { spdlog::error("KillSwitch SHM init failed: {}", e.what()); return false; }`
+
+### 8.18 No CORS configuration — Low
+
+**Файлы:** `ai-signal-bot/src/communication/signal_publisher.py`, `exchange_simulator/`
+
+No `CORS` or `Access-Control` headers found anywhere. WebSocket doesn't enforce CORS like HTTP, but if the web UI ever fetches from the bot's HTTP endpoints (metrics, health), CORS will block it. Currently the web UI only uses WebSocket, so this is not a problem yet.
+
+### 8.19 No PropTypes / TypeScript in web-ui — Low
+
+**Файлы:** `web-ui/src/` — 0 matches for `PropTypes`, `interface.*Props`, `type.*Props`
+
+The web UI is plain JSX without PropTypes or TypeScript. No runtime prop validation. A wrong prop type (e.g., passing string instead of number for price) fails silently or crashes at render.
+
+### 8.20 Env secrets handling — ✅ Clean
+
+**Файлы:** `ai-signal-bot/run.py`, `src/llm_engine/engine.py`, `src/notification/notifier.py`
+
+All secrets use `os.getenv()` / `os.environ.get()`:
+- `OPENAI_API_KEY` — `os.getenv("OPENAI_API_KEY", "")`
+- `ANTHROPIC_API_KEY` — `os.getenv("ANTHROPIC_API_KEY", "")`
+- `TELEGRAM_BOT_TOKEN` — `os.environ.get("TELEGRAM_BOT_TOKEN", "")`
+- `DISCORD_BOT_TOKEN` — `os.environ.get("DISCORD_BOT_TOKEN", "")`
+- `LOG_FORMAT` — `os.environ.get("LOG_FORMAT", "text")`
+
+No hardcoded secrets. No secrets in config files. All via env vars. ✅
+
+### 8.21 Docker-compose secrets — ✅ Clean
+
+**Файлы:** `docker-compose*.yml` — grep for `POSTGRES_PASSWORD|REDIS_PASSWORD|API_KEY|SECRET` = 0 matches
+
+No secrets in docker-compose files. All via env vars / `.env` files. ✅
