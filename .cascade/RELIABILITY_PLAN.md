@@ -653,3 +653,11 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R96 | Rust tests: comprehensive | `lib.rs:299-524` | ✅ Good | 22 tests: order, batch, stats, FFI null safety, serialization round-trip |
 | R97 | dpdk_transport.py: source missing | `networking/dpdk_transport.py` | Medium | Only .pyc exists. Can't lint, audit, or modify. Version-specific. git clean = gone |
 | R98 | Health checks: not wired into bot | `health_checks.py` | Medium | HealthChecker exists but not used in run.py. Bot uses shallow health_check.py instead |
+| R99 | C++ order_executor: detached thread | `order_executor.h:57-63` | Medium | Detached reconnect thread captures `this`. Destroy while sleeping = use-after-free |
+| R100 | C++ order_executor: snprintf truncation | `order_executor.h:108-128` | Low | snprintf truncates silently. Long exchange_id/symbol = malformed JSON sent |
+| R101 | C++ position_manager_v2 | `position_manager_v2.h:140-150` | ✅ Good | O(1) atomic counter, spinlock, stale entry cleanup, relaxed ordering correct |
+| R102 | web-ui useWebSocket | `useWebSocket.ts` | ✅ Excellent | Ping/pong, backoff, ring buffer, batching, sync-on-reconnect, outgoing queue, clean cleanup |
+| R103 | web-ui useTradingStore | `useTradingStore.js` | ✅ Good | Clean zustand store, batch setters, no prop drilling, no mutation issues |
+| R104 | Dockerfile.prod (both) | `Dockerfile.prod` ×2 | ✅ Good | Multi-stage, non-root, no-cache pip, TCP healthcheck, PYTHONUNBUFFERED |
+| R105 | .env.prod.example: placeholder passwords | `.env.prod.example:24-25` | Low | `change_me_to_a_secure_password` — no validation that password was actually changed |
+| R106 | .env.prod.example: localhost WS URLs | `.env.prod.example:39-40` | Low | Vite build-time args default to localhost. Docker build without override = broken WS |

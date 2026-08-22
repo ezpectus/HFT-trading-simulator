@@ -1680,3 +1680,114 @@ The file exists only as `.pyc` (compiled bytecode in `__pycache__/`). The source
 The `HealthChecker` class and `create_health_endpoints()` function exist, but grep for `HealthChecker` or `create_health_endpoints` in `run.py` or `signal_publisher.py` shows no usage. The deep health checks are implemented but not connected to the running bot. The bot uses the shallow `health_check.py` (§8.45) instead.
 
 **Фикс:** Wire `HealthChecker` into `run.py` startup: create the checker, pass WS/DB/Redis clients, register the aiohttp handlers on the metrics/health server.
+
+### 8.117 C++ order_executor: detached reconnect thread — Medium
+
+**Файл:** `hft-trade-bot/src/execution/order_executor.h:57-63`
+
+```cpp
+std::thread([this, delay]() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+    if (should_reconnect_) {
+        if (ws_thread_.joinable()) ws_thread_.join();
+        do_connect();
+    }
+}).detach();  // ← detached, captures `this`
+```
+
+The reconnect thread captures `this` and is detached. If the `OrderExecutor` is destroyed while the thread is sleeping (waiting for `delay`), the thread wakes up and calls `do_connect()` on a destroyed object → **use-after-free → undefined behavior**.
+
+The `disconnect()` method sets `should_reconnect_ = false`, which the thread checks after sleep. But there's a race: if the destructor runs between the `should_reconnect_` check and `do_connect()`, the object is already gone.
+
+**Фикс:** Use `std::jthread` with stop_token, or store the thread and join it in destructor. Don't detach.
+
+### 8.118 C++ order_executor: snprintf buffer overflow potential — Low
+
+**Файл:** `hft-trade-bot/src/execution/order_executor.h:108-128`
+
+```cpp
+char buf[512];
+int n = std::snprintf(buf, sizeof(buf),
+    "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\",...",
+    exchange_id_.c_str(), signal.symbol.c_str(), ...);
+```
+
+`snprintf` is safe (truncates at `sizeof(buf)`), but if `exchange_id_` or `symbol` is very long (e.g., 400 chars), the JSON is truncated and invalid. The check `if (n <= 0)` catches `snprintf` errors but not truncation (truncation returns `n > sizeof(buf)`). The order would be silently sent as malformed JSON.
+
+**Фикс:** Check `if (n >= static_cast<int>(sizeof(buf)))` and log error on truncation.
+
+### 8.119 C++ position_manager_v2: atomic counter + stale cleanup — ✅ Good
+
+**Файл:** `hft-trade-bot/src/position/position_manager_v2.h:140-150`
+
+```cpp
+if (!was_open && is_open_now) {
+    open_positions_count_.fetch_add(1, std::memory_order_relaxed);
+    if (symbol_id < 256) open_symbols_.set(symbol_id);
+    open_symbol_names_.insert(symbol);
+} else if (was_open && !is_open_now) {
+    open_positions_count_.fetch_sub(1, std::memory_order_relaxed);
+    open_symbol_names_.erase(symbol);
+    // Remove stale entry from map to prevent unbounded growth
+}
+```
+
+O(1) open position count via atomic counter. Spinlock-protected. Stale entry cleanup prevents unbounded map growth. Relaxed memory ordering is correct (single-threaded execution context). ✅
+
+### 8.120 web-ui useWebSocket: excellent implementation — ✅ Excellent
+
+**Файл:** `web-ui/src/hooks/useWebSocket.ts` (305 lines)
+
+This is a production-grade WebSocket hook:
+- **Ping/pong keepalive** — 5s interval, latency measurement
+- **Exponential backoff** — starts 1s, doubles, caps at 30s, countdown timer
+- **Ring buffer** — 5000 message buffer, O(1) push, prevents memory growth
+- **Message batching** — configurable batch types and interval (50ms default), merges by type+symbol key
+- **Sync on reconnect** — sends `last_timestamp` to resync missed data
+- **Outgoing queue** — messages queued while disconnected, flushed on reconnect
+- **permessage-deflate** — compression support
+- **Clean cleanup** — all timers cleared on unmount, flushBatch on close
+
+This is what the Python `ws_client.py` is missing (§8.49, §8.50). The web-ui does it right.
+
+### 8.121 web-ui useTradingStore: clean zustand store — ✅ Good
+
+**Файл:** `web-ui/src/stores/useTradingStore.js` (59 lines)
+
+Clean zustand store with batch setters (`setExchangeData`, `setSignalData`, `setDerivedData`). Eliminates prop drilling. No state mutation issues. Action functions set to `null` initially, populated by hooks. ✅
+
+### 8.122 Dockerfile.prod: both services — ✅ Good
+
+**Файлы:** `ai-signal-bot/Dockerfile.prod`, `exchange_simulator/Dockerfile.prod`
+
+Both follow the same pattern:
+- Multi-stage build (builder + runtime)
+- Non-root user (`appuser`)
+- `--no-cache-dir --no-compile` pip install
+- TCP health check with start-period
+- `PYTHONUNBUFFERED=1` for real-time logs
+- Minimal runtime image (no gcc in final)
+
+### 8.123 .env.prod.example: placeholder passwords — Low
+
+**Файл:** `.env.prod.example:24-25,32-34`
+
+```
+POSTGRES_PASSWORD=change_me_to_a_secure_password
+GRAFANA_PASSWORD=change_me_to_a_secure_password
+```
+
+Same placeholder pattern as Helm `values.yaml` (§8.69). If someone copies `.env.prod.example` to `.env.prod` and forgets to change passwords, production runs with `change_me_to_a_secure_password`. No validation that passwords are actually changed.
+
+**Фикс:** Add a startup script that checks `if [ "$POSTGRES_PASSWORD" = "change_me_to_a_secure_password" ]; then echo "ERROR: Change default password"; exit 1; fi`.
+
+### 8.124 .env.prod.example: localhost in WS URLs — Low
+
+**Файл:** `.env.prod.example:39-40`
+
+```
+VITE_WS_EXCHANGE=ws://localhost:8765
+VITE_WS_SIGNALS=ws://localhost:8766
+```
+
+These are build-time Vite args inlined into the JS bundle. If someone builds the Docker image without overriding these, the web-ui connects to `localhost` instead of the Docker/K8s service names. Same issue as `shared_config.yaml` (§8.74) and `hft-trade-bot/config.yaml` (§8.96).

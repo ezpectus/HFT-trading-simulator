@@ -1589,3 +1589,154 @@ from networking.dpdk_transport import DPDKTransport
 ```
 
 **Why it matters at scale:** A source file that exists only as bytecode is a ticking bomb. It works on one machine, on one Python version, until someone runs `git clean` or clears `__pycache__`. Then the import fails and the bot crashes on startup. With 1000 users, any new deployment to a fresh machine (Docker build, CI/CD, new developer setup) will fail because the `.pyc` is not in git (it's gitignored). The module is effectively dead code that can't be maintained, audited, or modified. In a trading system, this means the bot can't start on any new machine. The fix is simple: either restore the source from git history, or remove all references to the module. The worst option is to do nothing — the module works "by accident" on one machine and fails everywhere else. This is how "works on my machine" bugs happen. The cost is 5 minutes of git archaeology. The benefit is the codebase is self-consistent and deployable anywhere.
+
+---
+
+### Example 39: Detached Thread Capturing `this` (Use-After-Free)
+
+**BAD** — `order_executor.h:57`:
+```cpp
+class OrderExecutor {
+    std::atomic<bool> should_reconnect_{false};
+    std::thread ws_thread_;
+
+    void do_connect() {
+        // ... setup WebSocket ...
+        client_->set_close_handler([this](websocketpp::connection_hdl) {
+            if (should_reconnect_) {
+                int delay = reconnect_delay_.load();
+                std::thread([this, delay]() {
+                    std::this_thread::sleep_for(
+                        std::chrono::milliseconds(delay));
+                    if (should_reconnect_) {
+                        if (ws_thread_.joinable()) ws_thread_.join();
+                        do_connect();  // ← captures `this`
+                    }
+                }).detach();  // ← detached, can't join
+            }
+        });
+    }
+
+    void disconnect() {
+        should_reconnect_ = false;
+        // ... close WebSocket ...
+    }
+    // No destructor joins the detached thread
+};
+
+// Scenario:
+// 1. Connection drops → close handler fires
+// 2. Detached thread starts, sleeps 30s (backoff)
+// 3. User calls disconnect() → should_reconnect_ = false
+// 4. OrderExecutor goes out of scope → destructor runs → object freed
+// 5. Thread wakes up after 30s
+// 6. Reads should_reconnect_ → freed memory → UB
+// 7. If it reads `false` → lucky, no crash
+// 8. If it reads `true` (stale value) → calls do_connect() on freed object
+//    → heap corruption, segfault, or silent data corruption
+```
+
+**GOOD**:
+```cpp
+class OrderExecutor {
+    std::atomic<bool> should_reconnect_{false};
+    std::thread reconnect_thread_;
+    std::thread ws_thread_;
+
+    void do_connect() {
+        client_->set_close_handler([this](websocketpp::connection_hdl) {
+            if (should_reconnect_) {
+                int delay = reconnect_delay_.load();
+                if (reconnect_thread_.joinable()) reconnect_thread_.join();
+                reconnect_thread_ = std::thread([this, delay]() {
+                    std::this_thread::sleep_for(
+                        std::chrono::milliseconds(delay));
+                    if (should_reconnect_) {
+                        if (ws_thread_.joinable()) ws_thread_.join();
+                        do_connect();
+                    }
+                });
+                // NOT detached — stored as member, joined in destructor
+            }
+        });
+    }
+
+    void disconnect() {
+        should_reconnect_ = false;
+        if (connected_) client_->close(...);
+        if (reconnect_thread_.joinable()) reconnect_thread_.join();
+        if (ws_thread_.joinable()) ws_thread_.join();
+        connected_ = false;
+    }
+
+    ~OrderExecutor() {
+        should_reconnect_ = false;
+        if (reconnect_thread_.joinable()) reconnect_thread_.join();
+        if (ws_thread_.joinable()) ws_thread_.join();
+    }
+};
+
+// Scenario:
+// 1. Connection drops → close handler fires
+// 2. reconnect_thread_ starts, sleeps 30s
+// 3. User calls disconnect() → should_reconnect_ = false
+// 4. disconnect() joins reconnect_thread_ → blocks until thread wakes
+// 5. Thread wakes, checks should_reconnect_ → false → returns
+// 6. Join completes → object safely destroyed
+// No use-after-free, no race condition, no UB
+```
+
+**Why it matters at scale:** Detaching a thread that captures `this` is one of the most dangerous C++ anti-patterns. The thread runs independently of the object's lifetime. When the object is destroyed, the thread's captured `this` pointer dangles — pointing to freed memory. The next access is undefined behavior. In debug builds, it might crash immediately. In release builds, it might silently corrupt the heap, causing a crash minutes or hours later in completely unrelated code. With 1000 users, the reconnect thread fires every time the WebSocket drops. If the user stops the bot during the 30-second backoff sleep, the thread wakes up and calls `do_connect()` on a destroyed `OrderExecutor`. The result is unpredictable — it might work (the memory hasn't been reused yet), it might crash, or it might corrupt the heap so the next order submission sends garbage to the exchange. The good version stores the thread as a member and joins it in both `disconnect()` and the destructor. The join blocks until the thread finishes, ensuring the object is only destroyed after the thread stops using it. The cost is 3 lines (store thread, join in disconnect, join in destructor). The benefit is no use-after-free, no heap corruption, no mysterious crashes. In a trading system, heap corruption can mean orders are sent with wrong prices or quantities — that's financial loss, not just a crash.
+
+---
+
+### Example 40: snprintf Truncation Silent Failure
+
+**BAD** — `order_executor.h:108`:
+```cpp
+void submit_order(const Signal& signal, double quantity, const OrderBook& ob) {
+    char buf[512];
+    int n = std::snprintf(buf, sizeof(buf),
+        "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+        "\"side\":\"%s\",\"quantity\":%.8f,\"order_type\":\"%s\","
+        "\"stop_loss\":%.2f,\"take_profit\":%.2f",
+        exchange_id_.c_str(), signal.symbol.c_str(),
+        signal.is_long() ? "BUY" : "SELL", quantity,
+        type == OrderType::MARKET ? "MARKET" : "LIMIT",
+        signal.stop_loss, signal.take_profit);
+
+    // Only checks for error (n <= 0), NOT truncation
+    if (n <= 0) {
+        spdlog::error("Order JSON serialization failed");
+        return;
+    }
+    // If exchange_id is 400 chars, n > 512 → JSON truncated
+    // buf = {"type":"order","exchange":"BBBBBBB... (no closing brace)
+    // This is sent to the exchange as malformed JSON
+    // Exchange behavior: undefined (might reject, might crash, might ignore)
+    client_->send(connection_, std::string(buf, n), ...);
+}
+```
+
+**GOOD**:
+```cpp
+void submit_order(const Signal& signal, double quantity, const OrderBook& ob) {
+    char buf[512];
+    int n = std::snprintf(buf, sizeof(buf), ...);
+
+    if (n <= 0) {
+        spdlog::error("Order JSON serialization failed");
+        return;
+    }
+    // Check for truncation: snprintf returns would-be length
+    if (n >= static_cast<int>(sizeof(buf))) {
+        spdlog::error("Order JSON truncated: {} chars > buf {} (symbol={})",
+                      n, sizeof(buf), signal.symbol);
+        return;  // Don't send malformed JSON
+    }
+    // Now safe: n < sizeof(buf), JSON is complete
+    client_->send(connection_, std::string(buf, n), ...);
+}
+```
+
+**Why it matters at scale:** `snprintf` returns the number of characters that *would have been written* if the buffer were large enough, not the number actually written. If the formatted string is 600 chars but the buffer is 512, `snprintf` returns 600, writes 511 chars + null terminator, and silently truncates. The JSON is now incomplete — missing the closing `}` and possibly the `take_profit` field. The exchange receives `{"type":"order","exchange":"binance","symbol":"BTC/USDT","side":"BUY","quantity":0.50000000","order_type":"LIMIT","stop_loss":98000.00` — no `take_profit`, no `}`. What does the exchange do? It depends on the implementation. It might reject the order (best case). It might crash (bad). It might interpret the missing fields as defaults — 0 take_profit, 0 stop_loss — and execute a market order with no risk limits (worst case). With 1000 users, if one user has a custom exchange ID that's 400 characters (e.g., a long institutional gateway name), every order they send is truncated. They think they're sending limit orders with SL/TP, but the exchange receives malformed JSON with no risk parameters. The good version checks `n >= sizeof(buf)` and refuses to send truncated JSON. The cost is 4 lines. The benefit is no malformed orders ever reach the exchange. In a trading system, a malformed order without SL/TP can mean unlimited losses — the exchange executes the order at market price with no stop loss.

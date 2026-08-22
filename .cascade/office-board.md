@@ -143,3 +143,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Code reduction ~800 lines total | CircuitBreaker×3 + tracing + RateLimiter + compute_returns + exchange_sim | CODE_AUDIT §8.109 |
 | dpdk_transport.py: source missing | Only .pyc exists, can't lint or modify | CODE_AUDIT §8.115 |
 | Health checks v2: not wired | HealthChecker exists but not used in run.py | CODE_AUDIT §8.116 |
+| C++ order_executor: detached thread | Destroy while reconnect sleeping = use-after-free | CODE_AUDIT §8.117 |
+| C++ order_executor: snprintf truncation | Long strings = malformed JSON sent silently | CODE_AUDIT §8.118 |
+| .env.prod: placeholder passwords | `change_me_to_a_secure_password` with no validation | CODE_AUDIT §8.123 |
+| .env.prod: localhost WS URLs | Docker build without override = broken WS | CODE_AUDIT §8.124 |
