@@ -98,3 +98,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | No WS message validation | Raw JSON accepted, no schema | CODE_AUDIT §8.24 |
 | No DB retention/cleanup | Tables grow forever, ~2.6M rows/year | CODE_AUDIT §8.25 |
 | No auth on health/metrics | Endpoints open if ports exposed | CODE_AUDIT §8.27 |
+| Rust unwrap/expect panic | Process crash on runtime failure | CODE_AUDIT §8.29 |
+| Rust no idempotency | Reconnect = exchange can't deduplicate orders | CODE_AUDIT §8.30 |
+| Rust string matching for fills | Fragile, false positives | CODE_AUDIT §8.32 |

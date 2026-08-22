@@ -732,3 +732,81 @@ logging.basicConfig(level=logging.INFO, handlers=[handler])
 ```
 
 **Why it matters at scale:** Without rotation, log files grow linearly. A bot logging 100 lines/min at 100 bytes/line = 14MB/day = 420MB/month = 5GB/year. With 50 symbols and DEBUG logging, multiply by 10× = 50GB/year. On a 20GB VPS, the disk fills in 5 months. When the disk is full, `logging` silently stops (or crashes with `OSError`). The bot continues running but with no logs — you're blind to errors. With 1000 users on small VPS instances, this is a guaranteed outage. The good version caps log storage at 250MB (5 × 50MB) — when `bot.log` hits 50MB, it becomes `bot.log.1`, and a new `bot.log` starts. Old files are deleted after 5 rotations.
+
+---
+
+### Example 21: Rust `unwrap()` — Panic in Production
+
+**BAD** — `hft-executor/src/lib.rs:80,159`:
+```rust
+let runtime = tokio::runtime::Builder::new_multi_thread()
+    .worker_threads(1)
+    .enable_all()
+    .build()
+    .expect("Failed to create tokio runtime");  // ← panics entire process
+
+let json = serde_json::to_string(&order).unwrap_or_default();  // ← empty string on error
+let msg = Message::Text(json);  // ← sends "" to exchange
+```
+
+**GOOD**:
+```rust
+pub fn new(ws_url: &str) -> Result<Self, String> {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(1)
+        .enable_all()
+        .build()
+        .map_err(|e| format!("Runtime creation failed: {e}"))?;
+
+    // ... spawn run_loop ...
+
+    Ok(Self { tx, order_count, fill_count, error_count, _runtime: Some(runtime) })
+}
+
+// In run_loop:
+let json = match serde_json::to_string(&order) {
+    Ok(j) => j,
+    Err(e) => {
+        tracing::error!("Order serialization failed: {e}");
+        error_count.fetch_add(1, Ordering::Relaxed);
+        continue;
+    }
+};
+```
+
+**Why it matters at scale:** In Rust, `panic()` unwinds the stack and kills the thread — or the entire process if it's the main thread. `expect()` on line 80 panics if the OS can't create a thread (ulimit hit, cgroup limit). In a container with limited PIDs/threads, this is a real scenario. `unwrap_or_default()` on line 159 silently sends an empty JSON string to the exchange — the exchange receives `""`, can't parse it, and drops the connection. The bot thinks it sent the order, but the exchange never got it. With 1000 users, a serialization bug means 1000 silent order losses. The good version returns `Result` from `new()` — the caller decides how to handle failure (retry, fallback, exit). For serialization, it logs the error and skips the order instead of sending garbage.
+
+---
+
+### Example 22: Rust String Matching Instead of JSON Parsing
+
+**BAD** — `hft-executor/src/lib.rs:209-214`:
+```rust
+fn is_fill_message(text: &str) -> bool {
+    text.contains("\"fill\"")
+        || text.contains("\"filled\"")
+        || text.contains("\"order_fill\"")
+        || text.contains("\"type\":\"fill\"")
+}
+// Any message with "fill" anywhere matches:
+// {"type":"error","reason":"order_refilled"} → true (false positive!)
+// {"type":"status","msg":"buffer_filled"} → true (false positive!)
+```
+
+**GOOD**:
+```rust
+#[derive(Deserialize)]
+struct WsMessage {
+    #[serde(rename = "type")]
+    msg_type: String,
+}
+
+fn is_fill_message(text: &str) -> bool {
+    match serde_json::from_str::<WsMessage>(text) {
+        Ok(msg) => msg.msg_type == "fill" || msg.msg_type == "order_fill",
+        Err(_) => false,
+    }
+}
+```
+
+**Why it matters at scale:** String matching is fragile — it matches substrings anywhere in the message. As the exchange evolves and adds new message types (e.g., `"type":"refill_notification"`, `"type":"buffer_filled"`), the fill counter inflates with false positives. You think you got 100 fills, but 30 were false matches. In a trading system, wrong fill counts mean wrong P&L, wrong position tracking, wrong risk calculations. The good version parses the JSON and checks the `type` field exactly. No false positives, no ambiguity. In a system with 1000 users processing 10,000 messages/day, string matching could cause 300,000 false fill counts/day — rendering the fill tracker useless.

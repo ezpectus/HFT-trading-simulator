@@ -579,3 +579,9 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R22 | No DB retention/cleanup | `db.py` | Medium | signals/trades/equity_curve grow forever. ~2.6M rows/year |
 | R23 | No auth on health/metrics | `monitoring/` | Low | Endpoints open. OK in Docker/K8s with netpol, risky if exposed |
 | R24 | Dependency pinning | `requirements.txt` | ✅ Good | All pinned with `==`. Optional deps (scipy, LightGBM) not listed |
+| R25 | Rust `unwrap()`/`expect()` panic | `hft-executor/lib.rs:80,156,159` | Medium | `expect()` panics process if runtime fails. `unwrap_or_default()` sends empty string on serialization error |
+| R26 | Rust FFI: no idempotency | `hft-executor/lib.rs:151` | Medium | Local seq, not `client_order_id`. Reconnect = exchange can't deduplicate |
+| R27 | Rust: no fill tracking | `hft-executor/lib.rs:178` | Low | Fills only counted, not stored. `avg_latency_ns` always 0 |
+| R28 | Rust: string matching for fills | `hft-executor/lib.rs:209` | Low | `text.contains("fill")` instead of JSON parsing. Fragile |
+| R29 | exchange_simulator exceptions | `exchange_simulator/` | ✅ Clean | Only `except ImportError` for optional deps. No broad catches |
+| R30 | C++ raw pointers | `hft-trade-bot/src/` | ✅ Clean | All smart pointers (`unique_ptr`, `make_unique`). No manual new/delete |

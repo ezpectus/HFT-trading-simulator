@@ -610,3 +610,85 @@ aiohttp==3.14.3     # ✅ pinned
 ```
 
 All deps are pinned with `==`. ✅ Good. But optional dependencies (scipy, scikit-learn, LightGBM, XGBoost) are not in requirements.txt — they're try/except imported. No `requirements-optional.txt` for them.
+
+### 8.29 Rust `unwrap()`/`expect()` — panic potential — Medium
+
+**Файл:** `hft-executor/src/lib.rs`
+
+```rust
+// Line 80: panics if tokio runtime can't be created
+.expect("Failed to create tokio runtime");
+
+// Line 156: panics if SystemTime is before UNIX_EPOCH (shouldn't happen, but still)
+.unwrap();
+
+// Line 159: silently sends empty string if serialization fails
+let json = serde_json::to_string(&order).unwrap_or_default();
+```
+
+`expect()` on line 80 will panic the entire process if the tokio runtime fails to create (e.g., out of threads). `unwrap_or_default()` on line 159 silently sends an empty string if JSON serialization fails — the exchange receives garbage.
+
+**Фикс:** Return `Result` from `new()`, use `?` operator. For serialization: `serde_json::to_string(&order).map_err(|e| { error_count.fetch_add(1); continue; })?;`
+
+### 8.30 Rust FFI: no idempotency on orders — Medium
+
+**Файл:** `hft-executor/src/lib.rs:151-153`
+
+```rust
+seq += 1;
+order.id = seq;
+```
+
+Sequence number is local, not a `client_order_id`. If the WS connection drops and reconnects, `seq` continues from where it left off — but the exchange doesn't know about previous seq numbers. A retried order after reconnect gets a new `seq`, so the exchange can't deduplicate.
+
+### 8.31 Rust: no fill tracking beyond counter — Low
+
+**Файл:** `hft-executor/src/lib.rs:178-179`
+
+```rust
+if Self::is_fill_message(&text) {
+    fill_count.fetch_add(1, Ordering::Relaxed);
+    tracing::debug!("Fill received: {}", text);
+}
+```
+
+Fills are only counted, not stored. No way to match a fill to an order. No fill details (price, qty, timestamp) are preserved. `avg_latency_ns` is always 0 (never calculated).
+
+### 8.32 Rust: `is_fill_message` — string matching, not parsing — Low
+
+**Файл:** `hft-executor/src/lib.rs:209-214`
+
+```rust
+fn is_fill_message(text: &str) -> bool {
+    text.contains("\"fill\"")
+        || text.contains("\"filled\"")
+        || text.contains("\"order_fill\"")
+        || text.contains("\"type\":\"fill\"")
+}
+```
+
+String matching instead of JSON parsing. Fragile — any message containing `"fill"` anywhere (e.g., `"reason":"order_refilled"`) would match. Should use `serde_json::from_str` and check the `type` field.
+
+### 8.33 exchange_simulator — ✅ Clean
+
+**Файл:** `exchange_simulator/exchange_simulator/`
+
+Grep for `except Exception` = 0 matches. Only `except ImportError` for optional pyarrow. Clean exception handling.
+
+### 8.34 C++ raw pointers — ✅ Clean (smart pointers only)
+
+**Файл:** `hft-trade-bot/src/`
+
+Grep for `new |delete ` = 0 matches. All memory management via `std::unique_ptr`, `std::make_unique`, `std::shared_ptr`. No manual `new`/`delete`. ✅
+
+### 8.35 React: useEffect cleanup — ✅ Mostly good
+
+**Файлы:** `web-ui/src/components/`, `web-ui/src/hooks/`
+
+Most `useEffect` hooks have proper cleanup functions:
+- `BotStatus.jsx:65` — `return () => clearInterval(id)` ✅
+- `ExecutionBot.jsx:96-98` — `return () => { clearInterval(intervalRef.current) }` ✅
+- `usePerformance.js:82-84` — `return () => { cancelAnimationFrame(rafRef.current) }` ✅
+- `KeyboardHelp.jsx` — event listener cleanup ✅
+
+Chart components (`CandleChart.jsx`, `BacktestRunner.jsx`) create charts in `useEffect` but cleanup is inconsistent — some use `chart.remove()` in the next effect run, not in a cleanup function. Minor memory leak on unmount.
