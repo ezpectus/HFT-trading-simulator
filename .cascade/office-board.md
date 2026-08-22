@@ -129,3 +129,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Alertmanager: placeholder credentials | SMTP password, Slack/Discord webhooks = placeholders | CODE_AUDIT §8.73 |
 | shared_config: hardcoded localhost | Won't work in Docker/K8s | CODE_AUDIT §8.74 |
 | Alertmanager: no silence during deploy | All alerts fire on restart | CODE_AUDIT §8.78 |
+| Makefile: no C++ tests | `make test` skips 30+ C++ CTest targets | CODE_AUDIT §8.84 |
+| Rust panic=abort + unwrap | SystemTime error = immediate C++ host abort | CODE_AUDIT §8.85 |

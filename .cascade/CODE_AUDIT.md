@@ -1212,3 +1212,80 @@ Properly handles the case where BCC isn't installed (non-Linux, no root). ✅
 No silence rules or maintenance window configuration. During planned deployments, all alerts fire simultaneously (services restart → health checks fail → critical alerts). No way to auto-silence during deploy windows.
 
 **Фикс:** Add AM API silence creation in CI/CD pipeline before deploy, auto-expire after 10min.
+
+### 8.79 CMake build — ✅ Excellent
+
+**Файл:** `hft-trade-bot/CMakeLists.txt` (511 lines)
+
+Comprehensive build configuration:
+- C++20, `CMAKE_CXX_STANDARD_REQUIRED ON`, no extensions
+- ccache support, unity build option, PCH (disabled on MSVC due to UTF-8 path issue)
+- Custom allocators (mimalloc/jemalloc), PGO support
+- GCC: `-O3 -flto -Wall -Wextra -march=native -msse4.2 -mavx2 -ffast-math`
+- MSVC: `/O2 /GL /utf-8 /W4`
+- Debug: ASan + UBSan
+- 30+ test targets (doctest + CTest)
+- Cross-platform (Linux/Windows/macOS via vcpkg)
+
+### 8.80 Cargo.toml — ✅ Good
+
+**Файл:** `hft-executor/Cargo.toml`
+
+Release profile: `opt-level=3, lto=true, codegen-units=1, panic=abort, strip=true`. This is optimal for a production Rust library. Dependencies use semver ranges (`"1"`, `"0.24"`) which is standard for Rust.
+
+### 8.81 web-ui package.json — ✅ Good
+
+**Файл:** `web-ui/package.json`
+
+- Node 22+ engine requirement
+- Vitest + Playwright for testing
+- ESLint 9, TypeScript 5.5 (devDeps, not runtime)
+- Security overrides: `esbuild ^0.25.0`, `fast-uri >=4.1.2`, `js-yaml >=4.3.1` (known vuln fixes)
+- `detect-private-key` in pre-commit hooks ✅
+
+**Minor:** Dependencies use `^` (caret) ranges, not pinned. In production, `npm ci` with `package-lock.json` mitigates this.
+
+### 8.82 Pre-commit hooks — ✅ Good
+
+**Файл:** `.pre-commit-config.yaml`
+
+- ruff (lint + format)
+- eslint for JS/TS
+- trailing-whitespace, end-of-file-fixer, check-yaml
+- `detect-private-key` ✅ (prevents committing SSH/PGP keys)
+- `check-added-large-files` (500KB limit)
+
+### 8.83 Docker Compose prod: resource limits — ✅ Good
+
+**Файл:** `docker-compose.prod.yml`
+
+All 7 services have `deploy.resources.limits` (memory + cpus). This corrects the dev `docker-compose.yml` issue (§8.70). Prod compose is properly configured.
+
+### 8.84 Makefile: no C++ test target — Low
+
+**Файл:** `Makefile:23-26`
+
+`make test` runs Python and JS tests but not C++ tests:
+```makefile
+test:
+    cd exchange_simulator && python -m pytest tests/ -v
+    cd ai-signal-bot && python -m pytest tests/ -v
+    cd web-ui && npx vitest run --passWithNoTests
+    # ← no cd hft-trade-bot && ctest
+```
+
+C++ has 30+ test targets in CMake, but `make test` doesn't run them. Developers must remember to run CTest separately.
+
+**Фикс:** Add `cd hft-trade-bot && cmake --build build && ctest --test-dir build` to the test target.
+
+### 8.85 Rust `panic = abort` — design tradeoff — Low
+
+**Файл:** `hft-executor/Cargo.toml:25`
+
+```toml
+panic = "abort"
+```
+
+With `panic = abort`, any `unwrap()` or `expect()` panic kills the entire process immediately — no stack unwind, no cleanup. This is intentional for a cdylib (FFI library) where unwinding across the FFI boundary is UB. But combined with the `unwrap()` calls identified in §8.29, this means any `SystemTime` error or `serde_json` serialization failure = immediate process abort. The C++ host process dies.
+
+**Фикс:** Replace `unwrap()` with proper error handling (already noted in §8.29). The `panic = abort` setting itself is correct for FFI.

@@ -623,3 +623,8 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R66 | C++ memory ordering | `hft-trade-bot/src/` | ✅ Correct | Relaxed for stats, release for signaling, CAS for min/max. Balance relaxed OK (single-threaded exec) |
 | R67 | Grafana dashboards | `grafana/dashboards/` | ✅ Good | 5 dashboards + provider config. Well-configured |
 | R68 | Alertmanager: no silence/maintenance | `alertmanager/config.yml` | Low | No auto-silence during deploy. All alerts fire on restart |
+| R69 | CMake build | `CMakeLists.txt` | ✅ Excellent | C++20, ccache, PCH, PGO, mimalloc/jemalloc, ASan/UBSan, 30+ tests, cross-platform |
+| R70 | Cargo.toml release profile | `Cargo.toml` | ✅ Good | opt-level=3, lto, codegen-units=1, panic=abort (correct for FFI), strip |
+| R71 | Pre-commit hooks | `.pre-commit-config.yaml` | ✅ Good | ruff, eslint, detect-private-key, check-yaml, large-files |
+| R72 | Makefile: no C++ test target | `Makefile:23` | Low | `make test` runs Python + JS but not C++ CTest. 30+ C++ tests skipped |
+| R73 | Rust panic=abort + unwrap | `Cargo.toml:25` + `lib.rs` | Low | Correct for FFI, but unwrap() = immediate abort. SystemTime error kills C++ host |
