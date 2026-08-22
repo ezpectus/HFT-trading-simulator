@@ -219,3 +219,15 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ai-signal-bot: 60-file TA+research overlap | 25 technical_analysis + 35 research = 60 files with overlapping math. ~10000 lines | CODE_AUDIT §8.358 |
 | ai-signal-bot alerting: aiohttp session leak | _send_discord/_send_telegram likely create session per call. Use shared session | CODE_AUDIT §8.353 |
 | ai-signal-bot: dual metrics (monitoring + communication) | monitoring/metrics.py + communication/metrics_server.py. Consolidate | CODE_AUDIT §8.359 |
+| ai-signal-bot: 250+ symbol entries across 4+ configs | 50 symbols × 4+ files. shared_config.yaml not referenced. Single source of truth | CODE_AUDIT §8.370 |
+| ai-signal-bot: localhost in all configs | All WS URLs default localhost. Won't work in K8s/Docker. Use env vars | CODE_AUDIT §8.371 |
+| ai-signal-bot: no SIGINT/SIGTERM handler | K8s SIGTERM = ungraceful shutdown. DB/WS/SHM not cleaned up | CODE_AUDIT §8.381 |
+| ai-signal-bot: no database migrations | CREATE TABLE IF NOT EXISTS only. No migration system. Use Alembic | CODE_AUDIT §8.382 |
+| hft-trade-bot: synthetic order book | Fake 10-level book with 1bp spacing, 1.0 qty. No warning. Unrealistic | CODE_AUDIT §8.380 |
+| ai-signal-bot db: new connection per operation | Every save creates new conn + PRAGMA WAL. Use persistent conn or aiosqlite | CODE_AUDIT §8.363 |
+| Makefile.prod: no migration tracking | Runs all SQL migrations every time. No schema_migrations table | CODE_AUDIT §8.374 |
+| docker-compose: no resource limits | No mem_limit/cpus in dev compose. Prod risky if used directly | CODE_AUDIT §8.385 |
+| helm: hardcoded localhost for web-ui WS | localhost in browser won't connect to K8s services. Use ingress URL | CODE_AUDIT §8.387 |
+| helm: Postgres password in plaintext | `change-me-in-production` in values.yaml. Default to empty, require secret | CODE_AUDIT §8.388 |
+| ci.yml: no security scanning | No pip-audit/npm audit/trivy. CodeQL exists but no SCA | CODE_AUDIT §8.390 |
+| ci.yml: no integration tests | Unit tests only. No docker-compose integration test in CI | CODE_AUDIT §8.391 |

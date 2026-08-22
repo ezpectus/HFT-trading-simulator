@@ -904,3 +904,36 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R347 | ai-signal-bot backtesting/pnl_calculator.py | `pnl_calculator.py` | ✅ Excellent | 3 asset types (spot/futures/options), PnLBreakdown, DI into BacktestEngine |
 | R348 | ai-signal-bot: technical_analysis + research overlap | `60 files` | High | 25 TA + 35 research = 60 files with overlapping math. Consolidate into quant/ |
 | R349 | ai-signal-bot: dual metrics (monitoring + communication) | `2 files` | Medium | monitoring/metrics.py + communication/metrics_server.py. Consolidate |
+| R350 | ai-signal-bot signal_validation/validator.py | `validator.py` | ✅ Excellent | 5 checks (confidence/RR/drawdown/positions/duplicate), early exit, div-by-zero guard |
+| R351 | ai-signal-bot validator: datetime.now() no timezone | `validator.py:46` | Low | Naive datetime. Use datetime.now(UTC) |
+| R352 | ai-signal-bot database/db.py | `db.py` | ✅ Good | WAL mode, 3 tables, 3 indexes, parameterized queries, Windows-safe close |
+| R353 | ai-signal-bot db: new connection per operation | `db.py:21` | Medium | Every save creates new conn + PRAGMA WAL. Use persistent conn or aiosqlite |
+| R354 | ai-signal-bot db: catch-all in close() | `db.py:33` | Low | `except Exception: pass` — silently swallows errors. Log at minimum |
+| R355 | ai-signal-bot config/__init__.py | `config/__init__.py` | ✅ Excellent | 5 required sections, range validation, cross-field validation, warnings, yaml.safe_load |
+| R356 | ai-signal-bot config: f-string logging | `config/__init__.py:29` | Low | f-string in config validation. Use % formatting |
+| R357 | ai-signal-bot run.py | `run.py` | ✅ Good | Clean pipeline, config-driven, nosec annotation, sys.path documented |
+| R358 | ai-signal-bot run.py: no graceful shutdown | `run.py:100` | Medium | _running flag but no SIGINT/SIGTERM handler. K8s kill = no cleanup |
+| R359 | ai-signal-bot run.py: f-string logging | `run.py:111` | Low | Multiple f-string log calls in startup. Use % formatting |
+| R360 | shared_config.yaml: 50 symbols × 4+ files | `4+ files` | High | 250+ symbol entries across configs. shared_config.yaml not referenced. Single source |
+| R361 | shared_config.yaml: localhost in all configs | `5+ files` | Medium | All WS URLs default localhost. Won't work in K8s/Docker. Use env vars |
+| R362 | Makefile | `Makefile` | ✅ Good | 12 targets, self-documenting, per-component dev/test, clean, benchmark |
+| R363 | Makefile.prod | `Makefile.prod` | ✅ Excellent | 15 targets, DB migrate/backup/restore, 6-service health, one-command deploy |
+| R364 | Makefile.prod: no migration tracking | `Makefile.prod:48` | Medium | Runs all SQL migrations every time. No schema_migrations table. Non-idempotent fail |
+| R365 | Makefile.prod: /dev/tcp bash-specific | `Makefile.prod:82` | Low | /dev/tcp won't work with sh. Use curl or add SHELL := /bin/bash |
+| R366 | hft-trade-bot bot_loop.cpp | `bot_loop.cpp` | ✅ Good | 3 process functions, atomic balance, risk check, position guard, spdlog |
+| R367 | hft-trade-bot: arb_lock manual lock/unlock | `bot_loop.cpp:31` | Low | Manual lock/unlock — not RAII. Use std::lock_guard |
+| R368 | hft-trade-bot: hardcoded 0.001 min quantity | `bot_loop.cpp:36` | Low | Hardcoded min arb quantity. Make configurable |
+| R369 | hft-trade-bot: hardcoded 0.5 max quantity | `bot_loop.cpp:37` | Low | Hardcoded max arb quantity. Make configurable |
+| R370 | hft-trade-bot: synthetic order book | `bot_loop.cpp:79` | Medium | Fake 10-level book with 1bp spacing, 1.0 qty. No warning. Unrealistic |
+| R371 | ai-signal-bot: no SIGINT/SIGTERM handler | `run.py` | Medium | No signal handlers. K8s SIGTERM = ungraceful shutdown. DB/WS/SHM not cleaned |
+| R372 | ai-signal-bot: no database migrations | `db.py` | Medium | CREATE TABLE IF NOT EXISTS only. No migration system. Use Alembic |
+| R373 | docker-compose.yml | `docker-compose.yml` | ✅ Excellent | 6 services, all healthchecks, depends_on service_healthy, restart, volumes, network |
+| R374 | docker-compose: no resource limits | `docker-compose.yml` | Medium | No mem_limit/cpus. Dev fine but prod risky. Add to docker-compose.prod.yml |
+| R375 | helm/values.yaml | `values.yaml` | ✅ Good | 6+ components, resource limits, storage, pinned images, SHM 1Gi |
+| R376 | helm: hardcoded localhost for web-ui WS | `values.yaml:104` | Medium | localhost in browser won't connect to K8s services. Use ingress URL |
+| R377 | helm: Postgres password in plaintext | `values.yaml:17` | Medium | `change-me-in-production` in plaintext. Default to empty, require secret |
+| R378 | .github/workflows/ci.yml | `ci.yml` | ✅ Excellent | 5 lint, 3 test, 2 compilers, concurrency, minimal perms, coverage, cache |
+| R379 | ci.yml: no security scanning | `ci.yml` | Medium | No pip-audit/npm audit/trivy. CodeQL exists but no SCA |
+| R380 | ci.yml: no integration tests | `ci.yml` | Medium | Unit tests only. No docker-compose integration test. docker-smoke-test exists |
+| R381 | ci.yml: websocketpp sed patch | `ci.yml:136` | Low | Patches system headers with sed. Fragile. Pin version or use fork |
+| R382 | docker-compose: healthcheck localhost in container | `docker-compose.yml:46` | Low | Health checks use localhost inside container. Works if 0.0.0.0 bind |

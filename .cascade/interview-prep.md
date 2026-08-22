@@ -2454,3 +2454,183 @@ groups:
 ```
 
 **Why it matters at scale:** Infrastructure alerts (process down, no clients) tell you when the system is broken. Business logic alerts (latency, fill rate, drawdown, stale data) tell you when the system is **losing money** — even though it's technically running. With 1000 users, a SHM overflow that drops market data for 10 minutes means 1000 users trading on stale prices. The infrastructure alerts say "everything is fine" — process is up, WebSocket is connected, Prometheus is scraping. But every single trade is wrong. The good version adds alerts for the things that actually matter in trading: latency, data freshness, fill rate, drawdown. These alerts catch problems before they become losses. The drawdown alert at 6% gives the operator time to intervene before the 8% circuit breaker triggers. The SHM overflow alert catches data loss in 10 seconds, not 10 minutes. The cost is 50 lines of YAML. The benefit is catching money-losing situations before they become catastrophic. With 1000 users, catching a SHM overflow 10 minutes earlier saves $500,000.
+
+---
+
+## Bad vs Good: No Graceful Shutdown (Signal Handlers)
+
+### ❌ Bad Code
+```python
+class AISignalBot:
+    def __init__(self, config):
+        self._running = False
+        self.exchange = ExchangeClient(config.ws_url)
+        self.db = Database(config.db_path)
+
+    async def run(self):
+        self._running = True
+        while self._running:
+            await self._process_signals()
+            await asyncio.sleep(self.config.signal_interval)
+
+    def stop(self):
+        self._running = False
+```
+
+**What's wrong:**
+- No SIGINT/SIGTERM handler — `stop()` is never called on kill
+- K8s sends SIGTERM → process is killed after grace period → no cleanup
+- DB writes in flight are lost
+- WebSocket connection is not closed properly — server may think bot is still connected
+- SHM ring buffer is not unmapped — memory leak in shared memory
+- Signal publisher port 8766 is not released — next start may fail with "address in use"
+
+### ✅ Good Code
+```python
+import signal
+
+class AISignalBot:
+    def __init__(self, config):
+        self._running = False
+        self.exchange = ExchangeClient(config.ws_url)
+        self.db = Database(config.db_path)
+        self._shutdown_event = asyncio.Event()
+
+    async def run(self):
+        self._running = True
+        loop = asyncio.get_running_loop()
+        # Register signal handlers for graceful shutdown
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, self._handle_signal)
+
+        try:
+            while self._running:
+                await self._process_signals()
+                await asyncio.sleep(self.config.signal_interval)
+        finally:
+            await self._cleanup()
+
+    def _handle_signal(self):
+        logger.info("Shutdown signal received — initiating graceful shutdown")
+        self._running = False
+        self._shutdown_event.set()
+
+    async def _cleanup(self):
+        """Cleanup resources in order of dependency."""
+        logger.info("Closing WebSocket connection...")
+        await self.exchange.close()
+
+        logger.info("Flushing pending DB writes...")
+        self.db.close()
+
+        logger.info("Closing signal publisher...")
+        await self.signal_publisher.close()
+
+        logger.info("Graceful shutdown complete.")
+```
+
+**Разница:** The bad code has a `_running` flag but no way to trigger it on process termination. When K8s terminates the pod, it sends SIGTERM, waits `terminationGracePeriodSeconds` (default 30s), then SIGKILL. Without a signal handler, the bot is killed without cleanup — pending DB writes are lost, WebSocket connections are not closed, SHM is not unmapped. The good code registers signal handlers via `loop.add_signal_handler()` (the asyncio-safe way), sets the running flag to false, and runs cleanup in a `finally` block. The cleanup closes resources in dependency order: WebSocket first (stop receiving data), then DB (flush writes), then signal publisher (release port). With 1000 users, a bot that doesn't close its WebSocket properly means the exchange simulator keeps sending data to a dead connection, wasting bandwidth and potentially hitting connection limits. A bot that doesn't flush DB writes means the last 60 seconds of trades are lost — with 1000 users, that's $50,000 in unrecorded PnL.
+
+---
+
+## Bad vs Good: Database Connection Management
+
+### ❌ Bad Code
+```python
+class Database:
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.path)
+        conn.execute("PRAGMA journal_mode=WAL")  # executed every call!
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def save_signal(self, signal_dict: dict) -> int:
+        with closing(self._conn()) as conn:  # new connection per write
+            cursor = conn.execute("INSERT INTO signals ...", (...))
+            conn.commit()
+            return cursor.lastrowid
+```
+
+**What's wrong:**
+- New connection per operation — expensive (file open, WAL pragma, file close)
+- `PRAGMA journal_mode=WAL` executed every call — unnecessary after first
+- No connection pooling — O(n) connection overhead for n writes
+- `closing()` closes the connection after each write — no reuse
+- At 50 symbols × 12 signals/min = 600 writes/min, this is 600 connection cycles/min
+
+### ✅ Good Code
+```python
+import threading
+
+class Database:
+    def __init__(self, path: str = "data/trading.db"):
+        self.path = path
+        self._conn = sqlite3.connect(path, check_same_thread=False)
+        self._conn.execute("PRAGMA journal_mode=WAL")  # once
+        self._conn.execute("PRAGMA synchronous=NORMAL")  # once
+        self._conn.row_factory = sqlite3.Row
+        self._lock = threading.Lock()
+
+    def save_signal(self, signal_dict: dict) -> int:
+        with self._lock:
+            cursor = self._conn.execute(
+                "INSERT INTO signals VALUES (?, ?, ?, ...)", (...)
+            )
+            self._conn.commit()
+            return cursor.lastrowid
+
+    def close(self):
+        with self._lock:
+            self._conn.close()
+```
+
+**Разница:** The bad code creates a new SQLite connection for every single write. Each connection requires opening the file, executing `PRAGMA journal_mode=WAL` (which is a no-op after the first call but still has overhead), and closing the file. At 600 writes/min, that's 600 file open/close cycles per minute. The good code creates one persistent connection with a thread lock for safety, sets WAL mode once at init, and reuses the connection for all writes. The `PRAGMA synchronous=NORMAL` is a bonus — it's safe with WAL and 2-3x faster than the default `FULL`. With 1000 users, the bad code would be 600,000 connection cycles/min — each taking ~1ms = 600 seconds of overhead per minute. The good code has zero connection overhead — just the lock acquire/release (~1us). The difference is 600s vs 0.6s per minute — 1000x improvement.
+
+---
+
+## Bad vs Good: Manual Lock/Unlock vs RAII (C++)
+
+### ❌ Bad Code
+```cpp
+void process_arbitrage(BotContext& ctx, bool can_trade) {
+    if (!ctx.has_arb_opportunity.load() || !can_trade) return;
+    ArbOpportunity arb;
+    {
+        ctx.arb_lock.lock();
+        arb = ctx.latest_arb;
+        ctx.arb_lock.unlock();  // manual unlock — dangerous
+        ctx.has_arb_opportunity = false;
+    }
+    if (ctx.executor->is_connected() && arb.max_quantity > 0.001) {
+        // ... execute arbitrage
+    }
+}
+```
+
+**What's wrong:**
+- Manual `lock()` / `unlock()` — if `ctx.latest_arb` copy throws, lock is never released
+- `ctx.has_arb_opportunity = false` is outside the lock — data race with producer
+- No exception safety — C++ exceptions can occur at any point
+- Deadlock risk if code between lock/unlock calls another function that locks
+
+### ✅ Good Code
+```cpp
+void process_arbitrage(BotContext& ctx, bool can_trade) {
+    if (!ctx.has_arb_opportunity.load() || !can_trade) return;
+    ArbOpportunity arb;
+    {
+        std::lock_guard<std::mutex> lock(ctx.arb_lock);  // RAII — auto unlock
+        arb = ctx.latest_arb;
+        ctx.has_arb_opportunity = false;  // inside lock — no race
+    }
+    // lock automatically released when scope exits
+    if (ctx.executor->is_connected() && arb.max_quantity > ctx.config.min_arb_quantity) {
+        double qty = std::min(arb.max_quantity, ctx.config.max_arb_quantity);
+        ctx.executor->execute_arbitrage(arb.symbol, arb.buy_exchange,
+                                        arb.sell_exchange, qty,
+                                        arb.buy_price, arb.sell_price);
+    }
+}
+```
+
+**Разница:** The bad code uses manual `lock()` and `unlock()`. In C++, if the copy assignment `arb = ctx.latest_arb` throws (e.g., out-of-memory), the mutex is never unlocked — the entire system deadlocks. Every subsequent call to `process_arbitrage` will block forever on `ctx.arb_lock.lock()`. The good code uses `std::lock_guard` — an RAII wrapper that locks in the constructor and unlocks in the destructor. When the scope exits (normally or via exception), the lock is always released. Additionally, `ctx.has_arb_opportunity = false` is moved inside the lock — in the bad code, the producer thread could set `has_arb_opportunity = true` and `latest_arb` between the unlock and the `= false`, causing the bot to miss an arbitrage opportunity. With 1000 users, a deadlock in the arbitrage path means the bot stops executing arbitrage trades — potentially missing $10,000+ in profitable opportunities while the deadlock persists. The RAII version costs zero (compiler optimizes the guard away) and prevents both deadlocks and data races.

@@ -4851,3 +4851,424 @@ Combined 60 mathematical/statistical analysis modules. Many cover the same conce
 Two metrics modules in the same bot. `communication/metrics_server.py` has 7 metrics with manual Prometheus format. `monitoring/metrics.py` may have overlapping metrics.
 
 **Code reduction:** Consolidate into a single metrics module.
+
+### 8.360 ai-signal-bot signal_validation/validator.py: 5-check validator — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/signal_validation/validator.py` (122 lines)
+
+- **5 checks**: confidence, R:R ratio, daily drawdown, max positions, duplicate cooldown
+- **ValidationResult**: passed, reason, signal — clean result type
+- **Duplicate prevention**: 5-minute cooldown per symbol, stale entry cleanup
+- **Daily reset**: Auto-resets daily PnL after 24h
+- **Early exit**: Returns on first failed check — efficient
+- **Div-by-zero guard**: `if account_balance > 0 else 0` in drawdown calc
+
+Excellent signal validator with comprehensive checks and clean design. ✅
+
+### 8.361 ai-signal-bot signal_validator: datetime.now() without timezone — Low
+
+**Файл:** `ai-signal-bot/src/signal_validation/validator.py:46,58,113`
+
+```python
+self._daily_reset = datetime.now()
+```
+
+Uses `datetime.now()` without timezone — returns naive datetime. In distributed systems, this can cause issues when comparing timestamps across machines in different timezones.
+
+**Фикс:** Use `datetime.now(UTC)` from `datetime import UTC`.
+
+### 8.362 ai-signal-bot database/db.py: SQLite with WAL — ✅ Good
+
+**Файл:** `ai-signal-bot/src/database/db.py` (180 lines)
+
+- **WAL mode**: `PRAGMA journal_mode=WAL` for concurrent read/write access
+- **Row factory**: `sqlite3.Row` for dict-like access
+- **3 tables**: signals, trades, equity_curve — with proper schema
+- **3 indexes**: idx_signals_symbol, idx_trades_symbol, idx_trades_status
+- **Parameterized queries**: Uses `?` placeholders — SQL injection safe
+- **Windows-safe close**: `wal_checkpoint(TRUNCATE)` + `journal_mode=DELETE` on close
+- **contextlib.closing**: Proper resource cleanup
+
+Good SQLite layer with WAL, indexes, parameterized queries, and Windows-safe cleanup. ✅
+
+### 8.363 ai-signal-bot db.py: new connection per operation — Medium
+
+**Файл:** `ai-signal-bot/src/database/db.py:21-25`
+
+```python
+def _conn(self) -> sqlite3.Connection:
+    conn = sqlite3.connect(self.path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+```
+
+Every `save_signal`, `save_trade`, etc. creates a new connection, sets WAL mode, and closes it. This is expensive:
+1. `PRAGMA journal_mode=WAL` is executed on every call — unnecessary after first call
+2. Connection overhead per write — significant for high-frequency trading
+3. No connection pooling
+
+**Фикс:** Use a single persistent connection with a thread lock, or use `aiosqlite` for async access. Cache the WAL pragma.
+
+### 8.364 ai-signal-bot db.py: catch-all in close() — Low
+
+**Файл:** `ai-signal-bot/src/database/db.py:33`
+
+```python
+except Exception:
+    pass
+```
+
+The `close()` method silently swallows all exceptions. If WAL checkpoint fails, the user has no way to know.
+
+**Фикс:** At minimum log the error: `except Exception as e: logger.warning("DB close error: %s", e)`.
+
+### 8.365 ai-signal-bot config/__init__.py: Comprehensive validation — ✅ Excellent
+
+**Файл:** `ai-signal-bot/config/__init__.py` (314 lines)
+
+- **5 required sections**: trading, exchange, risk, strategies, indicators
+- **Range validation**: max_risk_per_trade_pct in (0, 100], min_confidence in [0, 100]
+- **Cross-field validation**: ema_fast < ema_slow, rsi_oversold < rsi_overbought, macd_fast < macd_slow
+- **Warnings for suspicious values**: risk > 10%, drawdown > 20%, SL > 10%, positions > 10
+- **Errors vs warnings**: Returns tuple — errors raise, warnings log
+- **yaml.safe_load**: Safe deserialization (not `yaml.load`)
+
+Excellent config validation with range checks, cross-field validation, and suspicious value warnings. ✅
+
+### 8.366 ai-signal-bot config: f-string logging — Low
+
+**Файл:** `ai-signal-bot/config/__init__.py:29,32`
+
+```python
+logger.warning(f"Config: {w}")
+logger.error(f"Config ERROR: {e}")
+```
+
+Uses f-string logging in config validation. Same pattern as rest of project.
+
+**Фикс:** Use `logger.warning("Config: %s", w)`.
+
+### 8.367 ai-signal-bot run.py: Main entry point — ✅ Good
+
+**Файл:** `ai-signal-bot/run.py` (397 lines)
+
+- **Clean architecture**: Exchange → Data → Indicators → Strategies → Ensemble → Validation → Execution → DB
+- **Component initialization**: Exchange, SignalPublisher, Database, Validator, Tracker, LLMEngine
+- **nosec annotation**: `# nosec: B104` on `0.0.0.0` bind
+- **sys.path manipulation**: Adds project root for shared modules — documented with comment
+- **Config-driven**: All parameters from SignalBotConfig
+
+Good main entry point with clean pipeline and config-driven setup. ✅
+
+### 8.368 ai-signal-bot run.py: no graceful shutdown — Medium
+
+**Файл:** `ai-signal-bot/run.py:100`
+
+```python
+self._running = False
+```
+
+The bot has a `_running` flag but no signal handler (SIGINT/SIGTERM) to trigger graceful shutdown. If the process is killed, pending DB writes and WebSocket connections may not be cleaned up.
+
+**Фикс:** Add `signal.signal(signal.SIGINT, handler)` and `signal.signal(signal.SIGTERM, handler)` that sets `_running = False`.
+
+### 8.369 ai-signal-bot run.py: f-string logging — Low
+
+**Файл:** `ai-signal-bot/run.py:111-117`
+
+```python
+self.logger.info(f"  Symbols: {self.config.symbols}")
+self.logger.info(f"  Strategies: {[s.name for s in self.strategies]}")
+```
+
+Multiple f-string log calls in startup. Same pattern as rest of project.
+
+**Фикс:** Use `%` formatting.
+
+### 8.370 shared_config.yaml: 50 symbols duplicated across 4+ config files — High (code reduction)
+
+**Файлы:**
+1. `shared_config.yaml` — 50 symbols
+2. `ai-signal-bot/config/settings.yaml` — 50 symbols
+3. `exchange_simulator/config.yaml` — 50 symbols × 3 exchanges = 150 entries
+4. `hft-trade-bot/config/config.yaml` — 50 symbols
+
+**250+ symbol entries** across config files. If a symbol is added/removed, it must be updated in 4+ places. The `shared_config.yaml` was supposed to be the single source of truth, but each component has its own copy.
+
+**Code reduction:** Have each component's config reference `shared_config.yaml` or use environment variables. Or generate component configs from `shared_config.yaml` via a script.
+
+### 8.371 shared_config.yaml: localhost in all configs — Medium
+
+**Файлы:** `shared_config.yaml:108,112`, `ai-signal-bot/config/settings.yaml:74`, `hft-trade-bot/config/config.yaml:76,165`, `helm/values.yaml:104-105`
+
+All WebSocket URLs default to `localhost`. In Kubernetes/Docker, `localhost` means the container itself, not the host. The Helm values also hardcode `ws://localhost:8765` as build-time Vite args.
+
+**Фикс:** Use environment variables: `ws://${EXCHANGE_SIMULATOR_HOST:-localhost}:8765`. In Helm, use K8s service names: `ws://exchange-simulator:8765`.
+
+### 8.372 Makefile: Clean dev targets — ✅ Good
+
+**Файл:** `Makefile` (84 lines)
+
+- **12 targets**: help, install, dev, test, lint, build, docker-up/down, clean, logs, ci-test, benchmark
+- **Self-documenting**: `help` target greps `##` comments
+- **Per-component dev**: dev-exchange, dev-signals, dev-ui
+- **Per-component test**: test-exchange, test-signals, test-js
+- **Clean**: Removes dist, node_modules, __pycache__, .pytest_cache
+- **Benchmark**: `scripts/benchmark_suite.py` for latency p50/p95/p99/p999
+
+Good Makefile with comprehensive dev targets. ✅
+
+### 8.373 Makefile.prod: Production operations — ✅ Excellent
+
+**Файл:** `Makefile.prod` (122 lines)
+
+- **15 targets**: prod-up/down/stop/build/rebuild/logs/ps/restart, db-migrate/backup/restore, monitor, health, clean, stats, deploy
+- **prod-db-migrate**: Runs SQL migrations via asyncpg with glob
+- **prod-db-backup**: Timestamped pg_dump with .env.prod fallback
+- **prod-db-restore**: Requires file= argument — good UX
+- **prod-health**: Checks 6 service endpoints (exchange, signals, HFT, Prometheus, UI, Grafana)
+- **prod-deploy**: Build + up + health — one-command deploy
+- **prod-clean**: `down -v --remove-orphans` + `docker system prune`
+
+Excellent production Makefile with DB ops, health checks, and one-command deploy. ✅
+
+### 8.374 Makefile.prod: prod-db-migrate no migration tracking — Medium
+
+**Файл:** `Makefile.prod:48-60`
+
+```bash
+for f in sorted(glob.glob('src/database/migrations/*.sql')):
+    with open(f) as fh:
+        await conn.execute(fh.read())
+```
+
+Runs all SQL migrations every time — no tracking of which migrations have been applied. If a migration is not idempotent, re-running will fail. No `schema_migrations` table to track applied migrations.
+
+**Фикс:** Add a `schema_migrations` table. Check if migration was already applied before executing.
+
+### 8.375 Makefile.prod: prod-health uses /dev/tcp — Low
+
+**Файл:** `Makefile.prod:82-83`
+
+```bash
+(echo > /dev/tcp/localhost/8765) 2>/dev/null && echo "OK (port open)" || echo "FAIL (port closed)"
+```
+
+`/dev/tcp` is a bash-specific feature — won't work with `sh` or on all systems. The Makefile doesn't specify `SHELL := /bin/bash`.
+
+**Фикс:** Use `curl -s -o /dev/null` for all health checks, or add `SHELL := /bin/bash` at the top.
+
+### 8.376 hft-trade-bot/core/bot_loop.cpp: Signal processing — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp` (279 lines)
+
+- **3 processing functions**: process_sl_tp, process_arbitrage, process_ai_signals
+- **Atomic balance**: `ctx.balance.fetch_add(closed->unrealized_pnl, std::memory_order_relaxed)` — correct atomic
+- **Risk check**: `ctx.risk_mgr->check_signal()` before execution — proper guard
+- **Position guard**: `!ctx.pos_mgr.has_position(ai_sig.symbol)` — no duplicate positions
+- **Connection guard**: `ctx.executor->is_connected()` before submit
+- **Lock-protected arb**: Copies arb opportunity under lock, then releases — minimal critical section
+- **spdlog**: Structured logging with format strings
+
+Good C++ signal processing with atomics, risk checks, and minimal locking. ✅
+
+### 8.377 hft-trade-bot bot_loop: arb_lock manual lock/unlock — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp:31-34`
+
+```cpp
+ctx.arb_lock.lock();
+arb = ctx.latest_arb;
+ctx.arb_lock.unlock();
+```
+
+Manual lock/unlock — if `ctx.latest_arb` copy throws, the lock is never released. Should use RAII `std::lock_guard` or `std::scoped_lock`.
+
+**Фикс:** `std::lock_guard<std::mutex> lock(ctx.arb_lock); arb = ctx.latest_arb;`
+
+### 8.378 hft-trade-bot bot_loop: hardcoded 0.001 min quantity — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp:36`
+
+```cpp
+if (ctx.executor->is_connected() && arb.max_quantity > 0.001) {
+```
+
+Hardcoded minimum quantity threshold (0.001). Should be configurable.
+
+**Фикс:** Use `ctx.config.min_arb_quantity` or similar.
+
+### 8.379 hft-trade-bot bot_loop: hardcoded 0.5 max quantity — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp:37`
+
+```cpp
+double qty = std::min(arb.max_quantity, 0.5);
+```
+
+Hardcoded max arbitrage quantity (0.5). Should be configurable.
+
+**Фикс:** Use `ctx.config.max_arb_quantity`.
+
+### 8.380 hft-trade-bot bot_loop: synthetic order book generation — Medium
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp:79-82`
+
+```cpp
+for (int i = 0; i < 10; ++i) {
+    ctx.ob_buf.bids.push_back({price * (1.0 - 0.0001 * (i + 1)), 1.0});
+    ctx.ob_buf.asks.push_back({price * (1.0 + 0.0001 * (i + 1)), 1.0});
+}
+```
+
+If no real order book is found, a synthetic one is generated with 10 levels at 1bp spacing and 1.0 quantity. This synthetic book has:
+1. **Fixed 1.0 quantity** — unrealistic, all levels same size
+2. **1bp spacing** — too tight for less liquid symbols
+3. **No spread** — bid/ask start at same price ± 1bp
+4. **No validation** — synthetic book is used without warning
+
+**Фикс:** Log a warning when using synthetic book. Make spacing and quantity configurable per symbol.
+
+### 8.381 ai-signal-bot: no SIGINT/SIGTERM handler — Medium
+
+**Файл:** `ai-signal-bot/run.py`
+
+The bot has `_running = False` flag but no signal handler. On SIGTERM (K8s pod termination), the bot is killed without cleanup. Pending DB writes, WebSocket connections, and SHM resources are not released.
+
+**Фикс:** Register signal handlers:
+```python
+loop.add_signal_handler(signal.SIGTERM, self.stop)
+loop.add_signal_handler(signal.SIGINT, self.stop)
+```
+
+### 8.382 ai-signal-bot: no database migrations — Medium
+
+**Файл:** `ai-signal-bot/src/database/db.py`
+
+The database uses `CREATE TABLE IF NOT EXISTS` — no migration system. Schema changes require:
+1. Dropping the database (losing data), or
+2. Manual ALTER TABLE statements
+
+The `Makefile.prod` has `prod-db-migrate` for PostgreSQL migrations, but the SQLite dev database has no migration support.
+
+**Фикс:** Use Alembic or a simple migration runner with version tracking for both SQLite and PostgreSQL.
+
+### 8.383 docker-compose.yml: 6-service stack — ✅ Excellent
+
+**Файл:** `docker-compose.yml` (214 lines)
+
+- **6 services**: exchange-simulator, ai-signal-bot, hft-trade-bot, web-ui, prometheus, grafana
+- **Health checks**: All 6 services have healthcheck with interval/timeout/retries/start_period
+- **depends_on with condition**: `service_healthy` — proper startup ordering
+- **restart: unless-stopped**: All services auto-restart
+- **Named volumes**: sim-data, sim-logs, ai-data, ai-logs, hft-logs, prom-data, grafana-data
+- **Config mounts**: Read-only (`:ro`) for config files
+- **shared_config.yaml**: Mounted to all services
+- **Network**: `trading-net` — isolated network
+- **Prometheus retention**: 30d TSDB retention
+- **Vite build args**: Documented as browser-side URLs
+
+Excellent docker-compose with health checks, dependency ordering, and proper volumes. ✅
+
+### 8.384 docker-compose: healthcheck uses localhost inside container — Low
+
+**Файл:** `docker-compose.yml:46,76,105,136,166`
+
+```yaml
+test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8765), timeout=5)"]
+```
+
+Health checks connect to `localhost` inside the container. This works because the service listens on `0.0.0.0` inside the container, but it's fragile — if the service binds to a specific interface, the health check would fail.
+
+**Фикс:** This is fine for single-process containers. Document that services must bind to `0.0.0.0`.
+
+### 8.385 docker-compose: no resource limits — Medium
+
+**Файл:** `docker-compose.yml`
+
+No `mem_limit`, `cpus`, or `deploy.resources` defined for any service. In dev this is fine, but if someone uses this compose file in production, a single service could consume all host resources.
+
+**Фикс:** Add resource limits in `docker-compose.prod.yml` (which may already have them).
+
+### 8.386 helm/values.yaml: K8s deployment config — ✅ Good
+
+**Файл:** `helm/values.yaml` (151 lines)
+
+- **6 components**: postgres, redis, exchangeSimulator, aiSignalBot, hftTradeBot, webUi, prometheus, grafana
+- **Resource limits**: All components have requests + limits (memory + CPU)
+- **Storage**: Postgres 10Gi, Redis 1Gi, Prometheus 5Gi, Grafana 5Gi
+- **Image tags**: Pinned to v2.0.0
+- **Postgres password**: `"change-me-in-production"` — placeholder with comment to override
+- **SHM size**: 1Gi global
+
+Good Helm values with resource limits, storage, and pinned images. ✅
+
+### 8.387 helm/values.yaml: hardcoded localhost for web-ui WS — Medium
+
+**Файл:** `helm/values.yaml:104-105`
+
+```yaml
+wsExchange: ws://localhost:8765
+wsSignals: ws://localhost:8766
+```
+
+In Kubernetes, `localhost` in the browser will not connect to K8s services. These should be the external ingress URL or NodePort.
+
+**Фикс:** Use `ws://{{ .Values.ingress.host }}:{{ .Values.exchangeSimulator.ports.ws }}` or similar.
+
+### 8.388 helm/values.yaml: Postgres password in plaintext — Medium
+
+**Файл:** `helm/values.yaml:17`
+
+```yaml
+password: "change-me-in-production"
+```
+
+Postgres password in plaintext in values.yaml. While there's a comment to override, it should default to empty and require a secret.
+
+**Фикс:** Default to `""`, require `existingSecret` or `--set postgres.password=...`.
+
+### 8.389 .github/workflows/ci.yml: Multi-language CI — ✅ Excellent
+
+**Файл:** `.github/workflows/ci.yml` (647 lines)
+
+- **5 lint jobs**: Python (ruff), C++ (clang-format-18), JS (eslint), Rust (clippy), YAML
+- **3 test jobs**: Python (pytest + coverage), C++ (ctest + lcov), JS (vitest + coverage)
+- **2 compilers**: gcc-14, clang-17 — matrix build
+- **Concurrency control**: `cancel-in-progress: true` — cancels stale runs
+- **Minimal permissions**: `contents: read` — security best practice
+- **Coverage upload**: Codecov integration for Python, C++, JS
+- **Log artifacts**: Uploaded on failure with 7-day retention
+- **Cache**: pip cache, npm cache, ccache for C++
+- **websocketpp patch**: CI patches C++17/C++20 incompatibility — documented
+
+Excellent CI pipeline with multi-language linting, testing, coverage, and caching. ✅
+
+### 8.390 ci.yml: no security scanning — Medium
+
+**Файл:** `.github/workflows/ci.yml`
+
+No dependency vulnerability scanning (e.g., `pip-audit`, `npm audit`, `trivy`). The `codeql.yml` workflow exists separately, but no SCA (Software Composition Analysis) in CI.
+
+**Фикс:** Add `pip-audit` for Python, `npm audit --audit-level=high` for JS, and `trivy` for Docker images.
+
+### 8.391 ci.yml: no integration tests — Medium
+
+**Файл:** `.github/workflows/ci.yml`
+
+CI runs unit tests only — no integration tests that verify the services can communicate (e.g., exchange-simulator → ai-signal-bot → hft-trade-bot). The `docker-smoke-test.bat` exists but is not in CI.
+
+**Фикс:** Add a docker-compose integration test job that starts all services and verifies health endpoints.
+
+### 8.392 ci.yml: websocketpp sed patch in CI — Low
+
+**Файл:** `.github/workflows/ci.yml:136-138`
+
+```bash
+sudo sed -i 's/endpoint<connection,config>/endpoint/g' /usr/include/websocketpp/endpoint.hpp
+```
+
+CI patches system headers with `sed` to fix C++17/C++20 incompatibility. This is fragile — if the header format changes, the patch silently fails.
+
+**Фикс:** Pin websocketpp to a specific version or use a fork with C++20 support.
