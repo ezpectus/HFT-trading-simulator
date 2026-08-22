@@ -679,3 +679,12 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R122 | C++ CircuitBreaker: relaxed ordering race | `low_latency.h:366` | Low | record_success + record_failure can race on error_count_. Acceptable for safety-net CB |
 | R123 | C++ ObjectPool: O(n) acquire | `low_latency.h:153` | Low | Linear scan. Fine for small pools. Free-list would be O(1) but adds complexity |
 | R124 | deploy.yml: health check no exit | `deploy.yml:143` | Low | WARNING logged but pipeline succeeds. Notify sends SUCCESS even when services down |
+| R125 | C++ aligned_types.h | `aligned_types.h` | ✅ Excellent | Cache-line aligned (alignas(64)), static_assert, FastSignal no heap (char[32] not string) |
+| R126 | C++ IExchange interface | `IExchange.h` | ✅ Good | Pure virtual, DIP/SOLID, SmartOrderRouter depends on interface not concrete |
+| R127 | C++ bot_context: God struct | `bot_context.h:67-111` | Medium | 25+ members, all components coupled. Hard to test individually |
+| R128 | C++ bot_context: SPSCQueue + mutex | `bot_context.h:99-100` | Low | SPSC is single-producer but mutex suggests multi-thread. Race or unnecessary mutex |
+| R129 | GitHub codeql.yml | `codeql.yml` | ✅ Excellent | 3 languages, weekly scan, paths-ignore, least-privilege, fail-fast false |
+| R130 | docker-compose.prod.yml | `docker-compose.prod.yml` | ✅ Excellent | Mandatory secrets (:?), resource limits, network segmentation, SHM IPC, pinned images |
+| R131 | docker-compose.prod: backend internal | `docker-compose.prod.yml:273` | ✅ Good | backend network internal: true — DBs not accessible from host |
+| R132 | docker-compose.prod: VITE_WS fallback | `docker-compose.prod.yml:237` | Low | Defaults to localhost without :? check. Forgetting to set = broken WS in prod |
+| R133 | C++ bot_loop.h | `bot_loop.h` | ✅ Good | Clean function separation, BotContext& by ref, no globals |

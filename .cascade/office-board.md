@@ -151,3 +151,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Makefile.prod: migration not idempotent | Running twice = "table already exists" error | CODE_AUDIT §8.132 |
 | docker-compose dev: Grafana admin/admin | Default creds, risky if port exposed | CODE_AUDIT §8.138 |
 | deploy.yml: health check no exit | Pipeline succeeds even if all services down | CODE_AUDIT §8.144 |
+| C++ bot_context: God struct | 25+ members, all coupled, hard to test | CODE_AUDIT §8.147 |
+| C++ SPSCQueue + mutex | SPSC is single-producer but mutex suggests multi-thread race | CODE_AUDIT §8.148 |
+| prod VITE_WS localhost fallback | Forgetting to set in .env.prod = broken WS | CODE_AUDIT §8.152 |

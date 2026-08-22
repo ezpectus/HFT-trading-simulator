@@ -2042,3 +2042,122 @@ fi
 Same issue as deploy.sh (§8.89) — health check logs a warning but doesn't exit with non-zero. The pipeline succeeds even if all services are down. The `notify` job sends "SUCCESS" even when services are unhealthy.
 
 **Фикс:** Add `exit 1` after the warning, or use `if: failure()` in the notify job.
+
+### 8.145 C++ aligned_types.h: cache-line aligned data structures — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/data/aligned_types.h` (268 lines)
+
+All hot-path structs use `alignas(64)` to prevent false sharing:
+- `AlignedOrderBookLevel` — 64 bytes, one per cache line, `static_assert` verifies size
+- `FastSignal` — fixed-size `char symbol[32]` and `char reason[48]` (no `std::string` heap alloc), designed for SPSC queue transit
+- Score breakdown (ema, rsi, obi, vwap, adx, pressure, composite) — all inline, no pointers
+
+This is textbook HFT data design. No heap allocations, cache-line aligned, `static_assert` on sizes. ✅
+
+### 8.146 C++ IExchange: abstract interface (DIP/SOLID) — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/IExchange.h` (43 lines)
+
+Clean abstract interface with pure virtual methods:
+- Exchange identity: `id()`, `maker_fee_bps()`, `taker_fee_bps()`, `estimated_latency_us()`
+- Market data: `best_bid()`, `best_ask()`, `mid_price()`, `bid_depth()`, `ask_depth()`
+- Availability: `is_available()`, `record_toxic_event()`, `toxic_event_count()`, `reset_toxic_events()`
+- Virtual destructor = default
+
+`SmartOrderRouterV2` depends on `IExchange*`, not concrete adapters. DIP/SOLID done right. ✅
+
+### 8.147 C++ bot_context.h: God struct — Medium
+
+**Файл:** `hft-trade-bot/src/core/bot_context.h:67-111`
+
+`BotContext` is a **God struct** — it holds 25+ members including:
+- 3 signal engines (v1, v2, v3)
+- 6 exchange adapters (3 real + 3 sim)
+- 4 latency histograms
+- 3 SHM IPC objects
+- Position manager, risk manager, kill switch, order executor, smart order router, adaptive selector
+- SPSC queue + mutex, atomic balance, arb lock, prices cache, candles buffer
+
+This is a **dependency injection container** rather than a proper context. Every component is coupled through `BotContext`. While this works for a single-binary HFT bot, it makes testing individual components harder (need to construct the entire 25-member struct).
+
+**Фикс:** Group related members into sub-structs (e.g., `ExchangeContext`, `MonitoringContext`, `IpcContext`).
+
+### 8.148 C++ bot_context.h: SPSCQueue with mutex — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_context.h:99-100`
+
+```cpp
+SPSCQueue<Signal, 16> ai_signal_queue;
+std::mutex            ai_signal_queue_mtx;
+```
+
+`SPSCQueue` is designed for single-producer single-consumer (lock-free). But it's paired with a `std::mutex`, suggesting it's being used from multiple threads. If multiple threads produce signals, the SPSC queue is not safe — the `push()` has a data race. The mutex is a workaround, but it defeats the purpose of using a lock-free queue.
+
+**Фикс:** Use `MPMCQueue` (multi-producer multi-consumer) if multiple threads produce, or remove the mutex if truly SPSC.
+
+### 8.149 GitHub codeql.yml: security analysis — ✅ Excellent
+
+**Файл:** `.github/workflows/codeql.yml` (78 lines)
+
+- 3 languages: Python, JavaScript, C++
+- Weekly scheduled scan (`cron: '0 0 * * 0'`)
+- `paths-ignore` for vcpkg, node_modules, websocketpp, docs, md files
+- Least-privilege permissions (`actions: read`, `contents: read`, `security-events: write`)
+- C++ manual build with all dependencies
+- `fail-fast: false` — all languages analyzed independently
+
+### 8.150 docker-compose.prod.yml: production-grade — ✅ Excellent
+
+**Файл:** `docker-compose.prod.yml` (278 lines)
+
+This is a **textbook production Docker Compose**:
+- **Mandatory secrets**: `${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}` — fails if not set
+- **Resource limits**: all 8 services have CPU + memory limits
+- **Network segmentation**: `frontend` (web-ui), `backend` (internal: true), `monitoring`
+- **Health checks**: all services with `start_period`, `interval`, `retries`
+- **Depends-on healthy**: services wait for dependencies to be healthy
+- **SHM IPC**: `ipc: shareable` on ai-signal-bot, `ipc: "container:trading-ai-signal-bot"` on hft-trade-bot
+- **JSON logging**: `LOG_FORMAT=json`
+- **Pinned images**: `postgres:16-alpine`, `redis:7-alpine`, `prom/prometheus:v3.0.0`, `grafana/grafana:11.4.0`
+- **Redis config**: `--maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes`
+- **PostgreSQL**: `PGDATA` custom path, `pg_isready` health check
+- **Grafana**: env vars for passwords, dashboard provisioning
+
+The `:?` syntax for mandatory secrets is the **correct** pattern — unlike Helm `values.yaml` (§8.69) which uses hardcoded defaults.
+
+### 8.151 docker-compose.prod.yml: backend network internal — ✅ Good
+
+**Файл:** `docker-compose.prod.yml:273-275`
+
+```yaml
+backend:
+  driver: bridge
+  internal: true
+```
+
+The `backend` network is `internal: true` — no external access. PostgreSQL and Redis are only accessible from within the Docker network, not from the host. This is the correct security pattern for databases. ✅
+
+### 8.152 docker-compose.prod.yml: VITE_WS localhost fallback — Low
+
+**Файл:** `docker-compose.prod.yml:237-238`
+
+```yaml
+- VITE_WS_EXCHANGE=${VITE_WS_EXCHANGE:-ws://localhost:8765}
+- VITE_WS_SIGNALS=${VITE_WS_SIGNALS:-ws://localhost:8766}
+```
+
+Defaults to `localhost` if not set in `.env.prod`. Same issue as §8.124 — if someone forgets to set `VITE_WS_*` in `.env.prod`, the web-ui connects to localhost in production. The comment says "override via .env.prod" but there's no `:?` mandatory check like PostgreSQL password.
+
+**Фикс:** Use `${VITE_WS_EXCHANGE:?VITE_WS_EXCHANGE must be set in .env.prod}` to fail fast.
+
+### 8.153 C++ bot_loop.h: clean function declarations — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.h` (17 lines)
+
+Clean separation of bot loop functions:
+- `process_sl_tp`, `process_arbitrage`, `process_ai_signals`
+- `run_v2_signal_loop`, `run_v1_fallback_loop`
+- `poll_shm_market_data`, `graceful_shutdown`
+- `print_status`
+
+All take `BotContext&` by reference. No globals, no singletons. ✅
