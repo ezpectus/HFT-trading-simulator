@@ -139,3 +139,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | hft-trade-bot config: hardcoded localhost | ws://localhost won't work in Docker/K8s | CODE_AUDIT §8.96 |
 | ErrorBoundary: no top-level | App crash = white screen, no recovery | CODE_AUDIT §8.98 |
 | Code reduction ~710 lines | 510 ai-signal-bot + 200 exchange_simulator | CODE_AUDIT §8.100 |
+| SECURITY.md: inaccurate WS claim | Says "validated" but no schema validation exists | CODE_AUDIT §8.107 |
+| Code reduction ~800 lines total | CircuitBreaker×3 + tracing + RateLimiter + compute_returns + exchange_sim | CODE_AUDIT §8.109 |

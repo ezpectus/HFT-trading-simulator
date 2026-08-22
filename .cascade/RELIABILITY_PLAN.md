@@ -640,3 +640,10 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R83 | FIX session: seq num persistence | `fix_session.h:251-268` | ✅ Good | Seq nums saved/loaded from file. Mutex-protected. Minor: no atomic write |
 | R84 | ErrorBoundary: no top-level | `App.jsx` | Medium | Per-panel boundaries but App itself unprotected. Crash = white screen |
 | R85 | Code reduction: exchange_simulator | `exchange_simulator/` | Low | ~200 lines removable. Total reduction ~710 lines (510 + 200) |
+| R86 | config.prod.yaml | `config.prod.yaml` | ✅ Excellent | All secrets from env, stricter risk, kill switch with auto-cancel/close, thread pinning, rate limits per exchange |
+| R87 | settings.testnet.yaml | `settings.testnet.yaml` | ✅ Good | Env vars for API keys, 3 symbols only, clear testnet docs |
+| R88 | Dependabot config | `dependabot.yml` | ✅ Excellent | 7 configs (pip×2, npm, GH Actions, Docker×4). Weekly, grouped, labeled |
+| R89 | SECURITY.md | `SECURITY.md` | ✅ Good | Vuln reporting process, 48h SLA, scope definition. Inaccurate WS validation claim |
+| R90 | Docker Compose staging | `staging.yml` | ✅ Good | All 6 services have limits, JSON logging, restart backoff, health checks |
+| R91 | C++ kill switch | `kill_switch.h`, `bot_setup.cpp:217` | ✅ Excellent | Dual trigger (SHM+file), 5 reasons, auto-cancel+close, SHM fallback, poll interval |
+| R92 | SECURITY.md: inaccurate WS claim | `SECURITY.md:35` | Low | Claims WS validated but §8.71 showed no schema validation |

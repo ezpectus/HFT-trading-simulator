@@ -1480,3 +1480,103 @@ Several modules could be consolidated:
 - `funding_rate.py` (5KB) could be a method on the exchange model
 
 ~200 lines removable from exchange_simulator alone. Total code reduction potential now ~710 lines (510 Python ai-signal-bot + 200 exchange_simulator).
+
+### 8.101 config.prod.yaml — ✅ Excellent
+
+**Файл:** `hft-trade-bot/config/config.prod.yaml` (253 lines)
+
+Production config is exemplary:
+- All API keys use `${ENV_VAR}` syntax — no hardcoded secrets
+- Stricter risk limits than dev (1% per trade vs 2%, 5% daily drawdown vs 8%, 5 max positions vs 10)
+- Kill switch with `auto_cancel_orders: true`, `auto_close_positions: true`
+- PostgreSQL DSN from env, Redis URL from env
+- Thread pinning enabled (cores 0/1/2 for signal/execution/market_data)
+- SPSC queue capacity 16384, object pool 1024
+- FIX credentials from env (`${FIX_USERNAME}`, `${FIX_PASSWORD}`)
+- Fallback to simulator if all real exchanges down
+- Rate limits per exchange (Binance 300 orders/10s, OKX 60 order req/2s, Bybit 120 orders/min)
+
+This is how production config should be done. ✅
+
+### 8.102 settings.testnet.yaml — ✅ Good
+
+**Файл:** `ai-signal-bot/config/settings.testnet.yaml` (38 lines)
+
+Testnet config uses `${BINANCE_TESTNET_API_KEY}` env vars. 3 symbols only (BTC, ETH, SOL). Clear documentation about testnet limitations. ✅
+
+### 8.103 Dependabot config — ✅ Excellent
+
+**Файл:** `.github/dependabot.yml` (95 lines)
+
+7 dependabot configs:
+- Python pip (exchange_simulator + ai-signal-bot)
+- npm (web-ui)
+- GitHub Actions
+- Docker base images (4 services)
+
+All weekly, grouped into 1 PR each (avoids PR spam). Labeled by ecosystem. This is best-practice dependency management. ✅
+
+### 8.104 SECURITY.md — ✅ Good
+
+**Файл:** `SECURITY.md` (50 lines)
+
+- Clear vulnerability reporting process (email, not public issue)
+- 48-hour response SLA
+- Lists security measures: Bandit, CodeQL, no real API keys, input validation, rate limiting
+- Scope definition (in/out of scope)
+- Educational project disclaimer
+
+**Note:** Claims "Input validation — WebSocket messages validated before processing" but §8.71 showed WS input has no schema validation. The SECURITY.md claim is inaccurate.
+
+### 8.105 Docker Compose staging — ✅ Good
+
+**Файл:** `docker-compose.staging.yml` (219 lines)
+
+All 6 services have resource limits (cpus + memory). JSON logging (`LOG_FORMAT=json`). Restart on failure with backoff (`on-failure:5`). Health checks with retries and start_period. This is properly configured — between dev (no limits) and prod (limits + stricter). ✅
+
+### 8.106 C++ kill switch — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h`, `bot_setup.cpp:217-238`
+
+The kill switch is production-grade:
+- Dual trigger: SHM flag (`/hft_kill_switch`) + file-based (`/tmp/kill_switch`)
+- 5 reasons: MANUAL, DAILY_LOSS, MAX_DRAWDOWN, MARGIN_CALL, FILE_TRIGGER
+- Callbacks: `cancel_all`, `close_all` (market-close all positions), `notify`
+- SHM init fallback (file-based still works if SHM fails)
+- Poll interval configurable (250ms default, 1000ms in prod config)
+- `stop_monitoring()` and `close()` called in shutdown sequence
+
+This is the correct pattern for a trading kill switch. ✅
+
+### 8.107 SECURITY.md: inaccurate claim about WS validation — Low
+
+**Файл:** `SECURITY.md:35`
+
+```markdown
+- **Input validation** — WebSocket messages validated before processing
+```
+
+But §8.71 showed `signal_publisher.py:141` does `json.loads(message)` with no schema validation, no type checking, no size limit. The SECURITY.md claim is incorrect — WS messages are parsed but not validated.
+
+**Фикс:** Either add schema validation (as recommended in §8.71) or correct the SECURITY.md claim to "WebSocket messages parsed as JSON" (not "validated").
+
+### 8.108 web-ui .env.example — ✅ Good
+
+**Файл:** `web-ui/.env.example` (33 lines)
+
+Clear documentation, all vars optional with localhost defaults, feature flags documented, `.env` is gitignored. No secrets in example. ✅
+
+### 8.109 Code reduction: total summary — Info
+
+**Total code reduction potential across the project:**
+
+| Area | Lines removable | How |
+|------|----------------|-----|
+| 3× CircuitBreaker duplication | ~150 | Consolidate to 1 in utils/ |
+| Dead `tracing.py` | ~200 | Remove, use OpenTelemetry if needed |
+| Dead `RateLimiter` in utils/helpers.py | ~50 | Remove unused class |
+| `compute_returns` duplication (20+ modules) | ~200 | Extract to utils/ |
+| exchange_simulator module consolidation | ~200 | Merge small modules |
+| **Total** | **~800** | |
+
+~800 lines removable without changing any functionality. This reduces maintenance burden, bug surface, and review time.
