@@ -1920,3 +1920,125 @@ The CI pipeline includes:
 - Least-privilege permissions (`contents: read`)
 
 This is a textbook CI pipeline. ✅
+
+### 8.135 C++ low_latency.h: spinlock + SPSC + pool + histogram — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h` (451 lines)
+
+This is a **production-grade HFT infrastructure file**. Every component is designed for sub-microsecond latency:
+
+- **Spinlock** — `compare_exchange_strong` with `memory_order_acquire`, `_mm_pause()` for hyperthreading, cache-line aligned (`alignas(64)`)
+- **SPSCQueue** — lock-free single-producer single-consumer ring buffer, power-of-2 capacity, `memory_order_acquire/release` on head/tail, cache-line padded
+- **ObjectPool** — pre-allocated, `compare_exchange_strong` for acquire, O(1) release via pointer arithmetic, no heap alloc
+- **LatencyHistogram** — 35 buckets (log2 scale), `compare_exchange_weak` loop for min/max, p50/p95/p99/p99.9 percentiles
+- **ScopedLatency** — RAII timer, records to histogram on destruction
+- **ThreadAffinity** — cross-platform thread pinning (Windows `SetThreadAffinityMask` + Linux `pthread_setaffinity_np`), `SCHED_FIFO` priority
+- **CircuitBreaker** — 5 errors → 30s cooldown → half-open probe, atomic state, lock-free
+- **RetryPolicy** — exponential backoff with jitter, `thread_local` RNG
+
+This is textbook HFT C++. Every memory ordering is correct. Cache-line alignment prevents false sharing. No heap allocations in hot paths. ✅
+
+### 8.136 GitHub deploy.yml: CD pipeline — ✅ Excellent
+
+**Файл:** `.github/workflows/deploy.yml` (172 lines)
+
+Full continuous deployment pipeline:
+- **deploy-web-ui** — Netlify deploy on main/tag push
+- **build-and-push** — matrix build for 4 services, Docker Hub/GHCR push with semver tags, GHA cache
+- **deploy** — SSH to server, `docker compose pull + up --force-recreate`, only on tag push
+- **health-check** — post-deploy health check of all endpoints (TCP + HTTP)
+- **notify** — Discord + Telegram notification on success/failure
+- Concurrency control (no cancel-in-progress for deploys)
+- Least-privilege permissions per job
+- `VITE_WS_*` build args with localhost fallback (same issue as §8.124)
+
+### 8.137 docker-compose.yml (dev): no resource limits — Low
+
+**Файл:** `docker-compose.yml` (214 lines)
+
+Dev compose has health checks, `depends_on` with `condition: service_healthy`, networks, volumes — but **no resource limits** (no `deploy.resources`). Already noted in §8.68. Staging (§8.106) and prod have limits. Dev is fine without limits for development, but could cause issues on resource-constrained machines.
+
+### 8.138 docker-compose.yml (dev): Grafana admin/admin — Low
+
+**Файл:** `docker-compose.yml:187-188`
+
+```yaml
+- GF_SECURITY_ADMIN_USER=admin
+- GF_SECURITY_ADMIN_PASSWORD=admin
+```
+
+Default Grafana credentials `admin/admin` in dev compose. Not a security issue for local dev, but if someone exposes port 3001 to the internet without changing this, Grafana is accessible with default creds.
+
+### 8.139 docker-compose.yml (dev): VITE_WS localhost — ✅ Correct for dev
+
+**Файл:** `docker-compose.yml:118-121`
+
+```yaml
+args:
+  - VITE_WS_EXCHANGE=ws://localhost:8765
+  - VITE_WS_SIGNALS=ws://localhost:8766
+```
+
+Comment correctly explains: "These URLs resolve in the USER'S BROWSER (not inside Docker). localhost works when Docker ports are mapped to the host." This is correct for dev. The issue (§8.124) is only for prod/staging where the browser can't reach `localhost`.
+
+### 8.140 CONTRIBUTING.md: comprehensive — ✅ Good
+
+**Файл:** `CONTRIBUTING.md` (616 lines)
+
+Detailed setup guide:
+- Prerequisites table (Python, Node, CMake, C++ compiler, vcpkg)
+- Windows setup (VS Build Tools, vcpkg, Boost, OpenSSL)
+- Linux setup (apt install)
+- macOS setup (brew)
+- Build instructions per component
+- Testing instructions
+- Code style (ruff, clang-format, eslint)
+- PR process
+
+### 8.141 Helm _helpers.tpl: standard labels — ✅ Good
+
+**Файл:** `helm/templates/_helpers.tpl` (19 lines)
+
+Standard Helm helper templates for labels and selector labels. Uses `app.kubernetes.io/*` labels per K8s conventions. Clean and minimal. ✅
+
+### 8.142 C++ low_latency.h: CircuitBreaker state race — Low
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h:366-384`
+
+The `CircuitBreaker` uses `memory_order_relaxed` for all state transitions. This is fine for a single-threaded hot path (which is the design — one thread checks `allow_request()`, one thread calls `record_failure()`). However, if `record_success()` and `record_failure()` are called concurrently from different threads:
+- Thread A: `record_success()` → `error_count_ = 0`, `state_ = CLOSED`
+- Thread B: `record_failure()` → `error_count_ = 1` (before A resets), then A resets to 0
+
+The `fetch_add` in `record_failure` and `store(0)` in `record_success` can race — the error count could be inaccurate. For a circuit breaker, this means it might open too early or too late. In practice, this is acceptable for HFT (the circuit breaker is a safety net, not a precision instrument).
+
+### 8.143 C++ low_latency.h: ObjectPool O(n) acquire — Low
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h:153-161`
+
+```cpp
+T* acquire() noexcept {
+    for (size_t i = 0; i < PoolSize; ++i) {
+        bool expected = false;
+        if (pool_[i].active.compare_exchange_strong(expected, true, ...)) {
+            return &pool_[i].obj;
+        }
+    }
+    return nullptr;
+}
+```
+
+`acquire()` is O(n) — linear scan through the pool. For small pools (e.g., 16 objects), this is fine. For large pools (e.g., 1000), it could be slow. A free-list with atomic stack would be O(1), but adds complexity. Acceptable for HFT where pool sizes are small.
+
+### 8.144 deploy.yml: health check doesn't fail pipeline — Low
+
+**Файл:** `.github/workflows/deploy.yml:143-145`
+
+```yaml
+if [ "$status" != "200" ]; then
+  echo "WARNING: $endpoint returned $status"
+fi
+```
+
+Same issue as deploy.sh (§8.89) — health check logs a warning but doesn't exit with non-zero. The pipeline succeeds even if all services are down. The `notify` job sends "SUCCESS" even when services are unhealthy.
+
+**Фикс:** Add `exit 1` after the warning, or use `if: failure()` in the notify job.

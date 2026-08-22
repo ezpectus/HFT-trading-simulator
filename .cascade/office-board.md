@@ -149,3 +149,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | .env.prod: localhost WS URLs | Docker build without override = broken WS | CODE_AUDIT §8.124 |
 | C++ health_server: accept() blocks | stop() can't join thread until next connection | CODE_AUDIT §8.126 |
 | Makefile.prod: migration not idempotent | Running twice = "table already exists" error | CODE_AUDIT §8.132 |
+| docker-compose dev: Grafana admin/admin | Default creds, risky if port exposed | CODE_AUDIT §8.138 |
+| deploy.yml: health check no exit | Pipeline succeeds even if all services down | CODE_AUDIT §8.144 |

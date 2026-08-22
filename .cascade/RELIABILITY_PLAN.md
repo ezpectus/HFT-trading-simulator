@@ -669,3 +669,13 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R112 | docker-compose.hub.yml | `docker-compose.hub.yml` | ✅ Good | Pre-built Docker Hub images, health checks, depends_on healthy, networks, restart |
 | R113 | build-all.bat | `build-all.bat` | ✅ Good | 6-component Windows build, multiple modes, error tracking, per-component status |
 | R114 | CI workflow | `ci.yml` | ✅ Excellent | Python+C+++JS+Rust lint+test, Bandit, CodeQL, npm audit, Docker build, concurrency control |
+| R115 | C++ low_latency.h | `low_latency.h` | ✅ Excellent | Spinlock+SPSC+ObjectPool+Histogram+ThreadPin+CircuitBreaker+Retry. Correct memory ordering, cache-line aligned |
+| R116 | GitHub deploy.yml | `deploy.yml` | ✅ Excellent | Netlify+Docker push+SSH deploy+health check+Discord/Telegram notify. Semver tags, GHA cache |
+| R117 | docker-compose dev: no limits | `docker-compose.yml` | Low | No resource limits. OK for dev, already noted §8.68 |
+| R118 | docker-compose dev: Grafana admin/admin | `docker-compose.yml:187` | Low | Default creds. Fine for local dev, risky if exposed |
+| R119 | docker-compose dev: VITE_WS localhost | `docker-compose.yml:118` | ✅ Correct | Comment explains browser-side resolution. Correct for dev |
+| R120 | CONTRIBUTING.md | `CONTRIBUTING.md` | ✅ Good | 616 lines. Prerequisites, Win/Linux/macOS setup, build, test, code style, PR process |
+| R121 | Helm _helpers.tpl | `_helpers.tpl` | ✅ Good | Standard labels + selector labels per K8s conventions |
+| R122 | C++ CircuitBreaker: relaxed ordering race | `low_latency.h:366` | Low | record_success + record_failure can race on error_count_. Acceptable for safety-net CB |
+| R123 | C++ ObjectPool: O(n) acquire | `low_latency.h:153` | Low | Linear scan. Fine for small pools. Free-list would be O(1) but adds complexity |
+| R124 | deploy.yml: health check no exit | `deploy.yml:143` | Low | WARNING logged but pipeline succeeds. Notify sends SUCCESS even when services down |
