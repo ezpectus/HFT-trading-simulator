@@ -440,7 +440,7 @@ All notable changes to this project are documented in this file.
   - `ml_ensemble.py`: Removed F401 from `FeatureEngineer` import (used in file); removed unused `TimeSeriesSplit` import
   - `volatility_surface.py`: Removed unused `scipy.stats.norm` import
   - `metrics.py`: Removed unused `GaugeHistogramMetricFamily` import
-  - `dpdk_transport.py`: Removed pointless `ctypes` try/except (stdlib, always available)
+  - `socket_transport.py` (formerly dpdk_transport.py): Removed pointless `ctypes` try/except (stdlib, always available)
   - `real_account.py`: Replaced `import aiohttp` (availability check) with `importlib.util.find_spec()`
 
 ### Remaining
@@ -771,7 +771,7 @@ Full codebase code quality scan covering Python, C++, and Rust. Scanned for 15+ 
 
 ### Test Coverage
 
-- **[TEST-006]** Added `tests/unit/test_dpdk_transport.py` — 20 tests covering `MarketDataPacket`, `DPDKTransport` init/initialize/send/parse_packet/stats/stop, UDP socket fallback, packet serialization.
+- **[TEST-006]** Added `tests/unit/test_socket_transport.py` (formerly test_dpdk_transport.py) — 20 tests covering `MarketDataPacket`, `SocketTransport` init/initialize/send/parse_packet/stats/stop, UDP socket fallback, packet serialization.
 - **[TEST-007]** Added `tests/unit/test_cross_exchange_arb.py` — 15 tests covering `ArbStatus`, `ExchangePrice`, `ArbitrageOpportunity`, `ExecutionResult`, `CrossExchangeArbEngine` init/update_price/detect_opportunity/stats/stop/execute_leg.
 - **[TEST-008]** Added `tests/unit/test_marketplace.py` — 20 tests covering `StrategyPlugin`, `StrategyMarketplace` init/register/unregister/list/search/enable/disable/config/load with persistence.
 - **[TEST-009]** Added `tests/unit/test_ml_modules.py` — 30 tests covering `ModelRegistry` (register/get/promote/rollback/ab_test/persistence), `AutoMLOptimizer` (config/init/optimize/importances), `FeatureStore` (update/get/batch/vector/matrix/list/delete/age/health).
@@ -783,7 +783,7 @@ Full codebase code quality scan covering Python, C++, and Rust. Scanned for 15+ 
 - **[QUAL-005]** Narrowed `except Exception` to specific exception types across 8 `communication/` modules: `fix_client.py` (4 catches), `signal_publisher.py` (6 catches), `ws_client.py` (1 catch), `metrics_server.py` (2 catches), `health_check.py` (1 catch), `shm_fill_consumer.py` (1 catch), `shm_signal_producer.py` (1 catch), `shm_market_data_writer.py` (1 catch).
 - **[QUAL-006]** Narrowed `except Exception` to specific exception types across 5 `data_collection/` modules: `exchange_factory.py` (1 catch), `market_replay.py` (1 catch), `real_account.py` (13 catches), `real_market_data.py` (4 catches), `timescaledb_client.py` (1 catch).
 - **[QUAL-007]** Narrowed `except Exception` to specific exception types across 7 modules in `monitoring/`, `ml/`, `observability/`, `notification/`, `llm_engine/`, `backtesting/`: `alerting.py` (2), `health_server.py` (3), `automl.py` (2), `feature_store.py` (2), `model_registry.py` (1), `price_predictor.py` (1), `rl_trader.py` (1), `health_checks.py` (4), `tracing.py` (2), `notifier.py` (6), `engine.py` (3), `optimizer.py` (2).
-- **[QUAL-008]** Replaced 2 `pass` stubs in `networking/dpdk_transport.py` (DPDK rx_burst/tx_burst) with `logger.warning()` and narrowed 5 `except Exception` catches to specific types.
+- **[QUAL-008]** Replaced 2 `pass` stubs in `networking/socket_transport.py` (formerly dpdk_transport.py, DPDK rx_burst/tx_burst) with `logger.warning()` and narrowed 5 `except Exception` catches to specific types.
 
 ### Test Coverage
 

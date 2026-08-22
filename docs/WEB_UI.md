@@ -373,19 +373,61 @@ npm run build          # Production build verification
 npm run analyze        # Bundle visualization (vite-bundle-visualizer)
 ```
 
-### Test Files (9 files, 60+ tests)
+### Test Files (44 files: 40 unit + 4 E2E, 300+ tests)
+
+#### Unit Tests (40 files)
+
+| Category | Test File | Coverage |
+|----------|-----------|----------|
+| Components | `accountPanel.test.jsx` | Account panel rendering, leaderboard |
+| Components | `botStatus.test.jsx` | Bot status cards, activity feed |
+| Components | `confidenceScorer.test.jsx` | Confidence scoring display |
+| Components | `drawdownAnalysis.test.jsx` | Drawdown chart and metrics |
+| Components | `exchange-ui.test.jsx` | Exchange selector, symbol switcher |
+| Components | `fillsPanel.test.jsx` | Fills table, search, VirtualList |
+| Components | `loadingSkeleton.test.jsx` | Loading skeleton states |
+| Components | `orderForm.test.jsx` | Order form validation, submit |
+| Components | `panelErrorBoundary.test.jsx` | Error boundary fallback UI |
+| Components | `performance.test.jsx` | Performance dashboard, equity curve |
+| Components | `priceAlerts.test.jsx` | Price alert creation, trigger |
+| Components | `replayControls.test.jsx` | Replay play/pause/seek |
+| Components | `signalFeed.test.jsx` | Signal feed, search, filter |
+| Components | `toast.test.jsx` | Toast notifications, auto-dismiss |
+| Components | `tradeTimeline.test.jsx` | Trade timeline visualization |
+| Components | `watchlist.test.jsx` | Watchlist add/remove/sort |
+| Hooks | `useAnimatedNumber.test.jsx` | Animated number transitions |
+| Hooks | `useDebounce.test.jsx` | Debounce timing, cleanup |
+| Hooks | `useDetachablePanels.test.jsx` | Panel detach/reattach |
+| Hooks | `useExchangeData.test.jsx` | Exchange data fetching |
+| Hooks | `useInterval.test.jsx` | Interval hook, cleanup |
+| Hooks | `useKeyboardShortcuts.test.jsx` | Keyboard shortcut registration |
+| Hooks | `useLocalStorage.test.jsx` | LocalStorage persistence |
+| Hooks | `useMediaQuery.test.jsx` | Responsive breakpoint detection |
+| Hooks | `useMockData.test.jsx` | Mock data generation |
+| Hooks | `usePerformance.test.jsx` | Performance metrics hook |
+| Hooks | `useSoundAlerts.test.jsx` | Sound alert triggers |
+| Hooks | `useTheme.test.jsx` | Theme toggle, persistence |
+| Hooks | `useTradeJournal.test.jsx` | Trade journal CRUD |
+| Hooks | `useWebSocket.test.jsx` | WebSocket connect/reconnect/message |
+| Math | `backtestEngine.test.js` | Backtest engine calculations |
+| Math | `cointegration.test.js` | Engle-Granger cointegration, ADF test |
+| Math | `garch.test.js` | GARCH(1,1) volatility model |
+| Math | `hmm.test.js` | Hidden Markov Model (Baum-Welch, Viterbi) |
+| Math | `kalman.test.js` | 1D/2D Kalman filter |
+| Math | `kmeans.test.js` | K-Means++ clustering, silhouette score |
+| Math | `indicators.test.js` | EMA, RSI, SMA, MACD, BB, ATR, ADX, VWAP, OBV, MFI, Williams %R, Stochastic, CCI, AO, SAR |
+| Utils | `utils.test.js` | Number/price formatting helpers |
+| Utils | `registry.test.js` | Panel registry integrity, category counts |
+| Utils | `virtualList.test.jsx` | VirtualList windowed rendering |
+
+#### E2E Tests (4 files)
 
 | Test File | Coverage |
 |-----------|----------|
-| `indicators.test.js` | EMA, RSI, SMA, MACD, BB, ATR, ADX, VWAP, OBV, MFI, Williams %R, Stochastic, CCI, AO, SAR |
-| `utils.test.js` | Number/price formatting helpers |
-| `garch.test.js` | GARCH(1,1) volatility model |
-| `kalman.test.js` | 1D/2D Kalman filter |
-| `hmm.test.js` | Hidden Markov Model (Baum-Welch, Viterbi) |
-| `cointegration.test.js` | Engle-Granger cointegration, ADF test |
-| `kmeans.test.js` | K-Means++ clustering, silhouette score |
-| `registry.test.js` | Panel registry integrity, category counts |
-| `virtualList.test.js` | VirtualList windowed rendering |
+| `smoke.spec.js` | Page load, basic rendering, no console errors |
+| `mock-mode.spec.js` | Mock mode standalone demo, all panels render |
+| `screenshots.spec.js` | Visual regression screenshots |
+| `trading.spec.js` | Full trading flow: place order, fill, position, close |
 
 CI/CD runs JS lint + test as a dedicated job in GitHub Actions.
 
