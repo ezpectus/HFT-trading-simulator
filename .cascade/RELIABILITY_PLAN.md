@@ -807,3 +807,12 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R250 | ai-signal-bot db.py: no data retention | `db.py` | Low | No retention policy. Tables grow without bound over months |
 | R251 | ai-signal-bot db.py: no equity_curve index | `db.py:70-76` | Low | No index on equity_curve.timestamp. Range queries will full-scan |
 | R252 | ai-signal-bot db.py: no migration system | `db.py:36-81` | Medium | _init_db() uses CREATE TABLE IF NOT EXISTS. No ALTER TABLE for schema changes |
+| R253 | web-ui useWebSocket.ts | `useWebSocket.ts` | ✅ Excellent | Ring buffer 5k, exp backoff 30s cap, ping/pong latency, batch merge, outgoing queue, sync on reconnect, permessage-deflate, full cleanup |
+| R254 | web-ui useWebSocket: no max reconnect limit | `useWebSocket.ts:214` | Low | Backoff capped at 30s but no max count. Reconnects indefinitely if server down |
+| R255 | web-ui useWebSocket: console.error in prod | `useWebSocket.ts:200` | Low | console.error not stripped. Add esbuild.drop in vite.config |
+| R256 | exchange_simulator config_validator.py | `config_validator.py` | ✅ Excellent | 5 required sections, 8 timeframes, 9 validators, cross-ref check, error/warning split |
+| R257 | exchange_simulator liquidation_engine_v2.py | `liquidation_engine_v2.py` | ✅ Excellent | 4 liq types, cascade 10 depth, partial liq, insurance fund, ADL, bounded deques, seeded RNG |
+| R258 | liquidation_engine_v2: ADL is a stub | `liquidation_engine_v2.py:211` | Low | ADL logs and resets fund but doesn't reduce counterparty positions. Acceptable for sim |
+| R259 | liquidation_engine_v2: fixed seed RNG | `liquidation_engine_v2.py:73` | Low | seed=42 makes cascades deterministic. Make configurable for realistic simulation |
+| R260 | liquidation_engine_v2: f-string logging | `liquidation_engine_v2.py:176` | Low | f-string formatted even when log level above WARNING. Use % formatting |
+| R261 | liquidation_engine_v2: no thread safety | `liquidation_engine_v2.py` | Low | No locks. insurance_fund, events, _cascade_depth are mutable. Add Lock or document single-thread |

@@ -195,3 +195,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ai-signal-bot db.py: no migration system | _init_db() uses CREATE TABLE IF NOT EXISTS. No ALTER TABLE for schema changes | CODE_AUDIT §8.264 |
 | web-ui useExchangeData: candle sort every update | Full Array.from + sort on every candle message. 500 elements × every second | CODE_AUDIT §8.256 |
 | web-ui useDetachablePanels: no channel cleanup | BroadcastChannel never closed. Resource leak on unmount | CODE_AUDIT §8.259 |
+| web-ui useWebSocket: no max reconnect | Backoff capped at 30s but reconnects indefinitely | CODE_AUDIT §8.266 |
+| liquidation_engine_v2: ADL is a stub | ADL logs and resets fund, doesn't reduce counterparty positions | CODE_AUDIT §8.270 |
+| liquidation_engine_v2: no thread safety | No locks on insurance_fund, events, _cascade_depth | CODE_AUDIT §8.273 |

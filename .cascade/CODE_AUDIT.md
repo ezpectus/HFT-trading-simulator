@@ -3638,3 +3638,136 @@ Schema is defined in `_init_db()` with `CREATE TABLE IF NOT EXISTS`. This works 
 The project has a `migrations/` directory and `migrate.py` script (noted in §8.77), but `db.py` doesn't use it — it uses its own `_init_db()`.
 
 **Фикс:** Use the migration system from `migrate.py` instead of `_init_db()`. Or add `ALTER TABLE` statements with version tracking.
+
+### 8.265 web-ui useWebSocket.ts: production-grade WebSocket hook — ✅ Excellent
+
+**Файл:** `web-ui/src/hooks/useWebSocket.ts` (305 lines)
+
+Production-grade WebSocket hook with:
+- **Ring buffer**: 5000-entry circular buffer for message replay — `createRingBuffer(maxSize)` with `push`, `toArray`, `clear`, `size`
+- **Exponential backoff**: `backoffRef.current * 2` capped at 30s — `Math.min(backoffRef.current * 2, 30000)`
+- **Reconnect countdown**: `setInterval` 1s countdown for UI display — `nextReconnectIn` state
+- **Ping/pong latency**: 5s ping interval, pong response → `setLatency(Date.now() - lastPingRef.current)`
+- **Batch merging**: `batchTypes` + `batchInterval` (50ms) — merges messages by `type:symbol` key, flushes on non-batched message
+- **Outgoing queue**: 100-message queue when disconnected, flushed on reconnect
+- **Sync on reconnect**: `syncOnReconnect` + `getLastTimestamp` — sends `sync_state` with last timestamp instead of `subscribe`
+- **permessage-deflate**: WebSocket subprotocol negotiation for compression
+- **Handler refs**: `handlersRef.current` updated every render — avoids stale closures in WebSocket callbacks
+- **Cleanup**: All timers cleared in disconnect + useEffect return — reconnect, ping, batch, countdown
+- **Error handling**: `try/catch` on `new WebSocket()`, `JSON.parse()`, individual queue flush
+
+This is the most well-engineered file in the entire project. ✅ Excellent.
+
+### 8.266 web-ui useWebSocket: no max reconnect limit — Low
+
+**Файл:** `web-ui/src/hooks/useWebSocket.ts:214-227`
+
+```typescript
+if (autoConnect) {
+    const delay = backoffRef.current
+    backoffRef.current = Math.min(backoffRef.current * 2, 30000)
+    // ...
+    reconnectTimer.current = setTimeout(() => { connect() }, delay)
+}
+```
+
+Backoff is capped at 30s, but there's no max reconnect count. If the server is down for hours, the hook will keep reconnecting every 30s indefinitely. This is usually fine, but some applications want to stop after N attempts and show a "connection lost" UI.
+
+**Фикс:** Add `maxReconnects` option. After N reconnects, stop and set `error: 'Max reconnects reached'`.
+
+### 8.267 web-ui useWebSocket: console.error in production — Low
+
+**Файл:** `web-ui/src/hooks/useWebSocket.ts:200`
+
+```typescript
+} catch {
+    console.error('[useWebSocket] Failed to parse message')
+}
+```
+
+`console.error` will appear in production. Combined with the 6 `console.log` in `performanceMonitor.js`, these should be stripped in production builds.
+
+**Фикс:** Add `esbuild.drop: ['console', 'debugger']` in `vite.config.js` for production builds.
+
+### 8.268 exchange_simulator config_validator.py: comprehensive validation — ✅ Excellent
+
+**Файл:** `exchange_simulator/exchange_simulator/config_validator.py` (274 lines)
+
+- **5 required sections**: exchanges, initial_prices, volatility, market, account
+- **8 valid timeframes**: 1m, 3m, 5m, 15m, 30m, 1h, 4h, 1d
+- **9 validation functions**: `_validate_exchanges`, `_validate_initial_prices`, `_validate_volatility`, `_validate_cross_references`, `_validate_market`, `_validate_account`, `_validate_websocket`, `_validate_arbitrage`, `_validate_visualizer`
+- **Cross-reference validation**: Ensures symbols in initial_prices and volatility match exchange symbols
+- **Error/warning separation**: Errors are fatal, warnings are informational
+- **Early exit**: Returns immediately if required sections are missing
+
+Excellent config validation with clear error messages. ✅
+
+### 8.269 exchange_simulator liquidation_engine_v2.py: cascade liquidations — ✅ Excellent
+
+**Файл:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py` (253 lines)
+
+Enhanced liquidation engine with:
+- **4 liquidation types**: FULL, PARTIAL, CASCADE, ADL (auto-deleveraging)
+- **Cascade processing**: `process_cascade()` iterates up to 10 depth levels, with market impact (`mark_price *= 1.0 + impact`)
+- **Partial liquidation**: Closes 50% of position first (`partial_liq_ratio`), only full close if still under-collateralized
+- **Insurance fund**: Tracks fund balance, depletes on losses, replenishes on profits
+- **Auto-deleveraging (ADL)**: When insurance fund < 0, triggers ADL — logs critical and resets fund to 10% of deficit
+- **Bounded deques**: `events` and `insurance_fund_history` both `maxlen=10000` — no unbounded growth
+- **Seeded RNG**: `np.random.default_rng(seed=42)` — deterministic cascade market impact for reproducibility
+- **Position dataclass**: Proper `@dataclass` with `is_isolated` flag
+- **Liquidation event dataclass**: Full event record with type, loss, cascade flag
+- **Stats method**: Returns counts by type + total loss
+
+Excellent liquidation engine with realistic cascade modeling, insurance fund, and ADL. ✅
+
+### 8.270 exchange_simulator liquidation_engine_v2: ADL is a stub — Low
+
+**Файл:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py:211-232`
+
+```python
+def _auto_deleverage(self, pos: Position, mark_price: float) -> None:
+    logger.critical(f"[LiqEngine] Insurance fund depleted! Triggering ADL. Fund={self.insurance_fund:.2f}")
+    # In real exchange, this would reduce profitable counterparty positions
+    # For simulation, we log and reset insurance fund
+    self.insurance_fund = abs(self.insurance_fund) * 0.1  # Small recovery
+```
+
+ADL is a stub — it logs and resets the insurance fund but doesn't actually reduce profitable counterparty positions. The comment acknowledges this. In a real exchange, ADL would find the most profitable opposing positions and reduce them to cover the deficit.
+
+**Фикс:** Acceptable for simulation. Document clearly that ADL is simplified.
+
+### 8.271 exchange_simulator liquidation_engine_v2: cascade market impact uses fixed seed — Low
+
+**Файл:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py:73`
+
+```python
+self._rng = np.random.default_rng(seed=42)
+```
+
+The cascade market impact RNG is seeded with 42, making cascades deterministic. This is good for testing/reproducibility but means every simulation run will have identical cascade patterns. In a trading simulator, some randomness is expected.
+
+**Фикс:** Make seed configurable: `seed = config.get('cascade_seed', None)` where `None` means random.
+
+### 8.272 exchange_simulator liquidation_engine_v2: f-string logging — Low
+
+**Файл:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py:176-179`
+
+```python
+logger.warning(
+    f"[LiqEngine] {pos.symbol} {pos.side} liquidated: "
+    f"qty={qty_to_close:.4f} type={liq_type.name} loss={loss:.2f} "
+    f"remaining={pos.qty:.4f} insurance_fund={self.insurance_fund:.2f}"
+)
+```
+
+f-string in logging — the string is formatted even when log level is above WARNING. Same issue noted in §8.33 for ai-signal-bot.
+
+**Фикс:** Use `logger.warning("[LiqEngine] %s %s liquidated: qty=%.4f type=%s loss=%.2f remaining=%.4f insurance_fund=%.2f", pos.symbol, pos.side, qty_to_close, liq_type.name, loss, pos.qty, self.insurance_fund)`.
+
+### 8.273 exchange_simulator liquidation_engine_v2: no thread safety — Low
+
+**Файл:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py`
+
+`LiquidationEngineV2` has no locks or thread safety. `insurance_fund`, `events`, `_cascade_depth` are mutable state. If the exchange simulator runs in multiple threads (e.g., one per exchange), concurrent `liquidate()` calls could corrupt state.
+
+**Фикс:** Add `threading.Lock` around `liquidate()` and `process_cascade()`. Or document that the engine is single-threaded.
