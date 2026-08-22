@@ -1,103 +1,59 @@
 # Context Cache — компактный контекст для AI
 
-> ОБНОВЛЯТЬ В КОНЦЕ КАЖДОГО СПРИНТА.
-> AI читает ЭТОТ файл вместо future_development.md (858 строк) + progress.md (442 строки).
-> 20 строк вместо 1300.
+> ОБНОВЛЯТЬ В КОНЦЕ КАЖДОГО ДНЯ.
+> AI читает ЭТОТ файл для понимания текущего состояния.
 
 ---
 
 ## ПРОЕКТ
 
 - **Тестов:** 2487 Python (0 failed, 17 skipped) + 21 Rust + 547 JS
-- **Багов P0-P1:** 0 (JS тесты не запускаются в IDE — нет npm)
-- **9-Day Plan:** ✅ ЗАВЕРШЁН (Sprint 1-59)
-- **Главный драйвер:** docs/future_development.md
-- **AI SLOP:** 5 модулей (lstm, transformer, rl_agent, dpdk, fpga) + 1 частичный (rust executor)
-- **Оценка проекта:** 7/10 (75% реально, 25% slop) — см. PROJECT_MEGA_ANALYSIS.txt
+- **Багов P0-P1:** 0
+- **Портирование моделей:** ✅ ЗАВЕРШЕНО (52 модели, Sprint 1-105)
+- **Текущая фаза:** РЕФАКТОРИНГ И УПРОЩЕНИЕ (22 авг – 1 сен 2026)
+- **Главный драйвер:** docs/REFACTORING_PLAN_10DAYS.md
+- **AI SLOP:** 5 модулей (lstm, transformer, rl_agent, dpdk, fpga) — в бэклоге
 
-## ПРОГРЕСС ПО future_development.md
+## ПРОГРЕСС ПО РЕФАКТОРИНГУ (10-дневный план)
 
-### Раздел 0.1 (высокий приоритет): 15/15 (100%) ✅
-█████████████████████░ 100%
+### Day 1 (Aug 22): Hawkes split ✅ DONE
+- hawkes.py → hawkes_model.py + hawkes_funcs.py + hawkes.py (facade)
+- 38 тестов проходят
+- Коммит: 3c6919b
 
-- ✅ Kalman Filter (Sprint 55)
-- ✅ PCA (Sprint 56)
-- ✅ K-Means (Sprint 57)
-- ✅ GMM (Sprint 57)
-- ✅ SVM (Sprint 58)
-- ✅ DTW (Sprint 58)
-- ✅ GARCH(1,1) (Sprint 60)
-- ✅ Markov-Switching GARCH (Sprint 61)
-- ✅ Copula (Sprint 62)
-- ✅ Wavelet (Sprint 63)
-- ✅ Monte Carlo (Sprint 64)
-- ✅ Hawkes Process (Sprint 65)
-- ✅ Almgren-Chriss (Sprint 66)
-- ✅ Optimal Stopping (Sprint 67)
-- ✅ Autoencoder (Sprint 68)
-- ✅ VAE (Sprint 69)
-- Раздел 0.1 ЗАВЕРШЁН: 15/15 (100%)
+### Day 2 (Aug 23): compute_returns дедупликация — NEXT
+- compute_returns дублирован в 20+ research модулях
+- План: создать research/_common.py, заменить все копии
 
-### Раздел 0.2 (средний приоритет): 12/12 (100%) ✅
-██████████████████████ 100%
+### Day 3 (Aug 24): quantize и другие хелперы — PENDING
+### Day 4 (Aug 25): research/__init__.py упрощение — PENDING
+### Day 5 (Aug 26): Аудит unused research модулей — PENDING
+### Day 6 (Aug 27): backtester.py упрощение — PENDING
+### Day 7 (Aug 28): strategies.py cleanup — PENDING
+### Day 8 (Aug 29): communication layer аудит — PENDING
+### Day 9 (Aug 30): ML module cleanup — PENDING
+### Day 10 (Aug 31): Финальная проверка + документация — PENDING
 
-- ✅ DTW (Sprint 58, также в 0.1)
-- ✅ Bayesian Price Predictor (Sprint 70)
-- ✅ Bayesian Structural TS (Sprint 71)
-- ✅ HMC (Sprint 72)
-- ✅ Transfer Entropy (Sprint 73)
-- ✅ CCM (EDM) (Sprint 74)
-- ✅ Cramer-Rao Bound (Sprint 75)
-- ✅ Rough Volatility (rBergomi) (Sprint 76)
-- ✅ VMD (Sprint 77)
-- ✅ EMD/HHT (Sprint 78)
-- ✅ Compressed Sensing (Sprint 79)
-- ✅ RKHS (Sprint 80)
-- ✅ Koopman Operator (Sprint 81, расширенная таблица)
-- ✅ Random Matrix Theory (Sprint 82, расширенная таблица)
-- ✅ Graph Theory MST (Sprint 83, расширенная таблица)
-- ✅ Tensor Decomposition (Sprint 84, расширенная таблица)
-- ✅ Affine Arithmetic (Sprint 85, расширенная таблица)
-- ✅ Stochastic Optimal Control (Sprint 86, расширенная таблица)
-- ✅ Pontryagin Maximum (Sprint 87, расширенная таблица)
-- ✅ Girsanov Theorem (Sprint 88, расширенная таблица)
-- ✅ SDE Euler/Milstein (Sprint 89, расширенная таблица)
-- ✅ Fokker-Planck (Sprint 90, расширенная таблица)
-- ✅ Ito Generator (Sprint 91, расширенная таблица)
-- ✅ Malliavin Calculus (Sprint 92, расширенная таблица)
-- ✅ Renyi Entropy (Sprint 93, расширенная таблица)
-- ✅ Kolmogorov-Sinai (Sprint 94, расширенная таблица)
-- ✅ Information Bottleneck (Sprint 95, расширенная таблица)
-- ✅ Renormalization Group (Sprint 96, расширенная таблица)
-- ✅ Free Energy Principle (Sprint 97, расширенная таблица)
-- ✅ Lie Group Symmetries (Sprint 98, расширенная таблица)
-- ✅ Burgers Equation (Sprint 99, расширенная таблица)
-- ✅ Sobolev Regularization (Sprint 100, расширенная таблица)
-- ✅ Lax-Milgram (Sprint 101, расширенная таблица)
-- ✅ Riesz Representation (Sprint 102, расширенная таблица)
-- ✅ Banach Fixed-Point (Sprint 103, расширенная таблица)
-- ✅ Hahn Decomposition (Sprint 104, расширенная таблица)
-- ✅ Cameron-Martin (Sprint 105, расширенная таблица)
-- **Разделы 0.1+0.2 ЗАВЕРШЕНЫ: 27/27 (100%) + расширенные: 52 модели**
+## КЛЮЧЕВЫЕ НАХОДКИ ДЛЯ РЕФАКТОРИНГА
 
-## СЛЕДУЮЩАЯ ЗАДАЧА
+- `compute_returns` — идентичная функция в 20+ модулях research/
+- `quantize` — дубликат в info_bottleneck.py и transfer_entropy.py
+- `research/__init__.py` — 307 строк ручных экспортов + __all__
+- 32 research модуля — нужно проверить какие реально используются
+- `backtester.py` — 506 строк
+- `signal_publisher.py` — 453 строки
+- `strategies.py` — 472 строки (несколько классов в одном файле)
 
-**Модель:** Radon-Nikodym
-**UI файл:** web-ui/src/components/RadonNikodymDerivative.jsx
-**Python файл:** ai-signal-bot/src/research/radon_nikodym.py
-**Паттерны:** cameron_martin.py (Sprint 105), girsanov.py (Sprint 88)
-**Спринт:** 106
+## SLOP FIXES (бэклог — после рефакторинга)
 
-## SLOP FIXES (после завершения портирования моделей)
-
-1. 🔴 `lstm_model.py` — переписать на PyTorch или удалить (сейчас линейная регрессия)
-2. 🔴 `transformer_model.py` — переписать на PyTorch или удалить (сейчас linear layer)
-3. 🔴 `rl_agent.py` — удалить, использовать `rl_trader.py` (настоящий PPO)
-4. 🟠 `dpdk_transport.py` — удалить или переименовать в raw_socket_transport
+1. 🔴 `lstm_model.py` — переписать на PyTorch или удалить
+2. 🔴 `transformer_model.py` — переписать на PyTorch или удалить
+3. 🔴 `rl_agent.py` — удалить, использовать `rl_trader.py`
+4. 🟠 `dpdk_transport.py` — удалить или переименовать
 5. 🟠 `fpga_orderbook.vhd` — удалить или пометить TODO
-6. 🟡 `hft-executor/src/lib.rs` — дописать WebSocket send через tokio-tungstenite
-7. 🟡 README — убрать лишние бейджи, упростить маркетинговый язык
+6. 🟡 `hft-executor/src/lib.rs` — дописать WebSocket send
+7. 🟡 README — убрать лишние бейджи
 
-## ПОСЛЕДНИЙ СПРИНТ
+## ПОСЛЕДНИЙ КОММИТ
 
-**Sprint 105:** Ported Cameron-Martin from UI to trading logic (research/cameron_martin.py). Gaussian shift RN derivative, 32 new tests. 52 модели всего.
+**3c6919b** — refactor: split hawkes.py into hawkes_model.py, hawkes_funcs.py, and facade. 38 тестов проходят.

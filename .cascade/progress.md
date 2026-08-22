@@ -486,3 +486,20 @@
 | **TOTAL** | **~365** | **~309** | **0** | **~57** |
 
 See `.cascade/file_tracker.md` for full file-by-file tracking.
+
+---
+
+## Refactoring Phase (22 Aug – 1 Sep 2026)
+
+| Day | Date | Task | Status | Commit |
+|-----|------|------|--------|--------|
+| 1 | 2026-08-22 | Split hawkes.py → hawkes_model.py + hawkes_funcs.py + facade. 38 tests pass. | ✅ Done | 3c6919b |
+| 2 | 2026-08-23 | compute_returns дедупликация (20+ модулей) | ⏳ Next | — |
+| 3 | 2026-08-24 | quantize и другие хелперы | ⏳ Pending | — |
+| 4 | 2026-08-25 | research/__init__.py упрощение | ⏳ Pending | — |
+| 5 | 2026-08-26 | Аудит unused research модулей | ⏳ Pending | — |
+| 6 | 2026-08-27 | backtester.py упрощение | ⏳ Pending | — |
+| 7 | 2026-08-28 | strategies.py cleanup | ⏳ Pending | — |
+| 8 | 2026-08-29 | communication layer аудит | ⏳ Pending | — |
+| 9 | 2026-08-30 | ML module cleanup | ⏳ Pending | — |
+| 10 | 2026-08-31 | Финальная проверка + документация | ⏳ Pending | — |

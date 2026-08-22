@@ -1,59 +1,40 @@
-# Sprint Template — заполни и работай
+# Day Sprint Template — заполни и работай
 
-> Копируй этот шаблон в office-board.md в начале каждого спринта.
-> Заполни [МОДЕЛЬ], [ФАЙЛ], [UI_ФАЙЛ] из context_cache.md или future_development.md.
+> Копируй этот шаблон в office-board.md в начале каждого дня.
+> Заполни [ЗАДАЧА] из docs/REFACTORING_PLAN_10DAYS.md.
 
 ---
 
-## 📊 ТЕКУЩИЙ СПРИНТ — Sprint [N]
+## 📊 ТЕКУЩИЙ ДЕНЬ — Day [N]
 
-### [01] CEO → [02] CTO
-**Тема:** Sprint [N] — [МОДЕЛЬ] из future_development.md
-**Задача:** Следующая модель без ✅ DONE: [МОДЕЛЬ] (раздел [X]).
-  CTO, подготовь архитектуру — файл, класс, зависимости.
-**Контекст:** Sprint [N-1] завершён. future_development.md раздел [X].
+### [01] Refactoring Agent
+**Тема:** Day [N] — [ЗАДАЧА] из REFACTORING_PLAN_10DAYS.md
+**Задача:** [ОПИСАНИЕ ИЗ ПЛАНА]
+  - Прочитай соответствующие файлы перед изменением
+  - Внеси изменения (edit/multi_edit/write_to_file)
+  - Убедись что импорты корректны
+  - Все существующие тесты должны проходить
+**Контекст:** Day [N-1] завершён. См. context_cache.md.
 **Срок:** P0
 **Статус:** NEW
 
-### [02] CTO → [04] VP Engineering
-**Тема:** Re: [МОДЕЛЬ] — архитектурный план
-**Задача:** Распределить:
-  - Quant Dev (07): [ФАЙЛ], класс [CLASS], методы fit/predict/calculate
-  - QA (27): test_[model].py (8 тестов: normal, edge cases)
-  - Code Reviewer (29): read_file [ФАЙЛ], проверка качества, коммит
-  - Tech Writer (41): MATH_MODELS.md, CHANGELOG.md, ✅ DONE
-**Контекст:** Паттерны: kalman.py, pca.py. UI: [UI_ФАЙЛ]
-**Срок:** P0
-**Статус:** NEW
-
-### [04] VP Eng → [07] Quant Developer
-**Тема:** [МОДЕЛЬ] модель
-**Задача:** Создать [ФАЙЛ]. Класс [CLASS].
-  Прочитай [UI_ФАЙЛ] для формул.
-  Прочитай ai-signal-bot/src/technical_analysis/kalman.py для паттерна.
-  Type hints, docstrings, файл <= 500 строк.
-  Тесты: tests/unit/test_[model].py (5-10 тестов, edge cases).
-  НЕ коммить — Code Reviewer (29) коммитит после ревью.
-**Срок:** P0
-**Статус:** NEW
-
-### [07] Quant Dev → [29] Code Reviewer
-**Тема:** Re: [МОДЕЛЬ] — код готов к ревью
-**Задача:** read_file [ФАЙЛ] и test_[model].py.
-  Проверь: type hints, docstrings, ≤500 строк, edge cases, паттерны.
-  Если есть проблемы → edit исправления.
-  Если всё ОК → git add -A; git commit -m "math: add [МОДЕЛЬ]"
+### [02] Code Review Agent — /code-review
+**Тема:** Re: [ЗАДАЧА] — код готов к ревью
+**Задача:** Проверь работу агента 01:
+  - read_file все изменённые файлы
+  - Проверь: type hints, импорты, ≤500 строк, нет дублирования
+  - Проверь: __init__.py экспорты работают
+  - Проверь: нет циклических зависимостей
+  - Если есть проблемы → edit исправления
+  - Если всё ОК → обнови progress.md + context_cache.md
 **Срок:** P0
 **Статус:** NEW
 
 ---
 
-## ✅ ПРЕДЫДУЩИЙ СПРИНТ
+## ✅ ПРЕДЫДУЩИЙ ДЕНЬ
 
-### [04] VP Eng → ALL
-**Тема:** Sprint [N-1] — завершён
-**Сообщение:**
-  - [Что сделано]
-  - [N] тестов добавлено.
-  - [N]/15 моделей раздела 0.1 портировано ([X]%).
-**Статус:** INFO
+### Day [N-1] — завершён
+- [Что сделано]
+- [N] тестов проходят
+- Коммит: [HASH]
