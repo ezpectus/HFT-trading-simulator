@@ -2610,3 +2610,163 @@ No memory leaks from uncleared intervals. ✅
 `snapshot()` reads 11 atomic counters individually with `relaxed` ordering. Between reads, another thread can modify counters. The snapshot may be inconsistent — e.g., `orders_sent` might be from time T1 but `orders_filled` from T2. For monitoring this is acceptable (approximate values are fine), but for precise calculations it could give wrong ratios.
 
 **Фикс:** Acceptable for monitoring. If precise consistency is needed, use a `shared_mutex` or accept that monitoring is approximate by design.
+
+### 8.190 C++ pressure_model.h: multi-level OBI + toxicity — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/pressure_model.h` (258 lines)
+
+L2 order book microstructure analysis:
+- Multi-level OBI (5/10/20 levels) — single-pass optimization (previously 3 separate calls)
+- Trade flow imbalance (buyer vs seller initiated)
+- Toxicity detection (large orders > median × threshold)
+- Queue position estimation
+- Spread regime classification (TIGHT/NORMAL/WIDE)
+- Price impact estimation
+- `[[unlikely]]` on empty book checks
+- No heap allocations, all inlined
+
+### 8.191 C++ obi_utils.h: extracted OBI functions — ✅ Good
+
+**Файл:** `hft-trade-bot/src/strategies/obi_utils.h` (78 lines)
+
+OBI utility functions extracted from `signal_engine_v2.h` for file-size compliance:
+- `compute_obi_levels()` — simple bid/ask volume ratio at N levels
+- `compute_weighted_obi()` — proximity-weighted (1/(1+i)) volume ratio
+- `compute_obi_all()` — single-pass for 5/10/20 levels + weighted (avoids 3 separate iterations)
+
+All `noexcept`, `inline`, with `1e-12` zero-division guard. ✅
+
+### 8.192 C++ signal.h: NEUTRAL defaults to BUY — Low
+
+**Файл:** `hft-trade-bot/src/data/signal.h:25-29`
+
+```cpp
+Side side() const {
+    if (is_long()) return Side::BUY;
+    if (is_short()) return Side::SELL;
+    return Side::BUY; // NEUTRAL defaults to BUY; caller should check is_actionable() first
+}
+```
+
+Same pattern as `string_to_side` (§8.186) — silent default to BUY. The comment says "caller should check `is_actionable()` first", but there's no enforcement. If a caller forgets to check `is_actionable()` and calls `side()` on a NEUTRAL signal, they get a BUY order. This is a documentation-only guard, not a compile-time or runtime guard.
+
+**Фикс:** Return `std::optional<Side>` or throw on NEUTRAL. Or add `assert(is_actionable())` in debug builds.
+
+### 8.193 Helm values.yaml: hardcoded passwords — Medium
+
+**Файл:** `helm/values.yaml:17,131-132`
+
+```yaml
+postgres:
+  password: "change-me-in-production"  # Override via --set or existingSecret
+
+grafana:
+  adminPassword: ""  # Set via --set grafana.adminPassword=...
+```
+
+PostgreSQL has a hardcoded default password. If someone runs `helm install` without overriding `postgres.password`, the database gets `change-me-in-production`. Grafana has an empty admin password — if not overridden, Grafana may use its default `admin/admin`.
+
+The comments say to override, but there's no enforcement (no `required` constraint, no fail-fast).
+
+**Фикс:** Use `existingSecret` pattern — require a pre-created Kubernetes secret. Remove default password values. Add a note in README that secret must be created before `helm install`.
+
+### 8.194 Helm values.yaml: resource limits on all services — ✅ Good
+
+**Файл:** `helm/values.yaml` (151 lines)
+
+All 7 services have resource requests + limits:
+- PostgreSQL: 256Mi/250m → 512Mi/1
+- Redis: 128Mi/100m → 256Mi/500m
+- Exchange Simulator: 256Mi/250m → 512Mi/1
+- AI Signal Bot: 512Mi/500m → 1Gi/2
+- HFT Trade Bot: 256Mi/500m → 512Mi/2
+- Web UI: 128Mi/100m → 256Mi/500m
+- Prometheus: 128Mi/100m → 256Mi/500m
+- Grafana: 128Mi/100m → 256Mi/500m
+
+This is better than docker-compose dev (no limits). ✅
+
+### 8.195 Helm values.yaml: VITE_WS localhost in production — Medium
+
+**Файл:** `helm/values.yaml:104-105`
+
+```yaml
+webUi:
+  wsExchange: ws://localhost:8765
+  wsSignals: ws://localhost:8766
+```
+
+Same issue as §8.124 and §8.152 — `localhost` WebSocket URLs in production config. The comment correctly notes these are build-time Vite args (inlined into JS bundle), not runtime env vars. But the default is still `localhost`. In K8s, the browser can't reach `localhost:8765` — it needs the cluster's external IP or domain.
+
+**Фикс:** Set these as Docker build ARGs in the CI/CD pipeline, not in Helm values. Or use a ConfigMap + initContainer to inject the correct URLs at runtime.
+
+### 8.196 web-ui ExchangeContext: clean context pattern — ✅ Good
+
+**Файл:** `web-ui/src/contexts/ExchangeContext.jsx` (133 lines)
+
+- 3 exchange themes (Binance, Bybit, Coinbase) with full color palettes
+- 3 exchange layouts (order form position, compact mode, etc.)
+- CSS variables applied to `document.documentElement` on exchange switch
+- `switchExchange()` validates exchange ID before setting
+- `useExchange()` throws if used outside `ExchangeProvider`
+- `useCallback` for stable `switchExchange` reference
+
+Clean React context pattern with proper error boundary. ✅
+
+### 8.197 web-ui usePerformance.js: performance hooks — ✅ Excellent
+
+**Файл:** `web-ui/src/hooks/usePerformance.js` (153 lines)
+
+4 performance hooks:
+- `useDebouncedValue()` — setTimeout + clearTimeout cleanup
+- `useThrottledCallback()` — throttle with trailing edge, `useRef` for stable callback
+- `useBatchedUpdates()` — `requestAnimationFrame` batching with `maxBatchSize` flush, cleanup on unmount
+- `useWorker()` — web worker lifecycle management with `terminate()` cleanup
+- `useIntersectionObserver()` — lazy loading with `disconnect()` cleanup
+
+All hooks have proper cleanup in `useEffect` return. No memory leaks. `useBatchedUpdates` is particularly well-designed — flushes on max batch size OR next animation frame, whichever comes first. ✅
+
+### 8.198 C++ signal.h: rr_ratio division by zero — ✅ Good
+
+**Файл:** `hft-trade-bot/src/data/signal.h:31-42`
+
+```cpp
+double rr_ratio() const {
+    if (is_long()) {
+        double risk = entry_price - stop_loss;
+        double reward = take_profit - entry_price;
+        return risk > 0 ? reward / risk : 0.0;
+    }
+    // ...
+}
+```
+
+Correctly guards `risk > 0` before division. Returns 0.0 if risk ≤ 0 (invalid SL/TP). ✅
+
+### 8.199 Helm values.yaml: ingress disabled by default — ✅ Good
+
+**Файл:** `helm/values.yaml:143-151`
+
+```yaml
+ingress:
+  enabled: false
+  className: nginx
+  hostname: trading.local
+  tls:
+    enabled: false
+    secretName: trading-tls
+```
+
+Ingress is disabled by default — user must explicitly enable it. TLS is also disabled by default but configurable. This is the correct default for a trading system (don't expose publicly without explicit configuration). ✅
+
+### 8.200 C++ signal.h: string-based direction — Info
+
+**Файл:** `hft-trade-bot/src/data/signal.h:11`
+
+```cpp
+std::string direction; // "LONG", "SHORT", "NEUTRAL"
+```
+
+Direction is a `std::string` compared with `== "LONG"` / `== "SHORT"`. This is a heap-allocated string in a hot-path data structure. Compare with `FastSignal` in `aligned_types.h` which uses `char[32]` (no heap). The `Signal` struct is used for received signals (from WebSocket), not for the hot-path SPSC queue — so heap allocation is acceptable here. But if `Signal` is ever copied into the hot path, it will allocate.
+
+**Фикс:** No fix needed if `Signal` stays on the receiving side. If it enters the hot path, convert to `FastSignal`.

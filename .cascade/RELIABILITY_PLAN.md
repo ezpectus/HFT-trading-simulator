@@ -726,3 +726,15 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R169 | web-ui: 50+ components code reduction | `components/` | Medium | Many math viz panels may be unused. ~1000+ lines reducible if 10-15 dead |
 | R170 | C++ system_monitor: snapshot not atomic | `system_monitor.h:76-93` | Low | 11 separate relaxed loads. Inconsistent snapshot. Acceptable for monitoring |
 | R171 | C++ strategies: 5 strategy files | `strategies/*.h` | ✅ Good | mean_reversion, stat_arb, momentum, market_making, pressure_model — all no heap, research-grade |
+| R172 | C++ pressure_model | `pressure_model.h` | ✅ Excellent | Multi-level OBI, toxicity, trade flow, spread regime, single-pass, no heap, [[unlikely]] |
+| R173 | C++ obi_utils | `obi_utils.h` | ✅ Good | Extracted from signal_engine_v2, single-pass compute_obi_all, noexcept, 1e-12 guard |
+| R174 | C++ signal.h: NEUTRAL→BUY | `signal.h:28` | Low | side() returns BUY for NEUTRAL. Comment says check is_actionable() but no enforcement |
+| R175 | Helm values.yaml: hardcoded passwords | `values.yaml:17,132` | Medium | postgres password "change-me-in-production", grafana adminPassword "" → admin/admin |
+| R176 | Helm values.yaml: resource limits | `values.yaml` | ✅ Good | All 7 services have requests+limits. Better than docker-compose dev |
+| R177 | Helm values.yaml: VITE_WS localhost | `values.yaml:104-105` | Medium | localhost WS URLs in K8s config. Browser can't reach localhost in cluster |
+| R178 | web-ui ExchangeContext | `ExchangeContext.jsx` | ✅ Good | 3 exchange themes/layouts, CSS vars, useCallback, throws outside provider |
+| R179 | web-ui usePerformance | `usePerformance.js` | ✅ Excellent | debounce/throttle/batch/worker/intersection — all with cleanup, no leaks |
+| R180 | C++ signal.h: rr_ratio guard | `signal.h:31-42` | ✅ Good | risk > 0 check before division, returns 0.0 on invalid SL/TP |
+| R181 | Helm values.yaml: ingress disabled | `values.yaml:143` | ✅ Good | Ingress+TLS disabled by default. Must explicitly enable for public exposure |
+| R182 | C++ signal.h: string direction | `signal.h:11` | Info | std::string direction (heap) vs FastSignal char[32]. OK for receive side, not hot path |
+| R183 | C++ signal.h: side() silent default | `signal.h:28` | Low | Same pattern as string_to_side — NEUTRAL silently becomes BUY order |
