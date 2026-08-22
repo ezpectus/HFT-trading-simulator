@@ -180,3 +180,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ebpf_monitor: NETWORK_BPF dead code | Defined but never loaded. Remove or activate | CODE_AUDIT §8.228 |
 | ebpf_monitor: no Prometheus export | JSON to stdout only, not in Grafana dashboards | CODE_AUDIT §8.229 |
 | performanceMonitor: alertCallbacks leak | No offAlert(), callbacks fire after unmount | CODE_AUDIT §8.234 |
+| web-ui backtestEngine: EMA/RSI duplicated | Identical to indicators.js. Import instead, ~40 lines reduction | CODE_AUDIT §8.236 |
+| web-ui backtestEngine: no borrow fee | Short selling overestimates P&L, no daily borrow fee | CODE_AUDIT §8.237 |
+| web-ui backtestEngine: no slippage | Entry/exit at candle.close, no slippage model | CODE_AUDIT §8.238 |
+| web-ui indicators: O(n²) SMA | O(n×period) instead of O(n) rolling sum | CODE_AUDIT §8.240 |
+| web-ui mockData: only 5 of 50 symbols | Mock mode doesn't represent full trading universe | CODE_AUDIT §8.243 |

@@ -3224,3 +3224,142 @@ export function onAlert(callback) {
 `alertCallbacks` array grows without bound. Each call to `onAlert()` adds a callback but there's no `offAlert()` to remove one. If a component registers a callback on mount but doesn't unregister on unmount, the callback fires after unmount — calling `setState` on an unmounted component.
 
 **Фикс:** Return an unsubscribe function: `return () => { alertCallbacks = alertCallbacks.filter(cb => cb !== callback) }`. Or use `useEffect` cleanup in the component.
+
+### 8.235 web-ui backtestEngine.js: client-side backtesting — ✅ Good
+
+**Файл:** `web-ui/src/utils/backtestEngine.js` (436 lines)
+
+Client-side backtesting engine:
+- **8 condition types**: price_above, price_below, rsi_above, rsi_below, ema_cross_up, ema_cross_down, volume_spike, price_change_5
+- **4 actions**: buy, sell, close_all, alert
+- **14 result metrics**: totalReturnPct, winRate, avgWin, avgLoss, profitFactor, maxDrawdownPct, sharpeRatio, sortinoRatio, calmarRatio, equityCurve, maxDrawdownDuration, recoveryFactor
+- **Fee model**: configurable feePct (default 0.075%)
+- **Position sizing**: configurable positionSizePct (default 10%)
+- **Precomputed indicators**: EMA fast/slow, RSI, volume average
+- **Input validation**: `if (!candles || candles.length < 30)` — returns error result
+
+Clean, well-documented client-side backtesting. ✅
+
+### 8.236 web-ui backtestEngine.js: EMA/RSI duplicated from indicators.js — Low
+
+**Файлы:** `backtestEngine.js:66-101` vs `indicators.js:9-62`
+
+`backtestEngine.js` has its own `ema()` and `rsi()` functions that are identical to `calcEMA()` and `calcRSI()` in `indicators.js`. The only difference is naming convention (camelCase vs calc-prefix).
+
+**Code reduction:** Import from `indicators.js`: `import { calcEMA, calcRSI } from './indicators'`. ~40 lines reduction.
+
+### 8.237 web-ui backtestEngine.js: no short selling fee on borrow — Low
+
+**Файл:** `back-ui/src/utils/backtestEngine.js:265-277`
+
+```javascript
+case 'sell': {
+    if (!position && candle.close > 0) {
+        const qty = (balance * positionSizePct) / candle.close
+        const fee = (qty * candle.close * feePct) / 100
+        balance -= fee
+        position = { side: 'SHORT', ... }
+    }
+}
+```
+
+Short selling only charges a trading fee, no borrow fee. In real markets, shorting requires borrowing shares which costs a borrow fee (daily). The backtest overestimates short-selling profitability.
+
+**Фикс:** Add `borrowFeePerDay` parameter. Charge `qty * entryPrice * borrowFeePerDay * daysHeld` on short positions.
+
+### 8.238 web-ui backtestEngine.js: no slippage model — Low
+
+**Файл:** `web-ui/src/utils/backtestEngine.js:281-286`
+
+```javascript
+const exitPrice = candle.close
+const pnl = position.side === 'LONG'
+    ? (exitPrice - position.entryPrice) * position.qty
+    : (position.entryPrice - exitPrice) * position.qty
+```
+
+Both entry and exit use `candle.close` as the fill price. No slippage model — assumes you can always trade at the close price. In reality, market orders slip, especially for larger sizes.
+
+**Фикс:** Add `slippagePct` parameter. Entry: `fillPrice = close * (1 + slippagePct/100)` for buys, `close * (1 - slippagePct/100)` for sells.
+
+### 8.239 web-ui indicators.js: 12 technical indicators — ✅ Excellent
+
+**Файл:** `web-ui/src/utils/indicators.js` (579 lines)
+
+12 exported indicator functions:
+- `calcEMA`, `calcSMA`, `calcRSI` — core indicators
+- `calcBollingerBands` — volatility bands
+- `calcOBV` — volume indicator
+- `calcMFI` — money flow (volume-weighted RSI)
+- `calcWilliamsR` — momentum oscillator
+- `calcIchimoku` — 5-component cloud system (tenkan, kijun, senkouA, senkouB, chikou)
+- `calcStochastic` — %K and %D
+- `calcATR` — Wilder's smoothing (correct)
+- `calcParabolicSAR` — stop and reverse
+
+All with JSDoc, proper NaN handling for warmup periods, zero-division guards. ✅
+
+### 8.240 web-ui indicators.js: O(n²) SMA and Bollinger — Low
+
+**Файл:** `web-ui/src/utils/indicators.js:71-78`
+
+```javascript
+export function calcSMA(closes, period) {
+  for (let i = period - 1; i < closes.length; i++) {
+    let sum = 0
+    for (let j = i - period + 1; j <= i; j++) sum += closes[j]
+    sma[i] = sum / period
+  }
+}
+```
+
+SMA is O(n×period) — for each of n closes, it sums `period` values. With 500 candles and period 20, that's 10,000 operations. A rolling sum would be O(n): subtract the element leaving the window, add the new one.
+
+Same issue in `calcBollingerBands` (line 93-98) — O(n×period) for standard deviation calculation.
+
+**Фикс:** Use rolling sum: `sum += closes[i] - closes[i - period]`. For Bollinger, use Welford's online algorithm for rolling variance.
+
+### 8.241 web-ui auditExport.js: JSON/CSV export with cleanup — ✅ Good
+
+**Файл:** `web-ui/src/utils/auditExport.js` (106 lines)
+
+3 export functions:
+- `exportAuditLogsToJSON` — JSON blob, `URL.createObjectURL`, `link.click()`, `URL.revokeObjectURL` ✅
+- `exportAuditLogsToCSV` — CSV with proper quote escaping (`"` → `""`), nested object handling
+- `exportAuditLogsToExcel` — delegates to CSV (comment: "could use xlsx library")
+
+Both JSON and CSV properly clean up: `document.body.removeChild(link)` + `URL.revokeObjectURL(url)`. No memory leaks. ✅
+
+### 8.242 web-ui mockData.js: realistic GBM with jumps — ✅ Good
+
+**Файл:** `web-ui/src/utils/mockData.js` (269 lines)
+
+Mock data generator:
+- **Candles**: Geometric Brownian Motion (GBM) with 2% jump probability, 1% jump size, 0.2% per-candle volatility
+- **5 symbols**: BTCUSDT, ETHUSDT, SOLUSDT, DOGEUSDT, ADAUSDT (subset of 50)
+- **3 exchanges**: binance, bybit, okx
+- **10 news headlines**: Fed, regulation, institutional inflow, liquidation cascade, etc.
+- **6 strategies**: trend_following, mean_reversion, market_making, stat_arb, sentiment, ml_ensemble
+- `gaussianRandom()` — Box-Muller transform with `1e-10` guard on `Math.random()` ✅
+
+Well-structured mock data for demo mode. ✅
+
+### 8.243 web-ui mockData.js: only 5 of 50 symbols — Low
+
+**Файл:** `web-ui/src/utils/mockData.js:14`
+
+```javascript
+export const MOCK_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'ADAUSDT']
+```
+
+Only 5 symbols in mock mode, but 50 symbols in `useUIStore.js` and `shared_config.yaml`. Mock mode doesn't represent the full trading universe.
+
+**Фикс:** Use all 50 symbols from `useUIStore.SYMBOLS` (convert format: `BTC/USDT` → `BTCUSDT`).
+
+### 8.244 web-ui indicators.js: 579 lines — Medium
+
+**Файл:** `web-ui/src/utils/indicators.js` (579 lines)
+
+12 indicators in one file. While each function is well-written, 579 lines is a large file. Some indicators (Ichimoku, Parabolic SAR) are complex enough to warrant their own files.
+
+**Code reduction:** Split into `indicators/trend.js` (EMA, SMA, Ichimoku, SAR), `indicators/momentum.js` (RSI, Stochastic, WilliamsR), `indicators/volume.js` (OBV, MFI), `indicators/volatility.js` (Bollinger, ATR). Or keep as-is since it's a utility file with no side effects.

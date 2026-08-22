@@ -777,3 +777,13 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R220 | web-ui performanceMonitor: alertCallbacks unbounded | `performanceMonitor.js:37` | Low | No offAlert(). Callbacks fire after unmount. Return unsubscribe fn |
 | R221 | monitoring alerts.yml: no alert for SHM overflow | `alerts.yml` | Medium | SHM ring buffer overflow = silent data loss. Should alert on head==tail wrap |
 | R222 | monitoring alerts.yml: no drawdown alert | `alerts.yml` | Medium | Daily drawdown approaching limit (e.g., >6% of 8%) should warn before circuit breaker |
+| R223 | web-ui backtestEngine.js | `backtestEngine.js` | ✅ Good | 8 conditions, 4 actions, 14 metrics, fee model, input validation, precomputed indicators |
+| R224 | web-ui backtestEngine: EMA/RSI duplicated | `backtestEngine.js:66-101` | Low | Identical to indicators.js calcEMA/calcRSI. Import instead. ~40 lines reduction |
+| R225 | web-ui backtestEngine: no borrow fee | `backtestEngine.js:265` | Low | Short selling only charges trading fee, no daily borrow fee. Overestimates short P&L |
+| R226 | web-ui backtestEngine: no slippage | `backtestEngine.js:281` | Low | Entry/exit use candle.close. No slippage model. Overestimates fill quality |
+| R227 | web-ui indicators.js | `indicators.js` | ✅ Excellent | 12 indicators, JSDoc, NaN handling, zero-division guards, Wilder's smoothing correct |
+| R228 | web-ui indicators: O(n²) SMA/Bollinger | `indicators.js:71-78` | Low | O(n×period) instead of O(n) rolling sum. 500 candles × 20 period = 10k ops |
+| R229 | web-ui auditExport.js | `auditExport.js` | ✅ Good | JSON/CSV export, proper URL.revokeObjectURL cleanup, quote escaping, no leaks |
+| R230 | web-ui mockData.js | `mockData.js` | ✅ Good | GBM with jumps, Box-Muller with 1e-10 guard, 10 news headlines, 6 strategies |
+| R231 | web-ui mockData: only 5 of 50 symbols | `mockData.js:14` | Low | 5 mock symbols vs 50 in useUIStore. Mock mode doesn't represent full universe |
+| R232 | web-ui indicators.js: 579 lines | `indicators.js` | Medium | 12 indicators in one file. Split by category or keep as utility |
