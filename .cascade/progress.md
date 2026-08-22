@@ -494,6 +494,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | Day | Date | Task | Status | Commit |
 |-----|------|------|--------|--------|
 | 1 | 2026-08-22 | Split hawkes.py → hawkes_model.py + hawkes_funcs.py + facade. 38 tests pass. | ✅ Done | 3c6919b |
+| — | 2026-08-22 | Full project grep audit — 26 findings + 7 reliability findings (race condition in _clients, DB busy_timeout, DB connection pooling, socket buffer tuning, SQL injection clean, unbounded structures clean, C++ concurrency correct). Updated CODE_AUDIT.md (§7+§8), RELIABILITY_PLAN.md (grep дополнение + R1-R7), office-board.md (сводка + gap analysis), interview-prep.md (14 bad vs good code examples + reliability talking points) | ✅ Done | — |
 | 2 | 2026-08-23 | compute_returns дедупликация (20+ модулей) | ⏳ Next | — |
 | 3 | 2026-08-24 | quantize и другие хелперы | ⏳ Pending | — |
 | 4 | 2026-08-25 | research/__init__.py упрощение | ⏳ Pending | — |

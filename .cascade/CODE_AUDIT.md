@@ -254,3 +254,136 @@
 - **Дублирование:** ~3000 строк можно объединить
 - **Итого можно удалить/сократить:** ~7000-8000 строк из ~25000 (30%)
 - **Пропущенная инфраструктура:** кеширование, rate limiting, idempotency, graceful shutdown, tracing, schema validation
+
+---
+
+## 7. GREP АУДИТ — 26 НАХОДОК (полный скан)
+
+> Подробно в `docs/AUDIT_FINDINGS.md`. Краткая сводка здесь.
+
+### High Severity (3)
+| # | Файл | Проблема |
+|---|------|----------|
+| 001 | `ai-signal-bot/tracing.py` (205 строк) | Мёртвый код, не импортируется нигде |
+| 002 | `exchange_simulator/tracing.py` (193 строки) | Мёртвый код, не импортируется нигде |
+| 009 | `ai-signal-bot/src/database/db.py:33` | `except Exception: pass` — молчаливо глотает ошибки БД |
+
+### Medium Severity (7)
+| # | Файл | Проблема |
+|---|------|----------|
+| 003 | `ai-signal-bot/metrics.py` (293 строки) | Только в тестах, не в production |
+| 004 | `exchange_simulator/metrics.py` (250 строк) | Только в тестах, не в production |
+| 005 | `run_backtest.py` ×2 | Дубликат скрипта (root vs scripts/) |
+| 006 | `load_test_50_symbols.py` ×2 | Дубликат скрипта (scripts/ vs tests/) |
+| 007 | `signal_publisher.py` (6 catches) | `except Exception` — нужно сузить |
+| 008 | `real_account.py` (3 catches) | `except Exception` — нужно сузить |
+| 021 | `feature_store.py:94` | `Exception` в кортеже делает остальные избыточными |
+
+### Low Severity (12)
+| # | Файл(ы) | Проблема |
+|---|---------|----------|
+| 010 | `health_check.py` | `except Exception` — сузить |
+| 011 | `shm_fill_consumer.py`, `shm_signal_producer.py` | `except Exception` — сузить |
+| 012 | `monitoring/tests/conftest.py` | `except Exception: pass` + private attr access |
+| 013 | `ws_client.py`, `exchange_factory.py`, `price_monitor.py` | Hardcoded `localhost:8765` (4 файла) |
+| 018 | `db.py`, `tracing.py`, `logging.py` | `pass` в production (4 файла) |
+| 019 | `price_monitor.py`, `error_monitor.py`, `run_logger.py` | Root-level scripts — переместить в scripts/ |
+| 022 | ~80+ calls в `src/` | f-string в logger (производительность) |
+| 023 | `monitor.py:21` | `os.system` — заменить на subprocess |
+| 025 | 7 файлов | `open()` без `encoding="utf-8"` — Windows codec issue |
+| 026 | `web-ui/src/utils/performanceMonitor.js` | 6 `console.log` — gate behind DEV flag |
+
+### Info / Justified (4)
+| # | Паттерн | Кол-во | Статус |
+|---|---------|--------|--------|
+| 014 | `type: ignore` | 1 | Justified (websockets fallback) |
+| 015 | `global` | 29 | All justified (singleton pattern) |
+| 016 | `: Any` | 11 | All justified (ccxt, aiohttp stubs) |
+| 017 | `# noqa` | 39 | All justified (E402 sys.path, F401 optional imports) |
+| 024 | `0.0.0.0` bind | 7 | All with `nosec: B104` (Docker/K8s) |
+
+### Clean (0 нарушений)
+TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`exec()`, `subprocess`, hardcoded credentials, `pickle`, `yaml.load(` (unsafe), `shell=True`, `assert` в production, C++ `printf`/`goto`/`delete`, JS `var`/`TODO`
+
+---
+
+## 8. RELIABILITY GREP — ДОПОЛНИТЕЛЬНЫЕ НАХОДКИ
+
+### 8.1 Race condition: `_clients` set без блокировки
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py`
+**Severity:** Medium
+
+`self._clients: set` модифицируется из нескольких async задач одновременно:
+- `_handle_client` — `.add()` и `.discard()` (строки 108, 158)
+- `broadcast_signal` — итерация + `-= disconnected` (строки 193, 195)
+- `broadcast_market_regime` — итерация + `-= disconnected` (строки 234, 235)
+- `_broadcast_circuit_breaker_status` — итерация + `-= disconnected` (строки 268, 269)
+
+В asyncio это безопасно пока нет `await` между чтением и записью множества, но `asyncio.gather` в broadcast может дать управление другой задаче, которая модифицирует `_clients` во время итерации. `RuntimeError: Set changed size during iteration` возможен.
+
+**Фикс:** `asyncio.Lock` для модификации `_clients`, или копировать set перед итерацией: `for ws in list(self._clients)`.
+
+### 8.2 SQL injection — ЧИСТО ✅
+
+**Файл:** `ai-signal-bot/src/database/db.py`
+
+Все SQL-запросы используют parameterized placeholders (`?`):
+- `conn.execute("INSERT INTO signals ... VALUES (?, ?, ?, ...)", (val1, val2, ...))`
+- `conn.execute("UPDATE trades SET ... WHERE id=?", (..., trade_id))`
+- `conn.execute("SELECT * FROM signals ORDER BY id DESC LIMIT ?", (limit,))`
+
+Ноль f-string SQL, ноль конкатенации. Чисто.
+
+### 8.3 Unbounded structures — ЧИСТО ✅
+
+Все истории используют `deque(maxlen=...)`:
+- `signal_publisher.py` — `deque(maxlen=100)` для signal history
+- `ws_client.py` — `deque(maxlen=200)` для candle history
+- `real_market_data.py` — `deque(maxlen=1000)` для candles
+- `market_making.py` — `deque(maxlen=config.vol_lookback)` для returns
+- `statistical_arbitrage.py` — `deque(maxlen=config.lookback)` для spread
+- `ml_ensemble.py` — `deque(maxlen=500)` для returns
+- `sentiment.py` — `deque(maxlen=100)` для news events
+
+Ноль неограниченных списков в production коде. Чисто.
+
+### 8.4 C++ concurrency — ПРАВИЛЬНО ✅
+
+C++ код использует правильные примитивы:
+- `std::atomic<bool>` для флагов (connected, running, trading_active)
+- `std::atomic<int64_t>` для счётчиков (latency, order count)
+- `std::atomic<uint32_t>` для sequence numbers (FIX)
+- `std::mutex` + `std::condition_variable` для очередей
+- `Spinlock` для hot path (low_latency.h)
+- `SPSCQueue<Signal, 16>` — lock-free single-producer-single-consumer
+- CAS loop для atomic min/max (latency_tracker.h)
+- `alignas(64)` для cache line alignment (гистограммы)
+
+### 8.5 Нет socket buffer tuning в C++ — Low
+
+**Файлы:** `hft-trade-bot/src/`
+
+Не найдено `SO_RCVBUF`/`SO_SNDBUF`/`setsockopt` в C++ коде. WebSocket клиент использует системные defaults (обычно 64-128KB). Для HFT это может быть недостаточно при bursts.
+
+**Фикс:** `setsockopt(SOL_SOCKET, SO_RCVBUF, 1<<20)` (1MB) в WSClient.
+
+### 8.6 Нет DB busy_timeout — Medium
+
+**Файл:** `ai-signal-bot/src/database/db.py:22`
+
+```python
+conn = sqlite3.connect(self.path)
+```
+
+Нет `timeout=` параметра. По умолчанию 5 секунд. При WAL mode concurrent writes могут ждать до 5s, затем `sqlite3.OperationalError: database is locked`.
+
+**Фикс:** `sqlite3.connect(self.path, timeout=30)` + `conn.execute("PRAGMA busy_timeout=30000")`.
+
+### 8.7 Нет DB connection pooling — Medium
+
+**Файл:** `ai-signal-bot/src/database/db.py`
+
+Каждый метод (`save_signal`, `save_trade`, `save_equity`, `get_stats`) открывает новое соединение через `self._conn()`. В цикле бота это 3-4 соединения per signal cycle (60s). Не проблема для 1 бота, но при масштабировании на multiple bots → много соединений.
+
+**Фикс:** Persistent connection с reconnect logic, или connection pool.

@@ -514,3 +514,51 @@ strategies = {s.name: s for s in build_strategies(config)}
 ```
 
 **Разница:** две сборки стратегий = два набора параметров = бэктест в UI показывает другие результаты, чем live-бот. Один источник = консистентность.
+
+---
+
+## ДОПОЛНЕНИЕ АУДИТА — GREP НАХОДКИ (26 пунктов)
+
+> Полный документ: `docs/AUDIT_FINDINGS.md`
+
+### Reliability-критичные находки
+
+| # | Проблема | Файл | Влияние |
+|---|----------|------|---------|
+| 009 | `except Exception: pass` | `db.py:33` | Ошибки checkpoint WAL молча глотаются. БД может остаться в inconsistent state |
+| 021 | `Exception` в кортеже исключений | `feature_store.py:94` | `except (OSError, ConnectionError, RuntimeError, Exception)` — Exception делает остальные избыточными. Ловит ВСЁ включая KeyboardInterrupt |
+| 022 | f-string в logger (~80+ calls) | `src/` повсеместно | f-string вычисляется даже если log level отключён. В prod с INFO логированием все DEBUG f-strings всё равно форматируются |
+| 023 | `os.system` | `monitor.py:21` | Shell injection potential (хотя здесь безопасно — static string) |
+| 025 | `open()` без `encoding=` (7 файлов) | `fix_client.py`, `llm_engine/engine.py`, `ml/automl.py`, `ml/model_registry.py`, `strategies/marketplace.py` | На Windows с cp1251 чтение UTF-8 файлов → UnicodeDecodeError. Критично для JSON с non-ASCII |
+| 013 | Hardcoded `localhost:8765` | `ws_client.py`, `exchange_factory.py`, `price_monitor.py` | В Docker/K8s localhost ≠ exchange-simulator. Должно быть через config/env |
+
+### Reliability-проверенные паттерны (ЧИСТО)
+
+| Паттерн | Кол-во | Статус |
+|---------|--------|--------|
+| `SIGTERM`/`signal.signal` | 0 | ❌ Нет (см. Task 8) |
+| `graceful shutdown` | 0 | ❌ Нет (см. Task 8) |
+| `backpressure` | 0 | ❌ Нет |
+| `idempotent` (production) | 0 | ❌ Нет (см. CODE_AUDIT §4.4) |
+| `retry`/`backoff` | 0 | ❌ Нет для ордеров (см. Task 9) |
+| `deadlock`/`lock_timeout` | 0 | ❌ Нет |
+| `sharding`/`partition` | 0 | ❌ Нет (см. CODE_AUDIT §4.2) |
+| `WAL` mode | ✅ | `db.py:23` — `PRAGMA journal_mode=WAL` |
+| `CancelledError` handling | ✅ | 10 файлов — правильно обрабатывают |
+| `CircuitBreaker` | ✅ | `communication/circuit_breaker.py` — работает |
+| `RateLimiter` | ⚠️ | `utils/helpers.py` — написан, не подключён к broadcast |
+| `health_check` | ⚠️ | Частично (см. Tasks 1-6) |
+| `connection_pool` | ✅ | `price_feed_apis.py` — aiohttp TCPConnector |
+| `KeyboardInterrupt` | ✅ | 10 файлов — есть, но без SIGTERM |
+
+### Дополнительные reliability-находки (расширенный grep)
+
+| # | Проблема | Файл | Severity | Влияние |
+|---|----------|------|----------|---------|
+| R1 | Race condition: `_clients` set без lock | `signal_publisher.py` | Medium | `RuntimeError: Set changed size during iteration` при concurrent broadcast + connect/disconnect |
+| R2 | Нет DB `busy_timeout` | `db.py:22` | Medium | `database is locked` при concurrent writes (WAL mode, но 5s default timeout) |
+| R3 | Нет DB connection pooling | `db.py` | Medium | Каждый метод открывает/закрывает соединение. При масштабировании — overhead |
+| R4 | Нет socket buffer tuning | `hft-trade-bot/src/` | Low | WS client использует OS defaults (64-128KB). При bursts возможны dropped packets |
+| R5 | SQL injection | `db.py` | ✅ Чисто | Все запросы parameterized (`?` placeholders) |
+| R6 | Unbounded structures | `src/` | ✅ Чисто | Все истории используют `deque(maxlen=...)` |
+| R7 | C++ concurrency | `hft-trade-bot/src/` | ✅ Правильно | atomics, mutexes, SPSC queue, spinlocks, CAS, cache-line alignment |
