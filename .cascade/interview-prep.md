@@ -1740,3 +1740,167 @@ void submit_order(const Signal& signal, double quantity, const OrderBook& ob) {
 ```
 
 **Why it matters at scale:** `snprintf` returns the number of characters that *would have been written* if the buffer were large enough, not the number actually written. If the formatted string is 600 chars but the buffer is 512, `snprintf` returns 600, writes 511 chars + null terminator, and silently truncates. The JSON is now incomplete — missing the closing `}` and possibly the `take_profit` field. The exchange receives `{"type":"order","exchange":"binance","symbol":"BTC/USDT","side":"BUY","quantity":0.50000000","order_type":"LIMIT","stop_loss":98000.00` — no `take_profit`, no `}`. What does the exchange do? It depends on the implementation. It might reject the order (best case). It might crash (bad). It might interpret the missing fields as defaults — 0 take_profit, 0 stop_loss — and execute a market order with no risk limits (worst case). With 1000 users, if one user has a custom exchange ID that's 400 characters (e.g., a long institutional gateway name), every order they send is truncated. They think they're sending limit orders with SL/TP, but the exchange receives malformed JSON with no risk parameters. The good version checks `n >= sizeof(buf)` and refuses to send truncated JSON. The cost is 4 lines. The benefit is no malformed orders ever reach the exchange. In a trading system, a malformed order without SL/TP can mean unlimited losses — the exchange executes the order at market price with no stop loss.
+
+---
+
+### Example 41: Blocking accept() Prevents Graceful Shutdown
+
+**BAD** — `health_server.h:95`:
+```cpp
+class HealthServer {
+    std::atomic<bool> running_{false};
+    std::thread thread_;
+
+    void run() {
+        socket_t srv = ::socket(AF_INET, SOCK_STREAM, 0);
+        // ... bind, listen ...
+        while (running_.load(std::memory_order_relaxed)) {
+            socket_t client = ::accept(srv, nullptr, nullptr);
+            // ↑ BLOCKS FOREVER until a connection arrives
+            if (client == kInvalidSocket) continue;
+            // ... handle request ...
+        }
+    }
+
+    void stop() {
+        running_.store(false);
+        if (thread_.joinable()) thread_.join();
+        // ↑ BLOCKS FOREVER — thread is stuck in accept()
+        //    join() will never return unless someone connects
+    }
+};
+
+// Scenario:
+// 1. Bot is running, health server thread is in accept()
+// 2. User presses Ctrl+C → signal handler sets g_running = false
+// 3. Main loop exits, calls health_server.stop()
+// 4. stop() sets running_ = false
+// 5. stop() calls thread_.join()
+// 6. Thread is blocked in accept() — doesn't check running_
+// 7. join() blocks forever
+// 8. Process hangs on shutdown — must be killed with SIGKILL
+// 9. K8s kills the pod after terminationGracePeriodSeconds (30s default)
+// 10. During those 30s, the pod is "terminating" but still in service
+//     → users may be routed to a pod that's shutting down
+```
+
+**GOOD**:
+```cpp
+void run() {
+    socket_t srv = ::socket(AF_INET, SOCK_STREAM, 0);
+    // ... bind, listen ...
+
+    // Set accept timeout so the loop can check running_ periodically
+    struct timeval tv;
+    tv.tv_sec = 1;   // 1-second timeout
+    tv.tv_usec = 0;
+    setsockopt(srv, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+    while (running_.load(std::memory_order_relaxed)) {
+        socket_t client = ::accept(srv, nullptr, nullptr);
+        if (client == kInvalidSocket) {
+            // Timeout expired — check running_ and loop
+            continue;
+        }
+        // ... handle request ...
+    }
+    ::close(srv);
+}
+
+// Scenario:
+// 1. Bot is running, health server thread is in accept() with 1s timeout
+// 2. User presses Ctrl+C → signal handler sets g_running = false
+// 3. Main loop exits, calls health_server.stop()
+// 4. stop() sets running_ = false
+// 5. Within 1 second, accept() times out, loop checks running_ → false
+// 6. Loop exits, thread finishes, close(srv)
+// 7. join() returns immediately
+// 8. Process shuts down cleanly in <1 second
+// 9. K8s removes pod from service immediately — no users routed to it
+```
+
+**Why it matters at scale:** A blocking `accept()` without a timeout is a classic shutdown bug. The thread sits in `accept()` waiting for a connection. When `stop()` sets `running_ = false` and calls `join()`, the join blocks because the thread never returns from `accept()`. The process hangs. In K8s, the pod stays in "Terminating" state for `terminationGracePeriodSeconds` (default 30s). During those 30 seconds, K8s may still route traffic to the pod (depending on endpoint controller timing). Users hit a pod that's trying to shut down — they get connection refused or timeouts. With 1000 users, every deployment or scaling event causes 30 seconds of errors for users routed to the terminating pod. The good version sets a 1-second timeout on `accept()` using `SO_RCVTIMEO`. Now `accept()` returns every second (with `kInvalidSocket` on timeout), the loop checks `running_`, and the thread exits within 1 second of `stop()` being called. The process shuts down cleanly. The cost is 3 lines (set timeout before loop). The benefit is clean shutdown in <1 second instead of hanging for 30 seconds. In a trading system, a hanging shutdown means the bot can't restart quickly — it's effectively down for 30 seconds during every deploy. With 1000 users and 5 deploys per day, that's 150 seconds of downtime per day, just from shutdown hangs.
+
+---
+
+### Example 42: Non-Idempotent Migration Runner (Fails on Second Run)
+
+**BAD** — `Makefile.prod:48`:
+```makefile
+prod-db-migrate:
+    $(DOCKER_COMPOSE) exec ai-signal-bot python -c "
+import asyncio, asyncpg, os, glob
+async def main():
+    conn = await asyncpg.connect(os.environ.get('POSTGRES_DSN'))
+    for f in sorted(glob.glob('src/database/migrations/*.sql')):
+        with open(f) as fh:
+            await conn.execute(fh.read())
+        print(f'  Applied: {f}')
+    await conn.close()
+asyncio.run(main())
+"
+
+# 001_initial_schema.sql:
+CREATE TABLE trades (
+    id BIGSERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    ...
+);
+-- No IF NOT EXISTS — second run = ERROR: table already exists
+
+# Scenario:
+# 1. First deploy: make prod-db-migrate → creates tables → OK
+# 2. Second deploy: make prod-db-migrate → tries CREATE TABLE trades
+#    → ERROR: relation "trades" already exists
+#    → Migration fails, remaining files not applied
+# 3. New migration 004_add_column.sql is never applied
+#    → Code expects the column, DB doesn't have it → crash
+```
+
+**GOOD**:
+```python
+# migration_runner.py
+import asyncio, asyncpg, os, glob, time
+
+async def main():
+    conn = await asyncpg.connect(os.environ['POSTGRES_DSN'])
+
+    # Create _migrations table if not exists
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS _migrations (
+            id SERIAL PRIMARY KEY,
+            filename VARCHAR(255) UNIQUE NOT NULL,
+            applied_at DOUBLE PRECISION NOT NULL
+        )
+    """)
+
+    for f in sorted(glob.glob('src/database/migrations/*.sql')):
+        # Check if already applied
+        exists = await conn.fetchval(
+            "SELECT 1 FROM _migrations WHERE filename = $1", f
+        )
+        if exists:
+            print(f'  Skipped (already applied): {f}')
+            continue
+
+        with open(f) as fh:
+            await conn.execute(fh.read())
+
+        await conn.execute(
+            "INSERT INTO _migrations (filename, applied_at) VALUES ($1, $2)",
+            f, time.time()
+        )
+        print(f'  Applied: {f}')
+
+    await conn.close()
+
+asyncio.run(main())
+
+# Scenario:
+# 1. First deploy: applies 001, 002, 003 → records in _migrations
+# 2. Second deploy: checks _migrations → skips 001, 002, 003 → applies 004
+# 3. Third deploy: checks _migrations → skips all → nothing to do
+# No errors, no data loss, idempotent
+```
+
+**Why it matters at scale:** A migration runner that runs all SQL files every time is not idempotent. The first run creates tables. The second run tries to create the same tables and fails. The error stops the migration — any new SQL files (e.g., `004_add_risk_score.sql`) are never applied. The code expects the `risk_score` column, the database doesn't have it, the bot crashes. With 1000 users, every deploy after the first one fails the migration step. Users can't get new features or bug fixes because the migration runner can't apply them. The good version tracks applied migrations in a `_migrations` table. Before running a file, it checks if it was already applied. If yes, skip. If no, apply and record. This makes the migration idempotent — running it 1 time or 100 times produces the same result. New migrations are applied automatically. Old migrations are skipped. No errors, no manual intervention. The cost is 15 lines of Python. The benefit is migrations that work correctly on every deploy, for every user, regardless of how many times they've been run. In a trading system, a failed migration means the bot crashes on startup because the schema doesn't match the code. 1000 users can't start their bots after an update because the migration runner failed on the second run.

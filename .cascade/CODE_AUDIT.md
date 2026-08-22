@@ -1791,3 +1791,132 @@ VITE_WS_SIGNALS=ws://localhost:8766
 ```
 
 These are build-time Vite args inlined into the JS bundle. If someone builds the Docker image without overriding these, the web-ui connects to `localhost` instead of the Docker/K8s service names. Same issue as `shared_config.yaml` (§8.74) and `hft-trade-bot/config.yaml` (§8.96).
+
+### 8.125 C++ smart_order_router_v2: 5 routing strategies — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/execution/smart_order_router_v2.h` (181 lines)
+
+Production-grade order routing:
+- 5 strategies: BEST_PRICE, LOWEST_LATENCY, LOWEST_FEES, BEST_EFFECTIVE, DEPTH_AWARE
+- Anti-toxic backoff (skip exchange with ≥5 toxic events)
+- Depth check (minimum depth quantity filter)
+- Fee-aware effective price calculation (price ± fee fraction)
+- Stack-allocated array (MAX_EXCHANGES=16) — no heap allocation in hot path
+- IExchange interface (DIP/SOLID) — no concrete exchange dependency
+- Per-exchange latency tracking
+
+This is textbook HFT order routing. ✅
+
+### 8.126 C++ health_server: accept() blocks shutdown — Medium
+
+**Файл:** `hft-trade-bot/src/monitoring/health_server.h:95-96`
+
+```cpp
+while (running_.load(std::memory_order_relaxed)) {
+    socket_t client = ::accept(srv, nullptr, nullptr);
+    if (client == kInvalidSocket) continue;
+```
+
+`accept()` blocks indefinitely waiting for a connection. When `stop()` sets `running_ = false` and calls `thread_.join()`, the thread is stuck in `accept()` — it won't check `running_` until a new connection arrives. `join()` blocks forever (or until the next health check request arrives).
+
+**Фикс:** Set a socket timeout (`SO_RCVTIMEO`) or use `select()` with a timeout before `accept()`, so the loop can check `running_` periodically.
+
+### 8.127 C++ health_server: raw POSIX HTTP server — ✅ Good
+
+**Файл:** `hft-trade-bot/src/execution/health_server.h` (175 lines)
+
+Despite the `accept()` issue, the implementation is solid:
+- Cross-platform (Windows winsock + Linux POSIX)
+- `SO_REUSEADDR` to prevent "address already in use" on restart
+- Returns HTTP 503 when unhealthy (K8s removes pod)
+- `/health` and `/metrics` endpoints
+- Minimal HTTP parsing (just first line)
+- Proper cleanup in `stop()` (close server socket, join thread)
+- `~HealthServer()` calls `stop()` — RAII
+
+### 8.128 Makefile.prod: migration runner exists — ✅ Good
+
+**Файл:** `Makefile.prod:48-60`
+
+```makefile
+prod-db-migrate:
+    $(DOCKER_COMPOSE) exec ai-signal-bot python -c "
+import asyncio, asyncpg, os, glob
+async def main():
+    conn = await asyncpg.connect(os.environ.get('POSTGRES_DSN', ...))
+    for f in sorted(glob.glob('src/database/migrations/*.sql')):
+        with open(f) as fh:
+            await conn.execute(fh.read())
+        print(f'  Applied: {f}')
+    await conn.close()
+asyncio.run(main())
+"
+```
+
+A migration runner exists in `Makefile.prod`! This partially addresses §8.72 (no migration runner). However:
+- It's only in `Makefile.prod` — not in the Python code, not automatic on startup
+- No `_migrations` table tracking — runs all SQL files every time
+- Not idempotent — `CREATE TABLE` without `IF NOT EXISTS` will fail on second run
+- No rollback support
+
+**Verdict:** Better than nothing, but still needs a proper migration runner in Python code (as recommended in §8.72).
+
+### 8.129 Makefile.prod: health checks + backup + deploy — ✅ Good
+
+**Файл:** `Makefile.prod:80-101`
+
+- `prod-health` — checks all 6 service health endpoints (TCP + HTTP)
+- `prod-db-backup` — `pg_dump` with timestamp
+- `prod-db-restore` — `psql` restore from file
+- `prod-deploy` — build + up + health check pipeline
+- `prod-clean` — down + volumes + prune
+
+Well-structured production Makefile. ✅
+
+### 8.130 docker-compose.hub.yml: pre-built images — ✅ Good
+
+**Файл:** `docker-compose.hub.yml` (120 lines)
+
+Uses pre-built Docker Hub images instead of building from source. Health checks on all services. `depends_on` with `condition: service_healthy`. Networks configured. `restart: unless-stopped`. This is the correct pattern for users who want to try the system without compiling. ✅
+
+### 8.131 build-all.bat: comprehensive Windows build — ✅ Good
+
+**Файл:** `build-all.bat` (438 lines)
+
+Full pipeline build script for Windows:
+- 6 components: exchange_simulator, ai-signal-bot, C++ CMake, Rust cargo, web-ui, Docker
+- Multiple modes: all, quick, python, cpp, js
+- Error tracking with `EXIT_CODE`
+- Python existence check
+- Per-component status reporting
+
+This is the Windows equivalent of the CI pipeline. ✅
+
+### 8.132 Makefile.prod: migration not idempotent — Low
+
+**Файл:** `Makefile.prod:48-60`
+
+The migration runner runs all SQL files every time. If `001_initial_schema.sql` uses `CREATE TABLE` (not `CREATE TABLE IF NOT EXISTS`), running `make prod-db-migrate` twice will fail with "table already exists". The SQL files need to be idempotent or the runner needs to track applied migrations.
+
+### 8.133 C++ health_server: no socket timeout on accept — Medium
+
+Already noted in §8.126 but emphasizing: the `accept()` call has no timeout. On Linux, `select()` with a 1-second timeout before `accept()` would allow the thread to check `running_` periodically. On Windows, `setsockopt(SO_RCVTIMEO)` on the server socket would make `accept()` return `INVALID_SOCKET` after the timeout, allowing the loop to check `running_`.
+
+### 8.134 CI workflow: comprehensive — ✅ Excellent
+
+**Файл:** `.github/workflows/ci.yml` (647 lines)
+
+The CI pipeline includes:
+- Python lint (ruff) — matrix for exchange_simulator + ai-signal-bot
+- C++ lint (clang-format-18) — dry-run with Werror
+- JS lint (eslint) — Node 22
+- Python tests — pytest with coverage
+- C++ tests — CMake build + CTest
+- Rust tests — cargo test
+- JS tests — vitest + playwright
+- Security scans — Bandit, CodeQL, npm audit
+- Docker build verification
+- Concurrency control (cancel in-progress)
+- Least-privilege permissions (`contents: read`)
+
+This is a textbook CI pipeline. ✅

@@ -661,3 +661,11 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R104 | Dockerfile.prod (both) | `Dockerfile.prod` ×2 | ✅ Good | Multi-stage, non-root, no-cache pip, TCP healthcheck, PYTHONUNBUFFERED |
 | R105 | .env.prod.example: placeholder passwords | `.env.prod.example:24-25` | Low | `change_me_to_a_secure_password` — no validation that password was actually changed |
 | R106 | .env.prod.example: localhost WS URLs | `.env.prod.example:39-40` | Low | Vite build-time args default to localhost. Docker build without override = broken WS |
+| R107 | C++ smart_order_router_v2 | `smart_order_router_v2.h` | ✅ Excellent | 5 strategies, anti-toxic backoff, depth check, stack-allocated, IExchange interface |
+| R108 | C++ health_server: accept() blocks | `health_server.h:95-96` | Medium | accept() blocks indefinitely. stop() can't join thread until next connection arrives |
+| R109 | C++ health_server: raw POSIX HTTP | `health_server.h` | ✅ Good | Cross-platform, SO_REUSEADDR, HTTP 503 when unhealthy, RAII destructor calls stop() |
+| R110 | Makefile.prod: migration runner | `Makefile.prod:48-60` | ✅ Good | Runs SQL files via asyncpg. But no _migrations tracking, not idempotent, not automatic |
+| R111 | Makefile.prod: health+backup+deploy | `Makefile.prod:80-101` | ✅ Good | prod-health checks 6 endpoints, prod-db-backup pg_dump, prod-deploy pipeline |
+| R112 | docker-compose.hub.yml | `docker-compose.hub.yml` | ✅ Good | Pre-built Docker Hub images, health checks, depends_on healthy, networks, restart |
+| R113 | build-all.bat | `build-all.bat` | ✅ Good | 6-component Windows build, multiple modes, error tracking, per-component status |
+| R114 | CI workflow | `ci.yml` | ✅ Excellent | Python+C+++JS+Rust lint+test, Bandit, CodeQL, npm audit, Docker build, concurrency control |

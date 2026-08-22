@@ -147,3 +147,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ order_executor: snprintf truncation | Long strings = malformed JSON sent silently | CODE_AUDIT §8.118 |
 | .env.prod: placeholder passwords | `change_me_to_a_secure_password` with no validation | CODE_AUDIT §8.123 |
 | .env.prod: localhost WS URLs | Docker build without override = broken WS | CODE_AUDIT §8.124 |
+| C++ health_server: accept() blocks | stop() can't join thread until next connection | CODE_AUDIT §8.126 |
+| Makefile.prod: migration not idempotent | Running twice = "table already exists" error | CODE_AUDIT §8.132 |
