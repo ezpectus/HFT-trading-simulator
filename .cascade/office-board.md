@@ -168,3 +168,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Helm values.yaml: hardcoded passwords | postgres "change-me-in-production", grafana "" → admin/admin | CODE_AUDIT §8.193 |
 | Helm values.yaml: VITE_WS localhost | K8s browser can't reach localhost:8765/8766 | CODE_AUDIT §8.195 |
 | C++ signal.h: NEUTRAL→BUY | side() silently returns BUY for NEUTRAL, no enforcement | CODE_AUDIT §8.192 |
+| C++ 3 exchange adapters: code duplication | 470 lines, ~200 duplicated. Move to ExchangeBase | CODE_AUDIT §8.207 |
+| C++ BinanceAdapter: nested Spinlock | price_lock_ → depth_lock_ nesting, fragile lock ordering | CODE_AUDIT §8.203 |
+| C++ BinanceAdapter: can_send_order TOCTOU | fetch_add always increments even on reject | CODE_AUDIT §8.204 |
+| web-ui App.jsx: 565 lines God component | 6 useEffects, 14 tabs, extract to hooks/components | CODE_AUDIT §8.211 |
+| shared_config.yaml: localhost | WS host localhost in shared config, won't work in prod | CODE_AUDIT §8.212 |

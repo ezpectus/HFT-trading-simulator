@@ -738,3 +738,17 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R181 | Helm values.yaml: ingress disabled | `values.yaml:143` | ✅ Good | Ingress+TLS disabled by default. Must explicitly enable for public exposure |
 | R182 | C++ signal.h: string direction | `signal.h:11` | Info | std::string direction (heap) vs FastSignal char[32]. OK for receive side, not hot path |
 | R183 | C++ signal.h: side() silent default | `signal.h:28` | Low | Same pattern as string_to_side — NEUTRAL silently becomes BUY order |
+| R184 | C++ ExchangeBase | `ExchangeBase.h` | ✅ Excellent | EWMA latency CAS loop, toxic backoff, atomic counters, clean base class |
+| R185 | C++ BinanceAdapter | `BinanceAdapter.h` | ✅ Good | HMAC-SHA256, CAS rate limit, Spinlock, listenKey ping, symbol_lower |
+| R186 | C++ BinanceAdapter: nested Spinlock | `BinanceAdapter.h:74-79` | Medium | price_lock_ → depth_lock_ nesting. Consistent ordering but fragile |
+| R187 | C++ BinanceAdapter: can_send_order TOCTOU | `BinanceAdapter.h:135` | Low | fetch_add always increments even on reject. Over-count persists in window |
+| R188 | C++ OKXAdapter | `OKXAdapter.h` | ✅ Good | OKX inst_id conversion, passphrase auth, public+private WS, Spinlock |
+| R189 | C++ BybitAdapter | `BybitAdapter.h` | ✅ Good | Bybit v5 API, HMAC-SHA256, Spinlock, 1 bps maker / 6 bps taker |
+| R190 | C++ 3 exchange adapters: code duplication | `*Adapter.h` | Medium | 470 lines, ~200 duplicated. Move maps+locks+methods to ExchangeBase |
+| R191 | C++ binance_config.h | `binance_config.h` | ✅ Excellent | constexpr endpoints/limits/channels/types, string_view, compile-time |
+| R192 | web-ui App.jsx: lazy loading | `App.jsx` | ✅ Good | 14 React.lazy + Suspense, PanelFallback, memo(TabButton) |
+| R193 | web-ui App.jsx: Zustand store sync | `App.jsx:92-134` | ✅ Good | WS → hook → useEffect → store. Unidirectional, useRef for prev state |
+| R194 | web-ui App.jsx: 565 lines God component | `App.jsx` | Medium | 6 useEffects, 14 tabs, keyboard, mobile, detached panels. Extract hooks |
+| R195 | shared_config.yaml: localhost | `shared_config.yaml:108,112` | Medium | localhost WS host in shared config. Won't work in K8s/Docker prod |
+| R196 | shared_config.yaml: 50 symbols + 3 exchanges | `shared_config.yaml` | ✅ Good | 50 pairs, 3 exchanges, risk params match component configs, clean |
+| R197 | C++ ExchangeBase: hardcoded toxic threshold | `ExchangeBase.h:49` | Low | toxic_count < 5 hardcoded. No per-exchange/per-env configuration |

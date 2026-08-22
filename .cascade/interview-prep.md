@@ -2227,3 +2227,124 @@ if (!side) {
 ```
 
 **Why it matters at scale:** Silent defaults are one of the most dangerous bugs in trading systems. The function looks correct — it handles "BUY" and defaults everything else to "SELL". But the default is **wrong**. Any input that's not exactly "BUY" (case-sensitive) becomes a SELL order. With 1000 users, someone will write "buy" in their config (lowercase). Someone will have a trailing newline from a YAML parser. Someone will have a typo ("BUI"). All of them get SELL orders instead of BUY. The bot opens short positions when the user wanted long positions. Every trade loses money. No error, no warning — the bot happily trades in the wrong direction. The good version does case-insensitive comparison and throws (or returns `nullopt`) on anything that's not "BUY" or "SELL". The cost is 5 lines. The benefit is that no user ever gets a silent wrong order side. In a trading system, a silent wrong side means real money lost — not a bug you can fix later, but money that's gone. With 1000 users each losing $100 on a wrong-side trade, that's $100,000 lost to a 1-line bug.
+
+---
+
+### Example 47: Copy-Paste Adapters — 3 Exchange Adapters with 200 Lines Duplicated
+
+**BAD** — `BinanceAdapter.h`, `OKXAdapter.h`, `BybitAdapter.h`:
+```cpp
+// BinanceAdapter.h (190 lines)
+class BinanceAdapter : public ExchangeBase {
+    mutable Spinlock price_lock_;
+    mutable Spinlock depth_lock_;
+    std::unordered_map<std::string, double> bids_;
+    std::unordered_map<std::string, double> asks_;
+    std::unordered_map<std::string, double> bid_depth_;
+    std::unordered_map<std::string, double> ask_depth_;
+
+    double best_bid(const std::string& symbol) const override {
+        std::lock_guard<Spinlock> lk(price_lock_);
+        auto it = bids_.find(symbol);
+        return it != bids_.end() ? it->second : 0.0;
+    }
+    // ... identical best_ask, mid_price, bid_depth, ask_depth ...
+};
+
+// OKXAdapter.h (143 lines) — EXACT SAME STRUCTURE
+class OKXAdapter : public ExchangeBase {
+    mutable Spinlock price_lock_;
+    mutable Spinlock depth_lock_;
+    std::unordered_map<std::string, double> bids_;
+    // ... identical ...
+    double best_bid(const std::string& symbol) const override {
+        std::lock_guard<Spinlock> lk(price_lock_);
+        auto it = bids_.find(symbol);
+        return it != bids_.end() ? it->second : 0.0;  // EXACT SAME CODE
+    }
+};
+
+// BybitAdapter.h (137 lines) — EXACT SAME STRUCTURE
+class BybitAdapter : public ExchangeBase {
+    mutable Spinlock price_lock_;
+    // ... identical ...
+};
+
+// Problems:
+// 1. 470 lines total, ~200 are copy-pasted
+// 2. Bug in best_bid()? Fix it 3 times (and forget one)
+// 3. Want to add a new exchange? Copy 190 lines, change 20
+// 4. Lock ordering bug in Binance? Same bug in OKX and Bybit
+// 5. Want to change Spinlock to shared_mutex? Edit 3 files
+// 6. New developer: "which adapter do I modify?"
+// 7. Test: need 3x tests for identical logic
+```
+
+**GOOD**:
+```cpp
+// ExchangeBase.h — move common logic to base class
+class ExchangeBase : public IExchange {
+  protected:
+    mutable Spinlock price_lock_;
+    mutable Spinlock depth_lock_;
+    std::unordered_map<std::string, double> bids_;
+    std::unordered_map<std::string, double> asks_;
+    std::unordered_map<std::string, double> bid_depth_;
+    std::unordered_map<std::string, double> ask_depth_;
+
+  public:
+    // Common implementation — written once, used by all adapters
+    double best_bid(const std::string& symbol) const override {
+        std::lock_guard<Spinlock> lk(price_lock_);
+        auto it = bids_.find(symbol);
+        return it != bids_.end() ? it->second : 0.0;
+    }
+    double best_ask(const std::string& symbol) const override {
+        std::lock_guard<Spinlock> lk(price_lock_);
+        auto it = asks_.find(symbol);
+        return it != asks_.end() ? it->second : 0.0;
+    }
+    double mid_price(const std::string& symbol) const override {
+        return (best_bid(symbol) + best_ask(symbol)) / 2.0;
+    }
+    // ... bid_depth, ask_depth ...
+
+    void update_prices(const std::string& symbol, double bid, double ask) {
+        std::lock_guard<Spinlock> lk(price_lock_);
+        bids_[symbol] = bid;
+        asks_[symbol] = ask;
+    }
+    void update_depth(const std::string& symbol, double bid_qty, double ask_qty) {
+        std::lock_guard<Spinlock> lk(depth_lock_);
+        bid_depth_[symbol] = bid_qty;
+        ask_depth_[symbol] = ask_qty;
+    }
+};
+
+// BinanceAdapter.h — only exchange-specific logic
+class BinanceAdapter : public ExchangeBase {
+    Config config_;  // URLs, rate limits
+
+    // Only Binance-specific methods:
+    std::string sign(const std::string& payload) const;  // HMAC-SHA256
+    OrderResult place_order(...);                         // REST API
+    std::string book_ticker_stream(const std::string& symbol) const {
+        return config_.ws_url + "/ws/" + symbol_lower(symbol) + "@bookTicker";
+    }
+    // No duplicated best_bid/best_ask/mid_price/bid_depth/ask_depth
+};
+
+// OKXAdapter.h — only OKX-specific logic
+class OKXAdapter : public ExchangeBase {
+    Config config_;  // URLs, passphrase
+
+    std::string sign(...) const;  // HMAC-SHA256 + passphrase
+    static std::string to_inst_id(const std::string& symbol);  // BTC-USDT-SWAP
+    // No duplicated methods
+};
+
+// Total: ExchangeBase 80 lines + BinanceAdapter 50 + OKXAdapter 50 + BybitAdapter 40
+// = 220 lines instead of 470. 53% reduction.
+```
+
+**Why it matters at scale:** Copy-paste is the most common source of bugs in growing codebases. When 3 exchange adapters have identical code, a bug fix in one must be manually replicated to the other two — and someone will forget. With 1000 users across 3 exchanges, a bug in `best_bid()` that's only fixed in BinanceAdapter means OKX and Bybit users get stale prices. They trade on wrong data. They lose money. The good version moves the common logic to `ExchangeBase` — written once, tested once, fixed once. Each adapter only implements exchange-specific logic (auth, URL format, symbol conversion). Adding a 4th exchange (e.g., Coinbase) takes 40 lines instead of 190. The cost is refactoring 3 files into 1 base + 3 adapters. The benefit is that a bug in `best_bid()` is fixed once and all exchanges benefit. With 1000 users, that's 1000 users protected by one fix instead of hoping someone remembers to fix it in 3 places.

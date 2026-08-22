@@ -2770,3 +2770,203 @@ std::string direction; // "LONG", "SHORT", "NEUTRAL"
 Direction is a `std::string` compared with `== "LONG"` / `== "SHORT"`. This is a heap-allocated string in a hot-path data structure. Compare with `FastSignal` in `aligned_types.h` which uses `char[32]` (no heap). The `Signal` struct is used for received signals (from WebSocket), not for the hot-path SPSC queue — so heap allocation is acceptable here. But if `Signal` is ever copied into the hot path, it will allocate.
 
 **Фикс:** No fix needed if `Signal` stays on the receiving side. If it enters the hot path, convert to `FastSignal`.
+
+### 8.201 C++ ExchangeBase: EMA latency tracking + toxic backoff — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/exchange/ExchangeBase.h` (60 lines)
+
+Partial implementation of `IExchange` with:
+- **EWMA latency tracking**: `record_latency()` uses CAS loop for lock-free exponential moving average: `next = current + (us - current) / 10`. This is a 10-sample EMA — smooth, no spikes.
+- **Toxic event backoff**: `record_toxic_event()` increments atomic counter. `is_available()` returns false after 5 toxic events. `reset_toxic_events()` for recovery.
+- `std::atomic<int64_t> latency_avg_` — relaxed ordering (acceptable for monitoring)
+- `std::atomic<int> toxic_count_` — relaxed ordering (acceptable for circuit breaker)
+
+Clean base class with proper atomic usage. ✅
+
+### 8.202 C++ BinanceAdapter: HMAC-SHA256 + rate limiting — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h` (190 lines)
+
+Binance Futures adapter:
+- **Market data**: `wss://fstream.binance.com/ws/<stream>` — bookTicker, depth20@100ms, aggTrade
+- **Order submission**: REST `POST /fapi/v1/order` with HMAC-SHA256
+- **User data stream**: listenKey → `wss://fstream.binance.com/ws/<listenKey>`, ping every 30 min
+- **Rate limiting**: CAS-based 300 orders/10s window — `orders_in_window_.fetch_add(1) < 300`
+- **Spinlock** for price/depth maps (not mutex — good for HFT)
+- `symbol_lower()` — converts "BTC/USDT" → "btcusdt" for Binance WS streams
+- Config: `api_key`, `api_secret` as `std::string` (no hardcoded values)
+
+### 8.203 C++ BinanceAdapter: nested Spinlock acquisition — Medium
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:74-79`
+
+```cpp
+void on_book_ticker(...) {
+    std::lock_guard<Spinlock> lk(price_lock_);
+    bids_[symbol] = bid;
+    asks_[symbol] = ask;
+    std::lock_guard<Spinlock> lk2(depth_lock_);  // Nested lock
+    bid_depth_[symbol] = bid_qty;
+    ask_depth_[symbol] = ask_qty;
+}
+```
+
+`on_book_ticker()` acquires `price_lock_` then `depth_lock_`. `on_depth_update()` (lines 88-99) acquires them separately (price first, then depth). If another thread calls `best_bid()` (acquires `price_lock_`) and `bid_depth()` (acquires `depth_lock_`) in the opposite order, there's a potential deadlock. However, since both use Spinlocks (not mutexes), a deadlock would manifest as a livelock (both threads spinning) rather than a permanent block.
+
+The current code always acquires `price_lock_` before `depth_lock_`, so the lock ordering is consistent. But this is fragile — if someone adds a method that acquires `depth_lock_` first, it will deadlock.
+
+**Фикс:** Document the lock ordering convention (price → depth) in a comment. Or combine into a single lock.
+
+### 8.204 C++ BinanceAdapter: can_send_order TOCTOU — Low
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:123-136`
+
+```cpp
+bool can_send_order() {
+    // ... reset window if 10s elapsed ...
+    return orders_in_window_.fetch_add(1, std::memory_order_relaxed) < 300;
+}
+```
+
+`fetch_add(1)` always increments, even if the result is ≥ 300 (order rejected). This means rejected orders still count against the rate limit. If 300 orders are rejected, the counter is at 600 — the next 300 valid orders will also be rejected until the window resets.
+
+**Фикс:** Use `compare_exchange` to only increment if below threshold. Or reset counter when window rolls over (already done, but the over-count persists within the window).
+
+### 8.205 C++ OKXAdapter: OKX-specific instrument ID conversion — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/OKXAdapter.h` (143 lines)
+
+OKX Futures adapter:
+- **Instrument ID conversion**: `to_inst_id("BTC/USDT")` → `"BTC-USDT-SWAP"` (OKX format)
+- **HMAC-SHA256 + passphrase** auth (OKX requires 3 credentials)
+- **WebSocket**: public + private channels, login message for private
+- **Rate limits**: 20 req/2s per endpoint, 60 req/2s for orders
+- **Spinlock** for price/depth maps
+- Fee structure: 2 bps maker, 5 bps taker (different from Binance's 2/4)
+
+`to_inst_id()` correctly handles "BTC/USDT" and "BTCUSDT" formats. ✅
+
+### 8.206 C++ BybitAdapter: Bybit Futures adapter — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/BybitAdapter.h` (137 lines)
+
+Bybit Futures adapter:
+- **Market data**: `wss://stream.bybit.com/v5/public/linear`
+- **Order submission**: REST `POST /v5/order/create` with HMAC-SHA256
+- **Rate limits**: 120 req/min for orders, 600 req/min for queries
+- **Spinlock** for price/depth maps
+- Fee structure: 1 bps maker, 6 bps taker (best maker fee, worst taker fee)
+
+### 8.207 C++ 3 exchange adapters: code duplication — Medium
+
+**Файлы:** `BinanceAdapter.h` (190), `OKXAdapter.h` (143), `BybitAdapter.h` (137)
+
+All 3 adapters have identical structure:
+- `Spinlock price_lock_` + `Spinlock depth_lock_`
+- `unordered_map<string, double> bids_, asks_, bid_depth_, ask_depth_`
+- `best_bid()`, `best_ask()`, `mid_price()`, `bid_depth()`, `ask_depth()` — identical implementations
+- `on_book_ticker()` / `on_ticker()` — identical logic, different name
+
+Total: 470 lines, ~200 of which are duplicated. The only differences are:
+- Fee rates (constructor args)
+- WS/REST URLs (config strings)
+- Auth method (HMAC-SHA256 vs HMAC-SHA256+passphrase)
+- Symbol format (BTCUSDT vs BTC-USDT-SWAP vs BTCUSDT)
+- Rate limit values
+
+**Code reduction:** Move `bids_`, `asks_`, `bid_depth_`, `ask_depth_`, `price_lock_`, `depth_lock_` and all 5 `best_bid()`/`best_ask()`/etc. methods to `ExchangeBase`. Adapters only implement exchange-specific logic (auth, WS URLs, symbol format). Potential ~200 lines reduction.
+
+### 8.208 C++ binance_config.h: constexpr exchange constants — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/exchange/binance/binance_config.h` (141 lines)
+
+All Binance-specific constants as `constexpr const char*`:
+- Endpoints (WS, REST, testnet)
+- Rate limits (2400 weight/min, 1200 orders/min, 10 req/s)
+- WS channels (depth, aggTrade, kline, markPrice, forceOrder)
+- Kline intervals (1m, 5m, 15m, 1h, 4h, 1d)
+- Order types (MARKET, LIMIT, STOP, STOP_MARKET, TAKE_PROFIT, etc.)
+- Time in force (GTC, IOC, FOK, GTX)
+
+`constexpr` — compile-time evaluation, no runtime overhead. `string_view` support for zero-copy comparisons. ✅
+
+### 8.209 web-ui App.jsx: lazy loading + Suspense — ✅ Good
+
+**Файл:** `web-ui/src/App.jsx` (565 lines)
+
+14 components lazy-loaded with `React.lazy()` + `Suspense`:
+- `AccountPanel`, `PositionsPanel`, `SignalFeed`, `SignalPerformance`
+- `ArbitragePanel`, `PriceComparison`, `FillsPanel`, `PerformanceDashboard`
+- `BacktestRunner`, `TradeHistory`, `BotStatus`, `DepthChart`
+- `CorrelationHeatmap`, `OnboardingTutorial`
+
+`PanelFallback` component for loading state. `TabButton` wrapped in `memo()` for render optimization. ✅
+
+### 8.210 web-ui App.jsx: Zustand store sync — ✅ Good
+
+**Файл:** `web-ui/src/App.jsx:92-134`
+
+Data flows: WebSocket hooks → `useEffect` → Zustand `setExchangeData()` / `setSignalData()`:
+- Exchange data: candles, prices, accounts, arbitrage, fills, orderbooks, funding rates
+- Signal data: signals, regime, backtest results, circuit breaker
+- Connection state tracking with `useRef` for prev state (toast notifications on connect/disconnect)
+- Sound alerts on fills and strong signals
+
+Clean unidirectional data flow: WS → hook → store → components. ✅
+
+### 8.211 web-ui App.jsx: 565 lines — Medium
+
+**Файл:** `web-ui/src/App.jsx` (565 lines)
+
+App.jsx is 565 lines — the largest JSX file in the project. It handles:
+- Store sync (2 useEffects)
+- Connection notifications (2 useEffects)
+- Fill notifications (1 useEffect)
+- Signal notifications (1 useEffect)
+- Keyboard shortcuts
+- Tab rendering (14 tabs)
+- Mobile/tablet responsive layout
+- Detached panel management
+- Theme toggling
+
+This is a "God component" — similar to the C++ `BotContext` God struct (§8.147). While not a bug, it's a maintainability concern.
+
+**Code reduction:** Extract notification logic into a `useNotifications` hook. Extract tab rendering into a `TabContainer` component. Potential ~200 lines reduction.
+
+### 8.212 shared_config.yaml: localhost in production — Medium
+
+**Файл:** `shared_config.yaml:108,112`
+
+```yaml
+websocket:
+  exchange_simulator:
+    host: localhost
+    port: 8765
+  ai_signal_bot:
+    host: localhost
+    port: 8766
+```
+
+Same `localhost` issue as §8.124, §8.152, §8.195. This is the shared config that all components read. In production (K8s, Docker Compose prod), `localhost` won't work — components are in separate containers/pods.
+
+**Фикс:** Use environment variable substitution: `host: ${EXCHANGE_SIMULATOR_HOST:-localhost}`. Or remove from shared config and let each component's own config handle it.
+
+### 8.213 shared_config.yaml: 50 symbols + 3 exchanges — ✅ Good
+
+**Файл:** `shared_config.yaml` (115 lines)
+
+50 trading pairs (BTC/USDT through MINA/USDT), 3 exchanges (binance, bybit, okx), default exchange: binance. Risk parameters match component configs (2% per trade, 8% daily drawdown, 65% min confidence, 1.5 min R:R). Timeframe: 5m (300s). Account: $10,000 USDT, 10× leverage.
+
+Clean, well-commented shared config. ✅
+
+### 8.214 C++ ExchangeBase: is_available threshold hardcoded — Low
+
+**Файл:** `hft-trade-bot/src/exchange/ExchangeBase.h:49`
+
+```cpp
+bool is_available() const override { return toxic_count_.load(std::memory_order_relaxed) < 5; }
+```
+
+The toxic event threshold (5) is hardcoded. If an exchange has a brief connectivity issue causing 5 toxic events, it's marked unavailable. There's no way to configure this per-exchange or per-environment.
+
+**Фикс:** Make the threshold configurable via constructor parameter or config.
