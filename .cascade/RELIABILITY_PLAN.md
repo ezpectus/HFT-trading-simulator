@@ -612,3 +612,9 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R55 | SHM polling at 1ms | `shm_fill_consumer.py:62` | Low | 1000 polls/sec, 5-10% CPU wasted when no fills. Use eventfd or 10ms interval |
 | R56 | Dual metrics systems | `metrics_server.py` + `metrics.py` | Medium | Custom text format + prometheus_client. Overlapping metric names, dashboards confused |
 | R57 | No asyncio.Lock on shared state | `signal_publisher.py` | Medium | `_clients` set mutated from multiple coroutines without lock. `await` during iteration → RuntimeError |
+| R58 | Helm: no PodDisruptionBudget | `helm/templates/` | Medium | Node drain can evict all pods → downtime. Single-replica StatefulSet has no protection |
+| R59 | Helm: no NetworkPolicy | `helm/templates/` | Medium | All pods can reach all pods. DB should only accept from app pods |
+| R60 | Helm: hardcoded PG password | `values.yaml:17` | Medium | Default "change-me-in-production". No validation it was changed. `helm install` without override = known password |
+| R61 | Docker Compose: no resource limits | `docker-compose.yml` | Medium | No memory/CPU limits. Memory leak = host crash. Helm has limits, compose doesn't |
+| R62 | WS input: no schema validation | `signal_publisher.py:141` | Medium | `json.loads` accepts anything. No type check, no size limit. Malicious client can crash bot |
+| R63 | DB migrations: no runner | `database/migrations/` | Medium | 4 SQL files exist but no code to apply them. No version tracking. SQLite and PG schemas diverged |

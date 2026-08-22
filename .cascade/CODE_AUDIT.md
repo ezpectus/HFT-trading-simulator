@@ -1069,3 +1069,78 @@ for ws in self._clients:  # ← starts iteration
 ```
 
 **Фикс:** Use `asyncio.Lock` around `_clients` mutations, or copy the set before iterating: `for ws in list(self._clients):`
+
+### 8.66 Helm: no PodDisruptionBudget — Medium
+
+**Файл:** `helm/templates/`
+
+Grep for `PodDisruptionBudget|pdb` = 0 matches. No PDB means Kubernetes can evict all pods simultaneously during node drain or cluster upgrade. With a single-replica StatefulSet (which this is), draining a node kills the only pod → downtime.
+
+**Фикс:** Add PDB with `minAvailable: 1` for critical services (ai-signal-bot, hft-trade-bot, exchange-simulator).
+
+### 8.67 Helm: no NetworkPolicy — Medium
+
+**Файл:** `helm/templates/`
+
+Grep for `NetworkPolicy|networkpolicy` = 0 matches. All pods can communicate with all other pods and external networks. In production, the DB pod should only accept connections from ai-signal-bot and hft-trade-bot pods, not from web-ui or random pods.
+
+**Фикс:** Add NetworkPolicy restricting ingress to DB/Redis pods from application pods only.
+
+### 8.68 Helm: no RBAC — Low
+
+**Файл:** `helm/templates/`
+
+No ServiceAccount, Role, or RoleBinding defined. Pods run with default service account. No principle of least privilege.
+
+### 8.69 Helm: hardcoded PostgreSQL password — Medium
+
+**Файл:** `helm/values.yaml:17`
+
+```yaml
+password: "change-me-in-production"  # Override via --set postgres.password=... or existingSecret
+```
+
+Default password is `change-me-in-production`. The comment says "Override via --set" but there's no validation that it was actually changed. If someone runs `helm install` without overrides, the DB has a known password.
+
+**Фикс:** Require `existingSecret` ref. Fail Helm install if no secret provided: `{{- required "postgres.password is required" .Values.postgres.password }}`.
+
+### 8.70 Docker Compose: no resource limits — Medium
+
+**Файл:** `docker-compose.yml`
+
+Grep for `resources|limits|ulimits` = 0 matches. No memory or CPU limits on any container. A memory leak in any service can consume all host memory and crash everything. The Helm chart has resource limits (§8.66), but docker-compose (used for dev/staging) does not.
+
+**Фикс:** Add `deploy.resources.limits` to each service in docker-compose.
+
+### 8.71 WS input: no schema validation — Medium
+
+**Файл:** `signal_publisher.py:141-146`
+
+```python
+data = json.loads(message)
+msg_type = data.get("type")
+if msg_type == "subscribe":
+    logger.info(f"Client subscribed: {data.get('client', 'unknown')}")
+elif msg_type == "run_backtest":
+    result = await self._run_backtest(data)
+```
+
+`json.loads` accepts any valid JSON. No validation that:
+- `data` is a dict (could be a list, string, number)
+- `type` field exists (`.get("type")` returns `None` → falls through)
+- `backtests` is a list of dicts with required fields
+- Message size is bounded (client could send 100MB JSON)
+
+A malicious or buggy client can send `{"type": "run_backtest", "backtests": "not_a_list"}` → `len(backtests)` works (string length) but iteration produces characters → crash.
+
+**Фикс:** Pydantic schema for incoming WS messages: `class SubscribeMsg(BaseModel): type: Literal["subscribe"]; client: str`. Validate before processing.
+
+### 8.72 DB migrations: SQL files exist but no runner — Medium
+
+**Файлы:** `src/database/migrations/001_initial_schema.sql` through `004_add_backtests.sql`
+
+4 migration SQL files exist (PostgreSQL syntax: `BIGSERIAL`, `CREATE EXTENSION`). But grep for `migrat` in `src/database/` = 0 matches. No migration runner code. No version tracking table. No `apply_migrations()` function.
+
+The SQLite `db.py` has its own schema initialization (`CREATE TABLE IF NOT EXISTS`), separate from these PostgreSQL migrations. Two DB backends, two schema management approaches, neither has a proper migration runner.
+
+**Фикс:** Use Alembic (Python) or `flyway` (JVM) or at minimum a `migrate.py` script that reads `migrations/*.sql` in order and tracks applied versions in a `_migrations` table.

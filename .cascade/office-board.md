@@ -120,3 +120,9 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | SHM no cleanup on crash | SIGKILL = SHM not unlinked, restart fails | CODE_AUDIT §8.62 |
 | Dual metrics systems | Custom text + prometheus_client, overlapping names | CODE_AUDIT §8.64 |
 | No asyncio.Lock on _clients | Set mutated during iteration → RuntimeError | CODE_AUDIT §8.65 |
+| Helm: no PDB | Node drain evicts all pods → downtime | CODE_AUDIT §8.66 |
+| Helm: no NetworkPolicy | All pods reach all pods, DB exposed | CODE_AUDIT §8.67 |
+| Helm: hardcoded PG password | Default "change-me-in-production" if not overridden | CODE_AUDIT §8.69 |
+| Docker Compose: no resource limits | Memory leak = host crash | CODE_AUDIT §8.70 |
+| WS input: no schema validation | Malicious client can crash bot | CODE_AUDIT §8.71 |
+| DB migrations: no runner | 4 SQL files, no code to apply them | CODE_AUDIT §8.72 |

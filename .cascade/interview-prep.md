@@ -1275,3 +1275,107 @@ class SignalPublisher:
 ```
 
 **Why it matters at scale:** asyncio is single-threaded, but `await` is a yield point. Between `for ws in self._clients` and `await ws.send(msg)`, any other coroutine can run. If a client disconnects during broadcast, `_handle_client`'s `finally` block runs `self._clients.discard(ws)` — modifying the set while `broadcast_signal` is iterating it. Python raises `RuntimeError: Set changed size during iteration`. The broadcast crashes, no client gets the signal. With 1000 users, each having 5-10 WS clients, disconnects happen constantly. The broadcast crashes on every other signal. The good version takes a snapshot of the set under a lock, then iterates the copy. Mutations to `_clients` don't affect the broadcast. The lock ensures the snapshot is consistent. In a trading system, a crashed broadcast means 1000 users miss a signal — potentially a profitable trade. The fix is 3 lines. The cost of not fixing is every signal broadcast being a coin flip.
+
+---
+
+### Example 33: No WS Input Validation (Trust Client Data)
+
+**BAD** — `signal_publisher.py:141`:
+```python
+async for message in websocket:
+    data = json.loads(message)       # ← accepts any JSON
+    msg_type = data.get("type")      # ← could be None
+    if msg_type == "run_backtest":
+        result = await self._run_backtest(data)
+        # _run_backtest does:
+        # backtests = data.get("backtests", [])
+        # if len(backtests) < 2: ...
+        # What if backtests = "hello"? len("hello") = 5 >= 2
+        # → iterates characters 'h','e','l','l','o' → crash
+        # What if data = [1,2,3]? data.get("type") → AttributeError
+        # What if message = 50MB JSON? → OOM
+```
+
+**GOOD**:
+```python
+from pydantic import BaseModel, ValidationError
+from typing import Literal
+
+class SubscribeMsg(BaseModel):
+    type: Literal["subscribe"]
+    client: str = "unknown"
+
+class BacktestMsg(BaseModel):
+    type: Literal["run_backtest"]
+    strategy: str
+    candles: int = 100
+    symbol: str = "BTC/USDT"
+
+async for message in websocket:
+    try:
+        raw = json.loads(message)
+        if not isinstance(raw, dict):
+            await websocket.send(json.dumps({"error": "expected object"}))
+            continue
+
+        msg_type = raw.get("type")
+        if msg_type == "subscribe":
+            msg = SubscribeMsg(**raw)
+            logger.info(f"Client subscribed: {msg.client}")
+        elif msg_type == "run_backtest":
+            msg = BacktestMsg(**raw)
+            result = await self._run_backtest(msg.model_dump())
+            await websocket.send(json.dumps(result))
+    except ValidationError as e:
+        await websocket.send(json.dumps({"error": str(e)}))
+    except json.JSONDecodeError:
+        await websocket.send(json.dumps({"error": "invalid JSON"}))
+```
+
+**Why it matters at scale:** Without validation, any client can crash the bot. Send `{"type": "run_backtest", "backtests": "not_a_list"}` — `len("not_a_list")` returns 10, which passes the `>= 2` check, then iteration produces characters, and the bot crashes on `char.get("strategy")`. Send a 100MB JSON — bot runs out of memory parsing it. Send `[1,2,3]` — `list.get("type")` raises `AttributeError`, unhandled, bot crashes. With 1000 users, one buggy or malicious client takes down the entire signal broadcasting service for everyone. The good version validates every incoming message with a Pydantic schema. Wrong type? Send error, continue. Invalid JSON? Send error, continue. Too large? Reject before parsing. The bot stays up no matter what clients send. In a trading system, one client crashing the signal server means 999 other users lose their signals — potentially missing profitable trades. Input validation is not optional, it's self-defense.
+
+---
+
+### Example 34: No DB Migration Runner (Schema Drift)
+
+**BAD** — `src/database/`:
+```
+migrations/
+├── 001_initial_schema.sql    ← exists, never applied by code
+├── 002_add_candle_partitions.sql
+├── 003_add_risk_events.sql
+└── 004_add_backtests.sql
+
+db.py:
+def _init_schema(self):
+    conn.execute("CREATE TABLE IF NOT EXISTS signals ...")  # ← separate schema
+    conn.execute("CREATE TABLE IF NOT EXISTS trades ...")    # ← diverges from SQL files
+```
+
+**GOOD**:
+```python
+# migrate.py
+import sqlite3
+import os
+
+MIGRATIONS_DIR = os.path.join(os.path.dirname(__file__), "migrations")
+
+def apply_migrations(db_path: str) -> None:
+    conn = sqlite3.connect(db_path)
+    conn.execute("CREATE TABLE IF NOT EXISTS _migrations (id INTEGER PRIMARY KEY, name TEXT, applied_at REAL)")
+    applied = {row[0] for row in conn.execute("SELECT name FROM _migrations")}
+
+    for filename in sorted(os.listdir(MIGRATIONS_DIR)):
+        if filename.endswith(".sql") and filename not in applied:
+            with open(os.path.join(MIGRATIONS_DIR, filename)) as f:
+                conn.executescript(f.read())
+            conn.execute("INSERT INTO _migrations (name, applied_at) VALUES (?, ?)",
+                        (filename, time.time()))
+            conn.commit()
+            logger.info(f"Applied migration: {filename}")
+
+# In run.py startup:
+apply_migrations(config.db.path)
+```
+
+**Why it matters at scale:** Without a migration runner, schema changes are manual. Someone adds a column to `003_add_risk_events.sql`, but nobody runs it. The code expects the column, the DB doesn't have it → `sqlite3.OperationalError: table signals has no column named risk_score`. With 1000 users, each deployment requires manually running 4 SQL files on each user's DB. That's 4000 manual SQL executions. Someone will forget. Someone will run them in the wrong order. Someone will run them twice (idempotency issues). The SQLite `db.py` schema and the PostgreSQL migration files diverge — `db.py` has `CREATE TABLE IF NOT EXISTS` with different columns than `001_initial_schema.sql`. Which one is the source of truth? Nobody knows. The good version has a migration runner that: reads SQL files in order, tracks applied versions in a `_migrations` table, skips already-applied migrations, and runs automatically on startup. No manual SQL, no drift, no "works on my machine" schema issues. In a trading system, schema drift means the bot crashes on startup because `SELECT risk_score FROM signals` fails — the column doesn't exist. 1000 users can't start their bots because of a missing column that was supposed to be added 3 months ago.
