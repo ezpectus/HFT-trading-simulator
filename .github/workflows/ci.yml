@@ -23,8 +23,8 @@ jobs:
       matrix:
         component: [exchange_simulator, ai-signal-bot]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: |
           wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key
           gpg --dearmor < llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/llvm.gpg > /dev/null
@@ -52,8 +52,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -72,8 +72,8 @@ jobs:
       matrix:
         component: [exchange_simulator, ai-signal-bot]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -94,20 +94,20 @@ jobs:
           python -m pytest tests/ -v --tb=short --cov=$COV_MOD --cov-report=xml
         working-directory: ${{ matrix.component }}
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: ${{ matrix.component }}/coverage.xml
           flags: ${{ matrix.component }}
           name: ${{ matrix.component }}-coverage
           fail_ci_if_error: false
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ matrix.component }}
           path: ${{ matrix.component }}/coverage.xml
           retention-days: 14
       - name: Upload logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: logs-${{ matrix.component }}
           path: logs/
@@ -123,7 +123,7 @@ jobs:
       matrix:
         compiler: [gcc-14, clang-17]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -144,7 +144,7 @@ jobs:
           else
             sudo apt-get install -y gcc-14 g++-14
           fi
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: hft-trade-bot/build
           key: cpp-build-${{ matrix.compiler }}-${{ hashFiles('hft-trade-bot/CMakeLists.txt') }}
@@ -174,7 +174,7 @@ jobs:
             --output-file coverage.info
       - name: Upload coverage to Codecov
         if: matrix.compiler == 'gcc-14'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: hft-trade-bot/build/coverage.info
           flags: hft-trade-bot
@@ -182,7 +182,7 @@ jobs:
           fail_ci_if_error: false
       - name: Upload logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: logs-cpp-${{ matrix.compiler }}
           path: logs/
@@ -194,7 +194,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Setup vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg.git ${{ github.workspace }}/vcpkg
@@ -225,8 +225,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -248,13 +248,13 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
         working-directory: web-ui
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           directory: web-ui/coverage
           flags: web-ui
           name: web-ui-coverage
           fail_ci_if_error: false
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: js-coverage
           path: web-ui/coverage/
@@ -269,8 +269,8 @@ jobs:
     timeout-minutes: 15
     needs: [test-js, lint-js]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -289,7 +289,7 @@ jobs:
           if [ "$SIZE_KB" -gt 5120 ]; then
             echo "::warning::Bundle size ($SIZE) exceeds 5MB target"
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: web-ui-dist
           path: web-ui/dist/
@@ -304,10 +304,10 @@ jobs:
       matrix:
         service: [exchange_simulator, ai-signal-bot, hft-trade-bot, web-ui]
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: Build ${{ matrix.service }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/Dockerfile
@@ -321,8 +321,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -345,7 +345,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -363,7 +363,7 @@ jobs:
     timeout-minutes: 10
     needs: [test-python, test-js]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build and start services
         run: docker compose up -d --wait --timeout 60
       - name: Verify Exchange Simulator
@@ -390,8 +390,8 @@ jobs:
       matrix:
         component: [exchange_simulator, ai-signal-bot]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -411,7 +411,7 @@ jobs:
             fi
           fi
         working-directory: ${{ matrix.component }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bandit-${{ matrix.component }}
           path: ${{ matrix.component }}/bandit-report.json
@@ -431,7 +431,7 @@ jobs:
       matrix:
         language: [python, javascript]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: github/codeql-action/init@v3
@@ -446,12 +446,12 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -492,8 +492,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -511,7 +511,7 @@ jobs:
         working-directory: web-ui
       - name: Upload E2E screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-screenshots
           path: web-ui/screenshots/
@@ -570,7 +570,7 @@ jobs:
     needs: [test-python, test-cpp, test-js]
     if: always()
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Count and report test files
         run: |
           echo "=== Test File Count Summary ==="
