@@ -34,22 +34,28 @@
 ### Day 9 (Aug 30): ML module cleanup — PENDING
 ### Day 10 (Aug 31): Финальная проверка + документация — PENDING
 
-## КЛЮЧЕВЫЕ НАХОДКИ ДЛЯ РЕФАКТОРИНГА
+## КЛЮЧЕВЫЕ НАХОДКИ ДЛЯ РЕФАКТОРИНГА (verified Aug 22)
 
-- `compute_returns` — идентичная функция в 20+ модулях research/
-- `quantize` — дубликат в info_bottleneck.py и transfer_entropy.py
-- `research/__init__.py` — 307 строк ручных экспортов + __all__
-- 32 research модуля — нужно проверить какие реально используются
-- `backtester.py` — 506 строк
-- `signal_publisher.py` — 453 строки
-- `strategies.py` — 472 строки (несколько классов в одном файле)
+- `compute_returns` — **22 идентичных копии** (verified grep) в research модулях
+- `quantize` — **2 копии** (info_bottleneck.py, transfer_entropy.py) с разными сигнатурами
+- `research/__init__.py` — 305 строк ручных экспортов + __all__
+- **35 research модулей** — ВСЕ ACADEMIC (тесты есть, в production не используются)
+- Research модули НЕ импортируют друг друга — zero inter-module dependencies
+- **10 ML модулей** — ВСЕ dead code (нет импортов извне, нет тестов)
+- `fix_client.py` (329 строк) — dead code, только test импортирует
+- `ws_connection_pool.py` — dead code, только test импортирует
+- `networking/socket_transport.py` — dead code, никто не импортирует
+- SHM модули (4 файла) — не импортируются вне communication/
+- `backtester.py` — 449 строк (было 506)
+- `signal_publisher.py` — 380 строк (было 453)
+- `strategies.py` — 413 строк (было 472)
 
 ## SLOP FIXES (бэклог — после рефакторинга)
 
-1. 🔴 `lstm_model.py` — переписать на PyTorch или удалить
-2. 🔴 `transformer_model.py` — переписать на PyTorch или удалить
-3. 🔴 `rl_agent.py` — удалить, использовать `rl_trader.py`
-4. 🟠 `dpdk_transport.py` — удалить или переименовать
+1. 🔴 `lstm_model.py` — УЖЕ УДАЛЕН ✅
+2. 🔴 `transformer_model.py` — УЖЕ УДАЛЕН ✅
+3. 🔴 `rl_agent.py` — УЖЕ УДАЛЕН ✅
+4. 🟠 `dpdk_transport.py` — УЖЕ УДАЛЕН ✅
 5. 🟠 `fpga_orderbook.vhd` — удалить или пометить TODO
 6. 🟡 `hft-executor/src/lib.rs` — дописать WebSocket send
 7. 🟡 README — убрать лишние бейджи

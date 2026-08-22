@@ -213,3 +213,6 @@ docs/theory/
 
 # ─── Helm deploy artifacts ───
 deploy/helm/charts/
+
+# ─── Internal refactoring plan (not for public repo) ───
+docs/REFACTORING_PLAN_10DAYS.md
