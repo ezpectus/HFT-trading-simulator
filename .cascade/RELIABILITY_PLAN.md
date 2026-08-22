@@ -765,3 +765,15 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R208 | Alertmanager: SMTP/Slack/Discord placeholders | `config.yml:12,56,62` | Medium | Placeholders will be replaced with real secrets and committed |
 | R209 | ai-signal-bot health_check: aiohttp session per call | `health_check.py:53` | Medium | New ClientSession per health check. Should reuse session (already noted R27) |
 | R210 | ai-signal-bot alerting: aiohttp session per alert | `alerting.py:168,190,205` | Medium | 3 new ClientSession per alert send. Should reuse session (already noted R27) |
+| R211 | monitoring alerts.yml: 12 Prometheus rules | `alerts.yml` | ✅ Excellent | 12 rules, 4 groups, severity+service labels, for durations, annotations |
+| R212 | monitoring alerts.yml: no HFT-specific alerts | `alerts.yml` | Medium | No order latency, SHM overflow, fill rate, slippage, position limit, drawdown alerts |
+| R213 | monitoring ebpf_monitor.py | `ebpf_monitor.py` | ✅ Good | eBPF syscall+network tracing, BCC fallback, SIGINT/SIGTERM, narrow exceptions |
+| R214 | ebpf_monitor: only syscall BPF loaded | `ebpf_monitor.py:128` | Low | NETWORK_BPF defined but never loaded. Dead code |
+| R215 | ebpf_monitor: no Prometheus export | `ebpf_monitor.py:183` | Low | JSON to stdout only. No /metrics endpoint, not in Grafana |
+| R216 | web-ui performanceMonitor.js | `performanceMonitor.js` | ✅ Good | Web Vitals (LCP/FID/CLS/TTFB/FCP), budgets, ratings, alert callbacks, custom metrics |
+| R217 | web-ui performanceMonitor: metricsHistory unbounded | `performanceMonitor.js:28` | Low | Arrays grow without bound. Cap at 100 entries |
+| R218 | web-ui performanceMonitor: console.log in prod | `performanceMonitor.js:178+` | Low | 6 console.log calls. Use import.meta.env.DEV guard or Vite esbuild.drop |
+| R219 | monitoring Grafana: 5 dashboards | `grafana/dashboards/` | ✅ Good | 5 pre-built JSON dashboards. Ready after deployment |
+| R220 | web-ui performanceMonitor: alertCallbacks unbounded | `performanceMonitor.js:37` | Low | No offAlert(). Callbacks fire after unmount. Return unsubscribe fn |
+| R221 | monitoring alerts.yml: no alert for SHM overflow | `alerts.yml` | Medium | SHM ring buffer overflow = silent data loss. Should alert on head==tail wrap |
+| R222 | monitoring alerts.yml: no drawdown alert | `alerts.yml` | Medium | Daily drawdown approaching limit (e.g., >6% of 8%) should warn before circuit breaker |

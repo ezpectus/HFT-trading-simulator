@@ -176,3 +176,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Alertmanager: hardcoded SMTP password | smtp_auth_password 'your-password' in git. Webhooks too | CODE_AUDIT §8.215 |
 | web-ui: 50 symbols duplicated | 50 symbols in JS + shared_config.yaml, out of sync risk | CODE_AUDIT §8.219 |
 | web-ui: getFilteredSymbols not memoized | Re-filters on every call, unnecessary re-renders | CODE_AUDIT §8.224 |
+| monitoring: no HFT-specific alerts | No order latency, SHM overflow, fill rate, slippage, drawdown alerts | CODE_AUDIT §8.226 |
+| ebpf_monitor: NETWORK_BPF dead code | Defined but never loaded. Remove or activate | CODE_AUDIT §8.228 |
+| ebpf_monitor: no Prometheus export | JSON to stdout only, not in Grafana dashboards | CODE_AUDIT §8.229 |
+| performanceMonitor: alertCallbacks leak | No offAlert(), callbacks fire after unmount | CODE_AUDIT §8.234 |

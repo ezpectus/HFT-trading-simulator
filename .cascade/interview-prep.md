@@ -2348,3 +2348,109 @@ class OKXAdapter : public ExchangeBase {
 ```
 
 **Why it matters at scale:** Copy-paste is the most common source of bugs in growing codebases. When 3 exchange adapters have identical code, a bug fix in one must be manually replicated to the other two — and someone will forget. With 1000 users across 3 exchanges, a bug in `best_bid()` that's only fixed in BinanceAdapter means OKX and Bybit users get stale prices. They trade on wrong data. They lose money. The good version moves the common logic to `ExchangeBase` — written once, tested once, fixed once. Each adapter only implements exchange-specific logic (auth, URL format, symbol conversion). Adding a 4th exchange (e.g., Coinbase) takes 40 lines instead of 190. The cost is refactoring 3 files into 1 base + 3 adapters. The benefit is that a bug in `best_bid()` is fixed once and all exchanges benefit. With 1000 users, that's 1000 users protected by one fix instead of hoping someone remembers to fix it in 3 places.
+
+---
+
+### Example 48: Infrastructure Alerts Without Business Logic Alerts
+
+**BAD** — `monitoring/alerts.yml`:
+```yaml
+groups:
+  - name: ai-signal-bot
+    rules:
+      - alert: CircuitBreakerTripped
+        expr: ai_signal_bot_circuit_breaker_state == 1
+        for: 10s
+        # ... infrastructure alerts only ...
+
+  - name: system
+    rules:
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 30s
+        # ... process down alerts ...
+
+  # What's MISSING:
+  # - No order latency alert (HFT needs < 1ms)
+  # - No SHM overflow alert (producer faster than consumer = data loss)
+  # - No fill rate alert (orders sent but not filled = strategy broken)
+  # - No slippage alert (expected vs actual fill price = market impact)
+  # - No position limit alert (approaching max positions = risk)
+  # - No drawdown alert (approaching daily limit = stop trading soon)
+  # - No stale data alert (no market data update in N seconds = feed broken)
+
+# Scenario:
+# 1. SHM ring buffer overflows — producer writes faster than consumer reads
+# 2. C++ bot trades on stale order book data
+# 3. No alert fires — infrastructure looks healthy (process is up, WS connected)
+# 4. Bot loses money on every trade for 10 minutes
+# 5. Circuit breaker eventually trips — but that's 10 minutes too late
+# 6. With 1000 users: 1000 × $500 loss = $500,000 before anyone notices
+```
+
+**GOOD**:
+```yaml
+groups:
+  - name: hft-trading
+    rules:
+      # Order latency — HFT needs sub-millisecond
+      - alert: OrderLatencyHigh
+        expr: histogram_quantile(0.99, rate(hft_order_latency_us_bucket[1m])) > 1000
+        for: 30s
+        labels:
+          severity: critical
+          service: hft-trade-bot
+        annotations:
+          summary: "Order latency P99 > 1ms"
+          description: "P99 order latency is {{ $value }}μs. HFT requires < 1ms."
+
+      # SHM ring buffer overflow — silent data loss
+      - alert: SHMOverflow
+        expr: rate(hft_shm_overflow_total[1m]) > 0
+        for: 10s
+        labels:
+          severity: critical
+          service: hft-trade-bot
+        annotations:
+          summary: "SHM ring buffer overflow"
+          description: "Producer is writing faster than consumer reads. Market data is being dropped."
+
+      # Fill rate drop — strategy not working
+      - alert: FillRateDrop
+        expr: |
+          rate(hft_orders_filled_total[5m]) / rate(hft_orders_sent_total[5m]) < 0.5
+          and rate(hft_orders_sent_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: hft-trade-bot
+        annotations:
+          summary: "Fill rate below 50%"
+          description: "Less than half of orders are being filled. Check market conditions or order types."
+
+      # Drawdown approaching limit — warn before circuit breaker
+      - alert: DrawdownApproaching
+        expr: |
+          (hft_daily_pnl / hft_starting_balance) * 100 < -6.0
+          and (hft_daily_pnl / hft_starting_balance) * 100 > -8.0
+        for: 1m
+        labels:
+          severity: warning
+          service: hft-trade-bot
+        annotations:
+          summary: "Daily drawdown approaching limit (6% of 8%)"
+          description: "Daily loss is {{ $value }}%. Circuit breaker triggers at 8%. Consider reducing position sizes."
+
+      # Stale market data — no update in 10 seconds
+      - alert: StaleMarketData
+        expr: time() - hft_last_market_data_timestamp > 10
+        for: 10s
+        labels:
+          severity: critical
+          service: hft-trade-bot
+        annotations:
+          summary: "No market data update in 10+ seconds"
+          description: "Market data feed may be broken. Bot is trading on stale prices."
+```
+
+**Why it matters at scale:** Infrastructure alerts (process down, no clients) tell you when the system is broken. Business logic alerts (latency, fill rate, drawdown, stale data) tell you when the system is **losing money** — even though it's technically running. With 1000 users, a SHM overflow that drops market data for 10 minutes means 1000 users trading on stale prices. The infrastructure alerts say "everything is fine" — process is up, WebSocket is connected, Prometheus is scraping. But every single trade is wrong. The good version adds alerts for the things that actually matter in trading: latency, data freshness, fill rate, drawdown. These alerts catch problems before they become losses. The drawdown alert at 6% gives the operator time to intervene before the 8% circuit breaker triggers. The SHM overflow alert catches data loss in 10 seconds, not 10 minutes. The cost is 50 lines of YAML. The benefit is catching money-losing situations before they become catastrophic. With 1000 users, catching a SHM overflow 10 minutes earlier saves $500,000.

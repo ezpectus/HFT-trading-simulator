@@ -3089,3 +3089,138 @@ getFilteredSymbols: () => {
 `getFilteredSymbols` is a function in the store, not a selector. Every call re-filters the symbol list. If called on every render (e.g., in a dropdown component), it creates a new array each time, causing unnecessary re-renders.
 
 **Фикс:** Use `useMemo` in the component, or create a selector hook: `useFilteredSymbols = () => useUIStore(useMemo(() => (s) => s.getFilteredSymbols(), []))`. Or use Zustand's `useShallow` for memoized selectors.
+
+### 8.225 monitoring alerts.yml: 12 Prometheus alert rules — ✅ Excellent
+
+**Файл:** `monitoring/alerts.yml` (155 lines)
+
+12 alert rules across 4 groups:
+- **ai-signal-bot** (6): CircuitBreakerTripped (critical, 10s), CircuitBreakerHalfOpen (warning, 30s), HighSignalBlockRate (warning, 2m), NoSignalsSent (warning, 5m), NoWsClients (critical, 1m), SignalBotDown (critical, 30s)
+- **exchange-simulator** (2): ExchangeSimulatorDown (critical, 30s), TradingStopped (warning, 1m)
+- **hft-trade-bot** (1): HftBotDown (critical, 30s)
+- **system** (1): PrometheusDown (critical, 30s)
+- **websocket** (2): HighWsReconnectionRate (warning, 5m), NoWsClientsConnected (warning, 2m)
+
+Each alert has: `expr`, `for` duration, `severity` label, `service` label, `summary` + `description` annotations. ✅
+
+### 8.226 monitoring alerts.yml: no HFT-specific latency alerts — Medium
+
+**Файл:** `monitoring/alerts.yml`
+
+No alerts for:
+- Order execution latency > threshold (e.g., > 1ms for HFT)
+- Signal processing latency > threshold
+- SHM ring buffer overflow (producer faster than consumer)
+- Fill rate drop (orders sent but not filled)
+- Slippage exceeding threshold
+- Position limit breach
+- Daily drawdown approaching limit
+
+These are critical HFT metrics that should have alert rules. The current alerts cover infrastructure (process down, no signals, no clients) but not trading-specific anomalies.
+
+**Фикс:** Add HFT-specific alert rules: `OrderLatencyHigh`, `SHMOverflow`, `FillRateDrop`, `SlippageHigh`, `PositionLimitBreach`, `DrawdownApproaching`.
+
+### 8.227 monitoring ebpf_monitor.py: eBPF syscall + network tracing — ✅ Good
+
+**Файл:** `monitoring/ebpf_monitor.py` (225 lines)
+
+eBPF monitoring agent:
+- **Syscall tracing**: `TRACEPOINT_PROBE(raw_syscalls, sys_enter)` — captures pid, comm, timestamp
+- **Network tracing**: `kprobe__tcp_recvmsg` — captures saddr, daddr, sport, dport, len
+- **Graceful degradation**: `BCC_AVAILABLE` flag — if BCC not installed, logs warning and returns False
+- **Signal handling**: SIGINT/SIGTERM → `monitor.stop()` + `sys.exit(0)`
+- **Error handling**: Narrow exceptions (`OSError, RuntimeError, ValueError, TypeError`) — no catch-all
+- **Poll loop**: `perf_buffer_poll(timeout=int(self.interval * 1000))` — configurable interval
+- **Report**: JSON output with avg/max latency per syscall
+
+Well-structured eBPF agent with proper fallback and error handling. ✅
+
+### 8.228 monitoring ebpf_monitor.py: only syscall BPF loaded — Low
+
+**Файл:** `monitoring/ebpf_monitor.py:128`
+
+```python
+self._bpf = BPF(text=SYSCALL_BPF)
+```
+
+Only `SYSCALL_BPF` is loaded. `NETWORK_BPF` is defined (lines 75-105) but never loaded. The network monitoring code exists but is not used. The `_on_syscall_event` handler is registered but there's no `_on_net_event` handler.
+
+**Фикс:** Load both BPF programs: `BPF(text=SYSCALL_BPF + NETWORK_BPF)`. Register network event handler. Or remove `NETWORK_BPF` if not needed.
+
+### 8.229 monitoring ebpf_monitor.py: no Prometheus export — Low
+
+**Файл:** `monitoring/ebpf_monitor.py:183-199`
+
+`_report()` logs JSON to stdout. There's no Prometheus metrics export (no `/metrics` endpoint, no `prometheus_client` usage). The eBPF data is only visible in logs, not in Grafana dashboards.
+
+**Фикс:** Add `prometheus_client` integration: expose syscall latency as Prometheus histograms. Or use `node_exporter` textfile collector to scrape JSON output.
+
+### 8.230 web-ui performanceMonitor.js: Web Vitals integration — ✅ Good
+
+**Файл:** `web-ui/src/utils/performanceMonitor.js` (281 lines)
+
+Core Web Vitals monitoring:
+- **5 metrics**: LCP, FID, CLS, TTFB, FCP
+- **Performance budgets**: LCP 2.5s, FID 100ms, CLS 0.1, TTFB 800ms, FCP 1.8s
+- **Rating system**: good / needs-improvement / poor
+- **Alert callbacks**: `onAlert(callback)` — register custom alert handlers
+- **Custom metrics**: `recordCustomMetric(name, value, unit)` — extensible
+- **History tracking**: `metricsHistory` for trend analysis
+- **Budget check**: `checkBudgets()` — returns violations array
+
+Clean Web Vitals integration with budget enforcement. ✅
+
+### 8.231 web-ui performanceMonitor.js: metricsHistory unbounded — Low
+
+**Файл:** `web-ui/src/utils/performanceMonitor.js:28-34`
+
+```javascript
+const metricsHistory = {
+  LCP: [],
+  FID: [],
+  CLS: [],
+  TTFB: [],
+  FCP: [],
+}
+```
+
+`metricsHistory` arrays grow without bound. Each Web Vital event pushes a new entry. Over a long session (hours), these arrays could grow large. No max length or rotation.
+
+**Фикс:** Cap at 100 entries: `if (arr.length > 100) arr.shift()`. Or use a ring buffer.
+
+### 8.232 web-ui performanceMonitor.js: console.log in production — Low
+
+**Файл:** `web-ui/src/utils/performanceMonitor.js:178,190,202,214,226,229`
+
+6 `console.log` calls in `initPerformanceMonitoring()`. In production, these should be removed or wrapped in a `if (import.meta.env.DEV)` guard. Vite's production build doesn't strip `console.log` by default.
+
+**Фикс:** Use `if (import.meta.env.DEV) console.log(...)` or configure Vite's `esbuild.drop` to strip console logs in production.
+
+### 8.233 monitoring Grafana: 5 dashboards — ✅ Good
+
+**Файлы:** `monitoring/grafana/dashboards/` (5 JSON files)
+
+5 pre-built dashboards:
+- `ai_signal_bot_metrics.json` — AI Signal Bot metrics
+- `latency-monitoring.json` — latency tracking
+- `system-overview.json` — system health
+- `trading-overview.json` — trading metrics
+- `trading-performance.json` — performance metrics
+
+Pre-built dashboards mean Grafana is ready to use after deployment — no manual dashboard creation needed. ✅
+
+### 8.234 web-ui performanceMonitor.js: alertCallbacks unbounded — Low
+
+**Файл:** `web-ui/src/utils/performanceMonitor.js:37,147-148`
+
+```javascript
+let alertCallbacks = []
+
+export function onAlert(callback) {
+  alertCallbacks.push(callback)
+}
+```
+
+`alertCallbacks` array grows without bound. Each call to `onAlert()` adds a callback but there's no `offAlert()` to remove one. If a component registers a callback on mount but doesn't unregister on unmount, the callback fires after unmount — calling `setState` on an unmounted component.
+
+**Фикс:** Return an unsubscribe function: `return () => { alertCallbacks = alertCallbacks.filter(cb => cb !== callback) }`. Or use `useEffect` cleanup in the component.
