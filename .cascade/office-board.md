@@ -240,3 +240,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | deploy.yml: localhost fallback for VITE_WS | Defaults to localhost if GitHub vars not set. Build should fail instead | CODE_AUDIT §8.412 |
 | hft-executor: avg_latency_ns always 0 | Stats field never populated. No latency measurement implemented | CODE_AUDIT §8.394 |
 | deploy/k8s: only secrets, no manifests | Only secrets.enc.yaml. No Deployment/Service/ConfigMap. Use Helm or add manifests | CODE_AUDIT §8.404 |
+| hft-trade-bot: no Dockerfile.prod | Deploy workflow uses Dockerfile.prod but only Dockerfile exists. Deploy will fail | CODE_AUDIT §8.423 |
+| migrate.py: no transaction wrapping | Migration SQL not in transaction. Partial state on failure. Use conn.transaction() | CODE_AUDIT §8.436 |
+| config.h: hardcoded localhost default | ws_url defaults to localhost:8765. Won't work in Docker/K8s. Default to empty | CODE_AUDIT §8.445 |

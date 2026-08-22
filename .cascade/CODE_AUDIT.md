@@ -5638,3 +5638,319 @@ std::unordered_map<std::string, double> prices_cache;
 `prices_cache` is a plain `unordered_map` — not thread-safe. `process_sl_tp` writes to it (`get_all_prices_into`), and other threads may read from it. If the bot runs multiple threads (e.g., AI signal consumer + main loop), concurrent access is a data race.
 
 **Фикс:** Use `std::shared_mutex` with shared/unique locks, or use a concurrent map.
+
+### 8.421 Dockerfiles: Multi-stage builds with non-root user — ✅ Excellent
+
+**Файлы:** `ai-signal-bot/Dockerfile.prod`, `exchange_simulator/Dockerfile.prod`, `hft-trade-bot/Dockerfile`
+
+- **Multi-stage**: Builder + runtime stages — small final images
+- **Non-root user**: `appuser` created and used — security best practice
+- **Health checks**: All Dockerfiles have `HEALTHCHECK` with interval/timeout/retries/start-period
+- **`--no-cache-dir --no-compile`**: Python pip flags for smaller images
+- **`rm -rf /var/lib/apt/lists/*`**: Clean apt cache — smaller images
+- **ABI matching**: hft-trade-bot Dockerfile documents builder/runtime ABI matching (bookworm)
+- **EXPOSE**: All ports documented
+
+Excellent Dockerfiles with multi-stage, non-root, health checks, and documentation. ✅
+
+### 8.422 hft-trade-bot Dockerfile: websocketpp sed patch — Low
+
+**Файл:** `hft-trade-bot/Dockerfile:26-28`
+
+```dockerfile
+RUN sed -i 's/endpoint<connection,config>/endpoint/g' /usr/include/websocketpp/endpoint.hpp \
+    && sed -i 's/basic<concurrency,names>/basic/g' /usr/include/websocketpp/logger/basic.hpp \
+    && sed -i 's/stub<concurrency,names>/stub/g' /usr/include/websocketpp/logger/stub.hpp || true
+```
+
+Same websocketpp sed patch as in CI. The `|| true` at the end means if the sed fails, the build continues — the C++ build may fail later with confusing errors.
+
+**Фикс:** Remove `|| true` and let the build fail if the patch doesn't apply. Or pin to a websocketpp fork with C++20 support.
+
+### 8.423 hft-trade-bot Dockerfile: no .prod variant — Medium
+
+**Файл:** `hft-trade-bot/Dockerfile`
+
+The deploy workflow uses `Dockerfile.prod` for all services: `file: ./${{ matrix.service }}/Dockerfile.prod`. But `hft-trade-bot/` only has `Dockerfile` — no `Dockerfile.prod`. The deploy workflow will fail for hft-trade-bot.
+
+**Фикс:** Create `hft-trade-bot/Dockerfile.prod` (or symlink to `Dockerfile`).
+
+### 8.424 .pre-commit-config.yaml: Pre-commit hooks — ✅ Good
+
+**Файл:** `.pre-commit-config.yaml` (27 lines)
+
+- **ruff**: `--fix` + format — Python linting and formatting
+- **eslint**: JS/TS linting with eslint 9.0.0
+- **pre-commit-hooks**: trailing-whitespace, end-of-file-fixer, check-yaml, check-added-large-files (500KB), detect-private-key
+
+Good pre-commit config with multi-language hooks and private key detection. ✅
+
+### 8.425 .pre-commit: no clang-format hook — Low
+
+**Файл:** `.pre-commit-config.yaml`
+
+No C++ formatting hook (clang-format). CI runs clang-format-18 in a separate job, but pre-commit doesn't catch formatting issues locally.
+
+**Фикс:** Add clang-format pre-commit hook: `repo: https://github.com/pre-commit/mirrors-clang-format`.
+
+### 8.426 .github/dependabot.yml: Dependency updates — ✅ Excellent
+
+**Файл:** `.github/dependabot.yml` (95 lines)
+
+- **7 ecosystems**: pip (exchange_simulator), pip (ai-signal-bot), npm (web-ui), github-actions, docker (4 services)
+- **Weekly schedule**: All updates weekly
+- **Grouped**: `patterns: ["*"]` groups all deps into 1 PR per ecosystem
+- **Labels**: `dependencies`, `python`/`javascript`/`docker`/`ci`
+- **open-pull-requests-limit: 1**: Minimal PR noise
+
+Excellent dependabot config with grouping and labels for all ecosystems. ✅
+
+### 8.427 exchange_simulator/liquidation_engine_v2.py: Cascade liquidations — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py` (253 lines)
+
+- **4 liquidation types**: FULL, PARTIAL, ADL, CASCADE
+- **Cascade liquidations**: One liquidation triggers others — realistic
+- **Insurance fund tracking**: Depleted by losses, topped up by fees
+- **Auto-deleveraging (ADL)**: When insurance fund depleted — realistic
+- **Partial liquidation**: Reduce to safe margin, not full close
+- **deque for history**: O(1) append/pop — efficient
+
+Good liquidation engine with cascade, ADL, and insurance fund. ✅
+
+### 8.428 exchange_simulator/order_book_realism.py: Realistic order book — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/order_book_realism.py` (306 lines)
+
+- **Power-law volume decay**: Realistic depth profile from mid price
+- **Spoofing**: Fake large orders that cancel before execution
+- **Iceberg orders**: Hidden quantity with partial reveal
+- **Queue position tracking**: FIFO fill priority
+- **Adverse selection**: Toxic flow moves price post-fill
+- **deque for order queue**: O(1) operations
+
+Good realistic order book with spoofing, icebergs, and adverse selection. ✅
+
+### 8.429 exchange_simulator/config_validator.py: Config validation — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/config_validator.py` (274 lines)
+
+- **5 required sections**: exchanges, initial_prices, volatility, market, account
+- **8 valid timeframes**: 1m through 1d
+- **Returns (errors, warnings)**: Clear separation of fatal vs informational
+- **Cross-references**: Validates symbol consistency across sections
+
+Good config validator with required sections, valid timeframes, and cross-references. ✅
+
+### 8.430 exchange_simulator/latency_simulation.py: Network latency — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/latency_simulation.py` (130 lines)
+
+- **4 exchange profiles**: binance (50ms), okx (80ms), bybit (120ms), simulator (5ms)
+- **Gaussian jitter**: σ = 20% of base — realistic
+- **Poisson spikes**: 1 in 1000 messages, 10x base — realistic
+- **Reconnection backoff**: Exponential, 100ms → 30s cap
+
+Good latency simulation with exchange-specific profiles and realistic jitter/spikes. ✅
+
+### 8.431 ai-signal-bot/src/llm_engine/engine.py: LLM market analysis — ✅ Good
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py` (394 lines)
+
+- **4 providers**: openai, anthropic, ollama, none (rule-based fallback)
+- **API key from env**: `os.getenv("OPENAI_API_KEY")` — not hardcoded
+- **Cache**: TTL-based cache to reduce API calls
+- **Timeout**: 10s default — prevents hanging
+- **aiohttp optional**: `AIOHTTP_AVAILABLE` flag — graceful degradation
+- **Fallback**: If no API key, switches to `provider = "none"` with rule-based analysis
+- **Session management**: `initialize()` creates session, `close()` closes it
+
+Good LLM engine with multi-provider support, caching, and graceful fallback. ✅
+
+### 8.432 llm_engine: f-string logging — Low
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py:93`
+
+```python
+logger.info(f"[LLMEngine] Provider: {self.config.provider}, model: {self.config.model}")
+```
+
+f-string logging — evaluates string even if log level is disabled.
+
+**Фикс:** Use `logger.info("Provider: %s, model: %s", self.config.provider, self.config.model)`.
+
+### 8.433 ai-signal-bot/src/notification/notifier.py: Telegram/Discord bot — ✅ Good
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py` (334 lines)
+
+- **Telegram + Discord**: Dual-channel notifications
+- **Remote commands**: /status, /positions, /close_all, /pause, /resume
+- **AlertEvent dataclass**: Normalized event format
+- **Session management**: `start()` creates session, `stop()` closes it
+- **Polling task**: `_poll_task` for Telegram getUpdates — async
+- **Command handlers**: Registerable via `register_command()`
+- **Graceful stop**: `stop()` cancels poll task and closes session
+
+Good notification bot with dual channels, remote commands, and graceful lifecycle. ✅
+
+### 8.434 notifier: token stored as instance attribute — Low
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py:53-54`
+
+```python
+self.token = token
+self.chat_id = chat_id
+```
+
+Telegram bot token stored as plain instance attribute. If the object is introspected (debugger, crash dump, repr), the token is visible.
+
+**Фикс:** Use `__repr__` that masks the token, or store as `_token` with a property.
+
+### 8.435 ai-signal-bot/scripts/migrate.py: Migration runner — ✅ Good
+
+**Файл:** `ai-signal-bot/scripts/migrate.py` (101 lines)
+
+- **schema_migrations table**: Tracks applied migrations — proper migration tracking
+- **Skip applied**: Checks `filename in applied` — idempotent
+- **Sorted glob**: `sorted(glob.glob(...))` — deterministic order
+- **Error handling**: Catches exception per migration, breaks on failure
+- **asyncpg**: PostgreSQL-specific — matches prod setup
+
+Good migration runner with tracking table and idempotent execution. ✅
+
+### 8.436 migrate.py: no transaction wrapping — Medium
+
+**Файл:** `ai-signal-bot/scripts/migrate.py:72-82`
+
+```python
+try:
+    await conn.execute(sql)
+    await conn.execute(
+        "INSERT INTO schema_migrations (filename) VALUES ($1)",
+        filename
+    )
+```
+
+Each migration SQL is executed without a transaction. If the migration SQL fails halfway through (e.g., creates table but fails on index), the database is left in a partial state. The `schema_migrations` insert won't happen (good), but the partial changes are not rolled back.
+
+**Фикс:** Wrap in a transaction: `async with conn.transaction(): await conn.execute(sql); await conn.execute("INSERT ...")`.
+
+### 8.437 migrate.py: no --down support — Low
+
+**Файл:** `ai-signal-bot/scripts/migrate.py:90-91`
+
+```python
+parser.add_argument("--up", action="store_true", help="Run pending migrations")
+```
+
+The docstring says `[--up] [--down N]` but `--down` is not implemented. Only `--up` is available.
+
+**Фикс:** Implement `--down N` to rollback N migrations, or remove the mention from the docstring.
+
+### 8.438 ai-signal-bot/src/database/migrations/001_initial_schema.sql: PostgreSQL schema — ✅ Good
+
+**Файл:** `ai-signal-bot/src/database/migrations/001_initial_schema.sql` (78 lines)
+
+- **4 tables**: trades, signals, positions, candles
+- **pgcrypto extension**: For UUID generation
+- **Indexes**: 7 indexes including composite `(symbol, timestamp DESC)` — good for time-series queries
+- **BIGSERIAL**: 64-bit IDs — future-proof for high-volume trading
+- **VARCHAR with limits**: `VARCHAR(32)`, `VARCHAR(64)` — not unlimited TEXT
+
+Good PostgreSQL schema with proper indexes, types, and extension. ✅
+
+### 8.439 hft-trade-bot/src/risk/kill_switch.h: Emergency stop — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h` (173 lines)
+
+- **3 activation triggers**: File-based, programmatic, daily loss limit
+- **4 actions on activation**: Cancel orders, close positions, notify Python via SHM, block new orders
+- **5 reasons**: MANUAL, DAILY_LOSS, MAX_DRAWDOWN, MARGIN_CALL, EXTERNAL
+- **File-based trigger**: `touch logs/kill_switch_trigger` — external monitoring can trigger
+- **Platform-aware**: `#ifndef _WIN32` for `sys/stat.h` — Windows compatibility
+- **Atomic flag**: `std::atomic<bool>` for thread-safe activation check
+- **SHM notification**: Notifies Python via shared memory — cross-process
+
+Excellent kill switch with multiple triggers, actions, and cross-process notification. ✅
+
+### 8.440 hft-trade-bot/src/risk/risk_manager.h: Pre-trade risk checks — ✅ Good
+
+**Файл:** `hft-trade-bot/src/risk/risk_manager.h` (258 lines)
+
+- **V1 + V2**: Signal-level checks + production pre-trade checks
+- **V2 params**: max_position_qty, max_total_exposure, daily_loss_limit, max_drawdown_pct, max_orders_per_second, min_margin_ratio, max_leverage
+- **Order rate throttle**: `max_orders_per_second{50}` — prevents flood
+- **Symbol blacklist**: `unordered_set<string>` — block specific symbols
+- **Atomic counters**: Thread-safe stats
+
+Good risk manager with V1/V2 checks, rate throttle, and blacklist. ✅
+
+### 8.441 web-ui/src/hooks/useWebSocket.ts: WebSocket hook — ✅ Excellent
+
+**Файл:** `web-ui/src/hooks/useWebSocket.ts` (305 lines)
+
+- **Ring buffer**: 5000 message buffer — O(1) push, no array copy
+- **Exponential backoff**: 1s → cap, with countdown timer for UI display
+- **Batch processing**: Merges messages by type+symbol within 50ms window — reduces re-renders
+- **Ping/pong latency**: Measures real WebSocket latency
+- **Sync on reconnect**: Sends last timestamp to server for delta sync
+- **Outgoing queue**: Queues messages while disconnected, flushes on reconnect
+- **TypeScript**: Full type safety with `UseWebSocketOptions` and `UseWebSocketReturn`
+- **perMessageDeflate**: WebSocket compression option
+
+Excellent WebSocket hook with ring buffer, batching, backoff, latency measurement, and sync. ✅
+
+### 8.442 useWebSocket: no max reconnect limit — Low
+
+**Файл:** `web-ui/src/hooks/useWebSocket.ts:74`
+
+```typescript
+const reconnectCount = useRef<number>(0)
+```
+
+No maximum reconnect limit. If the server is down, the hook will keep reconnecting forever (with backoff). This is usually fine, but some apps want to stop after N attempts and show a "connection failed" UI.
+
+**Фикс:** Add `maxReconnects` option. After N reconnects, stop and set `error = "Max reconnects reached"`.
+
+### 8.443 hft-trade-bot/src/data/signal.h: Signal struct — ✅ Good
+
+**Файл:** `hft-trade-bot/src/data/signal.h` (46 lines)
+
+- **Helper methods**: `is_long()`, `is_short()`, `is_actionable()`, `side()`, `rr_ratio()`
+- **Div-by-zero guard**: `risk > 0 ? reward / risk : 0.0` — safe
+- **NEUTRAL defaults to BUY**: Documented — caller should check `is_actionable()` first
+- **Leverage field**: `uint8_t leverage{1}` — supports leveraged trading
+
+Good Signal struct with helpers and div-by-zero guard. ✅
+
+### 8.444 hft-trade-bot/src/core/config.h: Config struct — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/config.h` (204 lines)
+
+- **60+ config fields**: Connection, trading, risk, HFT strategies, V2/V3 engines, router, adaptive selector, latency
+- **Default values**: All fields have defaults — safe initialization
+- **V3 off by default**: `signal_engine_v3_enabled{false}` — opt-in for new engine
+- **Thread pinning**: `thread_pinning_enabled{false}` — opt-in for CPU pinning
+- **Latency histograms**: `latency_histogram_enabled{true}` — on by default
+
+Good Config struct with comprehensive defaults and opt-in for experimental features. ✅
+
+### 8.445 config.h: hardcoded localhost default — Medium
+
+**Файл:** `hft-trade-bot/src/core/config.h:14`
+
+```cpp
+std::string ws_url{"ws://localhost:8765"};
+```
+
+Default WebSocket URL is `localhost:8765`. In Docker/K8s, this won't resolve to the exchange simulator service. The config file overrides this, but if the config file is missing or incomplete, the bot connects to localhost.
+
+**Фикс:** Default to empty string and require config file to set it: `std::string ws_url{""}`.
+
+### 8.446 config.h: 60+ fields in one struct — Low (code reduction)
+
+**Файл:** `hft-trade-bot/src/core/config.h`
+
+60+ config fields in a single `Config` struct. This is a "god object" — every component's config is in one place. While not a bug, it makes it hard to pass only relevant config to components.
+
+**Code reduction:** Split into `ConnectionConfig`, `RiskConfig`, `SignalEngineConfig`, `RouterConfig`, etc. Each component receives only its relevant config.

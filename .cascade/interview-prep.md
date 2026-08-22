@@ -2782,3 +2782,157 @@ void process_ai_signals(BotContext& ctx, ...) {
 ```
 
 **Разница:** The bad code has a plain `unordered_map` accessed from multiple threads without any synchronization. In C++, concurrent reads + writes to `unordered_map` are undefined behavior — the map can rehash during insertion, invalidating iterators and references in other threads. This can cause crashes, corrupt prices, or — worst of all — silently wrong prices that lead to incorrect trading decisions. The good code uses `std::shared_mutex` — multiple readers can access the map simultaneously (`shared_lock`), but only one writer at a time (`unique_lock`). The write phase (updating prices) takes an exclusive lock, then releases it. The read phase (calculating PnL) takes a shared lock — allowing concurrent reads from other threads. For `candles_buf` and `ob_buf`, the good code documents that they're owned by the main loop thread — no lock needed if only one thread accesses them. With 1000 users, a data race on `prices_cache` could cause the bot to calculate PnL with stale or corrupt prices — leading to incorrect risk decisions and potentially $100,000+ in wrong trades. The `shared_mutex` costs ~100ns per lock/unlock — negligible compared to the 10ms+ trading loop.
+
+---
+
+## Bad vs Good: Database Migrations Without Transactions
+
+### ❌ Bad Code
+```python
+async def run_migrations(conn):
+    for filepath in migration_files:
+        filename = os.path.basename(filepath)
+        if filename in applied:
+            continue
+
+        with open(filepath) as f:
+            sql = f.read()
+
+        try:
+            await conn.execute(sql)  # no transaction!
+            await conn.execute(
+                "INSERT INTO schema_migrations (filename) VALUES ($1)",
+                filename
+            )
+        except Exception as e:
+            logger.error(f"Failed: {filename}: {e}")
+            break
+```
+
+**What's wrong:**
+- No transaction wrapping — if migration SQL fails halfway, partial changes persist
+- Example: `CREATE TABLE trades` succeeds, `CREATE INDEX` fails → table exists without index
+- Next run: migration is NOT in `schema_migrations` (INSERT didn't happen), so it re-runs
+- Re-run: `CREATE TABLE IF NOT EXISTS` is fine, but `CREATE INDEX IF NOT EXISTS` might fail differently
+- Database is in an inconsistent state — some tables have indexes, some don't
+- No rollback capability — partial migration is permanent
+
+### ✅ Good Code
+```python
+async def run_migrations(conn):
+    for filepath in migration_files:
+        filename = os.path.basename(filepath)
+        if filename in applied:
+            continue
+
+        with open(filepath) as f:
+            sql = f.read()
+
+        try:
+            async with conn.transaction():  # atomic — all or nothing
+                await conn.execute(sql)
+                await conn.execute(
+                    "INSERT INTO schema_migrations (filename) VALUES ($1)",
+                    filename
+                )
+            logger.info(f"Applied: {filename}")
+        except Exception as e:
+            logger.error(f"Failed: {filename}: {e}")
+            # transaction rolls back automatically — database unchanged
+            break
+```
+
+**Разница:** The bad code executes migration SQL without a transaction. If a migration creates a table and then fails on an index, the table is created but the index is not. The `schema_migrations` INSERT doesn't happen (good — it'll retry), but the partial table changes are permanent. On retry, `CREATE TABLE IF NOT EXISTS` is a no-op (table exists), but the missing index means queries are slow — potentially doing full table scans on a 10M-row trades table. The good code wraps both the migration SQL and the `schema_migrations` INSERT in a single transaction. If any statement fails, the entire transaction rolls back — the database is unchanged, as if the migration never ran. On retry, it starts fresh. With 1000 users, a missing index on `trades(symbol, timestamp)` means every PnL query does a full table scan — with 10M trades, that's 10 seconds per query instead of 10ms. 1000 users × 100 queries/min = 100,000 slow queries/min → database CPU maxes out → all users experience timeouts. The transaction costs zero overhead (asyncpg auto-begins a transaction for each statement anyway) and prevents partial migrations entirely.
+
+---
+
+## Bad vs Good: Kill Switch Design (Emergency Stop)
+
+### ❌ Bad Code
+```cpp
+class TradingBot {
+    std::atomic<bool> running{true};
+
+    void stop() {
+        running = false;
+        // That's it — no cleanup, no notification, no position close
+    }
+
+    void main_loop() {
+        while (running) {
+            auto signal = get_signal();
+            if (signal.is_actionable()) {
+                execute_order(signal);  // no check if kill switch active
+            }
+        }
+    }
+};
+```
+
+**What's wrong:**
+- `stop()` just sets a flag — doesn't cancel orders or close positions
+- No file-based trigger — external monitoring can't stop the bot
+- No notification to other components — Python AI bot keeps sending signals
+- No reason tracking — no audit trail of why the bot stopped
+- Orders in flight are not cancelled — they may execute after stop
+- Positions remain open — risk exposure continues after "stop"
+
+### ✅ Good Code
+```cpp
+class KillSwitch {
+    std::atomic<bool> active{false};
+    std::atomic<Reason> reason{Reason::MANUAL};
+
+    enum class Reason : uint8_t {
+        MANUAL, DAILY_LOSS, MAX_DRAWDOWN, MARGIN_CALL, EXTERNAL
+    };
+
+    void activate(Reason r) {
+        active.store(true, std::memory_order_release);
+        reason.store(r, std::memory_order_release);
+
+        // 1. Cancel all open orders
+        executor->cancel_all_orders();
+
+        // 2. Close all positions at market
+        executor->close_all_positions();
+
+        // 3. Notify Python via SHM
+        shm_fill_producer->send_kill_switch(reason);
+
+        // 4. Log with reason for audit trail
+        spdlog::critical("KILL SWITCH ACTIVATED: reason={}", reason_string(r));
+    }
+
+    bool is_active() const {
+        return active.load(std::memory_order_acquire);
+    }
+
+    // File-based trigger — external monitoring can activate
+    void check_file_trigger() {
+        if (std::filesystem::exists("logs/kill_switch_trigger")) {
+            activate(Reason::EXTERNAL);
+            std::filesystem::remove("logs/kill_switch_trigger");
+        }
+    }
+};
+
+// In main loop:
+void main_loop() {
+    while (running) {
+        kill_switch.check_file_trigger();  // check external trigger
+        if (kill_switch.is_active()) {
+            spdlog::warn("Kill switch active — skipping all new orders");
+            std::this_thread::sleep_for(100ms);
+            continue;
+        }
+
+        auto signal = get_signal();
+        if (signal.is_actionable()) {
+            execute_order(signal);
+        }
+    }
+}
+```
+
+**Разница:** The bad code has a simple `running` flag that stops the main loop but does nothing else. Open orders remain on the exchange — they can still fill. Positions remain open — the bot is still exposed to market risk. The Python AI bot keeps sending signals — they queue up and execute when the bot restarts. There's no audit trail of why the bot stopped. The good code implements a proper kill switch with 4 actions: cancel all open orders, close all positions at market, notify Python via SHM, and log the reason. It supports 5 activation reasons (manual, daily loss, max drawdown, margin call, external) and a file-based trigger for external monitoring. The `is_active()` check uses `memory_order_acquire` for proper synchronization. With 1000 users, a kill switch that doesn't cancel orders means $500,000 in open orders could fill after the bot is "stopped" — executing trades that the risk manager flagged as dangerous. A kill switch that doesn't close positions means 1000 users' positions are exposed to market moves with no bot monitoring. The file-based trigger allows an external monitoring system (cron, Prometheus alert, manual touch) to stop the bot without access to the process — critical for production safety. The cost is 50 lines of code. The benefit is preventing catastrophic losses when the bot must stop immediately.

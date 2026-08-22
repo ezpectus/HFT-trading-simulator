@@ -965,3 +965,29 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R408 | hft-trade-bot: Spinlock for arb_lock | `bot_context.h:105` | Low | Spinlock appropriate for short critical section. Document constraint |
 | R409 | hft-trade-bot: 3 engine versions loaded | `bot_context.h:74` | Medium | V1/V2/V3 all allocated. V1 never used in hot path. Remove V1, make V2/V3 exclusive |
 | R410 | hft-trade-bot: prices_cache not thread-safe | `bot_context.h:107` | Medium | unordered_map without lock. Data race if multi-threaded. Use shared_mutex |
+| R411 | Dockerfiles (3 services) | `Dockerfile.prod` ×2, `Dockerfile` | ✅ Excellent | Multi-stage, non-root, healthcheck, no-cache, apt cleanup, ABI matching |
+| R412 | hft-trade-bot Dockerfile: websocketpp sed with || true | `Dockerfile:28` | Low | sed patch has || true — silent failure. Remove || true or pin websocketpp |
+| R413 | hft-trade-bot: no Dockerfile.prod | `hft-trade-bot/` | Medium | Deploy workflow uses Dockerfile.prod but only Dockerfile exists. Deploy will fail |
+| R414 | .pre-commit-config.yaml | `.pre-commit-config.yaml` | ✅ Good | ruff+eslint+trailing-ws+eof-fixer+check-yaml+large-files+detect-private-key |
+| R415 | .pre-commit: no clang-format hook | `.pre-commit-config.yaml` | Low | No C++ formatting in pre-commit. CI catches it but not locally |
+| R416 | .github/dependabot.yml | `dependabot.yml` | ✅ Excellent | 7 ecosystems, weekly, grouped, labeled, open-pull-requests-limit: 1 |
+| R417 | exchange_simulator/liquidation_engine_v2.py | `liquidation_engine_v2.py` | ✅ Good | 4 liq types, cascade, ADL, insurance fund, partial liq, deque history |
+| R418 | exchange_simulator/order_book_realism.py | `order_book_realism.py` | ✅ Good | Power-law decay, spoofing, icebergs, queue positions, adverse selection |
+| R419 | exchange_simulator/config_validator.py | `config_validator.py` | ✅ Good | 5 required sections, 8 timeframes, errors+warnings, cross-references |
+| R420 | exchange_simulator/latency_simulation.py | `latency_simulation.py` | ✅ Good | 4 exchange profiles, Gaussian jitter, Poisson spikes, reconnection backoff |
+| R421 | ai-signal-bot/src/llm_engine/engine.py | `engine.py` | ✅ Good | 4 providers, env API key, TTL cache, 10s timeout, aiohttp optional, fallback |
+| R422 | llm_engine: f-string logging | `engine.py:93` | Low | f-string evaluates even if log level disabled. Use % formatting |
+| R423 | ai-signal-bot/src/notification/notifier.py | `notifier.py` | ✅ Good | Telegram+Discord, remote commands, AlertEvent, session lifecycle, polling task |
+| R424 | notifier: token as instance attribute | `notifier.py:53` | Low | Token visible in repr/debugger. Add __repr__ mask or _token property |
+| R425 | ai-signal-bot/scripts/migrate.py | `migrate.py` | ✅ Good | schema_migrations table, skip applied, sorted glob, per-migration error handling |
+| R426 | migrate.py: no transaction wrapping | `migrate.py:72` | Medium | Migration SQL not in transaction. Partial state on failure. Use conn.transaction() |
+| R427 | migrate.py: no --down support | `migrate.py:90` | Low | Docstring mentions --down N but not implemented. Only --up available |
+| R428 | database/migrations/001_initial_schema.sql | `001_initial_schema.sql` | ✅ Good | 4 tables, pgcrypto, 7 indexes incl composite, BIGSERIAL, VARCHAR limits |
+| R429 | hft-trade-bot/src/risk/kill_switch.h | `kill_switch.h` | ✅ Excellent | 3 triggers, 4 actions, 5 reasons, file-based, atomic flag, SHM notify, platform-aware |
+| R430 | hft-trade-bot/src/risk/risk_manager.h | `risk_manager.h` | ✅ Good | V1+V2 checks, rate throttle, symbol blacklist, max exposure, margin ratio, leverage |
+| R431 | web-ui/src/hooks/useWebSocket.ts | `useWebSocket.ts` | ✅ Excellent | Ring buffer, exponential backoff, batch merge, ping latency, sync on reconnect, TS |
+| R432 | useWebSocket: no max reconnect limit | `useWebSocket.ts:74` | Low | Reconnects forever. Add maxReconnects option with "connection failed" UI |
+| R433 | hft-trade-bot/src/data/signal.h | `signal.h` | ✅ Good | Helper methods, div-by-zero guard, leverage field, NEUTRAL→BUY documented |
+| R434 | hft-trade-bot/src/core/config.h | `config.h` | ✅ Good | 60+ fields with defaults, V3 opt-in, thread pinning opt-in, histograms on |
+| R435 | config.h: hardcoded localhost default | `config.h:14` | Medium | ws_url defaults to localhost:8765. Won't work in Docker/K8s. Default to empty |
+| R436 | config.h: 60+ fields god object | `config.h` | Low | All config in one struct. Split into ConnectionConfig, RiskConfig, etc |
