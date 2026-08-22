@@ -114,3 +114,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | 3x CircuitBreaker duplication | 3 different implementations, 1 unused | CODE_AUDIT §8.51 |
 | RateLimiter dead code | Implemented, tested, never used in prod | CODE_AUDIT §8.52 |
 | No asyncio task management | Background tasks fire-and-forget, crashes unnoticed | CODE_AUDIT §8.54 |
+| Health check no depth | "Healthy" while DB locked or exchange disconnected | CODE_AUDIT §8.55 |
+| No retry on transient failures | Exchange 429, DB locked → no retry, just fail | CODE_AUDIT §8.57 |
+| Code reduction ~510 lines | 3× CircuitBreaker, dead tracing/RateLimiter, compute_returns dup | CODE_AUDIT §8.60 |

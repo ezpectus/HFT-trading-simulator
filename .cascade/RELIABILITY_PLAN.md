@@ -602,3 +602,8 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R45 | 3x CircuitBreaker duplication | `communication/`, `strategies/`, `utils/helpers.py` | Medium | 3 different implementations, different APIs. #3 in helpers.py never imported |
 | R46 | RateLimiter — dead code | `utils/helpers.py:179` | Low | Implemented, exported, tested — but never used in production. No rate limiting on orders/API/signals |
 | R47 | No asyncio task management | `src/` | Medium | No TaskGroup, no task cancellation on shutdown, background tasks fire-and-forget. Crashes go unnoticed |
+| R48 | Health check no dependency depth | `health_check.py` | Medium | Checks HTTP 200 only, not DB/exchange/queue/client count. "Healthy" while DB locked |
+| R49 | Health aggregator session leak | `health_check.py:53` | Medium | New aiohttp ClientSession per check call. 3 services × every interval = 3 sessions |
+| R50 | No retry on transient failures | `src/` | Medium | No retry on exchange 429/5xx, DB locked, LLM rate limit. Circuit breaker blocks but doesn't retry |
+| R51 | Health aggregator 0.0.0.0 bind | `health_check.py:116` | Low | Binds all interfaces. `# nosec: B104` acknowledges. OK in Docker, risky in direct deploy |
+| R52 | Code reduction potential | `src/` | Info | ~510 lines removable: 3× CircuitBreaker→1, dead tracing.py, dead RateLimiter, compute_returns dup |

@@ -1073,3 +1073,97 @@ self._server = await websockets.serve(
 ```
 
 **Why it matters at scale:** Without keepalive, dead connections accumulate in the `_clients` set. The server tries to broadcast to 100 clients, but 30 are dead (WiFi dropped, laptop closed, VPN failed). Each `send()` to a dead client hangs until TCP timeout (30-120s). The broadcast to the 70 alive clients is blocked waiting for the 30 dead ones. With 1000 users, 300 dead connections means every signal broadcast takes 2+ minutes instead of 100ms. The good version sends ping every 20s — dead clients are detected and removed within 30s. The broadcast only hits alive clients. In a trading system where signal latency matters (60s interval), a 2-minute broadcast delay means signals arrive after the next candle already started. Keepalive is not optional — it's the difference between a responsive system and a zombie-filled one.
+
+---
+
+### Example 29: No Retry on Transient Failures (Exchange 429, DB Locked)
+
+**BAD** — `real_exchange_client.py`:
+```python
+async def fetch_candles(self, symbol: str) -> list[dict]:
+    return await self._exchange.fetch_ohlcv(symbol, "1m", limit=100)
+    # If Binance returns 429 (rate limited) → exception → signal generation fails
+    # If SQLite returns "database is locked" → exception → trade not saved
+    # If LLM API returns 503 → exception → no analysis
+    # All transient errors treated as permanent failures
+```
+
+**GOOD**:
+```python
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(min=1, max=10),
+    retry=retry_if_exception_type((aiohttp.ClientError, asyncio.TimeoutError)),
+    reraise=True,
+)
+async def fetch_candles(self, symbol: str) -> list[dict]:
+    return await self._exchange.fetch_ohlcv(symbol, "1m", limit=100)
+
+# For DB:
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(min=0.1, max=2),
+    retry=retry_if_exception_type(sqlite3.OperationalError),
+    reraise=True,
+)
+def save_trade(self, trade: dict) -> None:
+    with self._get_conn() as conn:
+        conn.execute("INSERT INTO trades ...", ...)
+```
+
+**Why it matters at scale:** Exchanges rate-limit. Binance returns 429 when you exceed 1200 requests/min. Without retry, a single 429 kills the signal generation for that cycle. The bot misses a trading opportunity because of a transient rate limit. SQLite returns "database is locked" when another process is writing. Without retry, the trade is lost — it was sent to the exchange but never recorded in the DB. With 1000 users each making 10 API calls/min, 429s happen regularly. The good version retries 3 times with exponential backoff (1s, 2s, 4s). If Binance rate-limits, the bot waits 1s and tries again — usually succeeds. If DB is locked, it waits 100ms and tries again — the other writer is done. The circuit breaker still protects against persistent failures (5 consecutive → open), but transient blips are handled gracefully. The cost is 2 lines of decorator. The benefit is eliminating 90% of transient-failure data loss.
+
+---
+
+### Example 30: Shallow Health Check (HTTP 200 ≠ Actually Healthy)
+
+**BAD** — `health_check.py`:
+```python
+async def _check_service(self, name: str, url: str) -> dict:
+    async with session.get(url) as resp:
+        if resp.status == 200:
+            return {"status": "healthy"}  # ← but is it really?
+```
+
+```python
+# Bot's own /health endpoint:
+async def handle_health(request):
+    return web.json_response({"status": "ok"})  # ← always returns ok
+    # Doesn't check: DB writable? Exchange connected? Queue backed up?
+```
+
+**GOOD**:
+```python
+# Bot's own /health endpoint with depth:
+async def handle_health(request):
+    checks = {}
+
+    # DB check
+    try:
+        db.execute("SELECT 1")
+        checks["db"] = "ok"
+    except Exception as e:
+        checks["db"] = f"error: {e}"
+
+    # Exchange check
+    if time.time() - last_candle_time > 60:
+        checks["exchange"] = "stale (no candles in 60s)"
+    else:
+        checks["exchange"] = "ok"
+
+    # Queue depth
+    if signal_queue.qsize() > 100:
+        checks["queue"] = f"backlogged ({signal_queue.qsize()})"
+    else:
+        checks["queue"] = "ok"
+
+    all_ok = all(v == "ok" for v in checks.values())
+    return web.json_response(
+        {"status": "healthy" if all_ok else "degraded", "checks": checks},
+        status=200 if all_ok else 503,
+    )
+```
+
+**Why it matters at scale:** A shallow health check returns 200 even when the bot can't trade. The DB is locked, the exchange disconnected, the queue is backed up with 500 pending signals — but `/health` says "ok". Kubernetes keeps the pod running because the health check passes. Users get stale signals, missing trades, wrong positions. With 1000 users, 1000 bots are "healthy" but none can actually trade. The good version checks actual dependencies: can I write to DB? Am I receiving candles? Is my queue manageable? If any check fails, the health endpoint returns 503, and Kubernetes restarts the pod. The bot self-heals instead of running in a zombie state. In a trading system, a "healthy" bot that can't trade is worse than a crashed bot — at least a crashed bot gets restarted.

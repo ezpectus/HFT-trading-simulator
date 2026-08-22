@@ -929,3 +929,77 @@ Global state for singleton initialization. Not thread-safe (no lock around `_con
 Grep for `asyncio.gather|asyncio.create_task|ensure_future` = 0 matches in `src/`. The signal_publisher uses `asyncio.gather` (found in earlier audit), but no general task management pattern. No `asyncio.TaskGroup` (Python 3.11+) for structured concurrency. No task cancellation on shutdown. Background tasks (circuit breaker broadcast, metrics) are fire-and-forget — if they crash, nobody knows.
 
 **Фикс:** Use `asyncio.TaskGroup` for structured concurrency. Store task references and cancel on shutdown. Add `task.add_done_callback(callback)` to log crashes.
+
+### 8.55 Health check: no dependency depth check — Medium
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py`
+
+The `HealthAggregator` checks if other services respond on `/health`, but the bot's own `/health` endpoint (if it exists) doesn't check:
+- DB connectivity (can it read/write?)
+- Exchange connectivity (is it receiving candles?)
+- WS client count (is anyone listening?)
+- Internal queue depth (is it backlogged?)
+
+A "healthy" status while DB is locked or exchange is disconnected is misleading. The health check should verify actual dependencies, not just HTTP 200.
+
+### 8.56 Health aggregator: aiohttp session per check — Medium
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py:53`
+
+```python
+async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3.0)) as session:
+    async with session.get(url) as resp:
+```
+
+Same pattern as `alerting.py` (§8.8) — new `ClientSession` per health check call. The aggregator checks 3 services every interval, creating 3 new sessions each time. TCP connector overhead × 3 × every check interval.
+
+**Фикс:** Persistent `ClientSession` on the `HealthAggregator` instance, closed in `stop()`.
+
+### 8.57 No retry on transient failures — Medium
+
+**Файлы:** `ai-signal-bot/src/`
+
+Grep for `retry|max_retries|retry_count|retry_attempts` = 0 matches.
+
+No retry logic on:
+- Exchange API calls (HTTP 429, 5xx → transient, should retry)
+- DB operations (SQLite `database is locked` → should retry with backoff)
+- WS reconnection (immediate, no backoff — see §8.50)
+- LLM API calls (rate limited, should retry)
+
+The circuit breaker exists but it only blocks after N failures — it doesn't retry the failed operation.
+
+**Фикс:** `tenacity` library or custom retry decorator: `@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))`.
+
+### 8.58 Silent `except: pass` — Low
+
+**Файлы:** `signal_publisher.py:154` (`except websockets.ConnectionClosed: pass`)
+
+This is actually correct — `ConnectionClosed` is expected when a client disconnects. ✅
+
+But `db.py` close method (§8.6) has `except Exception: pass` which is wrong — swallows all errors including DB corruption.
+
+### 8.59 Health aggregator binds to 0.0.0.0 — Low
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py:116`
+
+```python
+self._site = web.TCPSite(self._runner, "0.0.0.0", self.port)  # nosec: B104
+```
+
+The `# nosec: B104` annotation acknowledges the security issue (binding to all interfaces). This means the health endpoint is accessible from any network interface, not just localhost. In Docker with port mapping, this is fine. In direct deployment, anyone can reach it.
+
+### 8.60 Code reduction opportunities — Summary
+
+Based on the full audit, here are the main areas where code can be reduced:
+
+| Area | Lines saved (est.) | Approach |
+|------|-------------------|----------|
+| 3× CircuitBreaker → 1 | ~80 lines | Consolidate to `communication/circuit_breaker.py` |
+| Dead code: `tracing.py` | 111 lines | Remove or integrate (2-line call in `run.py`) |
+| Dead code: `RateLimiter` in `helpers.py` | 27 lines | Remove (never used in prod) |
+| Dead code: `helpers.py` CircuitBreaker | 32 lines | Remove (never imported) |
+| `compute_returns` duplication | ~200 lines | Single utility function (per refactoring plan) |
+| `strategies.py` re-exports | ~10 lines | Direct imports instead of re-export |
+| `research/__init__.py` heavy exports | ~50 lines | Lazy imports |
+| **Total** | **~510 lines** | |
