@@ -214,4 +214,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ai-signal-bot: 3× CircuitBreaker duplication | 3 separate CircuitBreaker implementations. Consolidate into 1 | CODE_AUDIT §8.321 |
 | ai-signal-bot: dual health check systems | observability/HealthChecker + communication/HealthAggregator. Consolidate | CODE_AUDIT §8.335 |
 | ai-signal-bot: dual metrics systems | communication/metrics_server.py + monitoring/. Consolidate | CODE_AUDIT §8.336 |
-| ai-signal-bot: 4× health check implementations | 4 separate health check systems across project. Consolidate | CODE_AUDIT §8.335 |
+| ai-signal-bot: 4× health check implementations | 4 separate health check systems across project. Consolidate | CODE_AUDIT §8.355 |
+| ai-signal-bot: 5× PortfolioOptimizer duplication | 5 files implementing same portfolio optimization. ~600 lines wasted | CODE_AUDIT §8.339 |
+| ai-signal-bot: 60-file TA+research overlap | 25 technical_analysis + 35 research = 60 files with overlapping math. ~10000 lines | CODE_AUDIT §8.358 |
+| ai-signal-bot alerting: aiohttp session leak | _send_discord/_send_telegram likely create session per call. Use shared session | CODE_AUDIT §8.353 |
+| ai-signal-bot: dual metrics (monitoring + communication) | monitoring/metrics.py + communication/metrics_server.py. Consolidate | CODE_AUDIT §8.359 |

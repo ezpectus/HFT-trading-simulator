@@ -4581,3 +4581,273 @@ Two separate metrics systems in the same bot. The communication one is lightweig
 5+ communication modules use f-string logging. Same pattern as the rest of the project.
 
 **Фикс:** Use `%` formatting for lazy evaluation across all modules.
+
+### 8.338 ai-signal-bot portfolio/markowitz.py: Mean-Variance optimizer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/portfolio/markowitz.py` (178 lines)
+
+- **Efficient frontier**: Calculates portfolio metrics (return, volatility, Sharpe)
+- **scipy optimization**: Objective function with penalty for target return constraint
+- **PortfolioResult dataclass**: weights, expected_return, volatility, sharpe_ratio
+- **EfficientFrontierPoint**: For plotting frontier
+- **Div-by-zero guard**: `if portfolio_volatility > 0 else 0.0`
+
+Good Markowitz implementation with proper optimization. ✅
+
+### 8.339 ai-signal-bot: 3× PortfolioOptimizer duplication — High (code reduction)
+
+**Файлы:**
+1. `ai-signal-bot/src/portfolio/markowitz.py` (178 lines) — `MarkowitzOptimizer`
+2. `ai-signal-bot/src/portfolio/black_litterman.py` (135 lines) — `BlackLittermanModel` (uses MarkowitzOptimizer)
+3. `ai-signal-bot/src/portfolio/risk_parity.py` — `RiskParityOptimizer`
+4. `ai-signal-bot/src/risk/portfolio_optimizer.py` (307 lines) — `PortfolioOptimizer` (Markowitz + BL + Kelly + Risk Parity)
+5. `ai-signal-bot/src/strategies/portfolio_optimizer.py` (311 lines) — `PortfolioOptimizer` (Markowitz + BL + Risk Parity + Min Var)
+
+**5 files** implementing the same portfolio optimization algorithms. `risk/portfolio_optimizer.py` and `strategies/portfolio_optimizer.py` are both ~300-line `PortfolioOptimizer` classes with overlapping methods. `portfolio/` has separate classes for each method.
+
+**Code reduction:** ~600 lines can be eliminated. Consolidate into `portfolio/` package. `risk/` and `strategies/` should import from `portfolio/`.
+
+**Фикс:** Delete `risk/portfolio_optimizer.py` and `strategies/portfolio_optimizer.py`, import from `portfolio/`.
+
+### 8.340 ai-signal-bot portfolio/rebalancing.py: 3 trigger types — ✅ Good
+
+**Файл:** `ai-signal-bot/src/portfolio/rebalancing.py` (145 lines)
+
+- **3 triggers**: TIME_BASED, DRIFT_BASED, VOLATILITY_BASED
+- **RebalanceOrder**: asset_index, current/target weight, trade_amount, side
+- **RebalanceResult**: orders, new_weights, turnover, estimated_cost
+- **Turnover calculation**: `0.5 * sum(abs(target - current))` — correct
+- **Transaction cost**: Configurable, estimated in result
+
+Good rebalancing module with proper turnover and cost estimation. ✅
+
+### 8.341 ai-signal-bot data_collection/exchange_factory.py: Protocol-based adapter — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py` (242 lines)
+
+- **ExchangeAdapter Protocol**: 10 methods (initialize, close, get_ticker, get_orderbook, get_candles, place_order, cancel_order, get_balance, get_positions, get_health)
+- **3 modes**: SIMULATOR, REAL, FALLBACK (try real → fall back to simulator)
+- **SimulatorAdapter**: Stub implementation with hardcoded prices
+- **RealExchangeAdapter**: Wraps RealMarketDataManager + RealAccountManager
+- **Lazy imports**: RealExchangeAdapter imports real modules in `initialize()`
+- **Proper cleanup**: `close()` closes both market_data and account
+
+Excellent factory pattern with Protocol-based adapter, 3 modes, and lazy imports. ✅
+
+### 8.342 ai-signal-bot data_collection/real_exchange_client.py: REST client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/real_exchange_client.py` (335 lines)
+
+- **3 exchanges**: Binance, OKX, Bybit
+- **HMAC-SHA256 signing**: Separate methods for each exchange (_sign_binance, _sign_okx, _sign_bybit)
+- **usedforsecurity=False**: `_sha256_factory()` marks hashlib as non-security — good CodeQL practice
+- **Shared session**: `aiohttp.ClientSession(timeout=10s)` — proper timeout
+- **AccountBalance + Position dataclasses**: Clean data models
+- **Testnet URLs**: Correct testnet endpoints for Binance and OKX
+
+Good REST client with proper signing, shared session, and testnet support. ✅
+
+### 8.343 ai-signal-bot real_exchange_client: api_key/secret as instance attrs — Low
+
+**Файл:** `ai-signal-bot/src/data_collection/real_exchange_client.py:68-70`
+
+```python
+self.api_key = api_key
+self.api_secret = api_secret
+self.passphrase = passphrase
+```
+
+API credentials stored as plain instance attributes. If the object is introspected (e.g., in a debugger or crash dump), credentials are visible. Not a critical issue if credentials come from env vars, but worth noting.
+
+**Фикс:** Use `__slots__` or store in a separate `_credentials` object with `__repr__` redaction.
+
+### 8.344 ai-signal-bot ml/model_registry.py: Model versioning + A/B testing — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/ml/model_registry.py` (296 lines)
+
+- **5 statuses**: CANDIDATE, STAGING, PRODUCTION, ARCHIVED, ROLLED_BACK
+- **ModelVersion**: name, version, path, status, metrics, metadata, timestamps, A/B impressions/successes
+- **ABTest**: Control vs treatment, traffic_split, impressions, successes, active flag
+- **File persistence**: JSON-based registry with load/save
+- **Rollback**: Automatic on performance degradation
+- **Exception handling**: Catches OSError, ValueError, KeyError, TypeError on load
+
+Excellent model registry with versioning, A/B testing, rollback, and file persistence. ✅
+
+### 8.345 ai-signal-bot ml/model_registry: no file lock — Low
+
+**Файл:** `ai-signal-bot/src/ml/model_registry.py:107-119`
+
+`_save()` writes to `registry.json` without a file lock. If multiple processes save concurrently, the file could be corrupted (partial writes).
+
+**Фикс:** Use `fcntl.flock` (Linux) or `msvcrt.locking` (Windows) for file locking. Or write to temp file + atomic rename.
+
+### 8.346 ai-signal-bot ml/feature_store.py: Redis-backed features — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/feature_store.py` (220 lines)
+
+- **Redis backend**: Feature hashes with TTL (1 hour default)
+- **In-memory fallback**: If Redis unavailable, uses dict
+- **Feature registry**: Redis set for feature discovery
+- **Batch operations**: `get_features_batch()` for multiple symbols
+- **Timeout**: 2s socket timeout + 2s connect timeout
+- **Graceful degradation**: Redis connection failure → in-memory mode
+
+Good feature store with Redis backend and graceful fallback. ✅
+
+### 8.347 ai-signal-bot feature_store: catch-all in Redis connection — Low
+
+**Файл:** `ai-signal-bot/src/ml/feature_store.py:94`
+
+```python
+except (OSError, ConnectionError, RuntimeError, Exception) as e:
+```
+
+Catches `Exception` — redundant since `OSError` and `ConnectionError` are already listed. The `Exception` catch-all masks unexpected errors.
+
+**Фикс:** Remove `Exception` from the tuple. Catch specific: `(OSError, ConnectionError, redis.RedisError)`.
+
+### 8.348 ai-signal-bot ml/price_predictor.py: LSTM/Transformer model — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/price_predictor.py` (334 lines)
+
+- **2 architectures**: LSTM (128 hidden, 2 layers) + Transformer (multi-head attention)
+- **ONNX export**: For C++ inference via onnx_engine.h
+- **ModelConfig**: model_type, input_dim=11, hidden_dim=128, num_layers=2, dropout=0.1
+- **PyTorch**: Uses torch.nn.Module, DataLoader, Dataset
+- **11 input features**: OHLCV + RSI + EMA_fast + EMA_slow + ATR + volume_ratio + return
+
+Good ML model with ONNX export for production inference. ✅
+
+### 8.349 ai-signal-bot technical_analysis/: 25 files — High (code reduction)
+
+**Файл:** `ai-signal-bot/src/technical_analysis/` (25 files)
+
+25 technical analysis modules: bayesian_price, bayesian_sts, compressed_sensing, copula, dtw, emd, fft_analysis, garch, gmm, hawkes, hawkes_funcs, hawkes_model, hmc, indicators, kalman, kmeans, monte_carlo, ms_garch, optimal_stopping, pca, rbergomi, sde, vmd, wavelet.
+
+Many overlap with `research/` modules: GARCH (garch.py vs research modules), Kalman (kalman.py vs research), Hawkes (hawkes.py + hawkes_funcs.py + hawkes_model.py — already split), PCA (pca.py), GMM (gmm.py), KMeans (kmeans.py), Monte Carlo (monte_carlo.py), Wavelet (wavelet.py).
+
+**Code reduction:** Consolidate `technical_analysis/` and `research/` — they cover overlapping mathematical/statistical methods. Feature-flag advanced modules.
+
+### 8.350 ai-signal-bot technical_analysis/indicators.py: 8 indicators — ✅ Good
+
+**Файл:** `ai-signal-bot/src/technical_analysis/indicators.py` (333 lines)
+
+- **8 indicators**: SMA, EMA, RSI, MACD, Bollinger Bands, ATR, ADX, VWAP
+- **NumPy optional**: `_HAS_NUMPY` flag with pure-Python fallback
+- **NaN-padded**: Returns lists aligned with input, NaN where insufficient data
+- **Flexible input**: Accepts dict candles or Candle objects
+- **Helper functions**: `_closes()`, `_highs()`, `_lows()`, `_volumes()`
+
+Good indicator library with NumPy acceleration and pure-Python fallback. ✅
+
+### 8.351 ai-signal-bot monitoring/alerting.py: Multi-channel alerts — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/alerting.py` (260 lines)
+
+- **3 severity levels**: INFO, WARNING, CRITICAL
+- **3 channels**: Discord webhook, Telegram, generic webhook
+- **Rate limiting**: Cooldown per rule (default 5 min)
+- **Bounded history**: `alert_history` capped at 1000 entries (but uses list slice, not deque)
+- **Parallel send**: `asyncio.gather(*tasks, return_exceptions=True)` — good
+- **Rule management**: add/remove/enable/disable
+- **Exception handling**: Catches TypeError, ValueError, KeyError, RuntimeError, OSError
+
+Good alert system with multi-channel, rate limiting, and parallel sends. ✅
+
+### 8.352 ai-signal-bot alerting: alert_history list slice, not deque — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/alerting.py:113-114`
+
+```python
+if len(self.alert_history) > self._max_history:
+    self.alert_history = self.alert_history[-self._max_history:]
+```
+
+Uses list slice to cap history — creates a new list copy every time. `deque(maxlen=1000)` is O(1) and more efficient.
+
+**Фикс:** Use `collections.deque(maxlen=1000)`.
+
+### 8.353 ai-signal-bot alerting: aiohttp session leak — Medium
+
+**Файл:** `ai-signal-bot/src/monitoring/alerting.py:150-158`
+
+The `_send_discord`, `_send_telegram`, `_send_webhook` methods likely create `aiohttp.ClientSession` per call. If not using a shared session, each alert creates and potentially leaks a session.
+
+**Фикс:** Create a shared `aiohttp.ClientSession` in `__init__` and close it in a `close()` method.
+
+### 8.354 ai-signal-bot monitoring/health_server.py: HTTP health server — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/health_server.py` (153 lines)
+
+- **4 endpoints**: /health, /health/exchange, /health/database, /health/shm
+- **Registerable checks**: `register_check(name, check_fn)` — extensible
+- **aiohttp web**: Proper AppRunner/TCPSite lifecycle
+- **nosec annotation**: `# nosec: B104` on `0.0.0.0` bind
+- **Per-component status**: Each check returns dict with 'healthy' bool
+
+Good health server with extensible check registration. ✅
+
+### 8.355 ai-signal-bot: 4× health check implementations — Medium (code reduction)
+
+**Файлы:**
+1. `ai-signal-bot/src/observability/health_checks.py` (221 lines) — `HealthChecker` with 4 component checks (WS, DB, Redis, exchange)
+2. `ai-signal-bot/src/communication/health_check.py` (127 lines) — `HealthAggregator` with 3-service aggregation
+3. `ai-signal-bot/src/monitoring/health_server.py` (153 lines) — `HealthServer` with registerable checks
+4. `exchange_simulator/health.py` (127 lines) — FastAPI /health + /metrics
+
+4 separate health check systems across the project. All do similar things but with different interfaces, response formats, and status definitions.
+
+**Code reduction:** Consolidate into a single `health/` package with:
+- `HealthChecker` — internal component checks
+- `HealthAggregator` — external service aggregation
+- `HealthServer` — HTTP endpoint serving both
+
+### 8.356 ai-signal-bot backtesting/backtester.py: Candle replay engine — ✅ Good
+
+**Файл:** `ai-signal-bot/src/backtesting/backtester.py` (506 lines)
+
+- **Candle replay**: Iterates historical candles through strategies
+- **Trade dataclass**: Symbol, side, entry/exit price, PnL, PnL%, exit_reason, fee
+- **RiskManager integration**: Uses RiskConfig + RiskManager for SL/TP management
+- **Signal import**: From `strategies.strategies` — proper separation
+- **Exit reasons**: TAKE_PROFIT, STOP_LOSS, SIGNAL_EXIT, END
+
+Good backtesting engine with risk management integration. ✅
+
+### 8.357 ai-signal-bot backtesting/pnl_calculator.py: Pluggable PnL — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/backtesting/pnl_calculator.py` (252 lines)
+
+- **3 asset types**: SPOT, FUTURES, OPTIONS (via StrEnum)
+- **PnLConfig**: fee_rate, slippage_bps, funding_rate, funding_interval, option_premium_pct
+- **PnLBreakdown**: Detailed PnL components (entry/exit fees, slippage, funding, PnL)
+- **Dependency injection**: PnLCalculator injected into BacktestEngine — asset-agnostic
+- **Options support**: CALL/PUT via OptionType StrEnum
+
+Excellent PnL calculator with pluggable asset types and detailed breakdown. ✅
+
+### 8.358 ai-signal-bot: technical_analysis + research overlap — High (code reduction)
+
+**Файлы:** `ai-signal-bot/src/technical_analysis/` (25 files) + `ai-signal-bot/src/research/` (35 files) = **60 files**
+
+Combined 60 mathematical/statistical analysis modules. Many cover the same concepts:
+- GARCH: `technical_analysis/garch.py` + `technical_analysis/ms_garch.py` vs research stochastic models
+- Kalman: `technical_analysis/kalman.py` vs research filtering
+- Hawkes: `technical_analysis/hawkes*.py` (3 files) vs research point processes
+- PCA: `technical_analysis/pca.py` vs research RMT
+- Monte Carlo: `technical_analysis/monte_carlo.py` vs research stochastic
+- Wavelet: `technical_analysis/wavelet.py` vs research signal processing
+- Bayesian: `technical_analysis/bayesian_price.py` + `bayesian_sts.py` vs research free energy
+
+**Code reduction:** Consolidate into a single `quant/` package. Feature-flag advanced modules. ~10,000+ lines of research-grade code that may not be used in production.
+
+### 8.359 ai-signal-bot monitoring/metrics.py vs communication/metrics_server.py — Medium (code reduction)
+
+**Файлы:**
+1. `ai-signal-bot/src/monitoring/metrics.py` — Monitoring metrics
+2. `ai-signal-bot/src/communication/metrics_server.py` (136 lines) — Prometheus metrics server
+
+Two metrics modules in the same bot. `communication/metrics_server.py` has 7 metrics with manual Prometheus format. `monitoring/metrics.py` may have overlapping metrics.
+
+**Code reduction:** Consolidate into a single metrics module.

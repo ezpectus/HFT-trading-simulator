@@ -882,3 +882,25 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R325 | ai-signal-bot: dual metrics systems | `2 files` | Medium | communication/metrics_server.py + monitoring/. Consolidate |
 | R326 | ai-signal-bot communication: f-string logging | `5+ files` | Low | 5+ communication modules use f-string logging. Use % formatting |
 | R327 | ai-signal-bot: 4× health check implementations | `4 files` | Medium | observability/HealthChecker + communication/HealthAggregator + monitoring/health_server + exchange_simulator/health.py. Consolidate |
+| R328 | ai-signal-bot portfolio/markowitz.py | `markowitz.py` | ✅ Good | Efficient frontier, scipy optimization, PortfolioResult, div-by-zero guard |
+| R329 | ai-signal-bot: 5× PortfolioOptimizer duplication | `5 files` | High | portfolio/ (3 files) + risk/portfolio_optimizer.py + strategies/portfolio_optimizer.py. Consolidate |
+| R330 | ai-signal-bot portfolio/rebalancing.py | `rebalancing.py` | ✅ Good | 3 triggers (time/drift/vol), RebalanceOrder, turnover, cost estimation |
+| R331 | ai-signal-bot data_collection/exchange_factory.py | `exchange_factory.py` | ✅ Excellent | Protocol adapter, 3 modes (sim/real/fallback), lazy imports, proper cleanup |
+| R332 | ai-signal-bot data_collection/real_exchange_client.py | `real_exchange_client.py` | ✅ Good | 3 exchanges, HMAC-SHA256 signing, usedforsecurity=False, shared session, testnet |
+| R333 | ai-signal-bot real_exchange_client: api_key as attr | `real_exchange_client.py:68` | Low | API credentials as plain instance attrs. Visible in debugger/crash dump |
+| R334 | ai-signal-bot ml/model_registry.py | `model_registry.py` | ✅ Excellent | 5 statuses, A/B testing, rollback, file persistence, ModelVersion + ABTest |
+| R335 | ai-signal-bot ml/model_registry: no file lock | `model_registry.py:107` | Low | _save() writes JSON without lock. Concurrent saves could corrupt. Use flock |
+| R336 | ai-signal-bot ml/feature_store.py | `feature_store.py` | ✅ Good | Redis backend, in-memory fallback, TTL, batch ops, 2s timeout, graceful degradation |
+| R337 | ai-signal-bot feature_store: catch-all Exception | `feature_store.py:94` | Low | `except (OSError, ConnectionError, RuntimeError, Exception)` — Exception is catch-all |
+| R338 | ai-signal-bot ml/price_predictor.py | `price_predictor.py` | ✅ Good | LSTM + Transformer, ONNX export, ModelConfig, 11 features, PyTorch |
+| R339 | ai-signal-bot technical_analysis/: 25 files | `25 files` | High | 25 modules, many overlap with research/. Consolidate + feature-flag |
+| R340 | ai-signal-bot technical_analysis/indicators.py | `indicators.py` | ✅ Good | 8 indicators, NumPy optional, NaN-padded, flexible input |
+| R341 | ai-signal-bot monitoring/alerting.py | `alerting.py` | ✅ Good | 3 severity, 3 channels, rate limiting, parallel send, rule management |
+| R342 | ai-signal-bot alerting: list slice not deque | `alerting.py:113` | Low | alert_history uses list slice to cap. Use deque(maxlen=1000) |
+| R343 | ai-signal-bot alerting: aiohttp session leak | `alerting.py:150` | Medium | _send_discord/_send_telegram likely create session per call. Use shared session |
+| R344 | ai-signal-bot monitoring/health_server.py | `health_server.py` | ✅ Good | 4 endpoints, registerable checks, aiohttp web, nosec annotation |
+| R345 | ai-signal-bot: 4× health check implementations | `4 files` | Medium | observability + communication + monitoring + exchange_simulator. Consolidate |
+| R346 | ai-signal-bot backtesting/backtester.py | `backtester.py` | ✅ Good | Candle replay, Trade dataclass, RiskManager integration, 4 exit reasons |
+| R347 | ai-signal-bot backtesting/pnl_calculator.py | `pnl_calculator.py` | ✅ Excellent | 3 asset types (spot/futures/options), PnLBreakdown, DI into BacktestEngine |
+| R348 | ai-signal-bot: technical_analysis + research overlap | `60 files` | High | 25 TA + 35 research = 60 files with overlapping math. Consolidate into quant/ |
+| R349 | ai-signal-bot: dual metrics (monitoring + communication) | `2 files` | Medium | monitoring/metrics.py + communication/metrics_server.py. Consolidate |
