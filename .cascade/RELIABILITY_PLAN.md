@@ -573,3 +573,9 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R16 | No PropTypes/TypeScript в web-ui | `web-ui/src/` | Low | Нет runtime prop validation. Wrong prop type = silent failure или crash |
 | R17 | Env secrets handling | `ai-signal-bot/` | ✅ Clean | All via `os.getenv()` / `os.environ.get()`, no hardcoded secrets |
 | R18 | Docker-compose secrets | `docker-compose*.yml` | ✅ Clean | No secrets in compose files, all via env vars / `.env` |
+| R19 | No log rotation | весь проект | Medium | Log files grow unbounded → disk full → bot crashes |
+| R20 | Float precision in financial calc | `src/` повсеместно | Medium | IEEE 754 float errors accumulate in P&L over thousands of trades |
+| R21 | No WS message validation | `communication/` | Medium | Raw JSON accepted, no pydantic/schema validation. Malformed msg → KeyError |
+| R22 | No DB retention/cleanup | `db.py` | Medium | signals/trades/equity_curve grow forever. ~2.6M rows/year |
+| R23 | No auth on health/metrics | `monitoring/` | Low | Endpoints open. OK in Docker/K8s with netpol, risky if exposed |
+| R24 | Dependency pinning | `requirements.txt` | ✅ Good | All pinned with `==`. Optional deps (scipy, LightGBM) not listed |

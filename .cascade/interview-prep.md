@@ -673,3 +673,62 @@ CREATE INDEX idx_equity_timestamp ON equity_curve(timestamp);  # time-based quer
 ```
 
 **Why it matters at scale:** Without a composite index on `(status, pnl)`, SQLite scans every row with `status='CLOSED'` to check `pnl > 0`. With 100 trades, that's instant. With 100,000 trades (a year of trading 50 symbols), that's 100k rows per `get_stats()` call. The web UI calls `get_stats()` every refresh (5s) → 1.2M row scans/min. The good version creates a composite index — SQLite jumps directly to `status='CLOSED' AND pnl > 0` rows. O(1) lookup instead of O(N) scan. In a system with 1000 users each generating 1000 trades/day, you'd have 1M trades in a week — without indexes, `get_stats()` takes seconds, with indexes it takes milliseconds.
+
+---
+
+### Example 19: Float Precision in Financial Calculations
+
+**BAD** — `src/` повсеместно:
+```python
+balance = 10000.0
+risk_amount = balance * 0.02       # 200.00000000000003
+quantity = risk_amount / 1.5       # 133.33333333333334
+pnl = (50100.0 - 50000.0) * quantity  # 13333.333333333343
+# After 10,000 trades: accumulated error shifts P&L by dollars
+```
+
+**GOOD**:
+```python
+from decimal import Decimal, ROUND_HALF_UP
+
+balance = Decimal("10000.00")
+risk_amount = balance * Decimal("0.02")           # 200.00
+quantity = (risk_amount / Decimal("1.50"))         # 133.333333...
+quantity = quantity.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+pnl = (Decimal("50100.00") - Decimal("50000.00")) * quantity  # exact
+```
+
+**Why it matters at scale:** IEEE 754 doubles have ~15 significant digits. `0.1 + 0.2 != 0.3` — it's `0.30000000000000004`. In a single trade, the error is microscopic. But over 10,000 trades with compounding, errors accumulate. Your reported P&L drifts from actual P&L. When you reconcile with the exchange's numbers, there's a discrepancy. Worse: Binance API expects `quantity=0.00100000` (string), but `float` gives `0.0010000000000000002` — the API rejects it or rounds differently. With 1000 users each doing 100 trades/day, that's 100,000 potential precision errors/day. The good version uses `Decimal` — exact arithmetic, no rounding surprises. For a trading system, this is not optional.
+
+---
+
+### Example 20: No Log Rotation (Disk Exhaustion)
+
+**BAD** — весь проект:
+```python
+logging.basicConfig(
+    filename=f"logs/{name}.log",
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
+# ← no rotation, no max size, no backup count
+# logs/bot.log grows forever: 1MB → 100MB → 10GB → disk full → crash
+```
+
+**GOOD**:
+```python
+from logging.handlers import RotatingFileHandler
+
+handler = RotatingFileHandler(
+    f"logs/{name}.log",
+    maxBytes=50_000_000,  # 50MB per file
+    backupCount=5,        # keep 5 rotated files (250MB total max)
+    encoding="utf-8",
+)
+handler.setFormatter(logging.Formatter(
+    "%(asctime)s %(levelname)s %(name)s: %(message)s"
+))
+logging.basicConfig(level=logging.INFO, handlers=[handler])
+```
+
+**Why it matters at scale:** Without rotation, log files grow linearly. A bot logging 100 lines/min at 100 bytes/line = 14MB/day = 420MB/month = 5GB/year. With 50 symbols and DEBUG logging, multiply by 10× = 50GB/year. On a 20GB VPS, the disk fills in 5 months. When the disk is full, `logging` silently stops (or crashes with `OSError`). The bot continues running but with no logs — you're blind to errors. With 1000 users on small VPS instances, this is a guaranteed outage. The good version caps log storage at 250MB (5 × 50MB) — when `bot.log` hits 50MB, it becomes `bot.log.1`, and a new `bot.log` starts. Old files are deleted after 5 rotations.

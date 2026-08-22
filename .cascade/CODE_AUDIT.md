@@ -535,3 +535,78 @@ No hardcoded secrets. No secrets in config files. All via env vars. ✅
 **Файлы:** `docker-compose*.yml` — grep for `POSTGRES_PASSWORD|REDIS_PASSWORD|API_KEY|SECRET` = 0 matches
 
 No secrets in docker-compose files. All via env vars / `.env` files. ✅
+
+### 8.22 No log rotation — Medium
+
+**Файлы:** весь проект
+
+Grep for `RotatingFileHandler|TimedRotatingFileHandler|logrotate|maxBytes` = 0 matches.
+
+All logging goes to files in `logs/` without rotation. In production, log files grow unbounded. After a month of 24/7 operation with 50 symbols × 60s interval, log files can reach GBs. Disk fills up → bot crashes.
+
+**Фикс:** `logging.handlers.RotatingFileHandler(maxBytes=50_000_000, backupCount=5)` or `TimedRotatingFileHandler(when='midnight', backupCount=30)`.
+
+### 8.23 Float precision in financial calculations — Medium
+
+**Файлы:** `ai-signal-bot/src/` — повсеместно
+
+Grep for `Decimal|decimal` = 0 matches. All financial calculations use `float`:
+
+```python
+risk_amount = balance * risk_pct / 100          # float
+quantity = risk_amount / risk_per_unit           # float
+pnl = (exit_price - entry_price) * quantity      # float
+```
+
+IEEE 754 float has ~15 significant digits. `0.1 + 0.2 = 0.30000000000000004`. In trading, this means:
+- `100.0 * 0.03 = 3.0000000000000004` instead of `3.0`
+- Accumulated rounding errors over 10,000 trades can shift P&L by cents/dollars
+- Binance API expects exact decimal strings, not float repr
+
+**Фикс:** Use `Decimal` for P&L, fees, position sizing. Or at minimum `round(result, 8)` at boundaries.
+
+### 8.24 No input validation on WS messages — Medium
+
+**Файлы:** `ai-signal-bot/src/communication/` — grep for `pydantic|validate|validator|schema` = 0 matches
+
+WebSocket messages are accepted as raw JSON without schema validation. Any client can send any JSON structure. Malformed messages cause `KeyError`/`TypeError` in downstream code.
+
+**Фикс:** Pydantic models for incoming WS messages: `SignalMsg`, `OrderMsg`, `SubscribeMsg`. Validate before processing.
+
+### 8.25 No DB retention/cleanup policy — Medium
+
+**Файлы:** `ai-signal-bot/src/database/db.py` — grep for `DELETE FROM|TRUNCATE|retention|cleanup|purge` = 0 matches
+
+`signals`, `trades`, `equity_curve` tables grow forever. No `DELETE FROM signals WHERE timestamp < ?` cleanup. After a year of 50 symbols × 60s interval:
+- signals: ~2.6M rows
+- equity_curve: ~525K rows
+- trades: depends on activity
+
+**Фикс:** `cleanup_old(retention_days: int)` method: `DELETE FROM signals WHERE timestamp < ?` + `PRAGMA optimize`.
+
+### 8.26 No timezone handling — Low
+
+**Файлы:** `ai-signal-bot/src/` — grep for `timezone|tzinfo|utcnow|datetime.utcnow` = 0 matches
+
+All timestamps use `int(time.time())` (Unix epoch). This is timezone-agnostic (always UTC), which is actually fine. But there's no `datetime` with `tzinfo` for human-readable logs or reports. If someone adds `datetime.now()` without timezone, it'll use local time silently.
+
+### 8.27 No auth on health/metrics endpoints — Low
+
+**Файлы:** `ai-signal-bot/src/monitoring/health_server.py`, `metrics.py`
+
+Grep for `auth|Auth|token|Token|password|Password` in `monitoring/` = 0 matches. Health and metrics endpoints are open to anyone who can reach the port. In Docker/K8s with proper network policies, this is fine. If ports are exposed externally, anyone can see system metrics and health status.
+
+**Фикс:** Bind to `127.0.0.1` only, or add bearer token auth, or rely on network policies.
+
+### 8.28 Dependency pinning — ✅ Good but incomplete
+
+**Файл:** `ai-signal-bot/requirements.txt`
+
+```python
+pyyaml==6.0.2       # ✅ pinned
+websockets==13.1    # ✅ pinned
+aiohttp==3.14.3     # ✅ pinned
+...
+```
+
+All deps are pinned with `==`. ✅ Good. But optional dependencies (scipy, scikit-learn, LightGBM, XGBoost) are not in requirements.txt — they're try/except imported. No `requirements-optional.txt` for them.

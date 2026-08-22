@@ -93,3 +93,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Missing DB indexes | `get_stats` full-scan, equity_curve без индекса | CODE_AUDIT §8.16 |
 | C++ `catch(...)` kill switch | Safety-critical silent failure | CODE_AUDIT §8.17 |
 | No PropTypes/TypeScript | Нет runtime prop validation в web-ui | CODE_AUDIT §8.19 |
+| No log rotation | Log files grow unbounded → disk full | CODE_AUDIT §8.22 |
+| Float precision | IEEE 754 errors accumulate in P&L | CODE_AUDIT §8.23 |
+| No WS message validation | Raw JSON accepted, no schema | CODE_AUDIT §8.24 |
+| No DB retention/cleanup | Tables grow forever, ~2.6M rows/year | CODE_AUDIT §8.25 |
+| No auth on health/metrics | Endpoints open if ports exposed | CODE_AUDIT §8.27 |
