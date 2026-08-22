@@ -190,3 +190,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | web-ui registry: 200+ math panels | Research-grade math (SchrodingerBridge, FokkerPlanck). Feature flag | CODE_AUDIT §8.252 |
 | web-ui vite.config: no esbuild.drop | console.log not stripped in prod build | CODE_AUDIT §8.246 |
 | web-ui e2e: no WS tests | No WebSocket, real-time, order flow e2e tests | CODE_AUDIT §8.254 |
+| ai-signal-bot db.py: new connection per op | Every method opens/closes connection. PRAGMA WAL on every conn. No retry on locked | CODE_AUDIT §8.261 |
+| ai-signal-bot db.py: no equity_curve index | No index on timestamp. Range queries will full-scan | CODE_AUDIT §8.263 |
+| ai-signal-bot db.py: no migration system | _init_db() uses CREATE TABLE IF NOT EXISTS. No ALTER TABLE for schema changes | CODE_AUDIT §8.264 |
+| web-ui useExchangeData: candle sort every update | Full Array.from + sort on every candle message. 500 elements × every second | CODE_AUDIT §8.256 |
+| web-ui useDetachablePanels: no channel cleanup | BroadcastChannel never closed. Resource leak on unmount | CODE_AUDIT §8.259 |

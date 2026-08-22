@@ -797,3 +797,13 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R240 | web-ui registry.js: 200+ math panels | `registry.js` | Medium | Research-grade math (SchrodingerBridge, FokkerPlanck, etc). Feature flag or remove |
 | R241 | web-ui e2e tests | `e2e/mock-mode.spec.js` | ✅ Good | 10 Playwright tests, 5 suites, gotoWithRetry, dismissOnboarding, resilient |
 | R242 | web-ui e2e: no WS interaction tests | `e2e/` | Low | No WebSocket, real-time, order flow, signal display tests. Static UI only |
+| R243 | web-ui useExchangeData.js | `useExchangeData.js` | ✅ Good | 7 msg types, candle Map dedup, 500 cap, orderbook deltas, fills cap, reconnect sync |
+| R244 | web-ui useExchangeData: candle sort every update | `useExchangeData.js:55` | Low | Full Array.from + sort on every candle update. 500 elements × every second |
+| R245 | web-ui useMockData.js | `useMockData.js` | ✅ Good | Mock mode via env/localStorage, setInterval 2s, refs for state, cleanup, same interface |
+| R246 | web-ui useDetachablePanels.js | `useDetachablePanels.js` | ✅ Good | BroadcastChannel, createElement DOM (no XSS), popup management, blocked detection |
+| R247 | web-ui useDetachablePanels: no channel cleanup | `useDetachablePanels.js:21` | Low | BroadcastChannel never closed. Harmless in prod but resource leak |
+| R248 | ai-signal-bot db.py | `db.py` | ✅ Good | WAL mode, Windows-safe close, 3 tables, 3 indexes, parameterized queries, COALESCE |
+| R249 | ai-signal-bot db.py: new connection per op | `db.py:21-25` | Medium | Every method opens/closes connection. PRAGMA WAL on every conn. No retry on locked |
+| R250 | ai-signal-bot db.py: no data retention | `db.py` | Low | No retention policy. Tables grow without bound over months |
+| R251 | ai-signal-bot db.py: no equity_curve index | `db.py:70-76` | Low | No index on equity_curve.timestamp. Range queries will full-scan |
+| R252 | ai-signal-bot db.py: no migration system | `db.py:36-81` | Medium | _init_db() uses CREATE TABLE IF NOT EXISTS. No ALTER TABLE for schema changes |

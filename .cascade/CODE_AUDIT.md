@@ -3500,3 +3500,141 @@ No e2e tests for:
 Tests only verify static UI elements are visible. No tests for dynamic behavior.
 
 **Фикс:** Add e2e tests that mock WebSocket server, verify real-time data flow, test order submission → fill notification, test signal reception → display.
+
+### 8.255 web-ui useExchangeData.js: WebSocket data hook — ✅ Good
+
+**Файл:** `web-ui/src/hooks/useExchangeData.js` (255 lines)
+
+- **7 message types**: snapshot/candles/sync_state, fill, arbitrage_scan, replay_state, trading_state, replay_candles
+- **Candle map**: `useRef(new Map())` for dedup by `exchange|symbol|timestamp` — avoids re-renders from duplicate candles
+- **Candle cap**: 500 max, trims with sort when exceeded
+- **Orderbook deltas**: Incremental update with level merge/sort, skips if no full snapshot yet (`if (!existing) continue`)
+- **Fills cap**: `.slice(0, 50)` — keeps last 50 fills only
+- **Actions**: submitOrder, closePosition, sendSpeedChange, sendConfigUpdate, toggleReplay, startTrading, stopTrading, scrubReplay — all via `sendExchange()`
+- **Reconnect**: `syncOnReconnect: true` with `getLastTimestamp` — requests missed data after reconnect
+
+Well-structured WebSocket data hook with proper dedup, capping, and incremental updates. ✅
+
+### 8.256 web-ui useExchangeData: candle sort on every update — Low
+
+**Файл:** `web-ui/src/hooks/useExchangeData.js:55`
+
+```javascript
+setCandles(Array.from(candleMap.current.values()).sort((a, b) => a.timestamp - b.timestamp))
+```
+
+On every candle update (not just when trimming), the entire candle array is converted from the Map, sorted, and set as new state. With 500 candles and updates every second, this creates a new 500-element array + sort on every message.
+
+**Фикс:** Only sort when trimming (line 52). For incremental updates, append to existing array if timestamp > last. Or use a sorted data structure.
+
+### 8.257 web-ui useMockData.js: mock exchange data — ✅ Good
+
+**Файл:** `web-ui/src/hooks/useMockData.js` (194 lines)
+
+- **Mock mode detection**: `VITE_MOCK_MODE === 'true'` or `localStorage.getItem('mock-mode')` — works via env var or user toggle
+- **Initial snapshot**: `generateInitialSnapshot()` — candles, prices, accounts, orderbooks
+- **Periodic updates**: `setInterval` every 2 seconds — new candles, prices, orderbooks
+- **Refs for state**: `accountsRef`, `pricesRef` — avoids stale closure in interval
+- **Cleanup**: `clearInterval(intervalRef.current)` in useEffect return
+- **Same interface as useExchangeData**: Returns same state shape — drop-in replacement
+
+Clean mock implementation with proper cleanup and ref-based state access. ✅
+
+### 8.258 web-ui useDetachablePanels.js: BroadcastChannel for panel popouts — ✅ Good
+
+**Файл:** `web-ui/src/hooks/useDetachablePanels.js` (258 lines)
+
+- **BroadcastChannel**: `new BroadcastChannel('trading-sim-panel')` — cross-window communication without postMessage overhead
+- **6 panel types**: chart, orderbook, account, signals, arbitrage, performance — each with title and dimensions
+- **DOM via createElement**: No `document.write` or `innerHTML` injection — safe from XSS
+- **Popup management**: Closes existing popup before opening new one, checks `popup.closed`
+- **Popup blocked detection**: `if (!popup) { alert('Popup blocked...') }` — user feedback
+
+Clean detachable panel implementation with proper security and user feedback. ✅
+
+### 8.259 web-ui useDetachablePanels: no BroadcastChannel cleanup — Low
+
+**Файл:** `web-ui/src/hooks/useDetachablePanels.js:21-24`
+
+```javascript
+const getChannel = useCallback(() => {
+    if (!channelRef.current) {
+        channelRef.current = new BroadcastChannel('trading-sim-panel')
+    }
+    return channelRef.current
+}, [])
+```
+
+`BroadcastChannel` is created lazily but never closed. If the component unmounts, the channel stays open. In practice this is harmless (channel lives for page lifetime), but it's a resource leak.
+
+**Фикс:** Add cleanup in a `useEffect`: `return () => { if (channelRef.current) channelRef.current.close() }`.
+
+### 8.260 ai-signal-bot db.py: SQLite with WAL mode — ✅ Good
+
+**Файл:** `ai-signal-bot/src/database/db.py` (180 lines)
+
+- **WAL mode**: `PRAGMA journal_mode=WAL` — concurrent read/write access
+- **Windows-safe close**: `wal_checkpoint(TRUNCATE)` + `journal_mode=DELETE` — releases WAL file locks on Windows
+- **3 tables**: signals, trades, equity_curve — with proper schema (NOT NULL constraints, defaults)
+- **3 indexes**: `idx_signals_symbol`, `idx_trades_symbol`, `idx_trades_status` — query optimization
+- **Parameterized queries**: All queries use `?` placeholders — SQL injection safe
+- **contextlib.closing**: Proper connection cleanup with `with closing(self._conn()) as conn:`
+- **Stats query**: `COALESCE(SUM(pnl), 0)` — handles NULL correctly
+- **Win rate**: Division by zero guard: `if total_trades > 0 else 0`
+
+Clean SQLite layer with proper WAL, indexes, parameterized queries, and Windows-safe cleanup. ✅
+
+### 8.261 ai-signal-bot db.py: new connection per operation — Medium
+
+**Файл:** `ai-signal-bot/src/database/db.py:21-25`
+
+```python
+def _conn(self) -> sqlite3.Connection:
+    conn = sqlite3.connect(self.path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+```
+
+Every method creates a new connection (`self._conn()`) and closes it after the operation. For SQLite this is relatively cheap (file-based, no network), but:
+1. `PRAGMA journal_mode=WAL` is executed on every connection — unnecessary, WAL is persistent
+2. No connection pooling — each `save_signal`, `save_trade`, `save_equity` opens/closes a connection
+3. No retry on `database is locked` — if another process holds a write lock, the operation fails immediately
+
+**Фикс:** Use a single persistent connection with a threading.Lock for write operations. Or use `aiosqlite` for async access. Remove `PRAGMA journal_mode=WAL` from `_conn()` — set it once in `_init_db()`.
+
+### 8.262 ai-signal-bot db.py: no data retention — Low
+
+**Файл:** `ai-signal-bot/src/database/db.py`
+
+No retention policy for signals, trades, or equity_curve tables. Over time (months of running), these tables grow without bound. SQLite handles large tables, but query performance degrades.
+
+**Фикс:** Add `delete_old_signals(days=90)` and `delete_old_trades(days=90)` methods. Call daily. Or add a cron job.
+
+### 8.263 ai-signal-bot db.py: no equity_curve index — Low
+
+**Файл:** `ai-signal-bot/src/database/db.py:70-76`
+
+```sql
+CREATE TABLE IF NOT EXISTS equity_curve (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp INTEGER NOT NULL,
+    balance REAL NOT NULL,
+    equity REAL NOT NULL,
+    open_positions INTEGER NOT NULL
+);
+```
+
+No index on `equity_curve.timestamp`. Queries like `SELECT * FROM equity_curve WHERE timestamp > ? ORDER BY timestamp DESC` will scan the entire table.
+
+**Фикс:** `CREATE INDEX IF NOT EXISTS idx_equity_timestamp ON equity_curve(timestamp)`.
+
+### 8.264 ai-signal-bot db.py: no migration system — Medium
+
+**Файл:** `ai-signal-bot/src/database/db.py:36-81`
+
+Schema is defined in `_init_db()` with `CREATE TABLE IF NOT EXISTS`. This works for initial creation but doesn't handle schema changes. If a new column is added to `signals` or `trades`, the existing table won't be updated.
+
+The project has a `migrations/` directory and `migrate.py` script (noted in §8.77), but `db.py` doesn't use it — it uses its own `_init_db()`.
+
+**Фикс:** Use the migration system from `migrate.py` instead of `_init_db()`. Or add `ALTER TABLE` statements with version tracking.
