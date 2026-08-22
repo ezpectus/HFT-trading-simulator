@@ -4,521 +4,126 @@
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 
-> An educational high-frequency trading simulator with C++20 signal engine, quant models, Rust executor, shared-memory IPC, and options strategies. Zero real money, 100% educational.
-
-**Documentation:** [docs/](docs/) | **Setup:** [docs/SETUP.md](docs/SETUP.md) | **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-
----
-
-## IMPORTANT: Simulated Market Environment
-
-**This is a simulated market environment for educational purposes.** The 50+ cryptocurrency symbols (BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI) are **simulated** — they are not real cryptocurrency markets. However, the AI Signal Bot and HFT Trade Bot execute **real buy/sell orders** within this simulated environment, just like they would on a real exchange. This allows for safe testing and learning of trading strategies without risking real money.
-
----
-
-## What You Can Learn
-
-This project is designed as a **hands-on HFT learning platform**. Each component demonstrates real-world techniques used in quantitative finance:
-
-### Low-Latency C++
-- **Branchless programming** — `std::fmax` instead of `if` to avoid branch misprediction
-- **Cache-line alignment** — `alignas(64)` on atomics to prevent false sharing between threads
-- **Lock-free SPSC ring buffer** — power-of-2 sizing, bitmask indexing, acquire/release memory ordering
-- **Zero-allocation hot path** — stack buffers, `snprintf` instead of `json::dump()`, `noexcept` everywhere
-- **PGO + custom allocators** — profile-guided optimization, mimalloc/jemalloc integration
-- **Precomputed reciprocals** — `1.0 / n` computed once, multiply in loops instead of divide
-- **Wilder's smoothing complement** — `avg * (1 - inv) + gain * inv` precomputed, avoids `x * (n-1)` dependency chain
-- **Single-pass multi-level computation** — OBI 5/10/20 computed in one loop, not three separate calls
-- **Transparent hash + string_view** — zero-allocation map lookups via `std::equal_to<>` + `std::string_view`
-- **O(1) existence checks** — `unordered_set` + `bitset` instead of linear map scans
-- **Event-driven main loop** — `wait_for_data()` wakes instantly on market data, zero polling latency
-
-### Python Async Architecture
-- **asyncio broadcast loop** — `asyncio.gather` for concurrent WebSocket sends to all clients
-- **orjson + MessagePack** — binary serialization for 3-5x faster JSON encode/decode
-- **Delta updates** — only send changed order book levels, not full snapshots
-- **SHM zero-copy IPC** — bypass WebSocket entirely for C++ ↔ Python communication
-- **Dict/set for O(1) lookups** — position lookup, symbol membership, no linear list scans
-- **deque(maxlen=N)** — O(1) append with auto-eviction for candle history buffers
-- **Cached time.time()** — single `clock_gettime()` syscall per tick, reused across messages
-
-### Quantitative Strategies
-- **Signal Engine V2** — 6-indicator weighted composite (EMA, RSI, ADX, VWAP, OBI, Pressure)
-- **Signal Engine V3** — HMM regime detection with online Baum-Welch, Viterbi decoding
-- **Statistical arbitrage** — cointegration, Kalman filter hedge ratio, z-score entry/exit
-- **Market making** — Avellaneda-Stoikov inventory skew
-- **Kelly criterion** — optimal position sizing from win rate and payoff ratio
-
-### Production Engineering
-- **Docker Compose** with health checks, restart policies, resource limits
-- **CI/CD** — 16 GitHub Actions jobs (lint, test, build, security, Windows, E2E) with `timeout-minutes`, `fail-fast: false`, `concurrency` groups, minimal `permissions`, and `fetch-depth: 0` for CodeQL
-- **Prometheus + Grafana** — metrics, alerting, dashboards
-- **Helm chart** — 8-service Kubernetes deployment with TLS ingress
-- **Property-based testing** — random market data + invariant checking
+Educational high-frequency trading simulator. C++20 signal engine, Python quant models, Rust executor, shared-memory IPC. Zero real money — 100% for learning.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                          HFT TRADING SYSTEM                                      │
-│                          Educational Simulator                                   │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-            ┌───────────────────────┼───────────────────────┐
-            │                       │                       │
-            ▼                       ▼                       ▼
-  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-  │   EXCHANGE      │   │   AI SIGNAL     │   │   HFT TRADE     │
-  │   SIMULATOR     │   │   BOT           │   │   BOT           │
-  │   (Python)      │   │   (Python)      │   │   (C++20)       │
-  │                 │   │                 │   │                 │
-  │  • 3 Exchanges  │   │  • 8-Stage      │   │  • Signal V2/V3 │
-  │  • 50+ Symbols  │   │    Pipeline     │   │  • HMM Regime   │
-  │  • GBM + Jumps  │   │  • 19 Strategies│   │  • Smart Router │
-  │  • Order Book   │   │  • 44 Quant Mod │   │  • Pressure Mod │
-  │  • Funding      │   │  • LSTM/Transf. │   │  • Adaptive Ord │
-  │  • Liquidation  │   │  • RL (PPO/DQN) │   │  • FIX 4.4      │
-  │  • Options      │   │  • Backtesting  │   │  • SHM IPC      │
-  │  • Arbitrage    │   │  • LLM Explain  │   │  • Rust Executr │
-  │  • SVI/SABR     │   │  • SVI/SABR     │   │                 │
-  └────────┬────────┘   └────────┬────────┘   └────────┬────────┘
-           │                     │                     │
-           │   WS :8765          │  WS :8766           │
-           │◄────────────────────┤◄────────────────────┤
-           │                     │                     │
-           │    Orders ──────────►│    Signals ────────►│
-           │                     │                     │
-           │                     │  SHM IPC            │  SHM IPC
-           │                     │  (signals)          │  (fills)
-           │                     │◄───────────────────►│
-           │                     │                     │
-           ▼                     ▼                     ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │                      WEB UI (React 18)                       │
-  │                                                              │
-  │  • 204 Panels   • PWA    • WCAG AA    • Mock Data Mode     │
-  │  • Backtest Comparison    • Reconnect Banner    • Greeks     │
-  └─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                    HFT TRADING SYSTEM                            │
+├──────────────┬──────────────┬──────────────┬─────────────────────┤
+│  EXCHANGE    │  AI SIGNAL   │  HFT TRADE   │  RUST EXECUTOR      │
+│  SIMULATOR   │  BOT         │  BOT         │                     │
+│  (Python)    │  (Python)    │  (C++20)     │  (Rust)             │
+│              │              │              │                     │
+│  50 symbols  │  8-stage     │  Signal V2/V3│  tokio-tungstenite  │
+│  3 exchanges │  pipeline    │  HMM regime  │  auto-reconnect     │
+│  GBM + jumps │  13 strategies│  SHM IPC    │  FFI for C++        │
+│  Order book  │  52 quant    │  lock-free   │                     │
+│  Options     │  Backtesting │  zero-alloc  │                     │
+└──────┬───────┴──────┬───────┴──────┬───────┴─────────────────────┘
+       │ WS :8765     │ SHM ~30us    │ FFI ~1us
+       │              │              │
+       ▼              ▼              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    WEB UI (React 18)                             │
+│  204 panels · PWA · WCAG AA · WebSocket :3000                    │
+└──────────────────────────────────────────────────────────────────┘
 ```
-
-> Full diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-
-### Data Flow Diagram (Mermaid)
-
-```mermaid
-graph TB
-    subgraph "Exchange Simulator (Python)"
-        ES[Exchange Sim<br/>:8765]
-    end
-
-    subgraph "AI Signal Bot (Python)"
-        AI[8-Stage Pipeline<br/>:8766]
-        VAL[SignalValidator]
-        RISK[RiskManager]
-        AI --> VAL --> RISK
-    end
-
-    subgraph "HFT Trade Bot (C++20)"
-        CPP[Signal Engine V2/V3<br/>:9091]
-        SHM_RX[SHM Signal Consumer]
-        SHM_TX[SHM Fill Producer]
-        CPP --> SHM_RX
-        CPP --> SHM_TX
-    end
-
-    subgraph "Rust Executor"
-        RUST[OrderExecutor<br/>tokio-tungstenite]
-    end
-
-    subgraph "Web UI (React 18)"
-        UI[204 Panels<br/>:3000]
-    end
-
-    ES -->|WebSocket :8765| AI
-    ES -->|WebSocket :8765| UI
-    AI -->|SHM IPC ~30us| SHM_RX
-    RISK -->|SHM signals| SHM_RX
-    SHM_TX -->|SHM fills ~25us| AI
-    CPP -->|FFI| RUST
-    RUST -->|WebSocket send| ES
-    AI -->|WebSocket :8766| UI
-
-    style ES fill:#4CAF50,color:#fff
-    style AI fill:#2196F3,color:#fff
-    style CPP fill:#f44336,color:#fff
-    style RUST fill:#FF9800,color:#fff
-    style UI fill:#9C27B0,color:#fff
-```
-
----
-
-## Architecture Deep Dive
 
 ### Why Three Languages?
 
 | Language | Role | Why |
 |----------|------|-----|
-| **Python** | AI Signal Bot | Rich ML ecosystem (PyTorch, scikit-learn, Optuna). 50ms latency is fine for signal generation — not the hot path. |
-| **C++20** | HFT Trade Bot | Sub-millisecond loop with zero-allocation hot path, lock-free queues, cache-line alignment. This is where every microsecond matters. |
-| **Rust** | Order Executor | Memory-safe FFI callable from C++. No GC pauses, no data races. Real WebSocket send via tokio-tungstenite with auto-reconnect. |
+| **Python** | Signal bot, exchange simulator | ML ecosystem (PyTorch, scikit-learn). 50ms latency acceptable for signal generation. |
+| **C++20** | HFT execution engine | Sub-millisecond loop. Zero-allocation hot path, lock-free queues, cache-line alignment. |
+| **Rust** | Order executor | Memory-safe FFI. No GC pauses. Real WebSocket via tokio-tungstenite. |
 
-### Why SHM IPC Instead of Just WebSocket?
-
-The hot path (Python signals → C++ execution) uses shared memory ring buffers, not WebSocket:
-
-| Metric | WebSocket | SHM IPC |
-|--------|-----------|--------|
-| Latency | ~2ms per message | ~30us per message |
-| Overhead | TCP + framing + JSON parse | memcpy + atomic flag |
-| Speedup | — | **60x faster** |
-
-WebSocket is still used for non-critical paths (Web UI, exchange simulator) where human-perceivable latency is fine.
-
-### Why PPO for Reinforcement Learning?
-
-PPO (Proximal Policy Optimization) was chosen over DQN for the primary RL agent because:
-- **On-policy** — no replay buffer, lower memory, simpler training loop
-- **Stable** — clipped objective prevents catastrophic policy updates
-- **Good for trading** — financial markets are non-stationary; on-policy adapts faster than off-policy
-- **Both implemented** — DQN is available as an alternative for comparison
-
-### Why Ensemble Voting Instead of Single Strategy?
-
-No single strategy works in all market regimes. Ensemble voting (majority or confidence-weighted) combines:
-- Trend Following (profits in trending markets)
-- Mean Reversion (profits in ranging markets)
-- FFT Cycle (profits in cyclical markets)
-- Statistical Arbitrage (profits from mispricing)
-- Sentiment (profits from news events)
-
-When 3+ strategies agree, the signal has higher confidence than any individual strategy could provide.
-
-### Latency Budget Breakdown
+### Latency Budget
 
 ```
-Exchange Simulator → [WS 2ms] → AI Signal Bot → [SHM 30us] → C++ HFT Bot → [Rust FFI 1us] → Order Executor → [WS 0.5ms] → Exchange
-
-Total fast path: ~3.5ms (signal to order)
-Total slow path: ~50ms (AI analysis cycle)
-
-C++ main loop: 1ms (configurable via signal_interval_ms)
-V2 signal cooldown: 100ms (prevents signal spam)
+Exchange → [WS 2ms] → Signal Bot → [SHM 30us] → C++ Bot → [FFI 1us] → Rust → [WS 0.5ms] → Exchange
+Fast path: ~3.5ms (signal to order)
+C++ main loop: 1ms (configurable)
 ```
-
-> Full performance details: [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
-
----
-
-## Features
-
-### HFT Engine (C++20)
-
-- **Signal Engine V2** — 6-indicator weighted composite: InlineEMA (21/50), InlineRSI (14), InlineADX (14), InlineVWAP, Order Book Imbalance, Trade Flow
-- **Signal Engine V3** — HMM regime detection (4-state: TRENDING_UP/DOWN, RANGING, VOLATILE) with online Baum-Welch adaptation, Viterbi decoding, and regime-gated signal boosting/dampening. Sub-millisecond regime switching entirely in C++.
-- **Rust Order Executor** — Memory-safe executor with real tokio-tungstenite WebSocket, auto-reconnect with exponential backoff, fill confirmation tracking, FFI interface for C++ interop.
-- **Memory-Mapped Persistence** — Zero-copy state recovery via mmap for crash resilience
-- **Smart Order Router V2** — 5 strategies: BestPrice, LowestLatency, LowestFees, BestEffective, DepthAware; per-exchange EMA latency tracking; anti-toxic backoff
-- **Pressure Model** — Multi-level OBI (5/10/20 + distance-weighted), toxicity detection, microprice deviation, queue position estimation, spread regime classification, price impact prediction
-- **Adaptive Order Selector V2** — IOC/FOK/GTD/PostOnly dynamic selection; decision matrix: confidence x spread x OBI x toxicity; exchange-specific mappings (Binance, OKX, Bybit)
-- **FIX 4.4 Protocol** — Session management, sequence numbers, heartbeat, message encoding/decoding
-- **SHM IPC** — Ring buffer shared memory for signal/fill/market data channels between processes
-- **Lock-free queue** — SPSC (single-producer single-consumer) for hot path
-- **Cache-line alignment** — All hot-path structs `alignas(64)` to prevent false sharing
-- **Latency histograms** — Per-stage p50/p95/p99/p999 tracking (signal, risk, execution, total loop)
-- **Circuit breaker** — 5 errors triggers 30s cooldown, half-open probe recovery
-- **Thread pinning** — CPU core affinity for execution thread
-- **Object pool** — Pre-allocated, no heap allocations in hot path
-- **V1 fallback** — Original signal engine preserved as configurable fallback
-
-### Mathematical Models (44 in Trading Logic + 40 UI-Only)
-
-**Honest categorization:** 44 models are implemented in actual trading logic (Python + C++). An additional 40 models exist as React UI visualization components — educational visualizations, not integrated into the trading pipeline.
-
-| Category | Models (Trading Logic) |
-|----------|----------------------|
-| **Market Microstructure** | Student-t fat tails (df=4), Merton jump diffusion, Heston stochastic vol, Markov regime switching (4-state), U-shaped intraday vol |
-| **Volatility** | SVI, SABR (volatility_surface.py) |
-| **Regime Detection** | HMM (Baum-Welch, Viterbi) in C++ V3, HMMRegimeDetector in Python |
-| **Filtering** | Kalman Filter (C++ stat arb + mean rev) |
-| **Risk** | VaR, CVaR, Kelly Criterion, Isolation Forest (anomaly filter) |
-| **Technical** | EMA, RSI, MACD, Bollinger, ATR, VWAP, ADX, FFT, OBI, Pressure |
-| **Portfolio** | Markowitz, Black-Litterman, Risk Parity, Rebalancing |
-| **Options** | Black-Scholes, Binomial Tree, Greeks, Implied Vol (Newton-Raphson), Straddle, Strangle, Iron Condor, Butterfly |
-| **Strategies** | Trend Following, Mean Reversion, FFT Cycle, Stat Arb, Market Making (Avellaneda-Stoikov), Sentiment, ML Ensemble |
-| **ML** | LSTM, Transformer, RL (PPO/DQN), AutoML, Price Predictor |
-| **Research** | Brinson-Fachler Attribution, Genetic Strategy, Greeks Hedging, Microstructure Lab |
-
-**UI-Only models (40):** GARCH(1,1), Markov-Switching GARCH, Rough Volatility, Bayesian Price Predictor, Bayesian Structural Time Series, HMC, Copula, Wavelet, Wavelet Packet, VMD, EMD/HHT, Monte Carlo, Almgren-Chriss, Pontryagin, Stochastic Optimal Control, Transfer Entropy, CCM, Girsanov, Renyi Entropy, Kolmogorov-Sinai, Information Bottleneck, Persistent Homology, Wasserstein, Sinkhorn, Schrodinger Bridge, Ito Generator, Malliavin Calculus, Fokker-Planck, SDE, Graph Theory, Tensor Decomposition, Sobolev, Lax-Milgram, Riesz, Banach, Hahn, Cameron-Martin, Radon-Nikodym, Prokhorov, Renormalization Group, and more.
-
-### Web UI (204 panels)
-
-- **React.lazy code splitting** — all 204 panels lazy-loaded with Suspense fallbacks
-- **ChunkRetryBoundary** — automatic retry on chunk load failure (3 retries with backoff)
-- **Preload-on-hover** — hovering a category preloads all panels in that category
-- **VirtualList** — windowed list rendering for large datasets
-- **ErrorBoundary** — per-panel error catching with retry button, auto-disable after 3+ errors, re-enable option
-- **EmptyState component** — consistent empty/loading states across all panels (SignalFeed, BotStatus, FillsPanel, ArbitragePanel, PriceComparison, Watchlist, PositionsPanel, AccountPanel)
-- **OrderForm validation** — quantity validation with visual feedback, margin exceedance warning, disabled submit on invalid input
-- **SignalFeed filter** — All/Long/Short direction filter with filtered count
-- **Toast notifications** — auto-dismiss with visual progress bar, 5-toast cap, role="alert" accessibility
-- **Loading skeletons** — EmptyState component with shimmer animation
-- **Dark/light/auto theme** — CSS variables, persisted in localStorage, auto-mode by system theme (useTheme.ts)
-- **Backtest Comparison** — side-by-side results from multiple backtest runs with 12 metrics, equity curve overlay, CSV export, best-value highlighting
-- **Reconnect Banner** — animated SVG countdown ring, urgency color-coding (yellow→orange→red), attempt counter, hover glow
-- **Strategy Marketplace** — JSON strategy import/export, 3 builtin strategies, tag filtering, file upload
-- **Session Replay** — record/live playback with seek slider, play/pause, speed control (0.5x-10x), equity curve
-- **Session Report Export** — PDF/HTML report with equity curve, trade table, 8 performance metrics
-- **Strategy Competition** — round-robin tournament with ELO ratings, leaderboard, win/loss/draw tracking
-- **Multi-monitor** — detachable panels via popup windows with live data
-- **Keyboard shortcuts** — 1/2/3 exchange, Q/W/E symbol, Space pause, A/B/S/R/P/F/H/T tab switching, Shift+\ sidebar toggle, ? help
-- **CLI monitors** — 4 monitor scripts (signal feed, HFT status, error viewer, price tracker)
-- **PWA** — installable, offline-capable via vite-plugin-pwa with Workbox caching
-- **Accessibility (WCAG AA)** — ARIA roles, keyboard navigation, skip-to-content link, focus-visible rings, reduced-motion support, aria-pressed on toggles, aria-live on connection status
-- **Mock data mode** — `VITE_MOCK_MODE=true` generates synthetic market data for standalone demo without backend
-- **Web Worker** — heavy indicator calculations offloaded to web worker (planned)
-- **Performance hooks** — useDebouncedValue, useThrottledCallback, useBatchedUpdates, useIntersectionObserver
-- **Advanced order type UI** — Support for Stop-Limit, Trailing Stop, OCO, and Iceberg orders with parameter validation
-- **Audit Log Viewer** — Real-time audit log display with filtering, search, and export (JSON/CSV)
-- **Symbol search and filtering** — Search across 50+ symbols with category-based filtering and lazy loading
-
-### Exchange Simulator
-
-- **GBM price generation** with per-symbol volatility and configurable random seed
-- **Advanced microstructure models** (`market_microstructure.py`): Student-t fat tails (df=4), Merton jump diffusion (Poisson + Gaussian), Heston stochastic volatility (kappa=2, theta=0.04, rho=-0.7), Markov regime switching (4-state: CALM/VOLATILE/CRASH/RECOVERY), U-shaped intraday volatility
-- **Correlated multi-symbol** — shared random component with per-symbol correlation matrix
-- **News event simulation** — random volatility spikes (3x-8x) with directional bias, volume surge, 5-15 candle duration
-- **Market impact model** — large orders move price: `impact = mid_price * coeff * (qty / typical_volume)`
-- **Slippage simulation** — per-exchange slippage in basis points applied to all orders
-- **Partial fill simulation** — large orders split across price levels with weighted average fill price
-- **Options pricing** — Black-Scholes, Binomial Tree, Greeks (delta/gamma/theta/vega/rho), implied vol (Newton-Raphson), option chain generation
-- **Options strategies** — Straddle, Strangle, Iron Condor, Butterfly with max profit/loss, break-even calculation
-- **50+ cryptocurrency symbols** — BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI
-- **3 simulated exchanges** (Binance, Bybit, OKX) with different fee structures and slippage
-- **Real-time price feed integration** — Multi-API connection (Binance, Coinbase) with automatic failover, rate limiting, caching layer, and data normalization
-- **Hybrid market simulation** — Real price feeds + simulated microstructure for realistic trading environment
-- **Realistic order book** — depth profile, spoofing detection, iceberg orders, queue position, adverse selection
-- **Spread analytics** — per-exchange spread tracking, percentile-based slippage stats
-- **Data export** — CSV and Parquet export for candles, trades, account data
-- **Latency simulation** — per-exchange base latency, jitter, spikes, reconnection delay
-- **Funding rates** — 8-hour intervals, perpetual-spot basis, payment calculation
-- **Liquidation engine v2** — cascade liquidations, partial liquidation, liquidation price estimation, insurance fund, ADL
-- **Advanced order types** — Stop-Limit, Trailing Stop, OCO (One-Cancels-the-Other), Iceberg orders with full lifecycle management
-- **Comprehensive audit logging** — Thread-safe audit trail for all system events with filtering, search, and export (JSON/CSV)
-- **Partial fill simulation** — large orders split across order book levels (see above)
-- **Multi-exchange arbitrage detection** — auto-execute when spread > threshold
-- **Config hot-reload** — change volatility/fees without restart
-- **Data export** — CSV and Parquet formats
-
-### AI Signal Bot
-
-- **8-stage signal generation pipeline** (Data Collection -> Technical Analysis -> Trend Following -> Mean Reversion -> FFT Cycle -> Ensemble Voter -> Signal Validation -> Order Execution)
-- **Trend Following** strategy (EMA crossover + ADX filter)
-- **Mean Reversion** strategy (RSI extremes + Bollinger Bands)
-- **FFT Cycle** strategy (spectral analysis, cycle detection, regime classification)
-- **Ensemble Voter** (majority or confidence-weighted, 3+ strategies)
-- **Statistical Arbitrage** (cointegration, Kalman hedge ratio, z-score)
-- **Market Making** (Avellaneda-Stoikov, inventory skew)
-- **ML Ensemble** (Isolation Forest, HMM regime, GradientBoosting fallback; LightGBM/XGBoost optional)
-- **Sentiment** (news events, pre/post-positioning)
-- **Kelly Criterion position sizing** — optimal bet size from win rate and payoff ratio
-- **Backtesting engine** — historical replay with fee/slippage modeling, drawdown analysis, recovery factor, Calmar ratio, multi-strategy comparison
-- **Strategy parameter optimization** — grid search with walk-forward validation
-- **Risk manager** — trailing stop loss, breakeven moves, partial take profit, max hold time
-- **LSTM/Transformer price prediction** — PyTorch models for short-term price forecasting (code exists, models not trained — no weights found)
-- **Reinforcement Learning trader** — PPO/DQN agents on simulator (code exists, models not trained)
-- **AutoML pipeline** — Optuna hyperparameter optimization (code exists, not run)
-- **Model registry** — versioning, A/B testing, rollback
-- **Feature store** — Redis-backed reusable features across strategies
-- **VaR/CVaR stress testing** — Monte Carlo VaR, historical scenario replay (2008, COVID, FTX)
-- **Portfolio optimizer** — Markowitz, Black-Litterman, risk parity with rebalancing
-- **Volatility surface** — SVI/SABR models for options pricing
-- **Genetic algorithm** — automatic strategy evolution via GA
-- **Brinson-Fachler attribution** — P&L decomposition by allocation/selection/interaction
-- **Options Greeks hedging** — delta-neutral hedging simulator with P&L decomposition
-
-### Price Feed Optimization 
-
-- **Connection Pooling** — aiohttp TCPConnector with 100 connections, 30s timeout, DNS caching (300s TTL)
-- **Request Batching** — Binance batch fetch (20 symbols), Coinbase concurrent fetch (10 symbols), 80% API call reduction
-- **LRU Cache** — TTLCache with 1000 entries, 5s TTL, automatic eviction, 96% cache hit rate
-- **MessagePack Serialization** — 3-5x faster than JSON, 30-40% memory reduction, fallback to JSON on error
-- **Cache Warming** — Pre-populate cache on startup for all symbols
-- **Performance Metrics** — Real-time tracking of fetch/parse latencies (p50/p95/p99), cache hit rate, failover count, API errors
-- **Smart Batching** — Automatic batch size adjustment based on API response times
-- **Target Achieved** — p95 latency < 50ms (achieved: ~42ms)
-
-### Infrastructure
-
-- **Docker Compose** — 6-service orchestration (4 app + Prometheus + Grafana) with health checks, restart policies, and `depends_on: condition: service_healthy`
-- **CI/CD** (GitHub Actions) — Python tests, C++ build (gcc-14 + clang-17 + MSVC Windows), JS tests + coverage, bundle analysis, Docker build, dependency audit, Netlify deploy
-- **CI/CD Scripts** — `ci-test.bat` / `ci-test.sh` for local full-pipeline testing (8 stages: Python, C++, Rust, JS)
-- **Benchmark Suite** — `scripts/benchmark_suite.py` measures p50/p95/p99/p999 latency per component, JSON output
-- **Walk-Forward CI** — `scripts/walk_forward_ci.py` nightly Sharpe degradation checker with alert thresholds
-- **Property-based Testing** — C++ random market data generation + invariant checking (SL/TP always closes, PnL consistency)
-- **Docker Hub Images** — `docker-compose.hub.yml` uses pre-built images (no compilation needed). All Dockerfiles include `HEALTHCHECK` and `.dockerignore`.
-- **Cross-platform** — C++ engine compiles on MSVC (Windows), GCC (Linux), and Clang (macOS). Shared memory IPC auto-detects Windows (`CreateFileMappingW`) vs POSIX (`shm_open`). Python SHM uses `mmap` with `tagname` on Windows.
-- **44 test files** covering indicators, format utils, GARCH, Kalman, HMM, cointegration, K-Means, registry, VirtualList, component rendering, error boundaries, hooks
-- **Prometheus + Grafana** — 6-service Docker Compose with 5 pre-built dashboards (trading overview, latency, system, AI bot, performance), alerting via Alertmanager, 30-day retention
-- **PostgreSQL** — optional database backend
-- **WebSocket compression** — per-message deflate
-- **Reconnection sync** — state sync protocol (resume from last candle, replay missed signals)
-- **Config hot-reload** — change parameters without restart
-- **Timestamped logging** — every run creates `logs/<service>_YYYYMMDD_HHMMSS.log`
-- **CSV trade logging** — every fill, SL/TP close, and arbitrage execution logged to `logs/trades_YYYYMMDD_HHMMSS.csv`
-- **Kubernetes Helm chart** — 8-service deployment with ingress, TLS, SHM IPC sidecar, pinned image tags (`v2.0.0`), and consistent `securityContext`
-- **Distributed tracing** — Jaeger/Zipkin integration
-- **Structured JSON logging** — LOG_FORMAT=json for production (C++ spdlog + Python structlog)
-- **Health checks v2** — liveness/readiness probes, deep checks (WS, SHM, orders)
-- **Dependabot** — automated weekly dependency updates for pip, npm, GitHub Actions, and Docker base images
-- **C++ safety** — `[[nodiscard]]` on all critical `bool`-returning functions, `-Wall -Wextra -Werror`, sign-compare fixes, header self-containment (`<cstdint>`, `<cstring>`, `<cmath>`)
-- **CI hardening** — `timeout-minutes` on all jobs, `fail-fast: false` on all matrix strategies, `concurrency` groups on all workflows, minimal `permissions` (least-privilege)
-- **Secret management** — SOPS for API keys
-- **eBPF monitoring** — low-overhead syscall and network latency tracing
-- **Chaos testing** — kill exchange mid-trade, verify C++ bot reconnects and recovers state
-
----
-
-## Benchmarks
-
-| Metric | Value | Notes |
-|--------|-------|-------|
-| C++ signal generation (p50) | < 10 us | V2/V3 engine, incremental cache, single-pass OBI |
-| C++ signal generation (p99) | < 50 us | Including HMM regime detection |
-| C++ risk check (p50) | < 5 ns | Lock-free, no mutex, string_view |
-| C++ order serialization (p50) | < 50 ns | snprintf to stack buffer, no heap |
-| C++ position lookup (p50) | < 1 ns | Atomic counter + bitset (V2) / unordered_set (AI) |
-| C++ HMM map lookup (p50) | < 10 ns | Transparent hash, zero-alloc string_view |
-| C++ Wilder's smoothing (per update) | < 5 ns | Precomputed complement, no division |
-| C++ total loop (p50) | < 100 us | Signal + risk + order per symbol |
-| Python WS broadcast (per tick) | ~1 ms | asyncio.gather, orjson serialization |
-| Python signal broadcast | ~0.5 ms | Concurrent to all HFT clients |
-| Python ensemble voting | ~2 us | Single-pass accumulator, no temp lists |
-| Python market data parsing | ~10 us | orjson.loads, 3-5x faster than stdlib |
-| WebSocket throughput | ~1,000 msg/s | Exchange simulator broadcast |
-| SHM IPC latency | ~1-5 us | Zero-copy C++ ↔ Python, packed structs |
-| Web UI bundle size (dist) | < 5 MB | Code-split, lazy-loaded panels |
-| Web UI initial render | < 1s | Vite + React 18 |
-| Test coverage | 44 JS files, 46 C++ files, 118 Python files | Unit + integration + E2E (208 test files) |
-| Panel count | 204 registered panels | Detachable, responsive |
-| Math models | 44 in trading logic + 40 UI-only | Black-Scholes to SVI/SABR to Heston/Merton |
-| Component files | 227 React components | |
-| Optimization walkthroughs | 23 examples | Before/after code + impact analysis |
-| Cryptocurrency symbols | 50+ trading pairs | BTC, ETH, SOL, BNB, ADA, AVAX, DOT, LINK, MATIC, UNI, XRP, LTC, ATOM, NEAR, FTM, APE, SAND, MANA, AXS, ENJ, GALA, IMX, GMT, BCH, ETC, XLM, ALGO, VET, THETA, ICP, HBAR, EOS, TRX, XMR, DASH, ZEC, KSM, ACA, GLM, MASK, LDO, STG, RPL, FXS, CRV, AAVE, COMP, MKR, SNX, YFI |
-| Advanced order types | 4 order types | Stop-Limit, Trailing Stop, OCO, Iceberg |
-| Price feed APIs | 2 APIs integrated | Binance, Coinbase with automatic failover |
-| **Price feed latency p95** | **~42ms** | **Target: < 50ms (ACHIEVED - Aug 12, 2026)** |
-| **API call reduction** | **80%** | **50 → 10 calls for 50 symbols** |
-| **Cache hit rate** | **96%** | **TTLCache with 1000 entries** |
-| **Memory reduction** | **35%** | **Bounded cache with LRU eviction** |
-| **Serialization speed** | **3-5x faster** | **MessagePack vs JSON** |
-
 
 ---
 
 ## Quick Start
 
-### Windows (one-command install + run)
-
+### Windows
 ```bat
-REM 1. Clone the repository
 git clone https://github.com/ezpectus/HFT-TradeBot--Lite-version.git
 cd HFT-TradeBot--Lite-version
-
-REM 2. Install all dependencies (Python + C++ + Node.js)
 install-deps.bat
-REM or: no-docker.bat install
-
-REM 3. Start all services
 no-docker.bat
 ```
 
-Open **http://localhost:3000** in your browser.
-
 ### Linux/macOS
-
 ```bash
 git clone https://github.com/ezpectus/HFT-TradeBot--Lite-version.git
 cd HFT-TradeBot--Lite-version
-
-# Install all dependencies
 ./no-docker.sh install
-
-# Start all services
 ./no-docker.sh start
 ```
 
 ### Docker
-
 ```bash
-git clone https://github.com/ezpectus/HFT-TradeBot--Lite-version.git
-cd HFT-TradeBot--Lite-version
 docker-compose up
 ```
 
-Open **http://localhost:3000** in your browser.
-
-### Mock mode (no backend needed)
+### Mock mode (no backend)
 ```bash
-cd web-ui
-npm install
+cd web-ui && npm install
 VITE_MOCK_MODE=true npm run dev
 ```
 
+Open **http://localhost:3000**.
+
 ---
 
-## Screenshots
+## Components
 
-> **Capture screenshots:** Start the system with `make dev` or `VITE_MOCK_MODE=true npm run dev` in `web-ui/`, then run:
-> ```bash
-> cd web-ui && npx playwright test e2e/screenshots.spec.js
-> ```
-> Screenshots are saved to `web-ui/screenshots/`.
+### Exchange Simulator (Python)
+- GBM price generation with per-symbol volatility
+- Microstructure models: Student-t, Merton jumps, Heston SV, Markov regime switching
+- 50 crypto symbols, 3 exchanges (Binance, Bybit, OKX) with different fees
+- Order book with depth, partial fills, slippage, market impact
+- Options pricing (Black-Scholes, Binomial Tree, Greeks)
+- Advanced orders: Stop-Limit, Trailing Stop, OCO, Iceberg
+- Funding rates, liquidation engine, multi-exchange arbitrage detection
 
-### Dashboard Overview
+### AI Signal Bot (Python)
+- 8-stage pipeline: Data → Analysis → Strategies → Ensemble → Validation → Execution
+- 13 strategies: Trend, MeanReversion, FFT, StatArb, MarketMaking, Sentiment, MLEnsemble, CrossExchangeArb, FundingArb, Portfolio, EnsembleVoter, Marketplace, CircuitBreaker
+- 52 quant models in trading logic (Kalman, PCA, GARCH, Hawkes, Copula, Wavelet, etc.)
+- Backtesting engine with walk-forward validation
+- Risk management: VaR, CVaR, Kelly criterion, stress tests
+- Portfolio optimization: Markowitz, Black-Litterman, risk parity
+- ML: LSTM, Transformer, RL (PPO/DQN), AutoML (code exists, models not trained)
 
-![Dashboard Main](web-ui/screenshots/dashboard-main.png)
+### HFT Trade Bot (C++20)
+- Signal Engine V2: 6-indicator weighted composite (EMA, RSI, ADX, VWAP, OBI, Pressure)
+- Signal Engine V3: HMM regime detection with online Baum-Welch, Viterbi decoding
+- Smart Order Router: 5 strategies with per-exchange latency tracking
+- Lock-free SPSC queue, cache-line alignment (`alignas(64)`)
+- SHM IPC for zero-copy Python ↔ C++ communication
+- FIX 4.4 protocol implementation
+- Memory-mapped persistence for crash recovery
 
-### Market Data & Charts
+### Rust Executor
+- Memory-safe order execution via tokio-tungstenite WebSocket
+- Auto-reconnect with exponential backoff
+- Fill confirmation tracking
+- FFI interface for C++ interop
 
-![Market Data](web-ui/screenshots/panel-market-data.png)
-> _Screenshot coming soon_
-
-### Order Book
-
-![Order Book](web-ui/screenshots/panel-orderbook.png)
-> _Screenshot coming soon_
-
-### Backtest Runner
-
-![Backtest Runner](web-ui/screenshots/panel-backtest.png)
-
-### Signal Engine
-
-![Signal Engine](web-ui/screenshots/panel-signal-engine.png)
-> _Screenshot coming soon_
-
-### Positions
-
-![Positions](web-ui/screenshots/panel-positions.png)
-> _Screenshot coming soon_
-
-### Mobile View
-
-![Mobile](web-ui/screenshots/dashboard-mobile.png)
-
-### Demo GIF
-
-> **Record a demo GIF:** Use [OBS Studio](https://obsproject.com/) or [asciinema](https://asciinema.org/) to record a session, then convert to GIF:
-> ```bash
-> # Using ffmpeg to convert a recording to GIF
-> ffmpeg -i recording.mp4 -vf "fps=10,scale=1280:-1" -loop 0 demo.gif
-> ```
-> Save as `docs/demo.gif` and embed below:
-
-![Demo GIF](docs/demo.gif)
-> _Demo GIF coming soon_
+### Web UI (React 18)
+- 204 panels with React.lazy code splitting
+- Dark/light/auto theme, PWA, WCAG AA accessibility
+- Backtest comparison, session replay, strategy competition
+- Real-time WebSocket data, mock mode for standalone demo
 
 ---
 
@@ -526,207 +131,15 @@ VITE_MOCK_MODE=true npm run dev
 
 | Component | Language | Key Libraries |
 |-----------|----------|---------------|
-| Exchange Simulator | Python 3.12 | asyncio, websockets, pyyaml, numpy, orjson, msgpack |
-| AI Signal Bot | Python 3.12 | asyncio, websockets, sqlite3, numpy, torch, scipy, optuna, orjson |
-| HFT Trade Bot | C++20 | Boost, websocketpp, spdlog, fmt, nlohmann/json, yaml-cpp |
-| Rust Executor | Rust 1.75 | crossbeam, tokio, serde, cxx |
-| Web UI | JavaScript (ES2021) | React 18, Vite 8, TailwindCSS 3, lightweight-charts 4, lucide-react |
-| Communication | - | WebSocket (JSON/MessagePack), per-message deflate, SHM IPC |
-| Database | - | SQLite (WAL mode), PostgreSQL (optional), Redis (feature store) |
-| Containerization | - | Docker, docker-compose, Helm (Kubernetes) |
-| CI/CD | - | GitHub Actions (Python, C++, JS, Docker, Netlify, Security scans) |
-| Linting | - | ruff (Python), eslint (JS), clang-format (C++), cargo clippy (Rust) |
-| Testing | - | pytest (Python), CTest (C++), Vitest (JS), cargo test (Rust) |
-
----
-
-## Project Structure
-
-```
-hft-trading-system/
-├── exchange_simulator/              # Python: simulated crypto exchange (15 modules)
-│   ├── exchange_simulator/           # Core package
-│   ├── price_feed_manager.py         # Multi-API price feed integration
-│   ├── audit_logger.py               # Comprehensive audit logging
-│   ├── tests/                        # pytest tests (49 files, 484+ tests)
-│   ├── config.yaml
-│   └── Dockerfile
-├── ai-signal-bot/                   # Python: AI signal generation (60+ modules)
-│   ├── src/                          # Source modules
-│   │   ├── strategies/              # Trend, MeanRev, FFT, Ensemble, StatArb, MM, ML, Arb, Sentiment
-│   │   ├── technical_analysis/      # RSI, EMA, MACD, BB, ATR, ADX, VWAP, FFT
-│   │   ├── communication/           # WebSocket, SHM, FIX
-│   │   ├── backtesting/             # Backtester, plotter, optimizer, walk-forward
-│   │   ├── risk/                    # Risk manager, Kelly sizing, VaR, CVaR, stress test
-│   │   ├── portfolio/               # Markowitz, Black-Litterman, risk parity, rebalancing
-│   │   ├── ml/                      # LSTM, Transformer, RL, AutoML, feature store, model registry
-│   │   ├── research/                # Attribution, competition, genetic, Greeks, microstructure
-│   │   ├── pricing/                 # SVI/SABR volatility surface
-│   │   ├── signal_validation/       # Signal validator
-│   │   ├── database/                # SQLite storage
-│   │   └── monitoring/              # Performance tracking
-│   ├── tests/                        # pytest tests
-│   ├── run.py                       # Main entry point
-│   └── Dockerfile
-├── hft-executor/                    # Rust: memory-safe order executor (FFI + SPSC)
-├── hft-trade-bot/                   # C++20: HFT execution engine (50+ headers)
-│   ├── src/
-│   │   ├── core/                    # Main loop, config, logger
-│   │   ├── data/                    # Aligned types, signals
-│   │   ├── strategies/              # Signal Engine V2/V3, Pressure Model, StatArb, MeanRev, Momentum
-│   │   ├── execution/               # Smart Order Router V2, Adaptive Selector, Latency Tracker
-│   │   ├── communication/           # WebSocket, SHM IPC, signal receiver
-│   │   ├── risk/                    # Risk manager, kill switch, portfolio risk, pre-trade risk
-│   │   ├── position/                # Position manager V1/V2
-│   │   ├── ml/                      # ML model stubs (removed CUDA/ONNX in Sprint 43)
-│   │   ├── fix/                     # FIX 4.4 protocol
-│   │   ├── exchange/               # Binance, OKX, Bybit adapters
-│   │   ├── ipc/                     # SHM ring buffer, heartbeat, market data, fills
-│   │   ├── metrics/                 # Prometheus metrics collector
-│   │   ├── tracing/                 # OpenTelemetry tracer
-│   │   ├── monitoring/              # Health server, system monitor
-│   │   ├── persistence/             # Memory-mapped persistence
-│   │   └── utils/                   # Low-latency primitives (SPSC, spinlock, pool)
-│   ├── tests/                       # C++ unit tests (46 files)
-│   ├── config/config.yaml
-│   ├── CMakeLists.txt
-│   └── Dockerfile
-├── web-ui/                          # React 18: browser dashboard (227 components)
-│   ├── src/
-│   │   ├── components/              # 227 UI components (React.lazy)
-│   │   ├── contexts/                # Exchange context, theme context
-│   │   ├── test/                    # Vitest test suite (44 files)
-│   │   ├── panels/                  # Panel registry + container
-│   │   ├── hooks/                   # WebSocket, exchange, signals, theme, performance
-│   │   ├── stores/                  # Zustand state stores
-│   │   └── utils/                   # Indicators, performance, format, mock data
-│   ├── public/                      # Favicon, PWA icons
-│   ├── .env.example
-│   ├── netlify.toml
-│   ├── Dockerfile
-│   └── package.json
-├── logs/                            # Runtime logs + CSV trades (gitignored)
-├── docker-compose.yml               # 4-service orchestration (development)
-├── docker-compose.prod.yml          # Production: 4 services + PostgreSQL + Redis + Prometheus + Grafana
-├── docker-compose.hub.yml           # Pre-built Docker Hub images (no compilation needed)
-├── shared_config.yaml               # Global settings
-├── Makefile                         # install, dev, test, lint, build, docker, logs
-├── Makefile.prod                    # Production: prod-up, prod-down, prod-build, prod-logs, prod-health
-├── build-all.bat                    # Full pipeline build + test (Python + C++ + Rust + JS)
-├── run-all-tests.bat                # All-in-one test runner (7 windows: Python, JS, C++, Docker)
-├── run-cpp-tests.bat                # C++ lint (clang-format) + build (cmake) + test (ctest)
-├── ci-test.bat / ci-test.sh         # CI/CD test script (8 stages: py, cpp, rust, js — Windows + Linux)
-├── scripts/                        # Benchmark suite, walk-forward CI, utility scripts
-├── verify.bat                       # Verification script (Python + C++ + JS tests)
-├── no-docker.bat / no-docker.sh     # Start all 4 services without Docker (Windows + Linux)
-├── docker.bat / docker.sh           # Production Docker management (up, down, build, logs, ps)
-├── start.bat / start.sh             # Quick-start scripts (Windows: 6 windows, Linux: 8 windows)
-├── .env.prod.example                # Production environment template
-├── helm/                            # Kubernetes Helm chart (8 services, ingress, TLS)
-├── monitoring/                      # Prometheus config + Grafana dashboards
-├── .editorconfig
-├── .gitignore
-├── docs/                            # Documentation (27 files)
-├── .github/                         # CI workflows + issue/PR templates (bug, feature, good-first-issue)
-├── CONTRIBUTING.md                  # Architecture guide, coding standards, PR process
-├── README.md
-└── LICENSE
-```
-
----
-
-## Production Deployment
-
-The project includes a full production Docker Compose setup with monitoring:
-
-```bash
-# Copy and edit production environment
-cp .env.prod.example .env.prod
-# Edit .env.prod with your API keys and passwords
-
-# Start all production services
-docker.bat up
-# or: make -f Makefile.prod prod-up
-```
-
-Production services:
-
-| Service | Port | Description |
-|---------|------|-------------|
-| Web UI | http://localhost:3000 | React dashboard |
-| Grafana | http://localhost:3001 | Monitoring dashboards |
-| Prometheus | http://localhost:9090 | Metrics scraping |
-| Exchange Simulator | ws://localhost:8765 | Market data feed |
-| AI Signal Bot | ws://localhost:8766 | Signal publisher |
-| PostgreSQL | localhost:5432 | Trade/signal persistence |
-| Redis | localhost:6379 | Caching layer |
-
-See [Makefile.prod](Makefile.prod) for all production commands.
-
----
-
-## Makefile Commands
-
-| Command | Description |
-|---------|-------------|
-| `make install` | Install all Python + Node dependencies |
-| `make dev` | Start all services via Docker Compose |
-| `make dev-exchange` | Start only exchange simulator (headless) |
-| `make dev-signals` | Start only AI signal bot |
-| `make dev-ui` | Start only Web UI (development mode) |
-| `make test` | Run all tests (Python + JS) |
-| `make test-exchange` | Run exchange simulator tests only |
-| `make test-signals` | Run AI signal bot tests only |
-| `make test-js` | Run JS tests with coverage |
-| `make lint` | Run linters on all code (ruff + eslint) |
-| `make build` | Build Web UI for production |
-| `make docker-up` | Build and start all Docker containers |
-| `make docker-down` | Stop all Docker containers |
-| `make clean` | Remove build artifacts and caches |
-| `make logs` | View latest log files for all services |
-
----
-
-## CLI Monitor Windows
-
-`start.bat` (Windows, 6 windows) and `start.sh` (Linux, 8 windows) open terminal windows:
-
-### Service Windows (4)
-
-| # | Window | Description |
-|---|--------|-------------|
-| 1 | Exchange Simulator | Python exchange engine (ws://localhost:8765) |
-| 2 | AI Signal Bot | Python signal bot with dashboard (ws://localhost:8766) |
-| 3 | HFT Trade Bot | C++ HFT engine (requires build) |
-| 4 | Web UI | Vite dev server (http://localhost:3000) |
-
-### Monitor Windows (4)
-
-| # | Window | Script | Description |
-|---|--------|--------|-------------|
-| 5 | AI Signal Bot Monitor | `ai-signal-bot/monitor.py` | Live signal feed via WS, bot log tail, signal history |
-| 6 | HFT Trade Bot Monitor | `hft-trade-bot/monitor.py` | C++ process status, log tail with color-coded errors/warnings |
-| 7 | Error Monitor | `error_monitor.py` | Unified error+warning viewer across all 3 service logs |
-| 8 | Price & Signal Monitor | `price_monitor.py` | Live crypto prices (exchange WS) + trading signals (signal WS) + recent fills |
-
----
-
-## Logging
-
-Every service start creates a **timestamped log file** in the `logs/` directory.
-
-| Service | Log pattern | Latest file |
-|---------|------------|-------------|
-| Exchange Simulator | `logs/exchange_simulator_YYYYMMDD_HHMMSS.log` | `logs/exchange_simulator_latest.log` |
-| AI Signal Bot | `logs/ai_signal_bot_YYYYMMDD_HHMMSS.log` | `logs/ai_signal_bot_latest.log` |
-| HFT Trade Bot | `logs/hft_trade_bot_YYYYMMDD_HHMMSS.log` | `logs/hft_trade_bot_latest.log` |
-
-**CSV trade log:** `logs/trades_YYYYMMDD_HHMMSS.csv` — every fill, SL/TP close, and arbitrage execution.
-
-```bash
-make logs          # View latest logs for all services
-cat logs/trades_latest.csv | column -t -s,   # View latest trades
-```
+| Exchange Simulator | Python 3.12 | asyncio, websockets, numpy, orjson, msgpack |
+| AI Signal Bot | Python 3.12 | asyncio, numpy, torch, scipy, optuna |
+| HFT Trade Bot | C++20 | Boost, websocketpp, spdlog, fmt, nlohmann/json |
+| Rust Executor | Rust 1.75 | tokio, serde, cxx, tokio-tungstenite |
+| Web UI | JS (ES2021) | React 18, Vite, TailwindCSS, lightweight-charts |
+| Communication | — | WebSocket, SHM IPC, FIX 4.4 |
+| Database | — | SQLite (WAL), PostgreSQL (optional), Redis (optional) |
+| CI/CD | — | GitHub Actions (16 jobs: Python, C++, JS, Rust, Docker) |
+| Testing | — | pytest, CTest, Vitest, cargo test |
 
 ---
 
@@ -734,201 +147,101 @@ cat logs/trades_latest.csv | column -t -s,   # View latest trades
 
 | Document | Description |
 |----------|-------------|
-| [Architecture](docs/ARCHITECTURE.md) | System design, component overview, data flow, C++ V2/V3 engine |
-| [Setup Guide](docs/SETUP.md) | Installation, mock mode, troubleshooting |
-| [Quick Start Guide](docs/guides/QUICK_START.md) | Get up and running in 5 minutes |
-| [Trading Guide](docs/guides/TRADING_GUIDE.md) | User manual: orders, positions, strategies, risk |
-| [Development Guide](docs/guides/DEVELOPMENT_GUIDE.md) | Developer manual: setup, architecture, testing, standards |
-| [Configuration Guide](docs/guides/CONFIGURATION_GUIDE.md) | All configuration options explained |
-| [Trading Strategies](docs/TRADING_STRATEGIES.md) | All strategies, HFT V2/V3 engine, pressure model, routing |
-| [REST API Reference](docs/REST_API.md) | Complete REST API documentation for all system components |
-| [WebSocket Protocol](docs/WEBSOCKET_PROTOCOL.md) | All 29 message types, v2 schema, compression, reconnection, lifecycle |
-| [Web UI](docs/WEB_UI.md) | 204 panels, performance, testing, accessibility, PWA |
-| [Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md) | Iceberg, TWAP, trailing stops, OCO orders |
-| [Risk Management](docs/RISK_MANAGEMENT.md) | VaR, CVaR, Kelly criterion, stress testing, position risk |
-| [Monitoring Guide](docs/MONITORING_GUIDE.md) | Prometheus, Grafana, Alertmanager, tracing, health checks |
-| [Testing](docs/TESTING.md) | 208 test files: Python, C++, JS, Rust test infrastructure |
-| [Deployment Guide](docs/DEPLOYMENT.md) | Deployment procedures and best practices |
+| [Architecture](docs/ARCHITECTURE.md) | System design, component overview, data flow |
+| [Quick Start](docs/guides/QUICK_START.md) | Get running in 5 minutes |
+| [Trading Guide](docs/guides/TRADING_GUIDE.md) | Orders, positions, strategies, risk |
+| [Development Guide](docs/guides/DEVELOPMENT_GUIDE.md) | Setup, architecture, testing, standards |
+| [Configuration](docs/guides/CONFIGURATION_GUIDE.md) | All configuration options |
+| [Trading Strategies](docs/TRADING_STRATEGIES.md) | All strategies, HFT engine, routing |
+| [REST API](docs/REST_API.md) | REST API reference |
+| [WebSocket Protocol](docs/WEBSOCKET_PROTOCOL.md) | Message types, schema, reconnection |
+| [Web UI](docs/WEB_UI.md) | Panels, performance, accessibility |
+| [Advanced Orders](docs/ADVANCED_ORDER_TYPES.md) | Iceberg, TWAP, trailing stops, OCO |
+| [Risk Management](docs/RISK_MANAGEMENT.md) | VaR, CVaR, Kelly, stress testing |
+| [Monitoring](docs/MONITORING_GUIDE.md) | Prometheus, Grafana, Alertmanager |
+| [Testing](docs/TESTING.md) | Test infrastructure and coverage |
+| [Deployment](docs/DEPLOYMENT.md) | Deployment procedures |
+| [Performance](docs/PERFORMANCE.md) | Latency targets and benchmarks |
+
+---
+
+## Project Structure
+
+```
+hft-trading-system/
+├── exchange_simulator/          # Python: simulated crypto exchange
+├── ai-signal-bot/               # Python: AI signal generation (60+ modules)
+│   ├── src/
+│   │   ├── strategies/          # 13 trading strategies
+│   │   ├── technical_analysis/  # Indicators, FFT, Hawkes, Kalman, etc.
+│   │   ├── backtesting/         # Backtester, optimizer, walk-forward
+│   │   ├── risk/                # VaR, CVaR, Kelly, stress tests
+│   │   ├── portfolio/           # Markowitz, BL, risk parity
+│   │   ├── ml/                  # LSTM, Transformer, RL, AutoML
+│   │   ├── research/            # 52 quant models
+│   │   └── communication/       # WebSocket, SHM, FIX
+│   └── tests/
+├── hft-trade-bot/               # C++20: HFT execution engine
+├── hft-executor/                # Rust: order executor
+├── web-ui/                      # React 18: dashboard (227 components)
+├── docs/                        # 15 documentation files
+├── monitoring/                  # Prometheus + Grafana config
+├── docker-compose.yml           # Development
+├── docker-compose.prod.yml      # Production (+ PostgreSQL, Redis, Prometheus, Grafana)
+└── shared_config.yaml           # 50 symbol definitions
+```
 
 ---
 
 ## Configuration
 
-Each component has its own YAML config file:
+| Component | Config file |
+|-----------|------------|
+| Exchange Simulator | `exchange_simulator/config.yaml` |
+| AI Signal Bot | `ai-signal-bot/config/settings.yaml` |
+| HFT Trade Bot | `hft-trade-bot/config/config.yaml` |
+| Shared | `shared_config.yaml` |
 
-| Component | Config |
-|-----------|--------|
-| Exchange Simulator | [`exchange_simulator/config.yaml`](exchange_simulator/config.yaml) |
-| AI Signal Bot | [`ai-signal-bot/config/settings.yaml`](ai-signal-bot/config/settings.yaml) |
-| HFT Trade Bot | [`hft-trade-bot/config/config.yaml`](hft-trade-bot/config/config.yaml) |
-| Shared | [`shared_config.yaml`](shared_config.yaml) — Contains 50+ cryptocurrency symbols configuration |
+Key defaults: 50 symbols, 5m timeframe, 60s signal interval, 2% risk per trade, 8% daily drawdown limit, 65% min confidence, paper trading mode.
 
-### Symbol Configuration
+---
 
-The `shared_config.yaml` file contains the complete list of 50+ cryptocurrency symbols supported across all components:
+## Production Deployment
 
-```yaml
-symbols:
-  - BTC/USDT
-  - ETH/USDT
-  - SOL/USDT
-  - BNB/USDT
-  - ADA/USDT
-  - AVAX/USDT
-  - DOT/USDT
-  - LINK/USDT
-  - MATIC/USDT
-  - UNI/USDT
-  - XRP/USDT
-  - LTC/USDT
-  - ATOM/USDT
-  - NEAR/USDT
-  - FTM/USDT
-  - APE/USDT
-  - SAND/USDT
-  - MANA/USDT
-  - AXS/USDT
-  - ENJ/USDT
-  - GALA/USDT
-  - IMX/USDT
-  - GMT/USDT
-  - BCH/USDT
-  - ETC/USDT
-  - XLM/USDT
-  - ALGO/USDT
-  - VET/USDT
-  - THETA/USDT
-  - ICP/USDT
-  - HBAR/USDT
-  - EOS/USDT
-  - TRX/USDT
-  - XMR/USDT
-  - DASH/USDT
-  - ZEC/USDT
-  - KSM/USDT
-  - ACA/USDT
-  - GLM/USDT
-  - MASK/USDT
-  - LDO/USDT
-  - STG/USDT
-  - RPL/USDT
-  - FXS/USDT
-  - CRV/USDT
-  - AAVE/USDT
-  - COMP/USDT
-  - MKR/USDT
-  - SNX/USDT
-  - YFI/USDT
+```bash
+cp .env.prod.example .env.prod
+# Edit .env.prod with your settings
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, testing instructions, and pull request guidelines.
-
----
-
-## Training and Documentation
-
-### Quick Start
-
-New to the system? Start here:
-- **[Quick Start Guide](docs/guides/QUICK_START.md)** - Get up and running in 5 minutes
-
-### User Training
-
-Comprehensive guides for users:
-- **[Trading Guide](docs/guides/TRADING_GUIDE.md)** - Complete user manual covering all features
-  - Basic operations (placing orders, managing positions)
-  - Advanced order types (Stop-Limit, Trailing Stop, OCO, Iceberg)
-  - Audit logging and analysis
-  - Risk management best practices
-  - Trading strategies (trend following, mean reversion, arbitrage, market making)
-
-### Developer Training
-
-Resources for developers:
-- **[Development Guide](docs/guides/DEVELOPMENT_GUIDE.md)** - Complete developer manual
-  - Development environment setup
-  - Architecture overview
-  - Component development (Python, C++, React)
-  - Testing strategies
-  - Code style and standards
-  - Debugging techniques
-  - Performance optimization
-  - Contributing guidelines
-
-### Configuration Guide
-
-- **[Configuration Guide](docs/guides/CONFIGURATION_GUIDE.md)** - All configuration options explained
-
-### Detailed Documentation
-
-In-depth technical documentation:
-- **[Architecture Documentation](docs/ARCHITECTURE.md)** - System architecture and design
-- **[Advanced Order Types](docs/ADVANCED_ORDER_TYPES.md)** - Advanced order type documentation
-- **[Risk Management](docs/RISK_MANAGEMENT.md)** - VaR, CVaR, Kelly, stress testing
-- **[Monitoring Guide](docs/MONITORING_GUIDE.md)** - Prometheus, Grafana, Alertmanager, tracing
-- **[Testing](docs/TESTING.md)** - Test infrastructure and coverage
-
-### Additional Resources
-
-- **[Setup Guide](docs/SETUP.md)** - Detailed setup instructions
-- **[Trading Strategies](docs/TRADING_STRATEGIES.md)** - Trading strategy documentation
+| Service | Port | Description |
+|---------|------|-------------|
+| Web UI | 3000 | React dashboard |
+| Grafana | 3001 | Monitoring dashboards |
+| Prometheus | 9090 | Metrics scraping |
+| Exchange Simulator | 8765 | Market data (WebSocket) |
+| AI Signal Bot | 8766 | Signal publisher (WebSocket) |
+| PostgreSQL | 5432 | Trade persistence (optional) |
+| Redis | 6379 | Caching (optional) |
 
 ---
 
 ## Troubleshooting
 
-### WebSocket connection refused
-- Ensure exchange simulator is running first: `python -m exchange_simulator --no-visualizer`
-- Check ports 8765 (exchange) and 8766 (signals) are not in use
-
-### Web UI shows no data
-- Check WebSocket status indicators in the header (green = connected)
-- Try mock mode: `VITE_MOCK_MODE=true npm run dev`
-- WebSocket uses exponential backoff for reconnection
-
-### C++ build fails
-- Install dependencies: `sudo apt-get install cmake libboost-dev libboost-system-dev libssl-dev libwebsocketpp-dev libspdlog-dev libfmt-dev nlohmann-json3-dev libyaml-cpp-dev`
-- Ensure C++20 compatible compiler (GCC 13+, Clang 17+)
-
-### Chunk load failure (Web UI)
-- ChunkRetryBoundary auto-retries 3 times with backoff
-- Clear browser cache or hard refresh
-
-### SHM permission denied
-- Ensure `/dev/shm` is writable (Docker: `--shm-size=256m`)
-
-### FIX port conflicts
-- Default FIX port is 8767; check no other process is using it
-
----
-
-## Supply Chain Security
-
-All project dependencies have been verified against official registries (PyPI, npm, crates.io):
-
-- **48 unique packages** checked across Python (`requirements.txt`, `requirements-dev.txt`), npm (`package.json`), and Rust (`Cargo.toml`)
-- **No typosquatting** — all package names match official registry entries exactly
-- **No fake/malicious packages** — every package verified on PyPI, npmjs.com, or crates.io with significant download counts
-- **Lock files present** — `package-lock.json` (npm) and `Cargo.lock` (Rust) provide hash verification
-- **No registry redirection** — no `.npmrc` or `pip.conf` found pointing to third-party registries
-- **Optional dependencies guarded** — `torch`, `scikit-learn`, `scipy`, `optuna`, `redis`, `asyncpg`, `ccxt`, `structlog`, `opentelemetry` all use `try/except ImportError` fallbacks
-
-**Recommendation:** Add `pip-compile --generate-hashes` or `uv lock` for Python hash pinning (currently missing — pip does not verify package hashes without `--require-hashes`).
+| Problem | Solution |
+|---------|----------|
+| WebSocket connection refused | Start exchange simulator first: `python -m exchange_simulator --no-visualizer` |
+| Web UI shows no data | Check WS status indicators, try `VITE_MOCK_MODE=true npm run dev` |
+| C++ build fails | Install Boost, websocketpp, spdlog, fmt, nlohmann-json, yaml-cpp. Need C++20 compiler. |
+| SHM permission denied | Ensure `/dev/shm` writable. Docker: `--shm-size=256m` |
+| FIX port conflict | Default port 8767, check no other process uses it |
 
 ---
 
 ## Disclaimer
 
-This is a **paper trading simulator** for educational purposes. No real exchange API is used, no real money is involved, and no financial advice is provided. All market data is synthetically generated.
-
----
+**Paper trading simulator for educational purposes.** No real exchange API, no real money, no financial advice. All market data is synthetically generated.
 
 ## License
 
-**Apache License 2.0.** See [LICENSE](LICENSE)
-
-This is **not** financial advice. This is **not** a trading bot for real exchanges. No real money is involved.
+Apache License 2.0. See [LICENSE](LICENSE).

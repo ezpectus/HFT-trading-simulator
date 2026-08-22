@@ -726,7 +726,7 @@ shm:
 ## References
 
 - [Architecture Documentation](ARCHITECTURE.md)
-- [Configuration Reference](CONFIGURATION_REFERENCE.md)
-- [Setup Guide](SETUP.md)
+- [Configuration Guide](guides/CONFIGURATION_GUIDE.md)
+- [Quick Start Guide](guides/QUICK_START.md)
 - [Docker Compose Configuration](../docker-compose.yml)
 - [Monitoring Configuration](../monitoring/prometheus.yml)

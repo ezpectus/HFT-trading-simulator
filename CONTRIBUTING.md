@@ -198,7 +198,7 @@ pip install ruff          # Python linter
 cd web-ui && npm run lint # JS linter (MUST be in web-ui directory!)
 ```
 
-For full setup instructions, see [docs/SETUP.md](docs/SETUP.md).
+For full setup instructions, see [docs/guides/QUICK_START.md](docs/guides/QUICK_START.md).
 
 ## Running Tests
 
@@ -431,65 +431,47 @@ python -m exchange_simulator --export --export-format parquet
 ## Project Structure
 
 ```
-hft-trading-simulator/
+hft-trading-system/
 ├── exchange_simulator/           # Python: simulated crypto exchange
-│   ├── exchange_simulator/        # Core package (14 modules)
+│   ├── exchange_simulator/        # Core package
 │   ├── tests/                     # pytest tests
 │   ├── config.yaml
-│   ├── pyproject.toml             # ruff config
 │   └── Dockerfile
 ├── ai-signal-bot/                # Python: AI signal generation
-│   ├── src/                      # Source modules
-│   │   ├── strategies/           # Trend, Mean Reversion, FFT, Ensemble
-│   │   ├── technical_analysis/   # RSI, EMA, MACD, BB, ATR, ADX, VWAP
-│   │   ├── communication/        # WebSocket client + signal publisher
-│   │   ├── backtesting/          # Backtester, plotter, optimizer, order book replay
-│   │   ├── risk/                 # Risk manager, Kelly position sizing
-│   │   ├── signal_validation/    # Signal validator
-│   │   ├── database/             # SQLite storage
-│   │   └── monitoring/           # Performance tracking
+│   ├── src/
+│   │   ├── strategies/           # 13 trading strategies
+│   │   ├── technical_analysis/   # Indicators, FFT, Hawkes, Kalman, etc.
+│   │   ├── communication/        # WebSocket, SHM, FIX
+│   │   ├── backtesting/          # Backtester, optimizer, walk-forward
+│   │   ├── risk/                 # VaR, CVaR, Kelly, stress tests
+│   │   ├── portfolio/            # Markowitz, BL, risk parity
+│   │   ├── ml/                   # LSTM, Transformer, RL, AutoML
+│   │   ├── research/             # 52 quant models
+│   │   └── signal_validation/    # Signal validator
 │   ├── tests/                     # pytest tests
 │   ├── run.py                    # Main entry point
 │   ├── run_backtest.py           # Backtest runner
-│   ├── config/settings.yaml
-│   ├── pyproject.toml            # ruff config
-│   └── Dockerfile
+│   └── config/settings.yaml
 ├── hft-trade-bot/                # C++20: HFT execution engine
-│   ├── src/                      # Source headers
-│   │   ├── core/                 # Main loop, config, logger
-│   │   ├── strategies/           # Signal engine (6 indicators)
-│   │   ├── communication/        # WebSocket receiver
-│   │   ├── execution/            # Order executor, type selector
-│   │   ├── risk/                 # Risk manager
-│   │   ├── position/             # Position manager
-│   │   └── data/                 # Data types
-│   ├── tests/                    # C++ unit tests
+│   ├── src/                      # Signal V2/V3, SHM IPC, FIX, risk
+│   ├── tests/                    # C++ tests
 │   ├── config/config.yaml
 │   └── CMakeLists.txt
-├── web-ui/                       # React 18: browser dashboard
+├── hft-executor/                 # Rust: order executor (FFI + WebSocket)
+├── web-ui/                       # React 18: dashboard (227 components)
 │   ├── src/
-│   │   ├── components/           # 201+ UI components (191+ registered panels)
-│   │   ├── panels/               # Panel registry + container (ErrorBoundary + Suspense)
-│   │   ├── hooks/                # WebSocket, exchange data, signals, theme, sound, detachable,
-│   │   │                         #   useLocalStorage (generic persistence), useKeyboardShortcuts,
-│   │   │                         #   useDebounce (search/filter), useMediaQuery (responsive)
-│   │   └── utils/                # Indicators, performance, format, timeframes, patterns
-│   ├── .env.example              # WebSocket URL + mock mode configuration
-│   ├── netlify.toml              # Netlify deployment config
-│   ├── eslint.config.js          # ESLint 9 flat config
-│   ├── Dockerfile                # Multi-stage (node + nginx)
-│   ├── nginx.conf
+│   │   ├── components/           # UI components (React.lazy)
+│   │   ├── panels/               # Panel registry
+│   │   ├── hooks/                # WebSocket, exchange, signals, theme
+│   │   └── utils/                # Indicators, format, mock data
 │   └── package.json
-├── docs/                         # Documentation (8 files)
-├── .github/                      # CI workflows + issue/PR templates
-├── logs/                         # Timestamped log files (auto-created)
-├── docker-compose.yml            # 4-service orchestration
-├── shared_config.yaml            # Global settings
-├── Makefile                      # install, dev, test, test-js, lint, build, docker, logs
-├── install-deps.bat              # One-command dependency installer (Python + C++ + Node)
-├── no-docker.bat                 # Start all 4 services without Docker (Windows)
-├── start.bat / start.sh          # Quick-start scripts (8 windows: 4 services + 4 monitors)
-└── .editorconfig
+├── docs/                         # Documentation (15 files)
+├── monitoring/                   # Prometheus + Grafana config
+├── docker-compose.yml            # Development
+├── docker-compose.prod.yml       # Production (+ PostgreSQL, Redis, Prometheus, Grafana)
+├── shared_config.yaml            # 50 symbol definitions
+├── Makefile                      # install, dev, test, lint, build, docker
+└── install-deps.bat              # One-command dependency installer
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture overview.
@@ -548,7 +530,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture overv
 2. Implement in appropriate module (`exchange.py`, `market_simulator.py`, etc.)
 3. Add validation to `config_validator.py`
 4. Write tests in `exchange_simulator/tests/`
-5. Update `docs/EXCHANGE_SIMULATOR.md` if needed
+5. Update `docs/ARCHITECTURE.md` if needed
 
 ## Pull Requests
 
