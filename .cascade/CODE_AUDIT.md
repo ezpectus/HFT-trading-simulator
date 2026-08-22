@@ -692,3 +692,98 @@ Most `useEffect` hooks have proper cleanup functions:
 - `KeyboardHelp.jsx` — event listener cleanup ✅
 
 Chart components (`CandleChart.jsx`, `BacktestRunner.jsx`) create charts in `useEffect` but cleanup is inconsistent — some use `chart.remove()` in the next effect run, not in a cleanup function. Minor memory leak on unmount.
+
+### 8.36 No network timeout in YAML config — Medium
+
+**Файлы:** `ai-signal-bot/config/settings.yaml`, `hft-trade-bot/config/config.yaml`
+
+Grep for `timeout` in `ai-signal-bot/config/` = 0 matches. No configurable timeout for:
+- WebSocket connections to exchanges
+- HTTP API calls
+- DB operations
+- Inter-service communication
+
+All timeouts are hardcoded in source code (e.g., `aiohttp.ClientTimeout(total=10)` in `real_exchange_client.py:94`). Changing a timeout requires a code change + redeploy, not a config update.
+
+**Фикс:** Add `network:` section to config: `ws_timeout: 30`, `http_timeout: 10`, `db_timeout: 30`.
+
+### 8.37 Prometheus: no scrape for HFT metrics path — Low
+
+**Файл:** `monitoring/prometheus.yml:28-31`
+
+```yaml
+- job_name: "hft-trade-bot"
+  static_configs:
+    - targets: ["hft-trade-bot:9091"]
+  metrics_path: /metrics
+```
+
+Prometheus scrapes `hft-trade-bot:9091/metrics`, but the C++ bot exposes health on `/health` (Docker healthcheck uses `wget http://localhost:9091/health`). Need to verify that `/metrics` endpoint actually exists in the C++ code. If not, Prometheus gets 404 and no metrics are collected.
+
+### 8.38 Alert rules: no HFT-specific alerts — Low
+
+**Файл:** `monitoring/alerts/alerts.yml`
+
+All alerts reference `exchange_simulator_*` or `ai_signal_bot_*` metrics. No alerts for:
+- HFT executor order/fill ratio
+- HFT executor error count
+- HFT executor reconnect count
+- Signal publisher client count
+- Signal publisher broadcast failures
+- DB locked errors
+- Circuit breaker state changes
+
+### 8.39 CI/CD — ✅ Very comprehensive
+
+**Файл:** `.github/workflows/ci.yml` (647 lines)
+
+| Job | Status |
+|-----|--------|
+| lint-python (ruff) | ✅ |
+| lint-cpp (clang-format) | ✅ |
+| lint-js (eslint) | ✅ |
+| test-python (pytest + coverage) | ✅ |
+| test-cpp (gcc + clang, coverage) | ✅ |
+| test-cpp-msvc (Windows) | ✅ |
+| test-js (vitest + coverage) | ✅ |
+| test-rust (cargo test) | ✅ |
+| test-windows (Python + JS) | ✅ |
+| test-e2e (Playwright) | ✅ |
+| build-js (bundle size check) | ✅ |
+| build-docker (4 services) | ✅ |
+| docker-smoke (compose up + health) | ✅ |
+| audit-deps (npm audit) | ✅ |
+| security-bandit | ✅ |
+| security-codeql | ✅ |
+| test-summary (aggregate) | ✅ |
+| test-count (minimum floor enforcement) | ✅ |
+
+This is an exceptionally well-configured CI pipeline. ✅
+
+### 8.40 CI: npm audit doesn't fail on high — Low
+
+**Файл:** `.github/workflows/ci.yml:332`
+
+```yaml
+- run: npm audit --audit-level=high || true
+```
+
+`|| true` means npm audit never fails the CI. High-severity vulnerabilities are reported but don't block the build. Only `critical` gets a `::warning::` (line 339), which is also non-blocking.
+
+### 8.41 CI: Bandit doesn't fail on issues — Low
+
+**Файл:** `.github/workflows/ci.yml:399`
+
+```yaml
+- run: bandit -r . -ll -ii -q -f json -o bandit-report.json || true
+```
+
+Same pattern — `|| true` means Bandit never fails CI. Issues are uploaded as artifacts but don't block.
+
+### 8.42 No config schema validation — Medium
+
+**Файлы:** `ai-signal-bot/config/settings.yaml`, `src/config/__init__.py`
+
+No pydantic schema or JSON Schema for config validation. If someone puts `risk_pct: "2%"` (string instead of float) in YAML, the bot loads it, then crashes at runtime when it tries `balance * risk_pct / 100` → `TypeError`.
+
+**Фикс:** Pydantic `BaseModel` for config sections: `RiskConfig`, `StrategyConfig`, `NetworkConfig`. Validate at load time with clear error messages.

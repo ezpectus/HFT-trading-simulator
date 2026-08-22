@@ -101,3 +101,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Rust unwrap/expect panic | Process crash on runtime failure | CODE_AUDIT §8.29 |
 | Rust no idempotency | Reconnect = exchange can't deduplicate orders | CODE_AUDIT §8.30 |
 | Rust string matching for fills | Fragile, false positives | CODE_AUDIT §8.32 |
+| No network timeout in config | Timeouts hardcoded, need redeploy to change | CODE_AUDIT §8.36 |
+| No config schema validation | Wrong type in YAML → runtime TypeError | CODE_AUDIT §8.42 |
+| No HFT alert rules | HFT errors, DB locks, CB changes not alerted | CODE_AUDIT §8.38 |
+| CI: npm audit non-blocking | High-severity vulns don't fail CI | CODE_AUDIT §8.40 |

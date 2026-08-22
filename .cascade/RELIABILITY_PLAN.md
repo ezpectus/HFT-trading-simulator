@@ -585,3 +585,9 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R28 | Rust: string matching for fills | `hft-executor/lib.rs:209` | Low | `text.contains("fill")` instead of JSON parsing. Fragile |
 | R29 | exchange_simulator exceptions | `exchange_simulator/` | ✅ Clean | Only `except ImportError` for optional deps. No broad catches |
 | R30 | C++ raw pointers | `hft-trade-bot/src/` | ✅ Clean | All smart pointers (`unique_ptr`, `make_unique`). No manual new/delete |
+| R31 | No network timeout in config | `config/settings.yaml` | Medium | All timeouts hardcoded in source. Changing timeout = code change + redeploy |
+| R32 | Prometheus HFT metrics path | `prometheus.yml:28` | Low | Scrapes `/metrics` but C++ bot may only expose `/health`. Possible 404 |
+| R33 | No HFT-specific alert rules | `alerts.yml` | Low | No alerts for HFT executor, signal publisher, DB locked, circuit breaker changes |
+| R34 | CI/CD pipeline | `.github/workflows/ci.yml` | ✅ Excellent | 18 jobs: lint, test, build, docker, security, e2e, coverage, test-count floor |
+| R35 | CI: npm audit non-blocking | `ci.yml:332` | Low | `|| true` means high-severity vulns don't fail CI |
+| R36 | No config schema validation | `config/settings.yaml` | Medium | No pydantic/schema. Wrong type in YAML → runtime TypeError |

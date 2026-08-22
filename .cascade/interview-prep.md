@@ -810,3 +810,79 @@ fn is_fill_message(text: &str) -> bool {
 ```
 
 **Why it matters at scale:** String matching is fragile — it matches substrings anywhere in the message. As the exchange evolves and adds new message types (e.g., `"type":"refill_notification"`, `"type":"buffer_filled"`), the fill counter inflates with false positives. You think you got 100 fills, but 30 were false matches. In a trading system, wrong fill counts mean wrong P&L, wrong position tracking, wrong risk calculations. The good version parses the JSON and checks the `type` field exactly. No false positives, no ambiguity. In a system with 1000 users processing 10,000 messages/day, string matching could cause 300,000 false fill counts/day — rendering the fill tracker useless.
+
+---
+
+### Example 23: No Config Schema Validation (Runtime Crashes)
+
+**BAD** — `config/settings.yaml` + `config/__init__.py`:
+```yaml
+# settings.yaml
+risk:
+  risk_pct: 2        # ← what if someone writes "2%" or "two"?
+  max_daily_drawdown: 8
+```
+
+```python
+# config/__init__.py — no validation
+risk_pct = config.get("risk", {}).get("risk_pct", 2)
+# ... later in trading loop:
+risk_amount = balance * risk_pct / 100
+# If risk_pct = "2%" → TypeError: unsupported operand type(s)
+# If risk_pct = "2" → works (string * float = error in Python 3)
+```
+
+**GOOD**:
+```python
+from pydantic import BaseModel, validator
+
+class RiskConfig(BaseModel):
+    risk_pct: float = 2.0
+    max_daily_drawdown: float = 8.0
+
+    @validator("risk_pct")
+    def risk_pct_must_be_valid(cls, v):
+        if not 0 < v <= 100:
+            raise ValueError("risk_pct must be between 0 and 100")
+        return v
+
+class Settings(BaseModel):
+    risk: RiskConfig
+    # ... other sections
+
+# At load time:
+config = Settings(**yaml.safe_load(open("settings.yaml")))
+# If risk_pct = "2%" → ValidationError: value is not a valid float
+# Clear error at startup, not a crash mid-trading
+```
+
+**Why it matters at scale:** Without schema validation, a typo in YAML config causes a runtime crash hours or days into operation. `risk_pct: 2%` passes `yaml.safe_load` (it's a valid string), passes config loading (no validation), then crashes on the first trade attempt: `TypeError: unsupported operand type(s) for *: 'float' and 'str'`. The bot has been running for hours, then crashes on the first signal. With 1000 users, that's 1000 bots crashing simultaneously because of a config typo. The good version validates at startup — if the config is wrong, the bot refuses to start with a clear error message. No silent runtime crashes. In a trading system, failing fast at startup is infinitely better than failing mid-trade.
+
+---
+
+### Example 24: Hardcoded Timeouts (No Config Flexibility)
+
+**BAD** — `real_exchange_client.py:94`:
+```python
+self._session = aiohttp.ClientSession(
+    timeout=aiohttp.ClientTimeout(total=10)  # ← hardcoded
+)
+```
+
+**GOOD**:
+```python
+# config/settings.yaml
+network:
+  ws_timeout: 30
+  http_timeout: 10
+  db_timeout: 30
+  reconnect_delay: 5
+  max_reconnects: 10
+
+# real_exchange_client.py
+self._session = aiohttp.ClientSession(
+    timeout=aiohttp.ClientTimeout(total=config.network.http_timeout)
+)
+```
+
+**Why it matters at scale:** A hardcoded 10s timeout might be fine for Binance (fast API), but too short for a slow exchange in Asia (200ms RTT + processing). When a user in Singapore connects to a US exchange, 10s might not be enough for heavy order book snapshots. To change the timeout, you need to: edit source code → commit → CI → build Docker image → deploy. That's 30+ minutes of downtime for a 1-number change. The good version puts timeouts in config — change YAML, restart pod, done in 30 seconds. With 1000 users across different regions, each needing different timeouts, hardcoded values are unworkable. Config-driven timeouts let each deployment tune to its network conditions without code changes.
