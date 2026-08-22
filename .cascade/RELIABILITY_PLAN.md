@@ -713,3 +713,16 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R156 | C++ 3 signal engines (v1/v2/v3) | `signal_engine*.h` | Medium | 3 versions in BotContext. V2 may be dead code (only through V3). ~200 lines reducible |
 | R157 | C++ shm: no cleanup on crash | `shm_ring_buffer.h:168` | Info | shm_unlink not called on crash. Stale segment persists. Already noted R92 |
 | R158 | C++ shm: stale data on restart | `shm_ring_buffer.h:134` | Low | Magic/capacity validation passes but head/tail may be inconsistent after crash |
+| R159 | C++ adaptive_order_selector_v2 | `adaptive_order_selector_v2.h` | ✅ Excellent | Dynamic IOC/FOK/GTD/PostOnly, confidence/spread/toxicity/OBI, const char* reason, noexcept |
+| R160 | C++ mean_reversion_v2 | `mean_reversion_v2.h` | ✅ Excellent | OU + KalmanFilter1D, z-score, vol-scaled entry/exit, half-life holding, no heap |
+| R161 | C++ statistical_arb_v2 | `statistical_arb_v2.h` | ✅ Excellent | Engle-Granger cointegration, Kalman hedge ratio, z-score entry/exit/stop, no heap |
+| R162 | C++ momentum_breakout_v2 | `momentum_breakout_v2.h` | ✅ Good | EMA stack 9/21/50/200, volume confirm, ATR breakout, ADX-gated, no heap |
+| R163 | C++ inline_indicators | `inline_indicators.h` | ✅ Excellent | O(1) EMA/RSI/ADX/VWAP/ATR, StringHash transparent (no string alloc), [[unlikely]] |
+| R164 | C++ system_monitor | `system_monitor.h` | ✅ Excellent | 11 atomic counters, fetch_add(relaxed), snapshot, fill/rejection rate, MemoryTracker |
+| R165 | C++ system_monitor: snprintf done right | `system_monitor.h:110-127` | ✅ Good | min(n, sizeof-1) truncation guard + n<=0 check. Contrast with order_executor §8.118 |
+| R166 | C++ types.h | `types.h` | ✅ Good | Candle/OrderBook/Order/Position, empty checks, optional<double> price, PnL with fees |
+| R167 | C++ types.h: string_to_side no validation | `types.h:21-23` | Low | Any non-"BUY" string → SELL. "buy", "HOLD", garbage → SELL silently |
+| R168 | web-ui: setInterval cleanup | `components/*.jsx` | ✅ Good | All 6 setInterval calls have clearInterval cleanup in useEffect return |
+| R169 | web-ui: 50+ components code reduction | `components/` | Medium | Many math viz panels may be unused. ~1000+ lines reducible if 10-15 dead |
+| R170 | C++ system_monitor: snapshot not atomic | `system_monitor.h:76-93` | Low | 11 separate relaxed loads. Inconsistent snapshot. Acceptable for monitoring |
+| R171 | C++ strategies: 5 strategy files | `strategies/*.h` | ✅ Good | mean_reversion, stat_arb, momentum, market_making, pressure_model — all no heap, research-grade |

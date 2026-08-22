@@ -163,3 +163,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ 3 signal engines (v1/v2/v3) | V2 may be dead code, ~200 lines reducible | CODE_AUDIT §8.176 |
 | migrate.py: narrow exception | Doesn't catch asyncpg.PostgresError | CODE_AUDIT §8.174 |
 | SHM stale data on restart | Magic passes but head/tail inconsistent after crash | CODE_AUDIT §8.177 |
+| C++ string_to_side no validation | Any non-"BUY" string silently → SELL | CODE_AUDIT §8.186 |
+| web-ui: 50+ components, many unused | Math viz panels may be dead code, ~1000+ lines reducible | CODE_AUDIT §8.188 |

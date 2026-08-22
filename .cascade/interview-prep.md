@@ -2163,3 +2163,67 @@ struct BotContext {
 ```
 
 **Why it matters at scale:** Version sprawl is a common anti-pattern in fast-moving projects. V1 was the original, V2 added indicators, V3 added HMM regime detection. Instead of replacing V1 with V2 and V2 with V3, all 3 were kept "just in case." Now there are 1131 lines of signal engine code, but only V3 is used in production. V2 is compiled twice (standalone and inside V3). V1 is a fallback that may have rotted — when was the last time someone tested it? With 1000 users, if someone accidentally switches to V1 (config typo), they get a degraded engine that hasn't been tested in months. The good version uses polymorphism — one `SignalEngine` interface, version selected at runtime via config. V3 composes V2 (has-a, not is-a), avoiding double compilation. V1 is simplified to 50 lines (just EMA crossover — that's all a fallback needs). Total: 500 lines instead of 1131 — 57% reduction. The benefit is clear: one code path to test, one set of params, one place to fix bugs. New developers know exactly which engine to modify. The fallback is simple enough to test every CI run.
+
+---
+
+### Example 46: Silent Default — string_to_side Returns SELL for Anything
+
+**BAD** — `types.h:21-23`:
+```cpp
+inline Side string_to_side(const std::string& s) {
+    return s == "BUY" ? Side::BUY : Side::SELL;
+}
+
+// What happens with different inputs?
+string_to_side("BUY")    → Side::BUY   ✓
+string_to_side("SELL")   → Side::SELL  ✓ (by accident, not by design)
+string_to_side("buy")    → Side::SELL  ✗ — lowercase, should be BUY
+string_to_side("Buy")    → Side::SELL  ✗ — case-sensitive, should be BUY
+string_to_side("HOLD")   → Side::SELL  ✗ — not a valid side
+string_to_side("")       → Side::SELL  ✗ — empty string
+string_to_side("BUY\n")  → Side::SELL  ✗ — trailing newline from file
+string_to_side("garbage") → Side::SELL ✗ — silent wrong answer
+
+// Scenario:
+// 1. Config file has: side: "buy"  (lowercase, from user input)
+// 2. string_to_side("buy") → Side::SELL
+// 3. Bot sends SELL order instead of BUY
+// 4. Position is inverted — bot loses money on every trade
+// 5. No error, no warning, no log — silent wrong answer
+```
+
+**GOOD**:
+```cpp
+inline Side string_to_side(const std::string& s) {
+    // Case-insensitive comparison
+    std::string lower;
+    lower.reserve(s.size());
+    for (char c : s) lower.push_back(static_cast<char>(std::tolower(c)));
+
+    if (lower == "buy")  return Side::BUY;
+    if (lower == "sell") return Side::SELL;
+
+    // Explicit error on anything else
+    throw std::invalid_argument("Invalid side: '" + s + "'. Expected 'BUY' or 'SELL'");
+}
+
+// Or: return std::optional<Side> for non-throwing contexts
+inline std::optional<Side> string_to_side(const std::string& s) noexcept {
+    std::string lower;
+    lower.reserve(s.size());
+    for (char c : s) lower.push_back(static_cast<char>(std::tolower(c)));
+
+    if (lower == "buy")  return Side::BUY;
+    if (lower == "sell") return Side::SELL;
+    return std::nullopt;  // Caller must handle
+}
+
+// Usage with optional:
+auto side = string_to_side(config_value);
+if (!side) {
+    logger.error("Invalid side in config: '{}'", config_value);
+    return;  // Don't trade with wrong side
+}
+```
+
+**Why it matters at scale:** Silent defaults are one of the most dangerous bugs in trading systems. The function looks correct — it handles "BUY" and defaults everything else to "SELL". But the default is **wrong**. Any input that's not exactly "BUY" (case-sensitive) becomes a SELL order. With 1000 users, someone will write "buy" in their config (lowercase). Someone will have a trailing newline from a YAML parser. Someone will have a typo ("BUI"). All of them get SELL orders instead of BUY. The bot opens short positions when the user wanted long positions. Every trade loses money. No error, no warning — the bot happily trades in the wrong direction. The good version does case-insensitive comparison and throws (or returns `nullopt`) on anything that's not "BUY" or "SELL". The cost is 5 lines. The benefit is that no user ever gets a silent wrong order side. In a trading system, a silent wrong side means real money lost — not a bug you can fix later, but money that's gone. With 1000 users each losing $100 on a wrong-side trade, that's $100,000 lost to a 1-line bug.

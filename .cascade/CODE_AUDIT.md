@@ -2470,3 +2470,143 @@ V3 wraps V2 (includes `signal_engine_v2.h`). V1 is the fallback. This is 3 versi
 Already noted in §8.95 (R92). On POSIX, if the C++ process crashes, `shm_unlink` is not called — the shared memory segment persists in `/dev/shm/`. On restart, `shm_open` with `O_CREAT` will open the existing segment with stale data. The magic/capacity validation will pass, but head/tail may be in an inconsistent state.
 
 **Фикс:** On open (not create), reset head/tail to 0 if the data is stale (e.g., check heartbeat timestamp).
+
+### 8.178 C++ adaptive_order_selector_v2.h: dynamic order type — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/execution/adaptive_order_selector_v2.h` (223 lines)
+
+Selects order type (IOC/FOK/GTD/PostOnly) based on:
+- Confidence thresholds (high/low/emergency)
+- Spread (tight/wide bps)
+- Toxicity score
+- OBI urgency
+- Large order vs depth ratio
+- GTD duration in seconds
+
+Returns `FastOrder::OrderKind` + limit price + expire_ns + reason. `const char*` reason (no heap alloc). `noexcept` on select(). ✅
+
+### 8.179 C++ mean_reversion_v2.h: OU + Kalman filter — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h` (301 lines)
+
+Ornstein-Uhlenbeck based mean reversion with Kalman filter fair price:
+- `KalmanFilter1D` — predict/update cycle, process/measurement noise configurable
+- OU parameter estimation (κ, θ, σ) from price history
+- Z-score from OU residual
+- Volatility-scaled entry/exit thresholds
+- Half-life based position holding
+- No heap allocations, all fixed-size arrays
+
+Research-grade implementation. ✅
+
+### 8.180 C++ statistical_arb_v2.h: cointegration pair trading — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/statistical_arb_v2.h` (252 lines)
+
+Engle-Granger 2-step cointegration test with Kalman filter adaptive hedge ratio:
+- Entry/exit/stop z-score thresholds
+- OLS regression window (configurable, capped at MAX_WINDOW)
+- Kalman filter for hedge ratio adaptation
+- 5 signal actions: NONE, LONG_SHORT, SHORT_LONG, CLOSE, STOP
+- Min samples before trading (200 default)
+- No heap allocations in hot path
+
+### 8.181 C++ momentum_breakout_v2.h: multi-timeframe momentum — ✅ Good
+
+**Файл:** `hft-trade-bot/src/strategies/momentum_breakout_v2.h` (204 lines)
+
+EMA stack (9/21/50/200) with slope detection, volume confirmation (1.5× average), ATR-based breakout level, ADX-gated (only trade when ADX > 25). No heap allocations. ✅
+
+### 8.182 C++ inline_indicators.h: O(1) indicators — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/inline_indicators.h` (295 lines)
+
+O(1) per-update inline indicators:
+- `InlineEMA` — `k = 2/(period+1)`, `[[unlikely]]` on first init
+- `InlineRSI` — Wilder's smoothing
+- `InlineADX` — DI+/DI- with Wilder's smoothing
+- `InlineVWAP` — cumulative volume × price / cumulative volume
+- `InlineATR` — Wilder's smoothing
+
+`StringHash` with `is_transparent` — enables `find(const char*)` without `std::string` allocation. This is a C++20 best practice for `unordered_map` with string keys. ✅
+
+### 8.183 C++ system_monitor.h: atomic metrics — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/monitoring/system_monitor.h` (205 lines)
+
+11 atomic counters: ORDERS_SENT, ORDERS_FILLED, ORDERS_REJECTED, ORDERS_CANCELED, SIGNALS_RECEIVED, SIGNALS_PROCESSED, ERRORS, RECONNECTS, SHM_DROPS, HEARTBEATS_SENT, HEARTBEATS_MISSED.
+
+- `increment()` — `fetch_add(relaxed)`, no locks
+- `snapshot()` — consistent point-in-time read of all metrics
+- `fill_rate()` / `rejection_rate()` — computed from atomic counters
+- `format_json()` — `snprintf` with `min(n, sizeof(buf)-1)` truncation guard (unlike `order_executor.h` §8.118)
+- `reset()` — stores 0 to all counters, resets start_time
+- `MemoryTracker` class for approximate memory usage
+
+### 8.184 C++ system_monitor: format_json snprintf — ✅ Good
+
+**Файл:** `hft-trade-bot/src/monitoring/system_monitor.h:110-127`
+
+Unlike `order_executor.h` (§8.118), this `snprintf` correctly truncates:
+```cpp
+n = std::min(n, static_cast<int>(sizeof(buf) - 1));
+return std::string(buf, static_cast<size_t>(n));
+```
+
+Also checks `n <= 0` and returns `"{}"`. This is the correct pattern for `snprintf` to JSON. ✅
+
+### 8.185 C++ types.h: core data structures — ✅ Good
+
+**Файл:** `hft-trade-bot/src/data/types.h` (92 lines)
+
+Clean data structures:
+- `Candle` — OHLCV + symbol + exchange
+- `OrderBook` — bids/asks vectors, `best_bid()`, `best_ask()`, `spread()`, `mid_price()` with empty checks
+- `Order` — `std::optional<double> price` (nullopt for market orders)
+- `Position` — `update_pnl()` with fees + funding deduction
+
+`OrderBook::best_bid()` correctly checks `bids.empty()` before accessing `bids[0]`. ✅
+
+### 8.186 C++ types.h: string_to_side no validation — Low
+
+**Файл:** `hft-trade-bot/src/data/types.h:21-23`
+
+```cpp
+inline Side string_to_side(const std::string& s) {
+    return s == "BUY" ? Side::BUY : Side::SELL;
+}
+```
+
+Any string that's not "BUY" returns `Side::SELL`. If the input is "buy" (lowercase), "Buy", "SELL", "HOLD", or garbage, it returns `Side::SELL`. This is a silent default that could lead to incorrect order sides.
+
+**Фикс:** Throw on invalid input, or add explicit `"SELL"` check with error on anything else.
+
+### 8.187 web-ui: 50+ components with proper interval cleanup — ✅ Good
+
+**Файлы:** `web-ui/src/components/*.jsx` (50+ files)
+
+All `setInterval` calls in web-ui components have proper `clearInterval` cleanup:
+- `BotStatus.jsx:64-66` — `setInterval` + `clearInterval` in useEffect return
+- `ExecutionBot.jsx:92,95-99` — `intervalRef.current` + cleanup on unmount
+- `ReconnectBanner.jsx:23-25` — `setInterval` + `clearInterval` in return
+- `SessionReplay.jsx:40-42,54-57` — both recording and playback intervals cleaned
+- `MarketDepthReplay.jsx:74` — playback interval with cleanup
+- `TradeReplay.jsx:55` — auto-play interval with cleanup
+
+No memory leaks from uncleared intervals. ✅
+
+### 8.188 web-ui: 50+ components — code reduction opportunity — Medium
+
+**Файл:** `web-ui/src/components/` (50+ files)
+
+50+ JSX components is a large UI surface. Many appear to be specialized visualization panels (AffineArithmetic, ArzelaAscoli, BanachFixedPoint, BurgersEquation, CameronMartinFormula, CesaroFejerKernel, etc.). These are mathematical/scientific visualization components that may not all be actively used.
+
+**Code reduction:** Audit which components are actually rendered in the app. Unused components can be removed. Potential ~1000+ lines reduction if 10-15 components are dead code.
+
+### 8.189 C++ system_monitor: snapshot not atomic — Low
+
+**Файл:** `hft-trade-bot/src/monitoring/system_monitor.h:76-93`
+
+`snapshot()` reads 11 atomic counters individually with `relaxed` ordering. Between reads, another thread can modify counters. The snapshot may be inconsistent — e.g., `orders_sent` might be from time T1 but `orders_filled` from T2. For monitoring this is acceptable (approximate values are fine), but for precise calculations it could give wrong ratios.
+
+**Фикс:** Acceptable for monitoring. If precise consistency is needed, use a `shared_mutex` or accept that monitoring is approximate by design.
