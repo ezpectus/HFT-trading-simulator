@@ -1167,3 +1167,111 @@ async def handle_health(request):
 ```
 
 **Why it matters at scale:** A shallow health check returns 200 even when the bot can't trade. The DB is locked, the exchange disconnected, the queue is backed up with 500 pending signals — but `/health` says "ok". Kubernetes keeps the pod running because the health check passes. Users get stale signals, missing trades, wrong positions. With 1000 users, 1000 bots are "healthy" but none can actually trade. The good version checks actual dependencies: can I write to DB? Am I receiving candles? Is my queue manageable? If any check fails, the health endpoint returns 503, and Kubernetes restarts the pod. The bot self-heals instead of running in a zombie state. In a trading system, a "healthy" bot that can't trade is worse than a crashed bot — at least a crashed bot gets restarted.
+
+---
+
+### Example 31: SHM Not Cleaned Up on Crash (Stale Segment)
+
+**BAD** — `shm_signal_producer.py`:
+```python
+class ShmSignalProducer:
+    def init(self) -> bool:
+        self._buffer = ShmRingBuffer(
+            name=self.name,
+            create=True,  # ← creates SHM segment
+        )
+        return True
+
+    def close(self):
+        if self._buffer:
+            self._buffer.unlink()  # ← only called on graceful close
+            self._buffer = None
+
+# If process crashes (SIGKILL, OOM, segfault):
+# → close() never called
+# → SHM segment "/hft_signals" still exists in /dev/shm
+# → On restart: ShmRingBuffer(create=True) → FileExistsError
+# → Bot can't start. Manual fix: ipcrm -M /hft_signals
+```
+
+**GOOD**:
+```python
+import atexit
+import signal
+
+class ShmSignalProducer:
+    def init(self) -> bool:
+        # Try to unlink stale segment first (from previous crash)
+        try:
+            ShmRingBuffer(name=self.name, create=False).unlink()
+        except FileNotFoundError:
+            pass  # no stale segment, clean start
+
+        self._buffer = ShmRingBuffer(
+            name=self.name,
+            create=True,
+        )
+        atexit.register(self.close)  # cleanup on normal exit
+        signal.signal(signal.SIGTERM, self._signal_handler)  # cleanup on SIGTERM
+        return True
+
+    def _signal_handler(self, signum, frame):
+        self.close()
+        raise SystemExit(0)
+```
+
+**Why it matters at scale:** SHM segments persist in `/dev/shm` until explicitly unlinked or the system reboots. If the bot crashes (OOM, segfault, SIGKILL), the segment stays. On restart, `create=True` fails with `FileExistsError`. The bot is stuck — it can't start because of a leftover from a previous crash. With 1000 users on shared infrastructure, each crash leaves a stale segment. After 100 crashes, `/dev/shm` is full of zombie segments, and no new bot can start. The good version tries to unlink any stale segment first, then creates a fresh one. It also registers `atexit` and signal handlers for cleanup. In production, this is the difference between "bot restarts after crash" and "bot can't start, manual intervention required". The cost is 5 lines. The benefit is automatic recovery from any crash.
+
+---
+
+### Example 32: asyncio Race Condition (Set Changed During Iteration)
+
+**BAD** — `signal_publisher.py`:
+```python
+class SignalPublisher:
+    def __init__(self):
+        self._clients: set = set()
+
+    async def _handle_client(self, ws):
+        self._clients.add(ws)           # ← coroutine A: adds
+        try:
+            await ws.wait_closed()
+        finally:
+            self._clients.discard(ws)   # ← coroutine A: removes
+
+    async def broadcast_signal(self, msg):
+        for ws in self._clients:        # ← coroutine B: iterates
+            await ws.send(msg)          # ← yields control here
+            # While awaiting, coroutine A runs:
+            # → self._clients.discard(ws) or self._clients.add(new_ws)
+            # → RuntimeError: Set changed size during iteration
+```
+
+**GOOD**:
+```python
+class SignalPublisher:
+    def __init__(self):
+        self._clients: set = set()
+        self._clients_lock = asyncio.Lock()
+
+    async def _handle_client(self, ws):
+        async with self._clients_lock:
+            self._clients.add(ws)
+        try:
+            await ws.wait_closed()
+        finally:
+            async with self._clients_lock:
+                self._clients.discard(ws)
+
+    async def broadcast_signal(self, msg):
+        # Snapshot the set under lock, then iterate the copy
+        async with self._clients_lock:
+            clients = list(self._clients)
+        # Now iterate the copy — mutations to _clients don't affect us
+        results = await asyncio.gather(
+            *[ws.send(msg) for ws in clients],
+            return_exceptions=True,
+        )
+```
+
+**Why it matters at scale:** asyncio is single-threaded, but `await` is a yield point. Between `for ws in self._clients` and `await ws.send(msg)`, any other coroutine can run. If a client disconnects during broadcast, `_handle_client`'s `finally` block runs `self._clients.discard(ws)` — modifying the set while `broadcast_signal` is iterating it. Python raises `RuntimeError: Set changed size during iteration`. The broadcast crashes, no client gets the signal. With 1000 users, each having 5-10 WS clients, disconnects happen constantly. The broadcast crashes on every other signal. The good version takes a snapshot of the set under a lock, then iterates the copy. Mutations to `_clients` don't affect the broadcast. The lock ensures the snapshot is consistent. In a trading system, a crashed broadcast means 1000 users miss a signal — potentially a profitable trade. The fix is 3 lines. The cost of not fixing is every signal broadcast being a coin flip.

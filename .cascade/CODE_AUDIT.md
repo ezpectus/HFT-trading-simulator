@@ -1003,3 +1003,69 @@ Based on the full audit, here are the main areas where code can be reduced:
 | `strategies.py` re-exports | ~10 lines | Direct imports instead of re-export |
 | `research/__init__.py` heavy exports | ~50 lines | Lazy imports |
 | **Total** | **~510 lines** | |
+
+### 8.61 F-string logging — not structured — Low
+
+**Файлы:** весь `ai-signal-bot/src/`
+
+Grep for `logger.info(f` = 30+ matches across all modules. All logging uses f-string interpolation:
+```python
+logger.info(f"Client connected: {remote} (total: {len(self._clients)})")
+```
+
+This produces flat strings that can't be parsed by log aggregation (Loki, ELK, Datadog). To search for "client connected" you need regex, not structured queries.
+
+**Фикс:** `logger.info("Client connected", extra={"remote": remote, "total_clients": len(self._clients)})` or use `structlog` for key-value logging.
+
+### 8.62 SHM: no cleanup on crash — Medium
+
+**Файлы:** `shm_signal_producer.py`, `shm_fill_consumer.py`
+
+The SHM producer creates a shared memory segment (`create=True`). If the Python process crashes (SIGKILL, OOM, segfault), the SHM segment is **not unlinked**. On restart, `ShmRingBuffer(create=True)` fails because the segment already exists.
+
+The `close()` method calls `self._buffer.unlink()`, but `close()` is only called via `__exit__` context manager or explicit call — not on crash.
+
+**Фикс:** Register `atexit.register(self.close)` and also handle signals. Or use `try/finally` in the main loop. Consider `O_CREAT | O_EXCL` semantics to detect stale segments.
+
+### 8.63 SHM fill consumer: polling at 1ms — CPU spin — Low
+
+**Файл:** `shm_fill_consumer.py:62`
+
+```python
+poll_interval: float = 0.001  # 1ms polling
+```
+
+Polling SHM every 1ms = 1000 polls/sec. When there are no fills (which is most of the time — fills happen only on order execution), this is wasted CPU. On a 1-core VPS, this consumes 5-10% CPU doing nothing.
+
+**Фикс:** Use eventfd or futex (cross-process signaling) instead of polling. Or increase `poll_interval` to 10ms (100 polls/sec) — still fast enough for HFT fills.
+
+### 8.64 Dual metrics systems — Medium
+
+**Файлы:**
+1. `src/communication/metrics_server.py` — custom text format, manual Prometheus exposition
+2. `src/monitoring/metrics.py` — `prometheus_client` library with Counter/Gauge/Histogram
+
+Two separate metrics systems with overlapping metrics:
+- `metrics_server.py`: `ai_signal_bot_signals_sent_total`
+- `metrics.py`: `trading_signals_total` (same concept, different name)
+
+Prometheus sees both, but dashboards/alerts need to know which one to query. The custom one (`metrics_server.py`) doesn't support histograms (no latency distribution), while `metrics.py` does.
+
+**Фикс:** Consolidate to `prometheus_client` only. Remove `metrics_server.py` custom implementation.
+
+### 8.65 No asyncio.Lock on shared mutable state — Medium
+
+**Файлы:** `ai-signal-bot/src/`
+
+Grep for `asyncio.Lock|threading.Lock|threading.RLock` = 0 matches.
+
+The `_clients` set in `signal_publisher.py` is mutated from multiple coroutines (add on connect, discard on disconnect, iterate on broadcast) without any lock. While asyncio is single-threaded, `await` points between operations can cause race conditions:
+```python
+# Broadcast iterates _clients
+for ws in self._clients:  # ← starts iteration
+    await ws.send(msg)    # ← yields control
+    # Another coroutine modifies _clients during await
+    # → RuntimeError: Set changed size during iteration
+```
+
+**Фикс:** Use `asyncio.Lock` around `_clients` mutations, or copy the set before iterating: `for ws in list(self._clients):`

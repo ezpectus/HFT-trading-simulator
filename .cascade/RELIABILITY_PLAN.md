@@ -607,3 +607,8 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R50 | No retry on transient failures | `src/` | Medium | No retry on exchange 429/5xx, DB locked, LLM rate limit. Circuit breaker blocks but doesn't retry |
 | R51 | Health aggregator 0.0.0.0 bind | `health_check.py:116` | Low | Binds all interfaces. `# nosec: B104` acknowledges. OK in Docker, risky in direct deploy |
 | R52 | Code reduction potential | `src/` | Info | ~510 lines removable: 3× CircuitBreaker→1, dead tracing.py, dead RateLimiter, compute_returns dup |
+| R53 | F-string logging — not structured | весь `src/` | Low | 30+ f-string log calls. Flat strings, unparseable by Loki/ELK/Datadog |
+| R54 | SHM no cleanup on crash | `shm_signal_producer.py` | Medium | SIGKILL/OOM = SHM segment not unlinked. Restart fails (segment exists) |
+| R55 | SHM polling at 1ms | `shm_fill_consumer.py:62` | Low | 1000 polls/sec, 5-10% CPU wasted when no fills. Use eventfd or 10ms interval |
+| R56 | Dual metrics systems | `metrics_server.py` + `metrics.py` | Medium | Custom text format + prometheus_client. Overlapping metric names, dashboards confused |
+| R57 | No asyncio.Lock on shared state | `signal_publisher.py` | Medium | `_clients` set mutated from multiple coroutines without lock. `await` during iteration → RuntimeError |

@@ -117,3 +117,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Health check no depth | "Healthy" while DB locked or exchange disconnected | CODE_AUDIT §8.55 |
 | No retry on transient failures | Exchange 429, DB locked → no retry, just fail | CODE_AUDIT §8.57 |
 | Code reduction ~510 lines | 3× CircuitBreaker, dead tracing/RateLimiter, compute_returns dup | CODE_AUDIT §8.60 |
+| SHM no cleanup on crash | SIGKILL = SHM not unlinked, restart fails | CODE_AUDIT §8.62 |
+| Dual metrics systems | Custom text + prometheus_client, overlapping names | CODE_AUDIT §8.64 |
+| No asyncio.Lock on _clients | Set mutated during iteration → RuntimeError | CODE_AUDIT §8.65 |
