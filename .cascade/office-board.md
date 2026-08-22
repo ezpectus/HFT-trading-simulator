@@ -160,3 +160,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ duplicate risk system | RiskManager + PreTradeRisk do same 8 checks | CODE_AUDIT §8.166 |
 | C++ reset_daily incomplete | peak_equity_ not reset → wrong drawdown next day | CODE_AUDIT §8.167 |
 | Terraform: hardcoded RDS password | default = "ChangeMeInProduction123!" | CODE_AUDIT §8.162 |
+| C++ 3 signal engines (v1/v2/v3) | V2 may be dead code, ~200 lines reducible | CODE_AUDIT §8.176 |
+| migrate.py: narrow exception | Doesn't catch asyncpg.PostgresError | CODE_AUDIT §8.174 |
+| SHM stale data on restart | Magic passes but head/tail inconsistent after crash | CODE_AUDIT §8.177 |

@@ -702,3 +702,14 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R145 | verify.bat | `verify.bat` | ✅ Good | 5-component Windows test runner, error tracking, graceful CMake skip |
 | R146 | C++ duplicate risk system | `risk_manager.h` vs `pre_trade_risk.h` | Medium | Two systems doing same 8 checks. Consolidate to PreTradeRisk (lock-free) |
 | R147 | C++ risk_manager: reset_daily incomplete | `risk_manager.h:214` | Low | Resets daily_pnl but not peak_equity_ → drawdown compares against yesterday's peak |
+| R148 | C++ signal_engine_v2 | `signal_engine_v2.h` | ✅ Excellent | 6-indicator composite, no heap alloc, branchless, alignas(64), cooldown |
+| R149 | C++ signal_engine_v3 | `signal_engine_v3.h` | ✅ Excellent | HMM regime detection, Viterbi, online Baum-Welch, O(1) per-tick, gates V2 signals |
+| R150 | C++ market_making_v2 | `market_making_v2.h` | ✅ Excellent | Avellaneda-Stoikov, reservation price, inventory skew, adverse selection, EWMA vol |
+| R151 | C++ shm_ring_buffer | `shm_ring_buffer.h` | ✅ Excellent | Cross-process SPSC, mmap+MAP_SHARED, cache-line aligned, magic validation, RAII |
+| R152 | C++ shm_heartbeat | `shm_heartbeat.h` | ✅ Good | Seq-guarded lock-free heartbeat, alignas(64), bidirectional, cross-platform |
+| R153 | ai-signal-bot migrate.py | `scripts/migrate.py` | ✅ Excellent | Idempotent: schema_migrations table, skip applied, record new. Makefile.prod should use this |
+| R154 | migrate.py: narrow exception | `scripts/migrate.py:80` | Low | Doesn't catch asyncpg.PostgresError. SQL errors crash with traceback |
+| R155 | Helm Chart.yaml | `Chart.yaml` | ✅ Good | Standard v2 chart, appVersion matches Docker Hub tags, keywords, maintainer |
+| R156 | C++ 3 signal engines (v1/v2/v3) | `signal_engine*.h` | Medium | 3 versions in BotContext. V2 may be dead code (only through V3). ~200 lines reducible |
+| R157 | C++ shm: no cleanup on crash | `shm_ring_buffer.h:168` | Info | shm_unlink not called on crash. Stale segment persists. Already noted R92 |
+| R158 | C++ shm: stale data on restart | `shm_ring_buffer.h:134` | Low | Magic/capacity validation passes but head/tail may be inconsistent after crash |

@@ -2088,3 +2088,78 @@ class PreTradeRisk {
 ```
 
 **Why it matters at scale:** `std::unordered_set` is not thread-safe for concurrent read + write. If one thread calls `count()` while another calls `insert()`, it's undefined behavior. The `insert()` may trigger a rehash — the bucket array is reallocated, and the `count()` thread is now iterating freed memory. This is a use-after-free that can crash the process or, worse, return a garbage result. In a trading system, if the admin blacklists a symbol (e.g., "LUNA") while the trading thread is checking it, the trading thread might crash — or might get a false negative (symbol not found) and trade a blacklisted symbol. With 1000 users, an admin blacklisting a symbol while 50 trading threads are checking it is a guaranteed crash. The good version uses `shared_mutex` — multiple trading threads can read concurrently (shared_lock), and only the admin write blocks (unique_lock). The cost is 3 lines (lock + unlock). The benefit is no data race, no crash, no trading on blacklisted symbols. Option 2 (copy-on-write with `atomic<shared_ptr>`) is fully lock-free for reads — the admin creates a new copy, atomically swaps it, and old readers finish on the old copy. Option 3 (frozen after construction) is the simplest — if the blacklist never changes during trading, make it `const` and eliminate the race entirely.
+
+---
+
+### Example 45: Version Sprawl — 3 Signal Engines in One Bot
+
+**BAD** — `bot_context.h:74-76`:
+```cpp
+struct BotContext {
+    // All 3 signal engines live simultaneously:
+    std::unique_ptr<SignalEngine>   engine_v1;  // 200 lines, fallback
+    std::unique_ptr<SignalEngineV2> engine_v2;  // 494 lines, 6-indicator
+    std::unique_ptr<SignalEngineV3> engine_v3;  // 437 lines, HMM regime
+
+    // V3 includes V2 internally:
+    // signal_engine_v3.h line 25:
+    //   #include "signal_engine_v2.h"
+    // So V2's code is compiled twice — once standalone, once inside V3
+
+    // Bot loop:
+    // void run_v2_signal_loop(BotContext& ctx) { ... engine_v2->analyze() ... }
+    // void run_v1_fallback_loop(BotContext& ctx) { ... engine_v1->analyze() ... }
+    // V3 is used through V2's interface or directly?
+    // Unclear which engine is active at any time
+};
+
+// Problems:
+// 1. 1131 lines of signal engine code (v1 + v2 + v3)
+// 2. V2 is compiled twice (standalone + inside V3)
+// 3. V1 is a fallback — when was it last tested?
+// 4. V2 may be dead code if V3 always wraps it
+// 5. 3 sets of params, 3 sets of indicator caches, 3 sets of bugs
+// 6. New developers don't know which engine to modify
+// 7. Testing: need to test all 3 engines, but V1 may have rotted
+```
+
+**GOOD**:
+```cpp
+struct BotContext {
+    // One signal engine, versioned at compile time
+    std::unique_ptr<SignalEngine> engine;
+
+    // Version selected via config or compile flag:
+    // config.yaml:
+    //   signal_engine: v3  # or v2, or v1_fallback
+
+    // In code:
+    std::unique_ptr<SignalEngine> make_engine(const Config& cfg) {
+        if (cfg.engine_version == "v3")
+            return std::make_unique<SignalEngineV3>(cfg);
+        if (cfg.engine_version == "v2")
+            return std::make_unique<SignalEngineV2>(cfg);
+        return std::make_unique<SignalEngineV1>(cfg);  // fallback
+    }
+
+    // V3 inherits from SignalEngine interface:
+    // class SignalEngineV3 : public SignalEngine {
+    //     SignalEngineV2 v2_inner_;  // composition, not duplication
+    //     FastSignal analyze(...) override {
+    //         auto base = v2_inner_.analyze(...);
+    //         return apply_regime_gate(base, regime_);
+    //     }
+    // };
+
+    // One bot loop, one engine, one code path:
+    void run_signal_loop(BotContext& ctx) {
+        ctx.engine->analyze(...);
+    }
+};
+
+// Or: merge V2 into V3 entirely. V3 IS the production engine.
+// V1 is a simple fallback that can be 50 lines (just EMA crossover).
+// Total: 500 lines instead of 1131. 57% reduction.
+```
+
+**Why it matters at scale:** Version sprawl is a common anti-pattern in fast-moving projects. V1 was the original, V2 added indicators, V3 added HMM regime detection. Instead of replacing V1 with V2 and V2 with V3, all 3 were kept "just in case." Now there are 1131 lines of signal engine code, but only V3 is used in production. V2 is compiled twice (standalone and inside V3). V1 is a fallback that may have rotted — when was the last time someone tested it? With 1000 users, if someone accidentally switches to V1 (config typo), they get a degraded engine that hasn't been tested in months. The good version uses polymorphism — one `SignalEngine` interface, version selected at runtime via config. V3 composes V2 (has-a, not is-a), avoiding double compilation. V1 is simplified to 50 lines (just EMA crossover — that's all a fallback needs). Total: 500 lines instead of 1131 — 57% reduction. The benefit is clear: one code path to test, one set of params, one place to fix bugs. New developers know exactly which engine to modify. The fallback is simple enough to test every CI run.

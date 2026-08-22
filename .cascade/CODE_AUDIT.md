@@ -2335,3 +2335,138 @@ void reset_daily() { daily_pnl_ = 0.0; }
 Uses `operator=` on `atomic<double>` which is atomic (store), but `peak_equity_` is not reset. If the peak equity from yesterday is still set, the drawdown check will compare today's equity against yesterday's peak — incorrect.
 
 **Фикс:** Also reset `peak_equity_` and `orders_this_second_` in `reset_daily()`.
+
+### 8.168 C++ signal_engine_v2.h: 6-indicator composite — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h` (494 lines)
+
+6-indicator weighted composite signal engine:
+- EMA(21/50) crossover with 9-period signal line (MACD-style)
+- RSI(14) with overbought/oversold zones
+- Order Book Imbalance — multi-level (5/10/20), proximity-weighted
+- VWAP deviation with ±2σ bands
+- ADX(14) trend strength filter
+- Pressure Model — body direction + trade flow + toxicity penalty
+
+Design: no heap allocations in `analyze()`, all stack-allocated (max 256 candles), branchless where possible, cache-line aligned output (`FastSignal` is `alignas(64)`), configurable cooldown. ✅
+
+### 8.169 C++ signal_engine_v3.h: HMM regime detection — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h` (437 lines)
+
+V3 adds Hidden Markov Model for market regime detection:
+- 4 states: TRENDING_UP, TRENDING_DOWN, RANGING, VOLATILE
+- Online Baum-Welch parameter adaptation
+- Viterbi decoding for most likely state path
+- Regime gates V2 signals (boost/dampen based on regime)
+- O(1) per-tick update via online HMM forward recursion
+- No heap allocations in `analyze()`
+
+This is advanced quantitative finance — HMM regime detection is a research-grade feature. ✅
+
+### 8.170 C++ market_making_v2.h: Avellaneda-Stoikov — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/market_making_v2.h` (177 lines)
+
+Avellaneda-Stoikov passive market making:
+- Reservation price: `r = s - q * gamma * sigma^2 * (T - t)`
+- Dynamic spread based on volatility + inventory
+- Inventory skew (bid/ask size adjustment)
+- Adverse selection protection (cancel on toxicity spike)
+- EWMA volatility estimation
+- Spread cap/floor bounds
+- No heap allocations in hot path
+
+Textbook implementation of the Avellaneda-Stoikov model. ✅
+
+### 8.171 C++ shm_ring_buffer.h: cross-process SPSC — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h` (348 lines)
+
+Shared memory SPSC lock-free ring buffer for C++ ↔ Python IPC:
+- Cross-platform: `CreateFileMappingW`/`MapViewOfFile` (Windows) + `shm_open`/`mmap` (POSIX)
+- `ShmHeader` — 192 bytes (3 cache lines), `alignas(64)` on head/tail to prevent false sharing
+- `static_assert(sizeof(ShmHeader) == 192)` — compile-time size verification
+- Magic number validation (`0xHFT42SHM`)
+- Capacity/element_size validation on open
+- Power-of-2 capacity (bitwise AND instead of modulo)
+- `try_push()`/`try_pop()` — `memory_order_acquire/release` on head/tail
+- RAII destructor: `munmap`/`UnmapViewOfFile` + `shm_unlink` (if owner)
+- Deleted copy/move constructors
+
+This is textbook cross-process lock-free IPC. ✅
+
+### 8.172 C++ shm_heartbeat.h: seq-guarded heartbeat — ✅ Good
+
+**Файл:** `hft-trade-bot/src/ipc/shm_heartbeat.h` (272 lines)
+
+Heartbeat via shared memory:
+- `HeartbeatSlot` — `alignas(64)`, `static_assert` size ≤ 64
+- Seq-guarded write: `seq` goes odd (writing) → even (done). Reader checks seq is even and unchanged.
+- Cross-platform: Windows + POSIX
+- RAII destructor with `shm_unlink` for owner
+- Bidirectional: C++ writes, Python reads (and vice versa)
+
+The seq-guard pattern is the correct way to do lock-free atomic reads of multi-field structs. ✅
+
+### 8.173 ai-signal-bot migrate.py: idempotent migration runner — ✅ Excellent
+
+**Файл:** `ai-signal-bot/scripts/migrate.py` (101 lines)
+
+This is the **correct** migration runner that `Makefile.prod` (§8.132) should use:
+- Creates `schema_migrations` table with `IF NOT EXISTS`
+- Checks applied migrations before running
+- Skips already-applied files
+- Records each applied migration with timestamp
+- Sorted glob of `*.sql` files
+- `--up` flag for explicit execution
+- Graceful error handling with `break` on failure
+
+This addresses the R110 finding — `Makefile.prod` has a non-idempotent migration runner, but `migrate.py` is idempotent. The fix is to use `migrate.py` instead of the inline Makefile script.
+
+### 8.174 ai-signal-bot migrate.py: narrow exception catch — Low
+
+**Файл:** `ai-signal-bot/scripts/migrate.py:80`
+
+```python
+except (OSError, ValueError, RuntimeError, KeyError) as e:
+```
+
+The exception catch is narrow — it doesn't catch `asyncpg.PostgresError`. If a SQL migration fails with a PostgreSQL error (e.g., "table already exists", "syntax error"), it won't be caught and the script will crash with a traceback. The `break` on error is correct (stops on first failure), but the exception list should include `asyncpg.PostgresError` or use `Exception` with logging.
+
+**Фикс:** Add `asyncpg.PostgresError` to the exception tuple, or use `except Exception as e:` with proper logging.
+
+### 8.175 Helm Chart.yaml: clean metadata — ✅ Good
+
+**Файл:** `helm/Chart.yaml` (14 lines)
+
+Standard Helm chart metadata:
+- `apiVersion: v2`
+- `appVersion: "2.0.0"` — matches Docker Hub image tags
+- Keywords for discoverability
+- Maintainer field
+
+Clean and minimal. ✅
+
+### 8.176 C++ signal_engine_v2: 3 signal engines (v1, v2, v3) — Medium
+
+**Файлы:** `signal_engine.h` (v1), `signal_engine_v2.h`, `signal_engine_v3.h`
+
+`BotContext` holds all 3 signal engines:
+```cpp
+std::unique_ptr<SignalEngineV2> engine_v2;
+std::unique_ptr<SignalEngineV3> engine_v3;
+std::unique_ptr<SignalEngine>   engine_v1;
+```
+
+V3 wraps V2 (includes `signal_engine_v2.h`). V1 is the fallback. This is 3 versions of the same component. If V3 is the production engine and V1 is fallback, V2 may be dead code (only used through V3).
+
+**Code reduction:** If V2 is only used through V3, it can be merged into V3. If V1 is only a fallback, it can be simplified. Potential ~200 lines reduction.
+
+### 8.177 C++ shm_ring_buffer: no cleanup on crash (already noted) — Info
+
+**Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h:168-172`
+
+Already noted in §8.95 (R92). On POSIX, if the C++ process crashes, `shm_unlink` is not called — the shared memory segment persists in `/dev/shm/`. On restart, `shm_open` with `O_CREAT` will open the existing segment with stale data. The magic/capacity validation will pass, but head/tail may be in an inconsistent state.
+
+**Фикс:** On open (not create), reset head/tail to 0 if the data is stale (e.g., check heartbeat timestamp).
