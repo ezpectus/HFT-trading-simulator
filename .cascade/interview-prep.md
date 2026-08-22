@@ -988,3 +988,88 @@ shutdown_tracing()
 ```
 
 **Why it matters at scale:** Dead code is a liability, not an asset. It looks maintained (has docstrings, proper error handling), so developers assume it's used. They waste time reading it, understanding it, updating its dependencies. When someone finally tries to use it, it's broken — because nobody tested it, the API drifted from what callers would need. In a codebase with 1000 files, 10% dead code means 100 files of confusion. New developers spend hours reading code that does nothing. In the worst case, dead code has security vulnerabilities (outdated dependencies) that show up in audits but can't be exploited because the code is never called — but you still have to fix them. The good version is binary: either integrate it (add the 2-line call in `run.py`) or delete it. No zombie code.
+
+---
+
+### Example 27: No Graceful Shutdown (Data Loss on Termination)
+
+**BAD** — `run.py`:
+```python
+async def main():
+    bot = SignalBot(config)
+    await bot.start()  # runs forever
+
+if __name__ == "__main__":
+    asyncio.run(main())
+# Ctrl+C or docker stop → SIGTERM → process killed immediately
+# DB connection: not closed (WAL checkpoint not run)
+# WS clients: not notified (they hang until TCP timeout)
+# In-flight orders: lost (sent to exchange, not recorded in DB)
+# aiohttp sessions: not closed (socket leaks until OS GC)
+```
+
+**GOOD**:
+```python
+import signal
+
+async def main():
+    bot = SignalBot(config)
+    db = Database(config.db.path)
+    publisher = SignalPublisher(...)
+
+    shutdown_event = asyncio.Event()
+
+    loop = asyncio.get_event_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, shutdown_event.set)
+
+    # Run bot and wait for shutdown signal
+    bot_task = asyncio.create_task(bot.start())
+    await shutdown_event.wait()
+
+    # Graceful shutdown
+    logger.info("Shutting down...")
+    bot_task.cancel()
+    await publisher.notify_shutdown()  # tell WS clients
+    await db.close()                    # WAL checkpoint, close conn
+    await bot.http_session.close()      # close aiohttp
+    logger.info("Shutdown complete")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**Why it matters at scale:** Without graceful shutdown, every `docker stop` or `Ctrl+C` is a potential data loss event. The bot sent an order to Binance, but before the DB `INSERT` into `trades` table ran, the process was killed. The order is live on the exchange, but not tracked locally. Position tracking is wrong. Risk management is wrong. P&L is wrong. With 1000 users, every deploy (which triggers `docker stop`) risks 1000 data loss events. The good version catches SIGTERM/SIGINT, cancels the bot task, notifies WS clients, closes the DB (running WAL checkpoint to persist all writes), and closes HTTP sessions. No data loss, no socket leaks, no orphaned orders. In K8s, this is even more critical — pods are terminated regularly (scaling, updates, node draining). Without graceful shutdown, every pod termination is a potential incident.
+
+---
+
+### Example 28: No WebSocket Keepalive (Silent Disconnects)
+
+**BAD** — `signal_publisher.py`:
+```python
+self._server = await websockets.serve(
+    self._handle_client, host, port
+)
+# ← no ping_interval, no ping_timeout
+# Client connects, then network goes down (WiFi off, VPN drop)
+# Server still thinks client is connected
+# Client still thinks it's connected
+# No data flows, but no error either
+# After 60s, firewall drops the dead TCP connection
+# But server doesn't know until it tries to send → exception
+```
+
+**GOOD**:
+```python
+self._server = await websockets.serve(
+    self._handle_client, host, port,
+    ping_interval=20,   # send ping every 20s
+    ping_timeout=10,    # wait 10s for pong, else disconnect
+    close_timeout=5,    # graceful close timeout
+)
+# Server pings every 20s. If no pong in 10s, server disconnects client.
+# Client knows within 30s that connection is dead → reconnect.
+# No silent disconnects, no stale connections in _clients set.
+```
+
+**Why it matters at scale:** Without keepalive, dead connections accumulate in the `_clients` set. The server tries to broadcast to 100 clients, but 30 are dead (WiFi dropped, laptop closed, VPN failed). Each `send()` to a dead client hangs until TCP timeout (30-120s). The broadcast to the 70 alive clients is blocked waiting for the 30 dead ones. With 1000 users, 300 dead connections means every signal broadcast takes 2+ minutes instead of 100ms. The good version sends ping every 20s — dead clients are detected and removed within 30s. The broadcast only hits alive clients. In a trading system where signal latency matters (60s interval), a 2-minute broadcast delay means signals arrive after the next candle already started. Keepalive is not optional — it's the difference between a responsive system and a zombie-filled one.

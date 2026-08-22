@@ -850,3 +850,82 @@ Tests exist for: strategies, risk, backtesting, signal validation, exchange fact
 - `src/ml/` — limited tests (only automl, feature_store partially)
 
 These are critical paths — signal publishing, DB operations, alerting — with zero test coverage.
+
+### 8.48 No signal handling / graceful shutdown — High
+
+**Файлы:** весь `ai-signal-bot`
+
+Grep for `SIGTERM|SIGINT|signal.signal|add_signal_handler` across entire project = 0 matches.
+
+No signal handling means:
+- `Ctrl+C` or `docker stop` kills the process immediately
+- No cleanup: DB connections not closed, WAL checkpoint not run, WS clients not notified
+- In-flight orders could be lost (sent to exchange but not recorded in DB)
+- `aiohttp.ClientSession` not closed → socket leaks
+
+**Фикс:** In `run.py`:
+```python
+loop = asyncio.get_event_loop()
+for sig in (signal.SIGINT, signal.SIGTERM):
+    loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(bot, db, publisher)))
+```
+
+### 8.49 No WebSocket keepalive (ping/pong) — Medium
+
+**Файлы:** `ai-signal-bot/src/communication/signal_publisher.py`, `ws_client.py`
+
+Grep for `ping|pong|keepalive|keep_alive` across entire project = 0 matches.
+
+Without ping/pong:
+- Silent disconnects go undetected (client thinks it's connected, server thinks it's connected, but TCP is dead)
+- Firewalls/load balancers drop idle connections after 60s
+- Client never knows the server is gone until it tries to send
+
+**Фикс:** `websockets.serve(..., ping_interval=20, ping_timeout=10)` or implement custom keepalive.
+
+### 8.50 No reconnection backoff with jitter — Medium
+
+**Файлы:** `ai-signal-bot/src/communication/ws_client.py`
+
+Grep for `jitter|backoff|exponential` across entire project = 0 matches.
+
+The Rust executor (`hft-executor/src/lib.rs:140`) has proper exponential backoff: `backoff = (backoff * 2).min(Duration::from_secs(10))`. But no jitter — if 100 clients disconnect simultaneously, they all reconnect at exactly the same interval → thundering herd.
+
+The Python WS client has no backoff at all — it reconnects immediately, which can overwhelm the server on mass disconnect.
+
+**Фикс:** `delay = min(base_delay * 2**attempt, max_delay) + random.uniform(0, jitter)`.
+
+### 8.51 Three CircuitBreaker implementations — code duplication — Medium
+
+**Файлы:**
+1. `src/communication/circuit_breaker.py` — full state machine (CLOSED/OPEN/HALF_OPEN), dataclass config, tests
+2. `src/strategies/circuit_breaker.py` — simpler version (tripped/cooldown), different API
+3. `src/utils/helpers.py:145` — yet another version (closed/open/half_open as string), different API
+
+Three different implementations of the same pattern, with different APIs, different config parameters, different state names. Only #1 and #2 are actually used. #3 is exported via `utils/__init__.py` but never imported by any module.
+
+**Фикс:** Consolidate into one `CircuitBreaker` in `src/communication/circuit_breaker.py`. Delete #2 and #3. Update imports.
+
+### 8.52 RateLimiter — implemented but unused — dead code
+
+**Файл:** `src/utils/helpers.py:179-205`
+
+`RateLimiter` is implemented (token bucket, async acquire) and exported via `utils/__init__.py`, but grep for `RateLimiter` outside `helpers.py` and `__init__.py` shows it's only used in tests (`test_utils.py`). Never used in production code — no rate limiting on:
+- WS message processing
+- Order submission
+- Exchange API calls
+- Signal generation
+
+### 8.53 Global mutable state — Low
+
+**Файлы:** `src/observability/logging.py:38` (`global _configured`), `src/observability/tracing.py:35` (`global _tracer, _initialized`)
+
+Global state for singleton initialization. Not thread-safe (no lock around `_configured` check). In asyncio single-thread context this is fine, but if someone adds `threading.Thread` for CPU-bound work, double-init is possible.
+
+### 8.54 No asyncio task management — Medium
+
+**Файлы:** `ai-signal-bot/src/`
+
+Grep for `asyncio.gather|asyncio.create_task|ensure_future` = 0 matches in `src/`. The signal_publisher uses `asyncio.gather` (found in earlier audit), but no general task management pattern. No `asyncio.TaskGroup` (Python 3.11+) for structured concurrency. No task cancellation on shutdown. Background tasks (circuit breaker broadcast, metrics) are fire-and-forget — if they crash, nobody knows.
+
+**Фикс:** Use `asyncio.TaskGroup` for structured concurrency. Store task references and cancel on shutdown. Add `task.add_done_callback(callback)` to log crashes.

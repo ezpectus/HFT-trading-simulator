@@ -108,3 +108,9 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Dockerfile healthcheck TCP | TCP not HTTP, same as compose | CODE_AUDIT §8.44 |
 | Dead code: tracing.py | 111 lines, never imported | CODE_AUDIT §8.46 |
 | Test coverage gaps | signal_publisher, db, alerting, llm — 0 tests | CODE_AUDIT §8.47 |
+| **No graceful shutdown** | **Ctrl+C = kill, no DB close, no WS notify, orders lost** | **CODE_AUDIT §8.48** |
+| No WS keepalive | Silent disconnects undetected | CODE_AUDIT §8.49 |
+| No backoff with jitter | Thundering herd on mass reconnect | CODE_AUDIT §8.50 |
+| 3x CircuitBreaker duplication | 3 different implementations, 1 unused | CODE_AUDIT §8.51 |
+| RateLimiter dead code | Implemented, tested, never used in prod | CODE_AUDIT §8.52 |
+| No asyncio task management | Background tasks fire-and-forget, crashes unnoticed | CODE_AUDIT §8.54 |

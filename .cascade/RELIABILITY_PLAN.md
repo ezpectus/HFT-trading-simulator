@@ -596,3 +596,9 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R39 | Terraform encryption | `terraform/` | Low | No encrypt/KMS/SSE config. Skeleton/stub .tf files only |
 | R40 | Dead code: tracing.py | `observability/tracing.py` | Low | 111 lines, fully implemented, never imported. 0 grep matches for setup_tracing |
 | R41 | Test coverage gaps | `tests/` | Medium | No tests for signal_publisher, ws_client, db.py, alerting, llm_engine, notifier, observability |
+| R42 | No signal handling / graceful shutdown | весь проект | **High** | No SIGTERM/SIGINT handler. Ctrl+C = immediate kill, no DB close, no WS notify, no session cleanup |
+| R43 | No WS keepalive (ping/pong) | `signal_publisher.py`, `ws_client.py` | Medium | Silent disconnects undetected. Firewalls drop idle connections after 60s |
+| R44 | No reconnection backoff with jitter | `ws_client.py` | Medium | No backoff in Python. Rust has backoff but no jitter → thundering herd on mass reconnect |
+| R45 | 3x CircuitBreaker duplication | `communication/`, `strategies/`, `utils/helpers.py` | Medium | 3 different implementations, different APIs. #3 in helpers.py never imported |
+| R46 | RateLimiter — dead code | `utils/helpers.py:179` | Low | Implemented, exported, tested — but never used in production. No rate limiting on orders/API/signals |
+| R47 | No asyncio task management | `src/` | Medium | No TaskGroup, no task cancellation on shutdown, background tasks fire-and-forget. Crashes go unnoticed |
