@@ -351,7 +351,7 @@ V2 signal cooldown: 100ms (prevents signal spam)
 
 ### Infrastructure
 
-- **Docker Compose** — 4-service orchestration with health checks, restart policies, and `depends_on: condition: service_healthy`
+- **Docker Compose** — 6-service orchestration (4 app + Prometheus + Grafana) with health checks, restart policies, and `depends_on: condition: service_healthy`
 - **CI/CD** (GitHub Actions) — Python tests, C++ build (gcc-14 + clang-17 + MSVC Windows), JS tests + coverage, bundle analysis, Docker build, dependency audit, Netlify deploy
 - **CI/CD Scripts** — `ci-test.bat` / `ci-test.sh` for local full-pipeline testing (8 stages: Python, C++, Rust, JS)
 - **Benchmark Suite** — `scripts/benchmark_suite.py` measures p50/p95/p99/p999 latency per component, JSON output
@@ -360,7 +360,7 @@ V2 signal cooldown: 100ms (prevents signal spam)
 - **Docker Hub Images** — `docker-compose.hub.yml` uses pre-built images (no compilation needed). All Dockerfiles include `HEALTHCHECK` and `.dockerignore`.
 - **Cross-platform** — C++ engine compiles on MSVC (Windows), GCC (Linux), and Clang (macOS). Shared memory IPC auto-detects Windows (`CreateFileMappingW`) vs POSIX (`shm_open`). Python SHM uses `mmap` with `tagname` on Windows.
 - **44 test files** covering indicators, format utils, GARCH, Kalman, HMM, cointegration, K-Means, registry, VirtualList, component rendering, error boundaries, hooks
-- **Prometheus** — metrics endpoint on exchange simulator
+- **Prometheus + Grafana** — 6-service Docker Compose with 5 pre-built dashboards (trading overview, latency, system, AI bot, performance), alerting via Alertmanager, 30-day retention
 - **PostgreSQL** — optional database backend
 - **WebSocket compression** — per-message deflate
 - **Reconnection sync** — state sync protocol (resume from last candle, replay missed signals)

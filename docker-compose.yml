@@ -1,10 +1,12 @@
 # Docker Compose — HFT Trading System
 # ===========================================
-# Runs all four components:
+# Runs six services:
 #   1. exchange_simulator  — simulated crypto exchange (WebSocket server)
 #   2. ai-signal-bot       — Python AI signal generator
 #   3. hft-trade-bot       — C++20 v2.0 HFT execution engine (sub-millisecond)
-#   4. web-ui              — React web dashboard (191+ panels, TradingView-style)
+#   4. web-ui              — React web dashboard (204 panels, TradingView-style)
+#   5. prometheus          — metrics scraping (all components)
+#   6. grafana             — monitoring dashboards (5 pre-built)
 #
 # Usage:
 #   docker-compose up              # Start all services
@@ -12,6 +14,8 @@
 #   docker-compose logs -f         # Follow logs
 #   docker-compose logs -f ai-signal-bot
 #   # Web UI available at http://localhost:3000
+#   # Grafana available at http://localhost:3001 (admin/admin)
+#   # Prometheus available at http://localhost:9099
 #
 # Logs:
 #   All services write timestamped logs to /app/logs/ inside the container.
@@ -137,6 +141,63 @@ services:
     networks:
       - trading-net
 
+  # ─── Monitoring: Prometheus + Grafana ───
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    depends_on:
+      exchange-simulator:
+        condition: service_healthy
+      ai-signal-bot:
+        condition: service_healthy
+    ports:
+      - "9099:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prom-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - trading-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    depends_on:
+      prometheus:
+        condition: service_started
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/trading-overview.json
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - trading-net
+
 volumes:
   sim-data:
   sim-logs:
@@ -144,6 +205,8 @@ volumes:
   ai-data:
   ai-logs:
   hft-logs:
+  prom-data:
+  grafana-data:
 
 networks:
   trading-net:
