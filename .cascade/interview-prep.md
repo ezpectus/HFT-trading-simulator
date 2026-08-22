@@ -1379,3 +1379,108 @@ apply_migrations(config.db.path)
 ```
 
 **Why it matters at scale:** Without a migration runner, schema changes are manual. Someone adds a column to `003_add_risk_events.sql`, but nobody runs it. The code expects the column, the DB doesn't have it → `sqlite3.OperationalError: table signals has no column named risk_score`. With 1000 users, each deployment requires manually running 4 SQL files on each user's DB. That's 4000 manual SQL executions. Someone will forget. Someone will run them in the wrong order. Someone will run them twice (idempotency issues). The SQLite `db.py` schema and the PostgreSQL migration files diverge — `db.py` has `CREATE TABLE IF NOT EXISTS` with different columns than `001_initial_schema.sql`. Which one is the source of truth? Nobody knows. The good version has a migration runner that: reads SQL files in order, tracks applied versions in a `_migrations` table, skips already-applied migrations, and runs automatically on startup. No manual SQL, no drift, no "works on my machine" schema issues. In a trading system, schema drift means the bot crashes on startup because `SELECT risk_score FROM signals` fails — the column doesn't exist. 1000 users can't start their bots because of a missing column that was supposed to be added 3 months ago.
+
+---
+
+### Example 35: No Top-Level ErrorBoundary (White Screen on Crash)
+
+**BAD** — `App.jsx`:
+```jsx
+import PanelErrorBoundary from './components/PanelErrorBoundary'
+
+function App() {
+  return (
+    <div className="app">
+      <StatusBar data={data} />        // ← no ErrorBoundary
+      <KeyboardHelp />                  // ← no ErrorBoundary
+      <PanelErrorBoundary panelName="Tab Content">
+        <TabContent />                  // ← protected
+      </PanelErrorBoundary>
+    </div>
+  )
+}
+
+// If StatusBar throws (e.g., data is undefined):
+// → No ErrorBoundary above it
+// → React unmounts the entire tree
+// → User sees blank white page
+// → No error message, no retry button, no recovery
+// → Must refresh the page, losing all state
+```
+
+**GOOD**:
+```jsx
+import PanelErrorBoundary from './components/PanelErrorBoundary'
+
+function App() {
+  return (
+    <PanelErrorBoundary panelName="App">
+      <div className="app">
+        <StatusBar data={data} />
+        <KeyboardHelp />
+        <PanelErrorBoundary panelName="Tab Content">
+          <TabContent />
+        </PanelErrorBoundary>
+      </div>
+    </PanelErrorBoundary>
+  )
+}
+
+// If StatusBar throws:
+// → Top-level ErrorBoundary catches it
+// → Shows error message with retry button
+// → User clicks retry → app re-renders
+// → State preserved (zustand store survives)
+// → No white screen, no data loss
+```
+
+**Why it matters at scale:** React error boundaries are like try/catch for components. Without a top-level boundary, any uncaught error in any component unmounts the entire React tree. The user sees a blank white page. No error message, no retry, no recovery. They must refresh the page, losing all state (open positions, chart data, WS connections). With 1000 users, any minor bug in any component — a null reference in `StatusBar`, a missing prop in `KeyboardHelp`, a bad date format in a chart — white-screens the entire dashboard for everyone. The good version wraps the entire app in a top-level ErrorBoundary. If any component throws, the boundary shows an error message with a retry button. The user clicks retry, the app re-renders, state is preserved. The cost is 2 lines of JSX. The benefit is the app never white-screens — it always shows something useful, even when things break. In a trading dashboard, a white screen means users can't see their positions, can't close trades, can't monitor risk. That's not a UI bug, that's a financial risk.
+
+---
+
+### Example 36: Non-Atomic File Write (Corruption on Crash)
+
+**BAD** — `fix_session.h:262`:
+```cpp
+void save_seq_nums() {
+    std::lock_guard<std::mutex> lk(seq_mutex_);
+    std::ofstream f(seq_file_path_);    // ← opens file (truncates to 0)
+    if (f) {
+        f << outgoing_seq_.load() << ' '
+          << incoming_seq_.load();       // ← writes to file
+    }
+    // ← file closes (flushes to disk)
+}
+
+// If process crashes between open and write:
+// → File exists but is empty (truncated)
+// → On restart: load_seq_nums() reads empty file
+// → out_seq = 1, in_seq = 1 (defaults)
+// → Exchange rejects all messages (seq too low)
+// → FIX session broken, must manually reset on exchange side
+```
+
+**GOOD**:
+```cpp
+void save_seq_nums() {
+    std::lock_guard<std::mutex> lk(seq_mutex_);
+    std::string tmp_path = seq_file_path_ + ".tmp";
+    {
+        std::ofstream f(tmp_path);       // ← write to temp file
+        if (!f) return;
+        f << outgoing_seq_.load(std::memory_order_relaxed) << ' '
+          << incoming_seq_.load(std::memory_order_relaxed);
+        f.flush();
+    }
+    // Atomic rename — old file is intact until rename succeeds
+    std::filesystem::rename(tmp_path, seq_file_path_);
+}
+
+// If process crashes during write:
+// → Temp file is incomplete, original file is intact
+// → On restart: load_seq_nums() reads original file
+// → Correct seq nums loaded, FIX session continues
+// → No manual reset needed
+```
+
+**Why it matters at scale:** Writing to a file in-place is not atomic. `std::ofstream` opens the file (truncating it to 0 bytes), then writes data, then closes (flushes). If the process crashes between truncate and flush, the file is empty. For FIX protocol sequence numbers, this is catastrophic. The exchange expects message sequence numbers to be monotonically increasing. If the bot restarts with seq=1 after sending seq=500, the exchange rejects all messages with "seq too low". The FIX session is broken. Someone must call the exchange admin to reset the sequence numbers manually. With 1000 users, that's 1000 support tickets. The good version writes to a temp file first, then atomically renames it to the target path. `rename()` is atomic on POSIX — the target file is either the old version or the new version, never empty. If the process crashes during the write, the temp file is incomplete but the original file is intact. On restart, the correct sequence numbers are loaded. The FIX session continues without intervention. The cost is 3 lines. The benefit is crash-proof persistence. In a trading system, a broken FIX session means the bot can't send orders — it's effectively down. Atomic writes are the difference between "bot restarts and continues trading" and "bot restarts but can't trade until someone calls the exchange".

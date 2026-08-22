@@ -1384,3 +1384,99 @@ pkill -f "hft_trade_bot" || true
 Backups are created with timestamps but never cleaned up. After 100 deploys, `backup/` has 100 copies of config + DB. No rotation policy.
 
 **Фикс:** Add `find $BACKUP_DIR -mtime +30 -delete` to cleanup backups older than 30 days.
+
+### 8.93 ESLint config: PropTypes disabled — Low
+
+**Файл:** `web-ui/eslint.config.js:23`
+
+```js
+'react/prop-types': 'off',
+'no-unused-vars': 'off',
+```
+
+PropTypes rule explicitly disabled. `no-unused-vars` also off. This means:
+- No runtime prop type checking on any component
+- Dead variables and imports accumulate without warning
+- TypeScript is in devDeps but not used (`.jsx` files, not `.tsx`)
+
+**Фикс:** Enable `react/prop-types: 'warn'` or migrate to TypeScript. Enable `no-unused-vars: 'warn'`.
+
+### 8.94 Vite config: no CSP headers — Low
+
+**Файл:** `web-ui/vite.config.js`
+
+No Content-Security-Policy headers configured. The dev server and preview server serve without CSP. In production, if served directly (not behind nginx/ingress), XSS attacks are easier.
+
+**Фикс:** Add `server.headers` with CSP: `"Content-Security-Policy": "default-src 'self'; connect-src 'self' ws://localhost:*"`.
+
+### 8.95 Vite config: PWA cache strategy — ✅ Good
+
+**Файл:** `web-ui/vite.config.js:29-41`
+
+Workbox config with `globPatterns` for JS/CSS/HTML/SVG/fonts. Runtime caching for Google Fonts with `CacheFirst` strategy and expiration policy (`maxEntries: 10, maxAgeSeconds: 1yr`). Manual chunks for react-vendor, charts-vendor, icons-vendor, state-vendor. Good bundle splitting.
+
+### 8.96 hft-trade-bot config: hardcoded localhost — Medium
+
+**Файл:** `hft-trade-bot/config/config.yaml:76,165`
+
+```yaml
+exchange:
+  websocket_url: "ws://localhost:8765"
+ai_signal_bot:
+  websocket_url: "ws://localhost:8766"
+```
+
+Same issue as `shared_config.yaml` (§8.74). In Docker/K8s, `localhost` won't reach other containers. The prod config (`config.prod.yaml`) may override this, but the default config is dev-only.
+
+### 8.97 FIX session: seq num persistence — ✅ Good
+
+**Файл:** `hft-trade-bot/src/fix/fix_session.h:251-268`
+
+```cpp
+void load_seq_nums() {
+    std::lock_guard<std::mutex> lk(seq_mutex_);
+    std::ifstream f(seq_file_path_);
+    if (f) { f >> out_seq >> in_seq; ... }
+}
+
+void save_seq_nums() {
+    std::lock_guard<std::mutex> lk(seq_mutex_);
+    std::ofstream f(seq_file_path_);
+    if (f) { f << outgoing_seq_.load() << ' ' << incoming_seq_.load(); }
+}
+```
+
+FIX sequence numbers are persisted to file and loaded on startup. This is critical for FIX protocol — if seq nums reset to 1 after restart, the exchange rejects all messages (seq too low). Mutex-protected. ✅
+
+**Minor:** `save_seq_nums()` writes to the same file path directly — if the process crashes mid-write, the file could be corrupted (partial write). Atomic write (temp file + rename) would be safer.
+
+### 8.98 ErrorBoundary: per-panel but no top-level — Medium
+
+**Файл:** `web-ui/src/App.jsx:13,468,535`
+
+`PanelErrorBoundary` wraps individual panels and tab content. But there's no top-level `ErrorBoundary` wrapping the entire `App` component. If a crash occurs outside a panel (e.g., in `StatusBar`, `KeyboardHelp`, or `App` itself), the entire app white-screens with no recovery.
+
+**Фикс:** Wrap the entire `App` return in `<PanelErrorBoundary panelName="App">`.
+
+### 8.99 Monitoring tests: ✅ Good
+
+**Файл:** `monitoring/tests/test_alerts.py` (247 lines)
+
+Tests validate:
+- Alert rules file exists and is valid YAML
+- Latency alerts group exists with rules
+- Error rate alerts group exists
+- Alertmanager config is valid YAML with receivers
+
+This is good — monitoring infrastructure is tested, not just configured.
+
+### 8.100 Code reduction: exchange_simulator modules — Low
+
+**Файлы:** `exchange_simulator/exchange_simulator/` — 12 modules
+
+Several modules could be consolidated:
+- `latency_simulation.py` (4KB) + `market_microstructure.py` (7KB) → single `market_simulation.py`
+- `spread_analytics.py` (7KB) + `order_book_realism.py` (12KB) → single `order_book.py`
+- `funding_rate.py` (5KB) could be a method on the exchange model
+
+~200 lines removable from exchange_simulator alone. Total code reduction potential now ~710 lines (510 Python ai-signal-bot + 200 exchange_simulator).

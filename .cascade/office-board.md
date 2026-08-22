@@ -134,3 +134,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | deploy.sh: no health check exit | Reports success even if all services down | CODE_AUDIT §8.89 |
 | deploy.sh: rm -rf before cp | Rollback loses data if cp fails | CODE_AUDIT §8.90 |
 | deploy.sh: no backup retention | 100 deploys = 100 backup copies, no cleanup | CODE_AUDIT §8.92 |
+| ESLint: PropTypes + unused-vars off | No prop type checking, dead vars accumulate | CODE_AUDIT §8.93 |
+| Vite: no CSP headers | XSS easier if served directly | CODE_AUDIT §8.94 |
+| hft-trade-bot config: hardcoded localhost | ws://localhost won't work in Docker/K8s | CODE_AUDIT §8.96 |
+| ErrorBoundary: no top-level | App crash = white screen, no recovery | CODE_AUDIT §8.98 |
+| Code reduction ~710 lines | 510 ai-signal-bot + 200 exchange_simulator | CODE_AUDIT §8.100 |

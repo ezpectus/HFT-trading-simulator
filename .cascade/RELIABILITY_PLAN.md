@@ -634,3 +634,9 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R77 | deploy.sh: no health check failure exit | `deploy.sh:176-218` | Medium | 30 retries but never exits on failure. Reports "completed successfully" even if all down |
 | R78 | deploy.sh: rollback rm -rf before cp | `deploy.sh:266-267` | Low | rm -rf data before cp backup. If cp fails, data lost. No atomic swap |
 | R79 | deploy.sh: no backup retention | `deploy.sh:32-62` | Low | Backups never cleaned. 100 deploys = 100 copies. No rotation policy |
+| R80 | ESLint: PropTypes + unused-vars disabled | `eslint.config.js:23,27` | Low | No prop type checking, dead vars accumulate. TS in devDeps but unused |
+| R81 | Vite: no CSP headers | `vite.config.js` | Low | No Content-Security-Policy. XSS easier if served directly |
+| R82 | hft-trade-bot config: hardcoded localhost | `config.yaml:76,165` | Medium | ws://localhost:8765/8766. Won't work in Docker/K8s |
+| R83 | FIX session: seq num persistence | `fix_session.h:251-268` | ✅ Good | Seq nums saved/loaded from file. Mutex-protected. Minor: no atomic write |
+| R84 | ErrorBoundary: no top-level | `App.jsx` | Medium | Per-panel boundaries but App itself unprotected. Crash = white screen |
+| R85 | Code reduction: exchange_simulator | `exchange_simulator/` | Low | ~200 lines removable. Total reduction ~710 lines (510 + 200) |
