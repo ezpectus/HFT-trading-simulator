@@ -231,3 +231,12 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | helm: Postgres password in plaintext | `change-me-in-production` in values.yaml. Default to empty, require secret | CODE_AUDIT §8.388 |
 | ci.yml: no security scanning | No pip-audit/npm audit/trivy. CodeQL exists but no SCA | CODE_AUDIT §8.390 |
 | ci.yml: no integration tests | Unit tests only. No docker-compose integration test in CI | CODE_AUDIT §8.391 |
+| terraform: db_password default in plaintext | `ChangeMeInProduction123!` as default. Remove default, require var or Secrets Manager | CODE_AUDIT §8.401 |
+| terraform: no prod environment | Only dev/ exists. No prod/ with production-grade settings | CODE_AUDIT §8.402 |
+| docker-compose.prod: ports exposed to host | Postgres/Redis/Prometheus ports exposed. Security risk. Remove internal port mappings | CODE_AUDIT §8.416 |
+| web-ui: 200+ components over-engineering | Math/research panels unlikely used by traders. Feature flag or separate package | CODE_AUDIT §8.410 |
+| hft-trade-bot: 3 engine versions loaded | V1/V2/V3 all allocated. V1 never used in hot path. Remove V1 | CODE_AUDIT §8.419 |
+| hft-trade-bot: prices_cache not thread-safe | unordered_map without lock. Data race if multi-threaded. Use shared_mutex | CODE_AUDIT §8.420 |
+| deploy.yml: localhost fallback for VITE_WS | Defaults to localhost if GitHub vars not set. Build should fail instead | CODE_AUDIT §8.412 |
+| hft-executor: avg_latency_ns always 0 | Stats field never populated. No latency measurement implemented | CODE_AUDIT §8.394 |
+| deploy/k8s: only secrets, no manifests | Only secrets.enc.yaml. No Deployment/Service/ConfigMap. Use Helm or add manifests | CODE_AUDIT §8.404 |

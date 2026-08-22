@@ -2634,3 +2634,151 @@ void process_arbitrage(BotContext& ctx, bool can_trade) {
 ```
 
 **Разница:** The bad code uses manual `lock()` and `unlock()`. In C++, if the copy assignment `arb = ctx.latest_arb` throws (e.g., out-of-memory), the mutex is never unlocked — the entire system deadlocks. Every subsequent call to `process_arbitrage` will block forever on `ctx.arb_lock.lock()`. The good code uses `std::lock_guard` — an RAII wrapper that locks in the constructor and unlocks in the destructor. When the scope exits (normally or via exception), the lock is always released. Additionally, `ctx.has_arb_opportunity = false` is moved inside the lock — in the bad code, the producer thread could set `has_arb_opportunity = true` and `latest_arb` between the unlock and the `= false`, causing the bot to miss an arbitrage opportunity. With 1000 users, a deadlock in the arbitrage path means the bot stops executing arbitrage trades — potentially missing $10,000+ in profitable opportunities while the deadlock persists. The RAII version costs zero (compiler optimizes the guard away) and prevents both deadlocks and data races.
+
+---
+
+## Bad vs Good: Exposing Internal Service Ports in Production
+
+### ❌ Bad Code
+```yaml
+# docker-compose.prod.yml
+services:
+  postgres:
+    ports:
+      - "5432:5432"    # Exposed to host!
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?must be set}
+
+  redis:
+    ports:
+      - "6379:6379"    # Exposed to host!
+    command: redis-server --maxmemory 256mb
+
+  prometheus:
+    ports:
+      - "9090:9090"    # Exposed to host!
+
+  grafana:
+    ports:
+      - "3001:3000"    # Exposed to host (OK — users need access)
+```
+
+**What's wrong:**
+- PostgreSQL (5432) exposed — anyone with host network access can connect with the password
+- Redis (6379) exposed — Redis has no authentication by default — anyone can read/write cache
+- Prometheus (9090) exposed — internal metrics visible to attackers (reconnaissance)
+- Only Grafana should be exposed — users need it to view dashboards
+- In K8s/Docker Swarm, `ports` maps to the host — accessible from outside the cluster
+
+### ✅ Good Code
+```yaml
+# docker-compose.prod.yml
+services:
+  postgres:
+    # No ports: — only accessible within Docker network
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?must be set}
+    networks:
+      - backend
+
+  redis:
+    # No ports: — only accessible within Docker network
+    command: redis-server --maxmemory 256mb --requirepass ${REDIS_PASSWORD:?must be set}
+    networks:
+      - backend
+
+  prometheus:
+    # No ports: — only accessible within Docker network
+    networks:
+      - monitoring
+
+  grafana:
+    ports:
+      - "3001:3000"    # OK — users need Grafana access
+    networks:
+      - monitoring
+      - frontend
+
+  # Reverse proxy for external access
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on: [grafana]
+    networks:
+      - frontend
+```
+
+**Разница:** The bad code exposes all internal services to the host network. PostgreSQL is accessible with a password, but Redis has no authentication by default — anyone who can reach port 6379 can read/write the cache, including session data and API keys. Prometheus exposes internal metrics (query names, scrape targets, alert rules) — perfect reconnaissance for an attacker. The good code removes all internal port mappings — PostgreSQL, Redis, and Prometheus are only accessible within the Docker network. Only Grafana is exposed (users need it), and a reverse proxy (nginx) handles TLS termination and access control. Redis also gets `--requirepass` for defense in depth. With 1000 users, an exposed Redis without auth means an attacker can flush the cache (causing a thundering herd to PostgreSQL), read cached API keys, or inject fake data into the feature store. The cost of removing port mappings is zero — the services still communicate within the Docker network. The benefit is eliminating 3 attack surfaces.
+
+---
+
+## Bad vs Good: Thread-Unsafe Shared State (C++)
+
+### ❌ Bad Code
+```cpp
+struct BotContext {
+    // ... other members ...
+    std::unordered_map<std::string, double> prices_cache;  // no lock!
+    std::vector<Candle> candles_buf;                        // no lock!
+    OrderBook ob_buf;                                       // no lock!
+};
+
+void process_sl_tp(BotContext& ctx, double current_balance) {
+    ctx.receiver->get_all_prices_into(ctx.prices_cache);  // writes
+    ctx.pos_mgr.update_all_pnl(ctx.prices_cache);          // reads
+    // ... another thread might be reading prices_cache simultaneously
+}
+
+// AI signal consumer thread
+void process_ai_signals(BotContext& ctx, ...) {
+    // Might access prices_cache for risk check
+    auto price = ctx.prices_cache[symbol];  // data race!
+}
+```
+
+**What's wrong:**
+- `prices_cache` is a plain `unordered_map` — not thread-safe
+- `process_sl_tp` writes to it, other threads may read from it
+- `unordered_map` can rehash during insertion — if another thread reads during rehash, undefined behavior
+- `candles_buf` and `ob_buf` also unprotected — same issue
+- Data races are undefined behavior in C++ — anything can happen: crash, corrupt data, wrong prices
+- No synchronization primitive — not even a comment warning about thread safety
+
+### ✅ Good Code
+```cpp
+#include <shared_mutex>
+
+struct BotContext {
+    // ... other members ...
+    std::unordered_map<std::string, double> prices_cache;
+    mutable std::shared_mutex prices_cache_mtx;  // protects prices_cache
+
+    // For buffers used by single thread, use SPSCQueue or document ownership
+    // candles_buf and ob_buf are only used by main loop thread — no lock needed
+    // Document: "candles_buf and ob_buf are owned by the main loop thread"
+};
+
+void process_sl_tp(BotContext& ctx, double current_balance) {
+    {
+        std::unique_lock lock(ctx.prices_cache_mtx);  // exclusive write
+        ctx.receiver->get_all_prices_into(ctx.prices_cache);
+    }
+    {
+        std::shared_lock lock(ctx.prices_cache_mtx);  // shared read
+        ctx.pos_mgr.update_all_pnl(ctx.prices_cache);
+    }
+}
+
+// AI signal consumer thread
+void process_ai_signals(BotContext& ctx, ...) {
+    std::shared_lock lock(ctx.prices_cache_mtx);  // shared read
+    auto it = ctx.prices_cache.find(symbol);
+    if (it == ctx.prices_cache.end()) return;
+    double price = it->second;
+}
+```
+
+**Разница:** The bad code has a plain `unordered_map` accessed from multiple threads without any synchronization. In C++, concurrent reads + writes to `unordered_map` are undefined behavior — the map can rehash during insertion, invalidating iterators and references in other threads. This can cause crashes, corrupt prices, or — worst of all — silently wrong prices that lead to incorrect trading decisions. The good code uses `std::shared_mutex` — multiple readers can access the map simultaneously (`shared_lock`), but only one writer at a time (`unique_lock`). The write phase (updating prices) takes an exclusive lock, then releases it. The read phase (calculating PnL) takes a shared lock — allowing concurrent reads from other threads. For `candles_buf` and `ob_buf`, the good code documents that they're owned by the main loop thread — no lock needed if only one thread accesses them. With 1000 users, a data race on `prices_cache` could cause the bot to calculate PnL with stale or corrupt prices — leading to incorrect risk decisions and potentially $100,000+ in wrong trades. The `shared_mutex` costs ~100ns per lock/unlock — negligible compared to the 10ms+ trading loop.

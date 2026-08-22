@@ -937,3 +937,31 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R380 | ci.yml: no integration tests | `ci.yml` | Medium | Unit tests only. No docker-compose integration test. docker-smoke-test exists |
 | R381 | ci.yml: websocketpp sed patch | `ci.yml:136` | Low | Patches system headers with sed. Fragile. Pin version or use fork |
 | R382 | docker-compose: healthcheck localhost in container | `docker-compose.yml:46` | Low | Health checks use localhost inside container. Works if 0.0.0.0 bind |
+| R383 | hft-executor/src/lib.rs | `lib.rs` | ✅ Excellent | FFI, auto-reconnect backoff, atomics, tokio::select, batch submit, SmallVec, release profile |
+| R384 | hft-executor: avg_latency_ns always 0 | `lib.rs:116` | Medium | Stats field never populated. No latency measurement implemented |
+| R385 | hft-executor: serde_json unwrap_or_default | `lib.rs:159` | Low | Empty string sent on serialization failure. Handle error instead |
+| R386 | hft-executor: is_fill_message string matching | `lib.rs:209` | Low | String contains check — fragile. Parse JSON and check type field |
+| R387 | hft-executor: no graceful shutdown on channel close | `lib.rs:169` | Low | Returns immediately on channel close. No fill grace period |
+| R388 | hft-executor: Cargo.toml | `Cargo.toml` | ✅ Good | cdylib+rlib, tokio full, release profile optimized for HFT |
+| R389 | hft-executor: native-tls instead of rustls | `Cargo.toml:15` | Low | native-tls links system TLS. Use rustls for pure-Rust memory-safe TLS |
+| R390 | terraform/environments/dev/main.tf | `main.tf` | ✅ Good | 5 modules, S3 backend with lock, version pinning, provider pinning |
+| R391 | terraform: db_password default in plaintext | `main.tf:31` | High | `ChangeMeInProduction123!` as default. Remove default, require var or Secrets Manager |
+| R392 | terraform: no prod environment | `environments/` | Medium | Only dev/ exists. No prod/ with production-grade settings |
+| R393 | deploy/k8s/secrets.enc.yaml | `secrets.enc.yaml` | ✅ Good | SOPS template, 3 secrets, all CHANGE_ME placeholders, age encryption |
+| R394 | deploy/k8s: only secrets, no manifests | `deploy/k8s/` | Medium | Only secrets.enc.yaml. No Deployment/Service/ConfigMap. Use Helm or add manifests |
+| R395 | monitoring/ebpf_monitor.py | `ebpf_monitor.py` | ✅ Good | 6 monitoring targets, BCC optional, signal handler, eBPF C programs |
+| R396 | ebpf_monitor: no Windows support | `ebpf_monitor.py:18` | Low | eBPF Linux-only. BCC_AVAILABLE=False on Windows. Dead code on Windows |
+| R397 | scripts/benchmark_suite.py | `benchmark_suite.py` | ✅ Good | p50/p95/p99/p999, 6 benchmarks, perf_counter_ns, JSON output |
+| R398 | benchmark_suite: no warmup | `benchmark_suite.py:29` | Low | No warmup phase. First iterations inflate p99/p999 |
+| R399 | web-ui/panels/registry.js | `registry.js` | ✅ Good | 200+ lazy-loaded panels, categorized, localStorage, plugin architecture |
+| R400 | web-ui: 200+ components over-engineering | `components/` | Medium | Math/research panels unlikely used by traders. Feature flag or separate package |
+| R401 | .github/workflows/deploy.yml | `deploy.yml` | ✅ Good | 3 jobs, matrix build, semver tagging, conditional deploy, GHA cache |
+| R402 | deploy.yml: localhost fallback for VITE_WS | `deploy.yml:90` | Medium | Defaults to localhost if GitHub vars not set. Build should fail instead |
+| R403 | .github/workflows/release.yml | `release.yml` | ✅ Good | Tag-triggered, version detection, full git history, contents:write |
+| R404 | .github/workflows/nightly-backtest.yml | `nightly-backtest.yml` | ✅ Good | Cron 02:00 UTC, issues:write for auto-alerting, walk-forward, artifact upload |
+| R405 | docker-compose.prod.yml | `docker-compose.prod.yml` | ✅ Excellent | Resource limits, required secrets, pinned images, network segmentation, Redis config |
+| R406 | docker-compose.prod: ports exposed to host | `docker-compose.prod.yml:16` | Medium | Postgres/Redis/Prometheus ports exposed. Security risk. Remove internal port mappings |
+| R407 | hft-trade-bot/core/bot_context.h | `bot_context.h` | ✅ Good | 20+ components, atomics, SPSC queue, spinlock, 4 latency histograms, SHM IPC |
+| R408 | hft-trade-bot: Spinlock for arb_lock | `bot_context.h:105` | Low | Spinlock appropriate for short critical section. Document constraint |
+| R409 | hft-trade-bot: 3 engine versions loaded | `bot_context.h:74` | Medium | V1/V2/V3 all allocated. V1 never used in hot path. Remove V1, make V2/V3 exclusive |
+| R410 | hft-trade-bot: prices_cache not thread-safe | `bot_context.h:107` | Medium | unordered_map without lock. Data race if multi-threaded. Use shared_mutex |

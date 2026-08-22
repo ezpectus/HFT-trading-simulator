@@ -5272,3 +5272,369 @@ sudo sed -i 's/endpoint<connection,config>/endpoint/g' /usr/include/websocketpp/
 CI patches system headers with `sed` to fix C++17/C++20 incompatibility. This is fragile — if the header format changes, the patch silently fails.
 
 **Фикс:** Pin websocketpp to a specific version or use a fork with C++20 support.
+
+### 8.393 hft-executor/src/lib.rs: Rust order executor — ✅ Excellent
+
+**Файл:** `hft-executor/src/lib.rs` (525 lines)
+
+- **FFI for C++**: `hft_executor_create`, `hft_executor_submit`, `hft_executor_stats`, `hft_executor_destroy` — clean C ABI
+- **Auto-reconnect**: Exponential backoff (500ms → 10s cap) on WebSocket disconnect
+- **Atomic counters**: `AtomicU64` for orders_sent, fills_received, errors — lock-free stats
+- **Unbounded channel**: `mpsc::UnboundedSender<Order>` — non-blocking submit from C++ FFI
+- **tokio::select!**: Concurrently reads orders from channel and fill messages from WebSocket
+- **Fill detection**: String-based `is_fill_message` — checks for "fill", "filled", "order_fill"
+- **Batch submit**: `submit_batch` with `SmallVec<[Order; 16]>` — stack-allocated for small batches
+- **Release profile**: `opt-level=3`, `lto=true`, `codegen-units=1`, `panic=abort`, `strip=true`
+- **Null checks**: All FFI functions check for null pointers before dereferencing
+- **Integration tests**: Mock WebSocket server, serialization test, batch submit test
+
+Excellent Rust executor with FFI, auto-reconnect, atomics, and comprehensive tests. ✅
+
+### 8.394 hft-executor: avg_latency_ns always 0 — Medium
+
+**Файл:** `hft-executor/src/lib.rs:116`
+
+```rust
+avg_latency_ns: 0,
+```
+
+`stats()` always returns `avg_latency_ns: 0`. The field exists in `ExecStats` and `FfiExecStats` but is never populated. No latency measurement is implemented.
+
+**Фикс:** Track submit timestamp and fill timestamp. Calculate `fill_ts - submit_ts` for each order.
+
+### 8.395 hft-executor: serde_json::to_string unwrap_or_default — Low
+
+**Файл:** `hft-executor/src/lib.rs:159`
+
+```rust
+let json = serde_json::to_string(&order).unwrap_or_default();
+```
+
+If serialization fails, `unwrap_or_default()` produces an empty string `""`. Sending an empty string as a WebSocket text message is silently incorrect — the exchange simulator will receive an empty message and may error or ignore it.
+
+**Фикс:** Handle the error: `match serde_json::to_string(&order) { Ok(json) => ..., Err(e) => { error_count.fetch_add(1, ...); continue; } }`.
+
+### 8.396 hft-executor: is_fill_message string matching — Low
+
+**Файл:** `hft-executor/src/lib.rs:209-214`
+
+```rust
+fn is_fill_message(text: &str) -> bool {
+    text.contains("\"fill\"")
+        || text.contains("\"filled\"")
+        || text.contains("\"order_fill\"")
+        || text.contains("\"type\":\"fill\"")
+}
+```
+
+String-based fill detection — fragile. If the exchange simulator sends `{"type": "FILL"}` (uppercase), it won't match. If a non-fill message contains the word "fill" (e.g., `{"type":"error","msg":"order failed to fill"}`), it will be counted as a fill.
+
+**Фикс:** Parse JSON and check the `type` field: `serde_json::from_str::<serde_json::Value>(text)` and check `["type"] == "fill"`.
+
+### 8.397 hft-executor: no graceful shutdown on channel close — Low
+
+**Файл:** `hft-executor/src/lib.rs:169-171`
+
+```rust
+None => {
+    tracing::info!("Order channel closed — shutting down executor");
+    return;
+}
+```
+
+When the order channel closes, the executor returns immediately. But it doesn't flush pending orders or wait for fill confirmations. Orders sent but not yet confirmed as filled are lost.
+
+**Фикс:** Wait for a grace period (e.g., 5s) for fill confirmations before shutting down.
+
+### 8.398 hft-executor: Cargo.toml — ✅ Good
+
+**Файл:** `hft-executor/Cargo.toml` (27 lines)
+
+- **crate-type**: `["cdylib", "rlib"]` — both FFI and Rust tests
+- **Dependencies**: tokio (full), tokio-tungstenite (native-tls), serde, serde_json, smallvec, tracing
+- **Release profile**: `opt-level=3`, `lto=true`, `codegen-units=1`, `panic=abort`, `strip=true` — optimized for HFT
+
+Good Cargo.toml with proper release optimization for HFT. ✅
+
+### 8.399 hft-executor: native-tls instead of rustls — Low
+
+**Файл:** `hft-executor/Cargo.toml:15`
+
+```toml
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+```
+
+Uses `native-tls` (OpenSSL on Linux, SChannel on Windows, SecureTransport on macOS) instead of `rustls`. `native-tls` links to system TLS libraries — potential version conflicts and security vulnerabilities. `rustls` is pure Rust, no C dependencies, memory-safe.
+
+**Фикс:** Use `features = ["rustls-tls-native-roots"]` instead.
+
+### 8.400 terraform/environments/dev/main.tf: IaC — ✅ Good
+
+**Файл:** `terraform/environments/dev/main.tf` (98 lines)
+
+- **5 modules**: vpc, eks, rds, elasticache, s3 — clean composition
+- **S3 backend**: Encrypted state with DynamoDB locking — best practice
+- **Required version**: `>= 1.5.0` — version pinning
+- **Provider pinning**: `aws ~> 5.0` — minor version updates only
+- **Outputs**: cluster_endpoint, rds_endpoint, redis_endpoint, s3_bucket
+
+Good Terraform with modular composition, encrypted state, and locking. ✅
+
+### 8.401 terraform: db_password default in plaintext — High
+
+**Файл:** `terraform/environments/dev/main.tf:31`
+
+```hcl
+variable "db_password" {
+  type        = string
+  sensitive   = true
+  default     = "ChangeMeInProduction123!"
+}
+```
+
+RDS master password has a plaintext default. While marked `sensitive = true` (won't show in plan output), the default value is in the source code. If someone runs `terraform apply` without setting the variable, the database uses `ChangeMeInProduction123!` as the password.
+
+**Фикс:** Remove the default: `default = null` or no default. Require `terraform apply -var="db_password=..."` or use AWS Secrets Manager.
+
+### 8.402 terraform: no prod environment — Medium
+
+**Файл:** `terraform/environments/`
+
+Only `dev/` environment exists. No `prod/` environment with production-specific settings (larger instances, multi-AZ RDS, restricted security groups, etc.).
+
+**Фикс:** Create `terraform/environments/prod/` with production-grade settings.
+
+### 8.403 deploy/k8s/secrets.enc.yaml: SOPS template — ✅ Good
+
+**Файл:** `deploy/k8s/secrets.enc.yaml` (53 lines)
+
+- **SOPS template**: Documents how to encrypt with `sops deploy/k8s/secrets.enc.yaml`
+- **3 secrets**: DB password, exchange API keys, notification tokens
+- **Placeholder values**: All `CHANGE_ME` — no real secrets committed
+- **age encryption**: Comment mentions `base64+age encrypted`
+
+Good secrets template with SOPS workflow documented. ✅
+
+### 8.404 deploy/k8s: only secrets template, no K8s manifests — Medium
+
+**Файл:** `deploy/k8s/`
+
+Only `secrets.enc.yaml` exists in `deploy/k8s/`. No actual K8s manifests (Deployment, Service, ConfigMap, Ingress). The Helm chart in `helm/` has templates, but `deploy/k8s/` is incomplete.
+
+**Фикс:** Either remove `deploy/k8s/` (use Helm only) or add K8s manifests for all services.
+
+### 8.405 monitoring/ebpf_monitor.py: eBPF monitoring — ✅ Good
+
+**Файл:** `monitoring/ebpf_monitor.py` (225 lines)
+
+- **6 monitoring targets**: syscall latency, network latency, CPU cache misses, memory allocations, thread scheduling, file I/O
+- **BCC optional**: `try: from bcc import BPF` with `BCC_AVAILABLE` flag — graceful degradation
+- **eBPF C programs**: Inline `SYSCALL_BPF` and `NETWORK_BPF` — kernel-side tracing
+- **Signal handler**: `signal.signal(signal.SIGINT, ...)` for graceful shutdown
+- **Requirements documented**: Kernel 5.15+, BCC tools, root privileges
+
+Good eBPF monitoring with graceful BCC fallback and documented requirements. ✅
+
+### 8.406 ebpf_monitor: no Windows support — Low
+
+**Файл:** `monitoring/ebpf_monitor.py:18`
+
+```
+Requirements:
+  - Linux kernel 5.15+
+  - BCC tools: apt install bpftrace bpfcc-tools
+  - Root privileges (CAP_BPF)
+```
+
+eBPF is Linux-only. The project runs on Windows (user's OS), but this monitoring tool won't work. The `BCC_AVAILABLE = False` fallback handles this gracefully, but the tool is effectively dead code on Windows.
+
+**Фикс:** Document that eBPF monitoring is Linux-only. Consider ETW (Event Tracing for Windows) as a Windows alternative.
+
+### 8.407 scripts/benchmark_suite.py: Latency benchmark — ✅ Good
+
+**Файл:** `scripts/benchmark_suite.py` (207 lines)
+
+- **p50/p95/p99/p999**: Full percentile distribution — proper latency analysis
+- **6 benchmarks**: signal_json_parse, order_book_update, candle_aggregation, position_pnl, risk_check, signal_generation
+- **perf_counter_ns**: Nanosecond precision — proper for HFT
+- **JSON output**: Structured report with all metrics
+- **CLI args**: `--iterations`, `--output` — configurable
+
+Good benchmark suite with proper percentile calculation and nanosecond precision. ✅
+
+### 8.408 benchmark_suite: no warmup — Low
+
+**Файл:** `scripts/benchmark_suite.py:29-36`
+
+```python
+def measure_stage(name, fn, iterations):
+    latencies = []
+    for _ in range(iterations):
+        t0 = time.perf_counter_ns()
+        fn()
+        t1 = time.perf_counter_ns()
+        latencies.append((t1 - t0) / 1000.0)
+```
+
+No warmup phase — first iterations include cold cache, JIT warmup, and import overhead. This inflates p99 and p999.
+
+**Фикс:** Add warmup: `for _ in range(min(100, iterations // 10)): fn()` before measuring.
+
+### 8.409 web-ui/panels/registry.js: 200+ lazy-loaded panels — ✅ Good
+
+**Файл:** `web-ui/src/panels/registry.js` (684 lines)
+
+- **200+ panels**: All lazy-loaded via `React.lazy(() => import(...))` — code-splitting per panel
+- **Categorized**: Sections with collapsible groups
+- **localStorage**: User-toggleable visibility — persistent UI state
+- **Plugin architecture**: Documented in comments — add panels without touching App.jsx
+
+Good panel registry with lazy loading and plugin architecture. ✅
+
+### 8.410 web-ui: 200+ components — potential over-engineering — Medium
+
+**Файлы:** `web-ui/src/components/` (200+ files)
+
+200+ React components, many with mathematical/research names: `AffineArithmetic`, `ArzelaAscoli`, `BanachFixedPoint`, `BurgersEquation`, `CameronMartinFormula`, `CesaroFejerKernel`, `CompressedSensing`, `CramerRaoBound`, `DynamicTimeWarping`, `EmpiricalDynamicModeling`, etc.
+
+These are advanced mathematical concepts that are unlikely to be used by typical traders. The bundle size and maintenance burden of 200+ components is significant, even with lazy loading.
+
+**Code reduction:** Consider a feature flag system to disable unused panels. Or move research panels to a separate `research-ui` package.
+
+### 8.411 .github/workflows/deploy.yml: Multi-service deploy — ✅ Good
+
+**Файл:** `.github/workflows/deploy.yml` (172 lines)
+
+- **3 jobs**: deploy-web-ui (Netlify), build-and-push (GHCR), deploy (SSH to server)
+- **Matrix build**: 4 services × Docker build-push with GHA cache
+- **Semver tagging**: `type=semver,pattern={{version}}`, `{{major}}.{{minor}}`, `{{major}}`
+- **Conditional deploy**: `if: startsWith(github.ref, 'refs/tags/v')` — only on tags
+- **Build args**: VITE_WS_EXCHANGE/SIGNALS with fallback to localhost
+
+Good deploy workflow with matrix build, semver tagging, and conditional deploy. ✅
+
+### 8.412 deploy.yml: localhost fallback for VITE_WS — Medium
+
+**Файл:** `.github/workflows/deploy.yml:90-91`
+
+```yaml
+VITE_WS_EXCHANGE=${{ vars.VITE_WS_EXCHANGE || 'ws://localhost:8765' }}
+VITE_WS_SIGNALS=${{ vars.VITE_WS_SIGNALS || 'ws://localhost:8766' }}
+```
+
+If GitHub variables `VITE_WS_EXCHANGE` and `VITE_WS_SIGNALS` are not set, the build defaults to `localhost`. In production, this means the web UI will try to connect to the user's localhost — which won't have the exchange simulator.
+
+**Фикс:** Make the build fail if vars are not set: `${{ vars.VITE_WS_EXCHANGE || 'MUST_SET_VITE_WS_EXCHANGE' }}` and check in the build step.
+
+### 8.413 .github/workflows/release.yml: Release workflow — ✅ Good
+
+**Файл:** `.github/workflows/release.yml` (128 lines)
+
+- **Tag-triggered**: `v*` tags or manual dispatch with version input
+- **fetch-depth: 0**: Full git history for changelog generation
+- **contents: write**: Permission for creating releases
+- **Version detection**: Handles both tag push and manual dispatch
+
+Good release workflow with version detection and tag triggering. ✅
+
+### 8.414 .github/workflows/nightly-backtest.yml: Walk-forward CI — ✅ Good
+
+**Файл:** `.github/workflows/nightly-backtest.yml` (219 lines)
+
+- **Cron schedule**: `0 2 * * *` — 02:00 UTC daily
+- **issues: write**: Creates GitHub issue on failure — automated alerting
+- **Walk-forward**: Generates 1 year of synthetic data, runs backtest, checks overfitting
+- **Artifact upload**: Backtest results JSON with 30-day retention
+
+Good nightly backtest with automated issue creation on failure. ✅
+
+### 8.415 docker-compose.prod.yml: Production compose — ✅ Excellent
+
+**Файл:** `docker-compose.prod.yml` (278 lines)
+
+- **Resource limits**: All services have `deploy.resources.limits` (memory + cpus)
+- **Required secrets**: `POSTGRES_PASSWORD:?` and `GRAFANA_PASSWORD:?` — fail if not set
+- **Health checks**: All services with proper healthcheck commands
+- **Pinned images**: `postgres:16-alpine`, `redis:7-alpine`, `prom/prometheus:v3.0.0`, `grafana/grafana:11.4.0`
+- **Redis config**: `--maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes`
+- **Prometheus retention**: 30d TSDB
+- **Networks**: `backend`, `monitoring`, `frontend` — segmented
+- **Volume mounts**: Read-only (`:ro`) for configs and dashboards
+
+Excellent production compose with resource limits, required secrets, pinned images, and network segmentation. ✅
+
+### 8.416 docker-compose.prod: ports exposed to host — Medium
+
+**Файл:** `docker-compose.prod.yml:16-17,41-42,66-67,97-98`
+
+```yaml
+ports:
+  - "5432:5432"  # PostgreSQL
+  - "6379:6379"  # Redis
+  - "9090:9090"  # Prometheus
+  - "3001:3000"  # Grafana
+```
+
+PostgreSQL, Redis, Prometheus, and Grafana ports are exposed to the host. In production, these should only be accessible within the Docker network. Exposing Postgres (5432) and Redis (6379) to the host is a security risk — anyone with network access to the host can connect.
+
+**Фикс:** Remove port mappings for internal services (Postgres, Redis, Prometheus). Only expose web-ui (3000) and Grafana (3001) via reverse proxy.
+
+### 8.417 hft-trade-bot/core/bot_context.h: BotContext — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/bot_context.h` (114 lines)
+
+- **20+ components**: receiver, risk_mgr, executor, engines (v1/v2/v3), router, kill_switch, health_server
+- **SHM IPC**: shm_signal_consumer, shm_fill_producer, shm_market_data
+- **3 exchange adapters**: Binance, OKX, Bybit (real + sim)
+- **Atomic balance**: `std::atomic<double> balance{10000.0}` — thread-safe
+- **SPSC queue**: `SPSCQueue<Signal, 16> ai_signal_queue` — lock-free for AI signals
+- **Latency histograms**: 4 histograms (signal, risk_check, order_exec, total_loop)
+- **Spinlock for arb**: `Spinlock arb_lock` — low-latency locking
+
+Good BotContext with atomics, SPSC queue, spinlock, and latency histograms. ✅
+
+### 8.418 hft-trade-bot bot_context: Spinlock for arb_lock — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_context.h:105`
+
+```cpp
+Spinlock arb_lock;
+```
+
+Uses a `Spinlock` for `arb_lock`. Spinlocks can waste CPU cycles if the critical section is long or if the holder is preempted by the OS scheduler. For the arbitrage critical section (copy `ArbOpportunity` + set bool), spinlock is appropriate — the section is very short.
+
+**Note:** This is fine for the current usage. Just document that the critical section must remain short.
+
+### 8.419 hft-trade-bot bot_context: 3 engine versions — Medium (code reduction)
+
+**Файл:** `hft-trade-bot/src/core/bot_context.h:74-76`
+
+```cpp
+std::unique_ptr<SignalEngineV2> engine_v2;
+std::unique_ptr<SignalEngineV3> engine_v3;
+std::unique_ptr<SignalEngine>   engine_v1;
+```
+
+3 signal engine versions are loaded simultaneously. `bot_loop.cpp:89-92` shows:
+```cpp
+if (ctx.engine_v3) {
+    return ctx.engine_v3->analyze_incremental(...);
+}
+return ctx.engine_v2->analyze_incremental(...);
+```
+
+V1 is never used in the hot path (only V2/V3). All 3 are allocated in memory.
+
+**Code reduction:** Remove V1 if it's truly unused. Make V2/V3 mutually exclusive — only load one.
+
+### 8.420 hft-trade-bot bot_context: prices_cache not thread-safe — Medium
+
+**Файл:** `hft-trade-bot/src/core/bot_context.h:107`
+
+```cpp
+std::unordered_map<std::string, double> prices_cache;
+```
+
+`prices_cache` is a plain `unordered_map` — not thread-safe. `process_sl_tp` writes to it (`get_all_prices_into`), and other threads may read from it. If the bot runs multiple threads (e.g., AI signal consumer + main loop), concurrent access is a data race.
+
+**Фикс:** Use `std::shared_mutex` with shared/unique locks, or use a concurrent map.
