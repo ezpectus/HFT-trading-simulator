@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка K: asyncio.Lock + persistent DB + copula O(n log n))
+
+### Changed
+- `real_market_data.py`: Added `asyncio.Lock` (`_state_lock`) to protect `_ws_connections` and `_reconnect_delays` — all 3 exchange handlers (Binance/OKX/Bybit) and `stop()` now use lock
+- `db.py`: Replaced per-operation `sqlite3.connect()` with persistent `_get_conn()` connection — was creating 50+ connections/min
+- `copula.py`: `empirical_cdf` rewritten from O(n²) to O(n log n) using `sorted()` + `bisect.bisect_right` — 250K comparisons → 500 log(500) for n=500
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка J: signal_publisher DRY + asyncio.to_thread + shm overflow)
 
 ### Changed

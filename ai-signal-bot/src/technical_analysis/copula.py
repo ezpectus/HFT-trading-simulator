@@ -7,6 +7,7 @@ Student-t copulas.
 """
 from __future__ import annotations
 
+import bisect
 import math
 
 MIN_PROB = 1e-10
@@ -72,9 +73,10 @@ class CopulaResult:
 
 
 def empirical_cdf(values: list[float]) -> list[float]:
-    """Rank-based empirical CDF: count(x <= v) / (n + 1)."""
+    """Rank-based empirical CDF: count(x <= v) / (n + 1). O(n log n) via sort+bisect."""
     n = len(values)
-    return [sum(1 for x in values if x <= v) / (n + 1) for v in values]
+    sorted_vals = sorted(values)
+    return [bisect.bisect_right(sorted_vals, v) / (n + 1) for v in values]
 
 
 def norm_cdf(x: float) -> float:

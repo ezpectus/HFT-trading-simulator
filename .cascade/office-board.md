@@ -355,7 +355,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | marketplace: install_from_git executes arbitrary code | No sandboxing. Run in subprocess with restricted permissions | CODE_AUDIT §8.1306 |
 | risk: DynamicPositionSizer duplicates kelly.py | ~200 lines redundant. Remove and use KellyPositionSizer directly | CODE_AUDIT §8.1313 |
 | risk: 2 duplicate PortfolioOptimizer classes | 3 implementations ~900 lines. Keep portfolio/ only | CODE_AUDIT §8.1316, §8.1334 |
-| db: new SQLite connection per operation | 50 conn/min. Use persistent connection | CODE_AUDIT §8.1320 |
+| ~~db: new SQLite connection per operation~~ [FIXED] | Replaced with persistent _get_conn() connection | CODE_AUDIT §8.1320 |
 | ~~signal_publisher: _run_backtest blocks event loop~~ [FIXED] | Wrapped bt.run in asyncio.to_thread | CODE_AUDIT §8.1323 |
 | ~~signal_publisher: 3 identical _send closures~~ [FIXED] | Extracted _broadcast_to_clients helper | CODE_AUDIT §8.1324 |
 | Project-wide: 0 asyncio.Lock usage | _clients _candle_history _recent_signals at risk. Add locks | CODE_AUDIT §8.1336 |
@@ -369,7 +369,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | technical_analysis: 3× duplicate _fft Cooley-Tukey | ~150 lines duplicate in fft_analysis/emd/vmd. Use shared _fft_utils or numpy.fft | CODE_AUDIT §8.1363 |
 | technical_analysis: 16 modules likely dead code | ~4000+ lines not used in production. Move to advanced package | CODE_AUDIT §8.1364 |
 | technical_analysis: vmd.py _ifft is O(n²) direct DFT | Forward is O(n log n) but inverse is O(n²). Use _fft with conjugation | CODE_AUDIT §8.1370 |
-| technical_analysis: copula.py empirical_cdf is O(n²) | 250K comparisons for n=500. Use sort+bisect O(n log n) | CODE_AUDIT §8.1369 |
+| ~~technical_analysis: copula.py empirical_cdf is O(n²)~~ [FIXED] | Replaced with sort+bisect O(n log n) | CODE_AUDIT §8.1369 |
 | ~~technical_analysis: copula.py own erf function~~ [FIXED] | Replaced with math.erf. Removed 9-line custom impl | CODE_AUDIT §8.1345 |
 | technical_analysis: rbergomi O(n³) Cholesky in pure Python | n=50 → 125K ops. Use numpy or Davies-Harte O(n log n) | CODE_AUDIT §8.1354 |
 | technical_analysis: hmc numerical gradient 60K evals | Central differences. Analytical gradient 2× faster | CODE_AUDIT §8.1358 |
@@ -395,7 +395,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~data_collection: 2× duplicate AccountBalance dataclass~~ [FIXED] | Renamed real_account.AccountBalance → AssetBalance. Different fields, different purposes | CODE_AUDIT §8.1413 |
 | ~~data_collection: no rate limiting on REST API calls~~ [FIXED] | Added asyncio.Semaphore in RealExchangeClient | CODE_AUDIT §8.1414 |
 | ~~real_account: 3× broad except Exception~~ [FIXED] | Replaced with (OSError, RuntimeError, KeyError, ValueError) | CODE_AUDIT §8.1411 |
-| real_market_data: no asyncio.Lock on shared state | _tickers _orderbooks _candles written from WS read from main. Low risk | CODE_AUDIT §8.1412 |
+| ~~real_market_data: no asyncio.Lock on shared state~~ [FIXED] | Added _state_lock for _ws_connections in all 3 exchange handlers + stop() | CODE_AUDIT §8.1412 |
 | ~~run.py: no SIGTERM handler~~ [FIXED] | Added SIGTERM/SIGINT handler for graceful shutdown | CODE_AUDIT §8.1416 |
 | run.py: _execute_live_order not implemented | Stub logs warning. Silent failure if paper_trading=False | CODE_AUDIT §8.1417 |
 | ~~run_backtest: sqlite3.connect without context manager~~ [FIXED] | Wrapped in with statement | CODE_AUDIT §8.1418 |

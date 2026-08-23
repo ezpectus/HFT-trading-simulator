@@ -5,7 +5,6 @@ Uses sqlite3 (standard library) with WAL mode for concurrent access.
 import os
 import sqlite3
 import time
-from contextlib import closing
 
 
 class Database:
@@ -16,26 +15,38 @@ class Database:
         dir_path = os.path.dirname(path)
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
+        self._conn: sqlite3.Connection | None = None
         self._init_db()
 
-    def _conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path)
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.row_factory = sqlite3.Row
-        return conn
+    def _get_conn(self) -> sqlite3.Connection:
+        """Get or create persistent connection."""
+        if self._conn is None:
+            self._conn = sqlite3.connect(self.path)
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.row_factory = sqlite3.Row
+        return self._conn
 
     def close(self) -> None:
         """Close database and release WAL file locks (Windows-safe)."""
-        try:
-            with closing(sqlite3.connect(self.path)) as conn:
-                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-                conn.execute("PRAGMA journal_mode=DELETE")
-        except Exception:
-            pass
+        if self._conn:
+            try:
+                self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                self._conn.execute("PRAGMA journal_mode=DELETE")
+                self._conn.close()
+            except Exception:
+                pass
+            self._conn = None
+        else:
+            try:
+                with closing(sqlite3.connect(self.path)) as conn:
+                    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                    conn.execute("PRAGMA journal_mode=DELETE")
+            except Exception:
+                pass
 
     def _init_db(self) -> None:
-        with closing(self._conn()) as conn:
-            conn.executescript("""
+        conn = self._get_conn()
+        conn.executescript("""
                 CREATE TABLE IF NOT EXISTS signals (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp INTEGER NOT NULL,
@@ -79,81 +90,81 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol);
                 CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status);
             """)
-            conn.commit()
+        conn.commit()
 
     def save_signal(self, signal_dict: dict, validated: bool = True) -> int:
-        with closing(self._conn()) as conn:
-            cursor = conn.execute(
-                """INSERT INTO signals
-                   (timestamp, symbol, direction, confidence, strategy,
-                    entry_price, stop_loss, take_profit, rr_ratio, reason, validated)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    signal_dict.get("timestamp", int(time.time())),
-                    signal_dict["symbol"],
-                    signal_dict["direction"],
-                    signal_dict["confidence"],
-                    signal_dict["strategy"],
-                    signal_dict["entry_price"],
-                    signal_dict["stop_loss"],
-                    signal_dict["take_profit"],
-                    signal_dict.get("rr_ratio", 0),
-                    signal_dict.get("reason", ""),
-                    1 if validated else 0,
-                ),
-            )
-            signal_id = cursor.lastrowid
-            conn.commit()
-            return signal_id
+        conn = self._get_conn()
+        cursor = conn.execute(
+            """INSERT INTO signals
+               (timestamp, symbol, direction, confidence, strategy,
+                entry_price, stop_loss, take_profit, rr_ratio, reason, validated)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                signal_dict.get("timestamp", int(time.time())),
+                signal_dict["symbol"],
+                signal_dict["direction"],
+                signal_dict["confidence"],
+                signal_dict["strategy"],
+                signal_dict["entry_price"],
+                signal_dict["stop_loss"],
+                signal_dict["take_profit"],
+                signal_dict.get("rr_ratio", 0),
+                signal_dict.get("reason", ""),
+                1 if validated else 0,
+            ),
+        )
+        signal_id = cursor.lastrowid
+        conn.commit()
+        return signal_id
 
     def save_trade(self, trade_dict: dict) -> int:
-        with closing(self._conn()) as conn:
-            cursor = conn.execute(
-                """INSERT INTO trades
-                   (timestamp, symbol, exchange, side, quantity,
-                    entry_price, exit_price, pnl, fee, status, signal_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    trade_dict.get("timestamp", int(time.time())),
-                    trade_dict["symbol"],
-                    trade_dict["exchange"],
-                    trade_dict["side"],
-                    trade_dict["quantity"],
-                    trade_dict["entry_price"],
-                    trade_dict.get("exit_price"),
-                    trade_dict.get("pnl"),
-                    trade_dict.get("fee", 0),
-                    trade_dict.get("status", "OPEN"),
-                    trade_dict.get("signal_id"),
-                ),
-            )
-            trade_id = cursor.lastrowid
-            conn.commit()
-            return trade_id
+        conn = self._get_conn()
+        cursor = conn.execute(
+            """INSERT INTO trades
+               (timestamp, symbol, exchange, side, quantity,
+                entry_price, exit_price, pnl, fee, status, signal_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                trade_dict.get("timestamp", int(time.time())),
+                trade_dict["symbol"],
+                trade_dict["exchange"],
+                trade_dict["side"],
+                trade_dict["quantity"],
+                trade_dict["entry_price"],
+                trade_dict.get("exit_price"),
+                trade_dict.get("pnl"),
+                trade_dict.get("fee", 0),
+                trade_dict.get("status", "OPEN"),
+                trade_dict.get("signal_id"),
+            ),
+        )
+        trade_id = cursor.lastrowid
+        conn.commit()
+        return trade_id
 
     def close_trade(self, trade_id: int, exit_price: float, pnl: float, fee: float = 0) -> None:
-        with closing(self._conn()) as conn:
-            conn.execute(
-                "UPDATE trades SET exit_price=?, pnl=?, fee=?, status='CLOSED' WHERE id=?",
-                (exit_price, pnl, fee, trade_id),
-            )
-            conn.commit()
+        conn = self._get_conn()
+        conn.execute(
+            "UPDATE trades SET exit_price=?, pnl=?, fee=?, status='CLOSED' WHERE id=?",
+            (exit_price, pnl, fee, trade_id),
+        )
+        conn.commit()
 
     def save_equity(self, balance: float, equity: float, open_positions: int) -> None:
-        with closing(self._conn()) as conn:
-            conn.execute(
-                "INSERT INTO equity_curve (timestamp, balance, equity, open_positions) VALUES (?, ?, ?, ?)",
-                (int(time.time()), balance, equity, open_positions),
-            )
-            conn.commit()
+        conn = self._get_conn()
+        conn.execute(
+            "INSERT INTO equity_curve (timestamp, balance, equity, open_positions) VALUES (?, ?, ?, ?)",
+            (int(time.time()), balance, equity, open_positions),
+        )
+        conn.commit()
 
     def get_stats(self) -> dict:
-        with closing(self._conn()) as conn:
-            total_signals = conn.execute("SELECT COUNT(*) FROM signals").fetchone()[0]
-            total_trades = conn.execute("SELECT COUNT(*) FROM trades WHERE status='CLOSED'").fetchone()[0]
-            winning = conn.execute("SELECT COUNT(*) FROM trades WHERE status='CLOSED' AND pnl > 0").fetchone()[0]
-            total_pnl = conn.execute("SELECT COALESCE(SUM(pnl), 0) FROM trades WHERE status='CLOSED'").fetchone()[0]
-            total_fees = conn.execute("SELECT COALESCE(SUM(fee), 0) FROM trades").fetchone()[0]
+        conn = self._get_conn()
+        total_signals = conn.execute("SELECT COUNT(*) FROM signals").fetchone()[0]
+        total_trades = conn.execute("SELECT COUNT(*) FROM trades WHERE status='CLOSED'").fetchone()[0]
+        winning = conn.execute("SELECT COUNT(*) FROM trades WHERE status='CLOSED' AND pnl > 0").fetchone()[0]
+        total_pnl = conn.execute("SELECT COALESCE(SUM(pnl), 0) FROM trades WHERE status='CLOSED'").fetchone()[0]
+        total_fees = conn.execute("SELECT COALESCE(SUM(fee), 0) FROM trades").fetchone()[0]
 
         return {
             "total_signals": total_signals,
@@ -165,15 +176,15 @@ class Database:
         }
 
     def get_recent_signals(self, limit: int = 20) -> list[dict]:
-        with closing(self._conn()) as conn:
-            rows = conn.execute(
-                "SELECT * FROM signals ORDER BY id DESC LIMIT ?", (limit,)
-            ).fetchall()
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT * FROM signals ORDER BY id DESC LIMIT ?", (limit,)
+        ).fetchall()
         return [dict(r) for r in rows]
 
     def get_recent_trades(self, limit: int = 20) -> list[dict]:
-        with closing(self._conn()) as conn:
-            rows = conn.execute(
-                "SELECT * FROM trades ORDER BY id DESC LIMIT ?", (limit,)
-            ).fetchall()
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT * FROM trades ORDER BY id DESC LIMIT ?", (limit,)
+        ).fetchall()
         return [dict(r) for r in rows]

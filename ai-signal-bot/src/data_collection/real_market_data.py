@@ -71,6 +71,7 @@ class RealMarketDataFeed:
         self._reconnect_delay = 1.0
         self._reconnect_delays: dict[str, float] = {}
         self._max_reconnect_delay = 30.0
+        self._state_lock = asyncio.Lock()
 
         # Callbacks
         self.on_ticker: Callable[[NormalizedTicker], Awaitable[None]] | None = None
@@ -96,11 +97,13 @@ class RealMarketDataFeed:
     async def stop(self):
         """Stop all WebSocket connections."""
         self._running = False
-        for ws in self._ws_connections.values():
-            try:
-                await ws.close()
-            except (ConnectionError, OSError, RuntimeError) as e:
-                logger.debug(f"WS close error: {e}")
+        async with self._state_lock:
+            for ws in self._ws_connections.values():
+                try:
+                    await ws.close()
+                except (ConnectionError, OSError, RuntimeError) as e:
+                    logger.debug(f"WS close error: {e}")
+            self._ws_connections.clear()
 
     async def _run_binance(self, symbols: list[str], intervals: list[str]):
         """Binance Futures WebSocket feed."""
@@ -127,8 +130,9 @@ class RealMarketDataFeed:
         while self._running:
             try:
                 async with websockets.connect(url, ping_interval=20) as ws:
-                    self._ws_connections["binance"] = ws
-                    self._reconnect_delays["binance"] = 1.0
+                    async with self._state_lock:
+                        self._ws_connections["binance"] = ws
+                        self._reconnect_delays["binance"] = 1.0
                     logger.info(f"Binance WebSocket connected: {len(streams)} streams")
 
                     async for raw in ws:
@@ -193,8 +197,9 @@ class RealMarketDataFeed:
         while self._running:
             try:
                 async with websockets.connect(url, ping_interval=20) as ws:
-                    self._ws_connections["okx"] = ws
-                    self._reconnect_delays["okx"] = 1.0
+                    async with self._state_lock:
+                        self._ws_connections["okx"] = ws
+                        self._reconnect_delays["okx"] = 1.0
 
                     # Subscribe to tickers and candles
                     sub_args = []
@@ -272,8 +277,9 @@ class RealMarketDataFeed:
         while self._running:
             try:
                 async with websockets.connect(url, ping_interval=20) as ws:
-                    self._ws_connections["bybit"] = ws
-                    self._reconnect_delays["bybit"] = 1.0
+                    async with self._state_lock:
+                        self._ws_connections["bybit"] = ws
+                        self._reconnect_delays["bybit"] = 1.0
 
                     # Subscribe
                     sub_args = []

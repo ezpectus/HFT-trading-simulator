@@ -508,6 +508,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | 10 | 2026-08-25 | Пачка H — health_server.py: 3× _check_* → 1× _check_component helper. tracker.py: datetime.now() → datetime.now(UTC). copula.py: custom erf → math.erf. ~25 строк удалено | ✅ Done | — |
 | 11 | 2026-08-25 | Пачка I — real_account.py: 3× except Exception → (OSError, RuntimeError, KeyError, ValueError). feature_store.py: removed redundant Exception from tuple | ✅ Done | — |
 | 12 | 2026-08-25 | Пачка J — signal_publisher.py: 3× _send closures → _broadcast_to_clients helper, _run_backtest → asyncio.to_thread. shm_ring_buffer.py: added dropped_count counter. Office-board: 11 stale items marked [FIXED] | ✅ Done | — |
+| 13 | 2026-08-25 | Пачка K — real_market_data.py: asyncio.Lock for _ws_connections (3 exchange handlers + stop). db.py: persistent connection via _get_conn() (was new conn per op). copula.py: empirical_cdf O(n²)→O(n log n) via sort+bisect | ✅ Done | — |
 | 5 | 2026-08-26 | Аудит unused research модулей | ⏳ Pending | — |
 | 6 | 2026-08-27 | backtester.py упрощение | ⏳ Pending | — |
 | 7 | 2026-08-28 | strategies.py cleanup | ⏳ Pending | — |
