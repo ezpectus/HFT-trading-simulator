@@ -10,6 +10,16 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка VV: web-ui perf — getFilteredSymbols memo + candle sort + alertCallbacks + mockData 50 symbols)
+
+### Changed
+- `web-ui/src/stores/useUIStore.js`: Cached `_filteredSymbols` in store state — only recomputes when `symbolSearch` or `selectedCategory` changes, not on every `getFilteredSymbols()` call
+- `web-ui/src/hooks/useExchangeData.js`: Removed full `Array.from + sort` on incremental candle updates — only sorts when map exceeds 500 cap
+- `web-ui/src/utils/performanceMonitor.js`: Added `offAlert()` function to remove callbacks on unmount — `resetMetrics()` also clears callbacks
+- `web-ui/src/utils/mockData.js`: Expanded `MOCK_SYMBOLS` from 5 to 49 (matches full trading universe). Reduced initial candles from 500 to 100 per symbol to keep init lightweight
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка UU: web-ui SMA O(n) + EMA/RSI dedup + maxReconnects + channel cleanup)
 
 ### Changed

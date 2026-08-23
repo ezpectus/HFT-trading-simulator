@@ -181,16 +181,16 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~shared_config.yaml: localhost~~ [FIXED] | Same as §8.74 — documented as dev defaults, override in deployment configs | CODE_AUDIT §8.212 |
 | Alertmanager: hardcoded SMTP password | smtp_auth_password 'your-password' in git. Webhooks too | CODE_AUDIT §8.215 |
 | web-ui: 50 symbols duplicated | 50 symbols in JS + shared_config.yaml, out of sync risk | CODE_AUDIT §8.219 |
-| web-ui: getFilteredSymbols not memoized | Re-filters on every call, unnecessary re-renders | CODE_AUDIT §8.224 |
+| ~~web-ui: getFilteredSymbols not memoized~~ [FIXED] | Cached _filteredSymbols in store state — only recomputes when symbolSearch or selectedCategory changes, not on every call | CODE_AUDIT §8.224 |
 | monitoring: no HFT-specific alerts | No order latency, SHM overflow, fill rate, slippage, drawdown alerts | CODE_AUDIT §8.226 |
 | ~~ebpf_monitor: NETWORK_BPF dead code~~ [FIXED] | Removed 30-line NETWORK_BPF program — was defined but never loaded | CODE_AUDIT §8.228 |
 | ~~ebpf_monitor: no Prometheus export~~ [FIXED] | Added prometheus_client Gauges for syscall count + avg latency — stats now exported to Grafana | CODE_AUDIT §8.229 |
-| performanceMonitor: alertCallbacks leak | No offAlert(), callbacks fire after unmount | CODE_AUDIT §8.234 |
+| ~~performanceMonitor: alertCallbacks leak~~ [FIXED] | Added offAlert() function to remove callbacks — call on unmount. resetMetrics() also clears callbacks | CODE_AUDIT §8.234 |
 | ~~web-ui backtestEngine: EMA/RSI duplicated~~ [FIXED] | Replaced local ema()/rsi() functions with import from indicators.js — ~40 lines removed | CODE_AUDIT §8.236 |
 | web-ui backtestEngine: no borrow fee | Short selling overestimates P&L, no daily borrow fee | CODE_AUDIT §8.237 |
 | web-ui backtestEngine: no slippage | Entry/exit at candle.close, no slippage model | CODE_AUDIT §8.238 |
 | ~~web-ui indicators: O(n²) SMA~~ [FIXED] | Replaced O(n×period) nested loop with O(n) rolling sum — subtract outgoing, add incoming | CODE_AUDIT §8.240 |
-| web-ui mockData: only 5 of 50 symbols | Mock mode doesn't represent full trading universe | CODE_AUDIT §8.243 |
+| ~~web-ui mockData: only 5 of 50 symbols~~ [FIXED] | Expanded MOCK_SYMBOLS from 5 to 49 — matches full trading universe. Reduced initial candles from 500 to 100 per symbol to keep init lightweight | CODE_AUDIT §8.243 |
 | hft-trade-bot config: 50 symbols 3x | 50 symbols in config.yaml + shared_config + useUIStore. 3 copies | CODE_AUDIT §8.247 |
 | hft-trade-bot config: localhost WS | ws://localhost:8765 and :8766, won't work in prod | CODE_AUDIT §8.248 |
 | web-ui registry: 200+ math panels | Research-grade math (SchrodingerBridge, FokkerPlanck). Feature flag | CODE_AUDIT §8.252 |
@@ -199,7 +199,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~ai-signal-bot db.py: new connection per op~~ [FIXED] | Uses persistent _get_conn() with WAL set once — verified in Пачка AA | CODE_AUDIT §8.261 |
 | ~~ai-signal-bot db.py: no equity_curve index~~ [FIXED] | Added idx_equity_curve_ts on timestamp — range queries use index instead of full scan | CODE_AUDIT §8.263 |
 | ~~ai-signal-bot db.py: no migration system~~ [FIXED] | _init_db uses CREATE TABLE IF NOT EXISTS (sufficient for SQLite). scripts/migrate.py exists for SQL migrations. No ALTER TABLE needed — schema is additive | CODE_AUDIT §8.264 |
-| web-ui useExchangeData: candle sort every update | Full Array.from + sort on every candle message. 500 elements × every second | CODE_AUDIT §8.256 |
+| ~~web-ui useExchangeData: candle sort every update~~ [FIXED] | Removed full Array.from + sort on incremental updates — only sorts when map exceeds 500 cap. Incremental updates use map insertion order | CODE_AUDIT §8.256 |
 | ~~web-ui useDetachablePanels: no channel cleanup~~ [FIXED] | Added useEffect cleanup on unmount — closes BroadcastChannel and all open popups | CODE_AUDIT §8.259 |
 | ~~web-ui useWebSocket: no max reconnect~~ [FIXED] | Added maxReconnects option (default 20) — stops infinite reconnect loop, sets error message when limit reached | CODE_AUDIT §8.266 |
 | ~~liquidation_engine_v2: ADL is a stub~~ [FIXED] | _auto_deleverage now accepts counterparties list — sorts by profitability, reduces most profitable opposing positions first to cover insurance fund deficit. Falls back to simulation mode if no counterparties | CODE_AUDIT §8.270 |

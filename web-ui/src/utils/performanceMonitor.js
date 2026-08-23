@@ -148,6 +148,13 @@ export function onAlert(callback) {
 }
 
 /**
+ * Remove an alert callback — call on unmount to prevent leak
+ */
+export function offAlert(callback) {
+  alertCallbacks = alertCallbacks.filter(cb => cb !== callback)
+}
+
+/**
  * Trigger an alert
  */
 function triggerAlert(name, value, budget) {
@@ -277,4 +284,6 @@ export function resetMetrics() {
   for (const key of Object.keys(metricsHistory)) {
     metricsHistory[key] = []
   }
+
+  alertCallbacks = []
 }

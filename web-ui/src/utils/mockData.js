@@ -11,7 +11,18 @@
  * - Account balance (starts at 10000, fluctuates)
  */
 
-export const MOCK_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'ADAUSDT']
+export const MOCK_SYMBOLS = [
+  'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT',
+  'ADAUSDT', 'DOGEUSDT', 'DOTUSDT', 'MATICUSDT', 'SHIBUSDT',
+  'AVAXUSDT', 'LINKUSDT', 'UNIUSDT', 'ATOMUSDT', 'LTCUSDT',
+  'NEARUSDT', 'XLMUSDT', 'ALGOUSDT', 'VETUSDT', 'FILUSDT',
+  'APTUSDT', 'INJUSDT', 'OPUSDT', 'ARBUSDT', 'QNTUSDT',
+  'ETCUSDT', 'HBARUSDT', 'ICPUSDT', 'LDOUSDT', 'GRTUSDT',
+  'STXUSDT', 'AAVEUSDT', 'MKRUSDT', 'COMPUSDT', 'SUSHIUSDT',
+  'CRVUSDT', '1INCHUSDT', 'SNXUSDT', 'MANAUSDT', 'SANDUSDT',
+  'AXSUSDT', 'ENJUSDT', 'FTMUSDT', 'CROUSDT', 'GLMUSDT',
+  'KAVAUSDT', 'ROSEUSDT', 'CELOUSDT', 'MINAUSDT',
+]
 export const MOCK_EXCHANGES = ['binance', 'bybit', 'okx']
 
 const NEWS_HEADLINES = [
@@ -245,7 +256,7 @@ export function generateInitialSnapshot() {
 
   for (const exchange of MOCK_EXCHANGES) {
     for (const symbol of MOCK_SYMBOLS) {
-      const symCandles = generateCandles(symbol, exchange, 500)
+      const symCandles = generateCandles(symbol, exchange, 100)
       candles.push(...symCandles)
       const lastPrice = symCandles[symCandles.length - 1].close
       prices[`${exchange}|${symbol}`] = lastPrice

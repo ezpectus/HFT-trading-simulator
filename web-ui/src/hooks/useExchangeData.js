@@ -51,8 +51,9 @@ export function useExchangeData() {
             }
             setCandles(toKeep)
           } else {
-            // Incremental update: sort but don't trim
-            setCandles(Array.from(candleMap.current.values()).sort((a, b) => a.timestamp - b.timestamp))
+            // Incremental update: skip full sort, just update state with map values
+            // Candles are naturally ordered by timestamp in the map insertion order
+            setCandles(Array.from(candleMap.current.values()))
           }
         }
         if (data.prices) setPrices(data.prices)
