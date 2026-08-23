@@ -1381,3 +1381,22 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R824 | helpers: CircuitBreaker not thread-safe | `helpers.py:145` | Low | _failure_count += 1 not atomic. Use asyncio.Lock |
 | R825 | helpers: RateLimiter no max wait cap | `helpers.py:194` | Low | Very small rate = 1000s wait. Add max_wait parameter |
 | R826 | Code reduction: duplicate CircuitBreaker C++ vs Python | 2 files | Info | Different languages but behavior should be aligned |
+| R827 | hft-trade-bot/ipc/shm_protocol.h | `shm_protocol.h` | ✅ Excellent | 4 message types, #pragma pack, static_assert, Python format docs, 4 enums |
+| R828 | shm_protocol: SymbolId limited to 10 symbols | `shm_protocol.h:83` | Medium | Config has 50 symbols but enum only 10. Generate from config |
+| R829 | shm_protocol: float for price/qty | `shm_protocol.h:20` | Low | float ~7 digits. BTC $100K loses precision. Use double or fixed-point |
+| R830 | hft-trade-bot/ipc/shm_fill_producer.h | `shm_fill_producer.h` | ✅ Good | Wraps ShmRingBuffer<FillMsg>, init returns bool, bulk push, RAII |
+| R831 | shm_fill_producer: init() swallows exception message | `shm_fill_producer.h:22` | Low | e.what() not logged. Caller gets false but no reason. Log exception |
+| R832 | hft-trade-bot/ipc/shm_signal_consumer.h | `shm_signal_consumer.h` | ✅ Good | Dedicated thread, batch pop, 50μs sleep, atomic flag, join, polling mode |
+| R833 | shm_signal_consumer: start() can throw | `shm_signal_consumer.h:28` | Low | ShmRingBuffer ctor throws. No try/catch. Wrap or document |
+| R834 | shm_signal_consumer: 50μs busy-poll | `shm_signal_consumer.h:66` | Low | 20K wakes/sec when idle. Adaptive sleep or futex |
+| R835 | hft-trade-bot/ipc/shm_market_data.h | `shm_market_data.h` | ✅ Excellent | Latest-snapshot, seq-guarded, per-symbol slots, alignas(64), cross-platform |
+| R836 | shm_market_data: write() not truly atomic | `shm_market_data.h:114` | Low | Same odd/even seq issue as heartbeat. Add timeout in reader |
+| R837 | shm_market_data: Windows wname truncates non-ASCII | `shm_market_data.h:50` | Low | Same as shm_ring_buffer. Use MultiByteToWideChar |
+| R838 | ai-signal-bot/monitoring/tracker.py | `tracker.py` | ✅ Good | PerformanceTracker 10 metrics, CSV logging, CLI dashboard |
+| R839 | tracker: PerformanceTracker not thread-safe | `tracker.py:14` | Low | signals_generated += 1 not atomic. Use asyncio.Lock |
+| R840 | tracker: CSV log() opens file every call | `tracker.py:82` | Low | 50 opens/min. Keep file open, flush periodically |
+| R841 | ai-signal-bot/observability/health_checks.py | `health_checks.py` | ✅ Excellent | 3 endpoints, 4 component checks, 3 health states, K8s-ready, resilient |
+| R842 | health_checks: check_readiness runs sequentially | `health_checks.py:85` | Medium | 4 checks sequential. DB down = 30s wait. Use asyncio.gather |
+| R843 | health_checks: no timeout on individual checks | `health_checks.py:156` | Medium | DB/Redis hang indefinitely. Use asyncio.wait_for with timeout |
+| R844 | health_checks: record_signal not thread-safe | `health_checks.py:65` | Low | _signal_count += 1 not atomic. Use asyncio.Lock |
+| R845 | Code reduction: SignalLogger + TradeLogger near-identical | `tracker.py:70+99` | Info | Same structure, different header/fields. Single CsvLogger class. ~30 lines |

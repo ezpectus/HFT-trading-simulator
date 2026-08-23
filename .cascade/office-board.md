@@ -290,3 +290,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | socket_transport: start_receive_loop blocks thread | Blocking while loop blocks asyncio event loop. Use add_reader or separate thread | CODE_AUDIT §8.815 |
 | notifier: bot token in plaintext | Token in URL, exposed in logs. Use field(repr=False) or env vars | CODE_AUDIT §8.818 |
 | notifier: no rate limiting on alerts | 50 fills = 50 API calls. Telegram 429. Add queue + rate limiter | CODE_AUDIT §8.819 |
+| shm_protocol: SymbolId limited to 10 symbols | Config has 50 symbols but enum only 10. Symbols 10-49 use raw ints, bypassing type safety | CODE_AUDIT §8.838 |
+| health_checks: check_readiness runs sequentially | 4 checks sequential. DB down = 30s wait blocks Redis/Exchange checks. K8s probe times out. Use asyncio.gather | CODE_AUDIT §8.852 |
+| health_checks: no timeout on individual checks | DB/Redis hang indefinitely on network partition. Use asyncio.wait_for with 2s timeout | CODE_AUDIT §8.853 |

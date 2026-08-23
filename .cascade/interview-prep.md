@@ -5068,3 +5068,133 @@ class CircuitBreaker {
 ```
 
 **Разница:** The bad code allows ALL threads to probe simultaneously in HALF_OPEN state. With 10 threads, 10 simultaneous requests hit an already-failing service — a "thundering herd" that overwhelms the service and delays recovery by 10×. Worse, if one probe succeeds while others fail, `record_success()` closes the circuit while failures are still in flight — the circuit is CLOSED but the service is still failing. All traffic resumes to the failing service. With 1000 users × 10 threads, 10,000 simultaneous probes to a payment gateway could get the IP blocked, losing payment capability for all users for hours. The good code uses a `probe_in_flight_` atomic flag with CAS — only ONE thread can be the probe at a time. Other threads are denied in HALF_OPEN state. The probe either succeeds (circuit closes, traffic resumes) or fails (error count increments, eventually re-opens circuit). No thundering herd, no race condition, no inconsistent state. The cost is one `atomic<bool>` and one CAS per `allow_request()` in HALF_OPEN — negligible. The benefit is 10× less load on failing services, gradual recovery, and no false CLOSE from race conditions. This is a classic example of a missing concurrency guard: the developer wrote "allow one probe" in the comment but the code allows unlimited probes — the comment was correct but the implementation didn't match.
+
+---
+
+## Bad vs Good: Sequential Health Checks Cause K8s Probe Timeout (Python)
+
+### ❌ Bad Code
+```python
+class HealthChecker:
+    async def check_readiness(self) -> dict[str, Any]:
+        components: list[ComponentHealth] = []
+        components.append(await self._check_ws())       # 0.5s (fast)
+        components.append(await self._check_db())       # 30s (DB is down, timeout)
+        components.append(await self._check_redis())    # 0.3s (fast, but waits 30s)
+        components.append(await self._check_exchange()) # 0.2s (fast, but waits 30.3s)
+        # Total: 0.5 + 30 + 0.3 + 0.2 = 31s
+        #
+        # Kubernetes readiness probe:
+        #   timeoutSeconds: 1 (default)
+        #   periodSeconds: 10
+        #   failureThreshold: 3
+        #
+        # t=0:    K8s sends GET /health/ready
+        # t=0.5:  WS check done (0.5s)
+        # t=0.5:  DB check starts...
+        # t=1:    K8s probe times out (1s). Pod marked NOT READY.
+        # t=30.5: DB check finally times out (30s)
+        # t=30.8: Redis check done (0.3s)
+        # t=31:   Exchange check done (0.2s)
+        # t=31:   Response sent — but K8s already gave up at t=1
+        #
+        # Meanwhile, the coroutine is still running for 31s:
+        # - It holds the event loop for 30s during DB check
+        # - Other coroutines (signal processing, order execution) are blocked
+        # - The entire bot is frozen for 30s
+        # - Signals are not processed, orders are not sent
+        # - With 1000 users: 1000 bots frozen for 30s
+        # - If BTC drops 5% during those 30s: no stop-loss triggered
+        # - 1000 users × $10K positions × 5% = $500K in unprevented losses
+        # - And K8s marks all 1000 pods as NOT READY, removing them from the load balancer
+        # - All 1000 users lose service for 30s+ (until probe succeeds)
+        return {
+            "status": overall.value,
+            "components": [...],
+        }
+
+    async def _check_db(self) -> ComponentHealth:
+        start = time.time()
+        try:
+            if not self.db_client:
+                return ComponentHealth("timescaledb", HealthStatus.HEALTHY, 0, "not configured")
+            health = await self.db_client.get_health()  # ← No timeout! Hangs 30s
+            # ...
+        except (OSError, RuntimeError, KeyError, ValueError) as e:
+            return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, 0, str(e))
+```
+
+**What's wrong:**
+- 4 health checks run sequentially — total time = sum of all timeouts
+- DB down (30s) blocks Redis and Exchange checks that would take 0.3s + 0.2s
+- K8s readiness probe times out at 1s, marks pod NOT READY, removes from load balancer
+- The coroutine holds the event loop for 30s — signal processing and order execution are blocked
+- No timeout on individual checks — `await self.db_client.get_health()` hangs indefinitely
+- With 1000 users: 1000 bots frozen for 30s, $500K in unprevented losses (5% BTC drop × $10K positions)
+- K8s removes all 1000 pods from load balancer — all users lose service
+
+### ✅ Good Code
+```python
+import asyncio
+
+class HealthChecker:
+    async def check_readiness(self) -> dict[str, Any]:
+        # Run all 4 checks CONCURRENTLY — total time = max(timeout) not sum(timeout)
+        results = await asyncio.gather(
+            self._check_ws(),
+            self._check_db(),
+            self._check_redis(),
+            self._check_exchange(),
+            return_exceptions=True,  # Don't let one failure cancel others
+        )
+        components = []
+        for r in results:
+            if isinstance(r, Exception):
+                components.append(ComponentHealth("unknown", HealthStatus.UNHEALTHY, 0, str(r)))
+            else:
+                components.append(r)
+        # Total: max(0.5, 2.0, 0.3, 0.2) = 2.0s (DB check has 2s timeout)
+        #
+        # t=0:    K8s sends GET /health/ready
+        # t=0:    All 4 checks start simultaneously
+        # t=0.2:  Exchange check done
+        # t=0.3:  Redis check done
+        # t=0.5:  WS check done
+        # t=2.0:  DB check times out (2s timeout) → UNHEALTHY
+        # t=2.0:  Response sent: "degraded" (DB unhealthy, others healthy)
+        #
+        # K8s probe:
+        #   If timeoutSeconds: 3 → probe succeeds (2s < 3s)
+        #   Pod stays READY, stays in load balancer
+        #   Only DB is marked unhealthy — other services continue
+        #
+        # Event loop is only blocked for 2s, not 30s
+        # Signal processing and order execution resume after 2s
+        # With 1000 users: 1000 bots frozen for 2s, not 30s
+        # If BTC drops 5% during those 2s: minimal impact (2s vs 30s)
+        # 1000 users × $10K × 5% × (2/30) = $33K vs $500K — 15× less losses
+        # ...
+
+    async def _check_db(self) -> ComponentHealth:
+        start = time.time()
+        try:
+            if not self.db_client:
+                return ComponentHealth("timescaledb", HealthStatus.HEALTHY, 0, "not configured")
+            # Timeout: 2 seconds max — don't hang indefinitely
+            health = await asyncio.wait_for(
+                self.db_client.get_health(),
+                timeout=2.0,
+            )
+            latency = (time.time() - start) * 1000
+            if health.get("connected"):
+                return ComponentHealth("timescaledb", HealthStatus.HEALTHY, latency, health.get("database", ""))
+            else:
+                return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, latency, health.get("error", "not connected"))
+        except asyncio.TimeoutError:
+            latency = (time.time() - start) * 1000
+            return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, latency, "timeout (2s)")
+        except (OSError, RuntimeError, KeyError, ValueError) as e:
+            return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, 0, str(e))
+```
+
+**Разница:** The bad code runs 4 health checks sequentially — total time = 0.5 + 30 + 0.3 + 0.2 = 31s. When the database is down, the DB check hangs for 30s with no timeout, blocking the event loop. Redis and Exchange checks (which would take 0.3s and 0.2s) wait 30s before even starting. The K8s readiness probe times out at 1s, marks the pod as NOT READY, and removes it from the load balancer. The coroutine continues running for 31s, holding the event loop — signal processing and order execution are frozen. With 1000 users, 1000 bots are frozen for 30s. If BTC drops 5% during those 30s, no stop-loss is triggered — $500K in unprevented losses. All 1000 pods are removed from the load balancer, all users lose service. The good code uses `asyncio.gather()` to run all 4 checks concurrently — total time = max(0.5, 2.0, 0.3, 0.2) = 2.0s. Each check has a 2s timeout via `asyncio.wait_for()`. The DB check fails fast (2s) instead of hanging (30s). The event loop is only blocked for 2s, not 30s. The K8s probe succeeds (2s < 3s timeout), the pod stays READY, and only the DB is marked unhealthy. With 1000 users, bots are frozen for 2s, not 30s — 15× less losses ($33K vs $500K). The cost is `asyncio.gather()` + `asyncio.wait_for()` — 2 lines of code. The benefit is 15× faster health checks, 15× less losses during DB outages, and no false NOT READY from K8s. This is a classic example of sequential vs concurrent I/O: the developer treated async I/O as if it were synchronous, running checks one after another instead of in parallel. In a microservices architecture with 1000 users, this difference is $467K per DB outage.

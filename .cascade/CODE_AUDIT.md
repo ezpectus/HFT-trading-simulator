@@ -11379,3 +11379,309 @@ If `self.rate <= 0`, the function returns `False` immediately (line 196-197). Bu
 Both C++ and Python have their own `CircuitBreaker` implementation. This is expected (different languages), but the Python version is simpler (no HALF_OPEN probe logic in `is_open` — it transitions to half_open but doesn't limit probes to 1). The C++ version has the same issue (R824). Both should have consistent behavior.
 
 **Reduction potential:** ~0 lines (different languages), but behavior should be aligned.
+
+### 8.837 hft-trade-bot/src/ipc/shm_protocol.h: SHM Protocol — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_protocol.h` (118 lines)
+
+- **4 message types**: SignalMsg (32B), FillMsg (28B), MarketSnapshotMsg (28B), KillSwitchMsg (16B) — comprehensive
+- **`#pragma pack(push, 1)`**: Explicit packing for cross-language alignment — correct
+- **`static_assert`**: Size validation for each struct — correct
+- **Python format strings**: Documented in comments — correct
+- **4 enum mappings**: SymbolId (10 symbols), ExchangeId (4), Action (3), Side (2) — correct
+- **Explicit padding**: `pad_[5]`, `pad_[3]`, `pad_[6]` — correct
+
+Excellent SHM protocol with 4 message types, explicit packing, static_assert size validation, and Python format documentation. ✅
+
+### 8.838 shm_protocol: SymbolId limited to 10 symbols — Medium
+
+**Файл:** `hft-trade-bot/src/ipc/shm_protocol.h:83-94`
+
+```cpp
+enum class SymbolId : uint8_t {
+    BTC  = 0,
+    ETH  = 1,
+    SOL  = 2,
+    BNB  = 3,
+    XRP  = 4,
+    ADA  = 5,
+    DOGE = 6,
+    AVAX = 7,
+    DOT  = 8,
+    LINK = 9,
+};
+```
+
+Only 10 symbols defined, but the config has 50 symbols. `symbol_id` is `uint8_t` (0-255), so 50 symbols fit in the field, but the enum only defines 10. Symbols 10-49 (MINA, etc.) have no enum value — they must use raw integers, which is error-prone and bypasses type safety.
+
+**Фикс:** Generate the enum from config at build time. Or use a `constexpr std::array<std::string_view>` mapping instead of an enum.
+
+### 8.839 shm_protocol: float for price/qty — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_protocol.h:20-23`
+
+```cpp
+struct SignalMsg {
+    // ...
+    float    confidence; // 0.0 - 1.0
+    float    price;      // Entry price
+    float    sl;         // Stop loss
+    float    tp;         // Take profit
+```
+
+`float` has only ~7 decimal digits of precision. BTC at $100,000.00 has 8 significant digits — the last digit is imprecise. For qty, `float` can represent up to ~16M with 1 decimal precision. Large positions (e.g., 100M SHIB) lose precision.
+
+**Фикс:** Use `double` for price and qty. This increases struct size by 4 bytes per field (16 bytes total for SignalMsg), but prevents precision loss. Or use fixed-point integers (price in milli-cents).
+
+### 8.840 hft-trade-bot/src/ipc/shm_fill_producer.h: SHM Fill Producer — ✅ Good
+
+**Файл:** `hft-trade-bot/src/ipc/shm_fill_producer.h` (76 lines)
+
+- **Wraps ShmRingBuffer<FillMsg>**: Clean encapsulation — correct
+- **init() returns bool**: `[[nodiscard]]` — correct
+- **push_fill() convenience**: Two overloads (struct + params) — flexible
+- **Bulk push**: `push_fills()` — efficient
+- **pending()**: Query buffer size — correct
+- **close()**: Unlink + reset — correct
+- **RAII**: Destructor calls close() — correct
+- **Exception handling**: Catches `std::exception` in init() — correct
+
+Good fill producer with clean ShmRingBuffer wrapper, convenience methods, bulk push, and RAII. ✅
+
+### 8.841 shm_fill_producer: init() swallows exception message — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_fill_producer.h:22-28`
+
+```cpp
+[[nodiscard]] bool init() {
+    try {
+        buffer_ = std::make_unique<ShmRingBuffer<FillMsg>>(shm_name_, capacity_, true);
+        return true;
+    } catch (const std::exception& e) {
+        return false;
+    }
+}
+```
+
+The exception message (`e.what()`) is caught but not logged. The caller gets `false` but doesn't know why — was it a permission error, out of memory, or name conflict? Silent failure makes debugging difficult.
+
+**Фикс:** Log the exception: `logger.error("SHM fill producer init failed: {}", e.what())`. Or re-throw with context.
+
+### 8.842 hft-trade-bot/src/ipc/shm_signal_consumer.h: SHM Signal Consumer — ✅ Good
+
+**Файл:** `hft-trade-bot/src/ipc/shm_signal_consumer.h` (79 lines)
+
+- **Dedicated consumer thread**: Runs callback on each signal — correct
+- **Batch pop**: Inner while loop drains buffer — efficient
+- **50μs sleep when empty**: Avoids 100% CPU — correct
+- **Atomic running flag**: `exchange(false)` in stop() — correct
+- **Join on stop**: Waits for thread to finish — correct
+- **try_pop_signal()**: Non-blocking polling mode — flexible
+- **RAII**: Destructor calls stop() — correct
+- **Callback via std::function**: Flexible — correct
+
+Good signal consumer with dedicated thread, batch pop, 50μs sleep, atomic flag, join on stop, and polling mode. ✅
+
+### 8.843 shm_signal_consumer: start() can throw, not caught — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_signal_consumer.h:28-37`
+
+```cpp
+void start(SignalCallback callback) {
+    if (running_.load(std::memory_order_relaxed)) return;
+    buffer_ = std::make_unique<ShmRingBuffer<SignalMsg>>(shm_name_, capacity_, false);
+    callback_ = std::move(callback);
+    running_.store(true, std::memory_order_relaxed);
+    thread_ = std::thread(&ShmSignalConsumer::run, this);
+}
+```
+
+`ShmRingBuffer` constructor can throw (`std::runtime_error` on SHM open failure). `start()` doesn't catch it — the exception propagates to the caller. If the caller doesn't catch it, the program crashes. Unlike `ShmFillProducer::init()` which returns bool, `start()` has no error handling.
+
+**Фикс:** Wrap in try/catch, return bool. Or document that `start()` throws.
+
+### 8.844 shm_signal_consumer: 50μs sleep is a busy-poll — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_signal_consumer.h:66`
+
+```cpp
+std::this_thread::sleep_for(std::chrono::microseconds(50));
+```
+
+50μs sleep means the consumer wakes 20,000 times per second even when idle. On a busy system, this is 20,000 context switches per second. For HFT, this is acceptable (signals arrive frequently), but for low-traffic periods, it wastes CPU.
+
+**Фикс:** Use adaptive sleep: start at 50μs, increase to 1ms after 100 consecutive empty polls, reset to 50μs on first signal. Or use `futex`/`condition_variable` for event-driven wakeup.
+
+### 8.845 hft-trade-bot/src/ipc/shm_market_data.h: SHM Market Data — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_market_data.h` (177 lines)
+
+- **Latest-snapshot model**: Single-slot per symbol, latest wins — lowest latency
+- **Seq-guarded**: Odd/even seq for lock-free reads — correct
+- **Per-symbol slots**: `slots_[symbol_id]` — O(1) access
+- **`alignas(64)` SnapshotSlot**: Cache-line aligned — correct
+- **`static_assert`**: Slot ≤ 64 bytes — correct
+- **Bounds checking**: `symbol_id >= max_symbols_` — correct
+- **Cross-platform**: Windows + POSIX — excellent
+- **Deleted copy**: Prevents double-unmap — correct
+- **Convenience write_price()**: Fills MarketSnapshotMsg — correct
+- **Zero on create**: `memset(ptr, 0, total_size)` — correct
+
+Excellent SHM market data with latest-snapshot model, seq-guarded lock-free, per-symbol slots, cache-line alignment, and cross-platform support. ✅
+
+### 8.846 shm_market_data: same write() not truly atomic issue as shm_heartbeat — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_market_data.h:114-127`
+
+Same odd/even seq pattern as `shm_heartbeat.h`. If writer is preempted between `seq+1` and `seq+2`, reader sees odd and returns false — stale data. Same fix applies: add timeout in reader or use CAS.
+
+### 8.847 shm_market_data: Windows wname truncates non-ASCII — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_market_data.h:50`
+
+```cpp
+std::wstring wname(shm_name_.begin(), shm_name_.end());
+```
+
+Same issue as `shm_ring_buffer.h:79` — char-by-char wstring conversion only works for ASCII.
+
+**Фикс:** Use `MultiByteToWideChar(CP_UTF8, 0, shm_name_.c_str(), -1, ...)`.
+
+### 8.848 ai-signal-bot/src/monitoring/tracker.py: Tracker — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/tracker.py` (175 lines)
+
+- **PerformanceTracker**: 10 metrics (signals, trades, PnL, fees, win rate) — comprehensive
+- **Derived properties**: `win_rate`, `signals_per_hour`, `uptime_seconds` — correct
+- **SignalLogger**: CSV logging with header creation — correct
+- **TradeLogger**: CSV logging with header creation — correct
+- **print_dashboard**: Tabulate-based CLI dashboard — nice UX
+- **os.makedirs**: Creates log directory — correct
+
+Good monitoring tracker with performance metrics, CSV logging, and CLI dashboard. ✅
+
+### 8.849 tracker: PerformanceTracker not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/tracker.py:14-52`
+
+```python
+@dataclass
+class PerformanceTracker:
+    signals_generated: int = 0
+    # ...
+    def record_signal(self, validated: bool) -> None:
+        self.signals_generated += 1
+        if validated:
+            self.signals_validated += 1
+```
+
+`signals_generated += 1` is not atomic in Python async. If two coroutines call `record_signal()` concurrently (e.g., two symbols generating signals in the same event loop iteration), one increment may be lost. Same issue as `helpers.py` CircuitBreaker (R824).
+
+**Фикс:** Use `asyncio.Lock` or `threading.Lock` around mutations. Or use atomic operations via `itertools.count()`.
+
+### 8.850 tracker: CSV log() opens file on every call — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/tracker.py:82-96`
+
+```python
+def log(self, signal_dict: dict) -> None:
+    with open(self.path, "a", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([...])
+```
+
+`open()` + `close()` on every signal. With 50 symbols generating signals every 60s, that's ~50 file opens per minute. Each open/close involves syscall overhead (~10μs each). Not a performance issue at this scale, but if signal frequency increases, it becomes a bottleneck.
+
+**Фикс:** Keep file open and flush periodically. Or use a buffered writer with `flush()` every N records.
+
+### 8.851 ai-signal-bot/src/observability/health_checks.py: Health Checks — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py` (221 lines)
+
+- **3 endpoints**: /health/live, /health/ready, /health/status — Kubernetes-ready
+- **4 component checks**: WebSocket, TimescaleDB, Redis, Exchange — comprehensive
+- **3 health states**: HEALTHY, DEGRADED, UNHEALTHY — correct
+- **ComponentHealth dataclass**: name, status, latency_ms, details, last_check — correct
+- **Overall status logic**: all HEALTHY → HEALTHY, any UNHEALTHY → UNHEALTHY, else DEGRADED — correct
+- **Latency measurement**: `time.time() - start` per check — correct
+- **Metrics**: signals_total, orders_total, errors_total, last_signal_age_s, last_order_age_s — comprehensive
+- **HTTP status codes**: 200 for healthy, 503 for unhealthy — Kubernetes-ready
+- **Error handling**: AttributeError, TypeError, OSError, ConnectionError, RuntimeError — resilient
+- **"not configured" = HEALTHY**: Correct — absence is not failure
+- **create_health_endpoints()**: aiohttp handlers — correct
+
+Excellent health checks with 3 endpoints, 4 component checks, 3 health states, latency measurement, metrics, Kubernetes-ready HTTP codes, and resilient error handling. ✅
+
+### 8.852 health_checks: check_readiness runs checks sequentially — Medium
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py:85-99`
+
+```python
+async def check_readiness(self) -> dict[str, Any]:
+    components: list[ComponentHealth] = []
+    components.append(await self._check_ws())
+    components.append(await self._check_db())
+    components.append(await self._check_redis())
+    components.append(await self._check_exchange())
+```
+
+4 checks run sequentially. If TimescaleDB is down (30s timeout), Redis and Exchange checks wait 30s before starting. Total readiness check = sum of all timeouts = up to 120s. Kubernetes readiness probe has a default timeout of 1s — the probe will time out and mark the pod as not ready, even if Redis and Exchange are healthy.
+
+**Фикс:** Use `asyncio.gather()` to run all checks concurrently: `results = await asyncio.gather(self._check_ws(), self._check_db(), self._check_redis(), self._check_exchange())`. Total time = max(timeout) instead of sum(timeout).
+
+### 8.853 health_checks: no timeout on individual checks — Medium
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py:156-170`
+
+```python
+async def _check_db(self) -> ComponentHealth:
+    start = time.time()
+    try:
+        if not self.db_client:
+            return ComponentHealth("timescaledb", HealthStatus.HEALTHY, 0, "not configured")
+        health = await self.db_client.get_health()
+```
+
+No timeout on `await self.db_client.get_health()`. If the DB is unresponsive (network partition, slow query), this hangs indefinitely. Same for Redis `await self.redis_client.ping()`. Kubernetes readiness probe times out at 1s, but the coroutine continues running, consuming resources.
+
+**Фикс:** Use `asyncio.wait_for(self.db_client.get_health(), timeout=2.0)`. Catch `asyncio.TimeoutError` and return UNHEALTHY.
+
+### 8.854 health_checks: record_signal/record_order not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py:65-74`
+
+```python
+def record_signal(self) -> None:
+    self._last_signal_time = time.time()
+    self._signal_count += 1
+```
+
+Same issue as tracker.py (R849). `_signal_count += 1` is not atomic in async context. Multiple coroutines calling `record_signal()` concurrently may lose increments.
+
+**Фикс:** Use `asyncio.Lock` or accept eventual consistency (counters are approximate).
+
+### 8.855 Code reduction: SignalLogger and TradeLogger near-identical — Info
+
+**Файлы:** `ai-signal-bot/src/monitoring/tracker.py:70-96` + `tracker.py:99-125`
+
+```python
+class SignalLogger:
+    def __init__(self, path: str = "logs/signals.csv"):
+        # ... same pattern ...
+    def log(self, signal_dict: dict) -> None:
+        with open(self.path, "a", ...) as f:
+            writer = csv.writer(f)
+            writer.writerow([...])
+
+class TradeLogger:
+    def __init__(self, path: str = "logs/trades.csv"):
+        # ... same pattern ...
+    def log(self, trade_dict: dict) -> None:
+        with open(self.path, "a", ...) as f:
+            writer = csv.writer(f)
+            writer.writerow([...])
+```
+
+Both classes have the same structure: `__init__` creates directory + writes header, `log()` opens file + writes row. Only the header and field mapping differ. Should be a single `CsvLogger` class with configurable header and field mapping.
+
+**Reduction potential:** ~30 lines.
