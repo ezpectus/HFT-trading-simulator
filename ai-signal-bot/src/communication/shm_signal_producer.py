@@ -32,10 +32,10 @@ class ShmSignalProducer:
                 capacity=self.capacity,
                 create=True,
             )
-            logger.info(f"SHM signal producer initialized: {self.name} (cap={self.capacity})")
+            logger.info("SHM signal producer initialized: %s (cap=%s)", self.name, self.capacity)
             return True
         except (OSError, RuntimeError, ValueError) as e:
-            logger.error(f"Failed to init SHM signal producer: {e}")
+            logger.error("Failed to init SHM signal producer: %s", e)
             return False
 
     def push_signal(

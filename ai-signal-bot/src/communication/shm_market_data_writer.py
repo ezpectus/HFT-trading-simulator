@@ -58,10 +58,10 @@ class ShmMarketDataWriter:
             self._mm[0:self._total_size] = b'\x00' * self._total_size
             # Write num_slots
             struct.pack_into('<Q', self._mm, 0, self.max_symbols)
-            logger.info(f"SHM market data writer initialized: {self.name} ({self.max_symbols} symbols)")
+            logger.info("SHM market data writer initialized: %s (%s symbols)", self.name, self.max_symbols)
             return True
         except (OSError, ValueError, FileNotFoundError) as e:
-            logger.error(f"Failed to init SHM market data writer: {e}")
+            logger.error("Failed to init SHM market data writer: %s", e)
             return False
 
     def write_snapshot(

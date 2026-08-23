@@ -212,14 +212,14 @@ class GeneticStrategyDiscovery:
     ) -> Chromosome:
         """Run genetic algorithm evolution."""
         self._initialize_population()
-        logger.info(f"[GA] Starting evolution: pop={self.population_size}, gens={self.generations}, symbol={symbol}")
+        logger.info("[GA] Starting evolution: pop=%s, gens=%s, symbol=%s", self.population_size, self.generations, symbol)
 
         for gen in range(self.generations):
             self._run_generation(gen, fitness_fn)
 
         self._final_evaluation(fitness_fn)
         best = self.population[0]
-        logger.info(f"[GA] Evolution complete. Best fitness: {best.fitness:.4f}")
+        logger.info("[GA] Evolution complete. Best fitness: %.4f", best.fitness)
         return best
 
     def _run_generation(self, gen: int, fitness_fn: Callable[[Chromosome], float]) -> None:
@@ -236,7 +236,7 @@ class GeneticStrategyDiscovery:
             "generation": gen + 1, "best_fitness": best.fitness,
             "avg_fitness": avg, "time_s": round(gen_time, 2),
         })
-        logger.info(f"[GA] Gen {gen+1}/{self.generations}: best={best.fitness:.4f} avg={avg:.4f} time={gen_time:.1f}s")
+        logger.info("[GA] Gen %d/%d: best=%.4f avg=%.4f time=%.1fs", gen+1, self.generations, best.fitness, avg, gen_time)
 
         self.population = self._create_next_generation()
 

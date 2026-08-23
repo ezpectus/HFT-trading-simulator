@@ -152,7 +152,7 @@ class AutoMLOptimizer:
                 return objective_fn(params, validation_data)
             return objective_fn(params)
 
-        logger.info(f"[AutoML] Starting optimization: {self.config.n_trials} trials, strategy={self.strategy}")
+        logger.info("[AutoML] Starting optimization: %s trials, strategy=%s", self.config.n_trials, self.strategy)
         start = time.time()
 
         self.study.optimize(
@@ -167,10 +167,10 @@ class AutoMLOptimizer:
         self.best_value = self.study.best_value
 
         logger.info(
-            f"[AutoML] Optimization complete in {elapsed:.0f}s — "
-            f"best value: {self.best_value:.4f}"
+            "[AutoML] Optimization complete in %.0fs — best value: %.4f",
+            elapsed, self.best_value
         )
-        logger.info(f"[AutoML] Best params: {self.best_params}")
+        logger.info("[AutoML] Best params: %s", self.best_params)
 
         return self.best_params
 
@@ -215,4 +215,4 @@ class AutoMLOptimizer:
                     "best_params": self.best_params,
                     "n_trials": len(self.study.trials) if self.study else 0,
                 }, f, indent=2)
-            logger.info(f"[AutoML] Saved best params to {path}")
+            logger.info("[AutoML] Saved best params to %s", path)

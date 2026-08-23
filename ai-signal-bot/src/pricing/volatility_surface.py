@@ -109,7 +109,7 @@ class VolatilitySurface:
         a, b, rho, m, sigma = result.x
         self.svi_params = SVIParams(a, b, rho, m, sigma)
         self._calibrated = True
-        logger.info(f"[VolSurface] SVI calibrated: a={a:.4f} b={b:.4f} rho={rho:.3f} m={m:.4f} sigma={sigma:.4f}")
+        logger.info("[VolSurface] SVI calibrated: a=%.4f b=%.4f rho=%.3f m=%.4f sigma=%.4f", a, b, rho, m, sigma)
         return self.svi_params
 
     def implied_vol_svi(self, log_moneyness: float, maturity_years: float) -> float:
@@ -118,7 +118,7 @@ class VolatilitySurface:
             return 0.5  # fallback 50% vol
         total_var = self.svi_variance(log_moneyness, self.svi_params)
         if total_var < 0:
-            logger.warning(f"[VolSurface] SVI produced negative variance: {total_var}")
+            logger.warning("[VolSurface] SVI produced negative variance: %s", total_var)
             return 0.5
         return np.sqrt(total_var / maturity_years) if maturity_years > 0 else np.sqrt(total_var)
 
@@ -183,7 +183,7 @@ class VolatilitySurface:
         alpha, rho, nu = result.x
         self.sabr_params = SABRParams(alpha, beta, rho, nu)
         self._calibrated = True
-        logger.info(f"[VolSurface] SABR calibrated: alpha={alpha:.4f} beta={beta:.2f} rho={rho:.3f} nu={nu:.4f}")
+        logger.info("[VolSurface] SABR calibrated: alpha=%.4f beta=%.2f rho=%.3f nu=%.4f", alpha, beta, rho, nu)
         return self.sabr_params
 
     # ── General interface ──

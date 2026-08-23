@@ -76,12 +76,12 @@ def setup_tracing(
 
         _tracer = trace.get_tracer(service_name)
         _initialized = True
-        logger.info(f"[Tracing] Initialized: {service_name} → {endpoint}")
+        logger.info("[Tracing] Initialized: %s → %s", service_name, endpoint)
 
     except ImportError:
         logger.warning("[Tracing] opentelemetry not installed — run: pip install opentelemetry-distro opentelemetry-exporter-otlp")
     except (RuntimeError, OSError, ValueError) as e:
-        logger.warning(f"[Tracing] Failed to initialize: {e}")
+        logger.warning("[Tracing] Failed to initialize: %s", e)
 
 
 def get_tracer(name: str = __name__):
@@ -118,4 +118,4 @@ def shutdown_tracing() -> None:
         _initialized = False
         logger.info("[Tracing] Shutdown complete")
     except (RuntimeError, OSError) as e:
-        logger.warning(f"[Tracing] Shutdown error: {e}")
+        logger.warning("[Tracing] Shutdown error: %s", e)

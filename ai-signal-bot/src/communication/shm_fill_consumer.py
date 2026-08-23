@@ -34,10 +34,10 @@ class ShmFillConsumer:
                 capacity=self.capacity,
                 create=False,
             )
-            logger.info(f"SHM fill consumer initialized: {self.name}")
+            logger.info("SHM fill consumer initialized: %s", self.name)
             return True
         except (OSError, RuntimeError, ValueError) as e:
-            logger.error(f"Failed to init SHM fill consumer: {e}")
+            logger.error("Failed to init SHM fill consumer: %s", e)
             return False
 
     def try_pop(self) -> tuple | None:
