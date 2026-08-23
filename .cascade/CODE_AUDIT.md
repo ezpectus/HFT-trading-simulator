@@ -50,22 +50,22 @@
 
 **Фикс:** N/A — communication and strategies CircuitBreakers have completely different interfaces and use cases (async broadcast vs sync strategy filtering). utils/helpers.py has no CircuitBreaker (audit error).
 
-### 1.6 Metrics — 2 РЕАЛИЗАЦИИ
+### 1.6 Metrics — 2 РЕАЛИЗАЦИИ [N/A]
 | Файл | Класс | Использование |
 |------|-------|---------------|
-| `src/communication/metrics_server.py` | MetricsCollector | signal_publisher.py |
-| `src/monitoring/metrics.py` | MetricsExporter | run.py (--metrics) |
+| `src/communication/metrics_server.py` | MetricsCollector | signal_publisher.py — WebSocket client metrics (ws_clients, signals_sent, etc.) |
+| `src/monitoring/metrics.py` | MetricsExporter | run.py (--metrics) — Prometheus exporter (trading_* metrics) |
 
-**Фикс:** объединить. Имена метрик в `metrics_server.py` (`ai_signal_bot_*`) совпадают с alert rules, а в `metrics.py` (`trading_*`) — нет. Оставить `metrics_server.py` как основной.
+**Фикс:** N/A — MetricsCollector and MetricsExporter serve different purposes (WS client metrics vs Prometheus exporter). Different metric names, different consumers. Not duplicates.
 
-### 1.7 Health — 3 РЕАЛИЗАЦИИ
+### 1.7 Health — 3 РЕАЛИЗАЦИИ [FIXED]
 | Файл | Класс | Использование |
 |------|-------|---------------|
-| `src/communication/health_check.py` | HealthAggregator | НИКТО |
-| `src/monitoring/health_server.py` | HealthServer | run.py (--metrics) |
-| `src/observability/health_checks.py` | HealthChecker | НИКТО |
+| `src/communication/health_check.py` | HealthAggregator | НИКТО — deprecated with DeprecationWarning (Пачка AA) |
+| `src/monitoring/health_server.py` | HealthServer | run.py (--metrics) — canonical HTTP health endpoint |
+| `src/observability/health_checks.py` | HealthChecker | run.py — canonical health checker |
 
-**Фикс:** оставить `monitoring/health_server.py` (работает), подключить `communication/health_check.py` (агрегатор), `observability/health_checks.py` удалить.
+**Фикс:** `communication/health_check.py` deprecated with DeprecationWarning (Пачка AA). `monitoring/health_server.py` and `observability/health_checks.py` both used in production — kept as canonical.
 
 ### 1.8 Дублирование внутри signal_publisher.py [FIXED]
 - `_build_strategies()` (строки 364-391) — дублирует `bot_helpers.build_strategies()`

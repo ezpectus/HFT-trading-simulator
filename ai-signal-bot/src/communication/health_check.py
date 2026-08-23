@@ -31,6 +31,14 @@ import warnings
 import aiohttp
 from aiohttp import web
 
+warnings.warn(
+    "src.communication.health_check is deprecated. "
+    "Use src.monitoring.health_server.HealthServer "
+    "and src.observability.health_checks.HealthChecker instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 logger = logging.getLogger("ai_signal_bot.health_check")
 
 

@@ -7,7 +7,13 @@
 
 ---
 
-## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): PortfolioOptimizer dedup + CircuitBreaker audit
+## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): Health + Metrics audit
+
+### [06] Refactoring Agent — Health 3× + Metrics 2× audit
+**Задача:** Deprecate `src/communication/health_check.py` (dead code, zero imports).
+  Audit Metrics ×2 — verify if truly duplicates.
+  CODE_AUDIT: §1.6, §1.7
+**Статус:** ✅ Done — communication/health_check.py: added DeprecationWarning emission. Metrics §1.6 marked N/A (MetricsCollector vs MetricsExporter serve different purposes). Health §1.7 marked [FIXED]. Пачка AA.
 
 ### [05] Refactoring Agent — PortfolioOptimizer dedup + CircuitBreaker audit
 **Задача:** Deprecate `src/strategies/portfolio_optimizer.py` (dead code, zero imports).
