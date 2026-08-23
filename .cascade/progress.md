@@ -494,7 +494,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | Day | Date | Task | Status | Commit |
 |-----|------|------|--------|--------|
 | 1 | 2026-08-22 | Split hawkes.py → hawkes_model.py + hawkes_funcs.py + facade. 38 tests pass. | ✅ Done | 3c6919b |
-| — | 2026-08-23 | Full project grep audit — 26 grep findings + 1075 reliability findings (R1-R1075: ... + metrics_collector GOOD + std::map Low + mutex on every op MEDIUM + HTTP blocks during export Low + ws_client EXCELLENT + rand() not thread-safe Low + std::queue heap alloc Low + Watchdog timeout not atomic Low + tracer GOOD + spans_ unbounded MEDIUM + mutex per span Low + no export mechanism MEDIUM). Updated CODE_AUDIT.md (§8.1-8.1087), RELIABILITY_PLAN.md (R1-R1075), office-board.md (264 gap items), interview-prep.md (90 bad vs good code examples). Code reduction ~8960+ lines | ✅ Done | — |
+| — | 2026-08-23 | Full project grep audit — 26 grep findings + 1084 reliability findings (R1-R1084: ... + signal.py EXCELLENT + rr_ratio negative risk Low + risk_manager GOOD + peak_trough inverted Low + TR not ATR Low + validator GOOD + cleanup O(N) Low + daily reset wall clock Low + drawdown realized only Low). Updated CODE_AUDIT.md (§8.1-8.1098), RELIABILITY_PLAN.md (R1-R1084), office-board.md (264 gap items), interview-prep.md (90 bad vs good code examples). Code reduction ~8960+ lines | ✅ Done | — |
 | 2 | 2026-08-23 | compute_returns дедупликация (20+ модулей) | ⏳ Next | — |
 | 3 | 2026-08-24 | quantize и другие хелперы | ⏳ Pending | — |
 | 4 | 2026-08-25 | research/__init__.py упрощение | ⏳ Pending | — |

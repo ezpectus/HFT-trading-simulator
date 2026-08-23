@@ -14891,3 +14891,165 @@ Every `trace_*` method acquires `tracer_mutex_` to add a Span. At 200 spans/sec,
 The `Tracer` class has no method to export spans to Jaeger. `inject_context` propagates context via headers, but there's no `export_spans()` or `flush()` method. Spans accumulate in `spans_` and are never sent to Jaeger. The tracing is effectively useless — spans are collected but never exported.
 
 **Фикс:** Add `export_spans()` method that sends spans to Jaeger via UDP/HTTP. Or integrate with OpenTelemetry SDK which handles export automatically. Call `export_spans()` periodically (e.g., every 10s) or when `spans_.size()` exceeds a threshold.
+
+### 8.1088 ai-signal-bot/src/strategies/signal.py: Core Signal Types — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/strategies/signal.py` (58 lines)
+
+- **SignalDirection enum**: LONG, SHORT, NEUTRAL — correct
+- **Signal dataclass**: symbol, direction, confidence, strategy, entry_price, stop_loss, take_profit, reason, timestamp — correct
+- **is_actionable property**: direction != NEUTRAL — correct
+- **rr_ratio property**: reward/risk with direction awareness, zero-risk guard — correct
+- **to_dict**: Serializes all fields including rr_ratio — correct
+
+Excellent core signal type — clean, minimal, well-designed dataclass with computed properties. ✅
+
+### 8.1089 signal.py: rr_ratio doesn't handle negative risk — Low
+
+**Файл:** `signal.py:35-43`
+
+```python
+@property
+def rr_ratio(self) -> float:
+    if self.direction == SignalDirection.LONG:
+        risk = self.entry_price - self.stop_loss
+        reward = self.take_profit - self.entry_price
+    elif self.direction == SignalDirection.SHORT:
+        risk = self.stop_loss - self.entry_price
+        reward = self.entry_price - self.take_profit
+    else:
+        return 0.0
+    return reward / risk if risk > 0 else 0.0
+```
+
+If `risk <= 0` (e.g., LONG with stop_loss above entry_price — a misconfigured signal), `rr_ratio` returns 0.0. This silently passes the validator's `min_rr_ratio` check (0.0 < 1.5 → rejected). But the signal is fundamentally broken — SL is on the wrong side. The validator rejects it for low R:R, not for invalid SL/TP placement. The error message is misleading.
+
+**Фикс:** Add validation in `rr_ratio` or in the validator: if risk <= 0, return a special value or raise, and the validator should check for invalid SL/TP placement explicitly.
+
+### 8.1090 ai-signal-bot/src/risk/risk_manager.py: Risk Manager — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/risk_manager.py` (262 lines)
+
+- **RiskConfig**: trailing stop, breakeven, partial TP, max hold — correct
+- **PositionRiskState**: tracks peak/trough, breakeven_moved, partial_tp_executed, candles_held — correct
+- **update()**: 4 checks per candle — breakeven, trailing, partial TP, max hold — correct
+- **_track_peak_trough**: Direction-aware peak/trough — correct
+- **_check_breakeven**: Only moves SL in favorable direction — correct
+- **_check_trailing**: ATR-based or fixed %, only moves SL favorably — correct
+- **_check_partial_tp**: Returns % to close — correct
+- **_check_max_hold**: Closes position after N candles — correct
+- **_calc_atr_from_candle**: True Range from single candle — correct
+
+Good risk manager with trailing stop, breakeven, partial TP, max hold, and direction-aware SL movement. ✅
+
+### 8.1091 risk_manager: _track_peak_trough inverted for SHORT — Low
+
+**Файл:** `risk_manager.py:131-136`
+
+```python
+if state.side == "LONG":
+    state.peak_price = max(state.peak_price, current_price)
+    state.trough_price = min(state.trough_price, current_price) if state.trough_price > 0 else current_price
+else:
+    state.peak_price = min(state.peak_price, current_price) if state.peak_price > 0 else current_price
+    state.trough_price = max(state.trough_price, current_price)
+```
+
+For SHORT, `peak_price` tracks the lowest price (favorable) and `trough_price` tracks the highest (unfavorable). This is semantically confusing — `peak` should be the highest price, `trough` the lowest, regardless of position direction. The variable names don't match their behavior for SHORT positions.
+
+This isn't a bug — the logic is correct for the purpose (peak = best price for the position). But it's a maintenance hazard — a developer reading `peak_price` expects the highest price, not the lowest.
+
+**Фикс:** Rename to `best_price` / `worst_price` instead of `peak_price` / `trough_price`.
+
+### 8.1092 risk_manager: no thread safety — Low
+
+**Файл:** `risk_manager.py` (entire file)
+
+`RiskManager` has no locks. `update()` mutates `PositionRiskState` (candles_held, peak_price, current_stop_loss, breakeven_moved, etc.). If `update()` is called from multiple coroutines for the same position (e.g., candle update + real-time price update), the state may be corrupted.
+
+In asyncio (single-threaded), this is safe as long as `update()` doesn't `await`. It doesn't — all operations are synchronous. So it's safe in asyncio.
+
+### 8.1093 risk_manager: _calc_atr_from_candle is not real ATR — Low
+
+**Файл:** `risk_manager.py:248-261`
+
+```python
+@staticmethod
+def _calc_atr_from_candle(candle: dict) -> float:
+    high = candle.get("high", 0)
+    low = candle.get("low", 0)
+    close = candle.get("close", 0)
+    prev_close = candle.get("prev_close", close)
+    tr = max(high - low, abs(high - prev_close), abs(low - prev_close))
+    return tr
+```
+
+This calculates True Range (TR) for a single candle, not ATR (which is a moving average of TR over N periods). The variable name and the config field `trailing_atr_multiplier` suggest ATR, but the actual value is just TR. TR is more volatile than ATR — a single volatile candle will cause the trailing distance to spike, potentially moving the SL too far.
+
+**Фикс:** Either rename to `_calc_tr_from_candle` and update the config field, or maintain a rolling ATR from multiple candles.
+
+### 8.1094 ai-signal-bot/src/signal_validation/validator.py: Signal Validator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/signal_validation/validator.py` (122 lines)
+
+- **5 checks**: confidence, R:R, drawdown, max positions, duplicate — correct
+- **ValidationResult**: passed, reason, signal — correct
+- **Daily PnL tracking**: Auto-reset after 24h — correct
+- **Duplicate cooldown**: 5 min per symbol, stale entry cleanup — correct
+- **Early exit**: First failed check returns immediately — correct
+
+Good signal validator with 5 checks, daily PnL tracking, duplicate cooldown, and early exit. ✅
+
+### 8.1095 validator: _recent_signals cleanup is O(N) per validate — Low
+
+**Файл:** `validator.py:113-116`
+
+```python
+now = datetime.now()
+stale = [s for s, t in self._recent_signals.items() if now - t > timedelta(minutes=10)]
+for s in stale:
+    del self._recent_signals[s]
+```
+
+Every `validate()` call scans all entries in `_recent_signals` to find stale ones. With 50 symbols, this is 50 comparisons per validation. At 50 signals/min, that's 2500 comparisons/min. Not terrible, but the cleanup could be done less frequently (e.g., every 10 validations).
+
+**Фикс:** Use a `collections.OrderedDict` with periodic cleanup, or use `functools.lru_cache` with TTL.
+
+### 8.1096 validator: daily reset uses wall clock not trading day — Low
+
+**Файл:** `validator.py:46, 58-60`
+
+```python
+self._daily_reset: datetime = datetime.now()
+# ...
+now = datetime.now()
+if now - self._daily_reset > timedelta(hours=24):
+    self.reset_daily()
+```
+
+The daily reset triggers 24 hours after the last reset, not at a fixed time (e.g., 00:00 UTC). If the bot starts at 14:00, the reset happens at 14:00 the next day, not at midnight. This means the "daily" drawdown limit spans two trading days (14:00 today to 14:00 tomorrow). If the bot restarts, the reset time changes.
+
+**Фикс:** Use UTC midnight: `if now.date() != self._daily_reset.date(): self.reset_daily()`.
+
+### 8.1097 validator: no thread safety — Low
+
+**Файл:** `validator.py` (entire file)
+
+`SignalValidator` has no locks. `_daily_pnl`, `_open_positions`, and `_recent_signals` are mutated by `update_pnl()`, `update_position_count()`, and `validate()`. If these are called from multiple coroutines, the state may be corrupted.
+
+In asyncio (single-threaded), this is safe as long as none of these methods `await`. They don't. So it's safe in asyncio.
+
+### 8.1098 validator: drawdown check uses realized PnL only — Low
+
+**Файл:** `validator.py:98-103`
+
+```python
+def _check_drawdown(self, signal: Signal, account_balance: float) -> ValidationResult | None:
+    drawdown_pct = abs(self._daily_pnl) / account_balance * 100 if account_balance > 0 else 0
+    if self._daily_pnl < 0 and drawdown_pct >= self.max_drawdown_pct:
+        return ValidationResult(False, ...)
+```
+
+The drawdown check uses `_daily_pnl` which is updated via `update_pnl()` — this tracks realized PnL only. Unrealized PnL (from open positions) is not included. If the bot has 3 open positions with -$500 unrealized and $0 realized, the drawdown check passes (0% drawdown). But the actual drawdown is 5% ($500 / $10000). New signals are allowed, increasing risk.
+
+**Фикс:** Include unrealized PnL in the drawdown calculation. Or track equity (balance + unrealized) and compute drawdown from that.

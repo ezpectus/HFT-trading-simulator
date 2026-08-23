@@ -1630,3 +1630,12 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R1073 | tracer: spans_ vector unbounded | `tracer.h:71` | Medium | 200 spans/sec → 3.4GB/day → OOM. Ring buffer or periodic export |
 | R1074 | tracer: mutex on every span creation | `tracer.h:70` | Low | 200 mutex/sec. Use SPSC queue or spinlock |
 | R1075 | tracer: no span export mechanism | `tracer.h` | Medium | Spans collected but never exported to Jaeger. Add export_spans() |
+| R1076 | ai-signal-bot/strategies/signal.py | `signal.py` | ✅ Excellent | SignalDirection enum Signal dataclass rr_ratio is_actionable to_dict |
+| R1077 | signal.py: rr_ratio doesn't handle negative risk | `signal.py:35` | Low | risk<=0 returns 0.0 silently. Add explicit SL/TP validation |
+| R1078 | ai-signal-bot/risk/risk_manager.py | `risk_manager.py` | ✅ Good | Trailing breakeven partial TP max hold direction-aware SL |
+| R1079 | risk_manager: _track_peak_trough inverted for SHORT | `risk_manager.py:131` | Low | peak=lowest for SHORT. Rename to best_price/worst_price |
+| R1080 | risk_manager: _calc_atr_from_candle is not real ATR | `risk_manager.py:248` | Low | Calculates TR not ATR. Rename or maintain rolling ATR |
+| R1081 | ai-signal-bot/signal_validation/validator.py | `validator.py` | ✅ Good | 5 checks daily PnL duplicate cooldown early exit |
+| R1082 | validator: _recent_signals cleanup O(N) per validate | `validator.py:113` | Low | 50 comparisons per validate. Periodic cleanup |
+| R1083 | validator: daily reset uses wall clock not trading day | `validator.py:46` | Low | 24h from last reset not UTC midnight. Use date() comparison |
+| R1084 | validator: drawdown check uses realized PnL only | `validator.py:98` | Low | Unrealized PnL not included. Track equity not just realized |
