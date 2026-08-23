@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AM2: RiskManager shared_mutex + metrics Spinlock)
+
+### Fixed
+- `hft-trade-bot/src/risk/risk_manager.h`: Replaced `std::mutex` with `std::shared_mutex` — `check_order()` uses `shared_lock` (concurrent reads on hot path), `blacklist_symbol()`/`unblacklist_symbol()` use `unique_lock` (§8.155)
+- `hft-trade-bot/src/metrics/metrics_collector.h` + `.cpp`: Replaced `std::mutex` with `Spinlock` for all metric operations — eliminates kernel-level lock in HFT hot path (§8.483, §8.1078)
+
+### Changed
+- CODE_AUDIT §8.147 — BotContext God struct → [N/A] (design choice for single-binary HFT bot)
+- CODE_AUDIT §8.148 — SPSCQueue + mutex → [N/A] (mutex is intentional multi-producer guard)
+- CODE_AUDIT §8.207 — 3 exchange adapters duplication → [N/A] (refactoring risk too high, exchange-specific isolation is acceptable)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AL: Signal engine prepopulate + per-symbol cooldown)
 
 ### Fixed
