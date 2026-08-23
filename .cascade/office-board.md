@@ -9,10 +9,11 @@
 
 ## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): CODE_AUDIT documentation sync
 
-### [07] Refactoring Agent — CODE_AUDIT §1.4, §2.1-2.6, §3.3-3.4, §4.1-4.10 status sync
+### [07] Refactoring Agent — CODE_AUDIT full status sync (§1-§4 + §8.xxxx)
 **Задача:** Update all CODE_AUDIT sections with [FIXED]/[N/A] tags based on work done in previous cycles.
-  20 sections updated to reflect current status.
-**Статус:** ✅ Done — §1.4 [FIXED], §2.1 [N/A], §2.2 [N/A], §2.3 [FIXED], §2.4 [FIXED], §2.5 [N/A], §2.6 [N/A], §3.3 [N/A], §3.4 [FIXED], §4.1-4.10 all [FIXED]. Пачка BB.
+  §1-§4: 20 sections updated. §8.xxxx: 254 sections tagged (248 [FIXED] + 6 [N/A]).
+  Total: 1431 §8 sections — 248 [FIXED], 6 [N/A], 590 ✅ Good, 587 untagged (C++/Rust/Helm/Docker/web-ui).
+**Статус:** ✅ Done — All Python-addressable audit items now tagged. Пачка BB.
 
 ### [06] Refactoring Agent — Health 3× + Metrics 2× audit
 **Задача:** Deprecate `src/communication/health_check.py` (dead code, zero imports).

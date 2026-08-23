@@ -20,6 +20,7 @@ import { aggregateCandles, TIMEFRAMES } from './utils/timeframes'
 import { useSoundAlerts } from './hooks/useSoundAlerts'
 import { useTheme } from './hooks/useTheme'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useNotifications } from './hooks/useNotifications'
 import { useUIStore } from './stores/useUIStore'
 import { useTradingStore } from './stores/useTradingStore'
 import { useToastStore } from './stores/useToastStore'
@@ -133,70 +134,8 @@ export default function App() {
     })
   }, [signals, setSignalData])
 
-  // Track previous connection states for connection notifications
-  const prevExConn = useRef(false)
-  const prevSigConn = useRef(false)
-
-  // Connection change notifications
-  useEffect(() => {
-    if (exchange.connected && !prevExConn.current) {
-      addToast('success', 'Exchange Simulator connected')
-      playSound('connect')
-    } else if (!exchange.connected && prevExConn.current) {
-      addToast('error', 'Exchange Simulator disconnected')
-      playSound('disconnect')
-    }
-    prevExConn.current = exchange.connected
-  }, [exchange.connected, addToast, playSound])
-
-  useEffect(() => {
-    if (signals.connected && !prevSigConn.current) {
-      addToast('success', 'AI Signal Bot connected')
-      playSound('connect')
-    } else if (!signals.connected && prevSigConn.current) {
-      addToast('warning', 'AI Signal Bot disconnected — retrying...')
-      playSound('disconnect')
-    }
-    prevSigConn.current = signals.connected
-  }, [signals.connected, addToast, playSound])
-
-  // Notify on new fills (bot trades)
-  const prevFillCount = useRef(0)
-  useEffect(() => {
-    const newFills = exchange.fills.length - prevFillCount.current
-    if (newFills > 0 && prevFillCount.current > 0) {
-      const recentFill = exchange.fills[0]
-      if (recentFill && recentFill.status === 'FILLED') {
-        addToast('info', `Fill: ${recentFill.side} ${recentFill.filled_quantity} ${recentFill.symbol} @ $${recentFill.filled_price} (${recentFill.exchange})`, 4000)
-        playSound('fill')
-      }
-    }
-    prevFillCount.current = exchange.fills.length
-  }, [exchange.fills, addToast])
-
-  // Notify on strong AI signals
-  const prevSignalCount = useRef(0)
-  useEffect(() => {
-    if (signals.signals.length > prevSignalCount.current && prevSignalCount.current > 0) {
-      const sig = signals.signals[0]
-      if (sig && sig.confidence >= 75) {
-        addToast('info', `Strong signal: ${sig.direction} ${sig.symbol} (${sig.confidence?.toFixed(0)}% confidence)`, 4000)
-        playSound('alert')
-      }
-    }
-    prevSignalCount.current = signals.signals.length
-  }, [signals.signals, addToast])
-
-  // News event notification
-  const prevNewsRef = useRef(null)
-  useEffect(() => {
-    const news = exchange.newsEvent
-    if (news && (!prevNewsRef.current || prevNewsRef.current.symbol !== news.symbol || prevNewsRef.current.remaining < news.remaining)) {
-      addToast('warning', `News event: ${news.symbol} ${news.intensity}x volatility spike (${news.direction})`, 5000)
-      playSound('alert')
-    }
-    prevNewsRef.current = news
-  }, [exchange.newsEvent, addToast, playSound])
+  // Centralized notification effects (connection, fills, signals, news)
+  useNotifications({ exchange, signals, addToast, playSound })
 
   // Keyboard shortcuts
   useKeyboardShortcuts({

@@ -62,11 +62,13 @@ All notable changes to this project are documented in this file.
 
 ---
 
-## [Unreleased] — 2026-08-23 (Refactoring — Пачка BB: CODE_AUDIT documentation sync)
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка BB: CODE_AUDIT full status sync)
 
 ### Changed
-- CODE_AUDIT.md: 20 sections updated with [FIXED]/[N/A] tags — §1.4, §2.1-2.6, §3.3-3.4, §4.1-4.10
-- All Python-addressable audit items in §1-§4 now marked with final status
+- CODE_AUDIT.md §1-§4: 20 sections updated with [FIXED]/[N/A] tags
+- CODE_AUDIT.md §8.xxxx: 254 sections tagged (248 [FIXED] + 6 [N/A]) from office-board cross-reference
+- Total: 1431 §8 sections — 248 [FIXED], 6 [N/A], 590 ✅ Good, 587 untagged (C++/Rust/Helm/Docker/web-ui)
+- All Python-addressable audit items now marked with final status
 
 ---
 
