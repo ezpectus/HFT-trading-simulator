@@ -255,3 +255,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | kill_switch: file monitoring thread not joined | stop_monitoring may not join thread. Use-after-free risk. Use jthread | CODE_AUDIT §8.557 |
 | validator: not thread-safe | _daily_pnl/_open_positions no lock. Race in async context. Use asyncio.Lock | CODE_AUDIT §8.571 |
 | risk_manager: not thread-safe | Same position concurrent update races on peak/trough/SL. Use asyncio.Lock per position | CODE_AUDIT §8.596 |
+| helpers: CircuitBreaker not thread-safe | No lock on _failure_count/_state. Race in async. Use asyncio.Lock | CODE_AUDIT §8.649 |
+| tracing: OTLP exporter insecure=True | Disables TLS for trace export. Traces unencrypted in prod. Use insecure=False with certs | CODE_AUDIT §8.653 |

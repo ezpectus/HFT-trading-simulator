@@ -8355,3 +8355,255 @@ if abs(current_weight - target_weight) < 0.01:
 The skip threshold is 0.01 (1% weight difference), but there's no minimum trade size in absolute terms. For a $100K portfolio, 1% = $1000 — reasonable. For a $1M portfolio, 1% = $10,000 — may be too large. For a $10K portfolio, 1% = $100 — may be too small (below exchange minimum).
 
 **Фикс:** Add `min_trade_value` parameter and skip if `abs(trade_amount) < min_trade_value`.
+
+### 8.634 ai-signal-bot/src/monitoring/health_server.py: Health server — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/monitoring/health_server.py` (153 lines)
+
+- **6 endpoints**: /health, /health/exchange, /health/database, /health/shm, /ready, /live — comprehensive
+- **K8s probes**: readiness (`/ready`) + liveness (`/live`) — production-grade
+- **Pluggable checks**: `register_check()` with Callable — flexible
+- **Async support**: `iscoroutine()` check — correct
+- **Error handling**: `try/except` with 5 exception types — resilient
+- **HTTP status**: 200 healthy, 503 unhealthy — correct
+- **Uptime tracking**: `_start_time` — useful
+- **`nosec: B104`**: Documented bind to 0.0.0.0 — correct
+
+Excellent health server with 6 endpoints, K8s probes, pluggable checks, async support, and proper HTTP status. ✅
+
+### 8.635 health_server: liveness always returns True — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/health_server.py:123-125`
+
+```python
+async def _handle_live(self, request: web.Request) -> web.Response:
+    return web.json_response({"alive": True, "uptime": time.time() - self._start_time})
+```
+
+The liveness probe always returns `{"alive": True}` — it never checks if the bot is actually alive. If the event loop is blocked (e.g., stuck in a long computation), the health server (running on the same loop) would also be blocked, so the probe would timeout rather than return False. But if the health server runs on a separate thread/loop, it would return True even when the bot is dead.
+
+**Фикс:** Add a heartbeat timestamp updated by the main loop. If `time.time() - last_heartbeat > timeout`, return `{"alive": False}`.
+
+### 8.636 ai-signal-bot/src/monitoring/metrics.py: Prometheus metrics — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/monitoring/metrics.py` (239 lines)
+
+- **Optional import**: `try/except ImportError` for prometheus_client — resilient
+- **Optional import**: `try/except ImportError` for aiohttp — resilient
+- **4 metric types**: Counter, Gauge, Histogram, Summary — comprehensive
+- **5 counters**: signals_total, fills_total, orders_sent_total, orders_rejected_total, kill_switch_activations — comprehensive
+- **Custom registry**: `CollectorRegistry()` — isolated
+- **Labels**: symbol, direction, exchange, side, type, reason — comprehensive
+
+Excellent Prometheus metrics with 4 metric types, 5 counters, custom registry, and optional imports. ✅
+
+### 8.637 metrics: __init__ returns None on missing prometheus — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/metrics.py:41-43`
+
+```python
+if not HAS_PROMETHEUS:
+    logger.warning("prometheus_client not available")
+    return
+```
+
+If `prometheus_client` is not installed, `__init__` returns early without setting any attributes. Subsequent calls to `self.signals_total.labels(...)` will raise `AttributeError`. Should set a flag or provide no-op fallbacks.
+
+**Фикс:** Set `self._enabled = False` and check in all methods, or raise a clear error at construction time.
+
+### 8.638 ai-signal-bot/src/utils/helpers.py: Utility helpers — ✅ Good
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py` (205 lines)
+
+- **10 utility functions**: setup_logging, JsonFormatter, load_config, get_env, now_ms, now_us, format_price, format_qty, format_percentage, safe_divide, clamp, truncate_dict — comprehensive
+- **JsonFormatter**: Structured JSON logging — production-grade
+- **`get_env` with cast**: bool, int, float, str — flexible
+- **`safe_divide`**: `abs(b) > 1e-10` guard — correct
+- **`clamp`**: `max(min_val, min(max_val, value))` — correct
+- **CircuitBreaker**: 3-state (closed/open/half_open) — correct
+- **RateLimiter**: Token bucket with async acquire — correct
+
+Good utility helpers with 10 functions, JSON logging, CircuitBreaker, and RateLimiter. ✅
+
+### 8.639 helpers: CircuitBreaker not thread-safe — Medium
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py:145-176`
+
+```python
+class CircuitBreaker:
+    def __init__(self, failure_threshold: int = 5, recovery_timeout: float = 30.0):
+        self._failure_count = 0
+        self._last_failure_time: float = 0
+        self._state = "closed"
+```
+
+`CircuitBreaker` has no lock. `_failure_count`, `_last_failure_time`, and `_state` are plain attributes. If `record_success()` and `record_failure()` are called concurrently from different async tasks, race condition on `_failure_count` and `_state`. The `is_open` property also mutates `_state` (transitions open → half_open), which is a side effect in a property — surprising and not thread-safe.
+
+**Фикс:** Use `asyncio.Lock` for all state mutations. Separate the `is_open` check from the state transition.
+
+### 8.640 helpers: CircuitBreaker side effect in is_open property — Low
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py:156-162`
+
+```python
+@property
+def is_open(self) -> bool:
+    if self._state == "open":
+        if time.time() - self._last_failure_time > self.recovery_timeout:
+            self._state = "half_open"  # Side effect in property!
+            return False
+        return True
+    return False
+```
+
+The `is_open` property mutates `_state` (transitions `open` → `half_open`). This is a side effect in a property — violates principle of least surprise. Reading a property should not change state.
+
+**Фикс:** Separate the transition into a `try_reset()` method. `is_open` should be read-only.
+
+### 8.641 helpers: RateLimiter imports asyncio inside method — Low
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py:194-195`
+
+```python
+async def acquire(self) -> bool:
+    import asyncio
+```
+
+`asyncio` is imported inside the `acquire()` method instead of at the top of the file. This is a lazy import — it works but is poor style. The module is already async (the method is `async def`), so `asyncio` is always needed.
+
+**Фикс:** Move `import asyncio` to top of file.
+
+### 8.642 ai-signal-bot/src/observability/tracing.py: Distributed tracing — ✅ Good
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py` (111 lines)
+
+- **OpenTelemetry + Jaeger**: OTLP exporter — production-grade
+- **Optional import**: `try/except ImportError` — resilient
+- **Resource**: service.name, namespace, version — correct
+- **BatchSpanProcessor**: Async export — correct
+- **AsyncioInstrumentor**: Auto-instrumentation — advanced
+- **No-op tracer**: `get_tracer()` returns no-op if not initialized — correct
+- **Global singleton**: `_tracer`, `_initialized` — simple
+
+Good distributed tracing with OpenTelemetry, Jaeger, optional imports, and no-op fallback. ✅
+
+### 8.643 tracing: OTLP exporter insecure=True — Medium
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py:59`
+
+```python
+exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
+```
+
+`insecure=True` disables TLS for the OTLP gRPC connection. In production, traces (which may contain symbol names, order details, and PnL) are sent unencrypted. Anyone on the network can intercept trace data.
+
+**Фикс:** Use TLS in production: `insecure=False` (default) with proper certificates. Only use `insecure=True` in development.
+
+### 8.644 tracing: global mutable state not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py:25-26`
+
+```python
+_tracer: object | None = None
+_initialized: bool = False
+```
+
+`_tracer` and `_initialized` are module-level globals. If `setup_tracing()` is called from multiple threads simultaneously, a race condition could initialize the tracer twice. In practice, `setup_tracing()` is called once at startup.
+
+**Фикс:** Use `threading.Lock` around `setup_tracing()` or document single-call requirement.
+
+### 8.645 hft-trade-bot/src/exchange/ExchangeBase.h: Exchange base — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/exchange/ExchangeBase.h` (60 lines)
+
+- **Partial IExchange implementation**: id, fees, latency, toxic — correct
+- **Atomic EMA latency**: `compare_exchange_weak` with `/10` smoothing — correct
+- **`memory_order_relaxed`**: All atomics — correct for counters
+- **Toxic event tracking**: `fetch_add`, `load`, `store` — correct
+- **`is_available()`**: `toxic_count < 5` — automatic circuit breaker
+- **`noexcept`**: `record_latency`, `record_toxic_event` — HFT constraint
+- **`protected` members**: For derived classes — correct
+
+Excellent exchange base with atomic EMA latency, toxic tracking, automatic circuit breaker, and noexcept. ✅
+
+### 8.646 ExchangeBase: is_available hardcoded threshold 5 — Low
+
+**Файл:** `hft-trade-bot/src/exchange/ExchangeBase.h:49`
+
+```cpp
+bool is_available() const override { return toxic_count_.load(std::memory_order_relaxed) < 5; }
+```
+
+The availability threshold is hardcoded to 5 toxic events. This should be configurable — different exchanges may have different toxicity tolerance.
+
+**Фикс:** Add `toxic_threshold` to constructor or config.
+
+### 8.647 hft-trade-bot/src/utils/low_latency.h: Low-latency infrastructure — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h` (451 lines)
+
+- **Spinlock**: `_mm_pause`, `alignas(64)`, `memory_order_acquire/release` — HFT-grade
+- **SpinlockGuard**: RAII — correct
+- **SPSCQueue**: Lock-free single-producer single-consumer, `static_assert` power-of-2, `alignas(64)` head/tail — HFT-grade
+- **ObjectPool**: Pre-allocated, `compare_exchange_strong`, O(1) release via pointer arithmetic — HFT-grade
+- **LatencyHistogram**: 35 log-scale buckets, atomic min/max with CAS, p50/p95/p99/p99.9 — production-grade
+- **Thread pinning**: Cross-platform (Windows + POSIX) — correct
+- **`[[nodiscard]]`**: On push/pop — correct
+- **`noexcept`**: All hot-path methods — HFT constraint
+
+Excellent low-latency infrastructure with spinlock, SPSC queue, object pool, latency histogram, and thread pinning. ✅
+
+### 8.648 low_latency: Spinlock no backoff limit — Low
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h:47-57`
+
+```cpp
+void lock() noexcept {
+    for (;;) {
+        uint32_t expected = 0;
+        if (flag_.compare_exchange_strong(expected, 1, std::memory_order_acquire)) return;
+        while (flag_.load(std::memory_order_relaxed) != 0) {
+            _mm_pause();
+        }
+    }
+}
+```
+
+The spinlock spins indefinitely with `_mm_pause()` but has no backoff limit. If the lock is held for a long time (e.g., due to a bug or scheduling issue), the spinning thread wastes CPU cycles. For HFT, this is intentional (sub-μs critical sections), but a max spin count with `std::this_thread::yield()` fallback would be safer.
+
+**Фикс:** Add a max spin count (e.g., 1000) before falling back to `yield()`.
+
+### 8.649 low_latency: ObjectPool acquire is O(n) — Low
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h:153-161`
+
+```cpp
+T* acquire() noexcept {
+    for (size_t i = 0; i < PoolSize; ++i) {
+        bool expected = false;
+        if (pool_[i].active.compare_exchange_strong(expected, true, ...)) {
+            return &pool_[i].obj;
+        }
+    }
+    return nullptr;
+}
+```
+
+`acquire()` scans the pool linearly. With many objects, this is O(n). For HFT, pool sizes are typically small (10-100), so this is acceptable. But under contention, multiple threads may scan the same slots.
+
+**Фикс:** Use a lock-free stack (Treiber stack) for O(1) acquire, or accept O(n) for small pools.
+
+### 8.650 low_latency: LatencyHistogram min/max are doubles — Low
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h:212-219`
+
+```cpp
+double current_min = min_.load(std::memory_order_relaxed);
+while (microseconds < current_min &&
+       !min_.compare_exchange_weak(current_min, microseconds)) {
+}
+```
+
+`min_` and `max_` are `std::atomic<double>`. Not all platforms support atomic operations on `double` natively. On x86-64 this works (via `cmpxchg8b` or `lock cmpxchg16b`), but on ARM32 it may require a lock. Also, CAS on double can have ABA-like issues with NaN values.
+
+**Фикс:** Use `std::atomic<int64_t>` with `bit_cast` or `memcpy` for portable atomic double operations.

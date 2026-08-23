@@ -1178,3 +1178,20 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R621 | risk_parity: portfolio_return hardcoded 0 | `risk_parity.py:76` | Low | Return always 0. Accept expected_returns param and calculate np.dot |
 | R622 | ai-signal-bot/portfolio/rebalancing.py | `rebalancing.py` | ✅ Good | 3 triggers (time/drift/vol), turnover, skip threshold, transaction cost |
 | R623 | rebalancing: no min trade size | `rebalancing.py:77` | Low | 1% weight threshold only. Add min_trade_value for absolute size check |
+| R624 | ai-signal-bot/monitoring/health_server.py | `health_server.py` | ✅ Excellent | 6 endpoints, K8s ready/live probes, pluggable checks, async, 200/503 |
+| R625 | health_server: liveness always True | `health_server.py:123` | Low | Never checks if bot alive. Add heartbeat timestamp check |
+| R626 | ai-signal-bot/monitoring/metrics.py | `metrics.py` | ✅ Excellent | 4 metric types, 5 counters, custom registry, optional imports, labels |
+| R627 | metrics: __init__ returns None on missing prom | `metrics.py:41` | Low | No attributes set. AttributeError on next call. Set _enabled=False |
+| R628 | ai-signal-bot/utils/helpers.py | `helpers.py` | ✅ Good | 10 utils, JsonFormatter, CircuitBreaker 3-state, RateLimiter token bucket |
+| R629 | helpers: CircuitBreaker not thread-safe | `helpers.py:145` | Medium | No lock on _failure_count/_state. Race in async. Use asyncio.Lock |
+| R630 | helpers: CircuitBreaker side effect in is_open | `helpers.py:156` | Low | Property mutates _state. Separate into try_reset() method |
+| R631 | helpers: RateLimiter imports asyncio in method | `helpers.py:194` | Low | Lazy import in async method. Move to top of file |
+| R632 | ai-signal-bot/observability/tracing.py | `tracing.py` | ✅ Good | OpenTelemetry+Jaeger, OTLP, BatchSpanProcessor, AsyncioInstrumentor, no-op fallback |
+| R633 | tracing: OTLP exporter insecure=True | `tracing.py:59` | Medium | Disables TLS. Traces unencrypted in prod. Use insecure=False with certs |
+| R634 | tracing: global mutable state not thread-safe | `tracing.py:25` | Low | _tracer/_initialized globals no lock. Use threading.Lock or document |
+| R635 | hft-trade-bot/exchange/ExchangeBase.h | `ExchangeBase.h` | ✅ Excellent | Atomic EMA latency CAS, toxic tracking, auto circuit breaker, noexcept |
+| R636 | ExchangeBase: is_available hardcoded 5 | `ExchangeBase.h:49` | Low | Toxic threshold hardcoded. Add to constructor or config |
+| R637 | hft-trade-bot/utils/low_latency.h | `low_latency.h` | ✅ Excellent | Spinlock _mm_pause alignas64, SPSCQueue lock-free, ObjectPool, LatencyHistogram 35 buckets, thread pinning |
+| R638 | low_latency: Spinlock no backoff limit | `low_latency.h:47` | Low | Spins indefinitely. Add max spin count + yield() fallback |
+| R639 | low_latency: ObjectPool acquire O(n) | `low_latency.h:153` | Low | Linear scan. Use Treiber stack or accept for small pools |
+| R640 | low_latency: LatencyHistogram atomic double | `low_latency.h:212` | Low | std::atomic<double> not portable. Use atomic<int64_t> + bit_cast |

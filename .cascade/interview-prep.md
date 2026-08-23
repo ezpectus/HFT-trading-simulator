@@ -3763,3 +3763,140 @@ class ModelRegistry:
 ```
 
 **Разница:** The bad code writes directly to `registry.json` — `open("w")` truncates the file before writing. If the process crashes during `json.dump()`, the file is half-written: truncated JSON, missing closing braces, or empty. Next `_load()` raises `json.JSONDecodeError` — the registry starts empty, all model versions and A/B tests are lost. With 1000 users, a crash during model promotion means all users lose their ML model: the bot falls back to rule-based heuristics, generating 20% fewer profitable signals. Recovery requires hours of manual work: re-registering all models from checkpoints, re-promoting production, re-creating A/B tests. The good code writes to a temp file first, then atomically renames it to `registry.json` using `os.replace()` (atomic on both POSIX and Windows). If the process crashes during write, the temp file is corrupted but `registry.json` is untouched — the old registry is intact. `f.flush()` + `os.fsync()` ensures the data is written to disk before rename, protecting against power loss. The `except` block cleans up the temp file on error. The cost is a few extra lines (tempfile, fsync, replace) and ~1ms overhead per save. The benefit is zero data loss on crash — the registry is always either the old version or the new version, never corrupted.
+
+---
+
+## Bad vs Good: Side Effect in Property (Python)
+
+### ❌ Bad Code
+```python
+class CircuitBreaker:
+    """Circuit breaker for external API calls."""
+
+    def __init__(self, failure_threshold: int = 5, recovery_timeout: float = 30.0):
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self._failure_count = 0
+        self._last_failure_time: float = 0
+        self._state = "closed"  # closed, open, half_open
+
+    @property
+    def is_open(self) -> bool:
+        """Check if circuit is open."""
+        if self._state == "open":
+            if time.time() - self._last_failure_time > self.recovery_timeout:
+                self._state = "half_open"  # MUTATION IN PROPERTY!
+                return False
+            return True
+        return False
+
+    def record_success(self) -> None:
+        self._failure_count = 0
+        self._state = "closed"
+
+    def record_failure(self) -> None:
+        self._failure_count += 1
+        self._last_failure_time = time.time()
+        if self._failure_count >= self.failure_threshold:
+            self._state = "open"
+
+# Usage:
+cb = CircuitBreaker(failure_threshold=5, recovery_timeout=30.0)
+
+# In the hot path:
+if cb.is_open:  # ← This MUTATES _state! open → half_open
+    logger.warning("Circuit open, skipping API call")
+    return None
+
+# Later, another check:
+if cb.is_open:  # Now returns False (half_open), allows traffic
+    logger.warning("Circuit still open")
+    return None
+
+# The first is_open check changed state from "open" to "half_open"
+# The second check sees "half_open", returns False
+# Traffic flows to a potentially broken API without any success() call
+```
+
+**What's wrong:**
+- `is_open` is a **property** — reading it should be a pure query with no side effects
+- But it **mutates** `_state` from `"open"` to `"half_open"` — a state transition hidden in a read
+- This violates the **principle of least surprise**: `if cb.is_open:` looks like a read, but it changes state
+- Multiple reads of `is_open` produce different results: first returns `True`, second returns `False`
+- No lock — concurrent reads of `is_open` from multiple async tasks race on `_state`
+- The `half_open` state is entered **without any validation** — traffic flows immediately
+- With 1000 users, a broken exchange API gets traffic 30s after the circuit opens, without any health check. If the API is still broken, 1000 users get failed requests, and the circuit re-opens only after 5 more failures
+
+### ✅ Good Code
+```python
+class CircuitBreaker:
+    """Circuit breaker for external API calls — thread-safe, no side effects in properties."""
+
+    def __init__(self, failure_threshold: int = 5, recovery_timeout: float = 30.0):
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self._failure_count = 0
+        self._last_failure_time: float = 0
+        self._state = "closed"  # closed, open, half_open
+        self._lock = asyncio.Lock()
+
+    @property
+    def is_open(self) -> bool:
+        """Check if circuit is open. READ-ONLY — no side effects."""
+        return self._state == "open"  # Pure query, no mutation
+
+    @property
+    def state(self) -> str:
+        """Current circuit state."""
+        return self._state
+
+    async def try_reset(self) -> bool:
+        """Attempt to transition from open to half_open. Returns True if reset."""
+        async with self._lock:
+            if self._state != "open":
+                return False
+            if time.time() - self._last_failure_time <= self.recovery_timeout:
+                return False
+            self._state = "half_open"
+            logger.info("[CircuitBreaker] Transitioning open → half_open")
+            return True
+
+    async def record_success(self) -> None:
+        async with self._lock:
+            self._failure_count = 0
+            if self._state == "half_open":
+                self._state = "closed"
+                logger.info("[CircuitBreaker] half_open → closed (recovered)")
+            elif self._state == "open":
+                self._state = "closed"
+                logger.info("[CircuitBreaker] open → closed (recovered)")
+
+    async def record_failure(self) -> None:
+        async with self._lock:
+            self._failure_count += 1
+            self._last_failure_time = time.time()
+            if self._failure_count >= self.failure_threshold:
+                if self._state != "open":
+                    self._state = "open"
+                    logger.warning(
+                        f"[CircuitBreaker] → open after {self._failure_count} failures"
+                    )
+
+# Usage:
+cb = CircuitBreaker(failure_threshold=5, recovery_timeout=30.0)
+
+# In the hot path:
+if cb.is_open:  # Pure read — no side effects
+    # Try to reset after recovery timeout
+    if await cb.try_reset():
+        logger.info("Circuit reset to half_open, testing with one request")
+    else:
+        logger.warning("Circuit open, skipping API call")
+        return None
+
+# try_reset() is an explicit state transition — no hidden mutation
+# is_open is always safe to call multiple times — same result
+# All state changes are protected by asyncio.Lock — no races
+```
+
+**Разница:** The bad code has a hidden state transition in `is_open` — reading the property changes `_state` from `"open"` to `"half_open"`. This violates the principle of least surprise: `if cb.is_open:` looks like a read, but it's a write. Multiple reads produce different results: first `True`, second `False`. No lock means concurrent reads from multiple async tasks race on `_state`. With 1000 users, a broken exchange API gets traffic 30s after the circuit opens, without any health check — if the API is still broken, 1000 users get failed requests. The good code separates the read (`is_open` — pure query, no mutation) from the write (`try_reset()` — explicit state transition with lock). `is_open` always returns the same value for the same state — safe to call multiple times. All state changes are protected by `asyncio.Lock` — no races. `try_reset()` is an explicit method call — the developer knows they're changing state. The cost is one extra method (`try_reset`) and a lock. The benefit is predictable behavior: properties are reads, methods are writes, no hidden mutations, no races.
