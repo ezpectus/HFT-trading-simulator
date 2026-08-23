@@ -25,11 +25,30 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
+
+try:
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import DataLoader, Dataset
+    _HAS_TORCH = True
+except ImportError:
+    _HAS_TORCH = False
+    torch = None  # type: ignore[assignment]
+    nn = None  # type: ignore[assignment]
+    DataLoader = None  # type: ignore[assignment]
+    Dataset = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
+
+if not _HAS_TORCH:
+    logger.warning("torch not installed — price_predictor models unavailable (pip install torch)")
+
+    class _DummyModule:
+        """Placeholder for nn.Module when torch is not installed."""
+        def __init__(self, *args, **kwargs):
+            raise ImportError("torch is required for price_predictor (pip install torch)")
+else:
+    _DummyModule = nn.Module
 
 
 @dataclass
@@ -51,7 +70,7 @@ class ModelConfig:
     early_stop_patience: int = 10
 
 
-class LSTMPredictor(nn.Module):
+class LSTMPredictor(_DummyModule):
     """LSTM-based price movement predictor."""
 
     def __init__(self, config: ModelConfig):
@@ -92,7 +111,7 @@ class LSTMPredictor(nn.Module):
         return logits
 
 
-class TransformerPredictor(nn.Module):
+class TransformerPredictor(_DummyModule):
     """Transformer-based price movement predictor."""
 
     def __init__(self, config: ModelConfig):
@@ -128,7 +147,7 @@ class TransformerPredictor(nn.Module):
         return self.classifier(x)
 
 
-class PositionalEncoding(nn.Module):
+class PositionalEncoding(_DummyModule):
     """Sinusoidal positional encoding."""
 
     def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 500):

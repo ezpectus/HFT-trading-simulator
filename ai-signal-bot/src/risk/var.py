@@ -6,7 +6,41 @@
 from dataclasses import dataclass
 
 import numpy as np
-from scipy import stats
+
+try:
+    from scipy import stats
+    _HAS_SCIPY = True
+except ImportError:
+    _HAS_SCIPY = False
+    stats = None  # type: ignore[assignment]
+
+
+def _norm_ppf(p: float) -> float:
+    """Inverse normal CDF. Uses scipy if available, else Beasley-Springer-Moro approximation."""
+    if _HAS_SCIPY:
+        return float(stats.norm.ppf(p))
+    # Beasley-Springer-Moro approximation (accurate to ~1e-7)
+    import math
+    a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
+         1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00]
+    b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
+         6.680131188771972e+01, -1.328068155288572e+01]
+    c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
+         -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00]
+    d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
+         3.754408661907416e+00]
+    p_low = 0.02425
+    p_high = 1 - p_low
+    if p < p_low:
+        q = math.sqrt(-2 * math.log(p))
+        return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)
+    elif p <= p_high:
+        q = p - 0.5
+        r = q*q
+        return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)
+    else:
+        q = math.sqrt(-2 * math.log(1-p))
+        return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)
 
 
 @dataclass
@@ -57,7 +91,7 @@ class VaRCalculator:
         std = np.std(returns)
 
         # Calculate VaR using normal distribution
-        z_score = stats.norm.ppf(1 - cl)
+        z_score = _norm_ppf(1 - cl)
 
         # Scale for time horizon: mean scales linearly, std scales by sqrt(t)
         var_scaled = mean * th + z_score * std * np.sqrt(th)
@@ -149,7 +183,7 @@ class VaRCalculator:
         elif var_result.method == 'parametric':
             mean = np.mean(window_returns)
             std = np.std(window_returns)
-            z_score = stats.norm.ppf(1 - var_result.confidence_level)
+            z_score = _norm_ppf(1 - var_result.confidence_level)
             return mean + z_score * std
         return None
 

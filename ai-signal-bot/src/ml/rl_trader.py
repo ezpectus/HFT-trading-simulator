@@ -25,11 +25,29 @@ from collections import deque
 from dataclasses import dataclass
 
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    _HAS_TORCH = True
+except ImportError:
+    _HAS_TORCH = False
+    torch = None  # type: ignore[assignment]
+    nn = None  # type: ignore[assignment]
+    F = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
+
+if not _HAS_TORCH:
+    logger.warning("torch not installed — rl_trader models unavailable (pip install torch)")
+
+    class _DummyModule:
+        """Placeholder for nn.Module when torch is not installed."""
+        def __init__(self, *args, **kwargs):
+            raise ImportError("torch is required for rl_trader (pip install torch)")
+else:
+    _DummyModule = nn.Module
 
 # Actions: 0=hold, 1=buy, 2=sell (matches TradingEnv)
 NUM_ACTIONS = 3
@@ -64,7 +82,7 @@ class RLConfig:
 
 # ── PPO ──
 
-class ActorCritic(nn.Module):
+class ActorCritic(_DummyModule):
     """Actor-Critic network for PPO."""
 
     def __init__(self, state_dim: int, hidden_dim: int):
@@ -252,7 +270,7 @@ class PPOAgent:
 
 # ── DQN ──
 
-class QNetwork(nn.Module):
+class QNetwork(_DummyModule):
     """Q-Network for DQN."""
 
     def __init__(self, state_dim: int, hidden_dim: int):

@@ -510,6 +510,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | 12 | 2026-08-25 | Пачка J — signal_publisher.py: 3× _send closures → _broadcast_to_clients helper, _run_backtest → asyncio.to_thread. shm_ring_buffer.py: added dropped_count counter. Office-board: 11 stale items marked [FIXED] | ✅ Done | — |
 | 13 | 2026-08-25 | Пачка K — real_market_data.py: asyncio.Lock for _ws_connections (3 exchange handlers + stop). db.py: persistent connection via _get_conn() (was new conn per op). copula.py: empirical_cdf O(n²)→O(n log n) via sort+bisect | ✅ Done | — |
 | 14 | 2026-08-25 | Пачка L — position_sizing.py: kelly_criterion_sizing delegates to KellyPositionSizer (removed _calc_kelly_fraction). risk/portfolio_optimizer.py: added DeprecationWarning (duplicate of portfolio/ module) | ✅ Done | — |
+| 15 | 2026-08-25 | Пачка M — price_predictor.py + rl_trader.py: torch import guarded with try/except + _DummyModule. var.py: scipy import guarded with _norm_ppf fallback (Beasley-Springer-Moro). socket_transport.py: busy-poll replaced with selectors.DefaultSelector | ✅ Done | — |
 | 5 | 2026-08-26 | Аудит unused research модулей | ⏳ Pending | — |
 | 6 | 2026-08-27 | backtester.py упрощение | ⏳ Pending | — |
 | 7 | 2026-08-28 | strategies.py cleanup | ⏳ Pending | — |

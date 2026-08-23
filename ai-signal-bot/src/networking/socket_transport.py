@@ -20,9 +20,9 @@ Usage:
 from __future__ import annotations
 
 import logging
+import selectors
 import socket
 import struct
-import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any  # Any: stats dict values are heterogeneous
@@ -92,20 +92,28 @@ class SocketTransport:
         self._running = True
         logger.info("[Socket] Starting receive loop")
 
-        while self._running:
-            try:
-                data, addr = self._socket.recvfrom(65536)
-                self._stats["packets_rx"] += 1
-                self._stats["bytes_rx"] += len(data)
+        sel = selectors.DefaultSelector()
+        sel.register(self._socket, selectors.EVENT_READ, self._socket)
 
-                packet = self._parse_packet(data)
-                if packet:
-                    on_packet(packet)
-            except BlockingIOError:
-                time.sleep(0.0001)  # 100μs sleep
-            except (OSError, struct.error, UnicodeDecodeError) as e:
-                self._stats["rx_drops"] += 1
-                logger.debug(f"[Socket] RX error: {e}")
+        try:
+            while self._running:
+                events = sel.select(timeout=0.1)
+                for key, _ in events:
+                    sock = key.fileobj
+                    try:
+                        data, addr = sock.recvfrom(65536)
+                        self._stats["packets_rx"] += 1
+                        self._stats["bytes_rx"] += len(data)
+
+                        packet = self._parse_packet(data)
+                        if packet:
+                            on_packet(packet)
+                    except (OSError, struct.error, UnicodeDecodeError) as e:
+                        self._stats["rx_drops"] += 1
+                        logger.debug(f"[Socket] RX error: {e}")
+        finally:
+            sel.unregister(self._socket)
+            sel.close()
 
     def send(self, data: bytes, dest: tuple = ("127.0.0.1", 9001)) -> bool:
         """Send data packet."""

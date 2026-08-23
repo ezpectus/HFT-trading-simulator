@@ -361,7 +361,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Project-wide: 0 asyncio.Lock usage | _clients _candle_history _recent_signals at risk. Add locks | CODE_AUDIT §8.1336 |
 | Project-wide: 13 except Exception catches | Masks CancelledError. Use specific exception types | CODE_AUDIT §8.1335 |
 | Project-wide: 8 datetime.now() without timezone | Naive datetime fragile. Use datetime.now(UTC) | CODE_AUDIT §8.1338 |
-| var: scipy hard dependency | Module fails if scipy missing. Make optional | CODE_AUDIT §8.1311 |
+| ~~var: scipy hard dependency~~ [FIXED] | scipy import guarded with try/except, _norm_ppf fallback (Beasley-Springer-Moro) | CODE_AUDIT §8.1311 |
 | fix_client: no SSL/TLS support | Plain TCP. Add ssl_context parameter | CODE_AUDIT §8.1330 |
 | ~~shm_ring_buffer: no overflow detection on push~~ [FIXED] | Added dropped_count counter to try_push | CODE_AUDIT §8.1328 |
 | ~~technical_analysis/__init__.py: 252 lines re-export ~200 symbols~~ [FIXED] | Replaced with empty file | CODE_AUDIT §8.1343 |
@@ -376,13 +376,13 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~technical_analysis: dtw duplicate compute_returns~~ [FIXED] | Replaced with import from _common.py | CODE_AUDIT §8.1347 |
 | technical_analysis: No NaN/Inf input validation | NaN propagates through cumsum. Add math.isfinite() checks | CODE_AUDIT §8.1367 |
 | ~~ml/__init__.py: 81 lines re-export ~30 symbols~~ [FIXED] | Replaced with empty file | CODE_AUDIT §8.1371 |
-| ml: torch hard dependency in price_predictor + rl_trader | import torch unguarded. Guard with try/except | CODE_AUDIT §8.1382 |
+| ~~ml: torch hard dependency in price_predictor + rl_trader~~ [FIXED] | Both modules now guard torch import with try/except + _DummyModule fallback | CODE_AUDIT §8.1382 |
 | ml: 5 modules likely dead code | ~1300 lines not used in production. Move to ml_advanced/ | CODE_AUDIT §8.1383 |
 | ~~ml/vae.py: 5th duplicate _random_normal~~ [FIXED] | Replaced with rng.gauss(0,1) | CODE_AUDIT §8.1379 |
 | ~~ml/feature_store.py: broad Exception catch~~ [FIXED] | Removed redundant Exception from tuple | CODE_AUDIT §8.1374 |
 | ~~monitoring/health_server.py: 3× duplicate _check_* methods~~ [FIXED] | Extracted _check_component helper. 3 one-liners instead of 3× 10-line copies | CODE_AUDIT §8.1385 |
 | ~~monitoring/tracker.py: datetime.now() without timezone~~ [FIXED] | Changed to datetime.now(UTC) | CODE_AUDIT §8.1387 |
-| networking/socket_transport.py: busy-poll loop | time.sleep(0.0001) on BlockingIOError. Use selectors or asyncio | CODE_AUDIT §8.1392 |
+| ~~networking/socket_transport.py: busy-poll loop~~ [FIXED] | Replaced time.sleep(0.0001) on BlockingIOError with selectors.DefaultSelector | CODE_AUDIT §8.1392 |
 | ~~utils/helpers.py: duplicate logging setup~~ [FIXED] | Removed setup_logging + JsonFormatter. Consolidated to observability/logging | CODE_AUDIT §8.1393 |
 | ~~research/__init__.py: 307 lines re-export ~200 symbols~~ [FIXED] | Reduced to 3 lines: compute_returns + quantize from _common | CODE_AUDIT §8.1400 |
 | research: 30+ modules likely dead code | ~12000+ lines academic math. Move to research_lab/ | CODE_AUDIT §8.1401 |

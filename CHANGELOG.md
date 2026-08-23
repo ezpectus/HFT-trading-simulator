@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка M: torch/scipy optional guards + socket selectors)
+
+### Changed
+- `price_predictor.py`: Guarded `import torch` with try/except + `_DummyModule` fallback — module no longer crashes on import without torch
+- `rl_trader.py`: Same torch guard pattern — `ActorCritic` and `QNetwork` use `_DummyModule` base when torch missing
+- `var.py`: Made scipy optional — `stats.norm.ppf` replaced with `_norm_ppf` fallback (Beasley-Springer-Moro approximation, accurate to ~1e-7)
+- `socket_transport.py`: Replaced busy-poll loop (`BlockingIOError` + `time.sleep(0.0001)`) with `selectors.DefaultSelector` — efficient event-driven I/O
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка L: DynamicPositionSizer kelly delegation + portfolio_optimizer deprecation)
 
 ### Changed
