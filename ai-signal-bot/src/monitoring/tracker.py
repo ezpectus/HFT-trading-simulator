@@ -4,7 +4,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 from tabulate import tabulate
 
@@ -131,7 +131,7 @@ def print_dashboard(tracker: PerformanceTracker, positions: list[dict], prices: 
         "",
         "=" * 60,
         "  AI SIGNAL BOT — Performance Dashboard",
-        f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"  {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}",
         "=" * 60,
         "",
     ]

@@ -35,41 +35,26 @@ class HealthServer:
         """Register a health check function. Should return dict with 'healthy' bool."""
         self._checks[name] = check_fn
 
-    async def _check_exchange(self) -> dict:
-        """Check exchange connectivity."""
-        if "exchange" in self._checks:
+    async def _check_component(self, name: str) -> dict:
+        """Run a registered health check by name."""
+        if name in self._checks:
             try:
-                result = self._checks["exchange"]()
+                result = self._checks[name]()
                 if asyncio.iscoroutine(result):
                     result = await result
                 return result
             except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
                 return {"healthy": False, "error": str(e)}
-        return {"healthy": True, "message": "No exchange check registered"}
+        return {"healthy": True, "message": f"No {name} check registered"}
+
+    async def _check_exchange(self) -> dict:
+        return await self._check_component("exchange")
 
     async def _check_database(self) -> dict:
-        """Check database connectivity."""
-        if "database" in self._checks:
-            try:
-                result = self._checks["database"]()
-                if asyncio.iscoroutine(result):
-                    result = await result
-                return result
-            except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
-                return {"healthy": False, "error": str(e)}
-        return {"healthy": True, "message": "No database check registered"}
+        return await self._check_component("database")
 
     async def _check_shm(self) -> dict:
-        """Check SHM status."""
-        if "shm" in self._checks:
-            try:
-                result = self._checks["shm"]()
-                if asyncio.iscoroutine(result):
-                    result = await result
-                return result
-            except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
-                return {"healthy": False, "error": str(e)}
-        return {"healthy": True, "message": "No SHM check registered"}
+        return await self._check_component("shm")
 
     async def _check_all(self) -> dict:
         """Run all health checks."""

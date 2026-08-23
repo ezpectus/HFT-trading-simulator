@@ -77,20 +77,9 @@ def empirical_cdf(values: list[float]) -> list[float]:
     return [sum(1 for x in values if x <= v) / (n + 1) for v in values]
 
 
-def erf(x: float) -> float:
-    """Abramowitz-Stegun error function approximation."""
-    sign = 1 if x >= 0 else -1
-    x = abs(x)
-    a1, a2, a3, a4, a5 = 0.254829592, -0.284496736, 1.421413741, -1.453152027, 1.061405429
-    p = 0.3275911
-    t = 1 / (1 + p * x)
-    y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * math.exp(-x * x)
-    return sign * y
-
-
 def norm_cdf(x: float) -> float:
     """Standard normal CDF via the error function."""
-    return 0.5 * (1 + erf(x / math.sqrt(2)))
+    return 0.5 * (1 + math.erf(x / math.sqrt(2)))
 
 
 def norm_inv(p: float) -> float:

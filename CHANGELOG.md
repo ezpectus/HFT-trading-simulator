@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка H: health_checks DRY + UTC datetime + math.erf)
+
+### Changed
+- `health_server.py`: Extracted `_check_component` helper — replaced 3× duplicate `_check_exchange`/`_check_database`/`_check_shm` (10 lines each) with 3 one-liner delegates
+- `tracker.py`: `datetime.now()` → `datetime.now(UTC)` — was producing naive datetime in dashboard
+- `copula.py`: Replaced 9-line custom `erf` (Abramowitz-Stegun approximation) with `math.erf` (standard library since Python 3.2)
+- Net reduction: ~25 lines
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка G: AccountBalance rename + dead code + sqlite fix)
 
 ### Changed

@@ -370,7 +370,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | technical_analysis: 16 modules likely dead code | ~4000+ lines not used in production. Move to advanced package | CODE_AUDIT §8.1364 |
 | technical_analysis: vmd.py _ifft is O(n²) direct DFT | Forward is O(n log n) but inverse is O(n²). Use _fft with conjugation | CODE_AUDIT §8.1370 |
 | technical_analysis: copula.py empirical_cdf is O(n²) | 250K comparisons for n=500. Use sort+bisect O(n log n) | CODE_AUDIT §8.1369 |
-| technical_analysis: copula.py own erf function | math.erf available since Python 3.2. Remove custom impl | CODE_AUDIT §8.1345 |
+| ~~technical_analysis: copula.py own erf function~~ [FIXED] | Replaced with math.erf. Removed 9-line custom impl | CODE_AUDIT §8.1345 |
 | technical_analysis: rbergomi O(n³) Cholesky in pure Python | n=50 → 125K ops. Use numpy or Davies-Harte O(n log n) | CODE_AUDIT §8.1354 |
 | technical_analysis: hmc numerical gradient 60K evals | Central differences. Analytical gradient 2× faster | CODE_AUDIT §8.1358 |
 | technical_analysis: dtw duplicate compute_returns | Same as 22+ research modules. Use shared utils | CODE_AUDIT §8.1347 |
@@ -380,8 +380,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ml: 5 modules likely dead code | ~1300 lines not used in production. Move to ml_advanced/ | CODE_AUDIT §8.1383 |
 | ml/vae.py: 5th duplicate _random_normal | 5th Box-Muller copy. Use random.gauss(0,1) | CODE_AUDIT §8.1379 |
 | ml/feature_store.py: broad Exception catch | `except (..., Exception)` — Exception makes others redundant | CODE_AUDIT §8.1374 |
-| monitoring/health_server.py: 3× duplicate _check_* methods | _check_exchange _check_database _check_shm identical. Extract _check_component | CODE_AUDIT §8.1385 |
-| monitoring/tracker.py: datetime.now() without timezone | Naive datetime in dashboard. Use datetime.now(UTC) | CODE_AUDIT §8.1387 |
+| ~~monitoring/health_server.py: 3× duplicate _check_* methods~~ [FIXED] | Extracted _check_component helper. 3 one-liners instead of 3× 10-line copies | CODE_AUDIT §8.1385 |
+| ~~monitoring/tracker.py: datetime.now() without timezone~~ [FIXED] | Changed to datetime.now(UTC) | CODE_AUDIT §8.1387 |
 | networking/socket_transport.py: busy-poll loop | time.sleep(0.0001) on BlockingIOError. Use selectors or asyncio | CODE_AUDIT §8.1392 |
 | utils/helpers.py: duplicate logging setup | Two logging setups. Consolidate to observability/logging.py | CODE_AUDIT §8.1393 |
 | research/__init__.py: 307 lines re-export ~200 symbols | 3rd __init__.py anti-pattern. Delete re-exports | CODE_AUDIT §8.1400 |

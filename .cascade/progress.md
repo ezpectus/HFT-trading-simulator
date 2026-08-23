@@ -505,6 +505,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | 7 | 2026-08-25 | Пачка E — Logging консолидация: удалены setup_logging и JsonFormatter из helpers.py (50 строк), обновлён utils/__init__.py, migrate.py переведён на observability.logging. 3 logging setup → 2 (run_logger + observability) | ✅ Done | — |
 | 8 | 2026-08-25 | Пачка F — Архитектурные фиксы: SIGTERM/SIGINT handler в run.py (graceful shutdown для K8s), rate limiting (asyncio.Semaphore) в real_exchange_client.py (6 REST endpoints) | ✅ Done | — |
 | 9 | 2026-08-25 | Пачка G — AccountBalance rename (real_account.py → AssetBalance), ws_connection_pool.py + test deleted (dead code), run_backtest.py sqlite3 context manager. ~170 строк удалено | ✅ Done | — |
+| 10 | 2026-08-25 | Пачка H — health_server.py: 3× _check_* → 1× _check_component helper. tracker.py: datetime.now() → datetime.now(UTC). copula.py: custom erf → math.erf. ~25 строк удалено | ✅ Done | — |
 | 5 | 2026-08-26 | Аудит unused research модулей | ⏳ Pending | — |
 | 6 | 2026-08-27 | backtester.py упрощение | ⏳ Pending | — |
 | 7 | 2026-08-28 | strategies.py cleanup | ⏳ Pending | — |
