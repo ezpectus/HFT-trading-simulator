@@ -1142,3 +1142,22 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R585 | ai-signal-bot/risk/risk_manager.py | `risk_manager.py` | ✅ Good | 4 features (trailing/breakeven/partial TP/max hold), ATR-based, 12-field state |
 | R586 | risk_manager: not thread-safe | `risk_manager.py:66` | Medium | Same position concurrent update races on peak/trough/SL. Use asyncio.Lock per position |
 | R587 | risk_manager: no config validation | `risk_manager.py:28` | Low | No __post_init__ validation. Negative trailing_distance moves SL wrong way |
+| R588 | hft-trade-bot/strategies/signal_engine_v2.h | `signal_engine_v2.h` | ✅ Excellent | 6 indicators, composite score, zero-alloc, alignas64, cooldown, 4 split files |
+| R589 | signal_engine_v2: get_cache allocates on emplace | `signal_engine_v2.h:64` | Low | std::string alloc on first call per symbol. Pre-populate at startup |
+| R590 | hft-trade-bot/strategies/signal_engine_v3.h | `signal_engine_v3.h` | ✅ Excellent | 4-state HMM, online Baum-Welch, Viterbi, log-space, regime gating, O(1), zero-alloc |
+| R591 | signal_engine_v3: HMM transition matrix hardcoded | `signal_engine_v3.h` | Low | Uniform initial. Allow loading pre-trained from config |
+| R592 | hft-trade-bot/execution/smart_order_router_v2.h | `smart_order_router_v2.h` | ✅ Excellent | 5 strategies, DIP/SOLID IExchange, toxic backoff, stack-alloc MAX 16, [[unlikely]] |
+| R593 | smart_order_router: no latency tracking impl | `smart_order_router_v2.h:1` | Low | Comment says latency tracking but route() doesn't use it. Add get_latency_ns() to IExchange |
+| R594 | hft-trade-bot/execution/adaptive_order_selector_v2.h | `adaptive_order_selector_v2.h` | ✅ Excellent | 4 order types (IOC/FOK/GTD/PostOnly), 6 inputs, noexcept, 8 config params |
+| R595 | hft-trade-bot/position/position_manager.h V1 | `position_manager.h` | ✅ Good | Mutex-protected, update-vs-duplicate, optional return, active_symbols set |
+| R596 | position_manager V1: linear search | `position_manager.h:21` | Low | O(n) search in vector. Use unordered_map or accept for small n |
+| R597 | position_manager V1: mutex in HFT hot path | `position_manager.h:19` | Low | Mutex on every tick via update_all_pnl. Consider lock-free or per-symbol locks |
+| R598 | hft-trade-bot/position/position_manager_v2.h | `position_manager_v2.h` | ✅ Excellent | Weighted avg, realized+unrealized PnL, isolated+cross margin, liq price, symbol_id |
+| R599 | position_manager_v2: hardcoded 0.005 margin | `position_manager_v2.h:72` | Low | Same as exchange_liquidation. Load from exchange config |
+| R600 | ai-signal-bot/backtesting/backtester.py | `backtester.py` | ✅ Good | 10-field Trade, 18 metrics (Sharpe/Sortino/Calmar/recovery), RiskManager integration |
+| R601 | backtester: no slippage model | `backtester.py` | Low | No slippage simulation. Results overly optimistic. Add configurable slippage |
+| R602 | ai-signal-bot/data_collection/exchange_factory.py | `exchange_factory.py` | ✅ Good | 3 modes (sim/real/fallback), Protocol-based, 9 methods, SimulatorAdapter stub |
+| R603 | exchange_factory: SimulatorAdapter hardcoded 50000 | `exchange_factory.py:55` | Low | BTC price for all symbols. Per-symbol dict or NotImplementedError |
+| R604 | ai-signal-bot/portfolio/markowitz.py | `markowitz.py` | ✅ Good | PortfolioResult, EfficientFrontier, 3 calculations, max(0) guard, scipy integration |
+| R605 | markowitz: no constraint validation | `markowitz.py:34` | Low | No validation on risk_free_rate. Negative inflates Sharpe |
+| R606 | markowitz: no short-selling constraint | `markowitz.py` | Low | No non-negative weights constraint. May produce negative weights |

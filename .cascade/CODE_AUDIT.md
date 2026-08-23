@@ -7892,3 +7892,231 @@ partial_tp_pct: float = 50.0
 No validation that params are positive, within reasonable ranges. `trailing_distance_pct = -5` would move SL in the wrong direction.
 
 **Фикс:** Add `__post_init__` validation on RiskConfig.
+
+### 8.598 hft-trade-bot/src/strategies/signal_engine_v2.h: Signal Engine V2 — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h` (494 lines)
+
+- **6 indicators**: EMA(21/50) crossover + RSI(14) + OBI multi-level + VWAP ±2σ + ADX(14) + Pressure Model — comprehensive
+- **Composite score → BUY/SELL/HOLD** + confidence(0-100) + dynamic SL/TP(ATR) + leverage — full signal
+- **No heap allocations in analyze()**: All stack-allocated (max 256 candles) — HFT constraint
+- **Cache-line aligned output**: `FastSignal` is `alignas(64)` — correct
+- **IndicatorCache**: InlineEMA, InlineRSI, InlineADX, InlineATR, InlineVWAP — streaming indicators
+- **Cooldown**: Configurable, default 5000ms — prevents overtrading
+- **4 split files**: v2.h, v2.cpp, v2_finalize.h, v2_params.h — modular
+
+Excellent signal engine V2 with 6 indicators, composite scoring, zero-alloc, cache-line aligned, and modular split. ✅
+
+### 8.599 signal_engine_v2: get_cache allocates on emplace — Low
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h:64`
+
+```cpp
+it = cache_.emplace(std::string(symbol), IndicatorCache{}).first;
+```
+
+`get_cache()` allocates a `std::string` and `IndicatorCache` on first call for each symbol. This is expected (one-time init), but the `std::string` allocation in `unordered_map` key is a heap alloc.
+
+**Фикс:** Pre-populate cache at startup for all configured symbols.
+
+### 8.600 hft-trade-bot/src/strategies/signal_engine_v3.h: Signal Engine V3 HMM — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h` (437 lines)
+
+- **4 HMM states**: TRENDING_UP, TRENDING_DOWN, RANGING, VOLATILE — comprehensive
+- **Online Baum-Welch**: Simplified parameter adaptation — advanced
+- **Viterbi decoding**: Most likely state path — correct
+- **Log-space**: Numerical stability — correct
+- **2D observations**: (log_return, vol_proxy) — correct
+- **Regime gates V2**: Boost/dampen signals based on regime — intelligent
+- **No heap allocations in analyze()**: All stack-allocated — HFT constraint
+- **O(1) per-tick**: Online HMM forward recursion — efficient
+- **`constexpr` regime_name**: Compile-time — correct
+
+Excellent signal engine V3 with 4-state HMM, online Baum-Welch, Viterbi, log-space, regime gating, and zero-alloc. ✅
+
+### 8.601 signal_engine_v3: HMM transition matrix hardcoded — Low
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h`
+
+The initial transition matrix is uniform (1/N_STATES). While it adapts online via Baum-Welch, the initial state may produce poor regime detection until enough data is seen.
+
+**Фикс:** Allow loading a pre-trained transition matrix from config.
+
+### 8.602 hft-trade-bot/src/execution/smart_order_router_v2.h: Smart order router — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/execution/smart_order_router_v2.h` (181 lines)
+
+- **5 routing strategies**: BEST_PRICE, LOWEST_LATENCY, LOWEST_FEES, BEST_EFFECTIVE, DEPTH_AWARE — comprehensive
+- **IExchange interface (DIP/SOLID)**: No concrete exchange in core — correct
+- **Toxic backoff**: Skip exchanges with ≥5 toxic events — risk management
+- **Stack-allocated array**: `MAX_EXCHANGES = 16`, no heap alloc in hot path — HFT
+- **`[[unlikely]]`**: Branch prediction on no-exchanges case — HFT optimization
+- **Configurable**: Strategy, toxic_threshold, depth_levels, min_depth_qty, prefer_maker — flexible
+
+Excellent smart order router with 5 strategies, DIP/SOLID, toxic backoff, zero-alloc, and `[[unlikely]]`. ✅
+
+### 8.603 smart_order_router: no latency tracking implementation — Low
+
+**Файл:** `hft-trade-bot/src/execution/smart_order_router_v2.h:1`
+
+The header comment says "per-exchange latency tracking" but the `route()` method doesn't use latency data for the LOWEST_LATENCY strategy. The `IExchange` interface would need a `get_latency()` method.
+
+**Фикс:** Add `get_latency_ns()` to `IExchange` and use it in LOWEST_LATENCY strategy.
+
+### 8.604 hft-trade-bot/src/execution/adaptive_order_selector_v2.h: Adaptive order selector — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/execution/adaptive_order_selector_v2.h` (223 lines)
+
+- **4 order types**: IOC, FOK, GTD, PostOnly — comprehensive
+- **6 decision inputs**: confidence, spread, OBI, toxicity, order size vs depth, urgency — comprehensive
+- **Emergency → FOK**: Fill-or-kill for urgent fills — correct
+- **Toxic → IOC**: Avoid adverse selection — correct
+- **`noexcept`**: Hot path — HFT constraint
+- **8 config params**: high/low/emergency confidence, tight/wide spread, toxic threshold, OBI urgency, large order ratio — comprehensive
+- **SelectionResult**: kind, limit_price, expire_ns, reason — structured
+
+Excellent adaptive order selector with 4 order types, 6 decision inputs, noexcept, and 8 config params. ✅
+
+### 8.605 hft-trade-bot/src/position/position_manager.h: Position manager V1 — ✅ Good
+
+**Файл:** `hft-trade-bot/src/position/position_manager.h` (130 lines)
+
+- **Mutex-protected**: All operations use `std::lock_guard` — thread-safe
+- **Update vs duplicate**: Checks existing position before creating new — correct
+- **`std::optional<Position>`**: Return type for close — correct
+- **`active_symbols_`**: Fast `has_position()` check via `unordered_set` — efficient
+- **`update_all_pnl()`**: Batch update from price map — correct
+
+Good position manager V1 with mutex protection, update-vs-duplicate, optional return, and fast has_position. ✅
+
+### 8.606 position_manager V1: linear search for position — Low
+
+**Файл:** `hft-trade-bot/src/position/position_manager.h:21-29`
+
+```cpp
+for (auto& pos : positions_) {
+    if (pos.symbol == signal.symbol) {
+```
+
+`open_position()` and `close_position()` use linear search through `positions_` vector. With many positions, this is O(n). The `active_symbols_` set provides O(1) `has_position()` but not the position itself.
+
+**Фикс:** Use `unordered_map<string, Position>` for O(1) lookup, or accept O(n) for small n (typically <10 positions).
+
+### 8.607 position_manager V1: mutex in HFT hot path — Low
+
+**Файл:** `hft-trade-bot/src/position/position_manager.h:19`
+
+```cpp
+std::lock_guard<std::mutex> lock(mutex_);
+```
+
+Every position operation acquires a mutex. In the HFT hot path (called every tick via `update_all_pnl()`), this adds latency. V2 uses a similar pattern.
+
+**Фикс:** For V2, consider lock-free position tracking or per-symbol locks to reduce contention.
+
+### 8.608 hft-trade-bot/src/position/position_manager_v2.h: Position manager V2 — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/position/position_manager_v2.h` (348 lines)
+
+- **Weighted average cost**: FIFO/weighted average entry — correct
+- **Realized + unrealized PnL**: Per-symbol + aggregate — comprehensive
+- **Isolated + cross margin**: `MarginMode` enum — production-grade
+- **Liquidation price**: Per-position — risk management
+- **`symbol_id`**: uint16_t for fast path — HFT optimization
+- **`is_open()`**: `quantity > 1e-10` — floating-point safe
+- **`notional()`**: `quantity * entry_price` — correct
+- **`update_unrealized()`**: `noexcept` — HFT constraint
+- **Leverage tracking**: Per-position — comprehensive
+
+Excellent position manager V2 with weighted average, realized+unrealized PnL, margin modes, liquidation price, and symbol_id. ✅
+
+### 8.609 position_manager_v2: hardcoded 0.005 maintenance margin — Low
+
+**Файл:** `hft-trade-bot/src/position/position_manager_v2.h:72`
+
+```cpp
+double maintenance_margin_ratio{0.005}; // 0.5%
+```
+
+Maintenance margin ratio is configurable via Config struct, but the default 0.5% is the same hardcoded value as in `exchange_liquidation.py`. Different exchanges have different rates.
+
+**Фикс:** Load from exchange config, not a global default.
+
+### 8.610 ai-signal-bot/src/backtesting/backtester.py: Backtester — ✅ Good
+
+**Файл:** `ai-signal-bot/src/backtesting/backtester.py` (506 lines)
+
+- **Trade dataclass**: 10 fields including exit_reason, fee — comprehensive
+- **BacktestResult**: 18 metrics including Sharpe, Sortino, Calmar, recovery factor, drawdown duration — comprehensive
+- **`final_equity` property**: Alias for backward compat — correct
+- **RiskManager integration**: Uses RiskManager for SL/TP — correct
+- **Equity curve tracking**: List of balances — correct
+- **Fee calculation**: Per-trade — correct
+
+Good backtester with 10-field Trade, 18 metrics, RiskManager integration, and backward compat. ✅
+
+### 8.611 backtester: no slippage model — Low
+
+**Файл:** `ai-signal-bot/src/backtesting/backtester.py`
+
+The backtester simulates fees but not slippage. In real trading, market orders experience slippage (difference between expected and actual fill price). Without slippage simulation, backtest results are overly optimistic.
+
+**Фикс:** Add configurable slippage model (fixed bps, or volume-dependent).
+
+### 8.612 ai-signal-bot/src/data_collection/exchange_factory.py: Exchange factory — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py` (242 lines)
+
+- **3 modes**: SIMULATOR, REAL, FALLBACK — flexible
+- **Protocol-based**: `ExchangeAdapter` Protocol — DIP/SOLID
+- **9 protocol methods**: initialize, close, get_ticker, get_orderbook, get_candles, place_order, cancel_order, get_balance, get_positions, get_health — comprehensive
+- **SimulatorAdapter**: Stub for testing — correct
+- **Fallback mode**: Try real, fall back to simulator — resilient
+
+Good exchange factory with 3 modes, Protocol-based design, 9 methods, and fallback. ✅
+
+### 8.613 exchange_factory: SimulatorAdapter returns hardcoded 50000.0 — Low
+
+**Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py:55`
+
+```python
+return {"symbol": symbol, "price": 50000.0, "bid": 49999.5, "ask": 50000.5, "timestamp": time.time()}
+```
+
+`get_ticker()` returns a hardcoded BTC price of 50000.0 for all symbols. This is a stub, but if used in testing with non-BTC symbols, it produces misleading results.
+
+**Фикс:** Return per-symbol prices from a configurable dict, or raise NotImplementedError for non-BTC symbols.
+
+### 8.614 ai-signal-bot/src/portfolio/markowitz.py: Markowitz optimizer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/portfolio/markowitz.py` (178 lines)
+
+- **PortfolioResult dataclass**: weights, expected_return, volatility, sharpe_ratio — structured
+- **EfficientFrontierPoint**: weights, return, volatility — structured
+- **3 calculations**: expected_returns, covariance_matrix, portfolio_metrics — correct
+- **`max(portfolio_variance, 0)`**: Prevents negative sqrt — correct
+- **Sharpe ratio**: With risk-free rate — correct
+- **Objective function**: For scipy optimization — correct
+
+Good Markowitz optimizer with PortfolioResult, EfficientFrontier, 3 calculations, and scipy integration. ✅
+
+### 8.615 markowitz: no constraint validation — Low
+
+**Файл:** `ai-signal-bot/src/portfolio/markowitz.py:34`
+
+```python
+def __init__(self, risk_free_rate: float = 0.02):
+```
+
+No validation that `risk_free_rate` is reasonable (e.g., not negative, not > 1). A negative risk-free rate inflates Sharpe ratios.
+
+**Фикс:** Validate `risk_free_rate` in `__init__`.
+
+### 8.616 markowitz: no short-selling constraint — Low
+
+**Файл:** `ai-signal-bot/src/portfolio/markowitz.py`
+
+The optimizer doesn't enforce non-negative weights (no short-selling). Without this constraint, the optimizer may produce negative weights (short positions) which may not be intended.
+
+**Фикс:** Add bounds constraint `(0, 1)` for each weight in scipy optimization.
