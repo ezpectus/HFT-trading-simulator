@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-26 (Refactoring — Пачка BE: final grep audit cleanup)
+
+### Fixed
+- **Audit #012**: `monitoring/tests/conftest.py` — `except Exception: pass` narrowed to `(KeyError, AttributeError)`
+- **CODE_AUDIT.md**: All 26 grep audit items now marked — 22 [FIXED], 2 [N/A], 2 [Info/Justified]. Grep audit section 100% complete
+
 ## [Unreleased] — 2026-08-26 (Refactoring — Пачка BD: audit cleanup #002/#004/#013/#026)
 
 ### Fixed

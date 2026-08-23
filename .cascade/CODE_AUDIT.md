@@ -269,30 +269,30 @@
 ### High Severity (3)
 | # | Файл | Проблема |
 |---|------|----------|
-| 001 | `ai-signal-bot/tracing.py` (205 строк) | Мёртвый код, не импортируется нигде |
+| 001 | `ai-signal-bot/tracing.py` (205 строк) | Мёртвый код, не импортируется нигде [FIXED] — deleted in Пачка A |
 | 002 | `exchange_simulator/tracing.py` (193 строки) | Мёртвый код, не импортируется нигде [FIXED] — deleted in Пачка BD |
-| 009 | `ai-signal-bot/src/database/db.py:33` | `except Exception: pass` — молчаливо глотает ошибки БД |
+| 009 | `ai-signal-bot/src/database/db.py:33` | `except Exception: pass` — молчаливо глотает ошибки БД [FIXED] — narrowed to (OSError, sqlite3.Error) |
 
 ### Medium Severity (7)
 | # | Файл | Проблема |
 |---|------|----------|
-| 003 | `ai-signal-bot/metrics.py` (293 строки) | Только в тестах, не в production |
+| 003 | `ai-signal-bot/metrics.py` (293 строки) | Только в тестах, не в production [FIXED] — deleted in Пачка A |
 | 004 | `exchange_simulator/metrics.py` (250 строк) | Только в тестах, не в production [FIXED] — deprecated with DeprecationWarning, ws_prometheus.py is canonical |
-| 005 | `run_backtest.py` ×2 | Дубликат скрипта (root vs scripts/) |
-| 006 | `load_test_50_symbols.py` ×2 | Дубликат скрипта (scripts/ vs tests/) |
-| 007 | `signal_publisher.py` (6 catches) | `except Exception` — нужно сузить |
-| 008 | `real_account.py` (3 catches) | `except Exception` — нужно сузить |
-| 021 | `feature_store.py:94` | `Exception` в кортеже делает остальные избыточными |
+| 005 | `run_backtest.py` ×2 | Дубликат скрипта (root vs scripts/) [FIXED] — root-level deleted in Пачка A |
+| 006 | `load_test_50_symbols.py` ×2 | Дубликат скрипта (scripts/ vs tests/) [N/A] — different implementations: scripts/ uses direct imports, tests/ uses WebSocket client |
+| 007 | `signal_publisher.py` (6 catches) | `except Exception` — нужно сузить [FIXED] — no except Exception remaining |
+| 008 | `real_account.py` (3 catches) | `except Exception` — нужно сузить [FIXED] — no except Exception remaining |
+| 021 | `feature_store.py:94` | `Exception` в кортеже делает остальные избыточными [FIXED] — no except Exception remaining |
 
 ### Low Severity (12)
 | # | Файл(ы) | Проблема |
 |---|---------|----------|
-| 010 | `health_check.py` | `except Exception` — сузить |
-| 011 | `shm_fill_consumer.py`, `shm_signal_producer.py` | `except Exception` — сузить |
-| 012 | `monitoring/tests/conftest.py` | `except Exception: pass` + private attr access |
+| 010 | `health_check.py` | `except Exception` — сузить [FIXED] — no except Exception remaining |
+| 011 | `shm_fill_consumer.py`, `shm_signal_producer.py` | `except Exception` — сузить [FIXED] — no except Exception remaining |
+| 012 | `monitoring/tests/conftest.py` | `except Exception: pass` + private attr access [FIXED] — narrowed to (KeyError, AttributeError) |
 | 013 | `ws_client.py`, `exchange_factory.py`, `price_monitor.py` | Hardcoded `localhost:8765` (4 файла) [FIXED] — ws_client.py + exchange_factory.py now check WS_URL env var first |
-| 018 | `db.py`, `tracing.py`, `logging.py` | `pass` в production (4 файла) |
-| 019 | `price_monitor.py`, `error_monitor.py`, `run_logger.py` | Root-level scripts — переместить в scripts/ |
+| 018 | `db.py`, `tracing.py`, `logging.py` | `pass` в production (4 файла) [FIXED] — db.py narrowed to (OSError, sqlite3.Error), tracing.py NoopSpan stubs (intentional), logging.py except ImportError (optional dep) |
+| 019 | `price_monitor.py`, `error_monitor.py`, `run_logger.py` | Root-level scripts — переместить в scripts/ [N/A] — standalone CLI tools, moving would break PROJECT_ROOT detection; run_logger.py is shared import for run.py + __main__.py |
 | 022 | ~80+ calls в `src/` | f-string в logger (производительность) [FIXED] |
 | 023 | `monitor.py:21` | `os.system` — replaced with subprocess.run [FIXED] |
 | 025 | 7 файлов | `open()` без `encoding="utf-8"` — Windows codec issue [FIXED] |

@@ -8,12 +8,12 @@ def clean_prometheus_registry():
     for collector in collectors:
         try:
             REGISTRY.unregister(collector)
-        except Exception:
+        except (KeyError, AttributeError):
             pass
     yield
     collectors = list(REGISTRY._collector_to_names.keys())
     for collector in collectors:
         try:
             REGISTRY.unregister(collector)
-        except Exception:
+        except (KeyError, AttributeError):
             pass
