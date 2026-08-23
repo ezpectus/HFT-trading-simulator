@@ -86,6 +86,7 @@ class ModelRegistry:
         self.index_path = os.path.join(storage_dir, "registry.json")
         self.models: dict[str, dict[str, ModelVersion]] = {}
         self.ab_tests: dict[str, ABTest] = {}
+        self._dirty = False
         self._load()
 
     def _load(self) -> None:
@@ -103,6 +104,16 @@ class ModelRegistry:
                 self.ab_tests[name] = ABTest(**ab_data)
         except (OSError, ValueError, KeyError, TypeError) as e:
             logger.warning(f"[ModelRegistry] Failed to load: {e}")
+
+    def _mark_dirty(self) -> None:
+        """Mark registry as needing persistence. Call flush() to save."""
+        self._dirty = True
+
+    def flush(self) -> None:
+        """Persist to disk if there are unsaved changes."""
+        if self._dirty:
+            self._save()
+            self._dirty = False
 
     def _save(self) -> None:
         os.makedirs(self.storage_dir, exist_ok=True)
@@ -236,11 +247,11 @@ class ModelRegistry:
         import random
         if random.random() < ab.traffic_split:
             ab.treatment_impressions += 1
-            self._save()
+            self._mark_dirty()
             return ab.treatment_version
         else:
             ab.control_impressions += 1
-            self._save()
+            self._mark_dirty()
             return ab.control_version
 
     def record_ab_outcome(self, name: str, version: str, success: bool) -> None:
@@ -252,7 +263,7 @@ class ModelRegistry:
             ab.control_successes += 1
         elif version == ab.treatment_version and success:
             ab.treatment_successes += 1
-        self._save()
+        self._mark_dirty()
 
     def get_ab_results(self, name: str) -> dict | None:
         """Get A/B test results."""

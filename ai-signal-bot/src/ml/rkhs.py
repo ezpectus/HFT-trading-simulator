@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
+
 MIN_PRICES = 30
 DEFAULT_KERNEL = "rbf"
 DEFAULT_SIGMA = 0.5
@@ -83,49 +85,13 @@ def center_kernel(k: list[list[float]]) -> list[list[float]]:
 
 
 def jacobi_eig(a: list[list[float]], max_iter: int = 50, tol: float = 1e-8) -> dict:
-    """Jacobi eigendecomposition for symmetric matrices."""
-    n = len(a)
-    v = [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
-    d = [row[:] for row in a]
-
-    for _ in range(max_iter):
-        max_val = 0.0
-        p = 0
-        q = 0
-        for i in range(n):
-            for j in range(i + 1, n):
-                if abs(d[i][j]) > max_val:
-                    max_val = abs(d[i][j])
-                    p = i
-                    q = j
-        if max_val < tol:
-            break
-
-        theta = (d[q][q] - d[p][p]) / (2 * d[p][q])
-        t = math.copysign(1.0, theta) * (abs(theta) + math.sqrt(theta * theta + 1))
-        c = 1 / math.sqrt(t * t + 1)
-        s = t * c
-
-        for i in range(n):
-            dip = d[i][p]
-            diq = d[i][q]
-            d[i][p] = c * dip - s * diq
-            d[i][q] = s * dip + c * diq
-        for j in range(n):
-            dpj = d[p][j]
-            dqj = d[q][j]
-            d[p][j] = c * dpj - s * dqj
-            d[q][j] = s * dpj + c * dqj
-        d[p][q] = 0.0
-        d[q][p] = 0.0
-        for i in range(n):
-            vip = v[i][p]
-            viq = v[i][q]
-            v[i][p] = c * vip - s * viq
-            v[i][q] = s * vip + c * viq
-
-    eigenvalues = [d[i][i] for i in range(n)]
-    eigenvectors = [[v[i][j] for i in range(n)] for j in range(n)]
+    """Eigendecomposition for symmetric matrices via numpy.linalg.eigh."""
+    arr = np.array(a, dtype=np.float64)
+    eigenvalues, eigenvectors = np.linalg.eigh(arr)
+    # Sort descending to match original Jacobi ordering
+    idx = np.argsort(eigenvalues)[::-1]
+    eigenvalues = eigenvalues[idx].tolist()
+    eigenvectors = eigenvectors[:, idx].T.tolist()
     return {"eigenvalues": eigenvalues, "eigenvectors": eigenvectors}
 
 

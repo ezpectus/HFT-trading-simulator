@@ -7,6 +7,7 @@ for signals. Falls back to rule-based analysis if no API key configured.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -76,6 +77,7 @@ class LLMEngine:
         self._error_count = 0
         self._session: Any | None = None  # aiohttp.ClientSession — duck-typed
         self._prompt_dir = os.path.join(os.path.dirname(__file__), "prompt_templates")
+        self._rate_limiter = asyncio.Semaphore(5)  # Max 5 concurrent LLM API calls
 
     async def initialize(self) -> None:
         """Initialize HTTP session."""
@@ -227,58 +229,59 @@ class LLMEngine:
             return self._rule_based_risk(atr, leverage, price)
 
     async def _call_llm(self, prompt: str) -> str:
-        """Call the LLM API."""
+        """Call the LLM API (rate-limited)."""
         if not self._session or not AIOHTTP_AVAILABLE:
             raise RuntimeError("HTTP session not available")
 
-        if self.config.provider == "openai":
-            url = self.config.base_url or "https://api.openai.com/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {self.config.api_key}",
-                "Content-Type": "application/json",
-            }
-            payload = {
-                "model": self.config.model,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": self.config.max_tokens,
-                "temperature": self.config.temperature,
-            }
-        elif self.config.provider == "anthropic":
-            url = "https://api.anthropic.com/v1/messages"
-            headers = {
-                "x-api-key": self.config.api_key,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json",
-            }
-            payload = {
-                "model": self.config.model,
-                "max_tokens": self.config.max_tokens,
-                "messages": [{"role": "user", "content": prompt}],
-            }
-        elif self.config.provider == "ollama":
-            url = self.config.base_url or "http://localhost:11434/api/generate"
-            headers = {"Content-Type": "application/json"}
-            payload = {
-                "model": self.config.model,
-                "prompt": prompt,
-                "stream": False,
-            }
-        else:
-            raise ValueError(f"Unknown provider: {self.config.provider}")
-
-        async with self._session.post(url, json=payload, headers=headers) as resp:
-            if resp.status != 200:
-                text = await resp.text()
-                raise RuntimeError(f"LLM API error {resp.status}: {text}")
-            data = await resp.json()
-
+        async with self._rate_limiter:
             if self.config.provider == "openai":
-                return data["choices"][0]["message"]["content"]
+                url = self.config.base_url or "https://api.openai.com/v1/chat/completions"
+                headers = {
+                    "Authorization": f"Bearer {self.config.api_key}",
+                    "Content-Type": "application/json",
+                }
+                payload = {
+                    "model": self.config.model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": self.config.max_tokens,
+                    "temperature": self.config.temperature,
+                }
             elif self.config.provider == "anthropic":
-                return data["content"][0]["text"]
+                url = "https://api.anthropic.com/v1/messages"
+                headers = {
+                    "x-api-key": self.config.api_key,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json",
+                }
+                payload = {
+                    "model": self.config.model,
+                    "max_tokens": self.config.max_tokens,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
             elif self.config.provider == "ollama":
-                return data.get("response", "")
-            return str(data)
+                url = self.config.base_url or "http://localhost:11434/api/generate"
+                headers = {"Content-Type": "application/json"}
+                payload = {
+                    "model": self.config.model,
+                    "prompt": prompt,
+                    "stream": False,
+                }
+            else:
+                raise ValueError(f"Unknown provider: {self.config.provider}")
+
+            async with self._session.post(url, json=payload, headers=headers) as resp:
+                if resp.status != 200:
+                    text = await resp.text()
+                    raise RuntimeError(f"LLM API error {resp.status}: {text}")
+                data = await resp.json()
+
+                if self.config.provider == "openai":
+                    return data["choices"][0]["message"]["content"]
+                elif self.config.provider == "anthropic":
+                    return data["content"][0]["text"]
+                elif self.config.provider == "ollama":
+                    return data.get("response", "")
+                return str(data)
 
     def _parse_response(self, response: str, symbol: str) -> LLMAnalysis:
         """Parse LLM response into LLMAnalysis."""

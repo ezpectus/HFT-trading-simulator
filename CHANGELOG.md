@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка Q: health_checks timeout + llm rate limit + rkhs numpy + model_registry batch saves)
+
+### Changed
+- `health_checks.py`: `_check_db` + `_check_redis` — added `asyncio.wait_for(timeout=2)` + `asyncio.TimeoutError` in except clauses — prevents K8s pod kill on slow DB/Redis
+- `llm_engine/engine.py`: Added `asyncio.Semaphore(5)` rate limiter wrapping `_call_llm` — prevents API spikes on cold cache
+- `rkhs.py`: Replaced 45-line `jacobi_eig` O(N³) pure Python with 8-line `numpy.linalg.eigh` wrapper — ~100× speedup for N=60
+- `model_registry.py`: Replaced per-impression `_save()` in `select_ab_model` + `record_ab_outcome` with `_mark_dirty()` + `flush()` — eliminates 1000 JSON file writes/sec
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка P: fix_client timeout + pending cap + health_server gather + tracker file handle)
 
 ### Changed

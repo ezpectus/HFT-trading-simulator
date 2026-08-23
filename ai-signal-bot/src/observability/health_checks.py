@@ -17,6 +17,7 @@ Checks:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
@@ -159,14 +160,16 @@ class HealthChecker:
             if not self.db_client:
                 return ComponentHealth("timescaledb", HealthStatus.HEALTHY, 0, "not configured")
 
-            health = await self.db_client.get_health()
+            health = await asyncio.wait_for(
+                self.db_client.get_health(), timeout=2.0
+            )
             latency = (time.time() - start) * 1000
 
             if health.get("connected"):
                 return ComponentHealth("timescaledb", HealthStatus.HEALTHY, latency, health.get("database", ""))
             else:
                 return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, latency, health.get("error", "not connected"))
-        except (OSError, RuntimeError, KeyError, ValueError) as e:
+        except (OSError, RuntimeError, KeyError, ValueError, asyncio.TimeoutError) as e:
             return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, 0, str(e))
 
     async def _check_redis(self) -> ComponentHealth:
@@ -176,10 +179,10 @@ class HealthChecker:
                 return ComponentHealth("redis", HealthStatus.HEALTHY, 0, "not configured")
 
             if hasattr(self.redis_client, "ping"):
-                await self.redis_client.ping()
+                await asyncio.wait_for(self.redis_client.ping(), timeout=2.0)
             latency = (time.time() - start) * 1000
             return ComponentHealth("redis", HealthStatus.HEALTHY, latency, "connected")
-        except (OSError, ConnectionError, RuntimeError) as e:
+        except (OSError, ConnectionError, RuntimeError, asyncio.TimeoutError) as e:
             latency = (time.time() - start) * 1000
             return ComponentHealth("redis", HealthStatus.DEGRADED, latency, str(e))
 

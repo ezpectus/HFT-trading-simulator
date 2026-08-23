@@ -333,16 +333,16 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | shm_market_data_writer: no memory barrier on ARM | Seq writes without barrier → reader sees stale data on ARM. Add _mm_barrier | CODE_AUDIT §8.1191 |
 | ws_connection_pool: fire-and-forget tasks | _evict_stale creates tasks that may be GC'd. Store refs or await directly | CODE_AUDIT §8.1188 |
 | 3 duplicate modules across packages | helpers.CircuitBreaker vs communication.CircuitBreaker. observability.logging vs helpers.setup_logging. monitoring.health_server vs observability.health_checks. monitoring.metrics vs communication.metrics_server. Merge | CODE_AUDIT §8.1201,1210,1225,1227 |
-| model_registry: _save on every A/B impression | 1000 JSON file writes/sec. Batch saves or use database | CODE_AUDIT §8.1237 |
+| ~~model_registry: _save on every A/B impression~~ [FIXED] | Replaced per-impression _save() with _mark_dirty() + flush() in select_ab_model + record_ab_outcome | CODE_AUDIT §8.1237 |
 | ~~health_server: sequential health checks~~ [FIXED] | Replaced sequential _check_* with asyncio.gather in _check_all | CODE_AUDIT §8.1228 |
-| health_checks: no timeout on DB/Redis checks | K8s kills pod after 1s. Add asyncio.wait_for(timeout=2) | CODE_AUDIT §8.1208 |
+| ~~health_checks: no timeout on DB/Redis checks~~ [FIXED] | Added asyncio.wait_for(timeout=2) to _check_db + _check_redis + asyncio.TimeoutError in except | CODE_AUDIT §8.1208 |
 | ~~tracker: opens CSV file on every log() call~~ [FIXED] | SignalLogger + TradeLogger keep file open with flush(). Added close() method | CODE_AUDIT §8.1220 |
 | ~~alerting: new aiohttp session per alert~~ [FIXED] | Replaced 3× aiohttp.ClientSession() per-alert with shared _get_session() + close_session() | CODE_AUDIT §8.1216 |
 | ~~automl: study.optimize blocks event loop~~ [FIXED] | Added optimize_async() wrapper using loop.run_in_executor for non-blocking optimization | CODE_AUDIT §8.1230 |
 | ~~notifier: Discord polls REST API without sleep~~ [FIXED] | Added asyncio.sleep(1) after successful poll to rate-limit Discord API calls | CODE_AUDIT §8.1265 |
-| llm_engine: no rate limiting on API calls | Spikes on cold cache. Add rate limiter | CODE_AUDIT §8.1261 |
+| ~~llm_engine: no rate limiting on API calls~~ [FIXED] | Added asyncio.Semaphore(5) rate limiter wrapping _call_llm | CODE_AUDIT §8.1261 |
 | price_predictor: not integrated with model_registry | Models trained but not versioned. Integrate register() after training | CODE_AUDIT §8.1246 |
-| rkhs: Jacobi eigendecomposition O(N³) in pure Python | 10.8M ops, ~10s. Use numpy.linalg.eigh | CODE_AUDIT §8.1253 |
+| ~~rkhs: Jacobi eigendecomposition O(N³) in pure Python~~ [FIXED] | Replaced 45-line jacobi_eig with numpy.linalg.eigh wrapper (8 lines) | CODE_AUDIT §8.1253 |
 | ~~notifier: NotifierManager.send_alert sequential~~ [FIXED] | Replaced sequential for-loop with asyncio.gather + return_exceptions=True | CODE_AUDIT §8.1266 |
 | research: 22 duplicate compute_returns functions | 22× same function across research modules. Create shared utils.py | CODE_AUDIT §8.1277 |
 | research/__init__.py: 307 lines re-exporting ~200 symbols | Triggers loading all 25+ modules on any import. Use lazy imports | CODE_AUDIT §8.1276 |
