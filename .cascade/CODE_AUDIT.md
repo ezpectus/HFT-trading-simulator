@@ -2453,7 +2453,7 @@ Standard Helm chart metadata:
 
 Clean and minimal. ✅
 
-### 8.176 C++ signal_engine_v2: 3 signal engines (v1, v2, v3) — Medium
+### 8.176 C++ signal_engine_v2: 3 signal engines (v1, v2, v3) — Medium [N/A]
 
 **Файлы:** `signal_engine.h` (v1), `signal_engine_v2.h`, `signal_engine_v3.h`
 
@@ -2801,7 +2801,7 @@ Binance Futures adapter:
 - `symbol_lower()` — converts "BTC/USDT" → "btcusdt" for Binance WS streams
 - Config: `api_key`, `api_secret` as `std::string` (no hardcoded values)
 
-### 8.203 C++ BinanceAdapter: nested Spinlock acquisition — Medium
+### 8.203 C++ BinanceAdapter: nested Spinlock acquisition — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:74-79`
 
@@ -2822,7 +2822,7 @@ The current code always acquires `price_lock_` before `depth_lock_`, so the lock
 
 **Фикс:** Document the lock ordering convention (price → depth) in a comment. Or combine into a single lock.
 
-### 8.204 C++ BinanceAdapter: can_send_order TOCTOU — Low
+### 8.204 C++ BinanceAdapter: can_send_order TOCTOU — Low [FIXED]
 
 **Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:123-136`
 
@@ -5610,7 +5610,7 @@ Uses a `Spinlock` for `arb_lock`. Spinlocks can waste CPU cycles if the critical
 
 **Note:** This is fine for the current usage. Just document that the critical section must remain short.
 
-### 8.419 hft-trade-bot bot_context: 3 engine versions — Medium (code reduction)
+### 8.419 hft-trade-bot bot_context: 3 engine versions — Medium (code reduction) [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_context.h:74-76`
 
@@ -5632,7 +5632,7 @@ V1 is never used in the hot path (only V2/V3). All 3 are allocated in memory.
 
 **Code reduction:** Remove V1 if it's truly unused. Make V2/V3 mutually exclusive — only load one.
 
-### 8.420 hft-trade-bot bot_context: prices_cache not thread-safe — Medium
+### 8.420 hft-trade-bot bot_context: prices_cache not thread-safe — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/core/bot_context.h:107`
 
@@ -6154,7 +6154,7 @@ static std::vector<double> ema_array(const std::vector<double>& prices, double a
 
 Good Binance adapter with HMAC auth, rate limit documentation, and spinlock for low latency. ✅
 
-### 8.462 BinanceAdapter: nested spinlock acquisition — Medium
+### 8.462 BinanceAdapter: nested spinlock acquisition — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:74-79`
 

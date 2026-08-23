@@ -48,13 +48,13 @@ class BinanceAdapter : public ExchangeBase {
 
     // IExchange interface
     double best_bid(const std::string& symbol) const override {
-        std::lock_guard<Spinlock> lk(price_lock_);
+        std::lock_guard<Spinlock> lk(market_data_lock_);
         auto                      it = bids_.find(symbol);
         return it != bids_.end() ? it->second : 0.0;
     }
 
     double best_ask(const std::string& symbol) const override {
-        std::lock_guard<Spinlock> lk(price_lock_);
+        std::lock_guard<Spinlock> lk(market_data_lock_);
         auto                      it = asks_.find(symbol);
         return it != asks_.end() ? it->second : 0.0;
     }
@@ -66,13 +66,13 @@ class BinanceAdapter : public ExchangeBase {
     }
 
     double bid_depth(const std::string& symbol, int /*levels*/) const override {
-        std::lock_guard<Spinlock> lk(depth_lock_);
+        std::lock_guard<Spinlock> lk(market_data_lock_);
         auto                      it = bid_depth_.find(symbol);
         return it != bid_depth_.end() ? it->second : 0.0;
     }
 
     double ask_depth(const std::string& symbol, int /*levels*/) const override {
-        std::lock_guard<Spinlock> lk(depth_lock_);
+        std::lock_guard<Spinlock> lk(market_data_lock_);
         auto                      it = ask_depth_.find(symbol);
         return it != ask_depth_.end() ? it->second : 0.0;
     }
@@ -80,10 +80,9 @@ class BinanceAdapter : public ExchangeBase {
     // Update market data from WebSocket feed
     void on_book_ticker(const std::string& symbol, double bid, double bid_qty, double ask,
                         double ask_qty) {
-        std::lock_guard<Spinlock> lk(price_lock_);
+        std::lock_guard<Spinlock> lk(market_data_lock_);
         bids_[symbol] = bid;
         asks_[symbol] = ask;
-        std::lock_guard<Spinlock> lk2(depth_lock_);
         bid_depth_[symbol] = bid_qty;
         ask_depth_[symbol] = ask_qty;
     }
@@ -95,15 +94,13 @@ class BinanceAdapter : public ExchangeBase {
         // In production: maintain full L2 book from diffs
         // For now, just update best bid/ask
         if (!bids.empty()) {
-            std::lock_guard<Spinlock> lk(price_lock_);
+            std::lock_guard<Spinlock> lk(market_data_lock_);
             bids_[symbol] = bids[0].first;
-            std::lock_guard<Spinlock> lk2(depth_lock_);
             bid_depth_[symbol] = bids[0].second;
         }
         if (!asks.empty()) {
-            std::lock_guard<Spinlock> lk(price_lock_);
+            std::lock_guard<Spinlock> lk(market_data_lock_);
             asks_[symbol] = asks[0].first;
-            std::lock_guard<Spinlock> lk2(depth_lock_);
             ask_depth_[symbol] = asks[0].second;
         }
     }
@@ -141,7 +138,14 @@ class BinanceAdapter : public ExchangeBase {
                 orders_in_window_.store(0, std::memory_order_relaxed);
             }
         }
-        return orders_in_window_.fetch_add(1, std::memory_order_relaxed) < 300;
+        int expected = orders_in_window_.load(std::memory_order_relaxed);
+        while (expected < 300) {
+            if (orders_in_window_.compare_exchange_weak(expected, expected + 1,
+                    std::memory_order_relaxed, std::memory_order_relaxed)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // WebSocket stream URLs
@@ -181,8 +185,7 @@ class BinanceAdapter : public ExchangeBase {
     }
 
     Config                                  config_;
-    mutable Spinlock                        price_lock_;
-    mutable Spinlock                        depth_lock_;
+    mutable Spinlock                        market_data_lock_;
     std::unordered_map<std::string, double> bids_;
     std::unordered_map<std::string, double> asks_;
     std::unordered_map<std::string, double> bid_depth_;

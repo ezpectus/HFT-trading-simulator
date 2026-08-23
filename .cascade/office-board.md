@@ -191,7 +191,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~C++ duplicate risk system~~ [N/A] | PreTradeRisk is not used in production (only tests). RiskManager is the active system. No duplication in running code | CODE_AUDIT §8.166 |
 | ~~C++ reset_daily incomplete~~ [FIXED] | reset_daily() now resets daily_pnl_ + peak_equity_ + total_exposure_ — prevents wrong drawdown next day | CODE_AUDIT §8.167 |
 | ~~Terraform: hardcoded RDS password~~ [FIXED] | dev/main.tf: removed default="ChangeMeInProduction123!" — now required via -var or tfvars, same as prod/main.tf | CODE_AUDIT §8.162 |
-| C++ 3 signal engines (v1/v2/v3) | V2 may be dead code, ~200 lines reducible | CODE_AUDIT §8.176 |
+| ~~C++ 3 signal engines (v1/v2/v3)~~ [N/A] | All 3 engines actively used: V2=main, V3=HMM wrapper, V1=fallback. Design choice, not dead code | CODE_AUDIT §8.176 |
 | ~~migrate.py: narrow exception~~ [FIXED] | Widened to catch Exception — handles asyncpg.PostgresError and all DB errors | CODE_AUDIT §8.174 |
 | ~~SHM stale data on restart~~ [FIXED] | shm_market_data_writer.py now calls _mm_barrier() after seq+1 and before seq+2 — ensures correct memory ordering on ARM for cross-process SHM visibility | CODE_AUDIT §8.177, §8.713, §8.1191 |
 | ~~C++ string_to_side no validation~~ [FIXED] | Now throws std::invalid_argument on unknown side — no silent SELL default | CODE_AUDIT §8.186 |
@@ -200,8 +200,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~Helm values.yaml: VITE_WS localhost~~ [FIXED] | wsExchange/wsSignals set to empty — web-ui.yaml template fails if not set | CODE_AUDIT §8.195 |
 | ~~C++ signal.h: NEUTRAL→BUY~~ [FIXED] | Signal::side() now throws std::logic_error on NEUTRAL — callers must check is_actionable() first. order_executor.h: added is_actionable() guard | CODE_AUDIT §8.192 |
 | C++ 3 exchange adapters: code duplication | 470 lines, ~200 duplicated. Move to ExchangeBase | CODE_AUDIT §8.207 |
-| C++ BinanceAdapter: nested Spinlock | price_lock_ → depth_lock_ nesting, fragile lock ordering | CODE_AUDIT §8.203 |
-| C++ BinanceAdapter: can_send_order TOCTOU | fetch_add always increments even on reject | CODE_AUDIT §8.204 |
+| ~~C++ BinanceAdapter: nested Spinlock~~ [FIXED] | Consolidated price_lock_ + depth_lock_ into single market_data_lock_ — same fix as §8.462 | CODE_AUDIT §8.203 |
+| ~~C++ BinanceAdapter: can_send_order TOCTOU~~ [FIXED] | Replaced fetch_add with CAS loop — only increments if below 300 threshold, rejected orders no longer over-count | CODE_AUDIT §8.204 |
 | ~~web-ui App.jsx: 565 lines God component~~ [FIXED] | Extracted 5 notification useEffects + 5 useRef into useNotifications hook — App.jsx 565→474 lines (−91 lines, 6 useEffects→1 hook call) | CODE_AUDIT §8.211 |
 | ~~shared_config.yaml: localhost~~ [FIXED] | Same as §8.74 — documented as dev defaults, override in deployment configs | CODE_AUDIT §8.212 |
 | ~~Alertmanager: hardcoded SMTP password~~ [FIXED] | SMTP password and webhook URLs now use `${ENV_VAR:default}` syntax — override in production via environment | CODE_AUDIT §8.215 |
@@ -266,7 +266,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~terraform: no prod environment~~ [N/A] | terraform/environments/prod/main.tf already exists (100 lines, prod-grade: db.r6g.large, c5.2xlarge, 4 nodes) — audit item is stale | CODE_AUDIT §8.402 |
 | ~~docker-compose.prod: ports exposed to host~~ [FIXED] | Postgres, Redis, Prometheus now use `expose` instead of `ports` — accessible only within Docker networks, not from host | CODE_AUDIT §8.416 |
 | web-ui: 200+ components over-engineering | Math/research panels unlikely used by traders. Feature flag or separate package | CODE_AUDIT §8.410 |
-| hft-trade-bot: 3 engine versions loaded | V1/V2/V3 all allocated. V1 never used in hot path. Remove V1 | CODE_AUDIT §8.419 |
+| ~~hft-trade-bot: 3 engine versions loaded~~ [N/A] | All 3 engines actively used: V2=main, V3=HMM wrapper, V1=fallback in run_v1_fallback_loop. Design choice, not dead code | CODE_AUDIT §8.419 |
 | ~~hft-trade-bot: prices_cache not thread-safe~~ [FIXED] | Added Spinlock (prices_cache_lock) to BotContext — guards get_all_prices_into in process_sl_tp | CODE_AUDIT §8.420 |
 | ~~deploy.yml: localhost fallback for VITE_WS~~ [FIXED] | Removed localhost fallback — VITE_WS_EXCHANGE/SIGNALS now empty if GitHub vars not set | CODE_AUDIT §8.412 |
 | ~~hft-executor: avg_latency_ns always 0~~ [FIXED] | Added latency tracking: last_order_ts atomic + latency_sum_ns/latency_count atomics. Fill receipt computes delta from last order send time | CODE_AUDIT §8.394 |
@@ -275,7 +275,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~migrate.py: no transaction wrapping~~ [FIXED] | Each migration wrapped in conn.transaction() — SQL + schema_migrations insert are atomic | CODE_AUDIT §8.436 |
 | ~~config.h: hardcoded localhost default~~ [FIXED] | ws_url default changed from ws://localhost:8765 to empty string — forces explicit config in Docker/K8s | CODE_AUDIT §8.445 |
 | ~~order_executor: detached reconnect thread~~ [FIXED] | Same as §8.117 — detached thread replaced with member thread joined in disconnect() | CODE_AUDIT §8.452 |
-| BinanceAdapter: nested spinlock acquisition | Two spinlocks sequential. Latent deadlock risk. Use single lock or document ordering | CODE_AUDIT §8.462 |
+| ~~BinanceAdapter: nested spinlock acquisition~~ [FIXED] | Consolidated price_lock_ + depth_lock_ into single market_data_lock_ — no more nested spinlock acquisition | CODE_AUDIT §8.462 |
 | ~~Helm values: no Redis password~~ [FIXED] | redis.password added to values.yaml (empty by default) — redis.yaml template adds --requirepass + Secret with REDIS_URL, fails if not set | CODE_AUDIT §8.467 |
 | metrics_collector: mutex on every metric op | Global mutex blocks all metric operations in HFT hot path. Use atomics | CODE_AUDIT §8.483 |
 | ~~circuit_breaker: not thread-safe~~ [FIXED] | Added asyncio.Lock to CircuitBreaker — allow_signal, record_success, record_failure, reset now async | CODE_AUDIT §8.499 |
@@ -321,7 +321,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~socket_transport: start_receive_loop blocks thread~~ [FIXED] | Already uses non-blocking sockets with selectors.DefaultSelector() + timeout=0.1 — same as §8.675, stale item | CODE_AUDIT §8.815 |
 | ~~notifier: bot token in plaintext~~ [FIXED] | Suppressed aiohttp debug logging in Пачка X to prevent token leakage | CODE_AUDIT §8.818 |
 | ~~notifier: no rate limiting on alerts~~ [FIXED] | NotifierManager: added asyncio.Semaphore(3) + 1/sec rate limit to prevent 429 errors | CODE_AUDIT §8.819 |
-| shm_protocol: SymbolId limited to 10 symbols | Config has 50 symbols but enum only 10. Symbols 10-49 use raw ints, bypassing type safety | CODE_AUDIT §8.838 |
+| ~~shm_protocol: SymbolId limited to 10 symbols~~ [FIXED] | Expanded enum from 10 to 50 symbols matching config.yaml. Added MAX_SYMBOL sentinel + documentation comment. Enum is reference-only (runtime uses dynamic unordered_map) | CODE_AUDIT §8.838 |
 | ~~health_checks: check_readiness runs sequentially~~ [FIXED] | All 4 checks now run in parallel via asyncio.gather with return_exceptions=True | CODE_AUDIT §8.852 |
 | ~~health_checks: no timeout on individual checks~~ [FIXED] | Each check wrapped in asyncio.wait_for(timeout=2.0) — TimeoutError returns UNHEALTHY | CODE_AUDIT §8.853 |
 | momentum_breakout_v2: no per-symbol state | EMA/ATR/ADX/volume shared across symbols. BTC contaminates ETH. Add per-symbol state | CODE_AUDIT §8.871 |
@@ -334,7 +334,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | order_executor: detached reconnect thread race | Dangling `this` after destroy. Detached thread sleeps then accesses dead object. Don't detach or use asio timer | CODE_AUDIT §8.987 |
 | ~~ws_connection_pool: acquire holds lock during _create_connection~~ [FIXED] | Module deleted in Пачка G (dead code). Only .pyc cache remains | CODE_AUDIT §8.993 |
 | ~~db: new SQLite connection per operation~~ [FIXED] | Uses persistent _get_conn() with WAL set once — verified in Пачка AA | CODE_AUDIT §8.1000 |
-| order_manager: no lock on state transitions | check_timeouts() and on_fill() race on same OrderRecord. EXPIRED + FILLED simultaneously. Spinlock or atomic state | CODE_AUDIT §8.1012 |
+| ~~order_manager: no lock on state transitions~~ [N/A] | OrderManager class does not exist in C++ codebase. Symbol mapping is dynamic via unordered_map. No state transition race possible | CODE_AUDIT §8.1012 |
 | ~~ws_client: listen has no reconnect loop~~ [FIXED] | Added auto-reconnect with exponential backoff + jitter in Пачка BB/EE | CODE_AUDIT §8.1020 |
 | ~~health_checks: check_readiness runs sequentially~~ [FIXED] | All 4 checks now run in parallel via asyncio.gather (Пачка DD) | CODE_AUDIT §8.1027 |
 | ~~health_checks: no timeout on individual checks~~ [FIXED] | Each check wrapped in asyncio.wait_for(timeout=2.0) (Пачка DD) | CODE_AUDIT §8.1028 |
