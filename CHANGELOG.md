@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Reliability Plan — Пачка AP: health endpoint port fixes)
+
+### Fixed
+- `exchange_simulator/websocket_server.py`: Added `/health` endpoint to metrics HTTP server on port 8775 (Reliability Plan Task 1)
+- `docker-compose.yml`: Fixed healthcheck ports — exchange-sim 8765→8775, ai-signal-bot 8766→9090, web-ui `/`→`/health` (Task 2)
+- `docker-compose.prod.yml`: Same healthcheck port fixes as docker-compose.yml (Task 2)
+- `docker-compose.staging.yml`: Replaced TCP socket checks with HTTP `/health` checks on correct ports (Task 2)
+- `docker-compose.hub.yml`: Replaced TCP socket checks with HTTP `/health` checks on correct ports (Task 2)
+- `helm/templates/exchange-simulator.yaml`: Fixed liveness/readiness probes from WS port to metrics port (Task 3)
+- `helm/templates/ai-signal-bot.yaml`: Fixed liveness/readiness probes from WS port to metrics port (Task 3)
+- `helm/templates/web-ui.yaml`: Fixed probe path `/`→`/health` (Task 3)
+- `deploy/helm/templates/exchange-simulator.yaml`: Replaced TCP probes with HTTP `/health` probes on metrics port (Task 3)
+- `deploy/helm/templates/ai-signal-bot.yaml`: Replaced TCP probes with HTTP `/health` probes on metrics port (Task 3)
+- `deploy/helm/templates/web-ui.yaml`: Fixed probe path `/`→`/health` (Task 3)
+- `web-ui/nginx.conf`: Added `/health` endpoint for Docker/K8s probes (Task 6)
+- `web-ui/Dockerfile`: Updated healthcheck to use `/health` endpoint (Task 6)
+- `exchange_simulator/Dockerfile`: Fixed healthcheck port 8765→8775 (Task 1)
+- `exchange_simulator/Dockerfile.prod`: Fixed healthcheck port 8765→8775 (Task 1)
+- `ai-signal-bot/Dockerfile`: Fixed healthcheck port 8766→9090, added `--metrics` to CMD so health server starts (Task 2)
+- `ai-signal-bot/Dockerfile.prod`: Fixed healthcheck port 8766→9090 (Task 2)
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AU: exchange_simulator Low items)
 
 ### Fixed
