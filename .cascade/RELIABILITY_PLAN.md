@@ -1339,3 +1339,15 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R782 | llm_engine: no rate limiting on API calls | `engine.py:149` | Medium | 50 symbols = 50 API calls/cycle. Add token bucket rate limiter |
 | R783 | llm_engine: cache key based on rounded price | `engine.py:151` | Low | Rounding boundary causes cache misses. Use price buckets |
 | R784 | Code reduction: duplicate API key plaintext pattern | 4 files | Info | 4 locations with same vulnerability. Unified SecureString/SecretStr. ~20 lines |
+| R785 | hft-trade-bot/strategies/signal_engine_v2.h | `signal_engine_v2.h` | ✅ Excellent | 6 indicators, no heap alloc, incremental cache, cooldown, composite, adaptive SL/TP, branchless |
+| R786 | signal_engine_v2: heap alloc in get_cache() | `signal_engine_v2.h:61` | Medium | emplace in analyze_incremental. Pre-populate cache or use flat array |
+| R787 | signal_engine_v2: stack arrays 8KB per call | `signal_engine_v2.h:90` | Low | 256×4 doubles = 8KB. Use thread_local or pre-allocated buffers |
+| R788 | signal_engine_v2: last_signal_ms_ not per-symbol | `signal_engine_v2.h:192` | Medium | Single cooldown for all symbols. Move to IndicatorCache |
+| R789 | hft-trade-bot/strategies/pressure_model.h | `pressure_model.h` | ✅ Excellent | Multi-level OBI, weighted OBI, trade flow, toxicity, microprice, queue pos, price impact |
+| R790 | pressure_model: compute_obi() static method unused | `pressure_model.h:134` | Info | Dead code from pre-optimization. Remove. ~10 lines |
+| R791 | hft-trade-bot/position/position_manager.h | `position_manager.h` | ✅ Good | Mutex-protected, update-on-duplicate, SL/TP, active_symbols set |
+| R792 | position_manager: linear search for close_position | `position_manager.h:45` | Low | O(N) search. Use unordered_map for O(1) |
+| R793 | position_manager: no position size validation | `position_manager.h:17` | Low | No qty > 0 check. Add validation |
+| R794 | hft-trade-bot/data/signal.h | `signal.h` | ✅ Good | 9 fields, convenience methods, R:R calculation |
+| R795 | signal.h: NEUTRAL side() returns BUY | `signal.h:25` | Low | Footgun. Return optional<Side> or Side::NONE |
+| R796 | Code reduction: position_manager V1 vs V2 | 2 files | Info | V1 (130 lines) may be dead if V2 supersedes. ~130 lines |

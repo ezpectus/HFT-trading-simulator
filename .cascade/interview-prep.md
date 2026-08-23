@@ -4649,3 +4649,121 @@ class ModelRegistry:
 ```
 
 **Разница:** The bad code uses `open("w")` which truncates the file to 0 bytes before writing new data. If the process crashes during `json.dump()` (OOM, SIGKILL, disk full, power loss), the file is left corrupted — either empty or partially written JSON. On next startup, `_load()` fails with `json.JSONDecodeError`, the registry starts empty, and all model versions, A/B tests, and production assignments are lost. With 1000 users, 1000 bots lose their production model simultaneously — all revert to rule-based fallback, performance degrades, and the operator must manually re-register and re-promote all models. The good code writes to a temporary file in the same directory first, then uses `os.replace()` for an atomic rename. If the process crashes before the rename, the temp file is orphaned but `registry.json` is still the last good version — zero data loss. If the process crashes during the rename, `os.replace()` is atomic on both POSIX and Windows (Python 3.3+) — the file is either the old version or the new version, never corrupted. The `os.fsync()` call ensures the temp file is actually written to disk before the rename, protecting against power loss. The `except` block cleans up the temp file on error, so no orphaned files accumulate. The cost is ~10 extra lines (tempfile, fsync, os.replace, cleanup). The benefit is zero data corruption — the registry is always in a consistent state, even on crash, OOM, or power loss. With 1000 users, a crash during save is a non-event — the bot restarts with the last good registry and continues trading with the correct production model.
+
+---
+
+## Bad vs Good: Shared Cooldown Blocking All Symbols (C++)
+
+### ❌ Bad Code
+```cpp
+class SignalEngineV2 {
+  public:
+    FastSignal analyze_incremental(const char* symbol, const Candle* candles,
+                                   size_t n, const OrderBook& ob,
+                                   const PressureResult& pressure,
+                                   int64_t timestamp_ns) noexcept {
+        // ...
+        int64_t now_ms;
+        if (!check_cooldown(timestamp_ns, now_ms)) {
+            FastSignal sig;
+            sig.set_symbol(symbol);
+            sig.set_reason("Cooldown active");
+            return sig;  // NEUTRAL signal, confidence=0
+        }
+        // ... generate signal ...
+        last_signal_ms_ = now_ms;  // Updates GLOBAL cooldown
+        return sig;
+    }
+
+  private:
+    int64_t last_signal_ms_{0};  // SINGLE cooldown for ALL symbols
+
+    bool check_cooldown(int64_t timestamp_ns, int64_t& now_ms) const noexcept {
+        now_ms = timestamp_ns / 1'000'000;
+        return now_ms - last_signal_ms_ >= params_.cooldown_ms;
+    }
+};
+
+// In bot_loop.cpp:
+for (const auto& [symbol, sym_cstr, sym_id] : ctx.symbol_entries) {
+    auto fast_sig = engine.analyze_incremental(sym_cstr, candles, n, ob, pressure, now_ns);
+    // Iteration 1: BTC — generates signal, sets last_signal_ms_ = t
+    // Iteration 2: ETH — check_cooldown fails (t - t < 5000ms) → "Cooldown active"
+    // Iteration 3: SOL — same → "Cooldown active"
+    // ...
+    // Iteration 50: MINA — same → "Cooldown active"
+    //
+    // Result: Only 1 signal per 5 seconds across ALL 50 symbols
+    // Expected: 50 signals per 5 seconds (1 per symbol per cooldown)
+    // Actual: 1 signal per 5 seconds (50× reduction in signal generation)
+    //
+    // With 1000 users running 50 symbols each:
+    // - Expected: 50,000 signals per 5s window
+    // - Actual: 1,000 signals per 5s window (1 per bot)
+    // - 49,000 missed trading opportunities per 5s window
+    // - If average profit per signal = $0.50, that's $24,500 lost per 5s
+    // - Over 1 hour: $17.6M in missed opportunities
+}
+```
+
+**What's wrong:**
+- `last_signal_ms_` is a single member variable shared across all symbols
+- When BTC generates a signal at t=0, `last_signal_ms_` is set to 0
+- ETH, SOL, and all 48 other symbols are blocked by cooldown for 5000ms
+- Only 1 signal per cooldown period across ALL symbols — 50× reduction in signal generation
+- With 1000 users running 50 symbols each, 49,000 missed opportunities per 5s window
+- The bug is silent — no error, no crash, just NEUTRAL signals with "Cooldown active" reason
+- The operator sees low signal count but doesn't know why — all signals show "Cooldown active"
+- Revenue impact: if average profit per signal = $0.50, that's $24,500 lost per 5s, $17.6M/hour
+
+### ✅ Good Code
+```cpp
+class SignalEngineV2 {
+  public:
+    struct IndicatorCache {
+        // ... existing indicator caches ...
+        int64_t last_signal_ms{0};  // Per-symbol cooldown
+    };
+
+    FastSignal analyze_incremental(const char* symbol, const Candle* candles,
+                                   size_t n, const OrderBook& ob,
+                                   const PressureResult& pressure,
+                                   int64_t timestamp_ns) noexcept {
+        // ...
+        IndicatorCache& ic = get_cache(symbol);
+        int64_t now_ms = timestamp_ns / 1'000'000;
+
+        // Check per-symbol cooldown
+        if (now_ms - ic.last_signal_ms < params_.cooldown_ms) {
+            FastSignal sig;
+            sig.set_symbol(symbol);
+            sig.set_reason("Cooldown active");
+            return sig;
+        }
+
+        // ... generate signal ...
+        ic.last_signal_ms = now_ms;  // Update ONLY this symbol's cooldown
+        return sig;
+    }
+
+  private:
+    // last_signal_ms_ removed — now per-symbol in IndicatorCache
+    std::unordered_map<std::string, IndicatorCache> cache_;
+};
+
+// In bot_loop.cpp:
+for (const auto& [symbol, sym_cstr, sym_id] : ctx.symbol_entries) {
+    auto fast_sig = engine.analyze_incremental(sym_cstr, candles, n, ob, pressure, now_ns);
+    // Iteration 1: BTC — generates signal, sets ic.last_signal_ms = t
+    // Iteration 2: ETH — different IndicatorCache, check passes → generates signal
+    // Iteration 3: SOL — different IndicatorCache, check passes → generates signal
+    // ...
+    // Iteration 50: MINA — different IndicatorCache, check passes → generates signal
+    //
+    // Result: 50 signals per 5 seconds (1 per symbol per cooldown)
+    // Each symbol has its own independent cooldown timer
+    // BTC won't generate again for 5s, but ETH/SOL/... are unaffected
+}
+```
+
+**Разница:** The bad code uses a single `last_signal_ms_` member variable for all symbols. When BTC generates a signal at t=0, the cooldown is set for ALL symbols — ETH, SOL, and 48 others are blocked for 5000ms. Only 1 signal per cooldown period across all 50 symbols — a 50× reduction in signal generation. With 1000 users running 50 symbols each, 49,000 missed opportunities per 5s window. The bug is silent — no error, no crash, just NEUTRAL signals with "Cooldown active" reason. The operator sees low signal count but doesn't know why. If average profit per signal = $0.50, that's $24,500 lost per 5s, $17.6M/hour. The good code moves `last_signal_ms` into the per-symbol `IndicatorCache` struct. Each symbol has its own independent cooldown timer. BTC generating a signal doesn't affect ETH's cooldown. All 50 symbols can generate signals independently — 50 signals per 5s window instead of 1. The cost is moving one `int64_t` field from the class to the cache struct (zero extra code, just relocation). The benefit is 50× more signals, 50× more trading opportunities, and $17.6M/hour in recovered revenue. This is a classic example of a shared-state bug: the developer intended per-symbol cooldown but accidentally implemented global cooldown by using a class member instead of a per-instance field.

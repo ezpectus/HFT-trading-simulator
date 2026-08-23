@@ -283,3 +283,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | model_registry: _save() not atomic | open('w') truncates on crash. Registry corrupted, production model lost. Use temp+rename | CODE_AUDIT §8.788 |
 | llm_engine: API key in config dataclass plaintext | Exposed in repr/logging. Use field(repr=False) or SecretStr | CODE_AUDIT §8.791 |
 | llm_engine: no rate limiting on API calls | 50 symbols = 50 API calls/cycle. OpenAI 429 errors. Add token bucket rate limiter | CODE_AUDIT §8.792 |
+| signal_engine_v2: heap alloc in get_cache() | emplace in analyze_incremental breaks no-heap-alloc contract. Pre-populate cache at init | CODE_AUDIT §8.796 |
+| signal_engine_v2: cooldown not per-symbol | Single cooldown blocks all 50 symbols. Only 1 signal per period. Move to per-symbol cache | CODE_AUDIT §8.798 |

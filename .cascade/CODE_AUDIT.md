@@ -10730,3 +10730,179 @@ API keys stored as plaintext in 4 different locations:
 All have the same vulnerability: not zeroed on destruction, exposed in crash dumps. A unified `SecureString` (C++) and `SecretStr` (Python) class would fix all 4 at once.
 
 **Reduction potential:** ~20 lines of secure string code replaces 4 ad-hoc patterns.
+
+### 8.795 hft-trade-bot/src/strategies/signal_engine_v2.h: Signal Engine V2 — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h` (494 lines)
+
+- **6 indicators**: EMA(21/50)+signal(9), RSI(14), OBI(5/10/20), VWAP(±2σ), ADX(14), Pressure Model — comprehensive
+- **No heap allocations in analyze()**: Stack-allocated arrays (MAX_N=256), alignas(64) FastSignal — HFT-optimized
+- **IndicatorCache**: Per-symbol cache with incremental updates — correct
+- **Cooldown**: Configurable ms between signals — correct
+- **Two analyze modes**: Full `analyze()` (recompute all) + `analyze_incremental()` (cache-based) — flexible
+- **Composite score**: Weighted sum of 6 indicator scores — correct
+- **Adaptive SL/TP**: ATR-based with adaptive multipliers — correct
+- **Branchless design**: Ternary, fmax/fmin instead of if/else — HFT-optimized
+- **Validation**: min_candles check, insufficient data return — correct
+- **Cooldown check in init_and_validate**: Prevents signal spam — correct
+
+Excellent signal engine with 6 indicators, no heap alloc, incremental cache, cooldown, composite scoring, adaptive SL/TP, and branchless design. ✅
+
+### 8.796 signal_engine_v2: heap alloc in get_cache() — Medium
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h:61-64`
+
+```cpp
+IndicatorCache& get_cache(const char* symbol) {
+    auto it = cache_.find(std::string_view(symbol));
+    if (it == cache_.end()) {
+        it = cache_.emplace(std::string(symbol), IndicatorCache{}).first;
+```
+
+`get_cache()` does `cache_.emplace(std::string(symbol), ...)` which heap-allocates a new `std::string` key and `IndicatorCache` value. This is called from `analyze_incremental()` which is supposed to have no heap allocations. On first call per symbol, a heap alloc occurs. For a new symbol mid-trading, this can cause a GC pause on some allocators or a mutex lock in the allocator.
+
+**Фикс:** Pre-populate the cache at init for all configured symbols. Use a flat array indexed by symbol_id instead of unordered_map.
+
+### 8.797 signal_engine_v2: stack arrays 256×4 doubles = 8KB — Low
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h:90-91`
+
+```cpp
+constexpr size_t MAX_N = 256;
+double           closes[MAX_N], highs[MAX_N], lows[MAX_N], volumes[MAX_N];
+```
+
+4 arrays of 256 doubles = 8KB on the stack per `analyze()` call. On threads with small stack size (e.g., 64KB), this is 12.5% of the stack. If `analyze()` is called recursively (unlikely but possible via callbacks), stack overflow.
+
+**Фикс:** Use `thread_local` arrays or pre-allocated buffers in BotContext. Or reduce MAX_N to 128.
+
+### 8.798 signal_engine_v2: last_signal_ms_ not per-symbol — Medium
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h:192`
+
+```cpp
+if (now_ms - last_signal_ms_ < params_.cooldown_ms) {
+    sig.set_reason("Cooldown active");
+    return false;
+}
+```
+
+`last_signal_ms_` is a single member variable, not per-symbol. If BTC generates a signal at t=0, ETH at t=0 is blocked by cooldown even though it's a different symbol. With 50 symbols, only 1 signal per cooldown period across ALL symbols — severely limits signal generation.
+
+**Фикс:** Move `last_signal_ms_` into `IndicatorCache` (per-symbol). Or use a `std::unordered_map<std::string, int64_t>` for per-symbol cooldowns.
+
+### 8.799 hft-trade-bot/src/strategies/pressure_model.h: Pressure Model — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/pressure_model.h` (258 lines)
+
+- **Multi-level OBI**: 5/10/20 levels in single pass — optimized
+- **Distance-weighted OBI**: Exponential decay by level depth — correct
+- **Trade flow imbalance**: Buyer vs seller initiated — correct
+- **Toxicity detection**: Large order detection vs median — correct
+- **Microprice deviation**: Weighted mid vs simple mid — correct
+- **Queue position estimation**: For bid and ask — correct
+- **Price impact prediction**: obi*2 + trade_imbalance*1.5 + microprice_dev*0.5 — correct
+- **Spread regime**: TIGHT (<1bps), NORMAL, WIDE (>5bps) — correct
+- **No heap allocations**: All stack-allocated — HFT-optimized
+- **Convenience overload**: `analyze(ob)` without trades — correct
+
+Excellent pressure model with multi-level OBI, weighted OBI, trade flow, toxicity, microprice, queue position, price impact, and spread regime. ✅
+
+### 8.800 pressure_model: compute_obi() static method unused — Info
+
+**Файл:** `hft-trade-bot/src/strategies/pressure_model.h:134-143`
+
+```cpp
+static inline double compute_obi(const OrderBook& ob, int levels) noexcept {
+    // ...
+}
+```
+
+`compute_obi()` is a static method that computes OBI at N levels. It's not called anywhere in the file — the main `analyze()` method computes OBI inline in a single-pass loop. This is dead code left from before the optimization.
+
+**Reduction potential:** ~10 lines.
+
+### 8.801 hft-trade-bot/src/position/position_manager.h: Position Manager — ✅ Good
+
+**Файл:** `hft-trade-bot/src/position/position_manager.h` (130 lines)
+
+- **Mutex-protected**: All methods use `std::lock_guard<std::mutex>` — thread-safe
+- **open_position**: Updates existing position if symbol exists, otherwise adds — correct
+- **close_position**: Linear search + erase — correct for small N
+- **update_all_pnl**: Iterates positions, updates from price map — correct
+- **check_sl_tp**: Long/short SL/TP logic — correct
+- **active_symbols_**: O(1) has_position check — correct
+- **total_unrealized_pnl**: Sum of all positions — correct
+
+Good position manager with mutex protection, update-on-duplicate, SL/TP checking, and active symbols set. ✅
+
+### 8.802 position_manager: linear search for close_position — Low
+
+**Файл:** `hft-trade-bot/src/position/position_manager.h:45-54`
+
+```cpp
+for (auto it = positions_.begin(); it != positions_.end(); ++it) {
+    if (it->symbol == symbol) {
+        Position pos = *it;
+        pos.update_pnl(exit_price);
+        positions_.erase(it);
+        active_symbols_.erase(symbol);
+        return pos;
+    }
+}
+```
+
+`close_position()` does a linear search through `positions_` vector. With max 3 positions (config default), this is fine. But if max_open_positions is increased to 50, each close is O(N). The `active_symbols_` set already tracks which symbols have positions — could use an `unordered_map<string, size_t>` for O(1) lookup.
+
+**Фикс:** Use `unordered_map<string, Position>` instead of `vector<Position>`. Or maintain an index map alongside the vector.
+
+### 8.803 position_manager: no position size validation — Low
+
+**Файл:** `hft-trade-bot/src/position/position_manager.h:17-41`
+
+```cpp
+void open_position(const Signal& signal, double quantity, const std::string& exchange) {
+    if (!signal.is_actionable()) return;
+    // ...
+    pos.quantity = quantity;
+```
+
+No validation that `quantity > 0` or that `quantity` doesn't exceed max position size. If `quantity` is 0 or negative (bug in risk manager), a position with 0 qty is opened — it will never trigger SL/TP and will stay forever.
+
+**Фикс:** Add `if (quantity <= 0) return;` at the start.
+
+### 8.804 hft-trade-bot/src/data/signal.h: Signal struct — ✅ Good
+
+**Файл:** `hft-trade-bot/src/data/signal.h` (46 lines)
+
+- **9 fields**: symbol, direction, confidence, strategy, entry_price, stop_loss, take_profit, leverage, reason, timestamp — comprehensive
+- **is_long/is_short/is_actionable**: Convenience methods — correct
+- **side()**: Maps direction to Side enum — correct
+- **rr_ratio()**: Calculates risk/reward for long and short — correct
+- **NEUTRAL defaults to BUY**: Documented — caller should check is_actionable() first
+
+Good signal struct with 9 fields, convenience methods, and R:R calculation. ✅
+
+### 8.805 signal.h: NEUTRAL side() returns BUY — Low
+
+**Файл:** `hft-trade-bot/src/data/signal.h:25-29`
+
+```cpp
+Side side() const {
+    if (is_long()) return Side::BUY;
+    if (is_short()) return Side::SELL;
+    return Side::BUY; // NEUTRAL defaults to BUY; caller should check is_actionable() first
+}
+```
+
+`side()` returns `Side::BUY` for NEUTRAL signals. If a caller forgets to check `is_actionable()` first and calls `side()`, a NEUTRAL signal results in a BUY order. The comment warns about this, but it's a footgun — the API silently returns a valid trading side for a non-actionable signal.
+
+**Фикс:** Return `std::optional<Side>` or throw on NEUTRAL. Or add a `Side::NONE` enum value.
+
+### 8.806 Code reduction: position_manager.h vs position_manager_v2.h — Info
+
+**Файлы:** `hft-trade-bot/src/position/position_manager.h` (130 lines) + `position_manager_v2.h` (14267 bytes)
+
+Two position manager implementations exist. The V1 (130 lines) is used in `bot_loop.cpp` via `ctx.pos_mgr`. The V2 (14KB) is likely used via `ctx.pos_mgr_v2` or similar. If V2 supersedes V1, V1 is dead code.
+
+**Reduction potential:** ~130 lines if V1 is dead code.
