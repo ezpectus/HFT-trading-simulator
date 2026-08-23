@@ -9,7 +9,10 @@
 namespace hft {
 
 void process_sl_tp(BotContext& ctx, double current_balance) {
-    ctx.receiver->get_all_prices_into(ctx.prices_cache);
+    {
+        SpinlockGuard guard(ctx.prices_cache_lock);
+        ctx.receiver->get_all_prices_into(ctx.prices_cache);
+    }
     ctx.pos_mgr.update_all_pnl(ctx.prices_cache);
     auto triggers = ctx.pos_mgr.check_sl_tp(ctx.prices_cache);
     for (const auto& trigger : triggers) {

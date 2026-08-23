@@ -13,6 +13,17 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AI: PreTradeRisk blacklist race + prices_cache thread safety)
+
+### Fixed
+- `hft-trade-bot/src/risk/pre_trade_risk.h`: Added `Spinlock` (`list_lock_`) to guard blacklist/whitelist reads in `check()` + all insert/erase operations — prevents data race UB
+- `hft-trade-bot/src/core/bot_context.h`: Added `prices_cache_lock` Spinlock for `prices_cache` unordered_map
+- `hft-trade-bot/src/core/bot_loop.cpp`: `SpinlockGuard` around `get_all_prices_into` in `process_sl_tp`
+- CODE_AUDIT §8.158 — pre_trade_risk blacklist race → Spinlock guards all reads + writes
+- CODE_AUDIT §8.420 — prices_cache not thread-safe → Spinlock added
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AH: Synthetic order book warning + Rust latency tracking)
 
 ### Added

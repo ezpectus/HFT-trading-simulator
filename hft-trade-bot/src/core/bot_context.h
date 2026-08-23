@@ -105,6 +105,7 @@ struct BotContext {
     Spinlock                 arb_lock;
 
     std::unordered_map<std::string, double> prices_cache;
+    Spinlock                                 prices_cache_lock;
     std::vector<Candle>                     candles_buf;
     OrderBook                               ob_buf;
     std::vector<SymbolEntry>                symbol_entries;
