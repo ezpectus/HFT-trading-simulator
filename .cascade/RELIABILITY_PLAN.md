@@ -1317,3 +1317,25 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R760 | bot_loop.cpp: synthetic spread hardcoded | `bot_loop.cpp:79` | Low | 1bps for all symbols. Use per-symbol config |
 | R761 | bot_loop.cpp: has_arb_opportunity store after unlock | `bot_loop.cpp:34` | Low | Race condition. Move inside lock |
 | R762 | Code reduction: duplicate order book synthesis | `bot_loop.cpp:70+191` | Info | Same synthetic OB code in 2 places. Extract utility. ~10 lines |
+| R763 | hft-trade-bot/execution/order_executor.h | `order_executor.h` | ✅ Good | WS, exponential backoff, manual JSON for HFT, buffer overflow protection, arbitrage |
+| R764 | order_executor: detached reconnect thread race | `order_executor.h:57` | Medium | Detached thread accesses destroyed client. Use condition variable or join |
+| R765 | order_executor: snprintf buffer truncation silent | `order_executor.h:108` | Low | Truncated JSON sent without closing brace. Check n >= sizeof(buf) |
+| R766 | hft-trade-bot/exchange/ExchangeBase.h | `ExchangeBase.h` | ✅ Good | EWMA latency, toxic event tracking, auto-disable, atomic fields |
+| R767 | hft-trade-bot/exchange/BinanceAdapter.h | `BinanceAdapter.h` | ✅ Good | IExchange, spinlock, HMAC signing, rate limiting, stream URLs, OrderResult |
+| R768 | BinanceAdapter: API keys in plaintext std::string | `BinanceAdapter.h:28` | Medium | Not zeroed on destruction. Use SecureString |
+| R769 | BinanceAdapter: on_depth_update only best level | `BinanceAdapter.h:83` | Low | Only top-of-book. Maintain full L2 from diffs |
+| R770 | BinanceAdapter: double lock in on_book_ticker | `BinanceAdapter.h:74` | Low | Two spinlocks held simultaneously. Use single lock or enforce ordering |
+| R771 | hft-trade-bot/risk/kill_switch.h | `kill_switch.h` | ✅ Excellent | 3 activation methods, 5 steps, 5 reasons, SHM notification, atomic, file monitoring |
+| R772 | kill_switch: catch(...) in init_shm hides errors | `kill_switch.h:64` | Low | catch(...) loses error message. Use catch(std::exception) with logging |
+| R773 | kill_switch: no auto-recovery from file trigger | `kill_switch.h:98` | Low | Stays active after file removed. Add recovery_file or document procedure |
+| R774 | ai-signal-bot/ml/automl.py | `automl.py` | ✅ Good | Optuna TPE MedianPruner, 12-param space, strategy-specific, storage, timeout |
+| R775 | automl: no validation set in optimize() | `automl.py:103` | Medium | No validation enforcement. Add validation_data param, enforce validation metric |
+| R776 | automl: no early stopping on convergence | `automl.py:142` | Low | Runs all trials. Add callback for plateau detection |
+| R777 | ai-signal-bot/ml/model_registry.py | `model_registry.py` | ✅ Good | 5 statuses, A/B testing, rollback, file persistence, error handling |
+| R778 | model_registry: _save() not atomic | `model_registry.py:107` | Medium | open('w') truncates on crash. Use temp+rename (os.replace) |
+| R779 | model_registry: select_ab_model not thread-safe | `model_registry.py:236` | Low | Counter race. Use lock. Move import random to top |
+| R780 | ai-signal-bot/llm_engine/engine.py | `engine.py` | ✅ Good | 4 providers, env API key, rule-based fallback, caching, 3 prompts, session mgmt |
+| R781 | llm_engine: API key in config dataclass plaintext | `engine.py:29` | Medium | Exposed in repr/logging. Use field(repr=False) or SecretStr |
+| R782 | llm_engine: no rate limiting on API calls | `engine.py:149` | Medium | 50 symbols = 50 API calls/cycle. Add token bucket rate limiter |
+| R783 | llm_engine: cache key based on rounded price | `engine.py:151` | Low | Rounding boundary causes cache misses. Use price buckets |
+| R784 | Code reduction: duplicate API key plaintext pattern | 4 files | Info | 4 locations with same vulnerability. Unified SecureString/SecretStr. ~20 lines |

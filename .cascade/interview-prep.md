@@ -4567,3 +4567,85 @@ int main(int argc, char* argv[]) {
 ```
 
 **Разница:** The bad code has no `try`/`catch` around the main loop body. Any exception from `process_sl_tp()`, `process_arbitrage()`, `process_ai_signals()`, or `run_v2_signal_loop()` propagates to `main()`, triggers `std::terminate()`, and crashes the process without calling `graceful_shutdown()`. Open positions are left unmanaged (no SL/TP monitoring), SHM segments are leaked (`/dev/shm/hft_signals` persists), FIX sessions are not logged out (sequence numbers not saved, exchange rejects restart), and DB connections stay open (WAL file locked, blocking other processes). With 1000 users, a single exchange glitch (invalid price, network timeout) crashes all 1000 bots simultaneously — 1000 FIX sessions need manual reset, 1000 SHM cleanups, 1000 open positions unmanaged — hours of downtime. The good code wraps the loop body in `try`/`catch`. `std::bad_alloc` (OOM) is caught separately and breaks the loop (can't recover from OOM). `std::exception` is caught and logged — the loop continues on the next iteration, trying to recover. If the error is persistent (e.g., exchange is down), the kill switch or `is_running()` flag will stop the loop. `graceful_shutdown()` is always reached — even on OOM or exception — ensuring open positions are closed, SHM segments are unlinked, FIX sessions are logged out, and DB connections are closed. The cost is ~8 extra lines (try/catch blocks). The benefit is zero ungraceful crashes — the bot either recovers from transient errors or shuts down cleanly, never leaving the system in an inconsistent state.
+
+---
+
+## Bad vs Good: Non-Atomic File Write (Python)
+
+### ❌ Bad Code
+```python
+class ModelRegistry:
+    def _save(self) -> None:
+        os.makedirs(self.storage_dir, exist_ok=True)
+        data = {
+            "models": {
+                name: {ver: {**asdict(v), "status": v.status.value}
+                       for ver, v in versions.items()}
+                for name, versions in self.models.items()
+            },
+            "ab_tests": {name: asdict(ab) for name, ab in self.ab_tests.items()},
+        }
+        # open('w') TRUNCATES the file to 0 bytes BEFORE writing
+        with open(self.index_path, "w") as f:
+            json.dump(data, f, indent=2)
+        # If the process crashes HERE (OOM, SIGKILL, disk full, power loss):
+        # 1. File is truncated to 0 bytes or partially written
+        # 2. registry.json is corrupted — invalid JSON
+        # 3. On next startup, _load() fails with json.JSONDecodeError
+        # 4. self.models = {} — empty registry, production model unknown
+        # 5. Bot starts with NO model — all signals use rule-based fallback
+        # 6. A/B test data lost — weeks of experiment results gone
+        # 7. With 1000 users: 1000 bots lose their production model simultaneously
+        #    All revert to rule-based fallback — performance degrades
+        #    Operator must manually re-register all models and re-promote production
+```
+
+**What's wrong:**
+- `open("w")` truncates the file to 0 bytes before writing — the old data is gone before new data is written
+- If the process crashes during `json.dump()` (OOM, SIGKILL, disk full, power loss), the file is left in a corrupted state — either empty or partially written JSON
+- On next startup, `_load()` fails with `json.JSONDecodeError` — the registry starts empty
+- All model versions, A/B tests, and production assignments are lost
+- The bot starts with no production model — all signals use rule-based fallback
+- With 1000 users, 1000 bots lose their production model simultaneously — all revert to rule-based, performance degrades, operator must manually re-register and re-promote all models
+
+### ✅ Good Code
+```python
+import tempfile
+
+class ModelRegistry:
+    def _save(self) -> None:
+        os.makedirs(self.storage_dir, exist_ok=True)
+        data = {
+            "models": {
+                name: {ver: {**asdict(v), "status": v.status.value}
+                       for ver, v in versions.items()}
+                for name, versions in self.models.items()
+            },
+            "ab_tests": {name: asdict(ab) for name, ab in self.ab_tests.items()},
+        }
+
+        # Write to a temp file in the SAME directory (atomic rename guarantee)
+        tmp_fd, tmp_path = tempfile.mkstemp(
+            dir=self.storage_dir, suffix=".tmp", prefix="registry_"
+        )
+        try:
+            with os.fdopen(tmp_fd, "w") as f:
+                json.dump(data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())  # Force write to disk
+            # Atomic rename — old file is replaced instantly
+            # On any OS, rename is atomic within the same filesystem
+            os.replace(tmp_path, self.index_path)
+        except Exception:
+            # Clean up temp file on error — old registry.json is untouched
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+            raise
+        # If process crashes BEFORE os.replace: temp file is orphaned,
+        #   but registry.json is still the last good version — no data loss
+        # If process crashes DURING os.replace: on POSIX, rename is atomic;
+        #   on Windows, os.replace is also atomic (Python 3.3+)
+        # Either way, registry.json is either the old version or the new version — never corrupted
+```
+
+**Разница:** The bad code uses `open("w")` which truncates the file to 0 bytes before writing new data. If the process crashes during `json.dump()` (OOM, SIGKILL, disk full, power loss), the file is left corrupted — either empty or partially written JSON. On next startup, `_load()` fails with `json.JSONDecodeError`, the registry starts empty, and all model versions, A/B tests, and production assignments are lost. With 1000 users, 1000 bots lose their production model simultaneously — all revert to rule-based fallback, performance degrades, and the operator must manually re-register and re-promote all models. The good code writes to a temporary file in the same directory first, then uses `os.replace()` for an atomic rename. If the process crashes before the rename, the temp file is orphaned but `registry.json` is still the last good version — zero data loss. If the process crashes during the rename, `os.replace()` is atomic on both POSIX and Windows (Python 3.3+) — the file is either the old version or the new version, never corrupted. The `os.fsync()` call ensures the temp file is actually written to disk before the rename, protecting against power loss. The `except` block cleans up the temp file on error, so no orphaned files accumulate. The cost is ~10 extra lines (tempfile, fsync, os.replace, cleanup). The benefit is zero data corruption — the registry is always in a consistent state, even on crash, OOM, or power loss. With 1000 users, a crash during save is a non-event — the bot restarts with the last good registry and continues trading with the correct production model.

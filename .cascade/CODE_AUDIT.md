@@ -10370,3 +10370,363 @@ for (int i = 0; i < 10; ++i) {
 Same logic, different variable names. Should be extracted into a `make_synthetic_order_book(price, levels=10)` utility function.
 
 **Reduction potential:** ~10 lines.
+
+### 8.773 hft-trade-bot/src/execution/order_executor.h: Order executor — ✅ Good
+
+**Файл:** `hft-trade-bot/src/execution/order_executor.h` (231 lines)
+
+- **WebSocket-based**: websocketpp with ASIO client — correct
+- **Exponential backoff reconnect**: 1s → 2s → 4s → ... → 30s cap — correct
+- **Recreate client on connect**: Comment explains websocketpp init_asio() limitation — correct workaround
+- **Manual JSON serialization**: snprintf to stack buffer avoids nlohmann::json heap alloc — HFT-optimized
+- **submit_order**: MARKET/LIMIT selection, price append for LIMIT — correct
+- **close_position**: Manual JSON, snprintf — correct
+- **execute_arbitrage**: Buy + sell in sequence, error check between — correct
+- **disconnect**: Close + join thread — correct
+- **connected_ atomic**: Thread-safe connection status — correct
+- **Buffer overflow protection**: `n < sizeof(buf) - 32` check before appending — correct
+
+Good order executor with WebSocket, exponential backoff, manual JSON for HFT, buffer overflow protection, and arbitrage support. ✅
+
+### 8.774 order_executor: detached reconnect thread race condition — Medium
+
+**Файл:** `hft-trade-bot/src/execution/order_executor.h:57-63`
+
+```cpp
+std::thread([this, delay]() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+    if (should_reconnect_) {
+        if (ws_thread_.joinable()) ws_thread_.join();
+        do_connect();
+    }
+}).detach();
+```
+
+The reconnect thread is detached. If `disconnect()` is called while the reconnect thread is sleeping, `should_reconnect_` is set to false, but the thread still wakes up and checks it. However, if `disconnect()` joins `ws_thread_` and destroys `client_` before the reconnect thread calls `do_connect()`, the reconnect thread accesses a destroyed `client_` — use-after-free. The `should_reconnect_` check is not atomic with the `do_connect()` call.
+
+**Фикс:** Don't detach. Store the reconnect thread and join it in `disconnect()`. Or use a condition variable with `should_reconnect_` flag.
+
+### 8.775 order_executor: snprintf buffer truncation silent — Low
+
+**Файл:** `hft-trade-bot/src/execution/order_executor.h:108-128`
+
+```cpp
+char buf[512];
+int n = std::snprintf(buf, sizeof(buf), ...);
+if (n < static_cast<int>(sizeof(buf) - 2)) {
+    buf[n++] = '}';
+    buf[n] = '\0';
+}
+```
+
+If the JSON exceeds 512 bytes (e.g., very long symbol name, large quantity precision), `snprintf` truncates silently. The `n < sizeof(buf) - 2` check prevents writing `}` but the JSON is still sent without the closing brace — malformed JSON sent to exchange.
+
+**Фикс:** Check `n >= sizeof(buf)` explicitly and log an error: "Order JSON too long, truncated". Don't send malformed JSON.
+
+### 8.776 hft-trade-bot/src/exchange/ExchangeBase.h: Exchange base — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/ExchangeBase.h` (60 lines)
+
+- **EWMA latency tracking**: `current + (us - current) / 10` — correct smoothing
+- **CAS loop for latency**: `compare_exchange_weak` — thread-safe
+- **Toxic event tracking**: `record_toxic_event()`, `toxic_event_count()`, `reset_toxic_events()` — correct
+- **is_available()**: `toxic_count_ < 5` — auto-disable on 5+ toxic events
+- **Fee tracking**: maker_fee_bps, taker_fee_bps — correct
+- **Atomic fields**: latency_avg_, toxic_count_ — thread-safe
+
+Good exchange base with EWMA latency tracking, toxic event tracking, auto-disable, and atomic fields. ✅
+
+### 8.777 hft-trade-bot/src/exchange/BinanceAdapter.h: Binance adapter — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h` (190 lines)
+
+- **IExchange interface**: best_bid, best_ask, mid_price, bid_depth, ask_depth — correct
+- **Spinlock-protected**: price_lock_ and depth_lock_ — HFT-optimized
+- **on_book_ticker**: Updates bid/ask/depth from WS feed — correct
+- **on_depth_update**: Updates from diff depth stream — correct (only best level for now)
+- **HMAC-SHA256 signing**: `sign()` method — correct for REST API
+- **Rate limiting**: 300 orders/10s with atomic CAS — correct
+- **Stream URLs**: bookTicker, depth20@100ms, aggTrade — correct Binance streams
+- **User data stream**: listenKey management — correct
+- **OrderResult struct**: success, order_id, status, avg_price, executed_qty, error — comprehensive
+
+Good Binance adapter with IExchange interface, spinlock protection, HMAC signing, rate limiting, and comprehensive order results. ✅
+
+### 8.778 BinanceAdapter: API keys in plaintext std::string — Medium
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:28-29`
+
+```cpp
+struct Config {
+    std::string api_key;
+    std::string api_secret;
+```
+
+Same issue as config.h — API keys stored as plaintext `std::string`. Not zeroed on destruction. Core dump or memory inspection exposes credentials.
+
+**Фикс:** Use `SecureString` class that zeros memory on destruction.
+
+### 8.779 BinanceAdapter: on_depth_update only updates best level — Low
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:83-100`
+
+```cpp
+void on_depth_update(const std::string& symbol,
+                     const std::vector<std::pair<double, double>>& bids,
+                     const std::vector<std::pair<double, double>>& asks) {
+    // In production: maintain full L2 book from diffs
+    // For now, just update best bid/ask
+    if (!bids.empty()) {
+        bids_[symbol] = bids[0].first;
+        bid_depth_[symbol] = bids[0].second;
+    }
+```
+
+Only the best bid/ask is updated from depth updates. Full L2 book is not maintained. This means depth-aware order routing and pressure model analysis operate on incomplete data — only top-of-book.
+
+**Фикс:** Maintain full L2 book from diffs. Apply bid/ask updates per level, remove levels with qty=0.
+
+### 8.780 BinanceAdapter: double lock in on_book_ticker — Low
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:74-79`
+
+```cpp
+void on_book_ticker(const std::string& symbol, double bid, double bid_qty, double ask,
+                    double ask_qty) {
+    std::lock_guard<Spinlock> lk(price_lock_);
+    bids_[symbol] = bid;
+    asks_[symbol] = ask;
+    std::lock_guard<Spinlock> lk2(depth_lock_);
+    bid_depth_[symbol] = bid_qty;
+    ask_depth_[symbol] = ask_qty;
+}
+```
+
+Two spinlocks are held simultaneously (price_lock_ then depth_lock_). If another thread acquires them in opposite order (depth_lock_ then price_lock_), deadlock. The same pattern appears in `on_depth_update`.
+
+**Фикс:** Use a single lock for both price and depth, or document and enforce consistent lock ordering.
+
+### 8.781 hft-trade-bot/src/risk/kill_switch.h: Kill switch — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h` (173 lines)
+
+- **3 activation methods**: File trigger, programmatic, daily loss — comprehensive
+- **5 activation steps**: Cancel orders → close positions → notify Python → notify callback → remove trigger file — correct
+- **5 reasons**: MANUAL, DAILY_LOSS, MAX_DRAWDOWN, MARGIN_CALL, FILE_TRIGGER — comprehensive
+- **3 callbacks**: cancel_all, close_all, notify — flexible
+- **SHM notification**: KillSwitchMsg to Python via ring buffer — correct IPC
+- **Atomic active_**: `exchange(true)` prevents double activation — correct
+- **File-based monitoring**: Polls for trigger file existence — correct
+- **deactivate()**: Manual reset — correct
+- **can_trade()**: `!active_` — correct
+- **Destructor**: `stop_monitoring()` — correct
+- **close()**: Unlinks SHM — correct
+
+Excellent kill switch with 3 activation methods, 5 steps, 5 reasons, SHM notification, atomic activation, file monitoring, and proper cleanup. ✅
+
+### 8.782 kill_switch: catch(...) in init_shm hides errors — Low
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h:64`
+
+```cpp
+try {
+    shm_ = std::make_unique<ShmRingBuffer<ipc::KillSwitchMsg>>(shm_name_, 64, true);
+    return true;
+} catch (...) {
+    return false;
+}
+```
+
+`catch(...)` catches all exceptions including `std::bad_alloc`. The error message is lost — no log. If SHM init fails, the kill switch can't notify Python, but the operator doesn't know why.
+
+**Фикс:** `catch (const std::exception& e) { spdlog::error("KillSwitch SHM init failed: {}", e.what()); return false; }`.
+
+### 8.783 kill_switch: no auto-recovery from file trigger — Low
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h:98-102`
+
+```cpp
+if (reason == Reason::FILE_TRIGGER) {
+    std::error_code ec;
+    std::filesystem::remove(trigger_file_, ec);
+}
+```
+
+On file trigger, the trigger file is removed. But the kill switch stays active until `deactivate()` is called manually. There's no auto-recovery — the bot stays stopped even after the issue is resolved. An operator must call `deactivate()` programmatically.
+
+**Фикс:** Document the recovery procedure. Or add a `recovery_file` that, when touched, calls `deactivate()`.
+
+### 8.784 ai-signal-bot/src/ml/automl.py: AutoML optimizer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/automl.py` (191 lines)
+
+- **Optuna optional**: `OPTUNA_AVAILABLE` flag — resilient
+- **TPE sampler**: `TPESampler` with n_startup_trials — correct
+- **MedianPruner**: Prunes underperforming trials — correct
+- **12-parameter search space**: RSI, EMA, ATR, confidence, spread, SL, TP, position size, max positions — comprehensive
+- **Strategy-specific params**: mean_reversion (BB, zscore), trend_following (trend strength, trailing stop) — correct
+- **Storage support**: SQLite for study persistence — correct
+- **load_if_exists**: Resumes existing study — correct
+- **Timeout**: 1 hour default — correct
+- **Dummy objective fallback**: Returns 0.0 with warning — correct
+
+Good AutoML optimizer with Optuna, TPE sampler, MedianPruner, 12-parameter space, strategy-specific params, storage, and timeout. ✅
+
+### 8.785 automl: no validation set in optimize() — Medium
+
+**Файл:** `ai-signal-bot/src/ml/automl.py:103-137`
+
+```python
+def optimize(self, objective_fn=None, search_space_fn=None) -> dict:
+    # ...
+    self.study.optimize(wrapped_objective, n_trials=..., timeout=...)
+    self.best_params = self.study.best_params
+    self.best_value = self.study.best_value
+    return self.best_params
+```
+
+The `optimize()` method doesn't accept or use a validation set. The `objective_fn` is expected to handle train/validation split internally, but there's no enforcement. If the objective function overfits to training data, `best_params` will be overfit parameters — poor live performance.
+
+**Фикс:** Add `validation_data` parameter. Enforce that `objective_fn` returns validation metric, not training metric. Add walk-forward validation after optimization.
+
+### 8.786 automl: no early stopping on convergence — Low
+
+**Файл:** `ai-signal-bot/src/ml/automl.py:142-147`
+
+```python
+self.study.optimize(
+    wrapped_objective,
+    n_trials=self.config.n_trials,
+    timeout=self.config.timeout,
+    show_progress_bar=True,
+)
+```
+
+No early stopping. If the best value plateaus after 20 trials, the remaining 80 trials are wasted. Optuna supports `optuna.study.MaxTrialsCallback` or custom callbacks for early stopping.
+
+**Фикс:** Add a callback that stops if best value hasn't improved in N trials.
+
+### 8.787 ai-signal-bot/src/ml/model_registry.py: Model registry — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/model_registry.py` (296 lines)
+
+- **5 statuses**: CANDIDATE, STAGING, PRODUCTION, ARCHIVED, ROLLED_BACK — correct lifecycle
+- **ModelVersion dataclass**: name, version, path, status, metrics, metadata, timestamps, A/B counters — comprehensive
+- **ABTest dataclass**: control, treatment, traffic_split, impressions, successes — correct
+- **File-based persistence**: JSON to registry.json — simple and correct
+- **register**: Overwrite warning — correct
+- **promote**: Auto-archive current production — correct
+- **rollback**: Most recently archived → production — correct
+- **set_ab_test**: Validates both versions exist — correct
+- **select_ab_model**: Random split with impression tracking — correct
+- **Error handling**: OSError, ValueError, KeyError, TypeError on load — resilient
+
+Good model registry with 5 statuses, A/B testing, rollback, file persistence, and error handling. ✅
+
+### 8.788 model_registry: _save() not atomic — Medium
+
+**Файл:** `ai-signal-bot/src/ml/model_registry.py:107-120`
+
+```python
+def _save(self) -> None:
+    os.makedirs(self.storage_dir, exist_ok=True)
+    data = {...}
+    with open(self.index_path, "w") as f:
+        json.dump(data, f, indent=2)
+```
+
+`open("w")` truncates the file before writing. If the process crashes during `json.dump()` (e.g., OOM, SIGKILL), the registry file is corrupted — all model versions, A/B tests, and production assignments are lost. On next load, `_load()` fails with JSON decode error, and the registry starts empty — the production model is unknown.
+
+**Фикс:** Write to a temp file, then atomic rename: `with open(tmp_path, "w") as f: json.dump(...); os.replace(tmp_path, self.index_path)`.
+
+### 8.789 model_registry: select_ab_model not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/ml/model_registry.py:236-238`
+
+```python
+import random
+if random.random() < ab.traffic_split:
+    ab.treatment_impressions += 1
+```
+
+`ab.treatment_impressions += 1` is not atomic. If called from multiple threads (e.g., multiple signal generation coroutines), the counter can lose increments. Also, `import random` inside a method is inefficient.
+
+**Фикс:** Use `threading.Lock` or `itertools.count()`. Move `import random` to top of file.
+
+### 8.790 ai-signal-bot/src/llm_engine/engine.py: LLM engine — ✅ Good
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py` (394 lines)
+
+- **4 providers**: openai, anthropic, ollama, none — comprehensive
+- **API key from env**: `os.getenv("OPENAI_API_KEY")` — correct
+- **Rule-based fallback**: No API key → provider="none" — resilient
+- **Caching**: `cache_key = f"{symbol}_{round(price, 2)}"` with TTL — correct
+- **3 prompt templates**: market_analysis, signal_explanation, risk_assessment — comprehensive
+- **Prompt loading from files**: `_load_prompt()` with fallback to defaults — correct
+- **MarketContext dataclass**: 12 fields including regime, OBI, recent_signals — comprehensive
+- **LLMAnalysis dataclass**: 8 fields including sentiment, confidence, key_levels — comprehensive
+- **aiohttp optional**: `AIOHTTP_AVAILABLE` flag — resilient
+- **Request/error counting**: `_request_count`, `_error_count` — observability
+- **Session management**: `initialize()` creates, `close()` destroys — correct
+
+Good LLM engine with 4 providers, env-based API keys, rule-based fallback, caching, 3 prompt templates, file-based prompt loading, and session management. ✅
+
+### 8.791 llm_engine: API key in config dataclass plaintext — Medium
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py:29`
+
+```python
+@dataclass
+class LLMConfig:
+    provider: str = "openai"
+    api_key: str = ""
+```
+
+API key stored as plaintext string in `LLMConfig` dataclass. If the config is logged or serialized (e.g., for debugging), the API key is exposed. The key is also stored in `self.config.api_key` on the `LLMEngine` instance.
+
+**Фикс:** Use `__repr__` that masks the key: `api_key: str = field(repr=False)`. Or use a `SecretStr` type that doesn't expose the value in repr.
+
+### 8.792 llm_engine: no rate limiting on API calls — Medium
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py:149-159`
+
+```python
+async def analyze_market(self, ctx: MarketContext) -> LLMAnalysis:
+    cache_key = f"{ctx.symbol}_{round(ctx.price, 2)}"
+    now = time.time()
+    if cache_key in self._cache:
+        cached_time, cached_result = self._cache[cache_key]
+        if now - cached_time < self.config.cache_ttl_seconds:
+            cached_result.cached = True
+            return cached_result
+```
+
+No rate limiting on LLM API calls. The cache helps (60s TTL), but if 50 symbols generate signals simultaneously with different prices, that's 50 API calls in one cycle. OpenAI has rate limits (e.g., 500 RPM for GPT-4o-mini). Exceeding the rate limit returns 429 errors, which are caught but waste time and budget.
+
+**Фикс:** Add a token bucket or sliding window rate limiter. E.g., max 30 requests per minute. Queue excess requests.
+
+### 8.793 llm_engine: cache key based on rounded price — Low
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py:151`
+
+```python
+cache_key = f"{ctx.symbol}_{round(ctx.price, 2)}"
+```
+
+Cache key is `symbol_rounded_price`. If BTC moves from 65000.10 to 65000.49, both round to 65000.00 — cache hit. But if BTC moves from 64999.99 to 65000.00, different cache key — cache miss, new API call. The rounding boundary causes unnecessary API calls at price transitions.
+
+**Фикс:** Use price buckets: `cache_key = f"{ctx.symbol}_{int(ctx.price / 10)}"` — buckets of $10.
+
+### 8.794 Code reduction: duplicate API key plaintext pattern — Info
+
+**Файлы:** `config.h:125`, `BinanceAdapter.h:28`, `exchange_factory.py:172`, `llm_engine/engine.py:29`
+
+API keys stored as plaintext in 4 different locations:
+1. C++ `Config::ExchangeConfig::api_key` — `std::string`
+2. C++ `BinanceAdapter::Config::api_key` — `std::string`
+3. Python `ExchangeFactory::api_key` — `str`
+4. Python `LLMConfig::api_key` — `str`
+
+All have the same vulnerability: not zeroed on destruction, exposed in crash dumps. A unified `SecureString` (C++) and `SecretStr` (Python) class would fix all 4 at once.
+
+**Reduction potential:** ~20 lines of secure string code replaces 4 ad-hoc patterns.

@@ -277,3 +277,9 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | main.cpp: no SIGINT/SIGTERM handler visible | No signal handler in main. SIGTERM kills without graceful_shutdown. Verify init installs handler | CODE_AUDIT §8.763 |
 | main.cpp: no exception handling in main loop | No try/catch. Exception = crash without graceful shutdown. Open positions and SHM left dirty | CODE_AUDIT §8.764 |
 | config.h: API keys in plaintext std::string | std::string not zeroed on destruction. Core dump exposes keys. Use SecureString | CODE_AUDIT §8.766 |
+| order_executor: detached reconnect thread race | Detached thread accesses destroyed client_ after disconnect(). Use condition variable or join | CODE_AUDIT §8.774 |
+| BinanceAdapter: API keys in plaintext std::string | Not zeroed on destruction. Core dump exposes credentials. Use SecureString | CODE_AUDIT §8.778 |
+| automl: no validation set in optimize() | No validation enforcement. Overfit params deployed to prod. Add validation_data param | CODE_AUDIT §8.785 |
+| model_registry: _save() not atomic | open('w') truncates on crash. Registry corrupted, production model lost. Use temp+rename | CODE_AUDIT §8.788 |
+| llm_engine: API key in config dataclass plaintext | Exposed in repr/logging. Use field(repr=False) or SecretStr | CODE_AUDIT §8.791 |
+| llm_engine: no rate limiting on API calls | 50 symbols = 50 API calls/cycle. OpenAI 429 errors. Add token bucket rate limiter | CODE_AUDIT §8.792 |
