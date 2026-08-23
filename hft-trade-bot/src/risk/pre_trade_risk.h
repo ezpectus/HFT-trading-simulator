@@ -126,13 +126,16 @@ class PreTradeRisk {
                  double current_position_qty, // signed: + long, - short
                  double current_total_exposure) noexcept {
         // 1. Blacklist
-        if (config_.blacklist.count(symbol)) {
-            return {false, 1, "Symbol blacklisted"};
-        }
+        {
+            SpinlockGuard guard(list_lock_);
+            if (config_.blacklist.count(symbol)) {
+                return {false, 1, "Symbol blacklisted"};
+            }
 
-        // 2. Whitelist (if non-empty)
-        if (!config_.whitelist.empty() && !config_.whitelist.count(symbol)) {
-            return {false, 2, "Symbol not whitelisted"};
+            // 2. Whitelist (if non-empty)
+            if (!config_.whitelist.empty() && !config_.whitelist.count(symbol)) {
+                return {false, 2, "Symbol not whitelisted"};
+            }
         }
 
         // 3. Max leverage
@@ -186,11 +189,23 @@ class PreTradeRisk {
     // Reset daily counters
     void reset_daily() noexcept { daily_pnl_.store(0.0, std::memory_order_relaxed); }
 
-    // Blacklist/whitelist management
-    void blacklist(const std::string& symbol) { config_.blacklist.insert(symbol); }
-    void unblacklist(const std::string& symbol) { config_.blacklist.erase(symbol); }
-    void whitelist(const std::string& symbol) { config_.whitelist.insert(symbol); }
-    void unwhitelist(const std::string& symbol) { config_.whitelist.erase(symbol); }
+    // Blacklist/whitelist management (thread-safe via Spinlock)
+    void blacklist(const std::string& symbol) {
+        SpinlockGuard guard(list_lock_);
+        config_.blacklist.insert(symbol);
+    }
+    void unblacklist(const std::string& symbol) {
+        SpinlockGuard guard(list_lock_);
+        config_.blacklist.erase(symbol);
+    }
+    void whitelist(const std::string& symbol) {
+        SpinlockGuard guard(list_lock_);
+        config_.whitelist.insert(symbol);
+    }
+    void unwhitelist(const std::string& symbol) {
+        SpinlockGuard guard(list_lock_);
+        config_.whitelist.erase(symbol);
+    }
 
     double daily_pnl() const noexcept { return daily_pnl_.load(std::memory_order_relaxed); }
     double available_rate_tokens() const noexcept { return rate_limiter_.available_tokens(); }
@@ -199,6 +214,7 @@ class PreTradeRisk {
     Config              config_;
     TokenBucket         rate_limiter_;
     std::atomic<double> daily_pnl_{0.0};
+    mutable Spinlock    list_lock_;
 };
 
 } // namespace hft

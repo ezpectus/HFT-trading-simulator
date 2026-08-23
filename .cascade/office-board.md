@@ -174,11 +174,11 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~Code reduction ~800 lines total~~ [FIXED] | CircuitBreaker×3 + tracing + RateLimiter + compute_returns + exchange_sim — all addressed | CODE_AUDIT §8.109 |
 | ~~dpdk_transport.py: source missing~~ [FIXED] | File does not exist in src/networking/ — only socket_transport.py present. Audit item is stale | CODE_AUDIT §8.115 |
 | ~~Health checks v2: not wired~~ [FIXED] | HealthChecker wired into run.py — liveness/readiness registered with HealthServer, record_signal/record_order called | CODE_AUDIT §8.116 |
-| C++ order_executor: detached thread | Destroy while reconnect sleeping = use-after-free | CODE_AUDIT §8.117 |
+| ~~C++ order_executor: detached thread~~ [FIXED] | Replaced detached thread with member reconnect_thread_ joined in disconnect() | CODE_AUDIT §8.117 |
 | ~~C++ order_executor: snprintf truncation~~ [FIXED] | Added explicit truncation check — if n >= sizeof(buf), logs error and returns without sending malformed JSON | CODE_AUDIT §8.118 |
 | ~~.env.prod: placeholder passwords~~ [FIXED] | All passwords set to empty with REQUIRED comments — docker-compose.prod.yml fails if not set via ${VAR:?} | CODE_AUDIT §8.123 |
 | ~~.env.prod: localhost WS URLs~~ [FIXED] | VITE_WS_EXCHANGE/SIGNALS set to empty with REQUIRED comments — no localhost default | CODE_AUDIT §8.124 |
-| C++ health_server: accept() blocks | stop() can't join thread until next connection | CODE_AUDIT §8.126 |
+| ~~C++ health_server: accept() blocks~~ [FIXED] | Server socket stored as member, closed in stop() to unblock accept(), thread joins cleanly | CODE_AUDIT §8.126 |
 | ~~Makefile.prod: migration not idempotent~~ [FIXED] | schema_migrations table tracks applied files — skips already-applied, wraps new migrations in transaction | CODE_AUDIT §8.132 |
 | ~~docker-compose dev: Grafana admin/admin~~ [FIXED] | Grafana password now uses ${GRAFANA_PASSWORD:?} — fails if not set | CODE_AUDIT §8.138 |
 | ~~deploy.yml: health check no exit~~ [FIXED] | Health check job now exits 1 on failure — tracks FAIL count, fails pipeline if any endpoint unreachable | CODE_AUDIT §8.144 |
@@ -274,7 +274,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~hft-trade-bot: no Dockerfile.prod~~ [N/A] | Dockerfile.prod already exists (50 lines, multi-stage build, healthcheck) — audit item is stale | CODE_AUDIT §8.423 |
 | ~~migrate.py: no transaction wrapping~~ [FIXED] | Each migration wrapped in conn.transaction() — SQL + schema_migrations insert are atomic | CODE_AUDIT §8.436 |
 | ~~config.h: hardcoded localhost default~~ [FIXED] | ws_url default changed from ws://localhost:8765 to empty string — forces explicit config in Docker/K8s | CODE_AUDIT §8.445 |
-| order_executor: detached reconnect thread | Detached thread accesses this after destruction. Use jthread or join in dtor | CODE_AUDIT §8.452 |
+| ~~order_executor: detached reconnect thread~~ [FIXED] | Same as §8.117 — detached thread replaced with member thread joined in disconnect() | CODE_AUDIT §8.452 |
 | BinanceAdapter: nested spinlock acquisition | Two spinlocks sequential. Latent deadlock risk. Use single lock or document ordering | CODE_AUDIT §8.462 |
 | ~~Helm values: no Redis password~~ [FIXED] | redis.password added to values.yaml (empty by default) — redis.yaml template adds --requirepass + Secret with REDIS_URL, fails if not set | CODE_AUDIT §8.467 |
 | metrics_collector: mutex on every metric op | Global mutex blocks all metric operations in HFT hot path. Use atomics | CODE_AUDIT §8.483 |
@@ -307,9 +307,9 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~db.py: new connection per operation~~ [FIXED] | Already uses persistent _get_conn() — verified in Пачка AA | CODE_AUDIT §8.759 |
 | ~~main.cpp: no SIGINT/SIGTERM handler visible~~ [FIXED] | Signal handlers registered in main.cpp via std::signal(SIGINT/SIGTERM) → set_running(false). set_running() added to bot_setup.h/cpp | CODE_AUDIT §8.763 |
 | ~~main.cpp: no exception handling in main loop~~ [FIXED] | Added try/catch around init + main loop — catches std::exception + unknown, logs critical, falls through to graceful_shutdown | CODE_AUDIT §8.764 |
-| config.h: API keys in plaintext std::string | std::string not zeroed on destruction. Core dump exposes keys. Use SecureString | CODE_AUDIT §8.766 |
-| order_executor: detached reconnect thread race | Detached thread accesses destroyed client_ after disconnect(). Use condition variable or join | CODE_AUDIT §8.774 |
-| BinanceAdapter: API keys in plaintext std::string | Not zeroed on destruction. Core dump exposes credentials. Use SecureString | CODE_AUDIT §8.778 |
+| ~~config.h: API keys in plaintext std::string~~ [FIXED] | Added clear_secrets() method — zeros api_key/api_secret/passphrase/db_dsn/redis_url memory, called in graceful_shutdown() | CODE_AUDIT §8.766 |
+| ~~order_executor: detached reconnect thread race~~ [FIXED] | Same as §8.117 — detached thread replaced with member reconnect_thread_ joined in disconnect() | CODE_AUDIT §8.774 |
+| ~~BinanceAdapter: API keys in plaintext std::string~~ [FIXED] | Added clear_secrets() to BinanceAdapter::Config — zeros api_key/api_secret memory | CODE_AUDIT §8.778 |
 | ~~automl: no validation set in optimize~~ [FIXED] | Added validation_data parameter to optimize() and optimize_async() — objective_fn can accept 2 args | CODE_AUDIT §8.785 |
 | ~~model_registry: _save() not atomic~~ [FIXED] | Atomic write via temp file + os.replace — prevents corruption on crash | CODE_AUDIT §8.788 |
 | ~~llm_engine: API key in config dataclass plaintext~~ [FIXED] | Added SecretStr wrapper in Пачка X — repr/str show ***, .get() for actual value | CODE_AUDIT §8.791 |

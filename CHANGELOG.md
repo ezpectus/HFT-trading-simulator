@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AI: C++ thread safety + secret zeroing)
+
+### Fixed
+- `hft-trade-bot/src/execution/order_executor.h`: Replaced detached reconnect thread with member `reconnect_thread_` joined in `disconnect()` — prevents use-after-free (§8.117, §8.452, §8.774)
+- `hft-trade-bot/src/monitoring/health_server.h`: Stored server socket as member `server_sock_`, closed in `stop()` to unblock `accept()` — `thread_.join()` no longer hangs (§8.126)
+- `hft-trade-bot/src/core/config.h`: Added `clear_secrets()` method — zeros `api_key`/`api_secret`/`passphrase`/`db_dsn`/`redis_url` memory via `memset`, called in `graceful_shutdown()` (§8.766)
+- `hft-trade-bot/src/exchange/BinanceAdapter.h`: Added `clear_secrets()` to `Config` — zeros `api_key`/`api_secret` memory (§8.778)
+- `hft-trade-bot/src/core/bot_loop.cpp`: Calls `ctx.config.clear_secrets()` at end of `graceful_shutdown()`
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AH: Synthetic order book warning + Rust latency tracking)
 
 ### Added
