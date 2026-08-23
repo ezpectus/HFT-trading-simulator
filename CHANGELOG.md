@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AG: main.cpp signal handlers + exception handling)
+
+### Added
+- `hft-trade-bot/src/core/main.cpp`: `std::signal(SIGINT/SIGTERM)` registration → `set_running(false)` for graceful shutdown
+- `hft-trade-bot/src/core/bot_setup.h`: `set_running(bool)` declaration
+- `hft-trade-bot/src/core/bot_setup.cpp`: `set_running(bool)` implementation
+- `hft-trade-bot/src/core/main.cpp`: try/catch around init + main loop — catches `std::exception` + unknown, logs critical, falls through to `graceful_shutdown`
+
+### Fixed
+- CODE_AUDIT §8.763 — no SIGINT/SIGTERM handler → signal handlers registered
+- CODE_AUDIT §8.764 — no exception handling → try/catch with graceful shutdown
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AF: RiskManager reset_daily + atomic update_pnl)
 
 ### Changed

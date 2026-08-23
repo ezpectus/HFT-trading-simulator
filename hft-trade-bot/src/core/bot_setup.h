@@ -5,6 +5,7 @@
 namespace hft {
 
 bool is_running();
+void set_running(bool v);
 bool init_config_and_logger(BotContext& ctx, int argc, char* argv[]);
 void init_core_components(BotContext& ctx);
 bool init_signal_engines(BotContext& ctx);

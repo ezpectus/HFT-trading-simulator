@@ -21,9 +21,6 @@
 
 using namespace hft;
 
-// Forward-declare the g_running flag setter from bot_setup.cpp
-namespace hft { void set_running(bool v); }
-
 int main(int argc, char* argv[]) {
     // Register signal handlers for graceful shutdown
     std::signal(SIGINT,  [](int) { hft::set_running(false); });
