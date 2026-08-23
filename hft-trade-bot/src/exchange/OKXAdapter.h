@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstring>
 #include <string>
 #include <unordered_map>
 
@@ -28,6 +29,15 @@ class OKXAdapter : public ExchangeBase {
         std::string base_url  = "https://www.okx.com";
         std::string ws_url    = "wss://ws.okx.com:8443";
         std::string inst_type = "SWAP"; // Futures
+
+        void clear_secrets() {
+            auto zero = [](std::string& s) {
+                if (!s.empty()) { std::memset(s.data(), 0, s.size()); s.clear(); }
+            };
+            zero(api_key);
+            zero(api_secret);
+            zero(passphrase);
+        }
     };
 
     explicit OKXAdapter(const Config& cfg)
@@ -37,13 +47,13 @@ class OKXAdapter : public ExchangeBase {
 
     // IExchange interface
     double best_bid(const std::string& symbol) const override {
-        std::lock_guard<Spinlock> lk(price_lock_);
+        std::lock_guard<Spinlock> lk(market_data_lock_);
         auto                      it = bids_.find(symbol);
         return it != bids_.end() ? it->second : 0.0;
     }
 
     double best_ask(const std::string& symbol) const override {
-        std::lock_guard<Spinlock> lk(price_lock_);
+        std::lock_guard<Spinlock> lk(market_data_lock_);
         auto                      it = asks_.find(symbol);
         return it != asks_.end() ? it->second : 0.0;
     }
@@ -53,13 +63,13 @@ class OKXAdapter : public ExchangeBase {
     }
 
     double bid_depth(const std::string& symbol, int /*levels*/) const override {
-        std::lock_guard<Spinlock> lk(depth_lock_);
+        std::lock_guard<Spinlock> lk(market_data_lock_);
         auto                      it = bid_depth_.find(symbol);
         return it != bid_depth_.end() ? it->second : 0.0;
     }
 
     double ask_depth(const std::string& symbol, int /*levels*/) const override {
-        std::lock_guard<Spinlock> lk(depth_lock_);
+        std::lock_guard<Spinlock> lk(market_data_lock_);
         auto                      it = ask_depth_.find(symbol);
         return it != ask_depth_.end() ? it->second : 0.0;
     }
@@ -67,10 +77,9 @@ class OKXAdapter : public ExchangeBase {
     // Update from OKX tickers channel
     void on_ticker(const std::string& inst_id, double bid, double bid_sz, double ask,
                    double ask_sz) {
-        std::lock_guard<Spinlock> lk(price_lock_);
+        std::lock_guard<Spinlock> lk(market_data_lock_);
         bids_[inst_id] = bid;
         asks_[inst_id] = ask;
-        std::lock_guard<Spinlock> lk2(depth_lock_);
         bid_depth_[inst_id] = bid_sz;
         ask_depth_[inst_id] = ask_sz;
     }
@@ -131,8 +140,7 @@ class OKXAdapter : public ExchangeBase {
 
   private:
     Config                                  config_;
-    mutable Spinlock                        price_lock_;
-    mutable Spinlock                        depth_lock_;
+    mutable Spinlock                        market_data_lock_;
     std::unordered_map<std::string, double> bids_;
     std::unordered_map<std::string, double> asks_;
     std::unordered_map<std::string, double> bid_depth_;

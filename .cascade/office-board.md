@@ -314,10 +314,10 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~model_registry: _save() not atomic~~ [FIXED] | Atomic write via temp file + os.replace — prevents corruption on crash | CODE_AUDIT §8.788 |
 | ~~llm_engine: API key in config dataclass plaintext~~ [FIXED] | Added SecretStr wrapper in Пачка X — repr/str show ***, .get() for actual value | CODE_AUDIT §8.791 |
 | ~~llm_engine: no rate limiting on API calls~~ [FIXED] | Added asyncio.Semaphore(5) rate limiter in Пачка Q | CODE_AUDIT §8.792 |
-| signal_engine_v2: heap alloc in get_cache() | emplace in analyze_incremental breaks no-heap-alloc contract. Pre-populate cache at init | CODE_AUDIT §8.796 |
-| signal_engine_v2: cooldown not per-symbol | Single cooldown blocks all 50 symbols. Only 1 signal per period. Move to per-symbol cache | CODE_AUDIT §8.798 |
-| signal_engine_v3: heap alloc in get_or_create_hmm_state() | emplace in analyze_incremental breaks no-heap-alloc contract. noexcept incorrect. Pre-populate at init | CODE_AUDIT §8.808 |
-| mean_reversion_v2: no per-symbol state | Single Kalman+residuals for all symbols. BTC contaminates ETH. Add per-symbol state | CODE_AUDIT §8.812 |
+| ~~signal_engine_v2: heap alloc in get_cache()~~ [FIXED] | Added prepopulate() method — caches pre-created at init for all configured symbols. get_cache() still has fallback emplace for new symbols mid-trading | CODE_AUDIT §8.796 |
+| ~~signal_engine_v2: cooldown not per-symbol~~ [FIXED] | Moved last_signal_ms_ into IndicatorCache (per-symbol). check_cooldown now takes IndicatorCache&. finalize_signal takes IndicatorCache* | CODE_AUDIT §8.798 |
+| ~~signal_engine_v3: heap alloc in get_or_create_hmm_state()~~ [FIXED] | Added prepopulate() — hmm_states_ pre-created at init. Removed noexcept from get_or_create_hmm_state (emplace can throw bad_alloc) | CODE_AUDIT §8.808 |
+| ~~mean_reversion_v2: no per-symbol state~~ [N/A] | MeanReversionV2 only used in tests, not production. Per-symbol state is a design concern, not an active bug | CODE_AUDIT §8.812 |
 | ~~socket_transport: start_receive_loop blocks thread~~ [FIXED] | Already uses non-blocking sockets with selectors.DefaultSelector() + timeout=0.1 — same as §8.675, stale item | CODE_AUDIT §8.815 |
 | ~~notifier: bot token in plaintext~~ [FIXED] | Suppressed aiohttp debug logging in Пачка X to prevent token leakage | CODE_AUDIT §8.818 |
 | ~~notifier: no rate limiting on alerts~~ [FIXED] | NotifierManager: added asyncio.Semaphore(3) + 1/sec rate limit to prevent 429 errors | CODE_AUDIT §8.819 |
@@ -325,10 +325,10 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~health_checks: check_readiness runs sequentially~~ [FIXED] | All 4 checks now run in parallel via asyncio.gather with return_exceptions=True | CODE_AUDIT §8.852 |
 | ~~health_checks: no timeout on individual checks~~ [FIXED] | Each check wrapped in asyncio.wait_for(timeout=2.0) — TimeoutError returns UNHEALTHY | CODE_AUDIT §8.853 |
 | momentum_breakout_v2: no per-symbol state | EMA/ATR/ADX/volume shared across symbols. BTC contaminates ETH. Add per-symbol state | CODE_AUDIT §8.871 |
-| signal_engine_v3: get_or_create_hmm_state heap alloc in noexcept | emplace can throw bad_alloc → std::terminate → abort. Pre-populate hmm_states_ at init | CODE_AUDIT §8.887 |
+| ~~signal_engine_v3: get_or_create_hmm_state heap alloc in noexcept~~ [FIXED] | Removed noexcept from get_or_create_hmm_state. prepopulate() pre-creates hmm_states_ at init. Same fix as §8.808 | CODE_AUDIT §8.887 |
 | market_making_v2: no per-symbol state | Volatility/sigma shared across symbols. BTC vol contaminates ETH quotes. One instance per symbol | CODE_AUDIT §8.892 |
 | ~~fix_client: password in plaintext debug log~~ [FIXED] | Sensitive tags (553, 554, 4961) redacted with *** in debug log | CODE_AUDIT §8.898 |
-| mean_reversion_v2: no per-symbol state | Kalman+OU+residuals shared across symbols. BTC contaminates ETH. One instance per symbol | CODE_AUDIT §8.915 |
+| ~~mean_reversion_v2: no per-symbol state~~ [N/A] | Same as §8.812 — MeanReversionV2 only used in tests, not production | CODE_AUDIT §8.915 |
 | ~~signal_publisher: backtest runs in event loop~~ [FIXED] | Wrapped bt.run in asyncio.to_thread in Пачка J | CODE_AUDIT §8.920 |
 | ~~alerting: new aiohttp.ClientSession per alert per channel~~ [FIXED] | Replaced with shared _get_session() in Пачка O | CODE_AUDIT §8.943 |
 | order_executor: detached reconnect thread race | Dangling `this` after destroy. Detached thread sleeps then accesses dead object. Don't detach or use asio timer | CODE_AUDIT §8.987 |

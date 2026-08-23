@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AL: Signal engine prepopulate + per-symbol cooldown)
+
+### Fixed
+- `hft-trade-bot/src/strategies/signal_engine_v2.h`: Added `prepopulate()` method — pre-creates `IndicatorCache` for all configured symbols at init, eliminating heap alloc in hot path (§8.796)
+- `hft-trade-bot/src/strategies/signal_engine_v2.h`: Moved `last_signal_ms_` into `IndicatorCache` for per-symbol cooldown — each symbol now has independent cooldown (§8.798)
+- `hft-trade-bot/src/strategies/signal_engine_v3.h`: Added `prepopulate()` for `hmm_states_`, removed incorrect `noexcept` from `get_or_create_hmm_state` (§8.808, §8.887)
+- `hft-trade-bot/src/core/bot_setup.cpp`: Calls `prepopulate(symbols)` on V2 and V3 engines at init
+
+### Changed
+- CODE_AUDIT §8.812, §8.915 — MeanReversionV2 per-symbol state → [N/A] (only used in tests, not production)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AK: BinanceAdapter spinlock + TOCTOU fix)
 
 ### Fixed

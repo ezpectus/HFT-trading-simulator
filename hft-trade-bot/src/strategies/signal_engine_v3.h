@@ -30,6 +30,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 inline constexpr double kPiV3 = 3.14159265358979323846;
 
@@ -282,6 +283,13 @@ class SignalEngineV3 {
     explicit SignalEngineV3(const SignalEngineV2::Params& v2_params, const Params& v3_params)
         : v2_engine_(v2_params), params_(v3_params) {}
 
+    void prepopulate(const std::vector<std::string>& symbols) {
+        v2_engine_.prepopulate(symbols);
+        for (const auto& sym : symbols) {
+            hmm_states_.try_emplace(sym, HMMState{});
+        }
+    }
+
     // Analyze with regime detection
     // Uses V2 for base signal, then applies HMM regime gating
     FastSignal analyze(const char* symbol, const Candle* candles, size_t n, const OrderBook& ob,
@@ -349,7 +357,7 @@ class SignalEngineV3 {
     void          set_params(const Params& p) noexcept { params_ = p; }
 
   private:
-    inline HMMState& get_or_create_hmm_state(const char* symbol) noexcept {
+    inline HMMState& get_or_create_hmm_state(const char* symbol) {
         auto it = hmm_states_.find(std::string_view(symbol));
         if (it == hmm_states_.end()) {
             it = hmm_states_.emplace(std::string(symbol), HMMState{}).first;

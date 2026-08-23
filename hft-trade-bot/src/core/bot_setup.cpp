@@ -131,8 +131,10 @@ bool init_signal_engines(BotContext& ctx) {
         return false;
     }
     ctx.engine_v2 = std::make_unique<SignalEngineV2>(v2_params);
+    ctx.engine_v2->prepopulate(ctx.config.symbols);
     if (ctx.config.signal_engine_v3_enabled) {
         ctx.engine_v3 = std::make_unique<SignalEngineV3>(v2_params, SignalEngineV3::Params{});
+        ctx.engine_v3->prepopulate(ctx.config.symbols);
         spdlog::info("Signal Engine V3: HMM regime detection ENABLED");
     }
     PressureModel::Params pp;

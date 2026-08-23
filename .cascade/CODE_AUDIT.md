@@ -10753,7 +10753,7 @@ All have the same vulnerability: not zeroed on destruction, exposed in crash dum
 
 Excellent signal engine with 6 indicators, no heap alloc, incremental cache, cooldown, composite scoring, adaptive SL/TP, and branchless design. ✅
 
-### 8.796 signal_engine_v2: heap alloc in get_cache() — Medium
+### 8.796 signal_engine_v2: heap alloc in get_cache() — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h:61-64`
 
@@ -10781,7 +10781,7 @@ double           closes[MAX_N], highs[MAX_N], lows[MAX_N], volumes[MAX_N];
 
 **Фикс:** Use `thread_local` arrays or pre-allocated buffers in BotContext. Or reduce MAX_N to 128.
 
-### 8.798 signal_engine_v2: last_signal_ms_ not per-symbol — Medium
+### 8.798 signal_engine_v2: last_signal_ms_ not per-symbol — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h:192`
 
@@ -10931,7 +10931,7 @@ Two position manager implementations exist. The V1 (130 lines) is used in `bot_l
 
 Excellent signal engine V3 with HMM regime detection, online learning, log-space numerics, per-symbol state, regime gating, and no heap allocations. ✅
 
-### 8.808 signal_engine_v3: heap alloc in get_or_create_hmm_state() — Medium
+### 8.808 signal_engine_v3: heap alloc in get_or_create_hmm_state() — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:352-357`
 
@@ -10995,7 +10995,7 @@ Manual string concatenation with `while` loops and character-by-character copyin
 
 Excellent mean reversion V2 with Kalman filter, OU estimation, z-score, half-life, 6 actions, ring buffer, cache-line alignment, and no heap allocations. ✅
 
-### 8.812 mean_reversion_v2: no per-symbol state — Medium
+### 8.812 mean_reversion_v2: no per-symbol state — Medium [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h:60`
 
@@ -12137,7 +12137,7 @@ Raw HTTP parsing with `readline()`. No method checking (GET/POST), no path check
 
 Excellent HMM regime detection with online learning, log-space stability, per-symbol state, and regime-gated signals. ✅
 
-### 8.887 signal_engine_v3: get_or_create_hmm_state heap alloc in noexcept — Medium
+### 8.887 signal_engine_v3: get_or_create_hmm_state heap alloc in noexcept — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:352-357`
 
@@ -12512,7 +12512,7 @@ The `compute_obi` static method is defined but not called — the main `analyze(
 
 Excellent mean reversion with Kalman fair price, OU parameter estimation, z-score signals, half-life, ring buffers, and cache-line alignment. ✅
 
-### 8.915 mean_reversion_v2: no per-symbol state — Medium
+### 8.915 mean_reversion_v2: no per-symbol state — Medium [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h:60-298`
 

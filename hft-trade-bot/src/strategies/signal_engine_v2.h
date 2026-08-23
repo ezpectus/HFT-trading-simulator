@@ -33,6 +33,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 namespace hft {
 
@@ -191,6 +192,8 @@ class SignalEngineV2 {
         if (symbol) {
             auto it = cache_.find(std::string_view(symbol));
             if (it != cache_.end()) it->second.last_signal_ms = 0;
+        } else {
+            for (auto& [key, ic] : cache_) ic.last_signal_ms = 0;
         }
     }
 
