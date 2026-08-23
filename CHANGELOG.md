@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-26 (Refactoring — Пачка BC: Reliability Task 10/11 — metric name unification)
+
+### Fixed
+- **Reliability Task 10/11**: Alert rules referenced `ai_signal_bot_*` metrics, but Prometheus scrapes port 9090 (`MetricsExporter`) which only exported `trading_*` names — alerts never fired
+- **`src/monitoring/metrics.py`**: Added 10 `ai_signal_bot_*` metrics to `MetricsExporter` + 10 update methods:
+  - `signals_sent_total`, `signals_blocked_total`, `circuit_breaker_state`, `circuit_breaker_trips_total`, `ws_clients_connected`, `errors_total`, `drawdown`, `win_rate`, `pnl_total`, `uptime_seconds`
+- **`monitoring/alerts.yml`**: Consolidated — merged 11 additional alert rules from duplicate `alerts/alerts.yml`:
+  - HighBotErrorRate, CriticalBotErrorRate, HighDrawdown, CriticalDrawdown, LowWinRate, NegativePnL, HighOrderRejectionRate, LowFillRate, EquityDrop, CandleGenerationStalled
+- **Deleted**: `monitoring/alerts/alerts.yml` (duplicate, not loaded by prometheus.yml)
+- **`docs/MONITORING_GUIDE.md`**: Updated docker run path + alert table to match canonical `alerts.yml`
+- **Tests**: 11 new test functions in `tests/unit/test_monitoring_metrics.py` for alert metric methods
+
 ## [Unreleased] — 2026-08-26 (Refactoring — Пачка BB: final Low-severity audit cleanup)
 
 ### Fixed

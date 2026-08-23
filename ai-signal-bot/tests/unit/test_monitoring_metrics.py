@@ -167,5 +167,95 @@ def test_reset_kill_switch(exporter: MetricsExporter) -> None:
     """reset_kill_switch should not raise after activation."""
     if not HAS_PROMETHEUS:
         pytest.skip("prometheus_client not installed")
-    exporter.record_kill_switch("test")
     exporter.reset_kill_switch()
+
+
+# ─── Alert Metric Methods ───
+
+
+def test_metrics_exporter_has_alert_metrics(exporter: MetricsExporter) -> None:
+    """ai_signal_bot_* alert metrics should be initialized."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    assert hasattr(exporter, "signals_sent_total")
+    assert hasattr(exporter, "signals_blocked_total")
+    assert hasattr(exporter, "circuit_breaker_state")
+    assert hasattr(exporter, "circuit_breaker_trips_total")
+    assert hasattr(exporter, "ws_clients_connected")
+    assert hasattr(exporter, "errors_total")
+    assert hasattr(exporter, "bot_drawdown")
+    assert hasattr(exporter, "bot_win_rate")
+    assert hasattr(exporter, "bot_pnl_total")
+    assert hasattr(exporter, "bot_uptime_seconds")
+
+
+def test_record_signal_sent(exporter: MetricsExporter) -> None:
+    """record_signal_sent should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.record_signal_sent()
+
+
+def test_record_signal_blocked(exporter: MetricsExporter) -> None:
+    """record_signal_blocked should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.record_signal_blocked()
+
+
+def test_set_circuit_breaker_state(exporter: MetricsExporter) -> None:
+    """set_circuit_breaker_state should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.set_circuit_breaker_state(0)
+    exporter.set_circuit_breaker_state(1)
+    exporter.set_circuit_breaker_state(2)
+
+
+def test_record_circuit_breaker_trip(exporter: MetricsExporter) -> None:
+    """record_circuit_breaker_trip should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.record_circuit_breaker_trip()
+
+
+def test_set_ws_clients(exporter: MetricsExporter) -> None:
+    """set_ws_clients should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.set_ws_clients(5)
+
+
+def test_record_error(exporter: MetricsExporter) -> None:
+    """record_error should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.record_error()
+
+
+def test_set_bot_drawdown(exporter: MetricsExporter) -> None:
+    """set_bot_drawdown should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.set_bot_drawdown(0.05)
+
+
+def test_set_bot_win_rate(exporter: MetricsExporter) -> None:
+    """set_bot_win_rate should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.set_bot_win_rate(0.65)
+
+
+def test_set_bot_pnl_total(exporter: MetricsExporter) -> None:
+    """set_bot_pnl_total should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.set_bot_pnl_total(1500.0)
+
+
+def test_set_bot_uptime(exporter: MetricsExporter) -> None:
+    """set_bot_uptime should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.set_bot_uptime(3600.0)

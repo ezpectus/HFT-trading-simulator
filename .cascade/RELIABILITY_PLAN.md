@@ -94,16 +94,14 @@
 - Jitter (случайная задержка) для избежания thundering herd
 - Счётчик реконнектов → метрика `trading_ws_reconnects_total`
 
-### Task 10: Метрики — покрыть пробелы
+### Task 10: Метрики — покрыть пробелы [FIXED]
 **Файлы:** `ai-signal-bot/src/monitoring/metrics.py`, `exchange_simulator/metrics.py`
 - Добавить: `trading_ws_reconnects_total`, `trading_signals_rejected_total` (по причинам), `trading_db_errors_total`
-- Убедиться, что имена метрик совпадают с alert rules в `monitoring/alerts/alerts.yml` (сейчас там `ai_signal_bot_*` и `exchange_simulator_*`, а в коде `trading_*` — НЕСОВПАДЕНИЕ!)
+- Убедиться, что имена метрик совпадают с alert rules в `monitoring/alerts.yml` — **FIXED**: добавлены `ai_signal_bot_*` метрики в `MetricsExporter` (port 9090), теперь Prometheus скрейпит метрики с правильными именами для алертов
 
-### Task 11: Проверить alert rules vs фактические метрики
-**Файлы:** `monitoring/alerts/alerts.yml`, `monitoring/prometheus.yml`
-- Alert rules ссылаются на `ai_signal_bot_signal_generation_latency_seconds`, `exchange_simulator_order_latency_seconds` и т.д.
-- В коде метрики называются `trading_signal_latency_seconds`, `trading_order_latency_seconds`
-- **НЕСОВПАДЕНИЕ ИМЁН** — алерты никогда не сработают! Нужно унифицировать.
+### Task 11: Проверить alert rules vs фактические метрики [FIXED]
+**Файлы:** `monitoring/alerts.yml`, `monitoring/prometheus.yml`
+- Alert rules ссылаются на `ai_signal_bot_*` и `exchange_*` метрики — **FIXED**: `MetricsExporter` теперь экспортирует `ai_signal_bot_*` метрики на port 9090 (который скрейпит Prometheus). Дубликат `monitoring/alerts/alerts.yml` удалён, все алерты консолидированы в `monitoring/alerts.yml`.
 
 ---
 

@@ -132,7 +132,7 @@ Scrape targets:
 docker run -d \
   -p 9090:9090 \
   -v $(pwd)/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml \
-  -v $(pwd)/monitoring/alerts/alerts.yml:/etc/prometheus/alerts.yml \
+  -v $(pwd)/monitoring/alerts.yml:/etc/prometheus/alerts.yml \
   prom/prometheus
 
 # Or via docker-compose
@@ -177,20 +177,31 @@ Access at `http://localhost:3001` (admin/admin).
 
 ### Alert Rules
 
-**Source:** `monitoring/alerts/alerts.yml`
+**Source:** `monitoring/alerts.yml`
 
 | Alert | Severity | Trigger | For |
 |-------|----------|---------|-----|
-| HighSignalGenerationLatency | warning | p99 > 100ms | 5m |
-| CriticalSignalGenerationLatency | critical | p99 > 1s | 2m |
-| HighOrderProcessingLatency | warning | p99 > 50ms | 5m |
-| CriticalOrderProcessingLatency | critical | p99 > 500ms | 2m |
-| HighDrawdown | warning | drawdown > 5% | 1m |
-| CriticalDrawdown | critical | drawdown > 8% | 30s |
-| HighErrorRate | warning | error rate > 5% | 5m |
-| CriticalErrorRate | critical | error rate > 10% | 1m |
-| ConnectionFailures | warning | failed connections > 10 | 2m |
-| HighMemoryUsage | warning | memory > 80% | 5m |
+| CircuitBreakerTripped | critical | breaker state == 1 | 10s |
+| CircuitBreakerHalfOpen | warning | breaker state == 2 | 30s |
+| HighSignalBlockRate | warning | blocked rate > 0.5/s | 2m |
+| NoSignalsSent | warning | no signals in 5m | 5m |
+| NoWsClients | critical | ws_clients == 0 | 1m |
+| HighBotErrorRate | warning | error rate > 0.1/s | 5m |
+| CriticalBotErrorRate | critical | error rate > 1.0/s | 2m |
+| HighDrawdown | warning | drawdown > 8% | 5m |
+| CriticalDrawdown | critical | drawdown > 15% | 2m |
+| LowWinRate | warning | win rate < 0.4 | 30m |
+| NegativePnL | warning | PnL < 0 | 10m |
+| HighOrderRejectionRate | warning | rejection rate > 10% | 5m |
+| LowFillRate | warning | fill rate < 80% | 10m |
+| EquityDrop | warning | equity < 95% of balance | 5m |
+| CandleGenerationStalled | critical | no new candles in 5m | 5m |
+| TradingStopped | warning | trading_active == 0 | 1m |
+| SignalBotDown | critical | up == 0 | 30s |
+| ExchangeSimulatorDown | critical | up == 0 | 30s |
+| HftBotDown | critical | up == 0 | 30s |
+| HighWsReconnectionRate | warning | disconnections > 0.5/s | 5m |
+| NoWsClientsConnected | warning | connected_clients == 0 | 2m |
 
 ### Notification Channels
 

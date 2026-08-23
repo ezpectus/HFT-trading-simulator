@@ -60,6 +60,16 @@ class MetricsExporter:
             self.order_latency = None
             self.shm_round_trip_latency = None
             self.position_hold_time = None
+            self.signals_sent_total = None
+            self.signals_blocked_total = None
+            self.circuit_breaker_state = None
+            self.circuit_breaker_trips_total = None
+            self.ws_clients_connected = None
+            self.errors_total = None
+            self.bot_drawdown = None
+            self.bot_win_rate = None
+            self.bot_pnl_total = None
+            self.bot_uptime_seconds = None
             return
 
         self.registry = CollectorRegistry()
@@ -71,6 +81,7 @@ class MetricsExporter:
         self._init_gauges()
         self._init_histograms()
         self._init_summaries()
+        self._init_alert_metrics()
 
     def _init_counters(self):
         """Initialize counter metrics."""
@@ -143,6 +154,49 @@ class MetricsExporter:
         """Initialize summary metrics."""
         self.position_hold_time = Summary(
             "trading_position_hold_time_seconds", "Position hold time",
+            registry=self.registry,
+        )
+
+    def _init_alert_metrics(self):
+        """Initialize ai_signal_bot_* metrics used by Prometheus alert rules."""
+        self.signals_sent_total = Counter(
+            "ai_signal_bot_signals_sent_total", "Total signals broadcast",
+            registry=self.registry,
+        )
+        self.signals_blocked_total = Counter(
+            "ai_signal_bot_signals_blocked_total", "Signals blocked by circuit breaker",
+            registry=self.registry,
+        )
+        self.circuit_breaker_state = Gauge(
+            "ai_signal_bot_circuit_breaker_state", "Circuit breaker state (0=closed, 1=open, 2=half_open)",
+            registry=self.registry,
+        )
+        self.circuit_breaker_trips_total = Counter(
+            "ai_signal_bot_circuit_breaker_trips_total", "Total circuit breaker trips",
+            registry=self.registry,
+        )
+        self.ws_clients_connected = Gauge(
+            "ai_signal_bot_ws_clients_connected", "Connected WebSocket clients",
+            registry=self.registry,
+        )
+        self.errors_total = Counter(
+            "ai_signal_bot_errors_total", "Total errors",
+            registry=self.registry,
+        )
+        self.bot_drawdown = Gauge(
+            "ai_signal_bot_drawdown", "Current drawdown fraction",
+            registry=self.registry,
+        )
+        self.bot_win_rate = Gauge(
+            "ai_signal_bot_win_rate", "Win rate (0-1)",
+            registry=self.registry,
+        )
+        self.bot_pnl_total = Gauge(
+            "ai_signal_bot_pnl_total", "Cumulative PnL",
+            registry=self.registry,
+        )
+        self.bot_uptime_seconds = Gauge(
+            "ai_signal_bot_uptime_seconds", "Uptime in seconds",
             registry=self.registry,
         )
 
@@ -225,6 +279,58 @@ class MetricsExporter:
         if not HAS_PROMETHEUS:
             return
         self.kill_switch_active.set(0)
+
+    # ── Alert metric update methods ──
+
+    def record_signal_sent(self):
+        if not HAS_PROMETHEUS:
+            return
+        self.signals_sent_total.inc()
+
+    def record_signal_blocked(self):
+        if not HAS_PROMETHEUS:
+            return
+        self.signals_blocked_total.inc()
+
+    def set_circuit_breaker_state(self, state: int):
+        if not HAS_PROMETHEUS:
+            return
+        self.circuit_breaker_state.set(state)
+
+    def record_circuit_breaker_trip(self):
+        if not HAS_PROMETHEUS:
+            return
+        self.circuit_breaker_trips_total.inc()
+
+    def set_ws_clients(self, count: int):
+        if not HAS_PROMETHEUS:
+            return
+        self.ws_clients_connected.set(count)
+
+    def record_error(self):
+        if not HAS_PROMETHEUS:
+            return
+        self.errors_total.inc()
+
+    def set_bot_drawdown(self, fraction: float):
+        if not HAS_PROMETHEUS:
+            return
+        self.bot_drawdown.set(fraction)
+
+    def set_bot_win_rate(self, win_rate: float):
+        if not HAS_PROMETHEUS:
+            return
+        self.bot_win_rate.set(win_rate)
+
+    def set_bot_pnl_total(self, pnl: float):
+        if not HAS_PROMETHEUS:
+            return
+        self.bot_pnl_total.set(pnl)
+
+    def set_bot_uptime(self, seconds: float):
+        if not HAS_PROMETHEUS:
+            return
+        self.bot_uptime_seconds.set(seconds)
 
     # ── HTTP endpoint ──
 

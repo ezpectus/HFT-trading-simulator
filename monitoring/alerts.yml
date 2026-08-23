@@ -64,6 +64,72 @@ groups:
           summary: "No WebSocket clients connected"
           description: "No HFT Trade Bot or Web UI is connected to the signal publisher."
 
+      # High error rate
+      - alert: HighBotErrorRate
+        expr: rate(ai_signal_bot_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: ai-signal-bot
+        annotations:
+          summary: "High bot error rate"
+          description: "Error rate is {{ $value }} errors/sec"
+
+      # Critical error rate
+      - alert: CriticalBotErrorRate
+        expr: rate(ai_signal_bot_errors_total[5m]) > 1.0
+        for: 2m
+        labels:
+          severity: critical
+          service: ai-signal-bot
+        annotations:
+          summary: "Critical bot error rate"
+          description: "Error rate is {{ $value }} errors/sec"
+
+      # High drawdown (>8%)
+      - alert: HighDrawdown
+        expr: ai_signal_bot_drawdown > 0.08
+        for: 5m
+        labels:
+          severity: warning
+          service: ai-signal-bot
+        annotations:
+          summary: "High drawdown"
+          description: "Drawdown is {{ $value * 100 }}% (threshold 8%)"
+
+      # Critical drawdown (>15%)
+      - alert: CriticalDrawdown
+        expr: ai_signal_bot_drawdown > 0.15
+        for: 2m
+        labels:
+          severity: critical
+          service: ai-signal-bot
+        annotations:
+          summary: "Critical drawdown"
+          description: "Drawdown is {{ $value * 100 }}% (threshold 15%)"
+
+      # Low win rate
+      - alert: LowWinRate
+        expr: ai_signal_bot_win_rate < 0.4
+        for: 30m
+        labels:
+          severity: warning
+          service: ai-signal-bot
+        annotations:
+          summary: "Low win rate"
+          description: "Win rate is {{ $value * 100 }}%"
+
+      # Negative PnL
+      - alert: NegativePnL
+        expr: ai_signal_bot_pnl_total < 0
+        for: 10m
+        labels:
+          severity: warning
+          service: ai-signal-bot
+        annotations:
+          summary: "Negative PnL"
+          description: "Total PnL is {{ $value }}"
+
       # Bot process down — no metrics scraped
       - alert: SignalBotDown
         expr: up{job="ai-signal-bot"} == 0
@@ -88,6 +154,50 @@ groups:
         annotations:
           summary: "Exchange Simulator is down"
           description: "Prometheus cannot scrape metrics from Exchange Simulator."
+
+      # High order rejection rate
+      - alert: HighOrderRejectionRate
+        expr: exchange_orders_rejected_total / exchange_orders_submitted_total > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: exchange-simulator
+        annotations:
+          summary: "High order rejection rate"
+          description: "Rejection rate is {{ $value * 100 }}% for {{ $labels.exchange }}"
+
+      # Low order fill rate
+      - alert: LowFillRate
+        expr: exchange_orders_filled_total / exchange_orders_submitted_total < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: exchange-simulator
+        annotations:
+          summary: "Low order fill rate"
+          description: "Fill rate is {{ $value * 100 }}% for {{ $labels.exchange }} (threshold 80%)"
+
+      # Equity drop — unrealized losses >5%
+      - alert: EquityDrop
+        expr: exchange_equity < exchange_balance * 0.95
+        for: 5m
+        labels:
+          severity: warning
+          service: exchange-simulator
+        annotations:
+          summary: "Equity below 95% of balance"
+          description: "Unrealized losses exceeding 5% for {{ $labels.exchange }}"
+
+      # Candle generation stalled
+      - alert: CandleGenerationStalled
+        expr: rate(exchange_candle_count[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: exchange-simulator
+        annotations:
+          summary: "Candle generation stalled"
+          description: "No new candles generated in 5 minutes — market data feed may be down"
 
       # Trading has been stopped — orders are being rejected
       - alert: TradingStopped
