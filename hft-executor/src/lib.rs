@@ -35,6 +35,9 @@ pub struct OrderExecutor {
     order_count: Arc<AtomicU64>,
     fill_count: Arc<AtomicU64>,
     error_count: Arc<AtomicU64>,
+    latency_sum_ns: Arc<AtomicU64>,
+    latency_count: Arc<AtomicU64>,
+    last_order_ts: Arc<AtomicU64>,
     _runtime: Option<tokio::runtime::Runtime>,
 }
 
@@ -71,6 +74,9 @@ impl OrderExecutor {
         let order_count = Arc::new(AtomicU64::new(0));
         let fill_count = Arc::new(AtomicU64::new(0));
         let error_count = Arc::new(AtomicU64::new(0));
+        let latency_sum_ns = Arc::new(AtomicU64::new(0));
+        let latency_count = Arc::new(AtomicU64::new(0));
+        let last_order_ts = Arc::new(AtomicU64::new(0));
 
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(1)
@@ -84,6 +90,9 @@ impl OrderExecutor {
             rx,
             fill_count.clone(),
             error_count.clone(),
+            latency_sum_ns.clone(),
+            latency_count.clone(),
+            last_order_ts.clone(),
         ));
 
         Self {
@@ -91,6 +100,9 @@ impl OrderExecutor {
             order_count,
             fill_count,
             error_count,
+            latency_sum_ns,
+            latency_count,
+            last_order_ts,
             _runtime: Some(runtime),
         }
     }
@@ -109,11 +121,17 @@ impl OrderExecutor {
     }
 
     pub fn stats(&self) -> ExecStats {
+        let count = self.latency_count.load(Ordering::Relaxed);
+        let avg = if count > 0 {
+            self.latency_sum_ns.load(Ordering::Relaxed) / count
+        } else {
+            0
+        };
         ExecStats {
             orders_sent: self.order_count.load(Ordering::Relaxed),
             fills_received: self.fill_count.load(Ordering::Relaxed),
             errors: self.error_count.load(Ordering::Relaxed),
-            avg_latency_ns: 0,
+            avg_latency_ns: avg,
         }
     }
 
@@ -122,6 +140,9 @@ impl OrderExecutor {
         mut rx: mpsc::UnboundedReceiver<Order>,
         fill_count: Arc<AtomicU64>,
         error_count: Arc<AtomicU64>,
+        latency_sum_ns: Arc<AtomicU64>,
+        latency_count: Arc<AtomicU64>,
+        last_order_ts: Arc<AtomicU64>,
     ) {
         let mut seq: u64 = 0;
         let mut backoff = Duration::from_millis(500);
@@ -155,6 +176,7 @@ impl OrderExecutor {
                                     .duration_since(std::time::UNIX_EPOCH)
                                     .unwrap()
                                     .as_nanos() as u64;
+                                last_order_ts.store(order.timestamp_ns, Ordering::Relaxed);
 
                                 let json = serde_json::to_string(&order).unwrap_or_default();
                                 let msg = Message::Text(json);
@@ -176,6 +198,15 @@ impl OrderExecutor {
                         match msg {
                             Some(Ok(Message::Text(text))) => {
                                 if Self::is_fill_message(&text) {
+                                    let now_ns = std::time::SystemTime::now()
+                                        .duration_since(std::time::UNIX_EPOCH)
+                                        .unwrap_or_default()
+                                        .as_nanos() as u64;
+                                    let sent_ts = last_order_ts.load(Ordering::Relaxed);
+                                    if sent_ts > 0 && now_ns > sent_ts {
+                                        latency_sum_ns.fetch_add(now_ns - sent_ts, Ordering::Relaxed);
+                                        latency_count.fetch_add(1, Ordering::Relaxed);
+                                    }
                                     fill_count.fetch_add(1, Ordering::Relaxed);
                                     tracing::debug!("Fill received: {}", text);
                                 }
@@ -183,6 +214,15 @@ impl OrderExecutor {
                             Some(Ok(Message::Binary(data))) => {
                                 if let Ok(text) = std::str::from_utf8(&data) {
                                     if Self::is_fill_message(text) {
+                                        let now_ns = std::time::SystemTime::now()
+                                            .duration_since(std::time::UNIX_EPOCH)
+                                            .unwrap_or_default()
+                                            .as_nanos() as u64;
+                                        let sent_ts = last_order_ts.load(Ordering::Relaxed);
+                                        if sent_ts > 0 && now_ns > sent_ts {
+                                            latency_sum_ns.fetch_add(now_ns - sent_ts, Ordering::Relaxed);
+                                            latency_count.fetch_add(1, Ordering::Relaxed);
+                                        }
                                         fill_count.fetch_add(1, Ordering::Relaxed);
                                     }
                                 }

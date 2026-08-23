@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AH: Synthetic order book warning + Rust latency tracking)
+
+### Added
+- `hft-trade-bot/src/core/bot_loop.cpp`: `spdlog::warn` on first synthetic order book generation — alerts that fake 10-level 1bp book is being used
+- `hft-executor/src/lib.rs`: `last_order_ts` atomic + `latency_sum_ns`/`latency_count` atomics for fill latency tracking
+- `hft-executor/src/lib.rs`: Both text and binary fill paths now compute delta from last order send time
+
+### Fixed
+- CODE_AUDIT §8.380 — synthetic order book no warning → warning logged on first generation
+- CODE_AUDIT §8.394 — avg_latency_ns always 0 → now populated from fill receipt timestamps
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AG: main.cpp signal handlers + exception handling)
 
 ### Added

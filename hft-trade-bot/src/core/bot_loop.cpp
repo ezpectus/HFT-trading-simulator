@@ -72,6 +72,13 @@ static void prepare_order_book(BotContext& ctx, uint16_t sym_id, const std::stri
     if (ob_found && !ctx.ob_buf.bids.empty() && !ctx.ob_buf.asks.empty()) return;
     double price = ctx.receiver->get_price_by_id(sym_id);
     if (price == 0) return;
+    static bool synthetic_warned = false;
+    if (!synthetic_warned) {
+        spdlog::warn("Generating synthetic order book for {} — no real order book data available. "
+                     "Using fake 10-level book with 1bp spacing and 1.0 qty. "
+                     "Results are unrealistic for production trading.", symbol);
+        synthetic_warned = true;
+    }
     ctx.ob_buf.symbol   = symbol;
     ctx.ob_buf.exchange = ctx.config.default_exchange;
     ctx.ob_buf.bids.clear();
@@ -273,6 +280,7 @@ void graceful_shutdown(BotContext& ctx) {
         spdlog::info("  Total loop:        [{}]", ctx.total_loop_hist.format_stats());
     }
     spdlog::info("HFT Trade Bot v2 stopped");
+    ctx.config.clear_secrets();
 }
 
 } // namespace hft
