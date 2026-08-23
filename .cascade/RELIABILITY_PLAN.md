@@ -1256,3 +1256,25 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R699 | ai-signal-bot/monitoring/alerting.py | `alerting.py` | ✅ Good | 3 severities, 4 channels, rate limiting, bounded history, multi-channel send |
 | R700 | alerting: check_fn is synchronous | `alerting.py:34` | Low | Can't do async checks. Change to Awaitable[bool] |
 | R701 | alerting: alert_history list slice creates copy | `alerting.py:113` | Low | O(n) copy on overflow. Use deque(maxlen=1000) |
+| R702 | ai-signal-bot/communication/shm_market_data_writer.py | `shm_market_data_writer.py` | ✅ Good | Seq-guarded writes, cross-platform, 0o600, context manager, bounds check |
+| R703 | shm_market_data_writer: no memory barrier on seq write | `shm_market_data_writer.py:81` | Medium | struct.pack_into no barrier. ARM reordering = stale data. Use ctypes barrier |
+| R704 | shm_market_data_writer: import time inside method | `shm_market_data_writer.py:99` | Low | import in method body. ~100ns per call. Move to top |
+| R705 | ai-signal-bot/communication/shm_fill_consumer.py | `shm_fill_consumer.py` | ✅ Good | Non-blocking/bulk pop, async polling, graceful stop |
+| R706 | shm_fill_consumer: callback is synchronous | `shm_fill_consumer.py:59` | Low | Can't do async work. Change to Awaitable[None] |
+| R707 | shm_fill_consumer: 1ms poll interval wastes CPU | `shm_fill_consumer.py:62` | Low | 1ms default too fast. Use 10ms or adaptive |
+| R708 | ai-signal-bot/communication/shm_signal_producer.py | `shm_signal_producer.py` | ✅ Good | Non-blocking push, dict conversion, confidence normalization, bulk push |
+| R709 | shm_signal_producer: no fallback when buffer full | `shm_signal_producer.py:55` | Low | try_push False = silent drop. Log warning + metrics |
+| R710 | ai-signal-bot/communication/health_check.py | `health_check.py` | ✅ Good | 3 services, concurrent checks, 3s timeout, K8s endpoints, graceful stop |
+| R711 | health_check: creates new aiohttp session per check | `health_check.py:53` | Low | New session per check. Reuse single session |
+| R712 | health_check: binds to 0.0.0.0 | `health_check.py:116` | Low | Exposes health status. Use 127.0.0.1 |
+| R713 | ai-signal-bot/communication/metrics_server.py | `metrics_server.py` | ✅ Good | 7 Prometheus metrics, text format, no deps, graceful stop |
+| R714 | metrics_server: raw HTTP parser | `metrics_server.py:109` | Low | Manual HTTP parsing. No max header size. Use aiohttp.web |
+| R715 | metrics_server: counters not thread-safe | `metrics_server.py:34` | Low | Plain int increments. Use lock if multi-threaded |
+| R716 | ai-signal-bot/research/competition.py | `competition.py` | ✅ Good | ELO ratings, round-robin, 10% win threshold, pluggable backtest |
+| R717 | competition: _default_backtest returns all zeros | `competition.py:151` | Low | No-op default. Log warning to provide backtest_fn |
+| R718 | ai-signal-bot/research/genetic_strategy.py | `genetic_strategy.py` | ✅ Good | 10 indicators, tournament selection, 5 mutation types, elitism, history |
+| R719 | genetic_strategy: random not seeded | `genetic_strategy.py:30` | Low | Not reproducible. Add seed parameter |
+| R720 | genetic_strategy: no convergence detection | `genetic_strategy.py:218` | Low | Runs all gens. Add early stopping on fitness plateau |
+| R721 | ai-signal-bot/monitoring/tracker.py | `tracker.py` | ✅ Good | 11 fields, 3 properties, CSV loggers, tabulate dashboard |
+| R722 | tracker: CSV loggers open/close file per write | `tracker.py:82` | Low | ~50 opens/min. Keep file open with buffered writer |
+| R723 | tracker: no CSV injection protection | `tracker.py:82` | Low | Formula injection in CSV. Prefix =,+,-,@ with quote |

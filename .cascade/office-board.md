@@ -269,3 +269,4 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | signal_publisher: no TLS on WS server | No ssl param. ws:// signals sniffed. Add ssl for wss:// | CODE_AUDIT §8.698 |
 | fix_client: seq num file non-atomic save | open('w') truncates on crash. Seq reset = FIX session rejection. Use temp+rename | CODE_AUDIT §8.701 |
 | fix_client: no TLS on TCP connection | asyncio.open_connection no ssl. FIX msgs plaintext. Add ssl param | CODE_AUDIT §8.702 |
+| shm_market_data_writer: no memory barrier on seq write | struct.pack_into no barrier. ARM reordering = C++ reads stale data. Use ctypes barrier | CODE_AUDIT §8.713 |
