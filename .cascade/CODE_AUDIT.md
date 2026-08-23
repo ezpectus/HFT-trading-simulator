@@ -6599,7 +6599,7 @@ Excellent position manager with FIFO, PnL, margin, liquidation, and noexcept. �
 
 Good health endpoint with FastAPI, 3 K8s-standard endpoints, and lazy init. ✅
 
-### 8.495 health.py: global mutable state — Low
+### 8.495 health.py: global mutable state — Low [N/A]
 
 **Файл:** `exchange_simulator/health.py:31-33`
 
@@ -6727,7 +6727,7 @@ exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
 
 Good exchange with 3 mixins, per-exchange fees, account tracking, and insurance fund. ✅
 
-### 8.505 exchange.py: _order_history unbounded list — Low
+### 8.505 exchange.py: _order_history unbounded list — Low [FIXED]
 
 **Файл:** `exchange_simulator/exchange.py:58`
 
@@ -6751,7 +6751,7 @@ self._order_history: list[Order] = []
 
 Good WebSocket server with 3 mixins, protocol versioning, and 5 message types. ✅
 
-### 8.507 websocket_server: sys.path manipulation — Low
+### 8.507 websocket_server: sys.path manipulation — Low [N/A]
 
 **Файл:** `exchange_simulator/websocket_server.py:30-32`
 
@@ -6777,7 +6777,7 @@ if _proj_root not in sys.path:
 
 Good broadcast mixin with 3 encodings, protocol versioning, SHM, and graceful fallback. ✅
 
-### 8.509 ws_broadcast: import inside method — Low
+### 8.509 ws_broadcast: import inside method — Low [N/A]
 
 **Файл:** `exchange_simulator/ws_broadcast.py:44-49`
 
@@ -6807,7 +6807,7 @@ Imports inside methods — `from exchange_simulator.ws_constants import ...` and
 
 Good market simulator with GBM, correlations, per-exchange offsets, and hybrid mode. ✅
 
-### 8.511 market_simulator: no seed propagation to per-exchange — Low
+### 8.511 market_simulator: no seed propagation to per-exchange — Low [N/A]
 
 **Файл:** `exchange_simulator/market_simulator.py:26-35`
 
@@ -6827,7 +6827,7 @@ The `seed` parameter is used for the main RNG, but per-exchange volatility multi
 
 Good message handler with rate limiting, 3 encodings, log sanitization, and comprehensive message types. ✅
 
-### 8.513 ws_message_handler: rate limit not thread-safe — Low
+### 8.513 ws_message_handler: rate limit not thread-safe — Low [N/A]
 
 **Файл:** `exchange_simulator/ws_message_handler.py:37-55`
 
@@ -6854,7 +6854,7 @@ Rate limit counter is a plain dict. In asyncio, this is fine (single-threaded), 
 
 Good OpenTelemetry tracing with Jaeger, W3C context, and 3 trace methods. ✅
 
-### 8.515 tracing.py: no graceful fallback — Low
+### 8.515 tracing.py: no graceful fallback — Low [FIXED]
 
 **Файл:** `exchange_simulator/tracing.py:9-13`
 
@@ -6892,7 +6892,7 @@ Good Prometheus metrics with 3 types, domain-specific metrics, and labeled dimen
 
 Good order submission with 12 parameters, NaN check, force_close, and mixin pattern. ✅
 
-### 8.518 exchange_order_submission: no quantity upper bound check — Low
+### 8.518 exchange_order_submission: no quantity upper bound check — Low [FIXED]
 
 **Файл:** `exchange_simulator/exchange_order_submission.py:56`
 
@@ -7249,7 +7249,7 @@ Good advanced orders with 3 types, trigger logic, safe removal, and mixin patter
 
 Good liquidation with 3 trigger types, leverage-aware pricing, and PnL update before check. ✅
 
-### 8.546 exchange_liquidation: hardcoded 0.005 maintenance margin — Low
+### 8.546 exchange_liquidation: hardcoded 0.005 maintenance margin — Low [FIXED]
 
 **Файл:** `exchange_simulator/exchange_liquidation.py:50`
 
@@ -7297,7 +7297,7 @@ This is code duplication. Both implement the same math (d1, d2, cdf, pdf, Greeks
 
 Good price feed manager with multi-API, TTLCache, failover, and profiling. ✅
 
-### 8.550 price_feed_manager: hard-imports msgpack — Low
+### 8.550 price_feed_manager: hard-imports msgpack — Low [FIXED]
 
 **Файл:** `exchange_simulator/price_feed_manager.py:15`
 
@@ -7321,7 +7321,7 @@ import msgpack
 
 Good WebSocket metrics with bounded deques, compression/delta ratios, and P95 stats. ✅
 
-### 8.552 ws_metrics: sorted() on every percentile query — Low
+### 8.552 ws_metrics: sorted() on every percentile query — Low [FIXED]
 
 **Файл:** `exchange_simulator/ws_metrics.py:52-53`
 

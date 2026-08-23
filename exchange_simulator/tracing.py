@@ -7,11 +7,53 @@ import os
 import time
 from typing import Any
 
-from opentelemetry import propagate, trace
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+try:
+    from opentelemetry import propagate, trace
+    from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+    _OTEL_AVAILABLE = True
+except ImportError:
+    _OTEL_AVAILABLE = False
+    propagate = None
+    trace = None
+    JaegerExporter = None
+    TracerProvider = None
+    BatchSpanProcessor = None
+    TraceContextTextMapPropagator = None
+
+
+class _NoopSpan:
+    """No-op span context manager for when OpenTelemetry is not installed."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def set_attribute(self, key, value):
+        pass
+
+    def set_status(self, status):
+        pass
+
+    def add_event(self, name, attributes=None):
+        pass
+
+    def record_exception(self, exception):
+        pass
+
+
+class _NoopTracer:
+    """No-op tracer for when OpenTelemetry is not installed."""
+
+    def start_as_current_span(self, name, **kwargs):
+        return _NoopSpan()
+
+    def start_span(self, name, **kwargs):
+        return _NoopSpan()
 
 
 class ExchangeSimulatorTracer:
@@ -30,6 +72,10 @@ class ExchangeSimulatorTracer:
         """
         self.service_name = service_name
         self._provider = None
+
+        if not _OTEL_AVAILABLE:
+            self.tracer = _NoopTracer()
+            return
 
         # Resolve Jaeger host from env or parameter
         jaeger_host = jaeger_host or os.getenv("JAEGER_HOST", "localhost")

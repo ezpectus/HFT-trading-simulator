@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Reliability Plan — Пачка AQ: exchange_simulator safety)
+
+### Fixed
+- `exchange_simulator/exchange.py`: `order_history` list→`deque(maxlen=10000)` to prevent unbounded memory growth
+- `exchange_simulator/exchange_liquidation.py`: Hardcoded `0.005` maintenance margin rate → configurable via `getattr(self, 'maintenance_margin_rate', 0.005)`
+- `exchange_simulator/exchange_order_submission.py`: Added `MAX_QUANTITY` (1e9) validation to prevent overflow/DoS
+- `exchange_simulator/price_feed_manager.py`: `msgpack` import made optional with try/except, runtime error if missing when needed
+
 ## [Unreleased] — 2026-08-25 (Reliability Plan — Пачка AP: health endpoint port fixes)
 
 ### Fixed
