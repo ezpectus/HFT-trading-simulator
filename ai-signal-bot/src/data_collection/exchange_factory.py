@@ -48,7 +48,7 @@ class SimulatorAdapter:
 
     async def initialize(self) -> None:
         self._connected = True
-        logger.info(f"[SimulatorAdapter] Connected to simulator at {self.simulator_url}")
+        logger.info("[SimulatorAdapter] Connected to simulator at %s", self.simulator_url)
 
     async def close(self) -> None:
         self._connected = False
@@ -109,7 +109,7 @@ class RealExchangeAdapter:
         )
         await self._market_data.initialize()
         await self._account.initialize()
-        logger.info(f"[RealExchangeAdapter] Connected to {self.exchange_name}")
+        logger.info("[RealExchangeAdapter] Connected to %s", self.exchange_name)
 
     async def close(self) -> None:
         if self._market_data:
@@ -213,12 +213,12 @@ class ExchangeFactory:
                 else:
                     raise ConnectionError("Health check failed")
             except (ConnectionError, OSError, RuntimeError) as e:
-                logger.warning(f"[ExchangeFactory] Real exchange failed ({e}), falling back to simulator")
+                logger.warning("[ExchangeFactory] Real exchange failed (%s), falling back to simulator", e)
                 if self._adapter and hasattr(self._adapter, "close"):
                     try:
                         await self._adapter.close()
                     except (OSError, RuntimeError) as close_err:
-                        logger.warning(f"[ExchangeFactory] Failed to close real adapter: {close_err}")
+                        logger.warning("[ExchangeFactory] Failed to close real adapter: %s", close_err)
                 self._adapter = SimulatorAdapter(self.simulator_url)
                 await self._adapter.initialize()
                 return self._adapter

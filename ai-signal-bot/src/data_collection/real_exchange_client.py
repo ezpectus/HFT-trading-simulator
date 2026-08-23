@@ -163,12 +163,12 @@ class RealExchangeClient:
 
         async with await self._rate_limited_get(url, headers=headers) as resp:
             if resp.status != 200:
-                logger.error(f"Binance balance error: {resp.status}")
+                logger.error("Binance balance error: %s", resp.status)
                 return None
             try:
                 data = await resp.json()
             except Exception as e:
-                logger.error(f"Binance balance JSON parse error: {e}")
+                logger.error("Binance balance JSON parse error: %s", e)
                 return None
             for asset in data:
                 if asset.get("asset") == "USDT":

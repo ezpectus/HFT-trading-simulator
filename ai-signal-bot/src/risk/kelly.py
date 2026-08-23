@@ -71,7 +71,7 @@ class KellyPositionSizer:
         self.win_rate = win_rate
         self.avg_win = avg_win
         self.avg_loss = avg_loss
-        logger.debug(f"Kelly stats updated: win_rate={win_rate:.2f}, avg_win={avg_win:.2f}, avg_loss={avg_loss:.2f}")
+        logger.debug("Kelly stats updated: win_rate=%.2f, avg_win=%.2f, avg_loss=%.2f", win_rate, avg_win, avg_loss)
 
     def compute_kelly(self) -> float:
         """Compute raw Kelly fraction.
@@ -114,7 +114,7 @@ class KellyPositionSizer:
             confidence_factor, raw_kelly, adjusted,
         )
 
-        logger.debug(f"Kelly sizing: raw={raw_kelly:.3f} adj={adjusted:.3f} risk=${risk_amount:.2f} qty={quantity:.4f}")
+        logger.debug("Kelly sizing: raw=%.3f adj=%.3f risk=$%.2f qty=%.4f", raw_kelly, adjusted, risk_amount, quantity)
 
         return KellyResult(quantity, risk_amount, self.kelly_fraction, raw_kelly, adjusted, reason)
 
@@ -163,7 +163,7 @@ class KellyPositionSizer:
     ) -> "KellyPositionSizer":
         """Create a KellyPositionSizer from trade history."""
         if len(trades) < min_trades:
-            logger.info(f"Insufficient trades ({len(trades)} < {min_trades}), using defaults")
+            logger.info("Insufficient trades (%s < %s), using defaults", len(trades), min_trades)
             return KellyPositionSizer(kelly_fraction=kelly_fraction, max_risk_pct=max_risk_pct)
 
         wins = [t for t in trades if (t.get("pnl", 0) if isinstance(t, dict) else getattr(t, "pnl", 0)) > 0]

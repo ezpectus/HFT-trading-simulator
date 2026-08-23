@@ -329,7 +329,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 
 **Фикс:** `asyncio.Lock` для модификации `_clients`, или копировать set перед итерацией: `for ws in list(self._clients)`.
 
-### 8.2 SQL injection — ЧИСТО ✅
+### 8.2 SQL injection — ЧИСТО ✅ [N/A]
 
 **Файл:** `ai-signal-bot/src/database/db.py`
 
@@ -340,7 +340,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 
 Ноль f-string SQL, ноль конкатенации. Чисто.
 
-### 8.3 Unbounded structures — ЧИСТО ✅
+### 8.3 Unbounded structures — ЧИСТО ✅ [N/A]
 
 Все истории используют `deque(maxlen=...)`:
 - `signal_publisher.py` — `deque(maxlen=100)` для signal history
@@ -353,7 +353,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 
 Ноль неограниченных списков в production коде. Чисто.
 
-### 8.4 C++ concurrency — ПРАВИЛЬНО ✅
+### 8.4 C++ concurrency — ПРАВИЛЬНО ✅ [N/A]
 
 C++ код использует правильные примитивы:
 - `std::atomic<bool>` для флагов (connected, running, trading_active)
@@ -424,13 +424,13 @@ async with aiohttp.ClientSession() as session:
 
 TCP healthcheck проверяет только что порт открыт, но сервис может быть hung (event loop blocked, deadlock). HTTP /health проверяет реальную готовность.
 
-### 8.10 Web UI: нет ErrorBoundary на top level — Low
+### 8.10 Web UI: нет ErrorBoundary на top level — Low [N/A]
 
 **Файлы:** `web-ui/src/`
 
 Найдены `PanelErrorBoundary.jsx` и `ChunkRetryBoundary.jsx` — но они используются локально для панелей. Нет top-level `<ErrorBoundary>` в `App.jsx`. Если корневой компонент падает — белый экран.
 
-### 8.11 Web UI: localStorage без try/catch в одном месте — Low
+### 8.11 Web UI: localStorage без try/catch в одном месте — Low [N/A]
 
 **Файлы:** `web-ui/src/components/` — большинство компонентов используют `try/catch` для localStorage ✅, но `OnboardingTutorial.jsx:40` проверяет только `localStorage.getItem` без обработки `QuotaExceededError` для `setItem`.
 
@@ -458,7 +458,7 @@ def analyze(self, symbol: str, candles: list):  # ← нет -> Signal
 
 Grep по `livenessProbe|readinessProbe` в `helm/` — 0 результатов. Helm chart не имеет K8s probes вообще. Сервисы в K8s не имеют liveness/readiness checks.
 
-### 8.15 Clean patterns (подтверждено)
+### 8.15 Clean patterns (подтверждено) [N/A]
 
 | Паттерн | Статус |
 |---------|--------|
@@ -493,7 +493,7 @@ Missing indexes:
 
 **Фикс:** Add `CREATE INDEX idx_trades_status_pnl ON trades(status, pnl);` and `CREATE INDEX idx_equity_timestamp ON equity_curve(timestamp);`
 
-### 8.17 C++ `catch (...)` — silent swallow — Low
+### 8.17 C++ `catch (...)` — silent swallow — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/risk/kill_switch.h:64`
 
@@ -510,19 +510,19 @@ Kill switch is safety-critical. If SHM init fails silently, the kill switch does
 
 **Фикс:** `catch (const std::exception& e) { spdlog::error("KillSwitch SHM init failed: {}", e.what()); return false; }`
 
-### 8.18 No CORS configuration — Low
+### 8.18 No CORS configuration — Low [N/A]
 
 **Файлы:** `ai-signal-bot/src/communication/signal_publisher.py`, `exchange_simulator/`
 
 No `CORS` or `Access-Control` headers found anywhere. WebSocket doesn't enforce CORS like HTTP, but if the web UI ever fetches from the bot's HTTP endpoints (metrics, health), CORS will block it. Currently the web UI only uses WebSocket, so this is not a problem yet.
 
-### 8.19 No PropTypes / TypeScript in web-ui — Low
+### 8.19 No PropTypes / TypeScript in web-ui — Low [N/A]
 
 **Файлы:** `web-ui/src/` — 0 matches for `PropTypes`, `interface.*Props`, `type.*Props`
 
 The web UI is plain JSX without PropTypes or TypeScript. No runtime prop validation. A wrong prop type (e.g., passing string instead of number for price) fails silently or crashes at render.
 
-### 8.20 Env secrets handling — ✅ Clean
+### 8.20 Env secrets handling — ✅ Clean [N/A]
 
 **Файлы:** `ai-signal-bot/run.py`, `src/llm_engine/engine.py`, `src/notification/notifier.py`
 
@@ -535,7 +535,7 @@ All secrets use `os.getenv()` / `os.environ.get()`:
 
 No hardcoded secrets. No secrets in config files. All via env vars. ✅
 
-### 8.21 Docker-compose secrets — ✅ Clean
+### 8.21 Docker-compose secrets — ✅ Clean [N/A]
 
 **Файлы:** `docker-compose*.yml` — grep for `POSTGRES_PASSWORD|REDIS_PASSWORD|API_KEY|SECRET` = 0 matches
 
@@ -616,7 +616,7 @@ aiohttp==3.14.3     # ✅ pinned
 
 All deps are pinned with `==`. ✅ Good. But optional dependencies (scipy, scikit-learn, LightGBM, XGBoost) are not in requirements.txt — they're try/except imported. No `requirements-optional.txt` for them.
 
-### 8.29 Rust `unwrap()`/`expect()` — panic potential — Medium
+### 8.29 Rust `unwrap()`/`expect()` — panic potential — Medium [N/A]
 
 **Файл:** `hft-executor/src/lib.rs`
 
@@ -635,7 +635,7 @@ let json = serde_json::to_string(&order).unwrap_or_default();
 
 **Фикс:** Return `Result` from `new()`, use `?` operator. For serialization: `serde_json::to_string(&order).map_err(|e| { error_count.fetch_add(1); continue; })?;`
 
-### 8.30 Rust FFI: no idempotency on orders — Medium
+### 8.30 Rust FFI: no idempotency on orders — Medium [N/A]
 
 **Файл:** `hft-executor/src/lib.rs:151-153`
 
@@ -646,7 +646,7 @@ order.id = seq;
 
 Sequence number is local, not a `client_order_id`. If the WS connection drops and reconnects, `seq` continues from where it left off — but the exchange doesn't know about previous seq numbers. A retried order after reconnect gets a new `seq`, so the exchange can't deduplicate.
 
-### 8.31 Rust: no fill tracking beyond counter — Low
+### 8.31 Rust: no fill tracking beyond counter — Low [N/A]
 
 **Файл:** `hft-executor/src/lib.rs:178-179`
 
@@ -659,7 +659,7 @@ if Self::is_fill_message(&text) {
 
 Fills are only counted, not stored. No way to match a fill to an order. No fill details (price, qty, timestamp) are preserved. `avg_latency_ns` is always 0 (never calculated).
 
-### 8.32 Rust: `is_fill_message` — string matching, not parsing — Low
+### 8.32 Rust: `is_fill_message` — string matching, not parsing — Low [N/A]
 
 **Файл:** `hft-executor/src/lib.rs:209-214`
 
@@ -674,13 +674,13 @@ fn is_fill_message(text: &str) -> bool {
 
 String matching instead of JSON parsing. Fragile — any message containing `"fill"` anywhere (e.g., `"reason":"order_refilled"`) would match. Should use `serde_json::from_str` and check the `type` field.
 
-### 8.33 exchange_simulator — ✅ Clean
+### 8.33 exchange_simulator — ✅ Clean [N/A]
 
 **Файл:** `exchange_simulator/exchange_simulator/`
 
 Grep for `except Exception` = 0 matches. Only `except ImportError` for optional pyarrow. Clean exception handling.
 
-### 8.34 C++ raw pointers — ✅ Clean (smart pointers only)
+### 8.34 C++ raw pointers — ✅ Clean (smart pointers only) [N/A]
 
 **Файл:** `hft-trade-bot/src/`
 
@@ -712,7 +712,7 @@ All timeouts are hardcoded in source code (e.g., `aiohttp.ClientTimeout(total=10
 
 **Фикс:** Add `network:` section to config: `ws_timeout: 30`, `http_timeout: 10`, `db_timeout: 30`.
 
-### 8.37 Prometheus: no scrape for HFT metrics path — Low
+### 8.37 Prometheus: no scrape for HFT metrics path — Low [N/A]
 
 **Файл:** `monitoring/prometheus.yml:28-31`
 
@@ -775,7 +775,7 @@ This is an exceptionally well-configured CI pipeline. ✅
 
 `|| true` means npm audit never fails the CI. High-severity vulnerabilities are reported but don't block the build. Only `critical` gets a `::warning::` (line 339), which is also non-blocking.
 
-### 8.41 CI: Bandit doesn't fail on issues — Low
+### 8.41 CI: Bandit doesn't fail on issues — Low [N/A]
 
 **Файл:** `.github/workflows/ci.yml:399`
 
@@ -819,7 +819,7 @@ HEALTHCHECK CMD python -c "import socket; socket.create_connection(('localhost',
 
 TCP socket check, not HTTP `/health`. Same issue as docker-compose healthchecks (§8.9). The C++ bot (`hft-trade-bot/Dockerfile:60`) correctly uses `wget --spider http://localhost:9091/health`.
 
-### 8.45 Terraform — placeholder only
+### 8.45 Terraform — placeholder only [N/A]
 
 **Файл:** `terraform/README.md` — describes VPC, EKS, RDS, ElastiCache, S3
 
@@ -921,7 +921,7 @@ Three different implementations of the same pattern, with different APIs, differ
 - Exchange API calls
 - Signal generation
 
-### 8.53 Global mutable state — Low
+### 8.53 Global mutable state — Low [N/A]
 
 **Файлы:** `src/observability/logging.py:38` (`global _configured`), `src/observability/tracing.py:35` (`global _tracer, _initialized`)
 
@@ -976,7 +976,7 @@ The circuit breaker exists but it only blocks after N failures — it doesn't re
 
 **Фикс:** `tenacity` library or custom retry decorator: `@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))`.
 
-### 8.58 Silent `except: pass` — Low
+### 8.58 Silent `except: pass` — Low [N/A]
 
 **Файлы:** `signal_publisher.py:154` (`except websockets.ConnectionClosed: pass`)
 
@@ -1032,7 +1032,7 @@ The `close()` method calls `self._buffer.unlink()`, but `close()` is only called
 
 **Фикс:** Register `atexit.register(self.close)` and also handle signals. Or use `try/finally` in the main loop. Consider `O_CREAT | O_EXCL` semantics to detect stale segments.
 
-### 8.63 SHM fill consumer: polling at 1ms — CPU spin — Low
+### 8.63 SHM fill consumer: polling at 1ms — CPU spin — Low [N/A]
 
 **Файл:** `shm_fill_consumer.py:62`
 
@@ -1091,7 +1091,7 @@ Grep for `NetworkPolicy|networkpolicy` = 0 matches. All pods can communicate wit
 
 **Фикс:** Add NetworkPolicy restricting ingress to DB/Redis pods from application pods only.
 
-### 8.68 Helm: no RBAC — Low
+### 8.68 Helm: no RBAC — Low [N/A]
 
 **Файл:** `helm/templates/`
 
@@ -1266,7 +1266,7 @@ Release profile: `opt-level=3, lto=true, codegen-units=1, panic=abort, strip=tru
 
 All 7 services have `deploy.resources.limits` (memory + cpus). This corrects the dev `docker-compose.yml` issue (§8.70). Prod compose is properly configured.
 
-### 8.84 Makefile: no C++ test target — Low
+### 8.84 Makefile: no C++ test target — Low [N/A]
 
 **Файл:** `Makefile:23-26`
 
@@ -1283,7 +1283,7 @@ C++ has 30+ test targets in CMake, but `make test` doesn't run them. Developers 
 
 **Фикс:** Add `cd hft-trade-bot && cmake --build build && ctest --test-dir build` to the test target.
 
-### 8.85 Rust `panic = abort` — design tradeoff — Low
+### 8.85 Rust `panic = abort` — design tradeoff — Low [N/A]
 
 **Файл:** `hft-executor/Cargo.toml:25`
 
@@ -1307,7 +1307,7 @@ The exchange_simulator has a proper config validator that checks:
 
 This is what ai-signal-bot is missing (§8.42). The exchange_simulator does it right.
 
-### 8.87 exchange_simulator: global mutable singletons — Low
+### 8.87 exchange_simulator: global mutable singletons — Low [N/A]
 
 **Файлы:** `exchange_simulator/exchange_simulator/audit_logger.py:296`, `health.py:43`, `metrics.py:225`, `tracing.py:165`
 
@@ -1368,7 +1368,7 @@ cp -r "$BACKUP_DIR/database/data_$TIMESTAMP" exchange_simulator/data
 
 **Фикс:** Copy to temp dir first, verify, then swap: `cp -r backup temp && mv exchange_simulator/data exchange_simulator/data.old && mv temp exchange_simulator/data`.
 
-### 8.91 deploy.sh: native mode uses `pkill -f` — Low
+### 8.91 deploy.sh: native mode uses `pkill -f` — Low [N/A]
 
 **Файл:** `scripts/deploy.sh:101-104`
 
@@ -1637,7 +1637,7 @@ pub extern "C" fn hft_executor_destroy(exec: *mut c_void) {
 
 Null checks on all FFI entry points. `Box::from_raw` in destroy correctly recovers the allocation. ✅
 
-### 8.113 Rust: `is_fill_message` string matching — Low
+### 8.113 Rust: `is_fill_message` string matching — Low [N/A]
 
 **Файл:** `hft-executor/src/lib.rs:209-214`
 
@@ -1706,7 +1706,7 @@ The `disconnect()` method sets `should_reconnect_ = false`, which the thread che
 
 **Фикс:** Use `std::jthread` with stop_token, or store the thread and join it in destructor. Don't detach.
 
-### 8.118 C++ order_executor: snprintf buffer overflow potential — Low
+### 8.118 C++ order_executor: snprintf buffer overflow potential — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/execution/order_executor.h:108-128`
 
@@ -1903,7 +1903,7 @@ This is the Windows equivalent of the CI pipeline. ✅
 
 The migration runner runs all SQL files every time. If `001_initial_schema.sql` uses `CREATE TABLE` (not `CREATE TABLE IF NOT EXISTS`), running `make prod-db-migrate` twice will fail with "table already exists". The SQL files need to be idempotent or the runner needs to track applied migrations.
 
-### 8.133 C++ health_server: no socket timeout on accept — Medium
+### 8.133 C++ health_server: no socket timeout on accept — Medium [N/A]
 
 Already noted in §8.126 but emphasizing: the `accept()` call has no timeout. On Linux, `select()` with a 1-second timeout before `accept()` would allow the thread to check `running_` periodically. On Windows, `setsockopt(SO_RCVTIMEO)` on the server socket would make `accept()` return `INVALID_SOCKET` after the timeout, allowing the loop to check `running_`.
 
@@ -1957,7 +1957,7 @@ Full continuous deployment pipeline:
 - Least-privilege permissions per job
 - `VITE_WS_*` build args with localhost fallback (same issue as §8.124)
 
-### 8.137 docker-compose.yml (dev): no resource limits — Low
+### 8.137 docker-compose.yml (dev): no resource limits — Low [N/A]
 
 **Файл:** `docker-compose.yml` (214 lines)
 
@@ -2006,7 +2006,7 @@ Detailed setup guide:
 
 Standard Helm helper templates for labels and selector labels. Uses `app.kubernetes.io/*` labels per K8s conventions. Clean and minimal. ✅
 
-### 8.142 C++ low_latency.h: CircuitBreaker state race — Low
+### 8.142 C++ low_latency.h: CircuitBreaker state race — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/utils/low_latency.h:366-384`
 
@@ -2016,7 +2016,7 @@ The `CircuitBreaker` uses `memory_order_relaxed` for all state transitions. This
 
 The `fetch_add` in `record_failure` and `store(0)` in `record_success` can race — the error count could be inaccurate. For a circuit breaker, this means it might open too early or too late. In practice, this is acceptable for HFT (the circuit breaker is a safety net, not a precision instrument).
 
-### 8.143 C++ low_latency.h: ObjectPool O(n) acquire — Low
+### 8.143 C++ low_latency.h: ObjectPool O(n) acquire — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/utils/low_latency.h:153-161`
 
@@ -2192,7 +2192,7 @@ The mutex protects `params_` (blacklist, per-symbol limits) which are rarely mod
 
 **Фикс:** Use `std::shared_mutex` with `shared_lock` for `check_order()` and `unique_lock` for `blacklist_symbol()`.
 
-### 8.156 C++ risk_manager.h: daily_pnl operator+= on atomic — Low
+### 8.156 C++ risk_manager.h: daily_pnl operator+= on atomic — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/risk/risk_manager.h:201`
 
@@ -2329,7 +2329,7 @@ Both do essentially the same thing: blacklist, leverage, position size, exposure
 
 **Фикс:** Consolidate into one risk system. Use `PreTradeRisk` (lock-free) and remove `RiskManager::check_order()`, or vice versa.
 
-### 8.167 C++ risk_manager: reset_daily not thread-safe — Low
+### 8.167 C++ risk_manager: reset_daily not thread-safe — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/risk/risk_manager.h:214`
 
@@ -2572,7 +2572,7 @@ Clean data structures:
 
 `OrderBook::best_bid()` correctly checks `bids.empty()` before accessing `bids[0]`. ✅
 
-### 8.186 C++ types.h: string_to_side no validation — Low
+### 8.186 C++ types.h: string_to_side no validation — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/types.h:21-23`
 
@@ -2600,7 +2600,7 @@ All `setInterval` calls in web-ui components have proper `clearInterval` cleanup
 
 No memory leaks from uncleared intervals. ✅
 
-### 8.188 web-ui: 50+ components — code reduction opportunity — Medium
+### 8.188 web-ui: 50+ components — code reduction opportunity — Medium [N/A]
 
 **Файл:** `web-ui/src/components/` (50+ files)
 
@@ -2608,7 +2608,7 @@ No memory leaks from uncleared intervals. ✅
 
 **Code reduction:** Audit which components are actually rendered in the app. Unused components can be removed. Potential ~1000+ lines reduction if 10-15 components are dead code.
 
-### 8.189 C++ system_monitor: snapshot not atomic — Low
+### 8.189 C++ system_monitor: snapshot not atomic — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/monitoring/system_monitor.h:76-93`
 
@@ -2641,7 +2641,7 @@ OBI utility functions extracted from `signal_engine_v2.h` for file-size complian
 
 All `noexcept`, `inline`, with `1e-12` zero-division guard. ✅
 
-### 8.192 C++ signal.h: NEUTRAL defaults to BUY — Low
+### 8.192 C++ signal.h: NEUTRAL defaults to BUY — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/signal.h:25-29`
 
@@ -2764,7 +2764,7 @@ ingress:
 
 Ingress is disabled by default — user must explicitly enable it. TLS is also disabled by default but configurable. This is the correct default for a trading system (don't expose publicly without explicit configuration). ✅
 
-### 8.200 C++ signal.h: string-based direction — Info
+### 8.200 C++ signal.h: string-based direction — Info [N/A]
 
 **Файл:** `hft-trade-bot/src/data/signal.h:11`
 
@@ -2964,7 +2964,7 @@ Same `localhost` issue as §8.124, §8.152, §8.195. This is the shared config t
 
 Clean, well-commented shared config. ✅
 
-### 8.214 C++ ExchangeBase: is_available threshold hardcoded — Low
+### 8.214 C++ ExchangeBase: is_available threshold hardcoded — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/exchange/ExchangeBase.h:49`
 
@@ -3000,7 +3000,7 @@ Two inhibition rules:
 
 This prevents alert storms — when a critical alert fires, related warnings and info alerts are suppressed. ✅
 
-### 8.217 Alertmanager config: no silence rules — Info
+### 8.217 Alertmanager config: no silence rules — Info [N/A]
 
 **Файл:** `monitoring/alertmanager/config.yml`
 
@@ -3019,7 +3019,7 @@ Clean Zustand store with 3 batch setters:
 
 Actions (submitOrder, closePosition, etc.) are stored as nullable function references set by hooks. This is a clean pattern — hooks own the WebSocket connection, store owns the state. ✅
 
-### 8.219 web-ui useUIStore: 50 symbols duplicated from shared_config.yaml — Low
+### 8.219 web-ui useUIStore: 50 symbols duplicated from shared_config.yaml — Low [N/A]
 
 **Файл:** `web-ui/src/stores/useUIStore.js:7-18`
 
@@ -3027,7 +3027,7 @@ Actions (submitOrder, closePosition, etc.) are stored as nullable function refer
 
 **Фикс:** Generate `SYMBOLS` from `shared_config.yaml` at build time (Vite plugin or pre-build script). Or fetch from an API endpoint.
 
-### 8.220 web-ui useToastStore: setTimeout without cleanup — Low
+### 8.220 web-ui useToastStore: setTimeout without cleanup — Low [N/A]
 
 **Файл:** `web-ui/src/stores/useToastStore.js:21-23`
 
@@ -3175,7 +3175,7 @@ Core Web Vitals monitoring:
 
 Clean Web Vitals integration with budget enforcement. ✅
 
-### 8.231 web-ui performanceMonitor.js: metricsHistory unbounded — Low
+### 8.231 web-ui performanceMonitor.js: metricsHistory unbounded — Low [N/A]
 
 **Файл:** `web-ui/src/utils/performanceMonitor.js:28-34`
 
@@ -3193,7 +3193,7 @@ const metricsHistory = {
 
 **Фикс:** Cap at 100 entries: `if (arr.length > 100) arr.shift()`. Or use a ring buffer.
 
-### 8.232 web-ui performanceMonitor.js: console.log in production — Low
+### 8.232 web-ui performanceMonitor.js: console.log in production — Low [N/A]
 
 **Файл:** `web-ui/src/utils/performanceMonitor.js:178,190,202,214,226,229`
 
@@ -3361,7 +3361,7 @@ Only 5 symbols in mock mode, but 50 symbols in `useUIStore.js` and `shared_confi
 
 **Фикс:** Use all 50 symbols from `useUIStore.SYMBOLS` (convert format: `BTC/USDT` → `BTCUSDT`).
 
-### 8.244 web-ui indicators.js: 579 lines — Medium
+### 8.244 web-ui indicators.js: 579 lines — Medium [N/A]
 
 **Файл:** `web-ui/src/utils/indicators.js` (579 lines)
 
@@ -3395,7 +3395,7 @@ No `drop: ['console', 'debugger']` in production build. `performanceMonitor.js` 
 
 **Фикс:** Add `drop: ['console']` in production: `esbuild: { target: 'es2020', drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [] }`.
 
-### 8.247 hft-trade-bot config.yaml: 50 symbols duplicated 3rd time — Medium
+### 8.247 hft-trade-bot config.yaml: 50 symbols duplicated 3rd time — Medium [N/A]
 
 **Файл:** `hft-trade-bot/config/config.yaml:20-70`
 
@@ -3403,7 +3403,7 @@ No `drop: ['console', 'debugger']` in production build. `performanceMonitor.js` 
 
 **Фикс:** Use `shared_config.yaml` as single source of truth. C++ config loader reads from shared config. Web-ui fetches from API or generates at build time.
 
-### 8.248 hft-trade-bot config.yaml: localhost WS URLs — Medium
+### 8.248 hft-trade-bot config.yaml: localhost WS URLs — Medium [N/A]
 
 **Файл:** `hft-trade-bot/config/config.yaml:76,165`
 
@@ -3464,7 +3464,7 @@ However, 684 lines is a large file. The 200+ `lazy()` imports at the top (lines 
 
 **Code reduction:** Generate imports from a panel list: `const PANEL_IMPORTS = { DepthChart: () => import('../components/DepthChart'), ... }` then `const DepthChart = lazy(PANEL_IMPORTS.DepthChart)`. Or use a `require.context` pattern. ~100 lines reduction.
 
-### 8.252 web-ui registry.js: 200+ math panels — code reduction candidate — Medium
+### 8.252 web-ui registry.js: 200+ math panels — code reduction candidate — Medium [N/A]
 
 **Файл:** `web-ui/src/panels/registry.js`
 
@@ -3491,7 +3491,7 @@ These are research-grade mathematical models that are unlikely to be used in pro
 
 Uses `gotoWithRetry` helper, `dismissOnboarding` helper, `closeOverlays` helper. Tests are resilient — use `.catch(() => false)` for optional elements. ✅
 
-### 8.254 web-ui e2e tests: no WebSocket interaction tests — Low
+### 8.254 web-ui e2e tests: no WebSocket interaction tests — Low [N/A]
 
 **Файл:** `web-ui/e2e/`
 
@@ -3680,7 +3680,7 @@ Backoff is capped at 30s, but there's no max reconnect count. If the server is d
 
 **Фикс:** Add `maxReconnects` option. After N reconnects, stop and set `error: 'Max reconnects reached'`.
 
-### 8.267 web-ui useWebSocket: console.error in production — Low
+### 8.267 web-ui useWebSocket: console.error in production — Low [N/A]
 
 **Файл:** `web-ui/src/hooks/useWebSocket.ts:200`
 
@@ -5052,7 +5052,7 @@ Runs all SQL migrations every time — no tracking of which migrations have been
 
 **Фикс:** Add a `schema_migrations` table. Check if migration was already applied before executing.
 
-### 8.375 Makefile.prod: prod-health uses /dev/tcp — Low
+### 8.375 Makefile.prod: prod-health uses /dev/tcp — Low [N/A]
 
 **Файл:** `Makefile.prod:82-83`
 
@@ -5078,7 +5078,7 @@ Runs all SQL migrations every time — no tracking of which migrations have been
 
 Good C++ signal processing with atomics, risk checks, and minimal locking. ✅
 
-### 8.377 hft-trade-bot bot_loop: arb_lock manual lock/unlock — Low
+### 8.377 hft-trade-bot bot_loop: arb_lock manual lock/unlock — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_loop.cpp:31-34`
 
@@ -5092,7 +5092,7 @@ Manual lock/unlock — if `ctx.latest_arb` copy throws, the lock is never releas
 
 **Фикс:** `std::lock_guard<std::mutex> lock(ctx.arb_lock); arb = ctx.latest_arb;`
 
-### 8.378 hft-trade-bot bot_loop: hardcoded 0.001 min quantity — Low
+### 8.378 hft-trade-bot bot_loop: hardcoded 0.001 min quantity — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_loop.cpp:36`
 
@@ -5104,7 +5104,7 @@ Hardcoded minimum quantity threshold (0.001). Should be configurable.
 
 **Фикс:** Use `ctx.config.min_arb_quantity` or similar.
 
-### 8.379 hft-trade-bot bot_loop: hardcoded 0.5 max quantity — Low
+### 8.379 hft-trade-bot bot_loop: hardcoded 0.5 max quantity — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_loop.cpp:37`
 
@@ -5116,7 +5116,7 @@ Hardcoded max arbitrage quantity (0.5). Should be configurable.
 
 **Фикс:** Use `ctx.config.max_arb_quantity`.
 
-### 8.380 hft-trade-bot bot_loop: synthetic order book generation — Medium
+### 8.380 hft-trade-bot bot_loop: synthetic order book generation — Medium [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_loop.cpp:79-82`
 
@@ -5176,7 +5176,7 @@ The `Makefile.prod` has `prod-db-migrate` for PostgreSQL migrations, but the SQL
 
 Excellent docker-compose with health checks, dependency ordering, and proper volumes. ✅
 
-### 8.384 docker-compose: healthcheck uses localhost inside container — Low
+### 8.384 docker-compose: healthcheck uses localhost inside container — Low [N/A]
 
 **Файл:** `docker-compose.yml:46,76,105,136,166`
 
@@ -5258,7 +5258,7 @@ No dependency vulnerability scanning (e.g., `pip-audit`, `npm audit`, `trivy`). 
 
 **Фикс:** Add `pip-audit` for Python, `npm audit --audit-level=high` for JS, and `trivy` for Docker images.
 
-### 8.391 ci.yml: no integration tests — Medium
+### 8.391 ci.yml: no integration tests — Medium [N/A]
 
 **Файл:** `.github/workflows/ci.yml`
 
@@ -5266,7 +5266,7 @@ CI runs unit tests only — no integration tests that verify the services can co
 
 **Фикс:** Add a docker-compose integration test job that starts all services and verifies health endpoints.
 
-### 8.392 ci.yml: websocketpp sed patch in CI — Low
+### 8.392 ci.yml: websocketpp sed patch in CI — Low [N/A]
 
 **Файл:** `.github/workflows/ci.yml:136-138`
 
@@ -5295,7 +5295,7 @@ CI patches system headers with `sed` to fix C++17/C++20 incompatibility. This is
 
 Excellent Rust executor with FFI, auto-reconnect, atomics, and comprehensive tests. ✅
 
-### 8.394 hft-executor: avg_latency_ns always 0 — Medium
+### 8.394 hft-executor: avg_latency_ns always 0 — Medium [N/A]
 
 **Файл:** `hft-executor/src/lib.rs:116`
 
@@ -5307,7 +5307,7 @@ avg_latency_ns: 0,
 
 **Фикс:** Track submit timestamp and fill timestamp. Calculate `fill_ts - submit_ts` for each order.
 
-### 8.395 hft-executor: serde_json::to_string unwrap_or_default — Low
+### 8.395 hft-executor: serde_json::to_string unwrap_or_default — Low [N/A]
 
 **Файл:** `hft-executor/src/lib.rs:159`
 
@@ -5319,7 +5319,7 @@ If serialization fails, `unwrap_or_default()` produces an empty string `""`. Sen
 
 **Фикс:** Handle the error: `match serde_json::to_string(&order) { Ok(json) => ..., Err(e) => { error_count.fetch_add(1, ...); continue; } }`.
 
-### 8.396 hft-executor: is_fill_message string matching — Low
+### 8.396 hft-executor: is_fill_message string matching — Low [N/A]
 
 **Файл:** `hft-executor/src/lib.rs:209-214`
 
@@ -5336,7 +5336,7 @@ String-based fill detection — fragile. If the exchange simulator sends `{"type
 
 **Фикс:** Parse JSON and check the `type` field: `serde_json::from_str::<serde_json::Value>(text)` and check `["type"] == "fill"`.
 
-### 8.397 hft-executor: no graceful shutdown on channel close — Low
+### 8.397 hft-executor: no graceful shutdown on channel close — Low [N/A]
 
 **Файл:** `hft-executor/src/lib.rs:169-171`
 
@@ -5361,7 +5361,7 @@ When the order channel closes, the executor returns immediately. But it doesn't 
 
 Good Cargo.toml with proper release optimization for HFT. ✅
 
-### 8.399 hft-executor: native-tls instead of rustls — Low
+### 8.399 hft-executor: native-tls instead of rustls — Low [N/A]
 
 **Файл:** `hft-executor/Cargo.toml:15`
 
@@ -5440,7 +5440,7 @@ Only `secrets.enc.yaml` exists in `deploy/k8s/`. No actual K8s manifests (Deploy
 
 Good eBPF monitoring with graceful BCC fallback and documented requirements. ✅
 
-### 8.406 ebpf_monitor: no Windows support — Low
+### 8.406 ebpf_monitor: no Windows support — Low [N/A]
 
 **Файл:** `monitoring/ebpf_monitor.py:18`
 
@@ -5467,7 +5467,7 @@ eBPF is Linux-only. The project runs on Windows (user's OS), but this monitoring
 
 Good benchmark suite with proper percentile calculation and nanosecond precision. ✅
 
-### 8.408 benchmark_suite: no warmup — Low
+### 8.408 benchmark_suite: no warmup — Low [N/A]
 
 **Файл:** `scripts/benchmark_suite.py:29-36`
 
@@ -5496,7 +5496,7 @@ No warmup phase — first iterations include cold cache, JIT warmup, and import 
 
 Good panel registry with lazy loading and plugin architecture. ✅
 
-### 8.410 web-ui: 200+ components — potential over-engineering — Medium
+### 8.410 web-ui: 200+ components — potential over-engineering — Medium [N/A]
 
 **Файлы:** `web-ui/src/components/` (200+ files)
 
@@ -5598,7 +5598,7 @@ PostgreSQL, Redis, Prometheus, and Grafana ports are exposed to the host. In pro
 
 Good BotContext with atomics, SPSC queue, spinlock, and latency histograms. ✅
 
-### 8.418 hft-trade-bot bot_context: Spinlock for arb_lock — Low
+### 8.418 hft-trade-bot bot_context: Spinlock for arb_lock — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_context.h:105`
 
@@ -5658,7 +5658,7 @@ std::unordered_map<std::string, double> prices_cache;
 
 Excellent Dockerfiles with multi-stage, non-root, health checks, and documentation. ✅
 
-### 8.422 hft-trade-bot Dockerfile: websocketpp sed patch — Low
+### 8.422 hft-trade-bot Dockerfile: websocketpp sed patch — Low [N/A]
 
 **Файл:** `hft-trade-bot/Dockerfile:26-28`
 
@@ -5690,7 +5690,7 @@ The deploy workflow uses `Dockerfile.prod` for all services: `file: ./${{ matrix
 
 Good pre-commit config with multi-language hooks and private key detection. ✅
 
-### 8.425 .pre-commit: no clang-format hook — Low
+### 8.425 .pre-commit: no clang-format hook — Low [N/A]
 
 **Файл:** `.pre-commit-config.yaml`
 
@@ -5905,7 +5905,7 @@ Good risk manager with V1/V2 checks, rate throttle, and blacklist. ✅
 
 Excellent WebSocket hook with ring buffer, batching, backoff, latency measurement, and sync. ✅
 
-### 8.442 useWebSocket: no max reconnect limit — Low
+### 8.442 useWebSocket: no max reconnect limit — Low [N/A]
 
 **Файл:** `web-ui/src/hooks/useWebSocket.ts:74`
 
@@ -5952,7 +5952,7 @@ Default WebSocket URL is `localhost:8765`. In Docker/K8s, this won't resolve to 
 
 **Фикс:** Default to empty string and require config file to set it: `std::string ws_url{""}`.
 
-### 8.446 config.h: 60+ fields in one struct — Low (code reduction)
+### 8.446 config.h: 60+ fields in one struct — Low (code reduction) [N/A]
 
 **Файл:** `hft-trade-bot/src/core/config.h`
 
@@ -6037,7 +6037,7 @@ The reconnect thread is detached. If the `OrderExecutor` is destroyed while the 
 
 **Фикс:** Use `std::jthread` with stop_token, or track the reconnect thread and join it in destructor.
 
-### 8.453 order_executor: snprintf buffer truncation — Low
+### 8.453 order_executor: snprintf buffer truncation — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/execution/order_executor.h:108-116`
 
@@ -6127,7 +6127,7 @@ Excellent V3 engine with HMM regime detection, online learning, and regime-gated
 
 Good SIMD optimization with compile-time detection and scalar fallback. ✅
 
-### 8.460 simd_indicators: ema_array returns vector — Low (code reduction)
+### 8.460 simd_indicators: ema_array returns vector — Low (code reduction) [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/simd_indicators.h:45`
 
@@ -6173,7 +6173,7 @@ Two spinlocks acquired sequentially. If another thread holds `depth_lock_` and t
 
 **Фикс:** Use a single lock for both prices and depth, or document the lock ordering convention.
 
-### 8.463 BinanceAdapter: api_key and api_secret in Config struct — Low
+### 8.463 BinanceAdapter: api_key and api_secret in Config struct — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:28-29`
 
@@ -6375,7 +6375,7 @@ Good data export with CSV/Parquet, 3 export types, and UTC timestamps. ✅
 
 Excellent Vite config with PWA, manual chunks, code splitting, and Docker-compatible server. ✅
 
-### 8.478 vite.config: no sourcemap in production — Low
+### 8.478 vite.config: no sourcemap in production — Low [N/A]
 
 **Файл:** `web-ui/vite.config.js:56-59`
 
@@ -6389,7 +6389,7 @@ No `sourcemap` setting — defaults to `false` in Vite production builds. This i
 
 **Фикс:** Consider `sourcemap: 'hidden'` for error tracking services (Sentry) without exposing to users.
 
-### 8.479 vite.config: PWA manifest says "204 panels" — Info
+### 8.479 vite.config: PWA manifest says "204 panels" — Info [N/A]
 
 **Файл:** `web-ui/vite.config.js:15`
 
@@ -6453,7 +6453,7 @@ Every metric operation (counter, gauge, histogram) acquires a global `std::mutex
 
 **Фикс:** Use `std::atomic` for counters/gauges, or use per-thread metric accumulation with periodic merge.
 
-### 8.484 metrics_collector: string key concatenation on every call — Low
+### 8.484 metrics_collector: string key concatenation on every call — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/metrics/metrics_collector.cpp:45-46`
 
@@ -6504,7 +6504,7 @@ Excellent system monitor with 11 atomic metrics, computed rates, and noexcept. �
 
 Good OpenTelemetry tracer with Span class, 4 trace methods, and context propagation. ✅
 
-### 8.488 tracer.h: mutex on Span operations — Low
+### 8.488 tracer.h: mutex on Span operations — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/tracing/tracer.h:11`
 
@@ -7021,7 +7021,7 @@ The `close()` method swallows all exceptions. If WAL checkpoint fails, the user 
 
 Excellent main entry point with 10 init steps, graceful shutdown, scoped latency, and V2/V1 fallback. ✅
 
-### 8.528 main.cpp: no signal handling for SIGTERM — Medium
+### 8.528 main.cpp: no signal handling for SIGTERM — Medium [N/A]
 
 **Файл:** `hft-trade-bot/src/core/main.cpp:38`
 
@@ -7033,7 +7033,7 @@ while (is_running()) {
 
 **Фикс:** Register `signal(SIGTERM, [](int){ running.store(false); })` and `signal(SIGINT, ...)` before the loop.
 
-### 8.529 main.cpp: no error handling on init failures — Low
+### 8.529 main.cpp: no error handling on init failures — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/main.cpp:26-33`
 
@@ -7059,7 +7059,7 @@ Some init functions return bool (checked: `init_config_and_logger`, `init_signal
 
 Good bot context with SimExchange adapter, SymbolEntry, ArbOpportunity, and comprehensive includes. ✅
 
-### 8.531 bot_context: SimExchange holds reference to SignalReceiver — Low
+### 8.531 bot_context: SimExchange holds reference to SignalReceiver — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_context.h:48`
 
@@ -7093,7 +7093,7 @@ Good bot loop with 7 functions and clean header/implementation separation. ✅
 
 Good core types with 3 enums, inline helpers, Candle, OrderBook, and Order. ✅
 
-### 8.534 types.h: string_to_side defaults to BUY on unknown — Low
+### 8.534 types.h: string_to_side defaults to BUY on unknown — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/types.h:21-23`
 
@@ -7119,7 +7119,7 @@ Any string that's not "BUY" (including typos like "Buy", "buy", "BUY\n") returns
 
 Good signal struct with 10 fields, boolean helpers, side mapping, and rr_ratio. ✅
 
-### 8.536 signal.h: NEUTRAL side() returns BUY — Low
+### 8.536 signal.h: NEUTRAL side() returns BUY — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/signal.h:28`
 
@@ -7158,7 +7158,7 @@ Excellent aligned types with alignas(64), static_assert, FastSignal with fixed-s
 
 Good symbol map with FNV-1a hash, bidirectional mapping, compact IDs, and nodiscard. ✅
 
-### 8.539 symbol_map: get_id allocates string — Low
+### 8.539 symbol_map: get_id allocates string — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/symbol_map.h:40`
 
@@ -7196,7 +7196,7 @@ Excellent risk manager with V1+V2 params, blacklist, per-symbol limits, and 8 ch
 
 Excellent pre-trade risk with lock-free token bucket, atomic CAS, noexcept, and relaxed ordering. ✅
 
-### 8.542 pre_trade_risk: TokenBucket refill has race — Low
+### 8.542 pre_trade_risk: TokenBucket refill has race — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/risk/pre_trade_risk.h:54-60`
 
@@ -7403,7 +7403,7 @@ The destructor calls `stop_monitoring()`, but if the monitoring thread is a deta
 
 Good logger with 2 modes, rotating sinks, timestamped filenames, and cross-platform support. ✅
 
-### 8.559 logger: static log_dir_ not thread-safe — Low
+### 8.559 logger: static log_dir_ not thread-safe — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/logger.h:27`
 
@@ -7442,7 +7442,7 @@ Excellent pressure model with multi-level OBI, toxicity detection, spread regime
 
 Good signal engine V1 with 6 indicators, in-house FFT, and cross-platform support. ✅
 
-### 8.562 signal_engine V1: FFT uses valarray — Low
+### 8.562 signal_engine V1: FFT uses valarray — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine.h:27-43`
 
@@ -7454,7 +7454,7 @@ inline void fft(std::valarray<std::complex<double>>& a) {
 
 **Фикс:** Use iterative FFT with pre-allocated buffer, or use a well-optimized library (FFTW).
 
-### 8.563 signal_engine V1: recursive FFT stack depth — Low
+### 8.563 signal_engine V1: recursive FFT stack depth — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine.h:27-35`
 
@@ -7586,7 +7586,7 @@ self._recent_signals: dict[str, datetime] = {}
 
 Good CSV trade logger with thread-safety, 10 fields, timestamped filenames, and cross-platform symlink. ✅
 
-### 8.574 trade_csv_logger: no file rotation — Low
+### 8.574 trade_csv_logger: no file rotation — Low [N/A]
 
 **Файл:** `trade_csv_logger.py:46`
 
@@ -7611,7 +7611,7 @@ A new CSV file is created per run. In a long-running deployment with many restar
 
 Good config parser with env var expansion, per-exchange parsing, and dev/prod split. ✅
 
-### 8.576 config_parser: expand_env doesn't handle missing env var — Low
+### 8.576 config_parser: expand_env doesn't handle missing env var — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/config_parser.h:27-28`
 
@@ -7636,7 +7636,7 @@ If env var is not set, `val` is null and the expansion is empty. The API key/sec
 
 Good config validation with 12 checks, recommended values, and non-fatal warnings. ✅
 
-### 8.578 config_validate: warnings only, no hard fail — Low
+### 8.578 config_validate: warnings only, no hard fail — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/config_validate.h:11-36`
 
@@ -7660,7 +7660,7 @@ All validation failures are `spdlog::warn()` — the bot continues even with inv
 
 Good bot loop with 8 functions, SL/TP processing, arbitrage, AI signals, V2/V1 fallback, and graceful shutdown. ✅
 
-### 8.580 bot_loop: process_arbitrage sets atomic without lock — Low
+### 8.580 bot_loop: process_arbitrage sets atomic without lock — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_loop.cpp:34`
 
@@ -7672,7 +7672,7 @@ ctx.has_arb_opportunity = false;
 
 **Фикс:** Move `ctx.has_arb_opportunity = false` inside the lock block, or use a CAS loop.
 
-### 8.581 bot_loop: hardcoded 0.5 max arb qty — Low
+### 8.581 bot_loop: hardcoded 0.5 max arb qty — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_loop.cpp:37`
 
@@ -7710,7 +7710,7 @@ R518 flagged "main.cpp: no SIGTERM handler" as Medium. This is **incorrect** —
 
 **Статус:** R518 → downgrade to Info. SIGTERM handler exists in bot_setup.cpp.
 
-### 8.584 bot_setup: signal_handler only sets flag — Low
+### 8.584 bot_setup: signal_handler only sets flag — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_setup.cpp:13`
 
@@ -7912,7 +7912,7 @@ No validation that params are positive, within reasonable ranges. `trailing_dist
 
 Excellent signal engine V2 with 6 indicators, composite scoring, zero-alloc, cache-line aligned, and modular split. ✅
 
-### 8.599 signal_engine_v2: get_cache allocates on emplace — Low
+### 8.599 signal_engine_v2: get_cache allocates on emplace — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h:64`
 
@@ -7940,7 +7940,7 @@ it = cache_.emplace(std::string(symbol), IndicatorCache{}).first;
 
 Excellent signal engine V3 with 4-state HMM, online Baum-Welch, Viterbi, log-space, regime gating, and zero-alloc. ✅
 
-### 8.601 signal_engine_v3: HMM transition matrix hardcoded — Low
+### 8.601 signal_engine_v3: HMM transition matrix hardcoded — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h`
 
@@ -7961,7 +7961,7 @@ The initial transition matrix is uniform (1/N_STATES). While it adapts online vi
 
 Excellent smart order router with 5 strategies, DIP/SOLID, toxic backoff, zero-alloc, and `[[unlikely]]`. ✅
 
-### 8.603 smart_order_router: no latency tracking implementation — Low
+### 8.603 smart_order_router: no latency tracking implementation — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/execution/smart_order_router_v2.h:1`
 
@@ -7995,7 +7995,7 @@ Excellent adaptive order selector with 4 order types, 6 decision inputs, noexcep
 
 Good position manager V1 with mutex protection, update-vs-duplicate, optional return, and fast has_position. ✅
 
-### 8.606 position_manager V1: linear search for position — Low
+### 8.606 position_manager V1: linear search for position — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/position/position_manager.h:21-29`
 
@@ -8008,7 +8008,7 @@ for (auto& pos : positions_) {
 
 **Фикс:** Use `unordered_map<string, Position>` for O(1) lookup, or accept O(n) for small n (typically <10 positions).
 
-### 8.607 position_manager V1: mutex in HFT hot path — Low
+### 8.607 position_manager V1: mutex in HFT hot path — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/position/position_manager.h:19`
 
@@ -8036,7 +8036,7 @@ Every position operation acquires a mutex. In the HFT hot path (called every tic
 
 Excellent position manager V2 with weighted average, realized+unrealized PnL, margin modes, liquidation price, and symbol_id. ✅
 
-### 8.609 position_manager_v2: hardcoded 0.005 maintenance margin — Low
+### 8.609 position_manager_v2: hardcoded 0.005 maintenance margin — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/position/position_manager_v2.h:72`
 
@@ -8140,7 +8140,7 @@ The optimizer doesn't enforce non-negative weights (no short-selling). Without t
 
 Excellent inline indicators with 5 streaming classes, O(1), Wilder's smoothing, noexcept, constexpr, and transparent hash. ✅
 
-### 8.618 inline_indicators: no period validation — Low
+### 8.618 inline_indicators: no period validation — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/inline_indicators.h:34`
 
@@ -8531,7 +8531,7 @@ _initialized: bool = False
 
 Excellent exchange base with atomic EMA latency, toxic tracking, automatic circuit breaker, and noexcept. ✅
 
-### 8.646 ExchangeBase: is_available hardcoded threshold 5 — Low
+### 8.646 ExchangeBase: is_available hardcoded threshold 5 — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/exchange/ExchangeBase.h:49`
 
@@ -8558,7 +8558,7 @@ The availability threshold is hardcoded to 5 toxic events. This should be config
 
 Excellent low-latency infrastructure with spinlock, SPSC queue, object pool, latency histogram, and thread pinning. ✅
 
-### 8.648 low_latency: Spinlock no backoff limit — Low
+### 8.648 low_latency: Spinlock no backoff limit — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/utils/low_latency.h:47-57`
 
@@ -8598,7 +8598,7 @@ T* acquire() noexcept {
 
 **Фикс:** Use a lock-free stack (Treiber stack) for O(1) acquire, or accept O(n) for small pools.
 
-### 8.650 low_latency: LatencyHistogram min/max are doubles — Low
+### 8.650 low_latency: LatencyHistogram min/max are doubles — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/utils/low_latency.h:212-219`
 
@@ -8769,7 +8769,7 @@ On Windows, every `_atomic_write_u64` calls `FlushViewOfFile`, which flushes mod
 
 Good core data types with 5 structs, 3 enums, helper methods, and optional price. ✅
 
-### 8.662 types: string_to_side silent default — Low
+### 8.662 types: string_to_side silent default — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/types.h:21-23`
 
@@ -8783,7 +8783,7 @@ Any string that's not "BUY" defaults to `Side::SELL`. If the input is "buy" (low
 
 **Фикс:** Add case-insensitive comparison and throw on unknown strings, or return `std::optional<Side>`.
 
-### 8.663 types: OrderBook no empty check on index access — Low
+### 8.663 types: OrderBook no empty check on index access — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/types.h:48-51`
 
@@ -8811,7 +8811,7 @@ double best_ask() const { return asks.empty() ? 0.0 : asks[0].price; }
 
 Excellent cache-line aligned types with `alignas(64)`, `static_assert`, fixed-size buffers, no heap alloc, and dual clock support. ✅
 
-### 8.665 aligned_types: set_symbol no null check — Low
+### 8.665 aligned_types: set_symbol no null check — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/aligned_types.h:58-65`
 
@@ -8830,7 +8830,7 @@ No null check on `s`. If `s` is `nullptr`, `s[i]` is undefined behavior. In HFT,
 
 **Фикс:** Add `if (!s) { symbol[0] = '\0'; return; }` at the start.
 
-### 8.666 aligned_types: FastSignal 256 bytes = 4 cache lines — Info
+### 8.666 aligned_types: FastSignal 256 bytes = 4 cache lines — Info [N/A]
 
 **Файл:** `hft-trade-bot/src/data/aligned_types.h:118`
 
@@ -9003,7 +9003,7 @@ The parser checks minimum length (27 bytes) but doesn't validate `sym_len`. If `
 
 Excellent kill switch with 3 activation methods, 5 reasons, atomic idempotent activation, SHM notification, and RAII. ✅
 
-### 8.678 kill_switch: monitor thread not std::jthread — Low
+### 8.678 kill_switch: monitor thread not std::jthread — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/risk/kill_switch.h:117`
 
@@ -9015,7 +9015,7 @@ Uses `std::thread` instead of `std::jthread`. If `stop_monitoring()` is not call
 
 **Фикс:** Use `std::jthread` (C++20) which auto-joins on destruction, or ensure `stop_monitoring()` is always called before destruction.
 
-### 8.679 kill_switch: init_shm catches all exceptions — Low
+### 8.679 kill_switch: init_shm catches all exceptions — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/risk/kill_switch.h:60-66`
 
@@ -9047,7 +9047,7 @@ Uses `std::thread` instead of `std::jthread`. If `stop_monitoring()` is not call
 
 Good config struct with 80+ fields, per-exchange config, production risk limits, and V2 weights. ✅
 
-### 8.681 config: API keys in plaintext struct — Medium
+### 8.681 config: API keys in plaintext struct — Medium [N/A]
 
 **Файл:** `hft-trade-bot/src/core/config.h:125-126`
 
@@ -9060,7 +9060,7 @@ API keys and secrets are stored as plaintext `std::string` in the `Config` struc
 
 **Фикс:** Use a `SecureString` class that zeroes memory on destruction and redacts in `operator<<`. Or load secrets from environment variables / encrypted storage at use time, not in the config struct.
 
-### 8.682 config: no validation in struct — Low
+### 8.682 config: no validation in struct — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/config.h:12-201`
 
@@ -9135,7 +9135,7 @@ Uses `np.random.seed()` which sets the global random state. If other code uses `
 
 Excellent SHM IPC protocol with 4 packed structs, static_assert verification, documented Python formats, and 4 enums. ✅
 
-### 8.688 shm_protocol: SymbolId only 10 symbols — Low
+### 8.688 shm_protocol: SymbolId only 10 symbols — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_protocol.h:83-94`
 
@@ -9169,7 +9169,7 @@ Only 10 symbols mapped. The AI Signal Bot config has 50 symbols. If the HFT bot 
 
 Excellent C++ SHM ring buffer with SPSC lock-free, bulk ops, cache-line aligned, cross-platform, magic validation, RAII, and deleted copy/move. ✅
 
-### 8.690 shm_ring_buffer C++: shm_open 0666 permissions — Medium
+### 8.690 shm_ring_buffer C++: shm_open 0666 permissions — Medium [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h:101`
 
@@ -9181,7 +9181,7 @@ fd_ = shm_open(name_.c_str(), O_CREAT | O_RDWR, 0666);
 
 **Фикс:** Use `0600` (owner read/write only) or `0640` (owner + group read).
 
-### 8.691 shm_ring_buffer C++: no try_pop timeout — Low
+### 8.691 shm_ring_buffer C++: no try_pop timeout — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h:220`
 
@@ -10279,7 +10279,7 @@ API keys are stored as plaintext `std::string` in the `ExchangeConfig` struct. `
 
 **Фикс:** Use a `SecureString` class that zeros memory on destruction. Or use `std::vector<char>` with explicit `memset(0)` in destructor.
 
-### 8.767 config.h: metrics_host defaults to 0.0.0.0 — Low
+### 8.767 config.h: metrics_host defaults to 0.0.0.0 — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/config.h:177`
 
@@ -10309,7 +10309,7 @@ Metrics server defaults to binding on all interfaces. Exposes trading metrics (P
 
 Good bot loop with SL/TP, arbitrage, AI signals, V2/V1 signal loops, adaptive order selection, latency tracking, and comprehensive status. ✅
 
-### 8.769 bot_loop.cpp: arb_lock not exception-safe — Low
+### 8.769 bot_loop.cpp: arb_lock not exception-safe — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_loop.cpp:31-34`
 
@@ -10324,7 +10324,7 @@ Manual lock/unlock without RAII. If `ctx.latest_arb` copy throws (unlikely but p
 
 **Фикс:** Use `std::lock_guard<std::mutex> lock(ctx.arb_lock);`.
 
-### 8.770 bot_loop.cpp: prepare_order_book synthetic spread is hardcoded — Low
+### 8.770 bot_loop.cpp: prepare_order_book synthetic spread is hardcoded — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_loop.cpp:79-81`
 
@@ -10339,7 +10339,7 @@ Synthetic order book uses hardcoded 1 bps spread and 1.0 qty for all levels. Thi
 
 **Фикс:** Use per-symbol spread configuration. Use realistic qty based on historical depth data.
 
-### 8.771 bot_loop.cpp: has_arb_opportunity store after unlock — Low
+### 8.771 bot_loop.cpp: has_arb_opportunity store after unlock — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_loop.cpp:34`
 
@@ -10352,7 +10352,7 @@ ctx.has_arb_opportunity = false;
 
 **Фикс:** Move `ctx.has_arb_opportunity = false;` before `ctx.arb_lock.unlock();`.
 
-### 8.772 Code reduction: duplicate order book synthesis — Info
+### 8.772 Code reduction: duplicate order book synthesis — Info [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_loop.cpp:70-82` + `hft-trade-bot/src/core/bot_loop.cpp:191-199`
 
@@ -10411,7 +10411,7 @@ The reconnect thread is detached. If `disconnect()` is called while the reconnec
 
 **Фикс:** Don't detach. Store the reconnect thread and join it in `disconnect()`. Or use a condition variable with `should_reconnect_` flag.
 
-### 8.775 order_executor: snprintf buffer truncation silent — Low
+### 8.775 order_executor: snprintf buffer truncation silent — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/execution/order_executor.h:108-128`
 
@@ -10471,7 +10471,7 @@ Same issue as config.h — API keys stored as plaintext `std::string`. Not zeroe
 
 **Фикс:** Use `SecureString` class that zeros memory on destruction.
 
-### 8.779 BinanceAdapter: on_depth_update only updates best level — Low
+### 8.779 BinanceAdapter: on_depth_update only updates best level — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:83-100`
 
@@ -10491,7 +10491,7 @@ Only the best bid/ask is updated from depth updates. Full L2 book is not maintai
 
 **Фикс:** Maintain full L2 book from diffs. Apply bid/ask updates per level, remove levels with qty=0.
 
-### 8.780 BinanceAdapter: double lock in on_book_ticker — Low
+### 8.780 BinanceAdapter: double lock in on_book_ticker — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:74-79`
 
@@ -10529,7 +10529,7 @@ Two spinlocks are held simultaneously (price_lock_ then depth_lock_). If another
 
 Excellent kill switch with 3 activation methods, 5 steps, 5 reasons, SHM notification, atomic activation, file monitoring, and proper cleanup. ✅
 
-### 8.782 kill_switch: catch(...) in init_shm hides errors — Low
+### 8.782 kill_switch: catch(...) in init_shm hides errors — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/risk/kill_switch.h:64`
 
@@ -10546,7 +10546,7 @@ try {
 
 **Фикс:** `catch (const std::exception& e) { spdlog::error("KillSwitch SHM init failed: {}", e.what()); return false; }`.
 
-### 8.783 kill_switch: no auto-recovery from file trigger — Low
+### 8.783 kill_switch: no auto-recovery from file trigger — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/risk/kill_switch.h:98-102`
 
@@ -10722,7 +10722,7 @@ Cache key is `symbol_rounded_price`. If BTC moves from 65000.10 to 65000.49, bot
 
 **Фикс:** Use price buckets: `cache_key = f"{ctx.symbol}_{int(ctx.price / 10)}"` — buckets of $10.
 
-### 8.794 Code reduction: duplicate API key plaintext pattern — Info
+### 8.794 Code reduction: duplicate API key plaintext pattern — Info [N/A]
 
 **Файлы:** `config.h:125`, `BinanceAdapter.h:28`, `exchange_factory.py:172`, `llm_engine/engine.py:29`
 
@@ -10768,7 +10768,7 @@ IndicatorCache& get_cache(const char* symbol) {
 
 **Фикс:** Pre-populate the cache at init for all configured symbols. Use a flat array indexed by symbol_id instead of unordered_map.
 
-### 8.797 signal_engine_v2: stack arrays 256×4 doubles = 8KB — Low
+### 8.797 signal_engine_v2: stack arrays 256×4 doubles = 8KB — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h:90-91`
 
@@ -10813,7 +10813,7 @@ if (now_ms - last_signal_ms_ < params_.cooldown_ms) {
 
 Excellent pressure model with multi-level OBI, weighted OBI, trade flow, toxicity, microprice, queue position, price impact, and spread regime. ✅
 
-### 8.800 pressure_model: compute_obi() static method unused — Info
+### 8.800 pressure_model: compute_obi() static method unused — Info [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/pressure_model.h:134-143`
 
@@ -10841,7 +10841,7 @@ static inline double compute_obi(const OrderBook& ob, int levels) noexcept {
 
 Good position manager with mutex protection, update-on-duplicate, SL/TP checking, and active symbols set. ✅
 
-### 8.802 position_manager: linear search for close_position — Low
+### 8.802 position_manager: linear search for close_position — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/position/position_manager.h:45-54`
 
@@ -10861,7 +10861,7 @@ for (auto it = positions_.begin(); it != positions_.end(); ++it) {
 
 **Фикс:** Use `unordered_map<string, Position>` instead of `vector<Position>`. Or maintain an index map alongside the vector.
 
-### 8.803 position_manager: no position size validation — Low
+### 8.803 position_manager: no position size validation — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/position/position_manager.h:17-41`
 
@@ -10888,7 +10888,7 @@ No validation that `quantity > 0` or that `quantity` doesn't exceed max position
 
 Good signal struct with 9 fields, convenience methods, and R:R calculation. ✅
 
-### 8.805 signal.h: NEUTRAL side() returns BUY — Low
+### 8.805 signal.h: NEUTRAL side() returns BUY — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/signal.h:25-29`
 
@@ -10904,7 +10904,7 @@ Side side() const {
 
 **Фикс:** Return `std::optional<Side>` or throw on NEUTRAL. Or add a `Side::NONE` enum value.
 
-### 8.806 Code reduction: position_manager.h vs position_manager_v2.h — Info
+### 8.806 Code reduction: position_manager.h vs position_manager_v2.h — Info [N/A]
 
 **Файлы:** `hft-trade-bot/src/position/position_manager.h` (130 lines) + `position_manager_v2.h` (14267 bytes)
 
@@ -10949,7 +10949,7 @@ Same issue as V2's `get_cache()` — `emplace` heap-allocates on first call per 
 
 **Фикс:** Pre-populate `hmm_states_` at init for all configured symbols. Remove `noexcept` or use `try_emplace` with pre-allocated memory.
 
-### 8.809 signal_engine_v3: VLA trans_sum on stack — Low
+### 8.809 signal_engine_v3: VLA trans_sum on stack — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:175`
 
@@ -10961,7 +10961,7 @@ double trans_sum[N_STATES][N_STATES];
 
 **Фикс:** Make `trans_sum` a class member or `thread_local` to avoid stack setup overhead.
 
-### 8.810 signal_engine_v3: append_regime_reason manual string ops — Low
+### 8.810 signal_engine_v3: append_regime_reason manual string ops — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:413-432`
 
@@ -11014,7 +11014,7 @@ class MeanReversionV2 {
 
 **Фикс:** Add a `MeanReversionState` struct with Kalman filter, residuals, timestamps, and write_idx. Use `unordered_map<string, MeanReversionState>` for per-symbol state. Or require one instance per symbol.
 
-### 8.813 mean_reversion_v2: 32KB stack per instance — Low
+### 8.813 mean_reversion_v2: 32KB stack per instance — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h:289-290`
 
@@ -11173,7 +11173,7 @@ Same `emoji_map` dict defined in both `TelegramNotifier.send_alert()` and `Disco
 
 Excellent low-latency infrastructure with spinlock, SPSC queue, object pool, latency histogram, thread pinning, circuit breaker, and retry policy. ✅
 
-### 8.823 low_latency: ObjectPool acquire is O(N) — Low
+### 8.823 low_latency: ObjectPool acquire is O(N) — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/utils/low_latency.h:153-161`
 
@@ -11193,7 +11193,7 @@ T* acquire() noexcept {
 
 **Фикс:** Use a lock-free stack (Treiber stack) with `std::atomic<T*>` head for O(1) acquire. Or maintain a free-list atomic index.
 
-### 8.824 low_latency: CircuitBreaker HALF_OPEN allows multiple probes — Low
+### 8.824 low_latency: CircuitBreaker HALF_OPEN allows multiple probes — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/utils/low_latency.h:382-383`
 
@@ -11206,7 +11206,7 @@ In HALF_OPEN state, `allow_request()` always returns `true`. Multiple threads ca
 
 **Фикс:** Use a CAS to transition HALF_OPEN → probe-in-progress, allowing only one probe. Other threads should return false.
 
-### 8.825 low_latency: LatencyHistogram atomic<double> not lock-free on all platforms — Low
+### 8.825 low_latency: LatencyHistogram atomic<double> not lock-free on all platforms — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/utils/low_latency.h:286-287`
 
