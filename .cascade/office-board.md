@@ -159,7 +159,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~Alertmanager: placeholder credentials~~ [FIXED] | SMTP password, Slack/Discord webhooks now use env var references with defaults — override via environment in production | CODE_AUDIT §8.73 |
 | ~~shared_config: hardcoded localhost~~ [FIXED] | Added documentation comments — hosts are dev defaults, override via env vars or Helm values for Docker/K8s | CODE_AUDIT §8.74 |
 | ~~Alertmanager: no silence during deploy~~ [N/A] | Alertmanager has `repeat_interval: 12h` — alerts won't spam on restart. Silencing is operational, not code | CODE_AUDIT §8.78 |
-| Makefile: no C++ tests | `make test` skips 30+ C++ CTest targets | CODE_AUDIT §8.84 |
+| ~~Makefile: no C++ tests~~ [FIXED] | Added test-cpp target to Makefile — runs ctest from hft-trade-bot/build. test target now includes test-cpp | CODE_AUDIT §8.84 |
 | Rust panic=abort + unwrap | SystemTime error = immediate C++ host abort | CODE_AUDIT §8.85 |
 | ~~deploy.sh: no health check exit~~ [FIXED] | Health check now counts healthy services, exits 1 if any unhealthy after 30 retries | CODE_AUDIT §8.89 |
 | ~~deploy.sh: rm -rf before cp~~ [FIXED] | Rollback now copies to data_restored first, only removes old data if cp succeeds — atomic swap | CODE_AUDIT §8.90 |
@@ -174,7 +174,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~dpdk_transport.py: source missing~~ [FIXED] | File does not exist in src/networking/ — only socket_transport.py present. Audit item is stale | CODE_AUDIT §8.115 |
 | ~~Health checks v2: not wired~~ [FIXED] | HealthChecker wired into run.py — liveness/readiness registered with HealthServer, record_signal/record_order called | CODE_AUDIT §8.116 |
 | C++ order_executor: detached thread | Destroy while reconnect sleeping = use-after-free | CODE_AUDIT §8.117 |
-| C++ order_executor: snprintf truncation | Long strings = malformed JSON sent silently | CODE_AUDIT §8.118 |
+| ~~C++ order_executor: snprintf truncation~~ [FIXED] | Added explicit truncation check — if n >= sizeof(buf), logs error and returns without sending malformed JSON | CODE_AUDIT §8.118 |
 | ~~.env.prod: placeholder passwords~~ [FIXED] | All passwords set to empty with REQUIRED comments — docker-compose.prod.yml fails if not set via ${VAR:?} | CODE_AUDIT §8.123 |
 | ~~.env.prod: localhost WS URLs~~ [FIXED] | VITE_WS_EXCHANGE/SIGNALS set to empty with REQUIRED comments — no localhost default | CODE_AUDIT §8.124 |
 | C++ health_server: accept() blocks | stop() can't join thread until next connection | CODE_AUDIT §8.126 |
@@ -215,8 +215,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~web-ui backtestEngine: no slippage~~ [FIXED] | Added slippagePct option (default 0.05%) — buys fill above close, sells fill below close, exits adverse direction | CODE_AUDIT §8.238 |
 | ~~web-ui indicators: O(n²) SMA~~ [FIXED] | Replaced O(n×period) nested loop with O(n) rolling sum — subtract outgoing, add incoming | CODE_AUDIT §8.240 |
 | ~~web-ui mockData: only 5 of 50 symbols~~ [FIXED] | Expanded MOCK_SYMBOLS from 5 to 49 — matches full trading universe. Reduced initial candles from 500 to 100 per symbol to keep init lightweight | CODE_AUDIT §8.243 |
-| hft-trade-bot config: 50 symbols 3x | 50 symbols in config.yaml + shared_config + useUIStore. 3 copies | CODE_AUDIT §8.247 |
-| hft-trade-bot config: localhost WS | ws://localhost:8765 and :8766, won't work in prod | CODE_AUDIT §8.248 |
+| ~~hft-trade-bot config: 50 symbols 3x~~ [FIXED] | Documented sync requirement in config.yaml, shared_config.yaml, and useUIStore.js — 3 copies unavoidable (C++ YAML, Python YAML, JS hardcoded for Vite) | CODE_AUDIT §8.247 |
+| ~~hft-trade-bot config: localhost WS~~ [FIXED] | Documented as dev default in config.yaml (Пачка ZZ-DevOps2). config.h ws_url default removed (Пачка AB). Prod config uses env var interpolation | CODE_AUDIT §8.248 |
 | web-ui registry: 200+ math panels | Research-grade math (SchrodingerBridge, FokkerPlanck). Feature flag | CODE_AUDIT §8.252 |
 | ~~web-ui vite.config: no esbuild.drop~~ [FIXED] | Added esbuild.drop: ['console', 'debugger'] in production builds — console.log stripped from prod bundle | CODE_AUDIT §8.246 |
 | web-ui e2e: no WS tests | No WebSocket, real-time, order flow e2e tests | CODE_AUDIT §8.254 |
@@ -293,7 +293,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~notifier: no auth for remote commands~~ [FIXED] | Added command_password to TelegramNotifier + DiscordNotifier — NOTIFIER_COMMAND_PASSWORD env var | CODE_AUDIT §8.670 |
 | ~~socket_transport: blocking receive loop~~ [FIXED] | Code already uses non-blocking sockets with selectors.DefaultSelector() + timeout=0.1 — audit item is stale | CODE_AUDIT §8.675 |
 | config: API keys in plaintext struct | api_key/api_secret as std::string. Not zeroed on destruction. Use SecureString | CODE_AUDIT §8.681 |
-| shm_ring_buffer C++: shm_open 0666 permissions | World read/write on /dev/shm. Any process can read/write trading data. Use 0600 | CODE_AUDIT §8.690 |
+| ~~shm_ring_buffer C++: shm_open 0666 permissions~~ [FIXED] | All SHM permissions changed 0666→0600 in Пачка AD (shm_heartbeat.h, shm_market_data.h, shm_ring_buffer.h) | CODE_AUDIT §8.690 |
 | ~~run.py: no SIGTERM handler~~ [FIXED] | Added SIGTERM/SIGINT handler in Пачка F/S | CODE_AUDIT §8.693 |
 | ~~signal_publisher: no client authentication~~ [FIXED] | Added auth_token parameter — clients must send {"type":"auth","token":"..."} before receiving signals | CODE_AUDIT §8.697 |
 | ~~signal_publisher: no TLS on WS server~~ [FIXED] | Added ssl parameter to SignalPublisher — pass ssl.SSLContext for wss:// support | CODE_AUDIT §8.698 |

@@ -947,7 +947,7 @@ The `HealthAggregator` checks if other services respond on `/health`, but the bo
 
 A "healthy" status while DB is locked or exchange is disconnected is misleading. The health check should verify actual dependencies, not just HTTP 200.
 
-### 8.56 Health aggregator: aiohttp session per check — Medium
+### 8.56 Health aggregator: aiohttp session per check — Medium [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/health_check.py:53`
 
@@ -984,7 +984,7 @@ This is actually correct — `ConnectionClosed` is expected when a client discon
 
 But `db.py` close method (§8.6) has `except Exception: pass` which is wrong — swallows all errors including DB corruption.
 
-### 8.59 Health aggregator binds to 0.0.0.0 — Low
+### 8.59 Health aggregator binds to 0.0.0.0 — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/health_check.py:116`
 
@@ -1009,7 +1009,7 @@ Based on the full audit, here are the main areas where code can be reduced:
 | `research/__init__.py` heavy exports | ~50 lines | Lazy imports |
 | **Total** | **~510 lines** | |
 
-### 8.61 F-string logging — not structured — Low
+### 8.61 F-string logging — not structured — Low [N/A]
 
 **Файлы:** весь `ai-signal-bot/src/`
 
@@ -4005,7 +4005,7 @@ Excellent structured logging setup with proper fallback and dual renderer suppor
 
 Excellent distributed tracing setup with proper fallback and shutdown. ✅
 
-### 8.292 ai-signal-bot tracing: f-string logging — Low
+### 8.292 ai-signal-bot tracing: f-string logging — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/observability/tracing.py:68,73`
 
@@ -4126,7 +4126,7 @@ The LLM response is parsed by `_parse_response` (not shown in the read portion).
 
 **Фикс:** Use Pydantic or JSON schema validation on the LLM response. Validate sentiment is in {bullish, bearish, neutral}, confidence is 0-100, recommendation is in {buy, sell, hold}.
 
-### 8.301 ai-signal-bot llm_engine: f-string logging — Low
+### 8.301 ai-signal-bot llm_engine: f-string logging — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/llm_engine/engine.py:93`
 
@@ -4941,7 +4941,7 @@ The `close()` method silently swallows all exceptions. If WAL checkpoint fails, 
 
 Excellent config validation with range checks, cross-field validation, and suspicious value warnings. ✅
 
-### 8.366 ai-signal-bot config: f-string logging — Low
+### 8.366 ai-signal-bot config: f-string logging — Low [N/A]
 
 **Файл:** `ai-signal-bot/config/__init__.py:29,32`
 
@@ -4966,7 +4966,7 @@ Uses f-string logging in config validation. Same pattern as rest of project.
 
 Good main entry point with clean pipeline and config-driven setup. ✅
 
-### 8.368 ai-signal-bot run.py: no graceful shutdown — Medium
+### 8.368 ai-signal-bot run.py: no graceful shutdown — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/run.py:100`
 
@@ -4978,7 +4978,7 @@ The bot has a `_running` flag but no signal handler (SIGINT/SIGTERM) to trigger 
 
 **Фикс:** Add `signal.signal(signal.SIGINT, handler)` and `signal.signal(signal.SIGTERM, handler)` that sets `_running = False`.
 
-### 8.369 ai-signal-bot run.py: f-string logging — Low
+### 8.369 ai-signal-bot run.py: f-string logging — Low [N/A]
 
 **Файл:** `ai-signal-bot/run.py:111-117`
 
@@ -5772,7 +5772,7 @@ Good latency simulation with exchange-specific profiles and realistic jitter/spi
 
 Good LLM engine with multi-provider support, caching, and graceful fallback. ✅
 
-### 8.432 llm_engine: f-string logging — Low
+### 8.432 llm_engine: f-string logging — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/llm_engine/engine.py:93`
 
@@ -6275,7 +6275,7 @@ Excellent K8s manifest with StatefulSet, security context, SHM volume, probes, a
 
 Excellent K8s manifest with Deployment, HPA, security context, probes, and service discovery. ✅
 
-### 8.470 ai-signal-bot livenessProbe: tcpSocket vs httpGet — Low
+### 8.470 ai-signal-bot livenessProbe: tcpSocket vs httpGet — Low [FIXED]
 
 **Файл:** `deploy/helm/templates/ai-signal-bot.yaml:71-72`
 
@@ -6703,7 +6703,7 @@ Creates a new `aiohttp.ClientSession` for every health check call. Sessions shou
 
 Good OpenTelemetry tracing with OTLP, batch processor, graceful fallback, and singleton. ✅
 
-### 8.503 tracing.py: `insecure=True` for OTLP — Low
+### 8.503 tracing.py: `insecure=True` for OTLP — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/tracing.py:59`
 
@@ -6953,7 +6953,7 @@ Returns empty dict on missing config file — silently. The bot will run with de
 
 **Фикс:** Log a warning or raise, since missing config is likely a deployment error.
 
-### 8.523 helpers.py: bare Exception in CircuitBreaker — Low
+### 8.523 helpers.py: bare Exception in CircuitBreaker — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/utils/helpers.py` (line ~119+)
 
@@ -7735,7 +7735,7 @@ The signal handler only sets `g_running = false`. It doesn't log the signal rece
 
 Good core strategies with 3 strategies, EnsembleVoter, NaN guards, and dual candle format. ✅
 
-### 8.586 strategies.py: noqa E402 on imports — Low
+### 8.586 strategies.py: noqa E402 on imports — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/strategies/strategies.py:15-22`
 
@@ -8402,7 +8402,7 @@ The liveness probe always returns `{"alive": True}` — it never checks if the b
 
 Excellent Prometheus metrics with 4 metric types, 5 counters, custom registry, and optional imports. ✅
 
-### 8.637 metrics: __init__ returns None on missing prometheus — Low
+### 8.637 metrics: __init__ returns None on missing prometheus — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/metrics.py:41-43`
 
@@ -8430,7 +8430,7 @@ If `prometheus_client` is not installed, `__init__` returns early without settin
 
 Good utility helpers with 10 functions, JSON logging, CircuitBreaker, and RateLimiter. ✅
 
-### 8.639 helpers: CircuitBreaker not thread-safe — Medium
+### 8.639 helpers: CircuitBreaker not thread-safe — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/utils/helpers.py:145-176`
 
@@ -8446,7 +8446,7 @@ class CircuitBreaker:
 
 **Фикс:** Use `asyncio.Lock` for all state mutations. Separate the `is_open` check from the state transition.
 
-### 8.640 helpers: CircuitBreaker side effect in is_open property — Low
+### 8.640 helpers: CircuitBreaker side effect in is_open property — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/utils/helpers.py:156-162`
 
@@ -8465,7 +8465,7 @@ The `is_open` property mutates `_state` (transitions `open` → `half_open`). Th
 
 **Фикс:** Separate the transition into a `try_reset()` method. `is_open` should be read-only.
 
-### 8.641 helpers: RateLimiter imports asyncio inside method — Low
+### 8.641 helpers: RateLimiter imports asyncio inside method — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/utils/helpers.py:194-195`
 
@@ -8492,7 +8492,7 @@ async def acquire(self) -> bool:
 
 Good distributed tracing with OpenTelemetry, Jaeger, optional imports, and no-op fallback. ✅
 
-### 8.643 tracing: OTLP exporter insecure=True — Medium
+### 8.643 tracing: OTLP exporter insecure=True — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/tracing.py:59`
 
@@ -9398,7 +9398,7 @@ FIX tag 554 (Password) is sent as plaintext in the logon message. If the FIX ses
 
 Excellent circuit breaker with 3 states, configurable thresholds, probe limiting, metrics, and status reporting. ✅
 
-### 8.705 circuit_breaker: state property has side effect — Low
+### 8.705 circuit_breaker: state property has side effect — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/circuit_breaker.py:47-54`
 
@@ -9417,7 +9417,7 @@ The `state` property mutates `_state` from OPEN to HALF_OPEN. This is a side eff
 
 **Фикс:** Separate the state check from the state transition. Add a `check_cooldown()` method that performs the transition, and make `state` a pure read.
 
-### 8.706 circuit_breaker: not thread-safe — Low
+### 8.706 circuit_breaker: not thread-safe — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/circuit_breaker.py:34-137`
 
@@ -9622,7 +9622,7 @@ If the ring buffer is full (C++ consumer is slow or crashed), `try_push` returns
 
 Good health aggregator with 3 services, concurrent checks, 3s timeout, latency measurement, K8s-compatible endpoints, and graceful stop. ✅
 
-### 8.721 health_check: creates new aiohttp session per check — Low
+### 8.721 health_check: creates new aiohttp session per check — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/health_check.py:53`
 
@@ -9635,7 +9635,7 @@ A new `aiohttp.ClientSession` is created for each service check. Session creatio
 
 **Фикс:** Create a single `aiohttp.ClientSession` in `__init__` or `start()` and reuse it for all checks. Close it in `stop()`.
 
-### 8.722 health_check: binds to 0.0.0.0 — Low
+### 8.722 health_check: binds to 0.0.0.0 — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/health_check.py:116`
 
@@ -10072,7 +10072,7 @@ Walk-forward validation is only done for TrendFollowing, not MeanReversion. Both
 
 **Фикс:** Add walk-forward validation for MeanReversion best params, same as TrendFollowing.
 
-### 8.753 Code reduction: duplicate health check infrastructure — Info
+### 8.753 Code reduction: duplicate health check infrastructure — Info [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/health_check.py` + `ai-signal-bot/src/monitoring/health_server.py` + `ai-signal-bot/src/observability/health_checks.py`
 
@@ -10085,7 +10085,7 @@ All three implement similar functionality: check component health, return JSON, 
 
 **Reduction potential:** ~150 lines by merging into one framework.
 
-### 8.754 Code reduction: duplicate metrics infrastructure — Info
+### 8.754 Code reduction: duplicate metrics infrastructure — Info [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/metrics_server.py` + `ai-signal-bot/src/monitoring/metrics.py`
 
@@ -11333,7 +11333,7 @@ static uint64_t now_ns() noexcept {
 
 Good helpers with logging, config, env, formatting, circuit breaker, and rate limiter. ✅
 
-### 8.833 helpers: setup_logging duplicates observability/logging.py — Info
+### 8.833 helpers: setup_logging duplicates observability/logging.py — Info [FIXED]
 
 **Файлы:** `ai-signal-bot/src/utils/helpers.py:14-42` + `ai-signal-bot/src/observability/logging.py`
 
@@ -11341,7 +11341,7 @@ Good helpers with logging, config, env, formatting, circuit breaker, and rate li
 
 **Reduction potential:** ~30 lines. Remove `setup_logging` from `helpers.py` and use `observability/logging.py` everywhere.
 
-### 8.834 helpers: CircuitBreaker not thread-safe — Low
+### 8.834 helpers: CircuitBreaker not thread-safe — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/utils/helpers.py:145-176`
 
@@ -11358,7 +11358,7 @@ class CircuitBreaker:
 
 **Фикс:** Use `asyncio.Lock` around state mutations. Or use `itertools.count()` for atomic increment.
 
-### 8.835 helpers: RateLimiter busy-waits in async — Low
+### 8.835 helpers: RateLimiter busy-waits in async — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/utils/helpers.py:194-204`
 
@@ -11992,7 +11992,7 @@ std::vector<Pair> find_pairs(double threshold = 0.7) const noexcept {
 
 Good circuit breaker with 3 states, HALF_OPEN probe limiting, success threshold, metrics, and auto-transition. Better than C++ version (R814) which allows multiple probes. ✅
 
-### 8.877 circuit_breaker.py: state property has side effect — Low
+### 8.877 circuit_breaker.py: state property has side effect — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/circuit_breaker.py:47-54`
 
@@ -12011,7 +12011,7 @@ The `state` property has a side effect: it mutates `_state` and `_half_open_prob
 
 **Фикс:** Use an explicit `check_transition()` method. Or document that `state` has side effects.
 
-### 8.878 circuit_breaker.py: not thread-safe — Low
+### 8.878 circuit_breaker.py: not thread-safe — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/circuit_breaker.py:34-45`
 
@@ -12049,7 +12049,7 @@ The Python `circuit_breaker.py` is the best implementation. `helpers.py` Circuit
 
 Excellent health aggregator with concurrent checks, 3s timeout, 3 health states, K8s-ready HTTP codes, and resilient error handling. Better than `health_checks.py` which runs sequentially (R842). ✅
 
-### 8.881 health_check.py: creates new aiohttp.ClientSession per check — Low
+### 8.881 health_check.py: creates new aiohttp.ClientSession per check — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/health_check.py:53`
 
@@ -12077,7 +12077,7 @@ A new `ClientSession` is created for each service check. `ClientSession` creatio
 
 Good metrics server with Prometheus text format, 7 metrics, no external deps, and clean lifecycle. ✅
 
-### 8.883 metrics_server: not thread-safe — Low
+### 8.883 metrics_server: not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/metrics_server.py:25-50`
 
@@ -12092,7 +12092,7 @@ Same issue as tracker.py (R839). `_signals_sent += 1` is not atomic in async con
 
 **Фикс:** Use `asyncio.Lock` or accept eventual consistency (counters are approximate).
 
-### 8.884 metrics_server: raw HTTP parsing — Low
+### 8.884 metrics_server: raw HTTP parsing — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/metrics_server.py:109-127`
 
@@ -12114,7 +12114,7 @@ Raw HTTP parsing with `readline()`. No method checking (GET/POST), no path check
 
 **Фикс:** Use `aiohttp.web` for proper HTTP handling (like `health_check.py` does). Or at minimum, check the request path.
 
-### 8.885 Code reduction: duplicate CircuitBreaker in helpers.py and circuit_breaker.py — Info
+### 8.885 Code reduction: duplicate CircuitBreaker in helpers.py and circuit_breaker.py — Info [FIXED]
 
 **Файлы:** `ai-signal-bot/src/utils/helpers.py:145-176` + `ai-signal-bot/src/communication/circuit_breaker.py:34-137`
 
