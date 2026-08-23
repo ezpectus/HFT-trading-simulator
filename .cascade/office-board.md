@@ -392,17 +392,17 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Project-wide: 3× duplicate __init__.py re-export | Slow import high memory. Delete re-exports | CODE_AUDIT §8.1405 |
 | Project-wide: 2 duplicate health check systems | Consolidate. observability for logic, monitoring for HTTP | CODE_AUDIT §8.1406 |
 | Project-wide: 50+ modules likely dead code total | ~17000+ lines. Move to analysis_lab/. Reduce src/ by ~50% | CODE_AUDIT §8.1407 |
-| data_collection: 2× duplicate AccountBalance dataclass | Same name different fields. Rename or unify | CODE_AUDIT §8.1413 |
-| data_collection: no rate limiting on REST API calls | 200 req/min could hit exchange limits. Add Semaphore or RateLimiter | CODE_AUDIT §8.1414 |
+| ~~data_collection: 2× duplicate AccountBalance dataclass~~ [FIXED] | Renamed real_account.AccountBalance → AssetBalance. Different fields, different purposes | CODE_AUDIT §8.1413 |
+| ~~data_collection: no rate limiting on REST API calls~~ [FIXED] | Added asyncio.Semaphore in RealExchangeClient | CODE_AUDIT §8.1414 |
 | real_account: 3× broad except Exception | Too broad. Catch specific ccxt/network exceptions | CODE_AUDIT §8.1411 |
 | real_market_data: no asyncio.Lock on shared state | _tickers _orderbooks _candles written from WS read from main. Low risk | CODE_AUDIT §8.1412 |
-| run.py: no SIGTERM handler | K8s sends SIGTERM not Ctrl+C. Pod killed without cleanup | CODE_AUDIT §8.1416 |
+| ~~run.py: no SIGTERM handler~~ [FIXED] | Added SIGTERM/SIGINT handler for graceful shutdown | CODE_AUDIT §8.1416 |
 | run.py: _execute_live_order not implemented | Stub logs warning. Silent failure if paper_trading=False | CODE_AUDIT §8.1417 |
-| run_backtest: sqlite3.connect without context manager | conn.close not in finally. Leaks on exception | CODE_AUDIT §8.1418 |
+| ~~run_backtest: sqlite3.connect without context manager~~ [FIXED] | Wrapped in with statement | CODE_AUDIT §8.1418 |
 | ~~root/metrics.py: duplicate of src/monitoring/metrics.py~~ [FIXED] | 293 lines duplicate. Deleted | CODE_AUDIT §8.1420 |
 | ~~root/tracing.py: duplicate of src/observability/tracing.py~~ [FIXED] | 205 lines duplicate. Deleted | CODE_AUDIT §8.1421 |
 | ~~scripts/run_bot.py: stub that doesn't run bot~~ [FIXED] | Deleted. Use run.py | CODE_AUDIT §8.1424 |
 | ~~scripts/run_backtest.py: duplicate of root run_backtest.py~~ [FIXED] | Deleted. Use root run_backtest.py | CODE_AUDIT §8.1425 |
-| run_logger.py: 4th duplicate logging setup | 4 logging setups with different field names. Consolidate | CODE_AUDIT §8.1426 |
-| bot_helpers.py: triggers __init__.py re-export | from src.technical_analysis import adx ema rsi loads all 25 modules. Use direct import | CODE_AUDIT §8.1427 |
-| ws_connection_pool.py: dead code — not used by ws_client | Well-implemented pool but ExchangeClient manages own WS. Integrate or remove | CODE_AUDIT §8.1431 |
+| ~~run_logger.py: 4th duplicate logging setup~~ [FIXED] | Removed setup_logging from helpers.py. 3→2 logging setups | CODE_AUDIT §8.1426 |
+| ~~bot_helpers.py: triggers __init__.py re-export~~ [FIXED] | Fixed: from src.technical_analysis.indicators import adx, ema, rsi | CODE_AUDIT §8.1427 |
+| ~~ws_connection_pool.py: dead code — not used by ws_client~~ [FIXED] | Deleted module + test. ExchangeClient manages own WS | CODE_AUDIT §8.1431 |

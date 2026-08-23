@@ -77,16 +77,15 @@ def main():
     # Get candle data
     if args.db and os.path.exists(args.db):
         import sqlite3
-        conn = sqlite3.connect(args.db)
-        rows = conn.execute(
-            "SELECT timestamp, open, high, low, close, volume FROM candles "
-            "WHERE symbol=? ORDER BY timestamp", (args.symbol,)
-        ).fetchall()
+        with sqlite3.connect(args.db) as conn:
+            rows = conn.execute(
+                "SELECT timestamp, open, high, low, close, volume FROM candles "
+                "WHERE symbol=? ORDER BY timestamp", (args.symbol,)
+            ).fetchall()
         candles = [
             {"timestamp": r[0], "open": r[1], "high": r[2], "low": r[3], "close": r[4], "volume": r[5]}
             for r in rows
         ]
-        conn.close()
         print(f"Loaded {len(candles)} candles from {args.db}")
     else:
         candles = generate_synthetic_candles(n=args.candles)

@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка G: AccountBalance rename + dead code + sqlite fix)
+
+### Changed
+- Renamed `AccountBalance` → `AssetBalance` in `real_account.py` to avoid collision with `real_exchange_client.py`'s `AccountBalance` (different fields, different purposes)
+- Updated `tests/unit/test_real_account.py` to use `AssetBalance`
+- Wrapped `sqlite3.connect` in `with` statement in `run_backtest.py` (was leaking on exception)
+
+### Deleted
+- `src/communication/ws_connection_pool.py` — dead code, not imported by any module except test
+- `tests/unit/test_ws_connection_pool.py` — test for deleted module
+- Total: ~170 lines removed
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка F: architectural fixes)
 
 ### Added

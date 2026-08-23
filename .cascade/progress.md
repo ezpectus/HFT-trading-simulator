@@ -504,6 +504,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | 6 | 2026-08-25 | Пачка B — __init__.py реэкспорты: technical_analysis/__init__.py (249→0), ml/__init__.py (81→0). bot_helpers.py: from src.technical_analysis import → from src.technical_analysis.indicators import. ~330 строк удалено | ✅ Done | — |
 | 7 | 2026-08-25 | Пачка E — Logging консолидация: удалены setup_logging и JsonFormatter из helpers.py (50 строк), обновлён utils/__init__.py, migrate.py переведён на observability.logging. 3 logging setup → 2 (run_logger + observability) | ✅ Done | — |
 | 8 | 2026-08-25 | Пачка F — Архитектурные фиксы: SIGTERM/SIGINT handler в run.py (graceful shutdown для K8s), rate limiting (asyncio.Semaphore) в real_exchange_client.py (6 REST endpoints) | ✅ Done | — |
+| 9 | 2026-08-25 | Пачка G — AccountBalance rename (real_account.py → AssetBalance), ws_connection_pool.py + test deleted (dead code), run_backtest.py sqlite3 context manager. ~170 строк удалено | ✅ Done | — |
 | 5 | 2026-08-26 | Аудит unused research модулей | ⏳ Pending | — |
 | 6 | 2026-08-27 | backtester.py упрощение | ⏳ Pending | — |
 | 7 | 2026-08-28 | strategies.py cleanup | ⏳ Pending | — |

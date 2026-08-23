@@ -28,7 +28,7 @@ except ImportError:
 
 
 @dataclass
-class AccountBalance:
+class AssetBalance:
     asset: str
     free: float
     used: float
@@ -144,7 +144,7 @@ class RealAccountManager:
             except (OSError, RuntimeError) as e:
                 logger.debug(f"[RealAccount] WS session close error: {e}")
 
-    async def get_balance(self) -> list[AccountBalance]:
+    async def get_balance(self) -> list[AssetBalance]:
         """Fetch account balances."""
         if not self._exchange:
             return []
@@ -153,7 +153,7 @@ class RealAccountManager:
             result = []
             for asset, amounts in balance.get("total", {}).items():
                 if amounts and amounts > 0:
-                    result.append(AccountBalance(
+                    result.append(AssetBalance(
                         asset=asset,
                         free=balance.get("free", {}).get(asset, 0),
                         used=balance.get("used", {}).get(asset, 0),

@@ -4,23 +4,23 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.data_collection.real_account import (
-    AccountBalance,
+    AssetBalance,
     AccountPosition,
     OpenOrder,
     RealAccountManager,
 )
 
 
-class TestAccountBalance:
+class TestAssetBalance:
     def test_dataclass(self):
-        b = AccountBalance(asset="USDT", free=50000, used=10000, total=60000)
+        b = AssetBalance(asset="USDT", free=50000, used=10000, total=60000)
         assert b.asset == "USDT"
         assert b.free == 50000
         assert b.used == 10000
         assert b.total == 60000
 
     def test_to_dict(self):
-        b = AccountBalance(asset="BTC", free=0.5, used=0.1, total=0.6)
+        b = AssetBalance(asset="BTC", free=0.5, used=0.1, total=0.6)
         d = b.to_dict()
         assert d["asset"] == "BTC"
         assert d["free"] == 0.5
