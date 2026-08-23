@@ -246,3 +246,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | order_executor: detached reconnect thread | Detached thread accesses this after destruction. Use jthread or join in dtor | CODE_AUDIT §8.452 |
 | BinanceAdapter: nested spinlock acquisition | Two spinlocks sequential. Latent deadlock risk. Use single lock or document ordering | CODE_AUDIT §8.462 |
 | Helm values: no Redis password | No auth section for Redis. Add existingSecret and --requirepass | CODE_AUDIT §8.467 |
+| metrics_collector: mutex on every metric op | Global mutex blocks all metric operations in HFT hot path. Use atomics | CODE_AUDIT §8.483 |
+| circuit_breaker: not thread-safe | No lock on _state/_consecutive_failures. Race in async context. Use asyncio.Lock | CODE_AUDIT §8.499 |
+| health_check: new ClientSession per call | Creates aiohttp session per health check. Use shared session for pooling | CODE_AUDIT §8.501 |

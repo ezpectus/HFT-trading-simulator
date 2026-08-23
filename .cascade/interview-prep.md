@@ -3091,3 +3091,175 @@ class BinanceAdapter : public ExchangeBase {
 ```
 
 **Разница:** The bad code uses two separate spinlocks with inconsistent acquisition order — the writer acquires `price_lock_` → `depth_lock_` while the reader acquires `depth_lock_` → `price_lock_`. This is a classic AB-BA deadlock. Both threads spin forever, burning CPU at 100%, and the trading loop freezes — no orders submitted, no market data processed, no risk checks executed. In HFT, every millisecond of downtime means missed opportunities. The good code uses a single `market_data_lock_` for all market data fields — no nested locking, no deadlock possible. The `MarketData` struct groups bid/ask/quantities together, improving cache locality (one lookup instead of four). With 1000 users, a spinlock deadlock in the Binance adapter means the bot stops processing market data — it can't calculate signals, submit orders, or check risk. If BTC drops 5% during the deadlock, the bot doesn't react — positions hit stop loss but the bot doesn't close them. 1000 users × $10,000 average position × 5% loss = $500,000 in preventable losses. The single lock costs the same as two locks (one `lock_guard`) and eliminates the deadlock entirely.
+
+---
+
+## Bad vs Good: Mutex in HFT Hot Path (C++)
+
+### ❌ Bad Code
+```cpp
+class MetricsCollector {
+    std::mutex metrics_mutex_;
+    std::map<std::string, uint64_t> counters_;
+
+    void increment_counter(const std::string& name,
+                           const std::map<std::string, std::string>& labels) {
+        std::lock_guard<std::mutex> lock(metrics_mutex_);  // BLOCKS!
+        std::string key = name + serialize_labels(labels);  // ALLOCATES!
+        counters_[key]++;                                   // O(log n) lookup
+    }
+
+    void set_gauge(const std::string& name, double value, ...) {
+        std::lock_guard<std::mutex> lock(metrics_mutex_);  // BLOCKS AGAIN!
+        std::string key = name + serialize_labels(labels);
+        gauges_[key] = value;
+    }
+};
+
+// In hot path:
+void trading_loop() {
+    for (int i = 0; i < 100; ++i) {
+        metrics.increment_counter("orders_total", {{"symbol", "BTC"}, {"side", "BUY"}});
+        // Each call: mutex lock + string concat + map insert + mutex unlock
+        // ~5-10μs per call × 100 metrics = 500-1000μs per iteration
+        // Trading loop budget: 100μs. Metrics alone: 10x over budget.
+    }
+}
+```
+
+**What's wrong:**
+- `std::mutex` on every metric call — blocks all threads accessing metrics
+- `std::string` concatenation — heap allocation in hot path
+- `std::map` lookup — O(log n) with string comparison
+- 100+ metrics per loop iteration × 5-10μs each = 500-1000μs just for metrics
+- HFT budget is sub-100μs — metrics alone exceed the entire budget
+- Thread contention: if 3 threads record metrics simultaneously, mutex serializes them
+
+### ✅ Good Code
+```cpp
+// Pre-registered metric IDs — no string lookup in hot path
+enum class MetricId : uint16_t {
+    ORDERS_TOTAL = 0,
+    FILLS_TOTAL = 1,
+    SIGNALS_GENERATED = 2,
+    ERRORS = 3,
+    // ... pre-registered at compile time
+    COUNT
+};
+
+class MetricsCollector {
+    std::array<std::atomic<int64_t>, static_cast<size_t>(MetricId::COUNT)> counters_{};
+    std::array<std::atomic<double>, static_cast<size_t>(MetricId::COUNT)> gauges_{};
+
+    void increment(MetricId id) noexcept {
+        counters_[static_cast<size_t>(id)].fetch_add(1, std::memory_order_relaxed);
+        // ~2ns per call. 100 metrics = 200ns. 0.2% of budget.
+    }
+
+    void set_gauge(MetricId id, double value) noexcept {
+        gauges_[static_cast<size_t>(id)].store(value, std::memory_order_relaxed);
+    }
+
+    // Periodic serialization (not in hot path)
+    std::string serialize_prometheus() const {
+        std::string result;
+        result.reserve(4096);
+        result += "orders_total " + std::to_string(counters_[0].load()) + "\n";
+        // ... serialize all metrics
+        return result;
+    }
+};
+
+// In hot path:
+void trading_loop() {
+    for (int i = 0; i < 100; ++i) {
+        metrics.increment(MetricId::ORDERS_TOTAL);  // 2ns, no lock, no alloc
+    }
+    // Total: 200ns. 0.2% of 100μs budget. Acceptable.
+}
+```
+
+**Разница:** The bad code uses a `std::mutex` on every metric operation — in HFT, this is catastrophic. Each `increment_counter` call takes 5-10μs (mutex lock + string concatenation + map lookup + mutex unlock). With 100 metrics per trading loop iteration, that's 500-1000μs just for metrics — 10x the entire trading loop budget of 100μs. The mutex also serializes all threads: if 3 threads try to record metrics simultaneously, they block each other, adding even more latency. The good code uses pre-registered `MetricId` enum values and `std::atomic` counters — no mutex, no string allocation, no map lookup. Each `increment` is a single `fetch_add` with `memory_order_relaxed` — about 2ns. 100 metrics = 200ns = 0.2% of the budget. The serialization (Prometheus format) happens periodically in a background thread, not in the hot path. With 1000 users, the bad code means the bot processes 1 signal per millisecond instead of 10 — 10x slower signal processing means 10x more missed opportunities. If BTC flashes 3% in 100ms, the bot with mutex-based metrics can't react in time — it's still waiting for the mutex. The atomic-based metrics react in 200ns — 50,000x faster. The cost is pre-registering metrics at compile time (minor inconvenience). The benefit is 50,000x faster metrics with zero contention.
+
+---
+
+## Bad vs Good: Circuit Breaker Without Thread Safety (Python)
+
+### ❌ Bad Code
+```python
+class CircuitBreaker:
+    def __init__(self, config):
+        self._state = BreakerState.CLOSED
+        self._consecutive_failures = 0
+        self._consecutive_successes = 0
+        self._opened_at = 0.0
+
+    @property
+    def state(self) -> BreakerState:
+        if self._state == BreakerState.OPEN:
+            if time.time() - self._opened_at >= self.config.cooldown_seconds:
+                self._state = BreakerState.HALF_OPEN  # RACE!
+                self._half_open_probes = 0
+        return self._state
+
+    def record_outcome(self, success: bool):
+        if success:
+            self._consecutive_failures = 0  # RACE!
+            self._consecutive_successes += 1
+        else:
+            self._consecutive_successes = 0
+            self._consecutive_failures += 1
+            if self._consecutive_failures >= self.config.failure_threshold:
+                self._state = BreakerState.OPEN  # RACE!
+                self._opened_at = time.time()
+```
+
+**What's wrong:**
+- No lock — `_state`, `_consecutive_failures`, `_consecutive_successes` are unprotected
+- In asyncio, `record_outcome()` and `is_closed` can interleave at any `await` point
+- Race 1: Two coroutines call `record_outcome(False)` simultaneously — `_consecutive_failures` increments once instead of twice (lost update)
+- Race 2: `state` property transitions OPEN→HALF_OPEN while another coroutine calls `record_outcome()` — state changes mid-operation
+- Race 3: `_consecutive_failures` is reset to 0 by one coroutine while another is checking `>= failure_threshold` — breaker never opens
+- With 1000 users, lost updates mean the breaker might never trip after 5 consecutive losses — it could reach 10 losses without opening, sending 5 extra bad signals
+
+### ✅ Good Code
+```python
+class CircuitBreaker:
+    def __init__(self, config):
+        self._lock = asyncio.Lock()
+        self._state = BreakerState.CLOSED
+        self._consecutive_failures = 0
+        self._consecutive_successes = 0
+        self._opened_at = 0.0
+
+    @property
+    async def state(self) -> BreakerState:
+        async with self._lock:
+            if self._state == BreakerState.OPEN:
+                if time.time() - self._opened_at >= self.config.cooldown_seconds:
+                    self._state = BreakerState.HALF_OPEN
+                    self._half_open_probes = 0
+                    logger.info("Circuit breaker: OPEN → HALF_OPEN")
+            return self._state
+
+    async def record_outcome(self, success: bool):
+        async with self._lock:
+            if success:
+                self._consecutive_failures = 0
+                self._consecutive_successes += 1
+                if self._state == BreakerState.HALF_OPEN:
+                    if self._consecutive_successes >= self.config.success_threshold:
+                        self._state = BreakerState.CLOSED
+                        logger.info("Circuit breaker: HALF_OPEN → CLOSED")
+            else:
+                self._consecutive_successes = 0
+                self._consecutive_failures += 1
+                if self._consecutive_failures >= self.config.failure_threshold:
+                    self._state = BreakerState.OPEN
+                    self._opened_at = time.time()
+                    self._total_trips += 1
+                    logger.warning(f"Circuit breaker: CLOSED → OPEN "
+                                 f"(failures={self._consecutive_failures})")
+```
+
+**Разница:** The bad code has no synchronization on `_state` and `_consecutive_failures`. In Python's asyncio, coroutines can interleave at any `await` point — but even without `await`, the GIL doesn't protect against logical races (read-modify-write sequences). Two coroutines calling `record_outcome(False)` simultaneously can both read `_consecutive_failures = 4`, both increment to 5, and both write 5 — one increment is lost. The breaker should trip at 5 failures but only sees 4 — it stays CLOSED and sends another bad signal. With 1000 users, one bad signal can trigger $10,000+ in wrong trades. The good code uses `asyncio.Lock()` to protect all state transitions. Each `record_outcome` and `state` check is atomic — no lost updates, no interleaved transitions. The lock costs ~1μs per acquisition (asyncio.Lock is lightweight) — negligible compared to the 60s signal interval. The benefit is guaranteed correctness: the breaker always trips at exactly `failure_threshold` consecutive losses, no matter how many concurrent coroutines are recording outcomes.

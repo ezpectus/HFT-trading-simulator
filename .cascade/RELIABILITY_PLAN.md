@@ -1024,3 +1024,27 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R467 | web-ui/vite.config.js | `vite.config.js` | ✅ Excellent | PWA, runtime caching, manual chunks (5 vendors), cssCodeSplit, es2020, alias, Docker host |
 | R468 | vite.config: no sourcemap in production | `vite.config.js:56` | Low | No sourcemap setting. Consider 'hidden' for Sentry without exposing source |
 | R469 | vite.config: PWA manifest says "204 panels" | `vite.config.js:15` | Info | Hardcoded panel count in description. Make generic to avoid maintenance |
+| R470 | hft-trade-bot/communication/signal_receiver.h | `signal_receiver.h` | ✅ Good | Dual connection, callbacks, private inheritance, symbol_id fast path |
+| R471 | signal_receiver_handlers.h | `signal_receiver_handlers.h` | ✅ Good | 11 msg types, non-throwing parse, string_view, atomic trading_active |
+| R472 | hft-trade-bot/metrics/metrics_collector.h | `metrics_collector.h` | ✅ Good | 3 metric types (Counter/Gauge/Histogram), HistogramBuckets, domain methods |
+| R473 | metrics_collector.cpp: mutex on every operation | `metrics_collector.cpp:43` | Medium | Global mutex blocks all metric ops. Use atomics or per-thread accumulation |
+| R474 | metrics_collector: string key on every call | `metrics_collector.cpp:45` | Low | String concat + map lookup per call. Pre-register with int IDs |
+| R475 | hft-trade-bot/monitoring/health_server.h | `health_server.h` | ✅ Good | Raw POSIX sockets, cross-platform, destructor joins, atomic shutdown |
+| R476 | hft-trade-bot/monitoring/system_monitor.h | `system_monitor.h` | ✅ Excellent | 11 atomic metrics, memory_order_relaxed, computed rates, noexcept, Snapshot |
+| R477 | hft-trade-bot/tracing/tracer.h | `tracer.h` | ✅ Good | OpenTelemetry, Span class, 4 trace methods, context propagation, Jaeger |
+| R478 | tracer.h: mutex on Span operations | `tracer.h:11` | Low | Span uses map+vector with mutex. Use thread-local or compile-time disable |
+| R479 | hft-trade-bot/utils/low_latency.h | `low_latency.h` | ✅ Excellent | Spinlock _mm_pause, CAS, SPSC queue, object pool, histogram, thread pin, alignas64 |
+| R480 | hft-trade-bot/market_data/candle_aggregator.h | `candle_aggregator.h` | ✅ Excellent | 3 modes (TIME/VOLUME/TICK), noexcept, zero-alloc, ns timestamps, callback |
+| R481 | hft-trade-bot/market_data/order_book_manager.h | `order_book_manager.h` | ✅ Excellent | Full L2, alignas64 PriceLevel, static_assert, 4 spread regimes, microprice, template |
+| R482 | hft-trade-bot/market_data/trade_handler.h | `trade_handler.h` | ✅ Excellent | Aggressor detection, rolling VWAP O(1), circular buffer, large trade, noexcept |
+| R483 | hft-trade-bot/position/position_manager_v2.h | `position_manager_v2.h` | ✅ Excellent | FIFO/weighted avg, realized+unrealized PnL, isolated+cross margin, liq price, noexcept |
+| R484 | exchange_simulator/health.py | `health.py` | ✅ Good | FastAPI, 3 K8s endpoints (/health/live/ready), lazy init, YAML config |
+| R485 | health.py: global mutable state | `health.py:31` | Low | Global _exchanges/_market. Race on concurrent _init(). Use asyncio.Lock |
+| R486 | exchange_simulator/ws_prometheus.py | `ws_prometheus.py` | ✅ Good | 8 metrics, per-exchange labels, HELP+TYPE, mixin pattern |
+| R487 | exchange_simulator/audit_logger.py | `audit_logger.py` | ✅ Excellent | 6 event types, thread-safe deque(maxlen=10000), file persistence, callbacks, UUID |
+| R488 | ai-signal-bot/communication/circuit_breaker.py | `circuit_breaker.py` | ✅ Excellent | 3 states (CLOSED/OPEN/HALF_OPEN), configurable, statistics, signal outcome tracking |
+| R489 | circuit_breaker: not thread-safe | `circuit_breaker.py:38` | Medium | No lock. Race on _state/_consecutive_failures. Use asyncio.Lock |
+| R490 | ai-signal-bot/communication/health_check.py | `health_check.py` | ✅ Good | 3 services, 3s timeout, latency, 3 statuses, aiohttp web server |
+| R491 | health_check: new ClientSession per check | `health_check.py:53` | Low | Creates session per call. Use shared session for connection pooling |
+| R492 | ai-signal-bot/observability/tracing.py | `tracing.py` | ✅ Good | OpenTelemetry, OTLP gRPC, BatchSpanProcessor, graceful fallback, singleton, AsyncioInstrumentor |
+| R493 | tracing.py: insecure=True for OTLP | `tracing.py:59` | Low | Disables TLS for trace export. Use TLS in production |

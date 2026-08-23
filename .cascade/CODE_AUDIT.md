@@ -6395,3 +6395,317 @@ description: 'Crypto HFT trading system dashboard with 204 panels and 44+ math m
 The manifest description mentions "204 panels" — this is the exact count from `registry.js`. Good documentation but will need updating if panels are added/removed.
 
 **Фикс:** Consider making the description generic ("real-time trading dashboard") to avoid maintenance.
+
+### 8.480 hft-trade-bot/src/communication/signal_receiver.h: WebSocket signal receiver — ✅ Good
+
+**Файл:** `hft-trade-bot/src/communication/signal_receiver.h` (210 lines)
+
+- **Dual connection**: Exchange simulator (8765) + AI Signal Bot (8766) — correct
+- **Callback-based**: SignalCallback, CandleCallback, ArbitrageCallback — decoupled
+- **Private inheritance**: `private SignalReceiverData` — data encapsulation
+- **Symbol registration**: `register_symbols()` for subscription — correct
+- **symbol_id lookup**: `uint16_t` for fast path — HFT optimization
+
+Good signal receiver with dual connections, callbacks, and data encapsulation. ✅
+
+### 8.481 signal_receiver_handlers.h: JSON message dispatch — ✅ Good
+
+**Файл:** `hft-trade-bot/src/communication/signal_receiver_handlers.h` (234 lines)
+
+- **11 message types**: candles, snapshot, sync_state, trading_state, replay_state, fill, error, signal, signal_history, market_regime, circuit_breaker_status, welcome, arbitrage_scan — comprehensive
+- **`json::parse(payload, nullptr, false)`**: Non-throwing parse — correct
+- **`is_discarded()` check**: Validates parse result — correct
+- **`string_view` for type**: Avoids string copy — HFT optimization
+- **`trading_active_.store()`**: Atomic for thread-safe state — correct
+- **Extracted for file-size compliance**: Good modularization
+
+Good message handler with 11 types, non-throwing parse, and string_view optimization. ✅
+
+### 8.482 hft-trade-bot/src/metrics/metrics_collector.h: Prometheus metrics — ✅ Good
+
+**Файл:** `hft-trade-bot/src/metrics/metrics_collector.h` (93 lines)
+
+- **3 metric types**: Counter, Gauge, Histogram — Prometheus standard
+- **HistogramBuckets**: Configurable bucket boundaries — flexible
+- **Convenience methods**: `record_signal_generation_latency`, `record_order_execution_latency` — domain-specific
+- **Port configurable**: Default 8002 — flexible
+
+Good Prometheus metrics collector with 3 types and domain-specific convenience methods. ✅
+
+### 8.483 metrics_collector.cpp: mutex on every metric operation — Medium
+
+**Файл:** `hft-trade-bot/src/metrics/metrics_collector.cpp:43-47`
+
+```cpp
+void MetricsCollector::increment_counter(const std::string& name, ...) {
+    std::lock_guard<std::mutex> lock(metrics_mutex_);
+    std::string key = name + serialize_labels(labels);
+    counters_[key]++;
+}
+```
+
+Every metric operation (counter, gauge, histogram) acquires a global `std::mutex`. In HFT, this means every `increment_counter` call blocks all other metric operations. With 100+ metrics per trading loop iteration, this adds significant latency.
+
+**Фикс:** Use `std::atomic` for counters/gauges, or use per-thread metric accumulation with periodic merge.
+
+### 8.484 metrics_collector: string key concatenation on every call — Low
+
+**Файл:** `hft-trade-bot/src/metrics/metrics_collector.cpp:45-46`
+
+```cpp
+std::string key = name + serialize_labels(labels);
+counters_[key]++;
+```
+
+String concatenation + map lookup on every metric call. This allocates memory and does O(log n) lookup. In HFT, this is unacceptable for hot-path metrics.
+
+**Фикс:** Pre-register metrics with integer IDs, use array indexing instead of string lookup.
+
+### 8.485 hft-trade-bot/src/monitoring/health_server.h: HTTP health endpoint — ✅ Good
+
+**Файл:** `hft-trade-bot/src/monitoring/health_server.h` (175 lines)
+
+- **Raw POSIX sockets**: No external HTTP library — lightweight
+- **Cross-platform**: Windows (winsock2) + Linux (arpa/inet) — portable
+- **Destructor cleanup**: `stop()` joins thread — correct
+- **Atomic running flag**: `running_.exchange(false)` — thread-safe shutdown
+- **`update_health()`**: External health status injection — flexible
+- **WSAStartup/WSACleanup**: Windows socket lifecycle managed — correct
+
+Good health server with raw sockets, cross-platform, and proper lifecycle. ✅
+
+### 8.486 hft-trade-bot/src/monitoring/system_monitor.h: Atomic metrics — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/monitoring/system_monitor.h` (205 lines)
+
+- **11 metrics**: ORDERS_SENT, ORDERS_FILLED, ORDERS_REJECTED, ORDERS_CANCELED, SIGNALS_RECEIVED, SIGNALS_PROCESSED, ERRORS, RECONNECTS, SHM_DROPS, HEARTBEATS_SENT, HEARTBEATS_MISSED — comprehensive
+- **`std::atomic<int64_t>`**: All counters atomic — thread-safe
+- **`memory_order_relaxed`**: No ordering needed for counters — correct
+- **`fill_rate()` / `rejection_rate()`**: Computed from atomic counters — O(1)
+- **`noexcept`**: All methods noexcept — HFT constraint
+- **Snapshot struct**: For periodic serialization — clean
+
+Excellent system monitor with 11 atomic metrics, computed rates, and noexcept. ✅
+
+### 8.487 hft-trade-bot/src/tracing/tracer.h: OpenTelemetry tracing — ✅ Good
+
+**Файл:** `hft-trade-bot/src/tracing/tracer.h` (76 lines)
+
+- **OpenTelemetry**: Industry standard — correct
+- **Span class**: name, attributes, events, status, start/end time — comprehensive
+- **4 trace methods**: signal_generation, order_execution, signal_processing, orderbook_update — domain-specific
+- **Context propagation**: inject/extract — distributed tracing
+- **Jaeger integration**: host + port configurable — correct
+
+Good OpenTelemetry tracer with Span class, 4 trace methods, and context propagation. ✅
+
+### 8.488 tracer.h: mutex on Span operations — Low
+
+**Файл:** `hft-trade-bot/src/tracing/tracer.h:11`
+
+```cpp
+#include <mutex>
+```
+
+Span uses `std::map` for attributes and `std::vector` for events — both require mutex for thread safety. In HFT, tracing should be minimal overhead. Consider lock-free or thread-local spans.
+
+**Фикс:** Use thread-local Span storage or disable tracing in hot path via compile-time flag.
+
+### 8.489 hft-trade-bot/src/utils/low_latency.h: Low-latency infrastructure — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h` (451 lines)
+
+- **Spinlock with `_mm_pause`**: Reduces power + helps hyperthreading — HFT best practice
+- **`compare_exchange_strong`**: Correct CAS for lock acquisition
+- **`memory_order_acquire`**: Correct for lock — proper synchronization
+- **Cross-platform**: Windows (processthreadsapi) + Linux (pthread, sched) — portable
+- **`_mm_pause` only on x86_64**: Compile-time guard — correct
+- **SPSC queue, object pool, latency histogram**: All in one file — comprehensive
+- **Thread pinning**: `pin_thread()` for CPU affinity — HFT optimization
+- **Cache-line aligned**: `alignas(64)` throughout — no false sharing
+
+Excellent low-latency infrastructure with spinlock, SPSC queue, object pool, histogram, and thread pinning. ✅
+
+### 8.490 hft-trade-bot/src/market_data/candle_aggregator.h: Tick-to-candle — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/market_data/candle_aggregator.h` (146 lines)
+
+- **3 modes**: TIME, VOLUME, TICK — flexible
+- **`noexcept` on_trade**: Hot path no exceptions — HFT constraint
+- **No heap allocations**: Stack-allocated — HFT constraint
+- **3 constructors**: Time-based, volume-based, tick-based — flexible
+- **Callback**: Real-time candle output — async
+- **Nanosecond timestamps**: `timestamp_ns` — HFT precision
+
+Excellent candle aggregator with 3 modes, noexcept, zero-alloc, and nanosecond precision. ✅
+
+### 8.491 hft-trade-bot/src/market_data/order_book_manager.h: L2 order book — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/market_data/order_book_manager.h` (282 lines)
+
+- **Full L2 book**: Incremental updates, snapshot merge — production-grade
+- **`alignas(64) PriceLevel`**: Cache-line aligned — no false sharing
+- **`static_assert(sizeof(PriceLevel) == 64)`**: Compile-time validation
+- **4 spread regimes**: TIGHT, NORMAL, WIDE, EXTREME — market microstructure
+- **Microprice**: Weighted mid-price — HFT metric
+- **Template `MaxLevels`**: Configurable capacity — flexible
+- **No heap allocations**: Fixed-size arrays — HFT constraint
+
+Excellent L2 order book with cache-line aligned levels, spread regimes, microprice, and zero-alloc. ✅
+
+### 8.492 hft-trade-bot/src/market_data/trade_handler.h: Trade tape processor — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/market_data/trade_handler.h` (213 lines)
+
+- **Aggressor detection**: `is_buyer_maker` → buy/sell aggressor — market microstructure
+- **Rolling VWAP**: O(1) update via running sums — efficient
+- **Rolling window**: Circular buffer with incremental subtraction — O(1)
+- **Large trade detection**: Configurable threshold — market impact
+- **Volume imbalance**: Buy/sell volume ratio — order flow
+- **`noexcept` on_trade**: Hot path no exceptions — HFT constraint
+- **No heap allocations**: Fixed-size arrays — HFT constraint
+
+Excellent trade handler with aggressor detection, rolling VWAP, large trade detection, and zero-alloc. ✅
+
+### 8.493 hft-trade-bot/src/position/position_manager_v2.h: Position + PnL — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/position/position_manager_v2.h` (348 lines)
+
+- **FIFO/weighted average cost**: Correct position tracking
+- **Realized + unrealized PnL**: Per-symbol + aggregate — comprehensive
+- **Isolated + cross margin**: Both margin modes — production-grade
+- **Liquidation price**: Calculated per position — risk management
+- **`symbol_id` (uint16_t)**: Numeric ID for fast path — HFT optimization
+- **`is_open()` guard**: `quantity > 1e-10` — floating-point safe
+- **`update_unrealized()`**: O(1) mark-to-market — efficient
+- **`noexcept` methods**: Hot path no exceptions — HFT constraint
+
+Excellent position manager with FIFO, PnL, margin, liquidation, and noexcept. ✅
+
+### 8.494 exchange_simulator/health.py: FastAPI health endpoint — ✅ Good
+
+**Файл:** `exchange_simulator/health.py` (127 lines)
+
+- **FastAPI**: Modern async framework — correct
+- **3 endpoints**: /health, /health/live, /health/ready — K8s standard
+- **Service initialization**: Lazy `_init()` on first request — efficient
+- **Config from YAML**: `config.yaml` — centralized
+- **JSON response**: Status + uptime + service details — comprehensive
+
+Good health endpoint with FastAPI, 3 K8s-standard endpoints, and lazy init. ✅
+
+### 8.495 health.py: global mutable state — Low
+
+**Файл:** `exchange_simulator/health.py:31-33`
+
+```python
+_exchanges = None
+_market = None
+_start_time = None
+```
+
+Global mutable state for exchanges and market. If multiple async requests call `_init()` concurrently, race condition on initialization.
+
+**Фикс:** Use `asyncio.Lock` in `_init()` or initialize at startup.
+
+### 8.496 exchange_simulator/ws_prometheus.py: Prometheus metrics mixin — ✅ Good
+
+**Файл:** `exchange_simulator/ws_prometheus.py` (75 lines)
+
+- **8 metrics**: connected_clients, candle_count, weekend_mode, news_event, tick_interval, trading_active, connections_total, disconnections_total — comprehensive
+- **Per-exchange labels**: `exchange="{ex_id}"` — Prometheus standard
+- **Mixin pattern**: Extracted for file-size compliance — good modularization
+- **HELP + TYPE**: Proper Prometheus format — correct
+
+Good Prometheus metrics mixin with 8 metrics, per-exchange labels, and proper format. ✅
+
+### 8.497 exchange_simulator/audit_logger.py: Audit logging — ✅ Excellent
+
+**Файл:** `exchange_simulator/audit_logger.py` (311 lines)
+
+- **6 event types**: Order lifecycle, position lifecycle, balance changes, config changes, system events, user actions — comprehensive
+- **Thread-safe**: `Lock()` + `deque(maxlen=10000)` — correct
+- **File persistence**: JSON lines to `logs/audit.log` — durable
+- **Callbacks**: Real-time event notification — extensible
+- **UUID**: `uuid.uuid4()` for session tracking — unique
+- **deque(maxlen)**: O(1) append, auto-evict — efficient
+- **`mkdir(parents=True, exist_ok=True)`**: Directory creation — robust
+
+Excellent audit logger with 6 event types, thread-safe deque, file persistence, callbacks, and UUID. ✅
+
+### 8.498 ai-signal-bot/src/communication/circuit_breaker.py: Signal circuit breaker — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py` (138 lines)
+
+- **3 states**: CLOSED, OPEN, HALF_OPEN — standard circuit breaker pattern
+- **Configurable**: failure_threshold (5), cooldown (60s), half_open_probes (1), success_threshold (2) — flexible
+- **State transition**: OPEN → HALF_OPEN on cooldown expiry — correct
+- **Statistics**: total_trips, total_blocks — observability
+- **Signal outcome tracking**: Win/loss based — domain-specific
+
+Excellent circuit breaker with 3 states, configurable thresholds, and statistics. ✅
+
+### 8.499 circuit_breaker: not thread-safe — Medium
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py:38-46`
+
+```python
+class CircuitBreaker:
+    def __init__(self, config):
+        self._state = BreakerState.CLOSED
+        self._consecutive_failures = 0
+```
+
+No lock or asyncio.Lock. If `record_outcome()` and `is_closed` are called from different async tasks, race condition on `_state` and `_consecutive_failures`.
+
+**Фикс:** Use `asyncio.Lock` for state transitions, or use `atomics` if sync.
+
+### 8.500 ai-signal-bot/src/communication/health_check.py: Health aggregator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py` (127 lines)
+
+- **3 services**: ai-signal-bot, exchange-simulator, hft-trade-bot — comprehensive
+- **aiohttp ClientSession**: With 3s timeout — correct
+- **Latency measurement**: `time.monotonic()` — correct
+- **3 statuses**: healthy, degraded, unhealthy — standard
+- **aiohttp web server**: HTTP endpoint on :9092 — correct
+
+Good health aggregator with 3 services, timeout, latency, and 3 statuses. ✅
+
+### 8.501 health_check: creates new ClientSession per check — Low
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py:53`
+
+```python
+async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3.0)) as session:
+```
+
+Creates a new `aiohttp.ClientSession` for every health check call. Sessions should be reused for connection pooling.
+
+**Фикс:** Create a shared `ClientSession` in `__init__` and close it on shutdown.
+
+### 8.502 ai-signal-bot/src/observability/tracing.py: OpenTelemetry + Jaeger — ✅ Good
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py` (111 lines)
+
+- **OpenTelemetry**: Industry standard — correct
+- **OTLP exporter**: gRPC to Jaeger — correct
+- **BatchSpanProcessor**: Async batch export — efficient
+- **Resource**: service.name, namespace, version — proper metadata
+- **Graceful fallback**: `try/except ImportError` — optional dependency
+- **Singleton**: `_initialized` flag prevents double init — correct
+- **AsyncioInstrumentor**: Auto-instruments async — comprehensive
+
+Good OpenTelemetry tracing with OTLP, batch processor, graceful fallback, and singleton. ✅
+
+### 8.503 tracing.py: `insecure=True` for OTLP — Low
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py:59`
+
+```python
+exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
+```
+
+`insecure=True` disables TLS for OTLP export. In production, tracing data should be encrypted.
+
+**Фикс:** Use TLS in production: `insecure=False` with proper certificates.
