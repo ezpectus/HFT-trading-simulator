@@ -243,3 +243,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | hft-trade-bot: no Dockerfile.prod | Deploy workflow uses Dockerfile.prod but only Dockerfile exists. Deploy will fail | CODE_AUDIT §8.423 |
 | migrate.py: no transaction wrapping | Migration SQL not in transaction. Partial state on failure. Use conn.transaction() | CODE_AUDIT §8.436 |
 | config.h: hardcoded localhost default | ws_url defaults to localhost:8765. Won't work in Docker/K8s. Default to empty | CODE_AUDIT §8.445 |
+| order_executor: detached reconnect thread | Detached thread accesses this after destruction. Use jthread or join in dtor | CODE_AUDIT §8.452 |
+| BinanceAdapter: nested spinlock acquisition | Two spinlocks sequential. Latent deadlock risk. Use single lock or document ordering | CODE_AUDIT §8.462 |
+| Helm values: no Redis password | No auth section for Redis. Add existingSecret and --requirepass | CODE_AUDIT §8.467 |

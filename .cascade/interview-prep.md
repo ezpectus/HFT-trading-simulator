@@ -2936,3 +2936,158 @@ void main_loop() {
 ```
 
 **Разница:** The bad code has a simple `running` flag that stops the main loop but does nothing else. Open orders remain on the exchange — they can still fill. Positions remain open — the bot is still exposed to market risk. The Python AI bot keeps sending signals — they queue up and execute when the bot restarts. There's no audit trail of why the bot stopped. The good code implements a proper kill switch with 4 actions: cancel all open orders, close all positions at market, notify Python via SHM, and log the reason. It supports 5 activation reasons (manual, daily loss, max drawdown, margin call, external) and a file-based trigger for external monitoring. The `is_active()` check uses `memory_order_acquire` for proper synchronization. With 1000 users, a kill switch that doesn't cancel orders means $500,000 in open orders could fill after the bot is "stopped" — executing trades that the risk manager flagged as dangerous. A kill switch that doesn't close positions means 1000 users' positions are exposed to market moves with no bot monitoring. The file-based trigger allows an external monitoring system (cron, Prometheus alert, manual touch) to stop the bot without access to the process — critical for production safety. The cost is 50 lines of code. The benefit is preventing catastrophic losses when the bot must stop immediately.
+
+---
+
+## Bad vs Good: Detached Thread Use-After-Free (C++)
+
+### ❌ Bad Code
+```cpp
+class OrderExecutor {
+    std::string ws_url_;
+    std::atomic<bool> should_reconnect_{true};
+
+    void do_connect() {
+        client_->set_close_handler([this](websocketpp::connection_hdl) {
+            if (should_reconnect_) {
+                int delay = reconnect_delay_.load();
+                std::thread([this, delay]() {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+                    if (should_reconnect_) {
+                        do_connect();  // accesses this->client_, this->ws_url_, etc.
+                    }
+                }).detach();  // detached — no way to join
+            }
+        });
+        // ...
+    }
+
+    ~OrderExecutor() {
+        should_reconnect_ = false;
+        // No way to wait for detached thread
+        // If detached thread is sleeping, it will wake up after destructor
+        // and access destroyed members — USE-AFTER-FREE
+    }
+};
+```
+
+**What's wrong:**
+- Reconnect thread is `.detach()`ed — no way to join or cancel
+- If `OrderExecutor` is destroyed while thread is sleeping, thread wakes up after destruction
+- Thread calls `do_connect()` which accesses `this->client_`, `this->ws_url_` — all destroyed
+- **Use-after-free**: undefined behavior — crash, corrupt data, or silent wrong behavior
+- `should_reconnect_ = false` in destructor doesn't help — thread may have already checked it
+- Race condition: thread checks `should_reconnect_` → true → destructor sets false → destructor runs → thread calls `do_connect()` on destroyed object
+
+### ✅ Good Code
+```cpp
+class OrderExecutor {
+    std::string ws_url_;
+    std::atomic<bool> should_reconnect_{true};
+    std::jthread reconnect_thread_;  // C++20 jthread — auto-joes on destruction
+
+    void do_connect() {
+        client_->set_close_handler([this](websocketpp::connection_hdl) {
+            if (should_reconnect_) {
+                int delay = reconnect_delay_.load();
+                // Use jthread with stop_token — cooperative cancellation
+                reconnect_thread_ = std::jthread([this, delay](std::stop_token st) {
+                    for (int i = 0; i < delay / 100 && !st.stop_requested(); ++i) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    }
+                    if (!st.stop_requested() && should_reconnect_) {
+                        do_connect();
+                    }
+                });
+            }
+        });
+    }
+
+    ~OrderExecutor() {
+        should_reconnect_ = false;
+        reconnect_thread_.request_stop();  // signal thread to stop
+        // jthread destructor joins automatically — no use-after-free
+    }
+};
+```
+
+**Разница:** The bad code detaches the reconnect thread, creating a use-after-free when the `OrderExecutor` is destroyed. The detached thread sleeps for `delay` milliseconds, then wakes up and calls `do_connect()` on a destroyed object — accessing freed memory for `client_`, `ws_url_`, and other members. This is undefined behavior: the program may crash, corrupt the heap, or — worst of all — silently connect to the wrong URL or send orders to a freed WebSocket client. The good code uses `std::jthread` (C++20) with a `std::stop_token` for cooperative cancellation. The destructor calls `request_stop()` and `jthread`'s destructor automatically joins — the thread is guaranteed to be stopped and joined before the `OrderExecutor` is destroyed. The sleep loop checks `st.stop_requested()` every 100ms, so the thread responds to stop within 100ms instead of waiting the full delay. With 1000 users, a use-after-free in the order executor could cause the bot to send orders to a freed WebSocket connection — the OS may reuse that memory for another allocation, causing orders to be written into random memory or sent to an unrelated service. The `jthread` costs zero overhead (the stop_token is a simple atomic flag) and eliminates the entire class of use-after-free bugs.
+
+---
+
+## Bad vs Good: Nested Spinlock Deadlock (C++)
+
+### ❌ Bad Code
+```cpp
+class BinanceAdapter : public ExchangeBase {
+    Spinlock price_lock_;
+    Spinlock depth_lock_;
+    std::unordered_map<std::string, double> bids_;
+    std::unordered_map<std::string, double> asks_;
+    std::unordered_map<std::string, double> bid_depth_;
+    std::unordered_map<std::string, double> ask_depth_;
+
+    // Writer: acquires price_lock_ then depth_lock_
+    void on_book_ticker(const std::string& symbol, double bid, double bid_qty,
+                        double ask, double ask_qty) {
+        std::lock_guard<Spinlock> lk1(price_lock_);
+        bids_[symbol] = bid;
+        asks_[symbol] = ask;
+        std::lock_guard<Spinlock> lk2(depth_lock_);  // second lock!
+        bid_depth_[symbol] = bid_qty;
+        ask_depth_[symbol] = ask_qty;
+    }
+
+    // Reader: acquires depth_lock_ then price_lock_ — REVERSED ORDER!
+    double get_spread(const std::string& symbol) {
+        std::lock_guard<Spinlock> lk1(depth_lock_);
+        double depth = bid_depth_[symbol];
+        std::lock_guard<Spinlock> lk2(price_lock_);  // reversed order!
+        double bid = bids_[symbol];
+        double ask = asks_[symbol];
+        return ask - bid;
+    }
+};
+```
+
+**What's wrong:**
+- Writer acquires `price_lock_` → `depth_lock_` (in that order)
+- Reader acquires `depth_lock_` → `price_lock_` (reversed order)
+- Classic deadlock: Writer holds `price_lock_`, waits for `depth_lock_`. Reader holds `depth_lock_`, waits for `price_lock_`
+- Both spin forever — CPU 100% on both threads, no progress
+- Spinlock deadlock is worse than mutex deadlock — spinlocks burn CPU while waiting
+- In HFT, this freezes the entire trading loop — no orders submitted, no market data processed
+
+### ✅ Good Code
+```cpp
+class BinanceAdapter : public ExchangeBase {
+    // Single lock for all market data — no nested locking
+    Spinlock market_data_lock_;
+    struct MarketData {
+        double bid{0};
+        double ask{0};
+        double bid_qty{0};
+        double ask_qty{0};
+    };
+    std::unordered_map<std::string, MarketData> data_;
+
+    void on_book_ticker(const std::string& symbol, double bid, double bid_qty,
+                        double ask, double ask_qty) {
+        std::lock_guard<Spinlock> lk(market_data_lock_);  // single lock
+        auto& d = data_[symbol];
+        d.bid = bid;
+        d.ask = ask;
+        d.bid_qty = bid_qty;
+        d.ask_qty = ask_qty;
+    }
+
+    double get_spread(const std::string& symbol) {
+        std::lock_guard<Spinlock> lk(market_data_lock_);  // same single lock
+        auto it = data_.find(symbol);
+        if (it == data_.end()) return 0.0;
+        return it->second.ask - it->second.bid;
+    }
+};
+```
+
+**Разница:** The bad code uses two separate spinlocks with inconsistent acquisition order — the writer acquires `price_lock_` → `depth_lock_` while the reader acquires `depth_lock_` → `price_lock_`. This is a classic AB-BA deadlock. Both threads spin forever, burning CPU at 100%, and the trading loop freezes — no orders submitted, no market data processed, no risk checks executed. In HFT, every millisecond of downtime means missed opportunities. The good code uses a single `market_data_lock_` for all market data fields — no nested locking, no deadlock possible. The `MarketData` struct groups bid/ask/quantities together, improving cache locality (one lookup instead of four). With 1000 users, a spinlock deadlock in the Binance adapter means the bot stops processing market data — it can't calculate signals, submit orders, or check risk. If BTC drops 5% during the deadlock, the bot doesn't react — positions hit stop loss but the bot doesn't close them. 1000 users × $10,000 average position × 5% loss = $500,000 in preventable losses. The single lock costs the same as two locks (one `lock_guard`) and eliminates the deadlock entirely.

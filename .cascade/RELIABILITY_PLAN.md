@@ -991,3 +991,36 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R434 | hft-trade-bot/src/core/config.h | `config.h` | ✅ Good | 60+ fields with defaults, V3 opt-in, thread pinning opt-in, histograms on |
 | R435 | config.h: hardcoded localhost default | `config.h:14` | Medium | ws_url defaults to localhost:8765. Won't work in Docker/K8s. Default to empty |
 | R436 | config.h: 60+ fields god object | `config.h` | Low | All config in one struct. Split into ConnectionConfig, RiskConfig, etc |
+| R437 | hft-trade-bot/ipc/shm_ring_buffer.h | `shm_ring_buffer.h` | ✅ Excellent | SPSC lock-free, cache-line aligned, cross-platform SHM, power-of-2, static_assert |
+| R438 | hft-trade-bot/ipc/shm_protocol.h | `shm_protocol.h` | ✅ Excellent | 3 msg types, #pragma pack, static_assert, Python format documented, ns timestamps |
+| R439 | hft-trade-bot/ipc/shm_heartbeat.h | `shm_heartbeat.h` | ✅ Excellent | Bidirectional, seq-guarded, alignas(64), health fields, cross-platform |
+| R440 | hft-trade-bot/exchange/ExchangeBase.h | `ExchangeBase.h` | ✅ Good | EMA latency (CAS loop), toxic counter, circuit breaker (toxic<5), DIP |
+| R441 | hft-trade-bot/execution/order_executor.h | `order_executor.h` | ✅ Good | Auto-reconnect backoff, recreate client, manual JSON zero-alloc, [[unlikely]] |
+| R442 | order_executor: detached reconnect thread | `order_executor.h:63` | Medium | Detached thread accesses this after destruction. Use jthread or join in dtor |
+| R443 | order_executor: snprintf buffer truncation | `order_executor.h:108` | Low | 512-byte buffer, fragile truncation check. Use std::format or bound lengths |
+| R444 | hft-trade-bot/execution/smart_order_router_v2.h | `smart_order_router_v2.h` | ✅ Excellent | 5 strategies, DIP (IExchange*), stack-allocated, toxic backoff, depth-aware |
+| R445 | hft-trade-bot/execution/latency_tracker.h | `latency_tracker.h` | ✅ Excellent | 8 stages, P50-P99.9, budget enforcement, zero-alloc, stage names |
+| R446 | hft-trade-bot/execution/adaptive_order_selector_v2.h | `adaptive_order_selector_v2.h` | ✅ Good | 4 order kinds, 6 factors, noexcept, SelectionResult with reason |
+| R447 | hft-trade-bot/strategies/signal_engine_v2.h | `signal_engine_v2.h` | ✅ Excellent | 6 indicators, zero-alloc, branchless, alignas(64), cooldown, dynamic SL/TP/leverage |
+| R448 | hft-trade-bot/strategies/signal_engine_v3.h | `signal_engine_v3.h` | ✅ Excellent | 4 HMM states, online Baum-Welch, Viterbi, regime-gated V2, O(1) per-tick |
+| R449 | hft-trade-bot/strategies/simd_indicators.h | `simd_indicators.h` | ✅ Good | AVX2 8-wide, #if defined(__AVX2__), scalar fallback, SimdEMA + SimdRSI |
+| R450 | simd_indicators: ema_array returns vector | `simd_indicators.h:45` | Low | SIMD negated by vector alloc. Remove if unused or use output span |
+| R451 | hft-trade-bot/exchange/BinanceAdapter.h | `BinanceAdapter.h` | ✅ Good | Real Binance Futures, HMAC-SHA256, rate limits documented, spinlock, OrderResult |
+| R452 | BinanceAdapter: nested spinlock acquisition | `BinanceAdapter.h:74` | Medium | Two spinlocks sequential. Latent deadlock risk. Use single lock or document ordering |
+| R453 | BinanceAdapter: api_key/api_secret in Config | `BinanceAdapter.h:28` | Low | Credentials in plain string. Use Secret wrapper or env/secrets manager |
+| R454 | hft-trade-bot/fix/fix_session.h | `fix_session.h` | ✅ Excellent | FIX 4.4, state machine, persistent seq nums, gap detection, destructor cleanup, atomic |
+| R455 | deploy/helm/Chart.yaml | `Chart.yaml` | ✅ Good | apiVersion v2, appVersion 2.0.0, keywords, sources, maintainer |
+| R456 | deploy/helm/values.yaml | `values.yaml` | ✅ Excellent | 8 services, resource limits, HPA, StatefulSet, pinned images, persistence, TLS, existingSecret |
+| R457 | Helm values: no Redis password | `values.yaml:155` | Medium | No auth section for Redis. Add existingSecret and --requirepass |
+| R458 | deploy/helm/templates/hft-trade-bot.yaml | `hft-trade-bot.yaml` | ✅ Excellent | StatefulSet, securityContext (non-root, drop ALL, readOnly), SHM volume, probes, Service |
+| R459 | deploy/helm/templates/ai-signal-bot.yaml | `ai-signal-bot.yaml` | ✅ Excellent | Deployment, HPA, securityContext, SHM+data+logs volumes, probes, service discovery |
+| R460 | ai-signal-bot livenessProbe: tcpSocket | `ai-signal-bot.yaml:71` | Low | tcpSocket only checks port open, not app health. Use httpGet /health if available |
+| R461 | exchange_simulator/arbitrage.py | `arbitrage.py` | ✅ Good | ArbStatus enum, fee+slippage deduction, spread_bps, WebSocket broadcast |
+| R462 | exchange_simulator/options_simulator.py | `options_simulator.py` | ✅ Good | Black-Scholes, 5 Greeks, Newton-Raphson IV, put-call parity, option chain |
+| R463 | exchange_simulator/funding_rate.py | `funding_rate.py` | ✅ Good | 8-hour intervals, basis-driven rate, FundingRateEvent, deque history |
+| R464 | exchange_simulator/market_microstructure.py | `market_microstructure.py` | ✅ Excellent | Student-t, Merton jumps, Heston SV, Markov 4-state, U-shaped intraday, VWAP volume |
+| R465 | exchange_simulator/spread_analytics.py | `spread_analytics.py` | ✅ Good | SpreadRecord/Stats, percentile-based, per exchange/symbol, deque |
+| R466 | exchange_simulator/data_export.py | `data_export.py` | ✅ Good | CSV+Parquet, 3 export types, summary stats, UTC timestamps |
+| R467 | web-ui/vite.config.js | `vite.config.js` | ✅ Excellent | PWA, runtime caching, manual chunks (5 vendors), cssCodeSplit, es2020, alias, Docker host |
+| R468 | vite.config: no sourcemap in production | `vite.config.js:56` | Low | No sourcemap setting. Consider 'hidden' for Sentry without exposing source |
+| R469 | vite.config: PWA manifest says "204 panels" | `vite.config.js:15` | Info | Hardcoded panel count in description. Make generic to avoid maintenance |

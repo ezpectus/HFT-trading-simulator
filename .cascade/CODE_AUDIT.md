@@ -5954,3 +5954,444 @@ Default WebSocket URL is `localhost:8765`. In Docker/K8s, this won't resolve to 
 60+ config fields in a single `Config` struct. This is a "god object" — every component's config is in one place. While not a bug, it makes it hard to pass only relevant config to components.
 
 **Code reduction:** Split into `ConnectionConfig`, `RiskConfig`, `SignalEngineConfig`, `RouterConfig`, etc. Each component receives only its relevant config.
+
+### 8.447 hft-trade-bot/src/ipc/shm_ring_buffer.h: SPSC lock-free ring buffer — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h` (348 lines)
+
+- **SPSC lock-free**: Single-producer single-consumer — no locks needed
+- **Cache-line aligned**: `head` and `tail` on separate cache lines (`alignas(64)`) — no false sharing
+- **`static_assert(sizeof(ShmHeader) == 192)`**: Compile-time size verification
+- **Magic number**: `0x484654343253484D` ("HFT42SHM") for validation
+- **Power-of-2 capacity**: Enables `& (capacity - 1)` instead of `%` — faster
+- **Cross-platform**: Windows (fileapi.h) + Linux (mmap) — portable
+- **No heap allocations**: All operations O(1), `mmap + MAP_SHARED` for cross-process
+- **`#pragma once`**: Include guard
+
+Excellent SPSC ring buffer with cache-line alignment, cross-platform SHM, and compile-time validation. ✅
+
+### 8.448 hft-trade-bot/src/ipc/shm_protocol.h: Binary IPC protocol — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_protocol.h` (118 lines)
+
+- **3 message types**: SignalMsg (32B), FillMsg (28B), MarketSnapshotMsg (28B)
+- **`#pragma pack(push, 1)`**: Explicit packing for cross-language alignment
+- **`static_assert(sizeof(...) == N)`**: Compile-time size verification for each struct
+- **Python struct format documented**: `Python: struct.Struct('<Q B B f f f f B 5x')` in comments
+- **Explicit padding**: `pad_[5]` fields — no implicit padding surprises
+- **Nanosecond timestamps**: `uint64_t timestamp` — ns since epoch
+
+Excellent binary IPC protocol with compile-time size checks and Python format documentation. ✅
+
+### 8.449 hft-trade-bot/src/ipc/shm_heartbeat.h: SHM heartbeat — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_heartbeat.h` (272 lines)
+
+- **Bidirectional**: C++ writes heartbeat, Python reads; Python writes, C++ reads
+- **Seq-guarded access**: `std::atomic<uint64_t> seq` — lock-free reads
+- **Cache-line aligned**: `alignas(64) HeartbeatSlot` — fits in 1 cache line
+- **`static_assert(sizeof(HeartbeatSlot) <= 64)`**: Compile-time validation
+- **Health fields**: timestamp, pid, message_count, error_count, status ("OK"/"DEGRADED"/"ERROR")
+- **Cross-platform**: Windows + Linux SHM
+
+Excellent heartbeat system with seq-guarded access, cache-line alignment, and health fields. ✅
+
+### 8.450 hft-trade-bot/src/exchange/ExchangeBase.h: Exchange base with EMA latency — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/ExchangeBase.h` (60 lines)
+
+- **EMA latency tracking**: `latency_avg_` updated with EMA formula — O(1) atomic
+- **CAS loop**: `compare_exchange_weak` for thread-safe EMA update — correct
+- **Toxic event counter**: `toxic_count_` with `fetch_add` — atomic
+- **Circuit breaker**: `is_available()` returns `toxic_count_ < 5` — automatic backoff
+- **DIP**: Abstract base class implementing `IExchange` — SOLID
+
+Good exchange base with atomic EMA latency, toxic event tracking, and circuit breaker. ✅
+
+### 8.451 hft-trade-bot/src/execution/order_executor.h: WebSocket order executor — ✅ Good
+
+**Файл:** `hft-trade-bot/src/execution/order_executor.h` (231 lines)
+
+- **Auto-reconnect**: Exponential backoff 1s → 30s cap — correct
+- **Recreate client on reconnect**: `client_ = std::make_unique<WSClient>()` — websocketpp init_asio() can't be called twice
+- **Manual JSON serialization**: `snprintf` instead of nlohmann/json — avoids heap allocation in hot path
+- **`[[unlikely]]`**: Branch prediction hint for `!connected_` — HFT optimization
+- **Disconnect**: Properly closes connection and joins thread
+
+Good order executor with auto-reconnect, manual JSON for zero-alloc, and proper lifecycle. ✅
+
+### 8.452 order_executor: detached reconnect thread — Medium
+
+**Файл:** `hft-trade-bot/src/execution/order_executor.h:63`
+
+```cpp
+}).detach();
+```
+
+The reconnect thread is detached. If the `OrderExecutor` is destroyed while the detached thread is sleeping (before `do_connect()`), the thread will access `this` after destruction — use-after-free.
+
+**Фикс:** Use `std::jthread` with stop_token, or track the reconnect thread and join it in destructor.
+
+### 8.453 order_executor: snprintf buffer truncation — Low
+
+**Файл:** `hft-trade-bot/src/execution/order_executor.h:108-116`
+
+```cpp
+char buf[512];
+int n = std::snprintf(buf, sizeof(buf), ...);
+```
+
+Manual JSON with `snprintf` into a 512-byte buffer. If symbol name or exchange ID is very long, the JSON may be truncated. The check `n < static_cast<int>(sizeof(buf) - 32)` mitigates this, but it's fragile.
+
+**Фикс:** Use `std::format` (C++20) or ensure symbol/exchange lengths are bounded.
+
+### 8.454 hft-trade-bot/src/execution/smart_order_router_v2.h: 5-strategy router — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/execution/smart_order_router_v2.h` (181 lines)
+
+- **5 routing strategies**: BestPrice, LowestLatency, LowestFees, BestEffective, DepthAware
+- **DIP**: Uses `IExchange*` interface — no concrete exchange in core
+- **Stack-allocated**: `IExchange* available[MAX_EXCHANGES]` — no heap allocation in hot path
+- **Toxic backoff**: Skips exchanges with ≥5 toxic events — circuit breaker
+- **Depth-aware**: Considers available depth, not just price — realistic
+- **prefer_maker**: Prefers limit orders when possible — fee optimization
+
+Excellent smart order router with 5 strategies, DIP, zero-alloc, and circuit breaker. ✅
+
+### 8.455 hft-trade-bot/src/execution/latency_tracker.h: Per-stage histograms — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/execution/latency_tracker.h` (253 lines)
+
+- **8 latency stages**: Signal→Order, Order→ACK, ACK→Fill, Signal→Fill, Order→Fill, MarketData→Process, RiskCheck, StrategyCompute
+- **P50/P95/P99/P99.9**: Per-stage percentile computation
+- **Budget enforcement**: Alerts when latency exceeds budget
+- **No heap allocations**: All stack-allocated — HFT constraint
+- **Stage names**: `latency_stage_str()` for logging
+
+Excellent latency tracker with 8 stages, percentiles, budget enforcement, and zero-alloc. ✅
+
+### 8.456 hft-trade-bot/src/execution/adaptive_order_selector_v2.h: Adaptive order types — ✅ Good
+
+**Файл:** `hft-trade-bot/src/execution/adaptive_order_selector_v2.h` (223 lines)
+
+- **4 order kinds**: MARKET, IOC, FOK, GTD (Good-Til-Date)
+- **6 selection factors**: confidence, spread, OBI, toxicity, order/depth ratio, urgency
+- **`noexcept`**: Hot path marked noexcept — no exceptions
+- **SelectionResult**: Returns kind + limit_price + expire_ns + reason — informative
+- **Exchange-specific mapping**: Binance IOC/FOK/GTX/GTC+expire documented
+
+Good adaptive order selector with 4 kinds, 6 factors, and noexcept hot path. ✅
+
+### 8.457 hft-trade-bot/src/strategies/signal_engine_v2.h: 6-indicator composite — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v2.h` (494 lines)
+
+- **6 indicators**: EMA crossover, RSI, OBI (multi-level), VWAP deviation, ADX, Pressure Model
+- **No heap allocations**: All stack-allocated (max 256 candles) — HFT constraint
+- **Branchless**: Ternary, fmax/fmin instead of if/else — HFT optimization
+- **Cache-line aligned**: `FastSignal` is `alignas(64)` — no false sharing
+- **Cooldown**: Configurable between signals (default 5000ms) — prevents overtrading
+- **IndicatorCache**: Reusable EMA/RSI/ADX/ATR/VWAP state — incremental updates
+- **Dynamic SL/TP**: ATR-based — volatility-adjusted
+- **Dynamic leverage**: Based on confidence + ADX — risk-adjusted
+
+Excellent signal engine with 6 indicators, zero-alloc, branchless, cache-aligned, and dynamic risk. ✅
+
+### 8.458 hft-trade-bot/src/strategies/signal_engine_v3.h: HMM regime detection — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h` (437 lines)
+
+- **4 HMM states**: TRENDING_UP, TRENDING_DOWN, RANGING, VOLATILE
+- **Online Baum-Welch**: Simplified online parameter adaptation — O(1) per tick
+- **Viterbi decoding**: Most likely state path — regime detection
+- **Regime-gated V2**: Boost/dampen signals based on regime — context-aware
+- **No heap allocations**: All stack-allocated — HFT constraint
+- **O(1) per-tick**: Online HMM forward recursion — sub-100μs
+- **VOLATILE regime**: Widen stops, reduce leverage — risk-aware
+
+Excellent V3 engine with HMM regime detection, online learning, and regime-gated signals. ✅
+
+### 8.459 hft-trade-bot/src/strategies/simd_indicators.h: AVX2 SIMD — ✅ Good
+
+**Файл:** `hft-trade-bot/src/strategies/simd_indicators.h` (228 lines)
+
+- **AVX2**: 8 double-precision values in parallel — 4x throughput
+- **`#if defined(__AVX2__)`**: Compile-time detection — graceful fallback
+- **Scalar fallback**: `ema_scalar()` for non-AVX2 platforms
+- **SimdEMA + SimdRSI**: Two SIMD-optimized indicators
+
+Good SIMD optimization with compile-time detection and scalar fallback. ✅
+
+### 8.460 simd_indicators: ema_array returns vector — Low (code reduction)
+
+**Файл:** `hft-trade-bot/src/strategies/simd_indicators.h:45`
+
+```cpp
+static std::vector<double> ema_array(const std::vector<double>& prices, double alpha) {
+    std::vector<double> ema_values(prices.size());
+```
+
+`ema_array` returns a `std::vector<double>` — heap allocation. The SIMD optimization is negated by the vector allocation. This function is not used in the HFT hot path (V2 uses `InlineEMA`), but it's misleading to have a "SIMD optimized" function that allocates.
+
+**Фикс:** Remove `ema_array` if unused, or change to accept output span.
+
+### 8.461 hft-trade-bot/src/exchange/BinanceAdapter.h: Real exchange adapter — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h` (190 lines)
+
+- **Real Binance Futures**: wss://fstream.binance.com, POST /fapi/v1/order
+- **HMAC-SHA256 auth**: `sign()` method for REST API — secure
+- **Rate limits documented**: 1200 weight/min, 300 orders/10s, 1200 orders/min
+- **Spinlock for prices**: `price_lock_` and `depth_lock_` — low-latency
+- **Book ticker update**: `on_book_ticker()` for real-time bid/ask
+- **Depth update**: `on_depth_update()` for L2 book changes
+- **OrderResult**: Struct with success, order_id, status, avg_price, error — informative
+
+Good Binance adapter with HMAC auth, rate limit documentation, and spinlock for low latency. ✅
+
+### 8.462 BinanceAdapter: nested spinlock acquisition — Medium
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:74-79`
+
+```cpp
+void on_book_ticker(...) {
+    std::lock_guard<Spinlock> lk(price_lock_);
+    bids_[symbol] = bid;
+    asks_[symbol] = ask;
+    std::lock_guard<Spinlock> lk2(depth_lock_);
+    bid_depth_[symbol] = bid_qty;
+    ask_depth_[symbol] = ask_qty;
+}
+```
+
+Two spinlocks acquired sequentially. If another thread holds `depth_lock_` and tries to acquire `price_lock_`, deadlock. The current code doesn't have this pattern, but it's a latent risk.
+
+**Фикс:** Use a single lock for both prices and depth, or document the lock ordering convention.
+
+### 8.463 BinanceAdapter: api_key and api_secret in Config struct — Low
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:28-29`
+
+```cpp
+std::string api_key;
+std::string api_secret;
+```
+
+API credentials stored as plain `std::string` in a config struct. If the struct is logged or dumped, credentials are visible.
+
+**Фикс:** Use a `Secret` wrapper type that masks in `operator<<`, or load from env/secrets manager.
+
+### 8.464 hft-trade-bot/src/fix/fix_session.h: FIX 4.4 session — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/fix/fix_session.h` (294 lines)
+
+- **FIX 4.4**: Industry standard protocol — correct
+- **State machine**: DISCONNECTED → CONNECTING → LOGGED_IN → LOGGING_OUT — proper lifecycle
+- **Persistent sequence numbers**: File-based — survives restarts
+- **Gap detection**: ResendRequest on sequence mismatch — reliable
+- **Heartbeat timeout**: TestRequest on timeout — connection health
+- **Destructor cleanup**: logout + stop_heartbeat + save_seq_nums — graceful shutdown
+- **Callbacks**: SendCallback + AppMessageCallback — decoupled from transport
+- **Atomic state**: `std::atomic<SessionState>` — thread-safe state checks
+
+Excellent FIX session with state machine, persistent seq nums, gap detection, and graceful destructor. ✅
+
+### 8.465 deploy/helm/Chart.yaml: Helm chart metadata — ✅ Good
+
+**Файл:** `deploy/helm/Chart.yaml` (19 lines)
+
+- **apiVersion: v2**: Modern Helm chart format
+- **appVersion: "2.0.0"**: Application version tracked
+- **Keywords**: hft, trading, simulator, educational, cpp, python, react
+- **Sources**: GitHub URL documented
+- **Maintainer**: Listed
+
+Good Helm chart metadata with keywords, sources, and maintainer. ✅
+
+### 8.466 deploy/helm/values.yaml: Comprehensive Helm values — ✅ Excellent
+
+**Файл:** `deploy/helm/values.yaml` (255 lines)
+
+- **8 services**: exchangeSimulator, aiSignalBot, hftTradeBot, webUi, timescaledb, redis, jaeger, (prometheus/grafana)
+- **Resource limits**: All services have requests + limits — proper
+- **HPA**: aiSignalBot and webUi have autoscaling (1-5, 2-6) — correct
+- **HFT bot no autoscaling**: `autoscaling.enabled: false` — stateful, correct
+- **StatefulSet for HFT bot**: `kind: StatefulSet` — correct for stateful service
+- **Pinned images**: TimescaleDB `pg16-ts2.17.2`, Redis `7-alpine` — reproducible
+- **Persistence**: TimescaleDB 50Gi, Redis 10Gi — proper storage
+- **Ingress**: webUi with cert-manager + letsencrypt — TLS
+- **existingSecret for DB**: `hft-db-secret` — no plaintext password
+
+Excellent Helm values with 8 services, resource limits, HPA, StatefulSet, pinned images, and TLS. ✅
+
+### 8.467 Helm values: no Redis password — Medium
+
+**Файл:** `deploy/helm/values.yaml:155-174`
+
+```yaml
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: 7-alpine
+```
+
+No `auth` section for Redis. Unlike TimescaleDB which has `auth.existingSecret`, Redis has no password configuration. In production, Redis should require authentication.
+
+**Фикс:** Add `auth.existingSecret: hft-redis-secret` and configure Redis with `--requirepass`.
+
+### 8.468 deploy/helm/templates/hft-trade-bot.yaml: K8s manifest — ✅ Excellent
+
+**Файл:** `deploy/helm/templates/hft-trade-bot.yaml` (95 lines)
+
+- **StatefulSet**: Correct for stateful HFT bot
+- **securityContext**: `runAsNonRoot: true`, `runAsUser: 1000`, `allowPrivilegeEscalation: false`, `readOnlyRootFilesystem: true`, `capabilities.drop: [ALL]` — security best practices
+- **SHM volume**: `emptyDir.medium: Memory` (256Mi) — shared memory for IPC
+- **Logs volume**: `emptyDir` — ephemeral logs
+- **livenessProbe**: HTTP /health, 30s period — correct
+- **readinessProbe**: HTTP /health, 10s period — correct
+- **Service**: ClusterIP, metrics port — internal only
+- **Jaeger + Redis env**: Injected via `include` helpers — service discovery
+
+Excellent K8s manifest with StatefulSet, security context, SHM volume, probes, and service discovery. ✅
+
+### 8.469 deploy/helm/templates/ai-signal-bot.yaml: K8s manifest — ✅ Excellent
+
+**Файл:** `deploy/helm/templates/ai-signal-bot.yaml` (132 lines)
+
+- **Deployment**: Correct for stateless AI bot
+- **HPA**: autoscaling/v2 with CPU target — correct
+- **securityContext**: Same as hft-trade-bot — excellent
+- **SHM + data + logs volumes**: Correct — SHM for IPC, data for SQLite, logs for logging
+- **livenessProbe**: tcpSocket ws port — correct (Python bot doesn't have HTTP health)
+- **readinessProbe**: tcpSocket ws port — correct
+- **TimescaleDB + Redis + Jaeger env**: Injected via helpers — service discovery
+- **Service**: ClusterIP, ws + metrics ports — internal only
+
+Excellent K8s manifest with Deployment, HPA, security context, probes, and service discovery. ✅
+
+### 8.470 ai-signal-bot livenessProbe: tcpSocket vs httpGet — Low
+
+**Файл:** `deploy/helm/templates/ai-signal-bot.yaml:71-72`
+
+```yaml
+livenessProbe:
+  tcpSocket:
+    port: ws
+```
+
+Using `tcpSocket` for liveness probe. This only checks if the port is open, not if the application is healthy. The bot could be stuck in a deadlock with the WebSocket port still open — K8s won't restart it.
+
+**Фикс:** Use `httpGet` with the health server endpoint (`/health` on metrics port) if available.
+
+### 8.471 exchange_simulator/arbitrage.py: Multi-exchange arbitrage — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/arbitrage.py` (298 lines)
+
+- **ArbStatus enum**: OPEN, CLOSED, EXPIRED — proper lifecycle
+- **ArbitrageOpportunity**: buy/sell exchange, gross/net spread, spread_bps — comprehensive
+- **Fee deduction**: `net_spread = gross_spread - fees` — realistic
+- **Slippage**: Considered in net spread — realistic
+- **Broadcast**: Opportunities sent via WebSocket — real-time
+
+Good arbitrage detector with fee/slippage deduction and real-time broadcast. ✅
+
+### 8.472 exchange_simulator/options_simulator.py: Black-Scholes + Greeks — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/options_simulator.py` (237 lines)
+
+- **Black-Scholes**: European-style option pricing — correct
+- **5 Greeks**: delta, gamma, theta, vega, rho — comprehensive
+- **Implied volatility**: Newton-Raphson iteration — correct
+- **Put-call parity**: Verification — validation
+- **Option chain**: Multiple strikes/expiries — flexible
+
+Good options simulator with Black-Scholes, Greeks, IV, and put-call parity. ✅
+
+### 8.473 exchange_simulator/funding_rate.py: Perpetual funding — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/funding_rate.py` (136 lines)
+
+- **8-hour intervals**: 00:00, 08:00, 16:00 UTC — matches real exchanges
+- **Basis-based rate**: Perpetual-spot basis drives funding — realistic
+- **FundingRateEvent**: timestamp, rate, funding_time, mark_price, index_price — comprehensive
+- **deque history**: O(1) append — efficient
+
+Good funding rate simulator with 8-hour intervals and basis-driven rates. ✅
+
+### 8.474 exchange_simulator/market_microstructure.py: Realistic price generation — ✅ Excellent
+
+**Файл:** `exchange_simulator/exchange_simulator/market_microstructure.py` (175 lines)
+
+- **Student-t returns (df=4)**: Fat tails — realistic
+- **Merton jump diffusion**: Poisson jumps — realistic
+- **Heston stochastic volatility**: Correlated with price — realistic
+- **Markov regime switching**: 4 states (CALM/VOLATILE/CRASH/RECOVERY) — realistic
+- **U-shaped intraday**: High volatility at open/close — realistic
+- **VWAP volume profile**: Realistic volume distribution
+- **Transition matrix**: Documented with row/column labels — clear
+
+Excellent market microstructure with 5 models and documented transition matrix. ✅
+
+### 8.475 exchange_simulator/spread_analytics.py: Spread tracking — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/spread_analytics.py` (188 lines)
+
+- **SpreadRecord**: exchange, symbol, spread, mid_price, spread_bps, timestamp — comprehensive
+- **SpreadStats**: count, mean, median, p95, max — percentile-based
+- **deque history**: O(1) append — efficient
+- **Per exchange/symbol**: Granular tracking
+
+Good spread analytics with percentile stats and per-exchange/symbol tracking. ✅
+
+### 8.476 exchange_simulator/data_export.py: CSV/Parquet export — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_simulator/data_export.py` (246 lines)
+
+- **CSV + Parquet**: Built-in CSV, optional Parquet (pyarrow) — flexible
+- **3 export types**: Candles, orders, accounts — comprehensive
+- **Summary statistics**: Aggregated export — useful for analysis
+- **datetime UTC**: `from datetime import UTC` — timezone-aware
+
+Good data export with CSV/Parquet, 3 export types, and UTC timestamps. ✅
+
+### 8.477 web-ui/vite.config.js: Vite + PWA config — ✅ Excellent
+
+**Файл:** `web-ui/vite.config.js` (84 lines)
+
+- **PWA**: VitePWA with autoUpdate, manifest, workbox — installable app
+- **Runtime caching**: Google Fonts CacheFirst — performance
+- **Manual chunks**: react-vendor, charts-vendor, icons-vendor, state-vendor, recharts-vendor — optimized bundling
+- **cssCodeSplit**: true — smaller initial CSS
+- **chunkSizeWarningLimit**: 1000 — reasonable
+- **esbuild target: es2020**: Modern JS — smaller output
+- **Alias `@` → src**: Clean imports
+- **server host: 0.0.0.0**: Docker-compatible
+
+Excellent Vite config with PWA, manual chunks, code splitting, and Docker-compatible server. ✅
+
+### 8.478 vite.config: no sourcemap in production — Low
+
+**Файл:** `web-ui/vite.config.js:56-59`
+
+```js
+build: {
+    target: 'es2020',
+    minify: 'esbuild',
+```
+
+No `sourcemap` setting — defaults to `false` in Vite production builds. This is correct for production (smaller bundles, no source exposure), but makes debugging production issues harder.
+
+**Фикс:** Consider `sourcemap: 'hidden'` for error tracking services (Sentry) without exposing to users.
+
+### 8.479 vite.config: PWA manifest says "204 panels" — Info
+
+**Файл:** `web-ui/vite.config.js:15`
+
+```js
+description: 'Crypto HFT trading system dashboard with 204 panels and 44+ math models',
+```
+
+The manifest description mentions "204 panels" — this is the exact count from `registry.js`. Good documentation but will need updating if panels are added/removed.
+
+**Фикс:** Consider making the description generic ("real-time trading dashboard") to avoid maintenance.
