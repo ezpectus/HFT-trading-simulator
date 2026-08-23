@@ -1,4 +1,10 @@
 {{- if .Values.webUi.enabled -}}
+{{- if not .Values.webUi.wsExchange -}}
+{{- fail "webUi.wsExchange must be set (e.g. --set webUi.wsExchange=wss://your-domain/ws-exchange)" -}}
+{{- end -}}
+{{- if not .Values.webUi.wsSignals -}}
+{{- fail "webUi.wsSignals must be set (e.g. --set webUi.wsSignals=wss://your-domain/ws-signals)" -}}
+{{- end -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

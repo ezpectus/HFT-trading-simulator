@@ -35,7 +35,11 @@ spec:
             capabilities:
               drop:
                 - ALL
+          {{- if .Values.redis.password }}
+          command: ["redis-server", "--maxmemory", {{ .Values.redis.maxmemory | quote }}, "--maxmemory-policy", "allkeys-lru", "--appendonly", "yes", "--requirepass", {{ .Values.redis.password | quote }}]
+          {{- else }}
           command: ["redis-server", "--maxmemory", {{ .Values.redis.maxmemory | quote }}, "--maxmemory-policy", "allkeys-lru", "--appendonly", "yes"]
+          {{- end }}
           ports:
             - containerPort: 6379
               name: redis
@@ -81,4 +85,21 @@ spec:
   selector:
     {{- include "hft-trading-system.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: redis
+{{- end -}}
+---
+{{- if .Values.redis.enabled -}}
+{{- if .Values.redis.password -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-redis
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hft-trading-system.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  REDIS_URL: {{ printf "redis://:%s@%s-redis:6379/0" .Values.redis.password .Release.Name | quote }}
+{{- else -}}
+{{- fail "redis.password must be set (e.g. --set redis.password=...)" -}}
+{{- end -}}
 {{- end -}}

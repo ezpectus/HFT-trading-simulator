@@ -1,0 +1,50 @@
+{{- if .Values.aiSignalBot.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Release.Name }}-ai-signal-bot
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hft-trading-system.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-signal-bot
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "hft-trading-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: ai-signal-bot
+---
+{{- end -}}
+{{- if .Values.exchangeSimulator.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Release.Name }}-exchange-simulator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hft-trading-system.labels" . | nindent 4 }}
+    app.kubernetes.io/component: exchange-simulator
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "hft-trading-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: exchange-simulator
+---
+{{- end -}}
+{{- if .Values.hftTradeBot.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Release.Name }}-hft-trade-bot
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hft-trading-system.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hft-trade-bot
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "hft-trading-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: hft-trade-bot
+{{- end -}}

@@ -51,10 +51,24 @@ prod-db-migrate:
 import asyncio, asyncpg, os, glob
 async def main():
     conn = await asyncpg.connect(os.environ.get('POSTGRES_DSN', os.environ.get('DATABASE_URL', 'postgresql://trader:trader@postgres:5432/trading')))
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            filename TEXT PRIMARY KEY,
+            applied_at TIMESTAMPTZ DEFAULT NOW()
+        )
+    ''')
+    applied = {r[0] for r in await conn.fetch('SELECT filename FROM schema_migrations')}
     for f in sorted(glob.glob('src/database/migrations/*.sql')):
+        name = os.path.basename(f)
+        if name in applied:
+            print(f'  Skipped (already applied): {name}')
+            continue
         with open(f) as fh:
-            await conn.execute(fh.read())
-        print(f'  Applied: {f}')
+            sql = fh.read()
+        async with conn.transaction():
+            await conn.execute(sql)
+            await conn.execute('INSERT INTO schema_migrations (filename) VALUES ($$1)', name)
+        print(f'  Applied: {name}')
     await conn.close()
 asyncio.run(main())
 "

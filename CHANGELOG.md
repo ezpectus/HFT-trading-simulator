@@ -2,6 +2,43 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка YY-DevOps: Helm + .env.prod + Grafana + deploy.yml + Makefile.prod)
+
+### Added
+- `helm/templates/pdb.yaml`: PodDisruptionBudget for ai-signal-bot, exchange-simulator, hft-trade-bot (minAvailable: 1)
+- `helm/templates/network-policy.yaml`: Default-deny NetworkPolicy + postgres ingress (port 5432, same-release pods only) + redis ingress (port 6379) + DNS egress
+- `helm/templates/redis.yaml`: Redis Secret with REDIS_URL (password-protected) + `--requirepass` command flag
+- `helm/values.yaml`: `redis.password` field (empty by default, fails if not set)
+
+### Changed
+- `helm/values.yaml`: postgres.password, grafana.adminPassword, webUi.wsExchange/wsSignals all set to empty — Helm fails if not provided via `--set`
+- `helm/templates/web-ui.yaml`: Added `{{- fail }}` validation for empty wsExchange/wsSignals
+- `helm/templates/redis.yaml`: Conditional `--requirepass` flag based on redis.password
+- `.env.prod.example`: All passwords set to empty with REQUIRED comments — no more placeholder passwords
+- `.env.prod.example`: VITE_WS_EXCHANGE/SIGNALS set to empty — no localhost default for production
+- `docker-compose.yml`: Grafana admin password changed from hardcoded `admin` to `${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set}`
+- `.github/workflows/deploy.yml`: Removed localhost fallback for VITE_WS_EXCHANGE/SIGNALS — empty if GitHub vars not set
+- `Makefile.prod`: `prod-db-migrate` now creates `schema_migrations` table, skips already-applied files, wraps new migrations in transaction
+
+### Fixed
+- CODE_AUDIT §8.66 — Helm no PDB → PDB templates for 3 critical services
+- CODE_AUDIT §8.67 — Helm no NetworkPolicy → default-deny + postgres/redis ingress rules
+- CODE_AUDIT §8.69 — Helm hardcoded PG password → empty default, fails if not set
+- CODE_AUDIT §8.123 — .env.prod placeholder passwords → empty with REQUIRED comments
+- CODE_AUDIT §8.124 — .env.prod localhost WS URLs → empty, no localhost default
+- CODE_AUDIT §8.132 — Makefile.prod migration not idempotent → schema_migrations tracking table
+- CODE_AUDIT §8.138 — docker-compose Grafana admin/admin → ${GRAFANA_PASSWORD:?} fails if not set
+- CODE_AUDIT §8.152 — prod VITE_WS localhost fallback → removed, empty if not set
+- CODE_AUDIT §8.193 — Helm values hardcoded passwords → empty defaults
+- CODE_AUDIT §8.195 — Helm values VITE_WS localhost → empty, template fails if not set
+- CODE_AUDIT §8.374 — Makefile.prod no migration tracking → schema_migrations table with filename PK
+- CODE_AUDIT §8.387 — Helm localhost for web-ui WS → same as §8.195
+- CODE_AUDIT §8.388 — Helm Postgres password plaintext → same as §8.69
+- CODE_AUDIT §8.412 — deploy.yml localhost fallback for VITE_WS → removed
+- CODE_AUDIT §8.467 — Helm no Redis password → redis.password field + --requirepass + Secret
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AA: Health + Metrics audit)
 
 ### Changed

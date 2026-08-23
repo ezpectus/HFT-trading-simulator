@@ -87,8 +87,8 @@ jobs:
           # web-ui needs VITE_WS_* build args (inlined into the bundle at build
           # time). Other services ignore these args.
           build-args: |
-            VITE_WS_EXCHANGE=${{ vars.VITE_WS_EXCHANGE || 'ws://localhost:8765' }}
-            VITE_WS_SIGNALS=${{ vars.VITE_WS_SIGNALS || 'ws://localhost:8766' }}
+            VITE_WS_EXCHANGE=${{ vars.VITE_WS_EXCHANGE }}
+            VITE_WS_SIGNALS=${{ vars.VITE_WS_SIGNALS }}
 
   deploy:
     name: Deploy to Server

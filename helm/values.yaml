@@ -14,7 +14,7 @@ postgres:
   image: postgres:16-alpine
   database: trading
   user: trader
-  password: "change-me-in-production"  # Override via --set postgres.password=... or existingSecret
+  password: ""  # REQUIRED — set via --set postgres.password=... or use existingSecret
   storage: 10Gi
   storageClassName: ""
   resources:
@@ -30,6 +30,7 @@ redis:
   enabled: true
   image: redis:7-alpine
   maxmemory: 256mb
+  password: ""  # REQUIRED — set via --set redis.password=... (enables AUTH)
   storage: 1Gi
   storageClassName: ""
   resources:
@@ -101,8 +102,10 @@ webUi:
   port: 3000
   # These are build-time Vite args (inlined into JS bundle at Docker build time).
   # They are NOT runtime env vars — set them as Docker build ARGs, not K8s env.
-  wsExchange: ws://localhost:8765
-  wsSignals: ws://localhost:8766
+  # REQUIRED for production — browser-facing WebSocket URLs.
+  # For K8s with ingress: wss://trading.example.com/ws-exchange, wss://trading.example.com/ws-signals
+  wsExchange: ""  # Set via --set webUi.wsExchange=wss://your-domain/ws-exchange
+  wsSignals: ""   # Set via --set webUi.wsSignals=wss://your-domain/ws-signals
   resources:
     requests:
       memory: 128Mi
@@ -129,7 +132,7 @@ grafana:
   enabled: true
   image: grafana/grafana:11.4.0
   adminUser: admin
-  adminPassword: ""  # Set via --set grafana.adminPassword=...
+  adminPassword: ""  # REQUIRED — set via --set grafana.adminPassword=...
   storage: 2Gi
   storageClassName: ""
   resources:
