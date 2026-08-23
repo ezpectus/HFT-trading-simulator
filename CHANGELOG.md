@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AB: App.jsx notification hook + config.h localhost + stale audit items)
+
+### Added
+- `web-ui/src/hooks/useNotifications.js`: Extracted 5 notification useEffects + 5 useRef from App.jsx into dedicated hook
+
+### Changed
+- `web-ui/src/App.jsx`: Replaced inline notification effects with `useNotifications()` hook call — 565→474 lines (−91 lines)
+- `web-ui/src/App.jsx`: Removed unused `useRef` import (moved to hook)
+- `hft-trade-bot/src/core/config.h`: `ws_url` default changed from `ws://localhost:8765` to empty string — forces explicit config in Docker/K8s
+
+### Fixed
+- CODE_AUDIT §8.47 — Test coverage gaps → [N/A] tests exist for all 4 modules (signal_publisher, db, alerting, llm)
+- CODE_AUDIT §8.211 — App.jsx 565 lines God component → extracted useNotifications hook, 474 lines
+- CODE_AUDIT §8.402 — Terraform no prod environment → [N/A] prod/main.tf already exists
+- CODE_AUDIT §8.404 — deploy/k8s only secrets → [N/A] Helm chart with 10+ templates exists
+- CODE_AUDIT §8.445 — config.h hardcoded localhost default → empty string
+- CODE_AUDIT §8.583 — main.cpp no SIGTERM handler → [N/A] confirmed false alarm, handler in bot_setup.cpp:63
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка ZZ-DevOps2: Healthcheck HTTP + Terraform password + Helm probes)
 
 ### Changed

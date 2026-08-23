@@ -11,7 +11,7 @@ namespace hft {
 
 struct Config {
     // Connection
-    std::string ws_url{"ws://localhost:8765"};
+    std::string ws_url;  // Set via config file — no localhost default (breaks Docker/K8s)
     std::string default_exchange{"binance"};
 
     // Trading

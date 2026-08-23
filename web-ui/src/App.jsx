@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useCallback, lazy, Suspense, memo } from 'react'
+import { useMemo, useEffect, useCallback, lazy, Suspense, memo } from 'react'
 import { Activity, Radio, TrendingUp, AlertTriangle, BarChart3, FlaskConical, History, ArrowRightLeft, Bot, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { useExchangeData, useSignalData } from './hooks/useExchangeData'
 import { useMockExchangeData, useMockSignalData, IS_MOCK } from './hooks/useMockData'
