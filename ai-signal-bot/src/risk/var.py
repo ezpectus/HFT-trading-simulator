@@ -115,8 +115,9 @@ class VaRCalculator:
         mean = np.mean(returns)
         std = np.std(returns)
 
-        # Generate Monte Carlo simulations
-        simulated_returns = np.random.normal(mean, std, n_simulations)
+        # Generate Monte Carlo simulations with deterministic RNG
+        rng = np.random.default_rng(seed=42)
+        simulated_returns = rng.normal(mean, std, n_simulations)
 
         # Calculate VaR from simulations
         var = np.percentile(simulated_returns, (1 - cl) * 100)

@@ -15005,7 +15005,7 @@ This calculates True Range (TR) for a single candle, not ATR (which is a moving 
 
 Good signal validator with 5 checks, daily PnL tracking, duplicate cooldown, and early exit. ✅
 
-### 8.1095 validator: _recent_signals cleanup is O(N) per validate — Low
+### 8.1095 validator: _recent_signals cleanup is O(N) per validate — Low [FIXED]
 
 **Файл:** `validator.py:113-116`
 
@@ -15020,7 +15020,7 @@ Every `validate()` call scans all entries in `_recent_signals` to find stale one
 
 **Фикс:** Use a `collections.OrderedDict` with periodic cleanup, or use `functools.lru_cache` with TTL.
 
-### 8.1096 validator: daily reset uses wall clock not trading day — Low
+### 8.1096 validator: daily reset uses wall clock not trading day — Low [FIXED]
 
 **Файл:** `validator.py:46, 58-60`
 
@@ -15036,7 +15036,7 @@ The daily reset triggers 24 hours after the last reset, not at a fixed time (e.g
 
 **Фикс:** Use UTC midnight: `if now.date() != self._daily_reset.date(): self.reset_daily()`.
 
-### 8.1097 validator: no thread safety — Low
+### 8.1097 validator: no thread safety — Low [N/A]
 
 **Файл:** `validator.py` (entire file)
 
@@ -15044,7 +15044,7 @@ The daily reset triggers 24 hours after the last reset, not at a fixed time (e.g
 
 In asyncio (single-threaded), this is safe as long as none of these methods `await`. They don't. So it's safe in asyncio.
 
-### 8.1098 validator: drawdown check uses realized PnL only — Low
+### 8.1098 validator: drawdown check uses realized PnL only — Low [N/A]
 
 **Файл:** `validator.py:98-103`
 
@@ -15071,7 +15071,7 @@ The drawdown check uses `_daily_pnl` which is updated via `update_pnl()` — thi
 
 Good strategies module with 4 strategies, ensemble voting, circuit breaker integration, and FFT cycle detection. ✅
 
-### 8.1100 strategies: EnsembleVoter averages SL/TP across strategies — Low
+### 8.1100 strategies: EnsembleVoter averages SL/TP across strategies — Low [N/A]
 
 **Файл:** `strategies.py:326-334`
 
@@ -15093,7 +15093,7 @@ The ensemble averages entry_price, stop_loss, and take_profit across all winning
 
 **Фикс:** Use the first actionable signal's SL/TP, or use the most conservative (tightest SL, lowest TP), or use the highest-confidence strategy's SL/TP.
 
-### 8.1101 strategies: TrendFollowing confidence can exceed 95 — Low
+### 8.1101 strategies: TrendFollowing confidence can exceed 95 — Low [FIXED]
 
 **Файл:** `strategies.py:82-84`
 
@@ -15107,7 +15107,7 @@ Confidence is `min(95, 50 + adx_val)`. ADX can theoretically reach 100, so `50 +
 
 **Фикс:** Either raise the continuation confidence above 65, or remove the continuation logic if it's intentionally below threshold.
 
-### 8.1102 strategies: no candle schema validation — Low
+### 8.1102 strategies: no candle schema validation — Low [FIXED]
 
 **Файл:** `strategies.py:49, 141, 365`
 
@@ -15132,7 +15132,7 @@ Accesses `c["close"]` or `c.close` without validating the candle schema. If a ca
 
 Good VaR calculator with 3 methods, multi-level support, backtesting, and Kupiec test. ✅
 
-### 8.1104 var.py: Monte Carlo uses non-deterministic RNG — Low
+### 8.1104 var.py: Monte Carlo uses non-deterministic RNG — Low [FIXED]
 
 **Файл:** `var.py:85`
 
@@ -15144,7 +15144,7 @@ simulated_returns = np.random.normal(mean, std, n_simulations)
 
 **Фикс:** Use `np.random.default_rng(seed)` with a fixed seed, or accept a `rng` parameter.
 
-### 8.1105 var.py: parametric VaR assumes normal distribution — Low
+### 8.1105 var.py: parametric VaR assumes normal distribution — Low [N/A]
 
 **Файл:** `var.py:56-63`
 
@@ -15159,7 +15159,7 @@ The parametric method assumes returns are normally distributed. Crypto returns h
 
 **Фикс:** Use Student's t-distribution with estimated degrees of freedom, or use Cornish-Fisher expansion for fat tails.
 
-### 8.1106 var.py: backtest_var O(N × window) — Low
+### 8.1106 var.py: backtest_var O(N × window) — Low [N/A]
 
 **Файл:** `var.py:125-131`
 

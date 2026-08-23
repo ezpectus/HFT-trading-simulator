@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AP: Validator + strategies + var.py fixes)
+
+### Fixed
+- `ai-signal-bot/src/signal_validation/validator.py`: Periodic cleanup every 10 validations instead of every call — reduces O(N) scan overhead (§8.1095)
+- `ai-signal-bot/src/signal_validation/validator.py`: Daily reset uses UTC date comparison (`now.date() != reset.date()`) instead of 24h timedelta — resets at midnight UTC, not 24h after last reset (§8.1096)
+- `ai-signal-bot/src/strategies/strategies.py`: TrendFollowing continuation confidence 45→65 — was below validator min_confidence, making continuation logic dead code (§8.1101)
+- `ai-signal-bot/src/strategies/strategies.py`: Safe candle access via `getattr(c, "close", 0)` instead of `c.close` — prevents AttributeError on malformed candles (§8.1102)
+- `ai-signal-bot/src/risk/var.py`: Monte Carlo VaR uses deterministic `np.random.default_rng(seed=42)` instead of global non-deterministic RNG — reproducible results (§8.1104)
+
+### Changed
+- CODE_AUDIT §8.1097 — validator thread safety → [N/A] (safe in asyncio, no awaits in methods)
+- CODE_AUDIT §8.1098 — drawdown uses realized PnL only → [N/A] (design limitation, unrealized PnL not tracked)
+- CODE_AUDIT §8.1100 — EnsembleVoter SL/TP averaging → [N/A] (already fixed — uses highest-confidence signal's SL/TP)
+- CODE_AUDIT §8.1105 — parametric VaR assumes normal distribution → [N/A] (documented limitation, historical method available)
+- CODE_AUDIT §8.1106 — backtest_var O(N×window) → [N/A] (offline use, not hot path)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AN: Final C++ audit cleanup)
 
 ### Changed

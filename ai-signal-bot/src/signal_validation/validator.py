@@ -49,6 +49,7 @@ class SignalValidator:
         self._daily_reset: datetime = datetime.now(UTC)
         self._open_positions: int = 0
         self._recent_signals: dict[str, datetime] = {}
+        self._validate_count: int = 0
         self._lock = asyncio.Lock()
 
     def reset_daily(self) -> None:
@@ -61,7 +62,7 @@ class SignalValidator:
         """Track realized PnL for drawdown calculation."""
         async with self._lock:
             now = datetime.now(UTC)
-            if now - self._daily_reset > timedelta(hours=24):
+            if now.date() != self._daily_reset.date():
                 self.reset_daily()
             self._daily_pnl += pnl
 
@@ -118,9 +119,11 @@ class SignalValidator:
     def _check_duplicate(self, signal: Signal) -> ValidationResult | None:
         """Check for duplicate signal within cooldown period."""
         now = datetime.now(UTC)
-        stale = [s for s, t in self._recent_signals.items() if now - t > timedelta(minutes=10)]
-        for s in stale:
-            del self._recent_signals[s]
+        self._validate_count += 1
+        if self._validate_count % 10 == 0:
+            stale = [s for s, t in self._recent_signals.items() if now - t > timedelta(minutes=10)]
+            for s in stale:
+                del self._recent_signals[s]
         if signal.symbol in self._recent_signals:
             last_time = self._recent_signals[signal.symbol]
             if now - last_time < timedelta(minutes=5):

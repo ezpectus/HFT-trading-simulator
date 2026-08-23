@@ -44,7 +44,7 @@ class TrendFollowingStrategy:
                 stop_loss=0, take_profit=0, reason="Insufficient data",
             )
 
-        closes = [c["close"] if isinstance(c, dict) else c.close for c in candles]
+        closes = [c["close"] if isinstance(c, dict) else getattr(c, "close", 0) for c in candles]
         cache_key = (symbol, len(candles), closes[-1])
         cached = self._cache.get(cache_key)
         if cached:
@@ -106,11 +106,11 @@ class TrendFollowingStrategy:
         bearish_trend = ema_f < ema_s
 
         if bullish_trend and trending and adx_val > 30:
-            return Signal(symbol, SignalDirection.LONG, 45, self.name,
+            return Signal(symbol, SignalDirection.LONG, 65, self.name,
                           price, price - 2 * atr_val, price + 3 * atr_val,
                           f"Uptrend (ADX={adx_val:.1f}), no fresh cross")
         if bearish_trend and trending and adx_val > 30:
-            return Signal(symbol, SignalDirection.SHORT, 45, self.name,
+            return Signal(symbol, SignalDirection.SHORT, 65, self.name,
                           price, price + 2 * atr_val, price - 3 * atr_val,
                           f"Downtrend (ADX={adx_val:.1f}), no fresh cross")
         return Signal(symbol, SignalDirection.NEUTRAL, 0, self.name, price, 0, 0,
@@ -148,7 +148,7 @@ class MeanReversionStrategy:
                 stop_loss=0, take_profit=0, reason="Insufficient data",
             )
 
-        closes = [c["close"] if isinstance(c, dict) else c.close for c in candles]
+        closes = [c["close"] if isinstance(c, dict) else getattr(c, "close", 0) for c in candles]
         cache_key = (symbol, len(candles), closes[-1])
         cached = self._cache.get(cache_key)
         if cached:
@@ -406,7 +406,7 @@ class FFTCycleStrategy:
                 reason=f"Need {self.min_data} candles, got {len(candles)}",
             )
 
-        closes = [c["close"] if isinstance(c, dict) else c.close for c in candles]
+        closes = [c["close"] if isinstance(c, dict) else getattr(c, "close", 0) for c in candles]
         current_price = closes[-1]
 
         fft_data = fft_cycle_indicator(closes)
