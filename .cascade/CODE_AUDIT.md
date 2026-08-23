@@ -10222,7 +10222,7 @@ Uses `CREATE TABLE IF NOT EXISTS` for initialization. No migration version track
 
 Good main entry point with sequential init, error checking, comprehensive main loop, latency tracking, and graceful shutdown. ✅
 
-### 8.763 main.cpp: no SIGINT/SIGTERM handler visible — Medium
+### 8.763 main.cpp: no SIGINT/SIGTERM handler visible — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/core/main.cpp:38`
 
@@ -10234,7 +10234,7 @@ The main loop checks `is_running()`, but there's no signal handler visible in `m
 
 **Фикс:** Verify that `init_core_components()` installs `signal(SIGINT, ...)` and `signal(SIGTERM, ...)` handlers that set `is_running() = false`. If not, add them.
 
-### 8.764 main.cpp: no exception handling in main loop — Medium
+### 8.764 main.cpp: no exception handling in main loop — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/core/main.cpp:38-61`
 

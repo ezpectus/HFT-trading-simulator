@@ -305,8 +305,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~tracing: OTLP exporter insecure=True~~ [FIXED] | Added insecure parameter to setup_tracing() — defaults to False (TLS) for production, True for local dev | CODE_AUDIT §8.741 |
 | ~~exchange_factory: API key/secret in plaintext~~ [FIXED] | ExchangeFactory now reads EXCHANGE_API_KEY and EXCHANGE_API_SECRET env vars if not passed explicitly — prevents plaintext keys in config files | CODE_AUDIT §8.756 |
 | ~~db.py: new connection per operation~~ [FIXED] | Already uses persistent _get_conn() — verified in Пачка AA | CODE_AUDIT §8.759 |
-| main.cpp: no SIGINT/SIGTERM handler visible | No signal handler in main. SIGTERM kills without graceful_shutdown. Verify init installs handler | CODE_AUDIT §8.763 |
-| main.cpp: no exception handling in main loop | No try/catch. Exception = crash without graceful shutdown. Open positions and SHM left dirty | CODE_AUDIT §8.764 |
+| ~~main.cpp: no SIGINT/SIGTERM handler visible~~ [FIXED] | Signal handlers registered in main.cpp via std::signal(SIGINT/SIGTERM) → set_running(false). set_running() added to bot_setup.h/cpp | CODE_AUDIT §8.763 |
+| ~~main.cpp: no exception handling in main loop~~ [FIXED] | Added try/catch around init + main loop — catches std::exception + unknown, logs critical, falls through to graceful_shutdown | CODE_AUDIT §8.764 |
 | config.h: API keys in plaintext std::string | std::string not zeroed on destruction. Core dump exposes keys. Use SecureString | CODE_AUDIT §8.766 |
 | order_executor: detached reconnect thread race | Detached thread accesses destroyed client_ after disconnect(). Use condition variable or join | CODE_AUDIT §8.774 |
 | BinanceAdapter: API keys in plaintext std::string | Not zeroed on destruction. Core dump exposes credentials. Use SecureString | CODE_AUDIT §8.778 |
