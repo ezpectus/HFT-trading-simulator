@@ -9256,3 +9256,232 @@ while self._running:
 The main loop only generates signals. There's no periodic health check (e.g., checking if the exchange connection is still alive, if the DB is reachable, if the last candle is recent). If the exchange connection drops silently (no exception), the bot continues generating signals on stale data.
 
 **Фикс:** Add a periodic health check: `if time.time() - self.exchange.last_message_time > 60: self.logger.error("No data for 60s, reconnecting")`.
+
+### 8.696 ai-signal-bot/src/communication/signal_publisher.py: Signal publisher — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py` (453 lines)
+
+- **WebSocket server**: `websockets.serve()` with ping_interval=10, ping_timeout=30 — correct
+- **Circuit breaker integration**: `allow_signal()` before broadcast — correct
+- **Signal history**: `deque(maxlen=100)` — bounded
+- **orjson optional**: `_HAS_ORJSON` flag — resilient
+- **Client management**: `_clients` set, disconnect cleanup — correct
+- **Broadcast pattern**: `asyncio.gather()` with `return_exceptions=True` — correct
+- **Circuit breaker status broadcast**: Periodic task — observability
+- **Backtest execution**: `run_backtest` and `compare_backtests` via WebSocket — flexible
+- **Metrics integration**: `MetricsCollector` — observability
+- **Graceful stop**: Cancel task + close server + wait_closed — correct
+
+Good signal publisher with circuit breaker integration, bounded history, orjson optional, client management, and graceful stop. ✅
+
+### 8.697 signal_publisher: no client authentication — Medium
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py:106-108`
+
+```python
+async def _handle_client(self, websocket, path=None) -> None:
+    self._clients.add(websocket)
+```
+
+No authentication on incoming WebSocket connections. Any client that can reach port 8766 receives all trading signals. Combined with `host="0.0.0.0"` (R684), this means anyone on the network gets real-time trading signals including entry price, SL/TP, confidence, and leverage.
+
+**Фикс:** Add a shared secret or token in the subscribe message. Reject clients that don't authenticate within 5 seconds.
+
+### 8.698 signal_publisher: no TLS on WebSocket server — Medium
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py:80-86`
+
+```python
+self._server = await websockets.serve(
+    self._handle_client,
+    self.host,
+    self.port,
+    ping_interval=10,
+    ping_timeout=30,
+)
+```
+
+No `ssl` parameter in `websockets.serve()`. Signals are sent as plaintext WebSocket (`ws://`). If the signal publisher is exposed to a network, signals can be sniffed.
+
+**Фикс:** Add `ssl=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)` with cert/key for `wss://`.
+
+### 8.699 signal_publisher: backtest on WebSocket blocks signal broadcast — Low
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py:145-147`
+
+```python
+elif msg_type == "run_backtest":
+    result = await self._run_backtest(data)
+    await websocket.send(json.dumps(result, separators=(',', ':')))
+```
+
+`_run_backtest` is awaited in the client handler. While the backtest runs (can take seconds), the handler is blocked. New signals from `broadcast_signal` are still sent via `asyncio.gather`, but the backtest consumes CPU and may delay signal processing.
+
+**Фикс:** Run backtest in a separate task: `asyncio.create_task(self._run_backtest(data, websocket))`.
+
+### 8.700 ai-signal-bot/src/communication/fix_client.py: FIX 4.4 client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py` (447 lines)
+
+- **FixMessage**: Parse/build with checksum, body length — correct
+- **FixSession**: Persistent seq numbers, logon/logout/heartbeat — correct
+- **Callbacks**: on_execution_report, on_market_data, on_logon, on_logout — flexible
+- **Seq num persistence**: `_load_seq_nums()` / `_save_seq_nums()` — crash recovery
+- **Message types**: Logon(A), Logout(5), Heartbeat(0), ExecutionReport(8), MarketData(W) — comprehensive
+- **Order types**: Market(1), Limit(2) — supported
+- **Error handling**: 5 exception types in parse, OSError in save — resilient
+
+Good FIX 4.4 client with persistent seq numbers, checksum, callbacks, and comprehensive message types. ✅
+
+### 8.701 fix_client: seq num file non-atomic save — Medium
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py:159-164`
+
+```python
+def _save_seq_nums(self):
+    try:
+        with open(self.seq_file, 'w') as f:
+            f.write(f"{self.outgoing_seq} {self.incoming_seq}")
+    except OSError as e:
+        logger.warning(f"Failed to save FIX seq nums: {e}")
+```
+
+The seq num file is written directly with `open('w')`. If the process crashes during the write (between `open` and `f.write`), the file is truncated to 0 bytes. On restart, `_load_seq_nums()` reads an empty file, seq nums reset to 1, and the FIX session rejects all messages as duplicates (if the exchange has higher seq nums) or processes them out of order.
+
+**Фикс:** Write to a temp file then `os.rename()` (atomic on POSIX). Or use `tempfile.NamedTemporaryFile` + rename.
+
+### 8.702 fix_client: no TLS on TCP connection — Medium
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py:180-181`
+
+```python
+async def connect(self, host: str, port: int):
+    self._reader, self._writer = await asyncio.open_connection(host, port)
+```
+
+`asyncio.open_connection()` without `ssl=` parameter. FIX messages (including logon credentials, order details, execution reports) are sent as plaintext TCP. If the exchange supports FIX over TLS, the bot should use it.
+
+**Фикс:** Add `ssl=ssl.create_default_context()` parameter for FIX over TLS.
+
+### 8.703 fix_client: password in plaintext FIX field — Low
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py:199-200`
+
+```python
+if username:
+    extra.append((553, username))
+if password:
+    extra.append((554, password))
+```
+
+FIX tag 554 (Password) is sent as plaintext in the logon message. If the FIX session is logged (e.g., debug logging of raw messages), the password is exposed. FIX 4.4 doesn't natively support password encryption, but the password should at minimum not be logged.
+
+**Фикс:** Ensure raw FIX messages are never logged at DEBUG level. Consider using tag 554 with a token instead of raw password.
+
+### 8.704 ai-signal-bot/src/communication/circuit_breaker.py: Circuit breaker — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py` (138 lines)
+
+- **3 states**: CLOSED, OPEN, HALF_OPEN — correct pattern
+- **Configurable**: failure_threshold, cooldown_seconds, half_open_max_probes, success_threshold — flexible
+- **State transitions**: OPEN→HALF_OPEN on cooldown expiry, HALF_OPEN→CLOSED on success threshold, HALF_OPEN→OPEN on failure — correct
+- **Probe limiting**: `half_open_max_probes` in HALF_OPEN — correct
+- **Metrics**: total_trips, total_blocks — observability
+- **Reset method**: Force reset to CLOSED — useful for manual recovery
+- **Status dict**: `get_status()` for monitoring/UI — observability
+- **Logging**: State transitions logged at INFO/WARNING — correct
+
+Excellent circuit breaker with 3 states, configurable thresholds, probe limiting, metrics, and status reporting. ✅
+
+### 8.705 circuit_breaker: state property has side effect — Low
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py:47-54`
+
+```python
+@property
+def state(self) -> BreakerState:
+    if self._state == BreakerState.OPEN:
+        if time.time() - self._opened_at >= self.config.cooldown_seconds:
+            self._state = BreakerState.HALF_OPEN
+            self._half_open_probes = 0
+            logger.info("Circuit breaker: OPEN → HALF_OPEN (cooldown expired)")
+    return self._state
+```
+
+The `state` property mutates `_state` from OPEN to HALF_OPEN. This is a side effect in a property — accessing `state` for reading actually changes the state. In an async context, multiple coroutines accessing `state` concurrently could cause race conditions (one sees OPEN, another sees HALF_OPEN).
+
+**Фикс:** Separate the state check from the state transition. Add a `check_cooldown()` method that performs the transition, and make `state` a pure read.
+
+### 8.706 circuit_breaker: not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py:34-137`
+
+All state mutations (`_consecutive_failures`, `_consecutive_successes`, `_state`, `_total_trips`, `_total_blocks`) are plain Python attributes with no lock. In an asyncio context, this is safe if all access is single-threaded. But if `record_success()` and `record_failure()` are called from different coroutines, the state can be inconsistent.
+
+**Фикс:** Use `asyncio.Lock` for `record_success()` and `record_failure()`, or ensure all access is from a single coroutine.
+
+### 8.707 ai-signal-bot/src/research/microstructure_lab.py: Microstructure lab — ✅ Good
+
+**Файл:** `ai-signal-bot/src/research/microstructure_lab.py` (247 lines)
+
+- **14 metrics**: OFI mean/std/impact, effective/realized spread, adverse selection, VPIN, Kyle's lambda, Amihud illiquidity, trade arrival rate, Hawkes alpha/beta, book resilience, spread autocorrelation — comprehensive
+- **OFI computation**: Bid/ask volume change — correct
+- **Kyle's lambda**: Linear regression `np.polyfit(ofi, returns, 1)` — correct
+- **VPIN**: Volume bucketing with buy/sell fraction — correct
+- **Edge cases**: Empty data → return 0.0, `len < 2` → return 0.0 — correct
+- **Numerical safety**: `np.std(ofi) + 1e-10` — avoids division by zero
+
+Good microstructure lab with 14 metrics, correct OFI/VPIN/Kyle's lambda, edge case handling, and numerical safety. ✅
+
+### 8.708 microstructure_lab: no input validation on trade/book data — Low
+
+**Файл:** `ai-signal-bot/src/research/microstructure_lab.py:84-87`
+
+```python
+bid_vol_change = sum(b.get("qty", 0) for b in curr.get("bids", [])) - \
+                 sum(b.get("qty", 0) for b in prev.get("bids", []))
+```
+
+No validation that `b.get("qty", 0)` is a positive number. If `qty` is negative (data error) or a string (JSON parsing issue), the OFI computation produces incorrect results silently.
+
+**Фикс:** Add `if not isinstance(qty, (int, float)) or qty < 0: logger.warning(...)`.
+
+### 8.709 ai-signal-bot/src/monitoring/alerting.py: Alert system — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/alerting.py` (260 lines)
+
+- **3 severity levels**: INFO, WARNING, CRITICAL — correct
+- **4 channels**: log, Discord, Telegram, webhook — comprehensive
+- **Rate limiting**: `cooldown_seconds` per rule (default 5 min) — correct
+- **Rule management**: add/remove/enable/disable — flexible
+- **Alert history**: Bounded at 1000 — correct
+- **Multi-channel send**: `asyncio.gather(*tasks, return_exceptions=True)` — correct
+- **Error handling**: 5 exception types in check_rules — resilient
+- **Discord embeds**: Color-coded by severity — nice
+
+Good alert system with 3 severities, 4 channels, rate limiting, bounded history, and multi-channel send. ✅
+
+### 8.710 alerting: check_fn is synchronous — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/alerting.py:34`
+
+```python
+check_fn: Callable[[], bool]          # Returns True if alert should fire
+```
+
+`check_fn` is a synchronous callable. If the check function needs to do async work (e.g., query the database, check exchange connectivity), it can't. The caller must wrap async calls with `asyncio.run()` or similar, which is error-prone.
+
+**Фикс:** Change to `check_fn: Callable[[], Awaitable[bool]]` and `await rule.check_fn()`.
+
+### 8.711 alerting: alert_history list slice creates copy — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/alerting.py:113-114`
+
+```python
+if len(self.alert_history) > self._max_history:
+    self.alert_history = self.alert_history[-self._max_history:]
+```
+
+When the history exceeds 1000, `self.alert_history[-self._max_history:]` creates a new list of 1000 items. This is O(n) and creates a copy. With frequent alerts, this happens often.
+
+**Фикс:** Use `collections.deque(maxlen=1000)` instead of a list for `alert_history`.

@@ -265,3 +265,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | config: API keys in plaintext struct | api_key/api_secret as std::string. Not zeroed on destruction. Use SecureString | CODE_AUDIT §8.681 |
 | shm_ring_buffer C++: shm_open 0666 permissions | World read/write on /dev/shm. Any process can read/write trading data. Use 0600 | CODE_AUDIT §8.690 |
 | run.py: no SIGTERM handler | Only KeyboardInterrupt caught. K8s SIGTERM kills without cleanup. Add signal handler | CODE_AUDIT §8.693 |
+| signal_publisher: no client authentication | No auth on WS connections. Anyone gets trading signals. Add shared secret | CODE_AUDIT §8.697 |
+| signal_publisher: no TLS on WS server | No ssl param. ws:// signals sniffed. Add ssl for wss:// | CODE_AUDIT §8.698 |
+| fix_client: seq num file non-atomic save | open('w') truncates on crash. Seq reset = FIX session rejection. Use temp+rename | CODE_AUDIT §8.701 |
+| fix_client: no TLS on TCP connection | asyncio.open_connection no ssl. FIX msgs plaintext. Add ssl param | CODE_AUDIT §8.702 |

@@ -4205,3 +4205,82 @@ class TradingBot:
 ```
 
 **Разница:** The bad code only catches `KeyboardInterrupt` (Ctrl+C = `SIGINT`). In Kubernetes, pod termination sends `SIGTERM`, not `SIGINT`. Python's default `SIGTERM` handler kills the process immediately — no `finally` block, no cleanup. Open orders remain on the exchange, DB connections leak, and the signal publisher drops abruptly. The HFT bot continues trading on stale signals because it doesn't know the AI signal bot is gone. With 1000 users, a K8s rolling update kills all pods — 1000 open orders remain, 1000 DB connections leak, and the exchange may auto-liquidate positions at market price. The good code registers `SIGTERM` and `SIGINT` handlers via `loop.add_signal_handler()`, which sets an `asyncio.Event`. The main loop uses `asyncio.wait_for(event.wait(), timeout=interval)` — it either generates signals (timeout) or breaks (shutdown event). The `finally` block cancels the listen task with a 5s timeout, then runs cleanup tasks (signal publisher, exchange, DB) with a 10s timeout. If cleanup hangs, it forces exit after 10s. The K8s `terminationGracePeriodSeconds: 30` gives 20s buffer after the 10s cleanup. The cost is ~15 extra lines (signal handlers, event, timeouts). The benefit is zero orphaned orders, zero leaked connections, and zero stale-signal trading — the bot shuts down cleanly on K8s rolling updates, scale-downs, and node drains.
+
+---
+
+## Bad vs Good: Non-Atomic File Save (Python)
+
+### ❌ Bad Code
+```python
+class FixSession:
+    def _save_seq_nums(self):
+        try:
+            with open(self.seq_file, 'w') as f:
+                f.write(f"{self.outgoing_seq} {self.incoming_seq}")
+        except OSError as e:
+            logger.warning(f"Failed to save seq nums: {e}")
+
+# What happens on crash:
+# 1. open('fix_seq.txt', 'w') → file truncated to 0 bytes
+# 2. Process crashes (SIGKILL, power loss, OOM)
+# 3. f.write() never executes
+# 4. On restart: file is empty → seq nums reset to 1
+# 5. Exchange has seq num 5000, bot sends seq num 1
+# 6. Exchange rejects: "SeqNum too low" → session cannot resume
+# 7. All pending orders, positions, and execution reports are lost
+```
+
+**What's wrong:**
+- `open('w')` truncates the file to 0 bytes before writing
+- If the process crashes between `open` and `f.write` (SIGKILL, OOM, power loss), the file is empty
+- On restart, `_load_seq_nums()` reads an empty file → seq nums reset to 1
+- The exchange has seq num 5000, the bot sends seq num 1 → exchange rejects all messages
+- The FIX session cannot resume — all pending orders, open positions, and execution reports are lost
+- The bot must initiate a new FIX session with `reset_seq=True`, which may require exchange approval
+- With 1000 users, a single OOM kill during seq num save breaks 1000 FIX sessions — each requires manual reset with the exchange, causing hours of downtime
+
+### ✅ Good Code
+```python
+import os
+import tempfile
+
+class FixSession:
+    def _save_seq_nums(self):
+        """Atomically save sequence numbers to prevent corruption on crash."""
+        data = f"{self.outgoing_seq} {self.incoming_seq}"
+        try:
+            # Write to temp file in same directory (same filesystem for atomic rename)
+            dir_name = os.path.dirname(self.seq_file) or '.'
+            fd, tmp_path = tempfile.mkstemp(
+                dir=dir_name,
+                prefix='.fix_seq_',
+                suffix='.tmp',
+            )
+            try:
+                with os.fdopen(fd, 'w') as f:
+                    f.write(data)
+                    f.flush()
+                    os.fsync(f.fileno())  # Force write to disk
+                # Atomic rename: either old file or new file, never empty
+                os.replace(tmp_path, self.seq_file)  # os.replace is atomic on POSIX and Windows
+            except OSError:
+                # Clean up temp file if rename failed
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+        except OSError as e:
+            logger.error(f"Failed to save FIX seq nums: {e}")
+
+# What happens on crash:
+# 1. Temp file is written and fsync'd
+# 2. Process crashes before os.replace → old file intact, temp file orphaned
+# 3. On restart: old file has correct seq nums → session resumes normally
+# 4. Temp file is cleaned up on next save or by tmp cleanup
+#
+# If crash happens during os.replace:
+# - On POSIX: rename() is atomic — either old or new, never empty
+# - On Windows: ReplaceFile() is atomic — same guarantee
+```
+
+**Разница:** The bad code uses `open('w')` which truncates the file to 0 bytes before writing. If the process crashes between `open` and `f.write` (SIGKILL, OOM, power loss), the file is empty. On restart, seq nums reset to 1, the exchange rejects all messages ("SeqNum too low"), and the FIX session cannot resume — all pending orders, open positions, and execution reports are lost. With 1000 users, a single OOM kill breaks 1000 FIX sessions, each requiring manual reset with the exchange, causing hours of downtime. The good code writes to a temp file in the same directory, calls `f.flush()` + `os.fsync()` to force the write to disk, then uses `os.replace()` (atomic on both POSIX and Windows) to swap the temp file with the real file. If the process crashes before `os.replace`, the old file is intact and the session resumes normally. If it crashes during `os.replace`, the atomic rename ensures either the old or new file exists — never an empty file. The cost is ~10 extra lines (temp file, fsync, replace, cleanup). The benefit is zero seq num corruption on crash — the FIX session always resumes with correct sequence numbers, even after SIGKILL or power loss.

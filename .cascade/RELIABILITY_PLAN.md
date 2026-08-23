@@ -1240,3 +1240,19 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R683 | run.py: no SIGTERM handler | `run.py:162` | Medium | Only KeyboardInterrupt. K8s SIGTERM kills without cleanup. Add signal handler |
 | R684 | run.py: signal_publisher binds 0.0.0.0 | `run.py:77` | Low | All interfaces. Use 127.0.0.1 or firewall |
 | R685 | run.py: no health check in main loop | `run.py:163` | Low | No stale data detection. Add periodic last_message_time check |
+| R686 | ai-signal-bot/communication/signal_publisher.py | `signal_publisher.py` | ✅ Good | WS server, circuit breaker integration, bounded history, orjson optional, graceful stop |
+| R687 | signal_publisher: no client authentication | `signal_publisher.py:106` | Medium | No auth on WS. Anyone gets signals. Add shared secret/token |
+| R688 | signal_publisher: no TLS on WS server | `signal_publisher.py:80` | Medium | No ssl param. ws:// signals sniffed. Add ssl for wss:// |
+| R689 | signal_publisher: backtest blocks signal broadcast | `signal_publisher.py:145` | Low | await _run_backtest blocks handler. Use asyncio.create_task |
+| R690 | ai-signal-bot/communication/fix_client.py | `fix_client.py` | ✅ Good | FIX 4.4, persistent seq nums, checksum, callbacks, comprehensive msg types |
+| R691 | fix_client: seq num file non-atomic save | `fix_client.py:159` | Medium | open('w') truncates on crash. Seq reset = session rejection. Use temp+rename |
+| R692 | fix_client: no TLS on TCP connection | `fix_client.py:180` | Medium | asyncio.open_connection no ssl. FIX msgs plaintext. Add ssl param |
+| R693 | fix_client: password in plaintext FIX field | `fix_client.py:199` | Low | Tag 554 plaintext. Don't log raw FIX at DEBUG. Use token |
+| R694 | ai-signal-bot/communication/circuit_breaker.py | `circuit_breaker.py` | ✅ Excellent | 3 states, configurable, probe limiting, metrics, status dict, logging |
+| R695 | circuit_breaker: state property has side effect | `circuit_breaker.py:47` | Low | state mutates OPEN→HALF_OPEN. Separate check from transition |
+| R696 | circuit_breaker: not thread-safe | `circuit_breaker.py:34` | Low | No lock on state mutations. Use asyncio.Lock or single coroutine |
+| R697 | ai-signal-bot/research/microstructure_lab.py | `microstructure_lab.py` | ✅ Good | 14 metrics, OFI/VPIN/Kyle's lambda, edge cases, numerical safety |
+| R698 | microstructure_lab: no input validation | `microstructure_lab.py:84` | Low | qty not validated. Negative/string = silent wrong results |
+| R699 | ai-signal-bot/monitoring/alerting.py | `alerting.py` | ✅ Good | 3 severities, 4 channels, rate limiting, bounded history, multi-channel send |
+| R700 | alerting: check_fn is synchronous | `alerting.py:34` | Low | Can't do async checks. Change to Awaitable[bool] |
+| R701 | alerting: alert_history list slice creates copy | `alerting.py:113` | Low | O(n) copy on overflow. Use deque(maxlen=1000) |
