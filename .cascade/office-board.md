@@ -263,3 +263,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | notifier: no auth for remote commands | Only chat_id check. chat_id not secret. Add command password/PIN | CODE_AUDIT §8.670 |
 | socket_transport: blocking receive loop | Sync while + time.sleep blocks event loop. Use asyncio add_reader | CODE_AUDIT §8.675 |
 | config: API keys in plaintext struct | api_key/api_secret as std::string. Not zeroed on destruction. Use SecureString | CODE_AUDIT §8.681 |
+| shm_ring_buffer C++: shm_open 0666 permissions | World read/write on /dev/shm. Any process can read/write trading data. Use 0600 | CODE_AUDIT §8.690 |
+| run.py: no SIGTERM handler | Only KeyboardInterrupt caught. K8s SIGTERM kills without cleanup. Add signal handler | CODE_AUDIT §8.693 |

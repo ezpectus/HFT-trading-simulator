@@ -4098,3 +4098,110 @@ spdlog::info("Config loaded: api_key={}", config.api_key);
 ```
 
 **Разница:** The bad code stores API keys as plaintext `std::string` in the `Config` struct. When the config is logged (`spdlog::info("api_key={}", config.api_key)`), the key is written to the log file in plaintext. When the process crashes, the core dump contains the full `Config` struct with plaintext keys. When the `Config` is destroyed, `std::string`'s destructor frees memory but doesn't zero it — keys remain in freed heap until overwritten. Copy semantics (`Config config2 = config`) create multiple copies of secrets in memory, each a leak vector. With 1000 users, one core dump or log file leak exposes exchange API credentials — an attacker can withdraw all funds ($10M+). The good code uses a `SecureString` class that zeroes memory on destruction (`OPENSSL_cleanse`), redacts in logs (`operator<<` returns `[REDACTED]`), and forbids copies (deleted copy constructor/assignment). Keys are only accessible via `get()` when explicitly needed. The cost is a ~30-line `SecureString` class and move-only semantics. The benefit is zero secret exposure in logs, core dumps, or freed memory — even if an attacker gets full access to logs and crash dumps, they can't extract API keys.
+
+---
+
+## Bad vs Good: No SIGTERM Handler in Async Bot (Python)
+
+### ❌ Bad Code
+```python
+class TradingBot:
+    async def run(self):
+        self._running = True
+        listen_task = asyncio.create_task(self._listen_loop())
+
+        try:
+            while self._running:
+                await asyncio.sleep(self.config.signal_interval)
+                await self._generate_signals()
+        except KeyboardInterrupt:
+            self.logger.info("Stopping...")
+        finally:
+            self._running = False
+            listen_task.cancel()
+            await self.signal_publisher.stop()
+            await self.exchange.disconnect()
+
+# Kubernetes deployment:
+# spec:
+#   terminationGracePeriodSeconds: 30
+# When K8s scales down, it sends SIGTERM → Python ignores it
+# → K8s waits 30s → sends SIGKILL → process dies instantly
+# → open orders remain, DB connections leak, signal publisher drops
+```
+
+**What's wrong:**
+- Only `KeyboardInterrupt` (Ctrl+C) is caught — `SIGTERM` is not handled
+- In Kubernetes, pod termination sends `SIGTERM`, not `SIGINT` (Ctrl+C)
+- Python's default `SIGTERM` handler terminates the process immediately — no `finally` block, no cleanup
+- Open orders remain on the exchange — the bot is still "in the market" after it's supposedly stopped
+- DB connections aren't closed — SQLite WAL file may be corrupted, PostgreSQL connections leak
+- Signal publisher stops abruptly — the HFT bot doesn't know the AI signal bot is gone, continues trading on stale signals
+- With 1000 users, a K8s rolling update kills all pods simultaneously — 1000 bots die without cleanup, 1000 open orders remain on the exchange, 1000 DB connections leak. The exchange may auto-liquidate positions at market price if margin is insufficient, causing cascading losses.
+
+### ✅ Good Code
+```python
+import asyncio
+import signal
+import logging
+
+class TradingBot:
+    async def run(self):
+        self._running = True
+        self._shutdown_event = asyncio.Event()
+        listen_task = asyncio.create_task(self._listen_loop())
+
+        # Register SIGTERM and SIGINT handlers
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, self._shutdown_event.set)
+
+        try:
+            while self._running:
+                # Wait for either signal interval or shutdown event
+                try:
+                    await asyncio.wait_for(
+                        self._shutdown_event.wait(),
+                        timeout=self.config.signal_interval,
+                    )
+                    # Shutdown event was set — break
+                    self.logger.info("Shutdown signal received, stopping...")
+                    break
+                except asyncio.TimeoutError:
+                    # Normal timeout — generate signals
+                    await self._generate_signals()
+
+        except asyncio.CancelledError:
+            self.logger.info("Task cancelled, stopping...")
+        finally:
+            self._running = False
+
+            # Cancel listen task with timeout
+            listen_task.cancel()
+            try:
+                await asyncio.wait_for(listen_task, timeout=5.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                pass
+
+            # Graceful cleanup with timeout
+            cleanup_tasks = [
+                self.signal_publisher.stop(),
+                self.exchange.disconnect(),
+                self.db.close(),
+            ]
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*cleanup_tasks, return_exceptions=True),
+                    timeout=10.0,
+                )
+            except asyncio.TimeoutError:
+                self.logger.warning("Cleanup timed out, forcing exit")
+
+            self.logger.info("Trading bot stopped gracefully")
+
+# Kubernetes deployment:
+# spec:
+#   terminationGracePeriodSeconds: 30  # 10s cleanup + 20s buffer
+```
+
+**Разница:** The bad code only catches `KeyboardInterrupt` (Ctrl+C = `SIGINT`). In Kubernetes, pod termination sends `SIGTERM`, not `SIGINT`. Python's default `SIGTERM` handler kills the process immediately — no `finally` block, no cleanup. Open orders remain on the exchange, DB connections leak, and the signal publisher drops abruptly. The HFT bot continues trading on stale signals because it doesn't know the AI signal bot is gone. With 1000 users, a K8s rolling update kills all pods — 1000 open orders remain, 1000 DB connections leak, and the exchange may auto-liquidate positions at market price. The good code registers `SIGTERM` and `SIGINT` handlers via `loop.add_signal_handler()`, which sets an `asyncio.Event`. The main loop uses `asyncio.wait_for(event.wait(), timeout=interval)` — it either generates signals (timeout) or breaks (shutdown event). The `finally` block cancels the listen task with a 5s timeout, then runs cleanup tasks (signal publisher, exchange, DB) with a 10s timeout. If cleanup hangs, it forces exit after 10s. The K8s `terminationGracePeriodSeconds: 30` gives 20s buffer after the 10s cleanup. The cost is ~15 extra lines (signal handlers, event, timeouts). The benefit is zero orphaned orders, zero leaked connections, and zero stale-signal trading — the bot shuts down cleanly on K8s rolling updates, scale-downs, and node drains.

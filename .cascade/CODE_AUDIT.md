@@ -9062,3 +9062,197 @@ API keys and secrets are stored as plaintext `std::string` in the `Config` struc
 The `Config` struct has 80+ fields with default values but no validation in the struct itself. Validation is in `config_validate.h` (separate file). If someone constructs a `Config` directly (not via `Config::load()`), validation is skipped. Invalid values (e.g., `max_risk_per_trade_pct = -5.0`) could cause incorrect behavior.
 
 **Фикс:** Add a `validate()` method to `Config` and call it in `Config::load()`. Or use a builder pattern that validates on construction.
+
+### 8.683 ai-signal-bot/src/research/attribution.py: Brinson-Fachler attribution — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/research/attribution.py` (177 lines)
+
+- **Brinson-Fachler formulas**: Allocation, Selection, Interaction — mathematically correct
+- **2 dataclasses**: SectorAttribution (9 fields), AttributionResult (8 fields) — comprehensive
+- **Multi-period attribution**: `multi_period_attribution()` — useful
+- **Formatted report**: `print_report()` with aligned columns — nice
+- **Missing sector handling**: `get(s, 0)` for sectors in one dict but not the other — correct
+- **Active return**: `total_p_return - total_b_return` — correct
+
+Excellent Brinson-Fachler attribution with correct formulas, 2 dataclasses, multi-period support, and formatted report. ✅
+
+### 8.684 attribution: no weight normalization check — Low
+
+**Файл:** `ai-signal-bot/src/research/attribution.py:70-78`
+
+```python
+def attribute(self, portfolio_weights, benchmark_weights, portfolio_returns, benchmark_returns):
+    all_sectors = set(list(portfolio_weights.keys()) + list(benchmark_weights.keys()))
+```
+
+No check that `sum(portfolio_weights) ≈ 1.0` and `sum(benchmark_weights) ≈ 1.0`. If weights don't sum to 1, the attribution effects are incorrect but no error is raised.
+
+**Фикс:** Add `if abs(sum(portfolio_weights.values()) - 1.0) > 0.01: warnings.append("Portfolio weights don't sum to 1")`.
+
+### 8.685 ai-signal-bot/src/research/greeks_hedging.py: Greeks hedging simulator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/research/greeks_hedging.py` (267 lines)
+
+- **Black-Scholes Greeks**: delta, gamma, theta, vega, rho — all 5 Greeks
+- **Edge case handling**: `T <= 0 or sigma <= 0` → intrinsic value — correct
+- **GBM price path**: `_generate_price_path()` with `np.random.standard_normal()` — correct
+- **Delta hedging**: Daily vs threshold-based rebalancing — flexible
+- **Transaction costs**: `transaction_cost_bps` — realistic
+- **P&L decomposition**: delta P&L, gamma P&L, theta P&L, vega P&L — comprehensive
+- **Multi-path**: `n_paths` with averaging — Monte Carlo
+- **Reproducible**: `seed` parameter — correct
+
+Good Greeks hedging simulator with all 5 Greeks, GBM paths, threshold rebalancing, transaction costs, P&L decomposition, and Monte Carlo. ✅
+
+### 8.686 greeks_hedging: np.random.seed global state — Low
+
+**Файл:** `ai-signal-bot/src/research/greeks_hedging.py:112`
+
+```python
+if seed is not None:
+    np.random.seed(seed)
+```
+
+Uses `np.random.seed()` which sets the global random state. If other code uses `np.random` concurrently, the seed is shared. In a multi-symbol or multi-strategy system, one simulation's seed affects another's.
+
+**Фикс:** Use `rng = np.random.default_rng(seed)` and `rng.standard_normal()` for isolated random state.
+
+### 8.687 hft-trade-bot/src/ipc/shm_protocol.h: SHM IPC protocol — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_protocol.h` (118 lines)
+
+- **4 message structs**: SignalMsg (32B), FillMsg (28B), MarketSnapshotMsg (28B), KillSwitchMsg (16B) — comprehensive
+- **`#pragma pack(push, 1)`**: Explicit packing for cross-language alignment — correct
+- **4 `static_assert`**: Size verification on all structs — correct
+- **Python format strings**: Documented in comments (`'<Q B B f f f f B 5x'`) — correct
+- **4 enums**: SymbolId (10 symbols), ExchangeId (4), Action (3), Side (2) — comprehensive
+- **Explicit padding**: `pad_[5]`, `pad_[3]`, `pad_[6]` — correct alignment
+
+Excellent SHM IPC protocol with 4 packed structs, static_assert verification, documented Python formats, and 4 enums. ✅
+
+### 8.688 shm_protocol: SymbolId only 10 symbols — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_protocol.h:83-94`
+
+```cpp
+enum class SymbolId : uint8_t {
+    BTC = 0, ETH = 1, SOL = 2, BNB = 3, XRP = 4,
+    ADA = 5, DOGE = 6, AVAX = 7, DOT = 8, LINK = 9,
+};
+```
+
+Only 10 symbols mapped. The AI Signal Bot config has 50 symbols. If the HFT bot receives a signal for symbol ID 10+, it's unmapped. `uint8_t` supports 256 values, so the enum could be extended, but there's no mapping mechanism for dynamic symbol registration.
+
+**Фикс:** Add a dynamic symbol registry or extend the enum to cover all 50 configured symbols.
+
+### 8.689 hft-trade-bot/src/ipc/shm_ring_buffer.h: C++ SHM ring buffer — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h` (348 lines)
+
+- **SPSC lock-free**: `try_push`/`try_pop` with acquire/release fences — HFT-grade
+- **Bulk operations**: `bulk_push`/`bulk_pop` with at most 2 memcpy — optimized
+- **Power-of-2 capacity**: `head & mask_` instead of modulo — HFT-grade
+- **Cache-line aligned**: `alignas(64)` on head/tail — no false sharing
+- **`static_assert`**: `sizeof(ShmHeader) == 192` — correct
+- **Cross-platform**: Windows (CreateFileMapping) + POSIX (shm_open/mmap) — correct
+- **Magic validation**: `SHM_MAGIC = 0x484654343253484D` — correct
+- **Capacity/element_size validation**: On open — correct
+- **RAII destructor**: Unmap + close + shm_unlink (if owner) — correct
+- **Deleted copy/move**: No accidental copies — correct
+- **`cleanup_mapped()`**: Helper for error path cleanup — correct
+- **Detailed comments**: Explains why lock-free, why power-of-2, memory ordering — excellent
+
+Excellent C++ SHM ring buffer with SPSC lock-free, bulk ops, cache-line aligned, cross-platform, magic validation, RAII, and deleted copy/move. ✅
+
+### 8.690 shm_ring_buffer C++: shm_open 0666 permissions — Medium
+
+**Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h:101`
+
+```cpp
+fd_ = shm_open(name_.c_str(), O_CREAT | O_RDWR, 0666);
+```
+
+`0666` permissions on `/dev/shm` allow any process on the machine to read/write the shared memory. In a production environment, this means any user can read trading signals, fill data, and market data from the SHM segment. An attacker could also write malicious data to the ring buffer.
+
+**Фикс:** Use `0600` (owner read/write only) or `0640` (owner + group read).
+
+### 8.691 shm_ring_buffer C++: no try_pop timeout — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h:220`
+
+```cpp
+bool try_pop(T& out) noexcept {
+    const uint64_t tail = header_->tail.load(std::memory_order_relaxed);
+    const uint64_t head = header_->head.load(std::memory_order_acquire);
+    if (head == tail) {
+        return false; // Buffer empty
+    }
+```
+
+`try_pop` is non-blocking and returns `false` immediately if the buffer is empty. There's no `pop_with_timeout()` method. The caller must implement its own polling loop with sleep, which is error-prone and wastes CPU.
+
+**Фикс:** Add a `pop_with_timeout(T& out, int timeout_ms)` method that uses `std::this_thread::sleep_for` or `futex` for efficient waiting.
+
+### 8.692 ai-signal-bot/run.py: Main entry point — ✅ Good
+
+**Файл:** `ai-signal-bot/run.py` (397 lines)
+
+- **AISignalBot class**: Orchestrates exchange, strategies, ensemble, validator, DB, LLM, publisher — comprehensive
+- **Pipeline**: Data → Strategies → Ensemble → Validate → Execute → DB+CSV — correct
+- **Reconnection**: 5 attempts with 3s sleep — correct
+- **Background listen**: `asyncio.create_task(self._listen_loop())` — correct
+- **Listen loop**: Catches 4 exception types, reconnects on error — resilient
+- **Graceful shutdown**: `finally` block closes all resources — correct
+- **Paper vs live**: `paper_trading` flag controls execution path — correct
+- **Position sizing**: Risk-based with max notional cap — correct
+- **Dashboard**: Optional periodic display — useful
+- **Metrics**: Optional health server + Prometheus — flexible
+
+Good main entry point with comprehensive orchestration, reconnection, background listen, graceful shutdown, and paper/live modes. ✅
+
+### 8.693 run.py: no graceful shutdown on SIGTERM — Medium
+
+**Файл:** `ai-signal-bot/run.py:162-182`
+
+```python
+try:
+    while self._running:
+        await asyncio.sleep(self.config.signal_interval)
+        await self._generate_signals()
+except KeyboardInterrupt:
+    self.logger.info("Stopping...")
+finally:
+    self._running = False
+    listen_task.cancel()
+    await self.signal_publisher.stop()
+```
+
+Only `KeyboardInterrupt` (Ctrl+C) is caught. There's no `SIGTERM` handler. In Kubernetes, pods receive `SIGTERM` for graceful shutdown. Without a handler, the bot is killed after the termination grace period (default 30s) without proper cleanup — open orders may remain, DB connections aren't closed, and the signal publisher stops abruptly.
+
+**Фикс:** Add `signal.signal(signal.SIGTERM, lambda s, f: self._running = False)` or use `asyncio.add_signal_handler(signal.SIGTERM, ...)`.
+
+### 8.694 run.py: signal_publisher binds to 0.0.0.0 — Low
+
+**Файл:** `ai-signal-bot/run.py:77`
+
+```python
+self.signal_publisher = SignalPublisher(host="0.0.0.0", port=8766)  # nosec: B104
+```
+
+The signal publisher binds to `0.0.0.0` (all interfaces). The `nosec: B104` annotation acknowledges this. In production, this exposes the signal publisher to all network interfaces. If the machine is on a public network, anyone can connect and receive trading signals.
+
+**Фикс:** Bind to `127.0.0.1` for local-only communication, or use a firewall to restrict access to port 8766.
+
+### 8.695 run.py: no health check in main loop — Low
+
+**Файл:** `ai-signal-bot/run.py:163-165`
+
+```python
+while self._running:
+    await asyncio.sleep(self.config.signal_interval)
+    await self._generate_signals()
+```
+
+The main loop only generates signals. There's no periodic health check (e.g., checking if the exchange connection is still alive, if the DB is reachable, if the last candle is recent). If the exchange connection drops silently (no exception), the bot continues generating signals on stale data.
+
+**Фикс:** Add a periodic health check: `if time.time() - self.exchange.last_message_time > 60: self.logger.error("No data for 60s, reconnecting")`.

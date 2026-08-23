@@ -1227,3 +1227,16 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R670 | hft-trade-bot/core/config.h | `config.h` | ✅ Good | 80+ fields, ExchangeConfig per-exchange, production risk limits, V2 weights |
 | R671 | config: API keys in plaintext struct | `config.h:125` | Medium | api_key/api_secret as std::string. Not zeroed. Use SecureString or env vars |
 | R672 | config: no validation in struct | `config.h:12` | Low | 80+ fields no in-struct validation. Add validate() method or builder pattern |
+| R673 | ai-signal-bot/research/attribution.py | `attribution.py` | ✅ Excellent | Brinson-Fachler formulas, 2 dataclasses, multi-period, formatted report |
+| R674 | attribution: no weight normalization check | `attribution.py:70` | Low | No sum=1 check. Incorrect attribution. Add tolerance check |
+| R675 | ai-signal-bot/research/greeks_hedging.py | `greeks_hedging.py` | ✅ Good | All 5 Greeks, GBM paths, threshold rebalancing, P&L decomposition, Monte Carlo |
+| R676 | greeks_hedging: np.random.seed global state | `greeks_hedging.py:112` | Low | Global seed shared across simulations. Use np.random.default_rng(seed) |
+| R677 | hft-trade-bot/ipc/shm_protocol.h | `shm_protocol.h` | ✅ Excellent | 4 packed structs, static_assert, Python formats documented, 4 enums |
+| R678 | shm_protocol: SymbolId only 10 symbols | `shm_protocol.h:83` | Low | 10 symbols vs 50 configured. Add dynamic registry or extend enum |
+| R679 | hft-trade-bot/ipc/shm_ring_buffer.h | `shm_ring_buffer.h` | ✅ Excellent | SPSC lock-free, bulk ops, cache-line aligned, cross-platform, RAII, deleted copy |
+| R680 | shm_ring_buffer C++: shm_open 0666 permissions | `shm_ring_buffer.h:101` | Medium | World read/write on SHM. Use 0600 or 0640 |
+| R681 | shm_ring_buffer C++: no try_pop timeout | `shm_ring_buffer.h:220` | Low | Non-blocking only. Add pop_with_timeout for efficient waiting |
+| R682 | ai-signal-bot/run.py | `run.py` | ✅ Good | AISignalBot orchestrator, reconnection, background listen, graceful shutdown, paper/live |
+| R683 | run.py: no SIGTERM handler | `run.py:162` | Medium | Only KeyboardInterrupt. K8s SIGTERM kills without cleanup. Add signal handler |
+| R684 | run.py: signal_publisher binds 0.0.0.0 | `run.py:77` | Low | All interfaces. Use 127.0.0.1 or firewall |
+| R685 | run.py: no health check in main loop | `run.py:163` | Low | No stale data detection. Add periodic last_message_time check |
