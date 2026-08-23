@@ -299,3 +299,4 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | fix_client: password in plaintext debug log | msg.fields includes tag 554 (password) at DEBUG level. Redact sensitive tags before logging | CODE_AUDIT §8.898 |
 | mean_reversion_v2: no per-symbol state | Kalman+OU+residuals shared across symbols. BTC contaminates ETH. One instance per symbol | CODE_AUDIT §8.915 |
 | signal_publisher: backtest runs in event loop | bt.run() blocks all WS connections for seconds. Use asyncio.to_thread | CODE_AUDIT §8.920 |
+| alerting: new aiohttp.ClientSession per alert per channel | 3 sessions/alert, 30/min. FD exhaustion. Shared session in init | CODE_AUDIT §8.943 |

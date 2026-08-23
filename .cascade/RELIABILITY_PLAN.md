@@ -1473,3 +1473,34 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R916 | shm_signal_producer: push_signal_dict silent default action=0 | `shm_signal_producer.py:62` | Low | Unknown direction silently becomes action=0. Log warning |
 | R917 | Code reduction: signal_publisher broadcast 3× | `signal_publisher.py:188+229+263` | Info | Extract _broadcast(msg). ~20 lines |
 | R918 | Code reduction: pressure_model compute_obi dead code | `pressure_model.h:134` | Info | Remove. ~10 lines |
+| R919 | ai-signal-bot/data_collection/exchange_factory.py | `exchange_factory.py` | ✅ Good | Protocol adapter 3 modes fallback health check clean lifecycle |
+| R920 | exchange_factory: SimulatorAdapter hardcoded price 50000 | `exchange_factory.py:54` | Low | All symbols show 50000. Per-symbol simulated prices |
+| R921 | exchange_factory: api_secret plaintext in attribute | `exchange_factory.py:91` | Low | Exposed via repr/debugger. Use SecretStr or mask repr |
+| R922 | ai-signal-bot/data_collection/real_market_data.py | `real_market_data.py` | ✅ Good | Multi-exchange WS normalized data reconnection backoff pull-based manager |
+| R923 | real_market_data: no reconnection on ConnectionClosed | `real_market_data.py:140` | Low | websockets.ConnectionClosed not caught. Feed stops permanently. Add to except |
+| R924 | real_market_data: no @aggTrade handler for Binance | `real_market_data.py:147` | Low | last price always 0.0. Add aggTrade handler |
+| R925 | real_market_data: _to_okx_inst_id non-USDT not handled | `real_market_data.py:354` | Low | Non-USDT pairs rejected by OKX. Handle USDC/BUSD or document |
+| R926 | ai-signal-bot/data_collection/real_account.py | `real_account.py` | ✅ Good | ccxt leverage cache user data stream fill callbacks specific errors |
+| R927 | real_account: get_balance catches broad Exception | `real_account.py:163` | Low | Masks bugs. Catch specific exceptions like other methods |
+| R928 | real_account: _listen_user_data no max retries | `real_account.py:348` | Low | Infinite retries 5s. Add exponential backoff + max retries |
+| R929 | ai-signal-bot/data_collection/real_exchange_client.py | `real_exchange_client.py` | ✅ Good | HMAC-SHA256 signing 3 exchanges shared session testnet |
+| R930 | real_exchange_client: api_secret plaintext attribute | `real_exchange_client.py:69` | Low | Exposed via repr. Use SecretStr |
+| R931 | real_exchange_client: no error handling OKX/Bybit non-200 | `real_exchange_client.py:196+` | Low | OKX/Bybit may not check resp.status. Add check for all |
+| R932 | ai-signal-bot/monitoring/alerting.py | `alerting.py` | ✅ Good | Multi-channel severity rate limiting history stats gather |
+| R933 | alerting: new aiohttp.ClientSession per alert per channel | `alerting.py:168` | Medium | 3 sessions/alert. Shared session in init. FD exhaustion risk |
+| R934 | alerting: alert_history list slice O(n) copy | `alerting.py:113` | Low | Use deque(maxlen=1000) for O(1) |
+| R935 | ai-signal-bot/monitoring/health_server.py | `health_server.py` | ✅ Good | 6 endpoints K8s probes registered checks async support lifecycle |
+| R936 | health_server: _check_all runs sequentially | `health_server.py:74` | Low | Sum of check times. Use asyncio.gather for parallel |
+| R937 | ai-signal-bot/monitoring/metrics.py | `metrics.py` | ✅ Excellent | Prometheus counters gauges histograms summaries custom registry graceful degradation |
+| R938 | ai-signal-bot/monitoring/tracker.py | `tracker.py` | ✅ Good | PerformanceTracker SignalLogger TradeLogger CSV properties |
+| R939 | tracker: PerformanceTracker not thread-safe | `tracker.py:17` | Low | Plain int increments. Use asyncio.Lock |
+| R940 | hft-trade-bot/execution/smart_order_router_v2.h | `smart_order_router_v2.h` | ✅ Good | 5 strategies toxic backoff depth-aware stack array DIP |
+| R941 | smart_order_router_v2: exchanges_ vector heap | `smart_order_router_v2.h:177` | Low | Reserve(16) at init |
+| R942 | smart_order_router_v2: no per-symbol latency | `smart_order_router_v2.h:97` | Low | Per-exchange only. Track per-exchange-per-symbol |
+| R943 | hft-trade-bot/execution/adaptive_order_selector_v2.h | `adaptive_order_selector_v2.h` | ✅ Excellent | 6 decision paths exchange mappings aggressive/passive noexcept no heap |
+| R944 | adaptive_order_selector_v2: defaults to Binance mapping | `adaptive_order_selector_v2.h:208` | Low | Unknown exchange uses Binance types. Return MARKET as safe default |
+| R945 | hft-trade-bot/ipc/shm_heartbeat.h | `shm_heartbeat.h` | ✅ Excellent | Seq-guarded lock-free cross-platform RAII noexcept auto heartbeat |
+| R946 | shm_heartbeat: write() non-atomic fields | `shm_heartbeat.h:121` | Low | Seq guard makes safe. Document x86/x64 assumption |
+| R947 | shm_heartbeat: auto_loop no error handling | `shm_heartbeat.h:154` | Low | noexcept write() → std::terminate if throws. Wrap in try/catch |
+| R948 | Code reduction: alerting _send 3× pattern | `alerting.py:150+173+195` | Info | Extract _post_json(url, payload). ~15 lines |
+| R949 | Code reduction: health_server _check_* 3× pattern | `health_server.py:38+50+62` | Info | Extract _run_check(name). ~15 lines |

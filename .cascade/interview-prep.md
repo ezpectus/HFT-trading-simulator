@@ -5739,3 +5739,208 @@ class SignalPublisher:
 ```
 
 **Разница:** The bad code runs `bt.run()` — a synchronous CPU-intensive operation — directly in the asyncio event loop. With 10000 candles × 3 strategies, this takes 5-10 seconds, during which the event loop is completely blocked. No signals are broadcast, no WebSocket pings are sent, no health checks are processed, no other user requests are handled. If BTC drops 3% during the block, 1000 users don't receive the SHORT signal → $200K in unprevented losses. After 10s, clients think the server is dead and disconnect. K8s liveness probe times out and restarts the pod — backtest is lost, 1000 clients are disconnected, reconnection storm ensues. The good code uses `asyncio.to_thread()` to run `bt.run()` in a thread pool, keeping the event loop free. Signals continue broadcasting, pings continue, health checks pass, other users are unaffected. The cost is one line of code (`await asyncio.to_thread(...)` instead of `bt.run(...)`). The benefit is $200K in saved losses, 0 disconnections, 0 pod restarts, and 1000 happy users. This is a classic example of a blocking call in an async system: the developer treated `bt.run()` as a regular function call without considering that it blocks the event loop. The principle: never run CPU-intensive or blocking operations in the event loop — always offload to a thread (`asyncio.to_thread`) or process (`multiprocessing`). In a system with 1000 users, a 10-second event loop block can cause $200K in losses + reconnection storms + pod restarts.
+
+---
+
+## Bad vs Good: aiohttp ClientSession Per Request (Python asyncio)
+
+### ❌ Bad Code
+```python
+class AlertSystem:
+    async def _send_discord(self, alert: Alert) -> None:
+        payload = {"embeds": [{"title": f"🚨 {alert.rule_name}", "description": alert.message}]}
+        async with aiohttp.ClientSession() as session:  # ← New session per call
+            async with session.post(self.discord_webhook, json=payload) as resp:
+                if resp.status not in (200, 204):
+                    logger.error(f"Discord webhook failed: {resp.status}")
+
+    async def _send_telegram(self, alert: Alert) -> None:
+        url = f"https://api.telegram.org/bot{self.telegram_token}/sendMessage"
+        payload = {"chat_id": self.telegram_chat_id, "text": alert.message}
+        async with aiohttp.ClientSession() as session:  # ← New session per call
+            async with session.post(url, json=payload) as resp:
+                if resp.status != 200:
+                    logger.error(f"Telegram send failed: {resp.status}")
+
+    async def _send_webhook(self, alert: Alert) -> None:
+        payload = {"rule": alert.rule_name, "severity": alert.severity.value}
+        async with aiohttp.ClientSession() as session:  # ← New session per call
+            async with session.post(self.webhook_url, json=payload) as resp:
+                if resp.status not in (200, 204):
+                    logger.error(f"Webhook failed: {resp.status}")
+
+# Scenario: Production system with 1000 users
+# 50 symbols, 5m timeframe, 60s signal interval
+#
+# Alert rules:
+# - Daily loss > 8% → CRITICAL alert to Discord + Telegram + webhook
+# - No fills for 5 min → WARNING alert to Discord + Telegram
+# - SHM disconnected → CRITICAL alert to Discord + Telegram + webhook
+# - DB down → CRITICAL alert to Discord + Telegram + webhook
+#
+# Normal operation: 2-3 alerts/hour
+# Market crash scenario: 20+ alerts in 5 minutes
+#
+# What happens during a market crash?
+#
+# t=0:    BTC drops 5% in 1 minute
+# t=0:    Daily loss rule fires → CRITICAL alert
+# t=0:    _send_alert() calls _send_discord() + _send_telegram() + _send_webhook()
+# t=0:    3 new aiohttp.ClientSession() created
+#         Each session:
+#         - Creates TCPConnector (connection pool)
+#         - Creates DNS resolver
+#         - Creates cookie storage
+#         - Opens TCP connection to Discord/Telegram/webhook
+#         - Sends POST request
+#         - Closes TCP connection
+#         - Destroys session (cleanup)
+#
+# t=1:    No fills rule fires → WARNING alert
+# t=1:    3 more sessions created and destroyed
+#
+# t=2:    SHM disconnected rule fires → CRITICAL alert
+# t=2:    3 more sessions created and destroyed
+#
+# t=3:    DB down rule fires → CRITICAL alert
+# t=3:    3 more sessions created and destroyed
+#
+# t=4:    Another daily loss alert (different symbol) → CRITICAL
+# t=4:    3 more sessions created and destroyed
+#
+# Total in 5 minutes: 20 alerts × 3 channels = 60 sessions
+# Each session: ~50ms overhead (DNS + TCP + TLS handshake + cleanup)
+# Total overhead: 60 × 50ms = 3 seconds of overhead
+#
+# But it gets worse:
+#
+# 1. DNS resolution per session
+#    - Each session resolves api.telegram.org from scratch
+#    - No DNS cache between sessions
+#    - 60 DNS lookups in 5 minutes
+#    - If DNS server is slow (200ms), that's 12s of DNS wait
+#
+# 2. TCP connection per session
+#    - Each session opens a new TCP connection
+#    - No connection reuse between sessions
+#    - 60 TCP connections in 5 minutes
+#    - Each connection: SYN → SYN-ACK → ACK → TLS handshake
+#    - If Telegram API is behind Cloudflare (it is), TLS adds 100ms
+#
+# 3. File descriptor exhaustion
+#    - Each session opens 1-3 file descriptors (socket + DNS + SSL)
+#    - 60 sessions × 3 FDs = 180 FDs in 5 minutes
+#    - Default ulimit: 1024 FDs
+#    - With other connections (WS, DB, SHM): 800 FDs used
+#    - 180 more FDs → 980 FDs → close to ulimit
+#    - Next connection attempt: "Too many open files" error
+#    - Bot can't connect to exchange → no market data → no signals
+#
+# 4. Memory allocation
+#    - Each session allocates ~50KB (connection pool, SSL context, cookies)
+#    - 60 sessions × 50KB = 3MB allocated and freed in 5 minutes
+#    - Python's garbage collector may not free immediately
+#    - Memory fragmentation over time
+#
+# 5. Alert delivery delay
+#    - With shared session: 50ms per alert (connection reused)
+#    - With per-request session: 200ms per alert (DNS + TCP + TLS)
+#    - 4× slower alert delivery
+#    - In a crash scenario, 4× delay means 4× more losses before alert reaches user
+#
+# Total damage:
+# - 60 sessions created/destroyed in 5 minutes (waste)
+# - 12s DNS overhead (delay)
+# - 180 FDs consumed (risk of exhaustion)
+# - 3MB memory allocated/freed (fragmentation)
+# - 4× slower alert delivery (delayed response)
+# - "Too many open files" → bot can't connect to exchange → no signals
+```
+
+**What's wrong:**
+- Each `_send_*` method creates a new `aiohttp.ClientSession()` per call
+- No DNS caching between sessions
+- No TCP connection reuse between sessions
+- 60 sessions in 5 minutes during a crash → 180 FDs → close to ulimit
+- 4× slower alert delivery due to DNS+TCP+TLS per session
+- FD exhaustion can crash the entire bot
+
+### ✅ Good Code
+```python
+class AlertSystem:
+    def __init__(self, ...):
+        # ...
+        self._http_session: aiohttp.ClientSession | None = None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """Get or create shared HTTP session."""
+        if self._http_session is None or self._http_session.closed:
+            self._http_session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=10),
+                connector=aiohttp.TCPConnector(
+                    limit=20,          # Max 20 connections
+                    limit_per_host=5,  # Max 5 per host
+                    ttl_dns_cache=300, # DNS cache 5 minutes
+                ),
+            )
+        return self._http_session
+
+    async def _post_json(self, url: str, payload: dict) -> int:
+        """Send JSON POST to URL using shared session."""
+        session = await self._get_session()
+        async with session.post(url, json=payload) as resp:
+            return resp.status
+
+    async def _send_discord(self, alert: Alert) -> None:
+        payload = {"embeds": [{"title": f"🚨 {alert.rule_name}", "description": alert.message}]}
+        status = await self._post_json(self.discord_webhook, payload)
+        if status not in (200, 204):
+            logger.error(f"Discord webhook failed: {status}")
+
+    async def _send_telegram(self, alert: Alert) -> None:
+        url = f"https://api.telegram.org/bot{self.telegram_token}/sendMessage"
+        payload = {"chat_id": self.telegram_chat_id, "text": alert.message}
+        status = await self._post_json(url, payload)
+        if status != 200:
+            logger.error(f"Telegram send failed: {status}")
+
+    async def _send_webhook(self, alert: Alert) -> None:
+        payload = {"rule": alert.rule_name, "severity": alert.severity.value}
+        status = await self._post_json(self.webhook_url, payload)
+        if status not in (200, 204):
+            logger.error(f"Webhook failed: {status}")
+
+    async def close(self) -> None:
+        """Close shared session on shutdown."""
+        if self._http_session and not self._http_session.closed:
+            await self._http_session.close()
+
+# Scenario: Production system with 1000 users
+# Market crash: 20 alerts in 5 minutes
+#
+# t=0:    BTC drops 5% → CRITICAL alert
+# t=0:    _send_alert() calls _send_discord() + _send_telegram() + _send_webhook()
+# t=0:    All 3 use shared session → 3 POST requests on existing connections
+#         - DNS cached (no lookup)
+#         - TCP connection reused (no handshake)
+#         - TLS session resumed (no full handshake)
+#         - 50ms per alert (vs 200ms with per-request session)
+#
+# t=1-5:  19 more alerts, all using shared session
+#         - 60 POST requests total
+#         - 0 new sessions created
+#         - 0 DNS lookups (cached for 5 min)
+#         - 3 TCP connections (1 per host, reused)
+#         - 9 FDs (3 sockets + 3 SSL + 3 DNS cache)
+#
+# Total:
+# - 0 sessions created/destroyed (shared)
+# - 0 DNS overhead (cached)
+# - 9 FDs (vs 180 with per-request)
+# - 50ms per alert (vs 200ms)
+# - No FD exhaustion risk
+# - 4× faster alert delivery
+# - Bot continues operating normally
+```
+
+**Разница:** The bad code creates a new `aiohttp.ClientSession()` for each alert send — 3 sessions per alert (Discord, Telegram, webhook). During a market crash with 20 alerts in 5 minutes, that's 60 sessions, each requiring DNS resolution, TCP handshake, TLS handshake, and cleanup. This wastes 12s in DNS overhead, consumes 180 file descriptors (risking "Too many open files" errors that crash the bot), and delivers alerts 4× slower (200ms vs 50ms). In a crash scenario, 4× slower alerts mean 4× more losses before users are notified. The good code creates a single shared `aiohttp.ClientSession` with a `TCPConnector` that limits connections (20 max, 5 per host), caches DNS (5 min TTL), and reuses TCP/TLS connections. All 60 POST requests in 5 minutes use the same 3 connections — 0 DNS lookups, 9 FDs, 50ms per alert. The cost is 10 lines of code (`_get_session()` + `_post_json()` + `close()`). The benefit is 4× faster alerts, 20× fewer FDs, 0 DNS overhead, and no FD exhaustion risk. This is a classic example of resource mismanagement: the developer treated `aiohttp.ClientSession` as a disposable object (like `requests.Session` in synchronous code), not realizing that in asyncio, each session creates a connection pool, DNS resolver, and SSL context. The principle: in asyncio, always reuse `aiohttp.ClientSession` — create one per application lifecycle, share across all requests, and close on shutdown. In a system with 1000 users, FD exhaustion from per-request sessions can crash the entire bot, causing $200K+ in losses from missed signals during a market crash.

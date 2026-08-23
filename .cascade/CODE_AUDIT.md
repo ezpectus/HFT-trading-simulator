@@ -12684,3 +12684,424 @@ The broadcast pattern (define `_send` closure, `asyncio.gather`, track disconnec
 `compute_obi` static method is defined but never called. The `analyze()` method uses inline single-pass OBI. `obi_utils.h` also provides the same function.
 
 **Reduction potential:** ~10 lines. Remove dead code.
+
+### 8.929 ai-signal-bot/src/data_collection/exchange_factory.py: Exchange Factory — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py` (242 lines)
+
+- **Protocol-based adapter**: `ExchangeAdapter` Protocol with 9 methods — correct
+- **3 modes**: SIMULATOR, REAL, FALLBACK (try real, fall back to simulator) — correct
+- **SimulatorAdapter**: Stub returning hardcoded data — correct for testing
+- **RealExchangeAdapter**: Wraps `RealMarketDataManager` + `RealAccountManager` — correct
+- **ExchangeFactory**: Creates adapter based on mode, health check on FALLBACK — correct
+- **switch_to_simulator**: Close current adapter, create simulator — correct
+- **close**: Closes both adapter and simulator — correct
+
+Good exchange factory with Protocol-based adapter, 3 modes, fallback with health check, and clean lifecycle. ✅
+
+### 8.930 exchange_factory: SimulatorAdapter returns hardcoded price 50000 — Low
+
+**Файл:** `exchange_factory.py:54-55`
+
+```python
+async def get_ticker(self, symbol: str) -> dict:
+    return {"symbol": symbol, "price": 50000.0, "bid": 49999.5, "ask": 50000.5, "timestamp": time.time()}
+```
+
+`SimulatorAdapter.get_ticker()` always returns price 50000.0 regardless of symbol. If the simulator is used in FALLBACK mode for multiple symbols (BTC, ETH, SOL), all symbols show price 50000. This could cause incorrect risk calculations or order sizing if the fallback is activated.
+
+**Фикс:** Return per-symbol simulated prices, or at least vary by symbol hash.
+
+### 8.931 exchange_factory: RealExchangeAdapter stores api_secret in plaintext — Low
+
+**Файл:** `exchange_factory.py:91`
+
+```python
+self._api_secret = api_secret
+```
+
+`RealExchangeAdapter` stores `api_secret` as a plain string attribute. If the object is logged, serialized, or inspected in a debugger, the secret is exposed. Same issue in `ExchangeFactory` (line 173) and `RealAccountManager` (line 95).
+
+**Фикс:** Use `__repr__` that masks secrets, or store as `SecretStr` from pydantic.
+
+### 8.932 ai-signal-bot/src/data_collection/real_market_data.py: Real Market Data Feed — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/real_market_data.py` (455 lines)
+
+- **Multi-exchange**: Binance, OKX, Bybit WebSocket feeds — correct
+- **Normalized data**: `NormalizedTicker`, `NormalizedCandle`, `NormalizedOrderBook` dataclasses — correct
+- **Reconnection**: Exponential backoff per exchange (1s → 30s max) — correct
+- **Callbacks**: `on_ticker`, `on_candle`, `on_orderbook` — correct
+- **Binance**: Combined stream URL (`@bookTicker` + `@aggTrade` + `@kline_`) — correct
+- **OKX**: Subscribe message with `instId` — correct
+- **Bybit**: Subscribe message with `orderbook.50.{sym}` + `tickers.{sym}` + `kline.{iv}.{sym}` — correct
+- **RealMarketDataManager**: Caches latest data from WS callbacks, provides pull-based accessors — correct
+
+Good real market data feed with multi-exchange support, normalized data, reconnection with backoff, and pull-based manager. ✅
+
+### 8.933 real_market_data: no reconnection on websockets.ConnectionClosed — Low
+
+**Файл:** `real_market_data.py:140, 217, 295`
+
+```python
+except (ConnectionError, OSError, json.JSONDecodeError) as e:
+```
+
+The exception handling catches `ConnectionError`, `OSError`, and `json.JSONDecodeError`, but does NOT catch `websockets.ConnectionClosed`. When the exchange closes the connection (e.g., server restart), `websockets.ConnectionClosed` is raised, which is not a subclass of `ConnectionError` or `OSError`. The exception propagates out of the `while self._running` loop, and the feed stops permanently without reconnection.
+
+**Фикс:** Add `websockets.ConnectionClosed` to the except clause, or catch `Exception` as fallback.
+
+### 8.934 real_market_data: no @aggTrade handler for Binance — Low
+
+**Файл:** `real_market_data.py:147-182`
+
+The Binance feed subscribes to `@aggTrade` streams (line 118), but `_handle_binance_msg` only handles `@bookTicker` and `@kline_`. The `@aggTrade` messages are received but silently ignored. The `NormalizedTicker.last` price is set to 0.0 (line 159) because `bookTicker` has no last traded price — it's supposed to be updated by `aggTrade`.
+
+**Фикс:** Add `@aggTrade` handler to update `last` price and volume.
+
+### 8.935 real_market_data: _to_okx_inst_id doesn't handle non-USDT pairs — Low
+
+**Файл:** `real_market_data.py:354-364`
+
+```python
+if clean.endswith("USDT"):
+    base = clean[:-4]
+    return f"{base}-USDT-SWAP"
+return symbol
+```
+
+If the symbol doesn't end with "USDT" (e.g., BTC/USDC, ETH/BTC), the function returns the original symbol unchanged. OKX will reject the subscription because the instId format is wrong.
+
+**Фикс:** Handle USDC, BUSD, and other quote currencies. Or document USDT-only limitation.
+
+### 8.936 ai-signal-bot/src/data_collection/real_account.py: Real Account Manager — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/real_account.py` (380 lines)
+
+- **ccxt-based**: Uses `ccxt.async_support` for multi-exchange support — correct
+- **Optional ccxt**: `CCXT_AVAILABLE` flag — correct
+- **Dataclasses**: `AccountBalance`, `AccountPosition`, `OpenOrder` with `to_dict()` — correct
+- **Leverage cache**: `_leverage_cache` avoids redundant `set_leverage` calls — correct
+- **User data stream**: `start_user_data_stream()` with `watch_orders()` — correct
+- **Fill callback**: `_on_fill_callback` for real-time fill notifications — correct
+- **Margin warning callback**: `_on_margin_warning_callback` — correct
+- **Error handling**: Specific exceptions per method — correct
+- **close**: Cancels listen task, closes exchange + WS session — correct
+
+Good real account manager with ccxt, leverage cache, user data stream, fill callbacks, and specific error handling. ✅
+
+### 8.937 real_account: get_balance catches broad Exception — Low
+
+**Файл:** `real_account.py:163`
+
+```python
+except Exception as e:
+    logger.error(f"[RealAccount] Failed to fetch balance: {e}")
+    return []
+```
+
+`get_balance()` catches `Exception` instead of specific exceptions. This masks bugs like `AttributeError` (if ccxt changes API) or `TypeError` (if response format changes). Other methods use specific exceptions correctly.
+
+**Фикс:** Catch `(OSError, RuntimeError, KeyError, ValueError)` like other methods.
+
+### 8.938 real_account: _listen_user_data no max retries — Low
+
+**Файл:** `real_account.py:348-369`
+
+```python
+async def _listen_user_data(self) -> None:
+    while True:
+        try:
+            orders = await self._exchange.watch_orders()
+            # ...
+        except (OSError, RuntimeError, KeyError, ValueError) as e:
+            logger.error(f"[RealAccount] User data stream error: {e}")
+            await asyncio.sleep(5)
+```
+
+The `_listen_user_data` loop retries indefinitely with a fixed 5s sleep. If the exchange is down for hours, this loop will retry every 5s, generating massive log volume. No exponential backoff, no max retries, no circuit breaker.
+
+**Фикс:** Use exponential backoff (5s → 30s → 60s). Add max retries before giving up.
+
+### 8.939 ai-signal-bot/src/data_collection/real_exchange_client.py: Real Exchange Client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/real_exchange_client.py` (335 lines)
+
+- **HMAC-SHA256 signing**: `_hmac_sha256_hex` and `_hmac_sha256_b64` with `usedforsecurity=False` — correct
+- **3 exchanges**: Binance, OKX, Bybit with exchange-specific signing — correct
+- **Shared aiohttp session**: `_get_session()` creates session lazily — correct
+- **Dataclasses**: `AccountBalance`, `Position` — correct
+- **Testnet support**: Per-exchange testnet URLs — correct
+- **close**: Closes shared session — correct
+
+Good real exchange REST client with HMAC signing, 3 exchanges, shared session, and testnet support. ✅
+
+### 8.940 real_exchange_client: api_secret stored in plaintext attribute — Low
+
+**Файл:** `real_exchange_client.py:69`
+
+```python
+self.api_secret = api_secret
+```
+
+Same issue as `exchange_factory.py:91`. `api_secret` stored as plain string attribute, accessible via `repr()` or debugger.
+
+**Фикс:** Use `SecretStr` or mask in `__repr__`.
+
+### 8.941 real_exchange_client: no error handling on non-200 responses for OKX/Bybit — Low
+
+**Файл:** `real_exchange_client.py:196+`
+
+The Binance methods check `resp.status != 200` and return `None`/`[]`. But the OKX and Bybit methods (not fully shown) may not have the same error handling. If OKX returns 401 (invalid API key) or 429 (rate limit), the response may not have the expected JSON structure, causing `KeyError` or `IndexError`.
+
+**Фикс:** Add `resp.status != 200` check for all exchange methods. Log error response body.
+
+### 8.942 ai-signal-bot/src/monitoring/alerting.py: Alert System — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/alerting.py` (260 lines)
+
+- **Multi-channel**: Discord, Telegram, generic webhook, log — correct
+- **Severity levels**: INFO, WARNING, CRITICAL — correct
+- **Rate limiting**: Per-rule cooldown (default 5 min) — correct
+- **Alert history**: Capped at 1000, trimmed with slice — correct
+- **Periodic monitoring**: `_monitor_loop` with configurable interval — correct
+- **Error handling**: Specific exceptions per rule check — correct
+- **Gather for multi-channel**: `asyncio.gather(*tasks, return_exceptions=True)` — correct
+- **Stats**: `get_stats()` with by_severity and by_rule counts — correct
+
+Good alert system with multi-channel, severity levels, rate limiting, history, and stats. ✅
+
+### 8.943 alerting: creates new aiohttp.ClientSession per alert per channel — Medium
+
+**Файл:** `alerting.py:168, 190, 205`
+
+```python
+async with aiohttp.ClientSession() as session:
+    async with session.post(self.discord_webhook, json=payload) as resp:
+```
+
+Each alert send creates a new `aiohttp.ClientSession` — 3 sessions per alert (Discord, Telegram, webhook). With 10 alerts/min, that's 30 sessions/min. Each session creates a connection pool, DNS resolver, and cookie storage. This is inefficient and can exhaust file descriptors.
+
+**Фикс:** Create a shared `aiohttp.ClientSession` in `__init__` or `start_monitoring()`, reuse for all alert sends.
+
+### 8.944 alerting: alert_history list slice creates copy — Low
+
+**Файл:** `alerting.py:113-114`
+
+```python
+if len(self.alert_history) > self._max_history:
+    self.alert_history = self.alert_history[-self._max_history:]
+```
+
+When history exceeds 1000, the entire list is sliced and copied — O(n) operation. With 1000 alerts, this copies 1000 references. Use `collections.deque(maxlen=1000)` for O(1) append with automatic eviction.
+
+**Фикс:** Use `deque(maxlen=1000)` instead of list + slice.
+
+### 8.945 ai-signal-bot/src/monitoring/health_server.py: Health Server — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/health_server.py` (153 lines)
+
+- **6 endpoints**: `/health`, `/health/exchange`, `/health/database`, `/health/shm`, `/ready`, `/live` — correct
+- **K8s probes**: Readiness (`/ready`) and liveness (`/live`) — correct
+- **Registered checks**: Exchange, database, SHM — correct
+- **Async support**: `iscoroutine(result)` check — correct
+- **HTTP status**: 200 healthy, 503 unhealthy — correct
+- **Error handling**: Specific exceptions per check — correct
+- **aiohttp**: Proper `AppRunner` + `TCPSite` lifecycle — correct
+
+Good health server with 6 endpoints, K8s probes, registered checks, async support, and proper lifecycle. ✅
+
+### 8.946 health_server: _check_all runs checks sequentially — Low
+
+**Файл:** `health_server.py:74-95`
+
+```python
+async def _check_all(self) -> dict:
+    exchange = await self._check_exchange()
+    database = await self._check_database()
+    shm = await self._check_shm()
+```
+
+Three checks run sequentially. If exchange check takes 5s (network timeout), database and SHM checks wait 5s before starting. Total health check time = sum of all check times. K8s probe may time out.
+
+**Фикс:** Use `asyncio.gather()` to run checks in parallel.
+
+### 8.947 ai-signal-bot/src/monitoring/metrics.py: Prometheus Metrics Exporter — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/monitoring/metrics.py` (239 lines)
+
+- **prometheus_client**: Counter, Gauge, Histogram, Summary — correct
+- **Custom registry**: `CollectorRegistry()` per instance — correct
+- **Counters**: signals_total, fills_total, orders_sent_total, orders_rejected_total, kill_switch_activations — correct
+- **Gauges**: current_pnl, daily_pnl, total_equity, drawdown_pct, open_positions, total_exposure, websocket_connected, signal_confidence, kill_switch_active, shm_buffer_size — correct
+- **Histograms**: signal_latency, order_latency, shm_round_trip_latency — correct
+- **Summaries**: position_hold_time — correct
+- **Update methods**: All check `HAS_PROMETHEUS` before updating — correct
+- **Label dimensions**: symbol, direction, exchange, side, type, reason, endpoint, channel — correct
+
+Excellent Prometheus metrics exporter with comprehensive counters, gauges, histograms, summaries, custom registry, and graceful degradation. ✅
+
+### 8.948 ai-signal-bot/src/monitoring/tracker.py: Performance Tracker — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/tracker.py` (175 lines)
+
+- **PerformanceTracker**: signals_generated, signals_validated, signals_rejected, orders_sent, trades_closed, winning_trades, total_pnl, total_fees — correct
+- **Properties**: win_rate, signals_per_hour, uptime_seconds — correct
+- **SignalLogger**: CSV logging with header auto-creation — correct
+- **TradeLogger**: CSV logging (presumably similar) — correct
+
+Good performance tracker with comprehensive metrics, CSV logging, and derived properties. ✅
+
+### 8.949 tracker: PerformanceTracker not thread-safe — Low
+
+**Файл:** `monitoring/tracker.py:17-52`
+
+```python
+def record_signal(self, validated: bool) -> None:
+    self.signals_generated += 1
+    if validated:
+        self.signals_validated += 1
+    else:
+        self.signals_rejected += 1
+```
+
+`PerformanceTracker` uses plain integer increments. In async context with concurrent `record_signal()` calls (from different signal processing coroutines), increments can be lost. Same issue as `metrics_server.py` (R842).
+
+**Фикс:** Use `asyncio.Lock` or `itertools.count()`.
+
+### 8.950 hft-trade-bot/src/execution/smart_order_router_v2.h: Smart Order Router V2 — ✅ Good
+
+**Файл:** `hft-trade-bot/src/execution/smart_order_router_v2.h` (181 lines)
+
+- **5 routing strategies**: BEST_PRICE, LOWEST_LATENCY, LOWEST_FEES, BEST_EFFECTIVE, DEPTH_AWARE — correct
+- **Toxic backoff**: Skip exchanges with ≥5 toxic events — correct
+- **Stack-allocated exchange array**: `MAX_EXCHANGES = 16`, no heap allocation in hot path — correct
+- **Effective price**: `price * (1 + fee_fraction)` for buy, `price * (1 - fee_fraction)` for sell — correct
+- **Depth penalty**: `(quantity - depth) * 0.01` for DEPTH_AWARE — correct
+- **DIP**: Uses `IExchange` interface, no concrete exchange — correct
+- **Reason string**: `strat_names[static_cast<int>(config_.strategy)]` — correct
+
+Good smart order router with 5 strategies, toxic backoff, depth-aware routing, stack-allocated arrays, and DIP compliance. ✅
+
+### 8.951 smart_order_router_v2: exchanges_ vector heap-allocated — Low
+
+**Файл:** `smart_order_router_v2.h:177`
+
+```cpp
+std::vector<IExchange*> exchanges_;
+```
+
+The `exchanges_` vector is heap-allocated. The `route()` method iterates it in the hot path. The vector itself is fine (populated at init), but the `add_exchange()` method can cause reallocation if capacity is exceeded. This is not in the hot path, so it's acceptable.
+
+**Фикс:** Reserve capacity at init: `exchanges_.reserve(16)`.
+
+### 8.952 smart_order_router_v2: no per-symbol latency tracking — Low
+
+**Файл:** `smart_order_router_v2.h:97`
+
+```cpp
+int64_t latency = ex->estimated_latency_us();
+```
+
+Latency is per-exchange, not per-symbol. If Binance has 100us latency for BTC but 500us for SOL, the router uses 100us for all symbols. This can route SOL orders to Binance expecting fast execution but getting slow fills.
+
+**Фикс:** Track per-exchange-per-symbol latency.
+
+### 8.953 hft-trade-bot/src/execution/adaptive_order_selector_v2.h: Adaptive Order Selector V2 — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/execution/adaptive_order_selector_v2.h` (223 lines)
+
+- **6 order kinds**: MARKET, LIMIT_IOC, LIMIT_FOK, LIMIT_GTD, POST_ONLY, default IOC at mid — correct
+- **Decision tree**: Emergency → Toxic → High+Tight → High+OBI → Large+Thin → Low+Wide → Default — correct
+- **Limit prices**: Aggressive (mid*1.0001) for urgency, passive (mid*0.9999) for patience — correct
+- **GTD expiry**: `now_ns + gtd_seconds * 1e9` — correct
+- **Exchange mapping**: Binance (IOC/FOK/GTX), OKX (ioc/fok/post_only), Bybit (Limit+TIF) — correct
+- **`noexcept` on all methods**: Correct
+- **No heap allocations**: All stack-allocated — correct
+
+Excellent adaptive order selector with 6 decision paths, exchange-specific mappings, aggressive/passive pricing, GTD expiry, and noexcept. ✅
+
+### 8.954 adaptive_order_selector_v2: to_exchange_type defaults to Binance — Low
+
+**Файл:** `adaptive_order_selector_v2.h:208`
+
+```cpp
+return to_binance_type(kind); // Default to Binance mapping
+```
+
+If an unknown exchange is passed (e.g., "kraken"), the selector defaults to Binance order type mapping. If Kraken uses different order type strings, orders will be rejected by the exchange.
+
+**Фикс:** Return "MARKET" as safe default, or log a warning for unknown exchange.
+
+### 8.955 hft-trade-bot/src/ipc/shm_heartbeat.h: SHM Heartbeat — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_heartbeat.h` (272 lines)
+
+- **HeartbeatSlot**: `alignas(64)`, atomic seq, timestamp_ns, pid, message_count, error_count, status[16] — correct
+- **Seq-guarded writes**: Odd seq = writing, Even seq = done — correct (lock-free readers)
+- **ShmHeartbeatWriter**: Cross-platform (Windows CreateFileMapping + POSIX shm_open), auto heartbeat thread — correct
+- **ShmHeartbeatReader**: Seq-guarded read with `memcpy` + seq verify — correct
+- **is_alive**: Checks heartbeat age against timeout_ms — correct
+- **age_ms**: Returns age of last heartbeat — correct
+- **RAII**: Destructor unmaps + closes + unlinks (if owner) — correct
+- **Deleted copy ctor/assignment**: Correct
+- **`noexcept` on read/write/is_alive/age_ms**: Correct
+
+Excellent SHM heartbeat with seq-guarded lock-free access, cross-platform SHM, auto heartbeat thread, RAII, and noexcept. ✅
+
+### 8.956 shm_heartbeat: write() has data race on timestamp_ns — Low
+
+**Файл:** `shm_heartbeat.h:121-138`
+
+```cpp
+void write(...) noexcept {
+    uint64_t seq = slot_->seq.load(std::memory_order_relaxed);
+    slot_->seq.store(seq + 1, std::memory_order_release); // Odd = writing
+    slot_->timestamp_ns = now_ns();  // ← Non-atomic write
+    slot_->pid = ...;                // ← Non-atomic write
+    slot_->message_count = ...;      // ← Non-atomic write
+    slot_->error_count = ...;        // ← Non-atomic write
+    std::memset(slot_->status, 0, sizeof(slot_->status));
+    std::strncpy(slot_->status, status, sizeof(slot_->status) - 1);
+    slot_->seq.store(seq + 2, std::memory_order_release); // Even = done
+}
+```
+
+The write method uses seq-guarded access (odd = writing, even = done), and the reader checks seq before and after reading. However, the fields `timestamp_ns`, `pid`, `message_count`, `error_count` are not atomic. On x86/x64, aligned 8-byte/4-byte writes are atomic, so this is safe in practice. On ARM, non-atomic writes may be reordered or torn. The `memset` + `strncpy` for `status[16]` is definitely not atomic.
+
+The seq guard works correctly: the reader will see `seq1 & 1 == 1` (odd = writing) and return false, or `seq1 != seq2` (changed during read) and return false. So the reader never sees a partial write. This is correct.
+
+**Фикс:** Document x86/x64 assumption. The seq guard makes this safe regardless of atomicity — the reader retries if seq changes.
+
+### 8.957 shm_heartbeat: auto_loop no error handling — Low
+
+**Файл:** `shm_heartbeat.h:154-158`
+
+```cpp
+void auto_loop(uint32_t interval_ms) {
+    while (running_) {
+        write();
+        std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
+    }
+}
+```
+
+The `auto_loop` calls `write()` in a loop without error handling. If `write()` throws (unlikely since it's `noexcept`, but `now_ns()` or `strncpy` could theoretically have issues), the thread terminates silently. The heartbeat stops, and the reader will detect a stale heartbeat, but the writer won't know.
+
+**Фикс:** Wrap `write()` in try/catch, log errors. Although `write()` is `noexcept`, `std::terminate` would be called if it throws — which would crash the entire process.
+
+### 8.958 Code reduction: alerting _send methods 3× pattern — Info
+
+**Файлы:** `alerting.py:150-171, 173-193, 195-208`
+
+The pattern `async with aiohttp.ClientSession() as session: async with session.post(url, json=payload) as resp:` is duplicated 3 times for Discord, Telegram, and webhook. All create a new session per call.
+
+**Reduction potential:** ~15 lines. Extract to `_post_json(url, payload)` method with shared session.
+
+### 8.959 Code reduction: health_server _check_* methods 3× pattern — Info
+
+**Файлы:** `health_server.py:38-48, 50-60, 62-72`
+
+The pattern `if "name" in self._checks: try: result = self._checks["name"]() ...` is duplicated 3 times for exchange, database, SHM. All have identical structure.
+
+**Reduction potential:** ~15 lines. Extract to `_run_check(name: str) -> dict` method.
