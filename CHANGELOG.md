@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AN: Final C++ audit cleanup)
+
+### Changed
+- CODE_AUDIT §8.871 — MomentumBreakoutV2 per-symbol state → [N/A] (only used in tests, not production)
+- CODE_AUDIT §8.892 — MarketMakingV2 per-symbol state → [N/A] (only used in tests, not production)
+- CODE_AUDIT §8.987 — order_executor detached reconnect thread → [FIXED] (same fix as §8.117, already applied in Пачка AI)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AM2: RiskManager shared_mutex + metrics Spinlock)
 
 ### Fixed

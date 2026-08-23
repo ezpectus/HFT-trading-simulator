@@ -41,19 +41,19 @@ MetricsCollector::~MetricsCollector() {
 }
 
 void MetricsCollector::increment_counter(const std::string& name, const std::map<std::string, std::string>& labels) {
-    std::lock_guard<Spinlock> lock(metrics_mutex_);
+    std::lock_guard<Spinlock> lock(counter_lock_);
     std::string key = name + serialize_labels(labels);
     counters_[key]++;
 }
 
 void MetricsCollector::set_gauge(const std::string& name, double value, const std::map<std::string, std::string>& labels) {
-    std::lock_guard<Spinlock> lock(metrics_mutex_);
+    std::lock_guard<Spinlock> lock(gauge_lock_);
     std::string key = name + serialize_labels(labels);
     gauges_[key] = value;
 }
 
 void MetricsCollector::observe_histogram(const std::string& name, double value, const std::map<std::string, std::string>& labels) {
-    std::lock_guard<Spinlock> lock(metrics_mutex_);
+    std::lock_guard<Spinlock> lock(histogram_lock_);
     std::string key = name + serialize_labels(labels);
     
     if (histograms_.find(key) == histograms_.end()) {
@@ -136,13 +136,21 @@ std::string MetricsCollector::serialize_labels(const std::map<std::string, std::
 }
 
 std::string MetricsCollector::generate_prometheus_output() {
-    std::lock_guard<Spinlock> lock(metrics_mutex_);
     std::stringstream output;
     std::set<std::string> seen_types;
 
-    export_counters(output, seen_types);
-    export_gauges(output, seen_types);
-    export_histograms(output, seen_types);
+    {
+        std::lock_guard<Spinlock> lock(counter_lock_);
+        export_counters(output, seen_types);
+    }
+    {
+        std::lock_guard<Spinlock> lock(gauge_lock_);
+        export_gauges(output, seen_types);
+    }
+    {
+        std::lock_guard<Spinlock> lock(histogram_lock_);
+        export_histograms(output, seen_types);
+    }
 
     return output.str();
 }

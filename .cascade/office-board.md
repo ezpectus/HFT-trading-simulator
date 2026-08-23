@@ -293,7 +293,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~notifier: Telegram token in URL~~ [FIXED] | Suppressed aiohttp debug logging in Пачка X | CODE_AUDIT §8.668 |
 | ~~notifier: no auth for remote commands~~ [FIXED] | Added command_password to TelegramNotifier + DiscordNotifier — NOTIFIER_COMMAND_PASSWORD env var | CODE_AUDIT §8.670 |
 | ~~socket_transport: blocking receive loop~~ [FIXED] | Code already uses non-blocking sockets with selectors.DefaultSelector() + timeout=0.1 — audit item is stale | CODE_AUDIT §8.675 |
-| config: API keys in plaintext struct | api_key/api_secret as std::string. Not zeroed on destruction. Use SecureString | CODE_AUDIT §8.681 |
+| ~~config: API keys in plaintext struct~~ [FIXED] | clear_secrets() already added in Пачка AD — zeros api_key/api_secret/passphrase/db_dsn/redis_url via memset, called in graceful_shutdown() | CODE_AUDIT §8.681 |
 | ~~shm_ring_buffer C++: shm_open 0666 permissions~~ [FIXED] | All SHM permissions changed 0666→0600 in Пачка AD (shm_heartbeat.h, shm_market_data.h, shm_ring_buffer.h) | CODE_AUDIT §8.690 |
 | ~~run.py: no SIGTERM handler~~ [FIXED] | Added SIGTERM/SIGINT handler in Пачка F/S | CODE_AUDIT §8.693 |
 | ~~signal_publisher: no client authentication~~ [FIXED] | Added auth_token parameter — clients must send {"type":"auth","token":"..."} before receiving signals | CODE_AUDIT §8.697 |
@@ -324,14 +324,14 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~shm_protocol: SymbolId limited to 10 symbols~~ [FIXED] | Expanded enum from 10 to 50 symbols matching config.yaml. Added MAX_SYMBOL sentinel + documentation comment. Enum is reference-only (runtime uses dynamic unordered_map) | CODE_AUDIT §8.838 |
 | ~~health_checks: check_readiness runs sequentially~~ [FIXED] | All 4 checks now run in parallel via asyncio.gather with return_exceptions=True | CODE_AUDIT §8.852 |
 | ~~health_checks: no timeout on individual checks~~ [FIXED] | Each check wrapped in asyncio.wait_for(timeout=2.0) — TimeoutError returns UNHEALTHY | CODE_AUDIT §8.853 |
-| momentum_breakout_v2: no per-symbol state | EMA/ATR/ADX/volume shared across symbols. BTC contaminates ETH. Add per-symbol state | CODE_AUDIT §8.871 |
+| ~~momentum_breakout_v2: no per-symbol state~~ [N/A] | Only used in tests, not production. Per-symbol state is a design concern, not an active bug | CODE_AUDIT §8.871 |
 | ~~signal_engine_v3: get_or_create_hmm_state heap alloc in noexcept~~ [FIXED] | Removed noexcept from get_or_create_hmm_state. prepopulate() pre-creates hmm_states_ at init. Same fix as §8.808 | CODE_AUDIT §8.887 |
-| market_making_v2: no per-symbol state | Volatility/sigma shared across symbols. BTC vol contaminates ETH quotes. One instance per symbol | CODE_AUDIT §8.892 |
+| ~~market_making_v2: no per-symbol state~~ [N/A] | Only used in tests, not production. Per-symbol state is a design concern, not an active bug | CODE_AUDIT §8.892 |
 | ~~fix_client: password in plaintext debug log~~ [FIXED] | Sensitive tags (553, 554, 4961) redacted with *** in debug log | CODE_AUDIT §8.898 |
 | ~~mean_reversion_v2: no per-symbol state~~ [N/A] | Same as §8.812 — MeanReversionV2 only used in tests, not production | CODE_AUDIT §8.915 |
 | ~~signal_publisher: backtest runs in event loop~~ [FIXED] | Wrapped bt.run in asyncio.to_thread in Пачка J | CODE_AUDIT §8.920 |
 | ~~alerting: new aiohttp.ClientSession per alert per channel~~ [FIXED] | Replaced with shared _get_session() in Пачка O | CODE_AUDIT §8.943 |
-| order_executor: detached reconnect thread race | Dangling `this` after destroy. Detached thread sleeps then accesses dead object. Don't detach or use asio timer | CODE_AUDIT §8.987 |
+| ~~order_executor: detached reconnect thread race~~ [FIXED] | Same as §8.117/§8.452/§8.774 — detached thread replaced with member reconnect_thread_ joined in disconnect() | CODE_AUDIT §8.987 |
 | ~~ws_connection_pool: acquire holds lock during _create_connection~~ [FIXED] | Module deleted in Пачка G (dead code). Only .pyc cache remains | CODE_AUDIT §8.993 |
 | ~~db: new SQLite connection per operation~~ [FIXED] | Uses persistent _get_conn() with WAL set once — verified in Пачка AA | CODE_AUDIT §8.1000 |
 | ~~order_manager: no lock on state transitions~~ [N/A] | OrderManager class does not exist in C++ codebase. Symbol mapping is dynamic via unordered_map. No state transition race possible | CODE_AUDIT §8.1012 |
@@ -339,17 +339,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~health_checks: check_readiness runs sequentially~~ [FIXED] | All 4 checks now run in parallel via asyncio.gather (Пачка DD) | CODE_AUDIT §8.1027 |
 | ~~health_checks: no timeout on individual checks~~ [FIXED] | Each check wrapped in asyncio.wait_for(timeout=2.0) (Пачка DD) | CODE_AUDIT §8.1028 |
 | ~~notifier: token in URL~~ [FIXED] | Suppressed aiohttp.client debug logging in TelegramNotifier.start() to prevent token leakage | CODE_AUDIT §8.1043 |
-| ~~BinanceAdapter: on_book_ticker takes two spinlocks~~ [FIXED] | Consolidated price_lock_ + depth_lock_ into single market_data_lock_ — same fix as §8.462 | CODE_AUDIT §8.1064 |
-| ~~engine.py: API key in memory as plain string~~ [FIXED] | Added SecretStr wrapper — repr/str show ***, .get() for actual value | CODE_AUDIT §8.1059 |
-| ~~BinanceAdapter: api_secret in Config struct~~ [FIXED] | clear_secrets() already added in Пачка AD — zeros api_key/api_secret memory via memset, called in graceful_shutdown() | CODE_AUDIT §8.1066 |
-| ~~OKXAdapter: passphrase stored as plain string~~ [FIXED] | Added clear_secrets() to OKXAdapter::Config — zeros api_key/api_secret/passphrase memory via memset | CODE_AUDIT §8.1071 |
-| ~~BybitAdapter: api_secret in Config struct~~ [FIXED] | Added clear_secrets() to BybitAdapter::Config — zeros api_key/api_secret memory via memset | CODE_AUDIT §8.1074 |
-| ~~metrics_collector: mutex on every metric operation~~ [FIXED] | Same as §8.483 — replaced std::mutex with Spinlock. Prometheus export also uses Spinlock | CODE_AUDIT §8.1078 |
-| ~~tracer: spans_ vector unbounded~~ [FIXED] | Added MAX_SPANS=10000 ring buffer cap — oldest span dropped when limit exceeded | CODE_AUDIT §8.1085 |
-| ~~tracer: no span export mechanism~~ [FIXED] | Added export_spans() method — flushes to Jaeger (logs count + clears). clear_spans() + span_count() also added | CODE_AUDIT §8.1087 |
-| ~~backtest_engine: duplicate of backtester.py~~ [FIXED] | Added reset() method for reuse. Fixed O(N²) window slicing with rolling window. Different API (callback-based vs strategy.analyze), kept both | CODE_AUDIT §8.1133 | |
-| ~~optimizer: sequential grid search~~ [FIXED] | Added parallel=True option via ProcessPoolExecutor with fallback to sequential | CODE_AUDIT §8.1138 | |
-| ~~walk_forward: new BacktestEngine per param combo~~ [FIXED] | Reuse single BacktestEngine via reset() in _optimize_in_sample | CODE_AUDIT §8.1143 | |
 | ~~backtester: O(N²) window slicing~~ [FIXED] | Replaced growing candles[:i+1] with rolling window capped at max(2×warmup, 200) | CODE_AUDIT §8.1127 |
 | ~~real_account: bare Exception swallows CancelledError~~ [FIXED] | Replaced with specific exceptions in Пачка I | CODE_AUDIT §8.1149 |
 | ~~real_market_data: no backpressure on WS messages~~ [FIXED] | Added bounded asyncio.Queue(maxsize=500) + _process_queue task. WS loops enqueue, overflow drops oldest | CODE_AUDIT §8.1154 |
@@ -663,3 +652,275 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 - Collapsible header с symbol selector
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/layout/MobileLayout.jsx` (новый), CSS media queries во всех компонентах
+
+### WD-16: Order Execution Panel — ручная торговля
+**Описание:** Панель для ручного размещения ордеров (как на Binance/Bybit).
+- Форма: символ (auto из symbol store), сторона (Buy/Sell), тип (Market/Limit/Stop-Limit)
+- Поля: цена (для limit), размер, leverage (1x-20x для futures)
+- Slider размера позиции с % от баланса (1%, 5%, 10%, 25%, 50%, 100%)
+- Кнопки Buy (зелёная) / Sell (красная) — большие, не промахнёшься
+- Confirm modal для ордеров > $10K или > 10% баланса
+- Open orders таблица: символ | сторона | цена | размер | статус | cancel button
+- Order history: последние 50 ордеров с timestamp, status, fill price
+- При paper trading — watermark "PAPER" на панели
+- Hotkeys: B = buy, S = sell, Esc = cancel order, Ctrl+Enter = confirm
+- Расчёт margin requirement в real-time при изменении размера/leverage
+- Мин/макс размер ордера по exchange rules (валидация)
+- Trailing stop и OCO (One-Cancels-Other) ордера
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/trading/OrderPanel.jsx` (новый), `web-ui/src/components/trading/OpenOrders.jsx` (новый), `web-ui/src/hooks/useOrderExecution.js` (новый)
+**Зависимости:** WD-04 (symbol), WD-12 (WS), WD-13 (API)
+
+### WD-17: Alert System — price & strategy alerts
+**Описание:** Система уведомлений о рыночных событиях.
+- Типы алертов:
+  - Price alert: цена пересекла уровень (above/below X)
+  - % change alert: символ изменился на X% за период
+  - Volume spike: объём превысил средний в N раз
+  - Strategy alert: новая стратегия с confidence > X
+  - Drawdown alert: daily DD превысил X%
+  - Liquidation alert: крупная ликвидация (> $X)
+  - WS disconnect alert: потеряно соединение с exchange/bot
+- Создание алерта: модальная форма с выбором типа, условия, символа
+- Active alerts таблица: условие | символ | текущее значение | статус (armed/triggered)
+- При срабатывании: toast notification + звук + подсветка панели
+- History triggered alerts (последние 100)
+- Push notifications через Web Notifications API (с разрешением)
+- Удаление/редактирование алертов
+- Preset alerts: "BTC drops 5% in 1h", "Daily DD > 5%", "No signals 10min"
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/alerts/AlertManager.jsx` (новый), `web-ui/src/components/alerts/AlertModal.jsx` (новый), `web-ui/src/stores/useAlertStore.js` (новый)
+
+### WD-18: Order Flow & CVD (Cumulative Volume Delta)
+**Описание:** Продвинутый анализ потока ордеров как в Bookmap/Exocharts.
+- CVD линия: кумулятивная дельта (buy volume - sell volume) поверх candlestick chart
+- CVD divergence detection: цена растёт, CVD падает → bearish divergence (alert)
+- Order flow heatmap: наложение на график объёмов по ценовым уровням
+  (крупные ордера = яркие точки, цвет = buy/sell)
+- Footprint chart: внутри каждой свечи — bid/ask объёмы по ценовым уровням
+- Delta histogram: гистограмма дельты по каждой свече (зелёная/красная)
+- Large trades markers: точки на графике где прошли сделки > $X
+- CVD per symbol, переключается с символом
+- Параметры: минимальный размер сделки для отображения, агрегация (по свече/по минуте)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/charts/OrderFlowChart.jsx` (новый), `web-ui/src/components/charts/CVDOverlay.jsx` (новый), `web-ui/src/components/charts/FootprintChart.jsx` (новый)
+**Зависимости:** WD-01 (chart), WD-03 (trade tape data)
+
+### WD-19: Correlation Matrix — 50 symbols correlation
+**Описание:** Матрица корреляции между всеми символами.
+- Heatmap матрица 50×50 с корреляцией Пирсона (по returns за N периодов)
+- Цвет: -1 (красный) → 0 (серый) → +1 (зелёный)
+- При наведении на ячейку: точное значение + мини scatter plot
+- Период выбора: 1h, 4h, 1d, 7d, 30d
+- Кластеризация: автоматическая группировка коррелированных символов
+- Divergence detector: пары с обычно высокой корреляцией (>0.8) но сейчас разошлись
+  (например BTC и ETH обычно 0.9, но сейчас 0.3 → arbitrage opportunity alert)
+- При клике на пару — открывается спред-график (symbol A / symbol B)
+- Export матрицы в CSV
+- Обновление: каждые 5 минут (polling) или при значительном изменении
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/analysis/CorrelationMatrix.jsx` (новый), `web-ui/src/components/analysis/SpreadChart.jsx` (новый)
+
+### WD-20: Funding Rate & Liquidation Feed
+**Описание:** Crypto-specific: ставки финансирования и ливидации.
+- Funding rate таблица: символ | текущая ставка | следующая ставка | время до следующей
+  (положительная = longs платят shorts, отрицательная = наоборот)
+- Funding rate history график (последние 30 периодов)
+- Цветовая индикация: >0.1% = красный (перегретый рынок), <−0.05% = зелёный
+- Liquidation feed: real-time лента ливидаций
+  - символ | сторона (long/short) | размер ($) | цена | время
+  - Крупные ливидации (> $1M) — выделены, с alert
+  - Кумулятивный объём ливидаций за час (longs vs shorts bar chart)
+- Liquidation heatmap: на графике — метки где произошли ливидации
+- При смене символа — фильтр по символу или "All"
+- Funding arbitrage detector: пары с разницей ставок > X% на разных биржах
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/crypto/FundingRatePanel.jsx` (новый), `web-ui/src/components/crypto/LiquidationFeed.jsx` (новый)
+**Зависимости:** exchange-simulator должен отправлять funding/liquidation events (проверить)
+
+### WD-21: ML Model Insights — что думают модели
+**Описание:** Визуализация предсказаний ML моделей (как в Two Sigma research UI).
+- Model predictions таблица: модель | символ | предсказание (up/down/neutral) | confidence | horizon
+- Models: LSTM, Transformer, RL Agent, AutoML, Price Predictor
+- Prediction history: график предсказаний vs реальной цены (overlay)
+- Model accuracy tracker: real-time accuracy по каждой модели (last 100 predictions)
+- Feature importance: top-10 фичей для текущего предсказания (bar chart)
+- Model disagreement indicator: когда модели расходятся → heightened uncertainty
+- Ensemble view: aggregated prediction из всех моделей (weighted by accuracy)
+- Backtest vs live comparison: как модель работает в live vs backtest
+- Model health: loss curve, training status, last update time
+- При клике на модель — детальная страница с графиками и метриками
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/ml/ModelInsights.jsx` (новый), `web-ui/src/components/ml/ModelDetail.jsx` (новый), `web-ui/src/components/ml/PredictionOverlay.jsx` (новый)
+**Зависимости:** ai-signal-bot должен экспортировать model predictions через WS/API
+
+### WD-22: Replay Mode — перемотка исторических данных
+**Описание:** Проигрыватель истории как в TradingView replay.
+- Выбор даты/времени старта replay
+- Controls: play/pause/step forward/step backward/speed (1x, 2x, 5x, 10x)
+- При play — свечи, ордербук, лента сделок обновляются как в real-time но из истории
+- Все панели работают в replay режиме: chart, orderbook, tape, signals
+- Возможность "запустить стратегию" в replay — увидеть какие сигналы были бы
+- Сравнение: "что было" vs "что предсказала модель" vs "что произошло"
+- Bookmark: сохранить интересный момент для разбора
+- Session replay: проиграть конкретную торговую сессию
+- При окончании истории — пауза, не зацикливание
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/replay/ReplayControls.jsx` (новый), `web-ui/src/stores/useReplayStore.js` (новый), `web-ui/src/services/ReplayEngine.js` (новый)
+**Зависимости:** WD-01, WD-02, WD-03 (все real-time компоненты должны поддерживать replay mode)
+
+### WD-23: Trade Journal & Analytics
+**Описание:** Журнал сделок с аналитикой (как в TraderSync/Tradervue).
+- Trade journal таблица: дата | символ | сторона | entry | exit | PnL | duration | стратегия | tags | notes
+- При клике на trade — детальная карточка с графиком (entry/exit markers)
+- Ручные заметки: добавить note к любой сделке ("вошёл из-за breakout BTC")
+- Tags: breakout, scalping, arbitrage, mistake, good-entry, etc.
+- Analytics:
+  - Win rate по стратегиям, по символам, по тегам
+  - Average win vs average loss (R:R)
+  - Best/worst trades
+  - P&L by day of week, by hour of day (heatmap)
+  - Holding time distribution
+  - Tag performance: какие теги = profit, какие = loss
+  - Equity curve с annotated trades
+- Monthly/weekly summary report
+- Export в CSV/PDF
+- Filter: по дате, символу, стратегии, тегу, PnL
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/journal/TradeJournal.jsx` (новый), `web-ui/src/components/journal/TradeDetail.jsx` (новый), `web-ui/src/components/journal/JournalAnalytics.jsx` (новый)
+
+### WD-24: Notification Center & Activity Log
+**Описание:** Центр уведомлений и лог активности.
+- Notification dropdown (колокольчик в шапке): unread count badge
+- Типы: info, warning, error, success, trade, signal, system
+- При клике — раскрытие деталей + action button (e.g. "View trade", "Reconnect WS")
+- Activity log: хронологический список всех событий системы
+  - WS connect/disconnect, order placed/filled, signal generated, strategy started/stopped
+  - Error events с stack trace (для debugging)
+- Фильтр: по типу, по компоненту, по времени
+- Search по логу (полнотекстовый)
+- Auto-scroll к новым событиям (с pause button)
+- Уровни лога: DEBUG, INFO, WARN, ERROR — фильтр по уровню
+- Export лога в файл
+- Persistence: последние 1000 событий в localStorage, старые — только в backend
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/notifications/NotificationCenter.jsx` (новый), `web-ui/src/components/notifications/ActivityLog.jsx` (новый), `web-ui/src/stores/useNotificationStore.js` (новый)
+
+### WD-25: Settings & Configuration Panel
+**Описание:** Настройки системы из web-ui (без редактирования YAML).
+- Tabs: Trading, Strategies, Risk, Notifications, API Keys, System
+- Trading: symbols list (enable/disable), timeframe, signal interval, paper/live toggle
+- Strategies: список с toggle on/off, параметры каждой стратегии (sliders/inputs)
+  - TrendFollowing: ema_fast, ema_slow, atr_period
+  - MeanReversion: bb_period, bb_std, rsi_period
+  - FFTCycle: fft_window, threshold
+  - Ensemble: voting_mode, min_votes
+  - Parameters валидируются (min/max/type) перед сохранением
+- Risk: max_position_pct, stop_loss_pct, take_profit_pct, daily_dd_limit, min_confidence, min_rr
+- Notifications: Telegram chat ID, Discord webhook, email, alert preferences
+- API Keys: exchange API key/secret (masked, encrypted in localStorage), LLM API key
+- System: WS URLs, DB path, log level, feature flags (enable/disable research modules)
+- Кнопка "Save & Restart" — сохраняет config и перезапускает bot
+- Кнопка "Reset to Defaults" — откат к config/settings.yaml
+- Diff view: показать что изменилось перед сохранением
+- Config export/import (JSON file download/upload)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/settings/SettingsPanel.jsx` (новый), `web-ui/src/components/settings/StrategyConfig.jsx` (новый), `web-ui/src/components/settings/RiskConfig.jsx` (новый)
+
+### WD-26: Market Structure & Pattern Detection
+**Описание:** Автоматическое распознавание структуры рынка на графике.
+- Auto-detect и отрисовка на candlestick chart:
+  - Higher highs / lower lows (трендовые линии auto-draw)
+  - Support/resistance levels (горизонтальные линии с touch count)
+  - Chart patterns: double top/bottom, head&shoulders, triangles, flags
+  - Fibonacci retracement levels (auto от последнего значимого swing)
+  - Order blocks (последний крупный opposite candle перед импульсом)
+  - Fair value gaps (Gaps в candle structure)
+  - Liquidity zones (области с высокой концентрацией объёма)
+- Pattern confidence indicator (% match с идеальным паттерном)
+- При обнаружении паттерна — alert + метка на графике
+- Toggle: включить/выключить каждый тип паттерна отдельно
+- История паттернов: список найденных паттернов с результатом (отработал/не отработал)
+- Performance: pattern detection в Web Worker (не блокировать UI)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/charts/PatternOverlay.jsx` (новый), `web-ui/src/services/PatternDetector.js` (новый), `web-ui/src/workers/patternWorker.js` (новый)
+**Зависимости:** WD-01 (chart), WD-14 (Web Workers)
+
+### WD-27: Multi-Exchange View — агрегация бирж
+**Описание:** Сравнение данных с разных бирж (если подключено несколько).
+- Multi-exchange order book: стаканы Binance/Bybit/OKX рядом для одного символа
+- Spread между биржами: best bid на A vs best ask на B → arbitrage opportunity
+- Price divergence chart: разница цен между биржами во времени
+- Volume comparison: bar chart объёмов по биржам за последние 24h
+- Best execution: рекомендация "исполнять на бирже X, цена лучше на Y bps"
+- Exchange status: latency, uptime, API rate limit usage по каждой бирже
+- При клике на arbitrage opportunity — расчёт прибыли с комиссиями
+- Historical arbitrage opportunities: список реализованных спредов
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/multiexchange/ExchangeComparison.jsx` (новый), `web-ui/src/components/multiexchange/ArbOpportunities.jsx` (новый)
+**Зависимости:** Multiple exchange connections в backend
+
+### WD-28: Session Statistics & Daily Report
+**Описание:** Статистика торговой сессии и ежедневный отчёт.
+- Real-time session stats (с начала дня):
+  - Trades executed, signals generated, win rate, avg R:R
+  - Volume traded, fees paid, net PnL
+  - Best trade, worst trade, longest holding
+  - Strategy breakdown: PnL по каждой стратегии
+  - Symbol breakdown: PnL по каждому символу
+  - Timeline: events throughout the day (first trade, biggest win, DD event)
+- Daily report (генерируется в конце дня или по кнопке):
+  - Summary card: date, net PnL, win rate, Sharpe (daily)
+  - Equity curve за день
+  - Trade list с графиками
+  - Strategy performance table
+  - Risk metrics: max DD, VaR, exposure peak
+  - Lessons learned: auto-generated из tagged trades (mistakes vs good entries)
+  - Comparison с предыдущими днями (trend: improving/declining)
+- Weekly/Monthly aggregated reports
+- Export в PDF (для отправки в Telegram/email)
+- Auto-send daily report в Telegram channel (через notifier)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/stats/SessionStats.jsx` (новый), `web-ui/src/components/stats/DailyReport.jsx` (новый), `web-ui/src/components/stats/WeeklyReport.jsx` (новый)
+
+### WD-29: Dark Pool / Whale Activity Tracker
+**Описание:** Отслеживание крупной активности (как в Whale Alert).
+- Large order detection: ордера > $100K с alert
+- Whale wallet tracking: (если есть on-chain data) крупные переводы на/с бирж
+- Accumulation/distribution indicator: кумулятивный объём buy vs sell за период
+- Smart money concept: detection of institutional order flow patterns
+  - Iceberg orders: ордера которые постоянно пополняются
+  - Spoofing detection: ордера которые появляются и исчезают
+  - Wash trading detection: circular trades между адресами
+- Whale activity feed: timeline крупных сделок с деталями
+- Heatmap: где на графике происходила крупная активность
+- При крупной сделке → instant alert + метка на графике
+- Параметры: минимальный размер для "крупной" сделки, окно обнаружения
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/whale/WhaleTracker.jsx` (новый), `web-ui/src/components/whale/LargeOrderDetector.jsx` (новый)
+**Зависимости:** WD-03 (trade tape), WD-18 (order flow)
+
+### WD-30: Keyboard Shortcuts & Command Palette
+**Описание:** Система горячих клавиш и command palette (как в VS Code / TradingView).
+- Command palette (Ctrl+K / Cmd+K): поиск по всем действиям
+  - "Switch to BTC" → меняет символ
+  - "Run backtest TrendFollowing" → открывает backtest lab с стратегией
+  - "Close all positions" → action
+  - "Toggle order book" → показать/скрыть панель
+  - "Export daily report" → генерирует PDF
+- Keyboard shortcuts:
+  - 1-9: переключение панелей
+  - B/S: buy/sell panel
+  - T: toggle trade tape
+  - O: toggle order book
+  - C: toggle chart
+  - R: replay mode
+  - F: fullscreen chart
+  - Esc: close modal/cancel
+  - Ctrl+Enter: confirm action
+  - Space: play/pause (replay mode)
+- Shortcut editor: переназначить любую комбинацию
+- Shortcut hints: tooltips на кнопках с комбинациями
+- Cheat sheet: модальное окно со всеми шорткатами (press ?)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/system/CommandPalette.jsx` (новый), `web-ui/src/hooks/useKeyboardShortcuts.js` (новый), `web-ui/src/stores/useShortcutStore.js` (новый)

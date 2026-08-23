@@ -83,7 +83,9 @@ private:
     std::atomic<bool> http_server_running_;
     std::thread http_server_thread_;
     
-    Spinlock metrics_mutex_;
+    Spinlock counter_lock_;
+    Spinlock gauge_lock_;
+    Spinlock histogram_lock_;
     std::map<std::string, uint64_t> counters_;
     std::map<std::string, double> gauges_;
     std::map<std::string, HistogramBuckets> histograms_;

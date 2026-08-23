@@ -11915,7 +11915,7 @@ inline void copy_str(char (&dst)[N], const char* src) noexcept {
 
 Excellent momentum breakout with multi-timeframe EMA stack, volume confirmation, ATR breakout levels, ADX gating, and no heap allocations. ✅
 
-### 8.871 momentum_breakout_v2: no per-symbol state — Medium
+### 8.871 momentum_breakout_v2: no per-symbol state — Medium [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/momentum_breakout_v2.h:20-201`
 
@@ -12203,7 +12203,7 @@ The Avellaneda-Stoikov model requires `T-t` (time remaining until horizon). The 
 
 **Фикс:** Track session start time, compute `t_remaining = T - elapsed`.
 
-### 8.892 market_making_v2: no per-symbol state — Medium
+### 8.892 market_making_v2: no per-symbol state — Medium [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/market_making_v2.h:21-174`
 
@@ -13499,7 +13499,7 @@ The password is passed to `build_logon` and sent in the FIX message. If `build_l
 
 Good order executor with websocketpp, exponential backoff, manual JSON (no heap alloc), arbitrage execution, and atomic state. ✅
 
-### 8.987 order_executor: detached reconnect thread race — Medium
+### 8.987 order_executor: detached reconnect thread race — Medium [FIXED]
 
 **Файл:** `order_executor.h:57-63`
 
