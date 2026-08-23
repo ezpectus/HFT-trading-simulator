@@ -6,14 +6,14 @@
 
 ## 1. ДУБЛИРОВАНИЕ (over-engineering)
 
-### 1.1 PortfolioOptimizer — 3 РАЗНЫХ РЕАЛИЗАЦИИ
+### 1.1 PortfolioOptimizer — 3 РАЗНЫХ РЕАЛИЗАЦИИ [FIXED]
 | Файл | Строк | Использование |
 |------|-------|---------------|
-| `src/risk/portfolio_optimizer.py` | 307 | только тесты (`test_portfolio_optimizer.py`) |
-| `src/strategies/portfolio_optimizer.py` | 311 | только тесты (`test_risk.py`) |
+| `src/risk/portfolio_optimizer.py` | 307 | только тесты (`test_portfolio_optimizer.py`) — already deprecated |
+| `src/strategies/portfolio_optimizer.py` | 311 | только тесты (`test_risk.py`) — deprecated Пачка ZZ |
 | `src/portfolio/` (markowitz, black_litterman, risk_parity, rebalancing) | ~400 | только тесты |
 
-**Фикс:** оставить одну (лучшая — `src/portfolio/`), остальные удалить. Тесты переписать на одну.
+**Фикс:** `src/risk/portfolio_optimizer.py` already deprecated (previous cycle). `src/strategies/portfolio_optimizer.py` deprecated with DeprecationWarning (Пачка ZZ). `src/portfolio/` kept as canonical. All test-only, no production imports.
 
 ### 1.2 VaR/CVaR — 2 РЕАЛИЗАЦИИ [FIXED]
 | Файл | Класс | Использование |
@@ -41,14 +41,14 @@
 
 **Фикс:** объединить в один. `backtest_engine.py` — более современный (PnLCalculator), но `backtester.py` используется в проде. Оставить `backtester.py`, `backtest_engine.py` удалить, `walk_forward.py` переписать на `backtester.py`.
 
-### 1.5 CircuitBreaker — 3 КОПИИ
+### 1.5 CircuitBreaker — 3 КОПИИ [N/A]
 | Файл | Использование |
 |------|---------------|
-| `src/communication/circuit_breaker.py` | signal_publisher.py |
-| `src/strategies/circuit_breaker.py` | strategies.py (re-export) |
-| `src/utils/helpers.py` (CircuitBreaker) | helpers |
+| `src/communication/circuit_breaker.py` | signal_publisher.py — async, state machine (CLOSED/OPEN/HALF_OPEN) |
+| `src/strategies/circuit_breaker.py` | strategies.py (re-export), EnsembleVoter — sync, filter_signal() |
+| `src/utils/helpers.py` (CircuitBreaker) | NOT FOUND — no CircuitBreaker in helpers.py |
 
-**Фикс:** оставить `communication/circuit_breaker.py`, остальные — re-export или удалить.
+**Фикс:** N/A — communication and strategies CircuitBreakers have completely different interfaces and use cases (async broadcast vs sync strategy filtering). utils/helpers.py has no CircuitBreaker (audit error).
 
 ### 1.6 Metrics — 2 РЕАЛИЗАЦИИ
 | Файл | Класс | Использование |

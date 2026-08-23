@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка ZZ: PortfolioOptimizer dedup + CircuitBreaker audit)
+
+### Changed
+- `src/strategies/portfolio_optimizer.py`: Added DeprecationWarning — dead code, zero imports outside tests, duplicates `src/portfolio/` (markowitz, black_litterman, risk_parity)
+- CODE_AUDIT §1.1 marked [FIXED] — `src/risk/portfolio_optimizer.py` already deprecated, `src/strategies/portfolio_optimizer.py` now deprecated
+- CODE_AUDIT §1.5 marked [N/A] — CircuitBreaker implementations are NOT duplicates (async broadcast vs sync strategy filtering, different interfaces)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка YY: backtester + signal_publisher dedup)
 
 ### Added

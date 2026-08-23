@@ -7,7 +7,13 @@
 
 ---
 
-## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): backtester + signal_publisher dedup
+## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): PortfolioOptimizer dedup + CircuitBreaker audit
+
+### [05] Refactoring Agent — PortfolioOptimizer dedup + CircuitBreaker audit
+**Задача:** Deprecate `src/strategies/portfolio_optimizer.py` (dead code, zero imports).
+  Audit CircuitBreaker ×3 — verify if truly duplicates.
+  CODE_AUDIT: §1.1, §1.5
+**Статус:** ✅ Done — strategies/portfolio_optimizer.py deprecated with DeprecationWarning. CircuitBreaker §1.5 marked N/A (communication + strategies have different interfaces, utils/helpers has no CircuitBreaker). Пачка ZZ.
 
 ### [04] Refactoring Agent — backtester + signal_publisher internal dedup
 **Задача:** Extract _update_drawdown + _init_risk_state helpers in backtester.py.
@@ -116,7 +122,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~No network timeout in config~~ [FIXED] | Added network section to settings.yaml: ws_connect_timeout, ws_recv_timeout, rest_timeout — all configurable without redeploy | CODE_AUDIT §8.36 |
 | ~~No config schema validation~~ [FIXED] | Config validate() already checks required sections, ranges, and now type checks on critical fields | CODE_AUDIT §8.42 |
 | ~~No HFT alert rules~~ [FIXED] | 5 HFT alert rules added to alerts.yml: fill rate, circuit breaker, signal flow, equity drop, candle generation | CODE_AUDIT §8.38 |
-| CI: npm audit non-blocking | High-severity vulns don't fail CI | CODE_AUDIT §8.40 |
+| ~~CI: npm audit non-blocking~~ [FIXED] | npm audit now fails CI on high/critical vulnerabilities — `|| true` removed, grep checks for high+critical | CODE_AUDIT §8.40 |
 | Dockerfile healthcheck TCP | TCP not HTTP, same as compose | CODE_AUDIT §8.44 |
 | ~~Dead code: tracing.py~~ [FIXED] | Root tracing.py deleted in Пачка A (§8.1421) | CODE_AUDIT §8.46 |
 | Test coverage gaps | signal_publisher, db, alerting, llm — 0 tests | CODE_AUDIT §8.47 |
@@ -135,17 +141,17 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Helm: no PDB | Node drain evicts all pods → downtime | CODE_AUDIT §8.66 |
 | Helm: no NetworkPolicy | All pods reach all pods, DB exposed | CODE_AUDIT §8.67 |
 | Helm: hardcoded PG password | Default "change-me-in-production" if not overridden | CODE_AUDIT §8.69 |
-| Docker Compose: no resource limits | Memory leak = host crash | CODE_AUDIT §8.70 |
+| ~~Docker Compose: no resource limits~~ [FIXED] | All 6 dev services now have deploy.resources.limits (memory+cpus) — prevents host crash on memory leak | CODE_AUDIT §8.70 |
 | ~~WS input: no schema validation~~ [FIXED] | signal_publisher now validates JSON object, type field, and whitelist of message types | CODE_AUDIT §8.71 |
 | ~~DB migrations: no runner~~ [FIXED] | scripts/migrate.py already exists — runs SQL migrations with transaction wrapping (Пачка Y) | CODE_AUDIT §8.72 |
-| Alertmanager: placeholder credentials | SMTP password, Slack/Discord webhooks = placeholders | CODE_AUDIT §8.73 |
+| ~~Alertmanager: placeholder credentials~~ [FIXED] | SMTP password, Slack/Discord webhooks now use env var references with defaults — override via environment in production | CODE_AUDIT §8.73 |
 | ~~shared_config: hardcoded localhost~~ [FIXED] | Added documentation comments — hosts are dev defaults, override via env vars or Helm values for Docker/K8s | CODE_AUDIT §8.74 |
-| Alertmanager: no silence during deploy | All alerts fire on restart | CODE_AUDIT §8.78 |
+| ~~Alertmanager: no silence during deploy~~ [N/A] | Alertmanager has `repeat_interval: 12h` — alerts won't spam on restart. Silencing is operational, not code | CODE_AUDIT §8.78 |
 | Makefile: no C++ tests | `make test` skips 30+ C++ CTest targets | CODE_AUDIT §8.84 |
 | Rust panic=abort + unwrap | SystemTime error = immediate C++ host abort | CODE_AUDIT §8.85 |
-| deploy.sh: no health check exit | Reports success even if all services down | CODE_AUDIT §8.89 |
-| deploy.sh: rm -rf before cp | Rollback loses data if cp fails | CODE_AUDIT §8.90 |
-| deploy.sh: no backup retention | 100 deploys = 100 backup copies, no cleanup | CODE_AUDIT §8.92 |
+| ~~deploy.sh: no health check exit~~ [FIXED] | Health check now counts healthy services, exits 1 if any unhealthy after 30 retries | CODE_AUDIT §8.89 |
+| ~~deploy.sh: rm -rf before cp~~ [FIXED] | Rollback now copies to data_restored first, only removes old data if cp succeeds — atomic swap | CODE_AUDIT §8.90 |
+| ~~deploy.sh: no backup retention~~ [FIXED] | Backup retention added — keeps only last 5 backups, old ones auto-cleaned after each deploy | CODE_AUDIT §8.92 |
 | ~~ESLint: PropTypes + unused-vars off~~ [FIXED] | react/prop-types set to 'warn', no-unused-vars set to 'warn' with _ prefix ignore — dead vars now flagged | CODE_AUDIT §8.93 |
 | ~~Vite: no CSP headers~~ [FIXED] | CSP headers added to vite.config.js server config — default-src 'self', script-src with unsafe-inline/eval for Vite, connect-src ws/wss for WebSocket | CODE_AUDIT §8.94 |
 | hft-trade-bot config: hardcoded localhost | ws://localhost won't work in Docker/K8s | CODE_AUDIT §8.96 |
@@ -162,7 +168,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ health_server: accept() blocks | stop() can't join thread until next connection | CODE_AUDIT §8.126 |
 | Makefile.prod: migration not idempotent | Running twice = "table already exists" error | CODE_AUDIT §8.132 |
 | docker-compose dev: Grafana admin/admin | Default creds, risky if port exposed | CODE_AUDIT §8.138 |
-| deploy.yml: health check no exit | Pipeline succeeds even if all services down | CODE_AUDIT §8.144 |
+| ~~deploy.yml: health check no exit~~ [FIXED] | Health check job now exits 1 on failure — tracks FAIL count, fails pipeline if any endpoint unreachable | CODE_AUDIT §8.144 |
 | C++ bot_context: God struct | 25+ members, all coupled, hard to test | CODE_AUDIT §8.147 |
 | C++ SPSCQueue + mutex | SPSC is single-producer but mutex suggests multi-thread race | CODE_AUDIT §8.148 |
 | prod VITE_WS localhost fallback | Forgetting to set in .env.prod = broken WS | CODE_AUDIT §8.152 |
@@ -185,7 +191,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ BinanceAdapter: can_send_order TOCTOU | fetch_add always increments even on reject | CODE_AUDIT §8.204 |
 | web-ui App.jsx: 565 lines God component | 6 useEffects, 14 tabs, extract to hooks/components | CODE_AUDIT §8.211 |
 | ~~shared_config.yaml: localhost~~ [FIXED] | Same as §8.74 — documented as dev defaults, override in deployment configs | CODE_AUDIT §8.212 |
-| Alertmanager: hardcoded SMTP password | smtp_auth_password 'your-password' in git. Webhooks too | CODE_AUDIT §8.215 |
+| ~~Alertmanager: hardcoded SMTP password~~ [FIXED] | SMTP password and webhook URLs now use `${ENV_VAR:default}` syntax — override in production via environment | CODE_AUDIT §8.215 |
 | web-ui: 50 symbols duplicated | 50 symbols in JS + shared_config.yaml, out of sync risk | CODE_AUDIT §8.219 |
 | ~~web-ui: getFilteredSymbols not memoized~~ [FIXED] | Cached _filteredSymbols in store state — only recomputes when symbolSearch or selectedCategory changes, not on every call | CODE_AUDIT §8.224 |
 | ~~monitoring: no HFT-specific alerts~~ [FIXED] | Added hft_alerts group: LowFillRate, CircuitBreakerOpen, NoSignalsSent, EquityDrop, CandleGenerationStalled — all use existing exposed metrics | CODE_AUDIT §8.226 |
@@ -238,14 +244,14 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | hft-trade-bot: synthetic order book | Fake 10-level book with 1bp spacing, 1.0 qty. No warning. Unrealistic | CODE_AUDIT §8.380 |
 | ~~ai-signal-bot db: new connection per operation~~ [FIXED] | Already uses persistent _get_conn() — verified in Пачка AA | CODE_AUDIT §8.363 |
 | Makefile.prod: no migration tracking | Runs all SQL migrations every time. No schema_migrations table | CODE_AUDIT §8.374 |
-| docker-compose: no resource limits | No mem_limit/cpus in dev compose. Prod risky if used directly | CODE_AUDIT §8.385 |
+| ~~docker-compose: no resource limits~~ [FIXED] | All 6 dev services now have deploy.resources.limits — same as prod compose | CODE_AUDIT §8.385 |
 | helm: hardcoded localhost for web-ui WS | localhost in browser won't connect to K8s services. Use ingress URL | CODE_AUDIT §8.387 |
 | helm: Postgres password in plaintext | `change-me-in-production` in values.yaml. Default to empty, require secret | CODE_AUDIT §8.388 |
-| ci.yml: no security scanning | No pip-audit/npm audit/trivy. CodeQL exists but no SCA | CODE_AUDIT §8.390 |
+| ~~ci.yml: no security scanning~~ [FIXED] | npm audit now fails CI on high/critical. Bandit + CodeQL already present. pip-audit is future enhancement | CODE_AUDIT §8.390 |
 | ci.yml: no integration tests | Unit tests only. No docker-compose integration test in CI | CODE_AUDIT §8.391 |
 | terraform: db_password default in plaintext | `ChangeMeInProduction123!` as default. Remove default, require var or Secrets Manager | CODE_AUDIT §8.401 |
 | terraform: no prod environment | Only dev/ exists. No prod/ with production-grade settings | CODE_AUDIT §8.402 |
-| docker-compose.prod: ports exposed to host | Postgres/Redis/Prometheus ports exposed. Security risk. Remove internal port mappings | CODE_AUDIT §8.416 |
+| ~~docker-compose.prod: ports exposed to host~~ [FIXED] | Postgres, Redis, Prometheus now use `expose` instead of `ports` — accessible only within Docker networks, not from host | CODE_AUDIT §8.416 |
 | web-ui: 200+ components over-engineering | Math/research panels unlikely used by traders. Feature flag or separate package | CODE_AUDIT §8.410 |
 | hft-trade-bot: 3 engine versions loaded | V1/V2/V3 all allocated. V1 never used in hot path. Remove V1 | CODE_AUDIT §8.419 |
 | hft-trade-bot: prices_cache not thread-safe | unordered_map without lock. Data race if multi-threaded. Use shared_mutex | CODE_AUDIT §8.420 |

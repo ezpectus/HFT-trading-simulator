@@ -129,9 +129,10 @@ jobs:
       - name: Check health endpoints
         run: |
           sleep 15
+          FAIL=0
           # Exchange simulator is WebSocket on :8765 — check port connectivity
           echo "Checking ${{ secrets.DEPLOY_HOST }}:8765 (WebSocket)..."
-          nc -z -w5 ${{ secrets.DEPLOY_HOST }} 8765 && echo "  OK" || echo "  WARNING: port 8765 not reachable"
+          nc -z -w5 ${{ secrets.DEPLOY_HOST }} 8765 && echo "  OK" || { echo "  FAIL: port 8765 not reachable"; FAIL=1; }
           # AI Signal Bot WebSocket on :8766 and Web UI on :3000
           for endpoint in \
             "http://${{ secrets.DEPLOY_HOST }}:3000/" \
@@ -141,9 +142,15 @@ jobs:
             status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$endpoint" || echo "FAIL")
             echo "  Status: $status"
             if [ "$status" != "200" ]; then
-              echo "WARNING: $endpoint returned $status"
+              echo "FAIL: $endpoint returned $status"
+              FAIL=1
             fi
           done
+          if [ "$FAIL" -ne 0 ]; then
+            echo "Health check failed — one or more endpoints unreachable"
+            exit 1
+          fi
+          echo "All health checks passed"
 
   notify:
     name: Notify

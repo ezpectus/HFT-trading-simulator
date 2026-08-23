@@ -59,6 +59,18 @@ backup_deployment() {
     cp -r exchange_simulator/logs/audit "$BACKUP_DIR/audit/audit_$TIMESTAMP" 2>/dev/null || true
     
     log_info "Backup completed: $TIMESTAMP"
+
+    # Retention: keep only last 5 backups
+    local backup_count=$(ls -1d "$BACKUP_DIR"/config/config_*.tar.gz 2>/dev/null | wc -l)
+    if [ "$backup_count" -gt 5 ]; then
+        log_info "Cleaning up old backups (keeping last 5)..."
+        ls -1t "$BACKUP_DIR"/config/config_*.tar.gz | tail -n +6 | while read -r old_backup; do
+            local old_ts=$(echo "$old_backup" | grep -oP '\d{8}_\d{6}')
+            rm -f "$old_backup"
+            rm -rf "$BACKUP_DIR/database/data_$old_ts" "$BACKUP_DIR/database/ai_data_$old_ts" "$BACKUP_DIR/audit/audit_$old_ts" 2>/dev/null || true
+            log_info "Removed backup: $old_ts"
+        done
+    fi
 }
 
 # Check prerequisites
@@ -180,12 +192,16 @@ health_check() {
     MAX_RETRIES=30
     RETRY_DELAY=2
     
+    local all_healthy=false
+    
     for i in $(seq 1 $MAX_RETRIES); do
         log_info "Health check attempt $i/$MAX_RETRIES"
+        local healthy_count=0
         
         # Check exchange simulator
         if curl -s http://localhost:8765/health > /dev/null 2>&1; then
             log_info "Exchange Simulator: Healthy"
+            healthy_count=$((healthy_count + 1))
         else
             log_warn "Exchange Simulator: Not healthy yet"
         fi
@@ -193,6 +209,7 @@ health_check() {
         # Check AI signal bot
         if curl -s http://localhost:8766/health > /dev/null 2>&1; then
             log_info "AI Signal Bot: Healthy"
+            healthy_count=$((healthy_count + 1))
         else
             log_warn "AI Signal Bot: Not healthy yet"
         fi
@@ -200,6 +217,7 @@ health_check() {
         # Check HFT trade bot
         if curl -s http://localhost:9091/health > /dev/null 2>&1; then
             log_info "HFT Trade Bot: Healthy"
+            healthy_count=$((healthy_count + 1))
         else
             log_warn "HFT Trade Bot: Not healthy yet"
         fi
@@ -207,14 +225,25 @@ health_check() {
         # Check web UI
         if curl -s http://localhost:3000 > /dev/null 2>&1; then
             log_info "Web UI: Healthy"
+            healthy_count=$((healthy_count + 1))
         else
             log_warn "Web UI: Not healthy yet"
+        fi
+        
+        if [ "$healthy_count" -eq 4 ]; then
+            all_healthy=true
+            break
         fi
         
         sleep $RETRY_DELAY
     done
     
-    log_info "Health checks completed"
+    if [ "$all_healthy" = true ]; then
+        log_info "Health checks completed: all services healthy"
+    else
+        log_error "Health checks completed: one or more services unhealthy"
+        exit 1
+    fi
 }
 
 # Main deployment
@@ -260,11 +289,18 @@ rollback() {
         exit 1
     fi
     
-    # Restore databases
+    # Restore databases (atomic swap: copy first, then replace)
     if [ -d "$BACKUP_DIR/database/data_$TIMESTAMP" ]; then
         log_info "Restoring databases..."
-        rm -rf exchange_simulator/data
-        cp -r "$BACKUP_DIR/database/data_$TIMESTAMP" exchange_simulator/data
+        cp -r "$BACKUP_DIR/database/data_$TIMESTAMP" exchange_simulator/data_restored
+        if [ $? -eq 0 ]; then
+            rm -rf exchange_simulator/data
+            mv exchange_simulator/data_restored exchange_simulator/data
+        else
+            log_error "Failed to restore database from backup"
+            rm -rf exchange_simulator/data_restored 2>/dev/null || true
+            exit 1
+        fi
     fi
     
     stop_deployment

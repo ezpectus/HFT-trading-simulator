@@ -329,15 +329,17 @@ jobs:
           cache-dependency-path: web-ui/package-lock.json
       - run: npm ci
         working-directory: web-ui
-      - run: npm audit --audit-level=high || true
+      - run: npm audit --audit-level=high
         working-directory: web-ui
       - name: Check for vulnerabilities
         run: |
           AUDIT_OUTPUT=$(npm audit 2>&1 || true)
           echo "$AUDIT_OUTPUT"
-          if echo "$AUDIT_OUTPUT" | grep -q "critical"; then
-            echo "::warning::Critical vulnerabilities found (may be dev-only)"
+          if echo "$AUDIT_OUTPUT" | grep -qE "(critical|high)"; then
+            echo "::error::High or critical vulnerabilities found"
+            exit 1
           fi
+          echo "No high/critical vulnerabilities found"
         working-directory: web-ui
 
   test-rust:

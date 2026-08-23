@@ -1,6 +1,11 @@
 """
 Portfolio optimizer — Markowitz, Black-Litterman, Risk Parity.
 
+.. deprecated::
+    Use :mod:`src.portfolio.markowitz`, :mod:`src.portfolio.black_litterman`,
+    and :mod:`src.portfolio.risk_parity` instead.
+    This module is dead code — zero imports outside tests.
+
 Computes optimal asset allocation for a portfolio of crypto assets.
 
 Methods:
@@ -26,9 +31,18 @@ Usage:
 from __future__ import annotations
 
 import logging
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
+
+warnings.warn(
+    "src.strategies.portfolio_optimizer is deprecated. "
+    "Use src.portfolio.markowitz, src.portfolio.black_litterman, "
+    "src.portfolio.risk_parity instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 logger = logging.getLogger(__name__)
 
