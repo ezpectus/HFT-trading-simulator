@@ -13708,7 +13708,7 @@ With 50 symbols × 60s interval = ~50 signals/min + 50 trades/min + 50 equity/mi
 
 **Фикс:** Use a persistent connection (or connection pool) with `check_same_thread=False` and a threading.Lock for multi-threaded access. Or use `aiosqlite` for async access.
 
-### 8.1001 db: close catches broad Exception — Low
+### 8.1001 db: close catches broad Exception — Low [FIXED]
 
 **Файл:** `db.py:29-34`
 
@@ -13726,7 +13726,7 @@ def close(self) -> None:
 
 **Фикс:** Catch specific exceptions (`sqlite3.OperationalError`, `sqlite3.DatabaseError`) and log the error.
 
-### 8.1002 db: no index on equity_curve timestamp — Low
+### 8.1002 db: no index on equity_curve timestamp — Low [N/A]
 
 **Файл:** `db.py:70-76`
 
@@ -13915,7 +13915,7 @@ The re-insert loop in `cid_erase` can cascade: if there's a long probe chain (e.
 
 **Фикс:** Use tombstone markers instead of re-insertion, or use backward-shift deletion (Knuth's algorithm).
 
-### 8.1014 Code reduction: db.py save_signal/save_trade/close_trade/save_equity 4× pattern — Info
+### 8.1014 Code reduction: db.py save_signal/save_trade/close_trade/save_equity 4× pattern — Info [N/A]
 
 **Файлы:** `db.py:84-148`
 
@@ -13945,7 +13945,7 @@ All 4 methods follow: `with closing(self._conn()) as conn: cursor = conn.execute
 
 Good circuit breaker with 3-state machine, configurable thresholds, auto-transition, and status reporting. ✅
 
-### 8.1017 circuit_breaker: not thread-safe — Low
+### 8.1017 circuit_breaker: not thread-safe — Low [N/A]
 
 **Файл:** `circuit_breaker.py:39-46, 72-85, 87-107`
 
@@ -13953,7 +13953,7 @@ All state mutations (`_state`, `_consecutive_failures`, `_consecutive_successes`
 
 **Фикс:** Use `asyncio.Lock` for state transitions, or ensure all calls are from the same event loop thread (which they likely are in asyncio, but the state property has a side effect of transitioning OPEN→HALF_OPEN which is not atomic with `allow_signal`).
 
-### 8.1018 circuit_breaker: state property has side effect — Low
+### 8.1018 circuit_breaker: state property has side effect — Low [N/A]
 
 **Файл:** `circuit_breaker.py:48-54`
 
@@ -14010,7 +14010,7 @@ async def listen(self) -> None:
 
 **Фикс:** Wrap `listen()` in a reconnect loop: `while self._running: await self.listen(); await self.reconnect()`.
 
-### 8.1021 ws_client: submit_order has no confirmation — Low
+### 8.1021 ws_client: submit_order has no confirmation — Low [N/A]
 
 **Файл:** `ws_client.py:154-185`
 
@@ -14018,7 +14018,7 @@ async def listen(self) -> None:
 
 **Фикс:** Track order IDs, wait for fill confirmation with timeout, retry on timeout.
 
-### 8.1022 ws_client: _process_message overwrites _latest_prices — Low
+### 8.1022 ws_client: _process_message overwrites _latest_prices — Low [N/A]
 
 **Файл:** `ws_client.py:139`
 
@@ -14047,7 +14047,7 @@ self._latest_prices = data.get("prices", {})
 
 Excellent SHM ring buffer with SPSC lock-free, cache-line alignment, memory barriers, cross-platform, bulk ops, and RAII. ✅
 
-### 8.1024 shm_ring_buffer: _mm_barrier called on every atomic write — Low
+### 8.1024 shm_ring_buffer: _mm_barrier called on every atomic write — Low [N/A]
 
 **Файл:** `shm_ring_buffer.py:57-58`
 
@@ -14061,7 +14061,7 @@ Every `_atomic_write_u64` call triggers `_mm_barrier` (FlushViewOfFile or msync)
 
 **Фикс:** Only flush head/tail, not data. Or use a lighter memory barrier ( `_mm_mfence` equivalent) and rely on mmap's natural visibility. The data doesn't need to be flushed to disk — it just needs to be visible to the other process via the shared mapping.
 
-### 8.1025 shm_ring_buffer: no validation on open — Low
+### 8.1025 shm_ring_buffer: no validation on open — Low [FIXED]
 
 **Файл:** `shm_ring_buffer.py:146-163`
 
@@ -14108,7 +14108,7 @@ Each `_check_*` method has no timeout. If `self.db_client.get_health()` hangs (e
 
 **Фикс:** Wrap each check in `asyncio.wait_for(check, timeout=2.0)`.
 
-### 8.1029 health_checks: _signal_count/_order_count/_error_count not thread-safe — Low
+### 8.1029 health_checks: _signal_count/_order_count/_error_count not thread-safe — Low [N/A]
 
 **Файл:** `health_checks.py:61-74`
 
@@ -14136,7 +14136,7 @@ def record_signal(self) -> None:
 
 Good bot context with all subsystems, lock-free queue, spinlock, and atomic balance. ✅
 
-### 8.1031 bot_context: prices_cache not thread-safe — Low
+### 8.1031 bot_context: prices_cache not thread-safe — Low [N/A]
 
 **Файл:** `bot_context.h:107`
 
@@ -14148,7 +14148,7 @@ std::unordered_map<std::string, double> prices_cache;
 
 **Фикс:** Use a concurrent map, or protect with a lock, or ensure single-threaded access.
 
-### 8.1032 bot_context: candles_buf and ob_buf not thread-safe — Low
+### 8.1032 bot_context: candles_buf and ob_buf not thread-safe — Low [N/A]
 
 **Файл:** `bot_context.h:108-109`
 
@@ -14186,7 +14186,7 @@ Excellent clean exchange interface with DIP, 11 methods, and virtual destructor.
 
 Good exchange base with EWMA latency tracking, toxic event backoff, and atomic counters. ✅
 
-### 8.1035 ExchangeBase: is_available hardcodes threshold 5 — Low
+### 8.1035 ExchangeBase: is_available hardcodes threshold 5 — Low [N/A]
 
 **Файл:** `ExchangeBase.h:49`
 
@@ -14212,7 +14212,7 @@ The toxic threshold is hardcoded to 5. Different exchanges may have different to
 
 Good SHM fill producer with non-blocking push, bulk push, and RAII. ✅
 
-### 8.1037 shm_fill_producer: init catches exception silently — Low
+### 8.1037 shm_fill_producer: init catches exception silently — Low [N/A]
 
 **Файл:** `shm_fill_producer.h:22-28`
 
@@ -14245,7 +14245,7 @@ Good SHM fill producer with non-blocking push, bulk push, and RAII. ✅
 
 Good SHM signal consumer with dedicated thread, batch pop, CPU-friendly sleep, and RAII. ✅
 
-### 8.1039 shm_signal_consumer: 50μs busy-poll wastes CPU — Low
+### 8.1039 shm_signal_consumer: 50μs busy-poll wastes CPU — Low [N/A]
 
 **Файл:** `shm_signal_consumer.h:66`
 
@@ -14316,7 +14316,7 @@ The Discord token is in the Authorization header, which is better but still visi
 
 **Фикс:** Disable debug logging for HTTP requests. Use environment variables for tokens (already done via `create_notifier_from_env`). Consider using a secrets manager.
 
-### 8.1044 notifier: _poll_updates no rate limit on commands — Low
+### 8.1044 notifier: _poll_updates no rate limit on commands — Low [N/A]
 
 **Файл:** `notifier.py:118-148`
 
@@ -14324,7 +14324,7 @@ The Discord token is in the Authorization header, which is better but still visi
 
 **Фикс:** Add per-command rate limiting (e.g., max 1 command per 5 seconds per chat).
 
-### 8.1045 notifier: Discord _poll_messages polls REST API — Low
+### 8.1045 notifier: Discord _poll_messages polls REST API — Low [FIXED]
 
 **Файл:** `notifier.py:234-263`
 
@@ -14332,7 +14332,7 @@ The Discord token is in the Authorization header, which is better but still visi
 
 **Фикс:** Add `await asyncio.sleep(1)` after successful poll. Or use Discord Gateway (WebSocket) instead of REST polling.
 
-### 8.1046 notifier: send_alert sequential across notifiers — Low
+### 8.1046 notifier: send_alert sequential across notifiers — Low [N/A]
 
 **Файл:** `notifier.py:308-310`
 
@@ -14346,7 +14346,7 @@ async def send_alert(self, event: AlertEvent):
 
 **Фикс:** `await asyncio.gather(*[n.send_alert(event) for n in self._notifiers])`.
 
-### 8.1047 Code reduction: notifier Telegram/Discord _handle_command 2× pattern — Info
+### 8.1047 Code reduction: notifier Telegram/Discord _handle_command 2× pattern — Info [N/A]
 
 **Файлы:** `notifier.py:150-164, 265-279`
 
@@ -15864,7 +15864,7 @@ Binance and OKX have testnet URL variants, but Bybit always uses the production 
 
 **Фикс:** Add testnet check: `self.base_url = base_url or ("https://api-testnet.bybit.com" if testnet else "https://api.bybit.com")`.
 
-### 8.1161 real_exchange_client: signature in URL query string — Low
+### 8.1161 real_exchange_client: signature in URL query string — Low [N/A]
 
 **Файл:** `real_exchange_client.py:144`
 
@@ -15924,7 +15924,7 @@ Every `_atomic_write_u64` calls `_mm_barrier` which flushes the page to the file
 
 **Фикс:** Only flush the head/tail update, not the data write. Or batch flush: flush once per N operations. On x86/x64, aligned 8-byte stores are visible to other processes via cache coherence without msync — the barrier is only needed for durability (crash recovery), not visibility.
 
-### 8.1166 shm_ring_buffer: bulk_push not atomic for consumer — Low
+### 8.1166 shm_ring_buffer: bulk_push not atomic for consumer — Low [N/A]
 
 **Файл:** `shm_ring_buffer.py:198-212`
 
@@ -15985,7 +15985,7 @@ async def listen(self) -> None:
 
 **Фикс:** Add auto-reconnect loop inside `listen()`, or document that the caller must handle reconnection.
 
-### 8.1170 ws_client: candle_history unbounded for new symbols — Low
+### 8.1170 ws_client: candle_history unbounded for new symbols — Low [N/A]
 
 **Файл:** `ws_client.py:134-138`
 
@@ -16114,7 +16114,7 @@ Same pattern — bare `Exception` swallows `CancelledError`.
 
 Good lightweight metrics server with no external dependencies. ✅
 
-### 8.1180 metrics_server: non-atomic counter increments — Low
+### 8.1180 metrics_server: non-atomic counter increments — Low [N/A]
 
 **Файл:** `metrics_server.py:34-44`
 
@@ -16127,7 +16127,7 @@ Counter increments are not atomic. In asyncio (single-threaded), this is safe wi
 
 **Фикс:** Use `itertools.count()` or `threading.Lock` if multi-threaded access is expected. For asyncio-only, document that it's single-threaded safe.
 
-### 8.1181 metrics_server: no Content-Type for error responses — Low
+### 8.1181 metrics_server: no Content-Type for error responses — Low [FIXED]
 
 **Файл:** `metrics_server.py:109-135`
 
@@ -16146,7 +16146,7 @@ The HTTP handler reads the request line and headers, then always returns 200 OK.
 
 Good FIX 4.4 client with sequence management, gap recovery, and persistent state. ✅
 
-### 8.1183 fix_client: seq file in tempfile.gettempdir — Low
+### 8.1183 fix_client: seq file in tempfile.gettempdir — Low [N/A]
 
 **Файл:** `fix_client.py:126`
 
@@ -16184,7 +16184,7 @@ On a sequence gap, the out-of-sequence message is queued in `_pending_messages`.
 
 **Фикс:** Cap `_pending_messages` at a maximum (e.g., 1000). If exceeded, log error and drop oldest.
 
-### 8.1186 fix_client: no reconnection on disconnect — Low
+### 8.1186 fix_client: no reconnection on disconnect — Low [N/A]
 
 **Файл:** `fix_client.py:334-337`
 
@@ -16223,7 +16223,7 @@ asyncio.create_task(conn.close())
 
 **Фикс:** Store task references and await them, or use `await conn.close()` directly (since `_evict_stale` is called within the lock, this is safe).
 
-### 8.1189 ws_connection_pool: health_loop runs forever — Low
+### 8.1189 ws_connection_pool: health_loop runs forever — Low [N/A]
 
 **Файл:** `ws_connection_pool.py:129-133`
 
@@ -16264,7 +16264,7 @@ The seq writes use `struct.pack_into` directly — no `_mm_barrier` call. On x86
 
 **Фикс:** Add `_mm_barrier` after the data write and before the final seq increment. Or use the `_atomic_write_u64` from `shm_ring_buffer.py`.
 
-### 8.1192 shm_market_data_writer: zeroing entire SHM segment on init — Low
+### 8.1192 shm_market_data_writer: zeroing entire SHM segment on init — Low [N/A]
 
 **Файл:** `shm_market_data_writer.py:57`
 
@@ -16287,7 +16287,7 @@ Zeroing the entire SHM segment creates a `bytes` object of `total_size` in Pytho
 
 Good SHM fill consumer with polling loop and batch operations. ✅
 
-### 8.1194 shm_fill_consumer: polling at 1ms wastes CPU — Low
+### 8.1194 shm_fill_consumer: polling at 1ms wastes CPU — Low [N/A]
 
 **Файл:** `shm_fill_consumer.py:62-72`
 
@@ -16305,7 +16305,7 @@ while self._running:
 
 **Фикс:** Use adaptive polling: start at 1ms, back off to 10ms when empty for N consecutive polls. Or use `asyncio.Event` set by the C++ side (requires SHM notification mechanism).
 
-### 8.1195 shm_fill_consumer: callback not async — Low
+### 8.1195 shm_fill_consumer: callback not async — Low [N/A]
 
 **Файл:** `shm_fill_consumer.py:59-71`
 
@@ -16331,7 +16331,7 @@ The callback type hint says `Callable[[list[tuple]], None]` — not `Awaitable`.
 
 Good SHM signal producer with dict conversion and proper cleanup. ✅
 
-### 8.1197 shm_signal_producer: confidence divided by 100 — Low
+### 8.1197 shm_signal_producer: confidence divided by 100 — Low [N/A]
 
 **Файл:** `shm_signal_producer.py:69`
 
@@ -16359,7 +16359,7 @@ The signal dict has confidence as 0-100 (percentage), but the SHM struct stores 
 
 Good utility functions. The `CircuitBreaker` class duplicates `src.communication.circuit_breaker.CircuitBreaker` — see §8.1201. ✅
 
-### 8.1199 helpers: RateLimiter busy-waits on asyncio.sleep — Low
+### 8.1199 helpers: RateLimiter busy-waits on asyncio.sleep — Low [N/A]
 
 **Файл:** `helpers.py:194-204`
 
@@ -16419,7 +16419,7 @@ A second `CircuitBreaker` class with 3 states (closed, open, half_open) exists i
 
 Good extraction from run.py. Clean separation of concerns. ✅
 
-### 8.1203 bot_helpers: generate_stat_arb_signals O(N²) pairs — Low
+### 8.1203 bot_helpers: generate_stat_arb_signals O(N²) pairs — Low [N/A]
 
 **Файл:** `bot_helpers.py:78-101`
 
@@ -16508,7 +16508,7 @@ No timeout on DB health check or Redis ping. If the DB or Redis is slow (e.g., 3
 
 Good structured logging with graceful fallback. ✅
 
-### 8.1210 logging: setup_logging duplicates utils/helpers.setup_logging — Info
+### 8.1210 logging: setup_logging duplicates utils/helpers.setup_logging — Info [N/A]
 
 **Файл:** `observability/logging.py:31` vs `utils/helpers.py:14`
 

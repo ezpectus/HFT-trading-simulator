@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AS: f-string logging batch 2)
+
+### Fixed
+- `src/data_collection/real_account.py`: 20 f-string logger calls → `%-style`
+- `src/communication/signal_publisher.py`: 13 f-string → `%-style`
+- `src/strategies/marketplace.py`: 13 f-string → `%-style`
+- `src/research/greeks_hedging.py`: 12 f-string → `%-style`
+- `src/data_collection/real_market_data.py`: 10 f-string → `%-style`
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AR: logging consolidation + tracing wiring)
 
 ### Fixed
@@ -40,6 +49,24 @@ All notable changes to this project are documented in this file.
 - `exchange_simulator/Dockerfile.prod`: Fixed healthcheck port 8765→8775 (Task 1)
 - `ai-signal-bot/Dockerfile`: Fixed healthcheck port 8766→9090, added `--metrics` to CMD so health server starts (Task 2)
 - `ai-signal-bot/Dockerfile.prod`: Fixed healthcheck port 8766→9090 (Task 2)
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AZ + AZ2: ML + observability + communication + SHM)
+
+### Fixed
+- `ai-signal-bot/src/communication/shm_ring_buffer.py`: Validate `stored_total_size` on open to prevent out-of-bounds access (§8.1025)
+- `ai-signal-bot/src/communication/metrics_server.py`: Return 404 for non-`/metrics` paths with proper `Content-Type` header (§8.1181)
+
+### Changed
+- CODE_AUDIT §8.1214 — `insecure` param already configurable → [FIXED]
+- CODE_AUDIT §8.1233 — feature_store bare `Exception` already removed → [FIXED]
+- CODE_AUDIT §8.1326 — ws_client reconnect already present → [FIXED]
+- CODE_AUDIT §8.1408 — `datetime.now(UTC)` already present → [FIXED]
+- CODE_AUDIT §8.1001 — db.py close() already catches specific exceptions → [FIXED]
+- CODE_AUDIT §8.1045 — Discord poll sleep already present → [FIXED]
+- CODE_AUDIT §§8.1211, 8.1213, 8.1231, 8.1234, 8.1235, 8.1238, 8.1239, 8.1241, 8.1243, 8.1245, 8.1248, 8.1249, 8.1251, 8.1255, 8.1256, 8.1278, 8.1332, 8.1422 → [N/A]
+- CODE_AUDIT §§8.1002, 8.1014, 8.1017, 8.1018, 8.1021, 8.1022, 8.1024, 8.1029, 8.1031, 8.1032, 8.1035, 8.1037, 8.1039, 8.1044, 8.1046, 8.1047, 8.1161, 8.1166, 8.1170, 8.1180, 8.1183, 8.1186, 8.1189, 8.1192, 8.1194, 8.1195, 8.1197, 8.1199, 8.1203, 8.1210 → [N/A]
+
+---
 
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AY: portfolio + sentiment + validator)
 
