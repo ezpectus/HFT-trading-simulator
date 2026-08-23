@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AF: RiskManager reset_daily + atomic update_pnl)
+
+### Changed
+- `hft-trade-bot/src/risk/risk_manager.h`: `reset_daily()` now resets `peak_equity_` + `total_exposure_` (was only `daily_pnl_` → wrong drawdown next day)
+- `hft-trade-bot/src/risk/risk_manager.h`: `update_pnl()` uses CAS loop instead of `+=` (was load+store race on `atomic<double>`)
+
+### Fixed
+- CODE_AUDIT §8.156 — daily_pnl += not atomic → CAS loop for atomic add
+- CODE_AUDIT §8.167 — reset_daily incomplete → now resets all daily counters
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AE: Makefile test-cpp + snprintf truncation + stale audit items)
 
 ### Added
