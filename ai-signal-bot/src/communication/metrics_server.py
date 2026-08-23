@@ -144,11 +144,26 @@ class MetricsServer:
 
     async def _handle_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
-            await reader.readline()  # Request line
+            request_line = await reader.readline()
             while True:
                 line = await reader.readline()
                 if line in (b"\r\n", b"\n", b""):
                     break
+
+            path = request_line.decode("ascii", errors="replace").split(" ")[1] if b" " in request_line else "/"
+
+            if path != "/metrics":
+                body = b"Not Found"
+                response = (
+                    f"HTTP/1.1 404 Not Found\r\n"
+                    f"Content-Type: text/plain; charset=utf-8\r\n"
+                    f"Content-Length: {len(body)}\r\n"
+                    f"Connection: close\r\n"
+                    f"\r\n"
+                ).encode() + body
+                writer.write(response)
+                await writer.drain()
+                return
 
             body = self.collector.render().encode("utf-8")
             response = (

@@ -16520,7 +16520,7 @@ Both configure the root logger. If both are called, the second one clears handle
 
 **Фикс:** Remove `utils.helpers.setup_logging` and use `observability.logging.setup_logging` everywhere.
 
-### 8.1211 logging: _configured guard prevents reconfiguration — Low
+### 8.1211 logging: _configured guard prevents reconfiguration — Low [N/A]
 
 **Файл:** `logging.py:39-40`
 
@@ -16545,7 +16545,7 @@ Once `setup_logging` is called, it can never be reconfigured. If the application
 
 Good distributed tracing with graceful fallback and proper shutdown. ✅
 
-### 8.1213 tracing: no span export mechanism — Info
+### 8.1213 tracing: no span export mechanism — Info [N/A]
 
 **Файл:** `tracing.py:59`
 
@@ -16555,7 +16555,7 @@ exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
 
 The OTLP exporter sends spans to `endpoint` (default `http://localhost:4317`). If Jaeger is not running, the exporter silently fails (BatchSpanProcessor catches exceptions internally). Traces are collected but never exported — tracing is useless without a backend.
 
-### 8.1214 tracing: insecure=True hardcoded — Low
+### 8.1214 tracing: insecure=True hardcoded — Low [FIXED]
 
 **Файл:** `tracing.py:59`
 
@@ -16771,7 +16771,7 @@ self.study.optimize(
 
 **Фикс:** Run in `ProcessPoolExecutor` via `run_in_executor()`, or use Optuna's async features.
 
-### 8.1231 automl: no objective function validation — Low
+### 8.1231 automl: no objective function validation — Low [N/A]
 
 **Файл:** `automl.py:128-131`
 
@@ -16799,7 +16799,7 @@ If no objective function is provided, a dummy returning 0.0 is used. The optimiz
 
 Good feature store with Redis, in-memory fallback, and ML-ready vector/matrix output. ✅
 
-### 8.1233 feature_store: bare Exception in Redis connection catch — Low
+### 8.1233 feature_store: bare Exception in Redis connection catch — Low [FIXED]
 
 **Файл:** `feature_store.py:94`
 
@@ -16811,7 +16811,7 @@ The exception list includes `Exception` — which catches everything including `
 
 **Фикс:** Remove `Exception` from the list, or just use `except Exception`.
 
-### 8.1234 feature_store: get_features_batch is sequential — Low
+### 8.1234 feature_store: get_features_batch is sequential — Low [N/A]
 
 **Файл:** `feature_store.py:141-148`
 
@@ -16827,7 +16827,7 @@ Batch get is sequential — each symbol triggers a separate Redis round-trip. Wi
 
 **Фикс:** Use Redis pipeline or MGET for batch retrieval. Or use `asyncio.gather()` if async.
 
-### 8.1235 feature_store: no connection pool configuration — Low
+### 8.1235 feature_store: no connection pool configuration — Low [N/A]
 
 **Файл:** `feature_store.py:83-91`
 
@@ -16877,7 +16877,7 @@ Every A/B model selection increments the impression counter and saves the entire
 
 **Фикс:** Batch saves: save every N impressions or every T seconds. Or use a database instead of JSON file.
 
-### 8.1238 model_registry: no file lock on _save — Low
+### 8.1238 model_registry: no file lock on _save — Low [N/A]
 
 **Файл:** `model_registry.py:107-120`
 
@@ -16893,7 +16893,7 @@ No file lock. If two processes save simultaneously, the JSON file can be corrupt
 
 **Фикс:** Use `fcntl.flock` (POSIX) or `msvcrt.locking` (Windows), or use atomic write (write to temp, rename).
 
-### 8.1239 model_registry: rollback selects wrong model — Low
+### 8.1239 model_registry: rollback selects wrong model — Low [N/A]
 
 **Файл:** `model_registry.py:179-198`
 
@@ -16920,7 +16920,7 @@ Rollback selects the most recently `ARCHIVED` model. But `ARCHIVED` status is al
 
 Good educational implementation. Not production-grade (no batching, no GPU), but correct for small-scale anomaly detection. ✅
 
-### 8.1241 autoencoder: O(N²) weight matrix operations in pure Python — Low
+### 8.1241 autoencoder: O(N²) weight matrix operations in pure Python — Low [N/A]
 
 **Файл:** `autoencoder.py:110-120`
 
@@ -16947,7 +16947,7 @@ Forward pass is O(hidden_dim × input_dim) in pure Python loops. With input_dim=
 
 Good VAE implementation with β-VAE support and manual backprop. ✅
 
-### 8.1243 vae: _random_normal uses Box-Muller without caching — Low
+### 8.1243 vae: _random_normal uses Box-Muller without caching — Low [N/A]
 
 **Файл:** `vae.py:72`
 
@@ -16971,7 +16971,7 @@ Each call to `_random_normal` generates a normal random number via Box-Muller tr
 
 Good PyTorch model with proper architecture, training, and export pipeline. ✅
 
-### 8.1245 price_predictor: hard dependency on torch — Low
+### 8.1245 price_predictor: hard dependency on torch — Low [N/A]
 
 **Файл:** `price_predictor.py:28-30`
 
@@ -17005,7 +17005,7 @@ The training loop saves checkpoints but doesn't register them in `model_registry
 
 Good RL implementation with both PPO and DQN, proper checkpointing, and ONNX export. ✅
 
-### 8.1248 rl_trader: PPO buffer unbounded between updates — Low
+### 8.1248 rl_trader: PPO buffer unbounded between updates — Low [N/A]
 
 **Файл:** `rl_trader.py:124-129`
 
@@ -17020,7 +17020,7 @@ The PPO buffer grows unbounded between `update()` calls. If `update()` is not ca
 
 **Фикс:** Use `deque(maxlen=config.batch_size * 10)` or cap buffer size.
 
-### 8.1249 rl_trader: DQN buffer 100K entries ~50MB RAM — Low
+### 8.1249 rl_trader: DQN buffer 100K entries ~50MB RAM — Low [N/A]
 
 **Файл:** `rl_trader.py:284`
 
@@ -17044,7 +17044,7 @@ Each entry is (state, action, reward, next_state, done) = (63 + 1 + 1 + 63 + 1) 
 
 Good pure-Python SVM implementation. Simple, correct, no external deps. ✅
 
-### 8.1251 svm_signal: RBF kernel defined but unused — Info
+### 8.1251 svm_signal: RBF kernel defined but unused — Info [N/A]
 
 **Файл:** `svm_signal.py:41-44`
 
@@ -17101,7 +17101,7 @@ Jacobi eigendecomposition is O(N³) per iteration × 50 iterations. With N=60 (l
 
 Good RL trading environment with proper Gym interface. ✅
 
-### 8.1255 environment: no CLOSE action — Low
+### 8.1255 environment: no CLOSE action — Low [N/A]
 
 **Файл:** `environment.py:15-19`
 
@@ -17116,7 +17116,7 @@ Only 3 actions: HOLD, BUY, SELL. No explicit CLOSE action. To close a long posit
 
 **Фикс:** Add `CLOSE = 3` action that closes current position without opening opposite.
 
-### 8.1256 environment: reset() generates random prices if none provided — Low
+### 8.1256 environment: reset() generates random prices if none provided — Low [N/A]
 
 **Файл:** `environment.py:62-63`
 
@@ -17415,7 +17415,7 @@ grep found `def compute_returns` in 22 separate research files. Each defines the
 
 **Фикс:** Create `src/research/utils.py` with a single `compute_returns(prices)` function. Import it in all research modules: `from .utils import compute_returns`. Remove 22 duplicate definitions. Code reduction: ~100+ lines.
 
-### 8.1278 research: 2 duplicate `jacobi_eig` functions — Info
+### 8.1278 research: 2 duplicate `jacobi_eig` functions — Info [N/A]
 
 **Файлы:** `ml/rkhs.py:85`, `research/rmt.py`
 
@@ -18026,7 +18026,7 @@ This is 3× code duplication of the same broadcast-and-cleanup pattern.
 
 Good WebSocket client with proper reconnection logic. ✅
 
-### 8.1326 ws_client: listen() doesn't reconnect on ConnectionClosed — Low
+### 8.1326 ws_client: listen() doesn't reconnect on ConnectionClosed — Low [FIXED]
 
 **Файл:** `ws_client.py:119-121`
 
@@ -18096,7 +18096,7 @@ The FIX client uses plain TCP (`asyncio.open_connection`). In production, FIX se
 
 Good backtesting engine with comprehensive metrics. ✅
 
-### 8.1332 backtester: 506 lines in single class — Low
+### 8.1332 backtester: 506 lines in single class — Low [N/A]
 
 **Файл:** `backtester.py` (506 lines)
 
@@ -18741,7 +18741,7 @@ Total dead code across the project: ~17,000+ lines (4000 technical_analysis + 13
 
 **Фикс:** Move all advanced/research modules to a separate package (e.g., `analysis_lab/`). Keep `src/` focused on production trading code. This would reduce `src/` by ~50% and dramatically improve import time.
 
-### 8.1408 monitoring: tracker.py datetime.now() without timezone — Low
+### 8.1408 monitoring: tracker.py datetime.now() without timezone — Low [FIXED]
 
 **Файл:** `monitoring/tracker.py:134`
 
@@ -18875,7 +18875,7 @@ Standalone OpenTelemetry tracer (`AISignalBotTracer` class) with Jaeger exporter
 
 **Фикс:** Delete `tracing.py` and use `src/observability/tracing.py:setup_tracing` exclusively.
 
-### 8.1422 root: 2× duplicate infrastructure modules — Low
+### 8.1422 root: 2× duplicate infrastructure modules — Low [N/A]
 
 **Файлы:** `metrics.py` (293 lines) vs `src/monitoring/metrics.py` (239 lines), `tracing.py` (205 lines) vs `src/observability/tracing.py` (111 lines)
 

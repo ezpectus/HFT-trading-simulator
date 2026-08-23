@@ -115,7 +115,7 @@ class RealMarketDataFeed:
                 try:
                     await ws.close()
                 except (ConnectionError, OSError, RuntimeError) as e:
-                    logger.debug(f"WS close error: {e}")
+                    logger.debug("WS close error: %s", e)
             self._ws_connections.clear()
 
     async def _process_queue(self):
@@ -133,7 +133,7 @@ class RealMarketDataFeed:
             except asyncio.CancelledError:
                 break
             except (KeyError, ValueError, TypeError) as e:
-                logger.debug(f"Queue processor error: {e}")
+                logger.debug("Queue processor error: %s", e)
 
     async def _run_binance(self, symbols: list[str], intervals: list[str]):
         """Binance Futures WebSocket feed."""
@@ -168,9 +168,9 @@ class RealMarketDataFeed:
                         try:
                             await self.on_reconnect("binance", symbols)
                         except (OSError, RuntimeError, ValueError) as e:
-                            logger.warning(f"Binance gap-fill failed: {e}")
+                            logger.warning("Binance gap-fill failed: %s", e)
                     self._last_msg_times["binance"] = time.time()
-                    logger.info(f"Binance WebSocket connected: {len(streams)} streams")
+                    logger.info("Binance WebSocket connected: %s streams", len(streams))
 
                     async for raw in ws:
                         if not self._running:
@@ -188,7 +188,7 @@ class RealMarketDataFeed:
                             self._msg_queue.put_nowait(("binance", msg))
 
             except (ConnectionError, OSError, json.JSONDecodeError) as e:
-                logger.error(f"Binance WS error: {e}")
+                logger.error("Binance WS error: %s", e)
                 if self._running:
                     delay = self._reconnect_delays.get("binance", 1.0)
                     await asyncio.sleep(delay)
@@ -252,7 +252,7 @@ class RealMarketDataFeed:
                         try:
                             await self.on_reconnect("okx", symbols)
                         except (OSError, RuntimeError, ValueError) as e:
-                            logger.warning(f"OKX gap-fill failed: {e}")
+                            logger.warning("OKX gap-fill failed: %s", e)
                     self._last_msg_times["okx"] = time.time()
 
                     # Subscribe to tickers and candles
@@ -282,7 +282,7 @@ class RealMarketDataFeed:
                             self._msg_queue.put_nowait(("okx", msg))
 
             except (ConnectionError, OSError, json.JSONDecodeError) as e:
-                logger.error(f"OKX WS error: {e}")
+                logger.error("OKX WS error: %s", e)
                 if self._running:
                     delay = self._reconnect_delays.get("okx", 1.0)
                     await asyncio.sleep(delay)
@@ -348,7 +348,7 @@ class RealMarketDataFeed:
                         try:
                             await self.on_reconnect("bybit", symbols)
                         except (OSError, RuntimeError, ValueError) as e:
-                            logger.warning(f"Bybit gap-fill failed: {e}")
+                            logger.warning("Bybit gap-fill failed: %s", e)
                     self._last_msg_times["bybit"] = time.time()
 
                     # Subscribe
@@ -377,7 +377,7 @@ class RealMarketDataFeed:
                             self._msg_queue.put_nowait(("bybit", msg))
 
             except (ConnectionError, OSError, json.JSONDecodeError) as e:
-                logger.error(f"Bybit WS error: {e}")
+                logger.error("Bybit WS error: %s", e)
                 if self._running:
                     delay = self._reconnect_delays.get("bybit", 1.0)
                     await asyncio.sleep(delay)
@@ -491,7 +491,7 @@ class RealMarketDataManager:
         self._feed_task = asyncio.create_task(
             self._feed.start(symbols=self._symbols, intervals=["1m", "5m", "15m"])
         )
-        logger.info(f"[RealMarketData] Feed started for {self.exchange_name} symbols={self._symbols}")
+        logger.info("[RealMarketData] Feed started for %s symbols=%s", self.exchange_name, self._symbols)
 
     async def close(self) -> None:
         """Stop WebSocket feed."""

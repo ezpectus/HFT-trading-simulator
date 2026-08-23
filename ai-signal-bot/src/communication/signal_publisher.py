@@ -95,7 +95,7 @@ class SignalPublisher:
         )
         self._running = True
         scheme = "wss" if self._ssl else "ws"
-        logger.info(f"Signal publisher started on {scheme}://{self.host}:{self.port}")
+        logger.info("Signal publisher started on %s://%s:%s", scheme, self.host, self.port)
 
         self._cb_broadcast_task = asyncio.create_task(self._broadcast_circuit_breaker_status())
 
@@ -133,13 +133,13 @@ class SignalPublisher:
 
         async with self._state_lock:
             if len(self._clients) >= self._max_clients:
-                logger.warning(f"Max clients ({self._max_clients}) reached — rejecting new connection")
+                logger.warning("Max clients (%s) reached — rejecting new connection", self._max_clients)
                 await websocket.close(code=1013, reason="Max clients reached")
                 return
             self._clients.add(websocket)
             self.metrics.set_ws_clients(len(self._clients))
         remote = websocket.remote_address if hasattr(websocket, "remote_address") else "unknown"
-        logger.info(f"HFT client connected: {remote} (total: {len(self._clients)})")
+        logger.info("HFT client connected: %s (total: %s)", remote, len(self._clients))
 
         # Send signal history on connect
         if self._signal_history:
@@ -152,7 +152,7 @@ class SignalPublisher:
                 msg = orjson.dumps(hist_data) if _HAS_ORJSON else json.dumps(hist_data, separators=(',', ':'))
                 await websocket.send(msg)
             except (ConnectionError, OSError, RuntimeError) as e:
-                logger.warning(f"Failed to send signal history: {e}")
+                logger.warning("Failed to send signal history: %s", e)
 
         # Send current circuit breaker status on connect
         try:
@@ -164,25 +164,25 @@ class SignalPublisher:
             msg = orjson.dumps(cb_data) if _HAS_ORJSON else json.dumps(cb_data, separators=(',', ':'))
             await websocket.send(msg)
         except (ConnectionError, OSError, RuntimeError) as e:
-            logger.warning(f"Failed to send circuit breaker status: {e}")
+            logger.warning("Failed to send circuit breaker status: %s", e)
 
         try:
             async for message in websocket:
                 try:
                     data = json.loads(message)
                     if not isinstance(data, dict):
-                        logger.warning(f"Invalid message from {remote}: expected JSON object")
+                        logger.warning("Invalid message from %s: expected JSON object", remote)
                         continue
                     msg_type = data.get("type")
                     if not isinstance(msg_type, str) or not msg_type:
-                        logger.warning(f"Invalid message from {remote}: missing 'type' field")
+                        logger.warning("Invalid message from %s: missing 'type' field", remote)
                         continue
                     _VALID_MSG_TYPES = {"subscribe", "run_backtest", "compare_backtests", "auth", "ping"}
                     if msg_type not in _VALID_MSG_TYPES:
-                        logger.warning(f"Unknown message type '{msg_type}' from {remote}")
+                        logger.warning("Unknown message type '%s' from %s", msg_type, remote)
                         continue
                     if msg_type == "subscribe":
-                        logger.info(f"Client subscribed: {data.get('client', 'unknown')}")
+                        logger.info("Client subscribed: %s", data.get('client', 'unknown'))
                     elif msg_type == "run_backtest":
                         result = await self._run_backtest(data)
                         await websocket.send(json.dumps(result, separators=(',', ':')))
@@ -190,16 +190,16 @@ class SignalPublisher:
                         result = self._compare_backtests(data)
                         await websocket.send(json.dumps(result, separators=(',', ':')))
                 except json.JSONDecodeError:
-                    logger.warning(f"Invalid JSON from {remote}: {message[:100]}")
+                    logger.warning("Invalid JSON from %s: %s", remote, message[:100])
         except websockets.ConnectionClosed:
             pass
         except (ConnectionError, OSError, RuntimeError) as e:
-            logger.debug(f"Client handler error: {e}")
+            logger.debug("Client handler error: %s", e)
         finally:
             async with self._state_lock:
                 self._clients.discard(websocket)
                 self.metrics.set_ws_clients(len(self._clients))
-            logger.info(f"HFT client disconnected (total: {len(self._clients)})")
+            logger.info("HFT client disconnected (total: %s)", len(self._clients))
 
     async def _broadcast_to_clients(self, msg: bytes | str) -> None:
         """Send a message to all connected clients, removing disconnected ones."""
@@ -328,7 +328,7 @@ class SignalPublisher:
             result = await asyncio.to_thread(bt.run, candles, strat, symbol=bt_params["symbol"], warmup=50)
             results[name] = result.to_dict()
 
-        logger.info(f"Backtest completed: {bt_params['strategy']}, {bt_params['candles']} candles, {len(results)} strategies")
+        logger.info("Backtest completed: %s, %s candles, %s strategies", bt_params['strategy'], bt_params['candles'], len(results))
         self.metrics.record_backtest()
 
         return {

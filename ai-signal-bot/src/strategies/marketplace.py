@@ -73,7 +73,7 @@ class StrategyMarketplace:
             for name, pdata in data.get("strategies", {}).items():
                 self.plugins[name] = StrategyPlugin(**pdata)
         except (OSError, ValueError, KeyError, TypeError) as e:
-            logger.warning(f"[Marketplace] Failed to load registry: {e}")
+            logger.warning("[Marketplace] Failed to load registry: %s", e)
 
     def _save_registry(self) -> None:
         self.registry_path.parent.mkdir(parents=True, exist_ok=True)
@@ -96,14 +96,14 @@ class StrategyMarketplace:
         """Register a strategy plugin."""
         self.plugins[plugin.name] = plugin
         self._save_registry()
-        logger.info(f"[Marketplace] Registered: {plugin.name} v{plugin.version}")
+        logger.info("[Marketplace] Registered: %s v%s", plugin.name, plugin.version)
 
     def unregister(self, name: str) -> bool:
         """Remove a strategy from the registry."""
         if name in self.plugins:
             del self.plugins[name]
             self._save_registry()
-            logger.info(f"[Marketplace] Unregistered: {name}")
+            logger.info("[Marketplace] Unregistered: %s", name)
             return True
         return False
 
@@ -136,7 +136,7 @@ class StrategyMarketplace:
 
         plugin = self.plugins.get(name)
         if not plugin:
-            logger.error(f"[Marketplace] Strategy not found: {name}")
+            logger.error("[Marketplace] Strategy not found: %s", name)
             return None
 
         try:
@@ -145,22 +145,22 @@ class StrategyMarketplace:
             if not strategy_class:
                 strategy_class = getattr(module, "Strategy", None)
             if not strategy_class:
-                logger.error(f"[Marketplace] No strategy class in {plugin.module_path}")
+                logger.error("[Marketplace] No strategy class in %s", plugin.module_path)
                 return None
 
             instance = strategy_class(**plugin.config) if plugin.config else strategy_class()
             self._loaded[name] = instance
-            logger.info(f"[Marketplace] Loaded: {name}")
+            logger.info("[Marketplace] Loaded: %s", name)
             return instance
         except (ImportError, AttributeError, TypeError, ValueError, RuntimeError) as e:
-            logger.error(f"[Marketplace] Failed to load {name}: {e}")
+            logger.error("[Marketplace] Failed to load %s: %s", name, e)
             return None
 
     def install_from_file(self, path: str, name: str | None = None) -> bool:
         """Install a strategy from a Python file."""
         p = Path(path)
         if not p.exists() or not p.suffix == ".py":
-            logger.error(f"[Marketplace] Invalid file: {path}")
+            logger.error("[Marketplace] Invalid file: %s", path)
             return False
 
         target = self.strategies_dir / (name or p.stem)
@@ -191,23 +191,23 @@ class StrategyMarketplace:
         import subprocess
 
         if not git_url.startswith(("https://", "git://")) or ".." in git_url:
-            logger.error(f"[Marketplace] Rejected URL (must be https:// or git://): {git_url}")
+            logger.error("[Marketplace] Rejected URL (must be https:// or git://): %s", git_url)
             return False
 
         # Reject URLs with embedded credentials or suspicious patterns
         if "@" in git_url.split("://")[1] or ";" in git_url or "|" in git_url:
-            logger.error(f"[Marketplace] Rejected URL (suspicious pattern): {git_url}")
+            logger.error("[Marketplace] Rejected URL (suspicious pattern): %s", git_url)
             return False
 
         repo_name = name or git_url.rstrip("/").split("/")[-1].replace(".git", "")
         if not re.match(r'^[a-zA-Z0-9_\-]+$', repo_name):
-            logger.error(f"[Marketplace] Invalid repo name: {repo_name}")
+            logger.error("[Marketplace] Invalid repo name: %s", repo_name)
             return False
 
         target = self.strategies_dir / repo_name
 
         if target.exists():
-            logger.warning(f"[Marketplace] {repo_name} already exists")
+            logger.warning("[Marketplace] %s already exists", repo_name)
             return False
 
         try:
@@ -225,7 +225,7 @@ class StrategyMarketplace:
             self.register(plugin)
             return True
         except (OSError, RuntimeError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-            logger.error(f"[Marketplace] Git install failed: {e}")
+            logger.error("[Marketplace] Git install failed: %s", e)
             return False
 
     def enable(self, name: str) -> bool:

@@ -179,6 +179,12 @@ class ShmRingBuffer[T]:
                 raise ValueError(
                     f"SHM element_size mismatch: {name} (expected {self.element_size}, got {stored_elem_size})"
                 )
+            stored_total_size = struct.unpack_from('<Q', self._mm, OFF_TOTAL_SIZE)[0]
+            if stored_total_size != total_size:
+                self.close()
+                raise ValueError(
+                    f"SHM total_size mismatch: {name} (expected {total_size}, got {stored_total_size})"
+                )
 
         self._mask = capacity - 1
         self._data_offset = SHM_HEADER_ACTUAL_SIZE
