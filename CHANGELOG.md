@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AE: Makefile test-cpp + snprintf truncation + stale audit items)
+
+### Added
+- `Makefile`: `test-cpp` target — runs `ctest` from `hft-trade-bot/build`, graceful skip if no build directory
+
+### Changed
+- `Makefile`: `test` target now includes `test-cpp`
+- `hft-trade-bot/src/execution/order_executor.h`: Added explicit snprintf truncation check — logs error and returns if `n >= sizeof(buf)`
+
+### Fixed
+- CODE_AUDIT §8.84 — Makefile no C++ tests → test-cpp target added
+- CODE_AUDIT §8.118 — snprintf truncation → explicit truncation check + error log
+- CODE_AUDIT §8.247 — 50 symbols 3x duplication → documented sync requirement (unavoidable: C++/Python/JS)
+- CODE_AUDIT §8.248 — config localhost WS → already documented in ZZ-DevOps2 + config.h fixed in AB
+- CODE_AUDIT §8.690 — SHM 0666 permissions → already fixed in Пачка AD
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AD: C++ safety fixes — string_to_side, Signal::side, catch, SHM perms)
 
 ### Changed

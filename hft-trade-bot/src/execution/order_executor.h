@@ -126,6 +126,11 @@ class OrderExecutor {
             spdlog::error("Order JSON serialization failed");
             return;
         }
+        if (n >= static_cast<int>(sizeof(buf))) [[unlikely]] {
+            spdlog::error("Order JSON truncated: exchange={}, symbol={} exceeds {} byte buffer",
+                          exchange_id_, signal.symbol, sizeof(buf));
+            return;
+        }
         if (n < static_cast<int>(sizeof(buf) - 2)) {
             buf[n++] = '}';
             buf[n]   = '\0';

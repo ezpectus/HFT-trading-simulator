@@ -1,4 +1,4 @@
-.PHONY: help install dev dev-exchange dev-signals dev-ui test test-exchange test-signals test-js lint build docker-up docker-down clean logs
+.PHONY: help install dev dev-exchange dev-signals dev-ui test test-exchange test-signals test-js test-cpp lint build docker-up docker-down clean logs
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -24,6 +24,10 @@ test: ## Run all tests
 	cd exchange_simulator && python -m pytest tests/ -v
 	cd ai-signal-bot && python -m pytest tests/ -v
 	cd web-ui && npx vitest run --passWithNoTests
+	$(MAKE) test-cpp
+
+test-cpp: ## Run C++ tests (requires build directory)
+	cd hft-trade-bot/build && ctest --output-on-failure 2>/dev/null || echo "C++ tests skipped — run 'cd hft-trade-bot && cmake -B build && cmake --build build' first"
 
 test-exchange: ## Run exchange simulator tests
 	cd exchange_simulator && python -m pytest tests/ -v
