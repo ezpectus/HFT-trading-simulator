@@ -195,7 +195,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~migrate.py: narrow exception~~ [FIXED] | Widened to catch Exception — handles asyncpg.PostgresError and all DB errors | CODE_AUDIT §8.174 |
 | ~~SHM stale data on restart~~ [FIXED] | shm_market_data_writer.py now calls _mm_barrier() after seq+1 and before seq+2 — ensures correct memory ordering on ARM for cross-process SHM visibility | CODE_AUDIT §8.177, §8.713, §8.1191 |
 | ~~C++ string_to_side no validation~~ [FIXED] | Now throws std::invalid_argument on unknown side — no silent SELL default | CODE_AUDIT §8.186 |
-| web-ui: 50+ components, many unused | Math viz panels may be dead code, ~1000+ lines reducible | CODE_AUDIT §8.188 |
+| ~~web-ui: 50+ components, many unused~~ [FIXED] | Added feature flag for advanced math/research panels — ADVANCED_PANEL_IDS set (76 panels) hidden by default. FlaskConical toggle button in PanelContainer. Persisted via localStorage | CODE_AUDIT §8.188 |
 | ~~Helm values.yaml: hardcoded passwords~~ [FIXED] | postgres.password, grafana.adminPassword set to empty — Helm fails if not set via --set | CODE_AUDIT §8.193 |
 | ~~Helm values.yaml: VITE_WS localhost~~ [FIXED] | wsExchange/wsSignals set to empty — web-ui.yaml template fails if not set | CODE_AUDIT §8.195 |
 | ~~C++ signal.h: NEUTRAL→BUY~~ [FIXED] | Signal::side() now throws std::logic_error on NEUTRAL — callers must check is_actionable() first. order_executor.h: added is_actionable() guard | CODE_AUDIT §8.192 |
@@ -218,7 +218,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~web-ui mockData: only 5 of 50 symbols~~ [FIXED] | Expanded MOCK_SYMBOLS from 5 to 49 — matches full trading universe. Reduced initial candles from 500 to 100 per symbol to keep init lightweight | CODE_AUDIT §8.243 |
 | ~~hft-trade-bot config: 50 symbols 3x~~ [FIXED] | Documented sync requirement in config.yaml, shared_config.yaml, and useUIStore.js — 3 copies unavoidable (C++ YAML, Python YAML, JS hardcoded for Vite) | CODE_AUDIT §8.247 |
 | ~~hft-trade-bot config: localhost WS~~ [FIXED] | Documented as dev default in config.yaml (Пачка ZZ-DevOps2). config.h ws_url default removed (Пачка AB). Prod config uses env var interpolation | CODE_AUDIT §8.248 |
-| web-ui registry: 200+ math panels | Research-grade math (SchrodingerBridge, FokkerPlanck). Feature flag | CODE_AUDIT §8.252 |
+| ~~web-ui: math panels bloat bundle~~ [FIXED] | Advanced math panels now behind feature flag toggle — hidden by default, user enables via FlaskConical button. 76 panels in ADVANCED_PANEL_IDS set | CODE_AUDIT §8.252 |
 | ~~web-ui vite.config: no esbuild.drop~~ [FIXED] | Added esbuild.drop: ['console', 'debugger'] in production builds — console.log stripped from prod bundle | CODE_AUDIT §8.246 |
 | web-ui e2e: no WS tests | No WebSocket, real-time, order flow e2e tests | CODE_AUDIT §8.254 |
 | ~~ai-signal-bot db.py: new connection per op~~ [FIXED] | Uses persistent _get_conn() with WAL set once — verified in Пачка AA | CODE_AUDIT §8.261 |
@@ -265,7 +265,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~terraform: db_password default in plaintext~~ [FIXED] | Same as §8.162 — default removed from dev/main.tf, password is required | CODE_AUDIT §8.401 |
 | ~~terraform: no prod environment~~ [N/A] | terraform/environments/prod/main.tf already exists (100 lines, prod-grade: db.r6g.large, c5.2xlarge, 4 nodes) — audit item is stale | CODE_AUDIT §8.402 |
 | ~~docker-compose.prod: ports exposed to host~~ [FIXED] | Postgres, Redis, Prometheus now use `expose` instead of `ports` — accessible only within Docker networks, not from host | CODE_AUDIT §8.416 |
-| web-ui: 200+ components over-engineering | Math/research panels unlikely used by traders. Feature flag or separate package | CODE_AUDIT §8.410 |
+| ~~web-ui: 200+ components over-engineering~~ [FIXED] | Advanced math panels now behind feature flag toggle — hidden by default, user enables via FlaskConical button. 76 panels in ADVANCED_PANEL_IDS set | CODE_AUDIT §8.410 |
 | ~~hft-trade-bot: 3 engine versions loaded~~ [N/A] | All 3 engines actively used: V2=main, V3=HMM wrapper, V1=fallback in run_v1_fallback_loop. Design choice, not dead code | CODE_AUDIT §8.419 |
 | ~~hft-trade-bot: prices_cache not thread-safe~~ [FIXED] | Added Spinlock (prices_cache_lock) to BotContext — guards get_all_prices_into in process_sl_tp | CODE_AUDIT §8.420 |
 | ~~deploy.yml: localhost fallback for VITE_WS~~ [FIXED] | Removed localhost fallback — VITE_WS_EXCHANGE/SIGNALS now empty if GitHub vars not set | CODE_AUDIT §8.412 |

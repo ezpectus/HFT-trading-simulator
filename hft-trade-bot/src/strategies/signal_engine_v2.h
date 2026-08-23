@@ -56,7 +56,22 @@ class SignalEngineV2 {
         bool       initialized{false};
         int64_t    last_candle_ts{0};
         int        candle_count{0};
+        int64_t    last_signal_ms{0};
     };
+
+    void prepopulate(const std::vector<std::string>& symbols) {
+        for (const auto& sym : symbols) {
+            auto [it, inserted] = cache_.try_emplace(sym, IndicatorCache{});
+            if (inserted) {
+                it->second.ema_fast   = InlineEMA(params_.ema_fast_period);
+                it->second.ema_slow   = InlineEMA(params_.ema_slow_period);
+                it->second.ema_signal = InlineEMA(params_.ema_signal_period);
+                it->second.rsi        = InlineRSI(params_.rsi_period);
+                it->second.adx        = InlineADX(params_.adx_period);
+                it->second.atr        = InlineATR(params_.atr_period);
+            }
+        }
+    }
 
     IndicatorCache& get_cache(const char* symbol) {
         auto it = cache_.find(std::string_view(symbol));
@@ -130,7 +145,7 @@ class SignalEngineV2 {
         if (atr < 1e-12) atr = current_price * 0.01;
         double sl_mult = params_.sl_atr_mult, tp_mult = params_.tp_atr_mult;
         apply_adaptive_sl_tp(atr, current_price, sl_mult, tp_mult);
-        finalize_signal(sig, current_price, atr, sl_mult, tp_mult, adx_val, now_ms);
+        finalize_signal(sig, current_price, atr, sl_mult, tp_mult, adx_val, now_ms, nullptr);
         return sig;
     }
 
@@ -147,7 +162,7 @@ class SignalEngineV2 {
         const Candle&   latest = candles[n - 1];
         update_indicator_cache(ic, candles, n, latest);
         int64_t now_ms;
-        if (!check_cooldown(timestamp_ns, now_ms)) {
+        if (!check_cooldown(ic, timestamp_ns, now_ms)) {
             FastSignal sig;
             sig.set_symbol(symbol);
             sig.timestamp = timestamp_ns;
@@ -168,11 +183,16 @@ class SignalEngineV2 {
         if (atr < 1e-12) atr = current_price * 0.01;
         double sl_mult = params_.sl_atr_mult, tp_mult = params_.tp_atr_mult;
         apply_adaptive_sl_tp(atr, current_price, sl_mult, tp_mult);
-        finalize_signal(sig, current_price, atr, sl_mult, tp_mult, adx_val, now_ms);
+        finalize_signal(sig, current_price, atr, sl_mult, tp_mult, adx_val, now_ms, &ic);
         return sig;
     }
 
-    void reset_cooldown() noexcept { last_signal_ms_ = 0; }
+    void reset_cooldown(const char* symbol = nullptr) noexcept {
+        if (symbol) {
+            auto it = cache_.find(std::string_view(symbol));
+            if (it != cache_.end()) it->second.last_signal_ms = 0;
+        }
+    }
 
   private:
     inline bool init_and_validate(FastSignal& sig, const char* symbol, int64_t timestamp_ns,
@@ -189,16 +209,12 @@ class SignalEngineV2 {
             return false;
         }
         now_ms = timestamp_ns / 1'000'000;
-        if (now_ms - last_signal_ms_ < params_.cooldown_ms) {
-            sig.set_reason("Cooldown active");
-            return false;
-        }
         return true;
     }
 
-    inline bool check_cooldown(int64_t timestamp_ns, int64_t& now_ms) const noexcept {
+    inline bool check_cooldown(IndicatorCache& ic, int64_t timestamp_ns, int64_t& now_ms) const noexcept {
         now_ms = timestamp_ns / 1'000'000;
-        return now_ms - last_signal_ms_ >= params_.cooldown_ms;
+        return now_ms - ic.last_signal_ms >= params_.cooldown_ms;
     }
 
     inline void update_indicator_cache(IndicatorCache& ic, const Candle* candles, size_t n,
@@ -452,15 +468,16 @@ class SignalEngineV2 {
     }
 
     inline void finalize_signal(FastSignal& sig, double price, double atr,
-                                double sl_mult, double tp_mult, double adx_val, int64_t now_ms) noexcept {
+                                double sl_mult, double tp_mult, double adx_val, int64_t now_ms,
+                                IndicatorCache* ic = nullptr) noexcept {
         if (sig.composite_score > params_.buy_threshold) {
             detail::set_long_signal(sig, price, atr, sl_mult, tp_mult, adx_val, params_, now_ms);
             sig.leverage = compute_leverage(sig.confidence, adx_val);
-            last_signal_ms_ = now_ms;
+            if (ic) ic->last_signal_ms = now_ms;
         } else if (sig.composite_score < params_.sell_threshold) {
             detail::set_short_signal(sig, price, atr, sl_mult, tp_mult, adx_val, params_);
             sig.leverage = compute_leverage(sig.confidence, adx_val);
-            last_signal_ms_ = now_ms;
+            if (ic) ic->last_signal_ms = now_ms;
         } else {
             char buf[128];
             std::snprintf(buf, sizeof(buf), "N comp=%+.2f ADX=%.0f", sig.composite_score, adx_val);
@@ -486,7 +503,6 @@ class SignalEngineV2 {
     }
 
     Params                                                                       params_;
-    int64_t                                                                      last_signal_ms_{0};
     std::unordered_map<std::string, IndicatorCache, StringHash, std::equal_to<>> cache_;
 };
 
