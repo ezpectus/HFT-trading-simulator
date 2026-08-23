@@ -180,10 +180,10 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~ebpf_monitor: NETWORK_BPF dead code~~ [FIXED] | Removed 30-line NETWORK_BPF program — was defined but never loaded | CODE_AUDIT §8.228 |
 | ~~ebpf_monitor: no Prometheus export~~ [FIXED] | Added prometheus_client Gauges for syscall count + avg latency — stats now exported to Grafana | CODE_AUDIT §8.229 |
 | performanceMonitor: alertCallbacks leak | No offAlert(), callbacks fire after unmount | CODE_AUDIT §8.234 |
-| web-ui backtestEngine: EMA/RSI duplicated | Identical to indicators.js. Import instead, ~40 lines reduction | CODE_AUDIT §8.236 |
+| ~~web-ui backtestEngine: EMA/RSI duplicated~~ [FIXED] | Replaced local ema()/rsi() functions with import from indicators.js — ~40 lines removed | CODE_AUDIT §8.236 |
 | web-ui backtestEngine: no borrow fee | Short selling overestimates P&L, no daily borrow fee | CODE_AUDIT §8.237 |
 | web-ui backtestEngine: no slippage | Entry/exit at candle.close, no slippage model | CODE_AUDIT §8.238 |
-| web-ui indicators: O(n²) SMA | O(n×period) instead of O(n) rolling sum | CODE_AUDIT §8.240 |
+| ~~web-ui indicators: O(n²) SMA~~ [FIXED] | Replaced O(n×period) nested loop with O(n) rolling sum — subtract outgoing, add incoming | CODE_AUDIT §8.240 |
 | web-ui mockData: only 5 of 50 symbols | Mock mode doesn't represent full trading universe | CODE_AUDIT §8.243 |
 | hft-trade-bot config: 50 symbols 3x | 50 symbols in config.yaml + shared_config + useUIStore. 3 copies | CODE_AUDIT §8.247 |
 | hft-trade-bot config: localhost WS | ws://localhost:8765 and :8766, won't work in prod | CODE_AUDIT §8.248 |
@@ -194,8 +194,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~ai-signal-bot db.py: no equity_curve index~~ [FIXED] | Added idx_equity_curve_ts on timestamp — range queries use index instead of full scan | CODE_AUDIT §8.263 |
 | ~~ai-signal-bot db.py: no migration system~~ [FIXED] | _init_db uses CREATE TABLE IF NOT EXISTS (sufficient for SQLite). scripts/migrate.py exists for SQL migrations. No ALTER TABLE needed — schema is additive | CODE_AUDIT §8.264 |
 | web-ui useExchangeData: candle sort every update | Full Array.from + sort on every candle message. 500 elements × every second | CODE_AUDIT §8.256 |
-| web-ui useDetachablePanels: no channel cleanup | BroadcastChannel never closed. Resource leak on unmount | CODE_AUDIT §8.259 |
-| web-ui useWebSocket: no max reconnect | Backoff capped at 30s but reconnects indefinitely | CODE_AUDIT §8.266 |
+| ~~web-ui useDetachablePanels: no channel cleanup~~ [FIXED] | Added useEffect cleanup on unmount — closes BroadcastChannel and all open popups | CODE_AUDIT §8.259 |
+| ~~web-ui useWebSocket: no max reconnect~~ [FIXED] | Added maxReconnects option (default 20) — stops infinite reconnect loop, sets error message when limit reached | CODE_AUDIT §8.266 |
 | ~~liquidation_engine_v2: ADL is a stub~~ [FIXED] | _auto_deleverage now accepts counterparties list — sorts by profitability, reduces most profitable opposing positions first to cover insurance fund deficit. Falls back to simulation mode if no counterparties | CODE_AUDIT §8.270 |
 | ~~liquidation_engine_v2: no thread safety~~ [FIXED] | Added threading.Lock to liquidate() — protects insurance_fund, events, _cascade_depth | CODE_AUDIT §8.273 |
 | ~~exchange_simulator arbitrage: unbounded _closed_history~~ [FIXED] | Replaced list with deque(maxlen=1000) — auto-trims, removed manual slicing | CODE_AUDIT §8.275 |

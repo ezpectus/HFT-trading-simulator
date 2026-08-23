@@ -1,29 +1,34 @@
 """
 VaR (Value at Risk) and CVaR (Conditional VaR) stress testing.
 
+.. deprecated::
+    Use :mod:`src.risk.var` (VaRCalculator), :mod:`src.risk.cvar` (CVaRCalculator),
+    and :mod:`src.risk.stress_test` (StressTestScenario) instead.
+    This module duplicates those three canonical implementations.
+
 Risk metrics:
   - Historical VaR: empirical quantile of returns
   - Parametric VaR: Gaussian assumption
   - Monte Carlo VaR: simulated paths with GBM or GARCH
   - CVaR (Expected Shortfall): average loss beyond VaR
   - Stress scenarios: 2008 crash, COVID crash, FTX collapse, flash crash
-
-Usage:
-    from src.risk.var_stress_test import RiskAnalyzer
-
-    analyzer = RiskAnalyzer(returns, portfolio_value=100000)
-    var_95 = analyzer.historical_var(confidence=0.95)
-    cvar_95 = analyzer.historical_cvar(confidence=0.95)
-    mc_var = analyzer.monte_carlo_var(confidence=0.95, n_sims=10000)
-    stress = analyzer.stress_test(scenario="covid_crash")
 """
 
 from __future__ import annotations
 
 import logging
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
+
+warnings.warn(
+    "src.risk.var_stress_test is deprecated. "
+    "Use src.risk.var.VaRCalculator, src.risk.cvar.CVaRCalculator, "
+    "and src.risk.stress_test.StressTestScenario instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 logger = logging.getLogger(__name__)
 

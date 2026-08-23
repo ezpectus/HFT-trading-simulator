@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect } from 'react'
 
 function fmtNum(v, decimals = 2) {
   return (typeof v === 'number' ? v : 0).toFixed(decimals)
@@ -250,6 +250,19 @@ export function useDetachablePanels() {
     if (popupsRef.current[panelId]) {
       popupsRef.current[panelId].close()
       delete popupsRef.current[panelId]
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (channelRef.current) {
+        channelRef.current.close()
+        channelRef.current = null
+      }
+      for (const id of Object.keys(popupsRef.current)) {
+        try { popupsRef.current[id].close() } catch { /* popup already closed */ }
+        delete popupsRef.current[id]
+      }
     }
   }, [])
 

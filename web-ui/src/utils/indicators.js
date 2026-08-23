@@ -70,10 +70,11 @@ export function calcRSI(closes, period = 14) {
  */
 export function calcSMA(closes, period) {
   const sma = new Array(closes.length).fill(NaN)
-  for (let i = period - 1; i < closes.length; i++) {
-    let sum = 0
-    for (let j = i - period + 1; j <= i; j++) sum += closes[j]
-    sma[i] = sum / period
+  let sum = 0
+  for (let i = 0; i < closes.length; i++) {
+    sum += closes[i]
+    if (i >= period) sum -= closes[i - period]
+    if (i >= period - 1) sma[i] = sum / period
   }
   return sma
 }

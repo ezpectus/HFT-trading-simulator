@@ -8,6 +8,8 @@
  * candle data from the exchange simulator.
  */
 
+import { calcEMA as ema, calcRSI as rsi } from './indicators.js'
+
 /**
  * @typedef {Object} Candle
  * @property {number} time - timestamp
@@ -62,44 +64,7 @@
  */
 
 // === Indicator calculations ===
-
-function ema(values, period) {
-  const k = 2 / (period + 1)
-  const result = new Array(values.length).fill(NaN)
-  if (values.length < period) return result
-  let sma = 0
-  for (let i = 0; i < period; i++) sma += values[i]
-  sma /= period
-  result[period - 1] = sma
-  for (let i = period; i < values.length; i++) {
-    result[i] = values[i] * k + result[i - 1] * (1 - k)
-  }
-  return result
-}
-
-function rsi(closes, period = 14) {
-  const result = new Array(closes.length).fill(50)
-  if (closes.length < period + 1) return result
-  let avgGain = 0
-  let avgLoss = 0
-  for (let i = 1; i <= period; i++) {
-    const change = closes[i] - closes[i - 1]
-    if (change >= 0) avgGain += change
-    else avgLoss -= change
-  }
-  avgGain /= period
-  avgLoss /= period
-  result[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss)
-  for (let i = period + 1; i < closes.length; i++) {
-    const change = closes[i] - closes[i - 1]
-    const gain = change >= 0 ? change : 0
-    const loss = change < 0 ? -change : 0
-    avgGain = (avgGain * (period - 1) + gain) / period
-    avgLoss = (avgLoss * (period - 1) + loss) / period
-    result[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss)
-  }
-  return result
-}
+// EMA and RSI imported from indicators.js (see top-level import) to avoid duplication
 
 function avgVolume(volumes, period = 20) {
   const result = new Array(volumes.length).fill(0)

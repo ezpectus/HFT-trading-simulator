@@ -40,6 +40,7 @@ export interface UseWebSocketOptions {
   batchInterval?: number
   batchTypes?: string[]
   perMessageDeflate?: boolean
+  maxReconnects?: number
 }
 
 export interface UseWebSocketReturn {
@@ -65,6 +66,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
     batchInterval = 50,
     batchTypes = [],
     perMessageDeflate = true,
+    maxReconnects = 20,
   } = options
 
   const wsRef = useRef<WebSocket | null>(null)
@@ -73,6 +75,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
   const lastPingRef = useRef<number>(0)
   const reconnectCount = useRef<number>(0)
   const backoffRef = useRef<number>(1000)
+  const maxReconnectsRef = useRef<number>(maxReconnects)
   const ringBufferRef = useRef<RingBuffer>(createRingBuffer(maxBufferSize))
   const batchQueueRef = useRef<MessageData[]>([])
   const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -211,7 +214,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
         if (pingTimer.current) clearInterval(pingTimer.current)
         flushBatch()
         handlersRef.current.onClose?.()
-        if (autoConnect) {
+        if (autoConnect && reconnectCount.current < maxReconnectsRef.current) {
           const delay = backoffRef.current
           backoffRef.current = Math.min(backoffRef.current * 2, 30000)
           setNextReconnectIn(Math.ceil(delay / 1000))
@@ -224,12 +227,14 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
             setNextReconnectIn(null)
             connect()
           }, delay)
+        } else if (reconnectCount.current >= maxReconnectsRef.current) {
+          setError(`Max reconnections (${maxReconnectsRef.current}) reached — call connect() to retry`)
         }
       }
     } catch (e) {
       const err = e as Error
       setError(err.message)
-      if (autoConnect) {
+      if (autoConnect && reconnectCount.current < maxReconnectsRef.current) {
         const delay = backoffRef.current
         backoffRef.current = Math.min(backoffRef.current * 2, 30000)
         setNextReconnectIn(Math.ceil(delay / 1000))
@@ -242,9 +247,11 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
           setNextReconnectIn(null)
           connect()
         }, delay)
+      } else if (reconnectCount.current >= maxReconnectsRef.current) {
+        setError(`Max reconnections (${maxReconnectsRef.current}) reached — call connect() to retry`)
       }
     }
-  }, [url, autoConnect, perMessageDeflate, batchInterval, flushBatch, syncOnReconnect])
+  }, [url, autoConnect, perMessageDeflate, batchInterval, flushBatch, syncOnReconnect, maxReconnects])
 
   const batchTypesKey = batchTypes.join(',')
 

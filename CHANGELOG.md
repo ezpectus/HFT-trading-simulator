@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка UU: web-ui SMA O(n) + EMA/RSI dedup + maxReconnects + channel cleanup)
+
+### Changed
+- `web-ui/src/utils/indicators.js`: `calcSMA` rewritten from O(n×period) to O(n) rolling sum
+- `web-ui/src/utils/backtestEngine.js`: Replaced duplicate `ema()`/`rsi()` functions with import from `indicators.js` (~40 lines removed)
+- `web-ui/src/hooks/useWebSocket.ts`: Added `maxReconnects` option (default 20) — stops infinite reconnect loop, sets error message when limit reached
+- `web-ui/src/hooks/useDetachablePanels.js`: Added `useEffect` cleanup on unmount — closes `BroadcastChannel` and all open popups
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка TT: web-ui ErrorBoundary + CSP + ESLint + esbuild.drop)
 
 ### Added
