@@ -6864,3 +6864,1082 @@ def grid_search(self, strategy_class, param_grid, candles, symbol="BTC/USDT",
 ```
 
 **Почему так (Theory & Concept):** Each backtest is CPU-bound (pure Python computation) and independent (no shared state between parameter combinations). This is the ideal case for `ProcessPoolExecutor` — each worker runs in a separate process with its own GIL, achieving true parallelism on multi-core machines. With 8 cores, 1000 combinations take 16min/8 = 2min. With 16 cores, 1min. The bad code uses a single process, so only 1 core is utilized — the other 7 cores sit idle. Under load (strategy development iterating on parameter grids), this means each iteration takes 16 minutes instead of 2, slowing development by 8×. The principle: CPU-bound independent tasks should always be parallelized with `ProcessPoolExecutor` (not `ThreadPoolExecutor` — the GIL prevents true parallelism for CPU work in threads). The cost is ~10 lines of wrapper code; the benefit is N× speedup where N = core count.
+
+---
+
+## 94. Blocking Backtest in WebSocket Handler — Event Loop Starvation
+
+**Проблема:** Бэктест на 10,000 свечей запускается синхронно внутри WebSocket-обработчика. Это блокирует event loop на ~1 секунду — все 5 подключенных HFT-клиентов не получают сигналы, circuit breaker status, или любые другие сообщения в это время.
+
+**Плохой код (Current):**
+```python
+# signal_publisher.py:139-147
+async for message in websocket:
+    data = json.loads(message)
+    msg_type = data.get("type")
+    if msg_type == "run_backtest":
+        result = await self._run_backtest(data)  # blocks event loop!
+        await websocket.send(json.dumps(result))
+
+# signal_publisher.py:271-302
+async def _run_backtest(self, params: dict) -> dict:
+    bt = Backtester(initial_balance=..., fee_pct=0.075, ...)
+    for name, strat in strategies.items():
+        result = bt.run(candles, strat, symbol=..., warmup=50)  # sync, ~1s
+        results[name] = self._format_backtest_result(result)
+    return {"type": "backtest_result", "results": results}
+```
+
+**Хороший код (Refactored):**
+```python
+async def _run_backtest(self, params: dict) -> dict:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        None,  # default ThreadPoolExecutor (1 worker is fine for 1 backtest)
+        self._run_backtest_sync, params,
+    )
+
+def _run_backtest_sync(self, params: dict) -> dict:
+    """Synchronous backtest — runs in thread pool, doesn't block event loop."""
+    bt = Backtester(initial_balance=..., fee_pct=0.075, ...)
+    strategies = self._build_strategies(bt_params["strategy"])
+    results = {}
+    for name, strat in strategies.items():
+        result = bt.run(candles, strat, symbol=..., warmup=50)
+        results[name] = self._format_backtest_result(result)
+    return {"type": "backtest_result", "results": results}
+
+# Or with ProcessPoolExecutor for CPU-bound work:
+from concurrent.futures import ProcessPoolExecutor
+_executor = ProcessPoolExecutor(max_workers=2)
+
+async def _run_backtest(self, params: dict) -> dict:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        _executor, self._run_backtest_sync, params,
+    )
+```
+
+**Почему так (Theory & Concept):** asyncio runs on a single thread with one event loop. When a coroutine calls a synchronous function that takes 1 second, the event loop is blocked for that entire second — no other coroutines run, no WebSocket messages are sent or received, no timers fire. With 5 HFT clients connected, all 5 clients are starved of data for 1 second. In a trading system, 1 second of signal starvation can mean missed opportunities or stale circuit breaker state. The bad code treats `await self._run_backtest(data)` as if it's non-blocking, but `_run_backtest` calls `bt.run()` synchronously — there's no `await` inside `bt.run()`, so the entire backtest runs on the event loop thread. The good code uses `run_in_executor()` to offload the CPU-bound work to a thread pool (or process pool). The event loop continues processing WebSocket messages while the backtest runs in a separate thread. When the backtest completes, the result is delivered back to the coroutine via a future. The principle: never run CPU-bound work on the event loop thread — always offload to `run_in_executor()`. This is the asyncio equivalent of "don't block the main thread" in threaded programming.
+
+---
+
+## 95. Bare `except Exception` Swallows `CancelledError` — Preventing Clean Shutdown
+
+**Проблема:** В 5+ файлах по всему проекту используется `except Exception` для обработки ошибок. В Python 3.9+ `asyncio.CancelledError` наследуется от `BaseError`, не `Exception`, но в Python 3.8 и ниже — от `Exception`. Даже в 3.12, bare `except Exception` может маскировать `KeyboardInterrupt` (тоже `BaseError`) и другие системные исключения. Это системный антипаттерн: 5+ файлов не могут корректно завершиться при `Ctrl+C` или `task.cancel()`.
+
+**Плохой код (Current):**
+```python
+# real_account.py:163
+except Exception as e:
+    logger.error(f"Failed to fetch balance: {e}")
+    return []
+
+# signal_publisher.py:155
+except Exception as e:
+    logger.debug(f"Client handler error: {e}")
+
+# health_check.py:73
+except Exception as e:
+    return {"status": "unhealthy", "error": str(e)}
+
+# real_account.py:247
+except Exception as e:
+    logger.error(f"Failed to set leverage: {e}")
+    return False
+```
+
+**Хороший код (Refactored):**
+```python
+# Option A: Catch specific exceptions
+except (OSError, RuntimeError, KeyError, ValueError, asyncio.TimeoutError) as e:
+    logger.error(f"Failed to fetch balance: {e}")
+    return []
+
+# Option B: Re-raise CancelledError before bare catch
+except asyncio.CancelledError:
+    raise  # propagate cancellation
+except Exception as e:
+    logger.error(f"Failed to fetch balance: {e}")
+    return []
+
+# Option C: Use except* (Python 3.11+ exception groups)
+except* asyncio.CancelledError:
+    raise
+except* (OSError, RuntimeError, KeyError, ValueError) as e:
+    logger.error(f"Failed: {e}")
+    return []
+```
+
+**Почему так (Theory & Concept):** `asyncio.CancelledError` is how asyncio cancels tasks — `task.cancel()` raises `CancelledError` inside the coroutine. If the coroutine catches it with `except Exception` and returns a default value, the cancellation is silently swallowed. The task continues running instead of stopping. During shutdown, `loop.run_until_complete(main())` calls `main_task.cancel()` — if `main` catches `Exception`, the cancellation is lost and the process hangs. In Python 3.9+, `CancelledError` inherits from `BaseError` (not `Exception`), so `except Exception` won't catch it. But the code is still wrong: (1) it catches `KeyboardInterrupt` in Python <3.11, (2) it catches `SystemExit`, (3) it hides bugs by swallowing unexpected exceptions like `TypeError` or `AttributeError` that indicate programming errors. The good code catches specific exceptions that are expected (network errors, parse errors) and lets everything else propagate. The principle: never catch `Exception` — catch specific exception types. If you must catch broadly, re-raise `CancelledError` and `KeyboardInterrupt` first. This is especially critical in asyncio where cancellation is cooperative — swallowing `CancelledError` breaks the entire shutdown mechanism.
+
+---
+
+## 96. Model Registry Saves to Disk on Every A/B Impression — I/O Storm
+
+**Проблема:** Model registry сохраняет весь JSON-файл на каждый A/B test impression. При 1000 предсказаний/сек это 1000 файловых записей/сек, каждая сериализует все модели и A/B тесты.
+
+**Плохой код (Current):**
+```python
+# model_registry.py:229-244
+def select_ab_model(self, name: str) -> str:
+    ab = self.ab_tests.get(name)
+    if not ab or not ab.active:
+        prod = self.get_production_model(name)
+        return prod.version if prod else ""
+
+    import random
+    if random.random() < ab.traffic_split:
+        ab.treatment_impressions += 1
+        self._save()  # saves entire registry to disk!
+        return ab.treatment_version
+    else:
+        ab.control_impressions += 1
+        self._save()  # saves entire registry to disk!
+        return ab.control_version
+
+def _save(self) -> None:
+    os.makedirs(self.storage_dir, exist_ok=True)
+    data = {
+        "models": {name: {ver: {**asdict(v), ...} for ver, v in versions.items()} ...},
+        "ab_tests": {name: asdict(ab) for name, ab in self.ab_tests.items()},
+    }
+    with open(self.index_path, "w") as f:
+        json.dump(data, f, indent=2)  # full serialization + disk write
+```
+
+**Хороший код (Refactored):**
+```python
+class ModelRegistry:
+    def __init__(self, storage_dir="models/registry"):
+        # ...
+        self._dirty = False
+        self._save_interval = 60  # save at most once per 60s
+        self._last_save = 0.0
+
+    def select_ab_model(self, name: str) -> str:
+        ab = self.ab_tests.get(name)
+        if not ab or not ab.active:
+            prod = self.get_production_model(name)
+            return prod.version if prod else ""
+
+        import random
+        if random.random() < ab.traffic_split:
+            ab.treatment_impressions += 1
+            self._mark_dirty()
+            return ab.treatment_version
+        else:
+            ab.control_impressions += 1
+            self._mark_dirty()
+            return ab.control_version
+
+    def _mark_dirty(self) -> None:
+        """Mark registry as dirty and flush if interval elapsed."""
+        now = time.time()
+        if now - self._last_save >= self._save_interval:
+            self._save()
+            self._last_save = now
+        else:
+            self._dirty = True
+
+    def flush(self) -> None:
+        """Force save if dirty. Call on shutdown."""
+        if self._dirty:
+            self._save()
+            self._dirty = False
+```
+
+**Почему так (Theory & Concept):** Disk I/O is the slowest operation in any system — a single `json.dump` to file involves: (1) JSON serialization of all objects (CPU), (2) `open()` syscall (kernel), (3) `write()` syscall (kernel → disk), (4) `close()` syscall (kernel). At 1000 writes/sec, the disk becomes the bottleneck — even NVMe SSDs max out at ~100K IOPS for small writes, but with 1000/sec sustained, the I/O queue fills up and latency spikes. Worse, the JSON file grows with each model version — after 100 versions across 10 models, each save serializes 1000+ objects. The bad code treats every state change as needing immediate persistence, but A/B test impression counts are approximate metrics — losing 60 seconds of impression data on crash is acceptable. The good code uses a "dirty flag + interval" pattern: mark the registry as dirty, flush to disk at most once per 60 seconds. This reduces disk writes from 1000/sec to 1/min — a 60,000× reduction. On shutdown, `flush()` ensures no data is lost. The principle: batch disk writes — don't persist on every state change, persist on a time interval or on shutdown. This is the same pattern as database transaction batching: accumulate changes in memory, flush in bulk.
+
+---
+
+## 97. Duplicate Modules Across Packages — Architectural Confusion
+
+**Проблема:** В проекте существует 4 пары дублирующих модулей в разных пакетах: два CircuitBreaker, два setup_logging, два health server, два metrics server. Это создает путаницу — разработчик не знает, какой использовать, и оба могут быть инициализированы одновременно.
+
+**Плохой код (Current):**
+```python
+# Pair 1: Two CircuitBreakers
+# utils/helpers.py:145 — simple, no config, no probe limiting
+class CircuitBreaker:
+    def __init__(self, failure_threshold=5, recovery_timeout=30.0):
+        self._state = "closed"  # string, not enum
+
+# communication/circuit_breaker.py:34 — full, config dataclass, enum, probes
+class CircuitBreaker:
+    def __init__(self, config: CircuitBreakerConfig | None = None):
+        self._state = CircuitBreakerState.CLOSED  # enum
+
+# Pair 2: Two setup_logging
+# utils/helpers.py:14 — custom JsonFormatter, returns Logger
+def setup_logging(level="INFO", format_type="json", log_file=None) -> logging.Logger:
+
+# observability/logging.py:31 — structlog, returns None
+def setup_logging(service="ai-signal-bot", level="INFO", json_logs=False) -> None:
+
+# Pair 3: Two health servers (ports 8080 vs 9090)
+# monitoring/health_server.py — pluggable checks, 3 hardcoded
+# observability/health_checks.py — deep checks, K8s liveness/readiness
+
+# Pair 4: Two metrics servers (ports 9090 vs 9091)
+# communication/metrics_server.py — 7 metrics, pure Python
+# monitoring/metrics.py — 15 metrics, prometheus_client
+```
+
+**Хороший код (Refactored):**
+```python
+# One CircuitBreaker in communication/circuit_breaker.py
+# utils/helpers.py imports it:
+from src.communication.circuit_breaker import CircuitBreaker
+# Remove the duplicate class from helpers.py
+
+# One setup_logging in observability/logging.py
+# utils/helpers.py imports it:
+from src.observability.logging import setup_logging
+# Remove the duplicate function from helpers.py
+
+# One health server in observability/health_checks.py (K8s-ready)
+# monitoring/health_server.py becomes a thin wrapper:
+from src.observability.health_checks import HealthChecker, create_health_endpoints
+# Or remove monitoring/health_server.py entirely
+
+# One metrics server in monitoring/metrics.py (prometheus_client)
+# communication/metrics_server.py becomes fallback:
+# if not HAS_PROMETHEUS: use lightweight MetricsCollector
+# Or remove communication/metrics_server.py entirely
+```
+
+**Почему так (Theory & Concept):** Duplicate code is the #1 maintainability killer. When the same functionality exists in two places: (1) bug fixes must be applied twice — if one is missed, the bug persists, (2) developers waste time deciding which to use, (3) both may be initialized simultaneously, causing conflicts (e.g., two `setup_logging` calls clear each other's handlers, two metrics servers serve on different ports confusing Prometheus). The bad code evolved organically — someone needed a simple circuit breaker in utils, someone else built a full one in communication. Instead of importing, they copy-pasted. The good code follows DRY (Don't Repeat Yourself): one implementation, one location, imported everywhere. The principle: when you need the same functionality in two packages, import it — don't duplicate it. If the use cases are different (simple vs full), use composition or configuration, not copy-paste. Code reviews should catch duplicates early — grep for class/function names before creating new ones.
+
+---
+
+## 98. Discord Notifier Polls REST API Without Sleep — Rate Limit Storm
+
+**Проблема:** Discord notifier опрашивает REST API в цикле `while self._running` без `asyncio.sleep()` на success path. Это отправляет сотни запросов в секунду, быстро исчерпывая Discord rate limit (50 req/s per channel, но практический лимит ниже).
+
+**Плохой код (Current):**
+```python
+# notifier.py:234-263
+async def _poll_messages(self):
+    last_message_id = None
+
+    while self._running:
+        try:
+            url = f"https://discord.com/api/v10/channels/{self.channel_id}/messages"
+            headers = {"Authorization": f"Bot {self.token}"}
+            params = {"limit": 10}
+            if last_message_id:
+                params["after"] = last_message_id
+
+            async with self._session.get(url, headers=headers, params=params) as resp:
+                if resp.status != 200:
+                    await asyncio.sleep(5)  # sleep on error
+                    continue
+                messages = await resp.json()
+                messages.reverse()
+
+                for msg in messages:
+                    last_message_id = msg["id"]
+                    content = msg.get("content", "")
+                    if content.startswith("/"):
+                        await self._handle_command(content)
+
+                # NO sleep here! Immediately polls again!
+
+        except asyncio.CancelledError:
+            break
+        except (OSError, RuntimeError, json.JSONDecodeError) as e:
+            logger.error(f"Discord poll error: {e}")
+            await asyncio.sleep(5)  # sleep on error only
+```
+
+**Хороший код (Refactored):**
+```python
+async def _poll_messages(self):
+    last_message_id = None
+
+    while self._running:
+        try:
+            url = f"https://discord.com/api/v10/channels/{self.channel_id}/messages"
+            headers = {"Authorization": f"Bot {self.token}"}
+            params = {"limit": 10}
+            if last_message_id:
+                params["after"] = last_message_id
+
+            async with self._session.get(url, headers=headers, params=params) as resp:
+                if resp.status == 429:  # Rate limited
+                    retry_after = float(resp.headers.get("Retry-After", "1"))
+                    await asyncio.sleep(retry_after)
+                    continue
+                if resp.status != 200:
+                    await asyncio.sleep(5)
+                    continue
+                messages = await resp.json()
+                messages.reverse()
+
+                for msg in messages:
+                    last_message_id = msg["id"]
+                    content = msg.get("content", "")
+                    if content.startswith("/"):
+                        await self._handle_command(content)
+
+            # Always sleep between polls to respect rate limits
+            await asyncio.sleep(1)
+
+        except asyncio.CancelledError:
+            break
+        except (OSError, RuntimeError, json.JSONDecodeError) as e:
+            logger.error(f"Discord poll error: {e}")
+            await asyncio.sleep(5)
+```
+
+**Почему так (Theory & Concept):** REST API rate limiting is a fundamental constraint of any cloud API. Discord's rate limit is 50 requests/second per channel, but global rate limits also apply (usually lower). The bad code sends requests as fast as the event loop can process them — potentially 1000+ requests/second. This triggers Discord's rate limiter, which returns HTTP 429 with a `Retry-After` header. The bad code doesn't handle 429 — it just checks `status != 200` and sleeps 5s. But even with 5s sleep on 429, the code sends a burst of requests before getting rate-limited, then sleeps, then bursts again — a "sawtooth" pattern that's both inefficient and risks getting the bot banned. The good code: (1) always sleeps 1s between polls, reducing request rate to 1/sec (well within limits), (2) explicitly handles HTTP 429 by reading the `Retry-After` header and sleeping for the specified duration, (3) processes messages correctly. The Telegram poller avoids this problem by using long polling (`timeout: 30` in the request params) — the server holds the connection open for up to 30 seconds waiting for new messages, so the poller naturally sleeps. Discord's REST API doesn't support long polling, so explicit sleep is required. The principle: always include a delay between polling iterations — never poll in a tight loop. Handle rate limit responses (429) explicitly by reading the `Retry-After` header.
+
+---
+
+## 99. NotifierManager Sends Alerts Sequentially — Latency Multiplication
+
+**Проблема:** NotifierManager отправляет alerts последовательно каждому notifier. Если Telegram занимает 2s и Discord 3s, общая задержка 5s. Для trading alerts (SL/TP hits, fill notifications) это критично — alert может прибыть после того как позиция уже закрыта.
+
+**Плохой код (Current):**
+```python
+# notifier.py:308-310
+class NotifierManager:
+    async def send_alert(self, event: AlertEvent):
+        for n in self._notifiers:
+            await n.send_alert(event)  # sequential await!
+```
+
+**Хороший код (Refactored):**
+```python
+class NotifierManager:
+    async def send_alert(self, event: AlertEvent):
+        results = await asyncio.gather(
+            *[n.send_alert(event) for n in self._notifiers],
+            return_exceptions=True,
+        )
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(
+                    f"[NotifierManager] {type(self._notifiers[i]).__name__} "
+                    f"failed: {result}"
+                )
+```
+
+**Почему так (Theory & Concept):** Sequential `await` in a loop is a common asyncio anti-pattern. Each `await n.send_alert(event)` blocks until that notifier completes. With N notifiers, total time is Σ(time_i) — the sum of all individual times. The good code uses `asyncio.gather()` which runs all coroutines concurrently — total time is max(time_i), the slowest one. With 2 notifiers taking 2s and 3s respectively: sequential = 5s, concurrent = 3s (40% faster). With 5 notifiers taking 2s each: sequential = 10s, concurrent = 2s (80% faster). The `return_exceptions=True` flag ensures that if one notifier fails (e.g., Telegram is down), it doesn't cancel the others — the exception is returned as a value, and the code logs it. Without this flag, a single failure would cancel all pending sends. The principle: when sending to multiple independent destinations, always use `asyncio.gather()` — never loop with sequential `await`. This applies to: notifications, health checks, API calls to multiple services, database writes to multiple shards. The only reason to use sequential await is when there's a dependency between calls (e.g., call A returns data needed for call B).
+
+---
+
+## 100. 22 Duplicate `compute_returns` Functions — Copy-Paste Epidemic
+
+**Проблема:** В 22 research-модулях определена одна и та же функция `compute_returns` с одинаковым телом. Это 22× дублирование кода: если нужно изменить формулу (например, добавить log returns), нужно изменить 22 файла. Если забыть один — баг.
+
+**Плохой код (Current):**
+```python
+# banach.py
+def compute_returns(prices):
+    return [(prices[i] - prices[i-1]) / prices[i-1] for i in range(1, len(prices))]
+
+# burgers.py
+def compute_returns(prices):
+    return [(prices[i] - prices[i-1]) / prices[i-1] for i in range(1, len(prices))]
+
+# cameron_martin.py
+def compute_returns(prices):
+    return [(prices[i] - prices[i-1]) / prices[i-1] for i in range(1, len(prices))]
+
+# ... 19 more files with the exact same function ...
+
+# __init__.py: 42 aliases for the same function!
+from src.research.banach import compute_returns as banach_compute_returns
+from src.research.burgers import compute_returns as burgers_compute_returns
+from src.research.cameron_martin import compute_returns as cm_compute_returns
+# ... 19 more aliases ...
+```
+
+**Хороший код (Refactored):**
+```python
+# src/research/utils.py
+import numpy as np
+
+def compute_returns(prices: np.ndarray | list[float]) -> np.ndarray:
+    """Compute simple returns from price series."""
+    prices = np.asarray(prices, dtype=float)
+    if len(prices) < 2:
+        return np.array([])
+    return (prices[1:] - prices[:-1]) / prices[:-1]
+
+# banach.py (and all other research modules)
+from src.research.utils import compute_returns  # one import, one implementation
+
+# __init__.py: no aliases needed
+# Users import directly: from src.research.banach import banach_analysis
+# Or: from src.research.utils import compute_returns
+```
+
+**Почему так (Theory & Concept):** Copy-paste duplication is the most common DRY violation. It starts innocently — a developer needs `compute_returns` in a new module, copies it from an existing one, and moves on. After 22 copies, the codebase has 22 identical functions that must all be maintained in sync. The `__init__.py` makes it worse by creating 42 aliases (`banach_compute_returns`, `burgers_compute_returns`, etc.) — all pointing to the same implementation. This creates the illusion of 22 different functions when there's really only one. The risks: (1) if a bug is found in one copy, it exists in all 22, but you might only fix one, (2) if someone modifies one copy (e.g., adds log returns), the behavior is inconsistent across modules, (3) the 42 aliases in `__init__.py` pollute the namespace and make autocomplete useless, (4) import time is 25× longer because all modules load even if you only need one. The good code follows DRY: one function in `utils.py`, imported everywhere. If the formula changes, one edit updates all 22 modules. The `__init__.py` can stop re-exporting `compute_returns` entirely — users import from `utils` directly. The principle: never copy-paste a function into more than 2 files. If you need it in 3+ places, extract it to a shared utility module. Code reviews should grep for function names before approving new code — if the function already exists, import it.
+
+---
+
+## 101. No SIGTERM Handler — Kubernetes Kills Bot Without Graceful Shutdown
+
+**Проблема:** Бот обрабатывает только `KeyboardInterrupt` (Ctrl+C), но в Kubernetes/Docker контейнеры получают `SIGTERM` при остановке. Бот будет убит без graceful shutdown — открытые позиции не закрываются, DB-соединения утекают, signal_publisher не останавливается.
+
+**Плохой код (Current):**
+```python
+# run.py:370-393
+def main():
+    parser = argparse.ArgumentParser(description="AI Signal Bot")
+    # ...
+    config = SignalBotConfig.load(args.config)
+    logger, log_path = setup_logging(config.log_level, config.log_file)
+
+    if args.backtest:
+        run_backtest(config, logger)
+        return
+
+    bot = AISignalBot(config)
+    try:
+        asyncio.run(bot.run(show_dashboard=args.dashboard, enable_metrics=args.metrics))
+    finally:
+        logger.info(f"Run complete. Log file: {log_path}")
+
+# bot.run() only catches KeyboardInterrupt:
+async def run(self, ...):
+    try:
+        while self._running:
+            await asyncio.sleep(self.config.signal_interval)
+            await self._generate_signals()
+    except KeyboardInterrupt:
+        self.logger.info("Stopping...")
+    finally:
+        self._running = False
+        listen_task.cancel()
+        await self.signal_publisher.stop()
+        # ... cleanup ...
+```
+
+**Хороший код (Refactored):**
+```python
+import signal
+
+def main():
+    parser = argparse.ArgumentParser(description="AI Signal Bot")
+    # ...
+    config = SignalBotConfig.load(args.config)
+    logger, log_path = setup_logging(config.log_level, config.log_file)
+
+    if args.backtest:
+        run_backtest(config, logger)
+        return
+
+    bot = AISignalBot(config)
+
+    # Handle both SIGTERM (K8s/Docker) and SIGINT (Ctrl+C)
+    def _shutdown(signum, frame):
+        logger.info(f"Received signal {signum} — initiating graceful shutdown")
+        bot._running = False  # signals the main loop to exit
+
+    signal.signal(signal.SIGTERM, _shutdown)
+    signal.signal(signal.SIGINT, _shutdown)
+
+    try:
+        asyncio.run(bot.run(show_dashboard=args.dashboard, enable_metrics=args.metrics))
+    finally:
+        logger.info(f"Run complete. Log file: {log_path}")
+
+# bot.run() checks _running flag instead of catching KeyboardInterrupt:
+async def run(self, ...):
+    self._running = True
+    # ... setup ...
+    try:
+        while self._running:
+            await asyncio.sleep(self.config.signal_interval)
+            await self._generate_signals()
+    finally:
+        # Always runs — whether _running was set False by signal or error
+        self._running = False
+        listen_task.cancel()
+        await self.signal_publisher.stop()
+        if prom_server:
+            await prom_server.stop_server()
+        if metrics_server:
+            await metrics_server.stop()
+        await self.llm_engine.close()
+        await self.exchange.disconnect()
+        self.logger.info("AI Signal Bot stopped")
+```
+
+**Почему так (Theory & Concept):** Container orchestration platforms (Kubernetes, Docker Swarm, Nomad) send `SIGTERM` to gracefully stop a container, wait for a grace period (default 30s in K8s), then send `SIGKILL` to force-kill. `KeyboardInterrupt` is raised by Python only on `SIGINT` (Ctrl+C in terminal). In production, nobody presses Ctrl+C — the orchestrator sends `SIGTERM`. The bad code's `except KeyboardInterrupt` never fires in K8s, so the `finally` block in `bot.run()` doesn't execute, and cleanup (closing exchange connection, stopping signal publisher, closing LLM engine) never happens. The `finally` in `main()` does run (Python's `finally` always runs), but it only logs — it doesn't call `bot.stop()` or close resources. The good code: (1) registers a signal handler for both `SIGTERM` and `SIGINT` that sets `bot._running = False`, (2) the main loop checks `_running` and exits naturally, (3) the `finally` block in `bot.run()` always executes cleanup. This pattern is called "cooperative shutdown" — the signal handler doesn't kill the process, it signals the event loop to exit, allowing all `finally` blocks and `async with` context managers to clean up properly. The principle: in containerized environments, always handle `SIGTERM` for graceful shutdown. Never rely on `KeyboardInterrupt` alone. Set a `_running` flag that the main loop checks, and put all cleanup in `finally` blocks that always execute.
+
+---
+
+## 102. Zero `asyncio.Lock` Usage — Race Conditions on Shared State
+
+**Проблема:** Во всём `src/` нет ни одного `asyncio.Lock`. Несколько shared-структур модифицируются concurrently: `SignalPublisher._clients` (set), `ExchangeClient._candle_history` (dict of deques), `SignalValidator._recent_signals` (dict). В asyncio это обычно безопасно между корутинами, но `self._clients -= disconnected` — это set difference, который может прерваться между read и write.
+
+**Плохой код (Current):**
+```python
+# signal_publisher.py — broadcast_signal()
+async def broadcast_signal(self, signal: dict) -> None:
+    ...
+    disconnected = set()
+    async def _send(ws):
+        try:
+            await ws.send(msg)
+        except Exception:
+            disconnected.add(ws)
+    await asyncio.gather(*[_send(ws) for ws in self._clients], return_exceptions=True)
+    self._clients -= disconnected  # NOT atomic — can interleave with _handle_client adding/removing
+
+# _handle_client() runs concurrently:
+async def _handle_client(self, websocket, path=None) -> None:
+    self._clients.add(websocket)     # concurrent modification
+    ...
+    finally:
+        self._clients.discard(websocket)  # concurrent modification
+
+# signal_validation/validator.py — _check_duplicate()
+def _check_duplicate(self, signal: Signal) -> ValidationResult | None:
+    now = datetime.now()
+    stale = [s for s, t in self._recent_signals.items() if now - t > timedelta(minutes=10)]
+    for s in stale:
+        del self._recent_signals[s]  # dict mutation during potential iteration
+    if signal.symbol in self._recent_signals:
+        ...
+```
+
+**Хороший код (Refactored):**
+```python
+import asyncio
+
+class SignalPublisher:
+    def __init__(self, ...):
+        ...
+        self._clients: set = set()
+        self._clients_lock = asyncio.Lock()
+
+    async def broadcast_signal(self, signal: dict) -> None:
+        ...
+        disconnected = set()
+        async def _send(ws):
+            try:
+                await ws.send(msg)
+            except Exception:
+                disconnected.add(ws)
+        await asyncio.gather(*[_send(ws) for ws in self._clients], return_exceptions=True)
+        async with self._clients_lock:
+            self._clients -= disconnected
+
+    async def _handle_client(self, websocket, path=None) -> None:
+        async with self._clients_lock:
+            self._clients.add(websocket)
+        ...
+        finally:
+            async with self._clients_lock:
+                self._clients.discard(websocket)
+
+class SignalValidator:
+    def __init__(self, ...):
+        ...
+        self._recent_signals: dict[str, datetime] = {}
+        self._signals_lock = asyncio.Lock()
+
+    async def validate(self, signal: Signal, ...) -> ValidationResult:
+        ...
+        async with self._signals_lock:
+            # All mutation under lock — no concurrent modification
+            self._cleanup_stale()
+            if signal.symbol in self._recent_signals:
+                ...
+            self._recent_signals[signal.symbol] = datetime.now(UTC)
+        ...
+```
+
+**Почему так (Theory & Concept):** asyncio runs in a single thread, so there are no true data races between coroutines — Python's GIL ensures atomic bytecode execution. However, `await` points create cooperative scheduling boundaries. Between two `await` calls, any other coroutine can run and modify shared state. The expression `self._clients -= disconnected` looks atomic, but it's actually `self._clients = self._clients - disconnected`, which involves: (1) read `self._clients`, (2) compute difference, (3) write back. If between step 1 and step 3, another coroutine calls `self._clients.add(new_ws)` or `self._clients.discard(old_ws)`, that change is lost — overwritten by step 3. This is a "lost update" race condition. Similarly, `del self._recent_signals[s]` during iteration over `.items()` can raise `RuntimeError: dictionary changed size during iteration` if another coroutine modifies the dict between the iterator's steps. The `asyncio.Lock` solves this: only one coroutine can hold the lock at a time, so the read-modify-write cycle is atomic from the perspective of other coroutines. The lock is released at `await` points inside the `async with` block, but the critical section (the mutation) is protected. The principle: in asyncio, any shared mutable state that is modified by multiple coroutines needs an `asyncio.Lock`. This includes sets, dicts, and lists where one coroutine writes while another reads or writes. Pure reads of immutable data don't need locks. The cost of `asyncio.Lock` is minimal — it's a non-reentrant lock with ~100ns overhead per acquire/release.
+
+---
+
+## 103. Triple Duplicate PortfolioOptimizer — 900 Lines of Copy-Paste
+
+**Проблема:** В проекте exist три отдельные реализации портфельной оптимизации: `risk/portfolio_optimizer.py` (307 lines), `strategies/portfolio_optimizer.py` (311 lines), и `portfolio/` (4 файла: markowitz.py, black_litterman.py, risk_parity.py, rebalancing.py). Все три реализуют Markowitz, Black-Litterman, и risk parity с немного разными API. ~900 lines дублированного кода.
+
+**Плохой код (Current):**
+```python
+# risk/portfolio_optimizer.py — 307 lines
+class PortfolioOptimizer:
+    def markowitz(self, returns, target_return=0.001): ...
+    def black_litterman(self, returns, market_caps, views): ...
+    def risk_parity(self, cov_matrix): ...
+    def kelly_criterion(self, win_rate, avg_win, avg_loss): ...
+    def rebalance(self, current_weights, target_weights): ...
+
+# strategies/portfolio_optimizer.py — 311 lines
+class PortfolioOptimizer:
+    def optimize(self, returns, method="markowitz"): ...
+    def black_litterman(self, returns, market_caps, views): ...
+    def risk_parity(self, cov_matrix): ...
+    def min_variance(self, cov_matrix): ...
+
+# portfolio/markowitz.py — 178 lines (canonical)
+class MarkowitzOptimizer:
+    def optimize_portfolio(self, returns, cov_matrix): ...
+    def efficient_frontier(self, returns, cov_matrix): ...
+# portfolio/black_litterman.py — 165 lines (canonical)
+# portfolio/risk_parity.py — 120 lines (canonical)
+# portfolio/rebalancing.py — 180 lines (canonical)
+```
+
+**Хороший код (Refactored):**
+```python
+# portfolio/__init__.py — single import point
+from src.portfolio.markowitz import MarkowitzOptimizer
+from src.portfolio.black_litterman import BlackLittermanOptimizer
+from src.portfolio.risk_parity import RiskParityOptimizer
+from src.portfolio.rebalancing import Rebalancer
+
+# risk/portfolio_optimizer.py — DELETED (307 lines removed)
+# strategies/portfolio_optimizer.py — DELETED (311 lines removed)
+
+# Usage everywhere:
+from src.portfolio import MarkowitzOptimizer
+opt = MarkowitzOptimizer()
+weights = opt.optimize_portfolio(returns, cov_matrix)
+```
+
+**Почему так (Theory & Concept):** Code duplication at this scale (900 lines) is a severe maintainability and reliability risk. Three implementations of the same algorithm will inevitably diverge — a bug fix in one won't propagate to the others. If someone fixes the covariance matrix inversion in `portfolio/markowitz.py` but not in `risk/portfolio_optimizer.py`, the risk module produces different (possibly incorrect) weights than the portfolio module. This is especially dangerous in financial software where incorrect portfolio weights can lead to wrong position sizes and unexpected risk exposure. The root cause is likely organic growth: someone wrote `risk/portfolio_optimizer.py` first, then `strategies/portfolio_optimizer.py` was added for the strategy layer, then `portfolio/` was created as a "proper" module — but the old ones were never removed. The good code follows the "single source of truth" principle: one canonical implementation in `portfolio/`, imported everywhere. The `__init__.py` provides a clean import API. Code reduction: ~618 lines (307 + 311). The principle: never have multiple implementations of the same algorithm. If you need different interfaces (e.g., risk vs strategy), write a thin adapter/wrapper over the canonical implementation — don't copy-paste the algorithm. Code reviews should grep for class names before approving new code — if `PortfolioOptimizer` already exists, extend it or import it.
+
+---
+
+## 104. `__init__.py` Re-exports ~200 Symbols — Import-Time Performance Bomb
+
+**Проблема:** `technical_analysis/__init__.py` (252 lines) re-exports ~200 symbols from 25 modules. Any `from src.technical_analysis import sma` triggers loading ALL 25 modules — including rbergomi, compressed_sensing, hmc, bayesian_sts, optimal_stopping, copula, ms_garch — none of which are used in production trading. This adds 2-5 seconds to import time and ~50MB to memory.
+
+**Плохой код (Current):**
+```python
+# technical_analysis/__init__.py — 252 lines
+from src.technical_analysis.bayesian_price import (
+    BayesianPriceResult, bayesian_price_analysis, bayesian_ridge,
+    bayesian_signal, beta_cdf_inv, beta_pdf, bocpd,
+    log_gamma as bayesian_log_gamma, normal_pdf,
+)
+from src.technical_analysis.bayesian_sts import (
+    BSTSResult, bsts_analysis, bsts_signal, kalman_filter_bsts, optimize_bsts,
+)
+from src.technical_analysis.compressed_sensing import (
+    CompressedSensingResult, compressed_sensing_analysis, cs_signal,
+    dft_basis, ista, measurement_matrix, omp,
+)
+# ... 22 more imports from 22 more modules ...
+# Total: ~200 symbols from 25 modules
+
+# Usage in strategies.py:
+from src.technical_analysis import sma, ema, rsi  # loads ALL 25 modules!
+```
+
+**Хороший код (Refactored):**
+```python
+# technical_analysis/__init__.py — DELETE or make empty
+# Users import directly from the submodule:
+
+# Usage in strategies.py:
+from src.technical_analysis.indicators import sma, ema, rsi  # loads ONLY indicators.py
+
+# Or if you want a convenience layer, use __getattr__ for lazy loading:
+# technical_analysis/__init__.py
+def __getattr__(name: str):
+    if name in ("sma", "ema", "rsi", "macd", "bollinger_bands", "atr", "adx", "vwap"):
+        from src.technical_analysis.indicators import (
+            sma, ema, rsi, macd, bollinger_bands, atr, adx, vwap
+        )
+        return locals()[name]
+    if name in ("KalmanFilter1D", "KalmanFilter2D", "kalman_filter_1d", "kalman_filter_2d"):
+        from src.technical_analysis.kalman import (
+            KalmanFilter1D, KalmanFilter2D, kalman_filter_1d, kalman_filter_2d
+        )
+        return locals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+```
+
+**Почему так (Theory & Concept):** Python's `import` system executes all top-level statements in a module. When `__init__.py` has 25 `from X import Y` statements, all 25 modules are loaded immediately — their classes are defined, their constants are computed, their module-level code runs. For `technical_analysis`, this means 25 modules × ~200 lines each = ~5000 lines of Python executed on the first import. The rbergomi module alone defines an 18-field class, a Cholesky decomposition function, and a fractional Brownian motion simulator — all loaded just because someone wanted `sma()`. In a production trading bot that starts in <1 second, adding 2-5 seconds of import time for unused modules is unacceptable. The good code has two options: (1) **Delete `__init__.py` re-exports entirely** — users import directly from submodules (`from src.technical_analysis.indicators import sma`). This is the simplest and most Pythonic approach. (2) **Use `__getattr__` for lazy loading** — Python 3.7+ supports module-level `__getattr__`, which is called only when an attribute is not found normally. This allows `from src.technical_analysis import sma` to work without loading all 25 modules — only `indicators.py` is loaded. The principle: `__init__.py` should be thin or empty. Never re-export from submodules unless the package is small (<5 modules). For large packages, use direct submodule imports or `__getattr__` lazy loading. Import time matters in production — every second of startup delay is a second of downtime during deploys.
+
+---
+
+## 105. 4× Duplicate `_random_normal` (Box-Muller) — Copy-Paste Utility Functions
+
+**Проблема:** 4 identical Box-Muller `_random_normal` implementations across `sde.py`, `rbergomi.py`, `hmc.py`, `optimal_stopping.py`. Each is ~15 lines. Total: ~60 lines of duplicate code. All do the same thing: generate a standard normal random variable from a `random.Random` instance using the Box-Muller transform.
+
+**Плохой код (Current):**
+```python
+# sde.py:55 — identical copy #1
+def _random_normal(rng: random.Random) -> float:
+    """Box-Muller standard normal sample."""
+    u = rng.random()
+    while u == 0:
+        u = rng.random()
+    v = rng.random()
+    while v == 0:
+        v = rng.random()
+    return math.sqrt(-2 * math.log(u)) * math.cos(2 * math.pi * v)
+
+# rbergomi.py:64 — identical copy #2
+def _random_normal(rng: random.Random) -> float:
+    """Box-Muller standard normal sample."""
+    u = rng.random()
+    while u == 0:
+        u = rng.random()
+    v = rng.random()
+    while v == 0:
+        v = rng.random()
+    return math.sqrt(-2 * math.log(u)) * math.cos(2 * math.pi * v)
+
+# hmc.py:46 — identical copy #3
+# optimal_stopping.py:77 — identical copy #4
+# All 4 are byte-for-byte identical (except whitespace)
+```
+
+**Хороший код (Refactored):**
+```python
+# Option A: Use stdlib (simplest — available since Python 2.3)
+# Replace all 4 copies with:
+def _random_normal(rng: random.Random) -> float:
+    return rng.gauss(0.0, 1.0)
+
+# Option B: Create shared utils module
+# src/technical_analysis/_utils.py
+import math
+import random
+
+def random_normal(rng: random.Random) -> float:
+    """Standard normal sample via Box-Muller."""
+    u = rng.random()
+    while u == 0:
+        u = rng.random()
+    v = rng.random()
+    while v == 0:
+        v = rng.random()
+    return math.sqrt(-2 * math.log(u)) * math.cos(2 * math.pi * v)
+
+# sde.py, rbergomi.py, hmc.py, optimal_stopping.py:
+from src.technical_analysis._utils import random_normal
+# Delete the 4 local copies
+```
+
+**Почему так (Theory & Concept):** Utility function duplication is the most common form of code duplication. It happens when developers need a small helper function and instead of searching for an existing one, they write it from scratch (or copy-paste from Stack Overflow). The Box-Muller transform is a well-known algorithm — every developer who needs normal random numbers writes the same 10 lines. The problem is that if one copy has a bug (e.g., using `rng.randint(0, 1)` instead of `rng.random()`), only that file is fixed — the other 3 copies keep the bug. In this case, all 4 copies are correct, but the duplication is still a maintainability issue. The good code has two options: (1) **Use `random.gauss(0, 1)`** from the Python stdlib — this has been available since Python 2.3 and uses a more efficient algorithm (Kinderman-Monroe ratio method) than Box-Muller. The `rng.gauss()` method on `random.Random` is the same function. This is the simplest fix: replace 15 lines with 1 line. (2) **Create a shared `_utils.py` module** — if you need a specific Box-Muller implementation (e.g., for reproducibility with a specific algorithm), put it in one place and import it. The principle: never duplicate utility functions. If you need a helper, search the codebase first (`grep -r "def _random_normal"`). If it exists, import it. If it doesn't, create it in a shared utils module. The DRY principle (Don't Repeat Yourself) applies to small functions too — 15 lines × 4 copies = 60 lines of technical debt.
+
+---
+
+## 106. 2× Duplicate Health Check Systems — Architectural Confusion
+
+**Проблема:** Two separate health check implementations serve the same purpose (Kubernetes probes) but with different components, different logic, and different APIs. `monitoring/health_server.py` (153 lines) checks exchange/database/SHM via HTTP endpoints. `observability/health_checks.py` (221 lines) checks WebSocket/TimescaleDB/Redis/exchange via HealthChecker class. At scale, this causes confusion: which one is authoritative? If exchange is down, does `/health` return 503 (monitoring) or `unhealthy` (observability)? They may disagree.
+
+**Плохой код (Current):**
+```python
+# monitoring/health_server.py — HTTP server with its own check logic
+class HealthServer:
+    async def _check_exchange(self) -> dict:
+        if "exchange" in self._checks:
+            result = self._checks["exchange"]()
+            # ... returns {"healthy": bool, ...}
+        return {"healthy": True, "message": "No exchange check registered"}
+
+    async def _check_database(self) -> dict:
+        if "database" in self._checks:
+            result = self._checks["database"]()
+            # ... identical logic, different key
+        return {"healthy": True, "message": "No database check registered"}
+
+    async def _check_shm(self) -> dict:
+        if "shm" in self._checks:
+            result = self._checks["shm"]()
+            # ... identical logic, different key
+        return {"healthy": True, "message": "No SHM check registered"}
+
+    async def _check_all(self) -> dict:
+        exchange = await self._check_exchange()
+        database = await self._check_database()
+        shm = await self._check_shm()
+        # ... aggregates results
+
+# observability/health_checks.py — separate checker with different components
+class HealthChecker:
+    async def check_readiness(self) -> dict:
+        components = []
+        components.append(await self._check_ws())      # WebSocket, not in health_server
+        components.append(await self._check_db())       # TimescaleDB, different from "database"
+        components.append(await self._check_redis())    # Redis, not in health_server
+        components.append(await self._check_exchange()) # exchange, same as health_server
+        # ... different aggregation logic with HealthStatus enum
+```
+
+**Хороший код (Refactored):**
+```python
+# observability/health_checks.py — single source of truth for health logic
+class HealthChecker:
+    """Deep health checking for all system components."""
+
+    async def check_component(self, name: str) -> ComponentHealth:
+        """Generic component check — single method, no duplication."""
+        check_fn = self._checks.get(name)
+        if not check_fn:
+            return ComponentHealth(name=name, status=HealthStatus.HEALTHY,
+                                   details="No check registered")
+        try:
+            result = check_fn()
+            if asyncio.iscoroutine(result):
+                result = await result
+            status = HealthStatus.HEALTHY if result.get("healthy") else HealthStatus.UNHEALTHY
+            return ComponentHealth(name=name, status=status,
+                                   latency_ms=result.get("latency_ms", 0),
+                                   details=result.get("error", ""))
+        except Exception as e:
+            return ComponentHealth(name=name, status=HealthStatus.UNHEALTHY, details=str(e))
+
+    async def check_readiness(self) -> dict:
+        components = [await self.check_component(name) for name in self._check_names]
+        # ... aggregate
+
+# monitoring/health_server.py — thin HTTP layer that delegates to HealthChecker
+class HealthServer:
+    def __init__(self, checker: HealthChecker):
+        self._checker = checker  # inject dependency
+
+    async def _handle_health(self, request) -> web.Response:
+        result = await self._checker.check_readiness()
+        status = 200 if result["status"] == "healthy" else 503
+        return web.json_response(result, status=status)
+```
+
+**Почему так (Theory & Concept):** Health checks are critical infrastructure — they tell Kubernetes when to restart a pod (liveness) and when to route traffic to it (readiness). Having two separate health check systems is worse than having none, because they can disagree: one says "healthy" while the other says "unhealthy", and Kubernetes doesn't know which to trust. This happens when different teams (or the same team at different times) add health checks without checking if they already exist. The monitoring team adds an HTTP health server; the observability team adds a deep health checker — neither knows about the other. At scale (50+ pods, auto-scaling, rolling deploys), this causes flapping: pods restart unnecessarily, traffic routes to unhealthy pods, or deploy rollbacks trigger falsely. The good code follows **separation of concerns**: `HealthChecker` (observability) owns the check logic — it knows what components exist and how to test them. `HealthServer` (monitoring) owns the HTTP transport — it maps health results to HTTP status codes. The server delegates to the checker via dependency injection. This way, there's one source of truth for "is the system healthy?" and one HTTP layer for exposing it. The principle: never have two implementations of the same infrastructure concern. If you need health checks, alerts, logging, or metrics, pick one pattern and stick with it. Code reviews should check for duplicate infrastructure — grep for `class.*Health`, `class.*Alert`, `class.*Logger` before adding new ones.
+
+---
+
+## 107. 50+ Dead Code Modules (~17,000 Lines) — Import-Time Tax
+
+**Проблема:** 50+ modules across `technical_analysis/` (16), `ml/` (5), and `research/` (30+) totaling ~17,000 lines are not used by any production code path — no strategy, risk manager, backtester, or signal validator imports them. They're loaded only through `__init__.py` re-exports. At scale, this means every `from src.technical_analysis import sma` loads 25 modules (4000 lines), every `from src.research import X` loads 35 modules (12000 lines), and every `from src.ml import Y` loads 7 modules (1300 lines). This adds 5-10 seconds to startup time and ~100MB to memory — for code that's never called.
+
+**Плохой код (Current):**
+```python
+# Project structure:
+src/
+  technical_analysis/           # 25 modules, ~6500 lines
+    __init__.py                 # 252 lines, re-exports ~200 symbols
+    indicators.py               # ✅ USED by strategies
+    fft_analysis.py             # ✅ USED by FFTCycle strategy
+    kalman.py                   # ✅ USED by some strategies
+    garch.py                    # ✅ USED by risk module
+    hawkes.py                   # ✅ USED by signal validation
+    rbergomi.py                 # ❌ NOT USED — 281 lines
+    compressed_sensing.py       # ❌ NOT USED — 248 lines
+    emd.py                      # ❌ NOT USED — 313 lines
+    vmd.py                      # ❌ NOT USED — 263 lines
+    hmc.py                      # ❌ NOT USED — 251 lines
+    bayesian_sts.py             # ❌ NOT USED — 291 lines
+    optimal_stopping.py         # ❌ NOT USED — 323 lines
+    # ... 8 more unused modules
+
+  research/                     # 35 modules, ~14000 lines
+    __init__.py                 # 307 lines, re-exports ~200 symbols
+    attribution.py              # ❌ NOT USED — 6388 bytes
+    banach.py                   # ❌ NOT USED — 5811 bytes
+    burgers.py                  # ❌ NOT USED — 6059 bytes
+    cameron_martin.py           # ❌ NOT USED — 5185 bytes
+    # ... 31 more unused modules
+
+  ml/                           # 12 modules, ~5200 lines
+    __init__.py                 # 81 lines, re-exports ~30 symbols
+    autoencoder.py              # ❌ NOT USED — 376 lines
+    vae.py                      # ❌ NOT USED — 349 lines
+    rkhs.py                     # ❌ NOT USED — 276 lines
+    svm_signal.py               # ❌ NOT USED — 182 lines
+    environment.py              # ❌ NOT USED (only by rl_trader which needs torch)
+
+# Any import triggers loading ALL modules in the package:
+from src.technical_analysis import sma  # loads 25 modules, ~6500 lines executed
+from src.research import attribution    # loads 35 modules, ~14000 lines executed
+```
+
+**Хороший код (Refactored):**
+```python
+# Step 1: Move dead code to separate package
+src/                           # Production code only
+  technical_analysis/
+    indicators.py              # Core: used by strategies
+    fft_analysis.py            # Core: used by FFTCycle
+    kalman.py                  # Core: used by strategies
+    garch.py                   # Core: used by risk
+    hawkes.py                  # Core: used by signal validation
+    __init__.py                # EMPTY or 5-line re-export
+
+analysis_lab/                  # Advanced/research code, separate package
+  technical_analysis_advanced/
+    rbergomi.py
+    compressed_sensing.py
+    emd.py
+    vmd.py
+    # ... 11 more
+  research/
+    banach.py
+    burgers.py
+    # ... 31 more
+  ml_advanced/
+    autoencoder.py
+    vae.py
+    rkhs.py
+    # ...
+
+# Step 2: Direct imports only
+from src.technical_analysis.indicators import sma  # loads ONLY indicators.py
+from analysis_lab.technical_analysis_advanced.rbergomi import simulate_rbergomi  # explicit
+```
+
+**Почему так (Theory & Concept):** Dead code is not just "unused" — it's actively harmful. Every import of `src.technical_analysis` loads all 25 modules, executing their class definitions, constant computations, and module-level code. For a trading bot that needs to start in <1 second (Kubernetes rolling deploy, auto-scaling), adding 5-10 seconds of import time for unused modules is unacceptable. At scale (50 pods restarting simultaneously during a deploy), this means 50× the CPU spike, 50× the memory, and 50× the startup latency — all for code that's never called. The root cause is organic growth: someone adds a cool rBergomi module, puts it in `technical_analysis/`, adds it to `__init__.py`, and moves on. Six months later, 20 more modules are added the same way. Nobody removes old modules because "someone might be using them" — but nobody checks. The good code follows the **proximity principle**: production code in `src/`, research/experimental code in `analysis_lab/`. The `src/` package should contain only code that's imported by the trading bot's main loop. Everything else goes in a separate package that's imported explicitly and only when needed. This reduces `src/` by ~50%, cuts import time by 80%, and makes it obvious which code is production-critical. The principle: dead code is technical debt with interest. Every line of unused code adds import time, memory, cognitive load, and maintenance burden. Regularly audit imports — if a module isn't imported by any production code path, move it out of `src/`. Code reduction: ~17,000 lines (50+ modules).
+
+---
+
+## 108. No SIGTERM Handler — Kubernetes Pod Killed Without Cleanup
+
+**Проблема:** The main entry point `run.py` catches `KeyboardInterrupt` for graceful shutdown but does not handle `SIGTERM`. In Kubernetes, when a pod is terminated (scaling down, rolling deploy, resource pressure), the runtime sends `SIGTERM`, not `SIGINT` (Ctrl+C). The bot's cleanup code (DB flush, WebSocket close, LLM session close, signal publisher stop) never runs. The pod is killed after the grace period (default 30s) with `SIGKILL`, leaving open connections, unflushed data, and orphaned WebSocket sessions.
+
+**Плохой код (Current):**
+```python
+# run.py — main entry point
+class AISignalBot:
+    async def run(self, show_dashboard=False, enable_metrics=False) -> None:
+        # ... setup ...
+        try:
+            while self._running:
+                await asyncio.sleep(self.config.signal_interval)
+                await self._generate_signals()
+        except KeyboardInterrupt:  # ← only catches Ctrl+C, NOT SIGTERM
+            self.logger.info("Stopping...")
+        finally:
+            self._running = False
+            listen_task.cancel()
+            await self.signal_publisher.stop()
+            if prom_server:
+                await prom_server.stop_server()
+            if metrics_server:
+                await metrics_server.stop()
+            await self.llm_engine.close()
+            await self.exchange.disconnect()
+            self.logger.info("AI Signal Bot stopped")
+
+def main():
+    bot = AISignalBot(config)
+    asyncio.run(bot.run(...))  # ← no signal handler registered
+```
+
+**Хороший код (Refactored):**
+```python
+import signal
+
+class AISignalBot:
+    async def run(self, show_dashboard=False, enable_metrics=False) -> None:
+        # ... setup ...
+        # Register SIGTERM handler for K8s graceful shutdown
+        loop = asyncio.get_running_loop()
+        stop_event = asyncio.Event()
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, stop_event.set)
+
+        try:
+            while not stop_event.is_set():
+                await asyncio.wait_for(
+                    stop_event.wait(),
+                    timeout=self.config.signal_interval
+                )
+                if not stop_event.is_set():
+                    await self._generate_signals()
+        finally:
+            self._running = False
+            listen_task.cancel()
+            await self.signal_publisher.stop()
+            # ... cleanup ...
+
+def main():
+    bot = AISignalBot(config)
+    asyncio.run(bot.run(...))
+```
+
+**Почему так (Theory & Concept):** In local development, you press Ctrl+C and Python raises `KeyboardInterrupt` (SIGINT). In production (Kubernetes), the orchestrator sends `SIGTERM` to the pod's PID 1 process. Python does NOT raise `KeyboardInterrupt` for `SIGTERM` — it raises `SystemExit` or terminates immediately depending on the handler. Without an explicit `SIGTERM` handler, the `finally` block never executes. This means: (1) **Database corruption** — SQLite WAL may not checkpoint, leaving uncommitted transactions. (2) **WebSocket leak** — exchange connections remain open until TCP timeout (60s), consuming server-side resources. (3) **Signal publisher orphaned** — HFT bot subscribers don't know the signal bot is down, causing stale signals. (4) **LLM session leak** — aiohttp ClientSession isn't closed, leaking file descriptors. At scale (50 pods rolling deploy), this means 50 leaked DB connections, 50 leaked WS sessions, and potential data loss on every deploy. The good code uses `loop.add_signal_handler()` to set an `asyncio.Event`, which the main loop checks. This is the standard asyncio pattern for graceful shutdown — it works for both SIGINT and SIGTERM, and it allows the `finally` block to run cleanup before the process exits. The principle: in containerized environments, always handle `SIGTERM` — it's the only signal Kubernetes sends before `SIGKILL`. `KeyboardInterrupt` is for development only.
+
+---
+
+## 109. No Rate Limiting on Exchange REST API Calls — IP Ban at Scale
+
+**Проблема:** `RealExchangeClient` makes REST API calls to Binance/OKX/Bybit without any rate limiting. At scale (50 symbols × 60s signal interval × 4 endpoints: balance, positions, orders, trades = 200 req/min), this exceeds exchange rate limits. Binance Futures: 1200 weight/min (balance=5, positions=5, orders=1, trades=5 → ~800 weight/min). OKX: 20 req/2s (600 req/min). Bybit: 120 req/min. At 200 req/min, Bybit is exceeded immediately, OKX is borderline, and Binance is OK but close. When rate limits are hit, exchanges return HTTP 429 (Too Many Requests) or temporarily ban the IP (Binance: 2 min auto-ban on 429). During the ban, the bot cannot place orders, close positions, or check balances — a critical failure for a trading system.
+
+**Плохой код (Current):**
+```python
+# real_exchange_client.py — no rate limiting
+class RealExchangeClient:
+    async def get_balance(self) -> AccountBalance | None:
+        # Direct REST call — no throttle, no semaphore, no backoff
+        if self.exchange == "binance":
+            return await self._binance_balance()
+        elif self.exchange == "okx":
+            return await self._okx_balance()
+
+    async def get_positions(self) -> list[Position]:
+        # Another direct REST call
+        if self.exchange == "binance":
+            return await self._binance_positions()
+
+    async def get_open_orders(self, symbol=None) -> list[dict]:
+        # Yet another direct REST call
+        ...
+
+# run.py — calls all endpoints every signal_interval (60s)
+async def _generate_signals(self):
+    for symbol in self.config.symbols:  # 50 symbols
+        # Each iteration may call get_balance, get_positions, get_open_orders
+        # 50 × 4 endpoints = 200 REST calls per minute — NO THROTTLE
+```
+
+**Хороший код (Refactored):**
+```python
+# real_exchange_client.py — with rate limiting
+import asyncio
+
+class RealExchangeClient:
+    def __init__(self, exchange, api_key, api_secret, ...):
+        # ...
+        # Exchange-specific rate limits (requests per second)
+        rate_limits = {
+            "binance": 10,   # 600 req/min → 10 req/s
+            "okx": 10,       # 600 req/min → 10 req/s
+            "bybit": 2,      # 120 req/min → 2 req/s
+        }
+        self._rate_limiter = asyncio.Semaphore(rate_limits.get(exchange, 5))
+        self._min_interval = 1.0 / rate_limits.get(exchange, 5)
+        self._last_request_time = 0.0
+
+    async def _throttle(self):
+        """Ensure minimum interval between requests."""
+        async with self._rate_limiter:
+            now = time.monotonic()
+            elapsed = now - self._last_request_time
+            if elapsed < self._min_interval:
+                await asyncio.sleep(self._min_interval - elapsed)
+            self._last_request_time = time.monotonic()
+
+    async def get_balance(self) -> AccountBalance | None:
+        await self._throttle()  # ← rate limit before every API call
+        if self.exchange == "binance":
+            return await self._binance_balance()
+        # ...
+
+# Alternative: use utils.helpers.RateLimiter (token bucket)
+from src.utils.helpers import RateLimiter
+
+class RealExchangeClient:
+    def __init__(self, exchange, ...):
+        self._limiter = RateLimiter(rate=2.0, burst=5)  # 2 req/s, burst 5
+
+    async def get_balance(self):
+        await self._limiter.acquire()  # blocks until token available
+        return await self._binance_balance()
+```
+
+**Почему так (Theory & Concept):** Exchange REST APIs are shared resources with strict rate limits. Binance Futures has a weight-based system (1200 weight/min), OKX has a request-based system (20 req/2s per endpoint), and Bybit has a flat limit (120 req/min). When you exceed these limits, the exchange responds with HTTP 429 and may auto-ban your IP for 2-5 minutes. For a trading bot, a 2-minute ban means: (1) **Cannot close positions** — if the market crashes during the ban, you eat the full loss. (2) **Cannot cancel orders** — stale orders may fill at bad prices. (3) **Cannot check balance** — risk manager operates on stale data, potentially over-leveraging. The root cause is that developers test with 1-2 symbols in development (4-8 req/min, well under limits) and never hit rate limits. In production with 50 symbols, the request volume is 25× higher. The good code uses `asyncio.Semaphore` or a token-bucket `RateLimiter` to throttle requests to a safe rate. The key insight: **rate limiting must be per-exchange, not global** — Binance allows 10 req/s but Bybit only 2 req/s. A global limiter set to 2 req/s would unnecessarily throttle Binance, while a global limiter set to 10 req/s would get Bybit banned. The principle: when calling external APIs with rate limits, always implement client-side throttling. Never assume your request volume will stay under the limit — it won't at scale. Test with production request volumes in development, not with 1-2 symbols.

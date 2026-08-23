@@ -320,3 +320,89 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | optimizer: sequential grid search | 1000 combos = 16min on 1 core. Use ProcessPoolExecutor for N× speedup | CODE_AUDIT §8.1138 |
 | walk_forward: new BacktestEngine per param combo | 320 engine instances per run. Add reset() and reuse | CODE_AUDIT §8.1143 |
 | backtester: O(N²) window slicing | 50M copies for 10K candles. Pass index or use rolling window | CODE_AUDIT §8.1127 |
+| real_account: bare Exception swallows CancelledError | get_balance and set_leverage catch bare Exception. Use specific exceptions | CODE_AUDIT §8.1149 |
+| real_market_data: no backpressure on WS messages | 1000+ msgs/sec blocks receive loop. Use asyncio.Queue with bounded size | CODE_AUDIT §8.1154 |
+| exchange_factory: FALLBACK doesn't close failed adapter | Resources leak on partial init failure. Call close() in except block | CODE_AUDIT §8.1147 |
+| real_account: no retry on order placement | Transient exchange errors lose orders. Add retry with exponential backoff | CODE_AUDIT §8.1151 |
+| real_exchange_client: 335 lines dead code | Duplicate of real_account.py, not used by exchange_factory. Remove or use as ccxt-free fallback | CODE_AUDIT §8.1158 |
+| signal_publisher: backtest blocks event loop | 10K candles = 1s event loop block. 5 HFT clients starved. Use run_in_executor | CODE_AUDIT §8.1173 |
+| systemic: bare Exception catches CancelledError | 5+ files swallow CancelledError preventing clean shutdown. Use specific exceptions | CODE_AUDIT §8.1182 |
+| fix_client: no connect timeout | FIX server unreachable → hang forever. Add asyncio.wait_for(timeout=10) | CODE_AUDIT §8.1184 |
+| fix_client: _pending_messages unbounded | OOM on failed ResendRequest. Cap at 1000 | CODE_AUDIT §8.1185 |
+| shm_ring_buffer: FlushViewOfFile on every write | 100K syscalls/sec at high throughput. Batch flush or rely on cache coherence | CODE_AUDIT §8.1165 |
+| shm_market_data_writer: no memory barrier on ARM | Seq writes without barrier → reader sees stale data on ARM. Add _mm_barrier | CODE_AUDIT §8.1191 |
+| ws_connection_pool: fire-and-forget tasks | _evict_stale creates tasks that may be GC'd. Store refs or await directly | CODE_AUDIT §8.1188 |
+| 3 duplicate modules across packages | helpers.CircuitBreaker vs communication.CircuitBreaker. observability.logging vs helpers.setup_logging. monitoring.health_server vs observability.health_checks. monitoring.metrics vs communication.metrics_server. Merge | CODE_AUDIT §8.1201,1210,1225,1227 |
+| model_registry: _save on every A/B impression | 1000 JSON file writes/sec. Batch saves or use database | CODE_AUDIT §8.1237 |
+| health_server: sequential health checks | 5s total > K8s 1s timeout. Use asyncio.gather | CODE_AUDIT §8.1228 |
+| health_checks: no timeout on DB/Redis checks | K8s kills pod after 1s. Add asyncio.wait_for(timeout=2) | CODE_AUDIT §8.1208 |
+| tracker: opens CSV file on every log() call | 100 open/close syscalls/sec. Keep file open | CODE_AUDIT §8.1220 |
+| alerting: new aiohttp session per alert | 30 sessions/min. Use shared session | CODE_AUDIT §8.1216 |
+| automl: study.optimize blocks event loop | 1h event loop block. Use run_in_executor | CODE_AUDIT §8.1230 |
+| notifier: Discord polls REST API without sleep | Hammers Discord API at max speed. Add asyncio.sleep(1) on success | CODE_AUDIT §8.1265 |
+| llm_engine: no rate limiting on API calls | Spikes on cold cache. Add rate limiter | CODE_AUDIT §8.1261 |
+| price_predictor: not integrated with model_registry | Models trained but not versioned. Integrate register() after training | CODE_AUDIT §8.1246 |
+| rkhs: Jacobi eigendecomposition O(N³) in pure Python | 10.8M ops, ~10s. Use numpy.linalg.eigh | CODE_AUDIT §8.1253 |
+| notifier: NotifierManager.send_alert sequential | 5s total for 2 notifiers. Use asyncio.gather | CODE_AUDIT §8.1266 |
+| research: 22 duplicate compute_returns functions | 22× same function across research modules. Create shared utils.py | CODE_AUDIT §8.1277 |
+| research/__init__.py: 307 lines re-exporting ~200 symbols | Triggers loading all 25+ modules on any import. Use lazy imports | CODE_AUDIT §8.1276 |
+| research: 35 files ~6000 lines potential dead code | Advanced math rarely used in production. Move to separate package | CODE_AUDIT §8.1280 |
+| config: 30+ properties = 190 lines boilerplate | Over-engineered dict access. Use pydantic or dataclass | CODE_AUDIT §8.1290 |
+| run.py: no graceful shutdown on SIGTERM | K8s/Docker sends SIGTERM not SIGINT. Add signal handler | CODE_AUDIT §8.1292 |
+| run.py: _generate_symbols sequential for 50 symbols | With LLM 50-500s per cycle. Use asyncio.gather | CODE_AUDIT §8.1293 |
+| run.py: duplicate entry points | 3 backtest scripts. Consolidate to run.py --backtest | CODE_AUDIT §8.1295 |
+| strategies: EnsembleVoter averages SL/TP across votes | Meaningless price levels. Use highest-confidence signal's SL/TP | CODE_AUDIT §8.1298 |
+| marketplace: install_from_git executes arbitrary code | No sandboxing. Run in subprocess with restricted permissions | CODE_AUDIT §8.1306 |
+| risk: DynamicPositionSizer duplicates kelly.py | ~200 lines redundant. Remove and use KellyPositionSizer directly | CODE_AUDIT §8.1313 |
+| risk: 2 duplicate PortfolioOptimizer classes | 3 implementations ~900 lines. Keep portfolio/ only | CODE_AUDIT §8.1316, §8.1334 |
+| db: new SQLite connection per operation | 50 conn/min. Use persistent connection | CODE_AUDIT §8.1320 |
+| signal_publisher: _run_backtest blocks event loop | bt.run() sync 10-30s. Use asyncio.to_thread | CODE_AUDIT §8.1323 |
+| signal_publisher: 3 identical _send closures | 3× broadcast duplication. Extract _broadcast_to_clients | CODE_AUDIT §8.1324 |
+| Project-wide: 0 asyncio.Lock usage | _clients _candle_history _recent_signals at risk. Add locks | CODE_AUDIT §8.1336 |
+| Project-wide: 13 except Exception catches | Masks CancelledError. Use specific exception types | CODE_AUDIT §8.1335 |
+| Project-wide: 8 datetime.now() without timezone | Naive datetime fragile. Use datetime.now(UTC) | CODE_AUDIT §8.1338 |
+| var: scipy hard dependency | Module fails if scipy missing. Make optional | CODE_AUDIT §8.1311 |
+| fix_client: no SSL/TLS support | Plain TCP. Add ssl_context parameter | CODE_AUDIT §8.1330 |
+| shm_ring_buffer: no overflow detection on push | Silent drop. Add dropped_count counter | CODE_AUDIT §8.1328 |
+| technical_analysis/__init__.py: 252 lines re-export ~200 symbols | Same as research/__init__.py. Use lazy imports | CODE_AUDIT §8.1343 |
+| technical_analysis: 4× duplicate _random_normal Box-Muller | ~60 lines duplicate in sde/rbergomi/hmc/optimal_stopping. Use random.gauss | CODE_AUDIT §8.1362 |
+| technical_analysis: 3× duplicate _fft Cooley-Tukey | ~150 lines duplicate in fft_analysis/emd/vmd. Use shared _fft_utils or numpy.fft | CODE_AUDIT §8.1363 |
+| technical_analysis: 16 modules likely dead code | ~4000+ lines not used in production. Move to advanced package | CODE_AUDIT §8.1364 |
+| technical_analysis: vmd.py _ifft is O(n²) direct DFT | Forward is O(n log n) but inverse is O(n²). Use _fft with conjugation | CODE_AUDIT §8.1370 |
+| technical_analysis: copula.py empirical_cdf is O(n²) | 250K comparisons for n=500. Use sort+bisect O(n log n) | CODE_AUDIT §8.1369 |
+| technical_analysis: copula.py own erf function | math.erf available since Python 3.2. Remove custom impl | CODE_AUDIT §8.1345 |
+| technical_analysis: rbergomi O(n³) Cholesky in pure Python | n=50 → 125K ops. Use numpy or Davies-Harte O(n log n) | CODE_AUDIT §8.1354 |
+| technical_analysis: hmc numerical gradient 60K evals | Central differences. Analytical gradient 2× faster | CODE_AUDIT §8.1358 |
+| technical_analysis: dtw duplicate compute_returns | Same as 22+ research modules. Use shared utils | CODE_AUDIT §8.1347 |
+| technical_analysis: No NaN/Inf input validation | NaN propagates through cumsum. Add math.isfinite() checks | CODE_AUDIT §8.1367 |
+| ml/__init__.py: 81 lines re-export ~30 symbols | Same anti-pattern. Use direct submodule imports | CODE_AUDIT §8.1371 |
+| ml: torch hard dependency in price_predictor + rl_trader | import torch unguarded. Guard with try/except | CODE_AUDIT §8.1382 |
+| ml: 5 modules likely dead code | ~1300 lines not used in production. Move to ml_advanced/ | CODE_AUDIT §8.1383 |
+| ml/vae.py: 5th duplicate _random_normal | 5th Box-Muller copy. Use random.gauss(0,1) | CODE_AUDIT §8.1379 |
+| ml/feature_store.py: broad Exception catch | `except (..., Exception)` — Exception makes others redundant | CODE_AUDIT §8.1374 |
+| monitoring/health_server.py: 3× duplicate _check_* methods | _check_exchange _check_database _check_shm identical. Extract _check_component | CODE_AUDIT §8.1385 |
+| monitoring/tracker.py: datetime.now() without timezone | Naive datetime in dashboard. Use datetime.now(UTC) | CODE_AUDIT §8.1387 |
+| networking/socket_transport.py: busy-poll loop | time.sleep(0.0001) on BlockingIOError. Use selectors or asyncio | CODE_AUDIT §8.1392 |
+| utils/helpers.py: duplicate logging setup | Two logging setups. Consolidate to observability/logging.py | CODE_AUDIT §8.1393 |
+| research/__init__.py: 307 lines re-export ~200 symbols | 3rd __init__.py anti-pattern. Delete re-exports | CODE_AUDIT §8.1400 |
+| research: 30+ modules likely dead code | ~12000+ lines academic math. Move to research_lab/ | CODE_AUDIT §8.1401 |
+| research: compute_returns duplicated 20+ times | ~100+ lines duplicate. Create _utils.py | CODE_AUDIT §8.1402 |
+| Project-wide: 3× duplicate logging setup | Conflicting handlers. Consolidate to observability | CODE_AUDIT §8.1403 |
+| Project-wide: 5× duplicate _random_normal | ~75 lines duplicate. Use random.gauss | CODE_AUDIT §8.1404 |
+| Project-wide: 3× duplicate __init__.py re-export | Slow import high memory. Delete re-exports | CODE_AUDIT §8.1405 |
+| Project-wide: 2 duplicate health check systems | Consolidate. observability for logic, monitoring for HTTP | CODE_AUDIT §8.1406 |
+| Project-wide: 50+ modules likely dead code total | ~17000+ lines. Move to analysis_lab/. Reduce src/ by ~50% | CODE_AUDIT §8.1407 |
+| data_collection: 2× duplicate AccountBalance dataclass | Same name different fields. Rename or unify | CODE_AUDIT §8.1413 |
+| data_collection: no rate limiting on REST API calls | 200 req/min could hit exchange limits. Add Semaphore or RateLimiter | CODE_AUDIT §8.1414 |
+| real_account: 3× broad except Exception | Too broad. Catch specific ccxt/network exceptions | CODE_AUDIT §8.1411 |
+| real_market_data: no asyncio.Lock on shared state | _tickers _orderbooks _candles written from WS read from main. Low risk | CODE_AUDIT §8.1412 |
+| run.py: no SIGTERM handler | K8s sends SIGTERM not Ctrl+C. Pod killed without cleanup | CODE_AUDIT §8.1416 |
+| run.py: _execute_live_order not implemented | Stub logs warning. Silent failure if paper_trading=False | CODE_AUDIT §8.1417 |
+| run_backtest: sqlite3.connect without context manager | conn.close not in finally. Leaks on exception | CODE_AUDIT §8.1418 |
+| root/metrics.py: duplicate of src/monitoring/metrics.py | 293 lines duplicate. Different class port. Delete root version | CODE_AUDIT §8.1420 |
+| root/tracing.py: duplicate of src/observability/tracing.py | 205 lines duplicate. Different API. Delete root version | CODE_AUDIT §8.1421 |
+| scripts/run_bot.py: stub that doesn't run bot | Only starts SignalPublisher. --strategy ignored. Delete | CODE_AUDIT §8.1424 |
+| scripts/run_backtest.py: duplicate of root run_backtest.py | Different API BacktestEngine vs Backtester. Delete | CODE_AUDIT §8.1425 |
+| run_logger.py: 4th duplicate logging setup | 4 logging setups with different field names. Consolidate | CODE_AUDIT §8.1426 |
+| bot_helpers.py: triggers __init__.py re-export | from src.technical_analysis import adx ema rsi loads all 25 modules. Use direct import | CODE_AUDIT §8.1427 |
+| ws_connection_pool.py: dead code — not used by ws_client | Well-implemented pool but ExchangeClient manages own WS. Integrate or remove | CODE_AUDIT §8.1431 |

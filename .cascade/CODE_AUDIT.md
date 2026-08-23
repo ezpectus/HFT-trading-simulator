@@ -15626,3 +15626,3344 @@ for params in param_grid:
 A new `BacktestEngine` is created for each parameter combination in each window. With 5 windows × 64 params = 320 engine instances. Each engine allocates equity_curve list, trades list, etc. This is wasteful — the engine could be reset instead of recreated.
 
 **Фикс:** Add a `reset()` method to `BacktestEngine` and reuse the instance.
+
+### 8.1144 ai-signal-bot/src/data_collection/exchange_factory.py: Exchange Factory — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py` (242 lines)
+
+- **ExchangeMode enum**: SIMULATOR, REAL, FALLBACK — correct
+- **ExchangeAdapter Protocol**: 10 async methods — correct
+- **SimulatorAdapter**: Stub implementation with hardcoded $50K price — correct
+- **RealExchangeAdapter**: Delegates to RealMarketDataManager + RealAccountManager — correct
+- **ExchangeFactory**: 3 modes, fallback with health check, switch_to_simulator — correct
+
+Good exchange factory with Protocol-based adapter, 3 modes, fallback, and runtime switching. ✅
+
+### 8.1145 exchange_factory: SimulatorAdapter returns hardcoded $50K — Low
+
+**Файл:** `exchange_factory.py:55`
+
+```python
+async def get_ticker(self, symbol: str) -> dict:
+    return {"symbol": symbol, "price": 50000.0, "bid": 49999.5, "ask": 50000.5, "timestamp": time.time()}
+```
+
+The simulator always returns $50,000 for every symbol. If the bot falls back to simulator during live trading, all 50 symbols suddenly trade at $50K. This can trigger risk manager actions (massive unrealized PnL change) and corrupt signal generation.
+
+**Фикс:** Accept a price provider callback or use a random walk from the last known real price.
+
+### 8.1146 exchange_factory: api_key and api_secret in plain strings — Low
+
+**Файл:** `exchange_factory.py:166-173`
+
+```python
+self.api_key = api_key
+self.api_secret = api_secret
+```
+
+Same anti-pattern as C++ adapters — API secrets stored as plain strings. The factory passes them to `RealExchangeAdapter` which passes them to ccxt. The strings persist in the factory's memory for the bot's lifetime.
+
+### 8.1147 exchange_factory: FALLBACK mode doesn't close failed real adapter — Low
+
+**Файл:** `exchange_factory.py:196-216`
+
+```python
+elif self.mode == ExchangeMode.FALLBACK:
+    try:
+        self._adapter = RealExchangeAdapter(...)
+        await self._adapter.initialize()
+        # ...
+    except (ConnectionError, OSError, RuntimeError) as e:
+        # ... falls back to simulator
+        self._adapter = SimulatorAdapter(self.simulator_url)
+```
+
+If `initialize()` raises after partially initializing (e.g., market_data connected but account failed), the real adapter's resources aren't cleaned up before switching to simulator. The old adapter is replaced without calling `close()`.
+
+**Фикс:** In the except block, call `await self._adapter.close()` before creating the simulator adapter.
+
+### 8.1148 ai-signal-bot/src/data_collection/real_account.py: Real Account Manager — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/real_account.py` (380 lines)
+
+- **3 dataclasses**: AccountBalance, AccountPosition, OpenOrder with to_dict — correct
+- **ccxt integration**: Optional import, graceful degradation — correct
+- **REST methods**: balance, positions, orders, trade history, leverage, margin mode — correct
+- **Order placement**: Leverage cache, SL/TP params, error handling — correct
+- **User data stream**: watch_orders for fills, margin warnings, callbacks — correct
+- **Health check**: fetch_balance as connectivity test — correct
+
+Good real account manager with ccxt integration, user data stream, and comprehensive error handling. ✅
+
+### 8.1149 real_account: get_balance catches bare Exception — Low
+
+**Файл:** `real_account.py:163`
+
+```python
+except Exception as e:
+    logger.error(f"[RealAccount] Failed to fetch balance: {e}")
+    return []
+```
+
+`get_balance` catches `Exception` (bare), while other methods catch specific exceptions `(OSError, RuntimeError, KeyError, ValueError)`. The bare catch swallows `asyncio.CancelledError`, `KeyboardInterrupt`, and `SystemExit` — these should propagate. In asyncio, catching `CancelledError` prevents task cancellation from working.
+
+**Фикс:** Use `except (OSError, RuntimeError, KeyError, ValueError) as e:` consistently, or add `except asyncio.CancelledError: raise` before the bare catch.
+
+### 8.1150 real_account: set_leverage catches bare Exception — Low
+
+**Файл:** `real_account.py:247`
+
+```python
+except Exception as e:
+    logger.error(f"[RealAccount] Failed to set leverage: {e}")
+    return False
+```
+
+Same issue as `get_balance` — bare `Exception` catch swallows `CancelledError`.
+
+### 8.1151 real_account: no retry on order placement — Low
+
+**Файл:** `real_account.py:285-305`
+
+```python
+order = await self._exchange.create_order(...)
+```
+
+Order placement has no retry logic. If the exchange returns a transient error (429 rate limit, 503 service unavailable), the order is lost. For a trading bot, a failed order means a missed signal — the strategy said "buy" but the order didn't go through.
+
+**Фикс:** Add retry with exponential backoff for transient errors (429, 503, connection errors). Max 3 retries.
+
+### 8.1152 real_account: user data stream has no reconnection — Low
+
+**Файл:** `real_account.py:348-369`
+
+```python
+async def _listen_user_data(self) -> None:
+    while True:
+        try:
+            orders = await self._exchange.watch_orders()
+            # ...
+        except asyncio.CancelledError:
+            break
+        except (OSError, RuntimeError, KeyError, ValueError) as e:
+            logger.error(f"[RealAccount] User data stream error: {e}")
+            await asyncio.sleep(5)
+```
+
+On error, the stream sleeps 5s and retries — this is good. But `watch_orders` is a ccxt method that manages its own WebSocket internally. If the underlying WS disconnects, ccxt may not auto-reconnect for all exchanges. The 5s sleep is a fixed delay, not exponential backoff.
+
+**Фикс:** Use exponential backoff (1s, 2s, 4s, ... max 30s) instead of fixed 5s.
+
+### 8.1153 ai-signal-bot/src/data_collection/real_market_data.py: Real Market Data Feed — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/real_market_data.py` (455 lines)
+
+- **3 normalized dataclasses**: NormalizedTicker, NormalizedCandle, NormalizedOrderBook — correct
+- **Multi-exchange**: Binance, OKX, Bybit WebSocket feeds — correct
+- **Reconnection**: Exponential backoff per exchange, max 30s — correct
+- **Callbacks**: on_ticker, on_candle, on_orderbook — correct
+- **Binance stream**: Combined stream URL, bookTicker + aggTrade + kline — correct
+- **OKX stream**: Subscribe op, tickers + candle channels — correct
+
+Good real market data feed with multi-exchange support, normalized data, and exponential backoff reconnection. ✅
+
+### 8.1154 real_market_data: no message queue / backpressure — Low
+
+**Файл:** `real_market_data.py:134-138`
+
+```python
+async for raw in ws:
+    if not self._running:
+        break
+    msg = json.loads(raw)
+    await self._handle_binance_msg(msg)
+```
+
+Each WebSocket message is processed synchronously — `await self._handle_binance_msg(msg)` blocks the receive loop. If the callback (`on_ticker`, `on_candle`) is slow (e.g., writing to DB), messages queue up in the WebSocket buffer. With 50 symbols × 3 stream types × high tick rate, this can be 1000+ msgs/sec. If processing takes >1ms per msg, the buffer overflows and the WS disconnects.
+
+**Фикс:** Use an `asyncio.Queue` with a bounded size. The receive loop pushes to the queue; a separate consumer task processes messages. If the queue is full, drop oldest or apply backpressure.
+
+### 8.1155 real_market_data: no heartbeat/pong management — Low
+
+**Файл:** `real_market_data.py:129`
+
+```python
+async with websockets.connect(url, ping_interval=20) as ws:
+```
+
+The `ping_interval=20` sends a ping every 20s, but there's no `ping_timeout` parameter. If the exchange doesn't respond to the ping, the connection hangs indefinitely (the `async for raw in ws` blocks). The default `ping_timeout` in the `websockets` library is 20s, but it should be explicit.
+
+**Фикс:** Add `ping_timeout=10` to `websockets.connect()`.
+
+### 8.1156 real_market_data: OKX/Bybit URL hardcoded — Low
+
+**Файл:** `real_market_data.py:191`
+
+```python
+url = "wss://ws.okx.com:8443/ws/v5/public"
+```
+
+The OKX WebSocket URL is hardcoded. If OKX changes their endpoint (e.g., AWS vs GCP endpoints, demo trading URL), the code must be edited. The Binance testnet URL is already handled (line 122-125), but OKX testnet is not.
+
+**Фикс:** Make URLs configurable per exchange, or use a URL map with testnet variants.
+
+### 8.1157 ai-signal-bot/src/data_collection/real_exchange_client.py: Real Exchange REST Client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/real_exchange_client.py` (335 lines)
+
+- **3 exchange support**: Binance, OKX, Bybit — correct
+- **HMAC-SHA256 signing**: Separate methods per exchange, `usedforsecurity=False` — correct
+- **2 dataclasses**: AccountBalance, Position — correct
+- **REST methods**: get_balance, get_positions per exchange — correct
+- **Shared aiohttp session**: 10s timeout, lazy init — correct
+- **Testnet URLs**: Binance and OKX have testnet variants — correct
+
+Good REST client with 3-exchange support, proper HMAC signing, and shared session. ✅
+
+### 8.1158 real_exchange_client: duplicate of real_account.py — Info
+
+**Файлы:** `real_exchange_client.py` (335 lines), `real_account.py` (380 lines)
+
+Both modules implement exchange account management with overlapping functionality:
+- `real_account.py`: Uses ccxt library, has user data stream, order placement, trade history, leverage/margin management
+- `real_exchange_client.py`: Direct REST calls with manual HMAC signing, no ccxt dependency, only balance + positions
+
+The `real_account.py` uses ccxt which abstracts signing; `real_exchange_client.py` implements signing manually. Both define `AccountBalance` and `Position` dataclasses with similar fields. The `exchange_factory.py` uses `real_account.py` (via `RealExchangeAdapter`), not `real_exchange_client.py`.
+
+**Reduction potential:** ~335 lines. `real_exchange_client.py` appears to be an earlier implementation replaced by the ccxt-based `real_account.py`. If ccxt is always available, `real_exchange_client.py` is dead code. If ccxt is optional, `real_exchange_client.py` is the fallback — but `exchange_factory.py` doesn't use it.
+
+### 8.1159 real_exchange_client: no error handling on JSON parse — Low
+
+**Файл:** `real_exchange_client.py:152`
+
+```python
+data = await resp.json()
+for asset in data:
+    if asset.get("asset") == "USDT":
+```
+
+If the exchange returns non-JSON (e.g., HTML error page, 502 gateway), `resp.json()` raises `json.JSONDecodeError`. There's no try/except around the JSON parse. The method returns `None` on non-200 status, but a 200 with invalid body would crash.
+
+**Фикс:** Wrap `resp.json()` in try/except `json.JSONDecodeError`.
+
+### 8.1160 real_exchange_client: Bybit has no testnet URL — Low
+
+**Файл:** `real_exchange_client.py:83-84`
+
+```python
+elif exchange == "bybit":
+    self.base_url = base_url or "https://api.bybit.com"
+```
+
+Binance and OKX have testnet URL variants, but Bybit always uses the production URL. Bybit's testnet is at `https://api-testnet.bybit.com`.
+
+**Фикс:** Add testnet check: `self.base_url = base_url or ("https://api-testnet.bybit.com" if testnet else "https://api.bybit.com")`.
+
+### 8.1161 real_exchange_client: signature in URL query string — Low
+
+**Файл:** `real_exchange_client.py:144`
+
+```python
+url = f"{self.base_url}/fapi/v2/balance?{params}&signature={sig}"
+```
+
+The Binance API signature is placed in the URL query string. This is the standard Binance API pattern, but the signature is visible in proxy logs, browser history, and debug logging. The OKX and Bybit methods put the signature in headers, which is more secure.
+
+**Фикс:** This is a Binance API requirement — the signature must be in the query string. No fix needed, but ensure debug logging doesn't print the full URL.
+
+### 8.1162 ai-signal-bot/src/communication/circuit_breaker.py: Circuit Breaker — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py` (138 lines)
+
+- **3 states**: CLOSED, OPEN, HALF_OPEN — correct
+- **CircuitBreakerConfig**: failure_threshold=5, cooldown=60s, half_open_probes=1, success_threshold=2 — correct
+- **allow_signal()**: State machine with probe limiting — correct
+- **record_success/failure**: Consecutive tracking, auto-trip — correct
+- **get_status()**: Dict for monitoring — correct
+
+Good circuit breaker with standard 3-state pattern, probe limiting, and metrics. ✅
+
+### 8.1163 circuit_breaker: not thread-safe — Low
+
+**Файл:** `circuit_breaker.py:34-85`
+
+The circuit breaker has no locking. `allow_signal()`, `record_success()`, `record_failure()` all mutate `_state`, `_consecutive_failures`, `_half_open_probes` without synchronization. If called from multiple asyncio tasks concurrently (which is likely in a signal pipeline), race conditions can occur: two tasks might both pass `allow_signal()` in HALF_OPEN with `_half_open_probes == 0`, allowing 2 probes instead of 1.
+
+**Фикс:** Use `asyncio.Lock` around state transitions, or use atomic operations. Since asyncio is single-threaded, the race only occurs at `await` points — but `allow_signal()` has no awaits, so it's safe within a single event loop. Document that it's asyncio-safe (no awaits in critical sections).
+
+### 8.1164 ai-signal-bot/src/communication/shm_ring_buffer.py: SHM Ring Buffer — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py` (285 lines)
+
+- **SPSC lock-free**: head/tail atomic, cache-line aligned (64B) — correct
+- **Cross-platform**: Windows (FlushViewOfFile) + POSIX (msync) — correct
+- **Power-of-2 capacity**: Mask-based wrap — correct
+- **try_push/try_pop**: O(1), non-blocking — correct
+- **bulk_push/bulk_pop**: Batch operations with single atomic write — correct
+- **3 struct definitions**: Signal (32B), Fill (28B), MarketSnapshot (28B) — correct
+- **Magic validation**: SHM_MAGIC on open — correct
+- **Context manager + __del__**: Cleanup guaranteed — correct
+
+Excellent SHM ring buffer with lock-free SPSC, cache-line alignment, cross-platform barriers, and batch operations. ✅
+
+### 8.1165 shm_ring_buffer: _mm_barrier flushes on every write — Low
+
+**Файл:** `shm_ring_buffer.py:57-58`
+
+```python
+struct.pack_into('<Q', mm, offset, value)
+_mm_barrier(mm)
+```
+
+Every `_atomic_write_u64` calls `_mm_barrier` which flushes the page to the file. On Windows, `FlushViewOfFile` is a syscall; on POSIX, `mm.flush()` calls `msync`. This is expensive — each `try_push` does 1 flush, each `try_pop` does 1 flush. With 100K signals/sec, that's 100K syscalls/sec.
+
+**Фикс:** Only flush the head/tail update, not the data write. Or batch flush: flush once per N operations. On x86/x64, aligned 8-byte stores are visible to other processes via cache coherence without msync — the barrier is only needed for durability (crash recovery), not visibility.
+
+### 8.1166 shm_ring_buffer: bulk_push not atomic for consumer — Low
+
+**Файл:** `shm_ring_buffer.py:198-212`
+
+```python
+for i in range(to_push):
+    slot = (head + i) & self._mask
+    self.element_struct.pack_into(self._mm, offset, *items[i])
+_atomic_write_u64(self._mm, OFF_HEAD, head + to_push)
+```
+
+`bulk_push` writes all elements before updating head. This is correct for SPSC — the consumer only reads when `head > tail`. But the data writes are not flushed individually; only the final head update is flushed. If the process crashes mid-bulk_push, the head may point to uninitialized data.
+
+**Фикс:** Acceptable for SPSC with crash recovery — the consumer should validate data. Or use per-element flush if crash safety is critical.
+
+### 8.1167 ai-signal-bot/src/communication/ws_client.py: Exchange WS Client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py` (215 lines)
+
+- **Encoding**: JSON + msgpack + orjson fallback — correct
+- **connect()**: ping_interval=10, compression, max_size=1MB — correct
+- **listen()**: Async message loop with decode error handling — correct
+- **_process_message**: candles, snapshot, trading_state, error, welcome — correct
+- **submit_order/close_position**: Trading active check, orjson optimization — correct
+- **reconnect()**: 5 attempts, exponential backoff (1s→30s) — correct
+
+Good WS client with multi-encoding support, exponential backoff, and trading state management. ✅
+
+### 8.1168 ws_client: no ping_timeout — Low
+
+**Файл:** `ws_client.py:79`
+
+```python
+self._ws = await websockets.connect(
+    self.url,
+    ping_interval=10,
+    compression="deflate",
+    max_size=2**20,
+)
+```
+
+Same issue as `real_market_data.py` — `ping_interval` is set but `ping_timeout` is not explicit. If the server stops responding to pings, the connection hangs.
+
+**Фикс:** Add `ping_timeout=10`.
+
+### 8.1169 ws_client: listen() has no reconnection — Low
+
+**Файл:** `ws_client.py:99-121`
+
+```python
+async def listen(self) -> None:
+    # ...
+    except websockets.ConnectionClosed:
+        logger.warning("Connection closed by server")
+        self._connected = False
+```
+
+`listen()` exits on `ConnectionClosed` but doesn't reconnect. The caller must separately call `reconnect()`. If the caller doesn't handle this, the bot silently stops receiving data.
+
+**Фикс:** Add auto-reconnect loop inside `listen()`, or document that the caller must handle reconnection.
+
+### 8.1170 ws_client: candle_history unbounded for new symbols — Low
+
+**Файл:** `ws_client.py:134-138`
+
+```python
+hist = self._candle_history.get(sym)
+if hist is None:
+    hist = deque(maxlen=200)
+    self._candle_history[sym] = hist
+hist.append(candle)
+```
+
+Each symbol gets a deque(maxlen=200). With 50 symbols × 200 candles × ~100 bytes = 1MB. This is fine. But if the server sends symbols not in the configured list, new deques are created dynamically. With 1000 unexpected symbols, that's 20MB.
+
+**Фикс:** Validate symbol against configured list, or cap total memory.
+
+### 8.1171 ai-signal-bot/src/communication/signal_publisher.py: Signal Publisher — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py` (453 lines)
+
+- **WebSocket server**: port 8766, ping_interval=10, ping_timeout=30 — correct
+- **Circuit breaker integration**: Blocks signals on OPEN — correct
+- **Signal history**: deque(maxlen=100), sends last 20 on connect — correct
+- **broadcast_signal**: Gather to all clients, remove disconnected — correct
+- **Circuit breaker broadcast**: Periodic 5s status update — correct
+- **Backtest execution**: Synthetic candles, strategy builder, formatted results — correct
+- **Backtest comparison**: Multi-backtest side-by-side — correct
+
+Good signal publisher with circuit breaker, backtest execution, comparison, and client management. ✅
+
+### 8.1172 signal_publisher: _handle_client catches bare Exception — Low
+
+**Файл:** `signal_publisher.py:123, 155`
+
+```python
+except Exception as e:
+    logger.warning(f"Failed to send signal history: {e}")
+# ...
+except Exception as e:
+    logger.debug(f"Client handler error: {e}")
+```
+
+Two bare `Exception` catches. The first swallows `CancelledError` during history send. The second swallows `CancelledError` in the main message loop — this prevents clean shutdown.
+
+**Фикс:** Use specific exceptions or add `except asyncio.CancelledError: raise` before the bare catch.
+
+### 8.1173 signal_publisher: backtest runs in WebSocket handler — Low
+
+**Файл:** `signal_publisher.py:271-302`
+
+```python
+async def _run_backtest(self, params: dict) -> dict:
+    # ...
+    result = bt.run(candles, strat, symbol=bt_params["symbol"], warmup=50)
+```
+
+`_run_backtest` runs a full backtest synchronously inside the WebSocket message handler. A backtest with 10,000 candles takes ~1s. During this time, the event loop is blocked — no signals are broadcast, no client messages are processed, no circuit breaker updates are sent. With 5 connected HFT clients, all clients are starved for 1s.
+
+**Фикс:** Run backtest in a `ProcessPoolExecutor` via `asyncio.get_event_loop().run_in_executor()`, or use `asyncio.create_task()` with a result callback.
+
+### 8.1174 signal_publisher: _generate_synthetic_candles uses random.Random(42) — Info
+
+**Файл:** `signal_publisher.py:334`
+
+```python
+rng = random.Random(42)
+```
+
+The synthetic candle generator uses a fixed seed (42), so every backtest request with the same parameters produces identical candles. This is good for reproducibility but misleading — the user may think they're testing on different data each time.
+
+### 8.1175 signal_publisher: _EnsembleAdapter duplicates EnsembleVoter.analyze — Info
+
+**Файл:** `signal_publisher.py:42-52`
+
+```python
+class _EnsembleAdapter:
+    def analyze(self, symbol: str, candles: list):
+        signals = [s.analyze(symbol, candles) for s in self.sub_strategies]
+        return self.voter.vote(signals)
+```
+
+This adapter wraps `EnsembleVoter` to make it compatible with `Backtester.run()`. But `EnsembleVoter` already has a `vote()` method that takes a list of signals. The adapter calls each sub-strategy's `analyze()` and then `vote()`. This duplicates the logic that `EnsembleVoter` should encapsulate — the voter should know its sub-strategies and call `analyze()` on them internally.
+
+### 8.1176 ai-signal-bot/src/communication/health_check.py: Health Aggregator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py` (127 lines)
+
+- **3 services**: ai-signal-bot, exchange-simulator, hft-trade-bot — correct
+- **_check_service**: 3s timeout, latency measurement, status classification — correct
+- **_aggregate**: Parallel checks via gather, healthy/degraded/unhealthy — correct
+- **HTTP endpoint**: /health + /healthz, 503 on unhealthy — correct
+- **aiohttp**: Proper session cleanup — correct
+
+Good health aggregator with parallel checks, 3s timeout, and proper HTTP status codes. ✅
+
+### 8.1177 health_check: creates new aiohttp session per check — Low
+
+**Файл:** `health_check.py:53`
+
+```python
+async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3.0)) as session:
+    async with session.get(url) as resp:
+```
+
+Each `_check_service` call creates a new `aiohttp.ClientSession`. With 3 services checked every N seconds, that's 3 new sessions per check cycle. Session creation involves TCP connection setup, SSL handshake (if HTTPS), and memory allocation.
+
+**Фикс:** Create a shared `aiohttp.ClientSession` in `__init__` or `start()`, reuse it for all checks, and close it in `stop()`.
+
+### 8.1178 health_check: bare Exception catches CancelledError — Low
+
+**Файл:** `health_check.py:73`
+
+```python
+except Exception as e:
+    return {"status": "unhealthy", "error": str(e)}
+```
+
+Same pattern — bare `Exception` swallows `CancelledError`.
+
+### 8.1179 ai-signal-bot/src/communication/metrics_server.py: Metrics Server — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/metrics_server.py` (136 lines)
+
+- **MetricsCollector**: 7 metrics (counters + gauges), Prometheus text format — correct
+- **MetricsServer**: asyncio.start_server, HTTP response — correct
+- **No external deps**: Pure Python Prometheus format — correct
+
+Good lightweight metrics server with no external dependencies. ✅
+
+### 8.1180 metrics_server: non-atomic counter increments — Low
+
+**Файл:** `metrics_server.py:34-44`
+
+```python
+def record_signal_sent(self) -> None:
+    self._signals_sent += 1
+```
+
+Counter increments are not atomic. In asyncio (single-threaded), this is safe within a single event loop. But if metrics are recorded from multiple threads (e.g., `ProcessPoolExecutor` workers), the counters will lose increments.
+
+**Фикс:** Use `itertools.count()` or `threading.Lock` if multi-threaded access is expected. For asyncio-only, document that it's single-threaded safe.
+
+### 8.1181 metrics_server: no Content-Type for error responses — Low
+
+**Файл:** `metrics_server.py:109-135`
+
+The HTTP handler reads the request line and headers, then always returns 200 OK. There's no handling for non-GET methods, no 404 for non-/metrics paths, and no error response. A browser hitting `/` gets a metrics response with no indication it's the wrong path.
+
+### 8.1182 ai-signal-bot/src/communication/fix_client.py: FIX 4.4 Client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py` (447 lines)
+
+- **FixMessage**: Parse, build, checksum verification — correct
+- **FixSession**: Persistent seq numbers, logon/logout/heartbeat — correct
+- **Order management**: NewOrderSingle, OrderCancel — correct
+- **Read loop**: SOH-delimited parsing, gap detection, ResendRequest — correct
+- **Heartbeat**: Periodic, configurable interval — correct
+- **Sequence persistence**: File-based, load/save on every msg — correct
+
+Good FIX 4.4 client with sequence management, gap recovery, and persistent state. ✅
+
+### 8.1183 fix_client: seq file in tempfile.gettempdir — Low
+
+**Файл:** `fix_client.py:126`
+
+```python
+seq_file: str = os.path.join(tempfile.gettempdir(), "fix_seq.txt"),
+```
+
+The sequence number file is in the system temp directory. On Linux, `/tmp` is cleared on reboot — sequence numbers are lost, causing a gap on restart. On multi-instance deployments, all instances share the same file, corrupting sequence numbers.
+
+**Фикс:** Use a configurable path in the project's data directory: `data/fix_seq_{sender_comp_id}.txt`.
+
+### 8.1184 fix_client: connect() has no timeout — Low
+
+**Файл:** `fix_client.py:181`
+
+```python
+self._reader, self._writer = await asyncio.open_connection(host, port)
+```
+
+`asyncio.open_connection` has no timeout. If the FIX server is unreachable, the call hangs indefinitely.
+
+**Фикс:** Wrap in `asyncio.wait_for(asyncio.open_connection(host, port), timeout=10)`.
+
+### 8.1185 fix_client: _pending_messages unbounded — Low
+
+**Файл:** `fix_client.py:139, 352`
+
+```python
+self._pending_messages: list[FixMessage] = []
+# ...
+self._pending_messages.append(msg)
+```
+
+On a sequence gap, the out-of-sequence message is queued in `_pending_messages`. If the ResendRequest fails (server doesn't resend), the queue grows indefinitely. With a high message rate, this can cause OOM.
+
+**Фикс:** Cap `_pending_messages` at a maximum (e.g., 1000). If exceeded, log error and drop oldest.
+
+### 8.1186 fix_client: no reconnection on disconnect — Low
+
+**Файл:** `fix_client.py:334-337`
+
+```python
+except (ConnectionError, OSError, asyncio.IncompleteReadError) as e:
+    logger.error(f"FIX read loop error: {e}")
+    self.state = "DISCONNECTED"
+    break
+```
+
+On disconnect, the read loop exits. There's no reconnection logic. The caller must detect the state change and call `start()` again.
+
+**Фикс:** Add auto-reconnect with exponential backoff, or document that the caller must handle reconnection.
+
+### 8.1187 ai-signal-bot/src/communication/ws_connection_pool.py: WS Connection Pool — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/ws_connection_pool.py` (152 lines)
+
+- **PooledConnection**: Wrapper with last_used, healthy flag, stale check — correct
+- **acquire()**: Reuse healthy non-stale, evict stale, create new — correct
+- **release()**: Return to pool, close if unhealthy — correct
+- **health_check()**: Ping with 5s timeout — correct
+- **close_all()**: Clean shutdown — correct
+
+Good WS connection pool with health checks, stale eviction, and proper cleanup. ✅
+
+### 8.1188 ws_connection_pool: _evict_stale creates fire-and-forget tasks — Low
+
+**Файл:** `ws_connection_pool.py:106`
+
+```python
+asyncio.create_task(conn.close())
+```
+
+`_evict_stale` creates `asyncio.create_task(conn.close())` for each stale connection. These tasks are fire-and-forget — if the event loop closes before they complete, the connections leak. Also, there's no reference to the task, so it may be garbage collected before completion.
+
+**Фикс:** Store task references and await them, or use `await conn.close()` directly (since `_evict_stale` is called within the lock, this is safe).
+
+### 8.1189 ws_connection_pool: health_loop runs forever — Low
+
+**Файл:** `ws_connection_pool.py:129-133`
+
+```python
+async def _health_loop(self) -> None:
+    while True:
+        await asyncio.sleep(self._health_check_interval)
+        await self.health_check()
+```
+
+The health loop runs forever with `while True`. It's cancelled in `close_all()`, but if `close_all()` is never called (e.g., process killed), the task leaks. No `CancelledError` handling.
+
+**Фикс:** Use `while self._running:` with a `_running` flag, or add `except asyncio.CancelledError: break`.
+
+### 8.1190 ai-signal-bot/src/communication/shm_market_data_writer.py: SHM Market Data Writer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/shm_market_data_writer.py` (122 lines)
+
+- **Latest-snapshot-wins**: Single slot per symbol, seq-guarded (odd=writing, even=consistent) — correct
+- **write_snapshot**: Seq increment before and after write — correct
+- **Cross-platform**: Windows + POSIX — correct
+- **Context manager**: init/close — correct
+
+Good SHM market data writer with seq-guarded writes for lock-free reader consistency. ✅
+
+### 8.1191 shm_market_data_writer: no memory barrier on seq writes — Low
+
+**Файл:** `shm_market_data_writer.py:82-94`
+
+```python
+seq = struct.unpack_from('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ)[0]
+struct.pack_into('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ, seq + 1)
+# write data
+struct.pack_into('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ, seq + 2)
+```
+
+The seq writes use `struct.pack_into` directly — no `_mm_barrier` call. On x86/x64, aligned 8-byte stores are visible to other processes via cache coherence. But without a memory barrier, the data write may be reordered before the seq increment on weakly-ordered architectures (ARM). The C++ reader may see `seq=even` (consistent) but stale data.
+
+**Фикс:** Add `_mm_barrier` after the data write and before the final seq increment. Or use the `_atomic_write_u64` from `shm_ring_buffer.py`.
+
+### 8.1192 shm_market_data_writer: zeroing entire SHM segment on init — Low
+
+**Файл:** `shm_market_data_writer.py:57`
+
+```python
+self._mm[0:self._total_size] = b'\x00' * self._total_size
+```
+
+Zeroing the entire SHM segment creates a `bytes` object of `total_size` in Python memory, then copies it to the mmap. With 1000 symbols × 64 bytes = 64KB, this is fine. But with 10,000 symbols = 640KB, it's a 640KB allocation + copy on every init.
+
+**Фикс:** Use `self._mm[:] = b'\x00' * len(self._mm)` (mmap supports slice assignment), or use `ctypes.memset`.
+
+### 8.1193 ai-signal-bot/src/communication/shm_fill_consumer.py: SHM Fill Consumer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/shm_fill_consumer.py` (91 lines)
+
+- **Opens existing SHM**: create=False — correct
+- **try_pop/bulk_pop**: Non-blocking — correct
+- **run_polling**: 1ms interval, batch 256 — correct
+- **Context manager**: init/close — correct
+
+Good SHM fill consumer with polling loop and batch operations. ✅
+
+### 8.1194 shm_fill_consumer: polling at 1ms wastes CPU — Low
+
+**Файл:** `shm_fill_consumer.py:62-72`
+
+```python
+poll_interval: float = 0.001,
+# ...
+while self._running:
+    fills = self.bulk_pop(batch_size)
+    if fills:
+        callback(fills)
+    await asyncio.sleep(poll_interval)
+```
+
+1ms polling means 1000 wakeups/sec, even when no fills arrive. On a busy system, this wastes CPU. The callback is called synchronously (not `await callback(fills)`) — if the callback blocks, it blocks the event loop.
+
+**Фикс:** Use adaptive polling: start at 1ms, back off to 10ms when empty for N consecutive polls. Or use `asyncio.Event` set by the C++ side (requires SHM notification mechanism).
+
+### 8.1195 shm_fill_consumer: callback not async — Low
+
+**Файл:** `shm_fill_consumer.py:59-71`
+
+```python
+async def run_polling(
+    self,
+    callback: Callable[[list[tuple]], None],
+```
+
+The callback type hint says `Callable[[list[tuple]], None]` — not `Awaitable`. But `run_polling` is async. If the callback is async (returns a coroutine), it's never awaited — the coroutine is created and immediately discarded.
+
+**Фикс:** Either make the callback async (`Callable[[list[tuple]], Awaitable[None]]`) and `await callback(fills)`, or keep it sync and document that the callback must not block.
+
+### 8.1196 ai-signal-bot/src/communication/shm_signal_producer.py: SHM Signal Producer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/shm_signal_producer.py` (99 lines)
+
+- **Creates SHM**: create=True — correct
+- **push_signal**: Packs Signal struct, non-blocking — correct
+- **push_signal_dict**: Dict-to-struct conversion with symbol_map — correct
+- **bulk_push**: Batch — correct
+- **close**: Unlink (owner cleanup) — correct
+
+Good SHM signal producer with dict conversion and proper cleanup. ✅
+
+### 8.1197 shm_signal_producer: confidence divided by 100 — Low
+
+**Файл:** `shm_signal_producer.py:69`
+
+```python
+confidence = float(signal.get("confidence", 0.0)) / 100.0
+```
+
+The signal dict has confidence as 0-100 (percentage), but the SHM struct stores it as 0.0-1.0 (fraction). This conversion is correct, but it's undocumented. If a signal with confidence=0.5 (already a fraction) is passed, it becomes 0.005 — essentially zero. The `Signal` dataclass uses 0-100, so this is correct for that input, but fragile.
+
+**Фикс:** Document the expected input range, or detect if confidence is already < 1.0.
+
+### 8.1198 ai-signal-bot/src/utils/helpers.py: Utility Functions — ✅ Good
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py` (205 lines)
+
+- **setup_logging**: JSON + text formatter, file handler — correct
+- **JsonFormatter**: Structured JSON logs with timestamp, level, module — correct
+- **load_config**: YAML with FileNotFoundError fallback — correct
+- **get_env**: Type casting with bool special case — correct
+- **now_ms/now_us**: Time helpers — correct
+- **format_price/format_qty**: Adaptive decimal places — correct
+- **safe_divide/clamp/truncate_dict**: Utility helpers — correct
+- **CircuitBreaker**: Simple 3-state circuit breaker — correct (duplicate of communication/circuit_breaker.py)
+- **RateLimiter**: Token bucket with async acquire — correct
+
+Good utility functions. The `CircuitBreaker` class duplicates `src.communication.circuit_breaker.CircuitBreaker` — see §8.1201. ✅
+
+### 8.1199 helpers: RateLimiter busy-waits on asyncio.sleep — Low
+
+**Файл:** `helpers.py:194-204`
+
+```python
+async def acquire(self) -> bool:
+    while True:
+        self._refill()
+        if self._tokens >= 1.0:
+            self._tokens -= 1.0
+            return True
+        wait = (1.0 - self._tokens) / self.rate
+        await asyncio.sleep(wait)
+```
+
+The rate limiter loops with `while True` and `asyncio.sleep(wait)`. If `rate` is very high (e.g., 1000/s), `wait` is ~1ms — the loop spins, waking 1000 times/sec. If `rate` is 0 or negative, `wait` is negative and `asyncio.sleep(negative)` returns immediately — infinite loop.
+
+**Фикс:** Add `if self.rate <= 0: return False` (already present), but also cap minimum sleep to 1ms: `await asyncio.sleep(max(wait, 0.001))`.
+
+### 8.1200 helpers: load_config silently returns empty dict — Low
+
+**Файл:** `helpers.py:64-74`
+
+```python
+def load_config(config_path: str = "config/settings.yaml") -> dict:
+    try:
+        import yaml
+        with open(config_path) as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError, TypeError) as e:
+        logging.error(f"Failed to load config {config_path}: {e}")
+        return {}
+```
+
+On `FileNotFoundError`, the function returns `{}` silently — no log, no warning. The caller gets an empty config and may proceed with default values, masking a missing config file. On `ImportError` (yaml not installed), the function crashes.
+
+**Фикс:** Log on FileNotFoundError. Catch `ImportError` and return `{}` with a warning.
+
+### 8.1201 helpers: CircuitBreaker duplicates communication/circuit_breaker.py — Info
+
+**Файл:** `helpers.py:145-176`
+
+A second `CircuitBreaker` class with 3 states (closed, open, half_open) exists in `utils/helpers.py`. The main one in `communication/circuit_breaker.py` has `CircuitBreakerConfig`, `CircuitBreakerState` enum, and probe limiting. This one is simpler (no config dataclass, no enum, no probe limiting). Two implementations = confusion about which to use.
+
+**Фикс:** Remove `helpers.CircuitBreaker` and use `communication.circuit_breaker.CircuitBreaker` everywhere. Or keep the simple one for utils and document the difference.
+
+### 8.1202 ai-signal-bot/src/utils/bot_helpers.py: Bot Helper Functions — ✅ Good
+
+**Файл:** `ai-signal-bot/src/utils/bot_helpers.py` (153 lines)
+
+- **build_strategies**: Strategy list from config flags — correct
+- **build_stat_arb**: StatisticalArbitrage with pair generation — correct
+- **generate_stat_arb_signals**: Nested loop over symbol pairs — correct
+- **generate_llm_explanation**: LLM with fallback to signal.reason — correct
+- **load_candles_from_csv**: CSV loading — correct
+
+Good extraction from run.py. Clean separation of concerns. ✅
+
+### 8.1203 bot_helpers: generate_stat_arb_signals O(N²) pairs — Low
+
+**Файл:** `bot_helpers.py:78-101`
+
+```python
+for i in range(len(symbols)):
+    for j in range(i + 1, len(symbols)):
+```
+
+With 20 symbols, this generates 190 pairs. Each pair calls `bot.stat_arb.analyze()` which computes correlation, z-score, etc. With 50 symbols, 1225 pairs. At 1s per analysis, that's 20min per signal cycle.
+
+**Фикс:** Pre-filter pairs by correlation threshold. Or parallelize with `asyncio.gather()`.
+
+### 8.1204 bot_helpers: generate_llm_explanation catches broad exceptions — Low
+
+**Файл:** `bot_helpers.py:116`
+
+```python
+except (ValueError, KeyError, TypeError, RuntimeError):
+    return signal.reason
+```
+
+The exception list is broad but doesn't include `asyncio.TimeoutError` or `OSError`. If the LLM engine times out or has a network error, the exception propagates up and may crash the signal pipeline.
+
+**Фикс:** Add `asyncio.TimeoutError, OSError` to the catch list.
+
+### 8.1205 ai-signal-bot/src/observability/health_checks.py: Deep Health Checks — ✅ Good
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py` (221 lines)
+
+- **3 endpoints**: liveness, readiness, status — correct
+- **4 component checks**: WebSocket, TimescaleDB, Redis, exchange — correct
+- **HealthStatus enum**: HEALTHY, DEGRADED, UNHEALTHY — correct
+- **ComponentHealth dataclass**: name, status, latency, details — correct
+- **create_health_endpoints**: aiohttp handlers with 503 on unhealthy — correct
+- **Specific exception catches**: No bare Exception — correct
+
+Good deep health checking with proper Kubernetes liveness/readiness separation. ✅
+
+### 8.1206 health_checks: _check_ws uses getattr for connected — Low
+
+**Файл:** `health_checks.py:146`
+
+```python
+connected = getattr(self.ws_client, "connected", False)
+```
+
+The WS client's connection state is checked via `getattr` with a fallback to `False`. If the WS client doesn't have a `connected` attribute (e.g., different implementation), the check always returns UNHEALTHY. This is a duck-typing fragility.
+
+**Фикс:** Define a `HealthCheckable` protocol with `connected`, `ping()`, `is_healthy()` methods.
+
+### 8.1207 health_checks: check_liveness uses __import__("os") — Low
+
+**Файл:** `health_checks.py:82`
+
+```python
+"pid": __import__("os").getpid(),
+```
+
+Using `__import__("os")` instead of `import os` at the top of the file. This is an anti-pattern — it's harder to read, prevents IDE auto-complete, and linters can't track the import.
+
+**Фикс:** Add `import os` at the top and use `os.getpid()`.
+
+### 8.1208 health_checks: no timeout on _check_db and _check_redis — Low
+
+**Файл:** `health_checks.py:162, 179`
+
+```python
+health = await self.db_client.get_health()
+# ...
+await self.redis_client.ping()
+```
+
+No timeout on DB health check or Redis ping. If the DB or Redis is slow (e.g., 30s query), the readiness probe hangs. Kubernetes will kill the pod after `timeoutSeconds` (default 1s).
+
+**Фикс:** Wrap in `asyncio.wait_for(..., timeout=2.0)`.
+
+### 8.1209 ai-signal-bot/src/observability/logging.py: Structured Logging — ✅ Good
+
+**Файл:** `ai-signal-bot/src/observability/logging.py` (171 lines)
+
+- **structlog integration**: Context vars, JSON renderer, console renderer — correct
+- **Fallback**: basicConfig if structlog not installed — correct
+- **_configured guard**: Prevents double initialization — correct
+- **_suppress_library_noise**: Reduces noise from uvicorn, websockets, etc. — correct
+- **File handler**: JSON format for file, console for stdout — correct
+
+Good structured logging with graceful fallback. ✅
+
+### 8.1210 logging: setup_logging duplicates utils/helpers.setup_logging — Info
+
+**Файл:** `observability/logging.py:31` vs `utils/helpers.py:14`
+
+Two `setup_logging` functions exist:
+1. `utils.helpers.setup_logging` — uses custom `JsonFormatter`, returns `logging.Logger`
+2. `observability.logging.setup_logging` — uses `structlog`, returns `None`
+
+Both configure the root logger. If both are called, the second one clears handlers from the first. The caller must know which one to use.
+
+**Фикс:** Remove `utils.helpers.setup_logging` and use `observability.logging.setup_logging` everywhere.
+
+### 8.1211 logging: _configured guard prevents reconfiguration — Low
+
+**Файл:** `logging.py:39-40`
+
+```python
+if _configured:
+    return
+```
+
+Once `setup_logging` is called, it can never be reconfigured. If the application needs to switch from console to JSON logging at runtime (e.g., for debugging), it can't.
+
+**Фикс:** Add a `force: bool = False` parameter that bypasses the guard.
+
+### 8.1212 ai-signal-bot/src/observability/tracing.py: Distributed Tracing — ✅ Good
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py` (111 lines)
+
+- **OpenTelemetry + Jaeger**: OTLP exporter, BatchSpanProcessor — correct
+- **NoopTracer fallback**: No-op span when tracing not initialized — correct
+- **AsyncioInstrumentor**: Auto-instruments asyncio — correct
+- **shutdown_tracing**: Flushes pending traces — correct
+- **Specific exception catches**: ImportError, RuntimeError, OSError — correct
+
+Good distributed tracing with graceful fallback and proper shutdown. ✅
+
+### 8.1213 tracing: no span export mechanism — Info
+
+**Файл:** `tracing.py:59`
+
+```python
+exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
+```
+
+The OTLP exporter sends spans to `endpoint` (default `http://localhost:4317`). If Jaeger is not running, the exporter silently fails (BatchSpanProcessor catches exceptions internally). Traces are collected but never exported — tracing is useless without a backend.
+
+### 8.1214 tracing: insecure=True hardcoded — Low
+
+**Файл:** `tracing.py:59`
+
+```python
+exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
+```
+
+`insecure=True` disables TLS for the OTLP gRPC connection. In production, traces may contain sensitive data (symbol names, order IDs). Without TLS, they're sent in plaintext.
+
+**Фикс:** Make `insecure` configurable, default to `False` in production.
+
+### 8.1215 ai-signal-bot/src/monitoring/alerting.py: Alert System — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/alerting.py` (260 lines)
+
+- **3 severity levels**: INFO, WARNING, CRITICAL — correct
+- **AlertRule**: check_fn, cooldown, enabled flag — correct
+- **3 channels**: Discord, Telegram, generic webhook — correct
+- **Rate limiting**: Cooldown per rule (default 5min) — correct
+- **Alert history**: Capped at 1000, list slicing — correct
+- **Parallel send**: asyncio.gather with return_exceptions — correct
+- **Monitor loop**: Periodic with proper CancelledError handling — correct
+
+Good multi-channel alert system with rate limiting and proper cleanup. ✅
+
+### 8.1216 alerting: creates new aiohttp session per alert send — Low
+
+**Файл:** `alerting.py:168, 190, 205`
+
+```python
+async with aiohttp.ClientSession() as session:
+    async with session.post(self.discord_webhook, json=payload) as resp:
+```
+
+Each `_send_discord`, `_send_telegram`, `_send_webhook` creates a new `aiohttp.ClientSession`. With 10 alerts/min, that's 30 sessions/min. Session creation involves TCP connection setup and memory allocation.
+
+**Фикс:** Create a shared `aiohttp.ClientSession` in `__init__` or `start_monitoring()`, reuse it for all sends, and close it in `stop_monitoring()`.
+
+### 8.1217 alerting: check_fn is sync but called in async context — Low
+
+**Файл:** `alerting.py:101`
+
+```python
+should_fire = rule.check_fn()
+```
+
+`check_fn` is `Callable[[], bool]` — synchronous. But `check_rules` is async. If `check_fn` does I/O (e.g., checks DB), it blocks the event loop. The alert system is designed for trading system checks (daily loss, no fills, SHM disconnected, DB down) — these likely involve I/O.
+
+**Фикс:** Make `check_fn` async (`Callable[[], Awaitable[bool]]`) and `await rule.check_fn()`.
+
+### 8.1218 alerting: alert_history list slicing O(N) — Low
+
+**Файл:** `alerting.py:113-114`
+
+```python
+if len(self.alert_history) > self._max_history:
+    self.alert_history = self.alert_history[-self._max_history:]
+```
+
+When history exceeds 1000, the entire list is sliced: `self.alert_history[-1000:]` creates a new list of 1000 elements. This is O(N) and happens on every alert after 1000. With 10 alerts/min, that's 10 O(1000) copies/min.
+
+**Фикс:** Use `collections.deque(maxlen=1000)` instead of list.
+
+### 8.1219 ai-signal-bot/src/monitoring/tracker.py: Performance Tracker — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/tracker.py` (175 lines)
+
+- **PerformanceTracker**: Signals, trades, PnL, win rate — correct
+- **SignalLogger**: CSV with header creation — correct
+- **TradeLogger**: CSV with header creation — correct
+- **print_dashboard**: tabulate-based CLI dashboard — correct
+
+Good performance tracking with CSV logging and CLI dashboard. ✅
+
+### 8.1220 tracker: SignalLogger opens file on every log() call — Low
+
+**Файл:** `tracker.py:82-96`
+
+```python
+def log(self, signal_dict: dict) -> None:
+    with open(self.path, "a", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([...])
+```
+
+Every `log()` call opens, writes, and closes the file. With 100 signals/sec, that's 100 file open/close operations/sec. Each involves syscall overhead (open, fcntl, close).
+
+**Фикс:** Keep the file open (open in `__init__`, close in `__del__` or `close()`), or use a buffered writer. Or use `logging.FileHandler` with CSV formatter.
+
+### 8.1221 tracker: no file lock — Low
+
+**Файл:** `tracker.py:82-96`
+
+Multiple processes (e.g., AI Signal Bot + backtest runner) may write to the same CSV file. Without a file lock, writes can interleave, corrupting the CSV.
+
+**Фикс:** Use `fcntl.flock` (POSIX) or `msvcrt.locking` (Windows), or use a proper logging framework.
+
+### 8.1222 tracker: print_dashboard uses datetime.now() without UTC — Low
+
+**Файл:** `tracker.py:134`
+
+```python
+f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+```
+
+`datetime.now()` returns local time. In production across time zones, dashboard timestamps don't match log timestamps (which use UTC).
+
+**Фикс:** Use `datetime.now(UTC)`.
+
+### 8.1223 ai-signal-bot/src/monitoring/metrics.py: Prometheus Metrics — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/metrics.py` (239 lines)
+
+- **prometheus_client**: Counter, Gauge, Histogram, Summary — correct
+- **15 metrics**: signals, fills, orders, PnL, drawdown, latency, SHM — correct
+- **Label dimensions**: symbol, direction, exchange, side, channel — correct
+- **HTTP endpoint**: /metrics + /health — correct
+- **Graceful fallback**: HAS_PROMETHEUS guard — correct
+
+Good Prometheus metrics exporter with comprehensive trading system metrics. ✅
+
+### 8.1224 metrics: MetricsExporter.__init__ returns early without setting attributes — Low
+
+**Файл:** `metrics.py:41-43`
+
+```python
+if not HAS_PROMETHEUS:
+    logger.warning("prometheus_client not available")
+    return
+```
+
+If `prometheus_client` is not installed, `__init__` returns early. None of the metric attributes (`signals_total`, `fills_total`, etc.) are set. Any call to `record_signal()`, `record_fill()`, etc. will raise `AttributeError`. The `HAS_PROMETHEUS` guard in each method prevents this, but if someone calls `exporter.signals_total.inc()` directly, it crashes.
+
+**Фикс:** Set all attributes to `None` or a no-op object in the `if not HAS_PROMETHEUS` branch.
+
+### 8.1225 metrics: duplicate of communication/metrics_server.py — Info
+
+**Файл:** `monitoring/metrics.py` vs `communication/metrics_server.py`
+
+Two metrics implementations:
+1. `communication/metrics_server.py` — lightweight, pure Python, 7 metrics, no external deps
+2. `monitoring/metrics.py` — prometheus_client, 15 metrics, full Prometheus format
+
+Both serve `/metrics` on different ports (9091 vs 9090). This is confusing and wastes resources. The lightweight one was created for the signal publisher; the full one for the trading system.
+
+**Фикс:** Use only `monitoring/metrics.py` (prometheus_client). Remove `communication/metrics_server.py` or use it as a fallback when prometheus_client is not installed.
+
+### 8.1226 ai-signal-bot/src/monitoring/health_server.py: Health Server — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/health_server.py` (153 lines)
+
+- **4 endpoints**: /health, /health/exchange, /health/database, /health/shm — correct
+- **register_check**: Pluggable check functions — correct
+- **Coroutine detection**: `asyncio.iscoroutine(result)` — correct
+- **503 on unhealthy**: Correct HTTP status — correct
+- **Specific exception catches**: No bare Exception — correct
+
+Good health server with pluggable checks and per-component endpoints. ✅
+
+### 8.1227 health_server: duplicate of observability/health_checks.py — Info
+
+**Файл:** `monitoring/health_server.py` vs `observability/health_checks.py`
+
+Two health check implementations:
+1. `monitoring/health_server.py` — pluggable checks via `register_check()`, 3 hardcoded checks (exchange, database, shm)
+2. `observability/health_checks.py` — deep checks with `HealthChecker` class, 4 component checks, Kubernetes liveness/readiness
+
+Both serve health endpoints. The monitoring one is simpler (pluggable), the observability one is deeper (Kubernetes-ready). In practice, both may be started, serving on different ports (8080 vs 9090).
+
+**Фикс:** Merge into one. Use `observability/health_checks.py` as the primary (Kubernetes-ready), and make `monitoring/health_server.py` a thin wrapper or remove it.
+
+### 8.1228 health_server: _check_all runs checks sequentially — Low
+
+**Файл:** `health_server.py:74-95`
+
+```python
+exchange = await self._check_exchange()
+database = await self._check_database()
+shm = await self._check_shm()
+```
+
+Checks run sequentially. If exchange check takes 2s and database check takes 3s, total is 5s. Kubernetes readiness probe has a default 1s timeout — the probe will fail.
+
+**Фикс:** Use `asyncio.gather()` to run checks in parallel.
+
+### 8.1229 ai-signal-bot/src/ml/automl.py: AutoML Optimizer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/automl.py` (191 lines)
+
+- **Optuna TPE sampler**: Bayesian optimization — correct
+- **MedianPruner**: Early stopping of bad trials — correct
+- **Default search space**: RSI, EMA, ATR, confidence, SL/TP, position sizing — correct
+- **Strategy-specific params**: mean_reversion (BB, z-score), trend_following (trailing stop) — correct
+- **Storage**: SQLite optional for study persistence — correct
+- **save_best_params**: JSON export — correct
+
+Good AutoML pipeline with Optuna, proper search space design, and persistence. ✅
+
+### 8.1230 automl: study.optimize is blocking — Low
+
+**Файл:** `automl.py:142-147`
+
+```python
+self.study.optimize(
+    wrapped_objective,
+    n_trials=self.config.n_trials,
+    timeout=self.config.timeout,
+    show_progress_bar=True,
+)
+```
+
+`study.optimize()` is synchronous and blocks the event loop. With `timeout=3600` (1 hour), the event loop is blocked for up to 1 hour. If this is called from an async context (e.g., WebSocket handler), all clients are starved.
+
+**Фикс:** Run in `ProcessPoolExecutor` via `run_in_executor()`, or use Optuna's async features.
+
+### 8.1231 automl: no objective function validation — Low
+
+**Файл:** `automl.py:128-131`
+
+```python
+if objective_fn is None:
+    logger.warning("[AutoML] No objective function given — using dummy")
+    def objective_fn(params):
+        return 0.0
+```
+
+If no objective function is provided, a dummy returning 0.0 is used. The optimization runs 100 trials, all returning 0.0, wasting 1 hour of compute. The warning is logged but easy to miss.
+
+**Фикс:** Raise `ValueError` if no objective function is provided, or require it as a positional argument.
+
+### 8.1232 ai-signal-bot/src/ml/feature_store.py: Feature Store — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/feature_store.py` (220 lines)
+
+- **Redis-backed**: Hash per symbol, TTL 1h — correct
+- **In-memory fallback**: Dict-based when Redis unavailable — correct
+- **Pipeline**: Batch HSET + SADD + EXPIRE — correct
+- **Feature vector/matrix**: Ordered vectors for ML inference — correct
+- **Feature age**: Time since last update — correct
+- **is_healthy**: Redis ping — correct
+
+Good feature store with Redis, in-memory fallback, and ML-ready vector/matrix output. ✅
+
+### 8.1233 feature_store: bare Exception in Redis connection catch — Low
+
+**Файл:** `feature_store.py:94`
+
+```python
+except (OSError, ConnectionError, RuntimeError, Exception) as e:
+```
+
+The exception list includes `Exception` — which catches everything including `CancelledError`, `KeyboardInterrupt`, `SystemExit`. The `Exception` at the end makes the other three redundant.
+
+**Фикс:** Remove `Exception` from the list, or just use `except Exception`.
+
+### 8.1234 feature_store: get_features_batch is sequential — Low
+
+**Файл:** `feature_store.py:141-148`
+
+```python
+def get_features_batch(self, symbols, feature_names=None):
+    result = {}
+    for symbol in symbols:
+        result[symbol] = self.get_features(symbol, feature_names)
+    return result
+```
+
+Batch get is sequential — each symbol triggers a separate Redis round-trip. With 50 symbols, that's 50 Redis calls. At 1ms per call, 50ms total.
+
+**Фикс:** Use Redis pipeline or MGET for batch retrieval. Or use `asyncio.gather()` if async.
+
+### 8.1235 feature_store: no connection pool configuration — Low
+
+**Файл:** `feature_store.py:83-91`
+
+```python
+self._redis = redis.Redis(
+    host=redis_host, port=redis_port, db=redis_db,
+    password=redis_password, decode_responses=True,
+    socket_timeout=2, socket_connect_timeout=2,
+)
+```
+
+No `max_connections` or connection pool config. The default `redis.ConnectionPool` has unlimited connections. Under high load, this can exhaust file descriptors.
+
+**Фикс:** Add `connection_pool=redis.ConnectionPool(max_connections=10)`.
+
+### 8.1236 ai-signal-bot/src/ml/model_registry.py: Model Registry — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/model_registry.py` (296 lines)
+
+- **5 statuses**: CANDIDATE, STAGING, PRODUCTION, ARCHIVED, ROLLED_BACK — correct
+- **ModelVersion**: name, version, path, metrics, metadata — correct
+- **A/B testing**: Traffic split, impression/success tracking, auto-promote — correct
+- **Rollback**: Most recently archived model — correct
+- **File persistence**: JSON with load/save — correct
+- **Promotion**: Auto-archive current production — correct
+
+Good model registry with versioning, A/B testing, rollback, and file persistence. ✅
+
+### 8.1237 model_registry: _save on every A/B impression — Low
+
+**Файл:** `model_registry.py:237-243`
+
+```python
+def select_ab_model(self, name: str) -> str:
+    # ...
+    if random.random() < ab.traffic_split:
+        ab.treatment_impressions += 1
+        self._save()  # saves entire registry on every impression!
+        return ab.treatment_version
+    else:
+        ab.control_impressions += 1
+        self._save()  # saves entire registry on every impression!
+        return ab.control_version
+```
+
+Every A/B model selection increments the impression counter and saves the entire registry to disk. With 1000 predictions/sec, that's 1000 JSON file writes/sec. Each write serializes all models, all A/B tests, and writes to disk.
+
+**Фикс:** Batch saves: save every N impressions or every T seconds. Or use a database instead of JSON file.
+
+### 8.1238 model_registry: no file lock on _save — Low
+
+**Файл:** `model_registry.py:107-120`
+
+```python
+def _save(self) -> None:
+    os.makedirs(self.storage_dir, exist_ok=True)
+    # ...
+    with open(self.index_path, "w") as f:
+        json.dump(data, f, indent=2)
+```
+
+No file lock. If two processes save simultaneously, the JSON file can be corrupted (partial write from one process, partial from another).
+
+**Фикс:** Use `fcntl.flock` (POSIX) or `msvcrt.locking` (Windows), or use atomic write (write to temp, rename).
+
+### 8.1239 model_registry: rollback selects wrong model — Low
+
+**Файл:** `model_registry.py:179-198`
+
+```python
+prod_models = [v for v in versions if v.status == ModelStatus.ARCHIVED]
+# ...
+prod_models.sort(key=lambda v: v.promoted_at or 0, reverse=True)
+previous = prod_models[0]
+```
+
+Rollback selects the most recently `ARCHIVED` model. But `ARCHIVED` status is also set when a model is promoted over another. If model A → B → C, then A and B are both ARCHIVED. Rollback selects B (most recently archived), not A (the one before C). This is correct for one-level rollback, but the naming `prod_models` is misleading — they're archived models, not production models.
+
+**Фикс:** Rename `prod_models` to `archived_models`. For multi-level rollback, maintain a promotion history stack.
+
+### 8.1240 ai-signal-bot/src/ml/autoencoder.py: Pure Python Autoencoder — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/autoencoder.py` (376 lines)
+
+- **Shallow autoencoder**: Tied weights, sigmoid activation, Xavier init — correct
+- **Forward/backward pass**: Manual gradient computation — correct
+- **Anomaly detection**: Reconstruction error + z-score threshold — correct
+- **Stable sigmoid**: Input clamping to ±500 — correct
+- **No external deps**: Pure Python, no numpy/torch required — correct
+
+Good educational implementation. Not production-grade (no batching, no GPU), but correct for small-scale anomaly detection. ✅
+
+### 8.1241 autoencoder: O(N²) weight matrix operations in pure Python — Low
+
+**Файл:** `autoencoder.py:110-120`
+
+```python
+for k in range(hidden_dim):
+    total = be[k]
+    for j in range(input_dim):
+        total += we[k][j] * x[j]
+```
+
+Forward pass is O(hidden_dim × input_dim) in pure Python loops. With input_dim=12 and hidden_dim=4, this is 48 multiplications per sample — fine for small scale. But with 1000 samples × 200 epochs = 200K forward passes, that's 9.6M Python loop iterations. NumPy would be 100× faster.
+
+**Фикс:** Use numpy for matrix operations: `h = sigmoid(we @ x + be)`. Or document that this is intentionally pure-Python for educational purposes.
+
+### 8.1242 ai-signal-bot/src/ml/vae.py: Variational Autoencoder — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/vae.py` (349 lines)
+
+- **2-layer encoder/decoder**: Linear + sigmoid — correct
+- **Reparameterization trick**: z = mu + exp(0.5*logvar) * eps — correct
+- **ELBO loss**: MSE reconstruction + β × KL divergence — correct
+- **Full backpropagation**: Manual gradients through encoder/decoder — correct
+- **Synthetic scenario generation**: Sample z → decode → x_hat — correct
+
+Good VAE implementation with β-VAE support and manual backprop. ✅
+
+### 8.1243 vae: _random_normal uses Box-Muller without caching — Low
+
+**Файл:** `vae.py:72`
+
+```python
+eps = [_random_normal(self.rng) for _ in range(self.latent_dim)]
+```
+
+Each call to `_random_normal` generates a normal random number via Box-Muller transform (likely involving `math.sqrt`, `math.log`, `math.cos`). This is called on every forward pass and every train step. With latent_dim=2 and 50 epochs × 200 samples = 10K calls, that's 20K trig operations.
+
+**Фикс:** Use `random.gauss(0, 1)` which is faster, or numpy.random.randn for batch generation.
+
+### 8.1244 ai-signal-bot/src/ml/price_predictor.py: LSTM/Transformer Predictor — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/price_predictor.py` (334 lines)
+
+- **LSTMPredictor**: LSTM + attention + classifier — correct
+- **TransformerPredictor**: Positional encoding + TransformerEncoder + GELU — correct
+- **ModelConfig**: 11 input dims, 128 hidden, 3 output (buy/sell/hold) — correct
+- **Training loop**: Early stopping, learning rate scheduling — correct
+- **ONNX export**: Dynamic batch axes — correct
+
+Good PyTorch model with proper architecture, training, and export pipeline. ✅
+
+### 8.1245 price_predictor: hard dependency on torch — Low
+
+**Файл:** `price_predictor.py:28-30`
+
+```python
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset
+```
+
+No `try/except ImportError` guard. If torch is not installed, importing this module crashes the entire application. Other ML modules (automl, feature_store) have graceful fallbacks.
+
+**Фикс:** Add `try: import torch ... except ImportError: HAS_TORCH = False` guard, or document that this module is optional.
+
+### 8.1246 price_predictor: no model versioning in save/load — Low
+
+**Файл:** `price_predictor.py` (training section)
+
+The training loop saves checkpoints but doesn't register them in `model_registry.py`. Models are saved to `checkpoints/` but not versioned, promoted, or tracked. The model registry exists but is not integrated.
+
+**Фикс:** After training, call `model_registry.register(name, version, path, metrics, metadata)` to track model versions.
+
+### 8.1247 ai-signal-bot/src/ml/rl_trader.py: PPO + DQN Agents — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/rl_trader.py` (390 lines)
+
+- **PPOAgent**: Actor-Critic, GAE, clip objective, gradient clipping — correct
+- **DQNAgent**: Experience replay, target network, ε-greedy, ε-decay — correct
+- **Checkpointing**: Save/load model + optimizer state — correct
+- **ONNX export**: Dynamic batch axes, opset 17 — correct
+- **Config**: Separate PPO and DQN hyperparameters — correct
+
+Good RL implementation with both PPO and DQN, proper checkpointing, and ONNX export. ✅
+
+### 8.1248 rl_trader: PPO buffer unbounded between updates — Low
+
+**Файл:** `rl_trader.py:124-129`
+
+```python
+def reset_buffer(self) -> None:
+    self.states: list[torch.Tensor] = []
+    self.actions: list[int] = []
+    # ...
+```
+
+The PPO buffer grows unbounded between `update()` calls. If `update()` is not called (e.g., episode shorter than batch_size), the buffer keeps growing. With 63-dim states and 10K steps, that's 10K × 63 × 4 bytes = 2.5MB in GPU/CPU memory.
+
+**Фикс:** Use `deque(maxlen=config.batch_size * 10)` or cap buffer size.
+
+### 8.1249 rl_trader: DQN buffer 100K entries ~50MB RAM — Low
+
+**Файл:** `rl_trader.py:284`
+
+```python
+self.buffer = deque(maxlen=config.dqn_buffer_size)  # 100000
+```
+
+Each entry is (state, action, reward, next_state, done) = (63 + 1 + 1 + 63 + 1) floats = 129 floats × 4 bytes = 516 bytes. 100K entries = 51.6MB. This is acceptable for training but wasteful for inference-only deployments.
+
+**Фикс:** Document that DQN is training-only. For inference, load checkpoint and don't instantiate DQNAgent.
+
+### 8.1250 ai-signal-bot/src/ml/svm_signal.py: Linear SVM via SGD — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/svm_signal.py` (182 lines)
+
+- **Linear SVM**: SGD with hinge loss, L2 regularization — correct
+- **RBF kernel**: Defined but not used in linear_svm — correct (kernel SVM would be O(N²))
+- **Standardize**: Zero mean, unit variance — correct
+- **Learning rate decay**: `eta = lr / (1 + epoch * decay_rate)` — correct
+- **Training accuracy**: Computed after training — correct
+
+Good pure-Python SVM implementation. Simple, correct, no external deps. ✅
+
+### 8.1251 svm_signal: RBF kernel defined but unused — Info
+
+**Файл:** `svm_signal.py:41-44`
+
+```python
+def _rbf_kernel(x1, x2, gamma):
+    dist_sq = sum((a - b) ** 2 for a, b in zip(x1, x2))
+    return math.exp(-gamma * dist_sq)
+```
+
+The RBF kernel function is defined but never called. `linear_svm` uses linear kernel only. This is dead code.
+
+**Фикс:** Remove `_rbf_kernel` or implement kernel SVM (but O(N²) in memory and time).
+
+### 8.1252 ai-signal-bot/src/ml/rkhs.py: RKHS Kernel Methods — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/rkhs.py` (276 lines)
+
+- **RBF + Laplacian kernels**: Correct implementations — correct
+- **Kernel matrix**: Symmetric, O(N²) — correct
+- **Center kernel matrix**: H*K*H centering — correct
+- **Jacobi eigendecomposition**: Iterative, correct for symmetric matrices — correct
+- **MMD (Maximum Mean Discrepancy)**: Distribution comparison — correct
+- **Kernel regression**: Ridge regression in kernel space — correct
+
+Good RKHS implementation with proper linear algebra. ✅
+
+### 8.1253 rkhs: Jacobi eigendecomposition O(N³) — Low
+
+**Файл:** `rkhs.py:85-120`
+
+```python
+def jacobi_eig(a, max_iter=50, tol=1e-8):
+    n = len(a)
+    # ...
+    for _ in range(max_iter):
+        for i in range(n):
+            for j in range(i + 1, n):
+```
+
+Jacobi eigendecomposition is O(N³) per iteration × 50 iterations. With N=60 (lookback), that's 60³ × 50 = 10.8M operations. In pure Python, this takes ~10 seconds. NumPy's `np.linalg.eigh` would take <1ms.
+
+**Фикс:** Use `numpy.linalg.eigh` for symmetric matrices. Keep Jacobi as fallback if numpy not available.
+
+### 8.1254 ai-signal-bot/src/ml/environment.py: Trading Environment — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/environment.py` (163 lines)
+
+- **Gym-compatible**: reset(), step(), observation/action spaces — correct
+- **3 actions**: HOLD, BUY, SELL — correct
+- **63-dim observation**: 60 prices + 3 portfolio state — correct
+- **Price normalization**: Divide by last price — correct
+- **Transaction cost**: 0.1% per trade — correct
+- **Reward**: Portfolio value change / initial_cash — correct
+
+Good RL trading environment with proper Gym interface. ✅
+
+### 8.1255 environment: no CLOSE action — Low
+
+**Файл:** `environment.py:15-19`
+
+```python
+class Action(Enum):
+    HOLD = 0
+    BUY = 1
+    SELL = 2
+```
+
+Only 3 actions: HOLD, BUY, SELL. No explicit CLOSE action. To close a long position, the agent must SELL (which opens a short if no position). This conflates "close long" with "open short", making it harder for the agent to learn.
+
+**Фикс:** Add `CLOSE = 3` action that closes current position without opening opposite.
+
+### 8.1256 environment: reset() generates random prices if none provided — Low
+
+**Файл:** `environment.py:62-63`
+
+```python
+if prices is None:
+    prices = np.random.randn(200) * 10 + 100
+```
+
+If `reset()` is called without prices, it generates 200 random normal prices around 100. This is useful for testing but dangerous in production — an agent trained on random walk may not generalize to real market data.
+
+**Фикс:** Log a warning when using synthetic data. Or require prices as mandatory argument.
+
+### 8.1257 ai-signal-bot/src/llm_engine/engine.py: LLM Engine — ✅ Good
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py` (394 lines)
+
+- **3 providers**: OpenAI, Anthropic, Ollama — correct
+- **Rule-based fallback**: When no API key or on error — correct
+- **Response caching**: TTL-based with eviction — correct
+- **Prompt templates**: File-based with inline fallback — correct
+- **3 analysis types**: Market analysis, signal explanation, risk assessment — correct
+- **Specific exception catches**: RuntimeError, OSError, ValueError, KeyError — correct
+- **Shared aiohttp session**: Created in initialize(), closed in close() — correct
+
+Good LLM engine with multi-provider support, caching, and graceful fallback. ✅
+
+### 8.1258 llm_engine: API key in plain string — Low
+
+**Файл:** `engine.py:29`
+
+```python
+api_key: str = ""
+```
+
+The API key is stored as a plain string in `LLMConfig`. If the config is logged, printed, or serialized, the key is exposed. The key is also passed in headers (`Authorization: Bearer {key}`), which is correct, but the config object itself is not protected.
+
+**Фикс:** Use `SecretStr` from pydantic or a custom wrapper that masks `__repr__`.
+
+### 8.1259 llm_engine: cache key based on price rounded to 2 decimals — Low
+
+**Файл:** `engine.py:151`
+
+```python
+cache_key = f"{ctx.symbol}_{round(ctx.price, 2)}"
+```
+
+Cache key is `symbol_price`. If BTC moves from 65000.00 to 65000.01, it's a cache miss. If BTC stays at 65000.00 for 60s, every call is a cache hit. The cache TTL is 60s, so the key space is bounded, but the cache hit rate depends on price volatility, not time.
+
+**Фикс:** Use `f"{ctx.symbol}_{int(ctx.price)}"` for coarser caching, or use time-bucketed keys.
+
+### 8.1260 llm_engine: _parse_response uses string find for JSON extraction — Low
+
+**Файл:** `engine.py:287-290`
+
+```python
+start = response.find("{")
+end = response.rfind("}") + 1
+if start >= 0 and end > start:
+    data = json.loads(response[start:end])
+```
+
+The parser finds the first `{` and last `}` in the LLM response. If the LLM includes markdown code blocks (e.g., ````json\n{...}\n````), the extraction works. But if the LLM includes multiple JSON objects or nested braces in text, the extraction may fail or parse the wrong section.
+
+**Фикс:** Use a regex or json5 parser for more robust extraction. Or instruct the LLM to return only JSON.
+
+### 8.1261 llm_engine: no rate limiting on API calls — Low
+
+**Файл:** `engine.py:175-180`
+
+```python
+response = await self._call_llm(prompt)
+analysis = self._parse_response(response, ctx.symbol)
+self._cache[cache_key] = (now, analysis)
+self._request_count += 1
+```
+
+No rate limiting on LLM API calls. With 50 symbols × 60s signal interval = 50 calls/min. OpenAI's rate limit for gpt-4o-mini is 500 RPM for tier 1, so this is fine. But if the cache is cold or the price changes rapidly, the call rate can spike.
+
+**Фикс:** Add a rate limiter (e.g., the `RateLimiter` from `utils/helpers.py`) to cap calls at a configurable rate.
+
+### 8.1262 ai-signal-bot/src/notification/notifier.py: Telegram + Discord Notifier — ✅ Good
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py` (334 lines)
+
+- **TelegramNotifier**: Long polling, command handling, proper CancelledError — correct
+- **DiscordNotifier**: Message polling, command handling, proper CancelledError — correct
+- **NotifierManager**: Multi-notifier management, start_all/stop_all — correct
+- **AlertEvent**: Normalized event dataclass — correct
+- **create_notifier_from_env**: Environment variable setup — correct
+- **Shared session**: Each notifier creates one aiohttp session — correct
+- **Specific exception catches**: OSError, RuntimeError, JSONDecodeError — correct
+
+Good notification system with both Telegram and Discord, command handling, and proper cleanup. ✅
+
+### 8.1263 notifier: Telegram token in URL — Low
+
+**Файл:** `notifier.py:104`
+
+```python
+url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+```
+
+The Telegram bot token is embedded in the URL. If the URL is logged (e.g., in debug mode, by aiohttp, or by a proxy), the token is exposed. Telegram API requires this format, but logging must be careful.
+
+**Фикс:** Ensure debug logging doesn't include URLs. Add a log filter that masks tokens.
+
+### 8.1264 notifier: Discord polls messages instead of using Gateway — Low
+
+**Файл:** `notifier.py:234-263`
+
+```python
+async def _poll_messages(self):
+    while self._running:
+        url = f"https://discord.com/api/v10/channels/{self.channel_id}/messages"
+        # ...
+        async with self._session.get(url, headers=headers, params=params) as resp:
+```
+
+Discord notifier polls the REST API for new messages every iteration. This is rate-limited by Discord (50 requests/second per channel, but practical limit is lower). The proper way is to use the Discord Gateway (WebSocket) for real-time message events.
+
+**Фикс:** Use `discord.py` library or implement WebSocket Gateway connection. Or document that polling is intentional for simplicity.
+
+### 8.1265 notifier: no polling interval in Discord _poll_messages — Low
+
+**Файл:** `notifier.py:237-263`
+
+```python
+while self._running:
+    try:
+        url = f"..."
+        async with self._session.get(url, ...) as resp:
+            # ...
+    except asyncio.CancelledError:
+        break
+    except (OSError, RuntimeError, json.JSONDecodeError) as e:
+        logger.error(f"Discord poll error: {e}")
+        await asyncio.sleep(5)
+```
+
+On success, there's no `await asyncio.sleep()` — the loop immediately polls again. This hammers the Discord API at maximum speed (hundreds of requests/second). On error, it sleeps 5s. The Telegram poller has `timeout: 30` in the request params (long polling), but Discord has no such mechanism in the REST API.
+
+**Фикс:** Add `await asyncio.sleep(1)` at the end of the while loop body (on success).
+
+### 8.1266 notifier: NotifierManager.send_alert is sequential — Low
+
+**Файл:** `notifier.py:308-310`
+
+```python
+async def send_alert(self, event: AlertEvent):
+    for n in self._notifiers:
+        await n.send_alert(event)
+```
+
+Alerts are sent to notifiers sequentially. If Telegram takes 2s and Discord takes 3s, total is 5s. With both notifiers, this doubles the alert latency.
+
+**Фикс:** Use `asyncio.gather(*[n.send_alert(event) for n in self._notifiers], return_exceptions=True)`.
+
+### 8.1267 ai-signal-bot/src/portfolio/markowitz.py: Markowitz Optimizer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/portfolio/markowitz.py` (178 lines)
+
+- **Mean-variance optimization**: scipy SLSQP with bounds and constraints — correct
+- **Efficient frontier**: n_points target returns, sorted by volatility — correct
+- **Min variance / max Sharpe**: Delegates to optimize_portfolio with flags — correct
+- **Scipy fallback**: Equal weights if scipy not available — correct
+- **Portfolio metrics**: Return, volatility, Sharpe ratio — correct
+
+Good Markowitz implementation with proper scipy optimization and graceful fallback. ✅
+
+### 8.1268 markowitz: sector constraints not implemented — Low
+
+**Файл:** `markowitz.py:77-83`
+
+```python
+if sector_constraints:
+    for sector, (min_w, max_w) in sector_constraints.items():
+        logger.warning(
+            "Sector constraints require asset-to-sector mapping (not implemented). "
+            "Skipping sector '%s' [min=%.2f, max=%.2f].",
+            sector, min_w, max_w,
+        )
+```
+
+Sector constraints are accepted as a parameter but silently skipped with a warning. The API promises sector-level weight bounds but doesn't deliver. This is a feature gap, not a bug — but callers may not notice the warning in production logs.
+
+**Фикс:** Add `asset_sector_map: dict[int, str]` parameter and implement sector constraints as `{'type': 'ineq', 'fun': lambda w: ...}` for each sector.
+
+### 8.1269 markowitz: penalty function for target_return is fragile — Low
+
+**Файл:** `markowitz.py:59`
+
+```python
+penalty = 1000 * abs(portfolio_return - target_return)
+return portfolio_volatility + penalty
+```
+
+The penalty approach (adding 1000× deviation to the objective) is a soft constraint. For extreme target returns (e.g., 50% annual), the optimizer may find a "good enough" solution that's far from the target but has low penalty relative to the volatility. The proper approach is a hard equality constraint (which is already added in `_build_constraints`).
+
+**Фикс:** Remove the penalty from the objective function since the equality constraint already enforces `np.dot(w, expected_returns) == target_return`. The penalty is redundant and can conflict with the constraint.
+
+### 8.1270 ai-signal-bot/src/portfolio/black_litterman.py: Black-Litterman Model — ✅ Good
+
+**Файл:** `ai-signal-bot/src/portfolio/black_litterman.py` (135 lines)
+
+- **Prior returns**: π = λ × Σ × w_market — correct
+- **View matrices**: P, Q, Ω from investor views — correct
+- **Posterior computation**: BL formula with LinAlgError fallback — correct
+- **Integration with Markowitz**: Delegates optimization to MarkowitzOptimizer — correct
+- **Compare function**: BL vs pure Markowitz comparison — correct
+
+Good Black-Litterman implementation with proper view incorporation and fallback. ✅
+
+### 8.1271 black_litterman: Ω confidence division can produce huge values — Low
+
+**Файл:** `black_litterman.py:58`
+
+```python
+Omega[i, i] = view_cov[0, 0] / max(view.confidence, 1e-10)
+```
+
+If `view.confidence` is very low (e.g., 0.001), Ω becomes very large, meaning the view is ignored. This is correct behavior. But if `view.confidence` is 0, the `max(..., 1e-10)` prevents division by zero but produces an astronomically large Ω (10^10×), which can cause numerical instability in the matrix inversion.
+
+**Фикс:** Validate `0 < confidence <= 1` in the `View` dataclass. Reject confidence ≤ 0 with a ValueError.
+
+### 8.1272 ai-signal-bot/src/portfolio/risk_parity.py: Risk Parity Optimizer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/portfolio/risk_parity.py` (167 lines)
+
+- **Marginal risk**: Σw / σ_p — correct
+- **Risk contributions**: w_i × marginal_risk_i — correct
+- **Iterative optimization**: Weight update + clipping + normalization + dampening — correct
+- **Convergence check**: L2 norm < tolerance — correct
+- **Leverage calculation**: target_vol / current_vol — correct
+
+Good risk parity implementation with iterative convergence and leverage targeting. ✅
+
+### 8.1273 risk_parity: portfolio_return hardcoded to 0 — Low
+
+**Файл:** `risk_parity.py:76`
+
+```python
+portfolio_return = 0
+sharpe_ratio = (portfolio_return - self.risk_free_rate) / portfolio_volatility if portfolio_volatility > 0 else 0
+```
+
+`optimize_risk_parity` returns `portfolio_return=0` and a meaningless Sharpe ratio. Risk parity doesn't optimize for return (it optimizes for equal risk contribution), but the Sharpe ratio in the result is misleading — it's always negative (0 - risk_free_rate / volatility).
+
+**Фикс:** Accept `expected_returns` as an optional parameter and compute `portfolio_return = np.dot(weights, expected_returns)` if provided. Otherwise, set `sharpe_ratio = 0.0` and document that return is unknown.
+
+### 8.1274 ai-signal-bot/src/portfolio/rebalancing.py: Rebalancing Strategy — ✅ Good
+
+**Файл:** `ai-signal-bot/src/portfolio/rebalancing.py` (145 lines)
+
+- **3 trigger types**: Time-based, drift-based, volatility-based — correct
+- **Rebalance orders**: BUY/SELL with trade amounts — correct
+- **Turnover calculation**: 0.5 × Σ|w_target - w_current| — correct
+- **Transaction cost estimation**: total_trade_value × cost_rate — correct
+- **Drift threshold**: 5% default — correct
+
+Good rebalancing module with proper trigger logic and cost estimation. ✅
+
+### 8.1275 rebalancing: estimated_cost uses total_trade_value not sum of |trade_amount| — Low
+
+**Файл:** `rebalancing.py:106`
+
+```python
+total_trade_value = sum(order.trade_amount for order in orders)
+estimated_cost = total_trade_value * self.transaction_cost
+```
+
+`trade_amount` is always positive (absolute value is taken for SELL). So `total_trade_value` is the sum of all trade amounts (both buys and sells). But transaction costs are paid on both buys and sells, so this is correct. However, if some orders are SELL and the `trade_amount` was not absolutized, the sum could be net (buys - sells), underestimating costs.
+
+Looking at the code: `trade_amount = abs(trade_amount)` for SELL (line 86). So the calculation is correct. ✅ But the variable name `total_trade_value` is ambiguous — it sounds like net value, not gross.
+
+**Фикс:** Rename to `total_gross_trade_value` for clarity.
+
+### 8.1276 ai-signal-bot/src/research/__init__.py: Massive Re-Export File — ⚠️ Over-Engineered
+
+**Файл:** `ai-signal-bot/src/research/__init__.py` (307 lines)
+
+This file imports and re-exports **~200 symbols from 25+ research modules**. Every `from src.research import X` triggers loading of all 25 modules, even if only one is needed. This adds significant import time and memory usage.
+
+Key issues:
+- **42 `compute_returns` aliases**: `banach_compute_returns`, `burgers_compute_returns`, `cm_compute_returns`, etc. — all are the same function imported with different names
+- **2 `jacobi_eig` duplicates**: `rmt_jacobi_eig` and `rkhs.jacobi_eig` — same algorithm
+- **2 `quantize` functions**: `ib_quantize` and `transfer_entropy.quantize` — potentially different implementations
+- **Import side effects**: Loading all 25 modules on `import src.research`
+
+**Фикс:** Use lazy imports or separate sub-packages. Replace `from src.research import X` with `from src.research.banach import X`. Remove `compute_returns` aliases — use a single shared utility.
+
+### 8.1277 research: 22 duplicate `compute_returns` functions — ⚠️ Dead Code
+
+**Файлы:** 22 research modules (banach.py, burgers.py, cameron_martin.py, ...)
+
+grep found `def compute_returns` in 22 separate research files. Each defines the same function: `returns = (prices[1:] - prices[:-1]) / prices[:-1]`. This is 22× code duplication.
+
+**Фикс:** Create `src/research/utils.py` with a single `compute_returns(prices)` function. Import it in all research modules: `from .utils import compute_returns`. Remove 22 duplicate definitions. Code reduction: ~100+ lines.
+
+### 8.1278 research: 2 duplicate `jacobi_eig` functions — Info
+
+**Файлы:** `ml/rkhs.py:85`, `research/rmt.py`
+
+Both implement Jacobi eigendecomposition for symmetric matrices with the same algorithm. This is code duplication across packages.
+
+**Фикс:** Create a shared `src.utils.linalg.jacobi_eig()` function. Import in both modules.
+
+### 8.1279 research: 0 modules use asyncio — ✅ Good
+
+**Файл:** `src/research/` (35 files)
+
+grep confirmed: no research module imports `asyncio`. All research code is synchronous and computational. This is correct — research modules are CPU-bound and should run in a thread pool or process pool, not on the event loop.
+
+### 8.1280 research: 35 files, ~6000 lines — potential dead code — ⚠️ Over-Engineered
+
+**Файл:** `src/research/` (35 files)
+
+The research package contains 35 files covering advanced mathematical concepts:
+- Banach fixed point, Burgers equation, Cameron-Martin, Cramer-Rao, Fokker-Planck, Free energy, Girsanov, Hahn decomposition, Information bottleneck, Itô generator, Kolmogorov-Sinai, Koopman, Lax-Milgram, Lie group, Malliavin calculus, Pontryagin maximum principle, Radon-Nikodym, Renormalization group, Rényi entropy, Riesz representation, Sobolev space, Stochastic control, Tensor decomposition, Transfer entropy
+
+These are research-grade implementations of advanced mathematical concepts. While mathematically correct, they add ~6000 lines of code that is likely never used in production trading. The `__init__.py` re-exports all of them, adding import time.
+
+**Фикс:** Move research modules to a separate `research/` package outside `src/`. Use lazy imports. Only load when explicitly needed. Document which modules are used in production vs research-only.
+
+### 8.1281 ai-signal-bot/src/research/attribution.py: Brinson-Fachler Attribution — ✅ Good
+
+**Файл:** `ai-signal-bot/src/research/attribution.py` (177 lines)
+
+- **Brinson-Fachler formulas**: Allocation, Selection, Interaction — correct
+- **Sector-level decomposition**: Per-sector attribution — correct
+- **Active return**: Total portfolio - benchmark — correct
+- **Print report**: Formatted output — correct
+
+Good performance attribution implementation. ✅
+
+### 8.1282 ai-signal-bot/src/research/genetic_strategy.py: Genetic Strategy Discovery — ✅ Good
+
+**Файл:** `ai-signal-bot/src/research/genetic_strategy.py` (268 lines)
+
+- **Chromosome encoding**: Indicators, entry/exit rules, risk params — correct
+- **Genetic operations**: Crossover, mutation, tournament selection, elitism — correct
+- **Fitness**: Backtest Sharpe ratio — correct
+- **Population management**: Generational replacement with elite preservation — correct
+
+Good GA implementation for strategy discovery. ✅
+
+### 8.1283 genetic_strategy: deepcopy on every crossover — Low
+
+**Файл:** `genetic_strategy.py:33`
+
+```python
+from copy import deepcopy
+```
+
+`deepcopy` is used for crossover and mutation operations. With population_size=100 and generations=50, that's 5000 deepcopy calls on Chromosome objects containing nested dicts. Each deepcopy is expensive (~10μs per object), totaling ~50ms. Not critical but avoidable.
+
+**Фикс:** Implement `Chromosome.copy()` with shallow copies of dicts, or use `dataclasses.replace()`.
+
+### 8.1284 ai-signal-bot/src/research/microstructure_lab.py: Microstructure Lab — ✅ Good
+
+**Файл:** `ai-signal-bot/src/research/microstructure_lab.py` (247 lines)
+
+- **OFI**: Order flow imbalance from book snapshots — correct
+- **Kyle's lambda**: Linear regression of returns on normalized OFI — correct
+- **VPIN**: Volume-synchronized probability of informed trading — correct
+- **Hawkes process**: Trade arrival intensity — correct
+- **Book resilience**: Spread autocorrelation — correct
+
+Good microstructure analysis toolkit. ✅
+
+### 8.1285 ai-signal-bot/src/research/competition.py: Strategy Competition — ✅ Good
+
+**Файл:** `ai-signal-bot/src/research/competition.py` (202 lines)
+
+- **Round-robin tournament**: All pairs compared — correct
+- **ELO rating**: K=32, standard ELO update — correct
+- **Win criterion**: Sharpe ratio with 10% margin — correct
+- **Duck typing**: Any object with `analyze()` method — correct
+
+Good strategy competition framework with ELO ratings. ✅
+
+### 8.1286 ai-signal-bot/src/research/greeks_hedging.py: Greeks Hedging Simulator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/research/greeks_hedging.py` (267 lines)
+
+- **Black-Scholes Greeks**: Delta, gamma, theta, vega, rho — correct
+- **Delta hedging simulation**: GBM price paths, threshold rebalancing — correct
+- **P&L decomposition**: Delta, gamma, theta, vega P&L — correct
+- **Transaction costs**: bps-based — correct
+
+Good options hedging simulator with proper Greeks and P&L decomposition. ✅
+
+### 8.1287 ai-signal-bot/config/__init__.py: SignalBotConfig — ✅ Good
+
+**Файл:** `config/__init__.py` (314 lines)
+
+- **YAML loading**: `yaml.safe_load` with UTF-8 encoding — correct
+- **Validation**: Required sections, range checks, cross-field checks — correct
+- **Property-based access**: 30+ properties for type-safe config access — correct
+- **Warnings**: Suspicious values (high risk, wide SL) — correct
+- **Error aggregation**: All errors reported at once, not fail-fast — correct
+
+Good config system with comprehensive validation and property-based access. ✅
+
+### 8.1288 config: property access raises KeyError on missing keys — Low
+
+**Файл:** `config/__init__.py:127`
+
+```python
+@property
+def symbols(self) -> list[str]:
+    return self.raw["trading"]["symbols"]
+```
+
+Most properties use direct dict access (`self.raw["trading"]["symbols"]`) which raises `KeyError` if the key is missing. The `validate()` method checks for required sections, but if `validate=False` is passed to `load()`, accessing any property on an incomplete config crashes.
+
+**Фикс:** Use `.get()` with defaults for optional fields, or document that `validate=True` is required before property access.
+
+### 8.1289 config: no hot-reload support — Low
+
+**Файл:** `config/__init__.py`
+
+The config is loaded once at startup. If the YAML file is modified, the bot must be restarted. For long-running production systems, hot-reload is important (e.g., adjusting risk parameters without downtime).
+
+**Фикс:** Add a `reload()` method that re-reads the YAML file and re-validates. Use `watchdog` or `inotify` to detect file changes.
+
+### 8.1290 config: 30+ properties for simple dict access — ⚠️ Over-Engineered
+
+**Файл:** `config/__init__.py:124-313`
+
+The config has 30+ one-liner properties that just return `self.raw["section"]["key"]`. This is 190 lines of boilerplate code. A simpler approach would be to use a dataclass with fields populated from the YAML, or to use `attr`/`pydantic` for automatic field mapping.
+
+**Фикс:** Use `pydantic.BaseSettings` or `dataclasses.dataclass` with `__post_init__` to parse the YAML once. This eliminates 190 lines of property boilerplate.
+
+### 8.1291 ai-signal-bot/run.py: Main Entry Point — ✅ Good
+
+**Файл:** `run.py` (397 lines)
+
+- **AISignalBot class**: Clear pipeline (connect → listen → generate signals → validate → execute) — correct
+- **Reconnect logic**: 5 retries with 3s sleep — correct
+- **Cleanup**: listen_task.cancel(), signal_publisher.stop(), llm_engine.close(), exchange.disconnect() — correct
+- **Backtest mode**: `--backtest` flag runs backtest on historical CSV data — correct
+- **Metrics**: `--metrics` flag enables health server + Prometheus — correct
+- **Specific exception catches**: OSError, RuntimeError, ConnectionError, TimeoutError — correct
+
+Good main entry point with proper lifecycle management. ✅
+
+### 8.1292 run.py: no graceful shutdown on SIGTERM — Low
+
+**Файл:** `run.py:390`
+
+```python
+try:
+    asyncio.run(bot.run(show_dashboard=args.dashboard, enable_metrics=args.metrics))
+finally:
+    logger.info(f"Run complete. Log file: {log_path}")
+```
+
+Only `KeyboardInterrupt` is handled (inside `bot.run()`). In Kubernetes/Docker, the container receives `SIGTERM`, not `KeyboardInterrupt`. The bot will be killed without graceful shutdown — open positions may not be closed, DB connections may leak.
+
+**Фикс:** Add `signal.signal(signal.SIGTERM, handler)` or use `asyncio.run(main())` with `loop.add_signal_handler(signal.SIGTERM, bot.stop)`.
+
+### 8.1293 run.py: _generate_signals iterates symbols sequentially — Low
+
+**Файл:** `run.py:199-203`
+
+```python
+for symbol in self.config.symbols:
+    candles = self.exchange.candle_history.get(symbol, [])
+    if not candles or len(candles) < 30:
+        continue
+    await self._process_symbol(symbol, candles, now_ts)
+```
+
+50 symbols are processed sequentially. Each `_process_symbol` calls `analyze()` (CPU-bound), `generate_llm_explanation()` (async I/O), and `broadcast_signal()` (async I/O). With 50 symbols × 100ms per symbol = 5s total, which exceeds the 60s signal interval. But if LLM is enabled, each call takes 1-10s, making total 50-500s — way over the interval.
+
+**Фикс:** Use `asyncio.gather()` for I/O-bound parts (LLM, broadcast). Run `analyze()` in `run_in_executor()` for CPU-bound parts. Or process symbols in batches of 10.
+
+### 8.1294 run.py: run_backtest is synchronous in async context — Low
+
+**Файл:** `run.py:336-368`
+
+```python
+def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
+    # ...
+    for symbol in config.symbols:
+        candles = load_candles_from_csv(symbol)
+        for strategy in strategies:
+            result = bt.run(candles, strategy, symbol=symbol)
+```
+
+`run_backtest` is a synchronous function called from `main()`. It's not in an async context, so it's fine. But `bt.run()` is CPU-bound and can take minutes. For 50 symbols × 3 strategies = 150 backtests, this could take 30+ minutes with no progress indication.
+
+**Фикс:** Add progress logging (e.g., `[3/150] Backtesting trend_following on BTC/USDT...`). Or use `concurrent.futures.ProcessPoolExecutor` for parallel backtests.
+
+### 8.1295 run.py: duplicate run_backtest.py scripts — Info
+
+**Файлы:** `run_backtest.py` (root), `scripts/run_backtest.py`, `scripts/run_bot.py`
+
+There are duplicate entry points: `run.py` has `--backtest` flag, `run_backtest.py` is a separate script, and `scripts/run_backtest.py` is another copy. This is confusing for users.
+
+**Фикс:** Consolidate to one entry point. Remove `scripts/run_backtest.py` and `scripts/run_bot.py`. Document `python run.py --backtest` as the backtest command.
+
+### 8.1296 ai-signal-bot/src/strategies/signal.py: Signal Dataclass — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/signal.py` (58 lines)
+
+- **SignalDirection enum**: LONG, SHORT, NEUTRAL — correct
+- **Signal dataclass**: symbol, direction, confidence, strategy, entry/SL/TP, reason, timestamp — correct
+- **is_actionable property**: direction != NEUTRAL — correct
+- **rr_ratio property**: Direction-aware risk/reward calculation — correct
+- **to_dict()**: Complete serialization including rr_ratio — correct
+
+Clean, minimal signal definition. ✅
+
+### 8.1297 ai-signal-bot/src/strategies/strategies.py: TrendFollowing + MeanReversion + EnsembleVoter + FFTCycle — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/strategies.py` (472 lines)
+
+- **TrendFollowingStrategy**: EMA crossover + ADX filter, ATR-based SL/TP — correct
+- **MeanReversionStrategy**: RSI + Bollinger Bands, BB middle as TP target — correct
+- **EnsembleVoter**: Majority/weighted voting, circuit breaker integration, single-pass accumulation — correct
+- **FFTCycleStrategy**: 3 regimes (trending/ranging/mixed), cycle phase signals — correct
+- **NaN handling**: All strategies check for NaN from indicators before generating signals — correct
+- **Refactored**: `_accumulate_signals` and `_select_winner` are clean single-pass methods — correct
+
+Well-structured strategy code with proper indicator integration. ✅
+
+### 8.1298 strategies: EnsembleVoter averages SL/TP across votes — Low
+
+**Файл:** `strategies.py:326-334`
+
+```python
+inv_count = 1.0 / winner_count
+return Signal(
+    ...
+    entry_price=winner_agg[1] * inv_count,
+    stop_loss=winner_agg[2] * inv_count,
+    take_profit=winner_agg[3] * inv_count,
+    ...
+)
+```
+
+The ensemble averages entry_price, stop_loss, and take_profit across all winning-direction signals. This produces meaningless price levels — e.g., if TrendFollowing says SL=63000 and MeanReversion says SL=64000, the ensemble SL is 63500, which may not match any actual market level. The averaged SL could be too tight for one strategy and too loose for another.
+
+**Фикс:** Use the signal with the highest confidence as the "primary" signal and use its SL/TP. Or use the most conservative (tightest) SL across all winning signals.
+
+### 8.1299 ai-signal-bot/src/strategies/statistical_arbitrage.py: Stat Arb — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/statistical_arbitrage.py` (318 lines)
+
+- **OLS regression**: np.linalg.lstsq with LinAlgError fallback — correct
+- **ADF test**: Simplified Dickey-Fuller, no lag selection — documented
+- **Half-life estimation**: Ornstein-Uhlenbeck AR(1) — correct
+- **Kalman filter hedge**: Adaptive hedge ratio with process/measurement noise — correct
+- **Z-score entry/exit**: Dynamic thresholds — correct
+
+Good stat arb implementation with Kalman filter and cointegration testing. ✅
+
+### 8.1300 ai-signal-bot/src/strategies/market_making.py: Avellaneda-Stoikov — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/market_making.py` (268 lines)
+
+- **Reservation price**: r = s - q × γ × σ² × (T-t) — correct
+- **Optimal spread**: γσ²T + (2/γ)ln(1+γ/k) — correct
+- **Inventory skew**: Bid/ask adjusted by inventory — correct
+- **Toxicity filter**: Cancel quotes when toxicity > threshold — correct
+- **Volatility estimation**: Log returns, annualized for 24/7 crypto — correct
+
+Good Avellaneda-Stoikov implementation with inventory management. ✅
+
+### 8.1301 ai-signal-bot/src/strategies/ml_ensemble.py: ML Ensemble — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/ml_ensemble.py` (318 lines)
+
+- **Optional dependencies**: LightGBM/XGBoost/sklearn with graceful fallback — correct
+- **HMM regime detector**: Gaussian mixture + transition matrix — correct
+- **Isolation Forest**: Anomaly filtering — correct
+- **Feature engineering**: Delegated to ml_features.py — correct
+- **Walk-forward**: Retrain every N candles — correct
+
+Good ML ensemble with proper optional dependency handling. ✅
+
+### 8.1302 ml_ensemble: HMM _fit uses sorted returns split — Low
+
+**Файл:** `ml_ensemble.py:97-105`
+
+```python
+sorted_returns = np.sort(arr)
+n = len(sorted_returns)
+for i in range(self.n_states):
+    start = int(i * n / self.n_states)
+    end = int((i + 1) * n / self.n_states)
+    segment = sorted_returns[start:end]
+    self.state_means[i] = segment.mean()
+    self.state_vars[i] = max(segment.var(), 1e-8)
+```
+
+The "HMM" regime detector uses sorted returns split into n_states groups — this is k-means on 1D data, not a real HMM. The transition matrix is estimated from classified states, but there's no EM (Baum-Welch) or forward-backward algorithm. The name "HMMRegimeDetector" is misleading.
+
+**Фикс:** Rename to `QuantileRegimeDetector` or `SimpleRegimeDetector`. If a real HMM is needed, use `hmmlearn` library.
+
+### 8.1303 ai-signal-bot/src/strategies/sentiment.py: Sentiment Strategy — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/sentiment.py` (215 lines)
+
+- **Event types**: FOMC, CPI, NFP, earnings, regulation, hack, whale, listing, liquidation — correct
+- **Sentiment map**: Pre-defined sentiment scores per event type — correct
+- **Volatility map**: Expected volatility multiplier per event type — correct
+- **Decay**: Exponential sentiment decay — correct
+- **Pre/post-event windows**: Configurable positioning windows — correct
+
+Good sentiment strategy with event-driven design. ✅
+
+### 8.1304 sentiment: numpy import inside method — Low
+
+**Файл:** `sentiment.py:105`
+
+```python
+def on_news_event(self, event: NewsEvent) -> None:
+    ...
+    if not event.expected:
+        import numpy as np
+        rng = np.random.default_rng(seed=int(event.timestamp * 1000) % (2**32))
+```
+
+`numpy` is imported inside the method body, only for unexpected events. This is a conditional import — if numpy is not installed, the import fails only when an unexpected event arrives, not at module load time. This is a latent ImportError.
+
+**Фикс:** Move `import numpy as np` to the top of the file with a try/except fallback, or use `random.gauss(0, 0.2)` from stdlib instead.
+
+### 8.1305 ai-signal-bot/src/strategies/marketplace.py: Strategy Marketplace — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/marketplace.py` (248 lines)
+
+- **Plugin system**: JSON registry, module loading via importlib — correct
+- **Plugin metadata**: name, version, author, tags, risk_level — correct
+- **Registry persistence**: JSON file with error handling — correct
+- **Tag filtering**: List by tags — correct
+
+Good plugin system design. ✅
+
+### 8.1306 marketplace: install_from_git executes arbitrary code — ⚠️ Security
+
+**Файл:** `marketplace.py` (248 lines)
+
+The marketplace supports `install_from_git()` which clones a Git repository and imports Python code from it. This is a code execution risk — a malicious strategy plugin can run arbitrary code on the bot's server. There's no sandboxing, no code signing, no verification.
+
+**Фикс:** (1) Document the security risk clearly. (2) Run plugins in a subprocess with restricted permissions. (3) Add a `--trusted-authors` allowlist. (4) Add code signing verification.
+
+### 8.1307 ai-signal-bot/src/strategies/circuit_breaker.py: Circuit Breaker — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/circuit_breaker.py` (85 lines)
+
+- **Consecutive loss tracking**: Trips after N losses — correct
+- **Auto-recovery**: Cooldown-based — correct
+- **Signal filtering**: Forces NEUTRAL when tripped — correct
+- **Manual reset**: Available — correct
+- **Property side-effect**: `is_tripped` calls `check_and_recover()` — documented
+
+Clean circuit breaker implementation. ✅
+
+### 8.1308 circuit_breaker: is_tripped property has side effect — Low
+
+**Файл:** `circuit_breaker.py:30-32`
+
+```python
+@property
+def is_tripped(self) -> bool:
+    self.check_and_recover()
+    return self._tripped
+```
+
+The `is_tripped` property calls `check_and_recover()` which can mutate `_tripped` and `_consecutive_losses`. Property accessors with side effects are a code smell — callers don't expect `if breaker.is_tripped:` to change state.
+
+**Фикс:** Make `is_tripped` a pure property: `return self._tripped`. Callers should call `check_and_recover()` explicitly before checking `is_tripped`.
+
+### 8.1309 ai-signal-bot/src/risk/risk_manager.py: RiskManager — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/risk_manager.py` (262 lines)
+
+- **Trailing stop**: Fixed % and ATR-based — correct
+- **Breakeven move**: SL → entry + buffer after threshold — correct
+- **Partial TP**: Close % of position at first TP — correct
+- **Max hold time**: Close after N candles — correct
+- **Peak/trough tracking**: For trailing logic — correct
+- **Action-based return**: Dict with new_stop_loss, close_position, etc. — correct
+
+Good risk manager with comprehensive position management. ✅
+
+### 8.1310 ai-signal-bot/src/risk/var.py: VaR Calculator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/var.py` (178 lines)
+
+- **Historical VaR**: Percentile-based — correct
+- **Parametric VaR**: Normal distribution z-score — correct
+- **Monte Carlo VaR**: Simulated returns — correct
+- **Time scaling**: Square root of time rule — correct
+- **Backtest**: Kupiec test — correct
+- **Multiple levels**: 95%, 99%, 99.9% — correct
+
+Good VaR implementation with all three methods. ✅
+
+### 8.1311 var: scipy hard dependency — Low
+
+**Файл:** `var.py:9`
+
+```python
+from scipy import stats
+```
+
+`scipy` is imported unconditionally. If scipy is not installed, the entire `var.py` module fails to import, even if the user only wants historical VaR (which doesn't need scipy — only parametric VaR uses `stats.norm.ppf`).
+
+**Фикс:** Make scipy optional: `try: from scipy import stats; except ImportError: stats = None`. In `calculate_parametric_var`, use `scipy.stats.norm.ppf` if available, else use a hardcoded z-score table or `statistics.NormalDist().inv_cdf()` from stdlib (Python 3.8+).
+
+### 8.1312 ai-signal-bot/src/risk/kelly.py: Kelly Criterion — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/kelly.py` (183 lines)
+
+- **Kelly formula**: f* = (pb - q) / b — correct
+- **Half-Kelly**: Configurable fraction — correct
+- **Confidence adjustment**: Scale by signal confidence — correct
+- **Position caps**: max_risk_pct, max_position_pct — correct
+- **No edge handling**: Returns 0 when Kelly ≤ 0 — correct
+
+Good Kelly position sizing with safety adjustments. ✅
+
+### 8.1313 ai-signal-bot/src/risk/position_sizing.py: DynamicPositionSizer — ⚠️ Over-Engineered
+
+**Файл:** `ai-signal-bot/src/risk/position_sizing.py` (205 lines)
+
+The `DynamicPositionSizer` class duplicates functionality already in `kelly.py`:
+- `kelly_criterion_sizing()` calls `KellyPositionSizer` internally
+- `volatility_based_sizing()` is a simpler version of what `RiskManager` + `run.py` already do
+- `risk_parity_sizing()` hardcodes 2% stop loss — not real risk parity
+
+The class accepts `signal: str` (e.g., 'HOLD', 'BUY') instead of a `Signal` object, making it inconsistent with the rest of the codebase.
+
+**Фикс:** Remove `DynamicPositionSizer` and use `KellyPositionSizer` directly. If volatility-based sizing is needed, add it to `KellyPositionSizer` as a method. Code reduction: ~200 lines.
+
+### 8.1314 ai-signal-bot/src/risk/stress_test.py: Stress Test Scenarios — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/stress_test.py` (203 lines)
+
+- **2008 crisis**: 50% price shock — correct
+- **COVID crash**: 30% price shock — correct
+- **FTX collapse**: Crypto-specific shock (95% crypto, 20% traditional) — correct
+- **LUNA collapse**: Included — correct
+- **Portfolio impact**: PnL, margin requirement, liquidity impact — correct
+
+Good stress testing with realistic crisis scenarios. ✅
+
+### 8.1315 stress_test: hardcoded shock multipliers — Low
+
+**Файл:** `stress_test.py:33-34`
+
+```python
+shock_multiplier = 0.5
+```
+
+All shock multipliers are hardcoded constants. The 2008 crisis is always a 50% drop, COVID is always 30%. In reality, different assets react differently — BTC dropped 50% in March 2020 but ETH dropped 60%. The stress test applies the same shock to all assets.
+
+**Фикс:** Accept `shock_by_asset: dict[str, float]` parameter for per-asset shocks. Or use historical correlation matrices to simulate realistic cross-asset shocks.
+
+### 8.1316 ai-signal-bot/src/risk/portfolio_optimizer.py: Duplicate PortfolioOptimizer — ⚠️ Dead Code
+
+**Файлы:** `src/risk/portfolio_optimizer.py` (307 lines), `src/strategies/portfolio_optimizer.py` (311 lines)
+
+Two separate `PortfolioOptimizer` classes exist:
+- `risk/portfolio_optimizer.py`: Markowitz, BL, Kelly, risk parity, rebalancing
+- `strategies/portfolio_optimizer.py`: Markowitz, BL, risk parity, min variance
+
+Both implement the same optimization methods with slightly different APIs. Neither imports from `src/portfolio/` which has the canonical implementations (markowitz.py, black_litterman.py, risk_parity.py).
+
+**Фикс:** Remove both duplicates. Use `src/portfolio/` modules directly. Code reduction: ~600 lines.
+
+### 8.1317 ai-signal-bot/src/signal_validation/validator.py: SignalValidator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/signal_validation/validator.py` (122 lines)
+
+- **Confidence check**: min_confidence threshold — correct
+- **R:R check**: min_rr_ratio threshold — correct
+- **Drawdown check**: Daily PnL vs max_drawdown_pct — correct
+- **Position limit**: max_open_positions — correct
+- **Duplicate prevention**: 5-minute cooldown per symbol — correct
+- **Stale signal cleanup**: Removes entries older than 10 minutes — correct
+
+Good signal validator with comprehensive risk checks. ✅
+
+### 8.1318 validator: datetime.now() without timezone — Low
+
+**Файл:** `validator.py:46,58,113`
+
+```python
+self._daily_reset = datetime.now()
+```
+
+`datetime.now()` returns a naive datetime (no timezone). If the bot runs in UTC but the server's local timezone changes (e.g., DST), the 24-hour reset check (`now - self._daily_reset > timedelta(hours=24)`) may trigger at the wrong time. In Kubernetes, container timezone is UTC by default, but this is fragile.
+
+**Фикс:** Use `datetime.now(UTC)` (Python 3.12+: `from datetime import UTC`).
+
+### 8.1319 ai-signal-bot/src/database/db.py: SQLite Database — ✅ Good
+
+**Файл:** `ai-signal-bot/src/database/db.py` (180 lines)
+
+- **WAL mode**: `PRAGMA journal_mode=WAL` for concurrent reads — correct
+- **Connection per operation**: `closing(self._conn())` — safe, no connection leaks
+- **Parameterized queries**: All queries use `?` placeholders — correct
+- **Indexes**: On symbol and status columns — correct
+- **Close method**: WAL checkpoint + journal mode DELETE — Windows-safe
+
+Good SQLite layer with proper WAL mode and parameterized queries. ✅
+
+### 8.1320 db: new connection per operation — Low
+
+**Файл:** `db.py:21-25`
+
+```python
+def _conn(self) -> sqlite3.Connection:
+    conn = sqlite3.connect(self.path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+```
+
+Every `save_signal()`, `save_trade()`, `save_equity()` call creates a new SQLite connection, executes PRAGMA, and closes it. With 50 symbols × 60s interval = ~50 signals/min, that's 50 connection open/close cycles per minute. Each connection also executes `PRAGMA journal_mode=WAL` which is a write operation on the first call.
+
+**Фикс:** Use a persistent connection with a connection pool, or use `contextvars` to share a connection within a single async task. Set WAL mode once during `_init_db()` and don't repeat it per connection.
+
+### 8.1321 db: close() catches broad Exception — Low
+
+**Файл:** `db.py:29-34`
+
+```python
+def close(self) -> None:
+    try:
+        with closing(sqlite3.connect(self.path)) as conn:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            conn.execute("PRAGMA journal_mode=DELETE")
+    except Exception:
+        pass
+```
+
+Broad `except Exception: pass` silently swallows all errors during close. If the database is locked or corrupted, the error is never reported. This can hide data loss.
+
+**Фикс:** Catch specific exceptions `(sqlite3.OperationalError, sqlite3.DatabaseError)` and log the error: `logger.warning(f"DB close error: {e}")`.
+
+### 8.1322 ai-signal-bot/src/communication/signal_publisher.py: SignalPublisher — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py` (453 lines)
+
+- **WebSocket server**: websockets.serve with ping_interval/ping_timeout — correct
+- **Client management**: Set-based, with disconnect cleanup — correct
+- **Broadcast**: asyncio.gather with return_exceptions=True — correct
+- **Circuit breaker**: Blocks signals when tripped — correct
+- **Signal history**: deque(maxlen=100) — correct
+- **orjson fallback**: Fast JSON serialization with stdlib fallback — correct
+- **Backtest via WebSocket**: Synthetic candle generation, strategy selection — correct
+- **Parameter validation**: Clamped values (candles 10-10000, volatility 0-5) — correct
+
+Good WebSocket publisher with proper broadcast and circuit breaker integration. ✅
+
+### 8.1323 signal_publisher: _run_backtest blocks event loop — Low
+
+**Файл:** `signal_publisher.py:271-302`
+
+```python
+async def _run_backtest(self, params: dict) -> dict:
+    from src.backtesting import Backtester
+    ...
+    for name, strat in strategies.items():
+        result = bt.run(candles, strat, symbol=bt_params["symbol"], warmup=50)
+```
+
+`bt.run()` is a synchronous CPU-bound operation called from an async method. With 10000 candles and 4 strategies, this can take 10-30 seconds, blocking the event loop. No new signals are broadcast during this time, and WebSocket pings may time out.
+
+**Фикс:** Run `bt.run()` in `asyncio.to_thread()` or `loop.run_in_executor()`. Or queue backtest requests and process them in a separate thread.
+
+### 8.1324 signal_publisher: 3 identical _send closures — Low
+
+**Файл:** `signal_publisher.py:188-193, 229-234, 263-268`
+
+Three identical `_send` closures are defined in `broadcast_signal`, `broadcast_market_regime`, and `_broadcast_circuit_breaker_status`:
+
+```python
+disconnected = set()
+async def _send(ws):
+    try:
+        await ws.send(msg)
+    except Exception:
+        disconnected.add(ws)
+await asyncio.gather(*[_send(ws) for ws in self._clients], return_exceptions=True)
+self._clients -= disconnected
+```
+
+This is 3× code duplication of the same broadcast-and-cleanup pattern.
+
+**Фикс:** Extract to a single `_broadcast_to_clients(msg: bytes)` method. Code reduction: ~20 lines.
+
+### 8.1325 ai-signal-bot/src/communication/ws_client.py: ExchangeClient — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py` (215 lines)
+
+- **WebSocket connect**: compression="deflate", max_size=2^20 — correct
+- **Message encoding**: JSON/msgpack/orjson with fallback — correct
+- **Candle history**: deque(maxlen=200) per symbol — correct
+- **Reconnect**: Exponential backoff (1s → 30s, 5 attempts) — correct
+- **Order submission**: Trading active check, orjson serialization — correct
+
+Good WebSocket client with proper reconnection logic. ✅
+
+### 8.1326 ws_client: listen() doesn't reconnect on ConnectionClosed — Low
+
+**Файл:** `ws_client.py:119-121`
+
+```python
+except websockets.ConnectionClosed:
+    logger.warning("Connection closed by server")
+    self._connected = False
+```
+
+When the connection closes, `listen()` just sets `_connected = False` and returns. The caller (`run.py:_listen_loop`) catches this and calls `reconnect()`, but there's a gap: between the connection closing and the caller's exception handler, any in-flight messages are lost. Also, if `listen()` is called in a tight loop without the caller's error handling, it will return immediately without reconnecting.
+
+**Фикс:** Add an optional `auto_reconnect: bool = False` parameter to `listen()`. If True, call `reconnect()` automatically on ConnectionClosed.
+
+### 8.1327 ai-signal-bot/src/communication/shm_ring_buffer.py: SHM Ring Buffer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py` (285 lines)
+
+- **SPSC lock-free**: head/tail atomic reads/writes — correct
+- **Cache-line alignment**: head at offset 64, tail at offset 128 — correct
+- **Memory barrier**: Windows FlushViewOfFile, Linux msync — correct
+- **Power-of-2 capacity**: Required for mask-based wrap — correct
+- **Platform support**: Windows (mmap tagname) and Linux (shm_open) — correct
+- **Magic validation**: Checks SHM_MAGIC on open — correct
+- **__del__ safety**: Checks `_mm is not None` before cleanup — correct
+
+Good SHM ring buffer with proper atomic semantics and cross-platform support. ✅
+
+### 8.1328 shm_ring_buffer: no overflow detection on push — Low
+
+**Файл:** `shm_ring_buffer.py` (push method)
+
+When the ring buffer is full (head + 1 == tail), `push()` either silently drops the element or overwrites it (depending on implementation). For trading signals, a dropped signal means a missed trade. There's no counter for dropped elements or log warning.
+
+**Фикс:** Add a `dropped_count` atomic counter. Log a warning every N drops. Return `False` from `push()` when the buffer is full so the caller can handle it.
+
+### 8.1329 ai-signal-bot/src/communication/fix_client.py: FIX 4.4 Client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py` (447 lines)
+
+- **FIX message parsing/building**: Tag-value with SOH delimiter — correct
+- **Checksum calculation**: sum(body) % 256 — correct
+- **Session management**: Logon/logout, heartbeat, sequence numbers — correct
+- **Persistent seq numbers**: File-based storage — correct
+- **Async transport**: asyncio streams — correct
+- **Resend requests**: Gap detection with sequence number tracking — correct
+
+Good FIX 4.4 client implementation with persistent sequence numbers. ✅
+
+### 8.1330 fix_client: no SSL/TLS support — Low
+
+**Файл:** `fix_client.py`
+
+The FIX client uses plain TCP (`asyncio.open_connection`). In production, FIX sessions should use TLS. Most modern exchanges require SSL/TLS for FIX connections.
+
+**Фикс:** Add `ssl_context: ssl.SSLContext | None = None` parameter. Use `asyncio.open_connection(host, port, ssl=ssl_context)` when provided.
+
+### 8.1331 ai-signal-bot/src/backtesting/backtester.py: Backtester — ✅ Good
+
+**Файл:** `ai-signal-bot/src/backtesting/backtester.py` (506 lines)
+
+- **Candle replay**: Iterates historical candles, runs strategy.analyze() — correct
+- **Position simulation**: Entry/exit with SL/TP, fees, slippage — correct
+- **Risk manager integration**: Optional trailing stop, breakeven, partial TP — correct
+- **Equity curve**: Tracked per candle — correct
+- **Performance metrics**: Sharpe, Sortino, Calmar, max drawdown, recovery factor — correct
+- **Trade records**: Complete trade list with exit reason — correct
+
+Good backtesting engine with comprehensive metrics. ✅
+
+### 8.1332 backtester: 506 lines in single class — Low
+
+**Файл:** `backtester.py` (506 lines)
+
+The `Backtester` class is 506 lines with multiple responsibilities: candle replay, position management, risk management, fee calculation, equity curve tracking, and metrics computation. The `run()` method is likely very long.
+
+**Фикс:** Extract metrics computation to a `BacktestMetrics` class. Extract position management to a `PositionSimulator` class. Keep `Backtester.run()` as a thin orchestrator.
+
+### 8.1333 ai-signal-bot/src/backtesting/pnl_calculator.py: PnL Calculator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/backtesting/pnl_calculator.py` (252 lines)
+
+- **Asset types**: Spot, futures, options — correct
+- **Slippage**: Direction-aware (LONG pays more on entry, less on exit) — correct
+- **Fees**: Notional × fee_rate — correct
+- **Funding cost**: Futures only, proportional to hold time — correct
+- **Options PnL**: Intrinsic value for unrealized — correct
+- **PnL breakdown**: Gross, entry fee, exit fee, funding, net — correct
+
+Good PnL calculator with pluggable asset type support. ✅
+
+### 8.1334 Project-wide: 2 duplicate PortfolioOptimizer classes — ⚠️ Dead Code
+
+**Файлы:** `risk/portfolio_optimizer.py` (307 lines), `strategies/portfolio_optimizer.py` (311 lines), `portfolio/` (4 files: markowitz.py, black_litterman.py, risk_parity.py, rebalancing.py)
+
+Three separate implementations of portfolio optimization:
+1. `risk/portfolio_optimizer.py` — Markowitz, BL, Kelly, risk parity, rebalancing
+2. `strategies/portfolio_optimizer.py` — Markowitz, BL, risk parity, min variance
+3. `portfolio/` — Canonical: markowitz.py, black_litterman.py, risk_parity.py, rebalancing.py
+
+Total: ~900 lines of duplicate portfolio optimization code.
+
+**Фикс:** Keep `portfolio/` as the canonical implementation. Remove `risk/portfolio_optimizer.py` and `strategies/portfolio_optimizer.py`. Import from `portfolio/` directly. Code reduction: ~600 lines.
+
+### 8.1335 Project-wide: 13 `except Exception` catches — Low
+
+**Файлы:** `communication/signal_publisher.py` (6), `data_collection/real_account.py` (3), `communication/health_check.py` (1), `communication/shm_fill_consumer.py` (1), `communication/shm_signal_producer.py` (1), `database/db.py` (1)
+
+13 broad `except Exception` catches across the codebase. These can mask `KeyboardInterrupt`, `SystemExit`, `asyncio.CancelledError`, and other critical exceptions. In an async trading bot, catching `CancelledError` can prevent proper task cancellation and graceful shutdown.
+
+**Фикс:** Replace with specific exception types. For WebSocket operations: `(websockets.ConnectionClosed, OSError, asyncio.TimeoutError)`. For DB: `(sqlite3.OperationalError, sqlite3.DatabaseError)`. For SHM: `(OSError, ValueError, struct.error)`.
+
+### 8.1336 Project-wide: 0 threading.Lock or asyncio.Lock usage — ⚠️ Race Condition Risk
+
+**Файл:** `src/` (all files)
+
+grep found **zero** `threading.Lock` or `asyncio.Lock` usages across the entire `src/` directory. While asyncio single-threaded execution avoids most race conditions, several patterns are at risk:
+- `SignalPublisher._clients` set: Modified by `broadcast_signal()` and `_handle_client()` concurrently — `self._clients -= disconnected` is not atomic
+- `ExchangeClient._candle_history`: Modified by `listen()` and read by `_generate_signals()` — deque is thread-safe for append/popleft, but not for iteration during modification
+- `SignalValidator._recent_signals`: Modified by `validate()` and cleaned up in `_check_duplicate()` — dict mutation during iteration is possible
+
+**Фикс:** Add `asyncio.Lock` around `_clients` modification in `SignalPublisher`. Use `asyncio.Lock` around `_recent_signals` cleanup in `SignalValidator`. For `ExchangeClient`, copy the deque before iteration: `list(self._candle_history.get(symbol, []))`.
+
+### 8.1337 Project-wide: 0 global statements — ✅ Good
+
+**Файл:** `src/` (all files)
+
+grep found only 3 `global` statements, all in `observability/` for logging setup. No global mutable state in business logic. ✅
+
+### 8.1338 Project-wide: datetime.now() without timezone — Low
+
+**Файлы:** `signal_validation/validator.py` (5), `communication/fix_client.py` (1), `monitoring/tracker.py` (1), `utils/helpers.py` (1)
+
+8 uses of `datetime.now()` without timezone across the codebase. In Kubernetes (UTC by default), this works, but it's fragile — if the container timezone changes, time-based logic (daily reset, cooldown timers) breaks.
+
+**Фикс:** Replace all `datetime.now()` with `datetime.now(UTC)`. Add a linting rule (ruff: `DTZ005`) to catch this.
+
+---
+
+## 9. technical_analysis/ (25 files, ~6500 lines)
+
+### 8.1339 technical_analysis/indicators.py — ✅ Good
+
+**Файл:** `technical_analysis/indicators.py` (333 lines)
+
+Pure functions for SMA, EMA, RSI, MACD, Bollinger Bands, ATR, ADX, VWAP. Dual-path: numpy vectorized when available, pure Python fallback. NaN-padded output aligned with input. Well-structured with `_closes`, `_highs`, `_lows`, `_volumes` extractors supporting both dict and object candles.
+
+**Minor:** `_closes` line 19 has overly complex ternary: `c["close"] if isinstance(c, dict) else (c if isinstance(c, (int, float)) else c.close)`. Three-way type check per candle per call. Could use a protocol or assume one type.
+
+### 8.1340 technical_analysis/fft_analysis.py — ✅ Good (minor: hand-rolled FFT)
+
+**Файл:** `technical_analysis/fft_analysis.py` (274 lines)
+
+FFT-based cycle detection with power spectrum, dominant cycles, spectral trend score, FFT filter. Hand-rolled Cooley-Tukey radix-2 FFT with bit-reversal permutation, Hann window, zero-padding. Well-tested math.
+
+**Minor:** Hand-rolled `_fft` instead of `numpy.fft.fft`. numpy is already an optional dependency in `indicators.py` — could use it here too. The pure Python FFT is O(n log n) but ~50× slower than numpy.
+
+### 8.1341 technical_analysis/kalman.py — ✅ Good
+
+**Файл:** `technical_analysis/kalman.py` (138 lines)
+
+1D and 2D Kalman filter implementations. 1D: state=price, clean predict/update cycle. 2D: constant velocity model with [position, velocity] state, pure Python 2×2 matrix math. Optional numpy not used (matrices are 2×2, overhead not worth it). Clean API with `update()` and `filter()`.
+
+### 8.1342 technical_analysis/garch.py — ✅ Good
+
+**Файл:** `technical_analysis/garch.py` (320 lines)
+
+GARCH(1,1) with MLE parameter estimation via gradient ascent. Also EWMA (RiskMetrics) and Parkinson (high-low) volatility estimators. Parameter clipping with stationarity enforcement (alpha+beta < 0.999). Half-life, forecast, unconditional variance. Well-structured `GARCHResult` container.
+
+**Minor:** Fixed learning rate (0.01) with no line search or convergence check beyond max_iter. For 100 iterations on 30+ returns, this may not converge to the true MLE. Consider L-BFGS or at least adaptive learning rate.
+
+### 8.1343 technical_analysis/__init__.py — ⚠️ Over-Engineered
+
+**Файл:** `technical_analysis/__init__.py` (252 lines)
+
+Re-exports ~200 symbols from 25 modules. Same anti-pattern as `research/__init__.py`. Any `from src.technical_analysis import sma` triggers loading ALL 25 modules including rbergomi, compressed_sensing, hmc, bayesian_sts, optimal_stopping — none of which are used in production trading.
+
+**Фикс:** Use lazy imports or direct module imports. `from src.technical_analysis.indicators import sma` instead of `from src.technical_analysis import sma`. Remove `__init__.py` re-exports entirely.
+
+### 8.1344 technical_analysis/hawkes.py — ✅ Good
+
+**Файл:** `technical_analysis/hawkes.py` (121 lines)
+
+Clean facade after split into `hawkes_model.py` + `hawkes_funcs.py`. Extract events from price series, fit Hawkes process, compute intensity path, simulate, generate trading signal from branching ratio. Well-structured `HawkesResult` container.
+
+### 8.1345 technical_analysis/copula.py — ✅ Good (minor: duplicate erf)
+
+**Файл:** `technical_analysis/copula.py` (401 lines)
+
+Empirical, Gaussian, Clayton, Gumbel copula fitting. Kendall tau, Spearman rho, Pearson corr. Tail dependence coefficients. Joint probability and conditional probability. Well-structured.
+
+**Minor:** Own `erf` function (line 80) using Abramowitz-Stegun approximation. Python's `math.erf` is available since 3.2 and more accurate. Remove the custom implementation.
+
+### 8.1346 technical_analysis/wavelet.py — ✅ Good
+
+**Файл:** `technical_analysis/wavelet.py` (245 lines)
+
+Haar (D2) and Daubechies D4 wavelet transforms. DWT, IDWT, multi-level decomposition, MRA reconstruction, soft-threshold denoising. Clean periodic convolution implementation.
+
+### 8.1347 technical_analysis/dtw.py — ✅ Good (minor: duplicate compute_returns)
+
+**Файл:** `technical_analysis/dtw.py` (128 lines)
+
+Classic O(n*m) DTW with Sakoe-Chiba band constraint. Pattern templates for double bottom, head and shoulders, ascending triangle, etc. Z-score normalization, sliding window extraction.
+
+**Minor:** `compute_returns` (line 88) duplicates the same function in 22+ research modules. Should use shared `utils.compute_returns`.
+
+### 8.1348 technical_analysis/gmm.py — ✅ Good
+
+**Файл:** `technical_analysis/gmm.py` (194 lines)
+
+1D Gaussian Mixture Model with EM algorithm. K-Means initialization, BIC/AIC model selection. Clean implementation with log-likelihood history for convergence monitoring.
+
+### 8.1349 technical_analysis/pca.py — ✅ Good
+
+**Файл:** `technical_analysis/pca.py` (232 lines)
+
+Covariance-based PCA with numpy SVD (numerically stable) and pure Python fallback via Jacobi eigendecomposition. Explained variance ratio, cumulative variance, scores, components. Clean `PCAResult` container.
+
+### 8.1350 technical_analysis/kmeans.py — ✅ Good
+
+**Файл:** `technical_analysis/kmeans.py` (174 lines)
+
+Lloyd's algorithm with K-Means++ smart initialization. Within-cluster sum of squares, convergence check via label stability. Clean and correct.
+
+### 8.1351 technical_analysis/ms_garch.py — ✅ Good
+
+**Файл:** `technical_analysis/ms_garch.py` (319 lines)
+
+Markov-Switching GARCH with Kim's filtering approach. Per-regime GARCH parameters, filtered/smoothed probabilities, regime transitions, expected duration. Complex but well-structured. `MSResult` container with 15 fields.
+
+### 8.1352 technical_analysis/bayesian_price.py — ✅ Good
+
+**Файл:** `technical_analysis/bayesian_price.py` (359 lines)
+
+Beta-Binomial direction model, Normal-Inverse-Gamma magnitude model, BOCPD changepoint detection, Bayesian Ridge regression. Own `log_gamma` (Lanczos), `beta_pdf`, `beta_cdf_inv`, `normal_pdf`. 24-field `BayesianPriceResult` container.
+
+**Minor:** `beta_cdf_inv` uses bisection with Riemann-sum CDF (200 steps × 50 iterations = 10,000 beta_pdf evaluations). Slow but acceptable for offline analysis.
+
+### 8.1353 technical_analysis/sde.py — ✅ Good (minor: duplicate _random_normal)
+
+**Файл:** `technical_analysis/sde.py` (343 lines)
+
+GBM, GBM-Milstein, Ornstein-Uhlenbeck, CIR, Heston, Merton jump-diffusion simulations. Euler-Maruyama and Milstein schemes. Well-structured `SDEResult` with percentile bands.
+
+**Minor:** `_random_normal` (line 55) is a Box-Muller implementation duplicated in 4 files (sde.py, rbergomi.py, hmc.py, optimal_stopping.py). Should be in shared utils.
+
+### 8.1354 technical_analysis/rbergomi.py — ✅ Good (minor: O(n²) Cholesky)
+
+**Файл:** `technical_analysis/rbergomi.py` (281 lines)
+
+Rough Bergomi model with fractional Brownian motion. Hurst exponent estimation, fGn via Cholesky decomposition, fBm, variance swaps, ATM vol, skew. Well-structured `RBergomiResult`.
+
+**Minor:** `frac_gaussian_noise` (line 75) builds n×n covariance matrix and does Cholesky decomposition in pure Python — O(n³). For n=50 steps, 125,000 operations. Could use numpy or Davies-Harte method (O(n log n)).
+
+### 8.1355 technical_analysis/compressed_sensing.py — ✅ Good
+
+**Файл:** `technical_analysis/compressed_sensing.py` (248 lines)
+
+OMP (Orthogonal Matching Pursuit) and ISTA (Iterative Shrinkage-Thresholding) for sparse signal recovery. Own least squares via Gaussian elimination with partial pivoting. Measurement matrix generation, DFT basis.
+
+### 8.1356 technical_analysis/emd.py — ✅ Good (minor: duplicate _fft)
+
+**Файл:** `technical_analysis/emd.py` (313 lines)
+
+Empirical Mode Decomposition with sifting process, cubic spline interpolation, Hilbert transform (via FFT). IMFs, residue, instantaneous frequency/amplitude. Well-structured.
+
+**Minor:** `_fft` (line 157) duplicates the same Cooley-Tukey FFT in `fft_analysis.py` and `vmd.py`. Should use shared FFT or `numpy.fft.fft`.
+
+### 8.1357 technical_analysis/vmd.py — ✅ Good (minor: O(n²) IFFT)
+
+**Файл:** `technical_analysis/vmd.py` (263 lines)
+
+Variational Mode Decomposition via ADMM. K modes with compact spectral support. Uses FFT for forward transform but **direct DFT for inverse** (`_ifft` line 93) — O(n²) instead of O(n log n). For n=128, 16,384 vs ~900 operations.
+
+**Minor:** `_ifft` is O(n²) direct DFT. Should use the existing `_fft` with conjugation (as `fft_analysis._ifft` does) or `numpy.fft.ifft`.
+
+### 8.1358 technical_analysis/hmc.py — ✅ Good (minor: numerical gradient)
+
+**Файл:** `technical_analysis/hmc.py` (251 lines)
+
+Hamiltonian Monte Carlo for GARCH parameter estimation. Leapfrog symplectic integrator, Metropolis acceptance. 500 samples × 20 leapfrog steps × 3 params × 2 log_posterior evals (central differences) = 60,000 log_posterior evaluations.
+
+**Minor:** `grad_log_posterior` uses numerical gradient (central differences, eps=1e-6). Each gradient evaluation = 2× log_posterior calls per parameter. For 3 params × 500 samples × 20 leapfrog steps = 60,000 evaluations. Analytical gradient would be 2× faster.
+
+### 8.1359 technical_analysis/bayesian_sts.py — ✅ Good
+
+**Файл:** `technical_analysis/bayesian_sts.py` (291 lines)
+
+Bayesian Structural Time Series with Kalman filter. Local linear trend + dummy seasonal decomposition. 10-step-ahead forecasting. Pure Python matrix operations (2×2 and n×n). Well-structured `BSTSResult` with 19 fields.
+
+### 8.1360 technical_analysis/monte_carlo.py — ✅ Good
+
+**Файл:** `technical_analysis/monte_carlo.py` (141 lines)
+
+Monte Carlo shuffle test for trade-sequence robustness. Shuffles PnL sequence 100× to estimate distribution of equity outcomes. Percentiles, profit probability, max drawdown distribution. Clean and correct.
+
+### 8.1361 technical_analysis/optimal_stopping.py — ✅ Good (minor: duplicate _random_normal)
+
+**Файл:** `technical_analysis/optimal_stopping.py` (323 lines)
+
+Snell envelope for American option exercise. Binomial tree (Cox-Ross-Rubinstein) and Longstaff-Schwartz Monte Carlo. Own 3×3 Cramer's rule solver for polynomial regression. Well-structured.
+
+**Minor:** `_random_normal` (line 77) is the 4th duplicate of Box-Muller. Should be in shared utils.
+
+### 8.1362 technical_analysis: 4× duplicate _random_normal (Box-Muller) — Low
+
+**Файлы:** `sde.py:55`, `rbergomi.py:64`, `hmc.py:46`, `optimal_stopping.py:77`
+
+4 identical Box-Muller `_random_normal` implementations across 4 files. ~15 lines each = ~60 lines of duplicate code.
+
+**Фикс:** Create `src/technical_analysis/_utils.py` with `random_normal(rng)` function. Import in all 4 files. Or use `random.gauss(0, 1)` from stdlib (available since Python 2.3).
+
+### 8.1363 technical_analysis: 3× duplicate _fft (Cooley-Tukey) — Low
+
+**Файлы:** `fft_analysis.py:15`, `emd.py:157`, `vmd.py:52`
+
+3 separate Cooley-Tukey radix-2 FFT implementations. ~40-60 lines each = ~150 lines of duplicate code. `fft_analysis._fft` works on `list[complex]`, `emd._fft` and `vmd._fft` work on `list[float]` but are essentially the same algorithm.
+
+**Фикс:** Create `src/technical_analysis/_fft_utils.py` with a shared FFT function. Or use `numpy.fft.fft` when numpy is available (it's already optional in indicators.py and pca.py).
+
+### 8.1364 technical_analysis: 10+ modules likely dead code — ⚠️ Dead Code
+
+**Файлы:** `rbergomi.py`, `compressed_sensing.py`, `emd.py`, `vmd.py`, `hmc.py`, `bayesian_sts.py`, `optimal_stopping.py`, `copula.py`, `ms_garch.py`, `sde.py`, `bayesian_price.py`, `gmm.py`, `kmeans.py`, `dtw.py`, `wavelet.py`, `monte_carlo.py`
+
+16 of 25 modules (~4000+ lines) implement advanced mathematical models that are not referenced by any strategy, risk manager, or backtester in production. They are imported only through `__init__.py` re-exports and likely used only by the UI dashboard for analysis.
+
+**Фикс:** Move to a separate `technical_analysis_advanced/` package or make imports lazy. Keep only `indicators.py`, `fft_analysis.py`, `kalman.py`, `garch.py`, `hawkes.py` in the core `technical_analysis/` module.
+
+### 8.1365 technical_analysis: All pure Python (no numpy) except indicators/pca — Info
+
+**Файлы:** 22 of 25 modules
+
+22 of 25 modules are pure Python with no numpy dependency, even though numpy is already optional in `indicators.py` and `pca.py`. This means:
+- Matrix operations (Kalman, BSTS, GARCH, copula) use manual loops instead of vectorized numpy
+- FFT is hand-rolled 3× instead of using `numpy.fft`
+- Random number generation uses Box-Muller instead of `numpy.random.normal`
+- O(n²) and O(n³) algorithms (Cholesky, IFFT, least squares) that numpy would handle in C
+
+**Фикс:** For the 5 core modules (indicators, fft, kalman, garch, hawkes), add numpy fast paths like indicators.py already has. For the 16 advanced modules, leave as pure Python since they're offline analysis tools.
+
+### 8.1366 technical_analysis: Result containers are plain classes with 10-24 fields — Info
+
+**Файлы:** All 25 modules
+
+Each module defines a `Result` class with 10-24 manually-assigned fields in `__init__`. No `@dataclass` decorator, no `__repr__`, no `__eq__`. Examples:
+- `GARCHResult`: 16 fields
+- `BayesianPriceResult`: 24 fields
+- `BSTSResult`: 19 fields
+- `MSResult`: 15 fields
+- `RBergomiResult`: 18 fields
+
+**Фикс:** Use `@dataclass` for auto-generated `__repr__`, `__eq__`, and reduced boilerplate. Or use `NamedTuple` for immutability.
+
+### 8.1367 technical_analysis: No input validation on most functions — Low
+
+**Файлы:** Most modules
+
+Most functions check `if not data or len(data) < MIN_*` but don't validate for NaN, Inf, or non-numeric values. `indicators.sma([float('nan'), 1.0, 2.0], 2)` would produce `[nan, nan, 1.5]` — the NaN propagates through cumsum. `garch.fit_garch([float('inf'), 1.0, ...])` would produce Inf in variance.
+
+**Фикс:** Add `math.isfinite()` checks at function entry. Or document that inputs must be finite and let NaN propagate (current behavior).
+
+### 8.1368 technical_analysis: _random_normal uses while loop for u==0 — Info
+
+**Файлы:** `sde.py:57`, `rbergomi.py:66`, `hmc.py:48`, `optimal_stopping.py:79`
+
+All 4 `_random_normal` implementations have `while u == 0: u = rng.random()` to avoid `log(0)`. In practice, `rng.random()` returns [0, 1) — the probability of exactly 0 is ~2^-53 (one in 9 quadrillion). The while loop is defensive but never executes.
+
+**Info:** Not a bug, just unnecessary complexity. `random.gauss(0, 1)` from stdlib handles this internally.
+
+### 8.1369 technical_analysis: copula.py empirical_cdf is O(n²) — Low
+
+**Файл:** `copula.py:74`
+
+```python
+def empirical_cdf(values: list[float]) -> list[float]:
+    n = len(values)
+    return [sum(1 for x in values if x <= v) / (n + 1) for v in values]
+```
+
+O(n²) — for each value, scans all values. For n=500 returns, 250,000 comparisons. Could use `scipy.stats.rankdata` or sort-based approach: O(n log n).
+
+**Фикс:** `sorted_values = sorted(values); ranks = [bisect.bisect_left(sorted_values, v) for v in values]; return [r / (n + 1) for r in ranks]`
+
+### 8.1370 technical_analysis: vmd.py _ifft is O(n²) direct DFT — Low
+
+**Файл:** `vmd.py:93`
+
+```python
+def _ifft(spectrum: list[complex]) -> list[float]:
+    n = len(spectrum)
+    time = [0.0] * n
+    for idx in range(n):
+        total = 0.0
+        for k in range(n):
+            angle = 2 * math.pi * k * idx / n
+            total += spectrum[k].real * math.cos(angle) - spectrum[k].imag * math.sin(angle)
+        time[idx] = total / n
+    return time
+```
+
+O(n²) direct DFT for inverse FFT, while the forward `_fft` (line 52) is O(n log n) Cooley-Tukey. For n=128, this is 16,384 vs ~900 operations — 18× slower. The existing `_fft` could be used for inverse via conjugation (as `fft_analysis._ifft` does).
+
+**Фикс:** `def _ifft(spectrum): n = len(spectrum); conj = [x.conjugate() for x in spectrum]; result = _fft(conj); return [x.real / n for x in result]`
+
+---
+
+## 10. ml/ (12 files, ~5200 lines)
+
+### 8.1371 ml/__init__.py — ⚠️ Over-Engineered
+
+**Файл:** `ml/__init__.py` (81 lines)
+
+Re-exports ~30 symbols from 7 modules (autoencoder, environment, feature_store, rkhs, svm_signal, vae). Same anti-pattern as `technical_analysis/__init__.py` and `research/__init__.py`. Note: `price_predictor.py` and `rl_trader.py` are NOT re-exported (they require torch), which is correct.
+
+**Фикс:** Use direct submodule imports. `from src.ml.feature_store import FeatureStore` instead of `from src.ml import FeatureStore`.
+
+### 8.1372 ml/price_predictor.py — ✅ Good (minor: hard torch dependency)
+
+**Файл:** `ml/price_predictor.py` (334 lines)
+
+PyTorch LSTM and Transformer price prediction models. Clean architecture: ModelConfig dataclass, LSTMPredictor with attention, TransformerPredictor with positional encoding, training loop with early stopping, ONNX export. Well-structured.
+
+**Minor:** `import torch` at top level (line 28) — no try/except guard. If torch is not installed, any `from src.ml import ...` will crash because `__init__.py` imports other modules in the same package. Should be guarded like other optional deps.
+
+### 8.1373 ml/rl_trader.py — ✅ Good (minor: hard torch dependency)
+
+**Файл:** `ml/rl_trader.py` (390 lines)
+
+PPO agent with Actor-Critic network, DQN agent with replay buffer, training loop with checkpointing. Clean RLConfig dataclass with all hyperparameters. GAE advantage estimation, gradient clipping, entropy bonus.
+
+**Minor:** Same as price_predictor — `import torch` at top level (line 28) without guard.
+
+### 8.1374 ml/feature_store.py — ✅ Good (minor: broad Exception catch)
+
+**Файл:** `ml/feature_store.py` (220 lines)
+
+Redis-backed feature store with in-memory fallback. Pipeline for batch updates, TTL support, feature registry. Clean fallback when Redis unavailable.
+
+**Minor:** Line 94: `except (OSError, ConnectionError, RuntimeError, Exception)` — the `Exception` at the end makes all others redundant. Just `except Exception` or remove `Exception` and keep specific types.
+
+### 8.1375 ml/model_registry.py — ✅ Good
+
+**Файл:** `ml/model_registry.py` (296 lines)
+
+Model registry with semver versioning, A/B testing, rollback support. File-based JSON persistence. ModelStatus enum (candidate/staging/production/archived/rolled_back). Clean `ModelVersion` and `ABTest` dataclasses.
+
+### 8.1376 ml/automl.py — ✅ Good
+
+**Файл:** `ml/automl.py` (191 lines)
+
+Optuna-based hyperparameter optimization with TPE sampler and median pruner. Clean AutoMLConfig dataclass. Strategy-specific search spaces (trend_following, mean_reversion). Optional dependency guarded.
+
+### 8.1377 ml/environment.py — ✅ Good
+
+**Файл:** `ml/environment.py` (163 lines)
+
+OpenAI Gym-compatible trading environment for RL. Clean Action enum, TradingState dataclass, step/reset interface. Normalized observations, transaction costs, portfolio tracking.
+
+### 8.1378 ml/autoencoder.py — ✅ Good
+
+**Файл:** `ml/autoencoder.py` (376 lines)
+
+Pure Python autoencoder with Xavier init, sigmoid activation, backpropagation, anomaly detection via reconstruction error. Stable sigmoid with input clamping. No PyTorch dependency — fully self-contained.
+
+### 8.1379 ml/vae.py — ✅ Good (minor: 5th duplicate _random_normal)
+
+**Файл:** `ml/vae.py` (349 lines)
+
+Variational Autoencoder with 2-layer encoder/decoder, reparameterization trick, ELBO loss (MSE + β·KL), full backpropagation. Pure Python with manual gradient computation.
+
+**Minor:** `_random_normal` (line 223) is the 5th duplicate of Box-Muller (also in sde.py, rbergomi.py, hmc.py, optimal_stopping.py). Use `random.gauss(0, 1)`.
+
+### 8.1380 ml/rkhs.py — ✅ Good
+
+**Файл:** `ml/rkhs.py` (276 lines)
+
+RKHS kernel methods: RBF/Laplacian kernels, kernel matrix, centering, Jacobi eigendecomposition, kernel ridge regression, MMD two-sample test. Pure Python, well-structured.
+
+### 8.1381 ml/svm_signal.py — ✅ Good
+
+**Файл:** `ml/svm_signal.py` (182 lines)
+
+Linear SVM via SGD with hinge loss. Learning rate decay, C regularization, training accuracy evaluation. Clean and correct.
+
+### 8.1382 ml: torch hard dependency in price_predictor + rl_trader — Low
+
+**Файлы:** `ml/price_predictor.py:28`, `ml/rl_trader.py:28`
+
+Both files `import torch` at top level without try/except. If torch is not installed, importing any module from `src.ml` package may crash because Python imports `__init__.py` first, which imports other ml modules. While `__init__.py` doesn't import price_predictor or rl_trader directly, any code that does `from src.ml.price_predictor import LSTMPredictor` will get `ImportError: No module named 'torch'` with no graceful fallback.
+
+**Фикс:** Guard with `try: import torch; except ImportError: torch = None` and check at class instantiation, not import time.
+
+### 8.1383 ml: 5 modules likely dead code — ⚠️ Dead Code
+
+**Файлы:** `autoencoder.py`, `vae.py`, `rkhs.py`, `svm_signal.py`, `environment.py`
+
+5 of 12 ML modules (~1300 lines) implement advanced ML models not referenced by any strategy or production code path. `environment.py` is only used by `rl_trader.py` (which requires torch). The pure Python autoencoder/vae/rkhs/svm are likely UI dashboard analysis tools.
+
+**Фикс:** Move to `ml_advanced/` package or make imports lazy.
+
+---
+
+## 11. monitoring/ (4 files, ~1700 lines)
+
+### 8.1384 monitoring/alerting.py — ✅ Good
+
+**Файл:** `monitoring/alerting.py` (260 lines)
+
+Multi-channel alert system (Discord, Telegram, email, webhook) with rate limiting (cooldown per rule), severity levels, alert history. Clean AlertRule/Alert dataclasses. Async `_send_alert` with aiohttp. Specific exception types in check_rules.
+
+### 8.1385 monitoring/health_server.py — ✅ Good (minor: 3× duplicate _check_* methods)
+
+**Файл:** `monitoring/health_server.py` (153 lines)
+
+HTTP health check server with /health, /health/exchange, /health/database, /health/shm, /ready endpoints. Kubernetes-ready (liveness + readiness probes). Proper 503 on unhealthy.
+
+**Minor:** `_check_exchange`, `_check_database`, `_check_shm` (lines 38-72) are identical except for the key name ("exchange"/"database"/"shm"). Extract to `_check_component(name)`.
+
+### 8.1386 monitoring/metrics.py — ✅ Good
+
+**Файл:** `monitoring/metrics.py` (239 lines)
+
+Prometheus metrics exporter with Counter, Gauge, Histogram, Summary. Signal/fill/order counts, PnL, drawdown, latency histograms. Optional prometheus_client guarded. Clean /metrics endpoint.
+
+### 8.1387 monitoring/tracker.py — ✅ Good (minor: datetime.now() without timezone)
+
+**Файл:** `monitoring/tracker.py` (175 lines)
+
+PerformanceTracker dataclass with signals/trades/PnL tracking. SignalLogger and TradeLogger for CSV output. Clean summary() method.
+
+**Minor:** Line 134: `datetime.now().strftime(...)` — naive datetime. Use `datetime.now(UTC)`.
+
+---
+
+## 12. observability/ (3 files, ~500 lines)
+
+### 8.1388 observability/health_checks.py — ✅ Good
+
+**Файл:** `observability/health_checks.py` (221 lines)
+
+Deep health checking with liveness/readiness probes. ComponentHealth dataclass with latency. Checks WebSocket, TimescaleDB, Redis, exchange. HealthStatus enum (healthy/degraded/unhealthy). Clean overall status aggregation.
+
+### 8.1389 observability/logging.py — ✅ Good
+
+**Файл:** `observability/logging.py` (171 lines)
+
+Structured logging with structlog. JSON or console renderer. Correlation IDs via contextvars. Service context injection. Library noise suppression. Well-structured with helper functions for config.
+
+### 8.1390 observability/tracing.py — ✅ Good
+
+**Файл:** `observability/tracing.py` (111 lines)
+
+OpenTelemetry tracing with OTLP exporter (Jaeger). NoopTracer fallback when not initialized. Clean setup/shutdown lifecycle. Asyncio instrumentor.
+
+---
+
+## 13. notification/ (1 file, ~334 lines)
+
+### 8.1391 notification/notifier.py — ✅ Good
+
+**Файл:** `notification/notifier.py` (334 lines)
+
+Telegram + Discord notifier with remote commands (/status, /positions, /close_all, /pause, /resume). AlertEvent dataclass with emoji mapping. Async polling for Telegram updates. Clean start/stop lifecycle with task cancellation.
+
+---
+
+## 14. networking/ (1 file, ~156 lines)
+
+### 8.1392 networking/socket_transport.py — ✅ Good (minor: busy-poll loop)
+
+**Файл:** `networking/socket_transport.py` (156 lines)
+
+Raw UDP socket transport with non-blocking I/O, binary packet, stats tracking. MarketDataPacket dataclass. Clean initialize/send/parse.
+
+**Minor:** `start_receive_loop` (line 86) uses `time.sleep(0.0001)` on BlockingIOError — 100μs busy-poll. In production, should use `selectors` or `asyncio` for event-driven I/O instead of polling.
+
+---
+
+## 15. utils/ (1 file, ~205 lines)
+
+### 8.1393 utils/helpers.py — ✅ Good
+
+**Файл:** `utils/helpers.py` (205 lines)
+
+Utility functions: setup_logging, JsonFormatter, load_config, get_env, now_ms/now_us, format_price/qty/percentage, safe_divide, clamp, truncate_dict. CircuitBreaker (failure threshold, recovery timeout, half-open state). RateLimiter (token bucket, async acquire). Clean and well-structured.
+
+**Minor:** Two logging setups: `utils/helpers.py:setup_logging` and `observability/logging.py:setup_logging`. The observability one uses structlog, the utils one uses stdlib. Consolidate to one.
+
+---
+
+## 16. llm_engine/ (1 file, ~394 lines)
+
+### 8.1394 llm_engine/engine.py — ✅ Good
+
+**Файл:** `llm_engine/engine.py` (394 lines)
+
+LLM-powered market analysis with OpenAI/Anthropic/Ollama support. Rule-based fallback when no API key. Response caching with TTL. Prompt templates from files with fallback defaults. Clean LLMConfig/MarketContext/LLMAnalysis dataclasses.
+
+**Minor:** API key loaded from env var in `initialize()` — if not set, silently falls back to rule-based. Should log a warning at WARNING level, not INFO.
+
+---
+
+## 17. portfolio/ (4 files, ~900 lines)
+
+### 8.1395 portfolio/__init__.py — ✅ Good
+
+**Файл:** `portfolio/__init__.py` (17 lines)
+
+Thin re-export of 4 classes from 4 modules. This is the correct pattern for `__init__.py` — small, focused, only 4 symbols.
+
+### 8.1396 portfolio/markowitz.py — ✅ Good
+
+**Файл:** `portfolio/markowitz.py` (~200 lines)
+
+Markowitz mean-variance optimization with numpy. Efficient frontier, min variance, max Sharpe. Clean MarkowitzOptimizer class.
+
+### 8.1397 portfolio/black_litterman.py — ✅ Good
+
+**Файл:** `portfolio/black_litterman.py` (~170 lines)
+
+Black-Litterman model with prior, views, posterior. Clean BlackLittermanModel class.
+
+### 8.1398 portfolio/risk_parity.py — ✅ Good
+
+**Файл:** `portfolio/risk_parity.py` (~180 lines)
+
+Risk parity optimization with Newton-Raphson iteration. Equal risk contribution. Clean RiskParityOptimizer class.
+
+### 8.1399 portfolio/rebalancing.py — ✅ Good
+
+**Файл:** `portfolio/rebalancing.py` (~170 lines)
+
+Portfolio rebalancing strategies: threshold, calendar, drift. Clean RebalancingStrategy class.
+
+---
+
+## 18. research/ (35 files, ~14000+ lines)
+
+### 8.1400 research/__init__.py — ⚠️ Over-Engineered
+
+**Файл:** `research/__init__.py` (307 lines)
+
+Re-exports ~200+ symbols from 35 modules. Same anti-pattern as `technical_analysis/__init__.py`. Any `from src.research import X` loads ALL 35 modules including affine_arithmetic, banach, burgers, cameron_martin, cramer_rao, fokker_planck, girsanov, hahn, ito_generator, kolmogorov_sinai, koopman, lax_milgram, lie_group, malliavin, pontryagin, radon_nikodym, renormalization, renyi_entropy, riesz, sobolev — none used in production.
+
+**Фикс:** Delete re-exports. Use direct submodule imports.
+
+### 8.1401 research: 30+ modules likely dead code — ⚠️ Dead Code
+
+**Файлы:** 30+ of 35 files
+
+30+ research modules (~12000+ lines) implement advanced mathematical concepts (Banach fixed point, Burgers equation, Cameron-Martin theorem, Cramér-Rao bound, Fokker-Planck, Girsanov theorem, Hahn decomposition, Itô generator, Kolmogorov-Sinai entropy, Koopman operator, Lax-Milgram, Lie group, Malliavin calculus, Pontryagin maximum principle, Radon-Nikodym, renormalization group, Rényi entropy, Riesz representation, Sobolev spaces) that are not referenced by any strategy, risk manager, or backtester. Pure academic research code.
+
+**Фикс:** Move to separate `research_lab/` package outside `src/`. Keep only `attribution.py`, `competition.py`, `genetic_strategy.py`, `greeks_hedging.py`, `microstructure_lab.py` if any are used.
+
+### 8.1402 research: compute_returns duplicated 20+ times — Low
+
+**Файлы:** 20+ research modules
+
+Same `compute_returns` function duplicated across 20+ research modules. Each is ~5 lines. Total: ~100+ lines of duplicate code.
+
+**Фикс:** Create `src/research/_utils.py` with `compute_returns`. Import in all modules. Or use `src.utils.helpers`.
+
+---
+
+## 19. Project-wide cross-module findings
+
+### 8.1403 Project-wide: 3× duplicate logging setup — Low
+
+**Файлы:** `utils/helpers.py:14` (setup_logging), `observability/logging.py:31` (setup_logging), `monitoring/tracker.py:11` (logger = logging.getLogger)
+
+Three separate logging configurations. `utils/helpers.py` uses stdlib JsonFormatter, `observability/logging.py` uses structlog, `monitoring/tracker.py` creates its own logger. In production, this can cause conflicting handlers, duplicate log lines, or lost context.
+
+**Фикс:** Use only `observability/logging.py:setup_logging` as the canonical logging setup. Remove `utils/helpers.py:setup_logging` and `JsonFormatter`. `monitoring/tracker.py` should use `get_logger(__name__)` from observability.
+
+### 8.1404 Project-wide: 5× duplicate _random_normal (Box-Muller) — Low
+
+**Файлы:** `technical_analysis/sde.py:55`, `technical_analysis/rbergomi.py:64`, `technical_analysis/hmc.py:46`, `technical_analysis/optimal_stopping.py:77`, `ml/vae.py:223`
+
+5 identical Box-Muller implementations across 5 files. ~75 lines of duplicate code.
+
+**Фикс:** Use `random.gauss(0, 1)` from stdlib. Or create `src/utils/math_utils.py` with `random_normal(rng)`.
+
+### 8.1405 Project-wide: 3× duplicate __init__.py re-export anti-pattern — ⚠️ Over-Engineered
+
+**Файлы:** `technical_analysis/__init__.py` (252 lines, ~200 symbols), `research/__init__.py` (307 lines, ~200 symbols), `ml/__init__.py` (81 lines, ~30 symbols)
+
+Three packages use the same anti-pattern: re-exporting all symbols from all submodules in `__init__.py`. This causes:
+- Slow import time (loads all modules even if only one is needed)
+- High memory usage (all module code in memory)
+- Circular import risk (modules importing from package level)
+- Coupling (adding a module requires updating `__init__.py`)
+
+**Фикс:** Delete all re-exports from `__init__.py`. Use direct submodule imports: `from src.technical_analysis.indicators import sma` instead of `from src.technical_analysis import sma`.
+
+### 8.1406 Project-wide: 2 duplicate health check systems — Low
+
+**Файлы:** `monitoring/health_server.py` (153 lines), `observability/health_checks.py` (221 lines)
+
+Two separate health check systems:
+- `monitoring/health_server.py`: HTTP server with /health endpoints, checks exchange/database/SHM
+- `observability/health_checks.py`: HealthChecker class with liveness/readiness, checks WS/DB/Redis/exchange
+
+Both serve the same purpose (Kubernetes health probes) but with different implementations and different component checks. This is confusing and redundant.
+
+**Фикс:** Consolidate into one. Keep `observability/health_checks.py` as the checker logic, `monitoring/health_server.py` as the HTTP server that uses it.
+
+### 8.1407 Project-wide: 50+ modules likely dead code total — ⚠️ Dead Code
+
+**Файлы:** 16 technical_analysis + 5 ml + 30 research = 51+ modules
+
+Total dead code across the project: ~17,000+ lines (4000 technical_analysis + 1300 ml + 12000 research). These modules are imported only through `__init__.py` re-exports and used by the UI dashboard, not by the trading bot itself.
+
+**Фикс:** Move all advanced/research modules to a separate package (e.g., `analysis_lab/`). Keep `src/` focused on production trading code. This would reduce `src/` by ~50% and dramatically improve import time.
+
+### 8.1408 monitoring: tracker.py datetime.now() without timezone — Low
+
+**Файл:** `monitoring/tracker.py:134`
+
+`datetime.now().strftime(...)` — naive datetime in dashboard display. Already counted in project-wide R1318 but this is a new instance found in batch 82.
+
+**Фикс:** `datetime.now(UTC).strftime(...)`
+
+---
+
+## 20. data_collection/ (4 files, ~2500 lines)
+
+### 8.1409 data_collection/exchange_factory.py — ✅ Good
+
+**Файл:** `data_collection/exchange_factory.py` (242 lines)
+
+Exchange adapter factory with Protocol-based interface. SimulatorAdapter (stub) and RealExchangeAdapter (wraps real_market_data + real_account). ExchangeMode enum (simulator/real/fallback). Clean Protocol definition for exchange adapters.
+
+### 8.1410 data_collection/real_exchange_client.py — ✅ Good
+
+**Файл:** `data_collection/real_exchange_client.py` (335 lines)
+
+REST client for Binance, OKX, Bybit. HMAC-SHA256 request signing with `usedforsecurity=False` (good practice). AccountBalance and Position dataclasses. Per-exchange signing methods. Clean aiohttp session management.
+
+### 8.1411 data_collection/real_account.py — ✅ Good (minor: 3× broad except Exception)
+
+**Файл:** `data_collection/real_account.py` (380 lines)
+
+Real account management via ccxt. AccountBalance, AccountPosition, OpenOrder dataclasses with to_dict(). User data stream for fills and margin warnings. Leverage cache. Clean close() lifecycle.
+
+**Minor:** 3× `except Exception` (lines 163, 247, 378) — too broad. Should catch specific exceptions (ccxt exceptions, network errors).
+
+### 8.1412 data_collection/real_market_data.py — ✅ Good (minor: no asyncio.Lock on shared state)
+
+**Файл:** `data_collection/real_market_data.py` (455 lines)
+
+Multi-exchange WebSocket market data feed (Binance, OKX, Bybit). NormalizedTicker, NormalizedCandle, NormalizedOrderBook dataclasses. Exponential backoff reconnection per exchange. RealMarketDataManager wraps feed with caching (deque maxlen=1000).
+
+**Minor:** `_tickers`, `_orderbooks`, `_candles` dicts are written from WebSocket callbacks and read from main code — no `asyncio.Lock`. In asyncio single-threaded context this is mostly safe (dict operations are atomic in CPython), but a context switch between `await` calls could cause stale reads. Low risk but worth noting.
+
+### 8.1413 data_collection: 2× duplicate AccountBalance dataclass — Low
+
+**Файлы:** `real_account.py:30` (AccountBalance with asset/free/used/total), `real_exchange_client.py:38` (AccountBalance with exchange/total_balance/available_balance/unrealized_pnl/margin_used/currency)
+
+Two different `AccountBalance` dataclasses with different fields. `real_account.py` uses ccxt format (asset/free/used/total), `real_exchange_client.py` uses REST format (exchange/total_balance/available_balance/unrealized_pnl/margin_used/currency). Confusing — same name, different shape.
+
+**Фикс:** Rename to `CcxtAccountBalance` and `RestAccountBalance`, or unify into one with optional fields.
+
+### 8.1414 data_collection: no rate limiting on REST API calls — ⚠️ Medium
+
+**Файл:** `real_exchange_client.py`
+
+`RealExchangeClient` makes REST API calls (get_balance, get_positions, get_open_orders, get_trade_history) without any rate limiting. Binance has 1200 weight/min limit, OKX has 20 req/2s, Bybit has 120 req/min. At scale (50 symbols × 60s interval × 4 endpoints = 200 req/min), this could hit rate limits.
+
+**Фикс:** Add `asyncio.Semaphore` or use `utils.helpers.RateLimiter` to throttle API calls. Or use ccxt's built-in `enableRateLimit: True` (already set in `real_account.py:117` but not in `real_exchange_client.py`).
+
+---
+
+## 21. config/ (1 file, ~314 lines)
+
+### 8.1415 config/__init__.py — ✅ Good
+
+**Файл:** `config/__init__.py` (314 lines)
+
+SignalBotConfig dataclass with YAML loading, validation (errors + warnings), and property-based access. Validates required sections, risk ranges, strategy params, indicator periods. Warns on suspicious values (high risk, wide SL, many positions). Clean and well-structured.
+
+**Minor:** 40+ property methods — could use `__getattr__` with dot-notation path resolution for less boilerplate. But explicit properties are safer (type hints, IDE autocomplete).
+
+---
+
+## 22. Entry points
+
+### 8.1416 run.py — ✅ Good (minor: no graceful shutdown on SIGTERM)
+
+**Файл:** `run.py` (397 lines)
+
+Main entry point. AISignalBot orchestrator: ExchangeClient → strategies → ensemble → validation → execution. Clean component wiring. Backtest mode via --backtest flag. Metrics server via --metrics flag. LLM engine integration.
+
+**Minor:** No SIGTERM handler — Kubernetes sends SIGTERM to terminate pods. `KeyboardInterrupt` (line 170) only catches Ctrl+C, not SIGTERM. Pod will be killed after grace period without cleanup (DB flush, WS close, LLM close).
+
+**Фикс:** Add `signal.signal(signal.SIGTERM, lambda s, f: bot._running = False)` or use `asyncio.run(main())` with `loop.add_signal_handler`.
+
+### 8.1417 run.py: _execute_live_order not implemented — ⚠️ Dead Code
+
+**Файл:** `run.py:308-311`
+
+```python
+async def _execute_live_order(self, signal: Signal, signal_id: int) -> None:
+    """Execute a live order (would connect to real exchange in production)."""
+    self.logger.warning("Live trading not implemented in simulation mode")
+```
+
+Stub method — logs warning and does nothing. If `paper_trading=False` in config, signals are validated, saved, broadcast, but never executed. Silent failure.
+
+**Фикс:** Either implement using `RealExchangeAdapter` or raise `NotImplementedError`.
+
+### 8.1418 run_backtest.py — ✅ Good
+
+**Файл:** `run_backtest.py` (179 lines)
+
+Backtest runner with synthetic candle generation (GBM), SQLite data loading, multi-strategy backtesting, optimization, and chart output. Clean argparse interface.
+
+**Minor:** `sqlite3.connect` (line 80) without context manager — `conn.close()` is called but not in finally block. If exception occurs between connect and close, connection leaks.
+
+**Фикс:** `with sqlite3.connect(args.db) as conn: rows = conn.execute(...).fetchall()`
+
+---
+
+## 23. Root-level utility scripts (3 files, ~655 lines)
+
+### 8.1419 root/monitor.py — ✅ Good (minor: naive datetime)
+
+**Файл:** `monitor.py` (157 lines)
+
+Live status dashboard connecting to signal WebSocket (port 8766). Displays real-time signals, log tail, performance stats. Clean async WebSocket client.
+
+**Minor:** `from datetime import datetime` (line 12) — uses `datetime.now()` without timezone. Low impact (display only).
+
+### 8.1420 root/metrics.py — ⚠️ Duplicate of src/monitoring/metrics.py
+
+**Файл:** `metrics.py` (293 lines)
+
+Standalone Prometheus metrics collector (`AISignalBotMetrics` class) with Counter, Gauge, Histogram for signals, PnL, win rate, system resources. This duplicates `src/monitoring/metrics.py` (239 lines, `MetricsExporter` class). Different class name, different metric names, different port (8001 vs 9090). At scale, both could run simultaneously, causing port conflicts and duplicate metrics in Prometheus.
+
+**Фикс:** Delete `metrics.py` and use `src/monitoring/metrics.py:MetricsExporter` exclusively.
+
+### 8.1421 root/tracing.py — ⚠️ Duplicate of src/observability/tracing.py
+
+**Файл:** `tracing.py` (205 lines)
+
+Standalone OpenTelemetry tracer (`AISignalBotTracer` class) with Jaeger exporter. This duplicates `src/observability/tracing.py` (111 lines, `setup_tracing` function). Different API (class vs function), different setup pattern. At scale, both could initialize separate TracerProviders, causing conflicting trace contexts.
+
+**Фикс:** Delete `tracing.py` and use `src/observability/tracing.py:setup_tracing` exclusively.
+
+### 8.1422 root: 2× duplicate infrastructure modules — Low
+
+**Файлы:** `metrics.py` (293 lines) vs `src/monitoring/metrics.py` (239 lines), `tracing.py` (205 lines) vs `src/observability/tracing.py` (111 lines)
+
+Two pairs of duplicate infrastructure modules at root level vs src/. Total: ~500 lines of duplicate code. The root-level versions are older, standalone implementations. The src/ versions are newer, better integrated.
+
+**Фикс:** Delete root-level `metrics.py` and `tracing.py`. Use src/ versions exclusively.
+
+---
+
+## 24. scripts/ (3 files, ~265 lines)
+
+### 8.1423 scripts/migrate.py — ✅ Good (minor: conn.close not in finally)
+
+**Файл:** `scripts/migrate.py` (101 lines)
+
+Database migration runner using asyncpg. Creates `schema_migrations` tracking table, applies pending `.sql` files in order. Clean argparse interface.
+
+**Minor:** `conn.close()` (line 85) not in finally block — if migration fails, connection leaks.
+
+### 8.1424 scripts/run_bot.py — ⚠️ Dead Code (stub)
+
+**Файл:** `scripts/run_bot.py` (59 lines)
+
+Stub script that only starts `SignalPublisher` and sleeps. Does NOT run the actual bot (no strategies, no exchange connection, no signal generation). The real entry point is `run.py` at project root. This script is misleading — `--strategy` argument is accepted but ignored.
+
+**Фикс:** Delete this file. Use `run.py` at project root.
+
+### 8.1425 scripts/run_backtest.py — ⚠️ Duplicate of root run_backtest.py
+
+**Файл:** `scripts/run_backtest.py` (109 lines)
+
+Another backtest runner using `BacktestEngine` (not `Backtester`). Different API from root `run_backtest.py` (which uses `Backtester`). Different strategy imports (`from src.strategies.strategies import ...` vs `from src.strategies import ...`). Different config (`BacktestConfig` vs raw params). Generates mock candles with different parameters.
+
+**Фикс:** Delete this file. Use `run_backtest.py` at project root.
+
+---
+
+## 25. Shared root files (2 files, ~271 lines)
+
+### 8.1426 run_logger.py — ⚠️ 4th duplicate logging setup
+
+**Файл:** `run_logger.py` (118 lines, at project root `f:\VSC projects\trading-system – lite\`)
+
+Shared timestamped run logging with `JsonFormatter`. Creates per-run log files with timestamped filenames. This is the 4th logging setup:
+1. `run_logger.py` (root) — timestamped file logging with JsonFormatter
+2. `utils/helpers.py:setup_logging` — stdlib logging with JsonFormatter
+3. `observability/logging.py:setup_logging` — structlog with JSON/console
+4. `monitoring/tracker.py` — creates own logger
+
+`run_logger.py:JsonFormatter` (line 20) duplicates `utils/helpers.py:JsonFormatter` (line 45) — both format log records as JSON with timestamp/level/logger/message. Different field names (`ts` vs `timestamp`, `msg` vs `message`).
+
+**Minor:** Line 66: `datetime.now().strftime(...)` — naive datetime for log filename. Should use `datetime.now(timezone.utc)`.
+
+**Фикс:** Consolidate to one logging setup. Keep `run_logger.py` for file-based run logging (it's the most complete), use `observability/logging.py` for structured logging. Delete `utils/helpers.py:setup_logging` and `JsonFormatter`.
+
+### 8.1427 ai-signal-bot/src/utils/bot_helpers.py — ✅ Good (minor: triggers __init__.py re-export)
+
+**Файл:** `src/utils/bot_helpers.py` (153 lines)
+
+Helper functions extracted from `run.py` for file-size compliance: `build_strategies`, `build_stat_arb`, `generate_stat_arb_signals`, `generate_llm_explanation`, `load_candles_from_csv`. Clean TYPE_CHECKING imports. Good exception handling.
+
+**Minor:** Line 30: `from src.technical_analysis import adx, ema, rsi` — triggers the `__init__.py` re-export anti-pattern, loading all 25 technical_analysis modules just to use 3 functions. Should be `from src.technical_analysis.indicators import adx, ema, rsi`.
+
+### 8.1428 Project-wide: 4× duplicate logging setup (updated) — Low
+
+**Файлы:** `run_logger.py` (root, 118 lines), `utils/helpers.py:14` (205 lines), `observability/logging.py:31` (171 lines), `monitoring/tracker.py:11` (175 lines)
+
+Four separate logging configurations with different formatters, different field names, different handler setups. `run_logger.py` uses `ts`/`msg`, `utils/helpers.py` uses `timestamp`/`message`, `observability/logging.py` uses structlog. At scale, this causes inconsistent log formats across services, making log aggregation (ELK, Loki) difficult.
+
+**Фикс:** Use `run_logger.py` for per-run file logging (timestamped filenames). Use `observability/logging.py` for structured logging (structlog). Delete `utils/helpers.py:setup_logging` and `JsonFormatter`. `monitoring/tracker.py` should use `get_logger(__name__)` from observability.
+
+---
+
+## 26. Remaining files
+
+### 8.1429 communication/ws_connection_pool.py — ✅ Good
+
+**Файл:** `src/communication/ws_connection_pool.py` (152 lines)
+
+WebSocket connection pool with `PooledConnection` wrapper, `WebSocketConnectionPool` with `asyncio.Lock`, health checks (ping/pong with 5s timeout), stale eviction, max pool size (10), compression, `close_all()` lifecycle. Well-structured — uses `asyncio.Lock` correctly (unlike most other modules). Background health check task with cancellation.
+
+**Minor:** `_health_loop` (line 131) — `while True` without checking a `_running` flag. If `close_all()` is called, the task is cancelled, but `asyncio.CancelledError` is not caught in the loop. Works in practice but less explicit.
+
+### 8.1430 conftest.py — ✅ Good (trivial)
+
+**Файл:** `conftest.py` (14 lines)
+
+pytest configuration — adds bot root and project root to `sys.path` for test imports. Standard pattern. No issues.
+
+### 8.1431 communication: ws_connection_pool not used by ws_client — Low
+
+**Файл:** `src/communication/ws_client.py` (ExchangeClient)
+
+`WebSocketConnectionPool` is well-implemented but `ExchangeClient` (ws_client.py) doesn't use it — it manages its own WebSocket connection directly. The pool is dead code unless other consumers use it.
+
+**Фикс:** Either integrate `ExchangeClient` with the pool, or remove `ws_connection_pool.py` if no other module uses it.

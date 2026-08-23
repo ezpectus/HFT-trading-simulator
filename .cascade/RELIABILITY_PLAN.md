@@ -1683,3 +1683,306 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R1126 | walk_forward: overfitting threshold hardcoded | `walk_forward.py:167` | Low | 0.5 gap hardcoded. Make configurable |
 | R1127 | walk_forward: no anchored mode | `walk_forward.py:93` | Low | Rolling only. Add anchored: bool parameter |
 | R1128 | walk_forward: new BacktestEngine per param combo | `walk_forward.py:137` | Low | 320 engine instances. Add reset() and reuse |
+| R1129 | ai-signal-bot/data_collection/exchange_factory.py | `exchange_factory.py` | ✅ Good | Protocol adapter 3 modes fallback runtime switching |
+| R1130 | exchange_factory: SimulatorAdapter hardcoded $50K | `exchange_factory.py:55` | Low | All symbols $50K on fallback. Use price provider or random walk |
+| R1131 | exchange_factory: api_secret in plain string | `exchange_factory.py:173` | Low | Same as C++ adapters. Use SecretStr |
+| R1132 | exchange_factory: FALLBACK doesn't close failed adapter | `exchange_factory.py:212` | Low | Resources leak on partial init failure. Call close() in except |
+| R1133 | ai-signal-bot/data_collection/real_account.py | `real_account.py` | ✅ Good | ccxt integration user data stream REST methods leverage cache |
+| R1134 | real_account: get_balance catches bare Exception | `real_account.py:163` | Low | Swallows CancelledError. Use specific exceptions |
+| R1135 | real_account: set_leverage catches bare Exception | `real_account.py:247` | Low | Same as get_balance. Swallows CancelledError |
+| R1136 | real_account: no retry on order placement | `real_account.py:285` | Low | Transient errors lose orders. Add retry with backoff |
+| R1137 | real_account: user data stream fixed 5s retry | `real_account.py:369` | Low | Not exponential. Use 1s→2s→4s→...→30s |
+| R1138 | ai-signal-bot/data_collection/real_market_data.py | `real_market_data.py` | ✅ Good | Multi-exchange WS normalized data exponential backoff |
+| R1139 | real_market_data: no message queue/backpressure | `real_market_data.py:134` | Low | 1000+ msgs/sec blocks receive loop. Use asyncio.Queue |
+| R1140 | real_market_data: no ping_timeout | `real_market_data.py:129` | Low | Connection hangs on no pong. Add ping_timeout=10 |
+| R1141 | real_market_data: OKX/Bybit URL hardcoded | `real_market_data.py:191` | Low | No testnet URL for OKX. Make configurable |
+| R1142 | ai-signal-bot/data_collection/real_exchange_client.py | `real_exchange_client.py` | ✅ Good | 3-exchange REST HMAC signing shared session testnet URLs |
+| R1143 | real_exchange_client: duplicate of real_account.py | `real_exchange_client.py` | Info | 335 lines dead code. exchange_factory uses real_account not this |
+| R1144 | real_exchange_client: no JSON parse error handling | `real_exchange_client.py:152` | Low | 200 with invalid body crashes. Wrap in try/except |
+| R1145 | real_exchange_client: Bybit no testnet URL | `real_exchange_client.py:84` | Low | Always production. Add testnet variant |
+| R1146 | real_exchange_client: signature in URL query string | `real_exchange_client.py:144` | Low | Binance API requirement. Ensure no debug logging of URL |
+| R1147 | ai-signal-bot/communication/circuit_breaker.py | `circuit_breaker.py` | ✅ Good | 3-state pattern probe limiting metrics |
+| R1148 | circuit_breaker: not thread-safe | `circuit_breaker.py:34` | Low | No locking. asyncio-safe (no awaits in critical sections). Document |
+| R1149 | ai-signal-bot/communication/shm_ring_buffer.py | `shm_ring_buffer.py` | ✅ Excellent | SPSC lock-free cache-line aligned cross-platform batch operations |
+| R1150 | shm_ring_buffer: _mm_barrier flushes on every write | `shm_ring_buffer.py:57` | Low | 100K syscalls/sec. Batch flush or rely on cache coherence |
+| R1151 | shm_ring_buffer: bulk_push not crash-safe | `shm_ring_buffer.py:198` | Low | Head may point to uninitialized data on crash. Validate in consumer |
+| R1152 | ai-signal-bot/communication/ws_client.py | `ws_client.py` | ✅ Good | Multi-encoding exponential backoff trading state management |
+| R1153 | ws_client: no ping_timeout | `ws_client.py:79` | Low | Connection hangs on no pong. Add ping_timeout=10 |
+| R1154 | ws_client: listen() has no reconnection | `ws_client.py:99` | Low | Exits on ConnectionClosed. Add auto-reconnect or document |
+| R1155 | ws_client: candle_history unbounded for new symbols | `ws_client.py:134` | Low | 1000 unexpected symbols = 20MB. Validate against config |
+| R1156 | ai-signal-bot/communication/signal_publisher.py | `signal_publisher.py` | ✅ Good | Circuit breaker backtest execution comparison client management |
+| R1157 | signal_publisher: bare Exception catches CancelledError | `signal_publisher.py:123,155` | Low | 2 bare catches. Use specific exceptions or re-raise CancelledError |
+| R1158 | signal_publisher: backtest blocks event loop | `signal_publisher.py:271` | Low | 10K candles = 1s event loop block. Use run_in_executor |
+| R1159 | signal_publisher: _EnsembleAdapter duplicates logic | `signal_publisher.py:42` | Info | Adapter wraps EnsembleVoter. Voter should encapsulate sub-strategies |
+| R1160 | ai-signal-bot/communication/health_check.py | `health_check.py` | ✅ Good | Parallel checks 3s timeout 503 on unhealthy |
+| R1161 | health_check: new aiohttp session per check | `health_check.py:53` | Low | 3 sessions per cycle. Use shared session |
+| R1162 | health_check: bare Exception catches CancelledError | `health_check.py:73` | Low | Same pattern. Use specific exceptions |
+| R1163 | ai-signal-bot/communication/metrics_server.py | `metrics_server.py` | ✅ Good | 7 metrics Prometheus text format no external deps |
+| R1164 | metrics_server: non-atomic counter increments | `metrics_server.py:34` | Low | asyncio-safe. Document or use Lock if multi-threaded |
+| R1165 | metrics_server: no 404 or method handling | `metrics_server.py:109` | Low | Always 200 OK. Add method/path validation |
+| R1166 | ai-signal-bot/communication/fix_client.py | `fix_client.py` | ✅ Good | FIX 4.4 seq management gap recovery persistent state |
+| R1167 | fix_client: seq file in tempfile | `fix_client.py:126` | Low | /tmp cleared on reboot. Use data/ directory |
+| R1168 | fix_client: connect() has no timeout | `fix_client.py:181` | Low | Hangs on unreachable server. Add asyncio.wait_for |
+| R1169 | fix_client: _pending_messages unbounded | `fix_client.py:352` | Low | OOM on failed ResendRequest. Cap at 1000 |
+| R1170 | fix_client: no reconnection on disconnect | `fix_client.py:334` | Low | Read loop exits. Add auto-reconnect or document |
+| R1171 | ai-signal-bot/communication/ws_connection_pool.py | `ws_connection_pool.py` | ✅ Good | Health checks stale eviction proper cleanup |
+| R1172 | ws_connection_pool: fire-and-forget tasks in _evict_stale | `ws_connection_pool.py:106` | Low | Tasks may be GC'd. Store refs or await directly |
+| R1173 | ws_connection_pool: health_loop while True no CancelledError | `ws_connection_pool.py:131` | Low | Task leaks on kill. Use while self._running |
+| R1174 | ai-signal-bot/communication/shm_market_data_writer.py | `shm_market_data_writer.py` | ✅ Good | Seq-guarded writes lock-free reader consistency |
+| R1175 | shm_market_data_writer: no memory barrier on seq writes | `shm_market_data_writer.py:82` | Low | ARM reordering risk. Add _mm_barrier before final seq |
+| R1176 | shm_market_data_writer: zeroing allocates full size | `shm_market_data_writer.py:57` | Low | 640KB alloc for 10K symbols. Use mmap slice or ctypes.memset |
+| R1177 | ai-signal-bot/communication/shm_fill_consumer.py | `shm_fill_consumer.py` | ✅ Good | Polling loop batch operations context manager |
+| R1178 | shm_fill_consumer: 1ms polling wastes CPU | `shm_fill_consumer.py:62` | Low | 1000 wakeups/sec. Use adaptive backoff |
+| R1179 | shm_fill_consumer: callback not async | `shm_fill_consumer.py:59` | Low | Async callback silently dropped. Await or document sync-only |
+| R1180 | ai-signal-bot/communication/shm_signal_producer.py | `shm_signal_producer.py` | ✅ Good | Dict conversion batch push proper cleanup |
+| R1181 | shm_signal_producer: confidence /100 undocumented | `shm_signal_producer.py:69` | Low | 0-100 → 0.0-1.0 conversion. Document or auto-detect |
+| R1182 | communication: bare Exception pattern across 5 files | `signal_publisher.py:123,155 health_check.py:73 real_account.py:163,247` | Low | Systemic anti-pattern. 5+ bare Exception catches swallow CancelledError |
+| R1183 | ai-signal-bot/utils/helpers.py | `helpers.py` | ✅ Good | JSON logging config env helpers format helpers CircuitBreaker RateLimiter |
+| R1184 | helpers: RateLimiter busy-waits on high rate | `helpers.py:194` | Low | 1000/s rate = 1000 wakeups/sec. Cap minimum sleep to 1ms |
+| R1185 | helpers: load_config silently returns {} on FileNotFoundError | `helpers.py:70` | Low | Missing config masked. Log warning. Also catch ImportError |
+| R1186 | helpers: CircuitBreaker duplicates communication/circuit_breaker.py | `helpers.py:145` | Info | Two implementations. Remove one or document difference |
+| R1187 | ai-signal-bot/utils/bot_helpers.py | `bot_helpers.py` | ✅ Good | Strategy builder stat arb signals LLM explanation CSV loading |
+| R1188 | bot_helpers: generate_stat_arb_signals O(N²) pairs | `bot_helpers.py:78` | Low | 50 symbols = 1225 pairs. Pre-filter or parallelize |
+| R1189 | bot_helpers: generate_llm_explanation missing TimeoutError OSError | `bot_helpers.py:116` | Low | LLM timeout crashes pipeline. Add to catch list |
+| R1190 | ai-signal-bot/observability/health_checks.py | `health_checks.py` | ✅ Good | 3 endpoints 4 component checks Kubernetes liveness/readiness |
+| R1191 | health_checks: _check_ws uses getattr duck typing | `health_checks.py:146` | Low | Fragile. Define HealthCheckable protocol |
+| R1192 | health_checks: __import__("os") anti-pattern | `health_checks.py:82` | Low | Use import os at top |
+| R1193 | health_checks: no timeout on _check_db and _check_redis | `health_checks.py:162,179` | Low | K8s kills pod. Add asyncio.wait_for(timeout=2) |
+| R1194 | ai-signal-bot/observability/logging.py | `logging.py` | ✅ Good | structlog JSON console fallback file handler noise suppression |
+| R1195 | logging: setup_logging duplicates utils/helpers.setup_logging | `logging.py:31` | Info | Two logging configs. Remove helpers.setup_logging |
+| R1196 | logging: _configured guard prevents reconfiguration | `logging.py:39` | Low | Can't switch at runtime. Add force parameter |
+| R1197 | ai-signal-bot/observability/tracing.py | `tracing.py` | ✅ Good | OpenTelemetry Jaeger NoopTracer fallback proper shutdown |
+| R1198 | tracing: insecure=True hardcoded | `tracing.py:59` | Low | No TLS in production. Make configurable |
+| R1199 | ai-signal-bot/monitoring/alerting.py | `alerting.py` | ✅ Good | 3 channels rate limiting parallel send proper CancelledError |
+| R1200 | alerting: new aiohttp session per alert send | `alerting.py:168,190,205` | Low | 30 sessions/min. Use shared session |
+| R1201 | alerting: check_fn is sync in async context | `alerting.py:101` | Low | Blocks event loop on I/O checks. Make async |
+| R1202 | alerting: alert_history list slicing O(N) | `alerting.py:113` | Low | O(1000) copy per alert. Use deque(maxlen=1000) |
+| R1203 | ai-signal-bot/monitoring/tracker.py | `tracker.py` | ✅ Good | PerformanceTracker SignalLogger TradeLogger CLI dashboard |
+| R1204 | tracker: SignalLogger opens file on every log() | `tracker.py:82` | Low | 100 open/close per sec. Keep file open |
+| R1205 | tracker: no file lock on CSV writes | `tracker.py:82` | Low | Multi-process writes corrupt CSV. Use flock |
+| R1206 | tracker: print_dashboard uses datetime.now() without UTC | `tracker.py:134` | Low | Timezone mismatch. Use datetime.now(UTC) |
+| R1207 | ai-signal-bot/monitoring/metrics.py | `metrics.py` | ✅ Good | 15 Prometheus metrics Counter Gauge Histogram Summary |
+| R1208 | metrics: __init__ returns early without setting attributes | `metrics.py:41` | Low | AttributeError on direct access. Set None in fallback |
+| R1209 | metrics: duplicate of communication/metrics_server.py | `metrics.py` vs `metrics_server.py` | Info | Two metrics servers on 9090+9091. Merge into one |
+| R1210 | ai-signal-bot/monitoring/health_server.py | `health_server.py` | ✅ Good | 4 endpoints pluggable checks 503 on unhealthy |
+| R1211 | health_server: duplicate of observability/health_checks.py | `health_server.py` vs `health_checks.py` | Info | Two health servers. Merge into one K8s-ready |
+| R1212 | health_server: _check_all runs sequentially | `health_server.py:74` | Low | 5s total > K8s 1s timeout. Use asyncio.gather |
+| R1213 | ai-signal-bot/ml/automl.py | `automl.py` | ✅ Good | Optuna TPE MedianPruner search space SQLite persistence |
+| R1214 | automl: study.optimize blocks event loop | `automl.py:142` | Low | 1h block. Use run_in_executor |
+| R1215 | automl: no objective function validation | `automl.py:128` | Low | Dummy wastes 1h. Raise ValueError |
+| R1216 | ai-signal-bot/ml/feature_store.py | `feature_store.py` | ✅ Good | Redis hash in-memory fallback pipeline batch vector matrix |
+| R1217 | feature_store: bare Exception in Redis catch | `feature_store.py:94` | Low | Catches everything. Remove Exception from list |
+| R1218 | feature_store: get_features_batch sequential | `feature_store.py:141` | Low | 50 Redis round-trips. Use pipeline |
+| R1219 | feature_store: no connection pool config | `feature_store.py:83` | Low | Unlimited connections. Add max_connections |
+| R1220 | ai-signal-bot/ml/model_registry.py | `model_registry.py` | ✅ Good | 5 statuses A/B testing rollback file persistence auto-archive |
+| R1221 | model_registry: _save on every A/B impression | `model_registry.py:237` | Low | 1000 JSON writes/sec. Batch saves or use DB |
+| R1222 | model_registry: no file lock on _save | `model_registry.py:107` | Low | Concurrent writes corrupt JSON. Use flock or atomic write |
+| R1223 | model_registry: rollback variable naming misleading | `model_registry.py:182` | Low | prod_models = archived models. Rename. Add promotion history |
+| R1224 | ai-signal-bot/ml/autoencoder.py | `autoencoder.py` | ✅ Good | Shallow AE tied weights Xavier init stable sigmoid anomaly detection |
+| R1225 | autoencoder: O(N²) pure Python weight matrix ops | `autoencoder.py:110` | Low | 9.6M loop iterations. Use numpy |
+| R1226 | ai-signal-bot/ml/vae.py | `vae.py` | ✅ Good | VAE reparameterization ELBO loss beta-VAE manual backprop |
+| R1227 | vae: _random_normal Box-Muller without caching | `vae.py:72` | Low | 20K trig ops. Use random.gauss or numpy |
+| R1228 | ai-signal-bot/ml/price_predictor.py | `price_predictor.py` | ✅ Good | LSTM attention Transformer GELU ONNX export early stopping |
+| R1229 | price_predictor: hard dependency on torch | `price_predictor.py:28` | Low | No ImportError guard. Add HAS_TORCH |
+| R1230 | price_predictor: no model versioning integration | `price_predictor.py` | Low | Not registered in model_registry. Integrate |
+| R1231 | ai-signal-bot/ml/rl_trader.py | `rl_trader.py` | ✅ Good | PPO DQN GAE clip objective checkpointing ONNX export |
+| R1232 | rl_trader: PPO buffer unbounded between updates | `rl_trader.py:124` | Low | 2.5MB for 10K steps. Use deque(maxlen=...) |
+| R1233 | rl_trader: DQN buffer 100K entries ~50MB | `rl_trader.py:284` | Low | Training only. Document for inference |
+| R1234 | ai-signal-bot/ml/svm_signal.py | `svm_signal.py` | ✅ Good | Linear SVM SGD hinge loss L2 regularization standardize |
+| R1235 | svm_signal: RBF kernel defined but unused | `svm_signal.py:41` | Info | Dead code. Remove or implement kernel SVM |
+| R1236 | ai-signal-bot/ml/rkhs.py | `rkhs.py` | ✅ Good | RBF Laplacian kernels kernel matrix centering Jacobi eig MMD |
+| R1237 | rkhs: Jacobi eigendecomposition O(N³) | `rkhs.py:85` | Low | 10.8M ops in pure Python. Use numpy.linalg.eigh |
+| R1238 | ai-signal-bot/ml/environment.py | `environment.py` | ✅ Good | Gym-compatible 3 actions 63-dim observation transaction cost |
+| R1239 | environment: no CLOSE action | `environment.py:15` | Low | SELL conflates close-long with open-short. Add CLOSE=3 |
+| R1240 | environment: reset() generates random prices silently | `environment.py:62` | Low | Random walk training. Log warning |
+| R1241 | ai-signal-bot/llm_engine/engine.py | `engine.py` | ✅ Good | 3 providers rule-based fallback caching prompt templates |
+| R1242 | llm_engine: API key in plain string | `engine.py:29` | Low | Exposed in logs. Use SecretStr |
+| R1243 | llm_engine: cache key based on price to 2 decimals | `engine.py:151` | Low | Volatility-dependent hit rate. Use int(price) or time-bucket |
+| R1244 | llm_engine: _parse_response string find for JSON | `engine.py:287` | Low | Fragile extraction. Use regex or json5 |
+| R1245 | llm_engine: no rate limiting on API calls | `engine.py:175` | Low | 50 calls/min OK but spikes on cold cache. Add rate limiter |
+| R1246 | ai-signal-bot/notification/notifier.py | `notifier.py` | ✅ Good | Telegram Discord NotifierManager command handling proper cleanup |
+| R1247 | notifier: no polling interval in Discord _poll_messages | `notifier.py:237` | Low | Hammers Discord API. Add asyncio.sleep(1) on success |
+| R1248 | ai-signal-bot/portfolio/markowitz.py | `markowitz.py` | ✅ Good | Mean-variance scipy SLSQP efficient frontier min-variance max-Sharpe |
+| R1249 | markowitz: sector constraints not implemented | `markowitz.py:77` | Low | Silently skipped. Add asset_sector_map |
+| R1250 | markowitz: penalty function for target_return fragile | `markowitz.py:59` | Low | Redundant with equality constraint. Remove penalty |
+| R1251 | ai-signal-bot/portfolio/black_litterman.py | `black_litterman.py` | ✅ Good | BL model prior returns view matrices posterior LinAlgError fallback |
+| R1252 | black_litterman: Ω confidence division huge values | `black_litterman.py:58` | Low | confidence=0 → 10^10× Ω. Validate 0<conf<=1 |
+| R1253 | ai-signal-bot/portfolio/risk_parity.py | `risk_parity.py` | ✅ Good | Risk parity iterative convergence leverage targeting |
+| R1254 | risk_parity: portfolio_return hardcoded to 0 | `risk_parity.py:76` | Low | Misleading Sharpe. Accept expected_returns param |
+| R1255 | ai-signal-bot/portfolio/rebalancing.py | `rebalancing.py` | ✅ Good | 3 trigger types rebalance orders turnover cost estimation |
+| R1256 | rebalancing: total_trade_value naming ambiguous | `rebalancing.py:106` | Low | Rename to total_gross_trade_value |
+| R1257 | ai-signal-bot/research/__init__.py | `__init__.py` | ⚠️ Over-Engineered | 307 lines re-exporting ~200 symbols from 25+ modules. Use lazy imports |
+| R1258 | research: 22 duplicate compute_returns functions | 22 research files | ⚠️ Dead Code | 22× same function. Create shared utils.py. ~100+ lines reducible |
+| R1259 | research: 2 duplicate jacobi_eig functions | `rkhs.py:85`, `rmt.py` | Info | Same algorithm. Create shared linalg utility |
+| R1260 | research: 0 modules use asyncio | `src/research/` | ✅ Good | All CPU-bound synchronous. Correct for thread pool usage |
+| R1261 | research: 35 files ~6000 lines potential dead code | `src/research/` | ⚠️ Over-Engineered | Advanced math rarely used in production. Move to separate package |
+| R1262 | ai-signal-bot/research/attribution.py | `attribution.py` | ✅ Good | Brinson-Fachler allocation selection interaction decomposition |
+| R1263 | ai-signal-bot/research/genetic_strategy.py | `genetic_strategy.py` | ✅ Good | GA crossover mutation tournament selection elitism |
+| R1264 | genetic_strategy: deepcopy on every crossover | `genetic_strategy.py:33` | Low | 5000 deepcopy calls. Use shallow copy or dataclasses.replace |
+| R1265 | ai-signal-bot/research/microstructure_lab.py | `microstructure_lab.py` | ✅ Good | OFI Kyle lambda VPIN Hawkes book resilience |
+| R1266 | ai-signal-bot/research/competition.py | `competition.py` | ✅ Good | Round-robin ELO rating Sharpe criterion duck typing |
+| R1267 | ai-signal-bot/research/greeks_hedging.py | `greeks_hedging.py` | ✅ Good | BS Greeks delta hedging P&L decomposition transaction costs |
+| R1268 | ai-signal-bot/config/__init__.py | `config/__init__.py` | ✅ Good | YAML safe_load validation 30+ properties error aggregation |
+| R1269 | config: property access raises KeyError on missing keys | `config/__init__.py:127` | Low | Direct dict access. Use .get() or require validate=True |
+| R1270 | config: no hot-reload support | `config/__init__.py` | Low | Must restart for config changes. Add reload() method |
+| R1271 | config: 30+ properties for simple dict access | `config/__init__.py:124` | ⚠️ Over-Engineered | 190 lines boilerplate. Use pydantic or dataclass |
+| R1272 | ai-signal-bot/run.py | `run.py` | ✅ Good | Clear pipeline reconnect logic cleanup backtest mode metrics |
+| R1273 | run.py: no graceful shutdown on SIGTERM | `run.py:390` | Low | K8s sends SIGTERM not SIGINT. Add signal handler |
+| R1274 | run.py: _generate_signals iterates symbols sequentially | `run.py:199` | Low | 50 symbols sequential with LLM = 50-500s. Use asyncio.gather |
+| R1275 | run.py: duplicate run_backtest.py scripts | `run_backtest.py`, `scripts/` | Info | 3 entry points. Consolidate to run.py --backtest |
+| R1276 | ai-signal-bot/strategies/signal.py | `signal.py` | ✅ Good | Signal dataclass enum rr_ratio is_actionable to_dict |
+| R1277 | ai-signal-bot/strategies/strategies.py | `strategies.py` | ✅ Good | TrendFollowing MeanReversion EnsembleVoter FFTCycle NaN handling |
+| R1278 | strategies: EnsembleVoter averages SL/TP across votes | `strategies.py:326` | Low | Meaningless price levels. Use highest-confidence signal's SL/TP |
+| R1279 | ai-signal-bot/strategies/statistical_arbitrage.py | `statistical_arbitrage.py` | ✅ Good | OLS ADF half-life Kalman hedge z-score |
+| R1280 | ai-signal-bot/strategies/market_making.py | `market_making.py` | ✅ Good | Avellaneda-Stoikov reservation price optimal spread inventory |
+| R1281 | ai-signal-bot/strategies/ml_ensemble.py | `ml_ensemble.py` | ✅ Good | Optional deps HMM regime IsolationForest walk-forward |
+| R1282 | ml_ensemble: HMM _fit uses sorted returns split not real HMM | `ml_ensemble.py:97` | Low | Rename to QuantileRegimeDetector. No EM/Baum-Welch |
+| R1283 | ai-signal-bot/strategies/sentiment.py | `sentiment.py` | ✅ Good | Event types sentiment/volatility maps decay pre/post windows |
+| R1284 | sentiment: numpy import inside method | `sentiment.py:105` | Low | Latent ImportError. Use random.gauss or top-level import |
+| R1285 | ai-signal-bot/strategies/marketplace.py | `marketplace.py` | ✅ Good | Plugin system JSON registry importlib tag filtering |
+| R1286 | marketplace: install_from_git executes arbitrary code | `marketplace.py` | ⚠️ Security | No sandboxing. Run in subprocess with restricted permissions |
+| R1287 | ai-signal-bot/strategies/circuit_breaker.py | `circuit_breaker.py` | ✅ Good | Consecutive loss tracking auto-recovery signal filtering |
+| R1288 | circuit_breaker: is_tripped property has side effect | `circuit_breaker.py:30` | Low | Property mutates state. Make pure, call check_and_recover explicitly |
+| R1289 | ai-signal-bot/risk/risk_manager.py | `risk_manager.py` | ✅ Good | Trailing stop breakeven partial TP max hold peak/trough |
+| R1290 | ai-signal-bot/risk/var.py | `var.py` | ✅ Good | Historical parametric Monte Carlo VaR Kupiec backtest |
+| R1291 | var: scipy hard dependency | `var.py:9` | Low | Module fails if scipy missing. Make optional use NormalDist |
+| R1292 | ai-signal-bot/risk/kelly.py | `kelly.py` | ✅ Good | Kelly formula half-Kelly confidence adjustment position caps |
+| R1293 | risk/position_sizing.py: DynamicPositionSizer | `position_sizing.py` | ⚠️ Over-Engineered | Duplicates kelly.py. Uses str not Signal. Remove ~200 lines |
+| R1294 | ai-signal-bot/risk/stress_test.py | `stress_test.py` | ✅ Good | 2008 COVID FTX LUNA scenarios margin liquidity impact |
+| R1295 | stress_test: hardcoded shock multipliers | `stress_test.py:33` | Low | Same shock all assets. Accept per-asset shock dict |
+| R1296 | risk/portfolio_optimizer.py: Duplicate PortfolioOptimizer | `risk/portfolio_optimizer.py`, `strategies/portfolio_optimizer.py` | ⚠️ Dead Code | 3 implementations. Keep portfolio/ only. ~600 lines reducible |
+| R1297 | ai-signal-bot/signal_validation/validator.py | `validator.py` | ✅ Good | Confidence R:R drawdown position limit duplicate cooldown |
+| R1298 | validator: datetime.now() without timezone | `validator.py:46` | Low | Naive datetime. Use datetime.now(UTC) |
+| R1299 | ai-signal-bot/database/db.py | `db.py` | ✅ Good | WAL mode parameterized queries indexes Windows-safe close |
+| R1300 | db: new connection per operation | `db.py:21` | Low | 50 conn/min. Use persistent connection set WAL once |
+| R1301 | db: close() catches broad Exception | `db.py:33` | Low | Silent error swallow. Catch sqlite3 specific log warning |
+| R1302 | ai-signal-bot/communication/signal_publisher.py | `signal_publisher.py` | ✅ Good | WS server broadcast gather circuit breaker orjson backtest |
+| R1303 | signal_publisher: _run_backtest blocks event loop | `signal_publisher.py:271` | Low | bt.run() sync 10-30s. Use asyncio.to_thread |
+| R1304 | signal_publisher: 3 identical _send closures | `signal_publisher.py:188,229,263` | Low | 3× broadcast duplication. Extract _broadcast_to_clients |
+| R1305 | ai-signal-bot/communication/ws_client.py | `ws_client.py` | ✅ Good | WS connect compression msgpack/orjson reconnect backoff |
+| R1306 | ws_client: listen() doesn't reconnect on ConnectionClosed | `ws_client.py:119` | Low | Returns without reconnect. Add auto_reconnect param |
+| R1307 | ai-signal-bot/communication/shm_ring_buffer.py | `shm_ring_buffer.py` | ✅ Good | SPSC lock-free cache-line aligned memory barrier cross-platform |
+| R1308 | shm_ring_buffer: no overflow detection on push | `shm_ring_buffer.py` | Low | Silent drop. Add dropped_count counter return False on full |
+| R1309 | ai-signal-bot/communication/fix_client.py | `fix_client.py` | ✅ Good | FIX 4.4 parse/build checksum session persistent seq async |
+| R1310 | fix_client: no SSL/TLS support | `fix_client.py` | Low | Plain TCP. Add ssl_context parameter |
+| R1311 | ai-signal-bot/backtesting/backtester.py | `backtester.py` | ✅ Good | Candle replay SL/TP fees equity curve Sharpe Sortino Calmar |
+| R1312 | backtester: 506 lines single class | `backtester.py` | Low | Extract metrics + position sim. Keep run() thin orchestrator |
+| R1313 | ai-signal-bot/backtesting/pnl_calculator.py | `pnl_calculator.py` | ✅ Good | Spot futures options slippage fees funding PnL breakdown |
+| R1314 | Project-wide: 2 duplicate PortfolioOptimizer classes | `risk/`, `strategies/`, `portfolio/` | ⚠️ Dead Code | 3 implementations ~900 lines. Keep portfolio/ only. ~600 lines reducible |
+| R1315 | Project-wide: 13 except Exception catches | 6 files | Low | Masks CancelledError. Use specific exception types |
+| R1316 | Project-wide: 0 threading.Lock or asyncio.Lock | `src/` all | ⚠️ Race Condition | _clients set _candle_history _recent_signals at risk. Add asyncio.Lock |
+| R1317 | Project-wide: 0 global statements in business logic | `src/` all | ✅ Good | Only 3 in observability for logging. No global mutable state |
+| R1318 | Project-wide: 8 datetime.now() without timezone | 4 files | Low | Naive datetime fragile. Use datetime.now(UTC). Add ruff DTZ005 |
+| R1319 | ai-signal-bot/technical_analysis/indicators.py | `indicators.py` | ✅ Good | SMA EMA RSI MACD Bollinger ATR ADX VWAP numpy+pure dual-path NaN-padded |
+| R1320 | indicators: _closes overly complex ternary | `indicators.py:19` | Info | 3-way type check per candle. Use protocol or assume one type |
+| R1321 | ai-signal-bot/technical_analysis/fft_analysis.py | `fft_analysis.py` | ✅ Good | Cooley-Tukey FFT power spectrum dominant cycles Hann window |
+| R1322 | fft_analysis: hand-rolled FFT instead of numpy.fft | `fft_analysis.py:15` | Low | numpy already optional in indicators.py. ~50× slower than numpy.fft |
+| R1323 | ai-signal-bot/technical_analysis/kalman.py | `kalman.py` | ✅ Good | 1D 2D Kalman filter predict/update cycle clean API |
+| R1324 | ai-signal-bot/technical_analysis/garch.py | `garch.py` | ✅ Good | GARCH(1,1) MLE EWMA Parkinson parameter clipping stationarity |
+| R1325 | garch: fixed learning rate no convergence check | `garch.py:24` | Low | May not converge to true MLE. Use L-BFGS or adaptive LR |
+| R1326 | ai-signal-bot/technical_analysis/__init__.py | `__init__.py` | ⚠️ Over-Engineered | 252 lines re-export ~200 symbols from 25 modules. Same as research/__init__.py |
+| R1327 | ai-signal-bot/technical_analysis/hawkes.py | `hawkes.py` | ✅ Good | Clean facade hawkes_model + hawkes_funcs branching ratio signal |
+| R1328 | ai-signal-bot/technical_analysis/copula.py | `copula.py` | ✅ Good | Empirical Gaussian Clayton Gumbel tail dependence joint probs |
+| R1329 | copula: own erf function | `copula.py:80` | Low | math.erf available since Python 3.2. Remove custom Abramowitz-Stegun |
+| R1330 | copula: empirical_cdf is O(n²) | `copula.py:74` | Low | n=500 → 250K comparisons. Use sort+bisect O(n log n) |
+| R1331 | ai-signal-bot/technical_analysis/wavelet.py | `wavelet.py` | ✅ Good | Haar D4 DWT IDWT MRA denoising periodic convolution |
+| R1332 | ai-signal-bot/technical_analysis/dtw.py | `dtw.py` | ✅ Good | O(n*m) DTW Sakoe-Chiba band pattern templates |
+| R1333 | dtw: duplicate compute_returns | `dtw.py:88` | Low | Same as 22+ research modules. Use shared utils.compute_returns |
+| R1334 | ai-signal-bot/technical_analysis/gmm.py | `gmm.py` | ✅ Good | 1D GMM EM K-Means init BIC AIC log-likelihood history |
+| R1335 | ai-signal-bot/technical_analysis/pca.py | `pca.py` | ✅ Good | SVD PCA numpy+pure fallback explained variance scores |
+| R1336 | ai-signal-bot/technical_analysis/kmeans.py | `kmeans.py` | ✅ Good | Lloyd's K-Means++ init WCSS convergence check |
+| R1337 | ai-signal-bot/technical_analysis/ms_garch.py | `ms_garch.py` | ✅ Good | Markov-Switching GARCH Kim's filtering regime transitions |
+| R1338 | ai-signal-bot/technical_analysis/bayesian_price.py | `bayesian_price.py` | ✅ Good | Beta-Binomial NIG BOCPD Bayesian Ridge 24-field result |
+| R1339 | bayesian_price: beta_cdf_inv 10K evaluations | `bayesian_price.py:97` | Low | 200 steps × 50 bisection. Slow but offline. Use scipy.stats.beta.ppf |
+| R1340 | ai-signal-bot/technical_analysis/sde.py | `sde.py` | ✅ Good | GBM Milstein OU CIR Heston Merton jump-diffusion Euler |
+| R1341 | sde: duplicate _random_normal Box-Muller | `sde.py:55` | Low | 4× duplicate. Use random.gauss(0,1) or shared utils |
+| R1342 | ai-signal-bot/technical_analysis/rbergomi.py | `rbergomi.py` | ✅ Good | Rough Bergomi fBm Hurst variance swaps ATM vol skew |
+| R1343 | rbergomi: frac_gaussian_noise O(n³) Cholesky | `rbergomi.py:75` | Low | n=50 → 125K ops. Use numpy or Davies-Harte O(n log n) |
+| R1344 | ai-signal-bot/technical_analysis/compressed_sensing.py | `compressed_sensing.py` | ✅ Good | OMP ISTA sparse recovery least squares Gaussian elimination |
+| R1345 | ai-signal-bot/technical_analysis/emd.py | `emd.py` | ✅ Good | EMD sifting cubic spline Hilbert transform IMFs |
+| R1346 | emd: duplicate _fft Cooley-Tukey | `emd.py:157` | Low | 3× duplicate FFT. Use shared _fft_utils or numpy.fft |
+| R1347 | ai-signal-bot/technical_analysis/vmd.py | `vmd.py` | ✅ Good | VMD ADMM K modes compact spectral support |
+| R1348 | vmd: _ifft is O(n²) direct DFT | `vmd.py:93` | Low | Forward is O(n log n) but inverse is O(n²). Use _fft with conjugation |
+| R1349 | ai-signal-bot/technical_analysis/hmc.py | `hmc.py` | ✅ Good | HMC leapfrog Metropolis GARCH posterior sampling |
+| R1350 | hmc: numerical gradient central differences | `hmc.py:75` | Low | 60K log_posterior evals. Analytical gradient 2× faster |
+| R1351 | ai-signal-bot/technical_analysis/bayesian_sts.py | `bayesian_sts.py` | ✅ Good | BSTS Kalman filter trend seasonal 10-step forecast |
+| R1352 | ai-signal-bot/technical_analysis/monte_carlo.py | `monte_carlo.py` | ✅ Good | MC shuffle test percentiles profit prob max drawdown |
+| R1353 | ai-signal-bot/technical_analysis/optimal_stopping.py | `optimal_stopping.py` | ✅ Good | Snell envelope binomial CRR Longstaff-Schwartz MC |
+| R1354 | optimal_stopping: duplicate _random_normal | `optimal_stopping.py:77` | Low | 4th Box-Muller duplicate. Use random.gauss or shared utils |
+| R1355 | technical_analysis: 4× duplicate _random_normal | `sde.py`, `rbergomi.py`, `hmc.py`, `optimal_stopping.py` | Low | ~60 lines duplicate. Create _utils.py or use random.gauss |
+| R1356 | technical_analysis: 3× duplicate _fft | `fft_analysis.py`, `emd.py`, `vmd.py` | Low | ~150 lines duplicate. Create _fft_utils.py or use numpy.fft |
+| R1357 | technical_analysis: 16 modules likely dead code | 16 of 25 files | ⚠️ Dead Code | ~4000+ lines not used in production. Move to advanced package |
+| R1358 | technical_analysis: 22/25 modules pure Python no numpy | 22 files | Info | numpy already optional in indicators+pca. Add numpy paths to 5 core |
+| R1359 | technical_analysis: Result containers no @dataclass | All 25 files | Info | 10-24 field plain classes. Use @dataclass for __repr__ __eq__ |
+| R1360 | technical_analysis: No NaN/Inf input validation | Most modules | Low | NaN propagates through cumsum. Add math.isfinite() checks |
+| R1361 | ai-signal-bot/ml/__init__.py | `ml/__init__.py` | ⚠️ Over-Engineered | 81 lines re-export ~30 symbols from 7 modules. Same anti-pattern |
+| R1362 | ai-signal-bot/ml/price_predictor.py | `price_predictor.py` | ✅ Good | PyTorch LSTM Transformer attention positional encoding early stopping ONNX |
+| R1363 | price_predictor: hard torch dependency no guard | `price_predictor.py:28` | Low | import torch at top level. Guard with try/except like other optional deps |
+| R1364 | ai-signal-bot/ml/rl_trader.py | `rl_trader.py` | ✅ Good | PPO Actor-Critic DQN GAE checkpointing gradient clipping entropy bonus |
+| R1365 | rl_trader: hard torch dependency no guard | `rl_trader.py:28` | Low | Same as price_predictor. Guard import torch |
+| R1366 | ai-signal-bot/ml/feature_store.py | `feature_store.py` | ✅ Good | Redis feature store pipeline TTL in-memory fallback |
+| R1367 | feature_store: broad Exception catch | `feature_store.py:94` | Low | `except (OSError, ConnectionError, RuntimeError, Exception)` — Exception makes others redundant |
+| R1368 | ai-signal-bot/ml/model_registry.py | `model_registry.py` | ✅ Good | Semver versioning A/B testing rollback JSON persistence ModelStatus enum |
+| R1369 | ai-signal-bot/ml/automl.py | `automl.py` | ✅ Good | Optuna TPE sampler median pruner strategy-specific search spaces |
+| R1370 | ai-signal-bot/ml/environment.py | `environment.py` | ✅ Good | Gym-compatible trading env Action enum TradingState normalized obs |
+| R1371 | ai-signal-bot/ml/autoencoder.py | `autoencoder.py` | ✅ Good | Pure Python autoencoder Xavier init sigmoid backprop anomaly detection |
+| R1372 | ai-signal-bot/ml/vae.py | `vae.py` | ✅ Good | VAE reparameterization ELBO full backprop pure Python |
+| R1373 | vae: 5th duplicate _random_normal Box-Muller | `vae.py:223` | Low | 5th copy. Use random.gauss(0,1) |
+| R1374 | ai-signal-bot/ml/rkhs.py | `rkhs.py` | ✅ Good | RBF Laplacian kernels Jacobi eig KRR MMD two-sample test |
+| R1375 | ai-signal-bot/ml/svm_signal.py | `svm_signal.py` | ✅ Good | Linear SVM SGD hinge loss LR decay C regularization |
+| R1376 | ml: torch hard dependency in 2 files | `price_predictor.py`, `rl_trader.py` | Low | import torch unguarded. Guard with try/except |
+| R1377 | ml: 5 modules likely dead code | autoencoder vae rkhs svm environment | ⚠️ Dead Code | ~1300 lines not used in production. Move to ml_advanced/ |
+| R1378 | ai-signal-bot/monitoring/alerting.py | `alerting.py` | ✅ Good | Multi-channel alerts Discord Telegram email webhook rate limiting severity |
+| R1379 | ai-signal-bot/monitoring/health_server.py | `health_server.py` | ✅ Good | HTTP health server K8s liveness readiness 503 on unhealthy |
+| R1380 | health_server: 3× duplicate _check_* methods | `health_server.py:38-72` | Low | _check_exchange _check_database _check_shm identical. Extract _check_component(name) |
+| R1381 | ai-signal-bot/monitoring/metrics.py | `metrics.py` | ✅ Good | Prometheus Counter Gauge Histogram Summary /metrics endpoint |
+| R1382 | ai-signal-bot/monitoring/tracker.py | `tracker.py` | ✅ Good | PerformanceTracker SignalLogger TradeLogger CSV summary |
+| R1383 | tracker: datetime.now() without timezone | `tracker.py:134` | Low | Naive datetime in dashboard. Use datetime.now(UTC) |
+| R1384 | ai-signal-bot/observability/health_checks.py | `health_checks.py` | ✅ Good | Deep health liveness readiness ComponentHealth HealthStatus enum |
+| R1385 | ai-signal-bot/observability/logging.py | `logging.py` | ✅ Good | Structlog JSON console correlation IDs contextvars service context |
+| R1386 | ai-signal-bot/observability/tracing.py | `tracing.py` | ✅ Good | OpenTelemetry OTLP Jaeger NoopTracer fallback asyncio instrumentor |
+| R1387 | ai-signal-bot/notification/notifier.py | `notifier.py` | ✅ Good | Telegram Discord remote commands AlertEvent async polling |
+| R1388 | ai-signal-bot/networking/socket_transport.py | `socket_transport.py` | ✅ Good | UDP non-blocking binary packets stats tracking MarketDataPacket |
+| R1389 | socket_transport: busy-poll loop | `socket_transport.py:86` | Low | time.sleep(0.0001) on BlockingIOError. Use selectors or asyncio |
+| R1390 | ai-signal-bot/utils/helpers.py | `helpers.py` | ✅ Good | setup_logging JsonFormatter load_config get_env CircuitBreaker RateLimiter |
+| R1391 | utils: duplicate logging setup | `utils/helpers.py:14` vs `observability/logging.py:31` | Low | Two logging setups. Consolidate to observability/logging.py |
+| R1392 | ai-signal-bot/llm_engine/engine.py | `engine.py` | ✅ Good | LLM OpenAI Anthropic Ollama rule-based fallback cache TTL prompt templates |
+| R1393 | ai-signal-bot/portfolio/__init__.py | `portfolio/__init__.py` | ✅ Good | Thin re-export 4 classes from 4 modules. Correct __init__.py pattern |
+| R1394 | ai-signal-bot/portfolio/markowitz.py | `markowitz.py` | ✅ Good | Markowitz mean-variance efficient frontier min variance max Sharpe |
+| R1395 | ai-signal-bot/portfolio/black_litterman.py | `black_litterman.py` | ✅ Good | Black-Litterman prior views posterior |
+| R1396 | ai-signal-bot/portfolio/risk_parity.py | `risk_parity.py` | ✅ Good | Risk parity Newton-Raphson equal risk contribution |
+| R1397 | ai-signal-bot/portfolio/rebalancing.py | `rebalancing.py` | ✅ Good | Threshold calendar drift rebalancing strategies |
+| R1398 | ai-signal-bot/research/__init__.py | `research/__init__.py` | ⚠️ Over-Engineered | 307 lines re-export ~200 symbols from 35 modules. Same anti-pattern |
+| R1399 | research: 30+ modules likely dead code | 30+ of 35 files | ⚠️ Dead Code | ~12000+ lines academic math not used in production. Move to research_lab/ |
+| R1400 | research: compute_returns duplicated 20+ times | 20+ research modules | Low | ~100+ lines duplicate. Create _utils.py or use shared utils |
+| R1401 | Project-wide: 3× duplicate logging setup | `utils/helpers.py`, `observability/logging.py`, `monitoring/tracker.py` | Low | Conflicting handlers duplicate log lines. Consolidate to observability |
+| R1402 | Project-wide: 5× duplicate _random_normal | `sde.py`, `rbergomi.py`, `hmc.py`, `optimal_stopping.py`, `vae.py` | Low | ~75 lines duplicate. Use random.gauss or shared utils |
+| R1403 | Project-wide: 3× duplicate __init__.py re-export | `technical_analysis/`, `research/`, `ml/` | ⚠️ Over-Engineered | Slow import high memory circular import risk. Delete re-exports |
+| R1404 | Project-wide: 2 duplicate health check systems | `monitoring/health_server.py`, `observability/health_checks.py` | Low | Consolidate. observability for logic, monitoring for HTTP server |
+| R1405 | Project-wide: 50+ modules likely dead code total | 16 TA + 5 ML + 30 research | ⚠️ Dead Code | ~17000+ lines. Move to analysis_lab/ package. Reduce src/ by ~50% |
+| R1406 | ai-signal-bot/data_collection/exchange_factory.py | `exchange_factory.py` | ✅ Good | Protocol-based adapter factory SimulatorAdapter RealExchangeAdapter ExchangeMode enum |
+| R1407 | ai-signal-bot/data_collection/real_exchange_client.py | `real_exchange_client.py` | ✅ Good | REST client Binance OKX Bybit HMAC-SHA256 signing usedforsecurity=False |
+| R1408 | ai-signal-bot/data_collection/real_account.py | `real_account.py` | ✅ Good | ccxt account management user data stream leverage cache clean close |
+| R1409 | real_account: 3× broad except Exception | `real_account.py:163,247,378` | Low | Too broad. Catch specific ccxt/network exceptions |
+| R1410 | ai-signal-bot/data_collection/real_market_data.py | `real_market_data.py` | ✅ Good | Multi-exchange WS feed Normalized dataclasses exponential backoff reconnection |
+| R1411 | real_market_data: no asyncio.Lock on shared state | `real_market_data.py:381-398` | Low | _tickers _orderbooks _candles written from WS callbacks read from main. Low risk in asyncio |
+| R1412 | data_collection: 2× duplicate AccountBalance dataclass | `real_account.py:30` vs `real_exchange_client.py:38` | Low | Same name different fields. Rename or unify |
+| R1413 | data_collection: no rate limiting on REST API calls | `real_exchange_client.py` | ⚠️ Medium | No rate limiter. 200 req/min could hit exchange limits. Add Semaphore or RateLimiter |
+| R1414 | ai-signal-bot/config/__init__.py | `config/__init__.py` | ✅ Good | SignalBotConfig YAML validation errors+warnings 40+ property methods |
+| R1415 | run.py — main entry point | `run.py` | ✅ Good | AISignalBot orchestrator clean wiring backtest mode metrics LLM integration |
+| R1416 | run.py: no SIGTERM handler | `run.py:170` | ⚠️ Medium | KeyboardInterrupt only catches Ctrl+C not SIGTERM. K8s pod killed without cleanup |
+| R1417 | run.py: _execute_live_order not implemented | `run.py:308-311` | ⚠️ Dead Code | Stub logs warning. If paper_trading=False signals not executed. Silent failure |
+| R1418 | run_backtest.py — backtest runner | `run_backtest.py` | ✅ Good | Synthetic GBM candles SQLite load multi-strategy optimization charts |
+| R1419 | run_backtest: sqlite3.connect without context manager | `run_backtest.py:80` | Low | conn.close not in finally. Leaks on exception. Use with statement |
+| R1420 | root/monitor.py — live dashboard | `monitor.py` | ✅ Good | WS client port 8766 real-time signals log tail. Naive datetime minor |
+| R1421 | root/metrics.py — duplicate of src/monitoring/metrics.py | `metrics.py` vs `src/monitoring/metrics.py` | ⚠️ Duplicate | 293 lines duplicates MetricsExporter. Different class port metrics. Delete root |
+| R1422 | root/tracing.py — duplicate of src/observability/tracing.py | `tracing.py` vs `src/observability/tracing.py` | ⚠️ Duplicate | 205 lines duplicates setup_tracing. Different API class vs function. Delete root |
+| R1423 | scripts/migrate.py — DB migration runner | `scripts/migrate.py` | ✅ Good | asyncpg migration runner schema_migrations table. conn.close not in finally |
+| R1424 | scripts/run_bot.py — stub | `scripts/run_bot.py` | ⚠️ Dead Code | Only starts SignalPublisher and sleeps. --strategy ignored. Delete. Use run.py |
+| R1425 | scripts/run_backtest.py — duplicate | `scripts/run_backtest.py` | ⚠️ Duplicate | Different API from root run_backtest.py. Uses BacktestEngine not Backtester. Delete |
+| R1426 | run_logger.py — 4th logging setup | `run_logger.py` (root) | ⚠️ Duplicate | 4th logging setup. JsonFormatter duplicates utils/helpers.py. Different field names |
+| R1427 | bot_helpers.py — extracted helpers | `src/utils/bot_helpers.py` | ✅ Good | build_strategies stat_arb LLM explanation CSV loading. Triggers __init__.py re-export |
+| R1428 | Project-wide: 4× duplicate logging setup (updated) | `run_logger.py`, `utils/helpers.py`, `observability/logging.py`, `monitoring/tracker.py` | Low | 4 logging setups different field names. Consolidate. Inconsistent logs break ELK |
+| R1429 | communication/ws_connection_pool.py | `ws_connection_pool.py` | ✅ Good | WebSocket pool asyncio.Lock health checks ping/pong stale eviction max size. Best async pattern in project |
+| R1430 | conftest.py — pytest config | `conftest.py` | ✅ Good | sys.path setup for tests. Trivial. No issues |
+| R1431 | ws_connection_pool not used by ws_client | `ws_connection_pool.py` vs `ws_client.py` | Low | Pool is dead code. ExchangeClient manages own WS directly. Integrate or remove |
