@@ -31,6 +31,29 @@ All notable changes to this project are documented in this file.
 - `ai-signal-bot/Dockerfile`: Fixed healthcheck port 8766→9090, added `--metrics` to CMD so health server starts (Task 2)
 - `ai-signal-bot/Dockerfile.prod`: Fixed healthcheck port 8766→9090 (Task 2)
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AW: LLM engine + signal + helpers)
+
+### Fixed
+- `ai-signal-bot/src/llm_engine/engine.py`: Cache eviction O(N) scan → `OrderedDict` LRU with `move_to_end` + `popitem` O(1) (§8.1060)
+- `ai-signal-bot/src/llm_engine/engine.py`: JSON extraction now tries regex for markdown code blocks before `find`/`rfind` fallback (§8.1061)
+- `ai-signal-bot/src/llm_engine/engine.py`: `asyncio.Semaphore(5)` concurrent request limit already present (§8.1062)
+- `ai-signal-bot/src/strategies/signal.py`: `rr_ratio` now guards against negative reward (§8.1089)
+- `ai-signal-bot/src/utils/helpers.py`: `load_config` logs warning on `FileNotFoundError` + %-style logging (§8.1200)
+- `ai-signal-bot/src/utils/bot_helpers.py`: Added `asyncio.TimeoutError` + `OSError` to exception catch in `generate_llm_explanation` (§8.1204)
+- `ai-signal-bot/src/observability/health_checks.py`: `import os` already at top, `os.getpid()` used (§8.1207)
+
+### Changed
+- CODE_AUDIT §8.1049 — RotatingFileHandler already present → [FIXED]
+- CODE_AUDIT §8.1050 — duplicate setup_logging already removed → [FIXED]
+- CODE_AUDIT §8.1052 — NoopSpan context manager → [N/A] (contextmanager works)
+- CODE_AUDIT §8.1053 — insecure param already configurable → [FIXED]
+- CODE_AUDIT §8.1055 — duplicate CircuitBreaker already removed → [FIXED]
+- CODE_AUDIT §8.1056 — RateLimiter thread safety → [N/A] (asyncio-safe)
+- CODE_AUDIT §8.1057 — RateLimiter already removed → [FIXED]
+- CODE_AUDIT §8.1206 — getattr connected → [N/A] (duck-typing acceptable with timeout)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AV: exchange_simulator Low items pt.2)
 
 ### Fixed

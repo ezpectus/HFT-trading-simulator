@@ -11,7 +11,9 @@ import asyncio
 import json
 import logging
 import os
+import re
 import time
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any  # Any: aiohttp.ClientSession lacks type stubs
 
@@ -99,7 +101,7 @@ class LLMEngine:
 
     def __init__(self, config: LLMConfig | None = None):
         self.config = config or LLMConfig()
-        self._cache: dict[str, tuple[float, LLMAnalysis]] = {}
+        self._cache: OrderedDict[str, tuple[float, LLMAnalysis]] = OrderedDict()
         self._request_count = 0
         self._error_count = 0
         self._session: Any | None = None  # aiohttp.ClientSession — duck-typed
@@ -184,16 +186,15 @@ class LLMEngine:
         if cache_key in self._cache:
             cached_time, cached_result = self._cache[cache_key]
             if now - cached_time < self.config.cache_ttl_seconds:
+                self._cache.move_to_end(cache_key)
                 cached_result.cached = True
                 return cached_result
             else:
                 del self._cache[cache_key]
 
-        # Evict stale entries to prevent unbounded cache growth
-        if len(self._cache) > 100:
-            stale_keys = [k for k, (t, _) in self._cache.items() if now - t >= self.config.cache_ttl_seconds]
-            for k in stale_keys:
-                del self._cache[k]
+        # Evict oldest entries (LRU) to prevent unbounded cache growth
+        while len(self._cache) > 100:
+            self._cache.popitem(last=False)
 
         if self.config.provider == "none" or not self.config.api_key:
             return self._rule_based_analysis(ctx)
@@ -313,29 +314,35 @@ class LLMEngine:
     def _parse_response(self, response: str, symbol: str) -> LLMAnalysis:
         """Parse LLM response into LLMAnalysis with schema validation."""
         try:
-            # Try to extract JSON from response
-            start = response.find("{")
-            end = response.rfind("}") + 1
-            if start >= 0 and end > start:
-                data = json.loads(response[start:end])
-                # Validate schema fields
-                sentiment = str(data.get("sentiment", "neutral")).lower()
-                if sentiment not in ("bullish", "bearish", "neutral"):
-                    sentiment = "neutral"
-                confidence = float(data.get("confidence", 50))
-                confidence = max(0.0, min(100.0, confidence))
-                recommendation = str(data.get("recommendation", "hold")).lower()
-                if recommendation not in ("buy", "sell", "hold"):
-                    recommendation = "hold"
-                return LLMAnalysis(
-                    symbol=symbol,
-                    summary=str(data.get("summary", response[:200])),
-                    sentiment=sentiment,
-                    confidence=confidence,
-                    key_levels=data.get("key_levels", {}),
-                    risk_factors=data.get("risk_factors", []),
-                    recommendation=recommendation,
-                )
+            data = None
+            json_block = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response, re.DOTALL)
+            if json_block:
+                data = json.loads(json_block.group(1))
+            if data is None:
+                start = response.find("{")
+                end = response.rfind("}") + 1
+                if start >= 0 and end > start:
+                    data = json.loads(response[start:end])
+            if data is None:
+                raise ValueError("No JSON found in response")
+            # Validate schema fields
+            sentiment = str(data.get("sentiment", "neutral")).lower()
+            if sentiment not in ("bullish", "bearish", "neutral"):
+                sentiment = "neutral"
+            confidence = float(data.get("confidence", 50))
+            confidence = max(0.0, min(100.0, confidence))
+            recommendation = str(data.get("recommendation", "hold")).lower()
+            if recommendation not in ("buy", "sell", "hold"):
+                recommendation = "hold"
+            return LLMAnalysis(
+                symbol=symbol,
+                summary=str(data.get("summary", response[:200])),
+                sentiment=sentiment,
+                confidence=confidence,
+                key_levels=data.get("key_levels", {}),
+                risk_factors=data.get("risk_factors", []),
+                recommendation=recommendation,
+            )
         except (json.JSONDecodeError, ValueError, TypeError) as e:
             logger.warning(f"[LLMEngine] Response validation failed: {e}")
 

@@ -40,7 +40,7 @@ class Signal:
             reward = self.entry_price - self.take_profit
         else:
             return 0.0
-        return reward / risk if risk > 0 else 0.0
+        return reward / risk if risk > 0 and reward > 0 else 0.0
 
     def to_dict(self) -> dict:
         return {

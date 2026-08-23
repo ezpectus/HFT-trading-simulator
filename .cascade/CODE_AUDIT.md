@@ -14368,7 +14368,7 @@ Both `TelegramNotifier._handle_command` and `DiscordNotifier._handle_command` ar
 
 Good structured logging with structlog fallback, JSON/console, context vars, and noise suppression. ✅
 
-### 8.1049 logging.py: no log rotation — Low
+### 8.1049 logging.py: no log rotation — Low [FIXED]
 
 **Файл:** `logging.py:119-123`
 
@@ -14384,7 +14384,7 @@ Uses `logging.FileHandler` which doesn't rotate. In production with 50 symbols �
 
 **Фикс:** Use `logging.handlers.RotatingFileHandler` with maxBytes=100MB and backupCount=5.
 
-### 8.1050 logging.py: duplicate setup_logging in helpers.py — Info
+### 8.1050 logging.py: duplicate setup_logging in helpers.py — Info [FIXED]
 
 **Файлы:** `logging.py:31-66`, `helpers.py:14-42`
 
@@ -14406,7 +14406,7 @@ Both `observability/logging.py:setup_logging()` and `utils/helpers.py:setup_logg
 
 Good distributed tracing with OpenTelemetry, noop fallback, asyncio instrumentation, and graceful shutdown. ✅
 
-### 8.1052 tracing.py: NoopSpan missing context manager — Low
+### 8.1052 tracing.py: NoopSpan missing context manager — Low [N/A]
 
 **Файл:** `tracing.py:83-92`
 
@@ -14424,7 +14424,7 @@ Wait — actually, the `start_as_current_span` is a `@contextmanager` that yield
 
 Actually, the real OTel API's `start_as_current_span` returns a context manager that also supports `__enter__`/`__exit__` on the span itself. But since this NoopTracer uses `@contextmanager`, it's fine. No issue.
 
-### 8.1053 tracing.py: OTLPSpanExporter insecure=True hardcoded — Low
+### 8.1053 tracing.py: OTLPSpanExporter insecure=True hardcoded — Low [FIXED]
 
 **Файл:** `tracing.py:59`
 
@@ -14453,7 +14453,7 @@ exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
 
 Good utility functions with logging, config, formatting, math, circuit breaker, and rate limiter. ✅
 
-### 8.1055 helpers.py: duplicate CircuitBreaker — Info
+### 8.1055 helpers.py: duplicate CircuitBreaker — Info [FIXED]
 
 **Файлы:** `helpers.py:145-176`, `communication/circuit_breaker.py:34-137`
 
@@ -14465,7 +14465,7 @@ The `helpers.py` version is simpler but less capable. It doesn't track total_tri
 
 **Reduction potential:** Remove `helpers.py:CircuitBreaker`, use `communication/circuit_breaker.py:CircuitBreaker` everywhere. ~31 lines.
 
-### 8.1056 helpers.py: RateLimiter._refill not thread-safe — Low
+### 8.1056 helpers.py: RateLimiter._refill not thread-safe — Low [N/A]
 
 **Файл:** `helpers.py:188-192`
 
@@ -14481,7 +14481,7 @@ def _refill(self) -> None:
 
 In asyncio (single-threaded), this is safe as long as `_refill()` doesn't `await`. It doesn't. But `acquire()` does `await asyncio.sleep(wait)` — after sleep, it loops back to `_refill()`. If two coroutines are in the `while True` loop, they interleave at the `await`, but `_refill()` is synchronous. So it's safe in asyncio.
 
-### 8.1057 helpers.py: RateLimiter.acquire spins forever — Low
+### 8.1057 helpers.py: RateLimiter.acquire spins forever — Low [FIXED]
 
 **Файл:** `helpers.py:194-204`
 
@@ -14534,7 +14534,7 @@ The API key is stored as a plain string in `self.config.api_key` and embedded in
 
 **Фикс:** Use `__repr__` that masks the API key, or store the key in a `SecretStr` wrapper.
 
-### 8.1060 engine.py: cache eviction is O(N) — Low
+### 8.1060 engine.py: cache eviction is O(N) — Low [FIXED]
 
 **Файл:** `engine.py:164-167`
 
@@ -14549,7 +14549,7 @@ Cache eviction scans all entries (O(N)) when cache exceeds 100 entries. With 50 
 
 **Фикс:** Use `collections.OrderedDict` with LRU eviction, or `functools.lru_cache`.
 
-### 8.1061 engine.py: _parse_response JSON extraction fragile — Low
+### 8.1061 engine.py: _parse_response JSON extraction fragile — Low [FIXED]
 
 **Файл:** `engine.py:287-290`
 
@@ -14564,7 +14564,7 @@ Extracts JSON by finding first `{` and last `}`. If the LLM response contains ma
 
 **Фикс:** Use regex to extract JSON from code blocks, or ask the LLM to return only JSON without markdown.
 
-### 8.1062 engine.py: no concurrent request limit — Low
+### 8.1062 engine.py: no concurrent request limit — Low [FIXED]
 
 **Файл:** `engine.py:149-184`
 
@@ -14909,7 +14909,7 @@ The `Tracer` class has no method to export spans to Jaeger. `inject_context` pro
 
 Excellent core signal type — clean, minimal, well-designed dataclass with computed properties. ✅
 
-### 8.1089 signal.py: rr_ratio doesn't handle negative risk — Low
+### 8.1089 signal.py: rr_ratio doesn't handle negative risk — Low [FIXED]
 
 **Файл:** `signal.py:35-43`
 
@@ -16378,7 +16378,7 @@ The rate limiter loops with `while True` and `asyncio.sleep(wait)`. If `rate` is
 
 **Фикс:** Add `if self.rate <= 0: return False` (already present), but also cap minimum sleep to 1ms: `await asyncio.sleep(max(wait, 0.001))`.
 
-### 8.1200 helpers: load_config silently returns empty dict — Low
+### 8.1200 helpers: load_config silently returns empty dict — Low [FIXED]
 
 **Файл:** `helpers.py:64-74`
 
@@ -16432,7 +16432,7 @@ With 20 symbols, this generates 190 pairs. Each pair calls `bot.stat_arb.analyze
 
 **Фикс:** Pre-filter pairs by correlation threshold. Or parallelize with `asyncio.gather()`.
 
-### 8.1204 bot_helpers: generate_llm_explanation catches broad exceptions — Low
+### 8.1204 bot_helpers: generate_llm_explanation catches broad exceptions — Low [FIXED]
 
 **Файл:** `bot_helpers.py:116`
 
@@ -16458,7 +16458,7 @@ The exception list is broad but doesn't include `asyncio.TimeoutError` or `OSErr
 
 Good deep health checking with proper Kubernetes liveness/readiness separation. ✅
 
-### 8.1206 health_checks: _check_ws uses getattr for connected — Low
+### 8.1206 health_checks: _check_ws uses getattr for connected — Low [N/A]
 
 **Файл:** `health_checks.py:146`
 
@@ -16470,7 +16470,7 @@ The WS client's connection state is checked via `getattr` with a fallback to `Fa
 
 **Фикс:** Define a `HealthCheckable` protocol with `connected`, `ping()`, `is_healthy()` methods.
 
-### 8.1207 health_checks: check_liveness uses __import__("os") — Low
+### 8.1207 health_checks: check_liveness uses __import__("os") — Low [FIXED]
 
 **Файл:** `health_checks.py:82`
 

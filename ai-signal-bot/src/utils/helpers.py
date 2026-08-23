@@ -15,9 +15,10 @@ def load_config(config_path: str = "config/settings.yaml") -> dict:
         with open(config_path) as f:
             return yaml.safe_load(f) or {}
     except FileNotFoundError:
+        logging.warning("Config file not found: %s — returning empty dict", config_path)
         return {}
     except (OSError, ValueError, TypeError) as e:
-        logging.error(f"Failed to load config {config_path}: {e}")
+        logging.error("Failed to load config %s: %s", config_path, e)
         return {}
 
 

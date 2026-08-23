@@ -9,6 +9,7 @@ Contains:
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import glob
 import logging
@@ -113,7 +114,7 @@ async def generate_llm_explanation(bot, symbol: str, signal: Signal, candles: li
         return await bot.llm_engine.explain_signal(
             symbol=symbol, direction=signal.direction.value,
             price=signal.entry_price, rsi=rsi_val, adx=adx_val, ema_trend=ema_trend)
-    except (ValueError, KeyError, TypeError, RuntimeError):
+    except (ValueError, KeyError, TypeError, RuntimeError, asyncio.TimeoutError, OSError):
         return signal.reason
 
 
