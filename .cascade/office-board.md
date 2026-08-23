@@ -9626,3 +9626,599 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 - Integration: all trade history, WD-188 (psychology), WD-239 (P&L attribution)
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/journal/TradingJournal.jsx` (новый), `web-ui/src/components/journal/DecisionLog.jsx` (новый), `web-ui/src/components/journal/TradeReview.jsx` (новый), `web-ui/src/components/journal/LessonTracker.jsx` (новый), `web-ui/src/components/journal/JournalAnalytics.jsx` (новый), `web-ui/src/stores/useJournalStore.js` (новый)
+
+### WD-261: Strategy Parameter Sensitivity & Robustness Mapper
+**Описание:** Карта чувствительности и робастности параметров стратегии.
+- Parameter sensitivity:
+  - Per parameter: how does strategy performance change when parameter changes?
+  - Range: test each parameter across range (e.g. SMA period 10 to 200, step 5)
+  - Metric: Sharpe, return, max DD, win rate, profit factor for each parameter value
+  - Visualization: line chart (parameter value vs performance metric)
+  - Stable: flat region = robust (performance doesn't change much with parameter)
+  - Fragile: steep region = fragile (small change → big performance change)
+- Sensitivity heatmap:
+  - 2D: parameter A × parameter B → performance metric (heatmap)
+  - Optimal: bright spot = best parameter combination
+  - Plateau: wide bright area = robust (many good parameter combos)
+  - Spike: narrow bright spot = overfit (only one good combo)
+  - Interactive: hover → exact values, click → backtest with those parameters
+- Robustness score:
+  - Composite: how robust is strategy to parameter changes?
+  - Components: plateau width (wider = more robust), performance stability (lower variance = robust), edge sharpness (blunt = robust)
+  - Range: 0-100 (0 = extremely fragile, 100 = extremely robust)
+  - Comparison: compare robustness across strategies
+  - Alert: strategy robustness declining (parameters becoming fragile)
+- Parameter stability over time:
+  - Rolling: optimal parameter in each rolling window (WD-233 walk-forward)
+  - Path: parameter path on heatmap (does optimal parameter wander?)
+  - Stable: optimal parameter stays in same region = robust
+  - Unstable: optimal parameter jumps around = overfit
+  - Visualization: parameter path overlaid on sensitivity heatmap
+- One-at-a-time (OAT) analysis:
+  - Method: vary one parameter at a time, keep others at optimal
+  - Pro: simple, easy to understand
+  - Con: doesn't capture parameter interactions
+  - Visualization: one sensitivity curve per parameter
+  - Identification: which parameter is strategy most sensitive to?
+- Global sensitivity analysis:
+  - Method: vary all parameters simultaneously (Sobol, Morris)
+  - Pro: captures parameter interactions
+  - Con: computationally expensive
+  - Total: total sensitivity index (including interactions)
+  - First-order: first-order sensitivity index (parameter alone)
+  - Visualization: sensitivity indices bar chart per parameter
+- Parameter interaction:
+  - Two-way: how do parameter A and B interact? (synergy, antagonism)
+  - Example: SMA_fast=20 works with SMA_slow=200 but not with SMA_slow=50
+  - Visualization: 2D heatmap (A × B) showing interaction
+  - Identification: which parameters interact most?
+  - Optimization: account for interactions when tuning
+- Robustness vs performance:
+  - Trade-off: most robust parameters may not have highest performance
+  - Sweet spot: parameters with good performance AND high robustness
+  - Overfit: highest performance but low robustness (likely overfit)
+  - Recommendation: choose robust parameters (slightly lower performance but stable)
+  - Visualization: scatter (robustness vs performance) per parameter combo
+- Parameter recommendation:
+  - Optimal: best performing parameters (may be overfit)
+  - Robust: most robust parameters (stable performance)
+  - Balanced: good performance + good robustness (recommended)
+  - Conservative: very robust but lower performance (safe choice)
+  - Custom: user-defined trade-off between performance and robustness
+- Integration: connects to WD-173 (Bayesian optimization), WD-195 (parameter heatmap)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/strategies/ParameterSensitivity.jsx` (новый), `web-ui/src/components/strategies/RobustnessMapper.jsx` (новый), `web-ui/src/components/strategies/ParameterInteraction.jsx` (новый), `web-ui/src/components/strategies/RobustnessScore.jsx` (новый), `web-ui/src/services/SensitivityEngine.js` (новый)
+
+### WD-262: DeFi NFT & Blue Chip Collection Tracker
+**Описание:** Трекер NFT коллекций и blue chip NFT.
+- NFT collection tracking:
+  - Per collection: BAYC, CryptoPunks, Azuki, Pudgy Penguins, Milady
+  - Floor price: current floor price (ETH and USD)
+  - Volume: 24h/7d/30d trading volume
+  - Listings: number of NFTs listed for sale (sell pressure)
+  - Holders: number of unique holders (distribution)
+- NFT portfolio:
+  - Per NFT: collection, token ID, acquisition price, current floor value, P&L
+  - Rarity: rarity rank within collection (rare = higher value)
+  - Traits: NFT traits and attributes (affects value)
+  - Liquidity: how liquid is this NFT? (floor price depth, time to sell)
+  - Total: portfolio value (at floor), total P&L, best/worst performers
+- Floor price analysis:
+  - History: floor price over time (1d, 7d, 30d, 90d, 1y)
+  - Trend: is floor price rising or falling?
+  - Correlation: NFT floor price vs ETH price (do NFTs follow ETH?)
+  - Premium: rare NFT premium over floor (how much extra for rare traits?)
+  - Alert: floor price sudden drop (potential market panic or whale dump)
+- NFT market metrics:
+  - Sales: number of sales per day (activity)
+  - Average price: average sale price (vs floor = premium)
+  - Median price: median sale price (less affected by outliers)
+  - Wash trading: detect wash trading (same wallet buying/selling to inflate volume)
+  - Holder concentration: top 10 holders own X% (concentration risk)
+- Blue chip identification:
+  - Criteria: high volume, stable floor, many holders, long history, strong community
+  - Ranking: blue chip score per collection
+  - Comparison: blue chip vs speculative collections
+  - Risk: blue chip = lower risk, speculative = higher risk
+  - Allocation: recommended allocation to blue chip vs speculative
+- NFT lending & fractionalization:
+  - Lending: use NFT as collateral (NFTfi, BendDAO) — borrow against NFT
+  - Fractionalization: split NFT into fungible tokens (fractional.art)
+  - Appraisal: NFT appraisal value (for lending)
+  - LTV: loan-to-value ratio (how much can we borrow?)
+  - Risk: liquidation if floor drops below threshold
+- NFT arbitrage:
+  - Cross-marketplace: same NFT listed cheaper on one marketplace vs another
+  - Floor sweeping: buy floor on one marketplace, sell on another with higher floor
+  - Rarity: buy underpriced rare NFT (listed at floor but worth more due to rarity)
+  - Bundle: buy bundle, sell individually (unbundle premium)
+  - Alert: arbitrage opportunity detected
+- NFT minting tracker:
+  - Upcoming: upcoming NFT mints (project, date, price, supply)
+  - Allowlist: are we allowlisted? ( eligibility check)
+  - Gas: estimated gas cost to mint
+  - ROI: estimated flip ROI (mint price vs expected secondary market price)
+  - History: past mints and their performance (mint price vs current floor)
+- Integration: OpenSea, Blur, Magic Eden, NFTGo, NFTPriceFloor APIs
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/nft/NftTracker.jsx` (новый), `web-ui/src/components/nft/NftPortfolio.jsx` (новый), `web-ui/src/components/nft/FloorPriceAnalysis.jsx` (новый), `web-ui/src/components/nft/NftArbitrage.jsx` (новый), `web-ui/src/components/nft/NftMintingTracker.jsx` (новый), `web-ui/src/hooks/useNftData.js` (новый)
+
+### WD-263: Strategy Kelly Criterion & Optimal Position Sizing Dashboard
+**Описание:** Dashboard критерия Келли и оптимального размера позиции.
+- Kelly criterion:
+  - Formula: f* = (p × b - q) / b where p = win rate, b = win/loss ratio, q = 1-p
+  - Full Kelly: optimal fraction for maximum long-term growth
+  - Half Kelly: f*/2 (more conservative, 75% of max growth, much lower variance)
+  - Quarter Kelly: f*/4 (very conservative, for risk-averse traders)
+  - Dynamic: Kelly fraction adjusts based on recent performance
+- Kelly parameters:
+  - Win rate: from historical trades (what % of trades are profitable?)
+  - Win/loss ratio: avg win / avg loss (how big are wins vs losses?)
+  - Confidence interval: 95% CI on Kelly fraction (is it statistically significant?)
+  - Sample size: need enough trades for reliable Kelly estimate (100+)
+  - Per strategy: different strategies have different Kelly fractions
+- Position sizing methods:
+  - **Fixed**: same size every trade (simple, ignores edge)
+  - **Kelly**: size proportional to edge (optimal growth)
+  - **Fractional Kelly**: fraction of full Kelly (risk control)
+  - **Fixed fractional**: risk X% of portfolio per trade
+  - **Volatility-adjusted**: size inversely proportional to volatility
+  - **Risk parity**: equal risk contribution per position
+  - Comparison: backtest each method and compare
+- Kelly by strategy:
+  - Per strategy: Kelly fraction based on strategy's win rate and payoff ratio
+  - Ranking: which strategy has highest Kelly fraction? (most edge)
+  - Allocation: allocate more capital to higher-Kelly strategies
+  - Constraint: max Kelly fraction (don't exceed, even if Kelly suggests more)
+  - Visualization: Kelly fraction bar chart per strategy
+- Kelly by symbol:
+  - Per symbol: Kelly fraction based on symbol-specific win rate and payoff
+  - Some symbols may have better Kelly (more edge) than others
+  - Allocation: allocate more to higher-Kelly symbols
+  - Correlation: adjust for correlation between symbols (multi-asset Kelly)
+  - Visualization: Kelly fraction heatmap per strategy × symbol
+- Multi-asset Kelly:
+  - Single-asset: Kelly for one position (simple formula)
+  - Multi-asset: Kelly for portfolio of correlated positions (matrix formula)
+  - Correlation: correlated positions reduce effective Kelly (diversification)
+  - Optimization: maximize portfolio growth rate (log-utility)
+  - Constraint: max total leverage, max per-position size
+- Kelly growth rate:
+  - Expected: expected long-term growth rate with Kelly sizing
+  - Actual: actual growth rate (compare to expected — are we achieving Kelly growth?)
+  - Variance: variance of growth rate (higher Kelly = higher variance)
+  - Drawdown: expected max drawdown with Kelly sizing (can be deep!)
+  - Time: expected time to double portfolio (growth rate → doubling time)
+- Kelly vs risk management:
+  - Kelly: maximizes growth (can have large drawdowns)
+  - Risk management: limits drawdown (may sacrifice growth)
+  - Trade-off: growth vs drawdown (Kelly is aggressive, risk management is conservative)
+  - Practical: use fractional Kelly (balance growth and risk)
+  - Visualization: growth rate vs max DD for different Kelly fractions
+- Kelly simulation:
+  - Monte Carlo: simulate portfolio with Kelly sizing (10,000 paths)
+  - Distribution: distribution of final wealth (Kelly has high variance)
+  - Drawdown: distribution of max drawdown (can be very deep with full Kelly)
+  - Ruin: probability of ruin (with full Kelly, ruin is possible if estimates wrong)
+  - Recommendation: use fractional Kelly for safety
+- Integration: connects to KellyPositionSizer, DynamicPositionSizer, WD-218 (MC)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/risk/KellyDashboard.jsx` (новый), `web-ui/src/components/risk/PositionSizingComparison.jsx` (новый), `web-ui/src/components/risk/KellyByStrategy.jsx` (новый), `web-ui/src/components/risk/KellySimulation.jsx` (новый), `web-ui/src/services/KellyEngine.js` (новый)
+**Зависимости:** src/risk/kelly_position_sizer.py, src/risk/dynamic_position_sizer.py
+
+### WD-264: Crypto Exchange Health & Status Monitor
+**Описание:** Монитор здоровья и статуса криптобирж.
+- Exchange status:
+  - Per exchange: Binance, Bybit, OKX, Coinbase, Kraken, dYdX
+  - Status: operational, degraded, maintenance, down
+  - Uptime: 24h/7d/30d uptime percentage
+  - Latency: API response time (REST and WS)
+  - Incidents: recent incidents and their resolution
+- Exchange metrics:
+  - **Volume**: 24h trading volume (is exchange gaining or losing market share?)
+  - **Pairs**: number of trading pairs available
+  - **Liquidity**: top-of-book depth for major pairs (BTC, ETH)
+  - **Withdrawal**: withdrawal status (are withdrawals working?)
+  - **Deposit**: deposit status (are deposits working?)
+- Exchange comparison:
+  - Ranking: by volume, liquidity, fees, uptime, latency
+  - Best for: best exchange for specific needs (lowest fees, best liquidity, fastest)
+  - Switch: recommendation to switch to better exchange
+  - Cost: cost of switching (new API keys, new infrastructure, etc.)
+  - Visualization: comparison table with sortable columns
+- Exchange security:
+  - **Proof of reserves**: does exchange publish proof of reserves? (PoR)
+  - **Audit**: is exchange audited? by whom?
+  - **Insurance**: does exchange have insurance fund? (for hacks, liquidations)
+  - **Regulation**: is exchange regulated? in which jurisdictions?
+  - **History**: has exchange been hacked before? (track record)
+  - Risk score: composite security score (A-F)
+- Exchange incident tracking:
+  - Real-time: monitor exchange status pages and Twitter for incidents
+  - History: log of all incidents (date, duration, impact, resolution)
+  - Impact: how did incident affect our trading? (missed trades, lost data)
+  - Recovery: how fast did exchange recover? (downtime duration)
+  - Alert: exchange incident detected (switch to backup exchange)
+- API health per exchange:
+  - REST: response time, error rate, rate limit usage
+  - WS: connection stability, message rate, reconnection frequency
+  - Endpoints: per-endpoint health (some endpoints may be down while others work)
+  - Rate limits: current usage vs limit (approaching limit?)
+  - Visualization: per-exchange API health dashboard
+- Exchange failover:
+  - Primary: our primary exchange for each symbol
+  - Secondary: backup exchange (if primary fails)
+  - Failover: automatic switch to secondary when primary is down
+  - Recovery: switch back to primary when it recovers
+  - Testing: periodically test failover (ensure it works when needed)
+- Exchange fee tracking:
+  - Per exchange: maker fee, taker fee, withdrawal fee, deposit fee
+  - VIP: our current VIP tier and fee rate
+  - Progress: how close to next VIP tier? (volume needed)
+  - Comparison: which exchange has lowest fees for our volume?
+  - Savings: potential savings from switching to cheaper exchange
+- Integration: all exchange APIs, exchange status pages, WD-238 (API manager)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/system/ExchangeHealth.jsx` (новый), `web-ui/src/components/system/ExchangeComparison.jsx` (новый), `web-ui/src/components/system/ExchangeSecurity.jsx` (новый), `web-ui/src/components/system/ExchangeFailover.jsx` (новый), `web-ui/src/hooks/useExchangeStatus.js` (новый)
+
+### WD-265: Strategy Slippage Model & Execution Quality Analyzer
+**Описание:** Модель проскальзывания и анализатор качества исполнения.
+- Slippage measurement:
+  - Per trade: expected price vs actual fill price = slippage (bps or $)
+  - Per order type: market order slippage vs limit order slippage
+  - Per size: slippage increases with order size (square-root law)
+  - Per symbol: different symbols have different slippage (liquidity-dependent)
+  - Per exchange: different exchanges have different slippage
+- Slippage model:
+  - **Linear**: slippage = λ × order_size (simple, for small orders)
+  - **Square-root**: slippage = λ × √order_size (Almgren-Chriss, realistic)
+  - **Power law**: slippage = λ × order_size^α (empirical)
+  - Calibration: fit model to our actual slippage data
+  - Per symbol: each symbol has different λ (calibrate per symbol)
+- Execution quality metrics:
+  - **Implementation shortfall**: arrival price - actual fill price (total cost)
+  - **VWAP deviation**: our avg fill vs market VWAP (are we beating VWAP?)
+  - **TWAP deviation**: our avg fill vs TWAP (are we beating TWAP?)
+  - **Effective spread**: 2 × |fill - mid| / mid (actual spread paid)
+  - **Price improvement**: did we get better price than expected? (negative slippage)
+- Slippage by order characteristics:
+  - By size: small orders (minimal slippage) vs large orders (significant slippage)
+  - By side: buy slippage vs sell slippage (asymmetric? market impact)
+  - By time: slippage at different times of day (high vol = more slippage)
+  - By volatility: slippage in high-vol vs low-vol periods
+  - By liquidity: slippage in liquid vs illiquid symbols
+- Execution quality by strategy:
+  - Per strategy: avg slippage, implementation shortfall, VWAP deviation
+  - Ranking: which strategy has best execution quality?
+  - Attribution: why does strategy A have better execution? (smaller orders? better timing?)
+  - Cost: total execution cost per strategy (slippage + fees)
+  - Recommendation: "Strategy A pays 5bps slippage — consider TWAP for larger orders"
+- Slippage prediction:
+  - Pre-trade: estimate slippage before placing order (based on model)
+  - Confidence: confidence interval on slippage estimate
+  - Decision: should we use market order (fast, high slippage) or limit/TWAP (slow, low slippage)?
+  - Optimization: choose execution method that minimizes total cost (slippage + timing risk)
+  - Visualization: predicted slippage vs order size curve
+- Slippage trend:
+  - Over time: is slippage increasing? (market becoming less liquid, or our orders too big)
+  - By symbol: is slippage increasing for specific symbols? (liquidity drying up)
+  - By exchange: is slippage increasing on specific exchange? (exchange degrading)
+  - Alert: slippage exceeding model prediction (anomaly — investigate)
+  - Action: reduce order size or switch execution method if slippage increasing
+- Maker vs taker analysis:
+  - Maker: limit order = no slippage (but may not fill, timing risk)
+  - Taker: market order = slippage (but immediate fill)
+  - Trade-off: slippage cost vs timing risk (waiting for fill = price may move)
+  - Optimization: optimal mix of maker and taker orders
+  - Visualization: maker vs taker cost comparison
+- Execution quality report:
+  - Summary: avg slippage, implementation shortfall, VWAP deviation
+  - Per strategy/symbol/exchange: detailed breakdown
+  - Trend: is execution quality improving or deteriorating?
+  - Cost: total execution cost (annualized)
+  - Recommendation: actions to improve execution quality
+- Integration: connects to WD-229 (execution algos), WD-231 (capacity), WD-253 (costs)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/execution/SlippageAnalyzer.jsx` (новый), `web-ui/src/components/execution/ExecutionQuality.jsx` (новый), `web-ui/src/components/execution/SlippageModel.jsx` (новый), `web-ui/src/components/execution/ExecutionReport.jsx` (новый), `web-ui/src/services/SlippageEngine.js` (новый)
+
+### WD-266: DeFi Governance & Proposal Tracker
+**Описание:** Трекер DeFi governance и предложений.
+- Governance overview:
+  - Per protocol: Aave, Uniswap, Compound, MakerDAO, Curve, Lido
+  - Active proposals: current governance proposals being voted on
+  - Upcoming: proposals in discussion (not yet up for vote)
+  - Past: historical proposals and their outcomes (passed/failed)
+  - Our votes: how did we vote on each proposal? (voting record)
+- Proposal details:
+  - Title: proposal title and description
+  - Author: who submitted the proposal?
+  - Status: discussion → voting → queued → executed / failed
+  - Voting: for/against votes (token-weighted), quorum requirement
+  - Timeline: when does voting start/end? when would it execute?
+- Voting power:
+  - Our tokens: how many governance tokens do we hold? (voting power)
+  - Delegation: have we delegated our votes? (to whom?)
+  - Quorum: is quorum reached? (minimum participation for valid vote)
+  - Influence: how much influence does our vote have? (% of total voting power)
+  - Proxy: vote by proxy (delegate to active participant)
+- Proposal analysis:
+  - Impact: how would this proposal affect us? (parameter change, fund allocation, etc.)
+  - Financial: estimated financial impact on our positions (e.g. fee change, collateral factor)
+  - Risk: does this proposal increase or decrease risk?
+  - Recommendation: should we vote for or against? (AI-assisted analysis)
+  - Community: what does community think? (forum discussion, sentiment)
+- Governance participation:
+  - Our participation: what % of proposals did we vote on? (engagement)
+  - Delegation: should we delegate to active participant? (if we don't vote often)
+  - Rewards: do we get rewards for voting? (some protocols incentivize)
+  - Influence: are we a significant voter? (whale vs small holder)
+  - Alert: important proposal needs our vote (high financial impact)
+- Proposal tracking:
+  - Watchlist: proposals we're tracking (get notifications for updates)
+  - Calendar: upcoming proposal votes (timeline view)
+  - Outcome: did proposal pass? was it executed? what changed?
+  - Impact assessment: post-execution, what was actual impact on our positions?
+  - History: full history of proposals and outcomes per protocol
+- Governance metrics:
+  - Participation: avg voter participation per proposal (governance health)
+  - Concentration: top voters' share of total votes (decentralization)
+  - Speed: time from proposal to execution (governance efficiency)
+  - Success: % of proposals that pass (is governance functional?)
+  - Trend: is governance participation increasing or decreasing?
+- Delegation management:
+  - Delegate: delegate our votes to trusted participant
+  - Revoke: revoke delegation (take back voting power)
+  - Track: what is our delegate voting on? (do they represent our interests?)
+  - Switch: change delegate (if current one doesn't represent us)
+  - Ranking: top delegates by voting power and alignment
+- Integration: Tally, Snapshot, governance forums, on-chain voting contracts
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/defi/GovernanceTracker.jsx` (новый), `web-ui/src/components/defi/ProposalDetails.jsx` (новый), `web-ui/src/components/defi/VotingPower.jsx` (новый), `web-ui/src/components/defi/GovernanceMetrics.jsx` (новый), `web-ui/src/hooks/useGovernanceData.js` (новый)
+
+### WD-267: Strategy Win/Loss Streak & Psychological Impact Tracker
+**Описание:** Трекер серий побед/поражений и психологического воздействия.
+- Streak tracking:
+  - Current: current win/loss streak (length and direction)
+  - History: all historical streaks (length, start/end dates, P&L during streak)
+  - Distribution: distribution of streak lengths (histogram)
+  - Expected: expected streak length given win rate (geometric distribution)
+  - Actual: do actual streaks match expected? (longer = autocorrelation, WD-216)
+- Win streak analysis:
+  - Avg length: average winning streak length
+  - Max: longest winning streak (and when)
+  - P&L: total P&L during winning streaks
+  - Behavior: do we trade differently during win streaks? (overconfidence, larger size?)
+  - Risk: are win streaks followed by larger losses? (overconfidence → bigger bets → crash)
+- Loss streak analysis:
+  - Avg length: average losing streak length
+  - Max: longest losing streak (and when)
+  - P&L: total P&L lost during losing streaks
+  - Behavior: do we trade differently during loss streaks? (revenge trading, tilt?)
+  - Recovery: how long to recover from worst loss streak? (recovery time)
+- Psychological impact:
+  - **Overconfidence**: after win streak → increase size, take more risk (dangerous)
+  - **Tilt**: after loss streak → revenge trade, force trades, ignore rules (dangerous)
+  - **Fear**: after loss streak → skip good signals, trade too small (missed opportunity)
+  - **Euphoria**: after big win → euphoria, careless trading (dangerous)
+  - **Despair**: after big loss → despair, give up or double down (dangerous)
+- Streak-based risk adjustment:
+  - Win streak: after N consecutive wins → reduce size (prevent overconfidence)
+  - Loss streak: after N consecutive losses → reduce size (prevent tilt/revenge)
+  - Cooldown: after loss streak → mandatory cooldown (no trading for X hours)
+  - Auto: automatically adjust risk based on streak (configurable rules)
+  - Override: user can override (but with warning)
+- Streak vs performance:
+  - After wins: do we perform better or worse after winning streak? (overconfidence check)
+  - After losses: do we perform better or worse after losing streak? (revenge check)
+  - Optimal: is there optimal mental state for trading? (calm, neutral)
+  - Correlation: streak length vs next trade outcome (does streak predict next trade?)
+  - Visualization: scatter (streak length vs next trade P&L)
+- Tilt detection:
+  - Signs: increased trade frequency, increased size, decreased confidence threshold, ignoring risk rules
+  - Pattern: loss → revenge trade → loss → bigger revenge → bigger loss (spiral)
+  - Detection: algorithmic detection of tilt pattern (WD-226 overtrading + WD-188 psychology)
+  - Intervention: auto-throttle, cooldown, alert user, force break
+  - Recovery: steps to recover from tilt (stop trading, review, reset)
+- Streak milestones:
+  - Records: longest win streak, longest loss streak, most P&L in a streak
+  - Celebration: acknowledge positive milestones (motivation)
+  - Warning: acknowledge negative milestones (self-awareness)
+  - Comparison: current streak vs historical (is this unusual?)
+  - Visualization: streak timeline with milestones marked
+- Psychological tools:
+  - Breathing: guided breathing exercise after loss streak (calm down)
+  - Checklist: pre-trade checklist (are we in right mental state?)
+  - Journal: prompt to journal after significant streak (reflection)
+  - Break: reminder to take break after N trades or N hours
+  - Affirmation: trading rules affirmation (remind of discipline)
+- Integration: connects to WD-188 (psychology), WD-226 (overtrading), WD-260 (journal)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/strategies/StreakTracker.jsx` (новый), `web-ui/src/components/strategies/PsychologicalImpact.jsx` (новый), `web-ui/src/components/strategies/TiltDetector.jsx` (новый), `web-ui/src/components/strategies/StreakRiskAdjustment.jsx` (новый), `web-ui/src/services/StreakEngine.js` (новый)
+
+### WD-268: Crypto Market Fear & Greed Index & Sentiment Dashboard
+**Описание:** Dashboard индекса страха и жадности и сентимента.
+- Fear & Greed Index:
+  - Current: current Fear & Greed index (0-100, 0 = extreme fear, 100 = extreme greed)
+  - History: index over time (30d, 90d, 1y)
+  - Interpretation: extreme fear = buying opportunity, extreme greed = sell signal (contrarian)
+  - Components: volatility (25%), momentum/volume (25%), social media (15%), surveys (15%), dominance (10%), trends (10%)
+  - Visualization: gauge (0-100) with color zones (red=fear, green=greed)
+- Sentiment indicators:
+  - **Social media**: Twitter/X sentiment (positive/negative/neutral ratio), Reddit sentiment
+  - **News**: crypto news sentiment (bullish/bearish articles ratio)
+  - **Search trends**: Google Trends for "bitcoin", "crypto", "buy crypto" (interest level)
+  - **Surveys**: investor sentiment surveys (bullish/bearish)
+  - **Options**: put/call ratio, implied volatility (options market sentiment)
+- Sentiment by source:
+  - Twitter: real-time crypto Twitter sentiment (NLP on tweets)
+  - Reddit: Reddit sentiment (r/cryptocurrency, r/bitcoin, r/ethtrader)
+  - News: crypto news sentiment (CoinDesk, Cointelegraph, etc.)
+  - On-chain: on-chain sentiment (exchange flows, whale activity — WD-254)
+  - Composite: weighted average of all sources
+- Sentiment vs price:
+  - Correlation: does sentiment lead or lag price? (sentiment as predictor)
+  - Divergence: when sentiment and price diverge (sentiment bullish but price falling = warning)
+  - Extreme: extreme sentiment as contrarian signal (everyone fearful = bottom, everyone greedy = top)
+  - Backtest: does sentiment-based trading generate alpha?
+  - Visualization: sentiment and price on same chart (look for divergence)
+- Social volume:
+  - Per asset: mention count per asset (BTC, ETH, SOL, etc.)
+  - Trend: is social volume increasing or decreasing? (interest level)
+  - Spike: sudden spike in social volume (news event, hype, panic)
+  - Comparison: which asset is most discussed? (social ranking)
+  - Alert: social volume spike (potential market-moving event)
+- Sentiment momentum:
+  - Change: how fast is sentiment changing? (rapid shift = event-driven)
+  - Direction: is sentiment improving or deteriorating?
+  - Acceleration: is sentiment change accelerating? (momentum in sentiment)
+  - Reversal: when does sentiment reverse? (from fear to greed or vice versa)
+  - Signal: sentiment momentum as trading signal
+- Influencer tracking:
+  - Key accounts: track sentiment of key crypto influencers/Twitter accounts
+  - Consensus: are influencers bullish or bearish? (consensus signal)
+  - Divergence: influencers disagree (uncertainty)
+  - Impact: does influencer sentiment move market? (influence score)
+  - Alert: major influencer changes stance (potential market impact)
+- Sentiment extremes:
+  - Extreme fear: F&G < 20 (historically good buying opportunity)
+  - Extreme greed: F&G > 80 (historically good selling opportunity)
+  - Duration: how long does extreme sentiment last? (days, weeks)
+  - Reversal: when does extreme sentiment reverse? (what triggers reversal?)
+  - Alert: sentiment reaching extreme (contrarian opportunity)
+- Sentiment by asset:
+  - Per asset: F&G index per asset (BTC fear/greed, ETH fear/greed, etc.)
+  - Comparison: which asset has most positive/negative sentiment?
+  - Divergence: BTC sentiment bullish but ETH sentiment bearish (divergence)
+  - Allocation: allocate to assets with more positive sentiment (or contrarian: negative)
+  - Visualization: sentiment heatmap per asset
+- Integration: Alternative.me (F&G API), Twitter API, Reddit API, Google Trends, Santiment
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/sentiment/FearGreedDashboard.jsx` (новый), `web-ui/src/components/sentiment/SentimentIndicators.jsx` (новый), `web-ui/src/components/sentiment/SentimentVsPrice.jsx` (новый), `web-ui/src/components/sentiment/SocialVolume.jsx` (новый), `web-ui/src/components/sentiment/SentimentByAsset.jsx` (новый), `web-ui/src/hooks/useSentimentData.js` (новый)
+
+### WD-269: Strategy Edge Case & Black Swan Testing
+**Описание:** Тестирование edge cases и черных лебедей для стратегий.
+- Black swan scenarios:
+  - **Exchange hack**: major exchange hacked (funds frozen, market crash)
+  - **Stablecoin depeg**: USDC/USDT depegs (cascade across DeFi, WD-256)
+  - **Regulatory ban**: US bans crypto trading (market crash, forced exit)
+  - **Network outage**: blockchain consensus failure (transactions stuck)
+  - **Oracle manipulation**: price oracle manipulated (wrong liquidations)
+  - **Flash crash**: sudden -20% in minutes (liquidation cascade)
+  - **Flash pump**: sudden +20% in minutes (short squeeze)
+  - **Exchange insolvency**: FTX-style collapse (funds locked, market panic)
+- Strategy response:
+  - Per scenario: how does each strategy respond? (P&L, DD, position changes)
+  - Simulation: simulate strategy on historical black swan events
+  - Historical: replay strategy during May 2021 crash, Nov 2022 FTX, March 2023 SVB
+  - Vulnerability: which strategy is most vulnerable to each scenario?
+  - Resilience: which strategy is most resilient? (survives black swan)
+- Edge case testing:
+  - **Data gap**: what if market data stops for 1 hour? (strategy behavior)
+  - **Latency spike**: what if execution latency increases 10x? (fills delayed)
+  - **Partial fill**: what if only 50% of order fills? (position mismatch)
+  - **Rejected order**: what if exchange rejects our order? (missed trade)
+  - **Liquidation**: what if our position gets liquidated? (cascade risk)
+  - **Funding spike**: what if funding rate spikes to 1% per period? (cost spike)
+  - **Spread widening**: what if bid-ask spread widens 10x? (execution cost)
+- Strategy failure modes:
+  - **Signal failure**: strategy generates wrong signals (all losses)
+  - **Execution failure**: signals correct but execution fails (slippage, rejection)
+  - **Risk failure**: risk management fails (SL not triggered, position too large)
+  - **Data failure**: bad data leads to bad decisions (outliers, gaps)
+  - **System failure**: bot crashes, loses connection, runs out of memory
+- Recovery testing:
+  - After crash: how fast does strategy recover after black swan? (recovery time)
+  - Auto-restart: does strategy auto-restart after system failure?
+  - Position sync: does strategy sync positions after data gap? (reconcile)
+  - Risk reset: does risk management reset after extreme event? (deleverage)
+  - Manual: what manual intervention is needed? (and how fast can we react?)
+- Black swan preparation:
+  - Hedging: pre-position hedges for black swan (put options, short perp)
+  - Cash reserve: keep cash to deploy during crash (buy the dip)
+  - Stop: circuit breaker that halts trading during extreme event
+  - Deleverage: automatically reduce leverage when volatility spikes
+  - Diversification: don't have all capital on one exchange (exchange risk)
+- Scenario customization:
+  - Custom: user defines custom black swan scenario (parameters)
+  - Combination: combine multiple events (hack + depeg + crash)
+  - Severity: adjust severity (mild, moderate, severe, extreme)
+  - Duration: how long does scenario last? (minutes, hours, days)
+  - Probability: user-assigned probability (for risk-adjusted planning)
+- Black swan report:
+  - Per strategy: vulnerability assessment for each scenario
+  - Ranking: most resilient to most vulnerable strategy
+  - Recommendation: actions to improve resilience (hedge, reduce size, diversify)
+  - Historical: how did strategy perform in past black swans? (track record)
+  - Confidence: "Strategy survived 8/10 black swan scenarios — moderate resilience"
+- Integration: connects to StressTestScenario, WD-246 (risk dashboard), all strategies
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/strategies/BlackSwanTester.jsx` (новый), `web-ui/src/components/strategies/EdgeCaseTesting.jsx` (новый), `web-ui/src/components/strategies/FailureModeAnalysis.jsx` (новый), `web-ui/src/components/strategies/ScenarioCustomizer.jsx` (новый), `web-ui/src/services/BlackSwanEngine.js` (новый)
+**Зависимости:** src/risk/stress_test.py
+
+### WD-270: Comprehensive Multi-Exchange Arbitrage Scanner
+**Описание:** Комплексный сканер межбиржевого арбитража.
+- Arbitrage types:
+  - **Simple**: same asset, different exchanges → buy low, sell high
+  - **Triangular**: A/B × B/C × C/A ≠ 1 (cross-rate arbitrage)
+  - **Statistical**: co-integrated pairs (WD-251) mean-reversion
+  - **Funding**: funding rate arbitrage (WD-211)
+  - **Basis**: perp vs spot basis arbitrage (WD-258)
+  - **Geographic**: same asset, different regional exchanges (price discrepancy)
+- Simple arbitrage scanner:
+  - Scan: all symbols across all exchanges → find price discrepancies
+  - Spread: (ask on exchange A - bid on exchange B) / mid price = spread %
+  - Filter: min spread (after fees), min volume, min liquidity
+  - Real-time: update scan continuously (prices change every tick)
+  - Ranking: best arbitrage opportunities sorted by net profit
+- Profitability calculation:
+  - Gross: spread × order size (theoretical profit)
+  - Fees: trading fee on both exchanges (entry + exit)
+  - Slippage: estimated slippage on both legs
+  - Transfer: transfer fee (if moving assets between exchanges)
+  - Time: time to execute both legs (price may move during execution)
+  - Net: gross - fees - slippage - transfer = net profit
+- Execution risk:
+  - **Leg risk**: one leg fills but other doesn't (price moves against us)
+  - **Timing**: delay between legs = price slippage (especially for slow transfers)
+  - **Liquidity**: not enough liquidity on one side (partial fill)
+  - **Transfer**: asset transfer between exchanges takes time (block confirmations)
+  - Mitigation: pre-position assets on both exchanges, use fast transfer, hedge
+- Triangular arbitrage:
+  - Scan: all triangular paths (A→B→C→A) across exchanges
+  - Calculation: product of exchange rates should = 1 (if not, arbitrage)
+  - Example: BTC/ETH × ETH/USDT × USDT/BTC ≠ 1 → arbitrage
+  - Complexity: 3 legs = more execution risk, more fees
+  - Visualization: triangular arbitrage path diagram
+- Statistical arbitrage:
+  - Co-integration: find co-integrated pairs (WD-251)
+  - Mean-reversion: trade spread when it deviates from mean
+  - Not pure arbitrage (has risk — spread may not revert)
+  - Duration: longer holding period (hours to days)
+  - Integration: connects to WD-251 (co-integration visualizer)
+- Cross-exchange transfer:
+  - On-chain: transfer crypto between exchanges (blockchain transaction)
+  - Time: transfer time varies by chain (BTC ~30min, ETH ~2min, SOL ~1s)
+  - Cost: transfer fee (gas) + exchange withdrawal fee
+  - Pre-position: keep assets on multiple exchanges (avoid transfer delay)
+  - Monitoring: track transfer status (pending → confirmed → credited)
+- Arbitrage portfolio:
+  - Active: current arbitrage positions (both legs, P&L, status)
+  - History: past arbitrage trades (success rate, avg profit, avg duration)
+  - Capital: capital allocated to arbitrage (vs trading)
+  - ROI: return on arbitrage capital (annualized)
+  - Risk: leg risk, transfer risk, exchange risk
+- Auto-arbitrage:
+  - Detection: automatically detect arbitrage opportunities
+  - Execution: automatically execute both legs (if pre-positioned)
+  - Speed: must be fast (opportunities disappear in seconds)
+  - Risk: leg risk management (if one leg fails, hedge or close other)
+  - Monitoring: track auto-arb performance and adjust parameters
+- Arbitrage heatmap:
+  - Symbol × exchange pair → spread % (color: green = profitable, red = not)
+  - Interactive: hover → exact spread, fees, net profit
+  - Sort: by net profit (best opportunities first)
+  - Filter: min net profit, min volume
+  - Alert: new arbitrage opportunity detected
+- Integration: all exchange APIs, WD-187 (SOR), WD-231 (capacity)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/arbitrage/ArbScanner.jsx` (новый), `web-ui/src/components/arbitrage/TriangularArb.jsx` (новый), `web-ui/src/components/arbitrage/ArbPortfolio.jsx` (новый), `web-ui/src/components/arbitrage/ArbHeatmap.jsx` (новый), `web-ui/src/components/arbitrage/ArbExecution.jsx` (новый), `web-ui/src/services/ArbitrageEngine.js` (новый)

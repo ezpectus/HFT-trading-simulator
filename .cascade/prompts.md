@@ -159,9 +159,31 @@ go, rustc, gcc, g++, clang, clang++
 
 ### 6. КОММИТ — ПОСЛЕ КАЖДОГО ИЗМЕНЕНИЯ
 
+**PRE-COMMIT ПРОВЕРКА — ОБЯЗАТЕЛЬНО:**
 ```powershell
+# Перед коммитом — запусти pre-commit check:
+python scripts/pre-commit-check.py --quick
+
+# Если FAIL — НЕ КОММИТЬ. Исправь ошибки. Запусти снова.
+# Только если ALL GREEN — коммить:
 git add -A; git commit -m "<type>: <description>"; git push
+
+# Полная проверка (lint + все тесты):
+python scripts/pre-commit-check.py
+
+# Только lint (быстро, ~10s):
+python scripts/pre-commit-check.py --lint
+
+# Только тесты:
+python scripts/pre-commit-check.py --tests
 ```
+
+**PRE-COMMIT HOOK (автоматический):**
+- Установка: `scripts\install-hooks.bat` (Windows)
+- После установки — git автоматически запускает проверки перед каждым коммитом
+- Если проверки FAIL — коммит блокируется
+- Bypass: `git commit --no-verify` (НЕ рекомендуется)
+- Hook запускает: ruff (Python) + eslint (JS) + pytest (Python) + vitest (JS)
 
 **ТИПЫ КОММИТОВ:**
 | Тип | Когда |
@@ -181,7 +203,12 @@ git add -A; git commit -m "<type>: <description>"; git push
 | `quantum` | Квантовые вычисления |
 | `broker` | Брокерская интеграция |
 
-**ПРАВИЛА:** После завершения модели/фичи. Один коммит = одна модель. НЕ коммить после каждого edit.
+**ПРАВИЛА:**
+- После завершения модели/фичи. Один коммит = одна модель. НЕ коммить после каждого edit.
+- **КОММИТ СООБЩЕНИЯ ТОЛЬКО НА АНГЛИЙСКОМ.** Никакого русского/кириллицы в commit message.
+- Формат: `<type>: <short english description>` — не более 72 символов в первой строке
+- Примеры: `feat: add Kelly criterion position sizer`, `fix: division by zero in VaR calculator`, `refactor: simplify ensemble voter logic`
+- ЗАПРЕЩЕНО: `feat: добавил Келли`, `fix: исправил баг в VaR`, `refactor: упрощение кода`
 
 ---
 
@@ -942,7 +969,216 @@ trading-system – lite/
 
 ---
 
-## 🎯 БЫСТРЫЙ СТАРТ — СКОПИРУЙ В НАЧАЛО СЕССИИ
+## � WEB UI DASHBOARD — WD ЗАДАЧИ (WD-01 — WD-270+)
+
+> **Backlog:** `.cascade/office-board.md` — 270+ детализированных задач для web UI/UX.
+> Каждая задача: описание, сложность, файлы, зависимости, интеграции.
+> Задачи покрывают: графики, стратегии, риск, DeFi, on-chain, ML, микроструктуру, арбитраж, NFT, сентимент, journal, system monitor, и многое другое.
+> **Цель:** профессиональный HFT терминал уровня Bloomberg Terminal / TradingView.
+
+### СТРУКТУРА WD ЗАДАЧИ
+
+Каждая WD задача в office-board.md содержит:
+```
+### WD-NNN: Название
+**Описание:** Краткое описание компонента
+- Feature 1: детали
+- Feature 2: детали
+- Integration: связи с другими WD задачами
+**Сложность:** Низкая | Средняя | Высокая
+**Файлы:** `web-ui/src/components/.../Component.jsx` (новый), ...
+**Зависимости:** src/... (если есть backend зависимости)
+```
+
+### ПРИНЦИПЫ РЕАЛИЗАЦИИ WD ЗАДАЧ — ОБЯЗАТЕЛЬНЫ
+
+#### 1. ФАЙЛОВАЯ СТРУКТУРА
+- **Компоненты:** `web-ui/src/components/<category>/<Name>.jsx` — React функциональные компоненты
+- **Сервисы:** `web-ui/src/services/<Name>Engine.js` — бизнес-логика, вычисления, трансформации данных
+- **Хуки:** `web-ui/src/hooks/use<Name>Data.js` — WebSocket/REST подписки, данные
+- **Сторы:** `web-ui/src/stores/use<Name>Store.js` — Zustand state (только если нужен shared state)
+- **Категории:** `strategies/`, `risk/`, `crypto/`, `defi/`, `onchain/`, `options/`, `sentiment/`, `system/`, `ml/`, `microstructure/`, `arbitrage/`, `execution/`, `journal/`, `nft/`, `backtest/`, `orderbook/`, `settings/`, `ui/`
+- **Один компонент = один файл** — не объединяй несколько WD задач в один файл
+- **Не создавай** файлы если задача не требует новых (используй существующие)
+
+#### 2. РЕАКТ СТАНДАРТЫ
+- **Функциональные компоненты** — никаких class components
+- **Hooks:** useState, useEffect, useMemo, useCallback, useRef
+- **Props:** деструктуризация в сигнатуре `({ data, onSelect, isLoading }) => {`
+- **Условный рендер:** ранний возврат `if (!data) return <EmptyState />` или `null`
+- **Списки:** key={item.id} или key={index} (только если нет id)
+- **Имена:** PascalCase для компонентов (`RiskDashboard`), camelCase для функций/переменных
+- **Экспорт:** `export default function ComponentName()` или `export function ComponentName()`
+- **Размер:** компонент ≤ 200 строк (если больше — разбивай на под-компоненты)
+- **Сервис ≤ 300 строк** (вычислительная логика отдельно от UI)
+- **Хук ≤ 150 строк** (только подписка/данные, без UI логики)
+
+#### 3. СТАЙЛИНГ
+- **TailwindCSS** — только utility classes, никаких inline styles (кроме динамических значений)
+- **Тёмная тема** — все компоненты должны работать в dark mode (основная тема)
+- **Цвета:** использовать CSS variables из `index.css` (var(--color-...)), не хардкодить
+- **Адаптивность:** mobile-first, responsive breakpoints (sm:, md:, lg:, xl:)
+- **Скролл:** overflow-auto для больших списков, max-h-* для ограниченных областей
+- **Лоадинг:** skeleton/spinner состояния обязательно
+- **Пусто:** EmptyState компонент для нет данных
+- **Ошибка:** error boundary + error state отображение
+
+#### 4. STATE MANAGEMENT
+- **Локальный state:** useState (внутри компонента, не shared)
+- **Shared state:** Zustand store (только если state нужен в нескольких компонентах)
+- **Server data:** hooks (useXxxData) — подписка на WebSocket или REST
+- **Не дублируй** state — если данные уже в store, используй selector
+- **Не мутируй** state напрямую — всегда через setter/store action
+
+#### 5. ПРОИЗВОДИТЕЛЬНОСТЬ
+- **useMemo** для тяжёлых вычислений (сортировка, фильтрация, агрегация)
+- **useCallback** для функций передаваемых в child components
+- **React.memo** для компонентов с частым ре-рендером parent
+- **Virtualization** для списков > 100 элементов (react-window или аналог)
+- **Web Workers** для CPU-интенсивных вычислений (индикаторы, трансформации)
+- **Throttle/debounce** для частых обновлений (WebSocket потоки, search input)
+- **Не рендери** то что не видно (lazy load, conditional render)
+
+#### 6. WEBSOCKET / DATA
+- **Хуки инкапсулируют** WebSocket подписку (useExchangeData, useSignals, usePositions)
+- **Авто-переподключение** — при разрыве WS соединения
+- **Очистка** — useEffect cleanup: закрытие WS, отписка от событий
+- **Буфер** — ограничить размер буфера данных (не копить бесконечно)
+- **Фолбэк** — mock данные если WS недоступен (для dev/demo режима)
+- **Не блокируй** UI при ожидании данных — skeleton + async
+
+#### 7. РЕГИСТРАЦИЯ КОМПОНЕНТОВ
+- **Panel Registry:** `web-ui/src/panels/registry.js` — регистрируй новые панели
+- **Имя панели:** уникальное, описательное (например, "Risk Dashboard")
+- **Категория:** для группировки в UI (Trading, Risk, DeFi, Analytics, etc.)
+- **Иконка:** Lucide icon для каждой панели
+- **Лэйаут:** интегрий в Layout Editor (WD-210) если применимо
+
+#### 8. ТЕСТЫ
+- **Каждый компонент** = минимум один smoke test (рендерится без crash)
+- **Каждый сервис** = unit тесты для ключевых функций
+- **Каждый хук** = тест с mock WebSocket/REST
+- **Edge cases:** пустые данные, null, undefined, очень большие массивы
+- **Паттерн:** describe → it/expect (Vitest или Jest)
+- **Покрытие:** ≥ 80% для сервисов, ≥ 60% для компонентов
+- **Не удаляй** существующие тесты
+
+#### 9. ДОКУМЕНТАЦИЯ ПРИ WD РЕАЛИЗАЦИИ
+- **CHANGELOG.md** — запись `feat: WD-NNN — Название компонента`
+- **docs/WEB_UI.md** — обновить список компонентов (если новая категория/панель)
+- **docs/ARCHITECTURE.md** — обновить web-ui секцию (если новая структура)
+- **.cascade/progress.md** — запись о выполненной WD задаче
+- **README.md** — обновить счётчик компонентов (если применимо)
+
+#### 10. ЗАПРЕЩЁННОЕ ПРИ WD РЕАЛИЗАЦИИ
+- **НЕ добавляй** новые npm зависимости без явного разрешения
+- **НЕ использай** class components
+- **НЕ использай** inline styles (кроме динамических CSS переменных)
+- **НЕ хардкоди** цвета, используй CSS variables
+- **НЕ создавай** глобальный mutable state (используй Zustand)
+- **НЕ блокируй** UI поток (используй Web Workers для тяжёлых вычислений)
+- **НЕ дублируй** существующие компоненты — сначала проверь registry
+- **НЕ ломай** существующие панели/компоненты при добавлении новых
+- **НЕ добавляй** console.log в production код
+- **НЕ создавай** файлы если можно переиспользовать существующие
+
+### WORKFLOW РЕАЛИЗАЦИИ WD ЗАДАЧИ
+
+```
+ШАГ 1: ВЫБОР ЗАДАЧИ
+  - Прочитай .cascade/office-board.md
+  - Найди первую WD задачу без ✅ DONE
+  - Прочитай описание, файлы, зависимости, интеграции
+
+ШАГ 2: АНАЛИЗ КОНТЕКСТА
+  - grep_search существующих компонентов в web-ui/src/components/
+  - Прочитай 2-3 ближайших существующих компонента для понимания паттернов
+  - Прочитай web-ui/src/panels/registry.js — как регистрируются панели
+  - Прочитай web-ui/src/hooks/ — какие хуки уже есть (переиспользуй)
+  - Прочитай web-ui/src/stores/ — какие сторы уже есть
+  - Прочитай web-ui/src/services/ — какие сервисы уже есть
+
+ШАГ 3: ПЛАНИРОВАНИЕ (10 вопросов)
+  - Ответь на 10 вопросов планирования (БЛОК 3 из prompts.md)
+  - Определи: какие файлы создавать, какие переиспользовать
+  - Определи: какие зависимости от backend (src/...) нужны
+
+ШАГ 4: РЕАЛИЗАЦИЯ
+  - Создай сервис (web-ui/src/services/) — бизнес-логика
+  - Создай хук (web-ui/src/hooks/) — если нужен для данных
+  - Создай стор (web-ui/src/stores/) — если нужен shared state
+  - Создай компонент(ы) (web-ui/src/components/) — UI
+  - Зарегистрируй в registry.js — если это новая панель
+  - Проверь через read_file после каждого edit
+
+ШАГ 5: ТЕСТЫ
+  - Smoke test: компонент рендерится без crash
+  - Unit test: сервис функции работают корректно
+  - Hook test: mock WS/REST, проверь данные
+  - Edge cases: пустые данные, null, большие массивы
+
+ШАГ 6: ДОКУМЕНТАЦИЯ
+  - CHANGELOG.md — запись
+  - docs/WEB_UI.md — обновить если нужно
+  - .cascade/progress.md — запись
+  - office-board.md — отметь ✅ DONE рядом с WD-NNN
+
+ШАГ 7: КОММИТ (СООБЩЕНИЕ ТОЛЬКО НА АНГЛИЙСКОМ)
+  python scripts/pre-commit-check.py --quick
+  git add -A; git commit -m "feat: WD-NNN — Component Name"; git push
+
+ШАГ 8: СЛЕДУЮЩАЯ ЗАДАЧА
+  - Вернись к ШАГУ 1 — следующая WD задача без ✅ DONE
+  - ПРОГРЕСС, НЕ ЦИКЛ
+```
+
+### СЦЕНАРИЙ 21: Реализация WD задачи (Web UI Dashboard)
+```
+Frontend (33) → UI/UX (34) → Data Viz (35) → QA (27) → Code Reviewer (29) → Tech Writer (41)
+```
+1. Frontend (33): читает WD задачу из office-board.md, изучает existing паттерны, реализует компонент + сервис + хук
+2. UI/UX (34): проверяет accessibility, responsive, dark mode, UX flow
+3. Data Viz (35): проверяет графики/визуализации (если есть), canvas/WebGL производительность
+4. QA (27): пишет smoke test + unit test + edge case тесты
+5. Code Reviewer (29): read_file кода, проверка качества, проверка registry, коммит
+6. Tech Writer (41): обновляет CHANGELOG, WEB_UI.md, progress.md, отмечает ✅ DONE
+
+### СВЯЗИ МЕЖДУ WD ЗАДАЧАМИ
+
+Многие WD задачи ссылаются друг на друга (Integration: connects to WD-XXX).
+При реализации:
+- **Проверь** существует ли уже связанный компонент (grep_search по имени)
+- **Если существует** — импортируй и использай его
+- **Если не существует** — создай stub/placeholder, отметь TODO с WD номером
+- **Не дублируй** функциональность из связанных WD задач
+- **Соблюдай** интерфейсы — если WD-XXX передаёт данные в WD-YYY, используй тот же формат
+
+### КАТЕГОРИИ WD ЗАДАЧ
+
+| Категория | Префикс директории | Примеры |
+|-----------|-------------------|---------|
+| Strategies | `components/strategies/` | WD-173, WD-195, WD-233, WD-243, WD-255 |
+| Risk | `components/risk/` | WD-246, WD-263 |
+| Crypto | `components/crypto/` | WD-211, WD-258 |
+| DeFi | `components/defi/` | WD-232, WD-236, WD-242, WD-252, WD-256 |
+| On-chain | `components/onchain/` | WD-254 |
+| Options | `components/options/` | WD-240 |
+| Sentiment | `components/sentiment/` | WD-268 |
+| System | `components/system/` | WD-238, WD-250, WD-264 |
+| ML | `components/ml/` | WD-247 |
+| Microstructure | `components/microstructure/` | WD-248 |
+| Arbitrage | `components/arbitrage/` | WD-270 |
+| Execution | `components/execution/` | WD-265 |
+| Journal | `components/journal/` | WD-260 |
+| NFT | `components/nft/` | WD-262 |
+| Backtest | `components/backtest/` | WD-233 |
+| Orderbook | `components/orderbook/` | WD-234 |
+| Settings | `components/settings/` | WD-244 |
+| UI | `components/ui/` | WD-230 |
+
+---
+
+## �� БЫСТРЫЙ СТАРТ — СКОПИРУЙ В НАЧАЛО СЕССИИ
 
 ```text
 Ты — AI оркестратор для HFT Trading System. Прочитай .cascade/prompts.md и следуй ему.

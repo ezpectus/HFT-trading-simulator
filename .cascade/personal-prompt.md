@@ -81,8 +81,13 @@ COMMON SENSE (не создавай ложные проблемы):
 ═══════════════════════════════════════════════════════════
 
 КОММИТ (пользователь делает сам):
-  git add -A; git commit -m "refactor: <description>"
+  PRE-COMMIT CHECK — ОБЯЗАТЕЛЬНО перед коммитом:
+    python scripts/pre-commit-check.py --quick
+  Если FAIL — НЕ коммить. Исправь. Запусти снова.
+  Только ALL GREEN → git add -A; git commit -m "refactor: <english description>"
   Тип: refactor (всегда для этой фазы)
+  COMMIT MESSAGE — ТОЛЬКО АНГЛИЙСКИЙ. Никакой кириллицы.
+  Hook: scripts\install-hooks.bat — автоматическая установка git hook
 
 ДОКУМЕНТАЦИЯ (после каждого изменения):
 - .cascade/progress.md — запись что сделано
@@ -107,6 +112,13 @@ COMMON SENSE (не создавай ложные проблемы):
 
 ФАЙЛ: .cascade/office-board.md — доска задач на текущий день.
 Шаблон: .cascade/sprint_template.md — копируй и заполняй.
+WD ЗАДАЧИ: office-board.md содержит 270+ WD задач (WD-01 — WD-270+) для web UI/UX.
+  - Принципы реализации WD задач: .cascade/prompts.md § "WEB UI DASHBOARD — WD ЗАДАЧИ"
+  - Workflow: выбор задачи → анализ existing паттернов → планирование → реализация → тесты → docs → коммит → следующая
+  - Сценарий 21: Frontend (33) → UI/UX (34) → Data Viz (35) → QA (27) → Code Reviewer (29) → Tech Writer (41)
+  - Стандарты: React функциональные компоненты, TailwindCSS, Zustand, ≤200 строк компонент, ≤300 сервис, ≤150 хук
+  - Регистрация: web-ui/src/panels/registry.js
+  - Запрещено: class components, inline styles, хардкод цветов, новые npm зависимости без разрешения, дублирование компонентов
 
 ═══════════════════════════════════════════════════════════
 БЛОК 7: БЕЗОПАСНОСТЬ — НЕ НАВРЕДИ
