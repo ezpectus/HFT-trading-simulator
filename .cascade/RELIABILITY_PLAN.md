@@ -1074,3 +1074,29 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R517 | hft-trade-bot/core/main.cpp | `main.cpp` | ✅ Excellent | 10 init steps, graceful shutdown, ScopedLatency, atomic balance, V2/V1 fallback |
 | R518 | main.cpp: no SIGTERM handler | `main.cpp:38` | Medium | No signal handler. K8s SIGTERM won't stop bot. Register signal(SIGTERM, ...) |
 | R519 | main.cpp: no error handling on some init | `main.cpp:26` | Low | Some init functions don't return bool. Make all return bool and check |
+| R520 | hft-trade-bot/core/bot_context.h | `bot_context.h` | ✅ Good | 24 includes, SimExchange adapter, SymbolEntry, ArbOpportunity, BotContext |
+| R521 | bot_context: SimExchange holds reference | `bot_context.h:48` | Low | Reference to SignalReceiver. Document lifetime or use shared_ptr |
+| R522 | hft-trade-bot/core/bot_loop.h | `bot_loop.h` | ✅ Good | 7 functions, header/impl separation, BotContext& by reference |
+| R523 | hft-trade-bot/data/types.h | `types.h` | ✅ Good | 3 enums, inline helpers, Candle, OrderBook (spread/mid), Order |
+| R524 | types.h: string_to_side defaults to BUY | `types.h:21` | Low | Non-BUY returns SELL. Case-insensitive or std::optional |
+| R525 | hft-trade-bot/data/signal.h | `signal.h` | ✅ Good | 10 fields, is_long/short/actionable, side(), rr_ratio() |
+| R526 | signal.h: NEUTRAL side() returns BUY | `signal.h:28` | Low | Footgun if caller forgets is_actionable(). Return optional or throw |
+| R527 | hft-trade-bot/data/aligned_types.h | `aligned_types.h` | ✅ Excellent | alignas64, static_assert, FastSignal fixed-size, 7 score fields, set_symbol |
+| R528 | hft-trade-bot/data/symbol_map.h | `symbol_map.h` | ✅ Good | FNV-1a constexpr hash, bidirectional, uint16_t IDs, 0xFFFF sentinel, nodiscard |
+| R529 | symbol_map: get_id allocates string | `symbol_map.h:40` | Low | std::string(symbol) allocates per lookup. Use string_view or flat array |
+| R530 | hft-trade-bot/risk/risk_manager.h | `risk_manager.h` | ✅ Excellent | V1+V2 params, blacklist, per-symbol limits, CheckResult with 8 codes |
+| R531 | hft-trade-bot/risk/pre_trade_risk.h | `pre_trade_risk.h` | ✅ Excellent | TokenBucket lock-free CAS, try_acquire/try_acquire_n, noexcept, relaxed |
+| R532 | pre_trade_risk: TokenBucket refill race | `pre_trade_risk.h:54` | Low | Multiple threads compute same refill. CAS ensures correctness. Document |
+| R533 | hft-trade-bot/risk/portfolio_risk.h | `portfolio_risk.h` | ✅ Excellent | DrawdownTracker, historical+parametric VaR, CVaR, stress test, zero-alloc |
+| R534 | exchange_simulator/exchange_advanced_orders.py | `exchange_advanced_orders.py` | ✅ Good | 3 types (stop-limit/trailing/iceberg), trigger logic, safe removal, mixin |
+| R535 | exchange_simulator/exchange_liquidation.py | `exchange_liquidation.py` | ✅ Good | 3 triggers (full/partial/SL-TP), leverage-aware, PnL before check |
+| R536 | exchange_liquidation: hardcoded 0.005 margin | `exchange_liquidation.py:50` | Low | Maintenance margin 0.5% hardcoded. Make configurable per exchange |
+| R537 | exchange_simulator/options_pricing.py | `options_pricing.py` | ✅ Good | Black-Scholes, 5 Greeks, cdf/pdf, guard checks, configurable rate |
+| R538 | options_pricing: duplicate of options_simulator | `options_pricing.py` vs `options_simulator.py` | Medium | Two modules implement Black-Scholes. Consolidate into one |
+| R539 | exchange_simulator/price_feed_manager.py | `price_feed_manager.py` | ✅ Good | Multi-API (Binance/Coinbase), TTLCache, failover, profiling |
+| R540 | price_feed_manager: hard-imports msgpack | `price_feed_manager.py:15` | Low | msgpack hard-imported. Wrap in try/except with JSON fallback |
+| R541 | exchange_simulator/ws_metrics.py | `ws_metrics.py` | ✅ Good | deque(maxlen=10000), compression/delta ratios, P95 stats |
+| R542 | ws_metrics: sorted() on every percentile | `ws_metrics.py:52` | Low | O(n log n) per query. Use quantiles or cache sorted result |
+| R543 | exchange_simulator/visualizer.py | `visualizer.py` | ✅ Good | 2 mixins, cross-platform (msvcrt/select), ANSI colors, tabbed, pure Python |
+| R544 | ai-signal-bot/strategies/__init__.py | `strategies/__init__.py` | ✅ Good | 7 strategies + 4 configs exported, __all__ explicit |
+| R545 | strategies/__init__: missing CrossExchangeArb | `strategies/__init__.py` | Low | CrossExchangeArb and FundingRateArbDetector not exported. Add or document |

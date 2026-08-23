@@ -251,3 +251,4 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | health_check: new ClientSession per call | Creates aiohttp session per health check. Use shared session for pooling | CODE_AUDIT §8.501 |
 | db.py: new connection per operation | Every DB op creates new conn + PRAGMA WAL. Use persistent conn, set WAL once | CODE_AUDIT §8.525 |
 | main.cpp: no SIGTERM handler | No signal handler. K8s SIGTERM won't stop bot gracefully. Register signal handler | CODE_AUDIT §8.528 |
+| options_pricing: duplicate of options_simulator | Two modules implement Black-Scholes. Consolidate into one | CODE_AUDIT §8.548 |

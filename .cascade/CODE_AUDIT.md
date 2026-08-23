@@ -7041,3 +7041,319 @@ init_kill_switch(ctx);
 Some init functions return bool (checked: `init_config_and_logger`, `init_signal_engines`, `connect_all`) but others don't return anything. If `init_core_components` fails silently, the bot continues with broken components.
 
 **Фикс:** Make all init functions return bool and check each one.
+
+### 8.530 hft-trade-bot/src/core/bot_context.h: Bot context — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/bot_context.h` (114 lines)
+
+- **24 includes**: All subsystems — comprehensive
+- **SimExchange adapter**: Bridges ExchangeBase to SignalReceiver — clean
+- **SymbolEntry struct**: symbol, cstr, id — for fast path
+- **ArbOpportunity struct**: symbol, buy/sell exchange, prices, spread — comprehensive
+- **BotContext struct**: Aggregates all components — single context object
+
+Good bot context with SimExchange adapter, SymbolEntry, ArbOpportunity, and comprehensive includes. ✅
+
+### 8.531 bot_context: SimExchange holds reference to SignalReceiver — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_context.h:48`
+
+```cpp
+SignalReceiver& receiver_;
+```
+
+`SimExchange` holds a reference to `SignalReceiver`. If `SignalReceiver` is destroyed before `SimExchange`, dangling reference. The lifetime is managed by `BotContext` which owns both via `unique_ptr`, so this is likely safe, but the reference coupling is implicit.
+
+**Фикс:** Document lifetime requirement or use `shared_ptr`.
+
+### 8.532 hft-trade-bot/src/core/bot_loop.h: Loop functions — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.h` (17 lines)
+
+- **7 functions**: process_sl_tp, process_arbitrage, process_ai_signals, run_v2_signal_loop, run_v1_fallback_loop, print_status, poll_shm_market_data, graceful_shutdown — comprehensive
+- **Header-only declarations**: Implementation in .cpp — clean separation
+- **BotContext& reference**: All functions take context by reference — efficient
+
+Good bot loop with 7 functions and clean header/implementation separation. ✅
+
+### 8.533 hft-trade-bot/src/data/types.h: Core data types — ✅ Good
+
+**Файл:** `hft-trade-bot/src/data/types.h` (92 lines)
+
+- **3 enums**: Side, OrderType, OrderStatus — comprehensive
+- **Inline helpers**: `side_to_string`, `string_to_side` — convenient
+- **Candle struct**: OHLCV + symbol + exchange — standard
+- **OrderBook struct**: bids, asks, best_bid/ask, spread, mid_price — comprehensive
+- **Order struct**: id, symbol, exchange, side, type, quantity — complete
+
+Good core types with 3 enums, inline helpers, Candle, OrderBook, and Order. ✅
+
+### 8.534 types.h: string_to_side defaults to BUY on unknown — Low
+
+**Файл:** `hft-trade-bot/src/data/types.h:21-23`
+
+```cpp
+inline Side string_to_side(const std::string& s) {
+    return s == "BUY" ? Side::BUY : Side::SELL;
+}
+```
+
+Any string that's not "BUY" (including typos like "Buy", "buy", "BUY\n") returns SELL. This could cause wrong-side orders.
+
+**Фикс:** Case-insensitive comparison, throw on unknown, or return `std::optional<Side>`.
+
+### 8.535 hft-trade-bot/src/data/signal.h: Trading signal — ✅ Good
+
+**Файл:** `hft-trade-bot/src/data/signal.h` (46 lines)
+
+- **10 fields**: symbol, direction, confidence, strategy, entry_price, SL, TP, leverage, reason, timestamp — comprehensive
+- **`is_long()` / `is_short()` / `is_actionable()`**: Boolean helpers — convenient
+- **`side()`**: Maps direction to Side enum — correct
+- **`rr_ratio()`**: Risk-reward calculation — correct
+- **NEUTRAL defaults to BUY**: Documented — caller should check `is_actionable()` first
+
+Good signal struct with 10 fields, boolean helpers, side mapping, and rr_ratio. ✅
+
+### 8.536 signal.h: NEUTRAL side() returns BUY — Low
+
+**Файл:** `hft-trade-bot/src/data/signal.h:28`
+
+```cpp
+return Side::BUY; // NEUTRAL defaults to BUY; caller should check is_actionable() first
+```
+
+If caller forgets to check `is_actionable()`, a NEUTRAL signal becomes a BUY order. This is a footgun.
+
+**Фикс:** Return `std::optional<Side>` or throw on NEUTRAL.
+
+### 8.537 hft-trade-bot/src/data/aligned_types.h: Cache-line aligned types — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/data/aligned_types.h` (268 lines)
+
+- **`alignas(64) AlignedOrderBookLevel`**: Cache-line aligned — no false sharing
+- **`static_assert(sizeof == 64)`**: Compile-time validation — correct
+- **`alignas(64) FastSignal`**: Fixed-size buffers, no heap alloc — HFT optimized
+- **`Direction` enum (uint8_t)**: NEUTRAL, LONG, SHORT — compact
+- **`char symbol[32]`**: Fixed-size, no heap alloc — HFT constraint
+- **`char reason[48]`**: Short reason — compact
+- **7 score fields**: ema, rsi, obi, vwap, adx, pressure, composite — comprehensive
+- **`set_symbol()`**: Safe copy with null terminator — correct
+
+Excellent aligned types with alignas(64), static_assert, FastSignal with fixed-size buffers, and 7 score fields. ✅
+
+### 8.538 hft-trade-bot/src/data/symbol_map.h: Symbol lookup — ✅ Good
+
+**Файл:** `hft-trade-bot/src/data/symbol_map.h` (130 lines)
+
+- **FNV-1a hash**: `constexpr` compile-time hash — HFT optimization
+- **Bidirectional map**: symbol→id and id→symbol — correct
+- **`uint16_t` IDs**: Compact numeric IDs — fast path
+- **`0xFFFF` invalid ID**: Sentinel value — correct
+- **`[[nodiscard]]`**: Prevents ignoring return value — correct
+
+Good symbol map with FNV-1a hash, bidirectional mapping, compact IDs, and nodiscard. ✅
+
+### 8.539 symbol_map: get_id allocates string — Low
+
+**Файл:** `hft-trade-bot/src/data/symbol_map.h:40`
+
+```cpp
+auto it = symbol_to_id_.find(std::string(symbol));
+```
+
+`std::string(symbol)` allocates a temporary string for every lookup. In HFT hot path, this is a heap allocation.
+
+**Фикс:** Use `unordered_map<std::string_view, uint16_t>` with transparent hash, or use a flat array indexed by symbol hash.
+
+### 8.540 hft-trade-bot/src/risk/risk_manager.h: Risk manager V1+V2 — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/risk/risk_manager.h` (258 lines)
+
+- **V1 params**: max_risk_per_trade, max_daily_drawdown, min_confidence, min_rr, max_position_size, max_open_positions — comprehensive
+- **V2 params**: max_position_qty, max_total_exposure, daily_loss_limit, max_drawdown, max_orders_per_second, min_margin_ratio, max_leverage — production-grade
+- **Symbol blacklist**: `unordered_set<string>` — risk control
+- **Per-symbol limits**: `unordered_map<string, double>` — granular
+- **CheckResult**: passed, reason, code (0-7) — structured
+- **8 check codes**: OK, max_position, max_exposure, daily_loss, rate_limit, margin, blacklisted, max_leverage — comprehensive
+
+Excellent risk manager with V1+V2 params, blacklist, per-symbol limits, and 8 check codes. ✅
+
+### 8.541 hft-trade-bot/src/risk/pre_trade_risk.h: Token bucket + pre-trade checks — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/risk/pre_trade_risk.h` (205 lines)
+
+- **TokenBucket**: Lock-free rate limiter with CAS — HFT optimized
+- **`try_acquire()` / `try_acquire_n()`**: Atomic CAS with relaxed ordering — correct
+- **`refill()`**: Time-based token refill — correct
+- **`noexcept`**: All methods noexcept — HFT constraint
+- **`memory_order_relaxed`**: No ordering needed for token count — correct
+- **`compare_exchange_weak`**: Correct CAS loop — handles spurious failures
+
+Excellent pre-trade risk with lock-free token bucket, atomic CAS, noexcept, and relaxed ordering. ✅
+
+### 8.542 pre_trade_risk: TokenBucket refill has race — Low
+
+**Файл:** `hft-trade-bot/src/risk/pre_trade_risk.h:54-60`
+
+```cpp
+void refill() noexcept {
+    auto now = std::chrono::steady_clock::now();
+    int64_t now_ns = ...;
+    int64_t last = last_refill_ns_.load(std::memory_order_relaxed);
+    if (now_ns <= last) return;
+```
+
+Multiple threads can call `refill()` simultaneously — all read the same `last`, compute the same refill, and CAS-update `tokens_`. The CAS ensures only one succeeds, but the others still do the computation. This is benign (no incorrect behavior) but wastes CPU.
+
+**Фикс:** This is acceptable for HFT — the CAS ensures correctness. Document that concurrent refill is safe but may waste cycles.
+
+### 8.543 hft-trade-bot/src/risk/portfolio_risk.h: Portfolio risk — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/risk/portfolio_risk.h` (262 lines)
+
+- **DrawdownTracker**: Peak-to-trough, underwater curve, `noexcept` — HFT optimized
+- **Historical VaR**: Sorted returns, percentile lookup — standard
+- **Parametric VaR**: mean - z * sigma * portfolio_value — standard
+- **CVaR (Expected Shortfall)**: Average of tail beyond VaR — correct
+- **Stress test**: Scenario shocks — risk management
+- **Fixed-size arrays**: No heap allocations in hot path — HFT constraint
+
+Excellent portfolio risk with DrawdownTracker, VaR (historical + parametric), CVaR, stress testing, and zero-alloc. ✅
+
+### 8.544 exchange_simulator/exchange_advanced_orders.py: Advanced orders — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_advanced_orders.py` (262 lines)
+
+- **3 advanced order types**: Stop-limit, trailing stop, iceberg — comprehensive
+- **`check_advanced_orders()`**: Check all pending orders — correct
+- **Price trigger logic**: Buy/sell side checks — correct
+- **`to_remove` pattern**: Safe removal during iteration — correct
+- **Mixin pattern**: Extracted for file-size compliance — modular
+
+Good advanced orders with 3 types, trigger logic, safe removal, and mixin pattern. ✅
+
+### 8.545 exchange_simulator/exchange_liquidation.py: Liquidation — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_liquidation.py` (149 lines)
+
+- **3 trigger types**: Full liquidation, partial liquidation, SL/TP — comprehensive
+- **Leverage-aware**: `liq_price = entry * (1 - 1/lev + 0.005)` — correct
+- **Partial liquidation ratio**: Configurable — flexible
+- **`update_pnl()` before check**: Mark-to-market before trigger — correct
+- **`round(..., 2)`**: Price rounding — realistic
+
+Good liquidation with 3 trigger types, leverage-aware pricing, and PnL update before check. ✅
+
+### 8.546 exchange_liquidation: hardcoded 0.005 maintenance margin — Low
+
+**Файл:** `exchange_simulator/exchange_liquidation.py:50`
+
+```python
+liq = round(pos.entry_price * (1 - 1/lev + 0.005), 2)
+```
+
+Maintenance margin rate is hardcoded at 0.5%. Different exchanges have different rates (Binance: 0.4-1.5% tiered).
+
+**Фикс:** Make maintenance margin configurable per exchange.
+
+### 8.547 exchange_simulator/options_pricing.py: Black-Scholes — ✅ Good
+
+**Файл:** `exchange_simulator/options_pricing.py` (419 lines)
+
+- **Black-Scholes model**: Standard pricing — correct
+- **5 Greeks**: delta, gamma, theta, vega, rho — comprehensive
+- **`_cdf()` / `_pdf()`**: Normal distribution functions — correct
+- **Guard checks**: `T <= 0 or sigma <= 0 or S <= 0 or K <= 0` — prevents NaN
+- **Configurable risk-free rate**: Default 5% — flexible
+
+Good Black-Scholes with 5 Greeks, guard checks, and configurable rate. ✅
+
+### 8.548 options_pricing: duplicate of options_simulator.py — Medium
+
+**Файл:** `exchange_simulator/options_pricing.py` (419 lines) vs `exchange_simulator/exchange_simulator/options_simulator.py` (8085 bytes)
+
+Two modules implement Black-Scholes options pricing:
+1. `options_pricing.py` — standalone Black-Scholes class
+2. `exchange_simulator/options_simulator.py` — Black-Scholes with Greeks, IV, put-call parity
+
+This is code duplication. Both implement the same math (d1, d2, cdf, pdf, Greeks).
+
+**Фикс:** Consolidate into one module. Use `options_simulator.py` (more comprehensive) and remove `options_pricing.py`, or vice versa.
+
+### 8.549 exchange_simulator/price_feed_manager.py: Multi-API price feeds — ✅ Good
+
+**Файл:** `exchange_simulator/price_feed_manager.py` (322 lines)
+
+- **Multi-API**: Binance, Coinbase — failover
+- **TTLCache**: `cachetools.TTLCache` with configurable TTL and maxsize — efficient
+- **WebSocket + REST**: Both supported — flexible
+- **Automatic failover**: API index rotation — resilient
+- **Performance metrics**: Profiling support — observability
+
+Good price feed manager with multi-API, TTLCache, failover, and profiling. ✅
+
+### 8.550 price_feed_manager: hard-imports msgpack — Low
+
+**Файл:** `exchange_simulator/price_feed_manager.py:15`
+
+```python
+import msgpack
+```
+
+`msgpack` is hard-imported. If not installed, the entire module fails. Other modules (ws_constants.py) use optional imports.
+
+**Фикс:** Wrap in `try/except ImportError` with fallback to JSON.
+
+### 8.551 exchange_simulator/ws_metrics.py: WebSocket metrics — ✅ Good
+
+**Файл:** `exchange_simulator/ws_metrics.py` (86 lines)
+
+- **deque(maxlen=10000)**: Bounded message sizes and latencies — memory-safe
+- **Compression ratio**: Tracked — performance metric
+- **Delta update ratio**: EMA (0.9/0.1) — smooth tracking
+- **P95 stats**: Message size and broadcast latency — percentile metrics
+- **`sorted()` for percentiles**: Correct but O(n log n) — acceptable for periodic query
+
+Good WebSocket metrics with bounded deques, compression/delta ratios, and P95 stats. ✅
+
+### 8.552 ws_metrics: sorted() on every percentile query — Low
+
+**Файл:** `exchange_simulator/ws_metrics.py:52-53`
+
+```python
+sorted_sizes = sorted(self.message_sizes)
+```
+
+`sorted()` creates a new list and sorts it on every `get_p95_message_size()` call. With 10000 elements, this is O(n log n) per query.
+
+**Фикс:** Use `statistics.quantiles()` or maintain a sorted structure, or cache the sorted result.
+
+### 8.553 exchange_simulator/visualizer.py: Terminal visualizer — ✅ Good
+
+**Файл:** `exchange_simulator/visualizer.py` (268 lines)
+
+- **2 mixins**: ChartMixin, AccountMixin — modular
+- **Cross-platform**: Windows (msvcrt) + Linux (select, termios, tty) — portable
+- **ANSI colors**: 16 colors + backgrounds — rich UI
+- **Tabbed interface**: 1/2/3 for symbols, A for account, Q for quit — user-friendly
+- **Pure Python**: No external GUI dependencies — lightweight
+
+Good terminal visualizer with 2 mixins, cross-platform input, ANSI colors, and tabbed interface. ✅
+
+### 8.554 ai-signal-bot/src/strategies/__init__.py: Strategy exports — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/__init__.py` (23 lines)
+
+- **7 strategies exported**: EnsembleVoter, FFTCycle, MeanReversion, TrendFollowing, StatisticalArbitrage, MarketMaking, Sentiment, MLEnsemble — comprehensive
+- **`__all__`**: Explicit exports — clean
+- **Config classes exported**: MarketMakingConfig, SentimentConfig, MLConfig, StatArbConfig — convenient
+
+Good strategy exports with 7 strategies, configs, and explicit `__all__`. ✅
+
+### 8.555 strategies/__init__: missing CrossExchangeArb and FundingRateArb — Low
+
+**Файл:** `ai-signal-bot/src/strategies/__init__.py`
+
+The `__init__.py` exports 7 strategies but doesn't export `CrossExchangeArb` or `FundingRateArbDetector` which exist in the strategies directory. These are only accessible via direct import.
+
+**Фикс:** Add to `__init__.py` exports or document that they're internal-only.

@@ -3431,3 +3431,90 @@ class Database:
 ```
 
 **Разница:** The bad code creates a new SQLite connection on every database operation. Each `save_signal()`, `save_trade()`, or `get_open_trades()` call opens a connection, executes `PRAGMA journal_mode=WAL` (a disk write), does the query, and closes the connection. With 100 signals per minute, that's 100 connection opens + 100 PRAGMA writes + 100 closes — 100-500ms of pure I/O overhead per minute. The PRAGMA is especially wasteful because WAL mode is persistent — once set, it stays set for the database file. Setting it again on every connection does a disk write for no reason. The good code creates a single persistent connection in `__init__`, sets WAL mode once, and reuses the connection for all operations. A `threading.Lock` protects concurrent access (SQLite connections are not thread-safe by default). The `close()` method does a proper WAL checkpoint and logs errors instead of swallowing them. With 1000 users, the bad code means 1000 bots × 100 operations/minute × 1-5ms overhead = 100-500 seconds of DB overhead per minute across all users. The good code reduces this to near-zero — the connection is already open, the PRAGMA is already set, and the only I/O is the actual query. The cost is one persistent connection + one lock. The benefit is 100x faster DB operations.
+
+---
+
+## Bad vs Good: Silent Default Side in Order Parsing (C++)
+
+### ❌ Bad Code
+```cpp
+// types.h
+inline Side string_to_side(const std::string& s) {
+    return s == "BUY" ? Side::BUY : Side::SELL;
+}
+
+// signal.h
+Side side() const {
+    if (is_long()) return Side::BUY;
+    if (is_short()) return Side::SELL;
+    return Side::BUY; // NEUTRAL defaults to BUY
+}
+
+// Usage in bot_loop.cpp:
+void process_ai_signals(BotContext& ctx, double balance, bool can_trade) {
+    for (auto& sig : ctx.pending_signals) {
+        // Forgot to check is_actionable()!
+        Side side = sig.side();  // NEUTRAL → BUY
+        double qty = calculate_position_size(ctx, sig, balance);
+        ctx.executor->submit_order(sig.symbol, side, qty);
+        // Submitted a BUY order for a NEUTRAL signal!
+    }
+}
+```
+
+**What's wrong:**
+- `string_to_side("Sell")` → SELL (capital S, not "BUY" → SELL)
+- `string_to_side("buy")` → SELL (lowercase → not "BUY" → SELL)
+- `string_to_side("")` → SELL (empty → SELL)
+- `string_to_side("BUY\n")` → SELL (trailing newline → SELL)
+- `Signal::side()` for NEUTRAL returns BUY — if caller forgets `is_actionable()`, a neutral signal becomes a BUY order
+- No error, no warning, no log — silent wrong-side order
+- In HFT, a wrong-side order is catastrophic: the bot buys when it should do nothing, or sells when it should buy
+
+### ✅ Good Code
+```cpp
+// types.h
+#include <algorithm>
+#include <optional>
+
+inline std::optional<Side> string_to_side(std::string_view s) {
+    // Case-insensitive comparison
+    std::string lower(s);
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+
+    // Trim whitespace
+    lower.erase(lower.find_last_not_of(" \t\r\n") + 1);
+    lower.erase(0, lower.find_first_not_of(" \t\r\n"));
+
+    if (lower == "buy" || lower == "long") return Side::BUY;
+    if (lower == "sell" || lower == "short") return Side::SELL;
+    return std::nullopt;  // Unknown — caller must handle
+}
+
+// signal.h
+std::optional<Side> side() const {
+    if (is_long()) return Side::BUY;
+    if (is_short()) return Side::SELL;
+    return std::nullopt;  // NEUTRAL — no side
+}
+
+// Usage in bot_loop.cpp:
+void process_ai_signals(BotContext& ctx, double balance, bool can_trade) {
+    for (auto& sig : ctx.pending_signals) {
+        if (!sig.is_actionable()) continue;  // Skip NEUTRAL
+
+        auto side = sig.side();
+        if (!side) {
+            spdlog::warn("Signal {} has no side (direction={})",
+                         sig.symbol, sig.direction);
+            continue;
+        }
+
+        double qty = calculate_position_size(ctx, sig, balance);
+        ctx.executor->submit_order(sig.symbol, *side, qty);
+    }
+}
+```
+
+**Разница:** The bad code silently maps any unrecognized string to SELL and NEUTRAL to BUY. This means `"Sell"` (capital S) becomes SELL (wrong), `"buy"` (lowercase) becomes SELL (wrong), `""` (empty) becomes SELL (wrong), and NEUTRAL signals become BUY orders (wrong). There's no error, no warning, no log — the bot silently submits wrong-side orders. In HFT, a wrong-side order is catastrophic: if the bot receives a NEUTRAL signal (meaning "do nothing") but submits a BUY order, it opens a position with no signal backing. If BTC is about to drop 5%, the NEUTRAL signal says "don't trade", but the bot buys — and loses 5% immediately. With 1000 users, 100 wrong-side orders per day × $10,000 average position × 5% loss = $50,000 per day in preventable losses. The good code uses `std::optional<Side>` — if the string is unrecognized, it returns `std::nullopt`, forcing the caller to handle the error. The case-insensitive comparison handles "Buy", "BUY", "buy", "LONG", "long" correctly. The whitespace trimming handles "BUY\n" and "  sell  ". The caller checks `is_actionable()` first and logs a warning if `side()` returns nullopt. The cost is a few lines of code for case conversion and trimming. The benefit is zero wrong-side orders — every unrecognized input is caught and logged, not silently mapped to the wrong side.
