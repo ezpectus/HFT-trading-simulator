@@ -49,6 +49,20 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AM: OKX/Bybit adapter clear_secrets + spinlock consolidation)
+
+### Fixed
+- `hft-trade-bot/src/exchange/OKXAdapter.h`: Added `clear_secrets()` to Config — zeros api_key/api_secret/passphrase via memset
+- `hft-trade-bot/src/exchange/OKXAdapter.h`: Consolidated `price_lock_` + `depth_lock_` into single `market_data_lock_` — prevents price/depth consistency gap
+- `hft-trade-bot/src/exchange/BybitAdapter.h`: Added `clear_secrets()` to Config — zeros api_key/api_secret via memset
+- `hft-trade-bot/src/exchange/BybitAdapter.h`: Consolidated `price_lock_` + `depth_lock_` into single `market_data_lock_`
+- CODE_AUDIT §8.1064 — BinanceAdapter two spinlocks → already fixed (market_data_lock_)
+- CODE_AUDIT §8.1066 — BinanceAdapter api_secret → clear_secrets() already added in Пачка AD
+- CODE_AUDIT §8.1071 — OKXAdapter passphrase → clear_secrets() added
+- CODE_AUDIT §8.1074 — BybitAdapter api_secret → clear_secrets() added
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AK: web-ui feature flags for math/research panels)
 
 ### Added

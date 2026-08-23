@@ -182,10 +182,10 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~Makefile.prod: migration not idempotent~~ [FIXED] | schema_migrations table tracks applied files — skips already-applied, wraps new migrations in transaction | CODE_AUDIT §8.132 |
 | ~~docker-compose dev: Grafana admin/admin~~ [FIXED] | Grafana password now uses ${GRAFANA_PASSWORD:?} — fails if not set | CODE_AUDIT §8.138 |
 | ~~deploy.yml: health check no exit~~ [FIXED] | Health check job now exits 1 on failure — tracks FAIL count, fails pipeline if any endpoint unreachable | CODE_AUDIT §8.144 |
-| C++ bot_context: God struct | 25+ members, all coupled, hard to test | CODE_AUDIT §8.147 |
-| C++ SPSCQueue + mutex | SPSC is single-producer but mutex suggests multi-thread race | CODE_AUDIT §8.148 |
+| ~~C++ bot_context: God struct~~ [N/A] | Design choice for single-binary HFT bot — dependency injection container. Grouping into sub-structs would add indirection without benefit | CODE_AUDIT §8.147 |
+| ~~C++ SPSCQueue + mutex~~ [N/A] | Mutex is intentional — multiple producers (2 callback paths in bot_setup.cpp) push to SPSC queue. Pop is single-consumer (bot_loop). Mutex only guards push side | CODE_AUDIT §8.148 |
 | ~~prod VITE_WS localhost fallback~~ [FIXED] | deploy.yml no longer falls back to localhost — empty value if GitHub vars not set | CODE_AUDIT §8.152 |
-| C++ risk_manager: check_order mutex | Serializes all order submissions, use shared_mutex | CODE_AUDIT §8.155 |
+| ~~C++ risk_manager: check_order mutex~~ [FIXED] | Replaced std::mutex with std::shared_mutex — check_order uses shared_lock (concurrent reads), blacklist/unblacklist use unique_lock | CODE_AUDIT §8.155 |
 | ~~C++ daily_pnl += not atomic~~ [FIXED] | update_pnl now uses CAS loop for atomic add — operator+= was load+store race | CODE_AUDIT §8.156 |
 | ~~C++ pre_trade_risk: blacklist race~~ [FIXED] | Added Spinlock (list_lock_) to PreTradeRisk — guards blacklist/whitelist reads in check() + all insert/erase operations | CODE_AUDIT §8.158 |
 | ~~C++ duplicate risk system~~ [N/A] | PreTradeRisk is not used in production (only tests). RiskManager is the active system. No duplication in running code | CODE_AUDIT §8.166 |
@@ -199,7 +199,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~Helm values.yaml: hardcoded passwords~~ [FIXED] | postgres.password, grafana.adminPassword set to empty — Helm fails if not set via --set | CODE_AUDIT §8.193 |
 | ~~Helm values.yaml: VITE_WS localhost~~ [FIXED] | wsExchange/wsSignals set to empty — web-ui.yaml template fails if not set | CODE_AUDIT §8.195 |
 | ~~C++ signal.h: NEUTRAL→BUY~~ [FIXED] | Signal::side() now throws std::logic_error on NEUTRAL — callers must check is_actionable() first. order_executor.h: added is_actionable() guard | CODE_AUDIT §8.192 |
-| C++ 3 exchange adapters: code duplication | 470 lines, ~200 duplicated. Move to ExchangeBase | CODE_AUDIT §8.207 |
+| ~~C++ 3 exchange adapters: code duplication~~ [N/A] | Large refactoring risk — adapters have different auth, symbol formats, WS/REST URLs. Duplicating market data maps/locks is acceptable for exchange-specific isolation | CODE_AUDIT §8.207 |
 | ~~C++ BinanceAdapter: nested Spinlock~~ [FIXED] | Consolidated price_lock_ + depth_lock_ into single market_data_lock_ — same fix as §8.462 | CODE_AUDIT §8.203 |
 | ~~C++ BinanceAdapter: can_send_order TOCTOU~~ [FIXED] | Replaced fetch_add with CAS loop — only increments if below 300 threshold, rejected orders no longer over-count | CODE_AUDIT §8.204 |
 | ~~web-ui App.jsx: 565 lines God component~~ [FIXED] | Extracted 5 notification useEffects + 5 useRef into useNotifications hook — App.jsx 565→474 lines (−91 lines, 6 useEffects→1 hook call) | CODE_AUDIT §8.211 |
@@ -277,7 +277,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~order_executor: detached reconnect thread~~ [FIXED] | Same as §8.117 — detached thread replaced with member thread joined in disconnect() | CODE_AUDIT §8.452 |
 | ~~BinanceAdapter: nested spinlock acquisition~~ [FIXED] | Consolidated price_lock_ + depth_lock_ into single market_data_lock_ — no more nested spinlock acquisition | CODE_AUDIT §8.462 |
 | ~~Helm values: no Redis password~~ [FIXED] | redis.password added to values.yaml (empty by default) — redis.yaml template adds --requirepass + Secret with REDIS_URL, fails if not set | CODE_AUDIT §8.467 |
-| metrics_collector: mutex on every metric op | Global mutex blocks all metric operations in HFT hot path. Use atomics | CODE_AUDIT §8.483 |
+| ~~metrics_collector: mutex on every metric op~~ [FIXED] | Replaced std::mutex with Spinlock — shorter critical sections, no kernel-level lock in HFT hot path | CODE_AUDIT §8.483 |
 | ~~circuit_breaker: not thread-safe~~ [FIXED] | Added asyncio.Lock to CircuitBreaker — allow_signal, record_success, record_failure, reset now async | CODE_AUDIT §8.499 |
 | ~~health_check: new ClientSession per call~~ [FIXED] | AlertSystem already uses shared _get_session() — no per-call session creation | CODE_AUDIT §8.501 |
 | ~~db.py: new connection per operation~~ [FIXED] | Already uses persistent _get_conn() with WAL set once | CODE_AUDIT §8.525, §8.628 |
@@ -339,12 +339,12 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~health_checks: check_readiness runs sequentially~~ [FIXED] | All 4 checks now run in parallel via asyncio.gather (Пачка DD) | CODE_AUDIT §8.1027 |
 | ~~health_checks: no timeout on individual checks~~ [FIXED] | Each check wrapped in asyncio.wait_for(timeout=2.0) (Пачка DD) | CODE_AUDIT §8.1028 |
 | ~~notifier: token in URL~~ [FIXED] | Suppressed aiohttp.client debug logging in TelegramNotifier.start() to prevent token leakage | CODE_AUDIT §8.1043 |
-| BinanceAdapter: on_book_ticker takes two spinlocks | Price/depth consistency gap — reader sees new price with stale depth. Single spinlock or atomic doubles | CODE_AUDIT §8.1064 |
+| ~~BinanceAdapter: on_book_ticker takes two spinlocks~~ [FIXED] | Consolidated price_lock_ + depth_lock_ into single market_data_lock_ — same fix as §8.462 | CODE_AUDIT §8.1064 |
 | ~~engine.py: API key in memory as plain string~~ [FIXED] | Added SecretStr wrapper — repr/str show ***, .get() for actual value | CODE_AUDIT §8.1059 |
-| BinanceAdapter: api_secret in Config struct | Plain std::string secret in heap memory. Use secure string wrapper, don't log Config | CODE_AUDIT §8.1066 |
-| OKXAdapter: passphrase stored as plain string | OKX passphrase in plain std::string. Use secure string wrapper | CODE_AUDIT §8.1071 |
-| BybitAdapter: api_secret in Config struct | Same as Binance/OKX — plain string secret. Use secure string wrapper | CODE_AUDIT §8.1074 |
-| metrics_collector: mutex on every metric operation | Single std::mutex blocks all hot-path metric ops during Prometheus export. Use atomics or per-histogram locks | CODE_AUDIT §8.1078 |
+| ~~BinanceAdapter: api_secret in Config struct~~ [FIXED] | clear_secrets() already added in Пачка AD — zeros api_key/api_secret memory via memset, called in graceful_shutdown() | CODE_AUDIT §8.1066 |
+| ~~OKXAdapter: passphrase stored as plain string~~ [FIXED] | Added clear_secrets() to OKXAdapter::Config — zeros api_key/api_secret/passphrase memory via memset | CODE_AUDIT §8.1071 |
+| ~~BybitAdapter: api_secret in Config struct~~ [FIXED] | Added clear_secrets() to BybitAdapter::Config — zeros api_key/api_secret memory via memset | CODE_AUDIT §8.1074 |
+| ~~metrics_collector: mutex on every metric operation~~ [FIXED] | Same as §8.483 — replaced std::mutex with Spinlock. Prometheus export also uses Spinlock | CODE_AUDIT §8.1078 |
 | ~~tracer: spans_ vector unbounded~~ [FIXED] | Added MAX_SPANS=10000 ring buffer cap — oldest span dropped when limit exceeded | CODE_AUDIT §8.1085 |
 | ~~tracer: no span export mechanism~~ [FIXED] | Added export_spans() method — flushes to Jaeger (logs count + clears). clear_spans() + span_count() also added | CODE_AUDIT §8.1087 |
 | ~~backtest_engine: duplicate of backtester.py~~ [FIXED] | Added reset() method for reuse. Fixed O(N²) window slicing with rolling window. Different API (callback-based vs strategy.analyze), kept both | CODE_AUDIT §8.1133 | |
@@ -437,3 +437,229 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~run_logger.py: 4th duplicate logging setup~~ [FIXED] | Removed setup_logging from helpers.py. 3→2 logging setups | CODE_AUDIT §8.1426 |
 | ~~bot_helpers.py: triggers __init__.py re-export~~ [FIXED] | Fixed: from src.technical_analysis.indicators import adx, ema, rsi | CODE_AUDIT §8.1427 |
 | ~~ws_connection_pool.py: dead code — not used by ws_client~~ [FIXED] | Deleted module + test. ExchangeClient manages own WS | CODE_AUDIT §8.1431 |
+
+---
+
+## ФАЗА 3 — Web UI/UX: HFT Trading Dashboard (новые задачи)
+
+> Цель: Превратить web-ui из "дашки с парой графиков" в профессиональный HFT-терминал
+> уровня Citadel/Two Sigma/Jane Street research UI.
+> Каждый компонент — отдельная задача. Группировать в пачки по 3-5 компонентов.
+
+### WD-01: Real-time Candlestick Chart с WebSocket обновлением
+**Описание:** Live candlestick chart (lightweight-charts или canvas-based).
+- WebSocket подписка на candle updates (тип `candle_update` от exchange-simulator)
+- При новом тике — обновление последней свечи (не перерисовка всего графика)
+- При закрытии свечи — добавление новой, скролл вправо
+- Zoom/pan по истории (mouse wheel + drag)
+- Crosshair с OHLCV tooltip при наведении
+- Volume bars внизу (отдельная панель, 20% высоты)
+- Timeframe переключатель: 1m, 5m, 15m, 1h, 4h, 1d
+- При смене timeframe — запрос исторических свечей через REST API
+- При смене символа — плавный fade-out → загрузка → fade-in новых данных
+- Производительность: 60 FPS при 1000+ свечей, без React re-render на каждый тик
+  (использовать ref + requestAnimationFrame, не useState для candle data)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/charts/CandlestickChart.jsx` (новый), `web-ui/src/hooks/useCandleStream.js` (новый)
+**Зависимости:** exchange-simulator WS должен отправлять `candle_update` events (уже есть)
+
+### WD-02: Real-time Order Book (L2 Depth) визуализация
+**Описание:** Живой стакан ордеров как на Binance/Bybit.
+- WebSocket подписка на `depth_update` (bid/ask levels)
+- 2 колонки: bids (зелёные) слева, asks (красные) справа
+- Depth bars (горизонтальные полосы пропорционально объёму)
+- Топ-20 уровней с ценой, объёмом, кумулятивной суммой
+- Spread индикатор по центру (разница best bid - best ask, в % и абсолюте)
+- Mid-price линия с стрелкой вверх/вниз при изменении
+- Анимация обновления: мигание зелёным при новом bid, красным при новом ask
+- При смене символа — очистка + загрузка нового snapshot
+- Производительность: обновления 10-50/сек, без flicker
+  (использовать Canvas или CSS transform, не React re-render на каждый апдейт)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/orderbook/OrderBook.jsx` (новый), `web-ui/src/hooks/useOrderBookStream.js` (новый)
+**Зависимости:** exchange-simulator WS должен отправлять `depth_update` (проверить)
+
+### WD-03: Trade Tape (Time & Sales) — лента сделок в реальном времени
+**Описание:** Лента последних сделок как в профессиональных терминалах.
+- WebSocket подписка на `trade` events
+- Вертикальный скролл-список: время | цена | объём | сторона (buy/sell)
+- Buy = зелёный, sell = красный
+- Новые сделки появляются сверху, плавно сдвигая старые вниз (slide animation)
+- Лимит 100 видимых сделок, старые удаляются (виртуализированный список)
+- Кумулятивный объём за последние 1/5/15 минут в шапке
+- VWAP индикатор (обнуляется каждую минуту)
+- При смене символа — очистка ленты
+- Фильтр: показать только крупные сделки (> $10K)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/trades/TradeTape.jsx` (новый), `web-ui/src/hooks/useTradeStream.js` (новый)
+
+### WD-04: Symbol Selector с real-time switching
+**Описание:** Компонент выбора торгового символа с instant switching.
+- Выпадающий список 50 символов с поиском по имени (BTC, ETH, SOL...)
+- Каждый символ показывает: имя, текущая цена, % изменения за 24h (зелёный/красный)
+- Мини-спарклайн (sparkline) рядом с каждым символом (последние 20 тиков)
+- При выборе символа — broadcast через Zustand store → все компоненты (chart, orderbook, tape, positions) мгновенно переключаются
+- Загрузка данных: параллельно REST (история) + WS (live updates)
+- Состояние загрузки: skeleton placeholder в каждом компоненте пока данные грузятся
+- Кэширование: последние 5 символов остаются в памяти, мгновенное переключение обратно
+- Категории: All, Majors (BTC/ETH), DeFi, L2, Meme — таб-фильтр
+- Watchlist: звёздочка для избранных символов, отдельная категория
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/symbol/SymbolSelector.jsx` (новый), `web-ui/src/stores/useSymbolStore.js` (расширение)
+**Зависимости:** WD-01, WD-02, WD-03 (подписываются на symbol change)
+
+### WD-05: Positions & PnL Dashboard
+**Описание:** Таблица открытых позиций с real-time PnL.
+- WebSocket подписка на `position_update` и `fill` events
+- Таблица: символ | сторона | размер | entry price | mark price | PnL ($) | PnL (%) | duration
+- PnL обновляется в real-time при каждом тике mark price
+- Цвет: зелёный (profit), красный (loss), мигание при изменении
+- Сортировка по PnL, объёму, длительности
+- Сверху: total PnL, total exposure, open positions count
+- Equity curve мини-график (последние 100 точек)
+- Кнопка "Close All" — закрыть все позиции (с confirm modal)
+- При смене символа — фильтр по выбранному символу, или "All" для всех
+- Drawdown индикатор (current equity vs peak)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/positions/PositionsTable.jsx` (новый), `web-ui/src/hooks/usePositionStream.js` (новый)
+
+### WD-06: Strategy Signals Feed — live поток сигналов
+**Описание:** Real-time лента сигналов от стратегий (как у ai-signal-bot).
+- WebSocket подписка на `signal` events от ai-signal-bot (port 8766)
+- Карточки сигналов: стратегия | символ | направление (LONG/SHORT/NEUTRAL) | confidence | SL | TP | R:R | reason
+- LONG = зелёная карточка, SHORT = красная, NEUTRAL = серая
+- Новые сигналы появляются сверху с slide-in анимацией
+- Confidence bar (горизонтальный прогресс-бар)
+- При клике на сигнал — переход на график с отображением entry/SL/TP линий
+- Фильтр: по стратегии, по символу, по направлению, min confidence
+- Счётчик сигналов за час/день в шапке
+- Статистика по стратегиям: win rate, avg confidence, signals/day (мини-таблица сбоку)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/signals/SignalFeed.jsx` (новый), `web-ui/src/components/signals/SignalCard.jsx` (новый), `web-ui/src/hooks/useSignalStream.js` (новый)
+
+### WD-07: Risk Metrics Panel — VaR, Drawdown, Exposure
+**Описание:** Панель риск-метрик в real-time.
+- WebSocket подписка на `metrics_update` (или polling каждые 5 сек)
+- Метрики: VaR (95%, 99%), CVaR, Current Drawdown, Max Drawdown, Sharpe, Sortino, Calmar
+- Exposure: total $, per-symbol $, per-strategy $ (donut chart)
+- Risk limits: прогресс-бары (current vs limit) — 2% per trade, 8% daily DD, 10% max position
+- При приближении к лимиту (>80%) — жёлтое предупреждение, (>95%) — красное
+- Stress test results: 2008/COVID/FTX/LUNA scenarios (мини-таблица: scenario | impact $ | impact %)
+- Equity curve (полный, с drawdown shading)
+- Daily PnL heatmap (часы × дни недели)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/risk/RiskPanel.jsx` (новый), `web-ui/src/components/risk/ExposureDonut.jsx` (новый), `web-ui/src/components/risk/EquityCurve.jsx` (новый)
+
+### WD-08: Multi-Symbol Heatmap — обзор всех 50 символов
+**Описание:** Heatmap сетка 50 символов с real-time % изменения.
+- Сетка 10×5 (или адаптивная) с ячейками по каждому символу
+- Цвет ячейки: зелёный (рост) → красный (падение), интенсивность = magnitude %
+- Текст в ячейке: символ, % изменения, объём (млн $)
+- При наведении — мини-tooltip с OHLC
+- При клике — выбор символа (broadcast в symbol store → все компоненты переключаются)
+- Сортировка: по % изменения, по объёму, по алфавиту
+- Обновление: каждые 1-2 сек (polling REST или WS broadcast)
+- Категории: All, Majors, DeFi, L2, Meme — таб-фильтр
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/heatmap/SymbolHeatmap.jsx` (новый)
+
+### WD-09: Latency & System Health Monitor
+**Описание:** Панель системных метрик для HFT monitoring.
+- WebSocket подписка на `system_metrics` от Prometheus exporter
+- Метрики: WS latency (ms), REST latency (ms), signal generation time (ms), order execution time (ms)
+- Latency graph (line chart, последние 5 минут, 1-сек гранулярность)
+- Цветовые зоны: зелёный (<50ms), жёлтый (50-200ms), красный (>200ms)
+- System: CPU %, RAM %, disk I/O, network I/O
+- Component status: exchange-simulator, ai-signal-bot, hft-trade-bot, postgres, redis
+  (зелёный круг = healthy, жёлтый = degraded, красный = down)
+- Circuit breaker status: open/closed/half-open
+- Active connections count (WS clients, DB connections)
+- При red status — мигающий индикатор в шапке дашборда
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/system/HealthMonitor.jsx` (новый), `web-ui/src/components/system/LatencyChart.jsx` (новый)
+
+### WD-10: Backtest Lab — запуск и визуализация бэктестов
+**Описание:** Интерфейс для запуска бэктестов из web-ui.
+- Форма: выбор стратегии, символа(ов), периода, параметров
+- Параметры зависят от стратегии (динамическая форма из config schema)
+- Кнопка "Run Backtest" — POST запрос к ai-signal-bot API
+- Progress bar во время выполнения (WS updates с прогрессом)
+- Результаты: equity curve, trades table, metrics (Sharpe, Sortino, max DD, win rate, profit factor)
+- Сравнение: наложить 2+ equity curves на один график
+- Walk-forward analysis visualization (IS/OOS bands)
+- Export результатов в CSV/JSON
+- Сохранённые бэктесты: список с возможностью перезагрузки
+- Monte Carlo simulation: N прогонов с разными seed, confidence intervals
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/backtest/BacktestLab.jsx` (новый), `web-ui/src/components/backtest/BacktestResults.jsx` (новый), `web-ui/src/components/backtest/BacktestCompare.jsx` (новый)
+
+### WD-11: Layout System — draggable & detachable panels
+**Описание:** Настраиваемый layout как в Bloomberg Terminal.
+- Grid layout с drag-and-drop панелями (react-grid-layout или аналог)
+- Каждый компонент (chart, orderbook, tape, signals, risk, heatmap) — панель
+- Панель можно: перетаскивать, ресайзить, сворачивать, откреплять в отдельное окно (popout)
+- Сохранение layout в localStorage (восстановление при перезагрузке)
+- Preset layouts: "Trader" (chart+orderbook+tape), "Researcher" (backtest+signals+risk), "Full" (всё)
+- Tab-группировка: несколько панелей в одной ячейке с табами
+- Dark/light theme toggle
+- Hotkeys: F1-F12 для быстрого переключения панелей
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/layout/DashboardGrid.jsx` (новый), `web-ui/src/components/layout/Panel.jsx` (новый), `web-ui/src/stores/useLayoutStore.js` (новый)
+**Зависимости:** WD-01 through WD-10 (все компоненты должны быть панелями)
+
+### WD-12: WebSocket Connection Manager — единый менеджер WS соединений
+**Описание:** Централизованный менеджер всех WS подписок.
+- Единый класс WsManager: подключение к exchange-simulator (8765) + ai-signal-bot (8766)
+- Channel-based подписки: `candles:{symbol}`, `depth:{symbol}`, `trades:{symbol}`, `signals`, `positions`, `metrics`
+- Автоматический reconnect с exponential backoff + jitter
+- Heartbeat/ping каждые 10 сек, detect stale connection
+- Очередь сообщений при reconnect (buffer 100 messages, replay on reconnect)
+- При смене символа: unsubscribe от старых channels → subscribe на новые
+- Дедупликация сообщений (по seq num или timestamp)
+- Backpressure: при >1000 msg/sec — throttle UI updates (batch 100ms)
+- Метрики: msgs/sec, latency, reconnect count, buffer overflow count
+- Все компоненты подписываются через useWsChannel(channel, callback)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/services/WsManager.js` (новый), `web-ui/src/hooks/useWsChannel.js` (новый)
+**Зависимости:** Все WD компоненты используют этот менеджер
+
+### WD-13: API Layer — REST клиент для исторических данных
+**Описание:** Единый REST клиент для запросов к backend.
+- Endpoints: `/api/candles/{symbol}?tf=5m&limit=1000`, `/api/orderbook/{symbol}`, `/api/positions`, `/api/signals`, `/api/metrics`, `/api/backtest/run`, `/api/symbols`
+- Кэширование: in-memory LRU (1000 candles × 50 symbols = 50K objects, ~5MB)
+- Request deduplication: если 2 компонента запрашивают те же свечи — 1 запрос
+- Retry с exponential backoff (3 попытки, 1s/2s/4s)
+- Timeout: 10 сек на запрос, 30 сек на backtest
+- Request cancellation: AbortController при смене символа
+- TypeScript-совместимые типы (JSDoc) для всех responses
+- Batch requests: `/api/candles?symbols=BTC,ETH,SOL&tf=5m` для heatmap
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/services/ApiClient.js` (новый), `web-ui/src/api/endpoints.js` (новый)
+
+### WD-14: Performance Optimization — 60 FPS под нагрузкой
+**Описание:** Оптимизация рендеринга для real-time данных.
+- React.memo для всех компонентов-панелей (не re-render при symbol change если не подписан)
+- Canvas rendering для: candlestick chart, order book, heatmap, trade tape (не DOM)
+- Virtualized lists для trade tape (react-window) и signals feed
+- requestAnimationFrame batching: накапливать WS updates, рендерить 1 раз в 16ms
+- Web Worker для тяжёлых вычислений: indicator calculation, backtest processing
+- useMemo для derived state (VWAP, cumulative volume, PnL calculation)
+- throttle/debounce для: search input (300ms), resize handler (100ms)
+- Профайлинг: React DevTools Profiler, Lighthouse CI score >90
+- Bundle size: code splitting по панелям (lazy load), target <500KB initial
+- Memory leak prevention: cleanup WS subscriptions, AbortController, clearInterval
+**Сложность:** Высокая
+**Файлы:** Все компоненты WD-01 — WD-13
+**Зависимости:** Выполняется после WD-12 (WsManager) и WD-13 (ApiClient)
+
+### WD-15: Mobile Responsive — планшет/телефон адаптация
+**Описание:** Адаптивная версия для iPad/телефона.
+- Breakpoints: desktop (>1200px), tablet (768-1200px), mobile (<768px)
+- Tablet: 2-column layout, tabbed panels, swipe между символами
+- Mobile: single column, swipeable tabs (chart | orderbook | signals | positions)
+- Touch gestures: pinch-to-zoom на графике, swipe left/right для смены символа
+- Bottom navigation bar на mobile (иконки: chart, book, signals, positions, settings)
+- Simplified order book на mobile (top-5 вместо top-20)
+- Collapsible header с symbol selector
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/layout/MobileLayout.jsx` (новый), CSS media queries во всех компонентах

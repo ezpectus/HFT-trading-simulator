@@ -14,6 +14,7 @@
 #include <thread>
 #include <atomic>
 #include <cstdint>
+#include "../utils/low_latency.h"
 
 namespace hft {
 namespace metrics {
@@ -82,7 +83,7 @@ private:
     std::atomic<bool> http_server_running_;
     std::thread http_server_thread_;
     
-    std::mutex metrics_mutex_;
+    Spinlock metrics_mutex_;
     std::map<std::string, uint64_t> counters_;
     std::map<std::string, double> gauges_;
     std::map<std::string, HistogramBuckets> histograms_;

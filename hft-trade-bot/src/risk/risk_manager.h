@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cmath>
 #include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -98,7 +99,7 @@ class RiskManager {
     CheckResult check_order(const std::string& symbol, const std::string& side, double quantity,
                             double price, int leverage, double current_equity,
                             double available_margin, double current_position_qty) {
-        std::lock_guard<std::mutex> lk(params_mutex_);
+        std::shared_lock<std::shared_mutex> lk(params_mutex_);
         // 1. Symbol blacklist
         if (params_.blacklisted_symbols.count(symbol)) {
             return {false, "Symbol blacklisted", 6};
@@ -230,11 +231,11 @@ class RiskManager {
 
     // V2: Symbol blacklist management (thread-safe via params_mutex_)
     void blacklist_symbol(const std::string& symbol) {
-        std::lock_guard<std::mutex> lk(params_mutex_);
+        std::unique_lock<std::shared_mutex> lk(params_mutex_);
         params_.blacklisted_symbols.insert(symbol);
     }
     void unblacklist_symbol(const std::string& symbol) {
-        std::lock_guard<std::mutex> lk(params_mutex_);
+        std::unique_lock<std::shared_mutex> lk(params_mutex_);
         params_.blacklisted_symbols.erase(symbol);
     }
 
@@ -245,12 +246,12 @@ class RiskManager {
     int orders_this_second() const { return orders_this_second_.load(std::memory_order_relaxed); }
 
     const Params& params() const {
-        std::lock_guard<std::mutex> lk(params_mutex_);
+        std::shared_lock<std::shared_mutex> lk(params_mutex_);
         return params_;
     }
 
   private:
-    mutable std::mutex  params_mutex_;
+    mutable std::shared_mutex params_mutex_;
     Params              params_;
     std::atomic<double> daily_pnl_{0.0};
     std::atomic<double> total_exposure_{0.0};

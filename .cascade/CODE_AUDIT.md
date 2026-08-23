@@ -2071,7 +2071,7 @@ Clean abstract interface with pure virtual methods:
 
 `SmartOrderRouterV2` depends on `IExchange*`, not concrete adapters. DIP/SOLID done right. ✅
 
-### 8.147 C++ bot_context.h: God struct — Medium
+### 8.147 C++ bot_context.h: God struct — Medium [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_context.h:67-111`
 
@@ -2087,7 +2087,7 @@ This is a **dependency injection container** rather than a proper context. Every
 
 **Фикс:** Group related members into sub-structs (e.g., `ExchangeContext`, `MonitoringContext`, `IpcContext`).
 
-### 8.148 C++ bot_context.h: SPSCQueue with mutex — Low
+### 8.148 C++ bot_context.h: SPSCQueue with mutex — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_context.h:99-100`
 
@@ -2177,7 +2177,7 @@ Two risk check levels:
 
 Position sizing: risk-based (`risk_amount / risk_per_unit`), capped by max notional. ✅
 
-### 8.155 C++ risk_manager.h: check_order mutex on hot path — Medium
+### 8.155 C++ risk_manager.h: check_order mutex on hot path — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/risk/risk_manager.h:101`
 
@@ -2862,7 +2862,7 @@ Bybit Futures adapter:
 - **Spinlock** for price/depth maps
 - Fee structure: 1 bps maker, 6 bps taker (best maker fee, worst taker fee)
 
-### 8.207 C++ 3 exchange adapters: code duplication — Medium
+### 8.207 C++ 3 exchange adapters: code duplication — Medium [N/A]
 
 **Файлы:** `BinanceAdapter.h` (190), `OKXAdapter.h` (143), `BybitAdapter.h` (137)
 
@@ -6437,7 +6437,7 @@ Good message handler with 11 types, non-throwing parse, and string_view optimiza
 
 Good Prometheus metrics collector with 3 types and domain-specific convenience methods. ✅
 
-### 8.483 metrics_collector.cpp: mutex on every metric operation — Medium
+### 8.483 metrics_collector.cpp: mutex on every metric operation — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/metrics/metrics_collector.cpp:43-47`
 
@@ -14779,7 +14779,7 @@ Uses `std::map` (red-black tree, O(log N) lookup) instead of `std::unordered_map
 
 **Фикс:** Use `std::unordered_map` for O(1) lookup. Or use a flat hash map like `absl::flat_hash_map`.
 
-### 8.1078 metrics_collector: mutex on every metric operation — Medium
+### 8.1078 metrics_collector: mutex on every metric operation — Medium [FIXED]
 
 **Файл:** `metrics_collector.h:85`
 
