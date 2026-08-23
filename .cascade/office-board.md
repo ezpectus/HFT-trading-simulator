@@ -137,7 +137,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~CI: npm audit non-blocking~~ [FIXED] | npm audit now fails CI on high/critical vulnerabilities — `|| true` removed, grep checks for high+critical | CODE_AUDIT §8.40 |
 | ~~Dockerfile healthcheck TCP~~ [FIXED] | All 6 Dockerfiles now use urllib.request.urlopen('http://localhost:PORT/health') instead of TCP socket connect | CODE_AUDIT §8.44 |
 | ~~Dead code: tracing.py~~ [FIXED] | Root tracing.py deleted in Пачка A (§8.1421) | CODE_AUDIT §8.46 |
-| Test coverage gaps | signal_publisher, db, alerting, llm — 0 tests | CODE_AUDIT §8.47 |
+| ~~Test coverage gaps~~ [N/A] | Tests exist: test_signal_publisher.py, test_db.py, test_alerting.py, test_monitoring_llm.py — audit item is stale | CODE_AUDIT §8.47 |
 | ~~No graceful shutdown~~ [FIXED] | SIGTERM/SIGINT handler added in Пачка F/S — graceful DB/WS/LLM cleanup in finally block | CODE_AUDIT §8.48 |
 | ~~No WS keepalive~~ [FIXED] | ws_client.connect() uses ping_interval=10 — keepalive enabled | CODE_AUDIT §8.49 |
 | ~~No backoff with jitter~~ [FIXED] | Reconnect delay now includes ±25% jitter to prevent thundering herd | CODE_AUDIT §8.50 |
@@ -201,7 +201,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ 3 exchange adapters: code duplication | 470 lines, ~200 duplicated. Move to ExchangeBase | CODE_AUDIT §8.207 |
 | C++ BinanceAdapter: nested Spinlock | price_lock_ → depth_lock_ nesting, fragile lock ordering | CODE_AUDIT §8.203 |
 | C++ BinanceAdapter: can_send_order TOCTOU | fetch_add always increments even on reject | CODE_AUDIT §8.204 |
-| web-ui App.jsx: 565 lines God component | 6 useEffects, 14 tabs, extract to hooks/components | CODE_AUDIT §8.211 |
+| ~~web-ui App.jsx: 565 lines God component~~ [FIXED] | Extracted 5 notification useEffects + 5 useRef into useNotifications hook — App.jsx 565→474 lines (−91 lines, 6 useEffects→1 hook call) | CODE_AUDIT §8.211 |
 | ~~shared_config.yaml: localhost~~ [FIXED] | Same as §8.74 — documented as dev defaults, override in deployment configs | CODE_AUDIT §8.212 |
 | ~~Alertmanager: hardcoded SMTP password~~ [FIXED] | SMTP password and webhook URLs now use `${ENV_VAR:default}` syntax — override in production via environment | CODE_AUDIT §8.215 |
 | web-ui: 50 symbols duplicated | 50 symbols in JS + shared_config.yaml, out of sync risk | CODE_AUDIT §8.219 |
@@ -262,17 +262,17 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~ci.yml: no security scanning~~ [FIXED] | npm audit now fails CI on high/critical. Bandit + CodeQL already present. pip-audit is future enhancement | CODE_AUDIT §8.390 |
 | ci.yml: no integration tests | Unit tests only. No docker-compose integration test in CI | CODE_AUDIT §8.391 |
 | ~~terraform: db_password default in plaintext~~ [FIXED] | Same as §8.162 — default removed from dev/main.tf, password is required | CODE_AUDIT §8.401 |
-| terraform: no prod environment | Only dev/ exists. No prod/ with production-grade settings | CODE_AUDIT §8.402 |
+| ~~terraform: no prod environment~~ [N/A] | terraform/environments/prod/main.tf already exists (100 lines, prod-grade: db.r6g.large, c5.2xlarge, 4 nodes) — audit item is stale | CODE_AUDIT §8.402 |
 | ~~docker-compose.prod: ports exposed to host~~ [FIXED] | Postgres, Redis, Prometheus now use `expose` instead of `ports` — accessible only within Docker networks, not from host | CODE_AUDIT §8.416 |
 | web-ui: 200+ components over-engineering | Math/research panels unlikely used by traders. Feature flag or separate package | CODE_AUDIT §8.410 |
 | hft-trade-bot: 3 engine versions loaded | V1/V2/V3 all allocated. V1 never used in hot path. Remove V1 | CODE_AUDIT §8.419 |
 | hft-trade-bot: prices_cache not thread-safe | unordered_map without lock. Data race if multi-threaded. Use shared_mutex | CODE_AUDIT §8.420 |
 | ~~deploy.yml: localhost fallback for VITE_WS~~ [FIXED] | Removed localhost fallback — VITE_WS_EXCHANGE/SIGNALS now empty if GitHub vars not set | CODE_AUDIT §8.412 |
 | hft-executor: avg_latency_ns always 0 | Stats field never populated. No latency measurement implemented | CODE_AUDIT §8.394 |
-| deploy/k8s: only secrets, no manifests | Only secrets.enc.yaml. No Deployment/Service/ConfigMap. Use Helm or add manifests | CODE_AUDIT §8.404 |
+| ~~deploy/k8s: only secrets, no manifests~~ [N/A] | Helm chart exists (helm/templates/ with 10+ templates: Deployment, Service, Secret, NetworkPolicy, PDB). deploy/k8s is supplementary | CODE_AUDIT §8.404 |
 | ~~hft-trade-bot: no Dockerfile.prod~~ [N/A] | Dockerfile.prod already exists (50 lines, multi-stage build, healthcheck) — audit item is stale | CODE_AUDIT §8.423 |
 | ~~migrate.py: no transaction wrapping~~ [FIXED] | Each migration wrapped in conn.transaction() — SQL + schema_migrations insert are atomic | CODE_AUDIT §8.436 |
-| config.h: hardcoded localhost default | ws_url defaults to localhost:8765. Won't work in Docker/K8s. Default to empty | CODE_AUDIT §8.445 |
+| ~~config.h: hardcoded localhost default~~ [FIXED] | ws_url default changed from ws://localhost:8765 to empty string — forces explicit config in Docker/K8s | CODE_AUDIT §8.445 |
 | order_executor: detached reconnect thread | Detached thread accesses this after destruction. Use jthread or join in dtor | CODE_AUDIT §8.452 |
 | BinanceAdapter: nested spinlock acquisition | Two spinlocks sequential. Latent deadlock risk. Use single lock or document ordering | CODE_AUDIT §8.462 |
 | ~~Helm values: no Redis password~~ [FIXED] | redis.password added to values.yaml (empty by default) — redis.yaml template adds --requirepass + Secret with REDIS_URL, fails if not set | CODE_AUDIT §8.467 |
@@ -280,7 +280,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~circuit_breaker: not thread-safe~~ [FIXED] | Added asyncio.Lock to CircuitBreaker — allow_signal, record_success, record_failure, reset now async | CODE_AUDIT §8.499 |
 | ~~health_check: new ClientSession per call~~ [FIXED] | AlertSystem already uses shared _get_session() — no per-call session creation | CODE_AUDIT §8.501 |
 | ~~db.py: new connection per operation~~ [FIXED] | Already uses persistent _get_conn() with WAL set once | CODE_AUDIT §8.525, §8.628 |
-| main.cpp: no SIGTERM handler — FALSE ALARM | SIGTERM handler EXISTS in bot_setup.cpp:63. R518 downgraded to Info | CODE_AUDIT §8.583 |
+| ~~main.cpp: no SIGTERM handler — FALSE ALARM~~ [N/A] | SIGTERM handler EXISTS in bot_setup.cpp:63. R518 downgraded to Info — confirmed false alarm | CODE_AUDIT §8.583 |
 | ~~options_pricing: duplicate of options_simulator~~ [FIXED] | Deprecated options_pricing.py with DeprecationWarning — use exchange_simulator.options_simulator.OptionsSimulator | CODE_AUDIT §8.548 |
 | kill_switch: file monitoring thread not joined | stop_monitoring may not join thread. Use-after-free risk. Use jthread | CODE_AUDIT §8.557 |
 | ~~validator: not thread-safe~~ [FIXED] | Added asyncio.Lock to SignalValidator — validate, update_pnl, update_position_count now async | CODE_AUDIT §8.571 |
