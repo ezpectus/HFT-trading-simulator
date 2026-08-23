@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка U: 3× _fft → numpy + rbergomi Cholesky + WS backpressure + exchange_factory close)
+
+### Changed
+- `fft_analysis.py`: `_fft` + `_ifft` — replaced 40-line Cooley-Tukey with `numpy.fft.fft`/`ifft` (2 lines each)
+- `emd.py`: `_fft` — replaced 30-line Cooley-Tukey with `numpy.fft.fft` (1 line)
+- `vmd.py`: `_fft` — replaced 35-line Cooley-Tukey with `numpy.fft.fft` + zero-padding (4 lines)
+- `rbergomi.py`: `frac_gaussian_noise` — replaced O(n³) pure Python Cholesky with `numpy.linalg.cholesky` + vectorized covariance
+- `real_market_data.py`: Added bounded `asyncio.Queue(maxsize=500)` + `_process_queue` task — WS receive loops now enqueue instead of directly calling handlers, preventing event loop blocking at 1000+ msgs/sec
+- `exchange_factory.py`: FALLBACK mode now calls `close()` on failed `RealExchangeAdapter` before switching to simulator
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка T: fix_client SSL + vmd/emd numpy ifft + TA NaN/Inf validation + stale items)
 
 ### Changed

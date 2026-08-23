@@ -52,44 +52,13 @@ class VMDResult:
 
 
 def _fft(signal: list[float]) -> list[complex]:
-    """Cooley-Tukey radix-2 FFT with zero padding."""
+    """FFT via numpy (replaces Cooley-Tukey radix-2 with zero padding)."""
     n = len(signal)
     if n <= 1:
         return [complex(v, 0) for v in signal]
-
     n2 = 2 ** math.ceil(math.log2(n))
-    x = [complex(signal[i], 0) if i < n else 0j for i in range(n2)]
-
-    j = 0
-    for i in range(1, n2):
-        bit = n2 >> 1
-        while j & bit:
-            j ^= bit
-            bit >>= 1
-        j ^= bit
-        if i < j:
-            x[i], x[j] = x[j], x[i]
-
-    length = 2
-    while length <= n2:
-        half = length >> 1
-        angle = -2 * math.pi / length
-        w_re = math.cos(angle)
-        w_im = math.sin(angle)
-        for i in range(0, n2, length):
-            cur_re = 1.0
-            cur_im = 0.0
-            for k in range(half):
-                t = cur_re * x[i + k + half].real - cur_im * x[i + k + half].imag
-                t_im = cur_re * x[i + k + half].imag + cur_im * x[i + k + half].real
-                x[i + k + half] = complex(x[i + k].real - t, x[i + k].imag - t_im)
-                x[i + k] = complex(x[i + k].real + t, x[i + k].imag + t_im)
-                new_re = cur_re * w_re - cur_im * w_im
-                cur_im = cur_re * w_im + cur_im * w_re
-                cur_re = new_re
-        length <<= 1
-
-    return x
+    padded = signal + [0.0] * (n2 - n)
+    return np.fft.fft(padded).tolist()
 
 
 def _ifft(spectrum: list[complex]) -> list[float]:

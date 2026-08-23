@@ -72,6 +72,8 @@ class RealMarketDataFeed:
         self._reconnect_delays: dict[str, float] = {}
         self._max_reconnect_delay = 30.0
         self._state_lock = asyncio.Lock()
+        self._msg_queue: asyncio.Queue = asyncio.Queue(maxsize=500)
+        self._processor_task: asyncio.Task | None = None
 
         # Callbacks
         self.on_ticker: Callable[[NormalizedTicker], Awaitable[None]] | None = None
@@ -82,6 +84,9 @@ class RealMarketDataFeed:
         """Start WebSocket subscriptions for all configured exchanges."""
         self._running = True
         intervals = intervals or ["1m", "5m", "15m"]
+
+        # Start message processor to drain queue with backpressure
+        self._processor_task = asyncio.create_task(self._process_queue())
 
         tasks = []
         for ex in self.exchanges:
@@ -97,6 +102,12 @@ class RealMarketDataFeed:
     async def stop(self):
         """Stop all WebSocket connections."""
         self._running = False
+        if self._processor_task:
+            self._processor_task.cancel()
+            try:
+                await self._processor_task
+            except asyncio.CancelledError:
+                pass
         async with self._state_lock:
             for ws in self._ws_connections.values():
                 try:
@@ -104,6 +115,23 @@ class RealMarketDataFeed:
                 except (ConnectionError, OSError, RuntimeError) as e:
                     logger.debug(f"WS close error: {e}")
             self._ws_connections.clear()
+
+    async def _process_queue(self):
+        """Drain message queue with backpressure. Drops oldest on overflow."""
+        while self._running:
+            try:
+                exchange, msg = await self._msg_queue.get()
+                handler = {
+                    "binance": self._handle_binance_msg,
+                    "okx": self._handle_okx_msg,
+                    "bybit": self._handle_bybit_msg,
+                }.get(exchange)
+                if handler:
+                    await handler(msg)
+            except asyncio.CancelledError:
+                break
+            except (KeyError, ValueError, TypeError) as e:
+                logger.debug(f"Queue processor error: {e}")
 
     async def _run_binance(self, symbols: list[str], intervals: list[str]):
         """Binance Futures WebSocket feed."""
@@ -139,7 +167,15 @@ class RealMarketDataFeed:
                         if not self._running:
                             break
                         msg = json.loads(raw)
-                        await self._handle_binance_msg(msg)
+                        try:
+                            self._msg_queue.put_nowait(("binance", msg))
+                        except asyncio.QueueFull:
+                            logger.warning("WS msg queue full — dropping oldest")
+                            try:
+                                self._msg_queue.get_nowait()
+                            except asyncio.QueueEmpty:
+                                pass
+                            self._msg_queue.put_nowait(("binance", msg))
 
             except (ConnectionError, OSError, json.JSONDecodeError) as e:
                 logger.error(f"Binance WS error: {e}")
@@ -217,7 +253,15 @@ class RealMarketDataFeed:
                         if not self._running:
                             break
                         msg = json.loads(raw)
-                        await self._handle_okx_msg(msg)
+                        try:
+                            self._msg_queue.put_nowait(("okx", msg))
+                        except asyncio.QueueFull:
+                            logger.warning("WS msg queue full — dropping oldest")
+                            try:
+                                self._msg_queue.get_nowait()
+                            except asyncio.QueueEmpty:
+                                pass
+                            self._msg_queue.put_nowait(("okx", msg))
 
             except (ConnectionError, OSError, json.JSONDecodeError) as e:
                 logger.error(f"OKX WS error: {e}")
@@ -296,7 +340,15 @@ class RealMarketDataFeed:
                         if not self._running:
                             break
                         msg = json.loads(raw)
-                        await self._handle_bybit_msg(msg)
+                        try:
+                            self._msg_queue.put_nowait(("bybit", msg))
+                        except asyncio.QueueFull:
+                            logger.warning("WS msg queue full — dropping oldest")
+                            try:
+                                self._msg_queue.get_nowait()
+                            except asyncio.QueueEmpty:
+                                pass
+                            self._msg_queue.put_nowait(("bybit", msg))
 
             except (ConnectionError, OSError, json.JSONDecodeError) as e:
                 logger.error(f"Bybit WS error: {e}")

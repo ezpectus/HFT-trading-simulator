@@ -8,6 +8,8 @@ from __future__ import annotations
 import math
 import random
 
+import numpy as np
+
 MIN_PRICES = 40
 DEFAULT_ETA = 1.5
 DEFAULT_RHO = -0.7
@@ -62,34 +64,19 @@ class RBergomiResult:
 
 
 def frac_gaussian_noise(n: int, h: float, seed: int | None = None) -> list[float]:
-    """Fractional Gaussian noise via Cholesky decomposition."""
+    """Fractional Gaussian noise via Cholesky decomposition (numpy-accelerated)."""
     rng = random.Random(seed)
-    cov = [[0.0] * n for _ in range(n)]
-    for i in range(n):
-        for j in range(n):
-            diff = abs(i - j)
-            cov[i][j] = 0.5 * (
-                abs(i - j + 1) ** (2 * h)
-                + abs(i - j - 1) ** (2 * h)
-                - 2 * diff ** (2 * h)
-            )
-
-    chol = [[0.0] * n for _ in range(n)]
-    for i in range(n):
-        for j in range(i + 1):
-            total = cov[i][j]
-            for k in range(j):
-                total -= chol[i][k] * chol[j][k]
-            if i == j:
-                chol[i][j] = math.sqrt(max(1e-10, total))
-            else:
-                chol[i][j] = total / chol[j][j] if chol[j][j] > 0 else 0.0
-
-    fgn = [0.0] * n
-    for i in range(n):
-        z = rng.gauss(0, 1)
-        for j in range(i + 1):
-            fgn[i] += chol[i][j] * z
+    i = np.arange(n)
+    j = np.arange(n)
+    diff = np.abs(i[:, None] - j[None, :])
+    cov = 0.5 * (
+        np.abs(i[:, None] - j[None, :] + 1) ** (2 * h)
+        + np.abs(i[:, None] - j[None, :] - 1) ** (2 * h)
+        - 2 * diff ** (2 * h)
+    )
+    chol = np.linalg.cholesky(cov)
+    z = np.array([rng.gauss(0, 1) for _ in range(n)])
+    fgn = (chol @ z).tolist()
     return fgn
 
 

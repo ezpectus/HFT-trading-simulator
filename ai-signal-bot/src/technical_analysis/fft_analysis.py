@@ -11,56 +11,17 @@ Applications:
 """
 import math
 
+import numpy as np
+
 
 def _fft(a: list[complex]) -> list[complex]:
-    """Cooley-Tukey FFT implementation (radix-2).
-
-    Requires input length to be a power of 2.
-    """
-    n = len(a)
-    if n == 1:
-        return a
-    if n & (n - 1) != 0:
-        # Pad to next power of 2
-        next_pow2 = 1
-        while next_pow2 < n:
-            next_pow2 <<= 1
-        a = a + [0j] * (next_pow2 - n)
-        n = next_pow2
-
-    # Bit-reversal permutation
-    bits = n.bit_length() - 1
-    result = list(a)
-    for i in range(n):
-        j = int(bin(i)[2:].zfill(bits)[::-1], 2)
-        if j > i:
-            result[i], result[j] = result[j], result[i]
-
-    # Cooley-Tukey
-    length = 2
-    while length <= n:
-        half = length // 2
-        angle = -2 * math.pi / length
-        wlen = complex(math.cos(angle), math.sin(angle))
-        for i in range(0, n, length):
-            w = 1 + 0j
-            for j in range(half):
-                u = result[i + j]
-                v = result[i + j + half] * w
-                result[i + j] = u + v
-                result[i + j + half] = u - v
-                w *= wlen
-        length <<= 1
-
-    return result
+    """FFT via numpy (replaces Cooley-Tukey radix-2)."""
+    return np.fft.fft(a).tolist()
 
 
 def _ifft(a: list[complex]) -> list[complex]:
-    """Inverse FFT."""
-    n = len(a)
-    conjugated = [x.conjugate() for x in a]
-    result = _fft(conjugated)
-    return [x.conjugate() / n for x in result]
+    """Inverse FFT via numpy."""
+    return np.fft.ifft(a).tolist()
 
 
 def power_spectrum(closes: list[float]) -> tuple[list[float], list[float]]:

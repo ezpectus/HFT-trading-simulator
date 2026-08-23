@@ -157,37 +157,8 @@ def emd(signal: list[float], max_imfs: int = DEFAULT_MAX_IMFS, max_iter: int = D
 
 
 def _fft(signal: list[float]) -> list[complex]:
-    """Cooley-Tukey radix-2 FFT (power-of-2 input expected)."""
-    n = len(signal)
-    if n <= 1:
-        return [complex(signal[0] if signal else 0, 0)]
-
-    x = [complex(v, 0) for v in signal]
-    j = 0
-    for i in range(1, n):
-        bit = n >> 1
-        while j & bit:
-            j ^= bit
-            bit >>= 1
-        j ^= bit
-        if i < j:
-            x[i], x[j] = x[j], x[i]
-
-    length = 2
-    while length <= n:
-        half = length >> 1
-        angle = -2 * math.pi / length
-        for i in range(0, n, length):
-            for k in range(half):
-                w_re = math.cos(angle * k)
-                w_im = math.sin(angle * k)
-                t = w_re * x[i + k + half].real - w_im * x[i + k + half].imag
-                t_im = w_re * x[i + k + half].imag + w_im * x[i + k + half].real
-                x[i + k + half] = complex(x[i + k].real - t, x[i + k].imag - t_im)
-                x[i + k] = complex(x[i + k].real + t, x[i + k].imag + t_im)
-        length <<= 1
-
-    return x
+    """FFT via numpy (replaces Cooley-Tukey radix-2)."""
+    return np.fft.fft(signal).tolist()
 
 
 def _ifft_direct(spectrum: list[complex], n: int) -> list[float]:

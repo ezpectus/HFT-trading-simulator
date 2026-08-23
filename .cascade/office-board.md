@@ -321,8 +321,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | walk_forward: new BacktestEngine per param combo | 320 engine instances per run. Add reset() and reuse | CODE_AUDIT §8.1143 |
 | backtester: O(N²) window slicing | 50M copies for 10K candles. Pass index or use rolling window | CODE_AUDIT §8.1127 |
 | ~~real_account: bare Exception swallows CancelledError~~ [FIXED] | Replaced with specific exceptions in Пачка I | CODE_AUDIT §8.1149 |
-| real_market_data: no backpressure on WS messages | 1000+ msgs/sec blocks receive loop. Use asyncio.Queue with bounded size | CODE_AUDIT §8.1154 |
-| exchange_factory: FALLBACK doesn't close failed adapter | Resources leak on partial init failure. Call close() in except block | CODE_AUDIT §8.1147 |
+| ~~real_market_data: no backpressure on WS messages~~ [FIXED] | Added bounded asyncio.Queue(maxsize=500) + _process_queue task. WS loops enqueue, overflow drops oldest | CODE_AUDIT §8.1154 |
+| ~~exchange_factory: FALLBACK doesn't close failed adapter~~ [FIXED] | Added close() call on failed RealExchangeAdapter before switching to simulator | CODE_AUDIT §8.1147 |
 | ~~real_account: no retry on order placement~~ [FIXED] | Added retry with exponential backoff (3 attempts) in Пачка S | CODE_AUDIT §8.1151 |
 | real_exchange_client: 335 lines dead code | Duplicate of real_account.py, not used by exchange_factory. Remove or use as ccxt-free fallback | CODE_AUDIT §8.1158 |
 | ~~signal_publisher: backtest blocks event loop~~ [FIXED] | Wrapped bt.run in asyncio.to_thread in Пачка J | CODE_AUDIT §8.1173 |
@@ -366,12 +366,12 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~shm_ring_buffer: no overflow detection on push~~ [FIXED] | Added dropped_count counter to try_push | CODE_AUDIT §8.1328 |
 | ~~technical_analysis/__init__.py: 252 lines re-export ~200 symbols~~ [FIXED] | Replaced with empty file | CODE_AUDIT §8.1343 |
 | ~~technical_analysis: 4× duplicate _random_normal Box-Muller~~ [FIXED] | All 4 copies replaced with rng.gauss(0,1) | CODE_AUDIT §8.1362 |
-| technical_analysis: 3× duplicate _fft Cooley-Tukey | ~150 lines duplicate in fft_analysis/emd/vmd. Use shared _fft_utils or numpy.fft | CODE_AUDIT §8.1363 |
+| ~~technical_analysis: 3× duplicate _fft Cooley-Tukey~~ [FIXED] | All 3 replaced with numpy.fft wrappers: fft_analysis.py (2 lines), emd.py (1 line), vmd.py (4 lines with zero-padding) | CODE_AUDIT §8.1363 |
 | technical_analysis: 16 modules likely dead code | ~4000+ lines not used in production. Move to advanced package | CODE_AUDIT §8.1364 |
 | ~~technical_analysis: vmd.py _ifft is O(n²) direct DFT~~ [FIXED] | Replaced with numpy.fft.ifft wrapper (1 line). Also fixed emd.py _ifft_direct | CODE_AUDIT §8.1370 |
 | ~~technical_analysis: copula.py empirical_cdf is O(n²)~~ [FIXED] | Replaced with sort+bisect O(n log n) | CODE_AUDIT §8.1369 |
 | ~~technical_analysis: copula.py own erf function~~ [FIXED] | Replaced with math.erf. Removed 9-line custom impl | CODE_AUDIT §8.1345 |
-| technical_analysis: rbergomi O(n³) Cholesky in pure Python | n=50 → 125K ops. Use numpy or Davies-Harte O(n log n) | CODE_AUDIT §8.1354 |
+| ~~technical_analysis: rbergomi O(n³) Cholesky in pure Python~~ [FIXED] | Replaced with numpy.linalg.cholesky + vectorized covariance matrix | CODE_AUDIT §8.1354 |
 | technical_analysis: hmc numerical gradient 60K evals | Central differences. Analytical gradient 2× faster | CODE_AUDIT §8.1358 |
 | ~~technical_analysis: dtw duplicate compute_returns~~ [FIXED] | Replaced with import from _common.py | CODE_AUDIT §8.1347 |
 | ~~technical_analysis: No NaN/Inf input validation~~ [FIXED] | Added validate_prices() to indicators.py — raises ValueError on non-finite values | CODE_AUDIT §8.1367 |
