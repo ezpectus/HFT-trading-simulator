@@ -21,7 +21,7 @@
 | `src/risk/var.py` + `src/risk/cvar.py` | VaRCalculator, CVaRCalculator | только тесты |
 | `src/risk/var_stress_test.py` | RiskAnalyzer (historical_var, cvar, mc_var...) | только тесты |
 
-**Фикс:** `var_stress_test.py` deprecated with DeprecationWarning — use `var.py`+`cvar.py` (canonical, cleaner API). Пачка VV.
+**Фикс:** `var_stress_test.py` deprecated with DeprecationWarning — use `var.py`+`cvar.py` (canonical, cleaner API). Пачка XX.
 
 ### 1.3 StressTest — 2 РЕАЛИЗАЦИИ [FIXED]
 | Файл | Класс | Использование |
@@ -29,7 +29,7 @@
 | `src/risk/stress_test.py` | StressTestScenario | только тесты |
 | `src/risk/var_stress_test.py` | RiskAnalyzer.stress_test | только тесты |
 
-**Фикс:** `var_stress_test.py` deprecated with DeprecationWarning — use `stress_test.py` (canonical, more detailed). Пачка VV.
+**Фикс:** `var_stress_test.py` deprecated with DeprecationWarning — use `stress_test.py` (canonical, more detailed). Пачка XX.
 
 ### 1.4 Backtester — 2 РЕАЛИЗАЦИИ
 | Файл | Строк | Использование |
@@ -73,7 +73,7 @@
 - `_EnsembleAdapter` (строки 42-52) — дублирует EnsembleVoter
 - `_format_backtest_result()` (строки 393-411) — дублирует `BacktestResult.to_dict()`
 
-**Фикс:** `_format_backtest_result` → replaced with `BacktestResult.to_dict()` (Пачка WW). `_EnsembleAdapter` kept — needed for interface adaptation (EnsembleVoter.vote() vs Backtester.run() interface mismatch). `_build_strategies` kept — different params from bot_helpers (hardcoded vs config-driven). `_generate_synthetic_candles` kept — needed for on-request backtest via WS.
+**Фикс:** `_format_backtest_result` → replaced with `BacktestResult.to_dict()` (Пачка YY). `_EnsembleAdapter` kept — needed for interface adaptation (EnsembleVoter.vote() vs Backtester.run() interface mismatch). `_build_strategies` kept — different params from bot_helpers (hardcoded vs config-driven). `_generate_synthetic_candles` kept — needed for on-request backtest via WS.
 
 ### 1.9 Дублирование внутри backtester.py [FIXED]
 - Drawdown-логика дублируется: `_process_risk_update` (строки 118-120) и `_track_equity_and_drawdown` (строки 147-149) — одинаковый расчёт
@@ -81,7 +81,7 @@
 - Position sizing в `_open_position` (строки 366-378) дублирует `run.py._execute_paper_order` (строки 268-277)
 - `print_report` и `print_comparison` — дублирование форматирования
 
-**Фикс:** drawdown → extracted `_update_drawdown()` helper (Пачка WW). init_position → extracted `_init_risk_state()` helper (Пачка WW). Added `BacktestResult.to_dict()` for signal_publisher. Position sizing и print_report kept — different contexts (backtest vs live, single vs multi).
+**Фикс:** drawdown → extracted `_update_drawdown()` helper (Пачка YY). init_position → extracted `_init_risk_state()` helper (Пачка YY). Added `BacktestResult.to_dict()` for signal_publisher. Position sizing и print_report kept — different contexts (backtest vs live, single vs multi).
 
 ---
 
@@ -159,11 +159,11 @@
 - init_position: 2 копии → 1 метод `_init_risk_state()` (-12 строк)
 - print_report + print_comparison: общий форматтер — kept separate (different layouts)
 - `_process_risk_update` + `_track_equity_and_drawdown`: объединить — both now call `_update_drawdown()`
-- Added `BacktestResult.to_dict()` for signal_publisher dedup (+18 lines)
+- Added `BacktestResult.to_dict()` for signal_publisher dedup (+18 lines) (Пачка YY)
 
 ### 3.2 signal_publisher.py (453 строк → ~440) [FIXED]
 - `_build_strategies` → import из bot_helpers — kept (different params: hardcoded vs config)
-- `_format_backtest_result` → to_dict() — DONE, removed ~18 lines (Пачка WW)
+- `_format_backtest_result` → to_dict() — DONE, removed ~18 lines (Пачка YY)
 - `_EnsembleAdapter` → EnsembleVoter напрямую — kept (interface adapter needed)
 - `_generate_synthetic_candles` → вынести в utils — kept (needed for WS backtest)
 

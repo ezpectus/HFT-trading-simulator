@@ -2,16 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased] — 2026-08-23 (Refactoring — Пачка WW: backtestEngine slippage + borrow fee + HFT alert rules)
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка YY: backtester + signal_publisher dedup)
 
 ### Added
-- `web-ui/src/utils/backtestEngine.js`: `slippagePct` option (default 0.05%) — buys fill above close, sells below close, exits in adverse direction
-- `web-ui/src/utils/backtestEngine.js`: `borrowFeePct` option (default 0.01% daily) — short positions accrue daily borrow fee based on holding period
-- `monitoring/alerts/alerts.yml`: New `hft_alerts` group with 5 rules: `LowFillRate`, `CircuitBreakerOpen`, `NoSignalsSent`, `EquityDrop`, `CandleGenerationStalled`
+- `src/backtesting/backtester.py`: `BacktestResult.to_dict()` — JSON-serializable output, replaces duplicate `_format_backtest_result` in signal_publisher
+
+### Changed
+- `src/backtesting/backtester.py`: Extracted `_update_drawdown()` helper — eliminates 2× duplicated drawdown calculation in `_process_risk_update` and `_track_equity_and_drawdown`
+- `src/backtesting/backtester.py`: Extracted `_init_risk_state()` helper — eliminates 2× duplicated `risk_manager.init_position()` block in `_handle_signal_reversal` and `_check_entry`
+- `src/communication/signal_publisher.py`: Replaced `_format_backtest_result()` with `result.to_dict()` — ~18 lines removed
 
 ---
 
-## [Unreleased] — 2026-08-23 (Refactoring — Пачка VV: var_stress_test.py deprecation)
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка XX: var_stress_test.py deprecation)
 
 ### Changed
 - `src/risk/var_stress_test.py`: Added DeprecationWarning — duplicates `var.py` (VaRCalculator), `cvar.py` (CVaRCalculator), `stress_test.py` (StressTestScenario). Use canonical modules instead

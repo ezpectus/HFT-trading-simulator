@@ -7,13 +7,19 @@
 
 ---
 
-## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): VaR/CVaR + StressTest dedup
+## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): backtester + signal_publisher dedup
+
+### [04] Refactoring Agent — backtester + signal_publisher internal dedup
+**Задача:** Extract _update_drawdown + _init_risk_state helpers in backtester.py.
+  Add BacktestResult.to_dict(). Replace _format_backtest_result in signal_publisher.py.
+  CODE_AUDIT: §1.8, §1.9, §3.1, §3.2
+**Статус:** ✅ Done — _format_backtest_result removed (~18 lines), _update_drawdown + _init_risk_state extracted, BacktestResult.to_dict() added. Пачка YY.
 
 ### [03] Refactoring Agent — deprecate var_stress_test.py
 **Задача:** Deprecate `src/risk/var_stress_test.py` (duplicates var.py, cvar.py, stress_test.py).
   Add DeprecationWarning, update tests, update docs.
   CODE_AUDIT: §1.2, §1.3, §3.4
-**Статус:** ✅ Done — var_stress_test.py deprecated with DeprecationWarning. Tests updated with filterwarnings + deprecation test.
+**Статус:** ✅ Done — var_stress_test.py deprecated with DeprecationWarning. Tests updated with filterwarnings + deprecation test. Пачка XX.
 
 ### [01] Refactoring Agent — extract compute_returns
 **Задача:** Создать `src/research/_common.py` с `compute_returns(prices)`.
