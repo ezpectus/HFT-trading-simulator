@@ -1618,3 +1618,15 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R1061 | BybitAdapter: no rate limiter | `BybitAdapter.h` | Low | No can_send_order. Add Bybit-specific limits (120/min) |
 | R1062 | BybitAdapter: api_secret in Config struct | `BybitAdapter.h:25` | Medium | Plain string secret. Use secure string wrapper |
 | R1063 | Code reduction: 3× adapter duplicate pattern | `BinanceAdapter.h:41+OKXAdapter.h:39+BybitAdapter.h:37` | Info | Move maps+spinlocks+IExchange to ExchangeBase. ~60 lines |
+| R1064 | hft-trade-bot/metrics/metrics_collector.h | `metrics_collector.h` | ✅ Good | 3 metric types convenience methods HTTP server mutex |
+| R1065 | metrics_collector: std::map for counters/gauges | `metrics_collector.h:86` | Low | O(log N) lookup. Use unordered_map |
+| R1066 | metrics_collector: mutex on every metric operation | `metrics_collector.h:85` | Medium | Single std::mutex blocks hot path. Use atomics or spinlock |
+| R1067 | metrics_collector: HTTP server blocks during export | `metrics_collector.h:72` | Low | Export under mutex blocks all ops. Snapshot then export |
+| R1068 | hft-trade-bot/network/ws_client.h | `ws_client.h` | ✅ Excellent | 6-state machine backoff+jitter watchdog bounded queue subscription reconnection |
+| R1069 | ws_client: ReconnectPolicy uses rand() not thread-safe | `ws_client.h:84` | Low | rand() not thread-safe. Use std::mt19937 thread_local |
+| R1070 | ws_client: MessageQueue uses std::queue with std::string | `ws_client.h:169` | Low | Heap alloc per push/pop. Use ring buffer of pre-allocated buffers |
+| R1071 | ws_client: Watchdog timeout_ms_ not atomic | `ws_client.h:120` | Low | Data race on set_timeout. Make atomic<uint32_t> |
+| R1072 | hft-trade-bot/tracing/tracer.h | `tracer.h` | ✅ Good | Span 4 trace methods context propagation mutex |
+| R1073 | tracer: spans_ vector unbounded | `tracer.h:71` | Medium | 200 spans/sec → 3.4GB/day → OOM. Ring buffer or periodic export |
+| R1074 | tracer: mutex on every span creation | `tracer.h:70` | Low | 200 mutex/sec. Use SPSC queue or spinlock |
+| R1075 | tracer: no span export mechanism | `tracer.h` | Medium | Spans collected but never exported to Jaeger. Add export_spans() |

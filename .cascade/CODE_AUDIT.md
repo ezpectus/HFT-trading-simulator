@@ -14746,3 +14746,148 @@ Same issue as BinanceAdapter and OKXAdapter — plain string secret in Config.
 All three adapters have identical `best_bid`, `best_ask`, `mid_price`, `bid_depth`, `ask_depth` implementations — 30 lines each × 3 = 90 lines of duplication. The only difference is the class name and the map names (which are identical).
 
 **Reduction potential:** ~60 lines. Move the maps + spinlocks + IExchange methods to `ExchangeBase`, make them virtual, and have concrete adapters only implement update methods + exchange-specific logic.
+
+### 8.1076 hft-trade-bot/src/metrics/metrics_collector.h: Metrics Collector — ✅ Good
+
+**Файл:** `hft-trade-bot/src/metrics/metrics_collector.h` (93 lines)
+
+- **3 metric types**: Counter, Gauge, Histogram — correct
+- **HistogramBuckets**: Observe, get_buckets, get_counts, get_total_count, get_sum — correct
+- **Convenience methods**: record_signal_generation_latency, record_order_execution_latency, record_fill, record_error — correct
+- **System metrics**: cpu_usage, memory_usage, active_connections — correct
+- **HTTP server**: Prometheus export on port 8002 — correct
+- **Mutex protection**: `metrics_mutex_` for all maps — correct
+
+Good metrics collector with 3 metric types, convenience methods, HTTP server, and mutex protection. ✅
+
+### 8.1077 metrics_collector: std::map for counters/gauges — Low
+
+**Файл:** `metrics_collector.h:86-88`
+
+```cpp
+std::map<std::string, uint64_t> counters_;
+std::map<std::string, double> gauges_;
+std::map<std::string, HistogramBuckets> histograms_;
+```
+
+Uses `std::map` (red-black tree, O(log N) lookup) instead of `std::unordered_map` (O(1) lookup). With 50 symbols × 5 strategies = 250 counter keys, the log(250) ≈ 8 comparisons per lookup. At 50 signals/min, that's 400 comparisons/min — negligible. But `std::map` also allocates nodes on the heap for each insertion, which is slower than `unordered_map`'s bucket allocation.
+
+**Фикс:** Use `std::unordered_map` for O(1) lookup. Or use a flat hash map like `absl::flat_hash_map`.
+
+### 8.1078 metrics_collector: mutex on every metric operation — Medium
+
+**Файл:** `metrics_collector.h:85`
+
+```cpp
+std::mutex metrics_mutex_;
+```
+
+A single `std::mutex` protects all counters, gauges, and histograms. Every `increment_counter`, `set_gauge`, `observe_histogram` call acquires this mutex. In the hot path (signal generation → order execution → fill), 3-5 metric operations happen per signal. At 50 signals/sec, that's 150-250 mutex acquisitions/sec. `std::mutex` is a kernel-level lock (~1μs per acquisition on Linux). 250 × 1μs = 250μs/sec = 0.025% CPU overhead.
+
+Not terrible, but in an HFT bot where every microsecond counts, a spinlock or atomic counters would be better. Also, if the HTTP server thread is generating Prometheus output (which iterates all maps under the mutex), all metric operations are blocked for the duration of the export.
+
+**Фикс:** Use atomic counters for simple increment/set. Use per-histogram mutexes. Or use a lock-free metrics library like `prometheus::Registry`.
+
+### 8.1079 metrics_collector: HTTP server blocks during export — Low
+
+**Файл:** `metrics_collector.h:72, 77-79`
+
+`generate_prometheus_output()` iterates all counters, gauges, and histograms under `metrics_mutex_`. If there are 250 keys, the export takes ~100μs (string concatenation). During this time, all `increment_counter`/`set_gauge`/`observe_histogram` calls are blocked. At 50 signals/sec, this adds ~100μs latency to 1-2 signals per export.
+
+**Фикс:** Snapshot the metrics under the mutex, then generate the output outside the mutex. Or use a reader-writer lock.
+
+### 8.1080 hft-trade-bot/src/network/ws_client.h: Network WebSocket Client — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/network/ws_client.h` (256 lines)
+
+- **6-state ConnectionState**: DISCONNECTED→CONNECTING→CONNECTED→AUTHENTICATED→RECONNECTING→ERROR — correct
+- **ReconnectPolicy**: Exponential backoff with jitter, configurable max_attempts — correct
+- **Watchdog**: Atomic last_activity_ns, feed/is_alive/idle_ms — correct
+- **MessageQueue**: Bounded, spinlock-protected, drop counter, try_push/try_pop — correct
+- **SubscriptionManager**: Spinlock-protected unordered_set — correct
+- **ReconnectionManager**: Atomic state + attempts, should_retry, next_delay_ms — correct
+
+Excellent network WS client with 6-state machine, exponential backoff with jitter, watchdog, bounded message queue with backpressure, subscription manager, and reconnection manager. ✅
+
+### 8.1081 ws_client: ReconnectPolicy uses rand() not thread-safe — Low
+
+**Файл:** `ws_client.h:84`
+
+```cpp
+int32_t jitter =
+    static_cast<int32_t>(jitter_ms) - static_cast<int32_t>(rand() % (2 * jitter_ms));
+```
+
+`rand()` is not thread-safe and has poor distribution. If `compute_delay` is called from multiple threads simultaneously, the internal state of `rand()` is corrupted, producing non-random or biased values. Also, `rand() % N` produces biased results for non-power-of-2 N.
+
+**Фикс:** Use `std::mt19937` with a thread-local instance, or `std::random_device` for seeding.
+
+### 8.1082 ws_client: MessageQueue uses std::queue with std::string — Low
+
+**Файл:** `ws_client.h:169`
+
+```cpp
+std::queue<std::string> queue_;
+```
+
+`std::queue<std::string>` uses `std::deque` as the underlying container, which allocates each string on the heap. Each `try_push` moves a string into the queue (heap allocation for the deque block), and each `try_pop` moves it out (deallocation). With 500 messages/sec, that's 1000 heap ops/sec. The comment says "No heap allocations in hot path" but `std::string` itself is a heap allocation.
+
+**Фикс:** Use a ring buffer of pre-allocated `std::array<char, N>` or a pool of string buffers.
+
+### 8.1083 ws_client: Watchdog timeout_ms_ not atomic — Low
+
+**Файл:** `ws_client.h:111, 120`
+
+```cpp
+void set_timeout(uint32_t ms) noexcept { timeout_ms_ = ms; }
+// ...
+uint32_t timeout_ms_;
+```
+
+`timeout_ms_` is a plain `uint32_t`, not atomic. If `set_timeout` is called from one thread while `is_alive` reads `timeout_ms_` from another, it's a data race. The `last_activity_ns_` is atomic, but the timeout itself is not.
+
+**Фикс:** Make `timeout_ms_` `std::atomic<uint32_t>`.
+
+### 8.1084 hft-trade-bot/src/tracing/tracer.h: C++ Tracer — ✅ Good
+
+**Файл:** `hft-trade-bot/src/tracing/tracer.h` (76 lines)
+
+- **Span**: name, attributes, events, status, start/end time — correct
+- **Tracer**: service_name, jaeger_host, jaeger_port — correct
+- **Trace methods**: signal_generation, order_execution, signal_processing, orderbook_update — correct
+- **Context propagation**: inject/extract — correct
+- **Mutex protection**: `tracer_mutex_` for spans — correct
+
+Good C++ tracer with Span, 4 trace methods, context propagation, and mutex protection. ✅
+
+### 8.1085 tracer: spans_ vector unbounded — Medium
+
+**Файл:** `tracer.h:71`
+
+```cpp
+std::vector<Span> spans_;
+```
+
+`spans_` is a `std::vector<Span>` that grows unbounded. Every `trace_signal_generation`, `trace_order_execution`, etc. adds a Span to the vector. At 50 signals/sec × 4 trace methods = 200 spans/sec. In 1 hour, that's 720,000 spans × ~200 bytes each = 144MB. In 24 hours, 3.4GB. The bot will OOM.
+
+**Фикс:** Use a ring buffer with a max size (e.g., 10,000 spans). Or export spans to Jaeger periodically and clear the vector. Or use OpenTelemetry SDK which handles this automatically.
+
+### 8.1086 tracer: mutex on every span creation — Low
+
+**Файл:** `tracer.h:70`
+
+```cpp
+std::mutex tracer_mutex_;
+```
+
+Every `trace_*` method acquires `tracer_mutex_` to add a Span. At 200 spans/sec, that's 200 mutex acquisitions/sec. `std::mutex` is ~1μs per acquisition. 200μs/sec = 0.02% CPU. Not terrible, but in an HFT bot, a spinlock or lock-free queue would be better.
+
+**Фикс:** Use a lock-free SPSC queue for spans (single producer = bot loop, single consumer = export thread).
+
+### 8.1087 tracer: no span export mechanism — Medium
+
+**Файл:** `tracer.h` (entire file)
+
+The `Tracer` class has no method to export spans to Jaeger. `inject_context` propagates context via headers, but there's no `export_spans()` or `flush()` method. Spans accumulate in `spans_` and are never sent to Jaeger. The tracing is effectively useless — spans are collected but never exported.
+
+**Фикс:** Add `export_spans()` method that sends spans to Jaeger via UDP/HTTP. Or integrate with OpenTelemetry SDK which handles export automatically. Call `export_spans()` periodically (e.g., every 10s) or when `spans_.size()` exceeds a threshold.

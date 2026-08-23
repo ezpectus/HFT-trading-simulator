@@ -313,3 +313,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | BinanceAdapter: api_secret in Config struct | Plain std::string secret in heap memory. Use secure string wrapper, don't log Config | CODE_AUDIT §8.1066 |
 | OKXAdapter: passphrase stored as plain string | OKX passphrase in plain std::string. Use secure string wrapper | CODE_AUDIT §8.1071 |
 | BybitAdapter: api_secret in Config struct | Same as Binance/OKX — plain string secret. Use secure string wrapper | CODE_AUDIT §8.1074 |
+| metrics_collector: mutex on every metric operation | Single std::mutex blocks all hot-path metric ops during Prometheus export. Use atomics or per-histogram locks | CODE_AUDIT §8.1078 |
+| tracer: spans_ vector unbounded | 200 spans/sec → 144MB/hour → 3.4GB/day → OOM. Ring buffer or periodic export | CODE_AUDIT §8.1085 |
+| tracer: no span export mechanism | Spans collected but never sent to Jaeger. Tracing is useless. Add export_spans() | CODE_AUDIT §8.1087 |
