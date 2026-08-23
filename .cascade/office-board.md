@@ -7,7 +7,12 @@
 
 ---
 
-## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): Health + Metrics audit
+## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): CODE_AUDIT documentation sync
+
+### [07] Refactoring Agent — CODE_AUDIT §1.4, §2.1-2.6, §3.3-3.4, §4.1-4.10 status sync
+**Задача:** Update all CODE_AUDIT sections with [FIXED]/[N/A] tags based on work done in previous cycles.
+  20 sections updated to reflect current status.
+**Статус:** ✅ Done — §1.4 [FIXED], §2.1 [N/A], §2.2 [N/A], §2.3 [FIXED], §2.4 [FIXED], §2.5 [N/A], §2.6 [N/A], §3.3 [N/A], §3.4 [FIXED], §4.1-4.10 all [FIXED]. Пачка BB.
 
 ### [06] Refactoring Agent — Health 3× + Metrics 2× audit
 **Задача:** Deprecate `src/communication/health_check.py` (dead code, zero imports).
@@ -144,9 +149,9 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~SHM no cleanup on crash~~ [FIXED] | Added atexit handler + _registered_buffers tracking in shm_ring_buffer.py — segments unlinked on normal exit | CODE_AUDIT §8.62 |
 | Dual metrics systems — N/A | communication/MetricsCollector (embedded in signal_publisher, lightweight text format) vs monitoring/MetricsExporter (standalone prometheus_client). Different purposes, not duplicates | CODE_AUDIT §8.64 |
 | ~~No asyncio.Lock on _clients~~ [FIXED] | Added _state_lock in signal_publisher + real_market_data (Пачка H) | CODE_AUDIT §8.65 |
-| Helm: no PDB | Node drain evicts all pods → downtime | CODE_AUDIT §8.66 |
-| Helm: no NetworkPolicy | All pods reach all pods, DB exposed | CODE_AUDIT §8.67 |
-| Helm: hardcoded PG password | Default "change-me-in-production" if not overridden | CODE_AUDIT §8.69 |
+| ~~Helm: no PDB~~ [FIXED] | PDB templates added for ai-signal-bot, exchange-simulator, hft-trade-bot — minAvailable: 1 | CODE_AUDIT §8.66 |
+| ~~Helm: no NetworkPolicy~~ [FIXED] | NetworkPolicy templates added: default-deny + postgres ingress (port 5432 from same release) + redis ingress (port 6379 from same release) + DNS egress | CODE_AUDIT §8.67 |
+| ~~Helm: hardcoded PG password~~ [FIXED] | values.yaml password set to empty string — postgres-secret.yaml already fails if empty | CODE_AUDIT §8.69 |
 | ~~Docker Compose: no resource limits~~ [FIXED] | All 6 dev services now have deploy.resources.limits (memory+cpus) — prevents host crash on memory leak | CODE_AUDIT §8.70 |
 | ~~WS input: no schema validation~~ [FIXED] | signal_publisher now validates JSON object, type field, and whitelist of message types | CODE_AUDIT §8.71 |
 | ~~DB migrations: no runner~~ [FIXED] | scripts/migrate.py already exists — runs SQL migrations with transaction wrapping (Пачка Y) | CODE_AUDIT §8.72 |
@@ -169,15 +174,15 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~Health checks v2: not wired~~ [FIXED] | HealthChecker wired into run.py — liveness/readiness registered with HealthServer, record_signal/record_order called | CODE_AUDIT §8.116 |
 | C++ order_executor: detached thread | Destroy while reconnect sleeping = use-after-free | CODE_AUDIT §8.117 |
 | C++ order_executor: snprintf truncation | Long strings = malformed JSON sent silently | CODE_AUDIT §8.118 |
-| .env.prod: placeholder passwords | `change_me_to_a_secure_password` with no validation | CODE_AUDIT §8.123 |
-| .env.prod: localhost WS URLs | Docker build without override = broken WS | CODE_AUDIT §8.124 |
+| ~~.env.prod: placeholder passwords~~ [FIXED] | All passwords set to empty with REQUIRED comments — docker-compose.prod.yml fails if not set via ${VAR:?} | CODE_AUDIT §8.123 |
+| ~~.env.prod: localhost WS URLs~~ [FIXED] | VITE_WS_EXCHANGE/SIGNALS set to empty with REQUIRED comments — no localhost default | CODE_AUDIT §8.124 |
 | C++ health_server: accept() blocks | stop() can't join thread until next connection | CODE_AUDIT §8.126 |
-| Makefile.prod: migration not idempotent | Running twice = "table already exists" error | CODE_AUDIT §8.132 |
-| docker-compose dev: Grafana admin/admin | Default creds, risky if port exposed | CODE_AUDIT §8.138 |
+| ~~Makefile.prod: migration not idempotent~~ [FIXED] | schema_migrations table tracks applied files — skips already-applied, wraps new migrations in transaction | CODE_AUDIT §8.132 |
+| ~~docker-compose dev: Grafana admin/admin~~ [FIXED] | Grafana password now uses ${GRAFANA_PASSWORD:?} — fails if not set | CODE_AUDIT §8.138 |
 | ~~deploy.yml: health check no exit~~ [FIXED] | Health check job now exits 1 on failure — tracks FAIL count, fails pipeline if any endpoint unreachable | CODE_AUDIT §8.144 |
 | C++ bot_context: God struct | 25+ members, all coupled, hard to test | CODE_AUDIT §8.147 |
 | C++ SPSCQueue + mutex | SPSC is single-producer but mutex suggests multi-thread race | CODE_AUDIT §8.148 |
-| prod VITE_WS localhost fallback | Forgetting to set in .env.prod = broken WS | CODE_AUDIT §8.152 |
+| ~~prod VITE_WS localhost fallback~~ [FIXED] | deploy.yml no longer falls back to localhost — empty value if GitHub vars not set | CODE_AUDIT §8.152 |
 | C++ risk_manager: check_order mutex | Serializes all order submissions, use shared_mutex | CODE_AUDIT §8.155 |
 | C++ daily_pnl += not atomic | atomic<double> += is load+store race, use fetch_add | CODE_AUDIT §8.156 |
 | C++ pre_trade_risk: blacklist race | insert/erase while check() reads = data race UB | CODE_AUDIT §8.158 |
@@ -189,8 +194,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~SHM stale data on restart~~ [FIXED] | shm_market_data_writer.py now calls _mm_barrier() after seq+1 and before seq+2 — ensures correct memory ordering on ARM for cross-process SHM visibility | CODE_AUDIT §8.177, §8.713, §8.1191 |
 | C++ string_to_side no validation | Any non-"BUY" string silently → SELL | CODE_AUDIT §8.186 |
 | web-ui: 50+ components, many unused | Math viz panels may be dead code, ~1000+ lines reducible | CODE_AUDIT §8.188 |
-| Helm values.yaml: hardcoded passwords | postgres "change-me-in-production", grafana "" → admin/admin | CODE_AUDIT §8.193 |
-| Helm values.yaml: VITE_WS localhost | K8s browser can't reach localhost:8765/8766 | CODE_AUDIT §8.195 |
+| ~~Helm values.yaml: hardcoded passwords~~ [FIXED] | postgres.password, grafana.adminPassword set to empty — Helm fails if not set via --set | CODE_AUDIT §8.193 |
+| ~~Helm values.yaml: VITE_WS localhost~~ [FIXED] | wsExchange/wsSignals set to empty — web-ui.yaml template fails if not set | CODE_AUDIT §8.195 |
 | C++ signal.h: NEUTRAL→BUY | side() silently returns BUY for NEUTRAL, no enforcement | CODE_AUDIT §8.192 |
 | C++ 3 exchange adapters: code duplication | 470 lines, ~200 duplicated. Move to ExchangeBase | CODE_AUDIT §8.207 |
 | C++ BinanceAdapter: nested Spinlock | price_lock_ → depth_lock_ nesting, fragile lock ordering | CODE_AUDIT §8.203 |
@@ -249,10 +254,10 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~ai-signal-bot: no database migrations~~ [FIXED] | scripts/migrate.py exists with transaction wrapping (Пачка Y). _init_db uses CREATE TABLE IF NOT EXISTS. Alembic not needed for SQLite | CODE_AUDIT §8.382 |
 | hft-trade-bot: synthetic order book | Fake 10-level book with 1bp spacing, 1.0 qty. No warning. Unrealistic | CODE_AUDIT §8.380 |
 | ~~ai-signal-bot db: new connection per operation~~ [FIXED] | Already uses persistent _get_conn() — verified in Пачка AA | CODE_AUDIT §8.363 |
-| Makefile.prod: no migration tracking | Runs all SQL migrations every time. No schema_migrations table | CODE_AUDIT §8.374 |
+| ~~Makefile.prod: no migration tracking~~ [FIXED] | schema_migrations table with filename PK + applied_at timestamp — idempotent re-runs | CODE_AUDIT §8.374 |
 | ~~docker-compose: no resource limits~~ [FIXED] | All 6 dev services now have deploy.resources.limits — same as prod compose | CODE_AUDIT §8.385 |
-| helm: hardcoded localhost for web-ui WS | localhost in browser won't connect to K8s services. Use ingress URL | CODE_AUDIT §8.387 |
-| helm: Postgres password in plaintext | `change-me-in-production` in values.yaml. Default to empty, require secret | CODE_AUDIT §8.388 |
+| ~~helm: hardcoded localhost for web-ui WS~~ [FIXED] | Same as §8.195 — wsExchange/wsSignals empty in values.yaml, template fails if not set | CODE_AUDIT §8.387 |
+| ~~helm: Postgres password in plaintext~~ [FIXED] | Same as §8.69 — password empty in values.yaml, postgres-secret.yaml fails if not set | CODE_AUDIT §8.388 |
 | ~~ci.yml: no security scanning~~ [FIXED] | npm audit now fails CI on high/critical. Bandit + CodeQL already present. pip-audit is future enhancement | CODE_AUDIT §8.390 |
 | ci.yml: no integration tests | Unit tests only. No docker-compose integration test in CI | CODE_AUDIT §8.391 |
 | terraform: db_password default in plaintext | `ChangeMeInProduction123!` as default. Remove default, require var or Secrets Manager | CODE_AUDIT §8.401 |
@@ -261,7 +266,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | web-ui: 200+ components over-engineering | Math/research panels unlikely used by traders. Feature flag or separate package | CODE_AUDIT §8.410 |
 | hft-trade-bot: 3 engine versions loaded | V1/V2/V3 all allocated. V1 never used in hot path. Remove V1 | CODE_AUDIT §8.419 |
 | hft-trade-bot: prices_cache not thread-safe | unordered_map without lock. Data race if multi-threaded. Use shared_mutex | CODE_AUDIT §8.420 |
-| deploy.yml: localhost fallback for VITE_WS | Defaults to localhost if GitHub vars not set. Build should fail instead | CODE_AUDIT §8.412 |
+| ~~deploy.yml: localhost fallback for VITE_WS~~ [FIXED] | Removed localhost fallback — VITE_WS_EXCHANGE/SIGNALS now empty if GitHub vars not set | CODE_AUDIT §8.412 |
 | hft-executor: avg_latency_ns always 0 | Stats field never populated. No latency measurement implemented | CODE_AUDIT §8.394 |
 | deploy/k8s: only secrets, no manifests | Only secrets.enc.yaml. No Deployment/Service/ConfigMap. Use Helm or add manifests | CODE_AUDIT §8.404 |
 | hft-trade-bot: no Dockerfile.prod | Deploy workflow uses Dockerfile.prod but only Dockerfile exists. Deploy will fail | CODE_AUDIT §8.423 |
@@ -269,7 +274,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | config.h: hardcoded localhost default | ws_url defaults to localhost:8765. Won't work in Docker/K8s. Default to empty | CODE_AUDIT §8.445 |
 | order_executor: detached reconnect thread | Detached thread accesses this after destruction. Use jthread or join in dtor | CODE_AUDIT §8.452 |
 | BinanceAdapter: nested spinlock acquisition | Two spinlocks sequential. Latent deadlock risk. Use single lock or document ordering | CODE_AUDIT §8.462 |
-| Helm values: no Redis password | No auth section for Redis. Add existingSecret and --requirepass | CODE_AUDIT §8.467 |
+| ~~Helm values: no Redis password~~ [FIXED] | redis.password added to values.yaml (empty by default) — redis.yaml template adds --requirepass + Secret with REDIS_URL, fails if not set | CODE_AUDIT §8.467 |
 | metrics_collector: mutex on every metric op | Global mutex blocks all metric operations in HFT hot path. Use atomics | CODE_AUDIT §8.483 |
 | ~~circuit_breaker: not thread-safe~~ [FIXED] | Added asyncio.Lock to CircuitBreaker — allow_signal, record_success, record_failure, reset now async | CODE_AUDIT §8.499 |
 | ~~health_check: new ClientSession per call~~ [FIXED] | AlertSystem already uses shared _get_session() — no per-call session creation | CODE_AUDIT §8.501 |

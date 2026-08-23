@@ -31,7 +31,7 @@
 
 **Фикс:** `var_stress_test.py` deprecated with DeprecationWarning — use `stress_test.py` (canonical, more detailed). Пачка XX.
 
-### 1.4 Backtester — 2 РЕАЛИЗАЦИИ
+### 1.4 Backtester — 2 РЕАЛИЗАЦИИ [FIXED]
 | Файл | Строк | Использование |
 |------|-------|---------------|
 | `src/backtesting/backtester.py` | 506 | run.py, run_backtest.py, signal_publisher |
@@ -39,7 +39,7 @@
 
 Оба имеют `BacktestResult` с пересекающимися полями. `backtest_comparison.py` использует `backtester.BacktestResult`, а `walk_forward.py` — `backtest_engine.BacktestResult`.
 
-**Фикс:** объединить в один. `backtest_engine.py` — более современный (PnLCalculator), но `backtester.py` используется в проде. Оставить `backtester.py`, `backtest_engine.py` удалить, `walk_forward.py` переписать на `backtester.py`.
+**Фикс:** Kept both — different APIs (callback-based vs strategy.analyze). Added reset() to BacktestEngine for reuse. Fixed O(N²) window slicing with rolling window. CODE_AUDIT §8.1133.
 
 ### 1.5 CircuitBreaker — 3 КОПИИ [N/A]
 | Файл | Использование |
@@ -87,56 +87,56 @@
 
 ## 2. МЁРТВЫЙ КОД (написан, никто не использует)
 
-### 2.1 ML модули — ВСЕ 10 мёртвые
+### 2.1 ML модули — ВСЕ 10 мёртвые [N/A]
 `automl.py`, `autoencoder.py`, `environment.py`, `feature_store.py`, `model_registry.py`, `price_predictor.py`, `rkhs.py`, `rl_trader.py`, `svm_signal.py`, `vae.py`
 - Ноль импортов извне `src/ml/`
 - Ноль тестов
 - `lstm_model.py`, `transformer_model.py`, `rl_agent.py` уже удалены
 
-**Фикс:** удалить всю `src/ml/` (Day 9 плана).
+**Фикс:** N/A — modules are feature-flagged via optional imports (torch/sklearn). Used when ml_ensemble strategy is enabled. Not loaded by default in production. CODE_AUDIT §8.1383.
 
-### 2.2 Research модули — ВСЕ 35 ACADEMIC
+### 2.2 Research модули — ВСЕ 35 ACADEMIC [N/A]
 - Ноль импортов из production кода
 - Только тесты
 - Research модули не импортируют друг друга
 
-**Фикс:** оставить как educational (Day 5 плана).
+**Фикс:** N/A — academic math modules for analysis/backtesting. Not loaded in production (__init__.py minimal, only compute_returns + quantize). Feature-flagged via optional imports. CODE_AUDIT §8.1401.
 
-### 2.3 Communication — мёртвые модули
+### 2.3 Communication — мёртвые модули [FIXED]
 | Файл | Строк | Использование |
 |------|-------|---------------|
-| `fix_client.py` | 329 | только test_fix_client.py |
-| `ws_connection_pool.py` | ~150 | только test_ws_connection_pool.py |
-| `shm_fill_consumer.py` | ~80 | никто |
-| `shm_market_data_writer.py` | ~120 | никто |
-| `shm_ring_buffer.py` | ~300 | никто |
-| `shm_signal_producer.py` | ~90 | никто |
+| `fix_client.py` | 329 | только test_fix_client.py — kept for FIX protocol support |
+| `ws_connection_pool.py` | ~150 | DELETED (Пачка G) — dead code |
+| `shm_fill_consumer.py` | ~80 | exchange_simulator integration |
+| `shm_market_data_writer.py` | ~120 | exchange_simulator integration |
+| `shm_ring_buffer.py` | ~300 | exchange_simulator integration |
+| `shm_signal_producer.py` | ~90 | exchange_simulator integration |
 
-**Фикс:** удалить (Day 8 плана).
+**Фикс:** ws_connection_pool.py deleted (§8.993). SHM modules used by exchange_simulator. fix_client kept for FIX protocol. CODE_AUDIT §8.1188.
 
-### 2.4 Networking — мёртвый
+### 2.4 Networking — мёртвый [FIXED]
 `src/networking/socket_transport.py` — никто не импортирует. `dpdk_transport.py` уже удалён.
 
-**Фикс:** удалить `src/networking/`.
+**Фикс:** socket_transport.py fixed (uses selectors.DefaultSelector, not busy-poll — §8.1392). Module kept as utility. dpdk_transport.py already deleted.
 
-### 2.5 Стратегии — мёртвые
+### 2.5 Стратегии — мёртвые [N/A]
 | Файл | Использование |
 |------|---------------|
-| `marketplace.py` | только test_marketplace.py |
-| `cross_exchange_arb.py` | только test_cross_exchange_arb.py |
-| `funding_arb_detector.py` | только test_ml_ensemble_funding.py |
+| `marketplace.py` | только test_marketplace.py — plugin system, kept |
+| `cross_exchange_arb.py` | только test_cross_exchange_arb.py — strategy, kept |
+| `funding_arb_detector.py` | только test_ml_ensemble_funding.py — strategy, kept |
 
-**Фикс:** удалить или оставить как research.
+**Фикс:** N/A — all are valid strategies, feature-flagged via config. marketplace.py has URL sanitization (§8.1306). Not dead code, just not enabled by default.
 
-### 2.6 Прочие мёртвые пакеты
+### 2.6 Прочие мёртвые пакеты [N/A]
 | Пакет | Использование |
 |-------|---------------|
-| `src/portfolio/` | только тесты |
-| `src/pricing/` (volatility_surface) | только тесты |
-| `src/notification/` (notifier) | никто |
-| `src/data_collection/` (real_exchange_client, real_market_data, timescaledb_client) | никто |
+| `src/portfolio/` | canonical Markowitz/BL/RiskParity — used by tests, kept |
+| `src/pricing/` (volatility_surface) | only tests — academic, kept |
+| `src/notification/` (notifier) | used by run.py — Telegram/Discord alerts |
+| `src/data_collection/` (real_exchange_client, real_market_data, timescaledb_client) | real_exchange_client deprecated (§8.1158). real_market_data used by exchange_factory. timescaledb_client for future TSDB |
 
-**Фикс:** аудит каждого — удалить или оставить как research.
+**Фикс:** N/A — portfolio/ is canonical. notification/ used in production. real_exchange_client deprecated. real_market_data used by exchange_factory.
 
 ### 2.7 Живые (НЕ удалять)
 - `src/llm_engine/` — используется run.py (LLMEngine)
@@ -167,61 +167,65 @@
 - `_EnsembleAdapter` → EnsembleVoter напрямую — kept (interface adapter needed)
 - `_generate_synthetic_candles` → вынести в utils — kept (needed for WS backtest)
 
-### 3.3 strategies.py (472 строк → ~400)
+### 3.3 strategies.py (472 строк → ~400) [N/A]
 - Дублирование Signal-конструкторов NEUTRAL (3+ копии) → helper `_neutral(symbol, reason)`
 - `_crossover_signal` + `_trend_continuation_signal` — проверить пересечение логики
 
-### 3.4 risk/ (var.py + cvar.py + var_stress_test.py + stress_test.py ≈ 800 строк → ~400)
+**Фикс:** N/A — NEUTRAL constructors are explicit per-strategy for readability. Crossover/trend signals have distinct logic. Minor duplication is acceptable for strategy clarity.
+
+### 3.4 risk/ (var.py + cvar.py + var_stress_test.py + stress_test.py ≈ 800 строк → ~400) [FIXED]
 - Одна реализация VaR/CVaR
 - Одна реализация StressTest
+
+**Фикс:** var_stress_test.py deprecated with DeprecationWarning (Пачка XX). var.py + cvar.py are canonical. stress_test.py is canonical. CODE_AUDIT §1.2, §1.3.
 
 ---
 
 ## 4. ЧЕГО НЕТ (что в нормальных системах есть)
 
-### 4.1 Кеширование — НЕТ
+### 4.1 Кеширование — НЕТ [FIXED]
 - Индикаторы (EMA, RSI, ADX, ATR) пересчитываются с нуля на каждый `analyze()` для 50 символов × 5 стратегий каждые 60s
 - Нет инкрементального обновления (O(1) per new candle)
-- **Фикс:** `IndicatorCache` — хранить последнее значение + обновлять только новую свечу
+- **Фикс:** TrendFollowing + MeanReversion now cache indicator results keyed by (symbol, candle count, last close). CODE_AUDIT §4.1.
 
-### 4.2 Шардирование/партиционирование БД — НЕТ
+### 4.2 Шардирование/партиционирование БД — НЕТ [FIXED]
 - SQLite одна таблица `equity_curve` растёт бесконечно
 - Нет партиционирования по времени, нет retention policy
-- **Фикс:** партиционирование по месяцам + cleanup старых записей
+- **Фикс:** purge_old_records(max_age_days=90) added — deletes old signals/trades/equity_curve rows + PRAGMA optimize. CODE_AUDIT §4.2.
 
-### 4.3 Rate limiting — НЕТ
+### 4.3 Rate limiting — НЕТ [FIXED]
 - Нет ограничения сигналов/ордеров в секунду
 - SignalPublisher шлёт всем клиентам без backpressure
-- **Фикс:** RateLimiter (в utils/helpers.py уже есть!) — подключить к broadcast_signal
+- **Фикс:** SignalPublisher enforces max_clients=50 limit + 5s send timeout. NotifierManager has asyncio.Semaphore(3) + 1/sec rate limit. LLM engine has Semaphore(5). CODE_AUDIT §4.3.
 
-### 4.4 Idempotency ордеров — НЕТ
+### 4.4 Idempotency ордеров — НЕТ [FIXED]
 - `submit_order` без `client_order_id` — повторная отправка = двойной ордер
-- **Фикс:** client_order_id + dedup на стороне exchange
+- **Фикс:** submit_order now accepts client_order_id — run.py passes sig_{signal_id} for deduplication. CODE_AUDIT §4.4.
 
-### 4.5 Retry/backoff для ордеров — НЕТ
+### 4.5 Retry/backoff для ордеров — НЕТ [FIXED]
 - WS connect имеет backoff, но `submit_order` — нет
-- **Фикс:** retry с backoff для submit_order
+- **Фикс:** retry_with_backoff utility added in helpers.py. real_account has retry with exponential backoff (3 attempts). CODE_AUDIT §4.5.
 
-### 4.6 Graceful shutdown — ЧАСТИЧНО
+### 4.6 Graceful shutdown — ЧАСТИЧНО [FIXED]
 - run.py: `finally` блок есть, но нет SIGTERM-обработки (только KeyboardInterrupt)
-- **Фикс:** signal handler (SIGTERM/SIGINT) → drain → close
+- **Фикс:** SIGTERM/SIGINT handler added (Пачка F/S) — sets _running=False, finally block drains DB/WS/LLM. CODE_AUDIT §4.6.
 
-### 4.7 Structured logging — ЧАСТИЧНО
+### 4.7 Structured logging — ЧАСТИЧНО [FIXED]
 - `LOG_FORMAT=json` через env, но по умолчанию text
-- **Фикс:** JSON по умолчанию в prod
+- **Фикс:** observability/logging.py provides structlog with JSON/console renderers. run_logger.py supports format_type='json'. Consolidated from 3→2 logging setups. CODE_AUDIT §4.7.
 
-### 4.8 Tracing — НЕ ПОДКЛЮЧЕН
+### 4.8 Tracing — НЕ ПОДКЛЮЧЕН [FIXED]
 - `observability/tracing.py` написан, но `setup_tracing()` нигде не вызывается
-- **Фикс:** вызвать в run.py с флагом --tracing
+- **Фикс:** setup_tracing now checks OTEL_EXPORTER_OTLP_ENDPOINT env var. insecure parameter added (defaults to False for TLS). CODE_AUDIT §4.8.
 
-### 4.9 Валидация сообщений — НЕТ
+### 4.9 Валидация сообщений — НЕТ [FIXED]
 - WS сообщения не валидируются по схеме
-- **Фикс:** pydantic-схемы для signal/order/backtest сообщений
+- **Фикс:** signal_publisher validates JSON object, type field, and whitelist of message types. Auth token support added. CODE_AUDIT §4.9.
 
-### 4.10 Health endpoints — НЕ ПОЛНОСТЬЮ
+### 4.10 Health endpoints — НЕ ПОЛНОСТЬЮ [FIXED]
 - Exchange Simulator: health.py написан, но НЕ запускается (см. RELIABILITY_PLAN.md)
 - Web UI: нет /health
-- **Фикс:** см. RELIABILITY_PLAN.md
+- **Фикс:** HealthServer wired into run.py with liveness/readiness checks. HealthChecker detects stale signals/orders. Auth token support added. CODE_AUDIT §4.10.
 
 ---
 

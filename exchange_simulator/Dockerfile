@@ -27,6 +27,6 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8765 8775
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
-    CMD python -c "import socket; socket.create_connection(('localhost', 8765), timeout=5)" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8765/health', timeout=5)" || exit 1
 
 CMD ["python", "-m", "exchange_simulator", "--no-visualizer"]

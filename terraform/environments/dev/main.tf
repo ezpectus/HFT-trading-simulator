@@ -25,10 +25,9 @@ provider "aws" {
 
 # Variables
 variable "db_password" {
-  description = "RDS master password"
+  description = "RDS master password (MUST be provided via -var or tfvars)"
   type        = string
   sensitive   = true
-  default     = "ChangeMeInProduction123!"
 }
 
 # Modules

@@ -73,7 +73,7 @@ trading:
   paper_trading: true           # If true, no real orders are sent
 
 exchange:
-  websocket_url: "ws://localhost:8765"
+  websocket_url: "${EXCHANGE_WS_URL:ws://localhost:8765}"
   default_exchange: "binance"   # binance | bybit | okx
 
 # Risk management — all percentages are of total account balance
