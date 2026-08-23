@@ -830,7 +830,7 @@ Grep for `encrypt|kms|sse|bucket` in `terraform/` = 0 matches. The README descri
 
 This is expected for a lite/template project, but should be noted for production deployment.
 
-### 8.46 Dead code: `tracing.py` — never imported
+### 8.46 Dead code: `tracing.py` — never imported [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/tracing.py` (111 lines)
 
@@ -2938,7 +2938,7 @@ This is a "God component" — similar to the C++ `BotContext` God struct (§8.14
 
 **Code reduction:** Extract notification logic into a `useNotifications` hook. Extract tab rendering into a `TabContainer` component. Potential ~200 lines reduction.
 
-### 8.212 shared_config.yaml: localhost in production — Medium
+### 8.212 shared_config.yaml: localhost in production — Medium [FIXED]
 
 **Файл:** `shared_config.yaml:108,112`
 
@@ -4569,7 +4569,7 @@ They don't share status format, state definitions, or response structure. `obser
 
 **Code reduction:** Consolidate into a single health system. `HealthAggregator` can use `HealthChecker` for internal checks + aggregate external services.
 
-### 8.336 ai-signal-bot: dual metrics systems — Medium (code reduction)
+### 8.336 ai-signal-bot: dual metrics systems — Medium (code reduction) [FIXED]
 
 **Файлы:**
 1. `ai-signal-bot/src/communication/metrics_server.py` (136 lines) — Manual Prometheus text format, 7 metrics
@@ -5209,7 +5209,7 @@ No `mem_limit`, `cpus`, or `deploy.resources` defined for any service. In dev th
 
 Good Helm values with resource limits, storage, and pinned images. ✅
 
-### 8.387 helm/values.yaml: hardcoded localhost for web-ui WS — Medium
+### 8.387 helm/values.yaml: hardcoded localhost for web-ui WS — Medium [FIXED]
 
 **Файл:** `helm/values.yaml:104-105`
 
@@ -5222,7 +5222,7 @@ In Kubernetes, `localhost` in the browser will not connect to K8s services. Thes
 
 **Фикс:** Use `ws://{{ .Values.ingress.host }}:{{ .Values.exchangeSimulator.ports.ws }}` or similar.
 
-### 8.388 helm/values.yaml: Postgres password in plaintext — Medium
+### 8.388 helm/values.yaml: Postgres password in plaintext — Medium [FIXED]
 
 **Файл:** `helm/values.yaml:17`
 
@@ -5385,7 +5385,7 @@ Uses `native-tls` (OpenSSL on Linux, SChannel on Windows, SecureTransport on mac
 
 Good Terraform with modular composition, encrypted state, and locking. ✅
 
-### 8.401 terraform: db_password default in plaintext — High
+### 8.401 terraform: db_password default in plaintext — High [FIXED]
 
 **Файл:** `terraform/environments/dev/main.tf:31`
 
@@ -8275,7 +8275,7 @@ def _save(self) -> None:
 
 Good database layer with 3 tables, 3 indexes, WAL, parameterized queries, and Windows-safe close. ✅
 
-### 8.628 db.py: new connection per operation — Medium
+### 8.628 db.py: new connection per operation — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py:21-25`
 
@@ -11041,7 +11041,7 @@ alignas(64) std::array<uint64_t, MAX_WINDOW> timestamps_{};  // 2048 × 8 = 16KB
 
 Good socket transport with non-blocking UDP, configurable buffers, 127.0.0.1 bind, binary parsing, packet stats, and error handling. ✅
 
-### 8.815 socket_transport: start_receive_loop blocks thread — Medium
+### 8.815 socket_transport: start_receive_loop blocks thread — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/networking/socket_transport.py:86-108`
 
@@ -16249,7 +16249,7 @@ The health loop runs forever with `while True`. It's cancelled in `close_all()`,
 
 Good SHM market data writer with seq-guarded writes for lock-free reader consistency. ✅
 
-### 8.1191 shm_market_data_writer: no memory barrier on seq writes — Low
+### 8.1191 shm_market_data_writer: no memory barrier on seq writes — Low [FIXED]
 
 **Файл:** `shm_market_data_writer.py:82-94`
 
@@ -17429,7 +17429,7 @@ Both implement Jacobi eigendecomposition for symmetric matrices with the same al
 
 grep confirmed: no research module imports `asyncio`. All research code is synchronous and computational. This is correct — research modules are CPU-bound and should run in a thread pool or process pool, not on the event loop.
 
-### 8.1280 research: 35 files, ~6000 lines — potential dead code — ⚠️ Over-Engineered
+### 8.1280 research: 35 files, ~6000 lines — potential dead code — ⚠️ Over-Engineered [FIXED]
 
 **Файл:** `src/research/` (35 files)
 
@@ -18117,7 +18117,7 @@ The `Backtester` class is 506 lines with multiple responsibilities: candle repla
 
 Good PnL calculator with pluggable asset type support. ✅
 
-### 8.1334 Project-wide: 2 duplicate PortfolioOptimizer classes — ⚠️ Dead Code
+### 8.1334 Project-wide: 2 duplicate PortfolioOptimizer classes — ⚠️ Dead Code [FIXED]
 
 **Файлы:** `risk/portfolio_optimizer.py` (307 lines), `strategies/portfolio_optimizer.py` (311 lines), `portfolio/` (4 files: markowitz.py, black_litterman.py, risk_parity.py, rebalancing.py)
 
