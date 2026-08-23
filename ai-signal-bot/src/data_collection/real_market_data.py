@@ -159,7 +159,7 @@ class RealMarketDataFeed:
 
         while self._running:
             try:
-                async with websockets.connect(url, ping_interval=20) as ws:
+                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
                     async with self._state_lock:
                         self._ws_connections["binance"] = ws
                         self._reconnect_delays["binance"] = 1.0
@@ -242,7 +242,7 @@ class RealMarketDataFeed:
 
         while self._running:
             try:
-                async with websockets.connect(url, ping_interval=20) as ws:
+                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
                     async with self._state_lock:
                         self._ws_connections["okx"] = ws
                         self._reconnect_delays["okx"] = 1.0
@@ -338,7 +338,7 @@ class RealMarketDataFeed:
 
         while self._running:
             try:
-                async with websockets.connect(url, ping_interval=20) as ws:
+                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
                     async with self._state_lock:
                         self._ws_connections["bybit"] = ws
                         self._reconnect_delays["bybit"] = 1.0

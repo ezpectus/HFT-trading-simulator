@@ -42,10 +42,14 @@ class WalkForwardAnalyzer:
 
     def __init__(self, in_sample_ratio: float = 0.7,
                  num_windows: int = 5,
-                 min_window_size: int = 200):
+                 min_window_size: int = 200,
+                 overfitting_threshold: float = 0.5,
+                 overfitting_ratio: float = 2.0):
         self.in_sample_ratio = in_sample_ratio
         self.num_windows = num_windows
         self.min_window_size = min_window_size
+        self.overfitting_threshold = overfitting_threshold
+        self.overfitting_ratio = overfitting_ratio
 
     def run(
         self, candles: list[dict],
@@ -165,7 +169,7 @@ class WalkForwardAnalyzer:
         result.avg_in_sample_sharpe = float(np.mean(all_is_sharpes))
         result.avg_out_of_sample_sharpe = float(np.mean(all_oos_sharpes))
         result.overfitting_score = float(result.avg_in_sample_sharpe - result.avg_out_of_sample_sharpe)
-        result.is_overfit = bool(result.overfitting_score > 0.5)
+        result.is_overfit = bool(result.overfitting_score > self.overfitting_threshold)
         result.total_sharpe = result.avg_out_of_sample_sharpe
         result.total_return = float(sum(
             w.out_of_sample_result.total_return_pct for w in result.windows
@@ -185,7 +189,7 @@ class WalkForwardAnalyzer:
         ratio = is_mean / max(oos_mean, 1e-10)
 
         # Overfit if IS is much better than OOS
-        overfit = bool(gap > 0.5 or ratio > 2.0)
+        overfit = bool(gap > self.overfitting_threshold or ratio > self.overfitting_ratio)
 
         return {
             "overfit": overfit,

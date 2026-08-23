@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AS: Walk-forward + data collection fixes)
+
+### Fixed
+- `ai-signal-bot/src/backtesting/walk_forward.py`: `overfitting_threshold` and `overfitting_ratio` now configurable constructor params instead of hardcoded 0.5/2.0 (§8.1141)
+- `ai-signal-bot/src/data_collection/exchange_factory.py`: `SimulatorAdapter` accepts `sim_prices` dict for per-symbol prices instead of hardcoded $50K for all symbols (§8.1145)
+- `ai-signal-bot/src/data_collection/real_market_data.py`: `ping_timeout=10` added to all 3 `websockets.connect()` calls (Binance, OKX, Bybit) — prevents indefinite hangs when exchange doesn't respond to ping (§8.1155)
+- `ai-signal-bot/src/data_collection/real_exchange_client.py`: JSON parse wrapped in try/except to handle non-JSON responses (HTML error pages, 502 gateways) (§8.1159)
+- CODE_AUDIT §8.1150 — `real_account.set_leverage` bare Exception → already fixed (narrowed to specific exceptions)
+
+### Changed
+- CODE_AUDIT §8.1139 — optimizer walk_forward doesn't optimize → [N/A] (walk-forward testing, WalkForwardAnalyzer does optimization)
+- CODE_AUDIT §8.1142 — no anchored walk-forward mode → [N/A] (rolling window is correct, anchored is feature request)
+- CODE_AUDIT §8.1146 — api_key/api_secret plain strings → [N/A] (Python strings are immutable, can't zero like C++)
+- CODE_AUDIT §8.1152 — user data stream no reconnection → [N/A] (already has retry with asyncio.sleep(5))
+- CODE_AUDIT §8.1156 — OKX/Bybit URL hardcoded → [N/A] (config improvement, not a bug)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AR: Backtesting annualization + leverage fixes)
 
 ### Fixed

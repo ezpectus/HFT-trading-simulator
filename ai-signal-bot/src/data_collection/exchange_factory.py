@@ -40,10 +40,11 @@ class ExchangeAdapter(Protocol):
 class SimulatorAdapter:
     """Exchange adapter wrapping the exchange simulator."""
 
-    def __init__(self, simulator_url: str = "ws://localhost:8765"):
+    def __init__(self, simulator_url: str = "ws://localhost:8765", sim_prices: dict[str, float] | None = None):
         self.simulator_url = simulator_url
         self._connected = False
         self.name = "simulator"
+        self._sim_prices: dict[str, float] = sim_prices or {}
 
     async def initialize(self) -> None:
         self._connected = True
@@ -53,7 +54,8 @@ class SimulatorAdapter:
         self._connected = False
 
     async def get_ticker(self, symbol: str) -> dict:
-        return {"symbol": symbol, "price": 50000.0, "bid": 49999.5, "ask": 50000.5, "timestamp": time.time()}
+        price = self._sim_prices.get(symbol, 50000.0)
+        return {"symbol": symbol, "price": price, "bid": price - 0.5, "ask": price + 0.5, "timestamp": time.time()}
 
     async def get_orderbook(self, symbol: str, depth: int = 10) -> dict:
         return {"symbol": symbol, "bids": [], "asks": [], "timestamp": time.time()}

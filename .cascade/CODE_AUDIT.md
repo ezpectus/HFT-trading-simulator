@@ -15560,7 +15560,7 @@ Each parameter combination runs a full backtest sequentially. With 4×4×4 = 64 
 
 **Фикс:** Use `concurrent.futures.ProcessPoolExecutor` to run backtests in parallel. Each backtest is independent.
 
-### 8.1139 optimizer: walk_forward doesn't optimize — Low
+### 8.1139 optimizer: walk_forward doesn't optimize — Low [N/A]
 
 **Файл:** `optimizer.py:138-167`
 
@@ -15588,7 +15588,7 @@ The `walk_forward` method accepts a single `params` dict and runs the same param
 
 Good walk-forward analyzer with IS/OOS splitting, parameter optimization, overfitting detection, and aggregate metrics. ✅
 
-### 8.1141 walk_forward: overfitting threshold hardcoded — Low
+### 8.1141 walk_forward: overfitting threshold hardcoded — Low [FIXED]
 
 **Файл:** `walk_forward.py:167, 187`
 
@@ -15602,7 +15602,7 @@ The overfitting threshold (0.5 Sharpe gap) is hardcoded. For high-frequency stra
 
 **Фикс:** Accept `overfitting_threshold` as a parameter.
 
-### 8.1142 walk_forward: no look-ahead bias check — Low
+### 8.1142 walk_forward: no look-ahead bias check — Low [N/A]
 
 **Файл:** `walk_forward.py:93-96`
 
@@ -15644,7 +15644,7 @@ A new `BacktestEngine` is created for each parameter combination in each window.
 
 Good exchange factory with Protocol-based adapter, 3 modes, fallback, and runtime switching. ✅
 
-### 8.1145 exchange_factory: SimulatorAdapter returns hardcoded $50K — Low
+### 8.1145 exchange_factory: SimulatorAdapter returns hardcoded $50K — Low [FIXED]
 
 **Файл:** `exchange_factory.py:55`
 
@@ -15657,7 +15657,7 @@ The simulator always returns $50,000 for every symbol. If the bot falls back to 
 
 **Фикс:** Accept a price provider callback or use a random walk from the last known real price.
 
-### 8.1146 exchange_factory: api_key and api_secret in plain strings — Low
+### 8.1146 exchange_factory: api_key and api_secret in plain strings — Low [N/A]
 
 **Файл:** `exchange_factory.py:166-173`
 
@@ -15714,7 +15714,7 @@ except Exception as e:
 
 **Фикс:** Use `except (OSError, RuntimeError, KeyError, ValueError) as e:` consistently, or add `except asyncio.CancelledError: raise` before the bare catch.
 
-### 8.1150 real_account: set_leverage catches bare Exception — Low
+### 8.1150 real_account: set_leverage catches bare Exception — Low [FIXED]
 
 **Файл:** `real_account.py:247`
 
@@ -15738,7 +15738,7 @@ Order placement has no retry logic. If the exchange returns a transient error (4
 
 **Фикс:** Add retry with exponential backoff for transient errors (429, 503, connection errors). Max 3 retries.
 
-### 8.1152 real_account: user data stream has no reconnection — Low
+### 8.1152 real_account: user data stream has no reconnection — Low [N/A]
 
 **Файл:** `real_account.py:348-369`
 
@@ -15788,7 +15788,7 @@ Each WebSocket message is processed synchronously — `await self._handle_binanc
 
 **Фикс:** Use an `asyncio.Queue` with a bounded size. The receive loop pushes to the queue; a separate consumer task processes messages. If the queue is full, drop oldest or apply backpressure.
 
-### 8.1155 real_market_data: no heartbeat/pong management — Low
+### 8.1155 real_market_data: no heartbeat/pong management — Low [FIXED]
 
 **Файл:** `real_market_data.py:129`
 
@@ -15800,7 +15800,7 @@ The `ping_interval=20` sends a ping every 20s, but there's no `ping_timeout` par
 
 **Фикс:** Add `ping_timeout=10` to `websockets.connect()`.
 
-### 8.1156 real_market_data: OKX/Bybit URL hardcoded — Low
+### 8.1156 real_market_data: OKX/Bybit URL hardcoded — Low [N/A]
 
 **Файл:** `real_market_data.py:191`
 
@@ -15837,7 +15837,7 @@ The `real_account.py` uses ccxt which abstracts signing; `real_exchange_client.p
 
 **Reduction potential:** ~335 lines. `real_exchange_client.py` appears to be an earlier implementation replaced by the ccxt-based `real_account.py`. If ccxt is always available, `real_exchange_client.py` is dead code. If ccxt is optional, `real_exchange_client.py` is the fallback — but `exchange_factory.py` doesn't use it.
 
-### 8.1159 real_exchange_client: no error handling on JSON parse — Low
+### 8.1159 real_exchange_client: no error handling on JSON parse — Low [FIXED]
 
 **Файл:** `real_exchange_client.py:152`
 

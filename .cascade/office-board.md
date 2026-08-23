@@ -1429,3 +1429,254 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/charts/SessionMarkers.jsx` (новый), `web-ui/src/components/analysis/SessionStats.jsx` (новый), `web-ui/src/components/charts/SessionHeatmap.jsx` (новый)
 **Зависимости:** WD-01 (chart)
+
+### WD-51: Portfolio Rebalancing UI
+**Описание:** Интерфейс для ребалансировки портфеля.
+- Current allocation: donut chart (текущее распределение по символам)
+- Target allocation: editable table (целевое распределение, % per symbol)
+- Drift indicator: насколько текущее отклонилось от target (цвет: зелёный <5%, жёлтый 5-15%, красный >15%)
+- Rebalance button: рассчитать необходимые ордера для приведения к target
+- Preview: список ордеров (buy X, sell Y) с estimated cost, fees, slippage
+- Auto-rebalance: настройка threshold (drift >10% → auto rebalance), frequency (daily, weekly)
+- Rebalancing methods: equal weight, risk parity, inverse volatility, Markowitz optimal, Black-Litterman
+- Black-Litterman panel: views input (bullish/bearish on symbol X), confidence level → optimal weights
+- Rebalance history: log всех ребалансировок с before/after allocation
+- Constraints: min/max weight per symbol, turnover limit (max % portfolio changed per rebalance)
+- Tax-aware rebalancing: минимизировать taxable gains при ребалансировке
+- Backtest rebalancing: сравнить стратегии ребалансировки на истории
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/portfolio/RebalancingUI.jsx` (новый), `web-ui/src/components/portfolio/AllocationChart.jsx` (новый), `web-ui/src/components/portfolio/BlackLittermanPanel.jsx` (новый)
+
+### WD-52: Strategy Builder — visual no-code editor
+**Описание:** Визуальный конструктор стратегий без программирования.
+- Canvas с блоками (node-based editor, как n8n / Unreal Blueprints):
+  - Input blocks: Candle data, Indicator value, Price level, Volume threshold
+  - Logic blocks: IF/ELSE, AND/OR, comparison (> < ==), cross above/below
+  - Action blocks: Generate Signal (LONG/SHORT/NEUTRAL), Set SL/TP, Set confidence
+  - Output blocks: Signal output, Log message, Alert
+- Соединения между блоками (drag from output to input)
+- Параметры каждого блока: editable inline (period=14, threshold=0.8)
+- Live preview: показать какие сигналы были бы на текущих данных
+- Backtest: запустить стратегию из builder на истории
+- Code export: сгенерировать Python код из визуальной стратегии
+- Templates: "RSI oversold bounce", "EMA crossover", "BB breakout"
+- Validation: проверка логики (нет бесконечных циклов, все блоки соединены)
+- Save/load: стратегии сохраняются в JSON, можно share
+- Versioning: каждая сохранённая стратегия = версия, можно откатить
+- Complexity score: оценка сложности стратегии (количество блоков, вложенность)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/builder/StrategyBuilder.jsx` (новый), `web-ui/src/components/builder/BlockPalette.jsx` (новый), `web-ui/src/components/builder/BuilderCanvas.jsx` (новый), `web-ui/src/services/StrategyCodegen.js` (новый)
+
+### WD-53: Smart Order Routing
+**Описание:** Интеллектуальная маршрутизация ордеров.
+- Routing strategies:
+  - Best price: ордер на биржу с лучшей ценой
+  - Best execution: цена + комиссии + slippage = минимальная total cost
+  - TWAP (Time-Weighted Average Price): разбить крупный ордер на части во времени
+  - VWAP: разбить ордер пропорционально историческому объёму по часам
+  - Iceberg: показывать только часть ордера, пополнять при исполнении
+  - Snipe: мгновенный ордер при появлении favourable price
+- Configuration: max slippage tolerance (bps), max time to fill, min fill size per slice, participation rate
+- Live execution view: parent order (total/filled/remaining/avg price), child orders list, progress bar, real-time P&L vs benchmark
+- Execution quality: implementation shortfall, slippage, fill rate, market impact
+- Cancel all / pause / resume controls
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/trading/SmartRouter.jsx` (новый), `web-ui/src/components/trading/ExecutionView.jsx` (новый), `web-ui/src/services/OrderRouter.js` (новый)
+
+### WD-54: Microsecond Latency Panel
+**Описание:** HFT-уровень latency monitoring (микросекунды).
+- Latency breakdown (end-to-end): network, parse, strategy, risk, order, ACK, total
+- Histogram: p50, p90, p99, p99.9, max
+- Timeline: latency over time (1-sec granularity)
+- Heatmap: latency by hour × day
+- Latency budget: target vs actual per stage (progress bars, red alert on exceed)
+- Jitter: standard deviation of latency
+- Tail latency analysis: почему p99 >> p50 (GC, lock contention, etc.)
+- Comparison: per symbol, per strategy, per exchange
+- C++ integration: данные из hft-trade-bot latency atomics
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/system/LatencyPanel.jsx` (новый), `web-ui/src/components/system/LatencyHistogram.jsx` (новый), `web-ui/src/components/system/LatencyBudget.jsx` (новый)
+
+### WD-55: Market Impact Model
+**Описание:** Модель влияния ордеров на рынок.
+- Impact estimation: Almgren-Chriss, square-root, linear models
+- Visualization: impact curve (price vs order size), optimal slicing, cost curve
+- Post-trade: actual vs permanent vs temporary impact, recovery time
+- Historical: avg impact per symbol, per order size, impact trend
+- Configuration: model selection, risk aversion, participation rate cap
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/analysis/MarketImpact.jsx` (новый), `web-ui/src/components/analysis/ImpactCurve.jsx` (новый), `web-ui/src/services/ImpactModel.js` (новый)
+
+### WD-56: Inventory & Exposure Management
+**Описание:** Управление инвентарём и экспозицией (для market making).
+- Current inventory: net position per symbol, long/short breakdown, inventory age, inventory cost
+- Exposure metrics: gross, net, by sector, vs limit, delta/vega/gamma/theta (options)
+- Inventory limits: max position, max total, max age, skew limit
+- Auto-deinventory: auto-generate reducing orders, urgency levels, deinventory queue
+- Inventory heatmap: symbol × time → inventory level
+- Turnover rate: inventory / daily volume
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/trading/InventoryManager.jsx` (новый), `web-ui/src/components/trading/ExposurePanel.jsx` (новый)
+
+### WD-57: Colocation & Network Topology
+**Описание:** Мониторинг сетевой инфраструктуры (для HFT).
+- Network topology map: server → exchange DC, latency per hop, bandwidth, packet loss
+- Colocation status: server location, distance to exchange, actual vs theoretical latency, cross-connect
+- Network metrics: TCP retransmits, WS frame size, connection uptime, reconnect count, DNS, TLS handshake
+- Alert: latency > threshold, packet loss > 0, reconnect > N
+- Historical: network metrics за 7 дней
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/system/NetworkTopology.jsx` (новый), `web-ui/src/components/system/ColocationStatus.jsx` (новый)
+
+### WD-58: A/B Testing Dashboard for Strategies
+**Описание:** A/B тестирование стратегий.
+- Experiment setup: A vs B (или A vs B vs C), allocation %, duration, success metric
+- Live view: overlaid equity curves, metrics comparison, p-value, confidence interval, sample size
+- Results: winner, effect size, confidence, recommendation, Bayesian posterior probability
+- Segmented analysis: A better on BTC, B better on alts?
+- Auto-stop: при significance → auto-stop + declare winner
+- Experiment history: список завершённых экспериментов
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/research/ABTesting.jsx` (новый), `web-ui/src/components/research/ExperimentResults.jsx` (новый), `web-ui/src/services/ABTestEngine.js` (новый)
+
+### WD-59: Risk Scenario Simulator (What-If)
+**Описание:** Симулятор сценариев "что если" для risk management.
+- Scenario builder: market shock, flash crash, correlation breakdown, liquidation cascade, funding spike, exchange outage, custom
+- Portfolio impact: P&L per symbol/strategy/total, new equity, new drawdown, margin call risk, liquidation price
+- Stress test presets: 2008, COVID, FTX, LUNA, custom sliders per symbol
+- Monte Carlo: 10,000 simulations, VaR/CVaR, probability of ruin, worst/best/median
+- Hedging suggestions: reduce position, add hedge, reduce leverage
+- Historical replay: проиграть кризис на текущем портфеле
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/risk/ScenarioSimulator.jsx` (новый), `web-ui/src/components/risk/MonteCarloPanel.jsx` (новый), `web-ui/src/services/ScenarioEngine.js` (новый)
+
+### WD-60: API Playground & Interactive Console
+**Описание:** Интерактивный playground (Postman в браузере).
+- REST playground: method, URL autocomplete, headers, JSON body, response panel, history, collections, env vars, OpenAPI import
+- WebSocket playground: URL, connect, message editor, send, message log, subscribe templates, auto-reconnect
+- Python console: code editor, server-side execute, pre-loaded context (config, db, strategies), sandboxed, timeout 10s, examples, history
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/debug/ApiPlayground.jsx` (новый), `web-ui/src/components/debug/WsPlayground.jsx` (новый), `web-ui/src/components/debug/PythonConsole.jsx` (новый)
+
+### WD-61: Data Quality Monitor
+**Описание:** Мониторинг качества данных (garbage in = garbage out).
+- Data freshness: last candle/trade/orderbook per symbol, gap detection
+- Data completeness: expected vs actual candles, missing %, gap fill status
+- Data accuracy: outlier detection, zero volume %, price consistency, OHLC consistency, timestamp monotonicity
+- Data latency: candle generation delay, WS message delay, processing delay
+- Quality score: 0-100 per symbol (freshness 30%, completeness 30%, accuracy 30%, latency 10%)
+- Quality heatmap: symbol × metric → color
+- Alert: score < 80, stale data, gap, outlier
+- Auto-recovery: gap → REST fetch, stale → WS reconnect
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/system/DataQuality.jsx` (новый), `web-ui/src/components/system/QualityHeatmap.jsx` (новый), `web-ui/src/services/QualityChecker.js` (новый)
+
+### WD-62: Structured Log Dashboard
+**Описание:** Dashboard для поиска и анализа structured logs.
+- Log stream: real-time from all services, color by level, auto-scroll
+- Search: full-text, field search (level:ERROR, service:ai-signal-bot), time range, regex, saved searches
+- Filters: by service, level, symbol, strategy, error code, exclude filter
+- Log analysis: error rate over time, error breakdown pie, top errors table, error timeline
+- Context expansion: surrounding logs, trace ID, stack trace
+- Export: JSON, CSV
+- Alert: error rate > threshold, specific pattern detected
+- Performance: virtualized list, 100K+ logs
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/debug/LogDashboard.jsx` (новый), `web-ui/src/components/debug/LogSearch.jsx` (новый), `web-ui/src/components/debug/LogAnalysis.jsx` (новый)
+
+### WD-63: Audit Trail & Compliance Log
+**Описание:** Audit trail для compliance.
+- Audit events: user actions, system actions, admin actions, data actions
+- Audit log: timestamp, actor, action, target, details, IP — immutable, exportable
+- Compliance reports: trade audit, config change audit, access audit, data integrity audit
+- Retention: N years (default 7), tamper detection (hash chain)
+- Search: by actor, action, target, date range
+- Real-time streaming, alert on suspicious activity
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/compliance/AuditTrail.jsx` (новый), `web-ui/src/components/compliance/ComplianceReport.jsx` (новый), `web-ui/src/services/AuditLogger.js` (новый)
+
+### WD-64: Team Collaboration
+**Описание:** Совместная работа команды над дашбордом.
+- Shared layouts: save/share, real-time sync, permissions (owner/editor/viewer)
+- Shared watchlists: team watchlist, annotations, discussion comments
+- Shared strategies: sharing, review (PR-style), fork
+- Shared alerts: team alerts, assignment, resolution
+- Activity feed: "Alice enabled TrendFollowing", "Bob closed ETH position"
+- Notifications: @mention, new shared item, review request
+- Permissions: admin, editor, viewer
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/team/TeamCollab.jsx` (новый), `web-ui/src/components/team/SharedLayouts.jsx` (новый), `web-ui/src/components/team/DiscussionPanel.jsx` (новый), `web-ui/src/stores/useTeamStore.js` (новый)
+
+### WD-65: Strategy Version Control
+**Описание:** Version control для стратегий (Git для стратегий).
+- Strategy repository: semantic versioning, commit messages, author + timestamp
+- Diff viewer: code diff, parameter diff, performance diff (backtest v1 vs v2)
+- Branch system: main, experiment, merge
+- Rollback: to any version, auto-rollback on performance degradation
+- Release notes: auto-generated + manual
+- Strategy comparison: 2 versions or 2 strategies
+- Tag system: stable, experimental, deprecated
+- Import/export from/to external Git
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/strategies/StrategyVersionControl.jsx` (новый), `web-ui/src/components/strategies/StrategyDiff.jsx` (новый), `web-ui/src/services/StrategyRepo.js` (новый)
+
+### WD-66: Options Chain & Greeks
+**Описание:** Опционная цепочка и греки (если есть options data).
+- Options chain: calls/puts, strike/bid/ask/volume/OI/IV, ITM highlight, expiry selector
+- IV smile/skew chart, IV rank, IV term structure, historical IV
+- Greeks calculator: delta/gamma/theta/vega/rho per option, portfolio greeks, greeks heatmap
+- Options strategies builder: legs selection, payoff diagram, breakeven/max profit/max loss
+- Preset strategies: straddle, strangle, iron condor, butterfly, covered call
+- Options flow: large trades, unusual activity (volume > OI), put/call ratio
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/options/OptionsChain.jsx` (новый), `web-ui/src/components/options/GreeksPanel.jsx` (новый), `web-ui/src/components/options/PayoffDiagram.jsx` (новый), `web-ui/src/components/options/IVAnalysis.jsx` (новый)
+
+### WD-67: Microstructure Analysis
+**Описание:** Анализ микроструктуры рынка (для HFT research).
+- Spread analysis: spread over time, distribution, spread vs volume, spread by time of day
+- Order book dynamics: depth profile, order arrival rate, cancellation rate, order lifetime, book imbalance
+- Trade flow: trade size distribution, aggressor ratio, tick rule, VPIN
+- Liquidity metrics: Amihud illiquidity, Roll spread, Kyle's lambda, effective spread, realized spread
+- Microstructure heatmap: time × metric → value
+- Comparison: per symbol, per exchange, per session
+- Export: CSV для research
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/analysis/MicrostructurePanel.jsx` (новый), `web-ui/src/components/analysis/SpreadAnalysis.jsx` (новый), `web-ui/src/components/analysis/LiquidityMetrics.jsx` (новый), `web-ui/src/services/MicrostructureEngine.js` (новый)
+
+### WD-68: Tick-Level Replay & Analysis
+**Описание:** Покадровый (tick-level) replay для детального анализа.
+- Tick data viewer: timestamp (ms), price, size, side, exchange — scroll tick-by-tick
+- Replay controls: play (1x-1000x), step forward/backward, pause, jump to timestamp
+- Synchronized views: chart, order book, trade tape — all synced to same tick
+- Event markers: our orders, signals, large trades, spread spikes
+- Analysis: measure distance between ticks, annotate, export range, statistics
+- Use case: "Что произошло в момент flash crash? Тик за тиком."
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/replay/TickReplay.jsx` (новый), `web-ui/src/components/replay/TickViewer.jsx` (новый), `web-ui/src/services/TickReplayEngine.js` (новый)
+**Зависимости:** WD-22 (replay mode), WD-01 (chart), WD-02 (orderbook)
+
+### WD-69: Network Packet Inspector
+**Описание:** Инспектор сетевых пакетов (для HFT debugging).
+- Packet capture: tcpdump-style, filter by port/protocol/host/direction, 10K buffer
+- Packet list: timestamp (μs), direction, src:port → dst:port, protocol, size, flags
+- Packet detail: hex dump, decoded (WS frame/HTTP/TLS), inter-packet delta, TCP analysis
+- Flow analysis: flow graph, RTT, throughput, retransmissions (red)
+- WebSocket frame inspector: frame type, payload (JSON/hex), size distribution, frame rate
+- Alert: retransmission spike, zero window, RST
+- Export: pcap download (для Wireshark)
+- Performance: separate thread, не влияет на trading latency
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/debug/PacketInspector.jsx` (новый), `web-ui/src/components/debug/PacketDetail.jsx` (новый), `web-ui/src/components/debug/FlowAnalysis.jsx` (новый)
+
+### WD-70: Custom Widget SDK
+**Описание:** SDK для создания собственных виджетов пользователями.
+- Widget API: registerWidget, useWsChannel, useApi, useSymbol, useTheme, useLayout
+- Widget template: simple JSX with hooks, auto-styling from theme
+- Widget registry: built-in + custom, enable/disable per user, metadata
+- Widget editor: Monaco editor, live preview, hot reload, error boundary
+- Widget marketplace: share, download, ratings + reviews
+- Widget sandbox: isolated execution (iframe/Worker), no DOM access outside, resource limits
+- Widget config UI: auto-generated form from JSON Schema, saved per user per layout
+- Events: inter-widget pub/sub event bus
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/sdk/WidgetSDK.jsx` (новый), `web-ui/src/components/sdk/WidgetEditor.jsx` (новый), `web-ui/src/components/sdk/WidgetRegistry.jsx` (новый), `web-ui/src/services/WidgetSandbox.js` (новый)

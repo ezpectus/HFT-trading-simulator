@@ -162,7 +162,11 @@ class RealExchangeClient:
             if resp.status != 200:
                 logger.error(f"Binance balance error: {resp.status}")
                 return None
-            data = await resp.json()
+            try:
+                data = await resp.json()
+            except Exception as e:
+                logger.error(f"Binance balance JSON parse error: {e}")
+                return None
             for asset in data:
                 if asset.get("asset") == "USDT":
                     return AccountBalance(
