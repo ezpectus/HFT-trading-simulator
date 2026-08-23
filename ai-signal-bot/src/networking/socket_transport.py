@@ -70,7 +70,7 @@ class SocketTransport:
 
     def initialize(self) -> bool:
         """Initialize UDP socket."""
-        logger.info(f"[Socket] Initializing UDP transport on port {self.port}")
+        logger.info("[Socket] Initializing UDP transport on port %s", self.port)
         try:
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.buffer_size)
@@ -80,7 +80,7 @@ class SocketTransport:
             self._initialized = True
             return True
         except (OSError, RuntimeError) as e:
-            logger.error(f"[Socket] Init failed: {e}")
+            logger.error("[Socket] Init failed: %s", e)
             return False
 
     def start_receive_loop(self, on_packet: Callable[[MarketDataPacket], None]) -> None:
@@ -110,7 +110,7 @@ class SocketTransport:
                             on_packet(packet)
                     except (OSError, struct.error, UnicodeDecodeError) as e:
                         self._stats["rx_drops"] += 1
-                        logger.debug(f"[Socket] RX error: {e}")
+                        logger.debug("[Socket] RX error: %s", e)
         finally:
             sel.unregister(self._socket)
             sel.close()
@@ -125,7 +125,7 @@ class SocketTransport:
             self._stats["bytes_tx"] += len(data)
             return True
         except (OSError, RuntimeError) as e:
-            logger.debug(f"[Socket] TX error: {e}")
+            logger.debug("[Socket] TX error: %s", e)
             return False
 
     def stop(self) -> None:

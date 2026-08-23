@@ -121,7 +121,7 @@ class LLMEngine:
             self.config.provider = "none"
             logger.info("[LLMEngine] No API key, using rule-based fallback")
         else:
-            logger.info(f"[LLMEngine] Provider: {self.config.provider}, model: {self.config.model}")
+            logger.info("[LLMEngine] Provider: %s, model: %s", self.config.provider, self.config.model)
 
     async def close(self) -> None:
         """Close HTTP session."""
@@ -210,7 +210,7 @@ class LLMEngine:
             return analysis
         except (RuntimeError, OSError, ValueError, KeyError) as e:
             self._error_count += 1
-            logger.error(f"[LLMEngine] Analysis failed: {e}")
+            logger.error("[LLMEngine] Analysis failed: %s", e)
             return self._rule_based_analysis(ctx)
 
     async def explain_signal(self, symbol: str, direction: str, price: float,
@@ -232,7 +232,7 @@ class LLMEngine:
             response = await self._call_llm(prompt)
             return response.strip()
         except (RuntimeError, OSError, ValueError, KeyError) as e:
-            logger.error(f"[LLMEngine] Explain failed: {e}")
+            logger.error("[LLMEngine] Explain failed: %s", e)
             return self._rule_based_explanation(direction, price, rsi, adx, ema_trend)
 
     async def assess_risk(self, symbol: str, direction: str, price: float,
@@ -253,7 +253,7 @@ class LLMEngine:
             response = await self._call_llm(prompt)
             return {"assessment": response.strip(), "source": "llm"}
         except (RuntimeError, OSError, ValueError, KeyError) as e:
-            logger.error(f"[LLMEngine] Risk assessment failed: {e}")
+            logger.error("[LLMEngine] Risk assessment failed: %s", e)
             return self._rule_based_risk(atr, leverage, price)
 
     async def _call_llm(self, prompt: str) -> str:
@@ -344,7 +344,7 @@ class LLMEngine:
                 recommendation=recommendation,
             )
         except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.warning(f"[LLMEngine] Response validation failed: {e}")
+            logger.warning("[LLMEngine] Response validation failed: %s", e)
 
         return LLMAnalysis(
             symbol=symbol,

@@ -257,15 +257,15 @@ def _train_epochs(
         history["val_acc"].append(val_acc)
 
         logger.info(
-            f"Epoch {epoch+1}/{config.epochs} — "
-            f"train_loss={train_loss:.4f} val_loss={val_loss:.4f} val_acc={val_acc:.2%}"
+            "Epoch %d/%d — train_loss=%.4f val_loss=%.4f val_acc=%.2f%%",
+            epoch+1, config.epochs, train_loss, val_loss, val_acc*100
         )
 
         best_val_loss, patience_counter, best_state = _update_best_state(
             model, val_loss, best_val_loss, patience_counter, best_state
         )
         if patience_counter >= config.early_stop_patience:
-            logger.info(f"Early stopping at epoch {epoch+1}")
+            logger.info("Early stopping at epoch %d", epoch+1)
             break
 
     return best_val_loss, best_state
@@ -345,10 +345,10 @@ def export_onnx(model: nn.Module, config: ModelConfig, output_path: str) -> bool
                 "logits": {0: "batch"},
             },
         )
-        logger.info(f"[ONNX] Exported to {output_path}")
+        logger.info("[ONNX] Exported to %s", output_path)
         return True
     except (RuntimeError, OSError, ValueError) as e:
-        logger.error(f"[ONNX] Export failed: {e}")
+        logger.error("[ONNX] Export failed: %s", e)
         return False
 
 
@@ -381,4 +381,4 @@ def register_trained_model(
             "epochs_trained": len(history.get("train_loss", [])),
         },
     )
-    logger.info(f"[ModelRegistry] Registered {name}@{version} (val_acc={val_acc:.2%})")
+    logger.info("[ModelRegistry] Registered %s@%s (val_acc=%.2f%%)", name, version, val_acc*100)

@@ -80,7 +80,7 @@ class BacktestPlotter:
         plt.tight_layout()
         if save_path:
             fig.savefig(save_path, dpi=self.dpi, bbox_inches="tight")
-            logger.info(f"Saved equity curve to {save_path}")
+            logger.info("Saved equity curve to %s", save_path)
         return fig
 
     @staticmethod
@@ -171,7 +171,7 @@ class BacktestPlotter:
 
         if save_path:
             fig.savefig(save_path, dpi=self.dpi, bbox_inches="tight")
-            logger.info(f"Saved trade PnL to {save_path}")
+            logger.info("Saved trade PnL to %s", save_path)
 
         return fig
 
@@ -204,7 +204,7 @@ class BacktestPlotter:
 
         if save_path:
             fig.savefig(save_path, dpi=self.dpi, bbox_inches="tight")
-            logger.info(f"Saved comparison chart to {save_path}")
+            logger.info("Saved comparison chart to %s", save_path)
 
         return fig
 
@@ -244,7 +244,7 @@ class BacktestPlotter:
 
         if save_path:
             fig.savefig(save_path, dpi=self.dpi, bbox_inches="tight")
-            logger.info(f"Saved radar chart to {save_path}")
+            logger.info("Saved radar chart to %s", save_path)
 
         return fig
 
@@ -276,4 +276,4 @@ class BacktestPlotter:
         self.plot_metrics_radar(results, os.path.join(output_dir, "comparison_radar.png"))
         plt.close()
 
-        logger.info(f"All charts saved to {output_dir}/")
+        logger.info("All charts saved to %s/", output_dir)

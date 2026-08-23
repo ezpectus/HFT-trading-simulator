@@ -146,7 +146,7 @@ class RiskManager:
             state.current_stop_loss = new_sl
             state.breakeven_moved = True
             actions["new_stop_loss"] = new_sl
-            logger.info(f"RiskManager: breakeven moved to {new_sl} ({state.side} entry={state.entry_price})")
+            logger.info("RiskManager: breakeven moved to %s (%s entry=%s)", new_sl, state.side, state.entry_price)
 
     def _check_trailing_action(
         self, state: PositionRiskState, current_price: float, actions: dict,
@@ -158,7 +158,7 @@ class RiskManager:
         if new_sl is not None:
             state.current_stop_loss = new_sl
             actions["new_stop_loss"] = new_sl
-            logger.debug(f"RiskManager: trailing SL -> {new_sl} ({state.side} price={current_price})")
+            logger.debug("RiskManager: trailing SL -> %s (%s price=%s)", new_sl, state.side, current_price)
 
     def _check_partial_tp_action(
         self, state: PositionRiskState, current_price: float, actions: dict,
@@ -170,14 +170,14 @@ class RiskManager:
         if pct > 0:
             state.partial_tp_executed = True
             actions["partial_close_pct"] = pct
-            logger.info(f"RiskManager: partial TP {pct}% ({state.side} price={current_price})")
+            logger.info("RiskManager: partial TP %s%% (%s price=%s)", pct, state.side, current_price)
 
     def _check_max_hold(self, state: PositionRiskState, actions: dict) -> None:
         """Check if max hold time has been reached."""
         if self.config.max_hold_candles > 0 and state.candles_held >= self.config.max_hold_candles:
             actions["close_position"] = True
             actions["close_reason"] = "MAX_HOLD_TIME"
-            logger.info(f"RiskManager: max hold time reached ({state.candles_held} candles)")
+            logger.info("RiskManager: max hold time reached (%s candles)", state.candles_held)
 
     def _check_breakeven(
         self, state: PositionRiskState, current_price: float
