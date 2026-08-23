@@ -249,3 +249,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | metrics_collector: mutex on every metric op | Global mutex blocks all metric operations in HFT hot path. Use atomics | CODE_AUDIT §8.483 |
 | circuit_breaker: not thread-safe | No lock on _state/_consecutive_failures. Race in async context. Use asyncio.Lock | CODE_AUDIT §8.499 |
 | health_check: new ClientSession per call | Creates aiohttp session per health check. Use shared session for pooling | CODE_AUDIT §8.501 |
+| db.py: new connection per operation | Every DB op creates new conn + PRAGMA WAL. Use persistent conn, set WAL once | CODE_AUDIT §8.525 |
+| main.cpp: no SIGTERM handler | No signal handler. K8s SIGTERM won't stop bot gracefully. Register signal handler | CODE_AUDIT §8.528 |

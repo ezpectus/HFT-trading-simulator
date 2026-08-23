@@ -6709,3 +6709,335 @@ exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
 `insecure=True` disables TLS for OTLP export. In production, tracing data should be encrypted.
 
 **Фикс:** Use TLS in production: `insecure=False` with proper certificates.
+
+### 8.504 exchange_simulator/exchange.py: Simulated exchange — ✅ Good
+
+**Файл:** `exchange_simulator/exchange.py` (175 lines)
+
+- **3 mixins**: AdvancedOrderMixin, OrderSubmissionMixin, LiquidationMixin — modular
+- **Per-exchange fee/slippage**: `fee_pct`, `slippage_bps` — realistic
+- **Account tracking**: Balance, leverage, positions — comprehensive
+- **Order history**: `_order_history` list — audit trail
+- **Insurance fund**: `insurance_fund` — liquidation safety
+
+Good exchange with 3 mixins, per-exchange fees, account tracking, and insurance fund. ✅
+
+### 8.505 exchange.py: _order_history unbounded list — Low
+
+**Файл:** `exchange_simulator/exchange.py:58`
+
+```python
+self._order_history: list[Order] = []
+```
+
+`_order_history` is an unbounded list. In a long-running simulation, this grows indefinitely — memory leak.
+
+**Фикс:** Use `deque(maxlen=N)` or periodically trim.
+
+### 8.506 exchange_simulator/websocket_server.py: WebSocket server — ✅ Good
+
+**Файл:** `exchange_simulator/websocket_server.py` (202 lines)
+
+- **3 mixins**: MessageHandlerMixin, BroadcastMixin, PrometheusMixin — modular
+- **Protocol v2**: Version negotiation with backwards compat — correct
+- **5 message types**: candles, orderbook, account, fill, welcome — comprehensive
+- **ArbitrageDetector**: Optional integration — flexible
+- **TradeCsvLogger**: Trade logging to CSV — audit trail
+
+Good WebSocket server with 3 mixins, protocol versioning, and 5 message types. ✅
+
+### 8.507 websocket_server: sys.path manipulation — Low
+
+**Файл:** `exchange_simulator/websocket_server.py:30-32`
+
+```python
+_proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _proj_root not in sys.path:
+    sys.path.insert(0, _proj_root)
+```
+
+`sys.path` manipulation at module level. This is fragile and can cause import conflicts. Should be handled by proper package installation (`pip install -e .`).
+
+**Фикс:** Use `pyproject.toml` with proper package configuration instead of sys.path hacks.
+
+### 8.508 exchange_simulator/ws_broadcast.py: Broadcast mixin — ✅ Good
+
+**Файл:** `exchange_simulator/ws_broadcast.py` (489 lines)
+
+- **3 encoding formats**: JSON, orjson, msgpack — performance optimization
+- **Protocol version injection**: `protocol_version` added for v2 clients — backwards compat
+- **Client-specific encoding**: Per-client encoding negotiation — flexible
+- **SHM publishing**: Shared memory for C++ bot — IPC
+- **Optional imports**: `orjson`, `msgpack`, `struct`, `shm_mod` — graceful fallback
+
+Good broadcast mixin with 3 encodings, protocol versioning, SHM, and graceful fallback. ✅
+
+### 8.509 ws_broadcast: import inside method — Low
+
+**Файл:** `exchange_simulator/ws_broadcast.py:44-49`
+
+```python
+async def _send_json(self, websocket, data):
+    from exchange_simulator.ws_constants import _HAS_MSGPACK, PROTOCOL_VERSION
+    try:
+        import msgpack
+    except ImportError:
+        msgpack = None
+```
+
+Imports inside methods — `from exchange_simulator.ws_constants import ...` and `import msgpack` are done on every `_send_json` call. While Python caches imports, the `from ... import ...` still does a dict lookup each time.
+
+**Фикс:** Move imports to module level (already partially done in ws_constants.py).
+
+### 8.510 exchange_simulator/market_simulator.py: GBM price generation — ✅ Good
+
+**Файл:** `exchange_simulator/market_simulator.py` (435 lines)
+
+- **GBM**: Geometric Brownian Motion — standard price model
+- **Per-exchange offset**: Correlated but different prices — realistic
+- **Per-exchange vol multiplier**: Different volatility per exchange — realistic
+- **Inter-symbol correlations**: BTC-ETH 0.85, default 0.3 — realistic
+- **Candle history**: Per (exchange, symbol) — correct
+- **Hybrid mode**: Real price feeds via PriceFeedManager — flexible
+
+Good market simulator with GBM, correlations, per-exchange offsets, and hybrid mode. ✅
+
+### 8.511 market_simulator: no seed propagation to per-exchange — Low
+
+**Файл:** `exchange_simulator/market_simulator.py:26-35`
+
+The `seed` parameter is used for the main RNG, but per-exchange volatility multipliers and offsets are deterministic (based on index `i`). If reproducibility is needed across runs, the seed should also control exchange-specific parameters.
+
+**Фикс:** Use `random.Random(seed + i)` for per-exchange parameters.
+
+### 8.512 exchange_simulator/ws_message_handler.py: Message handler — ✅ Good
+
+**Файл:** `exchange_simulator/ws_message_handler.py` (448 lines)
+
+- **Rate limiting**: Per-client message count with window — DoS protection
+- **3 encoding formats**: JSON, orjson, msgpack — performance
+- **Protocol version**: v2 negotiation — backwards compat
+- **Log sanitization**: `_sanitize_log()` prevents log injection — security
+- **Multiple message types**: orders, subscriptions, replay, trading state, config — comprehensive
+
+Good message handler with rate limiting, 3 encodings, log sanitization, and comprehensive message types. ✅
+
+### 8.513 ws_message_handler: rate limit not thread-safe — Low
+
+**Файл:** `exchange_simulator/ws_message_handler.py:37-55`
+
+```python
+def _check_rate_limit(self, websocket) -> bool:
+    now = time.time()
+    if websocket not in self._client_message_counts:
+        self._client_message_counts[websocket] = {"count": 0, "window_start": now}
+```
+
+Rate limit counter is a plain dict. In asyncio, this is fine (single-threaded), but if the server ever runs with multiple workers, the dict is not shared.
+
+**Фикс:** Document that this is per-worker, or use `asyncio.Lock` if needed.
+
+### 8.514 exchange_simulator/tracing.py: OpenTelemetry + Jaeger — ✅ Good
+
+**Файл:** `exchange_simulator/tracing.py` (193 lines)
+
+- **Jaeger exporter**: Thrift protocol — correct
+- **BatchSpanProcessor**: Async batch export — efficient
+- **TraceContextTextMapPropagator**: W3C trace context — standard
+- **3 trace methods**: order_processing, order_matching, websocket_broadcast — domain-specific
+- **Span annotations**: Attributes + events — comprehensive
+
+Good OpenTelemetry tracing with Jaeger, W3C context, and 3 trace methods. ✅
+
+### 8.515 tracing.py: no graceful fallback — Low
+
+**Файл:** `exchange_simulator/tracing.py:9-13`
+
+```python
+from opentelemetry import propagate, trace
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+```
+
+Unlike `ai-signal-bot/src/observability/tracing.py` which has `try/except ImportError`, this module hard-imports OpenTelemetry. If the package is not installed, the entire exchange_simulator fails to import.
+
+**Фикс:** Wrap in `try/except ImportError` with graceful fallback (no-op tracer).
+
+### 8.516 exchange_simulator/metrics.py: Prometheus metrics — ✅ Good
+
+**Файл:** `exchange_simulator/metrics.py` (250 lines)
+
+- **prometheus_client**: Official library — correct
+- **3 metric types**: Counter, Gauge, Histogram — standard
+- **Order metrics**: Total, rate, fill rate — domain-specific
+- **Latency histograms**: Order processing + WebSocket — performance monitoring
+- **Error metrics**: Error total + rate — observability
+- **Labeled metrics**: symbol, side, status, client_id — granular
+
+Good Prometheus metrics with 3 types, domain-specific metrics, and labeled dimensions. ✅
+
+### 8.517 exchange_simulator/exchange_order_submission.py: Order submission — ✅ Good
+
+**Файл:** `exchange_simulator/exchange_order_submission.py` (440 lines)
+
+- **12 parameters**: symbol, side, quantity, order_type, price, SL, TP, force_close, stop_price, limit_price, trail_amount, iceberg_visible_qty — comprehensive
+- **NaN check**: `quantity != quantity` — correct
+- **Order ID**: Hex counter `f"{self._order_counter:08x}"` — unique
+- **force_close**: Skip margin/position checks for SL/TP/liquidation — correct
+- **Mixin pattern**: Extracted for file-size compliance — modular
+
+Good order submission with 12 parameters, NaN check, force_close, and mixin pattern. ✅
+
+### 8.518 exchange_order_submission: no quantity upper bound check — Low
+
+**Файл:** `exchange_simulator/exchange_order_submission.py:56`
+
+```python
+if quantity <= 0 or quantity != quantity:  # NaN check
+```
+
+Checks for <= 0 and NaN, but no upper bound. A client could submit `quantity = 1e15` — the simulator would try to fill it, potentially causing numeric overflow or unrealistic position sizes.
+
+**Фикс:** Add `if quantity > MAX_QUANTITY:` check (e.g., 1e9).
+
+### 8.519 exchange_simulator/ws_constants.py: Shared constants — ✅ Good
+
+**Файл:** `exchange_simulator/ws_constants.py` (39 lines)
+
+- **Optional imports**: msgpack, orjson, shm — graceful fallback
+- **Protocol version**: `PROTOCOL_VERSION = 2` — centralized
+- **Log sanitization**: `_sanitize_log()` — security (prevents log injection)
+- **Truncation**: `[:200]` — prevents log flooding
+
+Good shared constants with optional imports, protocol version, and log sanitization. ✅
+
+### 8.520 exchange_simulator/models.py: Data models — ✅ Good
+
+**Файл:** `exchange_simulator/models.py` (477 lines)
+
+- **5 enums**: Side, OrderType, AuditEventType, OrderStatus — comprehensive
+- **Dataclasses**: Candle, OrderBook, Order, Position, Account — clean
+- **`from __future__ import annotations`**: Python 3.12+ style — correct
+- **`to_dict()` methods**: Serialization — convenient
+- **AuditEventType**: 13 event types — comprehensive audit
+
+Good data models with 5 enums, dataclasses, to_dict, and 13 audit event types. ✅
+
+### 8.521 ai-signal-bot/src/utils/helpers.py: Utility functions — ✅ Good
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py` (205 lines)
+
+- **JSON logging**: `JsonFormatter` for structured logs — observability
+- **Config loading**: YAML with fallback to `{}` — graceful
+- **Env var casting**: `get_env()` with type casting — type-safe
+- **Bool parsing**: `"true", "1", "yes", "on"` — flexible
+- **Time helpers**: `now_ms()`, `now_us()` — convenient
+- **Price/qty formatting**: Adaptive decimal places — user-friendly
+
+Good utility functions with JSON logging, config loading, env casting, and formatting. ✅
+
+### 8.522 helpers.py: load_config returns {} on FileNotFoundError — Low
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py:70-71`
+
+```python
+except FileNotFoundError:
+    return {}
+```
+
+Returns empty dict on missing config file — silently. The bot will run with default config, which may not be what the user expects.
+
+**Фикс:** Log a warning or raise, since missing config is likely a deployment error.
+
+### 8.523 helpers.py: bare Exception in CircuitBreaker — Low
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py` (line ~119+)
+
+The `CircuitBreaker` and `RateLimiter` classes in helpers.py catch broad exceptions. This masks unexpected errors.
+
+**Фикс:** Catch specific exceptions or log the unexpected ones.
+
+### 8.524 ai-signal-bot/src/database/db.py: SQLite with WAL — ✅ Good
+
+**Файл:** `ai-signal-bot/src/database/db.py` (180 lines)
+
+- **WAL mode**: `PRAGMA journal_mode=WAL` — concurrent read access
+- **Row factory**: `sqlite3.Row` — dict-like access
+- **3 tables**: signals, trades, equity_curve — comprehensive
+- **3 indexes**: idx_signals_symbol, idx_trades_symbol, idx_trades_status — query optimization
+- **Parameterized queries**: `?` placeholders — SQL injection safe
+- **Windows-safe close**: `wal_checkpoint(TRUNCATE)` + `journal_mode=DELETE` — correct
+- **`closing()` context**: Proper connection cleanup — correct
+
+Good SQLite database with WAL, 3 tables, 3 indexes, parameterized queries, and Windows-safe close. ✅
+
+### 8.525 db.py: new connection per operation — Medium
+
+**Файл:** `ai-signal-bot/src/database/db.py:21-25`
+
+```python
+def _conn(self) -> sqlite3.Connection:
+    conn = sqlite3.connect(self.path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+```
+
+Every `save_signal()`, `save_trade()`, etc. creates a new connection, executes PRAGMA, and closes. This is expensive — `PRAGMA journal_mode=WAL` is a disk write on every call.
+
+**Фикс:** Use a persistent connection or connection pool. Set WAL once at init.
+
+### 8.526 db.py: close() swallows all exceptions — Low
+
+**Файл:** `ai-signal-bot/src/database/db.py:33-34`
+
+```python
+except Exception:
+    pass
+```
+
+The `close()` method swallows all exceptions. If WAL checkpoint fails, the user never knows — the database may be left in an inconsistent state.
+
+**Фикс:** Log the exception: `except Exception as e: logging.warning(f"WAL checkpoint failed: {e}")`.
+
+### 8.527 hft-trade-bot/src/core/main.cpp: Main entry point — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/core/main.cpp` (66 lines)
+
+- **Clean structure**: init → connect → loop → shutdown — readable
+- **10 init steps**: config, core, engines, routing, kill_switch, monitoring, IPC, callbacks, connect, symbols — comprehensive
+- **Graceful shutdown**: `graceful_shutdown(ctx)` — correct
+- **`is_running()` loop**: External stop signal — correct
+- **ScopedLatency**: `total_loop_hist` measures loop time — observability
+- **Atomic balance**: `ctx.balance.load(std::memory_order_relaxed)` — thread-safe
+- **Trading gate**: `is_trading_active() && can_trade()` — double check
+- **V2/V1 fallback**: V2 enabled → V2, else V1 — correct
+- **Status print**: Every 10s — periodic monitoring
+- **`wait_for_data()`**: Blocks until data arrives — efficient
+
+Excellent main entry point with 10 init steps, graceful shutdown, scoped latency, and V2/V1 fallback. ✅
+
+### 8.528 main.cpp: no signal handling for SIGTERM — Medium
+
+**Файл:** `hft-trade-bot/src/core/main.cpp:38`
+
+```cpp
+while (is_running()) {
+```
+
+`is_running()` checks a flag, but there's no signal handler for SIGTERM/SIGINT. In Kubernetes, pod termination sends SIGTERM — the bot won't receive it and will be force-killed after `terminationGracePeriodSeconds`.
+
+**Фикс:** Register `signal(SIGTERM, [](int){ running.store(false); })` and `signal(SIGINT, ...)` before the loop.
+
+### 8.529 main.cpp: no error handling on init failures — Low
+
+**Файл:** `hft-trade-bot/src/core/main.cpp:26-33`
+
+```cpp
+init_core_components(ctx);
+init_order_routing(ctx);
+init_kill_switch(ctx);
+```
+
+Some init functions return bool (checked: `init_config_and_logger`, `init_signal_engines`, `connect_all`) but others don't return anything. If `init_core_components` fails silently, the bot continues with broken components.
+
+**Фикс:** Make all init functions return bool and check each one.

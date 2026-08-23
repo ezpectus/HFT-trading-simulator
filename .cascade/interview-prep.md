@@ -3263,3 +3263,171 @@ class CircuitBreaker:
 ```
 
 **Разница:** The bad code has no synchronization on `_state` and `_consecutive_failures`. In Python's asyncio, coroutines can interleave at any `await` point — but even without `await`, the GIL doesn't protect against logical races (read-modify-write sequences). Two coroutines calling `record_outcome(False)` simultaneously can both read `_consecutive_failures = 4`, both increment to 5, and both write 5 — one increment is lost. The breaker should trip at 5 failures but only sees 4 — it stays CLOSED and sends another bad signal. With 1000 users, one bad signal can trigger $10,000+ in wrong trades. The good code uses `asyncio.Lock()` to protect all state transitions. Each `record_outcome` and `state` check is atomic — no lost updates, no interleaved transitions. The lock costs ~1μs per acquisition (asyncio.Lock is lightweight) — negligible compared to the 60s signal interval. The benefit is guaranteed correctness: the breaker always trips at exactly `failure_threshold` consecutive losses, no matter how many concurrent coroutines are recording outcomes.
+
+---
+
+## Bad vs Good: No SIGTERM Handler in C++ HFT (Kubernetes)
+
+### ❌ Bad Code
+```cpp
+// main.cpp
+int main(int argc, char* argv[]) {
+    BotContext ctx{Config{}};
+    init_config_and_logger(ctx, argc, argv);
+    init_core_components(ctx);
+    connect_all(ctx);
+
+    while (is_running()) {
+        process_signals(ctx);
+        execute_orders(ctx);
+        ctx.receiver->wait_for_data(ctx.config.signal_interval_ms);
+    }
+
+    graceful_shutdown(ctx);  // Never called on SIGTERM!
+    return 0;
+}
+
+// is_running() checks:
+static std::atomic<bool> running{true};
+bool is_running() { return running.load(std::memory_order_relaxed); }
+// running is never set to false by any signal handler
+```
+
+**What's wrong:**
+- No signal handler for SIGTERM or SIGINT
+- `is_running()` always returns true — the loop never exits
+- In Kubernetes, pod termination sends SIGTERM → bot ignores it → K8s waits `terminationGracePeriodSeconds` (default 30s) → sends SIGKILL
+- SIGKILL kills the process immediately — `graceful_shutdown()` never runs
+- Open orders remain on the exchange — they can still fill
+- Positions remain open — exposed to market risk with no monitoring
+- SHM segments not cleaned up — memory leak in /dev/shm
+- WebSocket connections not closed properly — server thinks bot is still connected
+- No final PnL report, no audit log entry for shutdown
+
+### ✅ Good Code
+```cpp
+#include <csignal>
+#include <atomic>
+
+static std::atomic<bool> running{true};
+
+void signal_handler(int sig) {
+    spdlog::info("Received signal {} — initiating graceful shutdown", sig);
+    running.store(false, std::memory_order_release);
+}
+
+bool is_running() { return running.load(std::memory_order_relaxed); }
+
+int main(int argc, char* argv[]) {
+    // Register signal handlers BEFORE anything else
+    std::signal(SIGTERM, signal_handler);
+    std::signal(SIGINT, signal_handler);
+
+    BotContext ctx{Config{}};
+    if (!init_config_and_logger(ctx, argc, argv)) return 1;
+    init_core_components(ctx);
+    if (!connect_all(ctx)) return 1;
+
+    while (is_running()) {
+        ScopedLatency loop_timer(ctx.total_loop_hist);
+        process_signals(ctx);
+        execute_orders(ctx);
+        // wait_for_data should have a timeout so the loop can check is_running()
+        ctx.receiver->wait_for_data(ctx.config.signal_interval_ms);
+    }
+
+    graceful_shutdown(ctx);  // Now runs on SIGTERM/SIGINT
+    spdlog::info("Bot stopped gracefully");
+    return 0;
+}
+```
+
+**Разница:** The bad code has no signal handler — SIGTERM is ignored, and the bot is force-killed with SIGKILL after the grace period. `graceful_shutdown()` never runs: open orders stay on the exchange, positions stay open, SHM segments leak, WebSocket connections dangle, and no audit log records the shutdown. In Kubernetes, this means every pod restart leaves the bot in an inconsistent state — the exchange still thinks the bot has open orders, the SHM segments accumulate in `/dev/shm`, and the next pod start may fail because the old SHM segments still exist. With 1000 users, each pod restart leaves $500,000+ in open orders unmanaged — they can fill at any price, including during a flash crash. The good code registers `signal(SIGTERM, ...)` and `signal(SIGINT, ...)` before the main loop. When K8s sends SIGTERM, the handler sets `running = false` with `memory_order_release` (ensures visibility to all threads). The loop exits on the next iteration (within `signal_interval_ms`), `graceful_shutdown()` runs, and the bot closes orders, closes positions, cleans SHM, closes WebSockets, and logs the shutdown. The cost is 3 lines of code. The benefit is clean shutdown on every pod restart — no leaked resources, no orphaned orders, no inconsistent state.
+
+---
+
+## Bad vs Good: DB Connection Per Operation (Python)
+
+### ❌ Bad Code
+```python
+class Database:
+    def __init__(self, path: str = "data/trading.db"):
+        self.path = path
+        self._init_db()
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.path)           # New connection!
+        conn.execute("PRAGMA journal_mode=WAL")     # Disk write!
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def save_signal(self, signal_dict: dict) -> int:
+        with closing(self._conn()) as conn:         # Open + PRAGMA + close
+            cursor = conn.execute(
+                "INSERT INTO signals ...", (...)
+            )
+            conn.commit()
+            return cursor.lastrowid
+
+    def save_trade(self, trade_dict: dict) -> int:
+        with closing(self._conn()) as conn:         # Open + PRAGMA + close AGAIN
+            cursor = conn.execute(
+                "INSERT INTO trades ...", (...)
+            )
+            conn.commit()
+            return cursor.lastrowid
+
+    def get_open_trades(self) -> list:
+        with closing(self._conn()) as conn:         # Open + PRAGMA + close AGAIN
+            return conn.execute("SELECT * FROM trades WHERE status='OPEN'").fetchall()
+```
+
+**What's wrong:**
+- Every DB operation creates a new `sqlite3.connect()` — expensive (file open, lock acquisition)
+- Every connection executes `PRAGMA journal_mode=WAL` — this is a disk write that changes the journal mode. It's idempotent but still does a disk I/O
+- `closing()` closes the connection after each call — no connection reuse
+- If the bot saves 100 signals per minute, that's 100 connections + 100 PRAGMA writes per minute
+- SQLite WAL mode is persistent — setting it once is enough. Setting it on every connection is redundant I/O
+- Connection creation is ~1-5ms per call — 100 calls = 100-500ms of pure overhead per minute
+
+### ✅ Good Code
+```python
+class Database:
+    def __init__(self, path: str = "data/trading.db"):
+        self.path = path
+        dir_path = os.path.dirname(path)
+        if dir_path:
+            os.makedirs(dir_path, exist_ok=True)
+        self._conn = sqlite3.connect(path, check_same_thread=False)
+        self._conn.execute("PRAGMA journal_mode=WAL")    # Set ONCE
+        self._conn.execute("PRAGMA synchronous=NORMAL")   # Set ONCE
+        self._conn.row_factory = sqlite3.Row
+        self._lock = threading.Lock()  # For thread-safe access
+        self._init_db()
+
+    def save_signal(self, signal_dict: dict) -> int:
+        with self._lock:
+            cursor = self._conn.execute(
+                "INSERT INTO signals ...", (...)
+            )
+            self._conn.commit()
+            return cursor.lastrowid
+
+    def save_trade(self, trade_dict: dict) -> int:
+        with self._lock:
+            cursor = self._conn.execute(
+                "INSERT INTO trades ...", (...)
+            )
+            self._conn.commit()
+            return cursor.lastrowid
+
+    def close(self) -> None:
+        try:
+            self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        except Exception as e:
+            logging.warning(f"WAL checkpoint failed: {e}")
+        finally:
+            self._conn.close()
+```
+
+**Разница:** The bad code creates a new SQLite connection on every database operation. Each `save_signal()`, `save_trade()`, or `get_open_trades()` call opens a connection, executes `PRAGMA journal_mode=WAL` (a disk write), does the query, and closes the connection. With 100 signals per minute, that's 100 connection opens + 100 PRAGMA writes + 100 closes — 100-500ms of pure I/O overhead per minute. The PRAGMA is especially wasteful because WAL mode is persistent — once set, it stays set for the database file. Setting it again on every connection does a disk write for no reason. The good code creates a single persistent connection in `__init__`, sets WAL mode once, and reuses the connection for all operations. A `threading.Lock` protects concurrent access (SQLite connections are not thread-safe by default). The `close()` method does a proper WAL checkpoint and logs errors instead of swallowing them. With 1000 users, the bad code means 1000 bots × 100 operations/minute × 1-5ms overhead = 100-500 seconds of DB overhead per minute across all users. The good code reduces this to near-zero — the connection is already open, the PRAGMA is already set, and the only I/O is the actual query. The cost is one persistent connection + one lock. The benefit is 100x faster DB operations.

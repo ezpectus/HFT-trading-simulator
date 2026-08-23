@@ -1048,3 +1048,29 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R491 | health_check: new ClientSession per check | `health_check.py:53` | Low | Creates session per call. Use shared session for connection pooling |
 | R492 | ai-signal-bot/observability/tracing.py | `tracing.py` | ✅ Good | OpenTelemetry, OTLP gRPC, BatchSpanProcessor, graceful fallback, singleton, AsyncioInstrumentor |
 | R493 | tracing.py: insecure=True for OTLP | `tracing.py:59` | Low | Disables TLS for trace export. Use TLS in production |
+| R494 | exchange_simulator/exchange.py | `exchange.py` | ✅ Good | 3 mixins, per-exchange fee/slippage, account tracking, insurance fund |
+| R495 | exchange.py: _order_history unbounded | `exchange.py:58` | Low | Unbounded list grows indefinitely. Use deque(maxlen=N) |
+| R496 | exchange_simulator/websocket_server.py | `websocket_server.py` | ✅ Good | 3 mixins, protocol v2 with backwards compat, 5 msg types, ArbitrageDetector |
+| R497 | websocket_server: sys.path manipulation | `websocket_server.py:30` | Low | sys.path hack at module level. Use pyproject.toml instead |
+| R498 | exchange_simulator/ws_broadcast.py | `ws_broadcast.py` | ✅ Good | 3 encodings (JSON/orjson/msgpack), protocol versioning, SHM, optional imports |
+| R499 | ws_broadcast: import inside method | `ws_broadcast.py:44` | Low | from import on every _send_json call. Move to module level |
+| R500 | exchange_simulator/market_simulator.py | `market_simulator.py` | ✅ Good | GBM, per-exchange offset/vol, inter-symbol correlations, hybrid mode |
+| R501 | market_simulator: no seed for per-exchange | `market_simulator.py:26` | Low | Seed controls main RNG but not per-exchange params. Use random.Random(seed+i) |
+| R502 | exchange_simulator/ws_message_handler.py | `ws_message_handler.py` | ✅ Good | Rate limiting, 3 encodings, log sanitization, comprehensive msg types |
+| R503 | ws_message_handler: rate limit not thread-safe | `ws_message_handler.py:37` | Low | Plain dict, fine for asyncio single-thread. Document per-worker |
+| R504 | exchange_simulator/tracing.py | `tracing.py` | ✅ Good | Jaeger Thrift, BatchSpanProcessor, W3C context, 3 trace methods |
+| R505 | tracing.py: no graceful fallback | `tracing.py:9` | Low | Hard-imports OpenTelemetry. Wrap in try/except ImportError |
+| R506 | exchange_simulator/metrics.py | `metrics.py` | ✅ Good | prometheus_client, 3 types, order/fill/latency/error metrics, labeled |
+| R507 | exchange_simulator/exchange_order_submission.py | `exchange_order_submission.py` | ✅ Good | 12 params, NaN check, hex order ID, force_close, mixin pattern |
+| R508 | exchange_order_submission: no quantity upper bound | `exchange_order_submission.py:56` | Low | No max quantity check. Add MAX_QUANTITY (e.g., 1e9) |
+| R509 | exchange_simulator/ws_constants.py | `ws_constants.py` | ✅ Good | Optional imports, PROTOCOL_VERSION=2, _sanitize_log, truncation [:200] |
+| R510 | exchange_simulator/models.py | `models.py` | ✅ Good | 5 enums, dataclasses, to_dict, 13 AuditEventType |
+| R511 | ai-signal-bot/utils/helpers.py | `helpers.py` | ✅ Good | JSON logging, YAML config, env casting, time helpers, format functions |
+| R512 | helpers.py: load_config returns {} silently | `helpers.py:70` | Low | Returns {} on FileNotFoundError. Log warning or raise |
+| R513 | helpers.py: bare Exception in CircuitBreaker | `helpers.py:119+` | Low | Broad exception catch masks errors. Catch specific or log |
+| R514 | ai-signal-bot/database/db.py | `db.py` | ✅ Good | WAL mode, Row factory, 3 tables, 3 indexes, parameterized queries, Windows-safe close |
+| R515 | db.py: new connection per operation | `db.py:21` | Medium | Every op creates conn + PRAGMA WAL. Use persistent conn, set WAL once |
+| R516 | db.py: close() swallows all exceptions | `db.py:33` | Low | except Exception: pass. Log the exception |
+| R517 | hft-trade-bot/core/main.cpp | `main.cpp` | ✅ Excellent | 10 init steps, graceful shutdown, ScopedLatency, atomic balance, V2/V1 fallback |
+| R518 | main.cpp: no SIGTERM handler | `main.cpp:38` | Medium | No signal handler. K8s SIGTERM won't stop bot. Register signal(SIGTERM, ...) |
+| R519 | main.cpp: no error handling on some init | `main.cpp:26` | Low | Some init functions don't return bool. Make all return bool and check |
