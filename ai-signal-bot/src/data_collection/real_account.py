@@ -160,7 +160,7 @@ class RealAccountManager:
                         total=amounts,
                     ))
             return result
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError) as e:
             logger.error(f"[RealAccount] Failed to fetch balance: {e}")
             return []
 
@@ -244,7 +244,7 @@ class RealAccountManager:
             await self._exchange.set_leverage(leverage, symbol)
             logger.info(f"[RealAccount] Set {symbol} leverage to {leverage}x")
             return True
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError) as e:
             logger.error(f"[RealAccount] Failed to set leverage: {e}")
             return False
 
@@ -375,5 +375,5 @@ class RealAccountManager:
         try:
             await self._exchange.fetch_balance()
             return {"connected": True, "exchange": self.exchange_name, "testnet": self.testnet}
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError, ValueError) as e:
             return {"connected": False, "error": str(e)}

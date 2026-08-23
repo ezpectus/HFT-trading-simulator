@@ -379,7 +379,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ml: torch hard dependency in price_predictor + rl_trader | import torch unguarded. Guard with try/except | CODE_AUDIT §8.1382 |
 | ml: 5 modules likely dead code | ~1300 lines not used in production. Move to ml_advanced/ | CODE_AUDIT §8.1383 |
 | ml/vae.py: 5th duplicate _random_normal | 5th Box-Muller copy. Use random.gauss(0,1) | CODE_AUDIT §8.1379 |
-| ml/feature_store.py: broad Exception catch | `except (..., Exception)` — Exception makes others redundant | CODE_AUDIT §8.1374 |
+| ~~ml/feature_store.py: broad Exception catch~~ [FIXED] | Removed redundant Exception from tuple | CODE_AUDIT §8.1374 |
 | ~~monitoring/health_server.py: 3× duplicate _check_* methods~~ [FIXED] | Extracted _check_component helper. 3 one-liners instead of 3× 10-line copies | CODE_AUDIT §8.1385 |
 | ~~monitoring/tracker.py: datetime.now() without timezone~~ [FIXED] | Changed to datetime.now(UTC) | CODE_AUDIT §8.1387 |
 | networking/socket_transport.py: busy-poll loop | time.sleep(0.0001) on BlockingIOError. Use selectors or asyncio | CODE_AUDIT §8.1392 |
@@ -394,7 +394,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Project-wide: 50+ modules likely dead code total | ~17000+ lines. Move to analysis_lab/. Reduce src/ by ~50% | CODE_AUDIT §8.1407 |
 | ~~data_collection: 2× duplicate AccountBalance dataclass~~ [FIXED] | Renamed real_account.AccountBalance → AssetBalance. Different fields, different purposes | CODE_AUDIT §8.1413 |
 | ~~data_collection: no rate limiting on REST API calls~~ [FIXED] | Added asyncio.Semaphore in RealExchangeClient | CODE_AUDIT §8.1414 |
-| real_account: 3× broad except Exception | Too broad. Catch specific ccxt/network exceptions | CODE_AUDIT §8.1411 |
+| ~~real_account: 3× broad except Exception~~ [FIXED] | Replaced with (OSError, RuntimeError, KeyError, ValueError) | CODE_AUDIT §8.1411 |
 | real_market_data: no asyncio.Lock on shared state | _tickers _orderbooks _candles written from WS read from main. Low risk | CODE_AUDIT §8.1412 |
 | ~~run.py: no SIGTERM handler~~ [FIXED] | Added SIGTERM/SIGINT handler for graceful shutdown | CODE_AUDIT §8.1416 |
 | run.py: _execute_live_order not implemented | Stub logs warning. Silent failure if paper_trading=False | CODE_AUDIT §8.1417 |

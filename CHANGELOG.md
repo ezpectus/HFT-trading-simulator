@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка I: broad Exception catches)
+
+### Changed
+- `real_account.py`: 3× `except Exception` → `except (OSError, RuntimeError, KeyError, ValueError)` — consistent with other methods in same file
+- `feature_store.py`: Removed redundant `Exception` from `except (OSError, ConnectionError, RuntimeError, Exception)` — Exception made other catches redundant
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка H: health_checks DRY + UTC datetime + math.erf)
 
 ### Changed
