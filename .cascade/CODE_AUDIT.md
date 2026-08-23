@@ -2217,7 +2217,7 @@ Compare with `on_fill()` which correctly uses `fetch_sub()` (atomic). And `updat
 
 `PreTradeRisk::check()` is O(1), lock-free for most checks. 8 rejection codes with `const char*` reasons (no `std::string` allocation). Blacklist/whitelist support. ✅
 
-### 8.158 C++ pre_trade_risk.h: blacklist/whitelist not thread-safe — Medium
+### 8.158 C++ pre_trade_risk.h: blacklist/whitelist not thread-safe — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/risk/pre_trade_risk.h:189-193`
 
@@ -2317,7 +2317,7 @@ Outputs for cluster endpoint, RDS endpoint, Redis endpoint, S3 bucket. Environme
 - Graceful skip if CMake not found
 - Per-component pass/fail reporting
 
-### 8.166 C++ risk_manager: duplicate risk system — Medium
+### 8.166 C++ risk_manager: duplicate risk system — Medium [N/A]
 
 **Файлы:** `risk_manager.h` vs `pre_trade_risk.h`
 
@@ -7377,7 +7377,7 @@ The `__init__.py` exports 7 strategies but doesn't export `CrossExchangeArb` or 
 
 Excellent kill switch with 3 activation methods, 5 reasons, 3 callbacks, SHM notification, and proper cleanup. ✅
 
-### 8.557 kill_switch: file monitoring thread not joined — Medium
+### 8.557 kill_switch: file monitoring thread not joined — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/risk/kill_switch.h:52`
 

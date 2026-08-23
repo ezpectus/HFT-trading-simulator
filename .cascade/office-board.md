@@ -187,8 +187,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~prod VITE_WS localhost fallback~~ [FIXED] | deploy.yml no longer falls back to localhost — empty value if GitHub vars not set | CODE_AUDIT §8.152 |
 | C++ risk_manager: check_order mutex | Serializes all order submissions, use shared_mutex | CODE_AUDIT §8.155 |
 | ~~C++ daily_pnl += not atomic~~ [FIXED] | update_pnl now uses CAS loop for atomic add — operator+= was load+store race | CODE_AUDIT §8.156 |
-| C++ pre_trade_risk: blacklist race | insert/erase while check() reads = data race UB | CODE_AUDIT §8.158 |
-| C++ duplicate risk system | RiskManager + PreTradeRisk do same 8 checks | CODE_AUDIT §8.166 |
+| ~~C++ pre_trade_risk: blacklist race~~ [FIXED] | Added Spinlock (list_lock_) to PreTradeRisk — guards blacklist/whitelist reads in check() + all insert/erase operations | CODE_AUDIT §8.158 |
+| ~~C++ duplicate risk system~~ [N/A] | PreTradeRisk is not used in production (only tests). RiskManager is the active system. No duplication in running code | CODE_AUDIT §8.166 |
 | ~~C++ reset_daily incomplete~~ [FIXED] | reset_daily() now resets daily_pnl_ + peak_equity_ + total_exposure_ — prevents wrong drawdown next day | CODE_AUDIT §8.167 |
 | ~~Terraform: hardcoded RDS password~~ [FIXED] | dev/main.tf: removed default="ChangeMeInProduction123!" — now required via -var or tfvars, same as prod/main.tf | CODE_AUDIT §8.162 |
 | C++ 3 signal engines (v1/v2/v3) | V2 may be dead code, ~200 lines reducible | CODE_AUDIT §8.176 |
@@ -267,7 +267,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~docker-compose.prod: ports exposed to host~~ [FIXED] | Postgres, Redis, Prometheus now use `expose` instead of `ports` — accessible only within Docker networks, not from host | CODE_AUDIT §8.416 |
 | web-ui: 200+ components over-engineering | Math/research panels unlikely used by traders. Feature flag or separate package | CODE_AUDIT §8.410 |
 | hft-trade-bot: 3 engine versions loaded | V1/V2/V3 all allocated. V1 never used in hot path. Remove V1 | CODE_AUDIT §8.419 |
-| hft-trade-bot: prices_cache not thread-safe | unordered_map without lock. Data race if multi-threaded. Use shared_mutex | CODE_AUDIT §8.420 |
+| ~~hft-trade-bot: prices_cache not thread-safe~~ [FIXED] | Added Spinlock (prices_cache_lock) to BotContext — guards get_all_prices_into in process_sl_tp | CODE_AUDIT §8.420 |
 | ~~deploy.yml: localhost fallback for VITE_WS~~ [FIXED] | Removed localhost fallback — VITE_WS_EXCHANGE/SIGNALS now empty if GitHub vars not set | CODE_AUDIT §8.412 |
 | ~~hft-executor: avg_latency_ns always 0~~ [FIXED] | Added latency tracking: last_order_ts atomic + latency_sum_ns/latency_count atomics. Fill receipt computes delta from last order send time | CODE_AUDIT §8.394 |
 | ~~deploy/k8s: only secrets, no manifests~~ [N/A] | Helm chart exists (helm/templates/ with 10+ templates: Deployment, Service, Secret, NetworkPolicy, PDB). deploy/k8s is supplementary | CODE_AUDIT §8.404 |
@@ -283,7 +283,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~db.py: new connection per operation~~ [FIXED] | Already uses persistent _get_conn() with WAL set once | CODE_AUDIT §8.525, §8.628 |
 | ~~main.cpp: no SIGTERM handler — FALSE ALARM~~ [N/A] | SIGTERM handler EXISTS in bot_setup.cpp:63. R518 downgraded to Info — confirmed false alarm | CODE_AUDIT §8.583 |
 | ~~options_pricing: duplicate of options_simulator~~ [FIXED] | Deprecated options_pricing.py with DeprecationWarning — use exchange_simulator.options_simulator.OptionsSimulator | CODE_AUDIT §8.548 |
-| kill_switch: file monitoring thread not joined | stop_monitoring may not join thread. Use-after-free risk. Use jthread | CODE_AUDIT §8.557 |
+| ~~kill_switch: file monitoring thread not joined~~ [FIXED] | stop_monitoring() sets monitoring_=false and joins monitor_thread_ — thread exits cleanly, no use-after-free | CODE_AUDIT §8.557 |
 | ~~validator: not thread-safe~~ [FIXED] | Added asyncio.Lock to SignalValidator — validate, update_pnl, update_position_count now async | CODE_AUDIT §8.571 |
 | ~~risk_manager: not thread-safe~~ [FIXED] | RiskManager is stateless — operates on caller-owned PositionRiskState. No shared mutable state, no lock needed | CODE_AUDIT §8.596 |
 | ~~helpers: CircuitBreaker not thread-safe~~ [FIXED] | Removed from helpers.py in Пачка GG — use communication.circuit_breaker.CircuitBreaker instead | CODE_AUDIT §8.649 |
