@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from src.signal_validation.validator import SignalValidator, ValidationResult
-from src.strategies.strategies import Signal, SignalDirection
+from src.strategies.signal import Signal, SignalDirection
 
 
 def make_signal(symbol="BTC/USDT", direction=SignalDirection.LONG,

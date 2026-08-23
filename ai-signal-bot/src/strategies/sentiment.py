@@ -14,7 +14,7 @@ from enum import Enum
 
 import numpy as np
 
-from src.strategies.strategies import Signal, SignalDirection
+from src.strategies.signal import Signal, SignalDirection
 
 logger = logging.getLogger(__name__)
 

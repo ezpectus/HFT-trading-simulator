@@ -5,7 +5,7 @@ Covers: KalmanFilterHedge, PairConfig, StatisticalArbitrage, CorrelationMatrix.
 import numpy as np
 import pytest
 
-from src.strategies.strategies import SignalDirection
+from src.strategies.signal import SignalDirection
 
 
 class TestKalmanFilterHedge:

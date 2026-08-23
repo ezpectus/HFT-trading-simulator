@@ -3,11 +3,8 @@ import numpy as np
 import pytest
 
 from src.backtesting.backtester import Backtester, BacktestResult, Trade
-from src.strategies.strategies import (
-    Signal,
-    SignalDirection,
-    TrendFollowingStrategy,
-)
+from src.strategies.signal import Signal, SignalDirection
+from src.strategies.strategies import TrendFollowingStrategy
 
 
 def make_candles(n=100, start_price=65000, trend=0.001, seed=42):

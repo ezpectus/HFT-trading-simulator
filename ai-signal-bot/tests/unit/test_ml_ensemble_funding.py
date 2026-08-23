@@ -14,7 +14,7 @@ from src.strategies.ml_ensemble import (
     MLConfig,
     MLEnsembleStrategy,
 )
-from src.strategies.strategies import Signal, SignalDirection
+from src.strategies.signal import Signal, SignalDirection
 
 # ─── Fixtures ───
 

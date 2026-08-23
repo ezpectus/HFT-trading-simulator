@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-26 (Refactoring — Пачка BF: circular import fix)
+
+### Changed
+- `src/strategies/market_making.py`: `from src.strategies.strategies import Signal` → `from src.strategies.signal import Signal`
+- `src/strategies/sentiment.py`: same fix
+- `src/strategies/statistical_arbitrage.py`: same fix
+- `src/strategies/ml_ensemble.py`: same fix
+- `src/backtesting/backtester.py`: same fix
+- `src/signal_validation/validator.py`: same fix
+- 14 test files: same fix — Signal/SignalDirection now imported from `signal.py` directly
+- `tests/unit/test_circuit_breaker.py`: CircuitBreaker imported from `circuit_breaker.py` directly
+- `tests/unit/test_ensemble_voter.py`: CircuitBreaker from `circuit_breaker.py`, EnsembleVoter from `strategies.py`
+
+### Rationale
+Eliminates unnecessary dependency on `strategies.py` (which imports `fft_analysis`, `indicators`, `circuit_breaker`) when only the `Signal` dataclass is needed. Reduces circular import risk.
+
 ## [Unreleased] — 2026-08-26 (Refactoring — Пачка BE: final grep audit cleanup)
 
 ### Fixed

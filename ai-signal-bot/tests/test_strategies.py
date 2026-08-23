@@ -1,11 +1,10 @@
 """Tests for trading strategies."""
 import pytest
 
+from src.strategies.signal import Signal, SignalDirection
 from src.strategies.strategies import (
     EnsembleVoter,
     MeanReversionStrategy,
-    Signal,
-    SignalDirection,
     TrendFollowingStrategy,
 )
 

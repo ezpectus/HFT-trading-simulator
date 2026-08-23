@@ -17,7 +17,7 @@ class TestBacktestPlotter:
     @pytest.fixture
     def mock_result(self):
         from src.backtesting.backtester import BacktestResult
-        from src.strategies.strategies import Signal, SignalDirection
+        from src.strategies.signal import Signal, SignalDirection
 
         trades = []
         for i in range(5):

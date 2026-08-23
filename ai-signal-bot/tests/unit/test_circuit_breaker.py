@@ -4,11 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from src.strategies.strategies import (
-    CircuitBreaker,
-    Signal,
-    SignalDirection,
-)
+from src.strategies.circuit_breaker import CircuitBreaker
+from src.strategies.signal import Signal, SignalDirection
 
 
 @pytest.fixture

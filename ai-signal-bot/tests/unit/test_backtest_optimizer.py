@@ -4,7 +4,7 @@ Covers: OptimizationResult, StrategyOptimizer.
 """
 import pytest
 
-from src.strategies.strategies import Signal, SignalDirection
+from src.strategies.signal import Signal, SignalDirection
 
 
 class TestOptimizationResult:

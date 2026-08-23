@@ -4,12 +4,9 @@ from unittest.mock import patch
 
 import pytest
 
-from src.strategies.strategies import (
-    CircuitBreaker,
-    EnsembleVoter,
-    Signal,
-    SignalDirection,
-)
+from src.strategies.circuit_breaker import CircuitBreaker
+from src.strategies.signal import Signal, SignalDirection
+from src.strategies.strategies import EnsembleVoter
 
 
 def make_signal(direction=SignalDirection.LONG, confidence=70, symbol="BTC/USDT",

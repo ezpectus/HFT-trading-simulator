@@ -13,10 +13,7 @@ import logging
 from dataclasses import dataclass, field
 
 from src.risk.risk_manager import PositionRiskState, RiskConfig, RiskManager
-from src.strategies.strategies import (
-    Signal,
-    SignalDirection,
-)
+from src.strategies.signal import Signal, SignalDirection
 
 logger = logging.getLogger("ai_signal_bot.backtester")
 

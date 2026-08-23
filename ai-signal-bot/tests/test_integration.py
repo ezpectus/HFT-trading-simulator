@@ -273,21 +273,20 @@ class TestSignalValidator:
         )
         validator.update_position_count(0)
 
-        from src.strategies.strategies import Signal
+        from src.strategies.signal import Signal
         sig = Signal(
             symbol="BTC/USDT",
             direction=SignalDirection.LONG,
-            confidence=75.0,
+            confidence=80,
             strategy="test",
-            entry_price=65000,
-            stop_loss=63000,
-            take_profit=70000,
-            reason="test",
+            entry_price=100,
+            stop_loss=95,
+            take_profit=115,
         )
-        result = validator.validate(sig, account_balance=10000)
-        assert result.passed
+        result = validator.validate(sig, balance=10000, peak_equity=10000)
+        assert result.passed is True
 
-    def test_low_confidence_rejected(self):
+    def test_validator_rejects_low_confidence(self):
         validator = SignalValidator(
             min_confidence=65,
             min_rr_ratio=1.5,
@@ -296,21 +295,21 @@ class TestSignalValidator:
         )
         validator.update_position_count(0)
 
-        from src.strategies.strategies import Signal
+        from src.strategies.signal import Signal
         sig = Signal(
             symbol="BTC/USDT",
             direction=SignalDirection.LONG,
-            confidence=50.0,
+            confidence=50,
             strategy="test",
-            entry_price=65000,
-            stop_loss=63000,
-            take_profit=70000,
-            reason="test",
+            entry_price=100,
+            stop_loss=95,
+            take_profit=115,
         )
-        result = validator.validate(sig, account_balance=10000)
-        assert not result.passed
+        result = validator.validate(sig, balance=10000, peak_equity=10000)
+        assert result.passed is False
+        assert "confidence" in result.reason.lower()
 
-    def test_too_many_positions(self):
+    def test_validator_rejects_max_positions(self):
         validator = SignalValidator(
             min_confidence=65,
             min_rr_ratio=1.5,
@@ -319,7 +318,7 @@ class TestSignalValidator:
         )
         validator.update_position_count(3)
 
-        from src.strategies.strategies import Signal
+        from src.strategies.signal import Signal
         sig = Signal(
             symbol="BTC/USDT",
             direction=SignalDirection.LONG,

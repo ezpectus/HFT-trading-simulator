@@ -4,7 +4,7 @@ Covers: MarketMakingConfig, Quote, MarketMakingStrategy.
 """
 import pytest
 
-from src.strategies.strategies import SignalDirection
+from src.strategies.signal import SignalDirection
 
 
 class TestMarketMakingConfig:

@@ -8,7 +8,7 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from src.strategies.strategies import Signal
+from src.strategies.signal import Signal
 
 logger = logging.getLogger("ai_signal_bot.validation")
 

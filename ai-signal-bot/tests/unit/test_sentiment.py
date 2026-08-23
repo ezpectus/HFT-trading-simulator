@@ -4,7 +4,7 @@ Covers: EventType, NewsEvent, SentimentConfig, SentimentStrategy.
 """
 import pytest
 
-from src.strategies.strategies import SignalDirection
+from src.strategies.signal import SignalDirection
 
 
 class TestEventType:
