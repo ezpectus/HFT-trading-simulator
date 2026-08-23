@@ -316,3 +316,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | metrics_collector: mutex on every metric operation | Single std::mutex blocks all hot-path metric ops during Prometheus export. Use atomics or per-histogram locks | CODE_AUDIT §8.1078 |
 | tracer: spans_ vector unbounded | 200 spans/sec → 144MB/hour → 3.4GB/day → OOM. Ring buffer or periodic export | CODE_AUDIT §8.1085 |
 | tracer: no span export mechanism | Spans collected but never sent to Jaeger. Tracing is useless. Add export_spans() | CODE_AUDIT §8.1087 |
+| backtest_engine: duplicate of backtester.py | Two engines with 827 lines overlap, different Sharpe annualization. Merge into one | CODE_AUDIT §8.1133 |
+| optimizer: sequential grid search | 1000 combos = 16min on 1 core. Use ProcessPoolExecutor for N× speedup | CODE_AUDIT §8.1138 |
+| walk_forward: new BacktestEngine per param combo | 320 engine instances per run. Add reset() and reuse | CODE_AUDIT §8.1143 |
+| backtester: O(N²) window slicing | 50M copies for 10K candles. Pass index or use rolling window | CODE_AUDIT §8.1127 |

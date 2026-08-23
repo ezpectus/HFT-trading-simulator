@@ -6707,3 +6707,160 @@ print(cfg.api_key.get_secret_value())  # → "sk-..." (explicit access only)
 ```
 
 **Разница:** The bad code stores 5 API secrets as plain strings in heap memory across 3 exchange adapters and the LLM engine. The secrets are never masked in logs — a single `spdlog::info("Config: {}", cfg)` or `print(cfg)` call exposes all keys and secrets to anyone with log access. When the bot crashes, the core dump contains all secrets in plaintext — if uploaded to a crash reporting service (Sentry, Bugsnag), all 5 secrets are compromised. Even without a crash, the secrets persist in heap memory until the allocator reclaims the page, which may be never (the adapter lives for the bot's lifetime). A debugger, `/proc/pid/mem`, or a memory inspection tool can read all secrets at any time. With 1000 users and $2M+ across 3 exchanges, a single compromised secret means total loss. The good code wraps secrets in a `SecureString` (C++) or `SecretStr` (Python) that: (1) zeros memory on destruction — the allocator reclaims zeroed pages, not secret bytes; (2) masks the secret in `operator<<` / `__repr__` — logs show `[REDACTED]` or `**********`; (3) requires explicit `.get_secret_value()` / `.view()` to access the raw value — developers must opt-in to see the secret. The cost is a 20-line `SecureString` class and changing `std::string api_secret` to `SecureString api_secret` in 5 Config structs — 5 lines. The benefit is $2M+ in exchange funds protected from log leaks, core dumps, and memory inspection. This is a classic "secret in plain memory" anti-pattern: the developer used `std::string` for convenience without considering that the string's contents persist in heap memory and are exposed in logs, core dumps, and debuggers. The principle: never store secrets in plain strings — use a secure string wrapper that zeros memory on destruction and masks the value in string representations. In a system with $2M+ in exchange accounts, a single unmasked API secret in a log file or core dump can lead to total loss.
+
+---
+
+## 91. O(N²) Window Slicing in Backtest Loop
+
+**Проблема:** При бэктесте с 10,000 свечей каждый шаг создаёт новый list slice `candles[:i+1]`, что приводит к O(N²) копированию — 50M элементов для 10K свечей. Под нагрузкой с 100K свечей это 5B элементов и минуты задержки.
+
+**Плохой код (Current):**
+```python
+# backtester.py:168 / backtest_engine.py:150
+for i in range(warmup, len(candles)):
+    window = candles[:i + 1]  # O(i) copy each iteration
+    current_candle = candles[i]
+    # ...
+    signal = strategy.analyze(symbol, window)  # gets growing slice
+```
+
+**Хороший код (Refactored):**
+```python
+# Option A: Pass full list + index (zero-copy)
+for i in range(warmup, len(candles)):
+    current_candle = candles[i]
+    signal = strategy.analyze(symbol, candles, end_idx=i + 1)
+
+# Option B: Use rolling window of fixed size (O(window_size) copy)
+WINDOW_SIZE = 500
+for i in range(warmup, len(candles)):
+    start = max(0, i + 1 - WINDOW_SIZE)
+    window = candles[start:i + 1]  # O(WINDOW_SIZE), not O(i)
+    signal = strategy.analyze(symbol, window)
+
+# Option C: Use memoryview or deque for zero-copy slicing
+from collections import deque
+window = deque(maxlen=WINDOW_SIZE)
+for i, candle in enumerate(candles):
+    window.append(candle)
+    if i >= warmup:
+        signal = strategy.analyze(symbol, list(window))
+```
+
+**Почему так (Theory & Concept):** Python list slicing `candles[:i+1]` creates a new list and copies `i+1` references each call. Total work: `1 + 2 + ... + N = N(N+1)/2 = O(N²)`. For 10,000 candles, that's 50M reference copies — ~0.5s overhead. For 100,000 candles (1 year of 1m data), that's 5B copies — ~50s overhead. The backtest itself is O(N) per strategy, so the slicing overhead dominates. Under load (grid search with 1000 combinations), this becomes 1000 × 50s = 14 hours of pure slicing overhead. The good code eliminates copying: Option A passes the full list and an index — the strategy reads `candles[:end_idx]` internally but doesn't copy (Python passes the list by reference). Option B uses a fixed-size rolling window — O(WINDOW_SIZE) per step, not O(i). Option C uses `deque(maxlen=N)` which automatically evicts old elements — the window is always at most N elements, and `list(window)` is O(N). The principle: never create growing slices in a loop — use index-based access or fixed-size windows. This is a common Python performance anti-pattern that doesn't show up in small tests but dominates at scale.
+
+---
+
+## 92. Duplicate Backtesting Engines — Architectural Over-Engineering
+
+**Проблема:** Проект содержит два независимых бэктест-движка (`Backtester` 506 строк + `BacktestEngine` 321 строк = 827 строк) с перекрывающимся функционалом. Оба реализуют candle replay, SL/TP, equity curve, Sharpe/Sortino/Calmar. При масштабировании это означает двойное поддержание, расхождение метрик и баги в одном движке но не в другом.
+
+**Плохой код (Current):**
+```python
+# backtester.py — 506 lines
+class Backtester:
+    def __init__(self, initial_balance, fee_pct, slippage_bps, leverage, ...):
+        self.risk_manager = RiskManager(risk_config) if risk_config else None
+    def run(self, candles, strategy, symbol, warmup) -> BacktestResult:
+        # Uses Signal dataclass, has risk manager integration
+    def _check_sl_tp(self, pos, candle): ...
+    def _calculate_trade_metrics(self, result): ...
+    # Sharpe: sqrt(365) annualization (per-trade)
+
+# backtest_engine.py — 321 lines
+class BacktestEngine:
+    def __init__(self, config: BacktestConfig, pnl_calculator: PnLCalculator):
+        self.pnl_calculator = pnl_calculator or PnLCalculator(...)
+    def run(self, candles, strategy_analyze, symbol) -> BacktestResult:
+        # Uses dict signals, has PnLCalculator injection
+    def _check_exit(self, current_price, timestamp, candle): ...
+    def _compute_risk_adjusted(self, result): ...
+    # Sharpe: sqrt(525600) annualization (1m candles)
+```
+
+**Хороший код (Refactored):**
+```python
+# backtester.py — unified engine, ~400 lines
+class Backtester:
+    def __init__(
+        self,
+        initial_balance: float = 10000.0,
+        fee_pct: float = 0.075,
+        slippage_bps: float = 2.0,
+        leverage: int = 1,
+        max_position_pct: float = 10.0,
+        risk_per_trade_pct: float = 2.0,
+        candle_interval_minutes: int = 5,
+        risk_config: RiskConfig | None = None,
+        pnl_calculator: PnLCalculator | None = None,
+    ):
+        self.risk_manager = RiskManager(risk_config) if risk_config else None
+        self.pnl_calculator = pnl_calculator or PnLCalculator(
+            config=PnLConfig(fee_rate=fee_pct/100, slippage_bps=slippage_bps)
+        )
+        self.candle_interval_minutes = candle_interval_minutes
+
+    def run(self, candles, strategy, symbol="BTC/USDT", warmup=50) -> BacktestResult:
+        # Uses Signal dataclass + PnLCalculator + optional RiskManager
+        # Single code path, single Sharpe annualization
+        ...
+
+    @property
+    def _bars_per_year(self) -> float:
+        return 365 * 24 * 60 / self.candle_interval_minutes
+```
+
+**Почему так (Theory & Concept):** Two engines with 827 lines of overlapping code is a maintenance nightmare. The `Backtester` uses `Signal` dataclass and `RiskManager`; the `BacktestEngine` uses dict signals and `PnLCalculator`. Neither uses both. The Sharpe annualization disagrees: `sqrt(365)` vs `sqrt(525600)` — the same data produces different Sharpe ratios depending on which engine runs it. When a bug is fixed in one engine, it's not fixed in the other. The `walk_forward.py` uses `BacktestEngine`; the `optimizer.py` uses `Backtester` — so walk-forward and grid search produce different results for the same strategy. The good code merges into one engine with pluggable `PnLCalculator` + optional `RiskManager` + configurable `candle_interval_minutes`. This eliminates ~200 lines, ensures consistent metrics, and means bug fixes apply once. The principle: never have two implementations of the same domain concept — merge, delegate, or pick one. Duplicate code is worse than ugly code because it creates silent inconsistencies.
+
+---
+
+## 93. Sequential Grid Search — No Parallelism for CPU-Bound Work
+
+**Проблема:** Grid search запускает 1000 бэктестов последовательно. Каждый бэктест ~1s → 16 минут. При 10,000 комбинаций это 2.7 часа. Нет параллелизма, хотя каждый бэктест независим.
+
+**Плохой код (Current):**
+```python
+# optimizer.py:121-136
+for i, combo in enumerate(combinations):
+    params = dict(zip(keys, combo, strict=False))
+    strategy = strategy_class(**params)
+    result = self.backtester.run(candles, strategy, symbol, warmup)  # blocks
+    fitness = self.fitness_fn(result)
+    results.append(OptimizationResult(params, result, fitness))
+```
+
+**Хороший код (Refactored):**
+```python
+import concurrent.futures
+
+def grid_search(self, strategy_class, param_grid, candles, symbol="BTC/USDT",
+                warmup=50, max_combinations=1000, max_workers=None):
+    keys = list(param_grid.keys())
+    combinations = list(itertools.product(*[param_grid[k] for k in keys]))
+    if len(combinations) > max_combinations:
+        combinations = combinations[:max_combinations]
+
+    def _run_one(combo):
+        params = dict(zip(keys, combo, strict=False))
+        try:
+            strategy = strategy_class(**params)
+            bt = Backtester(**self.backtester.__dict__)  # fresh instance
+            result = bt.run(candles, strategy, symbol, warmup)
+            return OptimizationResult(params, result, self.fitness_fn(result))
+        except (RuntimeError, ValueError, KeyError, OSError) as e:
+            logger.debug(f"Failed for {params}: {e}")
+            return None
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as pool:
+        futures = {pool.submit(_run_one, combo): i
+                   for i, combo in enumerate(combinations)}
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            if result:
+                results.append(result)
+
+    results.sort(key=lambda x: x.fitness, reverse=True)
+    return results
+```
+
+**Почему так (Theory & Concept):** Each backtest is CPU-bound (pure Python computation) and independent (no shared state between parameter combinations). This is the ideal case for `ProcessPoolExecutor` — each worker runs in a separate process with its own GIL, achieving true parallelism on multi-core machines. With 8 cores, 1000 combinations take 16min/8 = 2min. With 16 cores, 1min. The bad code uses a single process, so only 1 core is utilized — the other 7 cores sit idle. Under load (strategy development iterating on parameter grids), this means each iteration takes 16 minutes instead of 2, slowing development by 8×. The principle: CPU-bound independent tasks should always be parallelized with `ProcessPoolExecutor` (not `ThreadPoolExecutor` — the GIL prevents true parallelism for CPU work in threads). The cost is ~10 lines of wrapper code; the benefit is N× speedup where N = core count.

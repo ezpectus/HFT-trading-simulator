@@ -1671,3 +1671,15 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R1114 | pnl_calculator: options premium_pct not used | `pnl_calculator.py:155` | Low | _options_gross_pnl identical to spot. Document or use premium |
 | R1115 | pnl_calculator: funding uses exit price not average | `pnl_calculator.py:153` | Low | Overestimates funding. Use (entry+exit)/2 |
 | R1116 | backtester: Sortino downside std uses len(returns) | `backtester.py:318` | Low | Actually correct — standard Sortino. ✅ No fix needed |
+| R1117 | ai-signal-bot/backtesting/backtest_engine.py | `backtest_engine.py` | ✅ Good | PnLCalculator injection mark-to-market underwater curve numpy metrics |
+| R1118 | backtest_engine: duplicate of backtester.py | `backtest_engine.py` | Info | Two engines overlapping. Merge. ~200 lines reduction |
+| R1119 | backtest_engine: Sharpe annualization assumes 1m candles | `backtest_engine.py:292` | Low | 525600 bars/year. Make candle_interval configurable |
+| R1120 | backtest_engine: window grows O(N²) | `backtest_engine.py:150` | Low | Same as backtester.py. Pass index or rolling window |
+| R1121 | backtest_engine: position sizing uses confidence multiplier | `backtest_engine.py:173` | Low | No risk-per-trade cap. Use risk-based sizing |
+| R1122 | ai-signal-bot/backtesting/optimizer.py | `optimizer.py` | ✅ Good | Grid search 4 fitness functions walk-forward formatted output |
+| R1123 | optimizer: grid search is sequential | `optimizer.py:121` | Low | 1000 combos = 16min. Use ProcessPoolExecutor |
+| R1124 | optimizer: walk_forward doesn't optimize | `optimizer.py:138` | Low | Tests given params not optimizes. Rename or add optimization |
+| R1125 | ai-signal-bot/backtesting/walk_forward.py | `walk_forward.py` | ✅ Good | IS/OOS split parameter optimization overfitting detection |
+| R1126 | walk_forward: overfitting threshold hardcoded | `walk_forward.py:167` | Low | 0.5 gap hardcoded. Make configurable |
+| R1127 | walk_forward: no anchored mode | `walk_forward.py:93` | Low | Rolling only. Add anchored: bool parameter |
+| R1128 | walk_forward: new BacktestEngine per param combo | `walk_forward.py:137` | Low | 320 engine instances. Add reset() and reuse |

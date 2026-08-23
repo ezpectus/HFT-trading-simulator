@@ -494,7 +494,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | Day | Date | Task | Status | Commit |
 |-----|------|------|--------|--------|
 | 1 | 2026-08-22 | Split hawkes.py → hawkes_model.py + hawkes_funcs.py + facade. 38 tests pass. | ✅ Done | 3c6919b |
-| — | 2026-08-23 | Full project grep audit — 26 grep findings + 1116 reliability findings (R1-R1116: ... + backtester GOOD + SL/TP after risk manager Low + Sharpe annualization Low + leverage dead code Low + O(N²) window Low + Calmar 5m hardcoded Low + pnl_calculator EXCELLENT + options premium not used Low + funding exit price Low + Sortino correct ✅). Updated CODE_AUDIT.md (§8.1-8.1131), RELIABILITY_PLAN.md (R1-R1116), office-board.md (264 gap items), interview-prep.md (90 bad vs good code examples). Code reduction ~9000+ lines | ✅ Done | — |
+| — | 2026-08-23 | Full project grep audit — 26 grep findings + 1128 reliability findings (R1-R1128: ... + backtest_engine GOOD + duplicate of backtester Info ~200 lines + Sharpe 1m candles Low + O(N²) Low + confidence multiplier Low + optimizer GOOD + sequential grid Low + walk_forward doesn't optimize Low + walk_forward GOOD + overfitting threshold hardcoded Low + no anchored mode Low + new engine per combo Low). Updated CODE_AUDIT.md (§8.1-8.1143), RELIABILITY_PLAN.md (R1-R1128), office-board.md (264 gap items), interview-prep.md (90 bad vs good code examples). Code reduction ~9200+ lines | ✅ Done | — |
 | 2 | 2026-08-23 | compute_returns дедупликация (20+ модулей) | ⏳ Next | — |
 | 3 | 2026-08-24 | quantize и другие хелперы | ⏳ Pending | — |
 | 4 | 2026-08-25 | research/__init__.py упрощение | ⏳ Pending | — |

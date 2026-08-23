@@ -15466,3 +15466,163 @@ funding = self.calculate_funding_cost(qty, fill_exit, hold_time_s)
 Funding cost is calculated using `fill_exit` (the exit fill price with slippage). In reality, funding is charged periodically based on the position's notional value at each funding interval. Using the exit price overestimates funding if the price moved significantly during the hold time. The average price (or periodic funding calculation) would be more accurate.
 
 **Фикс:** Use `(entry_price + exit_price) / 2` as an approximation, or calculate funding per interval using the price at each interval.
+
+### 8.1132 ai-signal-bot/src/backtesting/backtest_engine.py: Backtest Engine — ✅ Good
+
+**Файл:** `ai-signal-bot/src/backtesting/backtest_engine.py` (321 lines)
+
+- **BacktestConfig**: initial_capital, fee_rate, slippage, funding, leverage, position_size_pct — correct
+- **BacktestTrade**: timestamp, symbol, side, qty, entry/exit, pnl, fee, funding, hold_time, reason — correct
+- **BacktestResult**: 16 fields + to_dict + underwater_curve — correct
+- **PnLCalculator integration**: Injected, supports spot/futures/options — correct
+- **run()**: Candle replay, SL/TP using high/low, mark-to-market equity — correct
+- **_compute_risk_adjusted**: Sharpe, Sortino, Calmar with numpy — correct
+- **_compute_underwater_curve**: Drawdown curve from equity — correct
+
+Good backtest engine with PnLCalculator injection, mark-to-market, underwater curve, and numpy-based risk metrics. ✅
+
+### 8.1133 backtest_engine: duplicate of backtester.py — Info
+
+**Файлы:** `backtest_engine.py` (321 lines), `backtester.py` (506 lines)
+
+Two separate backtesting engines with overlapping functionality:
+- `backtester.py`: `Backtester` class, uses `Signal` objects, has risk manager integration, `print_report`, `run_multi_strategy`
+- `backtest_engine.py`: `BacktestEngine` class, uses dict signals, has PnLCalculator injection, underwater curve, numpy metrics
+
+Both implement candle replay, SL/TP, equity curve, Sharpe/Sortino/Calmar, trade logging. The key difference: `Backtester` integrates with `RiskManager` and `Signal` dataclass; `BacktestEngine` integrates with `PnLCalculator` and uses dict signals.
+
+**Reduction potential:** ~200 lines. Merge into one engine with pluggable PnLCalculator + optional RiskManager. Use `Signal` dataclass consistently.
+
+### 8.1134 backtest_engine: Sharpe annualization assumes 1m candles — Low
+
+**Файл:** `backtest_engine.py:292`
+
+```python
+bars_per_year = 365 * 24 * 60
+```
+
+`365 * 24 * 60 = 525,600` — this assumes 1-minute candles. The `backtester.py` uses `365 ** 0.5` (per-trade). Neither is correct for all candle intervals. The two engines disagree on annualization, producing different Sharpe ratios for the same data.
+
+**Фикс:** Accept `candle_interval_minutes` as a parameter. `bars_per_year = 365 * 24 * 60 / candle_interval_minutes`.
+
+### 8.1135 backtest_engine: window grows O(N²) — Low
+
+**Файл:** `backtest_engine.py:150`
+
+```python
+signal = strategy_analyze(symbol, candles[:i + 1])
+```
+
+Same issue as `backtester.py:168` — creates a new list slice each iteration, O(N²) total.
+
+### 8.1136 backtest_engine: position sizing uses confidence multiplier — Low
+
+**Файл:** `backtest_engine.py:173-175`
+
+```python
+size_mult = min(confidence / 50.0, 2.0)
+position_value = self.equity * self.config.position_size_pct * size_mult
+```
+
+Position size scales linearly with confidence: 50% confidence → 1×, 100% confidence → 2×. This means a 100% confidence signal risks 2× the position size of a 50% signal. There's no risk-per-trade cap — if `position_size_pct = 0.1` and `confidence = 100`, the position is 20% of equity. This is aggressive and doesn't match the risk-per-trade model in `backtester.py`.
+
+**Фикс:** Use risk-per-trade model: `risk_amount = equity * risk_per_trade_pct / 100; qty = risk_amount / abs(entry - stop_loss)`.
+
+### 8.1137 ai-signal-bot/src/backtesting/optimizer.py: Strategy Optimizer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/backtesting/optimizer.py` (201 lines)
+
+- **Grid search**: itertools.product, max_combinations cap, progress logging — correct
+- **4 fitness functions**: default (risk-adjusted), Sharpe, Calmar, profit factor — correct
+- **Walk-forward**: Train/test windows, sliding by test_size — correct
+- **print_results**: Formatted table with top N — correct
+- **best_params**: Returns top-ranked params — correct
+
+Good strategy optimizer with grid search, 4 fitness functions, walk-forward, and formatted output. ✅
+
+### 8.1138 optimizer: grid search is sequential — Low
+
+**Файл:** `optimizer.py:121-136`
+
+```python
+for i, combo in enumerate(combinations):
+    params = dict(zip(keys, combo, strict=False))
+    strategy = strategy_class(**params)
+    result = self.backtester.run(candles, strategy, symbol, warmup)
+```
+
+Each parameter combination runs a full backtest sequentially. With 4×4×4 = 64 combinations and 10,000 candles, each backtest takes ~1s → 64s total. With max_combinations=1000, that's ~16 minutes. No parallelism.
+
+**Фикс:** Use `concurrent.futures.ProcessPoolExecutor` to run backtests in parallel. Each backtest is independent.
+
+### 8.1139 optimizer: walk_forward doesn't optimize — Low
+
+**Файл:** `optimizer.py:138-167`
+
+```python
+def walk_forward(self, strategy_class, params: dict, ...):
+    # ...
+    strategy = strategy_class(**params)
+    result = self.backtester.run(test_candles, strategy, ...)
+```
+
+The `walk_forward` method accepts a single `params` dict and runs the same params on each test window. It doesn't optimize on the train window — it just tests the given params. This is walk-forward *testing*, not walk-forward *optimization*. The `WalkForwardAnalyzer` in `walk_forward.py` does actual optimization.
+
+**Фикс:** Either rename to `walk_forward_test` to clarify, or add optimization on the train window.
+
+### 8.1140 ai-signal-bot/src/backtesting/walk_forward.py: Walk-Forward Analyzer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/backtesting/walk_forward.py` (196 lines)
+
+- **WalkForwardWindow**: IS/OOS ranges, results, best_params — correct
+- **WalkForwardResult**: windows, avg IS/OOS Sharpe, overfitting score, is_overfit — correct
+- **run()**: N windows, IS optimization, OOS testing — correct
+- **_optimize_in_sample**: Grid search on IS data — correct
+- **_test_out_of_sample**: Best params on OOS data — correct
+- **detect_overfitting**: IS vs OOS gap + ratio — correct
+
+Good walk-forward analyzer with IS/OOS splitting, parameter optimization, overfitting detection, and aggregate metrics. ✅
+
+### 8.1141 walk_forward: overfitting threshold hardcoded — Low
+
+**Файл:** `walk_forward.py:167, 187`
+
+```python
+result.is_overfit = bool(result.overfitting_score > 0.5)
+# ...
+overfit = bool(gap > 0.5 or ratio > 2.0)
+```
+
+The overfitting threshold (0.5 Sharpe gap) is hardcoded. For high-frequency strategies, a 0.5 gap may be normal (noisy Sharpe). For low-frequency, 0.5 is significant. The threshold should be configurable.
+
+**Фикс:** Accept `overfitting_threshold` as a parameter.
+
+### 8.1142 walk_forward: no look-ahead bias check — Low
+
+**Файл:** `walk_forward.py:93-96`
+
+```python
+is_start = window_idx * oos_size
+is_end = is_start + in_sample_size
+oos_start = is_end
+oos_end = oos_start + oos_size
+```
+
+The IS window ends at `is_end` and OOS starts at `oos_start = is_end`. This is correct — no overlap. But the IS window slides by `oos_size` each iteration: `is_start = w * oos_size`. This means the IS window includes data from previous OOS windows. For walk-forward *without* anchoring, this is correct (rolling window). For anchored walk-forward, IS should start at 0 each time. The code doesn't support anchored mode.
+
+**Фикс:** Add `anchored: bool = False` parameter. If anchored, `is_start = 0`.
+
+### 8.1143 walk_forward: creates new BacktestEngine per param combo — Low
+
+**Файл:** `walk_forward.py:136-138`
+
+```python
+for params in param_grid:
+    analyze_fn = strategy_factory(params)
+    engine = BacktestEngine(config)
+    is_result = engine.run(candles[is_start:is_end], analyze_fn, symbol)
+```
+
+A new `BacktestEngine` is created for each parameter combination in each window. With 5 windows × 64 params = 320 engine instances. Each engine allocates equity_curve list, trades list, etc. This is wasteful — the engine could be reset instead of recreated.
+
+**Фикс:** Add a `reset()` method to `BacktestEngine` and reuse the instance.
