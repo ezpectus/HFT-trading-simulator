@@ -36,6 +36,20 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AK: web-ui feature flags for math/research panels)
+
+### Added
+- `web-ui/src/panels/registry.js`: `ADVANCED_PANEL_IDS` Set — 76 math/research panel IDs hidden by default
+- `web-ui/src/panels/registry.js`: `DEFAULT_VISIBLE` now excludes advanced panels
+- `web-ui/src/panels/PanelContainer.jsx`: FlaskConical toggle button — shows/hides advanced panels, persisted via localStorage
+
+### Fixed
+- CODE_AUDIT §8.188 — 50+ components many unused → advanced panels behind feature flag
+- CODE_AUDIT §8.252 — math panels bloat bundle → hidden by default, lazy imports remain for code-splitting
+- CODE_AUDIT §8.410 — 200+ components over-engineering → feature flag toggle declutters default UI
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AJ: KillSwitch thread safety + SymbolId enum expansion)
 
 ### Fixed

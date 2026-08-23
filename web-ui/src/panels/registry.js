@@ -647,8 +647,27 @@ export const PANELS = [
     props: (ctx) => ({ onConfigUpdate: ctx.exchange.sendConfigUpdate, fundingRates: ctx.exchange.fundingRates, weekendMode: ctx.exchange.weekendMode }) },
 ]
 
-// Default visible panels (all visible by default)
-export const DEFAULT_VISIBLE = PANELS.map(p => p.id)
+// Default visible panels (all visible by default except advanced math panels)
+export const ADVANCED_PANEL_IDS = new Set([
+  'garch-vol', 'cointegration', 'markov-regime', 'fractal', 'kalman', 'spectral',
+  'ehlers-super', 'bayesian-predictor', 'wavelet', 'kmeans', 'copula', 'hmm', 'pca',
+  'optimal-stopping', 'isolation-forest', 'vmd', 'emd', 'svm', 'black-litterman',
+  'hawkes', 'dtw', 'rnn-lstm', 'kelly', 'gp-regression', 'ms-garch', 'edm',
+  'autoencoder', 'optimal-transport', 'rough-vol', 'transfer-entropy', 'cvar',
+  'nonstat-spectral', 'rmt', 'bsts', 'tda', 'sde', 'gmm', 'wpd', 'info-bottleneck',
+  'affine-arithmetic', 'rg', 'fep', 'tensor-decomp', 'compressed-sensing',
+  'malliavin', 'hmc', 'rkhs', 'vae', 'schrodinger-bridge', 'lie-group',
+  'ks-entropy', 'ph-landscape', 'fokker-planck', 'hopf-bifurcation', 'cramer-rao',
+  'wasserstein-bary', 'koopman', 'stochastic-control', 'renyi-entropy',
+  'pontryagin', 'burgers-eq', 'sobolev-reg', 'ito-generator', 'banach-fixed',
+  'cesaro-fejer', 'girsanov', 'stone-cech', 'malliavin-stein', 'prokhorov',
+  'radon-nikodym', 'hahn-decomp', 'cameron-martin', 'arzela-ascoli',
+  'riesz-rep', 'lax-milgram', 'almgren-chriss', 'graph-network',
+])
+
+export const DEFAULT_VISIBLE = PANELS
+  .filter(p => !ADVANCED_PANEL_IDS.has(p.id))
+  .map(p => p.id)
 
 // Get panels by category
 export function getPanelsByCategory(categoryId) {

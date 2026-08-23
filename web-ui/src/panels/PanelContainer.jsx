@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
-import { ChevronDown, ChevronRight, Eye, EyeOff, Settings2 } from 'lucide-react'
-import { CATEGORIES, PANELS, DEFAULT_VISIBLE, getPanelsByCategory, preloadCategory } from './registry'
+import { ChevronDown, ChevronRight, Eye, EyeOff, Settings2, FlaskConical } from 'lucide-react'
+import { CATEGORIES, PANELS, DEFAULT_VISIBLE, ADVANCED_PANEL_IDS, getPanelsByCategory, preloadCategory } from './registry'
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
 import ChunkRetryBoundary from '../components/ChunkRetryBoundary'
 import { useLocalStorage } from '../hooks/useLocalStorage'
@@ -8,6 +8,7 @@ import { usePanelContext } from '../stores/usePanelContext'
 
 const VISIBILITY_KEY = 'trading-sim-panel-visibility'
 const COLLAPSED_KEY = 'trading-sim-panel-collapsed'
+const ADVANCED_KEY = 'trading-sim-advanced-panels'
 
 export default function PanelContainer({ context: contextProp }) {
   const storeContext = usePanelContext()
@@ -15,6 +16,7 @@ export default function PanelContainer({ context: contextProp }) {
   const [visible, setVisible] = useLocalStorage(VISIBILITY_KEY, DEFAULT_VISIBLE)
   const [collapsed, setCollapsed] = useLocalStorage(COLLAPSED_KEY, {})
   const [showSettings, setShowSettings] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useLocalStorage(ADVANCED_KEY, false)
 
   const togglePanel = (id) => {
     setVisible(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id])
@@ -31,22 +33,43 @@ export default function PanelContainer({ context: contextProp }) {
     }
   }, [])
 
+  const toggleAdvanced = () => {
+    setShowAdvanced(prev => {
+      const next = !prev
+      if (!next) {
+        setVisible(prevVis => prevVis.filter(id => !ADVANCED_PANEL_IDS.has(id)))
+      }
+      return next
+    })
+  }
+
   const visibleCount = visible.length
-  const totalCount = PANELS.length
+  const totalCount = showAdvanced ? PANELS.length : PANELS.filter(p => !ADVANCED_PANEL_IDS.has(p.id)).length
 
   return (
     <div className="space-y-1">
       {/* Settings toggle */}
       <div className="flex items-center justify-between px-1 mb-1">
         <span className="text-[8px] text-gray-600 uppercase">{visibleCount}/{totalCount} panels</span>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className={'flex items-center gap-1 px-1.5 py-0.5 text-[8px]  transition-colors ' +
-            (showSettings ? 'bg-accent-blue/20 text-accent-blue' : 'text-gray-600 hover:text-gray-400')}
-        >
-          <Settings2 size={9} />
-          Panels
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={toggleAdvanced}
+            className={'flex items-center gap-1 px-1.5 py-0.5 text-[8px] transition-colors ' +
+              (showAdvanced ? 'bg-accent-purple/20 text-accent-purple' : 'text-gray-600 hover:text-gray-400')}
+            title="Toggle advanced math/research panels"
+          >
+            <FlaskConical size={9} />
+            Advanced
+          </button>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className={'flex items-center gap-1 px-1.5 py-0.5 text-[8px]  transition-colors ' +
+              (showSettings ? 'bg-accent-blue/20 text-accent-blue' : 'text-gray-600 hover:text-gray-400')}
+          >
+            <Settings2 size={9} />
+            Panels
+          </button>
+        </div>
       </div>
 
       {/* Panel visibility settings */}
@@ -54,7 +77,7 @@ export default function PanelContainer({ context: contextProp }) {
         <div className="bg-bg-800 p-2 mb-2 max-h-[200px] overflow-y-auto scrollbar-thin border border-bg-600">
           <div className="text-[8px] text-gray-600 uppercase mb-1">Toggle Panels</div>
           {CATEGORIES.map(cat => {
-            const catPanels = getPanelsByCategory(cat.id)
+            const catPanels = getPanelsByCategory(cat.id).filter(p => showAdvanced || !ADVANCED_PANEL_IDS.has(p.id))
             if (catPanels.length === 0) return null
             return (
               <div key={cat.id} className="mb-1.5">
@@ -80,7 +103,7 @@ export default function PanelContainer({ context: contextProp }) {
 
       {/* Render panels by category */}
       {[...CATEGORIES].sort((a, b) => a.order - b.order).map(cat => {
-        const catPanels = getPanelsByCategory(cat.id)
+        const catPanels = getPanelsByCategory(cat.id).filter(p => showAdvanced || !ADVANCED_PANEL_IDS.has(p.id))
         const visiblePanels = catPanels.filter(p => visible.includes(p.id))
         if (visiblePanels.length === 0) return null
 
