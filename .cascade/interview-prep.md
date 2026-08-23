@@ -3518,3 +3518,97 @@ void process_ai_signals(BotContext& ctx, double balance, bool can_trade) {
 ```
 
 **Разница:** The bad code silently maps any unrecognized string to SELL and NEUTRAL to BUY. This means `"Sell"` (capital S) becomes SELL (wrong), `"buy"` (lowercase) becomes SELL (wrong), `""` (empty) becomes SELL (wrong), and NEUTRAL signals become BUY orders (wrong). There's no error, no warning, no log — the bot silently submits wrong-side orders. In HFT, a wrong-side order is catastrophic: if the bot receives a NEUTRAL signal (meaning "do nothing") but submits a BUY order, it opens a position with no signal backing. If BTC is about to drop 5%, the NEUTRAL signal says "don't trade", but the bot buys — and loses 5% immediately. With 1000 users, 100 wrong-side orders per day × $10,000 average position × 5% loss = $50,000 per day in preventable losses. The good code uses `std::optional<Side>` — if the string is unrecognized, it returns `std::nullopt`, forcing the caller to handle the error. The case-insensitive comparison handles "Buy", "BUY", "buy", "LONG", "long" correctly. The whitespace trimming handles "BUY\n" and "  sell  ". The caller checks `is_actionable()` first and logs a warning if `side()` returns nullopt. The cost is a few lines of code for case conversion and trimming. The benefit is zero wrong-side orders — every unrecognized input is caught and logged, not silently mapped to the wrong side.
+
+---
+
+## Bad vs Good: Kill Switch Thread Not Joined (C++)
+
+### ❌ Bad Code
+```cpp
+class KillSwitch {
+public:
+    ~KillSwitch() { stop_monitoring(); }
+
+    void start_monitoring() {
+        running_.store(true);
+        monitor_thread_ = std::thread(&KillSwitch::monitor_loop, this);
+        monitor_thread_.detach();  // Detached — can't join!
+    }
+
+    void stop_monitoring() {
+        running_.store(false);
+        // Can't join — thread is detached!
+        // Thread may still be running and accessing `this`
+    }
+
+private:
+    void monitor_loop() {
+        while (running_.load(std::memory_order_relaxed)) {
+            if (std::filesystem::exists(trigger_file_)) {
+                activate(Reason::FILE_TRIGGER);
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        // After this returns, thread accesses `this->trigger_file_` etc.
+        // But `this` may already be destroyed!
+    }
+
+    std::atomic<bool> running_{false};
+    std::thread monitor_thread_;  // Detached, not joinable
+    std::string trigger_file_;
+};
+```
+
+**What's wrong:**
+- `detach()` means the thread runs independently — `stop_monitoring()` can't wait for it
+- `stop_monitoring()` sets `running_ = false`, but the thread may be in `sleep_for(100ms)` — it checks `running_` only after waking up
+- If `KillSwitch` is destroyed immediately after `stop_monitoring()`, the thread wakes up and accesses `this->trigger_file_` — use-after-free
+- The thread may call `activate()` which calls callbacks that reference destroyed objects
+- In HFT, the kill switch is the last line of defense — if it crashes, the bot keeps trading with no emergency stop
+
+### ✅ Good Code
+```cpp
+class KillSwitch {
+public:
+    ~KillSwitch() {
+        stop_monitoring();
+        if (monitor_thread_.joinable()) {
+            monitor_thread_.join();  // Wait for thread to finish
+        }
+    }
+
+    void start_monitoring() {
+        running_.store(true, std::memory_order_release);
+        monitor_thread_ = std::thread(&KillSwitch::monitor_loop, this);
+        // No detach — we will join in destructor
+    }
+
+    void stop_monitoring() {
+        running_.store(false, std::memory_order_release);
+        // Thread will exit on next loop iteration
+    }
+
+private:
+    void monitor_loop() {
+        while (running_.load(std::memory_order_relaxed)) {
+            if (std::filesystem::exists(trigger_file_)) {
+                activate(Reason::FILE_TRIGGER);
+                return;
+            }
+            // Use condition_variable for interruptible sleep
+            std::unique_lock<std::mutex> lk(cv_mutex_);
+            cv_.wait_for(lk, std::chrono::milliseconds(100),
+                         [this] { return !running_.load(std::memory_order_relaxed); });
+        }
+    }
+
+    std::atomic<bool> running_{false};
+    std::thread monitor_thread_;
+    std::mutex cv_mutex_;
+    std::condition_variable cv_;
+    std::string trigger_file_;
+};
+```
+
+**Разница:** The bad code detaches the monitoring thread — `stop_monitoring()` sets `running_ = false` but can't wait for the thread to actually stop. If the `KillSwitch` is destroyed immediately after `stop_monitoring()`, the thread is still in `sleep_for(100ms)`. When it wakes up, it accesses `this->trigger_file_` — but `this` is already destroyed. This is a use-after-free: undefined behavior, possible crash, possible silent corruption. In the worst case, the thread calls `activate()` which invokes callbacks that reference destroyed `BotContext` members — the kill switch fires on a dead bot, calling `cancel_all_orders()` on a destroyed order executor. With 1000 users, this crash happens on every pod restart — the kill switch thread crashes, the bot has no emergency stop, and a flash crash wipes out $500,000+ in positions. The good code joins the thread in the destructor — `stop_monitoring()` sets `running_ = false`, then the destructor calls `monitor_thread_.join()` which blocks until the thread exits. The thread uses `condition_variable::wait_for()` instead of `sleep_for()` — it wakes up immediately when `running_` becomes false, instead of waiting up to 100ms. The total shutdown time is <1ms instead of up to 100ms. The cost is a `mutex` + `condition_variable` (64 bytes) and a `join()` call (blocks <1ms). The benefit is guaranteed safe shutdown — no use-after-free, no crashed kill switch, no bot without emergency stop.

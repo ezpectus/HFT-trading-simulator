@@ -1100,3 +1100,26 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R543 | exchange_simulator/visualizer.py | `visualizer.py` | ✅ Good | 2 mixins, cross-platform (msvcrt/select), ANSI colors, tabbed, pure Python |
 | R544 | ai-signal-bot/strategies/__init__.py | `strategies/__init__.py` | ✅ Good | 7 strategies + 4 configs exported, __all__ explicit |
 | R545 | strategies/__init__: missing CrossExchangeArb | `strategies/__init__.py` | Low | CrossExchangeArb and FundingRateArbDetector not exported. Add or document |
+| R546 | hft-trade-bot/risk/kill_switch.h | `kill_switch.h` | ✅ Excellent | 3 activation methods, 5 reasons, 3 callbacks, SHM notification, destructor cleanup |
+| R547 | kill_switch: file monitoring thread not joined | `kill_switch.h:52` | Medium | stop_monitoring may not join thread. Use jthread or join in stop_monitoring |
+| R548 | hft-trade-bot/core/logger.h | `logger.h` | ✅ Good | spdlog, 2 modes (dev/JSON), rotating 50MB×5, timestamped filenames, cross-platform |
+| R549 | logger: static log_dir_ not thread-safe | `logger.h:27` | Low | Static member assigned in init(). Document init-once requirement |
+| R550 | hft-trade-bot/strategies/pressure_model.h | `pressure_model.h` | ✅ Excellent | Multi-level OBI single pass, toxicity, spread regime, noexcept, zero-alloc, [[unlikely]] |
+| R551 | hft-trade-bot/strategies/signal_engine.h V1 | `signal_engine.h` | ✅ Good | 6 indicators (EMA/RSI/OBI/VWAP/Pressure/FFT), in-house FFT, cross-platform |
+| R552 | signal_engine V1: FFT uses valarray | `signal_engine.h:27` | Low | valarray uncommon, perf pitfalls. Use iterative FFT or FFTW |
+| R553 | signal_engine V1: recursive FFT allocs | `signal_engine.h:27` | Low | 20 allocs per FFT call. Use iterative in-place FFT with bit-reversal |
+| R554 | ai-signal-bot/notification/notifier.py | `notifier.py` | ✅ Good | Telegram+Discord, 6 alert types, remote commands, session reuse, AlertEvent |
+| R555 | notifier: token in plain attr | `notifier.py:54` | Low | Token stored as plain string. Mask in __repr__ or env-only |
+| R556 | ai-signal-bot/llm_engine/engine.py | `engine.py` | ✅ Good | 4 providers, graceful fallback, optional aiohttp, MarketContext 12 fields, cache TTL |
+| R557 | llm_engine: API key in plain dataclass | `engine.py:29` | Low | API key plain string. Mask in __repr__ or load from env at call time |
+| R558 | ai-signal-bot/networking/socket_transport.py | `socket_transport.py` | ✅ Good | Non-blocking UDP, 1MB buffer, 4096 RX/TX queues, 5 msg types, packet stats |
+| R559 | socket_transport: no error on packet parse | `socket_transport.py` | Low | struct.unpack can raise on malformed packets. Wrap in try/except |
+| R560 | ai-signal-bot/signal_validation/validator.py | `validator.py` | ✅ Good | 5 checks, ValidationResult, daily PnL auto-reset, duplicate prevention |
+| R561 | validator: not thread-safe | `validator.py:45` | Medium | _daily_pnl/_open_positions/_recent_signals no lock. Use asyncio.Lock |
+| R562 | validator: _recent_signals unbounded | `validator.py:48` | Low | Dict grows indefinitely. Use TTLCache or periodic cleanup |
+| R563 | trade_csv_logger.py | `trade_csv_logger.py` | ✅ Good | Thread-safe Lock, 10 CSV fields, timestamped filenames, symlink+Windows fallback |
+| R564 | trade_csv_logger: no file rotation | `trade_csv_logger.py:46` | Low | New file per run, no cleanup. Add max_files and delete oldest |
+| R565 | hft-trade-bot/core/config_parser.h | `config_parser.h` | ✅ Good | expand_env ${VAR}, per-exchange parsing, dev/prod split, rate limits, fees |
+| R566 | config_parser: expand_env missing var silent | `config_parser.h:27` | Low | Missing env var → empty string, no warning. Log for credentials |
+| R567 | hft-trade-bot/core/config_validate.h | `config_validate.h` | ✅ Good | 12 checks (6 risk + 6 trading), recommended values, ws:// validation |
+| R568 | config_validate: warnings only no hard fail | `config_validate.h:11` | Low | All failures are warn(). Critical params should error and abort |

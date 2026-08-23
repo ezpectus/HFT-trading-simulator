@@ -7357,3 +7357,284 @@ Good strategy exports with 7 strategies, configs, and explicit `__all__`. ✅
 The `__init__.py` exports 7 strategies but doesn't export `CrossExchangeArb` or `FundingRateArbDetector` which exist in the strategies directory. These are only accessible via direct import.
 
 **Фикс:** Add to `__init__.py` exports or document that they're internal-only.
+
+### 8.556 hft-trade-bot/src/risk/kill_switch.h: Emergency kill switch — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h` (173 lines)
+
+- **3 activation methods**: File-based trigger, programmatic `activate()`, daily loss limit — comprehensive
+- **5 reasons**: MANUAL, DAILY_LOSS, MAX_DRAWDOWN, MARGIN_CALL, FILE_TRIGGER — structured
+- **3 callbacks**: CancelAllCallback, CloseAllCallback, NotifyCallback — flexible
+- **SHM notification**: Notifies Python via `KillSwitchMsg` — IPC integration
+- **Destructor calls `stop_monitoring()`**: Proper cleanup — correct
+- **`[[nodiscard]]` on init_shm**: Prevents ignoring init failure — correct
+- **Cross-platform**: `#ifndef _WIN32` for `sys/stat.h` — portable
+
+Excellent kill switch with 3 activation methods, 5 reasons, 3 callbacks, SHM notification, and proper cleanup. ✅
+
+### 8.557 kill_switch: file monitoring thread not joined — Medium
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h:52`
+
+```cpp
+~KillSwitch() { stop_monitoring(); }
+```
+
+The destructor calls `stop_monitoring()`, but if the monitoring thread is a detached thread (common pattern), `stop_monitoring()` may only set a flag without joining. If the thread accesses `this` after destruction, use-after-free.
+
+**Фикс:** Use `std::jthread` or join the thread in `stop_monitoring()`.
+
+### 8.558 hft-trade-bot/src/core/logger.h: Logger — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/logger.h` (98 lines)
+
+- **spdlog**: Industry-standard logging library — correct
+- **2 modes**: Human-readable (dev) + JSON (production) — flexible
+- **Rotating file sinks**: 50MB max, 5 rotated files (production) — prevents unbounded logs
+- **Timestamped filenames**: `hft_trade_bot_YYYYMMDD_HHMMSS.log` — unique per run
+- **`latest.log` symlink**: Always points to latest — convenient
+- **Cross-platform**: `localtime_s` (Windows) / `localtime_r` (Linux) — portable
+- **Console + file**: Dual sink — correct
+
+Good logger with 2 modes, rotating sinks, timestamped filenames, and cross-platform support. ✅
+
+### 8.559 logger: static log_dir_ not thread-safe — Low
+
+**Файл:** `hft-trade-bot/src/core/logger.h:27`
+
+```cpp
+log_dir_ = dir;
+```
+
+`log_dir_` is a static member assigned in `init()`. If `init()` is called from multiple threads simultaneously, race condition. In practice, `init()` is called once at startup, so this is benign.
+
+**Фикс:** Document that `init()` must be called once before any logging.
+
+### 8.560 hft-trade-bot/src/strategies/pressure_model.h: Order book pressure — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/pressure_model.h` (258 lines)
+
+- **Multi-level OBI**: 5/10/20 levels in single pass — optimized
+- **Trade flow imbalance**: Buyer/seller initiated — microstructure
+- **Toxicity detection**: `toxic_size_threshold` multiplier — risk awareness
+- **Large order percentile**: Top 10% = large — configurable
+- **Spread regime**: TIGHT (<1bps), WIDE (>5bps), NORMAL — classified
+- **`noexcept`**: Hot path — HFT constraint
+- **Zero heap allocations**: Inlined calculations — HFT optimized
+- **`[[unlikely]]`**: Branch prediction hints — HFT optimization
+
+Excellent pressure model with multi-level OBI, toxicity detection, spread regime, noexcept, and zero-alloc. ✅
+
+### 8.561 hft-trade-bot/src/strategies/signal_engine.h: Signal engine V1 — ✅ Good
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine.h` (360 lines)
+
+- **6 indicators**: EMA, RSI, OBI, VWAP, Price Pressure, FFT cycle — comprehensive
+- **FFT (Cooley-Tukey radix-2)**: In-house implementation — no external dependency
+- **Spectral trend score**: -1 (ranging) to +1 (trending) — useful
+- **`kPi` constant**: `inline constexpr` — correct
+- **Cross-platform**: `_USE_MATH_DEFINES` for MSVC — portable
+
+Good signal engine V1 with 6 indicators, in-house FFT, and cross-platform support. ✅
+
+### 8.562 signal_engine V1: FFT uses valarray — Low
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine.h:27-43`
+
+```cpp
+inline void fft(std::valarray<std::complex<double>>& a) {
+```
+
+`std::valarray` is uncommon and has performance pitfalls — some compilers don't optimize it well. The recursive FFT also allocates on each call (`even` and `odd` valarrays).
+
+**Фикс:** Use iterative FFT with pre-allocated buffer, or use a well-optimized library (FFTW).
+
+### 8.563 signal_engine V1: recursive FFT stack depth — Low
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine.h:27-35`
+
+The FFT is recursive — `fft(even)` and `fft(odd)` are called recursively. For n=1024, this is 10 levels of recursion. Each level allocates 2 valarrays. Total: 2 * 10 = 20 allocations per FFT call.
+
+**Фикс:** Use iterative in-place FFT with bit-reversal permutation. O(n log n) with zero allocations.
+
+### 8.564 ai-signal-bot/src/notification/notifier.py: Telegram/Discord notifier — ✅ Good
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py` (334 lines)
+
+- **2 platforms**: Telegram + Discord — flexible
+- **6 alert types**: fill, sl_tp, position_open, position_close, daily_pnl, error — comprehensive
+- **Remote commands**: /status, /positions, /close_all, /pause, /resume — remote control
+- **AlertEvent dataclass**: Normalized events — clean
+- **Env var support**: TELEGRAM_BOT_TOKEN, DISCORD_BOT_TOKEN — flexible
+- **`_session` reuse**: Single aiohttp session — efficient
+- **Command handlers**: Dict-based dispatch — extensible
+
+Good notifier with 2 platforms, 6 alert types, remote commands, and session reuse. ✅
+
+### 8.565 notifier: token stored in plain attr — Low
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py:54`
+
+```python
+self.token = token
+```
+
+Bot token is stored as a plain string attribute. If the notifier object is logged or serialized, the token could leak.
+
+**Фикс:** Use `__repr__` that masks the token, or store in environment only.
+
+### 8.566 ai-signal-bot/src/llm_engine/engine.py: LLM engine — ✅ Good
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py` (394 lines)
+
+- **4 providers**: openai, anthropic, ollama, none — flexible
+- **Graceful fallback**: Rule-based analysis if no API key — resilient
+- **Optional aiohttp**: `try/except ImportError` — correct
+- **MarketContext dataclass**: 12 fields — comprehensive
+- **LLMAnalysis dataclass**: Structured output — clean
+- **Cache TTL**: Configurable — efficient
+- **Timeout**: 10s default — prevents hanging
+
+Good LLM engine with 4 providers, graceful fallback, optional imports, and caching. ✅
+
+### 8.567 llm_engine: API key in plain dataclass — Low
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py:29`
+
+```python
+api_key: str = ""
+```
+
+API key stored as plain string in `LLMConfig` dataclass. If config is logged or serialized, key could leak.
+
+**Фикс:** Use `__repr__` that masks the key, or load from env at call time.
+
+### 8.568 ai-signal-bot/src/networking/socket_transport.py: UDP transport — ✅ Good
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py` (156 lines)
+
+- **Non-blocking UDP**: `socket.SOCK_DGRAM` — low-latency
+- **Configurable buffer**: 1MB default — prevents packet loss
+- **RX/TX queue sizes**: 4096 each — configurable
+- **MarketDataPacket dataclass**: Structured packet — clean
+- **5 msg types**: new, modify, cancel, trade, snapshot — comprehensive
+- **Packet statistics**: Tracked — observability
+
+Good UDP transport with non-blocking sockets, configurable buffers, and packet statistics. ✅
+
+### 8.569 socket_transport: no error handling on packet parse — Low
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py`
+
+The packet parser uses `struct.unpack` which can raise `struct.error` on malformed packets. If not caught, the receive loop crashes.
+
+**Фикс:** Wrap `struct.unpack` in `try/except struct.error` and log malformed packets.
+
+### 8.570 ai-signal-bot/src/signal_validation/validator.py: Signal validator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/signal_validation/validator.py` (122 lines)
+
+- **5 checks**: min_confidence, min_rr_ratio, max_drawdown, max_open_positions, duplicate prevention — comprehensive
+- **ValidationResult dataclass**: passed, reason, signal — structured
+- **Daily PnL tracking**: Auto-reset after 24h — correct
+- **Duplicate prevention**: `_recent_signals` dict with timestamp — correct
+- **Configurable thresholds**: All params configurable — flexible
+
+Good signal validator with 5 checks, daily PnL tracking, and duplicate prevention. ✅
+
+### 8.571 validator: not thread-safe — Medium
+
+**Файл:** `ai-signal-bot/src/signal_validation/validator.py:45-48`
+
+```python
+self._daily_pnl: float = 0.0
+self._open_positions: int = 0
+self._recent_signals: dict[str, datetime] = {}
+```
+
+`_daily_pnl`, `_open_positions`, and `_recent_signals` are plain attributes with no lock. If `validate()` and `update_pnl()` are called from different async tasks, race condition on `_daily_pnl` and `_open_positions`.
+
+**Фикс:** Use `asyncio.Lock` or make the validator single-task only.
+
+### 8.572 validator: _recent_signals unbounded dict — Low
+
+**Файл:** `ai-signal-bot/src/signal_validation/validator.py:48`
+
+```python
+self._recent_signals: dict[str, datetime] = {}
+```
+
+`_recent_signals` grows indefinitely — old entries are never cleaned up. Over time, this dict grows for every unique symbol+strategy combination.
+
+**Фикс:** Periodically clean entries older than the cooldown period, or use `TTLCache`.
+
+### 8.573 trade_csv_logger.py: CSV trade logger — ✅ Good
+
+**Файл:** `trade_csv_logger.py` (93 lines)
+
+- **Thread-safe**: `threading.Lock` — correct
+- **10 CSV fields**: timestamp, exchange, symbol, side, type, price, quantity, fee, pnl, reason — comprehensive
+- **Timestamped filenames**: `trades_YYYYMMDD_HHMMSS.csv` — unique per run
+- **`_latest.csv` symlink**: Always points to latest — convenient
+- **Windows fallback**: Plain file if symlink fails — portable
+- **Shared module**: Used by all Python services — centralized
+
+Good CSV trade logger with thread-safety, 10 fields, timestamped filenames, and cross-platform symlink. ✅
+
+### 8.574 trade_csv_logger: no file rotation — Low
+
+**Файл:** `trade_csv_logger.py:46`
+
+```python
+self.path = os.path.join(log_dir, f"{service_name}_{timestamp}.csv")
+```
+
+A new CSV file is created per run. In a long-running deployment with many restarts, the `logs/` directory accumulates many CSV files. No rotation or cleanup.
+
+**Фикс:** Add a `max_files` parameter and delete oldest files when exceeded.
+
+### 8.575 hft-trade-bot/src/core/config_parser.h: Config YAML parser — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/config_parser.h` (344 lines)
+
+- **`expand_env()`**: `${VAR}` env var expansion — correct
+- **`parse_exchange_node()`**: Per-exchange config parsing — modular
+- **`parse_dev_config()` / `parse_production_config()`**: Split by environment — clean
+- **API key/secret expansion**: `expand_env()` on credentials — correct
+- **Rate limit parsing**: `weight_per_min`, `orders_per_min` — comprehensive
+- **Fee parsing**: `maker_bps`, `taker_bps` — correct
+
+Good config parser with env var expansion, per-exchange parsing, and dev/prod split. ✅
+
+### 8.576 config_parser: expand_env doesn't handle missing env var — Low
+
+**Файл:** `hft-trade-bot/src/core/config_parser.h:27-28`
+
+```cpp
+const char* val = std::getenv(var_name.c_str());
+if (val) { result += val; }
+```
+
+If env var is not set, `val` is null and the expansion is empty. The API key/secret silently becomes empty. No warning is logged.
+
+**Фикс:** Log a warning if env var is not set, especially for credentials.
+
+### 8.577 hft-trade-bot/src/core/config_validate.h: Config validation — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/config_validate.h` (98 lines)
+
+- **6 risk param validations**: max_risk, max_drawdown, stop_loss, take_profit, min_rr, max_position_size — comprehensive
+- **6 trading param validations**: signal_interval, max_open_positions, symbols, EMA periods, ws_url — comprehensive
+- **Range checks**: With recommended values in warning message — helpful
+- **`spdlog::warn()`**: Non-fatal warnings — correct (don't crash on bad config)
+- **URL validation**: `ws://` or `wss://` prefix check — correct
+
+Good config validation with 12 checks, recommended values, and non-fatal warnings. ✅
+
+### 8.578 config_validate: warnings only, no hard fail — Low
+
+**Файл:** `hft-trade-bot/src/core/config_validate.h:11-36`
+
+All validation failures are `spdlog::warn()` — the bot continues even with invalid config (e.g., `max_risk_per_trade_pct = -5` or `stop_loss_pct = 0`). This could lead to dangerous behavior.
+
+**Фикс:** For critical params (stop_loss = 0, max_risk > 100), use `spdlog::error()` and return false to abort startup.

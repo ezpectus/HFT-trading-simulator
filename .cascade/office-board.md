@@ -252,3 +252,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | db.py: new connection per operation | Every DB op creates new conn + PRAGMA WAL. Use persistent conn, set WAL once | CODE_AUDIT §8.525 |
 | main.cpp: no SIGTERM handler | No signal handler. K8s SIGTERM won't stop bot gracefully. Register signal handler | CODE_AUDIT §8.528 |
 | options_pricing: duplicate of options_simulator | Two modules implement Black-Scholes. Consolidate into one | CODE_AUDIT §8.548 |
+| kill_switch: file monitoring thread not joined | stop_monitoring may not join thread. Use-after-free risk. Use jthread | CODE_AUDIT §8.557 |
+| validator: not thread-safe | _daily_pnl/_open_positions no lock. Race in async context. Use asyncio.Lock | CODE_AUDIT §8.571 |
