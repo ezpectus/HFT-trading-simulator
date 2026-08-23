@@ -10,6 +10,7 @@ Supports Binance, OKX, and Bybit for:
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -63,12 +64,14 @@ class RealExchangeClient:
     """REST client for real exchange account/position info."""
 
     def __init__(self, exchange: str, api_key: str, api_secret: str,
-                 passphrase: str = "", base_url: str = "", testnet: bool = False):
+                 passphrase: str = "", base_url: str = "", testnet: bool = False,
+                 max_concurrent: int = 5):
         self.exchange = exchange
         self.api_key = api_key
         self.api_secret = api_secret
         self.passphrase = passphrase
         self.testnet = testnet
+        self._rate_sem = asyncio.Semaphore(max_concurrent)
 
         if exchange == "binance":
             if testnet:
@@ -137,6 +140,12 @@ class RealExchangeClient:
             await self.initialize()
         return self._session
 
+    async def _rate_limited_get(self, url: str, headers: dict | None = None):
+        """Rate-limited GET request via semaphore."""
+        session = await self._get_session()
+        async with self._rate_sem:
+            return await session.get(url, headers=headers)
+
     async def _binance_balance(self) -> AccountBalance | None:
         ts = int(time.time() * 1000)
         params = f"timestamp={ts}&recvWindow=5000"
@@ -144,8 +153,7 @@ class RealExchangeClient:
         url = f"{self.base_url}/fapi/v2/balance?{params}&signature={sig}"
         headers = {"X-MBX-APIKEY": self.api_key}
 
-        session = await self._get_session()
-        async with session.get(url, headers=headers) as resp:
+        async with await self._rate_limited_get(url, headers=headers) as resp:
             if resp.status != 200:
                 logger.error(f"Binance balance error: {resp.status}")
                 return None
@@ -170,8 +178,7 @@ class RealExchangeClient:
         headers = {"X-MBX-APIKEY": self.api_key}
 
         positions = []
-        session = await self._get_session()
-        async with session.get(url, headers=headers) as resp:
+        async with await self._rate_limited_get(url, headers=headers) as resp:
             if resp.status != 200:
                 return []
             data = await resp.json()
@@ -206,8 +213,7 @@ class RealExchangeClient:
         }
         url = f"{self.base_url}{path}"
 
-        session = await self._get_session()
-        async with session.get(url, headers=headers) as resp:
+        async with await self._rate_limited_get(url, headers=headers) as resp:
             if resp.status != 200:
                 return None
             data = await resp.json()
@@ -239,8 +245,7 @@ class RealExchangeClient:
         url = f"{self.base_url}{path}"
 
         positions = []
-        session = await self._get_session()
-        async with session.get(url, headers=headers) as resp:
+        async with await self._rate_limited_get(url, headers=headers) as resp:
             if resp.status != 200:
                 return []
             data = await resp.json()
@@ -276,8 +281,7 @@ class RealExchangeClient:
             "X-BAPI-RECV-WINDOW": recv_window,
         }
 
-        session = await self._get_session()
-        async with session.get(url, headers=headers) as resp:
+        async with await self._rate_limited_get(url, headers=headers) as resp:
             if resp.status != 200:
                 return None
             data = await resp.json()
@@ -310,8 +314,7 @@ class RealExchangeClient:
         }
 
         positions = []
-        session = await self._get_session()
-        async with session.get(url, headers=headers) as resp:
+        async with await self._rate_limited_get(url, headers=headers) as resp:
             if resp.status != 200:
                 return []
             data = await resp.json()

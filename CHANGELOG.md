@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка F: architectural fixes)
+
+### Added
+- SIGTERM/SIGINT signal handler in `run.py` for K8s graceful shutdown — sets `bot._running = False` to exit main loop cleanly
+- Rate limiting via `asyncio.Semaphore(max_concurrent=5)` in `RealExchangeClient` — wraps all 6 REST API calls (balance + positions for Binance/OKX/Bybit)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка E: logging consolidation)
 
 ### Changed

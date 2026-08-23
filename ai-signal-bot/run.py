@@ -18,6 +18,7 @@ import argparse
 import asyncio
 import logging
 import os
+import signal
 import sys
 import time
 
@@ -386,6 +387,14 @@ def main():
         return
 
     bot = AISignalBot(config)
+
+    def _signal_handler(signum, frame):
+        logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+        bot._running = False
+
+    signal.signal(signal.SIGTERM, _signal_handler)
+    signal.signal(signal.SIGINT, _signal_handler)
+
     try:
         asyncio.run(bot.run(show_dashboard=args.dashboard, enable_metrics=args.metrics))
     finally:
