@@ -41,6 +41,29 @@ All notable changes to this project are documented in this file.
 - `ai-signal-bot/Dockerfile`: Fixed healthcheck port 8766→9090, added `--metrics` to CMD so health server starts (Task 2)
 - `ai-signal-bot/Dockerfile.prod`: Fixed healthcheck port 8766→9090 (Task 2)
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AY: portfolio + sentiment + validator)
+
+### Fixed
+- `ai-signal-bot/src/portfolio/markowitz.py`: Removed redundant penalty from objective function — equality constraint already enforces `target_return` (§8.1269)
+- `ai-signal-bot/src/portfolio/black_litterman.py`: `View.__post_init__` validates `confidence` in `(0, 1]` — prevents numerical instability (§8.1271)
+- `ai-signal-bot/src/portfolio/risk_parity.py`: `optimize_risk_parity` accepts optional `expected_returns` param — computes meaningful `portfolio_return` and `sharpe_ratio` (§8.1273)
+- `ai-signal-bot/src/strategies/sentiment.py`: Moved `numpy` import to top of file instead of inside method (§8.1304)
+
+### Changed
+- CODE_AUDIT §8.1318 — `datetime.now(UTC)` already present → [FIXED]
+- CODE_AUDIT §8.1321 — `db.py close()` already catches specific exceptions → [FIXED]
+- CODE_AUDIT §8.1268 — sector constraints → [N/A] (already logs warning, requires asset mapping)
+- CODE_AUDIT §8.1275 — rebalancing cost → [N/A] (trade_amount already absolutized)
+- CODE_AUDIT §8.1283 — deepcopy → [N/A] (small population, ~50ms acceptable)
+- CODE_AUDIT §8.1288 — config KeyError → [N/A] (validate() guards)
+- CODE_AUDIT §8.1289 — hot-reload → [N/A] (design choice, restart-based)
+- CODE_AUDIT §8.1294 — run_backtest sync → [N/A] (called outside event loop)
+- CODE_AUDIT §8.1302 — HMM sorted returns → [N/A] (initialization heuristic)
+- CODE_AUDIT §8.1308 — is_tripped property → [N/A] (property removed)
+- CODE_AUDIT §8.1315 — stress test multipliers → [N/A] (configurable via constructor)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AX: monitoring + LLM engine + notifier)
 
 ### Fixed

@@ -123,9 +123,9 @@ class RealAccountManager:
 
         try:
             await self._exchange.load_markets()
-            logger.info(f"[RealAccount] Connected to {self.exchange_name} (testnet={self.testnet})")
+            logger.info("[RealAccount] Connected to %s (testnet=%s)", self.exchange_name, self.testnet)
         except (OSError, RuntimeError, ValueError) as e:
-            logger.error(f"[RealAccount] Failed to connect: {e}")
+            logger.error("[RealAccount] Failed to connect: %s", e)
             raise
 
     async def close(self) -> None:
@@ -142,7 +142,7 @@ class RealAccountManager:
             try:
                 await self._ws_session.close()
             except (OSError, RuntimeError) as e:
-                logger.debug(f"[RealAccount] WS session close error: {e}")
+                logger.debug("[RealAccount] WS session close error: %s", e)
 
     async def get_balance(self) -> list[AssetBalance]:
         """Fetch account balances."""
@@ -161,7 +161,7 @@ class RealAccountManager:
                     ))
             return result
         except (OSError, RuntimeError, KeyError, ValueError) as e:
-            logger.error(f"[RealAccount] Failed to fetch balance: {e}")
+            logger.error("[RealAccount] Failed to fetch balance: %s", e)
             return []
 
     async def get_positions(self) -> list[AccountPosition]:
@@ -189,7 +189,7 @@ class RealAccountManager:
                 ))
             return result
         except (OSError, RuntimeError, KeyError, ValueError) as e:
-            logger.error(f"[RealAccount] Failed to fetch positions: {e}")
+            logger.error("[RealAccount] Failed to fetch positions: %s", e)
             return []
 
     async def get_open_orders(self, symbol: str | None = None) -> list[OpenOrder]:
@@ -214,7 +214,7 @@ class RealAccountManager:
                 ))
             return result
         except (OSError, RuntimeError, KeyError, ValueError) as e:
-            logger.error(f"[RealAccount] Failed to fetch open orders: {e}")
+            logger.error("[RealAccount] Failed to fetch open orders: %s", e)
             return []
 
     async def get_trade_history(self, symbol: str | None = None, limit: int = 100) -> list[dict]:
@@ -233,7 +233,7 @@ class RealAccountManager:
                 "timestamp": float(t.get("timestamp", 0) or 0) / 1000,
             } for t in trades]
         except (OSError, RuntimeError, KeyError, ValueError) as e:
-            logger.error(f"[RealAccount] Failed to fetch trade history: {e}")
+            logger.error("[RealAccount] Failed to fetch trade history: %s", e)
             return []
 
     async def set_leverage(self, symbol: str, leverage: int) -> bool:
@@ -242,10 +242,10 @@ class RealAccountManager:
             return False
         try:
             await self._exchange.set_leverage(leverage, symbol)
-            logger.info(f"[RealAccount] Set {symbol} leverage to {leverage}x")
+            logger.info("[RealAccount] Set %s leverage to %sx", symbol, leverage)
             return True
         except (OSError, RuntimeError, KeyError, ValueError) as e:
-            logger.error(f"[RealAccount] Failed to set leverage: {e}")
+            logger.error("[RealAccount] Failed to set leverage: %s", e)
             return False
 
     async def set_margin_mode(self, symbol: str, mode: str = "isolated") -> bool:
@@ -254,10 +254,10 @@ class RealAccountManager:
             return False
         try:
             await self._exchange.set_margin_mode(mode, symbol)
-            logger.info(f"[RealAccount] Set {symbol} margin mode to {mode}")
+            logger.info("[RealAccount] Set %s margin mode to %s", symbol, mode)
             return True
         except (OSError, RuntimeError, ValueError) as e:
-            logger.error(f"[RealAccount] Failed to set margin mode: {e}")
+            logger.error("[RealAccount] Failed to set margin mode: %s", e)
             return False
 
     async def place_order(
@@ -271,7 +271,7 @@ class RealAccountManager:
         if not self._exchange:
             return None
         if quantity <= 0:
-            logger.error(f"[RealAccount] Invalid quantity: {quantity}")
+            logger.error("[RealAccount] Invalid quantity: %s", quantity)
             return None
 
         if self._leverage_cache.get(symbol) != leverage:
@@ -293,7 +293,7 @@ class RealAccountManager:
                     price=price,
                     params=params,
                 )
-                logger.info(f"[RealAccount] Order placed: {side} {quantity} {symbol} @ {order_type}")
+                logger.info("[RealAccount] Order placed: %s %s %s @ %s", side, quantity, symbol, order_type)
                 return {
                     "order_id": str(order.get("id", "")),
                     "symbol": symbol,
@@ -307,11 +307,11 @@ class RealAccountManager:
                 if attempt < max_retries - 1:
                     delay = 0.5 * (2 ** attempt)  # 0.5s, 1s, 2s
                     logger.warning(
-                        f"[RealAccount] Order attempt {attempt+1}/{max_retries} failed: {e} — retrying in {delay}s"
+                        "[RealAccount] Order attempt %d/%d failed: %s — retrying in %ss", attempt+1, max_retries, e, delay
                     )
                     await asyncio.sleep(delay)
                 else:
-                    logger.error(f"[RealAccount] Failed to place order after {max_retries} attempts: {e}")
+                    logger.error("[RealAccount] Failed to place order after %s attempts: %s", max_retries, e)
                     return None
 
     async def cancel_order(self, order_id: str, symbol: str) -> bool:
@@ -320,10 +320,10 @@ class RealAccountManager:
             return False
         try:
             await self._exchange.cancel_order(order_id, symbol)
-            logger.info(f"[RealAccount] Order {order_id} cancelled")
+            logger.info("[RealAccount] Order %s cancelled", order_id)
             return True
         except (OSError, RuntimeError, ValueError) as e:
-            logger.error(f"[RealAccount] Failed to cancel order: {e}")
+            logger.error("[RealAccount] Failed to cancel order: %s", e)
             return False
 
     async def cancel_all_orders(self, symbol: str | None = None) -> int:
@@ -333,10 +333,10 @@ class RealAccountManager:
         try:
             result = await self._exchange.cancel_all_orders(symbol)
             count = len(result) if isinstance(result, list) else 0
-            logger.info(f"[RealAccount] Cancelled {count} orders")
+            logger.info("[RealAccount] Cancelled %s orders", count)
             return count
         except (OSError, RuntimeError, ValueError) as e:
-            logger.error(f"[RealAccount] Failed to cancel all orders: {e}")
+            logger.error("[RealAccount] Failed to cancel all orders: %s", e)
             return 0
 
     def set_fill_callback(self, callback) -> None:
@@ -375,7 +375,7 @@ class RealAccountManager:
             except asyncio.CancelledError:
                 break
             except (OSError, RuntimeError, KeyError, ValueError) as e:
-                logger.error(f"[RealAccount] User data stream error: {e}")
+                logger.error("[RealAccount] User data stream error: %s", e)
                 await asyncio.sleep(5)
 
     async def get_health(self) -> dict:
