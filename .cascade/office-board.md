@@ -297,3 +297,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | signal_engine_v3: get_or_create_hmm_state heap alloc in noexcept | emplace can throw bad_alloc → std::terminate → abort. Pre-populate hmm_states_ at init | CODE_AUDIT §8.887 |
 | market_making_v2: no per-symbol state | Volatility/sigma shared across symbols. BTC vol contaminates ETH quotes. One instance per symbol | CODE_AUDIT §8.892 |
 | fix_client: password in plaintext debug log | msg.fields includes tag 554 (password) at DEBUG level. Redact sensitive tags before logging | CODE_AUDIT §8.898 |
+| mean_reversion_v2: no per-symbol state | Kalman+OU+residuals shared across symbols. BTC contaminates ETH. One instance per symbol | CODE_AUDIT §8.915 |
+| signal_publisher: backtest runs in event loop | bt.run() blocks all WS connections for seconds. Use asyncio.to_thread | CODE_AUDIT §8.920 |

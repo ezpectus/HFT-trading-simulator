@@ -1453,3 +1453,23 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R896 | ws_connection_pool: _evict_stale fire-and-forget tasks | `ws_connection_pool.py:106` | Low | Untracked tasks. Await inline or track in set |
 | R897 | ws_connection_pool: _health_loop no error handling | `ws_connection_pool.py:129` | Low | Unexpected exception kills loop. Wrap in try/except |
 | R898 | Code reduction: simd_indicators horizontal sum 2× | `simd_indicators.h:117+164` | Info | Extract hsum256 helper. ~10 lines |
+| R899 | hft-trade-bot/strategies/inline_indicators.h | `inline_indicators.h` | ✅ Excellent | InlineEMA/RSI/ADX/VWAP/ATR O(1) Wilder noexcept no heap precomputed inv |
+| R900 | inline_indicators: InlineVWAP no reset on session boundary | `inline_indicators.h:234` | Low | VWAP accumulates across days. Track session start, reset at day boundary |
+| R901 | hft-trade-bot/strategies/pressure_model.h | `pressure_model.h` | ✅ Excellent | Multi-level OBI single-pass toxicity microprice queue position price impact noexcept |
+| R902 | pressure_model: toxicity fixed 64-element stack array | `pressure_model.h:186` | Low | Truncates to 64 trades. Document or use running median |
+| R903 | pressure_model: compute_obi static method unused | `pressure_model.h:134` | Info | Dead code. Remove, use obi_utils.h. ~10 lines |
+| R904 | hft-trade-bot/strategies/mean_reversion_v2.h | `mean_reversion_v2.h` | ✅ Excellent | KalmanFilter1D OU AR(1) z-score half-life ring buffer alignas64 noexcept no heap |
+| R905 | mean_reversion_v2: no per-symbol state | `mean_reversion_v2.h:60` | Medium | Kalman+OU shared across symbols. One instance per symbol |
+| R906 | mean_reversion_v2: estimate_ou_params O(n) per tick | `mean_reversion_v2.h:197` | Low | 500 iterations per tick. Cache OU params, re-estimate every 50 ticks |
+| R907 | ai-signal-bot/communication/signal_publisher.py | `signal_publisher.py` | ✅ Good | WS server CB integration signal history backtest execution comparison orjson |
+| R908 | signal_publisher: _handle_client catches broad Exception | `signal_publisher.py:123` | Low | Masks bugs. Catch specific exceptions, let CancelledError propagate |
+| R909 | signal_publisher: _send closure pattern 3× | `signal_publisher.py:188` | Low | Code duplication. Extract _broadcast(msg) method |
+| R910 | signal_publisher: backtest runs in event loop | `signal_publisher.py:271` | Medium | bt.run() blocks all WS connections. Use asyncio.to_thread |
+| R911 | ai-signal-bot/communication/shm_ring_buffer.py | `shm_ring_buffer.py` | ✅ Excellent | SPSC lock-free cache-line aligned cross-platform magic validation bulk ops |
+| R912 | shm_ring_buffer: _atomic_read_u64 not truly atomic | `shm_ring_buffer.py:49` | Low | struct.unpack_from may not be aligned. Document x86/x64 assumption |
+| R913 | shm_ring_buffer: _mm_barrier flush on every push | `shm_ring_buffer.py:57` | Low | System call per push. Use sfence or periodic flush |
+| R914 | shm_ring_buffer: no overflow detection in bulk_push | `shm_ring_buffer.py:198` | Low | Conservative is safe. Document SPSC assumption |
+| R915 | ai-signal-bot/communication/shm_signal_producer.py | `shm_signal_producer.py` | ✅ Good | Clean wrapper dict-to-struct conversion context manager |
+| R916 | shm_signal_producer: push_signal_dict silent default action=0 | `shm_signal_producer.py:62` | Low | Unknown direction silently becomes action=0. Log warning |
+| R917 | Code reduction: signal_publisher broadcast 3× | `signal_publisher.py:188+229+263` | Info | Extract _broadcast(msg). ~20 lines |
+| R918 | Code reduction: pressure_model compute_obi dead code | `pressure_model.h:134` | Info | Remove. ~10 lines |

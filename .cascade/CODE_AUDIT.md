@@ -12417,3 +12417,270 @@ If `health_check()` raises an unexpected exception (not OSError/TimeoutError/Web
 The AVX2 horizontal sum pattern (`extractf128` → `castpd256_pd128` → `add_pd` → `unpackhi` → `add_sd` → `cvtsd_f64`) is duplicated in `sma()` and `vwap()`.
 
 **Reduction potential:** ~10 lines. Extract to `static double hsum256(__m256d v)` helper.
+
+### 8.909 hft-trade-bot/src/strategies/inline_indicators.h: Inline Indicators — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/inline_indicators.h` (295 lines)
+
+- **InlineEMA**: O(1) update, `k = 2/(period+1)`, auto-init on first value — correct
+- **InlineRSI**: Wilder's smoothing, branchless `fmax` for gain/loss, `inv_period` precomputed — correct
+- **InlineADX**: Wilder's smoothing, branchless DM via `static_cast<double>(bool)`, `+DI`/`-DI`/`DX`/`ADX` — correct
+- **InlineVWAP**: Running cumulative with variance tracking, `z_score()` and `deviation_bps()` — correct
+- **InlineATR**: Wilder's smoothing, True Range with `fmax(fabs(high-prev_close), fabs(low-prev_close))` — correct
+- **All `noexcept`**: Correct
+- **No heap allocations**: All stack-allocated — correct
+- **Precomputed `inv_period` and `inv_period_complement`**: Avoids division in hot path — efficient
+- **`StringHash` with transparent lookup**: Enables `find(string_view)` without allocation — correct
+
+Excellent inline indicators with O(1) updates, Wilder's smoothing, branchless arithmetic, precomputed inverses, and no heap allocations. ✅
+
+### 8.910 inline_indicators: InlineVWAP has no reset on session boundary — Low
+
+**Файл:** `hft-trade-bot/src/strategies/inline_indicators.h:234-238`
+
+```cpp
+void reset() noexcept {
+    cum_pv_  = 0.0;
+    cum_v_   = 0.0;
+    cum_var_ = 0.0;
+}
+```
+
+`InlineVWAP` has a `reset()` method, but it's never called automatically on session boundaries. VWAP typically resets at the start of each trading day. If the bot runs continuously, VWAP accumulates across days, making it meaningless after a few days.
+
+**Фикс:** Track session start timestamp, call `reset()` at day boundaries.
+
+### 8.911 hft-trade-bot/src/strategies/pressure_model.h: Pressure Model — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/pressure_model.h` (258 lines)
+
+- **Multi-level OBI**: Single-pass for 5/10/20 levels — efficient (previously 3 separate calls)
+- **Distance-weighted OBI**: `w = 1/(1+i)` — correct
+- **Trade flow imbalance**: Buyer vs seller initiated — correct
+- **Toxicity detection**: `nth_element` for median, toxic_size_threshold × median — correct
+- **Microprice**: `(bb*av + ba*bv) / (bv+av)` — correct
+- **Queue position**: Best-level ratio to total 10 levels — correct
+- **Price impact**: `obi*2 + trade_imbalance*1.5 + microprice_dev*0.5` — correct
+- **Spread regime**: TIGHT (<1bps) / NORMAL / WIDE (>5bps) — correct
+- **`noexcept` on all methods**: Correct
+- **No heap allocations**: All stack-allocated — correct
+- **Edge case handling**: Empty bids/asks, mid<=0, total<=0 — comprehensive
+
+Excellent pressure model with multi-level OBI, trade flow, toxicity, microprice, queue position, and price impact — all in a single `noexcept` pass with no heap allocations. ✅
+
+### 8.912 pressure_model: toxicity uses fixed 64-element stack array — Low
+
+**Файл:** `hft-trade-bot/src/strategies/pressure_model.h:186-187`
+
+```cpp
+double sizes[64]; // Stack-allocated, max 64 trades
+size_t count = std::min(n, static_cast<size_t>(64));
+```
+
+The toxicity computation uses a fixed 64-element stack array for `nth_element`. If `n_trades > 64`, only the first 64 trades are considered. This means toxicity is computed on a truncated sample, which may not be representative if trade flow has more than 64 recent trades.
+
+**Фикс:** Document the 64-trade limit. Or use a running median approximation for large n.
+
+### 8.913 pressure_model: compute_obi static method unused — Info
+
+**Файл:** `hft-trade-bot/src/strategies/pressure_model.h:134-143`
+
+The `compute_obi` static method is defined but not called — the main `analyze()` method uses inline OBI computation in a single-pass loop (lines 60-90). The `obi_utils.h` functions are also available. This is dead code.
+
+**Фикс:** Remove `compute_obi` from `pressure_model.h`. Use `obi_utils.h` if needed.
+
+### 8.914 hft-trade-bot/src/strategies/mean_reversion_v2.h: Mean Reversion V2 (OU + Kalman) — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h` (301 lines)
+
+- **KalmanFilter1D**: Predict + update, `K = P/(P+R)`, `x = x + K(measurement - x)` — correct
+- **OU estimation**: AR(1) regression `x_t = a*x_{t-1} + b`, `κ = (1-a)/dt` — correct
+- **Ring buffer**: `residuals_` and `timestamps_` with `write_idx_ % ou_window` — correct
+- **Z-score**: `(residual - theta) / sigma` — correct
+- **Half-life**: `ln(2) / kappa` — correct
+- **6 actions**: NONE/ENTER_LONG/ENTER_SHORT/EXIT_LONG/EXIT_SHORT/STOP — correct
+- **Confidence**: `abs_z * 20` for entry, `abs_z * 15` for stop — correct
+- **`alignas(64)` on residuals and timestamps**: Cache-line aligned — correct
+- **`noexcept` on all methods**: Correct
+- **No heap allocations**: All stack-allocated, `MAX_WINDOW = 2048` — correct
+- **`reset()`**: Clears all state — correct
+
+Excellent mean reversion with Kalman fair price, OU parameter estimation, z-score signals, half-life, ring buffers, and cache-line alignment. ✅
+
+### 8.915 mean_reversion_v2: no per-symbol state — Medium
+
+**Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h:60-298`
+
+Same issue as momentum_breakout_v2 (R861) and market_making_v2 (R882). `kalman_`, `residuals_`, `timestamps_`, `write_idx_`, `price_count_`, `last_kappa_`, `last_theta_`, `last_sigma_`, `last_z_` are all per-instance. If the same `MeanReversionV2` processes multiple symbols, Kalman filter and OU parameters from BTC contaminate ETH's signals.
+
+**Фикс:** One instance per symbol, or per-symbol state struct.
+
+### 8.916 mean_reversion_v2: estimate_ou_params is O(n) per tick — Low
+
+**Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h:197-283`
+
+`estimate_ou_params()` iterates the entire ring buffer (up to 500 elements) on every price tick. With 50 symbols × 1 tick/sec, that's 50 × 500 = 25,000 iterations/sec. This is not O(1) per tick — it's O(n) where n = ou_window.
+
+**Фикс:** Cache OU parameters and re-estimate every N ticks (e.g., every 50). Or use online EWMA for AR(1) coefficients.
+
+### 8.917 ai-signal-bot/src/communication/signal_publisher.py: Signal Publisher — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py` (453 lines)
+
+- **WebSocket server**: `websockets.serve` on port 8766, ping_interval=10s — correct
+- **Circuit breaker integration**: `allow_signal()` before broadcast — correct
+- **Signal history**: `deque(maxlen=100)`, sends last 20 on connect — correct
+- **CB status broadcast**: Every 5s, with state_map for metrics — correct
+- **Broadcast**: `asyncio.gather` with disconnected tracking — correct
+- **Backtest execution**: `_run_backtest` with synthetic candles, strategy selection — correct
+- **Backtest comparison**: `BacktestComparison` integration — correct
+- **Parameter validation**: `max(10, min(candles, 10000))`, `str(...)[:32]` — correct
+- **orjson fallback**: Optional fast JSON — correct
+
+Good signal publisher with circuit breaker, metrics, signal history, backtest execution, and comparison. ✅
+
+### 8.918 signal_publisher: _handle_client catches broad Exception — Low
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py:123, 155`
+
+```python
+except Exception as e:
+    logger.warning(f"Failed to send signal history: {e}")
+# ...
+except Exception as e:
+    logger.debug(f"Client handler error: {e}")
+```
+
+Two broad `except Exception` clauses. The first catches all exceptions when sending signal history (including `asyncio.CancelledError` in Python < 3.9). The second catches all exceptions in the message loop, which could mask bugs.
+
+**Фикс:** Catch specific exceptions (`websockets.ConnectionClosed`, `OSError`). Let `CancelledError` propagate.
+
+### 8.919 signal_publisher: _send closure captures loop variable — Low
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py:188-193`
+
+```python
+disconnected = set()
+async def _send(ws):
+    try:
+        await ws.send(msg)
+    except Exception:
+        disconnected.add(ws)
+await asyncio.gather(*[_send(ws) for ws in self._clients], return_exceptions=True)
+```
+
+The `_send` closure captures `disconnected` by reference. This is correct here because `_send` is defined and used in the same scope. However, the same pattern is repeated 3 times (lines 188, 229, 263) — code duplication.
+
+**Фикс:** Extract to a reusable `_broadcast(msg)` method.
+
+### 8.920 signal_publisher: backtest runs in event loop — Medium
+
+**Файл:** `ai-signal-bot/src/communication/signal_publisher.py:271-302`
+
+```python
+async def _run_backtest(self, params: dict) -> dict:
+    # ...
+    for name, strat in strategies.items():
+        result = bt.run(candles, strat, symbol=bt_params["symbol"], warmup=50)
+```
+
+`bt.run()` is a synchronous CPU-intensive operation that runs in the event loop. With 10000 candles × 3 strategies, this can take several seconds, blocking all WebSocket connections. No signals are broadcast during backtest execution.
+
+**Фикс:** Run `bt.run()` in a thread executor: `await asyncio.to_thread(bt.run, candles, strat, ...)`.
+
+### 8.921 ai-signal-bot/src/communication/shm_ring_buffer.py: SHM Ring Buffer — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py` (285 lines)
+
+- **SPSC lock-free**: `try_push`/`try_pop` with head/tail atomics — correct
+- **Cache-line aligned**: `OFF_HEAD=64`, `OFF_TAIL=128` — matches C++ layout
+- **Power-of-2 capacity**: `(capacity & (capacity-1)) != 0` check — correct
+- **Cross-platform**: Windows (`FlushViewOfFile`) + POSIX (`msync`) — correct
+- **Magic validation**: `SHM_MAGIC = 0x484654343253484D` — correct
+- **Capacity/element_size validation**: On connect — correct
+- **bulk_push/bulk_pop**: Batch operations with single atomic write — correct
+- **Context manager**: `__enter__`/`__exit__` + `__del__` — correct
+- **unlink**: POSIX `/dev/shm` cleanup — correct
+- **Struct definitions**: `SIGNAL_STRUCT`, `FILL_STRUCT` matching C++ layout — correct
+
+Excellent SHM ring buffer with lock-free SPSC, cache-line alignment, cross-platform support, magic validation, bulk operations, and clean lifecycle. ✅
+
+### 8.922 shm_ring_buffer: _atomic_read_u64 is not truly atomic — Low
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py:49-51`
+
+```python
+def _atomic_read_u64(mm, offset):
+    """Read a uint64 from shared memory (aligned, naturally atomic on x86/x64)."""
+    return struct.unpack_from('<Q', mm, offset)[0]
+```
+
+The comment says "naturally atomic on x86/x64" — this is true for aligned 8-byte reads on x86/x64. However, Python's `struct.unpack_from` may not guarantee aligned access. The `mmap` object may not guarantee that the offset is aligned to 8 bytes. On ARM, unaligned reads are not atomic.
+
+**Фикс:** Document x86/x64 assumption. For ARM, use `ctypes.c_uint64.from_buffer` with explicit alignment.
+
+### 8.923 shm_ring_buffer: _mm_barrier calls flush on every push — Low
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py:57-58`
+
+```python
+def _atomic_write_u64(mm, offset, value):
+    struct.pack_into('<Q', mm, offset, value)
+    _mm_barrier(mm)
+```
+
+Every `_atomic_write_u64` calls `_mm_barrier`, which calls `FlushViewOfFile` (Windows) or `mm.flush()` (POSIX). This is a system call per push/pop, which is expensive. For HFT with 1000s of signals/sec, this adds significant latency.
+
+**Фикс:** Use a memory barrier instruction (`_mm_sfence` on x86) instead of `msync`/`FlushViewOfFile`. Only flush on close or periodically.
+
+### 8.924 shm_ring_buffer: no overflow detection in bulk_push — Low
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py:198-212`
+
+`bulk_push` reads head/tail once, computes available space, then writes elements. If the consumer pops elements between the read and the final head update, the buffer may have more space than computed. This is safe (conservative), but suboptimal. However, if the producer is multi-threaded (violating SPSC), this is unsafe.
+
+**Фикс:** Document SPSC assumption. Add assert for single-producer.
+
+### 8.925 ai-signal-bot/src/communication/shm_signal_producer.py: SHM Signal Producer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/shm_signal_producer.py` (99 lines)
+
+- **Clean wrapper**: `init()`, `push_signal()`, `push_signal_dict()`, `bulk_push()`, `pending()`, `close()` — correct
+- **Signal dict conversion**: `confidence / 100.0` (0-100 → 0.0-1.0) — correct
+- **Action mapping**: LONG=1, SHORT=2, default=0 — correct
+- **Timestamp**: `time.time_ns()` default — correct (nanoseconds)
+- **Context manager**: `__enter__`/`__exit__` — correct
+
+Good SHM signal producer with clean API, dict-to-struct conversion, and context manager. ✅
+
+### 8.926 shm_signal_producer: push_signal_dict silent default action=0 — Low
+
+**Файл:** `ai-signal-bot/src/communication/shm_signal_producer.py:62-66`
+
+```python
+action = 0
+if signal.get("direction") == "LONG":
+    action = 1
+elif signal.get("direction") == "SHORT":
+    action = 2
+```
+
+If `direction` is not "LONG" or "SHORT" (e.g., "NEUTRAL", "HOLD", typo, or missing), `action` defaults to 0. This is similar to the `string_to_side` silent default bug (R855). Action 0 may be interpreted as a valid action by the C++ consumer (e.g., NONE), or it may be ignored. Either way, the signal is silently dropped without any error or warning.
+
+**Фикс:** Log a warning for unknown directions. Or raise ValueError for invalid directions.
+
+### 8.927 Code reduction: signal_publisher broadcast pattern 3× — Info
+
+**Файлы:** `signal_publisher.py:188-193, 229-234, 263-268`
+
+The broadcast pattern (define `_send` closure, `asyncio.gather`, track disconnected, remove from clients) is duplicated 3 times: `broadcast_signal`, `broadcast_market_regime`, `_broadcast_circuit_breaker_status`.
+
+**Reduction potential:** ~20 lines. Extract to `_broadcast(msg)` method.
+
+### 8.928 Code reduction: pressure_model compute_obi dead code — Info
+
+**Файл:** `pressure_model.h:134-143`
+
+`compute_obi` static method is defined but never called. The `analyze()` method uses inline single-pass OBI. `obi_utils.h` also provides the same function.
+
+**Reduction potential:** ~10 lines. Remove dead code.

@@ -5575,3 +5575,167 @@ class FixSession:
 ```
 
 **Разница:** The bad code logs `msg.fields` at DEBUG level without filtering sensitive tags. FIX tag 554 (password) and tag 553 (username) are included in plaintext. With 1000 users, 1000 FIX passwords are in the logs. When logs are shipped to ELK/Splunk, 5+ admins can search for tag 554 and see all passwords. If ELK is breached, all 1000 passwords are leaked — an attacker can log in as any user, place trades, withdraw funds. This is a GDPR Article 32 violation (plaintext passwords in logs), with fines up to €20M or 4% of global revenue. The good code adds a `_redact_fields()` function that replaces sensitive tags (553, 554, 925, 803) with `***REDACTED***` before logging. The FIX message still contains the password (needed for the protocol), but the log does not. DevOps can still troubleshoot (msg type, seq num, timestamp are visible), but passwords are never in logs. The cost is 5 lines of code (a redact function + a constant set). The benefit is zero password leaks, GDPR compliance, and no €20M fines. This is a classic example of a log leakage bug: the developer logged the entire `msg.fields` dict without considering that it contains credentials. The principle: never log sensitive data (passwords, tokens, API keys, credit card numbers) — always redact before logging, regardless of log level. In a system with 1000 users, a single log leakage bug can cause €20M in GDPR fines + unlimited financial damage from credential theft.
+
+---
+
+## Bad vs Good: Backtest Blocking Event Loop (Python asyncio)
+
+### ❌ Bad Code
+```python
+class SignalPublisher:
+    async def _run_backtest(self, params: dict) -> dict:
+        """Run a backtest and return results as JSON."""
+        from src.backtesting import Backtester
+
+        bt_params = self._parse_backtest_params(params)
+        candles = self._generate_synthetic_candles(
+            bt_params["candles"], bt_params["initial_price"], bt_params["volatility"]
+        )
+        risk_config = self._build_risk_config(bt_params)
+        bt = Backtester(
+            initial_balance=bt_params["balance"],
+            fee_pct=0.075, slippage_bps=2.0, risk_config=risk_config,
+        )
+        strategies = self._build_strategies(bt_params["strategy"])
+
+        results = {}
+        for name, strat in strategies.items():
+            result = bt.run(candles, strat, symbol=bt_params["symbol"], warmup=50)
+            # ↑ bt.run() is synchronous, CPU-intensive
+            # ↑ 10000 candles × 3 strategies = 5-10 seconds
+            # ↑ Event loop is BLOCKED for 5-10 seconds
+            results[name] = self._format_backtest_result(result)
+
+        return {"type": "backtest_result", "results": results}
+
+# Scenario: Production system with 1000 users
+# 50 symbols, 5m timeframe, 60s signal interval
+#
+# t=0:    User A requests backtest via WebSocket (10000 candles, "all" strategies)
+# t=0:    _run_backtest() starts
+# t=0.5:  bt.run() for Trend Following starts (10000 candles)
+#         Event loop is now BLOCKED
+#
+# What happens during the 5-10 second block?
+#
+# 1. Signal broadcasting is frozen
+#    - BTC drops 3% during the block
+#    - EnsembleVoter generates SHORT signal
+#    - broadcast_signal() is queued but not executed
+#    - 1000 HFT clients don't receive the SHORT signal
+#    - 1000 users hold LONG positions without stop-loss update
+#    - BTC drops another 2% → $200K in unprevented losses
+#
+# 2. WebSocket pings are frozen
+#    - ping_interval=10s, but event loop is blocked
+#    - After 10s, clients think server is dead
+#    - 1000 clients disconnect
+#    - Reconnection storm when event loop resumes
+#
+# 3. Circuit breaker status broadcast is frozen
+#    - _broadcast_circuit_breaker_status() is queued
+#    - If CB tripped during backtest, clients don't know
+#    - Clients keep sending signals to a tripped CB
+#
+# 4. Health check timeouts
+#    - K8s liveness probe times out (event loop blocked)
+#    - K8s restarts the pod
+#    - Backtest is lost, user gets error
+#    - All 1000 clients are disconnected
+#
+# 5. Other user requests are queued
+#    - User B requests backtest → queued behind User A
+#    - User C sends subscribe → queued
+#    - All WebSocket messages are buffered, not processed
+#
+# Total damage:
+# - $200K in unprevented losses (frozen signal broadcasting)
+# - 1000 clients disconnected (frozen pings)
+# - K8s pod restart (frozen health check)
+# - Backtest lost (pod restart)
+# - Reconnection storm (1000 clients reconnect at once)
+# - User experience: "The bot just stopped working for 10 seconds"
+```
+
+**What's wrong:**
+- `bt.run()` is synchronous and CPU-intensive (10000 candles × 3 strategies)
+- Running it in the event loop blocks ALL async operations
+- Signal broadcasting frozen → $200K in unprevented losses
+- WebSocket pings frozen → 1000 clients disconnect
+- Health check frozen → K8s restarts pod
+- Other user requests queued → poor UX
+- With 1000 users: $200K losses + reconnection storm + pod restart
+
+### ✅ Good Code
+```python
+class SignalPublisher:
+    async def _run_backtest(self, params: dict) -> dict:
+        """Run a backtest and return results as JSON."""
+        from src.backtesting import Backtester
+
+        bt_params = self._parse_backtest_params(params)
+        candles = self._generate_synthetic_candles(
+            bt_params["candles"], bt_params["initial_price"], bt_params["volatility"]
+        )
+        risk_config = self._build_risk_config(bt_params)
+        bt = Backtester(
+            initial_balance=bt_params["balance"],
+            fee_pct=0.075, slippage_bps=2.0, risk_config=risk_config,
+        )
+        strategies = self._build_strategies(bt_params["strategy"])
+
+        results = {}
+        for name, strat in strategies.items():
+            # Run bt.run() in a thread — event loop stays free
+            result = await asyncio.to_thread(
+                bt.run, candles, strat, symbol=bt_params["symbol"], warmup=50
+            )
+            results[name] = self._format_backtest_result(result)
+
+        return {"type": "backtest_result", "results": results}
+
+# Scenario: Production system with 1000 users
+# 50 symbols, 5m timeframe, 60s signal interval
+#
+# t=0:    User A requests backtest via WebSocket (10000 candles, "all" strategies)
+# t=0:    _run_backtest() starts
+# t=0.5:  bt.run() dispatched to thread pool via asyncio.to_thread()
+#         Event loop is FREE — continues processing other coroutines
+#
+# What happens during the 5-10 second backtest (in thread)?
+#
+# 1. Signal broadcasting continues normally
+#    - BTC drops 3% during backtest
+#    - EnsembleVoter generates SHORT signal
+#    - broadcast_signal() executes immediately
+#    - 1000 HFT clients receive the SHORT signal
+#    - 1000 users close LONG positions → $0 in unprevented losses
+#
+# 2. WebSocket pings continue normally
+#    - ping_interval=10s, event loop is free
+#    - All 1000 clients stay connected
+#
+# 3. Circuit breaker status continues
+#    - _broadcast_circuit_breaker_status() runs every 5s
+#    - If CB tripped, clients are notified immediately
+#
+# 4. Health checks pass
+#    - K8s liveness probe gets response
+#    - Pod is not restarted
+#
+# 5. Other user requests are processed
+#    - User B requests backtest → processed in parallel (another thread)
+#    - User C sends subscribe → processed immediately
+#
+# t=5-10: Backtest completes in thread
+#         Results sent to User A via WebSocket
+#
+# Total damage:
+# - $0 in unprevented losses (signal broadcasting continued)
+# - 0 clients disconnected (pings continued)
+# - 0 pod restarts (health checks passed)
+# - Backtest completed successfully
+# - Other users unaffected
+```
+
+**Разница:** The bad code runs `bt.run()` — a synchronous CPU-intensive operation — directly in the asyncio event loop. With 10000 candles × 3 strategies, this takes 5-10 seconds, during which the event loop is completely blocked. No signals are broadcast, no WebSocket pings are sent, no health checks are processed, no other user requests are handled. If BTC drops 3% during the block, 1000 users don't receive the SHORT signal → $200K in unprevented losses. After 10s, clients think the server is dead and disconnect. K8s liveness probe times out and restarts the pod — backtest is lost, 1000 clients are disconnected, reconnection storm ensues. The good code uses `asyncio.to_thread()` to run `bt.run()` in a thread pool, keeping the event loop free. Signals continue broadcasting, pings continue, health checks pass, other users are unaffected. The cost is one line of code (`await asyncio.to_thread(...)` instead of `bt.run(...)`). The benefit is $200K in saved losses, 0 disconnections, 0 pod restarts, and 1000 happy users. This is a classic example of a blocking call in an async system: the developer treated `bt.run()` as a regular function call without considering that it blocks the event loop. The principle: never run CPU-intensive or blocking operations in the event loop — always offload to a thread (`asyncio.to_thread`) or process (`multiprocessing`). In a system with 1000 users, a 10-second event loop block can cause $200K in losses + reconnection storms + pod restarts.
