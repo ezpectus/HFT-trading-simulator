@@ -308,3 +308,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | health_checks: check_readiness runs sequentially | 4 checks sequential. DB down = 30s wait blocks Redis/Exchange. K8s probe times out. Use asyncio.gather | CODE_AUDIT §8.1027 |
 | health_checks: no timeout on individual checks | DB/Redis/Exchange hang indefinitely on network partition. Use asyncio.wait_for with 2s timeout | CODE_AUDIT §8.1028 |
 | notifier: token in URL | Telegram bot token embedded in URL visible in debug logs/proxies. Disable HTTP debug logging | CODE_AUDIT §8.1043 |
+| BinanceAdapter: on_book_ticker takes two spinlocks | Price/depth consistency gap — reader sees new price with stale depth. Single spinlock or atomic doubles | CODE_AUDIT §8.1064 |
+| engine.py: API key in memory as plain string | LLMConfig dataclass repr exposes API key in logs. Use SecretStr wrapper | CODE_AUDIT §8.1059 |
+| BinanceAdapter: api_secret in Config struct | Plain std::string secret in heap memory. Use secure string wrapper, don't log Config | CODE_AUDIT §8.1066 |
+| OKXAdapter: passphrase stored as plain string | OKX passphrase in plain std::string. Use secure string wrapper | CODE_AUDIT §8.1071 |
+| BybitAdapter: api_secret in Config struct | Same as Binance/OKX — plain string secret. Use secure string wrapper | CODE_AUDIT §8.1074 |

@@ -1592,3 +1592,29 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R1035 | notifier: Discord _poll_messages no sleep on 200 | `notifier.py:234` | Low | Hits Discord rate limit. Add asyncio.sleep(1) or use Gateway |
 | R1036 | notifier: send_alert sequential across notifiers | `notifier.py:308` | Low | 1s for 2 notifiers. Use asyncio.gather |
 | R1037 | Code reduction: notifier _handle_command 2× pattern | `notifier.py:150+265` | Info | Extract BaseNotifier. ~30 lines |
+| R1038 | ai-signal-bot/observability/logging.py | `logging.py` | ✅ Good | structlog fallback JSON/console context vars noise suppression |
+| R1039 | logging.py: no log rotation | `logging.py:119` | Low | FileHandler no rotate. 2.1GB/month. Use RotatingFileHandler |
+| R1040 | logging.py: duplicate setup_logging in helpers.py | `logging.py:31+helpers.py:14` | Info | Two implementations. Remove helpers.py version. ~30 lines |
+| R1041 | ai-signal-bot/observability/tracing.py | `tracing.py` | ✅ Good | OpenTelemetry+Jaeger noop fallback asyncio instrumentor shutdown |
+| R1042 | tracing.py: OTLPSpanExporter insecure=True hardcoded | `tracing.py:59` | Low | No TLS in production. Use insecure=False with TLS certs |
+| R1043 | ai-signal-bot/utils/helpers.py | `helpers.py` | ✅ Good | Logging config formatting math CircuitBreaker RateLimiter |
+| R1044 | helpers.py: duplicate CircuitBreaker | `helpers.py:145+circuit_breaker.py:34` | Info | Two implementations. Remove helpers.py version. ~31 lines |
+| R1045 | helpers.py: RateLimiter.acquire spins forever | `helpers.py:194` | Low | No timeout. Add timeout parameter |
+| R1046 | ai-signal-bot/llm_engine/engine.py | `engine.py` | ✅ Good | 3 providers rule-based fallback caching prompt templates error handling |
+| R1047 | engine.py: API key in memory as plain string | `engine.py:73` | Medium | LLMConfig dataclass repr exposes key. Use SecretStr |
+| R1048 | engine.py: cache eviction is O(N) | `engine.py:164` | Low | Scans 100 entries. Use OrderedDict LRU |
+| R1049 | engine.py: _parse_response JSON extraction fragile | `engine.py:287` | Low | find { } may include markdown. Use regex |
+| R1050 | engine.py: no concurrent request limit | `engine.py:149` | Low | 50 concurrent OpenAI requests. Use asyncio.Semaphore(5) |
+| R1051 | hft-trade-bot/exchange/BinanceAdapter.h | `BinanceAdapter.h` | ✅ Good | Spinlock maps atomic rate limiter stream URLs listen key |
+| R1052 | BinanceAdapter: on_book_ticker takes two spinlocks | `BinanceAdapter.h:72` | Medium | Price/depth consistency gap. Single spinlock or atomic doubles |
+| R1053 | BinanceAdapter: unordered_map heap allocation on update | `BinanceAdapter.h:74` | Low | String hash under spinlock. Use string_view or flat array |
+| R1054 | BinanceAdapter: api_secret in Config struct | `BinanceAdapter.h:29` | Medium | Plain string secret. Use secure string wrapper |
+| R1055 | BinanceAdapter: can_send_order race on window reset | `BinanceAdapter.h:123` | Low | CAS+store race. Reset orders_in_window_ before CAS |
+| R1056 | hft-trade-bot/exchange/OKXAdapter.h | `OKXAdapter.h` | ✅ Good | Spinlock maps symbol conversion subscription helpers |
+| R1057 | OKXAdapter: to_inst_id only handles USDT | `OKXAdapter.h:79` | Low | USDC/BTC/ETH not converted. Support more quote currencies |
+| R1058 | OKXAdapter: no rate limiter | `OKXAdapter.h` | Low | No can_send_order. Add OKX-specific limits (60/2s) |
+| R1059 | OKXAdapter: passphrase stored as plain string | `OKXAdapter.h:27` | Medium | Plain string passphrase. Use secure string wrapper |
+| R1060 | hft-trade-bot/exchange/BybitAdapter.h | `BybitAdapter.h` | ✅ Good | Spinlock maps subscription helpers auth message |
+| R1061 | BybitAdapter: no rate limiter | `BybitAdapter.h` | Low | No can_send_order. Add Bybit-specific limits (120/min) |
+| R1062 | BybitAdapter: api_secret in Config struct | `BybitAdapter.h:25` | Medium | Plain string secret. Use secure string wrapper |
+| R1063 | Code reduction: 3× adapter duplicate pattern | `BinanceAdapter.h:41+OKXAdapter.h:39+BybitAdapter.h:37` | Info | Move maps+spinlocks+IExchange to ExchangeBase. ~60 lines |

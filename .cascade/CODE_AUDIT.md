@@ -14348,3 +14348,401 @@ async def send_alert(self, event: AlertEvent):
 Both `TelegramNotifier._handle_command` and `DiscordNotifier._handle_command` are identical — 15 lines each. Same for `register_command`, `start`, `stop` (partially).
 
 **Reduction potential:** ~30 lines. Extract a `BaseNotifier` class with shared command handling.
+
+### 8.1048 ai-signal-bot/src/observability/logging.py: Structured Logging — ✅ Good
+
+**Файл:** `ai-signal-bot/src/observability/logging.py` (171 lines)
+
+- **structlog fallback**: Falls back to stdlib logging if structlog not installed — correct
+- **JSON + console**: Dual output with ProcessorFormatter — correct
+- **Context vars**: bind_context/clear_context for correlation IDs — correct
+- **Library noise suppression**: asyncio, websockets, aiohttp — correct
+- **Service context**: service name + version in every log entry — correct
+- **_configured guard**: Prevents double initialization — correct
+- **File handler**: Optional JSON file logging — correct
+
+Good structured logging with structlog fallback, JSON/console, context vars, and noise suppression. ✅
+
+### 8.1049 logging.py: no log rotation — Low
+
+**Файл:** `logging.py:119-123`
+
+```python
+if log_file:
+    file_formatter = _create_formatter(True, shared_processors, structlog)
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(file_formatter)
+    handlers.append(file_handler)
+```
+
+Uses `logging.FileHandler` which doesn't rotate. In production with 50 symbols × 60s interval, the log file grows unbounded. At ~1KB per signal log entry, 50 entries/min = 3MB/hour = 72MB/day = 2.1GB/month. Disk fills up, bot crashes.
+
+**Фикс:** Use `logging.handlers.RotatingFileHandler` with maxBytes=100MB and backupCount=5.
+
+### 8.1050 logging.py: duplicate setup_logging in helpers.py — Info
+
+**Файлы:** `logging.py:31-66`, `helpers.py:14-42`
+
+Both `observability/logging.py:setup_logging()` and `utils/helpers.py:setup_logging()` configure logging. They use different approaches (structlog vs stdlib JsonFormatter). If both are called, the second one overwrites the first's handlers. The `helpers.py` version doesn't check `_configured` — it always reconfigures.
+
+**Reduction potential:** Remove `helpers.py:setup_logging()`, use `observability/logging.py:setup_logging()` everywhere. ~30 lines.
+
+### 8.1051 ai-signal-bot/src/observability/tracing.py: Distributed Tracing — ✅ Good
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py` (111 lines)
+
+- **OpenTelemetry + Jaeger**: OTLP gRPC exporter — correct
+- **Noop fallback**: NoopTracer + NoopSpan when not initialized — correct
+- **Asyncio instrumentor**: Automatic async span creation — correct
+- **Resource**: service.name, namespace, version — correct
+- **BatchSpanProcessor**: Batches span exports — correct
+- **shutdown_tracing**: Flush + shutdown — correct
+- **_initialized guard**: Prevents double init — correct
+
+Good distributed tracing with OpenTelemetry, noop fallback, asyncio instrumentation, and graceful shutdown. ✅
+
+### 8.1052 tracing.py: NoopSpan missing context manager — Low
+
+**Файл:** `tracing.py:83-92`
+
+```python
+class NoopSpan:
+    def set_attribute(self, key, value): pass
+    def set_status(self, status): pass
+    def record_exception(self, exc): pass
+    def add_event(self, name, attributes=None): pass
+```
+
+`NoopSpan` doesn't implement `__enter__`/`__exit__`, so it can't be used as a context manager like real OpenTelemetry spans. If code does `with tracer.start_as_current_span("x") as span:`, the NoopTracer's `start_as_current_span` yields NoopSpan, but `span.__enter__()` will fail.
+
+Wait — actually, the `start_as_current_span` is a `@contextmanager` that yields NoopSpan. The `with` statement works on the context manager, not on NoopSpan itself. So `with tracer.start_as_current_span("x") as span:` works — `span` is the yielded NoopSpan. No issue here.
+
+Actually, the real OTel API's `start_as_current_span` returns a context manager that also supports `__enter__`/`__exit__` on the span itself. But since this NoopTracer uses `@contextmanager`, it's fine. No issue.
+
+### 8.1053 tracing.py: OTLPSpanExporter insecure=True hardcoded — Low
+
+**Файл:** `tracing.py:59`
+
+```python
+exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
+```
+
+`insecure=True` disables TLS for the gRPC connection to Jaeger. If Jaeger is on a different host (production), traces are sent in plaintext. An attacker on the network can intercept trace data (service names, operation names, attributes with symbol/strategy info).
+
+**Фикс:** Use `insecure=False` in production with proper TLS certificates. Only use `insecure=True` for local development.
+
+### 8.1054 ai-signal-bot/src/utils/helpers.py: Utility Functions — ✅ Good
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py` (205 lines)
+
+- **setup_logging**: stdlib + JsonFormatter — correct (but duplicates observability/logging.py)
+- **JsonFormatter**: JSON log entry with timestamp, level, logger, message — correct
+- **load_config**: YAML safe_load with FileNotFoundError fallback — correct
+- **get_env**: Type casting with bool support — correct
+- **now_ms/now_us**: Time helpers — correct
+- **format_price/format_qty**: Adaptive decimal places — correct
+- **safe_divide/clamp**: Math helpers — correct
+- **truncate_dict**: For logging — correct
+- **CircuitBreaker**: Simple 3-state (closed/open/half_open) — correct (but duplicates communication/circuit_breaker.py)
+- **RateLimiter**: Token bucket with async acquire — correct
+
+Good utility functions with logging, config, formatting, math, circuit breaker, and rate limiter. ✅
+
+### 8.1055 helpers.py: duplicate CircuitBreaker — Info
+
+**Файлы:** `helpers.py:145-176`, `communication/circuit_breaker.py:34-137`
+
+Two CircuitBreaker implementations exist:
+1. `utils/helpers.py:CircuitBreaker` — 31 lines, simple, no HALF_OPEN probe limit
+2. `communication/circuit_breaker.py:CircuitBreaker` — 103 lines, full, with HALF_OPEN probes, success threshold, stats
+
+The `helpers.py` version is simpler but less capable. It doesn't track total_trips, total_blocks, or have configurable success_threshold. The `is_open` property has a side effect (transitions open→half_open), same anti-pattern as the full version.
+
+**Reduction potential:** Remove `helpers.py:CircuitBreaker`, use `communication/circuit_breaker.py:CircuitBreaker` everywhere. ~31 lines.
+
+### 8.1056 helpers.py: RateLimiter._refill not thread-safe — Low
+
+**Файл:** `helpers.py:188-192`
+
+```python
+def _refill(self) -> None:
+    now = time.monotonic()
+    elapsed = now - self._last_refill
+    self._tokens = min(self.burst, self._tokens + elapsed * self.rate)
+    self._last_refill = now
+```
+
+`_refill` reads and writes `_tokens` and `_last_refill` without a lock. If `acquire()` is called from multiple coroutines (which can interleave at `await asyncio.sleep(wait)`), two coroutines may `_refill()` simultaneously, double-counting tokens.
+
+In asyncio (single-threaded), this is safe as long as `_refill()` doesn't `await`. It doesn't. But `acquire()` does `await asyncio.sleep(wait)` — after sleep, it loops back to `_refill()`. If two coroutines are in the `while True` loop, they interleave at the `await`, but `_refill()` is synchronous. So it's safe in asyncio.
+
+### 8.1057 helpers.py: RateLimiter.acquire spins forever — Low
+
+**Файл:** `helpers.py:194-204`
+
+```python
+async def acquire(self) -> bool:
+    import asyncio
+    if self.rate <= 0:
+        return False
+    while True:
+        self._refill()
+        if self._tokens >= 1.0:
+            self._tokens -= 1.0
+            return True
+        wait = (1.0 - self._tokens) / self.rate
+        await asyncio.sleep(wait)
+```
+
+`acquire()` spins forever until a token is available. There's no timeout or cancellation handling. If the rate is very low (e.g., 0.01 tokens/sec) and burst=1, the caller waits 100 seconds. During this time, the coroutine is blocked in `asyncio.sleep`. If the event loop is shutting down, the coroutine doesn't exit.
+
+**Фикс:** Add `timeout` parameter: `async def acquire(self, timeout: float | None = None) -> bool`.
+
+### 8.1058 ai-signal-bot/src/llm_engine/engine.py: LLM Engine — ✅ Good
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py` (394 lines)
+
+- **3 providers**: OpenAI, Anthropic, Ollama — correct
+- **Rule-based fallback**: Full analysis/explanation/risk when no API key — correct
+- **Cache**: TTL-based with 100-entry eviction — correct
+- **Prompt templates**: File-based with inline fallback — correct
+- **aiohttp session**: Shared with timeout — correct
+- **Error handling**: Falls back to rule-based on API error — correct
+- **Stats**: request_count, error_count, cache_size — correct
+
+Good LLM engine with 3 providers, rule-based fallback, caching, prompt templates, and error handling. ✅
+
+### 8.1059 engine.py: API key in memory as plain string — Medium
+
+**Файл:** `engine.py:73, 86-88, 237, 249`
+
+```python
+self.config = config or LLMConfig()
+# ...
+self.config.api_key = os.getenv("OPENAI_API_KEY", "")
+# ...
+headers = {"Authorization": f"Bearer {self.config.api_key}"}
+headers = {"x-api-key": self.config.api_key}
+```
+
+The API key is stored as a plain string in `self.config.api_key` and embedded in HTTP headers. If the config object is logged (e.g., `logger.info(f"Config: {self.config}")`), the API key is exposed. The `LLMConfig` dataclass has `api_key: str = ""` which will be included in `repr(self.config)`.
+
+**Фикс:** Use `__repr__` that masks the API key, or store the key in a `SecretStr` wrapper.
+
+### 8.1060 engine.py: cache eviction is O(N) — Low
+
+**Файл:** `engine.py:164-167`
+
+```python
+if len(self._cache) > 100:
+    stale_keys = [k for k, (t, _) in self._cache.items() if now - t >= self.config.cache_ttl_seconds]
+    for k in stale_keys:
+        del self._cache[k]
+```
+
+Cache eviction scans all entries (O(N)) when cache exceeds 100 entries. With 50 symbols, this triggers every 50 signals (cache fills in ~50 calls). Each eviction scans 100 entries. At 50 signals/min, that's 50 scans/min × 100 entries = 5000 comparisons/min. Not terrible, but `OrderedDict` with LRU eviction would be O(1).
+
+**Фикс:** Use `collections.OrderedDict` with LRU eviction, or `functools.lru_cache`.
+
+### 8.1061 engine.py: _parse_response JSON extraction fragile — Low
+
+**Файл:** `engine.py:287-290`
+
+```python
+start = response.find("{")
+end = response.rfind("}") + 1
+if start >= 0 and end > start:
+    data = json.loads(response[start:end])
+```
+
+Extracts JSON by finding first `{` and last `}`. If the LLM response contains markdown with code blocks (e.g., `Here is the analysis: \`\`\`json\n{...}\n\`\`\``), the extraction may include the markdown or miss nested JSON. If the response has multiple JSON objects, only the first-to-last span is parsed, which may be invalid.
+
+**Фикс:** Use regex to extract JSON from code blocks, or ask the LLM to return only JSON without markdown.
+
+### 8.1062 engine.py: no concurrent request limit — Low
+
+**Файл:** `engine.py:149-184`
+
+`analyze_market()` calls `_call_llm()` which sends an HTTP request. There's no concurrency limit — if 50 symbols trigger `analyze_market()` simultaneously, 50 HTTP requests are sent to OpenAI at once. OpenAI has rate limits (500 req/min for GPT-4o-mini). 50 concurrent requests may hit the rate limit, causing 429 errors.
+
+**Фикс:** Use `asyncio.Semaphore(5)` to limit concurrent LLM requests.
+
+### 8.1063 hft-trade-bot/src/exchange/BinanceAdapter.h: Binance Adapter — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h` (190 lines)
+
+- **IExchange impl**: best_bid/ask/mid/depth via spinlock-protected maps — correct
+- **on_book_ticker**: Updates bids/asks/depth under spinlocks — correct
+- **on_depth_update**: Updates best bid/ask from diff depth — correct
+- **sign**: HMAC-SHA256 (declared, not implemented here) — correct
+- **place_order/cancel_order**: REST API (declared) — correct
+- **can_send_order**: Atomic rate limiter (300 orders/10s) — correct
+- **Stream URLs**: bookTicker, depth20@100ms, aggTrade, user data — correct
+- **listen_key**: create/ping/close — correct
+
+Good Binance adapter with spinlock-protected maps, atomic rate limiter, and stream URL helpers. ✅
+
+### 8.1064 BinanceAdapter: on_book_ticker takes two spinlocks — Medium
+
+**Файл:** `BinanceAdapter.h:72-80`
+
+```cpp
+void on_book_ticker(const std::string& symbol, double bid, double bid_qty, double ask,
+                    double ask_qty) {
+    std::lock_guard<Spinlock> lk(price_lock_);
+    bids_[symbol] = bid;
+    asks_[symbol] = ask;
+    std::lock_guard<Spinlock> lk2(depth_lock_);
+    bid_depth_[symbol] = bid_qty;
+    ask_depth_[symbol] = ask_qty;
+}
+```
+
+`on_book_ticker` takes `price_lock_` then `depth_lock_`. `best_bid()` takes only `price_lock_`. `bid_depth()` takes only `depth_lock_`. If thread A calls `on_book_ticker` (holds price_lock_, waits for depth_lock_) and thread B calls `on_depth_update` (holds depth_lock_, waits for price_lock_), it's a deadlock.
+
+Wait — `on_depth_update` at line 83-99 takes `price_lock_` first, then `depth_lock_` — same order. So no deadlock. But `on_book_ticker` takes `price_lock_`, writes, then takes `depth_lock_`. Between the two locks, another thread can read stale depth with new price. This is a consistency issue, not a deadlock.
+
+**Фикс:** Use a single spinlock for both price and depth, or use atomic doubles instead of maps.
+
+### 8.1065 BinanceAdapter: unordered_map heap allocation on update — Low
+
+**Файл:** `BinanceAdapter.h:74-79`
+
+`bids_[symbol] = bid` may trigger `unordered_map` rehashing and bucket allocation if the map grows. With 50 symbols, the map is small, but each `on_book_ticker` call does a string hash + lookup + potential insert. The string key `symbol` is a `std::string` — each lookup allocates temporaries. For 50 symbols × 10 updates/sec = 500 updates/sec, that's 500 string hashes/sec under a spinlock.
+
+**Фикс:** Use `std::string_view` for lookups, or use a flat array indexed by symbol_id (uint8_t).
+
+### 8.1066 BinanceAdapter: api_secret in Config struct — Medium
+
+**Файл:** `BinanceAdapter.h:29`
+
+```cpp
+struct Config {
+    std::string api_key;
+    std::string api_secret;
+    // ...
+};
+```
+
+`api_secret` is stored as a plain `std::string` in the config struct. If the config is logged (e.g., `spdlog::info("Config: {}", config_)`), the secret is exposed. The secret is also in heap memory and can be read by a memory dump.
+
+**Фикс:** Use a secure string that zeros memory on destruction. Don't log Config. Use environment variables or a secrets manager.
+
+### 8.1067 BinanceAdapter: can_send_order race on window reset — Low
+
+**Файл:** `BinanceAdapter.h:123-136`
+
+```cpp
+bool can_send_order() {
+    auto now_ns = ...;
+    auto window_ns = order_window_start_ns_.load(...);
+    auto elapsed_ns = now_ns - window_ns;
+    if (elapsed_ns >= 10'000'000'000) {
+        if (order_window_start_ns_.compare_exchange_strong(window_ns, now_ns, ...)) {
+            orders_in_window_.store(0, ...);
+        }
+    }
+    return orders_in_window_.fetch_add(1, ...) < 300;
+}
+```
+
+When the 10s window expires, `compare_exchange` resets `order_window_start_ns_` and then `orders_in_window_` is reset to 0. But between the CAS and the store(0), another thread may `fetch_add(1)` on `orders_in_window_`, getting a value > 0. Then `store(0)` overwrites it, losing that count. This means a few extra orders may be allowed through during window reset.
+
+Not a critical issue — Binance rate limit is 300/10s, and a few extra won't trigger a ban. But it's a race.
+
+**Фикс:** Reset `orders_in_window_` before the CAS, or use a single atomic for both.
+
+### 8.1068 hft-trade-bot/src/exchange/OKXAdapter.h: OKX Adapter — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/OKXAdapter.h` (143 lines)
+
+- **IExchange impl**: Spinlock-protected maps — correct
+- **on_ticker**: Updates bids/asks/depth — correct
+- **to_inst_id**: Symbol conversion (BTCUSDT → BTC-USDT-SWAP) — correct (USDT only)
+- **sign**: HMAC-SHA256 (declared) — correct
+- **place_order/cancel_order**: REST API (declared) — correct
+- **Subscribe messages**: tickers, books5, orders — correct
+- **login_message**: Private WS auth (declared) — correct
+
+Good OKX adapter with spinlock-protected maps, symbol conversion, and subscription helpers. ✅
+
+### 8.1069 OKXAdapter: to_inst_id only handles USDT — Low
+
+**Файл:** `OKXAdapter.h:79-88`
+
+```cpp
+static std::string to_inst_id(const std::string& symbol) {
+    std::string clean = symbol;
+    clean.erase(std::remove(clean.begin(), clean.end(), '/'), clean.end());
+    if (clean.size() >= 4u && clean.substr(clean.size() - 4) == "USDT") {
+        std::string base = clean.substr(0, clean.size() - 4);
+        return base + "-USDT-SWAP";
+    }
+    return symbol;
+}
+```
+
+Only handles USDT pairs. Symbols ending with BTC, ETH, USDC, etc. are not converted — `return symbol` returns the raw symbol (e.g., "BTCUSDC") which OKX will reject. Same issue as `real_market_data:_to_okx_inst_id` in Python.
+
+**Фикс:** Support USDC, BTC, ETH quote currencies. Or make the quote currency a parameter.
+
+### 8.1070 OKXAdapter: no rate limiter — Low
+
+**Файл:** `OKXAdapter.h` (entire file)
+
+Unlike `BinanceAdapter` which has `can_send_order()`, OKXAdapter has no rate limiter. OKX has 20 req/2s per endpoint and 60 req/2s for order placement. Without rate limiting, the bot may hit OKX's rate limit and get banned.
+
+**Фикс:** Add `can_send_order()` with OKX-specific limits (60 orders/2s).
+
+### 8.1071 OKXAdapter: passphrase stored as plain string — Medium
+
+**Файл:** `OKXAdapter.h:27`
+
+```cpp
+std::string passphrase;
+```
+
+OKX requires a passphrase for API authentication. It's stored as a plain `std::string` in the Config struct, same security issue as BinanceAdapter's `api_secret`.
+
+**Фикс:** Use a secure string wrapper. Don't log Config.
+
+### 8.1072 hft-trade-bot/src/exchange/BybitAdapter.h: Bybit Adapter — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/BybitAdapter.h` (137 lines)
+
+- **IExchange impl**: Spinlock-protected maps — correct
+- **on_orderbook**: Updates bids/asks/depth — correct
+- **sign**: HMAC-SHA256 (declared) — correct
+- **place_order/cancel_order**: REST API (declared) — correct
+- **Subscribe messages**: orderbook.50, tickers, publicTrade, orders — correct
+- **auth_message**: WebSocket auth — correct
+
+Good Bybit adapter with spinlock-protected maps and subscription helpers. ✅
+
+### 8.1073 BybitAdapter: no rate limiter — Low
+
+**Файл:** `BybitAdapter.h` (entire file)
+
+Same as OKXAdapter — no `can_send_order()` rate limiter. Bybit has 120 req/min for order creation. Without rate limiting, the bot may hit Bybit's rate limit.
+
+**Фикс:** Add `can_send_order()` with Bybit-specific limits (120 orders/min).
+
+### 8.1074 BybitAdapter: api_secret in Config struct — Medium
+
+**Файл:** `BybitAdapter.h:25`
+
+```cpp
+std::string api_secret;
+```
+
+Same issue as BinanceAdapter and OKXAdapter — plain string secret in Config.
+
+**Фикс:** Use a secure string wrapper. Don't log Config.
+
+### 8.1075 Code reduction: 3× adapter duplicate pattern — Info
+
+**Файлы:** `BinanceAdapter.h:41-69`, `OKXAdapter.h:39-65`, `BybitAdapter.h:37-63`
+
+All three adapters have identical `best_bid`, `best_ask`, `mid_price`, `bid_depth`, `ask_depth` implementations — 30 lines each × 3 = 90 lines of duplication. The only difference is the class name and the map names (which are identical).
+
+**Reduction potential:** ~60 lines. Move the maps + spinlocks + IExchange methods to `ExchangeBase`, make them virtual, and have concrete adapters only implement update methods + exchange-specific logic.

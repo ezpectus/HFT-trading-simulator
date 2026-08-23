@@ -6561,3 +6561,149 @@ class HealthChecker:
 ```
 
 **Разница:** The bad code runs 4 health checks sequentially with no per-check timeout. When the database has a network partition, `await self.db_client.get_health()` hangs indefinitely — TCP connection stuck, no timeout. The Redis and Exchange checks never execute. K8s readiness probe times out at 3s, marks the pod as not ready, and after 3 consecutive failures (30s), restarts the pod. During those 23-30 seconds, 1000 users receive no signals, 50 open positions are unmonitored, and $500K is at risk if the market crashes. The bot was actually healthy — only the DB was down — but the sequential checks never discovered that. The good code runs all 4 checks concurrently with `asyncio.gather()` and wraps each in `asyncio.wait_for(timeout=2.0)`. All checks start at the same time. The WebSocket, Redis, and Exchange checks complete in 1ms. The DB check times out at 2s and returns UNHEALTHY. The total readiness check takes 2s (max of all checks), not 3s+ (K8s timeout). K8s returns 503 but the pod is not restarted (liveness probe passes). The bot continues trading with cached data — 0 users affected, 0 positions at risk, 0 restarts. When the DB reconnects, the next readiness probe returns 200 OK and the pod is added back to service. The cost is wrapping checks in `asyncio.gather()` + `asyncio.wait_for()` — 10 lines of code. The benefit is 0 downtime, 0 restarts, $500K preserved. This is a classic "sequential vs concurrent" anti-pattern: the developer wrote `await` calls one after another without considering that they're independent and can run concurrently. The principle: in asyncio, use `asyncio.gather()` for independent operations, and always use `asyncio.wait_for()` with a timeout for network-dependent operations. In a system with 1000 users, a 23s pod restart due to sequential health checks can cause $500K in unmonitored positions + market crash risk.
+
+---
+
+## Bad vs Good: API Secrets in Plain Strings (C++ + Python)
+
+### ❌ Bad Code
+```cpp
+// BinanceAdapter.h
+struct Config {
+    std::string api_key;
+    std::string api_secret;    // ← Plain string in heap memory
+    std::string base_url = "https://fapi.binance.com";
+    std::string ws_url   = "wss://fstream.binance.com";
+    int         recv_window = 5000;
+};
+
+// Usage:
+BinanceAdapter::Config cfg;
+cfg.api_key = "vmPUZ6xv...";
+cfg.api_secret = "NhkW6X3Yg5...";
+auto adapter = std::make_unique<BinanceAdapter>(cfg);
+
+// Problem 1: Logging
+spdlog::info("Initialized adapter with config: api_key={}, base_url={}",
+             cfg.api_key, cfg.base_url);
+// → "Initialized adapter with config: api_key=vmPUZ6xv..., base_url=https://..."
+// API key in logs → shipped to ELK/Loki → visible to all log readers
+
+// Problem 2: Config repr
+std::string config_str = fmt::format("{}", cfg);  // If Config has operator<<
+// → "Config{api_key=vmPUZ6xv..., api_secret=NhkW6X3Yg5..., ...}"
+// Both key and secret in the string
+
+// Problem 3: Memory dump
+// api_secret is in heap memory as plaintext. A core dump, /proc/pid/mem,
+// or a debugger can read it at any time. Even after the adapter is destroyed,
+// the string's memory may not be zeroed — the allocator may reuse it.
+
+// Problem 4: Same pattern in 3 adapters + LLM engine
+// BinanceAdapter.h:  api_secret = "..."
+// OKXAdapter.h:      api_secret = "...", passphrase = "..."
+// BybitAdapter.h:    api_secret = "..."
+// engine.py:         LLMConfig.api_key = os.getenv("OPENAI_API_KEY")
+// 5 separate plain-string secrets in memory simultaneously
+
+// Scenario: Production HFT bot with 1000 users
+// - 5 API secrets in heap memory (Binance, OKX, Bybit, OpenAI, Anthropic)
+// - Each secret has full trading/withdrawal permissions
+// - Bot crashes → core dump generated → uploaded to crash reporting service
+// - Crash report contains all 5 secrets in plaintext
+// - Attacker reads crash report → drains all exchange accounts
+// - Total loss: $2M+ across 3 exchanges + OpenAI billing
+//
+// Or:
+// - Developer adds spdlog::info("Config: {}", cfg) for debugging
+// - Logs shipped to Loki/Grafana with 30-day retention
+// - 50 developers have log access → all can see API secrets
+// - One developer leaves → secrets compromised
+```
+
+**What's wrong:**
+- 5 API secrets stored as plain `std::string` / Python `str` in heap memory
+- No masking in logs — `fmt::format("{}", cfg)` exposes all fields
+- No memory zeroing on destruction — allocator may reuse without clearing
+- Core dumps contain all secrets in plaintext
+- Same anti-pattern repeated across 3 exchange adapters + LLM engine
+
+### ✅ Good Code
+```cpp
+// SecureString.h — zero-on-destroy string wrapper
+class SecureString {
+  public:
+    SecureString(std::string_view s) : data_(s.begin(), s.end()) {}
+    ~SecureString() { clear(); }
+    SecureString(const SecureString&) = delete;  // No copies
+    SecureString& operator=(const SecureString&) = delete;
+
+    // Access only when needed
+    std::string_view view() const { return data_; }
+
+    // Clear memory (called on destruction)
+    void clear() {
+        std::fill(data_.begin(), data_.end(), '\0');  // Zero memory
+        data_.clear();
+        data_.shrink_to_fit();
+    }
+
+    // Never log the secret
+    friend std::ostream& operator<<(std::ostream& os, const SecureString&) {
+        return os << "[REDACTED]";
+    }
+
+  private:
+    std::string data_;
+};
+
+// BinanceAdapter.h
+struct Config {
+    std::string    api_key;           // Public key — OK to log
+    SecureString   api_secret;        // Secret — never logged
+    std::string    base_url = "https://fapi.binance.com";
+    std::string    ws_url   = "wss://fstream.binance.com";
+    int            recv_window = 5000;
+
+    // Custom repr that masks secret
+    std::string to_string() const {
+        return fmt::format("Config{{api_key={}, api_secret=[REDACTED], base_url={}}}",
+                           api_key, base_url);
+    }
+};
+
+// Usage:
+BinanceAdapter::Config cfg;
+cfg.api_key = "vmPUZ6xv...";
+cfg.api_secret = SecureString("NhkW6X3Yg5...");
+auto adapter = std::make_unique<BinanceAdapter>(cfg);
+
+// Safe logging:
+spdlog::info("Initialized Binance adapter: {}", cfg.to_string());
+// → "Initialized Binance adapter: Config{api_key=vmPUZ6xv..., api_secret=[REDACTED], base_url=https://...}"
+
+// When adapter is destroyed:
+// ~SecureString() → fill with '\0' → clear() → shrink_to_fit()
+// Memory is zeroed before allocator reclaims it
+// Core dump shows zeros, not the secret
+
+// Python equivalent:
+from pydantic import SecretStr
+
+class LLMConfig(BaseModel):
+    provider: str = "openai"
+    api_key: SecretStr = SecretStr("")  # repr shows "**********"
+    model: str = "gpt-4o-mini"
+
+    model_config = {"env_prefix": "LLM_"}
+
+# Usage:
+cfg = LLMConfig(api_key="sk-...")
+print(cfg)  # → api_key=SecretStr('**********')
+print(cfg.api_key.get_secret_value())  # → "sk-..." (explicit access only)
+
+# When Python GC collects the config:
+# Pydantic SecretStr zeros the internal string on __del__
+```
+
+**Разница:** The bad code stores 5 API secrets as plain strings in heap memory across 3 exchange adapters and the LLM engine. The secrets are never masked in logs — a single `spdlog::info("Config: {}", cfg)` or `print(cfg)` call exposes all keys and secrets to anyone with log access. When the bot crashes, the core dump contains all secrets in plaintext — if uploaded to a crash reporting service (Sentry, Bugsnag), all 5 secrets are compromised. Even without a crash, the secrets persist in heap memory until the allocator reclaims the page, which may be never (the adapter lives for the bot's lifetime). A debugger, `/proc/pid/mem`, or a memory inspection tool can read all secrets at any time. With 1000 users and $2M+ across 3 exchanges, a single compromised secret means total loss. The good code wraps secrets in a `SecureString` (C++) or `SecretStr` (Python) that: (1) zeros memory on destruction — the allocator reclaims zeroed pages, not secret bytes; (2) masks the secret in `operator<<` / `__repr__` — logs show `[REDACTED]` or `**********`; (3) requires explicit `.get_secret_value()` / `.view()` to access the raw value — developers must opt-in to see the secret. The cost is a 20-line `SecureString` class and changing `std::string api_secret` to `SecureString api_secret` in 5 Config structs — 5 lines. The benefit is $2M+ in exchange funds protected from log leaks, core dumps, and memory inspection. This is a classic "secret in plain memory" anti-pattern: the developer used `std::string` for convenience without considering that the string's contents persist in heap memory and are exposed in logs, core dumps, and debuggers. The principle: never store secrets in plain strings — use a secure string wrapper that zeros memory on destruction and masks the value in string representations. In a system with $2M+ in exchange accounts, a single unmasked API secret in a log file or core dump can lead to total loss.
