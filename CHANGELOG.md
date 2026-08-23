@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — quantize + random_normal deduplication)
+
+### Changed
+- **[REFACTOR-02]** Added `quantize` to `src/research/_common.py`, replaced 2 local copies in `info_bottleneck.py` and `transfer_entropy.py`
+- Replaced 5 `_random_normal` Box-Muller copies in `sde.py`, `rbergomi.py`, `hmc.py`, `optimal_stopping.py`, `vae.py` with `rng.gauss(0, 1)`
+- Replaced `random_normal` in `malliavin.py` with `rng.gauss(0, 1)` (kept as thin wrapper for public export)
+- Net reduction: ~80 lines of duplicate code
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — compute_returns deduplication)
 
 ### Changed

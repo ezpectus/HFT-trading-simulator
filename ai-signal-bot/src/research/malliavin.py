@@ -77,14 +77,8 @@ class MalliavinResult:
 
 
 def random_normal(rng: random.Random) -> float:
-    """Box-Muller standard normal."""
-    u = rng.random()
-    while u == 0.0:
-        u = rng.random()
-    v = rng.random()
-    while v == 0.0:
-        v = rng.random()
-    return math.sqrt(-2 * math.log(u)) * math.cos(2 * math.pi * v)
+    """Standard normal sample via rng.gauss."""
+    return rng.gauss(0, 1)
 
 
 def simulate_paths(

@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 import random
 
-from src.research._common import compute_returns
+from src.research._common import compute_returns, quantize
 
 
 MIN_PRICES = 50
@@ -61,14 +61,6 @@ class IbResult:
         self.returns = returns
         self.xq = xq
         self.yq = yq
-
-
-def quantize(values: list[float], n_bins: int) -> list[int]:
-    """Quantize continuous values into bin indices."""
-    min_v = min(values)
-    max_v = max(values)
-    bin_w = (max_v - min_v) / n_bins if max_v > min_v else 1.0
-    return [min(n_bins - 1, max(0, math.floor((v - min_v) / bin_w))) for v in values]
 
 
 def kl_divergence(p: list[float], q: list[float]) -> float:

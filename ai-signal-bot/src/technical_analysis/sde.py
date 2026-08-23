@@ -52,17 +52,6 @@ class SDEResult:
         self.used_sigma = used_sigma
 
 
-def _random_normal(rng: random.Random) -> float:
-    """Box-Muller standard normal sample."""
-    u = rng.random()
-    while u == 0:
-        u = rng.random()
-    v = rng.random()
-    while v == 0:
-        v = rng.random()
-    return math.sqrt(-2 * math.log(u)) * math.cos(2 * math.pi * v)
-
-
 def simulate_gbm(
     s0: float,
     mu: float,
@@ -79,7 +68,7 @@ def simulate_gbm(
     for _ in range(n_paths):
         path = [s0]
         for i in range(1, n_steps):
-            z = _random_normal(rng)
+            z = rng.gauss(0, 1)
             path.append(path[i - 1] * (1 + mu * dt + sigma * math.sqrt(dt) * z))
         paths.append(path)
     return paths
@@ -101,7 +90,7 @@ def simulate_gbm_milstein(
     for _ in range(n_paths):
         path = [s0]
         for i in range(1, n_steps):
-            z = _random_normal(rng)
+            z = rng.gauss(0, 1)
             s = path[i - 1]
             path.append(
                 s + mu * s * dt + sigma * s * math.sqrt(dt) * z
@@ -128,7 +117,7 @@ def simulate_ou(
     for _ in range(n_paths):
         path = [x0]
         for i in range(1, n_steps):
-            z = _random_normal(rng)
+            z = rng.gauss(0, 1)
             x = path[i - 1]
             path.append(x + theta * (mu - x) * dt + sigma * math.sqrt(dt) * z)
         paths.append(path)
@@ -152,7 +141,7 @@ def simulate_cir(
     for _ in range(n_paths):
         path = [x0]
         for i in range(1, n_steps):
-            z = _random_normal(rng)
+            z = rng.gauss(0, 1)
             x = max(0.0, path[i - 1])
             drift = kappa * (theta - x) * dt
             vol = sigma * math.sqrt(x) * math.sqrt(dt) * z
@@ -184,8 +173,8 @@ def simulate_heston(
         price = [s0]
         vol = [v0]
         for i in range(1, n_steps):
-            z1 = _random_normal(rng)
-            z2 = rho * z1 + math.sqrt(1 - rho * rho) * _random_normal(rng)
+            z1 = rng.gauss(0, 1)
+            z2 = rho * z1 + math.sqrt(1 - rho * rho) * rng.gauss(0, 1)
             v_prev = max(0.0, vol[i - 1])
             s_prev = price[i - 1]
             vol.append(max(0.0, v_prev + kappa * (theta - v_prev) * dt + xi * math.sqrt(v_prev) * math.sqrt(dt) * z2))
@@ -214,12 +203,12 @@ def simulate_merton(
     for _ in range(n_paths):
         path = [s0]
         for i in range(1, n_steps):
-            z = _random_normal(rng)
+            z = rng.gauss(0, 1)
             s = path[i - 1]
             n_jumps = 1 if rng.random() < lambda_ * dt else 0
             jump_component = 0.0
             for _ in range(n_jumps):
-                jump_component += math.exp(jump_mean + jump_std * _random_normal(rng)) - 1
+                jump_component += math.exp(jump_mean + jump_std * rng.gauss(0, 1)) - 1
             path.append(s * (1 + mu * dt + sigma * math.sqrt(dt) * z + jump_component))
         paths.append(path)
     return paths

@@ -43,17 +43,6 @@ class HMCResult:
         self.samples = samples
 
 
-def _random_normal(rng: random.Random) -> float:
-    """Box-Muller standard normal sample."""
-    u = rng.random()
-    while u == 0:
-        u = rng.random()
-    v = rng.random()
-    while v == 0:
-        v = rng.random()
-    return math.sqrt(-2 * math.log(u)) * math.cos(2 * math.pi * v)
-
-
 def log_posterior(q: list[float], returns: list[float]) -> float:
     """Log posterior of GARCH(1,1) params [omega, alpha, beta]."""
     omega, alpha, beta = q
@@ -127,7 +116,7 @@ def hmc(
     log_post_history: list[float] = []
 
     for _ in range(n_samples):
-        p = [_random_normal(rng) * math.sqrt(mass[i]) for i in range(len(q))]
+        p = [rng.gauss(0, 1) * math.sqrt(mass[i]) for i in range(len(q))]
 
         current_log_post = log_post_fn(q)
         current_k = 0.5 * sum(p[i] * p[i] / mass[i] for i in range(len(q)))

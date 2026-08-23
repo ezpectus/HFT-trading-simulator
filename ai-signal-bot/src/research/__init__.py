@@ -13,7 +13,7 @@ from src.research.almgren_chriss import (
     efficient_frontier,
     estimate_volatility,
 )
-from src.research._common import compute_returns
+from src.research._common import compute_returns, quantize
 from src.research.banach import (
     BanachResult,
     banach_analysis,

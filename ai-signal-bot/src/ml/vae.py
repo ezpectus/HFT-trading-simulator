@@ -69,7 +69,7 @@ class VAE:
     ) -> list[float]:
         """Reparameterization trick: z = mu + exp(0.5*logvar) * eps."""
         if eps is None:
-            eps = [_random_normal(self.rng) for _ in range(self.latent_dim)]
+            eps = [self.rng.gauss(0, 1) for _ in range(self.latent_dim)]
         return [mu[i] + math.exp(0.5 * logvar[i]) * eps[i] for i in range(self.latent_dim)]
 
     def decode(self, z: list[float]) -> tuple[list[float], list[float]]:
@@ -110,7 +110,7 @@ class VAE:
     def train_step(self, x: list[float], lr: float, beta: float) -> dict:
         """One gradient-descent step with full backpropagation."""
         h, mu, logvar = self.encode(x)
-        eps = [_random_normal(self.rng) for _ in range(self.latent_dim)]
+        eps = [self.rng.gauss(0, 1) for _ in range(self.latent_dim)]
         z = self.reparameterize(mu, logvar, eps)
         h2, x_hat = self.decode(z)
         loss = self.loss(x, x_hat, mu, logvar, beta)
@@ -168,7 +168,7 @@ class VAE:
         """Generate synthetic samples from the prior p(z) = N(0, I)."""
         generated: list[list[float]] = []
         for _ in range(n_samples):
-            z = [_random_normal(self.rng) for _ in range(self.latent_dim)]
+            z = [self.rng.gauss(0, 1) for _ in range(self.latent_dim)]
             _h2, x_hat = self.decode(z)
             generated.append(x_hat)
         return generated
@@ -218,17 +218,6 @@ class VAEResult:
         self.std = std
         self.latent_dim = latent_dim
         self.hidden_dim = hidden_dim
-
-
-def _random_normal(rng: random.Random) -> float:
-    """Box-Muller standard normal sample."""
-    u = rng.random()
-    while u == 0:
-        u = rng.random()
-    v = rng.random()
-    while v == 0:
-        v = rng.random()
-    return math.sqrt(-2 * math.log(u)) * math.cos(2 * math.pi * v)
 
 
 def _sigmoid(x: float) -> float:

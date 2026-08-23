@@ -74,17 +74,6 @@ class OptimalStoppingResult:
         self.is_call = is_call
 
 
-def _random_normal(rng: random.Random) -> float:
-    """Box-Muller standard normal sample."""
-    u = rng.random()
-    while u == 0:
-        u = rng.random()
-    v = rng.random()
-    while v == 0:
-        v = rng.random()
-    return math.sqrt(-2 * math.log(u)) * math.cos(2 * math.pi * v)
-
-
 def _solve3x3(a: list[list[float]], b: list[float]) -> list[float] | None:
     """Solve a 3x3 linear system via Cramer's rule. None if singular."""
     det = (
@@ -205,7 +194,7 @@ def longstaff_schwartz(
     for _ in range(n_paths):
         path = [s0]
         for _step in range(1, n_steps + 1):
-            z = _random_normal(rng)
+            z = rng.gauss(0, 1)
             s_prev = path[-1]
             path.append(s_prev * math.exp((r - 0.5 * sigma * sigma) * dt + sigma * math.sqrt(dt) * z))
         paths.append(path)

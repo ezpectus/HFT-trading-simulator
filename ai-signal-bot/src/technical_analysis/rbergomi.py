@@ -61,17 +61,6 @@ class RBergomiResult:
         self.n_paths = n_paths
 
 
-def _random_normal(rng: random.Random) -> float:
-    """Box-Muller standard normal sample."""
-    u = rng.random()
-    while u == 0:
-        u = rng.random()
-    v = rng.random()
-    while v == 0:
-        v = rng.random()
-    return math.sqrt(-2 * math.log(u)) * math.cos(2 * math.pi * v)
-
-
 def frac_gaussian_noise(n: int, h: float, seed: int | None = None) -> list[float]:
     """Fractional Gaussian noise via Cholesky decomposition."""
     rng = random.Random(seed)
@@ -98,7 +87,7 @@ def frac_gaussian_noise(n: int, h: float, seed: int | None = None) -> list[float
 
     fgn = [0.0] * n
     for i in range(n):
-        z = _random_normal(rng)
+        z = rng.gauss(0, 1)
         for j in range(i + 1):
             fgn[i] += chol[i][j] * z
     return fgn
@@ -134,8 +123,8 @@ def simulate_rbergomi(
         w1 = [0.0] * n_steps
         w2 = [0.0] * n_steps
         for step in range(1, n_steps):
-            z1 = _random_normal(rng)
-            z2 = rho * z1 + math.sqrt(1 - rho * rho) * _random_normal(rng)
+            z1 = rng.gauss(0, 1)
+            z2 = rho * z1 + math.sqrt(1 - rho * rho) * rng.gauss(0, 1)
             w1[step] = w1[step - 1] + math.sqrt(dt) * z1
             w2[step] = w2[step - 1] + math.sqrt(dt) * z2
 

@@ -9,6 +9,8 @@ from __future__ import annotations
 import math
 import random
 
+from src.research._common import quantize
+
 
 DEFAULT_K = 1
 DEFAULT_L = 1
@@ -41,19 +43,6 @@ class TransferEntropyResult:
         self.signal = signal
         self.reason = reason
         self.n_tuples = n_tuples
-
-
-def quantize(values: list[float], n_bins: int = DEFAULT_N_BINS) -> list[int]:
-    """Quantize continuous values into discrete bins."""
-    if not values:
-        return []
-    min_v = min(values)
-    max_v = max(values)
-    bin_w = (max_v - min_v) / n_bins or 1.0
-    return [
-        min(n_bins - 1, max(0, int((v - min_v) / bin_w)))
-        for v in values
-    ]
 
 
 def _joint_prob(tuples: list[list[int]]) -> dict[str, float]:
