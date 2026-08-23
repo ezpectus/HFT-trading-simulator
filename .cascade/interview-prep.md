@@ -3612,3 +3612,88 @@ private:
 ```
 
 **Разница:** The bad code detaches the monitoring thread — `stop_monitoring()` sets `running_ = false` but can't wait for the thread to actually stop. If the `KillSwitch` is destroyed immediately after `stop_monitoring()`, the thread is still in `sleep_for(100ms)`. When it wakes up, it accesses `this->trigger_file_` — but `this` is already destroyed. This is a use-after-free: undefined behavior, possible crash, possible silent corruption. In the worst case, the thread calls `activate()` which invokes callbacks that reference destroyed `BotContext` members — the kill switch fires on a dead bot, calling `cancel_all_orders()` on a destroyed order executor. With 1000 users, this crash happens on every pod restart — the kill switch thread crashes, the bot has no emergency stop, and a flash crash wipes out $500,000+ in positions. The good code joins the thread in the destructor — `stop_monitoring()` sets `running_ = false`, then the destructor calls `monitor_thread_.join()` which blocks until the thread exits. The thread uses `condition_variable::wait_for()` instead of `sleep_for()` — it wakes up immediately when `running_` becomes false, instead of waiting up to 100ms. The total shutdown time is <1ms instead of up to 100ms. The cost is a `mutex` + `condition_variable` (64 bytes) and a `join()` call (blocks <1ms). The benefit is guaranteed safe shutdown — no use-after-free, no crashed kill switch, no bot without emergency stop.
+
+---
+
+## Bad vs Good: Config Validation Warnings Only, No Hard Fail (C++)
+
+### ❌ Bad Code
+```cpp
+inline void validate_risk_params(const Config& cfg) {
+    if (cfg.max_risk_per_trade_pct <= 0 || cfg.max_risk_per_trade_pct > 100)
+        spdlog::warn("Config: max_risk_per_trade_pct={} out of range. "
+                     "Recommended: 1.0-5.0.", cfg.max_risk_per_trade_pct);
+    if (cfg.stop_loss_pct <= 0 || cfg.stop_loss_pct > 50)
+        spdlog::warn("Config: stop_loss_pct={} out of range. "
+                     "Recommended: 1.0-5.0.", cfg.stop_loss_pct);
+    // ... more warnings ...
+}
+
+// Usage:
+void init_config_and_logger(BotContext& ctx, int argc, char* argv[]) {
+    ctx.config = Config::load(config_path);
+    validate_risk_params(ctx.config);
+    validate_trading_params(ctx.config);
+    // No return value check — continues even if all params are invalid!
+    return true;  // Always returns true
+}
+```
+
+**What's wrong:**
+- All validation failures are `spdlog::warn()` — the bot continues with invalid config
+- `stop_loss_pct = 0` → no stop loss → unlimited downside risk
+- `max_risk_per_trade_pct = -5` → negative risk → position sizing breaks
+- `max_daily_drawdown_pct = 0` → no drawdown limit → bot can lose everything
+- `max_open_positions = 0` → no positions allowed but bot still tries to trade
+- In production with 1000 users, a misconfigured YAML can cause $1M+ in losses
+- The warning is buried in log output — nobody reads warnings in a 500-line log file
+
+### ✅ Good Code
+```cpp
+[[nodiscard]] inline bool validate_risk_params(const Config& cfg) {
+    bool ok = true;
+
+    if (cfg.max_risk_per_trade_pct <= 0 || cfg.max_risk_per_trade_pct > 100) {
+        spdlog::error("Config: max_risk_per_trade_pct={} is INVALID (must be 0-100). "
+                      "Recommended: 1.0-5.0. Bot will NOT start.", cfg.max_risk_per_trade_pct);
+        ok = false;
+    }
+
+    // Critical: stop_loss = 0 means no stop loss → unlimited risk
+    if (cfg.stop_loss_pct <= 0) {
+        spdlog::error("Config: stop_loss_pct={} is INVALID (must be > 0). "
+                      "No stop loss = unlimited downside. Bot will NOT start.",
+                      cfg.stop_loss_pct);
+        ok = false;
+    } else if (cfg.stop_loss_pct > 50) {
+        spdlog::warn("Config: stop_loss_pct={} is unusually high. "
+                     "Recommended: 1.0-5.0. Continuing.", cfg.stop_loss_pct);
+    }
+
+    // Critical: max_daily_drawdown = 0 means no daily limit
+    if (cfg.max_daily_drawdown_pct <= 0) {
+        spdlog::error("Config: max_daily_drawdown_pct={} is INVALID (must be > 0). "
+                      "No drawdown limit = can lose entire account. Bot will NOT start.",
+                      cfg.max_daily_drawdown_pct);
+        ok = false;
+    }
+
+    return ok;
+}
+
+// Usage:
+bool init_config_and_logger(BotContext& ctx, int argc, char* argv[]) {
+    ctx.config = Config::load(config_path);
+
+    if (!validate_risk_params(ctx.config) ||
+        !validate_trading_params(ctx.config)) {
+        spdlog::error("Config validation FAILED. Fix config and restart.");
+        return false;  // Abort startup!
+    }
+
+    Logger::init(ctx.config.log_level, "logs", ctx.config.is_production);
+    return true;
+}
+```
+
+**Разница:** The bad code logs warnings for all validation failures but always returns `true` — the bot starts with invalid config. `stop_loss_pct = 0` means no stop loss: if BTC drops 20%, the bot holds the position with no exit — unlimited downside. `max_daily_drawdown_pct = 0` means no daily loss limit: the bot can lose the entire account in one day. With 1000 users, one misconfigured YAML file (e.g., `stop_loss_pct: 0` instead of `stop_loss_pct: 2.0`) causes $10,000,000+ in losses across all users — the bot trades with no risk controls. The warning is buried in a 500-line log file that nobody reads. The good code distinguishes critical errors from warnings: `stop_loss_pct = 0` is an error (unlimited risk), `stop_loss_pct = 50` is a warning (unusually high but not dangerous). Critical errors return `false`, and `init_config_and_logger()` aborts startup — the bot doesn't start until the config is fixed. The cost is a `[[nodiscard]]` return value and a few `if` checks. The benefit is zero invalid-config startups — the bot refuses to start with dangerous config, preventing $10M+ in losses from a single YAML typo.

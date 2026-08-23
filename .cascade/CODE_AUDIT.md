@@ -7638,3 +7638,257 @@ Good config validation with 12 checks, recommended values, and non-fatal warning
 All validation failures are `spdlog::warn()` — the bot continues even with invalid config (e.g., `max_risk_per_trade_pct = -5` or `stop_loss_pct = 0`). This could lead to dangerous behavior.
 
 **Фикс:** For critical params (stop_loss = 0, max_risk > 100), use `spdlog::error()` and return false to abort startup.
+
+### 8.579 hft-trade-bot/src/core/bot_loop.cpp: Bot loop implementation — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp` (279 lines)
+
+- **`process_sl_tp()`**: Updates PnL, checks SL/TP, closes positions, `fetch_add` balance — correct
+- **`process_arbitrage()`**: Lock-protected arb opportunity, min qty check, `is_connected()` check — correct
+- **`process_ai_signals()`**: SPSC queue pop, risk check, position check, order submit — correct
+- **`prepare_order_book()`**: Fallback synthetic order book from price — resilient
+- **`run_v2_signal_loop()`**: V2 signal engine with composite scoring — advanced
+- **`run_v1_fallback_loop()`**: V1 fallback when V2 unavailable — resilient
+- **`print_status()`**: Periodic status output — observability
+- **`poll_shm_market_data()`**: SHM polling for market data — IPC integration
+- **`graceful_shutdown()`**: Clean shutdown sequence — correct
+
+Good bot loop with 8 functions, SL/TP processing, arbitrage, AI signals, V2/V1 fallback, and graceful shutdown. ✅
+
+### 8.580 bot_loop: process_arbitrage sets atomic without lock — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp:34`
+
+```cpp
+ctx.has_arb_opportunity = false;
+```
+
+`has_arb_opportunity` is set to `false` outside the lock. If another thread sets it to `true` between the unlock and this line, the new arb opportunity is lost.
+
+**Фикс:** Move `ctx.has_arb_opportunity = false` inside the lock block, or use a CAS loop.
+
+### 8.581 bot_loop: hardcoded 0.5 max arb qty — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp:37`
+
+```cpp
+double qty = std::min(arb.max_quantity, 0.5);
+```
+
+Max arbitrage quantity is hardcoded at 0.5. This should be configurable — different symbols have different optimal arb sizes.
+
+**Фикс:** Add `max_arb_qty` to Config.
+
+### 8.582 hft-trade-bot/src/core/bot_setup.cpp: Bot setup — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/core/bot_setup.cpp` (364 lines)
+
+- **SIGINT + SIGTERM handlers**: `std::signal(SIGINT, signal_handler)` + `std::signal(SIGTERM, signal_handler)` — **CORRECT!** (contradicts earlier R518 finding about main.cpp — the handler IS registered in bot_setup.cpp)
+- **Thread pinning**: `ThreadAffinity::pin_to_core()` + `set_priority_max()` — HFT optimization
+- **Log banner**: 10-line startup banner with config summary — observability
+- **Config loading**: `Config::load(config_path)` with CLI arg override — flexible
+- **RiskManager init**: 15 params from config — comprehensive
+- **Production/sim split**: `setup_real_exchanges()` vs `setup_sim_exchanges()` — clean
+
+Excellent bot setup with SIGTERM handler, thread pinning, config loading, and 15-param risk manager init. ✅
+
+### 8.583 CORRECTION: R518 main.cpp no SIGTERM — False alarm
+
+**Файл:** `hft-trade-bot/src/core/bot_setup.cpp:62-63`
+
+```cpp
+std::signal(SIGINT, signal_handler);
+std::signal(SIGTERM, signal_handler);
+```
+
+R518 flagged "main.cpp: no SIGTERM handler" as Medium. This is **incorrect** — `init_config_and_logger()` in `bot_setup.cpp` registers both SIGINT and SIGTERM handlers. `main.cpp` calls `init_config_and_logger()` which sets up the signal handlers. The finding should be downgraded from Medium to Info (false alarm).
+
+**Статус:** R518 → downgrade to Info. SIGTERM handler exists in bot_setup.cpp.
+
+### 8.584 bot_setup: signal_handler only sets flag — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_setup.cpp:13`
+
+```cpp
+static void signal_handler(int) { g_running = false; }
+```
+
+The signal handler only sets `g_running = false`. It doesn't log the signal receipt. In production, it's useful to know when/why the bot received SIGTERM.
+
+**Фикс:** Add `spdlog::info("Received signal, shutting down")` — but note that only async-signal-safe functions should be called in a signal handler. Use `write()` or a flag + log in main loop.
+
+### 8.585 ai-signal-bot/src/strategies/strategies.py: Core strategies — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/strategies.py` (472 lines)
+
+- **3 strategies**: TrendFollowing (EMA+ADX), MeanReversion (Bollinger+RSI), FFTCycle — comprehensive
+- **EnsembleVoter**: Majority/weighted voting — flexible
+- **Signal class**: direction, confidence, SL/TP, strategy, reason, rr_ratio — comprehensive
+- **NaN guards**: `math.isnan()` checks on EMA/ADX/ATR — correct
+- **Dual candle format**: `isinstance(c, dict)` check — flexible
+- **CircuitBreaker re-export**: Backward compat — correct
+
+Good core strategies with 3 strategies, EnsembleVoter, NaN guards, and dual candle format. ✅
+
+### 8.586 strategies.py: noqa E402 on imports — Low
+
+**Файл:** `ai-signal-bot/src/strategies/strategies.py:15-22`
+
+```python
+from src.technical_analysis.fft_analysis import fft_cycle_indicator  # noqa: E402
+from src.technical_analysis.indicators import (  # noqa: E402
+```
+
+`# noqa: E402` suppresses "module level import not at top of file" warning. The imports are after the `logger` definition, which is why they're not at the top.
+
+**Фикс:** Move imports to top of file, before logger. The logger can use `__name__` without imports being first.
+
+### 8.587 ai-signal-bot/src/strategies/statistical_arbitrage.py: Stat arb — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/strategies/statistical_arbitrage.py` (318 lines)
+
+- **OLS regression**: `np.linalg.lstsq` with `LinAlgError` fallback — robust
+- **ADF test**: Simplified Augmented Dickey-Fuller — correct
+- **Half-life estimation**: Ornstein-Uhlenbeck AR(1) — correct
+- **Kalman filter hedge**: Adaptive hedge ratio — advanced
+- **Z-score entry/exit**: Dynamic thresholds — correct
+- **Correlation matrix**: Monitoring — risk management
+- **`deque(maxlen=...)`**: Bounded history — memory-safe
+
+Excellent stat arb with OLS, ADF, half-life, Kalman filter, z-score, and correlation monitoring. ✅
+
+### 8.588 ai-signal-bot/src/strategies/market_making.py: Avellaneda-Stoikov — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/strategies/market_making.py` (268 lines)
+
+- **Avellaneda-Stoikov**: Reservation price + optimal spread — academic-grade
+- **Inventory skew**: `inventory_skew` parameter — risk management
+- **Adverse selection**: Toxicity threshold — risk management
+- **Volatility estimation**: Log returns with `deque(maxlen=60)` — correct
+- **Spread optimization**: Fill rate target — performance optimization
+- **10 config params**: gamma, sigma, T, k, max_inventory, min/max_spread, skew, toxicity, vol_lookback — comprehensive
+- **Quote dataclass**: 10 fields including `should_cancel` — structured
+
+Excellent market making with Avellaneda-Stoikov, inventory skew, adverse selection, and spread optimization. ✅
+
+### 8.589 market_making: inventory not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/strategies/market_making.py:59`
+
+```python
+self.inventory: float = 0.0
+```
+
+`inventory` is a plain float updated via `update_inventory()`. If called from multiple async tasks, race condition. In practice, market making is single-task.
+
+**Фикс:** Document single-task requirement or use asyncio.Lock.
+
+### 8.590 ai-signal-bot/src/strategies/sentiment.py: Sentiment strategy — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/sentiment.py` (215 lines)
+
+- **10 event types**: FOMC, CPI, NFP, EARNINGS, REGULATION, HACK, WHALE, LISTING, LIQUIDATION, UNKNOWN — comprehensive
+- **Sentiment map**: -0.9 (HACK) to +0.7 (LISTING) — realistic
+- **Volatility map**: 1.0-4.0x multipliers — correct
+- **Pre/post-event windows**: Configurable — flexible
+- **Fade vs follow**: Threshold-based — correct
+- **Sentiment decay**: 0.95 per second — realistic
+- **NewsEvent dataclass**: 7 fields — structured
+
+Good sentiment strategy with 10 event types, sentiment/volatility maps, pre/post windows, and decay. ✅
+
+### 8.591 ai-signal-bot/src/strategies/ml_ensemble.py: ML ensemble — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/strategies/ml_ensemble.py` (318 lines)
+
+- **3 ML libraries**: scikit-learn (fallback), LightGBM (preferred), XGBoost (optional) — flexible
+- **Graceful fallback**: `try/except ImportError` for each library — resilient
+- **HMM regime detector**: 3 states (calm/trending/volatile) — advanced
+- **IsolationForest**: Anomaly filtering — risk management
+- **Walk-forward**: Retrain every N candles — prevents overfitting
+- **9 config params**: lookback, feature_window, prediction_horizon, train_interval, min_train_samples, confidence_threshold, anomaly_contamination, n_hmm_states, use_lightgbm/xgboost — comprehensive
+- **`deque(maxlen=500)`**: Bounded returns — memory-safe
+
+Excellent ML ensemble with 3 libraries, HMM regime, IsolationForest, walk-forward, and graceful fallback. ✅
+
+### 8.592 ml_ensemble: HMMRegimeDetector not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/strategies/ml_ensemble.py:57-68`
+
+```python
+class HMMRegimeDetector:
+    self.current_state: int = 0
+    self._returns: deque[float] = deque(maxlen=500)
+    self._fitted = False
+```
+
+`HMMRegimeDetector` has mutable state (`current_state`, `_returns`, `_fitted`) with no lock. If `update()` is called from multiple async tasks, race condition.
+
+**Фикс:** Document single-task requirement or use asyncio.Lock.
+
+### 8.593 ai-signal-bot/src/technical_analysis/indicators.py: Technical indicators — ✅ Good
+
+**Файл:** `ai-signal-bot/src/technical_analysis/indicators.py` (333 lines)
+
+- **8 indicators**: SMA, EMA, RSI, MACD, Bollinger, ATR, ADX, VWAP — comprehensive
+- **NumPy vectorized**: With scalar fallback — resilient
+- **NaN-padded**: Insufficient data returns NaN — correct
+- **Dual candle format**: `isinstance(c, dict)` check — flexible
+- **Pure functions**: No side effects — clean
+- **`_HAS_NUMPY` flag**: Optional dependency — correct
+
+Good technical indicators with 8 indicators, NumPy vectorization, scalar fallback, and dual candle format. ✅
+
+### 8.594 indicators: EMA not fully vectorized — Low
+
+**Файл:** `ai-signal-bot/src/technical_analysis/indicators.py:60-61`
+
+```python
+for i in range(period, n):
+    result[i] = arr[i] * mult + result[i - 1] * (1 - mult)
+```
+
+EMA has a Python loop even with NumPy. This is inherently sequential (each value depends on previous), but could use `np.convolve` or `scipy.signal.lfilter` for full vectorization.
+
+**Фикс:** Use `scipy.signal.lfilter` for fully vectorized EMA, or accept the loop (it's fast enough for 200-element arrays).
+
+### 8.595 ai-signal-bot/src/risk/risk_manager.py: Risk manager (Python) — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/risk_manager.py` (262 lines)
+
+- **4 risk features**: Trailing stop, breakeven move, partial TP, max hold time — comprehensive
+- **ATR-based trailing**: Adaptive SL distance — advanced
+- **PositionRiskState dataclass**: 12 fields tracking position state — comprehensive
+- **Configurable**: All params via RiskConfig — flexible
+- **`init_position()`**: Initialize tracking state — correct
+- **`update_stop_loss()`**: Main update logic — correct
+
+Good risk manager with 4 features, ATR-based trailing, and 12-field position state. ✅
+
+### 8.596 risk_manager: not thread-safe — Medium
+
+**Файл:** `ai-signal-bot/src/risk/risk_manager.py:66-74`
+
+```python
+class RiskManager:
+    def __init__(self, config: RiskConfig | None = None):
+        self.config = config or RiskConfig()
+```
+
+`RiskManager` has no lock. If `update_stop_loss()` is called from multiple async tasks for different positions, the state is per-position (stored in `PositionRiskState`), so concurrent calls for different positions are safe. But if the same position is updated concurrently (e.g., from two candle updates), race condition on `peak_price`, `trough_price`, `current_stop_loss`.
+
+**Фикс:** Use `asyncio.Lock` per position, or document single-task requirement.
+
+### 8.597 risk_manager: no validation on config params — Low
+
+**Файл:** `ai-signal-bot/src/risk/risk_manager.py:28-46`
+
+```python
+trailing_distance_pct: float = 2.0
+breakeven_trigger_pct: float = 1.0
+partial_tp_pct: float = 50.0
+```
+
+No validation that params are positive, within reasonable ranges. `trailing_distance_pct = -5` would move SL in the wrong direction.
+
+**Фикс:** Add `__post_init__` validation on RiskConfig.

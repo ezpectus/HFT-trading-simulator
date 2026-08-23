@@ -1123,3 +1123,22 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R566 | config_parser: expand_env missing var silent | `config_parser.h:27` | Low | Missing env var → empty string, no warning. Log for credentials |
 | R567 | hft-trade-bot/core/config_validate.h | `config_validate.h` | ✅ Good | 12 checks (6 risk + 6 trading), recommended values, ws:// validation |
 | R568 | config_validate: warnings only no hard fail | `config_validate.h:11` | Low | All failures are warn(). Critical params should error and abort |
+| R569 | hft-trade-bot/core/bot_loop.cpp | `bot_loop.cpp` | ✅ Good | 8 functions (SL/TP, arb, AI signals, V2/V1, SHM poll, shutdown), fetch_add balance |
+| R570 | bot_loop: arb atomic set without lock | `bot_loop.cpp:34` | Low | has_arb_opportunity set outside lock. Move inside lock or use CAS |
+| R571 | bot_loop: hardcoded 0.5 max arb qty | `bot_loop.cpp:37` | Low | Max arb qty hardcoded. Add max_arb_qty to Config |
+| R572 | hft-trade-bot/core/bot_setup.cpp | `bot_setup.cpp` | ✅ Excellent | SIGINT+SIGTERM handlers, thread pinning, log banner, 15-param risk init, prod/sim split |
+| R573 | CORRECTION: R518 false alarm | `bot_setup.cpp:62` | Info | SIGTERM handler EXISTS in bot_setup.cpp. R518 downgraded from Medium to Info |
+| R574 | bot_setup: signal_handler only sets flag | `bot_setup.cpp:13` | Low | No logging in handler. Use async-signal-safe write() or flag+log in main |
+| R575 | ai-signal-bot/strategies/strategies.py | `strategies.py` | ✅ Good | 3 strategies (Trend/MeanRev/FFT), EnsembleVoter, NaN guards, dual candle format |
+| R576 | strategies.py: noqa E402 on imports | `strategies.py:15` | Low | Imports after logger. Move to top of file |
+| R577 | ai-signal-bot/strategies/statistical_arbitrage.py | `statistical_arbitrage.py` | ✅ Excellent | OLS+ADF+half-life+Kalman+z-score+correlation, deque maxlen, LinAlgError fallback |
+| R578 | ai-signal-bot/strategies/market_making.py | `market_making.py` | ✅ Excellent | Avellaneda-Stoikov, inventory skew, adverse selection, spread optimization, 10 params |
+| R579 | market_making: inventory not thread-safe | `market_making.py:59` | Low | Plain float, no lock. Document single-task or use asyncio.Lock |
+| R580 | ai-signal-bot/strategies/sentiment.py | `sentiment.py` | ✅ Good | 10 event types, sentiment/volatility maps, pre/post windows, decay 0.95/s |
+| R581 | ai-signal-bot/strategies/ml_ensemble.py | `ml_ensemble.py` | ✅ Excellent | 3 ML libs (sklearn/LGB/XGB), HMM regime, IsolationForest, walk-forward, graceful fallback |
+| R582 | ml_ensemble: HMMRegimeDetector not thread-safe | `ml_ensemble.py:57` | Low | Mutable state no lock. Document single-task or use asyncio.Lock |
+| R583 | ai-signal-bot/technical_analysis/indicators.py | `indicators.py` | ✅ Good | 8 indicators, NumPy vectorized+scalar fallback, NaN-padded, dual candle, pure functions |
+| R584 | indicators: EMA not fully vectorized | `indicators.py:60` | Low | Python loop for EMA. Use scipy.signal.lfilter or accept loop |
+| R585 | ai-signal-bot/risk/risk_manager.py | `risk_manager.py` | ✅ Good | 4 features (trailing/breakeven/partial TP/max hold), ATR-based, 12-field state |
+| R586 | risk_manager: not thread-safe | `risk_manager.py:66` | Medium | Same position concurrent update races on peak/trough/SL. Use asyncio.Lock per position |
+| R587 | risk_manager: no config validation | `risk_manager.py:28` | Low | No __post_init__ validation. Negative trailing_distance moves SL wrong way |
