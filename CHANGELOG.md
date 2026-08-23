@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AC: Tracer ring buffer + PropTypes + symbol sync docs)
+
+### Added
+- `hft-trade-bot/src/tracing/tracer.h`: `MAX_SPANS=10000` constant, `export_spans()`, `clear_spans()`, `span_count()` methods
+- `hft-trade-bot/src/tracing/tracer.cpp`: Ring buffer cap on all 4 `push_back` sites — drops oldest span when limit exceeded
+- `hft-trade-bot/src/tracing/tracer.cpp`: `export_spans()` implementation — logs span count + clears buffer
+- `web-ui/src/App.jsx`: PropTypes validation for `TabButton` component
+- `web-ui/package.json`: `prop-types` dependency added
+
+### Changed
+- `hft-trade-bot/src/tracing/tracer.h`: `tracer_mutex_` → `mutable` (for const `span_count()`)
+- `web-ui/src/stores/useUIStore.js`: Added sync documentation for SYMBOLS duplication (Vite can't import YAML)
+
+### Fixed
+- CODE_AUDIT §8.19 — No PropTypes → TabButton now has PropTypes validation
+- CODE_AUDIT §8.219 — 50 symbols duplicated → documented sync requirement (unavoidable: Vite can't import YAML)
+- CODE_AUDIT §8.1085 — tracer spans_ unbounded → MAX_SPANS=10000 ring buffer cap
+- CODE_AUDIT §8.1087 — tracer no span export → export_spans() method added
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AB: App.jsx notification hook + config.h localhost + stale audit items)
 
 ### Added
