@@ -121,7 +121,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~aiohttp session per alert~~ [FIXED] | Shared _get_session() — fixed in Пачка O | CODE_AUDIT §8.8 |
 | ~~Top-level ErrorBoundary~~ [FIXED] | TopErrorBoundary.jsx created — wraps App in main.jsx, catches root crashes, shows reload button instead of white screen | CODE_AUDIT §8.98 |
 | ~~Missing DB indexes~~ [FIXED] | idx_signals_symbol, idx_trades_symbol, idx_trades_status, idx_equity_curve_ts all exist in _init_db() | CODE_AUDIT §8.16 |
-| C++ `catch(...)` kill switch | Safety-critical silent failure | CODE_AUDIT §8.17 |
+| ~~C++ `catch(...)` kill switch~~ [FIXED] | Replaced with catch(const std::exception&)+ spdlog::error in kill_switch.h init_shm. Also added logging to shm_fill_producer.h init | CODE_AUDIT §8.17 |
 | ~~No PropTypes/TypeScript~~ [FIXED] | TabButton now has PropTypes validation (active, onClick, icon, children, testId). prop-types added to package.json | CODE_AUDIT §8.19 |
 | ~~No log rotation~~ [FIXED] | Replaced FileHandler with RotatingFileHandler (10MB max, 5 backups) in observability/logging.py | CODE_AUDIT §8.22 |
 | ~~Float precision~~ [FIXED] | Added round(..., 10) to all PnL calculations in pnl_calculator.py — prevents IEEE 754 error accumulation in P&L tracking | CODE_AUDIT §8.23 |
@@ -193,11 +193,11 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ 3 signal engines (v1/v2/v3) | V2 may be dead code, ~200 lines reducible | CODE_AUDIT §8.176 |
 | ~~migrate.py: narrow exception~~ [FIXED] | Widened to catch Exception — handles asyncpg.PostgresError and all DB errors | CODE_AUDIT §8.174 |
 | ~~SHM stale data on restart~~ [FIXED] | shm_market_data_writer.py now calls _mm_barrier() after seq+1 and before seq+2 — ensures correct memory ordering on ARM for cross-process SHM visibility | CODE_AUDIT §8.177, §8.713, §8.1191 |
-| C++ string_to_side no validation | Any non-"BUY" string silently → SELL | CODE_AUDIT §8.186 |
+| ~~C++ string_to_side no validation~~ [FIXED] | Now throws std::invalid_argument on unknown side — no silent SELL default | CODE_AUDIT §8.186 |
 | web-ui: 50+ components, many unused | Math viz panels may be dead code, ~1000+ lines reducible | CODE_AUDIT §8.188 |
 | ~~Helm values.yaml: hardcoded passwords~~ [FIXED] | postgres.password, grafana.adminPassword set to empty — Helm fails if not set via --set | CODE_AUDIT §8.193 |
 | ~~Helm values.yaml: VITE_WS localhost~~ [FIXED] | wsExchange/wsSignals set to empty — web-ui.yaml template fails if not set | CODE_AUDIT §8.195 |
-| C++ signal.h: NEUTRAL→BUY | side() silently returns BUY for NEUTRAL, no enforcement | CODE_AUDIT §8.192 |
+| ~~C++ signal.h: NEUTRAL→BUY~~ [FIXED] | Signal::side() now throws std::logic_error on NEUTRAL — callers must check is_actionable() first. order_executor.h: added is_actionable() guard | CODE_AUDIT §8.192 |
 | C++ 3 exchange adapters: code duplication | 470 lines, ~200 duplicated. Move to ExchangeBase | CODE_AUDIT §8.207 |
 | C++ BinanceAdapter: nested Spinlock | price_lock_ → depth_lock_ nesting, fragile lock ordering | CODE_AUDIT §8.203 |
 | C++ BinanceAdapter: can_send_order TOCTOU | fetch_add always increments even on reject | CODE_AUDIT §8.204 |
@@ -260,7 +260,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~helm: hardcoded localhost for web-ui WS~~ [FIXED] | Same as §8.195 — wsExchange/wsSignals empty in values.yaml, template fails if not set | CODE_AUDIT §8.387 |
 | ~~helm: Postgres password in plaintext~~ [FIXED] | Same as §8.69 — password empty in values.yaml, postgres-secret.yaml fails if not set | CODE_AUDIT §8.388 |
 | ~~ci.yml: no security scanning~~ [FIXED] | npm audit now fails CI on high/critical. Bandit + CodeQL already present. pip-audit is future enhancement | CODE_AUDIT §8.390 |
-| ci.yml: no integration tests | Unit tests only. No docker-compose integration test in CI | CODE_AUDIT §8.391 |
+| ~~ci.yml: no integration tests~~ [N/A] | docker-smoke job already exists (ci.yml:362-384) — docker compose up + health checks for exchange-sim, ai-signal-bot, web-ui | CODE_AUDIT §8.391 |
 | ~~terraform: db_password default in plaintext~~ [FIXED] | Same as §8.162 — default removed from dev/main.tf, password is required | CODE_AUDIT §8.401 |
 | ~~terraform: no prod environment~~ [N/A] | terraform/environments/prod/main.tf already exists (100 lines, prod-grade: db.r6g.large, c5.2xlarge, 4 nodes) — audit item is stale | CODE_AUDIT §8.402 |
 | ~~docker-compose.prod: ports exposed to host~~ [FIXED] | Postgres, Redis, Prometheus now use `expose` instead of `ports` — accessible only within Docker networks, not from host | CODE_AUDIT §8.416 |
