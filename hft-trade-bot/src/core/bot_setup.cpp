@@ -17,6 +17,7 @@ static void init_shm_signal_consumer(BotContext& ctx);
 static void init_shm_market_data(BotContext& ctx);
 
 bool is_running() { return g_running.load(); }
+void set_running(bool v) { g_running.store(v); }
 
 static void log_banner(const Config& c) {
     spdlog::info("=" + std::string(60, '='));

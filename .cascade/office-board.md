@@ -11,9 +11,10 @@
 
 ### [07] Refactoring Agent — CODE_AUDIT full status sync (§1-§4 + §8.xxxx)
 **Задача:** Update all CODE_AUDIT sections with [FIXED]/[N/A] tags based on work done in previous cycles.
-  §1-§4: 20 sections updated. §8.xxxx: 254 sections tagged (248 [FIXED] + 6 [N/A]).
-  Total: 1431 §8 sections — 248 [FIXED], 6 [N/A], 590 ✅ Good, 587 untagged (C++/Rust/Helm/Docker/web-ui).
-**Статус:** ✅ Done — All Python-addressable audit items now tagged. Пачка BB.
+  §1-§4: 20 sections updated. §8.xxxx: 409 sections tagged (266 [FIXED] + 143 [N/A]).
+  Total: 1431 §8 sections — 266 [FIXED], 143 [N/A], 590 ✅ Good, 432 untagged (C++/Rust/Helm/Docker/web-ui).
+  Python-addressable untagged: 0. All Python items now have final status.
+**Статус:** ✅ Done — Пачка BB + CC.
 
 ### [06] Refactoring Agent — Health 3× + Metrics 2× audit
 **Задача:** Deprecate `src/communication/health_check.py` (dead code, zero imports).
