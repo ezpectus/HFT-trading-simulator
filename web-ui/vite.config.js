@@ -44,9 +44,21 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
+    headers: {
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: blob:",
+        "connect-src 'self' ws: wss: http: https:",
+        "worker-src 'self' blob:",
+      ].join('; '),
+    },
   },
   esbuild: {
     target: 'es2020',
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
   },
   resolve: {
     alias: {

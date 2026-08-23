@@ -89,7 +89,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Helm probes отсутствуют | K8s pod не рестартует при hang | CODE_AUDIT §8.14 |
 | Docker healthchecks TCP | TCP проверяет порт, не готовность | CODE_AUDIT §8.9 |
 | ~~aiohttp session per alert~~ [FIXED] | Shared _get_session() — fixed in Пачка O | CODE_AUDIT §8.8 |
-| Top-level ErrorBoundary | Падение корневого компонента = белый экран | CODE_AUDIT §8.10 |
+| ~~Top-level ErrorBoundary~~ [FIXED] | TopErrorBoundary.jsx created — wraps App in main.jsx, catches root crashes, shows reload button instead of white screen | CODE_AUDIT §8.98 |
 | ~~Missing DB indexes~~ [FIXED] | idx_signals_symbol, idx_trades_symbol, idx_trades_status, idx_equity_curve_ts all exist in _init_db() | CODE_AUDIT §8.16 |
 | C++ `catch(...)` kill switch | Safety-critical silent failure | CODE_AUDIT §8.17 |
 | No PropTypes/TypeScript | Нет runtime prop validation в web-ui | CODE_AUDIT §8.19 |
@@ -134,10 +134,10 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | deploy.sh: no health check exit | Reports success even if all services down | CODE_AUDIT §8.89 |
 | deploy.sh: rm -rf before cp | Rollback loses data if cp fails | CODE_AUDIT §8.90 |
 | deploy.sh: no backup retention | 100 deploys = 100 backup copies, no cleanup | CODE_AUDIT §8.92 |
-| ESLint: PropTypes + unused-vars off | No prop type checking, dead vars accumulate | CODE_AUDIT §8.93 |
-| Vite: no CSP headers | XSS easier if served directly | CODE_AUDIT §8.94 |
+| ~~ESLint: PropTypes + unused-vars off~~ [FIXED] | react/prop-types set to 'warn', no-unused-vars set to 'warn' with _ prefix ignore — dead vars now flagged | CODE_AUDIT §8.93 |
+| ~~Vite: no CSP headers~~ [FIXED] | CSP headers added to vite.config.js server config — default-src 'self', script-src with unsafe-inline/eval for Vite, connect-src ws/wss for WebSocket | CODE_AUDIT §8.94 |
 | hft-trade-bot config: hardcoded localhost | ws://localhost won't work in Docker/K8s | CODE_AUDIT §8.96 |
-| ErrorBoundary: no top-level | App crash = white screen, no recovery | CODE_AUDIT §8.98 |
+| ~~ErrorBoundary: no top-level~~ [FIXED] | TopErrorBoundary.jsx wraps App in main.jsx — catches root crashes, shows reload button | CODE_AUDIT §8.98 |
 | ~~Code reduction ~710 lines~~ [FIXED] | 510 ai-signal-bot + 200 exchange_simulator — all items addressed | CODE_AUDIT §8.100 |
 | ~~SECURITY.md: inaccurate WS claim~~ [FIXED] | WS input schema validation added in Пачка EE — claim is now accurate | CODE_AUDIT §8.107 |
 | ~~Code reduction ~800 lines total~~ [FIXED] | CircuitBreaker×3 + tracing + RateLimiter + compute_returns + exchange_sim — all addressed | CODE_AUDIT §8.109 |
@@ -188,7 +188,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | hft-trade-bot config: 50 symbols 3x | 50 symbols in config.yaml + shared_config + useUIStore. 3 copies | CODE_AUDIT §8.247 |
 | hft-trade-bot config: localhost WS | ws://localhost:8765 and :8766, won't work in prod | CODE_AUDIT §8.248 |
 | web-ui registry: 200+ math panels | Research-grade math (SchrodingerBridge, FokkerPlanck). Feature flag | CODE_AUDIT §8.252 |
-| web-ui vite.config: no esbuild.drop | console.log not stripped in prod build | CODE_AUDIT §8.246 |
+| ~~web-ui vite.config: no esbuild.drop~~ [FIXED] | Added esbuild.drop: ['console', 'debugger'] in production builds — console.log stripped from prod bundle | CODE_AUDIT §8.246 |
 | web-ui e2e: no WS tests | No WebSocket, real-time, order flow e2e tests | CODE_AUDIT §8.254 |
 | ~~ai-signal-bot db.py: new connection per op~~ [FIXED] | Uses persistent _get_conn() with WAL set once — verified in Пачка AA | CODE_AUDIT §8.261 |
 | ~~ai-signal-bot db.py: no equity_curve index~~ [FIXED] | Added idx_equity_curve_ts on timestamp — range queries use index instead of full scan | CODE_AUDIT §8.263 |

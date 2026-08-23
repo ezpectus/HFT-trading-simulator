@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка TT: web-ui ErrorBoundary + CSP + ESLint + esbuild.drop)
+
+### Added
+- `web-ui/src/components/TopErrorBoundary.jsx`: New top-level error boundary — wraps App in main.jsx, catches root crashes, shows reload button instead of white screen
+
+### Changed
+- `web-ui/vite.config.js`: Added CSP headers to dev server + `esbuild.drop: ['console', 'debugger']` in production builds
+- `web-ui/eslint.config.js`: `react/prop-types` set to `'warn'`, `no-unused-vars` set to `'warn'` with `_` prefix ignore — dead vars now flagged
+- `web-ui/src/main.jsx`: App wrapped in `TopErrorBoundary`
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка SS: SHM memory barrier + env var API keys + ADL improvement)
 
 ### Changed

@@ -20,11 +20,11 @@ export default [
     },
     plugins: { react },
     rules: {
-      'react/prop-types': 'off',
+      'react/prop-types': 'warn',
       'react/react-in-jsx-scope': 'off',
       'react/jsx-uses-vars': 'error',
       'react/jsx-uses-react': 'error',
-      'no-unused-vars': 'off',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-empty': ['error', { allowEmptyCatch: true }],
     },
