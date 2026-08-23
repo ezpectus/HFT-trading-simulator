@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AU: exchange_simulator Low items)
+
+### Fixed
+- `exchange_simulator/exchange_simulator/liquidation_engine_v2.py`: f-string logging → `%s`-style formatting (§8.272)
+- `exchange_simulator/exchange_simulator/funding_rate.py`: f-string logging → `%s`-style formatting (§8.277)
+- `exchange_simulator/audit_logger.py`: f-string logging → `%s`-style formatting (§8.318)
+- `exchange_simulator/tracing.py`: Added `shutdown()` method to flush pending spans on exit (§8.312)
+- `exchange_simulator/tracing.py`: `JAEGER_HOST` env var support instead of hardcoded `localhost` (§8.314)
+- `exchange_simulator/health.py`: Health check now iterates all exchanges instead of only first (§8.310)
+- `exchange_simulator/health.py`: `getattr` for safe private attribute access in health + metrics endpoints (§8.309)
+
+### Changed
+- CODE_AUDIT §8.271 — seed already configurable → [FIXED]
+- CODE_AUDIT §8.285 — clean entry point → [N/A]
+- CODE_AUDIT §8.319 — ws_prometheus manual format → [N/A] (different purpose from prometheus_client)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AT: Communication + data collection fixes)
 
 ### Fixed

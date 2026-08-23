@@ -45,13 +45,13 @@ spec:
               name: http
           livenessProbe:
             httpGet:
-              path: /
+              path: /health
               port: {{ .Values.webUi.port }}
             initialDelaySeconds: 5
             periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: /
+              path: /health
               port: {{ .Values.webUi.port }}
             initialDelaySeconds: 3
             periodSeconds: 10

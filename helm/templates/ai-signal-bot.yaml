@@ -75,13 +75,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: {{ .Values.aiSignalBot.ports.ws }}
+              port: {{ .Values.aiSignalBot.ports.metrics }}
             initialDelaySeconds: 15
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /health
-              port: {{ .Values.aiSignalBot.ports.ws }}
+              port: {{ .Values.aiSignalBot.ports.metrics }}
             initialDelaySeconds: 10
             periodSeconds: 10
           resources:

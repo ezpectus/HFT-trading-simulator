@@ -48,7 +48,7 @@ class AuditLogger:
         if enable_file_logging:
             self.log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"AuditLogger initialized: max_entries={max_memory_entries}, file={log_file_path}")
+        logger.info("AuditLogger initialized: max_entries=%d, file=%s", max_memory_entries, log_file_path)
 
     def log(
         self,

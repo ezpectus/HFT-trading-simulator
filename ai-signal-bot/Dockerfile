@@ -39,6 +39,6 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8766 9090
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8766/health', timeout=5)" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9090/health', timeout=5)" || exit 1
 
-CMD ["python", "run.py"]
+CMD ["python", "run.py", "--metrics"]

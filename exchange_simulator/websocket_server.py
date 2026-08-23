@@ -181,13 +181,22 @@ class ExchangeWebSocketServer(
                 content_type="text/plain; version=0.0.4",
             )
 
+        async def health_handler(request):
+            status = "healthy" if self._running else "starting"
+            return web.json_response({
+                "status": status,
+                "clients": len(self.clients),
+                "trading_active": self._trading_active,
+            })
+
         app = web.Application()
         app.router.add_get("/metrics", metrics_handler)
+        app.router.add_get("/health", health_handler)
         runner = web.AppRunner(app)
         await runner.setup()
         site = web.TCPSite(runner, self.host, port)
         await site.start()
-        logger.info(f"Prometheus metrics endpoint on http://{self.host}:{port}/metrics")
+        logger.info(f"Health/metrics endpoints on http://{self.host}:{port}/health and /metrics")
         await asyncio.Future()  # Run forever
 
     async def stop(self) -> None:

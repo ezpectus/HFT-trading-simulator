@@ -55,13 +55,15 @@ spec:
           resources:
             {{- toYaml .Values.exchangeSimulator.resources | nindent 12 }}
           livenessProbe:
-            tcpSocket:
-              port: ws
+            httpGet:
+              path: /health
+              port: metrics
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
-            tcpSocket:
-              port: ws
+            httpGet:
+              path: /health
+              port: metrics
             initialDelaySeconds: 5
             periodSeconds: 10
 ---

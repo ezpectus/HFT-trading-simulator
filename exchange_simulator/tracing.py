@@ -3,6 +3,7 @@
 # Implements distributed tracing with OpenTelemetry for key operations
 # including trace context propagation and span annotations.
 
+import os
 import time
 from typing import Any
 
@@ -17,17 +18,21 @@ class ExchangeSimulatorTracer:
     """OpenTelemetry tracer for exchange simulator."""
 
     def __init__(self, service_name: str = "exchange-simulator",
-                 jaeger_host: str = "localhost",
+                 jaeger_host: str | None = None,
                  jaeger_port: int = 6831):
         """
         Initialize tracer.
 
         Args:
             service_name: Service name for tracing
-            jaeger_host: Jaeger agent host
+            jaeger_host: Jaeger agent host (env: JAEGER_HOST, default: localhost)
             jaeger_port: Jaeger agent port
         """
         self.service_name = service_name
+        self._provider = None
+
+        # Resolve Jaeger host from env or parameter
+        jaeger_host = jaeger_host or os.getenv("JAEGER_HOST", "localhost")
 
         # Set up tracing
         provider = TracerProvider()
@@ -40,11 +45,18 @@ class ExchangeSimulatorTracer:
 
         provider.add_span_processor(BatchSpanProcessor(jaeger_exporter))
         trace.set_tracer_provider(provider)
+        self._provider = provider
 
         # Configure propagator
         propagate.set_global_textmap(TraceContextTextMapPropagator())
 
         self.tracer = trace.get_tracer(__name__)
+
+    def shutdown(self) -> None:
+        """Flush pending spans and shut down the tracer provider."""
+        if self._provider is not None:
+            self._provider.shutdown()
+            self._provider = None
 
     def trace_order_processing(self, symbol: str, side: str, quantity: float):
         """
@@ -171,7 +183,7 @@ def get_tracer() -> ExchangeSimulatorTracer:
 
 
 def init_tracer(service_name: str = "exchange-simulator",
-                jaeger_host: str = "localhost",
+                jaeger_host: str | None = None,
                 jaeger_port: int = 6831) -> ExchangeSimulatorTracer:
     """
     Initialize the tracer.

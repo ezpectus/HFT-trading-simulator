@@ -32,6 +32,6 @@ USER nginx
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=5s \
-    CMD wget -q --spider http://localhost:3000/ || exit 1
+    CMD wget -q --spider http://localhost:3000/health || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

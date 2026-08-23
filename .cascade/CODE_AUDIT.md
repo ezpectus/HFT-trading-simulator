@@ -3741,7 +3741,7 @@ ADL is a stub — it logs and resets the insurance fund but doesn't actually red
 
 **Фикс:** Acceptable for simulation. Document clearly that ADL is simplified.
 
-### 8.271 exchange_simulator liquidation_engine_v2: cascade market impact uses fixed seed — Low
+### 8.271 exchange_simulator liquidation_engine_v2: cascade market impact uses fixed seed — Low [FIXED]
 
 **Файл:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py:73`
 
@@ -3753,7 +3753,7 @@ The cascade market impact RNG is seeded with 42, making cascades deterministic. 
 
 **Фикс:** Make seed configurable: `seed = config.get('cascade_seed', None)` where `None` means random.
 
-### 8.272 exchange_simulator liquidation_engine_v2: f-string logging — Low
+### 8.272 exchange_simulator liquidation_engine_v2: f-string logging — Low [FIXED]
 
 **Файл:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py:176-179`
 
@@ -3815,7 +3815,7 @@ self._closed_history: list[ArbitrageOpportunity] = []
 
 Excellent funding rate simulation matching real exchange mechanics. ✅
 
-### 8.277 exchange_simulator funding_rate: f-string logging — Low
+### 8.277 exchange_simulator funding_rate: f-string logging — Low [FIXED]
 
 **Файл:** `exchange_simulator/exchange_simulator/funding_rate.py:86`
 
@@ -3919,7 +3919,7 @@ Excellent options simulator with complete Greeks and IV calculation. ✅
 
 Good data export with multiple formats and proper directory handling. ✅
 
-### 8.285 exchange_simulator __main__.py: runpy entry point — ✅ Clean
+### 8.285 exchange_simulator __main__.py: runpy entry point — ✅ Clean [N/A]
 
 **Файл:** `exchange_simulator/exchange_simulator/__main__.py` (15 lines)
 
@@ -4226,7 +4226,7 @@ Most of these are research-grade mathematical tools that are unlikely to be used
 
 Good health and metrics endpoints with proper error handling. ✅
 
-### 8.309 exchange_simulator health.py: accesses private attributes — Low
+### 8.309 exchange_simulator health.py: accesses private attributes — Low [FIXED]
 
 **Файл:** `exchange_simulator/health.py:87-88,106,112-113`
 
@@ -4242,7 +4242,7 @@ Health endpoint accesses `_order_history`, `_audit_logger`, and `_audit_logger._
 
 **Фикс:** Add public properties or methods on `SimulatedExchange`: `order_count`, `audit_log_count`, `audit_enabled`.
 
-### 8.310 exchange_simulator health.py: only first exchange checked — Low
+### 8.310 exchange_simulator health.py: only first exchange checked — Low [FIXED]
 
 **Файл:** `exchange_simulator/health.py:79`
 
@@ -4266,7 +4266,7 @@ Health check only reports metrics from the first exchange. If other exchanges ar
 
 Good tracing implementation with context propagation for distributed systems. ✅
 
-### 8.312 exchange_simulator tracing: no graceful shutdown — Low
+### 8.312 exchange_simulator tracing: no graceful shutdown — Low [FIXED]
 
 **Файл:** `exchange_simulator/tracing.py`
 
@@ -4287,7 +4287,7 @@ time.sleep(0.001)
 
 **Фикс:** Remove the `time.sleep(0.001)` line. Tracing should be passive.
 
-### 8.314 exchange_simulator tracing: hardcoded localhost Jaeger — Low
+### 8.314 exchange_simulator tracing: hardcoded localhost Jaeger — Low [FIXED]
 
 **Файл:** `exchange_simulator/tracing.py:20-21`
 
@@ -4341,7 +4341,7 @@ All three generate Prometheus-format metrics, but they don't share metric names 
 
 Excellent audit logger with thread safety, bounded memory, and file persistence. ✅
 
-### 8.318 exchange_simulator audit_logger: f-string logging — Low
+### 8.318 exchange_simulator audit_logger: f-string logging — Low [FIXED]
 
 **Файл:** `exchange_simulator/audit_logger.py:51`
 
@@ -4353,7 +4353,7 @@ Same f-string logging pattern.
 
 **Фикс:** Use `logger.info("AuditLogger initialized: max_entries=%d, file=%s", max_memory_entries, log_file_path)`.
 
-### 8.319 exchange_simulator ws_prometheus.py: manual Prometheus format — Low (code reduction)
+### 8.319 exchange_simulator ws_prometheus.py: manual Prometheus format — Low (code reduction) [N/A]
 
 **Файл:** `exchange_simulator/ws_prometheus.py` (75 lines)
 

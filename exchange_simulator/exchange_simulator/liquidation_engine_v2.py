@@ -183,9 +183,10 @@ class LiquidationEngineV2:
                          liq_type: LiquidationType, loss: float) -> None:
         """Log liquidation event."""
         logger.warning(
-            f"[LiqEngine] {pos.symbol} {pos.side} liquidated: "
-            f"qty={qty_to_close:.4f} type={liq_type.name} loss={loss:.2f} "
-            f"remaining={pos.qty:.4f} insurance_fund={self.insurance_fund:.2f}"
+            "[LiqEngine] %s %s liquidated: qty=%.4f type=%s loss=%.2f "
+            "remaining=%.4f insurance_fund=%.2f",
+            pos.symbol, pos.side, qty_to_close, liq_type.name, loss,
+            pos.qty, self.insurance_fund,
         )
 
     def process_cascade(self, positions: list[Position], mark_price: float,

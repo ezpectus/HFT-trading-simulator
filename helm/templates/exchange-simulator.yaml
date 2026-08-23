@@ -48,13 +48,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: {{ .Values.exchangeSimulator.ports.ws }}
+              port: {{ .Values.exchangeSimulator.ports.metrics }}
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /health
-              port: {{ .Values.exchangeSimulator.ports.ws }}
+              port: {{ .Values.exchangeSimulator.ports.metrics }}
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:

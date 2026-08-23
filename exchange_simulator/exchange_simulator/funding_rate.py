@@ -84,7 +84,7 @@ class FundingRateSimulator:
             index_price=index_price,
         )
         self.history.append(event)
-        logger.info(f"[FundingRate] {self.symbol} funding={rate:.6f} ({rate*100:.4f}%) at {funding_hour}:00 UTC")
+        logger.info("[FundingRate] %s funding=%.6f (%.4f%%) at %d:00 UTC", self.symbol, rate, rate * 100, funding_hour)
         return event
 
     def compute_funding_payment(self, position_qty: float, funding_rate: float,

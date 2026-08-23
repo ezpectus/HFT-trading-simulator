@@ -68,13 +68,15 @@ spec:
             - name: logs
               mountPath: /app/logs
           livenessProbe:
-            tcpSocket:
-              port: ws
+            httpGet:
+              path: /health
+              port: metrics
             initialDelaySeconds: 15
             periodSeconds: 30
           readinessProbe:
-            tcpSocket:
-              port: ws
+            httpGet:
+              path: /health
+              port: metrics
             initialDelaySeconds: 10
             periodSeconds: 10
       volumes:

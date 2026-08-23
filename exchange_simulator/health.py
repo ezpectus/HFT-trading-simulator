@@ -76,7 +76,23 @@ async def health_check():
     """Health check endpoint."""
     try:
         exchanges, market, start_time = _init()
-        first_ex = next(iter(exchanges.values()))
+
+        exchange_statuses = []
+        total_orders = 0
+        any_audit_enabled = False
+        for ex_id, ex in exchanges.items():
+            order_history = getattr(ex, "_order_history", [])
+            audit_logger = getattr(ex, "_audit_logger", None)
+            order_count = len(order_history)
+            total_orders += order_count
+            audit_enabled = audit_logger is not None
+            if audit_enabled:
+                any_audit_enabled = True
+            exchange_statuses.append({
+                "id": ex_id,
+                "orders": order_count,
+                "audit_enabled": audit_enabled,
+            })
 
         return JSONResponse({
             "status": "healthy",
@@ -84,8 +100,9 @@ async def health_check():
             "uptime": time.time() - start_time,
             "symbols": len(market.symbols),
             "exchanges": len(exchanges),
-            "orders_submitted": len(first_ex._order_history),
-            "audit_logging_enabled": first_ex._audit_logger is not None,
+            "orders_submitted": total_orders,
+            "audit_logging_enabled": any_audit_enabled,
+            "exchange_details": exchange_statuses,
         })
     except (RuntimeError, OSError, KeyError, ValueError, TypeError, AttributeError):
         logger.exception("Health check failed")
@@ -110,14 +127,16 @@ async def metrics():
 
         lines = []
         for ex_id, ex in exchanges.items():
-            history = ex._order_history
+            history = getattr(ex, "_order_history", [])
             filled = sum(1 for o in history if o.status == OrderStatus.FILLED)
             rejected = sum(1 for o in history if o.status == OrderStatus.REJECTED)
             lines.append(f'hft_orders_submitted_total{{exchange="{ex_id}"}} {len(history)}')
             lines.append(f'hft_orders_filled_total{{exchange="{ex_id}"}} {filled}')
             lines.append(f'hft_orders_rejected_total{{exchange="{ex_id}"}} {rejected}')
-            if ex._audit_logger:
-                lines.append(f'hft_audit_log_entries_total{{exchange="{ex_id}"}} {len(ex._audit_logger._logs)}')
+            audit_logger = getattr(ex, "_audit_logger", None)
+            if audit_logger:
+                logs = getattr(audit_logger, "_logs", [])
+                lines.append(f'hft_audit_log_entries_total{{exchange="{ex_id}"}} {len(logs)}')
 
         lines.append(f'hft_symbols_count {len(market.symbols)}')
         lines.append(f'hft_exchanges_count {len(exchanges)}')
