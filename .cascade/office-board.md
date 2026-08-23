@@ -277,7 +277,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~order_executor: detached reconnect thread~~ [FIXED] | Same as §8.117 — detached thread replaced with member thread joined in disconnect() | CODE_AUDIT §8.452 |
 | ~~BinanceAdapter: nested spinlock acquisition~~ [FIXED] | Consolidated price_lock_ + depth_lock_ into single market_data_lock_ — no more nested spinlock acquisition | CODE_AUDIT §8.462 |
 | ~~Helm values: no Redis password~~ [FIXED] | redis.password added to values.yaml (empty by default) — redis.yaml template adds --requirepass + Secret with REDIS_URL, fails if not set | CODE_AUDIT §8.467 |
-| ~~metrics_collector: mutex on every metric op~~ [FIXED] | Replaced std::mutex with Spinlock — shorter critical sections, no kernel-level lock in HFT hot path | CODE_AUDIT §8.483 |
+| ~~metrics_collector: mutex on every metric op~~ [FIXED] | Split single metrics_mutex_ into per-type locks: counter_lock_, gauge_lock_, histogram_lock_ — counter/gauge/histogram ops no longer block each other. Prometheus export acquires each lock briefly in sequence | CODE_AUDIT §8.483 |
 | ~~circuit_breaker: not thread-safe~~ [FIXED] | Added asyncio.Lock to CircuitBreaker — allow_signal, record_success, record_failure, reset now async | CODE_AUDIT §8.499 |
 | ~~health_check: new ClientSession per call~~ [FIXED] | AlertSystem already uses shared _get_session() — no per-call session creation | CODE_AUDIT §8.501 |
 | ~~db.py: new connection per operation~~ [FIXED] | Already uses persistent _get_conn() with WAL set once | CODE_AUDIT §8.525, §8.628 |

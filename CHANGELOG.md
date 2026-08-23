@@ -71,6 +71,17 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AN: metrics_collector per-type locks + stale audit items)
+
+### Fixed
+- `hft-trade-bot/src/metrics/metrics_collector.h`: Split single `metrics_mutex_` into per-type locks: `counter_lock_`, `gauge_lock_`, `histogram_lock_`
+- `hft-trade-bot/src/metrics/metrics_collector.cpp`: Updated all increment/set/observe/export methods to use per-type locks — counter/gauge/histogram ops no longer block each other
+- CODE_AUDIT §8.483 — metrics_collector mutex on every metric op → per-type lock split
+- CODE_AUDIT §8.681 — config API keys in plaintext → already fixed (clear_secrets in Пачка AD)
+- CODE_AUDIT §8.987 — order_executor detached reconnect thread → already fixed (§8.117/§8.452)
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AM: OKX/Bybit adapter clear_secrets + spinlock consolidation)
 
 ### Fixed
