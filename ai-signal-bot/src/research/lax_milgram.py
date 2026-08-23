@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 20
 DEFAULT_LOOKBACK = 100
 DEFAULT_EPS = 0.01
@@ -46,11 +49,6 @@ class LaxResult:
         self.mean_r = mean_r
         self.std_r = std_r
         self.current_return = current_return
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def solve_variational(

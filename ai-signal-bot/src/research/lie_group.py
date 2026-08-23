@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 40
 DEFAULT_WINDOW_SIZE = 20
 DEFAULT_LOOKBACK = 100
@@ -43,11 +46,6 @@ class LieResult:
         self.noether = noether
         self.breaking_scores = breaking_scores
         self.returns = returns
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def _window_step(window_size: int) -> int:

@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 100
 DEFAULT_N_SYMBOLS = 3
 DEFAULT_MAX_BLOCK = 8
@@ -44,11 +47,6 @@ class KsResult:
         self.reason = reason
         self.symbols = symbols
         self.returns = returns
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def symbolize(returns: list[float], n_symbols: int = DEFAULT_N_SYMBOLS) -> list[int]:

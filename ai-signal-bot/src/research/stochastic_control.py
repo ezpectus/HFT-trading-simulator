@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 50
 DEFAULT_GAMMA = 2.0
 DEFAULT_RHO = 0.05
@@ -54,11 +57,6 @@ class StochasticControlResult:
         self.sharpe = sharpe
         self.current_wealth = current_wealth
         self.current_idx = current_idx
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def solve_hjb(

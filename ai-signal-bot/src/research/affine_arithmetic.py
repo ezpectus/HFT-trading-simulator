@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 
+
 DEFAULT_UNCERTAINTY_PCT = 0.5
 DEFAULT_LOOKBACK = 50
 DEFAULT_STRIKE_PCT = 1.0

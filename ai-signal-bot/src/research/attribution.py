@@ -39,7 +39,6 @@ from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class SectorAttribution:
     sector: str
@@ -51,7 +50,6 @@ class SectorAttribution:
     selection_effect: float
     interaction_effect: float
     total_effect: float
-
 
 @dataclass
 class AttributionResult:

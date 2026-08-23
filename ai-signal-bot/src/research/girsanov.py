@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 60
 DEFAULT_LOOKBACK = 150
 DEFAULT_WINDOW_SIZE = 30
@@ -45,11 +48,6 @@ class GirsanovResult:
         self.mean_r = mean_r
         self.sigma_est = sigma_est
         self.n = n
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def girsanov_signal(p_value: float) -> tuple[str, str]:

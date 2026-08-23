@@ -13,12 +13,12 @@ from src.research.almgren_chriss import (
     efficient_frontier,
     estimate_volatility,
 )
+from src.research._common import compute_returns
 from src.research.banach import (
     BanachResult,
     banach_analysis,
     banach_signal,
     best_response,
-    compute_returns as banach_compute_returns,
     contraction_constant,
     fixed_point_iteration,
 )
@@ -26,14 +26,12 @@ from src.research.burgers import (
     BurgersResult,
     burgers_analysis,
     burgers_signal,
-    compute_returns as burgers_compute_returns,
     shock_threshold,
     solve_burgers,
 )
 from src.research.cameron_martin import (
     CmResult,
     cameron_martin_analysis,
-    compute_returns as cm_compute_returns,
     shift_function,
 )
 from src.research.ccm import (
@@ -49,7 +47,6 @@ from src.research.ccm import (
 )
 from src.research.cramer_rao import (
     CramerRaoResult,
-    compute_returns as crb_compute_returns,
     cramer_rao_analysis,
     crb_signal,
     fisher_garch,
@@ -59,7 +56,6 @@ from src.research.cramer_rao import (
 )
 from src.research.fokker_planck import (
     FokkerPlanckResult,
-    compute_returns as fp_compute_returns,
     fokker_planck_analysis,
     fp_signal,
     solve_fokker_planck,
@@ -67,7 +63,6 @@ from src.research.fokker_planck import (
 from src.research.free_energy import (
     FeResult,
     compute_free_energy,
-    compute_returns as fe_compute_returns,
     expected_free_energy,
     fe_analysis,
     generate_policies,
@@ -76,13 +71,11 @@ from src.research.free_energy import (
 )
 from src.research.girsanov import (
     GirsanovResult,
-    compute_returns as girsanov_compute_returns,
     girsanov_analysis,
     girsanov_signal,
 )
 from src.research.hahn import (
     HahnResult,
-    compute_returns as hahn_compute_returns,
     hahn_analysis,
     hahn_decomposition,
     hahn_signal,
@@ -90,7 +83,6 @@ from src.research.hahn import (
 )
 from src.research.info_bottleneck import (
     IbResult,
-    compute_returns as ib_compute_returns,
     ib_analysis,
     ib_signal,
     information_bottleneck,
@@ -100,7 +92,6 @@ from src.research.info_bottleneck import (
 from src.research.ito_generator import (
     ItoGeneratorResult,
     apply_generator,
-    compute_returns as ito_compute_returns,
     expected_hitting_time,
     ito_generator_analysis,
     ito_signal,
@@ -119,7 +110,6 @@ from src.research.graph_mst import (
 )
 from src.research.koopman import (
     KoopmanResult,
-    compute_returns as koopman_compute_returns,
     dictionary,
     edmd,
     koopman_analysis,
@@ -128,14 +118,12 @@ from src.research.koopman import (
 )
 from src.research.lax_milgram import (
     LaxResult,
-    compute_returns as lax_compute_returns,
     lax_analysis,
     lax_signal,
     solve_variational,
 )
 from src.research.lie_group import (
     LieResult,
-    compute_returns as lie_compute_returns,
     galilean_symmetry,
     lie_algebra_coeffs,
     lie_analysis,
@@ -147,7 +135,6 @@ from src.research.lie_group import (
 from src.research.kolmogorov_sinai import (
     KsResult,
     block_entropy,
-    compute_returns as ks_compute_returns,
     factorial,
     ks_analysis,
     ks_signal,
@@ -160,7 +147,6 @@ from src.research.malliavin import (
     MalliavinResult,
     bs_call,
     bs_greeks,
-    compute_returns as malliavin_compute_returns,
     malliavin_analysis,
     malliavin_greeks,
     malliavin_signal,
@@ -170,14 +156,12 @@ from src.research.malliavin import (
 )
 from src.research.pontryagin import (
     PontryaginResult,
-    compute_returns as pmp_compute_returns,
     pmp_signal,
     pontryagin_analysis,
     solve_pmp,
 )
 from src.research.renyi_entropy import (
     RenyiResult,
-    compute_returns as renyi_compute_returns,
     generalized_dimensions,
     histogram,
     renyi_analysis,
@@ -189,7 +173,6 @@ from src.research.renormalization import (
     RgResult,
     autocorrelation,
     coarse_grain,
-    compute_returns as rg_compute_returns,
     correlation_length,
     kurtosis_at_scale,
     rg_analysis,
@@ -199,7 +182,6 @@ from src.research.renormalization import (
 )
 from src.research.riesz import (
     RieszResult,
-    compute_returns as riesz_compute_returns,
     riesz_analysis,
     riesz_representer,
     riesz_signal,
@@ -215,7 +197,6 @@ from src.research.rmt import (
 )
 from src.research.sobolev import (
     SobolevResult,
-    compute_returns as sobolev_compute_returns,
     matern_kernel,
     sobolev_analysis,
     sobolev_regression,
@@ -223,7 +204,6 @@ from src.research.sobolev import (
 )
 from src.research.stochastic_control import (
     StochasticControlResult,
-    compute_returns as sc_compute_returns,
     sc_signal,
     solve_hjb,
     stochastic_control_analysis,
@@ -252,9 +232,9 @@ __all__ = [
     "EDMResult", "edm_analysis", "edm_ccm_analysis", "edm_signal",
     "ccm", "embed", "mutual_info", "false_nearest_neighbors", "simplex_forecast",
     "CramerRaoResult", "cramer_rao_analysis", "crb_signal", "fisher_garch",
-    "fisher_gaussian_mean", "fisher_gaussian_var", "crb_compute_returns", "crb_garch_log_lik",
+    "fisher_gaussian_mean", "fisher_gaussian_var", "crb_garch_log_lik",
     "KoopmanResult", "koopman_analysis", "koopman_signal", "edmd",
-    "dictionary", "power_iteration", "koopman_compute_returns",
+    "dictionary", "power_iteration",
     "RMTResult", "rmt_analysis", "rmt_signal", "clean_correlation",
     "mp_bounds", "mp_density", "rmt_jacobi_eig",
     "GraphMSTResult", "graph_mst_analysis", "graph_signal", "kruskal_mst",
@@ -265,42 +245,42 @@ __all__ = [
     "Affine", "AffineResult", "affine_analysis", "affine_signal",
     "robust_option_price", "robust_portfolio_value",
     "StochasticControlResult", "stochastic_control_analysis", "sc_signal",
-    "solve_hjb", "sc_compute_returns",
+    "solve_hjb",
     "PontryaginResult", "pontryagin_analysis", "pmp_signal", "solve_pmp",
-    "pmp_compute_returns",
-    "GirsanovResult", "girsanov_analysis", "girsanov_signal", "girsanov_compute_returns",
+
+    "GirsanovResult", "girsanov_analysis", "girsanov_signal",
     "FokkerPlanckResult", "fokker_planck_analysis", "fp_signal", "solve_fokker_planck",
-    "fp_compute_returns",
+
     "ItoGeneratorResult", "ito_generator_analysis", "ito_signal", "apply_generator",
-    "expected_hitting_time", "num_prime", "num_double_prime", "ito_compute_returns",
+    "expected_hitting_time", "num_prime", "num_double_prime",
     "MalliavinResult", "malliavin_analysis", "malliavin_greeks", "malliavin_signal",
     "bs_call", "bs_greeks", "norm_cdf", "random_normal", "simulate_paths",
-    "malliavin_compute_returns",
+
     "RenyiResult", "renyi_analysis", "renyi_entropy", "renyi_signal",
-    "tsallis_entropy", "generalized_dimensions", "histogram", "renyi_compute_returns",
+    "tsallis_entropy", "generalized_dimensions", "histogram",
     "KsResult", "ks_analysis", "ks_signal", "symbolize", "block_entropy",
     "permutation_entropy", "sample_entropy", "largest_lyapunov", "factorial",
-    "ks_compute_returns",
+
     "IbResult", "ib_analysis", "ib_signal", "information_bottleneck",
-    "kl_divergence", "ib_quantize", "ib_compute_returns",
+    "kl_divergence", "ib_quantize",
     "RgResult", "rg_analysis", "rg_signal", "coarse_grain", "volatility_at_scale",
     "kurtosis_at_scale", "autocorrelation", "scaling_exponent", "correlation_length",
-    "rg_compute_returns",
+
     "FeResult", "fe_analysis", "compute_free_energy", "expected_free_energy",
-    "update_beliefs", "log_gaussian", "generate_policies", "fe_compute_returns",
+    "update_beliefs", "log_gaussian", "generate_policies",
     "LieResult", "lie_analysis", "lie_signal", "translation_symmetry",
     "scaling_symmetry", "time_translation_symmetry", "galilean_symmetry",
-    "lie_algebra_coeffs", "lie_compute_returns",
+    "lie_algebra_coeffs",
     "BurgersResult", "burgers_analysis", "burgers_signal", "solve_burgers",
-    "shock_threshold", "burgers_compute_returns",
+    "shock_threshold",
     "SobolevResult", "sobolev_analysis", "sobolev_regression", "sobolev_signal",
-    "matern_kernel", "sobolev_compute_returns",
-    "LaxResult", "lax_analysis", "lax_signal", "solve_variational", "lax_compute_returns",
+    "matern_kernel",
+    "LaxResult", "lax_analysis", "lax_signal", "solve_variational",
     "RieszResult", "riesz_analysis", "riesz_representer", "riesz_signal",
-    "riesz_compute_returns",
+
     "BanachResult", "banach_analysis", "banach_signal", "best_response",
-    "contraction_constant", "fixed_point_iteration", "banach_compute_returns",
+    "contraction_constant", "fixed_point_iteration",
     "HahnResult", "hahn_analysis", "hahn_decomposition", "hahn_signal",
-    "rolling_decomposition", "hahn_compute_returns",
-    "CmResult", "cameron_martin_analysis", "shift_function", "cm_compute_returns",
+    "rolling_decomposition",
+    "CmResult", "cameron_martin_analysis", "shift_function", "compute_returns",
 ]

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 
+
 MIN_SYMBOLS = 3
 DEFAULT_EDGE_THRESHOLD = 0.3
 

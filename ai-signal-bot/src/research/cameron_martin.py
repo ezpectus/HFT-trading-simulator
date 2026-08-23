@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 60
 DEFAULT_LOOKBACK = 200
 DEFAULT_WINDOW_SIZE = 30
@@ -39,11 +42,6 @@ class CmResult:
         self.mu0 = mu0
         self.sig0 = sig0
         self.n = n
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def shift_function(mode: str, t: int, n: int, mu0: float) -> float:

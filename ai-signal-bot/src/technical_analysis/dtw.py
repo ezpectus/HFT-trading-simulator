@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 INF = float("inf")
 
 
@@ -83,13 +86,6 @@ def extract_windows(prices: list[float], window_size: int) -> list[dict[str, int
     for i in range(len(prices) - window_size + 1):
         windows.append({"start": i, "data": prices[i:i + window_size]})
     return windows
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Compute simple returns from a price series."""
-    if len(prices) < 2:
-        return []
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 # Pattern templates for pattern matching

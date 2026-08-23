@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 import random
 
+
 DEFAULT_K = 1
 DEFAULT_L = 1
 DEFAULT_N_BINS = 5

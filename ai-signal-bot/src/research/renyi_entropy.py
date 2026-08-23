@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 60
 DEFAULT_N_BINS = 20
 DEFAULT_LOOKBACK = 150
@@ -42,11 +45,6 @@ class RenyiResult:
         self.reason = reason
         self.probs = probs
         self.n_bins = n_bins
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def histogram(data: list[float], n_bins: int) -> dict:

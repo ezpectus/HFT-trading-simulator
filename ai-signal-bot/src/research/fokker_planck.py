@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 50
 DEFAULT_MODEL_TYPE = "ou"
 DEFAULT_N_STEPS = 200
@@ -50,11 +53,6 @@ class FokkerPlanckResult:
         self.kl_div = kl_div
         self.params = params
         self.dx = dx
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def solve_fokker_planck(

@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 50
 DEFAULT_NU = 0.01
 DEFAULT_N_STEPS = 200
@@ -47,11 +50,6 @@ class BurgersResult:
         self.energy_decay = energy_decay
         self.u0 = u0
         self.dx = dx
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def shock_threshold(u: list[float]) -> float:

@@ -8,6 +8,9 @@ from __future__ import annotations
 import math
 import random
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 50
 DEFAULT_S = 2
 DEFAULT_LAMBDA = 0.1
@@ -52,11 +55,6 @@ class SobolevResult:
         self.l2_norm = l2_norm
         self.h1_semi = h1_semi
         self.residual = residual
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def matern_kernel(

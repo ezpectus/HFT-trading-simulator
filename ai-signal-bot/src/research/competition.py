@@ -30,7 +30,6 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class CompetitionResult:
     strategy_name: str

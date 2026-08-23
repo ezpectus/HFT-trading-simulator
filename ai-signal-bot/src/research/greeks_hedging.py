@@ -64,7 +64,6 @@ def black_scholes_greeks(S, K, T, r, sigma, option_type='call'):
 
     return {"price": price, "delta": delta, "gamma": gamma, "theta": theta, "vega": vega, "rho": rho}
 
-
 @dataclass
 class HedgeSimulationResult:
     final_pnl: float

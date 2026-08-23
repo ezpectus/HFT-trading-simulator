@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 60
 DEFAULT_LOOKBACK = 120
 DEFAULT_N_FEATURES = 8
@@ -39,11 +42,6 @@ class RieszResult:
         self.reason = reason
         self.dominant = dominant
         self.n_features = n_features
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def riesz_representer(x: list[list[float]], y: list[float], lambda_: float) -> list[float]:

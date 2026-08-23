@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 50
 DEFAULT_KAPPA = 0.1
 DEFAULT_LAMBDA = 0.01
@@ -46,11 +49,6 @@ class PontryaginResult:
         self.current_u = current_u
         self.trade_direction = trade_direction
         self.eta_calibrated = eta_calibrated
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def solve_pmp(

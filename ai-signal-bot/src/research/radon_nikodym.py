@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 80
 DEFAULT_LOOKBACK = 200
 DEFAULT_WINDOW_SIZE = 40
@@ -39,11 +42,6 @@ class RnResult:
         self.reason = reason
         self.kl_pq = kl_pq
         self.kl_qp = kl_qp
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def gaussian_log_lik(data: list[float], mu: float, sigma: float) -> float:

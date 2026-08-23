@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 50
 DEFAULT_LOOKBACK = 100
 DEFAULT_MAX_ITER = 50
@@ -45,11 +48,6 @@ class BanachResult:
         self.error_decay = error_decay
         self.mean_r = mean_r
         self.std_r = std_r
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def best_response(x: float, y: float, params: dict) -> dict:

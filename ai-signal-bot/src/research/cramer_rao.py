@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 30
 DEFAULT_LOOKBACK = 100
 GARCH_EPS = 1e-6
@@ -53,11 +56,6 @@ class CramerRaoResult:
         self.reason = reason
         self.ci_mu = ci_mu
         self.ci_var = ci_var
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns: r_t = (P_t - P_{t-1}) / P_{t-1}."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def fisher_gaussian_mean(n: int, sigma2: float) -> float:

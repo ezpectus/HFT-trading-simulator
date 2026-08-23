@@ -36,7 +36,6 @@ from typing import Any  # Any: rule dicts and market data are dynamically struct
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class Chromosome:
     """A trading strategy encoded as a chromosome."""

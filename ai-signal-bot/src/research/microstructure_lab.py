@@ -26,7 +26,6 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class MicrostructureMetrics:
     # Order flow

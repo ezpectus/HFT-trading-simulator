@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 50
 DEFAULT_MODEL_TYPE = "ou"
 DEFAULT_LOOKBACK = 100
@@ -51,11 +54,6 @@ class ItoGeneratorResult:
         self.params = params
         self.func_name = func_name
         self.dx = dx
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def apply_generator(x: float, mu_fn, sigma_fn, f, f_prime, f_double_prime) -> float:

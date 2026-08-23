@@ -8,6 +8,9 @@ from __future__ import annotations
 import math
 import random
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 30
 LOOKBACK = 50
 DEFAULT_N_PATHS = 1000
@@ -71,11 +74,6 @@ class MalliavinResult:
         self.signal = signal
         self.reason = reason
         self.convergence = convergence
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def random_normal(rng: random.Random) -> float:

@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 50
 DEFAULT_MAX_SCALE = 20
 DEFAULT_LOOKBACK = 200
@@ -45,11 +48,6 @@ class RgResult:
         self.signal = signal
         self.reason = reason
         self.is_scale_invariant = is_scale_invariant
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def coarse_grain(returns: list[float], n: int) -> list[float]:

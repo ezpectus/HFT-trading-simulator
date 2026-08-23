@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — compute_returns deduplication)
+
+### Changed
+- **[REFACTOR-01]** Created `ai-signal-bot/src/research/_common.py` with shared `compute_returns(prices)` function
+- Replaced 22 local `compute_returns` copies in `src/research/*.py` with import from `_common`
+- Replaced 1 local `compute_returns` copy in `src/technical_analysis/dtw.py` with import from `_common`
+- Removed 22 aliased `compute_returns as X_compute_returns` re-exports from `src/research/__init__.py`
+- Removed `dtw_compute_returns` alias from `src/technical_analysis/__init__.py`
+- Added single `compute_returns` export to `research/__init__.py` `__all__`
+- Net reduction: ~70 lines of duplicate code
+
+---
+
 ## [Unreleased] — 2026-08-20 (Sprint 58 — DTW and SVM Ported to Trading Logic)
 
 ### Added

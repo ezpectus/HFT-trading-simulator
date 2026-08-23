@@ -51,9 +51,6 @@ from src.technical_analysis.dtw import (
     find_best_match,
 )
 from src.technical_analysis.dtw import (
-    compute_returns as dtw_compute_returns,
-)
-from src.technical_analysis.dtw import (
     normalize as dtw_normalize,
 )
 from src.technical_analysis.emd import (
@@ -209,7 +206,7 @@ __all__ = [
     "dominant_cycles", "cycle_strength", "spectral_trend_score",
     "fft_filter", "fft_cycle_indicator", "power_spectrum",
     "KalmanFilter1D", "KalmanFilter2D", "kalman_filter_1d", "kalman_filter_2d",
-    "DTWResult", "dtw", "dtw_compute_returns", "extract_windows",
+    "DTWResult", "dtw", "extract_windows",
     "find_best_match", "dtw_normalize", "PATTERN_TEMPLATES",
     "GMMResult", "fit_gmm",
     "KMeansResult", "kmeans", "extract_kmeans_features",

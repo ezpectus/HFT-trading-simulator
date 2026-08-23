@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 20
 DEFAULT_LOOKBACK = 150
 DEFAULT_N_BINS = 30
@@ -51,11 +54,6 @@ class HahnResult:
         self.current_bias = current_bias
         self.min_r = min_r
         self.max_r = max_r
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def hahn_decomposition(returns: list[float], n_bins: int = DEFAULT_N_BINS, threshold: float = DEFAULT_THRESHOLD) -> dict:

@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 20
 DEFAULT_LOOKBACK = 50
 DEFAULT_PRECISION = 0.01
@@ -49,11 +52,6 @@ class FeResult:
         self.prediction_errors = prediction_errors
         self.returns = returns
         self.prices = prices
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def log_gaussian(x: float, mu: float, sigma2: float) -> float:

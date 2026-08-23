@@ -8,6 +8,9 @@ from __future__ import annotations
 import math
 import random
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 50
 DEFAULT_N_CLUSTERS = 4
 DEFAULT_BETA = 5.0
@@ -58,11 +61,6 @@ class IbResult:
         self.returns = returns
         self.xq = xq
         self.yq = yq
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def quantize(values: list[float], n_bins: int) -> list[int]:

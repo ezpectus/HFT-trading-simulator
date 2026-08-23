@@ -8,6 +8,9 @@ from __future__ import annotations
 import math
 import random
 
+from src.research._common import compute_returns
+
+
 MIN_PRICES = 50
 DEFAULT_MAX_POLY = 2
 DEFAULT_N_FOURIER = 3
@@ -39,11 +42,6 @@ class KoopmanResult:
         self.dominant_modulus = dominant_modulus
         self.dim = dim
         self.actual_returns = actual_returns
-
-
-def compute_returns(prices: list[float]) -> list[float]:
-    """Simple returns."""
-    return [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
 
 
 def dictionary(x: float, max_poly: int = DEFAULT_MAX_POLY, n_fourier: int = DEFAULT_N_FOURIER) -> list[float]:
