@@ -371,11 +371,13 @@ jobs:
       - name: Verify Exchange Simulator
         run: |
           sleep 5
-          curl -sf http://localhost:8765/health || exit 1
+          curl -sf http://localhost:8775/health || exit 1
       - name: Verify AI Signal Bot
-        run: curl -sf http://localhost:8766/health || exit 1
+        run: curl -sf http://localhost:9090/health || exit 1
+      - name: Verify HFT Trade Bot
+        run: curl -sf http://localhost:9091/health || exit 1
       - name: Verify Web UI
-        run: curl -sf http://localhost:3000/ || exit 1
+        run: curl -sf http://localhost:3000/health || exit 1
       - name: Show logs on failure
         if: failure()
         run: docker compose logs --tail=50

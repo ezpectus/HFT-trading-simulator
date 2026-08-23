@@ -2,7 +2,7 @@ name: CodeQL
 
 on:
   push:
-    branches: [master]
+    branches: [main, master]
     paths-ignore:
       - 'vcpkg/**'
       - 'web-ui/node_modules/**'
@@ -11,7 +11,7 @@ on:
       - 'docs/**'
       - 'audit/**'
   pull_request:
-    branches: [master]
+    branches: [main, master]
     paths-ignore:
       - 'vcpkg/**'
       - 'web-ui/node_modules/**'

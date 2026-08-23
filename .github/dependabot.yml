@@ -92,3 +92,17 @@ updates:
     labels:
       - dependencies
       - docker
+
+  # Rust dependencies (hft-executor)
+  - package-ecosystem: cargo
+    directory: "/hft-executor"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 1
+    groups:
+      rust-deps:
+        patterns:
+          - "*"
+    labels:
+      - dependencies
+      - rust

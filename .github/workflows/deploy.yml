@@ -130,14 +130,11 @@ jobs:
         run: |
           sleep 15
           FAIL=0
-          # Exchange simulator is WebSocket on :8765 — check port connectivity
-          echo "Checking ${{ secrets.DEPLOY_HOST }}:8765 (WebSocket)..."
-          nc -z -w5 ${{ secrets.DEPLOY_HOST }} 8765 && echo "  OK" || { echo "  FAIL: port 8765 not reachable"; FAIL=1; }
-          # AI Signal Bot WebSocket on :8766 and Web UI on :3000
           for endpoint in \
-            "http://${{ secrets.DEPLOY_HOST }}:3000/" \
+            "http://${{ secrets.DEPLOY_HOST }}:8775/health" \
+            "http://${{ secrets.DEPLOY_HOST }}:9090/health" \
             "http://${{ secrets.DEPLOY_HOST }}:9091/health" \
-            "http://${{ secrets.DEPLOY_HOST }}:9092/metrics"; do
+            "http://${{ secrets.DEPLOY_HOST }}:3000/health"; do
             echo "Checking $endpoint..."
             status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$endpoint" || echo "FAIL")
             echo "  Status: $status"
