@@ -57,10 +57,12 @@ class HealthServer:
         return await self._check_component("shm")
 
     async def _check_all(self) -> dict:
-        """Run all health checks."""
-        exchange = await self._check_exchange()
-        database = await self._check_database()
-        shm = await self._check_shm()
+        """Run all health checks in parallel."""
+        exchange, database, shm = await asyncio.gather(
+            self._check_exchange(),
+            self._check_database(),
+            self._check_shm(),
+        )
 
         all_healthy = (
             exchange.get("healthy", False) and

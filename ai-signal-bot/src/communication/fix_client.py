@@ -178,7 +178,10 @@ class FixSession:
 
     async def connect(self, host: str, port: int):
         """Establish TCP connection."""
-        self._reader, self._writer = await asyncio.open_connection(host, port)
+        self._reader, self._writer = await asyncio.wait_for(
+            asyncio.open_connection(host, port),
+            timeout=10.0,
+        )
         self.state = "CONNECTING"
         logger.info(f"FIX session connecting to {host}:{port}")
 
@@ -348,8 +351,11 @@ class FixSession:
         # Check for gap
         if incoming_seq > self.incoming_seq:
             logger.warning(f"FIX sequence gap: expected={self.incoming_seq} got={incoming_seq}")
-            # Queue the current message for later processing
-            self._pending_messages.append(msg)
+            # Queue the current message for later processing (cap to prevent OOM)
+            if len(self._pending_messages) < 1000:
+                self._pending_messages.append(msg)
+            else:
+                logger.error("FIX _pending_messages overflow (1000) — dropping message")
             # Send ResendRequest for missing messages
             resend = self._build_msg("2", [
                 (7, str(self.incoming_seq)),

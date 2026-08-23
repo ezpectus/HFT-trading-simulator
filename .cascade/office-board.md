@@ -327,16 +327,16 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | real_exchange_client: 335 lines dead code | Duplicate of real_account.py, not used by exchange_factory. Remove or use as ccxt-free fallback | CODE_AUDIT §8.1158 |
 | signal_publisher: backtest blocks event loop | 10K candles = 1s event loop block. 5 HFT clients starved. Use run_in_executor | CODE_AUDIT §8.1173 |
 | systemic: bare Exception catches CancelledError | 5+ files swallow CancelledError preventing clean shutdown. Use specific exceptions | CODE_AUDIT §8.1182 |
-| fix_client: no connect timeout | FIX server unreachable → hang forever. Add asyncio.wait_for(timeout=10) | CODE_AUDIT §8.1184 |
-| fix_client: _pending_messages unbounded | OOM on failed ResendRequest. Cap at 1000 | CODE_AUDIT §8.1185 |
+| ~~fix_client: no connect timeout~~ [FIXED] | Added asyncio.wait_for(timeout=10) to connect() | CODE_AUDIT §8.1184 |
+| ~~fix_client: _pending_messages unbounded~~ [FIXED] | Capped at 1000 with overflow log + drop | CODE_AUDIT §8.1185 |
 | shm_ring_buffer: FlushViewOfFile on every write | 100K syscalls/sec at high throughput. Batch flush or rely on cache coherence | CODE_AUDIT §8.1165 |
 | shm_market_data_writer: no memory barrier on ARM | Seq writes without barrier → reader sees stale data on ARM. Add _mm_barrier | CODE_AUDIT §8.1191 |
 | ws_connection_pool: fire-and-forget tasks | _evict_stale creates tasks that may be GC'd. Store refs or await directly | CODE_AUDIT §8.1188 |
 | 3 duplicate modules across packages | helpers.CircuitBreaker vs communication.CircuitBreaker. observability.logging vs helpers.setup_logging. monitoring.health_server vs observability.health_checks. monitoring.metrics vs communication.metrics_server. Merge | CODE_AUDIT §8.1201,1210,1225,1227 |
 | model_registry: _save on every A/B impression | 1000 JSON file writes/sec. Batch saves or use database | CODE_AUDIT §8.1237 |
-| health_server: sequential health checks | 5s total > K8s 1s timeout. Use asyncio.gather | CODE_AUDIT §8.1228 |
+| ~~health_server: sequential health checks~~ [FIXED] | Replaced sequential _check_* with asyncio.gather in _check_all | CODE_AUDIT §8.1228 |
 | health_checks: no timeout on DB/Redis checks | K8s kills pod after 1s. Add asyncio.wait_for(timeout=2) | CODE_AUDIT §8.1208 |
-| tracker: opens CSV file on every log() call | 100 open/close syscalls/sec. Keep file open | CODE_AUDIT §8.1220 |
+| ~~tracker: opens CSV file on every log() call~~ [FIXED] | SignalLogger + TradeLogger keep file open with flush(). Added close() method | CODE_AUDIT §8.1220 |
 | ~~alerting: new aiohttp session per alert~~ [FIXED] | Replaced 3× aiohttp.ClientSession() per-alert with shared _get_session() + close_session() | CODE_AUDIT §8.1216 |
 | ~~automl: study.optimize blocks event loop~~ [FIXED] | Added optimize_async() wrapper using loop.run_in_executor for non-blocking optimization | CODE_AUDIT §8.1230 |
 | ~~notifier: Discord polls REST API without sleep~~ [FIXED] | Added asyncio.sleep(1) after successful poll to rate-limit Discord API calls | CODE_AUDIT §8.1265 |

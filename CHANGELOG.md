@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка P: fix_client timeout + pending cap + health_server gather + tracker file handle)
+
+### Changed
+- `fix_client.py`: `connect()` — added `asyncio.wait_for(timeout=10)` to prevent infinite hang on unreachable FIX server
+- `fix_client.py`: `_pending_messages` — capped at 1000 with overflow log + drop to prevent OOM on failed ResendRequest
+- `health_server.py`: `_check_all` — sequential `_check_exchange/database/shm` → `asyncio.gather` for parallel health checks
+- `tracker.py`: `SignalLogger` + `TradeLogger` — keep CSV file open with `flush()` per write + `close()` method (was open/close per `log()` call)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка O: notifier asyncio.gather + Discord rate limit + alerting shared session + automl async)
 
 ### Changed

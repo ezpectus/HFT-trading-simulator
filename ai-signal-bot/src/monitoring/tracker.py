@@ -78,22 +78,26 @@ class SignalLogger:
         if not os.path.exists(path):
             with open(path, "w", encoding="utf-8") as f:
                 f.write("timestamp,symbol,direction,confidence,strategy,entry,sl,tp,rr,reason\n")
+        self._file = open(path, "a", encoding="utf-8", newline="")
+        self._writer = csv.writer(self._file)
 
     def log(self, signal_dict: dict) -> None:
-        with open(self.path, "a", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                signal_dict.get('timestamp', ''),
-                signal_dict['symbol'],
-                signal_dict['direction'],
-                signal_dict['confidence'],
-                signal_dict['strategy'],
-                signal_dict['entry_price'],
-                signal_dict['stop_loss'],
-                signal_dict['take_profit'],
-                f"{signal_dict.get('rr_ratio', 0):.2f}",
-                signal_dict.get('reason', ''),
-            ])
+        self._writer.writerow([
+            signal_dict.get('timestamp', ''),
+            signal_dict['symbol'],
+            signal_dict['direction'],
+            signal_dict['confidence'],
+            signal_dict['strategy'],
+            signal_dict['entry_price'],
+            signal_dict['stop_loss'],
+            signal_dict['take_profit'],
+            f"{signal_dict.get('rr_ratio', 0):.2f}",
+            signal_dict.get('reason', ''),
+        ])
+        self._file.flush()
+
+    def close(self) -> None:
+        self._file.close()
 
 
 class TradeLogger:
@@ -107,22 +111,26 @@ class TradeLogger:
         if not os.path.exists(path):
             with open(path, "w", encoding="utf-8") as f:
                 f.write("timestamp,symbol,exchange,side,qty,entry,exit,pnl,fee,status\n")
+        self._file = open(path, "a", encoding="utf-8", newline="")
+        self._writer = csv.writer(self._file)
 
     def log(self, trade_dict: dict) -> None:
-        with open(self.path, "a", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                trade_dict.get('timestamp', ''),
-                trade_dict['symbol'],
-                trade_dict.get('exchange', ''),
-                trade_dict['side'],
-                trade_dict['quantity'],
-                trade_dict['entry_price'],
-                trade_dict.get('exit_price', ''),
-                trade_dict.get('pnl', ''),
-                trade_dict.get('fee', 0),
-                trade_dict.get('status', 'OPEN'),
-            ])
+        self._writer.writerow([
+            trade_dict.get('timestamp', ''),
+            trade_dict['symbol'],
+            trade_dict.get('exchange', ''),
+            trade_dict['side'],
+            trade_dict['quantity'],
+            trade_dict['entry_price'],
+            trade_dict.get('exit_price', ''),
+            trade_dict.get('pnl', ''),
+            trade_dict.get('fee', 0),
+            trade_dict.get('status', 'OPEN'),
+        ])
+        self._file.flush()
+
+    def close(self) -> None:
+        self._file.close()
 
 
 def print_dashboard(tracker: PerformanceTracker, positions: list[dict], prices: dict) -> None:
