@@ -13,7 +13,7 @@ Usage:
     plotter.plot_comparison(results)
     plotter.save_all(results, "backtest_charts/")
 """
-import logging
+from src.observability.logging import get_logger
 import os
 
 import matplotlib
@@ -24,7 +24,7 @@ import numpy as np
 
 from src.backtesting.backtester import BacktestResult
 
-logger = logging.getLogger("ai_signal_bot.plotter")
+logger = get_logger("ai_signal_bot.plotter")
 
 # Color palette
 COLORS = {

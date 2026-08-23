@@ -1,10 +1,16 @@
 @echo off
 REM ============================================================
-REM  Pre-commit hook for Windows — runs lint + tests before commit.
+REM  Pre-commit hook — smart staged file detection + lint + tests
 REM  Installed by: scripts\install-hooks.bat
 REM
-REM  If any check fails — commit is BLOCKED.
-REM  Bypass with: git commit --no-verify (NOT recommended)
+REM  What it does:
+REM    1. Detects staged files (git diff --cached)
+REM    2. Lints ONLY changed files (ruff + eslint)
+REM    3. Runs ONLY tests for changed files (pytest + vitest)
+REM    4. Checks every changed source file has a test file
+REM    5. Validates Python imports in changed files
+REM
+REM  Bypass: git commit --no-verify (NOT recommended)
 REM ============================================================
 
 setlocal
@@ -12,10 +18,10 @@ set PROJECT_ROOT=%~dp0..\
 
 echo.
 echo ============================================================
-echo   PRE-COMMIT: Running lint + tests...
+echo   PRE-COMMIT: Smart staged file check
 echo ============================================================
 
-python "%PROJECT_ROOT%scripts\pre-commit-check.py" --quick
+python "%PROJECT_ROOT%scripts\pre-commit-check.py" --staged --quick
 if %errorlevel% neq 0 (
     echo.
     echo   COMMIT BLOCKED — fix failures above.

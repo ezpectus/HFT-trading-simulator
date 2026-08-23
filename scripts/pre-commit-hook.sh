@@ -1,18 +1,25 @@
 #!/bin/sh
-# Pre-commit hook — runs lint + tests before allowing commit.
-# Installed by: scripts/install-hooks.sh (or manual copy to .git/hooks/pre-commit)
+# Pre-commit hook — smart staged file detection + lint + tests
+# Installed by: scripts/install-hooks.sh
 #
-# If any check fails — commit is BLOCKED.
-# Bypass with: git commit --no-verify (NOT recommended)
+# What it does:
+#   1. Detects staged files (git diff --cached)
+#   2. Lints ONLY changed files (ruff + eslint)
+#   3. Runs ONLY tests for changed files (pytest + vitest)
+#   4. Checks every changed source file has a test file
+#   5. Validates Python imports in changed files
+#
+# Bypass: git commit --no-verify (NOT recommended)
 
 PYTHON=${PYTHON:-python}
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo ""
 echo "══════════════════════════════════════════════════"
-echo "  PRE-COMMIT: Running lint + tests..."
+echo "  PRE-COMMIT: Smart staged file check"
 echo "══════════════════════════════════════════════════"
 
-$PYTHON scripts/pre-commit-check.py --quick
+$PYTHON "$PROJECT_ROOT/scripts/pre-commit-check.py" --staged --quick
 RESULT=$?
 
 if [ $RESULT -ne 0 ]; then

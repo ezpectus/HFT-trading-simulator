@@ -1,9 +1,15 @@
-"""Unit tests for exchange_simulator/metrics.py — ExchangeSimulatorMetrics."""
+"""Unit tests for exchange_simulator/metrics.py — ExchangeSimulatorMetrics.
+
+metrics.py is deprecated — use ws_prometheus.py (PrometheusMixin) and
+ws_metrics.py (WebSocketMetrics) instead.
+"""
 
 import pytest
 from prometheus_client import REGISTRY
 
-from exchange_simulator.metrics import (
+pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
+
+from exchange_simulator.metrics import (  # noqa: E402
     ExchangeSimulatorMetrics,
     get_metrics,
     init_metrics,

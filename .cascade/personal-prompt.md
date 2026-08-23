@@ -82,12 +82,13 @@ COMMON SENSE (не создавай ложные проблемы):
 
 КОММИТ (пользователь делает сам):
   PRE-COMMIT CHECK — ОБЯЗАТЕЛЬНО перед коммитом:
-    python scripts/pre-commit-check.py --quick
+    python scripts/pre-commit-check.py --staged --quick
   Если FAIL — НЕ коммить. Исправь. Запусти снова.
   Только ALL GREEN → git add -A; git commit -m "refactor: <english description>"
   Тип: refactor (всегда для этой фазы)
   COMMIT MESSAGE — ТОЛЬКО АНГЛИЙСКИЙ. Никакой кириллицы.
   Hook: scripts\install-hooks.bat — автоматическая установка git hook
+  Проверяет: lint (staged only) + tests (staged only) + coverage gap + imports + commit-msg
 
 ДОКУМЕНТАЦИЯ (после каждого изменения):
 - .cascade/progress.md — запись что сделано

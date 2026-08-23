@@ -9,13 +9,13 @@ Usage:
     results = bt.run(candles, strategy)
     bt.print_report(results)
 """
-import logging
+from src.observability.logging import get_logger
 from dataclasses import dataclass, field
 
 from src.risk.risk_manager import PositionRiskState, RiskConfig, RiskManager
 from src.strategies.signal import Signal, SignalDirection
 
-logger = logging.getLogger("ai_signal_bot.backtester")
+logger = get_logger("ai_signal_bot.backtester")
 
 
 @dataclass

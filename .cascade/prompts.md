@@ -161,17 +161,17 @@ go, rustc, gcc, g++, clang, clang++
 
 **PRE-COMMIT ПРОВЕРКА — ОБЯЗАТЕЛЬНО:**
 ```powershell
-# Перед коммитом — запусти pre-commit check:
-python scripts/pre-commit-check.py --quick
+# Перед коммитом — запусти pre-commit check (smart, только staged files):
+python scripts/pre-commit-check.py --staged --quick
 
 # Если FAIL — НЕ КОММИТЬ. Исправь ошибки. Запусти снова.
 # Только если ALL GREEN — коммить:
-git add -A; git commit -m "<type>: <description>"; git push
+git add -A; git commit -m "<type>: <english description>"; git push
 
-# Полная проверка (lint + все тесты):
+# Полная проверка (все тесты, не только staged):
 python scripts/pre-commit-check.py
 
-# Только lint (быстро, ~10s):
+# Только lint (быстро, ~5s):
 python scripts/pre-commit-check.py --lint
 
 # Только тесты:
@@ -180,10 +180,25 @@ python scripts/pre-commit-check.py --tests
 
 **PRE-COMMIT HOOK (автоматический):**
 - Установка: `scripts\install-hooks.bat` (Windows)
-- После установки — git автоматически запускает проверки перед каждым коммитом
+- После установки — git автоматически запускает ДВА hook'а:
+  - **pre-commit**: lint + tests + coverage gap + import validation (только staged files)
+  - **commit-msg**: English only + conventional commits format + max 72 chars
 - Если проверки FAIL — коммит блокируется
 - Bypass: `git commit --no-verify` (НЕ рекомендуется)
-- Hook запускает: ruff (Python) + eslint (JS) + pytest (Python) + vitest (JS)
+
+**ЧТО ПРОВЕРЯЕТ pre-commit (--staged режим):**
+1. **Staged file detection** — `git diff --cached --name-only` — определяет какие файлы изменены
+2. **Smart lint** — ruff/eslint ТОЛЬКО на изменённых файлах (не весь проект)
+3. **Smart tests** — pytest/vitest ТОЛЬКО для тестов связанных с изменёнными файлами
+4. **Coverage gap check** — каждый изменённый source файл должен иметь test файл (FAIL если нет)
+5. **Import validation** — проверка что Python imports не сломаны (AST parse + module existence)
+6. **Commit message** — English only, conventional commits format, max 72 chars
+
+**ЧТО ДЕЛАЕТ coverage gap check:**
+- `src/risk/var_calculator.py` staged → ищет `tests/unit/test_var_calculator.py` или `tests/test_var_calculator.py`
+- `web-ui/src/components/risk/RiskDashboard.jsx` staged → ищет `src/test/risk/RiskDashboard.test.jsx`
+- Если test файл НЕ найден → **FAIL** → коммит блокируется → AI агент ДОЛЖЕН написать тест
+- Пропускает: `__init__.py`, `conftest.py`, config/, migrations/, .cascade/
 
 **ТИПЫ КОММИТОВ:**
 | Тип | Когда |

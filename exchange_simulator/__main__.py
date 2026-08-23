@@ -11,6 +11,7 @@ import argparse
 import asyncio
 import logging
 import os
+import signal
 import sys
 import threading
 import time
@@ -109,7 +110,7 @@ async def run_websocket_server(
     config: dict,
     logger: logging.Logger,
 ) -> None:
-    """Run the WebSocket server."""
+    """Run the WebSocket server with graceful shutdown support."""
     ws_cfg = config.get("websocket", {})
     arb_cfg = config.get("arbitrage", {})
 
@@ -128,7 +129,15 @@ async def run_websocket_server(
         port=ws_cfg.get("port", 8765),
         arb_detector=arb_detector,
     )
+
+    # Graceful shutdown: SIGTERM (docker stop, k8s) + SIGINT (Ctrl+C)
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, server._shutdown_event.set)
+    logger.info("Signal handlers installed (SIGTERM/SIGINT → graceful shutdown)")
+
     await server.start()
+    logger.info("Exchange simulator shutdown complete")
 
 
 def run_headless(
@@ -214,7 +223,7 @@ def main():
         run_visualizer_thread(exchanges, config, logger)
         logger.info("Terminal visualizer started")
 
-    # Run WebSocket server in main async loop
+    # Run WebSocket server in main async loop (SIGTERM/SIGINT handled inside)
     try:
         asyncio.run(run_websocket_server(exchanges, market, config, logger))
     except KeyboardInterrupt:

@@ -70,6 +70,7 @@ class MetricsExporter:
             self.bot_win_rate = None
             self.bot_pnl_total = None
             self.bot_uptime_seconds = None
+            self.ws_reconnects_total = None
             return
 
         self.registry = CollectorRegistry()
@@ -197,6 +198,10 @@ class MetricsExporter:
         )
         self.bot_uptime_seconds = Gauge(
             "ai_signal_bot_uptime_seconds", "Uptime in seconds",
+            registry=self.registry,
+        )
+        self.ws_reconnects_total = Counter(
+            "trading_ws_reconnects_total", "Total WebSocket reconnections",
             registry=self.registry,
         )
 
@@ -331,6 +336,11 @@ class MetricsExporter:
         if not HAS_PROMETHEUS:
             return
         self.bot_uptime_seconds.set(seconds)
+
+    def record_ws_reconnect(self):
+        if not HAS_PROMETHEUS:
+            return
+        self.ws_reconnects_total.inc()
 
     # ── HTTP endpoint ──
 

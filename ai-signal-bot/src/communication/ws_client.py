@@ -42,6 +42,8 @@ class ExchangeClient:
         self._connected = False
         self._trading_active = True
         self._on_message: Callable | None = None
+        self._on_reconnect: Callable | None = None
+        self._reconnect_count: int = 0
         self._latest_candles: dict[str, dict] = {}  # {symbol: latest_candle_dict}
         self._candle_history: dict[str, deque] = {}  # {symbol: deque(candle_dicts)}
         self._latest_prices: dict[str, dict[str, float]] = {}  # {exchange: {symbol: price}}
@@ -73,6 +75,9 @@ class ExchangeClient:
 
     def set_message_handler(self, handler: Callable) -> None:
         self._on_message = handler
+
+    def set_reconnect_handler(self, handler: Callable) -> None:
+        self._on_reconnect = handler
 
     async def connect(self) -> bool:
         """Connect to the exchange simulator WebSocket with compression and optional TLS."""
@@ -108,7 +113,7 @@ class ExchangeClient:
     async def listen(self) -> None:
         """Listen for incoming messages from the exchange simulator with auto-reconnect."""
         reconnect_delay = 1.0
-        max_reconnect_delay = 30.0
+        max_reconnect_delay = 60.0
 
         while True:
             if not self._ws or not self._connected:
@@ -120,6 +125,12 @@ class ExchangeClient:
                     reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)
                     continue
                 reconnect_delay = 1.0
+                self._reconnect_count += 1
+                if self._on_reconnect:
+                    try:
+                        self._on_reconnect()
+                    except (TypeError, RuntimeError) as e:
+                        logger.warning("Reconnect handler error: %s", e)
 
             try:
                 async for message in self._ws:
@@ -231,11 +242,17 @@ class ExchangeClient:
         """Attempt to reconnect with exponential backoff."""
         await self.disconnect()
         delay = 1.0
-        max_delay = 30.0
+        max_delay = 60.0
         for attempt in range(5):
             logger.info("Reconnect attempt %d/5 (delay=%.1fs)", attempt + 1, delay)
             await asyncio.sleep(delay)
             if await self.connect():
+                self._reconnect_count += 1
+                if self._on_reconnect:
+                    try:
+                        self._on_reconnect()
+                    except (TypeError, RuntimeError) as e:
+                        logger.warning("Reconnect handler error: %s", e)
                 return True
             delay = min(delay * 2, max_delay)
         logger.error("All reconnection attempts failed")

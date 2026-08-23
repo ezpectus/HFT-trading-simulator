@@ -6,7 +6,7 @@ performance metrics, equity curve, trade-by-trade log.
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import math
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -15,7 +15,7 @@ import numpy as np
 
 from src.backtesting.pnl_calculator import AssetType, PnLCalculator, PnLConfig
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

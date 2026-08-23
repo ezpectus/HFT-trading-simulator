@@ -1,9 +1,15 @@
-"""Unit tests for exchange_simulator/health.py — Health check endpoints."""
+"""Unit tests for exchange_simulator/health.py — Health check endpoints.
+
+health.py is deprecated — the WebSocket server provides /health, /live, /ready,
+/metrics via aiohttp on port 8775. These tests verify the deprecated FastAPI module.
+"""
 
 import pytest
 from fastapi.testclient import TestClient
 
-from exchange_simulator.health import app
+pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
+
+from exchange_simulator.health import app  # noqa: E402
 
 # ─── Fixtures ───
 

@@ -65,6 +65,7 @@ class ExchangeWebSocketServer(
         self.arb_detector = arb_detector
         self.clients: set[WebSocketServerConnection] = set()
         self._running = False
+        self._shutdown_event = asyncio.Event()
         self._tick_interval = 1.0
         self._replay_paused = False
         self._replay_offset = 0
@@ -167,7 +168,7 @@ class ExchangeWebSocketServer(
         ):
             # Start market data broadcast loop
             broadcast_task = asyncio.create_task(self._broadcast_loop())
-            await asyncio.Future()  # Run forever
+            await self._shutdown_event  # Run until shutdown requested
             broadcast_task.cancel()
             metrics_task.cancel()
 
@@ -189,18 +190,31 @@ class ExchangeWebSocketServer(
                 "trading_active": self._trading_active,
             })
 
+        async def live_handler(request):
+            return web.json_response({"status": "alive"})
+
+        async def ready_handler(request):
+            ready = self._running and self._trading_active
+            return web.json_response(
+                {"status": "ready" if ready else "not_ready"},
+                status_code=200 if ready else 503,
+            )
+
         app = web.Application()
         app.router.add_get("/metrics", metrics_handler)
         app.router.add_get("/health", health_handler)
+        app.router.add_get("/live", live_handler)
+        app.router.add_get("/ready", ready_handler)
         runner = web.AppRunner(app)
         await runner.setup()
         site = web.TCPSite(runner, self.host, port)
         await site.start()
-        logger.info(f"Health/metrics endpoints on http://{self.host}:{port}/health and /metrics")
-        await asyncio.Future()  # Run forever
+        logger.info(f"Health/metrics endpoints on http://{self.host}:{port}/health, /live, /ready, /metrics")
+        await self._shutdown_event  # Run until shutdown requested
 
     async def stop(self) -> None:
         self._running = False
+        self._shutdown_event.set()
         for client in self.clients:
             await client.close()
         logger.info("WebSocket server stopped")

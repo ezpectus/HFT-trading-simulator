@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-27 (Refactoring — Пачка BG: Reliability Plan Tasks 1-9)
+
+### Added
+- `exchange_simulator/websocket_server.py`: `/live` and `/ready` HTTP endpoints on aiohttp metrics server (port 8775)
+- `exchange_simulator/websocket_server.py`: `_shutdown_event` (asyncio.Event) for graceful shutdown signalling
+- `exchange_simulator/__main__.py`: SIGTERM/SIGINT signal handlers via `loop.add_signal_handler` → graceful shutdown
+- `ai-signal-bot/src/communication/ws_client.py`: `set_reconnect_handler()` callback, `_reconnect_count` tracking
+- `ai-signal-bot/src/monitoring/metrics.py`: `trading_ws_reconnects_total` Counter + `record_ws_reconnect()` method
+- `ai-signal-bot/run.py`: `set_reconnect_handler(prom_server.record_ws_reconnect)` wiring
+
+### Changed
+- `ai-signal-bot/src/communication/ws_client.py`: Max reconnect backoff increased from 30s → 60s (both `listen()` and `reconnect()`)
+- `monitoring/alertmanager/config.yml`: All placeholder values replaced with `${ENV_VAR}` envsubst placeholders; removed non-native Discord receiver; added env var documentation header
+
+### Deprecated
+- `exchange_simulator/health.py`: Deprecated FastAPI health module — WebSocket server already provides `/health`, `/live`, `/ready`, `/metrics` via aiohttp on port 8775
+- `exchange_simulator/metrics.py`: Already deprecated — `ws_prometheus.py` (PrometheusMixin) is canonical
+
+### Fixed
+- **Reliability Task 1**: Exchange Simulator health/metrics — `/live` and `/ready` endpoints added
+- **Reliability Task 7**: Alertmanager config — no more hardcoded placeholders
+- **Reliability Task 8**: Graceful shutdown — SIGTERM/SIGINT handlers for exchange simulator
+- **Reliability Task 9**: WS retry/backoff — max 60s, reconnect counter metric
+- **Reliability Tasks 2,3,4,5,6**: Verified as already implemented (HTTP healthchecks, Helm HTTP probes, HealthChecker+HealthServer, tracing, web-ui /health)
+
 ## [Unreleased] — 2026-08-26 (Refactoring — Пачка BF: circular import fix)
 
 ### Changed

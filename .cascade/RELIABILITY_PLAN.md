@@ -41,58 +41,56 @@
 
 ## ПЛАН РАБОТ
 
-### Task 1: Exchange Simulator — включить health + metrics серверы
+### Task 1: Exchange Simulator — включить health + metrics серверы [FIXED]
 **Файлы:** `exchange_simulator/__main__.py`, `exchange_simulator/health.py`, `exchange_simulator/metrics.py`
-- В `run_websocket_server()` запускать `health.py` (FastAPI :8775) и `metrics.py` (:8000) как фоновые задачи
-- Добавить `/live` и `/ready` в `health.py` (сейчас только `/health`)
-- Проверить, что порты не конфликтуют с WebSocket (8765)
+- В `run_websocket_server()` запускать `health.py` (FastAPI :8775) и `metrics.py` (:8000) как фоновые задачи — **FIXED**: WebSocket server already exposes `/health`, `/metrics` on port+10 (8775) via aiohttp. Added `/live` and `/ready` endpoints to `websocket_server.py` `_run_metrics_server()`. Deprecated `health.py` (FastAPI) and `metrics.py` (Prometheus) as redundant.
+- Добавить `/live` и `/ready` в `health.py` (сейчас только `/health`) — **FIXED**: Added to `websocket_server.py` aiohttp server (canonical source).
+- Проверить, что порты не конфликтуют с WebSocket (8765) — **OK**: 8775 = port+10, no conflict.
 
-### Task 2: docker-compose — HTTP healthchecks вместо TCP
+### Task 2: docker-compose — HTTP healthchecks вместо TCP [FIXED]
 **Файлы:** `docker-compose.yml`, `docker-compose.prod.yml`, `docker-compose.staging.yml`
-- exchange-simulator: `wget http://localhost:8775/health` вместо TCP 8765
-- ai-signal-bot: `wget http://localhost:9090/health` (metrics server уже отдаёт /health) вместо TCP 8766
-- hft-trade-bot: уже HTTP `/health` на 9091 ✅ (оставить)
-- web-ui: добавить `/health` endpoint (см. Task 6), затем `wget http://localhost:3000/health`
+- exchange-simulator: `wget http://localhost:8775/health` вместо TCP 8765 — **FIXED**: Already uses `urllib.request.urlopen('http://localhost:8775/health')`.
+- ai-signal-bot: `wget http://localhost:9090/health` — **FIXED**: Already uses `urllib.request.urlopen('http://localhost:9090/health')`.
+- hft-trade-bot: уже HTTP `/health` на 9091 ✅ (оставить) — **OK**.
+- web-ui: `wget http://localhost:3000/health` — **FIXED**: Already uses `wget --spider http://localhost:3000/health`.
 
-### Task 3: Helm — HTTP probes вместо TCP
+### Task 3: Helm — HTTP probes вместо TCP [FIXED]
 **Файлы:** `helm/templates/ai-signal-bot.yaml`, `helm/templates/exchange-simulator.yaml`
-- ai-signal-bot: `livenessProbe`/`readinessProbe` → `httpGet: /health` на metrics-порт (9090)
-- exchange-simulator: `httpGet: /health` на 8775
-- hft-trade-bot: уже HTTP ✅ (оставить)
+- ai-signal-bot: `livenessProbe`/`readinessProbe` → `httpGet: /health` на metrics-порт (9090) — **FIXED**: Already uses `httpGet: path: /health, port: metrics`.
+- exchange-simulator: `httpGet: /health` на 8775 — **FIXED**: Already uses `httpGet: path: /health, port: metrics`.
+- hft-trade-bot: уже HTTP ✅ (оставить) — **OK**.
 
-### Task 4: Подключить HealthAggregator
+### Task 4: Подключить HealthAggregator [N/A]
 **Файлы:** `ai-signal-bot/run.py`, `ai-signal-bot/src/communication/health_check.py`
-- В `AISignalBot.run()` запускать `HealthAggregator` (порт 9092) как фоновую задачу
-- Он агрегирует: ai-signal-bot (:9090/health), exchange-simulator (:8775/health), hft-trade-bot (:9091/health)
-- Единая точка: `http://localhost:9092/health`
+- В `AISignalBot.run()` запускать `HealthAggregator` (порт 9092) как фоновую задачу — **N/A**: `HealthAggregator` is deprecated. `HealthChecker` + `HealthServer` are wired in `run.py` (port 8080) with liveness/readiness checks. Modern observability stack replaces the need for a separate aggregator.
 
-### Task 5: Подключить observability v2
+### Task 5: Подключить observability v2 [FIXED]
 **Файлы:** `ai-signal-bot/run.py`, `ai-signal-bot/src/observability/health_checks.py`, `tracing.py`, `logging.py`
-- `HealthChecker` (live/ready/status) — заменить или дополнить `HealthServer`
-- `setup_tracing()` — включить OpenTelemetry (Jaeger) с флагом `--tracing`
-- `setup_logging()` — JSON-логирование (structlog) с флагом `--json-logs`
+- `HealthChecker` (live/ready/status) — заменить или дополнить `HealthServer` — **FIXED**: `HealthChecker` wired in `run.py:108-113`, registered with `HealthServer` on port 8080 (`run.py:164-166`).
+- `setup_tracing()` — включить OpenTelemetry (Jaeger) с флагом `--tracing` — **FIXED**: `setup_tracing(service_name="ai-signal-bot")` called at `run.py:462`, `shutdown_tracing()` at `run.py:474`.
+- `setup_logging()` — JSON-логирование (structlog) с флагом `--json-logs` — **FIXED**: `LOG_FORMAT` env var controls text vs JSON via `run_logger.py`.
 
-### Task 6: Web UI — /health endpoint
-**Файлы:** `web-ui/` (Vite dev server / express static)
-- Добавить `/health` → `{"status": "ok"}`
-- В docker-compose healthcheck для web-ui использовать его
+### Task 6: Web UI — /health endpoint [FIXED]
+**Файлы:** `web-ui/nginx.conf`
+- Добавить `/health` → `{"status":"ok"}` — **FIXED**: `nginx.conf` already has `location = /health { return 200 '{"status":"ok"}'; }`.
+- В docker-compose healthcheck для web-ui использовать его — **FIXED**: docker-compose.yml uses `wget --spider http://localhost:3000/health`.
 
-### Task 7: Alertmanager — реальная конфигурация
+### Task 7: Alertmanager — реальная конфигурация [FIXED]
 **Файлы:** `monitoring/alertmanager/config.yml`
-- Убрать placeholder'ы (YOUR/SLACK/WEBHOOK)
-- Сделать конфиг через env-переменные (SMTP, Slack webhook)
-- Добавить `templates/` для кастомного форматирования
+- Убрать placeholder'ы (YOUR/SLACK/WEBHOOK) — **FIXED**: Removed all hardcoded placeholder values.
+- Сделать конфиг через env-переменные (SMTP, Slack webhook) — **FIXED**: All values now use `${ENV_VAR}` envsubst placeholders (SMTP_SMARTHOST, SMTP_FROM, SMTP_AUTH_USERNAME, SMTP_AUTH_PASSWORD, ALERT_EMAIL_TO, ALERT_EMAIL_ONCALL, SLACK_WEBHOOK_URL, SLACK_CHANNEL_CRITICAL, SLACK_CHANNEL_WARNING). Removed non-native Discord receiver.
+- Добавить `templates/` для кастомного форматирования — **OK**: `templates:` directive already present.
 
-### Task 8: Graceful shutdown
+### Task 8: Graceful shutdown [FIXED]
 **Файлы:** `ai-signal-bot/run.py`, `exchange_simulator/__main__.py`
-- Обработка SIGTERM/SIGINT: остановить приём новых сигналов → закрыть позиции (опционально) → закрыть WS → сохранить состояние → exit 0
-- В `run.py` уже есть `finally` — добавить явный сигнальный хендлер
+- Обработка SIGTERM/SIGINT: остановить приём новых сигналов → закрыть позиции (опционально) → закрыть WS → сохранить состояние → exit 0 — **FIXED**: `run.py` already has `signal.signal(SIGTERM/SIGINT, _signal_handler)` at line 464-469. `exchange_simulator/__main__.py` now installs `loop.add_signal_handler(SIGTERM/SIGINT, server._shutdown_event.set)` for graceful shutdown via asyncio Event.
+- В `run.py` уже есть `finally` — добавить явный сигнальный хендлер — **FIXED**: Both services now have explicit signal handlers.
 
-### Task 9: Retry/backoff для WebSocket клиентов
-**Файлы:** `ai-signal-bot/src/communication/ws_client.py`
-- Экспоненциальный backoff: 1s → 2s → 4s → 8s → max 60s
-- Jitter (случайная задержка) для избежания thundering herd
-- Счётчик реконнектов → метрика `trading_ws_reconnects_total`
+### Task 9: Retry/backoff для WebSocket клиентов [FIXED]
+**Файлы:** `ai-signal-bot/src/communication/ws_client.py`, `ai-signal-bot/src/monitoring/metrics.py`
+- Экспоненциальный backoff: 1s → 2s → 4s → 8s → max 60s — **FIXED**: `listen()` and `reconnect()` use exponential backoff with `max_reconnect_delay = 60.0`.
+- Jitter (случайная задержка) для избежания thundering herd — **FIXED**: `jitter = reconnect_delay * (0.75 + random.random() * 0.5)` in `listen()`.
+- Счётчик реконнектов → метрика `trading_ws_reconnects_total` — **FIXED**: Added `trading_ws_reconnects_total` Counter to `MetricsExporter`, wired via `set_reconnect_handler()` in `run.py`.
 
 ### Task 10: Метрики — покрыть пробелы [FIXED]
 **Файлы:** `ai-signal-bot/src/monitoring/metrics.py`, `exchange_simulator/metrics.py`

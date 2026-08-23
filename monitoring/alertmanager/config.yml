@@ -1,15 +1,28 @@
 # Prometheus Alertmanager Configuration
 #
-# Configures notification channels (email, Slack, Discord), alert routing,
+# Configures notification channels (email, Slack), alert routing,
 # alert grouping, and escalation policies.
+#
+# Environment variables (render via envsubst before passing to Alertmanager):
+#   SMTP_SMARTHOST       — e.g. smtp.gmail.com:587
+#   SMTP_FROM            — sender email address
+#   SMTP_AUTH_USERNAME   — SMTP auth user
+#   SMTP_AUTH_PASSWORD   — SMTP auth password
+#   ALERT_EMAIL_TO       — default alert recipient email
+#   ALERT_EMAIL_ONCALL   — on-call recipient email (critical)
+#   SLACK_WEBHOOK_URL    — Slack incoming webhook URL
+#   SLACK_CHANNEL_CRITICAL  — Slack channel for critical alerts (default: #trading-critical)
+#   SLACK_CHANNEL_WARNING   — Slack channel for warning alerts (default: #trading-warnings)
+#
+# Render with:
+#   envsubst < config.yml > /etc/alertmanager/alertmanager.yml
 
 global:
   resolve_timeout: 5m
-  # SMTP configuration for email notifications
-  smtp_smarthost: 'smtp.gmail.com:587'
-  smtp_from: 'alerts@trading-system.com'
-  smtp_auth_username: '${SMTP_AUTH_USERNAME:alerts@trading-system.com}'
-  smtp_auth_password: '${SMTP_AUTH_PASSWORD:your-password}'
+  smtp_smarthost: '${SMTP_SMARTHOST}'
+  smtp_from: '${SMTP_FROM}'
+  smtp_auth_username: '${SMTP_AUTH_USERNAME}'
+  smtp_auth_password: '${SMTP_AUTH_PASSWORD}'
   smtp_require_tls: true
 
 # Route configuration
@@ -19,20 +32,20 @@ route:
   group_interval: 10s
   repeat_interval: 12h
   receiver: 'default'
-  
+
   routes:
     # Critical alerts go to all channels immediately
     - match:
         severity: critical
       receiver: 'critical-alerts'
       continue: false
-    
+
     # Warning alerts go to Slack and email
     - match:
         severity: warning
       receiver: 'warning-alerts'
       continue: false
-    
+
     # Info alerts go to email only
     - match:
         severity: info
@@ -43,41 +56,37 @@ route:
 receivers:
   - name: 'default'
     email_configs:
-      - to: 'team@trading-system.com'
+      - to: '${ALERT_EMAIL_TO}'
         headers:
           Subject: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.alertname }}'
-  
+
   - name: 'critical-alerts'
     email_configs:
-      - to: 'oncall@trading-system.com'
+      - to: '${ALERT_EMAIL_ONCALL}'
         headers:
           Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
     slack_configs:
-      - api_url: '${SLACK_WEBHOOK_URL:https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK}'
-        channel: '#critical-alerts'
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '${SLACK_CHANNEL_CRITICAL}'
         title: '[CRITICAL] {{ .GroupLabels.alertname }}'
         text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
         send_resolved: true
-    discord_configs:
-      - webhook_url: '${DISCORD_WEBHOOK_URL:https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK}'
-        title: '[CRITICAL] {{ .GroupLabels.alertname }}'
-        description: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-  
+
   - name: 'warning-alerts'
     email_configs:
-      - to: 'team@trading-system.com'
+      - to: '${ALERT_EMAIL_TO}'
         headers:
           Subject: '[WARNING] {{ .GroupLabels.alertname }}'
     slack_configs:
-      - api_url: '${SLACK_WEBHOOK_URL:https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK}'
-        channel: '#warning-alerts'
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '${SLACK_CHANNEL_WARNING}'
         title: '[WARNING] {{ .GroupLabels.alertname }}'
         text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
         send_resolved: true
-  
+
   - name: 'info-alerts'
     email_configs:
-      - to: 'team@trading-system.com'
+      - to: '${ALERT_EMAIL_TO}'
         headers:
           Subject: '[INFO] {{ .GroupLabels.alertname }}'
 
@@ -89,7 +98,7 @@ inhibit_rules:
     target_match:
       severity: 'warning'
     equal: ['component', 'alertname']
-  
+
   # If critical alert is firing, inhibit info alerts for same component
   - source_match:
       severity: 'critical'

@@ -171,6 +171,7 @@ class AISignalBot:
                 prom_server = MetricsExporter()
                 await prom_server.start_server(port=9090)
                 self.logger.info("Prometheus metrics server running on port 9090")
+                self.exchange.set_reconnect_handler(prom_server.record_ws_reconnect)
             except (OSError, RuntimeError, ConnectionError) as e:
                 self.logger.warning("Prometheus metrics server failed to start: %s", e)
 

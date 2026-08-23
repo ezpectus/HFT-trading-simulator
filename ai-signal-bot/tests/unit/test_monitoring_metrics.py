@@ -187,6 +187,7 @@ def test_metrics_exporter_has_alert_metrics(exporter: MetricsExporter) -> None:
     assert hasattr(exporter, "bot_win_rate")
     assert hasattr(exporter, "bot_pnl_total")
     assert hasattr(exporter, "bot_uptime_seconds")
+    assert hasattr(exporter, "ws_reconnects_total")
 
 
 def test_record_signal_sent(exporter: MetricsExporter) -> None:
@@ -259,3 +260,10 @@ def test_set_bot_uptime(exporter: MetricsExporter) -> None:
     if not HAS_PROMETHEUS:
         pytest.skip("prometheus_client not installed")
     exporter.set_bot_uptime(3600.0)
+
+
+def test_record_ws_reconnect(exporter: MetricsExporter) -> None:
+    """record_ws_reconnect should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.record_ws_reconnect()

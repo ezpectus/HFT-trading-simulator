@@ -1,15 +1,30 @@
 """Health check endpoint for Exchange Simulator.
 
 Provides HTTP health check endpoint for monitoring and orchestration.
+
+.. deprecated::
+    This module is not used in production. The WebSocket server
+    (websocket_server.py) already provides /health, /live, /ready,
+    and /metrics endpoints via aiohttp on port+10 (default 8775).
+    This module will be removed in a future release.
 """
 import logging
 import os
 import sys
 import time
+import warnings
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, PlainTextResponse
+
+warnings.warn(
+    "exchange_simulator.health is deprecated — the WebSocket server "
+    "(websocket_server.py) already provides /health, /live, /ready, /metrics "
+    "on port 8775. This module will be removed in a future release.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 logger = logging.getLogger(__name__)
 
