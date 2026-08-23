@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка L: DynamicPositionSizer kelly delegation + portfolio_optimizer deprecation)
+
+### Changed
+- `position_sizing.py`: `kelly_criterion_sizing` now delegates to `KellyPositionSizer.calculate()` instead of reimplementing Kelly formula — removed `_calc_kelly_fraction` static method
+- `risk/portfolio_optimizer.py`: Added `DeprecationWarning` in `__init__` — module is duplicate of `src.portfolio.markowitz/black_litterman/risk_parity`, kept only for test compatibility
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка K: asyncio.Lock + persistent DB + copula O(n log n))
 
 ### Changed

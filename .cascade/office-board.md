@@ -353,8 +353,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | run.py: duplicate entry points | 3 backtest scripts. Consolidate to run.py --backtest | CODE_AUDIT §8.1295 |
 | strategies: EnsembleVoter averages SL/TP across votes | Meaningless price levels. Use highest-confidence signal's SL/TP | CODE_AUDIT §8.1298 |
 | marketplace: install_from_git executes arbitrary code | No sandboxing. Run in subprocess with restricted permissions | CODE_AUDIT §8.1306 |
-| risk: DynamicPositionSizer duplicates kelly.py | ~200 lines redundant. Remove and use KellyPositionSizer directly | CODE_AUDIT §8.1313 |
-| risk: 2 duplicate PortfolioOptimizer classes | 3 implementations ~900 lines. Keep portfolio/ only | CODE_AUDIT §8.1316, §8.1334 |
+| ~~risk: DynamicPositionSizer duplicates kelly.py~~ [FIXED] | kelly_criterion_sizing now delegates to KellyPositionSizer. Removed _calc_kelly_fraction | CODE_AUDIT §8.1313 |
+| risk: 2 duplicate PortfolioOptimizer classes | 3 implementations ~900 lines. Keep portfolio/ only. risk/portfolio_optimizer.py marked deprecated | CODE_AUDIT §8.1316, §8.1334 |
 | ~~db: new SQLite connection per operation~~ [FIXED] | Replaced with persistent _get_conn() connection | CODE_AUDIT §8.1320 |
 | ~~signal_publisher: _run_backtest blocks event loop~~ [FIXED] | Wrapped bt.run in asyncio.to_thread | CODE_AUDIT §8.1323 |
 | ~~signal_publisher: 3 identical _send closures~~ [FIXED] | Extracted _broadcast_to_clients helper | CODE_AUDIT §8.1324 |

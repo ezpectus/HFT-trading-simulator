@@ -7,6 +7,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from src.risk.kelly import KellyPositionSizer
+
 
 @dataclass
 class PositionSizingResult:
@@ -122,49 +124,37 @@ class DynamicPositionSizer:
                               volatility: float,
                               expected_return: float = 0.15,
                               risk_per_trade: float = 0.02) -> PositionSizingResult:
-        """Calculate position size using Kelly criterion."""
-        risk_free_rate = 0.02
-        kelly_fraction = self._calc_kelly_fraction(expected_return, risk_free_rate, volatility)
-
+        """Calculate position size using Kelly criterion via KellyPositionSizer."""
         if price <= 0 or self.account_value <= 0 or volatility is None or volatility <= 0:
             return PositionSizingResult(
                 position_size=0, position_value=0,
                 risk_amount=0, leverage=0, method='kelly'
             )
 
-        position_value = self.account_value * kelly_fraction
-        position_size = position_value / price
+        kelly = KellyPositionSizer(
+            max_risk_pct=risk_per_trade * 100,
+            max_position_pct=self.max_position_size * 100,
+        )
+        risk_free_rate = 0.02
+        kelly_fraction = max(0.0, min(
+            (expected_return - risk_free_rate) / (volatility ** 2), 0.25
+        ))
+        stop_loss = price * (1 - volatility / np.sqrt(365) * 2)
+        result = kelly.calculate(
+            balance=self.account_value,
+            entry_price=price,
+            stop_loss=stop_loss,
+            confidence=kelly_fraction * 100,
+        )
 
-        max_size = (self.account_value * self.max_position_size) / price
-        position_size = min(position_size, max_size)
+        position_size = result.quantity
         position_value = position_size * price
-
-        daily_volatility = volatility / np.sqrt(365)
-        risk_amount = position_value * daily_volatility * 2
-
-        max_risk = self.account_value * risk_per_trade
-        if risk_amount > max_risk:
-            risk_amount = max_risk
-            denom = price * daily_volatility * 2
-            position_size = risk_amount / denom if denom > 0 else 0.0
-            position_value = position_size * price
-
         leverage = position_value / self.account_value if self.account_value > 0 else 0.0
 
         return PositionSizingResult(
             position_size=position_size, position_value=position_value,
-            risk_amount=risk_amount, leverage=leverage, method='kelly'
+            risk_amount=result.risk_amount, leverage=leverage, method='kelly'
         )
-
-    @staticmethod
-    def _calc_kelly_fraction(
-        expected_return: float, risk_free_rate: float, volatility: float | None,
-    ) -> float:
-        """Calculate Kelly fraction floored at 0 and capped at 0.25."""
-        if volatility is None or volatility <= 0:
-            return 0.0
-        kelly_fraction = (expected_return - risk_free_rate) / (volatility ** 2)
-        return max(0.0, min(kelly_fraction, 0.25))
 
     def adjust_for_correlation(self, position_sizes: np.ndarray,
                              correlation_matrix: np.ndarray) -> np.ndarray:

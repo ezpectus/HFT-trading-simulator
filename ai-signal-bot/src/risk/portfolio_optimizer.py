@@ -1,5 +1,9 @@
 """Portfolio optimization — Markowitz, Black-Litterman, Kelly criterion, risk parity.
 
+.. deprecated::
+    Use src.portfolio.markowitz, src.portfolio.black_litterman, src.portfolio.risk_parity instead.
+    This module is kept only for backward compatibility with tests.
+
 Features:
 - Markowitz efficient frontier
 - Black-Litterman with strategy views
@@ -12,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import math
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -40,6 +45,12 @@ class PortfolioOptimizer:
     """Portfolio optimization with multiple methods."""
 
     def __init__(self, risk_free_rate: float = 0.02, rebalance_threshold: float = 0.05):
+        warnings.warn(
+            "src.risk.portfolio_optimizer is deprecated. Use src.portfolio.markowitz, "
+            "src.portfolio.black_litterman, src.portfolio.risk_parity instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.risk_free_rate = risk_free_rate
         self.rebalance_threshold = rebalance_threshold  # 5% deviation triggers rebalance
         self.current_weights: dict[str, float] = {}
