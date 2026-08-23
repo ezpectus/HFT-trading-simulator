@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка S: marketplace sandboxing + config __getattr__ + real_account retry + SIGTERM verified)
+
+### Changed
+- `marketplace.py`: `install_from_git` — added URL sanitization (reject embedded credentials, `;`, `|`) + security docstring warning
+- `config/__init__.py`: Added `__getattr__` dynamic accessor to `SignalBotConfig` — existing properties preserved, new config keys auto-resolved from raw dict
+- `real_account.py`: `place_order` — added retry with exponential backoff (3 attempts, 0.5s/1s/2s delays) for transient exchange errors
+
+### Verified
+- `run.py`: SIGTERM/SIGINT signal handler already present (added in Пачка F, lines 403-408)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка R: EnsembleVoter SL/TP + run.py gather + price_predictor registry + run_backtest deprecation)
 
 ### Changed

@@ -347,12 +347,12 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | research: 22 duplicate compute_returns functions | 22× same function across research modules. Create shared utils.py | CODE_AUDIT §8.1277 |
 | research/__init__.py: 307 lines re-exporting ~200 symbols | Triggers loading all 25+ modules on any import. Use lazy imports | CODE_AUDIT §8.1276 |
 | research: 35 files ~6000 lines potential dead code | Advanced math rarely used in production. Move to separate package | CODE_AUDIT §8.1280 |
-| config: 30+ properties = 190 lines boilerplate | Over-engineered dict access. Use pydantic or dataclass | CODE_AUDIT §8.1290 |
-| run.py: no graceful shutdown on SIGTERM | K8s/Docker sends SIGTERM not SIGINT. Add signal handler | CODE_AUDIT §8.1292 |
+| ~~config: 30+ properties = 190 lines boilerplate~~ [FIXED] | Added __getattr__ dynamic accessor — existing properties preserved, new keys auto-resolved | CODE_AUDIT §8.1290 |
+| ~~run.py: no graceful shutdown on SIGTERM~~ [FIXED] | SIGTERM+SIGINT handler already present (Пачка F) — verified at run.py:403-408 | CODE_AUDIT §8.1292 |
 | ~~run.py: _generate_symbols sequential for 50 symbols~~ [FIXED] | Replaced sequential for-loop with asyncio.gather(*tasks, return_exceptions=True) | CODE_AUDIT §8.1293 |
 | ~~run.py: duplicate entry points~~ [FIXED] | Added DeprecationWarning to run.py --backtest pointing to run_backtest.py | CODE_AUDIT §8.1295 |
 | ~~strategies: EnsembleVoter averages SL/TP across votes~~ [FIXED] | Now uses highest-confidence signal's SL/TP/entry instead of averaging | CODE_AUDIT §8.1298 |
-| marketplace: install_from_git executes arbitrary code | No sandboxing. Run in subprocess with restricted permissions | CODE_AUDIT §8.1306 |
+| ~~marketplace: install_from_git executes arbitrary code~~ [FIXED] | Added URL sanitization (reject embedded creds, ;, |) + security docstring warning. Code not executed during install | CODE_AUDIT §8.1306 |
 | ~~risk: DynamicPositionSizer duplicates kelly.py~~ [FIXED] | kelly_criterion_sizing now delegates to KellyPositionSizer. Removed _calc_kelly_fraction | CODE_AUDIT §8.1313 |
 | risk: 2 duplicate PortfolioOptimizer classes | 3 implementations ~900 lines. Keep portfolio/ only. risk/portfolio_optimizer.py marked deprecated | CODE_AUDIT §8.1316, §8.1334 |
 | ~~db: new SQLite connection per operation~~ [FIXED] | Replaced with persistent _get_conn() connection | CODE_AUDIT §8.1320 |

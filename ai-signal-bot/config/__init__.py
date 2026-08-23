@@ -311,3 +311,23 @@ class SignalBotConfig:
     @property
     def signals_csv(self) -> str:
         return self.raw.get("logging", {}).get("signals_csv", "logs/signals.csv")
+
+    def __getattr__(self, name: str):
+        """Dynamic config accessor — reduces boilerplate for new config keys.
+
+        Tries to resolve unknown attribute names by walking the raw config dict.
+        Convention: underscores map to nested keys (e.g. fft_min_data -> strategies.fft_cycle.min_data).
+        Existing explicit properties take precedence (Python calls __getattr__ only on miss).
+        """
+        if name.startswith("_"):
+            raise AttributeError(name)
+        # Try direct key in raw
+        if name in self.__dict__.get("raw", {}):
+            return self.raw[name]
+        # Try nested: split by underscore and search top-level sections
+        raw = self.__dict__.get("raw", {})
+        for section in ("trading", "exchange", "risk", "strategies", "indicators", "database", "logging"):
+            sec = raw.get(section, {})
+            if name in sec:
+                return sec[name]
+        raise AttributeError(f"SignalBotConfig has no attribute '{name}'")

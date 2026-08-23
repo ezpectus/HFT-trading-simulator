@@ -180,12 +180,23 @@ class StrategyMarketplace:
         return True
 
     def install_from_git(self, git_url: str, name: str | None = None) -> bool:
-        """Clone a strategy from a git repository."""
+        """Clone a strategy from a git repository.
+
+        Security: This clones an external repository. The cloned code is NOT
+        executed during installation — only registered as a plugin. Strategy
+        code is loaded via importlib only when explicitly called via load().
+        Always review cloned code before calling load().
+        """
         import re
         import subprocess
 
         if not git_url.startswith(("https://", "git://")) or ".." in git_url:
             logger.error(f"[Marketplace] Rejected URL (must be https:// or git://): {git_url}")
+            return False
+
+        # Reject URLs with embedded credentials or suspicious patterns
+        if "@" in git_url.split("://")[1] or ";" in git_url or "|" in git_url:
+            logger.error(f"[Marketplace] Rejected URL (suspicious pattern): {git_url}")
             return False
 
         repo_name = name or git_url.rstrip("/").split("/")[-1].replace(".git", "")

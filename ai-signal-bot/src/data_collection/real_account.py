@@ -264,45 +264,55 @@ class RealAccountManager:
         self, symbol: str, side: str, quantity: float,
         order_type: str = "market", price: float | None = None,
         leverage: int = 1, stop_loss: float | None = None,
-        take_profit: float | None = None
+        take_profit: float | None = None,
+        max_retries: int = 3,
     ) -> dict | None:
-        """Place an order on the exchange."""
+        """Place an order on the exchange with retry on transient errors."""
         if not self._exchange:
             return None
         if quantity <= 0:
             logger.error(f"[RealAccount] Invalid quantity: {quantity}")
             return None
-        try:
-            if self._leverage_cache.get(symbol) != leverage:
-                await self.set_leverage(symbol, leverage)
-                self._leverage_cache[symbol] = leverage
-            params = {}
-            if stop_loss:
-                params["stopLossPrice"] = stop_loss
-            if take_profit:
-                params["takeProfitPrice"] = take_profit
 
-            order = await self._exchange.create_order(
-                symbol=symbol,
-                type=order_type,
-                side=side,
-                amount=quantity,
-                price=price,
-                params=params,
-            )
-            logger.info(f"[RealAccount] Order placed: {side} {quantity} {symbol} @ {order_type}")
-            return {
-                "order_id": str(order.get("id", "")),
-                "symbol": symbol,
-                "side": side,
-                "type": order_type,
-                "quantity": quantity,
-                "price": price or 0,
-                "status": order.get("status", ""),
-            }
-        except (OSError, RuntimeError, KeyError, ValueError) as e:
-            logger.error(f"[RealAccount] Failed to place order: {e}")
-            return None
+        if self._leverage_cache.get(symbol) != leverage:
+            await self.set_leverage(symbol, leverage)
+            self._leverage_cache[symbol] = leverage
+        params = {}
+        if stop_loss:
+            params["stopLossPrice"] = stop_loss
+        if take_profit:
+            params["takeProfitPrice"] = take_profit
+
+        for attempt in range(max_retries):
+            try:
+                order = await self._exchange.create_order(
+                    symbol=symbol,
+                    type=order_type,
+                    side=side,
+                    amount=quantity,
+                    price=price,
+                    params=params,
+                )
+                logger.info(f"[RealAccount] Order placed: {side} {quantity} {symbol} @ {order_type}")
+                return {
+                    "order_id": str(order.get("id", "")),
+                    "symbol": symbol,
+                    "side": side,
+                    "type": order_type,
+                    "quantity": quantity,
+                    "price": price or 0,
+                    "status": order.get("status", ""),
+                }
+            except (OSError, RuntimeError, KeyError, ValueError) as e:
+                if attempt < max_retries - 1:
+                    delay = 0.5 * (2 ** attempt)  # 0.5s, 1s, 2s
+                    logger.warning(
+                        f"[RealAccount] Order attempt {attempt+1}/{max_retries} failed: {e} — retrying in {delay}s"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"[RealAccount] Failed to place order after {max_retries} attempts: {e}")
+                    return None
 
     async def cancel_order(self, order_id: str, symbol: str) -> bool:
         """Cancel an open order."""
