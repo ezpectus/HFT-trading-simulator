@@ -1639,3 +1639,13 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R1082 | validator: _recent_signals cleanup O(N) per validate | `validator.py:113` | Low | 50 comparisons per validate. Periodic cleanup |
 | R1083 | validator: daily reset uses wall clock not trading day | `validator.py:46` | Low | 24h from last reset not UTC midnight. Use date() comparison |
 | R1084 | validator: drawdown check uses realized PnL only | `validator.py:98` | Low | Unrealized PnL not included. Track equity not just realized |
+| R1085 | ai-signal-bot/strategies/strategies.py | `strategies.py` | ✅ Good | 4 strategies ensemble voting circuit breaker FFT cycle |
+| R1086 | strategies: EnsembleVoter averages SL/TP | `strategies.py:326` | Low | Averaging price levels across strategies. Use most conservative |
+| R1087 | strategies: continuation confidence 45 < min 65 | `strategies.py:100` | Low | Dead code. Raise above 65 or remove |
+| R1088 | strategies: no candle schema validation | `strategies.py:49` | Low | KeyError on missing close. Use .get() or validate schema |
+| R1089 | ai-signal-bot/risk/var.py | `var.py` | ✅ Good | 3 methods multi-level backtest Kupiec test |
+| R1090 | var.py: Monte Carlo non-deterministic RNG | `var.py:85` | Low | np.random.normal global state. Use default_rng(seed) |
+| R1091 | var.py: parametric assumes normal distribution | `var.py:56` | Low | Fat tails underestimated. Use Student-t or Cornish-Fisher |
+| R1092 | var.py: backtest_var O(N×window) | `var.py:125` | Low | 250K comparisons for 5yr. Use rolling incremental updates |
+| R1093 | ai-signal-bot/risk/kelly.py | `kelly.py` | ✅ Good | Kelly formula safety adjustments position capping trade history |
+| R1094 | kelly.py: max_position_pct defaults to 200% | `kelly.py:59` | Low | 2× leverage by default. Default to 100% unless configured |

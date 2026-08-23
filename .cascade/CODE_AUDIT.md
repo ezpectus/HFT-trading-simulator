@@ -15053,3 +15053,154 @@ def _check_drawdown(self, signal: Signal, account_balance: float) -> ValidationR
 The drawdown check uses `_daily_pnl` which is updated via `update_pnl()` — this tracks realized PnL only. Unrealized PnL (from open positions) is not included. If the bot has 3 open positions with -$500 unrealized and $0 realized, the drawdown check passes (0% drawdown). But the actual drawdown is 5% ($500 / $10000). New signals are allowed, increasing risk.
 
 **Фикс:** Include unrealized PnL in the drawdown calculation. Or track equity (balance + unrealized) and compute drawdown from that.
+
+### 8.1099 ai-signal-bot/src/strategies/strategies.py: Trading Strategies — ✅ Good
+
+**Файл:** `ai-signal-bot/src/strategies/strategies.py` (472 lines)
+
+- **TrendFollowingStrategy**: EMA crossover + ADX filter, crossover + continuation signals — correct
+- **MeanReversionStrategy**: RSI + Bollinger Bands, ATR-based SL — correct
+- **EnsembleVoter**: Majority/weighted voting, min votes, circuit breaker, single-pass accumulation — correct
+- **FFTCycleStrategy**: 3 regimes (trending/ranging/mixed), cycle phase signals — correct
+- **Re-exports**: Signal, SignalDirection, CircuitBreaker for backward compat — correct
+
+Good strategies module with 4 strategies, ensemble voting, circuit breaker integration, and FFT cycle detection. ✅
+
+### 8.1100 strategies: EnsembleVoter averages SL/TP across strategies — Low
+
+**Файл:** `strategies.py:326-334`
+
+```python
+inv_count = 1.0 / winner_count
+return Signal(
+    symbol=first_actionable.symbol,
+    direction=direction,
+    confidence=round(winner_agg[0] * inv_count, 1),
+    strategy=self.name,
+    entry_price=winner_agg[1] * inv_count,
+    stop_loss=winner_agg[2] * inv_count,
+    take_profit=winner_agg[3] * inv_count,
+    reason=f"Ensemble ({', '.join(winner_strategies)}): {winner_count} votes",
+)
+```
+
+The ensemble averages entry_price, stop_loss, and take_profit across all winning strategies. If strategy A has SL at $64,000 and strategy B has SL at $62,000, the ensemble SL is $63,000. This may be tighter than strategy B intended and looser than strategy A intended. Averaging price levels across strategies with different risk profiles produces a signal that none of the individual strategies would produce.
+
+**Фикс:** Use the first actionable signal's SL/TP, or use the most conservative (tightest SL, lowest TP), or use the highest-confidence strategy's SL/TP.
+
+### 8.1101 strategies: TrendFollowing confidence can exceed 95 — Low
+
+**Файл:** `strategies.py:82-84`
+
+```python
+return Signal(symbol, SignalDirection.LONG, min(95, 50 + adx_val),
+              self.name, price, price - 2 * atr_val, price + 3 * atr_val,
+              f"EMA{self.ema_fast}>EMA{self.ema_slow} cross, ADX={adx_val:.1f}")
+```
+
+Confidence is `min(95, 50 + adx_val)`. ADX can theoretically reach 100, so `50 + 100 = 150`, capped at 95. The `min(95, ...)` cap is correct. But the continuation signal at line 100 uses a fixed confidence of 45, which is below the validator's `min_confidence` of 65. So continuation signals are always rejected by the validator. This makes the continuation logic dead code.
+
+**Фикс:** Either raise the continuation confidence above 65, or remove the continuation logic if it's intentionally below threshold.
+
+### 8.1102 strategies: no candle schema validation — Low
+
+**Файл:** `strategies.py:49, 141, 365`
+
+```python
+closes = [c["close"] if isinstance(c, dict) else c.close for c in candles]
+```
+
+Accesses `c["close"]` or `c.close` without validating the candle schema. If a candle is missing the "close" key (e.g., malformed WebSocket data), `c["close"]` raises `KeyError`. The `isinstance(c, dict)` check only differentiates dict vs object, not whether the key exists.
+
+**Фикс:** Use `c.get("close", 0) if isinstance(c, dict) else getattr(c, "close", 0)`, or validate the candle schema before passing to strategies.
+
+### 8.1103 ai-signal-bot/src/risk/var.py: VaR Calculator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/var.py` (178 lines)
+
+- **3 methods**: Historical, parametric, Monte Carlo — correct
+- **VaRResult dataclass**: var_value, confidence_level, time_horizon, method — correct
+- **Time scaling**: Square root of time rule — correct
+- **Multiple levels**: 95%, 99%, 99.9% — correct
+- **Backtest**: Rolling window, violation count, Kupiec test — correct
+- **Kupiec test**: Likelihood ratio with edge cases (0 violations, all violations) — correct
+
+Good VaR calculator with 3 methods, multi-level support, backtesting, and Kupiec test. ✅
+
+### 8.1104 var.py: Monte Carlo uses non-deterministic RNG — Low
+
+**Файл:** `var.py:85`
+
+```python
+simulated_returns = np.random.normal(mean, std, n_simulations)
+```
+
+`np.random.normal` uses the global RNG state, which is non-deterministic. Two runs with the same input data produce different VaR values. This makes backtesting and debugging difficult — the same trade history produces different risk estimates.
+
+**Фикс:** Use `np.random.default_rng(seed)` with a fixed seed, or accept a `rng` parameter.
+
+### 8.1105 var.py: parametric VaR assumes normal distribution — Low
+
+**Файл:** `var.py:56-63`
+
+```python
+mean = np.mean(returns)
+std = np.std(returns)
+z_score = stats.norm.ppf(1 - cl)
+var_scaled = mean * th + z_score * std * np.sqrt(th)
+```
+
+The parametric method assumes returns are normally distributed. Crypto returns have fat tails (kurtosis > 3) and skewness. The normal distribution underestimates tail risk. A 99% VaR with normal assumption may correspond to a 95% VaR with actual distribution.
+
+**Фикс:** Use Student's t-distribution with estimated degrees of freedom, or use Cornish-Fisher expansion for fat tails.
+
+### 8.1106 var.py: backtest_var O(N × window) — Low
+
+**Файл:** `var.py:125-131`
+
+```python
+for i in range(window_size, len(returns)):
+    window_returns = returns[i - window_size:i]
+    var = self._compute_window_var(window_returns, var_result)
+```
+
+The backtest iterates `len(returns) - window_size` times, each computing VaR on a `window_size`-length array. With 1 year of daily returns (252) and window=252, that's 1 iteration. With 5 years (1260), that's 1008 iterations, each computing `np.percentile` on 252 elements. Total: ~250K comparisons. Not terrible for offline use, but slow for real-time.
+
+**Фикс:** Use rolling window with incremental updates (update mean/std with new observation, remove oldest).
+
+### 8.1107 ai-signal-bot/src/risk/kelly.py: Kelly Position Sizer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/kelly.py` (183 lines)
+
+- **Kelly formula**: f* = (p*b - q) / b — correct
+- **Safety adjustments**: Kelly fraction, confidence scaling, min/max risk — correct
+- **Position capping**: Max notional, max position % — correct
+- **from_trade_history**: Factory method with min_trades guard — correct
+- **Edge case handling**: No edge (Kelly <= 0), invalid SL, avg_loss = 0 — correct
+
+Good Kelly position sizer with safety adjustments, position capping, and trade history factory. ✅
+
+### 8.1108 kelly.py: max_position_pct defaults to 200% — Low
+
+**Файл:** `kelly.py:59`
+
+```python
+max_position_pct: float = 200.0, # max % of balance for position notional
+```
+
+`max_position_pct = 200.0` means the position notional can be 2× the account balance. This implies 2× leverage. For a $10,000 account, the max position is $20,000. If the exchange doesn't support leverage or the bot isn't configured for it, this will cause order rejection.
+
+**Фикс:** Default to 100% (no leverage) unless leverage is explicitly configured. Or make leverage a separate config parameter.
+
+### 8.1109 kelly.py: from_trade_history accesses t.pnl — Low
+
+**Файл:** `kelly.py:169-174`
+
+```python
+wins = [t for t in trades if t.pnl > 0]
+losses = [t for t in trades if t.pnl < 0]
+```
+
+Accesses `t.pnl` without validating the trade object schema. If `trades` contains dicts instead of objects (e.g., from DB rows), `t.pnl` raises `AttributeError`. The method doesn't check the type of `t`.
+
+**Фикс:** Use `getattr(t, "pnl", 0) if not isinstance(t, dict) else t.get("pnl", 0)`, or document the expected type.
