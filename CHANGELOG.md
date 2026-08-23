@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка E: logging consolidation)
+
+### Changed
+- Removed `setup_logging` and `JsonFormatter` from `src/utils/helpers.py` (50 lines)
+- Updated `src/utils/__init__.py` to remove `setup_logging` and `JsonFormatter` from exports
+- Updated `scripts/migrate.py`: `from src.utils.helpers import setup_logging` → `from src.observability.logging import setup_logging, get_logger`
+- Logging setups reduced from 3 to 2: `run_logger.py` (per-run file logging) + `src/observability/logging.py` (structured logging)
+- Net reduction: ~50 lines
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка B: __init__.py re-export cleanup)
 
 ### Changed

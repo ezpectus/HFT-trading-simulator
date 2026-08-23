@@ -14,7 +14,8 @@ _bot_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _bot_root not in sys.path:
     sys.path.insert(0, _bot_root)
 
-from src.utils.helpers import get_env, setup_logging  # noqa: E402
+from src.observability.logging import get_logger, setup_logging  # noqa: E402
+from src.utils.helpers import get_env  # noqa: E402
 
 MIGRATIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                "src", "database", "migrations")
@@ -22,7 +23,8 @@ MIGRATIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__
 
 async def run_migrations(args):
     """Run database migrations."""
-    logger = setup_logging(level="INFO")
+    setup_logging(level="INFO")
+    logger = get_logger("migrate")
 
     try:
         import asyncpg

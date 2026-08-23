@@ -502,6 +502,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | 4 | 2026-08-25 | research/__init__.py упрощение — 287 строк → 3 строки, удалены ~200 re-export, теперь только compute_returns и quantize из _common. Никто не импортировал из src.research как пакет | ✅ Done | — |
 | 5 | 2026-08-25 | Пачка A — удаление дедкода: metrics.py (292), tracing.py (204), scripts/run_bot.py (58), scripts/run_backtest.py (108). Все 4 файла никто не импортировал. 662 строки удалено | ✅ Done | — |
 | 6 | 2026-08-25 | Пачка B — __init__.py реэкспорты: technical_analysis/__init__.py (249→0), ml/__init__.py (81→0). bot_helpers.py: from src.technical_analysis import → from src.technical_analysis.indicators import. ~330 строк удалено | ✅ Done | — |
+| 7 | 2026-08-25 | Пачка E — Logging консолидация: удалены setup_logging и JsonFormatter из helpers.py (50 строк), обновлён utils/__init__.py, migrate.py переведён на observability.logging. 3 logging setup → 2 (run_logger + observability) | ✅ Done | — |
 | 5 | 2026-08-26 | Аудит unused research модулей | ⏳ Pending | — |
 | 6 | 2026-08-27 | backtester.py упрощение | ⏳ Pending | — |
 | 7 | 2026-08-28 | strategies.py cleanup | ⏳ Pending | — |

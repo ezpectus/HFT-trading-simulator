@@ -2,63 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import os
-import sys
 import time
-from datetime import UTC, datetime
 from typing import Any  # Any: env var defaults may be str|int|float|bool
-
-
-def setup_logging(level: str = "INFO", format_type: str = "json",
-                  log_file: str | None = None) -> logging.Logger:
-    """Configure structured logging."""
-    log_level = getattr(logging, level.upper(), logging.INFO)
-    root_logger = logging.getLogger()
-    root_logger.setLevel(log_level)
-
-    # Remove existing handlers
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
-
-    if format_type == "json":
-        formatter = JsonFormatter()
-    else:
-        formatter = logging.Formatter(
-            "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
-    root_logger.addHandler(handler)
-
-    if log_file:
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(formatter)
-        root_logger.addHandler(file_handler)
-
-    return logging.getLogger("ai-signal-bot")
-
-
-class JsonFormatter(logging.Formatter):
-    """JSON log formatter for structured logging."""
-
-    def format(self, record: logging.LogRecord) -> str:
-        log_entry = {
-            "timestamp": datetime.now(UTC).isoformat(),
-            "level": record.levelname,
-            "logger": record.name,
-            "message": record.getMessage(),
-            "module": record.module,
-            "line": record.lineno,
-        }
-        if record.exc_info and record.exc_info[1]:
-            log_entry["exception"] = str(record.exc_info[1])
-        if hasattr(record, "extra_data"):
-            log_entry["data"] = record.extra_data
-        return json.dumps(log_entry, default=str)
 
 
 def load_config(config_path: str = "config/settings.yaml") -> dict:
