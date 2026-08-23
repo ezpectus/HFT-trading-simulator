@@ -8,6 +8,8 @@ from __future__ import annotations
 import cmath
 import math
 
+import numpy as np
+
 MIN_PRICES = 32
 DEFAULT_MAX_IMFS = 8
 DEFAULT_MAX_ITER = 30
@@ -189,15 +191,8 @@ def _fft(signal: list[float]) -> list[complex]:
 
 
 def _ifft_direct(spectrum: list[complex], n: int) -> list[float]:
-    """Direct DFT-based inverse FFT."""
-    result = [0.0] * n
-    for idx in range(n):
-        total = 0.0
-        for k in range(n):
-            angle = 2 * math.pi * k * idx / n
-            total += spectrum[k].real * math.cos(angle) - spectrum[k].imag * math.sin(angle)
-        result[idx] = total / n
-    return result
+    """Inverse FFT via numpy (replaces O(n²) direct DFT)."""
+    return np.fft.ifft(spectrum, n=n).real.tolist()
 
 
 def hilbert_transform(signal: list[float]) -> dict:

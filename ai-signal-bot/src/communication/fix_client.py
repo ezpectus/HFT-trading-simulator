@@ -176,10 +176,10 @@ class FixSession:
         self._save_seq_nums()
         return msg
 
-    async def connect(self, host: str, port: int):
-        """Establish TCP connection."""
+    async def connect(self, host: str, port: int, ssl: bool | object = False):
+        """Establish TCP connection. Pass ssl=True or an ssl.SSLContext for TLS."""
         self._reader, self._writer = await asyncio.wait_for(
-            asyncio.open_connection(host, port),
+            asyncio.open_connection(host, port, ssl=ssl),
             timeout=10.0,
         )
         self.state = "CONNECTING"

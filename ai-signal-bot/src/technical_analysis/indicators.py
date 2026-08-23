@@ -15,6 +15,14 @@ except ImportError:
 NAN = float("nan")
 
 
+def validate_prices(prices: list[float]) -> list[float]:
+    """Validate that all values are finite. Raises ValueError on NaN/Inf."""
+    for i, p in enumerate(prices):
+        if not math.isfinite(p):
+            raise ValueError(f"Non-finite value at index {i}: {p}")
+    return prices
+
+
 def _closes(candles: list[dict]) -> list[float]:
     return [c["close"] if isinstance(c, dict) else (c if isinstance(c, (int, float)) else c.close) for c in candles]
 

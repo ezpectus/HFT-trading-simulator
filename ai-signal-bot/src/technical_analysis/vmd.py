@@ -8,6 +8,8 @@ from __future__ import annotations
 import cmath
 import math
 
+import numpy as np
+
 MIN_PRICES = 32
 DEFAULT_K = 4
 DEFAULT_ALPHA = 2000.0
@@ -91,16 +93,8 @@ def _fft(signal: list[float]) -> list[complex]:
 
 
 def _ifft(spectrum: list[complex]) -> list[float]:
-    """Inverse FFT via direct DFT (mirrors UI for moderate sizes)."""
-    n = len(spectrum)
-    time = [0.0] * n
-    for idx in range(n):
-        total = 0.0
-        for k in range(n):
-            angle = 2 * math.pi * k * idx / n
-            total += spectrum[k].real * math.cos(angle) - spectrum[k].imag * math.sin(angle)
-        time[idx] = total / n
-    return time
+    """Inverse FFT via numpy (replaces O(n²) direct DFT)."""
+    return np.fft.ifft(spectrum).real.tolist()
 
 
 def vmd(

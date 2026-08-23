@@ -517,6 +517,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | 19 | 2026-08-25 | Пачка Q — health_checks.py: asyncio.wait_for(timeout=2) on DB+Redis checks. llm_engine/engine.py: asyncio.Semaphore(5) rate limiter on _call_llm. rkhs.py: 45-line jacobi_eig O(N³) → numpy.linalg.eigh (8 lines). model_registry.py: per-impression _save() → _mark_dirty() + flush() | ✅ Done | — |
 | 20 | 2026-08-25 | Пачка R — strategies.py: EnsembleVoter SL/TP averaging → highest-confidence signal's SL/TP. run.py: _generate_signals sequential → asyncio.gather. price_predictor.py: added register_trained_model() for model_registry integration. run.py: run_backtest() DeprecationWarning | ✅ Done | — |
 | 21 | 2026-08-25 | Пачка S — run.py SIGTERM handler verified (already present from Пачка F). marketplace.py: URL sanitization + security docstring. config/__init__.py: added __getattr__ dynamic accessor to reduce property boilerplate. real_account.py: place_order retry with exponential backoff (3 attempts) | ✅ Done | — |
+| 22 | 2026-08-25 | Пачка T — fix_client.py: added ssl parameter to connect() for TLS. vmd.py + emd.py: O(n²) _ifft → numpy.fft.ifft (1 line each). indicators.py: added validate_prices() NaN/Inf guard. ws_connection_pool: verified deleted (Пачка G). Stale office-board items marked [FIXED] | ✅ Done | — |
 | 5 | 2026-08-26 | Аудит unused research модулей | ⏳ Pending | — |
 | 6 | 2026-08-27 | backtester.py упрощение | ⏳ Pending | — |
 | 7 | 2026-08-28 | strategies.py cleanup | ⏳ Pending | — |

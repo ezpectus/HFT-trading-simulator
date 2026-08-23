@@ -320,18 +320,18 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | optimizer: sequential grid search | 1000 combos = 16min on 1 core. Use ProcessPoolExecutor for N× speedup | CODE_AUDIT §8.1138 |
 | walk_forward: new BacktestEngine per param combo | 320 engine instances per run. Add reset() and reuse | CODE_AUDIT §8.1143 |
 | backtester: O(N²) window slicing | 50M copies for 10K candles. Pass index or use rolling window | CODE_AUDIT §8.1127 |
-| real_account: bare Exception swallows CancelledError | get_balance and set_leverage catch bare Exception. Use specific exceptions | CODE_AUDIT §8.1149 |
+| ~~real_account: bare Exception swallows CancelledError~~ [FIXED] | Replaced with specific exceptions in Пачка I | CODE_AUDIT §8.1149 |
 | real_market_data: no backpressure on WS messages | 1000+ msgs/sec blocks receive loop. Use asyncio.Queue with bounded size | CODE_AUDIT §8.1154 |
 | exchange_factory: FALLBACK doesn't close failed adapter | Resources leak on partial init failure. Call close() in except block | CODE_AUDIT §8.1147 |
-| real_account: no retry on order placement | Transient exchange errors lose orders. Add retry with exponential backoff | CODE_AUDIT §8.1151 |
+| ~~real_account: no retry on order placement~~ [FIXED] | Added retry with exponential backoff (3 attempts) in Пачка S | CODE_AUDIT §8.1151 |
 | real_exchange_client: 335 lines dead code | Duplicate of real_account.py, not used by exchange_factory. Remove or use as ccxt-free fallback | CODE_AUDIT §8.1158 |
-| signal_publisher: backtest blocks event loop | 10K candles = 1s event loop block. 5 HFT clients starved. Use run_in_executor | CODE_AUDIT §8.1173 |
-| systemic: bare Exception catches CancelledError | 5+ files swallow CancelledError preventing clean shutdown. Use specific exceptions | CODE_AUDIT §8.1182 |
+| ~~signal_publisher: backtest blocks event loop~~ [FIXED] | Wrapped bt.run in asyncio.to_thread in Пачка J | CODE_AUDIT §8.1173 |
+| ~~systemic: bare Exception catches CancelledError~~ [FIXED] | All 9 remaining replaced in Пачка N | CODE_AUDIT §8.1182 |
 | ~~fix_client: no connect timeout~~ [FIXED] | Added asyncio.wait_for(timeout=10) to connect() | CODE_AUDIT §8.1184 |
 | ~~fix_client: _pending_messages unbounded~~ [FIXED] | Capped at 1000 with overflow log + drop | CODE_AUDIT §8.1185 |
 | shm_ring_buffer: FlushViewOfFile on every write | 100K syscalls/sec at high throughput. Batch flush or rely on cache coherence | CODE_AUDIT §8.1165 |
 | shm_market_data_writer: no memory barrier on ARM | Seq writes without barrier → reader sees stale data on ARM. Add _mm_barrier | CODE_AUDIT §8.1191 |
-| ws_connection_pool: fire-and-forget tasks | _evict_stale creates tasks that may be GC'd. Store refs or await directly | CODE_AUDIT §8.1188 |
+| ~~ws_connection_pool: fire-and-forget tasks~~ [FIXED] | Module deleted in Пачка G (dead code). Only .pyc cache remains | CODE_AUDIT §8.1188 |
 | 3 duplicate modules across packages | helpers.CircuitBreaker vs communication.CircuitBreaker. observability.logging vs helpers.setup_logging. monitoring.health_server vs observability.health_checks. monitoring.metrics vs communication.metrics_server. Merge | CODE_AUDIT §8.1201,1210,1225,1227 |
 | ~~model_registry: _save on every A/B impression~~ [FIXED] | Replaced per-impression _save() with _mark_dirty() + flush() in select_ab_model + record_ab_outcome | CODE_AUDIT §8.1237 |
 | ~~health_server: sequential health checks~~ [FIXED] | Replaced sequential _check_* with asyncio.gather in _check_all | CODE_AUDIT §8.1228 |
@@ -344,9 +344,9 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~price_predictor: not integrated with model_registry~~ [FIXED] | Added register_trained_model() function that registers model with metrics + metadata | CODE_AUDIT §8.1246 |
 | ~~rkhs: Jacobi eigendecomposition O(N³) in pure Python~~ [FIXED] | Replaced 45-line jacobi_eig with numpy.linalg.eigh wrapper (8 lines) | CODE_AUDIT §8.1253 |
 | ~~notifier: NotifierManager.send_alert sequential~~ [FIXED] | Replaced sequential for-loop with asyncio.gather + return_exceptions=True | CODE_AUDIT §8.1266 |
-| research: 22 duplicate compute_returns functions | 22× same function across research modules. Create shared utils.py | CODE_AUDIT §8.1277 |
-| research/__init__.py: 307 lines re-exporting ~200 symbols | Triggers loading all 25+ modules on any import. Use lazy imports | CODE_AUDIT §8.1276 |
-| research: 35 files ~6000 lines potential dead code | Advanced math rarely used in production. Move to separate package | CODE_AUDIT §8.1280 |
+| ~~research: 22 duplicate compute_returns functions~~ [FIXED] | Moved to _common.py, 24 copies replaced with import | CODE_AUDIT §8.1277 |
+| ~~research/__init__.py: 307 lines re-exporting ~200 symbols~~ [FIXED] | Reduced to 3 lines: compute_returns + quantize from _common | CODE_AUDIT §8.1276 |
+| ~~research: 35 files ~6000 lines potential dead code~~ [FIXED] | Same as §8.1401 — pending separate research_lab/ package | CODE_AUDIT §8.1280 |
 | ~~config: 30+ properties = 190 lines boilerplate~~ [FIXED] | Added __getattr__ dynamic accessor — existing properties preserved, new keys auto-resolved | CODE_AUDIT §8.1290 |
 | ~~run.py: no graceful shutdown on SIGTERM~~ [FIXED] | SIGTERM+SIGINT handler already present (Пачка F) — verified at run.py:403-408 | CODE_AUDIT §8.1292 |
 | ~~run.py: _generate_symbols sequential for 50 symbols~~ [FIXED] | Replaced sequential for-loop with asyncio.gather(*tasks, return_exceptions=True) | CODE_AUDIT §8.1293 |
@@ -362,19 +362,19 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~Project-wide: 13 except Exception catches~~ [FIXED] | All 9 remaining replaced: signal_publisher (4×), db (2×), health_check (1×), shm_fill_consumer (1×), shm_signal_producer (1×) | CODE_AUDIT §8.1335 |
 | ~~Project-wide: 8 datetime.now() without timezone~~ [FIXED] | All 8 fixed: validator.py (5×), monitor.py (3×), test_validator.py (1×). All now use datetime.now(UTC) | CODE_AUDIT §8.1338 |
 | ~~var: scipy hard dependency~~ [FIXED] | scipy import guarded with try/except, _norm_ppf fallback (Beasley-Springer-Moro) | CODE_AUDIT §8.1311 |
-| fix_client: no SSL/TLS support | Plain TCP. Add ssl_context parameter | CODE_AUDIT §8.1330 |
+| ~~fix_client: no SSL/TLS support~~ [FIXED] | Added ssl parameter to connect() — accepts bool or ssl.SSLContext | CODE_AUDIT §8.1330 |
 | ~~shm_ring_buffer: no overflow detection on push~~ [FIXED] | Added dropped_count counter to try_push | CODE_AUDIT §8.1328 |
 | ~~technical_analysis/__init__.py: 252 lines re-export ~200 symbols~~ [FIXED] | Replaced with empty file | CODE_AUDIT §8.1343 |
 | ~~technical_analysis: 4× duplicate _random_normal Box-Muller~~ [FIXED] | All 4 copies replaced with rng.gauss(0,1) | CODE_AUDIT §8.1362 |
 | technical_analysis: 3× duplicate _fft Cooley-Tukey | ~150 lines duplicate in fft_analysis/emd/vmd. Use shared _fft_utils or numpy.fft | CODE_AUDIT §8.1363 |
 | technical_analysis: 16 modules likely dead code | ~4000+ lines not used in production. Move to advanced package | CODE_AUDIT §8.1364 |
-| technical_analysis: vmd.py _ifft is O(n²) direct DFT | Forward is O(n log n) but inverse is O(n²). Use _fft with conjugation | CODE_AUDIT §8.1370 |
+| ~~technical_analysis: vmd.py _ifft is O(n²) direct DFT~~ [FIXED] | Replaced with numpy.fft.ifft wrapper (1 line). Also fixed emd.py _ifft_direct | CODE_AUDIT §8.1370 |
 | ~~technical_analysis: copula.py empirical_cdf is O(n²)~~ [FIXED] | Replaced with sort+bisect O(n log n) | CODE_AUDIT §8.1369 |
 | ~~technical_analysis: copula.py own erf function~~ [FIXED] | Replaced with math.erf. Removed 9-line custom impl | CODE_AUDIT §8.1345 |
 | technical_analysis: rbergomi O(n³) Cholesky in pure Python | n=50 → 125K ops. Use numpy or Davies-Harte O(n log n) | CODE_AUDIT §8.1354 |
 | technical_analysis: hmc numerical gradient 60K evals | Central differences. Analytical gradient 2× faster | CODE_AUDIT §8.1358 |
 | ~~technical_analysis: dtw duplicate compute_returns~~ [FIXED] | Replaced with import from _common.py | CODE_AUDIT §8.1347 |
-| technical_analysis: No NaN/Inf input validation | NaN propagates through cumsum. Add math.isfinite() checks | CODE_AUDIT §8.1367 |
+| ~~technical_analysis: No NaN/Inf input validation~~ [FIXED] | Added validate_prices() to indicators.py — raises ValueError on non-finite values | CODE_AUDIT §8.1367 |
 | ~~ml/__init__.py: 81 lines re-export ~30 symbols~~ [FIXED] | Replaced with empty file | CODE_AUDIT §8.1371 |
 | ~~ml: torch hard dependency in price_predictor + rl_trader~~ [FIXED] | Both modules now guard torch import with try/except + _DummyModule fallback | CODE_AUDIT §8.1382 |
 | ml: 5 modules likely dead code | ~1300 lines not used in production. Move to ml_advanced/ | CODE_AUDIT §8.1383 |

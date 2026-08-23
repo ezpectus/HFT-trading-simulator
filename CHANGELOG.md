@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка T: fix_client SSL + vmd/emd numpy ifft + TA NaN/Inf validation + stale items)
+
+### Changed
+- `fix_client.py`: `connect()` — added `ssl` parameter accepting `bool` or `ssl.SSLContext` for TLS support
+- `vmd.py`: `_ifft` — replaced O(n²) direct DFT with `numpy.fft.ifft` wrapper (1 line)
+- `emd.py`: `_ifft_direct` — replaced O(n²) direct DFT with `numpy.fft.ifft` wrapper (1 line)
+- `indicators.py`: Added `validate_prices()` function — raises `ValueError` on NaN/Inf input values
+
+### Verified
+- `ws_connection_pool.py`: Module deleted in Пачка G — only `.pyc` cache remains
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка S: marketplace sandboxing + config __getattr__ + real_account retry + SIGTERM verified)
 
 ### Changed
