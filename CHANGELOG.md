@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка A: dead code deletion)
+
+### Deleted
+- `ai-signal-bot/metrics.py` — 292 lines, duplicate of `src/monitoring/metrics.py`
+- `ai-signal-bot/tracing.py` — 204 lines, duplicate of `src/observability/tracing.py`
+- `ai-signal-bot/scripts/run_bot.py` — 58 lines, stub that doesn't run bot
+- `ai-signal-bot/scripts/run_backtest.py` — 108 lines, duplicate of root `run_backtest.py`
+- Total: 662 lines removed, 0 added
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — research/__init__.py simplification)
 
 ### Changed

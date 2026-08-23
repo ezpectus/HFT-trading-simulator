@@ -399,10 +399,10 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | run.py: no SIGTERM handler | K8s sends SIGTERM not Ctrl+C. Pod killed without cleanup | CODE_AUDIT §8.1416 |
 | run.py: _execute_live_order not implemented | Stub logs warning. Silent failure if paper_trading=False | CODE_AUDIT §8.1417 |
 | run_backtest: sqlite3.connect without context manager | conn.close not in finally. Leaks on exception | CODE_AUDIT §8.1418 |
-| root/metrics.py: duplicate of src/monitoring/metrics.py | 293 lines duplicate. Different class port. Delete root version | CODE_AUDIT §8.1420 |
-| root/tracing.py: duplicate of src/observability/tracing.py | 205 lines duplicate. Different API. Delete root version | CODE_AUDIT §8.1421 |
-| scripts/run_bot.py: stub that doesn't run bot | Only starts SignalPublisher. --strategy ignored. Delete | CODE_AUDIT §8.1424 |
-| scripts/run_backtest.py: duplicate of root run_backtest.py | Different API BacktestEngine vs Backtester. Delete | CODE_AUDIT §8.1425 |
+| ~~root/metrics.py: duplicate of src/monitoring/metrics.py~~ [FIXED] | 293 lines duplicate. Deleted | CODE_AUDIT §8.1420 |
+| ~~root/tracing.py: duplicate of src/observability/tracing.py~~ [FIXED] | 205 lines duplicate. Deleted | CODE_AUDIT §8.1421 |
+| ~~scripts/run_bot.py: stub that doesn't run bot~~ [FIXED] | Deleted. Use run.py | CODE_AUDIT §8.1424 |
+| ~~scripts/run_backtest.py: duplicate of root run_backtest.py~~ [FIXED] | Deleted. Use root run_backtest.py | CODE_AUDIT §8.1425 |
 | run_logger.py: 4th duplicate logging setup | 4 logging setups with different field names. Consolidate | CODE_AUDIT §8.1426 |
 | bot_helpers.py: triggers __init__.py re-export | from src.technical_analysis import adx ema rsi loads all 25 modules. Use direct import | CODE_AUDIT §8.1427 |
 | ws_connection_pool.py: dead code — not used by ws_client | Well-implemented pool but ExchangeClient manages own WS. Integrate or remove | CODE_AUDIT §8.1431 |

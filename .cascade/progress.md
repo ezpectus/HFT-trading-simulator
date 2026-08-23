@@ -500,6 +500,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | 2 | 2026-08-23 | compute_returns дедупликация — создан `src/research/_common.py`, заменены 24 локальные копии (23 research + 1 dtw) на import, удалены 22 aliased re-export из `research/__init__.py`, удалён `dtw_compute_returns` alias из `technical_analysis/__init__.py`. Code review: найден пропущенный radon_nikodym.py. ~75 строк удалено | ✅ Done | e54e240 |
 | 3 | 2026-08-24 | quantize и random_normal дедупликация — добавлены quantize и compute_returns в `_common.py`, 2 копии quantize заменены, 6 копий _random_normal/random_normal заменены на rng.gauss(0,1). ~80 строк удалено | ✅ Done | — |
 | 4 | 2026-08-25 | research/__init__.py упрощение — 287 строк → 3 строки, удалены ~200 re-export, теперь только compute_returns и quantize из _common. Никто не импортировал из src.research как пакет | ✅ Done | — |
+| 5 | 2026-08-25 | Пачка A — удаление дедкода: metrics.py (292), tracing.py (204), scripts/run_bot.py (58), scripts/run_backtest.py (108). Все 4 файла никто не импортировал. 662 строки удалено | ✅ Done | — |
 | 5 | 2026-08-26 | Аудит unused research модулей | ⏳ Pending | — |
 | 6 | 2026-08-27 | backtester.py упрощение | ⏳ Pending | — |
 | 7 | 2026-08-28 | strategies.py cleanup | ⏳ Pending | — |

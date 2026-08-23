@@ -18854,7 +18854,7 @@ Live status dashboard connecting to signal WebSocket (port 8766). Displays real-
 
 **Minor:** `from datetime import datetime` (line 12) — uses `datetime.now()` without timezone. Low impact (display only).
 
-### 8.1420 root/metrics.py — ⚠️ Duplicate of src/monitoring/metrics.py
+### 8.1420 root/metrics.py — duplicate of src/monitoring/metrics.py [FIXED]
 
 **Файл:** `metrics.py` (293 lines)
 
@@ -18862,7 +18862,7 @@ Standalone Prometheus metrics collector (`AISignalBotMetrics` class) with Counte
 
 **Фикс:** Delete `metrics.py` and use `src/monitoring/metrics.py:MetricsExporter` exclusively.
 
-### 8.1421 root/tracing.py — ⚠️ Duplicate of src/observability/tracing.py
+### 8.1421 root/tracing.py — ⚠️ Duplicate of src/observability/tracing.py [FIXED]
 
 **Файл:** `tracing.py` (205 lines)
 
@@ -18890,7 +18890,7 @@ Database migration runner using asyncpg. Creates `schema_migrations` tracking ta
 
 **Minor:** `conn.close()` (line 85) not in finally block — if migration fails, connection leaks.
 
-### 8.1424 scripts/run_bot.py — ⚠️ Dead Code (stub)
+### 8.1424 scripts/run_bot.py — ⚠️ Dead Code (stub) [FIXED]
 
 **Файл:** `scripts/run_bot.py` (59 lines)
 
@@ -18898,7 +18898,7 @@ Stub script that only starts `SignalPublisher` and sleeps. Does NOT run the actu
 
 **Фикс:** Delete this file. Use `run.py` at project root.
 
-### 8.1425 scripts/run_backtest.py — ⚠️ Duplicate of root run_backtest.py
+### 8.1425 scripts/run_backtest.py — ⚠️ Duplicate of root run_backtest.py [FIXED]
 
 **Файл:** `scripts/run_backtest.py` (109 lines)
 
