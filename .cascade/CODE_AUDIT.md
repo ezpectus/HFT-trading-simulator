@@ -9809,3 +9809,285 @@ writer.writerow([
 If `reason` or `symbol` contains a formula (e.g., `=cmd|'/c calc'!A1`), opening the CSV in Excel executes the formula. This is a CSV injection vulnerability. While the data comes from internal sources (strategy engine), a compromised feed could inject malicious formulas.
 
 **Фикс:** Prefix cells starting with `=`, `+`, `-`, `@` with a single quote `'`. Or use `csv.writer` with `quoting=csv.QUOTE_ALL`.
+
+### 8.734 ai-signal-bot/src/observability/health_checks.py: Health checks v2 — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py` (221 lines)
+
+- **3 K8s probes**: liveness (process alive), readiness (deps connected), status (full report) — correct
+- **4 component checks**: WebSocket, TimescaleDB, Redis, exchange — comprehensive
+- **3 status levels**: HEALTHY, DEGRADED, UNHEALTHY — correct
+- **ComponentHealth dataclass**: name, status, latency_ms, details, last_check — structured
+- **Metrics in readiness**: signals_total, orders_total, errors_total, last_signal_age_s, last_order_age_s — observability
+- **Record methods**: record_signal, record_order, record_error — correct
+- **Error handling**: 4-5 exception types per check — resilient
+- **create_health_endpoints**: Factory for aiohttp handlers — clean
+- **HTTP status codes**: 503 for unhealthy, 200 otherwise — K8s compatible
+- **Not configured = HEALTHY**: Returns healthy with "not configured" — sensible default
+
+Excellent health checks v2 with 3 K8s probes, 4 component checks, 3 status levels, metrics, and factory function. ✅
+
+### 8.735 health_checks: no timeout on component checks — Medium
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py:85-99`
+
+```python
+async def check_readiness(self) -> dict[str, Any]:
+    components: list[ComponentHealth] = []
+    components.append(await self._check_ws())
+    components.append(await self._check_db())
+    components.append(await self._check_redis())
+    components.append(await self._check_exchange())
+```
+
+Each component check is awaited sequentially with no timeout. If `_check_db()` hangs (e.g., DB is unresponsive but TCP connection is open), the readiness probe never returns. K8s has a default `timeoutSeconds: 1` for probes — if the check takes >1s, K8s kills the pod. But the check itself blocks the event loop, preventing other tasks (like signal generation) from running.
+
+**Фикс:** Wrap each check in `asyncio.wait_for(self._check_ws(), timeout=1.0)`. Run checks concurrently with `asyncio.gather(*tasks, return_exceptions=True)`.
+
+### 8.736 health_checks: sequential checks not concurrent — Low
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py:89-99`
+
+The 4 component checks are awaited sequentially. With 4 checks each taking ~50ms, the total readiness probe takes ~200ms. Running them concurrently with `asyncio.gather()` would reduce to ~50ms.
+
+**Фикс:** `results = await asyncio.gather(self._check_ws(), self._check_db(), self._check_redis(), self._check_exchange())`.
+
+### 8.737 ai-signal-bot/src/observability/logging.py: Structured logging — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/observability/logging.py` (171 lines)
+
+- **structlog optional**: Falls back to `logging.basicConfig` if not installed — resilient
+- **JSON + console**: JSON for prod, colored console for dev — correct
+- **Correlation IDs**: `merge_contextvars` — distributed tracing support
+- **Service context**: `_add_service_context` adds service name + version — correct
+- **Library noise suppression**: asyncio, websockets, aiohttp → WARNING — correct
+- **File handler**: Optional, always JSON format — correct
+- **bind_context / clear_context**: Contextual fields in async — correct
+- **_configured guard**: Prevents double initialization — correct
+- **cache_logger_on_first_use**: Performance optimization — correct
+
+Excellent structured logging with structlog optional, JSON+console, correlation IDs, service context, library noise suppression, and context binding. ✅
+
+### 8.738 logging: file handler no rotation — Low
+
+**Файл:** `ai-signal-bot/src/observability/logging.py:121`
+
+```python
+file_handler = logging.FileHandler(log_file)
+```
+
+`FileHandler` writes to a single file that grows indefinitely. In a long-running trading bot that logs every signal (50 symbols × 60s interval = ~72k logs/day), the file can grow to GBs. No rotation, no size limit, no time-based rotation.
+
+**Фикс:** Use `logging.handlers.RotatingFileHandler(log_file, maxBytes=100*1024*1024, backupCount=10)` or `TimedRotatingFileHandler`.
+
+### 8.739 logging: root logger handlers.clear() removes all handlers — Low
+
+**Файл:** `ai-signal-bot/src/observability/logging.py:60`
+
+```python
+root_logger = logging.getLogger()
+root_logger.handlers.clear()
+```
+
+`handlers.clear()` removes ALL handlers from the root logger, including any handlers set up by libraries or the application before `setup_logging()` is called. If a library (e.g., aiohttp) set up its own handler, it's silently removed.
+
+**Фикс:** Only remove handlers that were added by this module. Or document that `setup_logging()` must be called before any other logging setup.
+
+### 8.740 ai-signal-bot/src/observability/tracing.py: Distributed tracing — ✅ Good
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py` (111 lines)
+
+- **OpenTelemetry + Jaeger**: OTLP gRPC exporter — correct
+- **Optional**: Falls back to NoopTracer if opentelemetry not installed — resilient
+- **NoopSpan/NoopTracer**: contextmanager-based no-op — correct pattern
+- **Resource**: service.name, service.namespace, service.version — correct
+- **BatchSpanProcessor**: Batches spans for efficient export — correct
+- **AsyncioInstrumentor**: Instruments async operations — correct
+- **shutdown_tracing**: Flushes pending traces — correct
+- **_initialized guard**: Prevents double initialization — correct
+- **Error handling**: ImportError, RuntimeError, OSError, ValueError — resilient
+
+Good distributed tracing with OpenTelemetry, optional fallback, NoopTracer, BatchSpanProcessor, and shutdown. ✅
+
+### 8.741 tracing: OTLP exporter insecure=True — Medium
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py:59`
+
+```python
+exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
+```
+
+`insecure=True` disables TLS for the OTLP gRPC connection. Traces (including signal data, order details, latency metrics) are sent as plaintext to the Jaeger endpoint. If the Jaeger collector is on a different node (common in K8s), traces traverse the network unencrypted.
+
+**Фикс:** Use `insecure=False` with proper TLS certificates. Or ensure Jaeger is on localhost and document the security implication.
+
+### 8.742 tracing: no span attributes for trading data — Low
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py:13-16`
+
+```python
+with tracer.start_as_current_span("generate_signals") as span:
+    span.set_attribute("symbol", symbol)
+    span.set_attribute("strategy", strategy_name)
+```
+
+The docstring shows setting span attributes, but the actual code doesn't set any attributes on spans. Without attributes, traces show only the span name — no symbol, no strategy, no confidence. This makes debugging difficult.
+
+**Фикс:** Add span attributes in key operations: `span.set_attribute("symbol", symbol)`, `span.set_attribute("confidence", confidence)`, `span.set_attribute("direction", direction)`.
+
+### 8.743 ai-signal-bot/src/monitoring/health_server.py: Health server — ✅ Good
+
+**Файл:** `ai-signal-bot/src/monitoring/health_server.py` (153 lines)
+
+- **6 endpoints**: /health, /health/exchange, /health/database, /health/shm, /ready, /live — comprehensive
+- **K8s probes**: /ready (readiness), /live (liveness) — correct
+- **Pluggable checks**: `register_check(name, check_fn)` — flexible
+- **Sync + async checks**: `iscoroutine(result)` check — correct
+- **HTTP status codes**: 503 for unhealthy, 200 otherwise — K8s compatible
+- **Graceful stop**: `stop()` cleans up runner and site — correct
+- **Error handling**: 5 exception types per check — resilient
+
+Good health server with 6 endpoints, K8s probes, pluggable checks, sync+async support, and graceful stop. ✅
+
+### 8.744 health_server: binds to 0.0.0.0 — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/health_server.py:24`
+
+```python
+def __init__(self, port: int = 8080, host: str = "0.0.0.0"):  # nosec: B104
+```
+
+Health server binds to all interfaces. Exposes component health status (exchange, database, SHM) to anyone on the network. An attacker can learn which dependencies are unhealthy and target them.
+
+**Фикс:** Bind to `127.0.0.1` or use K8s ClusterIP service.
+
+### 8.745 health_server: _check_all runs checks sequentially — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/health_server.py:74-78`
+
+```python
+async def _check_all(self) -> dict:
+    exchange = await self._check_exchange()
+    database = await self._check_database()
+    shm = await self._check_shm()
+```
+
+Checks are awaited sequentially. With 3 checks each taking ~50ms, the total takes ~150ms. Running concurrently would reduce to ~50ms.
+
+**Фикс:** `exchange, database, shm = await asyncio.gather(self._check_exchange(), self._check_database(), self._check_shm())`.
+
+### 8.746 ai-signal-bot/src/monitoring/metrics.py: Prometheus metrics exporter — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/monitoring/metrics.py` (239 lines)
+
+- **5 counters**: signals_total, fills_total, orders_sent_total, orders_rejected_total, kill_switch_activations — comprehensive
+- **9 gauges**: current_pnl, daily_pnl, total_equity, drawdown_pct, open_positions, total_exposure, websocket_connected, signal_confidence, kill_switch_active, shm_buffer_size — comprehensive
+- **3 histograms**: signal_latency, order_latency, shm_round_trip_latency with custom buckets — correct
+- **1 summary**: position_hold_time — correct
+- **prometheus_client optional**: `HAS_PROMETHEUS` flag — resilient
+- **aiohttp optional**: `HAS_AIOHTTP` flag — resilient
+- **Custom registry**: `CollectorRegistry()` — isolated
+- **All update methods guard HAS_PROMETHEUS**: Correct — no crash if dep missing
+- **HTTP server**: /metrics + /health endpoints — correct
+- **Graceful stop**: `stop_server()` cleans up runner — correct
+
+Excellent Prometheus metrics exporter with 5 counters, 9 gauges, 3 histograms, 1 summary, optional deps, custom registry, and HTTP server. ✅
+
+### 8.747 metrics: start_server binds to 0.0.0.0 — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/metrics.py:211`
+
+```python
+async def start_server(self, host: str = "0.0.0.0", port: int = 9090):  # nosec: B104
+```
+
+Metrics server binds to all interfaces. Exposes trading metrics (PnL, drawdown, positions, latency) to anyone on the network. An attacker can learn the bot's performance and trading patterns.
+
+**Фикс:** Bind to `127.0.0.1` or use K8s ClusterIP service. Restrict with network policies.
+
+### 8.748 metrics: no metric for circuit breaker state — Low
+
+**Файл:** `ai-signal-bot/src/monitoring/metrics.py:48-53`
+
+The metrics exporter has counters for kill_switch_activations and a gauge for kill_switch_active, but no metric for circuit breaker state or trips. The circuit breaker is a key reliability component — its state should be monitored.
+
+**Фикс:** Add `self.circuit_breaker_state = Gauge("trading_circuit_breaker_state", "Circuit breaker state (0=closed,1=open,2=half_open)")` and `self.circuit_breaker_trips = Counter("trading_circuit_breaker_trips_total", "Circuit breaker trips")`.
+
+### 8.749 ai-signal-bot/run_backtest.py: Backtest runner — ✅ Good
+
+**Файл:** `ai-signal-bot/run_backtest.py` (179 lines)
+
+- **Synthetic data generation**: GBM with drift, volatility, wick simulation — correct
+- **SQLite data source**: Load candles from DB — flexible
+- **3 strategies**: TrendFollowing, MeanReversion, FFTCycle — comprehensive
+- **Multi-strategy backtest**: `run_multi_strategy()` — correct
+- **Optimization**: Grid search with walk-forward validation — correct
+- **Plotting**: Optional `--plot` flag — flexible
+- **CLI args**: argparse with 7 options — user-friendly
+- **Seeded RNG**: `random.Random(seed)` for reproducible synthetic data — correct
+
+Good backtest runner with synthetic data generation, SQLite source, multi-strategy, optimization, walk-forward, and plotting. ✅
+
+### 8.750 run_backtest: SQLite connection not closed on exception — Low
+
+**Файл:** `ai-signal-bot/run_backtest.py:80-89`
+
+```python
+conn = sqlite3.connect(args.db)
+rows = conn.execute(...).fetchall()
+candles = [...]
+conn.close()
+```
+
+If `conn.execute()` or `fetchall()` raises an exception (e.g., table doesn't exist, DB locked), `conn.close()` is never called. The SQLite connection leaks.
+
+**Фикс:** Use `with sqlite3.connect(args.db) as conn:` context manager.
+
+### 8.751 run_backtest: no error handling for missing DB table — Low
+
+**Файл:** `ai-signal-bot/run_backtest.py:80-84`
+
+```python
+conn = sqlite3.connect(args.db)
+rows = conn.execute(
+    "SELECT timestamp, open, high, low, close, volume FROM candles "
+    "WHERE symbol=? ORDER BY timestamp", (args.symbol,)
+).fetchall()
+```
+
+If the `candles` table doesn't exist, `sqlite3.OperationalError: no such table: candles` is raised with a raw traceback. No user-friendly error message.
+
+**Фикс:** Wrap in try/except `sqlite3.OperationalError` and print: `f"Error: Table 'candles' not found in {args.db}. Run data collection first."`.
+
+### 8.752 run_backtest: no walk-forward for MeanReversion — Low
+
+**Файл:** `ai-signal-bot/run_backtest.py:159-174`
+
+Walk-forward validation is only done for TrendFollowing, not MeanReversion. Both strategies are optimized but only one is validated. MeanReversion may overfit its grid search parameters.
+
+**Фикс:** Add walk-forward validation for MeanReversion best params, same as TrendFollowing.
+
+### 8.753 Code reduction: duplicate health check infrastructure — Info
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py` + `ai-signal-bot/src/monitoring/health_server.py` + `ai-signal-bot/src/observability/health_checks.py`
+
+Three separate health check implementations:
+1. `communication/health_check.py` — HealthAggregator (aggregates 3 service endpoints)
+2. `monitoring/health_server.py` — HealthServer (6 endpoints, pluggable checks)
+3. `observability/health_checks.py` — HealthChecker (4 component checks, 3 K8s probes)
+
+All three implement similar functionality: check component health, return JSON, set HTTP status code. They could be unified into a single health check framework with pluggable checks and multiple endpoint styles.
+
+**Reduction potential:** ~150 lines by merging into one framework.
+
+### 8.754 Code reduction: duplicate metrics infrastructure — Info
+
+**Файл:** `ai-signal-bot/src/communication/metrics_server.py` + `ai-signal-bot/src/monitoring/metrics.py`
+
+Two separate metrics implementations:
+1. `communication/metrics_server.py` — MetricsCollector (7 metrics, raw HTTP, no deps)
+2. `monitoring/metrics.py` — MetricsExporter (18 metrics, prometheus_client, aiohttp)
+
+Both expose `/metrics` endpoint with Prometheus format. The lightweight one (no deps) could be a fallback for when prometheus_client is not installed, but they're not connected.
+
+**Reduction potential:** ~100 lines by merging into one with optional prometheus_client.

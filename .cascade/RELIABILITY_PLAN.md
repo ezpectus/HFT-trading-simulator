@@ -1278,3 +1278,24 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R721 | ai-signal-bot/monitoring/tracker.py | `tracker.py` | ✅ Good | 11 fields, 3 properties, CSV loggers, tabulate dashboard |
 | R722 | tracker: CSV loggers open/close file per write | `tracker.py:82` | Low | ~50 opens/min. Keep file open with buffered writer |
 | R723 | tracker: no CSV injection protection | `tracker.py:82` | Low | Formula injection in CSV. Prefix =,+,-,@ with quote |
+| R724 | ai-signal-bot/observability/health_checks.py | `health_checks.py` | ✅ Excellent | 3 K8s probes, 4 component checks, 3 status levels, metrics, factory function |
+| R725 | health_checks: no timeout on component checks | `health_checks.py:85` | Medium | No timeout. DB hang blocks event loop. Use asyncio.wait_for |
+| R726 | health_checks: sequential checks not concurrent | `health_checks.py:89` | Low | 4 checks sequential ~200ms. Use asyncio.gather ~50ms |
+| R727 | ai-signal-bot/observability/logging.py | `logging.py` | ✅ Excellent | structlog optional, JSON+console, correlation IDs, service context, noise suppression |
+| R728 | logging: file handler no rotation | `logging.py:121` | Low | FileHandler grows indefinitely. Use RotatingFileHandler |
+| R729 | logging: root logger handlers.clear() | `logging.py:60` | Low | Removes all handlers. Only remove own handlers |
+| R730 | ai-signal-bot/observability/tracing.py | `tracing.py` | ✅ Good | OpenTelemetry+Jaeger, optional NoopTracer, BatchSpanProcessor, shutdown |
+| R731 | tracing: OTLP exporter insecure=True | `tracing.py:59` | Medium | Disables TLS. Traces plaintext on network. Use insecure=False with certs |
+| R732 | tracing: no span attributes for trading data | `tracing.py:13` | Low | No attributes on spans. Add symbol/strategy/confidence |
+| R733 | ai-signal-bot/monitoring/health_server.py | `health_server.py` | ✅ Good | 6 endpoints, K8s probes, pluggable checks, sync+async, graceful stop |
+| R734 | health_server: binds to 0.0.0.0 | `health_server.py:24` | Low | Exposes health status. Use 127.0.0.1 |
+| R735 | health_server: _check_all runs sequentially | `health_server.py:74` | Low | 3 checks sequential. Use asyncio.gather |
+| R736 | ai-signal-bot/monitoring/metrics.py | `metrics.py` | ✅ Excellent | 5 counters, 9 gauges, 3 histograms, 1 summary, optional deps, custom registry |
+| R737 | metrics: start_server binds to 0.0.0.0 | `metrics.py:211` | Low | Exposes trading metrics. Use 127.0.0.1 |
+| R738 | metrics: no metric for circuit breaker state | `metrics.py:48` | Low | No CB state/trips metric. Add Gauge + Counter |
+| R739 | ai-signal-bot/run_backtest.py | `run_backtest.py` | ✅ Good | Synthetic data, SQLite source, multi-strategy, optimization, walk-forward, plotting |
+| R740 | run_backtest: SQLite connection not closed on exception | `run_backtest.py:80` | Low | No context manager. Use with sqlite3.connect() |
+| R741 | run_backtest: no error handling for missing DB table | `run_backtest.py:80` | Low | Raw OperationalError. Add try/except with user-friendly message |
+| R742 | run_backtest: no walk-forward for MeanReversion | `run_backtest.py:159` | Low | Only TF validated. Add WF for MR best params |
+| R743 | Code reduction: duplicate health check infrastructure | 3 files | Info | 3 health check impls. Merge into one framework. ~150 lines |
+| R744 | Code reduction: duplicate metrics infrastructure | 2 files | Info | 2 metrics impls. Merge with optional prometheus_client. ~100 lines |

