@@ -114,6 +114,7 @@ class KillSwitch {
 
     // Start file-based monitoring thread
     void start_monitoring(int poll_interval_ms = 1000) {
+        stop_monitoring(); // Join any existing thread before starting new one
         monitoring_     = true;
         monitor_thread_ = std::thread(&KillSwitch::monitor_loop, this, poll_interval_ms);
     }

@@ -79,18 +79,21 @@ struct KillSwitchMsg {
 static_assert(sizeof(KillSwitchMsg) == 16, "KillSwitchMsg must be 16 bytes");
 #pragma pack(pop)
 
-// Symbol ID mapping
+// Symbol ID mapping — must match config.yaml trading.symbols order.
+// Used as reference for SHM protocol symbol IDs. Actual runtime mapping
+// is dynamic via symbol_to_id_ unordered_map (supports any symbol count).
 enum class SymbolId : uint8_t {
-    BTC  = 0,
-    ETH  = 1,
-    SOL  = 2,
-    BNB  = 3,
-    XRP  = 4,
-    ADA  = 5,
-    DOGE = 6,
-    AVAX = 7,
-    DOT  = 8,
-    LINK = 9,
+    BTC   = 0,  ETH   = 1,  SOL   = 2,  BNB   = 3,  XRP   = 4,
+    ADA   = 5,  DOGE  = 6,  MATIC = 7,  SHIB  = 8,  DOT   = 9,
+    AVAX  = 10, LINK  = 11, UNI   = 12, ATOM  = 13, LTC   = 14,
+    NEAR  = 15, XLM   = 16, ALGO  = 17, VET   = 18, FIL   = 19,
+    APT   = 20, INJ   = 21, OP    = 22, ARB   = 23, QNT   = 24,
+    ETC   = 25, HBAR  = 26, ICP   = 27, LDO   = 28, GRT   = 29,
+    STX   = 30, AAVE  = 31, MKR   = 32, COMP  = 33, SUSHI = 34,
+    CRV   = 35, INCH1 = 36, SNX   = 37, MANA  = 38, SAND  = 39,
+    AXS   = 40, ENJ   = 41, FTM   = 42, CRO   = 43, GLM   = 44,
+    KAVA  = 45, ROSE  = 46, CELO  = 47, MINA  = 48,
+    MAX_SYMBOL = 49,
 };
 
 // Exchange ID mapping

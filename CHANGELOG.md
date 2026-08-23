@@ -24,6 +24,17 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AJ: KillSwitch thread safety + SymbolId enum expansion)
+
+### Fixed
+- `hft-trade-bot/src/risk/kill_switch.h`: Added `stop_monitoring()` guard in `start_monitoring()` — prevents `std::terminate` on double-start (joinable thread reassignment)
+- `hft-trade-bot/src/ipc/shm_protocol.h`: Expanded `SymbolId` enum from 10 to 50 symbols matching `config.yaml` — added `MAX_SYMBOL` sentinel + documentation comment
+- CODE_AUDIT §8.557 — kill_switch thread join → guard added in `start_monitoring()`
+- CODE_AUDIT §8.838 — SymbolId limited to 10 → expanded to 50 with documentation
+- CODE_AUDIT §8.1012 — order_manager state lock → [N/A] (class doesn't exist in codebase)
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AI: PreTradeRisk blacklist race + prices_cache thread safety)
 
 ### Fixed
