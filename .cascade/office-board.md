@@ -129,9 +129,9 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~No WS message validation~~ [FIXED] | signal_publisher validates JSON object, type field, and whitelist of message types (Пачка EE) | CODE_AUDIT §8.24 |
 | ~~No DB retention/cleanup~~ [FIXED] | Added purge_old_records(max_age_days=90) method — deletes old signals/trades/equity_curve rows + PRAGMA optimize | CODE_AUDIT §8.25 |
 | ~~No auth on health/metrics~~ [FIXED] | HealthServer now accepts auth_token param — if set, requests must include Authorization: Bearer <token> header | CODE_AUDIT §8.27 |
-| Rust unwrap/expect panic | Process crash on runtime failure | CODE_AUDIT §8.29 |
-| Rust no idempotency | Reconnect = exchange can't deduplicate orders | CODE_AUDIT §8.30 |
-| Rust string matching for fills | Fragile, false positives | CODE_AUDIT §8.32 |
+| ~~Rust unwrap/expect panic~~ [FIXED] | Replaced .expect() on runtime creation with match + graceful degradation. Replaced .unwrap() on SystemTime with .unwrap_or_default(). panic=abort changed to panic=unwind | CODE_AUDIT §8.29 |
+| ~~Rust no idempotency~~ [N/A] | seq counter persists across reconnects (declared outside inner loop). Orders include unique seq + timestamp_ns — exchange can deduplicate by seq. No fix needed | CODE_AUDIT §8.30 |
+| ~~Rust string matching for fills~~ [FIXED] | Replaced 4× String::contains() with serde_json::from_str + type/event field extraction. No more false positives from substring matching | CODE_AUDIT §8.32 |
 | ~~No network timeout in config~~ [FIXED] | Added network section to settings.yaml: ws_connect_timeout, ws_recv_timeout, rest_timeout — all configurable without redeploy | CODE_AUDIT §8.36 |
 | ~~No config schema validation~~ [FIXED] | Config validate() already checks required sections, ranges, and now type checks on critical fields | CODE_AUDIT §8.42 |
 | ~~No HFT alert rules~~ [FIXED] | 5 HFT alert rules added to alerts.yml: fill rate, circuit breaker, signal flow, equity drop, candle generation | CODE_AUDIT §8.38 |
@@ -161,7 +161,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~shared_config: hardcoded localhost~~ [FIXED] | Added documentation comments — hosts are dev defaults, override via env vars or Helm values for Docker/K8s | CODE_AUDIT §8.74 |
 | ~~Alertmanager: no silence during deploy~~ [N/A] | Alertmanager has `repeat_interval: 12h` — alerts won't spam on restart. Silencing is operational, not code | CODE_AUDIT §8.78 |
 | ~~Makefile: no C++ tests~~ [FIXED] | Added test-cpp target to Makefile — runs ctest from hft-trade-bot/build. test target now includes test-cpp | CODE_AUDIT §8.84 |
-| Rust panic=abort + unwrap | SystemTime error = immediate C++ host abort | CODE_AUDIT §8.85 |
+| ~~Rust panic=abort + unwrap~~ [FIXED] | panic=abort changed to panic=unwind in Cargo.toml. All .unwrap()/.expect() replaced with graceful fallbacks. SystemTime errors no longer abort C++ host | CODE_AUDIT §8.85 |
 | ~~deploy.sh: no health check exit~~ [FIXED] | Health check now counts healthy services, exits 1 if any unhealthy after 30 retries | CODE_AUDIT §8.89 |
 | ~~deploy.sh: rm -rf before cp~~ [FIXED] | Rollback now copies to data_restored first, only removes old data if cp succeeds — atomic swap | CODE_AUDIT §8.90 |
 | ~~deploy.sh: no backup retention~~ [FIXED] | Backup retention added — keeps only last 5 backups, old ones auto-cleaned after each deploy | CODE_AUDIT §8.92 |

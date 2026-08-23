@@ -82,8 +82,24 @@ impl OrderExecutor {
             .worker_threads(1)
             .enable_all()
             .thread_name("hft-executor")
-            .build()
-            .expect("Failed to create tokio runtime");
+            .build();
+
+        let runtime = match runtime {
+            Ok(rt) => rt,
+            Err(e) => {
+                tracing::error!("Failed to create tokio runtime: {} — executor will be non-functional", e);
+                return Self {
+                    tx,
+                    order_count,
+                    fill_count,
+                    error_count,
+                    latency_sum_ns,
+                    latency_count,
+                    last_order_ts,
+                    _runtime: None,
+                };
+            }
+        };
 
         runtime.spawn(Self::run_loop(
             url,
@@ -174,7 +190,7 @@ impl OrderExecutor {
                                 order.id = seq;
                                 order.timestamp_ns = std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .unwrap()
+                                    .unwrap_or_default()
                                     .as_nanos() as u64;
                                 last_order_ts.store(order.timestamp_ns, Ordering::Relaxed);
 
@@ -247,10 +263,14 @@ impl OrderExecutor {
     }
 
     fn is_fill_message(text: &str) -> bool {
-        text.contains("\"fill\"")
-            || text.contains("\"filled\"")
-            || text.contains("\"order_fill\"")
-            || text.contains("\"type\":\"fill\"")
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(text) {
+            let type_str = val.get("type").and_then(|t| t.as_str()).unwrap_or("");
+            let event_str = val.get("event").and_then(|t| t.as_str()).unwrap_or("");
+            matches!(type_str, "fill" | "filled" | "order_fill")
+                || matches!(event_str, "fill" | "filled" | "order_fill")
+        } else {
+            false
+        }
     }
 
     /// Public wrapper for testing fill detection logic.

@@ -71,6 +71,17 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AO: Rust hft-executor safety + fill detection)
+
+### Fixed
+- `hft-executor/Cargo.toml`: Changed `panic = "abort"` to `panic = "unwind"` — Rust panics no longer abort C++ host process (§8.85)
+- `hft-executor/src/lib.rs`: Replaced `.expect()` on tokio runtime creation with `match` + graceful degradation — returns non-functional executor instead of panicking (§8.29)
+- `hft-executor/src/lib.rs`: Replaced `.unwrap()` on `SystemTime::duration_since` with `.unwrap_or_default()` — clock errors no longer panic (§8.29)
+- `hft-executor/src/lib.rs`: Replaced 4× `String::contains()` fill detection with `serde_json::from_str` + `type`/`event` field extraction — no more false positives from substring matching (§8.32)
+- CODE_AUDIT §8.30 — Rust no idempotency → N/A (seq counter persists across reconnects, orders include unique seq + timestamp_ns)
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AN: metrics_collector per-type locks + stale audit items)
 
 ### Fixed
