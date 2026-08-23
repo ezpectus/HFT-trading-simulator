@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — research/__init__.py simplification)
+
+### Changed
+- **[REFACTOR-03]** Replaced 287-line `research/__init__.py` (re-exporting ~200 symbols from 25+ modules) with 3-line file exporting only `compute_returns` and `quantize` from `_common`
+- No code imports from `src.research` as a package — all imports are from specific submodules
+- Eliminates eager loading of all 25+ research modules on any research submodule import
+- Net reduction: ~284 lines
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — quantize + random_normal deduplication)
 
 ### Changed
