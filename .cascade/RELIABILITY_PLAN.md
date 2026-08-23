@@ -1195,3 +1195,19 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R638 | low_latency: Spinlock no backoff limit | `low_latency.h:47` | Low | Spins indefinitely. Add max spin count + yield() fallback |
 | R639 | low_latency: ObjectPool acquire O(n) | `low_latency.h:153` | Low | Linear scan. Use Treiber stack or accept for small pools |
 | R640 | low_latency: LatencyHistogram atomic double | `low_latency.h:212` | Low | std::atomic<double> not portable. Use atomic<int64_t> + bit_cast |
+| R641 | ai-signal-bot/config/__init__.py | `config/__init__.py` | ✅ Excellent | 5 required sections, 20+ validation rules, errors vs warnings, suspicious values, hard fail |
+| R642 | config: no validation for duplicate symbols | `config/__init__.py:51` | Low | No dedup check. Duplicates cause double-processing. Add set() comparison |
+| R643 | ai-signal-bot/data_collection/real_market_data.py | `real_market_data.py` | ✅ Good | 3 normalized dataclasses, multi-exchange, 3 callbacks, reconnection backoff |
+| R644 | real_market_data: no reconnection state sync | `real_market_data.py:71` | Medium | No gap fill after reconnect. Trades on stale prices. Fetch historical candles |
+| R645 | ai-signal-bot/communication/ws_client.py | `ws_client.py` | ✅ Good | 3 encodings, optional imports, compression, reconnection 5 attempts, trading state |
+| R646 | ws_client: no TLS support | `ws_client.py:77` | Medium | No ssl param. ws:// sends data unencrypted. Add ssl for wss:// |
+| R647 | ws_client: listen() doesn't reconnect | `ws_client.py:99` | Low | ConnectionClosed just logs. Caller must reconnect. Auto-reconnect or document |
+| R648 | ai-signal-bot/communication/shm_ring_buffer.py | `shm_ring_buffer.py` | ✅ Excellent | SPSC lock-free, cross-platform, cache-line aligned, magic validation, __del__ safety |
+| R649 | shm_ring_buffer: no overflow doc on head/tail | `shm_ring_buffer.py:173` | Low | uint64 overflow not documented. Document or add wraparound check |
+| R650 | shm_ring_buffer: FlushViewOfFile every write | `shm_ring_buffer.py:38` | Low | Unnecessary flush for same-machine SHM. Adds 1-10μs latency. Remove |
+| R651 | hft-trade-bot/data/types.h | `types.h` | ✅ Good | 5 structs, 3 enums, helper methods, optional price, side serialization |
+| R652 | types: string_to_side silent default | `types.h:21` | Low | Unknown string → SELL. Case-insensitive + throw or optional<Side> |
+| R653 | types: OrderBook returns 0.0 when empty | `types.h:48` | Low | 0.0 mistaken for real price. Return optional<double> or NaN |
+| R654 | hft-trade-bot/data/aligned_types.h | `aligned_types.h` | ✅ Excellent | alignas(64), static_assert, FastSignal no string, FastOrder 5 kinds, dual clock |
+| R655 | aligned_types: set_symbol no null check | `aligned_types.h:58` | Low | nullptr → UB. Add if (!s) guard |
+| R656 | aligned_types: FastSignal 256 bytes 4 cache lines | `aligned_types.h:118` | Info | Larger than 1 cache line but justified. static_assert documents |

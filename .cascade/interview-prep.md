@@ -3900,3 +3900,78 @@ if cb.is_open:  # Pure read — no side effects
 ```
 
 **Разница:** The bad code has a hidden state transition in `is_open` — reading the property changes `_state` from `"open"` to `"half_open"`. This violates the principle of least surprise: `if cb.is_open:` looks like a read, but it's a write. Multiple reads produce different results: first `True`, second `False`. No lock means concurrent reads from multiple async tasks race on `_state`. With 1000 users, a broken exchange API gets traffic 30s after the circuit opens, without any health check — if the API is still broken, 1000 users get failed requests. The good code separates the read (`is_open` — pure query, no mutation) from the write (`try_reset()` — explicit state transition with lock). `is_open` always returns the same value for the same state — safe to call multiple times. All state changes are protected by `asyncio.Lock` — no races. `try_reset()` is an explicit method call — the developer knows they're changing state. The cost is one extra method (`try_reset`) and a lock. The benefit is predictable behavior: properties are reads, methods are writes, no hidden mutations, no races.
+
+---
+
+## Bad vs Good: Silent Default Side in Trading (C++)
+
+### ❌ Bad Code
+```cpp
+enum class Side { BUY, SELL };
+
+inline Side string_to_side(const std::string& s) {
+    return s == "BUY" ? Side::BUY : Side::SELL;
+}
+
+// Usage:
+Side side = string_to_side(order_json["side"]);  // What if "side" is missing?
+// JSON: {"side": "buy"}  → SELL (lowercase, not "BUY")
+// JSON: {"side": "Buy"}  → SELL (case-sensitive)
+// JSON: {"side": "BYU"}  → SELL (typo)
+// JSON: {"side": ""}     → SELL (empty string)
+// JSON: {}               → SELL (missing field → empty string from json lib)
+```
+
+**What's wrong:**
+- Any string that isn't exactly `"BUY"` defaults to `SELL` — silently, with no error
+- Case-sensitive: `"buy"`, `"Buy"`, `"bUy"` all become `SELL`
+- Typos: `"BYU"` becomes `SELL`
+- Missing fields: if the JSON doesn't have `"side"`, the JSON library returns `""`, which becomes `SELL`
+- In a trading system, a silent wrong side means the bot **buys when it should sell** or vice versa
+- With 1000 users, one malformed JSON from the exchange (missing `"side"` field) causes the bot to sell 1000 BTC positions instead of buying — a $50M+ mistake
+- No log, no error, no exception — the bot silently does the wrong thing
+
+### ✅ Good Code
+```cpp
+#include <algorithm>
+#include <cctype>
+#include <stdexcept>
+#include <string_view>
+
+enum class Side { BUY, SELL };
+
+inline std::string side_to_string(Side s) {
+    return s == Side::BUY ? "BUY" : "SELL";
+}
+
+inline Side string_to_side(std::string_view s) {
+    // Case-insensitive comparison
+    auto to_upper = [](char c) { return static_cast<char>(std::toupper(static_cast<unsigned char>(c))); };
+
+    std::string upper;
+    upper.reserve(s.size());
+    for (char c : s) upper.push_back(to_upper(c));
+
+    if (upper == "BUY")  return Side::BUY;
+    if (upper == "SELL") return Side::SELL;
+
+    // Explicit error — no silent default
+    throw std::invalid_argument(
+        "Unknown side: '" + std::string(s) + "' (expected BUY or SELL)"
+    );
+}
+
+// Usage with error handling:
+try {
+    Side side = string_to_side(order_json.value("side", ""));
+    // If "side" is missing, value() returns "" → throws
+    // If "side" is "buy", case-insensitive → BUY
+    // If "side" is "BYU", throws with clear error
+} catch (const std::invalid_argument& e) {
+    logger.error("Invalid order side: {} — rejecting order", e.what());
+    // Reject the order, don't trade with wrong side
+    return;
+}
+```
+
+**Разница:** The bad code silently defaults any unrecognized string to `SELL`. In a trading system with 1000 users, one malformed JSON (missing `"side"` field, lowercase `"buy"`, or a typo `"BYU"`) causes the bot to sell when it should buy — a $50M+ mistake. The error is silent: no log, no exception, no indication that anything went wrong. The bot happily executes the wrong trade. The good code uses case-insensitive comparison (`"buy"`, `"Buy"`, `"BUY"` all work) and throws `std::invalid_argument` for any unrecognized string. The caller catches the exception, logs the error, and rejects the order — no wrong trade is executed. The cost is a few extra lines (case conversion, throw, try/catch). The benefit is zero silent wrong-side trades — the bot either trades the correct side or rejects the order with a clear error message.

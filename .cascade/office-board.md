@@ -257,3 +257,5 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | risk_manager: not thread-safe | Same position concurrent update races on peak/trough/SL. Use asyncio.Lock per position | CODE_AUDIT §8.596 |
 | helpers: CircuitBreaker not thread-safe | No lock on _failure_count/_state. Race in async. Use asyncio.Lock | CODE_AUDIT §8.649 |
 | tracing: OTLP exporter insecure=True | Disables TLS for trace export. Traces unencrypted in prod. Use insecure=False with certs | CODE_AUDIT §8.653 |
+| real_market_data: no reconnection state sync | No gap fill after reconnect. Trades on stale prices. Fetch historical candles | CODE_AUDIT §8.664 |
+| ws_client: no TLS support | No ssl param. ws:// sends order data unencrypted. Add ssl for wss:// | CODE_AUDIT §8.676 |

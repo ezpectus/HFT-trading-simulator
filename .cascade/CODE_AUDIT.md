@@ -8607,3 +8607,232 @@ while (microseconds < current_min &&
 `min_` and `max_` are `std::atomic<double>`. Not all platforms support atomic operations on `double` natively. On x86-64 this works (via `cmpxchg8b` or `lock cmpxchg16b`), but on ARM32 it may require a lock. Also, CAS on double can have ABA-like issues with NaN values.
 
 **Фикс:** Use `std::atomic<int64_t>` with `bit_cast` or `memcpy` for portable atomic double operations.
+
+### 8.651 ai-signal-bot/config/__init__.py: Config loader — ✅ Excellent
+
+**Файл:** `ai-signal-bot/config/__init__.py` (314 lines)
+
+- **5 required sections**: trading, exchange, risk, strategies, indicators — comprehensive
+- **20+ validation rules**: symbols non-empty, signal_interval ≥ 1, max_open_positions ≥ 1, ws_url required, risk ranges (0, 100], min_confidence [0, 100], min_rr_ratio > 0, SL/TP > 0, ema_fast < ema_slow, rsi_oversold < rsi_overbought, macd_fast < macd_slow — comprehensive
+- **Errors vs warnings**: Errors raise `ValueError`, warnings log only — correct
+- **Suspicious value warnings**: risk > 10%, drawdown > 20%, SL > 10%, positions > 10 — correct
+- **Property-based access**: 20+ properties on `SignalBotConfig` — clean API
+- **Hard fail on errors**: `raise ValueError(f"Invalid config: {len(errors)} error(s)")` — correct
+
+Excellent config loader with 20+ validation rules, errors vs warnings, suspicious value detection, and hard fail on errors. ✅
+
+### 8.652 config: no validation for duplicate symbols — Low
+
+**Файл:** `ai-signal-bot/config/__init__.py:51`
+
+```python
+if not trading.get("symbols"):
+    errors.append("trading.symbols must be a non-empty list")
+```
+
+Only checks that symbols is non-empty. No check for duplicate symbols (e.g., `["BTC/USDT", "BTC/USDT", "ETH/USDT"]`). Duplicates cause double-processing, double signals, and double position entries.
+
+**Фикс:** Add `if len(symbols) != len(set(symbols)): errors.append("Duplicate symbols in trading.symbols")`.
+
+### 8.653 ai-signal-bot/src/data_collection/real_market_data.py: Real market data — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/real_market_data.py` (455 lines)
+
+- **3 normalized dataclasses**: NormalizedTicker, NormalizedCandle, NormalizedOrderBook — comprehensive
+- **Multi-exchange**: Binance, OKX, Bybit — flexible
+- **3 callbacks**: on_ticker, on_candle, on_orderbook — comprehensive
+- **Reconnection**: Exponential backoff with max 30s — correct
+- **Testnet support**: `testnet` flag — useful
+
+Good real market data feed with 3 normalized types, multi-exchange, callbacks, and reconnection. ✅
+
+### 8.654 real_market_data: no reconnection state sync — Medium
+
+**Файл:** `ai-signal-bot/src/data_collection/real_market_data.py:71`
+
+```python
+self._reconnect_delay = 1.0
+self._reconnect_delays: dict[str, float] = {}
+self._max_reconnect_delay = 30.0
+```
+
+After reconnection, the feed doesn't sync missed data. During the disconnect period (up to 30s backoff), market data is lost. The bot may trade on stale prices, leading to incorrect signals and potential losses. There's no mechanism to request historical candles to fill the gap.
+
+**Фикс:** After reconnection, fetch historical candles for the disconnect period and replay them through callbacks.
+
+### 8.655 ai-signal-bot/src/communication/ws_client.py: WebSocket client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py` (215 lines)
+
+- **3 encoding formats**: json (default), msgpack (optional), orjson (optional) — flexible
+- **Optional imports**: `try/except ImportError` for msgpack and orjson — resilient
+- **Compression**: `compression="deflate"` — efficient
+- **Ping**: `ping_interval=10` — keepalive
+- **Max size**: `2**20` (1MB) — DoS protection
+- **Reconnection**: 5 attempts with exponential backoff (1s → 30s) — correct
+- **Trading state**: `_trading_active` flag checked before order submission — correct
+- **Candle history**: `deque(maxlen=200)` — bounded
+
+Good WebSocket client with 3 encodings, optional imports, compression, reconnection, and trading state checks. ✅
+
+### 8.656 ws_client: no TLS support — Medium
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py:77`
+
+```python
+self._ws = await websockets.connect(
+    self.url,
+    ping_interval=10,
+    compression="deflate",
+    max_size=2**20,
+)
+```
+
+No TLS configuration. If `self.url` is `ws://` (not `wss://`), all data (including order details, account info, and trading signals) is sent unencrypted. The `websockets` library supports `ssl` parameter for TLS, but it's not used here.
+
+**Фикс:** Detect `ws://` vs `wss://` and require TLS for production. Add `ssl=ssl.create_default_context()` for `wss://` connections.
+
+### 8.657 ws_client: listen() doesn't reconnect — Low
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py:99-121`
+
+```python
+async def listen(self) -> None:
+    try:
+        async for message in self._ws:
+            ...
+    except websockets.ConnectionClosed:
+        logger.warning("Connection closed by server")
+        self._connected = False
+```
+
+When the connection closes, `listen()` just logs a warning and sets `_connected = False`. It doesn't call `reconnect()`. The caller must detect the disconnection and call `reconnect()` manually. This is easy to forget.
+
+**Фикс:** Call `self.reconnect()` in the `except websockets.ConnectionClosed` block, or document that the caller must reconnect.
+
+### 8.658 ai-signal-bot/src/communication/shm_ring_buffer.py: SHM ring buffer — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py` (285 lines)
+
+- **SPSC lock-free**: Mirror of C++ `ShmRingBuffer<T>` — correct
+- **Cross-platform**: Windows (page-file-backed) + POSIX (`/dev/shm`) — correct
+- **Cache-line aligned**: `OFF_HEAD=64`, `OFF_TAIL=128` — matches C++ layout
+- **Magic validation**: `SHM_MAGIC = 0x484654343253484D` — correct
+- **Capacity validation**: Power-of-2 check + mismatch detection — correct
+- **Element size validation**: Mismatch detection on open — correct
+- **Memory barrier**: `FlushViewOfFile` (Windows) + `msync` (POSIX) — correct
+- **Atomic read/write**: `struct.pack_into`/`unpack_from` with barrier — correct for x86/x64
+- **`__del__` safety**: Early init of `_mm = None`, `_fd = -1` — correct
+- **`nosec: B108`**: Documented `/dev/shm` usage — correct
+
+Excellent SHM ring buffer with cross-platform support, cache-line alignment, magic validation, memory barriers, and `__del__` safety. ✅
+
+### 8.659 shm_ring_buffer: no overflow detection on head/tail — Low
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py:173`
+
+```python
+if head - tail >= self.capacity:
+    return False
+```
+
+`head` and `tail` are `uint64` counters that never wrap (they use `& self._mask` for slot indexing). After ~18.4 quintillion pushes, `head` overflows to 0. In practice, this won't happen (at 1M pushes/sec, it takes ~585 years). But the code doesn't document this assumption.
+
+**Фикс:** Document that overflow is not a concern at realistic push rates, or add a wraparound check.
+
+### 8.660 shm_ring_buffer: FlushViewOfFile on every write — Low
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py:38`
+
+```python
+ctypes.windll.kernel32.FlushViewOfFile(mm._mapped_view, ctypes.c_size_t(8))
+```
+
+On Windows, every `_atomic_write_u64` calls `FlushViewOfFile`, which flushes modified pages to the file. For shared memory between processes on the same machine, this is unnecessary — the OS ensures coherence. The flush adds latency (~1-10μs per call). For HFT, this is significant.
+
+**Фикс:** Remove `FlushViewOfFile` for same-machine shared memory. Only flush if the memory is backed by a file that needs to be visible to other machines (rare for SHM IPC).
+
+### 8.661 hft-trade-bot/src/data/types.h: Core data types — ✅ Good
+
+**Файл:** `hft-trade-bot/src/data/types.h` (92 lines)
+
+- **2 enums**: Side (BUY/SELL), OrderType (MARKET/LIMIT), OrderStatus (5 states) — comprehensive
+- **5 structs**: Candle, OrderBookLevel, OrderBook, Order, Position — comprehensive
+- **Helper methods**: `best_bid()`, `best_ask()`, `spread()`, `mid_price()` on OrderBook — convenient
+- **`std::optional<double>`**: For order price (nullopt = market) — correct
+- **`side_to_string`/`string_to_side`**: Serialization — correct
+
+Good core data types with 5 structs, 3 enums, helper methods, and optional price. ✅
+
+### 8.662 types: string_to_side silent default — Low
+
+**Файл:** `hft-trade-bot/src/data/types.h:21-23`
+
+```cpp
+inline Side string_to_side(const std::string& s) {
+    return s == "BUY" ? Side::BUY : Side::SELL;
+}
+```
+
+Any string that's not "BUY" defaults to `Side::SELL`. If the input is "buy" (lowercase), "Buy", or a typo like "BYU", it silently becomes SELL. In a trading system, a silent wrong side means the bot buys when it should sell or vice versa.
+
+**Фикс:** Add case-insensitive comparison and throw on unknown strings, or return `std::optional<Side>`.
+
+### 8.663 types: OrderBook no empty check on index access — Low
+
+**Файл:** `hft-trade-bot/src/data/types.h:48-51`
+
+```cpp
+double best_bid() const { return bids.empty() ? 0.0 : bids[0].price; }
+double best_ask() const { return asks.empty() ? 0.0 : asks[0].price; }
+```
+
+`best_bid()` and `best_ask()` return 0.0 when the order book is empty. This is a sentinel value that could be mistaken for a real price of $0. In a trading system, a price of 0 could trigger unintended behavior (e.g., division by zero in spread calculations, or a "buy at $0" order).
+
+**Фикс:** Return `std::optional<double>` or use `NaN` as the sentinel for "no data".
+
+### 8.664 hft-trade-bot/src/data/aligned_types.h: Cache-line aligned types — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/data/aligned_types.h` (268 lines)
+
+- **`alignas(64)`**: All hot-path structs — HFT-grade
+- **`static_assert`**: Size verification on AlignedOrderBookLevel (64) and FastSignal (≤256) — correct
+- **FastSignal**: No `std::string`, fixed-size `char[32]` symbol/reason, 6 score fields, `rr_ratio()`, `now_ns()`, `now_epoch_ns()` — HFT-grade
+- **FastOrder**: 5 order kinds (MARKET/IOC/FOK/GTD/POST_ONLY), `char[32]` fields, `expire_at` for GTD — HFT-grade
+- **`set_symbol`/`set_reason`/`set_exchange`**: Safe truncation at 31/47/31 chars — correct
+- **`is_actionable`/`is_long`/`is_short`**: Convenience methods — correct
+- **`dir_str`/`side_str`/`kind_str`**: Serialization — correct
+- **Monotonic vs epoch**: `now_ns()` (steady_clock) vs `now_epoch_ns()` (system_clock) — correct
+
+Excellent cache-line aligned types with `alignas(64)`, `static_assert`, fixed-size buffers, no heap alloc, and dual clock support. ✅
+
+### 8.665 aligned_types: set_symbol no null check — Low
+
+**Файл:** `hft-trade-bot/src/data/aligned_types.h:58-65`
+
+```cpp
+void set_symbol(const char* s) {
+    size_t i = 0;
+    while (s[i] && i < 31) {
+        symbol[i] = s[i];
+        ++i;
+    }
+    symbol[i] = '\0';
+}
+```
+
+No null check on `s`. If `s` is `nullptr`, `s[i]` is undefined behavior. In HFT, this could crash the bot mid-trade.
+
+**Фикс:** Add `if (!s) { symbol[0] = '\0'; return; }` at the start.
+
+### 8.666 aligned_types: FastSignal 256 bytes = 4 cache lines — Info
+
+**Файл:** `hft-trade-bot/src/data/aligned_types.h:118`
+
+```cpp
+static_assert(sizeof(FastSignal) <= 256, "FastSignal should fit in 4 cache lines");
+```
+
+FastSignal is 256 bytes = 4 cache lines. This is larger than ideal for a single SPSC queue element (1 cache line = 64 bytes is optimal). However, the 6 score fields + entry/SL/TP + symbol + reason + timestamp justify the size. The `alignas(64)` ensures no false sharing between queue elements.
+
+**Статус:** Info — acceptable design trade-off. Documented via `static_assert`.
