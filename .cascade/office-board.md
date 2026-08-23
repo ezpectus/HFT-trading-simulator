@@ -259,3 +259,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | tracing: OTLP exporter insecure=True | Disables TLS for trace export. Traces unencrypted in prod. Use insecure=False with certs | CODE_AUDIT §8.653 |
 | real_market_data: no reconnection state sync | No gap fill after reconnect. Trades on stale prices. Fetch historical candles | CODE_AUDIT §8.664 |
 | ws_client: no TLS support | No ssl param. ws:// sends order data unencrypted. Add ssl for wss:// | CODE_AUDIT §8.676 |
+| notifier: Telegram token in URL | Bot token in URL path. Exposed in proxy/debug logs. Redact URLs or use header auth | CODE_AUDIT §8.668 |
+| notifier: no auth for remote commands | Only chat_id check. chat_id not secret. Add command password/PIN | CODE_AUDIT §8.670 |
+| socket_transport: blocking receive loop | Sync while + time.sleep blocks event loop. Use asyncio add_reader | CODE_AUDIT §8.675 |
+| config: API keys in plaintext struct | api_key/api_secret as std::string. Not zeroed on destruction. Use SecureString | CODE_AUDIT §8.681 |

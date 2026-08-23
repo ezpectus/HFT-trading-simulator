@@ -8836,3 +8836,229 @@ static_assert(sizeof(FastSignal) <= 256, "FastSignal should fit in 4 cache lines
 FastSignal is 256 bytes = 4 cache lines. This is larger than ideal for a single SPSC queue element (1 cache line = 64 bytes is optimal). However, the 6 score fields + entry/SL/TP + symbol + reason + timestamp justify the size. The `alignas(64)` ensures no false sharing between queue elements.
 
 **Статус:** Info — acceptable design trade-off. Documented via `static_assert`.
+
+### 8.667 ai-signal-bot/src/notification/notifier.py: Notification system — ✅ Good
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py` (334 lines)
+
+- **2 notifiers**: TelegramNotifier + DiscordNotifier — comprehensive
+- **AlertEvent dataclass**: Normalized event with type/symbol/message/timestamp/data — correct
+- **6 alert types**: fill, sl_tp, position_open, position_close, daily_pnl, error — comprehensive
+- **5 remote commands**: /status, /positions, /close_all, /pause, /resume — useful
+- **Emoji mapping**: Visual differentiation — nice
+- **Chat ID verification**: `chat_id != self.chat_id` — security
+- **Optional import**: `try/except ImportError` for aiohttp — resilient
+- **Polling with offset**: Correct Telegram long-polling — correct
+- **Error handling**: 5 exception types in poll, 3 in command handler — resilient
+- **Graceful stop**: `_poll_task.cancel()` + `await` + `session.close()` — correct
+
+Good notification system with 2 notifiers, 6 alert types, 5 commands, chat ID verification, and optional imports. ✅
+
+### 8.668 notifier: Telegram token in URL — Medium
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py:104`
+
+```python
+url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+```
+
+The bot token is embedded in the URL path. If the HTTP request is logged (by a proxy, load balancer, or debug logging), the token is exposed in the log. An attacker with log access can send arbitrary messages and commands as the bot.
+
+**Фикс:** Use Telegram Bot API header-based authentication if available, or ensure the token is never logged (redact URLs in logging).
+
+### 8.669 notifier: no rate limiting on alerts — Low
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py:89`
+
+```python
+async def send_alert(self, event: AlertEvent):
+    if not self._session:
+        return
+```
+
+No rate limiting on `send_alert()`. If the bot generates many alerts in a short time (e.g., flash crash with 50 symbols all hitting SL), it sends 50+ Telegram messages instantly. Telegram has rate limits (~30 messages/sec, ~20 messages/minute to same chat). Exceeding them causes 429 errors with long bans.
+
+**Фикс:** Add a rate limiter (e.g., `asyncio.Semaphore(5)` + `asyncio.sleep`) or batch alerts into a single message.
+
+### 8.670 notifier: no authentication for remote commands — Medium
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py:138-142`
+
+```python
+if chat_id != self.chat_id:
+    continue
+if text.startswith("/"):
+    await self._handle_command(text)
+```
+
+The only authentication for remote commands is checking `chat_id`. If an attacker knows the `chat_id` (which is not secret — it's visible in Telegram group info), they can send commands like `/close_all` to the bot. The bot token is required to receive messages, but if the token is leaked (e.g., from logs or env vars), the attacker has full control.
+
+**Фикс:** Add a command password or PIN. Require `/close_all PASSWORD` or `/auth PASSWORD` before accepting commands.
+
+### 8.671 ai-signal-bot/src/llm_engine/engine.py: LLM engine — ✅ Good
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py` (394 lines)
+
+- **4 providers**: openai, anthropic, ollama, none (rule-based fallback) — flexible
+- **3 dataclasses**: LLMConfig, MarketContext, LLMAnalysis — comprehensive
+- **3 prompt templates**: market_analysis, signal_explanation, risk_assessment — comprehensive
+- **Cache with TTL**: `cache_ttl_seconds=60` + stale eviction at >100 entries — correct
+- **Rule-based fallback**: No API key → `_rule_based_analysis()` — resilient
+- **Optional import**: `try/except ImportError` for aiohttp — resilient
+- **Env var fallback**: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` — convenient
+- **Timeout**: `timeout_seconds=10.0` — correct
+- **Request/error counters**: `_request_count`, `_error_count` — observability
+
+Good LLM engine with 4 providers, 3 prompt templates, cache with TTL, rule-based fallback, and optional imports. ✅
+
+### 8.672 llm_engine: API key in env var only — Low
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py:86-88`
+
+```python
+self.config.api_key = os.getenv("OPENAI_API_KEY", "")
+```
+
+API keys are loaded from env vars. If the env var is not set, the engine falls back to rule-based analysis. This is correct behavior, but the empty key is stored in `self.config.api_key` as `""`. If `config.api_key` is logged or serialized, the empty string could be misleading.
+
+**Фикс:** Set `self.config.api_key = None` instead of `""` for clearer semantics.
+
+### 8.673 llm_engine: cache key doesn't include regime — Low
+
+**Файл:** `ai-signal-bot/src/llm_engine/engine.py:151`
+
+```python
+cache_key = f"{ctx.symbol}_{round(ctx.price, 2)}"
+```
+
+The cache key is `symbol_price`. If the market regime changes (e.g., trending → ranging) but the price is the same, the cache returns a stale analysis from the old regime. The regime is a key input to the analysis but not part of the cache key.
+
+**Фикс:** Add regime to cache key: `f"{ctx.symbol}_{round(ctx.price, 2)}_{ctx.regime}"`.
+
+### 8.674 ai-signal-bot/src/networking/socket_transport.py: UDP socket transport — ✅ Good
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py` (156 lines)
+
+- **Non-blocking UDP**: `setblocking(False)` — correct
+- **Buffer sizes**: `SO_RCVBUF` + `SO_SNDBUF` = 1MB — configurable
+- **Binary parser**: `[ts_ns:8][sym_len:1][symbol:N][price:8][qty:8][side:1][msg_type:1]` — efficient
+- **6 stats**: packets_rx, packets_tx, bytes_rx, bytes_tx, rx_drops, avg_latency_ns — comprehensive
+- **Error handling**: `BlockingIOError` → 100μs sleep, `OSError`/`struct.error` → rx_drops — correct
+- **`codeql[py/bind-all-interfaces]`**: Documented configurable bind — correct
+
+Good UDP socket transport with non-blocking I/O, configurable buffers, binary parser, and 6 stats. ✅
+
+### 8.675 socket_transport: blocking receive loop — Medium
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py:86-108`
+
+```python
+def start_receive_loop(self, on_packet: Callable[[MarketDataPacket], None]) -> None:
+    self._running = True
+    while self._running:
+        try:
+            data, addr = self._socket.recvfrom(65536)
+            ...
+        except BlockingIOError:
+            time.sleep(0.0001)  # 100μs sleep
+```
+
+The receive loop is synchronous (`while self._running`) with `time.sleep(0.0001)` on `BlockingIOError`. This blocks the entire thread. In an asyncio application, this blocks the event loop. The 100μs sleep means the loop polls 10,000 times/sec when idle, wasting CPU.
+
+**Фикс:** Use `asyncio` with `loop.add_reader(self._socket.fileno(), callback)` for async I/O, or run in a separate thread with `asyncio.to_thread()`.
+
+### 8.676 socket_transport: no packet validation — Low
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py:132-137`
+
+```python
+if len(data) < 27:
+    return None
+ts_ns = struct.unpack_from("!Q", data, 0)[0]
+sym_len = data[8]
+symbol = data[9:9+sym_len].decode("ascii")
+```
+
+The parser checks minimum length (27 bytes) but doesn't validate `sym_len`. If `sym_len` is 255 (max for 1 byte), the parser reads `data[9:264]`, which may be beyond the packet. The `struct.unpack_from("!dd", data, offset)` could read out of bounds.
+
+**Фикс:** Validate `9 + sym_len + 18 <= len(data)` before unpacking.
+
+### 8.677 hft-trade-bot/src/risk/kill_switch.h: Kill switch — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h` (173 lines)
+
+- **3 activation methods**: File trigger, programmatic `activate()`, daily loss auto-trigger — comprehensive
+- **5 reasons**: MANUAL, DAILY_LOSS, MAX_DRAWDOWN, MARGIN_CALL, FILE_TRIGGER — comprehensive
+- **3 callbacks**: cancel_all, close_all, notify — flexible
+- **Atomic activation**: `active_.exchange(true)` — idempotent, prevents double activation
+- **SHM notification**: `KillSwitchMsg` to Python via `try_push()` — correct
+- **File cleanup**: Removes trigger file after FILE_TRIGGER — correct
+- **`is_active()` / `can_trade()`**: `memory_order_acquire` — correct visibility
+- **Destructor**: `~KillSwitch() { stop_monitoring(); }` — RAII
+
+Excellent kill switch with 3 activation methods, 5 reasons, atomic idempotent activation, SHM notification, and RAII. ✅
+
+### 8.678 kill_switch: monitor thread not std::jthread — Low
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h:117`
+
+```cpp
+monitor_thread_ = std::thread(&KillSwitch::monitor_loop, this, poll_interval_ms);
+```
+
+Uses `std::thread` instead of `std::jthread`. If `stop_monitoring()` is not called before the `KillSwitch` object is destroyed, the thread is still running and accesses `this` after destruction — use-after-free. The destructor calls `stop_monitoring()`, but if the thread is still running when `~KillSwitch()` is entered, there's a race between the destructor and the thread.
+
+**Фикс:** Use `std::jthread` (C++20) which auto-joins on destruction, or ensure `stop_monitoring()` is always called before destruction.
+
+### 8.679 kill_switch: init_shm catches all exceptions — Low
+
+**Файл:** `hft-trade-bot/src/risk/kill_switch.h:60-66`
+
+```cpp
+[[nodiscard]] bool init_shm() {
+    try {
+        shm_ = std::make_unique<ShmRingBuffer<ipc::KillSwitchMsg>>(shm_name_, 64, true);
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+```
+
+`catch (...)` catches all exceptions including `std::bad_alloc`. If SHM allocation fails due to OOM, the kill switch silently continues without SHM notification. Python won't be notified on activation. The `[[nodiscard]]` return value is correct, but the caller might ignore it.
+
+**Фикс:** Log the exception in `catch (...)`: `spdlog::error("KillSwitch SHM init failed: {}", e.what());` (use `catch (const std::exception& e)`).
+
+### 8.680 hft-trade-bot/src/core/config.h: Config struct — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/config.h` (204 lines)
+
+- **80+ fields**: Connection, trading, risk, strategies, HFT v2/v3, leverage, pressure, router, adaptive, latency, FFT, logging, AI signal, production, exchanges, IPC/SHM, FIX, DB, Redis, metrics, risk limits — comprehensive
+- **Default values**: All fields have sensible defaults — correct
+- **ExchangeConfig struct**: Per-exchange config (enabled, ws_url, rest_url, api_key, api_secret, passphrase, inst_type, category, fees, rate limits) — comprehensive
+- **3 exchanges**: Binance, OKX, Bybit — flexible
+- **Production risk limits**: max_position_qty, max_total_exposure, daily_loss_limit, max_drawdown_pct, max_orders_per_second, min_margin_ratio, max_leverage — comprehensive
+- **V2 weights**: 6 indicator weights (ema/rsi/obi/vwap/adx/pressure) — configurable
+
+Good config struct with 80+ fields, per-exchange config, production risk limits, and V2 weights. ✅
+
+### 8.681 config: API keys in plaintext struct — Medium
+
+**Файл:** `hft-trade-bot/src/core/config.h:125-126`
+
+```cpp
+std::string api_key;
+std::string api_secret;
+```
+
+API keys and secrets are stored as plaintext `std::string` in the `Config` struct. If the config is logged, serialized, or dumped in a crash report, the secrets are exposed. `std::string` memory is not zeroed on destruction, so secrets remain in memory.
+
+**Фикс:** Use a `SecureString` class that zeroes memory on destruction and redacts in `operator<<`. Or load secrets from environment variables / encrypted storage at use time, not in the config struct.
+
+### 8.682 config: no validation in struct — Low
+
+**Файл:** `hft-trade-bot/src/core/config.h:12-201`
+
+The `Config` struct has 80+ fields with default values but no validation in the struct itself. Validation is in `config_validate.h` (separate file). If someone constructs a `Config` directly (not via `Config::load()`), validation is skipped. Invalid values (e.g., `max_risk_per_trade_pct = -5.0`) could cause incorrect behavior.
+
+**Фикс:** Add a `validate()` method to `Config` and call it in `Config::load()`. Or use a builder pattern that validates on construction.

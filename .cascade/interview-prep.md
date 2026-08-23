@@ -3975,3 +3975,126 @@ try {
 ```
 
 **Разница:** The bad code silently defaults any unrecognized string to `SELL`. In a trading system with 1000 users, one malformed JSON (missing `"side"` field, lowercase `"buy"`, or a typo `"BYU"`) causes the bot to sell when it should buy — a $50M+ mistake. The error is silent: no log, no exception, no indication that anything went wrong. The bot happily executes the wrong trade. The good code uses case-insensitive comparison (`"buy"`, `"Buy"`, `"BUY"` all work) and throws `std::invalid_argument` for any unrecognized string. The caller catches the exception, logs the error, and rejects the order — no wrong trade is executed. The cost is a few extra lines (case conversion, throw, try/catch). The benefit is zero silent wrong-side trades — the bot either trades the correct side or rejects the order with a clear error message.
+
+---
+
+## Bad vs Good: API Keys in Plaintext Config (C++)
+
+### ❌ Bad Code
+```cpp
+struct Config {
+    // Exchange credentials stored as plaintext std::string
+    std::string api_key;
+    std::string api_secret;
+    std::string passphrase;  // OKX only
+    // ... 80+ other fields ...
+};
+
+// Loaded from YAML:
+Config config;
+config.api_key = yaml["api_key"].as<std::string>();      // "abc123secret"
+config.api_secret = yaml["api_secret"].as<std::string>(); // "def456secret"
+
+// Problem 1: Logging
+spdlog::info("Config loaded: api_key={}", config.api_key);
+// → "Config loaded: api_key=abc123secret" — KEY IN LOGS
+
+// Problem 2: Crash dump
+// Core dump contains the Config struct with plaintext keys
+// Anyone with core dump access has exchange API credentials
+
+// Problem 3: Memory not zeroed
+// When Config is destroyed, std::string destructor frees memory
+// but doesn't zero it. Keys remain in heap memory until overwritten.
+// A heap inspection tool can extract them.
+
+// Problem 4: Copy semantics
+Config config2 = config;  // Deep copy of api_key and api_secret
+// Now 2 copies of secrets in memory. config2 goes out of scope,
+// frees memory but doesn't zero. 2 copies of secrets in freed heap.
+```
+
+**What's wrong:**
+- API keys stored as `std::string` — plaintext, no encryption, no redaction
+- `spdlog::info("api_key={}", config.api_key)` logs the key to file — anyone with log access has exchange credentials
+- Core dumps contain the full `Config` struct with plaintext keys — anyone with core dump access can trade on your exchange account
+- `std::string` destructor doesn't zero memory — keys remain in freed heap until overwritten
+- Copy semantics create multiple copies of secrets in memory — each copy is a leak vector
+- With 1000 users, one core dump or log file leak exposes exchange API credentials for ALL users — an attacker can withdraw all funds, place malicious orders, or manipulate prices
+- Exchange API keys typically have withdrawal permissions — this is a $10M+ security risk
+
+### ✅ Good Code
+```cpp
+#include <openssl/crypto.h>  // OPENSSL_cleanse
+#include <spdlog/spdlog.h>
+#include <string>
+
+class SecureString {
+public:
+    SecureString() = default;
+    explicit SecureString(std::string s) : data_(std::move(s)) {}
+
+    ~SecureString() { cleanse(); }
+
+    SecureString(const SecureString&) = delete;            // No copies
+    SecureString& operator=(const SecureString&) = delete; // No copies
+
+    SecureString(SecureString&& other) noexcept : data_(std::move(other.data_)) {
+        other.data_.clear();
+    }
+
+    SecureString& operator=(SecureString&& other) noexcept {
+        if (this != &other) {
+            cleanse();
+            data_ = std::move(other.data_);
+            other.data_.clear();
+        }
+        return *this;
+    }
+
+    const std::string& get() const { return data_; }  // Access only when needed
+    bool empty() const { return data_.empty(); }
+
+    // Redact in logs — never expose the actual value
+    friend std::ostream& operator<<(std::ostream& os, const SecureString&) {
+        return os << "[REDACTED]";
+    }
+
+private:
+    void cleanse() {
+        if (!data_.empty()) {
+            OPENSSL_cleanse(data_.data(), data_.size());  // Zero memory
+            data_.clear();
+        }
+    }
+
+    std::string data_;
+};
+
+struct Config {
+    SecureString api_key;
+    SecureString api_secret;
+    SecureString passphrase;
+    // ... other fields ...
+
+    // Validate without exposing secrets
+    bool has_credentials() const {
+        return !api_key.empty() && !api_secret.empty();
+    }
+};
+
+// Usage:
+Config config;
+config.api_key = SecureString(yaml["api_key"].as<std::string>());
+
+// Safe logging — redacts automatically:
+spdlog::info("Config loaded: api_key={}", config.api_key);
+// → "Config loaded: api_key=[REDACTED]"
+
+// No copies — move-only semantics:
+// Config config2 = config;  // COMPILE ERROR — deleted copy constructor
+
+// Memory zeroed on destruction — no keys in freed heap
+```
+
+**Разница:** The bad code stores API keys as plaintext `std::string` in the `Config` struct. When the config is logged (`spdlog::info("api_key={}", config.api_key)`), the key is written to the log file in plaintext. When the process crashes, the core dump contains the full `Config` struct with plaintext keys. When the `Config` is destroyed, `std::string`'s destructor frees memory but doesn't zero it — keys remain in freed heap until overwritten. Copy semantics (`Config config2 = config`) create multiple copies of secrets in memory, each a leak vector. With 1000 users, one core dump or log file leak exposes exchange API credentials — an attacker can withdraw all funds ($10M+). The good code uses a `SecureString` class that zeroes memory on destruction (`OPENSSL_cleanse`), redacts in logs (`operator<<` returns `[REDACTED]`), and forbids copies (deleted copy constructor/assignment). Keys are only accessible via `get()` when explicitly needed. The cost is a ~30-line `SecureString` class and move-only semantics. The benefit is zero secret exposure in logs, core dumps, or freed memory — even if an attacker gets full access to logs and crash dumps, they can't extract API keys.

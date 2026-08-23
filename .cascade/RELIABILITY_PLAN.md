@@ -1211,3 +1211,19 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R654 | hft-trade-bot/data/aligned_types.h | `aligned_types.h` | ✅ Excellent | alignas(64), static_assert, FastSignal no string, FastOrder 5 kinds, dual clock |
 | R655 | aligned_types: set_symbol no null check | `aligned_types.h:58` | Low | nullptr → UB. Add if (!s) guard |
 | R656 | aligned_types: FastSignal 256 bytes 4 cache lines | `aligned_types.h:118` | Info | Larger than 1 cache line but justified. static_assert documents |
+| R657 | ai-signal-bot/notification/notifier.py | `notifier.py` | ✅ Good | 2 notifiers (Telegram+Discord), 6 alert types, 5 commands, chat ID verify, optional import |
+| R658 | notifier: Telegram token in URL | `notifier.py:104` | Medium | Token in URL path. Exposed in logs. Redact URLs or use header auth |
+| R659 | notifier: no rate limiting on alerts | `notifier.py:89` | Low | No rate limit. Flash crash = 50+ messages. Telegram 429 ban. Add Semaphore |
+| R660 | notifier: no auth for remote commands | `notifier.py:138` | Medium | Only chat_id check. chat_id not secret. Add command password/PIN |
+| R661 | ai-signal-bot/llm_engine/engine.py | `engine.py` | ✅ Good | 4 providers, 3 prompt templates, cache TTL, rule-based fallback, optional import |
+| R662 | llm_engine: API key empty string not None | `engine.py:86` | Low | Empty key stored as "". Use None for clearer semantics |
+| R663 | llm_engine: cache key missing regime | `engine.py:151` | Low | symbol_price only. Regime change = stale cache. Add regime to key |
+| R664 | ai-signal-bot/networking/socket_transport.py | `socket_transport.py` | ✅ Good | Non-blocking UDP, 1MB buffers, binary parser, 6 stats, configurable bind |
+| R665 | socket_transport: blocking receive loop | `socket_transport.py:86` | Medium | Sync while loop + time.sleep blocks event loop. Use asyncio add_reader |
+| R666 | socket_transport: no packet validation | `socket_transport.py:132` | Low | sym_len not validated. OOB read possible. Validate 9+sym_len+18 <= len |
+| R667 | hft-trade-bot/risk/kill_switch.h | `kill_switch.h` | ✅ Excellent | 3 activation methods, 5 reasons, atomic idempotent, SHM notify, RAII |
+| R668 | kill_switch: monitor thread not jthread | `kill_switch.h:117` | Low | std::thread not jthread. Use-after-free risk. Use std::jthread (C++20) |
+| R669 | kill_switch: init_shm catch all exceptions | `kill_switch.h:60` | Low | catch(...) swallows errors. No log. Use catch(const std::exception& e) + log |
+| R670 | hft-trade-bot/core/config.h | `config.h` | ✅ Good | 80+ fields, ExchangeConfig per-exchange, production risk limits, V2 weights |
+| R671 | config: API keys in plaintext struct | `config.h:125` | Medium | api_key/api_secret as std::string. Not zeroed. Use SecureString or env vars |
+| R672 | config: no validation in struct | `config.h:12` | Low | 80+ fields no in-struct validation. Add validate() method or builder pattern |
