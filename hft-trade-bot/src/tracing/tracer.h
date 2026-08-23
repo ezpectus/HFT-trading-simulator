@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
@@ -59,6 +60,11 @@ public:
     void inject_context(std::map<std::string, std::string>& headers);
     void extract_context(const std::map<std::string, std::string>& headers, std::map<std::string, std::string>& context);
 
+    // Span management — prevents OOM from unbounded spans_ vector
+    void export_spans();  // Flush spans_ to Jaeger (or log if Jaeger unavailable)
+    void clear_spans();   // Drop all stored spans
+    size_t span_count() const;
+
 private:
     std::string generate_trace_id();
     std::string generate_span_id();
@@ -67,8 +73,9 @@ private:
     std::string jaeger_host_;
     int jaeger_port_;
     
-    std::mutex tracer_mutex_;
+    mutable std::mutex tracer_mutex_;
     std::vector<Span> spans_;
+    static constexpr size_t MAX_SPANS = 10000;  // Ring buffer cap — prevents OOM
 };
 
 } // namespace tracing

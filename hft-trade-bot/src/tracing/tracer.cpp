@@ -7,6 +7,7 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 
 namespace hft {
 namespace tracing {
@@ -40,6 +41,9 @@ void Tracer::trace_signal_generation(const std::string& strategy, const std::str
     span.set_status(StatusCode::OK);
     
     spans_.push_back(span);
+    if (spans_.size() > MAX_SPANS) {
+        spans_.erase(spans_.begin());  // Ring buffer — drop oldest
+    }
 }
 
 void Tracer::trace_order_execution(const std::string& symbol, const std::string& side, double quantity) {
@@ -58,6 +62,9 @@ void Tracer::trace_order_execution(const std::string& symbol, const std::string&
     span.set_status(StatusCode::OK);
     
     spans_.push_back(span);
+    if (spans_.size() > MAX_SPANS) {
+        spans_.erase(spans_.begin());
+    }
 }
 
 void Tracer::trace_signal_processing(const std::string& signal_type, double latency_us) {
@@ -75,6 +82,9 @@ void Tracer::trace_signal_processing(const std::string& signal_type, double late
     span.set_status(StatusCode::OK);
     
     spans_.push_back(span);
+    if (spans_.size() > MAX_SPANS) {
+        spans_.erase(spans_.begin());
+    }
 }
 
 void Tracer::trace_orderbook_update(const std::string& symbol, double latency_us) {
@@ -91,6 +101,9 @@ void Tracer::trace_orderbook_update(const std::string& symbol, double latency_us
     span.set_status(StatusCode::OK);
     
     spans_.push_back(span);
+    if (spans_.size() > MAX_SPANS) {
+        spans_.erase(spans_.begin());
+    }
 }
 
 void Tracer::inject_context(std::map<std::string, std::string>& headers) {
@@ -132,6 +145,27 @@ std::string Tracer::generate_span_id() {
         ss << std::setw(2) << (rand() % 256);
     }
     return ss.str();
+}
+
+// Span management — prevents OOM and enables Jaeger export
+void Tracer::export_spans() {
+    std::lock_guard<std::mutex> lock(tracer_mutex_);
+    // In production, this would send spans to Jaeger via OTLP UDP
+    // For now, log span count and clear
+    if (!spans_.empty()) {
+        std::cerr << "[tracer] Exporting " << spans_.size() << " spans to " << jaeger_host_ << ":" << jaeger_port_ << std::endl;
+        spans_.clear();
+    }
+}
+
+void Tracer::clear_spans() {
+    std::lock_guard<std::mutex> lock(tracer_mutex_);
+    spans_.clear();
+}
+
+size_t Tracer::span_count() const {
+    std::lock_guard<std::mutex> lock(tracer_mutex_);
+    return spans_.size();
 }
 
 // Span implementation

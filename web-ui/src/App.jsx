@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useCallback, lazy, Suspense, memo } from 'react'
+import PropTypes from 'prop-types'
 import { Activity, Radio, TrendingUp, AlertTriangle, BarChart3, FlaskConical, History, ArrowRightLeft, Bot, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { useExchangeData, useSignalData } from './hooks/useExchangeData'
 import { useMockExchangeData, useMockSignalData, IS_MOCK } from './hooks/useMockData'
@@ -58,6 +59,14 @@ const TabButton = memo(function TabButton({ active, onClick, icon, children, tes
     </button>
   )
 })
+
+TabButton.propTypes = {
+  active: PropTypes.bool.isRequired,
+  onClick: PropTypes.func.isRequired,
+  icon: PropTypes.node,
+  children: PropTypes.node,
+  testId: PropTypes.string,
+}
 
 const PanelFallback = () => (
   <div className="flex items-center justify-center h-full text-gray-500 text-xs">

@@ -3,7 +3,9 @@ import { TIMEFRAMES } from '../utils/timeframes'
 
 const EXCHANGES = ['binance', 'bybit', 'okx']
 
-// Expanded to 50+ cryptocurrency pairs
+// Symbols — must match shared_config.yaml `symbols:` section
+// Vite frontend cannot import YAML at runtime, so symbols are duplicated here.
+// Keep in sync when adding/removing trading pairs.
 const SYMBOLS = [
   'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT',
   'ADA/USDT', 'DOGE/USDT', 'DOT/USDT', 'MATIC/USDT', 'SHIB/USDT',
