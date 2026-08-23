@@ -51,6 +51,15 @@ class HealthServer {
 
     void stop() {
         if (!running_.exchange(false, std::memory_order_relaxed)) return;
+        // Close server socket to unblock accept() in run()
+        if (server_sock_ != kInvalidSocket) {
+#ifdef _WIN32
+            ::closesocket(server_sock_);
+#else
+            ::close(server_sock_);
+#endif
+            server_sock_ = kInvalidSocket;
+        }
         if (thread_.joinable()) thread_.join();
 #ifdef _WIN32
         WSACleanup();
@@ -61,17 +70,17 @@ class HealthServer {
 
   private:
     void run() {
-        socket_t srv = ::socket(AF_INET, SOCK_STREAM, 0);
-        if (srv == kInvalidSocket) {
+        server_sock_ = ::socket(AF_INET, SOCK_STREAM, 0);
+        if (server_sock_ == kInvalidSocket) {
             spdlog::error("Health server: socket() failed");
             return;
         }
 
         int opt = 1;
 #ifdef _WIN32
-        setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
+        setsockopt(server_sock_, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
 #else
-        setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        setsockopt(server_sock_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 #endif
 
         struct sockaddr_in addr;
@@ -80,21 +89,25 @@ class HealthServer {
         addr.sin_addr.s_addr = INADDR_ANY;
         addr.sin_port        = htons(port_);
 
-        if (::bind(srv, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        if (::bind(server_sock_, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
             spdlog::error("Health server: bind() failed on port {}", port_);
 #ifdef _WIN32
-            closesocket(srv);
+            closesocket(server_sock_);
 #else
-            ::close(srv);
+            ::close(server_sock_);
 #endif
+            server_sock_ = kInvalidSocket;
             return;
         }
 
-        ::listen(srv, 4);
+        ::listen(server_sock_, 4);
 
         while (running_.load(std::memory_order_relaxed)) {
-            socket_t client = ::accept(srv, nullptr, nullptr);
-            if (client == kInvalidSocket) continue;
+            socket_t client = ::accept(server_sock_, nullptr, nullptr);
+            if (client == kInvalidSocket) {
+                if (!running_.load(std::memory_order_relaxed)) break;
+                continue;
+            }
 
             // Read request (minimal — just need the first line)
             char buf[512];
@@ -152,10 +165,11 @@ class HealthServer {
         }
 
 #ifdef _WIN32
-        closesocket(srv);
+        closesocket(server_sock_);
 #else
-        ::close(srv);
+        ::close(server_sock_);
 #endif
+        server_sock_ = kInvalidSocket;
     }
 
     std::string build_health_json() {
@@ -165,6 +179,7 @@ class HealthServer {
     }
 
     uint16_t          port_;
+    socket_t          server_sock_{kInvalidSocket};
     std::thread       thread_;
     std::atomic<bool> running_{false};
     SystemMonitor*    monitor_{nullptr};

@@ -54,13 +54,14 @@ class OrderExecutor {
                     int delay = reconnect_delay_.load(std::memory_order_relaxed);
                     spdlog::info("Reconnecting in {}ms...", delay);
                     reconnect_delay_.store(std::min(delay * 2, 30000), std::memory_order_relaxed);
-                    std::thread([this, delay]() {
+                    if (reconnect_thread_.joinable()) reconnect_thread_.join();
+                    reconnect_thread_ = std::thread([this, delay]() {
                         std::this_thread::sleep_for(std::chrono::milliseconds(delay));
                         if (should_reconnect_) {
                             if (ws_thread_.joinable()) ws_thread_.join();
                             do_connect();
                         }
-                    }).detach();
+                    });
                 }
             });
 
@@ -87,6 +88,7 @@ class OrderExecutor {
         if (connected_) {
             client_->close(connection_, websocketpp::close::status::normal, "shutdown");
         }
+        if (reconnect_thread_.joinable()) reconnect_thread_.join();
         if (ws_thread_.joinable()) ws_thread_.join();
         connected_ = false;
     }
@@ -231,6 +233,7 @@ class OrderExecutor {
     std::unique_ptr<WSClient>   client_;
     websocketpp::connection_hdl connection_;
     std::thread                 ws_thread_;
+    std::thread                 reconnect_thread_;
     std::atomic<bool>           connected_{false};
     std::atomic<bool>           should_reconnect_{false};
     std::atomic<int>           reconnect_delay_{1000}; // ms, exponential backoff up to 30s

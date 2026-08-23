@@ -254,7 +254,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~ai-signal-bot: localhost in all configs~~ [FIXED] | ws_url property now checks WS_URL env var first — Docker/K8s can override without modifying YAML | CODE_AUDIT §8.371 |
 | ~~ai-signal-bot: no SIGINT/SIGTERM handler~~ [FIXED] | SIGTERM/SIGINT handler added in Пачка F/S | CODE_AUDIT §8.381 |
 | ~~ai-signal-bot: no database migrations~~ [FIXED] | scripts/migrate.py exists with transaction wrapping (Пачка Y). _init_db uses CREATE TABLE IF NOT EXISTS. Alembic not needed for SQLite | CODE_AUDIT §8.382 |
-| hft-trade-bot: synthetic order book | Fake 10-level book with 1bp spacing, 1.0 qty. No warning. Unrealistic | CODE_AUDIT §8.380 |
+| ~~hft-trade-bot: synthetic order book~~ [FIXED] | Added spdlog::warn on first synthetic book generation — alerts user that fake 10-level book with 1bp spacing is being used | CODE_AUDIT §8.380 |
 | ~~ai-signal-bot db: new connection per operation~~ [FIXED] | Already uses persistent _get_conn() — verified in Пачка AA | CODE_AUDIT §8.363 |
 | ~~Makefile.prod: no migration tracking~~ [FIXED] | schema_migrations table with filename PK + applied_at timestamp — idempotent re-runs | CODE_AUDIT §8.374 |
 | ~~docker-compose: no resource limits~~ [FIXED] | All 6 dev services now have deploy.resources.limits — same as prod compose | CODE_AUDIT §8.385 |
@@ -269,7 +269,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | hft-trade-bot: 3 engine versions loaded | V1/V2/V3 all allocated. V1 never used in hot path. Remove V1 | CODE_AUDIT §8.419 |
 | hft-trade-bot: prices_cache not thread-safe | unordered_map without lock. Data race if multi-threaded. Use shared_mutex | CODE_AUDIT §8.420 |
 | ~~deploy.yml: localhost fallback for VITE_WS~~ [FIXED] | Removed localhost fallback — VITE_WS_EXCHANGE/SIGNALS now empty if GitHub vars not set | CODE_AUDIT §8.412 |
-| hft-executor: avg_latency_ns always 0 | Stats field never populated. No latency measurement implemented | CODE_AUDIT §8.394 |
+| ~~hft-executor: avg_latency_ns always 0~~ [FIXED] | Added latency tracking: last_order_ts atomic + latency_sum_ns/latency_count atomics. Fill receipt computes delta from last order send time | CODE_AUDIT §8.394 |
 | ~~deploy/k8s: only secrets, no manifests~~ [N/A] | Helm chart exists (helm/templates/ with 10+ templates: Deployment, Service, Secret, NetworkPolicy, PDB). deploy/k8s is supplementary | CODE_AUDIT §8.404 |
 | ~~hft-trade-bot: no Dockerfile.prod~~ [N/A] | Dockerfile.prod already exists (50 lines, multi-stage build, healthcheck) — audit item is stale | CODE_AUDIT §8.423 |
 | ~~migrate.py: no transaction wrapping~~ [FIXED] | Each migration wrapped in conn.transaction() — SQL + schema_migrations insert are atomic | CODE_AUDIT §8.436 |

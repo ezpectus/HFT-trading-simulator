@@ -1686,7 +1686,7 @@ The `HealthChecker` class and `create_health_endpoints()` function exist, but gr
 
 **Фикс:** Wire `HealthChecker` into `run.py` startup: create the checker, pass WS/DB/Redis clients, register the aiohttp handlers on the metrics/health server.
 
-### 8.117 C++ order_executor: detached reconnect thread — Medium
+### 8.117 C++ order_executor: detached reconnect thread — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/execution/order_executor.h:57-63`
 
@@ -1812,7 +1812,7 @@ Production-grade order routing:
 
 This is textbook HFT order routing. ✅
 
-### 8.126 C++ health_server: accept() blocks shutdown — Medium
+### 8.126 C++ health_server: accept() blocks shutdown — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/monitoring/health_server.h:95-96`
 
@@ -6025,7 +6025,7 @@ Good exchange base with atomic EMA latency, toxic event tracking, and circuit br
 
 Good order executor with auto-reconnect, manual JSON for zero-alloc, and proper lifecycle. ✅
 
-### 8.452 order_executor: detached reconnect thread — Medium
+### 8.452 order_executor: detached reconnect thread — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/execution/order_executor.h:63`
 
@@ -10266,7 +10266,7 @@ No try/catch around the main loop body. If any function throws (e.g., `ctx.execu
 
 Good config struct with 60+ fields, defaults, per-exchange config, IPC/SHM, FIX, DB, Redis, metrics, and production risk limits. ✅
 
-### 8.766 config.h: API keys in plaintext std::string — Medium
+### 8.766 config.h: API keys in plaintext std::string — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/core/config.h:125-126`
 
@@ -10393,7 +10393,7 @@ Same logic, different variable names. Should be extracted into a `make_synthetic
 
 Good order executor with WebSocket, exponential backoff, manual JSON for HFT, buffer overflow protection, and arbitrage support. ✅
 
-### 8.774 order_executor: detached reconnect thread race condition — Medium
+### 8.774 order_executor: detached reconnect thread race condition — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/execution/order_executor.h:57-63`
 
@@ -10457,7 +10457,7 @@ Good exchange base with EWMA latency tracking, toxic event tracking, auto-disabl
 
 Good Binance adapter with IExchange interface, spinlock protection, HMAC signing, rate limiting, and comprehensive order results. ✅
 
-### 8.778 BinanceAdapter: API keys in plaintext std::string — Medium
+### 8.778 BinanceAdapter: API keys in plaintext std::string — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/exchange/BinanceAdapter.h:28-29`
 

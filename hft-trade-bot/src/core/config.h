@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <optional>
 #include <string>
 #include <vector>
@@ -196,6 +197,21 @@ struct Config {
     // but not currently used by SignalEngineV2::Params. Reserved for future use.
     double v2_min_composite{0.35};
     int    v2_vwap_window{60};
+
+    void clear_secrets() {
+        auto zero = [](std::string& s) {
+            if (!s.empty()) {
+                std::memset(s.data(), 0, s.size());
+                s.clear();
+            }
+        };
+        zero(binance_cfg.api_key);    zero(binance_cfg.api_secret);    zero(binance_cfg.passphrase);
+        zero(okx_cfg.api_key);        zero(okx_cfg.api_secret);        zero(okx_cfg.passphrase);
+        zero(bybit_cfg.api_key);      zero(bybit_cfg.api_secret);      zero(bybit_cfg.passphrase);
+        zero(db_dsn);
+        zero(redis_url);
+        zero(fix_seq_file);
+    }
 
     static Config load(const std::string& path);
 };

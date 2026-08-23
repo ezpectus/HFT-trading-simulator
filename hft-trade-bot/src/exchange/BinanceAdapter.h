@@ -14,6 +14,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -30,6 +31,14 @@ class BinanceAdapter : public ExchangeBase {
         std::string base_url    = "https://fapi.binance.com";
         std::string ws_url      = "wss://fstream.binance.com";
         int         recv_window = 5000;
+
+        void clear_secrets() {
+            auto zero = [](std::string& s) {
+                if (!s.empty()) { std::memset(s.data(), 0, s.size()); s.clear(); }
+            };
+            zero(api_key);
+            zero(api_secret);
+        }
     };
 
     explicit BinanceAdapter(const Config& cfg)
