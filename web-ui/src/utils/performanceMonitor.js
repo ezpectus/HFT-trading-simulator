@@ -5,6 +5,8 @@
 
 import { onCLS, onFID, onLCP, onTTFB, onFCP } from 'web-vitals'
 
+const IS_DEV = import.meta.env?.DEV ?? false
+
 // Performance budgets
 const PERFORMANCE_BUDGETS = {
   LCP: 2500, // Largest Contentful Paint: 2.5s
@@ -182,7 +184,8 @@ export function initPerformanceMonitoring() {
       triggerAlert('LCP', metric.value, PERFORMANCE_BUDGETS.LCP)
     }
     
-    console.log(`[Performance] LCP: ${formatMetric('LCP', metric.value)} (${getRating('LCP', metric.value)})`)
+    // eslint-disable-next-line no-console -- dev-only, gated by IS_DEV
+    if (IS_DEV) console.log(`[Performance] LCP: ${formatMetric('LCP', metric.value)} (${getRating('LCP', metric.value)})`)
   })
 
   // FID - First Input Delay
@@ -194,7 +197,8 @@ export function initPerformanceMonitoring() {
       triggerAlert('FID', metric.value, PERFORMANCE_BUDGETS.FID)
     }
     
-    console.log(`[Performance] FID: ${formatMetric('FID', metric.value)} (${getRating('FID', metric.value)})`)
+    // eslint-disable-next-line no-console -- dev-only, gated by IS_DEV
+    if (IS_DEV) console.log(`[Performance] FID: ${formatMetric('FID', metric.value)} (${getRating('FID', metric.value)})`)
   })
 
   // CLS - Cumulative Layout Shift
@@ -206,7 +210,8 @@ export function initPerformanceMonitoring() {
       triggerAlert('CLS', metric.value, PERFORMANCE_BUDGETS.CLS)
     }
     
-    console.log(`[Performance] CLS: ${formatMetric('CLS', metric.value)} (${getRating('CLS', metric.value)})`)
+    // eslint-disable-next-line no-console -- dev-only, gated by IS_DEV
+    if (IS_DEV) console.log(`[Performance] CLS: ${formatMetric('CLS', metric.value)} (${getRating('CLS', metric.value)})`)
   })
 
   // TTFB - Time to First Byte
@@ -218,7 +223,8 @@ export function initPerformanceMonitoring() {
       triggerAlert('TTFB', metric.value, PERFORMANCE_BUDGETS.TTFB)
     }
     
-    console.log(`[Performance] TTFB: ${formatMetric('TTFB', metric.value)} (${getRating('TTFB', metric.value)})`)
+    // eslint-disable-next-line no-console -- dev-only, gated by IS_DEV
+    if (IS_DEV) console.log(`[Performance] TTFB: ${formatMetric('TTFB', metric.value)} (${getRating('TTFB', metric.value)})`)
   })
 
   // FCP - First Contentful Paint
@@ -230,10 +236,12 @@ export function initPerformanceMonitoring() {
       triggerAlert('FCP', metric.value, PERFORMANCE_BUDGETS.FCP)
     }
     
-    console.log(`[Performance] FCP: ${formatMetric('FCP', metric.value)} (${getRating('FCP', metric.value)})`)
+    // eslint-disable-next-line no-console -- dev-only, gated by IS_DEV
+    if (IS_DEV) console.log(`[Performance] FCP: ${formatMetric('FCP', metric.value)} (${getRating('FCP', metric.value)})`)
   })
 
-  console.log('[Performance] Monitoring initialized')
+  // eslint-disable-next-line no-console -- dev-only, gated by IS_DEV
+  if (IS_DEV) console.log('[Performance] Monitoring initialized')
 }
 
 /**

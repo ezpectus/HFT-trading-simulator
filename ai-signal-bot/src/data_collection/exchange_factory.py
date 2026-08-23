@@ -40,8 +40,8 @@ class ExchangeAdapter(Protocol):
 class SimulatorAdapter:
     """Exchange adapter wrapping the exchange simulator."""
 
-    def __init__(self, simulator_url: str = "ws://localhost:8765", sim_prices: dict[str, float] | None = None):
-        self.simulator_url = simulator_url
+    def __init__(self, simulator_url: str | None = None, sim_prices: dict[str, float] | None = None):
+        self.simulator_url = simulator_url or os.environ.get("WS_URL", "ws://localhost:8765")
         self._connected = False
         self.name = "simulator"
         self._sim_prices: dict[str, float] = sim_prices or {}
@@ -168,14 +168,14 @@ class ExchangeFactory:
                  exchange: str = "binance",
                  api_key: str = "", api_secret: str = "",
                  testnet: bool = False,
-                 simulator_url: str = "ws://localhost:8765",
+                 simulator_url: str | None = None,
                  symbols: list[str] | None = None):
         self.mode = mode
         self.exchange = exchange
         self.api_key = api_key or os.environ.get("EXCHANGE_API_KEY", "")
         self.api_secret = api_secret or os.environ.get("EXCHANGE_API_SECRET", "")
         self.testnet = testnet
-        self.simulator_url = simulator_url
+        self.simulator_url = simulator_url or os.environ.get("WS_URL", "ws://localhost:8765")
         self.symbols = symbols or []
         self._adapter: ExchangeAdapter | None = None
         self._simulator_adapter: SimulatorAdapter | None = None

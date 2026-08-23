@@ -5,6 +5,7 @@ Also sends trading signals to the HFT Trade Bot via a separate WebSocket connect
 import asyncio
 import json
 import logging
+import os
 import random
 from collections import deque
 from collections.abc import Callable
@@ -33,8 +34,8 @@ class ExchangeClient:
     Sends orders when paper trading is disabled.
     """
 
-    def __init__(self, url: str = "ws://localhost:8765", encoding: str = "json", ssl: bool | object = None):
-        self.url = url
+    def __init__(self, url: str | None = None, encoding: str = "json", ssl: bool | object = None):
+        self.url = url or os.environ.get("WS_URL", "ws://localhost:8765")
         self._ssl = ssl
         self._encoding = encoding if (encoding == "msgpack" and _HAS_MSGPACK) else "json"
         self._ws: websockets.WebSocketClientProtocol | None = None

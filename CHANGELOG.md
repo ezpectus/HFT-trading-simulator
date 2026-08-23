@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-26 (Refactoring — Пачка BD: audit cleanup #002/#004/#013/#026)
+
+### Fixed
+- **Audit #002**: Deleted `exchange_simulator/tracing.py` (248 lines dead code, 0 imports)
+- **Audit #004**: `exchange_simulator/metrics.py` — already deprecated with DeprecationWarning, marked [FIXED]
+- **Audit #013**: Hardcoded `ws://localhost:8765` — `ws_client.py` and `exchange_factory.py` now check `WS_URL` env var first
+- **Audit #026**: `performanceMonitor.js` — 6 `console.log` calls gated behind `IS_DEV` flag (`import.meta.env.DEV`)
+
+### Deleted
+- `exchange_simulator/tracing.py` (248 lines)
+
 ## [Unreleased] — 2026-08-26 (Refactoring — Пачка BC: Reliability Task 10/11 — metric name unification)
 
 ### Fixed
