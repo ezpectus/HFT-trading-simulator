@@ -87,7 +87,8 @@ class CVaRCalculator:
         n_simulations = 10000
         mean = np.mean(returns)
         std = np.std(returns)
-        simulated = np.random.normal(mean, std, n_simulations)
+        rng = np.random.default_rng(seed=42)
+        simulated = rng.normal(mean, std, n_simulations)
         var_threshold = var_result.var_value / np.sqrt(th)
         tail_returns = simulated[simulated < var_threshold]
         cvar = np.mean(tail_returns) if len(tail_returns) > 0 else var_result.var_value

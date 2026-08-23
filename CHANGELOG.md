@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AQ: Kelly + CVaR + stress test fixes)
+
+### Fixed
+- `ai-signal-bot/src/risk/kelly.py`: `max_position_pct` default 200→100 (no leverage by default, §8.1108)
+- `ai-signal-bot/src/risk/kelly.py`: `from_trade_history` uses `get`/`getattr` for safe trade object access — supports both dicts and objects (§8.1109)
+- `ai-signal-bot/src/risk/cvar.py`: Monte Carlo CVaR uses deterministic `np.random.default_rng(seed=42)` — reproducible results (§8.1115)
+- `ai-signal-bot/src/risk/stress_test.py`: FTX crypto shock 0.05→0.75 (25% drop matches actual FTX collapse, not 95% Luna-like, §8.1119)
+
+### Changed
+- CODE_AUDIT §8.1111 — risk_parity hardcodes 2% stop loss → [N/A] (design choice, documented assumption)
+- CODE_AUDIT §8.1112 — Kelly uses continuous formula → [N/A] (different use case from discrete Kelly, both available)
+- CODE_AUDIT §8.1113 — daily_volatility uses sqrt(365) → [N/A] (correct for crypto markets)
+- CODE_AUDIT §8.1116 — parametric CVaR assumes normal → [N/A] (documented limitation, historical method available)
+- CODE_AUDIT §8.1117 — Hill estimator edge case → [N/A] (degenerate case handled, inf is mathematically correct)
+- CODE_AUDIT §8.1121 — no short position support → [N/A] (PnL formula `sum(shocked * positions)` already handles shorts)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AP: Validator + strategies + var.py fixes)
 
 ### Fixed

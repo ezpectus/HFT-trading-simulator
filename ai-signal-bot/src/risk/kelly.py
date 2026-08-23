@@ -56,7 +56,7 @@ class KellyPositionSizer:
         kelly_fraction: float = 0.5,    # 0.5 = half-Kelly
         max_risk_pct: float = 5.0,      # max % of balance to risk per trade
         min_risk_pct: float = 0.5,      # minimum risk per trade
-        max_position_pct: float = 200.0, # max % of balance for position notional
+        max_position_pct: float = 100.0, # max % of balance for position notional
     ):
         self.win_rate = win_rate
         self.avg_win = avg_win
@@ -166,12 +166,13 @@ class KellyPositionSizer:
             logger.info(f"Insufficient trades ({len(trades)} < {min_trades}), using defaults")
             return KellyPositionSizer(kelly_fraction=kelly_fraction, max_risk_pct=max_risk_pct)
 
-        wins = [t for t in trades if t.pnl > 0]
-        losses = [t for t in trades if t.pnl < 0]
+        wins = [t for t in trades if (t.get("pnl", 0) if isinstance(t, dict) else getattr(t, "pnl", 0)) > 0]
+        losses = [t for t in trades if (t.get("pnl", 0) if isinstance(t, dict) else getattr(t, "pnl", 0)) < 0]
 
         win_rate = len(wins) / len(trades) if trades else 0.5
-        avg_win = sum(t.pnl for t in wins) / len(wins) if wins else 0
-        avg_loss = abs(sum(t.pnl for t in losses) / len(losses)) if losses else 1
+        _pnl = lambda t: t.get("pnl", 0) if isinstance(t, dict) else getattr(t, "pnl", 0)
+        avg_win = sum(_pnl(t) for t in wins) / len(wins) if wins else 0
+        avg_loss = abs(sum(_pnl(t) for t in losses) / len(losses)) if losses else 1
 
         return KellyPositionSizer(
             win_rate=win_rate,

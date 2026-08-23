@@ -924,3 +924,508 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 - Cheat sheet: модальное окно со всеми шорткатами (press ?)
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/CommandPalette.jsx` (новый), `web-ui/src/hooks/useKeyboardShortcuts.js` (новый), `web-ui/src/stores/useShortcutStore.js` (новый)
+
+### WD-31: Technical Indicators Library — chart overlays
+**Описание:** Библиотека индикаторов для наложения на candlestick chart.
+- Доступные индикаторы (toggle on/off, настроить параметры):
+  - Trend: SMA, EMA, WMA, VWMA, Hull MA, Supertrend, Parabolic SAR, Ichimoku Cloud
+  - Momentum: RSI, MACD, Stochastic, CCI, Williams %R, ROC, MFI, TSI
+  - Volatility: Bollinger Bands, Keltner Channel, ATR, Standard Deviation, Choppiness Index
+  - Volume: OBV, VWAP, Accumulation/Distribution, CMF, Volume Oscillator, Money Flow Index
+  - Custom: FFT Cycle, Kalman Filter, GARCH bands, Hurst Exponent line
+- Каждый индикатор: параметры (period, source, multiplier), цвет, толщина линии
+- Multi-timeframe: RSI(14) на 5m + RSI(14) на 1h одновременно
+- Divergence auto-detection: RSI divergence, MACD divergence (regular + hidden)
+- Indicator templates: "Scalping set" (EMA9+EMA21+RSI+VWAP), "Swing set" (EMA50+EMA200+MACD+BB)
+- При наведении на индикатор — значение в tooltip
+- Performance: индикаторы считаются в Web Worker, не блокируют UI
+- Сохранение набора индикаторов per symbol (разные символы — разные индикаторы)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/indicators/IndicatorPanel.jsx` (новый), `web-ui/src/services/IndicatorEngine.js` (новый), `web-ui/src/workers/indicatorWorker.js` (новый)
+**Зависимости:** WD-01 (chart), WD-14 (Web Workers)
+
+### WD-32: Drawing Tools — trend lines, fib, shapes
+**Описание:** Инструменты рисования на графике (как в TradingView).
+- Инструменты:
+  - Trend line (2 точки, auto-snap to OHLC)
+  - Horizontal line (price level)
+  - Vertical line (time marker)
+  - Ray (линия от точки в бесконечность)
+  - Channel (параллельные линии)
+  - Fibonacci retracement (auto-levels: 0, 23.6, 38.2, 50, 61.8, 78.6, 100, 161.8)
+  - Fibonacci extension (1.272, 1.618, 2.618)
+  - Rectangle (зона интереса, support/resistance zone)
+  - Ellipse (паттерн выделение)
+  - Text label (заметка на графике)
+  - Arrow (указатель на событие)
+  - Measure tool (расстояние между 2 точками: $, %, bars, time)
+  - Brush (freehand drawing)
+- Magnet mode: auto-snap к OHLC при рисовании
+- Все drawings сохраняются per symbol + timeframe в localStorage
+- Lock/unlock drawings (чтобы не сдвинуть случайно)
+- Show/hide all drawings toggle
+- Delete single / delete all
+- Group drawings (выделить несколько, переместить вместе)
+- Z-order: drawings поверх индикаторов
+- Export drawings в JSON (share с другими)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/charts/DrawingToolbar.jsx` (новый), `web-ui/src/services/DrawingManager.js` (новый)
+**Зависимости:** WD-01 (chart)
+
+### WD-33: Alternative Chart Types — Renko, P&F, Heikin-Ashi
+**Описание:** Альтернативные типы графиков для разного анализа.
+- Heikin-Ashi: сглаженные свечи (trend visualization)
+- Renko: bricks по цене (noise filtering, trend detection)
+- Point & Figure: X/O колонки (support/resistance, price objectives)
+- Tick chart: свечи по количеству сделок (не по времени)
+- Range bars: свечи по диапазону цены
+- Line chart: простая линия close
+- Area chart: линия с заливкой
+- Hollow candles: только контуры (бычий/медвежий по цвету контура)
+- Переключатель типа графика в шапке chart панели
+- При смене типа — данные пересчитываются (не перезагрузка)
+- Renko brick size: auto (ATR-based) или manual
+- P&F box size + reversal: auto или manual
+- Все индикаторы и drawings работают на всех типах графиков
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/charts/ChartTypeSelector.jsx` (новый), `web-ui/src/services/ChartTransformers.js` (новый)
+**Зависимости:** WD-01 (chart)
+
+### WD-34: Volume Profile & Session VWAP
+**Описание:** Профиль объёма по цене + VWAP сессии.
+- Volume Profile (горизонтальная гистограмма слева/справа от графика):
+  - Объём по каждому ценовому уровню за выбранный период
+  - POC (Point of Control): уровень с максимальным объёмом — выделен
+  - Value Area (70% объёма вокруг POC): VAH (Value Area High), VAL (Value Area Low)
+  - Profile shape: TPO (Time Price Opportunity), Volume, Hybrid
+  - Visible Range VP: профиль для видимой области графика
+  - Session VP: профиль за торговую сессию
+  - Custom Range VP: профиль за выбранный период (drag на графике)
+  - Anchored VP: от выбранной точки на графике
+- Session VWAP:
+  - VWAP с обнулением на открытии сессии (00:00 UTC для crypto)
+  - VWAP bands: ±1σ, ±2σ, ±3σ (стандартные отклонения)
+  - Anchored VWAP: от выбранной точки (swing high/low, event)
+  - VWAP color: выше = зелёный, ниже = красный
+  - Multi-session VWAP: вчера + сегодня одновременно
+- Volume Nodes: High Volume Node (HVN) и Low Volume Node (LVN) — auto-detect
+- При смене символа — пересчёт VP и VWAP
+- Toggle show/hide VP и VWAP отдельно
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/charts/VolumeProfile.jsx` (новый), `web-ui/src/components/charts/SessionVWAP.jsx` (новый), `web-ui/src/services/VolumeProfileEngine.js` (новый)
+**Зависимости:** WD-01 (chart)
+
+### WD-35: Market Scanner / Screener
+**Описание:** Сканер рынка для поиска торговых возможностей среди 50 символов.
+- Фильтры (combinable, AND/OR logic):
+  - Price: above/below X, % change > X, new high/low (20/50/100 period)
+  - Volume: volume > average × N, volume spike, unusual volume
+  - Indicators: RSI < 30 (oversold), RSI > 70 (overbought), MACD crossover, BB squeeze, ADX > 25 (trending)
+  - Pattern: golden cross (50 EMA > 200 EMA), death cross, BB squeeze release
+  - Volatility: ATR > X, ATR/price ratio, BB width < X (low vol)
+  - Correlation: correlation with BTC > 0.8, correlation divergence
+  - Custom: SQL-like expression builder (for advanced users)
+- Saved scans: сохранить набор фильтров с именем
+- Scan results: таблица символов matching criteria, отсортированная по релевантности
+- При клике на символ — переход на график
+- Auto-scan: запускать каждые N секунд, alert при новых match
+- Heat map view: результаты как heatmap (зелёный = strong match, красный = no match)
+- Export results в CSV
+- Preset scans: "Oversold RSI", "Volume spike", "BB squeeze", "Golden cross", "High volatility"
+- Real-time: результаты обновляются при новых тиках
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/scanner/MarketScanner.jsx` (новый), `web-ui/src/components/scanner/FilterBuilder.jsx` (новый), `web-ui/src/stores/useScannerStore.js` (новый)
+
+### WD-36: News Feed & Economic Calendar
+**Описание:** Новости и события влияющие на рынок.
+- Crypto news feed (RSS/API):
+  - Источники: CoinDesk, The Block, CryptoSlate, Twitter (key accounts)
+  - Фильтр по символам: показать только новости для текущего символа
+  - Sentiment: auto-tag positive/negative/neutral (через LLM engine)
+  - Timestamp, source, summary, full link
+  - При новости о текущем символе → alert + метка на графике
+- Economic calendar:
+  - FOMC meetings, CPI, NFP, GDP, rate decisions
+  - Crypto-specific: halving dates, major listings, upgrades, forks
+  - Impact level: high (red), medium (yellow), low (grey)
+  - Countdown timer до следующего события
+  - При high-impact event → alert за 1 час до
+- News-on-chart: метки новостей на candlestick chart (иконка + tooltip)
+- Historical impact: при клике на новость — показать как рынок отреагировал (±X% за 1h)
+- Filter: by source, by sentiment, by impact, by symbol
+- Search по новостям
+- Auto-refresh каждые 5 минут
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/news/NewsFeed.jsx` (новый), `web-ui/src/components/news/EconomicCalendar.jsx` (новый), `web-ui/src/hooks/useNewsFeed.js` (новый)
+
+### WD-37: Authentication & User Management
+**Описание:** Система авторизации для multi-user доступа.
+- Login page: username/password (JWT tokens)
+- 2FA: TOTP (Google Authenticator), backup codes
+- Role-based access control (RBAC):
+  - Admin: полный доступ + settings + user management
+  - Trader: trading + positions + orders + chart
+  - Researcher: backtest + ML insights + analysis (no live trading)
+  - Viewer: read-only dashboard (no actions)
+- Session management: active sessions list, logout remote sessions
+- API tokens: generate/revoke tokens for programmatic access
+- User profile: name, email, Telegram ID, notification preferences
+- Audit log: кто что делал (login, trade, config change) — для compliance
+- Password policy: min length, complexity, expiry
+- Rate limiting: max login attempts per IP
+- WebSocket auth: JWT token в WS connect message
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/auth/LoginPage.jsx` (новый), `web-ui/src/components/auth/UserManager.jsx` (новый), `web-ui/src/stores/useAuthStore.js` (новый), `web-ui/src/services/AuthService.js` (новый)
+
+### WD-38: Strategy Marketplace Browser
+**Описание:** Браузер стратегий из StrategyMarketplace (plugin system).
+- Список доступных стратегий (из Git registry):
+  - Имя, автор, описание, версия, рейтинг (stars), downloads
+  - Tags: trend, mean-reversion, scalping, arbitrage, ML
+  - Performance: backtested Sharpe, max DD, win rate (если предоставлено)
+- При клике — детальная страница:
+  - Полное описание, параметры, requirements
+  - Backtest results (если есть)
+  - Reviews/comments от других пользователей
+  - Source code preview
+- Install button → скачивание из Git, установка в plugins/
+- Uninstall button → удаление
+- Update button → если новая версия доступна
+- Installed strategies: список с enable/disable toggle
+- My strategies: стратегии написанные пользователем (upload form)
+- Search + filter по tags/author/rating
+- Security warning при установке 3rd-party стратегии
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/marketplace/StrategyBrowser.jsx` (новый), `web-ui/src/components/marketplace/StrategyDetail.jsx` (новый), `web-ui/src/stores/useMarketplaceStore.js` (новый)
+
+### WD-39: Database Browser & SQL Query Tool
+**Описание:** Инструмент для просмотра и запросов к БД (admin only).
+- Table viewer: список таблиц (signals, trades, equity_curve, candles, orders)
+  - При клике — первые 100 строк с пагинацией
+  - Сортировка по колонкам
+  - Фильтр по значению колонки
+  - Row count, table size
+- SQL editor:
+  - Textarea с syntax highlighting (CodeMirror)
+  - Execute query → результат в таблице
+  - Query history (последние 50 запросов)
+  - Saved queries (name + SQL)
+  - EXPLAIN query plan viewer
+  - Query timeout (10 сек)
+  - Read-only mode (только SELECT, блокировка DROP/DELETE/UPDATE)
+- Export: результат запроса в CSV/JSON
+- Schema viewer: структура таблиц, индексы, foreign keys
+- DB stats: size, tables, rows, index usage, query log
+- Backup: создать snapshot БД (download)
+- Maintenance: VACUUM, ANALYZE, REINDEX (с confirm)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/database/DatabaseBrowser.jsx` (новый), `web-ui/src/components/database/SqlEditor.jsx` (новый), `web-ui/src/components/database/SchemaViewer.jsx` (новый)
+
+### WD-40: Raw WebSocket Inspector
+**Описание:** Инспектор raw WS сообщений для debugging.
+- Два WS потока: exchange-simulator (8765) и ai-signal-bot (8766)
+- Raw message list: timestamp | direction (recv/send) | channel | payload (truncated)
+- При клике на сообщение — полный JSON с syntax highlighting
+- Фильтры:
+  - By channel: candles, depth, trades, signals, positions, metrics
+  - By direction: incoming/outgoing
+  - By symbol: только сообщения для выбранного символа
+  - By message type: subscribe/unsubscribe/data/error
+  - Search по payload (full-text)
+- Auto-scroll к новым сообщениям (с pause button)
+- Message rate: msgs/sec, bytes/sec (real-time gauge)
+- Latency: время между send и recv (для request-response)
+- Hex/raw view: payload в hex (для binary протоколов)
+- Export: скачать лог сообщений в JSON
+- Replay: переотправить выбранное сообщение (для testing)
+- Buffer limit: 10 000 сообщений в памяти, старые удаляются
+- Performance: virtualized list (react-window), не тормозит при 1000+ msg/sec
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/debug/WsInspector.jsx` (новый), `web-ui/src/components/debug/MessageDetail.jsx` (новый)
+**Зависимости:** WD-12 (WsManager)
+
+### WD-41: Deployment & CI/CD Dashboard
+**Описание:** Управление деплоями из web-ui.
+- Pipeline status: текущий CI/CD run (GitHub Actions)
+  - Stage: lint → test → build → docker → deploy
+  - Status: pending/running/success/failed
+  - Duration, logs (streaming)
+- Deploy history: список последних 20 деплоев
+  - Version (git SHA), branch, timestamp, author, status
+  - При клике — diff (что изменилось), commit messages
+- Rollback button: откат к предыдущей версии (с confirm)
+- Environment status: dev/staging/prod
+  - Active pods, CPU/RAM usage, uptime
+  - Health check status per component
+- Docker images: список, size, creation date, layers
+- Helm releases: список установленных charts, values diff
+- Resource usage: K8s cluster CPU/RAM/storage, pod count
+- Logs viewer: streaming logs из любого pod (kubectl logs equivalent)
+- Manual deploy: trigger deploy из UI (branch selection)
+- Deploy locks: prevent deploy during trading hours
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/deploy/DeployDashboard.jsx` (новый), `web-ui/src/components/deploy/PipelineView.jsx` (новый), `web-ui/src/components/deploy/LogViewer.jsx` (новый)
+
+### WD-42: Feature Flags Manager
+**Описание:** Управление feature flags без редеплоя.
+- Список фичей с toggle on/off:
+  - Strategies: trend, meanrev, fft, statarb, sentiment, market_making, ml_ensemble
+  - Research modules: 35+ modules (kalman, garch, hawkes, copula, etc.)
+  - ML models: lstm, transformer, rl_agent, automl
+  - UI features: каждый WD компонент можно включить/выключить
+  - Infrastructure: SHM, FIX protocol, DPDK, eBPF monitoring
+- При toggling → POST к backend → config update без перезапуска
+- User-level flags: разные фичи для разных пользователей (admin vs viewer)
+- Rollout %: включить фичу для X% пользователей (canary release)
+- Flag metadata: description, owner, created date, last modified
+- Audit log: кто изменил какой flag когда
+- Emergency kill switch: отключить все trading функции (panic button)
+- Flag groups: presets ("Conservative" = только trend+meanrev, "Full" = всё)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/settings/FeatureFlags.jsx` (новый), `web-ui/src/stores/useFeatureFlagStore.js` (новый)
+
+### WD-43: Tax Report & Compliance Export
+**Описание:** Генерация отчётов для налогов и compliance.
+- Trade history export:
+  - FIFO / LIFO / Specific Identification methods
+  - Per-year, per-quarter, per-month grouping
+  - Realized P&L, unrealized P&L (mark-to-market)
+  - Cost basis, proceeds, gain/loss, holding period
+  - Short-term vs long-term classification (US tax)
+- Forms:
+  - Form 8949 (US): symbol, acquired, sold, proceeds, cost, gain/loss
+  - Generic CSV: date, symbol, side, qty, price, fee, P&L
+  - Russian tax format: date, instrument, buy/sell, amount, P&L, expenses
+- Summary:
+  - Total realized gain/loss
+  - Total fees paid
+  - Net profit after fees
+  - Tax estimate (по ставке пользователя)
+  - Drawdown report
+- Income/expense breakdown chart (per month)
+- Export в CSV, PDF, Excel
+- Auto-send yearly report в Telegram/email
+- Multi-currency support (USD, RUB, EUR)
+- Wash sale rule detection (US): flag trades that violate 30-day rule
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/tax/TaxReport.jsx` (новый), `web-ui/src/components/tax/TradeExport.jsx` (новый), `web-ui/src/services/TaxCalculator.js` (новый)
+
+### WD-44: Chart Templates & Sharing
+**Описание:** Шаблоны графиков и share функционал.
+- Chart templates:
+  - Save current chart state: symbol, timeframe, indicators, drawings, chart type
+  - Template name + description
+  - Apply template: мгновенно восстановить состояние графика
+  - Template library: список сохранённых шаблонов
+  - Preset templates: "Scalping" (1m + EMA9/21 + VWAP + orderbook), "Swing" (1h + EMA50/200 + MACD + BB), "Research" (1d + RSI + Volume Profile + patterns)
+- Screenshot / share:
+  - Capture chart as PNG (canvas.toDataURL)
+  - Watermark: symbol, timeframe, timestamp, "ai-signal-bot"
+  - Copy to clipboard / download / share link
+  - Annotated screenshot: добавить text/arrow перед share
+- Watchlist management:
+  - Create multiple watchlists (Majors, DeFi, Meme, Custom)
+  - Add/remove symbols
+  - Reorder by drag
+  - Quick switch between watchlists
+- Chart layout save:
+  - Save multi-panel layout (chart + orderbook + tape + signals)
+  - Restore on login
+  - Share layout JSON с team
+**Сложность:** Низкая
+**Файлы:** `web-ui/src/components/charts/ChartTemplates.jsx` (новый), `web-ui/src/components/charts/ScreenshotTool.jsx` (новый), `web-ui/src/stores/useTemplateStore.js` (новый)
+
+### WD-45: Onboarding Wizard
+**Описание:** Мастер начальной настройки при первом запуске.
+- Step 1: Welcome — обзор возможностей (carousel slides)
+- Step 2: Exchange connection — API key/secret, test connection, paper/live toggle
+- Step 3: Symbol selection — выбрать из 50 символов, категории, watchlist
+- Step 4: Strategy selection — выбрать стратегии, параметры по умолчанию
+- Step 5: Risk configuration — max position, SL, TP, daily DD, min confidence
+- Step 6: Notifications — Telegram/Discord/email setup
+- Step 7: Layout selection — preset layouts (Trader, Researcher, Full)
+- Step 8: Review & start — summary всех настроек, кнопка "Start Bot"
+- Skip button: пропустить wizard (defaults used)
+- Progress bar: текущий шаг из 8
+- Validation на каждом шаге (не пустые API keys, валидные числа)
+- Help tooltips на каждом поле
+- При следующем login — не показывать (localStorage flag)
+- Reset wizard: запустить заново из settings
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/onboarding/OnboardingWizard.jsx` (новый), `web-ui/src/components/onboarding/WizardSteps.jsx` (новый)
+
+### WD-46: Theme Customization & Accessibility
+**Описание:** Кастомизация внешнего вида и accessibility.
+- Themes:
+  - Dark (default): тёмный фон, зелёный/красный свечи
+  - Light: светлый фон
+  - Midnight: глубокий чёрный (AMOLED)
+  - Custom: выбор цветов для фона, текста, свечей, индикаторов, панелей
+  - Color blind mode: blue/orange вместо зелёный/красный
+- Typography:
+  - Font family: Inter, JetBrains Mono, Roboto Mono, system
+  - Font size: small (12px), medium (14px), large (16px)
+  - Number formatting: 1,234.56 vs 1 234,56 (locale)
+- Density:
+  - Compact: больше информации на экране (tight padding)
+  - Comfortable: стандарт
+  - Spacious: большие отступы
+- Accessibility:
+  - High contrast mode
+  - Screen reader support (ARIA labels)
+  - Keyboard navigation (tab order, focus indicators)
+  - Reduced motion: отключить анимации
+  - Font scaling: до 200%
+- Save preferences в localStorage + user profile
+- Theme preview: live preview при изменении
+- Export/import theme (JSON)
+**Сложность:** Низкая
+**Файлы:** `web-ui/src/components/settings/ThemeCustomizer.jsx` (новый), `web-ui/src/stores/useThemeStore.js` (новый)
+
+### WD-47: Statistical Analysis Toolkit
+**Описание:** Инструменты статистического анализа для research.
+- Tests:
+  - Augmented Dickey-Fuller (ADF): stationarity test для price series
+  - KPSS test: another stationarity test
+  - Johansen test: cointegration для pairs trading
+  - Engle-Granger: 2-step cointegration test
+  - Ljung-Box: autocorrelation test (residuals)
+  - Jarque-Bera: normality test
+  - Shapiro-Wilk: normality test (small samples)
+  - Kolmogorov-Smirnov: distribution comparison
+- Metrics:
+  - Hurst Exponent: trend vs mean-reversion (H>0.5 trend, H<0.5 MR, H=0.5 random)
+  - Half-life of mean reversion: сколько периодов до возврата к среднему
+  - Shannon Entropy: predictability of price series
+  - Fractal Dimension: complexity of price movement
+  - Lyapunov Exponent: chaos detection
+  - Skewness & Kurtosis: distribution shape
+- Visualization:
+  - QQ plot: нормальность residuals
+  - ACF/PACF plots: autocorrelation
+  - Distribution histogram + fitted distribution overlay
+  - Cointegration spread chart: 2 symbols spread + z-score
+- Pairs trading analysis:
+  - Select 2 symbols → cointegration test → spread chart → z-score → entry/exit signals
+  - Half-life → optimal holding period
+  - Correlation rolling window chart
+- Export results в JSON/CSV
+- При клике на test result → explanation (что значит, как интерпретировать)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/analysis/StatToolkit.jsx` (новый), `web-ui/src/components/analysis/PairsAnalysis.jsx` (новый), `web-ui/src/services/StatEngine.js` (новый)
+**Зависимости:** WD-14 (Web Workers for computation)
+
+### WD-48: Model Performance Dashboard
+**Описание:** Дашборд производительности ML моделей.
+- Per-model metrics:
+  - Classification: accuracy, precision, recall, F1, ROC-AUC
+  - Confusion matrix: heatmap up/down/neutral predictions vs actual
+  - ROC curve: TPR vs FPR, AUC value
+  - Precision-Recall curve
+  - Calibration plot: predicted probability vs actual frequency
+  - Lift chart: model vs random
+- Model comparison:
+  - Side-by-side metrics table (all models)
+  - Overlaid ROC curves
+  - Win rate comparison bar chart
+  - P&L comparison: если торговать по каждой модели
+- Explainability:
+  - SHAP values: top-10 features impacting current prediction (waterfall chart)
+  - Feature importance: global vs local
+  - Partial dependence plots: как фича влияет на предсказание
+  - ICE (Individual Conditional Expectation) curves
+- Model health:
+  - Prediction drift: distribution shift detection (PSI — Population Stability Index)
+  - Data drift: input feature distribution over time
+  - Performance over time: rolling accuracy (last 100 predictions)
+  - Training vs inference latency
+  - Model version comparison: v1 vs v2 metrics
+- Backtest vs live:
+  - Expected (backtest) vs actual (live) performance
+  - Overfitting detector: IS vs OOS performance gap
+  - Paper vs live: paper trading P&L vs live P&L
+- Alerts: model accuracy drops below threshold, drift detected
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/ml/ModelDashboard.jsx` (новый), `web-ui/src/components/ml/ConfusionMatrix.jsx` (новый), `web-ui/src/components/ml/RocCurve.jsx` (новый), `web-ui/src/components/ml/ShapValues.jsx` (новый)
+**Зависимости:** WD-21 (model insights)
+
+### WD-49: Performance Attribution & Benchmark
+**Описание:** Атрибуция результатов и сравнение с бенчмарком.
+- Benchmark comparison:
+  - Buy & Hold BTC/ETH (default benchmark)
+  - S&P 500, NASDAQ (если есть данные)
+  - Custom benchmark: любой символ или portfolio
+  - Overlay: equity curve strategy vs benchmark
+  - Alpha: excess return over benchmark
+  - Beta: correlation with benchmark
+  - Tracking error: std dev of (return - benchmark return)
+  - Information Ratio: alpha / tracking error
+- Factor exposure:
+  - Market factor (CAPM beta)
+  - Size factor (small vs large cap)
+  - Momentum factor
+  - Volatility factor
+  - Factor regression: R², factor loadings, residuals
+- Performance attribution:
+  - Brinson attribution: allocation vs selection effect
+  - Return decomposition: where did P&L come from?
+  - Per-symbol contribution: какой символ принёс больше всего P&L
+  - Per-strategy contribution: какая стратегия
+  - Per-time contribution: лучшая/худшая неделя, месяц, час
+- Risk-adjusted metrics:
+  - Sharpe, Sortino, Calmar, Omega, Treynor
+  - M2 measure (Modigliani)
+  - Upside/Downside capture ratios
+  - Pain index, pain ratio
+- Drawdown analysis:
+  - Drawdown chart with duration markers
+  - Top-5 drawdowns: depth, duration, recovery time
+  - Underwater curve: time underwater
+  - Calmar ratio: annual return / max DD
+- Trade analysis:
+  - R-multiple distribution (histogram)
+  - MFE/MAE scatter: max favorable vs max adverse excursion per trade
+  - Entry/exit efficiency: % of perfect trade captured
+  - Expectancy: (win% × avg_win) - (loss% × avg_loss)
+  - Profit factor: gross profit / gross loss
+  - Win/loss streaks: longest winning/losing streak
+- Benchmark report: monthly performance vs benchmark (table + chart)
+- Export в PDF (investor report style)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/attribution/PerformanceAttribution.jsx` (новый), `web-ui/src/components/attribution/BenchmarkComparison.jsx` (новый), `web-ui/src/components/attribution/DrawdownAnalysis.jsx` (новый), `web-ui/src/components/attribution/TradeAnalysis.jsx` (новый)
+
+### WD-50: Trading Session Markers & Market Hours
+**Описание:** Отметка торговых сессий и часов на графике.
+- Session markers (vertical bands на chart):
+  - Asian session: 00:00-09:00 UTC (синий)
+  - European session: 07:00-16:00 UTC (зелёный)
+  - US session: 13:00-22:00 UTC (оранжевый)
+  - Overlap periods: более насыщенный цвет
+  - Toggle show/hide sessions
+  - Session labels в шапке каждой полосы
+- Session statistics:
+  - Average volatility per session (ATR)
+  - Average volume per session
+  - Best/worst session for strategy performance
+  - Win rate per session
+- Trading hours:
+  - Crypto: 24/7 (но отметить выходные для traditional markets)
+  - Traditional: pre-market, regular, after-hours, closed
+  - Countdown timer: "US session opens in 2h 15m"
+- Holiday calendar:
+  - Crypto: major events (Bitcoin halving, Ethereum upgrades)
+  - Traditional: market holidays (Christmas, Thanksgiving, etc.)
+  - Reduced liquidity days warning
+- Session-based strategy rules:
+  - "Only trade during US session"
+  - "Reduce position size during Asian session"
+  - "No new trades 1h before FOMC"
+- Daily/weekly markers:
+  - Day separator lines (vertical)
+  - Week separator (thicker line)
+  - Month separator (label)
+- Timezone selector: UTC, EST, GMT, Local
+- Session heatmap: 24×7 grid (hours × days) with avg P&L per cell
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/charts/SessionMarkers.jsx` (новый), `web-ui/src/components/analysis/SessionStats.jsx` (новый), `web-ui/src/components/charts/SessionHeatmap.jsx` (новый)
+**Зависимости:** WD-01 (chart)

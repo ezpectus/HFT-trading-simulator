@@ -15185,7 +15185,7 @@ The backtest iterates `len(returns) - window_size` times, each computing VaR on 
 
 Good Kelly position sizer with safety adjustments, position capping, and trade history factory. ✅
 
-### 8.1108 kelly.py: max_position_pct defaults to 200% — Low
+### 8.1108 kelly.py: max_position_pct defaults to 200% — Low [FIXED]
 
 **Файл:** `kelly.py:59`
 
@@ -15197,7 +15197,7 @@ max_position_pct: float = 200.0, # max % of balance for position notional
 
 **Фикс:** Default to 100% (no leverage) unless leverage is explicitly configured. Or make leverage a separate config parameter.
 
-### 8.1109 kelly.py: from_trade_history accesses t.pnl — Low
+### 8.1109 kelly.py: from_trade_history accesses t.pnl — Low [FIXED]
 
 **Файл:** `kelly.py:169-174`
 
@@ -15223,7 +15223,7 @@ Accesses `t.pnl` without validating the trade object schema. If `trades` contain
 
 Good dynamic position sizer with 3 methods, correlation adjustment, and position limits. ✅
 
-### 8.1111 position_sizing: risk_parity hardcodes 2% stop loss — Low
+### 8.1111 position_sizing: risk_parity hardcodes 2% stop loss — Low [N/A]
 
 **Файл:** `position_sizing.py:100-101`
 
@@ -15236,7 +15236,7 @@ The risk parity method hardcodes a 2% stop loss assumption. The actual stop loss
 
 **Фикс:** Accept `stop_loss_pct` as a parameter, or pass the signal's SL/TP to compute the actual stop loss percentage.
 
-### 8.1112 position_sizing: Kelly uses expected_return not win/loss — Low
+### 8.1112 position_sizing: Kelly uses expected_return not win/loss — Low [N/A]
 
 **Файл:** `position_sizing.py:123, 166`
 
@@ -15250,7 +15250,7 @@ This is the continuous-time Kelly formula (Merton's portfolio problem), not the 
 
 **Фикс:** Use `KellyPositionSizer` from `kelly.py` instead of the continuous formula, or document the difference.
 
-### 8.1113 position_sizing: daily_volatility uses sqrt(365) not sqrt(252) — Low
+### 8.1113 position_sizing: daily_volatility uses sqrt(365) not sqrt(252) — Low [N/A]
 
 **Файл:** `position_sizing.py:62, 142`
 
@@ -15274,7 +15274,7 @@ Crypto markets trade 365 days/year, so `sqrt(365)` is correct for crypto. But if
 
 Good CVaR calculator with 3 methods, tail risk measures, Hill estimator, and stress scenarios. ✅
 
-### 8.1115 cvar.py: Monte Carlo uses non-deterministic RNG — Low
+### 8.1115 cvar.py: Monte Carlo uses non-deterministic RNG — Low [FIXED]
 
 **Файл:** `cvar.py:90`
 
@@ -15284,7 +15284,7 @@ simulated = np.random.normal(mean, std, n_simulations)
 
 Same issue as `var.py:85` — uses global RNG state, non-deterministic.
 
-### 8.1116 cvar.py: parametric CVaR assumes normal distribution — Low
+### 8.1116 cvar.py: parametric CVaR assumes normal distribution — Low [N/A]
 
 **Файл:** `cvar.py:78-82`
 
@@ -15297,7 +15297,7 @@ return mean * th - std * np.sqrt(th) * (stats.norm.pdf(z_score) / (1 - cl))
 
 Same issue as `var.py` parametric method — assumes normal distribution, underestimates tail risk for crypto with fat tails.
 
-### 8.1117 cvar.py: Hill estimator threshold edge case — Low
+### 8.1117 cvar.py: Hill estimator threshold edge case — Low [N/A]
 
 **Файл:** `cvar.py:149-150`
 
@@ -15319,7 +15319,7 @@ The Hill estimator uses the smallest tail loss as the threshold. If all tail los
 
 Good stress test module with 4 scenarios, portfolio impact analysis, and summary generation. ✅
 
-### 8.1119 stress_test: FTX scenario shocks are inverted — Low
+### 8.1119 stress_test: FTX scenario shocks are inverted — Low [FIXED]
 
 **Файл:** `stress_test.py:96-104`
 
@@ -15343,7 +15343,7 @@ The 3 predefined scenarios (2008, COVID, FTX) all use the same formula: `shocked
 
 **Reduction potential:** ~40 lines. Extract a `_run_scenario(name, prices, positions, shock, margin_pct, liquidity, threshold)` method and call it from each scenario method.
 
-### 8.1121 stress_test: no short position support — Low
+### 8.1121 stress_test: no short position support — Low [N/A]
 
 **Файл:** `stress_test.py` (entire file)
 

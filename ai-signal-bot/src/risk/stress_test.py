@@ -93,8 +93,8 @@ class StressTestScenario:
                              positions: np.ndarray,
                              crypto_exposure: float = 0.5) -> StressTestResult:
         """Simulate FTX collapse scenario (November 2022)."""
-        crypto_shock = 0.05
-        traditional_shock = 0.8  # 20% drop in traditional assets
+        crypto_shock = 0.75       # 25% drop (BTC dropped ~20-25% during FTX collapse)
+        traditional_shock = 0.8   # 20% drop in traditional assets
 
         # Apply different shocks based on asset type
         shocked_prices = np.array(current_prices, dtype=float)
