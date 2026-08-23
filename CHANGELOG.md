@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка R: EnsembleVoter SL/TP + run.py gather + price_predictor registry + run_backtest deprecation)
+
+### Changed
+- `strategies.py`: `EnsembleVoter._select_winner` — uses highest-confidence signal's SL/TP/entry instead of averaging across votes (meaningless price levels)
+- `run.py`: `_generate_signals` — sequential `for symbol` loop → `asyncio.gather(*tasks, return_exceptions=True)` — parallel signal generation for 50 symbols
+- `price_predictor.py`: Added `register_trained_model()` function integrating with `ModelRegistry` — registers model with val accuracy/loss metrics + training metadata
+- `run.py`: `run_backtest()` — added `DeprecationWarning` pointing to `run_backtest.py` standalone script
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка Q: health_checks timeout + llm rate limit + rkhs numpy + model_registry batch saves)
 
 ### Changed

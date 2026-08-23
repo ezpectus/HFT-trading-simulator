@@ -228,7 +228,7 @@ class EnsembleVoter:
 
         long_count, short_count, long_score, short_score, \
             long_agg, short_agg, long_strategies, short_strategies, \
-            first_actionable = self._accumulate_signals(signals)
+            first_actionable, long_signals, short_signals = self._accumulate_signals(signals)
 
         if first_actionable is None:
             return Signal(
@@ -239,10 +239,15 @@ class EnsembleVoter:
                 reason="No actionable signals",
             )
 
+        winning_signals = long_signals if (
+            (self.mode == "weighted" and long_score > short_score)
+            or (self.mode != "weighted" and long_count > short_count)
+        ) else short_signals
+
         return self._select_winner(
             long_count, short_count, long_score, short_score,
             long_agg, short_agg, long_strategies, short_strategies,
-            first_actionable,
+            first_actionable, winning_signals,
         )
 
     @staticmethod
@@ -256,6 +261,8 @@ class EnsembleVoter:
         short_agg = [0.0, 0.0, 0.0, 0.0]
         long_strategies = []
         short_strategies = []
+        long_signals = []
+        short_signals = []
         first_actionable = None
 
         for s in signals:
@@ -271,6 +278,7 @@ class EnsembleVoter:
                 long_agg[2] += s.stop_loss
                 long_agg[3] += s.take_profit
                 long_strategies.append(s.strategy)
+                long_signals.append(s)
             elif s.direction == SignalDirection.SHORT:
                 short_count += 1
                 short_score += s.confidence
@@ -279,15 +287,18 @@ class EnsembleVoter:
                 short_agg[2] += s.stop_loss
                 short_agg[3] += s.take_profit
                 short_strategies.append(s.strategy)
+                short_signals.append(s)
 
         return (long_count, short_count, long_score, short_score,
-                long_agg, short_agg, long_strategies, short_strategies, first_actionable)
+                long_agg, short_agg, long_strategies, short_strategies, first_actionable,
+                long_signals, short_signals)
 
     def _select_winner(
         self, long_count: int, short_count: int, long_score: float,
         short_score: float, long_agg: list, short_agg: list,
         long_strategies: list, short_strategies: list,
         first_actionable: Signal,
+        winning_signals: list[Signal] | None = None,
     ) -> Signal:
         """Select winning direction and build ensemble signal."""
         if self.mode == "weighted":
@@ -324,14 +335,25 @@ class EnsembleVoter:
                 )
 
         inv_count = 1.0 / winner_count
+        # Use highest-confidence signal's SL/TP/entry instead of averaging
+        if winning_signals:
+            best = max(winning_signals, key=lambda s: s.confidence)
+            entry_price = best.entry_price
+            stop_loss = best.stop_loss
+            take_profit = best.take_profit
+        else:
+            entry_price = winner_agg[1] * inv_count
+            stop_loss = winner_agg[2] * inv_count
+            take_profit = winner_agg[3] * inv_count
+
         return Signal(
             symbol=first_actionable.symbol,
             direction=direction,
             confidence=round(winner_agg[0] * inv_count, 1),
             strategy=self.name,
-            entry_price=winner_agg[1] * inv_count,
-            stop_loss=winner_agg[2] * inv_count,
-            take_profit=winner_agg[3] * inv_count,
+            entry_price=entry_price,
+            stop_loss=stop_loss,
+            take_profit=take_profit,
             reason=f"Ensemble ({', '.join(winner_strategies)}): {winner_count} votes",
         )
 

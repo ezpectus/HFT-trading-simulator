@@ -350,3 +350,35 @@ def export_onnx(model: nn.Module, config: ModelConfig, output_path: str) -> bool
     except (RuntimeError, OSError, ValueError) as e:
         logger.error(f"[ONNX] Export failed: {e}")
         return False
+
+
+def register_trained_model(
+    registry: object,
+    name: str,
+    version: str,
+    model_path: str,
+    config: ModelConfig,
+    history: dict,
+) -> None:
+    """Register a trained model in the model registry with metrics + metadata."""
+    val_acc = history.get("val_acc", [0])[-1] if history.get("val_acc") else 0
+    val_loss = history.get("val_loss", [0])[-1] if history.get("val_loss") else 0
+    registry.register(
+        name=name,
+        version=version,
+        path=model_path,
+        metrics={
+            "val_accuracy": val_acc,
+            "val_loss": val_loss,
+        },
+        metadata={
+            "model_type": config.model_type,
+            "lookback": config.lookback,
+            "input_dim": config.input_dim,
+            "hidden_dim": config.hidden_dim,
+            "num_layers": config.num_layers,
+            "learning_rate": config.learning_rate,
+            "epochs_trained": len(history.get("train_loss", [])),
+        },
+    )
+    logger.info(f"[ModelRegistry] Registered {name}@{version} (val_acc={val_acc:.2%})")

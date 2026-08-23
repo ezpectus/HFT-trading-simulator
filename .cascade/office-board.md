@@ -341,7 +341,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~automl: study.optimize blocks event loop~~ [FIXED] | Added optimize_async() wrapper using loop.run_in_executor for non-blocking optimization | CODE_AUDIT §8.1230 |
 | ~~notifier: Discord polls REST API without sleep~~ [FIXED] | Added asyncio.sleep(1) after successful poll to rate-limit Discord API calls | CODE_AUDIT §8.1265 |
 | ~~llm_engine: no rate limiting on API calls~~ [FIXED] | Added asyncio.Semaphore(5) rate limiter wrapping _call_llm | CODE_AUDIT §8.1261 |
-| price_predictor: not integrated with model_registry | Models trained but not versioned. Integrate register() after training | CODE_AUDIT §8.1246 |
+| ~~price_predictor: not integrated with model_registry~~ [FIXED] | Added register_trained_model() function that registers model with metrics + metadata | CODE_AUDIT §8.1246 |
 | ~~rkhs: Jacobi eigendecomposition O(N³) in pure Python~~ [FIXED] | Replaced 45-line jacobi_eig with numpy.linalg.eigh wrapper (8 lines) | CODE_AUDIT §8.1253 |
 | ~~notifier: NotifierManager.send_alert sequential~~ [FIXED] | Replaced sequential for-loop with asyncio.gather + return_exceptions=True | CODE_AUDIT §8.1266 |
 | research: 22 duplicate compute_returns functions | 22× same function across research modules. Create shared utils.py | CODE_AUDIT §8.1277 |
@@ -349,9 +349,9 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | research: 35 files ~6000 lines potential dead code | Advanced math rarely used in production. Move to separate package | CODE_AUDIT §8.1280 |
 | config: 30+ properties = 190 lines boilerplate | Over-engineered dict access. Use pydantic or dataclass | CODE_AUDIT §8.1290 |
 | run.py: no graceful shutdown on SIGTERM | K8s/Docker sends SIGTERM not SIGINT. Add signal handler | CODE_AUDIT §8.1292 |
-| run.py: _generate_symbols sequential for 50 symbols | With LLM 50-500s per cycle. Use asyncio.gather | CODE_AUDIT §8.1293 |
-| run.py: duplicate entry points | 3 backtest scripts. Consolidate to run.py --backtest | CODE_AUDIT §8.1295 |
-| strategies: EnsembleVoter averages SL/TP across votes | Meaningless price levels. Use highest-confidence signal's SL/TP | CODE_AUDIT §8.1298 |
+| ~~run.py: _generate_symbols sequential for 50 symbols~~ [FIXED] | Replaced sequential for-loop with asyncio.gather(*tasks, return_exceptions=True) | CODE_AUDIT §8.1293 |
+| ~~run.py: duplicate entry points~~ [FIXED] | Added DeprecationWarning to run.py --backtest pointing to run_backtest.py | CODE_AUDIT §8.1295 |
+| ~~strategies: EnsembleVoter averages SL/TP across votes~~ [FIXED] | Now uses highest-confidence signal's SL/TP/entry instead of averaging | CODE_AUDIT §8.1298 |
 | marketplace: install_from_git executes arbitrary code | No sandboxing. Run in subprocess with restricted permissions | CODE_AUDIT §8.1306 |
 | ~~risk: DynamicPositionSizer duplicates kelly.py~~ [FIXED] | kelly_criterion_sizing now delegates to KellyPositionSizer. Removed _calc_kelly_fraction | CODE_AUDIT §8.1313 |
 | risk: 2 duplicate PortfolioOptimizer classes | 3 implementations ~900 lines. Keep portfolio/ only. risk/portfolio_optimizer.py marked deprecated | CODE_AUDIT §8.1316, §8.1334 |

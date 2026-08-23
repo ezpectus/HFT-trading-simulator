@@ -515,6 +515,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | 17 | 2026-08-25 | Пачка O — notifier.py: NotifierManager.send_alert sequential → asyncio.gather. Discord poll: added asyncio.sleep(1) on success. alerting.py: 3× aiohttp.ClientSession() per-alert → shared _get_session(). automl.py: added optimize_async() via run_in_executor | ✅ Done | — |
 | 18 | 2026-08-25 | Пачка P — fix_client.py: connect() timeout=10s via asyncio.wait_for. _pending_messages capped at 1000. health_server.py: _check_all sequential → asyncio.gather. tracker.py: SignalLogger + TradeLogger keep CSV file open with flush() + close() | ✅ Done | — |
 | 19 | 2026-08-25 | Пачка Q — health_checks.py: asyncio.wait_for(timeout=2) on DB+Redis checks. llm_engine/engine.py: asyncio.Semaphore(5) rate limiter on _call_llm. rkhs.py: 45-line jacobi_eig O(N³) → numpy.linalg.eigh (8 lines). model_registry.py: per-impression _save() → _mark_dirty() + flush() | ✅ Done | — |
+| 20 | 2026-08-25 | Пачка R — strategies.py: EnsembleVoter SL/TP averaging → highest-confidence signal's SL/TP. run.py: _generate_signals sequential → asyncio.gather. price_predictor.py: added register_trained_model() for model_registry integration. run.py: run_backtest() DeprecationWarning | ✅ Done | — |
 | 5 | 2026-08-26 | Аудит unused research модулей | ⏳ Pending | — |
 | 6 | 2026-08-27 | backtester.py упрощение | ⏳ Pending | — |
 | 7 | 2026-08-28 | strategies.py cleanup | ⏳ Pending | — |

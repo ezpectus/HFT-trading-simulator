@@ -197,11 +197,14 @@ class AISignalBot:
         """Generate and validate trading signals for all symbols."""
         now_ts = int(time.time())
         await generate_stat_arb_signals(self, now_ts)
+        tasks = []
         for symbol in self.config.symbols:
             candles = self.exchange.candle_history.get(symbol, [])
             if not candles or len(candles) < 30:
                 continue
-            await self._process_symbol(symbol, candles, now_ts)
+            tasks.append(self._process_symbol(symbol, candles, now_ts))
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _process_symbol(self, symbol: str, candles: list, now_ts: int) -> None:
         """Run strategies, ensemble vote, validate and execute for a single symbol."""
@@ -335,7 +338,16 @@ def _save_backtest_charts(all_results: dict, plotter, logger: logging.Logger) ->
 
 
 def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
-    """Run backtest on historical data from CSV exports or database."""
+    """Run backtest on historical data from CSV exports or database.
+
+    Deprecated: prefer `python run_backtest.py` for standalone backtesting.
+    This function is kept for the `--backtest` CLI flag convenience.
+    """
+    import warnings
+    warnings.warn(
+        "run.py --backtest is deprecated. Use `python run_backtest.py` instead.",
+        DeprecationWarning, stacklevel=2,
+    )
     strategies = build_strategies(config)
     strategies = [s for s in strategies if s.name in ("trend_following", "mean_reversion", "fft_cycle")]
     if not strategies:
