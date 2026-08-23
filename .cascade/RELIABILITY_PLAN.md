@@ -1661,3 +1661,13 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R1104 | stress_test: FTX scenario 95% crypto shock unrealistic | `stress_test.py:96` | Low | BTC dropped 25% not 95%. Use 0.75 or rename to Luna |
 | R1105 | stress_test: all scenarios use same formula | `stress_test.py:30-126` | Info | Extract _run_scenario. ~40 lines |
 | R1106 | stress_test: no short position support | `stress_test.py` | Low | Price drop = gain for shorts. Use (shocked - current) * positions |
+| R1107 | ai-signal-bot/backtesting/backtester.py | `backtester.py` | ✅ Good | 16 metrics risk manager multi-strategy SL/TP reporting |
+| R1108 | backtester: SL/TP checked after risk manager | `backtester.py:172` | Low | Max hold wins over SL on same candle. Check SL/TP first |
+| R1109 | backtester: Sharpe annualization assumes 1 trade/day | `backtester.py:315` | Low | Per-trade returns with sqrt(365). Use actual trade frequency |
+| R1110 | backtester: leverage parameter is dead code | `backtester.py:89` | Low | Never used in position sizing. Use or remove |
+| R1111 | backtester: window grows O(N²) | `backtester.py:168` | Low | candles[:i+1] each iteration. Pass index or rolling window |
+| R1112 | backtester: Calmar assumes 5m candles | `backtester.py:354` | Low | 105120 periods/year hardcoded. Make candle_interval configurable |
+| R1113 | ai-signal-bot/backtesting/pnl_calculator.py | `pnl_calculator.py` | ✅ Excellent | 3 asset types direction-aware slippage funding options |
+| R1114 | pnl_calculator: options premium_pct not used | `pnl_calculator.py:155` | Low | _options_gross_pnl identical to spot. Document or use premium |
+| R1115 | pnl_calculator: funding uses exit price not average | `pnl_calculator.py:153` | Low | Overestimates funding. Use (entry+exit)/2 |
+| R1116 | backtester: Sortino downside std uses len(returns) | `backtester.py:318` | Low | Actually correct — standard Sortino. ✅ No fix needed |

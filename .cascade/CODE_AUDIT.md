@@ -15345,3 +15345,124 @@ The 3 predefined scenarios (2008, COVID, FTX) all use the same formula: `shocked
 All scenarios assume long positions: `shocked_prices = current_prices * shock_multiplier` with `shock_multiplier < 1.0` always produces a loss. If the portfolio has short positions (negative `positions`), a price drop produces a gain, not a loss. The stress test doesn't account for this — it always shows a loss for price drops.
 
 **Фикс:** Check position direction: `pnl = np.sum((shocked_prices - current_prices) * positions)`. This correctly handles both long (positive positions) and short (negative positions).
+
+### 8.1122 ai-signal-bot/src/backtesting/backtester.py: Backtester — ✅ Good
+
+**Файл:** `ai-signal-bot/src/backtesting/backtester.py` (506 lines)
+
+- **Trade dataclass**: symbol, side, entry/exit price, qty, pnl, pnl_pct, exit_reason, fee — correct
+- **BacktestResult**: 16 metrics including Sharpe, Sortino, Calmar, recovery factor, drawdown duration — correct
+- **run()**: Candle replay with warmup, SL/TP, risk manager, signal reversal — correct
+- **_check_sl_tp**: Uses candle low/high for SL/TP trigger — correct
+- **_open_position**: Slippage, risk-based sizing, max position cap, fee calculation — correct
+- **_close_position**: Slippage, exit fee, PnL computation — correct
+- **_calculate_trade_metrics**: Win rate, profit factor, Sharpe, Sortino — correct
+- **_calculate_drawdown_metrics**: Longest DD, avg DD, recovery factor, Calmar — correct
+- **run_multi_strategy + print_comparison**: Multi-strategy backtest — correct
+
+Good backtester with 16 metrics, risk manager integration, multi-strategy support, and detailed reporting. ✅
+
+### 8.1123 backtester: SL/TP checked after risk manager update — Low
+
+**Файл:** `backtester.py:172-185`
+
+The risk manager update (`_process_risk_update`) runs before SL/TP check (`_manage_position_or_entry`). If the risk manager moves the SL (trailing/breakeven), the new SL is used for the SL/TP check on the same candle. But the risk manager's `close_position` action (e.g., max hold) takes priority over SL/TP. This means if both max hold and SL are hit on the same candle, max hold wins. The exit price for max hold is `current_price` (close), while SL would use `stop_loss` price. This may overstate or understate the actual exit price.
+
+**Фикс:** Check SL/TP first, then risk manager. Or document the priority order.
+
+### 8.1124 backtester: Sharpe ratio annualization assumes 5m candles — Low
+
+**Файл:** `backtester.py:315`
+
+```python
+result.sharpe_ratio = (mean_ret / std_ret * (365 ** 0.5)) if std_ret > 0 else 0
+```
+
+The annualization factor `365 ** 0.5` assumes 1 return per day. But the returns are per-trade, not per-day. If the bot makes 10 trades/day, the annualization should be `365 * 10 ** 0.5`, not `365 ** 0.5`. The Sharpe ratio is overstated by a factor of `sqrt(10) ≈ 3.16`.
+
+**Фикс:** Calculate the number of trading periods per year based on the candle interval and trade frequency. Or use `total_bars / (time_span_days)` to compute the annualization factor.
+
+### 8.1125 backtester: Sortino uses full sample count for downside std — Low
+
+**Файл:** `backtester.py:316-319`
+
+```python
+downside_returns = [r for r in returns if r < 0]
+if len(downside_returns) > 0:
+    downside_std = (sum(r ** 2 for r in downside_returns) / len(returns)) ** 0.5
+```
+
+The Sortino ratio's downside deviation divides by `len(returns)` (total trades), not `len(downside_returns)` (losing trades). This is actually the correct formula — the denominator should be the total count, not just the downside count. This is the standard Sortino definition. ✅
+
+### 8.1126 backtester: no leverage in PnL calculation — Low
+
+**Файл:** `backtester.py:89, 367-375`
+
+The constructor accepts `leverage: int = 10`, but it's never used in `_open_position` or `_close_position`. The position sizing uses `risk_per_trade_pct` and `max_position_pct`, but doesn't apply leverage. A 10× leverage should allow 10× the position size, but the current code caps at `max_position_pct` (10% of balance). The `leverage` parameter is dead code.
+
+**Фикс:** Either use leverage in position sizing (`max_notional = balance * leverage * max_position_pct / 100`), or remove the parameter.
+
+### 8.1127 backtester: window grows O(N²) — Low
+
+**Файл:** `backtester.py:168`
+
+```python
+window = candles[:i + 1]
+```
+
+Each iteration creates a new list slice from 0 to i+1. At iteration i, the slice has i+1 elements. Total work: 1 + 2 + ... + N = O(N²). With 10,000 candles, that's 50M elements copied. This is slow for large backtests.
+
+**Фикс:** Pass the full `candles` list and the current index to `strategy.analyze`, or use a rolling window of fixed size.
+
+### 8.1128 backtester: Calmar annualization uses 5m candles — Low
+
+**Файл:** `backtester.py:354`
+
+```python
+annualized_return = result.total_return_pct * (365 * 24 * 12 / total_bars)
+```
+
+`365 * 24 * 12 = 105,120` — this assumes 5-minute candles (12 per hour × 24 hours × 365 days). If the candle interval is different (e.g., 1h), the annualization is wrong. The formula should use the actual candle interval.
+
+**Фикс:** Accept `candle_interval_minutes` as a parameter and compute: `periods_per_year = 365 * 24 * 60 / candle_interval_minutes`.
+
+### 8.1129 ai-signal-bot/src/backtesting/pnl_calculator.py: PnL Calculator — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/backtesting/pnl_calculator.py` (252 lines)
+
+- **3 asset types**: Spot, futures, options — correct
+- **PnLConfig**: fee_rate, slippage_bps, funding_rate, funding_interval, option_premium, contract_multiplier — correct
+- **PnLBreakdown**: gross_pnl, entry_fee, exit_fee, funding_cost, net_pnl, fill prices — correct
+- **Slippage**: Direction-aware (entry: worse for buyer, exit: worse for seller) — correct
+- **Funding**: Futures only, proportional to hold time — correct
+- **Options**: Intrinsic value, PnL at expiry, long/short — correct
+- **calculate_pnl**: Full breakdown with slippage, fees, funding — correct
+
+Excellent PnL calculator with 3 asset types, direction-aware slippage, funding, and options support. ✅
+
+### 8.1130 pnl_calculator: options premium not used in calculate_pnl — Low
+
+**Файл:** `pnl_calculator.py:155-158`
+
+```python
+if self.asset_type == AssetType.OPTIONS:
+    gross_pnl = self._options_gross_pnl(side, qty, fill_entry, fill_exit)
+else:
+    gross_pnl = self._spot_futures_gross_pnl(side, qty, fill_entry, fill_exit)
+```
+
+For options, `calculate_pnl` uses `_options_gross_pnl` which is identical to `_spot_futures_gross_pnl` — both compute `(exit - entry) * qty * multiplier` for LONG. The `PnLConfig.option_premium_pct` (2% of notional) is never used. The options PnL is just price difference × qty, same as spot. The `options_pnl_at_expiry` method is the only one that uses intrinsic value.
+
+**Фикс:** Either use `option_premium_pct` in the options PnL calculation, or document that `calculate_pnl` for options treats entry/exit as premiums (mark-to-market), and `options_pnl_at_expiry` is for expiry settlement.
+
+### 8.1131 pnl_calculator: funding cost uses fill_exit price not average — Low
+
+**Файл:** `pnl_calculator.py:153`
+
+```python
+funding = self.calculate_funding_cost(qty, fill_exit, hold_time_s)
+```
+
+Funding cost is calculated using `fill_exit` (the exit fill price with slippage). In reality, funding is charged periodically based on the position's notional value at each funding interval. Using the exit price overestimates funding if the price moved significantly during the hold time. The average price (or periodic funding calculation) would be more accurate.
+
+**Фикс:** Use `(entry_price + exit_price) / 2` as an approximation, or calculate funding per interval using the price at each interval.
