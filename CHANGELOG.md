@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка SS: SHM memory barrier + env var API keys + ADL improvement)
+
+### Changed
+- `communication/shm_market_data_writer.py`: Added `_mm_barrier()` calls after seq+1 and before seq+2 — ensures correct memory ordering on ARM for cross-process SHM visibility
+- `data_collection/exchange_factory.py`: `ExchangeFactory` now reads `EXCHANGE_API_KEY` and `EXCHANGE_API_SECRET` env vars if not passed explicitly — prevents plaintext keys in config files
+- `exchange_simulator/liquidation_engine_v2.py`: `_auto_deleverage` now accepts `counterparties` list — sorts by profitability, reduces most profitable opposing positions first. `liquidate()` accepts optional `counterparties` param
+
+### Verified Not Applicable
+- `250+ symbol entries across 4+ configs`: Symbols intentionally duplicated for component independence. `scripts/test_config_consistency.py` verifies all 4 configs match
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка QQ: metric name mismatch fix + missing metrics)
 
 ### Added

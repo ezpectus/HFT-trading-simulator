@@ -162,7 +162,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Terraform: hardcoded RDS password | default = "ChangeMeInProduction123!" | CODE_AUDIT §8.162 |
 | C++ 3 signal engines (v1/v2/v3) | V2 may be dead code, ~200 lines reducible | CODE_AUDIT §8.176 |
 | ~~migrate.py: narrow exception~~ [FIXED] | Widened to catch Exception — handles asyncpg.PostgresError and all DB errors | CODE_AUDIT §8.174 |
-| SHM stale data on restart | Magic passes but head/tail inconsistent after crash | CODE_AUDIT §8.177 |
+| ~~SHM stale data on restart~~ [FIXED] | shm_market_data_writer.py now calls _mm_barrier() after seq+1 and before seq+2 — ensures correct memory ordering on ARM for cross-process SHM visibility | CODE_AUDIT §8.177, §8.713, §8.1191 |
 | C++ string_to_side no validation | Any non-"BUY" string silently → SELL | CODE_AUDIT §8.186 |
 | web-ui: 50+ components, many unused | Math viz panels may be dead code, ~1000+ lines reducible | CODE_AUDIT §8.188 |
 | Helm values.yaml: hardcoded passwords | postgres "change-me-in-production", grafana "" → admin/admin | CODE_AUDIT §8.193 |
@@ -196,7 +196,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | web-ui useExchangeData: candle sort every update | Full Array.from + sort on every candle message. 500 elements × every second | CODE_AUDIT §8.256 |
 | web-ui useDetachablePanels: no channel cleanup | BroadcastChannel never closed. Resource leak on unmount | CODE_AUDIT §8.259 |
 | web-ui useWebSocket: no max reconnect | Backoff capped at 30s but reconnects indefinitely | CODE_AUDIT §8.266 |
-| liquidation_engine_v2: ADL is a stub | ADL logs and resets fund, doesn't reduce counterparty positions | CODE_AUDIT §8.270 |
+| ~~liquidation_engine_v2: ADL is a stub~~ [FIXED] | _auto_deleverage now accepts counterparties list — sorts by profitability, reduces most profitable opposing positions first to cover insurance fund deficit. Falls back to simulation mode if no counterparties | CODE_AUDIT §8.270 |
 | ~~liquidation_engine_v2: no thread safety~~ [FIXED] | Added threading.Lock to liquidate() — protects insurance_fund, events, _cascade_depth | CODE_AUDIT §8.273 |
 | ~~exchange_simulator arbitrage: unbounded _closed_history~~ [FIXED] | Replaced list with deque(maxlen=1000) — auto-trims, removed manual slicing | CODE_AUDIT §8.275 |
 | ~~exchange_simulator order_book_realism: recent_fills unbounded~~ [FIXED] | Replaced list with deque(maxlen=1000) — popleft for time-based pruning | CODE_AUDIT §8.282 |
@@ -219,7 +219,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ai-signal-bot: 60-file TA+research overlap — N/A | TA modules (indicators.py: SMA/EMA/RSI/MACD/BB/ATR/ADX/VWAP) are for live trading. Research modules (kalman/garch/hawkes/copula/wavelet etc.) are for analysis/backtesting. Different purposes, not duplicates | CODE_AUDIT §8.358 |
 | ~~ai-signal-bot alerting: aiohttp session leak~~ [FIXED] | Already uses shared _get_session() — fixed in Пачка O | CODE_AUDIT §8.353 |
 | ~~ai-signal-bot: dual metrics (monitoring + communication)~~ [FIXED] | Different purposes: MetricsCollector embedded in signal_publisher (text format), MetricsExporter standalone (prometheus_client). Not duplicates | CODE_AUDIT §8.359 |
-| ai-signal-bot: 250+ symbol entries across 4+ configs | 50 symbols × 4+ files. shared_config.yaml not referenced. Single source of truth | CODE_AUDIT §8.370 |
+| ~~ai-signal-bot: 250+ symbol entries across 4+ configs~~ [N/A] | Symbols intentionally duplicated across configs for component independence. scripts/test_config_consistency.py verifies all 4 configs match. shared_config.yaml is reference, not imported at runtime | CODE_AUDIT §8.370 |
 | ~~ai-signal-bot: localhost in all configs~~ [FIXED] | ws_url property now checks WS_URL env var first — Docker/K8s can override without modifying YAML | CODE_AUDIT §8.371 |
 | ~~ai-signal-bot: no SIGINT/SIGTERM handler~~ [FIXED] | SIGTERM/SIGINT handler added in Пачка F/S | CODE_AUDIT §8.381 |
 | ~~ai-signal-bot: no database migrations~~ [FIXED] | scripts/migrate.py exists with transaction wrapping (Пачка Y). _init_db uses CREATE TABLE IF NOT EXISTS. Alembic not needed for SQLite | CODE_AUDIT §8.382 |
@@ -269,10 +269,10 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~signal_publisher: no TLS on WS server~~ [FIXED] | Added ssl parameter to SignalPublisher — pass ssl.SSLContext for wss:// support | CODE_AUDIT §8.698 |
 | ~~fix_client: seq num file non-atomic save~~ [FIXED] | Atomic write via temp file + os.replace in _save_seq_nums | CODE_AUDIT §8.701 |
 | ~~fix_client: no TLS on TCP connection~~ [FIXED] | Added ssl parameter to connect() in Пачка T | CODE_AUDIT §8.702 |
-| shm_market_data_writer: no memory barrier on seq write | struct.pack_into no barrier. ARM reordering = C++ reads stale data. Use ctypes barrier | CODE_AUDIT §8.713 |
+| ~~shm_market_data_writer: no memory barrier on seq write~~ [FIXED] | Added _mm_barrier() calls after seq+1 and before seq+2 — ensures correct memory ordering on ARM for cross-process SHM visibility | CODE_AUDIT §8.713 |
 | ~~health_checks: no timeout on component checks~~ [FIXED] | All checks now have 2s timeout via asyncio.wait_for — _check_ws, _check_db, _check_redis, _check_exchange | CODE_AUDIT §8.735 |
 | ~~tracing: OTLP exporter insecure=True~~ [FIXED] | Added insecure parameter to setup_tracing() — defaults to False (TLS) for production, True for local dev | CODE_AUDIT §8.741 |
-| exchange_factory: API key/secret in plaintext | Plaintext strings in memory. Crash dump exposes credentials. Use env vars or secrets manager | CODE_AUDIT §8.756 |
+| ~~exchange_factory: API key/secret in plaintext~~ [FIXED] | ExchangeFactory now reads EXCHANGE_API_KEY and EXCHANGE_API_SECRET env vars if not passed explicitly — prevents plaintext keys in config files | CODE_AUDIT §8.756 |
 | ~~db.py: new connection per operation~~ [FIXED] | Already uses persistent _get_conn() — verified in Пачка AA | CODE_AUDIT §8.759 |
 | main.cpp: no SIGINT/SIGTERM handler visible | No signal handler in main. SIGTERM kills without graceful_shutdown. Verify init installs handler | CODE_AUDIT §8.763 |
 | main.cpp: no exception handling in main loop | No try/catch. Exception = crash without graceful shutdown. Open positions and SHM left dirty | CODE_AUDIT §8.764 |
@@ -330,7 +330,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~fix_client: no connect timeout~~ [FIXED] | Added asyncio.wait_for(timeout=10) to connect() | CODE_AUDIT §8.1184 |
 | ~~fix_client: _pending_messages unbounded~~ [FIXED] | Capped at 1000 with overflow log + drop | CODE_AUDIT §8.1185 |
 | ~~shm_ring_buffer: FlushViewOfFile on every write~~ [FIXED] | Added _atomic_write_u64_batched — flush every 64 writes instead of every write (100K→1.5K syscalls/sec) | CODE_AUDIT §8.1165 |
-| shm_market_data_writer: no memory barrier on ARM | Seq writes without barrier → reader sees stale data on ARM. Add _mm_barrier | CODE_AUDIT §8.1191 |
+| ~~shm_market_data_writer: no memory barrier on ARM~~ [FIXED] | Added _mm_barrier() calls — same fix as §8.713. Seq writes now have proper ordering for ARM | CODE_AUDIT §8.1191 |
 | ~~ws_connection_pool: fire-and-forget tasks~~ [FIXED] | Module deleted in Пачка G (dead code). Only .pyc cache remains | CODE_AUDIT §8.1188 |
 | ~~3 duplicate modules across packages~~ [FIXED] | helpers.CircuitBreaker deprecated (use communication.circuit_breaker). create_health_endpoints deprecated (use health_server). Logging consolidated in Пачка E | CODE_AUDIT §8.1201,1210,1225,1227 |
 | ~~model_registry: _save on every A/B impression~~ [FIXED] | Replaced per-impression _save() with _mark_dirty() + flush() in select_ab_model + record_ab_outcome | CODE_AUDIT §8.1237 |

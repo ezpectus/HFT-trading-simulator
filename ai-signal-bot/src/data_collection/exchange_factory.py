@@ -7,6 +7,7 @@ Supports multi-exchange and fallback from real to simulator.
 from __future__ import annotations
 
 import logging
+import os
 import time
 from enum import Enum
 from typing import Protocol
@@ -169,8 +170,8 @@ class ExchangeFactory:
                  symbols: list[str] | None = None):
         self.mode = mode
         self.exchange = exchange
-        self.api_key = api_key
-        self.api_secret = api_secret
+        self.api_key = api_key or os.environ.get("EXCHANGE_API_KEY", "")
+        self.api_secret = api_secret or os.environ.get("EXCHANGE_API_SECRET", "")
         self.testnet = testnet
         self.simulator_url = simulator_url
         self.symbols = symbols or []

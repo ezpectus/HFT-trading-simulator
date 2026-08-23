@@ -8,13 +8,12 @@ Uses latest-snapshot-wins model (single slot per symbol, seq-guarded).
 
 from __future__ import annotations
 
+import ctypes
 import logging
 import mmap
 import os
 import struct
 import sys
-
-import ctypes
 
 from .shm_ring_buffer import MARKET_SNAPSHOT_STRUCT, _mm_barrier
 

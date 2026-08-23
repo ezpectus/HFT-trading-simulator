@@ -116,8 +116,13 @@ class LiquidationEngineV2:
         return equity / notional
 
     def liquidate(self, pos: Position, mark_price: float,
-                  force_full: bool = False) -> LiquidationEvent | None:
-        """Liquidate a position. Returns liquidation event or None."""
+                  force_full: bool = False,
+                  counterparties: list[Position] | None = None) -> LiquidationEvent | None:
+        """Liquidate a position. Returns liquidation event or None.
+
+        Args:
+            counterparties: Optional list of opposing positions for ADL if insurance fund depleted.
+        """
         with self._lock:
             if pos.qty <= 0:
                 return None
@@ -131,7 +136,7 @@ class LiquidationEngineV2:
             self._log_liquidation(pos, qty_to_close, liq_type, loss)
 
             if self.insurance_fund < 0:
-                self._auto_deleverage(pos, mark_price)
+                self._auto_deleverage(pos, mark_price, counterparties)
 
             return event
 
@@ -212,28 +217,72 @@ class LiquidationEngineV2:
         self._cascade_depth = 0
         return events
 
-    def _auto_deleverage(self, pos: Position, mark_price: float) -> None:
-        """Auto-deleveraging: reduce profitable opposing positions."""
+    def _auto_deleverage(self, pos: Position, mark_price: float,
+                         counterparties: list[Position] | None = None) -> None:
+        """Auto-deleveraging: reduce profitable opposing positions to cover negative insurance fund.
+
+        Args:
+            pos: The liquidated position that triggered ADL.
+            counterparties: List of opposing positions to reduce. If None,
+                falls back to logging + partial fund recovery (simulation mode).
+        """
         logger.critical(
             f"[LiqEngine] Insurance fund depleted! Triggering ADL. "
             f"Fund={self.insurance_fund:.2f}"
         )
-        # In real exchange, this would reduce profitable counterparty positions
-        # For simulation, we log and reset insurance fund
-        self.insurance_fund = abs(self.insurance_fund) * 0.1  # Small recovery
-        event = LiquidationEvent(
-            timestamp=time.time(),
-            symbol=pos.symbol,
-            side="adl",
-            qty_liquidated=0,
-            liq_price=0,
-            mark_price=mark_price,
-            remaining_qty=0,
-            liq_type=LiquidationType.ADL,
-            loss=0,
-            cascade_triggered=True,
-        )
-        self.events.append(event)
+
+        if counterparties:
+            # Sort by profitability (most profitable first = largest unrealized PnL)
+            def _pnl(p: Position) -> float:
+                return self.compute_unrealized_pnl(p, mark_price)
+
+            deficit = abs(self.insurance_fund)
+            for cp in sorted(counterparties, key=_pnl, reverse=True):
+                if deficit <= 0 or cp.qty <= 0:
+                    break
+                cp_pnl = _pnl(cp)
+                if cp_pnl <= 0:
+                    continue
+                # Reduce counterparty position to cover deficit
+                reduce_qty = min(cp.qty, deficit / max(abs(cp_pnl / cp.qty), 1e-10))
+                cp.pnl_realized = cp_pnl * (reduce_qty / cp.qty) if cp.qty > 0 else 0  # type: ignore[attr-defined]
+                cp.qty -= reduce_qty
+                recovered = cp_pnl * (reduce_qty / max(cp.qty + reduce_qty, 1e-10))
+                self.insurance_fund += recovered
+                deficit -= recovered
+                event = LiquidationEvent(
+                    timestamp=time.time(),
+                    symbol=cp.symbol,
+                    side=cp.side,
+                    qty_liquidated=reduce_qty,
+                    liq_price=0,
+                    mark_price=mark_price,
+                    remaining_qty=cp.qty,
+                    liq_type=LiquidationType.ADL,
+                    loss=recovered,
+                    cascade_triggered=True,
+                )
+                self.events.append(event)
+                logger.warning(
+                    f"[LiqEngine] ADL reduced {cp.symbol} {cp.side} by {reduce_qty:.4f} "
+                    f"(recovered {recovered:.2f})"
+                )
+        else:
+            # Simulation fallback: no counterparty data available
+            self.insurance_fund = abs(self.insurance_fund) * 0.1  # Small recovery
+            event = LiquidationEvent(
+                timestamp=time.time(),
+                symbol=pos.symbol,
+                side="adl",
+                qty_liquidated=0,
+                liq_price=0,
+                mark_price=mark_price,
+                remaining_qty=0,
+                liq_type=LiquidationType.ADL,
+                loss=0,
+                cascade_triggered=True,
+            )
+            self.events.append(event)
 
     def get_insurance_fund(self) -> float:
         return self.insurance_fund
