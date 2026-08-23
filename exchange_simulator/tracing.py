@@ -68,9 +68,6 @@ class ExchangeSimulatorTracer:
             span.set_attribute("order_type", "market")
             span.add_event("order_received", {"timestamp": time.time()})
 
-            # Simulate processing
-            time.sleep(0.001)
-
             span.add_event("order_processed", {"timestamp": time.time()})
             span.set_status(trace.Status(trace.StatusCode.OK))
 

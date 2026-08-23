@@ -38,6 +38,24 @@ class SignalBotConfig:
         errors: list[str] = []
         warnings: list[str] = []
 
+        # Type checks on critical fields
+        trading = self.raw.get("trading", {})
+        if not isinstance(trading.get("symbols"), list):
+            errors.append("trading.symbols must be a list")
+        if not isinstance(trading.get("signal_interval_seconds", 0), int):
+            errors.append("trading.signal_interval_seconds must be an integer")
+        if not isinstance(trading.get("max_open_positions", 0), int):
+            errors.append("trading.max_open_positions must be an integer")
+        if not isinstance(trading.get("paper_trading", True), bool):
+            errors.append("trading.paper_trading must be a boolean")
+
+        risk = self.raw.get("risk", {})
+        for key in ("max_risk_per_trade_pct", "max_daily_drawdown_pct", "min_confidence",
+                     "min_rr_ratio", "stop_loss_pct", "take_profit_pct", "max_position_size_pct"):
+            val = risk.get(key)
+            if val is not None and not isinstance(val, (int, float)):
+                errors.append(f"risk.{key} must be a number, got {type(val).__name__}")
+
         # Check required sections
         for section in REQUIRED_SECTIONS:
             if section not in self.raw:
@@ -145,11 +163,28 @@ class SignalBotConfig:
     # --- exchange ---
     @property
     def ws_url(self) -> str:
-        return self.raw["exchange"]["websocket_url"]
+        return os.environ.get("WS_URL", self.raw["exchange"]["websocket_url"])
 
     @property
     def default_exchange(self) -> str:
         return self.raw["exchange"]["default_exchange"]
+
+    # --- network ---
+    @property
+    def ws_connect_timeout(self) -> int:
+        return self.raw.get("network", {}).get("ws_connect_timeout", 10)
+
+    @property
+    def ws_recv_timeout(self) -> int:
+        return self.raw.get("network", {}).get("ws_recv_timeout", 30)
+
+    @property
+    def rest_timeout(self) -> int:
+        return self.raw.get("network", {}).get("rest_timeout", 15)
+
+    @property
+    def socket_buffer_size(self) -> int:
+        return self.raw.get("network", {}).get("socket_buffer_size", 1048576)
 
     # --- risk ---
     @property

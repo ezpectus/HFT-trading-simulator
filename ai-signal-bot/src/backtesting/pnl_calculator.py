@@ -157,13 +157,13 @@ class PnLCalculator:
         else:
             gross_pnl = self._spot_futures_gross_pnl(side, qty, fill_entry, fill_exit)
 
-        net_pnl = gross_pnl - entry_fee - exit_fee - funding
+        net_pnl = round(gross_pnl - entry_fee - exit_fee - funding, 10)
 
         return PnLBreakdown(
-            gross_pnl=gross_pnl,
-            entry_fee=entry_fee,
-            exit_fee=exit_fee,
-            funding_cost=funding,
+            gross_pnl=round(gross_pnl, 10),
+            entry_fee=round(entry_fee, 10),
+            exit_fee=round(exit_fee, 10),
+            funding_cost=round(funding, 10),
             net_pnl=net_pnl,
             fill_entry_price=fill_entry,
             fill_exit_price=fill_exit,
@@ -179,8 +179,8 @@ class PnLCalculator:
         """Gross PnL for spot or futures (before fees and funding)."""
         multiplier = self.config.contract_multiplier
         if side == "LONG":
-            return (exit_price - entry_price) * qty * multiplier
-        return (entry_price - exit_price) * qty * multiplier
+            return round((exit_price - entry_price) * qty * multiplier, 10)
+        return round((entry_price - exit_price) * qty * multiplier, 10)
 
     def _options_gross_pnl(
         self,
@@ -233,12 +233,12 @@ class PnLCalculator:
 
         if side == "LONG":
             # Buyer: pays premium, receives intrinsic value
-            gross_pnl = (intrinsic - premium) * qty * multiplier
+            gross_pnl = round((intrinsic - premium) * qty * multiplier, 10)
         else:
             # Seller: receives premium, pays intrinsic value
-            gross_pnl = (premium - intrinsic) * qty * multiplier
+            gross_pnl = round((premium - intrinsic) * qty * multiplier, 10)
 
-        net_pnl = gross_pnl - entry_fee - exit_fee - funding
+        net_pnl = round(gross_pnl - entry_fee - exit_fee - funding, 10)
 
         return PnLBreakdown(
             gross_pnl=gross_pnl,

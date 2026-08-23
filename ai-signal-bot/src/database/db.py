@@ -21,8 +21,9 @@ class Database:
     def _get_conn(self) -> sqlite3.Connection:
         """Get or create persistent connection."""
         if self._conn is None:
-            self._conn = sqlite3.connect(self.path)
+            self._conn = sqlite3.connect(self.path, timeout=5.0)
             self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA busy_timeout=5000")
             self._conn.row_factory = sqlite3.Row
         return self._conn
 
@@ -90,6 +91,7 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_signals_symbol ON signals(symbol);
                 CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol);
                 CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status);
+                CREATE INDEX IF NOT EXISTS idx_equity_curve_ts ON equity_curve(timestamp);
             """)
         conn.commit()
 
@@ -189,3 +191,21 @@ class Database:
             "SELECT * FROM trades ORDER BY id DESC LIMIT ?", (limit,)
         ).fetchall()
         return [dict(r) for r in rows]
+
+    def purge_old_records(self, max_age_days: int = 90) -> dict[str, int]:
+        """Delete signals, trades, and equity_curve rows older than max_age_days.
+
+        Returns:
+            Dict with count of deleted rows per table.
+        """
+        conn = self._get_conn()
+        cutoff = int(time.time()) - max_age_days * 86400
+        deleted = {}
+        for table in ("signals", "trades", "equity_curve"):
+            cursor = conn.execute(
+                f"DELETE FROM {table} WHERE timestamp < ?", (cutoff,)
+            )
+            deleted[table] = cursor.rowcount
+        conn.execute("PRAGMA optimize")
+        conn.commit()
+        return deleted

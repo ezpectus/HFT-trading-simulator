@@ -19,6 +19,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +29,20 @@ _initialized: bool = False
 
 def setup_tracing(
     service_name: str = "ai-signal-bot",
-    endpoint: str = "http://localhost:4317",
+    endpoint: str | None = None,
     enabled: bool = True,
+    insecure: bool = False,
 ) -> None:
-    """Initialize OpenTelemetry tracing with OTLP exporter (Jaeger)."""
+    """Initialize OpenTelemetry tracing with OTLP exporter (Jaeger).
+
+    Args:
+        endpoint: OTLP collector URL. Defaults to OTEL_EXPORTER_OTLP_ENDPOINT
+                  env var, or http://localhost:4317 if not set.
+        insecure: If True, uses plaintext gRPC (for local dev only).
+                  If False, uses TLS for secure trace export (production).
+    """
+    if endpoint is None:
+        endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
     global _tracer, _initialized
 
     if not enabled:
@@ -56,7 +67,7 @@ def setup_tracing(
         })
 
         provider = TracerProvider(resource=resource)
-        exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
+        exporter = OTLPSpanExporter(endpoint=endpoint, insecure=insecure)
         processor = BatchSpanProcessor(exporter)
         provider.add_span_processor(processor)
         trace.set_tracer_provider(provider)

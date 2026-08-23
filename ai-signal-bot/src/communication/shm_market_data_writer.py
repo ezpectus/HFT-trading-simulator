@@ -14,7 +14,9 @@ import os
 import struct
 import sys
 
-from .shm_ring_buffer import MARKET_SNAPSHOT_STRUCT
+import ctypes
+
+from .shm_ring_buffer import MARKET_SNAPSHOT_STRUCT, _mm_barrier
 
 IS_WINDOWS = sys.platform == 'win32'
 
@@ -82,6 +84,7 @@ class ShmMarketDataWriter:
         seq = struct.unpack_from('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ)[0]
         # Increment before write (odd = write in progress)
         struct.pack_into('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ, seq + 1)
+        _mm_barrier(self._mm)  # Ensure seq is visible before data (ARM ordering)
 
         # Write data
         MARKET_SNAPSHOT_STRUCT.pack_into(
@@ -91,6 +94,7 @@ class ShmMarketDataWriter:
         )
 
         # Increment after write (even = consistent)
+        _mm_barrier(self._mm)  # Ensure data is visible before seq+2 (ARM ordering)
         struct.pack_into('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ, seq + 2)
 
     def write_price(self, symbol_id: int, bid: float, ask: float,

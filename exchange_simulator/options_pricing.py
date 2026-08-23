@@ -2,10 +2,20 @@
 #
 # Implements Black-Scholes and Binomial Tree pricing models for options.
 # Includes Greeks calculation and implied volatility estimation.
+#
+# DEPRECATED: Use exchange_simulator.options_simulator.OptionsSimulator instead,
+# which provides the same Black-Scholes pricing with a richer OptionQuote dataclass.
 
 import math
+import warnings
 from dataclasses import dataclass
 from enum import Enum
+
+warnings.warn(
+    "options_pricing is deprecated. Use exchange_simulator.options_simulator.OptionsSimulator instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class OptionType(Enum):

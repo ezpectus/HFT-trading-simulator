@@ -1,7 +1,5 @@
 """Utils package."""
 from src.utils.helpers import (
-    CircuitBreaker,
-    RateLimiter,
     clamp,
     format_percentage,
     format_price,
@@ -10,11 +8,12 @@ from src.utils.helpers import (
     load_config,
     now_ms,
     now_us,
+    retry_with_backoff,
     safe_divide,
 )
 
 __all__ = [
     "load_config", "get_env", "now_ms", "now_us",
     "format_price", "format_qty", "format_percentage", "safe_divide", "clamp",
-    "CircuitBreaker", "RateLimiter",
+    "retry_with_backoff",
 ]

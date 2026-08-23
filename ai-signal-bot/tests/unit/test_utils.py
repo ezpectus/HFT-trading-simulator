@@ -5,14 +5,13 @@ import time
 import pytest
 
 from src.utils.helpers import (
-    CircuitBreaker,
-    RateLimiter,
     clamp,
     format_percentage,
     format_price,
     format_qty,
     now_ms,
     now_us,
+    retry_with_backoff,
     safe_divide,
     truncate_dict,
 )
@@ -55,31 +54,6 @@ class TestTimeUtils:
         assert t > 1_000_000_000_000_000
 
 
-class TestCircuitBreaker:
-    def test_starts_closed(self):
-        cb = CircuitBreaker()
-        assert cb.state == "closed"
-        assert not cb.is_open
-
-    def test_opens_after_failures(self):
-        cb = CircuitBreaker(failure_threshold=3)
-        cb.record_failure()
-        cb.record_failure()
-        assert not cb.is_open
-        cb.record_failure()
-        assert cb.is_open
-        assert cb.state == "open"
-
-    def test_recovers(self):
-        cb = CircuitBreaker(failure_threshold=1, recovery_timeout=0.1)
-        cb.record_failure()
-        assert cb.is_open
-        time.sleep(0.15)
-        assert not cb.is_open
-        cb.record_success()
-        assert cb.state == "closed"
-
-
 class TestTruncateDict:
     def test_small_dict(self):
         d = {"a": 1, "b": 2}
@@ -93,8 +67,27 @@ class TestTruncateDict:
 
 
 @pytest.mark.asyncio
-class TestRateLimiter:
-    async def test_acquire(self):
-        limiter = RateLimiter(rate=10, burst=2)
-        assert await limiter.acquire()
-        assert await limiter.acquire()
+class TestRetryWithBackoff:
+    async def test_succeeds_first_try(self):
+        async def ok():
+            return 42
+        result = await retry_with_backoff(ok, max_retries=2)
+        assert result == 42
+
+    async def test_retries_on_failure(self):
+        calls = 0
+        async def flaky():
+            nonlocal calls
+            calls += 1
+            if calls < 3:
+                raise OSError("transient")
+            return "ok"
+        result = await retry_with_backoff(flaky, max_retries=3, initial_delay=0.01)
+        assert result == "ok"
+        assert calls == 3
+
+    async def test_exhausts_retries(self):
+        async def always_fail():
+            raise RuntimeError("permanent")
+        with pytest.raises(RuntimeError):
+            await retry_with_backoff(always_fail, max_retries=1, initial_delay=0.01)

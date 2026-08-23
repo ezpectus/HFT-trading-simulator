@@ -66,12 +66,13 @@ class MicrostructureConfig:
 class MarketMicrostructure:
     """Realistic market price generator with microstructure effects."""
 
-    def __init__(self, config: MicrostructureConfig | None = None):
+    def __init__(self, config: MicrostructureConfig | None = None, seed: int = 42):
         self.config = config or MicrostructureConfig()
+        self._seed = seed
         self.regime: MarketRegime = MarketRegime.CALM
         self.variance: float = self.config.heston_theta
         self.step_count: int = 0
-        self._rng = np.random.default_rng(seed=42)
+        self._rng = np.random.default_rng(seed=self._seed)
 
     def reset(self, seed: int = 42) -> None:
         self.regime = MarketRegime.CALM

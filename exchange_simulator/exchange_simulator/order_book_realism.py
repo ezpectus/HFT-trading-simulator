@@ -98,12 +98,12 @@ class OrderBookRealism:
     """Realistic L2 order book with spoofing, icebergs, and adverse selection."""
 
     def __init__(self, symbol: str = "BTCUSDT", tick_size: float = 0.5,
-                 num_levels: int = 20, base_qty: float = 1.0):
+                 num_levels: int = 20, base_qty: float = 1.0, seed: int = 42):
         self.symbol = symbol
         self.tick_size = tick_size
         self.num_levels = num_levels
         self.base_qty = base_qty
-        self._rng = np.random.default_rng(seed=42)
+        self._rng = np.random.default_rng(seed=seed)
         self._next_order_id = 1
 
         self.bids: dict[float, PriceLevel] = {}
@@ -113,7 +113,7 @@ class OrderBookRealism:
         self.spread: float = tick_size * 2
 
         # Adverse selection tracking
-        self.recent_fills: list[dict] = []
+        self.recent_fills: deque = deque(maxlen=1000)
         self.toxic_flow_score: float = 0.0
 
         # Spoofing stats
@@ -262,7 +262,9 @@ class OrderBookRealism:
     def _update_toxicity(self) -> None:
         """Compute toxic flow score from recent fills."""
         now = time.time()
-        self.recent_fills = [f for f in self.recent_fills if now - f["time"] < 5.0]
+        # Prune stale fills (older than 5 seconds)
+        while self.recent_fills and now - self.recent_fills[0]["time"] >= 5.0:
+            self.recent_fills.popleft()
         if not self.recent_fills:
             self.toxic_flow_score = 0.0
             return

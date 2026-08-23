@@ -55,9 +55,12 @@ class _EnsembleAdapter:
 class SignalPublisher:
     """WebSocket server broadcasting AI signals to connected HFT clients."""
 
-    def __init__(self, host: str = "0.0.0.0", port: int = 8766):  # nosec: B104
+    def __init__(self, host: str = "0.0.0.0", port: int = 8766, ssl: object = None, auth_token: str = "", max_clients: int = 50):  # nosec: B104
         self.host = host
         self.port = port
+        self._ssl = ssl
+        self._auth_token = auth_token
+        self._max_clients = max_clients
         self._clients: set = set()
         self._signal_history: deque = deque(maxlen=100)
         self._max_history = 100
@@ -78,15 +81,21 @@ class SignalPublisher:
 
     async def start(self) -> None:
         """Start the WebSocket server."""
+        serve_kwargs = dict(
+            ping_interval=10,
+            ping_timeout=30,
+        )
+        if self._ssl is not None:
+            serve_kwargs["ssl"] = self._ssl
         self._server = await websockets.serve(
             self._handle_client,
             self.host,
             self.port,
-            ping_interval=10,
-            ping_timeout=30,
+            **serve_kwargs,
         )
         self._running = True
-        logger.info(f"Signal publisher started on ws://{self.host}:{self.port}")
+        scheme = "wss" if self._ssl else "ws"
+        logger.info(f"Signal publisher started on {scheme}://{self.host}:{self.port}")
 
         self._cb_broadcast_task = asyncio.create_task(self._broadcast_circuit_breaker_status())
 
@@ -106,7 +115,27 @@ class SignalPublisher:
 
     async def _handle_client(self, websocket, path=None) -> None:
         """Handle a connected HFT client."""
+        # Authenticate client if auth_token is set
+        if self._auth_token:
+            try:
+                raw = await asyncio.wait_for(websocket.recv(), timeout=10.0)
+                data = json.loads(raw)
+                if data.get("type") == "auth" and data.get("token") == self._auth_token:
+                    await websocket.send(json.dumps({"type": "auth_ok"}, separators=(',', ':')))
+                else:
+                    await websocket.send(json.dumps({"type": "auth_failed"}, separators=(',', ':')))
+                    await websocket.close()
+                    return
+            except (asyncio.TimeoutError, json.JSONDecodeError, websockets.ConnectionClosed):
+                logger.warning("Client auth timeout or invalid — disconnecting")
+                await websocket.close()
+                return
+
         async with self._state_lock:
+            if len(self._clients) >= self._max_clients:
+                logger.warning(f"Max clients ({self._max_clients}) reached — rejecting new connection")
+                await websocket.close(code=1013, reason="Max clients reached")
+                return
             self._clients.add(websocket)
             self.metrics.set_ws_clients(len(self._clients))
         remote = websocket.remote_address if hasattr(websocket, "remote_address") else "unknown"
@@ -141,7 +170,17 @@ class SignalPublisher:
             async for message in websocket:
                 try:
                     data = json.loads(message)
+                    if not isinstance(data, dict):
+                        logger.warning(f"Invalid message from {remote}: expected JSON object")
+                        continue
                     msg_type = data.get("type")
+                    if not isinstance(msg_type, str) or not msg_type:
+                        logger.warning(f"Invalid message from {remote}: missing 'type' field")
+                        continue
+                    _VALID_MSG_TYPES = {"subscribe", "run_backtest", "compare_backtests", "auth", "ping"}
+                    if msg_type not in _VALID_MSG_TYPES:
+                        logger.warning(f"Unknown message type '{msg_type}' from {remote}")
+                        continue
                     if msg_type == "subscribe":
                         logger.info(f"Client subscribed: {data.get('client', 'unknown')}")
                     elif msg_type == "run_backtest":
@@ -171,8 +210,8 @@ class SignalPublisher:
         disconnected = set()
         async def _send(ws):
             try:
-                await ws.send(msg)
-            except (ConnectionError, OSError):
+                await asyncio.wait_for(ws.send(msg), timeout=5.0)
+            except (ConnectionError, OSError, asyncio.TimeoutError):
                 disconnected.add(ws)
         await asyncio.gather(*[_send(ws) for ws in clients], return_exceptions=True)
         if disconnected:
@@ -181,7 +220,7 @@ class SignalPublisher:
 
     async def broadcast_signal(self, signal: dict) -> None:
         """Broadcast a trading signal to all connected HFT clients."""
-        if not self.circuit_breaker.allow_signal():
+        if not await self.circuit_breaker.allow_signal():
             logger.warning(
                 f"Signal blocked by circuit breaker: {signal.get('direction', '?')} "
                 f"{signal.get('symbol', '?')} (state={self.circuit_breaker.state.value})"

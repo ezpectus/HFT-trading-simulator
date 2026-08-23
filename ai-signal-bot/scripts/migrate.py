@@ -72,14 +72,15 @@ async def run_migrations(args):
             sql = f.read()
 
         try:
-            await conn.execute(sql)
-            await conn.execute(
-                "INSERT INTO schema_migrations (filename) VALUES ($1)",
-                filename
-            )
+            async with conn.transaction():
+                await conn.execute(sql)
+                await conn.execute(
+                    "INSERT INTO schema_migrations (filename) VALUES ($1)",
+                    filename
+                )
             applied_count += 1
             logger.info(f"  Done: {filename}")
-        except (OSError, ValueError, RuntimeError, KeyError) as e:
+        except Exception as e:
             logger.error(f"  Failed: {filename}: {e}")
             break
 

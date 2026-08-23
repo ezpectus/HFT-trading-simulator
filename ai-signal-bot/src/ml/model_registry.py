@@ -127,8 +127,11 @@ class ModelRegistry:
             },
             "ab_tests": {name: asdict(ab) for name, ab in self.ab_tests.items()},
         }
-        with open(self.index_path, "w") as f:
+        # Atomic write: temp file + rename to prevent corruption on crash
+        tmp_path = self.index_path + ".tmp"
+        with open(tmp_path, "w") as f:
             json.dump(data, f, indent=2)
+        os.replace(tmp_path, self.index_path)
 
     def register(
         self,

@@ -113,6 +113,14 @@ class BacktestEngine:
                 ),
             )
 
+    def reset(self) -> None:
+        """Reset engine state for reuse (avoids creating new instances in walk-forward)."""
+        self.equity = self.config.initial_capital
+        self.position = None
+        self.trades = []
+        self.equity_curve = []
+        self.peak_equity = self.config.initial_capital
+
     def run(
         self, candles: list[dict],
         strategy_analyze: Callable[[str, list[dict]], dict],
@@ -128,13 +136,10 @@ class BacktestEngine:
             "take_profit": float,
         }
         """
-        self.equity = self.config.initial_capital
-        self.position = None
-        self.trades = []
-        self.equity_curve = []
-        self.peak_equity = self.config.initial_capital
+        self.reset()
 
         lookback = 50  # Minimum candles for strategy
+        max_window = max(lookback * 2, 200)
 
         for i in range(lookback, len(candles)):
             candle = candles[i]
@@ -145,9 +150,10 @@ class BacktestEngine:
             if self.position:
                 self._check_exit(current_price, timestamp, candle, symbol=symbol)
 
-            # If no position, check for entry
+            # If no position, check for entry (rolling window to avoid O(N²))
             if not self.position:
-                signal = strategy_analyze(symbol, candles[:i + 1])
+                start = max(0, i - max_window + 1)
+                signal = strategy_analyze(symbol, candles[start:i + 1])
                 if signal and signal.get("direction") in ("LONG", "SHORT"):
                     self._enter_position(signal, current_price, timestamp)
 

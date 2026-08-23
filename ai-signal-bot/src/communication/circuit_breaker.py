@@ -9,6 +9,7 @@ States:
   OPEN    — breaker tripped, signals blocked, cooldown active
   HALF_OPEN — cooldown expired, allowing a single probe signal
 """
+import asyncio
 import logging
 import time
 from dataclasses import dataclass
@@ -32,7 +33,10 @@ class CircuitBreakerConfig:
 
 
 class CircuitBreaker:
-    """Circuit breaker that tracks signal outcomes and blocks on consecutive failures."""
+    """Circuit breaker that tracks signal outcomes and blocks on consecutive failures.
+
+    Thread-safe for async usage via asyncio.Lock on all state-mutating operations.
+    """
 
     def __init__(self, config: CircuitBreakerConfig | None = None):
         self.config = config or CircuitBreakerConfig()
@@ -43,6 +47,7 @@ class CircuitBreaker:
         self._half_open_probes = 0
         self._total_trips = 0
         self._total_blocks = 0
+        self._lock = asyncio.Lock()
 
     @property
     def state(self) -> BreakerState:
@@ -69,42 +74,45 @@ class CircuitBreaker:
     def total_blocks(self) -> int:
         return self._total_blocks
 
-    def allow_signal(self) -> bool:
+    async def allow_signal(self) -> bool:
         """Check if a signal should be allowed through."""
-        current = self.state
-        if current == BreakerState.CLOSED:
-            return True
-        if current == BreakerState.OPEN:
+        async with self._lock:
+            current = self.state
+            if current == BreakerState.CLOSED:
+                return True
+            if current == BreakerState.OPEN:
+                self._total_blocks += 1
+                return False
+            # HALF_OPEN: allow limited probes
+            if self._half_open_probes < self.config.half_open_max_probes:
+                self._half_open_probes += 1
+                return True
             self._total_blocks += 1
             return False
-        # HALF_OPEN: allow limited probes
-        if self._half_open_probes < self.config.half_open_max_probes:
-            self._half_open_probes += 1
-            return True
-        self._total_blocks += 1
-        return False
 
-    def record_success(self) -> None:
+    async def record_success(self) -> None:
         """Record a successful signal outcome."""
-        if self._state == BreakerState.HALF_OPEN:
-            self._consecutive_successes += 1
-            if self._consecutive_successes >= self.config.success_threshold:
-                self._state = BreakerState.CLOSED
+        async with self._lock:
+            if self._state == BreakerState.HALF_OPEN:
+                self._consecutive_successes += 1
+                if self._consecutive_successes >= self.config.success_threshold:
+                    self._state = BreakerState.CLOSED
+                    self._consecutive_failures = 0
+                    self._consecutive_successes = 0
+                    logger.info("Circuit breaker: HALF_OPEN → CLOSED (success threshold reached)")
+            elif self._state == BreakerState.CLOSED:
                 self._consecutive_failures = 0
-                self._consecutive_successes = 0
-                logger.info("Circuit breaker: HALF_OPEN → CLOSED (success threshold reached)")
-        elif self._state == BreakerState.CLOSED:
-            self._consecutive_failures = 0
 
-    def record_failure(self) -> None:
+    async def record_failure(self) -> None:
         """Record a failed signal outcome (e.g., losing trade)."""
-        self._consecutive_successes = 0
-        if self._state == BreakerState.HALF_OPEN:
-            self._trip()
-            return
-        self._consecutive_failures += 1
-        if self._consecutive_failures >= self.config.failure_threshold:
-            self._trip()
+        async with self._lock:
+            self._consecutive_successes = 0
+            if self._state == BreakerState.HALF_OPEN:
+                self._trip()
+                return
+            self._consecutive_failures += 1
+            if self._consecutive_failures >= self.config.failure_threshold:
+                self._trip()
 
     def _trip(self) -> None:
         failure_count = self._consecutive_failures
@@ -117,12 +125,13 @@ class CircuitBreaker:
             f"cooldown={self.config.cooldown_seconds}s (total trips: {self._total_trips})"
         )
 
-    def reset(self) -> None:
+    async def reset(self) -> None:
         """Force reset to CLOSED state."""
-        self._state = BreakerState.CLOSED
-        self._consecutive_failures = 0
-        self._consecutive_successes = 0
-        self._half_open_probes = 0
+        async with self._lock:
+            self._state = BreakerState.CLOSED
+            self._consecutive_failures = 0
+            self._consecutive_successes = 0
+            self._half_open_probes = 0
 
     def get_status(self) -> dict:
         """Return status dict for monitoring/UI."""

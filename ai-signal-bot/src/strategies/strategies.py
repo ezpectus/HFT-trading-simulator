@@ -7,7 +7,6 @@ Signal and SignalDirection live in signal.py.
 CircuitBreaker lives in circuit_breaker.py.
 Both are re-exported here for backward compatibility.
 """
-import logging
 import math
 
 from src.strategies.circuit_breaker import CircuitBreaker
@@ -20,8 +19,6 @@ from src.technical_analysis.indicators import (  # noqa: E402
     ema,
     rsi,
 )
-
-logger = logging.getLogger("ai_signal_bot.strategies")
 
 
 class TrendFollowingStrategy:
@@ -37,6 +34,7 @@ class TrendFollowingStrategy:
         self.ema_slow = ema_slow
         self.adx_threshold = adx_threshold
         self.name = "trend_following"
+        self._cache: dict[tuple, dict] = {}
 
     def analyze(self, symbol: str, candles: list[dict]) -> Signal:
         if len(candles) < self.ema_slow + 2:
@@ -47,10 +45,21 @@ class TrendFollowingStrategy:
             )
 
         closes = [c["close"] if isinstance(c, dict) else c.close for c in candles]
-        ema_f = ema(closes, self.ema_fast)
-        ema_s = ema(closes, self.ema_slow)
-        adx_vals = adx(candles, 14)
-        atr_vals = atr(candles, 14)
+        cache_key = (symbol, len(candles), closes[-1])
+        cached = self._cache.get(cache_key)
+        if cached:
+            ema_f = cached["ema_f"]
+            ema_s = cached["ema_s"]
+            adx_vals = cached["adx_vals"]
+            atr_vals = cached["atr_vals"]
+        else:
+            ema_f = ema(closes, self.ema_fast)
+            ema_s = ema(closes, self.ema_slow)
+            adx_vals = adx(candles, 14)
+            atr_vals = atr(candles, 14)
+            self._cache[cache_key] = {"ema_f": ema_f, "ema_s": ema_s, "adx_vals": adx_vals, "atr_vals": atr_vals}
+            if len(self._cache) > 200:
+                self._cache.pop(next(iter(self._cache)))
 
         current_price = closes[-1]
         current_adx = adx_vals[-1] if adx_vals and not math.isnan(adx_vals[-1]) else 0
@@ -129,6 +138,7 @@ class MeanReversionStrategy:
         self.bb_period = bb_period
         self.bb_std = bb_std
         self.name = "mean_reversion"
+        self._cache: dict[tuple, dict] = {}
 
     def analyze(self, symbol: str, candles: list[dict]) -> Signal:
         if len(candles) < self.bb_period + 5:
@@ -139,9 +149,21 @@ class MeanReversionStrategy:
             )
 
         closes = [c["close"] if isinstance(c, dict) else c.close for c in candles]
-        rsi_vals = rsi(candles, self.rsi_period)
-        mid, upper, lower = bollinger_bands(candles, self.bb_period, self.bb_std)
-        atr_vals = atr(candles, 14)
+        cache_key = (symbol, len(candles), closes[-1])
+        cached = self._cache.get(cache_key)
+        if cached:
+            rsi_vals = cached["rsi_vals"]
+            mid = cached["mid"]
+            upper = cached["upper"]
+            lower = cached["lower"]
+            atr_vals = cached["atr_vals"]
+        else:
+            rsi_vals = rsi(candles, self.rsi_period)
+            mid, upper, lower = bollinger_bands(candles, self.bb_period, self.bb_std)
+            atr_vals = atr(candles, 14)
+            self._cache[cache_key] = {"rsi_vals": rsi_vals, "mid": mid, "upper": upper, "lower": lower, "atr_vals": atr_vals}
+            if len(self._cache) > 200:
+                self._cache.pop(next(iter(self._cache)))
 
         current_price = closes[-1]
         current_rsi = rsi_vals[-1] if rsi_vals and not math.isnan(rsi_vals[-1]) else 50

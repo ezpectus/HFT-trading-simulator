@@ -103,12 +103,14 @@ account:
   leverage: 10                   # Default leverage (1-50, higher = more risk)
 
 # Communication — WebSocket endpoints for inter-component messaging
+# Hosts default to localhost for dev. In Docker/K8s, override via env vars
+# or Helm values — do not modify this file for production deployments.
 websocket:
   exchange_simulator:
-    host: localhost              # Exchange simulator WebSocket server
+    host: localhost              # Exchange simulator WebSocket server (override in Docker/K8s)
     port: 8765                   # Candles, orderbooks, accounts, fills
     metrics_port: 8775           # Prometheus metrics (port + 10)
   ai_signal_bot:
-    host: localhost              # AI signal publisher WebSocket server
+    host: localhost              # AI signal publisher WebSocket server (override in Docker/K8s)
     port: 8766                   # Signals, regime, backtest results
     metrics_port: 9090           # Prometheus metrics

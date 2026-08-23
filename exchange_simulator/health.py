@@ -97,7 +97,14 @@ async def health_check():
 
 @app.get("/metrics")
 async def metrics():
-    """Prometheus metrics endpoint."""
+    """Prometheus metrics endpoint.
+
+    .. deprecated::
+        This endpoint is deprecated. The WebSocket server exposes Prometheus
+        metrics via ws_prometheus.py on port+10 (default 8775/metrics).
+        This endpoint will be removed in a future release.
+    """
+    logger.warning("health.py /metrics is deprecated — use ws_prometheus.py endpoint instead")
     try:
         exchanges, market, _ = _init()
 

@@ -71,8 +71,15 @@ trading:
 
 # Exchange simulator connection
 exchange:
-  websocket_url: "ws://localhost:8765"
+  websocket_url: "ws://localhost:8765"  # Override with WS_URL env var for Docker/K8s
   default_exchange: "binance" # binance | bybit | okx
+
+# Network — timeouts and buffer sizes (override OS defaults for high-throughput)
+network:
+  ws_connect_timeout: 10           # WebSocket connect timeout (seconds)
+  ws_recv_timeout: 30              # WebSocket recv/idle timeout (seconds)
+  rest_timeout: 15                 # REST API timeout (seconds)
+  socket_buffer_size: 1048576      # 1MB — SO_RCVBUF/SO_SNDBUF for UDP transport
 
 # Risk management — all percentages are of total account balance
 risk:

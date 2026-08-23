@@ -2,8 +2,23 @@
 #
 # Implements Prometheus metrics collection with Counter, Gauge, and Histogram
 # for order rate, fill rate, latency, error rate, and system resources.
+#
+# .. deprecated::
+#     This module is not used in production. The WebSocket server uses
+#     ws_prometheus.py (PrometheusMixin) for /metrics endpoint and
+#     ws_metrics.py (WebSocketMetrics) for internal metrics tracking.
+#     This module will be removed in a future release.
+
+import warnings
 
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
+
+warnings.warn(
+    "exchange_simulator.metrics is deprecated and not used in production. "
+    "Use ws_prometheus.py (PrometheusMixin) and ws_metrics.py (WebSocketMetrics) instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class ExchangeSimulatorMetrics:

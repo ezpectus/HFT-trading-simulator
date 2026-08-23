@@ -1,14 +1,13 @@
 from src.strategies.market_making import MarketMakingConfig, MarketMakingStrategy
 from src.strategies.ml_ensemble import MLConfig, MLEnsembleStrategy
 from src.strategies.sentiment import SentimentConfig, SentimentStrategy
+from src.strategies.signal import Signal, SignalDirection
 from src.strategies.statistical_arbitrage import PairConfig as StatArbConfig
 from src.strategies.statistical_arbitrage import StatisticalArbitrage
 from src.strategies.strategies import (
     EnsembleVoter,
     FFTCycleStrategy,
     MeanReversionStrategy,
-    Signal,
-    SignalDirection,
     TrendFollowingStrategy,
 )
 

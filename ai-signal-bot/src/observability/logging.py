@@ -117,8 +117,11 @@ def _setup_handlers(
     handlers: list[logging.Handler] = [console_handler]
 
     if log_file:
+        from logging.handlers import RotatingFileHandler
         file_formatter = _create_formatter(True, shared_processors, structlog)
-        file_handler = logging.FileHandler(log_file)
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=10_000_000, backupCount=5, encoding="utf-8",
+        )
         file_handler.setFormatter(file_formatter)
         handlers.append(file_handler)
 

@@ -1,94 +1,14 @@
 # Prometheus Alert Rules
 #
-# Defines alert rules for high latency, high error rate, high drawdown, and system health
+# Defines alert rules for trading system metrics.
+# All metric names match those exposed by:
+#   - exchange_simulator/ws_prometheus.py (exchange_* metrics)
+#   - ai-signal-bot/src/communication/metrics_server.py (ai_signal_bot_* metrics)
 
 groups:
-  - name: latency_alerts
-    interval: 30s
-    rules:
-      - alert: HighSignalGenerationLatency
-        expr: histogram_quantile(0.99, ai_signal_bot_signal_generation_latency_seconds) > 0.1
-        for: 5m
-        labels:
-          severity: warning
-          component: ai-signal-bot
-        annotations:
-          summary: "High signal generation latency"
-          description: "Signal generation latency p99 is {{ $value }}s for {{ $labels.strategy }}"
-      
-      - alert: CriticalSignalGenerationLatency
-        expr: histogram_quantile(0.99, ai_signal_bot_signal_generation_latency_seconds) > 1.0
-        for: 2m
-        labels:
-          severity: critical
-          component: ai-signal-bot
-        annotations:
-          summary: "Critical signal generation latency"
-          description: "Signal generation latency p99 is {{ $value }}s for {{ $labels.strategy }}"
-      
-      - alert: HighOrderProcessingLatency
-        expr: histogram_quantile(0.99, exchange_simulator_order_latency_seconds) > 0.05
-        for: 5m
-        labels:
-          severity: warning
-          component: exchange-simulator
-        annotations:
-          summary: "High order processing latency"
-          description: "Order processing latency p99 is {{ $value }}s for {{ $labels.symbol }}"
-      
-      - alert: CriticalOrderProcessingLatency
-        expr: histogram_quantile(0.99, exchange_simulator_order_latency_seconds) > 0.5
-        for: 2m
-        labels:
-          severity: critical
-          component: exchange-simulator
-        annotations:
-          summary: "Critical order processing latency"
-          description: "Order processing latency p99 is {{ $value }}s for {{ $labels.symbol }}"
-      
-      - alert: HighWebSocketLatency
-        expr: histogram_quantile(0.99, exchange_simulator_websocket_latency_seconds) > 0.01
-        for: 5m
-        labels:
-          severity: warning
-          component: exchange-simulator
-        annotations:
-          summary: "High WebSocket latency"
-          description: "WebSocket latency p99 is {{ $value }}s for {{ $labels.client_id }}"
-      
-      - alert: HighPriceFeedLatency
-        expr: histogram_quantile(0.99, exchange_simulator_price_feed_latency_seconds) > 0.05
-        for: 5m
-        labels:
-          severity: warning
-          component: exchange-simulator
-        annotations:
-          summary: "High price feed latency"
-          description: "Price feed latency p99 is {{ $value }}s for {{ $labels.source }}"
-
   - name: error_rate_alerts
     interval: 30s
     rules:
-      - alert: HighErrorRate
-        expr: rate(exchange_simulator_errors_total[5m]) > 0.1
-        for: 5m
-        labels:
-          severity: warning
-          component: exchange-simulator
-        annotations:
-          summary: "High error rate"
-          description: "Error rate is {{ $value }} errors/sec for {{ $labels.component }}"
-      
-      - alert: CriticalErrorRate
-        expr: rate(exchange_simulator_errors_total[5m]) > 1.0
-        for: 2m
-        labels:
-          severity: critical
-          component: exchange-simulator
-        annotations:
-          summary: "Critical error rate"
-          description: "Error rate is {{ $value }} errors/sec for {{ $labels.component }}"
-      
       - alert: HighBotErrorRate
         expr: rate(ai_signal_bot_errors_total[5m]) > 0.1
         for: 5m
@@ -97,31 +17,41 @@ groups:
           component: ai-signal-bot
         annotations:
           summary: "High bot error rate"
-          description: "Error rate is {{ $value }} errors/sec for {{ $labels.component }}"
+          description: "Error rate is {{ $value }} errors/sec"
+
+      - alert: CriticalBotErrorRate
+        expr: rate(ai_signal_bot_errors_total[5m]) > 1.0
+        for: 2m
+        labels:
+          severity: critical
+          component: ai-signal-bot
+        annotations:
+          summary: "Critical bot error rate"
+          description: "Error rate is {{ $value }} errors/sec"
 
   - name: trading_alerts
     interval: 60s
     rules:
       - alert: HighDrawdown
-        expr: ai_signal_bot_drawdown > 0.1
+        expr: ai_signal_bot_drawdown > 0.08
         for: 5m
         labels:
           severity: warning
           component: ai-signal-bot
         annotations:
           summary: "High drawdown"
-          description: "Drawdown is {{ $value }}% for strategy {{ $labels.strategy }}"
-      
+          description: "Drawdown is {{ $value * 100 }}% (threshold 8%)"
+
       - alert: CriticalDrawdown
-        expr: ai_signal_bot_drawdown > 0.2
+        expr: ai_signal_bot_drawdown > 0.15
         for: 2m
         labels:
           severity: critical
           component: ai-signal-bot
         annotations:
           summary: "Critical drawdown"
-          description: "Drawdown is {{ $value }}% for strategy {{ $labels.strategy }}"
-      
+          description: "Drawdown is {{ $value * 100 }}% (threshold 15%)"
+
       - alert: LowWinRate
         expr: ai_signal_bot_win_rate < 0.4
         for: 30m
@@ -130,8 +60,8 @@ groups:
           component: ai-signal-bot
         annotations:
           summary: "Low win rate"
-          description: "Win rate is {{ $value }}% for strategy {{ $labels.strategy }}"
-      
+          description: "Win rate is {{ $value * 100 }}%"
+
       - alert: NegativePnL
         expr: ai_signal_bot_pnl_total < 0
         for: 10m
@@ -140,67 +70,47 @@ groups:
           component: ai-signal-bot
         annotations:
           summary: "Negative PnL"
-          description: "Total PnL is {{ $value }} for {{ $labels.strategy }}"
+          description: "Total PnL is {{ $value }}"
 
-  - name: system_health_alerts
+  - name: exchange_simulator_alerts
     interval: 30s
     rules:
-      - alert: HighCPUUsage
-        expr: exchange_simulator_cpu_usage_percent > 80
+      - alert: HighOrderRejectionRate
+        expr: exchange_orders_rejected_total / exchange_orders_submitted_total > 0.1
         for: 5m
         labels:
           severity: warning
           component: exchange-simulator
         annotations:
-          summary: "High CPU usage"
-          description: "CPU usage is {{ $value }}%"
-      
-      - alert: CriticalCPUUsage
-        expr: exchange_simulator_cpu_usage_percent > 95
+          summary: "High order rejection rate"
+          description: "Rejection rate is {{ $value * 100 }}% for {{ $labels.exchange }}"
+
+      - alert: NoConnectedClients
+        expr: exchange_connected_clients == 0
         for: 2m
         labels:
-          severity: critical
+          severity: warning
           component: exchange-simulator
         annotations:
-          summary: "Critical CPU usage"
-          description: "CPU usage is {{ $value }}%"
-      
-      - alert: HighMemoryUsage
-        expr: exchange_simulator_memory_usage_bytes / 1024 / 1024 / 1024 > 8
+          summary: "No WebSocket clients connected"
+          description: "No clients connected to exchange simulator for 2+ minutes"
+
+      - alert: TradingStopped
+        expr: exchange_trading_active == 0
+        for: 1m
+        labels:
+          severity: warning
+          component: exchange-simulator
+        annotations:
+          summary: "Trading is STOPPED"
+          description: "Trading has been stopped. All order submissions are being rejected."
+
+      - alert: HighDisconnectionRate
+        expr: rate(exchange_ws_disconnections_total[5m]) > 0.5
         for: 5m
         labels:
           severity: warning
           component: exchange-simulator
         annotations:
-          summary: "High memory usage"
-          description: "Memory usage is {{ $value }}GB"
-      
-      - alert: CriticalMemoryUsage
-        expr: exchange_simulator_memory_usage_bytes / 1024 / 1024 / 1024 > 16
-        for: 2m
-        labels:
-          severity: critical
-          component: exchange-simulator
-        annotations:
-          summary: "Critical memory usage"
-          description: "Memory usage is {{ $value }}GB"
-      
-      - alert: LowActiveConnections
-        expr: exchange_simulator_active_connections < 1
-        for: 5m
-        labels:
-          severity: warning
-          component: exchange-simulator
-        annotations:
-          summary: "No active connections"
-          description: "Active connections is {{ $value }}"
-      
-      - alert: NoPriceUpdates
-        expr: rate(exchange_simulator_price_updates_total[5m]) == 0
-        for: 2m
-        labels:
-          severity: critical
-          component: exchange-simulator
-        annotations:
-          summary: "No price updates"
-          description: "Price update rate is 0 for {{ $labels.symbol }}"
+          summary: "High WebSocket disconnection rate"
+          description: "Clients disconnecting more than 0.5/s over 5 minutes"

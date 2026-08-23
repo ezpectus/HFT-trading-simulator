@@ -75,29 +75,69 @@ class HealthChecker:
         self._error_count += 1
 
     async def check_liveness(self) -> dict[str, Any]:
-        """Liveness probe — is the process alive and not deadlocked?"""
+        """Liveness probe — is the process alive and not deadlocked?
+
+        Beyond just returning 'alive', checks for stale activity:
+        - If signals were being generated but stopped for >300s → possibly deadlocked
+        - If errors exceed 100 in recent history → degraded
+        """
         uptime = time.time() - self._start_time
+        now = time.time()
+
+        status = "alive"
+        details: list[str] = []
+
+        # Check for stale signal generation (only if signals were previously flowing)
+        if self._last_signal_time > 0:
+            signal_age = now - self._last_signal_time
+            if signal_age > 300:
+                status = "degraded"
+                details.append(f"No signals for {signal_age:.0f}s (possible deadlock)")
+
+        # Check for stale order processing
+        if self._last_order_time > 0:
+            order_age = now - self._last_order_time
+            if order_age > 300:
+                status = "degraded"
+                details.append(f"No orders for {order_age:.0f}s (possible deadlock)")
+
+        # High error rate
+        if self._error_count > 100:
+            status = "degraded"
+            details.append(f"High error count: {self._error_count}")
+
         return {
-            "status": "alive",
+            "status": status,
             "uptime_seconds": round(uptime, 1),
             "pid": __import__("os").getpid(),
+            "details": "; ".join(details) if details else "ok",
+            "last_signal_age_s": round(now - self._last_signal_time, 1) if self._last_signal_time else None,
+            "last_order_age_s": round(now - self._last_order_time, 1) if self._last_order_time else None,
         }
 
     async def check_readiness(self) -> dict[str, Any]:
-        """Readiness probe — are all dependencies connected and working?"""
+        """Readiness probe — are all dependencies connected and working?
+
+        All component checks run in parallel via asyncio.gather with
+        a 2-second timeout per check to prevent K8s probe timeouts.
+        """
+        check_timeout = 2.0
+        results = await asyncio.gather(
+            asyncio.wait_for(self._check_ws(), timeout=check_timeout),
+            asyncio.wait_for(self._check_db(), timeout=check_timeout),
+            asyncio.wait_for(self._check_redis(), timeout=check_timeout),
+            asyncio.wait_for(self._check_exchange(), timeout=check_timeout),
+            return_exceptions=True,
+        )
+
         components: list[ComponentHealth] = []
-
-        # Check WebSocket
-        components.append(await self._check_ws())
-
-        # Check TimescaleDB
-        components.append(await self._check_db())
-
-        # Check Redis
-        components.append(await self._check_redis())
-
-        # Check exchange
-        components.append(await self._check_exchange())
+        for r in results:
+            if isinstance(r, ComponentHealth):
+                components.append(r)
+            elif isinstance(r, asyncio.TimeoutError):
+                components.append(ComponentHealth("unknown", HealthStatus.UNHEALTHY, check_timeout * 1000, "check timed out"))
+            elif isinstance(r, Exception):
+                components.append(ComponentHealth("unknown", HealthStatus.UNHEALTHY, 0, str(r)))
 
         # Determine overall status
         statuses = [c.status for c in components]
@@ -144,13 +184,18 @@ class HealthChecker:
             if not self.ws_client:
                 return ComponentHealth("websocket", HealthStatus.HEALTHY, 0, "not configured")
 
-            connected = getattr(self.ws_client, "connected", False)
+            connected = await asyncio.wait_for(
+                asyncio.to_thread(getattr, self.ws_client, "connected"),
+                timeout=2.0,
+            )
             latency = (time.time() - start) * 1000
 
             if connected:
                 return ComponentHealth("websocket", HealthStatus.HEALTHY, latency, "connected")
             else:
                 return ComponentHealth("websocket", HealthStatus.UNHEALTHY, latency, "disconnected")
+        except asyncio.TimeoutError:
+            return ComponentHealth("websocket", HealthStatus.UNHEALTHY, 2000, "check timed out")
         except (AttributeError, TypeError, OSError) as e:
             return ComponentHealth("websocket", HealthStatus.UNHEALTHY, 0, str(e))
 
@@ -192,19 +237,36 @@ class HealthChecker:
             if not self.exchange:
                 return ComponentHealth("exchange", HealthStatus.HEALTHY, 0, "not configured")
 
-            trading_active = getattr(self.exchange, "is_trading_active", True)
+            trading_active = await asyncio.wait_for(
+                asyncio.to_thread(getattr, self.exchange, "is_trading_active", True),
+                timeout=2.0,
+            )
             latency = (time.time() - start) * 1000
 
             if trading_active:
                 return ComponentHealth("exchange", HealthStatus.HEALTHY, latency, "trading active")
             else:
                 return ComponentHealth("exchange", HealthStatus.DEGRADED, latency, "trading stopped")
+        except asyncio.TimeoutError:
+            return ComponentHealth("exchange", HealthStatus.UNHEALTHY, 2000, "check timed out")
         except (AttributeError, TypeError, OSError, RuntimeError) as e:
             return ComponentHealth("exchange", HealthStatus.UNHEALTHY, 0, str(e))
 
 
 def create_health_endpoints(checker: HealthChecker):
-    """Create aiohttp handlers for health endpoints."""
+    """Create aiohttp handlers for health endpoints.
+
+    DEPRECATED: Use monitoring/health_server.py HealthServer instead,
+    which provides the same HTTP endpoints with parallel checks.
+    This function is kept for backward compatibility.
+    """
+    import warnings
+
+    warnings.warn(
+        "create_health_endpoints is deprecated. Use monitoring.health_server.HealthServer instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     from aiohttp import web
 
     async def liveness_handler(request: web.Request) -> web.Response:

@@ -79,6 +79,8 @@ class RealMarketDataFeed:
         self.on_ticker: Callable[[NormalizedTicker], Awaitable[None]] | None = None
         self.on_candle: Callable[[NormalizedCandle], Awaitable[None]] | None = None
         self.on_orderbook: Callable[[NormalizedOrderBook], Awaitable[None]] | None = None
+        self.on_reconnect: Callable[[str, list[str]], Awaitable[None]] | None = None
+        self._last_msg_times: dict[str, float] = {}
 
     async def start(self, symbols: list[str], intervals: list[str] | None = None):
         """Start WebSocket subscriptions for all configured exchanges."""
@@ -161,12 +163,20 @@ class RealMarketDataFeed:
                     async with self._state_lock:
                         self._ws_connections["binance"] = ws
                         self._reconnect_delays["binance"] = 1.0
+                    # Gap fill after reconnect
+                    if self._last_msg_times.get("binance") and self.on_reconnect:
+                        try:
+                            await self.on_reconnect("binance", symbols)
+                        except (OSError, RuntimeError, ValueError) as e:
+                            logger.warning(f"Binance gap-fill failed: {e}")
+                    self._last_msg_times["binance"] = time.time()
                     logger.info(f"Binance WebSocket connected: {len(streams)} streams")
 
                     async for raw in ws:
                         if not self._running:
                             break
                         msg = json.loads(raw)
+                        self._last_msg_times["binance"] = time.time()
                         try:
                             self._msg_queue.put_nowait(("binance", msg))
                         except asyncio.QueueFull:
@@ -236,6 +246,14 @@ class RealMarketDataFeed:
                     async with self._state_lock:
                         self._ws_connections["okx"] = ws
                         self._reconnect_delays["okx"] = 1.0
+
+                    # Gap fill after reconnect
+                    if self._last_msg_times.get("okx") and self.on_reconnect:
+                        try:
+                            await self.on_reconnect("okx", symbols)
+                        except (OSError, RuntimeError, ValueError) as e:
+                            logger.warning(f"OKX gap-fill failed: {e}")
+                    self._last_msg_times["okx"] = time.time()
 
                     # Subscribe to tickers and candles
                     sub_args = []
@@ -324,6 +342,14 @@ class RealMarketDataFeed:
                     async with self._state_lock:
                         self._ws_connections["bybit"] = ws
                         self._reconnect_delays["bybit"] = 1.0
+
+                    # Gap fill after reconnect
+                    if self._last_msg_times.get("bybit") and self.on_reconnect:
+                        try:
+                            await self.on_reconnect("bybit", symbols)
+                        except (OSError, RuntimeError, ValueError) as e:
+                            logger.warning(f"Bybit gap-fill failed: {e}")
+                    self._last_msg_times["bybit"] = time.time()
 
                     # Subscribe
                     sub_args = []

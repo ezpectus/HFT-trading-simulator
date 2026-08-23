@@ -158,8 +158,10 @@ class FixSession:
 
     def _save_seq_nums(self):
         try:
-            with open(self.seq_file, 'w') as f:
+            tmp_file = self.seq_file + ".tmp"
+            with open(tmp_file, 'w') as f:
                 f.write(f"{self.outgoing_seq} {self.incoming_seq}")
+            os.replace(tmp_file, self.seq_file)
         except OSError as e:
             logger.warning(f"Failed to save FIX seq nums: {e}")
 
@@ -411,7 +413,11 @@ class FixSession:
                 await self.on_market_data(msg)
 
         else:
-            logger.debug(f"FIX message type {msg.msg_type}: {msg.fields}")
+            safe_fields = {
+                k: ("***" if k in (553, 554, 4961) else v)
+                for k, v in msg.fields.items()
+            }
+            logger.debug(f"FIX message type {msg.msg_type}: {safe_fields}")
 
     def _start_heartbeat(self):
         if self._heartbeat_task and not self._heartbeat_task.done():

@@ -50,9 +50,10 @@ class AlertEvent:
 class TelegramNotifier:
     """Telegram bot for alerts and remote control."""
 
-    def __init__(self, token: str, chat_id: str):
+    def __init__(self, token: str, chat_id: str, command_password: str = ""):
         self.token = token
         self.chat_id = chat_id
+        self._command_password = command_password
         self._running = False
         self._session = None
         self._poll_task: asyncio.Task | None = None
@@ -69,6 +70,9 @@ class TelegramNotifier:
             return
 
         self._running = True
+        # Disable debug logging to prevent token leakage in URL logs
+        aiohttp_logger = logging.getLogger("aiohttp.client")
+        aiohttp_logger.setLevel(logging.WARNING)
         self._session = aiohttp.ClientSession()
         logger.info("[TelegramNotifier] Started")
 
@@ -152,6 +156,17 @@ class TelegramNotifier:
         cmd = parts[0].lstrip("/")
         args = parts[1] if len(parts) > 1 else ""
 
+        # Authenticate command if password is set
+        if self._command_password:
+            cmd_parts = args.split(maxsplit=1)
+            if not cmd_parts or cmd_parts[0] != self._command_password:
+                await self.send_alert(AlertEvent(
+                    type="error", symbol="",
+                    message="Unauthorized: command password required",
+                ))
+                return
+            args = cmd_parts[1] if len(cmd_parts) > 1 else ""
+
         handler = self._command_handlers.get(cmd)
         if handler:
             try:
@@ -167,9 +182,10 @@ class TelegramNotifier:
 class DiscordNotifier:
     """Discord bot for alerts and remote control."""
 
-    def __init__(self, token: str, channel_id: str):
+    def __init__(self, token: str, channel_id: str, command_password: str = ""):
         self.token = token
         self.channel_id = channel_id
+        self._command_password = command_password
         self._running = False
         self._ws = None
         self._session = None
@@ -269,6 +285,17 @@ class DiscordNotifier:
         cmd = parts[0].lstrip("/")
         args = parts[1] if len(parts) > 1 else ""
 
+        # Authenticate command if password is set
+        if self._command_password:
+            cmd_parts = args.split(maxsplit=1)
+            if not cmd_parts or cmd_parts[0] != self._command_password:
+                await self.send_alert(AlertEvent(
+                    type="error", symbol="",
+                    message="Unauthorized: command password required",
+                ))
+                return
+            args = cmd_parts[1] if len(cmd_parts) > 1 else ""
+
         handler = self._command_handlers.get(cmd)
         if handler:
             try:
@@ -282,18 +309,21 @@ class DiscordNotifier:
 
 
 class NotifierManager:
-    """Manages multiple notifiers (Telegram + Discord)."""
+    """Manages multiple notifiers (Telegram + Discord) with rate limiting."""
 
-    def __init__(self):
+    def __init__(self, max_concurrent: int = 3, rate_limit_per_sec: float = 1.0):
         self._notifiers: list = []
+        self._semaphore = asyncio.Semaphore(max_concurrent)
+        self._rate_interval = 1.0 / rate_limit_per_sec if rate_limit_per_sec > 0 else 0
+        self._last_send_time: float = 0
 
-    def setup_telegram(self, token: str, chat_id: str):
+    def setup_telegram(self, token: str, chat_id: str, command_password: str = ""):
         if token and chat_id:
-            self._notifiers.append(TelegramNotifier(token, chat_id))
+            self._notifiers.append(TelegramNotifier(token, chat_id, command_password))
 
-    def setup_discord(self, token: str, channel_id: str):
+    def setup_discord(self, token: str, channel_id: str, command_password: str = ""):
         if token and channel_id:
-            self._notifiers.append(DiscordNotifier(token, channel_id))
+            self._notifiers.append(DiscordNotifier(token, channel_id, command_password))
 
     def register_command(self, command: str, handler: Callable[[str], Awaitable[str]]):
         for n in self._notifiers:
@@ -310,10 +340,19 @@ class NotifierManager:
     async def send_alert(self, event: AlertEvent):
         if not self._notifiers:
             return
-        results = await asyncio.gather(
-            *[n.send_alert(event) for n in self._notifiers],
-            return_exceptions=True,
-        )
+        # Rate limit: ensure minimum interval between sends
+        if self._rate_interval > 0:
+            now = time.time()
+            elapsed = now - self._last_send_time
+            if elapsed < self._rate_interval:
+                await asyncio.sleep(self._rate_interval - elapsed)
+            self._last_send_time = time.time()
+
+        async with self._semaphore:
+            results = await asyncio.gather(
+                *[n.send_alert(event) for n in self._notifiers],
+                return_exceptions=True,
+            )
         for i, r in enumerate(results):
             if isinstance(r, Exception):
                 logger.error(f"[NotifierManager] Notifier {i} failed: {r}")
@@ -326,17 +365,18 @@ class NotifierManager:
 def create_notifier_from_env() -> NotifierManager:
     """Create notifier manager from environment variables."""
     mgr = NotifierManager()
+    cmd_password = os.environ.get("NOTIFIER_COMMAND_PASSWORD", "")
 
     tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     tg_chat = os.environ.get("TELEGRAM_CHAT_ID", "")
     if tg_token and tg_chat:
-        mgr.setup_telegram(tg_token, tg_chat)
+        mgr.setup_telegram(tg_token, tg_chat, cmd_password)
         logger.info("Telegram notifier configured")
 
     dc_token = os.environ.get("DISCORD_BOT_TOKEN", "")
     dc_channel = os.environ.get("DISCORD_CHANNEL_ID", "")
     if dc_token and dc_channel:
-        mgr.setup_discord(dc_token, dc_channel)
+        mgr.setup_discord(dc_token, dc_channel, cmd_password)
         logger.info("Discord notifier configured")
 
     return mgr

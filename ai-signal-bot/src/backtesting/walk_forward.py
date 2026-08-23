@@ -132,9 +132,10 @@ class WalkForwardAnalyzer:
         best_sharpe = -float("inf")
         best_params: dict = {}
         best_is_result: BacktestResult | None = None
+        engine = BacktestEngine(config)
         for params in param_grid:
             analyze_fn = strategy_factory(params)
-            engine = BacktestEngine(config)
+            engine.reset()
             is_result = engine.run(candles[is_start:is_end], analyze_fn, symbol)
             if is_result.sharpe_ratio > best_sharpe:
                 best_sharpe = is_result.sharpe_ratio

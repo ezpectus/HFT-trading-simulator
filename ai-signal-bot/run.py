@@ -35,6 +35,7 @@ from src.communication import ExchangeClient, SignalPublisher  # noqa: E402
 from src.database import Database  # noqa: E402
 from src.llm_engine import LLMConfig, LLMEngine  # noqa: E402
 from src.monitoring import PerformanceTracker, SignalLogger, TradeLogger, print_dashboard  # noqa: E402
+from src.observability.health_checks import HealthChecker  # noqa: E402
 from src.signal_validation import SignalValidator  # noqa: E402
 from src.strategies import (  # noqa: E402
     EnsembleVoter,
@@ -100,6 +101,15 @@ class AISignalBot:
         # State
         self._running = False
         self._last_signal_time: float = 0
+        self._background_tasks: set[asyncio.Task] = set()
+
+        # Health checker
+        self.health_checker = HealthChecker(
+            ws_client=self.exchange,
+            db_client=None,
+            redis_client=None,
+            exchange=self.exchange,
+        )
 
         # LLM Engine (signal explanations + market analysis)
         self.llm_engine = LLMEngine(LLMConfig())
@@ -136,8 +146,10 @@ class AISignalBot:
         # Initialize LLM engine
         await self.llm_engine.initialize()
 
-        # Start WebSocket listener in background
+        # Start WebSocket listener as tracked background task
         listen_task = asyncio.create_task(self._listen_loop())
+        self._background_tasks.add(listen_task)
+        listen_task.add_done_callback(self._on_task_done)
 
         # Start signal publisher for HFT bot
         await self.signal_publisher.start()
@@ -149,6 +161,8 @@ class AISignalBot:
         if enable_metrics:
             from src.monitoring.health_server import HealthServer
             metrics_server = HealthServer(port=8080)
+            metrics_server.register_check("liveness", self.health_checker.check_liveness)
+            metrics_server.register_check("readiness", self.health_checker.check_readiness)
             await metrics_server.start()
             self.logger.info("Health server running on port 8080")
             try:
@@ -173,6 +187,7 @@ class AISignalBot:
         finally:
             self._running = False
             listen_task.cancel()
+            self._background_tasks.discard(listen_task)
             await self.signal_publisher.stop()
             if prom_server:
                 await prom_server.stop_server()
@@ -181,6 +196,15 @@ class AISignalBot:
             await self.llm_engine.close()
             await self.exchange.disconnect()
             self.logger.info("AI Signal Bot stopped")
+
+    def _on_task_done(self, task: asyncio.Task) -> None:
+        """Callback for tracked background tasks — logs crashes and removes from tracking."""
+        self._background_tasks.discard(task)
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc:
+            self.logger.error(f"Background task {task.get_name()} crashed: {exc}", exc_info=exc)
 
     async def _listen_loop(self) -> None:
         """Background task to listen for exchange messages."""
@@ -205,6 +229,7 @@ class AISignalBot:
             tasks.append(self._process_symbol(symbol, candles, now_ts))
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
+            self.health_checker.record_signal()
 
     async def _process_symbol(self, symbol: str, candles: list, now_ts: int) -> None:
         """Run strategies, ensemble vote, validate and execute for a single symbol."""
@@ -227,7 +252,7 @@ class AISignalBot:
             f"({ensemble_signal.reason})")
 
         balance = self._get_account_balance()
-        if not self._validate_signal(ensemble_signal, balance):
+        if not await self._validate_signal(ensemble_signal, balance):
             return
         await self._finalize_and_execute(symbol, ensemble_signal, sig_dict, candles, balance)
 
@@ -236,12 +261,12 @@ class AISignalBot:
         account = self.exchange.accounts.get(self.config.default_exchange, {})
         return account.get("balance", 10000.0)
 
-    def _validate_signal(self, signal: Signal, balance: float) -> bool:
+    async def _validate_signal(self, signal: Signal, balance: float) -> bool:
         """Validate signal against risk rules. Returns True if passed."""
         account = self.exchange.accounts.get(self.config.default_exchange, {})
         positions = account.get("positions", [])
-        self.validator.update_position_count(len(positions))
-        result = self.validator.validate(signal, balance)
+        await self.validator.update_position_count(len(positions))
+        result = await self.validator.validate(signal, balance)
         if not result.passed:
             self.logger.info(f"  Rejected: {result.reason}")
             return False
@@ -291,8 +316,10 @@ class AISignalBot:
             exchange=self.config.default_exchange,
             stop_loss=signal.stop_loss,
             take_profit=signal.take_profit,
+            client_order_id=f"sig_{signal_id}",
         )
         self.tracker.orders_sent += 1
+        self.health_checker.record_order()
 
         # Save trade to DB
         self.db.save_trade({
@@ -310,8 +337,39 @@ class AISignalBot:
         )
 
     async def _execute_live_order(self, signal: Signal, signal_id: int) -> None:
-        """Execute a live order (would connect to real exchange in production)."""
-        self.logger.warning("Live trading not implemented in simulation mode")
+        """Execute a live order via ExchangeFactory → RealExchangeAdapter."""
+        from src.data_collection.exchange_factory import ExchangeFactory, ExchangeMode
+
+        factory = ExchangeFactory(
+            mode=ExchangeMode.REAL,
+            exchange=self.config.default_exchange,
+            symbols=self.config.symbols,
+        )
+        try:
+            adapter = await factory.create()
+            side = "buy" if signal.direction == SignalDirection.LONG else "sell"
+            quantity = signal.position_size if hasattr(signal, "position_size") else 0.0
+            if quantity <= 0:
+                self.logger.warning(f"  Live order skipped — no position size for {signal.symbol}")
+                return
+            result = await adapter.place_order(
+                symbol=signal.symbol,
+                side=side,
+                qty=quantity,
+                order_type="market",
+                price=signal.entry_price,
+            )
+            if result:
+                self.logger.info(
+                    f"  Live order executed: {side} {quantity:.4f} {signal.symbol} "
+                    f"@ {signal.entry_price:.2f} (id={result.get('order_id', '')})"
+                )
+            else:
+                self.logger.error(f"  Live order failed for {signal.symbol}")
+        except (ConnectionError, OSError, RuntimeError, ValueError) as e:
+            self.logger.error(f"  Live order error: {e}")
+        finally:
+            await factory.close()
 
     def _print_dashboard(self) -> None:
         """Print performance dashboard."""

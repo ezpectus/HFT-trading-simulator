@@ -11,6 +11,10 @@ Metrics exposed:
   ai_signal_bot_circuit_breaker_trips_total — counter
   ai_signal_bot_circuit_breaker_state       — gauge (0=closed, 1=open, 2=half_open)
   ai_signal_bot_uptime_seconds              — gauge
+  ai_signal_bot_pnl_total                   — gauge (cumulative PnL)
+  ai_signal_bot_drawdown                    — gauge (current drawdown fraction)
+  ai_signal_bot_win_rate                    — gauge (win rate 0-1)
+  ai_signal_bot_errors_total                — counter
 """
 import asyncio
 import logging
@@ -30,6 +34,10 @@ class MetricsCollector:
         self._cb_trips = 0
         self._ws_clients = 0
         self._cb_state = 0  # 0=closed, 1=open, 2=half_open
+        self._pnl_total = 0.0
+        self._drawdown = 0.0
+        self._win_rate = 0.0
+        self._errors_total = 0
 
     def record_signal_sent(self) -> None:
         self._signals_sent += 1
@@ -48,6 +56,18 @@ class MetricsCollector:
 
     def set_circuit_breaker_state(self, state: int) -> None:
         self._cb_state = state
+
+    def set_pnl_total(self, pnl: float) -> None:
+        self._pnl_total = pnl
+
+    def set_drawdown(self, drawdown: float) -> None:
+        self._drawdown = drawdown
+
+    def set_win_rate(self, win_rate: float) -> None:
+        self._win_rate = win_rate
+
+    def record_error(self) -> None:
+        self._errors_total += 1
 
     def render(self) -> str:
         """Render metrics in Prometheus text exposition format."""
@@ -80,6 +100,22 @@ class MetricsCollector:
             "# HELP ai_signal_bot_uptime_seconds Uptime in seconds",
             "# TYPE ai_signal_bot_uptime_seconds gauge",
             f"ai_signal_bot_uptime_seconds {uptime:.2f}",
+            "",
+            "# HELP ai_signal_bot_pnl_total Cumulative PnL",
+            "# TYPE ai_signal_bot_pnl_total gauge",
+            f"ai_signal_bot_pnl_total {self._pnl_total:.2f}",
+            "",
+            "# HELP ai_signal_bot_drawdown Current drawdown fraction",
+            "# TYPE ai_signal_bot_drawdown gauge",
+            f"ai_signal_bot_drawdown {self._drawdown:.4f}",
+            "",
+            "# HELP ai_signal_bot_win_rate Win rate (0-1)",
+            "# TYPE ai_signal_bot_win_rate gauge",
+            f"ai_signal_bot_win_rate {self._win_rate:.4f}",
+            "",
+            "# HELP ai_signal_bot_errors_total Total errors",
+            "# TYPE ai_signal_bot_errors_total counter",
+            f"ai_signal_bot_errors_total {self._errors_total}",
             "",
         ]
         return "\n".join(lines)

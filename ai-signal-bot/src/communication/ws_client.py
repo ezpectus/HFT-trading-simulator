@@ -5,6 +5,7 @@ Also sends trading signals to the HFT Trade Bot via a separate WebSocket connect
 import asyncio
 import json
 import logging
+import random
 from collections import deque
 from collections.abc import Callable
 
@@ -32,8 +33,9 @@ class ExchangeClient:
     Sends orders when paper trading is disabled.
     """
 
-    def __init__(self, url: str = "ws://localhost:8765", encoding: str = "json"):
+    def __init__(self, url: str = "ws://localhost:8765", encoding: str = "json", ssl: bool | object = None):
         self.url = url
+        self._ssl = ssl
         self._encoding = encoding if (encoding == "msgpack" and _HAS_MSGPACK) else "json"
         self._ws: websockets.WebSocketClientProtocol | None = None
         self._connected = False
@@ -72,13 +74,18 @@ class ExchangeClient:
         self._on_message = handler
 
     async def connect(self) -> bool:
-        """Connect to the exchange simulator WebSocket with compression."""
+        """Connect to the exchange simulator WebSocket with compression and optional TLS."""
         try:
-            self._ws = await websockets.connect(
-                self.url,
+            connect_kwargs = dict(
                 ping_interval=10,
                 compression="deflate",
                 max_size=2**20,
+            )
+            if self._ssl is not None:
+                connect_kwargs["ssl"] = self._ssl
+            self._ws = await websockets.connect(
+                self.url,
+                **connect_kwargs,
             )
             self._connected = True
             logger.info(f"Connected to exchange simulator: {self.url}")
@@ -97,28 +104,45 @@ class ExchangeClient:
         logger.info("Disconnected from exchange simulator")
 
     async def listen(self) -> None:
-        """Listen for incoming messages from the exchange simulator."""
-        if not self._ws:
-            logger.error("Not connected")
-            return
+        """Listen for incoming messages from the exchange simulator with auto-reconnect."""
+        reconnect_delay = 1.0
+        max_reconnect_delay = 30.0
 
-        try:
-            async for message in self._ws:
-                try:
-                    if isinstance(message, bytes) and _HAS_MSGPACK:
-                        data = msgpack.unpackb(message, raw=False)
-                    elif _HAS_ORJSON:
-                        data = orjson.loads(message)
-                    else:
-                        data = json.loads(message)
-                    self._process_message(data)
-                    if self._on_message:
-                        await self._on_message(data)
-                except (json.JSONDecodeError, ValueError) as e:
-                    logger.warning(f"Invalid message: {e}")
-        except websockets.ConnectionClosed:
-            logger.warning("Connection closed by server")
-            self._connected = False
+        while True:
+            if not self._ws or not self._connected:
+                jitter = reconnect_delay * (0.75 + random.random() * 0.5)
+                logger.info(f"Reconnecting to exchange simulator (delay={jitter:.1f}s)...")
+                await asyncio.sleep(jitter)
+                success = await self.connect()
+                if not success:
+                    reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)
+                    continue
+                reconnect_delay = 1.0
+
+            try:
+                async for message in self._ws:
+                    try:
+                        if isinstance(message, bytes) and _HAS_MSGPACK:
+                            data = msgpack.unpackb(message, raw=False)
+                        elif _HAS_ORJSON:
+                            data = orjson.loads(message)
+                        else:
+                            data = json.loads(message)
+                        self._process_message(data)
+                        if self._on_message:
+                            await self._on_message(data)
+                    except (json.JSONDecodeError, ValueError) as e:
+                        logger.warning(f"Invalid message: {e}")
+            except websockets.ConnectionClosed:
+                logger.warning("Connection closed by server")
+                self._connected = False
+                self._ws = None
+                reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)
+            except (OSError, asyncio.TimeoutError) as e:
+                logger.warning(f"Connection error: {e}")
+                self._connected = False
+                self._ws = None
+                reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)
 
     def _process_message(self, data: dict) -> None:
         """Process incoming market data."""
@@ -159,6 +183,7 @@ class ExchangeClient:
         exchange: str = "binance",
         stop_loss: float | None = None,
         take_profit: float | None = None,
+        client_order_id: str | None = None,
     ) -> None:
         """Submit an order to the exchange simulator."""
         if not self._ws:
@@ -177,6 +202,7 @@ class ExchangeClient:
             "order_type": "MARKET",
             "stop_loss": stop_loss,
             "take_profit": take_profit,
+            "client_order_id": client_order_id,
         }
         if _HAS_ORJSON:
             await self._ws.send(orjson.dumps(order_msg))

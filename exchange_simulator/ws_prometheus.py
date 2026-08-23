@@ -49,7 +49,7 @@ class PrometheusMixin:
         return "\n".join(lines) + "\n"
 
     def _append_exchange_metrics(self, lines: list[str]) -> None:
-        """Append per-exchange account metrics."""
+        """Append per-exchange account and order metrics."""
         for ex_id, ex in self.exchanges.items():
             acc = ex.account
             labels = f'exchange="{ex_id}"'
@@ -61,6 +61,14 @@ class PrometheusMixin:
             lines.append(f'exchange_open_positions{{{labels}}} {len(acc.positions)}')
             lines.append(f'exchange_total_fees{{{labels}}} {acc.total_fees:.4f}')
             lines.append(f'exchange_leverage{{{labels}}} {acc.leverage}')
+
+            # Order metrics (previously only in health.py which is never started)
+            history = ex._order_history
+            filled = sum(1 for o in history if o.status.value == "filled")
+            rejected = sum(1 for o in history if o.status.value == "rejected")
+            lines.append(f'exchange_orders_submitted_total{{{labels}}} {len(history)}')
+            lines.append(f'exchange_orders_filled_total{{{labels}}} {filled}')
+            lines.append(f'exchange_orders_rejected_total{{{labels}}} {rejected}')
 
             for pos in acc.positions:
                 pos_labels = f'exchange="{ex_id}",symbol="{pos.symbol}",side="{pos.side.value}"'

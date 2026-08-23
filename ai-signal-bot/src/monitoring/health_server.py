@@ -19,11 +19,18 @@ logger = logging.getLogger(__name__)
 
 
 class HealthServer:
-    """HTTP health check server."""
+    """HTTP health check server.
 
-    def __init__(self, port: int = 8080, host: str = "0.0.0.0"):  # nosec: B104
+    Args:
+        port: Port to listen on.
+        host: Bind address.
+        auth_token: If set, requests must include ``Authorization: Bearer <token>`` header.
+    """
+
+    def __init__(self, port: int = 8080, host: str = "0.0.0.0", auth_token: str | None = None):  # nosec: B104
         self.port = port
         self.host = host
+        self._auth_token = auth_token
         self._app: web.Application | None = None
         self._runner: web.AppRunner | None = None
         self._site: web.TCPSite | None = None
@@ -112,7 +119,7 @@ class HealthServer:
         return web.json_response({"alive": True, "uptime": time.time() - self._start_time})
 
     def _create_app(self) -> web.Application:
-        app = web.Application()
+        app = web.Application(middlewares=[self._auth_middleware] if self._auth_token else [])
         app.router.add_get("/health", self._handle_health)
         app.router.add_get("/health/exchange", self._handle_health_exchange)
         app.router.add_get("/health/database", self._handle_health_database)
@@ -120,6 +127,14 @@ class HealthServer:
         app.router.add_get("/ready", self._handle_ready)
         app.router.add_get("/live", self._handle_live)
         return app
+
+    @web.middleware
+    async def _auth_middleware(self, request: web.Request, handler):
+        """Reject requests without valid Bearer token."""
+        auth = request.headers.get("Authorization", "")
+        if auth == f"Bearer {self._auth_token}":
+            return await handler(request)
+        return web.json_response({"error": "unauthorized"}, status=401)
 
     async def start(self) -> None:
         """Start the health server."""

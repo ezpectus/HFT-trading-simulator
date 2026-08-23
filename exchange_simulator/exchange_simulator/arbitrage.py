@@ -13,6 +13,7 @@ via the WebSocket server so bots can act on them.
 """
 import logging
 import time
+from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 
@@ -81,7 +82,7 @@ class ArbitrageDetector:
         self.opportunity_ttl = opportunity_ttl
 
         self._active_opportunities: list[ArbitrageOpportunity] = []
-        self._closed_history: list[ArbitrageOpportunity] = []
+        self._closed_history: deque = deque(maxlen=1000)
         self._stats = {
             "total_detected": 0,
             "total_closed": 0,
@@ -127,8 +128,6 @@ class ArbitrageDetector:
                         self._record_stats(opp)
 
         self._expire_old(now)
-        if len(self._closed_history) > self.max_opportunities:
-            self._closed_history = self._closed_history[-self.max_opportunities:]
 
         return new_opportunities
 

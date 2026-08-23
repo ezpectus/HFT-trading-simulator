@@ -25,6 +25,7 @@ Usage:
 import itertools
 import logging
 from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
 from src.backtesting.backtester import Backtester, BacktestResult
@@ -100,8 +101,13 @@ class StrategyOptimizer:
         symbol: str = "BTC/USDT",
         warmup: int = 50,
         max_combinations: int = 1000,
+        parallel: bool = False,
+        n_workers: int | None = None,
     ) -> list[OptimizationResult]:
-        """Run grid search over all parameter combinations."""
+        """Run grid search over all parameter combinations.
+
+        If parallel=True, uses ProcessPoolExecutor for multi-core speedup.
+        """
         keys = list(param_grid.keys())
         value_lists = [param_grid[k] for k in keys]
         combinations = list(itertools.product(*value_lists))
@@ -115,9 +121,26 @@ class StrategyOptimizer:
             combinations = combinations[:max_combinations]
             total = max_combinations
 
-        results = []
-        logger.info(f"Starting grid search: {total} combinations")
+        logger.info(f"Starting grid search: {total} combinations{' (parallel)' if parallel else ''}")
 
+        if parallel and total > 10:
+            results = self._parallel_grid_search(
+                strategy_class, keys, combinations, candles, symbol, warmup, n_workers,
+            )
+        else:
+            results = self._sequential_grid_search(
+                strategy_class, keys, combinations, candles, symbol, warmup,
+            )
+
+        results.sort(key=lambda x: x.fitness, reverse=True)
+        logger.info(f"Grid search complete: {len(results)} results")
+        return results
+
+    def _sequential_grid_search(
+        self, strategy_class, keys, combinations, candles, symbol, warmup,
+    ) -> list[OptimizationResult]:
+        """Sequential grid search (default)."""
+        results = []
         for i, combo in enumerate(combinations):
             params = dict(zip(keys, combo, strict=False))
             try:
@@ -127,12 +150,44 @@ class StrategyOptimizer:
                 results.append(OptimizationResult(params, result, fitness))
             except (RuntimeError, ValueError, KeyError, OSError) as e:
                 logger.debug(f"Failed for {params}: {e}")
-
             if (i + 1) % 50 == 0:
-                logger.info(f"  Progress: {i + 1}/{total}")
+                logger.info(f"  Progress: {i + 1}/{len(combinations)}")
+        return results
 
-        results.sort(key=lambda x: x.fitness, reverse=True)
-        logger.info(f"Grid search complete: {len(results)} results")
+    def _parallel_grid_search(
+        self, strategy_class, keys, combinations, candles, symbol, warmup, n_workers,
+    ) -> list[OptimizationResult]:
+        """Parallel grid search via ProcessPoolExecutor."""
+        # Note: strategy_class and backtester must be picklable for parallel mode
+        results = []
+        try:
+            with ProcessPoolExecutor(max_workers=n_workers) as pool:
+                futures = []
+                for combo in combinations:
+                    params = dict(zip(keys, combo, strict=False))
+                    futures.append((
+                        params,
+                        pool.submit(
+                            _run_single_backtest,
+                            strategy_class, params, candles, symbol, warmup,
+                            self.backtester.initial_balance,
+                            self.backtester.fee_pct,
+                        ),
+                    ))
+                for i, (params, future) in enumerate(futures):
+                    try:
+                        result = future.result()
+                        fitness = self.fitness_fn(result)
+                        results.append(OptimizationResult(params, result, fitness))
+                    except (RuntimeError, ValueError, KeyError, OSError) as e:
+                        logger.debug(f"Failed for {params}: {e}")
+                    if (i + 1) % 50 == 0:
+                        logger.info(f"  Progress: {i + 1}/{len(combinations)}")
+        except (OSError, RuntimeError) as e:
+            logger.warning(f"Parallel search failed ({e}), falling back to sequential")
+            return self._sequential_grid_search(
+                strategy_class, keys, combinations, candles, symbol, warmup,
+            )
         return results
 
     def walk_forward(
@@ -198,3 +253,13 @@ class StrategyOptimizer:
         if not results:
             return None
         return results[0].params
+
+
+def _run_single_backtest(
+    strategy_class, params: dict, candles: list[dict],
+    symbol: str, warmup: int, initial_balance: float, fee_pct: float,
+) -> BacktestResult:
+    """Module-level function for parallel grid search (must be picklable)."""
+    bt = Backtester(initial_balance=initial_balance, fee_pct=fee_pct)
+    strategy = strategy_class(**params)
+    return bt.run(candles, strategy, symbol, warmup)

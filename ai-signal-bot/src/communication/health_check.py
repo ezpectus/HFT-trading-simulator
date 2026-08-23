@@ -1,5 +1,9 @@
 """Health check aggregation endpoint for the trading system.
 
+.. deprecated::
+    Use src.monitoring.health_server.HealthServer + src.observability.health_checks.HealthChecker instead.
+    This module is kept for backward compatibility.
+
 Provides a single HTTP endpoint that aggregates health status from all services.
 Each service exposes its own /health endpoint; this module aggregates them.
 
@@ -22,6 +26,7 @@ Response format:
 import asyncio
 import logging
 import time
+import warnings
 
 import aiohttp
 from aiohttp import web
@@ -30,13 +35,23 @@ logger = logging.getLogger("ai_signal_bot.health_check")
 
 
 class HealthAggregator:
-    """Aggregates health status from all trading system services."""
+    """Aggregates health status from all trading system services.
+
+    .. deprecated::
+        Use src.monitoring.health_server.HealthServer + src.observability.health_checks.HealthChecker instead.
+    """
 
     def __init__(
         self,
         services: dict[str, str] | None = None,
         port: int = 9092,
     ):
+        warnings.warn(
+            "communication.health_check.HealthAggregator is deprecated. "
+            "Use monitoring.health_server.HealthServer + observability.health_checks.HealthChecker instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.services = services if services is not None else {
             "ai-signal-bot": "http://localhost:9090/health",
             "exchange-simulator": "http://localhost:8775/health",

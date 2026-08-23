@@ -40,6 +40,16 @@ try:
 except ImportError:
     BCC_AVAILABLE = False
 
+try:
+    from prometheus_client import Counter as PromCounter, Gauge as PromGauge
+    _HAS_PROMETHEUS = True
+except ImportError:
+    _HAS_PROMETHEUS = False
+
+if _HAS_PROMETHEUS:
+    _prom_syscall_count = PromGauge("ebpf_syscall_count_total", "eBPF syscall count by comm", labelnames=["comm"])
+    _prom_syscall_latency_us = PromGauge("ebpf_syscall_avg_latency_us", "eBPF average syscall latency in microseconds", labelnames=["comm"])
+
 
 # eBPF program for syscall tracing
 SYSCALL_BPF = r"""
@@ -67,39 +77,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
     bpf_get_current_comm(&event.comm, sizeof(event.comm));
     
     events.perf_submit(args, &event, sizeof(event));
-    return 0;
-}
-"""
-
-# eBPF program for network latency
-NETWORK_BPF = r"""
-#include <uapi/linux/ptrace.h>
-#include <net/sock.h>
-
-struct net_event_t {
-    u64 pid;
-    u64 ts;
-    u32 saddr;
-    u32 daddr;
-    u16 sport;
-    u16 dport;
-    u64 len;
-    char comm[16];
-};
-
-BPF_PERF_OUTPUT(net_events);
-
-int kprobe__tcp_recvmsg(struct pt_regs *ctx, struct sock *sk) {
-    u64 pid = bpf_get_current_pid_tgid() >> 32;
-    struct net_event_t event = {};
-    event.pid = pid;
-    event.ts = bpf_ktime_get_ns();
-    event.saddr = sk->__sk_common.saddr;
-    event.daddr = sk->__sk_common.daddr;
-    event.sport = sk->__sk_common.sport;
-    event.dport = sk->__sk_common.dport;
-    bpf_get_current_comm(&event.comm, sizeof(event.comm));
-    net_events.perf_submit(ctx, &event, sizeof(event));
     return 0;
 }
 """
@@ -181,7 +158,7 @@ class EBPFMonitor:
         logger.info("[eBPF] Monitoring stopped")
 
     def _report(self) -> None:
-        """Log current stats as JSON."""
+        """Log current stats as JSON and update Prometheus metrics."""
         report = {
             "timestamp": time.time(),
             "pid": self.pid,
@@ -197,6 +174,12 @@ class EBPFMonitor:
             }
 
         logger.info(json.dumps(report, indent=2))
+
+        if _HAS_PROMETHEUS:
+            for comm, stats in self._stats["syscalls"].items():
+                _prom_syscall_count.labels(comm=comm).set(stats["count"])
+                avg_ns = stats["total_latency_ns"] / max(stats["count"], 1)
+                _prom_syscall_latency_us.labels(comm=comm).set(round(avg_ns / 1000, 2))
 
     def get_stats(self) -> dict[str, Any]:
         return self._stats.copy()

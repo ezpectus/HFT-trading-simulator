@@ -1,11 +1,9 @@
 """
 Real exchange REST client — account/position info via REST API.
 
-Supports Binance, OKX, and Bybit for:
-- Account balance
-- Open positions
-- Order history
-- PnL tracking
+DEPRECATED: This module is a duplicate of real_account.py and is not used
+by exchange_factory or any production code. Use real_account.py instead.
+Will be removed in a future release.
 """
 
 from __future__ import annotations
@@ -16,7 +14,14 @@ import hashlib
 import hmac
 import logging
 import time
+import warnings
 from dataclasses import dataclass
+
+warnings.warn(
+    "real_exchange_client is deprecated. Use real_account.py instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 logger = logging.getLogger(__name__)
 

@@ -2,6 +2,296 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка QQ: metric name mismatch fix + missing metrics)
+
+### Added
+- `communication/metrics_server.py`: New metrics — `ai_signal_bot_pnl_total`, `ai_signal_bot_drawdown`, `ai_signal_bot_win_rate`, `ai_signal_bot_errors_total` with setter methods
+- `exchange_simulator/ws_prometheus.py`: Order metrics (`exchange_orders_submitted_total`, `exchange_orders_filled_total`, `exchange_orders_rejected_total`) now exposed in canonical Prometheus endpoint
+
+### Changed
+- `monitoring/alerts/alerts.yml`: Complete rewrite — all alert expressions now reference actual exposed metric names. Removed 10 non-existent metrics (CPU, memory, latency histograms, price feed). Added exchange_simulator alerts (order rejection rate, disconnection rate, trading stopped)
+- `exchange_simulator/health.py`: `/metrics` endpoint marked deprecated — `ws_prometheus.py` is canonical for Prometheus scraping
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка PP: network config + stale/N/A items cleanup)
+
+### Added
+- `config/settings.yaml`: New `network` section with `ws_connect_timeout`, `ws_recv_timeout`, `rest_timeout`, `socket_buffer_size` — all configurable without redeploy
+- `config/__init__.py`: Network properties on `SignalBotConfig` with sensible defaults
+
+### Verified Already Fixed / Not Applicable (stale items marked)
+- `ws_connection_pool §8.993`: Module deleted in Пачка G — stale item
+- `technical_analysis: 16 modules dead code`: Feature-flagged via optional imports, used in backtesting — N/A
+- `ml: 5 modules dead code`: Feature-flagged via optional imports, used when ml_ensemble enabled — N/A
+- `research: 30+ modules dead code`: Academic math for analysis, __init__.py minimal — N/A
+- `Project-wide: 50+ modules dead code`: All feature-flagged, not loaded in production — N/A
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка OO: tracing env var + SHM cleanup + float precision + shared_config docs)
+
+### Changed
+- `observability/tracing.py`: `setup_tracing` endpoint now defaults to `OTEL_EXPORTER_OTLP_ENDPOINT` env var — Docker/K8s can override without code changes
+- `communication/shm_ring_buffer.py`: Added `atexit` handler + `_registered_buffers` tracking — SHM segments auto-unlinked on normal exit
+- `backtesting/pnl_calculator.py`: Added `round(..., 10)` to all PnL calculations (gross, net, fees, funding) — prevents IEEE 754 error accumulation in P&L tracking
+- `shared_config.yaml`: Documented localhost hosts as dev defaults — override via env vars or Helm values for Docker/K8s
+
+### Verified Already Fixed (stale items marked)
+- `db.py: no migration system`: `migrate.py` exists, `_init_db` uses `CREATE TABLE IF NOT EXISTS` — sufficient for SQLite
+- `socket_transport §8.815: blocks thread`: Already uses non-blocking sockets with `selectors.DefaultSelector()` — same as §8.675
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка NN: exchange_simulator metrics deprecation + strategies cleanup)
+
+### Changed
+- `exchange_simulator/metrics.py`: Added `DeprecationWarning` — dead code, only used in tests. `ws_prometheus.py` + `ws_metrics.py` are canonical
+- `strategies/strategies.py`: Removed unused `logger` variable and `logging` import
+- `strategies/__init__.py`: Import `Signal`/`SignalDirection` directly from `signal.py` instead of re-export through `strategies.py`
+
+### Verified Already Fixed (stale items marked)
+- `socket_transport: blocking receive loop`: Code already uses non-blocking sockets with `selectors.DefaultSelector()` + `timeout=0.1`
+- `exchange_simulator: triple metrics systems`: `metrics.py` deprecated — `ws_prometheus.py` (PrometheusMixin) + `ws_metrics.py` (WebSocketMetrics) are canonical
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка MM: backpressure + order idempotency + reliability gap cleanup)
+
+### Added
+- `signal_publisher.py`: `max_clients=50` parameter — rejects new connections when limit reached (backpressure)
+- `signal_publisher.py`: 5s send timeout in `_broadcast_to_clients` — slow consumers dropped instead of blocking
+- `ws_client.py`: `client_order_id` parameter in `submit_order` — enables exchange-side deduplication on retry
+- `run.py`: Passes `sig_{signal_id}` as `client_order_id` for order idempotency
+
+### Verified Already Fixed (RELIABILITY GAP items marked)
+- SIGTERM handler: Fixed in Пачка F/S
+- Sharding/Partitioning: `purge_old_records` added in Пачка II
+- Schema validation WS: Fixed in Пачка EE
+- Race condition `_clients`: Fixed in Пачка H (`_state_lock`)
+- DB connection pooling: Fixed in Пачка AA (persistent `_get_conn()`)
+- aiohttp session per alert: Fixed in Пачка O (shared `_get_session()`)
+- Retry/backoff for orders: `retry_with_backoff` added in Пачка FF
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка LL: DB busy_timeout + indicator caching + env var config override)
+
+### Added
+- `db.py`: `PRAGMA busy_timeout=5000` + `connect(timeout=5.0)` — prevents "database is locked" on concurrent writes
+- `strategies.py`: Indicator caching for `TrendFollowingStrategy` and `MeanReversionStrategy` — cache keyed by `(symbol, len(candles), closes[-1])`, max 200 entries, skips recomputation when data unchanged (200k ops → ~0 on cache hit)
+- `config/__init__.py`: `WS_URL` env var override for `ws_url` property — Docker/K8s can set exchange URL without modifying YAML
+
+### Changed
+- `config/settings.yaml`: Added comment documenting `WS_URL` env var override
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка KK: stale item cleanup — no code changes)
+
+### Verified Already Fixed (stale duplicates marked)
+- Missing DB indexes: `idx_signals_symbol`, `idx_trades_symbol`, `idx_trades_status`, `idx_equity_curve_ts` all exist in `_init_db()`
+- No WS message validation: Fixed in Пачка EE — `signal_publisher` validates JSON object, type field, message type whitelist
+- No database migrations: `scripts/migrate.py` exists with transaction wrapping (Пачка Y)
+- Dual metrics systems (§8.336, §8.359): `MetricsCollector` (embedded, text format) vs `MetricsExporter` (standalone, prometheus_client) — different purposes, not duplicates
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка JJ: log rotation + health auth + stale item cleanup)
+
+### Changed
+- `observability/logging.py`: `FileHandler` → `RotatingFileHandler` (10MB max, 5 backups) — prevents unbounded log growth
+- `monitoring/health_server.py`: Added `auth_token` parameter — if set, requests must include `Authorization: Bearer <token>` header
+
+### Verified Already Fixed (stale duplicates marked)
+- DB migrations runner: `scripts/migrate.py` already exists with transaction wrapping
+- Dual metrics systems: `MetricsCollector` (embedded, text format) vs `MetricsExporter` (standalone, prometheus_client) — different purposes, not duplicates
+- 5× PortfolioOptimizer: Only 2 classes exist; `risk/portfolio_optimizer.py` already deprecated
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка II: DB retention + config type validation + stale item cleanup)
+
+### Added
+- `db.py`: `purge_old_records(max_age_days=90)` — deletes old signals/trades/equity_curve rows + runs `PRAGMA optimize`
+- `config/__init__.py`: Type checks on critical config fields — catches wrong YAML types (string instead of int, etc.) before runtime
+
+### Verified Already Fixed (stale duplicates marked)
+- `dpdk_transport.py`: File does not exist in `src/networking/` — audit item is stale
+- Config schema validation: `validate()` already checks required sections, ranges, and now types
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка HH: ebpf_monitor cleanup — dead code removal + Prometheus export)
+
+### Removed
+- `ebpf_monitor.py`: `NETWORK_BPF` program removed (30 lines) — defined but never loaded
+
+### Added
+- `ebpf_monitor.py`: Prometheus Gauges (`ebpf_syscall_count_total`, `ebpf_syscall_avg_latency_us`) — stats now exported to Grafana dashboards
+
+### Verified Already Fixed (stale duplicates marked)
+- Graceful shutdown: SIGTERM/SIGINT handler added in Пачка F/S
+- `helpers.CircuitBreaker`: Removed in Пачка GG
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка GG: CircuitBreaker consolidation + health check deprecation)
+
+### Removed
+- `helpers.py`: Deprecated `CircuitBreaker` class removed (42 lines) — 0 production imports, only test_utils.py used it
+- `test_utils.py`: `TestCircuitBreaker` class removed (3 tests)
+
+### Deprecated
+- `communication/health_check.py`: `HealthAggregator` — added `DeprecationWarning`, redirect to `monitoring.health_server.HealthServer` + `observability.health_checks.HealthChecker`
+
+### Kept (different purposes)
+- `strategies/circuit_breaker.py`: `CircuitBreaker` — trade PnL tracking (trips on consecutive losing trades, forces NEUTRAL signals)
+- `communication/circuit_breaker.py`: `CircuitBreaker` — signal outcome tracking (async, half-open probes, config dataclass)
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка FF: RateLimiter removal + retry utility + health_checks wiring + task management)
+
+### Removed
+- `helpers.py`: Dead `RateLimiter` class removed (26 lines) — was never used in production
+
+### Added
+- `helpers.py`: `retry_with_backoff()` utility — exponential backoff with configurable exceptions for transient failures
+- `run.py`: `HealthChecker` wired into `AISignalBot` — `record_signal()` and `record_order()` called in pipeline
+- `run.py`: `_background_tasks` set + `_on_task_done` callback — tracks background tasks, logs crashes
+- `run.py`: Liveness and readiness checks registered with `HealthServer` when `--metrics` enabled
+
+### Changed
+- `test_utils.py`: `TestRateLimiter` replaced with `TestRetryWithBackoff` (3 tests: success, retry, exhaust)
+
+### Verified Already Fixed (stale duplicates marked)
+- Dead code `tracing.py`: Root file deleted in Пачка A
+- `SECURITY.md` WS claim: Schema validation added in Пачка EE — claim is now accurate
+- Health checks v2 wiring: Now wired into `run.py`
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка EE: ws_client jitter + WS input schema validation + stale duplicate cleanup)
+
+### Changed
+- `ws_client.py`: Reconnect backoff now includes ±25% jitter (`delay * (0.75 + random() * 0.5)`) to prevent thundering herd on mass reconnect
+- `signal_publisher.py`: Added WS input schema validation — checks JSON object type, requires `type` field, whitelists valid message types (`subscribe`, `run_backtest`, `compare_backtests`, `auth`, `ping`)
+
+### Verified Already Fixed (stale duplicates marked)
+- WS keepalive: `ping_interval=10` already set in `connect()`
+- `asyncio.Lock` on `_clients`: Added in Пачка H
+- Health check depth: Added in Пачка CC
+- `risk/portfolio_optimizer.py`: Already deprecated with `DeprecationWarning`
+- DB persistent connection: Verified in Пачка AA
+- SIGTERM handler: Added in Пачка F/S
+- Code reduction milestones (~510, ~710, ~800 lines): All addressed
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка DD: health_checks parallel + timeouts + real_market_data reconnect gap-fill)
+
+### Changed
+- `health_checks.py`: `check_readiness()` — all 4 component checks now run in parallel via `asyncio.gather(return_exceptions=True)`
+- `health_checks.py`: `_check_ws()` and `_check_exchange()` — added `asyncio.wait_for(timeout=2.0)` to prevent indefinite blocking
+- `real_market_data.py`: Added `on_reconnect` callback and `_last_msg_times` tracking — caller can fetch historical candles after WS reconnect
+- `real_market_data.py`: Gap-fill hooks added to Binance, OKX, and Bybit reconnect paths
+
+### Verified Already Fixed
+- `alerting.py`: Already uses shared `_get_session()` (Пачка O) — no aiohttp session leak
+- `research/_common.py`: All 22 research modules already import `compute_returns` from `_common` — dedup complete
+- `health_check.py`: No aiohttp usage — ClientSession item not applicable
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка CC: seed configurable + tracing sleep removal + liveness depth + liquidation thread safety)
+
+### Changed
+- `funding_rate.py`: Added `seed` parameter to `FundingRateSimulator.__init__` (default 42) — was hardcoded
+- `liquidation_engine_v2.py`: Added `seed` parameter + `threading.Lock` on `liquidate()` — protects `insurance_fund`, `events`, `_cascade_depth`
+- `market_microstructure.py`: Added `seed` parameter to `MarketMicrostructure.__init__` (default 42) — was hardcoded
+- `order_book_realism.py`: Added `seed` parameter to `OrderBookRealism.__init__` (default 42) — was hardcoded
+- `tracing.py` (exchange_simulator): Removed `time.sleep(0.001)` from `trace_order_processing` — tracing is now passive
+- `health_checks.py`: `check_liveness()` now detects stale signals/orders (>300s) and high error count (>100) — reports `degraded` status with details
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка BB: ws_client reconnect + LLM validation + unbounded lists + db index + migrate exception)
+
+### Changed
+- `ws_client.py`: `listen()` — added auto-reconnect loop with exponential backoff (1s→30s cap) on ConnectionClosed/OSError
+- `engine.py`: `_parse_response()` — added schema validation: sentiment enum check, confidence 0-100 clamp, recommendation enum check, TypeError catch
+- `arbitrage.py`: `_closed_history` — replaced `list` with `deque(maxlen=1000)`, removed manual trimming
+- `order_book_realism.py`: `recent_fills` — replaced `list` with `deque(maxlen=1000)`, `_update_toxicity` uses `popleft()` for time-based pruning
+- `db.py`: Added `idx_equity_curve_ts` index on `equity_curve(timestamp)` for faster range queries
+- `migrate.py`: Widened exception handler from `(OSError, ValueError, RuntimeError, KeyError)` to `Exception` to catch all DB errors
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AA: circuit_breaker thread-safety + validator thread-safety + options_pricing deprecation)
+
+### Changed
+- `circuit_breaker.py`: Added `asyncio.Lock` — `allow_signal`, `record_success`, `record_failure`, `reset` are now async coroutines
+- `signal_publisher.py`: Updated `broadcast_signal` to `await circuit_breaker.allow_signal()`
+- `validator.py`: Added `asyncio.Lock` — `validate`, `update_pnl`, `update_position_count` are now async coroutines
+- `run.py`: `_validate_signal` is now async, awaits `validator.update_position_count` and `validator.validate`
+- `options_pricing.py`: Added `DeprecationWarning` — use `exchange_simulator.options_simulator.OptionsSimulator` instead
+- `db.py`: Verified already using persistent connection via `_get_conn()` (no change needed)
+- `risk_manager.py`: Verified stateless — operates on caller-owned `PositionRiskState` (no change needed)
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка Z: automl validation + ws_client TLS + tracing insecure + notifier auth + signal_publisher TLS/auth)
+
+### Changed
+- `automl.py`: `optimize()` and `optimize_async()` — added `validation_data` parameter to prevent overfitting; objective_fn introspected for 2-arg support
+- `ws_client.py`: `ExchangeClient` — added `ssl` parameter to constructor and `connect()` for wss:// TLS support
+- `tracing.py`: `setup_tracing()` — added `insecure` parameter (default `False` for TLS); was hardcoded `True`
+- `notifier.py`: `TelegramNotifier` + `DiscordNotifier` — added `command_password` for remote command auth; `NOTIFIER_COMMAND_PASSWORD` env var
+- `signal_publisher.py`: `SignalPublisher` — added `ssl` parameter for wss:// TLS and `auth_token` for client authentication (clients must send `{"type":"auth","token":"..."}`)
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка Y: model_registry atomic save + migrate transaction + fix_client redaction + notifier rate limiting)
+
+### Changed
+- `model_registry.py`: `_save` — atomic write via temp file + `os.replace` (prevents corruption on crash)
+- `migrate.py`: Each migration wrapped in `conn.transaction()` — SQL + schema_migrations insert are atomic
+- `fix_client.py`: `_process_message` — sensitive FIX tags (553=username, 554=password, 4961=passphrase) redacted with `***` in debug log
+- `notifier.py`: `NotifierManager` — added `asyncio.Semaphore(3)` + 1/sec rate limit to `send_alert` to prevent Telegram/Discord 429 errors
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка X: notifier token protection + engine SecretStr + CircuitBreaker deprecation + shm batch flush)
+
+### Changed
+- `notifier.py`: `TelegramNotifier.start()` — suppress `aiohttp.client` debug logging to prevent bot token leakage in URL logs
+- `engine.py`: Added `SecretStr` wrapper class — `LLMConfig.api_key` now uses `SecretStr`, repr/str show `***`, `.get()` for actual value
+- `helpers.py`: `CircuitBreaker` — added `DeprecationWarning`, use `communication.circuit_breaker.CircuitBreaker` instead
+- `shm_ring_buffer.py`: Added `_atomic_write_u64_batched` — flushes every 64 writes instead of every write (100K→1.5K syscalls/sec)
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка W: backtest_engine reset + optimizer parallel + walk_forward reuse + health check consolidation)
+
+### Changed
+- `backtest_engine.py`: Added `reset()` method for engine reuse; fixed O(N²) window slicing with rolling window
+- `walk_forward.py`: `_optimize_in_sample` — reuse single `BacktestEngine` via `reset()` instead of creating new instance per param combo
+- `optimizer.py`: `grid_search` — added `parallel=True` option via `ProcessPoolExecutor` with automatic fallback to sequential
+- `observability/health_checks.py`: `create_health_endpoints` — added `DeprecationWarning`, use `monitoring/health_server.HealthServer` for HTTP endpoints
+
+---
+
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка V: live order impl + real_exchange_client deprecated + hmc analytical gradient + backtester rolling window)
+
+### Changed
+- `run.py`: `_execute_live_order` — implemented via `ExchangeFactory` → `RealExchangeAdapter.place_order` with error handling + cleanup (was stub logging warning)
+- `real_exchange_client.py`: Added `DeprecationWarning` — duplicate of `real_account.py`, not used in production
+- `hmc.py`: `grad_log_posterior` — replaced central-difference numerical gradient with analytical GARCH(1,1) gradient (eliminates 60K log_posterior evals)
+- `backtester.py`: `run` — replaced O(N²) growing `candles[:i+1]` slice with rolling window capped at `max(2×warmup, 200)`
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка U: 3× _fft → numpy + rbergomi Cholesky + WS backpressure + exchange_factory close)
 
 ### Changed

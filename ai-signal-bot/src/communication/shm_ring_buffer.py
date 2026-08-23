@@ -13,6 +13,7 @@ All operations are O(1) and non-blocking.
 
 from __future__ import annotations
 
+import atexit
 import ctypes
 import logging
 import mmap
@@ -22,6 +23,9 @@ import sys
 from typing import TypeVar
 
 logger = logging.getLogger(__name__)
+
+# Track all created SHM segments for cleanup on exit
+_registered_buffers: list["ShmRingBuffer"] = []
 
 # Atomic helpers: use ctypes for aligned atomic-like reads/writes
 # On x86/x64, aligned 8-byte reads/writes are naturally atomic.
@@ -56,6 +60,20 @@ def _atomic_write_u64(mm, offset, value):
     release ordering. We flush the page for cross-process visibility."""
     struct.pack_into('<Q', mm, offset, value)
     _mm_barrier(mm)
+
+# Batch flush counter: only flush every FLUSH_INTERVAL writes
+_flush_counter = 0
+FLUSH_INTERVAL = 64
+
+def _atomic_write_u64_batched(mm, offset, value):
+    """Write uint64 with batched flushing — flush every FLUSH_INTERVAL writes.
+    Reduces FlushViewOfFile syscalls from 100K/sec to ~1.5K/sec at full throughput."""
+    global _flush_counter
+    struct.pack_into('<Q', mm, offset, value)
+    _flush_counter += 1
+    if _flush_counter >= FLUSH_INTERVAL:
+        _mm_barrier(mm)
+        _flush_counter = 0
 
 T = TypeVar('T')
 
@@ -166,6 +184,9 @@ class ShmRingBuffer[T]:
         self._data_offset = SHM_HEADER_ACTUAL_SIZE
         self.dropped_count = 0
 
+        if create:
+            _registered_buffers.append(self)
+
     def try_push(self, item: tuple) -> bool:
         """Non-blocking push. Returns False if buffer is full."""
         head = _atomic_read_u64(self._mm, OFF_HEAD)
@@ -179,7 +200,7 @@ class ShmRingBuffer[T]:
         offset = self._data_offset + slot * self.element_size
         self.element_struct.pack_into(self._mm, offset, *item)
 
-        _atomic_write_u64(self._mm, OFF_HEAD, head + 1)
+        _atomic_write_u64_batched(self._mm, OFF_HEAD, head + 1)
         return True
 
     def try_pop(self) -> tuple | None:
@@ -194,7 +215,7 @@ class ShmRingBuffer[T]:
         offset = self._data_offset + slot * self.element_size
         item = self.element_struct.unpack_from(self._mm, offset)
 
-        _atomic_write_u64(self._mm, OFF_TAIL, tail + 1)
+        _atomic_write_u64_batched(self._mm, OFF_TAIL, tail + 1)
         return item
 
     def bulk_push(self, items: list[tuple]) -> int:
@@ -210,7 +231,7 @@ class ShmRingBuffer[T]:
             offset = self._data_offset + slot * self.element_size
             self.element_struct.pack_into(self._mm, offset, *items[i])
 
-        _atomic_write_u64(self._mm, OFF_HEAD, head + to_push)
+        _atomic_write_u64_batched(self._mm, OFF_HEAD, head + to_push)
         return to_push
 
     def bulk_pop(self, max_count: int) -> list[tuple]:
@@ -227,7 +248,7 @@ class ShmRingBuffer[T]:
             offset = self._data_offset + slot * self.element_size
             result.append(self.element_struct.unpack_from(self._mm, offset))
 
-        _atomic_write_u64(self._mm, OFF_TAIL, tail + to_pop)
+        _atomic_write_u64_batched(self._mm, OFF_TAIL, tail + to_pop)
         return result
 
     def size(self) -> int:
@@ -270,6 +291,19 @@ class ShmRingBuffer[T]:
 
     def __del__(self):
         self.close()
+
+
+def _cleanup_all_shm():
+    """Unlink all registered SHM segments on exit."""
+    for buf in _registered_buffers:
+        try:
+            buf.unlink()
+        except Exception:
+            pass
+    _registered_buffers.clear()
+
+
+atexit.register(_cleanup_all_shm)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

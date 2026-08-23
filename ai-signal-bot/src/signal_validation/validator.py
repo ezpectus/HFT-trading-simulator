@@ -3,6 +3,7 @@
 Validates signals before they are sent to the execution bot.
 Checks confidence, R:R ratio, drawdown limits, and position limits.
 """
+import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -29,6 +30,8 @@ class SignalValidator:
     - Maximum daily drawdown
     - Maximum open positions
     - Duplicate signal prevention
+
+    Thread-safe for async usage via asyncio.Lock on all state-mutating operations.
     """
 
     def __init__(
@@ -46,6 +49,7 @@ class SignalValidator:
         self._daily_reset: datetime = datetime.now(UTC)
         self._open_positions: int = 0
         self._recent_signals: dict[str, datetime] = {}
+        self._lock = asyncio.Lock()
 
     def reset_daily(self) -> None:
         """Reset daily PnL tracking."""
@@ -53,34 +57,37 @@ class SignalValidator:
         self._daily_reset = datetime.now(UTC)
         logger.info("Daily PnL reset")
 
-    def update_pnl(self, pnl: float) -> None:
+    async def update_pnl(self, pnl: float) -> None:
         """Track realized PnL for drawdown calculation."""
-        now = datetime.now(UTC)
-        if now - self._daily_reset > timedelta(hours=24):
-            self.reset_daily()
-        self._daily_pnl += pnl
+        async with self._lock:
+            now = datetime.now(UTC)
+            if now - self._daily_reset > timedelta(hours=24):
+                self.reset_daily()
+            self._daily_pnl += pnl
 
-    def update_position_count(self, count: int) -> None:
-        self._open_positions = count
+    async def update_position_count(self, count: int) -> None:
+        async with self._lock:
+            self._open_positions = count
 
-    def validate(self, signal: Signal, account_balance: float = 10000.0) -> ValidationResult:
+    async def validate(self, signal: Signal, account_balance: float = 10000.0) -> ValidationResult:
         """Validate a signal against all risk rules."""
         if not signal.is_actionable:
             return ValidationResult(False, "Signal is neutral", signal)
 
-        checks = [
-            self._check_confidence(signal),
-            self._check_rr_ratio(signal),
-            self._check_drawdown(signal, account_balance),
-            self._check_max_positions(signal),
-            self._check_duplicate(signal),
-        ]
-        for result in checks:
-            if result is not None:
-                return result
+        async with self._lock:
+            checks = [
+                self._check_confidence(signal),
+                self._check_rr_ratio(signal),
+                self._check_drawdown(signal, account_balance),
+                self._check_max_positions(signal),
+                self._check_duplicate(signal),
+            ]
+            for result in checks:
+                if result is not None:
+                    return result
 
-        self._recent_signals[signal.symbol] = datetime.now(UTC)
-        return ValidationResult(True, "Signal validated", signal)
+            self._recent_signals[signal.symbol] = datetime.now(UTC)
+            return ValidationResult(True, "Signal validated", signal)
 
     def _check_confidence(self, signal: Signal) -> ValidationResult | None:
         """Check signal confidence against minimum threshold."""

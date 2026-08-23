@@ -105,8 +105,16 @@ class AutoMLOptimizer:
         self,
         objective_fn: Callable | None = None,
         search_space_fn: Callable | None = None,
+        validation_data: Any | None = None,
     ) -> dict[str, Any]:
-        """Run hyperparameter optimization."""
+        """Run hyperparameter optimization.
+
+        Args:
+            objective_fn: Objective function taking (params, validation_data) -> float.
+                          If it accepts 2 args, validation_data is passed.
+            search_space_fn: Custom search space function.
+            validation_data: Held-out data for validation to prevent overfitting.
+        """
         if not OPTUNA_AVAILABLE:
             logger.error("[AutoML] optuna not available")
             return {}
@@ -128,13 +136,20 @@ class AutoMLOptimizer:
 
         if objective_fn is None:
             logger.warning("[AutoML] No objective function provided — using dummy")
-            def objective_fn(params):
+            def objective_fn(params, validation_data=None):
                 return 0.0
 
         space_fn = search_space_fn or self._default_search_space
 
+        # Check if objective_fn accepts validation_data
+        import inspect
+        sig = inspect.signature(objective_fn)
+        accepts_val = len(sig.parameters) >= 2
+
         def wrapped_objective(trial):
             params = space_fn(trial)
+            if accepts_val and validation_data is not None:
+                return objective_fn(params, validation_data)
             return objective_fn(params)
 
         logger.info(f"[AutoML] Starting optimization: {self.config.n_trials} trials, strategy={self.strategy}")
@@ -163,11 +178,12 @@ class AutoMLOptimizer:
         self,
         objective_fn: Callable | None = None,
         search_space_fn: Callable | None = None,
+        validation_data: Any | None = None,
     ) -> dict[str, Any]:
         """Async wrapper for optimize() — runs blocking study.optimize in executor."""
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
-            None, lambda: self.optimize(objective_fn, search_space_fn)
+            None, lambda: self.optimize(objective_fn, search_space_fn, validation_data)
         )
 
     def get_param_importances(self) -> dict[str, float]:

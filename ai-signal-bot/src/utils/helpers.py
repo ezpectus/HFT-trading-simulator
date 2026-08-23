@@ -89,63 +89,41 @@ def truncate_dict(d: dict, max_items: int = 100) -> dict:
     return result
 
 
-class CircuitBreaker:
-    """Simple circuit breaker for external API calls."""
+async def retry_with_backoff(
+    coro_fn,
+    *args,
+    max_retries: int = 3,
+    initial_delay: float = 1.0,
+    max_delay: float = 30.0,
+    exceptions: tuple = (OSError, RuntimeError, ConnectionError, TimeoutError),
+    **kwargs,
+):
+    """Retry an async callable with exponential backoff.
 
-    def __init__(self, failure_threshold: int = 5, recovery_timeout: float = 30.0):
-        self.failure_threshold = failure_threshold
-        self.recovery_timeout = recovery_timeout
-        self._failure_count = 0
-        self._last_failure_time: float = 0
-        self._state = "closed"  # closed, open, half_open
+    Args:
+        coro_fn: Async callable to retry.
+        max_retries: Maximum number of retry attempts.
+        initial_delay: Initial delay in seconds.
+        max_delay: Maximum delay cap in seconds.
+        exceptions: Tuple of exception types to catch and retry on.
 
-    @property
-    def is_open(self) -> bool:
-        if self._state == "open":
-            if time.time() - self._last_failure_time > self.recovery_timeout:
-                self._state = "half_open"
-                return False
-            return True
-        return False
+    Returns:
+        The result of coro_fn(*args, **kwargs).
 
-    def record_success(self) -> None:
-        self._failure_count = 0
-        self._state = "closed"
+    Raises:
+        The last exception if all retries are exhausted.
+    """
+    import asyncio
 
-    def record_failure(self) -> None:
-        self._failure_count += 1
-        self._last_failure_time = time.time()
-        if self._failure_count >= self.failure_threshold:
-            self._state = "open"
-
-    @property
-    def state(self) -> str:
-        return self._state
-
-
-class RateLimiter:
-    """Token bucket rate limiter for async contexts."""
-
-    def __init__(self, rate: float, burst: int = 1):
-        self.rate = rate
-        self.burst = burst
-        self._tokens = float(burst)
-        self._last_refill = time.monotonic()
-
-    def _refill(self) -> None:
-        now = time.monotonic()
-        elapsed = now - self._last_refill
-        self._tokens = min(self.burst, self._tokens + elapsed * self.rate)
-        self._last_refill = now
-
-    async def acquire(self) -> bool:
-        import asyncio
-        if self.rate <= 0:
-            return False
-        while True:
-            self._refill()
-            if self._tokens >= 1.0:
-                self._tokens -= 1.0
-                return True
-            wait = (1.0 - self._tokens) / self.rate
-            await asyncio.sleep(wait)
+    delay = initial_delay
+    last_exc: Exception | None = None
+    for attempt in range(max_retries + 1):
+        try:
+            return await coro_fn(*args, **kwargs)
+        except exceptions as e:
+            last_exc = e
+            if attempt >= max_retries:
+                break
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, max_delay)
+    raise last_exc  # type: ignore[misc]

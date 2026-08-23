@@ -13,6 +13,7 @@ Features:
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections import deque
 from dataclasses import dataclass
@@ -62,7 +63,8 @@ class LiquidationEngineV2:
 
     def __init__(self, maintenance_margin_rate: float = 0.005,
                  partial_liq_ratio: float = 0.5,
-                 insurance_fund_initial: float = 100000.0):
+                 insurance_fund_initial: float = 100000.0,
+                 seed: int = 42):
         self.maintenance_margin_rate = maintenance_margin_rate
         self.partial_liq_ratio = partial_liq_ratio    # Fraction to close in partial liq
         self.insurance_fund = insurance_fund_initial
@@ -70,7 +72,8 @@ class LiquidationEngineV2:
         self.events: deque[LiquidationEvent] = deque(maxlen=10000)
         self._cascade_depth = 0
         self._max_cascade_depth = 10
-        self._rng = np.random.default_rng(seed=42)
+        self._rng = np.random.default_rng(seed=seed)
+        self._lock = threading.Lock()
 
     def compute_liq_price(self, pos: Position) -> float:
         """Compute liquidation price for a position."""
@@ -115,21 +118,22 @@ class LiquidationEngineV2:
     def liquidate(self, pos: Position, mark_price: float,
                   force_full: bool = False) -> LiquidationEvent | None:
         """Liquidate a position. Returns liquidation event or None."""
-        if pos.qty <= 0:
-            return None
+        with self._lock:
+            if pos.qty <= 0:
+                return None
 
-        pnl = self.compute_unrealized_pnl(pos, mark_price)
-        liq_type, qty_to_close = self._determine_liq_type(pos, force_full)
-        released_margin, loss = self._execute_liquidation(pos, pnl, qty_to_close)
+            pnl = self.compute_unrealized_pnl(pos, mark_price)
+            liq_type, qty_to_close = self._determine_liq_type(pos, force_full)
+            released_margin, loss = self._execute_liquidation(pos, pnl, qty_to_close)
 
-        event = self._create_liq_event(pos, mark_price, qty_to_close, liq_type, loss)
-        self.events.append(event)
-        self._log_liquidation(pos, qty_to_close, liq_type, loss)
+            event = self._create_liq_event(pos, mark_price, qty_to_close, liq_type, loss)
+            self.events.append(event)
+            self._log_liquidation(pos, qty_to_close, liq_type, loss)
 
-        if self.insurance_fund < 0:
-            self._auto_deleverage(pos, mark_price)
+            if self.insurance_fund < 0:
+                self._auto_deleverage(pos, mark_price)
 
-        return event
+            return event
 
     def _determine_liq_type(self, pos: Position, force_full: bool) -> tuple[LiquidationType, float]:
         """Determine liquidation type and quantity to close."""

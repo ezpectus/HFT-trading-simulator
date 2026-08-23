@@ -24,10 +24,37 @@ except ImportError:
     AIOHTTP_AVAILABLE = False
 
 
+class SecretStr:
+    """Wrapper to prevent secret leakage in repr/logs."""
+
+    __slots__ = ("_value",)
+
+    def __init__(self, value: str = ""):
+        self._value = value
+
+    def get(self) -> str:
+        """Get the underlying string value."""
+        return self._value
+
+    def __repr__(self) -> str:
+        return "SecretStr('***')"
+
+    def __str__(self) -> str:
+        return "***"
+
+    def __bool__(self) -> bool:
+        return bool(self._value)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, SecretStr):
+            return self._value == other._value
+        return False
+
+
 @dataclass
 class LLMConfig:
     provider: str = "openai"           # openai, anthropic, ollama, none
-    api_key: str = ""
+    api_key: SecretStr = field(default_factory=lambda: SecretStr(""))
     model: str = "gpt-4o-mini"
     base_url: str = ""
     max_tokens: int = 500
@@ -85,9 +112,9 @@ class LLMEngine:
             self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.config.timeout_seconds))
         if not self.config.api_key:
             if self.config.provider == "openai":
-                self.config.api_key = os.getenv("OPENAI_API_KEY", "")
+                self.config.api_key = SecretStr(os.getenv("OPENAI_API_KEY", ""))
             elif self.config.provider == "anthropic":
-                self.config.api_key = os.getenv("ANTHROPIC_API_KEY", "")
+                self.config.api_key = SecretStr(os.getenv("ANTHROPIC_API_KEY", ""))
         if not self.config.api_key and self.config.provider not in ("ollama", "none"):
             self.config.provider = "none"
             logger.info("[LLMEngine] No API key, using rule-based fallback")
@@ -237,7 +264,7 @@ class LLMEngine:
             if self.config.provider == "openai":
                 url = self.config.base_url or "https://api.openai.com/v1/chat/completions"
                 headers = {
-                    "Authorization": f"Bearer {self.config.api_key}",
+                    "Authorization": f"Bearer {self.config.api_key.get()}",
                     "Content-Type": "application/json",
                 }
                 payload = {
@@ -249,7 +276,7 @@ class LLMEngine:
             elif self.config.provider == "anthropic":
                 url = "https://api.anthropic.com/v1/messages"
                 headers = {
-                    "x-api-key": self.config.api_key,
+                    "x-api-key": self.config.api_key.get(),
                     "anthropic-version": "2023-06-01",
                     "Content-Type": "application/json",
                 }
@@ -284,24 +311,33 @@ class LLMEngine:
                 return str(data)
 
     def _parse_response(self, response: str, symbol: str) -> LLMAnalysis:
-        """Parse LLM response into LLMAnalysis."""
+        """Parse LLM response into LLMAnalysis with schema validation."""
         try:
             # Try to extract JSON from response
             start = response.find("{")
             end = response.rfind("}") + 1
             if start >= 0 and end > start:
                 data = json.loads(response[start:end])
+                # Validate schema fields
+                sentiment = str(data.get("sentiment", "neutral")).lower()
+                if sentiment not in ("bullish", "bearish", "neutral"):
+                    sentiment = "neutral"
+                confidence = float(data.get("confidence", 50))
+                confidence = max(0.0, min(100.0, confidence))
+                recommendation = str(data.get("recommendation", "hold")).lower()
+                if recommendation not in ("buy", "sell", "hold"):
+                    recommendation = "hold"
                 return LLMAnalysis(
                     symbol=symbol,
-                    summary=data.get("summary", response[:200]),
-                    sentiment=data.get("sentiment", "neutral"),
-                    confidence=float(data.get("confidence", 50)),
+                    summary=str(data.get("summary", response[:200])),
+                    sentiment=sentiment,
+                    confidence=confidence,
                     key_levels=data.get("key_levels", {}),
                     risk_factors=data.get("risk_factors", []),
-                    recommendation=data.get("recommendation", "hold"),
+                    recommendation=recommendation,
                 )
-        except (json.JSONDecodeError, ValueError):
-            pass
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            logger.warning(f"[LLMEngine] Response validation failed: {e}")
 
         return LLMAnalysis(
             symbol=symbol,
@@ -389,7 +425,7 @@ class LLMEngine:
         return {
             "provider": self.config.provider,
             "model": self.config.model,
-            "enabled": self.config.enabled and self.config.api_key != "",
+            "enabled": self.config.enabled and bool(self.config.api_key),
             "request_count": self._request_count,
             "error_count": self._error_count,
             "cache_size": len(self._cache),

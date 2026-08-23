@@ -164,8 +164,12 @@ class Backtester:
         risk_state: PositionRiskState | None = None
         peak_equity = balance
 
+        # Rolling window: cap at 2× warmup to avoid O(N²) growing slices
+        max_window = max(warmup * 2, 200)
+
         for i in range(warmup, len(candles)):
-            window = candles[:i + 1]
+            start = max(0, i - max_window + 1)
+            window = candles[start:i + 1]
             current_candle = candles[i]
             current_price = current_candle["close"]
 

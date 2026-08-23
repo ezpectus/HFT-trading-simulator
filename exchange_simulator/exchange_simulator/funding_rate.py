@@ -39,13 +39,14 @@ class FundingRateSimulator:
     def __init__(self, symbol: str = "BTCUSDT",
                  base_rate: float = 0.0001,
                  max_rate: float = 0.005,
-                 clamp_rate: float = 0.0075):
+                 clamp_rate: float = 0.0075,
+                 seed: int = 42):
         self.symbol = symbol
         self.base_rate = base_rate        # 0.01% per 8h
         self.max_rate = max_rate          # 0.5% cap
         self.clamp_rate = clamp_rate      # 0.75% hard clamp
         self.history: deque[FundingRateEvent] = deque(maxlen=10000)
-        self._rng = np.random.default_rng(seed=42)
+        self._rng = np.random.default_rng(seed=seed)
         self._last_funding_time: int = -1
 
     def _compute_funding_rate(self, perp_price: float, index_price: float) -> float:
