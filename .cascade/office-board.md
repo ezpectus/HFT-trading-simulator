@@ -272,3 +272,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | shm_market_data_writer: no memory barrier on seq write | struct.pack_into no barrier. ARM reordering = C++ reads stale data. Use ctypes barrier | CODE_AUDIT §8.713 |
 | health_checks: no timeout on component checks | No timeout on readiness probe. DB hang blocks event loop. Use asyncio.wait_for | CODE_AUDIT §8.735 |
 | tracing: OTLP exporter insecure=True | Disables TLS for trace export. Traces unencrypted in prod. Use insecure=False with certs | CODE_AUDIT §8.741 |
+| exchange_factory: API key/secret in plaintext | Plaintext strings in memory. Crash dump exposes credentials. Use env vars or secrets manager | CODE_AUDIT §8.756 |
+| db.py: new connection per operation | ~50 conn/min, each 5-10ms. Use connection pool or persistent connection | CODE_AUDIT §8.759 |
+| main.cpp: no SIGINT/SIGTERM handler visible | No signal handler in main. SIGTERM kills without graceful_shutdown. Verify init installs handler | CODE_AUDIT §8.763 |
+| main.cpp: no exception handling in main loop | No try/catch. Exception = crash without graceful shutdown. Open positions and SHM left dirty | CODE_AUDIT §8.764 |
+| config.h: API keys in plaintext std::string | std::string not zeroed on destruction. Core dump exposes keys. Use SecureString | CODE_AUDIT §8.766 |

@@ -1299,3 +1299,21 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R742 | run_backtest: no walk-forward for MeanReversion | `run_backtest.py:159` | Low | Only TF validated. Add WF for MR best params |
 | R743 | Code reduction: duplicate health check infrastructure | 3 files | Info | 3 health check impls. Merge into one framework. ~150 lines |
 | R744 | Code reduction: duplicate metrics infrastructure | 2 files | Info | 2 metrics impls. Merge with optional prometheus_client. ~100 lines |
+| R745 | ai-signal-bot/data_collection/exchange_factory.py | `exchange_factory.py` | ✅ Good | 3 modes, Protocol interface, fallback with health check, runtime switching |
+| R746 | exchange_factory: API key/secret in plaintext | `exchange_factory.py:172` | Medium | Plaintext strings in memory. Use env vars or secrets manager |
+| R747 | exchange_factory: SimulatorAdapter hardcoded prices | `exchange_factory.py:55` | Low | 50000 for all symbols. Use per-symbol base price dict |
+| R748 | ai-signal-bot/database/db.py | `db.py` | ✅ Good | WAL mode, 3 tables, 3 indexes, parameterized queries, Windows-safe close |
+| R749 | db.py: new connection per operation | `db.py:21` | Medium | ~50 conn/min. Use connection pool or persistent connection |
+| R750 | db.py: no connection timeout | `db.py:22` | Low | Default 5s timeout. Use timeout=1.0 |
+| R751 | db.py: no migration version tracking | `db.py:36` | Low | CREATE IF NOT EXISTS only. Add schema_version table |
+| R752 | hft-trade-bot/core/main.cpp | `main.cpp` | ✅ Good | Sequential init, error checking, comprehensive loop, latency tracking, graceful shutdown |
+| R753 | main.cpp: no SIGINT/SIGTERM handler visible | `main.cpp:38` | Medium | No signal handler in main. Verify init installs handler. Without it no graceful shutdown |
+| R754 | main.cpp: no exception handling in main loop | `main.cpp:38` | Medium | No try/catch. Exception = crash without graceful_shutdown. Wrap loop body |
+| R755 | hft-trade-bot/core/config.h | `config.h` | ✅ Good | 60+ fields, defaults, per-exchange config, IPC/SHM, FIX, DB, Redis, metrics, risk limits |
+| R756 | config.h: API keys in plaintext std::string | `config.h:125` | Medium | std::string not zeroed on destruction. Use SecureString |
+| R757 | config.h: metrics_host defaults to 0.0.0.0 | `config.h:177` | Low | Exposes metrics. Default to 127.0.0.1 |
+| R758 | hft-trade-bot/core/bot_loop.cpp | `bot_loop.cpp` | ✅ Good | SL/TP, arb, AI signals, V2/V1 loops, adaptive orders, latency tracking, status |
+| R759 | bot_loop.cpp: arb_lock not exception-safe | `bot_loop.cpp:31` | Low | Manual lock/unlock. Use lock_guard |
+| R760 | bot_loop.cpp: synthetic spread hardcoded | `bot_loop.cpp:79` | Low | 1bps for all symbols. Use per-symbol config |
+| R761 | bot_loop.cpp: has_arb_opportunity store after unlock | `bot_loop.cpp:34` | Low | Race condition. Move inside lock |
+| R762 | Code reduction: duplicate order book synthesis | `bot_loop.cpp:70+191` | Info | Same synthetic OB code in 2 places. Extract utility. ~10 lines |

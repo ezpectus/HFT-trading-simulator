@@ -10091,3 +10091,282 @@ Two separate metrics implementations:
 Both expose `/metrics` endpoint with Prometheus format. The lightweight one (no deps) could be a fallback for when prometheus_client is not installed, but they're not connected.
 
 **Reduction potential:** ~100 lines by merging into one with optional prometheus_client.
+
+### 8.755 ai-signal-bot/src/data_collection/exchange_factory.py: Exchange factory — ✅ Good
+
+**Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py` (242 lines)
+
+- **3 modes**: SIMULATOR, REAL, FALLBACK — comprehensive
+- **Protocol-based**: `ExchangeAdapter` Protocol with 10 methods — clean interface
+- **SimulatorAdapter**: Stub implementation with hardcoded prices — correct for testing
+- **RealExchangeAdapter**: Wraps RealMarketDataManager + RealAccountManager — correct
+- **ExchangeFactory**: Creates adapter based on mode — correct factory pattern
+- **FALLBACK mode**: Try real, health check, fall back to simulator — resilient
+- **switch_to_simulator**: Runtime switching on failure — correct
+- **close**: Closes both adapter and simulator — correct
+
+Good exchange factory with 3 modes, Protocol interface, fallback with health check, and runtime switching. ✅
+
+### 8.756 exchange_factory: API key/secret stored in plaintext — Medium
+
+**Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py:172-173`
+
+```python
+self.api_key = api_key
+self.api_secret = api_secret
+```
+
+API key and secret are stored as plaintext strings in the factory instance. They're passed to `RealExchangeAdapter` and `RealMarketDataManager` also as plaintext. If the process memory is dumped (e.g., crash dump, debug tool), the API credentials are exposed.
+
+**Фикс:** Use environment variables or a secrets manager (e.g., Vault). Clear from memory when not needed. Use `__slots__` to prevent attribute access.
+
+### 8.757 exchange_factory: SimulatorAdapter returns hardcoded prices — Low
+
+**Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py:55`
+
+```python
+async def get_ticker(self, symbol: str) -> dict:
+    return {"symbol": symbol, "price": 50000.0, "bid": 49999.5, "ask": 50000.5, "timestamp": time.time()}
+```
+
+SimulatorAdapter returns hardcoded BTC price (50000.0) for all symbols. If someone tests with ETH/SOL, they get BTC prices — misleading backtest results. No randomization or per-symbol pricing.
+
+**Фикс:** Use a per-symbol base price dict: `{"BTC/USDT": 65000, "ETH/USDT": 3500, ...}`. Add small random noise.
+
+### 8.758 ai-signal-bot/src/database/db.py: SQLite database — ✅ Good
+
+**Файл:** `ai-signal-bot/src/database/db.py` (180 lines)
+
+- **WAL mode**: `PRAGMA journal_mode=WAL` — concurrent read/write
+- **3 tables**: signals, trades, equity_curve — correct schema
+- **3 indexes**: idx_signals_symbol, idx_trades_symbol, idx_trades_status — correct
+- **Parameterized queries**: All queries use `?` placeholders — SQL injection safe
+- **contextlib.closing**: Ensures connection cleanup — correct
+- **Row factory**: `sqlite3.Row` for dict-like access — convenient
+- **Auto-mkdir**: `os.makedirs(dir_path, exist_ok=True)` — correct
+- **close()**: WAL checkpoint + journal mode DELETE — Windows-safe
+- **get_stats**: COUNT, SUM, COALESCE — correct aggregations
+
+Good SQLite database with WAL mode, 3 tables, 3 indexes, parameterized queries, contextlib.closing, and Windows-safe close. ✅
+
+### 8.759 db.py: new connection per operation — Medium
+
+**Файл:** `ai-signal-bot/src/database/db.py:21-25`
+
+```python
+def _conn(self) -> sqlite3.Connection:
+    conn = sqlite3.connect(self.path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+```
+
+Every `save_signal()`, `save_trade()`, `close_trade()`, `save_equity()`, `get_stats()`, `get_recent_signals()`, `get_recent_trades()` creates a new SQLite connection. Each connection involves:
+- File open syscall
+- WAL mode PRAGMA execution
+- Row factory setup
+- SQLite internal initialization
+
+With 50 symbols generating signals every 60s, that's ~50 connections per minute just for signals, plus trades and equity. Each connection takes ~5-10ms.
+
+**Фикс:** Use a connection pool or a single persistent connection. For SQLite WAL mode, a single write connection + multiple read connections is ideal. Use `threading.local()` for thread-safe connection reuse.
+
+### 8.760 db.py: no connection timeout — Low
+
+**Файл:** `ai-signal-bot/src/database/db.py:22`
+
+```python
+conn = sqlite3.connect(self.path)
+```
+
+No timeout parameter. Default SQLite timeout is 5s. If another process holds a write lock (e.g., manual DB inspection), the bot hangs for 5s on every write. In a 60s signal cycle, a 5s hang is significant.
+
+**Фикс:** `sqlite3.connect(self.path, timeout=1.0)` to fail fast.
+
+### 8.761 db.py: no migration version tracking — Low
+
+**Файл:** `ai-signal-bot/src/database/db.py:36-81`
+
+```python
+def _init_db(self) -> None:
+    with closing(self._conn()) as conn:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS signals (...);
+            CREATE TABLE IF NOT EXISTS trades (...);
+            CREATE TABLE IF NOT EXISTS equity_curve (...);
+            CREATE INDEX IF NOT EXISTS ...;
+        """)
+```
+
+Uses `CREATE TABLE IF NOT EXISTS` for initialization. No migration version tracking. If the schema needs to change (e.g., add a column), there's no way to apply migrations incrementally. The `migrations/` directory exists but isn't used by this code.
+
+**Фикс:** Add a `schema_version` table and apply migrations from `migrations/` directory in order.
+
+### 8.762 hft-trade-bot/src/core/main.cpp: Main entry point — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/main.cpp` (66 lines)
+
+- **Windows WinSock init**: `winsock2.h` + `ws2tcpip.h` — correct
+- **Sequential init**: config → core → signals → orders → kill switch → monitoring → IPC → callbacks → connect → symbols — correct order
+- **Error checking**: `init_config_and_logger` and `init_signal_engines` return false → exit 1 — correct
+- **Main loop**: SL/TP → arbitrage → AI signals → v2/v1 signal loop → status print → wait → poll SHM — comprehensive
+- **ScopedLatency**: Loop timer for latency tracking — correct
+- **Status print every 10s**: Throttled logging — correct
+- **Graceful shutdown**: `graceful_shutdown(ctx)` — correct
+- **`is_running()` check**: Atomic flag for loop control — correct
+
+Good main entry point with sequential init, error checking, comprehensive main loop, latency tracking, and graceful shutdown. ✅
+
+### 8.763 main.cpp: no SIGINT/SIGTERM handler visible — Medium
+
+**Файл:** `hft-trade-bot/src/core/main.cpp:38`
+
+```cpp
+while (is_running()) {
+```
+
+The main loop checks `is_running()`, but there's no signal handler visible in `main.cpp`. The handler must be set up in `init_core_components()` or `bot_setup.cpp`. If no handler is installed, SIGINT/SIGTERM kills the process without graceful shutdown — `graceful_shutdown(ctx)` is never called, open positions are not closed, SHM segments are not unlinked.
+
+**Фикс:** Verify that `init_core_components()` installs `signal(SIGINT, ...)` and `signal(SIGTERM, ...)` handlers that set `is_running() = false`. If not, add them.
+
+### 8.764 main.cpp: no exception handling in main loop — Medium
+
+**Файл:** `hft-trade-bot/src/core/main.cpp:38-61`
+
+```cpp
+while (is_running()) {
+    ScopedLatency loop_timer(ctx.total_loop_hist);
+    process_sl_tp(ctx, current_balance);
+    process_arbitrage(ctx, can_trade);
+    process_ai_signals(ctx, current_balance, can_trade);
+    // ...
+}
+```
+
+No try/catch around the main loop body. If any function throws (e.g., `ctx.executor->close_position()` throws due to network error, `ctx.pos_mgr.update_all_pnl()` throws due to invalid price), the exception propagates to `main()`, the process crashes without `graceful_shutdown()`. Open positions, SHM segments, and FIX sessions are left in inconsistent state.
+
+**Фикс:** Wrap the loop body in `try { ... } catch (const std::exception& e) { spdlog::error("Loop error: {}", e.what()); }`.
+
+### 8.765 hft-trade-bot/src/core/config.h: Config struct — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/config.h` (204 lines)
+
+- **60+ fields**: Connection, trading, risk, HFT strategies, v2/v3 engines, leverage, pressure model, smart router, adaptive orders, latency, FFT, logging, AI signal, shutdown, production, exchanges, IPC/SHM, FIX, DB, Redis, metrics, risk limits, weights — comprehensive
+- **Default values**: All fields have defaults — correct
+- **ExchangeConfig struct**: Per-exchange config with API keys, fees, rate limits — correct
+- **3 exchanges**: binance_cfg, okx_cfg, bybit_cfg — comprehensive
+- **IPC config**: 3 SHM channels (signals, fills, market data) — correct
+- **Production risk limits**: max_position_qty, max_total_exposure, daily_loss_limit, max_drawdown_pct, max_orders_per_second, min_margin_ratio, max_leverage — comprehensive
+- **Static load method**: `Config::load(path)` — correct
+
+Good config struct with 60+ fields, defaults, per-exchange config, IPC/SHM, FIX, DB, Redis, metrics, and production risk limits. ✅
+
+### 8.766 config.h: API keys in plaintext std::string — Medium
+
+**Файл:** `hft-trade-bot/src/core/config.h:125-126`
+
+```cpp
+std::string api_key;
+std::string api_secret;
+```
+
+API keys are stored as plaintext `std::string` in the `ExchangeConfig` struct. `std::string` allocations are not zeroed on destruction — the keys remain in heap memory after the struct is destroyed. A memory dump or core dump can extract them.
+
+**Фикс:** Use a `SecureString` class that zeros memory on destruction. Or use `std::vector<char>` with explicit `memset(0)` in destructor.
+
+### 8.767 config.h: metrics_host defaults to 0.0.0.0 — Low
+
+**Файл:** `hft-trade-bot/src/core/config.h:177`
+
+```cpp
+std::string metrics_host{"0.0.0.0"};
+```
+
+Metrics server defaults to binding on all interfaces. Exposes trading metrics (PnL, positions, latency) to anyone on the network.
+
+**Фикс:** Default to `127.0.0.1`.
+
+### 8.768 hft-trade-bot/src/core/bot_loop.cpp: Bot loop — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp` (279 lines)
+
+- **process_sl_tp**: Updates prices, PnL, checks SL/TP, closes positions, updates balance — correct
+- **process_arbitrage**: Lock-protected arb opportunity check, min qty check — correct
+- **process_ai_signals**: Queue-based signal processing, risk check, position check — correct
+- **prepare_order_book**: Synthetic order book from price when real book unavailable — correct fallback
+- **generate_signal**: V3 or V2 engine based on config — correct
+- **convert_fast_signal**: FastSignal → Signal conversion with reason string — correct
+- **select_order_kind**: Adaptive order selection (MARKET/IOC/FOK/GTD/POST) — correct
+- **execute_v2_order**: Limit price injection into order book for execution — correct
+- **run_v2_signal_loop**: Per-symbol signal generation with latency tracking — correct
+- **run_v1_fallback_loop**: V1 engine fallback with synthetic order book — correct
+- **print_status**: Balance, equity, positions, unrealized PnL, latency histograms, monitor — comprehensive
+
+Good bot loop with SL/TP, arbitrage, AI signals, V2/V1 signal loops, adaptive order selection, latency tracking, and comprehensive status. ✅
+
+### 8.769 bot_loop.cpp: arb_lock not exception-safe — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp:31-34`
+
+```cpp
+ctx.arb_lock.lock();
+arb = ctx.latest_arb;
+ctx.has_arb_opportunity = false;
+ctx.arb_lock.unlock();
+```
+
+Manual lock/unlock without RAII. If `ctx.latest_arb` copy throws (unlikely but possible with complex types), the mutex is never unlocked — deadlock.
+
+**Фикс:** Use `std::lock_guard<std::mutex> lock(ctx.arb_lock);`.
+
+### 8.770 bot_loop.cpp: prepare_order_book synthetic spread is hardcoded — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp:79-81`
+
+```cpp
+for (int i = 0; i < 10; ++i) {
+    ctx.ob_buf.bids.push_back({price * (1.0 - 0.0001 * (i + 1)), 1.0});
+    ctx.ob_buf.asks.push_back({price * (1.0 + 0.0001 * (i + 1)), 1.0});
+}
+```
+
+Synthetic order book uses hardcoded 1 bps spread and 1.0 qty for all levels. This doesn't reflect real market conditions — the spread varies by symbol (BTC: 0.5bps, altcoins: 5-20bps) and the qty varies by depth. Signals generated on synthetic books may not perform the same on real books.
+
+**Фикс:** Use per-symbol spread configuration. Use realistic qty based on historical depth data.
+
+### 8.771 bot_loop.cpp: has_arb_opportunity store after unlock — Low
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp:34`
+
+```cpp
+ctx.arb_lock.unlock();
+ctx.has_arb_opportunity = false;
+```
+
+`ctx.has_arb_opportunity` is set to `false` after the lock is released. If another thread sets it to `true` between `unlock()` and the assignment, the new arb opportunity is lost. The flag should be set inside the lock.
+
+**Фикс:** Move `ctx.has_arb_opportunity = false;` before `ctx.arb_lock.unlock();`.
+
+### 8.772 Code reduction: duplicate order book synthesis — Info
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.cpp:70-82` + `hft-trade-bot/src/core/bot_loop.cpp:191-199`
+
+The synthetic order book creation code is duplicated in `prepare_order_book()` and `run_v1_fallback_loop()`:
+
+```cpp
+// prepare_order_book (line 79-81)
+for (int i = 0; i < 10; ++i) {
+    ctx.ob_buf.bids.push_back({price * (1.0 - 0.0001 * (i + 1)), 1.0});
+    ctx.ob_buf.asks.push_back({price * (1.0 + 0.0001 * (i + 1)), 1.0});
+}
+
+// run_v1_fallback_loop (line 196-199)
+for (int i = 0; i < 10; ++i) {
+    ob.bids.push_back({price * (1.0 - 0.0001 * (i + 1)), 1.0});
+    ob.asks.push_back({price * (1.0 + 0.0001 * (i + 1)), 1.0});
+}
+```
+
+Same logic, different variable names. Should be extracted into a `make_synthetic_order_book(price, levels=10)` utility function.
+
+**Reduction potential:** ~10 lines.

@@ -4471,3 +4471,99 @@ class HealthChecker:
 ```
 
 **Разница:** The bad code awaits each component check sequentially with no timeout. If any check hangs (e.g., DB TCP connection is open but the DB is unresponsive due to disk full, lock contention, or OOM), the `await` blocks forever. The event loop is blocked — no other coroutines can run. Signal generation stops, order execution stops, WebSocket reads stop. K8s readiness probe times out after 1s and restarts the pod, but the event loop is still blocked on `get_health()` — the pod can't process SIGTERM for graceful shutdown. K8s sends SIGKILL after 30s, killing the process without cleanup. With 1000 users, a single DB hang causes all 1000 pods to restart simultaneously — thundering herd on the DB when it recovers. The good code wraps each check in `asyncio.wait_for(check, timeout=1.0)` and runs all 4 checks concurrently with `asyncio.gather(*tasks, return_exceptions=True)`. If any check exceeds 1s, `wait_for` cancels it and raises `TimeoutError`, which `gather` captures as an exception (not propagating it). The readiness probe returns in ≤1s regardless of component state. The event loop is never blocked — signal generation and order execution continue even during health checks. A timed-out component is reported as UNHEALTHY with "timeout" details, and K8s can restart the pod gracefully (SIGTERM is processed because the event loop is free). The cost is ~10 extra lines (wait_for, gather, exception handling). The benefit is zero event loop blocking, guaranteed ≤1s probe response, graceful K8s restarts, and no thundering herd — the pod shuts down cleanly and restarts without overwhelming the DB.
+
+---
+
+## Bad vs Good: No Exception Handling in C++ Main Loop (C++)
+
+### ❌ Bad Code
+```cpp
+int main(int argc, char* argv[]) {
+    BotContext ctx{Config{}};
+    if (!init_config_and_logger(ctx, argc, argv)) return 1;
+    init_core_components(ctx);
+    // ... setup ...
+    if (!connect_all(ctx)) return 1;
+
+    while (is_running()) {
+        ScopedLatency loop_timer(ctx.total_loop_hist);
+        const double current_balance = ctx.balance.load(std::memory_order_relaxed);
+        const bool can_trade = ctx.receiver->is_trading_active() && ctx.kill_switch->can_trade();
+
+        process_sl_tp(ctx, current_balance);      // Can throw if price is invalid
+        process_arbitrage(ctx, can_trade);         // Can throw if executor disconnects
+        process_ai_signals(ctx, current_balance, can_trade);  // Can throw on queue error
+        run_v2_signal_loop(ctx, current_balance, can_trade);  // Can throw on OOM
+
+        // If ANY of the above throws:
+        // 1. Exception propagates to main()
+        // 2. No catch block → std::terminate() → abort()
+        // 3. graceful_shutdown(ctx) is NEVER called
+        // 4. Open positions are NOT closed
+        // 5. SHM segments are NOT unlinked → /dev/shm/hft_signals leaked
+        // 6. FIX session is NOT logged out → seq nums not saved → session rejected on restart
+        // 7. WebSocket connections are NOT closed → exchange sees abrupt disconnect
+        // 8. DB connections are NOT closed → WAL file locked → other processes blocked
+        // 9. With 1000 users: 1000 bots crash simultaneously, 1000 FIX sessions need manual reset,
+        //    1000 SHM segments leaked, 1000 open positions unmanaged — hours of downtime
+
+        ctx.receiver->wait_for_data(ctx.config.signal_interval_ms);
+        poll_shm_market_data(ctx);
+    }
+
+    graceful_shutdown(ctx);  // Only reached if loop exits normally
+    return 0;
+}
+```
+
+**What's wrong:**
+- No `try`/`catch` around the main loop body — any exception crashes the process
+- `graceful_shutdown()` is only reached if `is_running()` returns false normally
+- An exception from `process_sl_tp()` (e.g., invalid price from exchange), `process_arbitrage()` (e.g., executor disconnect), or `run_v2_signal_loop()` (e.g., OOM in signal engine) bypasses all cleanup
+- Open positions are left unmanaged — no SL/TP, no close orders
+- SHM segments are leaked — `/dev/shm/hft_signals`, `/dev/shm/hft_fills`, `/dev/shm/hft_market` persist after crash
+- FIX session is not logged out — sequence numbers not saved, exchange rejects restart
+- DB connections not closed — WAL file stays locked, blocking other processes
+- With 1000 users, a single exchange glitch (invalid price) crashes all 1000 bots simultaneously — 1000 FIX sessions need manual reset, 1000 SHM cleanups, 1000 open positions unmanaged
+
+### ✅ Good Code
+```cpp
+int main(int argc, char* argv[]) {
+    BotContext ctx{Config{}};
+    if (!init_config_and_logger(ctx, argc, argv)) return 1;
+    init_core_components(ctx);
+    // ... setup ...
+    if (!connect_all(ctx)) return 1;
+
+    while (is_running()) {
+        try {
+            ScopedLatency loop_timer(ctx.total_loop_hist);
+            const double current_balance = ctx.balance.load(std::memory_order_relaxed);
+            const bool can_trade = ctx.receiver->is_trading_active() && ctx.kill_switch->can_trade();
+
+            process_sl_tp(ctx, current_balance);
+            process_arbitrage(ctx, can_trade);
+            process_ai_signals(ctx, current_balance, can_trade);
+            run_v2_signal_loop(ctx, current_balance, can_trade);
+
+            ctx.receiver->wait_for_data(ctx.config.signal_interval_ms);
+            poll_shm_market_data(ctx);
+
+        } catch (const std::bad_alloc& e) {
+            spdlog::critical("OOM in main loop: {}. Shutting down.", e.what());
+            break;  // Exit loop → graceful_shutdown handles cleanup
+        } catch (const std::exception& e) {
+            spdlog::error("Main loop error: {}. Continuing.", e.what());
+            // Don't break — try to recover on next iteration
+            // If error is persistent, kill_switch or is_running() will stop the loop
+        } catch (...) {
+            spdlog::error("Unknown exception in main loop. Continuing.");
+        }
+    }
+
+    graceful_shutdown(ctx);  // Always reached — even on OOM or exception
+    return 0;
+}
+```
+
+**Разница:** The bad code has no `try`/`catch` around the main loop body. Any exception from `process_sl_tp()`, `process_arbitrage()`, `process_ai_signals()`, or `run_v2_signal_loop()` propagates to `main()`, triggers `std::terminate()`, and crashes the process without calling `graceful_shutdown()`. Open positions are left unmanaged (no SL/TP monitoring), SHM segments are leaked (`/dev/shm/hft_signals` persists), FIX sessions are not logged out (sequence numbers not saved, exchange rejects restart), and DB connections stay open (WAL file locked, blocking other processes). With 1000 users, a single exchange glitch (invalid price, network timeout) crashes all 1000 bots simultaneously — 1000 FIX sessions need manual reset, 1000 SHM cleanups, 1000 open positions unmanaged — hours of downtime. The good code wraps the loop body in `try`/`catch`. `std::bad_alloc` (OOM) is caught separately and breaks the loop (can't recover from OOM). `std::exception` is caught and logged — the loop continues on the next iteration, trying to recover. If the error is persistent (e.g., exchange is down), the kill switch or `is_running()` flag will stop the loop. `graceful_shutdown()` is always reached — even on OOM or exception — ensuring open positions are closed, SHM segments are unlinked, FIX sessions are logged out, and DB connections are closed. The cost is ~8 extra lines (try/catch blocks). The benefit is zero ungraceful crashes — the bot either recovers from transient errors or shuts down cleanly, never leaving the system in an inconsistent state.
