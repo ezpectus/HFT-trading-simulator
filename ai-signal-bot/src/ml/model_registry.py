@@ -103,7 +103,7 @@ class ModelRegistry:
             for name, ab_data in data.get("ab_tests", {}).items():
                 self.ab_tests[name] = ABTest(**ab_data)
         except (OSError, ValueError, KeyError, TypeError) as e:
-            logger.warning(f"[ModelRegistry] Failed to load: {e}")
+            logger.warning("[ModelRegistry] Failed to load: %s", e)
 
     def _mark_dirty(self) -> None:
         """Mark registry as needing persistence. Call flush() to save."""
@@ -146,7 +146,7 @@ class ModelRegistry:
             self.models[name] = {}
 
         if version in self.models[name]:
-            logger.warning(f"[ModelRegistry] Overwriting {name}@{version}")
+            logger.warning("[ModelRegistry] Overwriting %s@%s", name, version)
 
         mv = ModelVersion(
             name=name,
@@ -157,7 +157,7 @@ class ModelRegistry:
         )
         self.models[name][version] = mv
         self._save()
-        logger.info(f"[ModelRegistry] Registered {name}@{version} (metrics: {metrics})")
+        logger.info("[ModelRegistry] Registered %s@%s (metrics: %s)", name, version, metrics)
         return mv
 
     def get(self, name: str, version: str) -> ModelVersion | None:
@@ -182,12 +182,12 @@ class ModelRegistry:
             current = self.get_production_model(name)
             if current and current.version != version:
                 current.status = ModelStatus.ARCHIVED
-                logger.info(f"[ModelRegistry] Archived {name}@{current.version}")
+                logger.info("[ModelRegistry] Archived %s@%s", name, current.version)
 
         mv.status = to_status
         mv.promoted_at = time.time()
         self._save()
-        logger.info(f"[ModelRegistry] Promoted {name}@{version} → {to_status.value}")
+        logger.info("[ModelRegistry] Promoted %s@%s → %s", name, version, to_status.value)
         return True
 
     def rollback(self, name: str) -> ModelVersion | None:
@@ -195,7 +195,7 @@ class ModelRegistry:
         versions = list(self.models.get(name, {}).values())
         prod_models = [v for v in versions if v.status == ModelStatus.ARCHIVED]
         if not prod_models:
-            logger.warning(f"[ModelRegistry] No model to rollback for {name}")
+            logger.warning("[ModelRegistry] No model to rollback for %s", name)
             return None
 
         # Get most recently archived
@@ -208,7 +208,7 @@ class ModelRegistry:
 
         previous.status = ModelStatus.PRODUCTION
         self._save()
-        logger.info(f"[ModelRegistry] Rolled back {name} to @{previous.version}")
+        logger.info("[ModelRegistry] Rolled back %s to @%s", name, previous.version)
         return previous
 
     def list_versions(self, name: str) -> list[ModelVersion]:

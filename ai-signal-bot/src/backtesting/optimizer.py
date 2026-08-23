@@ -115,13 +115,13 @@ class StrategyOptimizer:
         total = len(combinations)
         if total > max_combinations:
             logger.warning(
-                f"Grid has {total} combinations, truncating to {max_combinations}. "
-                "Consider narrowing the search space."
+                "Grid has %s combinations, truncating to %s. "
+                "Consider narrowing the search space.", total, max_combinations
             )
             combinations = combinations[:max_combinations]
             total = max_combinations
 
-        logger.info(f"Starting grid search: {total} combinations{' (parallel)' if parallel else ''}")
+        logger.info("Starting grid search: %s combinations%s", total, ' (parallel)' if parallel else '')
 
         if parallel and total > 10:
             results = self._parallel_grid_search(
@@ -133,7 +133,7 @@ class StrategyOptimizer:
             )
 
         results.sort(key=lambda x: x.fitness, reverse=True)
-        logger.info(f"Grid search complete: {len(results)} results")
+        logger.info("Grid search complete: %s results", len(results))
         return results
 
     def _sequential_grid_search(
@@ -149,9 +149,9 @@ class StrategyOptimizer:
                 fitness = self.fitness_fn(result)
                 results.append(OptimizationResult(params, result, fitness))
             except (RuntimeError, ValueError, KeyError, OSError) as e:
-                logger.debug(f"Failed for {params}: {e}")
+                logger.debug("Failed for %s: %s", params, e)
             if (i + 1) % 50 == 0:
-                logger.info(f"  Progress: {i + 1}/{len(combinations)}")
+                logger.info("  Progress: %s/%s", i + 1, len(combinations))
         return results
 
     def _parallel_grid_search(
@@ -180,11 +180,11 @@ class StrategyOptimizer:
                         fitness = self.fitness_fn(result)
                         results.append(OptimizationResult(params, result, fitness))
                     except (RuntimeError, ValueError, KeyError, OSError) as e:
-                        logger.debug(f"Failed for {params}: {e}")
+                        logger.debug("Failed for %s: %s", params, e)
                     if (i + 1) % 50 == 0:
-                        logger.info(f"  Progress: {i + 1}/{len(combinations)}")
+                        logger.info("  Progress: %s/%s", i + 1, len(combinations))
         except (OSError, RuntimeError) as e:
-            logger.warning(f"Parallel search failed ({e}), falling back to sequential")
+            logger.warning("Parallel search failed (%s), falling back to sequential", e)
             return self._sequential_grid_search(
                 strategy_class, keys, combinations, candles, symbol, warmup,
             )
@@ -214,11 +214,11 @@ class StrategyOptimizer:
                 fitness = self.fitness_fn(result)
                 results.append(OptimizationResult(params, result, fitness))
             except (RuntimeError, ValueError, KeyError, OSError) as e:
-                logger.debug(f"Walk-forward window failed: {e}")
+                logger.debug("Walk-forward window failed: %s", e)
 
             start += test_size
 
-        logger.info(f"Walk-forward: {len(results)} windows tested")
+        logger.info("Walk-forward: %s windows tested", len(results))
         return results
 
     def print_results(

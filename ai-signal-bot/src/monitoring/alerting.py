@@ -82,7 +82,7 @@ class AlertSystem:
     def add_rule(self, rule: AlertRule) -> None:
         """Add an alert rule."""
         self.rules[rule.name] = rule
-        logger.info(f"[AlertSystem] Added rule: {rule.name} ({rule.severity.value})")
+        logger.info("[AlertSystem] Added rule: %s (%s)", rule.name, rule.severity.value)
 
     def remove_rule(self, name: str) -> None:
         """Remove an alert rule."""
@@ -126,7 +126,7 @@ class AlertSystem:
                     await self._send_alert(alert)
 
             except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
-                logger.error(f"[AlertSystem] Error checking rule {name}: {e}")
+                logger.error("[AlertSystem] Error checking rule %s: %s", name, e)
                 self.last_fired[name] = now
 
         return alerts
@@ -155,7 +155,7 @@ class AlertSystem:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             for r in results:
                 if isinstance(r, Exception):
-                    logger.error(f"[AlertSystem] Failed to send alert: {r}")
+                    logger.error("[AlertSystem] Failed to send alert: %s", r)
 
     async def _send_discord(self, alert: Alert) -> None:
         """Send alert to Discord webhook."""
@@ -178,7 +178,7 @@ class AlertSystem:
         session = await self._get_session()
         async with session.post(self.discord_webhook, json=payload) as resp:
             if resp.status not in (200, 204):
-                logger.error(f"[AlertSystem] Discord webhook failed: {resp.status}")
+                logger.error("[AlertSystem] Discord webhook failed: %s", resp.status)
 
     async def _send_telegram(self, alert: Alert) -> None:
         """Send alert via Telegram bot."""
@@ -200,7 +200,7 @@ class AlertSystem:
         session = await self._get_session()
         async with session.post(url, json=payload) as resp:
             if resp.status != 200:
-                logger.error(f"[AlertSystem] Telegram send failed: {resp.status}")
+                logger.error("[AlertSystem] Telegram send failed: %s", resp.status)
 
     async def _send_webhook(self, alert: Alert) -> None:
         """Send alert to generic webhook."""
@@ -215,7 +215,7 @@ class AlertSystem:
         session = await self._get_session()
         async with session.post(self.webhook_url, json=payload) as resp:
             if resp.status not in (200, 204):
-                logger.error(f"[AlertSystem] Webhook failed: {resp.status}")
+                logger.error("[AlertSystem] Webhook failed: %s", resp.status)
 
     async def start_monitoring(self, check_interval: float = 30.0) -> None:
         """Start periodic rule checking."""
@@ -228,7 +228,7 @@ class AlertSystem:
             try:
                 await self.check_rules()
             except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
-                logger.error(f"[AlertSystem] Monitor loop error: {e}")
+                logger.error("[AlertSystem] Monitor loop error: %s", e)
             await asyncio.sleep(interval)
 
     async def stop_monitoring(self) -> None:

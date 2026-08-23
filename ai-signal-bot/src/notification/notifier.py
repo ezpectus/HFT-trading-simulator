@@ -115,9 +115,9 @@ class TelegramNotifier:
         try:
             async with self._session.post(url, json=payload) as resp:
                 if resp.status != 200:
-                    logger.warning(f"Telegram send failed: {resp.status}")
+                    logger.warning("Telegram send failed: %s", resp.status)
         except (OSError, RuntimeError) as e:
-            logger.error(f"Telegram send error: {e}")
+            logger.error("Telegram send error: %s", e)
 
     async def _poll_updates(self):
         offset = 0
@@ -148,7 +148,7 @@ class TelegramNotifier:
             except asyncio.CancelledError:
                 break
             except (OSError, RuntimeError, json.JSONDecodeError) as e:
-                logger.error(f"Telegram poll error: {e}")
+                logger.error("Telegram poll error: %s", e)
                 await asyncio.sleep(5)
 
     async def _handle_command(self, text: str):
@@ -243,9 +243,9 @@ class DiscordNotifier:
         try:
             async with self._session.post(url, json=payload, headers=headers) as resp:
                 if resp.status not in (200, 201):
-                    logger.warning(f"Discord send failed: {resp.status}")
+                    logger.warning("Discord send failed: %s", resp.status)
         except (OSError, RuntimeError) as e:
-            logger.error(f"Discord send error: {e}")
+            logger.error("Discord send error: %s", e)
 
     async def _poll_messages(self):
         last_message_id = None
@@ -277,7 +277,7 @@ class DiscordNotifier:
             except asyncio.CancelledError:
                 break
             except (OSError, RuntimeError, json.JSONDecodeError) as e:
-                logger.error(f"Discord poll error: {e}")
+                logger.error("Discord poll error: %s", e)
                 await asyncio.sleep(5)
 
     async def _handle_command(self, text: str):
@@ -355,7 +355,7 @@ class NotifierManager:
             )
         for i, r in enumerate(results):
             if isinstance(r, Exception):
-                logger.error(f"[NotifierManager] Notifier {i} failed: {r}")
+                logger.error("[NotifierManager] Notifier %s failed: %s", i, r)
 
     @property
     def active(self) -> bool:

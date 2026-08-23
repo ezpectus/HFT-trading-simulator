@@ -248,10 +248,10 @@ class PPOAgent:
                 "optimizer_state": self.optimizer.state_dict(),
                 "config": self.config,
             }, path)
-            logger.info(f"[PPO] Checkpoint saved to {path} (episode={episode})")
+            logger.info("[PPO] Checkpoint saved to %s (episode=%s)", path, episode)
             return True
         except (RuntimeError, OSError) as e:
-            logger.error(f"[PPO] Save failed: {e}")
+            logger.error("[PPO] Save failed: %s", e)
             return False
 
     def load(self, path: str) -> int:
@@ -261,10 +261,10 @@ class PPOAgent:
             self.ac.load_state_dict(ckpt["model_state"])
             self.optimizer.load_state_dict(ckpt["optimizer_state"])
             episode = ckpt.get("episode", 0)
-            logger.info(f"[PPO] Checkpoint loaded from {path} (episode={episode})")
+            logger.info("[PPO] Checkpoint loaded from %s (episode=%s)", path, episode)
             return episode
         except (RuntimeError, OSError, KeyError) as e:
-            logger.error(f"[PPO] Load failed: {e}")
+            logger.error("[PPO] Load failed: %s", e)
             return -1
 
 
@@ -358,10 +358,10 @@ class DQNAgent:
                 "step_count": self.step_count,
                 "config": self.config,
             }, path)
-            logger.info(f"[DQN] Checkpoint saved to {path} (episode={episode})")
+            logger.info("[DQN] Checkpoint saved to %s (episode=%s)", path, episode)
             return True
         except (RuntimeError, OSError) as e:
-            logger.error(f"[DQN] Save failed: {e}")
+            logger.error("[DQN] Save failed: %s", e)
             return False
 
     def load(self, path: str) -> int:
@@ -374,10 +374,10 @@ class DQNAgent:
             self.epsilon = ckpt.get("epsilon", self.config.dqn_epsilon_end)
             self.step_count = ckpt.get("step_count", 0)
             episode = ckpt.get("episode", 0)
-            logger.info(f"[DQN] Checkpoint loaded from {path} (episode={episode})")
+            logger.info("[DQN] Checkpoint loaded from %s (episode=%s)", path, episode)
             return episode
         except (RuntimeError, OSError, KeyError) as e:
-            logger.error(f"[DQN] Load failed: {e}")
+            logger.error("[DQN] Load failed: %s", e)
             return -1
 
 
@@ -400,8 +400,8 @@ def export_rl_onnx(agent, config: RLConfig, output_path: str, algo: str = "ppo")
                 input_names=["state"], output_names=["q_values"],
                 dynamic_axes={"state": {0: "batch"}, "q_values": {0: "batch"}},
             )
-        logger.info(f"[RL] Exported {algo} policy to {output_path}")
+        logger.info("[RL] Exported %s policy to %s", algo, output_path)
         return True
     except (RuntimeError, OSError, ValueError) as e:
-        logger.error(f"[RL] Export failed: {e}")
+        logger.error("[RL] Export failed: %s", e)
         return False
