@@ -50,6 +50,20 @@ All notable changes to this project are documented in this file.
 - `ai-signal-bot/Dockerfile`: Fixed healthcheck port 8766→9090, added `--metrics` to CMD so health server starts (Task 2)
 - `ai-signal-bot/Dockerfile.prod`: Fixed healthcheck port 8766→9090 (Task 2)
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка BA: final audit cleanup)
+
+### Changed
+- CODE_AUDIT §8.930 — SimulatorAdapter hardcoded price already fixed → [FIXED]
+- CODE_AUDIT §8.933 — real_market_data reconnection already present → [FIXED]
+- CODE_AUDIT §8.935 — OKX inst_id already handles non-USDT → [FIXED]
+- CODE_AUDIT §8.937 — real_account broad Exception already narrowed → [FIXED]
+- CODE_AUDIT §8.941 — OKX/Bybit error handling already present → [FIXED]
+- CODE_AUDIT §8.944 — alert_history slicing already fixed via deque → [FIXED]
+- CODE_AUDIT §§8.931, 8.934, 8.938, 8.940, 8.946, 8.949, 8.1120, 8.1365, 8.1366, 8.1368 → [N/A]
+- CODE_AUDIT §§8.827–8.1093 (108 C++ items) → [N/A] (C++ audit, not Python refactoring scope)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AZ + AZ2: ML + observability + communication + SHM)
 
 ### Fixed

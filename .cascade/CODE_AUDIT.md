@@ -11236,7 +11236,7 @@ std::atomic<double> max_{0.0};
 
 Excellent SHM ring buffer with SPSC lock-free, cache-line alignment, power-of-2, bulk operations, magic validation, and cross-platform support. ✅
 
-### 8.827 shm_ring_buffer: no memory barrier on memcpy — Low
+### 8.827 shm_ring_buffer: no memory barrier on memcpy — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h:211`
 
@@ -11249,7 +11249,7 @@ header_->head.store(head + 1, std::memory_order_release);
 
 **Фикс:** Add `std::atomic_thread_fence(std::memory_order_release)` before the head store on ARM. Or use `__sync_synchronize()` on GCC.
 
-### 8.828 shm_ring_buffer: Windows wname conversion truncates non-ASCII — Low
+### 8.828 shm_ring_buffer: Windows wname conversion truncates non-ASCII — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h:79`
 
@@ -11278,7 +11278,7 @@ This converts `std::string` to `std::wstring` by char-by-char copy, which only w
 
 Excellent SHM heartbeat with seq-guarded lock-free access, auto heartbeat thread, cross-platform support, and cache-line alignment. ✅
 
-### 8.830 shm_heartbeat: write() not truly atomic — Low
+### 8.830 shm_heartbeat: write() not truly atomic — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_heartbeat.h:121-138`
 
@@ -11300,7 +11300,7 @@ The write uses seq odd/even to signal write-in-progress. However, between `seq+1
 
 **Фикс:** Use a CAS loop instead of store. Or add a timeout in the reader: if seq is odd for >2× write_interval, assume writer is dead.
 
-### 8.831 shm_heartbeat: now_ns uses system_clock not steady_clock — Low
+### 8.831 shm_heartbeat: now_ns uses system_clock not steady_clock — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_heartbeat.h:161-163`
 
@@ -11377,7 +11377,7 @@ If `self.rate <= 0`, the function returns `False` immediately (line 196-197). Bu
 
 **Фикс:** Add `wait = min(wait, max_wait)` with configurable `max_wait` parameter.
 
-### 8.836 Code reduction: duplicate CircuitBreaker in C++ and Python — Info
+### 8.836 Code reduction: duplicate CircuitBreaker in C++ and Python — Info [N/A]
 
 **Файлы:** `hft-trade-bot/src/utils/low_latency.h:359-413` + `ai-signal-bot/src/utils/helpers.py:145-176`
 
@@ -11398,7 +11398,7 @@ Both C++ and Python have their own `CircuitBreaker` implementation. This is expe
 
 Excellent SHM protocol with 4 message types, explicit packing, static_assert size validation, and Python format documentation. ✅
 
-### 8.838 shm_protocol: SymbolId limited to 10 symbols — Medium
+### 8.838 shm_protocol: SymbolId limited to 10 symbols — Medium [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_protocol.h:83-94`
 
@@ -11421,7 +11421,7 @@ Only 10 symbols defined, but the config has 50 symbols. `symbol_id` is `uint8_t`
 
 **Фикс:** Generate the enum from config at build time. Or use a `constexpr std::array<std::string_view>` mapping instead of an enum.
 
-### 8.839 shm_protocol: float for price/qty — Low
+### 8.839 shm_protocol: float for price/qty — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_protocol.h:20-23`
 
@@ -11453,7 +11453,7 @@ struct SignalMsg {
 
 Good fill producer with clean ShmRingBuffer wrapper, convenience methods, bulk push, and RAII. ✅
 
-### 8.841 shm_fill_producer: init() swallows exception message — Low
+### 8.841 shm_fill_producer: init() swallows exception message — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_fill_producer.h:22-28`
 
@@ -11487,7 +11487,7 @@ The exception message (`e.what()`) is caught but not logged. The caller gets `fa
 
 Good signal consumer with dedicated thread, batch pop, 50μs sleep, atomic flag, join on stop, and polling mode. ✅
 
-### 8.843 shm_signal_consumer: start() can throw, not caught — Low
+### 8.843 shm_signal_consumer: start() can throw, not caught — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_signal_consumer.h:28-37`
 
@@ -11505,7 +11505,7 @@ void start(SignalCallback callback) {
 
 **Фикс:** Wrap in try/catch, return bool. Or document that `start()` throws.
 
-### 8.844 shm_signal_consumer: 50μs sleep is a busy-poll — Low
+### 8.844 shm_signal_consumer: 50μs sleep is a busy-poll — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_signal_consumer.h:66`
 
@@ -11534,13 +11534,13 @@ std::this_thread::sleep_for(std::chrono::microseconds(50));
 
 Excellent SHM market data with latest-snapshot model, seq-guarded lock-free, per-symbol slots, cache-line alignment, and cross-platform support. ✅
 
-### 8.846 shm_market_data: same write() not truly atomic issue as shm_heartbeat — Low
+### 8.846 shm_market_data: same write() not truly atomic issue as shm_heartbeat — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_market_data.h:114-127`
 
 Same odd/even seq pattern as `shm_heartbeat.h`. If writer is preempted between `seq+1` and `seq+2`, reader sees odd and returns false — stale data. Same fix applies: add timeout in reader or use CAS.
 
-### 8.847 shm_market_data: Windows wname truncates non-ASCII — Low
+### 8.847 shm_market_data: Windows wname truncates non-ASCII — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_market_data.h:50`
 
@@ -11706,7 +11706,7 @@ Both classes have the same structure: `__init__` creates directory + writes head
 
 Excellent aligned types with cache-line alignment, fixed-size buffers, static_assert validation, and no heap allocations. ✅
 
-### 8.857 aligned_types: set_symbol/set_reason/set_exchange repeated 5 times — Info
+### 8.857 aligned_types: set_symbol/set_reason/set_exchange repeated 5 times — Info [N/A]
 
 **Файл:** `hft-trade-bot/src/data/aligned_types.h:58-74,146-171,246-262`
 
@@ -11714,7 +11714,7 @@ The same `set_symbol`/`set_reason`/`set_exchange` pattern (while loop with bound
 
 **Reduction potential:** ~25 lines. Use a template function: `template<size_t N> void copy_str(char (&dst)[N], const char* src)`.
 
-### 8.858 aligned_types: FastSignal confidence is uint8_t 0-100 — Low
+### 8.858 aligned_types: FastSignal confidence is uint8_t 0-100 — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/aligned_types.h:34`
 
@@ -11740,7 +11740,7 @@ Confidence is stored as `uint8_t` (0-100), but `SignalMsg` in `shm_protocol.h` u
 
 Good types with Candle, OrderBook, Order, Position, and enums. ✅
 
-### 8.860 types: string_to_side defaults to SELL — Low
+### 8.860 types: string_to_side defaults to SELL — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/types.h:21-23`
 
@@ -11754,7 +11754,7 @@ Any non-"BUY" string (typos, empty string, "buy" lowercase) defaults to SELL. Th
 
 **Фикс:** Throw `std::invalid_argument` for unknown strings. Or add case-insensitive comparison.
 
-### 8.861 types: Order timestamp uses milliseconds, FastOrder uses nanoseconds — Low
+### 8.861 types: Order timestamp uses milliseconds, FastOrder uses nanoseconds — Low [N/A]
 
 **Файлы:** `hft-trade-bot/src/data/types.h:66` + `hft-trade-bot/src/data/aligned_types.h:137`
 
@@ -11782,7 +11782,7 @@ int64_t timestamp{0}; // nanoseconds (per FastSignal::now_ns)
 
 Good symbol map with FNV-1a hash, runtime and compile-time variants, and bidirectional mapping. ✅
 
-### 8.863 symbol_map: PerfectSymbolMap hash collision fallback is O(N) — Low
+### 8.863 symbol_map: PerfectSymbolMap hash collision fallback is O(N) — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/symbol_map.h:96-107`
 
@@ -11806,7 +11806,7 @@ If the hash collides (symbol hashes to a bucket that contains a different symbol
 
 **Фикс:** Use a real perfect hash function (e.g., gperf or CMPH) that guarantees no collisions. Or use a `constexpr` sorted array with binary search O(log N).
 
-### 8.864 symbol_map: get_id allocates std::string — Low
+### 8.864 symbol_map: get_id allocates std::string — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/data/symbol_map.h:39-41`
 
@@ -11882,7 +11882,7 @@ Same issue as tracing.py (R866). If two threads call `setup_logging()` simultane
 
 **Фикс:** Use `threading.Lock` or accept that setup is called once at startup.
 
-### 8.869 Code reduction: set_symbol/set_reason/set_exchange duplicated 5× — Info
+### 8.869 Code reduction: set_symbol/set_reason/set_exchange duplicated 5× — Info [N/A]
 
 **Файл:** `hft-trade-bot/src/data/aligned_types.h:58-74,146-171,246-262`
 
@@ -11923,7 +11923,7 @@ Same issue as `mean_reversion_v2.h` (R802). All member state (EMA filters, ATR, 
 
 **Фикс:** Add a `PerSymbolState` struct (like recommended for mean_reversion_v2) or use one instance per symbol.
 
-### 8.872 momentum_breakout_v2: vol_buffer_ 256 doubles = 2KB per instance — Low
+### 8.872 momentum_breakout_v2: vol_buffer_ 256 doubles = 2KB per instance — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/momentum_breakout_v2.h:197`
 
@@ -11953,7 +11953,7 @@ std::array<double, 256> vol_buffer_{};
 
 Excellent statistical arbitrage with Engle-Granger cointegration, Kalman hedge ratio, z-score signals, and correlation matrix. ✅
 
-### 8.874 statistical_arb_v2: CorrelationMatrix::find_pairs allocates vector — Low
+### 8.874 statistical_arb_v2: CorrelationMatrix::find_pairs allocates vector — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/statistical_arb_v2.h:235-244`
 
@@ -11969,7 +11969,7 @@ std::vector<Pair> find_pairs(double threshold = 0.7) const noexcept {
 
 **Фикс:** Pre-allocate a fixed-size array (max 190 pairs for 20 symbols) or remove `noexcept`.
 
-### 8.875 statistical_arb_v2: no per-pair state for CorrelationMatrix — Low
+### 8.875 statistical_arb_v2: no per-pair state for CorrelationMatrix — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/statistical_arb_v2.h:210-249`
 
@@ -12019,7 +12019,7 @@ Same issue as `helpers.py` CircuitBreaker (R824). `_consecutive_failures += 1` i
 
 **Фикс:** Use `asyncio.Lock` or accept eventual consistency.
 
-### 8.879 Code reduction: 3 CircuitBreaker implementations — Info
+### 8.879 Code reduction: 3 CircuitBreaker implementations — Info [N/A]
 
 **Файлы:** `hft-trade-bot/src/utils/low_latency.h:359-413` + `ai-signal-bot/src/utils/helpers.py:145-176` + `ai-signal-bot/src/communication/circuit_breaker.py:34-137`
 
@@ -12155,7 +12155,7 @@ Same issue as V2 (R796/R808). `emplace` allocates a new `std::string` key + `HMM
 
 **Фикс:** Pre-populate `hmm_states_` at init for all known symbols. Or remove `noexcept` from `analyze()`.
 
-### 8.888 signal_engine_v3: forward_recursion uses raw array — Low
+### 8.888 signal_engine_v3: forward_recursion uses raw array — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:175`
 
@@ -12167,7 +12167,7 @@ double trans_sum[N_STATES][N_STATES];
 
 **Фикс:** Use `std::array<std::array<double, N_STATES>, N_STATES>` for consistency.
 
-### 8.889 signal_engine_v3: adapt_parameters only updates emission means — Low
+### 8.889 signal_engine_v3: adapt_parameters only updates emission means — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:227-245`
 
@@ -12191,7 +12191,7 @@ The `adapt_parameters()` method only updates emission means (`emit_mean_`). It d
 
 Excellent Avellaneda-Stoikov market making with inventory skew, adverse selection protection, spread clamping, and no heap allocations. ✅
 
-### 8.891 market_making_v2: t_remaining always = T — Low
+### 8.891 market_making_v2: t_remaining always = T — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/market_making_v2.h:66`
 
@@ -12224,7 +12224,7 @@ Same issue as momentum_breakout_v2 (R861). `current_sigma_`, `vol_ewma_`, `last_
 
 Good SIMD indicators with AVX2 acceleration and scalar fallback. ✅
 
-### 8.894 simd_indicators: ema_array and rsi use std::vector — Low
+### 8.894 simd_indicators: ema_array and rsi use std::vector — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/simd_indicators.h:45-54, 61`
 
@@ -12237,7 +12237,7 @@ static std::vector<double> ema_array(const std::vector<double>& prices, double a
 
 **Фикс:** Use `ema_avx2` with pre-allocated buffers in hot path. Keep `ema_array`/`rsi` for batch/offline use only.
 
-### 8.895 simd_indicators: has_avx2 is compile-time only — Low
+### 8.895 simd_indicators: has_avx2 is compile-time only — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/simd_indicators.h:200-206`
 
@@ -12415,7 +12415,7 @@ If `health_check()` raises an unexpected exception (not OSError/TimeoutError/Web
 
 **Фикс:** Wrap `health_check()` in try/except, log errors, continue loop.
 
-### 8.908 Code reduction: simd_indicators horizontal sum duplicated 2× — Info
+### 8.908 Code reduction: simd_indicators horizontal sum duplicated 2× — Info [N/A]
 
 **Файлы:** `simd_indicators.h:117-123` (SMA) + `simd_indicators.h:164-178` (VWAP)
 
@@ -12439,7 +12439,7 @@ The AVX2 horizontal sum pattern (`extractf128` → `castpd256_pd128` → `add_pd
 
 Excellent inline indicators with O(1) updates, Wilder's smoothing, branchless arithmetic, precomputed inverses, and no heap allocations. ✅
 
-### 8.910 inline_indicators: InlineVWAP has no reset on session boundary — Low
+### 8.910 inline_indicators: InlineVWAP has no reset on session boundary — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/inline_indicators.h:234-238`
 
@@ -12473,7 +12473,7 @@ void reset() noexcept {
 
 Excellent pressure model with multi-level OBI, trade flow, toxicity, microprice, queue position, and price impact — all in a single `noexcept` pass with no heap allocations. ✅
 
-### 8.912 pressure_model: toxicity uses fixed 64-element stack array — Low
+### 8.912 pressure_model: toxicity uses fixed 64-element stack array — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/pressure_model.h:186-187`
 
@@ -12486,7 +12486,7 @@ The toxicity computation uses a fixed 64-element stack array for `nth_element`. 
 
 **Фикс:** Document the 64-trade limit. Or use a running median approximation for large n.
 
-### 8.913 pressure_model: compute_obi static method unused — Info
+### 8.913 pressure_model: compute_obi static method unused — Info [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/pressure_model.h:134-143`
 
@@ -12520,7 +12520,7 @@ Same issue as momentum_breakout_v2 (R861) and market_making_v2 (R882). `kalman_`
 
 **Фикс:** One instance per symbol, or per-symbol state struct.
 
-### 8.916 mean_reversion_v2: estimate_ou_params is O(n) per tick — Low
+### 8.916 mean_reversion_v2: estimate_ou_params is O(n) per tick — Low [N/A]
 
 **Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h:197-283`
 
@@ -12674,7 +12674,7 @@ If `direction` is not "LONG" or "SHORT" (e.g., "NEUTRAL", "HOLD", typo, or missi
 
 **Фикс:** Log a warning for unknown directions. Or raise ValueError for invalid directions.
 
-### 8.927 Code reduction: signal_publisher broadcast pattern 3× — Info
+### 8.927 Code reduction: signal_publisher broadcast pattern 3× — Info [N/A]
 
 **Файлы:** `signal_publisher.py:188-193, 229-234, 263-268`
 
@@ -12682,7 +12682,7 @@ The broadcast pattern (define `_send` closure, `asyncio.gather`, track disconnec
 
 **Reduction potential:** ~20 lines. Extract to `_broadcast(msg)` method.
 
-### 8.928 Code reduction: pressure_model compute_obi dead code — Info
+### 8.928 Code reduction: pressure_model compute_obi dead code — Info [N/A]
 
 **Файл:** `pressure_model.h:134-143`
 
@@ -12704,7 +12704,7 @@ The broadcast pattern (define `_send` closure, `asyncio.gather`, track disconnec
 
 Good exchange factory with Protocol-based adapter, 3 modes, fallback with health check, and clean lifecycle. ✅
 
-### 8.930 exchange_factory: SimulatorAdapter returns hardcoded price 50000 — Low
+### 8.930 exchange_factory: SimulatorAdapter returns hardcoded price 50000 — Low [FIXED]
 
 **Файл:** `exchange_factory.py:54-55`
 
@@ -12717,7 +12717,7 @@ async def get_ticker(self, symbol: str) -> dict:
 
 **Фикс:** Return per-symbol simulated prices, or at least vary by symbol hash.
 
-### 8.931 exchange_factory: RealExchangeAdapter stores api_secret in plaintext — Low
+### 8.931 exchange_factory: RealExchangeAdapter stores api_secret in plaintext — Low [N/A]
 
 **Файл:** `exchange_factory.py:91`
 
@@ -12744,7 +12744,7 @@ self._api_secret = api_secret
 
 Good real market data feed with multi-exchange support, normalized data, reconnection with backoff, and pull-based manager. ✅
 
-### 8.933 real_market_data: no reconnection on websockets.ConnectionClosed — Low
+### 8.933 real_market_data: no reconnection on websockets.ConnectionClosed — Low [FIXED]
 
 **Файл:** `real_market_data.py:140, 217, 295`
 
@@ -12756,7 +12756,7 @@ The exception handling catches `ConnectionError`, `OSError`, and `json.JSONDecod
 
 **Фикс:** Add `websockets.ConnectionClosed` to the except clause, or catch `Exception` as fallback.
 
-### 8.934 real_market_data: no @aggTrade handler for Binance — Low
+### 8.934 real_market_data: no @aggTrade handler for Binance — Low [N/A]
 
 **Файл:** `real_market_data.py:147-182`
 
@@ -12764,7 +12764,7 @@ The Binance feed subscribes to `@aggTrade` streams (line 118), but `_handle_bina
 
 **Фикс:** Add `@aggTrade` handler to update `last` price and volume.
 
-### 8.935 real_market_data: _to_okx_inst_id doesn't handle non-USDT pairs — Low
+### 8.935 real_market_data: _to_okx_inst_id doesn't handle non-USDT pairs — Low [FIXED]
 
 **Файл:** `real_market_data.py:354-364`
 
@@ -12795,7 +12795,7 @@ If the symbol doesn't end with "USDT" (e.g., BTC/USDC, ETH/BTC), the function re
 
 Good real account manager with ccxt, leverage cache, user data stream, fill callbacks, and specific error handling. ✅
 
-### 8.937 real_account: get_balance catches broad Exception — Low
+### 8.937 real_account: get_balance catches broad Exception — Low [FIXED]
 
 **Файл:** `real_account.py:163`
 
@@ -12809,7 +12809,7 @@ except Exception as e:
 
 **Фикс:** Catch `(OSError, RuntimeError, KeyError, ValueError)` like other methods.
 
-### 8.938 real_account: _listen_user_data no max retries — Low
+### 8.938 real_account: _listen_user_data no max retries — Low [N/A]
 
 **Файл:** `real_account.py:348-369`
 
@@ -12841,7 +12841,7 @@ The `_listen_user_data` loop retries indefinitely with a fixed 5s sleep. If the 
 
 Good real exchange REST client with HMAC signing, 3 exchanges, shared session, and testnet support. ✅
 
-### 8.940 real_exchange_client: api_secret stored in plaintext attribute — Low
+### 8.940 real_exchange_client: api_secret stored in plaintext attribute — Low [N/A]
 
 **Файл:** `real_exchange_client.py:69`
 
@@ -12853,7 +12853,7 @@ Same issue as `exchange_factory.py:91`. `api_secret` stored as plain string attr
 
 **Фикс:** Use `SecretStr` or mask in `__repr__`.
 
-### 8.941 real_exchange_client: no error handling on non-200 responses for OKX/Bybit — Low
+### 8.941 real_exchange_client: no error handling on non-200 responses for OKX/Bybit — Low [FIXED]
 
 **Файл:** `real_exchange_client.py:196+`
 
@@ -12889,7 +12889,7 @@ Each alert send creates a new `aiohttp.ClientSession` — 3 sessions per alert (
 
 **Фикс:** Create a shared `aiohttp.ClientSession` in `__init__` or `start_monitoring()`, reuse for all alert sends.
 
-### 8.944 alerting: alert_history list slice creates copy — Low
+### 8.944 alerting: alert_history list slice creates copy — Low [FIXED]
 
 **Файл:** `alerting.py:113-114`
 
@@ -12916,7 +12916,7 @@ When history exceeds 1000, the entire list is sliced and copied — O(n) operati
 
 Good health server with 6 endpoints, K8s probes, registered checks, async support, and proper lifecycle. ✅
 
-### 8.946 health_server: _check_all runs checks sequentially — Low
+### 8.946 health_server: _check_all runs checks sequentially — Low [N/A]
 
 **Файл:** `health_server.py:74-95`
 
@@ -12957,7 +12957,7 @@ Excellent Prometheus metrics exporter with comprehensive counters, gauges, histo
 
 Good performance tracker with comprehensive metrics, CSV logging, and derived properties. ✅
 
-### 8.949 tracker: PerformanceTracker not thread-safe — Low
+### 8.949 tracker: PerformanceTracker not thread-safe — Low [N/A]
 
 **Файл:** `monitoring/tracker.py:17-52`
 
@@ -12988,7 +12988,7 @@ def record_signal(self, validated: bool) -> None:
 
 Good smart order router with 5 strategies, toxic backoff, depth-aware routing, stack-allocated arrays, and DIP compliance. ✅
 
-### 8.951 smart_order_router_v2: exchanges_ vector heap-allocated — Low
+### 8.951 smart_order_router_v2: exchanges_ vector heap-allocated — Low [N/A]
 
 **Файл:** `smart_order_router_v2.h:177`
 
@@ -13000,7 +13000,7 @@ The `exchanges_` vector is heap-allocated. The `route()` method iterates it in t
 
 **Фикс:** Reserve capacity at init: `exchanges_.reserve(16)`.
 
-### 8.952 smart_order_router_v2: no per-symbol latency tracking — Low
+### 8.952 smart_order_router_v2: no per-symbol latency tracking — Low [N/A]
 
 **Файл:** `smart_order_router_v2.h:97`
 
@@ -13026,7 +13026,7 @@ Latency is per-exchange, not per-symbol. If Binance has 100us latency for BTC bu
 
 Excellent adaptive order selector with 6 decision paths, exchange-specific mappings, aggressive/passive pricing, GTD expiry, and noexcept. ✅
 
-### 8.954 adaptive_order_selector_v2: to_exchange_type defaults to Binance — Low
+### 8.954 adaptive_order_selector_v2: to_exchange_type defaults to Binance — Low [N/A]
 
 **Файл:** `adaptive_order_selector_v2.h:208`
 
@@ -13054,7 +13054,7 @@ If an unknown exchange is passed (e.g., "kraken"), the selector defaults to Bina
 
 Excellent SHM heartbeat with seq-guarded lock-free access, cross-platform SHM, auto heartbeat thread, RAII, and noexcept. ✅
 
-### 8.956 shm_heartbeat: write() has data race on timestamp_ns — Low
+### 8.956 shm_heartbeat: write() has data race on timestamp_ns — Low [N/A]
 
 **Файл:** `shm_heartbeat.h:121-138`
 
@@ -13078,7 +13078,7 @@ The seq guard works correctly: the reader will see `seq1 & 1 == 1` (odd = writin
 
 **Фикс:** Document x86/x64 assumption. The seq guard makes this safe regardless of atomicity — the reader retries if seq changes.
 
-### 8.957 shm_heartbeat: auto_loop no error handling — Low
+### 8.957 shm_heartbeat: auto_loop no error handling — Low [N/A]
 
 **Файл:** `shm_heartbeat.h:154-158`
 
@@ -13095,7 +13095,7 @@ The `auto_loop` calls `write()` in a loop without error handling. If `write()` t
 
 **Фикс:** Wrap `write()` in try/catch, log errors. Although `write()` is `noexcept`, `std::terminate` would be called if it throws — which would crash the entire process.
 
-### 8.958 Code reduction: alerting _send methods 3× pattern — Info
+### 8.958 Code reduction: alerting _send methods 3× pattern — Info [N/A]
 
 **Файлы:** `alerting.py:150-171, 173-193, 195-208`
 
@@ -13103,7 +13103,7 @@ The pattern `async with aiohttp.ClientSession() as session: async with session.p
 
 **Reduction potential:** ~15 lines. Extract to `_post_json(url, payload)` method with shared session.
 
-### 8.959 Code reduction: health_server _check_* methods 3× pattern — Info
+### 8.959 Code reduction: health_server _check_* methods 3× pattern — Info [N/A]
 
 **Файлы:** `health_server.py:38-48, 50-60, 62-72`
 
@@ -13124,7 +13124,7 @@ The pattern `if "name" in self._checks: try: result = self._checks["name"]() ...
 
 Good SHM fill consumer with non-blocking pop, async polling, context manager, and configurable batch size. ✅
 
-### 8.961 shm_fill_consumer: run_polling callback not async — Low
+### 8.961 shm_fill_consumer: run_polling callback not async — Low [N/A]
 
 **Файл:** `shm_fill_consumer.py:71`
 
@@ -13138,7 +13138,7 @@ The `callback` is called synchronously. If the callback is async (returns a coro
 
 **Фикс:** Check `asyncio.iscoroutinefunction(callback)` and `await callback(fills)` if true.
 
-### 8.962 shm_fill_consumer: init catches broad Exception — Low
+### 8.962 shm_fill_consumer: init catches broad Exception — Low [N/A]
 
 **Файл:** `shm_fill_consumer.py:39`
 
@@ -13167,7 +13167,7 @@ except Exception as e:
 
 Good SHM market data writer with seq-guarded latest-wins model, cross-platform support, and context manager. ✅
 
-### 8.964 shm_market_data_writer: no memory barrier after seq write — Low
+### 8.964 shm_market_data_writer: no memory barrier after seq write — Low [N/A]
 
 **Файл:** `shm_market_data_writer.py:84, 94`
 
@@ -13181,7 +13181,7 @@ The seq-guarded write pattern relies on memory ordering. On x86/x64, stores are 
 
 **Фикс:** Document x86/x64 assumption, or use `ctypes.memmove` with proper barriers.
 
-### 8.965 shm_market_data_writer: max_symbols default 10 but config has 50 — Low
+### 8.965 shm_market_data_writer: max_symbols default 10 but config has 50 — Low [N/A]
 
 **Файл:** `shm_market_data_writer.py:33`
 
@@ -13212,7 +13212,7 @@ Default `max_symbols=10` but the config has 50 trading symbols. If the writer is
 
 Excellent order book manager with fixed-capacity L2, incremental updates, snapshot merge, spread regime, OBI, crossed/locked detection, and noexcept. ✅
 
-### 8.967 order_book_manager: update_bid/ask is O(N) per update — Low
+### 8.967 order_book_manager: update_bid/ask is O(N) per update — Low [N/A]
 
 **Файл:** `order_book_manager.h:75-101`
 
@@ -13232,7 +13232,7 @@ Both finding the insertion point (linear scan) and shifting elements (O(N) memmo
 
 **Фикс:** Use binary search for insertion point (O(log N)), keep shift O(N) but reduce constant. Or use a hybrid data structure.
 
-### 8.968 order_book_manager: no validation that bids < asks — Low
+### 8.968 order_book_manager: no validation that bids < asks — Low [N/A]
 
 **Файл:** `order_book_manager.h:258-260`
 
@@ -13260,7 +13260,7 @@ bool is_crossed() const noexcept {
 
 Good candle aggregator with 3 modes, OHLCV from ticks, flush on shutdown, and noexcept. ✅
 
-### 8.970 candle_aggregator: callback_ is std::function (heap-allocated) — Low
+### 8.970 candle_aggregator: callback_ is std::function (heap-allocated) — Low [N/A]
 
 **Файл:** `candle_aggregator.h:30, 135`
 
@@ -13274,7 +13274,7 @@ CandleCallback callback_;
 
 **Фикс:** Use a function pointer + context pointer, or template the callback type.
 
-### 8.971 candle_aggregator: no handling of out-of-order ticks — Low
+### 8.971 candle_aggregator: no handling of out-of-order ticks — Low [N/A]
 
 **Файл:** `candle_aggregator.h:52, 81`
 
@@ -13305,7 +13305,7 @@ If a tick arrives with a timestamp earlier than `bar_start_ns_` (e.g., due to ne
 
 Excellent trade handler with aggressor detection, O(1) rolling VWAP/stats, large trade detection, ring buffer, and noexcept. ✅
 
-### 8.973 trade_handler: rolling_vol_sum_ can go negative — Low
+### 8.973 trade_handler: rolling_vol_sum_ can go negative — Low [N/A]
 
 **Файл:** `trade_handler.h:60-63`
 
@@ -13339,7 +13339,7 @@ Floating-point subtraction can accumulate errors. After 1M trades with window 10
 
 Good position manager v2 with weighted average entry, spinlock, atomic counter, bitset lookup, SL/TP, margin check, and erase on close. ✅
 
-### 8.975 position_manager_v2: on_fill creates std::string from string_view — Low
+### 8.975 position_manager_v2: on_fill creates std::string from string_view — Low [N/A]
 
 **Файл:** `position_manager_v2.h:90`
 
@@ -13351,7 +13351,7 @@ Despite building a `string_view` from a stack buffer to "avoid heap allocation",
 
 **Фикс:** Use `std::unordered_map<std::string, PositionV2, StringHash, std::equal_to<>>` with transparent lookup.
 
-### 8.976 position_manager_v2: get_position without exchange is O(N) — Low
+### 8.976 position_manager_v2: get_position without exchange is O(N) — Low [N/A]
 
 **Файл:** `position_manager_v2.h:183`
 
@@ -13365,7 +13365,7 @@ When `exchange` is empty, `get_position` iterates all positions to find by symbo
 
 **Фикс:** Maintain a `symbol_to_key_` map for O(1) lookup without exchange.
 
-### 8.977 position_manager_v2: check_sl_tp uses hardcoded 1% ATR — Low
+### 8.977 position_manager_v2: check_sl_tp uses hardcoded 1% ATR — Low [N/A]
 
 **Файл:** `position_manager_v2.h:289-290`
 
@@ -13378,7 +13378,7 @@ SL/TP distances are hardcoded as 1% of entry price × multiplier. This doesn't a
 
 **Фикс:** Pass ATR or volatility to `check_sl_tp` and use `atr * multiplier` instead of `entry_price * 0.01 * multiplier`.
 
-### 8.978 position_manager_v2: total_pnl acquires lock twice — Low
+### 8.978 position_manager_v2: total_pnl acquires lock twice — Low [N/A]
 
 **Файл:** `position_manager_v2.h:235`
 
@@ -13406,7 +13406,7 @@ double total_pnl() const noexcept { return total_unrealized_pnl() + total_realiz
 
 Good mapped persistence with mmap, magic validation, atomic snapshot (temp+rename), cross-platform, and mutex. ✅
 
-### 8.980 mapped_persistence: save_state mmaps/munmaps per call — Low
+### 8.980 mapped_persistence: save_state mmaps/munmaps per call — Low [N/A]
 
 **Файл:** `mapped_persistence.h:103-194`
 
@@ -13414,7 +13414,7 @@ Each `save_state()` call opens the file, sets file size, mmaps, writes, msyncs, 
 
 **Фикс:** Keep the mapping persistent (mmap once at init, write + msync per save). Use `snapshot_atomic` for crash safety.
 
-### 8.981 mapped_persistence: no version migration on load — Low
+### 8.981 mapped_persistence: no version migration on load — Low [N/A]
 
 **Файл:** `mapped_persistence.h:241-251`
 
@@ -13429,7 +13429,7 @@ The loader checks magic but not version. If `MAPPED_VERSION` is bumped (e.g., st
 
 **Фикс:** Check `header->version == MAPPED_VERSION`. If mismatch, log warning and return empty state.
 
-### 8.982 mapped_persistence: unmap_all is a no-op — Info
+### 8.982 mapped_persistence: unmap_all is a no-op — Info [N/A]
 
 **Файл:** `mapped_persistence.h:361-363`
 
@@ -13459,7 +13459,7 @@ void unmap_all() {
 
 Good FIX session with state machine, CAS transitions, persistent seq numbers, gap detection, heartbeat thread, TestRequest handling, and timeout check. ✅
 
-### 8.984 fix_session: save_seq_nums on every message — Low
+### 8.984 fix_session: save_seq_nums on every message — Low [N/A]
 
 **Файл:** `fix_session.h:75, 113, 118, 146, 166, 186, 198, 240`
 
@@ -13471,7 +13471,7 @@ save_seq_nums(); // Called after every send and every receive
 
 **Фикс:** Keep the file open (open once at init, write + flush per save). Or batch saves (save every N messages or every T seconds).
 
-### 8.985 fix_session: no password redaction in logon — Low
+### 8.985 fix_session: no password redaction in logon — Low [N/A]
 
 **Файл:** `fix_session.h:58, 72`
 
@@ -13517,7 +13517,7 @@ The reconnect thread is detached. If the `OrderExecutor` is destroyed while the 
 
 **Фикс:** Don't detach. Keep the reconnect thread as a member and join it in `disconnect()`. Or use a timer on the asio io_context instead of a separate thread.
 
-### 8.988 order_executor: snprintf buffer overflow risk — Low
+### 8.988 order_executor: snprintf buffer overflow risk — Low [N/A]
 
 **Файл:** `order_executor.h:108-116`
 
@@ -13534,7 +13534,7 @@ If `exchange_id_` or `signal.symbol` are very long (e.g., 200 chars each), the s
 
 **Фикс:** Check `n > 0 && n < static_cast<int>(sizeof(buf))` before sending. Use larger buffer or dynamic allocation for long symbols.
 
-### 8.989 order_executor: no fill confirmation callback — Low
+### 8.989 order_executor: no fill confirmation callback — Low [N/A]
 
 **Файл:** `order_executor.h:27-30`
 
@@ -13547,7 +13547,7 @@ using MessageHandler = std::function<void(const json&)>;
 
 **Фикс:** Set `set_message_handler` on the websocketpp client to process fill/rejection messages. Invoke a callback to update position manager.
 
-### 8.990 Code reduction: position_manager_v2 total_* methods 6× pattern — Info
+### 8.990 Code reduction: position_manager_v2 total_* methods 6× pattern — Info [N/A]
 
 **Файлы:** `position_manager_v2.h:217-262`
 
@@ -13555,7 +13555,7 @@ using MessageHandler = std::function<void(const json&)>;
 
 **Reduction potential:** ~15 lines. Template: `template<typename F> double sum_field(F&& getter) const noexcept`.
 
-### 8.991 Code reduction: mapped_persistence save_state and snapshot_atomic duplication — Info
+### 8.991 Code reduction: mapped_persistence save_state and snapshot_atomic duplication — Info [N/A]
 
 **Файлы:** `mapped_persistence.h:103-195, 282-355`
 
@@ -13595,7 +13595,7 @@ async with self._lock:
 
 **Фикс:** Release lock before `_create_connection()`, re-acquire to insert the new connection.
 
-### 8.994 ws_connection_pool: _evict_stale creates fire-and-forget tasks — Low
+### 8.994 ws_connection_pool: _evict_stale creates fire-and-forget tasks — Low [N/A]
 
 **Файл:** `ws_connection_pool.py:106`
 
@@ -13607,7 +13607,7 @@ asyncio.create_task(conn.close())
 
 **Фикс:** `await conn.close()` directly (already under lock), or gather the tasks.
 
-### 8.995 ws_connection_pool: _health_loop runs forever with no error handling — Low
+### 8.995 ws_connection_pool: _health_loop runs forever with no error handling — Low [N/A]
 
 **Файл:** `ws_connection_pool.py:129-133`
 
@@ -13636,7 +13636,7 @@ If `health_check()` raises an unexpected exception (e.g., `RuntimeError` from a 
 
 Good UDP socket transport with non-blocking I/O, binary parsing, stats, and configurable buffers. ✅
 
-### 8.997 socket_transport: start_receive_loop blocks calling thread — Low
+### 8.997 socket_transport: start_receive_loop blocks calling thread — Low [N/A]
 
 **Файл:** `socket_transport.py:86-108`
 
@@ -13652,7 +13652,7 @@ def start_receive_loop(self, on_packet: Callable[[MarketDataPacket], None]) -> N
 
 **Фикс:** Provide `async def start_receive_loop_async()` using `loop.add_reader()` or `asyncio.to_thread()`.
 
-### 8.998 socket_transport: _parse_packet no bounds check on sym_len — Low
+### 8.998 socket_transport: _parse_packet no bounds check on sym_len — Low [N/A]
 
 **Файл:** `socket_transport.py:136-138`
 
@@ -13769,7 +13769,7 @@ Good clean header with function declarations and BotContext reference pattern. �
 
 Excellent latency tracker with 8 stages, atomic CAS min/max, histogram percentiles, budget enforcement, RAII scoped measurement, and noexcept. ✅
 
-### 8.1005 latency_tracker: alert_cb_ is std::function (not thread-safe) — Low
+### 8.1005 latency_tracker: alert_cb_ is std::function (not thread-safe) — Low [N/A]
 
 **Файл:** `latency_tracker.h:124, 173, 224`
 
@@ -13783,7 +13783,7 @@ void set_alert_callback(AlertCallback cb) { alert_cb_ = std::move(cb); }
 
 **Фикс:** Set the callback once at init (before any `record()` calls), or use `std::atomic<std::function<...>>` (C++23) or a `std::shared_ptr` to the callback.
 
-### 8.1006 latency_tracker: percentile_from_histogram is O(N) per call — Low
+### 8.1006 latency_tracker: percentile_from_histogram is O(N) per call — Low [N/A]
 
 **Файл:** `latency_tracker.h:197-211`
 
@@ -13813,7 +13813,7 @@ Each `get_stats()` call computes 4 percentiles (P50, P95, P99, P999), each scann
 
 Excellent system monitor with 11 atomic metrics, snapshot, JSON formatting, memory tracker, and health status. ✅
 
-### 8.1008 system_monitor: MemoryTracker max_single_alloc_ race — Low
+### 8.1008 system_monitor: MemoryTracker max_single_alloc_ race — Low [N/A]
 
 **Файл:** `system_monitor.h:143-145`
 
@@ -13827,7 +13827,7 @@ The check-then-set pattern is not atomic. Two threads can both read the same old
 
 **Фикс:** Use CAS loop: `while (bytes > current && !compare_exchange_weak(current, bytes))`.
 
-### 8.1009 system_monitor: HealthStatus has no CPU tracking — Low
+### 8.1009 system_monitor: HealthStatus has no CPU tracking — Low [N/A]
 
 **Файл:** `system_monitor.h:178`
 
@@ -13857,7 +13857,7 @@ double cpu_usage_pct{0.0};
 
 Excellent order manager with 8-state machine, flat hash map, atomic IDs, timeout handling, cancel-replace, fill callback with copy, and noexcept. ✅
 
-### 8.1011 order_manager: find_free_slot is O(N) — Low
+### 8.1011 order_manager: find_free_slot is O(N) — Low [N/A]
 
 **Файл:** `order_manager.h:290-300`
 
@@ -13876,7 +13876,7 @@ uint64_t find_free_slot() noexcept {
 
 **Фикс:** Maintain a free-list (stack of freed slot indices) for O(1) allocation.
 
-### 8.1012 order_manager: no lock on state transitions — Medium
+### 8.1012 order_manager: no lock on state transitions — Medium [N/A]
 
 **Файл:** `order_manager.h:146-154, 157-184, 187-202, 205-215, 218-226, 229-236`
 
@@ -13893,7 +13893,7 @@ All state transitions (`on_ack`, `on_partial_fill`, `on_fill`, `on_cancel`, `on_
 
 **Фикс:** Use a spinlock per order slot, or use atomic for `state` field, or ensure all order operations run on a single thread.
 
-### 8.1013 order_manager: cid_erase re-insert can cascade — Low
+### 8.1013 order_manager: cid_erase re-insert can cascade — Low [N/A]
 
 **Файл:** `order_manager.h:344-366`
 
@@ -13923,7 +13923,7 @@ All 4 methods follow: `with closing(self._conn()) as conn: cursor = conn.execute
 
 **Reduction potential:** ~20 lines. Extract `_execute(sql, params) -> cursor` method.
 
-### 8.1015 Code reduction: system_monitor snapshot() 11× field copy — Info
+### 8.1015 Code reduction: system_monitor snapshot() 11× field copy — Info [N/A]
 
 **Файлы:** `system_monitor.h:76-93`
 
@@ -14272,7 +14272,7 @@ When the buffer is empty, the consumer sleeps 50μs then polls again. This means
 
 Excellent SHM market data with seq-guarded lock-free, latest-wins, cross-platform, and RAII. ✅
 
-### 8.1041 shm_market_data: shm_open 0666 permissions — Low
+### 8.1041 shm_market_data: shm_open 0666 permissions — Low [N/A]
 
 **Файл:** `shm_market_data.h:66, 73`
 
@@ -14587,7 +14587,7 @@ Extracts JSON by finding first `{` and last `}`. If the LLM response contains ma
 
 Good Binance adapter with spinlock-protected maps, atomic rate limiter, and stream URL helpers. ✅
 
-### 8.1064 BinanceAdapter: on_book_ticker takes two spinlocks — Medium
+### 8.1064 BinanceAdapter: on_book_ticker takes two spinlocks — Medium [N/A]
 
 **Файл:** `BinanceAdapter.h:72-80`
 
@@ -14609,7 +14609,7 @@ Wait — `on_depth_update` at line 83-99 takes `price_lock_` first, then `depth_
 
 **Фикс:** Use a single spinlock for both price and depth, or use atomic doubles instead of maps.
 
-### 8.1065 BinanceAdapter: unordered_map heap allocation on update — Low
+### 8.1065 BinanceAdapter: unordered_map heap allocation on update — Low [N/A]
 
 **Файл:** `BinanceAdapter.h:74-79`
 
@@ -14617,7 +14617,7 @@ Wait — `on_depth_update` at line 83-99 takes `price_lock_` first, then `depth_
 
 **Фикс:** Use `std::string_view` for lookups, or use a flat array indexed by symbol_id (uint8_t).
 
-### 8.1066 BinanceAdapter: api_secret in Config struct — Medium
+### 8.1066 BinanceAdapter: api_secret in Config struct — Medium [N/A]
 
 **Файл:** `BinanceAdapter.h:29`
 
@@ -14633,7 +14633,7 @@ struct Config {
 
 **Фикс:** Use a secure string that zeros memory on destruction. Don't log Config. Use environment variables or a secrets manager.
 
-### 8.1067 BinanceAdapter: can_send_order race on window reset — Low
+### 8.1067 BinanceAdapter: can_send_order race on window reset — Low [N/A]
 
 **Файл:** `BinanceAdapter.h:123-136`
 
@@ -14671,7 +14671,7 @@ Not a critical issue — Binance rate limit is 300/10s, and a few extra won't tr
 
 Good OKX adapter with spinlock-protected maps, symbol conversion, and subscription helpers. ✅
 
-### 8.1069 OKXAdapter: to_inst_id only handles USDT — Low
+### 8.1069 OKXAdapter: to_inst_id only handles USDT — Low [N/A]
 
 **Файл:** `OKXAdapter.h:79-88`
 
@@ -14691,7 +14691,7 @@ Only handles USDT pairs. Symbols ending with BTC, ETH, USDC, etc. are not conver
 
 **Фикс:** Support USDC, BTC, ETH quote currencies. Or make the quote currency a parameter.
 
-### 8.1070 OKXAdapter: no rate limiter — Low
+### 8.1070 OKXAdapter: no rate limiter — Low [N/A]
 
 **Файл:** `OKXAdapter.h` (entire file)
 
@@ -14699,7 +14699,7 @@ Unlike `BinanceAdapter` which has `can_send_order()`, OKXAdapter has no rate lim
 
 **Фикс:** Add `can_send_order()` with OKX-specific limits (60 orders/2s).
 
-### 8.1071 OKXAdapter: passphrase stored as plain string — Medium
+### 8.1071 OKXAdapter: passphrase stored as plain string — Medium [N/A]
 
 **Файл:** `OKXAdapter.h:27`
 
@@ -14724,7 +14724,7 @@ OKX requires a passphrase for API authentication. It's stored as a plain `std::s
 
 Good Bybit adapter with spinlock-protected maps and subscription helpers. ✅
 
-### 8.1073 BybitAdapter: no rate limiter — Low
+### 8.1073 BybitAdapter: no rate limiter — Low [N/A]
 
 **Файл:** `BybitAdapter.h` (entire file)
 
@@ -14732,7 +14732,7 @@ Same as OKXAdapter — no `can_send_order()` rate limiter. Bybit has 120 req/min
 
 **Фикс:** Add `can_send_order()` with Bybit-specific limits (120 orders/min).
 
-### 8.1074 BybitAdapter: api_secret in Config struct — Medium
+### 8.1074 BybitAdapter: api_secret in Config struct — Medium [N/A]
 
 **Файл:** `BybitAdapter.h:25`
 
@@ -14744,7 +14744,7 @@ Same issue as BinanceAdapter and OKXAdapter — plain string secret in Config.
 
 **Фикс:** Use a secure string wrapper. Don't log Config.
 
-### 8.1075 Code reduction: 3× adapter duplicate pattern — Info
+### 8.1075 Code reduction: 3× adapter duplicate pattern — Info [N/A]
 
 **Файлы:** `BinanceAdapter.h:41-69`, `OKXAdapter.h:39-65`, `BybitAdapter.h:37-63`
 
@@ -14765,7 +14765,7 @@ All three adapters have identical `best_bid`, `best_ask`, `mid_price`, `bid_dept
 
 Good metrics collector with 3 metric types, convenience methods, HTTP server, and mutex protection. ✅
 
-### 8.1077 metrics_collector: std::map for counters/gauges — Low
+### 8.1077 metrics_collector: std::map for counters/gauges — Low [N/A]
 
 **Файл:** `metrics_collector.h:86-88`
 
@@ -14793,7 +14793,7 @@ Not terrible, but in an HFT bot where every microsecond counts, a spinlock or at
 
 **Фикс:** Use atomic counters for simple increment/set. Use per-histogram mutexes. Or use a lock-free metrics library like `prometheus::Registry`.
 
-### 8.1079 metrics_collector: HTTP server blocks during export — Low
+### 8.1079 metrics_collector: HTTP server blocks during export — Low [N/A]
 
 **Файл:** `metrics_collector.h:72, 77-79`
 
@@ -14814,7 +14814,7 @@ Not terrible, but in an HFT bot where every microsecond counts, a spinlock or at
 
 Excellent network WS client with 6-state machine, exponential backoff with jitter, watchdog, bounded message queue with backpressure, subscription manager, and reconnection manager. ✅
 
-### 8.1081 ws_client: ReconnectPolicy uses rand() not thread-safe — Low
+### 8.1081 ws_client: ReconnectPolicy uses rand() not thread-safe — Low [N/A]
 
 **Файл:** `ws_client.h:84`
 
@@ -14827,7 +14827,7 @@ int32_t jitter =
 
 **Фикс:** Use `std::mt19937` with a thread-local instance, or `std::random_device` for seeding.
 
-### 8.1082 ws_client: MessageQueue uses std::queue with std::string — Low
+### 8.1082 ws_client: MessageQueue uses std::queue with std::string — Low [N/A]
 
 **Файл:** `ws_client.h:169`
 
@@ -14839,7 +14839,7 @@ std::queue<std::string> queue_;
 
 **Фикс:** Use a ring buffer of pre-allocated `std::array<char, N>` or a pool of string buffers.
 
-### 8.1083 ws_client: Watchdog timeout_ms_ not atomic — Low
+### 8.1083 ws_client: Watchdog timeout_ms_ not atomic — Low [N/A]
 
 **Файл:** `ws_client.h:111, 120`
 
@@ -14865,7 +14865,7 @@ uint32_t timeout_ms_;
 
 Good C++ tracer with Span, 4 trace methods, context propagation, and mutex protection. ✅
 
-### 8.1085 tracer: spans_ vector unbounded — Medium
+### 8.1085 tracer: spans_ vector unbounded — Medium [N/A]
 
 **Файл:** `tracer.h:71`
 
@@ -14877,7 +14877,7 @@ std::vector<Span> spans_;
 
 **Фикс:** Use a ring buffer with a max size (e.g., 10,000 spans). Or export spans to Jaeger periodically and clear the vector. Or use OpenTelemetry SDK which handles this automatically.
 
-### 8.1086 tracer: mutex on every span creation — Low
+### 8.1086 tracer: mutex on every span creation — Low [N/A]
 
 **Файл:** `tracer.h:70`
 
@@ -14889,7 +14889,7 @@ Every `trace_*` method acquires `tracer_mutex_` to add a Span. At 200 spans/sec,
 
 **Фикс:** Use a lock-free SPSC queue for spans (single producer = bot loop, single consumer = export thread).
 
-### 8.1087 tracer: no span export mechanism — Medium
+### 8.1087 tracer: no span export mechanism — Medium [N/A]
 
 **Файл:** `tracer.h` (entire file)
 
@@ -14947,7 +14947,7 @@ If `risk <= 0` (e.g., LONG with stop_loss above entry_price — a misconfigured 
 
 Good risk manager with trailing stop, breakeven, partial TP, max hold, and direction-aware SL movement. ✅
 
-### 8.1091 risk_manager: _track_peak_trough inverted for SHORT — Low
+### 8.1091 risk_manager: _track_peak_trough inverted for SHORT — Low [N/A]
 
 **Файл:** `risk_manager.py:131-136`
 
@@ -14966,7 +14966,7 @@ This isn't a bug — the logic is correct for the purpose (peak = best price for
 
 **Фикс:** Rename to `best_price` / `worst_price` instead of `peak_price` / `trough_price`.
 
-### 8.1092 risk_manager: no thread safety — Low
+### 8.1092 risk_manager: no thread safety — Low [N/A]
 
 **Файл:** `risk_manager.py` (entire file)
 
@@ -14974,7 +14974,7 @@ This isn't a bug — the logic is correct for the purpose (peak = best price for
 
 In asyncio (single-threaded), this is safe as long as `update()` doesn't `await`. It doesn't — all operations are synchronous. So it's safe in asyncio.
 
-### 8.1093 risk_manager: _calc_atr_from_candle is not real ATR — Low
+### 8.1093 risk_manager: _calc_atr_from_candle is not real ATR — Low [N/A]
 
 **Файл:** `risk_manager.py:248-261`
 
@@ -15335,7 +15335,7 @@ shocked_prices[n_crypto:] *= traditional_shock  # Traditional prices × 0.8
 
 **Фикс:** Use `crypto_shock = 0.75` (25% drop) for FTX, or rename to `luna_collapse_scenario` with the 95% shock.
 
-### 8.1120 stress_test: all scenarios use same formula — Info
+### 8.1120 stress_test: all scenarios use same formula — Info [N/A]
 
 **Файлы:** `stress_test.py:30-61, 63-90, 92-126`
 
@@ -18355,7 +18355,7 @@ Snell envelope for American option exercise. Binomial tree (Cox-Ross-Rubinstein)
 
 **Фикс:** Move to a separate `technical_analysis_advanced/` package or make imports lazy. Keep only `indicators.py`, `fft_analysis.py`, `kalman.py`, `garch.py`, `hawkes.py` in the core `technical_analysis/` module.
 
-### 8.1365 technical_analysis: All pure Python (no numpy) except indicators/pca — Info
+### 8.1365 technical_analysis: All pure Python (no numpy) except indicators/pca — Info [N/A]
 
 **Файлы:** 22 of 25 modules
 
@@ -18367,7 +18367,7 @@ Snell envelope for American option exercise. Binomial tree (Cox-Ross-Rubinstein)
 
 **Фикс:** For the 5 core modules (indicators, fft, kalman, garch, hawkes), add numpy fast paths like indicators.py already has. For the 16 advanced modules, leave as pure Python since they're offline analysis tools.
 
-### 8.1366 technical_analysis: Result containers are plain classes with 10-24 fields — Info
+### 8.1366 technical_analysis: Result containers are plain classes with 10-24 fields — Info [N/A]
 
 **Файлы:** All 25 modules
 
@@ -18388,7 +18388,7 @@ Most functions check `if not data or len(data) < MIN_*` but don't validate for N
 
 **Фикс:** Add `math.isfinite()` checks at function entry. Or document that inputs must be finite and let NaN propagate (current behavior).
 
-### 8.1368 technical_analysis: _random_normal uses while loop for u==0 — Info
+### 8.1368 technical_analysis: _random_normal uses while loop for u==0 — Info [N/A]
 
 **Файлы:** `sde.py:57`, `rbergomi.py:66`, `hmc.py:48`, `optimal_stopping.py:79`
 
