@@ -109,7 +109,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Rust string matching for fills | Fragile, false positives | CODE_AUDIT §8.32 |
 | ~~No network timeout in config~~ [FIXED] | Added network section to settings.yaml: ws_connect_timeout, ws_recv_timeout, rest_timeout — all configurable without redeploy | CODE_AUDIT §8.36 |
 | ~~No config schema validation~~ [FIXED] | Config validate() already checks required sections, ranges, and now type checks on critical fields | CODE_AUDIT §8.42 |
-| No HFT alert rules | HFT errors, DB locks, CB changes not alerted | CODE_AUDIT §8.38 |
+| ~~No HFT alert rules~~ [FIXED] | 5 HFT alert rules added to alerts.yml: fill rate, circuit breaker, signal flow, equity drop, candle generation | CODE_AUDIT §8.38 |
 | CI: npm audit non-blocking | High-severity vulns don't fail CI | CODE_AUDIT §8.40 |
 | Dockerfile healthcheck TCP | TCP not HTTP, same as compose | CODE_AUDIT §8.44 |
 | ~~Dead code: tracing.py~~ [FIXED] | Root tracing.py deleted in Пачка A (§8.1421) | CODE_AUDIT §8.46 |
@@ -182,13 +182,13 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | Alertmanager: hardcoded SMTP password | smtp_auth_password 'your-password' in git. Webhooks too | CODE_AUDIT §8.215 |
 | web-ui: 50 symbols duplicated | 50 symbols in JS + shared_config.yaml, out of sync risk | CODE_AUDIT §8.219 |
 | ~~web-ui: getFilteredSymbols not memoized~~ [FIXED] | Cached _filteredSymbols in store state — only recomputes when symbolSearch or selectedCategory changes, not on every call | CODE_AUDIT §8.224 |
-| monitoring: no HFT-specific alerts | No order latency, SHM overflow, fill rate, slippage, drawdown alerts | CODE_AUDIT §8.226 |
+| ~~monitoring: no HFT-specific alerts~~ [FIXED] | Added hft_alerts group: LowFillRate, CircuitBreakerOpen, NoSignalsSent, EquityDrop, CandleGenerationStalled — all use existing exposed metrics | CODE_AUDIT §8.226 |
 | ~~ebpf_monitor: NETWORK_BPF dead code~~ [FIXED] | Removed 30-line NETWORK_BPF program — was defined but never loaded | CODE_AUDIT §8.228 |
 | ~~ebpf_monitor: no Prometheus export~~ [FIXED] | Added prometheus_client Gauges for syscall count + avg latency — stats now exported to Grafana | CODE_AUDIT §8.229 |
 | ~~performanceMonitor: alertCallbacks leak~~ [FIXED] | Added offAlert() function to remove callbacks — call on unmount. resetMetrics() also clears callbacks | CODE_AUDIT §8.234 |
 | ~~web-ui backtestEngine: EMA/RSI duplicated~~ [FIXED] | Replaced local ema()/rsi() functions with import from indicators.js — ~40 lines removed | CODE_AUDIT §8.236 |
-| web-ui backtestEngine: no borrow fee | Short selling overestimates P&L, no daily borrow fee | CODE_AUDIT §8.237 |
-| web-ui backtestEngine: no slippage | Entry/exit at candle.close, no slippage model | CODE_AUDIT §8.238 |
+| ~~web-ui backtestEngine: no borrow fee~~ [FIXED] | Added borrowFeePct option (default 0.01% daily) — short positions accrue daily borrow fee based on holding period | CODE_AUDIT §8.237 |
+| ~~web-ui backtestEngine: no slippage~~ [FIXED] | Added slippagePct option (default 0.05%) — buys fill above close, sells fill below close, exits adverse direction | CODE_AUDIT §8.238 |
 | ~~web-ui indicators: O(n²) SMA~~ [FIXED] | Replaced O(n×period) nested loop with O(n) rolling sum — subtract outgoing, add incoming | CODE_AUDIT §8.240 |
 | ~~web-ui mockData: only 5 of 50 symbols~~ [FIXED] | Expanded MOCK_SYMBOLS from 5 to 49 — matches full trading universe. Reduced initial candles from 500 to 100 per symbol to keep init lightweight | CODE_AUDIT §8.243 |
 | hft-trade-bot config: 50 symbols 3x | 50 symbols in config.yaml + shared_config + useUIStore. 3 copies | CODE_AUDIT §8.247 |

@@ -142,6 +142,8 @@ function evaluateConditions(candles, i, indicators, rules) {
  * @param {Object} options - Backtest configuration
  * @param {number} options.initialBalance - Starting balance (default 10000)
  * @param {number} options.feePct - Fee per trade as percentage (default 0.075)
+ * @param {number} options.slippagePct - Slippage per trade as percentage (default 0.05)
+ * @param {number} options.borrowFeePct - Daily borrow fee for short positions as percentage (default 0.01)
  * @param {number} options.positionSizePct - Position size as % of balance (default 10)
  * @param {number} options.emaFastPeriod - EMA fast period (default 9)
  * @param {number} options.emaSlowPeriod - EMA slow period (default 21)
@@ -152,6 +154,8 @@ export function runBacktest(candles, rules, options = {}) {
   const {
     initialBalance = 10000,
     feePct = 0.075,
+    slippagePct = 0.05,
+    borrowFeePct = 0.01,
     positionSizePct = 0.1,
     emaFastPeriod = 9,
     emaSlowPeriod = 21,
@@ -215,12 +219,13 @@ export function runBacktest(candles, rules, options = {}) {
       switch (rule.action) {
         case 'buy': {
           if (!position && candle.close > 0) {
-            const qty = (balance * positionSizePct) / candle.close
-            const fee = (qty * candle.close * feePct) / 100
+            const fillPrice = candle.close * (1 + slippagePct / 100)
+            const qty = (balance * positionSizePct) / fillPrice
+            const fee = (qty * fillPrice * feePct) / 100
             balance -= fee
             position = {
               side: 'LONG',
-              entryPrice: candle.close,
+              entryPrice: fillPrice,
               qty,
               entryTime: candle.time,
             }
@@ -229,12 +234,13 @@ export function runBacktest(candles, rules, options = {}) {
         }
         case 'sell': {
           if (!position && candle.close > 0) {
-            const qty = (balance * positionSizePct) / candle.close
-            const fee = (qty * candle.close * feePct) / 100
+            const fillPrice = candle.close * (1 - slippagePct / 100)
+            const qty = (balance * positionSizePct) / fillPrice
+            const fee = (qty * fillPrice * feePct) / 100
             balance -= fee
             position = {
               side: 'SHORT',
-              entryPrice: candle.close,
+              entryPrice: fillPrice,
               qty,
               entryTime: candle.time,
             }
@@ -243,12 +249,20 @@ export function runBacktest(candles, rules, options = {}) {
         }
         case 'close_all': {
           if (position) {
-            const exitPrice = candle.close
+            const exitPrice = position.side === 'LONG'
+              ? candle.close * (1 - slippagePct / 100)
+              : candle.close * (1 + slippagePct / 100)
             const pnl = position.side === 'LONG'
               ? (exitPrice - position.entryPrice) * position.qty
               : (position.entryPrice - exitPrice) * position.qty
             const fee = (position.qty * exitPrice * feePct) / 100
-            balance += pnl - fee
+            // Borrow fee for short positions: daily rate * position value * holding period in days
+            let borrowFee = 0
+            if (position.side === 'SHORT' && borrowFeePct > 0) {
+              const holdingDays = (candle.time - position.entryTime) / 86400
+              borrowFee = (position.entryPrice * position.qty * borrowFeePct / 100) * holdingDays
+            }
+            balance += pnl - fee - borrowFee
             const entryNotional1 = position.entryPrice * position.qty
             trades.push({
               entryTime: position.entryTime,
@@ -257,8 +271,8 @@ export function runBacktest(candles, rules, options = {}) {
               entryPrice: position.entryPrice,
               exitPrice,
               qty: position.qty,
-              pnl: pnl - fee,
-              pnlPct: entryNotional1 !== 0 ? ((pnl - fee) / entryNotional1) * 100 : 0,
+              pnl: pnl - fee - borrowFee,
+              pnlPct: entryNotional1 !== 0 ? ((pnl - fee - borrowFee) / entryNotional1) * 100 : 0,
               exitReason: 'CLOSE_ALL',
             })
             position = null
@@ -309,12 +323,19 @@ export function runBacktest(candles, rules, options = {}) {
   // Close any remaining position at the last candle
   if (position) {
     const lastCandle = candles[candles.length - 1]
-    const exitPrice = lastCandle.close
+    const exitPrice = position.side === 'LONG'
+      ? lastCandle.close * (1 - slippagePct / 100)
+      : lastCandle.close * (1 + slippagePct / 100)
     const pnl = position.side === 'LONG'
       ? (exitPrice - position.entryPrice) * position.qty
       : (position.entryPrice - exitPrice) * position.qty
     const fee = (position.qty * exitPrice * feePct) / 100
-    balance += pnl - fee
+    let borrowFee = 0
+    if (position.side === 'SHORT' && borrowFeePct > 0) {
+      const holdingDays = (lastCandle.time - position.entryTime) / 86400
+      borrowFee = (position.entryPrice * position.qty * borrowFeePct / 100) * holdingDays
+    }
+    balance += pnl - fee - borrowFee
     const entryNotional2 = position.entryPrice * position.qty
     trades.push({
       entryTime: position.entryTime,
@@ -323,8 +344,8 @@ export function runBacktest(candles, rules, options = {}) {
       entryPrice: position.entryPrice,
       exitPrice,
       qty: position.qty,
-      pnl: pnl - fee,
-      pnlPct: entryNotional2 !== 0 ? ((pnl - fee) / entryNotional2) * 100 : 0,
+      pnl: pnl - fee - borrowFee,
+      pnlPct: entryNotional2 !== 0 ? ((pnl - fee - borrowFee) / entryNotional2) * 100 : 0,
       exitReason: 'END',
     })
     position = null

@@ -69,6 +69,25 @@ class BacktestResult:
         """Alias for final_balance — compatibility with backtest_engine.BacktestResult."""
         return self.final_balance
 
+    def to_dict(self) -> dict:
+        """Serialize to JSON-compatible dict."""
+        return {
+            "total_return_pct": round(self.total_return_pct, 2),
+            "total_trades": self.total_trades,
+            "winning_trades": self.winning_trades,
+            "losing_trades": self.losing_trades,
+            "win_rate": round(self.win_rate, 2),
+            "avg_win": round(self.avg_win, 2),
+            "avg_loss": round(self.avg_loss, 2),
+            "profit_factor": round(self.profit_factor, 2) if self.profit_factor != float('inf') else 999.99,
+            "max_drawdown_pct": round(self.max_drawdown_pct, 2),
+            "sharpe_ratio": round(self.sharpe_ratio, 2),
+            "final_balance": round(self.final_balance, 2),
+            "equity_curve": self.equity_curve,
+            "signals_generated": self.signals_generated,
+            "signals_valid": self.signals_valid,
+        }
+
 
 class Backtester:
     """Historical replay backtesting engine.
@@ -115,9 +134,7 @@ class Backtester:
         )
         equity = balance
         equity_curve.append(equity)
-        peak_equity = max(peak_equity, equity)
-        drawdown = (peak_equity - equity) / peak_equity * 100 if peak_equity > 0 else 0
-        result.max_drawdown_pct = max(result.max_drawdown_pct, drawdown)
+        peak_equity = self._update_drawdown(equity, peak_equity, result)
         return None, None, balance, peak_equity, True
 
     def _manage_position_or_entry(self, current_position, risk_state, balance, strategy,
@@ -144,9 +161,7 @@ class Backtester:
         """Append equity to curve and update max drawdown."""
         equity = self._track_equity(current_position, balance, current_price)
         equity_curve.append(equity)
-        peak_equity = max(peak_equity, equity)
-        drawdown = (peak_equity - equity) / peak_equity * 100 if peak_equity > 0 else 0
-        result.max_drawdown_pct = max(result.max_drawdown_pct, drawdown)
+        peak_equity = self._update_drawdown(equity, peak_equity, result)
         return peak_equity
 
     def run(
@@ -229,6 +244,26 @@ class Backtester:
 
         return exit_reason, exit_price
 
+    def _init_risk_state(self, current_position: dict | None) -> object | None:
+        """Initialize risk state for a new position if risk manager is active."""
+        if current_position and self.risk_manager:
+            return self.risk_manager.init_position(
+                entry_price=current_position["entry_price"],
+                side=current_position["side"],
+                stop_loss=current_position["stop_loss"],
+                take_profit=current_position["take_profit"],
+                quantity=current_position["quantity"],
+            )
+        return None
+
+    @staticmethod
+    def _update_drawdown(equity: float, peak_equity: float, result: BacktestResult) -> float:
+        """Update peak equity and max drawdown from current equity value."""
+        peak_equity = max(peak_equity, equity)
+        drawdown = (peak_equity - equity) / peak_equity * 100 if peak_equity > 0 else 0
+        result.max_drawdown_pct = max(result.max_drawdown_pct, drawdown)
+        return peak_equity
+
     def _handle_signal_reversal(
         self, current_position: dict, risk_state, balance: float,
         strategy, symbol: str, window: list, current_price: float,
@@ -247,18 +282,9 @@ class Backtester:
                     current_position, current_price, "SIGNAL_EXIT", balance, result,
                     timestamp=current_candle.get("timestamp", 0),
                 )
-                current_position = None
-                risk_state = None
                 current_position = self._open_position(signal, current_price, balance, result,
                     timestamp=current_candle.get("timestamp", 0), symbol=symbol)
-                if current_position and self.risk_manager:
-                    risk_state = self.risk_manager.init_position(
-                        entry_price=current_position["entry_price"],
-                        side=current_position["side"],
-                        stop_loss=current_position["stop_loss"],
-                        take_profit=current_position["take_profit"],
-                        quantity=current_position["quantity"],
-                    )
+                risk_state = self._init_risk_state(current_position)
         return current_position, risk_state, balance
 
     def _check_entry(
@@ -273,14 +299,8 @@ class Backtester:
             result.signals_valid += 1
             current_position = self._open_position(signal, current_price, balance, result,
                 timestamp=current_candle.get("timestamp", 0), symbol=symbol)
-            if current_position and self.risk_manager:
-                risk_state = self.risk_manager.init_position(
-                    entry_price=current_position["entry_price"],
-                    side=current_position["side"],
-                    stop_loss=current_position["stop_loss"],
-                    take_profit=current_position["take_profit"],
-                    quantity=current_position["quantity"],
-                )
+            risk_state = self._init_risk_state(current_position)
+            if current_position:
                 return current_position, risk_state
         return None, None
 

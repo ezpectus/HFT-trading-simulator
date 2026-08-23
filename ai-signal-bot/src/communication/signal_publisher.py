@@ -326,7 +326,7 @@ class SignalPublisher:
         results = {}
         for name, strat in strategies.items():
             result = await asyncio.to_thread(bt.run, candles, strat, symbol=bt_params["symbol"], warmup=50)
-            results[name] = self._format_backtest_result(result)
+            results[name] = result.to_dict()
 
         logger.info(f"Backtest completed: {bt_params['strategy']}, {bt_params['candles']} candles, {len(results)} strategies")
         self.metrics.record_backtest()
@@ -427,26 +427,6 @@ class SignalPublisher:
                 sub_strategies,
             )
         return strategies
-
-    @staticmethod
-    def _format_backtest_result(result) -> dict:
-        """Format a BacktestResult into a JSON-serializable dict."""
-        return {
-            "total_return_pct": round(result.total_return_pct, 2),
-            "total_trades": result.total_trades,
-            "winning_trades": result.winning_trades,
-            "losing_trades": result.losing_trades,
-            "win_rate": round(result.win_rate, 2),
-            "avg_win": round(result.avg_win, 2),
-            "avg_loss": round(result.avg_loss, 2),
-            "profit_factor": round(result.profit_factor, 2) if result.profit_factor != float('inf') else 999.99,
-            "max_drawdown_pct": round(result.max_drawdown_pct, 2),
-            "sharpe_ratio": round(result.sharpe_ratio, 2),
-            "final_balance": round(result.final_balance, 2),
-            "equity_curve": result.equity_curve,
-            "signals_generated": result.signals_generated,
-            "signals_valid": result.signals_valid,
-        }
 
     def _compare_backtests(self, data: dict) -> dict:
         """Compare multiple saved backtests side-by-side."""

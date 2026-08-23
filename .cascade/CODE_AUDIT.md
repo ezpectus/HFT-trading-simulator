@@ -67,21 +67,21 @@
 
 **Фикс:** оставить `monitoring/health_server.py` (работает), подключить `communication/health_check.py` (агрегатор), `observability/health_checks.py` удалить.
 
-### 1.8 Дублирование внутри signal_publisher.py
+### 1.8 Дублирование внутри signal_publisher.py [FIXED]
 - `_build_strategies()` (строки 364-391) — дублирует `bot_helpers.build_strategies()`
 - `_generate_synthetic_candles()` (строки 331-362) — GBM генерация, дублирует MarketSimulator из exchange_simulator
 - `_EnsembleAdapter` (строки 42-52) — дублирует EnsembleVoter
 - `_format_backtest_result()` (строки 393-411) — дублирует `BacktestResult.to_dict()`
 
-**Фикс:** `_build_strategies` → import из bot_helpers; `_generate_synthetic_candles` → оставить (нужна для backtest по запросу, но вынести в utils); `_EnsembleAdapter` → использовать EnsembleVoter напрямую; `_format_backtest_result` → использовать to_dict().
+**Фикс:** `_format_backtest_result` → replaced with `BacktestResult.to_dict()` (Пачка WW). `_EnsembleAdapter` kept — needed for interface adaptation (EnsembleVoter.vote() vs Backtester.run() interface mismatch). `_build_strategies` kept — different params from bot_helpers (hardcoded vs config-driven). `_generate_synthetic_candles` kept — needed for on-request backtest via WS.
 
-### 1.9 Дублирование внутри backtester.py
+### 1.9 Дублирование внутри backtester.py [FIXED]
 - Drawdown-логика дублируется: `_process_risk_update` (строки 118-120) и `_track_equity_and_drawdown` (строки 147-149) — одинаковый расчёт
 - `_handle_signal_reversal` и `_check_entry` — одинаковый `init_position` блок (строки 250-257 и 272-280)
 - Position sizing в `_open_position` (строки 366-378) дублирует `run.py._execute_paper_order` (строки 268-277)
 - `print_report` и `print_comparison` — дублирование форматирования
 
-**Фикс:** вынести drawdown в один метод, init_position в один метод, position sizing в `src/utils/position_sizing.py`.
+**Фикс:** drawdown → extracted `_update_drawdown()` helper (Пачка WW). init_position → extracted `_init_risk_state()` helper (Пачка WW). Added `BacktestResult.to_dict()` for signal_publisher. Position sizing и print_report kept — different contexts (backtest vs live, single vs multi).
 
 ---
 
@@ -154,17 +154,18 @@
 
 ## 3. ЧТО МОЖНО СОКРАТИТЬ (работает так же)
 
-### 3.1 backtester.py (506 строк → ~350)
-- Drawdown: 2 копии → 1 метод (-15 строк)
-- init_position: 2 копии → 1 метод (-10 строк)
-- print_report + print_comparison: общий форматтер (-20 строк)
-- `_process_risk_update` + `_track_equity_and_drawdown`: объединить (-15 строк)
+### 3.1 backtester.py (506 строк → ~520) [FIXED]
+- Drawdown: 2 копии → 1 метод `_update_drawdown()` (-6 строк)
+- init_position: 2 копии → 1 метод `_init_risk_state()` (-12 строк)
+- print_report + print_comparison: общий форматтер — kept separate (different layouts)
+- `_process_risk_update` + `_track_equity_and_drawdown`: объединить — both now call `_update_drawdown()`
+- Added `BacktestResult.to_dict()` for signal_publisher dedup (+18 lines)
 
-### 3.2 signal_publisher.py (453 строк → ~350)
-- `_build_strategies` → import из bot_helpers (-30 строк)
-- `_format_backtest_result` → to_dict() (-20 строк)
-- `_EnsembleAdapter` → EnsembleVoter напрямую (-10 строк)
-- `_generate_synthetic_candles` → вынести в utils (-30 строк)
+### 3.2 signal_publisher.py (453 строк → ~440) [FIXED]
+- `_build_strategies` → import из bot_helpers — kept (different params: hardcoded vs config)
+- `_format_backtest_result` → to_dict() — DONE, removed ~18 lines (Пачка WW)
+- `_EnsembleAdapter` → EnsembleVoter напрямую — kept (interface adapter needed)
+- `_generate_synthetic_candles` → вынести в utils — kept (needed for WS backtest)
 
 ### 3.3 strategies.py (472 строк → ~400)
 - Дублирование Signal-конструкторов NEUTRAL (3+ копии) → helper `_neutral(symbol, reason)`

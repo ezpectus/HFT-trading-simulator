@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка WW: backtestEngine slippage + borrow fee + HFT alert rules)
+
+### Added
+- `web-ui/src/utils/backtestEngine.js`: `slippagePct` option (default 0.05%) — buys fill above close, sells below close, exits in adverse direction
+- `web-ui/src/utils/backtestEngine.js`: `borrowFeePct` option (default 0.01% daily) — short positions accrue daily borrow fee based on holding period
+- `monitoring/alerts/alerts.yml`: New `hft_alerts` group with 5 rules: `LowFillRate`, `CircuitBreakerOpen`, `NoSignalsSent`, `EquityDrop`, `CandleGenerationStalled`
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка VV: var_stress_test.py deprecation)
 
 ### Changed

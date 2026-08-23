@@ -114,3 +114,56 @@ groups:
         annotations:
           summary: "High WebSocket disconnection rate"
           description: "Clients disconnecting more than 0.5/s over 5 minutes"
+
+  - name: hft_alerts
+    interval: 30s
+    rules:
+      - alert: LowFillRate
+        expr: exchange_orders_filled_total / exchange_orders_submitted_total < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: exchange-simulator
+        annotations:
+          summary: "Low order fill rate"
+          description: "Fill rate is {{ $value * 100 }}% for {{ $labels.exchange }} (threshold 80%)"
+
+      - alert: CircuitBreakerOpen
+        expr: ai_signal_bot_circuit_breaker_state == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: ai-signal-bot
+        annotations:
+          summary: "Circuit breaker is OPEN"
+          description: "Trading circuit breaker tripped — all signals blocked"
+
+      - alert: NoSignalsSent
+        expr: rate(ai_signal_bot_signals_sent_total[10m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          component: ai-signal-bot
+        annotations:
+          summary: "No signals sent in 15 minutes"
+          description: "Signal generation may be stalled"
+
+      - alert: EquityDrop
+        expr: exchange_equity < exchange_balance * 0.95
+        for: 5m
+        labels:
+          severity: warning
+          component: exchange-simulator
+        annotations:
+          summary: "Equity below 95% of balance"
+          description: "Unrealized losses exceeding 5% for {{ $labels.exchange }}"
+
+      - alert: CandleGenerationStalled
+        expr: rate(exchange_candle_count[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: exchange-simulator
+        annotations:
+          summary: "Candle generation stalled"
+          description: "No new candles generated in 5 minutes — market data feed may be down"
