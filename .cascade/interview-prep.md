@@ -5944,3 +5944,239 @@ class AlertSystem:
 ```
 
 **Разница:** The bad code creates a new `aiohttp.ClientSession()` for each alert send — 3 sessions per alert (Discord, Telegram, webhook). During a market crash with 20 alerts in 5 minutes, that's 60 sessions, each requiring DNS resolution, TCP handshake, TLS handshake, and cleanup. This wastes 12s in DNS overhead, consumes 180 file descriptors (risking "Too many open files" errors that crash the bot), and delivers alerts 4× slower (200ms vs 50ms). In a crash scenario, 4× slower alerts mean 4× more losses before users are notified. The good code creates a single shared `aiohttp.ClientSession` with a `TCPConnector` that limits connections (20 max, 5 per host), caches DNS (5 min TTL), and reuses TCP/TLS connections. All 60 POST requests in 5 minutes use the same 3 connections — 0 DNS lookups, 9 FDs, 50ms per alert. The cost is 10 lines of code (`_get_session()` + `_post_json()` + `close()`). The benefit is 4× faster alerts, 20× fewer FDs, 0 DNS overhead, and no FD exhaustion risk. This is a classic example of resource mismanagement: the developer treated `aiohttp.ClientSession` as a disposable object (like `requests.Session` in synchronous code), not realizing that in asyncio, each session creates a connection pool, DNS resolver, and SSL context. The principle: in asyncio, always reuse `aiohttp.ClientSession` — create one per application lifecycle, share across all requests, and close on shutdown. In a system with 1000 users, FD exhaustion from per-request sessions can crash the entire bot, causing $200K+ in losses from missed signals during a market crash.
+
+---
+
+## Bad vs Good: Detached Thread with Dangling `this` Pointer (C++)
+
+### ❌ Bad Code
+```cpp
+class OrderExecutor {
+public:
+    bool connect() {
+        should_reconnect_ = true;
+        return do_connect();
+    }
+
+    bool do_connect() {
+        client_ = std::make_unique<WSClient>();
+        client_->init_asio();
+
+        client_->set_close_handler([this](websocketpp::connection_hdl) {
+            connected_ = false;
+            if (should_reconnect_) {
+                int delay = reconnect_delay_.load(std::memory_order_relaxed);
+                reconnect_delay_.store(std::min(delay * 2, 30000), std::memory_order_relaxed);
+                // ← DETACHED THREAD captures `this`
+                std::thread([this, delay]() {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+                    if (should_reconnect_) {
+                        if (ws_thread_.joinable()) ws_thread_.join();
+                        do_connect();  // ← accesses `this` members
+                    }
+                }).detach();  // ← detached: no way to join or cancel
+            }
+        });
+
+        // ... connect logic ...
+        ws_thread_ = std::thread([this]() { client_->run(); });
+        return true;
+    }
+
+    void disconnect() {
+        should_reconnect_ = false;
+        if (connected_) {
+            client_->close(connection_, websocketpp::close::status::normal, "shutdown");
+        }
+        if (ws_thread_.joinable()) ws_thread_.join();
+        connected_ = false;
+        // ← destructor runs after this
+        // ← but the detached reconnect thread may still be sleeping!
+    }
+
+    ~OrderExecutor() {
+        // ← object is destroyed
+        // ← detached thread still holds `this` pointer
+        // ← when it wakes up, it accesses:
+        //    - should_reconnect_ (freed memory)
+        //    - ws_thread_ (freed memory)
+        //    - do_connect() (freed memory)
+        // ← USE-AFTER-FREE → crash or silent corruption
+    }
+
+private:
+    std::string                 ws_url_;
+    std::unique_ptr<WSClient>   client_;
+    websocketpp::connection_hdl connection_;
+    std::thread                 ws_thread_;
+    std::atomic<bool>           connected_{false};
+    std::atomic<bool>           should_reconnect_{false};
+    std::atomic<int>            reconnect_delay_{1000};
+};
+
+// Scenario: Production HFT bot with 1000 users
+// 50 symbols, 5m timeframe, 60s signal interval
+//
+// t=0:     OrderExecutor::connect() → WebSocket connected
+// t=0:     Bot starts trading, sending orders
+//
+// t=300:   Exchange restarts (scheduled maintenance)
+// t=300:   WebSocket close handler fires
+// t=300:   Detached thread starts: sleep(1000ms)
+// t=300:   should_reconnect_ = true
+//
+// t=300.5: Bot operator decides to shut down the bot
+// t=300.5: OrderExecutor::disconnect() called
+// t=300.5: should_reconnect_ = false
+// t=300.5: client_->close() → WebSocket closed
+// t=300.5: ws_thread_.join() → WebSocket thread joined
+// t=300.5: ~OrderExecutor() → object destroyed
+// t=300.5: All members freed: ws_url_, client_, ws_thread_, etc.
+//
+// t=301:   Detached thread wakes up from sleep(1000ms)
+// t=301:   Checks should_reconnect_ → READS FREED MEMORY
+//          - If memory was reused: random value
+//          - If memory was zeroed: false → thread exits (lucky case)
+//          - If memory was 0xFF: true → continues to do_connect()
+// t=301:   If should_reconnect_ reads as true:
+//          - ws_thread_.joinable() → READS FREED MEMORY → undefined behavior
+//          - do_connect() → CALLS METHOD ON DESTROYED OBJECT
+//          - client_ = std::make_unique<WSClient>() → WRITES TO FREED MEMORY
+//          - CRASH: segfault, or worse: silent corruption of adjacent heap objects
+//
+// What happens in production?
+//
+// 1. Best case: should_reconnect_ reads as false
+//    - Thread exits silently
+//    - No crash, but no reconnect either
+//    - If bot is restarted quickly, it reconnects via connect()
+//    - No data loss, but fragile — depends on memory not being reused
+//
+// 2. Worst case: should_reconnect_ reads as true
+//    - Thread calls do_connect() on destroyed object
+//    - std::make_unique<WSClient>() allocates on freed memory
+//    - WebSocket connects to exchange
+//    - Orders are sent to exchange from a "dead" bot
+//    - Position manager doesn't know about these orders
+//    - Bot is restarted, opens new positions
+//    - Now there are DUPLICATE positions on the exchange
+//    - $500K in untracked exposure → margin call → liquidation
+//
+// 3. Common case: segfault
+//    - Thread accesses freed memory
+//    - If memory was reused by another allocation: data corruption
+//    - If memory was returned to OS: SIGSEGV
+//    - Process crashes with no stack trace (detached thread)
+//    - Debugging is extremely difficult — no thread info in core dump
+//
+// Total damage:
+// - USE-AFTER-FREE → crash or silent corruption
+// - Duplicate orders → $500K untracked exposure
+// - No stack trace → debugging nightmare
+// - Race condition → non-deterministic, hard to reproduce
+// - 1000 users affected by downtime + potential liquidation
+```
+
+**What's wrong:**
+- `std::thread(...).detach()` creates a thread that outlives the object
+- The lambda captures `this` by value — but `this` becomes dangling after destruction
+- `should_reconnect_ = false` in `disconnect()` doesn't help — the thread may already be past that check
+- `ws_thread_.join()` from within the detached thread races with `disconnect()` joining the same thread
+- USE-AFTER-FREE → crash, silent corruption, or duplicate orders
+
+### ✅ Good Code
+```cpp
+class OrderExecutor {
+public:
+    bool connect() {
+        should_reconnect_ = true;
+        return do_connect();
+    }
+
+    bool do_connect() {
+        client_ = std::make_unique<WSClient>();
+        client_->init_asio();
+
+        client_->set_close_handler([this](websocketpp::connection_hdl) {
+            connected_ = false;
+            if (should_reconnect_) {
+                int delay = reconnect_delay_.load(std::memory_order_relaxed);
+                reconnect_delay_.store(std::min(delay * 2, 30000), std::memory_order_relaxed);
+                // ← Schedule reconnect on the io_context — no separate thread
+                client_->get_io_service().post([this]() {
+                    if (!should_reconnect_) return;
+                    if (ws_thread_.joinable()) ws_thread_.join();
+                    do_connect();
+                });
+                // ← Or use a deadline_timer for delayed reconnect:
+                // auto timer = std::make_shared<websocketpp::lib::asio::steady_timer>(
+                //     client_->get_io_service(), std::chrono::milliseconds(delay));
+                // timer->async_wait([this, timer](const auto& ec) {
+                //     if (ec || !should_reconnect_) return;
+                //     if (ws_thread_.joinable()) ws_thread_.join();
+                //     do_connect();
+                // });
+            }
+        });
+
+        // ... connect logic ...
+        ws_thread_ = std::thread([this]() { client_->run(); });
+        return true;
+    }
+
+    void disconnect() {
+        should_reconnect_ = false;
+        // ← Stop the io_context — cancels all pending async operations
+        client_->get_io_service().stop();
+        if (connected_) {
+            client_->close(connection_, websocketpp::close::status::normal, "shutdown");
+        }
+        if (ws_thread_.joinable()) ws_thread_.join();
+        connected_ = false;
+        // ← No detached threads — all work is on the io_context
+        // ← When io_service stops, all pending handlers are cancelled
+        // ← Safe to destroy — no dangling references
+    }
+
+    ~OrderExecutor() {
+        // ← Safe: no detached threads, no pending callbacks
+        // ← io_service::stop() cancelled everything
+        // ← ws_thread_ was joined in disconnect()
+        disconnect();
+    }
+
+private:
+    std::string                 ws_url_;
+    std::unique_ptr<WSClient>   client_;
+    websocketpp::connection_hdl connection_;
+    std::thread                 ws_thread_;
+    std::atomic<bool>           connected_{false};
+    std::atomic<bool>           should_reconnect_{false};
+    std::atomic<int>            reconnect_delay_{1000};
+};
+
+// Scenario: Production HFT bot with 1000 users
+// Exchange restarts, operator shuts down bot
+//
+// t=300:   WebSocket close handler fires
+// t=300:   Reconnect posted to io_context (not a detached thread)
+// t=300.5: Operator calls disconnect()
+// t=300.5: should_reconnect_ = false
+// t=300.5: client_->get_io_service().stop()
+//          → All pending async operations cancelled
+//          → Reconnect handler never executes
+// t=300.5: ws_thread_.join() → WebSocket thread joined
+// t=300.5: ~OrderExecutor() → safe destruction
+//
+// t=301:   Nothing happens — reconnect was cancelled
+//          No dangling threads, no use-after-free
+//          No duplicate orders, no crash
+//
+// Total:
+// - 0 crashes (no use-after-free)
+// - 0 duplicate orders (no reconnect after shutdown)
+// - 0 debugging needed (deterministic shutdown)
+// - 1000 users safely disconnected
+```
+
+**Разница:** The bad code uses `std::thread(...).detach()` to schedule a reconnect after a delay. The detached thread captures `this`, but when the `OrderExecutor` is destroyed (e.g., during shutdown), the thread is still sleeping. When it wakes up, it accesses freed memory through the dangling `this` pointer — a classic USE-AFTER-FREE. In the best case, `should_reconnect_` reads as `false` and the thread exits silently. In the worst case, it reads as `true` (freed memory was reused), the thread calls `do_connect()` on a destroyed object, creates a new WebSocket connection, and sends orders to the exchange from a "dead" bot. The position manager doesn't know about these orders, so when the bot is restarted, it opens duplicate positions — $500K in untracked exposure, potential margin call, liquidation. The good code posts the reconnect to the `io_context` (asio's event loop) instead of creating a detached thread. When `disconnect()` calls `io_service::stop()`, all pending async operations are cancelled — the reconnect handler never executes. No dangling threads, no use-after-free, no duplicate orders. The cost is replacing `.detach()` with `io_service.post()` or a `deadline_timer` — 5 lines of code. The benefit is zero crashes, zero duplicate orders, and deterministic shutdown. This is a classic example of a detached thread lifetime bug: the developer assumed `should_reconnect_ = false` would stop the thread, but the thread may already be past that check when `disconnect()` runs. The principle: never detach threads that capture `this` — either join them in the destructor, or use an event loop (io_context, timer) that can be stopped atomically. In a system with 1000 users, a USE-AFTER-FREE from a detached thread can cause $500K in duplicate orders + liquidation + debugging nightmare with no stack trace.

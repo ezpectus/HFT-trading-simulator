@@ -1504,3 +1504,35 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R947 | shm_heartbeat: auto_loop no error handling | `shm_heartbeat.h:154` | Low | noexcept write() → std::terminate if throws. Wrap in try/catch |
 | R948 | Code reduction: alerting _send 3× pattern | `alerting.py:150+173+195` | Info | Extract _post_json(url, payload). ~15 lines |
 | R949 | Code reduction: health_server _check_* 3× pattern | `health_server.py:38+50+62` | Info | Extract _run_check(name). ~15 lines |
+| R950 | ai-signal-bot/communication/shm_fill_consumer.py | `shm_fill_consumer.py` | ✅ Good | Non-blocking pop async polling context manager configurable batch |
+| R951 | shm_fill_consumer: run_polling callback not async | `shm_fill_consumer.py:71` | Low | Async callback not awaited. Check iscoroutinefunction |
+| R952 | shm_fill_consumer: init catches broad Exception | `shm_fill_consumer.py:39` | Low | Masks bugs. Catch specific exceptions |
+| R953 | ai-signal-bot/communication/shm_market_data_writer.py | `shm_market_data_writer.py` | ✅ Good | Seq-guarded latest-wins cross-platform context manager |
+| R954 | shm_market_data_writer: no memory barrier after seq | `shm_market_data_writer.py:84` | Low | ARM reordering. Document x86/x64 or use barriers |
+| R955 | shm_market_data_writer: max_symbols default 10 vs config 50 | `shm_market_data_writer.py:33` | Low | Symbols 10-49 silently dropped. Set default 50 |
+| R956 | hft-trade-bot/market_data/order_book_manager.h | `order_book_manager.h` | ✅ Excellent | Fixed L2 incremental snapshot spread regime OBI crossed/locked noexcept |
+| R957 | order_book_manager: update_bid/ask O(N) | `order_book_manager.h:75` | Low | Linear scan + shift. Binary search for insertion |
+| R958 | order_book_manager: no validation bids < asks | `order_book_manager.h:258` | Low | Accepts crossed book. Reject or warn on cross |
+| R959 | hft-trade-bot/market_data/candle_aggregator.h | `candle_aggregator.h` | ✅ Good | 3 modes OHLCV from ticks flush noexcept |
+| R960 | candle_aggregator: callback_ is std::function | `candle_aggregator.h:30` | Low | May heap-allocate. Use function pointer or template |
+| R961 | candle_aggregator: no out-of-order tick handling | `candle_aggregator.h:52` | Low | Underflow on early tick. Check timestamp >= bar_start |
+| R962 | hft-trade-bot/market_data/trade_handler.h | `trade_handler.h` | ✅ Excellent | Aggressor detection O(1) rolling VWAP/stats large trade ring buffer noexcept |
+| R963 | trade_handler: rolling_vol_sum_ can go negative | `trade_handler.h:60` | Low | FP drift. Use max(0.0, sum) in rolling_vwap |
+| R964 | hft-trade-bot/position/position_manager_v2.h | `position_manager_v2.h` | ✅ Good | Weighted avg entry spinlock atomic counter bitset SL/TP margin erase-on-close |
+| R965 | position_manager_v2: on_fill creates string from string_view | `position_manager_v2.h:90` | Low | Heap alloc in hot path. Use transparent lookup |
+| R966 | position_manager_v2: get_position without exchange O(N) | `position_manager_v2.h:183` | Low | Linear scan. Add symbol_to_key_ map |
+| R967 | position_manager_v2: check_sl_tp hardcoded 1% ATR | `position_manager_v2.h:289` | Low | No volatility. Pass ATR to check_sl_tp |
+| R968 | position_manager_v2: total_pnl acquires lock twice | `position_manager_v2.h:235` | Low | Inconsistent snapshot. Single locked method |
+| R969 | hft-trade-bot/persistence/mapped_persistence.h | `mapped_persistence.h` | ✅ Good | mmap magic validation atomic snapshot cross-platform mutex |
+| R970 | mapped_persistence: save_state mmaps/munmaps per call | `mapped_persistence.h:103` | Low | 5 syscalls per save. Keep mapping persistent |
+| R971 | mapped_persistence: no version migration on load | `mapped_persistence.h:241` | Low | Checks magic not version. Check version too |
+| R972 | mapped_persistence: unmap_all is a no-op | `mapped_persistence.h:361` | Info | Remove. ~5 lines |
+| R973 | hft-trade-bot/fix/fix_session.h | `fix_session.h` | ✅ Good | State machine CAS persistent seq gap detection heartbeat TestRequest timeout |
+| R974 | fix_session: save_seq_nums on every message | `fix_session.h:75+` | Low | 300 syscalls/sec. Keep file open or batch saves |
+| R975 | fix_session: no password redaction in logon | `fix_session.h:58` | Low | Password in FIX msg. Redact tag 554 in logging |
+| R976 | hft-trade-bot/execution/order_executor.h | `order_executor.h` | ✅ Good | websocketpp exponential backoff manual JSON arbitrage atomic state |
+| R977 | order_executor: detached reconnect thread race | `order_executor.h:57` | Medium | Dangling this after destroy. Don't detach or use asio timer |
+| R978 | order_executor: snprintf buffer overflow risk | `order_executor.h:108` | Low | Truncation on long symbol/exchange. Check n < sizeof(buf) |
+| R979 | order_executor: no fill confirmation callback | `order_executor.h:27` | Low | MessageHandler unused. Set message_handler for fills |
+| R980 | Code reduction: position_manager_v2 total_* 5× pattern | `position_manager_v2.h:217-262` | Info | Template sum_field. ~15 lines |
+| R981 | Code reduction: mapped_persistence save/snapshot duplication | `mapped_persistence.h:103+282` | Info | Extract write_to_mapped. ~40 lines |

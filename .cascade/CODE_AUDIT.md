@@ -13105,3 +13105,455 @@ The pattern `async with aiohttp.ClientSession() as session: async with session.p
 The pattern `if "name" in self._checks: try: result = self._checks["name"]() ...` is duplicated 3 times for exchange, database, SHM. All have identical structure.
 
 **Reduction potential:** ~15 lines. Extract to `_run_check(name: str) -> dict` method.
+
+### 8.960 ai-signal-bot/src/communication/shm_fill_consumer.py: SHM Fill Consumer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/shm_fill_consumer.py` (91 lines)
+
+- **ShmRingBuffer wrapper**: Opens existing SHM segment (create=False) — correct
+- **try_pop / bulk_pop**: Non-blocking pop operations — correct
+- **pending**: Returns buffer size — correct
+- **run_polling**: Async loop with configurable poll_interval (1ms default) and batch_size (256) — correct
+- **Context manager**: `__enter__` / `__exit__` — correct
+- **close**: Closes buffer, sets to None — correct
+
+Good SHM fill consumer with non-blocking pop, async polling, context manager, and configurable batch size. ✅
+
+### 8.961 shm_fill_consumer: run_polling callback not async — Low
+
+**Файл:** `shm_fill_consumer.py:71`
+
+```python
+fills = self.bulk_pop(batch_size)
+if fills:
+    callback(fills)
+```
+
+The `callback` is called synchronously. If the callback is async (returns a coroutine), it won't be awaited — the coroutine is created and immediately discarded. This means any async database writes or notifications in the callback won't execute.
+
+**Фикс:** Check `asyncio.iscoroutinefunction(callback)` and `await callback(fills)` if true.
+
+### 8.962 shm_fill_consumer: init catches broad Exception — Low
+
+**Файл:** `shm_fill_consumer.py:39`
+
+```python
+except Exception as e:
+    logger.error(f"Failed to init SHM fill consumer: {e}")
+    return False
+```
+
+`init()` catches `Exception` instead of specific exceptions. This masks bugs like `PermissionError`, `FileNotFoundError`, or `struct.error`.
+
+**Фикс:** Catch `(OSError, ValueError, struct.error)`.
+
+### 8.963 ai-signal-bot/src/communication/shm_market_data_writer.py: SHM Market Data Writer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/shm_market_data_writer.py` (122 lines)
+
+- **Latest-snapshot-wins model**: Single slot per symbol, seq-guarded — correct
+- **Seq-guarded writes**: Odd = writing, Even = consistent (same pattern as shm_heartbeat) — correct
+- **Cross-platform**: Windows mmap tagname + POSIX /dev/shm — correct
+- **Layout**: `[num_slots: uint64][SnapshotSlot 0]...[SnapshotSlot N]` — correct
+- **write_snapshot**: Symbol_id bounds check, seq increment before/after write — correct
+- **write_price**: Convenience method with `time.time_ns()` — correct
+- **close**: Closes mmap + fd + removes /dev/shm file — correct
+- **Context manager**: `__enter__` / `__exit__` — correct
+
+Good SHM market data writer with seq-guarded latest-wins model, cross-platform support, and context manager. ✅
+
+### 8.964 shm_market_data_writer: no memory barrier after seq write — Low
+
+**Файл:** `shm_market_data_writer.py:84, 94`
+
+```python
+struct.pack_into('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ, seq + 1)  # odd
+# ... write data ...
+struct.pack_into('<Q', self._mm, slot_offset + SLOT_OFFSET_SEQ, seq + 2)  # even
+```
+
+The seq-guarded write pattern relies on memory ordering. On x86/x64, stores are naturally ordered (TSO). On ARM, the seq store before data writes may be reordered after the data writes, causing the reader to see a consistent seq but stale data. No `mfence` or equivalent is issued.
+
+**Фикс:** Document x86/x64 assumption, or use `ctypes.memmove` with proper barriers.
+
+### 8.965 shm_market_data_writer: max_symbols default 10 but config has 50 — Low
+
+**Файл:** `shm_market_data_writer.py:33`
+
+```python
+def __init__(self, name: str = "/hft_market", max_symbols: int = 10):
+```
+
+Default `max_symbols=10` but the config has 50 trading symbols. If the writer is created with default, symbols 10-49 are silently dropped (line 76: `if symbol_id >= self.max_symbols: return`).
+
+**Фикс:** Set default to 50, or pass from config.
+
+### 8.966 hft-trade-bot/src/market_data/order_book_manager.h: Order Book Manager — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/market_data/order_book_manager.h` (282 lines)
+
+- **Template `MaxLevels=200`**: Fixed-capacity L2 book — correct
+- **PriceLevel**: `alignas(64)`, 64 bytes, price/quantity/order_count — correct
+- **Incremental updates**: `update_bid` / `update_ask` with sorted insertion — correct
+- **Removal**: `remove_bid` / `remove_ask` with shift — correct
+- **Snapshot merge**: `set_snapshot` with memcpy — correct
+- **Accessors**: best_bid/ask, mid_price, weighted_mid, microprice, spread, spread_bps — correct
+- **SpreadRegime**: TIGHT/NORMAL/WIDE/EXTREME — correct
+- **Depth**: `bid_depth` / `ask_depth` at top N levels — correct
+- **OBI**: `(bid_depth - ask_depth) / (bid_depth + ask_depth)` — correct
+- **Crossed/locked detection**: `is_crossed()` / `is_locked()` — correct
+- **No heap allocations**: All stack-allocated with `alignas(64)` — correct
+- **`noexcept` on all methods**: Correct
+
+Excellent order book manager with fixed-capacity L2, incremental updates, snapshot merge, spread regime, OBI, crossed/locked detection, and noexcept. ✅
+
+### 8.967 order_book_manager: update_bid/ask is O(N) per update — Low
+
+**Файл:** `order_book_manager.h:75-101`
+
+```cpp
+bool update_bid(double price, double quantity, uint64_t order_count = 0) noexcept {
+    // Find insertion point (bids sorted descending)
+    size_t i = 0;
+    while (i < bid_count_ && bids_[i].price > price)
+        ++i;
+    // ...
+    for (size_t j = bid_count_; j > i; --j) {
+        bids_[j] = bids_[j - 1];
+    }
+```
+
+Both finding the insertion point (linear scan) and shifting elements (O(N) memmove) are O(N) where N = bid_count_. With 200 levels and 1000 updates/sec, that's 200K comparisons/sec. For HFT, this may be too slow. A sorted map (e.g., `std::map<double, PriceLevel>`) would be O(log N) but allocates on insert. A better approach: use a hash map for lookup + sorted array for best-N access.
+
+**Фикс:** Use binary search for insertion point (O(log N)), keep shift O(N) but reduce constant. Or use a hybrid data structure.
+
+### 8.968 order_book_manager: no validation that bids < asks — Low
+
+**Файл:** `order_book_manager.h:258-260`
+
+```cpp
+bool is_crossed() const noexcept {
+    return bid_count_ > 0 && ask_count_ > 0 && best_bid() >= best_ask();
+}
+```
+
+`is_crossed()` detects the crossed state but doesn't prevent it. If exchange sends a bad update that crosses the book, the manager accepts it silently. Downstream strategies using `mid_price()` will get a negative or zero spread, leading to incorrect signals.
+
+**Фикс:** Reject updates that would cross the book, or log a warning.
+
+### 8.969 hft-trade-bot/src/market_data/candle_aggregator.h: Candle Aggregator — ✅ Good
+
+**Файл:** `hft-trade-bot/src/market_data/candle_aggregator.h` (146 lines)
+
+- **3 modes**: TIME, VOLUME, TICK — correct
+- **3 constructors**: One per mode — correct
+- **on_trade**: Updates OHLCV, checks bar close condition — correct
+- **emit_candle**: Invokes callback — correct
+- **flush**: Force-close current candle on shutdown — correct
+- **No heap allocations in hot path**: Correct (except callback which may allocate)
+- **`noexcept` on on_trade/flush/emit_candle**: Correct
+
+Good candle aggregator with 3 modes, OHLCV from ticks, flush on shutdown, and noexcept. ✅
+
+### 8.970 candle_aggregator: callback_ is std::function (heap-allocated) — Low
+
+**Файл:** `candle_aggregator.h:30, 135`
+
+```cpp
+using CandleCallback = std::function<void(const Candle&)>;
+// ...
+CandleCallback callback_;
+```
+
+`std::function` may heap-allocate if the callable is too large for SBO (small buffer optimization). If the callback captures large state, each `emit_candle()` call may trigger heap access. The callback is set once at construction, so the allocation is not in the hot path — but the callback invocation may touch cold memory.
+
+**Фикс:** Use a function pointer + context pointer, or template the callback type.
+
+### 8.971 candle_aggregator: no handling of out-of-order ticks — Low
+
+**Файл:** `candle_aggregator.h:52, 81`
+
+```cpp
+void on_trade(uint64_t timestamp_ns, double price, double quantity) noexcept {
+    // ...
+    case CandleMode::TIME:
+        should_close = (timestamp_ns - bar_start_ns_) >= interval_ns_;
+```
+
+If a tick arrives with a timestamp earlier than `bar_start_ns_` (e.g., due to network reordering), the time check `(timestamp_ns - bar_start_ns_) >= interval_ns_` may underflow (unsigned subtraction) or produce a negative result (signed). The candle may never close, or close prematurely.
+
+**Фикс:** Check `timestamp_ns >= bar_start_ns_` before comparison. Drop or queue out-of-order ticks.
+
+### 8.972 hft-trade-bot/src/market_data/trade_handler.h: Trade Handler — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/market_data/trade_handler.h` (213 lines)
+
+- **Aggressor detection**: `is_buyer_maker` → sell/buy aggressor — correct
+- **Rolling VWAP**: O(1) using incremental sums — correct
+- **Rolling volume stats**: O(1) mean and std using incremental sums — correct
+- **Large trade detection**: > 3σ from rolling mean — correct
+- **Rolling window**: Ring buffer with `MAX_WINDOW=4096` — correct
+- **Session stats**: buy/sell volume, trade counts — correct
+- **reset_session**: Clears all stats — correct
+- **No heap allocations**: All stack-allocated — correct
+- **`noexcept` on all methods**: Correct
+
+Excellent trade handler with aggressor detection, O(1) rolling VWAP/stats, large trade detection, ring buffer, and noexcept. ✅
+
+### 8.973 trade_handler: rolling_vol_sum_ can go negative — Low
+
+**Файл:** `trade_handler.h:60-63`
+
+```cpp
+if (write_idx_ >= window_size_) {
+    const auto& old = rolling_trades_[w_slot];
+    rolling_vol_sum_ -= old.quantity;
+    rolling_notional_sum_ -= old.price * old.quantity;
+}
+```
+
+Floating-point subtraction can accumulate errors. After 1M trades with window 1000, each subtracting ~0.1, the sum may drift by ~1e-10 × 1M = 1e-4. For VWAP calculation, this is negligible. But if `rolling_vol_sum_` goes slightly negative due to FP errors, `rolling_vwap()` returns 0.0 (line 118: `if (rolling_vol_sum_ <= 0.0) return 0.0`).
+
+**Фикс:** Use `std::max(0.0, rolling_vol_sum_)` in rolling_vwap, or use Kahan summation.
+
+### 8.974 hft-trade-bot/src/position/position_manager_v2.h: Position Manager V2 — ✅ Good
+
+**Файл:** `hft-trade-bot/src/position/position_manager_v2.h` (348 lines)
+
+- **PositionV2**: symbol, exchange, symbol_id, side, quantity, entry_price, realized/unrealized PnL, fees, leverage, margin, liq_price, timestamps — correct
+- **on_fill**: Open/add/reduce/close with weighted average entry — correct
+- **Spinlock**: `std::lock_guard<Spinlock>` for all operations — correct
+- **Atomic open count**: `open_positions_count_` with `fetch_add/fetch_sub` — correct
+- **Bitset**: `open_symbols_` for O(1) lookup by symbol_id — correct
+- **Name set**: `open_symbol_names_` for O(1) lookup by name — correct
+- **update_mark_prices**: Batch update from price map — correct
+- **check_sl_tp**: ATR-based SL/TP with configurable multipliers — correct
+- **check_margin_call**: Maintenance margin ratio check — correct
+- **reset**: Clears all state — correct
+- **Erase on close**: Removes stale entries from map — correct
+
+Good position manager v2 with weighted average entry, spinlock, atomic counter, bitset lookup, SL/TP, margin check, and erase on close. ✅
+
+### 8.975 position_manager_v2: on_fill creates std::string from string_view — Low
+
+**Файл:** `position_manager_v2.h:90`
+
+```cpp
+auto& pos = positions_[std::string(key_sv)];
+```
+
+Despite building a `string_view` from a stack buffer to "avoid heap allocation", the `unordered_map::operator[]` with `string_view` creates a temporary `std::string` for the lookup (since the map key type is `std::string`). This is a heap allocation in the hot path. C++20 adds `unordered_map::find(string_view)` with transparent comparator, but this code doesn't use it.
+
+**Фикс:** Use `std::unordered_map<std::string, PositionV2, StringHash, std::equal_to<>>` with transparent lookup.
+
+### 8.976 position_manager_v2: get_position without exchange is O(N) — Low
+
+**Файл:** `position_manager_v2.h:183`
+
+```cpp
+for (const auto& [key, pos] : positions_) {
+    if (pos.symbol == symbol) return pos;
+}
+```
+
+When `exchange` is empty, `get_position` iterates all positions to find by symbol. With 50 open positions, this is O(50) per call. If called on every tick (50 symbols × 1 tick/sec), that's 2500 iterations/sec.
+
+**Фикс:** Maintain a `symbol_to_key_` map for O(1) lookup without exchange.
+
+### 8.977 position_manager_v2: check_sl_tp uses hardcoded 1% ATR — Low
+
+**Файл:** `position_manager_v2.h:289-290`
+
+```cpp
+double sl_distance = pos.entry_price * 0.01 * stop_loss_mult; // 1% * mult
+double tp_distance = pos.entry_price * 0.01 * take_profit_mult;
+```
+
+SL/TP distances are hardcoded as 1% of entry price × multiplier. This doesn't account for volatility — BTC's 1% move is very different from SOL's 1% move. The comment says "ATR-based" but no ATR is passed in.
+
+**Фикс:** Pass ATR or volatility to `check_sl_tp` and use `atr * multiplier` instead of `entry_price * 0.01 * multiplier`.
+
+### 8.978 position_manager_v2: total_pnl acquires lock twice — Low
+
+**Файл:** `position_manager_v2.h:235`
+
+```cpp
+double total_pnl() const noexcept { return total_unrealized_pnl() + total_realized_pnl(); }
+```
+
+`total_pnl()` calls `total_unrealized_pnl()` and `total_realized_pnl()`, each acquiring the spinlock separately. Between the two calls, a fill may change both values, causing inconsistency. Also, 2 lock/unlock cycles instead of 1.
+
+**Фикс:** Add a single `total_pnl_locked()` that acquires lock once and sums both.
+
+### 8.979 hft-trade-bot/src/persistence/mapped_persistence.h: Mapped Persistence — ✅ Good
+
+**Файл:** `hft-trade-bot/src/persistence/mapped_persistence.h` (372 lines)
+
+- **Memory-mapped**: mmap for ultra-fast state recovery — correct
+- **3 structs**: MappedPosition (128B), MappedAccount (128B), MappedHeader (128B) — correct
+- **Magic + version**: `MAPPED_MAGIC = 0x48465431`, `MAPPED_VERSION = 1` — correct
+- **MAX_POSITIONS=64**: Fixed capacity — correct
+- **save_state**: mmap + write header/account/positions + msync(MS_ASYNC) — correct
+- **load_state**: mmap + validate magic + copy data — correct
+- **snapshot_atomic**: Write to temp file + rename — correct
+- **Cross-platform**: Windows CreateFileMapping + POSIX mmap — correct
+- **Mutex**: `std::lock_guard<std::mutex>` for save/load — correct
+
+Good mapped persistence with mmap, magic validation, atomic snapshot (temp+rename), cross-platform, and mutex. ✅
+
+### 8.980 mapped_persistence: save_state mmaps/munmaps per call — Low
+
+**Файл:** `mapped_persistence.h:103-194`
+
+Each `save_state()` call opens the file, sets file size, mmaps, writes, msyncs, munmaps, and closes the file descriptor. This is expensive — each call involves 2 system calls (open + close) + 2 mmap operations + 1 msync. For periodic saves (e.g., every 1s), this adds ~1ms of overhead per save.
+
+**Фикс:** Keep the mapping persistent (mmap once at init, write + msync per save). Use `snapshot_atomic` for crash safety.
+
+### 8.981 mapped_persistence: no version migration on load — Low
+
+**Файл:** `mapped_persistence.h:241-251`
+
+```cpp
+if (header->magic != MAPPED_MAGIC) {
+    spdlog::warn("[MappedPersist] Invalid magic — ignoring");
+    return result;
+}
+```
+
+The loader checks magic but not version. If `MAPPED_VERSION` is bumped (e.g., struct layout changes), the loader will read old-format data with new-format structs, causing silent data corruption.
+
+**Фикс:** Check `header->version == MAPPED_VERSION`. If mismatch, log warning and return empty state.
+
+### 8.982 mapped_persistence: unmap_all is a no-op — Info
+
+**Файл:** `mapped_persistence.h:361-363`
+
+```cpp
+void unmap_all() {
+    // Nothing to unmap — we mmap/munmap per operation
+}
+```
+
+`unmap_all()` is called in the destructor but does nothing. Since each operation mmaps/munmaps independently, there's nothing to clean up. This is correct but misleading — the method should be removed or the destructor should not call it.
+
+**Reduction potential:** ~5 lines. Remove `unmap_all()` and its call in destructor.
+
+### 8.983 hft-trade-bot/src/fix/fix_session.h: FIX Session — ✅ Good
+
+**Файл:** `hft-trade-bot/src/fix/fix_session.h` (294 lines)
+
+- **State machine**: DISCONNECTED → CONNECTING → LOGGED_IN → LOGGING_OUT — correct
+- **CAS state transitions**: `compare_exchange_strong` for logon/logout — correct
+- **Sequence numbers**: Persistent (file-based), atomic, saved on every send — correct
+- **Gap detection**: ResendRequest on incoming seq gap — correct
+- **Heartbeat**: Background thread with condition variable wake — correct
+- **TestRequest**: Responds with Heartbeat containing same TestReqID — correct
+- **ResendRequest**: Sends SequenceReset with GapFillFlag — correct
+- **Timeout check**: `check_timeout()` compares elapsed > heart_bt_int * 2 — correct
+- **Destructor**: Logout + stop heartbeat + save seq — correct
+
+Good FIX session with state machine, CAS transitions, persistent seq numbers, gap detection, heartbeat thread, TestRequest handling, and timeout check. ✅
+
+### 8.984 fix_session: save_seq_nums on every message — Low
+
+**Файл:** `fix_session.h:75, 113, 118, 146, 166, 186, 198, 240`
+
+```cpp
+save_seq_nums(); // Called after every send and every receive
+```
+
+`save_seq_nums()` opens the file, writes two integers, and closes it — 2 system calls (open + close) + 1 write per message. With 100 messages/sec, that's 300 system calls/sec just for seq persistence. The file is also not fsync'd, so the OS may not flush to disk for seconds.
+
+**Фикс:** Keep the file open (open once at init, write + flush per save). Or batch saves (save every N messages or every T seconds).
+
+### 8.985 fix_session: no password redaction in logon — Low
+
+**Файл:** `fix_session.h:58, 72`
+
+```cpp
+bool logon(const std::string& username = "", const std::string& password = "", ...) {
+    auto msg = FixEncoder::build_logon(..., password.c_str(), ...);
+```
+
+The password is passed to `build_logon` and sent in the FIX message. If `build_logon` logs the message at DEBUG level (or if the raw FIX message is captured by a sniffer), the password is exposed. Same issue as the Python `fix_client.py` (R907).
+
+**Фикс:** Redact tag 554 (Password) in any logging. Use TLS for transport.
+
+### 8.986 hft-trade-bot/src/execution/order_executor.h: Order Executor — ✅ Good
+
+**Файл:** `hft-trade-bot/src/execution/order_executor.h` (231 lines)
+
+- **WebSocket**: websocketpp client with asio — correct
+- **Reconnection**: Exponential backoff (1s → 30s max) with detached thread — correct
+- **Manual JSON serialization**: snprintf to stack buffer, avoids nlohmann/json heap alloc — correct
+- **submit_order**: Signal + OrderTypeSelector + manual JSON — correct
+- **close_position**: Manual JSON — correct
+- **execute_arbitrage**: Buy + sell on different exchanges — correct
+- **disconnect**: Close + join thread — correct
+- **Atomic connected_ and should_reconnect_**: Correct
+
+Good order executor with websocketpp, exponential backoff, manual JSON (no heap alloc), arbitrage execution, and atomic state. ✅
+
+### 8.987 order_executor: detached reconnect thread race — Medium
+
+**Файл:** `order_executor.h:57-63`
+
+```cpp
+std::thread([this, delay]() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+    if (should_reconnect_) {
+        if (ws_thread_.joinable()) ws_thread_.join();
+        do_connect();
+    }
+}).detach();
+```
+
+The reconnect thread is detached. If the `OrderExecutor` is destroyed while the reconnect thread is sleeping, the thread will access a dangling `this` pointer after waking up. `should_reconnect_` is set to false in `disconnect()`, but the thread may already be past that check. Also, `ws_thread_.join()` from within a detached thread that references `this` is unsafe if `disconnect()` is also joining `ws_thread_` concurrently.
+
+**Фикс:** Don't detach. Keep the reconnect thread as a member and join it in `disconnect()`. Or use a timer on the asio io_context instead of a separate thread.
+
+### 8.988 order_executor: snprintf buffer overflow risk — Low
+
+**Файл:** `order_executor.h:108-116`
+
+```cpp
+char buf[512];
+int n = std::snprintf(buf, sizeof(buf),
+    "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+    "\"side\":\"%s\",\"quantity\":%.8f,\"order_type\":\"%s\","
+    "\"stop_loss\":%.2f,\"take_profit\":%.2f",
+    exchange_id_.c_str(), signal.symbol.c_str(), ...);
+```
+
+If `exchange_id_` or `signal.symbol` are very long (e.g., 200 chars each), the snprintf will truncate at 512 bytes. The code checks `n < sizeof(buf) - 32` before appending price (line 118), but if the initial snprintf is already truncated, the JSON is malformed. The order will be sent with truncated fields.
+
+**Фикс:** Check `n > 0 && n < static_cast<int>(sizeof(buf))` before sending. Use larger buffer or dynamic allocation for long symbols.
+
+### 8.989 order_executor: no fill confirmation callback — Low
+
+**Файл:** `order_executor.h:27-30`
+
+```cpp
+using MessageHandler = std::function<void(const json&)>;
+// ... but MessageHandler is never used
+```
+
+`MessageHandler` is defined but never set or invoked. The executor sends orders but never processes responses (fills, rejections, cancels). Without fill confirmation, the position manager doesn't know if orders were filled, and the bot can't track PnL.
+
+**Фикс:** Set `set_message_handler` on the websocketpp client to process fill/rejection messages. Invoke a callback to update position manager.
+
+### 8.990 Code reduction: position_manager_v2 total_* methods 6× pattern — Info
+
+**Файлы:** `position_manager_v2.h:217-262`
+
+`total_unrealized_pnl`, `total_realized_pnl`, `total_fees`, `total_margin`, `total_notional` all follow the same pattern: lock, iterate, sum a field. 5 methods × 5 lines = 25 lines of duplication.
+
+**Reduction potential:** ~15 lines. Template: `template<typename F> double sum_field(F&& getter) const noexcept`.
+
+### 8.991 Code reduction: mapped_persistence save_state and snapshot_atomic duplication — Info
+
+**Файлы:** `mapped_persistence.h:103-195, 282-355`
+
+`save_state` and `snapshot_atomic` share ~80% of the code (open file, set size, mmap, write header/account/positions, flush, unmap). Only difference: `snapshot_atomic` writes to temp + renames, `save_state` writes directly.
+
+**Reduction potential:** ~40 lines. Extract `write_to_mapped(void* mapped, positions, account)` method.
