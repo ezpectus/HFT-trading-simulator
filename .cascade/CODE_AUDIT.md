@@ -11892,3 +11892,227 @@ inline void copy_str(char (&dst)[N], const char* src) noexcept {
     dst[i] = '\0';
 }
 ```
+
+### 8.870 hft-trade-bot/src/strategies/momentum_breakout_v2.h: Momentum Breakout V2 — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/momentum_breakout_v2.h` (204 lines)
+
+- **EMA stack 9/21/50/200**: Multi-timeframe momentum — correct
+- **Volume confirmation**: `volume > 1.5× average` with ring buffer — correct
+- **ATR-based breakout**: `prev_high + ATR × 1.5` — correct
+- **ADX-gated**: Only trade when ADX > 25 — correct
+- **4 actions**: NONE, LONG, SHORT, EXIT — comprehensive
+- **No heap allocations**: InlineEMA, InlineADX, `std::array<double, 256>` — HFT-optimized
+- **Config validation**: Clamps `volume_avg_period` and `atr_period` — correct
+- **`noexcept` on hot path**: `on_candle()` — correct
+- **Confidence scoring**: Base 40 + EMA 15 + volume 15 + ADX 15 + ADX excess 15 = max 100 — correct
+- **EXIT signal**: EMA fast < mid + negative slope — correct
+
+Excellent momentum breakout with multi-timeframe EMA stack, volume confirmation, ATR breakout levels, ADX gating, and no heap allocations. ✅
+
+### 8.871 momentum_breakout_v2: no per-symbol state — Medium
+
+**Файл:** `hft-trade-bot/src/strategies/momentum_breakout_v2.h:20-201`
+
+Same issue as `mean_reversion_v2.h` (R802). All member state (EMA filters, ATR, ADX, volume buffer, candle count) is per-instance, not per-symbol. If the same `MomentumBreakoutV2` instance processes multiple symbols, EMA values from BTC contaminate ETH's signals. The EMA stack, ATR, ADX, and volume average are all shared across symbols.
+
+**Фикс:** Add a `PerSymbolState` struct (like recommended for mean_reversion_v2) or use one instance per symbol.
+
+### 8.872 momentum_breakout_v2: vol_buffer_ 256 doubles = 2KB per instance — Low
+
+**Файл:** `hft-trade-bot/src/strategies/momentum_breakout_v2.h:197`
+
+```cpp
+std::array<double, 256> vol_buffer_{};
+```
+
+256 doubles = 2KB per instance. With 50 symbols × 1 instance per symbol = 100KB. Not a problem, but the `volume_avg_period` defaults to 20 — only 20 slots are used. 236 slots (1.9KB) are wasted.
+
+**Фикс:** Use `std::array<double, 64>` (max realistic `volume_avg_period`).
+
+### 8.873 hft-trade-bot/src/strategies/statistical_arb_v2.h: Statistical Arb V2 — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/statistical_arb_v2.h` (252 lines)
+
+- **Engle-Granger 2-step**: OLS regression for cointegration — correct
+- **Kalman filter hedge ratio**: Adaptive, `KalmanFilter1D` from `mean_reversion_v2.h` — correct
+- **Z-score entry/exit**: entry_z=2.0, exit_z=0.5, stop_z=4.0 — correct
+- **5 actions**: NONE, LONG_SHORT, SHORT_LONG, CLOSE, STOP — comprehensive
+- **No heap allocations**: `std::array<double, 1024>` × 3, `alignas(64)` — HFT-optimized
+- **Ring buffer for prices/spreads**: Power-of-2 MAX_WINDOW=1024 — correct
+- **OLS regression**: sum_x, sum_y, sum_xy, sum_xx — correct
+- **Z-score**: mean + std_dev, handles sd=0 — correct
+- **CorrelationMatrix**: 20×20, `find_pairs()` with threshold — useful
+- **Config validation**: Clamps `regression_window` — correct
+- **`reset()`**: Clears all state — correct
+
+Excellent statistical arbitrage with Engle-Granger cointegration, Kalman hedge ratio, z-score signals, and correlation matrix. ✅
+
+### 8.874 statistical_arb_v2: CorrelationMatrix::find_pairs allocates vector — Low
+
+**Файл:** `hft-trade-bot/src/strategies/statistical_arb_v2.h:235-244`
+
+```cpp
+std::vector<Pair> find_pairs(double threshold = 0.7) const noexcept {
+    std::vector<Pair> pairs;
+    // ...
+    return pairs;
+}
+```
+
+`find_pairs()` returns a `std::vector<Pair>` — heap allocation. Marked `noexcept` but `std::vector::push_back` can throw `std::bad_alloc`. If the vector throws, `std::terminate` is called (due to `noexcept`).
+
+**Фикс:** Pre-allocate a fixed-size array (max 190 pairs for 20 symbols) or remove `noexcept`.
+
+### 8.875 statistical_arb_v2: no per-pair state for CorrelationMatrix — Low
+
+**Файл:** `hft-trade-bot/src/strategies/statistical_arb_v2.h:210-249`
+
+`CorrelationMatrix` is a 20×20 static matrix. It doesn't track which symbols are at which indices — the caller must manage the index mapping. If the caller uses wrong indices, correlations are stored in wrong cells.
+
+**Фикс:** Add a symbol-to-index mapping or document that indices must be consistent.
+
+### 8.876 ai-signal-bot/src/communication/circuit_breaker.py: Circuit Breaker — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py` (138 lines)
+
+- **3 states**: CLOSED, OPEN, HALF_OPEN — correct
+- **Config dataclass**: failure_threshold=5, cooldown=60s, half_open_max_probes=1, success_threshold=2 — correct
+- **HALF_OPEN probe limiting**: `half_open_probes < half_open_max_probes` — correct (unlike C++ version R814)
+- **Success threshold**: 2 consecutive successes to close — correct
+- **Metrics**: total_trips, total_blocks — correct
+- **`state` property**: Auto-transitions OPEN → HALF_OPEN on cooldown expiry — clever
+- **`reset()`**: Force reset — correct
+- **`get_status()`**: Status dict for monitoring — correct
+
+Good circuit breaker with 3 states, HALF_OPEN probe limiting, success threshold, metrics, and auto-transition. Better than C++ version (R814) which allows multiple probes. ✅
+
+### 8.877 circuit_breaker.py: state property has side effect — Low
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py:47-54`
+
+```python
+@property
+def state(self) -> BreakerState:
+    if self._state == BreakerState.OPEN:
+        if time.time() - self._opened_at >= self.config.cooldown_seconds:
+            self._state = BreakerState.HALF_OPEN
+            self._half_open_probes = 0
+            logger.info("Circuit breaker: OPEN → HALF_OPEN (cooldown expired)")
+    return self._state
+```
+
+The `state` property has a side effect: it mutates `_state` and `_half_open_probes` and logs. Properties should be idempotent — calling `state` twice should not produce different behavior. But here, the first call transitions OPEN → HALF_OPEN, and the second call returns HALF_OPEN (no transition). The log message is only printed once, which is correct, but the mutation is unexpected for a property.
+
+**Фикс:** Use an explicit `check_transition()` method. Or document that `state` has side effects.
+
+### 8.878 circuit_breaker.py: not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py:34-45`
+
+Same issue as `helpers.py` CircuitBreaker (R824). `_consecutive_failures += 1` is not atomic in async context. Multiple coroutines calling `record_failure()` concurrently may lose increments.
+
+**Фикс:** Use `asyncio.Lock` or accept eventual consistency.
+
+### 8.879 Code reduction: 3 CircuitBreaker implementations — Info
+
+**Файлы:** `hft-trade-bot/src/utils/low_latency.h:359-413` + `ai-signal-bot/src/utils/helpers.py:145-176` + `ai-signal-bot/src/communication/circuit_breaker.py:34-137`
+
+Three CircuitBreaker implementations:
+1. C++ `low_latency.h` — atomic, HALF_OPEN allows multiple probes (R814)
+2. Python `helpers.py` — simple, not thread-safe (R824)
+3. Python `circuit_breaker.py` — most complete, HALF_OPEN probe limiting, success threshold, metrics
+
+The Python `circuit_breaker.py` is the best implementation. `helpers.py` CircuitBreaker should be removed and callers should use `circuit_breaker.py` instead.
+
+**Reduction potential:** ~30 lines (remove `helpers.py` CircuitBreaker).
+
+### 8.880 ai-signal-bot/src/communication/health_check.py: Health Aggregator — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py` (127 lines)
+
+- **Aggregates 3 services**: ai-signal-bot, exchange-simulator, hft-trade-bot — correct
+- **`asyncio.gather()`**: Concurrent health checks — correct (unlike `health_checks.py` R842!)
+- **3s timeout per service**: `aiohttp.ClientTimeout(total=3.0)` — correct
+- **3 health states**: healthy, degraded, unhealthy — correct
+- **Overall status logic**: all healthy → healthy, any unhealthy → unhealthy, else degraded — correct
+- **HTTP 503 for unhealthy**: K8s-ready — correct
+- **`/health` + `/healthz`**: Both endpoints — correct
+- **Error handling**: TimeoutError, ConnectionRefusedError, Exception — resilient
+- **`time.monotonic()`**: For latency measurement — correct (not `time.time()`)
+- **Clean start/stop**: AppRunner + TCPSite — correct
+
+Excellent health aggregator with concurrent checks, 3s timeout, 3 health states, K8s-ready HTTP codes, and resilient error handling. Better than `health_checks.py` which runs sequentially (R842). ✅
+
+### 8.881 health_check.py: creates new aiohttp.ClientSession per check — Low
+
+**Файл:** `ai-signal-bot/src/communication/health_check.py:53`
+
+```python
+async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3.0)) as session:
+    async with session.get(url) as resp:
+```
+
+A new `ClientSession` is created for each service check. `ClientSession` creation involves a connection pool, DNS resolver, and cookie storage — creating and destroying it per check is wasteful. With 3 services checked every 10s, that's 18 sessions/min.
+
+**Фикс:** Create one `ClientSession` in `__init__` or `start()`, reuse for all checks, close in `stop()`.
+
+### 8.882 ai-signal-bot/src/communication/metrics_server.py: Metrics Server — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/metrics_server.py` (136 lines)
+
+- **Prometheus text format**: No external deps — correct
+- **7 metrics**: 4 counters, 3 gauges — comprehensive
+- **`# HELP` + `# TYPE`**: Prometheus metadata — correct
+- **MetricsCollector**: record_signal_sent, record_signal_blocked, record_backtest, record_cb_trip, set_ws_clients, set_cb_state — correct
+- **MetricsServer**: asyncio.start_server, HTTP response — correct
+- **Clean start/stop**: asyncio server — correct
+- **Error handling**: ConnectionError, OSError — resilient
+- **`writer.close()` in finally**: Correct cleanup — correct
+
+Good metrics server with Prometheus text format, 7 metrics, no external deps, and clean lifecycle. ✅
+
+### 8.883 metrics_server: not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/communication/metrics_server.py:25-50`
+
+```python
+self._signals_sent = 0
+# ...
+def record_signal_sent(self) -> None:
+    self._signals_sent += 1
+```
+
+Same issue as tracker.py (R839). `_signals_sent += 1` is not atomic in async context. Multiple coroutines calling `record_signal_sent()` concurrently may lose increments.
+
+**Фикс:** Use `asyncio.Lock` or accept eventual consistency (counters are approximate).
+
+### 8.884 metrics_server: raw HTTP parsing — Low
+
+**Файл:** `ai-signal-bot/src/communication/metrics_server.py:109-127`
+
+```python
+async def _handle_connection(self, reader, writer):
+    await reader.readline()  # Request line
+    while True:
+        line = await reader.readline()
+        if line in (b"\r\n", b"\n", b""):
+            break
+    body = self.collector.render().encode("utf-8")
+    response = (
+        f"HTTP/1.1 200 OK\r\n"
+        # ...
+    ).encode() + body
+```
+
+Raw HTTP parsing with `readline()`. No method checking (GET/POST), no path checking (`/metrics` vs `/`), no header parsing. Any request to any path returns metrics. A POST to `/metrics` returns metrics too. Not a security issue (metrics are read-only), but it's not spec-compliant.
+
+**Фикс:** Use `aiohttp.web` for proper HTTP handling (like `health_check.py` does). Or at minimum, check the request path.
+
+### 8.885 Code reduction: duplicate CircuitBreaker in helpers.py and circuit_breaker.py — Info
+
+**Файлы:** `ai-signal-bot/src/utils/helpers.py:145-176` + `ai-signal-bot/src/communication/circuit_breaker.py:34-137`
+
+`helpers.py` has a simple CircuitBreaker (no HALF_OPEN, no metrics, no success threshold). `circuit_breaker.py` has a complete CircuitBreaker (3 states, probe limiting, success threshold, metrics, reset, get_status). The `helpers.py` version is a subset and should be removed.
+
+**Reduction potential:** ~30 lines.

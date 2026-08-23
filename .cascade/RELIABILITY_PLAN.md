@@ -1414,3 +1414,19 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R857 | ai-signal-bot/observability/logging.py | `logging.py` | ✅ Excellent | structlog, correlation IDs, console/JSON, contextvars, library noise suppression |
 | R858 | logging: _configured flag not thread-safe | `logging.py:28` | Low | Same race as tracing. Use threading.Lock |
 | R859 | Code reduction: set_symbol/set_reason/set_exchange 5× | `aligned_types.h` | Info | Template copy_str. ~25 lines |
+| R860 | hft-trade-bot/strategies/momentum_breakout_v2.h | `momentum_breakout_v2.h` | ✅ Excellent | EMA 9/21/50/200, volume confirm, ATR breakout, ADX-gated, no heap alloc, noexcept |
+| R861 | momentum_breakout_v2: no per-symbol state | `momentum_breakout_v2.h:20` | Medium | Same as mean_reversion_v2. EMA/ATR/ADX/volume shared. Per-symbol state |
+| R862 | momentum_breakout_v2: vol_buffer_ 2KB per instance | `momentum_breakout_v2.h:197` | Low | 256 doubles, only 20 used. Use 64 |
+| R863 | hft-trade-bot/strategies/statistical_arb_v2.h | `statistical_arb_v2.h` | ✅ Excellent | Engle-Granger, Kalman hedge, z-score, CorrelationMatrix, no heap alloc, alignas(64) |
+| R864 | statistical_arb_v2: find_pairs allocates vector | `statistical_arb_v2.h:235` | Low | noexcept + push_back = terminate. Pre-allocate or remove noexcept |
+| R865 | statistical_arb_v2: CorrelationMatrix no index mapping | `statistical_arb_v2.h:210` | Low | Caller must manage indices. Add symbol-to-index |
+| R866 | ai-signal-bot/communication/circuit_breaker.py | `circuit_breaker.py` | ✅ Good | 3 states, HALF_OPEN probe limiting, success threshold, metrics, auto-transition |
+| R867 | circuit_breaker.py: state property has side effect | `circuit_breaker.py:47` | Low | Property mutates _state. Use explicit check_transition() |
+| R868 | circuit_breaker.py: not thread-safe | `circuit_breaker.py:34` | Low | _consecutive_failures += 1 not atomic. Use asyncio.Lock |
+| R869 | Code reduction: 3 CircuitBreaker implementations | 3 files | Info | helpers.py CB is subset. Remove, use circuit_breaker.py. ~30 lines |
+| R870 | ai-signal-bot/communication/health_check.py | `health_check.py` | ✅ Excellent | asyncio.gather concurrent, 3s timeout, 3 states, K8s-ready, time.monotonic |
+| R871 | health_check.py: new ClientSession per check | `health_check.py:53` | Low | Wasteful. Reuse session, close in stop() |
+| R872 | ai-signal-bot/communication/metrics_server.py | `metrics_server.py` | ✅ Good | Prometheus text format, 7 metrics, no deps, clean lifecycle |
+| R873 | metrics_server: not thread-safe | `metrics_server.py:25` | Low | _signals_sent += 1 not atomic. Use asyncio.Lock |
+| R874 | metrics_server: raw HTTP parsing | `metrics_server.py:109` | Low | No method/path check. Use aiohttp.web or check path |
+| R875 | Code reduction: duplicate CB helpers.py + circuit_breaker.py | 2 files | Info | helpers.py CB is subset. Remove. ~30 lines |

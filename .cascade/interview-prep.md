@@ -5301,3 +5301,155 @@ inline Side string_to_side(const std::string& s) {
 ```
 
 **Разница:** The bad code treats any non-exact-"BUY" string as SELL. This is a silent default — no error, no warning, no log. Common inputs like "Buy" (mixed case), "buy" (lowercase), "BUY " (trailing space), or "buy\n" (newline from file) all silently become SELL. The user configures BUY, the system sends SELL — a wrong-direction trade. With 1000 users × 1 BTC × 5% price move, that's $10M in wrong-direction losses. The audit trail shows config "Buy" but order SELL — clear bug, legal liability. The good code normalizes the input (uppercase + strip whitespace) for case-insensitive comparison, and throws `std::invalid_argument` for truly unknown values. "Buy" → BUY (case-insensitive), "buy " → BUY (whitespace stripped), "HOLD" → exception → config validation catches it at startup → bot doesn't start with wrong config. No silent defaults, no wrong-direction trades, no $10M losses. The cost is 5 lines of normalization code. The benefit is zero wrong-direction trades from typos, case differences, or whitespace. This is a classic example of a silent default bug: the developer chose a "safe" default (SELL) instead of raising an error, but in trading, a wrong direction is worse than no trade at all. The principle: never silently default on safety-critical fields — throw, log, and fail fast.
+
+---
+
+## Bad vs Good: noexcept + vector push_back = std::terminate (C++)
+
+### ❌ Bad Code
+```cpp
+class CorrelationMatrix {
+  public:
+    static constexpr size_t MAX_SYMBOLS = 20;
+
+    struct Pair {
+        size_t i;
+        size_t j;
+        double correlation;
+    };
+
+    // Find highly correlated pairs (|corr| > threshold)
+    std::vector<Pair> find_pairs(double threshold = 0.7) const noexcept {
+        std::vector<Pair> pairs;
+        for (size_t i = 0; i < MAX_SYMBOLS; ++i) {
+            for (size_t j = i + 1; j < MAX_SYMBOLS; ++j) {
+                if (std::abs(matrix_[i][j]) >= threshold) {
+                    pairs.push_back({i, j, matrix_[i][j]});  // ← can throw bad_alloc
+                }
+            }
+        }
+        return pairs;
+    }
+
+  private:
+    std::array<std::array<double, MAX_SYMBOLS>, MAX_SYMBOLS> matrix_{};
+};
+
+// Scenario: HFT bot running under memory pressure
+// 50 symbols, 5m candles, 1000 users
+//
+// t=0:    Bot starts, memory is tight (8GB used, 2GB free)
+// t=10m:  find_pairs() called for correlation scan
+//         pairs vector starts empty, push_back for each correlated pair
+//         190 pairs (20×19/2), each push_back may reallocate
+//         After ~15 push_backs, vector reallocates to capacity 32
+//         Allocation request: 32 × 24 bytes = 768 bytes
+//         BUT: memory is fragmented, allocator throws std::bad_alloc
+//
+// What happens?
+// 1. push_back throws std::bad_alloc
+// 2. find_pairs is marked noexcept
+// 3. noexcept means: "I promise this function will not throw"
+// 4. When a noexcept function throws, C++ calls std::terminate()
+// 5. std::terminate() calls std::abort() (no cleanup, no destructors)
+// 6. Process dies instantly — no stack unwinding, no RAII cleanup
+//
+// With 1000 users:
+// - 1000 bots all call find_pairs() at the same time (same 5m candle boundary)
+// - Memory pressure is system-wide (all bots share the machine)
+// - One bot's bad_alloc → std::terminate → abort
+// - No graceful shutdown, no position closing, no order cancellation
+// - Open positions are left exposed — no stop-loss monitoring
+// - If BTC drops 5% during the crash: 1000 users × $10K × 5% = $500K
+// - No cleanup means: SHM segments leaked, sockets left open, DB connections not closed
+// - Other bots may fail too (shared resources in inconsistent state)
+// - Recovery requires full restart of all 1000 bots
+// - Downtime: 5-10 minutes for restart + position reconciliation
+// - Total loss: $500K (unprevented losses) + $50K (downtime costs)
+```
+
+**What's wrong:**
+- `noexcept` on a function that calls `push_back` — `push_back` can throw `std::bad_alloc`
+- When `noexcept` function throws, `std::terminate()` is called — no stack unwinding, no RAII cleanup
+- `std::terminate()` → `std::abort()` — process dies instantly
+- No graceful shutdown: open positions left exposed, no order cancellation, no stop-loss monitoring
+- SHM segments leaked, sockets left open, DB connections not closed
+- With 1000 users under memory pressure: $500K in unprevented losses + $50K downtime costs
+- The developer added `noexcept` to avoid exception overhead, but created a crash-on-OOM bug
+
+### ✅ Good Code
+```cpp
+class CorrelationMatrix {
+  public:
+    static constexpr size_t MAX_SYMBOLS = 20;
+    static constexpr size_t MAX_PAIRS = MAX_SYMBOLS * (MAX_SYMBOLS - 1) / 2;  // 190
+
+    struct Pair {
+        size_t i;
+        size_t j;
+        double correlation;
+    };
+
+    // Option A: Return fixed-size array (no heap allocation, no throw)
+    struct PairResult {
+        std::array<Pair, MAX_PAIRS> pairs{};
+        size_t count{0};
+    };
+
+    PairResult find_pairs(double threshold = 0.7) const noexcept {
+        PairResult result;
+        for (size_t i = 0; i < MAX_SYMBOLS; ++i) {
+            for (size_t j = i + 1; j < MAX_SYMBOLS; ++j) {
+                if (std::abs(matrix_[i][j]) >= threshold) {
+                    if (result.count < MAX_PAIRS) {
+                        result.pairs[result.count] = {i, j, matrix_[i][j]};
+                        ++result.count;
+                    }
+                }
+            }
+        }
+        return result;  // No heap allocation, truly noexcept
+    }
+
+    // Option B: Remove noexcept and let caller handle bad_alloc
+    // std::vector<Pair> find_pairs(double threshold = 0.7) const {
+    //     std::vector<Pair> pairs;
+    //     pairs.reserve(MAX_PAIRS);  // Pre-allocate, no reallocation
+    //     for (size_t i = 0; i < MAX_SYMBOLS; ++i) {
+    //         for (size_t j = i + 1; j < MAX_SYMBOLS; ++j) {
+    //             if (std::abs(matrix_[i][j]) >= threshold) {
+    //                 pairs.push_back({i, j, matrix_[i][j]});
+    //             }
+    //         }
+    //     }
+    //     return pairs;
+    // }
+
+  private:
+    std::array<std::array<double, MAX_SYMBOLS>, MAX_SYMBOLS> matrix_{};
+};
+
+// Scenario: HFT bot running under memory pressure
+// 50 symbols, 5m candles, 1000 users
+//
+// t=10m:  find_pairs() called for correlation scan
+//         Option A: Uses stack-allocated std::array<Pair, 190>
+//         No heap allocation, no bad_alloc possible
+//         Truly noexcept — safe
+//
+// Even under extreme memory pressure:
+// - No std::bad_alloc (no heap allocation)
+// - No std::terminate (noexcept is honest)
+// - No crash, no abort
+// - Bot continues running
+// - Positions are monitored, stop-losses are active
+// - SHM segments, sockets, DB connections are clean
+//
+// With 1000 users:
+// - 1000 bots all call find_pairs() at the same time
+// - No heap allocation = no memory pressure from find_pairs
+// - No crash, no downtime, no $500K losses
+// - Stack usage: 190 × 24 bytes = 4.5KB — well within stack limits
+```
+
+**Разница:** The bad code marks `find_pairs()` as `noexcept` but calls `push_back` inside, which can throw `std::bad_alloc` under memory pressure. When a `noexcept` function throws, C++ calls `std::terminate()` → `std::abort()` — the process dies instantly with no stack unwinding, no RAII cleanup, no graceful shutdown. Open positions are left exposed, stop-losses are not monitored, SHM segments are leaked, sockets and DB connections are not closed. With 1000 users under memory pressure (all calling `find_pairs()` at the same candle boundary), one bot's `bad_alloc` → `terminate` → `abort` → $500K in unprevented losses + $50K downtime costs. The developer added `noexcept` to eliminate exception overhead, but created a crash-on-OOM bug — the function is not actually `noexcept`-safe. The good code uses a fixed-size `std::array<Pair, 190>` (stack-allocated, no heap allocation) and returns a `PairResult` struct with a count. No `push_back`, no `bad_alloc`, no `terminate`. The function is truly `noexcept` — it cannot throw. The cost is 4.5KB of stack (190 × 24 bytes) — well within stack limits. The benefit is zero crash risk from memory pressure, graceful operation under stress, and no $550K in losses. This is a classic example of a `noexcept` misuse: the developer promised "this function will not throw" but the function calls operations that can throw. The principle: `noexcept` is a contract, not an optimization — only mark functions `noexcept` when they are truly exception-safe (no heap allocation, no throwing operations). In HFT systems with 1000 users, a single `noexcept` misuse can cause $550K in losses.
