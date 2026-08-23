@@ -13925,3 +13925,426 @@ All 4 methods follow: `with closing(self._conn()) as conn: cursor = conn.execute
 `snapshot()` copies 11 fields individually from `get(Metric::...)`. This is verbose but necessary since there's no reflection in C++. Could use a loop with an enum-to-field mapping, but that would be more complex.
 
 **Reduction potential:** ~5 lines. Not worth the complexity.
+
+### 8.1016 ai-signal-bot/src/communication/circuit_breaker.py: Circuit Breaker — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/circuit_breaker.py` (138 lines)
+
+- **3-state machine**: CLOSED → OPEN → HALF_OPEN → CLOSED — correct
+- **Configurable**: failure_threshold=5, cooldown=60s, half_open_max_probes=1, success_threshold=2 — correct
+- **state property**: Auto-transitions OPEN→HALF_OPEN on cooldown expiry — correct
+- **allow_signal**: CLOSED=True, OPEN=False+blocks, HALF_OPEN=limited probes — correct
+- **record_success/record_failure**: State transitions with counters — correct
+- **reset**: Force CLOSED — correct
+- **get_status**: Dict for monitoring — correct
+
+Good circuit breaker with 3-state machine, configurable thresholds, auto-transition, and status reporting. ✅
+
+### 8.1017 circuit_breaker: not thread-safe — Low
+
+**Файл:** `circuit_breaker.py:39-46, 72-85, 87-107`
+
+All state mutations (`_state`, `_consecutive_failures`, `_consecutive_successes`, `_half_open_probes`, `_total_trips`, `_total_blocks`) are plain Python attributes without any lock. If `allow_signal()` and `record_failure()` are called from different coroutines (e.g., signal handler + trade result handler), the state can be inconsistent. E.g., `allow_signal()` reads `self.state` (which may transition to HALF_OPEN), while `record_failure()` trips the breaker — the trip may be lost.
+
+**Фикс:** Use `asyncio.Lock` for state transitions, or ensure all calls are from the same event loop thread (which they likely are in asyncio, but the state property has a side effect of transitioning OPEN→HALF_OPEN which is not atomic with `allow_signal`).
+
+### 8.1018 circuit_breaker: state property has side effect — Low
+
+**Файл:** `circuit_breaker.py:48-54`
+
+```python
+@property
+def state(self) -> BreakerState:
+    if self._state == BreakerState.OPEN:
+        if time.time() - self._opened_at >= self.config.cooldown_seconds:
+            self._state = BreakerState.HALF_OPEN
+            self._half_open_probes = 0
+            logger.info("Circuit breaker: OPEN → HALF_OPEN (cooldown expired)")
+    return self._state
+```
+
+The `state` property has a side effect: it transitions OPEN→HALF_OPEN. This means every access to `self.state` (including from `is_closed`, `is_open`, `get_status`) may trigger a state transition and log message. If `get_status()` is called for monitoring every 5s, the log message "OPEN → HALF_OPEN" may be printed multiple times if the cooldown expires between calls but the state was already HALF_OPEN.
+
+Wait — actually no, once `_state` is set to `HALF_OPEN`, the `if self._state == BreakerState.OPEN` check fails, so it won't re-trigger. But the side effect in a property is still an anti-pattern — properties should be idempotent.
+
+**Фикс:** Extract `_maybe_transition()` method, call it from `allow_signal()` only.
+
+### 8.1019 ai-signal-bot/src/communication/ws_client.py: WebSocket Client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py` (215 lines)
+
+- **Encoding**: JSON (default), msgpack (optional), orjson (optional) — correct
+- **connect**: websockets.connect with ping_interval=10, compression, max_size=1MB — correct
+- **listen**: async for message, decode, process, callback — correct
+- **_process_message**: candles/snapshot, trading_state, error, welcome — correct
+- **submit_order**: Check connected + trading_active, send order — correct
+- **close_position**: Send close_position message — correct
+- **reconnect**: 5 attempts with exponential backoff (1s→30s) — correct
+- **candle_history**: deque(maxlen=200) per symbol — correct
+
+Good WebSocket client with encoding fallbacks, message processing, order submission, and reconnect. ✅
+
+### 8.1020 ws_client: listen has no reconnect loop — Medium
+
+**Файл:** `ws_client.py:99-121`
+
+```python
+async def listen(self) -> None:
+    if not self._ws:
+        logger.error("Not connected")
+        return
+    try:
+        async for message in self._ws:
+            # ...
+    except websockets.ConnectionClosed:
+        logger.warning("Connection closed by server")
+        self._connected = False
+```
+
+`listen()` exits on `ConnectionClosed` without calling `reconnect()`. The caller must detect the exit and call `reconnect()` manually. If the caller doesn't (e.g., if `listen()` is started as a background task), the bot will stop receiving market data silently. The `reconnect()` method exists but is never called automatically.
+
+**Фикс:** Wrap `listen()` in a reconnect loop: `while self._running: await self.listen(); await self.reconnect()`.
+
+### 8.1021 ws_client: submit_order has no confirmation — Low
+
+**Файл:** `ws_client.py:154-185`
+
+`submit_order()` sends the order message but doesn't wait for a confirmation/fill response. There's no order ID tracking, no timeout, no retry on failure. If the WebSocket send fails silently (e.g., connection dropped between send and server receive), the order is lost.
+
+**Фикс:** Track order IDs, wait for fill confirmation with timeout, retry on timeout.
+
+### 8.1022 ws_client: _process_message overwrites _latest_prices — Low
+
+**Файл:** `ws_client.py:139`
+
+```python
+self._latest_prices = data.get("prices", {})
+```
+
+`_latest_prices` is overwritten on every snapshot, not merged. If different snapshots provide prices for different exchanges, only the last snapshot's prices are kept. Previous exchange prices are lost.
+
+**Фикс:** `self._latest_prices.update(data.get("prices", {}))`.
+
+### 8.1023 ai-signal-bot/src/communication/shm_ring_buffer.py: SHM Ring Buffer (Python) — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py` (285 lines)
+
+- **SPSC lock-free**: head/tail atomics with cache-line alignment — correct
+- **Power-of-2 capacity**: Mask-based slot index — correct
+- **Cross-platform**: Windows (mmap tagname) + POSIX (/dev/shm) — correct
+- **Memory barrier**: FlushViewOfFile (Windows) / msync (POSIX) after head/tail write — correct
+- **try_push/try_pop**: O(1) non-blocking — correct
+- **bulk_push/bulk_pop**: Batch operations with single atomic update — correct
+- **size/empty/full**: Computed from head-tail — correct
+- **close/unlink**: Proper cleanup — correct
+- **Context manager + __del__**: RAII — correct
+- **Struct definitions**: Signal (32B), Fill (28B), MarketSnapshot (28B) matching C++ layout — correct
+
+Excellent SHM ring buffer with SPSC lock-free, cache-line alignment, memory barriers, cross-platform, bulk ops, and RAII. ✅
+
+### 8.1024 shm_ring_buffer: _mm_barrier called on every atomic write — Low
+
+**Файл:** `shm_ring_buffer.py:57-58`
+
+```python
+def _atomic_write_u64(mm, offset, value):
+    struct.pack_into('<Q', mm, offset, value)
+    _mm_barrier(mm)
+```
+
+Every `_atomic_write_u64` call triggers `_mm_barrier` (FlushViewOfFile or msync). This is a system call that flushes modified pages to the file. For `try_push`, this means 1 syscall per push. For `bulk_push`, only 1 syscall (head update only). On Windows, `FlushViewOfFile` is relatively fast (doesn't wait for disk), but it's still a kernel call. With 1000 pushes/sec, that's 1000 syscalls/sec.
+
+**Фикс:** Only flush head/tail, not data. Or use a lighter memory barrier ( `_mm_mfence` equivalent) and rely on mmap's natural visibility. The data doesn't need to be flushed to disk — it just needs to be visible to the other process via the shared mapping.
+
+### 8.1025 shm_ring_buffer: no validation on open — Low
+
+**Файл:** `shm_ring_buffer.py:146-163`
+
+When `create=False`, the code validates magic, capacity, and element_size. But it doesn't validate `total_size` — if the SHM segment was created with a different total_size (e.g., due to a different header size version), the mmap may map fewer bytes than expected, causing out-of-bounds access.
+
+**Фикс:** Validate `stored_total_size == total_size` before proceeding.
+
+### 8.1026 ai-signal-bot/src/observability/health_checks.py: Health Checks v2 — ✅ Good
+
+**Файл:** `ai-signal-bot/src/observability/health_checks.py` (221 lines)
+
+- **3 endpoints**: /health/live, /health/ready, /health/status — correct
+- **4 component checks**: WebSocket, TimescaleDB, Redis, Exchange — correct
+- **HealthStatus enum**: HEALTHY, DEGRADED, UNHEALTHY — correct
+- **ComponentHealth**: name, status, latency_ms, details, last_check — correct
+- **check_liveness**: uptime + PID — correct
+- **check_readiness**: Sequential 4 checks, overall status — correct
+- **create_health_endpoints**: aiohttp handlers with 503 on unhealthy — correct
+
+Good health checks with 3 endpoints, 4 component checks, status aggregation, and K8s-compatible status codes. ✅
+
+### 8.1027 health_checks: check_readiness runs sequentially — Medium
+
+**Файл:** `health_checks.py:85-100`
+
+```python
+async def check_readiness(self) -> dict[str, Any]:
+    components: list[ComponentHealth] = []
+    components.append(await self._check_ws())
+    components.append(await self._check_db())
+    components.append(await self._check_redis())
+    components.append(await self._check_exchange())
+```
+
+4 checks run sequentially. If DB is down (30s timeout), Redis and Exchange checks are delayed by 30s. K8s readiness probe has a default timeout of 1-3s, so the probe will time out and mark the pod as not ready, even if Redis and Exchange are healthy.
+
+**Фикс:** `await asyncio.gather(self._check_ws(), self._check_db(), self._check_redis(), self._check_exchange())`.
+
+### 8.1028 health_checks: no timeout on individual checks — Medium
+
+**Файл:** `health_checks.py:140-200`
+
+Each `_check_*` method has no timeout. If `self.db_client.get_health()` hangs (e.g., TCP connection stuck), the check will block indefinitely. Same for Redis `ping()` and exchange `is_trading_active`.
+
+**Фикс:** Wrap each check in `asyncio.wait_for(check, timeout=2.0)`.
+
+### 8.1029 health_checks: _signal_count/_order_count/_error_count not thread-safe — Low
+
+**Файл:** `health_checks.py:61-74`
+
+```python
+def record_signal(self) -> None:
+    self._last_signal_time = time.time()
+    self._signal_count += 1
+```
+
+`_signal_count`, `_order_count`, `_error_count` are plain integers. In asyncio (single-threaded), this is safe. But if `record_signal()` is called from a callback in a different thread (e.g., SHM consumer thread), the increment is not atomic.
+
+**Фикс:** Use `itertools.count()` or `threading.Lock`, or document that all calls must be from the event loop thread.
+
+### 8.1030 hft-trade-bot/src/core/bot_context.h: Bot Context — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/bot_context.h` (114 lines)
+
+- **SimExchange**: Delegates to SignalReceiver for market data — correct
+- **SymbolEntry**: symbol string + cstr pointer + id — correct
+- **ArbOpportunity**: symbol, buy/sell exchange, prices, spread, max_qty — correct
+- **BotContext**: Aggregates all subsystems (receiver, risk_mgr, pos_mgr, executor, engines, router, adaptive_selector, kill_switch, sys_monitor, health_server, SHM IPC, exchange adapters, signal queue, balance, arb lock, caches) — correct
+- **SPSCQueue<Signal, 16>**: Lock-free AI signal queue with mutex fallback — correct
+- **Spinlock arb_lock**: For arb opportunity — correct
+- **atomic<double> balance**: Thread-safe balance — correct
+
+Good bot context with all subsystems, lock-free queue, spinlock, and atomic balance. ✅
+
+### 8.1031 bot_context: prices_cache not thread-safe — Low
+
+**Файл:** `bot_context.h:107`
+
+```cpp
+std::unordered_map<std::string, double> prices_cache;
+```
+
+`prices_cache` is a plain `unordered_map` without any lock. If it's accessed from multiple threads (e.g., bot loop + SHM consumer thread), it's a data race. The `ai_signal_queue_mtx` protects the queue but not `prices_cache`.
+
+**Фикс:** Use a concurrent map, or protect with a lock, or ensure single-threaded access.
+
+### 8.1032 bot_context: candles_buf and ob_buf not thread-safe — Low
+
+**Файл:** `bot_context.h:108-109`
+
+```cpp
+std::vector<Candle>                     candles_buf;
+OrderBook                               ob_buf;
+```
+
+`candles_buf` and `ob_buf` are plain containers without locks. If they're used as scratch buffers from multiple threads, they're data races. Likely intended for single-threaded bot loop use only, but no documentation enforces this.
+
+**Фикс:** Document as bot-loop-only, or protect with locks.
+
+### 8.1033 hft-trade-bot/src/exchange/IExchange.h: Exchange Interface — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/exchange/IExchange.h` (43 lines)
+
+- **Abstract interface**: 11 pure virtual methods — correct
+- **DIP/SOLID**: Consumers depend on IExchange, not concrete adapters — correct
+- **Identity**: id(), maker_fee_bps(), taker_fee_bps(), estimated_latency_us() — correct
+- **Market data**: best_bid, best_ask, mid_price, bid_depth, ask_depth — correct
+- **Availability**: is_available(), record_toxic_event(), toxic_event_count(), reset_toxic_events() — correct
+- **Virtual destructor**: Correct
+
+Excellent clean exchange interface with DIP, 11 methods, and virtual destructor. ✅
+
+### 8.1034 hft-trade-bot/src/exchange/ExchangeBase.h: Exchange Base — ✅ Good
+
+**Файл:** `hft-trade-bot/src/exchange/ExchangeBase.h` (60 lines)
+
+- **Partial implementation**: id, fees, latency, toxic events — correct
+- **EWMA latency**: `current + (us - current) / 10` with CAS loop — correct
+- **Toxic event tracking**: Atomic counter — correct
+- **is_available()**: `toxic_count_ < 5` — correct (auto-disable after 5 toxic events)
+- **Protected members**: Correct
+
+Good exchange base with EWMA latency tracking, toxic event backoff, and atomic counters. ✅
+
+### 8.1035 ExchangeBase: is_available hardcodes threshold 5 — Low
+
+**Файл:** `ExchangeBase.h:49`
+
+```cpp
+bool is_available() const override { return toxic_count_.load(std::memory_order_relaxed) < 5; }
+```
+
+The toxic threshold is hardcoded to 5. Different exchanges may have different toxicity tolerances. Binance may tolerate 10 toxic events (high liquidity), while a smaller exchange may only tolerate 2.
+
+**Фикс:** Make threshold configurable: `ExchangeBase(id, maker_bps, taker_bps, toxic_threshold=5)`.
+
+### 8.1036 hft-trade-bot/src/ipc/shm_fill_producer.h: SHM Fill Producer — ✅ Good
+
+**Файл:** `hft-trade-bot/src/ipc/shm_fill_producer.h` (76 lines)
+
+- **C++ creates, Python opens**: `create=true` — correct
+- **push_fill**: Non-blocking try_push — correct
+- **push_fill convenience**: Fills FillMsg struct — correct
+- **push_fills bulk**: Batch push — correct
+- **pending**: Current buffer size — correct
+- **close + unlink**: RAII cleanup — correct
+- **init returns bool**: [[nodiscard]] — correct
+
+Good SHM fill producer with non-blocking push, bulk push, and RAII. ✅
+
+### 8.1037 shm_fill_producer: init catches exception silently — Low
+
+**Файл:** `shm_fill_producer.h:22-28`
+
+```cpp
+[[nodiscard]] bool init() {
+    try {
+        buffer_ = std::make_unique<ShmRingBuffer<FillMsg>>(shm_name_, capacity_, true);
+        return true;
+    } catch (const std::exception& e) {
+        return false;
+    }
+}
+```
+
+`init()` catches the exception and returns `false` without logging the error message. The caller knows init failed but not why (e.g., permission denied, segment exists, out of memory).
+
+**Фикс:** Log the exception: `spdlog::error("[ShmFillProducer] init failed: {}", e.what())`.
+
+### 8.1038 hft-trade-bot/src/ipc/shm_signal_consumer.h: SHM Signal Consumer — ✅ Good
+
+**Файл:** `hft-trade-bot/src/ipc/shm_signal_consumer.h` (79 lines)
+
+- **Dedicated thread**: Runs in background, polls SHM — correct
+- **Batch pop**: Inner while loop drains buffer — correct
+- **50μs sleep when empty**: Avoids 100% CPU — correct
+- **start/stop**: Atomic flag + thread join — correct
+- **try_pop_signal**: Non-blocking polling mode — correct
+- **pending**: Buffer size — correct
+- **RAII**: Destructor calls stop — correct
+
+Good SHM signal consumer with dedicated thread, batch pop, CPU-friendly sleep, and RAII. ✅
+
+### 8.1039 shm_signal_consumer: 50μs busy-poll wastes CPU — Low
+
+**Файл:** `shm_signal_consumer.h:66`
+
+```cpp
+std::this_thread::sleep_for(std::chrono::microseconds(50));
+```
+
+When the buffer is empty, the consumer sleeps 50μs then polls again. This means 20,000 polls/sec when idle. At 50 signals/sec (60s interval × 50 symbols / 60), the consumer does 20,000 polls to find 50 signals — 99.75% wasted polls. On a busy system, this consumes ~2-5% CPU.
+
+**Фикс:** Use exponential backoff: start at 50μs, double up to 1ms when empty, reset on signal received. Or use a condition variable / eventfd for signaling.
+
+### 8.1040 hft-trade-bot/src/ipc/shm_market_data.h: SHM Market Data — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_market_data.h` (177 lines)
+
+- **Latest-snapshot model**: Single-slot per symbol, latest wins — correct
+- **Seq-guarded lock-free**: seq increment before/after write, reader verifies — correct
+- **Cross-platform**: Windows (CreateFileMapping) + POSIX (shm_open) — correct
+- **write_snapshot**: Release ordering on seq stores — correct
+- **read_snapshot**: Acquire ordering on seq loads, copy, verify — correct
+- **write_price convenience**: Fills MarketSnapshotMsg — correct
+- **RAII**: Destructor unmaps + unlinks — correct
+- **Delete copy**: Correct
+
+Excellent SHM market data with seq-guarded lock-free, latest-wins, cross-platform, and RAII. ✅
+
+### 8.1041 shm_market_data: shm_open 0666 permissions — Low
+
+**Файл:** `shm_market_data.h:66, 73`
+
+```cpp
+fd_ = shm_open(shm_name_.c_str(), O_CREAT | O_RDWR, 0666);
+```
+
+SHM segment is created with 0666 (world read/write). Any process on the system can read or write to the SHM segment, potentially injecting fake market data or reading sensitive price information.
+
+**Фикс:** Use 0600 (owner only) or 0640 (owner + group).
+
+### 8.1042 ai-signal-bot/src/notification/notifier.py: Notifier — ✅ Good
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py` (334 lines)
+
+- **TelegramNotifier**: aiohttp ClientSession, send_alert, _poll_updates, command handling — correct
+- **DiscordNotifier**: aiohttp ClientSession, send_alert, _poll_messages, command handling — correct
+- **NotifierManager**: Multi-notifier management, start_all/stop_all/send_alert — correct
+- **AlertEvent**: Normalized event dataclass — correct
+- **create_notifier_from_env**: Environment variable setup — correct
+- **Shared aiohttp session**: Both notifiers create one session in start() — correct
+
+Good notifier with Telegram + Discord, shared sessions, command handling, and env setup. ✅
+
+### 8.1043 notifier: token in URL — Medium
+
+**Файл:** `notifier.py:104, 122`
+
+```python
+url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+url = f"https://api.telegram.org/bot{self.token}/getUpdates"
+```
+
+The Telegram bot token is embedded in the URL. If the HTTP request is logged (e.g., by aiohttp debug logging, proxy, or middleware), the token is exposed. Same for Discord:
+
+```python
+headers = {"Authorization": f"Bot {self.token}"}
+```
+
+The Discord token is in the Authorization header, which is better but still visible in debug logs.
+
+**Фикс:** Disable debug logging for HTTP requests. Use environment variables for tokens (already done via `create_notifier_from_env`). Consider using a secrets manager.
+
+### 8.1044 notifier: _poll_updates no rate limit on commands — Low
+
+**Файл:** `notifier.py:118-148`
+
+`_poll_updates` processes all updates in a batch. If a malicious user sends 100 /close_all commands in 1 second, all 100 will be processed, potentially causing 100 close_all operations. There's no rate limiting on command processing.
+
+**Фикс:** Add per-command rate limiting (e.g., max 1 command per 5 seconds per chat).
+
+### 8.1045 notifier: Discord _poll_messages polls REST API — Low
+
+**Файл:** `notifier.py:234-263`
+
+`_poll_messages` polls the Discord REST API every loop iteration with `limit=10` messages. There's no sleep between polls when the API returns 200 — the loop immediately polls again. This can hit Discord's rate limit (50 requests/sec global, 5/sec per channel). The 5-second sleep only happens on non-200 status.
+
+**Фикс:** Add `await asyncio.sleep(1)` after successful poll. Or use Discord Gateway (WebSocket) instead of REST polling.
+
+### 8.1046 notifier: send_alert sequential across notifiers — Low
+
+**Файл:** `notifier.py:308-310`
+
+```python
+async def send_alert(self, event: AlertEvent):
+    for n in self._notifiers:
+        await n.send_alert(event)
+```
+
+`send_alert` sends to each notifier sequentially. If Telegram takes 500ms and Discord takes 500ms, total alert time is 1s. During a market crash with 20 alerts, that's 20s of alert delivery time.
+
+**Фикс:** `await asyncio.gather(*[n.send_alert(event) for n in self._notifiers])`.
+
+### 8.1047 Code reduction: notifier Telegram/Discord _handle_command 2× pattern — Info
+
+**Файлы:** `notifier.py:150-164, 265-279`
+
+Both `TelegramNotifier._handle_command` and `DiscordNotifier._handle_command` are identical — 15 lines each. Same for `register_command`, `start`, `stop` (partially).
+
+**Reduction potential:** ~30 lines. Extract a `BaseNotifier` class with shared command handling.

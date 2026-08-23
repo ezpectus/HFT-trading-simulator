@@ -1560,3 +1560,35 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R1003 | order_manager: cid_erase re-insert can cascade O(N²) | `order_manager.h:344` | Low | Worst case O(N²). Tombstone or backward-shift deletion |
 | R1004 | Code reduction: db.py save_* 4× pattern | `db.py:84-148` | Info | Extract _execute(sql, params). ~20 lines |
 | R1005 | Code reduction: system_monitor snapshot() 11× field copy | `system_monitor.h:76` | Info | Not worth the complexity. ~5 lines |
+| R1006 | ai-signal-bot/communication/circuit_breaker.py | `circuit_breaker.py` | ✅ Good | 3-state machine configurable thresholds auto-transition status reporting |
+| R1007 | circuit_breaker: not thread-safe | `circuit_breaker.py:39` | Low | Plain attributes no lock. asyncio.Lock or single-thread |
+| R1008 | circuit_breaker: state property has side effect | `circuit_breaker.py:48` | Low | Property transitions OPEN→HALF_OPEN. Extract _maybe_transition() |
+| R1009 | ai-signal-bot/communication/ws_client.py | `ws_client.py` | ✅ Good | Encoding fallbacks message processing order submission reconnect |
+| R1010 | ws_client: listen has no reconnect loop | `ws_client.py:99` | Medium | Exits on ConnectionClosed without reconnect. Wrap in reconnect loop |
+| R1011 | ws_client: submit_order has no confirmation | `ws_client.py:154` | Low | No order ID tracking timeout retry. Track + wait + retry |
+| R1012 | ws_client: _process_message overwrites _latest_prices | `ws_client.py:139` | Low | Overwrite not merge. Use .update() |
+| R1013 | ai-signal-bot/communication/shm_ring_buffer.py | `shm_ring_buffer.py` | ✅ Excellent | SPSC lock-free cache-line aligned cross-platform bulk ops RAII |
+| R1014 | shm_ring_buffer: _mm_barrier on every atomic write | `shm_ring_buffer.py:57` | Low | 1 syscall per push. Only flush head/tail not data |
+| R1015 | shm_ring_buffer: no total_size validation on open | `shm_ring_buffer.py:146` | Low | OOB if size mismatch. Validate stored_total_size |
+| R1016 | ai-signal-bot/observability/health_checks.py | `health_checks.py` | ✅ Good | 3 endpoints 4 component checks status aggregation K8s 503 |
+| R1017 | health_checks: check_readiness runs sequentially | `health_checks.py:85` | Medium | DB down blocks Redis/Exchange. Use asyncio.gather |
+| R1018 | health_checks: no timeout on individual checks | `health_checks.py:140` | Medium | Hang indefinitely. Use asyncio.wait_for 2s |
+| R1019 | health_checks: counters not thread-safe | `health_checks.py:61` | Low | Plain int from other thread. Document or lock |
+| R1020 | hft-trade-bot/core/bot_context.h | `bot_context.h` | ✅ Good | All subsystems lock-free queue spinlock atomic balance |
+| R1021 | bot_context: prices_cache not thread-safe | `bot_context.h:107` | Low | Plain unordered_map. Lock or single-thread |
+| R1022 | bot_context: candles_buf ob_buf not thread-safe | `bot_context.h:108` | Low | Plain containers. Document as bot-loop-only |
+| R1023 | hft-trade-bot/exchange/IExchange.h | `IExchange.h` | ✅ Excellent | 11 pure virtual DIP/SOLID virtual destructor |
+| R1024 | hft-trade-bot/exchange/ExchangeBase.h | `ExchangeBase.h` | ✅ Good | EWMA latency CAS toxic backoff atomic counters |
+| R1025 | ExchangeBase: is_available hardcodes threshold 5 | `ExchangeBase.h:49` | Low | Not configurable. Make toxic_threshold constructor param |
+| R1026 | hft-trade-bot/ipc/shm_fill_producer.h | `shm_fill_producer.h` | ✅ Good | Non-blocking push bulk push RAII [[nodiscard]] |
+| R1027 | shm_fill_producer: init catches exception silently | `shm_fill_producer.h:22` | Low | No error message. Log e.what() |
+| R1028 | hft-trade-bot/ipc/shm_signal_consumer.h | `shm_signal_consumer.h` | ✅ Good | Dedicated thread batch pop 50μs sleep RAII |
+| R1029 | shm_signal_consumer: 50μs busy-poll wastes CPU | `shm_signal_consumer.h:66` | Low | 20000 polls/sec idle. Exponential backoff or eventfd |
+| R1030 | hft-trade-bot/ipc/shm_market_data.h | `shm_market_data.h` | ✅ Excellent | Seq-guarded lock-free latest-wins cross-platform RAII |
+| R1031 | shm_market_data: shm_open 0666 permissions | `shm_market_data.h:66` | Low | World R/W. Use 0600 or 0640 |
+| R1032 | ai-signal-bot/notification/notifier.py | `notifier.py` | ✅ Good | Telegram+Discord shared sessions command handling env setup |
+| R1033 | notifier: token in URL | `notifier.py:104` | Medium | Token in URL visible in logs. Disable debug logging |
+| R1034 | notifier: no rate limit on commands | `notifier.py:118` | Low | 100 /close_all in 1s. Add per-command rate limiting |
+| R1035 | notifier: Discord _poll_messages no sleep on 200 | `notifier.py:234` | Low | Hits Discord rate limit. Add asyncio.sleep(1) or use Gateway |
+| R1036 | notifier: send_alert sequential across notifiers | `notifier.py:308` | Low | 1s for 2 notifiers. Use asyncio.gather |
+| R1037 | Code reduction: notifier _handle_command 2× pattern | `notifier.py:150+265` | Info | Extract BaseNotifier. ~30 lines |

@@ -6355,3 +6355,209 @@ class WebSocketConnectionPool:
 ```
 
 **Разница:** The bad code holds `asyncio.Lock` during `await websockets.connect()` — a network I/O operation that takes 100-500ms. The lock is meant to protect the `_pool` dict (a microsecond mutation), but it's held for the entire duration of the WebSocket handshake. When 150 connections drop simultaneously during an exchange restart, 150 coroutines queue up on the lock. Each handshake takes 500ms, so the total reconnection time is 150 × 500ms = 75 seconds. During this time, no `release()` or `acquire()` calls can execute — signal handlers are blocked, connections can't be returned to the pool, and no signals can be sent or received. The bot misses 75 seconds of market data during a crash, costing $200K in missed opportunities. The good code splits `acquire()` into 3 phases: (1) try to reuse a pooled connection under lock (microseconds), (2) create a new connection outside lock (100-500ms, concurrent), (3) return the new connection directly (no pool insertion needed). All 150 handshakes execute concurrently — total reconnection time is 500ms, not 75 seconds. Signal handlers can `release()` and `acquire()` at any time — the lock is held only for microseconds. The cost is restructuring `acquire()` into 3 phases — 5 lines of code. The benefit is 150× faster reconnection, 0 blocking, and $200K preserved. This is a classic "lock scope too wide" anti-pattern: the developer wrapped the entire function body in `async with self._lock:` without considering that the lock only needs to protect the dict mutation, not the network I/O. The principle: in asyncio, never hold a lock across `await` network I/O — acquire the lock only for the critical section (dict/list mutation), release it before any `await` that may block. In a system with 1000 users, a 75-second blocking during reconnection can cause $200K in missed opportunities and 75 seconds of downtime for all users.
+
+---
+
+## Bad vs Good: Sequential Health Checks Without Timeouts (Python)
+
+### ❌ Bad Code
+```python
+class HealthChecker:
+    async def check_readiness(self) -> dict[str, Any]:
+        """Readiness probe — are all dependencies connected and working?"""
+        components: list[ComponentHealth] = []
+
+        # Check WebSocket
+        components.append(await self._check_ws())
+
+        # Check TimescaleDB
+        components.append(await self._check_db())
+
+        # Check Redis
+        components.append(await self._check_redis())
+
+        # Check exchange
+        components.append(await self._check_exchange())
+
+        # Determine overall status
+        statuses = [c.status for c in components]
+        if all(s == HealthStatus.HEALTHY for s in statuses):
+            overall = HealthStatus.HEALTHY
+        elif any(s == HealthStatus.UNHEALTHY for s in statuses):
+            overall = HealthStatus.UNHEALTHY
+        else:
+            overall = HealthStatus.DEGRADED
+
+        return {
+            "status": overall.value,
+            "components": [...],
+        }
+
+    async def _check_db(self) -> ComponentHealth:
+        start = time.time()
+        try:
+            if not self.db_client:
+                return ComponentHealth("timescaledb", HealthStatus.HEALTHY, 0, "not configured")
+
+            health = await self.db_client.get_health()  # ← NO TIMEOUT
+            latency = (time.time() - start) * 1000
+
+            if health.get("connected"):
+                return ComponentHealth("timescaledb", HealthStatus.HEALTHY, latency, ...)
+            else:
+                return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, latency, ...)
+        except (OSError, RuntimeError, KeyError, ValueError) as e:
+            return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, 0, str(e))
+
+# Scenario: Production HFT bot on Kubernetes with 1000 users
+# K8s readiness probe: timeout=3s, period=10s, failureThreshold=3
+#
+# Normal operation:
+# t=0:     K8s sends readiness probe → check_readiness()
+# t=0.001: _check_ws() → HEALTHY (0.5ms)
+# t=0.002: _check_db() → HEALTHY (1ms)
+# t=0.003: _check_redis() → HEALTHY (1ms)
+# t=0.004: _check_exchange() → HEALTHY (1ms)
+# t=0.005: Return 200 OK
+# Total: 5ms — fine
+#
+# Database network partition:
+# t=0:     K8s sends readiness probe → check_readiness()
+# t=0.001: _check_ws() → HEALTHY (0.5ms)
+# t=0.002: _check_db() → await db_client.get_health()
+#          ← TCP connection hanging (network partition)
+#          ← No timeout — waits forever
+# t=3.000: K8s probe timeout → marks pod as not ready
+# t=3.000: _check_redis() never executed
+# t=3.000: _check_exchange() never executed
+# t=3.000: Pod removed from service — 0 traffic
+#
+# But the bot is actually healthy!
+# - WebSocket: connected, receiving market data
+# - Redis: connected, caching signals
+# - Exchange: connected, trading active
+# Only the DB is down, but K8s doesn't know that because
+# the sequential checks never reached Redis or Exchange.
+#
+# K8s behavior:
+# - failureThreshold=3, period=10s
+# - 3 consecutive failures = 30s before pod is restarted
+# - But each probe hangs for 3s (timeout), so:
+#   - Probe 1: hangs 3s → fail
+#   - Probe 2: starts at t=10s, hangs 3s → fail
+#   - Probe 3: starts at t=20s, hangs 3s → fail
+#   - Pod restarted at t=23s
+#
+# During those 23s:
+# - 1000 users receive no signals
+# - 50 open positions unmonitored
+# - $500K in positions at risk (no SL/TP monitoring)
+# - If market crashes during 23s: $500K loss
+#
+# What if we had concurrent checks with timeouts?
+# - _check_db() times out after 2s → UNHEALTHY
+# - _check_redis() → HEALTHY (1ms)
+# - _check_exchange() → HEALTHY (1ms)
+# - Overall: DEGRADED (not UNHEALTHY)
+# - K8s returns 503 but pod stays alive
+# - Bot continues trading with cached data
+# - DB reconnects in background
+# - 0 users affected, 0 positions at risk
+```
+
+**What's wrong:**
+- 4 health checks run sequentially — each must complete before the next starts
+- No timeout on any check — a hanging dependency blocks all subsequent checks
+- K8s readiness probe times out (3s default) before all checks complete
+- Pod marked as not ready even when only 1 of 4 dependencies is down
+- Pod restart kills the bot — 1000 users lose signals, 50 positions unmonitored
+
+### ✅ Good Code
+```python
+class HealthChecker:
+    async def check_readiness(self) -> dict[str, Any]:
+        """Readiness probe — are all dependencies connected and working?"""
+        # Run all checks concurrently with per-check timeout
+        results = await asyncio.gather(
+            self._check_with_timeout("websocket", self._check_ws, timeout=2.0),
+            self._check_with_timeout("timescaledb", self._check_db, timeout=2.0),
+            self._check_with_timeout("redis", self._check_redis, timeout=2.0),
+            self._check_with_timeout("exchange", self._check_exchange, timeout=2.0),
+            return_exceptions=True,
+        )
+
+        components: list[ComponentHealth] = []
+        for result in results:
+            if isinstance(result, ComponentHealth):
+                components.append(result)
+            elif isinstance(result, asyncio.TimeoutError):
+                components.append(ComponentHealth("unknown", HealthStatus.UNHEALTHY, 2000, "timeout"))
+            else:
+                components.append(ComponentHealth("unknown", HealthStatus.UNHEALTHY, 0, str(result)))
+
+        # Determine overall status
+        statuses = [c.status for c in components]
+        if all(s == HealthStatus.HEALTHY for s in statuses):
+            overall = HealthStatus.HEALTHY
+        elif any(s == HealthStatus.UNHEALTHY for s in statuses):
+            overall = HealthStatus.UNHEALTHY
+        else:
+            overall = HealthStatus.DEGRADED
+
+        return {
+            "status": overall.value,
+            "components": [...],
+        }
+
+    async def _check_with_timeout(
+        self, name: str, check_fn: Callable, timeout: float = 2.0
+    ) -> ComponentHealth:
+        """Run a health check with a timeout. Returns UNHEALTHY on timeout."""
+        try:
+            return await asyncio.wait_for(check_fn(), timeout=timeout)
+        except asyncio.TimeoutError:
+            return ComponentHealth(name, HealthStatus.UNHEALTHY, timeout * 1000, "timeout")
+        except Exception as e:
+            return ComponentHealth(name, HealthStatus.UNHEALTHY, 0, str(e))
+
+# Scenario: Database network partition with 1000 users
+#
+# t=0:     K8s sends readiness probe → check_readiness()
+# t=0:     All 4 checks start CONCURRENTLY
+# t=0.001: _check_ws() → HEALTHY (0.5ms)
+# t=0.001: _check_redis() → HEALTHY (1ms)
+# t=0.001: _check_exchange() → HEALTHY (1ms)
+# t=0.002: _check_db() → await db_client.get_health()
+#          ← TCP connection hanging (network partition)
+# t=2.000: _check_db() times out → UNHEALTHY (2000ms, "timeout")
+# t=2.001: All 4 results available
+# t=2.001: Overall: UNHEALTHY (1 of 4 unhealthy)
+# t=2.001: Return 503 Service Unavailable
+#
+# K8s behavior:
+# - Pod marked as not ready — removed from service
+# - But pod is NOT restarted (liveness probe still passes)
+# - Bot continues running:
+#   - WebSocket: receiving market data ✅
+#   - Redis: caching signals ✅
+#   - Exchange: trading active ✅
+#   - DB: retrying connection in background
+# - DB reconnects at t=5s (network partition resolved)
+# - Next readiness probe at t=10s: all 4 HEALTHY → 200 OK
+# - Pod added back to service
+#
+# During the 10s degradation:
+# - 0 users affected (bot still trading)
+# - 0 positions at risk (SL/TP still monitored)
+# - 0 restarts (pod stays alive)
+# - $0 loss (market crash handled by risk manager)
+#
+# Total time for readiness check: 2s (max of all checks)
+# vs 3s+ with bad code (K8s timeout before completion)
+#
+# With 1000 users:
+# - Bad code: 23s downtime, $500K at risk, pod restart
+# - Good code: 10s degraded (no traffic), 0 downtime, 0 risk
+```
+
+**Разница:** The bad code runs 4 health checks sequentially with no per-check timeout. When the database has a network partition, `await self.db_client.get_health()` hangs indefinitely — TCP connection stuck, no timeout. The Redis and Exchange checks never execute. K8s readiness probe times out at 3s, marks the pod as not ready, and after 3 consecutive failures (30s), restarts the pod. During those 23-30 seconds, 1000 users receive no signals, 50 open positions are unmonitored, and $500K is at risk if the market crashes. The bot was actually healthy — only the DB was down — but the sequential checks never discovered that. The good code runs all 4 checks concurrently with `asyncio.gather()` and wraps each in `asyncio.wait_for(timeout=2.0)`. All checks start at the same time. The WebSocket, Redis, and Exchange checks complete in 1ms. The DB check times out at 2s and returns UNHEALTHY. The total readiness check takes 2s (max of all checks), not 3s+ (K8s timeout). K8s returns 503 but the pod is not restarted (liveness probe passes). The bot continues trading with cached data — 0 users affected, 0 positions at risk, 0 restarts. When the DB reconnects, the next readiness probe returns 200 OK and the pod is added back to service. The cost is wrapping checks in `asyncio.gather()` + `asyncio.wait_for()` — 10 lines of code. The benefit is 0 downtime, 0 restarts, $500K preserved. This is a classic "sequential vs concurrent" anti-pattern: the developer wrote `await` calls one after another without considering that they're independent and can run concurrently. The principle: in asyncio, use `asyncio.gather()` for independent operations, and always use `asyncio.wait_for()` with a timeout for network-dependent operations. In a system with 1000 users, a 23s pod restart due to sequential health checks can cause $500K in unmonitored positions + market crash risk.
