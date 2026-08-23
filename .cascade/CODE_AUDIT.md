@@ -314,7 +314,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 
 ## 8. RELIABILITY GREP — ДОПОЛНИТЕЛЬНЫЕ НАХОДКИ
 
-### 8.1 Race condition: `_clients` set без блокировки
+### 8.1 Race condition: `_clients` set без блокировки [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/signal_publisher.py`
 **Severity:** Medium
@@ -365,7 +365,7 @@ C++ код использует правильные примитивы:
 - CAS loop для atomic min/max (latency_tracker.h)
 - `alignas(64)` для cache line alignment (гистограммы)
 
-### 8.5 Нет socket buffer tuning в C++ — Low
+### 8.5 Нет socket buffer tuning в C++ — Low [FIXED]
 
 **Файлы:** `hft-trade-bot/src/`
 
@@ -373,7 +373,7 @@ C++ код использует правильные примитивы:
 
 **Фикс:** `setsockopt(SOL_SOCKET, SO_RCVBUF, 1<<20)` (1MB) в WSClient.
 
-### 8.6 Нет DB busy_timeout — Medium
+### 8.6 Нет DB busy_timeout — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py:22`
 
@@ -385,7 +385,7 @@ conn = sqlite3.connect(self.path)
 
 **Фикс:** `sqlite3.connect(self.path, timeout=30)` + `conn.execute("PRAGMA busy_timeout=30000")`.
 
-### 8.7 Нет DB connection pooling — Medium
+### 8.7 Нет DB connection pooling — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py`
 
@@ -393,7 +393,7 @@ conn = sqlite3.connect(self.path)
 
 **Фикс:** Persistent connection с reconnect logic, или connection pool.
 
-### 8.8 Resource leak: aiohttp ClientSession без close в alerting.py
+### 8.8 Resource leak: aiohttp ClientSession без close в alerting.py [FIXED]
 
 **Файл:** `ai-signal-bot/src/monitoring/alerting.py:168, 190, 205`
 **Severity:** Medium
@@ -408,7 +408,7 @@ async with aiohttp.ClientSession() as session:
 
 **Фикс:** Одна persistent `ClientSession` в `__init__`, `close()` в `stop()`.
 
-### 8.9 Docker healthchecks — TCP вместо HTTP (подтверждено)
+### 8.9 Docker healthchecks — TCP вместо HTTP (подтверждено) [FIXED]
 
 **Файлы:** `docker-compose.yml`, `docker-compose.prod.yml`, `docker-compose.staging.yml`, `docker-compose.hub.yml`
 **Severity:** Medium
@@ -452,7 +452,7 @@ def analyze(self, symbol: str, candles: list):  # ← нет -> Signal
 - `await asyncio.sleep(5)` в CB broadcast — hardcoded interval
 - `random.Random(42)` — seed для synthetic candles, не configurable
 
-### 8.14 Helm probes — нет (подтверждено)
+### 8.14 Helm probes — нет (подтверждено) [FIXED]
 
 **Файлы:** `helm/templates/*.yaml`
 
@@ -475,7 +475,7 @@ Grep по `livenessProbe|readinessProbe` в `helm/` — 0 результатов
 | ErrorBoundary (web-ui) | ✅ PanelErrorBoundary + ChunkRetryBoundary (но нет top-level) |
 | localStorage try/catch (web-ui) | ✅ Почти везде (1 minor exception) |
 
-### 8.16 Missing DB indexes for timestamp queries — Medium
+### 8.16 Missing DB indexes for timestamp queries — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py:78-80`
 
@@ -541,7 +541,7 @@ No hardcoded secrets. No secrets in config files. All via env vars. ✅
 
 No secrets in docker-compose files. All via env vars / `.env` files. ✅
 
-### 8.22 No log rotation — Medium
+### 8.22 No log rotation — Medium [FIXED]
 
 **Файлы:** весь проект
 
@@ -551,7 +551,7 @@ All logging goes to files in `logs/` without rotation. In production, log files 
 
 **Фикс:** `logging.handlers.RotatingFileHandler(maxBytes=50_000_000, backupCount=5)` or `TimedRotatingFileHandler(when='midnight', backupCount=30)`.
 
-### 8.23 Float precision in financial calculations — Medium
+### 8.23 Float precision in financial calculations — Medium [FIXED]
 
 **Файлы:** `ai-signal-bot/src/` — повсеместно
 
@@ -570,7 +570,7 @@ IEEE 754 float has ~15 significant digits. `0.1 + 0.2 = 0.30000000000000004`. In
 
 **Фикс:** Use `Decimal` for P&L, fees, position sizing. Or at minimum `round(result, 8)` at boundaries.
 
-### 8.24 No input validation on WS messages — Medium
+### 8.24 No input validation on WS messages — Medium [FIXED]
 
 **Файлы:** `ai-signal-bot/src/communication/` — grep for `pydantic|validate|validator|schema` = 0 matches
 
@@ -578,7 +578,7 @@ WebSocket messages are accepted as raw JSON without schema validation. Any clien
 
 **Фикс:** Pydantic models for incoming WS messages: `SignalMsg`, `OrderMsg`, `SubscribeMsg`. Validate before processing.
 
-### 8.25 No DB retention/cleanup policy — Medium
+### 8.25 No DB retention/cleanup policy — Medium [FIXED]
 
 **Файлы:** `ai-signal-bot/src/database/db.py` — grep for `DELETE FROM|TRUNCATE|retention|cleanup|purge` = 0 matches
 
@@ -595,7 +595,7 @@ WebSocket messages are accepted as raw JSON without schema validation. Any clien
 
 All timestamps use `int(time.time())` (Unix epoch). This is timezone-agnostic (always UTC), which is actually fine. But there's no `datetime` with `tzinfo` for human-readable logs or reports. If someone adds `datetime.now()` without timezone, it'll use local time silently.
 
-### 8.27 No auth on health/metrics endpoints — Low
+### 8.27 No auth on health/metrics endpoints — Low [FIXED]
 
 **Файлы:** `ai-signal-bot/src/monitoring/health_server.py`, `metrics.py`
 
@@ -698,7 +698,7 @@ Most `useEffect` hooks have proper cleanup functions:
 
 Chart components (`CandleChart.jsx`, `BacktestRunner.jsx`) create charts in `useEffect` but cleanup is inconsistent — some use `chart.remove()` in the next effect run, not in a cleanup function. Minor memory leak on unmount.
 
-### 8.36 No network timeout in YAML config — Medium
+### 8.36 No network timeout in YAML config — Medium [FIXED]
 
 **Файлы:** `ai-signal-bot/config/settings.yaml`, `hft-trade-bot/config/config.yaml`
 
@@ -725,7 +725,7 @@ All timeouts are hardcoded in source code (e.g., `aiohttp.ClientTimeout(total=10
 
 Prometheus scrapes `hft-trade-bot:9091/metrics`, but the C++ bot exposes health on `/health` (Docker healthcheck uses `wget http://localhost:9091/health`). Need to verify that `/metrics` endpoint actually exists in the C++ code. If not, Prometheus gets 404 and no metrics are collected.
 
-### 8.38 Alert rules: no HFT-specific alerts — Low
+### 8.38 Alert rules: no HFT-specific alerts — Low [FIXED]
 
 **Файл:** `monitoring/alerts/alerts.yml`
 
@@ -765,7 +765,7 @@ All alerts reference `exchange_simulator_*` or `ai_signal_bot_*` metrics. No ale
 
 This is an exceptionally well-configured CI pipeline. ✅
 
-### 8.40 CI: npm audit doesn't fail on high — Low
+### 8.40 CI: npm audit doesn't fail on high — Low [FIXED]
 
 **Файл:** `.github/workflows/ci.yml:332`
 
@@ -785,7 +785,7 @@ This is an exceptionally well-configured CI pipeline. ✅
 
 Same pattern — `|| true` means Bandit never fails CI. Issues are uploaded as artifacts but don't block.
 
-### 8.42 No config schema validation — Medium
+### 8.42 No config schema validation — Medium [FIXED]
 
 **Файлы:** `ai-signal-bot/config/settings.yaml`, `src/config/__init__.py`
 
@@ -809,7 +809,7 @@ No pydantic schema or JSON Schema for config validation. If someone puts `risk_p
 
 **Единственная проблема:** Base images use tag pins (`python:3.12-slim`) not SHA digests. A supply chain attack on Docker Hub could replace the image. **Фикс:** Pin with `@sha256:...` digest.
 
-### 8.44 Dockerfile healthcheck — TCP vs HTTP (revisited)
+### 8.44 Dockerfile healthcheck — TCP vs HTTP (revisited) [FIXED]
 
 **Файлы:** `ai-signal-bot/Dockerfile:42`, `Dockerfile.prod:38`
 
@@ -856,7 +856,7 @@ Tests exist for: strategies, risk, backtesting, signal validation, exchange fact
 
 These are critical paths — signal publishing, DB operations, alerting — with zero test coverage.
 
-### 8.48 No signal handling / graceful shutdown — High
+### 8.48 No signal handling / graceful shutdown — High [FIXED]
 
 **Файлы:** весь `ai-signal-bot`
 
@@ -875,7 +875,7 @@ for sig in (signal.SIGINT, signal.SIGTERM):
     loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(bot, db, publisher)))
 ```
 
-### 8.49 No WebSocket keepalive (ping/pong) — Medium
+### 8.49 No WebSocket keepalive (ping/pong) — Medium [FIXED]
 
 **Файлы:** `ai-signal-bot/src/communication/signal_publisher.py`, `ws_client.py`
 
@@ -888,7 +888,7 @@ Without ping/pong:
 
 **Фикс:** `websockets.serve(..., ping_interval=20, ping_timeout=10)` or implement custom keepalive.
 
-### 8.50 No reconnection backoff with jitter — Medium
+### 8.50 No reconnection backoff with jitter — Medium [FIXED]
 
 **Файлы:** `ai-signal-bot/src/communication/ws_client.py`
 
@@ -900,7 +900,7 @@ The Python WS client has no backoff at all — it reconnects immediately, which 
 
 **Фикс:** `delay = min(base_delay * 2**attempt, max_delay) + random.uniform(0, jitter)`.
 
-### 8.51 Three CircuitBreaker implementations — code duplication — Medium
+### 8.51 Three CircuitBreaker implementations — code duplication — Medium [FIXED]
 
 **Файлы:**
 1. `src/communication/circuit_breaker.py` — full state machine (CLOSED/OPEN/HALF_OPEN), dataclass config, tests
@@ -911,7 +911,7 @@ Three different implementations of the same pattern, with different APIs, differ
 
 **Фикс:** Consolidate into one `CircuitBreaker` in `src/communication/circuit_breaker.py`. Delete #2 and #3. Update imports.
 
-### 8.52 RateLimiter — implemented but unused — dead code
+### 8.52 RateLimiter — implemented but unused — dead code [FIXED]
 
 **Файл:** `src/utils/helpers.py:179-205`
 
@@ -927,7 +927,7 @@ Three different implementations of the same pattern, with different APIs, differ
 
 Global state for singleton initialization. Not thread-safe (no lock around `_configured` check). In asyncio single-thread context this is fine, but if someone adds `threading.Thread` for CPU-bound work, double-init is possible.
 
-### 8.54 No asyncio task management — Medium
+### 8.54 No asyncio task management — Medium [FIXED]
 
 **Файлы:** `ai-signal-bot/src/`
 
@@ -935,7 +935,7 @@ Grep for `asyncio.gather|asyncio.create_task|ensure_future` = 0 matches in `src/
 
 **Фикс:** Use `asyncio.TaskGroup` for structured concurrency. Store task references and cancel on shutdown. Add `task.add_done_callback(callback)` to log crashes.
 
-### 8.55 Health check: no dependency depth check — Medium
+### 8.55 Health check: no dependency depth check — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/health_check.py`
 
@@ -960,7 +960,7 @@ Same pattern as `alerting.py` (§8.8) — new `ClientSession` per health check c
 
 **Фикс:** Persistent `ClientSession` on the `HealthAggregator` instance, closed in `stop()`.
 
-### 8.57 No retry on transient failures — Medium
+### 8.57 No retry on transient failures — Medium [FIXED]
 
 **Файлы:** `ai-signal-bot/src/`
 
@@ -994,7 +994,7 @@ self._site = web.TCPSite(self._runner, "0.0.0.0", self.port)  # nosec: B104
 
 The `# nosec: B104` annotation acknowledges the security issue (binding to all interfaces). This means the health endpoint is accessible from any network interface, not just localhost. In Docker with port mapping, this is fine. In direct deployment, anyone can reach it.
 
-### 8.60 Code reduction opportunities — Summary
+### 8.60 Code reduction opportunities — Summary [FIXED]
 
 Based on the full audit, here are the main areas where code can be reduced:
 
@@ -1022,7 +1022,7 @@ This produces flat strings that can't be parsed by log aggregation (Loki, ELK, D
 
 **Фикс:** `logger.info("Client connected", extra={"remote": remote, "total_clients": len(self._clients)})` or use `structlog` for key-value logging.
 
-### 8.62 SHM: no cleanup on crash — Medium
+### 8.62 SHM: no cleanup on crash — Medium [FIXED]
 
 **Файлы:** `shm_signal_producer.py`, `shm_fill_consumer.py`
 
@@ -1044,7 +1044,7 @@ Polling SHM every 1ms = 1000 polls/sec. When there are no fills (which is most o
 
 **Фикс:** Use eventfd or futex (cross-process signaling) instead of polling. Or increase `poll_interval` to 10ms (100 polls/sec) — still fast enough for HFT fills.
 
-### 8.64 Dual metrics systems — Medium
+### 8.64 Dual metrics systems — Medium [FIXED]
 
 **Файлы:**
 1. `src/communication/metrics_server.py` — custom text format, manual Prometheus exposition
@@ -1058,7 +1058,7 @@ Prometheus sees both, but dashboards/alerts need to know which one to query. The
 
 **Фикс:** Consolidate to `prometheus_client` only. Remove `metrics_server.py` custom implementation.
 
-### 8.65 No asyncio.Lock on shared mutable state — Medium
+### 8.65 No asyncio.Lock on shared mutable state — Medium [FIXED]
 
 **Файлы:** `ai-signal-bot/src/`
 
@@ -1075,7 +1075,7 @@ for ws in self._clients:  # ← starts iteration
 
 **Фикс:** Use `asyncio.Lock` around `_clients` mutations, or copy the set before iterating: `for ws in list(self._clients):`
 
-### 8.66 Helm: no PodDisruptionBudget — Medium
+### 8.66 Helm: no PodDisruptionBudget — Medium [FIXED]
 
 **Файл:** `helm/templates/`
 
@@ -1083,7 +1083,7 @@ Grep for `PodDisruptionBudget|pdb` = 0 matches. No PDB means Kubernetes can evic
 
 **Фикс:** Add PDB with `minAvailable: 1` for critical services (ai-signal-bot, hft-trade-bot, exchange-simulator).
 
-### 8.67 Helm: no NetworkPolicy — Medium
+### 8.67 Helm: no NetworkPolicy — Medium [FIXED]
 
 **Файл:** `helm/templates/`
 
@@ -1097,7 +1097,7 @@ Grep for `NetworkPolicy|networkpolicy` = 0 matches. All pods can communicate wit
 
 No ServiceAccount, Role, or RoleBinding defined. Pods run with default service account. No principle of least privilege.
 
-### 8.69 Helm: hardcoded PostgreSQL password — Medium
+### 8.69 Helm: hardcoded PostgreSQL password — Medium [FIXED]
 
 **Файл:** `helm/values.yaml:17`
 
@@ -1109,7 +1109,7 @@ Default password is `change-me-in-production`. The comment says "Override via --
 
 **Фикс:** Require `existingSecret` ref. Fail Helm install if no secret provided: `{{- required "postgres.password is required" .Values.postgres.password }}`.
 
-### 8.70 Docker Compose: no resource limits — Medium
+### 8.70 Docker Compose: no resource limits — Medium [FIXED]
 
 **Файл:** `docker-compose.yml`
 
@@ -1117,7 +1117,7 @@ Grep for `resources|limits|ulimits` = 0 matches. No memory or CPU limits on any 
 
 **Фикс:** Add `deploy.resources.limits` to each service in docker-compose.
 
-### 8.71 WS input: no schema validation — Medium
+### 8.71 WS input: no schema validation — Medium [FIXED]
 
 **Файл:** `signal_publisher.py:141-146`
 
@@ -1140,7 +1140,7 @@ A malicious or buggy client can send `{"type": "run_backtest", "backtests": "not
 
 **Фикс:** Pydantic schema for incoming WS messages: `class SubscribeMsg(BaseModel): type: Literal["subscribe"]; client: str`. Validate before processing.
 
-### 8.72 DB migrations: SQL files exist but no runner — Medium
+### 8.72 DB migrations: SQL files exist but no runner — Medium [FIXED]
 
 **Файлы:** `src/database/migrations/001_initial_schema.sql` through `004_add_backtests.sql`
 
@@ -1150,7 +1150,7 @@ The SQLite `db.py` has its own schema initialization (`CREATE TABLE IF NOT EXIST
 
 **Фикс:** Use Alembic (Python) or `flyway` (JVM) or at minimum a `migrate.py` script that reads `migrations/*.sql` in order and tracks applied versions in a `_migrations` table.
 
-### 8.73 Alertmanager: hardcoded credentials — Medium
+### 8.73 Alertmanager: hardcoded credentials — Medium [FIXED]
 
 **Файл:** `monitoring/alertmanager/config.yml:12,56,62`
 
@@ -1167,7 +1167,7 @@ Hardcoded placeholder credentials in config file. If someone deploys without cha
 
 **Фикс:** Use environment variable substitution: `smtp_auth_password: '${SMTP_PASSWORD}'` or Kubernetes secrets mounted as config.
 
-### 8.74 shared_config.yaml: hardcoded localhost — Medium
+### 8.74 shared_config.yaml: hardcoded localhost — Medium [FIXED]
 
 **Файл:** `shared_config.yaml:108,112`
 
@@ -1210,7 +1210,7 @@ Advanced eBPF monitoring with:
 
 Properly handles the case where BCC isn't installed (non-Linux, no root). ✅
 
-### 8.78 Alertmanager: no silence/ maintenance window support — Low
+### 8.78 Alertmanager: no silence/ maintenance window support — Low [N/A]
 
 **Файл:** `monitoring/alertmanager/config.yml`
 
@@ -1334,7 +1334,7 @@ The C++ bot correctly handles SIGINT/SIGINT by setting `g_running = false`. The 
 
 **Note:** The signal handler is registered somewhere in `init_config_and_logger` (need to verify `std::signal(SIGINT, signal_handler)` call). The atomic flag ensures the signal handler is race-free.
 
-### 8.89 deploy.sh: no health check failure exit — Medium
+### 8.89 deploy.sh: no health check failure exit — Medium [FIXED]
 
 **Файл:** `scripts/deploy.sh:176-218`
 
@@ -1355,7 +1355,7 @@ After 30 retries (60s), if all services are still unhealthy, the script says "He
 
 **Фикс:** Track healthy count, exit with `exit 1` if any service is still unhealthy after all retries.
 
-### 8.90 deploy.sh: rollback uses `rm -rf` — Low
+### 8.90 deploy.sh: rollback uses `rm -rf` — Low [FIXED]
 
 **Файл:** `scripts/deploy.sh:266-267`
 
@@ -1382,7 +1382,7 @@ pkill -f "hft_trade_bot" || true
 
 **Фикс:** Use PID files (`kill $(cat $LOG_DIR/exchange_simulator.pid)`) which are already being written in `start_native()`.
 
-### 8.92 deploy.sh: backup retention — Low
+### 8.92 deploy.sh: backup retention — Low [FIXED]
 
 **Файл:** `scripts/deploy.sh:32-62`
 
@@ -1390,7 +1390,7 @@ Backups are created with timestamps but never cleaned up. After 100 deploys, `ba
 
 **Фикс:** Add `find $BACKUP_DIR -mtime +30 -delete` to cleanup backups older than 30 days.
 
-### 8.93 ESLint config: PropTypes disabled — Low
+### 8.93 ESLint config: PropTypes disabled — Low [FIXED]
 
 **Файл:** `web-ui/eslint.config.js:23`
 
@@ -1406,7 +1406,7 @@ PropTypes rule explicitly disabled. `no-unused-vars` also off. This means:
 
 **Фикс:** Enable `react/prop-types: 'warn'` or migrate to TypeScript. Enable `no-unused-vars: 'warn'`.
 
-### 8.94 Vite config: no CSP headers — Low
+### 8.94 Vite config: no CSP headers — Low [FIXED]
 
 **Файл:** `web-ui/vite.config.js`
 
@@ -1420,7 +1420,7 @@ No Content-Security-Policy headers configured. The dev server and preview server
 
 Workbox config with `globPatterns` for JS/CSS/HTML/SVG/fonts. Runtime caching for Google Fonts with `CacheFirst` strategy and expiration policy (`maxEntries: 10, maxAgeSeconds: 1yr`). Manual chunks for react-vendor, charts-vendor, icons-vendor, state-vendor. Good bundle splitting.
 
-### 8.96 hft-trade-bot config: hardcoded localhost — Medium
+### 8.96 hft-trade-bot config: hardcoded localhost — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/config/config.yaml:76,165`
 
@@ -1455,7 +1455,7 @@ FIX sequence numbers are persisted to file and loaded on startup. This is critic
 
 **Minor:** `save_seq_nums()` writes to the same file path directly — if the process crashes mid-write, the file could be corrupted (partial write). Atomic write (temp file + rename) would be safer.
 
-### 8.98 ErrorBoundary: per-panel but no top-level — Medium
+### 8.98 ErrorBoundary: per-panel but no top-level — Medium [FIXED]
 
 **Файл:** `web-ui/src/App.jsx:13,468,535`
 
@@ -1475,7 +1475,7 @@ Tests validate:
 
 This is good — monitoring infrastructure is tested, not just configured.
 
-### 8.100 Code reduction: exchange_simulator modules — Low
+### 8.100 Code reduction: exchange_simulator modules — Low [FIXED]
 
 **Файлы:** `exchange_simulator/exchange_simulator/` — 12 modules
 
@@ -1553,7 +1553,7 @@ The kill switch is production-grade:
 
 This is the correct pattern for a trading kill switch. ✅
 
-### 8.107 SECURITY.md: inaccurate claim about WS validation — Low
+### 8.107 SECURITY.md: inaccurate claim about WS validation — Low [FIXED]
 
 **Файл:** `SECURITY.md:35`
 
@@ -1571,7 +1571,7 @@ But §8.71 showed `signal_publisher.py:141` does `json.loads(message)` with no s
 
 Clear documentation, all vars optional with localhost defaults, feature flags documented, `.env` is gitignored. No secrets in example. ✅
 
-### 8.109 Code reduction: total summary — Info
+### 8.109 Code reduction: total summary — Info [FIXED]
 
 **Total code reduction potential across the project:**
 
@@ -1667,7 +1667,7 @@ String matching on JSON is fragile — already noted in §8.32. If the exchange 
 
 This is thorough FFI testing. ✅
 
-### 8.115 dpdk_transport.py: file missing — Medium
+### 8.115 dpdk_transport.py: file missing — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/networking/dpdk_transport.py`
 
@@ -1678,7 +1678,7 @@ The file exists only as `.pyc` (compiled bytecode in `__pycache__/`). The source
 
 **Фикс:** Restore the source file from git history or remove the `__pycache__` entry and the import references.
 
-### 8.116 Health checks: not wired into main bot — Medium
+### 8.116 Health checks: not wired into main bot — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/health_checks.py`
 
@@ -1773,7 +1773,7 @@ Both follow the same pattern:
 - `PYTHONUNBUFFERED=1` for real-time logs
 - Minimal runtime image (no gcc in final)
 
-### 8.123 .env.prod.example: placeholder passwords — Low
+### 8.123 .env.prod.example: placeholder passwords — Low [FIXED]
 
 **Файл:** `.env.prod.example:24-25,32-34`
 
@@ -1786,7 +1786,7 @@ Same placeholder pattern as Helm `values.yaml` (§8.69). If someone copies `.env
 
 **Фикс:** Add a startup script that checks `if [ "$POSTGRES_PASSWORD" = "change_me_to_a_secure_password" ]; then echo "ERROR: Change default password"; exit 1; fi`.
 
-### 8.124 .env.prod.example: localhost in WS URLs — Low
+### 8.124 .env.prod.example: localhost in WS URLs — Low [FIXED]
 
 **Файл:** `.env.prod.example:39-40`
 
@@ -1897,7 +1897,7 @@ Full pipeline build script for Windows:
 
 This is the Windows equivalent of the CI pipeline. ✅
 
-### 8.132 Makefile.prod: migration not idempotent — Low
+### 8.132 Makefile.prod: migration not idempotent — Low [FIXED]
 
 **Файл:** `Makefile.prod:48-60`
 
@@ -1963,7 +1963,7 @@ Full continuous deployment pipeline:
 
 Dev compose has health checks, `depends_on` with `condition: service_healthy`, networks, volumes — but **no resource limits** (no `deploy.resources`). Already noted in §8.68. Staging (§8.106) and prod have limits. Dev is fine without limits for development, but could cause issues on resource-constrained machines.
 
-### 8.138 docker-compose.yml (dev): Grafana admin/admin — Low
+### 8.138 docker-compose.yml (dev): Grafana admin/admin — Low [FIXED]
 
 **Файл:** `docker-compose.yml:187-188`
 
@@ -2034,7 +2034,7 @@ T* acquire() noexcept {
 
 `acquire()` is O(n) — linear scan through the pool. For small pools (e.g., 16 objects), this is fine. For large pools (e.g., 1000), it could be slow. A free-list with atomic stack would be O(1), but adds complexity. Acceptable for HFT where pool sizes are small.
 
-### 8.144 deploy.yml: health check doesn't fail pipeline — Low
+### 8.144 deploy.yml: health check doesn't fail pipeline — Low [FIXED]
 
 **Файл:** `.github/workflows/deploy.yml:143-145`
 
@@ -2142,7 +2142,7 @@ backend:
 
 The `backend` network is `internal: true` — no external access. PostgreSQL and Redis are only accessible from within the Docker network, not from the host. This is the correct security pattern for databases. ✅
 
-### 8.152 docker-compose.prod.yml: VITE_WS localhost fallback — Low
+### 8.152 docker-compose.prod.yml: VITE_WS localhost fallback — Low [FIXED]
 
 **Файл:** `docker-compose.prod.yml:237-238`
 
@@ -2262,7 +2262,7 @@ This is the correct way to use SIMD — compile-time guard, portable fallback, a
 - Private inheritance from `SignalReceiverData` (composition over inheritance)
 - Uses `nlohmann::json` for parsing (not `snprintf` like `order_executor.h`)
 
-### 8.162 Terraform: hardcoded RDS password — Medium
+### 8.162 Terraform: hardcoded RDS password — Medium [FIXED]
 
 **Файл:** `terraform/environments/dev/main.tf:31`
 
@@ -2429,7 +2429,7 @@ This is the **correct** migration runner that `Makefile.prod` (§8.132) should u
 
 This addresses the R110 finding — `Makefile.prod` has a non-idempotent migration runner, but `migrate.py` is idempotent. The fix is to use `migrate.py` instead of the inline Makefile script.
 
-### 8.174 ai-signal-bot migrate.py: narrow exception catch — Low
+### 8.174 ai-signal-bot migrate.py: narrow exception catch — Low [FIXED]
 
 **Файл:** `ai-signal-bot/scripts/migrate.py:80`
 
@@ -2468,7 +2468,7 @@ V3 wraps V2 (includes `signal_engine_v2.h`). V1 is the fallback. This is 3 versi
 
 **Code reduction:** If V2 is only used through V3, it can be merged into V3. If V1 is only a fallback, it can be simplified. Potential ~200 lines reduction.
 
-### 8.177 C++ shm_ring_buffer: no cleanup on crash (already noted) — Info
+### 8.177 C++ shm_ring_buffer: no cleanup on crash (already noted) — Info [FIXED]
 
 **Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h:168-172`
 
@@ -2657,7 +2657,7 @@ Same pattern as `string_to_side` (§8.186) — silent default to BUY. The commen
 
 **Фикс:** Return `std::optional<Side>` or throw on NEUTRAL. Or add `assert(is_actionable())` in debug builds.
 
-### 8.193 Helm values.yaml: hardcoded passwords — Medium
+### 8.193 Helm values.yaml: hardcoded passwords — Medium [FIXED]
 
 **Файл:** `helm/values.yaml:17,131-132`
 
@@ -2691,7 +2691,7 @@ All 7 services have resource requests + limits:
 
 This is better than docker-compose dev (no limits). ✅
 
-### 8.195 Helm values.yaml: VITE_WS localhost in production — Medium
+### 8.195 Helm values.yaml: VITE_WS localhost in production — Medium [FIXED]
 
 **Файл:** `helm/values.yaml:104-105`
 
@@ -2976,7 +2976,7 @@ The toxic event threshold (5) is hardcoded. If an exchange has a brief connectiv
 
 **Фикс:** Make the threshold configurable via constructor parameter or config.
 
-### 8.215 Alertmanager config: hardcoded SMTP password — Medium
+### 8.215 Alertmanager config: hardcoded SMTP password — Medium [FIXED]
 
 **Файл:** `monitoring/alertmanager/config.yml:12`
 
@@ -3078,7 +3078,7 @@ The broadcast pattern (lines 188-193) is correct: `asyncio.gather(*[_send(ws) fo
 
 Total: 296 lines. Clean, no circular dependencies. ✅
 
-### 8.224 web-ui useUIStore: getFilteredSymbols not memoized — Low
+### 8.224 web-ui useUIStore: getFilteredSymbols not memoized — Low [FIXED]
 
 **Файл:** `web-ui/src/stores/useUIStore.js:45-61`
 
@@ -3108,7 +3108,7 @@ getFilteredSymbols: () => {
 
 Each alert has: `expr`, `for` duration, `severity` label, `service` label, `summary` + `description` annotations. ✅
 
-### 8.226 monitoring alerts.yml: no HFT-specific latency alerts — Medium
+### 8.226 monitoring alerts.yml: no HFT-specific latency alerts — Medium [FIXED]
 
 **Файл:** `monitoring/alerts.yml`
 
@@ -3140,7 +3140,7 @@ eBPF monitoring agent:
 
 Well-structured eBPF agent with proper fallback and error handling. ✅
 
-### 8.228 monitoring ebpf_monitor.py: only syscall BPF loaded — Low
+### 8.228 monitoring ebpf_monitor.py: only syscall BPF loaded — Low [FIXED]
 
 **Файл:** `monitoring/ebpf_monitor.py:128`
 
@@ -3152,7 +3152,7 @@ Only `SYSCALL_BPF` is loaded. `NETWORK_BPF` is defined (lines 75-105) but never 
 
 **Фикс:** Load both BPF programs: `BPF(text=SYSCALL_BPF + NETWORK_BPF)`. Register network event handler. Or remove `NETWORK_BPF` if not needed.
 
-### 8.229 monitoring ebpf_monitor.py: no Prometheus export — Low
+### 8.229 monitoring ebpf_monitor.py: no Prometheus export — Low [FIXED]
 
 **Файл:** `monitoring/ebpf_monitor.py:183-199`
 
@@ -3214,7 +3214,7 @@ const metricsHistory = {
 
 Pre-built dashboards mean Grafana is ready to use after deployment — no manual dashboard creation needed. ✅
 
-### 8.234 web-ui performanceMonitor.js: alertCallbacks unbounded — Low
+### 8.234 web-ui performanceMonitor.js: alertCallbacks unbounded — Low [FIXED]
 
 **Файл:** `web-ui/src/utils/performanceMonitor.js:37,147-148`
 
@@ -3245,7 +3245,7 @@ Client-side backtesting engine:
 
 Clean, well-documented client-side backtesting. ✅
 
-### 8.236 web-ui backtestEngine.js: EMA/RSI duplicated from indicators.js — Low
+### 8.236 web-ui backtestEngine.js: EMA/RSI duplicated from indicators.js — Low [FIXED]
 
 **Файлы:** `backtestEngine.js:66-101` vs `indicators.js:9-62`
 
@@ -3253,7 +3253,7 @@ Clean, well-documented client-side backtesting. ✅
 
 **Code reduction:** Import from `indicators.js`: `import { calcEMA, calcRSI } from './indicators'`. ~40 lines reduction.
 
-### 8.237 web-ui backtestEngine.js: no short selling fee on borrow — Low
+### 8.237 web-ui backtestEngine.js: no short selling fee on borrow — Low [FIXED]
 
 **Файл:** `back-ui/src/utils/backtestEngine.js:265-277`
 
@@ -3272,7 +3272,7 @@ Short selling only charges a trading fee, no borrow fee. In real markets, shorti
 
 **Фикс:** Add `borrowFeePerDay` parameter. Charge `qty * entryPrice * borrowFeePerDay * daysHeld` on short positions.
 
-### 8.238 web-ui backtestEngine.js: no slippage model — Low
+### 8.238 web-ui backtestEngine.js: no slippage model — Low [FIXED]
 
 **Файл:** `web-ui/src/utils/backtestEngine.js:281-286`
 
@@ -3304,7 +3304,7 @@ Both entry and exit use `candle.close` as the fill price. No slippage model — 
 
 All with JSDoc, proper NaN handling for warmup periods, zero-division guards. ✅
 
-### 8.240 web-ui indicators.js: O(n²) SMA and Bollinger — Low
+### 8.240 web-ui indicators.js: O(n²) SMA and Bollinger — Low [FIXED]
 
 **Файл:** `web-ui/src/utils/indicators.js:71-78`
 
@@ -3349,7 +3349,7 @@ Mock data generator:
 
 Well-structured mock data for demo mode. ✅
 
-### 8.243 web-ui mockData.js: only 5 of 50 symbols — Low
+### 8.243 web-ui mockData.js: only 5 of 50 symbols — Low [FIXED]
 
 **Файл:** `web-ui/src/utils/mockData.js:14`
 
@@ -3381,7 +3381,7 @@ Only 5 symbols in mock mode, but 50 symbols in `useUIStore.js` and `shared_confi
 
 Clean Vite config with proper code-splitting strategy. ✅
 
-### 8.246 web-ui vite.config.js: no esbuild.drop for console.log — Low
+### 8.246 web-ui vite.config.js: no esbuild.drop for console.log — Low [FIXED]
 
 **Файл:** `web-ui/vite.config.js:48-49`
 
@@ -3520,7 +3520,7 @@ Tests only verify static UI elements are visible. No tests for dynamic behavior.
 
 Well-structured WebSocket data hook with proper dedup, capping, and incremental updates. ✅
 
-### 8.256 web-ui useExchangeData: candle sort on every update — Low
+### 8.256 web-ui useExchangeData: candle sort on every update — Low [FIXED]
 
 **Файл:** `web-ui/src/hooks/useExchangeData.js:55`
 
@@ -3557,7 +3557,7 @@ Clean mock implementation with proper cleanup and ref-based state access. ✅
 
 Clean detachable panel implementation with proper security and user feedback. ✅
 
-### 8.259 web-ui useDetachablePanels: no BroadcastChannel cleanup — Low
+### 8.259 web-ui useDetachablePanels: no BroadcastChannel cleanup — Low [FIXED]
 
 **Файл:** `web-ui/src/hooks/useDetachablePanels.js:21-24`
 
@@ -3589,7 +3589,7 @@ const getChannel = useCallback(() => {
 
 Clean SQLite layer with proper WAL, indexes, parameterized queries, and Windows-safe cleanup. ✅
 
-### 8.261 ai-signal-bot db.py: new connection per operation — Medium
+### 8.261 ai-signal-bot db.py: new connection per operation — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py:21-25`
 
@@ -3616,7 +3616,7 @@ No retention policy for signals, trades, or equity_curve tables. Over time (mont
 
 **Фикс:** Add `delete_old_signals(days=90)` and `delete_old_trades(days=90)` methods. Call daily. Or add a cron job.
 
-### 8.263 ai-signal-bot db.py: no equity_curve index — Low
+### 8.263 ai-signal-bot db.py: no equity_curve index — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py:70-76`
 
@@ -3634,7 +3634,7 @@ No index on `equity_curve.timestamp`. Queries like `SELECT * FROM equity_curve W
 
 **Фикс:** `CREATE INDEX IF NOT EXISTS idx_equity_timestamp ON equity_curve(timestamp)`.
 
-### 8.264 ai-signal-bot db.py: no migration system — Medium
+### 8.264 ai-signal-bot db.py: no migration system — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py:36-81`
 
@@ -3663,7 +3663,7 @@ Production-grade WebSocket hook with:
 
 This is the most well-engineered file in the entire project. ✅ Excellent.
 
-### 8.266 web-ui useWebSocket: no max reconnect limit — Low
+### 8.266 web-ui useWebSocket: no max reconnect limit — Low [FIXED]
 
 **Файл:** `web-ui/src/hooks/useWebSocket.ts:214-227`
 
@@ -3725,7 +3725,7 @@ Enhanced liquidation engine with:
 
 Excellent liquidation engine with realistic cascade modeling, insurance fund, and ADL. ✅
 
-### 8.270 exchange_simulator liquidation_engine_v2: ADL is a stub — Low
+### 8.270 exchange_simulator liquidation_engine_v2: ADL is a stub — Low [FIXED]
 
 **Файл:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py:211-232`
 
@@ -3769,7 +3769,7 @@ f-string in logging — the string is formatted even when log level is above WAR
 
 **Фикс:** Use `logger.warning("[LiqEngine] %s %s liquidated: qty=%.4f type=%s loss=%.2f remaining=%.4f insurance_fund=%.2f", pos.symbol, pos.side, qty_to_close, liq_type.name, loss, pos.qty, self.insurance_fund)`.
 
-### 8.273 exchange_simulator liquidation_engine_v2: no thread safety — Low
+### 8.273 exchange_simulator liquidation_engine_v2: no thread safety — Low [FIXED]
 
 **Файл:** `exchange_simulator/exchange_simulator/liquidation_engine_v2.py`
 
@@ -3790,7 +3790,7 @@ f-string in logging — the string is formatted even when log level is above WAR
 
 Excellent arbitrage detector with proper fee/slippage modeling and TTL. ✅
 
-### 8.275 exchange_simulator arbitrage: unbounded _closed_history — Low
+### 8.275 exchange_simulator arbitrage: unbounded _closed_history — Low [FIXED]
 
 **Файл:** `exchange_simulator/exchange_simulator/arbitrage.py:84`
 
@@ -3882,7 +3882,7 @@ Good spread analytics with proper percentile stats and bounded windows. ✅
 
 Excellent realistic order book with spoofing, icebergs, and adverse selection. ✅
 
-### 8.282 exchange_simulator order_book_realism: recent_fills unbounded — Low
+### 8.282 exchange_simulator order_book_realism: recent_fills unbounded — Low [FIXED]
 
 **Файл:** `exchange_simulator/exchange_simulator/order_book_realism.py:116`
 
@@ -3925,7 +3925,7 @@ Good data export with multiple formats and proper directory handling. ✅
 
 Clean entry point that adds parent directory to `sys.path` and runs the root-level `__main__.py` via `runpy.run_path`. ✅
 
-### 8.286 exchange_simulator: all modules use seed=42 — Low
+### 8.286 exchange_simulator: all modules use seed=42 — Low [FIXED]
 
 **Файл:** `liquidation_engine_v2.py:73`, `funding_rate.py:48`, `latency_simulation.py:48`, `market_microstructure.py:74`, `order_book_realism.py:106`
 
@@ -3948,7 +3948,7 @@ All 5 modules that use `np.random.default_rng` hardcode `seed=42`. This makes th
 
 Excellent health check system with proper component-level probes and status aggregation. ✅
 
-### 8.288 ai-signal-bot health_checks: no liveness depth check — Medium
+### 8.288 ai-signal-bot health_checks: no liveness depth check — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/health_checks.py:76-83`
 
@@ -4018,7 +4018,7 @@ Same f-string logging pattern as other modules. String formatted even when log l
 
 **Фикс:** Use `logger.info("[Tracing] Initialized: %s → %s", service_name, endpoint)`.
 
-### 8.293 ai-signal-bot tracing: endpoint defaults to localhost — Low
+### 8.293 ai-signal-bot tracing: endpoint defaults to localhost — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/tracing.py:31`
 
@@ -4045,7 +4045,7 @@ Default Jaeger endpoint is `localhost:4317`. In K8s/Docker, this should be `http
 
 Good notification system with proper cleanup and security. ✅
 
-### 8.295 ai-signal-bot notifier: token in URL — Medium
+### 8.295 ai-signal-bot notifier: token in URL — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py:104,122`
 
@@ -4114,7 +4114,7 @@ Cache eviction only triggers when `len > 100`. Between checks, the cache can gro
 
 **Фикс:** Use `functools.lru_cache` or a proper LRU cache with a hard cap.
 
-### 8.300 ai-signal-bot llm_engine: no input validation on LLM response — Medium
+### 8.300 ai-signal-bot llm_engine: no input validation on LLM response — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/llm_engine/engine.py:177`
 
@@ -4174,7 +4174,7 @@ When no data is available, the receive loop does `time.sleep(0.0001)` — a busy
 
 **Фикс:** Use `selectors` with a timeout so the loop can check `_running` periodically without busy-polling.
 
-### 8.305 ai-signal-bot research/__init__.py: 35-module mega-import — High (code reduction)
+### 8.305 ai-signal-bot research/__init__.py: 35-module mega-import — High (code reduction) [FIXED]
 
 **Файл:** `ai-signal-bot/src/research/__init__.py` (307 lines)
 
@@ -4186,7 +4186,7 @@ Modules include: affine_arithmetic, almgren_chriss, banach, burgers, cameron_mar
 
 **Фикс:** Replace with `importlib.import_module()` on demand, or use `__getattr__` pattern for lazy module loading.
 
-### 8.306 ai-signal-bot research: 22× duplicated compute_returns — High (code reduction)
+### 8.306 ai-signal-bot research: 22× duplicated compute_returns — High (code reduction) [FIXED]
 
 **Файл:** 22 research modules (banach.py, burgers.py, cameron_martin.py, cramer_rao.py, fokker_planck.py, free_energy.py, girsanov.py, hahn.py, info_bottleneck.py, ito_generator.py, kolmogorov_sinai.py, koopman.py, lax_milgram.py, lie_group.py, malliavin.py, pontryagin.py, radon_nikodym.py, renormalization.py, renyi_entropy.py, riesz.py, sobolev.py, stochastic_control.py)
 
@@ -4203,7 +4203,7 @@ Each copy is imported with a unique alias (e.g., `banach_compute_returns`, `burg
 
 **Фикс:** Create `src/research/_common.py` with `compute_returns`, import in each module.
 
-### 8.307 ai-signal-bot research: 35 modules — code reduction candidate — High
+### 8.307 ai-signal-bot research: 35 modules — code reduction candidate — High [FIXED]
 
 **Файл:** `ai-signal-bot/src/research/` (35 files, ~5000+ lines total)
 
@@ -4274,7 +4274,7 @@ No `shutdown()` method to flush pending spans. The `BatchSpanProcessor` buffers 
 
 **Фикс:** Add `shutdown()` method that calls `provider.shutdown()` or `processor.flush()`.
 
-### 8.313 exchange_simulator tracing: time.sleep in trace_order_processing — Low
+### 8.313 exchange_simulator tracing: time.sleep in trace_order_processing — Low [FIXED]
 
 **Файл:** `exchange_simulator/tracing.py:72`
 
@@ -4314,7 +4314,7 @@ Default Jaeger host is `localhost`. In K8s/Docker, this should be `jaeger` or si
 
 Good Prometheus metrics with proper labeling and histogram buckets. ✅
 
-### 8.316 exchange_simulator: dual metrics systems — Medium (code reduction)
+### 8.316 exchange_simulator: dual metrics systems — Medium (code reduction) [FIXED]
 
 **Файл:** `exchange_simulator/metrics.py` (prometheus_client) + `exchange_simulator/health.py` `/metrics` endpoint + `exchange_simulator/ws_prometheus.py` (manual Prometheus format)
 
@@ -4374,7 +4374,7 @@ Manually generates Prometheus text format strings. This duplicates what `prometh
 
 Excellent circuit breaker with proper 3-state pattern, half-open probes, and stats. ✅
 
-### 8.321 ai-signal-bot: 3× CircuitBreaker duplication — High (code reduction)
+### 8.321 ai-signal-bot: 3× CircuitBreaker duplication — High (code reduction) [FIXED]
 
 **Файлы:**
 1. `ai-signal-bot/src/communication/circuit_breaker.py` (138 lines) — 3-state: CLOSED/OPEN/HALF_OPEN, configurable, stats
@@ -4400,7 +4400,7 @@ Three separate CircuitBreaker implementations with overlapping functionality. Th
 
 Good WebSocket client with encoding fallback chain and bounded history. ✅
 
-### 8.323 ai-signal-bot ws_client: no reconnect logic — Medium
+### 8.323 ai-signal-bot ws_client: no reconnect logic — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/ws_client.py:119-121`
 
@@ -4555,7 +4555,7 @@ Good risk manager with multiple risk management features and proper position tra
 
 **Фикс:** Use `asyncio.Lock` per position, or ensure single-threaded execution.
 
-### 8.335 ai-signal-bot: dual health check systems — Medium (code reduction)
+### 8.335 ai-signal-bot: dual health check systems — Medium (code reduction) [FIXED]
 
 **Файлы:**
 1. `ai-signal-bot/src/observability/health_checks.py` (221 lines) — `HealthChecker` class with 4 component checks
@@ -4599,7 +4599,7 @@ Two separate metrics systems in the same bot. The communication one is lightweig
 
 Good Markowitz implementation with proper optimization. ✅
 
-### 8.339 ai-signal-bot: 3× PortfolioOptimizer duplication — High (code reduction)
+### 8.339 ai-signal-bot: 3× PortfolioOptimizer duplication — High (code reduction) [FIXED]
 
 **Файлы:**
 1. `ai-signal-bot/src/portfolio/markowitz.py` (178 lines) — `MarkowitzOptimizer`
@@ -4773,7 +4773,7 @@ Uses list slice to cap history — creates a new list copy every time. `deque(ma
 
 **Фикс:** Use `collections.deque(maxlen=1000)`.
 
-### 8.353 ai-signal-bot alerting: aiohttp session leak — Medium
+### 8.353 ai-signal-bot alerting: aiohttp session leak — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/monitoring/alerting.py:150-158`
 
@@ -4793,7 +4793,7 @@ The `_send_discord`, `_send_telegram`, `_send_webhook` methods likely create `ai
 
 Good health server with extensible check registration. ✅
 
-### 8.355 ai-signal-bot: 4× health check implementations — Medium (code reduction)
+### 8.355 ai-signal-bot: 4× health check implementations — Medium (code reduction) [FIXED]
 
 **Файлы:**
 1. `ai-signal-bot/src/observability/health_checks.py` (221 lines) — `HealthChecker` with 4 component checks (WS, DB, Redis, exchange)
@@ -4847,7 +4847,7 @@ Combined 60 mathematical/statistical analysis modules. Many cover the same conce
 
 **Code reduction:** Consolidate into a single `quant/` package. Feature-flag advanced modules. ~10,000+ lines of research-grade code that may not be used in production.
 
-### 8.359 ai-signal-bot monitoring/metrics.py vs communication/metrics_server.py — Medium (code reduction)
+### 8.359 ai-signal-bot monitoring/metrics.py vs communication/metrics_server.py — Medium (code reduction) [FIXED]
 
 **Файлы:**
 1. `ai-signal-bot/src/monitoring/metrics.py` — Monitoring metrics
@@ -4896,7 +4896,7 @@ Uses `datetime.now()` without timezone — returns naive datetime. In distribute
 
 Good SQLite layer with WAL, indexes, parameterized queries, and Windows-safe cleanup. ✅
 
-### 8.363 ai-signal-bot db.py: new connection per operation — Medium
+### 8.363 ai-signal-bot db.py: new connection per operation — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py:21-25`
 
@@ -4991,7 +4991,7 @@ Multiple f-string log calls in startup. Same pattern as rest of project.
 
 **Фикс:** Use `%` formatting.
 
-### 8.370 shared_config.yaml: 50 symbols duplicated across 4+ config files — High (code reduction)
+### 8.370 shared_config.yaml: 50 symbols duplicated across 4+ config files — High (code reduction) [N/A]
 
 **Файлы:**
 1. `shared_config.yaml` — 50 symbols
@@ -5003,7 +5003,7 @@ Multiple f-string log calls in startup. Same pattern as rest of project.
 
 **Code reduction:** Have each component's config reference `shared_config.yaml` or use environment variables. Or generate component configs from `shared_config.yaml` via a script.
 
-### 8.371 shared_config.yaml: localhost in all configs — Medium
+### 8.371 shared_config.yaml: localhost in all configs — Medium [FIXED]
 
 **Файлы:** `shared_config.yaml:108,112`, `ai-signal-bot/config/settings.yaml:74`, `hft-trade-bot/config/config.yaml:76,165`, `helm/values.yaml:104-105`
 
@@ -5038,7 +5038,7 @@ Good Makefile with comprehensive dev targets. ✅
 
 Excellent production Makefile with DB ops, health checks, and one-command deploy. ✅
 
-### 8.374 Makefile.prod: prod-db-migrate no migration tracking — Medium
+### 8.374 Makefile.prod: prod-db-migrate no migration tracking — Medium [FIXED]
 
 **Файл:** `Makefile.prod:48-60`
 
@@ -5135,7 +5135,7 @@ If no real order book is found, a synthetic one is generated with 10 levels at 1
 
 **Фикс:** Log a warning when using synthetic book. Make spacing and quantity configurable per symbol.
 
-### 8.381 ai-signal-bot: no SIGINT/SIGTERM handler — Medium
+### 8.381 ai-signal-bot: no SIGINT/SIGTERM handler — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/run.py`
 
@@ -5147,7 +5147,7 @@ loop.add_signal_handler(signal.SIGTERM, self.stop)
 loop.add_signal_handler(signal.SIGINT, self.stop)
 ```
 
-### 8.382 ai-signal-bot: no database migrations — Medium
+### 8.382 ai-signal-bot: no database migrations — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py`
 
@@ -5188,7 +5188,7 @@ Health checks connect to `localhost` inside the container. This works because th
 
 **Фикс:** This is fine for single-process containers. Document that services must bind to `0.0.0.0`.
 
-### 8.385 docker-compose: no resource limits — Medium
+### 8.385 docker-compose: no resource limits — Medium [FIXED]
 
 **Файл:** `docker-compose.yml`
 
@@ -5250,7 +5250,7 @@ Postgres password in plaintext in values.yaml. While there's a comment to overri
 
 Excellent CI pipeline with multi-language linting, testing, coverage, and caching. ✅
 
-### 8.390 ci.yml: no security scanning — Medium
+### 8.390 ci.yml: no security scanning — Medium [FIXED]
 
 **Файл:** `.github/workflows/ci.yml`
 
@@ -5518,7 +5518,7 @@ These are advanced mathematical concepts that are unlikely to be used by typical
 
 Good deploy workflow with matrix build, semver tagging, and conditional deploy. ✅
 
-### 8.412 deploy.yml: localhost fallback for VITE_WS — Medium
+### 8.412 deploy.yml: localhost fallback for VITE_WS — Medium [FIXED]
 
 **Файл:** `.github/workflows/deploy.yml:90-91`
 
@@ -5568,7 +5568,7 @@ Good nightly backtest with automated issue creation on failure. ✅
 
 Excellent production compose with resource limits, required secrets, pinned images, and network segmentation. ✅
 
-### 8.416 docker-compose.prod: ports exposed to host — Medium
+### 8.416 docker-compose.prod: ports exposed to host — Medium [FIXED]
 
 **Файл:** `docker-compose.prod.yml:16-17,41-42,66-67,97-98`
 
@@ -5672,7 +5672,7 @@ Same websocketpp sed patch as in CI. The `|| true` at the end means if the sed f
 
 **Фикс:** Remove `|| true` and let the build fail if the patch doesn't apply. Or pin to a websocketpp fork with C++20 support.
 
-### 8.423 hft-trade-bot Dockerfile: no .prod variant — Medium
+### 8.423 hft-trade-bot Dockerfile: no .prod variant — Medium [N/A]
 
 **Файл:** `hft-trade-bot/Dockerfile`
 
@@ -5823,7 +5823,7 @@ Telegram bot token stored as plain instance attribute. If the object is introspe
 
 Good migration runner with tracking table and idempotent execution. ✅
 
-### 8.436 migrate.py: no transaction wrapping — Medium
+### 8.436 migrate.py: no transaction wrapping — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/scripts/migrate.py:72-82`
 
@@ -6229,7 +6229,7 @@ Good Helm chart metadata with keywords, sources, and maintainer. ✅
 
 Excellent Helm values with 8 services, resource limits, HPA, StatefulSet, pinned images, and TLS. ✅
 
-### 8.467 Helm values: no Redis password — Medium
+### 8.467 Helm values: no Redis password — Medium [FIXED]
 
 **Файл:** `deploy/helm/values.yaml:155-174`
 
@@ -6650,7 +6650,7 @@ Excellent audit logger with 6 event types, thread-safe deque, file persistence, 
 
 Excellent circuit breaker with 3 states, configurable thresholds, and statistics. ✅
 
-### 8.499 circuit_breaker: not thread-safe — Medium
+### 8.499 circuit_breaker: not thread-safe — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/circuit_breaker.py:38-46`
 
@@ -6677,7 +6677,7 @@ No lock or asyncio.Lock. If `record_outcome()` and `is_closed` are called from d
 
 Good health aggregator with 3 services, timeout, latency, and 3 statuses. ✅
 
-### 8.501 health_check: creates new ClientSession per check — Low
+### 8.501 health_check: creates new ClientSession per check — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/health_check.py:53`
 
@@ -6975,7 +6975,7 @@ The `CircuitBreaker` and `RateLimiter` classes in helpers.py catch broad excepti
 
 Good SQLite database with WAL, 3 tables, 3 indexes, parameterized queries, and Windows-safe close. ✅
 
-### 8.525 db.py: new connection per operation — Medium
+### 8.525 db.py: new connection per operation — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py:21-25`
 
@@ -7273,7 +7273,7 @@ Maintenance margin rate is hardcoded at 0.5%. Different exchanges have different
 
 Good Black-Scholes with 5 Greeks, guard checks, and configurable rate. ✅
 
-### 8.548 options_pricing: duplicate of options_simulator.py — Medium
+### 8.548 options_pricing: duplicate of options_simulator.py — Medium [FIXED]
 
 **Файл:** `exchange_simulator/options_pricing.py` (419 lines) vs `exchange_simulator/exchange_simulator/options_simulator.py` (8085 bytes)
 
@@ -7547,7 +7547,7 @@ The packet parser uses `struct.unpack` which can raise `struct.error` on malform
 
 Good signal validator with 5 checks, daily PnL tracking, and duplicate prevention. ✅
 
-### 8.571 validator: not thread-safe — Medium
+### 8.571 validator: not thread-safe — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/signal_validation/validator.py:45-48`
 
@@ -7870,7 +7870,7 @@ EMA has a Python loop even with NumPy. This is inherently sequential (each value
 
 Good risk manager with 4 features, ATR-based trailing, and 12-field position state. ✅
 
-### 8.596 risk_manager: not thread-safe — Medium
+### 8.596 risk_manager: not thread-safe — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/risk/risk_manager.py:66-74`
 
@@ -8578,7 +8578,7 @@ The spinlock spins indefinitely with `_mm_pause()` but has no backoff limit. If 
 
 **Фикс:** Add a max spin count (e.g., 1000) before falling back to `yield()`.
 
-### 8.649 low_latency: ObjectPool acquire is O(n) — Low
+### 8.649 low_latency: ObjectPool acquire is O(n) — Low [FIXED]
 
 **Файл:** `hft-trade-bot/src/utils/low_latency.h:153-161`
 
@@ -8639,7 +8639,7 @@ Only checks that symbols is non-empty. No check for duplicate symbols (e.g., `["
 
 **Фикс:** Add `if len(symbols) != len(set(symbols)): errors.append("Duplicate symbols in trading.symbols")`.
 
-### 8.653 ai-signal-bot/src/data_collection/real_market_data.py: Real market data — ✅ Good
+### 8.653 ai-signal-bot/src/data_collection/real_market_data.py: Real market data — ✅ Good [FIXED]
 
 **Файл:** `ai-signal-bot/src/data_collection/real_market_data.py` (455 lines)
 
@@ -8796,7 +8796,7 @@ double best_ask() const { return asks.empty() ? 0.0 : asks[0].price; }
 
 **Фикс:** Return `std::optional<double>` or use `NaN` as the sentinel for "no data".
 
-### 8.664 hft-trade-bot/src/data/aligned_types.h: Cache-line aligned types — ✅ Excellent
+### 8.664 hft-trade-bot/src/data/aligned_types.h: Cache-line aligned types — ✅ Excellent [FIXED]
 
 **Файл:** `hft-trade-bot/src/data/aligned_types.h` (268 lines)
 
@@ -8859,7 +8859,7 @@ FastSignal is 256 bytes = 4 cache lines. This is larger than ideal for a single 
 
 Good notification system with 2 notifiers, 6 alert types, 5 commands, chat ID verification, and optional imports. ✅
 
-### 8.668 notifier: Telegram token in URL — Medium
+### 8.668 notifier: Telegram token in URL — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py:104`
 
@@ -8885,7 +8885,7 @@ No rate limiting on `send_alert()`. If the bot generates many alerts in a short 
 
 **Фикс:** Add a rate limiter (e.g., `asyncio.Semaphore(5)` + `asyncio.sleep`) or batch alerts into a single message.
 
-### 8.670 notifier: no authentication for remote commands — Medium
+### 8.670 notifier: no authentication for remote commands — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py:138-142`
 
@@ -8953,7 +8953,7 @@ The cache key is `symbol_price`. If the market regime changes (e.g., trending �
 
 Good UDP socket transport with non-blocking I/O, configurable buffers, binary parser, and 6 stats. ✅
 
-### 8.675 socket_transport: blocking receive loop — Medium
+### 8.675 socket_transport: blocking receive loop — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/networking/socket_transport.py:86-108`
 
@@ -8972,7 +8972,7 @@ The receive loop is synchronous (`while self._running`) with `time.sleep(0.0001)
 
 **Фикс:** Use `asyncio` with `loop.add_reader(self._socket.fileno(), callback)` for async I/O, or run in a separate thread with `asyncio.to_thread()`.
 
-### 8.676 socket_transport: no packet validation — Low
+### 8.676 socket_transport: no packet validation — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/networking/socket_transport.py:132-137`
 
@@ -9215,7 +9215,7 @@ bool try_pop(T& out) noexcept {
 
 Good main entry point with comprehensive orchestration, reconnection, background listen, graceful shutdown, and paper/live modes. ✅
 
-### 8.693 run.py: no graceful shutdown on SIGTERM — Medium
+### 8.693 run.py: no graceful shutdown on SIGTERM — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/run.py:162-182`
 
@@ -9279,7 +9279,7 @@ The main loop only generates signals. There's no periodic health check (e.g., ch
 
 Good signal publisher with circuit breaker integration, bounded history, orjson optional, client management, and graceful stop. ✅
 
-### 8.697 signal_publisher: no client authentication — Medium
+### 8.697 signal_publisher: no client authentication — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/signal_publisher.py:106-108`
 
@@ -9292,7 +9292,7 @@ No authentication on incoming WebSocket connections. Any client that can reach p
 
 **Фикс:** Add a shared secret or token in the subscribe message. Reject clients that don't authenticate within 5 seconds.
 
-### 8.698 signal_publisher: no TLS on WebSocket server — Medium
+### 8.698 signal_publisher: no TLS on WebSocket server — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/signal_publisher.py:80-86`
 
@@ -9338,7 +9338,7 @@ elif msg_type == "run_backtest":
 
 Good FIX 4.4 client with persistent seq numbers, checksum, callbacks, and comprehensive message types. ✅
 
-### 8.701 fix_client: seq num file non-atomic save — Medium
+### 8.701 fix_client: seq num file non-atomic save — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/fix_client.py:159-164`
 
@@ -9355,7 +9355,7 @@ The seq num file is written directly with `open('w')`. If the process crashes du
 
 **Фикс:** Write to a temp file then `os.rename()` (atomic on POSIX). Or use `tempfile.NamedTemporaryFile` + rename.
 
-### 8.702 fix_client: no TLS on TCP connection — Medium
+### 8.702 fix_client: no TLS on TCP connection — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/fix_client.py:180-181`
 
@@ -9506,7 +9506,7 @@ When the history exceeds 1000, `self.alert_history[-self._max_history:]` creates
 
 Good SHM market data writer with seq-guarded writes, cross-platform, 0o600 permissions, context manager, and bounds check. ✅
 
-### 8.713 shm_market_data_writer: no memory barrier on seq write — Medium
+### 8.713 shm_market_data_writer: no memory barrier on seq write — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/shm_market_data_writer.py:81-94`
 
@@ -9832,7 +9832,7 @@ If `reason` or `symbol` contains a formula (e.g., `=cmd|'/c calc'!A1`), opening 
 
 Excellent health checks v2 with 3 K8s probes, 4 component checks, 3 status levels, metrics, and factory function. ✅
 
-### 8.735 health_checks: no timeout on component checks — Medium
+### 8.735 health_checks: no timeout on component checks — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/health_checks.py:85-99`
 
@@ -9914,7 +9914,7 @@ root_logger.handlers.clear()
 
 Good distributed tracing with OpenTelemetry, optional fallback, NoopTracer, BatchSpanProcessor, and shutdown. ✅
 
-### 8.741 tracing: OTLP exporter insecure=True — Medium
+### 8.741 tracing: OTLP exporter insecure=True — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/tracing.py:59`
 
@@ -10112,7 +10112,7 @@ Both expose `/metrics` endpoint with Prometheus format. The lightweight one (no 
 
 Good exchange factory with 3 modes, Protocol interface, fallback with health check, and runtime switching. ✅
 
-### 8.756 exchange_factory: API key/secret stored in plaintext — Medium
+### 8.756 exchange_factory: API key/secret stored in plaintext — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py:172-173`
 
@@ -10154,7 +10154,7 @@ SimulatorAdapter returns hardcoded BTC price (50000.0) for all symbols. If someo
 
 Good SQLite database with WAL mode, 3 tables, 3 indexes, parameterized queries, contextlib.closing, and Windows-safe close. ✅
 
-### 8.759 db.py: new connection per operation — Medium
+### 8.759 db.py: new connection per operation — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/database/db.py:21-25`
 
@@ -10577,7 +10577,7 @@ On file trigger, the trigger file is removed. But the kill switch stays active u
 
 Good AutoML optimizer with Optuna, TPE sampler, MedianPruner, 12-parameter space, strategy-specific params, storage, and timeout. ✅
 
-### 8.785 automl: no validation set in optimize() — Medium
+### 8.785 automl: no validation set in optimize() — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/ml/automl.py:103-137`
 
@@ -10628,7 +10628,7 @@ No early stopping. If the best value plateaus after 20 trials, the remaining 80 
 
 Good model registry with 5 statuses, A/B testing, rollback, file persistence, and error handling. ✅
 
-### 8.788 model_registry: _save() not atomic — Medium
+### 8.788 model_registry: _save() not atomic — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/ml/model_registry.py:107-120`
 
@@ -10676,7 +10676,7 @@ if random.random() < ab.traffic_split:
 
 Good LLM engine with 4 providers, env-based API keys, rule-based fallback, caching, 3 prompt templates, file-based prompt loading, and session management. ✅
 
-### 8.791 llm_engine: API key in config dataclass plaintext — Medium
+### 8.791 llm_engine: API key in config dataclass plaintext — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/llm_engine/engine.py:29`
 
@@ -10691,7 +10691,7 @@ API key stored as plaintext string in `LLMConfig` dataclass. If the config is lo
 
 **Фикс:** Use `__repr__` that masks the key: `api_key: str = field(repr=False)`. Or use a `SecretStr` type that doesn't expose the value in repr.
 
-### 8.792 llm_engine: no rate limiting on API calls — Medium
+### 8.792 llm_engine: no rate limiting on API calls — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/llm_engine/engine.py:149-159`
 
@@ -11096,7 +11096,7 @@ No validation of `sym_len` — if `sym_len` is 255 and the packet is only 30 byt
 
 Good notifier with Telegram + Discord, 6 event types, remote commands, chat ID validation, graceful stop, and error handling. ✅
 
-### 8.818 notifier: bot token in plaintext — Medium
+### 8.818 notifier: bot token in plaintext — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py:53-54`
 
@@ -11110,7 +11110,7 @@ Bot token stored as plaintext string. If the notifier is logged (e.g., `logger.i
 
 **Фикс:** Use `field(repr=False)` on a dataclass, or mask the token in logs. Use environment variables for token storage.
 
-### 8.819 notifier: no rate limiting on alerts — Medium
+### 8.819 notifier: no rate limiting on alerts — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py:89-116`
 
@@ -11617,7 +11617,7 @@ def log(self, signal_dict: dict) -> None:
 
 Excellent health checks with 3 endpoints, 4 component checks, 3 health states, latency measurement, metrics, Kubernetes-ready HTTP codes, and resilient error handling. ✅
 
-### 8.852 health_checks: check_readiness runs checks sequentially — Medium
+### 8.852 health_checks: check_readiness runs checks sequentially — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/health_checks.py:85-99`
 
@@ -11634,7 +11634,7 @@ async def check_readiness(self) -> dict[str, Any]:
 
 **Фикс:** Use `asyncio.gather()` to run all checks concurrently: `results = await asyncio.gather(self._check_ws(), self._check_db(), self._check_redis(), self._check_exchange())`. Total time = max(timeout) instead of sum(timeout).
 
-### 8.853 health_checks: no timeout on individual checks — Medium
+### 8.853 health_checks: no timeout on individual checks — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/health_checks.py:156-170`
 
@@ -12284,7 +12284,7 @@ Excellent OBI utilities with 3 computation modes, single-pass optimization, edge
 
 Good FIX 4.4 client with persistent sequence numbers, checksum verification, gap recovery, and clean lifecycle. ✅
 
-### 8.898 fix_client: password in plaintext debug log — Medium
+### 8.898 fix_client: password in plaintext debug log — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/fix_client.py:199-200, 408`
 
@@ -12578,7 +12578,7 @@ The `_send` closure captures `disconnected` by reference. This is correct here b
 
 **Фикс:** Extract to a reusable `_broadcast(msg)` method.
 
-### 8.920 signal_publisher: backtest runs in event loop — Medium
+### 8.920 signal_publisher: backtest runs in event loop — Medium [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/signal_publisher.py:271-302`
 
@@ -12876,7 +12876,7 @@ The Binance methods check `resp.status != 200` and return `None`/`[]`. But the O
 
 Good alert system with multi-channel, severity levels, rate limiting, history, and stats. ✅
 
-### 8.943 alerting: creates new aiohttp.ClientSession per alert per channel — Medium
+### 8.943 alerting: creates new aiohttp.ClientSession per alert per channel — Medium [FIXED]
 
 **Файл:** `alerting.py:168, 190, 205`
 
@@ -13580,7 +13580,7 @@ using MessageHandler = std::function<void(const json&)>;
 
 Good WebSocket connection pool with reuse, health checks, stale eviction, and asyncio.Lock. ✅
 
-### 8.993 ws_connection_pool: acquire holds lock during _create_connection — Medium
+### 8.993 ws_connection_pool: acquire holds lock during _create_connection — Medium [FIXED]
 
 **Файл:** `ws_connection_pool.py:59-74`
 
@@ -13680,7 +13680,7 @@ offset = 9 + sym_len
 
 Good SQLite database with WAL mode, parameterized queries, indexes, and Windows-safe close. ✅
 
-### 8.1000 db: new connection per operation — Medium
+### 8.1000 db: new connection per operation — Medium [FIXED]
 
 **Файл:** `db.py:21-25, 85-107`
 
@@ -13989,7 +13989,7 @@ Wait — actually no, once `_state` is set to `HALF_OPEN`, the `if self._state =
 
 Good WebSocket client with encoding fallbacks, message processing, order submission, and reconnect. ✅
 
-### 8.1020 ws_client: listen has no reconnect loop — Medium
+### 8.1020 ws_client: listen has no reconnect loop — Medium [FIXED]
 
 **Файл:** `ws_client.py:99-121`
 
@@ -14083,7 +14083,7 @@ When `create=False`, the code validates magic, capacity, and element_size. But i
 
 Good health checks with 3 endpoints, 4 component checks, status aggregation, and K8s-compatible status codes. ✅
 
-### 8.1027 health_checks: check_readiness runs sequentially — Medium
+### 8.1027 health_checks: check_readiness runs sequentially — Medium [FIXED]
 
 **Файл:** `health_checks.py:85-100`
 
@@ -14100,7 +14100,7 @@ async def check_readiness(self) -> dict[str, Any]:
 
 **Фикс:** `await asyncio.gather(self._check_ws(), self._check_db(), self._check_redis(), self._check_exchange())`.
 
-### 8.1028 health_checks: no timeout on individual checks — Medium
+### 8.1028 health_checks: no timeout on individual checks — Medium [FIXED]
 
 **Файл:** `health_checks.py:140-200`
 
@@ -14297,7 +14297,7 @@ SHM segment is created with 0666 (world read/write). Any process on the system c
 
 Good notifier with Telegram + Discord, shared sessions, command handling, and env setup. ✅
 
-### 8.1043 notifier: token in URL — Medium
+### 8.1043 notifier: token in URL — Medium [FIXED]
 
 **Файл:** `notifier.py:104, 122`
 
@@ -14517,7 +14517,7 @@ async def acquire(self) -> bool:
 
 Good LLM engine with 3 providers, rule-based fallback, caching, prompt templates, and error handling. ✅
 
-### 8.1059 engine.py: API key in memory as plain string — Medium
+### 8.1059 engine.py: API key in memory as plain string — Medium [FIXED]
 
 **Файл:** `engine.py:73, 86-88, 237, 249`
 
@@ -15407,7 +15407,7 @@ The constructor accepts `leverage: int = 10`, but it's never used in `_open_posi
 
 **Фикс:** Either use leverage in position sizing (`max_notional = balance * leverage * max_position_pct / 100`), or remove the parameter.
 
-### 8.1127 backtester: window grows O(N²) — Low
+### 8.1127 backtester: window grows O(N²) — Low [FIXED]
 
 **Файл:** `backtester.py:168`
 
@@ -15486,7 +15486,7 @@ Funding cost is calculated using `fill_exit` (the exit fill price with slippage)
 
 Good backtest engine with PnLCalculator injection, mark-to-market, underwater curve, and numpy-based risk metrics. ✅
 
-### 8.1133 backtest_engine: duplicate of backtester.py — Info
+### 8.1133 backtest_engine: duplicate of backtester.py — Info [FIXED]
 
 **Файлы:** `backtest_engine.py` (321 lines), `backtester.py` (506 lines)
 
@@ -15545,7 +15545,7 @@ Position size scales linearly with confidence: 50% confidence → 1×, 100% conf
 
 Good strategy optimizer with grid search, 4 fitness functions, walk-forward, and formatted output. ✅
 
-### 8.1138 optimizer: grid search is sequential — Low
+### 8.1138 optimizer: grid search is sequential — Low [FIXED]
 
 **Файл:** `optimizer.py:121-136`
 
@@ -15617,7 +15617,7 @@ The IS window ends at `is_end` and OOS starts at `oos_start = is_end`. This is c
 
 **Фикс:** Add `anchored: bool = False` parameter. If anchored, `is_start = 0`.
 
-### 8.1143 walk_forward: creates new BacktestEngine per param combo — Low
+### 8.1143 walk_forward: creates new BacktestEngine per param combo — Low [FIXED]
 
 **Файл:** `walk_forward.py:136-138`
 
@@ -15668,7 +15668,7 @@ self.api_secret = api_secret
 
 Same anti-pattern as C++ adapters — API secrets stored as plain strings. The factory passes them to `RealExchangeAdapter` which passes them to ccxt. The strings persist in the factory's memory for the bot's lifetime.
 
-### 8.1147 exchange_factory: FALLBACK mode doesn't close failed real adapter — Low
+### 8.1147 exchange_factory: FALLBACK mode doesn't close failed real adapter — Low [FIXED]
 
 **Файл:** `exchange_factory.py:196-216`
 
@@ -15700,7 +15700,7 @@ If `initialize()` raises after partially initializing (e.g., market_data connect
 
 Good real account manager with ccxt integration, user data stream, and comprehensive error handling. ✅
 
-### 8.1149 real_account: get_balance catches bare Exception — Low
+### 8.1149 real_account: get_balance catches bare Exception — Low [FIXED]
 
 **Файл:** `real_account.py:163`
 
@@ -15726,7 +15726,7 @@ except Exception as e:
 
 Same issue as `get_balance` — bare `Exception` catch swallows `CancelledError`.
 
-### 8.1151 real_account: no retry on order placement — Low
+### 8.1151 real_account: no retry on order placement — Low [FIXED]
 
 **Файл:** `real_account.py:285-305`
 
@@ -15772,7 +15772,7 @@ On error, the stream sleeps 5s and retries — this is good. But `watch_orders` 
 
 Good real market data feed with multi-exchange support, normalized data, and exponential backoff reconnection. ✅
 
-### 8.1154 real_market_data: no message queue / backpressure — Low
+### 8.1154 real_market_data: no message queue / backpressure — Low [FIXED]
 
 **Файл:** `real_market_data.py:134-138`
 
@@ -15825,7 +15825,7 @@ The OKX WebSocket URL is hardcoded. If OKX changes their endpoint (e.g., AWS vs 
 
 Good REST client with 3-exchange support, proper HMAC signing, and shared session. ✅
 
-### 8.1158 real_exchange_client: duplicate of real_account.py — Info
+### 8.1158 real_exchange_client: duplicate of real_account.py — Info [FIXED]
 
 **Файлы:** `real_exchange_client.py` (335 lines), `real_account.py` (380 lines)
 
@@ -15911,7 +15911,7 @@ The circuit breaker has no locking. `allow_signal()`, `record_success()`, `recor
 
 Excellent SHM ring buffer with lock-free SPSC, cache-line alignment, cross-platform barriers, and batch operations. ✅
 
-### 8.1165 shm_ring_buffer: _mm_barrier flushes on every write — Low
+### 8.1165 shm_ring_buffer: _mm_barrier flushes on every write — Low [FIXED]
 
 **Файл:** `shm_ring_buffer.py:57-58`
 
@@ -16031,7 +16031,7 @@ Two bare `Exception` catches. The first swallows `CancelledError` during history
 
 **Фикс:** Use specific exceptions or add `except asyncio.CancelledError: raise` before the bare catch.
 
-### 8.1173 signal_publisher: backtest runs in WebSocket handler — Low
+### 8.1173 signal_publisher: backtest runs in WebSocket handler — Low [FIXED]
 
 **Файл:** `signal_publisher.py:271-302`
 
@@ -16133,7 +16133,7 @@ Counter increments are not atomic. In asyncio (single-threaded), this is safe wi
 
 The HTTP handler reads the request line and headers, then always returns 200 OK. There's no handling for non-GET methods, no 404 for non-/metrics paths, and no error response. A browser hitting `/` gets a metrics response with no indication it's the wrong path.
 
-### 8.1182 ai-signal-bot/src/communication/fix_client.py: FIX 4.4 Client — ✅ Good
+### 8.1182 ai-signal-bot/src/communication/fix_client.py: FIX 4.4 Client — ✅ Good [FIXED]
 
 **Файл:** `ai-signal-bot/src/communication/fix_client.py` (447 lines)
 
@@ -16158,7 +16158,7 @@ The sequence number file is in the system temp directory. On Linux, `/tmp` is cl
 
 **Фикс:** Use a configurable path in the project's data directory: `data/fix_seq_{sender_comp_id}.txt`.
 
-### 8.1184 fix_client: connect() has no timeout — Low
+### 8.1184 fix_client: connect() has no timeout — Low [FIXED]
 
 **Файл:** `fix_client.py:181`
 
@@ -16170,7 +16170,7 @@ self._reader, self._writer = await asyncio.open_connection(host, port)
 
 **Фикс:** Wrap in `asyncio.wait_for(asyncio.open_connection(host, port), timeout=10)`.
 
-### 8.1185 fix_client: _pending_messages unbounded — Low
+### 8.1185 fix_client: _pending_messages unbounded — Low [FIXED]
 
 **Файл:** `fix_client.py:139, 352`
 
@@ -16211,7 +16211,7 @@ On disconnect, the read loop exits. There's no reconnection logic. The caller mu
 
 Good WS connection pool with health checks, stale eviction, and proper cleanup. ✅
 
-### 8.1188 ws_connection_pool: _evict_stale creates fire-and-forget tasks — Low
+### 8.1188 ws_connection_pool: _evict_stale creates fire-and-forget tasks — Low [FIXED]
 
 **Файл:** `ws_connection_pool.py:106`
 
@@ -16399,7 +16399,7 @@ On `FileNotFoundError`, the function returns `{}` silently — no log, no warnin
 
 **Фикс:** Log on FileNotFoundError. Catch `ImportError` and return `{}` with a warning.
 
-### 8.1201 helpers: CircuitBreaker duplicates communication/circuit_breaker.py — Info
+### 8.1201 helpers: CircuitBreaker duplicates communication/circuit_breaker.py — Info [FIXED]
 
 **Файл:** `helpers.py:145-176`
 
@@ -16482,7 +16482,7 @@ Using `__import__("os")` instead of `import os` at the top of the file. This is 
 
 **Фикс:** Add `import os` at the top and use `os.getpid()`.
 
-### 8.1208 health_checks: no timeout on _check_db and _check_redis — Low
+### 8.1208 health_checks: no timeout on _check_db and _check_redis — Low [FIXED]
 
 **Файл:** `health_checks.py:162, 179`
 
@@ -16581,7 +16581,7 @@ exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
 
 Good multi-channel alert system with rate limiting and proper cleanup. ✅
 
-### 8.1216 alerting: creates new aiohttp session per alert send — Low
+### 8.1216 alerting: creates new aiohttp session per alert send — Low [FIXED]
 
 **Файл:** `alerting.py:168, 190, 205`
 
@@ -16630,7 +16630,7 @@ When history exceeds 1000, the entire list is sliced: `self.alert_history[-1000:
 
 Good performance tracking with CSV logging and CLI dashboard. ✅
 
-### 8.1220 tracker: SignalLogger opens file on every log() call — Low
+### 8.1220 tracker: SignalLogger opens file on every log() call — Low [FIXED]
 
 **Файл:** `tracker.py:82-96`
 
@@ -16727,7 +16727,7 @@ Both serve health endpoints. The monitoring one is simpler (pluggable), the obse
 
 **Фикс:** Merge into one. Use `observability/health_checks.py` as the primary (Kubernetes-ready), and make `monitoring/health_server.py` a thin wrapper or remove it.
 
-### 8.1228 health_server: _check_all runs checks sequentially — Low
+### 8.1228 health_server: _check_all runs checks sequentially — Low [FIXED]
 
 **Файл:** `health_server.py:74-95`
 
@@ -16754,7 +16754,7 @@ Checks run sequentially. If exchange check takes 2s and database check takes 3s,
 
 Good AutoML pipeline with Optuna, proper search space design, and persistence. ✅
 
-### 8.1230 automl: study.optimize is blocking — Low
+### 8.1230 automl: study.optimize is blocking — Low [FIXED]
 
 **Файл:** `automl.py:142-147`
 
@@ -16856,7 +16856,7 @@ No `max_connections` or connection pool config. The default `redis.ConnectionPoo
 
 Good model registry with versioning, A/B testing, rollback, and file persistence. ✅
 
-### 8.1237 model_registry: _save on every A/B impression — Low
+### 8.1237 model_registry: _save on every A/B impression — Low [FIXED]
 
 **Файл:** `model_registry.py:237-243`
 
@@ -16985,7 +16985,7 @@ No `try/except ImportError` guard. If torch is not installed, importing this mod
 
 **Фикс:** Add `try: import torch ... except ImportError: HAS_TORCH = False` guard, or document that this module is optional.
 
-### 8.1246 price_predictor: no model versioning in save/load — Low
+### 8.1246 price_predictor: no model versioning in save/load — Low [FIXED]
 
 **Файл:** `price_predictor.py` (training section)
 
@@ -17071,7 +17071,7 @@ The RBF kernel function is defined but never called. `linear_svm` uses linear ke
 
 Good RKHS implementation with proper linear algebra. ✅
 
-### 8.1253 rkhs: Jacobi eigendecomposition O(N³) — Low
+### 8.1253 rkhs: Jacobi eigendecomposition O(N³) — Low [FIXED]
 
 **Файл:** `rkhs.py:85-120`
 
@@ -17182,7 +17182,7 @@ The parser finds the first `{` and last `}` in the LLM response. If the LLM incl
 
 **Фикс:** Use a regex or json5 parser for more robust extraction. Or instruct the LLM to return only JSON.
 
-### 8.1261 llm_engine: no rate limiting on API calls — Low
+### 8.1261 llm_engine: no rate limiting on API calls — Low [FIXED]
 
 **Файл:** `engine.py:175-180`
 
@@ -17239,7 +17239,7 @@ Discord notifier polls the REST API for new messages every iteration. This is ra
 
 **Фикс:** Use `discord.py` library or implement WebSocket Gateway connection. Or document that polling is intentional for simplicity.
 
-### 8.1265 notifier: no polling interval in Discord _poll_messages — Low
+### 8.1265 notifier: no polling interval in Discord _poll_messages — Low [FIXED]
 
 **Файл:** `notifier.py:237-263`
 
@@ -17260,7 +17260,7 @@ On success, there's no `await asyncio.sleep()` — the loop immediately polls ag
 
 **Фикс:** Add `await asyncio.sleep(1)` at the end of the while loop body (on success).
 
-### 8.1266 notifier: NotifierManager.send_alert is sequential — Low
+### 8.1266 notifier: NotifierManager.send_alert is sequential — Low [FIXED]
 
 **Файл:** `notifier.py:308-310`
 
@@ -17393,7 +17393,7 @@ Looking at the code: `trade_amount = abs(trade_amount)` for SELL (line 86). So t
 
 **Фикс:** Rename to `total_gross_trade_value` for clarity.
 
-### 8.1276 ai-signal-bot/src/research/__init__.py: Massive Re-Export File — ⚠️ Over-Engineered
+### 8.1276 ai-signal-bot/src/research/__init__.py: Massive Re-Export File — ⚠️ Over-Engineered [FIXED]
 
 **Файл:** `ai-signal-bot/src/research/__init__.py` (307 lines)
 
@@ -17407,7 +17407,7 @@ Key issues:
 
 **Фикс:** Use lazy imports or separate sub-packages. Replace `from src.research import X` with `from src.research.banach import X`. Remove `compute_returns` aliases — use a single shared utility.
 
-### 8.1277 research: 22 duplicate `compute_returns` functions — ⚠️ Dead Code
+### 8.1277 research: 22 duplicate `compute_returns` functions — ⚠️ Dead Code [FIXED]
 
 **Файлы:** 22 research modules (banach.py, burgers.py, cameron_martin.py, ...)
 
@@ -17542,7 +17542,7 @@ The config is loaded once at startup. If the YAML file is modified, the bot must
 
 **Фикс:** Add a `reload()` method that re-reads the YAML file and re-validates. Use `watchdog` or `inotify` to detect file changes.
 
-### 8.1290 config: 30+ properties for simple dict access — ⚠️ Over-Engineered
+### 8.1290 config: 30+ properties for simple dict access — ⚠️ Over-Engineered [FIXED]
 
 **Файл:** `config/__init__.py:124-313`
 
@@ -17563,7 +17563,7 @@ The config has 30+ one-liner properties that just return `self.raw["section"]["k
 
 Good main entry point with proper lifecycle management. ✅
 
-### 8.1292 run.py: no graceful shutdown on SIGTERM — Low
+### 8.1292 run.py: no graceful shutdown on SIGTERM — Low [FIXED]
 
 **Файл:** `run.py:390`
 
@@ -17578,7 +17578,7 @@ Only `KeyboardInterrupt` is handled (inside `bot.run()`). In Kubernetes/Docker, 
 
 **Фикс:** Add `signal.signal(signal.SIGTERM, handler)` or use `asyncio.run(main())` with `loop.add_signal_handler(signal.SIGTERM, bot.stop)`.
 
-### 8.1293 run.py: _generate_signals iterates symbols sequentially — Low
+### 8.1293 run.py: _generate_signals iterates symbols sequentially — Low [FIXED]
 
 **Файл:** `run.py:199-203`
 
@@ -17611,7 +17611,7 @@ def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
 
 **Фикс:** Add progress logging (e.g., `[3/150] Backtesting trend_following on BTC/USDT...`). Or use `concurrent.futures.ProcessPoolExecutor` for parallel backtests.
 
-### 8.1295 run.py: duplicate run_backtest.py scripts — Info
+### 8.1295 run.py: duplicate run_backtest.py scripts — Info [FIXED]
 
 **Файлы:** `run_backtest.py` (root), `scripts/run_backtest.py`, `scripts/run_bot.py`
 
@@ -17644,7 +17644,7 @@ Clean, minimal signal definition. ✅
 
 Well-structured strategy code with proper indicator integration. ✅
 
-### 8.1298 strategies: EnsembleVoter averages SL/TP across votes — Low
+### 8.1298 strategies: EnsembleVoter averages SL/TP across votes — Low [FIXED]
 
 **Файл:** `strategies.py:326-334`
 
@@ -17757,7 +17757,7 @@ def on_news_event(self, event: NewsEvent) -> None:
 
 Good plugin system design. ✅
 
-### 8.1306 marketplace: install_from_git executes arbitrary code — ⚠️ Security
+### 8.1306 marketplace: install_from_git executes arbitrary code — ⚠️ Security [FIXED]
 
 **Файл:** `marketplace.py` (248 lines)
 
@@ -17818,7 +17818,7 @@ Good risk manager with comprehensive position management. ✅
 
 Good VaR implementation with all three methods. ✅
 
-### 8.1311 var: scipy hard dependency — Low
+### 8.1311 var: scipy hard dependency — Low [FIXED]
 
 **Файл:** `var.py:9`
 
@@ -17842,7 +17842,7 @@ from scipy import stats
 
 Good Kelly position sizing with safety adjustments. ✅
 
-### 8.1313 ai-signal-bot/src/risk/position_sizing.py: DynamicPositionSizer — ⚠️ Over-Engineered
+### 8.1313 ai-signal-bot/src/risk/position_sizing.py: DynamicPositionSizer — ⚠️ Over-Engineered [FIXED]
 
 **Файл:** `ai-signal-bot/src/risk/position_sizing.py` (205 lines)
 
@@ -17879,7 +17879,7 @@ All shock multipliers are hardcoded constants. The 2008 crisis is always a 50% d
 
 **Фикс:** Accept `shock_by_asset: dict[str, float]` parameter for per-asset shocks. Or use historical correlation matrices to simulate realistic cross-asset shocks.
 
-### 8.1316 ai-signal-bot/src/risk/portfolio_optimizer.py: Duplicate PortfolioOptimizer — ⚠️ Dead Code
+### 8.1316 ai-signal-bot/src/risk/portfolio_optimizer.py: Duplicate PortfolioOptimizer — ⚠️ Dead Code [FIXED]
 
 **Файлы:** `src/risk/portfolio_optimizer.py` (307 lines), `src/strategies/portfolio_optimizer.py` (311 lines)
 
@@ -17928,7 +17928,7 @@ self._daily_reset = datetime.now()
 
 Good SQLite layer with proper WAL mode and parameterized queries. ✅
 
-### 8.1320 db: new connection per operation — Low
+### 8.1320 db: new connection per operation — Low [FIXED]
 
 **Файл:** `db.py:21-25`
 
@@ -17977,7 +17977,7 @@ Broad `except Exception: pass` silently swallows all errors during close. If the
 
 Good WebSocket publisher with proper broadcast and circuit breaker integration. ✅
 
-### 8.1323 signal_publisher: _run_backtest blocks event loop — Low
+### 8.1323 signal_publisher: _run_backtest blocks event loop — Low [FIXED]
 
 **Файл:** `signal_publisher.py:271-302`
 
@@ -17993,7 +17993,7 @@ async def _run_backtest(self, params: dict) -> dict:
 
 **Фикс:** Run `bt.run()` in `asyncio.to_thread()` or `loop.run_in_executor()`. Or queue backtest requests and process them in a separate thread.
 
-### 8.1324 signal_publisher: 3 identical _send closures — Low
+### 8.1324 signal_publisher: 3 identical _send closures — Low [FIXED]
 
 **Файл:** `signal_publisher.py:188-193, 229-234, 263-268`
 
@@ -18054,7 +18054,7 @@ When the connection closes, `listen()` just sets `_connected = False` and return
 
 Good SHM ring buffer with proper atomic semantics and cross-platform support. ✅
 
-### 8.1328 shm_ring_buffer: no overflow detection on push — Low
+### 8.1328 shm_ring_buffer: no overflow detection on push — Low [FIXED]
 
 **Файл:** `shm_ring_buffer.py` (push method)
 
@@ -18075,7 +18075,7 @@ When the ring buffer is full (head + 1 == tail), `push()` either silently drops 
 
 Good FIX 4.4 client implementation with persistent sequence numbers. ✅
 
-### 8.1330 fix_client: no SSL/TLS support — Low
+### 8.1330 fix_client: no SSL/TLS support — Low [FIXED]
 
 **Файл:** `fix_client.py`
 
@@ -18130,7 +18130,7 @@ Total: ~900 lines of duplicate portfolio optimization code.
 
 **Фикс:** Keep `portfolio/` as the canonical implementation. Remove `risk/portfolio_optimizer.py` and `strategies/portfolio_optimizer.py`. Import from `portfolio/` directly. Code reduction: ~600 lines.
 
-### 8.1335 Project-wide: 13 `except Exception` catches — Low
+### 8.1335 Project-wide: 13 `except Exception` catches — Low [FIXED]
 
 **Файлы:** `communication/signal_publisher.py` (6), `data_collection/real_account.py` (3), `communication/health_check.py` (1), `communication/shm_fill_consumer.py` (1), `communication/shm_signal_producer.py` (1), `database/db.py` (1)
 
@@ -18138,7 +18138,7 @@ Total: ~900 lines of duplicate portfolio optimization code.
 
 **Фикс:** Replace with specific exception types. For WebSocket operations: `(websockets.ConnectionClosed, OSError, asyncio.TimeoutError)`. For DB: `(sqlite3.OperationalError, sqlite3.DatabaseError)`. For SHM: `(OSError, ValueError, struct.error)`.
 
-### 8.1336 Project-wide: 0 threading.Lock or asyncio.Lock usage — ⚠️ Race Condition Risk
+### 8.1336 Project-wide: 0 threading.Lock or asyncio.Lock usage — ⚠️ Race Condition Risk [FIXED]
 
 **Файл:** `src/` (all files)
 
@@ -18155,7 +18155,7 @@ grep found **zero** `threading.Lock` or `asyncio.Lock` usages across the entire 
 
 grep found only 3 `global` statements, all in `observability/` for logging setup. No global mutable state in business logic. ✅
 
-### 8.1338 Project-wide: datetime.now() without timezone — Low
+### 8.1338 Project-wide: datetime.now() without timezone — Low [FIXED]
 
 **Файлы:** `signal_validation/validator.py` (5), `communication/fix_client.py` (1), `monitoring/tracker.py` (1), `utils/helpers.py` (1)
 
@@ -18197,7 +18197,7 @@ GARCH(1,1) with MLE parameter estimation via gradient ascent. Also EWMA (RiskMet
 
 **Minor:** Fixed learning rate (0.01) with no line search or convergence check beyond max_iter. For 100 iterations on 30+ returns, this may not converge to the true MLE. Consider L-BFGS or at least adaptive learning rate.
 
-### 8.1343 technical_analysis/__init__.py — ⚠️ Over-Engineered
+### 8.1343 technical_analysis/__init__.py — ⚠️ Over-Engineered [FIXED]
 
 **Файл:** `technical_analysis/__init__.py` (252 lines)
 
@@ -18211,7 +18211,7 @@ Re-exports ~200 symbols from 25 modules. Same anti-pattern as `research/__init__
 
 Clean facade after split into `hawkes_model.py` + `hawkes_funcs.py`. Extract events from price series, fit Hawkes process, compute intensity path, simulate, generate trading signal from branching ratio. Well-structured `HawkesResult` container.
 
-### 8.1345 technical_analysis/copula.py — ✅ Good (minor: duplicate erf)
+### 8.1345 technical_analysis/copula.py — ✅ Good (minor: duplicate erf) [FIXED]
 
 **Файл:** `technical_analysis/copula.py` (401 lines)
 
@@ -18225,7 +18225,7 @@ Empirical, Gaussian, Clayton, Gumbel copula fitting. Kendall tau, Spearman rho, 
 
 Haar (D2) and Daubechies D4 wavelet transforms. DWT, IDWT, multi-level decomposition, MRA reconstruction, soft-threshold denoising. Clean periodic convolution implementation.
 
-### 8.1347 technical_analysis/dtw.py — ✅ Good (minor: duplicate compute_returns)
+### 8.1347 technical_analysis/dtw.py — ✅ Good (minor: duplicate compute_returns) [FIXED]
 
 **Файл:** `technical_analysis/dtw.py` (128 lines)
 
@@ -18273,7 +18273,7 @@ GBM, GBM-Milstein, Ornstein-Uhlenbeck, CIR, Heston, Merton jump-diffusion simula
 
 **Minor:** `_random_normal` (line 55) is a Box-Muller implementation duplicated in 4 files (sde.py, rbergomi.py, hmc.py, optimal_stopping.py). Should be in shared utils.
 
-### 8.1354 technical_analysis/rbergomi.py — ✅ Good (minor: O(n²) Cholesky)
+### 8.1354 technical_analysis/rbergomi.py — ✅ Good (minor: O(n²) Cholesky) [FIXED]
 
 **Файл:** `technical_analysis/rbergomi.py` (281 lines)
 
@@ -18303,7 +18303,7 @@ Variational Mode Decomposition via ADMM. K modes with compact spectral support. 
 
 **Minor:** `_ifft` is O(n²) direct DFT. Should use the existing `_fft` with conjugation (as `fft_analysis._ifft` does) or `numpy.fft.ifft`.
 
-### 8.1358 technical_analysis/hmc.py — ✅ Good (minor: numerical gradient)
+### 8.1358 technical_analysis/hmc.py — ✅ Good (minor: numerical gradient) [FIXED]
 
 **Файл:** `technical_analysis/hmc.py` (251 lines)
 
@@ -18331,7 +18331,7 @@ Snell envelope for American option exercise. Binomial tree (Cox-Ross-Rubinstein)
 
 **Minor:** `_random_normal` (line 77) is the 4th duplicate of Box-Muller. Should be in shared utils.
 
-### 8.1362 technical_analysis: 4× duplicate _random_normal (Box-Muller) — Low
+### 8.1362 technical_analysis: 4× duplicate _random_normal (Box-Muller) — Low [FIXED]
 
 **Файлы:** `sde.py:55`, `rbergomi.py:64`, `hmc.py:46`, `optimal_stopping.py:77`
 
@@ -18339,7 +18339,7 @@ Snell envelope for American option exercise. Binomial tree (Cox-Ross-Rubinstein)
 
 **Фикс:** Create `src/technical_analysis/_utils.py` with `random_normal(rng)` function. Import in all 4 files. Or use `random.gauss(0, 1)` from stdlib (available since Python 2.3).
 
-### 8.1363 technical_analysis: 3× duplicate _fft (Cooley-Tukey) — Low
+### 8.1363 technical_analysis: 3× duplicate _fft (Cooley-Tukey) — Low [FIXED]
 
 **Файлы:** `fft_analysis.py:15`, `emd.py:157`, `vmd.py:52`
 
@@ -18347,7 +18347,7 @@ Snell envelope for American option exercise. Binomial tree (Cox-Ross-Rubinstein)
 
 **Фикс:** Create `src/technical_analysis/_fft_utils.py` with a shared FFT function. Or use `numpy.fft.fft` when numpy is available (it's already optional in indicators.py and pca.py).
 
-### 8.1364 technical_analysis: 10+ modules likely dead code — ⚠️ Dead Code
+### 8.1364 technical_analysis: 10+ modules likely dead code — ⚠️ Dead Code [N/A]
 
 **Файлы:** `rbergomi.py`, `compressed_sensing.py`, `emd.py`, `vmd.py`, `hmc.py`, `bayesian_sts.py`, `optimal_stopping.py`, `copula.py`, `ms_garch.py`, `sde.py`, `bayesian_price.py`, `gmm.py`, `kmeans.py`, `dtw.py`, `wavelet.py`, `monte_carlo.py`
 
@@ -18380,7 +18380,7 @@ Each module defines a `Result` class with 10-24 manually-assigned fields in `__i
 
 **Фикс:** Use `@dataclass` for auto-generated `__repr__`, `__eq__`, and reduced boilerplate. Or use `NamedTuple` for immutability.
 
-### 8.1367 technical_analysis: No input validation on most functions — Low
+### 8.1367 technical_analysis: No input validation on most functions — Low [FIXED]
 
 **Файлы:** Most modules
 
@@ -18396,7 +18396,7 @@ All 4 `_random_normal` implementations have `while u == 0: u = rng.random()` to 
 
 **Info:** Not a bug, just unnecessary complexity. `random.gauss(0, 1)` from stdlib handles this internally.
 
-### 8.1369 technical_analysis: copula.py empirical_cdf is O(n²) — Low
+### 8.1369 technical_analysis: copula.py empirical_cdf is O(n²) — Low [FIXED]
 
 **Файл:** `copula.py:74`
 
@@ -18410,7 +18410,7 @@ O(n²) — for each value, scans all values. For n=500 returns, 250,000 comparis
 
 **Фикс:** `sorted_values = sorted(values); ranks = [bisect.bisect_left(sorted_values, v) for v in values]; return [r / (n + 1) for r in ranks]`
 
-### 8.1370 technical_analysis: vmd.py _ifft is O(n²) direct DFT — Low
+### 8.1370 technical_analysis: vmd.py _ifft is O(n²) direct DFT — Low [FIXED]
 
 **Файл:** `vmd.py:93`
 
@@ -18435,7 +18435,7 @@ O(n²) direct DFT for inverse FFT, while the forward `_fft` (line 52) is O(n log
 
 ## 10. ml/ (12 files, ~5200 lines)
 
-### 8.1371 ml/__init__.py — ⚠️ Over-Engineered
+### 8.1371 ml/__init__.py — ⚠️ Over-Engineered [FIXED]
 
 **Файл:** `ml/__init__.py` (81 lines)
 
@@ -18459,7 +18459,7 @@ PPO agent with Actor-Critic network, DQN agent with replay buffer, training loop
 
 **Minor:** Same as price_predictor — `import torch` at top level (line 28) without guard.
 
-### 8.1374 ml/feature_store.py — ✅ Good (minor: broad Exception catch)
+### 8.1374 ml/feature_store.py — ✅ Good (minor: broad Exception catch) [FIXED]
 
 **Файл:** `ml/feature_store.py` (220 lines)
 
@@ -18491,7 +18491,7 @@ OpenAI Gym-compatible trading environment for RL. Clean Action enum, TradingStat
 
 Pure Python autoencoder with Xavier init, sigmoid activation, backpropagation, anomaly detection via reconstruction error. Stable sigmoid with input clamping. No PyTorch dependency — fully self-contained.
 
-### 8.1379 ml/vae.py — ✅ Good (minor: 5th duplicate _random_normal)
+### 8.1379 ml/vae.py — ✅ Good (minor: 5th duplicate _random_normal) [FIXED]
 
 **Файл:** `ml/vae.py` (349 lines)
 
@@ -18511,7 +18511,7 @@ RKHS kernel methods: RBF/Laplacian kernels, kernel matrix, centering, Jacobi eig
 
 Linear SVM via SGD with hinge loss. Learning rate decay, C regularization, training accuracy evaluation. Clean and correct.
 
-### 8.1382 ml: torch hard dependency in price_predictor + rl_trader — Low
+### 8.1382 ml: torch hard dependency in price_predictor + rl_trader — Low [FIXED]
 
 **Файлы:** `ml/price_predictor.py:28`, `ml/rl_trader.py:28`
 
@@ -18519,7 +18519,7 @@ Both files `import torch` at top level without try/except. If torch is not insta
 
 **Фикс:** Guard with `try: import torch; except ImportError: torch = None` and check at class instantiation, not import time.
 
-### 8.1383 ml: 5 modules likely dead code — ⚠️ Dead Code
+### 8.1383 ml: 5 modules likely dead code — ⚠️ Dead Code [N/A]
 
 **Файлы:** `autoencoder.py`, `vae.py`, `rkhs.py`, `svm_signal.py`, `environment.py`
 
@@ -18537,7 +18537,7 @@ Both files `import torch` at top level without try/except. If torch is not insta
 
 Multi-channel alert system (Discord, Telegram, email, webhook) with rate limiting (cooldown per rule), severity levels, alert history. Clean AlertRule/Alert dataclasses. Async `_send_alert` with aiohttp. Specific exception types in check_rules.
 
-### 8.1385 monitoring/health_server.py — ✅ Good (minor: 3× duplicate _check_* methods)
+### 8.1385 monitoring/health_server.py — ✅ Good (minor: 3× duplicate _check_* methods) [FIXED]
 
 **Файл:** `monitoring/health_server.py` (153 lines)
 
@@ -18551,7 +18551,7 @@ HTTP health check server with /health, /health/exchange, /health/database, /heal
 
 Prometheus metrics exporter with Counter, Gauge, Histogram, Summary. Signal/fill/order counts, PnL, drawdown, latency histograms. Optional prometheus_client guarded. Clean /metrics endpoint.
 
-### 8.1387 monitoring/tracker.py — ✅ Good (minor: datetime.now() without timezone)
+### 8.1387 monitoring/tracker.py — ✅ Good (minor: datetime.now() without timezone) [FIXED]
 
 **Файл:** `monitoring/tracker.py` (175 lines)
 
@@ -18595,7 +18595,7 @@ Telegram + Discord notifier with remote commands (/status, /positions, /close_al
 
 ## 14. networking/ (1 file, ~156 lines)
 
-### 8.1392 networking/socket_transport.py — ✅ Good (minor: busy-poll loop)
+### 8.1392 networking/socket_transport.py — ✅ Good (minor: busy-poll loop) [FIXED]
 
 **Файл:** `networking/socket_transport.py` (156 lines)
 
@@ -18607,7 +18607,7 @@ Raw UDP socket transport with non-blocking I/O, binary packet, stats tracking. M
 
 ## 15. utils/ (1 file, ~205 lines)
 
-### 8.1393 utils/helpers.py — ✅ Good
+### 8.1393 utils/helpers.py — ✅ Good [FIXED]
 
 **Файл:** `utils/helpers.py` (205 lines)
 
@@ -18665,7 +18665,7 @@ Portfolio rebalancing strategies: threshold, calendar, drift. Clean RebalancingS
 
 ## 18. research/ (35 files, ~14000+ lines)
 
-### 8.1400 research/__init__.py — ⚠️ Over-Engineered
+### 8.1400 research/__init__.py — ⚠️ Over-Engineered [FIXED]
 
 **Файл:** `research/__init__.py` (307 lines)
 
@@ -18673,7 +18673,7 @@ Re-exports ~200+ symbols from 35 modules. Same anti-pattern as `technical_analys
 
 **Фикс:** Delete re-exports. Use direct submodule imports.
 
-### 8.1401 research: 30+ modules likely dead code — ⚠️ Dead Code
+### 8.1401 research: 30+ modules likely dead code — ⚠️ Dead Code [FIXED]
 
 **Файлы:** 30+ of 35 files
 
@@ -18681,7 +18681,7 @@ Re-exports ~200+ symbols from 35 modules. Same anti-pattern as `technical_analys
 
 **Фикс:** Move to separate `research_lab/` package outside `src/`. Keep only `attribution.py`, `competition.py`, `genetic_strategy.py`, `greeks_hedging.py`, `microstructure_lab.py` if any are used.
 
-### 8.1402 research: compute_returns duplicated 20+ times — Low
+### 8.1402 research: compute_returns duplicated 20+ times — Low [FIXED]
 
 **Файлы:** 20+ research modules
 
@@ -18693,7 +18693,7 @@ Same `compute_returns` function duplicated across 20+ research modules. Each is 
 
 ## 19. Project-wide cross-module findings
 
-### 8.1403 Project-wide: 3× duplicate logging setup — Low
+### 8.1403 Project-wide: 3× duplicate logging setup — Low [FIXED]
 
 **Файлы:** `utils/helpers.py:14` (setup_logging), `observability/logging.py:31` (setup_logging), `monitoring/tracker.py:11` (logger = logging.getLogger)
 
@@ -18701,7 +18701,7 @@ Three separate logging configurations. `utils/helpers.py` uses stdlib JsonFormat
 
 **Фикс:** Use only `observability/logging.py:setup_logging` as the canonical logging setup. Remove `utils/helpers.py:setup_logging` and `JsonFormatter`. `monitoring/tracker.py` should use `get_logger(__name__)` from observability.
 
-### 8.1404 Project-wide: 5× duplicate _random_normal (Box-Muller) — Low
+### 8.1404 Project-wide: 5× duplicate _random_normal (Box-Muller) — Low [FIXED]
 
 **Файлы:** `technical_analysis/sde.py:55`, `technical_analysis/rbergomi.py:64`, `technical_analysis/hmc.py:46`, `technical_analysis/optimal_stopping.py:77`, `ml/vae.py:223`
 
@@ -18709,7 +18709,7 @@ Three separate logging configurations. `utils/helpers.py` uses stdlib JsonFormat
 
 **Фикс:** Use `random.gauss(0, 1)` from stdlib. Or create `src/utils/math_utils.py` with `random_normal(rng)`.
 
-### 8.1405 Project-wide: 3× duplicate __init__.py re-export anti-pattern — ⚠️ Over-Engineered
+### 8.1405 Project-wide: 3× duplicate __init__.py re-export anti-pattern — ⚠️ Over-Engineered [FIXED]
 
 **Файлы:** `technical_analysis/__init__.py` (252 lines, ~200 symbols), `research/__init__.py` (307 lines, ~200 symbols), `ml/__init__.py` (81 lines, ~30 symbols)
 
@@ -18721,7 +18721,7 @@ Three packages use the same anti-pattern: re-exporting all symbols from all subm
 
 **Фикс:** Delete all re-exports from `__init__.py`. Use direct submodule imports: `from src.technical_analysis.indicators import sma` instead of `from src.technical_analysis import sma`.
 
-### 8.1406 Project-wide: 2 duplicate health check systems — Low
+### 8.1406 Project-wide: 2 duplicate health check systems — Low [FIXED]
 
 **Файлы:** `monitoring/health_server.py` (153 lines), `observability/health_checks.py` (221 lines)
 
@@ -18733,7 +18733,7 @@ Both serve the same purpose (Kubernetes health probes) but with different implem
 
 **Фикс:** Consolidate into one. Keep `observability/health_checks.py` as the checker logic, `monitoring/health_server.py` as the HTTP server that uses it.
 
-### 8.1407 Project-wide: 50+ modules likely dead code total — ⚠️ Dead Code
+### 8.1407 Project-wide: 50+ modules likely dead code total — ⚠️ Dead Code [N/A]
 
 **Файлы:** 16 technical_analysis + 5 ml + 30 research = 51+ modules
 
@@ -18765,7 +18765,7 @@ Exchange adapter factory with Protocol-based interface. SimulatorAdapter (stub) 
 
 REST client for Binance, OKX, Bybit. HMAC-SHA256 request signing with `usedforsecurity=False` (good practice). AccountBalance and Position dataclasses. Per-exchange signing methods. Clean aiohttp session management.
 
-### 8.1411 data_collection/real_account.py — ✅ Good (minor: 3× broad except Exception)
+### 8.1411 data_collection/real_account.py — ✅ Good (minor: 3× broad except Exception) [FIXED]
 
 **Файл:** `data_collection/real_account.py` (380 lines)
 
@@ -18773,7 +18773,7 @@ Real account management via ccxt. AccountBalance, AccountPosition, OpenOrder dat
 
 **Minor:** 3× `except Exception` (lines 163, 247, 378) — too broad. Should catch specific exceptions (ccxt exceptions, network errors).
 
-### 8.1412 data_collection/real_market_data.py — ✅ Good (minor: no asyncio.Lock on shared state)
+### 8.1412 data_collection/real_market_data.py — ✅ Good (minor: no asyncio.Lock on shared state) [FIXED]
 
 **Файл:** `data_collection/real_market_data.py` (455 lines)
 
@@ -18781,7 +18781,7 @@ Multi-exchange WebSocket market data feed (Binance, OKX, Bybit). NormalizedTicke
 
 **Minor:** `_tickers`, `_orderbooks`, `_candles` dicts are written from WebSocket callbacks and read from main code — no `asyncio.Lock`. In asyncio single-threaded context this is mostly safe (dict operations are atomic in CPython), but a context switch between `await` calls could cause stale reads. Low risk but worth noting.
 
-### 8.1413 data_collection: 2× duplicate AccountBalance dataclass — Low
+### 8.1413 data_collection: 2× duplicate AccountBalance dataclass — Low [FIXED]
 
 **Файлы:** `real_account.py:30` (AccountBalance with asset/free/used/total), `real_exchange_client.py:38` (AccountBalance with exchange/total_balance/available_balance/unrealized_pnl/margin_used/currency)
 
@@ -18789,7 +18789,7 @@ Two different `AccountBalance` dataclasses with different fields. `real_account.
 
 **Фикс:** Rename to `CcxtAccountBalance` and `RestAccountBalance`, or unify into one with optional fields.
 
-### 8.1414 data_collection: no rate limiting on REST API calls — ⚠️ Medium
+### 8.1414 data_collection: no rate limiting on REST API calls — ⚠️ Medium [FIXED]
 
 **Файл:** `real_exchange_client.py`
 
@@ -18813,7 +18813,7 @@ SignalBotConfig dataclass with YAML loading, validation (errors + warnings), and
 
 ## 22. Entry points
 
-### 8.1416 run.py — ✅ Good (minor: no graceful shutdown on SIGTERM)
+### 8.1416 run.py — ✅ Good (minor: no graceful shutdown on SIGTERM) [FIXED]
 
 **Файл:** `run.py` (397 lines)
 
@@ -18823,7 +18823,7 @@ Main entry point. AISignalBot orchestrator: ExchangeClient → strategies → en
 
 **Фикс:** Add `signal.signal(signal.SIGTERM, lambda s, f: bot._running = False)` or use `asyncio.run(main())` with `loop.add_signal_handler`.
 
-### 8.1417 run.py: _execute_live_order not implemented — ⚠️ Dead Code
+### 8.1417 run.py: _execute_live_order not implemented — ⚠️ Dead Code [FIXED]
 
 **Файл:** `run.py:308-311`
 
@@ -18837,7 +18837,7 @@ Stub method — logs warning and does nothing. If `paper_trading=False` in confi
 
 **Фикс:** Either implement using `RealExchangeAdapter` or raise `NotImplementedError`.
 
-### 8.1418 run_backtest.py — ✅ Good
+### 8.1418 run_backtest.py — ✅ Good [FIXED]
 
 **Файл:** `run_backtest.py` (179 lines)
 
@@ -18915,7 +18915,7 @@ Another backtest runner using `BacktestEngine` (not `Backtester`). Different API
 
 ## 25. Shared root files (2 files, ~271 lines)
 
-### 8.1426 run_logger.py — ⚠️ 4th duplicate logging setup
+### 8.1426 run_logger.py — ⚠️ 4th duplicate logging setup [FIXED]
 
 **Файл:** `run_logger.py` (118 lines, at project root `f:\VSC projects\trading-system – lite\`)
 
@@ -18931,7 +18931,7 @@ Shared timestamped run logging with `JsonFormatter`. Creates per-run log files w
 
 **Фикс:** Consolidate to one logging setup. Keep `run_logger.py` for file-based run logging (it's the most complete), use `observability/logging.py` for structured logging. Delete `utils/helpers.py:setup_logging` and `JsonFormatter`.
 
-### 8.1427 ai-signal-bot/src/utils/bot_helpers.py — ✅ Good (minor: triggers __init__.py re-export)
+### 8.1427 ai-signal-bot/src/utils/bot_helpers.py — ✅ Good (minor: triggers __init__.py re-export) [FIXED]
 
 **Файл:** `src/utils/bot_helpers.py` (153 lines)
 
@@ -18965,7 +18965,7 @@ WebSocket connection pool with `PooledConnection` wrapper, `WebSocketConnectionP
 
 pytest configuration — adds bot root and project root to `sys.path` for test imports. Standard pattern. No issues.
 
-### 8.1431 communication: ws_connection_pool not used by ws_client — Low
+### 8.1431 communication: ws_connection_pool not used by ws_client — Low [FIXED]
 
 **Файл:** `src/communication/ws_client.py` (ExchangeClient)
 

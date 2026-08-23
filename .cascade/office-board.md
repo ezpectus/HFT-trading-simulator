@@ -115,8 +115,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~DB busy_timeout~~ [FIXED] | Added PRAGMA busy_timeout=5000 + connect timeout=5s in _get_conn() | CODE_AUDIT §8.6 |
 | ~~DB connection pooling~~ [FIXED] | Persistent _get_conn() with WAL + busy_timeout (Пачка AA/LL) | CODE_AUDIT §8.7 |
 | ~~Socket buffer tuning~~ [FIXED] | Added network.socket_buffer_size config (default 1MB) — SO_RCVBUF/SO_SNDBUF set in socket_transport.py initialize() | CODE_AUDIT §8.5 |
-| Helm probes отсутствуют | K8s pod не рестартует при hang | CODE_AUDIT §8.14 |
-| Docker healthchecks TCP | TCP проверяет порт, не готовность | CODE_AUDIT §8.9 |
+| ~~Helm probes отсутствуют~~ [FIXED] | All Helm templates now have httpGet liveness+readiness probes (exchange-sim, ai-signal-bot, hft-trade-bot, web-ui, grafana) | CODE_AUDIT §8.14 |
+| ~~Docker healthchecks TCP~~ [FIXED] | All healthchecks upgraded from TCP socket to HTTP /health endpoint — verifies actual service readiness, not just port binding | CODE_AUDIT §8.9 |
 | ~~aiohttp session per alert~~ [FIXED] | Shared _get_session() — fixed in Пачка O | CODE_AUDIT §8.8 |
 | ~~Top-level ErrorBoundary~~ [FIXED] | TopErrorBoundary.jsx created — wraps App in main.jsx, catches root crashes, shows reload button instead of white screen | CODE_AUDIT §8.98 |
 | ~~Missing DB indexes~~ [FIXED] | idx_signals_symbol, idx_trades_symbol, idx_trades_status, idx_equity_curve_ts all exist in _init_db() | CODE_AUDIT §8.16 |
@@ -134,7 +134,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~No config schema validation~~ [FIXED] | Config validate() already checks required sections, ranges, and now type checks on critical fields | CODE_AUDIT §8.42 |
 | ~~No HFT alert rules~~ [FIXED] | 5 HFT alert rules added to alerts.yml: fill rate, circuit breaker, signal flow, equity drop, candle generation | CODE_AUDIT §8.38 |
 | ~~CI: npm audit non-blocking~~ [FIXED] | npm audit now fails CI on high/critical vulnerabilities — `|| true` removed, grep checks for high+critical | CODE_AUDIT §8.40 |
-| Dockerfile healthcheck TCP | TCP not HTTP, same as compose | CODE_AUDIT §8.44 |
+| ~~Dockerfile healthcheck TCP~~ [FIXED] | All 6 Dockerfiles now use urllib.request.urlopen('http://localhost:PORT/health') instead of TCP socket connect | CODE_AUDIT §8.44 |
 | ~~Dead code: tracing.py~~ [FIXED] | Root tracing.py deleted in Пачка A (§8.1421) | CODE_AUDIT §8.46 |
 | Test coverage gaps | signal_publisher, db, alerting, llm — 0 tests | CODE_AUDIT §8.47 |
 | ~~No graceful shutdown~~ [FIXED] | SIGTERM/SIGINT handler added in Пачка F/S — graceful DB/WS/LLM cleanup in finally block | CODE_AUDIT §8.48 |
@@ -165,7 +165,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~deploy.sh: no backup retention~~ [FIXED] | Backup retention added — keeps only last 5 backups, old ones auto-cleaned after each deploy | CODE_AUDIT §8.92 |
 | ~~ESLint: PropTypes + unused-vars off~~ [FIXED] | react/prop-types set to 'warn', no-unused-vars set to 'warn' with _ prefix ignore — dead vars now flagged | CODE_AUDIT §8.93 |
 | ~~Vite: no CSP headers~~ [FIXED] | CSP headers added to vite.config.js server config — default-src 'self', script-src with unsafe-inline/eval for Vite, connect-src ws/wss for WebSocket | CODE_AUDIT §8.94 |
-| hft-trade-bot config: hardcoded localhost | ws://localhost won't work in Docker/K8s | CODE_AUDIT §8.96 |
+| ~~hft-trade-bot config: hardcoded localhost~~ [FIXED] | Dev config documented as dev default — prod config uses ${VAR} env var syntax. Override via config mount in Docker/K8s | CODE_AUDIT §8.96 |
 | ~~ErrorBoundary: no top-level~~ [FIXED] | TopErrorBoundary.jsx wraps App in main.jsx — catches root crashes, shows reload button | CODE_AUDIT §8.98 |
 | ~~Code reduction ~710 lines~~ [FIXED] | 510 ai-signal-bot + 200 exchange_simulator — all items addressed | CODE_AUDIT §8.100 |
 | ~~SECURITY.md: inaccurate WS claim~~ [FIXED] | WS input schema validation added in Пачка EE — claim is now accurate | CODE_AUDIT §8.107 |
@@ -188,7 +188,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ pre_trade_risk: blacklist race | insert/erase while check() reads = data race UB | CODE_AUDIT §8.158 |
 | C++ duplicate risk system | RiskManager + PreTradeRisk do same 8 checks | CODE_AUDIT §8.166 |
 | C++ reset_daily incomplete | peak_equity_ not reset → wrong drawdown next day | CODE_AUDIT §8.167 |
-| Terraform: hardcoded RDS password | default = "ChangeMeInProduction123!" | CODE_AUDIT §8.162 |
+| ~~Terraform: hardcoded RDS password~~ [FIXED] | dev/main.tf: removed default="ChangeMeInProduction123!" — now required via -var or tfvars, same as prod/main.tf | CODE_AUDIT §8.162 |
 | C++ 3 signal engines (v1/v2/v3) | V2 may be dead code, ~200 lines reducible | CODE_AUDIT §8.176 |
 | ~~migrate.py: narrow exception~~ [FIXED] | Widened to catch Exception — handles asyncpg.PostgresError and all DB errors | CODE_AUDIT §8.174 |
 | ~~SHM stale data on restart~~ [FIXED] | shm_market_data_writer.py now calls _mm_barrier() after seq+1 and before seq+2 — ensures correct memory ordering on ARM for cross-process SHM visibility | CODE_AUDIT §8.177, §8.713, §8.1191 |
@@ -260,7 +260,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~helm: Postgres password in plaintext~~ [FIXED] | Same as §8.69 — password empty in values.yaml, postgres-secret.yaml fails if not set | CODE_AUDIT §8.388 |
 | ~~ci.yml: no security scanning~~ [FIXED] | npm audit now fails CI on high/critical. Bandit + CodeQL already present. pip-audit is future enhancement | CODE_AUDIT §8.390 |
 | ci.yml: no integration tests | Unit tests only. No docker-compose integration test in CI | CODE_AUDIT §8.391 |
-| terraform: db_password default in plaintext | `ChangeMeInProduction123!` as default. Remove default, require var or Secrets Manager | CODE_AUDIT §8.401 |
+| ~~terraform: db_password default in plaintext~~ [FIXED] | Same as §8.162 — default removed from dev/main.tf, password is required | CODE_AUDIT §8.401 |
 | terraform: no prod environment | Only dev/ exists. No prod/ with production-grade settings | CODE_AUDIT §8.402 |
 | ~~docker-compose.prod: ports exposed to host~~ [FIXED] | Postgres, Redis, Prometheus now use `expose` instead of `ports` — accessible only within Docker networks, not from host | CODE_AUDIT §8.416 |
 | web-ui: 200+ components over-engineering | Math/research panels unlikely used by traders. Feature flag or separate package | CODE_AUDIT §8.410 |
@@ -269,7 +269,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~deploy.yml: localhost fallback for VITE_WS~~ [FIXED] | Removed localhost fallback — VITE_WS_EXCHANGE/SIGNALS now empty if GitHub vars not set | CODE_AUDIT §8.412 |
 | hft-executor: avg_latency_ns always 0 | Stats field never populated. No latency measurement implemented | CODE_AUDIT §8.394 |
 | deploy/k8s: only secrets, no manifests | Only secrets.enc.yaml. No Deployment/Service/ConfigMap. Use Helm or add manifests | CODE_AUDIT §8.404 |
-| hft-trade-bot: no Dockerfile.prod | Deploy workflow uses Dockerfile.prod but only Dockerfile exists. Deploy will fail | CODE_AUDIT §8.423 |
+| ~~hft-trade-bot: no Dockerfile.prod~~ [N/A] | Dockerfile.prod already exists (50 lines, multi-stage build, healthcheck) — audit item is stale | CODE_AUDIT §8.423 |
 | ~~migrate.py: no transaction wrapping~~ [FIXED] | Each migration wrapped in conn.transaction() — SQL + schema_migrations insert are atomic | CODE_AUDIT §8.436 |
 | config.h: hardcoded localhost default | ws_url defaults to localhost:8765. Won't work in Docker/K8s. Default to empty | CODE_AUDIT §8.445 |
 | order_executor: detached reconnect thread | Detached thread accesses this after destruction. Use jthread or join in dtor | CODE_AUDIT §8.452 |
