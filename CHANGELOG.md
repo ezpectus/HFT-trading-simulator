@@ -2,6 +2,53 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AW: f-string logging final batch)
+
+### Fixed
+- `src/strategies/cross_exchange_arb.py`: 2 f-string → `%-style`
+- `src/strategies/ml_ensemble.py`: 2 f-string → `%-style`
+- `src/utils/bot_helpers.py`: 3 f-string → `%-style`
+- `src/backtesting/backtester.py`: 1 f-string → `%-style`
+- `src/monitoring/health_server.py`: 1 f-string → `%-style`
+- `src/monitoring/metrics.py`: 1 f-string → `%-style`
+- `src/research/microstructure_lab.py`: 1 f-string → `%-style`
+- `src/research/competition.py`: 2 f-string → `%-style` (operational only)
+- Remaining: `attribution.py` `print_report` (formatted table output, not operational logging)
+- **§8.337 f-string logging cleanup effectively complete** — 30+ files, 150+ calls converted
+
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AV: f-string logging batch 5)
+
+### Fixed
+- `src/ml/automl.py`: 4 f-string → `%-style`
+- `src/observability/tracing.py`: 3 f-string → `%-style`
+- `src/pricing/volatility_surface.py`: 3 f-string → `%-style`
+- `src/research/genetic_strategy.py`: 3 f-string → `%-style`
+- `src/communication/shm_fill_consumer.py`: 2 f-string → `%-style`
+- `src/communication/shm_market_data_writer.py`: 2 f-string → `%-style`
+- `src/communication/shm_signal_producer.py`: 2 f-string → `%-style`
+- `src/ml/feature_store.py`: 2 f-string → `%-style`
+
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AU: f-string logging batch 4)
+
+### Fixed
+- `src/data_collection/exchange_factory.py`: 4 f-string → `%-style`
+- `src/data_collection/real_exchange_client.py`: 2 f-string → `%-style`
+- `src/risk/kelly.py`: 3 f-string → `%-style`
+- `src/risk/risk_manager.py`: 4 f-string → `%-style`
+- `src/ml/price_predictor.py`: 5 f-string → `%-style`
+- `src/networking/socket_transport.py`: 4 f-string → `%-style`
+- `src/llm_engine/engine.py`: 5 f-string → `%-style`
+- `src/backtesting/plotter.py`: 5 f-string → `%-style`
+
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AT: f-string logging batch 3)
+
+### Fixed
+- `src/ml/rl_trader.py`: 10 f-string → `%-style`
+- `src/backtesting/optimizer.py`: 9 f-string → `%-style`
+- `src/ml/model_registry.py`: 7 f-string → `%-style`
+- `src/monitoring/alerting.py`: 7 f-string → `%-style`
+- `src/notification/notifier.py`: 7 f-string → `%-style`
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AS: f-string logging batch 2)
 
 ### Fixed
