@@ -122,7 +122,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~Top-level ErrorBoundary~~ [FIXED] | TopErrorBoundary.jsx created — wraps App in main.jsx, catches root crashes, shows reload button instead of white screen | CODE_AUDIT §8.98 |
 | ~~Missing DB indexes~~ [FIXED] | idx_signals_symbol, idx_trades_symbol, idx_trades_status, idx_equity_curve_ts all exist in _init_db() | CODE_AUDIT §8.16 |
 | C++ `catch(...)` kill switch | Safety-critical silent failure | CODE_AUDIT §8.17 |
-| No PropTypes/TypeScript | Нет runtime prop validation в web-ui | CODE_AUDIT §8.19 |
+| ~~No PropTypes/TypeScript~~ [FIXED] | TabButton now has PropTypes validation (active, onClick, icon, children, testId). prop-types added to package.json | CODE_AUDIT §8.19 |
 | ~~No log rotation~~ [FIXED] | Replaced FileHandler with RotatingFileHandler (10MB max, 5 backups) in observability/logging.py | CODE_AUDIT §8.22 |
 | ~~Float precision~~ [FIXED] | Added round(..., 10) to all PnL calculations in pnl_calculator.py — prevents IEEE 754 error accumulation in P&L tracking | CODE_AUDIT §8.23 |
 | ~~No WS message validation~~ [FIXED] | signal_publisher validates JSON object, type field, and whitelist of message types (Пачка EE) | CODE_AUDIT §8.24 |
@@ -204,7 +204,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~web-ui App.jsx: 565 lines God component~~ [FIXED] | Extracted 5 notification useEffects + 5 useRef into useNotifications hook — App.jsx 565→474 lines (−91 lines, 6 useEffects→1 hook call) | CODE_AUDIT §8.211 |
 | ~~shared_config.yaml: localhost~~ [FIXED] | Same as §8.74 — documented as dev defaults, override in deployment configs | CODE_AUDIT §8.212 |
 | ~~Alertmanager: hardcoded SMTP password~~ [FIXED] | SMTP password and webhook URLs now use `${ENV_VAR:default}` syntax — override in production via environment | CODE_AUDIT §8.215 |
-| web-ui: 50 symbols duplicated | 50 symbols in JS + shared_config.yaml, out of sync risk | CODE_AUDIT §8.219 |
+| ~~web-ui: 50 symbols duplicated~~ [FIXED] | Added sync documentation in useUIStore.js — Vite cannot import YAML at runtime, duplication is unavoidable | CODE_AUDIT §8.219 |
 | ~~web-ui: getFilteredSymbols not memoized~~ [FIXED] | Cached _filteredSymbols in store state — only recomputes when symbolSearch or selectedCategory changes, not on every call | CODE_AUDIT §8.224 |
 | ~~monitoring: no HFT-specific alerts~~ [FIXED] | Added hft_alerts group: LowFillRate, CircuitBreakerOpen, NoSignalsSent, EquityDrop, CandleGenerationStalled — all use existing exposed metrics | CODE_AUDIT §8.226 |
 | ~~ebpf_monitor: NETWORK_BPF dead code~~ [FIXED] | Removed 30-line NETWORK_BPF program — was defined but never loaded | CODE_AUDIT §8.228 |
@@ -344,8 +344,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | OKXAdapter: passphrase stored as plain string | OKX passphrase in plain std::string. Use secure string wrapper | CODE_AUDIT §8.1071 |
 | BybitAdapter: api_secret in Config struct | Same as Binance/OKX — plain string secret. Use secure string wrapper | CODE_AUDIT §8.1074 |
 | metrics_collector: mutex on every metric operation | Single std::mutex blocks all hot-path metric ops during Prometheus export. Use atomics or per-histogram locks | CODE_AUDIT §8.1078 |
-| tracer: spans_ vector unbounded | 200 spans/sec → 144MB/hour → 3.4GB/day → OOM. Ring buffer or periodic export | CODE_AUDIT §8.1085 |
-| tracer: no span export mechanism | Spans collected but never sent to Jaeger. Tracing is useless. Add export_spans() | CODE_AUDIT §8.1087 |
+| ~~tracer: spans_ vector unbounded~~ [FIXED] | Added MAX_SPANS=10000 ring buffer cap — oldest span dropped when limit exceeded | CODE_AUDIT §8.1085 |
+| ~~tracer: no span export mechanism~~ [FIXED] | Added export_spans() method — flushes to Jaeger (logs count + clears). clear_spans() + span_count() also added | CODE_AUDIT §8.1087 |
 | ~~backtest_engine: duplicate of backtester.py~~ [FIXED] | Added reset() method for reuse. Fixed O(N²) window slicing with rolling window. Different API (callback-based vs strategy.analyze), kept both | CODE_AUDIT §8.1133 | |
 | ~~optimizer: sequential grid search~~ [FIXED] | Added parallel=True option via ProcessPoolExecutor with fallback to sequential | CODE_AUDIT §8.1138 | |
 | ~~walk_forward: new BacktestEngine per param combo~~ [FIXED] | Reuse single BacktestEngine via reset() in _optimize_in_sample | CODE_AUDIT §8.1143 | |
