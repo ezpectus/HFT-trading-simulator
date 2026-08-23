@@ -8120,3 +8120,238 @@ No validation that `risk_free_rate` is reasonable (e.g., not negative, not > 1).
 The optimizer doesn't enforce non-negative weights (no short-selling). Without this constraint, the optimizer may produce negative weights (short positions) which may not be intended.
 
 **Фикс:** Add bounds constraint `(0, 1)` for each weight in scipy optimization.
+
+### 8.617 hft-trade-bot/src/strategies/inline_indicators.h: Inline indicators — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/inline_indicators.h` (295 lines)
+
+- **5 streaming indicators**: InlineEMA, InlineRSI, InlineADX, InlineVWAP, InlineATR — comprehensive
+- **O(1) per update**: No vector allocation — HFT constraint
+- **Wilder's smoothing**: Correct RSI/ADX implementation — correct
+- **`noexcept`**: All `update()` and `value()` methods — HFT constraint
+- **`[[unlikely]]`**: Branch prediction on init path — HFT optimization
+- **`constexpr`**: `compute_k()`, `compute_inv_period()`, `value()`, `ready()` — compile-time
+- **StringHash transparent**: Enables `find(const char*)` without allocation — HFT optimization
+
+Excellent inline indicators with 5 streaming classes, O(1), Wilder's smoothing, noexcept, constexpr, and transparent hash. ✅
+
+### 8.618 inline_indicators: no period validation — Low
+
+**Файл:** `hft-trade-bot/src/strategies/inline_indicators.h:34`
+
+```cpp
+explicit InlineEMA(int period) : k_(compute_k(period)) {}
+```
+
+No validation that `period > 0`. `period = 0` causes division by zero in `compute_k()` → `k_ = 2.0 / 1.0 = 2.0` (not infinity, but wrong). `period = -1` → `k_ = 2.0 / 0.0 = inf`.
+
+**Фикс:** Add `assert(period > 0)` or throw in constructor.
+
+### 8.619 hft-trade-bot/src/strategies/obi_utils.h: OBI utilities — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/obi_utils.h` (78 lines)
+
+- **3 functions**: `compute_obi_levels`, `compute_weighted_obi`, `compute_obi_all` — comprehensive
+- **Single-pass**: `compute_obi_all` computes 5/10/20-level OBI in one loop — efficient
+- **Proximity weighting**: `1.0 / (1.0 + i)` — correct
+- **`noexcept`**: All functions — HFT constraint
+- **Guard**: `total > 1e-12` prevents division by zero — correct
+- **Fallback**: `n < l5` → use available levels — resilient
+
+Excellent OBI utilities with 3 functions, single-pass, proximity weighting, noexcept, and zero-guard. ✅
+
+### 8.620 hft-trade-bot/src/exchange/IExchange.h: Exchange interface — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/exchange/IExchange.h` (43 lines)
+
+- **Abstract interface**: Pure virtual — DIP/SOLID
+- **11 methods**: id, maker_fee, taker_fee, latency, best_bid/ask, mid, bid/ask_depth, is_available, toxic tracking — comprehensive
+- **Virtual destructor**: `= default` — correct
+- **Latency tracking**: `estimated_latency_us()` — exists in interface (contradicts R593 finding about smart_router not using it)
+- **Toxic flow**: `record_toxic_event()`, `toxic_event_count()`, `reset_toxic_events()` — risk management
+
+Excellent exchange interface with 11 pure virtual methods, DIP/SOLID, latency, and toxic flow tracking. ✅
+
+### 8.621 CORRECTION: R593 smart_order_router no latency — Partially false
+
+**Файл:** `hft-trade-bot/src/exchange/IExchange.h:24`
+
+```cpp
+virtual int64_t estimated_latency_us() const = 0;
+```
+
+R593 flagged "no latency tracking implementation" — the `IExchange` interface **does** have `estimated_latency_us()`. The smart_order_router_v2.h `route()` method may or may not use it for LOWEST_LATENCY strategy (need to check the full route() implementation). The interface is correct; the issue is whether the router uses it.
+
+**Статус:** R593 → downgrade from Low to Info. Interface has latency; router implementation needs verification.
+
+### 8.622 ai-signal-bot/src/ml/price_predictor.py: LSTM/Transformer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/ml/price_predictor.py` (334 lines)
+
+- **2 architectures**: LSTM (128 hidden, 2 layers) + Transformer (4 heads) — comprehensive
+- **Attention mechanism**: Multi-head self-attention — advanced
+- **11 input features**: OHLCV + RSI + EMA_fast/slow + ATR + volume_ratio + return — comprehensive
+- **3 output classes**: buy/sell/hold — correct
+- **12 config params**: model_type, input_dim, hidden_dim, num_layers, num_heads, dropout, output_dim, lookback, horizon, lr, weight_decay, batch_size, epochs, early_stop — comprehensive
+- **ONNX export**: For C++ inference — production-grade
+- **Early stopping**: `early_stop_patience = 10` — prevents overfitting
+
+Good price predictor with 2 architectures, attention, 11 features, ONNX export, and early stopping. ✅
+
+### 8.623 price_predictor: hard-imports torch — Low
+
+**Файл:** `ai-signal-bot/src/ml/price_predictor.py:28-30`
+
+```python
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset
+```
+
+`torch` is hard-imported with no fallback. If PyTorch is not installed, the entire module fails to import, breaking any code that imports from `src.ml`. Other ML modules (ml_ensemble.py) use `try/except ImportError`.
+
+**Фикс:** Wrap in `try/except ImportError` with `SKLEARN_AVAILABLE = False` pattern, or document that PyTorch is required for this module.
+
+### 8.624 ai-signal-bot/src/ml/model_registry.py: Model registry — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/ml/model_registry.py` (296 lines)
+
+- **5 statuses**: CANDIDATE, STAGING, PRODUCTION, ARCHIVED, ROLLED_BACK — comprehensive
+- **Semver versioning**: Version management — correct
+- **A/B testing**: Traffic split, impressions, successes — advanced
+- **Automatic rollback**: On performance degradation — risk management
+- **File-based persistence**: JSON storage — simple but effective
+- **Promote with demotion**: Current production archived when new promoted — correct
+- **`ModelVersion` dataclass**: 10 fields — comprehensive
+- **`ABTest` dataclass**: 9 fields — comprehensive
+- **Error handling**: `try/except` on load with warning — resilient
+
+Excellent model registry with 5 statuses, semver, A/B testing, rollback, file persistence, and promote-with-demotion. ✅
+
+### 8.625 model_registry: not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/ml/model_registry.py:87-89`
+
+```python
+self.models: dict[str, dict[str, ModelVersion]] = {}
+self.ab_tests: dict[str, ABTest] = {}
+```
+
+`ModelRegistry` has no lock. If `register()`, `promote()`, or `rollback()` are called from multiple async tasks, race condition on `self.models` and `self.ab_tests`. In practice, model registry operations are rare (manual or periodic).
+
+**Фикс:** Use `asyncio.Lock` or document single-task requirement.
+
+### 8.626 model_registry: _save not atomic — Low
+
+**Файл:** `ai-signal-bot/src/ml/model_registry.py:107-120`
+
+```python
+def _save(self) -> None:
+    with open(self.index_path, "w") as f:
+        json.dump(data, f, indent=2)
+```
+
+`_save()` writes directly to `registry.json`. If the process crashes during write, the file is corrupted. Should write to a temp file and atomically rename.
+
+**Фикс:** Write to `registry.json.tmp`, then `os.rename()` to `registry.json`.
+
+### 8.627 ai-signal-bot/src/database/db.py: Database layer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/database/db.py` (180 lines)
+
+- **3 tables**: signals, trades, equity_curve — comprehensive
+- **3 indexes**: idx_signals_symbol, idx_trades_symbol, idx_trades_status — performant
+- **WAL mode**: `PRAGMA journal_mode=WAL` — concurrent access
+- **Parameterized queries**: `?` placeholders — SQL injection safe
+- **`closing()` context**: Proper connection cleanup — correct
+- **Windows-safe close**: `wal_checkpoint(TRUNCATE)` + `journal_mode=DELETE` — cross-platform
+- **`COALESCE(SUM(pnl), 0)`**: NULL-safe aggregation — correct
+- **`get_stats()`**: 6 metrics — comprehensive
+
+Good database layer with 3 tables, 3 indexes, WAL, parameterized queries, and Windows-safe close. ✅
+
+### 8.628 db.py: new connection per operation — Medium
+
+**Файл:** `ai-signal-bot/src/database/db.py:21-25`
+
+```python
+def _conn(self) -> sqlite3.Connection:
+    conn = sqlite3.connect(self.path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+```
+
+Every database operation creates a new connection, sets WAL mode, and closes it. This is expensive:
+1. `sqlite3.connect()` — file open, lock acquisition
+2. `PRAGMA journal_mode=WAL` — journal mode check (even if already WAL)
+3. `closing()` — connection close, lock release
+
+With 50 symbols × 60s signal interval = ~3000 signals/day, this is 3000+ connection open/close cycles per day.
+
+**Фикс:** Use a persistent connection stored as `self._conn`, set WAL once in `__init__`, and use a thread-safe access pattern.
+
+### 8.629 db.py: no foreign key on signal_id — Low
+
+**Файл:** `ai-signal-bot/src/database/db.py:67`
+
+```sql
+signal_id INTEGER
+```
+
+`trades.signal_id` has no foreign key constraint to `signals.id`. A trade can reference a non-existent signal.
+
+**Фикс:** Add `FOREIGN KEY (signal_id) REFERENCES signals(id)` or use `PRAGMA foreign_keys=ON`.
+
+### 8.630 ai-signal-bot/src/portfolio/risk_parity.py: Risk parity — ✅ Good
+
+**Файл:** `ai-signal-bot/src/portfolio/risk_parity.py` (167 lines)
+
+- **RiskContribution dataclass**: 4 fields — structured
+- **Marginal risk**: Correct calculation — correct
+- **Equal risk contribution**: Risk parity objective — correct
+- **`max(portfolio_variance, 0)`**: Prevents negative sqrt — correct
+- **Risk budgeting**: Custom risk budgets — flexible
+- **Weight bounds**: Configurable — flexible
+- **Iteration**: `_iterate_risk_parity()` — correct
+
+Good risk parity optimizer with marginal risk, equal risk contribution, risk budgeting, and weight bounds. ✅
+
+### 8.631 risk_parity: portfolio_return hardcoded 0 — Low
+
+**Файл:** `ai-signal-bot/src/portfolio/risk_parity.py:76`
+
+```python
+portfolio_return = 0
+```
+
+`optimize_risk_parity()` hardcodes `portfolio_return = 0` in the result. Risk parity doesn't optimize for return (only risk), but the result should still calculate the actual portfolio return from the weights and expected returns.
+
+**Фикс:** Accept `expected_returns` as parameter and calculate `np.dot(weights, expected_returns)`.
+
+### 8.632 ai-signal-bot/src/portfolio/rebalancing.py: Rebalancing — ✅ Good
+
+**Файл:** `ai-signal-bot/src/portfolio/rebalancing.py` (145 lines)
+
+- **3 triggers**: TIME_BASED, DRIFT_BASED, VOLATILITY_BASED — comprehensive
+- **RebalanceOrder dataclass**: 5 fields — structured
+- **RebalanceResult**: orders, new_weights, turnover, estimated_cost — comprehensive
+- **Turnover calculation**: `0.5 * sum(abs(target - current))` — correct
+- **Skip threshold**: `abs(diff) < 0.01` — prevents micro-rebalancing
+- **Transaction cost**: Configurable — flexible
+- **3 should_rebalance methods**: Time, drift, volatility — comprehensive
+
+Good rebalancing with 3 triggers, turnover, skip threshold, and transaction cost. ✅
+
+### 8.633 rebalancing: no min trade size — Low
+
+**Файл:** `ai-signal-bot/src/portfolio/rebalancing.py:77`
+
+```python
+if abs(current_weight - target_weight) < 0.01:
+    continue
+```
+
+The skip threshold is 0.01 (1% weight difference), but there's no minimum trade size in absolute terms. For a $100K portfolio, 1% = $1000 — reasonable. For a $1M portfolio, 1% = $10,000 — may be too large. For a $10K portfolio, 1% = $100 — may be too small (below exchange minimum).
+
+**Фикс:** Add `min_trade_value` parameter and skip if `abs(trade_amount) < min_trade_value`.

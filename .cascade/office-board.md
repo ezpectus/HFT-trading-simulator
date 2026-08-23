@@ -249,7 +249,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | metrics_collector: mutex on every metric op | Global mutex blocks all metric operations in HFT hot path. Use atomics | CODE_AUDIT §8.483 |
 | circuit_breaker: not thread-safe | No lock on _state/_consecutive_failures. Race in async context. Use asyncio.Lock | CODE_AUDIT §8.499 |
 | health_check: new ClientSession per call | Creates aiohttp session per health check. Use shared session for pooling | CODE_AUDIT §8.501 |
-| db.py: new connection per operation | Every DB op creates new conn + PRAGMA WAL. Use persistent conn, set WAL once | CODE_AUDIT §8.525 |
+| db.py: new connection per operation | Both exchange_simulator and ai-signal-bot db.py create new conn + PRAGMA WAL per op. Use persistent conn, set WAL once | CODE_AUDIT §8.525, §8.628 |
 | main.cpp: no SIGTERM handler — FALSE ALARM | SIGTERM handler EXISTS in bot_setup.cpp:63. R518 downgraded to Info | CODE_AUDIT §8.583 |
 | options_pricing: duplicate of options_simulator | Two modules implement Black-Scholes. Consolidate into one | CODE_AUDIT §8.548 |
 | kill_switch: file monitoring thread not joined | stop_monitoring may not join thread. Use-after-free risk. Use jthread | CODE_AUDIT §8.557 |

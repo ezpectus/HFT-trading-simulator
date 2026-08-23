@@ -3697,3 +3697,69 @@ bool init_config_and_logger(BotContext& ctx, int argc, char* argv[]) {
 ```
 
 **Разница:** The bad code logs warnings for all validation failures but always returns `true` — the bot starts with invalid config. `stop_loss_pct = 0` means no stop loss: if BTC drops 20%, the bot holds the position with no exit — unlimited downside. `max_daily_drawdown_pct = 0` means no daily loss limit: the bot can lose the entire account in one day. With 1000 users, one misconfigured YAML file (e.g., `stop_loss_pct: 0` instead of `stop_loss_pct: 2.0`) causes $10,000,000+ in losses across all users — the bot trades with no risk controls. The warning is buried in a 500-line log file that nobody reads. The good code distinguishes critical errors from warnings: `stop_loss_pct = 0` is an error (unlimited risk), `stop_loss_pct = 50` is a warning (unusually high but not dangerous). Critical errors return `false`, and `init_config_and_logger()` aborts startup — the bot doesn't start until the config is fixed. The cost is a `[[nodiscard]]` return value and a few `if` checks. The benefit is zero invalid-config startups — the bot refuses to start with dangerous config, preventing $10M+ in losses from a single YAML typo.
+
+---
+
+## Bad vs Good: Non-Atomic File Save (Python)
+
+### ❌ Bad Code
+```python
+class ModelRegistry:
+    def _save(self) -> None:
+        """Save registry to disk."""
+        with open(self.index_path, "w") as f:
+            json.dump(data, f, indent=2)
+        # If process crashes here → registry.json is corrupted
+        # Half-written JSON, truncated, or empty file
+        # Next _load() fails → all model versions lost
+
+    def register(self, name: str, version: str, path: str, ...) -> ModelVersion:
+        mv = ModelVersion(name=name, version=version, path=path, ...)
+        self.models[name][version] = mv
+        self._save()  # Crash here = corrupted registry
+        return mv
+```
+
+**What's wrong:**
+- `open(path, "w")` truncates the file immediately, then writes
+- If the process crashes (OOM, SIGKILL, power loss) during `json.dump()`, the file is truncated/corrupted
+- Next `_load()` fails with `json.JSONDecodeError` → all model versions, A/B tests, and production assignments lost
+- The registry starts empty → no production model → bot falls back to rule-based or stops
+- With 1000 users, a crash during model promotion = all users lose their ML model → 20% performance degradation until manual recovery
+- Recovery requires re-registering all models, re-promoting production, re-creating A/B tests — hours of manual work
+
+### ✅ Good Code
+```python
+import os
+import tempfile
+
+class ModelRegistry:
+    def _save(self) -> None:
+        """Atomically save registry to disk."""
+        os.makedirs(self.storage_dir, exist_ok=True)
+        data = {
+            "models": {name: {ver: {**asdict(v), "status": v.status.value}
+                              for ver, v in versions.items()}
+                       for name, versions in self.models.items()},
+            "ab_tests": {name: asdict(ab) for name, ab in self.ab_tests.items()},
+        }
+
+        # Write to temp file in same directory (same filesystem for atomic rename)
+        fd, tmp_path = tempfile.mkstemp(
+            dir=self.storage_dir, suffix=".tmp", prefix="registry_"
+        )
+        try:
+            with os.fdopen(fd, "w") as f:
+                json.dump(data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())  # Force write to disk
+            # Atomic rename — old file is intact until rename completes
+            os.replace(tmp_path, self.index_path)  # os.replace is atomic on POSIX and Windows
+        except Exception:
+            # Clean up temp file on error — old registry.json is untouched
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            raise
+```
+
+**Разница:** The bad code writes directly to `registry.json` — `open("w")` truncates the file before writing. If the process crashes during `json.dump()`, the file is half-written: truncated JSON, missing closing braces, or empty. Next `_load()` raises `json.JSONDecodeError` — the registry starts empty, all model versions and A/B tests are lost. With 1000 users, a crash during model promotion means all users lose their ML model: the bot falls back to rule-based heuristics, generating 20% fewer profitable signals. Recovery requires hours of manual work: re-registering all models from checkpoints, re-promoting production, re-creating A/B tests. The good code writes to a temp file first, then atomically renames it to `registry.json` using `os.replace()` (atomic on both POSIX and Windows). If the process crashes during write, the temp file is corrupted but `registry.json` is untouched — the old registry is intact. `f.flush()` + `os.fsync()` ensures the data is written to disk before rename, protecting against power loss. The `except` block cleans up the temp file on error. The cost is a few extra lines (tempfile, fsync, replace) and ~1ms overhead per save. The benefit is zero data loss on crash — the registry is always either the old version or the new version, never corrupted.

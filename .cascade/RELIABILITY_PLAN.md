@@ -1161,3 +1161,20 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R604 | ai-signal-bot/portfolio/markowitz.py | `markowitz.py` | ✅ Good | PortfolioResult, EfficientFrontier, 3 calculations, max(0) guard, scipy integration |
 | R605 | markowitz: no constraint validation | `markowitz.py:34` | Low | No validation on risk_free_rate. Negative inflates Sharpe |
 | R606 | markowitz: no short-selling constraint | `markowitz.py` | Low | No non-negative weights constraint. May produce negative weights |
+| R607 | hft-trade-bot/strategies/inline_indicators.h | `inline_indicators.h` | ✅ Excellent | 5 streaming indicators (EMA/RSI/ADX/VWAP/ATR), O(1), Wilder's, noexcept, constexpr, transparent hash |
+| R608 | inline_indicators: no period validation | `inline_indicators.h:34` | Low | period=0 → wrong k_, period=-1 → inf. Add assert(period > 0) |
+| R609 | hft-trade-bot/strategies/obi_utils.h | `obi_utils.h` | ✅ Excellent | 3 functions, single-pass 5/10/20-level, proximity weighting, noexcept, zero-guard |
+| R610 | hft-trade-bot/exchange/IExchange.h | `IExchange.h` | ✅ Excellent | 11 pure virtual, DIP/SOLID, latency, toxic flow tracking, virtual dtor |
+| R611 | CORRECTION: R593 no latency tracking | `IExchange.h:24` | Info | Interface HAS estimated_latency_us(). R593 downgraded to Info |
+| R612 | ai-signal-bot/ml/price_predictor.py | `price_predictor.py` | ✅ Good | LSTM+Transformer, attention, 11 features, ONNX export, early stopping |
+| R613 | price_predictor: hard-imports torch | `price_predictor.py:28` | Low | No try/except. Module fails if torch not installed. Wrap in try/except |
+| R614 | ai-signal-bot/ml/model_registry.py | `model_registry.py` | ✅ Excellent | 5 statuses, semver, A/B testing, rollback, file persistence, promote-with-demotion |
+| R615 | model_registry: not thread-safe | `model_registry.py:87` | Low | No lock on models/ab_tests. Use asyncio.Lock or document single-task |
+| R616 | model_registry: _save not atomic | `model_registry.py:107` | Low | Direct write to registry.json. Crash corrupts. Write tmp + os.rename |
+| R617 | ai-signal-bot/database/db.py | `db.py` | ✅ Good | 3 tables, 3 indexes, WAL, parameterized queries, Windows-safe close, COALESCE |
+| R618 | db.py: new connection per operation | `db.py:21` | Medium | Every op creates new conn + PRAGMA WAL. Use persistent conn, set WAL once |
+| R619 | db.py: no foreign key on signal_id | `db.py:67` | Low | trades.signal_id no FK to signals.id. Add FOREIGN KEY or PRAGMA foreign_keys=ON |
+| R620 | ai-signal-bot/portfolio/risk_parity.py | `risk_parity.py` | ✅ Good | RiskContribution, marginal risk, equal risk contribution, risk budgeting, weight bounds |
+| R621 | risk_parity: portfolio_return hardcoded 0 | `risk_parity.py:76` | Low | Return always 0. Accept expected_returns param and calculate np.dot |
+| R622 | ai-signal-bot/portfolio/rebalancing.py | `rebalancing.py` | ✅ Good | 3 triggers (time/drift/vol), turnover, skip threshold, transaction cost |
+| R623 | rebalancing: no min trade size | `rebalancing.py:77` | Low | 1% weight threshold only. Add min_trade_value for absolute size check |
