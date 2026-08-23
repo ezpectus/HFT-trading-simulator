@@ -3092,3 +3092,758 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 - Alert: transfer stuck > 1h, bridge exploit detected, fee spike
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/BridgeMonitor.jsx` (новый), `web-ui/src/components/defi/BridgeComparison.jsx` (новый), `web-ui/src/hooks/useBridgeFeed.js` (новый)
+
+### WD-111: MEV & Sandwich Attack Detector
+**Описание:** Детектор MEV и sandwich-атак (для DeFi транзакций).
+- MEV detection:
+  - Sandwich: detect if our DEX swap was front-run + back-run
+  - Pattern: large buy before our tx, large sell after → we got sandwiched
+  - Impact: how much $ we lost to MEV (price we paid vs fair price)
+- Front-run detection:
+  - Monitor mempool: did someone copy our tx with higher gas?
+  - Pattern: similar tx with higher gas nonce before ours
+  - Alert: "Your swap was front-run — paid 0.3% more"
+- Back-run detection:
+  - Did someone sell immediately after our buy?
+  - Pattern: sell tx right after our buy in same block
+- MEV bot activity:
+  - Known MEV bot addresses: list + activity
+  - Bot volume: how much of block volume is MEV
+  - Bot profit: estimated profit from MEV in last 24h
+- Protection:
+  - Slippage tolerance: set max slippage (default 0.5%)
+  - Private mempool: route via Flashbots/MEV-Share (no public mempool)
+  - Split large swaps: smaller swaps less attractive to sandwich
+  - Warning: "Swap > $50K on Uniswap V3 — high MEV risk, use private pool"
+- Historical MEV impact:
+  - Total $ lost to MEV: all-time, per month, per DEX
+  - MEV trend: increasing? (more bots = more expensive)
+  - By DEX: Uniswap vs Curve vs Balancer (which has most MEV?)
+  - By chain: Ethereum (high MEV) vs Arbitrum (low) vs Solana (different model)
+- MEV heatmap: hour × DEX → MEV volume (when/where is MEV worst)
+- Alert: our tx sandwiched, high MEV period detected, MEV bot targeting our address
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/defi/MevDetector.jsx` (новый), `web-ui/src/components/defi/SandwichAnalyzer.jsx` (новый), `web-ui/src/services/MevMonitor.js` (новый)
+
+### WD-112: Liquidation Cascade Tracker
+**Описание:** Отслеживание каскадов ликвидаций (crypto-specific).
+- Liquidation feed (real-time):
+  - Every liquidation: timestamp, exchange, symbol, side (long/short), size ($), price
+  - Color: red = long liquidation (forced sell), green = short liquidation (forced buy)
+  - Size indicator: bubble size = liquidation size
+  - Sound alert: optional beep on large liquidation (> $1M)
+- Liquidation heatmap:
+  - Price level × time → liquidation volume (where are liquidations clustered?)
+  - Clusters = liquidation magnets (price tends to move toward clusters)
+- Liquidation cascade detection:
+  - Cascade: multiple liquidations in short time window causing price drop
+  - Pattern: price drops → longs liquidated → more selling → more liquidations
+  - Cascade alert: "Liquidation cascade detected: $50M liquidated in 5 min on BTC"
+  - Cascade intensity: $ liquidated per minute, acceleration rate
+- Liquidation clusters (leverage levels):
+  - Estimated leverage levels: where are liquidation prices concentrated?
+  - 10x longs liquidated at ~10% drop, 25x at ~4%, 50x at ~2%
+  - Cluster map: price level → estimated $ at risk (liquidation ladder)
+  - Magnet: large cluster below current price = price likely to gravitate there
+- Long/short liquidation ratio:
+  - Ratio: long liquidations vs short liquidations
+  - One-sided: mostly longs = bearish cascade, mostly shorts = bullish squeeze
+  - Trend: is one side getting wiped out?
+- Per-exchange liquidations:
+  - Binance, Bybit, OKX, Bitfinex — different liquidation engines
+  - Which exchange has most liquidations? (indicates leverage usage)
+  - Exchange comparison: liquidation volume per exchange
+- Historical liquidation events:
+  - Aug 2024: $1B liquidated in 24h (Japan rate hike)
+  - May 2021: $8B liquidated (China ban)
+  - Each event: timeline, cause, price impact, recovery
+- Liquidation prediction:
+  - Given current OI + price, how much $ gets liquidated if price drops X%?
+  - "If BTC drops 5%, ~$120M in long liquidations expected"
+  - Cascade risk: will liquidations trigger more liquidations?
+- Alert: large liquidation (> $1M), cascade detected, liquidation cluster approaching
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/crypto/LiquidationTracker.jsx` (новый), `web-ui/src/components/crypto/LiquidationHeatmap.jsx` (новый), `web-ui/src/components/crypto/CascadeDetector.jsx` (новый), `web-ui/src/hooks/useLiquidationFeed.js` (новый)
+
+### WD-113: Open Interest Tracker
+**Описание:** Мониторинг открытого интереса (OI) по всем символам.
+- OI table:
+  - Symbol | OI ($) | OI change 1h | OI change 24h | OI vs 7d avg | Price change
+  - Sort by: OI, OI change, OI/price ratio
+  - Color: green = OI rising (new positions), red = OI falling (positions closing)
+- OI chart:
+  - OI over time (line chart) overlaid with price
+  - Divergence: price rising but OI falling → trend weakening (short covering)
+  - Divergence: price falling but OI rising → new shorts entering (bearish)
+  - Convergence: price + OI both rising → strong trend (new money entering)
+- OI metrics:
+  - OI/market cap ratio: high ratio = high leverage relative to market
+  - OI change rate: how fast are positions being opened/closed?
+  - OI turnover: daily OI turnover rate (high = active speculation)
+  - OI concentration: is OI concentrated on one exchange? (exchange risk)
+- Per-exchange OI:
+  - Binance, Bybit, OKX, Bitfinex, Deribit
+  - OI per exchange per symbol
+  - Exchange market share: which exchange has most OI?
+  - OI shift: is OI moving from one exchange to another?
+- OI + funding rate:
+  - High OI + high positive funding = overleveraged longs (squeeze risk)
+  - High OI + high negative funding = overleveraged shorts (short squeeze risk)
+  - Alert: "BTC OI at all-time high + funding 0.1% → long squeeze risk"
+- OI + liquidation:
+  - When OI drops suddenly → liquidations occurred
+  - OI drop = forced position closing
+  - Correlation: OI drops vs liquidation events
+- OI heatmap: symbol × time → OI (visualize OI buildup/drain)
+- OI ranking: top-10 symbols by OI (most leveraged markets)
+- Historical OI: compare current OI to historical range (percentile)
+- Alert: OI spike (+20% in 1h), OI drop (cascade), OI at ATH
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/crypto/OiTracker.jsx` (новый), `web-ui/src/components/crypto/OiChart.jsx` (новый), `web-ui/src/hooks/useOiFeed.js` (новый)
+
+### WD-114: Exchange Health & Status Monitor
+**Описание:** Мониторинг здоровья всех подключённых бирж.
+- Exchange status grid:
+  - Each exchange: Binance, Bybit, OKX, Bitfinex, Deribit, Coinbase
+  - Status: operational, degraded, maintenance, down
+  - Last check: timestamp, response time
+  - Color: green (operational), yellow (degraded), red (down)
+- Exchange incidents:
+  - Live incidents: "Binance: API degradation — order placement delayed"
+  - Historical incidents: log of past outages with duration, impact
+  - Official status page: link to exchange's status page
+  - Auto-detect: if our WS disconnects + REST fails → mark as down
+- Exchange metrics:
+  - API rate limit: used / limit (progress bar)
+  - WS connection: connected/disconnected, uptime, reconnect count
+  - REST latency: avg response time (ms)
+  - Order acceptance: % of orders accepted (vs rejected)
+  - Withdrawal status: open/suspended (critical for fund safety)
+- Exchange comparison:
+  - Latency: which exchange is fastest?
+  - Uptime: which is most reliable? (30d, 90d uptime %)
+  - Fee comparison: maker/taker fees per exchange
+  - Liquidity: depth comparison across exchanges
+- Impact assessment:
+  - If exchange X goes down: what positions/orders are affected?
+  - Our exposure per exchange: $ at risk if exchange fails
+  - Contingency: "If Binance goes down, route orders to Bybit"
+  - Auto-failover: switch to backup exchange (configurable)
+- Exchange announcements:
+  - Delisting notices: "Binance delisting XYO on Aug 30"
+  - Maintenance schedule: "Bybit maintenance Aug 25 02:00-04:00 UTC"
+  - New listings: "OKX listing XYZ"
+  - Rule changes: fee updates, leverage changes
+- Alert: exchange down, API rate limit >80%, withdrawal suspended, incident detected
+- Historical uptime: 30/90/365 day uptime per exchange (bar chart)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/system/ExchangeHealth.jsx` (новый), `web-ui/src/components/system/ExchangeComparison.jsx` (новый), `web-ui/src/hooks/useExchangeStatus.js` (новый)
+
+### WD-115: Trade Blotter (Professional OMS View)
+**Описание:** Профессиональный blotter (Order Management System view).
+- Blotter table (Excel-like, dense):
+  - Columns: OrderID | Time | Symbol | Side | Type | Qty | Price | Filled | Status | Strategy | Exchange | Tags
+  - Color: filled=green, partial=yellow, cancelled=grey, rejected=red, pending=blue
+  - Right-click: context menu (cancel, modify, duplicate, close position)
+  - Drag: reorder columns, resize columns
+  - Group: by symbol, strategy, status, date
+  - Subtotals: grouped rows show count + total qty + total $
+- Advanced filtering:
+  - Multi-column filter: symbol=BTC AND side=LONG AND status=filled
+  - Date range: today, yesterday, this week, custom
+  - Quick filters: "Filled only", "Open orders", "Rejected", "My manual trades"
+  - Saved filter presets
+- Order lifecycle:
+  - Click order → detail panel: full lifecycle timeline
+  - Created → submitted → acknowledged → partial fills → complete/cancel
+  - Each stage: timestamp, latency
+  - Modifications: price/qty changes with before/after
+- Bulk operations:
+  - Select multiple → cancel all, modify all (price offset)
+  - Export selected to CSV
+  - Tag selected (e.g. "scalp", "swing", "hedge")
+- Blotter stats (footer):
+  - Total orders, filled, cancelled, rejected
+  - Fill rate, reject rate
+  - Total volume, total fees
+  - Avg fill time
+- Real-time: new orders appear at top, auto-scroll
+  - Sound: optional beep on fill (configurable per strategy)
+  - Flash: new row flashes green briefly
+- Keyboard navigation: arrow keys, Enter to open detail, Ctrl+A select all
+- Export: CSV, Excel, PDF (formatted report)
+- Performance: virtualized, 100K+ orders without lag
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/trading/TradeBlotter.jsx` (новый), `web-ui/src/components/trading/OrderDetail.jsx` (новый), `web-ui/src/components/trading/BulkOperations.jsx` (новый)
+
+### WD-116: Strategy Heatmap Matrix
+**Описание:** Матрица стратегия × символ → performance.
+- Heatmap:
+  - Rows: strategies (TrendFollowing, MeanReversion, FFT, StatArb, etc.)
+  - Columns: symbols (BTC, ETH, SOL, ... all 50)
+  - Cell value: P&L (or win rate, or Sharpe — selectable)
+  - Color: green (profitable), red (losing), intensity = magnitude
+  - Cell text: P&L value or R-multiple
+- Interactive:
+  - Click cell → drill down: all trades for this strategy+symbol
+  - Hover → tooltip: trades count, win rate, avg R, max DD
+  - Sort rows/columns: by total P&L, by win rate
+- Time selector:
+  - Today, 7d, 30d, 90d, all-time
+  - Custom date range
+- Metric selector:
+  - P&L ($), P&L (%), R-multiple, Win rate, Sharpe, Profit factor, Max DD
+- Strategy ranking:
+  - Best strategy per symbol: "TrendFollowing best on BTC (+$500)"
+  - Worst strategy per symbol: "FFT losing on SOL (-$200)"
+  - Best symbol per strategy: "MeanReversion works best on LINK"
+- Symbol ranking:
+  - Most profitable symbol: across all strategies
+  - Least profitable: drag on portfolio
+- Empty cells: strategy not configured for this symbol (grey)
+- Auto-recommend:
+  - "Disable FFT on SOL — losing 5 consecutive trades"
+  - "Enable MeanReversion on LINK — 72% win rate historically"
+- Export: heatmap as image (PNG), data as CSV
+- Alert: strategy losing > threshold on specific symbol
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/strategies/StrategyHeatmap.jsx` (новый), `web-ui/src/components/strategies/StrategySymbolDetail.jsx` (новый), `web-ui/src/services/HeatmapData.js` (новый)
+
+### WD-117: Volume-Weighted Average Price (VWAP) Suite
+**Описание:** Полный набор VWAP инструментов.
+- VWAP lines:
+  - Session VWAP: from session start to now (reset daily)
+  - Rolling VWAP: last N periods (configurable: 30, 60, 120 candles)
+  - Anchored VWAP: from user-selected point (click chart to anchor)
+  - Weekly/Monthly VWAP: longer-term
+  - Multi-VWAP: session + rolling + anchored overlaid
+- VWAP bands:
+  - ±1σ, ±2σ, ±3σ from VWAP (standard deviation bands)
+  - Band width = volatility (wide = high vol, narrow = low vol)
+  - Price above +2σ = overbought relative to VWAP
+  - Price below -2σ = oversold relative to VWAP
+- VWAP as support/resistance:
+  - Price tends to revert to VWAP (mean reversion)
+  - VWAP as dynamic support in uptrend
+  - VWAP as dynamic resistance in downtrend
+  - VWAP bounce: price touches VWAP and bounces → entry signal
+- VWAP divergence:
+  - Price making higher highs but VWAP flat → divergence (weakening trend)
+  - Price below VWAP = bearish (most volume at higher prices)
+  - Price above VWAP = bullish (most volume at lower prices)
+- Volume profile + VWAP:
+  - POC (Point of Control): price level with highest volume
+  - Value area: 70% of volume around POC
+  - VWAP vs POC: if VWAP > POC = bullish bias
+- Institutional VWAP:
+  - Large order execution: track our VWAP vs market VWAP
+  - If our VWAP < market VWAP = good execution (bought cheaper)
+  - If our VWAP > market VWAP = bad execution (paid more)
+- VWAP reversion strategy:
+  - Entry: price > VWAP + 2σ → short (expect reversion to VWAP)
+  - Entry: price < VWAP - 2σ → long (expect reversion to VWAP)
+  - TP: VWAP, SL: beyond ±3σ
+  - Backtest: how does this strategy perform?
+- Alert: price crosses VWAP, price at ±2σ band, VWAP bounce detected
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/charts/VwapSuite.jsx` (новый), `web-ui/src/components/charts/VwapBands.jsx` (новый), `web-ui/src/services/VwapCalculator.js` (новый)
+**Зависимости:** WD-01 (chart)
+
+### WD-118: Funding Rate Arbitrage Scanner
+**Описание:** Сканер арбитражных возможностей через funding rate.
+- Funding rate table:
+  - Symbol | Exchange A funding | Exchange B funding | Spread | Annualized | Direction
+  - Sort by: spread (highest = best opportunity)
+  - Color: green = profitable spread, red = no opportunity
+- Arbitrage strategies:
+  - **Cross-exchange funding arb**: 
+    - Exchange A funding = +0.05% (longs pay), Exchange B = -0.02% (shorts pay)
+    - Short on A (receive funding), Long on B (receive funding)
+    - Total: 0.05% + 0.02% = 0.07% per 8h = 0.21% per day = 76.6% APR
+  - **Spot-futures funding arb**:
+    - If funding very positive: long spot + short perp → collect funding
+    - If funding very negative: short spot (if possible) + long perp → collect funding
+    - P&L: funding income - fees - slippage - borrow cost
+  - **Triangular funding arb**:
+    - A→B→C: funding rate mismatch across 3 exchanges
+    - More complex but potentially higher return
+- Opportunity details:
+  - Required capital: margin for both legs
+  - Estimated income: funding × position × time
+  - Fees: exchange fees for opening/closing
+  - Net profit: funding income - fees - slippage
+  - Annualized return: net profit annualized
+  - Risk: funding rate change, exchange risk, liquidation risk
+- Live monitoring:
+  - Active arbs: currently open positions with real-time P&L
+  - Funding rate change: alert if funding flips (arb no longer valid)
+  - Close signal: when spread narrows below threshold
+- Historical performance:
+  - Past arbs: entry, exit, duration, P&L
+  - Avg return: per type, per symbol
+  - Success rate: % of arbs that were profitable
+  - Best/worst: top and bottom arbs
+- Funding rate prediction:
+  - Next funding: predicted based on premium index
+  - Funding trend: rising or falling?
+  - Funding percentile: current vs historical (extreme = mean revert)
+- Alert: new arb opportunity (spread > threshold), funding flip, arb closing signal
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/crypto/FundingArbScanner.jsx` (новый), `web-ui/src/components/crypto/ArbOpportunity.jsx` (новый), `web-ui/src/services/FundingArbEngine.js` (новый)
+
+### WD-119: Trade Journal & Analytics
+**Описание:** Расширенный торговый журнал с аналитикой (продолжение WD-23).
+- Journal entries (per trade):
+  - Automatic: symbol, direction, entry/exit, P&L, R-multiple, duration
+  - Manual: mood (1-5), market view, thesis, mistakes, lessons
+  - Tags: setup type (breakout, reversion, scalp, news), confidence level
+  - Attachments: chart screenshot, order book snapshot
+  - Custom fields: user-defined (e.g. "slept well?", "news event?")
+- Analytics:
+  - Performance by mood: do I trade better when happy? (mood vs P&L scatter)
+  - Performance by time: best/worst hours (am I a morning trader?)
+  - Performance by setup: which setups make money? (breakout vs reversion)
+  - Performance by tag: "scalp" vs "swing" vs "news" — which is profitable?
+  - Streak analysis: longest winning/losing streak, recovery time
+  - Mistake frequency: most common mistakes (no SL, FOMO entry, overtrading)
+  - Lesson tracking: did I learn from past mistakes? (same mistake decreasing?)
+- Calendar view:
+  - Monthly calendar: each day colored by P&L (green/red, intensity = magnitude)
+  - Click day → all trades that day with journal entries
+  - Weekly summary: P&L, trades, win rate, best/worst trade
+- Review sessions:
+  - Daily review: auto-prompt at end of trading day
+    - "What went well? What went wrong? What to improve tomorrow?"
+    - Auto-fill: trades, P&L, key events
+  - Weekly review: every Sunday
+    - Performance summary, chart analysis, strategy assessment
+    - Goal tracking: "This week goal: no FOMO entries. Achieved? 3/5 days"
+  - Monthly review: performance report, lessons learned, next month goals
+- Psychology tracker:
+  - Tilt detection: 3+ losses in a row → "Are you tilted? Consider taking a break"
+  - FOMO detection: entering trades without signal → flag
+  - Revenge trading: increasing size after loss → flag
+  - Overtrading: > N trades per day → warning
+- Export: journal to PDF (formatted), CSV, or sync to Notion/Evernote
+- Search: full-text search across all journal entries
+- Habit tracker: "Did I follow my rules today?" checklist per trade
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/journal/TradeJournal.jsx` (новый), `web-ui/src/components/journal/JournalAnalytics.jsx` (новый), `web-ui/src/components/journal/PsychologyTracker.jsx` (новый), `web-ui/src/components/journal/ReviewSession.jsx` (новый)
+
+### WD-120: Heatmap of All Symbols (Multi-Metric)
+**Описание:** Мульти-метрик тепловая карта всех 50 символов.
+- Symbol grid:
+  - 50 symbols as tiles in a grid (5×10 or configurable)
+  - Each tile: symbol name, price, change %, mini sparkline
+  - Tile color: by selected metric (price change, RSI, volume, OI, funding, etc.)
+  - Tile size: by market cap or volume (bigger = more important)
+- Metric selector (dropdown):
+  - Price change: 1h, 4h, 24h, 7d
+  - RSI: overbought/oversold coloring
+  - Volume: vs average (high volume = bright)
+  - Volatility: ATR-based (high vol = red)
+  - Funding rate: positive (green) / negative (red)
+  - Open interest: change %
+  - Correlation to BTC: how correlated is this symbol?
+  - Custom: any numeric metric
+- Color scale:
+  - Diverging: red (low/negative) → white (neutral) → green (high/positive)
+  - Sequential: light (low) → dark (high)
+  - Custom thresholds: user sets green/yellow/red boundaries
+- Interactive:
+  - Click tile → switch main chart to this symbol
+  - Hover → tooltip with all metrics
+  - Drag tiles to rearrange (custom layout)
+  - Pin: keep certain symbols always visible
+- Sorting:
+  - By metric: sort tiles by price change, RSI, volume, etc.
+  - Alphabetical, by market cap, by volume
+  - Custom order: drag to reorder
+- Grouping:
+  - By category: majors (BTC, ETH), DeFi (UNI, AAVE), L1s (SOL, AVAX), memes (DOGE, SHIB)
+  - By exchange: which exchange has best price
+  - By correlation cluster: group correlated symbols
+- Alerts on tiles:
+  - Flash: when price moves >2% in 1 min
+  - Badge: if signal generated for this symbol
+  - Border: if position is open
+  - Icon: if alert is active
+- Mini sparkline: 24h price chart in each tile (Canvas, 50×20px)
+- Performance: 50 tiles render at 60 FPS, update via WS
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/charts/SymbolHeatmap.jsx` (новый), `web-ui/src/components/charts/HeatmapTile.jsx` (новый), `web-ui/src/hooks/useHeatmapMetrics.js` (новый)
+
+### WD-121: Trade Simulation & Paper Trading
+**Описание:** Расширенный симулятор торговли (paper trading).
+- Simulation modes:
+  - **Full paper**: simulated orders, simulated fills, simulated P&L
+  - **Hybrid**: real market data, simulated execution (test strategies live)
+  - **Replay**: trade on historical data (like replay mode but interactive)
+  - **What-if**: "If I had entered at $40K, where would I be now?"
+- Order simulation:
+  - Market: fill at current mid + estimated slippage
+  - Limit: fill when market price reaches limit (real-time check)
+  - Stop: trigger when price hits stop, then market order
+  - Realistic fills: model partial fills, rejections, delays
+- Position tracking:
+  - Simulated positions: same as real but tagged "PAPER"
+  - P&L: real-time based on live market data
+  - Margin: simulated margin calculation
+  - Liquidation: simulated liquidation if margin exhausted
+- Strategy testing:
+  - Run strategies in paper mode → compare signals vs real
+  - "Shadow trading": strategies generate signals, auto-execute in paper
+  - Compare: paper P&L vs what real P&L would have been
+- Scenario testing:
+  - "What if I went all-in BTC at $40K?" → simulate historical
+  - "What if I used 5x leverage instead of 2x?" → compare outcomes
+  - "What if I had a wider SL?" → replay trades with different SL
+- Risk-free learning:
+  - New users start in paper mode (forced for first 7 days)
+  - Transition: gradual — 10% real, 25%, 50%, 100%
+  - Tutorial: guided first trade in paper mode
+- Performance comparison:
+  - Paper vs real: are my paper results representative?
+  - Slippage difference: paper fills vs real fills
+  - Emotional difference: paper (no fear) vs real (fear/greed)
+- Reset: clear all paper positions, reset paper balance
+- Config: paper balance (default $10,000), paper fees (match real)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/trading/PaperTrading.jsx` (новый), `web-ui/src/components/trading/SimulationEngine.jsx` (новый), `web-ui/src/stores/usePaperStore.js` (новый)
+
+### WD-122: Cross-Exchange Price Comparison
+**Описание:** Сравнение цен на всех биржах в real-time.
+- Price comparison table:
+  - Symbol | Exchange A | Exchange B | Exchange C | Best bid | Best ask | Spread
+  - Color: green = best price, red = worst
+  - Highlight: largest spread (arb opportunity)
+- Price heatmap:
+  - Symbol × exchange → price deviation from median (bps)
+  - Green = cheaper than median, red = more expensive
+  - Identify: which exchange consistently has best price
+- Spread analysis:
+  - Cross-exchange spread: max price - min price across exchanges
+  - Spread chart over time: how often does arbitrage opportunity appear?
+  - Spread distribution: avg, median, p90, max
+  - Spread vs volume: does spread widen on low volume?
+- Arbitrage calculator:
+  - Buy on exchange A (lowest ask), sell on exchange B (highest bid)
+  - Profit = sell price - buy price - fees - transfer cost - slippage
+  - Transfer time: blockchain transfer duration (risk of price change)
+  - Capital requirement: need funds on both exchanges
+  - Net profit: after all costs, is it worth it?
+- Price leader:
+  - Which exchange leads price discovery?
+  - Lead-lag: does Binance price move before Bybit?
+  - Lead indicator: use leading exchange as signal for lagging exchange
+- Exchange premium/discount:
+  - "Coinbase always trades 0.1% higher than Binance" (premium)
+  - Consistent premium = structural (different user base, regulations)
+  - Changing premium = arbitrage opportunity
+- Historical comparison:
+  - Avg spread per symbol over time (is it widening? = fragmentation)
+  - Avg spread per exchange pair (Binance-Bybit vs Binance-OKX)
+- Alert: cross-exchange spread > threshold (arb opportunity), price divergence
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/crypto/CrossExchangePrices.jsx` (новый), `web-ui/src/components/crypto/ArbCalculator.jsx` (новый), `web-ui/src/components/crypto/PriceLeader.jsx` (новый)
+
+### WD-123: Strategy Parameter Sensitivity Analyzer
+**Описание:** Анализ чувствительности параметров стратегии.
+- Parameter grid:
+  - Select 2 parameters (e.g. EMA period + RSI threshold)
+  - Grid: X-axis = param1 values, Y-axis = param2 values
+  - Cell = objective (P&L, Sharpe, win rate)
+  - Heatmap: green = good, red = bad
+  - Optimal: brightest cell = best parameter combination
+- Single parameter sweep:
+  - One parameter varies, others fixed at current
+  - Line chart: parameter value vs objective
+  - Stability: flat peak = robust, sharp peak = overfitted
+  - Current value: marker on curve
+  - Optimal: peak of curve
+- Multi-parameter:
+  - 3D surface: 2 params vs objective (rotatable)
+  - Parallel coordinates: all params vs objective
+  - Parameter importance: which param matters most? (variance of objective when param changes)
+- Sensitivity metrics:
+  - Stability score: how much does objective change with ±10% param perturbation?
+  - Robust region: parameter range where objective > 80% of optimal
+  - Fragile region: parameter range where objective drops sharply
+  - Cliff: is there a parameter value where performance falls off a cliff?
+- Parameter recommendations:
+  - "Current EMA period=20 is near optimal (96% of peak)"
+  - "RSI threshold=70 is fragile — 65 gives 15% better results, 75 gives 30% worse"
+  - "Parameter interaction: EMA=20 works best with RSI=65, not RSI=70"
+- Comparison with walk-forward:
+  - Are optimal parameters stable across time windows?
+  - If optimal shifts each window → parameters are overfit
+- Monte Carlo:
+  - Add noise to data → re-optimize → are optimal params same?
+  - If optimal changes drastically → params are noise-fitted
+- Export: sensitivity report (PDF) with recommendations
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/analysis/ParamSensitivity.jsx` (новый), `web-ui/src/components/analysis/ParamGrid.jsx` (новый), `web-ui/src/components/analysis/ParamSweep.jsx` (новый), `web-ui/src/services/SensitivityEngine.js` (новый)
+
+### WD-124: Real-Time Greeks Aggregator
+**Описание:** Real-time агрегатор греков для всего портфеля (options).
+- Portfolio greeks (real-time):
+  - Net Delta: $ per 1% move (directional risk)
+  - Net Gamma: delta change per 1% move (convexity)
+  - Net Theta: $/day (time decay)
+  - Net Vega: $ per 1% IV change (volatility risk)
+  - Net Rho: $ per 1% rate change (interest rate risk)
+- Greeks by symbol:
+  - Per symbol: delta, gamma, theta, vega
+  - Bar chart: delta by symbol (which symbol has most directional risk?)
+  - Stacked: long vs short greeks per symbol
+- Greeks visualization:
+  - Delta ladder: delta at different price levels (-10%, -5%, 0, +5%, +10%)
+  - Gamma profile: gamma at different price levels
+  - Theta decay: projected theta over next 30 days
+  - Vega surface: vega at different IV levels
+- Greeks limits:
+  - Max delta: $X per 1% (stop trading if exceeded)
+  - Max gamma: $X per 1%²
+  - Max theta: $X/day (don't bleed too much time value)
+  - Max vega: $X per 1% IV
+  - Alert: any greek > limit
+- Hedging:
+  - Delta hedge: calculate position to neutralize delta
+  - Vega hedge: calculate options to neutralize vega
+  - Auto-hedge: toggle to auto-hedge when greek > threshold
+  - Hedge cost: estimated cost of hedging vs risk of not hedging
+- Scenario greeks:
+  - "If BTC drops 5%: delta changes from +$500 to +$800 (gamma effect)"
+  - "If IV rises 5 points: vega P&L = -$300"
+  - "Over 7 days: theta P&L = +$200 (collecting time value)"
+- Greeks history: how have portfolio greeks changed over time?
+- Integration: connects to options data (Deribit, OKX options)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/options/GreeksAggregator.jsx` (новый), `web-ui/src/components/options/GreeksLadder.jsx` (новый), `web-ui/src/components/options/HedgingPanel.jsx` (новый)
+
+### WD-125: Market-Making Inventory Age Tracker
+**Описание:** Отслеживание возраста инвентаря для MM (сколько держим позицию).
+- Inventory age per position:
+  - Age timer: mm:ss since position opened (ticking in real-time)
+  - Color: green (<30s), yellow (30s-2min), orange (2-5min), red (>5min)
+  - Red = stale inventory (holding too long for MM, should liquidate)
+- Age distribution:
+  - Histogram: how long do positions typically last?
+  - Median age, p90 age, max age
+  - Age trend: are positions getting older? (market less liquid or strategy issue)
+- Age vs P&L:
+  - Scatter: position age vs P&L (do older positions lose money?)
+  - Optimal age: "Positions held <60s are profitable, >3min lose money"
+  - Auto-flush threshold: configurable max age before auto-close
+- Age by symbol:
+  - Which symbols have oldest inventory? (illiquid symbols = old inventory)
+  - Age heatmap: symbol × time → avg age
+- Stale inventory alert:
+  - Position age > threshold → "Stale inventory: SOL held 4min 12s — consider liquidating"
+  - Auto-liquidate: if enabled, auto-close positions older than threshold
+  - Urgency: price improvement on close (aggressive market order for stale)
+- Inventory turnover:
+  - Turnover rate: how many times inventory cycles per day
+  - Higher turnover = more spread captured (good for MM)
+  - Low turnover = capital tied up (bad for MM)
+- Age-based risk:
+  - Older inventory = more market exposure (price can move against us)
+  - Risk metric: age × position size × volatility (stale risk score)
+  - Alert: stale risk score > threshold
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/mm/InventoryAge.jsx` (новый), `web-ui/src/components/mm/AgeDistribution.jsx` (новый), `web-ui/src/components/mm/StaleAlerts.jsx` (новый)
+
+### WD-126: Profit Factor & Edge Confidence Calculator
+**Описание:** Калькулятор confidence в edge стратегии (статистический).
+- Profit factor:
+  - PF = gross profit / gross loss (target >1.5)
+  - Per strategy, per symbol, per timeframe
+  - PF trend: improving or degrading?
+  - PF confidence: is PF > 1.5 statistically significant or just luck?
+- Statistical significance:
+  - T-test: is avg return per trade significantly > 0?
+  - P-value: <0.05 = significant edge, >0.05 = could be noise
+  - Confidence interval: 95% CI for avg return per trade
+  - Sample size: do we have enough trades? (minimum N for significance)
+  - Power: given current effect size, what's probability of detecting true edge?
+- Edge decay:
+  - Rolling PF: PF over time (is edge eroding?)
+  - PF by quarter: Q1 PF vs Q2 PF vs Q3 PF (trend)
+  - Edge half-life: how long until edge halves (from alpha decay analysis)
+- Expectancy:
+  - E = (win_rate × avg_win) - (loss_rate × avg_loss)
+  - Per trade expectancy in $ and R
+  - Per day expectancy: E × trades_per_day
+  - Monthly projection: E × trades_per_day × 20
+- Risk of ruin:
+  - Formula: RoR = ((1 - edge) / (1 + edge))^(capital_units)
+  - Current RoR: probability of losing all capital
+  - RoR by risk %: show how RoR changes with risk per trade
+  - Safe risk: what risk % gives RoR < 1%?
+- Sharpe ratio confidence:
+  - Sharpe ± standard error (is Sharpe > 0 with 95% confidence?)
+  - Deflated Sharpe: adjusted for multiple testing (Bailey & López de Prado)
+  - Minimum track record: how many more days needed to confirm Sharpe?
+- Bootstrap analysis:
+  - Resample trades 10,000× → distribution of PF, Sharpe, CAGR
+  - Percentile: where does our actual performance fall?
+  - "There's a 92% probability that true PF > 1.3"
+- Report: edge confidence summary (PDF) — "Strategy has statistically significant edge (p=0.02)"
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/analysis/EdgeCalculator.jsx` (новый), `web-ui/src/components/analysis/ProfitFactor.jsx` (новый), `web-ui/src/components/analysis/RiskOfRuin.jsx` (новый), `web-ui/src/services/StatSignificance.js` (новый)
+
+### WD-127: WebSocket Message Rate Limiter & Backpressure
+**Описание:** UI-side rate limiting и backpressure для WS сообщений.
+- Message rate monitor:
+  - Messages/sec: incoming rate per channel (candles, orderbook, trades, signals)
+  - Bytes/sec: bandwidth per channel
+  - Peak rate: max messages/sec in last hour
+  - Rate trend: increasing? (market getting volatile = more messages)
+- Backpressure indicator:
+  - Queue depth: messages waiting to be processed
+  - Processing time: avg ms per message
+  - Lag: time between message arrival and processing
+  - Color: green (processing fast), yellow (slight lag), red (falling behind)
+- Rate limiting strategies:
+  - Throttle: drop every Nth message (keep latest)
+  - Batch: accumulate N messages, process as batch
+  - Sample: process random sample (for statistics)
+  - Prioritize: process orderbook > trades > candles > signals
+  - Filter: drop messages for non-active symbols
+- Configuration:
+  - Max messages/sec: per channel (e.g. orderbook: 100/s, trades: 50/s)
+  - Buffer size: max queue depth before dropping
+  - Drop strategy: oldest, newest, random
+  - Priority: which channels are must-have (never drop)
+- Backpressure visualization:
+  - Queue depth over time (area chart)
+  - Drop count: messages dropped per minute
+  - Processing time distribution: histogram
+  - Lag over time: are we falling behind?
+- Auto-adjustment:
+  - If queue > threshold → increase throttle (drop more)
+  - If queue empty → decrease throttle (process more)
+  - If lag > threshold → switch to sampling mode
+  - If critical → disconnect non-essential channels
+- Impact analysis:
+  - Does throttling affect chart accuracy? (missing candles)
+  - Does throttling affect order book freshness? (stale data)
+  - Trade-off: data completeness vs UI responsiveness
+- Alert: queue depth > threshold, message drop rate > 10%, processing lag > 1s
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/system/BackpressureMonitor.jsx` (новый), `web-ui/src/components/system/RateLimiter.jsx` (новый), `web-ui/src/services/MessageThrottle.js` (новый)
+**Зависимости:** WD-12 (WS manager)
+
+### WD-128: Custom Alert Builder
+**Описание:** Конструктор кастомных алертов (no-code, visual).
+- Alert types:
+  - Price: crosses above/below X, reaches X, moves X% in Y time
+  - Indicator: RSI > 70, MACD crossover, EMA cross, ADX > 25
+  - Volume: volume > 2x average, volume spike
+  - Order book: spread > X bps, imbalance > 0.7, wall appeared
+  - Trade: large trade (> $X), aggressor ratio
+  - Position: P&L > X, drawdown > X%, position age > X
+  - Strategy: signal generated, signal confidence > X
+  - System: latency > X, WS disconnect, error rate > X
+  - Market: funding rate > X, OI change > X%, liquidation > $X
+  - Composite: multiple conditions (AND/OR logic)
+- Condition builder (visual):
+  - IF [metric] [operator] [value] [AND/OR] [metric] [operator] [value]
+  - Nested: IF (A AND B) OR (C AND D)
+  - Group: drag conditions into groups
+  - Templates: "Flash crash alert", "Overbought reversal", "Funding extreme"
+- Actions (when alert triggers):
+  - Notify: push notification, Telegram, email, sound, visual popup
+  - Log: record in alert log
+  - Trade: auto-place order (with confirm), close position, cancel orders
+  - Strategy: enable/disable strategy, change parameter
+  - System: halt trading, trigger emergency
+  - Webhook: send HTTP POST to external URL
+- Alert management:
+  - Active alerts: list with status (armed, triggered, snoozed, disabled)
+  - Alert history: log of all triggers with timestamp, conditions, action taken
+  - Snooze: disable for N minutes/hours
+  - Edit: modify conditions, thresholds
+  - Clone: duplicate alert with slight modification
+  - Share: export alert config (JSON) to share with team
+- Alert testing:
+  - Backtest: "This alert would have triggered 15 times in last 30 days"
+  - Preview: show what conditions look like on chart (markers)
+  - Dry run: trigger alert but don't execute action (just notify)
+- Smart alerts (LLM-powered):
+  - "Alert me when something unusual happens" → LLM defines conditions
+  - "Alert me before a crash" → LLM analyzes patterns
+  - Natural language: "Tell me when BTC is overbought and volume is dropping"
+- Performance: alert evaluation <1ms per alert, 1000+ alerts without lag
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/alerts/AlertBuilder.jsx` (новый), `web-ui/src/components/alerts/AlertManager.jsx` (новый), `web-ui/src/components/alerts/AlertHistory.jsx` (новый), `web-ui/src/services/AlertEngine.js` (новый)
+
+### WD-129: Session Replay & Recording
+**Описание:** Запись и воспроизведение торговых сессй.
+- Session recording:
+  - Records: all UI state changes, chart data, order book, trades, signals
+  - Start/stop: manual or auto (start at session open, stop at close)
+  - Storage: compressed format (only deltas, not full frames)
+  - Retention: configurable (7 days, 30 days, 90 days)
+- Session playback:
+  - Select recorded session → play back entire dashboard
+  - All panels sync: chart, order book, tape, positions, signals — all as they were
+  - Controls: play, pause, seek (scrub timeline), speed (1x-100x)
+  - Timeline: visual timeline with markers (trades, signals, alerts)
+- Session comparison:
+  - Side-by-side: today vs yesterday (what was different?)
+  - Overlay: today's equity curve vs last week's
+  - Diff: what strategies were active, what signals were generated
+- Session bookmarks:
+  - Mark interesting moments during live trading
+  - "Bookmark this" → saves timestamp + note
+  - Jump to bookmark during replay
+  - Share: send bookmark to team (timestamp + view state)
+- Session analysis:
+  - Summary: trades, P&L, signals, errors during session
+  - Timeline: when did key events happen (first trade, biggest loss, best trade)
+  - Performance: was this session above/below average?
+  - Comparison: this session vs avg session (more trades? higher P&L?)
+- Export:
+  - Video: record dashboard as video (WebM) for sharing
+  - Data: export all session data as JSON for offline analysis
+  - Report: session summary PDF (P&L, trades, charts)
+- Use cases:
+  - "What happened during the flash crash?" → replay that session
+  - "How did I trade last FOMC?" → replay FOMC session
+  - "Training: watch a pro session" → share recording with new trader
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/replay/SessionRecorder.jsx` (новый), `web-ui/src/components/replay/SessionPlayer.jsx` (новый), `web-ui/src/components/replay/SessionComparison.jsx` (новый), `web-ui/src/services/SessionStore.js` (новый)
+
+### WD-130: Multi-Timeframe Analysis Dashboard
+**Описание:** Мульти-таймфрейм анализ на одном экране.
+- Timeframe grid:
+  - 6 charts: 1m, 5m, 15m, 1h, 4h, 1d — all for same symbol
+  - Synchronized: all show same symbol, same indicators
+  - Layout: 2×3 grid or 3×2 (configurable)
+  - Each chart: candlestick + key indicators (EMA, RSI, volume)
+- Timeframe alignment:
+  - Vertical lines: mark same timestamp on all timeframes
+  - Current price: horizontal line across all charts
+  - Trade markers: show on all timeframes where trade occurred
+- Multi-TF signals:
+  - Trend alignment: 1h up + 4h up + 1d up = strong uptrend (all green)
+  - Conflict: 1m up but 4h down = counter-trend trade (warning)
+  - Signal matrix: 6 timeframes × 5 indicators → bullish/bearish/neutral
+  - Confluence score: how many timeframes agree (0-100%)
+- Indicator comparison:
+  - RSI across timeframes: 1m RSI=72, 5m=65, 15m=58, 1h=45, 4h=38, 1d=42
+  - Which timeframe is leading? (1m RSI dropping first → signal for others)
+  - EMA alignment: EMA50 > EMA200 on how many timeframes?
+- Multi-TF strategy:
+  - Entry rule: only enter long if 4h and 1d are bullish (higher TF filter)
+  - Exit rule: exit if 1m and 5m turn bearish (lower TF fast exit)
+  - Backtest: multi-TF strategy vs single-TF → improvement?
+- Timeframe selector:
+  - Custom: choose which 6 timeframes (e.g. 30s, 1m, 3m, 10m, 30m, 2h)
+  - Presets: "Scalping" (1s, 5s, 15s, 1m, 5m, 15m), "Swing" (1h, 4h, 1d, 1w, 1M, 3M)
+- Performance: 6 charts render at 30+ FPS each (Canvas, shared data)
+- Click any chart → expand to full screen → back to grid
+- Drag timeframe: reorder charts in grid
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/charts/MultiTimeframe.jsx` (новый), `web-ui/src/components/charts/TimeframeGrid.jsx` (новый), `web-ui/src/components/charts/SignalMatrix.jsx` (новый), `web-ui/src/hooks/useMultiTimeframe.js` (новый)

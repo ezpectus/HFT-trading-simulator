@@ -53,9 +53,13 @@ class OrderSubmissionMixin:
         order_id = f"{self._order_counter:08x}"
         self._order_counter += 1
 
+        MAX_QUANTITY = 1e9
         if quantity <= 0 or quantity != quantity:  # NaN check
             return self._reject_order(order_id, symbol, side, order_type, quantity, price,
                                       f"INVALID_QUANTITY (qty={quantity})")
+        if quantity > MAX_QUANTITY:
+            return self._reject_order(order_id, symbol, side, order_type, quantity, price,
+                                      f"QUANTITY_TOO_LARGE (qty={quantity}, max={MAX_QUANTITY})")
 
         order = self._create_order(order_id, symbol, side, order_type, quantity, price,
                                    stop_price, limit_price, trail_amount, trail_percentage,

@@ -46,14 +46,15 @@ class LiquidationMixin:
 
     def _compute_liq_prices(self, pos, lev: int) -> tuple[float, float]:
         """Compute full and partial liquidation prices for a position."""
+        mmr = getattr(self, 'maintenance_margin_rate', 0.005)
         if pos.is_long:
-            liq = round(pos.entry_price * (1 - 1/lev + 0.005), 2)
+            liq = round(pos.entry_price * (1 - 1/lev + mmr), 2)
             partial = round(pos.entry_price * (
-                1 - 1/lev * self.partial_liquidation_ratio + 0.005), 2)
+                1 - 1/lev * self.partial_liquidation_ratio + mmr), 2)
         else:
-            liq = round(pos.entry_price * (1 + 1/lev - 0.005), 2)
+            liq = round(pos.entry_price * (1 + 1/lev - mmr), 2)
             partial = round(pos.entry_price * (
-                1 + 1/lev * self.partial_liquidation_ratio - 0.005), 2)
+                1 + 1/lev * self.partial_liquidation_ratio - mmr), 2)
         return liq, partial
 
     def _is_full_liquidation(self, pos, current_price: float, liq_price: float) -> bool:

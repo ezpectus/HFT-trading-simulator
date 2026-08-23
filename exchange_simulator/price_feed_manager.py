@@ -12,7 +12,10 @@ import asyncio
 import time
 
 import aiohttp
-import msgpack
+try:
+    import msgpack
+except ImportError:
+    msgpack = None
 from cachetools import TTLCache
 
 from exchange_simulator.price_feed_apis import BasePriceAPI, BinanceAPI, CoinbaseAPI
@@ -157,10 +160,14 @@ class PriceFeedManager:
             "bid": tick.bid,
             "ask": tick.ask,
         }
+        if msgpack is None:
+            raise RuntimeError("msgpack is required for serialization but not installed")
         return msgpack.packb(data, use_bin_type=True)
 
     def _deserialize_price_tick(self, data: bytes) -> PriceTick:
         """Deserialize bytes to PriceTick using MessagePack."""
+        if msgpack is None:
+            raise RuntimeError("msgpack is required for deserialization but not installed")
         unpacked = msgpack.unpackb(data, raw=False)
         return PriceTick(**unpacked)
 

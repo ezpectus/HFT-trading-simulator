@@ -8,6 +8,8 @@ order submission -> exchange_order_submission.py,
 liquidation -> exchange_liquidation.py.
 """
 
+from collections import deque
+
 from exchange_simulator.audit_logger import get_audit_logger
 from exchange_simulator.exchange_advanced_orders import AdvancedOrderMixin
 from exchange_simulator.exchange_liquidation import LiquidationMixin
@@ -55,7 +57,7 @@ class SimulatedExchange(
             balance=initial_balance,
             leverage=leverage,
         )
-        self._order_history: list[Order] = []
+        self._order_history: deque[Order] = deque(maxlen=10000)
         self._order_counter: int = 0
         self.insurance_fund: float = 0.0
         self.partial_liquidation_ratio: float = 0.5
