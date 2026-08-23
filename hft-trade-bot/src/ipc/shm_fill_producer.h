@@ -24,6 +24,7 @@ class ShmFillProducer {
             buffer_ = std::make_unique<ShmRingBuffer<FillMsg>>(shm_name_, capacity_, true);
             return true;
         } catch (const std::exception& e) {
+            spdlog::error("ShmFillProducer init failed: {}", e.what());
             return false;
         }
     }

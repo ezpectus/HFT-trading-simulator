@@ -97,6 +97,10 @@ class OrderExecutor {
             spdlog::warn("Cannot submit order — not connected");
             return;
         }
+        if (!signal.is_actionable()) [[unlikely]] {
+            spdlog::debug("Skipping order — signal is NEUTRAL for {}", signal.symbol);
+            return;
+        }
 
         OrderType type  = OrderTypeSelector::select(signal, ob);
         double    price = 0.0;

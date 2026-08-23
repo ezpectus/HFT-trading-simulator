@@ -2,6 +2,7 @@
 #pragma once
 
 #include "types.h"
+#include <stdexcept>
 #include <string>
 
 namespace hft {
@@ -25,7 +26,7 @@ struct Signal {
     Side side() const {
         if (is_long()) return Side::BUY;
         if (is_short()) return Side::SELL;
-        return Side::BUY; // NEUTRAL defaults to BUY; caller should check is_actionable() first
+        throw std::logic_error("Signal::side() called on NEUTRAL signal — check is_actionable() first");
     }
 
     double rr_ratio() const {

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <ctime>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -19,7 +20,9 @@ inline std::string side_to_string(Side s) {
 }
 
 inline Side string_to_side(const std::string& s) {
-    return s == "BUY" ? Side::BUY : Side::SELL;
+    if (s == "BUY") return Side::BUY;
+    if (s == "SELL") return Side::SELL;
+    throw std::invalid_argument("Invalid side: " + s);
 }
 
 struct Candle {

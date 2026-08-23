@@ -98,7 +98,7 @@ template <typename T> class ShmRingBuffer {
         }
 #else
         if (create) {
-            fd_ = shm_open(name_.c_str(), O_CREAT | O_RDWR, 0666);
+            fd_ = shm_open(name_.c_str(), O_CREAT | O_RDWR, 0600);
             if (fd_ < 0) {
                 throw std::runtime_error("shm_open create failed: " + name_);
             }
@@ -107,7 +107,7 @@ template <typename T> class ShmRingBuffer {
                 throw std::runtime_error("ftruncate failed for: " + name_);
             }
         } else {
-            fd_ = shm_open(name_.c_str(), O_RDWR, 0666);
+            fd_ = shm_open(name_.c_str(), O_RDWR, 0600);
             if (fd_ < 0) {
                 throw std::runtime_error("shm_open open failed: " + name_);
             }

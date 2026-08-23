@@ -91,8 +91,8 @@ TEST_CASE("string_to_side: 'SELL' returns Side::SELL") {
     CHECK(string_to_side("SELL") == Side::SELL);
 }
 
-TEST_CASE("string_to_side: unknown string returns SELL (default else branch)") {
-    CHECK(string_to_side("UNKNOWN") == Side::SELL);
+TEST_CASE("string_to_side: unknown string throws std::invalid_argument") {
+    CHECK_THROWS_AS(string_to_side("UNKNOWN"), std::invalid_argument);
 }
 
 TEST_CASE("side_to_string and string_to_side round-trip") {

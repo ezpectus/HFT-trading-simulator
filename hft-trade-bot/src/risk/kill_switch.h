@@ -61,7 +61,8 @@ class KillSwitch {
         try {
             shm_ = std::make_unique<ShmRingBuffer<ipc::KillSwitchMsg>>(shm_name_, 64, true);
             return true;
-        } catch (...) {
+        } catch (const std::exception& e) {
+            spdlog::error("KillSwitch SHM init failed: {}", e.what());
             return false;
         }
     }

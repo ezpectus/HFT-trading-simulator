@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AD: C++ safety fixes — string_to_side, Signal::side, catch, SHM perms)
+
+### Changed
+- `hft-trade-bot/src/data/types.h`: `string_to_side` now throws `std::invalid_argument` on unknown side (was silent SELL default)
+- `hft-trade-bot/src/data/signal.h`: `Signal::side()` now throws `std::logic_error` on NEUTRAL (was silent BUY default)
+- `hft-trade-bot/src/execution/order_executor.h`: Added `is_actionable()` guard before `signal.side()` call
+- `hft-trade-bot/src/risk/kill_switch.h`: `catch(...)` → `catch(const std::exception&)` + `spdlog::error` logging
+- `hft-trade-bot/src/ipc/shm_fill_producer.h`: Added `spdlog::error` logging to catch block
+- `hft-trade-bot/src/ipc/shm_heartbeat.h`: SHM permissions `0666` → `0600` (owner-only, 3 instances)
+- `hft-trade-bot/src/ipc/shm_market_data.h`: SHM permissions `0666` → `0600` (2 instances)
+- `hft-trade-bot/src/ipc/shm_ring_buffer.h`: SHM permissions `0666` → `0600` (2 instances)
+
+### Fixed
+- CODE_AUDIT §8.17 — C++ catch(...) kill switch → catch(std::exception) + error logging
+- CODE_AUDIT §8.186 — string_to_side no validation → throws on unknown side
+- CODE_AUDIT §8.192 — Signal::side() NEUTRAL→BUY → throws std::logic_error, caller guarded
+- CODE_AUDIT §8.391 — CI no integration tests → [N/A] docker-smoke job already exists
+
+---
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AC: Tracer ring buffer + PropTypes + symbol sync docs)
 
 ### Added

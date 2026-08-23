@@ -75,14 +75,14 @@ class ShmHeartbeatWriter {
         }
 #else
         if (create) {
-            fd_ = shm_open(shm_name_.c_str(), O_CREAT | O_RDWR, 0666);
+            fd_ = shm_open(shm_name_.c_str(), O_CREAT | O_RDWR, 0600);
             if (fd_ < 0) throw std::runtime_error("shm_open create failed: " + shm_name_);
             if (ftruncate(fd_, static_cast<off_t>(total_size)) < 0) {
                 close(fd_);
                 throw std::runtime_error("ftruncate failed: " + shm_name_);
             }
         } else {
-            fd_ = shm_open(shm_name_.c_str(), O_RDWR, 0666);
+            fd_ = shm_open(shm_name_.c_str(), O_RDWR, 0600);
             if (fd_ < 0) throw std::runtime_error("shm_open open failed: " + shm_name_);
         }
 
@@ -194,7 +194,7 @@ class ShmHeartbeatReader {
             throw std::runtime_error("MapViewOfFile failed for: " + shm_name_);
         }
 #else
-        fd_ = shm_open(shm_name_.c_str(), O_RDWR, 0666);
+        fd_ = shm_open(shm_name_.c_str(), O_RDWR, 0600);
         if (fd_ < 0) throw std::runtime_error("shm_open failed: " + shm_name_);
 
         void* ptr = mmap(nullptr, total_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
