@@ -838,7 +838,7 @@ Grep for `setup_tracing|get_tracer` across entire project = 0 matches (outside `
 
 **Фикс:** Either integrate `setup_tracing()` into `run.py` startup, or remove the file.
 
-### 8.47 Test coverage gaps — Medium
+### 8.47 Test coverage gaps — Medium [N/A]
 
 **Файлы:** `ai-signal-bot/tests/`
 
@@ -2919,7 +2919,7 @@ Data flows: WebSocket hooks → `useEffect` → Zustand `setExchangeData()` / `s
 
 Clean unidirectional data flow: WS → hook → store → components. ✅
 
-### 8.211 web-ui App.jsx: 565 lines — Medium
+### 8.211 web-ui App.jsx: 565 lines — Medium [FIXED]
 
 **Файл:** `web-ui/src/App.jsx` (565 lines)
 
@@ -5401,7 +5401,7 @@ RDS master password has a plaintext default. While marked `sensitive = true` (wo
 
 **Фикс:** Remove the default: `default = null` or no default. Require `terraform apply -var="db_password=..."` or use AWS Secrets Manager.
 
-### 8.402 terraform: no prod environment — Medium
+### 8.402 terraform: no prod environment — Medium [N/A]
 
 **Файл:** `terraform/environments/`
 
@@ -5420,7 +5420,7 @@ Only `dev/` environment exists. No `prod/` environment with production-specific 
 
 Good secrets template with SOPS workflow documented. ✅
 
-### 8.404 deploy/k8s: only secrets template, no K8s manifests — Medium
+### 8.404 deploy/k8s: only secrets template, no K8s manifests — Medium [N/A]
 
 **Файл:** `deploy/k8s/`
 
@@ -5940,7 +5940,7 @@ Good Signal struct with helpers and div-by-zero guard. ✅
 
 Good Config struct with comprehensive defaults and opt-in for experimental features. ✅
 
-### 8.445 config.h: hardcoded localhost default — Medium
+### 8.445 config.h: hardcoded localhost default — Medium [FIXED]
 
 **Файл:** `hft-trade-bot/src/core/config.h:14`
 
@@ -7697,7 +7697,7 @@ Max arbitrage quantity is hardcoded at 0.5. This should be configurable — diff
 
 Excellent bot setup with SIGTERM handler, thread pinning, config loading, and 15-param risk manager init. ✅
 
-### 8.583 CORRECTION: R518 main.cpp no SIGTERM — False alarm
+### 8.583 CORRECTION: R518 main.cpp no SIGTERM — False alarm [N/A]
 
 **Файл:** `hft-trade-bot/src/core/bot_setup.cpp:62-63`
 
