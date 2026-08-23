@@ -36,6 +36,7 @@ from src.database import Database  # noqa: E402
 from src.llm_engine import LLMConfig, LLMEngine  # noqa: E402
 from src.monitoring import PerformanceTracker, SignalLogger, TradeLogger, print_dashboard  # noqa: E402
 from src.observability.health_checks import HealthChecker  # noqa: E402
+from src.observability.tracing import setup_tracing, shutdown_tracing  # noqa: E402
 from src.signal_validation import SignalValidator  # noqa: E402
 from src.strategies import (  # noqa: E402
     EnsembleVoter,
@@ -458,6 +459,8 @@ def main():
 
     bot = AISignalBot(config)
 
+    setup_tracing(service_name="ai-signal-bot")
+
     def _signal_handler(signum, frame):
         logger.info(f"Received signal {signum}, initiating graceful shutdown...")
         bot._running = False
@@ -468,6 +471,7 @@ def main():
     try:
         asyncio.run(bot.run(show_dashboard=args.dashboard, enable_metrics=args.metrics))
     finally:
+        shutdown_tracing()
         logger.info(f"Run complete. Log file: {log_path}")
 
 

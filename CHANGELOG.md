@@ -31,6 +31,25 @@ All notable changes to this project are documented in this file.
 - `ai-signal-bot/Dockerfile`: Fixed healthcheck port 8766→9090, added `--metrics` to CMD so health server starts (Task 2)
 - `ai-signal-bot/Dockerfile.prod`: Fixed healthcheck port 8766→9090 (Task 2)
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AX: monitoring + LLM engine + notifier)
+
+### Fixed
+- `ai-signal-bot/src/monitoring/alerting.py`: `alert_history` list → `deque(maxlen=1000)`, removed O(N) slicing (§8.1218)
+- `ai-signal-bot/src/monitoring/metrics.py`: `MetricsExporter.__init__` sets all metric attributes to `None` when `prometheus_client` unavailable (§8.1224)
+- `ai-signal-bot/src/llm_engine/engine.py`: Cache key uses `int(ctx.price)` for coarser caching and better hit rate (§8.1259)
+
+### Changed
+- CODE_AUDIT §8.1222 — `datetime.now(UTC)` already present → [FIXED]
+- CODE_AUDIT §8.1258 — `SecretStr` wrapper already present → [FIXED]
+- CODE_AUDIT §8.1260 — same as §8.1061, already fixed → [FIXED]
+- CODE_AUDIT §8.1217 — `check_fn` sync → [N/A] (in-memory checks, no I/O)
+- CODE_AUDIT §8.1221 — file lock → [N/A] (single-process usage)
+- CODE_AUDIT §8.1225/§8.1227 — duplicate modules → [N/A] (architectural decision)
+- CODE_AUDIT §8.1263 — Telegram token in URL → [N/A] (API requirement, not logged)
+- CODE_AUDIT §8.1264 — Discord polling → [N/A] (design choice for simplicity)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AW: LLM engine + signal + helpers)
 
 ### Fixed

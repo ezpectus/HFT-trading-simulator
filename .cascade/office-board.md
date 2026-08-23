@@ -5535,3 +5535,992 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 - Integration: all WD components push alerts here, centralized management
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/alerts/AlertInbox.jsx` (новый), `web-ui/src/components/alerts/AlertRules.jsx` (новый), `web-ui/src/components/alerts/AlertChannels.jsx` (новый), `web-ui/src/components/alerts/AlertHistory.jsx` (новый), `web-ui/src/stores/useAlertStore.js` (новый), `web-ui/src/services/AlertManager.js` (новый)
+
+### WD-171: Tick-by-Tick Trade Replay & Forensics
+**Описание:** Покадровый replay торгов для forensic-анализа.
+- Trade replay engine:
+  - Timeline: every trade, order, signal, alert in chronological order
+  - Scrub: play/pause/rewind/fast-forward through trading day
+  - Speed: 1x, 2x, 5x, 10x, 100x, instant jump to timestamp
+  - Synchronized: chart, order book, trades, signals, P&L all update together
+- Forensic analysis:
+  - Trade inspection: click any trade → full details (fill price, slippage, latency, order type)
+  - Signal context: what signal triggered this trade? what was the market state?
+  - Decision audit: why was this trade taken? (signal, strategy, risk approval)
+  - P&L attribution: how did this trade contribute to daily P&L?
+  - Counterfactual: "What if we didn't take this trade?" (P&L impact)
+- Event timeline:
+  - All events: signals, orders, fills, alerts, regime changes, news
+  - Filter: by type, symbol, strategy, severity
+  - Bookmark: mark important moments for later review
+  - Notes: add commentary to specific timestamps
+  - Export: timeline as JSON/CSV for external analysis
+- Market state snapshot:
+  - At any timestamp: order book, price, volume, OI, funding, sentiment
+  - Reconstruction: full market state at time of each trade
+  - Comparison: market state before vs after trade (did we move market?)
+  - Context: what was happening in the market when we traded?
+- Trade clustering:
+  - Group: trades that happened in rapid succession (burst trading)
+  - Pattern: do we trade in clusters? (momentum, panic, or systematic?)
+  - Analysis: are clustered trades more or less profitable?
+  - Visualization: trade timeline with cluster highlighting
+- Replay sharing:
+  - Export: replay file (JSON) that can be shared with team
+  - Screenshot: capture chart state at specific timestamp
+  - Video: record replay as video (for presentation or review)
+  - Commentary: voice or text commentary overlaid on replay
+- Integration: connects to all data sources for full reconstruction
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/forensics/TradeReplay.jsx` (новый), `web-ui/src/components/forensics/EventTimeline.jsx` (новый), `web-ui/src/components/forensics/MarketSnapshot.jsx` (новый), `web-ui/src/services/ReplayEngine.js` (новый)
+
+### WD-172: Slippage Distribution & Cost Analyzer
+**Описание:** Анализ распределения slippage по всем ордерам.
+- Slippage measurement:
+  - Per trade: actual fill price vs expected price (arrival, mid, VWAP)
+  - Per order type: market, limit, stop, iceberg — which has most slippage?
+  - Per symbol: which symbols have most slippage? (illiquidity)
+  - Per size: slippage vs order size (larger = more slippage)
+  - Per time: slippage by time of day (low liquidity = more slippage)
+- Slippage distribution:
+  - Histogram: distribution of slippage (bps) across all trades
+  - Statistics: mean, median, p50, p75, p90, p95, p99 slippage
+  - Tail: worst 1% of trades (how bad can it get?)
+  - Trend: is slippage increasing or decreasing over time?
+  - Comparison: our slippage vs benchmark (VWAP slippage)
+- Slippage by condition:
+  - Volatility: slippage in high vol vs low vol periods
+  - Volume: slippage in high volume vs low volume periods
+  - Spread: slippage when spread is wide vs tight
+  - Momentum: slippage when trading with vs against momentum
+  - News: slippage during news events vs normal
+- Cost decomposition:
+  - Spread cost: half-spread paid on each trade
+  - Impact cost: price movement caused by our order
+  - Timing cost: delay between signal and execution
+  - Opportunity cost: missed fills (limit orders not filled)
+  - Total: spread + impact + timing + opportunity = total execution cost
+- Cost as % of P&L:
+  - Gross P&L: before costs
+  - Net P&L: after costs
+  - Cost ratio: total costs / gross P&L (how much of edge is eaten by costs?)
+  - Break-even: minimum edge needed to overcome costs
+  - By strategy: which strategies are most cost-sensitive?
+- Slippage heatmap:
+  - Symbol × order size → avg slippage (bps)
+  - Identify: which symbol-size combinations are too expensive to trade
+  - Threshold: slippage > X bps → flag as "do not trade this size"
+  - Optimization: optimal order size per symbol (minimize slippage per $ traded)
+- Actionable recommendations:
+  - "Use limit orders for SOL — 60% of market orders have >10bps slippage"
+  - "Split orders > $20K on ETH — large orders have 3x slippage"
+  - "Avoid trading 14:00-15:00 UTC — highest slippage period"
+  - "TWAP orders over 5 min reduce slippage by 40% for >$50K orders"
+- Alert: slippage > threshold on single trade, daily avg slippage increasing
+- Integration: connects to WD-76 (TCA), WD-139 (execution quality)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/analysis/SlippageAnalyzer.jsx` (новый), `web-ui/src/components/analysis/CostDecomposition.jsx` (новый), `web-ui/src/components/analysis/SlippageHeatmap.jsx` (новый), `web-ui/src/services/SlippageEngine.js` (новый)
+
+### WD-173: Strategy Parameter Auto-Tuning with Bayesian Optimization
+**Описание:** Автоматическая настройка параметров стратегии через Bayesian optimization.
+- Parameter space:
+  - Define: which parameters to tune (SL %, TP %, lookback period, threshold, etc.)
+  - Range: min/max for each parameter
+  - Constraints: parameter dependencies (e.g. TP > SL)
+  - Prior: initial belief about good parameter values
+- Bayesian optimization:
+  - Surrogate model: Gaussian Process (GP) or Tree-structured Parzen Estimator (TPE)
+  - Acquisition function: Expected Improvement (EI), Upper Confidence Bound (UCB)
+  - Iteration: each iteration evaluates a new parameter set via backtest
+  - Efficiency: finds good parameters in fewer trials than grid search
+  - vs Grid: Bayesian 50 trials ≈ Grid 500 trials (10x more efficient)
+- Optimization process:
+  - Objective: maximize Sharpe (or Sortino, Calmar, custom metric)
+  - Backtest per trial: run strategy with candidate parameters on historical data
+  - Walk-forward: optimize on IS, validate on OOS (prevent overfit)
+  - Early stopping: if trial clearly bad → stop early (save time)
+  - Parallel: run multiple trials in parallel (if compute available)
+- Parameter landscape:
+  - Visualization: parameter × Sharpe heatmap (2D slice of N-D space)
+  - Sensitivity: which parameters matter most? (SHAP values)
+  - Interaction: which parameters interact? (e.g. SL and TP together)
+  - Optimal region: where is the "sweet spot" in parameter space?
+  - Robustness: is optimal region wide (robust) or narrow (overfit)?
+- Convergence tracking:
+  - Trials: number of trials run, best Sharpe found, improvement rate
+  - Convergence: is optimization converging or still exploring?
+  - Expected improvement: how much more improvement is expected?
+  - Stop: when expected improvement < threshold → stop (converged)
+- Auto-tuning schedule:
+  - Frequency: re-tune weekly, monthly, quarterly (configurable)
+  - Trigger: re-tune when Sharpe drops below threshold
+  - Regime-aware: re-tune when regime changes
+  - Auto-apply: apply new parameters automatically (with safety checks)
+  - Rollback: if new parameters perform worse → rollback to previous
+- Multi-objective optimization:
+  - Objectives: maximize Sharpe AND minimize drawdown AND maximize return
+  - Pareto front: set of non-dominated parameter sets
+  - Trade-off: pick from Pareto front based on user preference
+  - Visualization: 3D scatter (Sharpe vs DD vs return)
+- Safety:
+  - Overfit prevention: walk-forward validation, parameter regularization
+  - Bounds: parameter ranges enforced (no crazy values)
+  - Sanity: check new parameters don't blow up on stress test
+  - Approval: optional — require user approval before applying
+- Integration: Optuna, Ray Tune, or custom Bayesian optimizer
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/strategies/ParamAutoTuner.jsx` (новый), `web-ui/src/components/strategies/ParamLandscape.jsx` (новый), `web-ui/src/components/strategies/ConvergenceTracker.jsx` (новый), `web-ui/src/services/BayesianOptimizer.js` (новый)
+
+### WD-174: Exchange API Rate Limit Dashboard
+**Описание:** Дашборд мониторинга API rate limits всех бирж.
+- Rate limit monitoring:
+  - Per exchange: Binance, Bybit, OKX, Coinbase, Kraken
+  - Per endpoint: orderbook, trades, klines, orders, account
+  - Current usage: X/Y requests per minute (or weight-based)
+  - Remaining: how many requests until limit?
+  - Reset: when does limit reset? (countdown timer)
+- Rate limit visualization:
+  - Gauge: per exchange, per endpoint (green → yellow → red)
+  - History: usage over time (line chart)
+  - Burst: did we hit limit recently? (spike in usage)
+  - Trend: is usage increasing? (more strategies → more API calls)
+- Rate limit types:
+  - Request weight: Binance uses weight system (different endpoints have different weight)
+  - Orders: separate limit for order placement (10 orders/sec on Binance)
+  - WebSocket: connection limit, message limit
+  - IP-based: limits per IP address
+  - UID-based: limits per account (for authenticated endpoints)
+- Alert management:
+  - Warning: at 80% of limit → slow down requests
+  - Critical: at 95% of limit → stop non-essential requests
+  - Breach: hit limit → all requests rejected for N seconds
+  - Recovery: limit reset → resume normal operation
+  - Auto-throttle: automatically reduce request rate when approaching limit
+- Request prioritization:
+  - Critical: order placement, position updates, account balance (always)
+  - High: orderbook, trades (real-time data)
+  - Medium: klines, funding, OI (periodic)
+  - Low: historical data, exchange info (background)
+  - When near limit: drop low priority, throttle medium, keep high+critical
+- Optimization:
+  - WebSocket vs REST: use WS for real-time (doesn't count against REST limit)
+  - Batching: combine multiple requests into one (if supported)
+  - Caching: cache responses that don't change often
+  - Dedup: don't request same data multiple times
+  - Efficiency: reduce unnecessary API calls
+- Multi-exchange coordination:
+  - Distribute: spread requests across exchanges (if same data available)
+  - Failover: if one exchange rate-limited → use another
+  - Balance: keep usage balanced across exchanges
+  - Total: aggregate API usage across all exchanges
+- Report: API usage report (per exchange, per endpoint, per day)
+- Integration: connects to all data collection services
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/system/RateLimitDashboard.jsx` (новый), `web-ui/src/components/system/ApiUsageMonitor.jsx` (новый), `web-ui/src/components/system/RequestPrioritizer.jsx` (новый), `web-ui/src/hooks/useRateLimit.js` (новый)
+
+### WD-175: Strategy Signal Confidence Calibration
+**Описание:** Калибровка confidence score сигналов стратегий.
+- Confidence calibration:
+  - Definition: if strategy says "80% confidence", does it win 80% of the time?
+  - Perfect calibration: predicted probability = actual frequency
+  - Overconfident: says 80% but wins only 60% (overestimates edge)
+  - Underconfident: says 60% but wins 80% (underestimates edge)
+  - Calibration curve: predicted confidence vs actual win rate (should be diagonal)
+- Calibration methods:
+  - Platt scaling: logistic regression on confidence scores
+  - Isotonic regression: non-parametric calibration
+  - Temperature scaling: single-parameter scaling
+  - Binning: group predictions into bins, compute actual rate per bin
+  - Beta calibration: for probability outputs
+- Per-strategy calibration:
+  - Each strategy: separate calibration curve
+  - Trend: may be well-calibrated, MeanRev may be overconfident
+  - Per symbol: calibration may differ by symbol
+  - Per regime: calibration may differ by market regime
+  - Per timeframe: calibration on 5m vs 1h signals
+- Calibration metrics:
+  - Brier score: mean squared error of predicted probability
+  - Log loss: negative log-likelihood of actual outcomes
+  - Expected Calibration Error (ECE): weighted avg of bin-wise gap
+  - Maximum Calibration Error (MCE): worst bin gap
+  - Reliability diagram: visual calibration check
+- Auto-calibration:
+  - Periodically: re-calibrate confidence scores (weekly/monthly)
+  - Online: update calibration in real-time as new trades complete
+  - Apply: transform raw confidence → calibrated confidence
+  - Display: show both raw and calibrated confidence
+  - Impact: does using calibrated confidence improve strategy performance?
+- Confidence vs outcome:
+  - Scatter: confidence (x) vs outcome R-multiple (y)
+  - Correlation: does higher confidence correlate with higher R?
+  - Threshold: optimal confidence threshold for filtering signals
+  - Trade-off: higher threshold = fewer trades but higher win rate
+- Calibration drift:
+  - Over time: is calibration getting worse? (model aging)
+  - Regime change: calibration may break when regime changes
+  - Alert: calibration error > threshold → re-calibrate
+  - History: calibration curve over time (is it stable?)
+- Signal filtering:
+  - Calibrated threshold: only trade signals with calibrated confidence > X%
+  - Kelly sizing: use calibrated confidence for position sizing
+  - Ensemble: weight strategies by their calibration quality
+  - Risk: calibrated confidence feeds into risk manager
+- Integration: connects to all strategies, signal validator, risk manager
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/strategies/ConfidenceCalibration.jsx` (новый), `web-ui/src/components/strategies/CalibrationCurve.jsx` (новый), `web-ui/src/components/strategies/CalibrationDrift.jsx` (новый), `web-ui/src/services/CalibrationEngine.js` (новый)
+
+### WD-176: On-Chain Exchange Flow & Reserve Monitor
+**Описание:** Мониторинг on-chain потоков на/из бирж и резервов.
+- Exchange reserves:
+  - Per exchange: BTC, ETH, USDT balance on exchange wallets
+  - Trend: increasing reserves = potential sell (deposits to sell)
+  - Trend: decreasing reserves = potential hold (withdrawals to cold)
+  - History: exchange reserves over time (chart)
+  - Comparison: which exchange has most reserves? (liquidity indicator)
+- Exchange flows:
+  - Inflow: deposits to exchange (potential sell pressure)
+  - Outflow: withdrawals from exchange (potential hold/accumulation)
+  - Net flow: inflow - outflow (positive = bearish, negative = bullish)
+  - Per asset: BTC, ETH, USDT flows separately
+  - Per exchange: which exchange is receiving/sending most?
+- Large flow detection:
+  - Whale deposit: > $10M deposit to exchange → potential large sell
+  - Whale withdrawal: > $10M withdrawal from exchange → accumulation
+  - Stablecoin inflow: large USDT/USDC deposit = buying power
+  - Stablecoin outflow: large USDT/USDC withdrawal = selling
+  - Alert: "1000 BTC deposited to Binance — potential sell pressure"
+- Flow vs price:
+  - Correlation: does exchange flow predict price? (lead-lag)
+  - Divergence: price rising but reserves increasing = bearish divergence
+  - Confirmation: price rising and reserves decreasing = bullish confirmation
+  - Historical: how did price react to similar flow patterns in past?
+- Reserve ratio:
+  - Reserve / supply: exchange reserves as % of total supply
+  - Trend: declining ratio = less available to sell = bullish
+  - Historical: where is current ratio vs historical range?
+  - Comparison: current ratio vs previous cycle (e.g. 2021 vs 2025)
+- Stablecoin reserve:
+  - Total stablecoins on exchanges = available buying power
+  - Ratio: stablecoin reserves / crypto reserves (buying power vs selling supply)
+  - High ratio: lots of dry powder → potential rally
+  - Low ratio: lots of crypto to sell → potential dump
+- Flow heatmap:
+  - Exchange × asset → net flow (green = outflow/bullish, red = inflow/bearish)
+  - Time × exchange → flow magnitude
+  - Quick scan: which exchanges are seeing most activity?
+- Alert: large inflow, large outflow, reserve ratio extreme, flow divergence
+- Integration: Glassnode, CryptoQuant, Nansen, on-chain data
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/onchain/ExchangeFlow.jsx` (новый), `web-ui/src/components/onchain/ReserveMonitor.jsx` (новый), `web-ui/src/components/onchain/FlowHeatmap.jsx` (новый), `web-ui/src/hooks/useOnChainFlow.js` (новый)
+
+### WD-177: Portfolio Rebalancing Automation
+**Описание:** Автоматизация ребалансировки портфеля по target allocation.
+- Target allocation:
+  - Set: define target % per asset (BTC 40%, ETH 30%, SOL 10%, stables 20%)
+  - Method: static (fixed), dynamic (risk parity, momentum-weighted)
+  - Rebalance trigger: time-based (weekly), threshold-based (drift > 5%)
+  - Constraints: min/max per asset, max turnover, tax considerations
+- Drift monitoring:
+  - Current: actual allocation vs target allocation
+  - Drift: |actual - target| per asset
+  - Total drift: sum of all drifts (portfolio-level deviation)
+  - Visualization: bar chart (target vs actual per asset)
+  - Alert: drift > threshold → rebalance needed
+- Rebalancing methods:
+  - **Periodic**: rebalance every N days (weekly, monthly, quarterly)
+  - **Threshold**: rebalance when drift > X%
+  - **Hybrid**: periodic OR threshold (whichever comes first)
+  - **Opportunistic**: rebalance during high volume (lower impact)
+  - **Smart**: minimize turnover while achieving target
+- Rebalance execution:
+  - Calculate: which assets to buy/sell and how much
+  - Optimize: minimize trades, fees, slippage, tax impact
+  - Route: use smart order routing for best execution
+  - Split: large rebalance trades split over time (TWAP/VWAP)
+  - Confirm: user approval or auto-execute (configurable)
+- Turnover analysis:
+  - Per rebalance: how much $ traded? (turnover)
+  - Annual: estimated annual turnover from rebalancing
+  - Cost: fees + slippage from rebalancing
+  - Benefit: does rebalancing improve risk-adjusted return?
+  - Break-even: does benefit exceed cost?
+- Tax-aware rebalancing:
+  - Wash sale: avoid buying asset sold at loss within 30 days
+  - Long-term vs short-term: prefer selling long-term holdings (lower tax)
+  - Tax-loss harvesting: integrate with WD-137
+  - Lot selection: HIFO, FIFO, LIFO (which lots to sell)
+  - Impact: after-tax rebalancing (not just pre-tax)
+- Dynamic allocation:
+  - Risk parity: allocate by inverse volatility (risk-equal)
+  - Momentum: allocate more to assets with strongest momentum
+  - Mean-reversion: allocate more to oversold assets
+  - Black-Litterman: combine market weights with user views
+  - Custom: user-defined dynamic allocation model
+- Rebalance simulation:
+  - Backtest: how would periodic rebalancing have performed historically?
+  - Comparison: rebalanced vs buy-and-hold vs never-rebalance
+  - Sensitivity: how does performance change with different thresholds?
+  - Optimization: find optimal rebalance frequency and threshold
+- Alert: drift > threshold, rebalance scheduled, rebalance executed
+- Integration: connects to portfolio optimizer (src/portfolio/), WD-136 (hedging)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/portfolio/RebalancingAutomation.jsx` (новый), `web-ui/src/components/portfolio/DriftMonitor.jsx` (новый), `web-ui/src/components/portfolio/RebalanceSimulator.jsx` (новый), `web-ui/src/services/RebalancingEngine.js` (новый)
+**Зависимости:** src/portfolio/
+
+### WD-178: Market-Maker Spread & Quote Quality Analyzer
+**Описание:** Анализ качества котировок market maker (spread, fill rate, competitiveness).
+- Spread analysis:
+  - Our spread: bid-ask spread we quote (per symbol, over time)
+  - Market spread: best market spread (our competition)
+  - Comparison: is our spread competitive? (wider = less competitive)
+  - Tightest: when do we quote tightest? (high volume, low vol)
+  - Widest: when do we widen? (high vol, news, inventory)
+- Quote quality metrics:
+  - **Quote frequency**: how often do we update quotes? (per second)
+  - **Quote lifetime**: how long do quotes stay before update/cancel?
+  - **At-touch rate**: % of time our quote is at best bid/ask
+  - **Inside spread rate**: % of time we're inside market spread
+  - **Top-of-book rate**: % of time we're sole market maker at best price
+  - **Quote-to-fill ratio**: how many quotes result in fills?
+- Fill analysis:
+  - Fill rate: % of our quotes that get filled
+  - Adverse fills: fills where price immediately moves against us
+  - Favorable fills: fills where price moves in our favor
+  - Fill latency: time from quote to fill
+  - Fill size: avg fill size vs quote size (partial fills?)
+- Competitiveness:
+  - Market share: what % of trades do we capture vs other MMs?
+  - Rank: are we the primary MM or secondary?
+  - Queue position: where are we in the price-time queue?
+  - Competition: how many other MMs at our price level?
+  - Edge: our edge per fill (spread captured - adverse selection)
+- Spread optimization:
+  - Optimal spread: based on vol, volume, competition, inventory, risk
+  - Too tight: high fill rate but low edge (and high adverse selection)
+  - Too wide: high edge but low fill rate (no trades)
+  - Sweet spot: maximize edge × fill_rate (expected profit per quote)
+  - Auto-adjust: continuously optimize spread based on conditions
+- Quote skew analysis:
+  - Skew direction: do we skew correctly? (skew toward reducing inventory)
+  - Skew magnitude: how much do we skew? (too much = no fills, too little = wrong inventory)
+  - Skew effectiveness: does skewing reduce inventory?
+  - Skew P&L: does skewing improve or hurt profitability?
+- Time analysis:
+  - By hour: spread and fill rate by hour of day
+  - By session: Asian, European, US sessions
+  - By day: weekday vs weekend
+  - Optimal: when should we quote most actively?
+- Symbol comparison:
+  - Per symbol: spread, fill rate, edge, P&L
+  - Best symbols: which symbols are most profitable for MM?
+  - Worst symbols: which symbols lose money (drop them?)
+  - Allocation: how to distribute MM capital across symbols?
+- Alert: our spread much wider than market, fill rate dropping, adverse selection spike
+- Integration: connects to src/strategies/market_making.py, WD-168 (inventory risk)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/mm/SpreadAnalyzer.jsx` (новый), `web-ui/src/components/mm/QuoteQuality.jsx` (новый), `web-ui/src/components/mm/Competitiveness.jsx` (новый), `web-ui/src/services/MmQualityEngine.js` (новый)
+**Зависимости:** src/strategies/market_making.py
+
+### WD-179: Strategy Turnover & Transaction Cost Projection
+**Описание:** Прогноз turnover и транзакционных затрат для стратегий.
+- Turnover measurement:
+  - Per strategy: how much $ traded per day/month (turnover rate)
+  - Per symbol: which symbols generate most turnover?
+  - Per signal: how much turnover per signal (entry + exit + adjustments)?
+  - Annual: estimated annual turnover (for tax and capacity planning)
+  - Trend: is turnover increasing? (more signals, more rebalancing)
+- Transaction cost projection:
+  - Fee cost: turnover × fee rate (taker 0.04%, maker 0.02%)
+  - Slippage cost: turnover × avg slippage (from WD-172)
+  - Spread cost: turnover × half-spread
+  - Funding cost: position size × funding rate × holding period
+  - Total: fee + slippage + spread + funding = total transaction cost
+- Cost-aware strategy evaluation:
+  - Gross return: strategy return before costs
+  - Net return: strategy return after transaction costs
+  - Cost drag: how much do costs reduce return? (e.g. 20% of gross)
+  - Break-even: minimum gross return needed to cover costs
+  - Cost efficiency: return per $ of transaction cost (higher = better)
+- Turnover vs return:
+  - Scatter: turnover (x) vs net return (y) for all strategies
+  - Efficient frontier: highest return for given turnover
+  - Trade-off: high turnover = high cost but potentially high return
+  - Optimal: strategy with best return/cost ratio
+- Cost scenario analysis:
+  - Fee change: what if exchange increases fees by 50%?
+  - Volume change: what if volume drops 50%? (higher slippage)
+  - Spread change: what if spreads widen 2x?
+  - Strategy scale: what if we 10x our position size? (impact)
+  - Sensitivity: which cost factor has most impact on net return?
+- Cost reduction strategies:
+  - Maker vs taker: use limit orders (maker fee, possibly negative)
+  - Netting: offset buys and sells before sending (reduce gross trades)
+  - Timing: trade during high volume (tighter spread, less slippage)
+  - Batching: combine multiple signals into one order
+  - Venue: route to exchange with lowest fees for our volume tier
+- Fee tier tracker:
+  - Current tier: VIP 0, VIP 1, VIP 2, etc. (based on 30d volume)
+  - Next tier: volume needed to upgrade (and fee savings)
+  - Progress: current 30d volume vs next tier threshold
+  - Savings: how much would we save at next tier?
+  - Multi-exchange: track tiers across all exchanges
+- Monthly cost report:
+  - Total costs: fees, slippage, spread, funding for the month
+  - Per strategy: which strategies cost most?
+  - Per symbol: which symbols cost most?
+  - Trend: are costs increasing or decreasing?
+  - Optimization: recommendations to reduce costs
+- Integration: connects to WD-76 (TCA), WD-172 (slippage), WD-139 (execution quality)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/strategies/TurnoverProjection.jsx` (новый), `web-ui/src/components/strategies/TransactionCosts.jsx` (новый), `web-ui/src/components/strategies/CostScenarioAnalysis.jsx` (новый), `web-ui/src/components/strategies/FeeTierTracker.jsx` (новый), `web-ui/src/services/TurnoverEngine.js` (новый)
+
+### WD-180: AI-Powered Anomaly Detection & Outlier Trading
+**Описание:** AI-детекция аномалий в рыночных данных для outlier trading.
+- Anomaly detection:
+  - Statistical: z-score > 3 on price, volume, OI, funding, spread
+  - ML-based: Isolation Forest, One-Class SVM, Autoencoder reconstruction error
+  - Temporal: sudden change from recent pattern (change point detection)
+  - Multi-variate: unusual combination of metrics (price up + volume down + OI up)
+  - Historical: event is rare (hasn't happened in last 90 days)
+- Anomaly types:
+  - **Price anomaly**: sudden spike/drop not explained by news
+  - **Volume anomaly**: volume surge/drop (3x+ average)
+  - **Spread anomaly**: spread suddenly widens 5x (liquidity event)
+  - **Funding anomaly**: funding rate at extreme (3+ sigma)
+  - **OI anomaly**: OI surge/drop (new money entering/exiting)
+  - **Order book anomaly**: wall appears/disappears, depth dries up
+  - **Correlation anomaly**: correlation breaks (WD-146)
+  - **Whale anomaly**: large on-chain transfer (WD-149)
+- Outlier trading:
+  - Opportunity: anomalies often precede large moves → trade the outlier
+  - Mean reversion: most anomalies revert (fade the spike)
+  - Momentum: some anomalies start trends (join the move)
+  - Classification: which anomalies revert vs continue? (ML model)
+  - Historical: how did price behave after similar anomalies in past?
+- Anomaly feed:
+  - Real-time: all detected anomalies in live feed
+  - Severity: 1-5 (1=minor, 5=extreme)
+  - Type: price, volume, spread, funding, OI, etc.
+  - Context: what metrics are anomalous and by how much
+  - Action: suggested trade (if any)
+- Anomaly backtest:
+  - Historical: find all anomalies in past 2 years
+  - Outcome: what happened after each anomaly? (revert vs continue)
+  - Win rate: % of anomalies that reverted (for mean-rev strategy)
+  - Profitability: could we profit from trading anomalies?
+  - By type: which anomaly types are most profitable to trade?
+- Anomaly statistics:
+  - Frequency: how often does each type occur? (per day/week/month)
+  - Distribution: severity distribution (most are minor, few are extreme)
+  - Clustering: do anomalies cluster? (one leads to more)
+  - Seasonality: do anomalies happen more at certain times?
+  - Trend: are anomalies becoming more/less frequent?
+- Auto-trading:
+  - Enable: auto-trade on anomalies (with risk controls)
+  - Strategy: mean-reversion or momentum (based on anomaly type)
+  - Size: position size proportional to anomaly severity
+  - Risk: strict SL (anomalies are volatile), max 1 anomaly trade at a time
+  - Backtest验证: strategy must be profitable in backtest before auto-trading
+- Alert: anomaly detected (type, severity, suggested action)
+- Integration: connects to ML models (src/ml/), all market data feeds
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/ai/AnomalyDetector.jsx` (новый), `web-ui/src/components/ai/AnomalyFeed.jsx` (новый), `web-ui/src/components/ai/OutlierTrading.jsx` (новый), `web-ui/src/components/ai/AnomalyBacktest.jsx` (новый), `web-ui/src/services/AnomalyEngine.js` (новый)
+**Зависимости:** src/ml/ (IsolationForest, autoencoder)
+
+### WD-181: Multi-Strategy Portfolio Heatmap & Risk Concentration
+**Описание:** Heatmap мульти-стратегий портфеля и концентрации рисков.
+- Portfolio heatmap:
+  - Grid: strategy × symbol → exposure ($ or % of portfolio)
+  - Color: green (long), red (short), intensity = size
+  - Quick scan: where is capital concentrated?
+  - Aggregation: row totals (per strategy), column totals (per symbol)
+  - Drill-down: click cell → detailed position info
+- Risk concentration:
+  - By strategy: which strategy has most risk? (VaR contribution)
+  - By symbol: which symbol has most risk?
+  - By sector: if symbols grouped (L1, DeFi, Meme) → sector concentration
+  - By direction: net long vs net short exposure
+  - By correlation: effective number of independent bets
+- Concentration metrics:
+  - Herfindahl index: measure of concentration (0 = diversified, 1 = concentrated)
+  - Top-N: what % of risk is in top 3 positions? (should be < 50%)
+  - Effective N: number of independent positions (from PCA)
+  - Largest position: what % of portfolio is in single largest position?
+  - Alert: concentration > threshold → "Reduce BTC exposure from 40% to 25%"
+- Risk budget:
+  - Allocation: how much risk budget per strategy/symbol
+  - Usage: actual risk vs allocated budget
+  - Over-budget: strategy using more risk than allocated → flag
+  - Under-budget: strategy using less than allocated → underutilized
+  - Rebalance: redistribute risk budget based on usage and performance
+- Stress test by concentration:
+  - "If BTC drops 10%: portfolio impact = X% (40% from BTC concentration)"
+  - "If DeFi sector drops 20%: portfolio impact = Y%"
+  - "If top 3 positions all drop 15%: portfolio impact = Z%"
+  - Concentration risk: how much of portfolio risk is from concentration?
+- Correlation-adjusted concentration:
+  - Raw: 20% in BTC + 20% in ETH = 40% crypto concentration
+  - Adjusted: BTC-ETH correlation 0.85 → effective 35% (not 40%)
+  - True concentration: correlation-adjusted gives real risk
+  - Diversification benefit: how much does diversification reduce concentration?
+- Visualization:
+  - Treemap: size = exposure, color = P&L (green/red)
+  - Sunburst: portfolio → strategy → symbol → position
+  - Sankey: capital flow from portfolio → strategies → symbols
+  - Network: positions as nodes, edges = correlation (thickness)
+- Alert: concentration > threshold, single position > X% of portfolio, correlation-adjusted concentration rising
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/portfolio/PortfolioHeatmap.jsx` (новый), `web-ui/src/components/portfolio/RiskConcentration.jsx` (новый), `web-ui/src/components/portfolio/RiskBudget.jsx` (новый), `web-ui/src/components/portfolio/ConcentrationTreemap.jsx` (новый), `web-ui/src/services/ConcentrationEngine.js` (новый)
+
+### WD-182: WebSocket Connection Health & Auto-Reconnect
+**Описание:** Мониторинг здоровья WebSocket соединений и авто-реконнект.
+- Connection status:
+  - Per WS: exchange simulator (8765), AI signal bot (8766), exchange feeds
+  - Status: connected, connecting, disconnected, error, reconnecting
+  - Uptime: % uptime over last 24h, 7d, 30d
+  - Latency: current latency (ms) for each connection
+  - Last message: time since last message received (stale detection)
+- Health metrics:
+  - Message rate: messages per second (expected vs actual)
+  - Message loss: dropped messages (sequence number gaps)
+  - Reconnect count: number of reconnects in last 24h
+  - Avg reconnect time: how long does reconnect take?
+  - Error rate: % of messages with errors
+- Auto-reconnect:
+  - Trigger: disconnect detected, no message for N seconds, error
+  - Strategy: exponential backoff (1s, 2s, 4s, 8s, 16s, max 60s)
+  - Max retries: configurable (e.g. 10 before giving up)
+  - Fallback: if WS down → switch to REST polling (degraded mode)
+  - Recovery: when WS back → switch back from REST to WS
+- Connection pool:
+  - Multiple WS: one per exchange, per symbol, per data type
+  - Pool size: how many concurrent connections?
+  - Limit: exchange WS connection limits (Binance: 5 connections per IP)
+  - Sharing: multiple components share same WS (multiplexing)
+  - Load: message load per connection (messages/sec)
+- Data integrity:
+  - Sequence: check sequence numbers (detect gaps)
+  - Checksum: verify data integrity (if exchange provides)
+  - Timestamp: check message freshness (reject stale messages)
+  - Duplicate: detect and filter duplicate messages
+  - Gap fill: if gap detected → request missing data via REST
+- Alert: WS disconnected, reconnect failed, high latency, message loss, stale data
+- Visualization:
+  - Connection map: all WS connections with status (green/red)
+  - Timeline: connection events (connect, disconnect, reconnect)
+  - Health dashboard: per-connection health score
+  - Message flow: real-time message rate per connection
+- Degraded mode:
+  - WS down → REST polling (slower but functional)
+  - Reduced data: only critical data (price, positions) in degraded mode
+  - Notification: "WebSocket down — using REST fallback (data may be delayed)"
+  - Auto-recovery: when WS restored → seamless switch back
+- Integration: connects to all WS clients (src/communication/ws_client.py)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/system/WsHealthMonitor.jsx` (новый), `web-ui/src/components/system/ConnectionMap.jsx` (новый), `web-ui/src/components/system/ReconnectStatus.jsx` (новый), `web-ui/src/hooks/useWsHealth.js` (новый), `web-ui/src/services/WsHealthMonitor.js` (новый)
+
+### WD-183: Strategy Decay Curve & Edge Half-Life
+**Описание:** Кривая затухания стратегии и half-life edge.
+- Edge decay measurement:
+  - Rolling Sharpe: 30d, 60d, 90d rolling Sharpe over time
+  - Decay curve: Sharpe vs time since strategy inception
+  - Half-life: how long until Sharpe drops to 50% of initial value?
+  - Trend: is Sharpe linearly declining, exponentially, or step function?
+  - Current: where are we on the decay curve?
+- Decay causes:
+  - **Alpha decay**: edge is being arbed away (market becoming efficient)
+  - **Capacity decay**: our own orders move market (too much capital)
+  - **Competition**: other traders discovered same edge
+  - **Regime change**: market structure changed (edge was regime-specific)
+  - **Overfit**: edge was never real (backtest overfit, live shows truth)
+- Edge freshness:
+  - Fresh: strategy < half-life → edge still strong
+  - Aging: strategy > half-life → edge weakening
+  - Stale: strategy > 2x half-life → edge mostly gone
+  - Dead: strategy Sharpe < 0.5 → edge effectively dead
+  - Action: fresh = keep, aging = monitor, stale = reduce, dead = retire
+- Decay by component:
+  - Signal decay: are signals less accurate over time?
+  - Execution decay: is execution quality degrading?
+  - Risk decay: is risk management less effective?
+  - Attribution: which component is decaying fastest?
+- Comparative decay:
+  - Strategy A vs B: which is decaying faster?
+  - Young vs old: newer strategies vs older (do newer last longer?)
+  - By type: trend strategies decay faster than mean-rev? (or vice versa)
+  - By market: strategies decay faster in efficient markets
+- Rejuvenation:
+  - Can edge be restored? (new parameters, new features, new data)
+  - Re-tune: Bayesian optimization (WD-173) to find new edge
+  - Adapt: ML retraining on recent data
+  - Pivot: modify strategy logic based on what stopped working
+  - Success rate: how often does rejuvenation work? (historical)
+- New strategy pipeline:
+  - Replace: when strategy decays, need replacement ready
+  - Pipeline: new strategies in development (research, backtest, paper)
+  - Transition: gradually shift capital from decaying to new strategy
+  - Overlap: run old and new in parallel during transition
+- Visualization:
+  - Decay curve: Sharpe vs time (with half-life marked)
+  - Comparison: multiple strategies' decay curves overlaid
+  - Forecast: projected decay (when will Sharpe hit 0?)
+  - Status: traffic light (green = fresh, yellow = aging, red = stale)
+- Alert: strategy past half-life, Sharpe declining, strategy approaching death
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/strategies/DecayCurve.jsx` (новый), `web-ui/src/components/strategies/EdgeHalfLife.jsx` (новый), `web-ui/src/components/strategies/DecayAnalysis.jsx` (новый), `web-ui/src/services/DecayEngine.js` (новый)
+
+### WD-184: Custom Indicator Builder & Scripting
+**Описание:** Конструктор кастомных индикаторов с скриптовым движком.
+- Visual indicator builder:
+  - Components: combine existing indicators (SMA, RSI, MACD, Bollinger, ATR, etc.)
+  - Operations: add, subtract, multiply, divide, max, min, average
+  - Conditions: if/then logic (if RSI > 70 then sell signal)
+  - Filters: smooth, lag, normalize, detrend
+  - Preview: real-time preview on chart as you build
+- Scripting engine:
+  - Language: JavaScript-based (or Lua, or custom DSL)
+  - Functions: price(), volume(), indicator(), sma(), ema(), rsi(), etc.
+  - Variables: user-defined variables and loops
+  - Historical: access to historical candles (close[1], close[2], etc.)
+  - Output: plot (line, histogram, band, arrow, color)
+- Indicator library:
+  - Built-in: 50+ standard indicators pre-loaded
+  - Community: share and download indicators from community
+  - Custom: user-created indicators saved to library
+  - Categories: trend, momentum, volatility, volume, custom
+  - Search: find indicators by name, category, or function
+- Backtest integration:
+  - Strategy: use custom indicator as entry/exit signal
+  - Backtest: run backtest with custom indicator
+  - Optimize: optimize custom indicator parameters
+  - Compare: custom indicator vs standard indicators
+  - Walk-forward: validate custom indicator out-of-sample
+- Indicator properties:
+  - Parameters: configurable inputs (period, threshold, etc.)
+  - Display: color, thickness, style (line, dashed, histogram)
+  - Scale: own scale or overlay on price
+  - Alerts: trigger when indicator crosses threshold
+  - Multi-timeframe: indicator on different timeframe than chart
+- Sharing & collaboration:
+  - Export: indicator as JSON (share with team)
+  - Import: load indicator from JSON
+  - Version: track indicator versions (v1, v2, etc.)
+  - Marketplace: publish indicator for others to use
+  - Rating: community rating and reviews
+- Example indicators:
+  - Custom: RSI Divergence Detector, Volume Profile, VWAP Bands
+  - Advanced: Hurst Exponent, Fractal Dimension, Entropy
+  - Composite: Trend Strength Score (ADX + RSI + MACD combined)
+  - Experimental: Fourier Extrapolation, Wavelet Decomposition
+- Performance:
+  - Web Worker: indicator calculation in worker (no UI blocking)
+  - Caching: cache results for same parameters
+  - Incremental: only recalculate new bars (not full recalc)
+  - Profiling: indicator calculation time (flag slow indicators)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/indicators/IndicatorBuilder.jsx` (новый), `web-ui/src/components/indicators/IndicatorLibrary.jsx` (новый), `web-ui/src/components/indicators/ScriptEditor.jsx` (новый), `web-ui/src/services/IndicatorEngine.js` (новый), `web-ui/src/services/ScriptRuntime.js` (новый)
+
+### WD-185: Trading Calendar & Economic Event Integration
+**Описание:** Торговый календарь и интеграция экономических событий.
+- Economic calendar:
+  - Events: CPI, FOMC, NFP, GDP, PPI, retail sales, unemployment
+  - Per event: time, importance (low/medium/high), forecast, previous, actual
+  - Countdown: time until next high-impact event
+  - Filter: by importance, country/region, type
+  - Source: Trading Economics, Forex Factory, Investing.com API
+- Event impact:
+  - Historical: how did BTC/ETH react to past CPI prints? (avg move, direction)
+  - Pre-event: volatility before event (market positioning, uncertainty)
+  - Post-event: volatility after event (reaction, drift)
+  - Pattern: does market typically pump or dump on specific events?
+  - By importance: high-impact events cause 3x more volatility
+- Pre-event trading:
+  - Reduce: close or reduce positions before high-impact event (uncertainty)
+  - Hedge: add protection (puts, reduce delta) before event
+  - Straddle: buy straddle before event (profit from vol spike either direction)
+  - Timing: when to start reducing? (1h before? 1 day before?)
+  - Auto: automatically reduce exposure N minutes before high-impact event
+- Post-event trading:
+  - Reaction: trade the initial reaction (momentum or fade)
+  - Drift: trade the post-event drift (continued move or reversal)
+  - Vol crush: sell vol after event (IV drops after event passes)
+  - Entry: when to re-enter? (immediately, wait for dust to settle, next day)
+  - Auto: automatically re-enter positions N minutes after event
+- Event-specific strategies:
+  - FOMC: typically bullish (rate cut = risk-on), high vol during press conference
+  - CPI: high CPI = bearish (inflation, rate hike fears), low CPI = bullish
+  - NFP: strong jobs = dollar strong = crypto potentially weak
+  - Pattern: backtest each event type separately
+- Trading calendar:
+  - Sessions: Asian (00:00-09:00 UTC), European (07:00-16:00), US (13:00-22:00)
+  - Overlaps: EU-US overlap (13:00-16:00) = highest volume
+  - Holidays: market closures (Christmas, New Year, Thanksgiving)
+  - Daylight saving: session times shift with DST
+  - Volume profile: expected volume by session (historical average)
+- Event alerts:
+  - Pre-event: "FOMC in 1 hour — consider reducing exposure"
+  - During: "CPI released: actual 3.2% vs forecast 3.1% — dollar bullish"
+  - Post: "Event passed — vol normalizing, safe to re-enter"
+  - Custom: user-defined alerts for specific event types
+- Integration with dashboard:
+  - Chart overlay: event markers on price chart (vertical lines with labels)
+  - Signal suppression: suppress new signals N min before/after high-impact event
+  - Risk adjustment: auto-tighten risk limits during event window
+  - Position alert: "You have open positions during FOMC — high risk"
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/calendar/EconomicCalendar.jsx` (новый), `web-ui/src/components/calendar/EventImpact.jsx` (новый), `web-ui/src/components/calendar/TradingSessions.jsx` (новый), `web-ui/src/hooks/useEconomicEvents.js` (новый)
+
+### WD-186: Strategy Combination Stress Testing
+**Описание:** Стресс-тестирование комбинаций стратегий в экстремальных сценариях.
+- Stress scenarios:
+  - Historical: 2008 GFC, March 2020 COVID, May 2022 LUNA, Nov 2022 FTX, Mar 2023 banking
+  - Hypothetical: BTC -30% in 1 day, ETH -50% in 3 days, correlation → 1, exchange hack
+  - Custom: user-defined scenario (price path, vol, correlation, funding)
+  - Multi-factor: combined scenario (price drop + vol spike + correlation spike + funding spike)
+- Per-strategy stress:
+  - Each strategy: how does it perform in each scenario?
+  - P&L: expected loss/gain in scenario
+  - Drawdown: max drawdown during scenario
+  - Recovery: how long to recover from scenario?
+  - Survival: does strategy survive or blow up? (margin call, liquidation)
+- Portfolio stress:
+  - Combined: all strategies together in scenario
+  - Diversification: does diversification help in this scenario?
+  - Concentration: does concentration make it worse?
+  - Hedging: does hedge work in scenario? (correlation may break)
+  - Total: portfolio P&L, drawdown, survival in each scenario
+- Scenario construction:
+  - Price path: define price trajectory (e.g. BTC -5% day 1, -10% day 2, -15% day 3)
+  - Volatility: define vol regime (normal → 3x → 5x → normal)
+  - Correlation: define correlation matrix (normal → all 0.9 → normal)
+  - Funding: define funding path (normal → extreme → normal)
+  - Liquidity: define liquidity (normal → dry → recovering)
+- Interactive stress test:
+  - Sliders: adjust scenario parameters interactively
+  - Real-time: portfolio P&L updates as you adjust
+  - What-if: "What if BTC drops 20% and correlation goes to 0.9?"
+  - Visualization: portfolio equity curve under scenario
+- Reverse stress test:
+  - Question: "What scenario would cause 20% portfolio loss?"
+  - Answer: "BTC -15% with correlation 0.8 and funding spike"
+  - Probability: how likely is this scenario? (historical frequency)
+  - Preparation: what can we do to protect against this?
+- Stress test report:
+  - Summary: worst-case P&L for each scenario
+  - Ranking: which scenario is most dangerous for our portfolio?
+  - Vulnerability: which strategy is weakest in stress?
+  - Recommendation: hedge, reduce, or restructure to survive worst scenario
+- Auto-stress:
+  - Daily: run stress tests daily with current portfolio
+  - Alert: if stress test shows >X% loss in any scenario → warning
+  - Auto-hedge: if stress loss > threshold → auto-add hedge
+  - Integration: connects to src/risk/stress_test.py, WD-164 (VaR breach)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/risk/CombinationStressTest.jsx` (новый), `web-ui/src/components/risk/ScenarioBuilder.jsx` (новый), `web-ui/src/components/risk/ReverseStressTest.jsx` (новый), `web-ui/src/components/risk/StressReport.jsx` (новый), `web-ui/src/services/StressTestEngine.js` (новый)
+**Зависимости:** src/risk/stress_test.py
+
+### WD-187: Order Routing & Smart Execution Router
+**Описание:** Умный роутинг ордеров по биржам для лучшего исполнения.
+- Smart order router (SOR):
+  - Best price: route to exchange with best bid/ask
+  - Split: large order split across exchanges for best aggregate price
+  - Minimize: total execution cost (price + fees + slippage)
+  - Speed: balance speed vs cost (urgent = take liquidity, patient = provide)
+  - Visualization: show routing decision (which exchange gets which part)
+- Routing strategies:
+  - **Best price**: route to exchange with best quote (simplest)
+  - **Least cost**: price + fees + estimated slippage (most accurate)
+  - **Fastest**: route to exchange with lowest latency (HFT)
+  - **Liquidity-seeking**: route to exchange with most depth (large orders)
+  - **Dark pool**: route to dark pools first (minimize market impact)
+- Order splitting:
+  - TWAP: split evenly over time (reduce market impact)
+  - VWAP: split proportional to historical volume pattern
+  - Implementation shortfall: balance impact vs timing risk
+  - POV: percent of volume (participate without dominating)
+  - Adaptive: dynamically adjust split based on real-time conditions
+- Multi-exchange execution:
+  - Simultaneous: send parts to multiple exchanges at once
+  - Sequential: fill one exchange then next (if price moves favorably)
+  - Conditional: only send to exchange B if exchange A fills
+  - Rollback: if one leg fails → cancel all legs (atomic execution)
+- Execution analytics:
+  - Actual vs benchmark: did we beat VWAP? Arrival price?
+  - Per exchange: which exchange gave best fill?
+  - Slippage: per exchange, per split
+  - Timing: was our timing optimal? (better to wait or execute immediately?)
+  - Cost: total execution cost (price + fees + slippage) vs benchmark
+- Venue selection:
+  - Exchange score: composite score (price, fees, latency, depth, reliability)
+  - Dynamic: score updates in real-time as conditions change
+  - Preference: user-configurable preference (e.g. "prefer Binance for BTC")
+  - Exclusion: exclude exchanges (e.g. "don't use FTX")
+  - Min volume: only route to exchanges with > $X daily volume
+- Order type optimization:
+  - Market: fastest but most slippage (use for urgent)
+  - Limit: less slippage but risk of no fill (use for patient)
+  - Post-only: always provide liquidity (maker fee, never taker)
+  - Iceberg: hide large order size (show only small chunks)
+  - Conditional: stop-loss, take-profit, trailing stop
+- Risk management:
+  - Max per exchange: don't send > $X to single exchange (counterparty risk)
+  - Max slippage: cancel if slippage > threshold
+  - Timeout: cancel if not filled in N seconds
+  - Position check: verify position limit before sending
+  - Pre-trade: check margin, balance, risk limits before routing
+- Integration: connects to all exchange APIs, WD-162 (aggregated book)
+**Сложность:** Высокая
+**Файлы:** `web-ui/src/components/execution/SmartOrderRouter.jsx` (новый), `web-ui/src/components/execution/OrderSplitting.jsx` (новый), `web-ui/src/components/execution/ExecutionAnalytics.jsx` (новый), `web-ui/src/components/execution/VenueSelector.jsx` (новый), `web-ui/src/services/SorEngine.js` (новый)
+
+### WD-188: Drawdown Recovery Strategy & Psychology Tracker
+**Описание:** Стратегия восстановления из drawdown и трекер психологии.
+- Drawdown state:
+  - Current DD: portfolio drawdown from peak (% and $)
+  - DD duration: how long have we been in drawdown? (days)
+  - DD depth: how deep is current DD vs historical? (percentile)
+  - DD trajectory: are we recovering, flat, or deepening?
+  - Visualization: equity curve with DD periods highlighted
+- Recovery strategies:
+  - **Aggressive**: increase position size to recover faster (high risk)
+  - **Conservative**: reduce size, wait for high-conviction trades (safe)
+  - **Balanced**: normal size but higher selectivity (filter more signals)
+  - **Pause**: stop trading entirely until emotionally recovered
+  - **Auto**: configurable recovery strategy based on DD depth
+- Psychology tracker:
+  - Emotional state: user self-reports mood (calm, anxious, frustrated, panicked)
+  - Trade behavior: are we overtrading? revenge trading? hesitating?
+  - Metrics: trade frequency vs normal, position size vs normal, deviation from plan
+  - Warning: "You've increased trade frequency 3x — possible overtrading"
+  - Pattern: does DD deepen when user is anxious? (correlation)
+- Recovery plan:
+  - Step 1: assess DD cause (market, strategy, or psychology?)
+  - Step 2: set recovery target (return to high-water mark in N days)
+  - Step 3: define rules (max position, max trades/day, min confidence)
+  - Step 4: track progress (are we following the plan?)
+  - Step 5: review (did recovery work? what to do differently next time?)
+- DD recovery backtest:
+  - Historical: how long did past DDs take to recover? (avg, median, max)
+  - By depth: deeper DDs take longer to recover (non-linear)
+  - By strategy: which strategies recover fastest?
+  - Probability: given current DD depth, what's P(recovery in 30d)?
+  - Benchmark: our recovery vs typical hedge fund recovery
+- Tilt detection:
+  - Overtrading: trade count > 2x normal → tilted
+  - Size increase: position size > 1.5x normal → tilted
+  - Revenge: immediately re-entering after loss → tilted
+  - Hesitation: skipping high-confidence signals → tilted (fear)
+  - Action: "Detected tilt behavior — recommend 1h break"
+- Recovery journal:
+  - Log: entries during DD period (thoughts, feelings, decisions)
+  - Review: after recovery, review what helped and what hurt
+  - Lessons: key takeaways for next DD
+  - Sharing: optional share with mentor/coach
+- Alert: DD > 5%, DD duration > 7 days, tilt behavior detected, emotional state deteriorating
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/psychology/DrawdownRecovery.jsx` (новый), `web-ui/src/components/psychology/PsychologyTracker.jsx` (новый), `web-ui/src/components/psychology/TiltDetector.jsx` (новый), `web-ui/src/components/psychology/RecoveryJournal.jsx` (новый), `web-ui/src/hooks/usePsychology.js` (новый)
+
+### WD-189: Per-Symbol Liquidity Profile & Optimal Order Size
+**Описание:** Профиль ликвидности по символам и оптимальный размер ордера.
+- Liquidity profile:
+  - Per symbol: avg daily volume, avg spread, avg depth, avg trade size
+  - Liquidity score: composite (0-100) based on volume, spread, depth
+  - Ranking: most liquid to least liquid symbol
+  - Time: liquidity by hour of day (peak vs off-peak)
+  - Trend: is liquidity increasing or decreasing?
+- Volume profile:
+  - Volume by time: histogram of volume by hour (when is most trading?)
+  - Volume by price: price-volume profile (at what prices does most volume trade?)
+  - POC (Point of Control): price level with most volume (high liquidity)
+  - Value area: 70% of volume range (high liquidity zone)
+  - Low volume nodes: price levels with little volume (low liquidity, fast moves)
+- Optimal order size:
+  - Based on: avg volume, spread, depth, participation rate
+  - Formula: optimal_size = avg_volume × max_participation / N_trades_per_day
+  - Per symbol: each symbol has different optimal size
+  - Per time: larger orders OK during peak volume, smaller during off-peak
+  - Impact: order > optimal → slippage increases non-linearly
+- Order size calculator:
+  - Input: symbol, urgency (urgent/patient), max slippage tolerance
+  - Output: recommended order size, expected slippage, estimated fill time
+  - Split: if order > optimal → recommend splitting (TWAP/VWAP)
+  - Alternative: suggest using limit order instead of market
+  - Comparison: market order vs TWAP vs VWAP (cost comparison)
+- Liquidity heatmap:
+  - Symbol × time → liquidity score (color: green=liquid, red=illiquid)
+  - Quick scan: when is each symbol most/least liquid?
+  - Planning: schedule large orders during high-liquidity periods
+  - Alert: "SOL liquidity unusually low — avoid large orders"
+- Depth analysis:
+  - Bid/ask depth: cumulative volume at top 5, 10, 50 levels
+  - Depth ratio: depth / avg trade size (how many avg trades can absorb?)
+  - Wall: large orders at specific levels (support/resistance)
+  - Depth trend: is depth increasing or decreasing? (market getting deeper/shallower)
+- Slippage estimation:
+  - Model: slippage = f(order_size, avg_volume, spread, vol)
+  - Calibration: fit model to our historical execution data
+  - Prediction: "Order of $100K on SOL → estimated 8bps slippage"
+  - Confidence: 95% CI on slippage estimate
+  - Comparison: estimated vs actual slippage (model accuracy)
+- Participation rate:
+  - Current: what % of volume are we typically trading?
+  - Safe: <5% of volume = minimal impact
+  - Warning: 5-10% = moderate impact
+  - Danger: >10% = significant impact (price moves against us)
+  - Per symbol: illiquid symbols have lower safe participation rate
+- Alert: liquidity drop, order size > optimal, depth drying up, participation too high
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/liquidity/LiquidityProfile.jsx` (новый), `web-ui/src/components/liquidity/OptimalOrderSize.jsx` (новый), `web-ui/src/components/liquidity/VolumeProfile.jsx` (новый), `web-ui/src/components/liquidity/LiquidityHeatmap.jsx` (новый), `web-ui/src/services/LiquidityEngine.js` (новый)
+
+### WD-190: Comprehensive Trading Terminal Command Palette
+**Описание:** Командная палитра терминала (Cmd+K / Ctrl+K) для быстрого доступа.
+- Command palette:
+  - Trigger: Cmd+K (Mac) / Ctrl+K (Windows) → overlay search bar
+  - Search: fuzzy search across all commands, pages, symbols, strategies
+  - Speed: <50ms response time, instant results
+  - Keyboard: full keyboard navigation (arrow keys, enter, esc)
+  - Recent: show recently used commands first
+- Command types:
+  - **Navigation**: go to chart, go to positions, go to backtest, go to settings
+  - **Trading**: buy BTC, sell ETH, close all positions, cancel all orders
+  - **Analysis**: run backtest for [strategy], compare [A] vs [B], stress test
+  - **Alerts**: create alert for [condition], mute all alerts, show alert history
+  - **View**: switch layout, open [component], close [component], fullscreen
+  - **Search**: search for symbol, search for strategy, search for trade
+  - **Settings**: change risk limit, change timeframe, toggle dark mode
+- Smart suggestions:
+  - Context-aware: suggest commands based on current page/state
+  - History: "You usually check positions after signals → suggest positions"
+  - Frequency: most used commands appear first
+  - Time: "You usually run backtests at 6pm → suggest backtest"
+  - AI: "Portfolio risk high → suggest 'reduce position' or 'stress test'"
+- Quick actions:
+  - Symbol switch: type "BTC" → switch chart to BTC/USDT
+  - Timeframe: type "1h" → switch to 1h timeframe
+  - Strategy: type "trend" → show TrendFollowing strategy details
+  - Trade: type "buy 0.5 BTC" → pre-fill order form
+  - Alert: type "alert BTC > 50000" → create price alert
+- Command history:
+  - Log: all commands executed (with timestamp)
+  - Repeat: quickly repeat last command (Cmd+R or Ctrl+R)
+  - Undo: undo last action (if reversible)
+  - Frequency: command usage statistics (which commands most used)
+  - Export: command log for analysis
+- Custom commands:
+  - Create: user defines custom command (alias for sequence of actions)
+  - Example: "morning routine" → open chart + positions + signals + news
+  - Example: "close shop" → close all positions + cancel orders + export report
+  - Share: export custom commands (share with team)
+  - Import: load custom commands from others
+- Integration:
+  - All components: every component registers its commands with palette
+  - API: programmatic command registration (for plugins/extensions)
+  - Shortcut: every command has optional keyboard shortcut
+  - Voice: optional voice command ("hey terminal, go to positions")
+- Visual:
+  - Overlay: centered modal, semi-transparent backdrop
+  - Results: grouped by type (navigation, trading, analysis)
+  - Icons: each command has icon for quick recognition
+  - Preview: hover → preview result (e.g. chart preview for symbol switch)
+  - Theme: matches dashboard theme (dark/light)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/components/ui/CommandPalette.jsx` (новый), `web-ui/src/components/ui/CommandResults.jsx` (новый), `web-ui/src/components/ui/QuickActions.jsx` (новый), `web-ui/src/services/CommandRegistry.js` (новый), `web-ui/src/hooks/useCommandPalette.js` (новый)

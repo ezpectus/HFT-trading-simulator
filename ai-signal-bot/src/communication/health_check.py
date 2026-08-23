@@ -140,7 +140,7 @@ class HealthAggregator:
         await self._runner.setup()
         self._site = web.TCPSite(self._runner, "0.0.0.0", self.port)  # nosec: B104
         await self._site.start()
-        logger.info(f"Health aggregator started on :{self.port}/health")
+        logger.info("Health aggregator started on :%s/health", self.port)
 
     async def stop(self) -> None:
         """Stop the health check HTTP server."""

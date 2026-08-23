@@ -16594,7 +16594,7 @@ Each `_send_discord`, `_send_telegram`, `_send_webhook` creates a new `aiohttp.C
 
 **Фикс:** Create a shared `aiohttp.ClientSession` in `__init__` or `start_monitoring()`, reuse it for all sends, and close it in `stop_monitoring()`.
 
-### 8.1217 alerting: check_fn is sync but called in async context — Low
+### 8.1217 alerting: check_fn is sync but called in async context — Low [N/A]
 
 **Файл:** `alerting.py:101`
 
@@ -16606,7 +16606,7 @@ should_fire = rule.check_fn()
 
 **Фикс:** Make `check_fn` async (`Callable[[], Awaitable[bool]]`) and `await rule.check_fn()`.
 
-### 8.1218 alerting: alert_history list slicing O(N) — Low
+### 8.1218 alerting: alert_history list slicing O(N) — Low [FIXED]
 
 **Файл:** `alerting.py:113-114`
 
@@ -16645,7 +16645,7 @@ Every `log()` call opens, writes, and closes the file. With 100 signals/sec, tha
 
 **Фикс:** Keep the file open (open in `__init__`, close in `__del__` or `close()`), or use a buffered writer. Or use `logging.FileHandler` with CSV formatter.
 
-### 8.1221 tracker: no file lock — Low
+### 8.1221 tracker: no file lock — Low [N/A]
 
 **Файл:** `tracker.py:82-96`
 
@@ -16653,7 +16653,7 @@ Multiple processes (e.g., AI Signal Bot + backtest runner) may write to the same
 
 **Фикс:** Use `fcntl.flock` (POSIX) or `msvcrt.locking` (Windows), or use a proper logging framework.
 
-### 8.1222 tracker: print_dashboard uses datetime.now() without UTC — Low
+### 8.1222 tracker: print_dashboard uses datetime.now() without UTC — Low [FIXED]
 
 **Файл:** `tracker.py:134`
 
@@ -16677,7 +16677,7 @@ f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
 
 Good Prometheus metrics exporter with comprehensive trading system metrics. ✅
 
-### 8.1224 metrics: MetricsExporter.__init__ returns early without setting attributes — Low
+### 8.1224 metrics: MetricsExporter.__init__ returns early without setting attributes — Low [FIXED]
 
 **Файл:** `metrics.py:41-43`
 
@@ -16691,7 +16691,7 @@ If `prometheus_client` is not installed, `__init__` returns early. None of the m
 
 **Фикс:** Set all attributes to `None` or a no-op object in the `if not HAS_PROMETHEUS` branch.
 
-### 8.1225 metrics: duplicate of communication/metrics_server.py — Info
+### 8.1225 metrics: duplicate of communication/metrics_server.py — Info [N/A]
 
 **Файл:** `monitoring/metrics.py` vs `communication/metrics_server.py`
 
@@ -16715,7 +16715,7 @@ Both serve `/metrics` on different ports (9091 vs 9090). This is confusing and w
 
 Good health server with pluggable checks and per-component endpoints. ✅
 
-### 8.1227 health_server: duplicate of observability/health_checks.py — Info
+### 8.1227 health_server: duplicate of observability/health_checks.py — Info [N/A]
 
 **Файл:** `monitoring/health_server.py` vs `observability/health_checks.py`
 
@@ -17143,7 +17143,7 @@ If `reset()` is called without prices, it generates 200 random normal prices aro
 
 Good LLM engine with multi-provider support, caching, and graceful fallback. ✅
 
-### 8.1258 llm_engine: API key in plain string — Low
+### 8.1258 llm_engine: API key in plain string — Low [FIXED]
 
 **Файл:** `engine.py:29`
 
@@ -17155,7 +17155,7 @@ The API key is stored as a plain string in `LLMConfig`. If the config is logged,
 
 **Фикс:** Use `SecretStr` from pydantic or a custom wrapper that masks `__repr__`.
 
-### 8.1259 llm_engine: cache key based on price rounded to 2 decimals — Low
+### 8.1259 llm_engine: cache key based on price rounded to 2 decimals — Low [FIXED]
 
 **Файл:** `engine.py:151`
 
@@ -17167,7 +17167,7 @@ Cache key is `symbol_price`. If BTC moves from 65000.00 to 65000.01, it's a cach
 
 **Фикс:** Use `f"{ctx.symbol}_{int(ctx.price)}"` for coarser caching, or use time-bucketed keys.
 
-### 8.1260 llm_engine: _parse_response uses string find for JSON extraction — Low
+### 8.1260 llm_engine: _parse_response uses string find for JSON extraction — Low [FIXED]
 
 **Файл:** `engine.py:287-290`
 
@@ -17211,7 +17211,7 @@ No rate limiting on LLM API calls. With 50 symbols × 60s signal interval = 50 c
 
 Good notification system with both Telegram and Discord, command handling, and proper cleanup. ✅
 
-### 8.1263 notifier: Telegram token in URL — Low
+### 8.1263 notifier: Telegram token in URL — Low [N/A]
 
 **Файл:** `notifier.py:104`
 
@@ -17223,7 +17223,7 @@ The Telegram bot token is embedded in the URL. If the URL is logged (e.g., in de
 
 **Фикс:** Ensure debug logging doesn't include URLs. Add a log filter that masks tokens.
 
-### 8.1264 notifier: Discord polls messages instead of using Gateway — Low
+### 8.1264 notifier: Discord polls messages instead of using Gateway — Low [N/A]
 
 **Файл:** `notifier.py:234-263`
 

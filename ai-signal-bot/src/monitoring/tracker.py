@@ -1,6 +1,5 @@
 """Monitoring — performance tracking, logging, and CLI dashboard."""
 import csv
-import logging
 import os
 import time
 from dataclasses import dataclass, field
@@ -8,7 +7,9 @@ from datetime import UTC, datetime
 
 from tabulate import tabulate
 
-logger = logging.getLogger("ai_signal_bot.monitoring")
+from src.observability.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass

@@ -134,7 +134,7 @@ class MetricsServer:
         self._server = await asyncio.start_server(
             self._handle_connection, self.host, self.port
         )
-        logger.info(f"Metrics server started on http://{self.host}:{self.port}/metrics")
+        logger.info("Metrics server started on http://%s:%s/metrics", self.host, self.port)
 
     async def stop(self) -> None:
         if self._server:
@@ -162,10 +162,10 @@ class MetricsServer:
             writer.write(response)
             await writer.drain()
         except (ConnectionError, OSError) as e:
-            logger.error(f"Metrics server error: {e}")
+            logger.error("Metrics server error: %s", e)
         finally:
             writer.close()
             try:
                 await writer.wait_closed()
             except (ConnectionError, OSError) as e:
-                logger.debug(f"Writer close error: {e}")
+                logger.debug("Writer close error: %s", e)

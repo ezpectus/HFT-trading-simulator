@@ -89,11 +89,11 @@ class ExchangeClient:
                 **connect_kwargs,
             )
             self._connected = True
-            logger.info(f"Connected to exchange simulator: {self.url}")
+            logger.info("Connected to exchange simulator: %s", self.url)
             await self._ws.send(json.dumps({"type": "subscribe", "protocol_version": 2, "encoding": self._encoding}, separators=(',', ':')))
             return True
         except (OSError, websockets.WebSocketException) as e:
-            logger.error(f"Failed to connect: {e}")
+            logger.error("Failed to connect: %s", e)
             self._connected = False
             return False
 
@@ -112,7 +112,7 @@ class ExchangeClient:
         while True:
             if not self._ws or not self._connected:
                 jitter = reconnect_delay * (0.75 + random.random() * 0.5)
-                logger.info(f"Reconnecting to exchange simulator (delay={jitter:.1f}s)...")
+                logger.info("Reconnecting to exchange simulator (delay=%.1fs)...", jitter)
                 await asyncio.sleep(jitter)
                 success = await self.connect()
                 if not success:
@@ -133,14 +133,14 @@ class ExchangeClient:
                         if self._on_message:
                             await self._on_message(data)
                     except (json.JSONDecodeError, ValueError) as e:
-                        logger.warning(f"Invalid message: {e}")
+                        logger.warning("Invalid message: %s", e)
             except websockets.ConnectionClosed:
                 logger.warning("Connection closed by server")
                 self._connected = False
                 self._ws = None
                 reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)
             except (OSError, asyncio.TimeoutError) as e:
-                logger.warning(f"Connection error: {e}")
+                logger.warning("Connection error: %s", e)
                 self._connected = False
                 self._ws = None
                 reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)
@@ -168,13 +168,13 @@ class ExchangeClient:
         elif msg_type == "trading_state":
             self._trading_active = data.get("trading_active", True)
             state = "ACTIVE" if self._trading_active else "STOPPED"
-            logger.info(f"Trading state: {state}")
+            logger.info("Trading state: %s", state)
         elif msg_type == "error":
-            logger.warning(f"Exchange error: {data.get('message', 'unknown')}")
+            logger.warning("Exchange error: %s", data.get('message', 'unknown'))
         elif msg_type == "welcome":
             ver = data.get("protocol_version", 1)
             self._trading_active = data.get("trading_active", True)
-            logger.info(f"Server welcome: protocol v{ver}, trading={'ACTIVE' if self._trading_active else 'STOPPED'}")
+            logger.info("Server welcome: protocol v%s, trading=%s", ver, 'ACTIVE' if self._trading_active else 'STOPPED')
 
     async def submit_order(
         self,
@@ -209,7 +209,7 @@ class ExchangeClient:
             await self._ws.send(orjson.dumps(order_msg))
         else:
             await self._ws.send(json.dumps(order_msg, separators=(',', ':')))
-        logger.info(f"Order sent: {side} {quantity} {symbol} on {exchange}")
+        logger.info("Order sent: %s %s %s on %s", side, quantity, symbol, exchange)
 
     async def close_position(self, symbol: str, exchange: str = "binance") -> None:
         """Close an open position."""
@@ -224,7 +224,7 @@ class ExchangeClient:
             await self._ws.send(orjson.dumps(msg))
         else:
             await self._ws.send(json.dumps(msg, separators=(',', ':')))
-        logger.info(f"Close position request: {symbol} on {exchange}")
+        logger.info("Close position request: %s on %s", symbol, exchange)
 
     async def reconnect(self) -> bool:
         """Attempt to reconnect with exponential backoff."""
@@ -232,7 +232,7 @@ class ExchangeClient:
         delay = 1.0
         max_delay = 30.0
         for attempt in range(5):
-            logger.info(f"Reconnect attempt {attempt + 1}/5 (delay={delay:.1f}s)")
+            logger.info("Reconnect attempt %d/5 (delay=%.1fs)", attempt + 1, delay)
             await asyncio.sleep(delay)
             if await self.connect():
                 return True

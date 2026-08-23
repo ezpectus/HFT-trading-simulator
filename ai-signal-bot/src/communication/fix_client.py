@@ -154,7 +154,7 @@ class FixSession:
                         self.outgoing_seq = int(parts[0])
                         self.incoming_seq = int(parts[1])
             except (OSError, ValueError) as e:
-                logger.warning(f"Failed to load seq nums from {self.seq_file}: {e}")
+                logger.warning("Failed to load seq nums from %s: %s", self.seq_file, e)
 
     def _save_seq_nums(self):
         try:
@@ -163,7 +163,7 @@ class FixSession:
                 f.write(f"{self.outgoing_seq} {self.incoming_seq}")
             os.replace(tmp_file, self.seq_file)
         except OSError as e:
-            logger.warning(f"Failed to save FIX seq nums: {e}")
+            logger.warning("Failed to save FIX seq nums: %s", e)
 
     def _build_msg(self, msg_type: str, extra_fields: list[tuple[int, str]] | None = None) -> bytes:
         fields = [
@@ -185,7 +185,7 @@ class FixSession:
             timeout=10.0,
         )
         self.state = "CONNECTING"
-        logger.info(f"FIX session connecting to {host}:{port}")
+        logger.info("FIX session connecting to %s:%s", host, port)
 
     async def logon(self, username: str = "", password: str = "", reset_seq: bool = False) -> bool:
         """Send Logon (35=A)."""
@@ -264,7 +264,7 @@ class FixSession:
         if self._writer:
             self._writer.write(msg)
             await self._writer.drain()
-            logger.info(f"FIX NewOrderSingle sent: {cl_ord_id} {symbol} {side} {qty}")
+            logger.info("FIX NewOrderSingle sent: %s %s %s %s", cl_ord_id, symbol, side, qty)
             return True
         return False
 
@@ -287,7 +287,7 @@ class FixSession:
         if self._writer:
             self._writer.write(msg)
             await self._writer.drain()
-            logger.info(f"FIX OrderCancel sent: {cl_ord_id} for {orig_cl_ord_id}")
+            logger.info("FIX OrderCancel sent: %s for %s", cl_ord_id, orig_cl_ord_id)
             return True
         return False
 
@@ -329,7 +329,7 @@ class FixSession:
                         logger.warning("FIX checksum parse error — skipping message")
                         continue
                     if calc_cs != expected_cs:
-                        logger.warning(f"FIX checksum mismatch: calc={calc_cs} expected={expected_cs}")
+                        logger.warning("FIX checksum mismatch: calc=%s expected=%s", calc_cs, expected_cs)
                         continue
 
                     await self._handle_message(msg)
@@ -337,7 +337,7 @@ class FixSession:
             except asyncio.CancelledError:
                 break
             except (ConnectionError, OSError, asyncio.IncompleteReadError) as e:
-                logger.error(f"FIX read loop error: {e}")
+                logger.error("FIX read loop error: %s", e)
                 self.state = "DISCONNECTED"
                 break
 
@@ -347,12 +347,12 @@ class FixSession:
 
         # Skip already-processed messages (resent after ResendRequest)
         if incoming_seq < self.incoming_seq:
-            logger.debug(f"FIX duplicate seq {incoming_seq} (expected {self.incoming_seq}) — skipping")
+            logger.debug("FIX duplicate seq %s (expected %s) — skipping", incoming_seq, self.incoming_seq)
             return
 
         # Check for gap
         if incoming_seq > self.incoming_seq:
-            logger.warning(f"FIX sequence gap: expected={self.incoming_seq} got={incoming_seq}")
+            logger.warning("FIX sequence gap: expected=%s got=%s", self.incoming_seq, incoming_seq)
             # Queue the current message for later processing (cap to prevent OOM)
             if len(self._pending_messages) < 1000:
                 self._pending_messages.append(msg)
@@ -417,7 +417,7 @@ class FixSession:
                 k: ("***" if k in (553, 554, 4961) else v)
                 for k, v in msg.fields.items()
             }
-            logger.debug(f"FIX message type {msg.msg_type}: {safe_fields}")
+            logger.debug("FIX message type %s: %s", msg.msg_type, safe_fields)
 
     def _start_heartbeat(self):
         if self._heartbeat_task and not self._heartbeat_task.done():
@@ -453,6 +453,6 @@ class FixSession:
             try:
                 await self._writer.wait_closed()
             except (ConnectionError, OSError) as e:
-                logger.debug(f"Writer close error: {e}")
+                logger.debug("Writer close error: %s", e)
         self.state = "DISCONNECTED"
         self._save_seq_nums()

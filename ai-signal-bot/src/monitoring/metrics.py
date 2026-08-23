@@ -40,6 +40,26 @@ class MetricsExporter:
     def __init__(self, registry_name: str = "trading_system"):
         if not HAS_PROMETHEUS:
             logger.warning("prometheus_client not available")
+            self.registry = None
+            self.signals_total = None
+            self.fills_total = None
+            self.orders_sent_total = None
+            self.orders_rejected_total = None
+            self.kill_switch_activations = None
+            self.current_pnl = None
+            self.daily_pnl = None
+            self.total_equity = None
+            self.drawdown_pct = None
+            self.open_positions = None
+            self.total_exposure = None
+            self.websocket_connected = None
+            self.signal_confidence = None
+            self.kill_switch_active = None
+            self.shm_buffer_size = None
+            self.signal_latency = None
+            self.order_latency = None
+            self.shm_round_trip_latency = None
+            self.position_hold_time = None
             return
 
         self.registry = CollectorRegistry()

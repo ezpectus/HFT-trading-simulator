@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
@@ -61,7 +61,7 @@ class AlertSystem:
 
         self.rules: dict[str, AlertRule] = {}
         self.last_fired: dict[str, float] = {}
-        self.alert_history: list[Alert] = []
+        self.alert_history: deque[Alert] = deque(maxlen=1000)
         self._max_history = 1000
         self._running = False
         self._check_task: asyncio.Task | None = None
@@ -122,9 +122,6 @@ class AlertSystem:
                     alerts.append(alert)
                     self.last_fired[name] = now
                     self.alert_history.append(alert)
-
-                    if len(self.alert_history) > self._max_history:
-                        self.alert_history = self.alert_history[-self._max_history:]
 
                     await self._send_alert(alert)
 
