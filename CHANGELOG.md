@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AJ: C++ risk verification)
+
+### Fixed
+- CODE_AUDIT §8.158 — pre_trade_risk blacklist race → already fixed (SpinlockGuard on all blacklist/whitelist operations)
+- CODE_AUDIT §8.557 — kill_switch thread not joined → already fixed (stop_monitoring joins monitor_thread_)
+
+### Changed
+- CODE_AUDIT §8.166 — duplicate risk system → [N/A] (PreTradeRisk only used in tests, not production code)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AI: C++ thread safety + secret zeroing)
 
 ### Fixed
