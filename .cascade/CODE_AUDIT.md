@@ -15204,3 +15204,144 @@ losses = [t for t in trades if t.pnl < 0]
 Accesses `t.pnl` without validating the trade object schema. If `trades` contains dicts instead of objects (e.g., from DB rows), `t.pnl` raises `AttributeError`. The method doesn't check the type of `t`.
 
 **Фикс:** Use `getattr(t, "pnl", 0) if not isinstance(t, dict) else t.get("pnl", 0)`, or document the expected type.
+
+### 8.1110 ai-signal-bot/src/risk/position_sizing.py: Dynamic Position Sizer — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/position_sizing.py` (205 lines)
+
+- **3 methods**: Volatility-based, risk parity, Kelly criterion — correct
+- **PositionSizingResult**: position_size, position_value, risk_amount, leverage, method — correct
+- **Max position limit**: Applied to all methods — correct
+- **Correlation adjustment**: Reduce correlated exposure > 0.7 — correct
+- **Position limits**: Single + total exposure — correct
+- **Edge case handling**: price <= 0, account_value <= 0, volatility <= 0 — correct
+
+Good dynamic position sizer with 3 methods, correlation adjustment, and position limits. ✅
+
+### 8.1111 position_sizing: risk_parity hardcodes 2% stop loss — Low
+
+**Файл:** `position_sizing.py:100-101`
+
+```python
+# Assume 2% stop loss for risk parity
+stop_loss_percentage = 0.02
+```
+
+The risk parity method hardcodes a 2% stop loss assumption. The actual stop loss from the signal may be different (e.g., ATR-based SL at 3%). This means the position size doesn't match the actual risk of the trade. If the real SL is 4%, the position is 2× too large.
+
+**Фикс:** Accept `stop_loss_pct` as a parameter, or pass the signal's SL/TP to compute the actual stop loss percentage.
+
+### 8.1112 position_sizing: Kelly uses expected_return not win/loss — Low
+
+**Файл:** `position_sizing.py:123, 166`
+
+```python
+expected_return: float = 0.15,
+# ...
+kelly_fraction = (expected_return - risk_free_rate) / (volatility ** 2)
+```
+
+This is the continuous-time Kelly formula (Merton's portfolio problem), not the discrete Kelly criterion used in `kelly.py`. The continuous formula uses expected return and volatility, while the discrete formula uses win rate and payoff ratio. The two may produce very different position sizes. The `kelly.py` implementation is more appropriate for trading signals with discrete outcomes.
+
+**Фикс:** Use `KellyPositionSizer` from `kelly.py` instead of the continuous formula, or document the difference.
+
+### 8.1113 position_sizing: daily_volatility uses sqrt(365) not sqrt(252) — Low
+
+**Файл:** `position_sizing.py:62, 142`
+
+```python
+daily_volatility = volatility / np.sqrt(365)
+```
+
+Crypto markets trade 365 days/year, so `sqrt(365)` is correct for crypto. But if the bot trades traditional assets (stocks, futures with trading days), `sqrt(252)` is correct. The code assumes crypto-only, which may not be true for all assets.
+
+**Фикс:** Make the annualization factor configurable (365 for crypto, 252 for traditional).
+
+### 8.1114 ai-signal-bot/src/risk/cvar.py: CVaR Calculator — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/cvar.py` (179 lines)
+
+- **3 methods**: Historical, parametric, Monte Carlo — correct
+- **CVaRResult**: cvar_value, var_value, confidence_level, time_horizon, method — correct
+- **Tail risk measures**: skewness, kurtosis, tail index (Hill estimator), max drawdown — correct
+- **Stress scenarios**: Apply shock multiplier to returns — correct
+- **Expected Shortfall alias**: `calculate_expected_shortfall` → `calculate_cvar` — correct
+
+Good CVaR calculator with 3 methods, tail risk measures, Hill estimator, and stress scenarios. ✅
+
+### 8.1115 cvar.py: Monte Carlo uses non-deterministic RNG — Low
+
+**Файл:** `cvar.py:90`
+
+```python
+simulated = np.random.normal(mean, std, n_simulations)
+```
+
+Same issue as `var.py:85` — uses global RNG state, non-deterministic.
+
+### 8.1116 cvar.py: parametric CVaR assumes normal distribution — Low
+
+**Файл:** `cvar.py:78-82`
+
+```python
+mean = np.mean(returns)
+std = np.std(returns)
+z_score = stats.norm.ppf(1 - cl)
+return mean * th - std * np.sqrt(th) * (stats.norm.pdf(z_score) / (1 - cl))
+```
+
+Same issue as `var.py` parametric method — assumes normal distribution, underestimates tail risk for crypto with fat tails.
+
+### 8.1117 cvar.py: Hill estimator threshold edge case — Low
+
+**Файл:** `cvar.py:149-150`
+
+```python
+threshold_val = max(tail_losses_sorted[-1], 1e-12)
+excesses = tail_losses_sorted[:-1] / threshold_val
+```
+
+The Hill estimator uses the smallest tail loss as the threshold. If all tail losses are identical (e.g., all are -0.05), `excesses` are all 1.0, `log_excesses` are all 0.0, and `np.sum(log_excesses) == 0`, returning `inf`. This is handled at line 154, but `inf` tail index means "no tail" which is misleading — it should mean "insufficient data" or "degenerate distribution".
+
+### 8.1118 ai-signal-bot/src/risk/stress_test.py: Stress Test — ✅ Good
+
+**Файл:** `ai-signal-bot/src/risk/stress_test.py` (203 lines)
+
+- **4 scenarios**: 2008 crisis (50% shock), COVID (30% shock), FTX (95% crypto + 20% traditional), custom — correct
+- **StressTestResult**: scenario_name, portfolio_value_before/after, pnl, pnl_percentage, margin_requirement, liquidity_impact, passed — correct
+- **run_all_scenarios**: Runs 3 predefined scenarios — correct
+- **generate_summary**: Aggregate stats with pass rate — correct
+
+Good stress test module with 4 scenarios, portfolio impact analysis, and summary generation. ✅
+
+### 8.1119 stress_test: FTX scenario shocks are inverted — Low
+
+**Файл:** `stress_test.py:96-104`
+
+```python
+crypto_shock = 0.05       # 95% drop
+traditional_shock = 0.8   # 20% drop
+# ...
+shocked_prices[:n_crypto] *= crypto_shock      # Crypto prices × 0.05
+shocked_prices[n_crypto:] *= traditional_shock  # Traditional prices × 0.8
+```
+
+`crypto_shock = 0.05` means crypto prices drop to 5% of their value (95% drop). During the actual FTX collapse, BTC dropped ~20-25%, not 95%. The 95% drop is more like a Luna/UST collapse scenario. The variable name `ftx_collapse_scenario` is misleading.
+
+**Фикс:** Use `crypto_shock = 0.75` (25% drop) for FTX, or rename to `luna_collapse_scenario` with the 95% shock.
+
+### 8.1120 stress_test: all scenarios use same formula — Info
+
+**Файлы:** `stress_test.py:30-61, 63-90, 92-126`
+
+The 3 predefined scenarios (2008, COVID, FTX) all use the same formula: `shocked_prices = current_prices * shock_multiplier`, then compute PnL, margin, liquidity. The only differences are the shock multiplier, margin %, liquidity %, and pass threshold. This is ~90 lines of near-identical code.
+
+**Reduction potential:** ~40 lines. Extract a `_run_scenario(name, prices, positions, shock, margin_pct, liquidity, threshold)` method and call it from each scenario method.
+
+### 8.1121 stress_test: no short position support — Low
+
+**Файл:** `stress_test.py` (entire file)
+
+All scenarios assume long positions: `shocked_prices = current_prices * shock_multiplier` with `shock_multiplier < 1.0` always produces a loss. If the portfolio has short positions (negative `positions`), a price drop produces a gain, not a loss. The stress test doesn't account for this — it always shows a loss for price drops.
+
+**Фикс:** Check position direction: `pnl = np.sum((shocked_prices - current_prices) * positions)`. This correctly handles both long (positive positions) and short (negative positions).

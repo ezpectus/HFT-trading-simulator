@@ -1649,3 +1649,15 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R1092 | var.py: backtest_var O(N×window) | `var.py:125` | Low | 250K comparisons for 5yr. Use rolling incremental updates |
 | R1093 | ai-signal-bot/risk/kelly.py | `kelly.py` | ✅ Good | Kelly formula safety adjustments position capping trade history |
 | R1094 | kelly.py: max_position_pct defaults to 200% | `kelly.py:59` | Low | 2× leverage by default. Default to 100% unless configured |
+| R1095 | ai-signal-bot/risk/position_sizing.py | `position_sizing.py` | ✅ Good | 3 methods correlation adjustment position limits |
+| R1096 | position_sizing: risk_parity hardcodes 2% stop loss | `position_sizing.py:100` | Low | Doesn't match actual signal SL. Accept stop_loss_pct param |
+| R1097 | position_sizing: Kelly uses continuous not discrete formula | `position_sizing.py:166` | Low | Merton formula vs Kelly criterion. Use KellyPositionSizer |
+| R1098 | position_sizing: daily_volatility uses sqrt(365) | `position_sizing.py:62` | Low | Crypto-only assumption. Make annualization configurable |
+| R1099 | ai-signal-bot/risk/cvar.py | `cvar.py` | ✅ Good | 3 methods tail risk Hill estimator stress scenarios |
+| R1100 | cvar.py: Monte Carlo non-deterministic RNG | `cvar.py:90` | Low | Same as var.py. Use default_rng(seed) |
+| R1101 | cvar.py: parametric assumes normal distribution | `cvar.py:78` | Low | Fat tails underestimated. Use Student-t |
+| R1102 | cvar.py: Hill estimator edge case returns inf | `cvar.py:149` | Low | Degenerate distribution. Return 0 or NaN instead of inf |
+| R1103 | ai-signal-bot/risk/stress_test.py | `stress_test.py` | ✅ Good | 4 scenarios portfolio impact summary generation |
+| R1104 | stress_test: FTX scenario 95% crypto shock unrealistic | `stress_test.py:96` | Low | BTC dropped 25% not 95%. Use 0.75 or rename to Luna |
+| R1105 | stress_test: all scenarios use same formula | `stress_test.py:30-126` | Info | Extract _run_scenario. ~40 lines |
+| R1106 | stress_test: no short position support | `stress_test.py` | Low | Price drop = gain for shorts. Use (shocked - current) * positions |
