@@ -159,6 +159,19 @@ class SignalPublisher:
             self.metrics.set_ws_clients(len(self._clients))
             logger.info(f"HFT client disconnected (total: {len(self._clients)})")
 
+    async def _broadcast_to_clients(self, msg: bytes | str) -> None:
+        """Send a message to all connected clients, removing disconnected ones."""
+        if not self._clients:
+            return
+        disconnected = set()
+        async def _send(ws):
+            try:
+                await ws.send(msg)
+            except Exception:
+                disconnected.add(ws)
+        await asyncio.gather(*[_send(ws) for ws in self._clients], return_exceptions=True)
+        self._clients -= disconnected
+
     async def broadcast_signal(self, signal: dict) -> None:
         """Broadcast a trading signal to all connected HFT clients."""
         if not self.circuit_breaker.allow_signal():
@@ -184,15 +197,7 @@ class SignalPublisher:
             msg = orjson.dumps({"type": "signal", **signal})
         else:
             msg = json.dumps({"type": "signal", **signal}, separators=(',', ':'))
-        disconnected = set()
-        async def _send(ws):
-            try:
-                await ws.send(msg)
-            except Exception:
-                disconnected.add(ws)
-        await asyncio.gather(*[_send(ws) for ws in self._clients], return_exceptions=True)
-
-        self._clients -= disconnected
+        await self._broadcast_to_clients(msg)
         logger.info(
             f"Signal broadcast: {signal.get('direction', '?')} "
             f"{signal.get('symbol', '?')} "
@@ -225,14 +230,7 @@ class SignalPublisher:
                 "timestamp": int(time.time()),
             }, separators=(',', ':'))
 
-        disconnected = set()
-        async def _send_regime(ws):
-            try:
-                await ws.send(msg)
-            except Exception:
-                disconnected.add(ws)
-        await asyncio.gather(*[_send_regime(ws) for ws in self._clients], return_exceptions=True)
-        self._clients -= disconnected
+        await self._broadcast_to_clients(msg)
 
     async def _broadcast_circuit_breaker_status(self) -> None:
         """Periodically broadcast circuit breaker status to all connected clients."""
@@ -259,14 +257,7 @@ class SignalPublisher:
                     "timestamp": int(time.time()),
                 }, separators=(',', ':'))
 
-            disconnected = set()
-            async def _send_cb(ws, _msg=msg, _disc=disconnected):
-                try:
-                    await ws.send(_msg)
-                except Exception:
-                    _disc.add(ws)
-            await asyncio.gather(*[_send_cb(ws) for ws in self._clients], return_exceptions=True)
-            self._clients -= disconnected
+            await self._broadcast_to_clients(msg)
 
     async def _run_backtest(self, params: dict) -> dict:
         """Run a backtest and return results as JSON."""
@@ -287,7 +278,7 @@ class SignalPublisher:
 
         results = {}
         for name, strat in strategies.items():
-            result = bt.run(candles, strat, symbol=bt_params["symbol"], warmup=50)
+            result = await asyncio.to_thread(bt.run, candles, strat, symbol=bt_params["symbol"], warmup=50)
             results[name] = self._format_backtest_result(result)
 
         logger.info(f"Backtest completed: {bt_params['strategy']}, {bt_params['candles']} candles, {len(results)} strategies")

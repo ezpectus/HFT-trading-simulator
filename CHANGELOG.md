@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка J: signal_publisher DRY + asyncio.to_thread + shm overflow)
+
+### Changed
+- `signal_publisher.py`: Extracted `_broadcast_to_clients` helper — replaced 3× duplicate `_send` closures in `broadcast_signal`, `broadcast_market_regime`, `_broadcast_circuit_breaker_status`
+- `signal_publisher.py`: Wrapped `bt.run()` in `asyncio.to_thread()` — was blocking event loop for 10-30s during backtest
+- `shm_ring_buffer.py`: Added `dropped_count` counter to `try_push` — was silently dropping when buffer full
+- `office-board.md`: Marked 11 already-fixed items as [FIXED] (TA/__init__, ML/__init__, research/__init__, _random_normal, compute_returns, logging, etc.)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка I: broad Exception catches)
 
 ### Changed

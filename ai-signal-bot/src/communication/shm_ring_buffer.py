@@ -164,6 +164,7 @@ class ShmRingBuffer[T]:
 
         self._mask = capacity - 1
         self._data_offset = SHM_HEADER_ACTUAL_SIZE
+        self.dropped_count = 0
 
     def try_push(self, item: tuple) -> bool:
         """Non-blocking push. Returns False if buffer is full."""
@@ -171,6 +172,7 @@ class ShmRingBuffer[T]:
         tail = _atomic_read_u64(self._mm, OFF_TAIL)
 
         if head - tail >= self.capacity:
+            self.dropped_count += 1
             return False
 
         slot = head & self._mask

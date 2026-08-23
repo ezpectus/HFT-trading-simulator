@@ -356,16 +356,16 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | risk: DynamicPositionSizer duplicates kelly.py | ~200 lines redundant. Remove and use KellyPositionSizer directly | CODE_AUDIT §8.1313 |
 | risk: 2 duplicate PortfolioOptimizer classes | 3 implementations ~900 lines. Keep portfolio/ only | CODE_AUDIT §8.1316, §8.1334 |
 | db: new SQLite connection per operation | 50 conn/min. Use persistent connection | CODE_AUDIT §8.1320 |
-| signal_publisher: _run_backtest blocks event loop | bt.run() sync 10-30s. Use asyncio.to_thread | CODE_AUDIT §8.1323 |
-| signal_publisher: 3 identical _send closures | 3× broadcast duplication. Extract _broadcast_to_clients | CODE_AUDIT §8.1324 |
+| ~~signal_publisher: _run_backtest blocks event loop~~ [FIXED] | Wrapped bt.run in asyncio.to_thread | CODE_AUDIT §8.1323 |
+| ~~signal_publisher: 3 identical _send closures~~ [FIXED] | Extracted _broadcast_to_clients helper | CODE_AUDIT §8.1324 |
 | Project-wide: 0 asyncio.Lock usage | _clients _candle_history _recent_signals at risk. Add locks | CODE_AUDIT §8.1336 |
 | Project-wide: 13 except Exception catches | Masks CancelledError. Use specific exception types | CODE_AUDIT §8.1335 |
 | Project-wide: 8 datetime.now() without timezone | Naive datetime fragile. Use datetime.now(UTC) | CODE_AUDIT §8.1338 |
 | var: scipy hard dependency | Module fails if scipy missing. Make optional | CODE_AUDIT §8.1311 |
 | fix_client: no SSL/TLS support | Plain TCP. Add ssl_context parameter | CODE_AUDIT §8.1330 |
-| shm_ring_buffer: no overflow detection on push | Silent drop. Add dropped_count counter | CODE_AUDIT §8.1328 |
-| technical_analysis/__init__.py: 252 lines re-export ~200 symbols | Same as research/__init__.py. Use lazy imports | CODE_AUDIT §8.1343 |
-| technical_analysis: 4× duplicate _random_normal Box-Muller | ~60 lines duplicate in sde/rbergomi/hmc/optimal_stopping. Use random.gauss | CODE_AUDIT §8.1362 |
+| ~~shm_ring_buffer: no overflow detection on push~~ [FIXED] | Added dropped_count counter to try_push | CODE_AUDIT §8.1328 |
+| ~~technical_analysis/__init__.py: 252 lines re-export ~200 symbols~~ [FIXED] | Replaced with empty file | CODE_AUDIT §8.1343 |
+| ~~technical_analysis: 4× duplicate _random_normal Box-Muller~~ [FIXED] | All 4 copies replaced with rng.gauss(0,1) | CODE_AUDIT §8.1362 |
 | technical_analysis: 3× duplicate _fft Cooley-Tukey | ~150 lines duplicate in fft_analysis/emd/vmd. Use shared _fft_utils or numpy.fft | CODE_AUDIT §8.1363 |
 | technical_analysis: 16 modules likely dead code | ~4000+ lines not used in production. Move to advanced package | CODE_AUDIT §8.1364 |
 | technical_analysis: vmd.py _ifft is O(n²) direct DFT | Forward is O(n log n) but inverse is O(n²). Use _fft with conjugation | CODE_AUDIT §8.1370 |
@@ -373,23 +373,23 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~technical_analysis: copula.py own erf function~~ [FIXED] | Replaced with math.erf. Removed 9-line custom impl | CODE_AUDIT §8.1345 |
 | technical_analysis: rbergomi O(n³) Cholesky in pure Python | n=50 → 125K ops. Use numpy or Davies-Harte O(n log n) | CODE_AUDIT §8.1354 |
 | technical_analysis: hmc numerical gradient 60K evals | Central differences. Analytical gradient 2× faster | CODE_AUDIT §8.1358 |
-| technical_analysis: dtw duplicate compute_returns | Same as 22+ research modules. Use shared utils | CODE_AUDIT §8.1347 |
+| ~~technical_analysis: dtw duplicate compute_returns~~ [FIXED] | Replaced with import from _common.py | CODE_AUDIT §8.1347 |
 | technical_analysis: No NaN/Inf input validation | NaN propagates through cumsum. Add math.isfinite() checks | CODE_AUDIT §8.1367 |
-| ml/__init__.py: 81 lines re-export ~30 symbols | Same anti-pattern. Use direct submodule imports | CODE_AUDIT §8.1371 |
+| ~~ml/__init__.py: 81 lines re-export ~30 symbols~~ [FIXED] | Replaced with empty file | CODE_AUDIT §8.1371 |
 | ml: torch hard dependency in price_predictor + rl_trader | import torch unguarded. Guard with try/except | CODE_AUDIT §8.1382 |
 | ml: 5 modules likely dead code | ~1300 lines not used in production. Move to ml_advanced/ | CODE_AUDIT §8.1383 |
-| ml/vae.py: 5th duplicate _random_normal | 5th Box-Muller copy. Use random.gauss(0,1) | CODE_AUDIT §8.1379 |
+| ~~ml/vae.py: 5th duplicate _random_normal~~ [FIXED] | Replaced with rng.gauss(0,1) | CODE_AUDIT §8.1379 |
 | ~~ml/feature_store.py: broad Exception catch~~ [FIXED] | Removed redundant Exception from tuple | CODE_AUDIT §8.1374 |
 | ~~monitoring/health_server.py: 3× duplicate _check_* methods~~ [FIXED] | Extracted _check_component helper. 3 one-liners instead of 3× 10-line copies | CODE_AUDIT §8.1385 |
 | ~~monitoring/tracker.py: datetime.now() without timezone~~ [FIXED] | Changed to datetime.now(UTC) | CODE_AUDIT §8.1387 |
 | networking/socket_transport.py: busy-poll loop | time.sleep(0.0001) on BlockingIOError. Use selectors or asyncio | CODE_AUDIT §8.1392 |
-| utils/helpers.py: duplicate logging setup | Two logging setups. Consolidate to observability/logging.py | CODE_AUDIT §8.1393 |
-| research/__init__.py: 307 lines re-export ~200 symbols | 3rd __init__.py anti-pattern. Delete re-exports | CODE_AUDIT §8.1400 |
+| ~~utils/helpers.py: duplicate logging setup~~ [FIXED] | Removed setup_logging + JsonFormatter. Consolidated to observability/logging | CODE_AUDIT §8.1393 |
+| ~~research/__init__.py: 307 lines re-export ~200 symbols~~ [FIXED] | Reduced to 3 lines: compute_returns + quantize from _common | CODE_AUDIT §8.1400 |
 | research: 30+ modules likely dead code | ~12000+ lines academic math. Move to research_lab/ | CODE_AUDIT §8.1401 |
-| research: compute_returns duplicated 20+ times | ~100+ lines duplicate. Create _utils.py | CODE_AUDIT §8.1402 |
-| Project-wide: 3× duplicate logging setup | Conflicting handlers. Consolidate to observability | CODE_AUDIT §8.1403 |
-| Project-wide: 5× duplicate _random_normal | ~75 lines duplicate. Use random.gauss | CODE_AUDIT §8.1404 |
-| Project-wide: 3× duplicate __init__.py re-export | Slow import high memory. Delete re-exports | CODE_AUDIT §8.1405 |
+| ~~research: compute_returns duplicated 20+ times~~ [FIXED] | Moved to _common.py, 24 copies replaced with import | CODE_AUDIT §8.1402 |
+| ~~Project-wide: 3× duplicate logging setup~~ [FIXED] | Consolidated: helpers.setup_logging removed, 3→2 (run_logger + observability) | CODE_AUDIT §8.1403 |
+| ~~Project-wide: 5× duplicate _random_normal~~ [FIXED] | All 6 copies replaced with rng.gauss(0,1) | CODE_AUDIT §8.1404 |
+| ~~Project-wide: 3× duplicate __init__.py re-export~~ [FIXED] | TA (249→0), ML (81→0), research (307→3). All re-exports deleted | CODE_AUDIT §8.1405 |
 | Project-wide: 2 duplicate health check systems | Consolidate. observability for logic, monitoring for HTTP | CODE_AUDIT §8.1406 |
 | Project-wide: 50+ modules likely dead code total | ~17000+ lines. Move to analysis_lab/. Reduce src/ by ~50% | CODE_AUDIT §8.1407 |
 | ~~data_collection: 2× duplicate AccountBalance dataclass~~ [FIXED] | Renamed real_account.AccountBalance → AssetBalance. Different fields, different purposes | CODE_AUDIT §8.1413 |
