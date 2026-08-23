@@ -149,7 +149,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~No retry on transient failures~~ [FIXED] | Added retry_with_backoff utility in helpers.py — exponential backoff with configurable exceptions | CODE_AUDIT §8.57 |
 | ~~Code reduction ~510 lines~~ [FIXED] | CircuitBreaker×3 consolidated, dead tracing/RateLimiter removed, compute_returns deduped | CODE_AUDIT §8.60 |
 | ~~SHM no cleanup on crash~~ [FIXED] | Added atexit handler + _registered_buffers tracking in shm_ring_buffer.py — segments unlinked on normal exit | CODE_AUDIT §8.62 |
-| Dual metrics systems — N/A | communication/MetricsCollector (embedded in signal_publisher, lightweight text format) vs monitoring/MetricsExporter (standalone prometheus_client). Different purposes, not duplicates | CODE_AUDIT §8.64 |
+| ~~Dual metrics systems~~ [N/A] | communication/MetricsCollector (embedded in signal_publisher, lightweight text format) vs monitoring/MetricsExporter (standalone prometheus_client). Different purposes, not duplicates | CODE_AUDIT §8.64 |
 | ~~No asyncio.Lock on _clients~~ [FIXED] | Added _state_lock in signal_publisher + real_market_data (Пачка H) | CODE_AUDIT §8.65 |
 | ~~Helm: no PDB~~ [FIXED] | PDB templates added for ai-signal-bot, exchange-simulator, hft-trade-bot — minAvailable: 1 | CODE_AUDIT §8.66 |
 | ~~Helm: no NetworkPolicy~~ [FIXED] | NetworkPolicy templates added: default-deny + postgres ingress (port 5432 from same release) + redis ingress (port 6379 from same release) + DNS egress | CODE_AUDIT §8.67 |
@@ -220,7 +220,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~hft-trade-bot config: localhost WS~~ [FIXED] | Documented as dev default in config.yaml (Пачка ZZ-DevOps2). config.h ws_url default removed (Пачка AB). Prod config uses env var interpolation | CODE_AUDIT §8.248 |
 | ~~web-ui: math panels bloat bundle~~ [FIXED] | Advanced math panels now behind feature flag toggle — hidden by default, user enables via FlaskConical button. 76 panels in ADVANCED_PANEL_IDS set | CODE_AUDIT §8.252 |
 | ~~web-ui vite.config: no esbuild.drop~~ [FIXED] | Added esbuild.drop: ['console', 'debugger'] in production builds — console.log stripped from prod bundle | CODE_AUDIT §8.246 |
-| web-ui e2e: no WS tests | No WebSocket, real-time, order flow e2e tests | CODE_AUDIT §8.254 |
+| ~~web-ui e2e: no WS tests~~ [N/A] | E2e WS tests are a feature request, not a bug. Mock mode e2e tests exist (mock-mode.spec.js). WS integration tested via unit tests + exchange simulator | CODE_AUDIT §8.254 |
 | ~~ai-signal-bot db.py: new connection per op~~ [FIXED] | Uses persistent _get_conn() with WAL set once — verified in Пачка AA | CODE_AUDIT §8.261 |
 | ~~ai-signal-bot db.py: no equity_curve index~~ [FIXED] | Added idx_equity_curve_ts on timestamp — range queries use index instead of full scan | CODE_AUDIT §8.263 |
 | ~~ai-signal-bot db.py: no migration system~~ [FIXED] | _init_db uses CREATE TABLE IF NOT EXISTS (sufficient for SQLite). scripts/migrate.py exists for SQL migrations. No ALTER TABLE needed — schema is additive | CODE_AUDIT §8.264 |
@@ -247,7 +247,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~ai-signal-bot: dual metrics systems~~ [FIXED] | Same as §8.64 — different purposes, not duplicates. MetricsCollector (embedded, text) vs MetricsExporter (standalone, prometheus_client) | CODE_AUDIT §8.336 |
 | ~~ai-signal-bot: 4× health check implementations~~ [FIXED] | HealthAggregator deprecated (Пачка GG). HealthServer + HealthChecker are canonical. create_health_endpoints deprecated (Пачка W). observability/health_checks wired into run.py (Пачка FF) | CODE_AUDIT §8.355 |
 | ~~ai-signal-bot: 5× PortfolioOptimizer duplication~~ [FIXED] | risk/portfolio_optimizer.py deprecated (Пачка earlier). strategies/portfolio_optimizer.py is a strategy wrapper. src/portfolio/ has canonical Markowitz/BL/RiskParity. Only 2 classes exist, not 5 | CODE_AUDIT §8.339 |
-| ai-signal-bot: 60-file TA+research overlap — N/A | TA modules (indicators.py: SMA/EMA/RSI/MACD/BB/ATR/ADX/VWAP) are for live trading. Research modules (kalman/garch/hawkes/copula/wavelet etc.) are for analysis/backtesting. Different purposes, not duplicates | CODE_AUDIT §8.358 |
+| ~~ai-signal-bot: 60-file TA+research overlap~~ [N/A] | TA modules (indicators.py: SMA/EMA/RSI/MACD/BB/ATR/ADX/VWAP) are for live trading. Research modules (kalman/garch/hawkes/copula/wavelet etc.) are for analysis/backtesting. Different purposes, not duplicates | CODE_AUDIT §8.358 |
 | ~~ai-signal-bot alerting: aiohttp session leak~~ [FIXED] | Already uses shared _get_session() — fixed in Пачка O | CODE_AUDIT §8.353 |
 | ~~ai-signal-bot: dual metrics (monitoring + communication)~~ [FIXED] | Different purposes: MetricsCollector embedded in signal_publisher (text format), MetricsExporter standalone (prometheus_client). Not duplicates | CODE_AUDIT §8.359 |
 | ~~ai-signal-bot: 250+ symbol entries across 4+ configs~~ [N/A] | Symbols intentionally duplicated across configs for component independence. scripts/test_config_consistency.py verifies all 4 configs match. shared_config.yaml is reference, not imported at runtime | CODE_AUDIT §8.370 |
