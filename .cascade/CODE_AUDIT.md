@@ -1,4 +1,4 @@
-# Code Audit — Over-engineering, Dead Code, Missing Infrastructure
+﻿# Code Audit — Over-engineering, Dead Code, Missing Infrastructure
 
 > Аудит: 22 авг 2026. Проверено grep'ом по всему `ai-signal-bot/src/`.
 
@@ -293,9 +293,9 @@
 | 013 | `ws_client.py`, `exchange_factory.py`, `price_monitor.py` | Hardcoded `localhost:8765` (4 файла) |
 | 018 | `db.py`, `tracing.py`, `logging.py` | `pass` в production (4 файла) |
 | 019 | `price_monitor.py`, `error_monitor.py`, `run_logger.py` | Root-level scripts — переместить в scripts/ |
-| 022 | ~80+ calls в `src/` | f-string в logger (производительность) |
-| 023 | `monitor.py:21` | `os.system` — заменить на subprocess |
-| 025 | 7 файлов | `open()` без `encoding="utf-8"` — Windows codec issue |
+| 022 | ~80+ calls в `src/` | f-string в logger (производительность) [FIXED] |
+| 023 | `monitor.py:21` | `os.system` — replaced with subprocess.run [FIXED] |
+| 025 | 7 файлов | `open()` без `encoding="utf-8"` — Windows codec issue [FIXED] |
 | 026 | `web-ui/src/utils/performanceMonitor.js` | 6 `console.log` — gate behind DEV flag |
 
 ### Info / Justified (4)

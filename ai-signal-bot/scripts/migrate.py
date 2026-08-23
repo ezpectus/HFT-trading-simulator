@@ -64,11 +64,11 @@ async def run_migrations(args):
     for filepath in migration_files:
         filename = os.path.basename(filepath)
         if filename in applied:
-            logger.info(f"  Skip (already applied): {filename}")
+            logger.info("  Skip (already applied): %s", filename)
             continue
 
-        logger.info(f"  Applying: {filename}")
-        with open(filepath) as f:
+        logger.info("  Applying: %s", filename)
+        with open(filepath, encoding="utf-8") as f:
             sql = f.read()
 
         try:
@@ -79,12 +79,12 @@ async def run_migrations(args):
                     filename
                 )
             applied_count += 1
-            logger.info(f"  Done: {filename}")
-        except Exception as e:
-            logger.error(f"  Failed: {filename}: {e}")
+            logger.info("  Done: %s", filename)
+        except (OSError, RuntimeError, ValueError, asyncpg.PostgresError) as e:
+            logger.error("  Failed: %s: %s", filename, e)
             break
 
-    logger.info(f"Migrations complete: {applied_count} applied, {len(applied)} already up")
+    logger.info("Migrations complete: %s applied, %s already up", applied_count, len(applied))
     await conn.close()
 
 

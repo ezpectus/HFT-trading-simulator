@@ -208,7 +208,7 @@ class AutoMLOptimizer:
         """Save best parameters to JSON."""
         if self.best_params:
             import json
-            with open(path, "w") as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump({
                     "strategy": self.strategy,
                     "best_value": self.best_value,

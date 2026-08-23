@@ -9,6 +9,7 @@ Usage:
 import asyncio
 import json
 import os
+import subprocess
 from datetime import UTC, datetime
 
 import websockets
@@ -18,7 +19,7 @@ LOG_FILE = os.path.join(os.path.dirname(__file__), "logs", "ai_signal_bot.log")
 SIGNALS_CSV = os.path.join(os.path.dirname(__file__), "logs", "signals.csv")
 
 def clear_screen():
-    os.system("cls" if os.name == "nt" else "clear")  # nosec: B605
+    subprocess.run("cls" if os.name == "nt" else "clear", shell=True, check=False)  # nosec: B602
 
 def read_log_tail(path, lines=15):
     """Read last N lines from log file."""

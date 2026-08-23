@@ -26,10 +26,10 @@ class SignalBotConfig:
         if validate:
             errors, warnings = cfg.validate()
             for w in warnings:
-                logger.warning(f"Config: {w}")
+                logger.warning("Config: %s", w)
             if errors:
                 for e in errors:
-                    logger.error(f"Config ERROR: {e}")
+                    logger.error("Config ERROR: %s", e)
                 raise ValueError(f"Invalid config: {len(errors)} error(s). See log for details.")
         return cfg
 

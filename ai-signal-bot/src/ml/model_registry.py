@@ -129,7 +129,7 @@ class ModelRegistry:
         }
         # Atomic write: temp file + rename to prevent corruption on crash
         tmp_path = self.index_path + ".tmp"
-        with open(tmp_path, "w") as f:
+        with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
         os.replace(tmp_path, self.index_path)
 

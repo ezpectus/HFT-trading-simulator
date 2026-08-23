@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-26 (Refactoring — Пачка BB: final Low-severity audit cleanup)
+
+### Fixed
+- **Audit #025**: `open()` without `encoding="utf-8"` — 5 files fixed:
+  - `scripts/migrate.py`, `src/ml/automl.py`, `src/ml/model_registry.py`, `src/strategies/marketplace.py`, `tests/unit/test_marketplace.py`
+- **Audit #023**: `monitor.py` — `os.system` → `subprocess.run` (security)
+- **`except Exception` narrowing** — 3 remaining files:
+  - `scripts/migrate.py` → `(OSError, RuntimeError, ValueError, asyncpg.PostgresError)`
+  - `src/communication/shm_ring_buffer.py` → `OSError`
+  - `src/data_collection/real_exchange_client.py` → `(json.JSONDecodeError, KeyError, TypeError)` + added `import json`
+- **Audit #022**: f-string logger → `%-style` — final 4 files:
+  - `run.py` (15 calls), `scripts/migrate.py` (5 calls), `config/__init__.py` (2 calls), `src/backtesting/walk_forward.py` (1 call)
+- **§8.337 f-string logging cleanup fully complete** — all operational logger calls now use `%-style`
+
 ## [Unreleased] — 2026-08-25 (Refactoring — Пачка AW: f-string logging final batch)
 
 ### Fixed

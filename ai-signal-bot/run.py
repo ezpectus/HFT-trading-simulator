@@ -114,19 +114,19 @@ class AISignalBot:
 
         # LLM Engine (signal explanations + market analysis)
         self.llm_engine = LLMEngine(LLMConfig())
-        self.logger.info(f"  LLM Engine: provider={self.llm_engine.config.provider}")
+        self.logger.info("  LLM Engine: provider=%s", self.llm_engine.config.provider)
 
     async def run(self, show_dashboard: bool = False, enable_metrics: bool = False) -> None:
         """Main bot loop."""
         self.logger.info("=" * 60)
         self.logger.info("  AI SIGNAL BOT v1.0.0")
-        self.logger.info(f"  Symbols: {self.config.symbols}")
-        self.logger.info(f"  Strategies: {[s.name for s in self.strategies]}")
-        self.logger.info(f"  Ensemble: mode={self.config.ensemble_mode}, min_votes={self.config.ensemble_min_votes}")
-        self.logger.info(f"  Validation: min_conf={self.config.min_confidence}%, min_rr={self.config.min_rr_ratio}")
-        self.logger.info(f"  Signal interval: {self.config.signal_interval}s")
-        self.logger.info(f"  Paper trading: {self.config.paper_trading}")
-        self.logger.info(f"  Exchange: {self.config.ws_url}")
+        self.logger.info("  Symbols: %s", self.config.symbols)
+        self.logger.info("  Strategies: %s", [s.name for s in self.strategies])
+        self.logger.info("  Ensemble: mode=%s, min_votes=%s", self.config.ensemble_mode, self.config.ensemble_min_votes)
+        self.logger.info("  Validation: min_conf=%s%%, min_rr=%s", self.config.min_confidence, self.config.min_rr_ratio)
+        self.logger.info("  Signal interval: %ss", self.config.signal_interval)
+        self.logger.info("  Paper trading: %s", self.config.paper_trading)
+        self.logger.info("  Exchange: %s", self.config.ws_url)
         self.logger.info("=" * 60)
 
         # Connect to exchange simulator
@@ -172,7 +172,7 @@ class AISignalBot:
                 await prom_server.start_server(port=9090)
                 self.logger.info("Prometheus metrics server running on port 9090")
             except (OSError, RuntimeError, ConnectionError) as e:
-                self.logger.warning(f"Prometheus metrics server failed to start: {e}")
+                self.logger.warning("Prometheus metrics server failed to start: %s", e)
 
         # Main signal generation loop
         try:
@@ -205,7 +205,7 @@ class AISignalBot:
             return
         exc = task.exception()
         if exc:
-            self.logger.error(f"Background task {task.get_name()} crashed: {exc}", exc_info=exc)
+            self.logger.error("Background task %s crashed: %s", task.get_name(), exc, exc_info=exc)
 
     async def _listen_loop(self) -> None:
         """Background task to listen for exchange messages."""
@@ -213,7 +213,7 @@ class AISignalBot:
             try:
                 await self.exchange.listen()
             except (OSError, RuntimeError, ConnectionError, asyncio.TimeoutError) as e:
-                self.logger.error(f"Listen error: {e}")
+                self.logger.error("Listen error: %s", e)
                 if self._running:
                     await asyncio.sleep(2)
                     await self.exchange.reconnect()
@@ -269,7 +269,7 @@ class AISignalBot:
         await self.validator.update_position_count(len(positions))
         result = await self.validator.validate(signal, balance)
         if not result.passed:
-            self.logger.info(f"  Rejected: {result.reason}")
+            self.logger.info("  Rejected: %s", result.reason)
             return False
         return True
 
@@ -351,7 +351,7 @@ class AISignalBot:
             side = "buy" if signal.direction == SignalDirection.LONG else "sell"
             quantity = signal.position_size if hasattr(signal, "position_size") else 0.0
             if quantity <= 0:
-                self.logger.warning(f"  Live order skipped — no position size for {signal.symbol}")
+                self.logger.warning("  Live order skipped — no position size for %s", signal.symbol)
                 return
             result = await adapter.place_order(
                 symbol=signal.symbol,
@@ -366,9 +366,9 @@ class AISignalBot:
                     f"@ {signal.entry_price:.2f} (id={result.get('order_id', '')})"
                 )
             else:
-                self.logger.error(f"  Live order failed for {signal.symbol}")
+                self.logger.error("  Live order failed for %s", signal.symbol)
         except (ConnectionError, OSError, RuntimeError, ValueError) as e:
-            self.logger.error(f"  Live order error: {e}")
+            self.logger.error("  Live order error: %s", e)
         finally:
             await factory.close()
 
@@ -391,9 +391,9 @@ def _save_backtest_charts(all_results: dict, plotter, logger: logging.Logger) ->
         try:
             plotter.plot_equity_curve(result, name)
             plotter.save_all({name: result}, chart_dir)
-            logger.info(f"  Charts saved to {chart_dir}/{name}")
+            logger.info("  Charts saved to %s/%s", chart_dir, name)
         except (OSError, ValueError, RuntimeError) as e:
-            logger.warning(f"  Chart generation failed for {name}: {e}")
+            logger.warning("  Chart generation failed for %s: %s", name, e)
 
 
 def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
@@ -421,23 +421,23 @@ def run_backtest(config: SignalBotConfig, logger: logging.Logger) -> None:
     all_results = {}
 
     for symbol in config.symbols:
-        logger.info(f"Loading historical data for {symbol}...")
+        logger.info("Loading historical data for %s...", symbol)
         candles = load_candles_from_csv(symbol)
         if len(candles) < 100:
-            logger.warning(f"  Only {len(candles)} candles for {symbol} — need at least 100. "
-                          f"Export data first: run exchange simulator with --export flag")
+            logger.warning("  Only %s candles for %s — need at least 100. "
+                          "Export data first: run exchange simulator with --export flag", len(candles), symbol)
             continue
         for strategy in strategies:
-            logger.info(f"  Backtesting {strategy.name} on {symbol} ({len(candles)} candles)...")
+            logger.info("  Backtesting %s on %s (%s candles)...", strategy.name, symbol, len(candles))
             try:
                 result = bt.run(candles, strategy, symbol=symbol)
                 bt.print_report(result)
                 all_results[f"{strategy.name}_{symbol}"] = result
             except (ValueError, KeyError, TypeError, RuntimeError, ZeroDivisionError) as e:
-                logger.error(f"  Backtest failed: {e}")
+                logger.error("  Backtest failed: %s", e)
 
     _save_backtest_charts(all_results, plotter, logger)
-    logger.info(f"Backtest complete: {len(all_results)} strategy/symbol combinations tested")
+    logger.info("Backtest complete: %s strategy/symbol combinations tested", len(all_results))
 
 
 def main():
@@ -454,7 +454,7 @@ def main():
     if args.backtest:
         logger.info("Running in backtest mode")
         run_backtest(config, logger)
-        logger.info(f"Backtest complete. Log file: {log_path}")
+        logger.info("Backtest complete. Log file: %s", log_path)
         return
 
     bot = AISignalBot(config)
@@ -462,7 +462,7 @@ def main():
     setup_tracing(service_name="ai-signal-bot")
 
     def _signal_handler(signum, frame):
-        logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+        logger.info("Received signal %s, initiating graceful shutdown...", signum)
         bot._running = False
 
     signal.signal(signal.SIGTERM, _signal_handler)
@@ -472,7 +472,7 @@ def main():
         asyncio.run(bot.run(show_dashboard=args.dashboard, enable_metrics=args.metrics))
     finally:
         shutdown_tracing()
-        logger.info(f"Run complete. Log file: {log_path}")
+        logger.info("Run complete. Log file: %s", log_path)
 
 
 if __name__ == "__main__":

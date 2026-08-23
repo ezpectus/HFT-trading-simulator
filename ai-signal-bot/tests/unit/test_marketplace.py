@@ -66,7 +66,7 @@ class TestStrategyMarketplaceInit:
                 }
             }
         }
-        with open(tmp_registry, "w") as f:
+        with open(tmp_registry, "w", encoding="utf-8") as f:
             json.dump(data, f)
         m = StrategyMarketplace(registry_path=tmp_registry)
         assert "my_strategy" in m.plugins

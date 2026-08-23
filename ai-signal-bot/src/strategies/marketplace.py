@@ -89,7 +89,7 @@ class StrategyMarketplace:
                 for name, p in self.plugins.items()
             }
         }
-        with open(self.registry_path, "w") as f:
+        with open(self.registry_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
     def register(self, plugin: StrategyPlugin) -> None:

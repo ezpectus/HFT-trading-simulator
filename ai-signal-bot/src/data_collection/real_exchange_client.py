@@ -12,6 +12,7 @@ import asyncio
 import base64
 import hashlib
 import hmac
+import json
 import logging
 import time
 import warnings
@@ -167,7 +168,7 @@ class RealExchangeClient:
                 return None
             try:
                 data = await resp.json()
-            except Exception as e:
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
                 logger.error("Binance balance JSON parse error: %s", e)
                 return None
             for asset in data:

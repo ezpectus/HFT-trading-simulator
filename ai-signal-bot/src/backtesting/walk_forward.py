@@ -120,8 +120,9 @@ class WalkForwardAnalyzer:
         window.best_params = best_params
 
         logger.info(
-            f"[WalkForward] Window {window_idx}: IS sharpe={best_sharpe:.2f} "
-            f"OOS sharpe={oos_result.sharpe_ratio:.2f} params={best_params}"
+            "[WalkForward] Window %s: IS sharpe=%.2f "
+            "OOS sharpe=%.2f params=%s",
+            window_idx, best_sharpe, oos_result.sharpe_ratio, best_params
         )
         return window
 

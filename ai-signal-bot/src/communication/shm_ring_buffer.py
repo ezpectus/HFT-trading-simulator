@@ -304,7 +304,7 @@ def _cleanup_all_shm():
     for buf in _registered_buffers:
         try:
             buf.unlink()
-        except Exception:
+        except OSError:
             pass
     _registered_buffers.clear()
 
