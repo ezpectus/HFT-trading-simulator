@@ -1366,3 +1366,18 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R809 | notifier: no rate limiting on alerts | `notifier.py:89` | Medium | 50 fills = 50 API calls. Telegram 429. Add queue + rate limiter |
 | R810 | notifier: no retry on failed sends | `notifier.py:111` | Low | Failed alert lost. Add exponential backoff retry (3 attempts) |
 | R811 | Code reduction: duplicate emoji_map | `notifier.py:93+212` | Info | Same dict in Telegram and Discord. Module-level constant. ~8 lines |
+| R812 | hft-trade-bot/utils/low_latency.h | `low_latency.h` | ✅ Excellent | Spinlock, SPSCQueue, ObjectPool, LatencyHistogram, ThreadAffinity, CircuitBreaker, RetryPolicy |
+| R813 | low_latency: ObjectPool acquire is O(N) | `low_latency.h:153` | Low | Linear scan up to PoolSize CAS. Use Treiber stack for O(1) |
+| R814 | low_latency: CircuitBreaker HALF_OPEN allows multiple probes | `low_latency.h:382` | Low | All threads probe simultaneously. Use CAS for single probe |
+| R815 | low_latency: atomic<double> not lock-free on all platforms | `low_latency.h:286` | Low | ARM may use mutex. Use atomic<uint64_t> with bit_cast |
+| R816 | hft-trade-bot/ipc/shm_ring_buffer.h | `shm_ring_buffer.h` | ✅ Excellent | SPSC lock-free, cache-line aligned, power-of-2, bulk ops, magic validation, cross-platform |
+| R817 | shm_ring_buffer: no memory barrier on memcpy | `shm_ring_buffer.h:211` | Low | ARM may reorder memcpy. Add atomic_thread_fence before head store |
+| R818 | shm_ring_buffer: Windows wname truncates non-ASCII | `shm_ring_buffer.h:79` | Low | char-by-char wstring conversion. Use MultiByteToWideChar |
+| R819 | hft-trade-bot/ipc/shm_heartbeat.h | `shm_heartbeat.h` | ✅ Excellent | Seq-guarded lock-free, auto heartbeat thread, cross-platform, cache-line aligned |
+| R820 | shm_heartbeat: write() not truly atomic | `shm_heartbeat.h:121` | Low | Preemption between odd/even seq. Reader sees stale. Add timeout in reader |
+| R821 | shm_heartbeat: now_ns uses system_clock | `shm_heartbeat.h:161` | Low | NTP jumps break freshness check. Use abs() or CLOCK_MONOTONIC |
+| R822 | ai-signal-bot/utils/helpers.py | `helpers.py` | ✅ Good | Logging, config, env, formatting, CircuitBreaker, RateLimiter |
+| R823 | helpers: setup_logging duplicates observability/logging.py | `helpers.py:14` | Info | Two logging setup functions conflict. Remove from helpers. ~30 lines |
+| R824 | helpers: CircuitBreaker not thread-safe | `helpers.py:145` | Low | _failure_count += 1 not atomic. Use asyncio.Lock |
+| R825 | helpers: RateLimiter no max wait cap | `helpers.py:194` | Low | Very small rate = 1000s wait. Add max_wait parameter |
+| R826 | Code reduction: duplicate CircuitBreaker C++ vs Python | 2 files | Info | Different languages but behavior should be aligned |

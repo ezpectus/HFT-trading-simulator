@@ -11150,3 +11150,232 @@ emoji_map = {"fill": "✅", "sl_tp": "🎯", "position_open": "📈", ...}
 Same `emoji_map` dict defined in both `TelegramNotifier.send_alert()` and `DiscordNotifier.send_alert()`. Should be a class-level constant or module-level dict.
 
 **Reduction potential:** ~8 lines.
+
+### 8.822 hft-trade-bot/src/utils/low_latency.h: Low-Latency Infrastructure — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h` (451 lines)
+
+- **Spinlock**: `_mm_pause` spin-wait, `alignas(64)` + padding to prevent false sharing — HFT-optimized
+- **SpinlockGuard**: RAII wrapper, deleted copy — correct
+- **SPSCQueue**: Lock-free single-producer single-consumer, power-of-2 capacity, `alignas(64)` head/tail — excellent
+- **ObjectPool**: Pre-allocated, O(1) acquire/release via pointer arithmetic — correct
+- **LatencyHistogram**: 35 log-scale buckets, atomic counters, CAS min/max, p50/p95/p99/p99.9 — excellent
+- **ScopedLatency**: RAII timer, steady_clock — correct
+- **ThreadAffinity**: Pin to core, set priority max (TIME_CRITICAL/FIFO 99), num_cores — cross-platform
+- **CircuitBreaker**: 3 states (CLOSED/OPEN/HALF_OPEN), threshold + cooldown, atomic — correct
+- **RetryPolicy**: Exponential backoff (2^n), jitter (0-30%), thread_local RNG — correct
+- **Cross-platform**: Windows + POSIX support throughout — excellent
+
+Excellent low-latency infrastructure with spinlock, SPSC queue, object pool, latency histogram, thread pinning, circuit breaker, and retry policy. ✅
+
+### 8.823 low_latency: ObjectPool acquire is O(N) — Low
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h:153-161`
+
+```cpp
+T* acquire() noexcept {
+    for (size_t i = 0; i < PoolSize; ++i) {
+        bool expected = false;
+        if (pool_[i].active.compare_exchange_strong(expected, true, std::memory_order_acquire)) {
+            return &pool_[i].obj;
+        }
+    }
+    return nullptr;
+}
+```
+
+`acquire()` does a linear scan through all slots. With PoolSize=100, this is up to 100 CAS operations. Under contention (multiple threads acquiring simultaneously), this is O(N²) total work. The release is O(1) via pointer arithmetic, but acquire is not.
+
+**Фикс:** Use a lock-free stack (Treiber stack) with `std::atomic<T*>` head for O(1) acquire. Or maintain a free-list atomic index.
+
+### 8.824 low_latency: CircuitBreaker HALF_OPEN allows multiple probes — Low
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h:382-383`
+
+```cpp
+// HALF_OPEN: allow one probe
+return true;
+```
+
+In HALF_OPEN state, `allow_request()` always returns `true`. Multiple threads can probe simultaneously instead of just one. If all probes fail, the circuit re-opens, but if some succeed and some fail, the state is inconsistent — `record_success()` closes the circuit while other probes are still in flight.
+
+**Фикс:** Use a CAS to transition HALF_OPEN → probe-in-progress, allowing only one probe. Other threads should return false.
+
+### 8.825 low_latency: LatencyHistogram atomic<double> not lock-free on all platforms — Low
+
+**Файл:** `hft-trade-bot/src/utils/low_latency.h:286-287`
+
+```cpp
+std::atomic<double> min_{1e18};
+std::atomic<double> max_{0.0};
+```
+
+`std::atomic<double>` is not guaranteed to be lock-free on all platforms. On some ARM architectures, `atomic<double>` uses a mutex internally. The CAS loops in `record()` would then block. Check `std::atomic<double>::is_always_lock_free` at compile time.
+
+**Фикс:** Use `std::atomic<uint64_t>` with `std::bit_cast` or manual memcpy for double ↔ uint64 conversion. Or use `atomic<uint64_t>` with `memcpy` reinterpret.
+
+### 8.826 hft-trade-bot/src/ipc/shm_ring_buffer.h: SHM Ring Buffer — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h` (348 lines)
+
+- **SPSC lock-free**: Atomic head/tail with acquire/release ordering — correct
+- **Cache-line aligned**: head and tail on separate cache lines (alignas(64)) — prevents false sharing
+- **Power-of-2 capacity**: Bitwise AND instead of modulo — HFT-optimized
+- **Magic validation**: SHM_MAGIC on open — correct
+- **Capacity/element_size validation**: On open — correct
+- **Bulk push/pop**: At most 2 memcpy calls — optimized
+- **Cross-platform**: Windows (CreateFileMapping) + POSIX (shm_open/mmap) — excellent
+- **Cleanup**: Destructor unmaps + closes + unlinks — correct
+- **Deleted copy/move**: Prevents double-unmap — correct
+- **static_assert**: ShmHeader must be 192 bytes — correct
+
+Excellent SHM ring buffer with SPSC lock-free, cache-line alignment, power-of-2, bulk operations, magic validation, and cross-platform support. ✅
+
+### 8.827 shm_ring_buffer: no memory barrier on memcpy — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h:211`
+
+```cpp
+std::memcpy(&data_[slot], &item, sizeof(T));
+header_->head.store(head + 1, std::memory_order_release);
+```
+
+`std::memcpy` is not guaranteed to be a memory barrier. On weakly-ordered architectures (ARM), the compiler or CPU may reorder the memcpy writes relative to other operations. The `release` store on `head` should ensure visibility, but on some ARM implementations, `memcpy` may use non-temporal stores that bypass the cache, requiring an explicit barrier.
+
+**Фикс:** Add `std::atomic_thread_fence(std::memory_order_release)` before the head store on ARM. Or use `__sync_synchronize()` on GCC.
+
+### 8.828 shm_ring_buffer: Windows wname conversion truncates non-ASCII — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_ring_buffer.h:79`
+
+```cpp
+std::wstring wname(name_.begin(), name_.end());
+```
+
+This converts `std::string` to `std::wstring` by char-by-char copy, which only works for ASCII. If the SHM name contains non-ASCII characters (unlikely but possible on some locales), the conversion is incorrect. Should use `MultiByteToWideChar` on Windows.
+
+**Фикс:** Use `MultiByteToWideChar(CP_UTF8, 0, name_.c_str(), -1, ...)` for correct conversion.
+
+### 8.829 hft-trade-bot/src/ipc/shm_heartbeat.h: SHM Heartbeat — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/ipc/shm_heartbeat.h` (272 lines)
+
+- **Single-slot model**: HeartbeatSlot with atomic seq — lock-free
+- **Seq-guarded read**: Read seq, copy, verify seq — correct
+- **Odd/even seq**: Odd = writing in progress, Even = done — clever
+- **Writer + Reader**: Separate classes with proper cleanup — correct
+- **Auto heartbeat thread**: `start_auto()` with configurable interval — correct
+- **Cross-platform**: Windows + POSIX — excellent
+- **Cache-line aligned**: `alignas(64) HeartbeatSlot` — correct
+- **static_assert**: Slot ≤ 64 bytes (1 cache line) — correct
+- **Bidirectional**: C++ writes, Python reads (or vice versa) — flexible
+- **Freshness check**: `is_fresh(timeout_ms)` — correct
+
+Excellent SHM heartbeat with seq-guarded lock-free access, auto heartbeat thread, cross-platform support, and cache-line alignment. ✅
+
+### 8.830 shm_heartbeat: write() not truly atomic — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_heartbeat.h:121-138`
+
+```cpp
+void write(uint32_t msg_count, uint32_t err_count, const char* status) noexcept {
+    uint64_t seq = slot_->seq.load(std::memory_order_relaxed);
+    slot_->seq.store(seq + 1, std::memory_order_release); // Odd = writing
+    slot_->timestamp_ns = now_ns();
+    slot_->pid = ...;
+    slot_->message_count = msg_count;
+    slot_->error_count = err_count;
+    std::memset(slot_->status, 0, sizeof(slot_->status));
+    std::strncpy(slot_->status, status, sizeof(slot_->status) - 1);
+    slot_->seq.store(seq + 2, std::memory_order_release); // Even = done
+}
+```
+
+The write uses seq odd/even to signal write-in-progress. However, between `seq+1` (odd) and `seq+2` (even), the reader sees odd and returns false. If the writer is preempted between the two stores (e.g., by a signal handler), the reader will see odd indefinitely and never get a heartbeat — false stale detection.
+
+**Фикс:** Use a CAS loop instead of store. Or add a timeout in the reader: if seq is odd for >2× write_interval, assume writer is dead.
+
+### 8.831 shm_heartbeat: now_ns uses system_clock not steady_clock — Low
+
+**Файл:** `hft-trade-bot/src/ipc/shm_heartbeat.h:161-163`
+
+```cpp
+static uint64_t now_ns() noexcept {
+    auto tp = std::chrono::system_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count();
+}
+```
+
+`system_clock` can jump (NTP adjustments, manual time changes). If the clock jumps backward, the heartbeat timestamp appears to go backward, and the freshness check `now - timestamp > timeout` may produce incorrect results. `steady_clock` is monotonic but can't be shared across processes (different epoch). For cross-process, `system_clock` is the only option, but the reader should handle backward jumps.
+
+**Фикс:** In the reader, check `abs(now - timestamp) > timeout` instead of `now - timestamp > timeout`. Or use `CLOCK_MONOTONIC` on POSIX (shared via SHM).
+
+### 8.832 ai-signal-bot/src/utils/helpers.py: Helpers — ✅ Good
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py` (205 lines)
+
+- **setup_logging**: JSON formatter, file handler, handler cleanup — correct
+- **JsonFormatter**: Structured JSON with timestamp, level, logger, message, module, line — correct
+- **load_config**: YAML safe_load, FileNotFoundError returns {} — correct
+- **get_env**: Type casting (str/int/float/bool), default on error — correct
+- **now_ms/now_us**: Time helpers — correct
+- **format_price/format_qty**: Adaptive decimal places — correct
+- **safe_divide**: Epsilon check — correct
+- **clamp**: min/max — correct
+- **truncate_dict**: For logging large dicts — correct
+- **CircuitBreaker**: 3 states, failure threshold, recovery timeout — correct
+- **RateLimiter**: Token bucket, async acquire — correct
+
+Good helpers with logging, config, env, formatting, circuit breaker, and rate limiter. ✅
+
+### 8.833 helpers: setup_logging duplicates observability/logging.py — Info
+
+**Файлы:** `ai-signal-bot/src/utils/helpers.py:14-42` + `ai-signal-bot/src/observability/logging.py`
+
+`setup_logging()` in `helpers.py` is a simpler version of `setup_logging()` in `observability/logging.py`. The observability version uses `structlog` with correlation IDs and contextual fields. The helpers version uses basic `logging` with JSON formatter. Two logging setup functions can conflict — if both are called, the second one's handlers replace the first's.
+
+**Reduction potential:** ~30 lines. Remove `setup_logging` from `helpers.py` and use `observability/logging.py` everywhere.
+
+### 8.834 helpers: CircuitBreaker not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py:145-176`
+
+```python
+class CircuitBreaker:
+    def record_failure(self) -> None:
+        self._failure_count += 1
+        self._last_failure_time = time.time()
+        if self._failure_count >= self.failure_threshold:
+            self._state = "open"
+```
+
+`_failure_count += 1` is not atomic in Python (even with GIL, async context switches can occur between load and store). In async code, if two coroutines call `record_failure()` concurrently (e.g., two API calls failing simultaneously), one increment may be lost.
+
+**Фикс:** Use `asyncio.Lock` around state mutations. Or use `itertools.count()` for atomic increment.
+
+### 8.835 helpers: RateLimiter busy-waits in async — Low
+
+**Файл:** `ai-signal-bot/src/utils/helpers.py:194-204`
+
+```python
+async def acquire(self) -> bool:
+    while True:
+        self._refill()
+        if self._tokens >= 1.0:
+            self._tokens -= 1.0
+            return True
+        wait = (1.0 - self._tokens) / self.rate
+        await asyncio.sleep(wait)
+```
+
+If `self.rate <= 0`, the function returns `False` immediately (line 196-197). But if `self.rate` is very small (e.g., 0.001), `wait = (1.0 - 0.0) / 0.001 = 1000` seconds — the caller waits 1000 seconds. No maximum wait cap.
+
+**Фикс:** Add `wait = min(wait, max_wait)` with configurable `max_wait` parameter.
+
+### 8.836 Code reduction: duplicate CircuitBreaker in C++ and Python — Info
+
+**Файлы:** `hft-trade-bot/src/utils/low_latency.h:359-413` + `ai-signal-bot/src/utils/helpers.py:145-176`
+
+Both C++ and Python have their own `CircuitBreaker` implementation. This is expected (different languages), but the Python version is simpler (no HALF_OPEN probe logic in `is_open` — it transitions to half_open but doesn't limit probes to 1). The C++ version has the same issue (R824). Both should have consistent behavior.
+
+**Reduction potential:** ~0 lines (different languages), but behavior should be aligned.

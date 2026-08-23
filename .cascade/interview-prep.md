@@ -4892,3 +4892,179 @@ for (const auto& [symbol, sym_cstr, sym_id] : ctx.symbol_entries) {
 ```
 
 **Разница:** The bad code uses a single `KalmanFilter1D`, single residuals array, and single write_idx for all symbols. When BTC at $100K is followed by ETH at $3.5K, the Kalman filter tries to smooth across the $96.5K price drop — the state estimate becomes garbage. Residuals from BTC, ETH, and SOL are mixed in the same ring buffer — OU parameter estimation is meaningless. Z-scores are calculated from contaminated data, producing false ENTER_LONG and false STOP signals. With 50 symbols, each symbol only gets ~40 data points in the ring buffer (2048/50), below the `min_samples=100` threshold — no signals are ever generated after the buffer wraps. With 1000 users × 50 symbols, 49,000 incorrect signals per cycle, $29.4M/hour in losses. The good code introduces a `PerSymbolState` struct containing its own Kalman filter, residuals array, timestamps, and write_idx. Each symbol gets its own independent state — BTC's Kalman tracks BTC's fair price, ETH's Kalman tracks ETH's fair price. No cross-contamination. Z-scores are correct for each symbol. The cost is a `PerSymbolState` struct (~32KB per symbol) and an `unordered_map` lookup per call. The benefit is correct signals for all 50 symbols — no false entries, no false stops, no $29.4M/hour in losses. This is a classic example of a missing per-instance state bug: the developer designed the algorithm for a single symbol but forgot to isolate state when extending to multiple symbols.
+
+---
+
+## Bad vs Good: CircuitBreaker HALF_OPEN Allows Multiple Probes (C++)
+
+### ❌ Bad Code
+```cpp
+class CircuitBreaker {
+  public:
+    bool allow_request() noexcept {
+        State s = state_.load(std::memory_order_relaxed);
+        if (s == State::CLOSED) return true;
+        if (s == State::OPEN) {
+            // ... check cooldown, transition to HALF_OPEN ...
+            state_.store(State::HALF_OPEN, std::memory_order_relaxed);
+            return true; // Allow probe
+        }
+        // HALF_OPEN: allow one probe
+        return true;  // ← BUG: allows ALL threads to probe simultaneously
+    }
+
+    void record_success() noexcept {
+        error_count_.store(0, std::memory_order_relaxed);
+        state_.store(State::CLOSED, std::memory_order_relaxed);
+    }
+
+    void record_failure() noexcept {
+        int count = error_count_.fetch_add(1, std::memory_order_relaxed) + 1;
+        if (count >= threshold_) {
+            state_.store(State::OPEN, std::memory_order_relaxed);
+            // ... store opened_at_ns_ ...
+        }
+    }
+};
+
+// Scenario with 10 threads and a failing downstream service:
+// t=0: Circuit is OPEN (5 failures, 30s cooldown)
+// t=30s: Thread 1 calls allow_request() → transitions to HALF_OPEN → returns true
+// t=30s: Thread 2 calls allow_request() → state is HALF_OPEN → returns true
+// t=30s: Thread 3 calls allow_request() → state is HALF_OPEN → returns true
+// ...
+// t=30s: Thread 10 calls allow_request() → state is HALF_OPEN → returns true
+//
+// All 10 threads send requests to the failing service simultaneously.
+// This is a "thundering herd" — 10× the load on an already-failing service.
+//
+// t=30.1s: All 10 requests fail.
+// Thread 1: record_failure() → error_count = 1 → not >= 5 → state stays HALF_OPEN
+// Thread 2: record_failure() → error_count = 2 → not >= 5 → state stays HALF_OPEN
+// ...
+// Thread 5: record_failure() → error_count = 5 → >= 5 → state = OPEN
+// Thread 6: record_failure() → error_count = 6 → state already OPEN
+// ...
+// Thread 10: record_failure() → error_count = 10 → state already OPEN
+//
+// But wait — Thread 1's request actually succeeded (service was recovering)!
+// Thread 1: record_success() → error_count = 0, state = CLOSED
+// Thread 2: record_failure() → error_count = 1 → state stays CLOSED
+//
+// Result: Circuit is CLOSED but the service is still failing!
+// 9 threads got failures but 1 success closed the circuit.
+// Now all traffic flows to the failing service again.
+//
+// With 1000 users × 10 threads each:
+// - 10,000 simultaneous probes to a failing service
+// - Service goes from "partially failing" to "completely overwhelmed"
+// - Recovery takes 10× longer because of the probe storm
+// - If the service is a payment gateway: 10,000 failed payment attempts
+// - Each failed attempt may trigger a retry → 20,000+ requests
+// - Payment gateway may block the IP for abuse
+// - All 1000 users lose payment capability for hours
+```
+
+**What's wrong:**
+- HALF_OPEN state allows ALL threads to probe simultaneously — "thundering herd"
+- 10 threads = 10 simultaneous requests to an already-failing service
+- `record_success()` from one thread closes the circuit while other probes are in flight
+- `record_failure()` from other threads increments error_count but state may already be CLOSED
+- Race condition: success + failure = inconsistent state
+- With 1000 users × 10 threads: 10,000 simultaneous probes, service overwhelmed, recovery 10× slower
+- If the service is a payment gateway: 10,000 failed payments, IP blocked, all users lose payments for hours
+
+### ✅ Good Code
+```cpp
+class CircuitBreaker {
+  public:
+    bool allow_request() noexcept {
+        State s = state_.load(std::memory_order_acquire);
+        if (s == State::CLOSED) return true;
+        if (s == State::OPEN) {
+            // Check cooldown
+            auto now = std::chrono::steady_clock::now();
+            int64_t opened_ns = opened_at_ns_.load(std::memory_order_acquire);
+            auto opened = std::chrono::steady_clock::time_point(
+                std::chrono::nanoseconds(opened_ns));
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                now - opened).count();
+            if (elapsed >= cooldown_seconds_) {
+                // Try to transition to HALF_OPEN — only ONE thread succeeds
+                State expected = State::OPEN;
+                if (state_.compare_exchange_strong(
+                        expected, State::HALF_OPEN,
+                        std::memory_order_acq_rel)) {
+                    probe_in_flight_.store(true, std::memory_order_release);
+                    return true; // This thread is the probe
+                }
+                // Another thread already transitioned — fall through
+            }
+            return false;
+        }
+        // HALF_OPEN: only allow if no probe is in flight
+        if (probe_in_flight_.load(std::memory_order_acquire)) {
+            return false;  // Another thread is already probing
+        }
+        // Try to become the probe
+        bool expected = false;
+        return probe_in_flight_.compare_exchange_strong(
+            expected, true, std::memory_order_acq_rel);
+    }
+
+    void record_success() noexcept {
+        error_count_.store(0, std::memory_order_release);
+        probe_in_flight_.store(false, std::memory_order_release);
+        state_.store(State::CLOSED, std::memory_order_release);
+    }
+
+    void record_failure() noexcept {
+        probe_in_flight_.store(false, std::memory_order_release);
+        int count = error_count_.fetch_add(1, std::memory_order_acq_rel) + 1;
+        if (count >= threshold_) {
+            state_.store(State::OPEN, std::memory_order_release);
+            opened_at_ns_.store(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()).count(),
+                std::memory_order_release);
+        }
+    }
+
+  private:
+    std::atomic<bool> probe_in_flight_{false};  // Only ONE probe at a time
+};
+
+// Scenario with 10 threads and a failing downstream service:
+// t=0: Circuit is OPEN (5 failures, 30s cooldown)
+// t=30s: Thread 1 calls allow_request() → CAS OPEN→HALF_OPEN succeeds
+//        → probe_in_flight_ = true → returns true (Thread 1 is the probe)
+// t=30s: Thread 2 calls allow_request() → state is HALF_OPEN
+//        → probe_in_flight_ is true → returns false (denied)
+// t=30s: Thread 3-10: same as Thread 2 → all denied
+//
+// Only Thread 1 sends a request to the downstream service.
+//
+// t=30.1s: Thread 1's request fails.
+// Thread 1: record_failure() → probe_in_flight_ = false, error_count = 1
+//           → not >= 5 → state stays HALF_OPEN
+//
+// t=30.2s: Thread 2 calls allow_request() → state is HALF_OPEN
+//          → probe_in_flight_ is false → CAS succeeds → Thread 2 is the probe
+//
+// t=30.3s: Thread 2's request fails.
+// Thread 2: record_failure() → probe_in_flight_ = false, error_count = 2
+//
+// ... continues until error_count reaches 5 → state = OPEN
+//
+// OR: Thread 3's request succeeds!
+// Thread 3: record_success() → probe_in_flight_ = false, error_count = 0
+//           → state = CLOSED
+// Now all traffic flows normally — the service has recovered.
+//
+// Result: Only 1 probe at a time. No thundering herd.
+// Service recovers gradually, not overwhelmed by probe storm.
+// With 1000 users × 10 threads: max 1 probe per user at a time
+// = 1000 probes max, not 10,000. 10× less load on failing service.
+```
+
+**Разница:** The bad code allows ALL threads to probe simultaneously in HALF_OPEN state. With 10 threads, 10 simultaneous requests hit an already-failing service — a "thundering herd" that overwhelms the service and delays recovery by 10×. Worse, if one probe succeeds while others fail, `record_success()` closes the circuit while failures are still in flight — the circuit is CLOSED but the service is still failing. All traffic resumes to the failing service. With 1000 users × 10 threads, 10,000 simultaneous probes to a payment gateway could get the IP blocked, losing payment capability for all users for hours. The good code uses a `probe_in_flight_` atomic flag with CAS — only ONE thread can be the probe at a time. Other threads are denied in HALF_OPEN state. The probe either succeeds (circuit closes, traffic resumes) or fails (error count increments, eventually re-opens circuit). No thundering herd, no race condition, no inconsistent state. The cost is one `atomic<bool>` and one CAS per `allow_request()` in HALF_OPEN — negligible. The benefit is 10× less load on failing services, gradual recovery, and no false CLOSE from race conditions. This is a classic example of a missing concurrency guard: the developer wrote "allow one probe" in the comment but the code allows unlimited probes — the comment was correct but the implementation didn't match.
