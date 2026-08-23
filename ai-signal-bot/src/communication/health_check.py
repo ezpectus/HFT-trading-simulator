@@ -68,27 +68,29 @@ class HealthAggregator:
         self.port = port
         self._runner: web.AppRunner | None = None
         self._site: web.TCPSite | None = None
+        self._session: aiohttp.ClientSession | None = None
 
     async def _check_service(self, name: str, url: str) -> dict:
         """Check a single service health endpoint."""
         try:
             start = time.monotonic()
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3.0)) as session:
-                async with session.get(url) as resp:
-                    latency_ms = (time.monotonic() - start) * 1000
-                    if resp.status == 200:
-                        data = await resp.json()
-                        return {
-                            "status": "healthy",
-                            "latency_ms": round(latency_ms, 2),
-                            "details": data,
-                        }
-                    else:
-                        return {
-                            "status": "degraded",
-                            "latency_ms": round(latency_ms, 2),
-                            "http_status": resp.status,
-                        }
+            if self._session is None or self._session.closed:
+                self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3.0))
+            async with self._session.get(url) as resp:
+                latency_ms = (time.monotonic() - start) * 1000
+                if resp.status == 200:
+                    data = await resp.json()
+                    return {
+                        "status": "healthy",
+                        "latency_ms": round(latency_ms, 2),
+                        "details": data,
+                    }
+                else:
+                    return {
+                        "status": "degraded",
+                        "latency_ms": round(latency_ms, 2),
+                        "http_status": resp.status,
+                    }
         except TimeoutError:
             return {"status": "unhealthy", "error": "timeout"}
         except ConnectionRefusedError:

@@ -78,6 +78,7 @@ class ExchangeClient:
         try:
             connect_kwargs = dict(
                 ping_interval=10,
+                ping_timeout=10,
                 compression="deflate",
                 max_size=2**20,
             )

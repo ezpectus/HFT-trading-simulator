@@ -89,7 +89,10 @@ class RealExchangeClient:
             else:
                 self.base_url = base_url or "https://www.okx.com"
         elif exchange == "bybit":
-            self.base_url = base_url or "https://api.bybit.com"
+            if testnet:
+                self.base_url = base_url or "https://api-testnet.bybit.com"
+            else:
+                self.base_url = base_url or "https://api.bybit.com"
         else:
             self.base_url = base_url
 

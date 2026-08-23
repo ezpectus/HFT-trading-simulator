@@ -15851,7 +15851,7 @@ If the exchange returns non-JSON (e.g., HTML error page, 502 gateway), `resp.jso
 
 **Фикс:** Wrap `resp.json()` in try/except `json.JSONDecodeError`.
 
-### 8.1160 real_exchange_client: Bybit has no testnet URL — Low
+### 8.1160 real_exchange_client: Bybit has no testnet URL — Low [FIXED]
 
 **Файл:** `real_exchange_client.py:83-84`
 
@@ -15888,7 +15888,7 @@ The Binance API signature is placed in the URL query string. This is the standar
 
 Good circuit breaker with standard 3-state pattern, probe limiting, and metrics. ✅
 
-### 8.1163 circuit_breaker: not thread-safe — Low
+### 8.1163 circuit_breaker: not thread-safe — Low [N/A]
 
 **Файл:** `circuit_breaker.py:34-85`
 
@@ -15952,7 +15952,7 @@ _atomic_write_u64(self._mm, OFF_HEAD, head + to_push)
 
 Good WS client with multi-encoding support, exponential backoff, and trading state management. ✅
 
-### 8.1168 ws_client: no ping_timeout — Low
+### 8.1168 ws_client: no ping_timeout — Low [FIXED]
 
 **Файл:** `ws_client.py:79`
 
@@ -15969,7 +15969,7 @@ Same issue as `real_market_data.py` — `ping_interval` is set but `ping_timeout
 
 **Фикс:** Add `ping_timeout=10`.
 
-### 8.1169 ws_client: listen() has no reconnection — Low
+### 8.1169 ws_client: listen() has no reconnection — Low [FIXED]
 
 **Файл:** `ws_client.py:99-121`
 
@@ -16015,7 +16015,7 @@ Each symbol gets a deque(maxlen=200). With 50 symbols × 200 candles × ~100 byt
 
 Good signal publisher with circuit breaker, backtest execution, comparison, and client management. ✅
 
-### 8.1172 signal_publisher: _handle_client catches bare Exception — Low
+### 8.1172 signal_publisher: _handle_client catches bare Exception — Low [FIXED]
 
 **Файл:** `signal_publisher.py:123, 155`
 
@@ -16045,7 +16045,7 @@ async def _run_backtest(self, params: dict) -> dict:
 
 **Фикс:** Run backtest in a `ProcessPoolExecutor` via `asyncio.get_event_loop().run_in_executor()`, or use `asyncio.create_task()` with a result callback.
 
-### 8.1174 signal_publisher: _generate_synthetic_candles uses random.Random(42) — Info
+### 8.1174 signal_publisher: _generate_synthetic_candles uses random.Random(42) — Info [N/A]
 
 **Файл:** `signal_publisher.py:334`
 
@@ -16055,7 +16055,7 @@ rng = random.Random(42)
 
 The synthetic candle generator uses a fixed seed (42), so every backtest request with the same parameters produces identical candles. This is good for reproducibility but misleading — the user may think they're testing on different data each time.
 
-### 8.1175 signal_publisher: _EnsembleAdapter duplicates EnsembleVoter.analyze — Info
+### 8.1175 signal_publisher: _EnsembleAdapter duplicates EnsembleVoter.analyze — Info [N/A]
 
 **Файл:** `signal_publisher.py:42-52`
 
@@ -16080,7 +16080,7 @@ This adapter wraps `EnsembleVoter` to make it compatible with `Backtester.run()`
 
 Good health aggregator with parallel checks, 3s timeout, and proper HTTP status codes. ✅
 
-### 8.1177 health_check: creates new aiohttp session per check — Low
+### 8.1177 health_check: creates new aiohttp session per check — Low [FIXED]
 
 **Файл:** `health_check.py:53`
 
@@ -16093,7 +16093,7 @@ Each `_check_service` call creates a new `aiohttp.ClientSession`. With 3 service
 
 **Фикс:** Create a shared `aiohttp.ClientSession` in `__init__` or `start()`, reuse it for all checks, and close it in `stop()`.
 
-### 8.1178 health_check: bare Exception catches CancelledError — Low
+### 8.1178 health_check: bare Exception catches CancelledError — Low [FIXED]
 
 **Файл:** `health_check.py:73`
 

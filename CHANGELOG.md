@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AT: Communication + data collection fixes)
+
+### Fixed
+- `ai-signal-bot/src/data_collection/real_exchange_client.py`: Bybit testnet URL support (`https://api-testnet.bybit.com` when `testnet=True`) (§8.1160)
+- `ai-signal-bot/src/communication/ws_client.py`: `ping_timeout=10` added to `connect_kwargs` — prevents indefinite hangs (§8.1168)
+- `ai-signal-bot/src/communication/health_check.py`: Shared `aiohttp.ClientSession` reused across health checks instead of creating new session per call (§8.1177)
+- CODE_AUDIT §8.1169 — ws_client listen() no reconnection → already fixed (auto-reconnect with exponential backoff)
+- CODE_AUDIT §8.1172 — signal_publisher bare Exception → already fixed
+- CODE_AUDIT §8.1178 — health_check bare Exception → already fixed
+
+### Changed
+- CODE_AUDIT §8.1163 — circuit_breaker not thread-safe → [N/A] (asyncio-safe, no awaits in critical sections)
+- CODE_AUDIT §8.1174 — synthetic candles use random.Random(42) → [N/A] (deterministic seed is correct)
+- CODE_AUDIT §8.1175 — _EnsembleAdapter duplicates EnsembleVoter → [N/A] (adapter pattern is intentional for Backtester compatibility)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AS: Walk-forward + data collection fixes)
 
 ### Fixed
