@@ -301,3 +301,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | signal_publisher: backtest runs in event loop | bt.run() blocks all WS connections for seconds. Use asyncio.to_thread | CODE_AUDIT §8.920 |
 | alerting: new aiohttp.ClientSession per alert per channel | 3 sessions/alert, 30/min. FD exhaustion. Shared session in init | CODE_AUDIT §8.943 |
 | order_executor: detached reconnect thread race | Dangling `this` after destroy. Detached thread sleeps then accesses dead object. Don't detach or use asio timer | CODE_AUDIT §8.987 |
+| ws_connection_pool: acquire holds lock during _create_connection | Network I/O (100-500ms) under asyncio.Lock blocks all 150 acquire/release coroutines. Release lock before connect | CODE_AUDIT §8.993 |
+| db: new SQLite connection per operation | 2.5 conn/sec × 5ms = 12.5ms/sec overhead. Scales to 62ms/sec at 500 symbols. Persistent connection or aiosqlite | CODE_AUDIT §8.1000 |
+| order_manager: no lock on state transitions | check_timeouts() and on_fill() race on same OrderRecord. EXPIRED + FILLED simultaneously. Spinlock or atomic state | CODE_AUDIT §8.1012 |

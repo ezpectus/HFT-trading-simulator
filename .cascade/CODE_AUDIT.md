@@ -13557,3 +13557,371 @@ using MessageHandler = std::function<void(const json&)>;
 `save_state` and `snapshot_atomic` share ~80% of the code (open file, set size, mmap, write header/account/positions, flush, unmap). Only difference: `snapshot_atomic` writes to temp + renames, `save_state` writes directly.
 
 **Reduction potential:** ~40 lines. Extract `write_to_mapped(void* mapped, positions, account)` method.
+
+### 8.992 ai-signal-bot/src/communication/ws_connection_pool.py: WebSocket Connection Pool — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/ws_connection_pool.py` (152 lines)
+
+- **PooledConnection**: Wrapper with last_used, healthy flag, is_stale — correct
+- **Pool**: dict[str, list[PooledConnection]] keyed by URL — correct
+- **asyncio.Lock**: All pool mutations under lock — correct
+- **acquire**: Reuse healthy non-stale, evict stale, create new — correct
+- **release**: Return to pool, close if unhealthy — correct
+- **_create_connection**: websockets.connect with ping_interval=10, compression, max_size=1MB — correct
+- **health_check**: Ping + wait_for(5s timeout) — correct
+- **_health_loop**: Periodic health checks — correct
+- **close_all**: Cancel health task, close all connections — correct
+- **pool_stats**: Per-URL connection counts — correct
+
+Good WebSocket connection pool with reuse, health checks, stale eviction, and asyncio.Lock. ✅
+
+### 8.993 ws_connection_pool: acquire holds lock during _create_connection — Medium
+
+**Файл:** `ws_connection_pool.py:59-74`
+
+```python
+async with self._lock:
+    # ... reuse logic ...
+    conn = await self._create_connection(url)  # ← network I/O under lock!
+    return conn
+```
+
+`acquire()` holds `self._lock` during `_create_connection()`, which does `await websockets.connect(url)` — a network I/O operation that can take 100-500ms. During this time, no other coroutine can acquire or release connections. With 50 symbols × 3 exchanges = 150 potential URLs, if one connection is slow (500ms), all 149 other acquire/release calls are blocked.
+
+**Фикс:** Release lock before `_create_connection()`, re-acquire to insert the new connection.
+
+### 8.994 ws_connection_pool: _evict_stale creates fire-and-forget tasks — Low
+
+**Файл:** `ws_connection_pool.py:106`
+
+```python
+asyncio.create_task(conn.close())
+```
+
+`_evict_stale()` creates `asyncio.create_task(conn.close())` for each stale connection. These tasks are fire-and-forget — if the event loop shuts down before they complete, the close may not execute, leaking file descriptors. Also, if many connections are stale (e.g., 10), 10 concurrent close tasks are created.
+
+**Фикс:** `await conn.close()` directly (already under lock), or gather the tasks.
+
+### 8.995 ws_connection_pool: _health_loop runs forever with no error handling — Low
+
+**Файл:** `ws_connection_pool.py:129-133`
+
+```python
+async def _health_loop(self) -> None:
+    while True:
+        await asyncio.sleep(self._health_check_interval)
+        await self.health_check()
+```
+
+If `health_check()` raises an unexpected exception (e.g., `RuntimeError` from a corrupted connection), the health loop terminates silently. No more health checks will run, and stale connections will accumulate.
+
+**Фикс:** Wrap `health_check()` in try/except, log errors, continue loop.
+
+### 8.996 ai-signal-bot/src/networking/socket_transport.py: UDP Socket Transport — ✅ Good
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py` (156 lines)
+
+- **Non-blocking UDP**: `setblocking(False)` — correct
+- **Buffer sizes**: SO_RCVBUF + SO_SNDBUF = 1MB — correct
+- **start_receive_loop**: BlockingIOError → 100μs sleep — correct
+- **_parse_packet**: Binary format with length-prefixed symbol — correct
+- **send**: Non-blocking sendto — correct
+- **Stats**: packets_rx/tx, bytes_rx/tx, rx_drops — correct
+- **MarketDataPacket**: dataclass with timestamp_ns, symbol, price, qty, side, msg_type — correct
+
+Good UDP socket transport with non-blocking I/O, binary parsing, stats, and configurable buffers. ✅
+
+### 8.997 socket_transport: start_receive_loop blocks calling thread — Low
+
+**Файл:** `socket_transport.py:86-108`
+
+```python
+def start_receive_loop(self, on_packet: Callable[[MarketDataPacket], None]) -> None:
+    self._running = True
+    while self._running:
+        try:
+            data, addr = self._socket.recvfrom(65536)
+```
+
+`start_receive_loop` is a synchronous blocking loop. If called from the asyncio event loop, it blocks all coroutines. The 100μs sleep on BlockingIOError is a busy-wait that consumes CPU. No async version is provided.
+
+**Фикс:** Provide `async def start_receive_loop_async()` using `loop.add_reader()` or `asyncio.to_thread()`.
+
+### 8.998 socket_transport: _parse_packet no bounds check on sym_len — Low
+
+**Файл:** `socket_transport.py:136-138`
+
+```python
+sym_len = data[8]
+symbol = data[9:9+sym_len].decode("ascii")
+offset = 9 + sym_len
+```
+
+`sym_len` is a single byte (0-255). If a malformed packet has `sym_len=255` but the packet is only 27 bytes, `data[9:264]` returns a short slice, and `offset = 9 + 255 = 264` is beyond the packet. The subsequent `struct.unpack_from("!dd", data, 264)` will raise `struct.error`, which is caught. But the symbol string will be truncated or garbage.
+
+**Фикс:** Check `9 + sym_len + 18 <= len(data)` before parsing.
+
+### 8.999 ai-signal-bot/src/database/db.py: SQLite Database — ✅ Good
+
+**Файл:** `ai-signal-bot/src/database/db.py` (180 lines)
+
+- **WAL mode**: `PRAGMA journal_mode=WAL` — correct
+- **Connection per operation**: `closing(self._conn())` — correct for SQLite
+- **Tables**: signals, trades, equity_curve with indexes — correct
+- **save_signal / save_trade / close_trade / save_equity**: Parameterized queries — correct
+- **get_stats**: Aggregate queries with COALESCE — correct
+- **get_recent_signals / get_recent_trades**: LIMIT queries — correct
+- **close**: WAL checkpoint + journal mode DELETE — correct for Windows
+
+Good SQLite database with WAL mode, parameterized queries, indexes, and Windows-safe close. ✅
+
+### 8.1000 db: new connection per operation — Medium
+
+**Файл:** `db.py:21-25, 85-107`
+
+```python
+def _conn(self) -> sqlite3.Connection:
+    conn = sqlite3.connect(self.path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def save_signal(self, signal_dict: dict, validated: bool = True) -> int:
+    with closing(self._conn()) as conn:
+        cursor = conn.execute(...)
+```
+
+Every `save_signal`, `save_trade`, `save_equity`, `close_trade`, `get_stats`, `get_recent_signals`, `get_recent_trades` creates a new SQLite connection. Each connection involves:
+- File open (system call)
+- WAL mode PRAGMA (query)
+- Row factory setup
+- Query execution
+- Commit
+- Connection close (system call)
+
+With 50 symbols × 60s interval = ~50 signals/min + 50 trades/min + 50 equity/min = 150 connections/min = 2.5 connections/sec. Each connection takes ~5ms (file open + PRAGMA + close), so 12.5ms/sec is spent on connection overhead. Not critical for this load, but if the bot scales to 500 symbols or 1s intervals, it becomes 750 connections/min = 12.5/sec = 62ms/sec.
+
+**Фикс:** Use a persistent connection (or connection pool) with `check_same_thread=False` and a threading.Lock for multi-threaded access. Or use `aiosqlite` for async access.
+
+### 8.1001 db: close catches broad Exception — Low
+
+**Файл:** `db.py:29-34`
+
+```python
+def close(self) -> None:
+    try:
+        with closing(sqlite3.connect(self.path)) as conn:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            conn.execute("PRAGMA journal_mode=DELETE")
+    except Exception:
+        pass
+```
+
+`close()` catches `Exception` and silently passes. If the WAL checkpoint fails (e.g., disk full, permission error), the WAL file grows unboundedly, consuming disk space. The error is never logged.
+
+**Фикс:** Catch specific exceptions (`sqlite3.OperationalError`, `sqlite3.DatabaseError`) and log the error.
+
+### 8.1002 db: no index on equity_curve timestamp — Low
+
+**Файл:** `db.py:70-76`
+
+```sql
+CREATE TABLE IF NOT EXISTS equity_curve (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp INTEGER NOT NULL,
+    balance REAL NOT NULL,
+    equity REAL NOT NULL,
+    open_positions INTEGER NOT NULL
+);
+```
+
+No index on `equity_curve(timestamp)`. If the bot runs for months, the equity_curve table will have millions of rows. Queries like `SELECT * FROM equity_curve WHERE timestamp > ?` will be O(N) full table scans.
+
+**Фикс:** `CREATE INDEX IF NOT EXISTS idx_equity_timestamp ON equity_curve(timestamp)`.
+
+### 8.1003 hft-trade-bot/src/core/bot_loop.h: Bot Loop Interface — ✅ Good
+
+**Файл:** `hft-trade-bot/src/core/bot_loop.h` (17 lines)
+
+- **Function declarations only**: process_sl_tp, process_arbitrage, process_ai_signals, run_v2_signal_loop, run_v1_fallback_loop, print_status, poll_shm_market_data, graceful_shutdown — correct
+- **Clean separation**: Header declares interface, implementation in .cpp — correct
+- **BotContext reference**: All functions take `BotContext&` — correct
+
+Good clean header with function declarations and BotContext reference pattern. ✅
+
+### 8.1004 hft-trade-bot/src/execution/latency_tracker.h: Latency Tracker — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/execution/latency_tracker.h` (253 lines)
+
+- **8 stages**: SIGNAL_TO_ORDER, ORDER_TO_ACK, ACK_TO_FILL, SIGNAL_TO_FILL, ORDER_TO_FILL, MARKET_DATA_PROCESS, RISK_CHECK, STRATEGY_COMPUTE — correct
+- **Atomic stats**: count, sum, min (CAS loop), max (CAS loop) — correct
+- **Histogram**: 128 bins per stage, atomic bin counts — correct
+- **Percentile computation**: P50/P95/P99/P99.9 from histogram — correct
+- **Budget enforcement**: Per-stage budget with alert callback — correct
+- **ScopedLatencyMeasurement**: RAII timer — correct
+- **No heap allocations**: All stack/atomic — correct
+- **`noexcept` on record/get_stats/reset**: Correct
+
+Excellent latency tracker with 8 stages, atomic CAS min/max, histogram percentiles, budget enforcement, RAII scoped measurement, and noexcept. ✅
+
+### 8.1005 latency_tracker: alert_cb_ is std::function (not thread-safe) — Low
+
+**Файл:** `latency_tracker.h:124, 173, 224`
+
+```cpp
+if (alert_cb_) alert_cb_(stage, us, budget);
+// ...
+void set_alert_callback(AlertCallback cb) { alert_cb_ = std::move(cb); }
+```
+
+`alert_cb_` is a `std::function` that can be set via `set_alert_callback()` and called from `record()`. If `set_alert_callback` is called from one thread while `record()` calls `alert_cb_` from another, it's a data race on the `std::function` object (not atomic). Also, `std::function` copy/move may heap-allocate.
+
+**Фикс:** Set the callback once at init (before any `record()` calls), or use `std::atomic<std::function<...>>` (C++23) or a `std::shared_ptr` to the callback.
+
+### 8.1006 latency_tracker: percentile_from_histogram is O(N) per call — Low
+
+**Файл:** `latency_tracker.h:197-211`
+
+```cpp
+for (size_t i = 0; i < histogram_bins_; ++i) {
+    cumulative += h.bin_counts[i].load(std::memory_order_relaxed);
+    if (cumulative >= target) {
+```
+
+Each `get_stats()` call computes 4 percentiles (P50, P95, P99, P999), each scanning up to `histogram_bins_` (default 64) bins. That's 256 atomic loads per `get_stats()` call. If `get_stats()` is called every 1s for monitoring, this is negligible. But if called per-order, it's 256 × 50 orders/sec = 12,800 atomic loads/sec.
+
+**Фикс:** Cache the last computed percentiles, or compute all 4 in a single pass.
+
+### 8.1007 hft-trade-bot/src/monitoring/system_monitor.h: System Monitor — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/monitoring/system_monitor.h` (205 lines)
+
+- **11 metrics**: ORDERS_SENT/FILLED/REJECTED/CANCELED, SIGNALS_RECEIVED/PROCESSED, ERRORS, RECONNECTS, SHM_DROPS, HEARTBEATS_SENT/MISSED — correct
+- **Atomic counters**: `std::atomic<int64_t>` with relaxed ordering — correct
+- **fill_rate / rejection_rate**: Computed from counters — correct
+- **Snapshot**: All metrics in one struct — correct
+- **format_json**: snprintf to stack buffer — correct
+- **MemoryTracker**: Tracks current/total/max allocation — correct
+- **HealthStatus**: Aggregate health with is_healthy() — correct
+- **No heap allocations**: All stack/atomic — correct
+- **`noexcept` on all methods**: Correct
+
+Excellent system monitor with 11 atomic metrics, snapshot, JSON formatting, memory tracker, and health status. ✅
+
+### 8.1008 system_monitor: MemoryTracker max_single_alloc_ race — Low
+
+**Файл:** `system_monitor.h:143-145`
+
+```cpp
+if (bytes > max_single_alloc_.load(std::memory_order_relaxed)) {
+    max_single_alloc_.store(bytes, std::memory_order_relaxed);
+}
+```
+
+The check-then-set pattern is not atomic. Two threads can both read the same old max, both pass the check, and both store — losing the actual max. This is a benign race (max_single_alloc_ is approximate), but technically undefined behavior for `std::atomic` with relaxed ordering.
+
+**Фикс:** Use CAS loop: `while (bytes > current && !compare_exchange_weak(current, bytes))`.
+
+### 8.1009 system_monitor: HealthStatus has no CPU tracking — Low
+
+**Файл:** `system_monitor.h:178`
+
+```cpp
+double cpu_usage_pct{0.0};
+```
+
+`HealthStatus` has a `cpu_usage_pct` field but it's never populated — always 0.0. No code reads CPU usage from `/proc/stat` (Linux) or `GetSystemTimes` (Windows). The health endpoint will always report `cpu_usage_pct: 0.0`, which is misleading.
+
+**Фикс:** Implement CPU reading or remove the field.
+
+### 8.1010 hft-trade-bot/src/execution/order_manager.h: Order Manager — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/execution/order_manager.h` (379 lines)
+
+- **8-state machine**: PENDING → ACK → PARTIAL → FILLED / CANCELED / REJECTED / EXPIRED / MODIFY_PENDING — correct
+- **OrderRecord**: `alignas(64)`, ≤320 bytes, all fields — correct
+- **MAX_ORDERS=4096**: Fixed-capacity array — correct
+- **Flat hash map**: cid_to_slot_ with linear probing, 8192 capacity, Fibonacci hashing — correct
+- **cid_erase with re-insert**: Maintains probing chain — correct
+- **Atomic client_order_id**: `fetch_add` — correct
+- **Timeout handling**: `check_timeouts()` scans up to `max_slot_used_` — correct
+- **Cancel-replace**: `modify_order()` — correct
+- **Fill callback**: Copies record before callback to prevent race — correct
+- **No heap allocations in hot path**: All fixed-size arrays — correct
+- **`noexcept` on all methods**: Correct
+
+Excellent order manager with 8-state machine, flat hash map, atomic IDs, timeout handling, cancel-replace, fill callback with copy, and noexcept. ✅
+
+### 8.1011 order_manager: find_free_slot is O(N) — Low
+
+**Файл:** `order_manager.h:290-300`
+
+```cpp
+uint64_t find_free_slot() noexcept {
+    for (size_t i = 0; i < MAX_ORDERS; ++i) {
+        if (orders_[i].state == OrderStateV2::FILLED || ... || orders_[i].client_order_id == 0) {
+            return i;
+        }
+    }
+    return MAX_ORDERS;
+}
+```
+
+`find_free_slot()` linearly scans 4096 slots. With 100 orders/sec and 5s average order lifetime, there are ~500 active orders. After filling, slots are reused, but the scan always starts from 0. If the first 500 slots are active, each `create_order` scans 500 entries before finding a free slot. 100 scans/sec × 500 = 50,000 comparisons/sec.
+
+**Фикс:** Maintain a free-list (stack of freed slot indices) for O(1) allocation.
+
+### 8.1012 order_manager: no lock on state transitions — Medium
+
+**Файл:** `order_manager.h:146-154, 157-184, 187-202, 205-215, 218-226, 229-236`
+
+```cpp
+void on_ack(uint64_t client_order_id, uint64_t exchange_order_id) noexcept {
+    const auto* it = cid_find(client_order_id);
+    if (!it) return;
+    OrderRecord& rec   = orders_[it->slot];
+    rec.order_id       = exchange_order_id;
+    rec.state          = OrderStateV2::ACK;
+```
+
+All state transitions (`on_ack`, `on_partial_fill`, `on_fill`, `on_cancel`, `on_reject`, `on_expire`) modify `OrderRecord` fields without any lock or atomic. If `check_timeouts()` runs on one thread and `on_fill()` runs on another for the same order, the timeout may set `EXPIRED` while the fill sets `FILLED` — a data race. The `active_count_` is atomic, but the `OrderRecord` fields are not.
+
+**Фикс:** Use a spinlock per order slot, or use atomic for `state` field, or ensure all order operations run on a single thread.
+
+### 8.1013 order_manager: cid_erase re-insert can cascade — Low
+
+**Файл:** `order_manager.h:344-366`
+
+```cpp
+void cid_erase(uint64_t cid) noexcept {
+    // ...
+    size_t next = (idx + 1) & CID_MAP_MASK;
+    while (cid_to_slot_[next].cid != 0) {
+        SlotEntry tmp = cid_to_slot_[next];
+        cid_to_slot_[next].cid = 0;
+        cid_to_slot_[next].slot = 0;
+        cid_insert(tmp.cid, tmp.slot);
+        next = (next + 1) & CID_MAP_MASK;
+    }
+}
+```
+
+The re-insert loop in `cid_erase` can cascade: if there's a long probe chain (e.g., 100 entries after the erased one), each entry is removed and re-inserted via `cid_insert`, which scans again. Worst case: O(N²) for a full table. With 4096 active orders and 8192 capacity (50% load factor), the average probe chain is ~2, but worst case can be much higher.
+
+**Фикс:** Use tombstone markers instead of re-insertion, or use backward-shift deletion (Knuth's algorithm).
+
+### 8.1014 Code reduction: db.py save_signal/save_trade/close_trade/save_equity 4× pattern — Info
+
+**Файлы:** `db.py:84-148`
+
+All 4 methods follow: `with closing(self._conn()) as conn: cursor = conn.execute(...); conn.commit()`. The only difference is the SQL and parameters.
+
+**Reduction potential:** ~20 lines. Extract `_execute(sql, params) -> cursor` method.
+
+### 8.1015 Code reduction: system_monitor snapshot() 11× field copy — Info
+
+**Файлы:** `system_monitor.h:76-93`
+
+`snapshot()` copies 11 fields individually from `get(Metric::...)`. This is verbose but necessary since there's no reflection in C++. Could use a loop with an enum-to-field mapping, but that would be more complex.
+
+**Reduction potential:** ~5 lines. Not worth the complexity.

@@ -6180,3 +6180,178 @@ private:
 ```
 
 **Разница:** The bad code uses `std::thread(...).detach()` to schedule a reconnect after a delay. The detached thread captures `this`, but when the `OrderExecutor` is destroyed (e.g., during shutdown), the thread is still sleeping. When it wakes up, it accesses freed memory through the dangling `this` pointer — a classic USE-AFTER-FREE. In the best case, `should_reconnect_` reads as `false` and the thread exits silently. In the worst case, it reads as `true` (freed memory was reused), the thread calls `do_connect()` on a destroyed object, creates a new WebSocket connection, and sends orders to the exchange from a "dead" bot. The position manager doesn't know about these orders, so when the bot is restarted, it opens duplicate positions — $500K in untracked exposure, potential margin call, liquidation. The good code posts the reconnect to the `io_context` (asio's event loop) instead of creating a detached thread. When `disconnect()` calls `io_service::stop()`, all pending async operations are cancelled — the reconnect handler never executes. No dangling threads, no use-after-free, no duplicate orders. The cost is replacing `.detach()` with `io_service.post()` or a `deadline_timer` — 5 lines of code. The benefit is zero crashes, zero duplicate orders, and deterministic shutdown. This is a classic example of a detached thread lifetime bug: the developer assumed `should_reconnect_ = false` would stop the thread, but the thread may already be past that check when `disconnect()` runs. The principle: never detach threads that capture `this` — either join them in the destructor, or use an event loop (io_context, timer) that can be stopped atomically. In a system with 1000 users, a USE-AFTER-FREE from a detached thread can cause $500K in duplicate orders + liquidation + debugging nightmare with no stack trace.
+
+---
+
+## Bad vs Good: asyncio.Lock Held During Network I/O (Python)
+
+### ❌ Bad Code
+```python
+class WebSocketConnectionPool:
+    def __init__(self, max_size: int = 10):
+        self._pool: dict[str, list[PooledConnection]] = {}
+        self._lock = asyncio.Lock()
+
+    async def acquire(self, url: str) -> PooledConnection | None:
+        async with self._lock:  # ← Lock acquired
+            conns = self._pool.get(url, [])
+            while conns:
+                conn = conns.pop()
+                if conn.healthy and not conn.is_stale(self._timeout):
+                    conn.last_used = time.monotonic()
+                    return conn
+                await conn.close()
+
+            if sum(len(c) for c in self._pool.values()) >= self._max_size:
+                self._evict_stale()
+
+            # ← NETWORK I/O UNDER LOCK — blocks all coroutines!
+            conn = await self._create_connection(url)
+            return conn
+
+    async def _create_connection(self, url: str) -> PooledConnection | None:
+        ws = await websockets.connect(
+            url,
+            ping_interval=10,
+            compression="deflate",
+            max_size=2**20,
+        )
+        return PooledConnection(ws, url)
+
+    async def release(self, conn: PooledConnection) -> None:
+        if not conn.healthy:
+            await conn.close()
+            return
+        conn.last_used = time.monotonic()
+        async with self._lock:  # ← Blocked if acquire() is in _create_connection
+            self._pool.setdefault(conn.url, []).append(conn)
+
+# Scenario: Production HFT bot with 1000 users
+# 50 symbols × 3 exchanges = 150 WebSocket URLs
+# Signal interval: 60s → ~50 signals/min → ~50 acquire()/release() calls/min
+#
+# t=0:     Coroutine A calls acquire("wss://binance.com/btc")
+# t=0:     Lock acquired by A
+# t=0:     No pooled connection → _create_connection()
+# t=0:     websockets.connect() starts DNS + TCP + TLS handshake
+#
+# t=0.1:   Coroutine B calls acquire("wss://okx.com/eth")
+# t=0.1:   B tries to acquire lock → BLOCKED (A holds it)
+#
+# t=0.2:   Coroutine C calls release(binance_conn)
+# t=0.2:   C tries to acquire lock → BLOCKED (A holds it)
+#          ← Connection cannot be returned to pool!
+#          ← If C is a signal handler, the signal is delayed
+#
+# t=0.3:   Coroutine D calls acquire("wss://bybit.com/sol")
+# t=0.3:   D tries to acquire lock → BLOCKED (A holds it)
+#
+# t=0.5:   Binance WebSocket handshake completes (500ms)
+# t=0.5:   A releases lock
+# t=0.5:   B acquires lock, starts OKX handshake
+#
+# t=0.5:   C acquires lock, returns connection to pool
+# t=0.5:   D acquires lock, starts Bybit handshake
+#
+# t=1.0:   OKX handshake completes (500ms)
+# t=1.5:   Bybit handshake completes (500ms)
+#
+# Total time: 1.5s for 3 connections (sequential)
+# With 150 URLs: worst case 150 × 500ms = 75 seconds
+#
+# What happens during a market crash?
+#
+# 1. Exchange restarts (scheduled maintenance)
+# 2. All 150 WebSocket connections drop simultaneously
+# 3. 150 coroutines call acquire() to reconnect
+# 4. First coroutine acquires lock, starts handshake (500ms)
+# 5. 149 coroutines blocked on lock
+# 6. Signal handler tries to release a connection → blocked
+# 7. Signal handler tries to acquire a connection → blocked
+# 8. No signals can be sent or received for 75 seconds
+# 9. Bot misses 75 seconds of market data during a crash
+# 10. $200K in missed trading opportunities
+# 11. 1000 users affected by 75s downtime
+#
+# The lock is meant to protect the pool dict — a microsecond operation.
+# Instead, it's held for 500ms during network I/O.
+# This is a classic "lock scope too wide" anti-pattern.
+```
+
+**What's wrong:**
+- `asyncio.Lock` is held during `await websockets.connect()` — a 100-500ms network I/O
+- All other `acquire()` and `release()` calls are blocked during this time
+- With 150 URLs reconnecting simultaneously, total blocking time can be 75 seconds
+- Signal handlers that need to release/acquire connections are blocked
+- The lock protects a dict mutation (microseconds) but is held for network I/O (hundreds of ms)
+
+### ✅ Good Code
+```python
+class WebSocketConnectionPool:
+    def __init__(self, max_size: int = 10):
+        self._pool: dict[str, list[PooledConnection]] = {}
+        self._lock = asyncio.Lock()
+
+    async def acquire(self, url: str) -> PooledConnection | None:
+        # Phase 1: Try to reuse existing connection (under lock, microseconds)
+        async with self._lock:
+            conns = self._pool.get(url, [])
+            while conns:
+                conn = conns.pop()
+                if conn.healthy and not conn.is_stale(self._timeout):
+                    conn.last_used = time.monotonic()
+                    return conn
+                await conn.close()
+
+            if sum(len(c) for c in self._pool.values()) >= self._max_size:
+                self._evict_stale()
+
+        # Phase 2: Create new connection (OUTSIDE lock, 100-500ms)
+        conn = await self._create_connection(url)
+        if conn is None:
+            return None
+
+        # Phase 3: Register connection (under lock, microseconds)
+        # No need to re-acquire lock — connection is not in pool yet
+        return conn
+
+    async def release(self, conn: PooledConnection) -> None:
+        if not conn.healthy:
+            await conn.close()
+            return
+        conn.last_used = time.monotonic()
+        async with self._lock:  # ← Lock only for dict mutation (microseconds)
+            self._pool.setdefault(conn.url, []).append(conn)
+
+# Scenario: Production HFT bot with 1000 users
+# 150 WebSocket URLs, all drop simultaneously during exchange restart
+#
+# t=0:     150 coroutines call acquire()
+# t=0:     All 150 acquire lock sequentially (microseconds each)
+#          No pooled connections → all exit lock
+# t=0:     150 coroutines start _create_connection() CONCURRENTLY
+#          ← No lock held during network I/O!
+#
+# t=0.1:   Coroutine B calls release(binance_conn)
+# t=0.1:   B acquires lock (microseconds) → returns connection to pool
+# t=0.1:   B done — no blocking
+#
+# t=0.2:   Signal handler calls acquire("wss://binance.com/btc")
+# t=0.2:   Acquires lock (microseconds) → finds pooled connection → returns
+# t=0.2:   Signal sent immediately — no blocking
+#
+# t=0.5:   All 150 handshakes complete concurrently (500ms total, not 75s)
+# t=0.5:   All 150 connections ready
+#
+# Total time: 500ms for 150 connections (concurrent)
+# vs 75 seconds with bad code (sequential)
+#
+# During a market crash:
+# - 0 signals missed (connections available immediately from pool)
+# - 0 blocking (lock held only for dict mutation)
+# - 150× faster reconnection (concurrent vs sequential)
+# - $200K in trading opportunities preserved
+# - 1000 users unaffected by reconnection
+```
+
+**Разница:** The bad code holds `asyncio.Lock` during `await websockets.connect()` — a network I/O operation that takes 100-500ms. The lock is meant to protect the `_pool` dict (a microsecond mutation), but it's held for the entire duration of the WebSocket handshake. When 150 connections drop simultaneously during an exchange restart, 150 coroutines queue up on the lock. Each handshake takes 500ms, so the total reconnection time is 150 × 500ms = 75 seconds. During this time, no `release()` or `acquire()` calls can execute — signal handlers are blocked, connections can't be returned to the pool, and no signals can be sent or received. The bot misses 75 seconds of market data during a crash, costing $200K in missed opportunities. The good code splits `acquire()` into 3 phases: (1) try to reuse a pooled connection under lock (microseconds), (2) create a new connection outside lock (100-500ms, concurrent), (3) return the new connection directly (no pool insertion needed). All 150 handshakes execute concurrently — total reconnection time is 500ms, not 75 seconds. Signal handlers can `release()` and `acquire()` at any time — the lock is held only for microseconds. The cost is restructuring `acquire()` into 3 phases — 5 lines of code. The benefit is 150× faster reconnection, 0 blocking, and $200K preserved. This is a classic "lock scope too wide" anti-pattern: the developer wrapped the entire function body in `async with self._lock:` without considering that the lock only needs to protect the dict mutation, not the network I/O. The principle: in asyncio, never hold a lock across `await` network I/O — acquire the lock only for the critical section (dict/list mutation), release it before any `await` that may block. In a system with 1000 users, a 75-second blocking during reconnection can cause $200K in missed opportunities and 75 seconds of downtime for all users.

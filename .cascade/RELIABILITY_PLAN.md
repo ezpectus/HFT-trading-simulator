@@ -1536,3 +1536,27 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R979 | order_executor: no fill confirmation callback | `order_executor.h:27` | Low | MessageHandler unused. Set message_handler for fills |
 | R980 | Code reduction: position_manager_v2 total_* 5× pattern | `position_manager_v2.h:217-262` | Info | Template sum_field. ~15 lines |
 | R981 | Code reduction: mapped_persistence save/snapshot duplication | `mapped_persistence.h:103+282` | Info | Extract write_to_mapped. ~40 lines |
+| R982 | ai-signal-bot/communication/ws_connection_pool.py | `ws_connection_pool.py` | ✅ Good | Reuse health checks stale eviction asyncio.Lock pool_stats |
+| R983 | ws_connection_pool: acquire holds lock during _create_connection | `ws_connection_pool.py:59` | Medium | Network I/O under lock blocks all coroutines. Release lock before connect |
+| R984 | ws_connection_pool: _evict_stale fire-and-forget tasks | `ws_connection_pool.py:106` | Low | FD leak on shutdown. await conn.close() directly |
+| R985 | ws_connection_pool: _health_loop no error handling | `ws_connection_pool.py:129` | Low | Silent termination. Wrap in try/except |
+| R986 | ai-signal-bot/networking/socket_transport.py | `socket_transport.py` | ✅ Good | Non-blocking UDP binary parsing stats configurable buffers |
+| R987 | socket_transport: start_receive_loop blocks calling thread | `socket_transport.py:86` | Low | Blocks asyncio. Provide async version |
+| R988 | socket_transport: _parse_packet no bounds check on sym_len | `socket_transport.py:136` | Low | Malformed packet. Check 9+sym_len+18 <= len(data) |
+| R989 | ai-signal-bot/database/db.py | `db.py` | ✅ Good | WAL mode parameterized queries indexes Windows-safe close |
+| R990 | db: new connection per operation | `db.py:21` | Medium | 2.5 conn/sec overhead. Persistent connection or aiosqlite |
+| R991 | db: close catches broad Exception | `db.py:29` | Low | Silent WAL checkpoint failure. Catch specific + log |
+| R992 | db: no index on equity_curve timestamp | `db.py:70` | Low | O(N) scan for timestamp queries. Add idx_equity_timestamp |
+| R993 | hft-trade-bot/core/bot_loop.h | `bot_loop.h` | ✅ Good | Clean function declarations BotContext reference pattern |
+| R994 | hft-trade-bot/execution/latency_tracker.h | `latency_tracker.h` | ✅ Excellent | 8 stages atomic CAS histogram percentiles budget RAII noexcept |
+| R995 | latency_tracker: alert_cb_ not thread-safe | `latency_tracker.h:124` | Low | Data race on std::function. Set once at init |
+| R996 | latency_tracker: percentile_from_histogram O(N) per call | `latency_tracker.h:197` | Low | 256 atomic loads per get_stats. Cache or single-pass |
+| R997 | hft-trade-bot/monitoring/system_monitor.h | `system_monitor.h` | ✅ Excellent | 11 atomic metrics snapshot JSON MemoryTracker HealthStatus noexcept |
+| R998 | system_monitor: MemoryTracker max_single_alloc_ race | `system_monitor.h:143` | Low | Check-then-set not atomic. Use CAS loop |
+| R999 | system_monitor: HealthStatus cpu_usage_pct never populated | `system_monitor.h:178` | Low | Always 0.0. Implement or remove field |
+| R1000 | hft-trade-bot/execution/order_manager.h | `order_manager.h` | ✅ Excellent | 8-state machine flat hash map atomic IDs timeout cancel-replace fill copy noexcept |
+| R1001 | order_manager: find_free_slot is O(N) | `order_manager.h:290` | Low | Linear scan 4096 slots. Free-list for O(1) |
+| R1002 | order_manager: no lock on state transitions | `order_manager.h:146+` | Medium | Data race on OrderRecord fields. Spinlock or atomic state |
+| R1003 | order_manager: cid_erase re-insert can cascade O(N²) | `order_manager.h:344` | Low | Worst case O(N²). Tombstone or backward-shift deletion |
+| R1004 | Code reduction: db.py save_* 4× pattern | `db.py:84-148` | Info | Extract _execute(sql, params). ~20 lines |
+| R1005 | Code reduction: system_monitor snapshot() 11× field copy | `system_monitor.h:76` | Info | Not worth the complexity. ~5 lines |
