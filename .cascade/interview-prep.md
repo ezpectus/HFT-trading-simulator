@@ -5198,3 +5198,106 @@ class HealthChecker:
 ```
 
 **Разница:** The bad code runs 4 health checks sequentially — total time = 0.5 + 30 + 0.3 + 0.2 = 31s. When the database is down, the DB check hangs for 30s with no timeout, blocking the event loop. Redis and Exchange checks (which would take 0.3s and 0.2s) wait 30s before even starting. The K8s readiness probe times out at 1s, marks the pod as NOT READY, and removes it from the load balancer. The coroutine continues running for 31s, holding the event loop — signal processing and order execution are frozen. With 1000 users, 1000 bots are frozen for 30s. If BTC drops 5% during those 30s, no stop-loss is triggered — $500K in unprevented losses. All 1000 pods are removed from the load balancer, all users lose service. The good code uses `asyncio.gather()` to run all 4 checks concurrently — total time = max(0.5, 2.0, 0.3, 0.2) = 2.0s. Each check has a 2s timeout via `asyncio.wait_for()`. The DB check fails fast (2s) instead of hanging (30s). The event loop is only blocked for 2s, not 30s. The K8s probe succeeds (2s < 3s timeout), the pod stays READY, and only the DB is marked unhealthy. With 1000 users, bots are frozen for 2s, not 30s — 15× less losses ($33K vs $500K). The cost is `asyncio.gather()` + `asyncio.wait_for()` — 2 lines of code. The benefit is 15× faster health checks, 15× less losses during DB outages, and no false NOT READY from K8s. This is a classic example of sequential vs concurrent I/O: the developer treated async I/O as if it were synchronous, running checks one after another instead of in parallel. In a microservices architecture with 1000 users, this difference is $467K per DB outage.
+
+---
+
+## Bad vs Good: string_to_side Silent Default Creates Wrong Trades (C++)
+
+### ❌ Bad Code
+```cpp
+inline Side string_to_side(const std::string& s) {
+    return s == "BUY" ? Side::BUY : Side::SELL;
+}
+
+// Scenario: JSON config from user
+// User config: {"side": "Buy"}  ← Capital B, lowercase uy
+//
+// string_to_side("Buy") → "Buy" != "BUY" → returns Side::SELL
+//
+// User wanted to BUY BTC at $100K.
+// System sends SELL order.
+// User is now SHORT BTC at $100K.
+//
+// BTC goes to $105K.
+// User's position: (100K - 105K) × 1 BTC = -$5,000
+// User wanted to be LONG: (105K - 100K) × 1 BTC = +$5,000
+// Difference: $10,000 swing per BTC
+//
+// With 1000 users × 1 BTC each:
+// - 1000 users all get SELL instead of BUY
+// - BTC goes up 5%: $10,000 × 1000 = $10M in wrong-direction losses
+// - Users sue: "I configured BUY, you sent SELL"
+// - Audit trail: config says "Buy", log says "SELL" — clear bug
+//
+// Other inputs that silently become SELL:
+// "buy"   → SELL (lowercase)
+// "Buy"   → SELL (mixed case)
+// "BUY "  → SELL (trailing space)
+// ""      → SELL (empty string)
+// "LONG"  → SELL (wrong enum name)
+// "buy\n" → SELL (trailing newline from file read)
+```
+
+**What's wrong:**
+- Any non-exact-"BUY" string silently becomes SELL — typos, case differences, whitespace, empty strings
+- No error, no warning, no log — completely silent
+- User configures BUY, system sends SELL — wrong direction trade
+- With 1000 users × 1 BTC × 5% price move: $10M in wrong-direction losses
+- Legal liability: user configured BUY, audit trail shows SELL — clear bug
+- Common triggers: JSON parsing with different casing, file read with trailing newline, user typo
+
+### ✅ Good Code
+```cpp
+#include <algorithm>
+#include <cctype>
+#include <stdexcept>
+
+inline Side string_to_side(const std::string& s) {
+    // Normalize to uppercase for case-insensitive comparison
+    std::string normalized;
+    normalized.reserve(s.size());
+    for (char c : s) {
+        // Strip whitespace and convert to uppercase
+        if (!std::isspace(static_cast<unsigned char>(c))) {
+            normalized += static_cast<char>(
+                std::toupper(static_cast<unsigned char>(c)));
+        }
+    }
+
+    if (normalized == "BUY") return Side::BUY;
+    if (normalized == "SELL") return Side::SELL;
+
+    // Unknown string — throw, don't silently default
+    throw std::invalid_argument(
+        "Invalid side: '" + s + "' (expected 'BUY' or 'SELL')");
+}
+
+// Scenario: JSON config from user
+// User config: {"side": "Buy"}
+//
+// string_to_side("Buy"):
+//   normalized = "BUY"
+//   "BUY" == "BUY" → returns Side::BUY ✓
+//
+// User config: {"side": "buy  "}
+//   normalized = "BUY"
+//   "BUY" == "BUY" → returns Side::BUY ✓
+//
+// User config: {"side": "HOLD"}
+//   normalized = "HOLD"
+//   "HOLD" != "BUY" && "HOLD" != "SELL"
+//   → throws std::invalid_argument("Invalid side: 'HOLD'")
+//   → Config validation catches it at startup
+//   → Bot doesn't start with wrong config
+//   → No wrong-direction trades
+//
+// With 1000 users:
+// - "Buy" → BUY ✓ (case-insensitive)
+// - "buy " → BUY ✓ (whitespace stripped)
+// - "HOLD" → exception → config error → bot doesn't start
+// - No silent SELL defaults
+// - No $10M in wrong-direction losses
+// - No legal liability
+```
+
+**Разница:** The bad code treats any non-exact-"BUY" string as SELL. This is a silent default — no error, no warning, no log. Common inputs like "Buy" (mixed case), "buy" (lowercase), "BUY " (trailing space), or "buy\n" (newline from file) all silently become SELL. The user configures BUY, the system sends SELL — a wrong-direction trade. With 1000 users × 1 BTC × 5% price move, that's $10M in wrong-direction losses. The audit trail shows config "Buy" but order SELL — clear bug, legal liability. The good code normalizes the input (uppercase + strip whitespace) for case-insensitive comparison, and throws `std::invalid_argument` for truly unknown values. "Buy" → BUY (case-insensitive), "buy " → BUY (whitespace stripped), "HOLD" → exception → config validation catches it at startup → bot doesn't start with wrong config. No silent defaults, no wrong-direction trades, no $10M losses. The cost is 5 lines of normalization code. The benefit is zero wrong-direction trades from typos, case differences, or whitespace. This is a classic example of a silent default bug: the developer chose a "safe" default (SELL) instead of raising an error, but in trading, a wrong direction is worse than no trade at all. The principle: never silently default on safety-critical fields — throw, log, and fail fast.

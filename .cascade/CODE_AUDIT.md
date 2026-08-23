@@ -11685,3 +11685,210 @@ class TradeLogger:
 Both classes have the same structure: `__init__` creates directory + writes header, `log()` opens file + writes row. Only the header and field mapping differ. Should be a single `CsvLogger` class with configurable header and field mapping.
 
 **Reduction potential:** ~30 lines.
+
+### 8.856 hft-trade-bot/src/data/aligned_types.h: Aligned Types — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/data/aligned_types.h` (268 lines)
+
+- **AlignedOrderBookLevel**: 64B, `alignas(64)`, `static_assert` — correct
+- **FastSignal**: 256B, `alignas(64)`, fixed-size char arrays (symbol[32], reason[48]), 7 score fields, `set_symbol`/`set_reason` with bounds, `is_actionable`/`is_long`/`is_short`/`rr_ratio`, `now_ns` (steady_clock) + `now_epoch_ns` (system_clock) — excellent
+- **FastOrder**: 256B, `alignas(64)`, 5 OrderKind types (MARKET/LIMIT_IOC/LIMIT_FOK/LIMIT_GTD/POST_ONLY), `client_order_id[32]` for idempotency, `expire_at` for GTD — excellent
+- **PressureResult**: 192B, `alignas(64)`, 10 pressure fields, SpreadRegime enum — correct
+- **RoutingDecision**: 192B, `alignas(64)`, 5 routing strategies, `effective_price`/`fee_bps`/`latency_us` — correct
+- **All `static_assert`**: Size validation for each struct — correct
+- **No heap allocations**: Fixed-size char arrays, no `std::string` — HFT-optimized
+- **Cache-line padding**: `padding_` arrays fill to cache line boundaries — correct
+
+Excellent aligned types with cache-line alignment, fixed-size buffers, static_assert validation, and no heap allocations. ✅
+
+### 8.857 aligned_types: set_symbol/set_reason/set_exchange repeated 5 times — Info
+
+**Файл:** `hft-trade-bot/src/data/aligned_types.h:58-74,146-171,246-262`
+
+The same `set_symbol`/`set_reason`/`set_exchange` pattern (while loop with bounds check) is repeated in FastSignal, FastOrder, and RoutingDecision. Each is ~7 lines, total ~35 lines of duplicated code.
+
+**Reduction potential:** ~25 lines. Use a template function: `template<size_t N> void copy_str(char (&dst)[N], const char* src)`.
+
+### 8.858 aligned_types: FastSignal confidence is uint8_t 0-100 — Low
+
+**Файл:** `hft-trade-bot/src/data/aligned_types.h:34`
+
+```cpp
+uint8_t   confidence{0}; // 0-100
+```
+
+Confidence is stored as `uint8_t` (0-100), but `SignalMsg` in `shm_protocol.h` uses `float` (0.0-1.0). When converting FastSignal → SignalMsg, confidence is divided by 100.0, losing precision: 85% → 0.85 (OK), but 85.5% → 85 → 0.85 (0.5% lost). If two signals have confidence 85.4 and 85.6, both become 85 — indistinguishable.
+
+**Фикс:** Use `uint16_t` (0-10000, 2 decimal places) or `float` directly.
+
+### 8.859 hft-trade-bot/src/data/types.h: Types — ✅ Good
+
+**Файл:** `hft-trade-bot/src/data/types.h` (92 lines)
+
+- **Candle**: OHLCV + symbol + exchange — correct
+- **OrderBookLevel**: price + quantity — correct
+- **OrderBook**: bids/asks vectors, `best_bid`/`best_ask`/`spread`/`mid_price` — correct
+- **Order**: id, symbol, exchange, side, type, quantity, optional price, status, filled_price/qty, fee — comprehensive
+- **Position**: symbol, exchange, side, quantity, entry_price, SL/TP, opened_at, unrealized_pnl, fees_paid, funding_paid, `is_long()`, `update_pnl()` — correct
+- **Side/OrderType/OrderStatus enums**: Clear — correct
+- **string_to_side**: Returns SELL for any non-BUY string — Low (silent default)
+
+Good types with Candle, OrderBook, Order, Position, and enums. ✅
+
+### 8.860 types: string_to_side defaults to SELL — Low
+
+**Файл:** `hft-trade-bot/src/data/types.h:21-23`
+
+```cpp
+inline Side string_to_side(const std::string& s) {
+    return s == "BUY" ? Side::BUY : Side::SELL;
+}
+```
+
+Any non-"BUY" string (typos, empty string, "buy" lowercase) defaults to SELL. This is a silent error — a typo like "Buy" or "buy" creates a SELL order instead of raising an error.
+
+**Фикс:** Throw `std::invalid_argument` for unknown strings. Or add case-insensitive comparison.
+
+### 8.861 types: Order timestamp uses milliseconds, FastOrder uses nanoseconds — Low
+
+**Файлы:** `hft-trade-bot/src/data/types.h:66` + `hft-trade-bot/src/data/aligned_types.h:137`
+
+```cpp
+// types.h: Order
+int64_t timestamp{static_cast<int64_t>(std::time(nullptr) * 1000)}; // milliseconds
+
+// aligned_types.h: FastOrder
+int64_t timestamp{0}; // nanoseconds (per FastSignal::now_ns)
+```
+
+`Order` uses milliseconds (`std::time * 1000`), `FastOrder` uses nanoseconds. When converting between them, the timestamp is off by 1000×. If `Order.timestamp` (ms) is passed to `FastOrder.timestamp` (ns), the order appears to be from 1000× in the past. This is a silent data corruption.
+
+**Фикс:** Use consistent units. Either both ms or both ns. Document the unit in the field name: `timestamp_ms` or `timestamp_ns`.
+
+### 8.862 hft-trade-bot/src/data/symbol_map.h: Symbol Map — ✅ Good
+
+**Файл:** `hft-trade-bot/src/data/symbol_map.h` (130 lines)
+
+- **FNV-1a hash**: `constexpr` compile-time hash — correct
+- **SymbolMap**: Runtime bidirectional mapping (string ↔ ID), `unordered_map` — correct
+- **PerfectSymbolMap**: Compile-time known symbols, hash probe + linear fallback — clever
+- **0xFFFF invalid ID**: Sentinel value — correct
+- **`get_id`/`get_symbol`/`has_symbol`**: Complete API — correct
+
+Good symbol map with FNV-1a hash, runtime and compile-time variants, and bidirectional mapping. ✅
+
+### 8.863 symbol_map: PerfectSymbolMap hash collision fallback is O(N) — Low
+
+**Файл:** `hft-trade-bot/src/data/symbol_map.h:96-107`
+
+```cpp
+static uint16_t get_id(std::string_view symbol) {
+    uint16_t bucket = static_cast<uint16_t>(symbol_hash(symbol) % NUM_KNOWN_SYMBOLS);
+    if (bucket < NUM_KNOWN_SYMBOLS && symbol == KNOWN_SYMBOLS[bucket]) {
+        return bucket;
+    }
+    // Hash collision or unknown symbol — fall back to linear search
+    for (size_t i = 0; i < NUM_KNOWN_SYMBOLS; ++i) {
+        if (symbol == KNOWN_SYMBOLS[i]) {
+            return static_cast<uint16_t>(i);
+        }
+    }
+    return 0xFFFF;
+}
+```
+
+If the hash collides (symbol hashes to a bucket that contains a different symbol), the function falls back to linear search O(N). With 10 symbols, this is up to 10 string comparisons per lookup. The "perfect hash" is not actually perfect — it's a hash + fallback.
+
+**Фикс:** Use a real perfect hash function (e.g., gperf or CMPH) that guarantees no collisions. Or use a `constexpr` sorted array with binary search O(log N).
+
+### 8.864 symbol_map: get_id allocates std::string — Low
+
+**Файл:** `hft-trade-bot/src/data/symbol_map.h:39-41`
+
+```cpp
+[[nodiscard]] uint16_t get_id(std::string_view symbol) const {
+    auto it = symbol_to_id_.find(std::string(symbol));
+```
+
+`std::string(symbol)` allocates a temporary string for every `find()` call. In the hot path (every tick, every symbol), this is a heap allocation. `unordered_map` with `std::string` key doesn't support `string_view` lookup directly (pre-C++20 without transparent comparator).
+
+**Фикс:** Use `std::unordered_map<std::string, uint16_t, StringHash, std::equal_to<>>` with transparent lookup (C++20). Or use a flat array indexed by symbol ID.
+
+### 8.865 ai-signal-bot/src/observability/tracing.py: Tracing — ✅ Good
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py` (111 lines)
+
+- **OpenTelemetry + Jaeger**: OTLP gRPC exporter — correct
+- **Resource**: service.name, namespace, version — correct
+- **BatchSpanProcessor**: Batches spans for efficiency — correct
+- **AsyncioInstrumentor**: Auto-instruments async code — excellent
+- **NoopTracer fallback**: When opentelemetry not installed — graceful
+- **setup_tracing idempotent**: `_initialized` flag — correct
+- **shutdown_tracing**: Flushes + shuts down — correct
+- **Error handling**: ImportError, RuntimeError, OSError, ValueError — resilient
+
+Good tracing setup with OpenTelemetry, Jaeger, noop fallback, idempotent init, and graceful shutdown. ✅
+
+### 8.866 tracing: global singleton not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/observability/tracing.py:25-26`
+
+```python
+_tracer: object | None = None
+_initialized: bool = False
+```
+
+`_tracer` and `_initialized` are module-level globals. If two threads call `setup_tracing()` simultaneously (e.g., during startup race), both may pass the `if _initialized` check and create two TracerProviders. The second `trace.set_tracer_provider()` may throw or overwrite the first.
+
+**Фикс:** Use `threading.Lock` around setup. Or accept that setup is called once at startup (before threads start).
+
+### 8.867 ai-signal-bot/src/observability/logging.py: Structured Logging — ✅ Excellent
+
+**Файл:** `ai-signal-bot/src/observability/logging.py` (171 lines)
+
+- **structlog**: JSON-formatted with correlation IDs — correct
+- **Contextual fields**: service, version via `_add_service_context` — correct
+- **Console + JSON**: Dev (ConsoleRenderer with colors) + Prod (JSONRenderer) — correct
+- **File handler**: Optional, always JSON — correct
+- **Library noise suppression**: asyncio, websockets, aiohttp.access → WARNING — good
+- **Fallback**: If structlog not installed, basic logging — graceful
+- **`bind_context`/`clear_context`**: Contextual binding via contextvars — excellent
+- **Idempotent**: `_configured` flag — correct
+- **Well-structured**: `_configure_structlog`, `_create_formatter`, `_setup_handlers`, `_suppress_library_noise` — clean separation
+
+Excellent structured logging with structlog, correlation IDs, contextual fields, console/JSON modes, library noise suppression, and contextvars binding. ✅
+
+### 8.868 logging: _configured flag not thread-safe — Low
+
+**Файл:** `ai-signal-bot/src/observability/logging.py:28-39`
+
+```python
+_configured: bool = False
+
+def setup_logging(...) -> None:
+    global _configured
+    if _configured:
+        return
+    # ... configure ...
+    _configured = True
+```
+
+Same issue as tracing.py (R866). If two threads call `setup_logging()` simultaneously, both may pass the `if _configured` check and configure logging twice. The second configuration's handlers replace the first's.
+
+**Фикс:** Use `threading.Lock` or accept that setup is called once at startup.
+
+### 8.869 Code reduction: set_symbol/set_reason/set_exchange duplicated 5× — Info
+
+**Файл:** `hft-trade-bot/src/data/aligned_types.h:58-74,146-171,246-262`
+
+Same pattern repeated 5 times across FastSignal, FastOrder, and RoutingDecision. Each is a while loop with bounds check and null termination.
+
+**Reduction potential:** ~25 lines. Use a template function:
+```cpp
+template<size_t N>
+inline void copy_str(char (&dst)[N], const char* src) noexcept {
+    size_t i = 0;
+    while (src[i] && i < N - 1) { dst[i] = src[i]; ++i; }
+    dst[i] = '\0';
+}
+```

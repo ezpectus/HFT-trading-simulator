@@ -1400,3 +1400,17 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R843 | health_checks: no timeout on individual checks | `health_checks.py:156` | Medium | DB/Redis hang indefinitely. Use asyncio.wait_for with timeout |
 | R844 | health_checks: record_signal not thread-safe | `health_checks.py:65` | Low | _signal_count += 1 not atomic. Use asyncio.Lock |
 | R845 | Code reduction: SignalLogger + TradeLogger near-identical | `tracker.py:70+99` | Info | Same structure, different header/fields. Single CsvLogger class. ~30 lines |
+| R846 | hft-trade-bot/data/aligned_types.h | `aligned_types.h` | ✅ Excellent | 5 aligned structs, static_assert, no heap alloc, cache-line padding, FastSignal/FastOrder/PressureResult/RoutingDecision |
+| R847 | aligned_types: set_symbol/set_reason repeated 5× | `aligned_types.h:58+146+246` | Info | Same while loop pattern. Template copy_str. ~25 lines |
+| R848 | aligned_types: FastSignal confidence uint8_t 0-100 | `aligned_types.h:34` | Low | Precision loss vs float SignalMsg. Use uint16_t or float |
+| R849 | hft-trade-bot/data/types.h | `types.h` | ✅ Good | Candle, OrderBook, Order, Position, 3 enums, update_pnl |
+| R850 | types: string_to_side defaults to SELL | `types.h:21` | Low | Typos silently create SELL. Throw or case-insensitive |
+| R851 | types: Order ms vs FastOrder ns timestamp | `types.h:66` + `aligned_types.h:137` | Low | 1000× mismatch. Use consistent units |
+| R852 | hft-trade-bot/data/symbol_map.h | `symbol_map.h` | ✅ Good | FNV-1a hash, runtime+compile-time, bidirectional, 0xFFFF sentinel |
+| R853 | symbol_map: PerfectSymbolMap collision fallback O(N) | `symbol_map.h:96` | Low | Not actually perfect hash. Linear fallback. Use gperf |
+| R854 | symbol_map: get_id allocates std::string | `symbol_map.h:39` | Low | Heap alloc in hot path. Use transparent lookup C++20 |
+| R855 | ai-signal-bot/observability/tracing.py | `tracing.py` | ✅ Good | OpenTelemetry+Jaeger, noop fallback, idempotent, graceful shutdown |
+| R856 | tracing: global singleton not thread-safe | `tracing.py:25` | Low | _tracer/_initialized race. Use threading.Lock |
+| R857 | ai-signal-bot/observability/logging.py | `logging.py` | ✅ Excellent | structlog, correlation IDs, console/JSON, contextvars, library noise suppression |
+| R858 | logging: _configured flag not thread-safe | `logging.py:28` | Low | Same race as tracing. Use threading.Lock |
+| R859 | Code reduction: set_symbol/set_reason/set_exchange 5× | `aligned_types.h` | Info | Template copy_str. ~25 lines |
