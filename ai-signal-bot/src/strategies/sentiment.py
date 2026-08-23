@@ -12,6 +12,8 @@ from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 
+import numpy as np
+
 from src.strategies.strategies import Signal, SignalDirection
 
 logger = logging.getLogger(__name__)
@@ -102,7 +104,6 @@ class SentimentStrategy:
         event.sentiment = base_sentiment * event.magnitude
         # Add noise for unexpected events
         if not event.expected:
-            import numpy as np
             rng = np.random.default_rng(seed=int(event.timestamp * 1000) % (2**32))
             event.sentiment += rng.normal(0, 0.2) * event.magnitude
 

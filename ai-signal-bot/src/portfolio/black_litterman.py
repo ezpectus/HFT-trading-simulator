@@ -18,6 +18,10 @@ class View:
     expected_return: float  # Expected return of the view
     confidence: float  # Confidence level (0 to 1)
 
+    def __post_init__(self) -> None:
+        if not 0 < self.confidence <= 1:
+            raise ValueError(f"View confidence must be in (0, 1], got {self.confidence}")
+
 
 class BlackLittermanModel:
     """Black-Litterman portfolio optimization model."""

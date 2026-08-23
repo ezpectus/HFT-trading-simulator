@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка AR: logging consolidation + tracing wiring)
+
+### Fixed
+- `src/monitoring/tracker.py`: Replaced `logging.getLogger` with `get_logger` from `observability/logging` — consolidates logging to single structured setup (§8.1428)
+- `run.py`: Wired `setup_tracing(service_name="ai-signal-bot")` at startup + `shutdown_tracing()` in finally block — enables OpenTelemetry distributed tracing (Reliability Plan Task 5)
+- `src/communication/ws_client.py`: 11 f-string logger calls → `%-style` for lazy evaluation (§8.337)
+- `src/communication/fix_client.py`: 11 f-string logger calls → `%-style` (§8.337)
+- `src/communication/health_check.py`: 1 f-string logger call → `%-style` (§8.337)
+- `src/communication/metrics_server.py`: 3 f-string logger calls → `%-style` (§8.337)
+
 ## [Unreleased] — 2026-08-25 (Reliability Plan — Пачка AQ: exchange_simulator safety)
 
 ### Fixed

@@ -4579,7 +4579,7 @@ Two separate metrics systems in the same bot. The communication one is lightweig
 
 **Code reduction:** Consolidate into a single metrics module.
 
-### 8.337 ai-signal-bot communication: f-string logging across 5+ files — Low
+### 8.337 ai-signal-bot communication: f-string logging across 5+ files — Low [FIXED]
 
 **Файлы:** `ws_client.py:84,88`, `ws_connection_pool.py:65,94,97,123`, `fix_client.py`, `health_check.py:118`, `metrics_server.py:101`
 
@@ -17286,7 +17286,7 @@ Alerts are sent to notifiers sequentially. If Telegram takes 2s and Discord take
 
 Good Markowitz implementation with proper scipy optimization and graceful fallback. ✅
 
-### 8.1268 markowitz: sector constraints not implemented — Low
+### 8.1268 markowitz: sector constraints not implemented — Low [N/A]
 
 **Файл:** `markowitz.py:77-83`
 
@@ -17304,7 +17304,7 @@ Sector constraints are accepted as a parameter but silently skipped with a warni
 
 **Фикс:** Add `asset_sector_map: dict[int, str]` parameter and implement sector constraints as `{'type': 'ineq', 'fun': lambda w: ...}` for each sector.
 
-### 8.1269 markowitz: penalty function for target_return is fragile — Low
+### 8.1269 markowitz: penalty function for target_return is fragile — Low [FIXED]
 
 **Файл:** `markowitz.py:59`
 
@@ -17329,7 +17329,7 @@ The penalty approach (adding 1000× deviation to the objective) is a soft constr
 
 Good Black-Litterman implementation with proper view incorporation and fallback. ✅
 
-### 8.1271 black_litterman: Ω confidence division can produce huge values — Low
+### 8.1271 black_litterman: Ω confidence division can produce huge values — Low [FIXED]
 
 **Файл:** `black_litterman.py:58`
 
@@ -17353,7 +17353,7 @@ If `view.confidence` is very low (e.g., 0.001), Ω becomes very large, meaning t
 
 Good risk parity implementation with iterative convergence and leverage targeting. ✅
 
-### 8.1273 risk_parity: portfolio_return hardcoded to 0 — Low
+### 8.1273 risk_parity: portfolio_return hardcoded to 0 — Low [FIXED]
 
 **Файл:** `risk_parity.py:76`
 
@@ -17378,7 +17378,7 @@ sharpe_ratio = (portfolio_return - self.risk_free_rate) / portfolio_volatility i
 
 Good rebalancing module with proper trigger logic and cost estimation. ✅
 
-### 8.1275 rebalancing: estimated_cost uses total_trade_value not sum of |trade_amount| — Low
+### 8.1275 rebalancing: estimated_cost uses total_trade_value not sum of |trade_amount| — Low [N/A]
 
 **Файл:** `rebalancing.py:106`
 
@@ -17462,7 +17462,7 @@ Good performance attribution implementation. ✅
 
 Good GA implementation for strategy discovery. ✅
 
-### 8.1283 genetic_strategy: deepcopy on every crossover — Low
+### 8.1283 genetic_strategy: deepcopy on every crossover — Low [N/A]
 
 **Файл:** `genetic_strategy.py:33`
 
@@ -17520,7 +17520,7 @@ Good options hedging simulator with proper Greeks and P&L decomposition. ✅
 
 Good config system with comprehensive validation and property-based access. ✅
 
-### 8.1288 config: property access raises KeyError on missing keys — Low
+### 8.1288 config: property access raises KeyError on missing keys — Low [N/A]
 
 **Файл:** `config/__init__.py:127`
 
@@ -17534,7 +17534,7 @@ Most properties use direct dict access (`self.raw["trading"]["symbols"]`) which 
 
 **Фикс:** Use `.get()` with defaults for optional fields, or document that `validate=True` is required before property access.
 
-### 8.1289 config: no hot-reload support — Low
+### 8.1289 config: no hot-reload support — Low [N/A]
 
 **Файл:** `config/__init__.py`
 
@@ -17594,7 +17594,7 @@ for symbol in self.config.symbols:
 
 **Фикс:** Use `asyncio.gather()` for I/O-bound parts (LLM, broadcast). Run `analyze()` in `run_in_executor()` for CPU-bound parts. Or process symbols in batches of 10.
 
-### 8.1294 run.py: run_backtest is synchronous in async context — Low
+### 8.1294 run.py: run_backtest is synchronous in async context — Low [N/A]
 
 **Файл:** `run.py:336-368`
 
@@ -17699,7 +17699,7 @@ Good Avellaneda-Stoikov implementation with inventory management. ✅
 
 Good ML ensemble with proper optional dependency handling. ✅
 
-### 8.1302 ml_ensemble: HMM _fit uses sorted returns split — Low
+### 8.1302 ml_ensemble: HMM _fit uses sorted returns split — Low [N/A]
 
 **Файл:** `ml_ensemble.py:97-105`
 
@@ -17730,7 +17730,7 @@ The "HMM" regime detector uses sorted returns split into n_states groups — thi
 
 Good sentiment strategy with event-driven design. ✅
 
-### 8.1304 sentiment: numpy import inside method — Low
+### 8.1304 sentiment: numpy import inside method — Low [FIXED]
 
 **Файл:** `sentiment.py:105`
 
@@ -17777,7 +17777,7 @@ The marketplace supports `install_from_git()` which clones a Git repository and 
 
 Clean circuit breaker implementation. ✅
 
-### 8.1308 circuit_breaker: is_tripped property has side effect — Low
+### 8.1308 circuit_breaker: is_tripped property has side effect — Low [N/A]
 
 **Файл:** `circuit_breaker.py:30-32`
 
@@ -17867,7 +17867,7 @@ The class accepts `signal: str` (e.g., 'HOLD', 'BUY') instead of a `Signal` obje
 
 Good stress testing with realistic crisis scenarios. ✅
 
-### 8.1315 stress_test: hardcoded shock multipliers — Low
+### 8.1315 stress_test: hardcoded shock multipliers — Low [N/A]
 
 **Файл:** `stress_test.py:33-34`
 
@@ -17904,7 +17904,7 @@ Both implement the same optimization methods with slightly different APIs. Neith
 
 Good signal validator with comprehensive risk checks. ✅
 
-### 8.1318 validator: datetime.now() without timezone — Low
+### 8.1318 validator: datetime.now() without timezone — Low [FIXED]
 
 **Файл:** `validator.py:46,58,113`
 
@@ -17944,7 +17944,7 @@ Every `save_signal()`, `save_trade()`, `save_equity()` call creates a new SQLite
 
 **Фикс:** Use a persistent connection with a connection pool, or use `contextvars` to share a connection within a single async task. Set WAL mode once during `_init_db()` and don't repeat it per connection.
 
-### 8.1321 db: close() catches broad Exception — Low
+### 8.1321 db: close() catches broad Exception — Low [FIXED]
 
 **Файл:** `db.py:29-34`
 
@@ -18939,7 +18939,7 @@ Helper functions extracted from `run.py` for file-size compliance: `build_strate
 
 **Minor:** Line 30: `from src.technical_analysis import adx, ema, rsi` — triggers the `__init__.py` re-export anti-pattern, loading all 25 technical_analysis modules just to use 3 functions. Should be `from src.technical_analysis.indicators import adx, ema, rsi`.
 
-### 8.1428 Project-wide: 4× duplicate logging setup (updated) — Low
+### 8.1428 Project-wide: 4× duplicate logging setup (updated) — Low [FIXED]
 
 **Файлы:** `run_logger.py` (root, 118 lines), `utils/helpers.py:14` (205 lines), `observability/logging.py:31` (171 lines), `monitoring/tracker.py:11` (175 lines)
 

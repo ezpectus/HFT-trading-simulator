@@ -56,8 +56,7 @@ class MarkowitzOptimizer:
                 weights, expected_returns, cov_matrix
             )
             if target_return is not None:
-                penalty = 1000 * abs(portfolio_return - target_return)
-                return portfolio_volatility + penalty
+                return portfolio_volatility
             elif min_variance:
                 return portfolio_volatility
             if portfolio_volatility < 1e-10:

@@ -63,7 +63,8 @@ class RiskParityOptimizer:
                              weight_bounds: tuple[float, float] = (0, 1),
                              risk_budget: np.ndarray | None = None,
                              max_iterations: int = 1000,
-                             tolerance: float = 1e-6) -> PortfolioResult:
+                             tolerance: float = 1e-6,
+                             expected_returns: np.ndarray | None = None) -> PortfolioResult:
         """Optimize portfolio for equal risk contribution (risk parity)."""
         n_assets = cov_matrix.shape[0]
         weights = np.ones(n_assets) / n_assets
@@ -73,8 +74,12 @@ class RiskParityOptimizer:
         weights = self._iterate_risk_parity(weights, cov_matrix, weight_bounds, max_iterations, tolerance)
 
         portfolio_volatility = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
-        portfolio_return = 0
-        sharpe_ratio = (portfolio_return - self.risk_free_rate) / portfolio_volatility if portfolio_volatility > 0 else 0
+        if expected_returns is not None:
+            portfolio_return = float(np.dot(weights, expected_returns))
+            sharpe_ratio = (portfolio_return - self.risk_free_rate) / portfolio_volatility if portfolio_volatility > 0 else 0.0
+        else:
+            portfolio_return = 0.0
+            sharpe_ratio = 0.0
 
         return PortfolioResult(
             weights=weights, expected_return=portfolio_return,
