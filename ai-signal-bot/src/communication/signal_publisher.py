@@ -66,6 +66,7 @@ class SignalPublisher:
         self.circuit_breaker = CircuitBreaker()
         self.metrics = MetricsCollector()
         self._cb_broadcast_task: asyncio.Task | None = None
+        self._state_lock = asyncio.Lock()
 
     @property
     def client_count(self) -> int:
@@ -105,8 +106,9 @@ class SignalPublisher:
 
     async def _handle_client(self, websocket, path=None) -> None:
         """Handle a connected HFT client."""
-        self._clients.add(websocket)
-        self.metrics.set_ws_clients(len(self._clients))
+        async with self._state_lock:
+            self._clients.add(websocket)
+            self.metrics.set_ws_clients(len(self._clients))
         remote = websocket.remote_address if hasattr(websocket, "remote_address") else "unknown"
         logger.info(f"HFT client connected: {remote} (total: {len(self._clients)})")
 
@@ -120,7 +122,7 @@ class SignalPublisher:
                 }
                 msg = orjson.dumps(hist_data) if _HAS_ORJSON else json.dumps(hist_data, separators=(',', ':'))
                 await websocket.send(msg)
-            except Exception as e:
+            except (ConnectionError, OSError, RuntimeError) as e:
                 logger.warning(f"Failed to send signal history: {e}")
 
         # Send current circuit breaker status on connect
@@ -132,7 +134,7 @@ class SignalPublisher:
             }
             msg = orjson.dumps(cb_data) if _HAS_ORJSON else json.dumps(cb_data, separators=(',', ':'))
             await websocket.send(msg)
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError) as e:
             logger.warning(f"Failed to send circuit breaker status: {e}")
 
         try:
@@ -152,25 +154,30 @@ class SignalPublisher:
                     logger.warning(f"Invalid JSON from {remote}: {message[:100]}")
         except websockets.ConnectionClosed:
             pass
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError) as e:
             logger.debug(f"Client handler error: {e}")
         finally:
-            self._clients.discard(websocket)
-            self.metrics.set_ws_clients(len(self._clients))
+            async with self._state_lock:
+                self._clients.discard(websocket)
+                self.metrics.set_ws_clients(len(self._clients))
             logger.info(f"HFT client disconnected (total: {len(self._clients)})")
 
     async def _broadcast_to_clients(self, msg: bytes | str) -> None:
         """Send a message to all connected clients, removing disconnected ones."""
-        if not self._clients:
-            return
+        async with self._state_lock:
+            if not self._clients:
+                return
+            clients = list(self._clients)
         disconnected = set()
         async def _send(ws):
             try:
                 await ws.send(msg)
-            except Exception:
+            except (ConnectionError, OSError):
                 disconnected.add(ws)
-        await asyncio.gather(*[_send(ws) for ws in self._clients], return_exceptions=True)
-        self._clients -= disconnected
+        await asyncio.gather(*[_send(ws) for ws in clients], return_exceptions=True)
+        if disconnected:
+            async with self._state_lock:
+                self._clients -= disconnected
 
     async def broadcast_signal(self, signal: dict) -> None:
         """Broadcast a trading signal to all connected HFT clients."""
@@ -184,10 +191,11 @@ class SignalPublisher:
 
         signal = dict(signal)  # copy to avoid mutating caller's dict
         signal["timestamp"] = int(time.time())
-        # Enforce max history size (allows _max_history to be changed after init)
-        if len(self._signal_history) >= self._max_history:
-            self._signal_history.popleft()
-        self._signal_history.append(signal)
+        async with self._state_lock:
+            # Enforce max history size (allows _max_history to be changed after init)
+            if len(self._signal_history) >= self._max_history:
+                self._signal_history.popleft()
+            self._signal_history.append(signal)
         self.metrics.record_signal_sent()
 
         if not self._clients:

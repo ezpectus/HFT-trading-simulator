@@ -33,15 +33,16 @@ class Database:
                 self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
                 self._conn.execute("PRAGMA journal_mode=DELETE")
                 self._conn.close()
-            except Exception:
+            except (OSError, sqlite3.Error):
                 pass
             self._conn = None
         else:
             try:
-                with closing(sqlite3.connect(self.path)) as conn:
-                    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-                    conn.execute("PRAGMA journal_mode=DELETE")
-            except Exception:
+                conn = sqlite3.connect(self.path)
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                conn.execute("PRAGMA journal_mode=DELETE")
+                conn.close()
+            except (OSError, sqlite3.Error):
                 pass
 
     def _init_db(self) -> None:

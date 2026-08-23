@@ -358,9 +358,9 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | ~~db: new SQLite connection per operation~~ [FIXED] | Replaced with persistent _get_conn() connection | CODE_AUDIT §8.1320 |
 | ~~signal_publisher: _run_backtest blocks event loop~~ [FIXED] | Wrapped bt.run in asyncio.to_thread | CODE_AUDIT §8.1323 |
 | ~~signal_publisher: 3 identical _send closures~~ [FIXED] | Extracted _broadcast_to_clients helper | CODE_AUDIT §8.1324 |
-| Project-wide: 0 asyncio.Lock usage | _clients _candle_history _recent_signals at risk. Add locks | CODE_AUDIT §8.1336 |
-| Project-wide: 13 except Exception catches | Masks CancelledError. Use specific exception types | CODE_AUDIT §8.1335 |
-| Project-wide: 8 datetime.now() without timezone | Naive datetime fragile. Use datetime.now(UTC) | CODE_AUDIT §8.1338 |
+| ~~Project-wide: 0 asyncio.Lock usage~~ [FIXED] | Added _state_lock in real_market_data (3 WS handlers + stop) and signal_publisher (_clients + _signal_history) | CODE_AUDIT §8.1336 |
+| ~~Project-wide: 13 except Exception catches~~ [FIXED] | All 9 remaining replaced: signal_publisher (4×), db (2×), health_check (1×), shm_fill_consumer (1×), shm_signal_producer (1×) | CODE_AUDIT §8.1335 |
+| ~~Project-wide: 8 datetime.now() without timezone~~ [FIXED] | All 8 fixed: validator.py (5×), monitor.py (3×), test_validator.py (1×). All now use datetime.now(UTC) | CODE_AUDIT §8.1338 |
 | ~~var: scipy hard dependency~~ [FIXED] | scipy import guarded with try/except, _norm_ppf fallback (Beasley-Springer-Moro) | CODE_AUDIT §8.1311 |
 | fix_client: no SSL/TLS support | Plain TCP. Add ssl_context parameter | CODE_AUDIT §8.1330 |
 | ~~shm_ring_buffer: no overflow detection on push~~ [FIXED] | Added dropped_count counter to try_push | CODE_AUDIT §8.1328 |

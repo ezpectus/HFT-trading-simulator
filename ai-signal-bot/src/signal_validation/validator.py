@@ -5,7 +5,7 @@ Checks confidence, R:R ratio, drawdown limits, and position limits.
 """
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from src.strategies.strategies import Signal
 
@@ -43,19 +43,19 @@ class SignalValidator:
         self.max_drawdown_pct = max_drawdown_pct
         self.max_open_positions = max_open_positions
         self._daily_pnl: float = 0.0
-        self._daily_reset: datetime = datetime.now()
+        self._daily_reset: datetime = datetime.now(UTC)
         self._open_positions: int = 0
         self._recent_signals: dict[str, datetime] = {}
 
     def reset_daily(self) -> None:
         """Reset daily PnL tracking."""
         self._daily_pnl = 0.0
-        self._daily_reset = datetime.now()
+        self._daily_reset = datetime.now(UTC)
         logger.info("Daily PnL reset")
 
     def update_pnl(self, pnl: float) -> None:
         """Track realized PnL for drawdown calculation."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         if now - self._daily_reset > timedelta(hours=24):
             self.reset_daily()
         self._daily_pnl += pnl
@@ -79,7 +79,7 @@ class SignalValidator:
             if result is not None:
                 return result
 
-        self._recent_signals[signal.symbol] = datetime.now()
+        self._recent_signals[signal.symbol] = datetime.now(UTC)
         return ValidationResult(True, "Signal validated", signal)
 
     def _check_confidence(self, signal: Signal) -> ValidationResult | None:
@@ -110,7 +110,7 @@ class SignalValidator:
 
     def _check_duplicate(self, signal: Signal) -> ValidationResult | None:
         """Check for duplicate signal within cooldown period."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         stale = [s for s, t in self._recent_signals.items() if now - t > timedelta(minutes=10)]
         for s in stale:
             del self._recent_signals[s]

@@ -1,6 +1,6 @@
 """Tests for signal validator."""
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -91,7 +91,7 @@ class TestDuplicateCooldown:
         sig1 = make_signal(symbol="BTC/USDT")
         self.validator.validate(sig1, account_balance=10000)
         # Patch datetime to simulate 6 minutes later
-        future = datetime.now() + timedelta(minutes=6)
+        future = datetime.now(UTC) + timedelta(minutes=6)
         with patch('src.signal_validation.validator.datetime') as mock_dt:
             mock_dt.now.return_value = future
             mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)

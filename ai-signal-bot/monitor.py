@@ -9,7 +9,7 @@ Usage:
 import asyncio
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 
 import websockets
 
@@ -70,7 +70,7 @@ async def monitor():
                     # Refresh display
                     clear_screen()
                     print(f"\n{'=' * 60}")
-                    print(f"  AI SIGNAL BOT — Live Monitor  {datetime.now().strftime('%H:%M:%S')}")
+                    print(f"  AI SIGNAL BOT — Live Monitor  {datetime.now(UTC).strftime('%H:%M:%S')}")
                     print(f"{'=' * 60}\n")
 
                     print(f"  Status:     {'CONNECTED' if connected else 'DISCONNECTED'}")
@@ -83,7 +83,7 @@ async def monitor():
                         print("  Recent Signals:")
                         print(f"  {'─' * 56}")
                         for s in last_signals[-8:]:
-                            ts = datetime.now().strftime('%H:%M:%S')
+                            ts = datetime.now(UTC).strftime('%H:%M:%S')
                             sym = s.get('symbol', '???')
                             direction = s.get('direction', '???')
                             conf = s.get('confidence', 0)
@@ -119,7 +119,7 @@ async def monitor():
             connected = False
             clear_screen()
             print(f"\n{'=' * 60}")
-            print(f"  AI SIGNAL BOT — Live Monitor  {datetime.now().strftime('%H:%M:%S')}")
+            print(f"  AI SIGNAL BOT — Live Monitor  {datetime.now(UTC).strftime('%H:%M:%S')}")
             print(f"{'=' * 60}\n")
             print("  Status:     DISCONNECTED")
             print(f"  Error:      {e}")

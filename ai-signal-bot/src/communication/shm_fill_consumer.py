@@ -36,7 +36,7 @@ class ShmFillConsumer:
             )
             logger.info(f"SHM fill consumer initialized: {self.name}")
             return True
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError) as e:
             logger.error(f"Failed to init SHM fill consumer: {e}")
             return False
 

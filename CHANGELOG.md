@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка N: project-wide except Exception + datetime.now() + asyncio.Lock sweep)
+
+### Changed
+- `signal_publisher.py`: Replaced 4× `except Exception` with `(ConnectionError, OSError, RuntimeError)` — added `_state_lock` (`asyncio.Lock`) for `_clients` and `_signal_history` shared state
+- `health_check.py`: `except Exception` → `(OSError, RuntimeError, ValueError, aiohttp.ClientError)`
+- `shm_fill_consumer.py` + `shm_signal_producer.py`: `except Exception` → `(OSError, RuntimeError, ValueError)`
+- `db.py`: 2× `except Exception` → `(OSError, sqlite3.Error)` in `close()`
+- `validator.py`: 5× `datetime.now()` → `datetime.now(UTC)` — timezone-aware timestamps
+- `monitor.py`: 3× `datetime.now()` → `datetime.now(UTC)`
+- `test_validator.py`: Updated test to use `datetime.now(UTC)`
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка M: torch/scipy optional guards + socket selectors)
 
 ### Changed
