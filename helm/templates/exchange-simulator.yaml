@@ -46,12 +46,14 @@ spec:
             - containerPort: {{ .Values.exchangeSimulator.ports.metrics }}
               name: metrics
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: {{ .Values.exchangeSimulator.ports.ws }}
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: {{ .Values.exchangeSimulator.ports.ws }}
             initialDelaySeconds: 5
             periodSeconds: 10

@@ -73,12 +73,14 @@ spec:
             - name: logs
               mountPath: /app/logs
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: {{ .Values.aiSignalBot.ports.ws }}
             initialDelaySeconds: 15
             periodSeconds: 30
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: {{ .Values.aiSignalBot.ports.ws }}
             initialDelaySeconds: 10
             periodSeconds: 10
