@@ -143,7 +143,7 @@ class HealthServer:
         await self._runner.setup()
         self._site = web.TCPSite(self._runner, self.host, self.port)
         await self._site.start()
-        logger.info(f"[HealthServer] Listening on {self.host}:{self.port}")
+        logger.info("[HealthServer] Listening on %s:%s", self.host, self.port)
 
     async def stop(self) -> None:
         """Stop the health server."""

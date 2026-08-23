@@ -203,7 +203,7 @@ class MLEnsembleStrategy:
         self._extract_feature_importance()
         self._train_hmm(closes)
 
-        logger.info(f"[ML Ensemble] Model trained: {len(X_clean)} samples, {X.shape[1]} features")
+        logger.info("[ML Ensemble] Model trained: %s samples, %s features", len(X_clean), X.shape[1])
         return {"trained": True, "samples": len(X_clean), "features": X.shape[1],
                 "train_count": self.train_count}
 
@@ -274,7 +274,7 @@ class MLEnsembleStrategy:
         if self.step_count % self.config.train_interval == 0 and len(candles) >= self.config.min_train_samples:
             result = self.train(candles)
             if not result.get("trained"):
-                logger.debug(f"[ML Ensemble] Training skipped: {result.get('reason')}")
+                logger.debug("[ML Ensemble] Training skipped: %s", result.get('reason'))
         if not self.is_trained:
             return Signal(symbol=symbol, direction=SignalDirection.NEUTRAL,
                           confidence=0, strategy=self.name, entry_price=0,

@@ -505,7 +505,7 @@ class Backtester:
         for i, strategy in enumerate(strategies):
             name = strategy.name if hasattr(strategy, 'name') else strategy.__class__.__name__
             unique_name = f"{name}_{i + 1}" if name in results else name
-            logger.info(f"Backtesting {unique_name}...")
+            logger.info("Backtesting %s...", unique_name)
             result = self.run(candles, strategy, symbol, warmup)
             results[unique_name] = result
         return results

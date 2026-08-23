@@ -129,7 +129,7 @@ class CrossExchangeArbEngine:
 
     async def start(self) -> None:
         self._running = True
-        logger.info(f"[CrossExArb] Started — symbols={self.symbols}, min_profit={self.min_profit_bps}bps")
+        logger.info("[CrossExArb] Started — symbols=%s, min_profit=%sbps", self.symbols, self.min_profit_bps)
         tasks = [self._monitor_loop(symbol) for symbol in self.symbols]
         await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -158,7 +158,7 @@ class CrossExchangeArbEngine:
                     self._pending_tasks.add(task)
                     task.add_done_callback(self._pending_tasks.discard)
             except (RuntimeError, OSError, ValueError, TypeError) as e:
-                logger.error(f"[CrossExArb] Monitor error for {symbol}: {e}")
+                logger.error("[CrossExArb] Monitor error for %s: %s", symbol, e)
 
     def _detect_opportunity(self, symbol: str) -> ArbitrageOpportunity | None:
         """Detect best arbitrage opportunity for a symbol."""

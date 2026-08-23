@@ -236,10 +236,10 @@ class MicrostructureLab:
         self.compute_spread_metrics()
         self.compute_trade_intensity()
 
-        logger.info(f"[Microstructure] Analysis complete — "
-                    f"OFI={self.metrics.ofi_mean:.2f}, "
-                    f"VPIN={self.metrics.vpin:.3f}, "
-                    f"spread={self.metrics.effective_spread_bps:.1f}bps, "
-                    f"lambda={self.metrics.kyle_lambda:.4f}")
+        logger.info(
+            "[Microstructure] Analysis complete — OFI=%.2f, VPIN=%.3f, spread=%.1fbps, lambda=%.4f",
+            self.metrics.ofi_mean, self.metrics.vpin,
+            self.metrics.effective_spread_bps, self.metrics.kyle_lambda,
+        )
 
         return self.metrics

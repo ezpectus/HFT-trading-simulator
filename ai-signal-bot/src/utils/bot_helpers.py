@@ -67,7 +67,7 @@ def build_stat_arb(config: SignalBotConfig, logger: logging.Logger):
     pairs = [f"{config.symbols[i]}/{config.symbols[j]}"
              for i in range(len(config.symbols))
              for j in range(i + 1, len(config.symbols))]
-    logger.info(f"  Statistical arbitrage: pairs={pairs}")
+    logger.info("  Statistical arbitrage: pairs=%s", pairs)
     return sa
 
 
@@ -90,8 +90,8 @@ async def generate_stat_arb_signals(bot, now_ts: int) -> None:
                     arb_dict["timestamp"] = now_ts
                     bot.signal_logger.log(arb_dict)
                     bot.logger.info(
-                        f"StatArb Signal: {arb_sig.direction.value} {sym_a}/{sym_b} "
-                        f"conf={arb_sig.confidence:.1f} ({arb_sig.reason})")
+                        "StatArb Signal: %s %s/%s conf=%.1f (%s)",
+                        arb_sig.direction.value, sym_a, sym_b, arb_sig.confidence, arb_sig.reason)
                     await bot.signal_publisher.broadcast_signal({
                         "symbol": arb_sig.symbol, "direction": arb_sig.direction.value,
                         "confidence": arb_sig.confidence, "strategy": arb_sig.strategy,
@@ -99,7 +99,7 @@ async def generate_stat_arb_signals(bot, now_ts: int) -> None:
                         "take_profit": arb_sig.take_profit, "rr_ratio": arb_sig.rr_ratio,
                         "reason": arb_sig.reason, "signal_id": 0})
             except (ValueError, KeyError, TypeError, ZeroDivisionError) as e:
-                bot.logger.debug(f"StatArb {sym_a}/{sym_b}: {e}")
+                bot.logger.debug("StatArb %s/%s: %s", sym_a, sym_b, e)
 
 
 async def generate_llm_explanation(bot, symbol: str, signal: Signal, candles: list) -> str:

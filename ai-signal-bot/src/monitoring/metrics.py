@@ -241,7 +241,7 @@ class MetricsExporter:
         await self._runner.setup()
         site = web.TCPSite(self._runner, host, port)
         await site.start()
-        logger.info(f"Prometheus metrics server started on {host}:{port}")
+        logger.info("Prometheus metrics server started on %s:%s", host, port)
 
     async def stop_server(self):
         """Stop metrics server."""

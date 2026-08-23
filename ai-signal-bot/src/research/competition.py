@@ -67,7 +67,7 @@ class StrategyCompetition:
     def register(self, name: str, strategy: Any) -> None:
         """Register a strategy. Any object with analyze() method (duck typing)."""
         self.strategies[name] = strategy
-        logger.info(f"[Competition] Registered: {name}")
+        logger.info("[Competition] Registered: %s", name)
 
     def run_tournament(self, backtest_fn: callable | None = None) -> dict[str, CompetitionResult]:
         """Run full round-robin tournament."""
@@ -75,7 +75,7 @@ class StrategyCompetition:
             return {}
 
         names = list(self.strategies.keys())
-        logger.info(f"[Competition] Starting tournament with {len(names)} strategies")
+        logger.info("[Competition] Starting tournament with %s strategies", len(names))
 
         # Run backtests
         for name in names:
