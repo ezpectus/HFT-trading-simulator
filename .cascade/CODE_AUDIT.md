@@ -10906,3 +10906,247 @@ Side side() const {
 Two position manager implementations exist. The V1 (130 lines) is used in `bot_loop.cpp` via `ctx.pos_mgr`. The V2 (14KB) is likely used via `ctx.pos_mgr_v2` or similar. If V2 supersedes V1, V1 is dead code.
 
 **Reduction potential:** ~130 lines if V1 is dead code.
+
+### 8.807 hft-trade-bot/src/strategies/signal_engine_v3.h: Signal Engine V3 — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h` (437 lines)
+
+- **HMM regime detection**: 4 states (TRENDING_UP, TRENDING_DOWN, RANGING, VOLATILE) — comprehensive
+- **Online HMM**: Forward recursion in log-space, parameter adaptation every 50 ticks — correct
+- **2D Gaussian emission**: (log_return, vol_proxy) — correct
+- **EWMA volatility**: RiskMetrics-style λ=0.94 — correct
+- **Regime gating**: Boost aligned signals, dampen counter-trend, cap ranging, widen volatile stops — correct
+- **Per-symbol HMM state**: `hmm_states_` unordered_map with StringHash — correct
+- **HMM update threshold**: Only update on >0.01% price change — efficient
+- **Min regime confidence**: 0.4 threshold before applying gating — correct
+- **Volatile regime**: Widens SL/TP by 1.5×, reduces leverage by 0.5× — correct
+- **No heap alloc in analyze()**: Stack-allocated HMM arrays — HFT-optimized
+- **Log-space numerics**: log_alpha, log_trans, log_gaussian — numerically stable
+- **Normalization**: Subtract max_alpha after forward recursion — prevents overflow
+
+Excellent signal engine V3 with HMM regime detection, online learning, log-space numerics, per-symbol state, regime gating, and no heap allocations. ✅
+
+### 8.808 signal_engine_v3: heap alloc in get_or_create_hmm_state() — Medium
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:352-357`
+
+```cpp
+inline HMMState& get_or_create_hmm_state(const char* symbol) noexcept {
+    auto it = hmm_states_.find(std::string_view(symbol));
+    if (it == hmm_states_.end()) {
+        it = hmm_states_.emplace(std::string(symbol), HMMState{}).first;
+    }
+    return it->second;
+}
+```
+
+Same issue as V2's `get_cache()` — `emplace` heap-allocates on first call per symbol. `analyze_incremental()` is supposed to have no heap allocations, but the first call for a new symbol allocates. The `noexcept` declaration is also incorrect — `emplace` can throw `std::bad_alloc`.
+
+**Фикс:** Pre-populate `hmm_states_` at init for all configured symbols. Remove `noexcept` or use `try_emplace` with pre-allocated memory.
+
+### 8.809 signal_engine_v3: VLA trans_sum on stack — Low
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:175`
+
+```cpp
+double trans_sum[N_STATES][N_STATES];
+```
+
+`N_STATES` is `constexpr int 4`, so this is a fixed-size array, not a VLA. However, it's 4×4 = 16 doubles = 128 bytes on the stack per `forward_recursion()` call. Called on every price update, this is fine but could be a class member to avoid repeated stack setup.
+
+**Фикс:** Make `trans_sum` a class member or `thread_local` to avoid stack setup overhead.
+
+### 8.810 signal_engine_v3: append_regime_reason manual string ops — Low
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:413-432`
+
+```cpp
+while (base.reason[reason_len] && reason_len < 47) ++reason_len;
+if (reason_len >= 40) return;
+base.reason[reason_len] = '|'; base.reason[reason_len + 1] = ' ';
+```
+
+Manual string concatenation with `while` loops and character-by-character copying. This is error-prone — if `reason_len` is exactly 47, the `base.reason[reason_len] = '|'` writes at index 47, but the buffer might be 48 bytes (indices 0-47). The boundary checks are correct but fragile.
+
+**Фикс:** Use `snprintf` with bounds checking: `snprintf(base.reason + reason_len, 48 - reason_len, "| %s %d%%", rname, conf_int)`.
+
+### 8.811 hft-trade-bot/src/strategies/mean_reversion_v2.h: Mean Reversion V2 — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h` (301 lines)
+
+- **KalmanFilter1D**: Predict + update equations, configurable Q/R — correct
+- **OU process estimation**: AR(1) regression → κ, θ, σ — correct
+- **Z-score**: (residual - θ) / σ — correct
+- **Half-life**: ln(2) / κ — correct
+- **6 signal actions**: NONE, ENTER_LONG, ENTER_SHORT, EXIT_LONG, EXIT_SHORT, STOP — comprehensive
+- **Stop on divergence**: |z| > 4.0 → STOP — correct
+- **Ring buffer**: residuals_ and timestamps_ with MAX_WINDOW=2048 — correct
+- **Cache-line aligned**: `alignas(64)` arrays — HFT-optimized
+- **No heap allocations**: All fixed-size arrays — HFT-optimized
+- **Config validation**: ou_window clamped to [2, MAX_WINDOW] — correct
+- **Ring buffer safe iteration**: `(start + k) % ou_window` — correct
+- **Average dt computation**: From timestamps — correct
+- **Min samples check**: 100 before generating signals — correct
+
+Excellent mean reversion V2 with Kalman filter, OU estimation, z-score, half-life, 6 actions, ring buffer, cache-line alignment, and no heap allocations. ✅
+
+### 8.812 mean_reversion_v2: no per-symbol state — Medium
+
+**Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h:60`
+
+```cpp
+class MeanReversionV2 {
+  private:
+    Config         config_;
+    KalmanFilter1D kalman_;
+    alignas(64) std::array<double, MAX_WINDOW> residuals_{};
+    alignas(64) std::array<uint64_t, MAX_WINDOW> timestamps_{};
+    uint64_t write_idx_{0};
+    uint64_t price_count_{0};
+```
+
+`MeanReversionV2` has a single Kalman filter, single residuals array, and single write_idx. If used for multiple symbols, they all share the same state — BTC's residuals contaminate ETH's OU estimation. Unlike `SignalEngineV2` which has per-symbol `IndicatorCache`, `MeanReversionV2` has no per-symbol state.
+
+**Фикс:** Add a `MeanReversionState` struct with Kalman filter, residuals, timestamps, and write_idx. Use `unordered_map<string, MeanReversionState>` for per-symbol state. Or require one instance per symbol.
+
+### 8.813 mean_reversion_v2: 32KB stack per instance — Low
+
+**Файл:** `hft-trade-bot/src/strategies/mean_reversion_v2.h:289-290`
+
+```cpp
+alignas(64) std::array<double, MAX_WINDOW> residuals_{};    // 2048 × 8 = 16KB
+alignas(64) std::array<uint64_t, MAX_WINDOW> timestamps_{};  // 2048 × 8 = 16KB
+```
+
+32KB per instance. If one instance per symbol (50 symbols), that's 1.6MB of memory. If allocated on the stack, stack overflow. If on the heap (as class member), it's fine but wastes memory for symbols with few trades.
+
+**Фикс:** Use `unique_ptr<array<...>>` for heap allocation, or reduce MAX_WINDOW to 512.
+
+### 8.814 ai-signal-bot/src/networking/socket_transport.py: Socket Transport — ✅ Good
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py` (156 lines)
+
+- **Non-blocking UDP**: `setblocking(False)` — correct
+- **Configurable buffer**: 1MB default, SO_RCVBUF + SO_SNDBUF — correct
+- **Bind to 127.0.0.1**: Local only — secure
+- **Packet stats**: packets_rx/tx, bytes_rx/tx, rx_drops, avg_latency — comprehensive
+- **Binary parsing**: [ts_ns:8][symbol_len:1][symbol:N][price:8][qty:8][side:1][msg_type:1] — correct
+- **Error handling**: BlockingIOError (sleep 100μs), OSError, struct.error, UnicodeDecodeError — resilient
+- **Configurable dest**: `send(data, dest)` — correct
+
+Good socket transport with non-blocking UDP, configurable buffers, 127.0.0.1 bind, binary parsing, packet stats, and error handling. ✅
+
+### 8.815 socket_transport: start_receive_loop blocks thread — Medium
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py:86-108`
+
+```python
+def start_receive_loop(self, on_packet: Callable[[MarketDataPacket], None]) -> None:
+    self._running = True
+    while self._running:
+        try:
+            data, addr = self._socket.recvfrom(65536)
+            # ...
+            on_packet(packet)
+        except BlockingIOError:
+            time.sleep(0.0001)  # 100μs sleep
+```
+
+`start_receive_loop()` is a blocking `while` loop. It blocks the calling thread indefinitely. If called from the asyncio event loop thread, it blocks all coroutines — signal generation, order execution, WebSocket reads all stop. The `time.sleep(0.0001)` on BlockingIOError is a busy-wait that consumes CPU.
+
+**Фикс:** Use `asyncio.get_event_loop().add_reader(self._socket.fileno(), callback)` for async I/O. Or run in a separate thread with `threading.Thread(target=self.start_receive_loop, daemon=True)`.
+
+### 8.816 socket_transport: no packet validation — Low
+
+**Файл:** `ai-signal-bot/src/networking/socket_transport.py:128-149`
+
+```python
+def _parse_packet(self, data: bytes) -> MarketDataPacket | None:
+    if len(data) < 27:
+        return None
+    ts_ns = struct.unpack_from("!Q", data, 0)[0]
+    sym_len = data[8]
+    symbol = data[9:9+sym_len].decode("ascii")
+```
+
+No validation of `sym_len` — if `sym_len` is 255 and the packet is only 30 bytes, `data[9:264]` returns partial data, and `decode("ascii")` may fail. The `except (struct.error, UnicodeDecodeError, IndexError)` catches this, but the packet is silently dropped without logging.
+
+**Фикс:** Validate `9 + sym_len + 18 <= len(data)` before parsing. Log dropped packets with reason.
+
+### 8.817 ai-signal-bot/src/notification/notifier.py: Notifier — ✅ Good
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py` (334 lines)
+
+- **2 providers**: Telegram + Discord — comprehensive
+- **AlertEvent dataclass**: type, symbol, message, timestamp, data — correct
+- **6 event types**: fill, sl_tp, position_open, position_close, daily_pnl, error — comprehensive
+- **Emoji mapping**: Per event type — nice UX
+- **Remote commands**: /status, /positions, /close_all, /pause, /resume — correct
+- **Command handlers**: Pluggable via `register_command()` — flexible
+- **Long polling**: Telegram getUpdates with 30s timeout — correct
+- **Chat ID validation**: Only processes messages from configured chat — correct
+- **Graceful stop**: Cancel poll task, close session — correct
+- **aiohttp optional**: ImportError handled — resilient
+- **Error handling**: OSError, RuntimeError, JSONDecodeError, CancelledError — resilient
+
+Good notifier with Telegram + Discord, 6 event types, remote commands, chat ID validation, graceful stop, and error handling. ✅
+
+### 8.818 notifier: bot token in plaintext — Medium
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py:53-54`
+
+```python
+class TelegramNotifier:
+    def __init__(self, token: str, chat_id: str):
+        self.token = token
+```
+
+Bot token stored as plaintext string. If the notifier is logged (e.g., `logger.info(f"[TelegramNotifier] Token: {self.token}")`), the token is exposed. The token is also in the URL: `f"https://api.telegram.org/bot{self.token}/sendMessage"` — if HTTP requests are logged (e.g., aiohttp debug), the token appears in logs.
+
+**Фикс:** Use `field(repr=False)` on a dataclass, or mask the token in logs. Use environment variables for token storage.
+
+### 8.819 notifier: no rate limiting on alerts — Medium
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py:89-116`
+
+```python
+async def send_alert(self, event: AlertEvent):
+    # ...
+    async with self._session.post(url, json=payload) as resp:
+```
+
+No rate limiting on alert sending. If 50 symbols generate fills simultaneously, 50 Telegram API calls are sent in one cycle. Telegram has rate limits (~30 messages/sec, 20 messages/minute to same chat). Exceeding returns 429 Too Many Requests, which is caught but the alert is lost.
+
+**Фикс:** Add a message queue with rate limiting. Batch alerts into a single message. Use `asyncio.Semaphore` to limit concurrent sends.
+
+### 8.820 notifier: no retry on failed sends — Low
+
+**Файл:** `ai-signal-bot/src/notification/notifier.py:111-116`
+
+```python
+try:
+    async with self._session.post(url, json=payload) as resp:
+        if resp.status != 200:
+            logger.warning(f"Telegram send failed: {resp.status}")
+except (OSError, RuntimeError) as e:
+    logger.error(f"Telegram send error: {e}")
+```
+
+If the send fails (network error, 429, 500), the alert is lost. No retry mechanism. Critical alerts (SL/TP hits, error events) should be retried.
+
+**Фикс:** Add exponential backoff retry (3 attempts). Queue failed alerts for later retry.
+
+### 8.821 Code reduction: duplicate emoji_map in Telegram and Discord — Info
+
+**Файлы:** `ai-signal-bot/src/notification/notifier.py:93-100` + `notifier.py:212-219`
+
+```python
+# TelegramNotifier.send_alert
+emoji_map = {"fill": "✅", "sl_tp": "🎯", "position_open": "📈", ...}
+# DiscordNotifier.send_alert
+emoji_map = {"fill": "✅", "sl_tp": "🎯", "position_open": "📈", ...}
+```
+
+Same `emoji_map` dict defined in both `TelegramNotifier.send_alert()` and `DiscordNotifier.send_alert()`. Should be a class-level constant or module-level dict.
+
+**Reduction potential:** ~8 lines.

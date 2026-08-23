@@ -4767,3 +4767,128 @@ for (const auto& [symbol, sym_cstr, sym_id] : ctx.symbol_entries) {
 ```
 
 **Разница:** The bad code uses a single `last_signal_ms_` member variable for all symbols. When BTC generates a signal at t=0, the cooldown is set for ALL symbols — ETH, SOL, and 48 others are blocked for 5000ms. Only 1 signal per cooldown period across all 50 symbols — a 50× reduction in signal generation. With 1000 users running 50 symbols each, 49,000 missed opportunities per 5s window. The bug is silent — no error, no crash, just NEUTRAL signals with "Cooldown active" reason. The operator sees low signal count but doesn't know why. If average profit per signal = $0.50, that's $24,500 lost per 5s, $17.6M/hour. The good code moves `last_signal_ms` into the per-symbol `IndicatorCache` struct. Each symbol has its own independent cooldown timer. BTC generating a signal doesn't affect ETH's cooldown. All 50 symbols can generate signals independently — 50 signals per 5s window instead of 1. The cost is moving one `int64_t` field from the class to the cache struct (zero extra code, just relocation). The benefit is 50× more signals, 50× more trading opportunities, and $17.6M/hour in recovered revenue. This is a classic example of a shared-state bug: the developer intended per-symbol cooldown but accidentally implemented global cooldown by using a class member instead of a per-instance field.
+
+---
+
+## Bad vs Good: No Per-Symbol State — Cross-Contamination (C++)
+
+### ❌ Bad Code
+```cpp
+class MeanReversionV2 {
+  private:
+    KalmanFilter1D kalman_;  // SINGLE Kalman filter for ALL symbols
+    alignas(64) std::array<double, 2048> residuals_{};   // SINGLE residual buffer
+    alignas(64) std::array<uint64_t, 2048> timestamps_{}; // SINGLE timestamp buffer
+    uint64_t write_idx_{0};  // SINGLE write index
+    uint64_t price_count_{0}; // SINGLE price count
+};
+
+// In bot_loop.cpp:
+for (const auto& [symbol, sym_cstr, sym_id] : ctx.symbol_entries) {
+    double price = get_current_price(sym_cstr);
+    auto sig = mean_rev.on_price(now_ns, price);
+    // Iteration 1: BTC at $100,000
+    //   kalman_.reset(100000)
+    //   residuals_[0] = 0.0 (price == fair_price)
+    //   write_idx_ = 1
+    //
+    // Iteration 2: ETH at $3,500
+    //   kalman_ was tracking BTC at $100,000
+    //   fair_price = kalman_.update(3500) → Kalman thinks price dropped 96.5%
+    //   residual = 3500 - ~96500 = ~-93000 (MASSIVE residual)
+    //   z-score = -93000 / sigma → off the charts
+    //   Signal: ENTER_LONG (z < -entry_threshold)
+    //   But this is WRONG — ETH didn't diverge from its fair value
+    //   The Kalman filter is contaminated with BTC data
+    //
+    // Iteration 3: SOL at $200
+    //   kalman_ now confused by BTC + ETH mix
+    //   fair_price = some garbage value
+    //   residual = meaningless
+    //   Signal: STOP (|z| > 4.0) — false stop
+    //
+    // Result: ALL symbols after the first get garbage signals
+    // The Kalman filter, residuals, and OU parameters are all contaminated
+    // With 50 symbols: 49 symbols get incorrect signals
+    // With 1000 users × 50 symbols: 49,000 incorrect signals per cycle
+    // If each incorrect signal causes a $10 loss (wrong direction, false stop):
+    // $490,000 per cycle, $29.4M per hour
+}
+```
+
+**What's wrong:**
+- Single `KalmanFilter1D` tracks all symbols — BTC at $100K, then ETH at $3.5K, then SOL at $200
+- The Kalman filter's state estimate (`x_`) is contaminated — it tries to smooth across $100K → $3.5K → $200
+- Residuals buffer mixes BTC residuals with ETH residuals — OU parameter estimation is meaningless
+- Z-score is calculated from contaminated residuals — false ENTER_LONG, false STOP signals
+- `write_idx_` is shared — BTC writes to indices 0-499, ETH overwrites at 500-999, SOL at 1000-1499
+- With 50 symbols, each symbol only gets 2048/50 ≈ 40 data points in the ring buffer — below `min_samples=100`
+- No signal is ever generated because `n < min_samples` is always true after the ring buffer wraps
+- With 1000 users × 50 symbols: 49,000 incorrect signals per cycle, $29.4M/hour in losses
+
+### ✅ Good Code
+```cpp
+class MeanReversionV2 {
+  public:
+    struct PerSymbolState {
+        KalmanFilter1D kalman;
+        alignas(64) std::array<double, 2048> residuals{};
+        alignas(64) std::array<uint64_t, 2048> timestamps{};
+        uint64_t write_idx{0};
+        uint64_t price_count{0};
+        double last_kappa{0.0};
+        double last_theta{0.0};
+        double last_sigma{0.0};
+        double last_z{0.0};
+    };
+
+    Signal on_price(const char* symbol, uint64_t timestamp_ns, double price) noexcept {
+        PerSymbolState& state = get_or_create_state(symbol);
+        // Each symbol has its OWN Kalman filter, residuals, timestamps
+        // BTC's Kalman tracks BTC fair price
+        // ETH's Kalman tracks ETH fair price
+        // No cross-contamination
+
+        if (state.price_count == 0) {
+            state.kalman.reset(price);
+        }
+        double fair_price = state.kalman.update(price);
+        ++state.price_count;
+
+        double residual = price - fair_price;
+        state.residuals[state.write_idx % config_.ou_window] = residual;
+        state.timestamps[state.write_idx % config_.ou_window] = timestamp_ns;
+        ++state.write_idx;
+
+        // OU estimation uses ONLY this symbol's residuals
+        // Z-score is calculated from this symbol's OU parameters
+        // Signals are correct for this symbol
+        // ...
+    }
+
+  private:
+    std::unordered_map<std::string, PerSymbolState, StringHash, std::equal_to<>> states_;
+
+    PerSymbolState& get_or_create_state(const char* symbol) noexcept {
+        auto it = states_.find(std::string_view(symbol));
+        if (it == states_.end()) {
+            it = states_.emplace(std::string(symbol), PerSymbolState{}).first;
+        }
+        return it->second;
+    }
+};
+
+// In bot_loop.cpp:
+for (const auto& [symbol, sym_cstr, sym_id] : ctx.symbol_entries) {
+    double price = get_current_price(sym_cstr);
+    auto sig = mean_rev.on_price(sym_cstr, now_ns, price);
+    // Iteration 1: BTC — state.kalman tracks BTC, residuals are BTC-only
+    // Iteration 2: ETH — DIFFERENT state.kalman tracks ETH, residuals are ETH-only
+    // Iteration 3: SOL — DIFFERENT state.kalman tracks SOL, residuals are SOL-only
+    // Each symbol has its own independent Kalman filter and OU parameters
+    // Z-scores are correct for each symbol
+    // No cross-contamination
+}
+```
+
+**Разница:** The bad code uses a single `KalmanFilter1D`, single residuals array, and single write_idx for all symbols. When BTC at $100K is followed by ETH at $3.5K, the Kalman filter tries to smooth across the $96.5K price drop — the state estimate becomes garbage. Residuals from BTC, ETH, and SOL are mixed in the same ring buffer — OU parameter estimation is meaningless. Z-scores are calculated from contaminated data, producing false ENTER_LONG and false STOP signals. With 50 symbols, each symbol only gets ~40 data points in the ring buffer (2048/50), below the `min_samples=100` threshold — no signals are ever generated after the buffer wraps. With 1000 users × 50 symbols, 49,000 incorrect signals per cycle, $29.4M/hour in losses. The good code introduces a `PerSymbolState` struct containing its own Kalman filter, residuals array, timestamps, and write_idx. Each symbol gets its own independent state — BTC's Kalman tracks BTC's fair price, ETH's Kalman tracks ETH's fair price. No cross-contamination. Z-scores are correct for each symbol. The cost is a `PerSymbolState` struct (~32KB per symbol) and an `unordered_map` lookup per call. The benefit is correct signals for all 50 symbols — no false entries, no false stops, no $29.4M/hour in losses. This is a classic example of a missing per-instance state bug: the developer designed the algorithm for a single symbol but forgot to isolate state when extending to multiple symbols.

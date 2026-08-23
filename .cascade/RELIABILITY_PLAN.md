@@ -1351,3 +1351,18 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R794 | hft-trade-bot/data/signal.h | `signal.h` | ✅ Good | 9 fields, convenience methods, R:R calculation |
 | R795 | signal.h: NEUTRAL side() returns BUY | `signal.h:25` | Low | Footgun. Return optional<Side> or Side::NONE |
 | R796 | Code reduction: position_manager V1 vs V2 | 2 files | Info | V1 (130 lines) may be dead if V2 supersedes. ~130 lines |
+| R797 | hft-trade-bot/strategies/signal_engine_v3.h | `signal_engine_v3.h` | ✅ Excellent | HMM 4-state regime detection, online learning, log-space, per-symbol, regime gating, no heap alloc |
+| R798 | signal_engine_v3: heap alloc in get_or_create_hmm_state() | `signal_engine_v3.h:352` | Medium | emplace in analyze_incremental. noexcept incorrect. Pre-populate at init |
+| R799 | signal_engine_v3: trans_sum 128B on stack per call | `signal_engine_v3.h:175` | Low | 4×4 doubles per forward_recursion. Make class member or thread_local |
+| R800 | signal_engine_v3: append_regime_reason manual string ops | `signal_engine_v3.h:413` | Low | Fragile boundary checks. Use snprintf |
+| R801 | hft-trade-bot/strategies/mean_reversion_v2.h | `mean_reversion_v2.h` | ✅ Excellent | Kalman filter, OU estimation, z-score, half-life, 6 actions, ring buffer, alignas(64), no heap |
+| R802 | mean_reversion_v2: no per-symbol state | `mean_reversion_v2.h:60` | Medium | Single Kalman + residuals for all symbols. Cross-contamination. Add per-symbol state |
+| R803 | mean_reversion_v2: 32KB stack per instance | `mean_reversion_v2.h:289` | Low | 2× 16KB arrays. 50 symbols = 1.6MB. Use heap or reduce MAX_WINDOW |
+| R804 | ai-signal-bot/networking/socket_transport.py | `socket_transport.py` | ✅ Good | Non-blocking UDP, 1MB buffer, 127.0.0.1 bind, binary parsing, packet stats, error handling |
+| R805 | socket_transport: start_receive_loop blocks thread | `socket_transport.py:86` | Medium | Blocking while loop. Blocks asyncio event loop. Use add_reader or separate thread |
+| R806 | socket_transport: no packet validation | `socket_transport.py:128` | Low | No sym_len validation. Silent drop. Validate 9+sym_len+18 <= len(data) |
+| R807 | ai-signal-bot/notification/notifier.py | `notifier.py` | ✅ Good | Telegram+Discord, 6 event types, remote commands, chat ID validation, graceful stop |
+| R808 | notifier: bot token in plaintext | `notifier.py:53` | Medium | Token in URL, exposed in logs. Use field(repr=False) or env vars |
+| R809 | notifier: no rate limiting on alerts | `notifier.py:89` | Medium | 50 fills = 50 API calls. Telegram 429. Add queue + rate limiter |
+| R810 | notifier: no retry on failed sends | `notifier.py:111` | Low | Failed alert lost. Add exponential backoff retry (3 attempts) |
+| R811 | Code reduction: duplicate emoji_map | `notifier.py:93+212` | Info | Same dict in Telegram and Discord. Module-level constant. ~8 lines |

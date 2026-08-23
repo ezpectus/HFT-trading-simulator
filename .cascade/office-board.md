@@ -285,3 +285,8 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | llm_engine: no rate limiting on API calls | 50 symbols = 50 API calls/cycle. OpenAI 429 errors. Add token bucket rate limiter | CODE_AUDIT §8.792 |
 | signal_engine_v2: heap alloc in get_cache() | emplace in analyze_incremental breaks no-heap-alloc contract. Pre-populate cache at init | CODE_AUDIT §8.796 |
 | signal_engine_v2: cooldown not per-symbol | Single cooldown blocks all 50 symbols. Only 1 signal per period. Move to per-symbol cache | CODE_AUDIT §8.798 |
+| signal_engine_v3: heap alloc in get_or_create_hmm_state() | emplace in analyze_incremental breaks no-heap-alloc contract. noexcept incorrect. Pre-populate at init | CODE_AUDIT §8.808 |
+| mean_reversion_v2: no per-symbol state | Single Kalman+residuals for all symbols. BTC contaminates ETH. Add per-symbol state | CODE_AUDIT §8.812 |
+| socket_transport: start_receive_loop blocks thread | Blocking while loop blocks asyncio event loop. Use add_reader or separate thread | CODE_AUDIT §8.815 |
+| notifier: bot token in plaintext | Token in URL, exposed in logs. Use field(repr=False) or env vars | CODE_AUDIT §8.818 |
+| notifier: no rate limiting on alerts | 50 fills = 50 API calls. Telegram 429. Add queue + rate limiter | CODE_AUDIT §8.819 |
