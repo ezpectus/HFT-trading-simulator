@@ -31,6 +31,25 @@ All notable changes to this project are documented in this file.
 - `ai-signal-bot/Dockerfile`: Fixed healthcheck port 8766→9090, added `--metrics` to CMD so health server starts (Task 2)
 - `ai-signal-bot/Dockerfile.prod`: Fixed healthcheck port 8766→9090 (Task 2)
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AV: exchange_simulator Low items pt.2)
+
+### Fixed
+- `exchange_simulator/exchange.py`: `_order_history` unbounded list → `deque(maxlen=10000)` — prevents memory leak (§8.505)
+- `exchange_simulator/exchange_order_submission.py`: Added `MAX_QUANTITY=1e9` upper bound check — prevents numeric overflow (§8.518)
+- `exchange_simulator/exchange_liquidation.py`: Maintenance margin rate now configurable via `getattr(self, 'maintenance_margin_rate', 0.005)` instead of hardcoded 0.005 (§8.546)
+- `exchange_simulator/price_feed_manager.py`: `msgpack` import made optional with `try/except ImportError` fallback (§8.550)
+- `exchange_simulator/ws_metrics.py`: Cached sorted results for p95 percentile queries — avoids O(n log n) on every call (§8.552)
+- `exchange_simulator/tracing.py`: OpenTelemetry imports wrapped in `try/except ImportError` with `_NoopTracer` fallback (§8.515)
+
+### Changed
+- CODE_AUDIT §8.495 — global mutable state → [N/A] (asyncio single-threaded)
+- CODE_AUDIT §8.507 — sys.path manipulation → [N/A] (standard pattern for non-installed packages)
+- CODE_AUDIT §8.509 — import inside method → [N/A] (optional dependency pattern)
+- CODE_AUDIT §8.511 — seed propagation → [N/A] (deterministic offsets by design)
+- CODE_AUDIT §8.513 — rate limit not thread-safe → [N/A] (asyncio single-threaded)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AU: exchange_simulator Low items)
 
 ### Fixed
