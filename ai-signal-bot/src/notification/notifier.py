@@ -256,6 +256,8 @@ class DiscordNotifier:
                         if content.startswith("/"):
                             await self._handle_command(content)
 
+                await asyncio.sleep(1)  # Rate limit: 1s between polls on success
+
             except asyncio.CancelledError:
                 break
             except (OSError, RuntimeError, json.JSONDecodeError) as e:
@@ -306,8 +308,15 @@ class NotifierManager:
             await n.stop()
 
     async def send_alert(self, event: AlertEvent):
-        for n in self._notifiers:
-            await n.send_alert(event)
+        if not self._notifiers:
+            return
+        results = await asyncio.gather(
+            *[n.send_alert(event) for n in self._notifiers],
+            return_exceptions=True,
+        )
+        for i, r in enumerate(results):
+            if isinstance(r, Exception):
+                logger.error(f"[NotifierManager] Notifier {i} failed: {r}")
 
     @property
     def active(self) -> bool:

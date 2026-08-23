@@ -512,6 +512,7 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 | 14 | 2026-08-25 | Пачка L — position_sizing.py: kelly_criterion_sizing delegates to KellyPositionSizer (removed _calc_kelly_fraction). risk/portfolio_optimizer.py: added DeprecationWarning (duplicate of portfolio/ module) | ✅ Done | — |
 | 15 | 2026-08-25 | Пачка M — price_predictor.py + rl_trader.py: torch import guarded with try/except + _DummyModule. var.py: scipy import guarded with _norm_ppf fallback (Beasley-Springer-Moro). socket_transport.py: busy-poll replaced with selectors.DefaultSelector | ✅ Done | — |
 | 16 | 2026-08-25 | Пачка N — signal_publisher.py: 4× except Exception → specific types + asyncio.Lock for _clients/_signal_history. health_check.py + shm_fill_consumer.py + shm_signal_producer.py: except Exception → specific types. db.py: 2× except Exception → (OSError, sqlite3.Error). validator.py + monitor.py: 8× datetime.now() → datetime.now(UTC). test_validator.py updated | ✅ Done | — |
+| 17 | 2026-08-25 | Пачка O — notifier.py: NotifierManager.send_alert sequential → asyncio.gather. Discord poll: added asyncio.sleep(1) on success. alerting.py: 3× aiohttp.ClientSession() per-alert → shared _get_session(). automl.py: added optimize_async() via run_in_executor | ✅ Done | — |
 | 5 | 2026-08-26 | Аудит unused research модулей | ⏳ Pending | — |
 | 6 | 2026-08-27 | backtester.py упрощение | ⏳ Pending | — |
 | 7 | 2026-08-28 | strategies.py cleanup | ⏳ Pending | — |

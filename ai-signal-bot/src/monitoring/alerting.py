@@ -65,6 +65,19 @@ class AlertSystem:
         self._max_history = 1000
         self._running = False
         self._check_task: asyncio.Task | None = None
+        self._session: aiohttp.ClientSession | None = None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """Get or create shared aiohttp session."""
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+        return self._session
+
+    async def close_session(self) -> None:
+        """Close shared aiohttp session."""
+        if self._session and not self._session.closed:
+            await self._session.close()
+            self._session = None
 
     def add_rule(self, rule: AlertRule) -> None:
         """Add an alert rule."""
@@ -165,10 +178,10 @@ class AlertSystem:
             }]
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(self.discord_webhook, json=payload) as resp:
-                if resp.status not in (200, 204):
-                    logger.error(f"[AlertSystem] Discord webhook failed: {resp.status}")
+        session = await self._get_session()
+        async with session.post(self.discord_webhook, json=payload) as resp:
+            if resp.status not in (200, 204):
+                logger.error(f"[AlertSystem] Discord webhook failed: {resp.status}")
 
     async def _send_telegram(self, alert: Alert) -> None:
         """Send alert via Telegram bot."""
@@ -187,10 +200,10 @@ class AlertSystem:
             "parse_mode": "Markdown",
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=payload) as resp:
-                if resp.status != 200:
-                    logger.error(f"[AlertSystem] Telegram send failed: {resp.status}")
+        session = await self._get_session()
+        async with session.post(url, json=payload) as resp:
+            if resp.status != 200:
+                logger.error(f"[AlertSystem] Telegram send failed: {resp.status}")
 
     async def _send_webhook(self, alert: Alert) -> None:
         """Send alert to generic webhook."""
@@ -202,10 +215,10 @@ class AlertSystem:
             "details": alert.details,
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(self.webhook_url, json=payload) as resp:
-                if resp.status not in (200, 204):
-                    logger.error(f"[AlertSystem] Webhook failed: {resp.status}")
+        session = await self._get_session()
+        async with session.post(self.webhook_url, json=payload) as resp:
+            if resp.status not in (200, 204):
+                logger.error(f"[AlertSystem] Webhook failed: {resp.status}")
 
     async def start_monitoring(self, check_interval: float = 30.0) -> None:
         """Start periodic rule checking."""
@@ -230,6 +243,7 @@ class AlertSystem:
                 await self._check_task
             except asyncio.CancelledError:
                 pass
+        await self.close_session()
 
     def get_history(self, limit: int = 50) -> list[dict]:
         """Get recent alert history."""

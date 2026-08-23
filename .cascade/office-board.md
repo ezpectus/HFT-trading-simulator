@@ -337,13 +337,13 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | health_server: sequential health checks | 5s total > K8s 1s timeout. Use asyncio.gather | CODE_AUDIT §8.1228 |
 | health_checks: no timeout on DB/Redis checks | K8s kills pod after 1s. Add asyncio.wait_for(timeout=2) | CODE_AUDIT §8.1208 |
 | tracker: opens CSV file on every log() call | 100 open/close syscalls/sec. Keep file open | CODE_AUDIT §8.1220 |
-| alerting: new aiohttp session per alert | 30 sessions/min. Use shared session | CODE_AUDIT §8.1216 |
-| automl: study.optimize blocks event loop | 1h event loop block. Use run_in_executor | CODE_AUDIT §8.1230 |
-| notifier: Discord polls REST API without sleep | Hammers Discord API at max speed. Add asyncio.sleep(1) on success | CODE_AUDIT §8.1265 |
+| ~~alerting: new aiohttp session per alert~~ [FIXED] | Replaced 3× aiohttp.ClientSession() per-alert with shared _get_session() + close_session() | CODE_AUDIT §8.1216 |
+| ~~automl: study.optimize blocks event loop~~ [FIXED] | Added optimize_async() wrapper using loop.run_in_executor for non-blocking optimization | CODE_AUDIT §8.1230 |
+| ~~notifier: Discord polls REST API without sleep~~ [FIXED] | Added asyncio.sleep(1) after successful poll to rate-limit Discord API calls | CODE_AUDIT §8.1265 |
 | llm_engine: no rate limiting on API calls | Spikes on cold cache. Add rate limiter | CODE_AUDIT §8.1261 |
 | price_predictor: not integrated with model_registry | Models trained but not versioned. Integrate register() after training | CODE_AUDIT §8.1246 |
 | rkhs: Jacobi eigendecomposition O(N³) in pure Python | 10.8M ops, ~10s. Use numpy.linalg.eigh | CODE_AUDIT §8.1253 |
-| notifier: NotifierManager.send_alert sequential | 5s total for 2 notifiers. Use asyncio.gather | CODE_AUDIT §8.1266 |
+| ~~notifier: NotifierManager.send_alert sequential~~ [FIXED] | Replaced sequential for-loop with asyncio.gather + return_exceptions=True | CODE_AUDIT §8.1266 |
 | research: 22 duplicate compute_returns functions | 22× same function across research modules. Create shared utils.py | CODE_AUDIT §8.1277 |
 | research/__init__.py: 307 lines re-exporting ~200 symbols | Triggers loading all 25+ modules on any import. Use lazy imports | CODE_AUDIT §8.1276 |
 | research: 35 files ~6000 lines potential dead code | Advanced math rarely used in production. Move to separate package | CODE_AUDIT §8.1280 |

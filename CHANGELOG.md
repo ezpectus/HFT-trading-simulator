@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка O: notifier asyncio.gather + Discord rate limit + alerting shared session + automl async)
+
+### Changed
+- `notifier.py`: `NotifierManager.send_alert` sequential loop → `asyncio.gather` with `return_exceptions=True` — parallel notification dispatch
+- `notifier.py`: Discord `_poll_messages` — added `asyncio.sleep(1)` after successful poll to rate-limit API calls
+- `alerting.py`: Replaced 3× `aiohttp.ClientSession()` per-alert with shared `_get_session()` + `close_session()` in `stop_monitoring()`
+- `automl.py`: Added `optimize_async()` method wrapping blocking `study.optimize` in `loop.run_in_executor()` — prevents 1h event loop block
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка N: project-wide except Exception + datetime.now() + asyncio.Lock sweep)
 
 ### Changed

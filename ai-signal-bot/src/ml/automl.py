@@ -17,6 +17,7 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from collections.abc import Callable
@@ -157,6 +158,17 @@ class AutoMLOptimizer:
         logger.info(f"[AutoML] Best params: {self.best_params}")
 
         return self.best_params
+
+    async def optimize_async(
+        self,
+        objective_fn: Callable | None = None,
+        search_space_fn: Callable | None = None,
+    ) -> dict[str, Any]:
+        """Async wrapper for optimize() — runs blocking study.optimize in executor."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, lambda: self.optimize(objective_fn, search_space_fn)
+        )
 
     def get_param_importances(self) -> dict[str, float]:
         """Get hyperparameter importances."""
