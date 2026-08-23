@@ -12116,3 +12116,304 @@ Raw HTTP parsing with `readline()`. No method checking (GET/POST), no path check
 `helpers.py` has a simple CircuitBreaker (no HALF_OPEN, no metrics, no success threshold). `circuit_breaker.py` has a complete CircuitBreaker (3 states, probe limiting, success threshold, metrics, reset, get_status). The `helpers.py` version is a subset and should be removed.
 
 **Reduction potential:** ~30 lines.
+
+### 8.886 hft-trade-bot/src/strategies/signal_engine_v3.h: Signal Engine V3 (HMM Regime) — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h` (437 lines)
+
+- **OnlineHMM**: 4-state Gaussian emission (TRENDING_UP/DOWN/RANGING/VOLATILE), forward recursion in log-space, online Baum-Welch adaptation every 50 updates — correct
+- **Log-space numerical stability**: log_alpha, log_trans, log_gaussian with log-sum-exp trick — correct
+- **Volatility EWMA**: RiskMetrics-style λ=0.94 — correct
+- **Regime gating**: TRENDING_UP boosts LONG/dampens SHORT, RANGING caps confidence, VOLATILE widens stops + reduces leverage — correct
+- **Per-symbol HMM state**: `unordered_map<string, HMMState, StringHash>` with transparent lookup — correct (fixes V2's per-symbol issue)
+- **HMM update threshold**: Only update when price changes > 0.01% — efficient
+- **`noexcept` on analyze()**: Correct for hot path
+- **append_regime_reason**: Manual string append with bounds checking — careful
+
+Excellent HMM regime detection with online learning, log-space stability, per-symbol state, and regime-gated signals. ✅
+
+### 8.887 signal_engine_v3: get_or_create_hmm_state heap alloc in noexcept — Medium
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:352-357`
+
+```cpp
+inline HMMState& get_or_create_hmm_state(const char* symbol) noexcept {
+    auto it = hmm_states_.find(std::string_view(symbol));
+    if (it == hmm_states_.end()) {
+        it = hmm_states_.emplace(std::string(symbol), HMMState{}).first;
+    }
+    return it->second;
+}
+```
+
+Same issue as V2 (R796/R808). `emplace` allocates a new `std::string` key + `HMMState` (which contains an `OnlineHMM` with `std::array`). The `unordered_map::emplace` can throw `std::bad_alloc`. The function is called from `analyze()` which is `noexcept`. If `emplace` throws → `std::terminate` → abort.
+
+**Фикс:** Pre-populate `hmm_states_` at init for all known symbols. Or remove `noexcept` from `analyze()`.
+
+### 8.888 signal_engine_v3: forward_recursion uses raw array — Low
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:175`
+
+```cpp
+double trans_sum[N_STATES][N_STATES];
+```
+
+`N_STATES` is `static constexpr int = 4`, so this is a fixed-size array. However, it's stack-allocated inside a hot-path function. 4×4 doubles = 128 bytes — negligible. Could use `std::array` for consistency.
+
+**Фикс:** Use `std::array<std::array<double, N_STATES>, N_STATES>` for consistency.
+
+### 8.889 signal_engine_v3: adapt_parameters only updates emission means — Low
+
+**Файл:** `hft-trade-bot/src/strategies/signal_engine_v3.h:227-245`
+
+The `adapt_parameters()` method only updates emission means (`emit_mean_`). It does not update emission variances (`emit_var_`) or the transition matrix (`log_trans_`). This means the HMM cannot fully adapt to changing market conditions — variances and transition probabilities remain at their initial values forever.
+
+**Фикс:** Add online updates for `emit_var_` and `log_trans_` (weighted EWMA).
+
+### 8.890 hft-trade-bot/src/strategies/market_making_v2.h: Market Making V2 (Avellaneda-Stoikov) — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/market_making_v2.h` (177 lines)
+
+- **Avellaneda-Stoikov**: Reservation price `r = s - q * γ * σ² * (T-t)`, optimal spread `γσ²T + (2/γ)ln(1+γ/k)` — correct
+- **Inventory skew**: Bid/ask size skewed by inventory ratio — correct
+- **Adverse selection**: Cancel when toxicity > threshold — correct
+- **Spread clamping**: `max(spread_floor, min(spread_cap, optimal_spread))` — correct
+- **Max inventory guard**: Don't quote on side that would increase inventory — correct
+- **EWMA volatility**: `alpha = 2/(period+1)` — correct
+- **No heap allocations**: All stack-allocated — correct
+- **`noexcept` on generate_quotes()**: Correct
+- **`reset()`**: Clears all state — correct
+
+Excellent Avellaneda-Stoikov market making with inventory skew, adverse selection protection, spread clamping, and no heap allocations. ✅
+
+### 8.891 market_making_v2: t_remaining always = T — Low
+
+**Файл:** `hft-trade-bot/src/strategies/market_making_v2.h:66`
+
+```cpp
+double t_remaining = T;
+```
+
+The Avellaneda-Stoikov model requires `T-t` (time remaining until horizon). The code always uses `t_remaining = T`, meaning `t=0` always. In reality, `t` should increase as the trading session progresses, reducing the reservation price adjustment as the horizon approaches. This means inventory penalty is constant throughout the session, which is suboptimal.
+
+**Фикс:** Track session start time, compute `t_remaining = T - elapsed`.
+
+### 8.892 market_making_v2: no per-symbol state — Medium
+
+**Файл:** `hft-trade-bot/src/strategies/market_making_v2.h:21-174`
+
+Same issue as momentum_breakout_v2 (R861). `current_sigma_`, `vol_ewma_`, `last_mid_`, `vol_count_` are per-instance. If the same `MarketMakingV2` processes multiple symbols, volatility from BTC contaminates ETH's quotes.
+
+**Фикс:** One instance per symbol, or per-symbol state struct.
+
+### 8.893 hft-trade-bot/src/strategies/simd_indicators.h: SIMD Indicators — ✅ Good
+
+**Файл:** `hft-trade-bot/src/strategies/simd_indicators.h` (228 lines)
+
+- **AVX2 EMA**: 4 doubles in parallel with `_mm256_fmadd_pd` — correct
+- **Scalar fallback**: `#if defined(__AVX2__)` with else branch — correct
+- **SimdRSI**: Correct Wilder's smoothing — correct
+- **SimdMA (SMA)**: AVX2 horizontal sum with `extractf128` + `unpackhi` — correct
+- **SimdVWAP**: AVX2 parallel PV + V sum — correct
+- **SimdUtils**: `has_avx2()`, `get_cpu_features()` — useful
+
+Good SIMD indicators with AVX2 acceleration and scalar fallback. ✅
+
+### 8.894 simd_indicators: ema_array and rsi use std::vector — Low
+
+**Файл:** `hft-trade-bot/src/strategies/simd_indicators.h:45-54, 61`
+
+```cpp
+static std::vector<double> ema_array(const std::vector<double>& prices, double alpha) {
+    std::vector<double> ema_values(prices.size());
+```
+
+`ema_array` and `rsi` take `std::vector<double>` by const ref and return `std::vector<double>`. This involves heap allocations — not suitable for hot path. The AVX2 `ema_avx2` method takes raw pointers and is hot-path-safe, but `ema_array` and `rsi` are not.
+
+**Фикс:** Use `ema_avx2` with pre-allocated buffers in hot path. Keep `ema_array`/`rsi` for batch/offline use only.
+
+### 8.895 simd_indicators: has_avx2 is compile-time only — Low
+
+**Файл:** `hft-trade-bot/src/strategies/simd_indicators.h:200-206`
+
+```cpp
+static bool has_avx2() {
+#if defined(__AVX2__)
+    return true;
+#else
+    return false;
+#endif
+}
+```
+
+`has_avx2()` returns a compile-time constant. It doesn't actually check CPU features at runtime. If the code is compiled with `-mavx2` but runs on a CPU without AVX2, it will crash with SIGILL. The function gives a false sense of runtime detection.
+
+**Фикс:** Use `__builtin_cpu_supports("avx2")` (GCC) or `cpuid` intrinsics for true runtime detection.
+
+### 8.896 hft-trade-bot/src/strategies/obi_utils.h: OBI Utils — ✅ Excellent
+
+**Файл:** `hft-trade-bot/src/strategies/obi_utils.h` (78 lines)
+
+- **3 OBI functions**: `compute_obi_levels`, `compute_weighted_obi`, `compute_obi_all` — correct
+- **Weighted OBI**: `w = 1/(1+i)` — distance-weighted — correct
+- **`compute_obi_all`**: Single-pass for 5/10/20 levels + weighted — efficient
+- **Edge case handling**: `total > 1e-12` guard, fallback when `n < l5` — correct
+- **`noexcept` on all functions**: Correct
+- **No heap allocations**: All stack-allocated — correct
+- **Extracted from signal_engine_v2.h**: Good file-size compliance
+
+Excellent OBI utilities with 3 computation modes, single-pass optimization, edge case handling, and no heap allocations. ✅
+
+### 8.897 ai-signal-bot/src/communication/fix_client.py: FIX 4.4 Client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py` (447 lines)
+
+- **FIX 4.4**: Logon/logout/heartbeat/new order/cancel/market data — correct
+- **Persistent seq nums**: File-based `_load_seq_nums`/`_save_seq_nums` — correct
+- **Checksum verification**: `sum(raw_msg[:cs_pos]) % 256` — correct
+- **Sequence gap handling**: ResendRequest (35=2) + pending queue — correct
+- **Heartbeat loop**: `heart_bt_int` interval, cancelable — correct
+- **Callbacks**: on_execution_report, on_market_data, on_logon, on_logout — correct
+- **Clean start/stop**: connect + logon + read loop / logout + cancel + close — correct
+- **SOH-delimited parsing**: `text.split(SOH)` with `=` separator — correct
+
+Good FIX 4.4 client with persistent sequence numbers, checksum verification, gap recovery, and clean lifecycle. ✅
+
+### 8.898 fix_client: password in plaintext debug log — Medium
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py:199-200, 408`
+
+```python
+if password:
+    extra.append((554, password))
+# ...
+logger.debug(f"FIX message type {msg.msg_type}: {msg.fields}")
+```
+
+The password is added as FIX field tag 554. At log level DEBUG, `msg.fields` is logged — this includes tag 554 (password) in plaintext. With 1000 users, if debug logging is enabled for troubleshooting, all FIX passwords are exposed in logs. Logs may be shipped to centralized logging (ELK, Splunk), making passwords accessible to log readers.
+
+**Фикс:** Filter tag 554 (and 553 username) from debug logging. Redact sensitive tags before logging.
+
+### 8.899 fix_client: seq file in tempfile.gettempdir() — Low
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py:126`
+
+```python
+seq_file: str = os.path.join(tempfile.gettempdir(), "fix_seq.txt"),
+```
+
+The sequence number file is in the system temp directory. On Linux, `/tmp` is world-readable and cleared on reboot. If the system reboots, sequence numbers are lost, which can cause FIX session issues (gap detection, resend requests). Also, multiple bot instances would share the same seq file.
+
+**Фикс:** Use a dedicated data directory (e.g., `data/fix_seq.txt`). Include sender_comp_id in filename for multi-instance support.
+
+### 8.900 fix_client: no reconnect logic — Low
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py:289-337`
+
+The `_read_loop` sets `state = "DISCONNECTED"` on error and breaks. There is no automatic reconnect. Unlike `ws_client.py` which has `reconnect()` with exponential backoff, the FIX client requires manual reconnection.
+
+**Фикс:** Add `reconnect()` method with exponential backoff, similar to `ws_client.py`.
+
+### 8.901 fix_client: _pending_messages unbounded — Low
+
+**Файл:** `ai-signal-bot/src/communication/fix_client.py:139, 352`
+
+```python
+self._pending_messages: list[FixMessage] = []
+# ...
+self._pending_messages.append(msg)
+```
+
+If the counterparty keeps sending messages with seq nums ahead of expected, `_pending_messages` grows unbounded. A malicious or buggy counterparty could exhaust memory.
+
+**Фикс:** Cap `_pending_messages` at a reasonable limit (e.g., 1000). Drop excess and log warning.
+
+### 8.902 ai-signal-bot/src/communication/ws_client.py: WebSocket Client — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py` (215 lines)
+
+- **Optional msgpack/orjson**: Graceful fallback to json — correct
+- **Compression**: `compression="deflate"` — correct
+- **Ping interval**: 10s — correct
+- **Max size**: 2²⁰ = 1MB — correct
+- **Candle history**: `deque(maxlen=200)` — correct
+- **Reconnect**: 5 attempts, exponential backoff (1s → 30s) — correct
+- **Trading state**: `_trading_active` flag, checked before order submission — correct
+- **Message types**: candles, snapshot, trading_state, error, welcome — comprehensive
+
+Good WebSocket client with optional encoding, compression, reconnect, and trading state management. ✅
+
+### 8.903 ws_client: no reconnect on listen() exit — Low
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py:119-121`
+
+```python
+except websockets.ConnectionClosed:
+    logger.warning("Connection closed by server")
+    self._connected = False
+```
+
+When the connection closes, `listen()` exits. There is no automatic call to `reconnect()`. The caller must detect the exit and call `reconnect()` manually. If the caller doesn't, the bot stops receiving market data silently.
+
+**Фикс:** Call `self.reconnect()` in the except block, or document that the caller must handle reconnection.
+
+### 8.904 ws_client: _process_message not async — Low
+
+**Файл:** `ai-signal-bot/src/communication/ws_client.py:123`
+
+```python
+def _process_message(self, data: dict) -> None:
+```
+
+`_process_message` is sync but called from an async context. If it does heavy processing (e.g., updating 50 symbols × 200 candles), it blocks the event loop. Currently it's just dict updates, so it's fast, but if processing grows, it becomes a problem.
+
+**Фикс:** Keep as sync if it stays lightweight. Document that it must not block.
+
+### 8.905 ai-signal-bot/src/communication/ws_connection_pool.py: WebSocket Connection Pool — ✅ Good
+
+**Файл:** `ai-signal-bot/src/communication/ws_connection_pool.py` (152 lines)
+
+- **Pool with max size**: 10 connections, per-URL lists — correct
+- **Stale eviction**: `is_stale(timeout=30s)` — correct
+- **Health checks**: Ping with 5s timeout, mark unhealthy — correct
+- **asyncio.Lock**: Protects pool operations — correct
+- **Clean close_all**: Cancel health task + close all connections — correct
+- **Pool stats**: `pool_stats()` for monitoring — correct
+- **`time.monotonic()`**: For staleness check — correct
+
+Good WebSocket connection pool with stale eviction, health checks, asyncio.Lock, and clean lifecycle. ✅
+
+### 8.906 ws_connection_pool: _evict_stale creates fire-and-forget tasks — Low
+
+**Файл:** `ai-signal-bot/src/communication/ws_connection_pool.py:106`
+
+```python
+asyncio.create_task(conn.close())
+```
+
+`_evict_stale` creates fire-and-forget tasks for closing stale connections. These tasks are not awaited or tracked. If the event loop closes before they complete, the connections may not be properly closed. Also, if many connections are stale, many tasks are created simultaneously.
+
+**Фикс:** Await `conn.close()` inline or track tasks in a set.
+
+### 8.907 ws_connection_pool: _health_loop runs forever with no error handling — Low
+
+**Файл:** `ai-signal-bot/src/communication/ws_connection_pool.py:129-133`
+
+```python
+async def _health_loop(self) -> None:
+    while True:
+        await asyncio.sleep(self._health_check_interval)
+        await self.health_check()
+```
+
+If `health_check()` raises an unexpected exception (not OSError/TimeoutError/WebSocketException), the health loop crashes silently. No more health checks will run, and stale connections won't be detected.
+
+**Фикс:** Wrap `health_check()` in try/except, log errors, continue loop.
+
+### 8.908 Code reduction: simd_indicators horizontal sum duplicated 2× — Info
+
+**Файлы:** `simd_indicators.h:117-123` (SMA) + `simd_indicators.h:164-178` (VWAP)
+
+The AVX2 horizontal sum pattern (`extractf128` → `castpd256_pd128` → `add_pd` → `unpackhi` → `add_sd` → `cvtsd_f64`) is duplicated in `sma()` and `vwap()`.
+
+**Reduction potential:** ~10 lines. Extract to `static double hsum256(__m256d v)` helper.

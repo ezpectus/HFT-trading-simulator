@@ -5453,3 +5453,125 @@ class CorrelationMatrix {
 ```
 
 **Разница:** The bad code marks `find_pairs()` as `noexcept` but calls `push_back` inside, which can throw `std::bad_alloc` under memory pressure. When a `noexcept` function throws, C++ calls `std::terminate()` → `std::abort()` — the process dies instantly with no stack unwinding, no RAII cleanup, no graceful shutdown. Open positions are left exposed, stop-losses are not monitored, SHM segments are leaked, sockets and DB connections are not closed. With 1000 users under memory pressure (all calling `find_pairs()` at the same candle boundary), one bot's `bad_alloc` → `terminate` → `abort` → $500K in unprevented losses + $50K downtime costs. The developer added `noexcept` to eliminate exception overhead, but created a crash-on-OOM bug — the function is not actually `noexcept`-safe. The good code uses a fixed-size `std::array<Pair, 190>` (stack-allocated, no heap allocation) and returns a `PairResult` struct with a count. No `push_back`, no `bad_alloc`, no `terminate`. The function is truly `noexcept` — it cannot throw. The cost is 4.5KB of stack (190 × 24 bytes) — well within stack limits. The benefit is zero crash risk from memory pressure, graceful operation under stress, and no $550K in losses. This is a classic example of a `noexcept` misuse: the developer promised "this function will not throw" but the function calls operations that can throw. The principle: `noexcept` is a contract, not an optimization — only mark functions `noexcept` when they are truly exception-safe (no heap allocation, no throwing operations). In HFT systems with 1000 users, a single `noexcept` misuse can cause $550K in losses.
+
+---
+
+## Bad vs Good: FIX Password Leaked in Debug Logs (Python)
+
+### ❌ Bad Code
+```python
+class FixSession:
+    async def logon(self, username: str = "", password: str = "") -> bool:
+        extra = [
+            (98, "0"),  # EncryptMethod: None
+            (108, str(self.heart_bt_int)),
+        ]
+        if username:
+            extra.append((553, username))
+        if password:
+            extra.append((554, password))  # ← password in FIX message
+
+        msg = self._build_msg("A", extra)
+        # ... send msg ...
+
+    async def _process_message(self, msg: FixMessage):
+        # ...
+        else:
+            logger.debug(f"FIX message type {msg.msg_type}: {msg.fields}")
+            # ↑ msg.fields = {35: 'A', 49: 'CLIENT', 56: 'SERVER',
+            #   34: '1', 52: '20260823-12:00:00.123',
+            #   98: '0', 108: '30', 553: 'trader1', 554: 'S3cr3tP@ss!'}
+            # ↑ Password in plaintext in debug log!
+
+# Scenario: Production incident at 3 AM
+# 1. Exchange simulator is slow, orders are timing out
+# 2. DevOps engineer enables DEBUG logging to troubleshoot
+# 3. All FIX messages are now logged with full field contents
+# 4. Log aggregator (ELK/Splunk) ingests all debug logs
+# 5. FIX logon messages contain tag 554 = password in plaintext
+#
+# With 1000 users:
+# - 1000 FIX sessions, each with unique password
+# - All 1000 passwords are in the debug logs
+# - Logs are shipped to ELK cluster (3 nodes, 5 admins)
+# - ELK retention: 30 days
+# - 5 ELK admins can search for tag 554 and see all passwords
+# - If ELK is breached: 1000 FIX passwords leaked
+# - Attacker can log in as any user, place trades, withdraw funds
+# - Financial damage: unlimited (attacker has full trading access)
+# - Regulatory: GDPR Article 32 violation (plaintext passwords in logs)
+# - Fine: up to €20M or 4% of global revenue
+# - Reputational: "We logged your password in plaintext" — front page news
+#
+# Other sensitive FIX tags leaked:
+# - Tag 553: Username
+# - Tag 554: Password
+# - Tag 925: Long password (FIX 5.0+)
+# - Tag 803: Encrypted password (if not actually encrypted)
+```
+
+**What's wrong:**
+- FIX tag 554 (password) is stored in `msg.fields` dict
+- At DEBUG level, `msg.fields` is logged in plaintext — including password
+- With 1000 users, 1000 passwords are in the logs
+- Logs shipped to ELK/Splunk — accessible to multiple admins
+- If ELK is breached: all FIX passwords compromised
+- GDPR Article 32 violation: plaintext passwords in logs
+- Fine: up to €20M or 4% of global revenue
+- Attacker with FIX password can place trades, withdraw funds — unlimited financial damage
+
+### ✅ Good Code
+```python
+# Tags that should never be logged
+SENSITIVE_FIX_TAGS = {553, 554, 925, 803}  # Username, Password, LongPassword, EncryptedPassword
+
+def _redact_fields(fields: dict[int, str]) -> dict[int, str]:
+    """Return a copy of fields with sensitive tags redacted."""
+    return {
+        tag: ("***REDACTED***" if tag in SENSITIVE_FIX_TAGS else value)
+        for tag, value in fields.items()
+    }
+
+class FixSession:
+    async def logon(self, username: str = "", password: str = "") -> bool:
+        extra = [
+            (98, "0"),
+            (108, str(self.heart_bt_int)),
+        ]
+        if username:
+            extra.append((553, username))
+        if password:
+            extra.append((554, password))
+
+        msg = self._build_msg("A", extra)
+        # ... send msg ...
+        # Password is in the FIX message (needed for protocol)
+        # but NOT in any log
+
+    async def _process_message(self, msg: FixMessage):
+        # ...
+        else:
+            safe_fields = _redact_fields(msg.fields)
+            logger.debug(f"FIX message type {msg.msg_type}: {safe_fields}")
+            # ↑ {35: 'A', 49: 'CLIENT', 56: 'SERVER',
+            #   34: '1', 52: '20260823-12:00:00.123',
+            #   98: '0', 108: '30', 553: '***REDACTED***', 554: '***REDACTED***'}
+            # ↑ Password is redacted!
+
+# Scenario: Production incident at 3 AM
+# 1. DevOps enables DEBUG logging
+# 2. FIX messages are logged, but sensitive tags are redacted
+# 3. Logon message shows: 553=***REDACTED***, 554=***REDACTED***
+# 4. DevOps can still troubleshoot (msg type, seq num, timestamp visible)
+# 5. No passwords in logs, no GDPR violation, no breach risk
+#
+# With 1000 users:
+# - 1000 FIX sessions, each with unique password
+# - 0 passwords in debug logs (all redacted)
+# - ELK breach: 0 passwords leaked
+# - GDPR: compliant (no plaintext credentials in logs)
+# - Fine: €0
+# - Reputational: "We redact sensitive data in logs" — best practice
+```
+
+**Разница:** The bad code logs `msg.fields` at DEBUG level without filtering sensitive tags. FIX tag 554 (password) and tag 553 (username) are included in plaintext. With 1000 users, 1000 FIX passwords are in the logs. When logs are shipped to ELK/Splunk, 5+ admins can search for tag 554 and see all passwords. If ELK is breached, all 1000 passwords are leaked — an attacker can log in as any user, place trades, withdraw funds. This is a GDPR Article 32 violation (plaintext passwords in logs), with fines up to €20M or 4% of global revenue. The good code adds a `_redact_fields()` function that replaces sensitive tags (553, 554, 925, 803) with `***REDACTED***` before logging. The FIX message still contains the password (needed for the protocol), but the log does not. DevOps can still troubleshoot (msg type, seq num, timestamp are visible), but passwords are never in logs. The cost is 5 lines of code (a redact function + a constant set). The benefit is zero password leaks, GDPR compliance, and no €20M fines. This is a classic example of a log leakage bug: the developer logged the entire `msg.fields` dict without considering that it contains credentials. The principle: never log sensitive data (passwords, tokens, API keys, credit card numbers) — always redact before logging, regardless of log level. In a system with 1000 users, a single log leakage bug can cause €20M in GDPR fines + unlimited financial damage from credential theft.

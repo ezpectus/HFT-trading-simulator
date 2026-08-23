@@ -1430,3 +1430,26 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R873 | metrics_server: not thread-safe | `metrics_server.py:25` | Low | _signals_sent += 1 not atomic. Use asyncio.Lock |
 | R874 | metrics_server: raw HTTP parsing | `metrics_server.py:109` | Low | No method/path check. Use aiohttp.web or check path |
 | R875 | Code reduction: duplicate CB helpers.py + circuit_breaker.py | 2 files | Info | helpers.py CB is subset. Remove. ~30 lines |
+| R876 | hft-trade-bot/strategies/signal_engine_v3.h | `signal_engine_v3.h` | ✅ Excellent | OnlineHMM 4-state log-space, regime gating, per-symbol HMM, noexcept, update threshold |
+| R877 | signal_engine_v3: get_or_create_hmm_state heap alloc in noexcept | `signal_engine_v3.h:352` | Medium | emplace can throw bad_alloc → terminate. Pre-populate at init |
+| R878 | signal_engine_v3: forward_recursion raw array | `signal_engine_v3.h:175` | Low | Use std::array for consistency |
+| R879 | signal_engine_v3: adapt_parameters only updates means | `signal_engine_v3.h:227` | Low | Variances + transition matrix never adapted. Add EWMA updates |
+| R880 | hft-trade-bot/strategies/market_making_v2.h | `market_making_v2.h` | ✅ Excellent | Avellaneda-Stoikov, inventory skew, adverse selection, spread clamp, no heap |
+| R881 | market_making_v2: t_remaining always = T | `market_making_v2.h:66` | Low | t=0 always. Track session start, compute T-elapsed |
+| R882 | market_making_v2: no per-symbol state | `market_making_v2.h:21` | Medium | Volatility shared across symbols. One instance per symbol |
+| R883 | hft-trade-bot/strategies/simd_indicators.h | `simd_indicators.h` | ✅ Good | AVX2 EMA/RSI/SMA/VWAP, scalar fallback, fmadd, horizontal sum |
+| R884 | simd_indicators: ema_array and rsi use std::vector | `simd_indicators.h:45` | Low | Heap alloc. Use ema_avx2 with pre-allocated buffers in hot path |
+| R885 | simd_indicators: has_avx2 is compile-time only | `simd_indicators.h:200` | Low | No runtime CPU check. Use __builtin_cpu_supports or cpuid |
+| R886 | hft-trade-bot/strategies/obi_utils.h | `obi_utils.h` | ✅ Excellent | 3 OBI functions, single-pass, edge case handling, noexcept, no heap |
+| R887 | ai-signal-bot/communication/fix_client.py | `fix_client.py` | ✅ Good | FIX 4.4, persistent seq nums, checksum verify, gap recovery, callbacks |
+| R888 | fix_client: password in plaintext debug log | `fix_client.py:408` | Medium | msg.fields includes tag 554 at DEBUG. Redact sensitive tags |
+| R889 | fix_client: seq file in tempfile | `fix_client.py:126` | Low | /tmp cleared on reboot, shared by instances. Use data/ dir |
+| R890 | fix_client: no reconnect logic | `fix_client.py:289` | Low | No auto-reconnect. Add reconnect() with backoff like ws_client |
+| R891 | fix_client: _pending_messages unbounded | `fix_client.py:352` | Low | Counterparty can exhaust memory. Cap at 1000 |
+| R892 | ai-signal-bot/communication/ws_client.py | `ws_client.py` | ✅ Good | Optional msgpack/orjson, compression, reconnect, trading state, deque history |
+| R893 | ws_client: no reconnect on listen() exit | `ws_client.py:119` | Low | ConnectionClosed exits listen(). Call reconnect() or document |
+| R894 | ws_client: _process_message not async | `ws_client.py:123` | Low | Sync in async context. Keep lightweight or make async |
+| R895 | ai-signal-bot/communication/ws_connection_pool.py | `ws_connection_pool.py` | ✅ Good | Pool max 10, stale eviction, health checks, asyncio.Lock, clean lifecycle |
+| R896 | ws_connection_pool: _evict_stale fire-and-forget tasks | `ws_connection_pool.py:106` | Low | Untracked tasks. Await inline or track in set |
+| R897 | ws_connection_pool: _health_loop no error handling | `ws_connection_pool.py:129` | Low | Unexpected exception kills loop. Wrap in try/except |
+| R898 | Code reduction: simd_indicators horizontal sum 2× | `simd_indicators.h:117+164` | Info | Extract hsum256 helper. ~10 lines |

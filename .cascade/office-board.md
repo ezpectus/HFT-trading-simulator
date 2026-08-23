@@ -294,3 +294,6 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | health_checks: check_readiness runs sequentially | 4 checks sequential. DB down = 30s wait blocks Redis/Exchange checks. K8s probe times out. Use asyncio.gather | CODE_AUDIT §8.852 |
 | health_checks: no timeout on individual checks | DB/Redis hang indefinitely on network partition. Use asyncio.wait_for with 2s timeout | CODE_AUDIT §8.853 |
 | momentum_breakout_v2: no per-symbol state | EMA/ATR/ADX/volume shared across symbols. BTC contaminates ETH. Add per-symbol state | CODE_AUDIT §8.871 |
+| signal_engine_v3: get_or_create_hmm_state heap alloc in noexcept | emplace can throw bad_alloc → std::terminate → abort. Pre-populate hmm_states_ at init | CODE_AUDIT §8.887 |
+| market_making_v2: no per-symbol state | Volatility/sigma shared across symbols. BTC vol contaminates ETH quotes. One instance per symbol | CODE_AUDIT §8.892 |
+| fix_client: password in plaintext debug log | msg.fields includes tag 554 (password) at DEBUG level. Redact sensitive tags before logging | CODE_AUDIT §8.898 |
