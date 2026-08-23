@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AK: BinanceAdapter spinlock + TOCTOU fix)
+
+### Fixed
+- `hft-trade-bot/src/exchange/BinanceAdapter.h`: Consolidated `price_lock_` + `depth_lock_` into single `market_data_lock_` — eliminates nested spinlock acquisition deadlock risk (§8.203, §8.462)
+- `hft-trade-bot/src/exchange/BinanceAdapter.h`: `can_send_order()` replaced `fetch_add` with CAS loop — only increments if below 300 threshold, rejected orders no longer over-count against rate limit (§8.204)
+
+### Changed
+- CODE_AUDIT §8.420 — prices_cache thread safety → already fixed (prices_cache_lock Spinlock)
+- CODE_AUDIT §8.176, §8.419 — 3 signal engines → [N/A] (all actively used: V2=main, V3=HMM, V1=fallback)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AJ: C++ risk verification)
 
 ### Fixed
