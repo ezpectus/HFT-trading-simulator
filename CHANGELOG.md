@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка AR: Backtesting annualization + leverage fixes)
+
+### Fixed
+- `ai-signal-bot/src/backtesting/backtester.py`: Added `candle_interval_minutes` parameter (default 5) — Sharpe/Sortino/Calmar annualization now uses configurable periods per year instead of hardcoded values (§8.1124, §8.1128)
+- `ai-signal-bot/src/backtesting/backtester.py`: Leverage now applied to `max_notional` (`balance * leverage * max_position_pct / 100`), default changed from 10→1 (§8.1126)
+- `ai-signal-bot/src/backtesting/backtest_engine.py`: Added `candle_interval_minutes` to `BacktestConfig` (default 5) — Sharpe/Sortino/Calmar annualization now configurable instead of hardcoded 1m candles (§8.1134)
+- `ai-signal-bot/src/backtesting/backtest_engine.py`: O(N²) window slicing already fixed with rolling window (§8.1135)
+
+### Changed
+- CODE_AUDIT §8.1123 — SL/TP checked after risk manager → [N/A] (design choice, documented priority order)
+- CODE_AUDIT §8.1125 — Sortino uses full sample count → [N/A] (correct standard formula)
+- CODE_AUDIT §8.1130 — options premium not used → [N/A] (calculate_pnl is mark-to-market, options_pnl_at_expiry is for settlement)
+- CODE_AUDIT §8.1131 — funding cost uses exit price → [N/A] (approximation acceptable for backtesting)
+- CODE_AUDIT §8.1136 — confidence multiplier position sizing → [N/A] (different model from backtester.py, design choice)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка AQ: Kelly + CVaR + stress test fixes)
 
 ### Fixed

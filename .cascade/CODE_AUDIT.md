@@ -15367,7 +15367,7 @@ All scenarios assume long positions: `shocked_prices = current_prices * shock_mu
 
 Good backtester with 16 metrics, risk manager integration, multi-strategy support, and detailed reporting. ✅
 
-### 8.1123 backtester: SL/TP checked after risk manager update — Low
+### 8.1123 backtester: SL/TP checked after risk manager update — Low [N/A]
 
 **Файл:** `backtester.py:172-185`
 
@@ -15375,7 +15375,7 @@ The risk manager update (`_process_risk_update`) runs before SL/TP check (`_mana
 
 **Фикс:** Check SL/TP first, then risk manager. Or document the priority order.
 
-### 8.1124 backtester: Sharpe ratio annualization assumes 5m candles — Low
+### 8.1124 backtester: Sharpe ratio annualization assumes 5m candles — Low [FIXED]
 
 **Файл:** `backtester.py:315`
 
@@ -15387,7 +15387,7 @@ The annualization factor `365 ** 0.5` assumes 1 return per day. But the returns 
 
 **Фикс:** Calculate the number of trading periods per year based on the candle interval and trade frequency. Or use `total_bars / (time_span_days)` to compute the annualization factor.
 
-### 8.1125 backtester: Sortino uses full sample count for downside std — Low
+### 8.1125 backtester: Sortino uses full sample count for downside std — Low [N/A]
 
 **Файл:** `backtester.py:316-319`
 
@@ -15399,7 +15399,7 @@ if len(downside_returns) > 0:
 
 The Sortino ratio's downside deviation divides by `len(returns)` (total trades), not `len(downside_returns)` (losing trades). This is actually the correct formula — the denominator should be the total count, not just the downside count. This is the standard Sortino definition. ✅
 
-### 8.1126 backtester: no leverage in PnL calculation — Low
+### 8.1126 backtester: no leverage in PnL calculation — Low [FIXED]
 
 **Файл:** `backtester.py:89, 367-375`
 
@@ -15419,7 +15419,7 @@ Each iteration creates a new list slice from 0 to i+1. At iteration i, the slice
 
 **Фикс:** Pass the full `candles` list and the current index to `strategy.analyze`, or use a rolling window of fixed size.
 
-### 8.1128 backtester: Calmar annualization uses 5m candles — Low
+### 8.1128 backtester: Calmar annualization uses 5m candles — Low [FIXED]
 
 **Файл:** `backtester.py:354`
 
@@ -15445,7 +15445,7 @@ annualized_return = result.total_return_pct * (365 * 24 * 12 / total_bars)
 
 Excellent PnL calculator with 3 asset types, direction-aware slippage, funding, and options support. ✅
 
-### 8.1130 pnl_calculator: options premium not used in calculate_pnl — Low
+### 8.1130 pnl_calculator: options premium not used in calculate_pnl — Low [N/A]
 
 **Файл:** `pnl_calculator.py:155-158`
 
@@ -15460,7 +15460,7 @@ For options, `calculate_pnl` uses `_options_gross_pnl` which is identical to `_s
 
 **Фикс:** Either use `option_premium_pct` in the options PnL calculation, or document that `calculate_pnl` for options treats entry/exit as premiums (mark-to-market), and `options_pnl_at_expiry` is for expiry settlement.
 
-### 8.1131 pnl_calculator: funding cost uses fill_exit price not average — Low
+### 8.1131 pnl_calculator: funding cost uses fill_exit price not average — Low [N/A]
 
 **Файл:** `pnl_calculator.py:153`
 
@@ -15498,7 +15498,7 @@ Both implement candle replay, SL/TP, equity curve, Sharpe/Sortino/Calmar, trade 
 
 **Reduction potential:** ~200 lines. Merge into one engine with pluggable PnLCalculator + optional RiskManager. Use `Signal` dataclass consistently.
 
-### 8.1134 backtest_engine: Sharpe annualization assumes 1m candles — Low
+### 8.1134 backtest_engine: Sharpe annualization assumes 1m candles — Low [FIXED]
 
 **Файл:** `backtest_engine.py:292`
 
@@ -15510,7 +15510,7 @@ bars_per_year = 365 * 24 * 60
 
 **Фикс:** Accept `candle_interval_minutes` as a parameter. `bars_per_year = 365 * 24 * 60 / candle_interval_minutes`.
 
-### 8.1135 backtest_engine: window grows O(N²) — Low
+### 8.1135 backtest_engine: window grows O(N²) — Low [FIXED]
 
 **Файл:** `backtest_engine.py:150`
 
@@ -15520,7 +15520,7 @@ signal = strategy_analyze(symbol, candles[:i + 1])
 
 Same issue as `backtester.py:168` — creates a new list slice each iteration, O(N²) total.
 
-### 8.1136 backtest_engine: position sizing uses confidence multiplier — Low
+### 8.1136 backtest_engine: position sizing uses confidence multiplier — Low [N/A]
 
 **Файл:** `backtest_engine.py:173-175`
 

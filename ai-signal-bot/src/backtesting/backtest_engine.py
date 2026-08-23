@@ -26,6 +26,7 @@ class BacktestConfig:
     funding_rate: float = 0.0001     # 8h funding
     leverage: int = 1
     position_size_pct: float = 0.1   # 10% of capital per trade
+    candle_interval_minutes: int = 5
 
 
 @dataclass
@@ -295,7 +296,7 @@ class BacktestEngine:
             if len(returns) > 0:
                 mean_ret = returns.mean()
                 std_ret = returns.std()
-                bars_per_year = 365 * 24 * 60
+                bars_per_year = 365 * 24 * 60 / self.config.candle_interval_minutes
                 if std_ret > 1e-10:
                     result.sharpe_ratio = mean_ret / std_ret * math.sqrt(bars_per_year)
                 downside_returns = returns[returns < 0]
@@ -305,7 +306,7 @@ class BacktestEngine:
                         result.sortino_ratio = mean_ret / downside_std * math.sqrt(bars_per_year)
         if result.max_drawdown_pct > 0:
             total_bars = len(self.equity_curve)
-            annual_return = result.total_return_pct * (365 * 24 * 60 / max(total_bars, 1))
+            annual_return = result.total_return_pct * (365 * 24 * 60 / self.config.candle_interval_minutes / max(total_bars, 1))
             result.calmar_ratio = annual_return / result.max_drawdown_pct
 
     def _compute_results(self) -> BacktestResult:

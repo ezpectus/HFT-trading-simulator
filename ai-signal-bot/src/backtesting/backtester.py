@@ -105,10 +105,11 @@ class Backtester:
         initial_balance: float = 10000.0,
         fee_pct: float = 0.075,  # Binance taker fee
         slippage_bps: float = 2.0,
-        leverage: int = 10,
+        leverage: int = 1,
         max_position_pct: float = 10.0,
         risk_per_trade_pct: float = 2.0,
         risk_config: RiskConfig | None = None,
+        candle_interval_minutes: int = 5,
     ):
         self.initial_balance = initial_balance
         self.fee_pct = fee_pct
@@ -117,6 +118,7 @@ class Backtester:
         self.max_position_pct = max_position_pct
         self.risk_per_trade_pct = risk_per_trade_pct
         self.risk_manager = RiskManager(risk_config) if risk_config else None
+        self.candle_interval_minutes = candle_interval_minutes
 
     def _process_risk_update(self, current_position, risk_state, current_price,
                               current_candle, balance, result, equity_curve, peak_equity):
@@ -336,11 +338,12 @@ class Backtester:
         if len(returns) > 1:
             mean_ret = sum(returns) / len(returns)
             std_ret = (sum((r - mean_ret) ** 2 for r in returns) / (len(returns) - 1)) ** 0.5
-            result.sharpe_ratio = (mean_ret / std_ret * (365 ** 0.5)) if std_ret > 0 else 0
+            periods_per_year = 365 * 24 * 60 / self.candle_interval_minutes
+            result.sharpe_ratio = (mean_ret / std_ret * (periods_per_year ** 0.5)) if std_ret > 0 else 0
             downside_returns = [r for r in returns if r < 0]
             if len(downside_returns) > 0:
                 downside_std = (sum(r ** 2 for r in downside_returns) / len(returns)) ** 0.5
-                result.sortino_ratio = (mean_ret / downside_std * (365 ** 0.5)) if downside_std > 0 else 0
+                result.sortino_ratio = (mean_ret / downside_std * (periods_per_year ** 0.5)) if downside_std > 0 else 0
 
         durations = [t.exit_time - t.entry_time for t in result.trades]
         result.avg_trade_duration = sum(durations) / len(durations) if durations else 0
@@ -375,7 +378,7 @@ class Backtester:
 
         total_bars = len(equity_curve)
         if total_bars > 0 and result.max_drawdown_pct > 0:
-            annualized_return = result.total_return_pct * (365 * 24 * 12 / total_bars)
+            annualized_return = result.total_return_pct * (365 * 24 * 60 / self.candle_interval_minutes / total_bars)
             result.calmar_ratio = annualized_return / result.max_drawdown_pct
 
     def _open_position(self, signal: Signal, price: float, balance: float, result: BacktestResult,
@@ -394,7 +397,7 @@ class Backtester:
             return None
 
         quantity = risk_amount / risk_per_unit
-        max_notional = balance * self.max_position_pct / 100
+        max_notional = balance * self.leverage * self.max_position_pct / 100
         max_qty = max_notional / fill_price if fill_price > 0 else 0
         quantity = min(quantity, max_qty)
 
