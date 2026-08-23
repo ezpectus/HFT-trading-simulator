@@ -15,21 +15,21 @@
 
 **Фикс:** оставить одну (лучшая — `src/portfolio/`), остальные удалить. Тесты переписать на одну.
 
-### 1.2 VaR/CVaR — 2 РЕАЛИЗАЦИИ
+### 1.2 VaR/CVaR — 2 РЕАЛИЗАЦИИ [FIXED]
 | Файл | Класс | Использование |
 |------|-------|---------------|
 | `src/risk/var.py` + `src/risk/cvar.py` | VaRCalculator, CVaRCalculator | только тесты |
 | `src/risk/var_stress_test.py` | RiskAnalyzer (historical_var, cvar, mc_var...) | только тесты |
 
-**Фикс:** оставить `var.py`+`cvar.py` (чище API), `var_stress_test.py` удалить или сделать обёрткой.
+**Фикс:** `var_stress_test.py` deprecated with DeprecationWarning — use `var.py`+`cvar.py` (canonical, cleaner API). Пачка VV.
 
-### 1.3 StressTest — 2 РЕАЛИЗАЦИИ
+### 1.3 StressTest — 2 РЕАЛИЗАЦИИ [FIXED]
 | Файл | Класс | Использование |
 |------|-------|---------------|
 | `src/risk/stress_test.py` | StressTestScenario | только тесты |
 | `src/risk/var_stress_test.py` | RiskAnalyzer.stress_test | только тесты |
 
-**Фикс:** оставить одну, удалить другую.
+**Фикс:** `var_stress_test.py` deprecated with DeprecationWarning — use `stress_test.py` (canonical, more detailed). Пачка VV.
 
 ### 1.4 Backtester — 2 РЕАЛИЗАЦИИ
 | Файл | Строк | Использование |

@@ -37,28 +37,33 @@ export const useUIStore = create((set, get) => ({
 
   // Symbol search and filter
   symbolSearch: '',
-  setSymbolSearch: (search) => set({ symbolSearch: search }),
+  setSymbolSearch: (search) => {
+    set({ symbolSearch: search })
+    get()._recomputeFilteredSymbols()
+  },
   selectedCategory: 'All',
-  setSelectedCategory: (category) => set({ selectedCategory: category }),
+  setSelectedCategory: (category) => {
+    set({ selectedCategory: category })
+    get()._recomputeFilteredSymbols()
+  },
 
-  // Get filtered symbols based on search and category
-  getFilteredSymbols: () => {
+  // Cached filtered symbols — only recomputed when search/category changes
+  _filteredSymbols: SYMBOLS,
+  _recomputeFilteredSymbols: () => {
     const { symbolSearch, selectedCategory } = get()
     let filtered = SYMBOLS
-
-    // Filter by category
     if (selectedCategory !== 'All' && SYMBOL_CATEGORIES[selectedCategory]) {
       filtered = SYMBOL_CATEGORIES[selectedCategory]
     }
-
-    // Filter by search
     if (symbolSearch) {
       const searchLower = symbolSearch.toLowerCase()
       filtered = filtered.filter(s => s.toLowerCase().includes(searchLower))
     }
-
-    return filtered
+    set({ _filteredSymbols: filtered })
   },
+
+  // Get filtered symbols (returns cached result)
+  getFilteredSymbols: () => get()._filteredSymbols,
 
   // Tabs
   activeTab: 'account',

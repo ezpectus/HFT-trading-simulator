@@ -5,6 +5,20 @@ Covers: RiskAnalyzer, RiskMetrics, StressTestResult, STRESS_SCENARIOS.
 import numpy as np
 import pytest
 
+pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
+
+
+class TestDeprecation:
+    def test_module_emits_deprecation_warning(self):
+        import importlib
+        import src.risk.var_stress_test as mod
+        importlib.reload(mod)
+        import warnings
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            importlib.reload(mod)
+            assert any(issubclass(x.category, DeprecationWarning) for x in w)
+
 
 class TestStressScenarios:
     def test_all_scenarios_have_required_keys(self):

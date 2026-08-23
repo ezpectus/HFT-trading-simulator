@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка VV: var_stress_test.py deprecation)
+
+### Changed
+- `src/risk/var_stress_test.py`: Added DeprecationWarning — duplicates `var.py` (VaRCalculator), `cvar.py` (CVaRCalculator), `stress_test.py` (StressTestScenario). Use canonical modules instead
+- `tests/unit/test_var_stress_test.py`: Added `filterwarnings("ignore::DeprecationWarning")` marker + deprecation warning test
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка UU: web-ui SMA O(n) + EMA/RSI dedup + maxReconnects + channel cleanup)
 
 ### Changed

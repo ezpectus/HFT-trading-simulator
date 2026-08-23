@@ -7,7 +7,13 @@
 
 ---
 
-## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): compute_returns дедупликация
+## ТЕКУЩИЙ ДЕНЬ — Day 2 (Aug 23): VaR/CVaR + StressTest dedup
+
+### [03] Refactoring Agent — deprecate var_stress_test.py
+**Задача:** Deprecate `src/risk/var_stress_test.py` (duplicates var.py, cvar.py, stress_test.py).
+  Add DeprecationWarning, update tests, update docs.
+  CODE_AUDIT: §1.2, §1.3, §3.4
+**Статус:** ✅ Done — var_stress_test.py deprecated with DeprecationWarning. Tests updated with filterwarnings + deprecation test.
 
 ### [01] Refactoring Agent — extract compute_returns
 **Задача:** Создать `src/research/_common.py` с `compute_returns(prices)`.
