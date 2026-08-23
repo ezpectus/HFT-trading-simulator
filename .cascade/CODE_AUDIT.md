@@ -434,7 +434,7 @@ TCP healthcheck проверяет только что порт открыт, н
 
 **Файлы:** `web-ui/src/components/` — большинство компонентов используют `try/catch` для localStorage ✅, но `OnboardingTutorial.jsx:40` проверяет только `localStorage.getItem` без обработки `QuotaExceededError` для `setItem`.
 
-### 8.12 Type hints: `_EnsembleAdapter.analyze` без return type — Low
+### 8.12 Type hints: `_EnsembleAdapter.analyze` без return type — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/signal_publisher.py:50`
 
@@ -444,7 +444,7 @@ def analyze(self, symbol: str, candles: list):  # ← нет -> Signal
 
 В то время как все стратегии в `strategies.py` имеют `-> Signal`, `_EnsembleAdapter` не указывает return type. Это мешает статическому анализу и IDE autocomplete.
 
-### 8.13 Magic numbers в signal_publisher.py — Low
+### 8.13 Magic numbers в signal_publisher.py — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/signal_publisher.py`
 
@@ -589,7 +589,7 @@ WebSocket messages are accepted as raw JSON without schema validation. Any clien
 
 **Фикс:** `cleanup_old(retention_days: int)` method: `DELETE FROM signals WHERE timestamp < ?` + `PRAGMA optimize`.
 
-### 8.26 No timezone handling — Low
+### 8.26 No timezone handling — Low [N/A]
 
 **Файлы:** `ai-signal-bot/src/` — grep for `timezone|tzinfo|utcnow|datetime.utcnow` = 0 matches
 
@@ -3053,7 +3053,7 @@ Bridge between Zustand stores and the legacy registry pattern:
 
 Clean migration path from prop drilling to Zustand without rewriting all panels. ✅
 
-### 8.222 ai-signal-bot signal_publisher: 6 catch-all Exception handlers — Low
+### 8.222 ai-signal-bot signal_publisher: 6 catch-all Exception handlers — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/signal_publisher.py` (6 matches)
 
@@ -3608,7 +3608,7 @@ Every method creates a new connection (`self._conn()`) and closes it after the o
 
 **Фикс:** Use a single persistent connection with a threading.Lock for write operations. Or use `aiosqlite` for async access. Remove `PRAGMA journal_mode=WAL` from `_conn()` — set it once in `_init_db()`.
 
-### 8.262 ai-signal-bot db.py: no data retention — Low
+### 8.262 ai-signal-bot db.py: no data retention — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/database/db.py`
 
@@ -3966,7 +3966,7 @@ Liveness always returns `"alive"` — it only checks if the process is running, 
 
 **Фикс:** Add staleness check: if `_last_signal_time > 0` and `time.time() - _last_signal_time > 300` (5 min no signals), return `"degraded"`. If > 600s, return `"unhealthy"`.
 
-### 8.289 ai-signal-bot health_checks: __import__("os") anti-pattern — Low
+### 8.289 ai-signal-bot health_checks: __import__("os") anti-pattern — Low [FIXED]
 
 **Файл:** `ai-signal-bot/src/observability/health_checks.py:82`
 
@@ -4058,7 +4058,7 @@ The Telegram bot token is embedded in the URL. If any HTTP error is logged with 
 
 **Фикс:** Log only the endpoint name, not the full URL. Or use Telegram's header-based auth if available. At minimum, ensure error logs don't include the URL.
 
-### 8.296 ai-signal-bot notifier: no rate limiting — Low
+### 8.296 ai-signal-bot notifier: no rate limiting — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py`
 
@@ -4066,7 +4066,7 @@ No rate limiting on `send_alert()`. If many fills or errors happen in quick succ
 
 **Фикс:** Add a simple rate limiter: max 10 messages per 10 seconds, with a queue for overflow.
 
-### 8.297 ai-signal-bot notifier: no retry on send failure — Low
+### 8.297 ai-signal-bot notifier: no retry on send failure — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py:111-116`
 
@@ -4099,7 +4099,7 @@ If `send_alert` fails (network error, 5xx), the alert is lost. No retry, no queu
 
 Good LLM engine with proper caching, fallback, and env-based API keys. ✅
 
-### 8.299 ai-signal-bot llm_engine: cache unbounded above 100 — Low
+### 8.299 ai-signal-bot llm_engine: cache unbounded above 100 — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/llm_engine/engine.py:163-167`
 
@@ -4153,7 +4153,7 @@ Same f-string logging pattern.
 
 Good UDP transport with proper non-blocking I/O and binary protocol. ✅
 
-### 8.303 ai-signal-bot socket_transport: busy-poll 100μs sleep — Low
+### 8.303 ai-signal-bot socket_transport: busy-poll 100μs sleep — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/networking/socket_transport.py:105`
 
@@ -4166,7 +4166,7 @@ When no data is available, the receive loop does `time.sleep(0.0001)` — a busy
 
 **Фикс:** Use `selectors.DefaultSelector` to wait for socket readability, or integrate with asyncio event loop.
 
-### 8.304 ai-signal-bot socket_transport: no graceful shutdown — Low
+### 8.304 ai-signal-bot socket_transport: no graceful shutdown — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/networking/socket_transport.py:86-108`
 
@@ -4429,7 +4429,7 @@ On connection close, the client just logs and sets `_connected = False`. No reco
 
 Excellent connection pool with health checks, stale eviction, and proper cleanup. ✅
 
-### 8.325 ai-signal-bot ws_connection_pool: _evict_stale fire-and-forget close — Low
+### 8.325 ai-signal-bot ws_connection_pool: _evict_stale fire-and-forget close — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/ws_connection_pool.py:106`
 
@@ -4455,7 +4455,7 @@ asyncio.create_task(conn.close())
 
 Good FIX client implementation with proper protocol handling. ✅
 
-### 8.327 ai-signal-bot fix_client: catch-all exception in _check_service — Low
+### 8.327 ai-signal-bot fix_client: catch-all exception in _check_service — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/health_check.py:73`
 
@@ -4509,7 +4509,7 @@ Good health aggregator with parallel checks and proper HTTP status codes. ✅
 
 Good lightweight metrics server without external dependencies. ✅
 
-### 8.331 ai-signal-bot metrics_server: not thread-safe — Low
+### 8.331 ai-signal-bot metrics_server: not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/metrics_server.py:25-32`
 
@@ -4547,7 +4547,7 @@ Excellent signal type design — clean, minimal, correct. ✅
 
 Good risk manager with multiple risk management features and proper position tracking. ✅
 
-### 8.334 ai-signal-bot risk_manager: no thread safety — Low
+### 8.334 ai-signal-bot risk_manager: no thread safety — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/risk/risk_manager.py`
 
@@ -4652,7 +4652,7 @@ Excellent factory pattern with Protocol-based adapter, 3 modes, and lazy imports
 
 Good REST client with proper signing, shared session, and testnet support. ✅
 
-### 8.343 ai-signal-bot real_exchange_client: api_key/secret as instance attrs — Low
+### 8.343 ai-signal-bot real_exchange_client: api_key/secret as instance attrs — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/data_collection/real_exchange_client.py:68-70`
 
@@ -4679,7 +4679,7 @@ API credentials stored as plain instance attributes. If the object is introspect
 
 Excellent model registry with versioning, A/B testing, rollback, and file persistence. ✅
 
-### 8.345 ai-signal-bot ml/model_registry: no file lock — Low
+### 8.345 ai-signal-bot ml/model_registry: no file lock — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/ml/model_registry.py:107-119`
 
@@ -4700,7 +4700,7 @@ Excellent model registry with versioning, A/B testing, rollback, and file persis
 
 Good feature store with Redis backend and graceful fallback. ✅
 
-### 8.347 ai-signal-bot feature_store: catch-all in Redis connection — Low
+### 8.347 ai-signal-bot feature_store: catch-all in Redis connection — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/ml/feature_store.py:94`
 
@@ -4724,7 +4724,7 @@ Catches `Exception` — redundant since `OSError` and `ConnectionError` are alre
 
 Good ML model with ONNX export for production inference. ✅
 
-### 8.349 ai-signal-bot technical_analysis/: 25 files — High (code reduction)
+### 8.349 ai-signal-bot technical_analysis/: 25 files — High (code reduction) [N/A]
 
 **Файл:** `ai-signal-bot/src/technical_analysis/` (25 files)
 
@@ -4760,7 +4760,7 @@ Good indicator library with NumPy acceleration and pure-Python fallback. ✅
 
 Good alert system with multi-channel, rate limiting, and parallel sends. ✅
 
-### 8.352 ai-signal-bot alerting: alert_history list slice, not deque — Low
+### 8.352 ai-signal-bot alerting: alert_history list slice, not deque — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/alerting.py:113-114`
 
@@ -4832,7 +4832,7 @@ Good backtesting engine with risk management integration. ✅
 
 Excellent PnL calculator with pluggable asset types and detailed breakdown. ✅
 
-### 8.358 ai-signal-bot: technical_analysis + research overlap — High (code reduction)
+### 8.358 ai-signal-bot: technical_analysis + research overlap — High (code reduction) [N/A]
 
 **Файлы:** `ai-signal-bot/src/technical_analysis/` (25 files) + `ai-signal-bot/src/research/` (35 files) = **60 files**
 
@@ -4870,7 +4870,7 @@ Two metrics modules in the same bot. `communication/metrics_server.py` has 7 met
 
 Excellent signal validator with comprehensive checks and clean design. ✅
 
-### 8.361 ai-signal-bot signal_validator: datetime.now() without timezone — Low
+### 8.361 ai-signal-bot signal_validator: datetime.now() without timezone — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/signal_validation/validator.py:46,58,113`
 
@@ -4915,7 +4915,7 @@ Every `save_signal`, `save_trade`, etc. creates a new connection, sets WAL mode,
 
 **Фикс:** Use a single persistent connection with a thread lock, or use `aiosqlite` for async access. Cache the WAL pragma.
 
-### 8.364 ai-signal-bot db.py: catch-all in close() — Low
+### 8.364 ai-signal-bot db.py: catch-all in close() — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/database/db.py:33`
 
@@ -5798,7 +5798,7 @@ f-string logging — evaluates string even if log level is disabled.
 
 Good notification bot with dual channels, remote commands, and graceful lifecycle. ✅
 
-### 8.434 notifier: token stored as instance attribute — Low
+### 8.434 notifier: token stored as instance attribute — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py:53-54`
 
@@ -5840,7 +5840,7 @@ Each migration SQL is executed without a transaction. If the migration SQL fails
 
 **Фикс:** Wrap in a transaction: `async with conn.transaction(): await conn.execute(sql); await conn.execute("INSERT ...")`.
 
-### 8.437 migrate.py: no --down support — Low
+### 8.437 migrate.py: no --down support — Low [N/A]
 
 **Файл:** `ai-signal-bot/scripts/migrate.py:90-91`
 
@@ -6940,7 +6940,7 @@ Good data models with 5 enums, dataclasses, to_dict, and 13 audit event types. �
 
 Good utility functions with JSON logging, config loading, env casting, and formatting. ✅
 
-### 8.522 helpers.py: load_config returns {} on FileNotFoundError — Low
+### 8.522 helpers.py: load_config returns {} on FileNotFoundError — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/utils/helpers.py:70-71`
 
@@ -6991,7 +6991,7 @@ Every `save_signal()`, `save_trade()`, etc. creates a new connection, executes P
 
 **Фикс:** Use a persistent connection or connection pool. Set WAL once at init.
 
-### 8.526 db.py: close() swallows all exceptions — Low
+### 8.526 db.py: close() swallows all exceptions — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/database/db.py:33-34`
 
@@ -7355,7 +7355,7 @@ Good terminal visualizer with 2 mixins, cross-platform input, ANSI colors, and t
 
 Good strategy exports with 7 strategies, configs, and explicit `__all__`. ✅
 
-### 8.555 strategies/__init__: missing CrossExchangeArb and FundingRateArb — Low
+### 8.555 strategies/__init__: missing CrossExchangeArb and FundingRateArb — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/strategies/__init__.py`
 
@@ -7476,7 +7476,7 @@ The FFT is recursive — `fft(even)` and `fft(odd)` are called recursively. For 
 
 Good notifier with 2 platforms, 6 alert types, remote commands, and session reuse. ✅
 
-### 8.565 notifier: token stored in plain attr — Low
+### 8.565 notifier: token stored in plain attr — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py:54`
 
@@ -7502,7 +7502,7 @@ Bot token is stored as a plain string attribute. If the notifier object is logge
 
 Good LLM engine with 4 providers, graceful fallback, optional imports, and caching. ✅
 
-### 8.567 llm_engine: API key in plain dataclass — Low
+### 8.567 llm_engine: API key in plain dataclass — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/llm_engine/engine.py:29`
 
@@ -7527,7 +7527,7 @@ API key stored as plain string in `LLMConfig` dataclass. If config is logged or 
 
 Good UDP transport with non-blocking sockets, configurable buffers, and packet statistics. ✅
 
-### 8.569 socket_transport: no error handling on packet parse — Low
+### 8.569 socket_transport: no error handling on packet parse — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/networking/socket_transport.py`
 
@@ -7561,7 +7561,7 @@ self._recent_signals: dict[str, datetime] = {}
 
 **Фикс:** Use `asyncio.Lock` or make the validator single-task only.
 
-### 8.572 validator: _recent_signals unbounded dict — Low
+### 8.572 validator: _recent_signals unbounded dict — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/signal_validation/validator.py:48`
 
@@ -7776,7 +7776,7 @@ Excellent stat arb with OLS, ADF, half-life, Kalman filter, z-score, and correla
 
 Excellent market making with Avellaneda-Stoikov, inventory skew, adverse selection, and spread optimization. ✅
 
-### 8.589 market_making: inventory not thread-safe — Low
+### 8.589 market_making: inventory not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/strategies/market_making.py:59`
 
@@ -7816,7 +7816,7 @@ Good sentiment strategy with 10 event types, sentiment/volatility maps, pre/post
 
 Excellent ML ensemble with 3 libraries, HMM regime, IsolationForest, walk-forward, and graceful fallback. ✅
 
-### 8.592 ml_ensemble: HMMRegimeDetector not thread-safe — Low
+### 8.592 ml_ensemble: HMMRegimeDetector not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/strategies/ml_ensemble.py:57-68`
 
@@ -7844,7 +7844,7 @@ class HMMRegimeDetector:
 
 Good technical indicators with 8 indicators, NumPy vectorization, scalar fallback, and dual candle format. ✅
 
-### 8.594 indicators: EMA not fully vectorized — Low
+### 8.594 indicators: EMA not fully vectorized — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/technical_analysis/indicators.py:60-61`
 
@@ -7884,7 +7884,7 @@ class RiskManager:
 
 **Фикс:** Use `asyncio.Lock` per position, or document single-task requirement.
 
-### 8.597 risk_manager: no validation on config params — Low
+### 8.597 risk_manager: no validation on config params — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/risk/risk_manager.py:28-46`
 
@@ -8061,7 +8061,7 @@ Maintenance margin ratio is configurable via Config struct, but the default 0.5%
 
 Good backtester with 10-field Trade, 18 metrics, RiskManager integration, and backward compat. ✅
 
-### 8.611 backtester: no slippage model — Low
+### 8.611 backtester: no slippage model — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/backtesting/backtester.py`
 
@@ -8081,7 +8081,7 @@ The backtester simulates fees but not slippage. In real trading, market orders e
 
 Good exchange factory with 3 modes, Protocol-based design, 9 methods, and fallback. ✅
 
-### 8.613 exchange_factory: SimulatorAdapter returns hardcoded 50000.0 — Low
+### 8.613 exchange_factory: SimulatorAdapter returns hardcoded 50000.0 — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py:55`
 
@@ -8106,7 +8106,7 @@ return {"symbol": symbol, "price": 50000.0, "bid": 49999.5, "ask": 50000.5, "tim
 
 Good Markowitz optimizer with PortfolioResult, EfficientFrontier, 3 calculations, and scipy integration. ✅
 
-### 8.615 markowitz: no constraint validation — Low
+### 8.615 markowitz: no constraint validation — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/portfolio/markowitz.py:34`
 
@@ -8118,7 +8118,7 @@ No validation that `risk_free_rate` is reasonable (e.g., not negative, not > 1).
 
 **Фикс:** Validate `risk_free_rate` in `__init__`.
 
-### 8.616 markowitz: no short-selling constraint — Low
+### 8.616 markowitz: no short-selling constraint — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/portfolio/markowitz.py`
 
@@ -8203,7 +8203,7 @@ R593 flagged "no latency tracking implementation" — the `IExchange` interface 
 
 Good price predictor with 2 architectures, attention, 11 features, ONNX export, and early stopping. ✅
 
-### 8.623 price_predictor: hard-imports torch — Low
+### 8.623 price_predictor: hard-imports torch — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/ml/price_predictor.py:28-30`
 
@@ -8233,7 +8233,7 @@ from torch.utils.data import DataLoader, Dataset
 
 Excellent model registry with 5 statuses, semver, A/B testing, rollback, file persistence, and promote-with-demotion. ✅
 
-### 8.625 model_registry: not thread-safe — Low
+### 8.625 model_registry: not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/ml/model_registry.py:87-89`
 
@@ -8246,7 +8246,7 @@ self.ab_tests: dict[str, ABTest] = {}
 
 **Фикс:** Use `asyncio.Lock` or document single-task requirement.
 
-### 8.626 model_registry: _save not atomic — Low
+### 8.626 model_registry: _save not atomic — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/ml/model_registry.py:107-120`
 
@@ -8296,7 +8296,7 @@ With 50 symbols × 60s signal interval = ~3000 signals/day, this is 3000+ connec
 
 **Фикс:** Use a persistent connection stored as `self._conn`, set WAL once in `__init__`, and use a thread-safe access pattern.
 
-### 8.629 db.py: no foreign key on signal_id — Low
+### 8.629 db.py: no foreign key on signal_id — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/database/db.py:67`
 
@@ -8322,7 +8322,7 @@ signal_id INTEGER
 
 Good risk parity optimizer with marginal risk, equal risk contribution, risk budgeting, and weight bounds. ✅
 
-### 8.631 risk_parity: portfolio_return hardcoded 0 — Low
+### 8.631 risk_parity: portfolio_return hardcoded 0 — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/portfolio/risk_parity.py:76`
 
@@ -8348,7 +8348,7 @@ portfolio_return = 0
 
 Good rebalancing with 3 triggers, turnover, skip threshold, and transaction cost. ✅
 
-### 8.633 rebalancing: no min trade size — Low
+### 8.633 rebalancing: no min trade size — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/portfolio/rebalancing.py:77`
 
@@ -8376,7 +8376,7 @@ The skip threshold is 0.01 (1% weight difference), but there's no minimum trade 
 
 Excellent health server with 6 endpoints, K8s probes, pluggable checks, async support, and proper HTTP status. ✅
 
-### 8.635 health_server: liveness always returns True — Low
+### 8.635 health_server: liveness always returns True — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/health_server.py:123-125`
 
@@ -8504,7 +8504,7 @@ exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
 
 **Фикс:** Use TLS in production: `insecure=False` (default) with proper certificates. Only use `insecure=True` in development.
 
-### 8.644 tracing: global mutable state not thread-safe — Low
+### 8.644 tracing: global mutable state not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/observability/tracing.py:25-26`
 
@@ -8626,7 +8626,7 @@ while (microseconds < current_min &&
 
 Excellent config loader with 20+ validation rules, errors vs warnings, suspicious value detection, and hard fail on errors. ✅
 
-### 8.652 config: no validation for duplicate symbols — Low
+### 8.652 config: no validation for duplicate symbols — Low [N/A]
 
 **Файл:** `ai-signal-bot/config/__init__.py:51`
 
@@ -8651,7 +8651,7 @@ Only checks that symbols is non-empty. No check for duplicate symbols (e.g., `["
 
 Good real market data feed with 3 normalized types, multi-exchange, callbacks, and reconnection. ✅
 
-### 8.654 real_market_data: no reconnection state sync — Medium
+### 8.654 real_market_data: no reconnection state sync — Medium [N/A]
 
 **Файл:** `ai-signal-bot/src/data_collection/real_market_data.py:71`
 
@@ -8680,7 +8680,7 @@ After reconnection, the feed doesn't sync missed data. During the disconnect per
 
 Good WebSocket client with 3 encodings, optional imports, compression, reconnection, and trading state checks. ✅
 
-### 8.656 ws_client: no TLS support — Medium
+### 8.656 ws_client: no TLS support — Medium [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/ws_client.py:77`
 
@@ -8697,7 +8697,7 @@ No TLS configuration. If `self.url` is `ws://` (not `wss://`), all data (includi
 
 **Фикс:** Detect `ws://` vs `wss://` and require TLS for production. Add `ssl=ssl.create_default_context()` for `wss://` connections.
 
-### 8.657 ws_client: listen() doesn't reconnect — Low
+### 8.657 ws_client: listen() doesn't reconnect — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/ws_client.py:99-121`
 
@@ -8732,7 +8732,7 @@ When the connection closes, `listen()` just logs a warning and sets `_connected 
 
 Excellent SHM ring buffer with cross-platform support, cache-line alignment, magic validation, memory barriers, and `__del__` safety. ✅
 
-### 8.659 shm_ring_buffer: no overflow detection on head/tail — Low
+### 8.659 shm_ring_buffer: no overflow detection on head/tail — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py:173`
 
@@ -8745,7 +8745,7 @@ if head - tail >= self.capacity:
 
 **Фикс:** Document that overflow is not a concern at realistic push rates, or add a wraparound check.
 
-### 8.660 shm_ring_buffer: FlushViewOfFile on every write — Low
+### 8.660 shm_ring_buffer: FlushViewOfFile on every write — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py:38`
 
@@ -8871,7 +8871,7 @@ The bot token is embedded in the URL path. If the HTTP request is logged (by a p
 
 **Фикс:** Use Telegram Bot API header-based authentication if available, or ensure the token is never logged (redact URLs in logging).
 
-### 8.669 notifier: no rate limiting on alerts — Low
+### 8.669 notifier: no rate limiting on alerts — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py:89`
 
@@ -8916,7 +8916,7 @@ The only authentication for remote commands is checking `chat_id`. If an attacke
 
 Good LLM engine with 4 providers, 3 prompt templates, cache with TTL, rule-based fallback, and optional imports. ✅
 
-### 8.672 llm_engine: API key in env var only — Low
+### 8.672 llm_engine: API key in env var only — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/llm_engine/engine.py:86-88`
 
@@ -8928,7 +8928,7 @@ API keys are loaded from env vars. If the env var is not set, the engine falls b
 
 **Фикс:** Set `self.config.api_key = None` instead of `""` for clearer semantics.
 
-### 8.673 llm_engine: cache key doesn't include regime — Low
+### 8.673 llm_engine: cache key doesn't include regime — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/llm_engine/engine.py:151`
 
@@ -9081,7 +9081,7 @@ The `Config` struct has 80+ fields with default values but no validation in the 
 
 Excellent Brinson-Fachler attribution with correct formulas, 2 dataclasses, multi-period support, and formatted report. ✅
 
-### 8.684 attribution: no weight normalization check — Low
+### 8.684 attribution: no weight normalization check — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/research/attribution.py:70-78`
 
@@ -9109,7 +9109,7 @@ No check that `sum(portfolio_weights) ≈ 1.0` and `sum(benchmark_weights) ≈ 1
 
 Good Greeks hedging simulator with all 5 Greeks, GBM paths, threshold rebalancing, transaction costs, P&L decomposition, and Monte Carlo. ✅
 
-### 8.686 greeks_hedging: np.random.seed global state — Low
+### 8.686 greeks_hedging: np.random.seed global state — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/research/greeks_hedging.py:112`
 
@@ -9236,7 +9236,7 @@ Only `KeyboardInterrupt` (Ctrl+C) is caught. There's no `SIGTERM` handler. In Ku
 
 **Фикс:** Add `signal.signal(signal.SIGTERM, lambda s, f: self._running = False)` or use `asyncio.add_signal_handler(signal.SIGTERM, ...)`.
 
-### 8.694 run.py: signal_publisher binds to 0.0.0.0 — Low
+### 8.694 run.py: signal_publisher binds to 0.0.0.0 — Low [N/A]
 
 **Файл:** `ai-signal-bot/run.py:77`
 
@@ -9248,7 +9248,7 @@ The signal publisher binds to `0.0.0.0` (all interfaces). The `nosec: B104` anno
 
 **Фикс:** Bind to `127.0.0.1` for local-only communication, or use a firewall to restrict access to port 8766.
 
-### 8.695 run.py: no health check in main loop — Low
+### 8.695 run.py: no health check in main loop — Low [FIXED]
 
 **Файл:** `ai-signal-bot/run.py:163-165`
 
@@ -9310,7 +9310,7 @@ No `ssl` parameter in `websockets.serve()`. Signals are sent as plaintext WebSoc
 
 **Фикс:** Add `ssl=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)` with cert/key for `wss://`.
 
-### 8.699 signal_publisher: backtest on WebSocket blocks signal broadcast — Low
+### 8.699 signal_publisher: backtest on WebSocket blocks signal broadcast — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/signal_publisher.py:145-147`
 
@@ -9368,7 +9368,7 @@ async def connect(self, host: str, port: int):
 
 **Фикс:** Add `ssl=ssl.create_default_context()` parameter for FIX over TLS.
 
-### 8.703 fix_client: password in plaintext FIX field — Low
+### 8.703 fix_client: password in plaintext FIX field — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/fix_client.py:199-200`
 
@@ -9438,7 +9438,7 @@ All state mutations (`_consecutive_failures`, `_consecutive_successes`, `_state`
 
 Good microstructure lab with 14 metrics, correct OFI/VPIN/Kyle's lambda, edge case handling, and numerical safety. ✅
 
-### 8.708 microstructure_lab: no input validation on trade/book data — Low
+### 8.708 microstructure_lab: no input validation on trade/book data — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/research/microstructure_lab.py:84-87`
 
@@ -9466,7 +9466,7 @@ No validation that `b.get("qty", 0)` is a positive number. If `qty` is negative 
 
 Good alert system with 3 severities, 4 channels, rate limiting, bounded history, and multi-channel send. ✅
 
-### 8.710 alerting: check_fn is synchronous — Low
+### 8.710 alerting: check_fn is synchronous — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/alerting.py:34`
 
@@ -9478,7 +9478,7 @@ check_fn: Callable[[], bool]          # Returns True if alert should fire
 
 **Фикс:** Change to `check_fn: Callable[[], Awaitable[bool]]` and `await rule.check_fn()`.
 
-### 8.711 alerting: alert_history list slice creates copy — Low
+### 8.711 alerting: alert_history list slice creates copy — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/alerting.py:113-114`
 
@@ -9521,7 +9521,7 @@ The seq-guarded write uses `struct.pack_into` which is a regular memory write. T
 
 **Фикс:** Use `ctypes.memmove` with explicit barriers, or use `mmap` with `MAP_POPULATE` and add `ctypes.c_uint64.from_buffer(mm, offset).value` with `threading.Barrier` or `os.write` to force ordering. Alternatively, use `struct.pack_into` with a memory barrier via `ctypes`.
 
-### 8.714 shm_market_data_writer: import time inside method — Low
+### 8.714 shm_market_data_writer: import time inside method — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/shm_market_data_writer.py:99`
 
@@ -9550,7 +9550,7 @@ def write_price(self, symbol_id: int, bid: float, ask: float,
 
 Good SHM fill consumer with non-blocking/bulk pop, async polling, and graceful stop. ✅
 
-### 8.716 shm_fill_consumer: callback is synchronous — Low
+### 8.716 shm_fill_consumer: callback is synchronous — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/shm_fill_consumer.py:59-71`
 
@@ -9567,7 +9567,7 @@ async def run_polling(self, callback: Callable[[list[tuple]], None], ...):
 
 **Фикс:** Change to `Callable[[list[tuple]], Awaitable[None]]` and `await callback(fills)`.
 
-### 8.717 shm_fill_consumer: 1ms poll interval wastes CPU — Low
+### 8.717 shm_fill_consumer: 1ms poll interval wastes CPU — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/shm_fill_consumer.py:62`
 
@@ -9593,7 +9593,7 @@ Default poll interval is 1ms. When there are no fills, the consumer wakes up eve
 
 Good SHM signal producer with non-blocking push, dict conversion, confidence normalization, and bulk push. ✅
 
-### 8.719 shm_signal_producer: no fallback when buffer is full — Low
+### 8.719 shm_signal_producer: no fallback when buffer is full — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/shm_signal_producer.py:55-57`
 
@@ -9661,7 +9661,7 @@ Health endpoint binds to all interfaces. Exposes service health status (includin
 
 Good metrics server with 7 Prometheus metrics, text format, no external deps, separation of concerns, and graceful stop. ✅
 
-### 8.724 metrics_server: raw HTTP parser — Low
+### 8.724 metrics_server: raw HTTP parser — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/metrics_server.py:109-127`
 
@@ -9684,7 +9684,7 @@ The metrics server implements a raw HTTP parser using `asyncio.start_server` + m
 
 **Фикс:** Use `aiohttp.web` (like health_check.py does) for proper HTTP parsing. Or add a max header size check: `if len(line) > 8192: break`.
 
-### 8.725 metrics_server: counters not thread-safe — Low
+### 8.725 metrics_server: counters not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/metrics_server.py:34-44`
 
@@ -9711,7 +9711,7 @@ All counter increments (`_signals_sent`, `_signals_blocked`, `_backtests_run`, `
 
 Good strategy competition with ELO ratings, round-robin, 10% win threshold, pluggable backtest, and comprehensive result tracking. ✅
 
-### 8.727 competition: _default_backtest returns all zeros — Low
+### 8.727 competition: _default_backtest returns all zeros — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/research/competition.py:151-159`
 
@@ -9744,7 +9744,7 @@ The default backtest returns all zeros. If someone calls `run_tournament()` with
 
 Good genetic strategy discovery with 10 indicators, tournament selection, 5 mutation types, elitism, and history tracking. ✅
 
-### 8.729 genetic_strategy: random not seeded — Low
+### 8.729 genetic_strategy: random not seeded — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/research/genetic_strategy.py:30`
 
@@ -9756,7 +9756,7 @@ Uses `random` module without seeding. Each run produces different results — no
 
 **Фикс:** Add `random.seed(seed)` parameter to `evolve()` or `__init__`.
 
-### 8.730 genetic_strategy: no convergence detection — Low
+### 8.730 genetic_strategy: no convergence detection — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/research/genetic_strategy.py:218-224`
 
@@ -9782,7 +9782,7 @@ Runs all generations without checking for convergence. If the population converg
 
 Good performance tracker with 11 fields, 3 properties, CSV loggers with auto-mkdir, and tabulate dashboard. ✅
 
-### 8.732 tracker: CSV loggers open/close file per write — Low
+### 8.732 tracker: CSV loggers open/close file per write — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/tracker.py:82-96`
 
@@ -9797,7 +9797,7 @@ Each `log()` call opens and closes the file. With 50 symbols generating signals 
 
 **Фикс:** Keep the file open with a buffered writer, or use a logging handler that writes to CSV. Flush periodically.
 
-### 8.733 tracker: no CSV injection protection — Low
+### 8.733 tracker: no CSV injection protection — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/tracker.py:82-96`
 
@@ -9849,7 +9849,7 @@ Each component check is awaited sequentially with no timeout. If `_check_db()` h
 
 **Фикс:** Wrap each check in `asyncio.wait_for(self._check_ws(), timeout=1.0)`. Run checks concurrently with `asyncio.gather(*tasks, return_exceptions=True)`.
 
-### 8.736 health_checks: sequential checks not concurrent — Low
+### 8.736 health_checks: sequential checks not concurrent — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/observability/health_checks.py:89-99`
 
@@ -9873,7 +9873,7 @@ The 4 component checks are awaited sequentially. With 4 checks each taking ~50ms
 
 Excellent structured logging with structlog optional, JSON+console, correlation IDs, service context, library noise suppression, and context binding. ✅
 
-### 8.738 logging: file handler no rotation — Low
+### 8.738 logging: file handler no rotation — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/observability/logging.py:121`
 
@@ -9885,7 +9885,7 @@ file_handler = logging.FileHandler(log_file)
 
 **Фикс:** Use `logging.handlers.RotatingFileHandler(log_file, maxBytes=100*1024*1024, backupCount=10)` or `TimedRotatingFileHandler`.
 
-### 8.739 logging: root logger handlers.clear() removes all handlers — Low
+### 8.739 logging: root logger handlers.clear() removes all handlers — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/observability/logging.py:60`
 
@@ -9926,7 +9926,7 @@ exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
 
 **Фикс:** Use `insecure=False` with proper TLS certificates. Or ensure Jaeger is on localhost and document the security implication.
 
-### 8.742 tracing: no span attributes for trading data — Low
+### 8.742 tracing: no span attributes for trading data — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/observability/tracing.py:13-16`
 
@@ -9954,7 +9954,7 @@ The docstring shows setting span attributes, but the actual code doesn't set any
 
 Good health server with 6 endpoints, K8s probes, pluggable checks, sync+async support, and graceful stop. ✅
 
-### 8.744 health_server: binds to 0.0.0.0 — Low
+### 8.744 health_server: binds to 0.0.0.0 — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/health_server.py:24`
 
@@ -9966,7 +9966,7 @@ Health server binds to all interfaces. Exposes component health status (exchange
 
 **Фикс:** Bind to `127.0.0.1` or use K8s ClusterIP service.
 
-### 8.745 health_server: _check_all runs checks sequentially — Low
+### 8.745 health_server: _check_all runs checks sequentially — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/health_server.py:74-78`
 
@@ -9998,7 +9998,7 @@ Checks are awaited sequentially. With 3 checks each taking ~50ms, the total take
 
 Excellent Prometheus metrics exporter with 5 counters, 9 gauges, 3 histograms, 1 summary, optional deps, custom registry, and HTTP server. ✅
 
-### 8.747 metrics: start_server binds to 0.0.0.0 — Low
+### 8.747 metrics: start_server binds to 0.0.0.0 — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/metrics.py:211`
 
@@ -10010,7 +10010,7 @@ Metrics server binds to all interfaces. Exposes trading metrics (PnL, drawdown, 
 
 **Фикс:** Bind to `127.0.0.1` or use K8s ClusterIP service. Restrict with network policies.
 
-### 8.748 metrics: no metric for circuit breaker state — Low
+### 8.748 metrics: no metric for circuit breaker state — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/metrics.py:48-53`
 
@@ -10033,7 +10033,7 @@ The metrics exporter has counters for kill_switch_activations and a gauge for ki
 
 Good backtest runner with synthetic data generation, SQLite source, multi-strategy, optimization, walk-forward, and plotting. ✅
 
-### 8.750 run_backtest: SQLite connection not closed on exception — Low
+### 8.750 run_backtest: SQLite connection not closed on exception — Low [N/A]
 
 **Файл:** `ai-signal-bot/run_backtest.py:80-89`
 
@@ -10048,7 +10048,7 @@ If `conn.execute()` or `fetchall()` raises an exception (e.g., table doesn't exi
 
 **Фикс:** Use `with sqlite3.connect(args.db) as conn:` context manager.
 
-### 8.751 run_backtest: no error handling for missing DB table — Low
+### 8.751 run_backtest: no error handling for missing DB table — Low [N/A]
 
 **Файл:** `ai-signal-bot/run_backtest.py:80-84`
 
@@ -10064,7 +10064,7 @@ If the `candles` table doesn't exist, `sqlite3.OperationalError: no such table: 
 
 **Фикс:** Wrap in try/except `sqlite3.OperationalError` and print: `f"Error: Table 'candles' not found in {args.db}. Run data collection first."`.
 
-### 8.752 run_backtest: no walk-forward for MeanReversion — Low
+### 8.752 run_backtest: no walk-forward for MeanReversion — Low [N/A]
 
 **Файл:** `ai-signal-bot/run_backtest.py:159-174`
 
@@ -10125,7 +10125,7 @@ API key and secret are stored as plaintext strings in the factory instance. They
 
 **Фикс:** Use environment variables or a secrets manager (e.g., Vault). Clear from memory when not needed. Use `__slots__` to prevent attribute access.
 
-### 8.757 exchange_factory: SimulatorAdapter returns hardcoded prices — Low
+### 8.757 exchange_factory: SimulatorAdapter returns hardcoded prices — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/data_collection/exchange_factory.py:55`
 
@@ -10176,7 +10176,7 @@ With 50 symbols generating signals every 60s, that's ~50 connections per minute 
 
 **Фикс:** Use a connection pool or a single persistent connection. For SQLite WAL mode, a single write connection + multiple read connections is ideal. Use `threading.local()` for thread-safe connection reuse.
 
-### 8.760 db.py: no connection timeout — Low
+### 8.760 db.py: no connection timeout — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/database/db.py:22`
 
@@ -10188,7 +10188,7 @@ No timeout parameter. Default SQLite timeout is 5s. If another process holds a w
 
 **Фикс:** `sqlite3.connect(self.path, timeout=1.0)` to fail fast.
 
-### 8.761 db.py: no migration version tracking — Low
+### 8.761 db.py: no migration version tracking — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/database/db.py:36-81`
 
@@ -10594,7 +10594,7 @@ The `optimize()` method doesn't accept or use a validation set. The `objective_f
 
 **Фикс:** Add `validation_data` parameter. Enforce that `objective_fn` returns validation metric, not training metric. Add walk-forward validation after optimization.
 
-### 8.786 automl: no early stopping on convergence — Low
+### 8.786 automl: no early stopping on convergence — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/ml/automl.py:142-147`
 
@@ -10644,7 +10644,7 @@ def _save(self) -> None:
 
 **Фикс:** Write to a temp file, then atomic rename: `with open(tmp_path, "w") as f: json.dump(...); os.replace(tmp_path, self.index_path)`.
 
-### 8.789 model_registry: select_ab_model not thread-safe — Low
+### 8.789 model_registry: select_ab_model not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/ml/model_registry.py:236-238`
 
@@ -10710,7 +10710,7 @@ No rate limiting on LLM API calls. The cache helps (60s TTL), but if 50 symbols 
 
 **Фикс:** Add a token bucket or sliding window rate limiter. E.g., max 30 requests per minute. Queue excess requests.
 
-### 8.793 llm_engine: cache key based on rounded price — Low
+### 8.793 llm_engine: cache key based on rounded price — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/llm_engine/engine.py:151`
 
@@ -11061,7 +11061,7 @@ def start_receive_loop(self, on_packet: Callable[[MarketDataPacket], None]) -> N
 
 **Фикс:** Use `asyncio.get_event_loop().add_reader(self._socket.fileno(), callback)` for async I/O. Or run in a separate thread with `threading.Thread(target=self.start_receive_loop, daemon=True)`.
 
-### 8.816 socket_transport: no packet validation — Low
+### 8.816 socket_transport: no packet validation — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/networking/socket_transport.py:128-149`
 
@@ -11124,7 +11124,7 @@ No rate limiting on alert sending. If 50 symbols generate fills simultaneously, 
 
 **Фикс:** Add a message queue with rate limiting. Batch alerts into a single message. Use `asyncio.Semaphore` to limit concurrent sends.
 
-### 8.820 notifier: no retry on failed sends — Low
+### 8.820 notifier: no retry on failed sends — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/notification/notifier.py:111-116`
 
@@ -11141,7 +11141,7 @@ If the send fails (network error, 429, 500), the alert is lost. No retry mechani
 
 **Фикс:** Add exponential backoff retry (3 attempts). Queue failed alerts for later retry.
 
-### 8.821 Code reduction: duplicate emoji_map in Telegram and Discord — Info
+### 8.821 Code reduction: duplicate emoji_map in Telegram and Discord — Info [N/A]
 
 **Файлы:** `ai-signal-bot/src/notification/notifier.py:93-100` + `notifier.py:212-219`
 
@@ -11565,7 +11565,7 @@ Same issue as `shm_ring_buffer.h:79` — char-by-char wstring conversion only wo
 
 Good monitoring tracker with performance metrics, CSV logging, and CLI dashboard. ✅
 
-### 8.849 tracker: PerformanceTracker not thread-safe — Low
+### 8.849 tracker: PerformanceTracker not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/tracker.py:14-52`
 
@@ -11584,7 +11584,7 @@ class PerformanceTracker:
 
 **Фикс:** Use `asyncio.Lock` or `threading.Lock` around mutations. Or use atomic operations via `itertools.count()`.
 
-### 8.850 tracker: CSV log() opens file on every call — Low
+### 8.850 tracker: CSV log() opens file on every call — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/monitoring/tracker.py:82-96`
 
@@ -11651,7 +11651,7 @@ No timeout on `await self.db_client.get_health()`. If the DB is unresponsive (ne
 
 **Фикс:** Use `asyncio.wait_for(self.db_client.get_health(), timeout=2.0)`. Catch `asyncio.TimeoutError` and return UNHEALTHY.
 
-### 8.854 health_checks: record_signal/record_order not thread-safe — Low
+### 8.854 health_checks: record_signal/record_order not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/observability/health_checks.py:65-74`
 
@@ -11665,7 +11665,7 @@ Same issue as tracker.py (R849). `_signal_count += 1` is not atomic in async con
 
 **Фикс:** Use `asyncio.Lock` or accept eventual consistency (counters are approximate).
 
-### 8.855 Code reduction: SignalLogger and TradeLogger near-identical — Info
+### 8.855 Code reduction: SignalLogger and TradeLogger near-identical — Info [N/A]
 
 **Файлы:** `ai-signal-bot/src/monitoring/tracker.py:70-96` + `tracker.py:99-125`
 
@@ -11834,7 +11834,7 @@ If the hash collides (symbol hashes to a bucket that contains a different symbol
 
 Good tracing setup with OpenTelemetry, Jaeger, noop fallback, idempotent init, and graceful shutdown. ✅
 
-### 8.866 tracing: global singleton not thread-safe — Low
+### 8.866 tracing: global singleton not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/observability/tracing.py:25-26`
 
@@ -11863,7 +11863,7 @@ _initialized: bool = False
 
 Excellent structured logging with structlog, correlation IDs, contextual fields, console/JSON modes, library noise suppression, and contextvars binding. ✅
 
-### 8.868 logging: _configured flag not thread-safe — Low
+### 8.868 logging: _configured flag not thread-safe — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/observability/logging.py:28-39`
 
@@ -12299,7 +12299,7 @@ The password is added as FIX field tag 554. At log level DEBUG, `msg.fields` is 
 
 **Фикс:** Filter tag 554 (and 553 username) from debug logging. Redact sensitive tags before logging.
 
-### 8.899 fix_client: seq file in tempfile.gettempdir() — Low
+### 8.899 fix_client: seq file in tempfile.gettempdir() — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/fix_client.py:126`
 
@@ -12311,7 +12311,7 @@ The sequence number file is in the system temp directory. On Linux, `/tmp` is wo
 
 **Фикс:** Use a dedicated data directory (e.g., `data/fix_seq.txt`). Include sender_comp_id in filename for multi-instance support.
 
-### 8.900 fix_client: no reconnect logic — Low
+### 8.900 fix_client: no reconnect logic — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/fix_client.py:289-337`
 
@@ -12319,7 +12319,7 @@ The `_read_loop` sets `state = "DISCONNECTED"` on error and breaks. There is no 
 
 **Фикс:** Add `reconnect()` method with exponential backoff, similar to `ws_client.py`.
 
-### 8.901 fix_client: _pending_messages unbounded — Low
+### 8.901 fix_client: _pending_messages unbounded — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/fix_client.py:139, 352`
 
@@ -12348,7 +12348,7 @@ If the counterparty keeps sending messages with seq nums ahead of expected, `_pe
 
 Good WebSocket client with optional encoding, compression, reconnect, and trading state management. ✅
 
-### 8.903 ws_client: no reconnect on listen() exit — Low
+### 8.903 ws_client: no reconnect on listen() exit — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/ws_client.py:119-121`
 
@@ -12362,7 +12362,7 @@ When the connection closes, `listen()` exits. There is no automatic call to `rec
 
 **Фикс:** Call `self.reconnect()` in the except block, or document that the caller must handle reconnection.
 
-### 8.904 ws_client: _process_message not async — Low
+### 8.904 ws_client: _process_message not async — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/ws_client.py:123`
 
@@ -12388,7 +12388,7 @@ def _process_message(self, data: dict) -> None:
 
 Good WebSocket connection pool with stale eviction, health checks, asyncio.Lock, and clean lifecycle. ✅
 
-### 8.906 ws_connection_pool: _evict_stale creates fire-and-forget tasks — Low
+### 8.906 ws_connection_pool: _evict_stale creates fire-and-forget tasks — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/ws_connection_pool.py:106`
 
@@ -12400,7 +12400,7 @@ asyncio.create_task(conn.close())
 
 **Фикс:** Await `conn.close()` inline or track tasks in a set.
 
-### 8.907 ws_connection_pool: _health_loop runs forever with no error handling — Low
+### 8.907 ws_connection_pool: _health_loop runs forever with no error handling — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/ws_connection_pool.py:129-133`
 
@@ -12544,7 +12544,7 @@ Same issue as momentum_breakout_v2 (R861) and market_making_v2 (R882). `kalman_`
 
 Good signal publisher with circuit breaker, metrics, signal history, backtest execution, and comparison. ✅
 
-### 8.918 signal_publisher: _handle_client catches broad Exception — Low
+### 8.918 signal_publisher: _handle_client catches broad Exception — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/signal_publisher.py:123, 155`
 
@@ -12560,7 +12560,7 @@ Two broad `except Exception` clauses. The first catches all exceptions when send
 
 **Фикс:** Catch specific exceptions (`websockets.ConnectionClosed`, `OSError`). Let `CancelledError` propagate.
 
-### 8.919 signal_publisher: _send closure captures loop variable — Low
+### 8.919 signal_publisher: _send closure captures loop variable — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/signal_publisher.py:188-193`
 
@@ -12610,7 +12610,7 @@ async def _run_backtest(self, params: dict) -> dict:
 
 Excellent SHM ring buffer with lock-free SPSC, cache-line alignment, cross-platform support, magic validation, bulk operations, and clean lifecycle. ✅
 
-### 8.922 shm_ring_buffer: _atomic_read_u64 is not truly atomic — Low
+### 8.922 shm_ring_buffer: _atomic_read_u64 is not truly atomic — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py:49-51`
 
@@ -12624,7 +12624,7 @@ The comment says "naturally atomic on x86/x64" — this is true for aligned 8-by
 
 **Фикс:** Document x86/x64 assumption. For ARM, use `ctypes.c_uint64.from_buffer` with explicit alignment.
 
-### 8.923 shm_ring_buffer: _mm_barrier calls flush on every push — Low
+### 8.923 shm_ring_buffer: _mm_barrier calls flush on every push — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py:57-58`
 
@@ -12638,7 +12638,7 @@ Every `_atomic_write_u64` calls `_mm_barrier`, which calls `FlushViewOfFile` (Wi
 
 **Фикс:** Use a memory barrier instruction (`_mm_sfence` on x86) instead of `msync`/`FlushViewOfFile`. Only flush on close or periodically.
 
-### 8.924 shm_ring_buffer: no overflow detection in bulk_push — Low
+### 8.924 shm_ring_buffer: no overflow detection in bulk_push — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/shm_ring_buffer.py:198-212`
 
@@ -12658,7 +12658,7 @@ Every `_atomic_write_u64` calls `_mm_barrier`, which calls `FlushViewOfFile` (Wi
 
 Good SHM signal producer with clean API, dict-to-struct conversion, and context manager. ✅
 
-### 8.926 shm_signal_producer: push_signal_dict silent default action=0 — Low
+### 8.926 shm_signal_producer: push_signal_dict silent default action=0 — Low [N/A]
 
 **Файл:** `ai-signal-bot/src/communication/shm_signal_producer.py:62-66`
 

@@ -185,10 +185,10 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 | C++ SPSCQueue + mutex | SPSC is single-producer but mutex suggests multi-thread race | CODE_AUDIT §8.148 |
 | ~~prod VITE_WS localhost fallback~~ [FIXED] | deploy.yml no longer falls back to localhost — empty value if GitHub vars not set | CODE_AUDIT §8.152 |
 | C++ risk_manager: check_order mutex | Serializes all order submissions, use shared_mutex | CODE_AUDIT §8.155 |
-| C++ daily_pnl += not atomic | atomic<double> += is load+store race, use fetch_add | CODE_AUDIT §8.156 |
+| ~~C++ daily_pnl += not atomic~~ [FIXED] | update_pnl now uses CAS loop for atomic add — operator+= was load+store race | CODE_AUDIT §8.156 |
 | C++ pre_trade_risk: blacklist race | insert/erase while check() reads = data race UB | CODE_AUDIT §8.158 |
 | C++ duplicate risk system | RiskManager + PreTradeRisk do same 8 checks | CODE_AUDIT §8.166 |
-| C++ reset_daily incomplete | peak_equity_ not reset → wrong drawdown next day | CODE_AUDIT §8.167 |
+| ~~C++ reset_daily incomplete~~ [FIXED] | reset_daily() now resets daily_pnl_ + peak_equity_ + total_exposure_ — prevents wrong drawdown next day | CODE_AUDIT §8.167 |
 | ~~Terraform: hardcoded RDS password~~ [FIXED] | dev/main.tf: removed default="ChangeMeInProduction123!" — now required via -var or tfvars, same as prod/main.tf | CODE_AUDIT §8.162 |
 | C++ 3 signal engines (v1/v2/v3) | V2 may be dead code, ~200 lines reducible | CODE_AUDIT §8.176 |
 | ~~migrate.py: narrow exception~~ [FIXED] | Widened to catch Exception — handles asyncpg.PostgresError and all DB errors | CODE_AUDIT §8.174 |

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -109,7 +110,7 @@ class HealthChecker:
         return {
             "status": status,
             "uptime_seconds": round(uptime, 1),
-            "pid": __import__("os").getpid(),
+            "pid": os.getpid(),
             "details": "; ".join(details) if details else "ok",
             "last_signal_age_s": round(now - self._last_signal_time, 1) if self._last_signal_time else None,
             "last_order_age_s": round(now - self._last_order_time, 1) if self._last_order_time else None,
