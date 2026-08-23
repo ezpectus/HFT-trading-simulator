@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-23 (Refactoring — Пачка B: __init__.py re-export cleanup)
+
+### Changed
+- Replaced 249-line `technical_analysis/__init__.py` (re-exporting ~200 symbols from 25 modules) with empty file
+- Replaced 81-line `ml/__init__.py` (re-exporting ~30 symbols) with empty file
+- Fixed `bot_helpers.py`: `from src.technical_analysis import adx, ema, rsi` → `from src.technical_analysis.indicators import adx, ema, rsi`
+- Eliminates eager loading of all 25 TA modules / 7 ML modules on any import
+- Net reduction: ~330 lines
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка A: dead code deletion)
 
 ### Deleted

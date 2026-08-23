@@ -27,7 +27,7 @@ from src.strategies import (
     StatisticalArbitrage,
     TrendFollowingStrategy,
 )
-from src.technical_analysis import adx, ema, rsi
+from src.technical_analysis.indicators import adx, ema, rsi
 
 if TYPE_CHECKING:
     from config import SignalBotConfig
