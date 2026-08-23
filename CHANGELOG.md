@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (Refactoring — Пачка XX-DevOps: DevOps fixes)
+
+### Changed
+- `scripts/deploy.sh`: Health check now counts healthy services and exits 1 if any unhealthy after 30 retries (previously always succeeded)
+- `scripts/deploy.sh`: Rollback database restore now uses atomic swap (copy→rm→mv instead of rm→cp) — prevents data loss on copy failure
+- `scripts/deploy.sh`: Backup retention added — keeps only last 5 backups, auto-cleans old config/database/audit backups
+- `docker-compose.yml`: Added `deploy.resources.limits` (memory + cpus) to all 6 dev services — prevents host crash on memory leak
+- `docker-compose.prod.yml`: Postgres, Redis, Prometheus now use `expose` instead of `ports` — internal services not accessible from host
+- `monitoring/alertmanager/config.yml`: SMTP password, Slack/Discord webhook URLs now use `${ENV_VAR:default}` syntax — override in production via environment
+- `.github/workflows/deploy.yml`: Post-deploy health check now exits 1 on failure — tracks FAIL count, fails pipeline if any endpoint unreachable
+- `.github/workflows/ci.yml`: `npm audit` now fails CI on high/critical vulnerabilities — removed `|| true`, grep checks for high+critical severity
+
+### Fixed
+- CODE_AUDIT §8.40 — CI npm audit non-blocking → now fails on high/critical
+- CODE_AUDIT §8.70 — Docker Compose no resource limits → all 6 services have memory+cpus limits
+- CODE_AUDIT §8.73 — Alertmanager placeholder credentials → env var references with defaults
+- CODE_AUDIT §8.89 — deploy.sh health check no exit → exits 1 on unhealthy services
+- CODE_AUDIT §8.90 — deploy.sh rm -rf before cp → atomic swap (copy first, then replace)
+- CODE_AUDIT §8.92 — deploy.sh no backup retention → keeps last 5, auto-cleans old
+- CODE_AUDIT §8.144 — deploy.yml health check no exit → exits 1 on failure
+- CODE_AUDIT §8.215 — Alertmanager hardcoded SMTP password → env var reference
+- CODE_AUDIT §8.385 — docker-compose no resource limits → same as §8.70
+- CODE_AUDIT §8.390 — ci.yml no security scanning → npm audit now blocking, Bandit+CodeQL already present
+- CODE_AUDIT §8.416 — docker-compose.prod ports exposed to host → expose (internal only)
+
+---
+
 ## [Unreleased] — 2026-08-23 (Refactoring — Пачка ZZ: PortfolioOptimizer dedup + CircuitBreaker audit)
 
 ### Changed
