@@ -75,7 +75,7 @@ class TestSignalLogger:
         path = str(tmp_path / "signals.csv")
         sl = SignalLogger(path)
         assert os.path.exists(path)
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             header = f.read()
         assert "timestamp" in header
         assert "symbol" in header
@@ -95,7 +95,7 @@ class TestSignalLogger:
             "rr_ratio": 2.0,
             "reason": "EMA crossover",
         })
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             reader = csv.reader(f)
             rows = list(reader)
         assert len(rows) == 2  # header + 1 data
@@ -126,7 +126,7 @@ class TestTradeLogger:
             "fee": 2,
             "status": "CLOSED",
         })
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             reader = csv.reader(f)
             rows = list(reader)
         assert len(rows) == 2

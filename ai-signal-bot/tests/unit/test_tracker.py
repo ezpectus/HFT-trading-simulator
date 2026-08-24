@@ -170,7 +170,7 @@ class TestSignalLogger:
             path = os.path.join(tmpdir, "signals.csv")
             SignalLogger(path)
             assert os.path.exists(path)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 header = next(reader)
                 assert "timestamp" in header
@@ -194,7 +194,7 @@ class TestSignalLogger:
                 "rr_ratio": 2.5,
                 "reason": "Strong uptrend",
             })
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 next(reader)  # skip header
                 row = next(reader)
@@ -218,7 +218,7 @@ class TestSignalLogger:
                 "confidence": 70, "strategy": "mean_rev", "entry_price": 3000,
                 "stop_loss": 3100, "take_profit": 2800,
             })
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 next(reader)  # header
                 row1 = next(reader)
@@ -233,7 +233,7 @@ class TestTradeLogger:
             path = os.path.join(tmpdir, "trades.csv")
             TradeLogger(path)
             assert os.path.exists(path)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 header = next(reader)
                 assert "timestamp" in header
@@ -258,7 +258,7 @@ class TestTradeLogger:
                 "fee": 2.5,
                 "status": "CLOSED",
             })
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 next(reader)  # header
                 row = next(reader)
@@ -277,7 +277,7 @@ class TestTradeLogger:
                 "quantity": 2.0,
                 "entry_price": 3000,
             })
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 next(reader)  # header
                 row = next(reader)

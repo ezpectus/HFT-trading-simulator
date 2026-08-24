@@ -243,7 +243,7 @@ class TestAuditLogger:
 
             # Verify JSON structure
             import json
-            with open(export_file) as f:
+            with open(export_file, encoding="utf-8") as f:
                 data = json.load(f)
             assert len(data) == 2
 

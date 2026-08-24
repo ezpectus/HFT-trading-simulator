@@ -86,7 +86,7 @@ class TestRegister:
 
     def test_register_saves_to_file(self, marketplace, tmp_registry):
         marketplace.register(make_plugin())
-        with open(tmp_registry) as f:
+        with open(tmp_registry, encoding="utf-8") as f:
             data = json.load(f)
         assert "test_strategy" in data["strategies"]
 

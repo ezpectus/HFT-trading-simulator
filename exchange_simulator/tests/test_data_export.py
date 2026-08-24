@@ -41,7 +41,7 @@ class TestDataExporter:
         assert filepath.endswith(".csv")
 
         # Verify CSV content
-        with open(filepath) as f:
+        with open(filepath, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             assert len(rows) > 0
@@ -53,7 +53,7 @@ class TestDataExporter:
         exporter = DataExporter(exchanges, market, output_dir=str(tmp_path))
         filepath = exporter.export_candles(symbol="BTC/USDT")
         assert filepath != ""
-        with open(filepath) as f:
+        with open(filepath, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             for row in rows:
@@ -64,7 +64,7 @@ class TestDataExporter:
         exporter = DataExporter(exchanges, market, output_dir=str(tmp_path))
         filepath = exporter.export_candles(exchange="binance")
         assert filepath != ""
-        with open(filepath) as f:
+        with open(filepath, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             for row in rows:
@@ -75,7 +75,7 @@ class TestDataExporter:
         exporter = DataExporter(exchanges, market, output_dir=str(tmp_path))
         filepath = exporter.export_account_status()
         assert os.path.exists(filepath)
-        with open(filepath) as f:
+        with open(filepath, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             assert len(rows) == 2  # 2 exchanges
@@ -93,7 +93,7 @@ class TestDataExporter:
         exporter = DataExporter(exchanges, market, output_dir=str(tmp_path))
         filepath = exporter.export_summary()
         assert os.path.exists(filepath)
-        with open(filepath) as f:
+        with open(filepath, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             assert len(rows) == 1
