@@ -6,13 +6,13 @@ Supports multi-exchange and fallback from real to simulator.
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import os
 import time
 from enum import Enum
 from typing import Protocol
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ExchangeMode(Enum):

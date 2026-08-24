@@ -18,10 +18,10 @@ Usage:
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import os
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _tracer: object | None = None
 _initialized: bool = False

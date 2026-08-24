@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
+from src.observability.logging import get_logger
 import os
 import re
 import time
@@ -17,7 +17,7 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any  # Any: aiohttp.ClientSession lacks type stubs
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 try:
     import aiohttp

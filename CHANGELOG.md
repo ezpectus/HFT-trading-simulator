@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-27 (Refactoring — Пачка BH: logging consolidation)
+
+### Changed
+- 57 source files: `import logging` + `logging.getLogger(...)` → `from src.observability.logging import get_logger` + `logger = get_logger(...)`
+- Modules affected: backtesting/ (7), communication/ (10), data_collection/ (4), strategies/ (11), signal_validation/ (1), risk/ (4), ml/ (7), monitoring/ (3), observability/ (2), llm_engine/ (1), networking/ (1), portfolio/ (1), pricing/ (1), research/ (5), notification/ (1)
+- `notification/notifier.py` keeps `import logging` for `logging.getLogger("aiohttp.client")` + `logging.WARNING` (aiohttp log silencing)
+- `observability/logging.py` unchanged (provider module)
+- `utils/bot_helpers.py` unchanged (uses `logging.Logger` type hint + inline `logging.getLogger`)
+
+### Rationale
+Ensures all modules use structured logging via structlog instead of raw stdlib logging. Consistent log format with JSON output, correlation IDs, and contextual fields across the entire codebase.
+
 ## [Unreleased] — 2026-08-27 (Refactoring — Пачка BG: Reliability Plan Tasks 1-9)
 
 ### Added

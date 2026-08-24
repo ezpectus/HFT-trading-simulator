@@ -7,7 +7,7 @@ correlation matrix monitoring.
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import math
 from collections import deque
 from dataclasses import dataclass
@@ -16,7 +16,7 @@ import numpy as np
 
 from src.strategies.signal import Signal, SignalDirection
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _ols_regression(y: np.ndarray, x: np.ndarray) -> tuple[float, float, np.ndarray]:

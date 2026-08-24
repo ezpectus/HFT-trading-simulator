@@ -7,12 +7,12 @@ C++ reads signals and executes orders.
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import time
 
 from .shm_ring_buffer import SIGNAL_STRUCT, ShmRingBuffer
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ShmSignalProducer:

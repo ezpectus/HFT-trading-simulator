@@ -8,12 +8,12 @@ Used for persistence (PostgreSQL) and dashboard updates.
 from __future__ import annotations
 
 import asyncio
-import logging
+from src.observability.logging import get_logger
 from collections.abc import Callable
 
 from .shm_ring_buffer import FILL_STRUCT, ShmRingBuffer
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ShmFillConsumer:

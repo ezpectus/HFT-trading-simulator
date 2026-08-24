@@ -34,11 +34,11 @@ Usage:
 from __future__ import annotations
 
 import json
-import logging
+from src.observability.logging import get_logger
 import time
 from typing import Any  # Any: feature values are heterogeneous (float|int|str)
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 try:
     import redis

@@ -24,7 +24,7 @@ Response format:
     }
 """
 import asyncio
-import logging
+from src.observability.logging import get_logger
 import time
 import warnings
 
@@ -39,7 +39,7 @@ warnings.warn(
     stacklevel=2,
 )
 
-logger = logging.getLogger("ai_signal_bot.health_check")
+logger = get_logger("ai_signal_bot.health_check")
 
 
 class HealthAggregator:

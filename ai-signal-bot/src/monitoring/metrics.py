@@ -7,10 +7,10 @@ Uses prometheus_client for standard metric types (Counter, Gauge, Histogram).
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import time
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 try:
     from prometheus_client import (

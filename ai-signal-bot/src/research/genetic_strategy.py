@@ -26,7 +26,7 @@ Usage:
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import random
 import time
 from collections.abc import Callable
@@ -34,7 +34,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any  # Any: rule dicts and market data are dynamically structured
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 @dataclass
 class Chromosome:

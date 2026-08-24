@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
+from src.observability.logging import get_logger
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

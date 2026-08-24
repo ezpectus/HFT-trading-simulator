@@ -15,7 +15,7 @@ Protocol:
 """
 import asyncio
 import json
-import logging
+from src.observability.logging import get_logger
 import math
 import random
 import time
@@ -36,7 +36,7 @@ from src.communication.metrics_server import MetricsCollector
 if TYPE_CHECKING:
     from src.risk.risk_manager import RiskConfig
 
-logger = logging.getLogger("ai_signal_bot.signal_publisher")
+logger = get_logger("ai_signal_bot.signal_publisher")
 
 
 class _EnsembleAdapter:

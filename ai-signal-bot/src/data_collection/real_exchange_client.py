@@ -13,7 +13,7 @@ import base64
 import hashlib
 import hmac
 import json
-import logging
+from src.observability.logging import get_logger
 import time
 import warnings
 from dataclasses import dataclass
@@ -24,7 +24,7 @@ warnings.warn(
     stacklevel=2,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _sha256_factory():

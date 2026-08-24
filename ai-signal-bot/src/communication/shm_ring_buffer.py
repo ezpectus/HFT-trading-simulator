@@ -15,14 +15,14 @@ from __future__ import annotations
 
 import atexit
 import ctypes
-import logging
+from src.observability.logging import get_logger
 import mmap
 import os
 import struct
 import sys
 from typing import TypeVar
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Track all created SHM segments for cleanup on exit
 _registered_buffers: list["ShmRingBuffer"] = []

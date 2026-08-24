@@ -22,13 +22,13 @@ Usage:
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import math
 from dataclasses import dataclass, field
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def norm_cdf(x: float) -> float:

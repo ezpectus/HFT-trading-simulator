@@ -4,13 +4,13 @@ Validates signals before they are sent to the execution bot.
 Checks confidence, R:R ratio, drawdown limits, and position limits.
 """
 import asyncio
-import logging
+from src.observability.logging import get_logger
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from src.strategies.signal import Signal
 
-logger = logging.getLogger("ai_signal_bot.validation")
+logger = get_logger("ai_signal_bot.validation")
 
 
 @dataclass

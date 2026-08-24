@@ -18,14 +18,14 @@ Checks:
 from __future__ import annotations
 
 import asyncio
-import logging
+from src.observability.logging import get_logger
 import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any  # Any: health check response values are heterogeneous
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class HealthStatus(Enum):

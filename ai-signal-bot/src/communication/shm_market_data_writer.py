@@ -9,7 +9,7 @@ Uses latest-snapshot-wins model (single slot per symbol, seq-guarded).
 from __future__ import annotations
 
 import ctypes
-import logging
+from src.observability.logging import get_logger
 import mmap
 import os
 import struct
@@ -19,7 +19,7 @@ from .shm_ring_buffer import MARKET_SNAPSHOT_STRUCT, _mm_barrier
 
 IS_WINDOWS = sys.platform == 'win32'
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Layout: [num_slots: uint64][SnapshotSlot 0][SnapshotSlot 1]...
 # SnapshotSlot: [seq: uint64][MarketSnapshotMsg: 28 bytes][padding: 28 bytes] = 64 bytes

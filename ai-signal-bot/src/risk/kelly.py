@@ -24,10 +24,10 @@ Usage:
     )
     size = sizer.calculate(balance=10000, entry=65000, stop_loss=63000)
 """
-import logging
+from src.observability.logging import get_logger
 from dataclasses import dataclass
 
-logger = logging.getLogger("ai_signal_bot.kelly")
+logger = get_logger("ai_signal_bot.kelly")
 
 
 @dataclass

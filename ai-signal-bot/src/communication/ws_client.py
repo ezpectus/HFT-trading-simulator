@@ -4,7 +4,7 @@ Also sends trading signals to the HFT Trade Bot via a separate WebSocket connect
 """
 import asyncio
 import json
-import logging
+from src.observability.logging import get_logger
 import os
 import random
 from collections import deque
@@ -24,7 +24,7 @@ try:
 except ImportError:
     _HAS_ORJSON = False
 
-logger = logging.getLogger("ai_signal_bot.ws_client")
+logger = get_logger("ai_signal_bot.ws_client")
 
 
 class ExchangeClient:

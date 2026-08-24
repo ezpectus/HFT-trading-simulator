@@ -19,7 +19,7 @@ Usage:
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import selectors
 import socket
 import struct
@@ -27,7 +27,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any  # Any: stats dict values are heterogeneous
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

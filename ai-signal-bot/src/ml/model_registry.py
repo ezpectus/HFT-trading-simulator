@@ -32,14 +32,14 @@ Usage:
 from __future__ import annotations
 
 import json
-import logging
+from src.observability.logging import get_logger
 import os
 import time
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any  # Any: model metadata is user-defined and heterogeneous
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ModelStatus(Enum):

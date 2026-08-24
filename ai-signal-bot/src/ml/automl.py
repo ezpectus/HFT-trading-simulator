@@ -18,13 +18,13 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import logging
+from src.observability.logging import get_logger
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any  # Any: Optuna trial params are dynamic
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 try:
     import optuna

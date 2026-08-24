@@ -16,7 +16,7 @@ Risk metrics:
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import warnings
 from dataclasses import dataclass
 
@@ -30,7 +30,7 @@ warnings.warn(
     stacklevel=2,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

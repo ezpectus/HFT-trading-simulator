@@ -23,12 +23,12 @@ Usage:
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 from dataclasses import dataclass
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 try:
     from scipy.optimize import least_squares, minimize

@@ -22,13 +22,13 @@ Usage:
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 from dataclasses import dataclass
 from typing import Any  # Any: strategy objects are duck-typed (any object with analyze())
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 @dataclass
 class CompetitionResult:

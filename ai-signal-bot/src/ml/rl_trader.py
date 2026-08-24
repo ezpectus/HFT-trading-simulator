@@ -19,7 +19,7 @@ Export:
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import random
 from collections import deque
 from dataclasses import dataclass
@@ -37,7 +37,7 @@ except ImportError:
     nn = None  # type: ignore[assignment]
     F = None  # type: ignore[assignment]
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 if not _HAS_TORCH:
     logger.warning("torch not installed — rl_trader models unavailable (pip install torch)")

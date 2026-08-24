@@ -14,13 +14,13 @@ Strategy:
 
 from __future__ import annotations
 
-import logging
+from src.observability.logging import get_logger
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ArbType(Enum):

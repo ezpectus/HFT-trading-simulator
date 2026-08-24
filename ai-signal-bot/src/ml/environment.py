@@ -3,13 +3,13 @@
 # Implements OpenAI Gym-compatible trading environment for RL agent training
 # with state/action/reward definition and episode management.
 
-import logging
+from src.observability.logging import get_logger
 from dataclasses import dataclass
 from enum import Enum
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class Action(Enum):
