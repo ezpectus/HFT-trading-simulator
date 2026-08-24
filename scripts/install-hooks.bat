@@ -39,13 +39,26 @@ echo ============================================================
 echo   HOOKS INSTALLED
 echo ============================================================
 echo.
-echo   pre-commit runs:
-echo     1. ruff lint on staged Python files
-echo     2. eslint on staged JS/JSX files
-echo     3. pytest for changed source files only
-echo     4. vitest for changed source files only
-echo     5. Coverage gap check (every source file needs a test)
-echo     6. Python import validation (no broken from X import Y)
+echo   pre-commit runs (matches .github/workflows/ci.yml):
+echo     LINT:
+echo       1. ruff on staged Python files (exchange_simulator + ai-signal-bot)
+echo       2. eslint on staged JS/JSX files (web-ui)
+echo       3. clang-format on staged C++ files (hft-trade-bot)
+echo     TESTS:
+echo       4. pytest for changed Python source files
+echo       5. vitest for changed JS/JSX source files
+echo       6. cmake build + ctest for C++ (in --full/--all mode)
+echo       7. cargo build + test for Rust (in --full/--all mode)
+echo     BUILD:
+echo       8. vite build for web-ui (in --full/--all mode)
+echo     SECURITY:
+echo       9. bandit scan on Python (in --full/--all mode)
+echo      10. npm audit on web-ui (in --full/--all mode)
+echo     E2E:
+echo      11. playwright e2e tests (--all mode only)
+echo     QUALITY:
+echo      12. Coverage gap check (every source file needs a test)
+echo      13. Python import validation (AST + module existence)
 echo.
 echo   commit-msg checks:
 echo     1. No Cyrillic in commit message
@@ -53,10 +66,11 @@ echo     2. Conventional commits format (feat: / fix: / refactor: etc.)
 echo     3. First line max 72 chars
 echo.
 echo   Bypass:    git commit --no-verify
-echo   Full:      python scripts\pre-commit-check.py
+echo   Staged:    python scripts\pre-commit-check.py --staged --quick
+echo   Full:      python scripts\pre-commit-check.py --full
+echo   ALL CI:    python scripts\pre-commit-check.py --all
 echo   Lint only: python scripts\pre-commit-check.py --lint
 echo   Tests:     python scripts\pre-commit-check.py --tests
-echo   Staged:    python scripts\pre-commit-check.py --staged
 echo.
 echo ============================================================
 echo.

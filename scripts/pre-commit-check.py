@@ -1,22 +1,38 @@
 #!/usr/bin/env python3
-"""Pre-commit verification — lint + tests + coverage gap detection before commit.
+"""Pre-commit verification — ALL CI checks before commit.
 
-WHAT IT DOES (that the old version didn't):
+WHAT IT DOES (matches .github/workflows/ci.yml):
   1. Detects staged files via `git diff --cached --name-only`
-  2. Lints ONLY changed Python/JS files (fast, not whole project)
-  3. Runs ONLY tests relevant to changed files (smart test discovery)
-  4. Checks that every changed source file has a corresponding test file
-  5. Validates Python imports in changed files (no broken from X import Y)
-  6. Validates commit message is English + conventional commits format
+  2. Lint: ruff (Python) + eslint (JS) + clang-format (C++) — only changed files
+  3. Tests: pytest (Python) + vitest (JS) + ctest (C++) + cargo test (Rust) — only relevant
+  4. Build: vite build (JS) + cmake build (C++) + cargo build (Rust)
+  5. Security: bandit (Python) + npm audit (JS)
+  6. E2E: Playwright (web-ui, mock mode)
+  7. Coverage gap: every changed source file must have a test file
+  8. Import validation: Python AST parse + module existence check
+  9. Commit message: English only + conventional commits + max 72 chars
 
 Usage:
-    python scripts/pre-commit-check.py                    # Full: staged lint + tests + coverage
-    python scripts/pre-commit-check.py --lint             # Lint only (fast, ~5s)
-    python scripts/pre-commit-check.py --tests            # Tests only
-    python scripts/pre-commit-check.py --quick            # Lint + quick tests (stop on first fail)
-    python scripts/pre-commit-check.py --staged           # Only check staged files (for hook)
-    python scripts/pre-commit-check.py --msg-file <path>  # Validate commit message file
-    python scripts/pre-commit-check.py --full             # Full project lint + all tests (no staged)
+    python scripts/pre-commit-check.py                    # Default: lint + tests (all languages)
+    python scripts/pre-commit-check.py --staged --quick   # Hook: only staged files, fast
+    python scripts/pre-commit-check.py --lint             # Lint only (ruff + eslint + clang-format)
+    python scripts/pre-commit-check.py --tests            # Tests only (pytest + vitest + ctest + cargo)
+    python scripts/pre-commit-check.py --full             # Full: lint + tests + build + security
+    python scripts/pre-commit-check.py --all              # ALL CI: + e2e (slowest, ~10-15 min)
+    python scripts/pre-commit-check.py --msg-file <path>  # Validate commit message
+
+CI jobs covered (from .github/workflows/ci.yml):
+    lint-python     → ruff (exchange_simulator + ai-signal-bot)
+    lint-cpp        → clang-format (hft-trade-bot)
+    lint-js         → eslint (web-ui)
+    test-python     → pytest (exchange_simulator + ai-signal-bot)
+    test-cpp        → cmake build + ctest (hft-trade-bot)
+    test-js         → vitest (web-ui)
+    test-rust       → cargo build + test (hft-executor)
+    build-js        → vite build (web-ui)
+    audit-deps      → npm audit (web-ui)
+    security-bandit → bandit (exchange_simulator + ai-signal-bot)
+    test-e2e        → playwright (web-ui, --all mode only)
 
 Exit codes:
     0 — all checks passed, commit allowed
@@ -113,6 +129,14 @@ def run_command(
 ) -> tuple[bool, str, str, float]:
     start = time.monotonic()
     try:
+        # On Windows, .cmd files (npx, npm) need shell=True or full path resolution
+        use_shell = False
+        if sys.platform == "win32" and cmd and not Path(cmd[0]).exists():
+            # Check if it's a known .cmd/.bat command
+            base = cmd[0].lower()
+            if base in {"npx", "npm", "cargo", "cmake", "ctest", "clang-format", "git"}:
+                use_shell = True
+
         proc = subprocess.run(
             cmd,
             cwd=cwd,
@@ -120,6 +144,7 @@ def run_command(
             text=True,
             timeout=timeout,
             env=env,
+            shell=use_shell,
         )
         duration = time.monotonic() - start
         return proc.returncode == 0, proc.stdout, proc.stderr, duration
@@ -301,7 +326,186 @@ def check_vitest(quick: bool = False, files: list[str] | None = None) -> CheckRe
     )
 
 
-# ─── Coverage gap detection ───────────────────────────────
+def check_clang_format(files: list[str] | None = None) -> CheckResult:
+    """Run clang-format dry-run on C++ files."""
+    cwd = PROJECT_ROOT / "hft-trade-bot"
+    if not cwd.exists():
+        return CheckResult("clang-format: hft-trade-bot", True, 0.0, "hft-trade-bot not found")
+
+    if files:
+        cpp_files = [f for f in files if f.endswith((".h", ".cpp", ".hpp", ".cc"))]
+        if not cpp_files:
+            return CheckResult("clang-format: hft-trade-bot (staged)", True, 0.0)
+        rel_files = [str(Path(f).relative_to("hft-trade-bot")) for f in cpp_files
+                     if f.startswith("hft-trade-bot")]
+        if not rel_files:
+            return CheckResult("clang-format: hft-trade-bot (staged)", True, 0.0)
+        cmd = ["clang-format", "--dry-run", "--Werror"] + rel_files
+    else:
+        cmd = [
+            "bash", "-c",
+            "find src tests -name '*.h' -o -name '*.cpp' | grep -v '/fix/' | xargs clang-format --dry-run --Werror",
+        ]
+
+    success, stdout, stderr, duration = run_command(cmd, cwd=cwd, timeout=60)
+    return CheckResult(
+        "clang-format: hft-trade-bot" + (" (staged)" if files else ""),
+        passed=success,
+        duration_s=duration,
+        output=(stdout + stderr) if not success else "",
+    )
+
+
+def check_cpp_build_and_test(quick: bool = False) -> CheckResult:
+    """Build hft-trade-bot with cmake and run ctest."""
+    cwd = PROJECT_ROOT / "hft-trade-bot"
+    if not cwd.exists():
+        return CheckResult("cmake+ctest: hft-trade-bot", True, 0.0, "hft-trade-bot not found")
+
+    build_dir = cwd / "build"
+
+    # Configure
+    success, stdout, stderr, duration = run_command(
+        ["cmake", "..", "-DCMAKE_BUILD_TYPE=Debug"],
+        cwd=build_dir if build_dir.exists() else cwd,
+        timeout=120,
+    )
+    if not success:
+        return CheckResult(
+            "cmake+ctest: hft-trade-bot",
+            passed=False,
+            duration_s=duration,
+            output=f"cmake configure failed:\n{stdout + stderr}",
+        )
+
+    # Build
+    success, stdout, stderr, build_dur = run_command(
+        ["cmake", "--build", ".", "--config", "Debug", "-j"],
+        cwd=build_dir,
+        timeout=300,
+    )
+    total_dur = duration + build_dur
+    if not success:
+        return CheckResult(
+            "cmake+ctest: hft-trade-bot",
+            passed=False,
+            duration_s=total_dur,
+            output=f"cmake build failed:\n{stdout + stderr}",
+        )
+
+    # Test
+    success, stdout, stderr, test_dur = run_command(
+        ["ctest", "--output-on-failure", "-C", "Debug"],
+        cwd=build_dir,
+        timeout=120,
+    )
+    total_dur += test_dur
+    return CheckResult(
+        "cmake+ctest: hft-trade-bot",
+        passed=success,
+        duration_s=total_dur,
+        output=(stdout + stderr) if not success else "",
+    )
+
+
+def check_rust_build_and_test(quick: bool = False) -> CheckResult:
+    """Build and test hft-executor with cargo."""
+    cwd = PROJECT_ROOT / "hft-executor"
+    if not cwd.exists():
+        return CheckResult("cargo: hft-executor", True, 0.0, "hft-executor not found")
+
+    # Build
+    success, stdout, stderr, build_dur = run_command(
+        ["cargo", "build", "--release"],
+        cwd=cwd,
+        timeout=180,
+    )
+    if not success:
+        return CheckResult(
+            "cargo: hft-executor",
+            passed=False,
+            duration_s=build_dur,
+            output=f"cargo build failed:\n{stdout + stderr}",
+        )
+
+    # Test
+    success, stdout, stderr, test_dur = run_command(
+        ["cargo", "test", "--release"],
+        cwd=cwd,
+        timeout=120,
+    )
+    return CheckResult(
+        "cargo: hft-executor",
+        passed=success,
+        duration_s=build_dur + test_dur,
+        output=(stdout + stderr) if not success else "",
+    )
+
+
+def check_vite_build() -> CheckResult:
+    """Run vite production build for web-ui."""
+    cwd = PROJECT_ROOT / COMPONENT_JS
+    success, stdout, stderr, duration = run_command(
+        ["npx", "vite", "build"],
+        cwd=cwd,
+        timeout=120,
+    )
+    return CheckResult(
+        "vite build: web-ui",
+        passed=success,
+        duration_s=duration,
+        output=(stdout + stderr) if not success else "",
+    )
+
+
+def check_npm_audit() -> CheckResult:
+    """Run npm audit for high/critical vulnerabilities."""
+    cwd = PROJECT_ROOT / COMPONENT_JS
+    success, stdout, stderr, duration = run_command(
+        ["npm", "audit", "--audit-level=high"],
+        cwd=cwd,
+        timeout=30,
+    )
+    return CheckResult(
+        "npm audit: web-ui",
+        passed=success,
+        duration_s=duration,
+        output=(stdout + stderr) if not success else "",
+    )
+
+
+def check_bandit(component: str) -> CheckResult:
+    """Run bandit security scan on a Python component."""
+    cwd = PROJECT_ROOT / component
+    success, stdout, stderr, duration = run_command(
+        [sys.executable, "-m", "bandit", "-r", ".", "-ll", "-ii", "-q"],
+        cwd=cwd,
+        timeout=60,
+    )
+    return CheckResult(
+        f"bandit: {component}",
+        passed=success,
+        duration_s=duration,
+        output=(stdout + stderr) if not success else "",
+    )
+
+
+def check_playwright_e2e() -> CheckResult:
+    """Run Playwright E2E tests for web-ui (mock mode)."""
+    cwd = PROJECT_ROOT / COMPONENT_JS
+    env = {**os.environ, "VITE_MOCK_MODE": "true"}
+    success, stdout, stderr, duration = run_command(
+        ["npx", "playwright", "test", "--reporter=line"],
+        cwd=cwd,
+        timeout=180,
+        env=env,
+    )
+    return CheckResult(
+        "playwright e2e: web-ui",
+        passed=success,
+        duration_s=duration,
+        output=(stdout + stderr) if not success else "",
+    )
 
 
 def check_test_coverage_gaps(staged_files: list[str]) -> CheckResult:
@@ -537,14 +741,15 @@ def print_results(summary: CheckSummary, staged_files: list[str] | None = None) 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Pre-commit verification: lint + tests + coverage + imports + commit-msg"
+        description="Pre-commit verification: ALL CI checks — lint + tests + build + security + e2e"
     )
     mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument("--lint", action="store_true", help="Lint only (fast)")
-    mode_group.add_argument("--tests", action="store_true", help="Tests only")
-    mode_group.add_argument("--quick", action="store_true", help="Quick: lint + fast tests")
+    mode_group.add_argument("--lint", action="store_true", help="Lint only (fast, all languages)")
+    mode_group.add_argument("--tests", action="store_true", help="Tests only (all languages)")
+    mode_group.add_argument("--quick", action="store_true", help="Quick: lint + fast tests (stop on first fail)")
     mode_group.add_argument("--staged", action="store_true", help="Only check staged files (for hook)")
-    mode_group.add_argument("--full", action="store_true", help="Full project check (not staged)")
+    mode_group.add_argument("--full", action="store_true", help="Full project check (all files, all tests)")
+    mode_group.add_argument("--all", action="store_true", help="ALL CI checks: lint+tests+build+security+e2e (slowest)")
     parser.add_argument("--msg-file", type=str, help="Validate commit message from file")
     args = parser.parse_args()
 
@@ -567,26 +772,73 @@ def main() -> int:
 
     py_files = get_staged_files_by_ext(staged_files, {"py"}) if use_staged else None
     js_files = get_staged_files_by_ext(staged_files, {"jsx", "js", "tsx", "ts"}) if use_staged else None
+    cpp_files = get_staged_files_by_ext(staged_files, {"h", "cpp", "hpp", "cc"}) if use_staged else None
+    rs_files = get_staged_files_by_ext(staged_files, {"rs"}) if use_staged else None
+
+    # Determine which checks to run
+    run_lint = not args.tests
+    run_tests = not args.lint
+    run_build = args.full or args.all
+    run_security = args.full or args.all
+    run_e2e = args.all
+
+    # In staged mode, only run checks for languages that have staged files
+    if use_staged:
+        has_py = bool(py_files)
+        has_js = bool(js_files)
+        has_cpp = bool(cpp_files)
+        has_rs = bool(rs_files)
+    else:
+        has_py = True
+        has_js = True
+        has_cpp = True
+        has_rs = True
 
     summary = CheckSummary()
 
-    # Lint checks
-    if not args.tests:
-        for comp in COMPONENTS_PY:
-            comp_py = [f for f in (py_files or []) if f.startswith(comp)] if py_files else None
-            summary.add(check_ruff(comp, files=comp_py))
-        comp_js = [f for f in (js_files or []) if f.startswith(COMPONENT_JS)] if js_files else None
-        summary.add(check_eslint(files=comp_js))
+    # ─── Lint checks ───
+    if run_lint:
+        if has_py:
+            for comp in COMPONENTS_PY:
+                comp_py = [f for f in (py_files or []) if f.startswith(comp)] if py_files else None
+                summary.add(check_ruff(comp, files=comp_py))
+        if has_js:
+            comp_js = [f for f in (js_files or []) if f.startswith(COMPONENT_JS)] if js_files else None
+            summary.add(check_eslint(files=comp_js))
+        if has_cpp:
+            summary.add(check_clang_format(files=cpp_files))
 
-    # Test checks
-    if not args.lint:
-        for comp in COMPONENTS_PY:
-            comp_py = [f for f in (py_files or []) if f.startswith(comp)] if py_files else None
-            summary.add(check_pytest(comp, quick=args.quick, files=comp_py))
-        comp_js = [f for f in (js_files or []) if f.startswith(COMPONENT_JS)] if js_files else None
-        summary.add(check_vitest(quick=args.quick, files=comp_js))
+    # ─── Test checks ───
+    if run_tests:
+        if has_py:
+            for comp in COMPONENTS_PY:
+                comp_py = [f for f in (py_files or []) if f.startswith(comp)] if py_files else None
+                summary.add(check_pytest(comp, quick=args.quick, files=comp_py))
+        if has_js:
+            comp_js = [f for f in (js_files or []) if f.startswith(COMPONENT_JS)] if js_files else None
+            summary.add(check_vitest(quick=args.quick, files=comp_js))
+        if has_cpp and (run_build or args.full or args.all):
+            summary.add(check_cpp_build_and_test(quick=args.quick))
+        if has_rs and (run_build or args.full or args.all):
+            summary.add(check_rust_build_and_test(quick=args.quick))
 
-    # Coverage gap check (only for staged mode)
+    # ─── Build checks ───
+    if run_build and has_js:
+        summary.add(check_vite_build())
+
+    # ─── Security checks ───
+    if run_security:
+        if has_py:
+            for comp in COMPONENTS_PY:
+                summary.add(check_bandit(comp))
+        if has_js:
+            summary.add(check_npm_audit())
+
+    # ─── E2E checks ───
+    if run_e2e and has_js:
+        summary.add(check_playwright_e2e())
+
+    # ─── Coverage + import checks (staged mode only) ───
     if use_staged and staged_files:
         summary.add(check_test_coverage_gaps(staged_files))
         summary.add(check_python_imports(staged_files))

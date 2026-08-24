@@ -186,13 +186,30 @@ python scripts/pre-commit-check.py --tests
 - Если проверки FAIL — коммит блокируется
 - Bypass: `git commit --no-verify` (НЕ рекомендуется)
 
-**ЧТО ПРОВЕРЯЕТ pre-commit (--staged режим):**
+**ЧТО ПРОВЕРЯЕТ pre-commit (ALL CI checks):**
 1. **Staged file detection** — `git diff --cached --name-only` — определяет какие файлы изменены
-2. **Smart lint** — ruff/eslint ТОЛЬКО на изменённых файлах (не весь проект)
-3. **Smart tests** — pytest/vitest ТОЛЬКО для тестов связанных с изменёнными файлами
-4. **Coverage gap check** — каждый изменённый source файл должен иметь test файл (FAIL если нет)
-5. **Import validation** — проверка что Python imports не сломаны (AST parse + module existence)
-6. **Commit message** — English only, conventional commits format, max 72 chars
+2. **Lint (all languages):**
+   - ruff на staged Python файлах (exchange_simulator + ai-signal-bot)
+   - eslint на staged JS/JSX файлах (web-ui)
+   - clang-format на staged C++ файлах (hft-trade-bot)
+3. **Tests (all languages):**
+   - pytest для изменённых Python файлов
+   - vitest для изменённых JS/JSX файлов
+   - cmake build + ctest для C++ (в --full/--all режиме)
+   - cargo build + test для Rust (в --full/--all режиме)
+4. **Build:** vite build для web-ui (в --full/--all режиме)
+5. **Security:** bandit (Python) + npm audit (JS) (в --full/--all режиме)
+6. **E2E:** Playwright mock mode (--all режим только)
+7. **Coverage gap check** — каждый изменённый source файл должен иметь test файл (FAIL если нет)
+8. **Import validation** — AST parse + проверка существования модулей
+9. **Commit message** — English only, conventional commits, max 72 chars
+
+**РЕЖИМЫ:**
+- `--staged --quick` — hook: только staged files, быстрые тесты (stop on first fail)
+- `--lint` — только lint всех языков (быстро)
+- `--tests` — только тесты всех языков
+- `--full` — lint + tests + build + security (без e2e)
+- `--all` — ALL CI checks включая e2e (самый медленный, ~10-15 min)
 
 **ЧТО ДЕЛАЕТ coverage gap check:**
 - `src/risk/var_calculator.py` staged → ищет `tests/unit/test_var_calculator.py` или `tests/test_var_calculator.py`

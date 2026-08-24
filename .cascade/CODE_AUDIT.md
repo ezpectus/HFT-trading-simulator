@@ -8177,7 +8177,7 @@ Excellent OBI utilities with 3 functions, single-pass, proximity weighting, noex
 
 Excellent exchange interface with 11 pure virtual methods, DIP/SOLID, latency, and toxic flow tracking. ✅
 
-### 8.621 CORRECTION: R593 smart_order_router no latency — Partially false
+### 8.621 CORRECTION: R593 smart_order_router no latency — Partially false [N/A]
 
 **Файл:** `hft-trade-bot/src/exchange/IExchange.h:24`
 
