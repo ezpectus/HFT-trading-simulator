@@ -19,12 +19,13 @@ Export:
 
 from __future__ import annotations
 
-from src.observability.logging import get_logger
 import random
 from collections import deque
 from dataclasses import dataclass
 
 import numpy as np
+
+from src.observability.logging import get_logger
 
 try:
     import torch

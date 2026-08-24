@@ -3,6 +3,7 @@
 
 import numpy as np
 import pytest
+
 from src.portfolio.black_litterman import BlackLittermanModel, View
 from src.portfolio.markowitz import EfficientFrontierPoint, MarkowitzOptimizer, PortfolioResult
 from src.portfolio.rebalancing import RebalanceOrder, RebalanceTrigger, RebalancingStrategy

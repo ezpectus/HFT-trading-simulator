@@ -9,7 +9,6 @@ import math
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 60
 DEFAULT_N_BINS = 20
 DEFAULT_LOOKBACK = 150

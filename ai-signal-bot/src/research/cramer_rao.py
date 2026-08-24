@@ -9,7 +9,6 @@ import math
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 30
 DEFAULT_LOOKBACK = 100
 GARCH_EPS = 1e-6

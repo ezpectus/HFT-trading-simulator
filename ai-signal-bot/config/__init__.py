@@ -53,7 +53,7 @@ class SignalBotConfig:
         for key in ("max_risk_per_trade_pct", "max_daily_drawdown_pct", "min_confidence",
                      "min_rr_ratio", "stop_loss_pct", "take_profit_pct", "max_position_size_pct"):
             val = risk.get(key)
-            if val is not None and not isinstance(val, (int, float)):
+            if val is not None and not isinstance(val, int | float):
                 errors.append(f"risk.{key} must be a number, got {type(val).__name__}")
 
         # Check required sections

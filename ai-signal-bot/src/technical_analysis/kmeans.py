@@ -5,8 +5,8 @@ features into distinct market regimes (e.g., calm trending, volatile ranging).
 """
 from __future__ import annotations
 
-import random
 import math
+import random
 
 DEFAULT_MAX_ITER = 100
 DEFAULT_TOL = 1e-6
@@ -31,7 +31,7 @@ class KMeansResult:
 
 def _euclidean_sq(a: list[float], b: list[float]) -> float:
     """Squared Euclidean distance."""
-    return sum((ai - bi) ** 2 for ai, bi in zip(a, b))
+    return sum((ai - bi) ** 2 for ai, bi in zip(a, b, strict=False))
 
 
 def _kmeans_plus_plus_init(

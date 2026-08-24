@@ -4,7 +4,7 @@ import struct
 
 import pytest
 
-from src.networking.socket_transport import SocketTransport, MarketDataPacket
+from src.networking.socket_transport import MarketDataPacket, SocketTransport
 
 
 class TestMarketDataPacket:

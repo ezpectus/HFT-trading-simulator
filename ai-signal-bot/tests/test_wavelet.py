@@ -135,7 +135,7 @@ class TestDenoise:
     def test_soft_threshold_reduces_magnitude(self):
         decomp = wavelet_decompose(_signal(64), levels=3)
         result = denoise(decomp, 0.5)
-        for orig, new in zip(decomp["details"][0], result["details"][0]):
+        for orig, new in zip(decomp["details"][0], result["details"][0], strict=False):
             assert abs(new) <= abs(orig)
 
 

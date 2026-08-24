@@ -14,11 +14,12 @@ Strategy:
 
 from __future__ import annotations
 
-from src.observability.logging import get_logger
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

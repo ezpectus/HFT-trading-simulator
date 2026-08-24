@@ -188,7 +188,6 @@ def longstaff_schwartz(
 
     rng = random.Random(seed)
     dt = t / n_steps
-    disc = math.exp(-r * dt)
 
     paths: list[list[float]] = []
     for _ in range(n_paths):

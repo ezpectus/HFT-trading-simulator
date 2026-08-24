@@ -17,8 +17,9 @@ Metrics exposed:
   ai_signal_bot_errors_total                — counter
 """
 import asyncio
-from src.observability.logging import get_logger
 import time
+
+from src.observability.logging import get_logger
 
 logger = get_logger("ai_signal_bot.metrics")
 

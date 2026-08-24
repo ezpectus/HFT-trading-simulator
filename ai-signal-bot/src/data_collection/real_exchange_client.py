@@ -13,10 +13,11 @@ import base64
 import hashlib
 import hmac
 import json
-from src.observability.logging import get_logger
 import time
 import warnings
 from dataclasses import dataclass
+
+from src.observability.logging import get_logger
 
 warnings.warn(
     "real_exchange_client is deprecated. Use real_account.py instead.",

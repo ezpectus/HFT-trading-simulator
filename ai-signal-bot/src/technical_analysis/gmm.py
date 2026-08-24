@@ -77,7 +77,7 @@ def _kmeans_init(data: list[float], k: int, rng: random.Random) -> list[float]:
             if cluster:
                 new_centroids[i] = sum(cluster) / len(cluster)
 
-        if all(abs(c - nc) < DEFAULT_TOL for c, nc in zip(centroids, new_centroids)):
+        if all(abs(c - nc) < DEFAULT_TOL for c, nc in zip(centroids, new_centroids, strict=False)):
             break
         centroids = new_centroids
 
@@ -113,7 +113,7 @@ def fit_gmm(
     log_lik_history: list[float] = []
 
     iteration = 0
-    for iteration in range(max_iter):
+    for iteration in range(max_iter):  # noqa: B007
         # E-step
         gammas = [[0.0] * k for _ in range(n)]
         for i in range(n):

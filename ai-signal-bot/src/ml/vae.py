@@ -75,7 +75,7 @@ class VAE:
     def decode(self, z: list[float]) -> tuple[list[float], list[float]]:
         """Decode latent: returns (hidden, reconstruction)."""
         h2 = [
-            _sigmoid(sum(self.w2[k][l] * z[l] for l in range(self.latent_dim)) + self.b2[k])
+            _sigmoid(sum(self.w2[k][j] * z[j] for j in range(self.latent_dim)) + self.b2[k])
             for k in range(self.hidden_dim)
         ]
         x_hat = [
@@ -121,9 +121,9 @@ class VAE:
         d_b_out = dx_hat[:]
         d_h2 = [sum(dx_hat[j] * self.w_out[j][k] for j in range(self.input_dim)) for k in range(self.hidden_dim)]
         d_h2_pre = [d_h2[k] * _dsigmoid(h2[k]) for k in range(self.hidden_dim)]
-        d_w2 = [[d_h2_pre[k] * z[l] for l in range(self.latent_dim)] for k in range(self.hidden_dim)]
+        d_w2 = [[d_h2_pre[k] * z[j] for j in range(self.latent_dim)] for k in range(self.hidden_dim)]
         d_b2 = d_h2_pre[:]
-        d_z = [sum(d_h2_pre[k] * self.w2[k][l] for k in range(self.hidden_dim)) for l in range(self.latent_dim)]
+        d_z = [sum(d_h2_pre[k] * self.w2[k][j] for k in range(self.hidden_dim)) for j in range(self.latent_dim)]
 
         d_mu = [d_z[i] + beta * mu[i] for i in range(self.latent_dim)]
         d_logvar = [
@@ -149,8 +149,8 @@ class VAE:
                 self.w_out[j][k] -= lr * d_w_out[j][k]
         for k in range(self.hidden_dim):
             self.b2[k] -= lr * d_b2[k]
-            for l in range(self.latent_dim):
-                self.w2[k][l] -= lr * d_w2[k][l]
+            for j in range(self.latent_dim):
+                self.w2[k][j] -= lr * d_w2[k][j]
         for i in range(self.latent_dim):
             self.b_mu[i] -= lr * d_mu[i]
             self.b_logvar[i] -= lr * d_logvar[i]

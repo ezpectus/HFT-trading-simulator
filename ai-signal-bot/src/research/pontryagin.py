@@ -9,7 +9,6 @@ import math
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 50
 DEFAULT_KAPPA = 0.1
 DEFAULT_LAMBDA = 0.01
@@ -135,7 +134,6 @@ def pontryagin_analysis(
     twap_rate = x0 / t
     x_twap = x0
     for step in range(N_STEPS):
-        t_step = step * (t / N_STEPS)
         x_twap = x_twap - twap_rate * (t / N_STEPS)
 
     immediate_cost = 0.5 * kappa * (x0 / 0.01) ** 2 * 0.01 + lambda_ * (x0 / 0.01) ** 2 * x0

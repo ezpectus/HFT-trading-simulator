@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import math
 
-
 DEFAULT_UNCERTAINTY_PCT = 0.5
 DEFAULT_LOOKBACK = 50
 DEFAULT_STRIKE_PCT = 1.0
@@ -26,7 +25,7 @@ class Affine:
         self.coeffs = dict(coeffs) if coeffs else {}
 
     @classmethod
-    def from_interval(cls, lo: float, hi: float) -> "Affine":
+    def from_interval(cls, lo: float, hi: float) -> Affine:
         """Create an affine form from an interval."""
         center = (lo + hi) / 2
         radius = (hi - lo) / 2
@@ -35,27 +34,27 @@ class Affine:
             return cls(center, {cls._next_id: radius})
         return cls(center)
 
-    def add(self, other) -> "Affine":
+    def add(self, other) -> Affine:
         """Addition."""
-        if isinstance(other, (int, float)):
+        if isinstance(other, int | float):
             return Affine(self.center + other, self.coeffs)
         new_coeffs = dict(self.coeffs)
         for sym_id, c in other.coeffs.items():
             new_coeffs[sym_id] = new_coeffs.get(sym_id, 0.0) + c
         return Affine(self.center + other.center, new_coeffs)
 
-    def sub(self, other) -> "Affine":
+    def sub(self, other) -> Affine:
         """Subtraction."""
-        if isinstance(other, (int, float)):
+        if isinstance(other, int | float):
             return Affine(self.center - other, self.coeffs)
         new_coeffs = dict(self.coeffs)
         for sym_id, c in other.coeffs.items():
             new_coeffs[sym_id] = new_coeffs.get(sym_id, 0.0) - c
         return Affine(self.center - other.center, new_coeffs)
 
-    def mul(self, other) -> "Affine":
+    def mul(self, other) -> Affine:
         """Multiplication with nonlinear term approximation."""
-        if isinstance(other, (int, float)):
+        if isinstance(other, int | float):
             new_coeffs = {sym_id: c * other for sym_id, c in self.coeffs.items()}
             return Affine(self.center * other, new_coeffs)
 
@@ -75,11 +74,11 @@ class Affine:
 
         return Affine(self.center * other.center, new_coeffs)
 
-    def scale(self, s: float) -> "Affine":
+    def scale(self, s: float) -> Affine:
         """Scalar multiplication."""
         return self.mul(s)
 
-    def exp(self) -> "Affine":
+    def exp(self) -> Affine:
         """Chebyshev min-max linear approximation of exp."""
         lo = self.lower()
         hi = self.upper()

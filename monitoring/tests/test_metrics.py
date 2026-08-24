@@ -4,9 +4,7 @@
 import importlib.util
 from pathlib import Path
 
-import pytest
 from prometheus_client import REGISTRY
-import time
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 

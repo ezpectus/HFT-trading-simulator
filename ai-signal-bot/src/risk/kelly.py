@@ -24,8 +24,9 @@ Usage:
     )
     size = sizer.calculate(balance=10000, entry=65000, stop_loss=63000)
 """
-from src.observability.logging import get_logger
 from dataclasses import dataclass
+
+from src.observability.logging import get_logger
 
 logger = get_logger("ai_signal_bot.kelly")
 
@@ -170,7 +171,8 @@ class KellyPositionSizer:
         losses = [t for t in trades if (t.get("pnl", 0) if isinstance(t, dict) else getattr(t, "pnl", 0)) < 0]
 
         win_rate = len(wins) / len(trades) if trades else 0.5
-        _pnl = lambda t: t.get("pnl", 0) if isinstance(t, dict) else getattr(t, "pnl", 0)
+        def _pnl(t):
+            return t.get("pnl", 0) if isinstance(t, dict) else getattr(t, "pnl", 0)
         avg_win = sum(_pnl(t) for t in wins) / len(wins) if wins else 0
         avg_loss = abs(sum(_pnl(t) for t in losses) / len(losses)) if losses else 1
 

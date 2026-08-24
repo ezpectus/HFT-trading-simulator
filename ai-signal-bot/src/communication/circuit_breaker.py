@@ -10,10 +10,11 @@ States:
   HALF_OPEN — cooldown expired, allowing a single probe signal
 """
 import asyncio
-from src.observability.logging import get_logger
 import time
 from dataclasses import dataclass
 from enum import Enum
+
+from src.observability.logging import get_logger
 
 logger = get_logger("ai_signal_bot.circuit_breaker")
 

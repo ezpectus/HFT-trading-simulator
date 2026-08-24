@@ -11,7 +11,6 @@ import random
 
 from src.research._common import quantize
 
-
 DEFAULT_K = 1
 DEFAULT_L = 1
 DEFAULT_N_BINS = 5
@@ -59,7 +58,7 @@ def transfer_entropy(
     x: list[float],
     y: list[float],
     k: int = DEFAULT_K,
-    l: int = DEFAULT_L,
+    lag: int = DEFAULT_L,
     n_bins: int = DEFAULT_N_BINS,
 ) -> float:
     """Transfer entropy TE_{X->Y}. Returns 0 if insufficient tuples."""
@@ -72,11 +71,11 @@ def transfer_entropy(
     x_history: list[list[int]] = []
     yx_history: list[list[int]] = []
 
-    for t in range(max(k, l), n - 1):
+    for t in range(max(k, lag), n - 1):
         y_future.append([q_y[t + 1]])
         y_history.append([q_y[t - i] for i in range(k)])
-        x_history.append([q_x[t - i] for i in range(l)])
-        yx_history.append([q_y[t - i] for i in range(k)] + [q_x[t - i] for i in range(l)])
+        x_history.append([q_x[t - i] for i in range(lag)])
+        yx_history.append([q_y[t - i] for i in range(k)] + [q_x[t - i] for i in range(lag)])
 
     if len(y_future) < MIN_TUPLES:
         return 0.0
@@ -108,7 +107,7 @@ def surrogate_te(
     x: list[float],
     y: list[float],
     k: int = DEFAULT_K,
-    l: int = DEFAULT_L,
+    lag: int = DEFAULT_L,
     n_bins: int = DEFAULT_N_BINS,
     n_surrogates: int = DEFAULT_SURROGATES,
     seed: int | None = None,
@@ -119,7 +118,7 @@ def surrogate_te(
     for _ in range(n_surrogates):
         shuffled = x[:]
         rng.shuffle(shuffled)
-        total += transfer_entropy(shuffled, y, k, l, n_bins)
+        total += transfer_entropy(shuffled, y, k, lag, n_bins)
     return total / n_surrogates
 
 
@@ -136,7 +135,7 @@ def transfer_entropy_analysis(
     x: list[float],
     y: list[float],
     k: int = DEFAULT_K,
-    l: int = DEFAULT_L,
+    lag: int = DEFAULT_L,
     n_bins: int = DEFAULT_N_BINS,
     n_surrogates: int = DEFAULT_SURROGATES,
     seed: int | None = None,
@@ -149,10 +148,10 @@ def transfer_entropy_analysis(
     x = x[-n:]
     y = y[-n:]
 
-    te_xy = transfer_entropy(x, y, k, l, n_bins)
-    te_yx = transfer_entropy(y, x, k, l, n_bins)
-    surrogate_xy = surrogate_te(x, y, k, l, n_bins, n_surrogates, seed)
-    surrogate_yx = surrogate_te(y, x, k, l, n_bins, n_surrogates, seed)
+    te_xy = transfer_entropy(x, y, k, lag, n_bins)
+    te_yx = transfer_entropy(y, x, k, lag, n_bins)
+    surrogate_xy = surrogate_te(x, y, k, lag, n_bins, n_surrogates, seed)
+    surrogate_yx = surrogate_te(y, x, k, lag, n_bins, n_surrogates, seed)
 
     net_te = te_xy - te_yx
     ete = (te_xy - surrogate_xy + te_yx - surrogate_yx) / 2

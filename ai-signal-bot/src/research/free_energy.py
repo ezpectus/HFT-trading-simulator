@@ -9,7 +9,6 @@ import math
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 20
 DEFAULT_LOOKBACK = 50
 DEFAULT_PRECISION = 0.01

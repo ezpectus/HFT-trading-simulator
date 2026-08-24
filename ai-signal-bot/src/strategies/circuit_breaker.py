@@ -4,9 +4,9 @@ Tracks closed trades and trips when consecutive losses reach a threshold.
 While tripped, all signals are forced NEUTRAL. Auto-recovers after cooldown
 period expires.
 """
-from src.observability.logging import get_logger
 import time
 
+from src.observability.logging import get_logger
 from src.strategies.signal import Signal, SignalDirection
 
 logger = get_logger("ai_signal_bot.strategies")

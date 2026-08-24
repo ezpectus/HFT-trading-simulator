@@ -9,7 +9,6 @@ import math
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 50
 DEFAULT_NU = 0.01
 DEFAULT_N_STEPS = 200

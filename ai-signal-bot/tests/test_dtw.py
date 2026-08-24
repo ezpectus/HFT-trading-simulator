@@ -4,8 +4,8 @@ import math
 import pytest
 
 from src.technical_analysis.dtw import (
-    DTWResult,
     PATTERN_TEMPLATES,
+    DTWResult,
     compute_returns,
     dtw,
     extract_windows,

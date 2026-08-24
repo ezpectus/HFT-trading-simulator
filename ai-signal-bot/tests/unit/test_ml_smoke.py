@@ -18,16 +18,16 @@ import torch
 
 from src.ml.price_predictor import (
     LSTMPredictor,
-    TransformerPredictor,
     ModelConfig,
+    TransformerPredictor,
     export_onnx,
 )
 from src.ml.rl_trader import (
-    PPOAgent,
-    DQNAgent,
-    RLConfig,
     ActorCritic,
+    DQNAgent,
+    PPOAgent,
     QNetwork,
+    RLConfig,
 )
 
 
@@ -204,6 +204,7 @@ class TestPPOCheckpoint:
             for (k1, v1), (k2, v2) in zip(
                 agent.ac.state_dict().items(),
                 agent2.ac.state_dict().items(),
+                strict=False,
             ):
                 assert torch.allclose(v1, v2), f"Weight mismatch in {k1}"
         finally:
@@ -258,6 +259,7 @@ class TestDQNCheckpoint:
             for (k1, v1), (k2, v2) in zip(
                 agent.q_net.state_dict().items(),
                 agent2.q_net.state_dict().items(),
+                strict=False,
             ):
                 assert torch.allclose(v1, v2), f"Weight mismatch in {k1}"
         finally:

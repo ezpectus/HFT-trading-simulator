@@ -9,7 +9,6 @@ import math
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 50
 DEFAULT_GAMMA = 2.0
 DEFAULT_RHO = 0.05

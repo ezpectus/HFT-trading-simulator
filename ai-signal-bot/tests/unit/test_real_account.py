@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.data_collection.real_account import (
-    AssetBalance,
     AccountPosition,
+    AssetBalance,
     OpenOrder,
     RealAccountManager,
 )

@@ -12,6 +12,7 @@ import asyncio
 import time
 
 import aiohttp
+
 try:
     import msgpack
 except ImportError:

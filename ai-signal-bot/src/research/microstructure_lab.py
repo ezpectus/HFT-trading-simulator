@@ -19,10 +19,11 @@ Usage:
 
 from __future__ import annotations
 
-from src.observability.logging import get_logger
 from dataclasses import dataclass
 
 import numpy as np
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

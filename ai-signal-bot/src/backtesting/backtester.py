@@ -9,9 +9,9 @@ Usage:
     results = bt.run(candles, strategy)
     bt.print_report(results)
 """
-from src.observability.logging import get_logger
 from dataclasses import dataclass, field
 
+from src.observability.logging import get_logger
 from src.risk.risk_manager import PositionRiskState, RiskConfig, RiskManager
 from src.strategies.signal import Signal, SignalDirection
 

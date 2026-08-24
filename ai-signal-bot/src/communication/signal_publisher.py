@@ -15,7 +15,6 @@ Protocol:
 """
 import asyncio
 import json
-from src.observability.logging import get_logger
 import math
 import random
 import time
@@ -23,6 +22,8 @@ from collections import deque
 from typing import TYPE_CHECKING
 
 import websockets
+
+from src.observability.logging import get_logger
 
 try:
     import orjson

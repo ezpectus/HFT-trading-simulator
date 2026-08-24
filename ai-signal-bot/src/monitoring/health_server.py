@@ -9,11 +9,12 @@ GET /health/shm — SHM status
 from __future__ import annotations
 
 import asyncio
-from src.observability.logging import get_logger
 import time
 from collections.abc import Callable
 
 from aiohttp import web
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

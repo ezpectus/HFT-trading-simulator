@@ -8,7 +8,6 @@ from __future__ import annotations
 import math
 import random
 
-
 MIN_SYMBOLS = 2
 DEFAULT_RANK = 3
 DEFAULT_LOOKBACK = 100

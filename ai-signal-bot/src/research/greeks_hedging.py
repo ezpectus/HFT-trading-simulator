@@ -22,11 +22,12 @@ Usage:
 
 from __future__ import annotations
 
-from src.observability.logging import get_logger
 import math
 from dataclasses import dataclass, field
 
 import numpy as np
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

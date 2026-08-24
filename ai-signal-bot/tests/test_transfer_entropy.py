@@ -52,17 +52,17 @@ class TestQuantize:
 class TestTransferEntropy:
     def test_self_te_positive(self):
         returns = _returns(100)
-        te = transfer_entropy(returns, returns, k=1, l=1, n_bins=5)
+        te = transfer_entropy(returns, returns, k=1, lag=1, n_bins=5)
         assert te >= 0
 
     def test_insufficient_tuples_zero(self):
-        te = transfer_entropy([0.01] * 10, [0.01] * 10, k=1, l=1, n_bins=5)
+        te = transfer_entropy([0.01] * 10, [0.01] * 10, k=1, lag=1, n_bins=5)
         assert te == 0.0
 
     def test_causal_link_detected(self):
         x, y = _dependent_returns(200, lag=1)
-        te_xy = transfer_entropy(x, y, k=1, l=1, n_bins=5)
-        te_yx = transfer_entropy(y, x, k=1, l=1, n_bins=5)
+        te_xy = transfer_entropy(x, y, k=1, lag=1, n_bins=5)
+        te_yx = transfer_entropy(y, x, k=1, lag=1, n_bins=5)
         assert te_xy > te_yx
 
     def test_non_negative(self):
@@ -72,7 +72,7 @@ class TestTransferEntropy:
     def test_independent_series_low_te(self):
         x = _returns(200, seed=1)
         y = _returns(200, seed=2)
-        te = transfer_entropy(x, y, k=1, l=1, n_bins=5)
+        te = transfer_entropy(x, y, k=1, lag=1, n_bins=5)
         assert te < 0.5
 
 
@@ -149,7 +149,7 @@ class TestTransferEntropyAnalysis:
 
     def test_custom_params(self):
         x, y = _dependent_returns(200)
-        result = transfer_entropy_analysis(x, y, k=2, l=2, n_bins=4, n_surrogates=3, seed=42)
+        result = transfer_entropy_analysis(x, y, k=2, lag=2, n_bins=4, n_surrogates=3, seed=42)
         assert result.n_tuples > 0
 
     def test_te_values_non_negative(self):

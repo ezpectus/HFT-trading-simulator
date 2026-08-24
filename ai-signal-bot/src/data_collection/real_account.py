@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
-from src.observability.logging import get_logger
 import time
 from dataclasses import dataclass
 from typing import Any  # Any: ccxt/aiohttp objects lack type stubs
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

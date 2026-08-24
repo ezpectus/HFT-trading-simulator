@@ -108,7 +108,7 @@ def _mat_mat(a: list[list[float]], b: list[list[float]]) -> list[list[float]]:
     m = len(b[0])
     k = len(b)
     return [
-        [sum(a[i][l] * b[l][j] for l in range(k)) for j in range(m)]
+        [sum(a[i][m_idx] * b[m_idx][j] for m_idx in range(k)) for j in range(m)]
         for i in range(n)
     ]
 

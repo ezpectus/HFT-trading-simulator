@@ -4,13 +4,13 @@ overfitting detection.
 
 from __future__ import annotations
 
-from src.observability.logging import get_logger
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import numpy as np
 
 from src.backtesting.backtest_engine import BacktestConfig, BacktestEngine, BacktestResult
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

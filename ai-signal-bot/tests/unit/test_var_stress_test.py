@@ -11,6 +11,7 @@ pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
 class TestDeprecation:
     def test_module_emits_deprecation_warning(self):
         import importlib
+
         import src.risk.var_stress_test as mod
         importlib.reload(mod)
         import warnings

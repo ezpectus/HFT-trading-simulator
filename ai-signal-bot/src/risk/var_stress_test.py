@@ -16,11 +16,12 @@ Risk metrics:
 
 from __future__ import annotations
 
-from src.observability.logging import get_logger
 import warnings
 from dataclasses import dataclass
 
 import numpy as np
+
+from src.observability.logging import get_logger
 
 warnings.warn(
     "src.risk.var_stress_test is deprecated. "

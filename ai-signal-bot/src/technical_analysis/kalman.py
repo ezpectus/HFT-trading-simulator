@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 try:
-    import numpy as np
+    import numpy as np  # noqa: F401
     _HAS_NUMPY = True
 except ImportError:
     _HAS_NUMPY = False

@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import math
 
-
 MIN_PRICES = 50
 DEFAULT_MAX_TAU = 20
 DEFAULT_MAX_E = 10

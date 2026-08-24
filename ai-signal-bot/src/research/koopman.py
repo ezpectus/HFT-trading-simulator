@@ -10,7 +10,6 @@ import random
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 50
 DEFAULT_MAX_POLY = 2
 DEFAULT_N_FOURIER = 3
@@ -161,7 +160,8 @@ def koopman_analysis(
 
     states = norm_r[:-1]
     next_states = norm_r[1:]
-    dict_fn = lambda x: dictionary(x, max_poly, n_fourier)
+    def dict_fn(x):
+        return dictionary(x, max_poly, n_fourier)
 
     result = edmd(states, next_states, dict_fn)
     k = result["K"]

@@ -34,9 +34,10 @@ Usage:
 from __future__ import annotations
 
 import json
-from src.observability.logging import get_logger
 import time
 from typing import Any  # Any: feature values are heterogeneous (float|int|str)
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

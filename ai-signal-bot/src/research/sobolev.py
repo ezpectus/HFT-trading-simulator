@@ -10,7 +10,6 @@ import random
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 50
 DEFAULT_S = 2
 DEFAULT_LAMBDA = 0.1
@@ -194,9 +193,9 @@ def sobolev_analysis(
 
     # Compare with different regularization levels
     sweep_results = []
-    for l in LAMBDA_SWEEP:
-        r = sobolev_regression(x_data, y_data, s, l, SIGMA, LENGTH_SCALE)
-        sweep_results.append({"lambda": l, "residual": r["residual"], "h1_semi": r["h1_semi"], "l2_norm": r["l2_norm"]})
+    for lam in LAMBDA_SWEEP:
+        r = sobolev_regression(x_data, y_data, s, lam, SIGMA, LENGTH_SCALE)
+        sweep_results.append({"lambda": lam, "residual": r["residual"], "h1_semi": r["h1_semi"], "l2_norm": r["l2_norm"]})
 
     # L-curve: log(residual) vs log(smoothness)
     l_curve = [

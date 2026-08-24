@@ -24,12 +24,13 @@ Response format:
     }
 """
 import asyncio
-from src.observability.logging import get_logger
 import time
 import warnings
 
 import aiohttp
 from aiohttp import web
+
+from src.observability.logging import get_logger
 
 warnings.warn(
     "src.communication.health_check is deprecated. "

@@ -23,12 +23,12 @@ Usage:
     best = results[0]
 """
 import itertools
-from src.observability.logging import get_logger
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
 from src.backtesting.backtester import Backtester, BacktestResult
+from src.observability.logging import get_logger
 
 logger = get_logger("ai_signal_bot.optimizer")
 

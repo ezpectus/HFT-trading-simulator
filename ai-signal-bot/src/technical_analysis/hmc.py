@@ -77,8 +77,7 @@ def grad_log_posterior(q: list[float], returns: list[float], eps: float = 1e-6) 
     for t in range(1, n):
         h.append(omega + alpha * r2[t - 1] + beta * h[t - 1])
 
-    # d(log_lik)/d(omega)
-    d_omega = sum((r2[t] - h[t]) / (2 * h[t] ** 2) for t in range(n))
+    # d(log_lik)/d(omega) — gradient computed via chain rule below
     # Chain rule: dh/d(omega) = 1 + beta * dh_prev/d(omega)
     dh_domega = [1.0] * n
     for t in range(1, n):
@@ -180,8 +179,8 @@ def _posterior_stats(samples: list[list[float]], names: list[str]) -> list[dict]
         mean = sum(vals) / len(vals)
         std = math.sqrt(sum((v - mean) ** 2 for v in vals) / len(vals))
 
-        def pct(q: float) -> float:
-            return vals[min(len(vals) - 1, int(len(vals) * q))]
+        def pct(q: float, _vals=vals) -> float:
+            return _vals[min(len(_vals) - 1, int(len(_vals) * q))]
 
         stats.append(
             {

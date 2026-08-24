@@ -9,7 +9,6 @@ import math
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 50
 DEFAULT_MODEL_TYPE = "ou"
 DEFAULT_LOOKBACK = 100
@@ -186,14 +185,20 @@ def ito_generator_analysis(
 
     # Model functions
     if model_type == "ou":
-        mu_fn = lambda x: kappa * (theta - x)
-        sigma_fn = lambda x: sigma_ou
+        def mu_fn(x):
+            return kappa * (theta - x)
+        def sigma_fn(x):
+            return sigma_ou
     elif model_type == "gbm":
-        mu_fn = lambda x: mean_r * x
-        sigma_fn = lambda x: std_r * abs(x)
+        def mu_fn(x):
+            return mean_r * x
+        def sigma_fn(x):
+            return std_r * abs(x)
     else:
-        mu_fn = lambda x: mean_r
-        sigma_fn = lambda x: std_r
+        def mu_fn(x):
+            return mean_r
+        def sigma_fn(x):
+            return std_r
 
     # Test functions
     test_functions = {

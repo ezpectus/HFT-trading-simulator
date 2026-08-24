@@ -5,7 +5,6 @@ support, solved via ADMM (Alternating Direction Method of Multipliers).
 """
 from __future__ import annotations
 
-import cmath
 import math
 
 import numpy as np
@@ -93,11 +92,11 @@ def vmd(
     for _ in range(max_iter):
         for k_idx in range(k):
             sum_other = [0j] * n_ext
-            for l in range(k):
-                if l == k_idx:
+            for j in range(k):
+                if j == k_idx:
                     continue
                 for i in range(n_ext):
-                    sum_other[i] += u_hat[l][i]
+                    sum_other[i] += u_hat[j][i]
 
             for i in range(n_ext):
                 freq_idx = i if i < n_ext / 2 else i - n_ext
@@ -199,7 +198,6 @@ def vmd_analysis(
 
     dominant_mode = max(range(k), key=lambda i: result["energies"][i])
     dom_signal = result["modes"][dominant_mode]["signal"]
-    dom_slope = dom_signal[-1] - dom_signal[-2] if len(dom_signal) > 1 else 0.0
 
     trend_idx = min(range(k), key=lambda i: result["center_freqs"][i])
     trend_signal = result["modes"][trend_idx]["signal"]

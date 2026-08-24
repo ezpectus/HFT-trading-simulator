@@ -100,7 +100,7 @@ def test_exchange_consistency():
     
     # Check consistency
     if shared_exchanges != exchange_exchanges:
-        print(f"ERROR: Exchange lists don't match")
+        print("ERROR: Exchange lists don't match")
         return False
     
     if ai_default_exchange not in shared_exchanges:
@@ -139,11 +139,11 @@ def test_websocket_consistency():
     
     # Check consistency
     if exchange_ws["host"] != shared_exchange_ws["host"]:
-        print(f"ERROR: Exchange simulator host mismatch")
+        print("ERROR: Exchange simulator host mismatch")
         return False
     
     if exchange_ws["port"] != shared_exchange_ws["port"]:
-        print(f"ERROR: Exchange simulator port mismatch")
+        print("ERROR: Exchange simulator port mismatch")
         return False
     
     # AI bot connects to exchange simulator for market data, not signal bot
@@ -154,7 +154,7 @@ def test_websocket_consistency():
     
     expected_hft_url = f"ws://{shared_exchange_ws['host']}:{shared_exchange_ws['port']}"
     if hft_ws["websocket_url"] != expected_hft_url:
-        print(f"ERROR: HFT bot WebSocket URL mismatch")
+        print("ERROR: HFT bot WebSocket URL mismatch")
         return False
     
     print("✓ WebSocket consistency check passed")
@@ -179,13 +179,13 @@ def test_risk_parameter_consistency():
     
     # Check key risk parameters
     if shared_risk["max_risk_per_trade_pct"] != ai_risk["max_risk_per_trade_pct"]:
-        print(f"WARNING: max_risk_per_trade_pct differs between shared and AI config")
+        print("WARNING: max_risk_per_trade_pct differs between shared and AI config")
     
     if shared_risk["max_daily_drawdown_pct"] != ai_risk["max_daily_drawdown_pct"]:
-        print(f"WARNING: max_daily_drawdown_pct differs between shared and AI config")
+        print("WARNING: max_daily_drawdown_pct differs between shared and AI config")
     
     if shared_risk["min_confidence"] != ai_risk["min_confidence"]:
-        print(f"WARNING: min_confidence differs between shared and AI config")
+        print("WARNING: min_confidence differs between shared and AI config")
     
     print("✓ Risk parameter consistency check completed (warnings allowed)")
     return True

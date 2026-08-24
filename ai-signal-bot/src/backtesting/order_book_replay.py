@@ -12,9 +12,10 @@ Usage:
     ob = replay.from_candle(candle, symbol="BTC/USDT", exchange="binance")
     # ob.bids, ob.asks, ob.mid_price, ob.spread_bps, ob.obi
 """
-from src.observability.logging import get_logger
 import random
 from dataclasses import dataclass, field
+
+from src.observability.logging import get_logger
 
 logger = get_logger("ai_signal_bot.order_book_replay")
 

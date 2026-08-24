@@ -28,10 +28,11 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-from src.observability.logging import get_logger
 import time
 from dataclasses import dataclass, field
 from enum import Enum
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

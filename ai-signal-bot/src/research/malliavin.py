@@ -10,7 +10,6 @@ import random
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 30
 LOOKBACK = 50
 DEFAULT_N_PATHS = 1000
@@ -131,7 +130,8 @@ def bs_greeks(s: float, k: float, t: float, r: float, sigma: float) -> dict:
     """Black-Scholes Greeks (analytical)."""
     d1 = (math.log(s / k) + (r + 0.5 * sigma * sigma) * t) / (sigma * math.sqrt(t))
     d2 = d1 - sigma * math.sqrt(t)
-    pdf = lambda x: math.exp(-x * x / 2) / math.sqrt(2 * math.pi)
+    def pdf(x):
+        return math.exp(-x * x / 2) / math.sqrt(2 * math.pi)
     return {
         "delta": norm_cdf(d1),
         "gamma": pdf(d1) / (s * sigma * math.sqrt(t)),
@@ -153,7 +153,6 @@ def malliavin_greeks(
 ) -> dict:
     """Malliavin Greeks estimation via integration-by-parts weights."""
     n_paths = len(paths)
-    dt = t / n_steps
 
     # Payoff: max(S_T - K, 0) for call
     payoffs = [max(p[n_steps - 1] - k, 0.0) for p in paths]

@@ -3,6 +3,7 @@
 
 import numpy as np
 import pytest
+
 from src.risk.cvar import CVaRCalculator, CVaRResult
 from src.risk.position_sizing import DynamicPositionSizer, PositionSizingResult
 from src.risk.stress_test import StressTestResult, StressTestScenario

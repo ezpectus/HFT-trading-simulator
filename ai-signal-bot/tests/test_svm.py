@@ -110,7 +110,7 @@ class TestExtractSVMFeatures:
     def test_labels_are_plus_minus_one(self):
         returns = [0.01 * (i % 10 - 5) for i in range(50)]
         _, labels = extract_svm_features(returns, window_size=20)
-        assert all(l in (-1, 1) for l in labels)
+        assert all(lbl in (-1, 1) for lbl in labels)
 
     def test_features_and_labels_same_length(self):
         returns = [0.01 * (i % 10 - 5) for i in range(50)]

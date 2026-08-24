@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import math
 
-
 DEFAULT_N_STEPS = 20
 DEFAULT_ETA = 0.1
 DEFAULT_GAMMA = 0.01

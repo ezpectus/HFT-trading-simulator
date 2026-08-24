@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import asyncio
 import json
-from src.observability.logging import get_logger
 import os
 import re
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any  # Any: aiohttp.ClientSession lacks type stubs
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

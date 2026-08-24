@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import math
 
-
 MIN_SYMBOLS = 3
 
 
@@ -187,7 +186,7 @@ def rmt_signal(signal_eigs: list[float], lambda_max: float) -> tuple[str, str]:
             f"{len(signal_eigs)} signal eigenvalues (max λ={strongest:.3f}, λ₊={lambda_max:.3f})"
         )
     return "PURE_NOISE", (
-        f"All eigenvalues within MP bounds — no genuine correlations"
+        "All eigenvalues within MP bounds — no genuine correlations"
     )
 
 
@@ -227,7 +226,7 @@ def rmt_analysis(
 
     clean_result = clean_correlation(eig["eigenvalues"], eig["eigenvectors"], q)
 
-    signal_eigs = [l for l in sorted_eig if l > lambda_max or l < lambda_min]
+    signal_eigs = [ev for ev in sorted_eig if ev > lambda_max or ev < lambda_min]
     market_mode = sorted_vec[0]
 
     signal, reason = rmt_signal(signal_eigs, lambda_max)

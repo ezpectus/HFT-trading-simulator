@@ -7,8 +7,9 @@ C++ reads signals and executes orders.
 
 from __future__ import annotations
 
-from src.observability.logging import get_logger
 import time
+
+from src.observability.logging import get_logger
 
 from .shm_ring_buffer import SIGNAL_STRUCT, ShmRingBuffer
 

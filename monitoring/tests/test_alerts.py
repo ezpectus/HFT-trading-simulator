@@ -3,7 +3,6 @@
 
 from pathlib import Path
 
-import pytest
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent

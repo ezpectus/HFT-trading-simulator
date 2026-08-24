@@ -129,8 +129,8 @@ def mra_reconstruct(decomp: dict, original_length: int, wavelet: str = "haar") -
     for level in range(levels):
         current_approx = [0.0] * len(details[level])
         current_detail = details[level][:]
-        for l in range(levels - 1, -1, -1):
-            if l == level:
+        for lvl in range(levels - 1, -1, -1):
+            if lvl == level:
                 current_approx = [0.0] * len(current_detail)
                 recon = idwt(current_approx, current_detail, wavelet)
                 current_approx = recon
@@ -177,8 +177,8 @@ def denoise(decomp: dict, threshold: float, wavelet: str = "haar") -> dict:
 def reconstruct(decomp: dict, wavelet: str = "haar") -> list[float]:
     """Reconstruct the full signal from a decomposition."""
     current = decomp["approx"][:]
-    for l in range(decomp["levels"] - 1, -1, -1):
-        current = idwt(current, decomp["details"][l], wavelet)
+    for lvl in range(decomp["levels"] - 1, -1, -1):
+        current = idwt(current, decomp["details"][lvl], wavelet)
     return current
 
 

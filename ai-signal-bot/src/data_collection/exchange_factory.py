@@ -6,11 +6,12 @@ Supports multi-exchange and fallback from real to simulator.
 
 from __future__ import annotations
 
-from src.observability.logging import get_logger
 import os
 import time
 from enum import Enum
 from typing import Protocol
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

@@ -13,10 +13,11 @@ Usage:
     plotter.plot_comparison(results)
     plotter.save_all(results, "backtest_charts/")
 """
-from src.observability.logging import get_logger
 import os
 
 import matplotlib
+
+from src.observability.logging import get_logger
 
 matplotlib.use("Agg")  # Non-interactive backend
 import matplotlib.pyplot as plt

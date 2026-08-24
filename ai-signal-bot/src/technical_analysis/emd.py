@@ -5,7 +5,6 @@ via the sifting process; HHT computes instantaneous frequency/amplitude.
 """
 from __future__ import annotations
 
-import cmath
 import math
 
 import numpy as np
@@ -50,7 +49,7 @@ def cubic_spline(x_points: list[float], y_points: list[float], x_query: float) -
     if n < 2:
         return y_points[0]
 
-    sorted_pairs = sorted(zip(x_points, y_points))
+    sorted_pairs = sorted(zip(x_points, y_points, strict=False))
     xs = [p[0] for p in sorted_pairs]
     ys = [p[1] for p in sorted_pairs]
 
@@ -63,7 +62,7 @@ def cubic_spline(x_points: list[float], y_points: list[float], x_query: float) -
     for i in range(1, n - 1):
         alpha[i - 1] = 3 * ((ys[i + 1] - ys[i]) / h[i] - (ys[i] - ys[i - 1]) / h[i - 1])
 
-    l = [1.0] * n
+    ell = [1.0] * n
     mu = [0.0] * n
     z = [0.0] * n
     c = [0.0] * n
@@ -71,9 +70,9 @@ def cubic_spline(x_points: list[float], y_points: list[float], x_query: float) -
     d = [0.0] * (n - 1)
 
     for i in range(1, n - 1):
-        l[i] = 2 * (xs[i + 1] - xs[i - 1]) - h[i - 1] * mu[i - 1]
-        mu[i] = h[i] / l[i]
-        z[i] = (alpha[i - 1] - h[i - 1] * z[i - 1]) / l[i]
+        ell[i] = 2 * (xs[i + 1] - xs[i - 1]) - h[i - 1] * mu[i - 1]
+        mu[i] = h[i] / ell[i]
+        z[i] = (alpha[i - 1] - h[i - 1] * z[i - 1]) / ell[i]
 
     for j in range(n - 2, -1, -1):
         c[j] = z[j] - mu[j] * c[j + 1]

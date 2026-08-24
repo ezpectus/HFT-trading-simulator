@@ -8,12 +8,13 @@ Supports logon/logout, heartbeat, resend requests, and application messages.
 from __future__ import annotations
 
 import asyncio
-from src.observability.logging import get_logger
 import os
 import tempfile
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

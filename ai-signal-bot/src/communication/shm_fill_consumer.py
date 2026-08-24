@@ -8,8 +8,9 @@ Used for persistence (PostgreSQL) and dashboard updates.
 from __future__ import annotations
 
 import asyncio
-from src.observability.logging import get_logger
 from collections.abc import Callable
+
+from src.observability.logging import get_logger
 
 from .shm_ring_buffer import FILL_STRUCT, ShmRingBuffer
 

@@ -28,10 +28,11 @@ from __future__ import annotations
 
 import importlib
 import json
-from src.observability.logging import get_logger
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any  # Any: plugin config and loaded strategy objects are dynamic
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

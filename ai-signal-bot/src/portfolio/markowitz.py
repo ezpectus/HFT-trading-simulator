@@ -3,10 +3,11 @@
 # Implements the Markowitz efficient frontier calculation and portfolio optimization
 # with support for weight constraints, sector constraints, and turnover constraints.
 
-from src.observability.logging import get_logger
 from dataclasses import dataclass
 
 import numpy as np
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

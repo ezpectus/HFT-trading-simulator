@@ -4,13 +4,14 @@ Also sends trading signals to the HFT Trade Bot via a separate WebSocket connect
 """
 import asyncio
 import json
-from src.observability.logging import get_logger
 import os
 import random
 from collections import deque
 from collections.abc import Callable
 
 import websockets
+
+from src.observability.logging import get_logger
 
 try:
     import msgpack

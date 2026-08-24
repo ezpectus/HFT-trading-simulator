@@ -8,7 +8,6 @@ Rate limiting: max 1 alert per rule per 5 minutes.
 from __future__ import annotations
 
 import asyncio
-from src.observability.logging import get_logger
 import time
 from collections import defaultdict, deque
 from collections.abc import Callable
@@ -16,6 +15,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 import aiohttp
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

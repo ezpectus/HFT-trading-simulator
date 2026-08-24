@@ -10,7 +10,6 @@ import math
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 40
 DEFAULT_WINDOW_SIZE = 20
 DEFAULT_LOOKBACK = 100

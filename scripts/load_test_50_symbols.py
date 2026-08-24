@@ -82,7 +82,7 @@ def test_order_submission_latency():
     min_latency = min(latencies)
     p95_latency = statistics.quantiles(latencies, n=20)[18] if len(latencies) >= 20 else max(latencies)
     
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  Average latency: {avg_latency:.3f} ms")
     print(f"  Median latency: {median_latency:.3f} ms")
     print(f"  Min latency: {min_latency:.3f} ms")
@@ -141,7 +141,7 @@ def test_price_update_latency():
     max_latency = max(latencies)
     min_latency = min(latencies)
     
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  Average latency: {avg_latency:.3f} ms")
     print(f"  Median latency: {median_latency:.3f} ms")
     print(f"  Min latency: {min_latency:.3f} ms")
@@ -199,7 +199,7 @@ def test_order_book_latency():
     max_latency = max(latencies)
     min_latency = min(latencies)
     
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  Average latency: {avg_latency:.3f} ms")
     print(f"  Median latency: {median_latency:.3f} ms")
     print(f"  Min latency: {min_latency:.3f} ms")
@@ -263,8 +263,8 @@ def test_concurrent_operations():
     end = time.perf_counter()
     total_time = end - start
     
-    print(f"\nResults:")
-    print(f"  Total operations: 150 (50 orders + 50 prices + 50 order books)")
+    print("\nResults:")
+    print("  Total operations: 150 (50 orders + 50 prices + 50 order books)")
     print(f"  Total time: {total_time:.3f} s")
     print(f"  Average per operation: {(total_time / 150) * 1000:.3f} ms")
     
@@ -326,7 +326,7 @@ def test_memory_usage():
     final_mem = process.memory_info().rss / 1024 / 1024  # MB
     mem_increase = final_mem - initial_mem
     
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  Initial memory: {initial_mem:.2f} MB")
     print(f"  Final memory: {final_mem:.2f} MB")
     print(f"  Memory increase: {mem_increase:.2f} MB")

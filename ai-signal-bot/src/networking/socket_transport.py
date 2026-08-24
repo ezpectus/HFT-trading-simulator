@@ -19,13 +19,14 @@ Usage:
 
 from __future__ import annotations
 
-from src.observability.logging import get_logger
 import selectors
 import socket
 import struct
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any  # Any: stats dict values are heterogeneous
+
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

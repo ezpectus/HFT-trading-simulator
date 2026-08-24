@@ -9,12 +9,12 @@ from __future__ import annotations
 import csv
 import io
 import json
-from src.observability.logging import get_logger
 from dataclasses import dataclass, field
 
 import numpy as np
 
 from src.backtesting.backtester import BacktestResult
+from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
 

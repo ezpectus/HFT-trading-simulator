@@ -12,8 +12,6 @@
 ```
 .cascade/
 ├── README.md              — этот файл
-├── personal-prompt.md     — компактный промпт для вставки в сессию
-├── prompts.md             — детальные правила: роли, качество, сценарии
 ├── context_cache.md       — компактный контекст (обновлять в конце каждого дня)
 ├── progress.md            — журнал выполненных задач и коммитов
 ├── notes.md               — заметки, контекст, полезные ссылки
@@ -22,7 +20,17 @@
 ├── office-board.md        — доска задач на текущий день
 ├── sprint_template.md     — шаблон дневного спринта
 ├── interview-prep.md      — подготовка к интервью (приватный)
-└── proposals/             — предложения по улучшению
+├── CODE_AUDIT.md          — детальный аудит (1431 находка)
+├── RELIABILITY_PLAN.md    — план надёжности (R1-R1431)
+├── proposals/             — предложения по улучшению
+└── prompts/               — все AI промпты
+    ├── README.md                    — описание каждого промпта
+    ├── orchestration-prompt.md      — главный суперпромпт (100 ролей, правила, сценарии)
+    ├── personal-prompt.md           — компактный промпт для рефакторинга
+    ├── REFACTOR_PROMPT.md           — автономный рефакторинг v2 (пачки)
+    ├── REFACTOR_DISCOVERY_PROMPT.md — поиск что нужно рефакторить (аудит)
+    ├── PHASE3_PROMPT.md             — фаза 3: компоненты, тесты, WD задачи
+    └── FINAL_CLEANUP_PROMPT.md      — финальная очистка: ALL GREEN
 ```
 
 ## Workflow файлы (в .windsurf/workflows/)

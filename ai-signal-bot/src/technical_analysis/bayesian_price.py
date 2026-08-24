@@ -322,7 +322,7 @@ def bayesian_price_analysis(
     predictions = ridge["predictions"]
 
     next_features = _next_features(returns, lookback)
-    next_pred = sum(w * f for w, f in zip(weights, next_features))
+    next_pred = sum(w * f for w, f in zip(weights, next_features, strict=False))
     next_ci = 1.96 * noise_sigma
 
     y_mean = sum(y) / len(y) if y else 0.0

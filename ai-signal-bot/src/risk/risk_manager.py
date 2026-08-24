@@ -18,8 +18,9 @@ Usage:
     # On each candle update:
     new_sl = rm.update_stop_loss(position, current_price, candle)
 """
-from src.observability.logging import get_logger
 from dataclasses import dataclass
+
+from src.observability.logging import get_logger
 
 logger = get_logger("ai_signal_bot.risk_manager")
 

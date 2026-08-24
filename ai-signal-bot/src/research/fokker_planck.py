@@ -9,7 +9,6 @@ import math
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 50
 DEFAULT_MODEL_TYPE = "ou"
 DEFAULT_N_STEPS = 200
@@ -153,14 +152,20 @@ def fokker_planck_analysis(
     p0 = [v / p0_sum for v in p0]
 
     if model_type == "ou":
-        mu_fn = lambda x: kappa * (theta - x)
-        sigma_fn = lambda x: sigma_ou
+        def mu_fn(x):
+            return kappa * (theta - x)
+        def sigma_fn(x):
+            return sigma_ou
     elif model_type == "gbm":
-        mu_fn = lambda x: mu_gbm * x
-        sigma_fn = lambda x: sigma_gbm * abs(x)
+        def mu_fn(x):
+            return mu_gbm * x
+        def sigma_fn(x):
+            return sigma_gbm * abs(x)
     else:
-        mu_fn = lambda x: mu_gbm
-        sigma_fn = lambda x: sigma_gbm
+        def mu_fn(x):
+            return mu_gbm
+        def sigma_fn(x):
+            return sigma_gbm
 
     result = solve_fokker_planck(x_grid, p0, mu_fn, sigma_fn, dt, n_steps)
 

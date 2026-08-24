@@ -10,7 +10,6 @@ import random
 
 from src.research._common import compute_returns, quantize
 
-
 MIN_PRICES = 50
 DEFAULT_N_CLUSTERS = 4
 DEFAULT_BETA = 5.0

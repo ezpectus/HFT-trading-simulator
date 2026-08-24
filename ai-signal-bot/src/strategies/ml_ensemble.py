@@ -6,13 +6,13 @@ Uses scikit-learn for models (LightGBM/XGBoost optional with fallback to Gradien
 
 from __future__ import annotations
 
-from src.observability.logging import get_logger
 import math
 from collections import deque
 from dataclasses import dataclass
 
 import numpy as np
 
+from src.observability.logging import get_logger
 from src.strategies.ml_features import FeatureEngineer
 from src.strategies.signal import Signal, SignalDirection
 

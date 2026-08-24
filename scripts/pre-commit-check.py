@@ -557,7 +557,7 @@ def check_test_coverage_gaps(staged_files: list[str]) -> CheckResult:
         output = "Missing test files for:\n"
         for m in missing:
             output += f"  - {m}\n"
-        output += "\nCreate test files before committing. See prompts.md § WD TESTS."
+        output += "\nCreate test files before committing. See .cascade/prompts/orchestration-prompt.md § WD TESTS."
         return CheckResult(
             "coverage: test gap check",
             passed=False,
@@ -615,7 +615,6 @@ def check_python_imports(staged_files: list[str]) -> CheckResult:
                 # Check absolute imports from src (our own modules)
                 if node.module.startswith("src."):
                     parts = node.module.replace("src.", "").split(".")
-                    base = parts[0]
                     for comp in COMPONENTS_PY:
                         candidate = PROJECT_ROOT / comp / "src" / Path(*parts)
                         if candidate.with_suffix(".py").exists():

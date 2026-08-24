@@ -15,17 +15,18 @@ from __future__ import annotations
 
 import atexit
 import ctypes
-from src.observability.logging import get_logger
 import mmap
 import os
 import struct
 import sys
 from typing import TypeVar
 
+from src.observability.logging import get_logger
+
 logger = get_logger(__name__)
 
 # Track all created SHM segments for cleanup on exit
-_registered_buffers: list["ShmRingBuffer"] = []
+_registered_buffers: list[ShmRingBuffer] = []
 
 # Atomic helpers: use ctypes for aligned atomic-like reads/writes
 # On x86/x64, aligned 8-byte reads/writes are naturally atomic.

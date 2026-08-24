@@ -9,7 +9,6 @@ import math
 
 from src.research._common import compute_returns
 
-
 MIN_PRICES = 100
 DEFAULT_N_SYMBOLS = 3
 DEFAULT_MAX_BLOCK = 8

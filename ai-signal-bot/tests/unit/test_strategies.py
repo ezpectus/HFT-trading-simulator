@@ -6,8 +6,8 @@ import pytest
 
 from src.strategies.market_making import MarketMakingConfig, MarketMakingStrategy
 from src.strategies.sentiment import EventType, NewsEvent, SentimentStrategy
-from src.strategies.statistical_arbitrage import KalmanFilterHedge, StatisticalArbitrage
 from src.strategies.signal import Signal, SignalDirection
+from src.strategies.statistical_arbitrage import KalmanFilterHedge, StatisticalArbitrage
 from src.strategies.strategies import (
     MeanReversionStrategy,
     TrendFollowingStrategy,

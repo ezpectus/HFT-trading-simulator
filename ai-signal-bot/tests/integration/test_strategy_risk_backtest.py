@@ -20,9 +20,9 @@ from src.risk.risk_manager import RiskConfig, RiskManager
 from src.signal_validation.validator import SignalValidator
 from src.strategies.signal import Signal, SignalDirection
 from src.strategies.strategies import (
-    TrendFollowingStrategy,
-    MeanReversionStrategy,
     EnsembleVoter,
+    MeanReversionStrategy,
+    TrendFollowingStrategy,
 )
 
 

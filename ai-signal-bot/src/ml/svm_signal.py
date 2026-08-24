@@ -35,12 +35,12 @@ class SVMResult:
 
 def _dot(w: list[float], x: list[float]) -> float:
     """Dot product of two vectors."""
-    return sum(wi * xi for wi, xi in zip(w, x))
+    return sum(wi * xi for wi, xi in zip(w, x, strict=False))
 
 
 def _rbf_kernel(x1: list[float], x2: list[float], gamma: float) -> float:
     """RBF (Gaussian) kernel."""
-    dist_sq = sum((a - b) ** 2 for a, b in zip(x1, x2))
+    dist_sq = sum((a - b) ** 2 for a, b in zip(x1, x2, strict=False))
     return math.exp(-gamma * dist_sq)
 
 
