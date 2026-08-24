@@ -225,6 +225,15 @@ def _sigmoid(x: float) -> float:
     return 1 / (1 + math.exp(-x))
 
 
+def _random_normal(rng: random.Random) -> float:
+    """Box-Muller normal random sample."""
+    u1 = rng.random()
+    u2 = rng.random()
+    while u1 < 1e-10:
+        u1 = rng.random()
+    return math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+
+
 def _dsigmoid(y: float) -> float:
     """Derivative of sigmoid: y * (1 - y)."""
     return y * (1 - y)

@@ -41,7 +41,7 @@ except ImportError:
     BCC_AVAILABLE = False
 
 try:
-    from prometheus_client import Counter as PromCounter, Gauge as PromGauge
+    from prometheus_client import Counter as PromCounter, Gauge as PromGauge  # noqa: F401
     _HAS_PROMETHEUS = True
 except ImportError:
     _HAS_PROMETHEUS = False

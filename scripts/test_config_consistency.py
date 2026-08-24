@@ -126,7 +126,7 @@ def test_websocket_consistency():
     
     # Get WebSocket settings
     shared_exchange_ws = shared_config["websocket"]["exchange_simulator"]
-    shared_signal_ws = shared_config["websocket"]["ai_signal_bot"]
+    _shared_signal_ws = shared_config["websocket"]["ai_signal_bot"]
     
     exchange_ws = exchange_config["websocket"]
     ai_ws = ai_config["exchange"]

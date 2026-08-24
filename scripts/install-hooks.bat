@@ -1,6 +1,7 @@
 @echo off
 REM ============================================================
 REM  Install git hooks: pre-commit + commit-msg
+REM  Git hooks run via sh (git bash) even on Windows
 REM  pre-commit: lint + tests + coverage gap + import validation
 REM  commit-msg:  English only + conventional commits format
 REM ============================================================
@@ -18,8 +19,8 @@ echo   INSTALLING GIT HOOKS
 echo ============================================================
 echo.
 
-REM --- pre-commit hook ---
-copy /Y "%PROJECT_ROOT%scripts\pre-commit-hook.bat" "%PROJECT_ROOT%.git\hooks\pre-commit" >nul
+REM --- pre-commit hook (sh script — git runs hooks via sh) ---
+copy /Y "%PROJECT_ROOT%scripts\pre-commit-hook-git.sh" "%PROJECT_ROOT%.git\hooks\pre-commit" >nul
 if %errorlevel% neq 0 (
     echo ERROR: Failed to install pre-commit hook.
     exit /b 1
@@ -27,7 +28,7 @@ if %errorlevel% neq 0 (
 echo   [OK] pre-commit  — lint + tests + coverage gap + imports
 
 REM --- commit-msg hook ---
-copy /Y "%PROJECT_ROOT%scripts\commit-msg-hook.bat" "%PROJECT_ROOT%.git\hooks\commit-msg" >nul
+copy /Y "%PROJECT_ROOT%scripts\commit-msg-hook-git.sh" "%PROJECT_ROOT%.git\hooks\commit-msg" >nul
 if %errorlevel% neq 0 (
     echo ERROR: Failed to install commit-msg hook.
     exit /b 1
@@ -66,11 +67,13 @@ echo     2. Conventional commits format (feat: / fix: / refactor: etc.)
 echo     3. First line max 72 chars
 echo.
 echo   Bypass:    git commit --no-verify
+echo   Auto-fix:  python scripts\pre-commit-check.py --fix
 echo   Staged:    python scripts\pre-commit-check.py --staged --quick
 echo   Full:      python scripts\pre-commit-check.py --full
 echo   ALL CI:    python scripts\pre-commit-check.py --all
 echo   Lint only: python scripts\pre-commit-check.py --lint
 echo   Tests:     python scripts\pre-commit-check.py --tests
+echo   Health:    python scripts\health-check.py
 echo.
 echo ============================================================
 echo.

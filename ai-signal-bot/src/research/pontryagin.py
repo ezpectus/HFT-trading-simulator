@@ -133,7 +133,7 @@ def pontryagin_analysis(
 
     twap_rate = x0 / t
     x_twap = x0
-    for step in range(N_STEPS):
+    for _step in range(N_STEPS):
         x_twap = x_twap - twap_rate * (t / N_STEPS)
 
     immediate_cost = 0.5 * kappa * (x0 / 0.01) ** 2 * 0.01 + lambda_ * (x0 / 0.01) ** 2 * x0

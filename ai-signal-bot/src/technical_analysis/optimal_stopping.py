@@ -103,6 +103,15 @@ def _solve3x3(a: list[list[float]], b: list[float]) -> list[float] | None:
     return x
 
 
+def _random_normal(rng: random.Random) -> float:
+    """Box-Muller normal random sample."""
+    u1 = rng.random()
+    u2 = rng.random()
+    while u1 < 1e-10:
+        u1 = rng.random()
+    return math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+
+
 def binomial_american(
     s0: float,
     k: float,

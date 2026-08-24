@@ -10,9 +10,9 @@ import sys
 # Add exchange_simulator to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from exchange_simulator.exchange import SimulatedExchange
-from exchange_simulator.market_simulator import MarketSimulator
-from exchange_simulator.models import Side, OrderType
+from exchange_simulator.exchange import SimulatedExchange  # noqa: E402
+from exchange_simulator.market_simulator import MarketSimulator  # noqa: E402
+from exchange_simulator.models import Side, OrderType  # noqa: E402
 
 # 50+ symbols for testing
 SYMBOLS = [
@@ -64,7 +64,7 @@ def test_order_submission_latency():
     for symbol in SYMBOLS[:50]:  # Test first 50 symbols
         start = time.perf_counter()
         
-        order = exchange.submit_order(
+        _ = exchange.submit_order(
             symbol=symbol,
             side=Side.BUY,
             quantity=0.1,
@@ -129,7 +129,7 @@ def test_price_update_latency():
     for symbol in SYMBOLS[:50]:
         start = time.perf_counter()
         
-        price = exchange.get_price(symbol)
+        _ = exchange.get_price(symbol)
         
         end = time.perf_counter()
         latency_ms = (end - start) * 1000
@@ -187,7 +187,7 @@ def test_order_book_latency():
     for symbol in SYMBOLS[:50]:
         start = time.perf_counter()
         
-        order_book = exchange.get_order_book(symbol)
+        _ = exchange.get_order_book(symbol)
         
         end = time.perf_counter()
         latency_ms = (end - start) * 1000

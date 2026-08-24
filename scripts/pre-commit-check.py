@@ -129,10 +129,9 @@ def run_command(
 ) -> tuple[bool, str, str, float]:
     start = time.monotonic()
     try:
-        # On Windows, .cmd files (npx, npm) need shell=True or full path resolution
+        # On Windows, .cmd files (npx, npm) need shell=True
         use_shell = False
-        if sys.platform == "win32" and cmd and not Path(cmd[0]).exists():
-            # Check if it's a known .cmd/.bat command
+        if sys.platform == "win32" and cmd:
             base = cmd[0].lower()
             if base in {"npx", "npm", "cargo", "cmake", "ctest", "clang-format", "git"}:
                 use_shell = True
@@ -328,9 +327,16 @@ def check_vitest(quick: bool = False, files: list[str] | None = None) -> CheckRe
 
 def check_clang_format(files: list[str] | None = None) -> CheckResult:
     """Run clang-format dry-run on C++ files."""
+    import shutil
+
     cwd = PROJECT_ROOT / "hft-trade-bot"
     if not cwd.exists():
         return CheckResult("clang-format: hft-trade-bot", True, 0.0, "hft-trade-bot not found")
+
+    # Check if clang-format is available
+    clang_fmt = shutil.which("clang-format")
+    if not clang_fmt:
+        return CheckResult("clang-format: hft-trade-bot", True, 0.0, "clang-format not installed — skipped")
 
     if files:
         cpp_files = [f for f in files if f.endswith((".h", ".cpp", ".hpp", ".cc"))]
@@ -340,12 +346,21 @@ def check_clang_format(files: list[str] | None = None) -> CheckResult:
                      if f.startswith("hft-trade-bot")]
         if not rel_files:
             return CheckResult("clang-format: hft-trade-bot (staged)", True, 0.0)
-        cmd = ["clang-format", "--dry-run", "--Werror"] + rel_files
+        cmd = [clang_fmt, "--dry-run", "--Werror"] + rel_files
     else:
-        cmd = [
-            "bash", "-c",
-            "find src tests -name '*.h' -o -name '*.cpp' | grep -v '/fix/' | xargs clang-format --dry-run --Werror",
-        ]
+        # Find C++ files directly (cross-platform, no bash needed)
+        cpp_paths = []
+        for ext in ("*.h", "*.cpp", "*.hpp", "*.cc"):
+            for p in (cwd / "src").rglob(ext):
+                if "/fix/" not in str(p):
+                    cpp_paths.append(p)
+            for p in (cwd / "tests").rglob(ext):
+                if "/fix/" not in str(p):
+                    cpp_paths.append(p)
+        if not cpp_paths:
+            return CheckResult("clang-format: hft-trade-bot", True, 0.0, "no C++ files found")
+        rel_files = [str(p.relative_to(cwd)) for p in cpp_paths]
+        cmd = [clang_fmt, "--dry-run", "--Werror"] + rel_files
 
     success, stdout, stderr, duration = run_command(cmd, cwd=cwd, timeout=60)
     return CheckResult(
@@ -731,6 +746,7 @@ def print_results(summary: CheckSummary, staged_files: list[str] | None = None) 
         print()
         print("  Fix the failures above, then re-run:")
         print("    python scripts/pre-commit-check.py")
+        print("    python scripts/pre-commit-check.py --fix  (auto-fix lint)")
     print("=" * 70)
     print()
 
@@ -749,8 +765,49 @@ def main() -> int:
     mode_group.add_argument("--staged", action="store_true", help="Only check staged files (for hook)")
     mode_group.add_argument("--full", action="store_true", help="Full project check (all files, all tests)")
     mode_group.add_argument("--all", action="store_true", help="ALL CI checks: lint+tests+build+security+e2e (slowest)")
+    parser.add_argument("--fix", action="store_true", help="Auto-fix lint errors (ruff --fix, eslint --fix) before running checks")
     parser.add_argument("--msg-file", type=str, help="Validate commit message from file")
     args = parser.parse_args()
+
+    # Auto-fix mode: run fixers before checks
+    if args.fix:
+        print("=" * 70)
+        print("  AUTO-FIX: Running ruff --fix and eslint --fix")
+        print("=" * 70)
+        print()
+        fixed_count = 0
+        for comp in COMPONENTS_PY:
+            cwd = PROJECT_ROOT / comp
+            if not cwd.exists():
+                continue
+            success, stdout, stderr, duration = run_command(
+                [sys.executable, "-m", "ruff", "check", ".", "--fix"],
+                cwd=cwd,
+                timeout=60,
+            )
+            if "Fixed" in stdout or "Fixed" in stderr:
+                fixed_count += 1
+                print(f"  [FIXED] ruff: {comp} ({duration:.1f}s)")
+            elif success:
+                print(f"  [CLEAN] ruff: {comp} ({duration:.1f}s)")
+            else:
+                print(f"  [MANUAL] ruff: {comp} — {stdout.strip()[:100]}")
+        # eslint --fix
+        js_cwd = PROJECT_ROOT / COMPONENT_JS
+        if js_cwd.exists():
+            success, stdout, stderr, duration = run_command(
+                ["npx", "eslint", "src/", "--fix", "--quiet"],
+                cwd=js_cwd,
+                timeout=60,
+            )
+            if success:
+                print(f"  [CLEAN] eslint: {COMPONENT_JS} ({duration:.1f}s)")
+            else:
+                print(f"  [MANUAL] eslint: {COMPONENT_JS} — remaining errors need manual fix")
+        print()
+        print("  Auto-fix complete. Re-running checks...")
+        print("=" * 70)
+        print()
 
     # Commit message validation (separate mode)
     if args.msg_file:

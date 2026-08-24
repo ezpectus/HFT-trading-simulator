@@ -166,5 +166,5 @@ def transfer_entropy_analysis(
         ete=ete,
         signal=signal,
         reason=reason,
-        n_tuples=n - max(k, l) - 1,
+        n_tuples=n - max(k, lag) - 1,
     )
