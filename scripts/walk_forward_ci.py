@@ -125,7 +125,7 @@ def main():
     
     baseline_data = {}
     if args.baseline and os.path.exists(args.baseline):
-        with open(args.baseline) as f:
+        with open(args.baseline, encoding="utf-8") as f:
             baseline_data = {item['strategy']: item for item in json.load(f)}
     
     for strat in strategies:
@@ -152,7 +152,7 @@ def main():
     
     # Write report
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    with open(args.output, 'w') as f:
+    with open(args.output, 'w', encoding="utf-8") as f:
         json.dump(report, f, indent=2)
     
     # Print summary

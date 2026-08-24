@@ -15,7 +15,7 @@ class TestAlertRules:
     
     def test_alert_rules_file_exists(self):
         """Test that alert rules file exists and is valid YAML."""
-        with open(ALERTS_FILE, 'r') as f:
+        with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         assert 'groups' in config
@@ -23,7 +23,7 @@ class TestAlertRules:
     
     def test_latency_alerts_group(self):
         """Test latency alerts group."""
-        with open(ALERTS_FILE, 'r') as f:
+        with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         latency_group = next((g for g in config['groups'] if g['name'] == 'latency_alerts'), None)
@@ -34,7 +34,7 @@ class TestAlertRules:
     
     def test_error_rate_alerts_group(self):
         """Test error rate alerts group."""
-        with open(ALERTS_FILE, 'r') as f:
+        with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         error_group = next((g for g in config['groups'] if g['name'] == 'error_rate_alerts'), None)
@@ -45,7 +45,7 @@ class TestAlertRules:
     
     def test_trading_alerts_group(self):
         """Test trading alerts group."""
-        with open(ALERTS_FILE, 'r') as f:
+        with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         trading_group = next((g for g in config['groups'] if g['name'] == 'trading_alerts'), None)
@@ -56,7 +56,7 @@ class TestAlertRules:
     
     def test_system_health_alerts_group(self):
         """Test system health alerts group."""
-        with open(ALERTS_FILE, 'r') as f:
+        with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         health_group = next((g for g in config['groups'] if g['name'] == 'system_health_alerts'), None)
@@ -67,7 +67,7 @@ class TestAlertRules:
     
     def test_alert_rule_structure(self):
         """Test that alert rules have required fields."""
-        with open(ALERTS_FILE, 'r') as f:
+        with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         for group in config['groups']:
@@ -80,7 +80,7 @@ class TestAlertRules:
     
     def test_critical_alert_severity(self):
         """Test that critical alerts have proper severity."""
-        with open(ALERTS_FILE, 'r') as f:
+        with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         for group in config['groups']:
@@ -94,7 +94,7 @@ class TestAlertmanagerConfig:
     
     def test_alertmanager_config_exists(self):
         """Test that Alertmanager config file exists and is valid YAML."""
-        with open(ALERTMANAGER_FILE, 'r') as f:
+        with open(ALERTMANAGER_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         assert 'global' in config
@@ -103,7 +103,7 @@ class TestAlertmanagerConfig:
     
     def test_global_config(self):
         """Test global configuration."""
-        with open(ALERTMANAGER_FILE, 'r') as f:
+        with open(ALERTMANAGER_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         assert 'resolve_timeout' in config['global']
@@ -111,7 +111,7 @@ class TestAlertmanagerConfig:
     
     def test_route_config(self):
         """Test route configuration."""
-        with open(ALERTMANAGER_FILE, 'r') as f:
+        with open(ALERTMANAGER_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         route = config['route']
@@ -124,7 +124,7 @@ class TestAlertmanagerConfig:
     
     def test_receivers_config(self):
         """Test receivers configuration."""
-        with open(ALERTMANAGER_FILE, 'r') as f:
+        with open(ALERTMANAGER_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         assert len(config['receivers']) > 0
@@ -134,7 +134,7 @@ class TestAlertmanagerConfig:
     
     def test_critical_alerts_receiver(self):
         """Test critical alerts receiver configuration."""
-        with open(ALERTMANAGER_FILE, 'r') as f:
+        with open(ALERTMANAGER_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         critical_receiver = next((r for r in config['receivers'] if r['name'] == 'critical-alerts'), None)
@@ -144,7 +144,7 @@ class TestAlertmanagerConfig:
     
     def test_warning_alerts_receiver(self):
         """Test warning alerts receiver configuration."""
-        with open(ALERTMANAGER_FILE, 'r') as f:
+        with open(ALERTMANAGER_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         warning_receiver = next((r for r in config['receivers'] if r['name'] == 'warning-alerts'), None)
@@ -154,7 +154,7 @@ class TestAlertmanagerConfig:
     
     def test_inhibition_rules(self):
         """Test inhibition rules."""
-        with open(ALERTMANAGER_FILE, 'r') as f:
+        with open(ALERTMANAGER_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
         if 'inhibit_rules' in config:

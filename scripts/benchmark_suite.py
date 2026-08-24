@@ -186,7 +186,7 @@ def main():
     }
 
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    with open(args.output, 'w') as f:
+    with open(args.output, 'w', encoding="utf-8") as f:
         json.dump(report, f, indent=2)
 
     print(f"\n{'='*70}")
