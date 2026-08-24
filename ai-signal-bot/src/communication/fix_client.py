@@ -148,7 +148,7 @@ class FixSession:
     def _load_seq_nums(self):
         if os.path.exists(self.seq_file):
             try:
-                with open(self.seq_file) as f:
+                with open(self.seq_file, encoding="utf-8") as f:
                     parts = f.read().strip().split()
                     if len(parts) >= 2:
                         self.outgoing_seq = int(parts[0])
@@ -159,7 +159,7 @@ class FixSession:
     def _save_seq_nums(self):
         try:
             tmp_file = self.seq_file + ".tmp"
-            with open(tmp_file, 'w') as f:
+            with open(tmp_file, 'w', encoding="utf-8") as f:
                 f.write(f"{self.outgoing_seq} {self.incoming_seq}")
             os.replace(tmp_file, self.seq_file)
         except OSError as e:

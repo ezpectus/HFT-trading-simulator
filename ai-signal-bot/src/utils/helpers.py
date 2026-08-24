@@ -15,7 +15,7 @@ def load_config(config_path: str = "config/settings.yaml") -> dict:
     """Load YAML configuration file."""
     try:
         import yaml
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     except FileNotFoundError:
         logger.warning("Config file not found: %s — returning empty dict", config_path)

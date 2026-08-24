@@ -93,7 +93,7 @@ class ModelRegistry:
         if not os.path.exists(self.index_path):
             return
         try:
-            with open(self.index_path) as f:
+            with open(self.index_path, encoding="utf-8") as f:
                 data = json.load(f)
             for name, versions in data.get("models", {}).items():
                 self.models[name] = {}

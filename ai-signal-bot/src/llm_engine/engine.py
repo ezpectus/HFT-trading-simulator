@@ -132,7 +132,7 @@ class LLMEngine:
         """Load a prompt template from the prompt_templates directory."""
         path = os.path.join(self._prompt_dir, f"{name}.txt")
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 return f.read()
         except FileNotFoundError:
             return self._default_prompt(name)

@@ -68,7 +68,7 @@ class StrategyMarketplace:
         if not self.registry_path.exists():
             return
         try:
-            with open(self.registry_path) as f:
+            with open(self.registry_path, encoding="utf-8") as f:
                 data = json.load(f)
             for name, pdata in data.get("strategies", {}).items():
                 self.plugins[name] = StrategyPlugin(**pdata)
