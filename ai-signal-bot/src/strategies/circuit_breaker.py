@@ -38,7 +38,8 @@ class CircuitBreaker:
                 self._tripped = False
                 self._consecutive_losses = 0
                 logger.info(
-                    f"CircuitBreaker: auto-recovered after {self.cooldown_seconds}s cooldown"
+                    "CircuitBreaker: auto-recovered after %ss cooldown",
+                    self.cooldown_seconds,
                 )
                 return True
         return False
@@ -53,8 +54,10 @@ class CircuitBreaker:
                 self._tripped = True
                 self._trip_time = time.time()
                 logger.warning(
-                    f"CircuitBreaker: tripped after {self._consecutive_losses} "
-                    f"consecutive losses. Cooldown: {self.cooldown_seconds}s"
+                    "CircuitBreaker: tripped after %s "
+                    "consecutive losses. Cooldown: %ss",
+                    self._consecutive_losses,
+                    self.cooldown_seconds,
                 )
 
     def filter_signal(self, signal: Signal) -> Signal:
