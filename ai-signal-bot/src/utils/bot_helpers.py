@@ -15,6 +15,7 @@ import glob
 import logging
 from typing import TYPE_CHECKING
 
+from src.observability.logging import get_logger
 from src.strategies import (
     FFTCycleStrategy,
     MarketMakingConfig,
@@ -149,5 +150,5 @@ def load_candles_from_csv(symbol: str) -> list[dict]:
                         "volume": float(row.get("volume", row.get("v", 0))),
                     })
         except (OSError, ValueError, KeyError, TypeError) as e:
-            logging.getLogger("ai_signal_bot.core").warning(f"  Failed to load {f}: {e}")
+            get_logger("ai_signal_bot.core").warning("  Failed to load %s: %s", f, e)
     return candles

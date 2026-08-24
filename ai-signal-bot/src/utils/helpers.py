@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 from typing import Any  # Any: env var defaults may be str|int|float|bool
+
+from src.observability.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def load_config(config_path: str = "config/settings.yaml") -> dict:
@@ -15,10 +18,10 @@ def load_config(config_path: str = "config/settings.yaml") -> dict:
         with open(config_path) as f:
             return yaml.safe_load(f) or {}
     except FileNotFoundError:
-        logging.warning("Config file not found: %s — returning empty dict", config_path)
+        logger.warning("Config file not found: %s — returning empty dict", config_path)
         return {}
     except (OSError, ValueError, TypeError) as e:
-        logging.error("Failed to load config %s: %s", config_path, e)
+        logger.error("Failed to load config %s: %s", config_path, e)
         return {}
 
 
