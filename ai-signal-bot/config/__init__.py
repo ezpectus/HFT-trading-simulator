@@ -1,11 +1,12 @@
 """Configuration loader for AI Signal Bot."""
-import logging
 import os
 from dataclasses import dataclass, field
 
 import yaml
 
-logger = logging.getLogger(__name__)
+from src.observability.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 REQUIRED_SECTIONS = ["trading", "exchange", "risk", "strategies", "indicators"]
