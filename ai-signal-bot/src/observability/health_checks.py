@@ -253,35 +253,3 @@ class HealthChecker:
             return ComponentHealth("exchange", HealthStatus.UNHEALTHY, 2000, "check timed out")
         except (AttributeError, TypeError, OSError, RuntimeError) as e:
             return ComponentHealth("exchange", HealthStatus.UNHEALTHY, 0, str(e))
-
-
-def create_health_endpoints(checker: HealthChecker):
-    """Create aiohttp handlers for health endpoints.
-
-    DEPRECATED: Use monitoring/health_server.py HealthServer instead,
-    which provides the same HTTP endpoints with parallel checks.
-    This function is kept for backward compatibility.
-    """
-    import warnings
-
-    warnings.warn(
-        "create_health_endpoints is deprecated. Use monitoring.health_server.HealthServer instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    from aiohttp import web
-
-    async def liveness_handler(request: web.Request) -> web.Response:
-        result = await checker.check_liveness()
-        return web.json_response(result)
-
-    async def readiness_handler(request: web.Request) -> web.Response:
-        result = await checker.check_readiness()
-        status_code = 200 if result["status"] == "healthy" else 503
-        return web.json_response(result, status=status_code)
-
-    async def status_handler(request: web.Request) -> web.Response:
-        result = await checker.check_status()
-        return web.json_response(result)
-
-    return liveness_handler, readiness_handler, status_handler
