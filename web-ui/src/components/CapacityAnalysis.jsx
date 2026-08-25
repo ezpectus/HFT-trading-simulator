@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { Gauge, TrendingUp, AlertTriangle, Maximize2 } from 'lucide-react'
 import { formatVolume } from '../utils/format'
 import { statusColor, statusBg, StatCard, Bar, Label, SectionTitle, WarningBanner } from '../utils/ui-helpers'
@@ -22,14 +22,16 @@ function utilColor(util) {
   return 'text-accent-red'
 }
 
+const STATS = {
+  totalAUM: MOCK_STRATEGIES.reduce((s, st) => s + st.currentAUM, 0),
+  totalMax: MOCK_STRATEGIES.reduce((s, st) => s + st.maxCapacity, 0),
+  scalable: MOCK_STRATEGIES.filter(s => s.status === 'scalable').length,
+  constrained: MOCK_STRATEGIES.filter(s => s.status === 'constrained').length,
+}
+STATS.overallUtil = (STATS.totalAUM / STATS.totalMax) * 100
+
 const CapacityAnalysis = memo(function CapacityAnalysis() {
-  const stats = useMemo(() => {
-    const totalAUM = MOCK_STRATEGIES.reduce((s, st) => s + st.currentAUM, 0)
-    const totalMax = MOCK_STRATEGIES.reduce((s, st) => s + st.maxCapacity, 0)
-    const scalable = MOCK_STRATEGIES.filter(s => s.status === 'scalable').length
-    const constrained = MOCK_STRATEGIES.filter(s => s.status === 'constrained').length
-    return { totalAUM, totalMax, scalable, constrained, overallUtil: (totalAUM / totalMax) * 100 }
-  }, [])
+  const stats = STATS
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">

@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { Gauge, Cpu, MemoryStick, AlertTriangle, Zap } from 'lucide-react'
 import { statusColor, statusBg, Bar, WarningBanner, SectionTitle } from '../utils/ui-helpers'
 
@@ -34,16 +34,17 @@ const STATUS_BG_MAP = {
   default: 'bg-accent-red/20',
 }
 
+const STATS = {
+  totalRender: MOCK_PANELS.reduce((s, p) => s + p.renderTime, 0),
+  totalMount: MOCK_PANELS.reduce((s, p) => s + p.mountTime, 0),
+  totalRerenders: MOCK_PANELS.reduce((s, p) => s + p.rerenders, 0),
+  slowest: MOCK_PANELS.reduce((max, p) => p.renderTime > max.renderTime ? p : max, MOCK_PANELS[0]),
+  critical: MOCK_PANELS.filter(p => p.status === 'critical').length,
+  warnings: MOCK_PANELS.filter(p => p.status === 'warn').length,
+}
+
 const DashboardProfiler = memo(function DashboardProfiler() {
-  const stats = useMemo(() => {
-    const totalRender = MOCK_PANELS.reduce((s, p) => s + p.renderTime, 0)
-    const totalMount = MOCK_PANELS.reduce((s, p) => s + p.mountTime, 0)
-    const totalRerenders = MOCK_PANELS.reduce((s, p) => s + p.rerenders, 0)
-    const slowest = MOCK_PANELS.reduce((max, p) => p.renderTime > max.renderTime ? p : max, MOCK_PANELS[0])
-    const critical = MOCK_PANELS.filter(p => p.status === 'critical').length
-    const warnings = MOCK_PANELS.filter(p => p.status === 'warn').length
-    return { totalRender, totalMount, totalRerenders, slowest, critical, warnings }
-  }, [])
+  const stats = STATS
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">

@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { CloudLightning, AlertTriangle, TrendingDown, Shield } from 'lucide-react'
 import { StatCard, WarningBanner, SectionTitle } from '../utils/ui-helpers'
 
@@ -25,14 +25,15 @@ function impactColor(impact) {
   return 'text-accent-red'
 }
 
+const STATS = {
+  worstImpact: Math.min(...MOCK_SCENARIOS.map(s => s.portfolioImpact)),
+  worstScenario: MOCK_SCENARIOS.reduce((min, s) => s.portfolioImpact < min.portfolioImpact ? s : min, MOCK_SCENARIOS[0]),
+  avgImpact: MOCK_SCENARIOS.reduce((s, sc) => s + sc.portfolioImpact, 0) / MOCK_SCENARIOS.length,
+  maxVar: Math.min(...MOCK_SCENARIOS.map(s => s.var95)),
+}
+
 const BlackSwanTester = memo(function BlackSwanTester() {
-  const stats = useMemo(() => {
-    const worstImpact = Math.min(...MOCK_SCENARIOS.map(s => s.portfolioImpact))
-    const worstScenario = MOCK_SCENARIOS.reduce((min, s) => s.portfolioImpact < min.portfolioImpact ? s : min, MOCK_SCENARIOS[0])
-    const avgImpact = MOCK_SCENARIOS.reduce((s, sc) => s + sc.portfolioImpact, 0) / MOCK_SCENARIOS.length
-    const maxVar = Math.min(...MOCK_SCENARIOS.map(s => s.var95))
-    return { worstImpact, worstScenario, avgImpact, maxVar }
-  }, [])
+  const stats = STATS
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">

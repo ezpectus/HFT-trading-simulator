@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { TrendingDown, BarChart3, Activity, AlertTriangle } from 'lucide-react'
 import { formatVolume } from '../utils/format'
 import { StatCard, WarningBanner, Label } from '../utils/ui-helpers'
@@ -35,14 +35,14 @@ function slipColor(bps) {
   return 'text-accent-red'
 }
 
+const STATS = {
+  avgSlip: MOCK_SLIPPAGE.reduce((s, e) => s + e.slippageBps, 0) / MOCK_SLIPPAGE.length,
+  maxSlip: Math.max(...MOCK_SLIPPAGE.map(e => e.slippageBps)),
+  worstExec: MOCK_SLIPPAGE.reduce((max, e) => e.slippageBps > max.slippageBps ? e : max, MOCK_SLIPPAGE[0]),
+}
+
 const SlippageAnalytics = memo(function SlippageAnalytics({ symbol }) {
-  const stats = useMemo(() => {
-    const totalSlip = MOCK_SLIPPAGE.reduce((s, e) => s + e.slippageBps, 0)
-    const avgSlip = totalSlip / MOCK_SLIPPAGE.length
-    const maxSlip = Math.max(...MOCK_SLIPPAGE.map(e => e.slippageBps))
-    const worstExec = MOCK_SLIPPAGE.reduce((max, e) => e.slippageBps > max.slippageBps ? e : max, MOCK_SLIPPAGE[0])
-    return { avgSlip, maxSlip, worstExec }
-  }, [])
+  const stats = STATS
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">

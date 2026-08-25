@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { TrendingUp, TrendingDown, Boxes } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 import { pnlColor, sideColor, StatCard, WarningBanner, SectionTitle } from '../utils/ui-helpers'
@@ -14,23 +14,23 @@ const MOCK_INVENTORY = [
   { symbol: 'ATOM/USDT', side: 'LONG', qty: 120, avgPrice: 9.1, currentPrice: 9.3, pnl: 24, pnlPct: 2.20, weight: 1.5 },
 ]
 
+const PORTFOLIO = {
+  totalPnl: MOCK_INVENTORY.reduce((s, p) => s + p.pnl, 0),
+  totalValue: MOCK_INVENTORY.reduce((s, p) => s + p.qty * p.currentPrice, 0),
+}
+PORTFOLIO.longs = MOCK_INVENTORY.filter(p => p.side === 'LONG')
+PORTFOLIO.shorts = MOCK_INVENTORY.filter(p => p.side === 'SHORT')
+PORTFOLIO.longExposure = PORTFOLIO.longs.reduce((s, p) => s + p.qty * p.currentPrice, 0)
+PORTFOLIO.shortExposure = PORTFOLIO.shorts.reduce((s, p) => s + p.qty * p.currentPrice, 0)
+PORTFOLIO.grossExposure = PORTFOLIO.longExposure + PORTFOLIO.shortExposure
+PORTFOLIO.netExposure = PORTFOLIO.longExposure - PORTFOLIO.shortExposure
+PORTFOLIO.losers = MOCK_INVENTORY.filter(p => p.pnl < 0).length
+PORTFOLIO.winners = MOCK_INVENTORY.filter(p => p.pnl >= 0).length
+PORTFOLIO.longCount = PORTFOLIO.longs.length
+PORTFOLIO.shortCount = PORTFOLIO.shorts.length
+
 const Inventory = memo(function Inventory() {
-  const portfolio = useMemo(() => {
-    const totalPnl = MOCK_INVENTORY.reduce((s, p) => s + p.pnl, 0)
-    const totalValue = MOCK_INVENTORY.reduce((s, p) => s + p.qty * p.currentPrice, 0)
-    const longs = MOCK_INVENTORY.filter(p => p.side === 'LONG')
-    const shorts = MOCK_INVENTORY.filter(p => p.side === 'SHORT')
-    const longExposure = longs.reduce((s, p) => s + p.qty * p.currentPrice, 0)
-    const shortExposure = shorts.reduce((s, p) => s + p.qty * p.currentPrice, 0)
-    const grossExposure = longExposure + shortExposure
-    const netExposure = longExposure - shortExposure
-    const losers = MOCK_INVENTORY.filter(p => p.pnl < 0).length
-    const winners = MOCK_INVENTORY.filter(p => p.pnl >= 0).length
-    return {
-      totalPnl, totalValue, longExposure, shortExposure, grossExposure, netExposure,
-      losers, winners, longCount: longs.length, shortCount: shorts.length,
-    }
-  }, [])
+  const portfolio = PORTFOLIO
 
   const concentrated = MOCK_INVENTORY.filter(p => p.weight > 25).length > 0
 

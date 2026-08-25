@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useState } from 'react'
 import { Dna, Trophy, Users, TrendingUp } from 'lucide-react'
 import { StatCard, Bar, WarningBanner, Label, SectionTitle } from '../utils/ui-helpers'
 
@@ -32,15 +32,16 @@ const MOCK_OPERATORS = [
   { op: 'Other', count: 10, pct: 2 },
 ]
 
+const STATS = {
+  currentGen: MOCK_GENERATIONS[MOCK_GENERATIONS.length - 1],
+  firstGen: MOCK_GENERATIONS[0],
+  improvement: ((MOCK_GENERATIONS[MOCK_GENERATIONS.length - 1].best - MOCK_GENERATIONS[0].best) / MOCK_GENERATIONS[0].best * 100),
+}
+
 const GeneticViewer = memo(function GeneticViewer() {
   const [selectedGen, setSelectedGen] = useState(10)
 
-  const stats = useMemo(() => {
-    const currentGen = MOCK_GENERATIONS[MOCK_GENERATIONS.length - 1]
-    const firstGen = MOCK_GENERATIONS[0]
-    const improvement = ((currentGen.best - firstGen.best) / firstGen.best * 100)
-    return { currentGen, firstGen, improvement }
-  }, [])
+  const stats = STATS
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">

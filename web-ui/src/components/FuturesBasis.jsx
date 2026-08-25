@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { Calendar, DollarSign } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { StatCard, WarningBanner, SectionTitle } from '../utils/ui-helpers'
@@ -29,15 +29,16 @@ function basisColor(pct) {
   return 'text-accent-red'
 }
 
+const STATS = {
+  bestAPR: Math.max(...MOCK_BASIS.map(b => b.apr)),
+  bestBasis: MOCK_BASIS.reduce((max, b) => b.basisPct > max.basisPct ? b : max, MOCK_BASIS[0]),
+  contango: MOCK_BASIS.every(b => b.futures > b.spot),
+}
+
 const FuturesBasis = memo(function FuturesBasis({ currentPrice }) {
   const spot = currentPrice ?? 44100
 
-  const stats = useMemo(() => {
-    const bestAPR = Math.max(...MOCK_BASIS.map(b => b.apr))
-    const bestBasis = MOCK_BASIS.reduce((max, b) => b.basisPct > max.basisPct ? b : max, MOCK_BASIS[0])
-    const contango = MOCK_BASIS.every(b => b.futures > b.spot)
-    return { bestAPR, bestBasis, contango }
-  }, [])
+  const stats = STATS
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">

@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { Activity, BarChart3, Waves, Gauge } from 'lucide-react'
 import { formatVolume } from '../utils/format'
 import { StatCard, Label, SectionTitle } from '../utils/ui-helpers'
@@ -40,15 +40,16 @@ function spreadColor(spread) {
   return 'text-accent-red'
 }
 
+const STATS = {
+  avgSpread: MOCK_SPREADS.reduce((s, p) => s + p.spread, 0) / MOCK_SPREADS.length,
+  avgDepth: MOCK_SPREADS.reduce((s, p) => s + p.depth, 0) / MOCK_SPREADS.length,
+  totalTrades: MOCK_ORDER_FLOW.reduce((s, f) => s + f.count, 0),
+}
+STATS.buyPressure = MOCK_ORDER_FLOW.reduce((s, f) => s + f.buyPct * f.count, 0) / STATS.totalTrades
+STATS.l10Imbalance = MOCK_DEPTH[MOCK_DEPTH.length - 1].imbalance
+
 const Microstructure = memo(function Microstructure({ symbol }) {
-  const stats = useMemo(() => {
-    const avgSpread = MOCK_SPREADS.reduce((s, p) => s + p.spread, 0) / MOCK_SPREADS.length
-    const avgDepth = MOCK_SPREADS.reduce((s, p) => s + p.depth, 0) / MOCK_SPREADS.length
-    const totalTrades = MOCK_ORDER_FLOW.reduce((s, f) => s + f.count, 0)
-    const buyPressure = MOCK_ORDER_FLOW.reduce((s, f) => s + f.buyPct * f.count, 0) / totalTrades
-    const l10Imbalance = MOCK_DEPTH[MOCK_DEPTH.length - 1].imbalance
-    return { avgSpread, avgDepth, totalTrades, buyPressure, l10Imbalance }
-  }, [])
+  const stats = STATS
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">

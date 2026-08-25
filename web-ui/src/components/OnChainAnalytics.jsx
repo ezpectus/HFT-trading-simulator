@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { Link2, TrendingUp, TrendingDown, Wallet, Activity, Database } from 'lucide-react'
 import { formatVolume } from '../utils/format'
 import { Label, SectionTitle } from '../utils/ui-helpers'
@@ -30,12 +30,10 @@ function trendColor(change) {
   return change >= 0 ? 'text-accent-green' : 'text-accent-red'
 }
 
+const NET_FLOW = MOCK_METRICS.find(m => m.metric === 'Exchange Outflow').value - MOCK_METRICS.find(m => m.metric === 'Exchange Inflow').value
+
 const OnChainAnalytics = memo(function OnChainAnalytics({ symbol }) {
-  const netFlow = useMemo(() => {
-    const inflow = MOCK_METRICS.find(m => m.metric === 'Exchange Inflow').value
-    const outflow = MOCK_METRICS.find(m => m.metric === 'Exchange Outflow').value
-    return outflow - inflow
-  }, [])
+  const netFlow = NET_FLOW
 
   const accumCount = MOCK_WHALES.filter(w => w.type === 'accumulation').length
   const distCount = MOCK_WHALES.filter(w => w.type === 'distribution').length

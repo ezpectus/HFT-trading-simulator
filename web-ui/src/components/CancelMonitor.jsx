@@ -24,6 +24,14 @@ const CANCEL_REASONS = [
   { reason: 'Circuit breaker', count: 1, pct: 12.5 },
 ]
 
+const STATS = {
+  totalCancels: MOCK_CANCELS.length,
+  userCancels: MOCK_CANCELS.filter(c => c.source === 'user').length,
+  systemCancels: MOCK_CANCELS.filter(c => c.source === 'system').length,
+  riskCancels: MOCK_CANCELS.filter(c => c.source === 'risk').length,
+  avgLatency: MOCK_CANCELS.reduce((s, c) => s + c.latency, 0) / MOCK_CANCELS.length,
+}
+
 const CancelMonitor = memo(function CancelMonitor() {
   const [filter, setFilter] = useState('ALL')
 
@@ -32,14 +40,7 @@ const CancelMonitor = memo(function CancelMonitor() {
     return MOCK_CANCELS.filter(c => c.source === filter)
   }, [filter])
 
-  const stats = useMemo(() => {
-    const totalCancels = MOCK_CANCELS.length
-    const userCancels = MOCK_CANCELS.filter(c => c.source === 'user').length
-    const systemCancels = MOCK_CANCELS.filter(c => c.source === 'system').length
-    const riskCancels = MOCK_CANCELS.filter(c => c.source === 'risk').length
-    const avgLatency = MOCK_CANCELS.reduce((s, c) => s + c.latency, 0) / MOCK_CANCELS.length
-    return { totalCancels, userCancels, systemCancels, riskCancels, avgLatency }
-  }, [])
+  const stats = STATS
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">

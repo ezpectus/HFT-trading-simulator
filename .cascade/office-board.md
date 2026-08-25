@@ -172,7 +172,7 @@
 **Сложность:** Высокая
 **Файлы:** Определить при аудите
 
-### REF-22: Replace repetitive `useMemo(() => {...}, [])` with precomputed constants ✅ DONE (partial: 4 components)
+### REF-22: Replace repetitive `useMemo(() => {...}, [])` with precomputed constants ✅ DONE (14 components)
 **Описание:** Многие компоненты используют `useMemo` с пустым deps для статичных mock данных — это overhead.
 - Найти: `useMemo(() => { ... }, [])` где внутри нет зависимостей от props/state
 - Заменить на: `const x = useMemo(...)` → `const x = someConstant` (вычислить один раз вне компоненты)
