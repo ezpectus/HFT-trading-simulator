@@ -165,6 +165,49 @@ from Python AI Signal Bot to C++ HFT Trade Bot:
 
 ---
 
+## Reliability & Observability
+
+### Health Endpoints
+
+Every service exposes HTTP health endpoints for Docker/Kubernetes probes:
+
+| Service | Port | Endpoints |
+|---------|------|-----------|
+| Exchange Simulator | 8775 | `/health`, `/live`, `/ready`, `/metrics` |
+| AI Signal Bot (HealthServer) | 8080 | `/health` (liveness + readiness checks) |
+| AI Signal Bot (MetricsExporter) | 9090 | `/health`, `/metrics` |
+| HFT Trade Bot | 9091 | `/health` |
+| Web UI | 3000 | `/health` (nginx) |
+
+### Graceful Shutdown
+
+Both Python services handle SIGTERM/SIGINT for clean shutdown:
+- `run.py`: `signal.signal(SIGTERM, _signal_handler)` → stops main loop, cancels tasks, closes connections
+- `exchange_simulator/__main__.py`: `loop.add_signal_handler(SIGTERM, ...)` → sets shutdown event
+
+### WebSocket Reconnection
+
+`ws_client.py` implements exponential backoff (1s → 60s max) with ±25% jitter. See [WebSocket Protocol](../WEBSOCKET_PROTOCOL.md#reconnection--backoff) for details.
+
+### Structured Logging
+
+Set `LOG_FORMAT=json` for production (used in docker-compose.prod.yml). Falls back to text format for development.
+
+### Tracing
+
+OpenTelemetry tracing initialized in `run.py` via `setup_tracing(service_name="ai-signal-bot")`. Export to Jaeger on `http://jaeger:4317`.
+
+### Metrics
+
+Prometheus scrapes `/metrics` every 15s. Three metric namespaces:
+- `ai_signal_bot_*` — alert-specific (circuit breaker, signals, errors, drawdown)
+- `trading_*` — operational (orders, fills, latency, positions)
+- `exchange_*` — simulator (clients, candles, orders, prices)
+
+See [Monitoring Guide](../MONITORING_GUIDE.md) for full details.
+
+---
+
 ## Adding a New Trading Strategy
 
 1. **Create strategy file** in `ai-signal-bot/src/strategies/`:

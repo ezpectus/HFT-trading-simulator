@@ -58,11 +58,13 @@ docker-compose up -d
 
 Services start automatically:
 
-| Service | URL | Port |
-|---------|-----|------|
-| Exchange Simulator | `ws://localhost:8765` | 8765 |
-| AI Signal Bot | `ws://localhost:8766` | 8766 |
-| Web UI | `http://localhost:3000` | 3000 |
+| Service | URL | Port | Health |
+|---------|-----|------|--------|
+| Exchange Simulator | `ws://localhost:8765` | 8765 | `http://localhost:8775/health` |
+| AI Signal Bot | `ws://localhost:8766` | 8766 | `http://localhost:8080/health` |
+| AI Signal Bot Metrics | — | 9090 | `http://localhost:9090/metrics` |
+| HFT Trade Bot | — | 9091 | `http://localhost:9091/health` |
+| Web UI | `http://localhost:3000` | 3000 | `http://localhost:3000/health` |
 
 **View logs:**
 ```bash
@@ -196,11 +198,18 @@ no-docker.bat start
 ## Verify Installation
 
 1. **Web UI** — Open `http://localhost:3000`, you should see the trading dashboard
-2. **Connection banners** — Green = connected, red = disconnected
-3. **Select exchange** — Binance, Bybit, or OKX from the header dropdown
-4. **Select symbol** — BTC/USDT or any of the 50 available pairs
-5. **View data** — Candlestick chart, order book, and signals should appear in real-time
-6. **Check signals** — Navigate to the Signals tab to see AI-generated trading signals
+2. **Health checks** — Verify all services are healthy:
+   ```bash
+   curl http://localhost:8775/health    # Exchange Simulator
+   curl http://localhost:8080/health    # AI Signal Bot
+   curl http://localhost:9091/health    # HFT Trade Bot
+   curl http://localhost:3000/health    # Web UI
+   ```
+3. **Connection banners** — Green = connected, red = disconnected
+4. **Select exchange** — Binance, Bybit, or OKX from the header dropdown
+5. **Select symbol** — BTC/USDT or any of the 50 available pairs
+6. **View data** — Candlestick chart, order book, and signals should appear in real-time
+7. **Check signals** — Navigate to the Signals tab to see AI-generated trading signals
 
 ---
 

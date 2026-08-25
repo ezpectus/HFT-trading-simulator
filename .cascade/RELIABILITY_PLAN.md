@@ -2009,4 +2009,9 @@ strategies = {s.name: s for s in build_strategies(config)}
 - `docs/DEPLOYMENT.md` — обновлены verify commands, добавлены health probes + graceful shutdown
 - `docs/ARCHITECTURE.md` — добавлен раздел Observability & Reliability
 - `docs/guides/CONFIGURATION_GUIDE.md` — добавлены env vars, health endpoints, исправлен alertmanager
+- `docs/guides/QUICK_START.md` — добавлены health порты в таблицу сервисов + health verify commands
+- `docs/guides/DEVELOPMENT_GUIDE.md` — добавлен раздел Reliability & Observability
+- `docs/REST_API.md` — обновлены health endpoints (правильные порты 8775/8080/9090/9091)
+- `docs/WEBSOCKET_PROTOCOL.md` — добавлен раздел Reconnection & Backoff с алгоритмом и timeline
+- `docs/TESTING.md` — добавлены разделы Monitoring Tests + Health Endpoint Tests
 - `.cascade/notes.md` — добавлен Reliability Phase summary с верификацией

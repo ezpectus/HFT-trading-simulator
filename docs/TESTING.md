@@ -229,6 +229,30 @@ Coverage: Order creation, submit (single/batch), stats, FFI create/submit/destro
 
 ---
 
+## Monitoring Tests
+
+**Framework:** pytest
+**Location:** `monitoring/tests/`
+
+| File | Coverage |
+|------|----------|
+| `test_metrics.py` | MetricsExporter — counter, gauge, histogram, summary, alert metrics |
+| `test_alerts.py` | Alert rule validation — metric names match exports, severity routing |
+
+---
+
+## Health Endpoint Tests
+
+Health endpoints are verified in integration tests:
+
+| Service | Endpoint | Test |
+|---------|----------|------|
+| Exchange Simulator | `GET :8775/health` | `exchange_simulator/tests/test_websocket_server.py` |
+| AI Signal Bot | `GET :8080/health` | `ai-signal-bot/tests/test_integration.py` |
+| AI Signal Bot | `GET :9090/metrics` | `ai-signal-bot/tests/test_integration.py` |
+
+---
+
 ## Running Tests
 
 ### Python
@@ -237,6 +261,9 @@ Coverage: Order creation, submit (single/batch), stats, FFI create/submit/destro
 # All Python tests
 cd ai-signal-bot && python -m pytest tests/ -v
 cd exchange_simulator && python -m pytest tests/ -v
+
+# Monitoring tests
+cd monitoring && python -m pytest tests/ -v
 
 # With coverage
 python -m pytest tests/ --cov=src --cov-report=html
