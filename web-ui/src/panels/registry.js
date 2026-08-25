@@ -250,6 +250,8 @@ const StatToolkit = lazy(() => import('../components/StatToolkit'))
 const ModelDashboard = lazy(() => import('../components/ModelDashboard'))
 const SessionMarkers = lazy(() => import('../components/SessionMarkers'))
 const TaxReport = lazy(() => import('../components/TaxReport'))
+const LatencyPanel = lazy(() => import('../components/LatencyPanel'))
+const MarketImpact = lazy(() => import('../components/MarketImpact'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -738,6 +740,10 @@ export const PANELS = [
     props: (ctx) => ({ fills: ctx.exchange.fills, symbol: ctx.selectedSymbol }) },
   { id: 'tax-report', name: 'Tax Report', category: 'export', component: TaxReport,
     props: (ctx) => ({ fills: ctx.exchange.fills, addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
+  { id: 'latency-panel', name: 'Latency Monitor', category: 'config', component: LatencyPanel,
+    props: (ctx) => ({ exchange: ctx.exchange }) },
+  { id: 'market-impact', name: 'Market Impact Analysis', category: 'risk', component: MarketImpact,
+    props: (ctx) => ({ candles: ctx.exchange.candles, symbol: ctx.selectedSymbol, currentPrice: ctx.currentPrice, orderbooks: ctx.exchange.orderbooks }) },
 ]
 
 // Default visible panels (all visible by default except advanced math panels)
