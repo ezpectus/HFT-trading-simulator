@@ -85,9 +85,6 @@ export default defineConfig({
           if (id.includes('node_modules/zustand')) {
             return 'state-vendor'
           }
-          if (id.includes('node_modules/recharts')) {
-            return 'recharts-vendor'
-          }
         },
       },
     },
