@@ -272,6 +272,10 @@ const OnChainAnalytics = lazy(() => import('../components/OnChainAnalytics'))
 const FuturesBasis = lazy(() => import('../components/FuturesBasis'))
 const VolSurface = lazy(() => import('../components/VolSurface'))
 const PairsArb = lazy(() => import('../components/PairsArb'))
+const TCA = lazy(() => import('../components/TCA'))
+const CapacityAnalysis = lazy(() => import('../components/CapacityAnalysis'))
+const RegimeDetector = lazy(() => import('../components/RegimeDetector'))
+const FeatureStudio = lazy(() => import('../components/FeatureStudio'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -803,6 +807,14 @@ export const PANELS = [
   { id: 'vol-surface', name: 'Volatility Surface', category: 'risk', component: VolSurface,
     props: (ctx) => ({ currentPrice: ctx.currentPrice }) },
   { id: 'pairs-arb', name: 'Pairs Arbitrage', category: 'strategy', component: PairsArb,
+    props: () => ({}) },
+  { id: 'tca', name: 'Transaction Cost Analysis', category: 'risk', component: TCA,
+    props: () => ({}) },
+  { id: 'capacity-analysis', name: 'Capacity Analysis', category: 'risk', component: CapacityAnalysis,
+    props: () => ({}) },
+  { id: 'regime-detector', name: 'Regime Detector', category: 'risk', component: RegimeDetector,
+    props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
+  { id: 'feature-studio', name: 'Feature Studio', category: 'strategy', component: FeatureStudio,
     props: () => ({}) },
 ]
 
