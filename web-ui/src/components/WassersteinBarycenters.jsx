@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Wasserstein Barycenters (Fréchet Mean in OT Space) ─────────────────────
 // Computes Wasserstein barycenters — the "average" of multiple distributions
@@ -78,7 +78,7 @@ const euclideanMean = (distributions) => {
   return mean.map(v => v / distributions.length)
 }
 
-export default function WassersteinBarycenters({ candles, symbols, exchange }) {
+function WassersteinBarycenters({ candles, symbols, exchange }) {
   const [nWindows, setNWindows] = useState(4)
   const [lookback, setLookback] = useState(200)
   const [nPoints, setNPoints] = useState(80)
@@ -348,3 +348,5 @@ export default function WassersteinBarycenters({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(WassersteinBarycenters)

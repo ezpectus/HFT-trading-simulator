@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Wavelet Decomposition (MRA) ─────────────────────────────────────────────
 // Implements Multi-Resolution Analysis using discrete wavelet transforms.
@@ -170,7 +170,7 @@ const reconstruct = (decomp, wavelet = 'haar') => {
   return current
 }
 
-export default function WaveletDecomposition({ candles, symbol, exchange }) {
+function WaveletDecomposition({ candles, symbol, exchange }) {
   const [levels, setLevels] = useState(4)
   const [wavelet, setWavelet] = useState('haar')
   const [threshold, setThreshold] = useState(0)
@@ -337,3 +337,5 @@ export default function WaveletDecomposition({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(WaveletDecomposition)

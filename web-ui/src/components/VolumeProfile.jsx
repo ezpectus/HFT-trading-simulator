@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function VolumeProfile({ candles, symbol }) {
+function VolumeProfile({ candles, symbol }) {
   const profile = useMemo(() => {
     if (!candles?.length || candles.length < 10) return null
 
@@ -158,3 +158,5 @@ export default function VolumeProfile({ candles, symbol }) {
     </div>
   )
 }
+
+export default memo(VolumeProfile)

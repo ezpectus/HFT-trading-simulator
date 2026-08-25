@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Star, Plus, X, TrendingUp, TrendingDown, ArrowUpDown } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
@@ -13,7 +13,7 @@ const SORT_OPTIONS = [
   { id: 'change', label: 'Change %' },
 ]
 
-export default function Watchlist({ candles, prices, onSelectSymbol }) {
+function Watchlist({ candles, prices, onSelectSymbol }) {
   const [watchlist, setWatchlist] = useLocalStorage(WATCHLIST_KEY, DEFAULT_WATCHLIST)
   const [sortMode, setSortMode] = useLocalStorage(SORT_KEY, 'symbol')
   const [showAdd, setShowAdd] = useState(false)
@@ -153,3 +153,5 @@ export default function Watchlist({ candles, prices, onSelectSymbol }) {
     </div>
   )
 }
+
+export default memo(Watchlist)

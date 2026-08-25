@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Gauge, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { calcWilliamsR } from '../utils/indicators'
 
-export default function WilliamsRIndicator({ candles, symbol, exchange }) {
+function WilliamsRIndicator({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -99,3 +99,5 @@ export default function WilliamsRIndicator({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(WilliamsRIndicator)

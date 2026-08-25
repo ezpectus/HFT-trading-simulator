@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Wavelet Packet Decomposition (WPD) ─────────────────────────────────────
 // Full binary tree wavelet decomposition providing richer frequency resolution
@@ -116,7 +116,7 @@ const universalThreshold = (coeffs) => {
   return sigma * Math.sqrt(2 * Math.log(n))
 }
 
-export default function WaveletPacketDecomposition({ candles, symbol, exchange }) {
+function WaveletPacketDecomposition({ candles, symbol, exchange }) {
   const [maxLevel, setMaxLevel] = useState(4)
   const [thresholdMethod, setThresholdMethod] = useState('soft')
   const [lookback, setLookback] = useState(128)
@@ -343,3 +343,5 @@ export default function WaveletPacketDecomposition({ candles, symbol, exchange }
     </div>
   )
 }
+
+export default memo(WaveletPacketDecomposition)

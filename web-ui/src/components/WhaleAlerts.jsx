@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Fish, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 
-export default function WhaleAlerts({ fills, candles, symbol, exchange }) {
+function WhaleAlerts({ fills, candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symFills = (fills || [])
       .filter(f => (!symbol || f.symbol === symbol) && (!exchange || f.exchange === exchange))
@@ -188,3 +188,5 @@ export default function WhaleAlerts({ fills, candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(WhaleAlerts)

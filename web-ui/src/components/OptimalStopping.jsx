@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Optimal Stopping (Snell Envelope) ───────────────────────────────────────
 // Implements the Snell envelope for optimal exercise of American options.
@@ -221,7 +221,7 @@ const solve3x3 = (A, b) => {
   return x
 }
 
-export default function OptimalStopping({ candles, symbol, exchange, currentPrice }) {
+const OptimalStopping = memo(({ candles, symbol, exchange, currentPrice }) => {
   const [strike, setStrike] = useState(currentPrice || 100)
   const [T, setT] = useState(30 / 365) // 30 days
   const [r, setR] = useState(0.05)
@@ -385,4 +385,6 @@ export default function OptimalStopping({ candles, symbol, exchange, currentPric
       </div>
     </div>
   )
-}
+})
+
+export default OptimalStopping

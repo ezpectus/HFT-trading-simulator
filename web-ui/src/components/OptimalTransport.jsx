@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Optimal Transport (Wasserstein Distance) ───────────────────────────────
 // Computes Wasserstein (earth mover's) distance between return distributions
@@ -119,7 +119,7 @@ const costMatrix = (edges1, edges2) => {
   return C
 }
 
-export default function OptimalTransport({ candles, symbol, exchange }) {
+const OptimalTransport = memo(function OptimalTransport({ candles, symbol, exchange, symbols }) {
   const [windowSize, setWindowSize] = useState(30)
   const [epsilon, setEpsilon] = useState(0.1)
   const [nBins, setNBins] = useState(20)
@@ -313,4 +313,6 @@ export default function OptimalTransport({ candles, symbol, exchange }) {
       </div>
     </div>
   )
-}
+})
+
+export default OptimalTransport

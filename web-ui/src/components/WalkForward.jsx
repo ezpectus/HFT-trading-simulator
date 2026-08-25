@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { GitCompare, Play, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
-export default function WalkForward({ accounts }) {
+function WalkForward({ accounts }) {
   const [windowSize, setWindowSize] = useState(10)
   const [results, setResults] = useState(null)
   const [running, setRunning] = useState(false)
@@ -184,3 +184,5 @@ export default function WalkForward({ accounts }) {
     </div>
   )
 }
+
+export default memo(WalkForward)
