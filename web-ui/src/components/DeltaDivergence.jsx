@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Split, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { calcRSI } from '../utils/indicators'
 
-export default function DeltaDivergence({ candles, fills, symbol, exchange }) {
+function DeltaDivergence({ candles, fills, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -227,3 +227,5 @@ export default function DeltaDivergence({ candles, fills, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(DeltaDivergence)

@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
-import { Percent, TrendingUp, TrendingDown, Clock } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Percent, Clock } from 'lucide-react'
 
-export default function FundingRateHistory({ fundingRates, candlesToFunding, symbol, exchange }) {
+function FundingRateHistory({ fundingRates, candlesToFunding, symbol, exchange }) {
   const data = useMemo(() => {
     if (!fundingRates || Object.keys(fundingRates).length === 0) return null
 
@@ -135,3 +135,5 @@ export default function FundingRateHistory({ fundingRates, candlesToFunding, sym
     </div>
   )
 }
+
+export default memo(FundingRateHistory)

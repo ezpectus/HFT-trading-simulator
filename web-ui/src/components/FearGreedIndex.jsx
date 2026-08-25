@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Brain, Skull, Smile, Meh, Frown, TrendingUp, TrendingDown } from 'lucide-react'
 import { calcRSI, calcStochastic, calcATR } from '../utils/indicators'
 
-export default function FearGreedIndex({ candles, signals, fills, symbol, exchange }) {
+function FearGreedIndex({ candles, signals, fills, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -162,3 +162,5 @@ export default function FearGreedIndex({ candles, signals, fills, symbol, exchan
     </div>
   )
 }
+
+export default memo(FearGreedIndex)

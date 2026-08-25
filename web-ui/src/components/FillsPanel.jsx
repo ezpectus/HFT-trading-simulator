@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { CheckCircle, XCircle, TrendingUp, TrendingDown, Search } from 'lucide-react'
 import { formatPrice, formatVolume, formatTime, colorForSide } from '../utils/format'
 import VirtualList from './VirtualList'
 import { EmptyState } from './LoadingSkeleton'
 import { useDebounce } from '../hooks/useDebounce'
 
-export default function FillsPanel({ fills }) {
+function FillsPanel({ fills }) {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
 
@@ -159,3 +159,5 @@ export default function FillsPanel({ fills }) {
     </div>
   )
 }
+
+export default memo(FillsPanel)

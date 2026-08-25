@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Ehlers SuperSmoother Filter ─────────────────────────────────────────────
 // John Ehlers' zero-lag digital signal processing filter.
@@ -187,7 +187,7 @@ const generateSignal = (mama, fama) => {
   return { signal: 'NEUTRAL', reason: 'No crossover' }
 }
 
-export default function EhlersSuperSmoother({ candles, symbol, exchange }) {
+function EhlersSuperSmoother({ candles, symbol, exchange }) {
   const [period, setPeriod] = useState(14)
   const [hpPeriod, setHpPeriod] = useState(48)
   const [showMAMA, setShowMAMA] = useState(true)
@@ -313,3 +313,5 @@ export default function EhlersSuperSmoother({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(EhlersSuperSmoother)

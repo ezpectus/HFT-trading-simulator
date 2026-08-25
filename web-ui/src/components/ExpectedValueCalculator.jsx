@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
-import { Calculator, TrendingUp, TrendingDown, Target } from 'lucide-react'
+import { memo, useMemo, useState } from 'react'
+import { Calculator } from 'lucide-react'
 
-export default function ExpectedValueCalculator({ accounts, fills, signals }) {
+function ExpectedValueCalculator({ accounts, fills, signals }) {
   const [customWinRate, setCustomWinRate] = useState('')
   const [customRR, setCustomRR] = useState('')
   const [customRisk, setCustomRisk] = useState(1)
@@ -209,3 +209,5 @@ export default function ExpectedValueCalculator({ accounts, fills, signals }) {
     </div>
   )
 }
+
+export default memo(ExpectedValueCalculator)

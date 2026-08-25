@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { TrendingDown, Activity, Clock } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { TrendingDown } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
-export default function DrawdownAnalysis({ fills }) {
+function DrawdownAnalysis({ fills }) {
   const analysis = useMemo(() => {
     if (!fills?.length) {
       return { maxDD: 0, maxDDPct: 0, maxDDDuration: 0, recoveries: 0, currentDD: 0, underwaterPct: 0, currentEquity: 10000, peakEquity: 10000, peaks: [] }
@@ -153,3 +153,5 @@ function Stat({ label, value, sub, color = 'text-gray-200' }) {
     </div>
   )
 }
+
+export default memo(DrawdownAnalysis)

@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function DepthChart({ orderbookData, currentPrice }) {
+function DepthChart({ orderbookData, currentPrice }) {
   const depthData = useMemo(() => {
     if (!orderbookData) return null
 
@@ -106,3 +106,5 @@ export default function DepthChart({ orderbookData, currentPrice }) {
     </div>
   )
 }
+
+export default memo(DepthChart)

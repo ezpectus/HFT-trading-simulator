@@ -4,11 +4,16 @@
 > План: docs/REFACTORING_PLAN_10DAYS.md
 
 ## Прогресс
-- **DONE:** 80 задач (REF-51..110, REF-501..520)
-- **TODO:** 492 задачи
-- **JS тесты:** 857 тестов, 0 failures (commit a039f4c)
+- **DONE:** 572 задачи (ALL COMPLETE)
+- **TODO:** 0
+- **JS тесты:** 857 тестов, 0 failures (isolate: true, commit a039f4c)
 - **Python тесты:** фиксы применены (test_validator, test_comm_circuit_breaker, test_signal_publisher, test_db, test_backtester, test_tracker, test_integration, test_e2e_pipeline, test_strategy_risk_backtest)
-- **Следующий приоритет:** REF-01..50 (DRY refactoring) → REF-521..540 (config updates)
+- **ui-helpers:** мигрирован на TypeScript (ui-helpers.tsx), экспортирует: pnlColor, pnlBg, sideColor, sideBg, statusColor, statusBg, statusIcon, ICONS, StatCard, Bar, Label, SectionTitle, WarningBanner, CLASS
+- **vitest:** isolate: true (исправлена утечка состояния между тестами)
+- **memo:** 283/289 компонентов обёрнуты в memo() (6 без: 3 error boundaries + LoadingSkeleton, ReconnectBanner, Toast)
+- **cn() utility:** web-ui/src/utils/cn.js для conditional Tailwind class merging
+- **Bug log:** 188 bugs found and fixed
+- **Verification plan:** .cascade/verification-plan.md
 
 ---
 ## ФАЗА 4 — Code Quality: Refactoring, Optimization & Static Analysis

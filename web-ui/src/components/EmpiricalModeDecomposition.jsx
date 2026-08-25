@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Empirical Mode Decomposition (EMD) + Hilbert-Huang Transform ────────────
 // EMD adaptively decomposes a signal into Intrinsic Mode Functions (IMFs)
@@ -265,7 +265,7 @@ const ifftDirect = (spectrum, N) => {
   return result
 }
 
-export default function EmpiricalModeDecomposition({ candles, symbol, exchange }) {
+function EmpiricalModeDecomposition({ candles, symbol, exchange }) {
   const [maxIMFs, setMaxIMFs] = useState(5)
   const [maxIter, setMaxIter] = useState(30)
   const [showHilbert, setShowHilbert] = useState(true)
@@ -459,3 +459,5 @@ export default function EmpiricalModeDecomposition({ candles, symbol, exchange }
     </div>
   )
 }
+
+export default memo(EmpiricalModeDecomposition)

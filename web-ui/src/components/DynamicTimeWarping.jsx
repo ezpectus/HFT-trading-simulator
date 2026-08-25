@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Dynamic Time Warping (DTW) ──────────────────────────────────────────────
 // Measures similarity between temporal sequences that may vary in speed.
@@ -96,7 +96,7 @@ const TEMPLATES = {
   channel: [0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5, 0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5, 0.0, 0.5, 1.0],
 }
 
-export default function DynamicTimeWarping({ candles, symbol, exchange }) {
+function DynamicTimeWarping({ candles, symbol, exchange }) {
   const [windowSize, setWindowSize] = useState(20)
   const [dtwWindow, setDtwWindow] = useState(5)
   const [selectedTemplate, setSelectedTemplate] = useState('doubleBottom')
@@ -344,3 +344,5 @@ export default function DynamicTimeWarping({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(DynamicTimeWarping)

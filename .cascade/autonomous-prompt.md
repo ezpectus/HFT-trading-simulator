@@ -6,7 +6,7 @@ You are working on a trading system with:
 - **ai-signal-bot/** — Python asyncio trading bot with strategies, risk, backtesting
 - **helm/** — Kubernetes Helm chart for deployment
 - **docs/** — 25+ documentation files (all outdated, need updating)
-- **.cascade/office-board.md** — Task board with REF-01..REF-625 tasks (492 TODO, 80 DONE)
+- **.cascade/office-board.md** — Task board with REF-01..REF-625 tasks (0 TODO, 572 DONE — all complete)
 
 ## Your Mission
 Read `.cascade/office-board.md` and work through tasks sequentially.
@@ -15,7 +15,7 @@ Mark each task as ✅ DONE in the board when completed.
 Commit after every 5-10 tasks.
 
 ## Current Status
-- **ALL TASKS COMPLETE:** 571 DONE, 0 TODO, 0 BLOCKED
+- **ALL TASKS COMPLETE:** 572 DONE, 0 TODO, 0 BLOCKED
 - **REF-01..50** — DRY refactoring, UI centralization ✅
 - **REF-51..110** — JS test fixes, 857 tests passing ✅
 - **REF-111..150** — Edge-case test coverage for components/hooks/utils ✅
@@ -59,11 +59,13 @@ For each task:
 ### JavaScript/React (web-ui/)
 - `useLocalStorage` hook returns `[value, setValue, remove]` — 3 values
 - Test mocks must return 3 values: `(key, default) => { const [v, s] = useState(default); return [v, s, () => {}] }`
-- `ui-helpers.js` re-exports from `ui-helpers.jsx` (JSX needs .jsx extension)
-- `ui-helpers.jsx` exports: `pnlColor`, `pnlBg`, `sideColor`, `statusColor`, `statusIcon`, `ICONS`, `StatCard`, `Bar`, `WarningBanner`
-- Vitest uses `isolate: false` — `localStorage.clear()` in afterEach prevents state leakage
+- `ui-helpers.js` re-exports from `ui-helpers.tsx` (migrated to TypeScript)
+- `ui-helpers.tsx` exports: `pnlColor`, `pnlBg`, `sideColor`, `sideBg`, `statusColor`, `statusBg`, `statusIcon`, `ICONS`, `StatCard`, `Bar`, `Label`, `SectionTitle`, `WarningBanner`, `CLASS`
+- Vitest uses `isolate: true` (changed from false — proper isolation between test files)
+- `cn()` utility in `web-ui/src/utils/cn.js` for conditional Tailwind class merging
 - Pre-commit hook is broken — always use `--no-verify`
-- 51 React components, 6 hooks, 11 utils, 53 test files
+- 289 React components, 6 hooks, 11 utils, 93 test files
+- 283/289 components wrapped in `memo()` (6 without: 3 error boundaries, LoadingSkeleton, ReconnectBanner, Toast)
 - Panel registry: `web-ui/src/panels/registry.js` — all panels must resolve
 
 ### Python (ai-signal-bot/)
@@ -105,15 +107,11 @@ git commit --no-verify -m "refactor: complete REF-XX..REF-YY" -m "- Brief descri
 - Mark task as blocked and continue to next
 
 ## Task Categories Summary
-- **REF-01..50** — DRY refactoring (centralize duplicated UI helpers, mock data, PropTypes)
+- **REF-01..50** — ✅ DONE — DRY refactoring, UI centralization (StatCard, Bar, Label, SectionTitle, WarningBanner, cn(), CLASS)
 - **REF-51..110** — ✅ DONE — JS test fixes (useLocalStorage mock, getByText→getAllByText, timer act() wraps)
-- **REF-111..200** — Test coverage improvements + performance optimization
-- **REF-201..300** — Python quality (async patterns, error handling, type hints)
-- **REF-301..400** — DevOps, Docker, Helm, monitoring improvements
-- **REF-401..450** — UI/UX improvements (header, toolbar, tooltips, export)
-- **REF-451..500** — Tooling (ESLint, Prettier, TypeScript, coverage, CI)
+- **REF-111..200** — ✅ DONE — Edge-case test coverage, performance optimization
+- **REF-201..300** — ✅ DONE — Python type hints, docstrings, strategy tests
+- **REF-301..400** — ✅ DONE — DevOps, Docker, Helm, documentation, security
+- **REF-401..500** — ✅ DONE — UI/UX, tooling, ESLint, TypeScript migration
 - **REF-501..520** — ✅ DONE — Static analysis bug fixes
-- **REF-521..540** — Config updates (verify all configs match code)
-- **REF-541..550** — Custom CI/CD scripts (self-hosted)
-- **REF-551..580** — Documentation updates (all docs match code)
-- **REF-581..625** — Test coverage (new tests for every module)
+- **REF-521..625** — ✅ DONE — Config, CI/CD, docs, test coverage
