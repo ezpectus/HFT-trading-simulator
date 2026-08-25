@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Shield, TrendingUp, TrendingDown, ArrowRightLeft } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Shield, ArrowRightLeft } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
 function correlation(a, b) {
@@ -17,7 +17,7 @@ function correlation(a, b) {
   return cov / Math.sqrt(vA * vB)
 }
 
-export default function HedgingSuggestions({ candles, accounts, symbols, exchange }) {
+function HedgingSuggestions({ candles, accounts, symbols, exchange }) {
   const suggestions = useMemo(() => {
     // Get open positions
     const positions = []
@@ -175,3 +175,5 @@ export default function HedgingSuggestions({ candles, accounts, symbols, exchang
     </div>
   )
 }
+
+export default memo(HedgingSuggestions)

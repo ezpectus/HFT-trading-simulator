@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Hahn Decomposition (Signed Measure Splitting for Signal/Noise) ---
 // Applies the Hahn decomposition theorem to split the return distribution
@@ -29,7 +29,7 @@ const computeReturns = (prices) => {
   return rets
 }
 
-export default function HahnDecomposition({ candles, symbol, exchange }) {
+function HahnDecomposition({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(150)
   const [nBins, setNBins] = useState(30)
   const [threshold, setThreshold] = useState(0)
@@ -253,3 +253,5 @@ export default function HahnDecomposition({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(HahnDecomposition)

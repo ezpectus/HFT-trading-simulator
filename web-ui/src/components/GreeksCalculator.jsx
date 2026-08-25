@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Sigma, Info } from 'lucide-react'
 
 // Black-Scholes Greeks calculation
@@ -43,7 +43,7 @@ function calcGreeks(S, K, T, r, sigma, type) {
   return { price, delta, gamma, theta, vega, rho }
 }
 
-export default function GreeksCalculator({ currentPrice }) {
+function GreeksCalculator({ currentPrice }) {
   const [type, setType] = useState('call')
   const [strike, setStrike] = useState(currentPrice || 65000)
   const [daysToExpiry, setDaysToExpiry] = useState(30)
@@ -149,6 +149,8 @@ export default function GreeksCalculator({ currentPrice }) {
     </div>
   )
 }
+
+export default memo(GreeksCalculator)
 
 function GreekStat({ label, value, color }) {
   return (

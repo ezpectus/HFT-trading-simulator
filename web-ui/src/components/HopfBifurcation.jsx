@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Hopf Bifurcation Analysis (Oscillatory Regime Detection) ───────────────
 // Detects Hopf bifurcations in financial time series — points where a
@@ -121,7 +121,7 @@ const slidingHopf = (returns, windowSize) => {
   return results
 }
 
-export default function HopfBifurcation({ candles, symbol, exchange }) {
+function HopfBifurcation({ candles, symbol, exchange }) {
   const [windowSize, setWindowSize] = useState(30)
   const [lookback, setLookback] = useState(150)
 
@@ -307,3 +307,5 @@ export default function HopfBifurcation({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(HopfBifurcation)

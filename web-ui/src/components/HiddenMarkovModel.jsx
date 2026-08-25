@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Hidden Markov Model (HMM) ───────────────────────────────────────────────
 // Full implementation of HMM with:
@@ -212,7 +212,7 @@ const quantize = (returns, M = 5) => {
   })
 }
 
-export default function HiddenMarkovModel({ candles, symbol, exchange }) {
+function HiddenMarkovModel({ candles, symbol, exchange }) {
   const [nStates, setNStates] = useState(3)
   const [nSymbols, setNSymbols] = useState(5)
   const [maxIter, setMaxIter] = useState(50)
@@ -446,3 +446,5 @@ export default function HiddenMarkovModel({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(HiddenMarkovModel)

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Gaussian Mixture Models (GMM) + EM Algorithm ───────────────────────────
 // Fits Gaussian Mixture Models to return distributions using the
@@ -133,7 +133,7 @@ const fitGMM = (data, k, maxIter = 100, tol = 1e-6) => {
   }
 }
 
-export default function GaussianMixtureModel({ candles, symbol, exchange }) {
+function GaussianMixtureModel({ candles, symbol, exchange }) {
   const [maxK, setMaxK] = useState(5)
   const [lookback, setLookback] = useState(100)
   const [autoK, setAutoK] = useState(true)
@@ -379,3 +379,5 @@ export default function GaussianMixtureModel({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(GaussianMixtureModel)

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Calendar } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
@@ -17,7 +17,7 @@ function pnlColor(pnl) {
   return 'bg-accent-red text-white'
 }
 
-export default function HeatmapCalendar({ accounts }) {
+function HeatmapCalendar({ accounts }) {
   const dailyPnl = useMemo(() => {
     const byDay = {}
     for (const acc of Object.values(accounts || {})) {
@@ -122,3 +122,5 @@ export default function HeatmapCalendar({ accounts }) {
     </div>
   )
 }
+
+export default memo(HeatmapCalendar)

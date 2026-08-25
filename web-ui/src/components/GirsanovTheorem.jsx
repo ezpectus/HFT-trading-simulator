@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Girsanov Theorem (Measure Change for Drift Estimation) ---
 // Applies the Girsanov theorem to change the drift of an Ito process
@@ -27,7 +27,7 @@ const computeReturns = (prices) => {
   return rets
 }
 
-export default function GirsanovTheorem({ candles, symbol, exchange }) {
+function GirsanovTheorem({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(120)
   const [windowSize, setWindowSize] = useState(30)
   const [sigma, setSigma] = useState(0.02)
@@ -256,3 +256,5 @@ export default function GirsanovTheorem({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(GirsanovTheorem)

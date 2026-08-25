@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
-import { Flame, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo, useState } from 'react'
+import { Flame } from 'lucide-react'
 import { toHeikinAshi } from '../utils/indicators'
 import { formatPrice } from '../utils/format'
 
-export default function HeikinAshi({ candles, symbol, exchange }) {
+function HeikinAshi({ candles, symbol, exchange }) {
   const [showCount, setShowCount] = useState(30)
 
   const data = useMemo(() => {
@@ -168,3 +168,5 @@ export default function HeikinAshi({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(HeikinAshi)

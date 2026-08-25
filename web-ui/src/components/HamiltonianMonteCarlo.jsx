@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Hamiltonian Monte Carlo (HMC) ──────────────────────────────────────────
 // Momentum-based MCMC sampler that uses Hamiltonian dynamics to propose
@@ -123,7 +123,7 @@ const hmc = (initQ, logPostFn, gradFn, nSamples, stepSize, nLeapfrog, mass) => {
   return { samples, acceptHistory, logPostHistory }
 }
 
-export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
+function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
   const [nSamples, setNSamples] = useState(500)
   const [stepSize, setStepSize] = useState(0.005)
   const [nLeapfrog, setNLeapfrog] = useState(20)
@@ -343,3 +343,5 @@ export default function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(HamiltonianMonteCarlo)

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Graph Theory: Correlation Networks & MST ───────────────────────────────
 // Constructs financial networks from return correlations using:
@@ -135,7 +135,7 @@ const clusteringCoeff = (mstEdges, n) => {
   })
 }
 
-export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
+function GraphTheoryNetwork({ candles, symbols, exchange }) {
   const [lookback, setLookback] = useState(50)
   const [edgeThreshold, setEdgeThreshold] = useState(0.3)
 
@@ -374,3 +374,5 @@ export default function GraphTheoryNetwork({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(GraphTheoryNetwork)

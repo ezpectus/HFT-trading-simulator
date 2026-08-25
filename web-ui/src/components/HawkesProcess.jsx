@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Hawkes Process (Self-Exciting Point Process) ───────────────────────────
 // Models trade clustering and self-excitation in order flow.
@@ -130,7 +130,7 @@ const simulateHawkes = (mu, alpha, beta, T, maxEvents = 500) => {
   return events
 }
 
-export default function HawkesProcess({ candles, symbol, exchange }) {
+function HawkesProcess({ candles, symbol, exchange }) {
   const [mu, setMu] = useState(0.1)
   const [alpha, setAlpha] = useState(0.5)
   const [beta, setBeta] = useState(2.0)
@@ -395,3 +395,5 @@ export default function HawkesProcess({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(HawkesProcess)

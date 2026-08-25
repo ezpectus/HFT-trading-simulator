@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Gaussian Process Regression ────────────────────────────────────────────
 // Non-parametric Bayesian regression using Gaussian Processes.
@@ -169,7 +169,7 @@ const optimizeHyperparams = (XTrain, yTrain, kernel) => {
   return best
 }
 
-export default function GaussianProcessRegression({ candles, symbol, exchange }) {
+function GaussianProcessRegression({ candles, symbol, exchange }) {
   const [kernelType, setKernelType] = useState('rbf')
   const [sigmaF, setSigmaF] = useState(1.0)
   const [lengthScale, setLengthScale] = useState(5.0)
@@ -396,3 +396,5 @@ export default function GaussianProcessRegression({ candles, symbol, exchange })
     </div>
   )
 }
+
+export default memo(GaussianProcessRegression)
