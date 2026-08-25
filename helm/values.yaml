@@ -14,7 +14,7 @@ postgres:
   image: postgres:16-alpine
   database: trading
   user: trader
-  password: ""  # REQUIRED — set via --set postgres.password=... or use existingSecret
+  password: "changeme"  # REQUIRED — override via --set postgres.password=... or use existingSecret
   storage: 10Gi
   storageClassName: ""
   resources:
@@ -30,7 +30,7 @@ redis:
   enabled: true
   image: redis:7-alpine
   maxmemory: 256mb
-  password: ""  # REQUIRED — set via --set redis.password=... (enables AUTH)
+  password: "changeme"  # REQUIRED — override via --set redis.password=... (enables AUTH)
   storage: 1Gi
   storageClassName: ""
   resources:
