@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-27 (Docs — TESTING.md freshness update)
+
+### Changed
+- `docs/TESTING.md`: Updated test file counts to match actual numbers — 345 total (193 Python, 49 C++, 103 JS)
+- `docs/TESTING.md`: Updated AI Signal Bot breakdown — 58 unit, 3 integration, 94 root-level test files
+- `docs/TESTING.md`: Updated JS test breakdown — 99 unit test files, 16 hook tests, 70+ component tests
+- `docs/TESTING.md`: Updated test pyramid unit count — 341 total unit tests
+- `.cascade/autonomous-prompt.md`: Updated test counts, Known Issues (all resolved), project structure
+
+### Rationale
+TESTING.md had stale test file counts (208 vs actual 345). All Known Issues from verification-plan.md are now resolved except docs freshness for remaining docs.
+
 ## [Unreleased] — 2026-08-27 (Security — ApiClient localStorage fix)
 
 ### Fixed

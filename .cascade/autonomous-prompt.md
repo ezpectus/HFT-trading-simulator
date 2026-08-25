@@ -2,8 +2,8 @@
 
 ## Context
 You are working on a multi-language HFT trading system with:
-- **web-ui/** — React 18 + Vite + TailwindCSS frontend, 289 components, 93 test files, PWA
-- **ai-signal-bot/** — Python 3.12 asyncio trading bot, 144 source files, 134 test files
+- **web-ui/** — React 18 + Vite + TailwindCSS frontend, 289 components, 99 test files, PWA
+- **ai-signal-bot/** — Python 3.12 asyncio trading bot, 144 source files, 155 test files
 - **exchange_simulator/** — Python WebSocket exchange simulator (50 symbols, 3 exchanges)
 - **hft-trade-bot/** — C++20 HFT execution engine (SHM IPC, lock-free queues)
 - **hft-executor/** — Rust order executor (tokio-tungstenite, FFI for C++)
@@ -175,23 +175,24 @@ For each task:
 - Config: `from src.config import load_config; config = load_config()`
 
 ## Known Issues (from verification-plan.md)
-- **Python TODO/FIXME:** 19 occurrences in `ai-signal-bot/src/` — need review
-- **JSX TODO/FIXME:** 2 occurrences in `web-ui/src/**/*.jsx` — need review
-- **console.log in components:** 10 occurrences (9 are console.warn in error handlers — OK; 1 is `console.log(data)` in WidgetSDK.jsx:20 mock data — should remove)
-- **Components without memo():** 6 (3 are error boundaries — OK; LoadingSkeleton, ReconnectBanner, Toast — should wrap)
-- **Python test fixes uncommitted:** test_validator, test_comm_circuit_breaker, test_signal_publisher, test_db, test_backtester, test_tracker, test_integration, test_e2e_pipeline, test_strategy_risk_backtest + source fixes in alerting.py, copula.py, dtw.py, position_sizing.py
-- **Docs outdated:** All 13 docs + 4 guides need verification against current code
-- **Helm charts:** helm/ and deploy/helm/ need syncing
+- ✅ **Python TODO/FIXME:** 0 occurrences in `ai-signal-bot/src/` — ALL CLEAR
+- ✅ **JSX TODO/FIXME:** 0 occurrences in `web-ui/src/**/*.jsx` — ALL CLEAR
+- ✅ **console.log in components:** All clear (console.warn in error handlers OK, WidgetSDK console.log is in string template literal)
+- ✅ **Components without memo():** 289/289 memoized (3 error boundaries excluded)
+- ✅ **Python test fixes:** All committed and pushed
+- ✅ **Helm charts:** CodeQL alerts #49, #50 fixed (no empty passwords)
+- ✅ **localStorage security:** ApiClient credentials now in-memory (useState) — fixed
+- **Docs freshness:** TESTING.md updated with actual counts, other docs need verification
 
 ## Key Technical Context
 
 ### Project Structure (root level)
 ```
-ai-signal-bot/     — Python trading bot (144 src, 134 tests)
+ai-signal-bot/     — Python trading bot (144 src, 155 tests)
 exchange_simulator/ — Python WS exchange simulator
 hft-trade-bot/     — C++20 HFT engine (SHM IPC, lock-free)
 hft-executor/      — Rust order executor (FFI, tokio)
-web-ui/            — React 18 frontend (289 components, 93 tests)
+web-ui/            — React 18 frontend (289 components, 99 tests)
 helm/ + deploy/    — K8s Helm charts + Docker Compose
 terraform/         — IaC
 monitoring/        — Prometheus, Alertmanager, Grafana
@@ -492,12 +493,12 @@ CI checks that MUST pass:
 - **`useSoundAlerts`** — AudioContext, oscillator, enable/disable
 
 ## Test Counts (current)
-- **web-ui:** 93 test files, 857+ tests (Vitest + @testing-library/react)
+- **web-ui:** 99 test files, 804+ tests (Vitest + @testing-library/react)
 - **web-ui E2E:** 4 Playwright spec files (smoke, trading, mock-mode, screenshots)
-- **ai-signal-bot:** 134 test files, 568+ tests (pytest)
-- **exchange_simulator:** 18 test files, 579+ tests (pytest)
-- **hft-trade-bot:** 29 doctest + 10 CTest files, 700+ test cases (ctest)
-- **Total:** ~2700+ tests across all languages
+- **ai-signal-bot:** 155 test files, 568+ tests (pytest)
+- **exchange_simulator:** 36 test files, 579+ tests (pytest)
+- **hft-trade-bot:** 29 doctest + 49 CTest files, 700+ test cases (ctest)
+- **Total:** ~345 test files, ~2700+ tests across all languages
 
 ## Build System
 - **Python:** `pip install -r requirements.txt` (per project)

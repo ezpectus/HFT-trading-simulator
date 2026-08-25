@@ -20,7 +20,7 @@ Static (all)               — ruff, eslint, clang-format, rustfmt
 
 **Why a pyramid, not an inverted (ice cream cone)?**
 - **Unit tests:** Fast (ms), isolated, deterministic. Find bugs in
-  individual functions. 173 Python + 49 C++ + 110 JS = 332 total.
+  individual functions. 193 Python + 49 C++ + 99 JS = 341 total.
 - **Integration tests:** Slower (seconds), test component interaction.
   WebSocket connection, signal flow, backtest pipeline.
 - **E2E tests:** Slowest (minutes), test full user journey.
@@ -81,22 +81,22 @@ numerical precision (tolerance-based assertions).
 
 ## Overview
 
-The system has **208 test files** across three languages:
+The system has **345 test files** across three languages:
 
 | Language | Files | Framework | Location |
 |----------|-------|-----------|----------|
-| **Python** | 118 | pytest + Hypothesis | `ai-signal-bot/tests/`, `exchange_simulator/tests/` |
-| **C++** | 46 | doctest | `hft-trade-bot/tests/` |
-| **JavaScript** | 44 | Vitest + Playwright | `web-ui/src/test/`, `web-ui/e2e/` |
-| **Total** | **208** | | |
+| **Python** | 193 | pytest + Hypothesis | `ai-signal-bot/tests/`, `exchange_simulator/tests/`, `monitoring/tests/` |
+| **C++** | 49 | doctest | `hft-trade-bot/tests/` |
+| **JavaScript** | 103 | Vitest + Playwright | `web-ui/src/test/`, `web-ui/e2e/` |
+| **Total** | **345** | | |
 
 ---
 
-## Python Tests (118 files)
+## Python Tests (193 files)
 
-### AI Signal Bot (49 files)
+### AI Signal Bot (155 files)
 
-**Unit tests** (`ai-signal-bot/tests/unit/`): 47 files covering:
+**Unit tests** (`ai-signal-bot/tests/unit/`): 58 files covering:
 
 | Module | Test Files | Coverage |
 |--------|-----------|----------|
@@ -111,11 +111,11 @@ The system has **208 test files** across three languages:
 | Research | test_research_modules | Greeks hedging, attribution, genetic strategy |
 | Other | test_db, test_socket_transport, test_fft_analysis, test_indicators, test_notifier, test_bot_helpers | Database, networking, indicators |
 
-**Integration tests** (`ai-signal-bot/tests/integration/`): 2 files
+**Integration tests** (`ai-signal-bot/tests/integration/`): 3 files
 - `test_e2e_pipeline.py` — End-to-end signal generation → order execution
 - `test_trading_flow.py` — Full trading cycle simulation
 
-**Root-level tests** (`ai-signal-bot/tests/`): 18 files
+**Root-level tests** (`ai-signal-bot/tests/`): 94 files
 - test_backtest, test_config_validator, test_fft, test_indicators, test_integration, test_kelly, test_ml, test_optimizer, test_order_book_replay, test_portfolio, test_portfolio_optimizer, test_risk, test_risk_manager, test_signal_publisher, test_strategies, test_validator
 
 ### Exchange Simulator (36 files)
@@ -165,7 +165,7 @@ Uses Hypothesis for invariant testing:
 
 ---
 
-## C++ Tests (46 files)
+## C++ Tests (49 files)
 
 **Framework:** doctest (header-only, fast compilation)
 
@@ -192,19 +192,19 @@ Randomized invariant testing for C++ components.
 
 ---
 
-## JavaScript Tests (44 files)
+## JavaScript Tests (103 files)
 
-### Unit Tests (40 files)
+### Unit Tests (99 files)
 
 **Framework:** Vitest
 **Location:** `web-ui/src/test/`
 
 | Category | Files | Coverage |
 |----------|-------|----------|
-| Components | accountPanel, botStatus, confidenceScorer, drawdownAnalysis, exchange-ui, fillsPanel, loadingSkeleton, orderForm, panelErrorBoundary, priceAlerts, replayControls, signalFeed, toast, tradeTimeline, watchlist | 15 component tests |
-| Hooks | useAnimatedNumber, useDebounce, useDetachablePanels, useExchangeData, useInterval, useKeyboardShortcuts, useLocalStorage, useMediaQuery, useMockData, usePerformance, useSoundAlerts, useTheme, useTradeJournal, useWebSocket | 14 hook tests |
-| Math/Indicators | backtestEngine, cointegration, garch, hmm, kalman, kmeans, indicators, performance | 8 math tests |
-| Utils | utils, registry, virtualList | 3 utility tests |
+| Components | 70+ component tests | Rendering, props, user interaction, error boundaries |
+| Hooks | 16 hook tests | useLocalStorage, useWebSocket, useExchangeData, useDebounce, useInterval, useKeyboardShortcuts, useMediaQuery, useMockData, usePerformance, useSoundAlerts, useTradeJournal, useAnimatedNumber, useDetachablePanels, useTheme |
+| Math/Indicators | 8+ math tests | Kalman, HMM, GARCH, KMeans, cointegration, backtestEngine, indicators, performance |
+| Utils | 5+ utility tests | utils, registry, virtualList, format, patterns |
 
 ### E2E Tests (4 files)
 
