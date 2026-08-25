@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { FlaskConical, Plus, Star, Trash2, BarChart3 } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_FEATURES = [
   { id: 1, name: 'rsi_14', category: 'Momentum', importance: 0.82, correlation: 0.45, stability: 0.78, status: 'active' },
@@ -51,18 +52,9 @@ const FeatureStudio = memo(function FeatureStudio() {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Importance</div>
-          <span className="text-sm font-mono text-accent-green">{(stats.avgImportance * 100).toFixed(0)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">High Corr</div>
-          <span className="text-sm font-mono text-accent-yellow">{stats.highCorr}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Features</div>
-          <span className="text-sm font-mono text-gray-300">{stats.total}</span>
-        </div>
+        <StatCard label="Avg Importance" value={`${(stats.avgImportance * 100).toFixed(0)}%`} color="text-accent-green" compact />
+        <StatCard label="High Corr" value={stats.highCorr} color="text-accent-yellow" compact />
+        <StatCard label="Features" value={stats.total} color="text-gray-300" compact />
       </div>
 
       {/* Category filter */}

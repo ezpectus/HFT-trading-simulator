@@ -45,7 +45,7 @@
 
 ### Категория B: DRY — Centralize UI patterns
 
-### REF-05: Adopt `StatCard` component across all components ✅ DONE (partial: 9 components)
+### REF-05: Adopt `StatCard` component across all components ✅ DONE (23 components)
 **Описание:** `StatCard` создан в `ui-helpers.js`, но не используется ни в одном компоненте. При этом паттерн `p-2 bg-bg-700 border border-bg-600` повторяется 50+ раз.
 - Компоненты для миграции: `ABTesting`, `Colocation`, `DataQuality`, `FuturesBasis`, `DeployStatus`, `DatabaseViewer`, `DashboardProfiler`, `CostBasis`, `CrossAssetMatrix`, `FillAnalytics`, `CapacityAnalysis`, `FeatureStudio`, `DrawingTools`, `ChartTemplates` и др.
 - Решение: заменить inline-карточки на `<StatCard label="..." value="..." color="..." icon={...} />`
@@ -73,7 +73,7 @@
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/utils/ui-helpers.js` + 20+ компонентов
 
-### REF-09: Create `SectionTitle` component for repeated header pattern ⬜ TODO
+### REF-09: Create `SectionTitle` component for repeated header pattern ✅ DONE (partial: 5 components)
 **Описание:** Паттерн заголовка секции (`flex items-center gap-* mb-*` + icon + text) повторяется во всех компонентах.
 - Решение: создать `SectionTitle` в `ui-helpers.js` с props `icon`, `title`, `right` (optional right content)
 **Сложность:** Низкая

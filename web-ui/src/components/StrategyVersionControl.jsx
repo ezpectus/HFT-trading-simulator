@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { GitBranch, Tag, RotateCcw, AlertTriangle } from 'lucide-react'
-import { ICONS } from '../utils/ui-helpers'
+import { ICONS, StatCard } from '../utils/ui-helpers'
 
 const MOCK_VERSIONS = [
   { id: 'v2.3.1', tag: 'latest', date: '2024-08-25', author: 'Alice', changes: 3, status: 'active', desc: 'Tighten risk limits, add CVaR check' },
@@ -52,18 +52,9 @@ const StrategyVersionControl = memo(function StrategyVersionControl({ addToast }
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Active</div>
-          <span className="text-sm font-mono text-accent-green">{stats.activeCount}</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Total Changes</div>
-          <span className="text-sm font-mono text-accent-blue">{stats.totalChanges}</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Latest</div>
-          <span className="text-sm font-mono text-gray-300">v2.3.1</span>
-        </div>
+        <StatCard label="Active" value={stats.activeCount} color="text-accent-green" />
+        <StatCard label="Total Changes" value={stats.totalChanges} color="text-accent-blue" />
+        <StatCard label="Latest" value="v2.3.1" color="text-gray-300" />
       </div>
 
       {/* Version list */}

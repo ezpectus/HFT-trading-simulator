@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Gauge, TrendingUp, AlertTriangle, Maximize2 } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { statusColor, statusBg, StatCard, Bar, Label } from '../utils/ui-helpers'
+import { statusColor, statusBg, StatCard, Bar, Label, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_STRATEGIES = [
   { name: 'TrendFollowing', currentAUM: 500000, maxCapacity: 5000000, utilization: 10, alphaDecay: 0.5, status: 'scalable' },
@@ -47,13 +47,7 @@ const CapacityAnalysis = memo(function CapacityAnalysis() {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Gauge size={14} className="text-accent-blue" />
-          <span className="text-sm font-medium">Capacity Analysis</span>
-        </div>
-        <span className="text-[10px] text-gray-600">{stats.overallUtil.toFixed(0)}% utilized</span>
-      </div>
+      <SectionTitle icon={Gauge} title="Capacity Analysis" right={<span className="text-[10px] text-gray-600">{stats.overallUtil.toFixed(0)}% utilized</span>} />
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">

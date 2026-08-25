@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Search, Zap, TrendingUp, AlertTriangle } from 'lucide-react'
-import { statusColor, statusBg, StatCard, Label } from '../utils/ui-helpers'
+import { statusColor, statusBg, StatCard, Label, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_OPPORTUNITIES = [
   { id: 1, type: 'Triangular', path: 'BTC → ETH → USDT → BTC', profit: 0.85, capital: 10000, estProfit: 85, latency: 120, confidence: 0.92, status: 'active' },
@@ -33,13 +33,7 @@ const ArbScanner = memo(function ArbScanner() {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Search size={14} className="text-accent-blue" />
-          <span className="text-sm font-medium">Arbitrage Scanner</span>
-        </div>
-        <span className="text-[10px] text-gray-600">{stats.active} active</span>
-      </div>
+      <SectionTitle icon={Search} title="Arbitrage Scanner" right={<span className="text-[10px] text-gray-600">{stats.active} active</span>} />
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">

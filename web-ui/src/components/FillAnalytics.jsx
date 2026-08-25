@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
-import { ICONS, statusColor, StatCard, Label } from '../utils/ui-helpers'
+import { ICONS, statusColor, StatCard, Label, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_FILLS = [
   { id: 1, orderId: 'ord_8a3f', symbol: 'BTC/USDT', side: 'BUY', reqQty: 0.5, fillQty: 0.5, reqPrice: 44100, fillPrice: 44102, partialFill: false, latency: 45, venue: 'Binance', status: 'filled' },
@@ -38,13 +38,7 @@ const FillAnalytics = memo(function FillAnalytics() {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <BarChart3 size={14} className="text-accent-blue" />
-          <span className="text-sm font-medium">Fill Analytics</span>
-        </div>
-        <span className="text-[10px] text-gray-600">{MOCK_FILLS.length} orders</span>
-      </div>
+      <SectionTitle icon={BarChart3} title="Fill Analytics" right={<span className="text-[10px] text-gray-600">{MOCK_FILLS.length} orders</span>} />
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">

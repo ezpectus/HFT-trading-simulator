@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { ShieldCheck, Database, Activity } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { ICONS, statusColor, StatCard, Label } from '../utils/ui-helpers'
+import { ICONS, statusColor, StatCard, Label, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_CHECKS = [
   { id: 'candles-fresh', name: 'Candle Freshness', status: 'pass', detail: 'Last candle 2s ago', threshold: '< 10s' },
@@ -52,15 +52,7 @@ const DataQuality = memo(function DataQuality() {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <ShieldCheck size={14} className="text-accent-blue" />
-          <span className="text-sm font-medium">Data Quality</span>
-        </div>
-        <span className={`text-sm font-mono font-bold ${statusColor(stats.score >= 80 ? 'pass' : stats.score >= 60 ? 'warn' : 'fail', STATUS_MAP)}`}>
-          {stats.score}%
-        </span>
-      </div>
+      <SectionTitle icon={ShieldCheck} title="Data Quality" right={<span className={`text-sm font-mono font-bold ${statusColor(stats.score >= 80 ? 'pass' : stats.score >= 60 ? 'warn' : 'fail', STATUS_MAP)}`}>{stats.score}%</span>} />
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">

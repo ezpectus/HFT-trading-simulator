@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { ScrollText, Filter, AlertTriangle, Info, XCircle, CheckCircle } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_LOGS = [
   { id: 1, ts: '12:45:32', level: 'INFO', source: 'SignalBot', msg: 'Signal generated: BTC/USDT LONG confidence=0.82' },
@@ -59,18 +60,9 @@ const LogDashboard = memo(function LogDashboard() {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Info</div>
-          <span className="text-sm font-mono text-accent-green">{counts.info}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Warnings</div>
-          <span className="text-sm font-mono text-accent-yellow">{counts.warn}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Errors</div>
-          <span className="text-sm font-mono text-accent-red">{counts.error}</span>
-        </div>
+        <StatCard label="Info" value={counts.info} color="text-accent-green" compact />
+        <StatCard label="Warnings" value={counts.warn} color="text-accent-yellow" compact />
+        <StatCard label="Errors" value={counts.error} color="text-accent-red" compact />
       </div>
 
       {/* Filter buttons */}

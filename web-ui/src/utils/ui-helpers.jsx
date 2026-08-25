@@ -71,6 +71,18 @@ export function Label({ children, className = '', size = '10px' }) {
   )
 }
 
+export function SectionTitle({ icon: Icon, title, right, className = '', iconColor = 'text-accent-blue' }) {
+  return (
+    <div className={`flex items-center justify-between ${className}`}>
+      <div className="flex items-center gap-1.5">
+        {Icon && <Icon size={14} className={iconColor} />}
+        <span className="text-sm font-medium">{title}</span>
+      </div>
+      {right}
+    </div>
+  )
+}
+
 export function WarningBanner({ icon: Icon = AlertTriangle, color = 'text-accent-yellow', children }) {
   const bg = color.replace('text-', 'bg-') + '/10'
   const border = color.replace('text-', 'border-') + '/30'
