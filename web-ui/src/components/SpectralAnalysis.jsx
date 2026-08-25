@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Radio, Activity, Waves } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -113,7 +113,7 @@ function calcSpectralEntropy(magnitudes) {
   return maxEntropy > 0 ? entropy / maxEntropy : 0
 }
 
-export default function SpectralAnalysis({ candles, symbol, exchange }) {
+function SpectralAnalysis({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -269,3 +269,5 @@ export default function SpectralAnalysis({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(SpectralAnalysis)

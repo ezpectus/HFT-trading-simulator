@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Sobolev Space Regularization (Smoothness-Constrained Estimation) ───────
 // Uses Sobolev space norms to regularize estimates, enforcing smoothness
@@ -109,7 +109,7 @@ const sobolevRegression = (xData, yData, s, lambda, sigma, lengthScale) => {
   return { predict, alpha, predictions, l2Norm, h1Semi, residual }
 }
 
-export default function SobolevSpaceRegularization({ candles, symbol, exchange }) {
+function SobolevSpaceRegularization({ candles, symbol, exchange }) {
   const [s, setS] = useState(2)
   const [lambda, setLambda] = useState(0.1)
   const [lookback, setLookback] = useState(80)
@@ -340,3 +340,5 @@ export default function SobolevSpaceRegularization({ candles, symbol, exchange }
     </div>
   )
 }
+
+export default memo(SobolevSpaceRegularization)

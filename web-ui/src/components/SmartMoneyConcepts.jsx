@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { Brain, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Brain } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function SmartMoneyConcepts({ candles, symbol, exchange }) {
+function SmartMoneyConcepts({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -284,3 +284,5 @@ export default function SmartMoneyConcepts({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(SmartMoneyConcepts)

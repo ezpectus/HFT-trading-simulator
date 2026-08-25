@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Radio, TrendingUp, TrendingDown, Minus, Activity, Filter, Search } from 'lucide-react'
 import { formatPrice, formatTime, colorForSide } from '../utils/format'
 import VirtualList from './VirtualList'
@@ -11,7 +11,7 @@ const FILTERS = [
   { label: 'Short', value: 'SHORT' },
 ]
 
-export default function SignalFeed({ signals, regime }) {
+function SignalFeed({ signals, regime }) {
   const [filter, setFilter] = useState('ALL')
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
@@ -179,3 +179,5 @@ export default function SignalFeed({ signals, regime }) {
     </div>
   )
 }
+
+export default memo(SignalFeed)

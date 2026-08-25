@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { Grid3x3, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Grid3x3 } from 'lucide-react'
 import { calcRSI, calcEMA, calcSMA, calcATR, calcMACD } from '../utils/indicators'
 
-export default function SignalMatrixHeatmap({ candles, signals, fills, symbols, exchange }) {
+function SignalMatrixHeatmap({ candles, signals, fills, symbols, exchange }) {
   const data = useMemo(() => {
     if (!symbols || symbols.length === 0) return null
 
@@ -260,3 +260,5 @@ export default function SignalMatrixHeatmap({ candles, signals, fills, symbols, 
     </div>
   )
 }
+
+export default memo(SignalMatrixHeatmap)

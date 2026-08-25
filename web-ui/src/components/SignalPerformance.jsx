@@ -1,11 +1,11 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Target, TrendingUp, TrendingDown, CheckCircle, XCircle, Layers } from 'lucide-react'
 
 /**
  * Signal Performance Tracker — matches AI signals to subsequent fills
  * and tracks hit rate, average return, per-direction and per-strategy performance.
  */
-export default function SignalPerformance({ signals, fills }) {
+function SignalPerformance({ signals, fills }) {
   const stats = useMemo(() => {
     if (!signals.length || !fills.length) return null
 
@@ -208,3 +208,5 @@ export default function SignalPerformance({ signals, fills }) {
     </div>
   )
 }
+
+export default memo(SignalPerformance)

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Globe, Sunrise, Sunset, Moon } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -9,7 +9,7 @@ const SESSIONS = [
   { name: 'Off Hours', start: 21, end: 24, color: '#848e9c', icon: Sunset },
 ]
 
-export default function SessionVolumeProfile({ candles, symbol, exchange }) {
+function SessionVolumeProfile({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -151,3 +151,5 @@ export default function SessionVolumeProfile({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(SessionVolumeProfile)

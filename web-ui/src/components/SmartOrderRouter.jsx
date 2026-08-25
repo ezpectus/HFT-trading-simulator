@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Route, ArrowRight, Check, X } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function SmartOrderRouter({ candles, orderbooks, symbols, exchanges, onSubmit }) {
+function SmartOrderRouter({ candles, orderbooks, symbols, exchanges, onSubmit }) {
   const routing = useMemo(() => {
     const routes = []
 
@@ -128,3 +128,5 @@ export default function SmartOrderRouter({ candles, orderbooks, symbols, exchang
     </div>
   )
 }
+
+export default memo(SmartOrderRouter)

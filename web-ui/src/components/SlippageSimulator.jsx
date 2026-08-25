@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
-import { FlaskConical, TrendingUp, TrendingDown, Settings2, ArrowRight } from 'lucide-react'
+import { memo, useMemo, useState } from 'react'
+import { FlaskConical, Settings2, ArrowRight } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 import { calcATR } from '../utils/indicators'
 
-export default function SlippageSimulator({ candles, orderbooks, accounts, currentPrice, symbol, exchange }) {
+function SlippageSimulator({ candles, orderbooks, accounts, currentPrice, symbol, exchange }) {
   const [side, setSide] = useState('BUY')
   const [orderSize, setOrderSize] = useState('1000')
   const [slippageModel, setSlippageModel] = useState('linear')
@@ -298,3 +298,5 @@ export default function SlippageSimulator({ candles, orderbooks, accounts, curre
     </div>
   )
 }
+
+export default memo(SlippageSimulator)
