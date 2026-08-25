@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
+import { useState } from 'react'
 import { render, screen } from '@testing-library/react'
 import ApiClient from '../components/ApiClient'
 
 vi.mock('../hooks/useLocalStorage', () => ({
-  useLocalStorage: (key, defaultValue) => {
-    const [value, setValue] = vi.requireActual('react').useState(defaultValue)
-    return [value, setValue]
+  useLocalStorage: (_key, defaultValue) => {
+    const [value, setValue] = useState(defaultValue)
+    return [value, setValue, () => {}]
   },
 }))
 
@@ -19,7 +20,7 @@ describe('ApiClient', () => {
     expect(screen.getByText('Exchange WS')).toBeInTheDocument()
     expect(screen.getByText('Signal Bot WS')).toBeInTheDocument()
     expect(screen.getByText('REST Candles')).toBeInTheDocument()
-    expect(screen.getByText(/Connected/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Connected/i).length).toBeGreaterThan(0)
   })
 
   it('shows correct connected count based on WS status', () => {

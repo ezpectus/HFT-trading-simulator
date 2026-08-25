@@ -26,7 +26,7 @@ describe('MLInsights', () => {
 
   it('shows consensus based on model predictions', () => {
     render(<MLInsights signals={mockSignals} candles={mockCandles} symbol="BTC/USDT" />)
-    expect(screen.getByText(/BULLISH|BEARISH|NEUTRAL/)).toBeInTheDocument()
+    expect(screen.getAllByText(/BULLISH|BEARISH|NEUTRAL/).length).toBeGreaterThan(0)
   })
 
   it('expands model details on click', () => {

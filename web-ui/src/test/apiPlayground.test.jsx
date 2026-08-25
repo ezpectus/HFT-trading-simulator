@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import ApiPlayground from '../components/ApiPlayground'
 
 describe('ApiPlayground', () => {
@@ -9,7 +9,7 @@ describe('ApiPlayground', () => {
     expect(screen.getByText('/api/v1/signals')).toBeInTheDocument()
     expect(screen.getByText('/api/v1/orders')).toBeInTheDocument()
     expect(screen.getAllByText('GET').length).toBeGreaterThan(0)
-    expect(screen.getByText('POST')).toBeInTheDocument()
+    expect(screen.getAllByText('POST').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('DELETE')).toBeInTheDocument()
   })
 
@@ -24,7 +24,7 @@ describe('ApiPlayground', () => {
     const btn = screen.getByText('/api/v1/signals').closest('button')
     fireEvent.click(btn)
     expect(screen.getByText('Sending request...')).toBeInTheDocument()
-    vi.advanceTimersByTime(400)
+    act(() => { vi.advanceTimersByTime(400) })
     expect(screen.getByText('Response')).toBeInTheDocument()
     expect(screen.getByText('200')).toBeInTheDocument()
     vi.useRealTimers()

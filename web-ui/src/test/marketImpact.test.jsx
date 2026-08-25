@@ -34,7 +34,7 @@ describe('MarketImpact', () => {
         asks: [[50010, 1.2], [50020, 1.8], [50030, 0.8]],
       },
     }
-    render(<MarketImpact candles={mockCandles} symbol="BTC/USDT" currentPrice={50000} orderbooks={mockOrderbooks} />)
+    render(<MarketImpact candles={mockCandles} symbol="BTC/USDT" exchange="binance" currentPrice={50000} orderbooks={mockOrderbooks} />)
     expect(screen.getByText('Order Book Imbalance')).toBeInTheDocument()
     expect(screen.getByText(/Bids:/)).toBeInTheDocument()
     expect(screen.getByText(/Asks:/)).toBeInTheDocument()

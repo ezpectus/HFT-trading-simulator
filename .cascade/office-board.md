@@ -396,253 +396,253 @@
 
 ## ФАЗА 5 — Test Fixes, Coverage & Reliability
 
-### REF-51: Fix Auth.jsx render crash — useLocalStorage mock returns 2 values, component expects 3 ⬜ TODO
+### REF-51: Fix Auth.jsx render crash — useLocalStorage mock returns 2 values, component expects 3 ✅ DONE
 **Описание:** Auth.jsx destructures `[user, setUser, removeUser]` from useLocalStorage, but mock returns only `[value, setValue]`. Fix mock to return 3rd noop function.
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/test/auth.test.jsx`
 
-### REF-52: Fix ApiClient.jsx render crash — same 3-value mock issue ⬜ TODO
+### REF-52: Fix ApiClient.jsx render crash — same 3-value mock issue ✅ DONE
 **Описание:** ApiClient uses `useLocalStorage` with remove function. Mock must return 3 values.
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/test/apiClient.test.jsx`
 
-### REF-53: Fix DrawingTools.jsx render crash — 3-value mock issue ⬜ TODO
+### REF-53: Fix DrawingTools.jsx render crash — 3-value mock issue ✅ DONE
 **Описание:** DrawingTools uses remove from useLocalStorage.
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/test/drawingTools.test.jsx`
 
-### REF-54: Fix ChartTemplates.jsx render crash — 3-value mock issue ⬜ TODO
+### REF-54: Fix ChartTemplates.jsx render crash — 3-value mock issue ✅ DONE
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/test/chartTemplates.test.jsx`
 
-### REF-55: Fix FeatureFlags.jsx render crash — 3-value mock issue ⬜ TODO
+### REF-55: Fix FeatureFlags.jsx render crash — 3-value mock issue ✅ DONE
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/test/featureFlags.test.jsx`
 
-### REF-56: Fix ThemeSwitcher.jsx render crash — 3-value mock issue ⬜ TODO
+### REF-56: Fix ThemeSwitcher.jsx render crash — 3-value mock issue ✅ DONE
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/test/themeSwitcher.test.jsx`
 
-### REF-57: Fix NotificationCenter.jsx render crash — 3-value mock issue ⬜ TODO
+### REF-57: Fix NotificationCenter.jsx render crash — 3-value mock issue ✅ DONE
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/test/notificationCenter.test.jsx`
 
-### REF-58: Fix RetrainingPipeline.jsx render crash — ui-helpers import issue ⬜ TODO
+### REF-58: Fix RetrainingPipeline.jsx render crash — ui-helpers import issue ✅ DONE
 **Описание:** RetrainingPipeline imports from ui-helpers but test shows "0 test" + render crash.
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/retrainingPipeline.test.jsx`, `web-ui/src/components/RetrainingPipeline.jsx`
 
-### REF-59: Fix Colocation.test.jsx — "0 test" file ⬜ TODO
+### REF-59: Fix Colocation.test.jsx — "0 test" file ✅ DONE
 **Описание:** Test file exists but vitest reports 0 tests. Likely import resolution issue with ui-helpers.
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/colocation.test.jsx`
 
-### REF-60: Fix CostBasis.test.jsx — "0 test" file ⬜ TODO
+### REF-60: Fix CostBasis.test.jsx — "0 test" file ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/costBasis.test.jsx`
 
-### REF-61: Fix DataQuality.test.jsx — "0 test" file ⬜ TODO
+### REF-61: Fix DataQuality.test.jsx — "0 test" file ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/dataQuality.test.jsx`
 
-### REF-62: Fix RealtimeAttribution.test.jsx — "0 test" file ⬜ TODO
+### REF-62: Fix RealtimeAttribution.test.jsx — "0 test" file ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/realtimeAttribution.test.jsx`
 
-### REF-63: Fix StrategyVersionControl.test.jsx — "0 test" file ⬜ TODO
+### REF-63: Fix StrategyVersionControl.test.jsx — "0 test" file ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/strategyVersionControl.test.jsx`
 
-### REF-64: Fix WalkForwardViewer.test.jsx — "0 test" file ⬜ TODO
+### REF-64: Fix WalkForwardViewer.test.jsx — "0 test" file ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/walkForwardViewer.test.jsx`
 
-### REF-65: Fix SignalTracker.test.jsx — "0 test" file ⬜ TODO
+### REF-65: Fix SignalTracker.test.jsx — "0 test" file ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/signalTracker.test.jsx`
 
-### REF-66: Fix FillAnalytics.test.jsx — "0 test" file ⬜ TODO
+### REF-66: Fix FillAnalytics.test.jsx — "0 test" file ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/fillAnalytics.test.jsx`
 
-### REF-67: Fix Inventory.test.jsx — "0 test" file ⬜ TODO
+### REF-67: Fix Inventory.test.jsx — "0 test" file ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/inventory.test.jsx`
 
-### REF-68: Fix useExchangeData "sorts candles by timestamp" test failure ⬜ TODO
+### REF-68: Fix useExchangeData "sorts candles by timestamp" test failure ✅ DONE
 **Описание:** 1 test fails in useExchangeData — candle sorting logic issue.
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/hooks/useExchangeData.js`
 
-### REF-69: Fix statToolkit "computes and displays price statistics" test failure ⬜ TODO
+### REF-69: Fix statToolkit "computes and displays price statistics" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/statToolkit.test.jsx`
 
-### REF-70: Fix registry "DEFAULT_VISIBLE contains all panel ids" test failure ⬜ TODO
+### REF-70: Fix registry "DEFAULT_VISIBLE contains all panel ids" test failure ✅ DONE
 **Описание:** DEFAULT_VISIBLE array is missing some panel IDs.
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/panels/registry.js`
 
-### REF-71: Fix wsManager "renders connection status" test failure ⬜ TODO
+### REF-71: Fix wsManager "renders connection status" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/wsManager.test.jsx`
 
-### REF-72: Fix wsManager "handles empty/null data gracefully" test failure ⬜ TODO
+### REF-72: Fix wsManager "handles empty/null data gracefully" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/wsManager.test.jsx`
 
-### REF-73: Fix mlInsights "shows consensus based on model predictions" test failure ⬜ TODO
+### REF-73: Fix mlInsights "shows consensus based on model predictions" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/mlInsights.test.jsx`
 
-### REF-74: Fix priceComparison "shows spread and arbitrage opportunity" test failure ⬜ TODO
+### REF-74: Fix priceComparison "shows spread and arbitrage opportunity" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/priceComparison.test.jsx`
 
-### REF-75: Fix marketImpact "renders liquidity imbalance when orderbook provided" test failure ⬜ TODO
+### REF-75: Fix marketImpact "renders liquidity imbalance when orderbook provided" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/marketImpact.test.jsx`
 
-### REF-76: Fix featureStudio "shows summary stats" test failure ⬜ TODO
+### REF-76: Fix featureStudio "shows summary stats" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/featureStudio.test.jsx`
 
-### REF-77: Fix featureStudio "filters features by category" test failure ⬜ TODO
+### REF-77: Fix featureStudio "filters features by category" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/featureStudio.test.jsx`
 
-### REF-78: Fix regimeDetector "shows regime names with probabilities" test failure ⬜ TODO
+### REF-78: Fix regimeDetector "shows regime names with probabilities" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/regimeDetector.test.jsx`
 
-### REF-79: Fix portfolioOptLab "shows method selector with all methods" test failure ⬜ TODO
+### REF-79: Fix portfolioOptLab "shows method selector with all methods" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/portfolioOptLab.test.jsx`
 
-### REF-80: Fix portfolioOptLab "switches method on click" test failure ⬜ TODO
+### REF-80: Fix portfolioOptLab "switches method on click" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/portfolioOptLab.test.jsx`
 
-### REF-81: Fix cancelMonitor "renders cancel list with timestamps and reasons" test failure ⬜ TODO
+### REF-81: Fix cancelMonitor "renders cancel list with timestamps and reasons" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/cancelMonitor.test.jsx`
 
-### REF-82: Fix cancelMonitor "renders cancel reasons breakdown" test failure ⬜ TODO
+### REF-82: Fix cancelMonitor "renders cancel reasons breakdown" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/cancelMonitor.test.jsx`
 
-### REF-83: Fix cancelMonitor "filters cancels by source" test failure ⬜ TODO
+### REF-83: Fix cancelMonitor "filters cancels by source" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/cancelMonitor.test.jsx`
 
-### REF-84: Fix logDashboard "filters logs by level on button click" test failure ⬜ TODO
+### REF-84: Fix logDashboard "filters logs by level on button click" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/logDashboard.test.jsx`
 
-### REF-85: Fix logDashboard "shows source labels for log entries" test failure ⬜ TODO
+### REF-85: Fix logDashboard "shows source labels for log entries" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/logDashboard.test.jsx`
 
-### REF-86: Fix teamCollab "renders team members with roles and status" test failure ⬜ TODO
+### REF-86: Fix teamCollab "renders team members with roles and status" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/teamCollab.test.jsx`
 
-### REF-87: Fix scenarioSim "renders scenario list with names" test failure ⬜ TODO
+### REF-87: Fix scenarioSim "renders scenario list with names" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/scenarioSim.test.jsx`
 
-### REF-88: Fix apiPlayground "renders endpoint list with methods" test failure ⬜ TODO
+### REF-88: Fix apiPlayground "renders endpoint list with methods" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/apiPlayground.test.jsx`
 
-### REF-89: Fix apiPlayground "sends request and shows response on click" test failure ⬜ TODO
+### REF-89: Fix apiPlayground "sends request and shows response on click" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/apiPlayground.test.jsx`
 
-### REF-90: Fix onChainAnalytics "shows whale addresses with accumulation/distribution labels" test failure ⬜ TODO
+### REF-90: Fix onChainAnalytics "shows whale addresses with accumulation/distribution labels" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/onChainAnalytics.test.jsx`
 
-### REF-91: Fix crossAssetMatrix "renders correlation matrix with asset names" test failure ⬜ TODO
+### REF-91: Fix crossAssetMatrix "renders correlation matrix with asset names" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/crossAssetMatrix.test.jsx`
 
-### REF-92: Fix crossAssetMatrix "shows all 8 assets in returns table" test failure ⬜ TODO
+### REF-92: Fix crossAssetMatrix "shows all 8 assets in returns table" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/crossAssetMatrix.test.jsx`
 
-### REF-93: Fix slippageAnalytics "shows venue names with fill rates" test failure ⬜ TODO
+### REF-93: Fix slippageAnalytics "shows venue names with fill rates" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/slippageAnalytics.test.jsx`
 
-### REF-94: Fix auditTrail "filters entries by user on button click" test failure ⬜ TODO
+### REF-94: Fix auditTrail "filters entries by user on button click" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/auditTrail.test.jsx`
 
-### REF-95: Fix auditTrail "shows old and new values for config changes" test failure ⬜ TODO
+### REF-95: Fix auditTrail "shows old and new values for config changes" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/auditTrail.test.jsx`
 
-### REF-96: Fix dashboardProfiler "shows key metrics (render time, FPS, memory, bundle)" test failure ⬜ TODO
+### REF-96: Fix dashboardProfiler "shows key metrics (render time, FPS, memory, bundle)" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/dashboardProfiler.test.jsx`
 
-### REF-97: Fix liquidityMap3D "handles null currentPrice with fallback" test failure ⬜ TODO
+### REF-97: Fix liquidityMap3D "handles null currentPrice with fallback" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/liquidityMap3D.test.jsx`
 
-### REF-98: Fix geneticViewer "renders fitness evolution and top individuals" test failure ⬜ TODO
+### REF-98: Fix geneticViewer "renders fitness evolution and top individuals" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/geneticViewer.test.jsx`
 
-### REF-99: Fix optionsChain "renders options chain with strikes" test failure ⬜ TODO
+### REF-99: Fix optionsChain "renders options chain with strikes" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/optionsChain.test.jsx`
 
-### REF-100: Fix optionsChain "shows strike details on click" test failure ⬜ TODO
+### REF-100: Fix optionsChain "shows strike details on click" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/optionsChain.test.jsx`
 
-### REF-101: Fix volSurface "renders IV grid with strikes and DTEs" test failure ⬜ TODO
+### REF-101: Fix volSurface "renders IV grid with strikes and DTEs" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/volSurface.test.jsx`
 
-### REF-102: Fix volSurface "handles null currentPrice with fallback" test failure ⬜ TODO
+### REF-102: Fix volSurface "handles null currentPrice with fallback" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/volSurface.test.jsx`
 
-### REF-103: Fix taxReport "shows trade history table" test failure ⬜ TODO
+### REF-103: Fix taxReport "shows trade history table" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/taxReport.test.jsx`
 
-### REF-104: Fix widgetSDK "shows code sample section" test failure ⬜ TODO
+### REF-104: Fix widgetSDK "shows code sample section" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/widgetSDK.test.jsx`
 
-### REF-105: Fix widgetSDK "filters widgets by category" test failure ⬜ TODO
+### REF-105: Fix widgetSDK "filters widgets by category" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/widgetSDK.test.jsx`
 
-### REF-106: Fix sessionMarkers "shows session time ranges" test failure ⬜ TODO
+### REF-106: Fix sessionMarkers "shows session time ranges" test failure ✅ DONE
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/sessionMarkers.test.jsx`
 
-### REF-107: Fix useInterval.test.jsx — "0/10" tests reported ⬜ TODO
+### REF-107: Fix useInterval.test.jsx — "0/10" tests reported ✅ DONE
 **Описание:** useInterval tests show 0/10 — likely a test discovery or import issue.
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/test/useInterval.test.jsx`
 
-### REF-108: Fix "Worker exited unexpectedly" crash in vitest ⬜ TODO
+### REF-108: Fix "Worker exited unexpectedly" crash in vitest ✅ DONE
 **Описание:** Vitest worker crashes at end of test run. Likely memory exhaustion or unhandled rejection from isolate: false.
 **Сложность:** Высокая
 **Файлы:** `web-ui/vitest.config.js`
 
-### REF-109: Add vi.mock for useLocalStorage with 3-value return in all test files ⬜ TODO
+### REF-109: Add vi.mock for useLocalStorage with 3-value return in all test files ✅ DONE
 **Описание:** All vi.mock for useLocalStorage must return [value, setValue, () => {}] — 3rd value is the remove function.
 **Сложность:** Низкая
 **Файлы:** All 9 test files with useLocalStorage mock
 
-### REF-110: Fix DeployStatus test — currently passing but uses 2-value mock ⬜ TODO
+### REF-110: Fix DeployStatus test — currently passing but uses 2-value mock ✅ DONE
 **Описание:** DeployStatus works with 2-value mock but should use 3-value for consistency.
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/test/deployStatus.test.jsx`

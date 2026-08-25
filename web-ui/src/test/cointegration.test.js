@@ -117,13 +117,13 @@ describe('ADF Test', () => {
   })
 
   it('does not reject unit root for random walk', () => {
-    // Random walk has unit root
+    // Random walk has unit root — use seeded PRNG for deterministic results
+    let seed = 12345
+    const rng = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff }
     const rw = [100]
-    for (let i = 1; i < 100; i++) rw.push(rw[i - 1] + (Math.random() - 0.5))
+    for (let i = 1; i < 100; i++) rw.push(rw[i - 1] + (rng() - 0.5))
     const result = calcADF(rw)
     expect(result).not.toBeNull()
-    // Random walk typically has tStat > -2.57 (not stationary)
-    // This is probabilistic but usually true
     expect(result.significance).toBe('none')
   })
 

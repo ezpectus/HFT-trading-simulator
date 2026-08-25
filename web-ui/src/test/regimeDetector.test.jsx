@@ -12,7 +12,7 @@ describe('RegimeDetector', () => {
 
   it('shows regime names with probabilities', () => {
     render(<RegimeDetector symbol="BTC/USDT" />)
-    expect(screen.getByText('Trending Up')).toBeInTheDocument()
+    expect(screen.getAllByText('Trending Up').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('High Volatility')).toBeInTheDocument()
     expect(screen.getByText('Mean Reverting')).toBeInTheDocument()
     expect(screen.getByText('Crisis')).toBeInTheDocument()

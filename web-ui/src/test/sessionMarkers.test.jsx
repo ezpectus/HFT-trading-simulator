@@ -24,6 +24,6 @@ describe('SessionMarkers', () => {
 
   it('shows session time ranges', () => {
     render(<SessionMarkers fills={[]} symbol="BTC/USDT" />)
-    expect(screen.getByText(/UTC/)).toBeInTheDocument()
+    expect(screen.getAllByText(/UTC/).length).toBeGreaterThanOrEqual(1)
   })
 })

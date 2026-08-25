@@ -12,10 +12,10 @@ describe('PortfolioOptLab', () => {
 
   it('shows method selector with all methods', () => {
     render(<PortfolioOptLab />)
-    expect(screen.getByText('Markowitz')).toBeInTheDocument()
-    expect(screen.getByText('Risk Parity')).toBeInTheDocument()
-    expect(screen.getByText('Black-Litterman')).toBeInTheDocument()
-    expect(screen.getByText('Kelly')).toBeInTheDocument()
+    expect(screen.getAllByText('Markowitz').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Risk Parity').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Black-Litterman').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Kelly').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows selected method stats (sharpe, return, vol, max DD)', () => {
@@ -28,8 +28,10 @@ describe('PortfolioOptLab', () => {
 
   it('switches method on click', () => {
     render(<PortfolioOptLab />)
-    fireEvent.click(screen.getByText('Kelly'))
-    expect(screen.getByText('Kelly')).toBeInTheDocument()
+    const kellyBtns = screen.getAllByText('Kelly')
+    const kellyBtn = kellyBtns.find(el => el.tagName === 'BUTTON')
+    fireEvent.click(kellyBtn)
+    expect(screen.getAllByText('Kelly').length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders asset weights with current and optimal values', () => {

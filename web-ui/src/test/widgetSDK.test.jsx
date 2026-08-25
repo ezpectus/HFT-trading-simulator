@@ -6,27 +6,31 @@ describe('WidgetSDK', () => {
   it('renders widget list with names', () => {
     render(<WidgetSDK />)
     expect(screen.getByText('Widget SDK')).toBeInTheDocument()
-    expect(screen.getByText('CandleChart')).toBeInTheDocument()
-    expect(screen.getByText('OrderBook')).toBeInTheDocument()
+    expect(screen.getAllByText('CandleChart').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('OrderBook').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('RiskMeter')).toBeInTheDocument()
   })
 
   it('shows code sample section', () => {
     render(<WidgetSDK />)
     expect(screen.getByText('Usage Example')).toBeInTheDocument()
-    expect(screen.getByText(/CandleChart/)).toBeInTheDocument()
+    expect(screen.getAllByText(/CandleChart/).length).toBeGreaterThanOrEqual(1)
   })
 
   it('filters widgets by category', () => {
     render(<WidgetSDK />)
-    fireEvent.click(screen.getByText('Risk'))
+    const riskBtns = screen.getAllByText('Risk')
+    const riskBtn = riskBtns.find(el => el.tagName === 'BUTTON')
+    fireEvent.click(riskBtn)
     expect(screen.getByText('RiskMeter')).toBeInTheDocument()
     expect(screen.queryByText('CandleChart')).not.toBeInTheDocument()
   })
 
   it('shows selected widget props', () => {
     render(<WidgetSDK />)
-    fireEvent.click(screen.getByText('OrderBook'))
+    const orderBookEls = screen.getAllByText('OrderBook')
+    const orderBookEl = orderBookEls.find(el => el.tagName === 'SPAN')
+    fireEvent.click(orderBookEl.closest('div[class*="cursor"]') || orderBookEl)
     expect(screen.getByText('OrderBook Props')).toBeInTheDocument()
   })
 

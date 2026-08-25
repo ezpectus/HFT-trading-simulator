@@ -7,7 +7,7 @@ describe('GeneticViewer', () => {
     render(<GeneticViewer />)
     expect(screen.getByText('Genetic Algorithm Viewer')).toBeInTheDocument()
     expect(screen.getByText('Fitness Evolution')).toBeInTheDocument()
-    expect(screen.getByText('Top Individuals')).toBeInTheDocument()
+    expect(screen.getByText(/Top Individuals/)).toBeInTheDocument()
   })
 
   it('shows summary stats (best, avg, diversity, improvement)', () => {

@@ -8,7 +8,10 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import Watchlist from '../components/Watchlist'
 
 vi.mock('../hooks/useLocalStorage', () => ({
-  useLocalStorage: (_key, defaultValue) => useState(defaultValue),
+  useLocalStorage: (_key, defaultValue) => {
+    const [value, setValue] = useState(defaultValue)
+    return [value, setValue, () => {}]
+  },
 }))
 
 function makeCandle(symbol, close, exchange = 'binance') {

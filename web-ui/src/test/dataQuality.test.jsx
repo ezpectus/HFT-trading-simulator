@@ -36,6 +36,6 @@ describe('DataQuality', () => {
   it('shows healthy/stale count in footer', () => {
     render(<DataQuality />)
     expect(screen.getByText(/symbols healthy/)).toBeInTheDocument()
-    expect(screen.getByText(/stale/)).toBeInTheDocument()
+    expect(screen.getByText(/symbols.*stale/)).toBeInTheDocument()
   })
 })

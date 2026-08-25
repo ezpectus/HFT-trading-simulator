@@ -7,9 +7,9 @@ describe('VolSurface', () => {
     render(<VolSurface currentPrice={44100} />)
     expect(screen.getByText('Volatility Surface')).toBeInTheDocument()
     expect(screen.getByText('IV Grid (Strike x DTE)')).toBeInTheDocument()
-    expect(screen.getByText('7d')).toBeInTheDocument()
-    expect(screen.getByText('30d')).toBeInTheDocument()
-    expect(screen.getByText('90d')).toBeInTheDocument()
+    expect(screen.getAllByText('7d').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('30d').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('90d').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows summary stats (min, avg, max IV)', () => {
@@ -31,6 +31,6 @@ describe('VolSurface', () => {
 
   it('handles null currentPrice with fallback', () => {
     render(<VolSurface currentPrice={null} />)
-    expect(screen.getByText('ATM 44k')).toBeInTheDocument()
+    expect(screen.getByText(/ATM.*44k/)).toBeInTheDocument()
   })
 })

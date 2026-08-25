@@ -30,7 +30,7 @@ describe('WsManager', () => {
     render(<WsManager exchange={mockExchange} signals={mockSignals} toasts={mockToasts} addToast={vi.fn()} />)
     expect(screen.getByText('Exchange Simulator')).toBeInTheDocument()
     expect(screen.getByText('AI Signal Bot')).toBeInTheDocument()
-    expect(screen.getByText(/Online/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Online/i).length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows latency values', () => {
@@ -50,7 +50,7 @@ describe('WsManager', () => {
   it('handles empty/null data gracefully', () => {
     render(<WsManager exchange={null} signals={null} toasts={[]} addToast={vi.fn()} />)
     expect(screen.getByText('WebSocket Manager')).toBeInTheDocument()
-    expect(screen.getByText('Offline')).toBeInTheDocument()
+    expect(screen.getAllByText('Offline').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows trading and replay status', () => {

@@ -15,7 +15,7 @@ describe('DashboardProfiler', () => {
     render(<DashboardProfiler />)
     expect(screen.getByText('Total Render Time')).toBeInTheDocument()
     expect(screen.getByText('FPS')).toBeInTheDocument()
-    expect(screen.getByText('Memory Usage')).toBeInTheDocument()
+    expect(screen.getAllByText('Memory Usage').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Bundle Size')).toBeInTheDocument()
   })
 

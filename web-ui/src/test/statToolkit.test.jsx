@@ -17,7 +17,7 @@ describe('StatToolkit', () => {
     expect(screen.getByText('Price Statistics')).toBeInTheDocument()
     expect(screen.getByText('Mean')).toBeInTheDocument()
     expect(screen.getByText('Median')).toBeInTheDocument()
-    expect(screen.getByText('Std Dev')).toBeInTheDocument()
+    expect(screen.getAllByText('Std Dev').length).toBeGreaterThanOrEqual(1)
   })
 
   it('computes return statistics', () => {

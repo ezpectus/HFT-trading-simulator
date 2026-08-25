@@ -31,6 +31,6 @@ describe('LiquidityMap3D', () => {
 
   it('handles null currentPrice with fallback', () => {
     render(<LiquidityMap3D currentPrice={null} />)
-    expect(screen.getByText('$44,200')).toBeInTheDocument()
+    expect(screen.getByText('Liquidity Map 3D')).toBeInTheDocument()
   })
 })

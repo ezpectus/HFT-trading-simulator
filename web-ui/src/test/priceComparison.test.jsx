@@ -25,8 +25,8 @@ describe('PriceComparison', () => {
 
   it('shows spread and arbitrage opportunity for price differences', () => {
     render(<PriceComparison prices={mockPrices} symbols={mockSymbols} selectedSymbol="BTC/USDT" exchanges={mockExchanges} />)
-    expect(screen.getByText(/Spread/)).toBeInTheDocument()
-    expect(screen.getByText(/bps/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Spread/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/bps/).length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows empty state when no price data', () => {

@@ -6,9 +6,9 @@ describe('ScenarioSim', () => {
   it('renders scenario list with names', () => {
     render(<ScenarioSim currentPrice={50000} />)
     expect(screen.getByText('Scenario Simulator')).toBeInTheDocument()
-    expect(screen.getByText('Market Crash (-20%)')).toBeInTheDocument()
-    expect(screen.getByText('Flash Crash (-5% / 1min)')).toBeInTheDocument()
-    expect(screen.getByText('Liquidation Cascade')).toBeInTheDocument()
+    expect(screen.getAllByText('Market Crash (-20%)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Flash Crash (-5% / 1min)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Liquidation Cascade').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows worst case summary with equity impact and drawdown', () => {

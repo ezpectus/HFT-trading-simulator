@@ -132,6 +132,10 @@ class DynamicPositionSizer:
             )
 
         kelly = KellyPositionSizer(
+            win_rate=0.55,
+            avg_win=100,
+            avg_loss=100,
+            kelly_fraction=0.25,
             max_risk_pct=risk_per_trade * 100,
             max_position_pct=self.max_position_size * 100,
         )

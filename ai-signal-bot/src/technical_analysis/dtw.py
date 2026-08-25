@@ -118,3 +118,10 @@ def find_best_match(
             best_result = result
 
     return best_name, best_result.distance, best_result
+
+
+def compute_returns(prices: list[float]) -> list[float]:
+    """Compute simple returns from a price series."""
+    if len(prices) < 2:
+        return []
+    return [(prices[i] / prices[i - 1] - 1.0) for i in range(1, len(prices))]

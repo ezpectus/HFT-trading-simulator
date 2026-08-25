@@ -14,7 +14,7 @@ describe('TaxReport', () => {
   it('shows trade history table', () => {
     render(<TaxReport fills={null} addToast={vi.fn()} />)
     expect(screen.getByText('Trade History')).toBeInTheDocument()
-    expect(screen.getByText('BTC/USDT')).toBeInTheDocument()
+    expect(screen.getAllByText('BTC/USDT').length).toBeGreaterThanOrEqual(1)
   })
 
   it('handles null fills gracefully', () => {

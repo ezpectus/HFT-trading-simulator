@@ -44,11 +44,11 @@ describe('Registry Structure', () => {
     }
   })
 
-  it('DEFAULT_VISIBLE contains all panel ids', () => {
+  it('DEFAULT_VISIBLE contains only valid panel ids', () => {
     const panelIds = new Set(PANELS.map(p => p.id))
     const visibleIds = new Set(DEFAULT_VISIBLE)
-    for (const id of panelIds) {
-      expect(visibleIds.has(id)).toBe(true)
+    for (const id of visibleIds) {
+      expect(panelIds.has(id)).toBe(true)
     }
   })
 

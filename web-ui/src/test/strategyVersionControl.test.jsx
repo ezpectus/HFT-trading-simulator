@@ -6,7 +6,7 @@ describe('StrategyVersionControl', () => {
   it('renders version list with version IDs', () => {
     render(<StrategyVersionControl />)
     expect(screen.getByText('Strategy Version Control')).toBeInTheDocument()
-    expect(screen.getByText('v2.3.1')).toBeInTheDocument()
+    expect(screen.getAllByText('v2.3.1').length).toBeGreaterThan(0)
     expect(screen.getByText('v2.0.0')).toBeInTheDocument()
   })
 
@@ -20,7 +20,7 @@ describe('StrategyVersionControl', () => {
   it('shows version details on click', () => {
     render(<StrategyVersionControl />)
     fireEvent.click(screen.getByText('v2.2.0'))
-    expect(screen.getByText('Major refactor: strategy plugin system')).toBeInTheDocument()
+    expect(screen.getAllByText('Major refactor: strategy plugin system').length).toBeGreaterThan(0)
   })
 
   it('shows rollback button for non-latest versions', () => {

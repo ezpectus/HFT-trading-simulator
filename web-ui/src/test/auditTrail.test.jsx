@@ -20,16 +20,17 @@ describe('AuditTrail', () => {
 
   it('filters entries by user on button click', () => {
     render(<AuditTrail />)
-    const traderBtn = screen.getByText('trader1')
+    const traderBtns = screen.getAllByText('trader1')
+    const traderBtn = traderBtns.find(el => el.tagName === 'BUTTON')
     fireEvent.click(traderBtn)
-    expect(screen.getByText('ORDER_SUBMIT')).toBeInTheDocument()
+    expect(screen.getAllByText('ORDER_SUBMIT').length).toBeGreaterThan(0)
     expect(screen.queryByText('CONFIG_UPDATE')).not.toBeInTheDocument()
   })
 
   it('shows old and new values for config changes', () => {
     render(<AuditTrail />)
-    expect(screen.getByText('0.10')).toBeInTheDocument()
-    expect(screen.getByText('0.08')).toBeInTheDocument()
+    expect(screen.getAllByText('0.10').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('0.08').length).toBeGreaterThan(0)
   })
 
   it('shows retention info in footer', () => {

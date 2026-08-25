@@ -26,8 +26,8 @@ describe('OnChainAnalytics', () => {
 
   it('shows whale addresses with accumulation/distribution labels', () => {
     render(<OnChainAnalytics symbol="BTC/USDT" />)
-    expect(screen.getByText('ACC')).toBeInTheDocument()
-    expect(screen.getByText('DIST')).toBeInTheDocument()
+    expect(screen.getAllByText('ACC').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('DIST').length).toBeGreaterThanOrEqual(1)
   })
 
   it('handles null symbol with fallback', () => {

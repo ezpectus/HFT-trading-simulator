@@ -1,9 +1,11 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
 
 afterEach(() => {
   cleanup()
+  // Reset timers to prevent fake timer leakage between test files (isolate: false)
+  vi.useRealTimers()
   // Clear localStorage to prevent state leakage between tests (isolate: false)
   if (typeof localStorage !== 'undefined') localStorage.clear()
 })

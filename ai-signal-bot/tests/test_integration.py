@@ -264,14 +264,15 @@ class TestSignalPublisher:
 class TestSignalValidator:
     """Test signal validation logic."""
 
-    def test_valid_signal_passes(self):
+    @pytest.mark.asyncio
+    async def test_valid_signal_passes(self):
         validator = SignalValidator(
             min_confidence=65,
             min_rr_ratio=1.5,
             max_drawdown_pct=8,
             max_open_positions=3,
         )
-        validator.update_position_count(0)
+        await validator.update_position_count(0)
 
         from src.strategies.signal import Signal
         sig = Signal(
@@ -283,17 +284,18 @@ class TestSignalValidator:
             stop_loss=95,
             take_profit=115,
         )
-        result = validator.validate(sig, balance=10000, peak_equity=10000)
+        result = await validator.validate(sig, account_balance=10000)
         assert result.passed is True
 
-    def test_validator_rejects_low_confidence(self):
+    @pytest.mark.asyncio
+    async def test_validator_rejects_low_confidence(self):
         validator = SignalValidator(
             min_confidence=65,
             min_rr_ratio=1.5,
             max_drawdown_pct=8,
             max_open_positions=3,
         )
-        validator.update_position_count(0)
+        await validator.update_position_count(0)
 
         from src.strategies.signal import Signal
         sig = Signal(
@@ -305,18 +307,19 @@ class TestSignalValidator:
             stop_loss=95,
             take_profit=115,
         )
-        result = validator.validate(sig, balance=10000, peak_equity=10000)
+        result = await validator.validate(sig, account_balance=10000)
         assert result.passed is False
         assert "confidence" in result.reason.lower()
 
-    def test_validator_rejects_max_positions(self):
+    @pytest.mark.asyncio
+    async def test_validator_rejects_max_positions(self):
         validator = SignalValidator(
             min_confidence=65,
             min_rr_ratio=1.5,
             max_drawdown_pct=8,
             max_open_positions=3,
         )
-        validator.update_position_count(3)
+        await validator.update_position_count(3)
 
         from src.strategies.signal import Signal
         sig = Signal(
@@ -329,5 +332,5 @@ class TestSignalValidator:
             take_profit=70000,
             reason="test",
         )
-        result = validator.validate(sig, account_balance=10000)
+        result = await validator.validate(sig, account_balance=10000)
         assert not result.passed

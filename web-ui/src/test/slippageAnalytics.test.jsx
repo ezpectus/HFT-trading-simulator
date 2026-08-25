@@ -25,9 +25,9 @@ describe('SlippageAnalytics', () => {
 
   it('shows venue names with fill rates', () => {
     render(<SlippageAnalytics symbol="BTC/USDT" />)
-    expect(screen.getByText('Binance')).toBeInTheDocument()
-    expect(screen.getByText('OKX')).toBeInTheDocument()
-    expect(screen.getByText('Bybit')).toBeInTheDocument()
+    expect(screen.getAllByText('Binance').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('OKX').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Bybit').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows large order warning', () => {

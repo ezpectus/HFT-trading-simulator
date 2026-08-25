@@ -32,6 +32,6 @@ describe('FillAnalytics', () => {
 
   it('shows partial fill percentages', () => {
     render(<FillAnalytics />)
-    expect(screen.getByText(/Partial fill/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Partial fill/).length).toBeGreaterThan(0)
   })
 })

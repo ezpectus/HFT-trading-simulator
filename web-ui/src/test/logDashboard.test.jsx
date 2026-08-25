@@ -19,7 +19,8 @@ describe('LogDashboard', () => {
 
   it('filters logs by level on button click', () => {
     render(<LogDashboard />)
-    const errorBtn = screen.getByText('ERROR')
+    const errorBtns = screen.getAllByText('ERROR')
+    const errorBtn = errorBtns.find(el => el.tagName === 'BUTTON')
     fireEvent.click(errorBtn)
     expect(screen.getByText('Order rejected: INSUFFICIENT_BALANCE')).toBeInTheDocument()
     expect(screen.queryByText('Signal generated: BTC/USDT LONG confidence=0.82')).not.toBeInTheDocument()
@@ -33,8 +34,8 @@ describe('LogDashboard', () => {
 
   it('shows source labels for log entries', () => {
     render(<LogDashboard />)
-    expect(screen.getByText('SignalBot')).toBeInTheDocument()
-    expect(screen.getByText('OrderManager')).toBeInTheDocument()
-    expect(screen.getByText('RiskManager')).toBeInTheDocument()
+    expect(screen.getAllByText('SignalBot').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('OrderManager').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('RiskManager').length).toBeGreaterThanOrEqual(1)
   })
 })

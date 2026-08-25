@@ -15,12 +15,14 @@ describe('FeatureStudio', () => {
     render(<FeatureStudio />)
     expect(screen.getByText('Avg Importance')).toBeInTheDocument()
     expect(screen.getByText('High Corr')).toBeInTheDocument()
-    expect(screen.getByText('Features')).toBeInTheDocument()
+    expect(screen.getAllByText('Features').length).toBeGreaterThanOrEqual(1)
   })
 
   it('filters features by category', () => {
     render(<FeatureStudio />)
-    fireEvent.click(screen.getByText('Momentum'))
+    const momentumBtns = screen.getAllByText('Momentum')
+    const momentumBtn = momentumBtns.find(el => el.tagName === 'BUTTON')
+    fireEvent.click(momentumBtn)
     expect(screen.getByText('rsi_14')).toBeInTheDocument()
     expect(screen.getByText('macd_hist')).toBeInTheDocument()
     expect(screen.queryByText('volatility_20d')).not.toBeInTheDocument()

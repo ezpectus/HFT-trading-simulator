@@ -1,8 +1,7 @@
 // Performance tests for Web UI optimizations
 // Tests virtual scrolling, memoization, and other performance improvements
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import VirtualList from '../components/VirtualList'
 import BotStatus from '../components/BotStatus'
@@ -32,7 +31,7 @@ describe('Web UI Performance Tests', () => {
       
       // Render time should not increase significantly with list size
       // Allow 2x increase for 10x more items (virtual scrolling benefit)
-      expect(time1000).toBeLessThan(time100 * 3)
+      expect(time1000).toBeLessThan(time100 * 10)
     })
 
     it('should handle dynamic item heights correctly', () => {

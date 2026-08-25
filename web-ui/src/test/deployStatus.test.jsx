@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
+import { useState } from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import DeployStatus from '../components/DeployStatus'
 
 vi.mock('../hooks/useLocalStorage', () => ({
-  useLocalStorage: (key, defaultValue) => {
-    const [value, setValue] = vi.requireActual('react').useState(defaultValue)
-    return [value, setValue]
+  useLocalStorage: (_key, defaultValue) => {
+    const [value, setValue] = useState(defaultValue)
+    return [value, setValue, () => {}]
   },
 }))
 

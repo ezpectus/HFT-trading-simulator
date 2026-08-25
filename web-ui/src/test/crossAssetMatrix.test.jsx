@@ -7,8 +7,8 @@ describe('CrossAssetMatrix', () => {
     render(<CrossAssetMatrix />)
     expect(screen.getByText('Cross-Asset Matrix')).toBeInTheDocument()
     expect(screen.getByText('Correlation Matrix (30d)')).toBeInTheDocument()
-    expect(screen.getByText('BTC')).toBeInTheDocument()
-    expect(screen.getByText('ETH')).toBeInTheDocument()
+    expect(screen.getAllByText('BTC').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('ETH').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows summary stats (high corr, low corr, avg return, best)', () => {
@@ -28,9 +28,9 @@ describe('CrossAssetMatrix', () => {
 
   it('shows all 8 assets in returns table', () => {
     render(<CrossAssetMatrix />)
-    expect(screen.getByText('SOL')).toBeInTheDocument()
-    expect(screen.getByText('AVAX')).toBeInTheDocument()
-    expect(screen.getByText('MATIC')).toBeInTheDocument()
-    expect(screen.getByText('ATOM')).toBeInTheDocument()
+    expect(screen.getAllByText('SOL').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('AVAX').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('MATIC').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('ATOM').length).toBeGreaterThanOrEqual(1)
   })
 })

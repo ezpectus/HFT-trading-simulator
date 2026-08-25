@@ -9,7 +9,7 @@ describe('TeamCollab', () => {
     expect(screen.getByText('Alice')).toBeInTheDocument()
     expect(screen.getByText('Bob')).toBeInTheDocument()
     expect(screen.getByText('Admin')).toBeInTheDocument()
-    expect(screen.getByText('Trader')).toBeInTheDocument()
+    expect(screen.getAllByText('Trader').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows online count in header', () => {

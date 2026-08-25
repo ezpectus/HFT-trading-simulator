@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
+import { useState } from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import ChartTemplates from '../components/ChartTemplates'
 
 vi.mock('../hooks/useLocalStorage', () => ({
-  useLocalStorage: (key, defaultValue) => {
-    const [value, setValue] = vi.requireActual('react').useState(defaultValue)
-    return [value, setValue]
+  useLocalStorage: (_key, defaultValue) => {
+    const [value, setValue] = useState(defaultValue)
+    return [value, setValue, () => {}]
   },
 }))
 
@@ -13,7 +14,7 @@ describe('ChartTemplates', () => {
   it('renders template grid with builtin templates', () => {
     render(<ChartTemplates symbol="BTC/USDT" addToast={vi.fn()} />)
     expect(screen.getByText('Chart Templates')).toBeInTheDocument()
-    expect(screen.getByText('Default')).toBeInTheDocument()
+    expect(screen.getAllByText('Default').length).toBeGreaterThan(0)
     expect(screen.getByText('Scalper')).toBeInTheDocument()
     expect(screen.getByText('Swing Trader')).toBeInTheDocument()
   })

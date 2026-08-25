@@ -7,8 +7,8 @@ describe('SignalTracker', () => {
     render(<SignalTracker />)
     expect(screen.getByText('Signal Tracker')).toBeInTheDocument()
     expect(screen.getByText('Signal History')).toBeInTheDocument()
-    expect(screen.getByText('TrendFollowing')).toBeInTheDocument()
-    expect(screen.getByText('MeanReversion')).toBeInTheDocument()
+    expect(screen.getAllByText('TrendFollowing').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('MeanReversion').length).toBeGreaterThan(0)
   })
 
   it('shows summary stats (win rate, avg pnl, avg conf, signals)', () => {

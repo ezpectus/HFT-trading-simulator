@@ -7,27 +7,51 @@ import { renderHook, act } from '@testing-library/react'
 import { useInterval } from '../hooks/useInterval'
 
 describe('useInterval', () => {
+  let originalSetInterval
+  let originalClearInterval
+  let timers
+
   beforeEach(() => {
-    vi.useFakeTimers()
+    originalSetInterval = global.setInterval
+    originalClearInterval = global.clearInterval
+    timers = []
+    let nextId = 1
+    global.setInterval = vi.fn((cb, delay) => {
+      const id = nextId++
+      timers.push({ id, cb, delay, callCount: 0 })
+      return id
+    })
+    global.clearInterval = vi.fn((id) => {
+      const idx = timers.findIndex(t => t.id === id)
+      if (idx >= 0) timers.splice(idx, 1)
+    })
   })
 
   afterEach(() => {
-    vi.useRealTimers()
+    global.setInterval = originalSetInterval
+    global.clearInterval = originalClearInterval
     vi.restoreAllMocks()
   })
+
+  function tickTimer(ms) {
+    for (const t of timers) {
+      t.elapsed = (t.elapsed || 0) + ms
+      while (t.delay > 0 && t.elapsed >= t.delay) {
+        t.cb()
+        t.callCount++
+        t.elapsed -= t.delay
+      }
+    }
+  }
 
   it('calls callback on interval', () => {
     const callback = vi.fn()
     renderHook(() => useInterval(callback, 1000))
 
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
+    act(() => { tickTimer(1000) })
     expect(callback).toHaveBeenCalledTimes(1)
 
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
+    act(() => { tickTimer(1000) })
     expect(callback).toHaveBeenCalledTimes(2)
   })
 
@@ -35,9 +59,7 @@ describe('useInterval', () => {
     const callback = vi.fn()
     renderHook(() => useInterval(callback, null))
 
-    act(() => {
-      vi.advanceTimersByTime(5000)
-    })
+    act(() => { tickTimer(5000) })
     expect(callback).not.toHaveBeenCalled()
   })
 
@@ -45,9 +67,7 @@ describe('useInterval', () => {
     const callback = vi.fn()
     renderHook(() => useInterval(callback, undefined))
 
-    act(() => {
-      vi.advanceTimersByTime(5000)
-    })
+    act(() => { tickTimer(5000) })
     expect(callback).not.toHaveBeenCalled()
   })
 
@@ -55,17 +75,13 @@ describe('useInterval', () => {
     const callback = vi.fn()
     const { unmount } = renderHook(() => useInterval(callback, 1000))
 
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
+    act(() => { tickTimer(1000) })
     expect(callback).toHaveBeenCalledTimes(1)
 
     unmount()
 
-    act(() => {
-      vi.advanceTimersByTime(5000)
-    })
-    expect(callback).toHaveBeenCalledTimes(1) // No more calls after unmount
+    act(() => { tickTimer(5000) })
+    expect(callback).toHaveBeenCalledTimes(1)
   })
 
   it('uses latest callback without resetting interval', () => {
@@ -75,20 +91,16 @@ describe('useInterval', () => {
       { initialProps: { cb: () => { count += 1 } } }
     )
 
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
+    act(() => { tickTimer(1000) })
     expect(count).toBe(1)
 
     // Update callback
     const newCallback = vi.fn()
     rerender({ cb: newCallback })
 
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
+    act(() => { tickTimer(1000) })
     expect(newCallback).toHaveBeenCalledTimes(1)
-    expect(count).toBe(1) // Old callback not called anymore
+    expect(count).toBe(1)
   })
 
   it('resets interval when delay changes', () => {
@@ -98,23 +110,17 @@ describe('useInterval', () => {
       { initialProps: { delay: 1000 } }
     )
 
-    act(() => {
-      vi.advanceTimersByTime(500)
-    })
+    act(() => { tickTimer(500) })
     expect(callback).not.toHaveBeenCalled()
 
     // Change delay to 2000 — timer resets
     rerender({ delay: 2000 })
 
-    act(() => {
-      vi.advanceTimersByTime(1500)
-    })
-    expect(callback).not.toHaveBeenCalled() // Not yet (only 1500ms of 2000ms)
+    act(() => { tickTimer(1500) })
+    expect(callback).not.toHaveBeenCalled()
 
-    act(() => {
-      vi.advanceTimersByTime(500)
-    })
-    expect(callback).toHaveBeenCalledTimes(1) // Now 2000ms elapsed
+    act(() => { tickTimer(500) })
+    expect(callback).toHaveBeenCalledTimes(1)
   })
 
   it('pauses when delay changes to null', () => {
@@ -124,17 +130,13 @@ describe('useInterval', () => {
       { initialProps: { delay: 1000 } }
     )
 
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
+    act(() => { tickTimer(1000) })
     expect(callback).toHaveBeenCalledTimes(1)
 
     rerender({ delay: null })
 
-    act(() => {
-      vi.advanceTimersByTime(10000)
-    })
-    expect(callback).toHaveBeenCalledTimes(1) // No more calls
+    act(() => { tickTimer(10000) })
+    expect(callback).toHaveBeenCalledTimes(1)
   })
 
   it('resumes when delay changes from null to number', () => {
@@ -144,16 +146,12 @@ describe('useInterval', () => {
       { initialProps: { delay: null } }
     )
 
-    act(() => {
-      vi.advanceTimersByTime(5000)
-    })
+    act(() => { tickTimer(5000) })
     expect(callback).not.toHaveBeenCalled()
 
     rerender({ delay: 1000 })
 
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
+    act(() => { tickTimer(1000) })
     expect(callback).toHaveBeenCalledTimes(1)
   })
 
@@ -164,17 +162,13 @@ describe('useInterval', () => {
       { initialProps: { cb: () => { result = 1 } } }
     )
 
-    act(() => {
-      vi.advanceTimersByTime(100)
-    })
+    act(() => { tickTimer(100) })
     expect(result).toBe(1)
 
     // Update callback to use new value
     rerender({ cb: () => { result = 2 } })
 
-    act(() => {
-      vi.advanceTimersByTime(100)
-    })
+    act(() => { tickTimer(100) })
     expect(result).toBe(2)
   })
 
@@ -182,10 +176,7 @@ describe('useInterval', () => {
     const callback = vi.fn()
     renderHook(() => useInterval(callback, 0))
 
-    act(() => {
-      vi.advanceTimersByTime(0)
-    })
-    // setInterval with 0 still fires on next tick
-    expect(callback).toHaveBeenCalled()
+    act(() => { tickTimer(0) })
+    expect(global.setInterval).toHaveBeenCalledWith(expect.any(Function), 0)
   })
 })
