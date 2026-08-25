@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
-import { BarChart3, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo, useState } from 'react'
+import { BarChart3 } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 
-export default function VolumeClockChart({ candles, symbol, exchange }) {
+function VolumeClockChart({ candles, symbol, exchange }) {
   const [targetVolume, setTargetVolume] = useState(1000)
 
   const data = useMemo(() => {
@@ -142,3 +142,5 @@ export default function VolumeClockChart({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(VolumeClockChart)

@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { Crosshair, TrendingUp, TrendingDown, Shield } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { calcATR, calcEMA } from '../utils/indicators'
 
-export default function TrailingStopCalculator({ candles, accounts, currentPrice, symbol, exchange }) {
+function TrailingStopCalculator({ candles, accounts, currentPrice, symbol, exchange }) {
   const [method, setMethod] = useState('atr')
   const [atrMult, setAtrMult] = useState(2)
   const [chandelierPeriod, setChandelierPeriod] = useState(22)
@@ -228,3 +228,5 @@ export default function TrailingStopCalculator({ candles, accounts, currentPrice
     </div>
   )
 }
+
+export default memo(TrailingStopCalculator)

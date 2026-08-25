@@ -1,7 +1,7 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
+import { memo, useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 
-export default function VirtualList({ 
+function VirtualList({ 
   items, 
   itemHeight = 28, 
   maxHeight = 300, 
@@ -166,3 +166,5 @@ export default function VirtualList({
     </div>
   )
 }
+
+export default memo(VirtualList)

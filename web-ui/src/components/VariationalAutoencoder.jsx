@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Variational Autoencoder (VAE) ──────────────────────────────────────────
 // Deep generative model that learns a latent representation of return
@@ -146,7 +146,7 @@ class VAE {
   }
 }
 
-export default function VariationalAutoencoder({ candles, symbol, exchange }) {
+function VariationalAutoencoder({ candles, symbol, exchange }) {
   const [latentDim, setLatentDim] = useState(2)
   const [hiddenDim, setHiddenDim] = useState(8)
   const [beta, setBeta] = useState(1)
@@ -395,3 +395,5 @@ export default function VariationalAutoencoder({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(VariationalAutoencoder)

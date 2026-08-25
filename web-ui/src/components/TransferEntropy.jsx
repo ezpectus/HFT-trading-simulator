@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Transfer Entropy (Information-Theoretic Causality) ──────────────────────
 // Measures directed information flow between time series using transfer entropy.
@@ -125,7 +125,7 @@ const surrogateTE = (X, Y, k, l, nBins, nSurrogates = 10) => {
   return tes.reduce((a, b) => a + b, 0) / nSurrogates
 }
 
-export default function TransferEntropy({ candles, symbol, exchange, symbols }) {
+function TransferEntropy({ candles, symbol, exchange, symbols }) {
   const [k, setK] = useState(1)
   const [l, setL] = useState(1)
   const [nBins, setNBins] = useState(5)
@@ -320,3 +320,5 @@ export default function TransferEntropy({ candles, symbol, exchange, symbols }) 
     </div>
   )
 }
+
+export default memo(TransferEntropy)

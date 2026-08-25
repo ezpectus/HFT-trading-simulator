@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { Zap, AlertTriangle, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Zap, AlertTriangle, BarChart3 } from 'lucide-react'
 import { formatVolume } from '../utils/format'
 
-export default function VolumeAnomalyDetector({ candles, symbol, exchange }) {
+function VolumeAnomalyDetector({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -227,3 +227,5 @@ export default function VolumeAnomalyDetector({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(VolumeAnomalyDetector)

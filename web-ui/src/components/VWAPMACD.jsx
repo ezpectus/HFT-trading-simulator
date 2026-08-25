@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
-import { BarChart3, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { BarChart3 } from 'lucide-react'
 import { calcVWAPMACD } from '../utils/indicators'
 import { formatPrice } from '../utils/format'
 
-export default function VWAPMACD({ candles, symbol, exchange }) {
+function VWAPMACD({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -138,3 +138,5 @@ export default function VWAPMACD({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(VWAPMACD)

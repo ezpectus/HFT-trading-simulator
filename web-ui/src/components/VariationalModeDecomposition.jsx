@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Variational Mode Decomposition (VMD) ────────────────────────────────────
 // VMD is a non-recursive signal decomposition method that adaptively
@@ -221,7 +221,7 @@ const vmd = (signal, K, alpha = 2000, tau = 0, DC = false, tol = 1e-6, maxIter =
   }
 }
 
-export default function VariationalModeDecomposition({ candles, symbol, exchange }) {
+function VariationalModeDecomposition({ candles, symbol, exchange }) {
   const [K, setK] = useState(4)
   const [alpha, setAlpha] = useState(2000)
   const [maxIter, setMaxIter] = useState(50)
@@ -405,3 +405,5 @@ export default function VariationalModeDecomposition({ candles, symbol, exchange
     </div>
   )
 }
+
+export default memo(VariationalModeDecomposition)
