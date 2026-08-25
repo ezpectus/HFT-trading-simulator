@@ -288,6 +288,11 @@ const FillAnalytics = lazy(() => import('../components/FillAnalytics'))
 const CancelMonitor = lazy(() => import('../components/CancelMonitor'))
 const DashboardProfiler = lazy(() => import('../components/DashboardProfiler'))
 const CrossAssetMatrix = lazy(() => import('../components/CrossAssetMatrix'))
+const LiquidityMap3D = lazy(() => import('../components/LiquidityMap3D'))
+const SignalTracker = lazy(() => import('../components/SignalTracker'))
+const PortfolioOptLab = lazy(() => import('../components/PortfolioOptLab'))
+const BlackSwanTester = lazy(() => import('../components/BlackSwanTester'))
+const ArbScanner = lazy(() => import('../components/ArbScanner'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -851,6 +856,16 @@ export const PANELS = [
   { id: 'dashboard-profiler', name: 'Dashboard Profiler', category: 'config', component: DashboardProfiler,
     props: () => ({}) },
   { id: 'cross-asset-matrix', name: 'Cross-Asset Matrix', category: 'risk', component: CrossAssetMatrix,
+    props: () => ({}) },
+  { id: 'liquidity-map-3d', name: 'Liquidity Map 3D', category: 'orderflow', component: LiquidityMap3D,
+    props: (ctx) => ({ currentPrice: ctx.currentPrice }) },
+  { id: 'signal-tracker', name: 'Signal Tracker', category: 'strategy', component: SignalTracker,
+    props: () => ({}) },
+  { id: 'portfolio-opt-lab', name: 'Portfolio Optimization Lab', category: 'portfolio', component: PortfolioOptLab,
+    props: () => ({}) },
+  { id: 'black-swan-tester', name: 'Black Swan Tester', category: 'risk', component: BlackSwanTester,
+    props: () => ({}) },
+  { id: 'arb-scanner', name: 'Arbitrage Scanner', category: 'strategy', component: ArbScanner,
     props: () => ({}) },
 ]
 
