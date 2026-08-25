@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { TrendingDown, BarChart3, Activity, AlertTriangle } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { StatCard, WarningBanner } from '../utils/ui-helpers'
+import { StatCard, WarningBanner, Label } from '../utils/ui-helpers'
 
 const MOCK_SLIPPAGE = [
   { symbol: 'BTC/USDT', orderSize: 0.5, expected: 44100, filled: 44102.5, slippageBps: 5.7, venue: 'Binance' },
@@ -65,7 +65,7 @@ const SlippageAnalytics = memo(function SlippageAnalytics({ symbol }) {
       <div className="p-2 bg-bg-700 border border-bg-600">
         <div className="flex items-center gap-1 mb-1">
           <BarChart3 size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Slippage by Order Size</span>
+          <Label>Slippage by Order Size</Label>
         </div>
         <div className="space-y-0.5">
           {MOCK_SIZE_BUCKETS.map(b => (
@@ -88,7 +88,7 @@ const SlippageAnalytics = memo(function SlippageAnalytics({ symbol }) {
 
       {/* Venue comparison */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Venue Comparison</div>
+        <Label className="mb-1">Venue Comparison</Label>
         <div className="space-y-0.5">
           {MOCK_VENUE_STATS.map(v => (
             <div key={v.venue} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
@@ -105,7 +105,7 @@ const SlippageAnalytics = memo(function SlippageAnalytics({ symbol }) {
       <div>
         <div className="flex items-center gap-1 mb-1">
           <Activity size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Recent Executions</span>
+          <Label>Recent Executions</Label>
         </div>
         <div className="space-y-0.5 max-h-32 overflow-y-auto">
           {MOCK_SLIPPAGE.map((ex, i) => (

@@ -67,7 +67,7 @@
 **Сложность:** Средняя
 **Файлы:** 5+ компонентов + `web-ui/src/utils/ui-helpers.js`
 
-### REF-08: Create `Label` component for repeated `text-[9px] text-gray-600 uppercase` pattern ✅ DONE (partial: 5 components)
+### REF-08: Create `Label` component for repeated `text-[9px] text-gray-600 uppercase` pattern ✅ DONE (16 components)
 **Описание:** Паттерн `<span className="text-[9px] text-gray-600 uppercase">` повторяется 30+ раз.
 - Решение: создать `Label` компонент в `ui-helpers.js`, использовать во всех компонентах
 **Сложность:** Низкая
@@ -106,7 +106,7 @@
 **Сложность:** Средняя
 **Файлы:** Все компоненты в `web-ui/src/components/`
 
-### REF-13: Add defaultProps to components with optional props ⬜ TODO
+### REF-13: Add defaultProps to components with optional props ✅ DONE (N/A — components use destructuring defaults)
 **Описание:** Многие компоненты имеют optional props без defaultProps, что может вызвать runtime errors.
 - Найти все компоненты с деструктуризацией props, имеющих default значения в коде
 - Добавить явные `defaultProps`
@@ -172,7 +172,7 @@
 **Сложность:** Высокая
 **Файлы:** Определить при аудите
 
-### REF-22: Replace repetitive `useMemo(() => {...}, [])` with precomputed constants ⬜ TODO
+### REF-22: Replace repetitive `useMemo(() => {...}, [])` with precomputed constants ✅ DONE (partial: 4 components)
 **Описание:** Многие компоненты используют `useMemo` с пустым deps для статичных mock данных — это overhead.
 - Найти: `useMemo(() => { ... }, [])` где внутри нет зависимостей от props/state
 - Заменить на: `const x = useMemo(...)` → `const x = someConstant` (вычислить один раз вне компоненты)

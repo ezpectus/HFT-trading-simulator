@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Activity, BarChart3, Waves, Gauge } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { StatCard } from '../utils/ui-helpers'
+import { StatCard, Label } from '../utils/ui-helpers'
 
 const MOCK_SPREADS = [
   { time: '12:40', bid: 44098, ask: 44102, spread: 4, depth: 12500 },
@@ -72,7 +72,7 @@ const Microstructure = memo(function Microstructure({ symbol }) {
       <div className="p-2 bg-bg-700 border border-bg-600">
         <div className="flex items-center gap-1 mb-1">
           <Activity size={11} className="text-accent-blue" />
-          <span className="text-[10px] text-gray-600 uppercase">Spread Trend</span>
+          <Label>Spread Trend</Label>
         </div>
         <div className="flex items-end gap-1 h-12">
           {MOCK_SPREADS.map((s, i) => (
@@ -91,7 +91,7 @@ const Microstructure = memo(function Microstructure({ symbol }) {
       <div className="p-2 bg-bg-700 border border-bg-600">
         <div className="flex items-center gap-1 mb-1">
           <BarChart3 size={11} className="text-accent-green" />
-          <span className="text-[10px] text-gray-600 uppercase">Order Flow by Size</span>
+          <Label>Order Flow by Size</Label>
         </div>
         <div className="space-y-0.5">
           {MOCK_ORDER_FLOW.map(flow => (
@@ -115,7 +115,7 @@ const Microstructure = memo(function Microstructure({ symbol }) {
       <div className="p-2 bg-bg-700 border border-bg-600">
         <div className="flex items-center gap-1 mb-1">
           <Gauge size={11} className="text-accent-purple" />
-          <span className="text-[10px] text-gray-600 uppercase">Depth Profile (L1-L10)</span>
+          <Label>Depth Profile (L1-L10)</Label>
         </div>
         <div className="space-y-0.5">
           {MOCK_DEPTH.map(level => (

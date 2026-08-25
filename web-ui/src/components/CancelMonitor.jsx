@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { XCircle, Filter, AlertTriangle, Clock } from 'lucide-react'
-import { StatCard, Bar, WarningBanner } from '../utils/ui-helpers'
+import { StatCard, Bar, WarningBanner, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_CANCELS = [
   { id: 1, orderId: 'ord_8a3f', symbol: 'BTC/USDT', side: 'BUY', reason: 'Price moved', latency: 3200, ts: '12:45:32', source: 'user' },
@@ -43,13 +43,7 @@ const CancelMonitor = memo(function CancelMonitor() {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <XCircle size={14} className="text-accent-red" />
-          <span className="text-sm font-medium">Cancel Monitor</span>
-        </div>
-        <span className="text-[10px] text-gray-600">{filtered.length} cancels</span>
-      </div>
+      <SectionTitle icon={XCircle} title="Cancel Monitor" iconColor="text-accent-red" right={<span className="text-[10px] text-gray-600">{filtered.length} cancels</span>} />
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">

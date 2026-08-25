@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Radio, Activity, Waves, TrendingUp, TrendingDown } from 'lucide-react'
-import { Bar } from '../utils/ui-helpers'
+import { Bar, Label } from '../utils/ui-helpers'
 
 const MOCK_REGIMES = [
   { name: 'Trending Up', probability: 0.65, icon: 'up', color: 'text-accent-green', bg: 'bg-accent-green' },
@@ -53,7 +53,7 @@ const RegimeDetector = memo(function RegimeDetector({ symbol }) {
 
       {/* Current regime */}
       <div className="p-2 bg-bg-700 border border-bg-600 rounded">
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Current Regime</div>
+        <Label className="mb-1">Current Regime</Label>
         <div className="flex items-center gap-2">
           {regimeIcon(currentRegime.icon)}
           <span className={`text-sm font-medium ${currentRegime.color}`}>{currentRegime.name}</span>
@@ -63,7 +63,7 @@ const RegimeDetector = memo(function RegimeDetector({ symbol }) {
 
       {/* Regime probabilities */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Regime Probabilities</div>
+        <Label className="mb-1">Regime Probabilities</Label>
         <div className="space-y-0.5">
           {MOCK_REGIMES.map(regime => (
             <div key={regime.name} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
@@ -80,7 +80,7 @@ const RegimeDetector = memo(function RegimeDetector({ symbol }) {
 
       {/* Regime indicators */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Statistical Indicators</div>
+        <Label className="mb-1">Statistical Indicators</Label>
         <div className="grid grid-cols-2 gap-1">
           {MOCK_INDICATORS.map(ind => (
             <div key={ind.name} className="p-1.5 bg-bg-700 border border-bg-600">
@@ -96,7 +96,7 @@ const RegimeDetector = memo(function RegimeDetector({ symbol }) {
 
       {/* Regime history */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Recent Regime History</div>
+        <Label className="mb-1">Recent Regime History</Label>
         <div className="flex items-center gap-1">
           {MOCK_HISTORY.map((h, i) => (
             <div key={i} className="flex-1 text-center">

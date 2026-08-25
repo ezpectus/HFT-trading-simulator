@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Smile, Frown, Meh, TrendingUp, TrendingDown, MessageCircle, Newspaper, Twitter } from 'lucide-react'
+import { Label } from '../utils/ui-helpers'
 
 const MOCK_SENTIMENT = [
   { source: 'Twitter', score: 0.72, count: 3420, trend: 'up', change: 8.5 },
@@ -71,7 +72,7 @@ const SentimentDashboard = memo(function SentimentDashboard({ symbol }) {
       {/* Overall sentiment */}
       <div className="p-2 bg-bg-700 border border-bg-600 rounded">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-gray-600 uppercase">Overall Sentiment</span>
+          <Label>Overall Sentiment</Label>
           <div className="flex items-center gap-1.5">
             {sentimentIcon(overall)}
             <span className={`text-sm font-mono font-bold ${sentimentColor(overall)}`}>
@@ -86,7 +87,7 @@ const SentimentDashboard = memo(function SentimentDashboard({ symbol }) {
 
       {/* Source breakdown */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">By Source</div>
+        <Label className="mb-1">By Source</Label>
         <div className="space-y-0.5">
           {MOCK_SENTIMENT.map(src => {
             const Icon = SOURCE_ICONS[src.source] || MessageCircle
@@ -114,7 +115,7 @@ const SentimentDashboard = memo(function SentimentDashboard({ symbol }) {
 
       {/* Top mentions */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Top Mentions</div>
+        <Label className="mb-1">Top Mentions</Label>
         <div className="space-y-0.5">
           {MOCK_MENTIONS.map(m => (
             <div key={m.symbol} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
@@ -133,7 +134,7 @@ const SentimentDashboard = memo(function SentimentDashboard({ symbol }) {
 
       {/* Headlines */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Recent Headlines</div>
+        <Label className="mb-1">Recent Headlines</Label>
         <div className="space-y-0.5">
           {MOCK_HEADLINES.map((h, i) => (
             <div key={i} className="py-0.5 px-1.5 bg-bg-700">

@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Calendar, DollarSign } from 'lucide-react'
 import { formatPrice } from '../utils/format'
-import { StatCard, WarningBanner } from '../utils/ui-helpers'
+import { StatCard, WarningBanner, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_BASIS = [
   { expiry: '1W', days: 7, spot: 44100, futures: 44250, basis: 150, basisPct: 0.34, funding: 0.012, apr: 17.8 },
@@ -41,13 +41,7 @@ const FuturesBasis = memo(function FuturesBasis({ currentPrice }) {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Calendar size={14} className="text-accent-purple" />
-          <span className="text-sm font-medium">Futures Basis</span>
-        </div>
-        <span className="text-[10px] text-gray-600">Spot: ${formatPrice(spot, 0)}</span>
-      </div>
+      <SectionTitle icon={Calendar} title="Futures Basis" iconColor="text-accent-purple" right={<span className="text-[10px] text-gray-600">Spot: ${formatPrice(spot, 0)}</span>} />
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">

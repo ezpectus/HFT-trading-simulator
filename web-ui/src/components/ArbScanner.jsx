@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { Search, Zap, TrendingUp, AlertTriangle } from 'lucide-react'
 import { statusColor, statusBg, StatCard, Label, SectionTitle, Bar, WarningBanner } from '../utils/ui-helpers'
 import { MOCK_OPPORTUNITIES, MOCK_SCAN_STATS } from '../utils/mock-data'
@@ -6,25 +6,25 @@ import { MOCK_OPPORTUNITIES, MOCK_SCAN_STATS } from '../utils/mock-data'
 const STATUS_COLOR_MAP = { active: 'text-accent-green', fading: 'text-accent-yellow', closing: 'text-accent-red', default: 'text-gray-400' }
 const STATUS_BG_MAP = { active: 'bg-accent-green/20', fading: 'bg-accent-yellow/20', closing: 'bg-accent-red/20', default: 'bg-gray-600/20' }
 
+const STATS = {
+  active: MOCK_OPPORTUNITIES.filter(o => o.status === 'active').length,
+  totalEstProfit: MOCK_OPPORTUNITIES.filter(o => o.status === 'active').reduce((s, o) => s + o.estProfit, 0),
+  avgProfit: MOCK_OPPORTUNITIES.reduce((s, o) => s + o.profit, 0) / MOCK_OPPORTUNITIES.length,
+  best: MOCK_OPPORTUNITIES.reduce((max, o) => o.profit > max.profit ? o : max, MOCK_OPPORTUNITIES[0]),
+}
+
 const ArbScanner = memo(function ArbScanner() {
-  const stats = useMemo(() => {
-    const active = MOCK_OPPORTUNITIES.filter(o => o.status === 'active').length
-    const totalEstProfit = MOCK_OPPORTUNITIES.filter(o => o.status === 'active').reduce((s, o) => s + o.estProfit, 0)
-    const avgProfit = MOCK_OPPORTUNITIES.reduce((s, o) => s + o.profit, 0) / MOCK_OPPORTUNITIES.length
-    const best = MOCK_OPPORTUNITIES.reduce((max, o) => o.profit > max.profit ? o : max, MOCK_OPPORTUNITIES[0])
-    return { active, totalEstProfit, avgProfit, best }
-  }, [])
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <SectionTitle icon={Search} title="Arbitrage Scanner" right={<span className="text-[10px] text-gray-600">{stats.active} active</span>} />
+      <SectionTitle icon={Search} title="Arbitrage Scanner" right={<span className="text-[10px] text-gray-600">{STATS.active} active</span>} />
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <StatCard label="Active" value={stats.active} color="text-accent-green" />
-        <StatCard label="Est Profit" value={`$${stats.totalEstProfit}`} color="text-accent-green" />
-        <StatCard label="Avg Spread" value={`${stats.avgProfit.toFixed(2)}%`} color="text-gray-300" />
-        <StatCard label="Best" value={`${stats.best.profit.toFixed(2)}%`} color="text-accent-yellow" />
+        <StatCard label="Active" value={STATS.active} color="text-accent-green" />
+        <StatCard label="Est Profit" value={`$${STATS.totalEstProfit}`} color="text-accent-green" />
+        <StatCard label="Avg Spread" value={`${STATS.avgProfit.toFixed(2)}%`} color="text-gray-300" />
+        <StatCard label="Best" value={`${STATS.best.profit.toFixed(2)}%`} color="text-accent-yellow" />
       </div>
 
       {/* Opportunities */}
@@ -71,9 +71,9 @@ const ArbScanner = memo(function ArbScanner() {
         </div>
       </div>
 
-      {stats.active > 0 && (
+      {STATS.active > 0 && (
         <WarningBanner icon={TrendingUp} color="text-accent-green">
-          {stats.active} active opportunities — est. ${stats.totalEstProfit} total profit
+          {STATS.active} active opportunities — est. ${STATS.totalEstProfit} total profit
         </WarningBanner>
       )}
 

@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { GitCompare, TrendingUp, TrendingDown, Zap, AlertTriangle } from 'lucide-react'
 import { statusColor, statusBg, StatCard } from '../utils/ui-helpers'
 import { MOCK_PAIRS } from '../utils/mock-data'
@@ -21,14 +21,14 @@ function zScoreColor(z) {
   return 'text-gray-400'
 }
 
+const STATS = {
+  openCount: MOCK_PAIRS.filter(p => p.status === 'open').length,
+  signalCount: MOCK_PAIRS.filter(p => p.status === 'signal').length,
+  totalPnl: MOCK_PAIRS.filter(p => p.status === 'open').reduce((s, p) => s + p.pnl, 0),
+  avgCorr: MOCK_PAIRS.reduce((s, p) => s + p.corr, 0) / MOCK_PAIRS.length,
+}
+
 const PairsArb = memo(function PairsArb() {
-  const stats = useMemo(() => {
-    const openCount = MOCK_PAIRS.filter(p => p.status === 'open').length
-    const signalCount = MOCK_PAIRS.filter(p => p.status === 'signal').length
-    const totalPnl = MOCK_PAIRS.filter(p => p.status === 'open').reduce((s, p) => s + p.pnl, 0)
-    const avgCorr = MOCK_PAIRS.reduce((s, p) => s + p.corr, 0) / MOCK_PAIRS.length
-    return { openCount, signalCount, totalPnl, avgCorr }
-  }, [])
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
@@ -37,15 +37,15 @@ const PairsArb = memo(function PairsArb() {
           <GitCompare size={14} className="text-accent-blue" />
           <span className="text-sm font-medium">Pairs Arbitrage</span>
         </div>
-        <span className="text-[10px] text-gray-600">{stats.openCount} open</span>
+        <span className="text-[10px] text-gray-600">{STATS.openCount} open</span>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <StatCard label="Open" value={stats.openCount} color="text-accent-green" />
-        <StatCard label="Signals" value={stats.signalCount} color="text-accent-yellow" />
-        <StatCard label="Open PnL" value={`${stats.totalPnl >= 0 ? '+' : ''}${stats.totalPnl}`} color={stats.totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red'} />
-        <StatCard label="Avg Corr" value={stats.avgCorr.toFixed(2)} color="text-gray-300" />
+        <StatCard label="Open" value={STATS.openCount} color="text-accent-green" />
+        <StatCard label="Signals" value={STATS.signalCount} color="text-accent-yellow" />
+        <StatCard label="Open PnL" value={`${STATS.totalPnl >= 0 ? '+' : ''}${STATS.totalPnl}`} color={STATS.totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red'} />
+        <StatCard label="Avg Corr" value={STATS.avgCorr.toFixed(2)} color="text-gray-300" />
       </div>
 
       {/* Pairs table */}
@@ -79,7 +79,7 @@ const PairsArb = memo(function PairsArb() {
       </div>
 
       {/* Signal alerts */}
-      {stats.signalCount > 0 && (
+      {STATS.signalCount > 0 && (
         <div className="space-y-0.5">
           {MOCK_PAIRS.filter(p => p.status === 'signal').map(pair => (
             <div key={pair.id} className="flex items-center gap-1.5 p-1.5 bg-accent-yellow/10 border border-accent-yellow/30">

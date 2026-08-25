@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Activity, Zap, TrendingDown, Server, Wifi } from 'lucide-react'
-import { WarningBanner } from '../utils/ui-helpers'
+import { WarningBanner, Label } from '../utils/ui-helpers'
 
 const MOCK_LATENCY_POINTS = Array.from({ length: 20 }, (_, i) => ({
   t: i,
@@ -103,7 +103,7 @@ const LatencyPanel = memo(function LatencyPanel({ exchange }) {
 
       {/* Percentiles */}
       <div className="p-2 bg-bg-700 border border-bg-600">
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Latency Percentiles</div>
+        <Label className="mb-1">Latency Percentiles</Label>
         <div className="grid grid-cols-3 gap-2">
           <div className="flex flex-col items-center">
             <span className="text-[9px] text-gray-600">p50</span>
@@ -122,7 +122,7 @@ const LatencyPanel = memo(function LatencyPanel({ exchange }) {
 
       {/* Sparkline */}
       <div className="p-2 bg-bg-700 border border-bg-600">
-        <div className="text-[10px] text-gray-600 uppercase mb-1">WS Latency Trend</div>
+        <Label className="mb-1">WS Latency Trend</Label>
         <div className="flex items-end gap-0.5 h-12">
           {MOCK_LATENCY_POINTS.map((p, i) => (
             <div
@@ -140,7 +140,7 @@ const LatencyPanel = memo(function LatencyPanel({ exchange }) {
 
       {/* Network hops */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Network Hops</div>
+        <Label className="mb-1">Network Hops</Label>
         <div className="space-y-0.5">
           {MOCK_HOPS.map((hop, i) => (
             <div key={i} className="flex items-center justify-between py-0.5 px-1.5 bg-bg-700">

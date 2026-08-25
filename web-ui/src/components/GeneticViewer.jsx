@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { Dna, Trophy, Users, TrendingUp } from 'lucide-react'
-import { StatCard, Bar, WarningBanner } from '../utils/ui-helpers'
+import { StatCard, Bar, WarningBanner, Label } from '../utils/ui-helpers'
 
 const MOCK_GENERATIONS = [
   { gen: 1, best: 0.45, avg: 0.28, worst: 0.12, diversity: 0.85, population: 50 },
@@ -64,7 +64,7 @@ const GeneticViewer = memo(function GeneticViewer() {
       <div className="p-2 bg-bg-700 border border-bg-600">
         <div className="flex items-center gap-1 mb-1">
           <TrendingUp size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Fitness Evolution</span>
+          <Label>Fitness Evolution</Label>
         </div>
         <div className="flex items-end gap-1 h-16">
           {MOCK_GENERATIONS.map(g => (
@@ -93,7 +93,7 @@ const GeneticViewer = memo(function GeneticViewer() {
       <div>
         <div className="flex items-center gap-1 mb-1">
           <Trophy size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Top Individuals (Gen {selectedGen})</span>
+          <Label>Top Individuals (Gen {selectedGen})</Label>
         </div>
         <div className="space-y-0.5">
           {MOCK_TOP_INDIVIDUALS.map(ind => (
@@ -115,7 +115,7 @@ const GeneticViewer = memo(function GeneticViewer() {
       <div>
         <div className="flex items-center gap-1 mb-1">
           <Users size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Operator Distribution</span>
+          <Label>Operator Distribution</Label>
         </div>
         <div className="space-y-0.5">
           {MOCK_OPERATORS.map(op => (

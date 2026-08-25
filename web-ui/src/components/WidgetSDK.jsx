@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { Code2, Copy, Puzzle, BookOpen } from 'lucide-react'
+import { Label } from '../utils/ui-helpers'
 
 const MOCK_WIDGETS = [
   { id: 'candle-chart', name: 'CandleChart', category: 'Chart', desc: 'Real-time candlestick chart with indicators', props: '[candles, symbol, timeframe]' },
@@ -70,7 +71,7 @@ const WidgetSDK = memo(function WidgetSDK({ addToast }) {
 
       {/* Widget list */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Available Widgets</div>
+        <Label className="mb-1">Available Widgets</Label>
         <div className="space-y-0.5">
           {filtered.map(widget => (
             <div
@@ -93,7 +94,7 @@ const WidgetSDK = memo(function WidgetSDK({ addToast }) {
         <div className="p-2 bg-bg-700 border border-bg-600 rounded">
           <div className="flex items-center gap-1 mb-1">
             <BookOpen size={10} className="text-gray-500" />
-            <span className="text-[10px] text-gray-600 uppercase">{selected.name} Props</span>
+            <Label>{selected.name} Props</Label>
           </div>
           <div className="text-[10px] font-mono text-accent-blue">{selected.props}</div>
         </div>
@@ -104,7 +105,7 @@ const WidgetSDK = memo(function WidgetSDK({ addToast }) {
         <div className="flex items-center justify-between p-1.5 border-b border-bg-600">
           <div className="flex items-center gap-1">
             <Code2 size={11} className="text-gray-500" />
-            <span className="text-[10px] text-gray-600 uppercase">Usage Example</span>
+            <Label>Usage Example</Label>
           </div>
           <button onClick={handleCopy} className="flex items-center gap-1 text-[9px] text-gray-500 hover:text-gray-300 transition-colors">
             <Copy size={9} />

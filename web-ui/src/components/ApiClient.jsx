@@ -1,6 +1,7 @@
 import { memo, useMemo, useState, useCallback } from 'react'
 import { Link2, Key, Copy, Check, ExternalLink, Terminal, Shield } from 'lucide-react'
 import { EmptyState } from './LoadingSkeleton'
+import { Label } from '../utils/ui-helpers'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 
 const DEFAULT_ENDPOINTS = [
@@ -105,7 +106,7 @@ const ApiClient = memo(function ApiClient({ exchange, signals, addToast }) {
 
       {/* Endpoints */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Endpoints</div>
+        <Label className="mb-1">Endpoints</Label>
         <div className="bg-bg-700 border border-bg-600 rounded">
           {endpoints.map(ep => (
             <EndpointRow key={ep.id} endpoint={ep} onCopy={handleCopy} />
@@ -117,7 +118,7 @@ const ApiClient = memo(function ApiClient({ exchange, signals, addToast }) {
       <div>
         <div className="flex items-center gap-1.5 mb-1">
           <Key size={11} className="text-accent-yellow" />
-          <span className="text-[10px] text-gray-600 uppercase">API Credentials</span>
+          <Label>API Credentials</Label>
         </div>
         <div className="space-y-1.5">
           <input
@@ -155,7 +156,7 @@ const ApiClient = memo(function ApiClient({ exchange, signals, addToast }) {
       <div>
         <div className="flex items-center gap-1.5 mb-1">
           <Terminal size={11} className="text-accent-green" />
-          <span className="text-[10px] text-gray-600 uppercase">cURL Example</span>
+          <Label>cURL Example</Label>
         </div>
         <pre className="bg-bg-900 border border-bg-600 p-2 text-[10px] text-gray-400 font-mono overflow-x-auto whitespace-pre-wrap">
           {curlExample}

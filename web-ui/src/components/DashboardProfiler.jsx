@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Gauge, Cpu, MemoryStick, AlertTriangle, Zap } from 'lucide-react'
-import { statusColor, statusBg, Bar, WarningBanner } from '../utils/ui-helpers'
+import { statusColor, statusBg, Bar, WarningBanner, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_PANELS = [
   { name: 'CandleChart', renderTime: 12.5, mountTime: 45.2, rerenders: 8, cpu: 2.1, status: 'ok' },
@@ -47,13 +47,7 @@ const DashboardProfiler = memo(function DashboardProfiler() {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Gauge size={14} className="text-accent-purple" />
-          <span className="text-sm font-medium">Dashboard Profiler</span>
-        </div>
-        <span className="text-[10px] text-gray-600">{MOCK_PANELS.length} panels</span>
-      </div>
+      <SectionTitle icon={Gauge} title="Dashboard Profiler" iconColor="text-accent-purple" right={<span className="text-[10px] text-gray-600">{MOCK_PANELS.length} panels</span>} />
 
       {/* Key metrics */}
       <div className="grid grid-cols-3 gap-1">

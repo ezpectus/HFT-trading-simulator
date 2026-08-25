@@ -1,6 +1,6 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useState } from 'react'
 import { Users, MessageSquare, Share2, UserCircle } from 'lucide-react'
-import { statusColor, StatCard } from '../utils/ui-helpers'
+import { statusColor, StatCard, Label } from '../utils/ui-helpers'
 import { MOCK_TEAM, MOCK_MESSAGES, MOCK_SHARED } from '../utils/mock-data'
 
 const STATUS_MAP = {
@@ -15,11 +15,11 @@ function statusDot(status) {
   return 'bg-gray-600'
 }
 
+const ONLINE_COUNT = MOCK_TEAM.filter(m => m.status === 'online').length
+
 const TeamCollab = memo(function TeamCollab({ addToast }) {
   const [messages, setMessages] = useState(MOCK_MESSAGES)
   const [input, setInput] = useState('')
-
-  const onlineCount = useMemo(() => MOCK_TEAM.filter(m => m.status === 'online').length, [])
 
   const handleSend = () => {
     if (!input.trim()) return
@@ -36,12 +36,12 @@ const TeamCollab = memo(function TeamCollab({ addToast }) {
           <Users size={14} className="text-accent-blue" />
           <span className="text-sm font-medium">Team Collaboration</span>
         </div>
-        <span className="text-[10px] text-gray-600">{onlineCount} online</span>
+        <span className="text-[10px] text-gray-600">{ONLINE_COUNT} online</span>
       </div>
 
       {/* Team members */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Members</div>
+        <Label className="mb-1">Members</Label>
         <div className="space-y-0.5">
           {MOCK_TEAM.map(member => (
             <div key={member.id} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
@@ -59,7 +59,7 @@ const TeamCollab = memo(function TeamCollab({ addToast }) {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <StatCard label="Online" value={onlineCount} color="text-accent-green" />
+        <StatCard label="Online" value={ONLINE_COUNT} color="text-accent-green" />
         <StatCard label="Messages" value={messages.length} color="text-gray-300" />
         <StatCard label="Shared" value={MOCK_SHARED.length} color="text-accent-blue" />
       </div>
@@ -68,7 +68,7 @@ const TeamCollab = memo(function TeamCollab({ addToast }) {
       <div>
         <div className="flex items-center gap-1 mb-1">
           <MessageSquare size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Team Chat</span>
+          <Label>Team Chat</Label>
         </div>
         <div className="bg-bg-900 border border-bg-600 rounded p-1.5 max-h-32 overflow-y-auto space-y-1">
           {messages.map(msg => (
@@ -101,7 +101,7 @@ const TeamCollab = memo(function TeamCollab({ addToast }) {
       <div>
         <div className="flex items-center gap-1 mb-1">
           <Share2 size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Shared Resources</span>
+          <Label>Shared Resources</Label>
         </div>
         <div className="space-y-0.5">
           {MOCK_SHARED.map(item => (

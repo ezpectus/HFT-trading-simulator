@@ -1,35 +1,36 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { Target, TrendingUp, TrendingDown, Crosshair } from 'lucide-react'
 import { pnlColor, sideColor, StatCard } from '../utils/ui-helpers'
 import { MOCK_SIGNALS } from '../utils/mock-data'
 
-const SignalTracker = memo(function SignalTracker() {
-  const stats = useMemo(() => {
-    const open = MOCK_SIGNALS.filter(s => s.status === 'open').length
-    const closed = MOCK_SIGNALS.filter(s => s.status === 'closed').length
-    const winners = MOCK_SIGNALS.filter(s => s.status === 'closed' && s.pnl > 0).length
-    const losers = MOCK_SIGNALS.filter(s => s.status === 'closed' && s.pnl < 0).length
-    const winRate = (winners / closed) * 100
-    const avgPnl = MOCK_SIGNALS.reduce((s, sig) => s + sig.pnl, 0) / MOCK_SIGNALS.length
-    const avgConf = MOCK_SIGNALS.reduce((s, sig) => s + sig.confidence, 0) / MOCK_SIGNALS.length
-    return { open, closed, winners, losers, winRate, avgPnl, avgConf }
-  }, [])
+const STATS = (() => {
+  const open = MOCK_SIGNALS.filter(s => s.status === 'open').length
+  const closed = MOCK_SIGNALS.filter(s => s.status === 'closed').length
+  const winners = MOCK_SIGNALS.filter(s => s.status === 'closed' && s.pnl > 0).length
+  const losers = MOCK_SIGNALS.filter(s => s.status === 'closed' && s.pnl < 0).length
+  const winRate = (winners / closed) * 100
+  const avgPnl = MOCK_SIGNALS.reduce((s, sig) => s + sig.pnl, 0) / MOCK_SIGNALS.length
+  const avgConf = MOCK_SIGNALS.reduce((s, sig) => s + sig.confidence, 0) / MOCK_SIGNALS.length
+  return { open, closed, winners, losers, winRate, avgPnl, avgConf }
+})()
 
-  const byStrategy = useMemo(() => {
-    const groups = {}
-    MOCK_SIGNALS.forEach(s => {
-      if (!groups[s.strategy]) groups[s.strategy] = { count: 0, pnl: 0, wins: 0 }
-      groups[s.strategy].count++
-      groups[s.strategy].pnl += s.pnl
-      if (s.pnl > 0) groups[s.strategy].wins++
-    })
-    return Object.entries(groups).map(([name, data]) => ({
-      name,
-      count: data.count,
-      pnl: data.pnl,
-      winRate: (data.wins / data.count) * 100,
-    }))
-  }, [])
+const BY_STRATEGY = (() => {
+  const groups = {}
+  MOCK_SIGNALS.forEach(s => {
+    if (!groups[s.strategy]) groups[s.strategy] = { count: 0, pnl: 0, wins: 0 }
+    groups[s.strategy].count++
+    groups[s.strategy].pnl += s.pnl
+    if (s.pnl > 0) groups[s.strategy].wins++
+  })
+  return Object.entries(groups).map(([name, data]) => ({
+    name,
+    count: data.count,
+    pnl: data.pnl,
+    winRate: (data.wins / data.count) * 100,
+  }))
+})()
+
+const SignalTracker = memo(function SignalTracker() {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
@@ -38,14 +39,14 @@ const SignalTracker = memo(function SignalTracker() {
           <Target size={14} className="text-accent-blue" />
           <span className="text-sm font-medium">Signal Tracker</span>
         </div>
-        <span className="text-[10px] text-gray-600">{stats.open} open / {stats.closed} closed</span>
+        <span className="text-[10px] text-gray-600">{STATS.open} open / {STATS.closed} closed</span>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <StatCard label="Win Rate" value={`${stats.winRate.toFixed(0)}%`} color={stats.winRate >= 60 ? 'text-accent-green' : 'text-accent-yellow'} />
-        <StatCard label="Avg PnL" value={`${stats.avgPnl >= 0 ? '+' : ''}${stats.avgPnl.toFixed(2)}%`} color={pnlColor(stats.avgPnl)} />
-        <StatCard label="Avg Conf" value={`${(stats.avgConf * 100).toFixed(0)}%`} color="text-gray-300" />
+        <StatCard label="Win Rate" value={`${STATS.winRate.toFixed(0)}%`} color={STATS.winRate >= 60 ? 'text-accent-green' : 'text-accent-yellow'} />
+        <StatCard label="Avg PnL" value={`${STATS.avgPnl >= 0 ? '+' : ''}${STATS.avgPnl.toFixed(2)}%`} color={pnlColor(STATS.avgPnl)} />
+        <StatCard label="Avg Conf" value={`${(STATS.avgConf * 100).toFixed(0)}%`} color="text-gray-300" />
         <StatCard label="Signals" value={MOCK_SIGNALS.length} color="text-gray-300" />
       </div>
 
@@ -56,7 +57,7 @@ const SignalTracker = memo(function SignalTracker() {
           <span className="text-[10px] text-gray-600 uppercase">By Strategy</span>
         </div>
         <div className="space-y-0.5">
-          {byStrategy.map(s => (
+          {BY_STRATEGY.map(s => (
             <div key={s.name} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
               <span className="text-[10px] text-gray-300 w-24 truncate">{s.name}</span>
               <span className="text-[9px] font-mono text-gray-500 w-8">{s.count}</span>
@@ -96,11 +97,11 @@ const SignalTracker = memo(function SignalTracker() {
       <div className="flex items-center justify-between text-[9px] text-gray-600 pt-1 border-t border-bg-600">
         <span className="flex items-center gap-1">
           <TrendingUp size={9} className="text-accent-green" />
-          {stats.winners} wins
+          {STATS.winners} wins
         </span>
         <span className="flex items-center gap-1">
           <TrendingDown size={9} className="text-accent-red" />
-          {stats.losers} losses
+          {STATS.losers} losses
         </span>
       </div>
     </div>

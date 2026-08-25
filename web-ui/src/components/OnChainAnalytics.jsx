@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Link2, TrendingUp, TrendingDown, Wallet, Activity, Database } from 'lucide-react'
 import { formatVolume } from '../utils/format'
+import { Label } from '../utils/ui-helpers'
 
 const MOCK_METRICS = [
   { metric: 'Active Addresses', value: 1245000, change: 5.2, trend: 'up' },
@@ -52,7 +53,7 @@ const OnChainAnalytics = memo(function OnChainAnalytics({ symbol }) {
       {/* Net exchange flow */}
       <div className="p-2 bg-bg-700 border border-bg-600 rounded">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-gray-600 uppercase">Net Exchange Flow</span>
+          <Label>Net Exchange Flow</Label>
           <span className={`text-sm font-mono font-bold ${netFlow >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
             {netFlow >= 0 ? '+' : ''}{formatVolume(netFlow)} BTC
           </span>
@@ -66,7 +67,7 @@ const OnChainAnalytics = memo(function OnChainAnalytics({ symbol }) {
       <div>
         <div className="flex items-center gap-1 mb-1">
           <Activity size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Key Metrics</span>
+          <Label>Key Metrics</Label>
         </div>
         <div className="grid grid-cols-2 gap-1">
           {MOCK_METRICS.map(m => (
@@ -92,7 +93,7 @@ const OnChainAnalytics = memo(function OnChainAnalytics({ symbol }) {
       <div>
         <div className="flex items-center gap-1 mb-1">
           <Wallet size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Whale Activity</span>
+          <Label>Whale Activity</Label>
           <span className="text-[9px] text-gray-600 ml-auto">
             <span className="text-accent-green">{accumCount} acc</span>
             {' / '}

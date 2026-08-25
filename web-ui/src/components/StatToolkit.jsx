@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react'
 import { Sigma, TrendingUp, BarChart3, Activity } from 'lucide-react'
 import { formatPrice, formatPct } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
+import { Label } from '../utils/ui-helpers'
 
 function computeStats(values) {
   if (!values || values.length === 0) return null
@@ -85,7 +86,7 @@ const StatToolkit = memo(function StatToolkit({ candles, symbol }) {
       <div className="p-2 bg-bg-700 border border-bg-600">
         <div className="flex items-center gap-1 mb-1">
           <BarChart3 size={11} className="text-accent-blue" />
-          <span className="text-[10px] text-gray-600 uppercase">Price Statistics</span>
+          <Label>Price Statistics</Label>
         </div>
         <StatRow label="Count" value={priceStats.n} />
         <StatRow label="Mean" value={`$${formatPrice(priceStats.mean)}`} />
@@ -103,7 +104,7 @@ const StatToolkit = memo(function StatToolkit({ candles, symbol }) {
         <div className="p-2 bg-bg-700 border border-bg-600">
           <div className="flex items-center gap-1 mb-1">
             <TrendingUp size={11} className="text-accent-green" />
-            <span className="text-[10px] text-gray-600 uppercase">Return Statistics</span>
+            <Label>Return Statistics</Label>
           </div>
           <StatRow label="Mean Return" value={formatPct(returnStats.mean * 100, 4)} />
           <StatRow label="Std Dev" value={formatPct(returnStats.std * 100, 4)} />
@@ -117,7 +118,7 @@ const StatToolkit = memo(function StatToolkit({ candles, symbol }) {
       <div className="p-2 bg-bg-700 border border-bg-600">
         <div className="flex items-center gap-1 mb-1">
           <Activity size={11} className="text-accent-yellow" />
-          <span className="text-[10px] text-gray-600 uppercase">Risk Metrics</span>
+          <Label>Risk Metrics</Label>
         </div>
         {sharpe != null && (
           <StatRow label="Sharpe Ratio" value={sharpe.toFixed(3)} color={sharpe > 1 ? 'text-accent-green' : sharpe > 0 ? 'text-accent-yellow' : 'text-accent-red'} />

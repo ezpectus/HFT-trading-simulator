@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { CloudLightning, AlertTriangle, TrendingDown, Shield } from 'lucide-react'
-import { StatCard, WarningBanner } from '../utils/ui-helpers'
+import { StatCard, WarningBanner, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_SCENARIOS = [
   { id: 1, name: '2008 Financial Crisis', crashPct: -38.6, duration: 540, recoveryDays: 1200, portfolioImpact: -28.5, var95: -18.2, status: 'tested' },
@@ -36,13 +36,7 @@ const BlackSwanTester = memo(function BlackSwanTester() {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <CloudLightning size={14} className="text-accent-red" />
-          <span className="text-sm font-medium">Black Swan Tester</span>
-        </div>
-        <span className="text-[10px] text-gray-600">{MOCK_SCENARIOS.length} scenarios</span>
-      </div>
+      <SectionTitle icon={CloudLightning} title="Black Swan Tester" iconColor="text-accent-red" right={<span className="text-[10px] text-gray-600">{MOCK_SCENARIOS.length} scenarios</span>} />
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
