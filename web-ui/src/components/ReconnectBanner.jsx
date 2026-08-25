@@ -1,5 +1,4 @@
-import { AlertCircle, X, WifiOff, Zap } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { memo, useState, useEffect } from 'react'
 
 /**
  * Reconnect banner — shows when a WebSocket connection drops.
@@ -11,7 +10,9 @@ import { useState, useEffect } from 'react'
  *   - Auto-dismiss on reconnect
  *   - Color-coded by urgency (green→yellow→red as countdown decreases)
  */
-export function ReconnectBanner({ label, connected, nextReconnectIn, onReconnect, onDismiss, attemptCount = 0 }) {
+import { AlertCircle, X, WifiOff, Zap } from 'lucide-react'
+
+export const ReconnectBanner = memo(function ReconnectBanner({ label, connected, nextReconnectIn, onReconnect, onDismiss, attemptCount = 0 }) {
   const [dismissed, setDismissed] = useState(false)
   const [pulse, setPulse] = useState(false)
 
@@ -213,4 +214,4 @@ export function ReconnectBanner({ label, connected, nextReconnectIn, onReconnect
       `}</style>
     </div>
   )
-}
+})

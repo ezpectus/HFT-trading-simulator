@@ -1,4 +1,6 @@
-export function EmptyState({ icon: Icon, title, subtitle, action }) {
+import { memo } from 'react'
+
+export const EmptyState = memo(function EmptyState({ icon: Icon, title, subtitle, action }) {
   return (
     <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
       {Icon && <Icon size={32} className="text-gray-600 mb-2" aria-hidden="true" />}
@@ -7,4 +9,4 @@ export function EmptyState({ icon: Icon, title, subtitle, action }) {
       {action && <div className="mt-3">{action}</div>}
     </div>
   )
-}
+})

@@ -10,7 +10,7 @@
 - **Python тесты:** фиксы применены (test_validator, test_comm_circuit_breaker, test_signal_publisher, test_db, test_backtester, test_tracker, test_integration, test_e2e_pipeline, test_strategy_risk_backtest)
 - **ui-helpers:** мигрирован на TypeScript (ui-helpers.tsx), экспортирует: pnlColor, pnlBg, sideColor, sideBg, statusColor, statusBg, statusIcon, ICONS, StatCard, Bar, Label, SectionTitle, WarningBanner, CLASS
 - **vitest:** isolate: true (исправлена утечка состояния между тестами)
-- **memo:** 283/289 компонентов обёрнуты в memo() (6 без: 3 error boundaries + LoadingSkeleton, ReconnectBanner, Toast)
+- **memo:** 289/289 компонентов обёрнуты в memo() (3 error boundaries OK, LoadingSkeleton/ReconnectBanner/Toast now memoized)
 - **cn() utility:** web-ui/src/utils/cn.js для conditional Tailwind class merging
 - **Bug log:** 188 bugs found and fixed
 - **Verification plan:** .cascade/verification-plan.md

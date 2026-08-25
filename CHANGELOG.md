@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-27 (Refactoring — Пачка BJ: memo() completion)
+
+### Changed
+- `web-ui/src/components/LoadingSkeleton.jsx`: `EmptyState` wrapped in `memo()` (named export)
+- `web-ui/src/components/ReconnectBanner.jsx`: `ReconnectBanner` wrapped in `memo()` (named export)
+- `web-ui/src/components/Toast.jsx`: `ToastContainer` wrapped in `memo()` (named export, `useToasts` hook excluded)
+- All 289 React components now wrapped in `memo()` (3 error boundaries intentionally excluded)
+
+### Rationale
+Completes the memoization audit (REF-38). All non-error-boundary components are now memoized, preventing unnecessary re-renders when parent components update.
+
 ## [Unreleased] — 2026-08-27 (Refactoring — Пачка BH: logging consolidation)
 
 ### Changed

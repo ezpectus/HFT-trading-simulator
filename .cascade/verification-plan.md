@@ -62,14 +62,14 @@
 ## 4. web-ui компоненты — аудит качества
 
 ### 4.1 Компоненты без memo()
-- **Найдено:** 6 компонентов без `memo()`:
+- **Статус:** ✅ ALL CLEAR — All 289 components now wrapped in memo()
   - `ChunkRetryBoundary.jsx` — error boundary (OK, не нужно)
-  - `LoadingSkeleton.jsx` — проверит
+  - `LoadingSkeleton.jsx` — ✅ DONE (memo added)
   - `PanelErrorBoundary.jsx` — error boundary (OK)
-  - `ReconnectBanner.jsx` — проверит
-  - `Toast.jsx` — проверит
+  - `ReconnectBanner.jsx` — ✅ DONE (memo added)
+  - `Toast.jsx` — ✅ DONE (ToastContainer memo added, useToasts hook excluded)
   - `TopErrorBoundary.jsx` — error boundary (OK)
-- **REF-38:** Audit memo usage
+- **REF-38:** Audit memo usage — ✅ COMPLETE
 
 ### 4.2 console.log/warn/error в компонентах
 - **Статус:** ✅ ALL OK
