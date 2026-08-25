@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Gauge, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Gauge, TrendingUp, TrendingDown } from 'lucide-react'
 import { calcADX } from '../utils/indicators'
 
 export default function ADXIndicator({ candles, symbol, exchange }) {
@@ -92,7 +92,7 @@ export default function ADXIndicator({ candles, symbol, exchange }) {
         </div>
         <div className="text-right">
           <span className="text-[8px] text-gray-600">Strength</span>
-          <div className={'text-[10px] font-medium ' + strengthColor}>{strength}</div>
+          <div className={`text-[10px] font-medium ${strengthColor}`}>{strength}</div>
         </div>
       </div>
 
@@ -107,7 +107,7 @@ export default function ADXIndicator({ candles, symbol, exchange }) {
       <div className="flex items-center justify-between mt-1.5">
         <div className="flex items-center gap-1">
           {direction === 'Bullish' ? <TrendingUp size={9} className="text-accent-green" /> : <TrendingDown size={9} className="text-accent-red" />}
-          <span className={'text-[8px] ' + directionColor}>{direction}</span>
+          <span className={`text-[8px] ${directionColor}`}>{direction}</span>
         </div>
         <span className="text-[8px] text-gray-600">ADX&gt;25 = trending</span>
       </div>

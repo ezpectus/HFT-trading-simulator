@@ -77,13 +77,13 @@ export default function AwesomeOscillator({ candles, symbol, exchange }) {
       <div className="flex items-center justify-between mb-2">
         <div>
           <span className="text-[8px] text-gray-600">AO Value</span>
-          <div className={'text-sm font-mono font-bold ' + (last >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+          <div className={`text-sm font-mono font-bold ${last >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
             {last >= 0 ? '+' : ''}{last.toFixed(2)}
           </div>
         </div>
         <div className="text-right">
           <span className="text-[8px] text-gray-600">Trend</span>
-          <div className={'text-[10px] font-medium ' + (last >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+          <div className={`text-[10px] font-medium ${last >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
             {last >= 0 ? 'Bullish' : 'Bearish'}
           </div>
         </div>
@@ -108,7 +108,7 @@ export default function AwesomeOscillator({ candles, symbol, exchange }) {
         {saucer && (
           <div className="flex items-center gap-1 bg-accent-yellow/10 border border-accent-yellow/20  px-1.5 py-0.5">
             {saucer === 'Bullish Saucer' ? <TrendingUp size={9} className="text-accent-green" /> : <TrendingDown size={9} className="text-accent-red" />}
-            <span className={'text-[8px] ' + (saucer === 'Bullish Saucer' ? 'text-accent-green' : 'text-accent-red')}>{saucer}</span>
+            <span className={`text-[8px] ${saucer === 'Bullish Saucer' ? 'text-accent-green' : 'text-accent-red'}`}>{saucer}</span>
           </div>
         )}
         {zeroCross && (

@@ -262,7 +262,8 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'HIGH_UNCERTAINTY' ? '#f6465d' : data.signal === 'MODERATE_UNCERTAINTY' ? '#f0b90b' : '#0ecb81'
+  const SIG_COLORS = { HIGH_UNCERTAINTY: '#f6465d', MODERATE_UNCERTAINTY: '#f0b90b' }
+  const sigColor = SIG_COLORS[data.signal] || '#0ecb81'
 
   return (
     <div className="p-4 space-y-3">

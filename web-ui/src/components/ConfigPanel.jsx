@@ -159,7 +159,7 @@ export default function ConfigPanel({ onConfigUpdate, fundingRates, weekendMode 
           </div>
 
           {savedMsg && (
-            <div className={'text-[10px] ' + (savedMsg.type === 'success' ? 'text-accent-green' : 'text-accent-red')}>
+            <div className={`text-[10px] ${savedMsg.type === 'success' ? 'text-accent-green' : 'text-accent-red'}`}>
               {savedMsg.text}
             </div>
           )}

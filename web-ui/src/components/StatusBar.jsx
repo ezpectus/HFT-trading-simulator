@@ -145,8 +145,13 @@ export default function StatusBar({ exchange, signals, selectedExchange, selecte
           const bothConnected = exConn && aiConn
           const worstLatency = Math.max(exchangeLatency || 0, signalLatency || 0)
           const quality = !bothConnected ? 'offline' : worstLatency < 50 ? 'excellent' : worstLatency < 200 ? 'good' : 'poor'
-          const qualityColor = quality === 'offline' ? 'text-accent-red' : quality === 'excellent' ? 'text-accent-green' : quality === 'good' ? 'text-accent-yellow' : 'text-accent-red'
-          const qualityLabel = quality === 'offline' ? 'OFFLINE' : quality === 'excellent' ? 'EXCELLENT' : quality === 'good' ? 'GOOD' : 'POOR'
+          const QUALITY_MAP = {
+            offline: { color: 'text-accent-red', label: 'OFFLINE' },
+            excellent: { color: 'text-accent-green', label: 'EXCELLENT' },
+            good: { color: 'text-accent-yellow', label: 'GOOD' },
+            poor: { color: 'text-accent-red', label: 'POOR' },
+          }
+          const { color: qualityColor, label: qualityLabel } = QUALITY_MAP[quality]
           return (
             <span className={`text-[9px] font-medium ${qualityColor}`} title={`Connection quality: ${qualityLabel}`}>
               {qualityLabel}

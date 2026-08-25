@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Bell, Webhook, Plus, X, Check, TestTube } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Webhook, Plus, X, Check, TestTube } from 'lucide-react'
 
 const WEBHOOK_KEY = 'trading-sim-webhooks'
 
@@ -74,7 +74,7 @@ export default function AlertWebhook({ fills, toasts }) {
       })
       setTestStatus({ ...testStatus, [id]: 'ok' })
       setTimeout(() => setTestStatus(s => ({ ...s, [id]: undefined })), 3000)
-    } catch (e) {
+    } catch (_e) {
       setTestStatus({ ...testStatus, [id]: 'error' })
       setTimeout(() => setTestStatus(s => ({ ...s, [id]: undefined })), 3000)
     }
@@ -149,7 +149,7 @@ export default function AlertWebhook({ fills, toasts }) {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => toggleWebhook(hook.id)}
-                  className={'w-3 h-3 rounded-full shrink-0 ' + (hook.enabled ? 'bg-accent-green' : 'bg-bg-500')}
+                  className={`w-3 h-3 rounded-full shrink-0 ${hook.enabled ? 'bg-accent-green' : 'bg-bg-500'}`}
                   title={hook.enabled ? 'Enabled' : 'Disabled'}
                 />
                 <span className="text-[10px] text-gray-300 flex-1 truncate">{hook.name}</span>

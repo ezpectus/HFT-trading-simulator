@@ -55,7 +55,7 @@ export default function AccountPanel({ accounts }) {
           <button
             onClick={cycleSort}
             className="flex items-center gap-0.5 text-gray-600 hover:text-gray-400 transition-colors normal-case"
-            title={'Sort by ' + (SORT_OPTIONS.find(o => o.id === sortMode)?.label || 'PnL')}
+            title={`Sort by ${SORT_OPTIONS.find(o => o.id === sortMode)?.label || 'PnL'}`}
           >
             <ArrowUpDown size={10} />
             {SORT_OPTIONS.find(o => o.id === sortMode)?.label || 'PnL'}
@@ -64,16 +64,17 @@ export default function AccountPanel({ accounts }) {
         <div className="space-y-1">
           {leaderboard.map((item, i) => {
             const isPositive = item.pnl >= 0
-            const medal = i === 0 ? 'text-accent-yellow' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-accent-orange/60' : 'text-gray-600'
+            const MEDAL_COLORS = ['text-accent-yellow', 'text-gray-400', 'text-accent-orange/60', 'text-gray-600']
+            const medal = MEDAL_COLORS[i] || 'text-gray-600'
             const pnlColor = isPositive ? 'text-accent-green' : 'text-accent-red'
             const pnlSign = isPositive ? '+' : ''
             return (
               <div key={item.exId} className="flex items-center gap-2 text-xs">
-                <span className={'font-mono font-bold ' + medal + ' w-4 text-center'}>{i + 1}</span>
+                <span className={`font-mono font-bold ${medal} w-4 text-center`}>{i + 1}</span>
                 <span className="text-gray-300 capitalize flex-1">{item.exId}</span>
                 <span className="text-gray-500 font-mono text-[10px]">{item.trades}t</span>
                 <span className="text-gray-500 font-mono text-[10px]">{formatPct(item.winRate, 0)}w</span>
-                <span className={'font-mono font-medium ' + pnlColor + ' w-20 text-right'}>
+                <span className={`font-mono font-medium ${pnlColor} w-20 text-right`}>
                   {pnlSign}{formatUsd(item.pnl)}
                 </span>
               </div>
@@ -95,7 +96,7 @@ export default function AccountPanel({ accounts }) {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium capitalize">{exId}</span>
               <div className="flex items-center gap-2">
-                <span className={'text-xs ' + (pnlPositive ? 'text-accent-green' : 'text-accent-red')}>
+                <span className={`text-xs ${pnlPositive ? 'text-accent-green' : 'text-accent-red'}`}>
                   {pnlPositive ? <TrendingUp size={12} className="inline" /> : <TrendingDown size={12} className="inline" />}
                   {' '}{formatPct(pnlPct, 1)}
                 </span>
@@ -130,9 +131,9 @@ export default function AccountPanel({ accounts }) {
                     return (
                       <div
                         key={i}
-                        className={'flex-1 ' + (t.pnl >= 0 ? 'bg-accent-green' : 'bg-accent-red')}
+                        className={`flex-1 ${t.pnl >= 0 ? 'bg-accent-green' : 'bg-accent-red'}`}
                         style={{ height: h + 'px' }}
-                        title={t.symbol + ': ' + (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(2) + ' (' + t.reason + ')'}
+                        title={`${t.symbol}: ${t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)} (${t.reason})`}
                       />
                     )
                   })}
@@ -150,7 +151,7 @@ function Stat({ label, value, color = 'text-gray-200' }) {
   return (
     <div className="flex flex-col">
       <span className="text-gray-500 text-[10px] uppercase tracking-wide">{label}</span>
-      <span className={'font-mono font-medium ' + color}>{value}</span>
+      <span className={`font-mono font-medium ${color}`}>{value}</span>
     </div>
   )
 }
@@ -161,7 +162,7 @@ function AnimatedStat({ label, value, format = 'usd', color = 'text-gray-200' })
   return (
     <div className="flex flex-col">
       <span className="text-gray-500 text-[10px] uppercase tracking-wide">{label}</span>
-      <span className={'font-mono font-medium ' + color + ' number-tick'}>{displayValue}</span>
+      <span className={`font-mono font-medium ${color} number-tick`}>{displayValue}</span>
     </div>
   )
 }
