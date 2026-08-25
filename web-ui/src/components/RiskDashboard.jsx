@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { Shield, TrendingDown, Activity, Info } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
@@ -12,7 +12,7 @@ function normCDF(x) {
   return 0.5 * (1 + sign * y)
 }
 
-export default function RiskDashboard({ accounts, candles, symbols, exchange }) {
+function RiskDashboard({ accounts, candles, symbols, exchange }) {
   const [confidence, setConfidence] = useState(95)
 
   const risk = useMemo(() => {
@@ -187,6 +187,8 @@ export default function RiskDashboard({ accounts, candles, symbols, exchange }) 
     </div>
   )
 }
+
+export default memo(RiskDashboard)
 
 function RiskStat({ label, value, sub, color, icon: Icon }) {
   return (

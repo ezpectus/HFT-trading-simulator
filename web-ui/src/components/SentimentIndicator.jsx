@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Newspaper, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 const NEWS_EVENTS = [
@@ -14,7 +14,7 @@ const NEWS_EVENTS = [
   { id: 'adoption_news', label: 'Adoption News', impact: 'bullish', weight: 1 },
 ]
 
-export default function SentimentIndicator({ candles, signals, symbol, exchange }) {
+function SentimentIndicator({ candles, signals, symbol, exchange }) {
   const sentiment = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -184,3 +184,5 @@ export default function SentimentIndicator({ candles, signals, symbol, exchange 
     </div>
   )
 }
+
+export default memo(SentimentIndicator)

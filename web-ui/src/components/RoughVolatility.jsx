@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Rough Volatility (Bergomi Model) ───────────────────────────────────────
 // Implements the rough Bergomi (rBergomi) model where volatility follows
@@ -186,7 +186,7 @@ const estimateHurst = (returns) => {
   return Math.max(0.01, Math.min(0.99, hurst))
 }
 
-export default function RoughVolatility({ candles, symbol, exchange }) {
+function RoughVolatility({ candles, symbol, exchange }) {
   const [hurstExp, setHurstExp] = useState(0.1)
   const [eta, setEta] = useState(1.5)
   const [rho, setRho] = useState(-0.7)
@@ -366,3 +366,5 @@ export default function RoughVolatility({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(RoughVolatility)

@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Award, TrendingUp, TrendingDown, Activity } from 'lucide-react'
 import { calcAggregateMetrics, buildEquityCurve, calcDrawdown, calcSharpeRatio, calcSortinoRatio } from '../utils/performance'
 
-export default function RiskAdjustedComparison({ accounts, fills }) {
+function RiskAdjustedComparison({ accounts, fills }) {
   const metrics = useMemo(() => {
     const agg = calcAggregateMetrics(accounts)
     const equityCurve = buildEquityCurve(fills, 10000)
@@ -122,6 +122,8 @@ export default function RiskAdjustedComparison({ accounts, fills }) {
     </div>
   )
 }
+
+export default memo(RiskAdjustedComparison)
 
 function Cell({ label, value, color }) {
   return (

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Riesz Representation (Linear Functional as Integral) ---
 // Uses the Riesz representation theorem to represent linear functionals
@@ -27,7 +27,7 @@ const computeReturns = (prices) => {
   return rets
 }
 
-export default function RieszRepresentation({ candles, symbol, exchange }) {
+function RieszRepresentation({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(120)
   const [nFeatures, setNFeatures] = useState(8)
   const [lambda, setLambda] = useState(0.1)
@@ -298,3 +298,5 @@ export default function RieszRepresentation({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(RieszRepresentation)

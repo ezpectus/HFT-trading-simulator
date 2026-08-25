@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Schrödinger Bridge (Optimal Transport Between Distributions) ───────────
 // Computes the Schrödinger bridge: the most probable path between two
@@ -100,7 +100,7 @@ const computeReturns = (prices) => {
   return rets
 }
 
-export default function SchrodingerBridge({ candles, symbol, exchange }) {
+function SchrodingerBridge({ candles, symbol, exchange }) {
   const [nBins, setNBins] = useState(10)
   const [epsilon, setEpsilon] = useState(0.1)
   const [windowSize, setWindowSize] = useState(30)
@@ -377,3 +377,5 @@ export default function SchrodingerBridge({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(SchrodingerBridge)

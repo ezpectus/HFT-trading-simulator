@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Reproducing Kernel Hilbert Space (RKHS) ────────────────────────────────
 // Uses kernel methods to map financial time series into a high-dimensional
@@ -147,7 +147,7 @@ const predictKRR = (alpha, X_train, x_new, kernel, sigma) => {
   return sum
 }
 
-export default function ReproducingKernelHilbertSpace({ candles, symbol, exchange }) {
+function ReproducingKernelHilbertSpace({ candles, symbol, exchange }) {
   const [kernelType, setKernelType] = useState('rbf')
   const [sigma, setSigma] = useState(0.5)
   const [lambda, setLambda] = useState(0.01)
@@ -398,3 +398,5 @@ export default function ReproducingKernelHilbertSpace({ candles, symbol, exchang
     </div>
   )
 }
+
+export default memo(ReproducingKernelHilbertSpace)

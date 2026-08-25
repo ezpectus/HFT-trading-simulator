@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Calculator, Info } from 'lucide-react'
 
-export default function RiskParityCalculator({ candles, symbols, exchange }) {
+function RiskParityCalculator({ candles, symbols, exchange }) {
   const [totalCapital, setTotalCapital] = useState(10000)
   const [riskPct, setRiskPct] = useState(1.0)
   const [stopLossPct, setStopLossPct] = useState(2.0)
@@ -141,3 +141,5 @@ export default function RiskParityCalculator({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(RiskParityCalculator)

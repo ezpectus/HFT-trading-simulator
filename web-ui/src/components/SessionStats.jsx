@@ -1,10 +1,10 @@
-import { useMemo, useState, useEffect } from 'react'
+import { memo, useMemo, useState, useEffect } from 'react'
 import { Clock, TrendingUp, TrendingDown, Award, AlertCircle, Timer } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
 const SESSION_KEY = 'trading-sim-session-start'
 
-export default function SessionStats({ accounts, fills }) {
+function SessionStats({ accounts, fills }) {
   const [sessionStart, setSessionStart] = useState(null)
 
   useEffect(() => {
@@ -199,3 +199,5 @@ export default function SessionStats({ accounts, fills }) {
     </div>
   )
 }
+
+export default memo(SessionStats)

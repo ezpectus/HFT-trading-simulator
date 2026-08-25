@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { Skull, Calculator, TrendingDown } from 'lucide-react'
 
-export default function RiskOfRuin({ accounts, fills }) {
+function RiskOfRuin({ accounts, fills }) {
   const [winRate, setWinRate] = useState(45)
   const [riskPct, setRiskPct] = useState(2)
   const [rewardRatio, setRewardRatio] = useState(2)
@@ -266,3 +266,5 @@ export default function RiskOfRuin({ accounts, fills }) {
     </div>
   )
 }
+
+export default memo(RiskOfRuin)
