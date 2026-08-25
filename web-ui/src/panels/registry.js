@@ -280,6 +280,10 @@ const HyperoptUI = lazy(() => import('../components/HyperoptUI'))
 const RetrainingPipeline = lazy(() => import('../components/RetrainingPipeline'))
 const SlippageAnalytics = lazy(() => import('../components/SlippageAnalytics'))
 const StrategyCorrelation = lazy(() => import('../components/StrategyCorrelation'))
+const WalkForwardViewer = lazy(() => import('../components/WalkForwardViewer'))
+const RealtimeAttribution = lazy(() => import('../components/RealtimeAttribution'))
+const GeneticViewer = lazy(() => import('../components/GeneticViewer'))
+const CostBasis = lazy(() => import('../components/CostBasis'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -827,6 +831,14 @@ export const PANELS = [
   { id: 'slippage-analytics', name: 'Slippage Analytics', category: 'risk', component: SlippageAnalytics,
     props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
   { id: 'strategy-correlation', name: 'Strategy Correlation', category: 'risk', component: StrategyCorrelation,
+    props: () => ({}) },
+  { id: 'walk-forward', name: 'Walk-Forward Analysis', category: 'strategy', component: WalkForwardViewer,
+    props: () => ({}) },
+  { id: 'realtime-attribution', name: 'Realtime PnL Attribution', category: 'portfolio', component: RealtimeAttribution,
+    props: () => ({}) },
+  { id: 'genetic-viewer', name: 'Genetic Algorithm Viewer', category: 'strategy', component: GeneticViewer,
+    props: () => ({}) },
+  { id: 'cost-basis', name: 'Cost Basis Tracker', category: 'portfolio', component: CostBasis,
     props: () => ({}) },
 ]
 
