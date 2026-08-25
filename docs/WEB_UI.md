@@ -373,52 +373,16 @@ npm run build          # Production build verification
 npm run analyze        # Bundle visualization (vite-bundle-visualizer)
 ```
 
-### Test Files (44 files: 40 unit + 4 E2E, 300+ tests)
+### Test Files (103 files: 99 unit + 4 E2E, 800+ tests)
 
-#### Unit Tests (40 files)
+#### Unit Tests (99 files)
 
-| Category | Test File | Coverage |
-|----------|-----------|----------|
-| Components | `accountPanel.test.jsx` | Account panel rendering, leaderboard |
-| Components | `botStatus.test.jsx` | Bot status cards, activity feed |
-| Components | `confidenceScorer.test.jsx` | Confidence scoring display |
-| Components | `drawdownAnalysis.test.jsx` | Drawdown chart and metrics |
-| Components | `exchange-ui.test.jsx` | Exchange selector, symbol switcher |
-| Components | `fillsPanel.test.jsx` | Fills table, search, VirtualList |
-| Components | `loadingSkeleton.test.jsx` | Loading skeleton states |
-| Components | `orderForm.test.jsx` | Order form validation, submit |
-| Components | `panelErrorBoundary.test.jsx` | Error boundary fallback UI |
-| Components | `performance.test.jsx` | Performance dashboard, equity curve |
-| Components | `priceAlerts.test.jsx` | Price alert creation, trigger |
-| Components | `replayControls.test.jsx` | Replay play/pause/seek |
-| Components | `signalFeed.test.jsx` | Signal feed, search, filter |
-| Components | `toast.test.jsx` | Toast notifications, auto-dismiss |
-| Components | `tradeTimeline.test.jsx` | Trade timeline visualization |
-| Components | `watchlist.test.jsx` | Watchlist add/remove/sort |
-| Hooks | `useAnimatedNumber.test.jsx` | Animated number transitions |
-| Hooks | `useDebounce.test.jsx` | Debounce timing, cleanup |
-| Hooks | `useDetachablePanels.test.jsx` | Panel detach/reattach |
-| Hooks | `useExchangeData.test.jsx` | Exchange data fetching |
-| Hooks | `useInterval.test.jsx` | Interval hook, cleanup |
-| Hooks | `useKeyboardShortcuts.test.jsx` | Keyboard shortcut registration |
-| Hooks | `useLocalStorage.test.jsx` | LocalStorage persistence |
-| Hooks | `useMediaQuery.test.jsx` | Responsive breakpoint detection |
-| Hooks | `useMockData.test.jsx` | Mock data generation |
-| Hooks | `usePerformance.test.jsx` | Performance metrics hook |
-| Hooks | `useSoundAlerts.test.jsx` | Sound alert triggers |
-| Hooks | `useTheme.test.jsx` | Theme toggle, persistence |
-| Hooks | `useTradeJournal.test.jsx` | Trade journal CRUD |
-| Hooks | `useWebSocket.test.jsx` | WebSocket connect/reconnect/message |
-| Math | `backtestEngine.test.js` | Backtest engine calculations |
-| Math | `cointegration.test.js` | Engle-Granger cointegration, ADF test |
-| Math | `garch.test.js` | GARCH(1,1) volatility model |
-| Math | `hmm.test.js` | Hidden Markov Model (Baum-Welch, Viterbi) |
-| Math | `kalman.test.js` | 1D/2D Kalman filter |
-| Math | `kmeans.test.js` | K-Means++ clustering, silhouette score |
-| Math | `indicators.test.js` | EMA, RSI, SMA, MACD, BB, ATR, ADX, VWAP, OBV, MFI, Williams %R, Stochastic, CCI, AO, SAR |
-| Utils | `utils.test.js` | Number/price formatting helpers |
-| Utils | `registry.test.js` | Panel registry integrity, category counts |
-| Utils | `virtualList.test.jsx` | VirtualList windowed rendering |
+| Category | Coverage |
+|----------|----------|
+| Components | 70+ component tests — rendering, props, user interaction, error boundaries |
+| Hooks | 16 hook tests — useLocalStorage, useWebSocket, useExchangeData, useDebounce, useInterval, useKeyboardShortcuts, useMediaQuery, useMockData, usePerformance, useSoundAlerts, useTheme, useTradeJournal, useAnimatedNumber, useDetachablePanels |
+| Math/Indicators | 8+ math tests — Kalman, HMM, GARCH, KMeans, cointegration, backtestEngine, indicators, performance |
+| Utils | 5+ utility tests — utils, registry, virtualList, format, patterns |
 
 #### E2E Tests (4 files)
 
@@ -447,7 +411,7 @@ CI/CD runs JS lint + test as a dedicated job in GitHub Actions.
 |  (BUY/SELL, SL/TP, quick-trade)   |  - Signals               |
 |                                    |  - Arbitrage             |
 +------------------------------------+  - Fills                 |
-|  Sidebar: Panel Registry (204)   |  - History               |
+| Sidebar: Panel Registry (278)   |  - History               |
 |  (collapsible categories)          |  - Performance           |
 |                                    |  - Backtest              |
 +------------------------------------+--------------------------+
@@ -494,14 +458,14 @@ All sidebar panels are registered in `src/panels/registry.js` (278 panels, 271 c
 
 | Hook | File | Description |
 |------|------|-------------|
-| useWebSocket | `useWebSocket.js` | Generic WebSocket with exponential backoff (1s-30s cap) |
+| useWebSocket | `useWebSocket.ts` | Generic WebSocket with exponential backoff (1s-30s cap) |
 | useExchangeData | `useExchangeData.js` | Candles, prices, orderbooks, accounts, fills, arbitrage |
-| useSignalData | `useSignalData.js` | AI signals, regime, backtest results, send backtest requests |
+| useSignalData | (in `useExchangeData.js`) | AI signals, regime, backtest results, send backtest requests |
 | useDetachablePanels | `useDetachablePanels.js` | Multi-monitor popup panel support |
-| useSoundAlerts | `useSoundAlerts.js` | Web Audio API sound notifications |
-| useTheme | `useTheme.js` | Dark/light theme toggle |
-| useMediaQuery | `useMediaQuery.js` | Mobile responsive detection |
-| useTradeJournal | `useTradeJournal.js` | Trade notes with localStorage |
+| useSoundAlerts | `useSoundAlerts.ts` | Web Audio API sound notifications |
+| useTheme | `useTheme.ts` | Dark/light theme toggle |
+| useMediaQuery | `useMediaQuery.ts` | Mobile responsive detection |
+| useTradeJournal | `useTradeJournal.ts` | Trade notes with localStorage |
 
 ### Utils
 
@@ -509,7 +473,7 @@ All sidebar panels are registered in `src/panels/registry.js` (278 panels, 271 c
 |---------|------|-------------|
 | indicators | `indicators.js` | EMA, RSI, SMA, BB, VWAP, ATR, ADX, OBV, MFI, Williams %R, Stochastic, CCI, AO, SAR, MACD |
 | performance | `performance.js` | Aggregate metrics, equity curve, drawdown, Sharpe/Sortino |
-| format | `format.js` | Number/price formatting |
+| format | `format.ts` | Number/price formatting |
 | timeframes | `timeframes.js` | Multi-timeframe candle aggregation |
 | patterns | `patterns.js` | Candle pattern detection (doji, hammer, engulfing) |
 

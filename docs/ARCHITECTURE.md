@@ -32,7 +32,7 @@ through direct function calls. Benefits:
 
 **Registry pattern:** Components are registered in a central registry,
 not hardcoded. Adding a component = 1 entry, 0 changes to existing code.
-- 204 UI panels registered in a single registry file
+- 278 UI panels registered in a single registry file
 - Strategies registered in the strategy registry
 - Exchanges registered in the exchange registry
 - Order types registered in the order type registry
@@ -90,7 +90,7 @@ graph TB
     end
 
     subgraph "Web UI (React 18)"
-        UI["Web UI Dashboard<br/>289 Components | 278 Panels<br/>44 Trading + 40 UI-Only Math Models<br/>React.lazy | PWA | WCAG AA<br/>Vitest (44 files) | Mock Mode"]
+        UI["Web UI Dashboard<br/>289 Components | 278 Panels<br/>44 Trading + 40 UI-Only Math Models<br/>React.lazy | PWA | WCAG AA<br/>Vitest (99 files) | Mock Mode"]
         UI --- WS8765
         UI --- WS8766
         UI -->|Orders| WS8765
@@ -401,7 +401,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 ### 4. Web UI Dashboard (`web-ui/`)
 
 **Language:** JavaScript (React 18 + Vite 8)
-**Role:** Browser-based trading dashboard with 227 components and 204 registered panels
+**Role:** Browser-based trading dashboard with 289 components and 278 registered panels
 
 | Feature | Implementation |
 |---------|---------------|
@@ -446,7 +446,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 | Error handling | PanelErrorBoundary with error count tracking, auto-disable after 3+ errors, re-enable option |
 | Loading states | EmptyState component with shimmer animation |
 | Toast notifications | Auto-dismiss with visual progress bar, 5-toast cap, role="alert" for accessibility, clearAll button when 2+ toasts |
-| Testing | Vitest test framework (44 test files: 40 unit + 4 e2e) with @testing-library/react + jsdom |
+| Testing | Vitest test framework (103 test files: 99 unit + 4 e2e) with @testing-library/react + jsdom |
 | State persistence | useLocalStorage generic hook (theme, panel visibility, trade journal, watchlist, sort preferences) |
 | Search & filter | SignalFeed symbol/reason search, FillsPanel symbol/side/exchange search, ArbitragePanel symbol/exchange search, PriceComparison symbol search — all with useDebounce (300ms) |
 | Sortable tables | Watchlist (symbol/price/change%), AccountPanel leaderboard (PnL/win%/balance), TradeHistory (date/PnL/symbol), PerformanceDashboard per-exchange (PnL/win%/balance) |
@@ -471,12 +471,12 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 - `src/hooks/useTheme.js` — Dark/light theme toggle (uses useLocalStorage)
 - `src/hooks/useMediaQuery.js` — Mobile responsive detection
 - `src/hooks/useTradeJournal.js` — Trade notes with localStorage persistence (uses useLocalStorage)
-- `src/hooks/useLocalStorage.js` — Generic localStorage persistence hook with JSON serialization
+- `src/hooks/useLocalStorage.ts` — Generic localStorage persistence hook with JSON serialization
 - `src/hooks/useKeyboardShortcuts.js` — Centralized keyboard shortcut registration with modifier support
 - `src/hooks/useDebounce.js` — Debounce hook for search/filter inputs (300ms default)
 - `src/utils/indicators.js` — EMA, RSI, SMA, Bollinger Bands, VWAP, ATR, ADX, OBV, MFI, Williams %R, Stochastic, CCI, Awesome Oscillator, Parabolic SAR, MACD, ADX
 - `src/utils/performance.js` — Aggregate metrics, equity curve, drawdown, Sharpe/Sortino
-- `src/utils/format.js` — Number/price formatting helpers
+- `src/utils/format.ts` — Number/price formatting helpers
 - `src/utils/timeframes.js` — Multi-timeframe candle aggregation
 - `src/utils/patterns.js` — Candle pattern detection (doji, hammer, engulfing)
 
@@ -505,7 +505,7 @@ All sidebar analytic/strategy panels are registered in `src/panels/registry.js` 
 
 - **Zero-touch extensibility** — Adding a panel = 1 entry in registry.js, 0 changes to App.jsx
 - **Categorized rendering** — 7 categories: Order Flow, Technical Analysis, Risk and Analytics, Portfolio, Strategy, Export, Config
-- **204 registered panels** — 227 component files across all categories
+- **278 registered panels** — 289 component files across all categories
 - **User-toggleable visibility** — Each panel can be shown/hidden, persisted in localStorage
 - **Collapsible categories** — Users can collapse entire sections
 - **ErrorBoundary + Suspense** — Each panel wrapped in ErrorBoundary and Suspense (triple protection)
