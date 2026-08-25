@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { RefreshCw, Play, Info } from 'lucide-react'
-import { formatPrice } from '../utils/format'
+import { RefreshCw, Play } from 'lucide-react'
 
 export default function AutoRebalance({ accounts, candles, symbols, exchange, onSubmit }) {
   const [targetWeights, setTargetWeights] = useState({})

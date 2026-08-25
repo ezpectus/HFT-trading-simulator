@@ -1,17 +1,5 @@
 import { useMemo } from 'react'
 import { Link2, GitCompare, AlertCircle } from 'lucide-react'
-import { formatPrice } from '../utils/format'
-
-// Log returns: r_t = ln(P_t / P_{t-1})
-function calcLogReturns(closes) {
-  const returns = []
-  for (let i = 1; i < closes.length; i++) {
-    if (closes[i - 1] > 0 && closes[i] > 0) {
-      returns.push(Math.log(closes[i] / closes[i - 1]))
-    }
-  }
-  return returns
-}
 
 // Augmented Dickey-Fuller (ADF) test on OLS residuals:
 // Δε_t = ρ·ε_{t-1} + u_t,  H0: ρ = 0 (unit root, not cointegrated)
@@ -22,8 +10,8 @@ function calcADF(residuals) {
   const n = residuals.length
   const lag = 1
 
-  let deltaY = []
-  let lagY = []
+  const deltaY = []
+  const lagY = []
   for (let i = lag; i < n; i++) {
     deltaY.push(residuals[i] - residuals[i - 1])
     lagY.push(residuals[i - 1])
