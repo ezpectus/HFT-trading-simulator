@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Lax-Milgram Theorem (Variational Formulation for PDEs) ---
 // Uses the Lax-Milgram theorem to solve variational problems arising
@@ -94,7 +94,7 @@ const solveVariational = (eps, b, c, f, nElements, nPoints) => {
   return { u, alpha, C, h, n }
 }
 
-export default function LaxMilgram({ candles, symbol, exchange }) {
+function LaxMilgram({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(100)
   const [eps, setEps] = useState(0.01)
   const [b, setB] = useState(0)
@@ -307,3 +307,5 @@ export default function LaxMilgram({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(LaxMilgram)

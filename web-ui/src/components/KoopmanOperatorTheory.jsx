@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Koopman Operator Theory (Data-Driven Dynamical Systems) ────────────────
 // Lifts nonlinear dynamics into a high-dimensional linear space via the
@@ -126,7 +126,7 @@ const powerIteration = (M, nIter = 100) => {
   return { eigenvalue, eigenvector: v }
 }
 
-export default function KoopmanOperatorTheory({ candles, symbol, exchange }) {
+function KoopmanOperatorTheory({ candles, symbol, exchange }) {
   const [maxPoly, setMaxPoly] = useState(2)
   const [nFourier, setNFourier] = useState(3)
   const [lookback, setLookback] = useState(100)
@@ -366,3 +366,5 @@ export default function KoopmanOperatorTheory({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(KoopmanOperatorTheory)

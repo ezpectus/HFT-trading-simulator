@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Droplets, TrendingUp, TrendingDown } from 'lucide-react'
 import { calcMFI } from '../utils/indicators'
 
-export default function MFIIndicator({ candles, symbol, exchange }) {
+function MFIIndicator({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -106,3 +106,5 @@ export default function MFIIndicator({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(MFIIndicator)

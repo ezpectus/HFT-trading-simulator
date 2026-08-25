@@ -1,10 +1,10 @@
-import { useMemo, useRef, useEffect, useState } from 'react'
+import { memo, useMemo, useRef, useEffect, useState } from 'react'
 import { Droplets } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
 const MAX_SNAPSHOTS = 20
 
-export default function LiquidityHeatmap({ orderbookData, currentPrice }) {
+function LiquidityHeatmap({ orderbookData, currentPrice }) {
   const snapshotsRef = useRef([])
   const [, forceUpdate] = useState(0)
 
@@ -174,3 +174,5 @@ export default function LiquidityHeatmap({ orderbookData, currentPrice }) {
     </div>
   )
 }
+
+export default memo(LiquidityHeatmap)

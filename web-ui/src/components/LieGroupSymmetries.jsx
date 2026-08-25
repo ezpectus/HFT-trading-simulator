@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Lie Group Symmetries (Symmetry-Based Market Analysis) ──────────────────
 // Analyzes financial time series through the lens of Lie group symmetries,
@@ -130,7 +130,7 @@ const lieAlgebraCoeffs = (returns, windowSize) => {
   return results
 }
 
-export default function LieGroupSymmetries({ candles, symbol, exchange }) {
+function LieGroupSymmetries({ candles, symbol, exchange }) {
   const [windowSize, setWindowSize] = useState(20)
   const [lookback, setLookback] = useState(100)
 
@@ -340,3 +340,5 @@ export default function LieGroupSymmetries({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(LieGroupSymmetries)

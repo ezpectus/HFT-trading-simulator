@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Kelly Criterion + Fractional Kelly Portfolio Sizing ─────────────────────
 // Implements optimal position sizing based on the Kelly Criterion,
@@ -167,7 +167,7 @@ const randomNormal = () => {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
 }
 
-export default function KellyCriterion({ candles, symbols, exchange }) {
+function KellyCriterion({ candles, symbols, exchange }) {
   const [fraction, setFraction] = useState(0.5)
   const [lookback, setLookback] = useState(50)
   const [maxLeverage, setMaxLeverage] = useState(3)
@@ -392,3 +392,5 @@ export default function KellyCriterion({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(KellyCriterion)

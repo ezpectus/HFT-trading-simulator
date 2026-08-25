@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Kolmogorov-Sinai Entropy (Chaos Theory) ────────────────────────────────
 // Measures the rate of information production in a dynamical system.
@@ -178,7 +178,7 @@ const largestLyapunov = (returns, maxLag = 20) => {
   return { lle: slope, divergences }
 }
 
-export default function KolmogorovSinaiEntropy({ candles, symbol, exchange }) {
+function KolmogorovSinaiEntropy({ candles, symbol, exchange }) {
   const [nSymbols, setNSymbols] = useState(3)
   const [maxBlock, setMaxBlock] = useState(8)
   const [permOrder, setPermOrder] = useState(4)
@@ -402,3 +402,5 @@ export default function KolmogorovSinaiEntropy({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(KolmogorovSinaiEntropy)

@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
-import { Zap, TrendingDown, TrendingUp, Flame } from 'lucide-react'
+import { memo, useMemo, useState } from 'react'
+import { Zap, TrendingUp, Flame } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 
-export default function LiquidationCascade({ candles, accounts, symbol, exchange }) {
+function LiquidationCascade({ candles, accounts, symbol, exchange }) {
   const [triggerDrop, setTriggerDrop] = useState(5)
 
   const data = useMemo(() => {
@@ -219,3 +219,5 @@ export default function LiquidationCascade({ candles, accounts, symbol, exchange
     </div>
   )
 }
+
+export default memo(LiquidationCascade)

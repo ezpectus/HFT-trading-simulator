@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Crosshair, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function LiquidityGrabDetector({ candles, symbol, exchange }) {
+function LiquidityGrabDetector({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -255,3 +255,5 @@ export default function LiquidityGrabDetector({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(LiquidityGrabDetector)
