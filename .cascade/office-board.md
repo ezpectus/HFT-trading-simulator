@@ -213,14 +213,14 @@
 **Сложность:** Низкая
 **Файлы:** Все компоненты
 
-### REF-28: Consolidate repeated Tailwind class strings into constants 
+### REF-28: Consolidate repeated Tailwind class strings into constants ✅ DONE
 **Описание:** Длинные Tailwind class strings повторяются (например, `text-[10px] font-mono text-gray-300`).
 - Найти повторяющиеся паттерны (3+ раз)
 - Вынести в константы или `cn()` helper
 **Сложность:** Средняя
 **Файлы:** 20+ компонентов
 
-### REF-29: Audit `registry.js` for consistency — all panels should use same prop pattern 
+### REF-29: Audit `registry.js` for consistency — all panels should use same prop pattern ✅ DONE (all panels already use props: (ctx) => ({...}) pattern)
 **Описание:** `registry.js` имеет разные паттерны передачи props: некоторые через `props: (ctx) => ({...})`, некоторые напрямую.
 - Стандартизировать: все panels должны использовать `props: (ctx) => ({...})` pattern
 - Проверить, что все panels получают `addToast` и `exchange` context
@@ -245,7 +245,7 @@
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/hooks/useLocalStorage.*`
 
-### REF-32: Create `useStatusColor` hook for reusable status mapping 
+### REF-32: Create `useStatusColor` hook for reusable status mapping ✅ DONE (useStatusMap hook created at web-ui/src/hooks/useStatusMap.js)
 **Описание:** Компоненты имеют разные маппинги статусов. Создать хук, принимающий маппинг и возвращающий `color` и `bg` функции.
 - API: `const { color, bg } = useStatusMap({ active: 'green', fading: 'yellow', default: 'red' })`
 - Устраняет необходимость в `statusColor` и `statusBg` функциях
