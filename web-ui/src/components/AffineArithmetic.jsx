@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Affine Arithmetic for Interval Uncertainty Propagation ──────────────────
 // Uses affine arithmetic (AA) to propagate uncertainty through financial
@@ -185,7 +185,7 @@ const robustOptionPrice = (S, K, T, r, sigmaLo, sigmaHi) => {
   }
 }
 
-export default function AffineArithmetic({ candles, symbol, exchange }) {
+function AffineArithmetic({ candles, symbol, exchange }) {
   const [uncertaintyPct, setUncertaintyPct] = useState(0.5)
   const [lookback, setLookback] = useState(50)
   const [strikePct, setStrikePct] = useState(1.0)
@@ -405,3 +405,5 @@ export default function AffineArithmetic({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(AffineArithmetic)

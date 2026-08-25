@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Arzela-Ascoli Theorem (Equicontinuity for Function Families) ---
 // Applies the Arzela-Ascoli theorem to analyze families of trading
@@ -85,7 +85,7 @@ const modulusOfContinuity = (func, deltas) => {
   })
 }
 
-export default function ArzelaAscoli({ candles, symbol, exchange }) {
+function ArzelaAscoli({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(120)
   const [indicatorType, setIndicatorType] = useState('sma')
   const [maxParam, setMaxParam] = useState(20)
@@ -317,3 +317,5 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(ArzelaAscoli)

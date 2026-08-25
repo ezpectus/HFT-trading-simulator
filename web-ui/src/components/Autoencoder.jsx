@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Autoencoder (Deep Learning Anomaly Detection) ──────────────────────────
 // Implements a shallow autoencoder with tied weights for unsupervised
@@ -200,7 +200,7 @@ const trainAutoencoder = (X, inputDim, hiddenDim, epochs = 200, lr = 0.01, lambd
   return { We, be, Wd, bd, losses, reconErrors, latent, hiddenDim }
 }
 
-export default function Autoencoder({ candles, symbol, exchange }) {
+function Autoencoder({ candles, symbol, exchange }) {
   const [hiddenDim, setHiddenDim] = useState(4)
   const [epochs, setEpochs] = useState(200)
   const [lr, setLr] = useState(0.01)
@@ -384,3 +384,5 @@ export default function Autoencoder({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(Autoencoder)

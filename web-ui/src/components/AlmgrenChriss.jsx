@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Almgren-Chriss Optimal Execution ────────────────────────────────────────
 // Implements the Almgren-Chriss model for optimal order execution that
@@ -115,7 +115,7 @@ const almgrenChriss = (X, T, sigma, eta, gamma, lambda, nSteps = 20) => {
   }
 }
 
-export default function AlmgrenChriss({ candles, symbol, exchange, currentPrice }) {
+function AlmgrenChriss({ candles, symbol, exchange, currentPrice }) {
   const [orderSize, setOrderSize] = useState(100)
   const [timeHorizon, setTimeHorizon] = useState(1) // days
   const [riskAversion, setRiskAversion] = useState(1e-6)
@@ -307,3 +307,5 @@ export default function AlmgrenChriss({ candles, symbol, exchange, currentPrice 
     </div>
   )
 }
+
+export default memo(AlmgrenChriss)

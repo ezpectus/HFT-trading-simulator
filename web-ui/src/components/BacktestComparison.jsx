@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { memo, useState, useMemo } from 'react';
 import { GitCompare, Trash2, Download, TrendingUp, TrendingDown, Award, Activity } from 'lucide-react';
 
 const METRICS = [
@@ -113,7 +113,7 @@ function EquityCurve({ results }) {
   );
 }
 
-export default function BacktestComparison({ results: externalResults }) {
+function BacktestComparison({ results: externalResults }) {
   const [results, setResults] = useState(externalResults || []);
   const [selected, setSelected] = useState(new Set());
 
@@ -300,3 +300,5 @@ export default function BacktestComparison({ results: externalResults }) {
     </div>
   );
 }
+
+export default memo(BacktestComparison)

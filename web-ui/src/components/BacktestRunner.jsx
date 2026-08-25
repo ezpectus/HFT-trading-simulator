@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { memo, useState, useEffect, useRef, useMemo } from 'react'
 import { createChart, ColorType } from 'lightweight-charts'
 import { Play, Loader2, Settings, TrendingUp, BarChart3, Save, Trash2, GitCompare, Download, Share2 } from 'lucide-react'
 
@@ -13,7 +13,7 @@ const STRATEGIES = [
 const COLORS = ['#3b82f6', '#f0b90b', '#a855f7', '#0ecb81', '#f6465d']
 const SAVED_KEY = 'trading-sim-saved-backtests'
 
-export default function BacktestRunner({ symbol, connected, sendSignalMessage, backtestResult }) {
+function BacktestRunner({ symbol, connected, sendSignalMessage, backtestResult }) {
   const [config, setConfig] = useState({
     strategy: 'all',
     candles: 500,
@@ -712,6 +712,8 @@ export default function BacktestRunner({ symbol, connected, sendSignalMessage, b
     </div>
   )
 }
+
+export default memo(BacktestRunner)
 
 function Metric({ label, value, color = 'text-gray-200' }) {
   return (

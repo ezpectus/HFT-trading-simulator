@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Bayesian Price Predictor ────────────────────────────────────────────────
 // Uses Bayesian inference with conjugate priors to estimate the probability
@@ -159,7 +159,7 @@ const bayesianRidge = (X, y, nIter = 50) => {
   return { weights, sigma: 1 / Math.sqrt(beta), predictions, alpha, beta }
 }
 
-export default function BayesianPricePredictor({ candles, symbol, exchange }) {
+function BayesianPricePredictor({ candles, symbol, exchange }) {
   const [priorStrength, setPriorStrength] = useState(10)
   const [lookback, setLookback] = useState(20)
   const [hazardRate, setHazardRate] = useState(100)
@@ -412,6 +412,8 @@ export default function BayesianPricePredictor({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(BayesianPricePredictor)
 
 // Inverse CDF for Beta distribution (bisection)
 function betaCDFInv(p, alpha, beta) {

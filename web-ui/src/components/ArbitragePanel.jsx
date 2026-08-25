@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { TrendingUp, ArrowRight, Search } from 'lucide-react'
 import { formatPrice, formatUsd } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
 import { useDebounce } from '../hooks/useDebounce'
 
-export default function ArbitragePanel({ arbitrage }) {
+function ArbitragePanel({ arbitrage }) {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
 
@@ -102,3 +102,5 @@ function Stat({ label, value, color = 'text-gray-200' }) {
     </div>
   )
 }
+
+export default memo(ArbitragePanel)

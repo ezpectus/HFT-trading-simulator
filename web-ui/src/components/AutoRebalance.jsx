@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
+import { memo, useState, useEffect, useMemo } from 'react'
 import { RefreshCw, Play } from 'lucide-react'
 
-export default function AutoRebalance({ accounts, candles, symbols, exchange, onSubmit }) {
+function AutoRebalance({ accounts, candles, symbols, exchange, onSubmit }) {
   const [targetWeights, setTargetWeights] = useState({})
   const [threshold, setThreshold] = useState(5)
   const [rebalanceLog, setRebalanceLog] = useState([])
@@ -209,3 +209,5 @@ export default function AutoRebalance({ accounts, candles, symbols, exchange, on
     </div>
   )
 }
+
+export default memo(AutoRebalance)

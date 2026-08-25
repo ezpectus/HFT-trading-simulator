@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Banach Fixed-Point Iteration (Contraction Mapping Equilibrium) ─────────
 // Uses Banach's contraction mapping theorem to find fixed points of
@@ -61,7 +61,7 @@ const fixedPointIteration = (x0, y0, params, maxIter) => {
   return { trajectory, errors, converged: errors[errors.length - 1].error < 1e-6 }
 }
 
-export default function BanachFixedPoint({ candles, symbol, exchange }) {
+function BanachFixedPoint({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(100)
   const [maxIter, setMaxIter] = useState(50)
   const [coupling, setCoupling] = useState(0.3)
@@ -278,3 +278,5 @@ export default function BanachFixedPoint({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(BanachFixedPoint)
