@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Scale, ArrowUp, ArrowDown } from 'lucide-react'
 
-export default function OrderFlowImbalance({ orderbookData, currentPrice }) {
+function OrderFlowImbalance({ orderbookData, currentPrice }) {
   const imbalance = useMemo(() => {
     if (!orderbookData) return null
 
@@ -120,3 +120,5 @@ export default function OrderFlowImbalance({ orderbookData, currentPrice }) {
     </div>
   )
 }
+
+export default memo(OrderFlowImbalance)

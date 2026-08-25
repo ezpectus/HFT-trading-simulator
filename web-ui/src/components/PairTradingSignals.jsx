@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Link2, TrendingUp, TrendingDown, ArrowRightLeft } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Link2, ArrowRightLeft } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
 function correlation(a, b) {
@@ -33,7 +33,7 @@ function cointegrationSpread(a, b) {
   return aS.map((v, i) => v - beta * bS[i])
 }
 
-export default function PairTradingSignals({ candles, symbols, exchange }) {
+function PairTradingSignals({ candles, symbols, exchange }) {
   const data = useMemo(() => {
     if (!symbols || symbols.length < 2) return null
 
@@ -180,3 +180,5 @@ export default function PairTradingSignals({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(PairTradingSignals)

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Scan, CandlestickChart } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -69,7 +69,7 @@ function detectPatterns(candles) {
   return patterns
 }
 
-export default function PatternScanner({ candles, symbols, exchange }) {
+function PatternScanner({ candles, symbols, exchange }) {
   const scanResults = useMemo(() => {
     const results = []
     for (const sym of symbols) {
@@ -146,3 +146,5 @@ export default function PatternScanner({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(PatternScanner)

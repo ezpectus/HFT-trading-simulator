@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useState } from 'react'
+import { memo, useMemo, useEffect, useRef, useState } from 'react'
 import { createChart, ColorType } from 'lightweight-charts'
 import { BarChart3, TrendingUp, TrendingDown, DollarSign, Percent, Award, Activity, FileDown, ArrowUpDown } from 'lucide-react'
 import { calcAggregateMetrics, buildEquityCurve, calcDrawdown, calcSharpeRatio, calcSortinoRatio, formatMetric } from '../utils/performance'
@@ -85,7 +85,7 @@ function exportPDF(accounts, metrics, allTrades, sharpe, sortino) {
   win.document.close()
 }
 
-export default function PerformanceDashboard({ accounts, fills, signals }) {
+function PerformanceDashboard({ accounts, fills, signals }) {
   const [exSortMode, setExSortMode] = useState('pnl')
 
   const metrics = useMemo(() => calcAggregateMetrics(accounts), [accounts])
@@ -497,6 +497,8 @@ export default function PerformanceDashboard({ accounts, fills, signals }) {
     </div>
   )
 }
+
+export default memo(PerformanceDashboard)
 
 function MetricCard({ icon, label, value, color }) {
   return (

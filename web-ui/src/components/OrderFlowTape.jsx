@@ -1,10 +1,10 @@
-import { useMemo, useRef, useEffect, useState } from 'react'
-import { Printer, ArrowUp, ArrowDown, Minus } from 'lucide-react'
+import { memo, useMemo, useRef, useEffect, useState } from 'react'
+import { Printer, ArrowUp, ArrowDown } from 'lucide-react'
 import { formatPrice, formatTime } from '../utils/format'
 
 const MAX_PRINTS = 30
 
-export default function OrderFlowTape({ fills, candles, symbol, selectedExchange }) {
+function OrderFlowTape({ fills, candles, symbol, selectedExchange }) {
   const printsRef = useRef([])
   const lastCandleTimeRef = useRef(null)
   const [, forceUpdate] = useState(0)
@@ -133,3 +133,5 @@ export default function OrderFlowTape({ fills, candles, symbol, selectedExchange
     </div>
   )
 }
+
+export default memo(OrderFlowTape)

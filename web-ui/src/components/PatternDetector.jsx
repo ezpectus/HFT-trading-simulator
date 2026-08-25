@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Scan, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { detectCandlePatterns } from '../utils/patterns'
 import { formatTime } from '../utils/format'
@@ -23,7 +23,7 @@ const PATTERN_LABELS = {
   THREE_CROWS: 'Three Crows',
 }
 
-export default function PatternDetector({ candles, symbol }) {
+function PatternDetector({ candles, symbol }) {
   const patterns = useMemo(() => detectCandlePatterns(candles), [candles])
 
   const stats = useMemo(() => {
@@ -90,3 +90,5 @@ export default function PatternDetector({ candles, symbol }) {
     </div>
   )
 }
+
+export default memo(PatternDetector)

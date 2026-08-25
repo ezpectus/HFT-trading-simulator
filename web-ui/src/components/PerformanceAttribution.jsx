@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { BarChart3, TrendingDown, Award } from 'lucide-react'
 
-export default function PerformanceAttribution({ accounts, fills, signals }) {
+function PerformanceAttribution({ accounts, fills, signals }) {
   const data = useMemo(() => {
     // Gather all closed trades
     const trades = []
@@ -273,3 +273,5 @@ export default function PerformanceAttribution({ accounts, fills, signals }) {
     </div>
   )
 }
+
+export default memo(PerformanceAttribution)

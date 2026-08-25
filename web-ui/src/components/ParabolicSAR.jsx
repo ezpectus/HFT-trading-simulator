@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
-import { Navigation, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Navigation } from 'lucide-react'
 import { calcParabolicSAR } from '../utils/indicators'
 import { formatPrice } from '../utils/format'
 
-export default function ParabolicSAR({ candles, symbol, exchange }) {
+function ParabolicSAR({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -138,3 +138,5 @@ export default function ParabolicSAR({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(ParabolicSAR)

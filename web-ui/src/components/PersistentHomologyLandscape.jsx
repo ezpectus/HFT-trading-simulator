@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Persistent Homology Landscape ──────────────────────────────────────────
 // Computes persistence landscapes — a vectorized representation of persistence
@@ -141,7 +141,7 @@ const landscapeNorm = (layers, p = 2) => {
   return Math.pow(sum, 1 / p)
 }
 
-export default function PersistentHomologyLandscape({ candles, symbol, exchange }) {
+function PersistentHomologyLandscape({ candles, symbol, exchange }) {
   const [embedDim, setEmbedDim] = useState(3)
   const [lookback, setLookback] = useState(100)
   const [windowSize, setWindowSize] = useState(40)
@@ -392,3 +392,5 @@ export default function PersistentHomologyLandscape({ candles, symbol, exchange 
     </div>
   )
 }
+
+export default memo(PersistentHomologyLandscape)
