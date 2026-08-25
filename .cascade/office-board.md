@@ -1,4 +1,4 @@
-# OFFICE BOARD — РЕФАКТОРИНГ И УПРОЩЕНИЕ
+﻿# OFFICE BOARD — РЕФАКТОРИНГ И УПРОЩЕНИЕ
 
 > Фаза 1 (Портирование моделей): ЗАВЕРШЕНО (52 модели, Sprint 1-105)
 > Фаза 2 (Рефакторинг): АКТИВНА (22 авг – 1 сен 2026)
@@ -1430,7 +1430,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/charts/SessionMarkers.jsx` (новый), `web-ui/src/components/analysis/SessionStats.jsx` (новый), `web-ui/src/components/charts/SessionHeatmap.jsx` (новый)
 **Зависимости:** WD-01 (chart)
 
-### WD-51: Portfolio Rebalancing UI
+### WD-51: Portfolio Rebalancing UI ✅ DONE
 **Описание:** Интерфейс для ребалансировки портфеля.
 - Current allocation: donut chart (текущее распределение по символам)
 - Target allocation: editable table (целевое распределение, % per symbol)
@@ -1447,7 +1447,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/portfolio/RebalancingUI.jsx` (новый), `web-ui/src/components/portfolio/AllocationChart.jsx` (новый), `web-ui/src/components/portfolio/BlackLittermanPanel.jsx` (новый)
 
-### WD-52: Strategy Builder — visual no-code editor
+### WD-52: Strategy Builder — visual no-code editor ✅ DONE
 **Описание:** Визуальный конструктор стратегий без программирования.
 - Canvas с блоками (node-based editor, как n8n / Unreal Blueprints):
   - Input blocks: Candle data, Indicator value, Price level, Volume threshold
@@ -1467,7 +1467,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/builder/StrategyBuilder.jsx` (новый), `web-ui/src/components/builder/BlockPalette.jsx` (новый), `web-ui/src/components/builder/BuilderCanvas.jsx` (новый), `web-ui/src/services/StrategyCodegen.js` (новый)
 
-### WD-53: Smart Order Routing
+### WD-53: Smart Order Routing ✅ DONE
 **Описание:** Интеллектуальная маршрутизация ордеров.
 - Routing strategies:
   - Best price: ордер на биржу с лучшей ценой
@@ -1483,7 +1483,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/trading/SmartRouter.jsx` (новый), `web-ui/src/components/trading/ExecutionView.jsx` (новый), `web-ui/src/services/OrderRouter.js` (новый)
 
-### WD-54: Microsecond Latency Panel
+### WD-54: Microsecond Latency Panel ✅ DONE
 **Описание:** HFT-уровень latency monitoring (микросекунды).
 - Latency breakdown (end-to-end): network, parse, strategy, risk, order, ACK, total
 - Histogram: p50, p90, p99, p99.9, max
@@ -1497,7 +1497,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/system/LatencyPanel.jsx` (новый), `web-ui/src/components/system/LatencyHistogram.jsx` (новый), `web-ui/src/components/system/LatencyBudget.jsx` (новый)
 
-### WD-55: Market Impact Model
+### WD-55: Market Impact Model ✅ DONE
 **Описание:** Модель влияния ордеров на рынок.
 - Impact estimation: Almgren-Chriss, square-root, linear models
 - Visualization: impact curve (price vs order size), optimal slicing, cost curve
@@ -1507,7 +1507,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/MarketImpact.jsx` (новый), `web-ui/src/components/analysis/ImpactCurve.jsx` (новый), `web-ui/src/services/ImpactModel.js` (новый)
 
-### WD-56: Inventory & Exposure Management
+### WD-56: Inventory & Exposure Management ✅ DONE
 **Описание:** Управление инвентарём и экспозицией (для market making).
 - Current inventory: net position per symbol, long/short breakdown, inventory age, inventory cost
 - Exposure metrics: gross, net, by sector, vs limit, delta/vega/gamma/theta (options)
@@ -1518,7 +1518,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/trading/InventoryManager.jsx` (новый), `web-ui/src/components/trading/ExposurePanel.jsx` (новый)
 
-### WD-57: Colocation & Network Topology
+### WD-57: Colocation & Network Topology ✅ DONE
 **Описание:** Мониторинг сетевой инфраструктуры (для HFT).
 - Network topology map: server → exchange DC, latency per hop, bandwidth, packet loss
 - Colocation status: server location, distance to exchange, actual vs theoretical latency, cross-connect
@@ -1528,7 +1528,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/NetworkTopology.jsx` (новый), `web-ui/src/components/system/ColocationStatus.jsx` (новый)
 
-### WD-58: A/B Testing Dashboard for Strategies
+### WD-58: A/B Testing Dashboard for Strategies ✅ DONE
 **Описание:** A/B тестирование стратегий.
 - Experiment setup: A vs B (или A vs B vs C), allocation %, duration, success metric
 - Live view: overlaid equity curves, metrics comparison, p-value, confidence interval, sample size
@@ -1539,7 +1539,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/research/ABTesting.jsx` (новый), `web-ui/src/components/research/ExperimentResults.jsx` (новый), `web-ui/src/services/ABTestEngine.js` (новый)
 
-### WD-59: Risk Scenario Simulator (What-If)
+### WD-59: Risk Scenario Simulator (What-If) ✅ DONE
 **Описание:** Симулятор сценариев "что если" для risk management.
 - Scenario builder: market shock, flash crash, correlation breakdown, liquidation cascade, funding spike, exchange outage, custom
 - Portfolio impact: P&L per symbol/strategy/total, new equity, new drawdown, margin call risk, liquidation price
@@ -1550,7 +1550,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/risk/ScenarioSimulator.jsx` (новый), `web-ui/src/components/risk/MonteCarloPanel.jsx` (новый), `web-ui/src/services/ScenarioEngine.js` (новый)
 
-### WD-60: API Playground & Interactive Console
+### WD-60: API Playground & Interactive Console ✅ DONE
 **Описание:** Интерактивный playground (Postman в браузере).
 - REST playground: method, URL autocomplete, headers, JSON body, response panel, history, collections, env vars, OpenAPI import
 - WebSocket playground: URL, connect, message editor, send, message log, subscribe templates, auto-reconnect
@@ -1558,7 +1558,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/debug/ApiPlayground.jsx` (новый), `web-ui/src/components/debug/WsPlayground.jsx` (новый), `web-ui/src/components/debug/PythonConsole.jsx` (новый)
 
-### WD-61: Data Quality Monitor
+### WD-61: Data Quality Monitor ✅ DONE
 **Описание:** Мониторинг качества данных (garbage in = garbage out).
 - Data freshness: last candle/trade/orderbook per symbol, gap detection
 - Data completeness: expected vs actual candles, missing %, gap fill status
@@ -1571,7 +1571,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/DataQuality.jsx` (новый), `web-ui/src/components/system/QualityHeatmap.jsx` (новый), `web-ui/src/services/QualityChecker.js` (новый)
 
-### WD-62: Structured Log Dashboard
+### WD-62: Structured Log Dashboard ✅ DONE
 **Описание:** Dashboard для поиска и анализа structured logs.
 - Log stream: real-time from all services, color by level, auto-scroll
 - Search: full-text, field search (level:ERROR, service:ai-signal-bot), time range, regex, saved searches
@@ -1584,7 +1584,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/debug/LogDashboard.jsx` (новый), `web-ui/src/components/debug/LogSearch.jsx` (новый), `web-ui/src/components/debug/LogAnalysis.jsx` (новый)
 
-### WD-63: Audit Trail & Compliance Log
+### WD-63: Audit Trail & Compliance Log ✅ DONE
 **Описание:** Audit trail для compliance.
 - Audit events: user actions, system actions, admin actions, data actions
 - Audit log: timestamp, actor, action, target, details, IP — immutable, exportable
@@ -1595,7 +1595,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/compliance/AuditTrail.jsx` (новый), `web-ui/src/components/compliance/ComplianceReport.jsx` (новый), `web-ui/src/services/AuditLogger.js` (новый)
 
-### WD-64: Team Collaboration
+### WD-64: Team Collaboration ✅ DONE
 **Описание:** Совместная работа команды над дашбордом.
 - Shared layouts: save/share, real-time sync, permissions (owner/editor/viewer)
 - Shared watchlists: team watchlist, annotations, discussion comments
@@ -1607,7 +1607,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/team/TeamCollab.jsx` (новый), `web-ui/src/components/team/SharedLayouts.jsx` (новый), `web-ui/src/components/team/DiscussionPanel.jsx` (новый), `web-ui/src/stores/useTeamStore.js` (новый)
 
-### WD-65: Strategy Version Control
+### WD-65: Strategy Version Control ✅ DONE
 **Описание:** Version control для стратегий (Git для стратегий).
 - Strategy repository: semantic versioning, commit messages, author + timestamp
 - Diff viewer: code diff, parameter diff, performance diff (backtest v1 vs v2)
@@ -1620,7 +1620,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/strategies/StrategyVersionControl.jsx` (новый), `web-ui/src/components/strategies/StrategyDiff.jsx` (новый), `web-ui/src/services/StrategyRepo.js` (новый)
 
-### WD-66: Options Chain & Greeks
+### WD-66: Options Chain & Greeks ✅ DONE
 **Описание:** Опционная цепочка и греки (если есть options data).
 - Options chain: calls/puts, strike/bid/ask/volume/OI/IV, ITM highlight, expiry selector
 - IV smile/skew chart, IV rank, IV term structure, historical IV
@@ -1631,7 +1631,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/options/OptionsChain.jsx` (новый), `web-ui/src/components/options/GreeksPanel.jsx` (новый), `web-ui/src/components/options/PayoffDiagram.jsx` (новый), `web-ui/src/components/options/IVAnalysis.jsx` (новый)
 
-### WD-67: Microstructure Analysis
+### WD-67: Microstructure Analysis ✅ DONE
 **Описание:** Анализ микроструктуры рынка (для HFT research).
 - Spread analysis: spread over time, distribution, spread vs volume, spread by time of day
 - Order book dynamics: depth profile, order arrival rate, cancellation rate, order lifetime, book imbalance
@@ -1643,7 +1643,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/MicrostructurePanel.jsx` (новый), `web-ui/src/components/analysis/SpreadAnalysis.jsx` (новый), `web-ui/src/components/analysis/LiquidityMetrics.jsx` (новый), `web-ui/src/services/MicrostructureEngine.js` (новый)
 
-### WD-68: Tick-Level Replay & Analysis
+### WD-68: Tick-Level Replay & Analysis ✅ DONE
 **Описание:** Покадровый (tick-level) replay для детального анализа.
 - Tick data viewer: timestamp (ms), price, size, side, exchange — scroll tick-by-tick
 - Replay controls: play (1x-1000x), step forward/backward, pause, jump to timestamp
@@ -1655,7 +1655,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/replay/TickReplay.jsx` (новый), `web-ui/src/components/replay/TickViewer.jsx` (новый), `web-ui/src/services/TickReplayEngine.js` (новый)
 **Зависимости:** WD-22 (replay mode), WD-01 (chart), WD-02 (orderbook)
 
-### WD-69: Network Packet Inspector
+### WD-69: Network Packet Inspector ✅ DONE
 **Описание:** Инспектор сетевых пакетов (для HFT debugging).
 - Packet capture: tcpdump-style, filter by port/protocol/host/direction, 10K buffer
 - Packet list: timestamp (μs), direction, src:port → dst:port, protocol, size, flags
@@ -1668,7 +1668,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/debug/PacketInspector.jsx` (новый), `web-ui/src/components/debug/PacketDetail.jsx` (новый), `web-ui/src/components/debug/FlowAnalysis.jsx` (новый)
 
-### WD-70: Custom Widget SDK
+### WD-70: Custom Widget SDK ✅ DONE
 **Описание:** SDK для создания собственных виджетов пользователями.
 - Widget API: registerWidget, useWsChannel, useApi, useSymbol, useTheme, useLayout
 - Widget template: simple JSX with hooks, auto-styling from theme
@@ -1681,7 +1681,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/sdk/WidgetSDK.jsx` (новый), `web-ui/src/components/sdk/WidgetEditor.jsx` (новый), `web-ui/src/components/sdk/WidgetRegistry.jsx` (новый), `web-ui/src/services/WidgetSandbox.js` (новый)
 
-### WD-71: Sentiment Analysis Dashboard
+### WD-71: Sentiment Analysis Dashboard ✅ DONE
 **Описание:** Дашборд рыночного сентимента (crypto + traditional).
 - Fear & Greed Index: текущее значение + history (7d, 30d, 90d)
   - Gauge: 0 (Extreme Fear) → 100 (Extreme Greed)
@@ -1706,7 +1706,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/sentiment/SentimentDashboard.jsx` (новый), `web-ui/src/components/sentiment/FearGreedGauge.jsx` (новый), `web-ui/src/components/sentiment/SocialSentiment.jsx` (новый), `web-ui/src/hooks/useSentimentFeed.js` (новый)
 
-### WD-72: On-Chain Analytics
+### WD-72: On-Chain Analytics ✅ DONE
 **Описание:** On-chain метрики для crypto (Glassnode-style).
 - Exchange flows:
   - Inflow: BTC flowing into exchanges (potential sell pressure)
@@ -1741,7 +1741,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/onchain/OnChainDashboard.jsx` (новый), `web-ui/src/components/onchain/ExchangeFlows.jsx` (новый), `web-ui/src/components/onchain/WhaleMovements.jsx` (новый), `web-ui/src/components/onchain/NetworkMetrics.jsx` (новый)
 
-### WD-73: Futures Basis & Calendar Spread
+### WD-73: Futures Basis & Calendar Spread ✅ DONE
 **Описание:** Анализ базиса фьючерсов и календарных спредов.
 - Basis table:
   - Per symbol: spot price, futures price (nearest expiry), basis ($), basis (%)
@@ -1774,7 +1774,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/crypto/FuturesBasis.jsx` (новый), `web-ui/src/components/crypto/CalendarSpread.jsx` (новый), `web-ui/src/components/crypto/BasisTradeSim.jsx` (новый)
 
-### WD-74: Volatility Surface & Term Structure
+### WD-74: Volatility Surface & Term Structure ✅ DONE
 **Описание:** Поверхность волатильности и term structure.
 - Implied volatility surface:
   - 3D surface: strike × expiry → IV (for options)
@@ -1804,7 +1804,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/VolSurface.jsx` (новый), `web-ui/src/components/analysis/VolTermStructure.jsx` (новый), `web-ui/src/components/analysis/VolCone.jsx` (новый), `web-ui/src/components/analysis/RealizedVol.jsx` (новый)
 
-### WD-75: Pairs & Statistical Arbitrage Monitor
+### WD-75: Pairs & Statistical Arbitrage Monitor ✅ DONE
 **Описание:** Монитор парного трейдинга и stat-arb.
 - Pairs list:
   - Symbol A | Symbol B | correlation | cointegration p-value | half-life | current z-score | signal
@@ -1841,7 +1841,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/PairsMonitor.jsx` (новый), `web-ui/src/components/analysis/SpreadChart.jsx` (новый), `web-ui/src/components/analysis/PairDiscovery.jsx` (новый), `web-ui/src/services/PairsEngine.js` (новый)
 
-### WD-76: Transaction Cost Analysis (TCA)
+### WD-76: Transaction Cost Analysis (TCA) ✅ DONE
 **Описание:** Анализ транзакционных издержек (post-trade).
 - Cost breakdown per trade:
   - Explicit costs: exchange fees, funding, borrowing
@@ -1879,7 +1879,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/TcaDashboard.jsx` (новый), `web-ui/src/components/analysis/SlippageAnalysis.jsx` (новый), `web-ui/src/components/analysis/CostAttribution.jsx` (новый), `web-ui/src/services/TcaEngine.js` (новый)
 
-### WD-77: Strategy Capacity Analysis
+### WD-77: Strategy Capacity Analysis ✅ DONE
 **Описание:** Анализ ёмкости стратегии (сколько $ можно влить).
 - Capacity estimation per strategy:
   - Max position size: before market impact becomes unacceptable
@@ -1912,7 +1912,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/CapacityAnalysis.jsx` (новый), `web-ui/src/components/analysis/CapacityDecay.jsx` (новый), `web-ui/src/services/CapacityEstimator.js` (новый)
 
-### WD-78: Market Regime Detector
+### WD-78: Market Regime Detector ✅ DONE
 **Описание:** Детектор рыночных режимов в real-time.
 - Regime classification:
   - Trending up: price > EMA50 > EMA200, ADX > 25, positive momentum
@@ -1948,7 +1948,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/RegimeDetector.jsx` (новый), `web-ui/src/components/analysis/HmmStates.jsx` (новый), `web-ui/src/components/analysis/RegimeHistory.jsx` (новый), `web-ui/src/services/RegimeEngine.js` (новый)
 
-### WD-79: Feature Engineering Studio
+### WD-79: Feature Engineering Studio ✅ DONE
 **Описание:** Студия создания и анализа фичей для ML.
 - Feature library:
   - 100+ built-in features: price-based, volume-based, technical, statistical, microstructure
@@ -1987,7 +1987,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/ml/FeatureStudio.jsx` (новый), `web-ui/src/components/ml/FeatureInspector.jsx` (новый), `web-ui/src/components/ml/FeatureSelector.jsx` (новый), `web-ui/src/services/FeatureEngine.js` (новый)
 
-### WD-80: Hyperparameter Optimization UI
+### WD-80: Hyperparameter Optimization UI ✅ DONE
 **Описание:** UI для оптимизации гиперпараметров ML моделей и стратегий.
 - Optimization setup:
   - Target: select model (LSTM, Transformer, RL) or strategy (TrendFollowing, etc.)
@@ -2021,7 +2021,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/ml/HyperoptUI.jsx` (новый), `web-ui/src/components/ml/OptimizationView.jsx` (новый), `web-ui/src/components/ml/ParamImportance.jsx` (новый), `web-ui/src/services/HyperoptEngine.js` (новый)
 
-### WD-81: Model Retraining Pipeline
+### WD-81: Model Retraining Pipeline ✅ DONE
 **Описание:** Pipeline переобучения ML моделей из web-ui.
 - Retraining trigger:
   - Manual: "Retrain Now" button
@@ -2062,7 +2062,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/ml/RetrainingPipeline.jsx` (новый), `web-ui/src/components/ml/PipelineView.jsx` (новый), `web-ui/src/components/ml/ModelComparison.jsx` (новый), `web-ui/src/services/RetrainingService.js` (новый)
 
-### WD-82: Slippage Analytics & Prediction
+### WD-82: Slippage Analytics & Prediction ✅ DONE
 **Описание:** Аналитика и предсказание slippage.
 - Historical slippage:
   - Per trade: expected price vs actual fill price (bps)
@@ -2092,7 +2092,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/SlippageAnalytics.jsx` (новый), `web-ui/src/components/analysis/SlippagePredictor.jsx` (новый), `web-ui/src/services/SlippageModel.js` (новый)
 
-### WD-83: Strategy Correlation & Overlap Detector
+### WD-83: Strategy Correlation & Overlap Detector ✅ DONE
 **Описание:** Детектор корреляции и перекрытия между стратегиями.
 - Strategy correlation matrix:
   - N×N matrix where N = number of active strategies
@@ -2125,7 +2125,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/StrategyCorrelation.jsx` (новый), `web-ui/src/components/analysis/OverlapDetector.jsx` (новый), `web-ui/src/components/analysis/DiversificationMetrics.jsx` (новый)
 
-### WD-84: Walk-Forward & Overfitting Analysis Viewer
+### WD-84: Walk-Forward & Overfitting Analysis Viewer ✅ DONE
 **Описание:** Визуализация walk-forward анализа и детектор оверфиттинга.
 - Walk-forward results:
   - IS (In-Sample) vs OOS (Out-of-Sample) performance table
@@ -2159,7 +2159,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/WalkForwardViewer.jsx` (новый), `web-ui/src/components/analysis/OverfittingDetector.jsx` (новый), `web-ui/src/components/analysis/RobustnessTests.jsx` (новый)
 
-### WD-85: Real-time P&L Attribution
+### WD-85: Real-time P&L Attribution ✅ DONE
 **Описание:** Real-time атрибуция P&L (откуда берётся прибыль/убыток).
 - P&L decomposition (real-time):
   - Delta P&L: price movement × position size (directional)
@@ -2191,7 +2191,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/attribution/RealtimeAttribution.jsx` (новый), `web-ui/src/components/attribution/PnlWaterfall.jsx` (новый), `web-ui/src/components/attribution/FactorDecomposition.jsx` (новый)
 
-### WD-86: Genetic Strategy Evolution Viewer
+### WD-86: Genetic Strategy Evolution Viewer ✅ DONE
 **Описание:** Визуализация эволюции стратегий (genetic algorithm).
 - Evolution view:
   - Generation: current generation number
@@ -2226,7 +2226,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/research/GeneticViewer.jsx` (новый), `web-ui/src/components/research/GenomeInspector.jsx` (новый), `web-ui/src/components/research/EvolutionTimeline.jsx` (новый)
 
-### WD-87: Cost Basis Tracker & Lot Management
+### WD-87: Cost Basis Tracker & Lot Management ✅ DONE
 **Описание:** Отслеживание себестоимости и управление лотами.
 - Lot ledger:
   - Every position = collection of lots (individual entries)
@@ -2262,7 +2262,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/trading/CostBasisTracker.jsx` (новый), `web-ui/src/components/trading/LotLedger.jsx` (новый), `web-ui/src/components/trading/TaxLotOptimizer.jsx` (новый)
 
-### WD-88: Fill Rate & Rejection Analytics
+### WD-88: Fill Rate & Rejection Analytics ✅ DONE
 **Описание:** Аналитика исполняемости и отказов ордеров.
 - Fill statistics:
   - Fill rate: % of orders fully filled (target >95%)
@@ -2301,7 +2301,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/FillAnalytics.jsx` (новый), `web-ui/src/components/analysis/RejectionBreakdown.jsx` (новый), `web-ui/src/components/analysis/FillSpeed.jsx` (новый)
 
-### WD-89: Order Cancellation & Modification Monitor
+### WD-89: Order Cancellation & Modification Monitor ✅ DONE
 **Описание:** Мониторинг отмен и модификаций ордеров.
 - Cancellation metrics:
   - Cancel rate: cancelled / total orders (target <30% for non-HFT)
@@ -2335,7 +2335,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/CancelMonitor.jsx` (новый), `web-ui/src/components/analysis/SpoofingDetector.jsx` (новый), `web-ui/src/components/analysis/OrderLifecycle.jsx` (новый)
 
-### WD-90: Dashboard Performance Profiler
+### WD-90: Dashboard Performance Profiler ✅ DONE
 **Описание:** Профайлер производительности самого дашборда.
 - Render metrics:
   - FPS: current frames per second (target 60)
@@ -2376,7 +2376,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/debug/DashboardProfiler.jsx` (новый), `web-ui/src/components/debug/ComponentProfiler.jsx` (новый), `web-ui/src/components/debug/MemoryMonitor.jsx` (новый), `web-ui/src/hooks/usePerformanceMetrics.js` (новый)
 
-### WD-91: Cross-Asset Correlation Matrix (Crypto vs Macro)
+### WD-91: Cross-Asset Correlation Matrix (Crypto vs Macro) ✅ DONE
 **Описание:** Корреляция crypto с макро-активами (золото, SPX, DXY, VIX, нефть).
 - Assets: BTC, ETH, top-10 alts + Gold, S&P 500, NASDAQ, DXY (dollar index), VIX, WTI Oil, 10Y Treasury
 - Correlation matrix: N×N heatmap (Pearson, Spearman, Kendall)
@@ -2394,7 +2394,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/CrossAssetMatrix.jsx` (новый), `web-ui/src/components/analysis/MacroCorrelation.jsx` (новый), `web-ui/src/services/MacroDataProvider.js` (новый)
 
-### WD-92: Liquidity Map & 3D Depth Visualization
+### WD-92: Liquidity Map & 3D Depth Visualization ✅ DONE
 **Описание:** 3D визуализация ликвидности ордербука во времени.
 - 3D depth chart:
   - X-axis: price levels
@@ -2425,7 +2425,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/orderbook/LiquidityMap3D.jsx` (новый), `web-ui/src/components/orderbook/DepthEvolution.jsx` (новый), `web-ui/src/services/LiquidityAnalyzer.js` (новый)
 **Зависимости:** WD-02 (orderbook data)
 
-### WD-93: Signal Performance Tracker
+### WD-93: Signal Performance Tracker ✅ DONE
 **Описание:** Отслеживание каждого сигнала от генерации до результата.
 - Signal lifecycle:
   - Generated: timestamp, strategy, symbol, direction, confidence, SL, TP
@@ -2456,7 +2456,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/signals/SignalTracker.jsx` (новый), `web-ui/src/components/signals/SignalAccuracy.jsx` (новый), `web-ui/src/components/signals/SignalValueAnalysis.jsx` (новый)
 
-### WD-94: Portfolio Optimization Lab
+### WD-94: Portfolio Optimization Lab ✅ DONE
 **Описание:** Интерактивная лаборатория оптимизации портфеля.
 - Efficient frontier:
   - Markowitz: plot risk (σ) vs return for all portfolio combinations
@@ -2496,7 +2496,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/portfolio/OptimizationLab.jsx` (новый), `web-ui/src/components/portfolio/EfficientFrontier.jsx` (новый), `web-ui/src/components/portfolio/BlackLittermanInput.jsx` (новый), `web-ui/src/services/PortfolioOptimizer.js` (новый)
 
-### WD-95: Market Making Quote Optimizer
+### WD-95: Market Making Quote Optimizer ✅ DONE
 **Описание:** Оптимизатор котировок для market making (Avellaneda-Stoikov).
 - Model parameters:
   - Gamma (risk aversion): slider 0.01-1.0 — higher = wider spreads when inventory grows
@@ -2533,7 +2533,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/mm/QuoteOptimizer.jsx` (новый), `web-ui/src/components/mm/InventorySkew.jsx` (новый), `web-ui/src/components/mm/AdverseSelection.jsx` (новый), `web-ui/src/services/AvellanedaStoikov.js` (новый)
 
-### WD-96: Emergency Control Center
+### WD-96: Emergency Control Center ✅ DONE
 **Описание:** Центр экстренного управления (kill switch panel).
 - Big red buttons (always visible, top-right corner):
   - **KILL ALL** — cancel all orders, close all positions, stop all strategies
@@ -2566,7 +2566,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/emergency/EmergencyControl.jsx` (новый), `web-ui/src/components/emergency/EmergencyModal.jsx` (новый), `web-ui/src/stores/useEmergencyStore.js` (новый)
 
-### WD-97: Multi-Account Manager
+### WD-97: Multi-Account Manager ✅ DONE
 **Описание:** Управление несколькими торговыми аккаунтами.
 - Account list:
   - Each account: name, exchange, API key (masked), balance, equity, P&L
@@ -2603,7 +2603,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/accounts/MultiAccountManager.jsx` (новый), `web-ui/src/components/accounts/AccountComparison.jsx` (новый), `web-ui/src/stores/useAccountStore.js` (новый)
 
-### WD-98: LLM Trade Idea Generator
+### WD-98: LLM Trade Idea Generator ✅ DONE
 **Описание:** AI-генератор торговых идей (через LLM engine).
 - Idea generation:
   - Input: current market state (prices, indicators, sentiment, on-chain, news)
@@ -2641,7 +2641,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/ai/IdeaGenerator.jsx` (новый), `web-ui/src/components/ai/IdeaCard.jsx` (новый), `web-ui/src/components/ai/IdeaHistory.jsx` (новый), `web-ui/src/services/LlmIdeaEngine.js` (новый)
 **Зависимости:** LLM engine (src/llm_engine/engine.py)
 
-### WD-99: System Architecture Map
+### WD-99: System Architecture Map ✅ DONE
 **Описание:** Визуальная карта архитектуры системы (все сервисы и связи).
 - Service graph:
   - Nodes: ai-signal-bot, exchange-simulator, hft-trade-bot, postgres, redis, web-ui, Prometheus, Grafana
@@ -2679,7 +2679,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/ArchitectureMap.jsx` (новый), `web-ui/src/components/system/ServiceGraph.jsx` (новый), `web-ui/src/components/system/ServiceDetail.jsx` (новый)
 
-### WD-100: Config Diff & Environment Manager
+### WD-100: Config Diff & Environment Manager ✅ DONE
 **Описание:** Сравнение конфигов между окружениями (dev/staging/prod).
 - Environment selector: dev, staging, prod (tabs)
 - Config sources:
@@ -2717,7 +2717,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/settings/ConfigDiff.jsx` (новый), `web-ui/src/components/settings/EnvironmentManager.jsx` (новый), `web-ui/src/services/ConfigSync.js` (новый)
 
-### WD-101: Historical Event Impact Analyzer
+### WD-101: Historical Event Impact Analyzer ✅ DONE
 **Описание:** Анализ влияния исторических событий на портфель.
 - Event database:
   - Pre-loaded: FOMC meetings (2019-2025), CPI releases, NFP, flash crashes, exchange hacks, LUNA, FTX, COVID
@@ -2750,7 +2750,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/EventImpactAnalyzer.jsx` (новый), `web-ui/src/components/analysis/EventReplay.jsx` (новый), `web-ui/src/services/EventDatabase.js` (новый)
 
-### WD-102: Stablecoin Depeg Monitor
+### WD-102: Stablecoin Depeg Monitor ✅ DONE
 **Описание:** Мониторинг отклонения стейблкоинов от peg.
 - Stablecoins: USDT, USDC, DAI, FRAX, TUSD, BUSD
 - Peg tracking:
@@ -2784,7 +2784,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/crypto/DepegMonitor.jsx` (новый), `web-ui/src/components/crypto/StablecoinHealth.jsx` (новый), `web-ui/src/hooks/useStablecoinFeed.js` (новый)
 
-### WD-103: Real-time Order Book Imbalance Signal
+### WD-103: Real-time Order Book Imbalance Signal ✅ DONE
 **Описание:** Predictive сигнал из дисбаланса ордербука.
 - Imbalance calculation:
   - Bid imbalance: bid_qty / (bid_qty + ask_qty) — 0 to 1
@@ -2820,7 +2820,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/orderbook/ImbalanceSignal.jsx` (новый), `web-ui/src/components/orderbook/ImbalanceChart.jsx` (новый), `web-ui/src/services/ImbalanceEngine.js` (новый)
 **Зависимости:** WD-02 (orderbook data)
 
-### WD-104: Trade Replay with LLM Commentary
+### WD-104: Trade Replay with LLM Commentary ✅ DONE
 **Описание:** AI-комментированный replay сделок (как спортивный комментатор).
 - Replay interface:
   - Select trade (or date range) → play back with chart, orderbook, tape
@@ -2855,7 +2855,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/replay/ReplayCommentary.jsx` (новый), `web-ui/src/components/replay/TradeGrader.jsx` (новый), `web-ui/src/services/CommentaryEngine.js` (новый)
 **Зависимости:** WD-22 (replay mode), LLM engine
 
-### WD-105: Position Sizing Calculator
+### WD-105: Position Sizing Calculator ✅ DONE
 **Описание:** Калькулятор размера позиции с разными методами.
 - Input:
   - Account equity: current or custom
@@ -2904,7 +2904,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/trading/PositionSizer.jsx` (новый), `web-ui/src/components/trading/KellyCalculator.jsx` (новый), `web-ui/src/components/trading/EquitySimulator.jsx` (новый), `web-ui/src/services/PositionSizingEngine.js` (новый)
 
-### WD-106: Drawdown Recovery Planner
+### WD-106: Drawdown Recovery Planner ✅ DONE
 **Описание:** Планировщик восстановления после drawdown.
 - Current state:
   - Current drawdown: $ and % from peak
@@ -2948,7 +2948,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/risk/DrawdownRecovery.jsx` (новый), `web-ui/src/components/risk/RecoveryScenarios.jsx` (новый), `web-ui/src/services/RecoveryPlanner.js` (новый)
 
-### WD-107: Alpha Decay Monitor
+### WD-107: Alpha Decay Monitor ✅ DONE
 **Описание:** Мониторинг затухания alpha (edge) после генерации сигнала.
 - Alpha decay curve:
   - X-axis: minutes after signal generation (0, 1, 5, 10, 30, 60, 120)
@@ -2987,7 +2987,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/AlphaDecay.jsx` (новый), `web-ui/src/components/analysis/DecayCurves.jsx` (новый), `web-ui/src/services/DecayAnalyzer.js` (новый)
 
-### WD-108: Market Calendar & Earnings Integration
+### WD-108: Market Calendar & Earnings Integration ✅ DONE
 **Описание:** Интеграция экономического календаря и earnings.
 - Economic calendar (traditional):
   - This week: FOMC (Wed), CPI (Thu), NFP (Fri)
@@ -3026,7 +3026,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/calendar/MarketCalendar.jsx` (новый), `web-ui/src/components/calendar/EventChecklist.jsx` (новый), `web-ui/src/components/calendar/CryptoCalendar.jsx` (новый), `web-ui/src/hooks/useCalendarFeed.js` (новый)
 
-### WD-109: DeFi Yield & Opportunity Scanner
+### WD-109: DeFi Yield & Opportunity Scanner ✅ DONE
 **Описание:** Сканер DeFi возможностей (yield farming, liquidity pools).
 - Yield opportunities:
   - Liquidity pools: Uniswap, Curve, Balancer — APY, TVL, risk
@@ -3059,7 +3059,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/defi/YieldScanner.jsx` (новый), `web-ui/src/components/defi/OpportunityTable.jsx` (новый), `web-ui/src/components/defi/DeFiRisk.jsx` (новый), `web-ui/src/services/DeFiProvider.js` (новый)
 
-### WD-110: Cross-Chain Bridge Monitor
+### WD-110: Cross-Chain Bridge Monitor ✅ DONE
 **Описание:** Мониторинг cross-chain мостов и переводов.
 - Bridge list:
   - Wormhole, LayerZero, Stargate, Across, Hop, Synapse, Portal
@@ -3093,7 +3093,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/BridgeMonitor.jsx` (новый), `web-ui/src/components/defi/BridgeComparison.jsx` (новый), `web-ui/src/hooks/useBridgeFeed.js` (новый)
 
-### WD-111: MEV & Sandwich Attack Detector
+### WD-111: MEV & Sandwich Attack Detector ✅ DONE
 **Описание:** Детектор MEV и sandwich-атак (для DeFi транзакций).
 - MEV detection:
   - Sandwich: detect if our DEX swap was front-run + back-run
@@ -3125,7 +3125,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/defi/MevDetector.jsx` (новый), `web-ui/src/components/defi/SandwichAnalyzer.jsx` (новый), `web-ui/src/services/MevMonitor.js` (новый)
 
-### WD-112: Liquidation Cascade Tracker
+### WD-112: Liquidation Cascade Tracker ✅ DONE
 **Описание:** Отслеживание каскадов ликвидаций (crypto-specific).
 - Liquidation feed (real-time):
   - Every liquidation: timestamp, exchange, symbol, side (long/short), size ($), price
@@ -3165,7 +3165,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/crypto/LiquidationTracker.jsx` (новый), `web-ui/src/components/crypto/LiquidationHeatmap.jsx` (новый), `web-ui/src/components/crypto/CascadeDetector.jsx` (новый), `web-ui/src/hooks/useLiquidationFeed.js` (новый)
 
-### WD-113: Open Interest Tracker
+### WD-113: Open Interest Tracker ✅ DONE
 **Описание:** Мониторинг открытого интереса (OI) по всем символам.
 - OI table:
   - Symbol | OI ($) | OI change 1h | OI change 24h | OI vs 7d avg | Price change
@@ -3201,7 +3201,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/crypto/OiTracker.jsx` (новый), `web-ui/src/components/crypto/OiChart.jsx` (новый), `web-ui/src/hooks/useOiFeed.js` (новый)
 
-### WD-114: Exchange Health & Status Monitor
+### WD-114: Exchange Health & Status Monitor ✅ DONE
 **Описание:** Мониторинг здоровья всех подключённых бирж.
 - Exchange status grid:
   - Each exchange: Binance, Bybit, OKX, Bitfinex, Deribit, Coinbase
@@ -3239,7 +3239,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/ExchangeHealth.jsx` (новый), `web-ui/src/components/system/ExchangeComparison.jsx` (новый), `web-ui/src/hooks/useExchangeStatus.js` (новый)
 
-### WD-115: Trade Blotter (Professional OMS View)
+### WD-115: Trade Blotter (Professional OMS View) ✅ DONE
 **Описание:** Профессиональный blotter (Order Management System view).
 - Blotter table (Excel-like, dense):
   - Columns: OrderID | Time | Symbol | Side | Type | Qty | Price | Filled | Status | Strategy | Exchange | Tags
@@ -3276,7 +3276,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/trading/TradeBlotter.jsx` (новый), `web-ui/src/components/trading/OrderDetail.jsx` (новый), `web-ui/src/components/trading/BulkOperations.jsx` (новый)
 
-### WD-116: Strategy Heatmap Matrix
+### WD-116: Strategy Heatmap Matrix ✅ DONE
 **Описание:** Матрица стратегия × символ → performance.
 - Heatmap:
   - Rows: strategies (TrendFollowing, MeanReversion, FFT, StatArb, etc.)
@@ -3309,7 +3309,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/StrategyHeatmap.jsx` (новый), `web-ui/src/components/strategies/StrategySymbolDetail.jsx` (новый), `web-ui/src/services/HeatmapData.js` (новый)
 
-### WD-117: Volume-Weighted Average Price (VWAP) Suite
+### WD-117: Volume-Weighted Average Price (VWAP) Suite ✅ DONE
 **Описание:** Полный набор VWAP инструментов.
 - VWAP lines:
   - Session VWAP: from session start to now (reset daily)
@@ -3349,7 +3349,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/charts/VwapSuite.jsx` (новый), `web-ui/src/components/charts/VwapBands.jsx` (новый), `web-ui/src/services/VwapCalculator.js` (новый)
 **Зависимости:** WD-01 (chart)
 
-### WD-118: Funding Rate Arbitrage Scanner
+### WD-118: Funding Rate Arbitrage Scanner ✅ DONE
 **Описание:** Сканер арбитражных возможностей через funding rate.
 - Funding rate table:
   - Symbol | Exchange A funding | Exchange B funding | Spread | Annualized | Direction
@@ -3391,7 +3391,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/crypto/FundingArbScanner.jsx` (новый), `web-ui/src/components/crypto/ArbOpportunity.jsx` (новый), `web-ui/src/services/FundingArbEngine.js` (новый)
 
-### WD-119: Trade Journal & Analytics
+### WD-119: Trade Journal & Analytics ✅ DONE
 **Описание:** Расширенный торговый журнал с аналитикой (продолжение WD-23).
 - Journal entries (per trade):
   - Automatic: symbol, direction, entry/exit, P&L, R-multiple, duration
@@ -3430,7 +3430,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/journal/TradeJournal.jsx` (новый), `web-ui/src/components/journal/JournalAnalytics.jsx` (новый), `web-ui/src/components/journal/PsychologyTracker.jsx` (новый), `web-ui/src/components/journal/ReviewSession.jsx` (новый)
 
-### WD-120: Heatmap of All Symbols (Multi-Metric)
+### WD-120: Heatmap of All Symbols (Multi-Metric) ✅ DONE
 **Описание:** Мульти-метрик тепловая карта всех 50 символов.
 - Symbol grid:
   - 50 symbols as tiles in a grid (5×10 or configurable)
@@ -3473,7 +3473,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/charts/SymbolHeatmap.jsx` (новый), `web-ui/src/components/charts/HeatmapTile.jsx` (новый), `web-ui/src/hooks/useHeatmapMetrics.js` (новый)
 
-### WD-121: Trade Simulation & Paper Trading
+### WD-121: Trade Simulation & Paper Trading ✅ DONE
 **Описание:** Расширенный симулятор торговли (paper trading).
 - Simulation modes:
   - **Full paper**: simulated orders, simulated fills, simulated P&L
@@ -3511,7 +3511,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/trading/PaperTrading.jsx` (новый), `web-ui/src/components/trading/SimulationEngine.jsx` (новый), `web-ui/src/stores/usePaperStore.js` (новый)
 
-### WD-122: Cross-Exchange Price Comparison
+### WD-122: Cross-Exchange Price Comparison ✅ DONE
 **Описание:** Сравнение цен на всех биржах в real-time.
 - Price comparison table:
   - Symbol | Exchange A | Exchange B | Exchange C | Best bid | Best ask | Spread
@@ -3547,7 +3547,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/crypto/CrossExchangePrices.jsx` (новый), `web-ui/src/components/crypto/ArbCalculator.jsx` (новый), `web-ui/src/components/crypto/PriceLeader.jsx` (новый)
 
-### WD-123: Strategy Parameter Sensitivity Analyzer
+### WD-123: Strategy Parameter Sensitivity Analyzer ✅ DONE
 **Описание:** Анализ чувствительности параметров стратегии.
 - Parameter grid:
   - Select 2 parameters (e.g. EMA period + RSI threshold)
@@ -3584,7 +3584,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/ParamSensitivity.jsx` (новый), `web-ui/src/components/analysis/ParamGrid.jsx` (новый), `web-ui/src/components/analysis/ParamSweep.jsx` (новый), `web-ui/src/services/SensitivityEngine.js` (новый)
 
-### WD-124: Real-Time Greeks Aggregator
+### WD-124: Real-Time Greeks Aggregator ✅ DONE
 **Описание:** Real-time агрегатор греков для всего портфеля (options).
 - Portfolio greeks (real-time):
   - Net Delta: $ per 1% move (directional risk)
@@ -3621,7 +3621,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/options/GreeksAggregator.jsx` (новый), `web-ui/src/components/options/GreeksLadder.jsx` (новый), `web-ui/src/components/options/HedgingPanel.jsx` (новый)
 
-### WD-125: Market-Making Inventory Age Tracker
+### WD-125: Market-Making Inventory Age Tracker ✅ DONE
 **Описание:** Отслеживание возраста инвентаря для MM (сколько держим позицию).
 - Inventory age per position:
   - Age timer: mm:ss since position opened (ticking in real-time)
@@ -3653,7 +3653,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/mm/InventoryAge.jsx` (новый), `web-ui/src/components/mm/AgeDistribution.jsx` (новый), `web-ui/src/components/mm/StaleAlerts.jsx` (новый)
 
-### WD-126: Profit Factor & Edge Confidence Calculator
+### WD-126: Profit Factor & Edge Confidence Calculator ✅ DONE
 **Описание:** Калькулятор confidence в edge стратегии (статистический).
 - Profit factor:
   - PF = gross profit / gross loss (target >1.5)
@@ -3692,7 +3692,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/EdgeCalculator.jsx` (новый), `web-ui/src/components/analysis/ProfitFactor.jsx` (новый), `web-ui/src/components/analysis/RiskOfRuin.jsx` (новый), `web-ui/src/services/StatSignificance.js` (новый)
 
-### WD-127: WebSocket Message Rate Limiter & Backpressure
+### WD-127: WebSocket Message Rate Limiter & Backpressure ✅ DONE
 **Описание:** UI-side rate limiting и backpressure для WS сообщений.
 - Message rate monitor:
   - Messages/sec: incoming rate per channel (candles, orderbook, trades, signals)
@@ -3734,7 +3734,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/system/BackpressureMonitor.jsx` (новый), `web-ui/src/components/system/RateLimiter.jsx` (новый), `web-ui/src/services/MessageThrottle.js` (новый)
 **Зависимости:** WD-12 (WS manager)
 
-### WD-128: Custom Alert Builder
+### WD-128: Custom Alert Builder ✅ DONE
 **Описание:** Конструктор кастомных алертов (no-code, visual).
 - Alert types:
   - Price: crosses above/below X, reaches X, moves X% in Y time
@@ -3778,7 +3778,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/alerts/AlertBuilder.jsx` (новый), `web-ui/src/components/alerts/AlertManager.jsx` (новый), `web-ui/src/components/alerts/AlertHistory.jsx` (новый), `web-ui/src/services/AlertEngine.js` (новый)
 
-### WD-129: Session Replay & Recording
+### WD-129: Session Replay & Recording ✅ DONE
 **Описание:** Запись и воспроизведение торговых сессй.
 - Session recording:
   - Records: all UI state changes, chart data, order book, trades, signals
@@ -3815,7 +3815,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/replay/SessionRecorder.jsx` (новый), `web-ui/src/components/replay/SessionPlayer.jsx` (новый), `web-ui/src/components/replay/SessionComparison.jsx` (новый), `web-ui/src/services/SessionStore.js` (новый)
 
-### WD-130: Multi-Timeframe Analysis Dashboard
+### WD-130: Multi-Timeframe Analysis Dashboard ✅ DONE
 **Описание:** Мульти-таймфрейм анализ на одном экране.
 - Timeframe grid:
   - 6 charts: 1m, 5m, 15m, 1h, 4h, 1d — all for same symbol
@@ -3848,7 +3848,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/charts/MultiTimeframe.jsx` (новый), `web-ui/src/components/charts/TimeframeGrid.jsx` (новый), `web-ui/src/components/charts/SignalMatrix.jsx` (новый), `web-ui/src/hooks/useMultiTimeframe.js` (новый)
 
-### WD-131: AI Chart Pattern Recognition
+### WD-131: AI Chart Pattern Recognition ✅ DONE
 **Описание:** ML-распознавание паттернов на графиках в real-time.
 - Auto-detect patterns:
   - Reversal: double top/bottom, head & shoulders, inverse H&S, triple top/bottom
@@ -3887,7 +3887,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/ai/PatternRecognition.jsx` (новый), `web-ui/src/components/ai/PatternScanner.jsx` (новый), `web-ui/src/components/ai/PatternStats.jsx` (новый), `web-ui/src/services/PatternDetector.js` (новый)
 **Зависимости:** WD-01 (chart), ML models
 
-### WD-132: Smart Money Tracker
+### WD-132: Smart Money Tracker ✅ DONE
 **Описание:** Отслеживание "умных денег" (известные прибыльные адреса).
 - Smart money database:
   - Curated list: top-100 known profitable addresses (from Nansen, Arkham labels)
@@ -3925,7 +3925,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/onchain/SmartMoneyTracker.jsx` (новый), `web-ui/src/components/onchain/CopyTrading.jsx` (новый), `web-ui/src/components/onchain/SmartMoneyFlow.jsx` (новый), `web-ui/src/services/SmartMoneyProvider.js` (новый)
 
-### WD-133: Market Breadth Indicators
+### WD-133: Market Breadth Indicators ✅ DONE
 **Описание:** Индикаторы рыночного breadth (advance/decline, new highs/lows).
 - Advance/Decline:
   - A/D line: cumulative (advancers - decliners) across all 50 symbols
@@ -3962,7 +3962,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/MarketBreadth.jsx` (новый), `web-ui/src/components/analysis/AdvanceDecline.jsx` (новый), `web-ui/src/components/analysis/BreadthIndicators.jsx` (новый)
 
-### WD-134: Volatility Arbitrage Monitor
+### WD-134: Volatility Arbitrage Monitor ✅ DONE
 **Описание:** Мониторинг волатильности для arb (IV vs RV, dispersion).
 - IV vs RV:
   - Per symbol: implied vol (from options) vs realized vol (from price)
@@ -4000,7 +4000,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/VolArbMonitor.jsx` (новый), `web-ui/src/components/analysis/DispersionTrading.jsx` (новый), `web-ui/src/components/analysis/VolSurfaceSkew.jsx` (новый)
 
-### WD-135: Triangular & Cross-Exchange Arbitrage Scanner
+### WD-135: Triangular & Cross-Exchange Arbitrage Scanner ✅ DONE
 **Описание:** Сканер треугольного и cross-exchange арбитража.
 - Triangular arb (single exchange):
   - A→B→C→A: BTC→ETH→USDT→BTC (or any 3-symbol cycle)
@@ -4040,7 +4040,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/crypto/ArbScanner.jsx` (новый), `web-ui/src/components/crypto/TriangularArb.jsx` (новый), `web-ui/src/components/crypto/ArbRouteGraph.jsx` (новый), `web-ui/src/services/ArbEngine.js` (новый)
 
-### WD-136: Portfolio Insurance & Hedging Strategy
+### WD-136: Portfolio Insurance & Hedging Strategy ✅ DONE
 **Описание:** Стратегии портфельного страхования и хеджирования.
 - Hedging methods:
   - **Delta hedge**: offset directional risk with opposite position
@@ -4096,7 +4096,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/risk/PortfolioHedging.jsx` (новый), `web-ui/src/components/risk/CppiManager.jsx` (новый), `web-ui/src/components/risk/HedgeMonitor.jsx` (новый), `web-ui/src/services/HedgingEngine.js` (новый)
 
-### WD-137: Tax-Loss Harvesting Optimizer
+### WD-137: Tax-Loss Harvesting Optimizer ✅ DONE
 **Описание:** Автоматический tax-loss harvesting.
 - Harvesting scanner:
   - Scan positions for unrealized losses
@@ -4139,7 +4139,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/tax/TaxLossHarvesting.jsx` (новый), `web-ui/src/components/tax/HarvestingCalendar.jsx` (новый), `web-ui/src/components/tax/SubstituteFinder.jsx` (новый), `web-ui/src/services/HarvestingEngine.js` (новый)
 **Зависимости:** WD-87 (cost basis), WD-43 (tax reports)
 
-### WD-138: DEX Liquidity Pool Analytics
+### WD-138: DEX Liquidity Pool Analytics ✅ DONE
 **Описание:** Аналитика пулов ликвидности DEX (для LP positions).
 - Pool list:
   - Uniswap V3, V2, Curve, Balancer, SushiSwap
@@ -4180,7 +4180,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/defi/PoolAnalytics.jsx` (новый), `web-ui/src/components/defi/ImpermanentLoss.jsx` (новый), `web-ui/src/components/defi/LpPositionManager.jsx` (новый), `web-ui/src/services/PoolDataProvider.js` (новый)
 
-### WD-139: Trade Execution Quality Score
+### WD-139: Trade Execution Quality Score ✅ DONE
 **Описание:** Оценка качества исполнения каждого ордера (A-F grade).
 - Per-trade grading:
   - **A (Excellent)**: filled at better than arrival price, fast, full fill
@@ -4215,7 +4215,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/ExecutionQuality.jsx` (новый), `web-ui/src/components/analysis/ExecutionScorecard.jsx` (новый), `web-ui/src/components/analysis/RootCauseAnalysis.jsx` (новый), `web-ui/src/services/ExecutionGrader.js` (новый)
 
-### WD-140: Social/Copy Trading Feed
+### WD-140: Social/Copy Trading Feed ✅ DONE
 **Описание:** Лента социальных торгов и copy trading.
 - Trader leaderboard:
   - Top traders: ranked by Sharpe, P&L, win rate, followers
@@ -4254,7 +4254,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/social/SocialFeed.jsx` (новый), `web-ui/src/components/social/CopyTrading.jsx` (новый), `web-ui/src/components/social/TraderLeaderboard.jsx` (новый), `web-ui/src/stores/useSocialStore.js` (новый)
 
-### WD-141: Governance & DAO Voting Dashboard
+### WD-141: Governance & DAO Voting Dashboard ✅ DONE
 **Описание:** Дашборд для DAO-голосований и governance.
 - Proposal feed:
   - Active proposals: title, description, for/against votes, time remaining
@@ -4292,7 +4292,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/GovernanceDashboard.jsx` (новый), `web-ui/src/components/defi/ProposalFeed.jsx` (новый), `web-ui/src/components/defi/VotingPower.jsx` (новый), `web-ui/src/services/GovernanceProvider.js` (новый)
 
-### WD-142: Token Launch & IDO/IEO Tracker
+### WD-142: Token Launch & IDO/IEO Tracker ✅ DONE
 **Описание:** Отслеживание новых токен-ланчей (IDO, IEO, airdrops).
 - Launch calendar:
   - Upcoming: IDO, IEO, presale, public sale dates
@@ -4331,7 +4331,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/launch/LaunchTracker.jsx` (новый), `web-ui/src/components/launch/AirdropTracker.jsx` (новый), `web-ui/src/components/launch/VestingSchedule.jsx` (новый), `web-ui/src/hooks/useLaunchFeed.js` (новый)
 
-### WD-143: Real-Time Order Flow Toxicity (VPIN)
+### WD-143: Real-Time Order Flow Toxicity (VPIN) ✅ DONE
 **Описание:** Real-time VPIN и toxicity метрики.
 - VPIN calculation:
   - Volume-Synchronized Probability of Informed Trading
@@ -4367,7 +4367,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/VpinMonitor.jsx` (новый), `web-ui/src/components/analysis/OrderFlowToxicity.jsx` (новый), `web-ui/src/services/VpinCalculator.js` (новый)
 
-### WD-144: Market Structure Visualization
+### WD-144: Market Structure Visualization ✅ DONE
 **Описание:** Визуализация структуры рынка (support/resistance, zones).
 - Support/Resistance detection:
   - Auto-detect: price levels where price reversed multiple times
@@ -4412,7 +4412,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/charts/MarketStructure.jsx` (новый), `web-ui/src/components/charts/SupplyDemandZones.jsx` (новый), `web-ui/src/components/charts/OrderBlocks.jsx` (новый), `web-ui/src/services/StructureDetector.js` (новый)
 **Зависимости:** WD-01 (chart)
 
-### WD-145: Strategy Alpha Attribution
+### WD-145: Strategy Alpha Attribution ✅ DONE
 **Описание:** Атрибуция alpha — откуда конкретно приходит edge.
 - Alpha sources:
   - **Directional alpha**: correct prediction of price direction
@@ -4454,7 +4454,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/attribution/AlphaAttribution.jsx` (новый), `web-ui/src/components/attribution/AlphaDecomposition.jsx` (новый), `web-ui/src/components/attribution/FactorAttribution.jsx` (новый), `web-ui/src/services/AlphaEngine.js` (новый)
 
-### WD-146: Correlation Breakdown Early Warning
+### WD-146: Correlation Breakdown Early Warning ✅ DONE
 **Описание:** Раннее предупреждение о разрушении корреляций.
 - Correlation monitoring (real-time):
   - Rolling correlation: 30min, 1h, 4h windows
@@ -4494,7 +4494,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/CorrelationBreakdown.jsx` (новый), `web-ui/src/components/analysis/CorrelationMonitor.jsx` (новый), `web-ui/src/services/CorrelationEngine.js` (новый)
 
-### WD-147: Perpetual Futures Funding History Analyzer
+### WD-147: Perpetual Futures Funding History Analyzer ✅ DONE
 **Описание:** Анализ истории funding rate для perpetual futures.
 - Funding history:
   - Per symbol: funding rate every 8h for last 2 years
@@ -4535,7 +4535,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/crypto/FundingHistory.jsx` (новый), `web-ui/src/components/crypto/FundingPatterns.jsx` (новый), `web-ui/src/components/crypto/FundingPrediction.jsx` (новый), `web-ui/src/hooks/useFundingHistory.js` (новый)
 
-### WD-148: Strategy Combination Optimizer
+### WD-148: Strategy Combination Optimizer ✅ DONE
 **Описание:** Оптимизатор комбинаций стратегий (ensemble tuning).
 - Strategy universe:
   - All available strategies: TrendFollowing, MeanReversion, FFT, StatArb, Sentiment, ML, MM
@@ -4583,7 +4583,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/strategies/ComboOptimizer.jsx` (новый), `web-ui/src/components/strategies/WeightOptimizer.jsx` (новый), `web-ui/src/components/strategies/EnsembleTuner.jsx` (новый), `web-ui/src/services/ComboSearch.js` (новый)
 
-### WD-149: Whale Alert & Large Transaction Monitor
+### WD-149: Whale Alert & Large Transaction Monitor ✅ DONE
 **Описание:** Мониторинг крупных транзакций (whale alerts) в real-time.
 - Whale transaction feed:
   - Source: on-chain transfers, exchange deposits/withdrawals, large trades
@@ -4624,7 +4624,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/onchain/WhaleAlert.jsx` (новый), `web-ui/src/components/onchain/WhaleTracker.jsx` (новый), `web-ui/src/components/onchain/WhaleSentiment.jsx` (новый), `web-ui/src/hooks/useWhaleFeed.js` (новый)
 
-### WD-150: Comprehensive Dashboard Analytics & Usage Stats
+### WD-150: Comprehensive Dashboard Analytics & Usage Stats ✅ DONE
 **Описание:** Аналитика использования дашборда и пользовательские метрики.
 - Usage metrics:
   - Session: duration, pages viewed, actions taken
@@ -4671,7 +4671,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/debug/UsageAnalytics.jsx` (новый), `web-ui/src/components/debug/BehaviorFlow.jsx` (новый), `web-ui/src/components/debug/ProductivityMetrics.jsx` (новый), `web-ui/src/hooks/useUsageTracking.js` (новый)
 
-### WD-151: Latency Arbitrage Monitor
+### WD-151: Latency Arbitrage Monitor ✅ DONE
 **Описание:** Мониторинг latency arbitrage возможностей между биржами.
 - Latency measurement:
   - Per exchange: measure round-trip time for REST + WebSocket
@@ -4712,7 +4712,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/crypto/LatencyArb.jsx` (новый), `web-ui/src/components/crypto/LatencyMap.jsx` (новый), `web-ui/src/components/crypto/PriceGapMonitor.jsx` (новый), `web-ui/src/services/LatencyArbEngine.js` (новый)
 
-### WD-152: Options Chain & Derivatives Dashboard
+### WD-152: Options Chain & Derivatives Dashboard ✅ DONE
 **Описание:** Полноценный options chain для crypto деривативов.
 - Options chain:
   - Calls/Puts: side-by-side for each expiry
@@ -4754,7 +4754,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/options/OptionsChain.jsx` (новый), `web-ui/src/components/options/GreeksPanel.jsx` (новый), `web-ui/src/components/options/IVSurface3D.jsx` (новый), `web-ui/src/components/options/StrategyBuilder.jsx` (новый), `web-ui/src/components/options/OptionsFlow.jsx` (новый)
 
-### WD-153: Stablecoin Health Monitor
+### WD-153: Stablecoin Health Monitor ✅ DONE
 **Описание:** Мониторинг здоровья stablecoins (peg, reserves, risk).
 - Peg monitoring:
   - Per stablecoin: USDT, USDC, DAI, FRAX, BUSD, TUSD, USDD
@@ -4790,7 +4790,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/StablecoinHealth.jsx` (новый), `web-ui/src/components/defi/PegMonitor.jsx` (новый), `web-ui/src/components/defi/ReserveAnalysis.jsx` (новый), `web-ui/src/hooks/useStablecoinData.js` (новый)
 
-### WD-154: NFT Portfolio Tracker & Floor Price Monitor
+### WD-154: NFT Portfolio Tracker & Floor Price Monitor ✅ DONE
 **Описание:** Отслеживание NFT портфеля и floor prices.
 - NFT portfolio:
   - Holdings: collection, token ID, acquisition price, current floor, P&L
@@ -4830,7 +4830,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/nft/NftPortfolio.jsx` (новый), `web-ui/src/components/nft/FloorMonitor.jsx` (новый), `web-ui/src/components/nft/CollectionAnalytics.jsx` (новый), `web-ui/src/hooks/useNftData.js` (новый)
 
-### WD-155: Cross-Chain Bridge Monitor & Risk
+### WD-155: Cross-Chain Bridge Monitor & Risk ✅ DONE
 **Описание:** Мониторинг cross-chain мостов и рисков.
 - Bridge list:
   - Major bridges: Wormhole, Stargate, Across, Hop, Synapse, LayerZero, CCTP
@@ -4864,7 +4864,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/BridgeMonitor.jsx` (новый), `web-ui/src/components/defi/BridgeRisk.jsx` (новый), `web-ui/src/components/defi/BridgeComparison.jsx` (новый), `web-ui/src/hooks/useBridgeData.js` (новый)
 
-### WD-156: Liquidation Heatmap & Leverage Distribution
+### WD-156: Liquidation Heatmap & Leverage Distribution ✅ DONE
 **Описание:** Heatmap ликвидаций и распределение leverage по биржам.
 - Liquidation heatmap:
   - Price levels: where are liquidation clusters?
@@ -4903,7 +4903,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/crypto/LiquidationHeatmap.jsx` (новый), `web-ui/src/components/crypto/LeverageDistribution.jsx` (новый), `web-ui/src/components/crypto/CascadePredictor.jsx` (новый), `web-ui/src/services/LiquidationEngine.js` (новый)
 
-### WD-157: Strategy Capacity & Market Impact Estimator
+### WD-157: Strategy Capacity & Market Impact Estimator ✅ DONE
 **Описание:** Оценка ёмкости стратегии и market impact.
 - Capacity estimation:
   - Max capital: how much $ can strategy manage before returns degrade?
@@ -4947,7 +4947,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/analysis/CapacityEstimator.jsx` (новый), `web-ui/src/components/analysis/MarketImpact.jsx` (новый), `web-ui/src/components/analysis/CapacityReport.jsx` (новый), `web-ui/src/services/CapacityEngine.js` (новый)
 
-### WD-158: Real-Time Profit & Loss Attribution Waterfall
+### WD-158: Real-Time Profit & Loss Attribution Waterfall ✅ DONE
 **Описание:** Waterfall-диаграмма P&L атрибуции в real-time.
 - P&L waterfall:
   - Starting value: portfolio value at start of period
@@ -4993,7 +4993,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/attribution/PnlWaterfall.jsx` (новый), `web-ui/src/components/attribution/PnlAttribution.jsx` (новый), `web-ui/src/components/attribution/PnlBridge.jsx` (новый), `web-ui/src/services/PnlAttributionEngine.js` (новый)
 
-### WD-159: AI-Powered Market Commentary & Trading Chatbot
+### WD-159: AI-Powered Market Commentary & Trading Chatbot ✅ DONE
 **Описание:** AI-комментатор рынка и торговый чат-бот (LLM-powered).
 - Real-time commentary:
   - Market summary: AI-generated summary of current market conditions
@@ -5033,7 +5033,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/ai/MarketCommentary.jsx` (новый), `web-ui/src/components/ai/TradingChatbot.jsx` (новый), `web-ui/src/components/ai/ProactiveAlerts.jsx` (новый), `web-ui/src/services/AiAssistant.js` (новый), `web-ui/src/stores/useChatStore.js` (новый)
 **Зависимости:** WD-01 (chart), src/llm_engine/engine.py
 
-### WD-160: Strategy Regime Performance Matrix
+### WD-160: Strategy Regime Performance Matrix ✅ DONE
 **Описание:** Матрица производительности стратегий по рыночным режимам.
 - Regime classification:
   - Trending up: price > MA50 > MA200, ADX > 25
@@ -5078,7 +5078,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/strategies/RegimeMatrix.jsx` (новый), `web-ui/src/components/strategies/RegimeDetector.jsx` (новый), `web-ui/src/components/strategies/RegimeBacktest.jsx` (новый), `web-ui/src/services/RegimeEngine.js` (новый)
 
-### WD-161: Order Book Imbalance & Microprice
+### WD-161: Order Book Imbalance & Microprice ✅ DONE
 **Описание:** Real-time order book imbalance и microprice calculation.
 - Order book imbalance:
   - Bid/ask volume: total volume at bid vs ask (top N levels)
@@ -5120,7 +5120,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/orderbook/ImbalanceMonitor.jsx` (новый), `web-ui/src/components/orderbook/Microprice.jsx` (новый), `web-ui/src/components/orderbook/DepthProfile.jsx` (новый), `web-ui/src/services/OrderBookAnalyzer.js` (новый)
 
-### WD-162: Multi-Exchange Aggregated Order Book
+### WD-162: Multi-Exchange Aggregated Order Book ✅ DONE
 **Описание:** Агрегированный стакан из нескольких бирж.
 - Aggregated book:
   - Sources: Binance, Bybit, OKX, Coinbase, Kraken (configurable)
@@ -5163,7 +5163,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/orderbook/AggregatedBook.jsx` (новый), `web-ui/src/components/orderbook/SmartRouter.jsx` (новый), `web-ui/src/components/orderbook/ExchangeComparison.jsx` (новый), `web-ui/src/services/AggregatedBookEngine.js` (новый)
 
-### WD-163: Strategy Walk-Forward Stability Score
+### WD-163: Strategy Walk-Forward Stability Score ✅ DONE
 **Описание:** Оценка стабильности стратегии через walk-forward анализ.
 - Walk-forward results:
   - IS vs OOS: in-sample vs out-of-sample performance for each window
@@ -5205,7 +5205,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/strategies/WalkForwardStability.jsx` (новый), `web-ui/src/components/strategies/OverfittingDetector.jsx` (новый), `web-ui/src/components/strategies/RobustnessMetrics.jsx` (новый), `web-ui/src/services/StabilityScorer.js` (новый)
 **Зависимости:** WD-82 (walk-forward), WD-83 (overfitting)
 
-### WD-164: Real-Time VaR Breach Monitor
+### WD-164: Real-Time VaR Breach Monitor ✅ DONE
 **Описание:** Real-time мониторинг пробоев VaR с автоматическими действиями.
 - VaR monitoring:
   - Current VaR: portfolio VaR (1-day, 95%/99%) updated in real-time
@@ -5251,7 +5251,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/risk/VarBreachMonitor.jsx` (новый), `web-ui/src/components/risk/VarBacktest.jsx` (новый), `web-ui/src/components/risk/BreachResponse.jsx` (новый), `web-ui/src/services/VarEngine.js` (новый)
 **Зависимости:** src/risk/var_calculator.py, src/risk/cvar_calculator.py
 
-### WD-165: Funding Rate Term Structure & Basis Curve
+### WD-165: Funding Rate Term Structure & Basis Curve ✅ DONE
 **Описание:** Кривая term structure funding rate и basis.
 - Funding term structure:
   - Per symbol: funding rate for current period, next period, predicted
@@ -5296,7 +5296,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/crypto/BasisCurve.jsx` (новый), `web-ui/src/components/crypto/FundingTermStructure.jsx` (новый), `web-ui/src/components/crypto/BasisHeatmap.jsx` (новый), `web-ui/src/hooks/useBasisData.js` (новый)
 
-### WD-166: Strategy Correlation & Overlap Analyzer
+### WD-166: Strategy Correlation & Overlap Analyzer ✅ DONE
 **Описание:** Анализ корреляций и перекрытий между стратегиями.
 - Strategy correlation:
   - Return correlation: daily P&L correlation between strategies
@@ -5342,7 +5342,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/StrategyCorrelation.jsx` (новый), `web-ui/src/components/strategies/OverlapAnalyzer.jsx` (новый), `web-ui/src/components/strategies/DiversificationAnalysis.jsx` (новый), `web-ui/src/services/StrategyCorrelationEngine.js` (новый)
 
-### WD-167: DeFi Yield Farming & Staking ROI Tracker
+### WD-167: DeFi Yield Farming & Staking ROI Tracker ✅ DONE
 **Описание:** Трекер ROI для yield farming и staking позиций.
 - Yield positions:
   - Active: all our DeFi yield positions (lending, LP, staking, restaking)
@@ -5389,7 +5389,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/YieldTracker.jsx` (новый), `web-ui/src/components/defi/YieldScanner.jsx` (новый), `web-ui/src/components/defi/StakingTracker.jsx` (новый), `web-ui/src/hooks/useYieldData.js` (новый)
 
-### WD-168: Market-Maker Inventory Risk & Skew
+### WD-168: Market-Maker Inventory Risk & Skew ✅ DONE
 **Описание:** Управление inventory risk и skew для market making.
 - Inventory monitor:
   - Current inventory: net position per symbol (units + $)
@@ -5436,7 +5436,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/mm/InventoryRisk.jsx` (новый), `web-ui/src/components/mm/SkewManager.jsx` (новый), `web-ui/src/components/mm/AdverseSelection.jsx` (новый), `web-ui/src/components/mm/QuoteOptimizer.jsx` (новый), `web-ui/src/services/MmRiskEngine.js` (новый)
 **Зависимости:** src/strategies/market_making.py
 
-### WD-169: Strategy Live Performance vs Backtest Expectation
+### WD-169: Strategy Live Performance vs Backtest Expectation ✅ DONE
 **Описание:** Сравнение live производительности стратегии с backtest ожиданиями.
 - Live vs backtest:
   - Side-by-side: live Sharpe vs backtest Sharpe (same strategy)
@@ -5481,7 +5481,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/LiveVsBacktest.jsx` (новый), `web-ui/src/components/strategies/DeviationAnalysis.jsx` (новый), `web-ui/src/components/strategies/DegradationDiagnosis.jsx` (новый), `web-ui/src/services/LiveBacktestComparator.js` (новый)
 
-### WD-170: Comprehensive Alert Management System
+### WD-170: Comprehensive Alert Management System ✅ DONE
 **Описание:** Полноценная система управления всеми алертами дашборда.
 - Alert inbox:
   - All alerts: unified feed of all alerts from all components
@@ -5536,7 +5536,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/alerts/AlertInbox.jsx` (новый), `web-ui/src/components/alerts/AlertRules.jsx` (новый), `web-ui/src/components/alerts/AlertChannels.jsx` (новый), `web-ui/src/components/alerts/AlertHistory.jsx` (новый), `web-ui/src/stores/useAlertStore.js` (новый), `web-ui/src/services/AlertManager.js` (новый)
 
-### WD-171: Tick-by-Tick Trade Replay & Forensics
+### WD-171: Tick-by-Tick Trade Replay & Forensics ✅ DONE
 **Описание:** Покадровый replay торгов для forensic-анализа.
 - Trade replay engine:
   - Timeline: every trade, order, signal, alert in chronological order
@@ -5574,7 +5574,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/forensics/TradeReplay.jsx` (новый), `web-ui/src/components/forensics/EventTimeline.jsx` (новый), `web-ui/src/components/forensics/MarketSnapshot.jsx` (новый), `web-ui/src/services/ReplayEngine.js` (новый)
 
-### WD-172: Slippage Distribution & Cost Analyzer
+### WD-172: Slippage Distribution & Cost Analyzer ✅ DONE
 **Описание:** Анализ распределения slippage по всем ордерам.
 - Slippage measurement:
   - Per trade: actual fill price vs expected price (arrival, mid, VWAP)
@@ -5621,7 +5621,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/SlippageAnalyzer.jsx` (новый), `web-ui/src/components/analysis/CostDecomposition.jsx` (новый), `web-ui/src/components/analysis/SlippageHeatmap.jsx` (новый), `web-ui/src/services/SlippageEngine.js` (новый)
 
-### WD-173: Strategy Parameter Auto-Tuning with Bayesian Optimization
+### WD-173: Strategy Parameter Auto-Tuning with Bayesian Optimization ✅ DONE
 **Описание:** Автоматическая настройка параметров стратегии через Bayesian optimization.
 - Parameter space:
   - Define: which parameters to tune (SL %, TP %, lookback period, threshold, etc.)
@@ -5671,7 +5671,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/strategies/ParamAutoTuner.jsx` (новый), `web-ui/src/components/strategies/ParamLandscape.jsx` (новый), `web-ui/src/components/strategies/ConvergenceTracker.jsx` (новый), `web-ui/src/services/BayesianOptimizer.js` (новый)
 
-### WD-174: Exchange API Rate Limit Dashboard
+### WD-174: Exchange API Rate Limit Dashboard ✅ DONE
 **Описание:** Дашборд мониторинга API rate limits всех бирж.
 - Rate limit monitoring:
   - Per exchange: Binance, Bybit, OKX, Coinbase, Kraken
@@ -5718,7 +5718,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/RateLimitDashboard.jsx` (новый), `web-ui/src/components/system/ApiUsageMonitor.jsx` (новый), `web-ui/src/components/system/RequestPrioritizer.jsx` (новый), `web-ui/src/hooks/useRateLimit.js` (новый)
 
-### WD-175: Strategy Signal Confidence Calibration
+### WD-175: Strategy Signal Confidence Calibration ✅ DONE
 **Описание:** Калибровка confidence score сигналов стратегий.
 - Confidence calibration:
   - Definition: if strategy says "80% confidence", does it win 80% of the time?
@@ -5769,7 +5769,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/ConfidenceCalibration.jsx` (новый), `web-ui/src/components/strategies/CalibrationCurve.jsx` (новый), `web-ui/src/components/strategies/CalibrationDrift.jsx` (новый), `web-ui/src/services/CalibrationEngine.js` (новый)
 
-### WD-176: On-Chain Exchange Flow & Reserve Monitor
+### WD-176: On-Chain Exchange Flow & Reserve Monitor ✅ DONE
 **Описание:** Мониторинг on-chain потоков на/из бирж и резервов.
 - Exchange reserves:
   - Per exchange: BTC, ETH, USDT balance on exchange wallets
@@ -5813,7 +5813,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/onchain/ExchangeFlow.jsx` (новый), `web-ui/src/components/onchain/ReserveMonitor.jsx` (новый), `web-ui/src/components/onchain/FlowHeatmap.jsx` (новый), `web-ui/src/hooks/useOnChainFlow.js` (новый)
 
-### WD-177: Portfolio Rebalancing Automation
+### WD-177: Portfolio Rebalancing Automation ✅ DONE
 **Описание:** Автоматизация ребалансировки портфеля по target allocation.
 - Target allocation:
   - Set: define target % per asset (BTC 40%, ETH 30%, SOL 10%, stables 20%)
@@ -5867,7 +5867,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/portfolio/RebalancingAutomation.jsx` (новый), `web-ui/src/components/portfolio/DriftMonitor.jsx` (новый), `web-ui/src/components/portfolio/RebalanceSimulator.jsx` (новый), `web-ui/src/services/RebalancingEngine.js` (новый)
 **Зависимости:** src/portfolio/
 
-### WD-178: Market-Maker Spread & Quote Quality Analyzer
+### WD-178: Market-Maker Spread & Quote Quality Analyzer ✅ DONE
 **Описание:** Анализ качества котировок market maker (spread, fill rate, competitiveness).
 - Spread analysis:
   - Our spread: bid-ask spread we quote (per symbol, over time)
@@ -5921,7 +5921,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/mm/SpreadAnalyzer.jsx` (новый), `web-ui/src/components/mm/QuoteQuality.jsx` (новый), `web-ui/src/components/mm/Competitiveness.jsx` (новый), `web-ui/src/services/MmQualityEngine.js` (новый)
 **Зависимости:** src/strategies/market_making.py
 
-### WD-179: Strategy Turnover & Transaction Cost Projection
+### WD-179: Strategy Turnover & Transaction Cost Projection ✅ DONE
 **Описание:** Прогноз turnover и транзакционных затрат для стратегий.
 - Turnover measurement:
   - Per strategy: how much $ traded per day/month (turnover rate)
@@ -5974,7 +5974,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/TurnoverProjection.jsx` (новый), `web-ui/src/components/strategies/TransactionCosts.jsx` (новый), `web-ui/src/components/strategies/CostScenarioAnalysis.jsx` (новый), `web-ui/src/components/strategies/FeeTierTracker.jsx` (новый), `web-ui/src/services/TurnoverEngine.js` (новый)
 
-### WD-180: AI-Powered Anomaly Detection & Outlier Trading
+### WD-180: AI-Powered Anomaly Detection & Outlier Trading ✅ DONE
 **Описание:** AI-детекция аномалий в рыночных данных для outlier trading.
 - Anomaly detection:
   - Statistical: z-score > 3 on price, volume, OI, funding, spread
@@ -6027,7 +6027,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/ai/AnomalyDetector.jsx` (новый), `web-ui/src/components/ai/AnomalyFeed.jsx` (новый), `web-ui/src/components/ai/OutlierTrading.jsx` (новый), `web-ui/src/components/ai/AnomalyBacktest.jsx` (новый), `web-ui/src/services/AnomalyEngine.js` (новый)
 **Зависимости:** src/ml/ (IsolationForest, autoencoder)
 
-### WD-181: Multi-Strategy Portfolio Heatmap & Risk Concentration
+### WD-181: Multi-Strategy Portfolio Heatmap & Risk Concentration ✅ DONE
 **Описание:** Heatmap мульти-стратегий портфеля и концентрации рисков.
 - Portfolio heatmap:
   - Grid: strategy × symbol → exposure ($ or % of portfolio)
@@ -6072,7 +6072,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/portfolio/PortfolioHeatmap.jsx` (новый), `web-ui/src/components/portfolio/RiskConcentration.jsx` (новый), `web-ui/src/components/portfolio/RiskBudget.jsx` (новый), `web-ui/src/components/portfolio/ConcentrationTreemap.jsx` (новый), `web-ui/src/services/ConcentrationEngine.js` (новый)
 
-### WD-182: WebSocket Connection Health & Auto-Reconnect
+### WD-182: WebSocket Connection Health & Auto-Reconnect ✅ DONE
 **Описание:** Мониторинг здоровья WebSocket соединений и авто-реконнект.
 - Connection status:
   - Per WS: exchange simulator (8765), AI signal bot (8766), exchange feeds
@@ -6119,7 +6119,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/WsHealthMonitor.jsx` (новый), `web-ui/src/components/system/ConnectionMap.jsx` (новый), `web-ui/src/components/system/ReconnectStatus.jsx` (новый), `web-ui/src/hooks/useWsHealth.js` (новый), `web-ui/src/services/WsHealthMonitor.js` (новый)
 
-### WD-183: Strategy Decay Curve & Edge Half-Life
+### WD-183: Strategy Decay Curve & Edge Half-Life ✅ DONE
 **Описание:** Кривая затухания стратегии и half-life edge.
 - Edge decay measurement:
   - Rolling Sharpe: 30d, 60d, 90d rolling Sharpe over time
@@ -6169,7 +6169,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/DecayCurve.jsx` (новый), `web-ui/src/components/strategies/EdgeHalfLife.jsx` (новый), `web-ui/src/components/strategies/DecayAnalysis.jsx` (новый), `web-ui/src/services/DecayEngine.js` (новый)
 
-### WD-184: Custom Indicator Builder & Scripting
+### WD-184: Custom Indicator Builder & Scripting ✅ DONE
 **Описание:** Конструктор кастомных индикаторов с скриптовым движком.
 - Visual indicator builder:
   - Components: combine existing indicators (SMA, RSI, MACD, Bollinger, ATR, etc.)
@@ -6220,7 +6220,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/indicators/IndicatorBuilder.jsx` (новый), `web-ui/src/components/indicators/IndicatorLibrary.jsx` (новый), `web-ui/src/components/indicators/ScriptEditor.jsx` (новый), `web-ui/src/services/IndicatorEngine.js` (новый), `web-ui/src/services/ScriptRuntime.js` (новый)
 
-### WD-185: Trading Calendar & Economic Event Integration
+### WD-185: Trading Calendar & Economic Event Integration ✅ DONE
 **Описание:** Торговый календарь и интеграция экономических событий.
 - Economic calendar:
   - Events: CPI, FOMC, NFP, GDP, PPI, retail sales, unemployment
@@ -6270,7 +6270,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/calendar/EconomicCalendar.jsx` (новый), `web-ui/src/components/calendar/EventImpact.jsx` (новый), `web-ui/src/components/calendar/TradingSessions.jsx` (новый), `web-ui/src/hooks/useEconomicEvents.js` (новый)
 
-### WD-186: Strategy Combination Stress Testing
+### WD-186: Strategy Combination Stress Testing ✅ DONE
 **Описание:** Стресс-тестирование комбинаций стратегий в экстремальных сценариях.
 - Stress scenarios:
   - Historical: 2008 GFC, March 2020 COVID, May 2022 LUNA, Nov 2022 FTX, Mar 2023 banking
@@ -6319,7 +6319,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/risk/CombinationStressTest.jsx` (новый), `web-ui/src/components/risk/ScenarioBuilder.jsx` (новый), `web-ui/src/components/risk/ReverseStressTest.jsx` (новый), `web-ui/src/components/risk/StressReport.jsx` (новый), `web-ui/src/services/StressTestEngine.js` (новый)
 **Зависимости:** src/risk/stress_test.py
 
-### WD-187: Order Routing & Smart Execution Router
+### WD-187: Order Routing & Smart Execution Router ✅ DONE
 **Описание:** Умный роутинг ордеров по биржам для лучшего исполнения.
 - Smart order router (SOR):
   - Best price: route to exchange with best bid/ask
@@ -6372,7 +6372,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/execution/SmartOrderRouter.jsx` (новый), `web-ui/src/components/execution/OrderSplitting.jsx` (новый), `web-ui/src/components/execution/ExecutionAnalytics.jsx` (новый), `web-ui/src/components/execution/VenueSelector.jsx` (новый), `web-ui/src/services/SorEngine.js` (новый)
 
-### WD-188: Drawdown Recovery Strategy & Psychology Tracker
+### WD-188: Drawdown Recovery Strategy & Psychology Tracker ✅ DONE
 **Описание:** Стратегия восстановления из drawdown и трекер психологии.
 - Drawdown state:
   - Current DD: portfolio drawdown from peak (% and $)
@@ -6419,7 +6419,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/psychology/DrawdownRecovery.jsx` (новый), `web-ui/src/components/psychology/PsychologyTracker.jsx` (новый), `web-ui/src/components/psychology/TiltDetector.jsx` (новый), `web-ui/src/components/psychology/RecoveryJournal.jsx` (новый), `web-ui/src/hooks/usePsychology.js` (новый)
 
-### WD-189: Per-Symbol Liquidity Profile & Optimal Order Size
+### WD-189: Per-Symbol Liquidity Profile & Optimal Order Size ✅ DONE
 **Описание:** Профиль ликвидности по символам и оптимальный размер ордера.
 - Liquidity profile:
   - Per symbol: avg daily volume, avg spread, avg depth, avg trade size
@@ -6471,7 +6471,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/liquidity/LiquidityProfile.jsx` (новый), `web-ui/src/components/liquidity/OptimalOrderSize.jsx` (новый), `web-ui/src/components/liquidity/VolumeProfile.jsx` (новый), `web-ui/src/components/liquidity/LiquidityHeatmap.jsx` (новый), `web-ui/src/services/LiquidityEngine.js` (новый)
 
-### WD-190: Comprehensive Trading Terminal Command Palette
+### WD-190: Comprehensive Trading Terminal Command Palette ✅ DONE
 **Описание:** Командная палитра терминала (Cmd+K / Ctrl+K) для быстрого доступа.
 - Command palette:
   - Trigger: Cmd+K (Mac) / Ctrl+K (Windows) → overlay search bar
@@ -6525,7 +6525,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/ui/CommandPalette.jsx` (новый), `web-ui/src/components/ui/CommandResults.jsx` (новый), `web-ui/src/components/ui/QuickActions.jsx` (новый), `web-ui/src/services/CommandRegistry.js` (новый), `web-ui/src/hooks/useCommandPalette.js` (новый)
 
-### WD-191: MEV & Transaction Reordering Monitor
+### WD-191: MEV & Transaction Reordering Monitor ✅ DONE
 **Описание:** Мониторинг MEV (Maximal Extractable Value) и reordering транзакций.
 - MEV detection:
   - Sandwich attacks: detect when our transaction is sandwiched (frontrun + backrun)
@@ -6553,7 +6553,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/defi/MevMonitor.jsx` (новый), `web-ui/src/components/defi/SandwichDetector.jsx` (новый), `web-ui/src/components/defi/MevProtection.jsx` (новый), `web-ui/src/services/MevEngine.js` (новый)
 
-### WD-192: Gas Price Oracle & Transaction Cost Optimizer
+### WD-192: Gas Price Oracle & Transaction Cost Optimizer ✅ DONE
 **Описание:** Gas price oracle и оптимизатор стоимости транзакций.
 - Gas price monitoring:
   - Current: fast, standard, slow gas price (gwei) for Ethereum L1
@@ -6594,7 +6594,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/GasOracle.jsx` (новый), `web-ui/src/components/defi/GasOptimizer.jsx` (новый), `web-ui/src/components/defi/TxCostAnalyzer.jsx` (новый), `web-ui/src/hooks/useGasData.js` (новый)
 
-### WD-193: Strategy Ensemble Weight Optimizer
+### WD-193: Strategy Ensemble Weight Optimizer ✅ DONE
 **Описание:** Оптимизатор весов ансамбля стратегий.
 - Current ensemble:
   - Weights: current weights for each strategy in ensemble
@@ -6651,7 +6651,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/strategies/EnsembleOptimizer.jsx` (новый), `web-ui/src/components/strategies/WeightAnalysis.jsx` (новый), `web-ui/src/components/strategies/EnsembleBacktest.jsx` (новый), `web-ui/src/services/EnsembleOptEngine.js` (новый)
 **Зависимости:** src/strategies/ensemble_voter.py
 
-### WD-194: Real-Time Order Flow Toxicity (VPIN)
+### WD-194: Real-Time Order Flow Toxicity (VPIN) ✅ DONE
 **Описание:** Real-time VPIN (Volume-Synchronized Probability of Informed Trading).
 - VPIN calculation:
   - Bulk volume: divide trades into equal volume buckets (not time-based)
@@ -6699,7 +6699,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/orderbook/VpinMonitor.jsx` (новый), `web-ui/src/components/orderbook/ToxicityChart.jsx` (новый), `web-ui/src/components/orderbook/VpinAlerts.jsx` (новый), `web-ui/src/services/VpinEngine.js` (новый)
 
-### WD-195: Strategy Backtest Parameter Heatmap & 3D Surface
+### WD-195: Strategy Backtest Parameter Heatmap & 3D Surface ✅ DONE
 **Описание:** 3D surface и heatmap параметров backtest.
 - Parameter grid:
   - 2 parameters: SL × TP, period × threshold, fast × slow MA
@@ -6751,7 +6751,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/backtest/ParamHeatmap.jsx` (новый), `web-ui/src/components/backtest/ParamSurface3D.jsx` (новый), `web-ui/src/components/backtest/ParamSensitivity.jsx` (новый), `web-ui/src/components/backtest/WalkForwardHeatmap.jsx` (новый), `web-ui/src/services/ParamGridEngine.js` (новый)
 **Зависимости:** src/backtesting/strategy_optimizer.py
 
-### WD-196: Crypto Fear & Greed Index & Sentiment Aggregator
+### WD-196: Crypto Fear & Greed Index & Sentiment Aggregator ✅ DONE
 **Описание:** Агрегатор Fear & Greed индекса и рыночного сентимента.
 - Fear & Greed Index:
   - Current: 0-100 scale (0 = extreme fear, 100 = extreme greed)
@@ -6800,7 +6800,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/sentiment/FearGreedIndex.jsx` (новый), `web-ui/src/components/sentiment/SentimentAggregator.jsx` (новый), `web-ui/src/components/sentiment/SocialVolume.jsx` (новый), `web-ui/src/components/sentiment/InfluencerTracker.jsx` (новый), `web-ui/src/hooks/useSentimentData.js` (новый)
 
-### WD-197: Strategy Code Editor & Live Testing Sandbox
+### WD-197: Strategy Code Editor & Live Testing Sandbox ✅ DONE
 **Описание:** Редактор кода стратегий и live testing sandbox.
 - Code editor:
   - Monaco editor: full IDE experience (syntax highlighting, autocomplete, IntelliSense)
@@ -6860,7 +6860,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/strategies/StrategyEditor.jsx` (новый), `web-ui/src/components/strategies/LiveSandbox.jsx` (новый), `web-ui/src/components/strategies/StrategyDebugger.jsx` (новый), `web-ui/src/components/strategies/StrategyMarketplace.jsx` (новый), `web-ui/src/services/StrategyRunner.js` (новый)
 
-### WD-198: Portfolio Tax Calculator & Reporting
+### WD-198: Portfolio Tax Calculator & Reporting ✅ DONE
 **Описание:** Калькулятор налогов и налоговая отчётность.
 - Tax lot tracking:
   - Per purchase: date, price, quantity, fee (each purchase = separate lot)
@@ -6914,7 +6914,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/tax/TaxCalculator.jsx` (новый), `web-ui/src/components/tax/TaxLots.jsx` (новый), `web-ui/src/components/tax/TaxReport.jsx` (новый), `web-ui/src/components/tax/LossHarvesting.jsx` (новый), `web-ui/src/services/TaxEngine.js` (новый)
 
-### WD-199: Multi-Account & Sub-Account Manager
+### WD-199: Multi-Account & Sub-Account Manager ✅ DONE
 **Описание:** Управление несколькими аккаунтами и суб-аккаунтами.
 - Account management:
   - Master account: main trading account
@@ -6968,7 +6968,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/accounts/AccountManager.jsx` (новый), `web-ui/src/components/accounts/SubAccountView.jsx` (новый), `web-ui/src/components/accounts/CapitalAllocation.jsx` (новый), `web-ui/src/components/accounts/AccountComparison.jsx` (новый), `web-ui/src/stores/useAccountStore.js` (новый)
 
-### WD-200: Trading Journal & Decision Logger
+### WD-200: Trading Journal & Decision Logger ✅ DONE
 **Описание:** Торговый журнал и логгер решений.
 - Trade journal:
   - Per trade: entry, exit, P&L, strategy, signal, market conditions
@@ -7022,7 +7022,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/journal/TradeJournal.jsx` (новый), `web-ui/src/components/journal/DecisionLogger.jsx` (новый), `web-ui/src/components/journal/MistakeTracker.jsx` (новый), `web-ui/src/components/journal/LessonLibrary.jsx` (новый), `web-ui/src/components/journal/TradeReview.jsx` (новый), `web-ui/src/stores/useJournalStore.js` (новый)
 
-### WD-201: L2 Order Book Reconstruction & Visualization
+### WD-201: L2 Order Book Reconstruction & Visualization ✅ DONE
 **Описание:** Реконструкция и визуализация L2 order book.
 - L2 order book:
   - Levels: top 50-100 bid/ask levels (price × volume)
@@ -7076,7 +7076,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/orderbook/L2Reconstruction.jsx` (новый), `web-ui/src/components/orderbook/DepthChart.jsx` (новый), `web-ui/src/components/orderbook/BookHeatmap.jsx` (новый), `web-ui/src/components/orderbook/BookLadder.jsx` (новый), `web-ui/src/services/L2BookEngine.js` (новый)
 
-### WD-202: Strategy Performance Attribution by Market Factor
+### WD-202: Strategy Performance Attribution by Market Factor ✅ DONE
 **Описание:** Атрибуция производительности стратегии по рыночным факторам.
 - Factor decomposition:
   - Market factor: BTC return (market beta)
@@ -7129,7 +7129,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/attribution/FactorAttribution.jsx` (новый), `web-ui/src/components/attribution/FactorExposure.jsx` (новый), `web-ui/src/components/attribution/FactorMonitor.jsx` (новый), `web-ui/src/services/FactorEngine.js` (новый)
 
-### WD-203: Exchange Status & Maintenance Monitor
+### WD-203: Exchange Status & Maintenance Monitor ✅ DONE
 **Описание:** Мониторинг статуса бирж и техобслуживания.
 - Exchange status:
   - Per exchange: Binance, Bybit, OKX, Coinbase, Kraken, Deribit
@@ -7178,7 +7178,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/ExchangeStatus.jsx` (новый), `web-ui/src/components/system/MaintenanceSchedule.jsx` (новый), `web-ui/src/components/system/IncidentTracker.jsx` (новый), `web-ui/src/components/system/ReliabilityScore.jsx` (новый), `web-ui/src/hooks/useExchangeStatus.js` (новый)
 
-### WD-204: Strategy Kelly Criterion & Optimal f Calculator
+### WD-204: Strategy Kelly Criterion & Optimal f Calculator ✅ DONE
 **Описание:** Kelly criterion и optimal f калькулятор для стратегий.
 - Kelly criterion:
   - Formula: f* = (p × b - q) / b = (p × (b+1) - 1) / b
@@ -7239,7 +7239,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/risk/KellyCalculator.jsx` (новый), `web-ui/src/components/risk/OptimalF.jsx` (новый), `web-ui/src/components/risk/KellyComparison.jsx` (новый), `web-ui/src/components/risk/MultiAssetKelly.jsx` (новый), `web-ui/src/services/KellyEngine.js` (новый)
 **Зависимости:** src/risk/kelly_position_sizer.py
 
-### WD-205: Crypto Market Cycle & Top/Bottom Detector
+### WD-205: Crypto Market Cycle & Top/Bottom Detector ✅ DONE
 **Описание:** Детектор рыночных циклов и топов/днищ crypto.
 - Cycle indicators:
   - MVRV Z-Score: Market Value / Realized Value (on-chain, BTC)
@@ -7289,7 +7289,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/CycleDetector.jsx` (новый), `web-ui/src/components/analysis/TopBottomSignals.jsx` (новый), `web-ui/src/components/analysis/CycleHistory.jsx` (новый), `web-ui/src/components/analysis/HalvingCountdown.jsx` (новый), `web-ui/src/hooks/useCycleData.js` (новый)
 
-### WD-206: Strategy Regime-Adaptive Risk Management
+### WD-206: Strategy Regime-Adaptive Risk Management ✅ DONE
 **Описание:** Regime-adaptive risk management для стратегий.
 - Regime detection:
   - Current regime: from WD-160 (trending, ranging, high vol, crisis, etc.)
@@ -7340,7 +7340,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/risk/RegimeRiskManager.jsx` (новый), `web-ui/src/components/risk/RiskParameterAdjuster.jsx` (новый), `web-ui/src/components/risk/RegimeRiskBacktest.jsx` (новый), `web-ui/src/services/RegimeRiskEngine.js` (новый)
 **Зависимости:** src/risk/risk_manager.py, WD-160
 
-### WD-207: DeFi Protocol TVL & Composition Monitor
+### WD-207: DeFi Protocol TVL & Composition Monitor ✅ DONE
 **Описание:** Мониторинг TVL и состава DeFi протоколов.
 - TVL monitoring:
   - Per protocol: Aave, Compound, Uniswap, Curve, MakerDAO, Lido, EigenLayer
@@ -7388,7 +7388,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/TvlMonitor.jsx` (новый), `web-ui/src/components/defi/ProtocolHealth.jsx` (новый), `web-ui/src/components/defi/TvlFlows.jsx` (новый), `web-ui/src/components/defi/ProtocolComparison.jsx` (новый), `web-ui/src/hooks/useTvlData.js` (новый)
 
-### WD-208: Strategy Signal Latency & Execution Pipeline Monitor
+### WD-208: Strategy Signal Latency & Execution Pipeline Monitor ✅ DONE
 **Описание:** Мониторинг latency сигналов и pipeline исполнения.
 - Latency pipeline:
   - **Data latency**: exchange → our server (WS message delay)
@@ -7449,7 +7449,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/LatencyPipeline.jsx` (новый), `web-ui/src/components/system/LatencyWaterfall.jsx` (новый), `web-ui/src/components/system/BottleneckAnalyzer.jsx` (новый), `web-ui/src/components/system/HardwareMonitor.jsx` (новый), `web-ui/src/services/LatencyEngine.js` (новый)
 
-### WD-209: AI-Powered Strategy Explanation & Education
+### WD-209: AI-Powered Strategy Explanation & Education ✅ DONE
 **Описание:** AI-объяснение стратегий и обучение торговле.
 - Strategy explanation:
   - Current signal: "Why did TrendFollowing generate a LONG signal for BTC?"
@@ -7495,7 +7495,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/ai/StrategyExplainer.jsx` (новый), `web-ui/src/components/ai/TradeEducator.jsx` (новый), `web-ui/src/components/ai/Glossary.jsx` (новый), `web-ui/src/components/ai/PersonalizedLearning.jsx` (новый), `web-ui/src/services/EducationEngine.js` (новый)
 **Зависимости:** src/llm_engine/engine.py
 
-### WD-210: Comprehensive Dashboard Layout Editor & Workspace Presets
+### WD-210: Comprehensive Dashboard Layout Editor & Workspace Presets ✅ DONE
 **Описание:** Редактор layout дашборда и пресеты рабочих пространств.
 - Layout editor:
   - Drag & drop: move panels, resize, rearrange
@@ -7564,7 +7564,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/layout/LayoutEditor.jsx` (новый), `web-ui/src/components/layout/WorkspacePresets.jsx` (новый), `web-ui/src/components/layout/PanelContainer.jsx` (новый), `web-ui/src/components/layout/ThemeCustomizer.jsx` (новый), `web-ui/src/stores/useLayoutStore.js` (новый), `web-ui/src/services/LayoutEngine.js` (новый)
 
-### WD-211: Perpetual Futures Funding Arbitrage Scanner
+### WD-211: Perpetual Futures Funding Arbitrage Scanner ✅ DONE
 **Описание:** Сканер арбитражных возможностей через funding rate perpetual futures.
 - Funding arbitrage detection:
   - Positive funding: longs pay shorts → short perp + buy spot = earn funding
@@ -7613,7 +7613,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/crypto/FundingArbScanner.jsx` (новый), `web-ui/src/components/crypto/FundingArbCalculator.jsx` (новый), `web-ui/src/components/crypto/FundingArbPortfolio.jsx` (новый), `web-ui/src/services/FundingArbEngine.js` (новый)
 **Зависимости:** src/strategies/funding_rate_arb_detector.py
 
-### WD-212: Social Trading & Copy Trading Platform
+### WD-212: Social Trading & Copy Trading Platform ✅ DONE
 **Описание:** Платформа social trading и copy trading.
 - Leaderboard:
   - Top traders: ranked by Sharpe, return, low drawdown, consistency
@@ -7668,7 +7668,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/social/Leaderboard.jsx` (новый), `web-ui/src/components/social/CopyTrading.jsx` (новый), `web-ui/src/components/social/LeaderAnalysis.jsx` (новый), `web-ui/src/components/social/SocialFeed.jsx` (новый), `web-ui/src/components/social/CopyPortfolio.jsx` (новый), `web-ui/src/stores/useSocialStore.js` (новый)
 
-### WD-213: Strategy Genetic Algorithm & Evolution Engine
+### WD-213: Strategy Genetic Algorithm & Evolution Engine ✅ DONE
 **Описание:** Генетический алгоритм для эволюции стратегий.
 - Genetic algorithm:
   - Population: set of candidate strategies (each with different parameters/logic)
@@ -7726,7 +7726,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/strategies/GeneticEngine.jsx` (новый), `web-ui/src/components/strategies/EvolutionTracker.jsx` (новый), `web-ui/src/components/strategies/StrategyGenome.jsx` (новый), `web-ui/src/components/strategies/EvolutionVisualization.jsx` (новый), `web-ui/src/services/GeneticEngine.js` (новый)
 **Зависимости:** src/research/genetic_strategy.py
 
-### WD-214: Real-Time P&L Heatmap by Symbol & Strategy
+### WD-214: Real-Time P&L Heatmap by Symbol & Strategy ✅ DONE
 **Описание:** Real-time heatmap P&L по символам и стратегиям.
 - P&L heatmap:
   - Grid: strategy × symbol → current P&L ($ or %)
@@ -7770,7 +7770,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/portfolio/PnlHeatmap.jsx` (новый), `web-ui/src/components/portfolio/PnlDistribution.jsx` (новый), `web-ui/src/components/portfolio/PnlTimeLapse.jsx` (новый), `web-ui/src/services/PnlHeatmapEngine.js` (новый)
 
-### WD-215: Advanced Order Types & Conditional Orders
+### WD-215: Advanced Order Types & Conditional Orders ✅ DONE
 **Описание:** Продвинутые типы ордеров и условные ордера.
 - Advanced order types:
   - **Trailing stop**: SL that follows price by X% or $ (locks in profit)
@@ -7830,7 +7830,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/orders/AdvancedOrders.jsx` (новый), `web-ui/src/components/orders/ConditionalOrders.jsx` (новый), `web-ui/src/components/orders/OrderChaining.jsx` (новый), `web-ui/src/components/orders/OrderFlow.jsx` (новый), `web-ui/src/services/AdvancedOrderEngine.js` (новый)
 
-### WD-216: Strategy Performance Persistence & Autocorrelation
+### WD-216: Strategy Performance Persistence & Autocorrelation ✅ DONE
 **Описание:** Анализ персистентности и автокорреляции производительности.
 - Return autocorrelation:
   - Lag-1: does yesterday's return predict today's return? (momentum)
@@ -7888,7 +7888,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/PerformancePersistence.jsx` (новый), `web-ui/src/components/strategies/AutocorrelationAnalysis.jsx` (новый), `web-ui/src/components/strategies/HurstExponent.jsx` (новый), `web-ui/src/components/strategies/StreakAnalysis.jsx` (новый), `web-ui/src/services/PersistenceEngine.js` (новый)
 
-### WD-217: DeFi Impermanent Loss Calculator & Hedging
+### WD-217: DeFi Impermanent Loss Calculator & Hedging ✅ DONE
 **Описание:** Калькулятор impermanent loss и хеджирование для LP позиций.
 - Impermanent loss calculation:
   - Formula: IL = (sqrt(price_ratio) × 2 / (1 + price_ratio)) - 1
@@ -7942,7 +7942,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/ImpermanentLoss.jsx` (новый), `web-ui/src/components/defi/IlHedging.jsx` (новый), `web-ui/src/components/defi/IlScenarios.jsx` (новый), `web-ui/src/components/defi/LpPositionAnalyzer.jsx` (новый), `web-ui/src/services/IlEngine.js` (новый)
 
-### WD-218: Strategy Backtest Monte Carlo Simulator
+### WD-218: Strategy Backtest Monte Carlo Simulator ✅ DONE
 **Описание:** Monte Carlo симулятор для backtest стратегий.
 - Monte Carlo trade resampling:
   - Original: actual sequence of trades from backtest
@@ -8003,7 +8003,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/backtest/MonteCarloSimulator.jsx` (новый), `web-ui/src/components/backtest/MonteCarloRisk.jsx` (новый), `web-ui/src/components/backtest/MonteCarloReport.jsx` (новый), `web-ui/src/components/backtest/MonteCarloComparison.jsx` (новый), `web-ui/src/services/MonteCarloEngine.js` (новый)
 **Зависимости:** src/backtesting/backtest_comparison.py
 
-### WD-219: Crypto Market Dominance & Rotation Tracker
+### WD-219: Crypto Market Dominance & Rotation Tracker ✅ DONE
 **Описание:** Трекер доминирования и ротации крипторынков.
 - Dominance tracking:
   - BTC dominance: BTC market cap / total crypto market cap
@@ -8059,7 +8059,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/DominanceTracker.jsx` (новый), `web-ui/src/components/analysis/RotationDetector.jsx` (новый), `web-ui/src/components/analysis/SectorPerformance.jsx` (новый), `web-ui/src/components/analysis/RotationCycle.jsx` (новый), `web-ui/src/hooks/useDominanceData.js` (новый)
 
-### WD-220: Strategy Drawdown Duration & Recovery Analysis
+### WD-220: Strategy Drawdown Duration & Recovery Analysis ✅ DONE
 **Описание:** Анализ длительности drawdown и восстановления.
 - Drawdown analysis:
   - Current DD: depth (% from peak), duration (days from peak)
@@ -8120,7 +8120,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/DrawdownAnalysis.jsx` (новый), `web-ui/src/components/strategies/DrawdownDuration.jsx` (новый), `web-ui/src/components/strategies/RecoveryAnalysis.jsx` (новый), `web-ui/src/components/strategies/UnderwaterCurve.jsx` (новый), `web-ui/src/services/DrawdownEngine.js` (новый)
 
-### WD-221: Airdrop & Token Launch Tracker
+### WD-221: Airdrop & Token Launch Tracker ✅ DONE
 **Описание:** Трекер airdrops и запусков новых токенов.
 - Airdrop tracker:
   - Upcoming: confirmed and rumored airdrops (project, token, date, eligibility)
@@ -8168,7 +8168,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/AirdropTracker.jsx` (новый), `web-ui/src/components/defi/AirdropFarming.jsx` (новый), `web-ui/src/components/defi/TokenLaunchCalendar.jsx` (новый), `web-ui/src/components/defi/VestingTracker.jsx` (новый), `web-ui/src/hooks/useAirdropData.js` (новый)
 
-### WD-222: Strategy Signal Backtesting & Historical Replay
+### WD-222: Strategy Signal Backtesting & Historical Replay ✅ DONE
 **Описание:** Backtesting сигналов стратегий и historical replay.
 - Signal backtest:
   - Historical signals: all signals generated by strategy over past N days
@@ -8222,7 +8222,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/SignalBacktest.jsx` (новый), `web-ui/src/components/strategies/SignalReplay.jsx` (новый), `web-ui/src/components/strategies/SignalQuality.jsx` (новый), `web-ui/src/components/strategies/SignalDistribution.jsx` (новый), `web-ui/src/services/SignalBacktestEngine.js` (новый)
 
-### WD-223: Comprehensive Notification & Messaging Hub
+### WD-223: Comprehensive Notification & Messaging Hub ✅ DONE
 **Описание:** Центральный хаб уведомлений и сообщений.
 - Notification hub:
   - Unified: all notifications from all components in one feed
@@ -8279,7 +8279,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/notifications/NotificationHub.jsx` (новый), `web-ui/src/components/notifications/NotificationSettings.jsx` (новый), `web-ui/src/components/notifications/NotificationHistory.jsx` (новый), `web-ui/src/components/notifications/SmartNotifications.jsx` (новый), `web-ui/src/stores/useNotificationStore.js` (новый), `web-ui/src/services/NotificationManager.js` (новый)
 
-### WD-224: Strategy Alpha Decay Monitor & Early Warning
+### WD-224: Strategy Alpha Decay Monitor & Early Warning ✅ DONE
 **Описание:** Мониторинг alpha decay с системой раннего предупреждения.
 - Alpha measurement:
   - Rolling alpha: 30d, 60d, 90d rolling alpha (vs benchmark)
@@ -8336,7 +8336,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/AlphaDecayMonitor.jsx` (новый), `web-ui/src/components/strategies/DecayEarlyWarning.jsx` (новый), `web-ui/src/components/strategies/DecayForecast.jsx` (новый), `web-ui/src/services/AlphaDecayEngine.js` (новый)
 
-### WD-225: DeFi Liquidation & Health Factor Monitor
+### WD-225: DeFi Liquidation & Health Factor Monitor ✅ DONE
 **Описание:** Мониторинг ликвидаций и health factor в DeFi lending.
 - Health factor monitoring:
   - Per protocol: Aave, Compound, MakerDAO, Abracadabra
@@ -8389,7 +8389,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/HealthFactorMonitor.jsx` (новый), `web-ui/src/components/defi/LiquidationProtection.jsx` (новый), `web-ui/src/components/defi/MarketLiquidationMonitor.jsx` (новый), `web-ui/src/components/defi/BorrowOptimizer.jsx` (новый), `web-ui/src/hooks/useDefiHealth.js` (новый)
 
-### WD-226: Strategy Trade Frequency & Overtrading Detector
+### WD-226: Strategy Trade Frequency & Overtrading Detector ✅ DONE
 **Описание:** Детектор частоты торгов и overtrading для стратегий.
 - Trade frequency monitoring:
   - Per strategy: trades per day, per week, per month
@@ -8443,7 +8443,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/TradeFrequency.jsx` (новый), `web-ui/src/components/strategies/OvertradingDetector.jsx` (новый), `web-ui/src/components/strategies/FrequencyOptimizer.jsx` (новый), `web-ui/src/services/FrequencyEngine.js` (новый)
 
-### WD-227: Crypto Correlation Matrix & Diversification Visualizer
+### WD-227: Crypto Correlation Matrix & Diversification Visualizer ✅ DONE
 **Описание:** Матрица корреляций и визуализатор диверсификации.
 - Correlation matrix:
   - Assets: all tracked symbols (BTC, ETH, SOL, etc.)
@@ -8497,7 +8497,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/CorrelationMatrix.jsx` (новый), `web-ui/src/components/analysis/DiversificationVisualizer.jsx` (новый), `web-ui/src/components/analysis/CorrelationBreakdown.jsx` (новый), `web-ui/src/components/analysis/CorrelationTimeline.jsx` (новый), `web-ui/src/services/CorrelationEngine.js` (новый)
 
-### WD-228: Strategy Equity Curve Analysis & Regime Detection
+### WD-228: Strategy Equity Curve Analysis & Regime Detection ✅ DONE
 **Описание:** Анализ equity curve и детекция режимов через equity curve.
 - Equity curve analysis:
   - Shape: is equity curve linear, exponential, step-like, or choppy?
@@ -8558,7 +8558,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/EquityCurveAnalysis.jsx` (новый), `web-ui/src/components/strategies/EquityRegimeDetector.jsx` (новый), `web-ui/src/components/strategies/EquityForecast.jsx` (новый), `web-ui/src/components/strategies/EquityAnomalies.jsx` (новый), `web-ui/src/services/EquityAnalysisEngine.js` (новый)
 
-### WD-229: Advanced Trade Execution Algorithms
+### WD-229: Advanced Trade Execution Algorithms ✅ DONE
 **Описание:** Продвинутые алгоритмы исполнения ордеров.
 - TWAP (Time-Weighted Average Price):
   - Split: divide order into N equal slices over T time period
@@ -8618,7 +8618,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/execution/ExecutionAlgorithms.jsx` (новый), `web-ui/src/components/execution/TwapExecutor.jsx` (новый), `web-ui/src/components/execution/VwapExecutor.jsx` (новый), `web-ui/src/components/execution/ImplementationShortfall.jsx` (новый), `web-ui/src/components/execution/ExecutionAnalytics.jsx` (новый), `web-ui/src/services/ExecutionAlgoEngine.js` (новый)
 
-### WD-230: Comprehensive Dashboard Search & Global Filter
+### WD-230: Comprehensive Dashboard Search & Global Filter ✅ DONE
 **Описание:** Глобальный поиск и фильтр по всему дашборду.
 - Global search:
   - Search bar: always visible in header (or Cmd+Shift+F)
@@ -8679,7 +8679,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/ui/GlobalSearch.jsx` (новый), `web-ui/src/components/ui/GlobalFilter.jsx` (новый), `web-ui/src/components/ui/SavedFilters.jsx` (новый), `web-ui/src/components/ui/SearchResults.jsx` (новый), `web-ui/src/services/SearchEngine.js` (новый), `web-ui/src/stores/useFilterStore.js` (новый)
 
-### WD-231: Strategy Capacity Analysis & Market Impact Estimator
+### WD-231: Strategy Capacity Analysis & Market Impact Estimator ✅ DONE
 **Описание:** Анализ вместимости стратегии и оценка рыночного воздействия.
 - Capacity estimation: max capital before edge erodes, market impact models (linear, square-root, power law), per symbol capacity, per timeframe capacity, capacity degradation tracking, multi-strategy capacity (shared vs independent), practical recommendations (headroom, reallocation, scaling)
 - Market impact: impact vs order size curve per symbol, calibration from historical order data, edge vs impact intersection (capacity point), degradation over time (market adaptation)
@@ -8687,7 +8687,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/strategies/CapacityAnalyzer.jsx` (новый), `web-ui/src/components/strategies/MarketImpactEstimator.jsx` (новый), `web-ui/src/components/strategies/CapacityBySymbol.jsx` (новый), `web-ui/src/services/CapacityEngine.js` (новый)
 
-### WD-232: DeFi Yield Aggregator & Strategy Optimizer
+### WD-232: DeFi Yield Aggregator & Strategy Optimizer ✅ DONE
 **Описание:** Агрегатор DeFi yield и оптимизатор стратегий.
 - Yield sources: lending (Aave, Compound), liquidity (Uniswap, Curve), staking (Lido, Rocket Pool), restaking (EigenLayer), farming (Yearn, Beefy), real yield vs token emissions
 - Yield comparison: APY, real APY (minus emissions), risk-adjusted APY, net APY (after gas, IL, fees), ranking
@@ -8696,7 +8696,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/defi/YieldAggregator.jsx` (новый), `web-ui/src/components/defi/YieldOptimizer.jsx` (новый), `web-ui/src/components/defi/YieldMigration.jsx` (новый), `web-ui/src/components/defi/YieldRisk.jsx` (новый), `web-ui/src/hooks/useYieldData.js` (новый)
 
-### WD-233: Strategy Walk-Forward Analysis Dashboard
+### WD-233: Strategy Walk-Forward Analysis Dashboard ✅ DONE
 **Описание:** Dashboard для walk-forward анализа стратегий.
 - Walk-forward setup: IS/OOS windows, step size, overlap, total windows
 - Results: per window IS vs OOS performance, degradation, consistency, overfitting detection (IS/OOS ratio, rank correlation, parameter stability, performance variance)
@@ -8708,7 +8708,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/backtest/WalkForwardDashboard.jsx` (новый), `web-ui/src/components/backtest/WalkForwardResults.jsx` (новый), `web-ui/src/components/backtest/OverfittingDetector.jsx` (новый), `web-ui/src/components/backtest/WalkForwardReport.jsx` (новый), `web-ui/src/services/WalkForwardEngine.js` (новый)
 **Зависимости:** src/backtesting/walk_forward.py
 
-### WD-234: Real-Time Trade Tape & Time & Sales
+### WD-234: Real-Time Trade Tape & Time & Sales ✅ DONE
 **Описание:** Real-time лента сделок (Time & Sales).
 - Trade tape: real-time trades (timestamp, price, size, side, exchange), hundreds-thousands/sec, filter by size/side/exchange, color-coded (green=buy, red=sell)
 - Time & Sales: classic tabular view (Bloomberg-style), ms precision, large trade highlight, configurable display speed
@@ -8721,7 +8721,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/orderbook/TradeTape.jsx` (новый), `web-ui/src/components/orderbook/TimeAndSales.jsx` (новый), `web-ui/src/components/orderbook/TradeFlowAnalysis.jsx` (новый), `web-ui/src/components/orderbook/TapeReplay.jsx` (новый), `web-ui/src/services/TradeTapeEngine.js` (новый)
 
-### WD-235: Strategy Beta & Correlation Tracking
+### WD-235: Strategy Beta & Correlation Tracking ✅ DONE
 **Описание:** Отслеживание beta и корреляции стратегий с рынком.
 - Beta: market beta (vs BTC), ETH beta, crypto index beta, rolling 30d/60d/90d, confidence intervals
 - Interpretation: beta=0 (market-neutral), beta=1 (market), beta=2 (leveraged), beta<0 (hedging)
@@ -8735,7 +8735,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/BetaTracker.jsx` (новый), `web-ui/src/components/strategies/CorrelationTracker.jsx` (новый), `web-ui/src/components/strategies/BetaManager.jsx` (новый), `web-ui/src/components/strategies/BetaDecomposition.jsx` (новый), `web-ui/src/services/BetaEngine.js` (новый)
 
-### WD-236: DeFi Bridge Monitor & Cross-Chain Analytics
+### WD-236: DeFi Bridge Monitor & Cross-Chain Analytics ✅ DONE
 **Описание:** Мониторинг DeFi мостов и cross-chain аналитика.
 - Bridge monitoring: Wormhole, LayerZero, Axelar, Across, Stargate, Synapse — status, TVL, volume, fee
 - Bridge security: audit status, multi-sig, exploit history, insurance, risk score (A-F)
@@ -8749,7 +8749,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/BridgeMonitor.jsx` (новый), `web-ui/src/components/defi/BridgeComparison.jsx` (новый), `web-ui/src/components/defi/CrossChainAnalytics.jsx` (новый), `web-ui/src/components/defi/BridgeRisk.jsx` (новый), `web-ui/src/hooks/useBridgeData.js` (новый)
 
-### WD-237: Strategy Regime-Conditional Performance Analysis
+### WD-237: Strategy Regime-Conditional Performance Analysis ✅ DONE
 **Описание:** Анализ производительности стратегии по рыночным режимам.
 - Regime classification: from WD-160, historical classification, current regime, timeline, probability
 - Performance by regime: per strategy metrics (Sharpe, return, DD, win rate, profit factor) in each regime, bar chart, ranking
@@ -8764,7 +8764,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/strategies/RegimePerformance.jsx` (новый), `web-ui/src/components/strategies/RegimeConditionalMetrics.jsx` (новый), `web-ui/src/components/strategies/RegimeAllocation.jsx` (новый), `web-ui/src/components/strategies/RegimeBacktest.jsx` (новый), `web-ui/src/services/RegimePerfEngine.js` (новый)
 
-### WD-238: Comprehensive API & Integration Manager
+### WD-238: Comprehensive API & Integration Manager ✅ DONE
 **Описание:** Менеджер API и интеграций.
 - API management: per exchange (keys, permissions, rate limits, status), per service (DeFiLlama, CoinGecko, Glassnode), authentication, security (masked keys, encrypted storage)
 - API health: status, latency, rate limit usage, error log, uptime
@@ -8778,7 +8778,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/ApiManager.jsx` (новый), `web-ui/src/components/system/ApiKeyManager.jsx` (новый), `web-ui/src/components/system/RateLimitDashboard.jsx` (новый), `web-ui/src/components/system/WebhookManager.jsx` (новый), `web-ui/src/components/system/IntegrationMarketplace.jsx` (новый), `web-ui/src/stores/useApiStore.js` (новый)
 
-### WD-239: Strategy P&L Attribution by Trade & Time
+### WD-239: Strategy P&L Attribution by Trade & Time ✅ DONE
 **Описание:** Атрибуция P&L по сделкам и времени.
 - Trade-level P&L: per trade entry/exit/size/P&L/R-multiple, attribution (signal alpha, slippage, fees, funding, market move), waterfall decomposition
 - Time-based P&L: per hour, per day, per session, per month, per quarter
@@ -8792,7 +8792,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/PnlAttribution.jsx` (новый), `web-ui/src/components/strategies/PnlTimeline.jsx` (новый), `web-ui/src/components/strategies/PnlByCharacteristic.jsx` (новый), `web-ui/src/components/strategies/PnlDrivers.jsx` (новый), `web-ui/src/services/PnlAttributionEngine.js` (новый)
 
-### WD-240: Crypto Options Greeks Dashboard & Hedging
+### WD-240: Crypto Options Greeks Dashboard & Hedging ✅ DONE
 **Описание:** Dashboard Greeks опционов и хеджирование.
 - Options positions: symbol, expiry, strike, type, size, entry/current price, ITM/ATM/OTM, P&L
 - Greeks: Delta, Gamma, Theta, Vega, Rho per position; portfolio aggregate (net delta/gamma/theta/vega)
@@ -8807,7 +8807,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/options/GreeksDashboard.jsx` (новый), `web-ui/src/components/options/GreeksChart.jsx` (новый), `web-ui/src/components/options/GreeksHedging.jsx` (новый), `web-ui/src/components/options/OptionsStrategies.jsx` (новый), `web-ui/src/components/options/ImpliedVolatility.jsx` (новый), `web-ui/src/services/OptionsGreeksEngine.js` (новый)
 **Зависимости:** src/research/greeks_hedging.py
 
-### WD-241: Strategy Live vs Backtest Performance Comparison
+### WD-241: Strategy Live vs Backtest Performance Comparison ✅ DONE
 **Описание:** Сравнение live и backtest производительности стратегии.
 - Live vs backtest: side-by-side equity curves (same period), metrics comparison (Sharpe, DD, win rate), gap analysis, divergence timeline
 - Degradation analysis: slippage (live vs assumed), fees, lateness, fill rate, data quality — per component breakdown
@@ -8822,7 +8822,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/LiveVsBacktest.jsx` (новый), `web-ui/src/components/strategies/DegradationAnalysis.jsx` (новый), `web-ui/src/components/strategies/SignalComparison.jsx` (новый), `web-ui/src/components/strategies/ExecutionComparison.jsx` (новый), `web-ui/src/services/LiveVsBacktestEngine.js` (новый)
 
-### WD-242: DeFi Staking & Validator Monitor
+### WD-242: DeFi Staking & Validator Monitor ✅ DONE
 **Описание:** Мониторинг staking и валидаторов.
 - Staking positions: asset, protocol, validator, amount, APY, rewards, status (active/unbonding/withdrawn/slashed), lock-up, current value
 - Protocols: native (Ethereum, Cosmos, Solana, Polkadot), liquid (Lido stETH, Rocket Pool rETH, Frax), restaking (EigenLayer, Symbiotic), delegated, solo
@@ -8837,7 +8837,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/StakingMonitor.jsx` (новый), `web-ui/src/components/defi/ValidatorSelector.jsx` (новый), `web-ui/src/components/defi/StakingRewards.jsx` (новый), `web-ui/src/components/defi/LiquidStaking.jsx` (новый), `web-ui/src/hooks/useStakingData.js` (новый)
 
-### WD-243: Strategy Signal Quality Score & Reliability Rating
+### WD-243: Strategy Signal Quality Score & Reliability Rating ✅ DONE
 **Описание:** Оценка качества и надёжности сигналов стратегии.
 - Quality metrics: accuracy (win rate), precision, recall, F1, expectancy (avg P&L per signal)
 - Reliability: consistency over time, sample size (100+ for significance), confidence calibration (WD-175), regime stability, decay (WD-224)
@@ -8852,7 +8852,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/SignalQualityScore.jsx` (новый), `web-ui/src/components/strategies/SignalReliability.jsx` (новый), `web-ui/src/components/strategies/QualityByDimension.jsx` (новый), `web-ui/src/components/strategies/QualityReport.jsx` (новый), `web-ui/src/services/SignalQualityEngine.js` (новый)
 
-### WD-244: Comprehensive User Preferences & Settings Manager
+### WD-244: Comprehensive User Preferences & Settings Manager ✅ DONE
 **Описание:** Менеджер пользовательских настроек и предпочтений.
 - User profile: name, email, avatar, timezone, language, experience level, risk tolerance, trading style
 - Display: theme (dark/light/custom), font, density, number format, time format
@@ -8869,7 +8869,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/settings/SettingsManager.jsx` (новый), `web-ui/src/components/settings/UserProfile.jsx` (новый), `web-ui/src/components/settings/TradingSettings.jsx` (новый), `web-ui/src/components/settings/NotificationSettings.jsx` (новый), `web-ui/src/components/settings/ChartSettings.jsx` (новый), `web-ui/src/components/settings/KeyboardShortcuts.jsx` (новый), `web-ui/src/stores/useSettingsStore.js` (новый)
 
-### WD-245: Strategy Trade Correlation & Clustering
+### WD-245: Strategy Trade Correlation & Clustering ✅ DONE
 **Описание:** Корреляция и кластеризация торговых сделок.
 - Trade correlation: pairwise (strategy trade returns), timing, direction, symbol overlap, P&L correlation
 - Correlation matrix: all strategies, heatmap, hierarchical clustering, dendrogram, redundancy detection
@@ -8884,7 +8884,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/strategies/TradeCorrelation.jsx` (новый), `web-ui/src/components/strategies/TradeClustering.jsx` (новый), `web-ui/src/components/strategies/ClusterVisualization.jsx` (новый), `web-ui/src/components/strategies/ClusterAnalysis.jsx` (новый), `web-ui/src/services/TradeClusterEngine.js` (новый)
 
-### WD-246: Real-Time Portfolio Risk Dashboard
+### WD-246: Real-Time Portfolio Risk Dashboard ✅ DONE
 **Описание:** Real-time дашборд риска портфеля.
 - Real-time metrics: VaR (1d, 95%/99%), CVaR/ES, max drawdown, volatility, beta, Sharpe (rolling 30d)
 - Risk by position: VaR contribution, marginal VaR, incremental VaR, concentration, recommendations
@@ -8900,7 +8900,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/risk/RiskDashboard.jsx` (новый), `web-ui/src/components/risk/RiskByPosition.jsx` (новый), `web-ui/src/components/risk/RiskByStrategy.jsx` (новый), `web-ui/src/components/risk/RiskBySymbol.jsx` (новый), `web-ui/src/components/risk/RealTimeStress.jsx` (новый), `web-ui/src/services/RiskDashboardEngine.js` (новый)
 **Зависимости:** src/risk/var_calculator.py, src/risk/cvar_calculator.py, src/risk/risk_manager.py
 
-### WD-247: Strategy Machine Learning Model Monitor
+### WD-247: Strategy Machine Learning Model Monitor ✅ DONE
 **Описание:** Мониторинг ML моделей стратегий.
 - Model monitoring: per model (LSTM, Transformer, LightGBM, XGBoost, RL agent), status (training/deployed/stale/failed), version, last training date, performance (accuracy, loss, F1, AUC), drift detection
 - Model performance: accuracy, loss (train/val/live), precision/recall, AUC, calibration
@@ -8916,7 +8916,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/ml/ModelMonitor.jsx` (новый), `web-ui/src/components/ml/ModelDrift.jsx` (новый), `web-ui/src/components/ml/ModelExplainability.jsx` (новый), `web-ui/src/components/ml/ModelRegistry.jsx` (новый), `web-ui/src/components/ml/RetrainingPipeline.jsx` (новый), `web-ui/src/services/ModelMonitorEngine.js` (новый)
 **Зависимости:** src/ml/model_registry.py, src/ml/feature_store.py, src/ml/automl.py
 
-### WD-248: Crypto Market Microstructure Visualizer
+### WD-248: Crypto Market Microstructure Visualizer ✅ DONE
 **Описание:** Визуализатор микроструктуры крипторынка.
 - Order book dynamics: real-time L2 order book animation (bids/asks appearing, modifying, disappearing), price level heatmap (order size by price over time), order book imbalance (bid_vol vs ask_vol), depth profile (cumulative volume by distance from mid)
 - Trade flow: trade tape overlay on order book (where trades execute relative to book), aggressive vs passive flow (taker vs maker), trade size distribution, trade arrival rate (Poisson intensity)
@@ -8931,7 +8931,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/microstructure/MicrostructureVisualizer.jsx` (новый), `web-ui/src/components/microstructure/OrderBookDynamics.jsx` (новый), `web-ui/src/components/microstructure/TradeFlowVisualizer.jsx` (новый), `web-ui/src/components/microstructure/SpreadAnalysis.jsx` (новый), `web-ui/src/components/microstructure/LiquidityDynamics.jsx` (новый), `web-ui/src/services/MicrostructureEngine.js` (новый)
 
-### WD-249: Strategy Performance Benchmarking & Leaderboard
+### WD-249: Strategy Performance Benchmarking & Leaderboard ✅ DONE
 **Описание:** Бенчмаркинг и leaderboard производительности стратегий.
 - Strategy leaderboard:
   - Ranking: by Sharpe, return, Calmar, profit factor, win rate, expectancy
@@ -8989,7 +8989,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/StrategyLeaderboard.jsx` (новый), `web-ui/src/components/strategies/BenchmarkComparison.jsx` (новый), `web-ui/src/components/strategies/PerformancePercentile.jsx` (новый), `web-ui/src/components/strategies/StrategyTournament.jsx` (новый), `web-ui/src/components/strategies/HallOfFame.jsx` (новый), `web-ui/src/services/BenchmarkEngine.js` (новый)
 
-### WD-250: Comprehensive Data Pipeline & ETL Monitor
+### WD-250: Comprehensive Data Pipeline & ETL Monitor ✅ DONE
 **Описание:** Мониторинг data pipeline и ETL процессов.
 - Data pipeline overview:
   - Sources: exchange WS, exchange REST, on-chain data, news feeds, social media
@@ -9050,7 +9050,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/system/DataPipelineMonitor.jsx` (новый), `web-ui/src/components/system/DataQualityDashboard.jsx` (новый), `web-ui/src/components/system/PipelineAlerts.jsx` (новый), `web-ui/src/components/system/PipelineMetrics.jsx` (новый), `web-ui/src/services/PipelineMonitorEngine.js` (новый)
 
-### WD-251: Strategy Co-integration & Statistical Arbitrage Visualizer
+### WD-251: Strategy Co-integration & Statistical Arbitrage Visualizer ✅ DONE
 **Описание:** Визуализатор коинтеграции и статистического арбитража.
 - Co-integration testing:
   - Per pair: test all symbol pairs for co-integration (Engle-Granger, Johansen)
@@ -9105,7 +9105,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/strategies/CointegrationVisualizer.jsx` (новый), `web-ui/src/components/strategies/SpreadChart.jsx` (новый), `web-ui/src/components/strategies/PairSelection.jsx` (новый), `web-ui/src/components/strategies/StatArbSignals.jsx` (новый), `web-ui/src/components/strategies/CointegrationHeatmap.jsx` (новый), `web-ui/src/services/CointegrationEngine.js` (новый)
 **Зависимости:** src/strategies/statistical_arbitrage.py
 
-### WD-252: DeFi TVL & Protocol Metrics Dashboard
+### WD-252: DeFi TVL & Protocol Metrics Dashboard ✅ DONE
 **Описание:** Dashboard TVL и метрик DeFi протоколов.
 - TVL tracking:
   - Per protocol: Aave, Uniswap, Curve, Lido, MakerDAO, Compound, EigenLayer
@@ -9166,7 +9166,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/TvlDashboard.jsx` (новый), `web-ui/src/components/defi/ProtocolMetrics.jsx` (новый), `web-ui/src/components/defi/ProtocolComparison.jsx` (новый), `web-ui/src/components/defi/RevenueAnalysis.jsx` (новый), `web-ui/src/components/defi/DefiNarratives.jsx` (новый), `web-ui/src/hooks/useDefiTvlData.js` (новый)
 
-### WD-253: Strategy Turnover & Transaction Cost Analysis
+### WD-253: Strategy Turnover & Transaction Cost Analysis ✅ DONE
 **Описание:** Анализ оборота и транзакционных издержек стратегии.
 - Turnover measurement:
   - Per strategy: daily/weekly/monthly turnover (total traded volume / portfolio NAV)
@@ -9233,7 +9233,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/TurnoverAnalysis.jsx` (новый), `web-ui/src/components/strategies/TransactionCosts.jsx` (новый), `web-ui/src/components/strategies/CostOptimization.jsx` (новый), `web-ui/src/components/strategies/CostAwareBacktest.jsx` (новый), `web-ui/src/services/TurnoverCostEngine.js` (новый)
 
-### WD-254: Crypto Whale Wallet Tracker & On-Chain Flow Analysis
+### WD-254: Crypto Whale Wallet Tracker & On-Chain Flow Analysis ✅ DONE
 **Описание:** Трекер китовых кошельков и on-chain потоков.
 - Whale tracking:
   - Known whales: list of known whale addresses (from on-chain analysis, labels)
@@ -9294,7 +9294,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/onchain/WhaleTracker.jsx` (новый), `web-ui/src/components/onchain/ExchangeFlows.jsx` (новый), `web-ui/src/components/onchain/SmartMoneyTracker.jsx` (новый), `web-ui/src/components/onchain/OnChainMetrics.jsx` (новый), `web-ui/src/components/onchain/WhaleFlowMap.jsx` (новый), `web-ui/src/hooks/useOnChainData.js` (новый)
 
-### WD-255: Strategy Ensemble & Signal Fusion Optimizer
+### WD-255: Strategy Ensemble & Signal Fusion Optimizer ✅ DONE
 **Описание:** Оптимизатор ансамблей и слияния сигналов.
 - Ensemble methods:
   - **Majority vote**: signal if majority of strategies agree (current EnsembleVoter)
@@ -9349,7 +9349,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/strategies/EnsembleOptimizer.jsx` (новый), `web-ui/src/components/strategies/SignalFusion.jsx` (новый), `web-ui/src/components/strategies/EnsembleBacktest.jsx` (новый), `web-ui/src/components/strategies/EnsembleVisualization.jsx` (новый), `web-ui/src/services/EnsembleEngine.js` (новый)
 **Зависимости:** src/strategies/ensemble_voter.py
 
-### WD-256: DeFi Liquidation Cascade Simulator & Predictor
+### WD-256: DeFi Liquidation Cascade Simulator & Predictor ✅ DONE
 **Описание:** Симулятор и предсказатель каскадных ликвидаций в DeFi.
 - Liquidation cascade simulation:
   - Trigger: initial price drop (e.g. BTC -5%)
@@ -9397,7 +9397,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/defi/LiquidationCascadeSim.jsx` (новый), `web-ui/src/components/defi/LiquidationLevels.jsx` (новый), `web-ui/src/components/defi/CascadePredictor.jsx` (новый), `web-ui/src/components/defi/LeverageMonitor.jsx` (новый), `web-ui/src/services/CascadeEngine.js` (новый)
 
-### WD-257: Strategy Market Regime HMM Visualizer
+### WD-257: Strategy Market Regime HMM Visualizer ✅ DONE
 **Описание:** Визуализатор скрытых марковских моделей (HMM) рыночных режимов.
 - HMM states:
   - From ML module: HMM identifies hidden market states (regimes)
@@ -9447,7 +9447,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/strategies/HmmVisualizer.jsx` (новый), `web-ui/src/components/strategies/HmmStates.jsx` (новый), `web-ui/src/components/strategies/HmmTransitionMatrix.jsx` (новый), `web-ui/src/components/strategies/HmmPrediction.jsx` (новый), `web-ui/src/services/HmmEngine.js` (новый)
 **Зависимости:** src/ml/environment.py (HMM regime model)
 
-### WD-258: Crypto Funding Rate & Basis Analysis Dashboard
+### WD-258: Crypto Funding Rate & Basis Analysis Dashboard ✅ DONE
 **Описание:** Dashboard funding rate и basis анализа.
 - Funding rate overview:
   - Per symbol: current funding rate (all perpetual symbols)
@@ -9507,7 +9507,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/crypto/FundingRateDashboard.jsx` (новый), `web-ui/src/components/crypto/BasisAnalysis.jsx` (новый), `web-ui/src/components/crypto/FundingHeatmap.jsx` (новый), `web-ui/src/components/crypto/FundingPrediction.jsx` (новый), `web-ui/src/hooks/useFundingData.js` (новый)
 
-### WD-259: Strategy Performance Attribution by Factor
+### WD-259: Strategy Performance Attribution by Factor ✅ DONE
 **Описание:** Атрибуция производительности стратегии по факторам.
 - Factor model:
   - Factors: market (BTC), size (large vs small cap), momentum (trend), volatility, liquidity
@@ -9561,7 +9561,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/strategies/FactorAttribution.jsx` (новый), `web-ui/src/components/strategies/FactorExposures.jsx` (новый), `web-ui/src/components/strategies/FactorContribution.jsx` (новый), `web-ui/src/components/strategies/FactorTiming.jsx` (новый), `web-ui/src/services/FactorEngine.js` (новый)
 
-### WD-260: Comprehensive Trading Journal & Decision Log
+### WD-260: Comprehensive Trading Journal & Decision Log ✅ DONE
 **Описание:** Комплексный торговый журнал и лог решений.
 - Trade journal:
   - Per trade: entry/exit, P&L, strategy, symbol, market conditions at entry
@@ -9627,7 +9627,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/journal/TradingJournal.jsx` (новый), `web-ui/src/components/journal/DecisionLog.jsx` (новый), `web-ui/src/components/journal/TradeReview.jsx` (новый), `web-ui/src/components/journal/LessonTracker.jsx` (новый), `web-ui/src/components/journal/JournalAnalytics.jsx` (новый), `web-ui/src/stores/useJournalStore.js` (новый)
 
-### WD-261: Strategy Parameter Sensitivity & Robustness Mapper
+### WD-261: Strategy Parameter Sensitivity & Robustness Mapper ✅ DONE
 **Описание:** Карта чувствительности и робастности параметров стратегии.
 - Parameter sensitivity:
   - Per parameter: how does strategy performance change when parameter changes?
@@ -9689,7 +9689,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/strategies/ParameterSensitivity.jsx` (новый), `web-ui/src/components/strategies/RobustnessMapper.jsx` (новый), `web-ui/src/components/strategies/ParameterInteraction.jsx` (новый), `web-ui/src/components/strategies/RobustnessScore.jsx` (новый), `web-ui/src/services/SensitivityEngine.js` (новый)
 
-### WD-262: DeFi NFT & Blue Chip Collection Tracker
+### WD-262: DeFi NFT & Blue Chip Collection Tracker ✅ DONE
 **Описание:** Трекер NFT коллекций и blue chip NFT.
 - NFT collection tracking:
   - Per collection: BAYC, CryptoPunks, Azuki, Pudgy Penguins, Milady
@@ -9743,7 +9743,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/nft/NftTracker.jsx` (новый), `web-ui/src/components/nft/NftPortfolio.jsx` (новый), `web-ui/src/components/nft/FloorPriceAnalysis.jsx` (новый), `web-ui/src/components/nft/NftArbitrage.jsx` (новый), `web-ui/src/components/nft/NftMintingTracker.jsx` (новый), `web-ui/src/hooks/useNftData.js` (новый)
 
-### WD-263: Strategy Kelly Criterion & Optimal Position Sizing Dashboard
+### WD-263: Strategy Kelly Criterion & Optimal Position Sizing Dashboard ✅ DONE
 **Описание:** Dashboard критерия Келли и оптимального размера позиции.
 - Kelly criterion:
   - Formula: f* = (p × b - q) / b where p = win rate, b = win/loss ratio, q = 1-p
@@ -9806,7 +9806,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/risk/KellyDashboard.jsx` (новый), `web-ui/src/components/risk/PositionSizingComparison.jsx` (новый), `web-ui/src/components/risk/KellyByStrategy.jsx` (новый), `web-ui/src/components/risk/KellySimulation.jsx` (новый), `web-ui/src/services/KellyEngine.js` (новый)
 **Зависимости:** src/risk/kelly_position_sizer.py, src/risk/dynamic_position_sizer.py
 
-### WD-264: Crypto Exchange Health & Status Monitor
+### WD-264: Crypto Exchange Health & Status Monitor ✅ DONE
 **Описание:** Монитор здоровья и статуса криптобирж.
 - Exchange status:
   - Per exchange: Binance, Bybit, OKX, Coinbase, Kraken, dYdX
@@ -9861,7 +9861,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/ExchangeHealth.jsx` (новый), `web-ui/src/components/system/ExchangeComparison.jsx` (новый), `web-ui/src/components/system/ExchangeSecurity.jsx` (новый), `web-ui/src/components/system/ExchangeFailover.jsx` (новый), `web-ui/src/hooks/useExchangeStatus.js` (новый)
 
-### WD-265: Strategy Slippage Model & Execution Quality Analyzer
+### WD-265: Strategy Slippage Model & Execution Quality Analyzer ✅ DONE
 **Описание:** Модель проскальзывания и анализатор качества исполнения.
 - Slippage measurement:
   - Per trade: expected price vs actual fill price = slippage (bps or $)
@@ -9921,7 +9921,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/execution/SlippageAnalyzer.jsx` (новый), `web-ui/src/components/execution/ExecutionQuality.jsx` (новый), `web-ui/src/components/execution/SlippageModel.jsx` (новый), `web-ui/src/components/execution/ExecutionReport.jsx` (новый), `web-ui/src/services/SlippageEngine.js` (новый)
 
-### WD-266: DeFi Governance & Proposal Tracker
+### WD-266: DeFi Governance & Proposal Tracker ✅ DONE
 **Описание:** Трекер DeFi governance и предложений.
 - Governance overview:
   - Per protocol: Aave, Uniswap, Compound, MakerDAO, Curve, Lido
@@ -9975,7 +9975,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/defi/GovernanceTracker.jsx` (новый), `web-ui/src/components/defi/ProposalDetails.jsx` (новый), `web-ui/src/components/defi/VotingPower.jsx` (новый), `web-ui/src/components/defi/GovernanceMetrics.jsx` (новый), `web-ui/src/hooks/useGovernanceData.js` (новый)
 
-### WD-267: Strategy Win/Loss Streak & Psychological Impact Tracker
+### WD-267: Strategy Win/Loss Streak & Psychological Impact Tracker ✅ DONE
 **Описание:** Трекер серий побед/поражений и психологического воздействия.
 - Streak tracking:
   - Current: current win/loss streak (length and direction)
@@ -10035,7 +10035,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/strategies/StreakTracker.jsx` (новый), `web-ui/src/components/strategies/PsychologicalImpact.jsx` (новый), `web-ui/src/components/strategies/TiltDetector.jsx` (новый), `web-ui/src/components/strategies/StreakRiskAdjustment.jsx` (новый), `web-ui/src/services/StreakEngine.js` (новый)
 
-### WD-268: Crypto Market Fear & Greed Index & Sentiment Dashboard
+### WD-268: Crypto Market Fear & Greed Index & Sentiment Dashboard ✅ DONE
 **Описание:** Dashboard индекса страха и жадности и сентимента.
 - Fear & Greed Index:
   - Current: current Fear & Greed index (0-100, 0 = extreme fear, 100 = extreme greed)
@@ -10095,7 +10095,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/sentiment/FearGreedDashboard.jsx` (новый), `web-ui/src/components/sentiment/SentimentIndicators.jsx` (новый), `web-ui/src/components/sentiment/SentimentVsPrice.jsx` (новый), `web-ui/src/components/sentiment/SocialVolume.jsx` (новый), `web-ui/src/components/sentiment/SentimentByAsset.jsx` (новый), `web-ui/src/hooks/useSentimentData.js` (новый)
 
-### WD-269: Strategy Edge Case & Black Swan Testing
+### WD-269: Strategy Edge Case & Black Swan Testing ✅ DONE
 **Описание:** Тестирование edge cases и черных лебедей для стратегий.
 - Black swan scenarios:
   - **Exchange hack**: major exchange hacked (funds frozen, market crash)
@@ -10155,7 +10155,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/strategies/BlackSwanTester.jsx` (новый), `web-ui/src/components/strategies/EdgeCaseTesting.jsx` (новый), `web-ui/src/components/strategies/FailureModeAnalysis.jsx` (новый), `web-ui/src/components/strategies/ScenarioCustomizer.jsx` (новый), `web-ui/src/services/BlackSwanEngine.js` (новый)
 **Зависимости:** src/risk/stress_test.py
 
-### WD-270: Comprehensive Multi-Exchange Arbitrage Scanner
+### WD-270: Comprehensive Multi-Exchange Arbitrage Scanner ✅ DONE
 **Описание:** Комплексный сканер межбиржевого арбитража.
 - Arbitrage types:
   - **Simple**: same asset, different exchanges → buy low, sell high
