@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Target, TrendingUp, TrendingDown, Crosshair } from 'lucide-react'
+import { pnlColor } from '../utils/ui-helpers'
 
 const MOCK_SIGNALS = [
   { id: 1, strategy: 'TrendFollowing', symbol: 'BTC/USDT', direction: 'LONG', confidence: 0.82, entryPrice: 43800, currentPrice: 44100, pnl: 0.68, status: 'open', timestamp: '12:30' },
@@ -11,10 +12,6 @@ const MOCK_SIGNALS = [
   { id: 7, strategy: 'FundingArb', symbol: 'BTC/USDT', direction: 'LONG', confidence: 0.58, entryPrice: 43500, currentPrice: 44100, pnl: 1.38, status: 'open', timestamp: '12:00' },
   { id: 8, strategy: 'StatArb', symbol: 'MATIC/USDT', direction: 'SHORT', confidence: 0.69, entryPrice: 0.85, currentPrice: 0.82, pnl: 3.53, status: 'closed', timestamp: '11:00' },
 ]
-
-function pnlColor(pnl) {
-  return pnl >= 0 ? 'text-accent-green' : 'text-accent-red'
-}
 
 function dirColor(dir) {
   return dir === 'LONG' ? 'text-accent-green' : 'text-accent-red'

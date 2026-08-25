@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
-import { Server, Wifi, Clock, MapPin, Activity, CheckCircle, XCircle } from 'lucide-react'
+import { Server, Wifi, Clock, MapPin } from 'lucide-react'
+import { ICONS } from '../utils/ui-helpers'
 
 const MOCK_DATACENTERS = [
   { id: 'dc-tokyo', name: 'Tokyo (TY3)', region: 'APAC', latency: 0.3, status: 'online', uptime: 99.98, colo: true },
@@ -19,9 +20,9 @@ const MOCK_SERVICES = [
 ]
 
 function statusIcon(status) {
-  if (status === 'online') return <CheckCircle size={10} className="text-accent-green" />
-  if (status === 'degraded') return <Activity size={10} className="text-accent-yellow" />
-  return <XCircle size={10} className="text-accent-red" />
+  if (status === 'online') return ICONS.green()
+  if (status === 'degraded') return ICONS.yellow()
+  return ICONS.red()
 }
 
 function statusColor(status) {

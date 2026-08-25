@@ -4,6 +4,8 @@ import { afterEach } from 'vitest'
 
 afterEach(() => {
   cleanup()
+  // Clear localStorage to prevent state leakage between tests (isolate: false)
+  if (typeof localStorage !== 'undefined') localStorage.clear()
 })
 
 // Mock WebSocket

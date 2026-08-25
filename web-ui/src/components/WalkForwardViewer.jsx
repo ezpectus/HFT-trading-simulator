@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
-import { GitCommit, TrendingUp, TrendingDown, CheckCircle, XCircle } from 'lucide-react'
+import { GitCommit, TrendingUp, TrendingDown } from 'lucide-react'
+import { ICONS } from '../utils/ui-helpers'
 
 const MOCK_WINDOWS = [
   { id: 1, trainStart: '2024-01-01', trainEnd: '2024-03-31', testStart: '2024-04-01', testEnd: '2024-04-30', trainReturn: 15.2, testReturn: 8.5, trainSharpe: 1.85, testSharpe: 1.12, status: 'pass' },
@@ -11,7 +12,7 @@ const MOCK_WINDOWS = [
 ]
 
 function statusIcon(status) {
-  return status === 'pass' ? <CheckCircle size={10} className="text-accent-green" /> : <XCircle size={10} className="text-accent-red" />
+  return status === 'pass' ? ICONS.green() : ICONS.red()
 }
 
 const WalkForwardViewer = memo(function WalkForwardViewer() {

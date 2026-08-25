@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
-import { CheckCircle, XCircle, Clock, BarChart3 } from 'lucide-react'
+import { BarChart3 } from 'lucide-react'
+import { ICONS } from '../utils/ui-helpers'
 
 const MOCK_FILLS = [
   { id: 1, orderId: 'ord_8a3f', symbol: 'BTC/USDT', side: 'BUY', reqQty: 0.5, fillQty: 0.5, reqPrice: 44100, fillPrice: 44102, partialFill: false, latency: 45, venue: 'Binance', status: 'filled' },
@@ -13,9 +14,9 @@ const MOCK_FILLS = [
 ]
 
 function statusIcon(status) {
-  if (status === 'filled') return <CheckCircle size={10} className="text-accent-green" />
-  if (status === 'partial') return <Clock size={10} className="text-accent-yellow" />
-  return <XCircle size={10} className="text-accent-red" />
+  if (status === 'filled') return ICONS.green()
+  if (status === 'partial') return ICONS.yellow()
+  return ICONS.red()
 }
 
 function statusColor(status) {

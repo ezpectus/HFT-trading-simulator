@@ -10222,3 +10222,393 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 - Integration: all exchange APIs, WD-187 (SOR), WD-231 (capacity)
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/arbitrage/ArbScanner.jsx` (новый), `web-ui/src/components/arbitrage/TriangularArb.jsx` (новый), `web-ui/src/components/arbitrage/ArbPortfolio.jsx` (новый), `web-ui/src/components/arbitrage/ArbHeatmap.jsx` (новый), `web-ui/src/components/arbitrage/ArbExecution.jsx` (новый), `web-ui/src/services/ArbitrageEngine.js` (новый)
+
+---
+
+## ФАЗА 4 — Code Quality: Refactoring, Optimization & Static Analysis
+
+### Категория A: DRY — Centralize duplicated helper functions
+
+### REF-01: Centralize `statusColor` across 11 components ⬜ TODO
+**Описание:** `statusColor` дублируется в 11 компонентах с разной логикой маппинга статусов.
+- Компоненты: `ArbScanner`, `CapacityAnalysis`, `Colocation`, `DashboardProfiler`, `DataQuality`, `FillAnalytics`, `LatencyPanel`, `PacketInspector`, `PairsArb`, `RetrainingPipeline`, `TeamCollab`
+- Решение: использовать `statusColor(status, map)` из `ui-helpers.js`, передавать маппинг как параметр
+- Для `LatencyPanel` (value-based, не status-based) — оставить как есть или создать `latencyColor(ms)`
+**Сложность:** Низкая
+**Файлы:** 11 компонентов + `web-ui/src/utils/ui-helpers.js`
+
+### REF-02: Centralize `statusBg` across 5 components ⬜ TODO
+**Описание:** `statusBg` дублируется в 5 компонентах с одинаковой логикой (green/yellow/red bg).
+- Компоненты: `ArbScanner`, `CapacityAnalysis`, `DashboardProfiler`, `LatencyPanel`, `PairsArb`
+- Решение: добавить `statusBg(status, map)` в `ui-helpers.js`, импортировать в компонентах
+**Сложность:** Низкая
+**Файлы:** 5 компонентов + `web-ui/src/utils/ui-helpers.js`
+
+### REF-03: Replace `dirColor` with `sideColor` in SignalTracker ⬜ TODO
+**Описание:** `SignalTracker.jsx` имеет локальную `dirColor(dir)` — это дубль `sideColor` из `ui-helpers.js`.
+- Решение: импортировать `sideColor` из `ui-helpers.js`, удалить локальную функцию
+**Сложность:** Низкая
+**Файлы:** `web-ui/src/components/SignalTracker.jsx`
+
+### REF-04: Consolidate `colorForSide`/`bgColorForSide` from format.ts into ui-helpers.js ⬜ TODO
+**Описание:** `format.ts` содержит `colorForSide` и `bgColorForSide`, а `ui-helpers.js` — `sideColor` и `pnlBg`. Это дублирование.
+- Решение: убрать `colorForSide`/`bgColorForSide` из `format.ts`, обновить импорты во всех компонентах на `sideColor`/`pnlBg` из `ui-helpers.js`
+- Проверить: `BotStatus.jsx` и другие, импортирующие из `format.ts`
+**Сложность:** Низкая
+**Файлы:** `web-ui/src/utils/format.ts`, `web-ui/src/utils/ui-helpers.js`, компоненты-потребители
+
+### Категория B: DRY — Centralize UI patterns
+
+### REF-05: Adopt `StatCard` component across all components ⬜ TODO
+**Описание:** `StatCard` создан в `ui-helpers.js`, но не используется ни в одном компоненте. При этом паттерн `p-2 bg-bg-700 border border-bg-600` повторяется 50+ раз.
+- Компоненты для миграции: `ABTesting`, `Colocation`, `DataQuality`, `FuturesBasis`, `DeployStatus`, `DatabaseViewer`, `DashboardProfiler`, `CostBasis`, `CrossAssetMatrix`, `FillAnalytics`, `CapacityAnalysis`, `FeatureStudio`, `DrawingTools`, `ChartTemplates` и др.
+- Решение: заменить inline-карточки на `<StatCard label="..." value="..." color="..." icon={...} />`
+**Сложность:** Средняя
+**Файлы:** 20+ компонентов + `web-ui/src/utils/ui-helpers.js`
+
+### REF-06: Adopt `Bar` component across all components ⬜ TODO
+**Описание:** `Bar` создан в `ui-helpers.js`, но не используется. Паттерн progress-bar повторяется в множестве компонентов.
+- Найти все inline progress bars (`flex-1 h-* bg-bg-600` + inner `div` with `width: %`)
+- Заменить на `<Bar value={...} max={...} color="..." />`
+**Сложность:** Средняя
+**Файлы:** 10+ компонентов
+
+### REF-07: Adopt `WarningBanner` component across all components ⬜ TODO
+**Описание:** `WarningBanner` создан, но не используется. Паттерн warning/alert banner повторяется.
+- Найти все inline warning banners (`flex items-center gap-* p-* bg-accent-*/10 border`)
+- Заменить на `<WarningBanner icon={...} color="...">text</WarningBanner>`
+- Исправить баг в `WarningBanner`: `color.replace('accent-', 'accent-/')` — некорректная замена для Tailwind
+**Сложность:** Средняя
+**Файлы:** 5+ компонентов + `web-ui/src/utils/ui-helpers.js`
+
+### REF-08: Create `Label` component for repeated `text-[9px] text-gray-600 uppercase` pattern ⬜ TODO
+**Описание:** Паттерн `<span className="text-[9px] text-gray-600 uppercase">` повторяется 30+ раз.
+- Решение: создать `Label` компонент в `ui-helpers.js`, использовать во всех компонентах
+**Сложность:** Низкая
+**Файлы:** `web-ui/src/utils/ui-helpers.js` + 20+ компонентов
+
+### REF-09: Create `SectionTitle` component for repeated header pattern ⬜ TODO
+**Описание:** Паттерн заголовка секции (`flex items-center gap-* mb-*` + icon + text) повторяется во всех компонентах.
+- Решение: создать `SectionTitle` в `ui-helpers.js` с props `icon`, `title`, `right` (optional right content)
+**Сложность:** Низкая
+**Файлы:** `web-ui/src/utils/ui-helpers.js` + 30+ компонентов
+
+### Категория C: DRY — Centralize mock data
+
+### REF-10: Extract all MOCK_ data into centralized mock data files ⬜ TODO
+**Описание:** 20+ компонентов содержат inline `MOCK_*` массивы данных.
+- Компоненты: `ABTesting`, `ApiPlayground`, `ArbScanner`, `AuditTrail`, `BlackSwanTester`, `CancelMonitor`, `Colocation`, `DataQuality`, `DashboardProfiler`, `FuturesBasis`, `PairsArb`, `RetrainingPipeline`, `TeamCollab`, `FillAnalytics`, `CapacityAnalysis` и др.
+- Решение: создать `web-ui/src/utils/mock-data/components/` директорию, вынести mock данные по категориям
+- Сохранить обратную совместимость: компоненты импортируют из централизованного источника
+**Сложность:** Средняя
+**Файлы:** 20+ компонентов, новый `web-ui/src/utils/mock-data/`
+
+### REF-11: Create mock data factory for consistent test data generation ⬜ TODO
+**Описание:** Mock данные статичны и не генерируются программно. Тесты используют хардкод.
+- Решение: создать фабрику `createMockSignal()`, `createMockFill()`, `createMockPosition()` и т.д.
+- Использовать в тестах для уменьшения дублирования
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/utils/mock-data/factories.js`, тесты
+
+### Категория D: PropTypes & prop validation
+
+### REF-12: Add PropTypes to all components ⬜ TODO
+**Описание:** Ни один компонент не имеет prop validation. ESLint выдаёт предупреждения.
+- Установить `prop-types` пакет
+- Добавить `Component.propTypes = { ... }` ко всем компонентам
+- Начать с `ui-helpers.js` (StatCard, Bar, WarningBanner), затем все остальные
+**Сложность:** Средняя
+**Файлы:** Все компоненты в `web-ui/src/components/`
+
+### REF-13: Add defaultProps to components with optional props ⬜ TODO
+**Описание:** Многие компоненты имеют optional props без defaultProps, что может вызвать runtime errors.
+- Найти все компоненты с деструктуризацией props, имеющих default значения в коде
+- Добавить явные `defaultProps`
+**Сложность:** Низкая
+**Файлы:** 30+ компонентов
+
+### Категория E: Test fixes & coverage
+
+### REF-14: Fix `useLocalStorage` hook causing test failures ⬜ TODO
+**Описание:** Тесты `featureFlags.test.jsx` и `themeSwitcher.test.jsx` падают из-за `useLocalStorage`.
+- Анализ: хук не корректно мокается в тестах, или его реализация ломает jsdom
+- Решение: либо исправить хук, либо добавить proper mock в test setup
+- Проверить: `web-ui/src/hooks/useLocalStorage.js` (или `.ts`)
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/hooks/useLocalStorage.*`, `web-ui/src/test/featureFlags.test.jsx`, `web-ui/src/test/themeSwitcher.test.jsx`
+
+### REF-15: Add tests for `ui-helpers.js` utility functions ⬜ TODO
+**Описание:** `ui-helpers.js` не имеет тестов. Нужно покрыть: `pnlColor`, `pnlBg`, `sideColor`, `statusColor`, `statusIcon`, `ICONS`, `StatCard`, `Bar`, `WarningBanner`.
+**Сложность:** Низкая
+**Файлы:** Новый `web-ui/src/test/uiHelpers.test.jsx`
+
+### REF-16: Add tests for `format.ts` utility functions ⬜ TODO
+**Описание:** `format.ts` не имеет тестов. Покрыть: `formatPrice`, `formatVolume`, `formatPct`, `formatUsd`, `formatTime`.
+**Сложность:** Низкая
+**Файлы:** Новый `web-ui/src/test/format.test.js`
+
+### REF-17: Add tests for `patterns.ts` (candle pattern detection) ⬜ TODO
+**Описание:** `detectCandlePatterns` не имеет тестов, хотя имеет сложную логику.
+- Покрыть: DOJI, HAMMER, SHOOTING_STAR, BULLISH_ENGULFING, BEARISH_ENGULFING, THREE_SOLDIERS, THREE_CROWS
+- Edge cases: пустой массив, < 3 candles, дубликаты паттернов
+**Сложность:** Средняя
+**Файлы:** Новый `web-ui/src/test/patterns.test.js`
+
+### REF-18: Add tests for `timeframes.ts` (candle aggregation) ⬜ TODO
+**Описание:** `aggregateCandles` не имеет тестов.
+- Покрыть: factor=1 (no-op), factor=3, пустой массив, candles на границе бакетов
+**Сложность:** Низкая
+**Файлы:** Новый `web-ui/src/test/timeframes.test.js`
+
+### REF-19: Audit all 53 test files for flaky tests ⬜ TODO
+**Описание:** 53 тест-файла могут содержать flaky тесты (зависящие от таймеров, random, localStorage).
+- Запустить `vitest run --reporter=verbose` 3 раза подряд
+- Зафиксировать тесты, которые иногда падают
+- Исправить: использовать `vi.useFakeTimers()`, `vi.mock()`, seed random
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/test/`
+
+### REF-20: Add test coverage report and set minimum threshold ⬜ TODO
+**Описание:** Нет измерения coverage. Нужно добавить coverage report и установить порог.
+- Добавить `@vitest/coverage-v8` в devDependencies
+- Настроить `coverage: { provider: 'v8', thresholds: { lines: 60, functions: 60 } }`
+- Запустить, зафиксировать текущий coverage, установить реалистичный порог
+**Сложность:** Средняя
+**Файлы:** `web-ui/vite.config.js` или `web-ui/vitest.config.js`
+
+### Категория F: Static analysis — function optimization & code reduction
+
+### REF-21: Audit and refactor overly long components (>200 lines) ⬜ TODO
+**Описание:** Найти компоненты длиннее 200 строк и разбить на под-компоненты.
+- Инструмент: `wc -l web-ui/src/components/*.jsx | sort -rn | head -20`
+- Кандидаты: компоненты с множеством секций (summary, table, chart, detail panel)
+- Разбить на: `ComponentSummary`, `ComponentTable`, `ComponentDetail` и т.д.
+**Сложность:** Высокая
+**Файлы:** Определить при аудите
+
+### REF-22: Replace repetitive `useMemo(() => {...}, [])` with precomputed constants ⬜ TODO
+**Описание:** Многие компоненты используют `useMemo` с пустым deps для статичных mock данных — это overhead.
+- Найти: `useMemo(() => { ... }, [])` где внутри нет зависимостей от props/state
+- Заменить на: `const x = useMemo(...)` → `const x = someConstant` (вычислить один раз вне компоненты)
+**Сложность:** Низкая
+**Файлы:** 10+ компонентов
+
+### REF-23: Remove unused imports across all components ⬜ TODO
+**Описание:** После рефакторинга остались неиспользуемые импорты (lucide-react icons и др.).
+- Запустить: `npx eslint web-ui/src/components/ --rule 'no-unused-vars: error'`
+- Удалить все неиспользуемые импорты
+**Сложность:** Низкая
+**Файлы:** Все компоненты
+
+### REF-24: Consolidate duplicate `lucide-react` icon imports ⬜ TODO
+**Описание:** Каждый компонент импортирует иконки отдельно. Tree-shaking работает, но можно сгруппировать.
+- Анализ: проверить, не импортируются ли неиспользуемые иконки
+- Опционально: создать `web-ui/src/utils/icons.js` с реэкспортом часто используемых иконок
+**Сложность:** Низкая
+**Файлы:** Все компоненты (опционально)
+
+### REF-25: Simplify nested ternary expressions ⬜ TODO
+**Описание:** Найти nested ternary (`a ? b : c ? d : e`) и заменить на early return, lookup map или `switch`.
+- Инструмент: `grep -rn '?.*?.*:' web-ui/src/components/`
+- Рефакторить на lookup maps или `if/else` для читаемости
+**Сложность:** Низкая
+**Файлы:** 10+ компонентов
+
+### REF-26: Remove dead code — unreachable branches and unused variables ⬜ TODO
+**Описание:** Найти мёртвый код: unreachable branches, unused variables, закомментированные блоки.
+- Инструмент: ESLint + ручной аудит
+- Удалить все закомментированные блоки кода
+- Удалить unreachable code после `return`
+**Сложность:** Низкая
+**Файлы:** Все компоненты
+
+### REF-27: Replace string concatenation with template literals ⬜ TODO
+**Описание:** Найти `'...' + var + '...'` и заменить на template literals `` `...${var}...` ``.
+**Сложность:** Низкая
+**Файлы:** Все компоненты
+
+### REF-28: Consolidate repeated Tailwind class strings into constants ⬜ TODO
+**Описание:** Длинные Tailwind class strings повторяются (например, `text-[10px] font-mono text-gray-300`).
+- Найти повторяющиеся паттерны (3+ раз)
+- Вынести в константы или `cn()` helper
+**Сложность:** Средняя
+**Файлы:** 20+ компонентов
+
+### REF-29: Audit `registry.js` for consistency — all panels should use same prop pattern ⬜ TODO
+**Описание:** `registry.js` имеет разные паттерны передачи props: некоторые через `props: (ctx) => ({...})`, некоторые напрямую.
+- Стандартизировать: все panels должны использовать `props: (ctx) => ({...})` pattern
+- Проверить, что все panels получают `addToast` и `exchange` context
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/panels/registry.js`
+
+### REF-30: Reduce bundle size — audit and remove unused dependencies ⬜ TODO
+**Описание:** Проверить `package.json` на неиспользуемые зависимости.
+- Запустить: `npx depcheck`
+- Удалить неиспользуемые пакеты
+- Проверить bundle size до и после: `npx vite build --report`
+**Сложность:** Средняя
+**Файлы:** `web-ui/package.json`
+
+### Категория G: Architecture & hook improvements
+
+### REF-31: Type `useLocalStorage` hook properly (TypeScript migration) ⬜ TODO
+**Описание:** `useLocalStorage` написан на JS, но проект использует TS для utils. Добавить типы.
+- Создать `useLocalStorage.ts` с дженериками: `useLocalStorage<T>(key: string, initial: T)`
+- Обеспечить SSR-safe (проверка `typeof window`)
+- Добавить error handling для JSON parse
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/hooks/useLocalStorage.*`
+
+### REF-32: Create `useStatusColor` hook for reusable status mapping ⬜ TODO
+**Описание:** Компоненты имеют разные маппинги статусов. Создать хук, принимающий маппинг и возвращающий `color` и `bg` функции.
+- API: `const { color, bg } = useStatusMap({ active: 'green', fading: 'yellow', default: 'red' })`
+- Устраняет необходимость в `statusColor` и `statusBg` функциях
+**Сложность:** Средняя
+**Файлы:** Новый `web-ui/src/hooks/useStatusMap.js`
+
+### REF-33: Create `useInterval` hook for polling components ⬜ TODO
+**Описание:** Многие компоненты используют `setInterval` в `useEffect` с одинаковой структурой.
+- Найти все `setInterval` в компонентах
+- Создать `useInterval(callback, delay)` хук
+- Заменить inline `setInterval` на хук
+**Сложность:** Низкая
+**Файлы:** Новый хук + 5+ компонентов
+
+### REF-34: Create `usePrevious` hook for comparison logic ⬜ TODO
+**Описание:** Некоторые компоненты сравнивают текущее значение с предыдущим (flash на изменении).
+- Создать `usePrevious(value)` хук
+- Использовать в компонентах, где есть flash/highlight на изменение
+**Сложность:** Низкая
+**Файлы:** Новый хук + 3+ компонентов
+
+### REF-35: Migrate `ui-helpers.js` to TypeScript ⬜ TODO
+**Описание:** `ui-helpers.js` — единственный JS файл в `utils/`, остальные TS.
+- Переименовать в `ui-helpers.ts`
+- Добавить интерфейсы для props: `StatCardProps`, `BarProps`, `WarningBannerProps`
+- Добавить типы для `ICONS` map
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/utils/ui-helpers.js` → `ui-helpers.ts`
+
+### REF-36: Create error boundary wrapper for all panels ⬜ TODO
+**Описание:** Только `ChunkRetryBoundary` существует. Если один панель падает — весь UI ломается.
+- Создать `PanelErrorBoundary` — ловит ошибки конкретного панеля
+- Показать fallback UI с кнопкой "Retry"
+- Обернуть все panels в `registry.js` в `PanelErrorBoundary`
+**Сложность:** Средняя
+**Файлы:** Новый `web-ui/src/components/PanelErrorBoundary.jsx`, `web-ui/src/panels/registry.js`
+
+### REF-37: Implement lazy loading for heavy panels ⬜ TODO
+**Описание:** Все панели загружаются eagerly. Heavy panels (charts, tables) можно lazy-load.
+- Использовать `React.lazy()` + `Suspense` для панелей с `lightweight-charts` или большим объёмом
+- Добавить loading skeleton для lazy panels
+- Измерить improvement в initial bundle size
+**Сложность:** Средняя
+**Файлы:** `web-ui/src/panels/registry.js`, компоненты с chart imports
+
+### Категория H: Performance optimization
+
+### REF-38: Audit `memo` usage — ensure all exported components are memoized ⬜ TODO
+**Описание:** Некоторые компоненты не обёрнуты в `memo()`, что вызывает лишние ре-рендеры.
+- Найти компоненты без `memo()`: `grep -L 'memo' web-ui/src/components/*.jsx`
+- Обернуть все exported components в `memo()`
+- Проверить, что `useMemo`/`useCallback` используются корректно
+**Сложность:** Низкая
+**Файлы:** 10+ компонентов
+
+### REF-39: Add `key` prop audit — ensure all list renders have stable keys ⬜ TODO
+**Описание:** Некоторые `.map()` рендеры могут использовать index как key.
+- Найти: `grep -rn 'key={index}' web-ui/src/components/` и `grep -rn 'key={i}'`
+- Заменить index keys на stable unique keys (id, symbol+timestamp)
+**Сложность:** Низкая
+**Файлы:** 10+ компонентов
+
+### REF-40: Optimize re-renders — audit `useMemo`/`useCallback` dependencies ⬜ TODO
+**Описание:** Некоторые `useMemo` имеют неправильные deps (missing dependencies, или `[]` когда нужны).
+- Запустить ESLint `react-hooks/exhaustive-deps` rule
+- Исправить все предупреждения
+- Особое внимание: `useCallback` с missing deps
+**Сложность:** Средняя
+**Файлы:** Все компоненты
+
+### Категория I: Python backend optimization
+
+### REF-41: Audit Python functions for length and complexity (cyclomatic) ⬜ TODO
+**Описание:** Найти Python функции с cyclomatic complexity > 10.
+- Инструмент: `radon cc ai-signal-bot/src/ -nc`
+- Рефакторить функции с complexity > 10: разбить на под-функции
+**Сложность:** Средняя
+**Файлы:** `ai-signal-bot/src/`
+
+### REF-42: Remove duplicate try/except blocks in Python code ⬜ TODO
+**Описание:** Повторяющиеся `try/except` блоки с одинаковой логикой логирования.
+- Найти: `grep -rn 'except.*Exception' ai-signal-bot/src/`
+- Создать декоратор `@handle_errors(log_msg=...)` или context manager
+- Применить к повторяющимся паттернам
+**Сложность:** Средняя
+**Файлы:** `ai-signal-bot/src/`
+
+### REF-43: Add type hints to all Python functions ⬜ TODO
+**Описание:** Многие Python функции не имеют type hints.
+- Запустить: `mypy ai-signal-bot/src/ --ignore-missing-imports`
+- Добавить type hints постепенно: начать с public API functions
+- Добавить `py.typed` marker
+**Сложность:** Высокая
+**Файлы:** `ai-signal-bot/src/`
+
+### REF-44: Audit Python imports — remove unused and organize with isort ⬜ TODO
+**Описание:** Python файлы могут содержать неиспользуемые импорты.
+- Запустить: `ruff check --select F401 ai-signal-bot/src/`
+- Удалить unused imports
+- Применить `isort` для сортировки
+**Сложность:** Низкая
+**Файлы:** `ai-signal-bot/src/`
+
+### REF-45: Add Python unit tests for signal validation logic ⬜ TODO
+**Описание:** `signal_validation/` модуль не имеет тестов.
+- Покрыть: валидацию сигналов, проверку confidence, фильтрацию
+- Использовать `pytest` + `pytest-asyncio`
+**Сложность:** Средняя
+**Файлы:** Новый `ai-signal-bot/tests/test_signal_validation.py`
+
+### Категория J: Accessibility, security & tooling
+
+### REF-46: Accessibility audit — add ARIA labels and keyboard navigation ⬜ TODO
+**Описание:** Ни один компонент не имеет ARIA labels. Кнопки без `aria-label`, таблицы без `scope`.
+- Запустить: `npx @axe-core/cli localhost:5173`
+- Добавить `aria-label` к icon-only buttons
+- Добавить `role="table"` и `scope="col"` к таблицам
+- Добавить `tabIndex` и keyboard handlers где нужно
+**Сложность:** Высокая
+**Файлы:** Все компоненты
+
+### REF-47: Security audit — sanitize user inputs in API-related components ⬜ TODO
+**Описание:** Компоненты `ApiPlayground`, `ApiClient`, `Auth` принимают пользовательский ввод.
+- Проверить: нет ли XSS через `dangerouslySetInnerHTML`
+- Проверить: API keys не логируются в console
+- Проверить: `useLocalStorage` не хранит sensitive данные в plaintext
+**Сложность:** Средняя
+**Файлы:** `ApiPlayground.jsx`, `ApiClient.jsx`, `Auth.jsx`, `AlertWebhook.jsx`
+
+### REF-48: Configure ESLint strict rules and fix all warnings ⬜ TODO
+**Описание:** ESLint выдаёт warnings, но не настроен как strict.
+- Включить: `no-unused-vars: error`, `react-hooks/exhaustive-deps: error`, `no-console: warn`
+- Запустить: `npx eslint web-ui/src/ --max-warnings 0`
+- Исправить все warnings
+**Сложность:** Средняя
+**Файлы:** `web-ui/.eslintrc.*` или `web-ui/eslint.config.js`
+
+### REF-49: Add pre-commit hooks for lint and format ⬜ TODO
+**Описание:** Нет pre-commit hooks — код может коммититься с ошибками линтера.
+- Установить `husky` + `lint-staged`
+- Настроить: pre-commit → `eslint --fix` + `prettier --write` на staged files
+- Добавить: pre-push → `vitest run` (только изменённые тесты)
+**Сложность:** Низкая
+**Файлы:** `package.json`, `.husky/`
+
+### REF-50: Create `cn()` utility for conditional Tailwind class merging ⬜ TODO
+**Описание:** Многие компоненты используют inline ternary для классов: `className={cond ? 'a' : 'b'}`.
+- Создать `cn(...classes)` — простой classnames helper (или установить `clsx`)
+- Заменить inline ternary на `cn('base', cond && 'conditional')`
+- Улучшает читаемость и уменьшает дублирование
+**Сложность:** Низкая
+**Файлы:** `web-ui/src/utils/cn.js` + 30+ компонентов

@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { TrendingUp, TrendingDown, AlertTriangle, Boxes } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
+import { pnlColor, sideColor } from '../utils/ui-helpers'
 
 const MOCK_INVENTORY = [
   { symbol: 'BTC/USDT', side: 'LONG', qty: 0.5, avgPrice: 43250, currentPrice: 44100, pnl: 425, pnlPct: 1.96, weight: 35.2 },
@@ -12,14 +13,6 @@ const MOCK_INVENTORY = [
   { symbol: 'MATIC/USDT', side: 'LONG', qty: 5000, avgPrice: 0.82, currentPrice: 0.79, pnl: -150, pnlPct: -3.66, weight: 3.5 },
   { symbol: 'ATOM/USDT', side: 'LONG', qty: 120, avgPrice: 9.1, currentPrice: 9.3, pnl: 24, pnlPct: 2.20, weight: 1.5 },
 ]
-
-function pnlColor(pnl) {
-  return pnl >= 0 ? 'text-accent-green' : 'text-accent-red'
-}
-
-function sideColor(side) {
-  return side === 'LONG' ? 'text-accent-green' : 'text-accent-red'
-}
 
 const Inventory = memo(function Inventory() {
   const portfolio = useMemo(() => {

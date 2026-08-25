@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
-import { ShieldCheck, AlertTriangle, Database, Activity, CheckCircle, XCircle } from 'lucide-react'
+import { ShieldCheck, Database, Activity } from 'lucide-react'
 import { formatVolume } from '../utils/format'
+import { ICONS } from '../utils/ui-helpers'
 
 const MOCK_CHECKS = [
   { id: 'candles-fresh', name: 'Candle Freshness', status: 'pass', detail: 'Last candle 2s ago', threshold: '< 10s' },
@@ -25,9 +26,9 @@ const MOCK_SYMBOLS = [
 ]
 
 function statusIcon(status) {
-  if (status === 'pass' || status === 'healthy') return <CheckCircle size={10} className="text-accent-green" />
-  if (status === 'warn' || status === 'degraded') return <AlertTriangle size={10} className="text-accent-yellow" />
-  return <XCircle size={10} className="text-accent-red" />
+  if (status === 'pass' || status === 'healthy') return ICONS.green()
+  if (status === 'warn' || status === 'degraded') return ICONS.yellow()
+  return ICONS.red()
 }
 
 function statusColor(status) {

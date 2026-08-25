@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { PieChart, TrendingUp, TrendingDown, Activity } from 'lucide-react'
+import { pnlColor } from '../utils/ui-helpers'
 
 const MOCK_ATTRIBUTION = [
   { source: 'TrendFollowing', pnl: 1250, pct: 35, color: 'bg-accent-blue' },
@@ -23,10 +24,6 @@ const MOCK_TIME_SERIES = [
   { time: '15:00', trend: 1100, meanRev: 580, statArb: 380, total: 2060 },
   { time: '16:00', trend: 1250, meanRev: 820, statArb: 680, total: 2750 },
 ]
-
-function pnlColor(pnl) {
-  return pnl >= 0 ? 'text-accent-green' : 'text-accent-red'
-}
 
 const RealtimeAttribution = memo(function RealtimeAttribution() {
   const stats = useMemo(() => {

@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Calculator, TrendingUp, TrendingDown, BookOpen } from 'lucide-react'
 import { formatPrice } from '../utils/format'
+import { pnlColor } from '../utils/ui-helpers'
 
 const MOCK_POSITIONS = [
   { symbol: 'BTC/USDT', qty: 0.85, avgCost: 42150, currentPrice: 44100, unrealized: 1657.5, realized: 320, lots: [{ qty: 0.5, price: 41800, date: '2024-08-20' }, { qty: 0.35, price: 42650, date: '2024-08-22' }] },
@@ -9,10 +10,6 @@ const MOCK_POSITIONS = [
   { symbol: 'AVAX/USDT', qty: -80, avgCost: 30.2, currentPrice: 28.5, unrealized: 136.0, realized: -45, lots: [{ qty: -80, price: 30.2, date: '2024-08-24' }] },
   { symbol: 'LINK/USDT', qty: 200, avgCost: 13.8, currentPrice: 14.2, unrealized: 80.0, realized: 0, lots: [{ qty: 120, price: 13.5, date: '2024-08-19' }, { qty: 80, price: 14.25, date: '2024-08-22' }] },
 ]
-
-function pnlColor(pnl) {
-  return pnl >= 0 ? 'text-accent-green' : 'text-accent-red'
-}
 
 const CostBasis = memo(function CostBasis() {
   const stats = useMemo(() => {

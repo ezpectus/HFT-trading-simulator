@@ -28,17 +28,17 @@ function impactBg(pct) {
   return 'bg-accent-red'
 }
 
-const MarketImpact = memo(function MarketImpact({ candles, symbol, currentPrice, orderbooks }) {
+const MarketImpact = memo(function MarketImpact({ candles, symbol, exchange, currentPrice, orderbooks }) {
   const price = currentPrice ?? (candles?.length > 0 ? candles[candles.length - 1].close : null)
 
   const liquidity = useMemo(() => {
     if (!orderbooks) return null
-    const book = orderbooks[`${'binance'}|${symbol}`]
+    const book = orderbooks[`${exchange}|${symbol}`]
     if (!book) return null
     const bidVol = (book.bids || []).slice(0, 10).reduce((s, l) => s + l[1], 0)
     const askVol = (book.asks || []).slice(0, 10).reduce((s, l) => s + l[1], 0)
     return { bidVol, askVol, total: bidVol + askVol, imbalance: (bidVol - askVol) / (bidVol + askVol) }
-  }, [orderbooks, symbol])
+  }, [orderbooks, symbol, exchange])
 
   if (!price) {
     return (

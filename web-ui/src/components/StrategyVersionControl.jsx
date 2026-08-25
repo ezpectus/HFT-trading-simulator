@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
-import { GitBranch, Tag, RotateCcw, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
+import { GitBranch, Tag, RotateCcw, AlertTriangle } from 'lucide-react'
+import { ICONS } from '../utils/ui-helpers'
 
 const MOCK_VERSIONS = [
   { id: 'v2.3.1', tag: 'latest', date: '2024-08-25', author: 'Alice', changes: 3, status: 'active', desc: 'Tighten risk limits, add CVaR check' },
@@ -19,8 +20,8 @@ const MOCK_DIFF = [
 ]
 
 function statusIcon(status) {
-  if (status === 'active') return <CheckCircle size={10} className="text-accent-green" />
-  return <Clock size={10} className="text-gray-600" />
+  if (status === 'active') return ICONS.green()
+  return ICONS.gray()
 }
 
 const StrategyVersionControl = memo(function StrategyVersionControl({ addToast }) {

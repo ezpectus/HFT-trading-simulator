@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
-import { RefreshCw, CheckCircle, Clock, AlertTriangle, Database, Cpu } from 'lucide-react'
+import { Database, Cpu } from 'lucide-react'
+import { ICONS } from '../utils/ui-helpers'
 
 const MOCK_PIPELINES = [
   { id: 1, name: 'TrendFollowing Model', status: 'idle', lastRun: '2h ago', nextRun: 'in 4h', accuracy: 0.82, drift: 0.05, version: 'v2.3.1' },
@@ -19,10 +20,10 @@ const MOCK_STEPS = [
 ]
 
 function statusIcon(status) {
-  if (status === 'completed') return <CheckCircle size={10} className="text-accent-green" />
-  if (status === 'running') return <RefreshCw size={10} className="text-accent-blue animate-spin" />
-  if (status === 'failed') return <AlertTriangle size={10} className="text-accent-red" />
-  return <Clock size={10} className="text-gray-600" />
+  if (status === 'completed') return ICONS.green()
+  if (status === 'running') return ICONS.spinning()
+  if (status === 'failed') return ICONS.red()
+  return ICONS.gray()
 }
 
 function statusColor(status) {
