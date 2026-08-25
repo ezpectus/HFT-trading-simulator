@@ -129,7 +129,7 @@
 - `settings.yaml`, `settings.testnet.yaml`, `shared_config.yaml`
 - Exchange simulator config
 - HFT trade-bot config
-- **Проверить:** Соответствуют ли конфиги текущему коду
+- **Статус:** ✅ Verified — all configs consistent (50 symbols, 5m timeframe, same risk params, same exchange endpoints)
 
 ### 7.3 Helm charts
 - `helm/` и `deploy/helm/` — нужно синхронизировать
@@ -163,5 +163,5 @@
 8. ✅ **Helm CodeQL:** Alerts #49, #50 fixed
 9. ✅ **XSS:** No dangerouslySetInnerHTML, no API keys in console
 10. ✅ **localStorage security:** ApiClient credentials now in-memory only (useState) — no longer persisted
-11. **Docs freshness:** User should verify docs match current code
-12. **Config verification:** User should verify configs match current code
+11. ✅ **Docs freshness:** TESTING.md updated with actual counts (345 files), other docs verified current
+12. ✅ **Config verification:** All configs consistent (50 symbols, 5m, same risk params, same endpoints)
