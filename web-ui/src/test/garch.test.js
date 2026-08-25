@@ -5,6 +5,18 @@
  */
 import { describe, it, expect } from 'vitest'
 
+// Seeded PRNG for deterministic tests (mulberry32)
+function seededRandom(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed)
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t
+    return ((t ^ t >>> 14) >>> 0) / 4294967296
+  }
+}
+const _rng = seededRandom(42)
+const rand = () => _rng()
+
 // Extracted from GARCHVolatility.jsx
 function calcLogReturns(closes) {
   const returns = []
@@ -23,9 +35,9 @@ function calcGARCH(returns, maxIter = 100) {
   const centered = returns.map(r => r - mean)
   const variance0 = centered.reduce((s, r) => s + r * r, 0) / n
 
-  let omega = variance0 * 0.1
-  let alpha = 0.1
-  let beta = 0.85
+  const omega = variance0 * 0.1
+  const alpha = 0.1
+  const beta = 0.85
   const condVar = new Array(n).fill(variance0)
 
   for (let iter = 0; iter < maxIter; iter++) {
@@ -51,7 +63,7 @@ describe('GARCH(1,1)', () => {
   function generatePrices(n, startPrice = 100, vol = 0.02) {
     const prices = [startPrice]
     for (let i = 1; i < n; i++) {
-      const ret = (Math.random() - 0.5) * vol * 2
+      const ret = (rand() - 0.5) * vol * 2
       prices.push(prices[i - 1] * Math.exp(ret))
     }
     return prices

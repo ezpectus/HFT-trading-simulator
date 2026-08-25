@@ -5,6 +5,18 @@
  */
 import { describe, it, expect } from 'vitest'
 
+// Seeded PRNG for deterministic tests (mulberry32)
+function seededRandom(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed)
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t
+    return ((t ^ t >>> 14) >>> 0) / 4294967296
+  }
+}
+const _rng = seededRandom(42)
+const rand = () => _rng()
+
 // ADF test — extracted from CointegrationScanner.jsx
 function calcADF(residuals) {
   if (residuals.length < 30) return null
@@ -110,7 +122,7 @@ describe('ADF Test', () => {
 
   it('detects stationarity in white noise', () => {
     // White noise is stationary
-    const noise = Array.from({ length: 100 }, () => (Math.random() - 0.5) * 2)
+    const noise = Array.from({ length: 100 }, () => (rand() - 0.5) * 2)
     const result = calcADF(noise)
     expect(result).not.toBeNull()
     expect(result.tStat).toBeLessThan(0) // Should be negative for stationary
@@ -118,17 +130,15 @@ describe('ADF Test', () => {
 
   it('does not reject unit root for random walk', () => {
     // Random walk has unit root — use seeded PRNG for deterministic results
-    let seed = 12345
-    const rng = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff }
     const rw = [100]
-    for (let i = 1; i < 100; i++) rw.push(rw[i - 1] + (rng() - 0.5))
+    for (let i = 1; i < 100; i++) rw.push(rw[i - 1] + (rand() - 0.5))
     const result = calcADF(rw)
     expect(result).not.toBeNull()
     expect(result.significance).toBe('none')
   })
 
   it('has correct critical values', () => {
-    const noise = Array.from({ length: 100 }, () => (Math.random() - 0.5) * 2)
+    const noise = Array.from({ length: 100 }, () => (rand() - 0.5) * 2)
     const result = calcADF(noise)
     expect(result.criticalValues['1%']).toBe(-3.43)
     expect(result.criticalValues['5%']).toBe(-2.86)
@@ -168,7 +178,7 @@ describe('Half-Life of Mean Reversion', () => {
     // Generate mean-reverting series: x_t = 0.5 * x_{t-1} + noise
     const series = [0]
     for (let i = 1; i < 100; i++) {
-      series.push(0.5 * series[i - 1] + (Math.random() - 0.5) * 0.5)
+      series.push(0.5 * series[i - 1] + (rand() - 0.5) * 0.5)
     }
     const result = calcHalfLife(series)
     expect(result).not.toBeNull()
@@ -180,7 +190,7 @@ describe('Half-Life of Mean Reversion', () => {
   it('returns Infinity for non-mean-reverting series', () => {
     // Random walk: phi >= 0
     const rw = [100]
-    for (let i = 1; i < 100; i++) rw.push(rw[i - 1] + (Math.random() - 0.5))
+    for (let i = 1; i < 100; i++) rw.push(rw[i - 1] + (rand() - 0.5))
     const result = calcHalfLife(rw)
     expect(result).not.toBeNull()
     // For random walk, phi is typically >= 0

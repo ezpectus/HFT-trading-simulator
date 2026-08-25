@@ -5,6 +5,18 @@
  */
 import { describe, it, expect } from 'vitest'
 
+// Seeded PRNG for deterministic tests (mulberry32)
+function seededRandom(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed)
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t
+    return ((t ^ t >>> 14) >>> 0) / 4294967296
+  }
+}
+const _rng = seededRandom(42)
+const rand = () => _rng()
+
 // Euclidean distance
 function euclidean(a, b) {
   let sum = 0
@@ -29,10 +41,10 @@ function kmeansPlusPlus(data, k) {
     })
     const total = distances.reduce((s, d) => s + d, 0)
     if (total === 0) {
-      centroids.push(data[Math.floor(Math.random() * n)].slice())
+      centroids.push(data[Math.floor(rand() * n)].slice())
       continue
     }
-    let r = Math.random() * total
+    let r = rand() * total
     let idx = 0
     for (let i = 0; i < n; i++) {
       r -= distances[i]
@@ -46,7 +58,7 @@ function kmeansPlusPlus(data, k) {
 // Lloyd's algorithm
 function lloyds(data, centroids, maxIter = 100) {
   const k = centroids.length
-  let assignments = new Array(data.length).fill(0)
+  const assignments = new Array(data.length).fill(0)
   for (let iter = 0; iter < maxIter; iter++) {
     // Assign
     let changed = false
@@ -136,11 +148,11 @@ describe("Lloyd's Algorithm", () => {
 
   it('converges to correct clusters for well-separated data', () => {
     const data = [
-      ...Array.from({ length: 20 }, () => [1 + Math.random() * 0.5, 1 + Math.random() * 0.5]),
-      ...Array.from({ length: 20 }, () => [10 + Math.random() * 0.5, 10 + Math.random() * 0.5]),
+      ...Array.from({ length: 20 }, () => [1 + rand() * 0.5, 1 + rand() * 0.5]),
+      ...Array.from({ length: 20 }, () => [10 + rand() * 0.5, 10 + rand() * 0.5]),
     ]
     const centroids = kmeansPlusPlus(data, 2)
-    const { assignments, centroids: finalCentroids } = lloyds(data, centroids)
+    const { assignments } = lloyds(data, centroids)
     // First 20 should be in one cluster, last 20 in the other
     const firstCluster = assignments[0]
     for (let i = 0; i < 20; i++) expect(assignments[i]).toBe(firstCluster)
@@ -163,8 +175,8 @@ describe("Lloyd's Algorithm", () => {
 describe('Silhouette Score', () => {
   it('returns high score for well-separated clusters', () => {
     const data = [
-      ...Array.from({ length: 20 }, () => [1 + Math.random() * 0.1, 1 + Math.random() * 0.1]),
-      ...Array.from({ length: 20 }, () => [10 + Math.random() * 0.1, 10 + Math.random() * 0.1]),
+      ...Array.from({ length: 20 }, () => [1 + rand() * 0.1, 1 + rand() * 0.1]),
+      ...Array.from({ length: 20 }, () => [10 + rand() * 0.1, 10 + rand() * 0.1]),
     ]
     const centroids = kmeansPlusPlus(data, 2)
     const { assignments } = lloyds(data, centroids)
@@ -174,8 +186,8 @@ describe('Silhouette Score', () => {
 
   it('returns lower score for overlapping clusters', () => {
     const data = [
-      ...Array.from({ length: 20 }, () => [5 + Math.random() * 2, 5 + Math.random() * 2]),
-      ...Array.from({ length: 20 }, () => [6 + Math.random() * 2, 6 + Math.random() * 2]),
+      ...Array.from({ length: 20 }, () => [5 + rand() * 2, 5 + rand() * 2]),
+      ...Array.from({ length: 20 }, () => [6 + rand() * 2, 6 + rand() * 2]),
     ]
     const centroids = kmeansPlusPlus(data, 2)
     const { assignments } = lloyds(data, centroids)
