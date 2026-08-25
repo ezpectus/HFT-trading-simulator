@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Eye, AlertTriangle, TrendingUp } from 'lucide-react'
 import { formatPrice, formatTime } from '../utils/format'
 
-export default function DarkOrderFlow({ candles, symbol, exchange: selectedExchange }) {
+function DarkOrderFlow({ candles, symbol, exchange: selectedExchange }) {
   const anomalies = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === selectedExchange && c.symbol === symbol)
@@ -101,3 +101,5 @@ export default function DarkOrderFlow({ candles, symbol, exchange: selectedExcha
     </div>
   )
 }
+
+export default memo(DarkOrderFlow)

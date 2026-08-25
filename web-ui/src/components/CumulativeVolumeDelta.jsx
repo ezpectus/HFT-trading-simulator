@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
-import { Activity, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Activity } from 'lucide-react'
 
-export default function CumulativeVolumeDelta({ candles, symbol, exchange }) {
+function CumulativeVolumeDelta({ candles, symbol, exchange }) {
   const cvdData = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -158,3 +158,5 @@ export default function CumulativeVolumeDelta({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(CumulativeVolumeDelta)

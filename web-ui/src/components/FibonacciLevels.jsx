@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { GitBranch, Eye, EyeOff } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -12,7 +12,7 @@ const FIB_LEVELS = [
   { level: 1, label: '100%', color: '#848e9c' },
 ]
 
-export default function FibonacciLevels({ candles, currentPrice }) {
+function FibonacciLevels({ candles, currentPrice }) {
   const [visible, setVisible] = useState(true)
 
   const fibData = useMemo(() => {
@@ -123,3 +123,5 @@ export default function FibonacciLevels({ candles, currentPrice }) {
     </div>
   )
 }
+
+export default memo(FibonacciLevels)

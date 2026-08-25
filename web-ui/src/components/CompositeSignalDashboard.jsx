@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { LayoutDashboard, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { calcRSI, calcEMA, calcSMA, calcATR, calcMACD } from '../utils/indicators'
 
-export default function CompositeSignalDashboard({ candles, signals, fills, symbol, exchange }) {
+function CompositeSignalDashboard({ candles, signals, fills, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -218,3 +218,5 @@ export default function CompositeSignalDashboard({ candles, signals, fills, symb
     </div>
   )
 }
+
+export default memo(CompositeSignalDashboard)

@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Zap, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function FairValueGap({ candles, symbol, exchange }) {
+function FairValueGap({ candles, symbol, exchange }) {
   const gaps = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -166,3 +166,5 @@ function GapRow({ gap }) {
     </div>
   )
 }
+
+export default memo(FairValueGap)

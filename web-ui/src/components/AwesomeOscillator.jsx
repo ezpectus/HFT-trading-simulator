@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Waves, TrendingUp, TrendingDown } from 'lucide-react'
 import { calcAwesomeOscillator } from '../utils/indicators'
 
-export default function AwesomeOscillator({ candles, symbol, exchange }) {
+function AwesomeOscillator({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -124,3 +124,5 @@ export default function AwesomeOscillator({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(AwesomeOscillator)

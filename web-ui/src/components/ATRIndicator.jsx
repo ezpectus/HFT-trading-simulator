@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Activity, TrendingUp, TrendingDown } from 'lucide-react'
 import { calcATR } from '../utils/indicators'
 import { formatPrice } from '../utils/format'
 
-export default function ATRIndicator({ candles, symbol, exchange }) {
+function ATRIndicator({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -108,3 +108,5 @@ export default function ATRIndicator({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(ATRIndicator)

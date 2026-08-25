@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Grid3x3, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Grid3x3 } from 'lucide-react'
 
 function correlation(a, b) {
   const n = Math.min(a.length, b.length)
@@ -34,7 +34,7 @@ function corrOpacity(corr) {
   return 0.15 + Math.abs(corr) * 0.85
 }
 
-export default function CorrelationHeatmap({ candles, symbols, exchange }) {
+function CorrelationHeatmap({ candles, symbols, exchange }) {
   const data = useMemo(() => {
     if (!symbols || symbols.length < 2) return null
 
@@ -233,3 +233,5 @@ export default function CorrelationHeatmap({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(CorrelationHeatmap)

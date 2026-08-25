@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Gauge, TrendingUp, TrendingDown } from 'lucide-react'
 import { calcADX } from '../utils/indicators'
 
-export default function ADXIndicator({ candles, symbol, exchange }) {
+function ADXIndicator({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -120,3 +120,5 @@ export default function ADXIndicator({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(ADXIndicator)
