@@ -447,7 +447,7 @@ can wipe out months of gains. The risk management system ensures:
 | Minimum confidence | Signal confidence >= 65% |
 | Minimum R:R ratio | Reward/Risk >= 1.5 |
 | Max daily drawdown | Daily loss < 8% of balance |
-| Max open positions | <= 3 simultaneous positions |
+| Max open positions | <= 10 simultaneous positions |
 | Duplicate prevention | 5-minute cooldown per symbol |
 
 ### Position Sizing

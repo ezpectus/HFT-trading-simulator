@@ -316,13 +316,13 @@ Risk parameters in `ai-signal-bot/config/settings.yaml`:
 
 ```yaml
 risk:
-  max_risk_per_trade: 0.02      # 2% per trade
-  max_daily_drawdown: 0.08      # 8% daily drawdown limit
-  min_confidence: 0.65          # 65% minimum signal confidence
-  min_rr_ratio: 1.5             # 1.5 minimum risk:reward
-  stop_loss_pct: 0.02           # 2% stop-loss
-  take_profit_pct: 0.04         # 4% take-profit
-  max_position_size: 0.10       # 10% max position
+  max_risk_per_trade_pct: 2.0    # 2% per trade
+  max_daily_drawdown_pct: 8.0    # 8% daily drawdown limit
+  min_confidence: 65             # 65% minimum signal confidence
+  min_rr_ratio: 1.5              # 1.5 minimum risk:reward
+  stop_loss_pct: 2.0             # 2% stop-loss
+  take_profit_pct: 4.0           # 4% take-profit
+  max_position_size_pct: 10.0    # 10% max position
 ```
 
 ---
