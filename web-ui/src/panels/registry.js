@@ -256,6 +256,10 @@ const Inventory = lazy(() => import('../components/Inventory'))
 const Colocation = lazy(() => import('../components/Colocation'))
 const ABTesting = lazy(() => import('../components/ABTesting'))
 const ScenarioSim = lazy(() => import('../components/ScenarioSim'))
+const ApiPlayground = lazy(() => import('../components/ApiPlayground'))
+const DataQuality = lazy(() => import('../components/DataQuality'))
+const LogDashboard = lazy(() => import('../components/LogDashboard'))
+const AuditTrail = lazy(() => import('../components/AuditTrail'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -756,6 +760,14 @@ export const PANELS = [
     props: () => ({}) },
   { id: 'scenario-sim', name: 'Scenario Simulator', category: 'risk', component: ScenarioSim,
     props: (ctx) => ({ currentPrice: ctx.currentPrice }) },
+  { id: 'api-playground', name: 'API Playground', category: 'config', component: ApiPlayground,
+    props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
+  { id: 'data-quality', name: 'Data Quality Monitor', category: 'config', component: DataQuality,
+    props: () => ({}) },
+  { id: 'log-dashboard', name: 'Log Dashboard', category: 'config', component: LogDashboard,
+    props: () => ({}) },
+  { id: 'audit-trail', name: 'Audit Trail', category: 'config', component: AuditTrail,
+    props: () => ({}) },
 ]
 
 // Default visible panels (all visible by default except advanced math panels)
