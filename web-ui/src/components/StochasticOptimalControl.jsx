@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Stochastic Optimal Control (HJB Equation) ──────────────────────────────
 // Solves the Hamilton-Jacobi-Bellman equation for optimal trading decisions
@@ -80,7 +80,7 @@ const solveHJB = (xGrid, tGrid, mu, sigma, gamma, rho, dt, dx) => {
   return { V, U }
 }
 
-export default function StochasticOptimalControl({ candles, symbol, exchange }) {
+function StochasticOptimalControl({ candles, symbol, exchange }) {
   const [gamma, setGamma] = useState(2.0)
   const [rho, setRho] = useState(0.05)
   const [lookback, setLookback] = useState(100)
@@ -312,3 +312,5 @@ export default function StochasticOptimalControl({ candles, symbol, exchange }) 
     </div>
   )
 }
+
+export default memo(StochasticOptimalControl)

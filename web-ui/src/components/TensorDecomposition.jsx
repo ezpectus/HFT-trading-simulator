@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Tensor Decomposition (CP / Tucker for Multi-Way Data) ───────────────────
 // Decomposes multi-dimensional financial data tensors using CANDECOMP/PARAFAC
@@ -179,7 +179,7 @@ const cpDecompose = (tensor, rank, maxIter = 50) => {
   return { A, B, C, weights, errors, rank }
 }
 
-export default function TensorDecomposition({ candles, symbols, exchange }) {
+function TensorDecomposition({ candles, symbols, exchange }) {
   const [rank, setRank] = useState(3)
   const [lookback, setLookback] = useState(100)
   const [maxIter, setMaxIter] = useState(50)
@@ -396,3 +396,5 @@ export default function TensorDecomposition({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(TensorDecomposition)

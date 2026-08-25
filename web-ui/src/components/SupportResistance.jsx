@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Layers, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function SupportResistance({ candles, currentPrice }) {
+function SupportResistance({ candles, currentPrice }) {
   const levels = useMemo(() => {
     if (!candles?.length || candles.length < 20) return null
 
@@ -129,6 +129,8 @@ export default function SupportResistance({ candles, currentPrice }) {
     </div>
   )
 }
+
+export default memo(SupportResistance)
 
 function LevelRow({ level, type, currentPrice }) {
   const distPct = Math.abs(level.price - currentPrice) / currentPrice * 100

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { memo, useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { createChart, ColorType } from 'lightweight-charts'
 import { Play, Loader2, TrendingUp, TrendingDown, BarChart3, Download } from 'lucide-react'
 import { runBacktest } from '../utils/backtestEngine'
@@ -12,7 +12,7 @@ const DEFAULT_RULES = [
   { id: 2, condition: 'rsi_above', value: 70, action: 'sell', qty: 0.1 },
 ]
 
-export default function StrategyBacktest() {
+function StrategyBacktest() {
   const candles = useTradingStore((s) => s.candles)
   const selectedExchange = useUIStore((s) => s.selectedExchange)
   const selectedSymbol = useUIStore((s) => s.selectedSymbol)
@@ -315,3 +315,5 @@ function Metric({ label, value, color }) {
     </div>
   )
 }
+
+export default memo(StrategyBacktest)

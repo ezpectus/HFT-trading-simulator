@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { ShieldAlert, Eye, TrendingUp } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { ShieldAlert } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function SpoofingDetector({ orderbookData, currentPrice }) {
+function SpoofingDetector({ orderbookData, currentPrice }) {
   const analysis = useMemo(() => {
     if (!orderbookData) return null
 
@@ -172,6 +172,8 @@ export default function SpoofingDetector({ orderbookData, currentPrice }) {
     </div>
   )
 }
+
+export default memo(SpoofingDetector)
 
 function detectLayering(orders, avgSize) {
   const threshold = avgSize * 3

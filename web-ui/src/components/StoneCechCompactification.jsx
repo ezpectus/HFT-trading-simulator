@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Stone-Cech Compactification (Universal Embedding for Regime Space) ---
 // Uses the Stone-Cech compactification to embed the regime space into
@@ -34,7 +34,7 @@ const featureMaps = (x, features) => {
   })
 }
 
-export default function StoneCechCompactification({ candles, symbol, exchange }) {
+function StoneCechCompactification({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(120)
   const [nFeatures, setNFeatures] = useState(5)
   const [windowSize, setWindowSize] = useState(20)
@@ -300,3 +300,5 @@ export default function StoneCechCompactification({ candles, symbol, exchange })
     </div>
   )
 }
+
+export default memo(StoneCechCompactification)

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Support Vector Machine (SVM) Classifier ────────────────────────────────
 // Implements a linear SVM using Stochastic Gradient Descent (SGD) with
@@ -233,7 +233,7 @@ const SVMPredict = (X, y, alpha, b, x, gamma, K, idx) => {
 
 const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0)
 
-export default function SupportVectorMachine({ candles, symbol, exchange }) {
+function SupportVectorMachine({ candles, symbol, exchange }) {
   const [kernelType, setKernelType] = useState('linear')
   const [C, setC] = useState(1.0)
   const [gamma, setGamma] = useState(0.5)
@@ -436,3 +436,5 @@ export default function SupportVectorMachine({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(SupportVectorMachine)

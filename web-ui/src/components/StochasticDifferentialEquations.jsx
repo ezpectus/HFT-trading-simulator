@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Stochastic Differential Equations (SDE) ────────────────────────────────
 // Simulates financial SDEs using Euler-Maruyama and Milstein schemes.
@@ -161,7 +161,7 @@ const estimateParams = (returns) => {
   return { mu: mean * 252, sigma: std * Math.sqrt(252), ouTheta, ouMu: ouMu * 252 }
 }
 
-export default function StochasticDifferentialEquations({ candles, symbol, exchange }) {
+function StochasticDifferentialEquations({ candles, symbol, exchange }) {
   const [model, setModel] = useState('gbm')
   const [nSteps, setNSteps] = useState(100)
   const [nPaths, setNPaths] = useState(50)
@@ -412,3 +412,5 @@ export default function StochasticDifferentialEquations({ candles, symbol, excha
     </div>
   )
 }
+
+export default memo(StochasticDifferentialEquations)
