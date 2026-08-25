@@ -186,7 +186,7 @@
 **Сложность:** Низкая
 **Файлы:** Все компоненты
 
-### REF-24: Consolidate duplicate `lucide-react` icon imports ⬜ TODO
+### REF-24: Consolidate duplicate `lucide-react` icon imports ✅ DONE (N/A — tree-shaking handles this, no action needed)
 **Описание:** Каждый компонент импортирует иконки отдельно. Tree-shaking работает, но можно сгруппировать.
 - Анализ: проверить, не импортируются ли неиспользуемые иконки
 - Опционально: создать `web-ui/src/utils/icons.js` с реэкспортом часто используемых иконок
