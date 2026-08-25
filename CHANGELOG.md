@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-27 (Docs — Deep freshness audit)
+
+### Changed
+- `docs/ARCHITECTURE.md`: 204→278 panels, 227→289 components, 44→103 test files, format.js→format.ts, useLocalStorage.js→useLocalStorage.ts
+- `docs/WEB_UI.md`: test counts 44→103 files (99 unit + 4 E2E), 300+→800+ tests, panel registry 204→278
+- `docs/WEB_UI.md`: hook file extensions corrected (.js→.ts where applicable), useSignalData file reference corrected
+- `docs/RISK_MANAGEMENT.md`: config parameter names corrected to match settings.yaml (_pct suffix, integer values)
+- `docs/TRADING_STRATEGIES.md`: max open positions 3→10 (matches settings.yaml)
+
+### Rationale
+Deep docs audit verified ARCHITECTURE.md, WEB_UI.md, TRADING_STRATEGIES.md, RISK_MANAGEMENT.md, and DEPLOYMENT.md against actual codebase. Fixed stale counts, file extensions, and config parameter names.
+
 ## [Unreleased] — 2026-08-27 (Docs — TESTING.md freshness update)
 
 ### Changed
