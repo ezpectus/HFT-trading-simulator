@@ -181,7 +181,8 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
   }
 
   const W = 800, H = 250, P = 30
-  const sigColor = data.signal === 'COMPACT_FAMILY' ? '#0ecb81' : data.signal === 'OUTLIERS_DETECTED' ? '#f0b90b' : '#f6465d'
+  const SIGNAL_COLORS = { COMPACT_FAMILY: '#0ecb81', OUTLIERS_DETECTED: '#f0b90b' }
+  const sigColor = SIGNAL_COLORS[data.signal] || '#f6465d'
 
   // Indicator family
   const allVals = data.family.flatMap(f => f.values)

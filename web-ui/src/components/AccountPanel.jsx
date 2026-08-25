@@ -130,7 +130,7 @@ export default memo(function AccountPanel({ accounts }) {
                     const h = Math.max(2, (Math.abs(t.pnl) / maxAbs) * 24)
                     return (
                       <div
-                        key={i}
+                        key={`${t.symbol}-${t.time || i}`}
                         className={`flex-1 ${t.pnl >= 0 ? 'bg-accent-green' : 'bg-accent-red'}`}
                         style={{ height: h + 'px' }}
                         title={`${t.symbol}: ${t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)} (${t.reason})`}

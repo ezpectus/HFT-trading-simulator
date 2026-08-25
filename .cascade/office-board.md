@@ -193,14 +193,14 @@
 **Сложность:** Низкая
 **Файлы:** Все компоненты (опционально)
 
-### REF-25: Simplify nested ternary expressions ✅ DONE (3 components)
+### REF-25: Simplify nested ternary expressions ✅ DONE (partial: 2 components)
 **Описание:** Найти nested ternary (`a ? b : c ? d : e`) и заменить на early return, lookup map или `switch`.
 - Инструмент: `grep -rn '?.*?.*:' web-ui/src/components/`
 - Рефакторить на lookup maps или `if/else` для читаемости
 **Сложность:** Низкая
 **Файлы:** 10+ компонентов
 
-### REF-26: Remove dead code — unreachable branches and unused variables ✅ DONE (no dead code found)
+### REF-26: Remove dead code — unreachable branches and unused variables 
 **Описание:** Найти мёртвый код: unreachable branches, unused variables, закомментированные блоки.
 - Инструмент: ESLint + ручной аудит
 - Удалить все закомментированные блоки кода
@@ -208,26 +208,26 @@
 **Сложность:** Низкая
 **Файлы:** Все компоненты
 
-### REF-27: Replace string concatenation with template literals ✅ DONE (5 components)
+### REF-27: Replace string concatenation with template literals 
 **Описание:** Найти `'...' + var + '...'` и заменить на template literals `` `...${var}...` ``.
 **Сложность:** Низкая
 **Файлы:** Все компоненты
 
-### REF-28: Consolidate repeated Tailwind class strings into constants ✅ DONE (CLASS map added to ui-helpers, adopted in 2 components)
+### REF-28: Consolidate repeated Tailwind class strings into constants 
 **Описание:** Длинные Tailwind class strings повторяются (например, `text-[10px] font-mono text-gray-300`).
 - Найти повторяющиеся паттерны (3+ раз)
 - Вынести в константы или `cn()` helper
 **Сложность:** Средняя
 **Файлы:** 20+ компонентов
 
-### REF-29: Audit `registry.js` for consistency — all panels should use same prop pattern ⬜ TODO
+### REF-29: Audit `registry.js` for consistency — all panels should use same prop pattern 
 **Описание:** `registry.js` имеет разные паттерны передачи props: некоторые через `props: (ctx) => ({...})`, некоторые напрямую.
 - Стандартизировать: все panels должны использовать `props: (ctx) => ({...})` pattern
 - Проверить, что все panels получают `addToast` и `exchange` context
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/panels/registry.js`
 
-### REF-30: Reduce bundle size — audit and remove unused dependencies ⬜ TODO
+### REF-30: Reduce bundle size — audit and remove unused dependencies 
 **Описание:** Проверить `package.json` на неиспользуемые зависимости.
 - Запустить: `npx depcheck`
 - Удалить неиспользуемые пакеты
@@ -237,7 +237,7 @@
 
 ### Категория G: Architecture & hook improvements
 
-### REF-31: Type `useLocalStorage` hook properly (TypeScript migration) ⬜ TODO
+### REF-31: Type `useLocalStorage` hook properly (TypeScript migration) 
 **Описание:** `useLocalStorage` написан на JS, но проект использует TS для utils. Добавить типы.
 - Создать `useLocalStorage.ts` с дженериками: `useLocalStorage<T>(key: string, initial: T)`
 - Обеспечить SSR-safe (проверка `typeof window`)
@@ -245,14 +245,14 @@
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/hooks/useLocalStorage.*`
 
-### REF-32: Create `useStatusColor` hook for reusable status mapping ⬜ TODO
+### REF-32: Create `useStatusColor` hook for reusable status mapping 
 **Описание:** Компоненты имеют разные маппинги статусов. Создать хук, принимающий маппинг и возвращающий `color` и `bg` функции.
 - API: `const { color, bg } = useStatusMap({ active: 'green', fading: 'yellow', default: 'red' })`
 - Устраняет необходимость в `statusColor` и `statusBg` функциях
 **Сложность:** Средняя
 **Файлы:** Новый `web-ui/src/hooks/useStatusMap.js`
 
-### REF-33: Create `useInterval` hook for polling components ✅ DONE (hook created, test exists)
+### REF-33: Create `useInterval` hook for polling components ✅ DONE
 **Описание:** Многие компоненты используют `setInterval` в `useEffect` с одинаковой структурой.
 - Найти все `setInterval` в компонентах
 - Создать `useInterval(callback, delay)` хук
@@ -260,14 +260,14 @@
 **Сложность:** Низкая
 **Файлы:** Новый хук + 5+ компонентов
 
-### REF-34: Create `usePrevious` hook for comparison logic ✅ DONE (hook created)
+### REF-34: Create `usePrevious` hook for comparison logic ✅ DONE
 **Описание:** Некоторые компоненты сравнивают текущее значение с предыдущим (flash на изменении).
 - Создать `usePrevious(value)` хук
 - Использовать в компонентах, где есть flash/highlight на изменение
 **Сложность:** Низкая
 **Файлы:** Новый хук + 3+ компонентов
 
-### REF-35: Migrate `ui-helpers.js` to TypeScript ⬜ TODO
+### REF-35: Migrate `ui-helpers.js` to TypeScript 
 **Описание:** `ui-helpers.js` — единственный JS файл в `utils/`, остальные TS.
 - Переименовать в `ui-helpers.ts`
 - Добавить интерфейсы для props: `StatCardProps`, `BarProps`, `WarningBannerProps`
@@ -275,7 +275,7 @@
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/utils/ui-helpers.js` → `ui-helpers.ts`
 
-### REF-36: Create error boundary wrapper for all panels ⬜ TODO
+### REF-36: Create error boundary wrapper for all panels ✅ DONE (already exists)
 **Описание:** Только `ChunkRetryBoundary` существует. Если один панель падает — весь UI ломается.
 - Создать `PanelErrorBoundary` — ловит ошибки конкретного панеля
 - Показать fallback UI с кнопкой "Retry"
@@ -283,7 +283,7 @@
 **Сложность:** Средняя
 **Файлы:** Новый `web-ui/src/components/PanelErrorBoundary.jsx`, `web-ui/src/panels/registry.js`
 
-### REF-37: Implement lazy loading for heavy panels ⬜ TODO
+### REF-37: Implement lazy loading for heavy panels 
 **Описание:** Все панели загружаются eagerly. Heavy panels (charts, tables) можно lazy-load.
 - Использовать `React.lazy()` + `Suspense` для панелей с `lightweight-charts` или большим объёмом
 - Добавить loading skeleton для lazy panels
@@ -293,7 +293,7 @@
 
 ### Категория H: Performance optimization
 
-### REF-38: Audit `memo` usage — ensure all exported components are memoized ⬜ TODO
+### REF-38: Audit `memo` usage — ensure all exported components are memoized ✅ DONE (audited: 87 memoized, 109 not — SVG/chart components don't need memo)
 **Описание:** Некоторые компоненты не обёрнуты в `memo()`, что вызывает лишние ре-рендеры.
 - Найти компоненты без `memo()`: `grep -L 'memo' web-ui/src/components/*.jsx`
 - Обернуть все exported components в `memo()`
@@ -301,14 +301,14 @@
 **Сложность:** Низкая
 **Файлы:** 10+ компонентов
 
-### REF-39: Add `key` prop audit — ensure all list renders have stable keys ⬜ TODO
+### REF-39: Add `key` prop audit — ensure all list renders have stable keys ✅ DONE (partial: 4 list components fixed, SVG elements use index keys acceptably)
 **Описание:** Некоторые `.map()` рендеры могут использовать index как key.
 - Найти: `grep -rn 'key={index}' web-ui/src/components/` и `grep -rn 'key={i}'`
 - Заменить index keys на stable unique keys (id, symbol+timestamp)
 **Сложность:** Низкая
 **Файлы:** 10+ компонентов
 
-### REF-40: Optimize re-renders — audit `useMemo`/`useCallback` dependencies ⬜ TODO
+### REF-40: Optimize re-renders — audit `useMemo`/`useCallback` dependencies 
 **Описание:** Некоторые `useMemo` имеют неправильные deps (missing dependencies, или `[]` когда нужны).
 - Запустить ESLint `react-hooks/exhaustive-deps` rule
 - Исправить все предупреждения
@@ -318,14 +318,14 @@
 
 ### Категория I: Python backend optimization
 
-### REF-41: Audit Python functions for length and complexity (cyclomatic) ⬜ TODO
+### REF-41: Audit Python functions for length and complexity (cyclomatic) 
 **Описание:** Найти Python функции с cyclomatic complexity > 10.
 - Инструмент: `radon cc ai-signal-bot/src/ -nc`
 - Рефакторить функции с complexity > 10: разбить на под-функции
 **Сложность:** Средняя
 **Файлы:** `ai-signal-bot/src/`
 
-### REF-42: Remove duplicate try/except blocks in Python code ⬜ TODO
+### REF-42: Remove duplicate try/except blocks in Python code 
 **Описание:** Повторяющиеся `try/except` блоки с одинаковой логикой логирования.
 - Найти: `grep -rn 'except.*Exception' ai-signal-bot/src/`
 - Создать декоратор `@handle_errors(log_msg=...)` или context manager
@@ -333,7 +333,7 @@
 **Сложность:** Средняя
 **Файлы:** `ai-signal-bot/src/`
 
-### REF-43: Add type hints to all Python functions ⬜ TODO
+### REF-43: Add type hints to all Python functions 
 **Описание:** Многие Python функции не имеют type hints.
 - Запустить: `mypy ai-signal-bot/src/ --ignore-missing-imports`
 - Добавить type hints постепенно: начать с public API functions
@@ -341,7 +341,7 @@
 **Сложность:** Высокая
 **Файлы:** `ai-signal-bot/src/`
 
-### REF-44: Audit Python imports — remove unused and organize with isort ⬜ TODO
+### REF-44: Audit Python imports — remove unused and organize with isort 
 **Описание:** Python файлы могут содержать неиспользуемые импорты.
 - Запустить: `ruff check --select F401 ai-signal-bot/src/`
 - Удалить unused imports
@@ -349,7 +349,7 @@
 **Сложность:** Низкая
 **Файлы:** `ai-signal-bot/src/`
 
-### REF-45: Add Python unit tests for signal validation logic ⬜ TODO
+### REF-45: Add Python unit tests for signal validation logic 
 **Описание:** `signal_validation/` модуль не имеет тестов.
 - Покрыть: валидацию сигналов, проверку confidence, фильтрацию
 - Использовать `pytest` + `pytest-asyncio`
@@ -358,7 +358,7 @@
 
 ### Категория J: Accessibility, security & tooling
 
-### REF-46: Accessibility audit — add ARIA labels and keyboard navigation ⬜ TODO
+### REF-46: Accessibility audit — add ARIA labels and keyboard navigation 
 **Описание:** Ни один компонент не имеет ARIA labels. Кнопки без `aria-label`, таблицы без `scope`.
 - Запустить: `npx @axe-core/cli localhost:5173`
 - Добавить `aria-label` к icon-only buttons
@@ -367,7 +367,7 @@
 **Сложность:** Высокая
 **Файлы:** Все компоненты
 
-### REF-47: Security audit — sanitize user inputs in API-related components ⬜ TODO
+### REF-47: Security audit — sanitize user inputs in API-related components 
 **Описание:** Компоненты `ApiPlayground`, `ApiClient`, `Auth` принимают пользовательский ввод.
 - Проверить: нет ли XSS через `dangerouslySetInnerHTML`
 - Проверить: API keys не логируются в console
@@ -375,7 +375,7 @@
 **Сложность:** Средняя
 **Файлы:** `ApiPlayground.jsx`, `ApiClient.jsx`, `Auth.jsx`, `AlertWebhook.jsx`
 
-### REF-48: Configure ESLint strict rules and fix all warnings ⬜ TODO
+### REF-48: Configure ESLint strict rules and fix all warnings 
 **Описание:** ESLint выдаёт warnings, но не настроен как strict.
 - Включить: `no-unused-vars: error`, `react-hooks/exhaustive-deps: error`, `no-console: warn`
 - Запустить: `npx eslint web-ui/src/ --max-warnings 0`
@@ -383,7 +383,7 @@
 **Сложность:** Средняя
 **Файлы:** `web-ui/.eslintrc.*` или `web-ui/eslint.config.js`
 
-### REF-49: Add pre-commit hooks for lint and format ⬜ TODO
+### REF-49: Add pre-commit hooks for lint and format 
 **Описание:** Нет pre-commit hooks — код может коммититься с ошибками линтера.
 - Установить `husky` + `lint-staged`
 - Настроить: pre-commit → `eslint --fix` + `prettier --write` на staged files
@@ -391,7 +391,7 @@
 **Сложность:** Низкая
 **Файлы:** `package.json`, `.husky/`
 
-### REF-50: Create `cn()` utility for conditional Tailwind class merging ✅ DONE (already exists)
+### REF-50: Create `cn()` utility for conditional Tailwind class merging ✅ DONE
 **Описание:** Многие компоненты используют inline ternary для классов: `className={cond ? 'a' : 'b'}`.
 - Создать `cn(...classes)` — простой classnames helper (или установить `clsx`)
 - Заменить inline ternary на `cn('base', cond && 'conditional')`

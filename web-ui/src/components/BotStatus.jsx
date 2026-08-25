@@ -235,7 +235,7 @@ const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConn
               const Icon = isSignal ? Radio : isLong ? TrendingUp : TrendingDown
 
               return (
-                <div key={i} className="bg-bg-700 p-2 border border-bg-600 text-xs flex items-center gap-2">
+                <div key={`${item.symbol}-${item.time || i}`} className="bg-bg-700 p-2 border border-bg-600 text-xs flex items-center gap-2">
                   <Icon size={12} className={colorForSide(item.side)} />
                   <span className={`font-semibold ${colorForSide(item.side)}`}>
                     {item.side}

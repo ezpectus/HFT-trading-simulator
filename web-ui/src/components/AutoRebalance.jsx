@@ -201,7 +201,7 @@ export default function AutoRebalance({ accounts, candles, symbols, exchange, on
       {rebalanceLog.length > 0 && (
         <div className="mt-2 pt-1.5 border-t border-bg-600 space-y-0.5">
           {rebalanceLog.map((l, i) => (
-            <div key={i} className="text-[8px] text-gray-500 font-mono">
+            <div key={`${l.time}-${i}`} className="text-[8px] text-gray-500 font-mono">
               {new Date(l.time).toLocaleTimeString()} · {l.msg}
             </div>
           ))}

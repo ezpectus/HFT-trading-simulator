@@ -62,8 +62,8 @@ export default function ArbitragePanel({ arbitrage }) {
       </div>
 
       <div className="space-y-1">
-        {filteredActive.map((arb, i) => (
-          <div key={i} className="bg-bg-700  p-2 text-xs">
+        {filteredActive.map((arb) => (
+          <div key={arb.symbol} className="bg-bg-700  p-2 text-xs">
             <div className="flex items-center justify-between mb-1">
               <span className="font-medium text-gray-200">{arb.symbol}</span>
               <span className="text-accent-green font-mono">

@@ -158,10 +158,13 @@ export default memo(function AlertWebhook({ fills, toasts }) {
                   className="text-gray-500 hover:text-accent-blue"
                   title="Send test"
                 >
-                  {testStatus[hook.id] === 'sending' ? '⏳' :
-                   testStatus[hook.id] === 'ok' ? <Check size={10} className="text-accent-green" /> :
-                   testStatus[hook.id] === 'error' ? <span className="text-[8px] text-accent-red">!</span> :
-                   <TestTube size={10} />}
+                  {(() => {
+                    const s = testStatus[hook.id]
+                    if (s === 'sending') return '⏳'
+                    if (s === 'ok') return <Check size={10} className="text-accent-green" />
+                    if (s === 'error') return <span className="text-[8px] text-accent-red">!</span>
+                    return <TestTube size={10} />
+                  })()}
                 </button>
                 <button
                   onClick={() => removeWebhook(hook.id)}
