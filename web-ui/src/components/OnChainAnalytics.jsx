@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Link2, TrendingUp, TrendingDown, Wallet, Activity, Database } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { Label } from '../utils/ui-helpers'
+import { Label, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_METRICS = [
   { metric: 'Active Addresses', value: 1245000, change: 5.2, trend: 'up' },
@@ -42,13 +42,7 @@ const OnChainAnalytics = memo(function OnChainAnalytics({ symbol }) {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Link2 size={14} className="text-accent-blue" />
-          <span className="text-sm font-medium">On-Chain Analytics</span>
-        </div>
-        <span className="text-[10px] text-gray-600">{(symbol ?? 'BTC/USDT').split('/')[0]}</span>
-      </div>
+      <SectionTitle icon={Link2} title="On-Chain Analytics" right={<span className="text-[10px] text-gray-600">{(symbol ?? 'BTC/USDT').split('/')[0]}</span>} />
 
       {/* Net exchange flow */}
       <div className="p-2 bg-bg-700 border border-bg-600 rounded">

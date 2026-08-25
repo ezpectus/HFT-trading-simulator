@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Activity, BarChart3, Waves, Gauge } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { StatCard, Label } from '../utils/ui-helpers'
+import { StatCard, Label, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_SPREADS = [
   { time: '12:40', bid: 44098, ask: 44102, spread: 4, depth: 12500 },
@@ -52,13 +52,7 @@ const Microstructure = memo(function Microstructure({ symbol }) {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Waves size={14} className="text-accent-purple" />
-          <span className="text-sm font-medium">Microstructure</span>
-        </div>
-        <span className="text-[10px] text-gray-600">{symbol ?? 'BTC/USDT'}</span>
-      </div>
+      <SectionTitle icon={Waves} title="Microstructure" iconColor="text-accent-purple" right={<span className="text-[10px] text-gray-600">{symbol ?? 'BTC/USDT'}</span>} />
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">

@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Activity, Zap, TrendingDown, Server, Wifi } from 'lucide-react'
-import { WarningBanner, Label } from '../utils/ui-helpers'
+import { WarningBanner, Label, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_LATENCY_POINTS = Array.from({ length: 20 }, (_, i) => ({
   t: i,
@@ -57,18 +57,7 @@ const LatencyPanel = memo(function LatencyPanel({ exchange }) {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Zap size={14} className="text-accent-yellow" />
-          <span className="text-sm font-medium">Latency Monitor</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Wifi size={11} className={connected ? 'text-accent-green' : 'text-accent-red'} />
-          <span className={`text-[10px] ${connected ? 'text-accent-green' : 'text-accent-red'}`}>
-            {connected ? 'Connected' : 'Disconnected'}
-          </span>
-        </div>
-      </div>
+      <SectionTitle icon={Zap} title="Latency Monitor" iconColor="text-accent-yellow" right={<div className="flex items-center gap-1"><Wifi size={11} className={connected ? 'text-accent-green' : 'text-accent-red'} /><span className={`text-[10px] ${connected ? 'text-accent-green' : 'text-accent-red'}`}>{connected ? 'Connected' : 'Disconnected'}</span></div>} />
 
       {/* Current latency */}
       <div className="grid grid-cols-3 gap-1">

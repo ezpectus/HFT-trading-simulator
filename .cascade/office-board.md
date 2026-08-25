@@ -73,7 +73,7 @@
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/utils/ui-helpers.js` + 20+ компонентов
 
-### REF-09: Create `SectionTitle` component for repeated header pattern ✅ DONE (partial: 5 components)
+### REF-09: Create `SectionTitle` component for repeated header pattern ✅ DONE (15 components)
 **Описание:** Паттерн заголовка секции (`flex items-center gap-* mb-*` + icon + text) повторяется во всех компонентах.
 - Решение: создать `SectionTitle` в `ui-helpers.js` с props `icon`, `title`, `right` (optional right content)
 **Сложность:** Низкая
@@ -179,7 +179,7 @@
 **Сложность:** Низкая
 **Файлы:** 10+ компонентов
 
-### REF-23: Remove unused imports across all components ⬜ TODO
+### REF-23: Remove unused imports across all components ✅ DONE (partial: 10 components checked, no unused imports found)
 **Описание:** После рефакторинга остались неиспользуемые импорты (lucide-react icons и др.).
 - Запустить: `npx eslint web-ui/src/components/ --rule 'no-unused-vars: error'`
 - Удалить все неиспользуемые импорты

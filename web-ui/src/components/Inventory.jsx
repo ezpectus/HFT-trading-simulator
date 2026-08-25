@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { TrendingUp, TrendingDown, Boxes } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
-import { pnlColor, sideColor, StatCard, WarningBanner } from '../utils/ui-helpers'
+import { pnlColor, sideColor, StatCard, WarningBanner, SectionTitle } from '../utils/ui-helpers'
 
 const MOCK_INVENTORY = [
   { symbol: 'BTC/USDT', side: 'LONG', qty: 0.5, avgPrice: 43250, currentPrice: 44100, pnl: 425, pnlPct: 1.96, weight: 35.2 },
@@ -36,13 +36,7 @@ const Inventory = memo(function Inventory() {
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Boxes size={14} className="text-accent-blue" />
-          <span className="text-sm font-medium">Inventory Manager</span>
-        </div>
-        <span className="text-[10px] text-gray-600">{MOCK_INVENTORY.length} positions</span>
-      </div>
+      <SectionTitle icon={Boxes} title="Inventory Manager" right={<span className="text-[10px] text-gray-600">{MOCK_INVENTORY.length} positions</span>} />
 
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-1">
