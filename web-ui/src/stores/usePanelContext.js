@@ -53,7 +53,7 @@ export function usePanelContext() {
     currentPrice,
   } = useTradingStore()
 
-  const { toasts, addToast } = useToastStore()
+  const { toasts, addToast, removeToast, clearAll } = useToastStore()
 
   // Build the exchange object that registry expects (same shape as useExchangeData hook)
   const exchange = useMemo(() => ({
@@ -108,7 +108,9 @@ export function usePanelContext() {
     EXCHANGES,
     toasts,
     addToast,
+    removeToast,
+    clearAll,
     setSelectedSymbol,
   }), [exchange, signalsObj, selectedExchange, selectedSymbol, chartCandles,
-      currentPrice, SYMBOLS, EXCHANGES, toasts, addToast, setSelectedSymbol])
+      currentPrice, SYMBOLS, EXCHANGES, toasts, addToast, removeToast, clearAll, setSelectedSymbol])
 }

@@ -219,6 +219,37 @@ const StrategyMarketplace = lazy(() => import('../components/StrategyMarketplace
 const SessionReplay = lazy(() => import('../components/SessionReplay'))
 const SessionReportExport = lazy(() => import('../components/SessionReportExport'))
 const CompetitionFramework = lazy(() => import('../components/CompetitionFramework'))
+const WsManager = lazy(() => import('../components/WsManager'))
+const ApiClient = lazy(() => import('../components/ApiClient'))
+const MLInsights = lazy(() => import('../components/MLInsights'))
+const NotificationCenter = lazy(() => import('../components/NotificationCenter'))
+const PriceComparison = lazy(() => import('../components/PriceComparison'))
+const FillsPanel = lazy(() => import('../components/FillsPanel'))
+const DrawingTools = lazy(() => import('../components/DrawingTools'))
+const PerformanceDashboard = lazy(() => import('../components/PerformanceDashboard'))
+const SignalPerformance = lazy(() => import('../components/SignalPerformance'))
+const AccountPanel = lazy(() => import('../components/AccountPanel'))
+const OptionsPricing = lazy(() => import('../components/OptionsPricing'))
+const OptionsStrategies = lazy(() => import('../components/OptionsStrategies'))
+const ArbitragePanel = lazy(() => import('../components/ArbitragePanel'))
+const BacktestRunner = lazy(() => import('../components/BacktestRunner'))
+const TradeHistory = lazy(() => import('../components/TradeHistory'))
+const Auth = lazy(() => import('../components/Auth'))
+const AuditLogViewer = lazy(() => import('../components/AuditLogViewer'))
+const BotStatus = lazy(() => import('../components/BotStatus'))
+const DatabaseViewer = lazy(() => import('../components/DatabaseViewer'))
+const DeployStatus = lazy(() => import('../components/DeployStatus'))
+const NewsFeed = lazy(() => import('../components/NewsFeed'))
+const OnboardingTutorial = lazy(() => import('../components/OnboardingTutorial'))
+const WsInspector = lazy(() => import('../components/WsInspector'))
+const FeatureFlags = lazy(() => import('../components/FeatureFlags'))
+const ChartTemplates = lazy(() => import('../components/ChartTemplates'))
+const SymbolHeatmap = lazy(() => import('../components/SymbolHeatmap'))
+const ThemeSwitcher = lazy(() => import('../components/ThemeSwitcher'))
+const StatToolkit = lazy(() => import('../components/StatToolkit'))
+const ModelDashboard = lazy(() => import('../components/ModelDashboard'))
+const SessionMarkers = lazy(() => import('../components/SessionMarkers'))
+const TaxReport = lazy(() => import('../components/TaxReport'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -260,6 +291,8 @@ export const PANELS = [
     props: (ctx) => ({ candles: ctx.exchange.candles, fills: ctx.exchange.fills, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
   { id: 'depth-replay', name: 'Market Depth Replay', category: 'orderflow', component: MarketDepthReplay,
     props: (ctx) => ({ candles: ctx.exchange.candles, orderbooks: ctx.exchange.orderbooks, fills: ctx.exchange.fills, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
+  { id: 'fills-panel', name: 'Fills Panel', category: 'orderflow', component: FillsPanel,
+    props: (ctx) => ({ fills: ctx.exchange.fills }) },
 
   // === TECHNICAL ANALYSIS ===
   { id: 'volume-profile', name: 'Volume Profile', category: 'technical', component: VolumeProfile,
@@ -354,6 +387,8 @@ export const PANELS = [
     props: (ctx) => ({ candles: ctx.exchange.candles, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
   { id: 'price-action-score', name: 'Price Action Score', category: 'technical', component: PriceActionScore,
     props: (ctx) => ({ candles: ctx.exchange.candles, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
+  { id: 'drawing-tools', name: 'Drawing Tools', category: 'technical', component: DrawingTools,
+    props: (ctx) => ({ symbol: ctx.selectedSymbol, addToast: ctx.addToast }) },
 
   // === RISK & ANALYTICS ===
   { id: 'session-stats', name: 'Session Stats', category: 'risk', component: SessionStats,
@@ -408,6 +443,10 @@ export const PANELS = [
     props: (ctx) => ({ accounts: ctx.exchange.accounts, fills: ctx.exchange.fills, signals: ctx.signals.signals }) },
   { id: 'tick-speed', name: 'Tick Speed Anomaly', category: 'risk', component: TickSpeedAnomaly,
     props: (ctx) => ({ candles: ctx.exchange.candles, fills: ctx.exchange.fills, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
+  { id: 'perf-dashboard', name: 'Performance Dashboard', category: 'risk', component: PerformanceDashboard,
+    props: (ctx) => ({ accounts: ctx.exchange.accounts }) },
+  { id: 'signal-perf', name: 'Signal Performance Tracker', category: 'risk', component: SignalPerformance,
+    props: (ctx) => ({ signals: ctx.signals.signals, fills: ctx.exchange.fills }) },
   { id: 'put-call', name: 'Put/Call Ratio (Sim)', category: 'risk', component: PutCallRatio,
     props: (ctx) => ({ fills: ctx.exchange.fills, candles: ctx.exchange.candles, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
   { id: 'signal-matrix', name: 'Signal Matrix Heatmap', category: 'risk', component: SignalMatrixHeatmap,
@@ -603,6 +642,12 @@ export const PANELS = [
     props: (ctx) => ({ candles: ctx.exchange.candles, accounts: ctx.exchange.accounts, currentPrice: ctx.currentPrice, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange }) },
   { id: 'corr-heatmap', name: 'Correlation Heatmap', category: 'portfolio', component: CorrelationHeatmap,
     props: (ctx) => ({ candles: ctx.exchange.candles, symbols: ctx.SYMBOLS, exchange: ctx.selectedExchange }) },
+  { id: 'account-panel', name: 'Account Panel', category: 'portfolio', component: AccountPanel,
+    props: (ctx) => ({ accounts: ctx.exchange.accounts }) },
+  { id: 'options-pricing', name: 'Options Pricing (Black-Scholes)', category: 'portfolio', component: OptionsPricing,
+    props: () => ({}) },
+  { id: 'options-strategies', name: 'Options Strategies P&L', category: 'portfolio', component: OptionsStrategies,
+    props: () => ({}) },
 
   // === STRATEGY & AUTOMATION ===
   { id: 'strategy-backtest', name: 'Strategy Backtest Engine', category: 'strategy', component: StrategyBacktest,
@@ -629,6 +674,12 @@ export const PANELS = [
     props: (ctx) => ({ accounts: ctx.exchange.accounts }) },
   { id: 'mit-simulator', name: 'MIT Order Simulator', category: 'strategy', component: MITOrderSimulator,
     props: (ctx) => ({ candles: ctx.exchange.candles, accounts: ctx.exchange.accounts, currentPrice: ctx.currentPrice, symbol: ctx.selectedSymbol, exchange: ctx.selectedExchange, onSubmit: ctx.exchange.submitOrder }) },
+  { id: 'arbitrage-panel', name: 'Arbitrage Scanner', category: 'strategy', component: ArbitragePanel,
+    props: (ctx) => ({ arbitrage: ctx.exchange.arbitrage }) },
+  { id: 'backtest-runner', name: 'Backtest Runner', category: 'strategy', component: BacktestRunner,
+    props: (ctx) => ({ symbol: ctx.selectedSymbol, connected: ctx.exchange.connected }) },
+  { id: 'trade-history', name: 'Trade History', category: 'strategy', component: TradeHistory,
+    props: (ctx) => ({ accounts: ctx.exchange.accounts }) },
 
   // === EXPORT & TOOLS ===
   { id: 'session-export', name: 'Session Export (JSON)', category: 'export', component: SessionExport,
@@ -645,6 +696,48 @@ export const PANELS = [
     props: (ctx) => ({ paused: ctx.exchange.replayPaused, onToggle: ctx.exchange.toggleReplay, onScrub: ctx.exchange.scrubReplay, candleCount: ctx.chartCandles.length }) },
   { id: 'config-panel', name: 'Simulator Config', category: 'config', component: ConfigPanel,
     props: (ctx) => ({ onConfigUpdate: ctx.exchange.sendConfigUpdate, fundingRates: ctx.exchange.fundingRates, weekendMode: ctx.exchange.weekendMode }) },
+  { id: 'ws-manager', name: 'WebSocket Manager', category: 'config', component: WsManager,
+    props: (ctx) => ({ exchange: ctx.exchange, signals: ctx.signals, toasts: ctx.toasts, addToast: ctx.addToast }) },
+  { id: 'api-client', name: 'API Client', category: 'config', component: ApiClient,
+    props: (ctx) => ({ exchange: ctx.exchange, signals: ctx.signals, addToast: ctx.addToast }) },
+  { id: 'ml-insights', name: 'ML Insights Dashboard', category: 'risk', component: MLInsights,
+    props: (ctx) => ({ signals: ctx.signals, candles: ctx.exchange.candles, symbol: ctx.selectedSymbol }) },
+  { id: 'notifications', name: 'Notification Center', category: 'config', component: NotificationCenter,
+    props: (ctx) => ({ toasts: ctx.toasts, addToast: ctx.addToast, removeToast: ctx.removeToast, clearAll: ctx.clearAll }) },
+  { id: 'auth', name: 'Authentication', category: 'config', component: Auth,
+    props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
+  { id: 'audit-log', name: 'Audit Log Viewer', category: 'config', component: AuditLogViewer,
+    props: () => ({ auditLogs: [] }) },
+  { id: 'bot-status', name: 'Bot Status Monitor', category: 'config', component: BotStatus,
+    props: (ctx) => ({ signals: ctx.signals.signals, fills: ctx.exchange.fills, accounts: ctx.exchange.accounts, signalConnected: ctx.signals.connected, exchangeConnected: ctx.exchange.connected, circuitBreaker: ctx.exchange.circuitBreaker, tradingActive: ctx.exchange.tradingActive }) },
+  { id: 'database-viewer', name: 'Database Viewer', category: 'config', component: DatabaseViewer,
+    props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
+  { id: 'deploy-status', name: 'Deployment Status', category: 'config', component: DeployStatus,
+    props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
+  { id: 'news-feed', name: 'News Feed', category: 'config', component: NewsFeed,
+    props: () => ({}) },
+  { id: 'onboarding', name: 'Onboarding Tutorial', category: 'config', component: OnboardingTutorial,
+    props: () => ({}) },
+  { id: 'ws-inspector', name: 'Raw WebSocket Inspector', category: 'config', component: WsInspector,
+    props: (ctx) => ({ exchange: ctx.exchange, signals: ctx.signals }) },
+  { id: 'feature-flags', name: 'Feature Flags Manager', category: 'config', component: FeatureFlags,
+    props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
+  { id: 'chart-templates', name: 'Chart Templates', category: 'config', component: ChartTemplates,
+    props: (ctx) => ({ symbol: ctx.selectedSymbol, addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
+  { id: 'symbol-heatmap', name: 'Multi-Symbol Heatmap', category: 'technical', component: SymbolHeatmap,
+    props: (ctx) => ({ candles: ctx.exchange.candles, prices: ctx.exchange.prices, symbols: ctx.SYMBOLS, onSelectSymbol: ctx.setSelectedSymbol, exchange: ctx.selectedExchange }) },
+  { id: 'price-comparison', name: 'Multi-Exchange Prices', category: 'technical', component: PriceComparison,
+    props: (ctx) => ({ prices: ctx.exchange.prices, symbols: ctx.SYMBOLS, selectedSymbol: ctx.selectedSymbol, exchanges: ctx.EXCHANGES }) },
+  { id: 'theme-switcher', name: 'Theme Switcher', category: 'config', component: ThemeSwitcher,
+    props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
+  { id: 'stat-toolkit', name: 'Statistical Toolkit', category: 'risk', component: StatToolkit,
+    props: (ctx) => ({ candles: ctx.exchange.candles, symbol: ctx.selectedSymbol }) },
+  { id: 'model-dashboard', name: 'Model Management', category: 'risk', component: ModelDashboard,
+    props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
+  { id: 'session-markers', name: 'Trading Sessions', category: 'orderflow', component: SessionMarkers,
+    props: (ctx) => ({ fills: ctx.exchange.fills, symbol: ctx.selectedSymbol }) },
+  { id: 'tax-report', name: 'Tax Report', category: 'export', component: TaxReport,
+    props: (ctx) => ({ fills: ctx.exchange.fills, addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
 ]
 
 // Default visible panels (all visible by default except advanced math panels)
