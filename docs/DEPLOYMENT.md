@@ -154,14 +154,25 @@ docker-compose logs -f
 #### 4. Verify Deployment
 
 ```bash
-# Check exchange simulator
-curl http://localhost:8765/health
+# Check exchange simulator (health/metrics on port 8775)
+curl http://localhost:8775/health
+curl http://localhost:8775/live
+curl http://localhost:8775/ready
+curl http://localhost:8775/metrics
 
-# Check AI signal bot
-curl http://localhost:8766/health
+# Check AI signal bot (health on port 8080, metrics on port 9090)
+curl http://localhost:8080/health
+curl http://localhost:9090/health
+curl http://localhost:9090/metrics
+
+# Check HFT trade bot
+curl http://localhost:9091/health
 
 # Check web UI
-curl http://localhost:3000
+curl http://localhost:3000/health
+
+# Check Prometheus targets (all should be UP)
+curl http://localhost:9099/api/v1/targets | jq '.data.activeTargets[].health'
 ```
 
 ### Option 2: Native Deployment
@@ -285,6 +296,33 @@ kubectl get pods
 kubectl get services
 kubectl logs -f deployment/hft-ai-signal-bot
 ```
+
+#### 4. Health Probes
+
+Helm templates configure `httpGet` liveness and readiness probes (not `tcpSocket`):
+
+| Service | Probe | Path | Port |
+|---------|-------|------|------|
+| Exchange Simulator | liveness + readiness | `/health` | 8775 |
+| AI Signal Bot | liveness + readiness | `/health` | 9090 |
+| HFT Trade Bot | liveness + readiness | `/health` | 9091 |
+
+Docker Compose healthchecks in all 3 compose files use HTTP endpoints:
+
+| Service | Healthcheck | Start period |
+|---------|-------------|--------------|
+| Exchange Simulator | `http://localhost:8775/health` | 10s |
+| AI Signal Bot | `http://localhost:9090/health` | 15s |
+| HFT Trade Bot | `http://localhost:9091/health` | 10s |
+| Web UI | `http://localhost:3000/health` | 5s |
+
+#### 5. Graceful Shutdown
+
+Both AI Signal Bot and Exchange Simulator handle SIGTERM for clean shutdown:
+- **AI Signal Bot** (`run.py`): `signal.signal(SIGTERM, _signal_handler)` → stops main loop, cancels tasks, closes connections
+- **Exchange Simulator** (`__main__.py`): `loop.add_signal_handler(SIGTERM, ...)` → sets shutdown event, closes WebSocket clients
+
+Kubernetes sends SIGTERM with 30s grace period. Docker Compose sends SIGTERM with 10s timeout.
 
 ### Option 4: Terraform (AWS)
 

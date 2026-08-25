@@ -743,3 +743,52 @@ Client                          Server
   ◄───────────────── snapshot ────┤  (missed data)
   │                               │
 ```
+
+---
+
+## Reconnection & Backoff
+
+**Source:** `ai-signal-bot/src/communication/ws_client.py`
+
+The AI Signal Bot WebSocket client implements exponential backoff with jitter for automatic reconnection:
+
+### Backoff Algorithm
+
+```
+initial_delay = 1.0s
+max_delay = 60.0s
+jitter = delay * (0.75 + random() * 0.5)   # range: [75%, 125%] of base delay
+
+On ConnectionClosed or OSError:
+    actual_wait = jitter(delay)
+    sleep(actual_wait)
+    delay = min(delay * 2, max_delay)      # exponential increase, capped
+
+On successful reconnect:
+    delay = initial_delay                   # reset to 1.0s
+    reconnect_count += 1
+    notify reconnect_handler()              # e.g., MetricsExporter.record_ws_reconnect()
+```
+
+### Backoff Timeline Example
+
+| Attempt | Base Delay | Jitter Range | Actual Wait |
+|---------|-----------|--------------|-------------|
+| 1 | 1.0s | 0.75s – 1.25s | ~1.0s |
+| 2 | 2.0s | 1.50s – 2.50s | ~2.0s |
+| 3 | 4.0s | 3.00s – 5.00s | ~4.0s |
+| 4 | 8.0s | 6.00s – 10.00s | ~8.0s |
+| 5 | 16.0s | 12.00s – 20.00s | ~16.0s |
+| 6 | 32.0s | 24.00s – 40.00s | ~32.0s |
+| 7+ | 60.0s | 45.00s – 75.00s | ~60.0s |
+
+### Why Jitter?
+
+Without jitter, all disconnected clients reconnect at the same intervals — causing **thundering herd** on the server. Jitter spreads reconnection attempts across a time window, preventing server overload.
+
+### Graceful Shutdown
+
+On SIGTERM/SIGINT, the client stops reconnection attempts and closes cleanly:
+
+- **AI Signal Bot** (`run.py`): `signal.signal(SIGTERM, _signal_handler)` → sets `_running = False` → listen loop cancels → WebSocket closes
+- **Exchange Simulator** (`__main__.py`): `loop.add_signal_handler(SIGTERM, ...)` → sets `_shutdown_event` → closes all client connections

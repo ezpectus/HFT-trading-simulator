@@ -125,6 +125,31 @@ and fast (reactive) signal generation.
 a single registry file, not hardcoded. Adding a panel = 1 entry, 0 changes to App.jsx.
 Same pattern for strategies, exchanges, and order types.
 
+### Observability & Reliability
+
+The system implements production-grade observability across all components:
+
+**Health endpoints** — Each service exposes HTTP health endpoints for Docker/Kubernetes probes:
+- Exchange Simulator: `/health`, `/live`, `/ready`, `/metrics` on port 8775
+- AI Signal Bot: `/health` on port 8080 (HealthChecker), `/health` + `/metrics` on port 9090 (MetricsExporter)
+- HFT Trade Bot: `/health` on port 9091
+- Web UI: `/health` on port 3000 (nginx)
+
+**Metrics** — Prometheus scrapes all services every 15s. Metrics use three namespaces:
+- `ai_signal_bot_*` — alert-specific metrics (circuit breaker, signals, errors, drawdown, win rate, PnL)
+- `trading_*` — operational metrics (orders, fills, latency, positions, SHM)
+- `exchange_*` — simulator metrics (clients, candles, orders, prices, balance)
+
+**Alerting** — 21 alert rules in `monitoring/alerts.yml` covering circuit breaker, signal generation, error rates, drawdown, order fill rates, and service availability. Alertmanager routes to email + Slack by severity (critical/warning/info) with `${ENV_VAR}` substitution for credentials.
+
+**Graceful shutdown** — SIGTERM/SIGINT handlers in both `run.py` and `exchange_simulator/__main__.py` ensure clean shutdown: cancel tasks, close WebSocket connections, stop metrics/health servers, flush tracing.
+
+**WebSocket reconnection** — `ws_client.py` implements exponential backoff (1s → 60s max) with ±25% jitter, automatic reconnect on `ConnectionClosed`/`OSError`, reconnect counter with metrics export.
+
+**Tracing** — OpenTelemetry integration via `src/observability/tracing.py`, initialized in `run.py` with `setup_tracing(service_name="ai-signal-bot")`.
+
+**Structured logging** — JSON format via `LOG_FORMAT=json` env var, used in production docker-compose files.
+
 ## Components
 
 ### 1. Exchange Simulator (`exchange_simulator/`)

@@ -9,6 +9,31 @@
 - **Текущая фаза:** РЕФАКТОРИНГ (22 авг – 1 сен 2026)
 - **План:** docs/REFACTORING_PLAN_10DAYS.md
 
+## Reliability Phase — COMPLETE (verified 25 Aug 2026)
+
+All 11 tasks from `.cascade/RELIABILITY_PLAN.md` verified in real code:
+
+| Task | Status | Verified in |
+|------|--------|-------------|
+| 1. Exchange Sim health+metrics | DONE | `websocket_server.py:175-213` — /health, /live, /ready, /metrics on :8775 |
+| 2. docker-compose HTTP healthchecks | DONE | All 3 compose files — HTTP, not TCP |
+| 3. Helm HTTP probes | DONE | `helm/templates/*.yaml` — httpGet, not tcpSocket |
+| 4. HealthAggregator | N/A | Deprecated, replaced by HealthChecker + HealthServer |
+| 5. Observability v2 | DONE | `run.py:38-39,463,475` — HealthChecker, setup_tracing, shutdown_tracing |
+| 6. Web UI /health | DONE | `nginx.conf:24-28` — returns 200 |
+| 7. Alertmanager config | DONE | `monitoring/alertmanager/config.yml` — ${ENV_VAR} substitution |
+| 8. Graceful shutdown | DONE | `run.py:465-470` + `exchange_simulator/__main__.py:133-136` |
+| 9. WS retry/backoff | DONE | `ws_client.py:116-159` — exp backoff 1s→60s + jitter ±25% |
+| 10. Metrics gaps | DONE | `metrics.py:162-207` — ai_signal_bot_* metrics added |
+| 11. Alert rules vs metrics | DONE | `alerts.yml` metric names match `metrics.py` exports |
+
+### Key ports
+- Exchange Sim health/metrics: :8775
+- AI Bot HealthServer: :8080
+- AI Bot MetricsExporter: :9090
+- HFT Bot health: :9091
+- Web UI health: :3000
+
 ## Refactoring Targets (найдено при аудите)
 
 ### Дедупликация (Day 2-3)

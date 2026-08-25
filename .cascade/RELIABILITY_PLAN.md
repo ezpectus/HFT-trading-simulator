@@ -166,12 +166,12 @@
 
 1. **Кеширование индикаторов** — EMA/RSI/ADX/ATR пересчитываются с нуля каждые 60s для 50 символов × 5 стратегий
 2. **Rate limiting** — RateLimiter написан в `utils/helpers.py`, но не подключён к broadcast_signal
-3. **Idempotency ордеров** — `submit_order` без `client_order_id` → повтор = двойной ордер
+3. ~~**Idempotency ордеров**~~ — ✅ FIXED: `client_order_id=f"sig_{signal_id}"` в `run.py:321`
 4. **Retry/backoff для ордеров** — есть только для WS connect
-5. **Graceful shutdown** — нет SIGTERM-обработки (только KeyboardInterrupt)
-6. **Tracing** — `setup_tracing()` написан, нигде не вызывается
+5. ~~**Graceful shutdown**~~ — ✅ FIXED: SIGTERM/SIGINT handlers в `run.py:465-470` и `exchange_simulator/__main__.py:133-136`
+6. ~~**Tracing**~~ — ✅ FIXED: `setup_tracing(service_name="ai-signal-bot")` в `run.py:463`, `shutdown_tracing()` в `run.py:475`
 7. **Schema validation** — WS сообщения не валидируются
-8. **Баг в `scripts/run_bot.py`** — `SignalPublisher(ws_port=...)` — параметра `ws_port` НЕ СУЩЕСТВУЕТ, скрипт упадёт. Правильно: `SignalPublisher(host=..., port=...)`
+8. ~~**Баг в `scripts/run_bot.py`**~~ — ✅ FIXED: файл удалён, используется `run.py`
 
 ---
 
@@ -1982,3 +1982,31 @@ strategies = {s.name: s for s in build_strategies(config)}
 | R1429 | communication/ws_connection_pool.py | `ws_connection_pool.py` | ✅ Good | WebSocket pool asyncio.Lock health checks ping/pong stale eviction max size. Best async pattern in project |
 | R1430 | conftest.py — pytest config | `conftest.py` | ✅ Good | sys.path setup for tests. Trivial. No issues |
 | R1431 | ws_connection_pool not used by ws_client | `ws_connection_pool.py` vs `ws_client.py` | Low | Pool is dead code. ExchangeClient manages own WS directly. Integrate or remove |
+
+---
+
+## ВЕРИФИКАЦИЯ (25 авг 2026)
+
+Все 11 задач проверены в реальном коде. Чек-лист:
+
+| # | Task | Verified | File:Line |
+|---|------|----------|-----------|
+| 1 | Exchange Sim /health, /live, /ready, /metrics | ✅ | `exchange_simulator/websocket_server.py:175-213` (aiohttp on port+10=8775) |
+| 2 | docker-compose HTTP healthchecks | ✅ | `docker-compose.yml:51,86,120,156` + prod + staging — all HTTP, not TCP |
+| 3 | Helm httpGet probes | ✅ | `helm/templates/ai-signal-bot.yaml:76-86` + `exchange-simulator.yaml:48-59` |
+| 4 | HealthAggregator | N/A | Deprecated — replaced by `observability/health_checks.py` + `monitoring/health_server.py` |
+| 5 | Observability v2 wired | ✅ | `run.py:38-39` (imports), `run.py:463` (setup_tracing), `run.py:475` (shutdown_tracing) |
+| 6 | Web UI /health | ✅ | `web-ui/nginx.conf:24-28` — `return 200 '{"status":"ok"}'` |
+| 7 | Alertmanager no placeholders | ✅ | `monitoring/alertmanager/config.yml` — all values use `${ENV_VAR}` substitution |
+| 8 | Graceful shutdown SIGTERM | ✅ | `run.py:465-470` (signal.signal) + `exchange_simulator/__main__.py:133-136` (loop.add_signal_handler) |
+| 9 | WS retry/backoff + jitter | ✅ | `ai-signal-bot/src/communication/ws_client.py:116-159` — exp 1s→60s, jitter `delay*(0.75+random()*0.5)` |
+| 10 | Metrics gaps (ai_signal_bot_*) | ✅ | `ai-signal-bot/src/monitoring/metrics.py:162-207` — 11 alert metrics defined |
+| 11 | Alert rules match metrics | ✅ | `monitoring/alerts.yml` — all metric names match `metrics.py` exports |
+
+**Документация обновлена:**
+- `README.md` — добавлен раздел Reliability & Health Checks + порты
+- `docs/MONITORING_GUIDE.md` — обновлены метрики, health checks, добавлены graceful shutdown + WS reconnect
+- `docs/DEPLOYMENT.md` — обновлены verify commands, добавлены health probes + graceful shutdown
+- `docs/ARCHITECTURE.md` — добавлен раздел Observability & Reliability
+- `docs/guides/CONFIGURATION_GUIDE.md` — добавлены env vars, health endpoints, исправлен alertmanager
+- `.cascade/notes.md` — добавлен Reliability Phase summary с верификацией

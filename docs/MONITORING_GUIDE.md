@@ -112,18 +112,56 @@ Scrape targets:
 
 ### Metrics Exported
 
-**Source:** `ai-signal-bot/src/monitoring/metrics.py`
+**Source:** `ai-signal-bot/src/monitoring/metrics.py` (MetricsExporter class)
+
+**AI Signal Bot metrics (`ai_signal_bot_*`):**
 
 | Metric | Type | Description |
 |--------|------|-------------|
-| `ai_signal_bot_signals_generated_total` | Counter | Total signals by strategy |
-| `ai_signal_bot_signal_generation_latency_seconds` | Histogram | Signal generation latency |
-| `ai_signal_bot_fills_total` | Counter | Order fills by symbol |
-| `ai_signal_bot_pnl_current` | Gauge | Current P&L |
-| `ai_signal_bot_drawdown_current` | Gauge | Current drawdown |
-| `exchange_simulator_order_latency_seconds` | Histogram | Order processing latency |
-| `exchange_simulator_orders_total` | Counter | Total orders processed |
-| `exchange_simulator_active_connections` | Gauge | Active WebSocket connections |
+| `ai_signal_bot_signals_sent_total` | Counter | Total signals broadcast |
+| `ai_signal_bot_signals_blocked_total` | Counter | Signals blocked by circuit breaker |
+| `ai_signal_bot_circuit_breaker_state` | Gauge | Breaker state (0=closed, 1=open, 2=half_open) |
+| `ai_signal_bot_circuit_breaker_trips_total` | Counter | Total circuit breaker trips |
+| `ai_signal_bot_ws_clients_connected` | Gauge | Connected WebSocket clients |
+| `ai_signal_bot_errors_total` | Counter | Total errors |
+| `ai_signal_bot_drawdown` | Gauge | Current drawdown fraction |
+| `ai_signal_bot_win_rate` | Gauge | Win rate (0-1) |
+| `ai_signal_bot_pnl_total` | Gauge | Cumulative PnL |
+| `ai_signal_bot_uptime_seconds` | Gauge | Uptime in seconds |
+| `trading_ws_reconnects_total` | Counter | Total WebSocket reconnections |
+
+**Trading metrics (`trading_*`):**
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `trading_signals_total` | Counter | Signals by symbol/direction |
+| `trading_fills_total` | Counter | Order fills by exchange/symbol/side |
+| `trading_orders_sent_total` | Counter | Orders sent by exchange/symbol/side/type |
+| `trading_orders_rejected_total` | Counter | Orders rejected by exchange/reason |
+| `trading_current_pnl` | Gauge | Current unrealized PnL (USD) |
+| `trading_daily_pnl` | Gauge | Daily realized PnL (USD) |
+| `trading_total_equity` | Gauge | Total account equity (USD) |
+| `trading_drawdown_pct` | Gauge | Drawdown percentage from peak |
+| `trading_open_positions` | Gauge | Number of open positions |
+| `trading_signal_latency_seconds` | Histogram | Signal generation latency |
+| `trading_order_latency_seconds` | Histogram | Order-to-fill latency by exchange |
+| `trading_shm_round_trip_seconds` | Histogram | SHM signal-to-fill round-trip |
+
+**Exchange Simulator metrics (`exchange_*`):**
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `exchange_connected_clients` | Gauge | Connected WebSocket clients |
+| `exchange_candle_count` | Counter | Total candles generated |
+| `exchange_trading_active` | Gauge | Trading active (1=yes, 0=stopped) |
+| `exchange_ws_connections_total` | Counter | Total WebSocket connections |
+| `exchange_ws_disconnections_total` | Counter | Total WebSocket disconnections |
+| `exchange_balance` | Gauge | Account balance by exchange |
+| `exchange_equity` | Gauge | Account equity by exchange |
+| `exchange_orders_submitted_total` | Counter | Orders submitted by exchange |
+| `exchange_orders_filled_total` | Counter | Orders filled by exchange |
+| `exchange_orders_rejected_total` | Counter | Orders rejected by exchange |
+| `exchange_price` | Gauge | Current price by symbol |
 
 ### Running Prometheus
 
@@ -209,9 +247,11 @@ Access at `http://localhost:3001` (admin/admin).
 
 | Severity | Channels |
 |----------|----------|
-| Critical | Email + Slack + Discord |
-| Warning | Slack + Email |
-| Info | Slack |
+| Critical | Email (on-call) + Slack (#trading-critical) |
+| Warning | Email + Slack (#trading-warnings) |
+| Info | Email only |
+
+**Alertmanager config** uses `${ENV_VAR}` placeholders — render with `envsubst` before passing to Alertmanager. Required env vars: `SMTP_SMARTHOST`, `SMTP_FROM`, `SMTP_AUTH_USERNAME`, `SMTP_AUTH_PASSWORD`, `ALERT_EMAIL_TO`, `ALERT_EMAIL_ONCALL`, `SLACK_WEBHOOK_URL`, `SLACK_CHANNEL_CRITICAL`, `SLACK_CHANNEL_WARNING`.
 
 ### Running Alertmanager
 
@@ -258,26 +298,134 @@ Access Jaeger UI at `http://localhost:16686`.
 
 ## Health Checks
 
-**Source:** `ai-signal-bot/src/monitoring/health_server.py`
+### AI Signal Bot
 
-HTTP health endpoints for Kubernetes probes:
+**Source:** `ai-signal-bot/src/monitoring/health_server.py` + `ai-signal-bot/src/monitoring/metrics.py`
 
-| Endpoint | Purpose | Check |
-|----------|---------|-------|
-| `GET /health` | Overall health | All subsystems |
-| `GET /health/exchange` | Exchange connectivity | WebSocket connection alive |
-| `GET /health/database` | Database connection | SQLite/PostgreSQL reachable |
-| `GET /health/shm` | SHM IPC status | Shared memory segments active |
+| Endpoint | Port | Purpose |
+|----------|------|---------|
+| `GET /health` | 8080 | Liveness — registered health checks (liveness + readiness) |
+| `GET /metrics` | 9090 | Prometheus metrics scraping |
+| `GET /health` | 9090 | Simple health (returns `{"status":"ok"}`) |
+
+**HealthServer** (port 8080) registers checks via `HealthChecker`:
 
 ```python
 from src.monitoring.health_server import HealthServer
+from src.observability.health_checks import HealthChecker
 
 health = HealthServer(port=8080)
+health.register_check("liveness", health_checker.check_liveness)
+health.register_check("readiness", health_checker.check_readiness)
 await health.start()
-# Registers custom checks:
-health.register_check("exchange", check_exchange_connection)
-health.register_check("database", check_db_connection)
 ```
+
+**MetricsExporter** (port 9090) also serves `/health` for simpler probes.
+
+### Exchange Simulator
+
+**Source:** `exchange_simulator/websocket_server.py` (inline aiohttp server on port+10)
+
+| Endpoint | Port | Purpose |
+|----------|------|---------|
+| `GET /health` | 8775 | Overall health (status, clients, trading_active) |
+| `GET /live` | 8775 | Liveness probe (always 200 if process running) |
+| `GET /ready` | 8775 | Readiness probe (200 if running + trading active, 503 otherwise) |
+| `GET /metrics` | 8775 | Prometheus metrics scraping |
+
+### Web UI
+
+**Source:** `web-ui/nginx.conf`
+
+| Endpoint | Port | Purpose |
+|----------|------|---------|
+| `GET /health` | 3000 | Static health check (returns `{"status":"ok"}`) |
+
+### HFT Trade Bot
+
+| Endpoint | Port | Purpose |
+|----------|------|---------|
+| `GET /health` | 9091 | C++ health server |
+
+### Docker Compose Healthchecks
+
+All services in `docker-compose.yml`, `docker-compose.prod.yml`, and `docker-compose.staging.yml`
+use HTTP-based healthchecks (not TCP):
+
+```yaml
+healthcheck:
+  test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8775/health', timeout=5)"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 10s
+```
+
+### Kubernetes Probes
+
+Helm templates (`helm/templates/ai-signal-bot.yaml`, `helm/templates/exchange-simulator.yaml`)
+use `httpGet` probes (not `tcpSocket`):
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 9090
+  initialDelaySeconds: 15
+  periodSeconds: 30
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 9090
+  initialDelaySeconds: 10
+  periodSeconds: 10
+```
+
+---
+
+## Graceful Shutdown
+
+Both the AI Signal Bot and Exchange Simulator handle SIGTERM/SIGINT for clean shutdown:
+
+**AI Signal Bot** (`run.py:465-470`):
+```python
+def _signal_handler(signum, frame):
+    logger.info("Received signal %s, initiating graceful shutdown...", signum)
+    bot._running = False
+
+signal.signal(signal.SIGTERM, _signal_handler)
+signal.signal(signal.SIGINT, _signal_handler)
+```
+
+**Exchange Simulator** (`exchange_simulator/__main__.py:133-136`):
+```python
+loop = asyncio.get_running_loop()
+for sig in (signal.SIGTERM, signal.SIGINT):
+    loop.add_signal_handler(sig, server._shutdown_event.set)
+```
+
+On SIGTERM, the bot:
+1. Stops the main signal generation loop
+2. Cancels background tasks (listen loop)
+3. Stops SignalPublisher, MetricsExporter, HealthServer
+4. Closes LLM engine and WebSocket connection
+5. Shuts down tracing
+6. Exits with code 0
+
+---
+
+## WebSocket Reconnection
+
+**Source:** `ai-signal-bot/src/communication/ws_client.py`
+
+The WebSocket client implements exponential backoff with jitter:
+
+- Initial delay: 1.0s
+- Max delay: 60.0s
+- Jitter: `delay * (0.75 + random() * 0.5)` — range [75%, 125%] of base delay
+- On `ConnectionClosed` or `OSError`: delay doubles (capped at 60s)
+- On successful reconnect: delay resets to 1.0s
+- Reconnect counter increments and notifies handler (e.g., `MetricsExporter.record_ws_reconnect`)
 
 ---
 

@@ -443,6 +443,38 @@ DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
 ## 7. Monitoring Configuration
 
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOG_FORMAT` | `text` | Log format: `text` (dev) or `json` (prod) |
+| `LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
+| `WS_URL` | `ws://localhost:8765` | Exchange simulator WebSocket URL |
+| `SHM_MARKET_ENABLED` | `0` | Enable SHM market data publisher (exchange sim) |
+| `SHM_MARKET_NAME` | `/hft_market` | SHM segment name |
+| `SHM_MARKET_MAX_SYMBOLS` | `10` | Max symbols in SHM segment |
+| `GRAFANA_USER` | `admin` | Grafana admin username |
+| `GRAFANA_PASSWORD` | *(required)* | Grafana admin password |
+| `SMTP_SMARTHOST` | *(envsubst)* | SMTP server for alerts |
+| `SMTP_FROM` | *(envsubst)* | Alert sender email |
+| `SMTP_AUTH_USERNAME` | *(envsubst)* | SMTP auth user |
+| `SMTP_AUTH_PASSWORD` | *(envsubst)* | SMTP auth password |
+| `ALERT_EMAIL_TO` | *(envsubst)* | Default alert recipient |
+| `ALERT_EMAIL_ONCALL` | *(envsubst)* | On-call recipient (critical) |
+| `SLACK_WEBHOOK_URL` | *(envsubst)* | Slack incoming webhook |
+| `SLACK_CHANNEL_CRITICAL` | `#trading-critical` | Slack channel for critical alerts |
+| `SLACK_CHANNEL_WARNING` | `#trading-warnings` | Slack channel for warning alerts |
+
+### Health Endpoints
+
+| Service | Endpoint | Port | Purpose |
+|---------|----------|------|---------|
+| Exchange Simulator | `/health`, `/live`, `/ready`, `/metrics` | 8775 | Health + liveness + readiness + Prometheus |
+| AI Signal Bot | `/health` | 8080 | HealthChecker (liveness + readiness) |
+| AI Signal Bot | `/health`, `/metrics` | 9090 | MetricsExporter |
+| HFT Trade Bot | `/health` | 9091 | C++ health server |
+| Web UI | `/health` | 3000 | nginx static health |
+
 ### Prometheus (`monitoring/prometheus.yml`)
 
 Scrape targets:
@@ -462,11 +494,13 @@ Scrape targets:
 | `repeat_interval` | `12h` | Re-send unresolved alerts after this |
 
 Routes by severity:
-- **critical** → email + Slack + Discord
-- **warning** → email + Slack
-- **info** → Slack only
+- **critical** → email (on-call) + Slack (#trading-critical)
+- **warning** → email + Slack (#trading-warnings)
+- **info** → email only
 
-Inhibition: `critical` alerts suppress `warning` alerts for the same service.
+Config uses `${ENV_VAR}` placeholders — render with `envsubst` before passing to Alertmanager.
+
+Inhibition: `critical` alerts suppress `warning` and `info` alerts for the same service.
 
 ---
 

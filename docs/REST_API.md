@@ -67,11 +67,12 @@ create new order. Prevents duplicate execution on retry.
 
 ## Base URLs
 
-| Component | Base URL |
-|-----------|----------|
-| Exchange Simulator | `http://localhost:8765/api/v1` |
-| AI Signal Bot | `http://localhost:8766/api/v1` |
-| HFT Trade Bot | `http://localhost:9091/api/v1` |
+| Component | Base URL | Health/Metrics |
+|-----------|----------|----------------|
+| Exchange Simulator | `http://localhost:8765/api/v1` | `http://localhost:8775/health` |
+| AI Signal Bot | `http://localhost:8766/api/v1` | `http://localhost:8080/health` |
+| AI Signal Bot Metrics | — | `http://localhost:9090/metrics` |
+| HFT Trade Bot | `http://localhost:9091/api/v1` | `http://localhost:9091/health` |
 
 ---
 
@@ -79,20 +80,23 @@ create new order. Prevents duplicate execution on retry.
 
 ### Health Check
 
-**GET** `/health`
+Health endpoints are served on port **8775** (not 8765):
 
-Returns the health status of the exchange simulator.
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Overall health (status, clients, trading_active) |
+| `GET /live` | Liveness probe (always 200 if process running) |
+| `GET /ready` | Readiness probe (200 if trading active, 503 otherwise) |
+| `GET /metrics` | Prometheus metrics scraping |
+
+**GET** `http://localhost:8775/health`
 
 ```json
 {
   "status": "healthy",
-  "version": "3.0.0",
-  "timestamp": "2026-08-11T20:00:00Z",
-  "services": {
-    "websocket": "running",
-    "price_feed": "running",
-    "order_matching": "running"
-  }
+  "connected_clients": 3,
+  "trading_active": true,
+  "timestamp": 1234567890.0
 }
 ```
 
@@ -306,14 +310,23 @@ Retrieve historical candle data.
 
 ### Health Check
 
-**GET** `/health`
+Health endpoints are served on two ports:
+
+| Endpoint | Port | Purpose |
+|----------|------|---------|
+| `GET /health` | 8080 | HealthServer — liveness + readiness checks |
+| `GET /health` | 9090 | MetricsExporter — simple `{"status":"ok"}` |
+| `GET /metrics` | 9090 | Prometheus metrics scraping |
+
+**GET** `http://localhost:8080/health`
 
 ```json
 {
   "status": "healthy",
-  "version": "3.0.0",
-  "strategies_running": 5,
-  "signals_generated_today": 1250
+  "checks": {
+    "liveness": "ok",
+    "readiness": "ok"
+  }
 }
 ```
 
@@ -423,7 +436,7 @@ Run a backtest for a strategy.
 
 ### Health Check
 
-**GET** `/health`
+**GET** `http://localhost:9091/health`
 
 ```json
 {

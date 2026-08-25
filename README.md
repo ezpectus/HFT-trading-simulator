@@ -216,13 +216,41 @@ docker-compose -f docker-compose.prod.yml up -d
 
 | Service | Port | Description |
 |---------|------|-------------|
-| Web UI | 3000 | React dashboard |
+| Web UI | 3000 | React dashboard + `/health` endpoint |
 | Grafana | 3001 | Monitoring dashboards |
-| Prometheus | 9090 | Metrics scraping |
+| Prometheus | 9099 | Metrics scraping (internal 9090) |
 | Exchange Simulator | 8765 | Market data (WebSocket) |
+| Exchange Simulator | 8775 | Health (`/health`, `/live`, `/ready`) + `/metrics` |
 | AI Signal Bot | 8766 | Signal publisher (WebSocket) |
+| AI Signal Bot | 8080 | Health server (liveness + readiness) |
+| AI Signal Bot | 9090 | Prometheus metrics + `/health` |
+| HFT Trade Bot | 9091 | Health + metrics |
 | PostgreSQL | 5432 | Trade persistence (optional) |
 | Redis | 6379 | Caching (optional) |
+
+---
+
+## Reliability & Health Checks
+
+All services expose HTTP health endpoints for Docker/Kubernetes probes:
+
+| Service | Endpoint | Check |
+|---------|----------|-------|
+| Exchange Simulator | `GET :8775/health` | Status, clients, trading_active |
+| Exchange Simulator | `GET :8775/live` | Liveness (always 200 if running) |
+| Exchange Simulator | `GET :8775/ready` | Readiness (200 if trading active) |
+| AI Signal Bot | `GET :8080/health` | Liveness + readiness checks |
+| AI Signal Bot | `GET :9090/health` | Simple health OK |
+| HFT Trade Bot | `GET :9091/health` | C++ health server |
+| Web UI | `GET :3000/health` | Static nginx health |
+
+**Graceful shutdown:** Both AI Signal Bot and Exchange Simulator handle SIGTERM/SIGINT — clean shutdown of WebSocket connections, background tasks, metrics servers, and tracing.
+
+**WebSocket reconnection:** Exponential backoff (1s → 60s max) with jitter (±25%), automatic reconnect on `ConnectionClosed`/`OSError`.
+
+**Docker Compose:** All 3 compose files use HTTP healthchecks. **Helm:** `httpGet` liveness/readiness probes (not `tcpSocket`).
+
+See [Monitoring Guide](docs/MONITORING_GUIDE.md) for full details.
 
 ---
 

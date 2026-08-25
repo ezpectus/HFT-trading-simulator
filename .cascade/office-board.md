@@ -12612,210 +12612,593 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 
 ---
 
-## ФАЗА 13 — Feature Enhancements
+## ФАЗА 13 — Static Analysis Bug Fixes
 
-### REF-501: Add multi-exchange support to WebSocket manager ⬜ TODO
-**Описание:** Support connecting to multiple exchanges simultaneously.
+### REF-501: Static analysis — audit all React components for runtime bugs ⬜ TODO
+**Описание:** Go through every .jsx component. Check for: undefined vars, wrong prop types, missing null checks, broken conditionals, incorrect hook usage. Fix bugs that cause incorrect behavior.
 **Сложность:** Высокая
-**Файлы:** `web-ui/src/utils/wsManager.js`
+**Файлы:** All `web-ui/src/components/*.jsx` (51 files)
 
-### REF-502: Add order book depth visualization ⬜ TODO
+### REF-502: Static analysis — audit all hooks for bugs ⬜ TODO
+**Описание:** Check useLocalStorage, useExchangeData, useMockData, useNotifications, usePerformance, useDetachablePanels. Verify cleanup, edge cases, race conditions.
 **Сложность:** Высокая
-**Файлы:** New component
+**Файлы:** `web-ui/src/hooks/` (6 files)
 
-### REF-503: Add trade flow visualization (Sankey diagram) ⬜ TODO
+### REF-503: Static analysis — audit all utils for bugs ⬜ TODO
+**Описание:** Check indicators.js, backtestEngine.js, mockData.js, format.ts, patterns.ts, performance.ts, timeframes.ts, auditExport.js, performanceMonitor.js. Verify math correctness, edge cases.
 **Сложность:** Высокая
-**Файлы:** New component
+**Файлы:** `web-ui/src/utils/` (11 files)
 
-### REF-504: Add portfolio risk radar chart ⬜ TODO
+### REF-504: Static analysis — audit panel registry for broken imports ⬜ TODO
+**Описание:** Check registry.js — verify every panel import resolves, no dead references, all categories correct.
 **Сложность:** Средняя
-**Файлы:** New component
+**Файлы:** `web-ui/src/panels/registry.js`, `web-ui/src/panels/PanelContainer.jsx`
 
-### REF-505: Add strategy performance heatmap ⬜ TODO
-**Описание:** Strategy × time period → return (color-coded).
-**Сложность:** Средняя
-**Файлы:** New component
-
-### REF-506: Add correlation network graph ⬜ TODO
-**Описание:** Force-directed graph of correlated assets.
+### REF-505: Static analysis — audit App.jsx for bugs ⬜ TODO
+**Описание:** Check context providers, routing, WS connection, error boundaries, lazy loading.
 **Сложность:** Высокая
-**Файлы:** New component
+**Файлы:** `web-ui/src/App.jsx`
 
-### REF-507: Add candlestick pattern recognition ⬜ TODO
+### REF-506: Static analysis — audit Python strategies for bugs ⬜ TODO
+**Описание:** Check strategies.py — verify indicator math, signal generation, edge cases (empty candles, single candle, NaN values).
 **Сложность:** Высокая
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/strategies/`
 
-### REF-508: Add support/resistance level detection ⬜ TODO
+### REF-507: Static analysis — audit Python risk module for bugs ⬜ TODO
+**Описание:** Check VaR, CVaR, Kelly, position sizers, stress tests. Verify math, edge cases (empty portfolio, single position).
 **Сложность:** Высокая
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/risk/`
 
-### REF-509: Add Fibonacci retracement tool ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** `web-ui/src/components/DrawingTools.jsx`
-
-### REF-510: Add Elliott Wave annotation tool ⬜ TODO
+### REF-508: Static analysis — audit Python backtesting for bugs ⬜ TODO
+**Описание:** Check backtester, engine, PnL calculator, optimizer, walk-forward. Verify equity curve, fee calculation, position simulation.
 **Сложность:** Высокая
-**Файлы:** `web-ui/src/components/DrawingTools.jsx`
+**Файлы:** `ai-signal-bot/src/backtesting/`
 
-### REF-511: Add volume profile indicator ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** New component
-
-### REF-512: Add order flow imbalance indicator ⬜ TODO
+### REF-509: Static analysis — audit Python communication layer for bugs ⬜ TODO
+**Описание:** Check WS client, signal publisher, SHM ring buffer, circuit breaker. Verify reconnection, error handling, buffer overflow.
 **Сложность:** Высокая
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/communication/`
 
-### REF-513: Add VWAP indicator to charts ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** Chart components
-
-### REF-514: Add Ichimoku Cloud indicator ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** New component
-
-### REF-515: Add Pine Script-like strategy builder ⬜ TODO
+### REF-510: Static analysis — audit Python data_collection for bugs ⬜ TODO
+**Описание:** Check exchange factory, real account, real market data. Verify API calls, error handling, rate limiting.
 **Сложность:** Высокая
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/data_collection/`
 
-### REF-516: Add backtest comparison side-by-side ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** `web-ui/src/components/BacktestEngine.jsx`
-
-### REF-517: Add walk-forward analysis visualization ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** `web-ui/src/components/WalkForwardViewer.jsx`
-
-### REF-518: Add Monte Carlo simulation results ⬜ TODO
+### REF-511: Static analysis — audit Python ML module for bugs ⬜ TODO
+**Описание:** Check autoencoder, automl, environment, feature store, model registry, price predictor, RL trader, VAE, SVM. Verify model loading, prediction, training loops.
 **Сложность:** Высокая
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/ml/`
 
-### REF-519: Add Kelly criterion calculator UI ⬜ TODO
+### REF-512: Static analysis — audit Python monitoring/observability for bugs ⬜ TODO
+**Описание:** Check alerting, health server, metrics, tracker, health checks, logging, tracing. Verify metric collection, alert thresholds.
 **Сложность:** Средняя
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/monitoring/`, `ai-signal-bot/src/observability/`
 
-### REF-520: Add position sizing calculator ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** New component
-
-### REF-521: Add risk/reward ratio visualizer ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** New component
-
-### REF-522: Add drawdown recovery analysis ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** `web-ui/src/components/DrawdownAnalysis.jsx`
-
-### REF-523: Add trade journal with notes ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** `web-ui/src/hooks/useTradeJournal.js`
-
-### REF-524: Add trade tagging system ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** Trade journal
-
-### REF-525: Add trade screenshot attachment ⬜ TODO
+### REF-513: Static analysis — audit Python portfolio module for bugs ⬜ TODO
+**Описание:** Check Black-Litterman, Markowitz, rebalancing, risk parity. Verify optimization, edge cases.
 **Сложность:** Высокая
-**Файлы:** Trade journal
+**Файлы:** `ai-signal-bot/src/portfolio/`
 
-### REF-526: Add emotional trading detection ⬜ TODO
-**Описание:** Detect revenge trading, overtrading patterns.
+### REF-514: Static analysis — audit Python research module for bugs ⬜ TODO
+**Описание:** Check attribution, competition, genetic strategy, greeks hedging, microstructure lab. Verify math, edge cases.
 **Сложность:** Высокая
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/research/`
 
-### REF-527: Add trading discipline score ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** New component
-
-### REF-528: Add market regime detection UI ⬜ TODO
-**Описание:** Already have regime detector, enhance visualization.
+### REF-515: Static analysis — audit Python database module for bugs ⬜ TODO
+**Описание:** Check database.py, db.py, models.py. Verify SQL queries, connection handling, migrations.
 **Сложность:** Средняя
-**Файлы:** `web-ui/src/components/RegimeDetector.jsx`
+**Файлы:** `ai-signal-bot/src/database/`
 
-### REF-529: Add sentiment analysis from news ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** `web-ui/src/components/SentimentDashboard.jsx`
-
-### REF-530: Add social media sentiment tracking ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** New component
-
-### REF-531: Add on-chain whale alert integration ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** `web-ui/src/components/OnChainAnalytics.jsx`
-
-### REF-532: Add DeFi yield farming tracker ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** New component
-
-### REF-533: Add funding rate arbitrage scanner ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** New component
-
-### REF-534: Add liquidation heatmap ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** New component
-
-### REF-535: Add open interest visualization ⬜ TODO
+### REF-516: Static analysis — audit Python config loading for bugs ⬜ TODO
+**Описание:** Check config/__init__.py, settings.yaml. Verify validation, defaults, type coercion.
 **Сложность:** Средняя
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/config/`, `ai-signal-bot/config/settings.yaml`
 
-### REF-536: Add long/short ratio indicator ⬜ TODO
+### REF-517: Static analysis — audit Python utils for bugs ⬜ TODO
+**Описание:** Check helpers.py — CircuitBreaker, RateLimiter, formatting, logging. Verify edge cases.
 **Сложность:** Средняя
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/utils/`
 
-### REF-537: Add stablecoin supply ratio ⬜ TODO
+### REF-518: Static analysis — audit Python LLM engine for bugs ⬜ TODO
+**Описание:** Check engine.py — signal explanations, market analysis. Verify prompt construction, API calls.
 **Сложность:** Средняя
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/llm_engine/`
 
-### REF-538: Add miner reserves tracking ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** New component
-
-### REF-539: Add exchange reserve changes ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** New component
-
-### REF-540: Add NFT market overview ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** New component
-
-### REF-541: Add gas tracker ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** New component
-
-### REF-542: Add DeFi TVL tracker ⬜ TODO
-**Сложность:** Средняя
-**Файлы:** New component
-
-### REF-543: Add fear & greed index ⬜ TODO
+### REF-519: Static analysis — audit Python notification for bugs ⬜ TODO
+**Описание:** Check notifier.py. Verify message formatting, delivery, error handling.
 **Сложность:** Низкая
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/notification/`
 
-### REF-544: Add economic calendar ⬜ TODO
+### REF-520: Static analysis — audit Python networking for bugs ⬜ TODO
+**Описание:** Check socket_transport.py. Verify connection handling, error recovery.
 **Сложность:** Средняя
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/src/networking/`
 
-### REF-545: Add earnings calendar for crypto companies ⬜ TODO
+---
+
+## ФАЗА 14 — Config Updates & Maintenance
+
+### REF-521: Update settings.yaml — verify all config keys match code ⬜ TODO
+**Описание:** Compare every config key in settings.yaml with actual usage in code. Remove dead keys, add missing keys, update defaults.
 **Сложность:** Средняя
-**Файлы:** New component
+**Файлы:** `ai-signal-bot/config/settings.yaml`, `ai-signal-bot/src/config/`
 
-### REF-546: Add regulatory news feed ⬜ TODO
+### REF-522: Update settings.testnet.yaml — sync with main config ⬜ TODO
+**Описание:** Ensure testnet config has same keys as main config with testnet-appropriate values.
+**Сложность:** Низкая
+**Файлы:** `ai-signal-bot/config/settings.testnet.yaml`
+
+### REF-523: Update helm/values.yaml — verify all values match templates ⬜ TODO
+**Описание:** Compare values.yaml with all Helm templates. Remove dead values, add missing ones.
 **Сложность:** Средняя
-**Файлы:** `web-ui/src/components/NewsFeed.jsx`
+**Файлы:** `helm/values.yaml`, `helm/templates/`
 
-### REF-547: Add AI-powered trade suggestions ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** New component
+### REF-524: Update deploy/helm/values.yaml — sync with main helm chart ⬜ TODO
+**Описание:** Ensure deploy/helm chart is consistent with helm/ chart.
+**Сложность:** Средняя
+**Файлы:** `deploy/helm/`
 
-### REF-548: Add natural language query interface ⬜ TODO
-**Описание:** "Show me all profitable BTC trades last week" → filtered view.
-**Сложность:** Высокая
-**Файлы:** New component
+### REF-525: Update shared_config.yaml — verify all shared values ⬜ TODO
+**Описание:** Check shared_config.yaml is consistent with all service configs.
+**Сложность:** Средняя
+**Файлы:** `shared_config.yaml`
 
-### REF-549: Add voice command support ⬜ TODO
-**Сложность:** Высокая
-**Файлы:** App-level
+### REF-526: Update exchange_simulator/config.yaml — verify config ⬜ TODO
+**Сложность:** Низкая
+**Файлы:** `exchange_simulator/config.yaml`
 
-### REF-550: Add mobile app (React Native) ⬜ TODO
+### REF-527: Update hft-trade-bot config.yaml — verify config ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** `hft-trade-bot/config/config.yaml`, `hft-trade-bot/config/config.prod.yaml`
+
+### REF-528: Update web-ui/vite.config.js — verify build config ⬜ TODO
+**Описание:** Check aliases, plugins, build options, PWA config, esbuild config.
+**Сложность:** Средняя
+**Файлы:** `web-ui/vite.config.js`
+
+### REF-529: Update web-ui/vitest.config.js — fix isolate setting ⬜ TODO
+**Описание:** Change isolate: false to isolate: true. Verify test setup file path.
+**Сложность:** Низкая
+**Файлы:** `web-ui/vitest.config.js`
+
+### REF-530: Update web-ui/package.json — verify dependencies ⬜ TODO
+**Описание:** Remove unused deps, update outdated deps, verify scripts.
+**Сложность:** Средняя
+**Файлы:** `web-ui/package.json`
+
+### REF-531: Update web-ui/tsconfig.json — verify TS config ⬜ TODO
+**Сложность:** Низкая
+**Файлы:** `web-ui/tsconfig.json`
+
+### REF-532: Update web-ui/eslint.config.js — verify lint rules ⬜ TODO
+**Сложность:** Низкая
+**Файлы:** `web-ui/eslint.config.js`
+
+### REF-533: Update ai-signal-bot/pyproject.toml — verify ruff/mypy config ⬜ TODO
+**Сложность:** Низкая
+**Файлы:** `ai-signal-bot/pyproject.toml`
+
+### REF-534: Update ai-signal-bot/requirements.txt — verify deps ⬜ TODO
+**Описание:** Remove unused deps, pin versions, verify compatibility.
+**Сложность:** Средняя
+**Файлы:** `ai-signal-bot/requirements.txt`
+
+### REF-535: Update docker-compose.yml — verify service config ⬜ TODO
+**Описание:** Check all services, ports, volumes, networks, healthchecks.
+**Сложность:** Средняя
+**Файлы:** `docker-compose.yml`
+
+### REF-536: Update all Dockerfiles — verify build stages ⬜ TODO
+**Описание:** Check base images, build steps, exposed ports, healthchecks.
+**Сложность:** Средняя
+**Файлы:** All Dockerfiles
+
+### REF-537: Update .env.example — verify env vars ⬜ TODO
+**Описание:** Ensure all env vars used in code are documented in .env.example.
+**Сложность:** Низкая
+**Файлы:** `.env.example` or create if missing
+
+### REF-538: Update exchange_simulator config — verify all params ⬜ TODO
+**Описание:** Check GBM params, candle intervals, symbol list, WS port.
+**Сложность:** Средняя
+**Файлы:** `exchange_simulator/config.yaml`
+
+### REF-539: Update Grafana dashboards — verify queries match current metrics ⬜ TODO
+**Описание:** Check all PromQL queries in Grafana dashboards match actual metrics exported by services.
 **Сложность:** Высокая
-**Файлы:** New `mobile-app/`
+**Файлы:** `helm/templates/grafana.yaml`, `deploy/helm/templates/grafana.yaml`
+
+### REF-540: Update Prometheus scrape config — verify targets ⬜ TODO
+**Описание:** Ensure all services are scraped, ports match, intervals correct.
+**Сложность:** Средняя
+**Файлы:** `helm/templates/prometheus.yaml`, `deploy/helm/templates/prometheus.yaml`
+
+---
+
+## ФАЗА 15 — Custom CI/CD (Self-Hosted)
+
+### REF-541: Write custom CI script — lint check (Python + JS) ⬜ TODO
+**Описание:** Write `scripts/ci/lint.sh` that runs ruff + eslint without GitHub Actions. Can run locally or in any CI.
+**Сложность:** Средняя
+**Файлы:** New `scripts/ci/lint.sh`
+
+### REF-542: Write custom CI script — test runner (Python + JS) ⬜ TODO
+**Описание:** Write `scripts/ci/test.sh` that runs pytest + vitest. Reports pass/fail counts.
+**Сложность:** Средняя
+**Файлы:** New `scripts/ci/test.sh`
+
+### REF-543: Write custom CI script — build check ⬜ TODO
+**Описание:** Write `scripts/ci/build.sh` that builds all Docker images and reports failures.
+**Сложность:** Средняя
+**Файлы:** New `scripts/ci/build.sh`
+
+### REF-544: Write custom CI script — security scan ⬜ TODO
+**Описание:** Write `scripts/ci/security.sh` that runs npm audit, pip-audit, gitleaks, and checks for hardcoded secrets.
+**Сложность:** Высокая
+**Файлы:** New `scripts/ci/security.sh`
+
+### REF-545: Write custom CI script — Helm lint ⬜ TODO
+**Описание:** Write `scripts/ci/helm-lint.sh` that validates all Helm charts.
+**Сложность:** Низкая
+**Файлы:** New `scripts/ci/helm-lint.sh`
+
+### REF-546: Write custom CI script — Docker image scan ⬜ TODO
+**Описание:** Write `scripts/ci/scan-images.sh` that scans built images with trivy or grype.
+**Сложность:** Средняя
+**Файлы:** New `scripts/ci/scan-images.sh`
+
+### REF-547: Write custom CI orchestrator — run all checks ⬜ TODO
+**Описание:** Write `scripts/ci/run-all.sh` that runs lint, test, build, security, helm-lint in sequence. Returns exit code.
+**Сложность:** Средняя
+**Файлы:** New `scripts/ci/run-all.sh`
+
+### REF-548: Write pre-commit hook (Python, not shell) ⬜ TODO
+**Описание:** Replace broken .git/hooks/pre-commit with a Python script that runs lint + test before commit. Configurable via .pre-commit-config.yaml.
+**Сложность:** Средняя
+**Файлы:** New `scripts/pre-commit.py`, `.pre-commit-config.yaml`
+
+### REF-549: Write custom deployment script ⬜ TODO
+**Описание:** Write `scripts/deploy.sh` that deploys via Helm to a configured cluster. Supports rollback.
+**Сложность:** Высокая
+**Файлы:** New `scripts/deploy.sh`
+
+### REF-550: Write CI status reporter ⬜ TODO
+**Описание:** Write `scripts/ci/report.py` that collects all CI results and generates a markdown report. Can be used in any CI system.
+**Сложность:** Средняя
+**Файлы:** New `scripts/ci/report.py`
+
+---
+
+## ФАЗА 16 — Documentation Updates (All Docs)
+
+### REF-551: Update docs/WEB_UI.md — match current component count & panels ⬜ TODO
+**Описание:** Doc says "227 React components, 204 registered panels". Verify actual count and update. Update all references to component names, hooks, utils.
+**Сложность:** Средняя
+**Файлы:** `docs/WEB_UI.md`
+
+### REF-552: Update docs/WEBSOCKET_PROTOCOL.md — match current WS messages ⬜ TODO
+**Описание:** Verify all message types documented match actual WS messages in code. Add new messages, remove dead ones.
+**Сложность:** Средняя
+**Файлы:** `docs/WEBSOCKET_PROTOCOL.md`
+
+### REF-553: Update docs/TRADING_STRATEGIES.md — match current strategies ⬜ TODO
+**Описание:** Verify all strategies documented match actual code. Update parameters, logic descriptions.
+**Сложность:** Средняя
+**Файлы:** `docs/TRADING_STRATEGIES.md`
+
+### REF-554: Update docs/RISK_MANAGEMENT.md — match current risk module ⬜ TODO
+**Описание:** Verify VaR, CVaR, Kelly, position sizers, stress tests match code. Update formulas, parameters.
+**Сложность:** Средняя
+**Файлы:** `docs/RISK_MANAGEMENT.md`
+
+### REF-555: Update docs/TESTING.md — match current test count & structure ⬜ TODO
+**Описание:** Doc says "118 Python + 46 C++ + 44 JS = 208 total". Verify actual test count. Update test structure, commands.
+**Сложность:** Средняя
+**Файлы:** `docs/TESTING.md`
+
+### REF-556: Update docs/REST_API.md — match current endpoints ⬜ TODO
+**Описание:** Verify all documented endpoints match actual code. Add new endpoints, remove dead ones.
+**Сложность:** Средняя
+**Файлы:** `docs/REST_API.md`
+
+### REF-557: Update docs/MONITORING_GUIDE.md — match current monitoring ⬜ TODO
+**Описание:** Verify Grafana dashboards, Prometheus metrics, alert rules match current code.
+**Сложность:** Средняя
+**Файлы:** `docs/MONITORING_GUIDE.md`
+
+### REF-558: Update docs/PERFORMANCE.md — match current perf metrics ⬜ TODO
+**Описание:** Verify performance benchmarks, optimization techniques match current code.
+**Сложность:** Средняя
+**Файлы:** `docs/PERFORMANCE.md`
+
+### REF-559: Update docs/DEPLOYMENT.md — match current deployment process ⬜ TODO
+**Описание:** Verify Helm chart, Docker Compose, deployment steps match current setup.
+**Сложность:** Средняя
+**Файлы:** `docs/DEPLOYMENT.md`
+
+### REF-560: Update docs/ARCHITECTURE.md — match current architecture ⬜ TODO
+**Описание:** Verify system architecture, data flow, service map match current code.
+**Сложность:** Средняя
+**Файлы:** `docs/ARCHITECTURE.md`
+
+### REF-561: Update docs/ADVANCED_ORDER_TYPES.md — match current order types ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** `docs/ADVANCED_ORDER_TYPES.md`
+
+### REF-562: Update docs/AUDIT_FINDINGS.md — verify all findings resolved ⬜ TODO
+**Описание:** Go through audit findings, mark resolved ones, update unresolved ones.
+**Сложность:** Средняя
+**Файлы:** `docs/AUDIT_FINDINGS.md`
+
+### REF-563: Update docs/REFACTORING_PLAN_10DAYS.md — mark completed items ⬜ TODO
+**Описание:** Mark completed refactoring items, update remaining plan.
+**Сложность:** Низкая
+**Файлы:** `docs/REFACTORING_PLAN_10DAYS.md`
+
+### REF-564: Update docs/guides/QUICK_START.md — verify setup steps ⬜ TODO
+**Описание:** Verify quick start guide matches current project setup.
+**Сложность:** Низкая
+**Файлы:** `docs/guides/QUICK_START.md`
+
+### REF-565: Update docs/guides/DEVELOPMENT_GUIDE.md — verify dev workflow ⬜ TODO
+**Описание:** Verify development guide matches current workflow, tools, commands.
+**Сложность:** Средняя
+**Файлы:** `docs/guides/DEVELOPMENT_GUIDE.md`
+
+### REF-566: Update docs/guides/CONFIGURATION_GUIDE.md — verify config docs ⬜ TODO
+**Описание:** Verify all config options documented, match settings.yaml.
+**Сложность:** Средняя
+**Файлы:** `docs/guides/CONFIGURATION_GUIDE.md`
+
+### REF-567: Update docs/guides/TRADING_GUIDE.md — verify trading workflow ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** `docs/guides/TRADING_GUIDE.md`
+
+### REF-568: Update docs/theory/TECHNICAL_REFERENCE.md — match current system ⬜ TODO
+**Описание:** Update tech stack, module count, architecture. Remove references to non-functional code (Rust, VHDL, C++ if not used).
+**Сложность:** Высокая
+**Файлы:** `docs/theory/TECHNICAL_REFERENCE.md`
+
+### REF-569: Update docs/theory/module_guide_en.md — match current modules ⬜ TODO
+**Описание:** Verify every module documented matches actual code. Update file paths, class names, logic descriptions.
+**Сложность:** Высокая
+**Файлы:** `docs/theory/module_guide_en.md`
+
+### REF-570: Update docs/theory/project_architecture_en.md — match current architecture ⬜ TODO
+**Описание:** Update data flow diagram, service ports, component count.
+**Сложность:** Высокая
+**Файлы:** `docs/theory/project_architecture_en.md`
+
+### REF-571: Update docs/theory/useful_info_en.md — match current commands & configs ⬜ TODO
+**Описание:** Update all commands, ports, config paths, test commands, Docker commands.
+**Сложность:** Высокая
+**Файлы:** `docs/theory/useful_info_en.md`
+
+### REF-572: Update docs/theory/quant_models_en.md — match current models ⬜ TODO
+**Описание:** Verify all quantitative models documented match actual implementations.
+**Сложность:** Высокая
+**Файлы:** `docs/theory/quant_models_en.md`
+
+### REF-573: Update docs/theory/hft_architecture_en.md — match current HFT system ⬜ TODO
+**Описание:** Update HFT architecture to match current code. Remove references to non-functional components.
+**Сложность:** Высокая
+**Файлы:** `docs/theory/hft_architecture_en.md`
+
+### REF-574: Update docs/theory/ai_slop_lessons_en.md — add new lessons ⬜ TODO
+**Описание:** Document any new AI slop patterns found during refactoring.
+**Сложность:** Средняя
+**Файлы:** `docs/theory/ai_slop_lessons_en.md`
+
+### REF-575: Update docs/theory/README.md — update file listing ⬜ TODO
+**Описание:** Update file count, descriptions, listing to match current docs.
+**Сложность:** Низкая
+**Файлы:** `docs/theory/README.md`
+
+### REF-576: Update README.md — match current project overview ⬜ TODO
+**Описание:** Update project description, features, setup instructions, architecture.
+**Сложность:** Средняя
+**Файлы:** `README.md`
+
+### REF-577: Update README_PROJECT_OVERVIEW.md — match current project ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** `README_PROJECT_OVERVIEW.md`
+
+### REF-578: Update CHANGELOG.md — add recent changes ⬜ TODO
+**Описание:** Document all recent refactoring, bug fixes, new features.
+**Сложность:** Средняя
+**Файлы:** `CHANGELOG.md`
+
+### REF-579: Update CONTRIBUTING.md — match current workflow ⬜ TODO
+**Сложность:** Низкая
+**Файлы:** `CONTRIBUTING.md`
+
+### REF-580: Update SECURITY.md — match current security practices ⬜ TODO
+**Сложность:** Низкая
+**Файлы:** `SECURITY.md`
+
+---
+
+## ФАЗА 17 — Test Coverage (Every Part)
+
+### REF-581: Add vitest tests for useDetachablePanels hook ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/useDetachablePanels.test.jsx`
+
+### REF-582: Add vitest tests for useExchangeData hook ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/useExchangeData.test.jsx`
+
+### REF-583: Add vitest tests for useMockData hook ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/useMockData.test.jsx`
+
+### REF-584: Add vitest tests for useNotifications hook ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/useNotifications.test.jsx`
+
+### REF-585: Add vitest tests for usePerformance hook ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/usePerformance.test.jsx`
+
+### REF-586: Add vitest tests for indicators.js ⬜ TODO
+**Описание:** Test SMA, EMA, RSI, MACD, Bollinger, ATR, ADX, VWAP calculations.
+**Сложность:** Средняя
+**Файлы:** Expand `web-ui/src/test/indicators.test.js`
+
+### REF-587: Add vitest tests for format.ts ⬜ TODO
+**Сложность:** Низкая
+**Файлы:** New `web-ui/src/test/format.test.ts`
+
+### REF-588: Add vitest tests for patterns.ts ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/patterns.test.ts`
+
+### REF-589: Add vitest tests for timeframes.ts ⬜ TODO
+**Сложность:** Низкая
+**Файлы:** New `web-ui/src/test/timeframes.test.ts`
+
+### REF-590: Add vitest tests for performance.ts ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/performance.test.ts`
+
+### REF-591: Add vitest tests for auditExport.js ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/auditExport.test.js`
+
+### REF-592: Add vitest tests for performanceMonitor.js ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/performanceMonitor.test.js`
+
+### REF-593: Add vitest tests for backtestEngine.js ⬜ TODO
+**Описание:** Expand existing test with more edge cases.
+**Сложность:** Высокая
+**Файлы:** Expand `web-ui/src/test/backtestEngine.test.js`
+
+### REF-594: Add vitest tests for mockData.js ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/mockData.test.js`
+
+### REF-595: Add vitest tests for PanelContainer.jsx ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `web-ui/src/test/panelContainer.test.jsx`
+
+### REF-596: Add vitest tests for registry.js — verify all panels ⬜ TODO
+**Описание:** Test that every panel in registry renders without crashing.
+**Сложность:** Высокая
+**Файлы:** New `web-ui/src/test/registry.test.jsx`
+
+### REF-597: Add vitest tests for App.jsx — verify providers & routing ⬜ TODO
+**Сложность:** Высокая
+**Файлы:** New `web-ui/src/test/app.test.jsx`
+
+### REF-598: Add pytest tests for SignalValidator ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_signal_validator.py`
+
+### REF-599: Add pytest tests for exchange_factory ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_exchange_factory.py`
+
+### REF-600: Add pytest tests for database module ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_database.py`
+
+### REF-601: Add pytest tests for config loading & validation ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_config.py`
+
+### REF-602: Add pytest tests for notifier ⬜ TODO
+**Сложность:** Низкая
+**Файлы:** New `ai-signal-bot/tests/test_notifier.py`
+
+### REF-603: Add pytest tests for helpers (CircuitBreaker, RateLimiter) ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_helpers.py`
+
+### REF-604: Add pytest tests for LLM engine ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_llm_engine.py`
+
+### REF-605: Add pytest tests for monitoring alerting ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_alerting.py`
+
+### REF-606: Add pytest tests for monitoring metrics ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_metrics.py`
+
+### REF-607: Add pytest tests for observability health_checks ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_health_checks.py`
+
+### REF-608: Add pytest tests for observability logging ⬜ TODO
+**Сложность:** Низкая
+**Файлы:** New `ai-signal-bot/tests/test_logging.py`
+
+### REF-609: Add pytest tests for portfolio black_litterman ⬜ TODO
+**Сложность:** Высокая
+**Файлы:** New `ai-signal-bot/tests/test_black_litterman.py`
+
+### REF-610: Add pytest tests for portfolio markowitz ⬜ TODO
+**Сложность:** Высокая
+**Файлы:** New `ai-signal-bot/tests/test_markowitz.py`
+
+### REF-611: Add pytest tests for portfolio rebalancing ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_rebalancing.py`
+
+### REF-612: Add pytest tests for portfolio risk_parity ⬜ TODO
+**Сложность:** Высокая
+**Файлы:** New `ai-signal-bot/tests/test_risk_parity.py`
+
+### REF-613: Add pytest tests for research attribution ⬜ TODO
+**Сложность:** Высокая
+**Файлы:** New `ai-signal-bot/tests/test_attribution.py`
+
+### REF-614: Add pytest tests for research greeks_hedging ⬜ TODO
+**Сложность:** Высокая
+**Файлы:** New `ai-signal-bot/tests/test_greeks_hedging.py`
+
+### REF-615: Add pytest tests for research microstructure_lab ⬜ TODO
+**Сложность:** Высокая
+**Файлы:** New `ai-signal-bot/tests/test_microstructure_lab.py`
+
+### REF-616: Add pytest tests for ML autoencoder ⬜ TODO
+**Сложность:** Высокая
+**Файлы:** New `ai-signal-bot/tests/test_autoencoder.py`
+
+### REF-617: Add pytest tests for ML feature_store ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_feature_store.py`
+
+### REF-618: Add pytest tests for ML model_registry ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_model_registry.py`
+
+### REF-619: Add pytest tests for ML price_predictor ⬜ TODO
+**Сложность:** Высокая
+**Файлы:** New `ai-signal-bot/tests/test_price_predictor.py`
+
+### REF-620: Add pytest tests for communication circuit_breaker ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_circuit_breaker.py`
+
+### REF-621: Add pytest tests for communication ws_client ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_ws_client.py`
+
+### REF-622: Add pytest tests for communication shm_ring_buffer ⬜ TODO
+**Сложность:** Высокая
+**Файлы:** New `ai-signal-bot/tests/test_shm_ring_buffer.py`
+
+### REF-623: Add pytest tests for data_collection real_account ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_real_account.py`
+
+### REF-624: Add pytest tests for data_collection real_market_data ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_real_market_data.py`
+
+### REF-625: Add pytest tests for networking socket_transport ⬜ TODO
+**Сложность:** Средняя
+**Файлы:** New `ai-signal-bot/tests/test_socket_transport.py`
