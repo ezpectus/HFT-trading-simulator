@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
-import { Gauge, Zap, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Gauge, Zap, AlertTriangle } from 'lucide-react'
 
-export default function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
+function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -232,3 +232,5 @@ export default function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(TickSpeedAnomaly)

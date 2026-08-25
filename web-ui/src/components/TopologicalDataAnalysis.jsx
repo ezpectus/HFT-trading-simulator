@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Topological Data Analysis (TDA) — Persistence Homology ─────────────────
 // Computes persistence diagrams from point clouds derived from price data,
@@ -148,7 +148,7 @@ const takensEmbed = (series, E, tau) => {
   return points
 }
 
-export default function TopologicalDataAnalysis({ candles, symbol, exchange }) {
+function TopologicalDataAnalysis({ candles, symbol, exchange }) {
   const [embeddingDim, setEmbeddingDim] = useState(3)
   const [tau, setTau] = useState(2)
   const [lookback, setLookback] = useState(80)
@@ -380,3 +380,5 @@ export default function TopologicalDataAnalysis({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(TopologicalDataAnalysis)

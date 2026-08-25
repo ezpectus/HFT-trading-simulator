@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect } from 'react'
+import { memo, useState, useMemo, useEffect } from 'react'
 import { SkipForward, SkipBack, Play, Pause, Rewind, FastForward } from 'lucide-react'
 import { formatPrice, formatTime } from '../utils/format'
 
-export default function TradeReplay({ fills, candles, symbol, selectedExchange }) {
+function TradeReplay({ fills, candles, symbol, selectedExchange }) {
   const [playing, setPlaying] = useState(false)
   const [step, setStep] = useState(0)
   const [speed, setSpeed] = useState(1)
@@ -168,3 +168,5 @@ export default function TradeReplay({ fills, candles, symbol, selectedExchange }
     </div>
   )
 }
+
+export default memo(TradeReplay)

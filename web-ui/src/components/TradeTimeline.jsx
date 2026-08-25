@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { ArrowUp, ArrowDown, Clock } from 'lucide-react'
 import { formatPrice, formatTime } from '../utils/format'
 
-export default function TradeTimeline({ fills, symbol, selectedExchange }) {
+function TradeTimeline({ fills, symbol, selectedExchange }) {
   const recentFills = useMemo(() => {
     if (!fills?.length) return []
     return fills
@@ -90,3 +90,5 @@ export default function TradeTimeline({ fills, symbol, selectedExchange }) {
     </div>
   )
 }
+
+export default memo(TradeTimeline)

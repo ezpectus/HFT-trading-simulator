@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { History, Crown, AlertCircle, Download, NotebookPen, X, Check, FileText, ArrowUpDown, TrendingUp } from 'lucide-react'
 import { formatPrice, formatUsd, formatTime, colorForSide } from '../utils/format'
 import { useTradeJournal, tradeKey, extractTradesFromAccounts } from '../hooks/useTradeJournal'
@@ -11,7 +11,7 @@ const SORT_OPTIONS = [
   { id: 'symbol', label: 'Symbol' },
 ]
 
-export default function TradeHistory({ accounts }) {
+function TradeHistory({ accounts }) {
   const journal = useTradeJournal()
   const [expandedKey, setExpandedKey] = useState(null)
   const [noteDraft, setNoteDraft] = useState('')
@@ -316,3 +316,5 @@ export default function TradeHistory({ accounts }) {
     </div>
   )
 }
+
+export default memo(TradeHistory)

@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { BarChart3, AlertTriangle, CheckCircle } from 'lucide-react'
 
-export default function TradeClustering({ fills }) {
+function TradeClustering({ fills }) {
   const analysis = useMemo(() => {
     if (!fills?.length || fills.length < 3) {
       return { clusters: [], overtrading: false, avgInterval: 0, maxCluster: 0 }
@@ -119,3 +119,5 @@ export default function TradeClustering({ fills }) {
     </div>
   )
 }
+
+export default memo(TradeClustering)

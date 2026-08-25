@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Download, FileText, Check } from 'lucide-react'
 
-export default function TradeStatsExport({ accounts, fills }) {
+function TradeStatsExport({ accounts, fills }) {
   const stats = useMemo(() => {
     const allTrades = []
     for (const [exId, acc] of Object.entries(accounts || {})) {
@@ -177,3 +177,5 @@ export default function TradeStatsExport({ accounts, fills }) {
     </div>
   )
 }
+
+export default memo(TradeStatsExport)

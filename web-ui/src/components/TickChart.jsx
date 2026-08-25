@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { Hash, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Hash } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function TickChart({ candles, symbol, exchange }) {
+function TickChart({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -155,3 +155,5 @@ export default function TickChart({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(TickChart)

@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Clock } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
-export default function TimeOfDayPerformance({ accounts }) {
+function TimeOfDayPerformance({ accounts }) {
   const hourlyStats = useMemo(() => {
     const byHour = {}
     for (let h = 0; h < 24; h++) {
@@ -117,3 +117,5 @@ export default function TimeOfDayPerformance({ accounts }) {
     </div>
   )
 }
+
+export default memo(TimeOfDayPerformance)

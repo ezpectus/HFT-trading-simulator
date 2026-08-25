@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { BookOpen, Tag, Search, X } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 import { useTradeJournal, tradeKeyFromId, extractTradesFromAccounts } from '../hooks/useTradeJournal'
@@ -16,7 +16,7 @@ const TAG_COLORS = {
   'bad': 'bg-accent-red/20 text-accent-red',
 }
 
-export default function TradeJournal({ accounts }) {
+function TradeJournal({ accounts }) {
   const { data: entries, saveEntry, allTags: getAllTags } = useTradeJournal()
   const [filterTag, setFilterTag] = useState(null)
   const [filterWin, setFilterWin] = useState('all')
@@ -208,3 +208,5 @@ export default function TradeJournal({ accounts }) {
     </div>
   )
 }
+
+export default memo(TradeJournal)
