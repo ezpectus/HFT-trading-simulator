@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
-import { ICONS, statusColor, StatCard } from '../utils/ui-helpers'
+import { ICONS, statusColor, StatCard, Label } from '../utils/ui-helpers'
 
 const MOCK_FILLS = [
   { id: 1, orderId: 'ord_8a3f', symbol: 'BTC/USDT', side: 'BUY', reqQty: 0.5, fillQty: 0.5, reqPrice: 44100, fillPrice: 44102, partialFill: false, latency: 45, venue: 'Binance', status: 'filled' },
@@ -56,7 +56,7 @@ const FillAnalytics = memo(function FillAnalytics() {
 
       {/* Fill quality distribution */}
       <div className="p-2 bg-bg-700 border border-bg-600 rounded">
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Fill Quality</div>
+        <Label className="mb-1">Fill Quality</Label>
         <div className="flex h-4 rounded overflow-hidden">
           <div className="bg-accent-green flex items-center justify-center" style={{ width: `${stats.fillRate}%` }}>
             <span className="text-[7px] text-white">{stats.filled} filled</span>
@@ -72,7 +72,7 @@ const FillAnalytics = memo(function FillAnalytics() {
 
       {/* Fill details */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Recent Fills</div>
+        <Label className="mb-1">Recent Fills</Label>
         <div className="space-y-0.5 max-h-40 overflow-y-auto">
           {MOCK_FILLS.map(f => (
             <div key={f.id} className="py-0.5 px-1.5 bg-bg-700">

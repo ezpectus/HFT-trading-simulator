@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Receipt, TrendingDown, DollarSign } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_EXECUTIONS = [
   { id: 1, symbol: 'BTC/USDT', side: 'BUY', qty: 0.5, price: 44100, slippage: 2.5, fee: 11.0, impact: 8.5, totalCost: 22.0, venue: 'Binance' },
@@ -43,22 +44,10 @@ const TCA = memo(function TCA() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Total Cost</div>
-          <span className="text-sm font-mono text-accent-red">${stats.totalCost.toFixed(1)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Slip</div>
-          <span className="text-sm font-mono text-accent-yellow">{stats.avgSlippage.toFixed(2)}bps</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Cost bps</div>
-          <span className="text-sm font-mono text-accent-orange">{stats.costBps.toFixed(1)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Fees</div>
-          <span className="text-sm font-mono text-gray-300">${stats.totalFee.toFixed(1)}</span>
-        </div>
+        <StatCard label="Total Cost" value={`$${stats.totalCost.toFixed(1)}`} color="text-accent-red" compact />
+        <StatCard label="Avg Slip" value={`${stats.avgSlippage.toFixed(2)}bps`} color="text-accent-yellow" compact />
+        <StatCard label="Cost bps" value={stats.costBps.toFixed(1)} color="text-accent-orange" compact />
+        <StatCard label="Fees" value={`$${stats.totalFee.toFixed(1)}`} color="text-gray-300" compact />
       </div>
 
       {/* Cost breakdown */}

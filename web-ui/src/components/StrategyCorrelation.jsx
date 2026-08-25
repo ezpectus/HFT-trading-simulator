@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Grid3x3, TrendingUp, TrendingDown } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const STRATEGIES = ['Trend', 'MeanRev', 'StatArb', 'Sentiment', 'Funding', 'MarketMaker']
 
@@ -57,22 +58,10 @@ const StrategyCorrelation = memo(function StrategyCorrelation() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">High Corr</div>
-          <span className="text-sm font-mono text-accent-red">{stats.highCorr}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Diversifying</div>
-          <span className="text-sm font-mono text-accent-green">{stats.diversifying}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Return</div>
-          <span className="text-sm font-mono text-accent-green">{stats.avgReturn.toFixed(1)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Sharpe</div>
-          <span className="text-sm font-mono text-gray-300">{stats.avgSharpe.toFixed(2)}</span>
-        </div>
+        <StatCard label="High Corr" value={stats.highCorr} color="text-accent-red" compact />
+        <StatCard label="Diversifying" value={stats.diversifying} color="text-accent-green" compact />
+        <StatCard label="Avg Return" value={`${stats.avgReturn.toFixed(1)}%`} color="text-accent-green" compact />
+        <StatCard label="Avg Sharpe" value={stats.avgSharpe.toFixed(2)} color="text-gray-300" compact />
       </div>
 
       {/* Correlation matrix */}

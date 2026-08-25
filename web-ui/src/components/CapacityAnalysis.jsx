@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Gauge, TrendingUp, AlertTriangle, Maximize2 } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { statusColor, statusBg, StatCard, Bar } from '../utils/ui-helpers'
+import { statusColor, statusBg, StatCard, Bar, Label } from '../utils/ui-helpers'
 
 const MOCK_STRATEGIES = [
   { name: 'TrendFollowing', currentAUM: 500000, maxCapacity: 5000000, utilization: 10, alphaDecay: 0.5, status: 'scalable' },
@@ -65,7 +65,7 @@ const CapacityAnalysis = memo(function CapacityAnalysis() {
 
       {/* Strategy capacity table */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Strategy Capacity</div>
+        <Label className="mb-1">Strategy Capacity</Label>
         <div className="space-y-0.5">
           {MOCK_STRATEGIES.map(s => (
             <div key={s.name} className="py-1 px-1.5 bg-bg-700">
@@ -99,7 +99,7 @@ const CapacityAnalysis = memo(function CapacityAnalysis() {
       <div className="p-2 bg-bg-700 border border-bg-600">
         <div className="flex items-center gap-1 mb-1">
           <TrendingUp size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Alpha Decay Curve (StatArb)</span>
+          <Label>Alpha Decay Curve (StatArb)</Label>
         </div>
         <div className="flex items-end gap-1 h-16">
           {MOCK_CAPACITY_CURVE.map((pt, i) => (

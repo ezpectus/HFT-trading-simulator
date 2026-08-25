@@ -67,7 +67,7 @@
 **Сложность:** Средняя
 **Файлы:** 5+ компонентов + `web-ui/src/utils/ui-helpers.js`
 
-### REF-08: Create `Label` component for repeated `text-[9px] text-gray-600 uppercase` pattern ⬜ TODO
+### REF-08: Create `Label` component for repeated `text-[9px] text-gray-600 uppercase` pattern ✅ DONE (partial: 5 components)
 **Описание:** Паттерн `<span className="text-[9px] text-gray-600 uppercase">` повторяется 30+ раз.
 - Решение: создать `Label` компонент в `ui-helpers.js`, использовать во всех компонентах
 **Сложность:** Низкая

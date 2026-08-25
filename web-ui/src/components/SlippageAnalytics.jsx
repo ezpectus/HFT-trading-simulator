@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { TrendingDown, BarChart3, Activity, AlertTriangle } from 'lucide-react'
 import { formatVolume } from '../utils/format'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_SLIPPAGE = [
   { symbol: 'BTC/USDT', orderSize: 0.5, expected: 44100, filled: 44102.5, slippageBps: 5.7, venue: 'Binance' },
@@ -55,18 +56,9 @@ const SlippageAnalytics = memo(function SlippageAnalytics({ symbol }) {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Slippage</div>
-          <span className={`text-sm font-mono ${slipColor(stats.avgSlip)}`}>{stats.avgSlip.toFixed(1)}bps</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Max Slippage</div>
-          <span className={`text-sm font-mono ${slipColor(stats.maxSlip)}`}>{stats.maxSlip.toFixed(1)}bps</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Executions</div>
-          <span className="text-sm font-mono text-gray-300">{MOCK_SLIPPAGE.length}</span>
-        </div>
+        <StatCard label="Avg Slippage" value={`${stats.avgSlip.toFixed(1)}bps`} color={slipColor(stats.avgSlip)} />
+        <StatCard label="Max Slippage" value={`${stats.maxSlip.toFixed(1)}bps`} color={slipColor(stats.maxSlip)} />
+        <StatCard label="Executions" value={MOCK_SLIPPAGE.length} color="text-gray-300" />
       </div>
 
       {/* Slippage by order size */}

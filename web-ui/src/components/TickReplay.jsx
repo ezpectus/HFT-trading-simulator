@@ -1,6 +1,7 @@
 import { memo, useMemo, useState } from 'react'
 import { Play, Pause, SkipForward, SkipBack, Rewind, FastForward, Clock } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_TICKS = [
   { id: 1, ts: '12:45:32.100', price: 44100.5, size: 0.15, side: 'BUY', exch: 'Binance' },
@@ -53,24 +54,10 @@ const TickReplay = memo(function TickReplay({ symbol }) {
 
       {/* Current tick */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Last Price</div>
-          <span className="text-sm font-mono text-gray-200">
-            {currentTick ? `$${formatPrice(currentTick.price)}` : '—'}
-          </span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">VWAP</div>
-          <span className="text-sm font-mono text-accent-blue">${formatPrice(stats.vwap)}</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Buy Vol</div>
-          <span className="text-sm font-mono text-accent-green">{formatVolume(stats.buyVol)}</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Sell Vol</div>
-          <span className="text-sm font-mono text-accent-red">{formatVolume(stats.sellVol)}</span>
-        </div>
+        <StatCard label="Last Price" value={currentTick ? `$${formatPrice(currentTick.price)}` : '—'} color="text-gray-200" />
+        <StatCard label="VWAP" value={`$${formatPrice(stats.vwap)}`} color="text-accent-blue" />
+        <StatCard label="Buy Vol" value={formatVolume(stats.buyVol)} color="text-accent-green" />
+        <StatCard label="Sell Vol" value={formatVolume(stats.sellVol)} color="text-accent-red" />
       </div>
 
       {/* Controls */}

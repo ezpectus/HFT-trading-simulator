@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { PieChart, TrendingUp, TrendingDown, Activity } from 'lucide-react'
-import { pnlColor } from '../utils/ui-helpers'
+import { pnlColor, StatCard } from '../utils/ui-helpers'
 
 const MOCK_ATTRIBUTION = [
   { source: 'TrendFollowing', pnl: 1250, pct: 35, color: 'bg-accent-blue' },
@@ -50,26 +50,10 @@ const RealtimeAttribution = memo(function RealtimeAttribution() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Total PnL</div>
-          <span className={`text-sm font-mono ${pnlColor(stats.totalPnl)}`}>
-            {stats.totalPnl >= 0 ? '+' : ''}${stats.totalPnl}
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Profit Factor</div>
-          <span className={`text-sm font-mono ${stats.profitFactor >= 1.5 ? 'text-accent-green' : stats.profitFactor >= 1 ? 'text-accent-yellow' : 'text-accent-red'}`}>
-            {stats.profitFactor.toFixed(2)}
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Best</div>
-          <span className="text-[10px] font-mono text-accent-green truncate">{stats.bestSource.source}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Worst</div>
-          <span className="text-[10px] font-mono text-accent-red truncate">{stats.worstSource.source}</span>
-        </div>
+        <StatCard label="Total PnL" value={`${stats.totalPnl >= 0 ? '+' : ''}$${stats.totalPnl}`} color={pnlColor(stats.totalPnl)} compact />
+        <StatCard label="Profit Factor" value={stats.profitFactor.toFixed(2)} color={stats.profitFactor >= 1.5 ? 'text-accent-green' : stats.profitFactor >= 1 ? 'text-accent-yellow' : 'text-accent-red'} compact />
+        <StatCard label="Best" value={stats.bestSource.source} color="text-accent-green" size="xs" compact />
+        <StatCard label="Worst" value={stats.worstSource.source} color="text-accent-red" size="xs" compact />
       </div>
 
       {/* Attribution breakdown */}

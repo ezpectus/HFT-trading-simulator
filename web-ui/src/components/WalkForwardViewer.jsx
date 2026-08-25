@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { GitCommit, TrendingUp, TrendingDown } from 'lucide-react'
-import { ICONS } from '../utils/ui-helpers'
+import { ICONS, StatCard } from '../utils/ui-helpers'
 
 const MOCK_WINDOWS = [
   { id: 1, trainStart: '2024-01-01', trainEnd: '2024-03-31', testStart: '2024-04-01', testEnd: '2024-04-30', trainReturn: 15.2, testReturn: 8.5, trainSharpe: 1.85, testSharpe: 1.12, status: 'pass' },
@@ -38,28 +38,10 @@ const WalkForwardViewer = memo(function WalkForwardViewer() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Pass Rate</div>
-          <span className={`text-sm font-mono ${stats.passRate >= 70 ? 'text-accent-green' : 'text-accent-yellow'}`}>
-            {stats.passRate.toFixed(0)}%
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Test Ret</div>
-          <span className={`text-sm font-mono ${stats.avgTestReturn >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
-            {stats.avgTestReturn >= 0 ? '+' : ''}{stats.avgTestReturn.toFixed(1)}%
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Sharpe</div>
-          <span className="text-sm font-mono text-accent-blue">{stats.avgTestSharpe.toFixed(2)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Overfit</div>
-          <span className={`text-sm font-mono ${stats.overfitScore < 0.5 ? 'text-accent-green' : stats.overfitScore < 0.7 ? 'text-accent-yellow' : 'text-accent-red'}`}>
-            {(stats.overfitScore * 100).toFixed(0)}%
-          </span>
-        </div>
+        <StatCard label="Pass Rate" value={`${stats.passRate.toFixed(0)}%`} color={stats.passRate >= 70 ? 'text-accent-green' : 'text-accent-yellow'} compact />
+        <StatCard label="Avg Test Ret" value={`${stats.avgTestReturn >= 0 ? '+' : ''}${stats.avgTestReturn.toFixed(1)}%`} color={stats.avgTestReturn >= 0 ? 'text-accent-green' : 'text-accent-red'} compact />
+        <StatCard label="Avg Sharpe" value={stats.avgTestSharpe.toFixed(2)} color="text-accent-blue" compact />
+        <StatCard label="Overfit" value={`${(stats.overfitScore * 100).toFixed(0)}%`} color={stats.overfitScore < 0.5 ? 'text-accent-green' : stats.overfitScore < 0.7 ? 'text-accent-yellow' : 'text-accent-red'} compact />
       </div>
 
       {/* Windows table */}

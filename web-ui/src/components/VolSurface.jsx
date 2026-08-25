@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Box, Layers, TrendingDown } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_VOL_SURFACE = [
   { strike: 38000, dte: 7, iv: 38 }, { strike: 40000, dte: 7, iv: 40 }, { strike: 42000, dte: 7, iv: 42 },
@@ -57,18 +58,9 @@ const VolSurface = memo(function VolSurface({ currentPrice }) {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Min IV</div>
-          <span className="text-sm font-mono text-accent-green">{stats.minIV}%</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg IV</div>
-          <span className="text-sm font-mono text-gray-300">{stats.avgIV.toFixed(1)}%</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Max IV</div>
-          <span className="text-sm font-mono text-accent-red">{stats.maxIV}%</span>
-        </div>
+        <StatCard label="Min IV" value={`${stats.minIV}%`} color="text-accent-green" />
+        <StatCard label="Avg IV" value={`${stats.avgIV.toFixed(1)}%`} color="text-gray-300" />
+        <StatCard label="Max IV" value={`${stats.maxIV}%`} color="text-accent-red" />
       </div>
 
       {/* Vol surface grid */}

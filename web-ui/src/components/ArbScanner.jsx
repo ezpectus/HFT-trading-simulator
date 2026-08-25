@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Search, Zap, TrendingUp, AlertTriangle } from 'lucide-react'
-import { statusColor, statusBg, StatCard } from '../utils/ui-helpers'
+import { statusColor, statusBg, StatCard, Label } from '../utils/ui-helpers'
 
 const MOCK_OPPORTUNITIES = [
   { id: 1, type: 'Triangular', path: 'BTC → ETH → USDT → BTC', profit: 0.85, capital: 10000, estProfit: 85, latency: 120, confidence: 0.92, status: 'active' },
@@ -53,7 +53,7 @@ const ArbScanner = memo(function ArbScanner() {
       <div>
         <div className="flex items-center gap-1 mb-1">
           <Zap size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Opportunities</span>
+          <Label>Opportunities</Label>
         </div>
         <div className="space-y-0.5 max-h-48 overflow-y-auto">
           {MOCK_OPPORTUNITIES.map(opp => (
@@ -79,7 +79,7 @@ const ArbScanner = memo(function ArbScanner() {
 
       {/* Exchange scan stats */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Exchange Scan Stats</div>
+        <Label className="mb-1">Exchange Scan Stats</Label>
         <div className="space-y-0.5">
           {MOCK_SCAN_STATS.map(e => (
             <div key={e.exchange} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">

@@ -64,6 +64,13 @@ export function Bar({ value, max, color = 'bg-accent-blue', height = 'h-2' }) {
   )
 }
 
+export function Label({ children, className = '', size = '10px' }) {
+  const sizeClass = size === '9px' ? 'text-[9px]' : 'text-[10px]'
+  return (
+    <span className={`${sizeClass} text-gray-600 uppercase ${className}`}>{children}</span>
+  )
+}
+
 export function WarningBanner({ icon: Icon = AlertTriangle, color = 'text-accent-yellow', children }) {
   const bg = color.replace('text-', 'bg-') + '/10'
   const border = color.replace('text-', 'border-') + '/30'

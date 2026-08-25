@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react'
 import { TrendingDown, BarChart3, Activity, Zap } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_IMPACT_LEVELS = [
   { size: '1k', cost: 0.5, priceImpact: 0.01, marketShare: 0.1 },
@@ -64,16 +65,8 @@ const MarketImpact = memo(function MarketImpact({ candles, symbol, exchange, cur
 
       {/* Current price + liquidity */}
       <div className="grid grid-cols-2 gap-1">
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Current Price</div>
-          <span className="text-sm font-mono text-gray-200">${formatPrice(price)}</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Top-10 Liquidity</div>
-          <span className="text-sm font-mono text-accent-blue">
-            {liquidity ? formatVolume(liquidity.total) : '—'}
-          </span>
-        </div>
+        <StatCard label="Current Price" value={`$${formatPrice(price)}`} color="text-gray-200" />
+        <StatCard label="Top-10 Liquidity" value={liquidity ? formatVolume(liquidity.total) : '—'} color="text-accent-blue" />
       </div>
 
       {/* Impact table */}

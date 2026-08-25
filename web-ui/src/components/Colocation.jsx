@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Server, Wifi, Clock, MapPin } from 'lucide-react'
-import { ICONS, statusColor, StatCard } from '../utils/ui-helpers'
+import { ICONS, statusColor, StatCard, Label } from '../utils/ui-helpers'
 
 const MOCK_DATACENTERS = [
   { id: 'dc-tokyo', name: 'Tokyo (TY3)', region: 'APAC', latency: 0.3, status: 'online', uptime: 99.98, colo: true },
@@ -60,7 +60,7 @@ const Colocation = memo(function Colocation() {
 
       {/* Datacenters */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Datacenters</div>
+        <Label className="mb-1">Datacenters</Label>
         <div className="space-y-0.5">
           {MOCK_DATACENTERS.map(dc => (
             <div key={dc.id} className="flex items-center gap-2 py-1 px-1.5 bg-bg-700">
@@ -83,7 +83,7 @@ const Colocation = memo(function Colocation() {
 
       {/* Services */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Services</div>
+        <Label className="mb-1">Services</Label>
         <div className="space-y-0.5">
           {MOCK_SERVICES.map(svc => (
             <div key={svc.name} className="flex items-center gap-2 py-1 px-1.5 bg-bg-700">

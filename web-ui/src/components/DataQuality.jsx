@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { ShieldCheck, Database, Activity } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { ICONS, statusColor, StatCard } from '../utils/ui-helpers'
+import { ICONS, statusColor, StatCard, Label } from '../utils/ui-helpers'
 
 const MOCK_CHECKS = [
   { id: 'candles-fresh', name: 'Candle Freshness', status: 'pass', detail: 'Last candle 2s ago', threshold: '< 10s' },
@@ -71,7 +71,7 @@ const DataQuality = memo(function DataQuality() {
 
       {/* Health checks */}
       <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Health Checks</div>
+        <Label className="mb-1">Health Checks</Label>
         <div className="space-y-0.5">
           {MOCK_CHECKS.map(check => (
             <div key={check.id} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
@@ -87,7 +87,7 @@ const DataQuality = memo(function DataQuality() {
       <div>
         <div className="flex items-center gap-1 mb-1">
           <Database size={11} className="text-gray-500" />
-          <span className="text-[10px] text-gray-600 uppercase">Symbol Status</span>
+          <Label>Symbol Status</Label>
         </div>
         <div className="space-y-0.5">
           {MOCK_SYMBOLS.map(sym => (
