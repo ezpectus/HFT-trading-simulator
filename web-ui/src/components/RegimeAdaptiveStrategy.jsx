@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Brain, Target } from 'lucide-react'
 import { calcRSI, calcEMA, calcSMA, calcATR } from '../utils/indicators'
 import { formatPrice } from '../utils/format'
 
-export default function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
+function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -248,3 +248,5 @@ export default function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(RegimeAdaptiveStrategy)

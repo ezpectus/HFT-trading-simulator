@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { Grid3x3, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function RenkoChart({ candles, symbol, exchange }) {
+function RenkoChart({ candles, symbol, exchange }) {
   const [brickSize, setBrickSize] = useState(0)
 
   const data = useMemo(() => {
@@ -181,3 +181,5 @@ export default function RenkoChart({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(RenkoChart)

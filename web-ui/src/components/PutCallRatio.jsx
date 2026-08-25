@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { Scale, TrendingUp, TrendingDown, Activity } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Scale, Activity } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function PutCallRatio({ fills, candles, symbol, exchange }) {
+function PutCallRatio({ fills, candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symFills = (fills || []).filter(f => f.symbol === symbol && f.status === 'FILLED')
     if (symFills.length < 5) return null
@@ -181,3 +181,5 @@ export default function PutCallRatio({ fills, candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(PutCallRatio)

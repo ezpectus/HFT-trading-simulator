@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Radon-Nikodym Derivative (Likelihood Ratio for Regime Detection) ---
 // Computes the Radon-Nikodym derivative between two probability
@@ -48,7 +48,7 @@ const klDivergenceGaussian = (muP, sigP, muQ, sigQ) => {
   return Math.log(sigQ / sigP) + (sigP * sigP + (muP - muQ) ** 2) / (2 * sigQ * sigQ) - 0.5
 }
 
-export default function RadonNikodymDerivative({ candles, symbol, exchange }) {
+function RadonNikodymDerivative({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(200)
   const [windowSize, setWindowSize] = useState(40)
 
@@ -272,3 +272,5 @@ export default function RadonNikodymDerivative({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(RadonNikodymDerivative)

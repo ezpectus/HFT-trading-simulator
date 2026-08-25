@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Random Matrix Theory (RMT) ─────────────────────────────────────────────
 // Applies Marchenko-Pastur law to filter noise from empirical correlation
@@ -112,7 +112,7 @@ const cleanCorrelation = (eigenvalues, eigenvectors, Q) => {
   return { Cclean, cleaned, noiseCount, signalCount: n - noiseCount }
 }
 
-export default function RandomMatrixTheory({ candles, symbols, exchange }) {
+function RandomMatrixTheory({ candles, symbols, exchange }) {
   const [lookback, setLookback] = useState(100)
 
   const data = useMemo(() => {
@@ -344,3 +344,5 @@ export default function RandomMatrixTheory({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(RandomMatrixTheory)

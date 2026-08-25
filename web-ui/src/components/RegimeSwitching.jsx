@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
-import { Shuffle, TrendingUp, TrendingDown, Activity } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Shuffle } from 'lucide-react'
 import { calcSMA, calcRSI, calcATR } from '../utils/indicators'
 import { formatPrice } from '../utils/format'
 
-export default function RegimeSwitching({ candles, symbol, exchange }) {
+function RegimeSwitching({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -231,3 +231,5 @@ export default function RegimeSwitching({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(RegimeSwitching)

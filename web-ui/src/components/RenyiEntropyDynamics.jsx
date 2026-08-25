@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Rényi Entropy Dynamics (Order-α Entropy Tracking) ──────────────────────
 // Tracks Rényi entropy at various orders α to probe different aspects of
@@ -80,7 +80,7 @@ const generalizedDimensions = (returns, nBinsList, alpha) => {
   return results
 }
 
-export default function RenyiEntropyDynamics({ candles, symbol, exchange }) {
+function RenyiEntropyDynamics({ candles, symbol, exchange }) {
   const [nBins, setNBins] = useState(20)
   const [lookback, setLookback] = useState(150)
   const [windowSize, setWindowSize] = useState(40)
@@ -303,3 +303,5 @@ export default function RenyiEntropyDynamics({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(RenyiEntropyDynamics)

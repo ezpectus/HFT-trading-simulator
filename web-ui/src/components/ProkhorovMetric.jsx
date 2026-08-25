@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Prokhorov Metric (Weak Convergence of Measures) ---
 // Computes the Prokhorov metric between empirical distributions to
@@ -104,7 +104,7 @@ const ksStatistic = (data1, data2) => {
   return maxDiff
 }
 
-export default function ProkhorovMetric({ candles, symbol, exchange }) {
+function ProkhorovMetric({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(200)
   const [windowSize, setWindowSize] = useState(50)
 
@@ -283,3 +283,5 @@ export default function ProkhorovMetric({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(ProkhorovMetric)

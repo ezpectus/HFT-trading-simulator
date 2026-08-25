@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Renormalization Group (Multi-Scale Market Dynamics) ────────────────────
 // Applies renormalization group concepts from statistical physics to analyze
@@ -98,7 +98,7 @@ const correlationLength = (returns) => {
   return 20
 }
 
-export default function RenormalizationGroup({ candles, symbol, exchange }) {
+function RenormalizationGroup({ candles, symbol, exchange }) {
   const [maxScale, setMaxScale] = useState(20)
   const [lookback, setLookback] = useState(200)
 
@@ -353,3 +353,5 @@ export default function RenormalizationGroup({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(RenormalizationGroup)

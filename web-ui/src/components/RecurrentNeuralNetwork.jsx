@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Recurrent Neural Network (RNN) for Price Prediction ────────────────────
 // Implements a simplified Elman RNN with BPTT (Backpropagation Through Time)
@@ -235,7 +235,7 @@ const prepareSequences = (returns, seqLen = 10, inputSize = 1) => {
   return { sequences, targets }
 }
 
-export default function RecurrentNeuralNetwork({ candles, symbol, exchange }) {
+function RecurrentNeuralNetwork({ candles, symbol, exchange }) {
   const [hiddenSize, setHiddenSize] = useState(8)
   const [seqLen, setSeqLen] = useState(10)
   const [epochs, setEpochs] = useState(50)
@@ -432,3 +432,5 @@ export default function RecurrentNeuralNetwork({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(RecurrentNeuralNetwork)
