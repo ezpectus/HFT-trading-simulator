@@ -78,7 +78,7 @@ You are working on a multi-language HFT trading system with:
 ## Next Steps
 The office-board is fully cleared. Verification plan audit mostly complete. Remaining:
 1. User should run full test suites (JS + Python) and fix any failures
-2. ⚠️ Security: ApiClient.jsx stores apiKey/apiSecret in localStorage plaintext — consider sessionStorage or encryption
+2. ✅ Security: ApiClient.jsx apiKey/apiSecret fixed — now in-memory only (useState)
 3. Docs freshness: Verify docs/ match current code structure
 4. Config verification: Verify settings.yaml/shared_config.yaml match current code
 5. Add new task batches to office-board.md as needed
@@ -150,7 +150,7 @@ For each task:
 - **`ui-helpers.tsx`** — imported by 289 components. Any change affects ALL panels. Run full test suite after.
 - **`format.ts`** — imported by 20+ components for price/volume/pct formatting
 - **`registry.js`** — maps all panels to components and props. Breaking it kills the entire UI.
-- **`useLocalStorage` hook** — used by Auth, ApiClient, DrawingTools, ChartTemplates, FeatureFlags, ThemeSwitcher, NotificationCenter, DeployStatus, AlertWebhook. Test mocks must return 3 values.
+- **`useLocalStorage` hook** — used by Auth, DrawingTools, ChartTemplates, FeatureFlags, ThemeSwitcher, NotificationCenter, DeployStatus, AlertWebhook. Test mocks must return 3 values. (ApiClient removed — security fix: credentials now in-memory)
 - **`settings.yaml`** — config for entire bot. Changing values affects all strategies, risk, signals.
 - **`shared_config.yaml`** — shared between exchange_simulator, ai-signal-bot, hft-trade-bot
 - **`src/observability/logging.py`** — logging provider for all 57+ Python modules. Don't break `get_logger()`.

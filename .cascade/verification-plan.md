@@ -145,9 +145,9 @@
 - **Статус:** ✅ No API keys logged in console
 
 ### 8.2 localStorage
-- **⚠️ FINDING:** `ApiClient.jsx` stores `apiKey` and `apiSecret` in localStorage via `useLocalStorage('trading-api-key', '')` and `useLocalStorage('trading-api-secret', '')` — plaintext API credentials in localStorage
+- **Статус:** ✅ FIXED — ApiClient.jsx now uses useState (in-memory) instead of useLocalStorage for apiKey/apiSecret
 - **Статус:** Auth.jsx stores only username (not password) in localStorage — OK
-- **Рекомендация:** Consider using sessionStorage or in-memory only for API secrets, or encrypt before storing
+- Credentials cleared on page refresh, no longer persisted to localStorage
 
 ---
 
@@ -162,6 +162,6 @@
 7. ✅ **vitest.config.js:** isolate: true verified
 8. ✅ **Helm CodeQL:** Alerts #49, #50 fixed
 9. ✅ **XSS:** No dangerouslySetInnerHTML, no API keys in console
-10. ⚠️ **localStorage security:** ApiClient stores apiKey/apiSecret in plaintext — recommendation noted
+10. ✅ **localStorage security:** ApiClient credentials now in-memory only (useState) — no longer persisted
 11. **Docs freshness:** User should verify docs match current code
 12. **Config verification:** User should verify configs match current code

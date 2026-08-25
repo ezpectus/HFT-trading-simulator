@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-27 (Security — ApiClient localStorage fix)
+
+### Fixed
+- `web-ui/src/components/ApiClient.jsx`: API credentials (apiKey, apiSecret) no longer persisted to localStorage — switched from `useLocalStorage` to `useState` (in-memory only, cleared on page refresh)
+- Removed unused `useLocalStorage` import from ApiClient.jsx
+- Updated security warning text to reflect in-memory storage
+
+### Rationale
+Storing API secrets in localStorage plaintext is a security risk — any XSS attack or browser extension can read them. In-memory storage (useState) ensures credentials are cleared on page refresh and not accessible via localStorage inspection.
+
 ## [Unreleased] — 2026-08-27 (Refactoring — Пачка BJ: memo() completion)
 
 ### Changed

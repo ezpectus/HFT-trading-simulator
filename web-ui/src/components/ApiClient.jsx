@@ -2,7 +2,6 @@ import { memo, useMemo, useState, useCallback } from 'react'
 import { Link2, Key, Copy, Check, ExternalLink, Terminal, Shield } from 'lucide-react'
 import { EmptyState } from './LoadingSkeleton'
 import { Label } from '../utils/ui-helpers'
-import { useLocalStorage } from '../hooks/useLocalStorage'
 
 const DEFAULT_ENDPOINTS = [
   { id: 'exchange-ws', label: 'Exchange WS', url: 'ws://localhost:8765', type: 'ws', status: 'connected' },
@@ -59,8 +58,8 @@ function EndpointRow({ endpoint, onCopy }) {
 }
 
 const ApiClient = memo(function ApiClient({ exchange, signals, addToast }) {
-  const [apiKey, setApiKey] = useLocalStorage('trading-api-key', '')
-  const [apiSecret, setApiSecret] = useLocalStorage('trading-api-secret', '')
+  const [apiKey, setApiKey] = useState('')
+  const [apiSecret, setApiSecret] = useState('')
   const [showSecret, setShowSecret] = useState(false)
 
   const endpoints = useMemo(() => {
@@ -167,7 +166,7 @@ const ApiClient = memo(function ApiClient({ exchange, signals, addToast }) {
       <div className="flex items-start gap-1.5 p-2 bg-accent-yellow/5 border border-accent-yellow/20">
         <Shield size={11} className="text-accent-yellow shrink-0 mt-0.5" />
         <span className="text-[10px] text-gray-500">
-          Credentials stored in localStorage. Do not use production keys in dev mode.
+          Credentials kept in memory only and cleared on page refresh. Do not use production keys in dev mode.
         </span>
       </div>
 
