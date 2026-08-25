@@ -284,6 +284,10 @@ const WalkForwardViewer = lazy(() => import('../components/WalkForwardViewer'))
 const RealtimeAttribution = lazy(() => import('../components/RealtimeAttribution'))
 const GeneticViewer = lazy(() => import('../components/GeneticViewer'))
 const CostBasis = lazy(() => import('../components/CostBasis'))
+const FillAnalytics = lazy(() => import('../components/FillAnalytics'))
+const CancelMonitor = lazy(() => import('../components/CancelMonitor'))
+const DashboardProfiler = lazy(() => import('../components/DashboardProfiler'))
+const CrossAssetMatrix = lazy(() => import('../components/CrossAssetMatrix'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -839,6 +843,14 @@ export const PANELS = [
   { id: 'genetic-viewer', name: 'Genetic Algorithm Viewer', category: 'strategy', component: GeneticViewer,
     props: () => ({}) },
   { id: 'cost-basis', name: 'Cost Basis Tracker', category: 'portfolio', component: CostBasis,
+    props: () => ({}) },
+  { id: 'fill-analytics', name: 'Fill Analytics', category: 'risk', component: FillAnalytics,
+    props: () => ({}) },
+  { id: 'cancel-monitor', name: 'Cancel Monitor', category: 'risk', component: CancelMonitor,
+    props: () => ({}) },
+  { id: 'dashboard-profiler', name: 'Dashboard Profiler', category: 'config', component: DashboardProfiler,
+    props: () => ({}) },
+  { id: 'cross-asset-matrix', name: 'Cross-Asset Matrix', category: 'risk', component: CrossAssetMatrix,
     props: () => ({}) },
 ]
 
