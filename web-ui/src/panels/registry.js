@@ -276,6 +276,10 @@ const TCA = lazy(() => import('../components/TCA'))
 const CapacityAnalysis = lazy(() => import('../components/CapacityAnalysis'))
 const RegimeDetector = lazy(() => import('../components/RegimeDetector'))
 const FeatureStudio = lazy(() => import('../components/FeatureStudio'))
+const HyperoptUI = lazy(() => import('../components/HyperoptUI'))
+const RetrainingPipeline = lazy(() => import('../components/RetrainingPipeline'))
+const SlippageAnalytics = lazy(() => import('../components/SlippageAnalytics'))
+const StrategyCorrelation = lazy(() => import('../components/StrategyCorrelation'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -815,6 +819,14 @@ export const PANELS = [
   { id: 'regime-detector', name: 'Regime Detector', category: 'risk', component: RegimeDetector,
     props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
   { id: 'feature-studio', name: 'Feature Studio', category: 'strategy', component: FeatureStudio,
+    props: () => ({}) },
+  { id: 'hyperopt-ui', name: 'Hyperparameter Optimization', category: 'strategy', component: HyperoptUI,
+    props: () => ({}) },
+  { id: 'retraining-pipeline', name: 'Retraining Pipeline', category: 'strategy', component: RetrainingPipeline,
+    props: () => ({}) },
+  { id: 'slippage-analytics', name: 'Slippage Analytics', category: 'risk', component: SlippageAnalytics,
+    props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
+  { id: 'strategy-correlation', name: 'Strategy Correlation', category: 'risk', component: StrategyCorrelation,
     props: () => ({}) },
 ]
 
