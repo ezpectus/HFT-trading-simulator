@@ -1,7 +1,7 @@
-import { memo, useState, useEffect } from 'react'
-import { Search, Download, Filter, X, Calendar, AlertTriangle, CheckCircle, XCircle, Activity, Settings } from 'lucide-react'
+import { memo, useState } from 'react'
+import { Search, Download, Filter, Calendar, AlertTriangle, CheckCircle, XCircle, Activity, Settings } from 'lucide-react'
 
-export default memo(function AuditLogViewer({ auditLogs = [], onExport, onFilter }) {
+export default memo(function AuditLogViewer({ auditLogs = [], onExport, onFilter: _onFilter }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedEventType, setSelectedEventType] = useState('ALL')
   const [selectedExchange, setSelectedExchange] = useState('ALL')

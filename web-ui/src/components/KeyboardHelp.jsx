@@ -52,6 +52,7 @@ export default memo(function KeyboardHelp() {
           </div>
           <button
             onClick={() => setVisible(false)}
+            aria-label="Close keyboard shortcuts help"
             className="text-gray-500 hover:text-gray-300 transition-colors"
           >
             <X size={16} />

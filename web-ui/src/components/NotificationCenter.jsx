@@ -32,6 +32,7 @@ function NotificationItem({ notification, onDismiss }) {
           </span>
           <button
             onClick={() => onDismiss(notification.id || notification.timestamp)}
+            aria-label="Dismiss notification"
             className="text-gray-600 hover:text-gray-400 transition-colors shrink-0"
           >
             <Trash2 size={10} />

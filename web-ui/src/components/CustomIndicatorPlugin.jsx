@@ -311,7 +311,7 @@ export default memo(function CustomIndicatorPlugin({ candles, symbol }) {
               <span className="text-[9px] text-gray-300">{ind.name}</span>
               <span className="text-[8px] text-gray-600 truncate flex-1">{ind.formula}</span>
               {ind.showOverlay && <span className="text-[7px] text-accent-blue">overlay</span>}
-              <button onClick={() => removeIndicator(ind.id)} className="text-gray-600 hover:text-accent-red">
+              <button onClick={() => removeIndicator(ind.id)} aria-label={`Remove indicator ${ind.name}`} className="text-gray-600 hover:text-accent-red">
                 <Trash2 size={9} />
               </button>
             </div>

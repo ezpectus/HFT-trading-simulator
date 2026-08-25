@@ -224,6 +224,7 @@ export default memo(function Header({
                   <button
                     key={`${ex}|${sym}`}
                     onClick={() => { onExchangeChange(ex); onSymbolChange(sym) }}
+                    aria-label={`Switch to ${ex} ${sym}`}
                     className={`flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono transition-colors ${
                       isActive ? 'bg-bg-600 text-gray-200' : 'text-gray-500 hover:text-gray-300'
                     }`}

@@ -11,7 +11,7 @@ const EVENT_TYPES = [
   { id: 'daily_summary', label: 'Daily Summary' },
 ]
 
-export default memo(function AlertWebhook({ fills, toasts }) {
+export default memo(function AlertWebhook({ fills: _fills, toasts: _toasts }) {
   const [webhooks, setWebhooks] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [newUrl, setNewUrl] = useState('')
@@ -92,6 +92,7 @@ export default memo(function AlertWebhook({ fills, toasts }) {
         <div className="flex-1" />
         <button
           onClick={() => setShowAdd(!showAdd)}
+          aria-label="Add new webhook"
           className="text-gray-500 hover:text-accent-blue"
         >
           <Plus size={12} />
@@ -149,6 +150,7 @@ export default memo(function AlertWebhook({ fills, toasts }) {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => toggleWebhook(hook.id)}
+                  aria-label={`${hook.enabled ? 'Disable' : 'Enable'} webhook ${hook.name}`}
                   className={`w-3 h-3 rounded-full shrink-0 ${hook.enabled ? 'bg-accent-green' : 'bg-bg-500'}`}
                   title={hook.enabled ? 'Enabled' : 'Disabled'}
                 />
@@ -168,6 +170,7 @@ export default memo(function AlertWebhook({ fills, toasts }) {
                 </button>
                 <button
                   onClick={() => removeWebhook(hook.id)}
+                  aria-label={`Remove webhook ${hook.name}`}
                   className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-accent-red"
                 >
                   <X size={10} />
