@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Pontryagin Maximum Principle (Optimal Trading Trajectory) ──────────────
 // Applies the Pontryagin Maximum Principle (PMP) to find the optimal
@@ -84,7 +84,7 @@ const solvePMP = (X0, T, kappa, lambda, eta, nSteps) => {
   return { trajectory: bestSolution, totalCost, twapCost, savings: twapCost - totalCost }
 }
 
-export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }) {
+function PontryaginMaximumPrinciple({ candles, symbol, exchange }) {
   const [kappa, setKappa] = useState(0.1)
   const [lambda, setLambda] = useState(0.01)
   const [eta, setEta] = useState(0.05)
@@ -309,3 +309,5 @@ export default function PontryaginMaximumPrinciple({ candles, symbol, exchange }
     </div>
   )
 }
+
+export default memo(PontryaginMaximumPrinciple)

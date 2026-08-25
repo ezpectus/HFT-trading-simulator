@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
-import { Calculator, Shield, AlertTriangle } from 'lucide-react'
+import { memo, useMemo, useState } from 'react'
+import { Calculator, AlertTriangle } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { calcATR } from '../utils/indicators'
 
-export default function PositionSizeOptimizer({ candles, accounts, currentPrice, symbol, exchange }) {
+function PositionSizeOptimizer({ candles, accounts, currentPrice, symbol, exchange }) {
   const [riskPct, setRiskPct] = useState(1)
   const [stopMethod, setStopMethod] = useState('atr')
   const [manualStop, setManualStop] = useState('')
@@ -239,3 +239,5 @@ export default function PositionSizeOptimizer({ candles, accounts, currentPrice,
     </div>
   )
 }
+
+export default memo(PositionSizeOptimizer)

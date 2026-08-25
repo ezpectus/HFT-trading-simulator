@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { LineChart, Info } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function PortfolioOptimizer({ candles, symbols, exchange }) {
+function PortfolioOptimizer({ candles, symbols, exchange }) {
   const [riskFreeRate, setRiskFreeRate] = useState(2)
 
   const result = useMemo(() => {
@@ -239,3 +239,5 @@ function PortfolioRow({ label, color, dotColor, data }) {
     </div>
   )
 }
+
+export default memo(PortfolioOptimizer)

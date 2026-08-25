@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { LineChart, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { LineChart } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
-export default function PnLAttributionChart({ accounts }) {
+function PnLAttributionChart({ accounts }) {
   const chartData = useMemo(() => {
     // Collect all trades sorted by close time
     const allTrades = []
@@ -160,3 +160,5 @@ export default function PnLAttributionChart({ accounts }) {
     </div>
   )
 }
+
+export default memo(PnLAttributionChart)

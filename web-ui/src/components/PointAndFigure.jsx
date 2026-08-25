@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { Grid3x3, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function PointAndFigure({ candles, symbol, exchange }) {
+function PointAndFigure({ candles, symbol, exchange }) {
   const [boxSize, setBoxSize] = useState(0)
   const [reverseBoxes, setReverseBoxes] = useState(3)
 
@@ -234,3 +234,5 @@ export default function PointAndFigure({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(PointAndFigure)

@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { PieChart, TrendingUp, TrendingDown, Award } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { PieChart } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
-export default function PnLAttribution({ accounts }) {
+function PnLAttribution({ accounts }) {
   const attribution = useMemo(() => {
     const positions = []
     let totalUPnl = 0
@@ -182,3 +182,5 @@ export default function PnLAttribution({ accounts }) {
     </div>
   )
 }
+
+export default memo(PnLAttribution)

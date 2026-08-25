@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Grid3x3, AlertTriangle } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -17,7 +17,7 @@ function correlation(a, b) {
   return cov / Math.sqrt(vA * vB)
 }
 
-export default function PositionCorrelation({ accounts, candles, exchange }) {
+function PositionCorrelation({ accounts, candles, exchange }) {
   const matrix = useMemo(() => {
     const acc = accounts?.[exchange]
     const allPositions = Object.values(acc?.positions || {})
@@ -185,3 +185,5 @@ export default function PositionCorrelation({ accounts, candles, exchange }) {
     </div>
   )
 }
+
+export default memo(PositionCorrelation)

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Principal Component Analysis (PCA) ──────────────────────────────────────
 // Extracts latent factors from multi-asset return matrix using PCA.
@@ -130,7 +130,7 @@ const computePCA = (returns) => {
   }
 }
 
-export default function PrincipalComponentAnalysis({ candles, symbols, exchange }) {
+function PrincipalComponentAnalysis({ candles, symbols, exchange }) {
   const [nComponents, setNComponents] = useState(3)
   const [lookback, setLookback] = useState(50)
 
@@ -348,3 +348,5 @@ export default function PrincipalComponentAnalysis({ candles, symbols, exchange 
     </div>
   )
 }
+
+export default memo(PrincipalComponentAnalysis)

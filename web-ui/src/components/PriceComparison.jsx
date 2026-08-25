@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { ArrowRightLeft, Search } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
 import { useDebounce } from '../hooks/useDebounce'
 
-export default function PriceComparison({ prices, symbols, selectedSymbol, exchanges }) {
+function PriceComparison({ prices, symbols, selectedSymbol, exchanges }) {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
 
@@ -109,3 +109,5 @@ export default function PriceComparison({ prices, symbols, selectedSymbol, excha
     </div>
   )
 }
+
+export default memo(PriceComparison)
