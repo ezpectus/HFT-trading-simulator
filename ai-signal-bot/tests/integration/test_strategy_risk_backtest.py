@@ -123,7 +123,8 @@ class TestStrategyToSignal:
 class TestSignalValidation:
     """Step 2: SignalValidator filters signals correctly."""
 
-    def test_valid_signal_passes(self):
+    @pytest.mark.asyncio
+    async def test_valid_signal_passes(self):
         """High-confidence signal with good R:R passes validation."""
         validator = SignalValidator(min_confidence=60, min_rr_ratio=1.0)
         signal = Signal(
@@ -136,11 +137,12 @@ class TestSignalValidation:
             take_profit=52000,
             reason="EMA cross",
         )
-        result = validator.validate(signal)
+        result = await validator.validate(signal)
         assert result.passed
         assert "validated" in result.reason.lower()
 
-    def test_low_confidence_rejected(self):
+    @pytest.mark.asyncio
+    async def test_low_confidence_rejected(self):
         """Signal below confidence threshold is rejected."""
         validator = SignalValidator(min_confidence=70)
         signal = Signal(
@@ -152,11 +154,12 @@ class TestSignalValidation:
             stop_loss=49000,
             take_profit=52000,
         )
-        result = validator.validate(signal)
+        result = await validator.validate(signal)
         assert not result.passed
         assert "confidence" in result.reason.lower()
 
-    def test_neutral_signal_rejected(self):
+    @pytest.mark.asyncio
+    async def test_neutral_signal_rejected(self):
         """NEUTRAL signal is rejected by validator."""
         validator = SignalValidator()
         signal = Signal(
@@ -168,11 +171,12 @@ class TestSignalValidation:
             stop_loss=0,
             take_profit=0,
         )
-        result = validator.validate(signal)
+        result = await validator.validate(signal)
         assert not result.passed
         assert "neutral" in result.reason.lower()
 
-    def test_duplicate_signal_rejected(self):
+    @pytest.mark.asyncio
+    async def test_duplicate_signal_rejected(self):
         """Duplicate signal within cooldown is rejected."""
         validator = SignalValidator(min_confidence=0, min_rr_ratio=0)
         signal = Signal(
@@ -184,17 +188,18 @@ class TestSignalValidation:
             stop_loss=49000,
             take_profit=52000,
         )
-        first = validator.validate(signal)
+        first = await validator.validate(signal)
         assert first.passed
 
-        second = validator.validate(signal)
+        second = await validator.validate(signal)
         assert not second.passed
         assert "duplicate" in second.reason.lower()
 
-    def test_max_positions_reached(self):
+    @pytest.mark.asyncio
+    async def test_max_positions_reached(self):
         """Signal rejected when max positions reached."""
         validator = SignalValidator(min_confidence=0, min_rr_ratio=0, max_open_positions=2)
-        validator.update_position_count(2)
+        await validator.update_position_count(2)
 
         signal = Signal(
             symbol="ETH/USDT",
@@ -205,7 +210,7 @@ class TestSignalValidation:
             stop_loss=2900,
             take_profit=3200,
         )
-        result = validator.validate(signal)
+        result = await validator.validate(signal)
         assert not result.passed
         assert "max positions" in result.reason.lower()
 

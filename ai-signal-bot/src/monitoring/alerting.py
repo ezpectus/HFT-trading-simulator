@@ -252,7 +252,7 @@ class AlertSystem:
                 "message": a.message,
                 "timestamp": a.timestamp,
             }
-            for a in self.alert_history[-limit:]
+            for a in list(self.alert_history)[-limit:]
         ]
 
     def get_stats(self) -> dict:

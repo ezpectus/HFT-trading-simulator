@@ -2180,77 +2180,77 @@
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/App.jsx`
 
-### REF-506: Static analysis — audit Python strategies for bugs ⬜ TODO
+### REF-506: Static analysis — audit Python strategies for bugs ✅ DONE
 **Описание:** Check strategies.py — verify indicator math, signal generation, edge cases (empty candles, single candle, NaN values).
 **Сложность:** Высокая
 **Файлы:** `ai-signal-bot/src/strategies/`
 
-### REF-507: Static analysis — audit Python risk module for bugs ⬜ TODO
+### REF-507: Static analysis — audit Python risk module for bugs ✅ DONE
 **Описание:** Check VaR, CVaR, Kelly, position sizers, stress tests. Verify math, edge cases (empty portfolio, single position).
 **Сложность:** Высокая
 **Файлы:** `ai-signal-bot/src/risk/`
 
-### REF-508: Static analysis — audit Python backtesting for bugs ⬜ TODO
+### REF-508: Static analysis — audit Python backtesting for bugs ✅ DONE
 **Описание:** Check backtester, engine, PnL calculator, optimizer, walk-forward. Verify equity curve, fee calculation, position simulation.
 **Сложность:** Высокая
 **Файлы:** `ai-signal-bot/src/backtesting/`
 
-### REF-509: Static analysis — audit Python communication layer for bugs ⬜ TODO
+### REF-509: Static analysis — audit Python communication layer for bugs ✅ DONE
 **Описание:** Check WS client, signal publisher, SHM ring buffer, circuit breaker. Verify reconnection, error handling, buffer overflow.
 **Сложность:** Высокая
 **Файлы:** `ai-signal-bot/src/communication/`
 
-### REF-510: Static analysis — audit Python data_collection for bugs ⬜ TODO
+### REF-510: Static analysis — audit Python data_collection for bugs ✅ DONE
 **Описание:** Check exchange factory, real account, real market data. Verify API calls, error handling, rate limiting.
 **Сложность:** Высокая
 **Файлы:** `ai-signal-bot/src/data_collection/`
 
-### REF-511: Static analysis — audit Python ML module for bugs ⬜ TODO
+### REF-511: Static analysis — audit Python ML module for bugs ✅ DONE
 **Описание:** Check autoencoder, automl, environment, feature store, model registry, price predictor, RL trader, VAE, SVM. Verify model loading, prediction, training loops.
 **Сложность:** Высокая
 **Файлы:** `ai-signal-bot/src/ml/`
 
-### REF-512: Static analysis — audit Python monitoring/observability for bugs ⬜ TODO
+### REF-512: Static analysis — audit Python monitoring/observability for bugs ✅ DONE
 **Описание:** Check alerting, health server, metrics, tracker, health checks, logging, tracing. Verify metric collection, alert thresholds.
 **Сложность:** Средняя
 **Файлы:** `ai-signal-bot/src/monitoring/`, `ai-signal-bot/src/observability/`
 
-### REF-513: Static analysis — audit Python portfolio module for bugs ⬜ TODO
+### REF-513: Static analysis — audit Python portfolio module for bugs ✅ DONE
 **Описание:** Check Black-Litterman, Markowitz, rebalancing, risk parity. Verify optimization, edge cases.
 **Сложность:** Высокая
 **Файлы:** `ai-signal-bot/src/portfolio/`
 
-### REF-514: Static analysis — audit Python research module for bugs ⬜ TODO
+### REF-514: Static analysis — audit Python research module for bugs ✅ DONE
 **Описание:** Check attribution, competition, genetic strategy, greeks hedging, microstructure lab. Verify math, edge cases.
 **Сложность:** Высокая
 **Файлы:** `ai-signal-bot/src/research/`
 
-### REF-515: Static analysis — audit Python database module for bugs ⬜ TODO
+### REF-515: Static analysis — audit Python database module for bugs ✅ DONE
 **Описание:** Check database.py, db.py, models.py. Verify SQL queries, connection handling, migrations.
 **Сложность:** Средняя
 **Файлы:** `ai-signal-bot/src/database/`
 
-### REF-516: Static analysis — audit Python config loading for bugs ⬜ TODO
+### REF-516: Static analysis — audit Python config loading for bugs ✅ DONE
 **Описание:** Check config/__init__.py, settings.yaml. Verify validation, defaults, type coercion.
 **Сложность:** Средняя
 **Файлы:** `ai-signal-bot/src/config/`, `ai-signal-bot/config/settings.yaml`
 
-### REF-517: Static analysis — audit Python utils for bugs ⬜ TODO
+### REF-517: Static analysis — audit Python utils for bugs ✅ DONE
 **Описание:** Check helpers.py — CircuitBreaker, RateLimiter, formatting, logging. Verify edge cases.
 **Сложность:** Средняя
 **Файлы:** `ai-signal-bot/src/utils/`
 
-### REF-518: Static analysis — audit Python LLM engine for bugs ⬜ TODO
+### REF-518: Static analysis — audit Python LLM engine for bugs ✅ DONE
 **Описание:** Check engine.py — signal explanations, market analysis. Verify prompt construction, API calls.
 **Сложность:** Средняя
 **Файлы:** `ai-signal-bot/src/llm_engine/`
 
-### REF-519: Static analysis — audit Python notification for bugs ⬜ TODO
+### REF-519: Static analysis — audit Python notification for bugs ✅ DONE
 **Описание:** Check notifier.py. Verify message formatting, delivery, error handling.
 **Сложность:** Низкая
 **Файлы:** `ai-signal-bot/src/notification/`
 
-### REF-520: Static analysis — audit Python networking for bugs ⬜ TODO
+### REF-520: Static analysis — audit Python networking for bugs ✅ DONE
 **Описание:** Check socket_transport.py. Verify connection handling, error recovery.
 **Сложность:** Средняя
 **Файлы:** `ai-signal-bot/src/networking/`

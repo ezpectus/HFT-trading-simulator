@@ -30,102 +30,113 @@ class TestCircuitBreakerInit:
 
 
 class TestCircuitBreakerClosed:
-    def test_allows_signals_when_closed(self):
+    @pytest.mark.asyncio
+    async def test_allows_signals_when_closed(self):
         cb = CircuitBreaker()
-        assert cb.allow_signal()
-        assert cb.allow_signal()
+        assert await cb.allow_signal()
+        assert await cb.allow_signal()
 
-    def test_success_resets_failure_count(self):
+    @pytest.mark.asyncio
+    async def test_success_resets_failure_count(self):
         cb = CircuitBreaker()
-        cb.record_failure()
-        cb.record_failure()
-        cb.record_success()
+        await cb.record_failure()
+        await cb.record_failure()
+        await cb.record_success()
         assert cb.is_closed
 
-    def test_does_not_trip_below_threshold(self):
+    @pytest.mark.asyncio
+    async def test_does_not_trip_below_threshold(self):
         cb = CircuitBreaker(CircuitBreakerConfig(failure_threshold=5))
         for _ in range(4):
-            cb.record_failure()
+            await cb.record_failure()
         assert cb.is_closed
 
 
 class TestCircuitBreakerTripping:
-    def test_trips_on_threshold(self):
+    @pytest.mark.asyncio
+    async def test_trips_on_threshold(self):
         cb = CircuitBreaker(CircuitBreakerConfig(failure_threshold=3, cooldown_seconds=60))
-        cb.record_failure()
-        cb.record_failure()
-        cb.record_failure()
+        await cb.record_failure()
+        await cb.record_failure()
+        await cb.record_failure()
         assert cb.is_open
         assert cb.total_trips == 1
 
-    def test_blocks_signals_when_open(self):
+    @pytest.mark.asyncio
+    async def test_blocks_signals_when_open(self):
         cb = CircuitBreaker(CircuitBreakerConfig(failure_threshold=1, cooldown_seconds=60))
-        cb.record_failure()
+        await cb.record_failure()
         assert cb.is_open
-        assert not cb.allow_signal()
-        assert not cb.allow_signal()
+        assert not await cb.allow_signal()
+        assert not await cb.allow_signal()
         assert cb.total_blocks == 2
 
 
 class TestCircuitBreakerRecovery:
-    def test_transitions_to_half_open_after_cooldown(self):
+    @pytest.mark.asyncio
+    async def test_transitions_to_half_open_after_cooldown(self):
         cb = CircuitBreaker(CircuitBreakerConfig(
             failure_threshold=1, cooldown_seconds=0.05, success_threshold=1
         ))
-        cb.record_failure()
+        await cb.record_failure()
         assert cb.is_open
         time.sleep(0.06)
         assert cb.state == BreakerState.HALF_OPEN
 
-    def test_half_open_allows_probe(self):
+    @pytest.mark.asyncio
+    async def test_half_open_allows_probe(self):
         cb = CircuitBreaker(CircuitBreakerConfig(
             failure_threshold=1, cooldown_seconds=0.05, half_open_max_probes=1
         ))
-        cb.record_failure()
+        await cb.record_failure()
         time.sleep(0.06)
         assert cb.state == BreakerState.HALF_OPEN
-        assert cb.allow_signal()
-        assert not cb.allow_signal()
+        assert await cb.allow_signal()
+        assert not await cb.allow_signal()
 
-    def test_half_open_closes_on_success(self):
+    @pytest.mark.asyncio
+    async def test_half_open_closes_on_success(self):
         cb = CircuitBreaker(CircuitBreakerConfig(
             failure_threshold=1, cooldown_seconds=0.05, success_threshold=2
         ))
-        cb.record_failure()
+        await cb.record_failure()
         time.sleep(0.06)
         assert cb.state == BreakerState.HALF_OPEN
-        cb.record_success()
+        await cb.record_success()
         assert cb.state == BreakerState.HALF_OPEN
-        cb.record_success()
+        await cb.record_success()
         assert cb.is_closed
 
-    def test_half_open_trips_again_on_failure(self):
+    @pytest.mark.asyncio
+    async def test_half_open_trips_again_on_failure(self):
         cb = CircuitBreaker(CircuitBreakerConfig(
             failure_threshold=1, cooldown_seconds=0.05
         ))
-        cb.record_failure()
+        await cb.record_failure()
         time.sleep(0.06)
         assert cb.state == BreakerState.HALF_OPEN
-        cb.record_failure()
+        await cb.record_failure()
         assert cb.is_open
         assert cb.total_trips == 2
 
 
 class TestCircuitBreakerReset:
-    def test_reset_to_closed(self):
+    @pytest.mark.asyncio
+    async def test_reset_to_closed(self):
         cb = CircuitBreaker(CircuitBreakerConfig(failure_threshold=1, cooldown_seconds=60))
-        cb.record_failure()
+        await cb.record_failure()
         assert cb.is_open
-        cb.reset()
+        await cb.reset()
         assert cb.is_closed
-        assert cb.allow_signal()
+        assert await cb.allow_signal()
 
 
 class TestCircuitBreakerStatus:
-    def test_status_dict(self):
+    @pytest.mark.asyncio
+    async def test_status_dict(self):
         cb = CircuitBreaker(CircuitBreakerConfig(failure_threshold=3, cooldown_seconds=30))
-        cb.record_failure()
-        cb.record_failure()
+        await cb.record_failure()
+        await cb.record_failure()
         status = cb.get_status()
         assert status["state"] == "CLOSED"
         assert status["consecutive_failures"] == 2

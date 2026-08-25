@@ -194,6 +194,7 @@ class TestSignalLogger:
                 "rr_ratio": 2.5,
                 "reason": "Strong uptrend",
             })
+            logger.close()
             with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 next(reader)  # skip header
@@ -211,6 +212,7 @@ class TestSignalLogger:
                 "confidence": 80, "strategy": "trend", "entry_price": 50000,
                 "stop_loss": 49000, "take_profit": 52000,
             })
+            logger1.close()
             # Create second logger — should not overwrite
             logger2 = SignalLogger(path)
             logger2.log({
@@ -218,6 +220,7 @@ class TestSignalLogger:
                 "confidence": 70, "strategy": "mean_rev", "entry_price": 3000,
                 "stop_loss": 3100, "take_profit": 2800,
             })
+            logger2.close()
             with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 next(reader)  # header
@@ -258,6 +261,7 @@ class TestTradeLogger:
                 "fee": 2.5,
                 "status": "CLOSED",
             })
+            logger.close()
             with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 next(reader)  # header
@@ -277,6 +281,7 @@ class TestTradeLogger:
                 "quantity": 2.0,
                 "entry_price": 3000,
             })
+            logger.close()
             with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 next(reader)  # header

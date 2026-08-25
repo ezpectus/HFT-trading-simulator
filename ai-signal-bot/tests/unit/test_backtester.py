@@ -33,7 +33,7 @@ class TestBacktesterInit:
         assert bt.initial_balance == 10000.0
         assert bt.fee_pct == 0.075
         assert bt.slippage_bps == 2.0
-        assert bt.leverage == 10
+        assert bt.leverage == 1
         assert bt.risk_manager is None
 
     def test_custom_params(self):

@@ -41,16 +41,17 @@ def make_market(price=50000.0):
 class TestEndToEndSignalToClose:
     """Full pipeline: signal → order → fill → position → SL/TP → close."""
 
-    def test_long_signal_to_close_via_take_profit(self):
+    @pytest.mark.asyncio
+    async def test_long_signal_to_close_via_take_profit(self):
         """Signal LONG → buy → position → price rises → TP closes position."""
         market = make_market(50000)
         ex = SimulatedExchange("binance", "Binance", 0.04, 1.0, market,
                                initial_balance=10000, leverage=10)
         cb = CircuitBreaker()
-        assert cb.allow_signal()
+        assert await cb.allow_signal()
 
         # 1. Signal: LONG BTC/USDT
-        assert cb.allow_signal()
+        assert await cb.allow_signal()
 
         # 2. Execute buy order
         order = ex.submit_order("BTC/USDT", Side.BUY, 0.1,
@@ -75,10 +76,11 @@ class TestEndToEndSignalToClose:
         assert ex.account.total_trades == 1
 
         # 4. Record success in circuit breaker
-        cb.record_success()
+        await cb.record_success()
         assert cb.is_closed
 
-    def test_short_signal_to_close_via_stop_loss(self):
+    @pytest.mark.asyncio
+    async def test_short_signal_to_close_via_stop_loss(self):
         """Signal SHORT → sell → position → price rises → SL closes position."""
         market = make_market(50000)
         ex = SimulatedExchange("binance", "Binance", 0.04, 1.0, market,
@@ -86,7 +88,7 @@ class TestEndToEndSignalToClose:
         cb = CircuitBreaker()
 
         # 1. Signal: SHORT BTC/USDT
-        assert cb.allow_signal()
+        assert await cb.allow_signal()
 
         # 2. Execute sell order
         order = ex.submit_order("BTC/USDT", Side.SELL, 0.1,
@@ -105,10 +107,11 @@ class TestEndToEndSignalToClose:
         assert trade.pnl < 0
 
         # 4. Record failure in circuit breaker
-        cb.record_failure()
+        await cb.record_failure()
         assert cb.is_closed  # Only 1 failure, not tripped yet
 
-    def test_multiple_signals_circuit_breaker_trips(self):
+    @pytest.mark.asyncio
+    async def test_multiple_signals_circuit_breaker_trips(self):
         """5 consecutive losing signals trip the circuit breaker."""
         market = make_market(50000)
         ex = SimulatedExchange("binance", "Binance", 0.04, 1.0, market,
@@ -117,32 +120,33 @@ class TestEndToEndSignalToClose:
 
         # Simulate 5 losing trades
         for _i in range(5):
-            assert cb.allow_signal()  # Should allow until tripped
+            assert await cb.allow_signal()  # Should allow until tripped
             order = ex.submit_order("BTC/USDT", Side.BUY, 0.01,
                                     stop_loss=49900, take_profit=60000)
             assert order.status == OrderStatus.FILLED
             # Price drops below SL
             market.get_price.return_value = 49800
             ex.check_stop_loss_take_profit()
-            cb.record_failure()
+            await cb.record_failure()
 
         # Breaker should now be OPEN
         assert cb.is_open
         assert cb.total_trips == 1
 
         # Signal should be blocked
-        assert not cb.allow_signal()
+        assert not await cb.allow_signal()
         assert cb.total_blocks >= 1
 
-    def test_circuit_breaker_recovery_after_cooldown(self):
+    @pytest.mark.asyncio
+    async def test_circuit_breaker_recovery_after_cooldown(self):
         """Breaker recovers to HALF_OPEN after cooldown, then CLOSED on success."""
         cb = CircuitBreaker(CircuitBreakerConfig(
             failure_threshold=2, cooldown_seconds=0.05, success_threshold=1
         ))
 
         # Trip the breaker
-        cb.record_failure()
-        cb.record_failure()
+        await cb.record_failure()
+        await cb.record_failure()
         assert cb.is_open
 
         # Wait for cooldown
@@ -150,45 +154,47 @@ class TestEndToEndSignalToClose:
 
         # Should transition to HALF_OPEN and allow a probe
         assert cb.state == BreakerState.HALF_OPEN
-        assert cb.allow_signal()
+        assert await cb.allow_signal()
 
         # Record success → should close
-        cb.record_success()
+        await cb.record_success()
         assert cb.is_closed
 
-    def test_signal_blocked_does_not_create_position(self):
+    @pytest.mark.asyncio
+    async def test_signal_blocked_does_not_create_position(self):
         """When circuit breaker is open, no order should be placed."""
         market = make_market(50000)
         ex = SimulatedExchange("binance", "Binance", 0.04, 1.0, market)
         cb = CircuitBreaker(CircuitBreakerConfig(failure_threshold=1, cooldown_seconds=60))
 
         # Trip immediately
-        cb.record_failure()
+        await cb.record_failure()
         assert cb.is_open
 
         # Signal blocked
-        allowed = cb.allow_signal()
+        allowed = await cb.allow_signal()
         assert not allowed
         # No order placed since signal was blocked
         assert len(ex.account.positions) == 0
 
-    def test_metrics_collected_throughout_pipeline(self):
+    @pytest.mark.asyncio
+    async def test_metrics_collected_throughout_pipeline(self):
         """Metrics are recorded for signals sent, blocked, and circuit breaker state."""
         metrics = MetricsCollector()
         cb = CircuitBreaker(CircuitBreakerConfig(failure_threshold=2, cooldown_seconds=60))
 
         # Normal signal
-        assert cb.allow_signal()
+        assert await cb.allow_signal()
         metrics.record_signal_sent()
         assert metrics._signals_sent == 1
 
         # Trip breaker
-        cb.record_failure()
-        cb.record_failure()
+        await cb.record_failure()
+        await cb.record_failure()
         assert cb.is_open
 
         # Blocked signal
-        assert not cb.allow_signal()
+        assert not await cb.allow_signal()
         metrics.record_signal_blocked()
         assert metrics._signals_blocked == 1
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import bisect
 import math
+from math import erf
 
 MIN_PROB = 1e-10
 TAIL_PROB = 0.05
