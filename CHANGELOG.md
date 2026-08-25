@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-25 (README + docs freshness update)
+
+### Changed
+- `README.md`: Updated component count 227→289, added 116 test files + 4 E2E specs, updated docs count, added AUDIT_FINDINGS/PROJECT_AUDIT/CONTRIBUTING/SECURITY to docs table
+- `README_PROJECT_OVERVIEW.md`: Complete rewrite — status 7/10→COMPLETE, 204→278 panels, 227→289 components, updated slop section (all resolved/documented), updated key numbers, updated docs table, replaced development priorities with refactoring complete summary
+- `SECURITY.md`: Verified current — no changes needed
+
+### Rationale
+README.md and README_PROJECT_OVERVIEW.md had stale counts from Aug 21 audit. All numbers now reflect actual codebase state after 571 refactoring tasks.
+
 ## [Unreleased] — 2026-08-25 (Full project audit + memo() completion + docs update)
 
 ### Added

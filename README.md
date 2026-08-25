@@ -120,10 +120,11 @@ Open **http://localhost:3000**.
 - FFI interface for C++ interop
 
 ### Web UI (React 18)
-- 278 panels with React.lazy code splitting
+- 278 panels with React.lazy code splitting, 289 memoized components
 - Dark/light/auto theme, PWA, WCAG AA accessibility
 - Backtest comparison, session replay, strategy competition
 - Real-time WebSocket data, mock mode for standalone demo
+- 116 test files (Vitest), 4 E2E specs (Playwright)
 
 ---
 
@@ -162,6 +163,10 @@ Open **http://localhost:3000**.
 | [Testing](docs/TESTING.md) | Test infrastructure and coverage |
 | [Deployment](docs/DEPLOYMENT.md) | Deployment procedures |
 | [Performance](docs/PERFORMANCE.md) | Latency targets and benchmarks |
+| [Audit Findings](docs/AUDIT_FINDINGS.md) | Full grep-based code audit |
+| [Project Audit](PROJECT_AUDIT.md) | Comprehensive project audit |
+| [Contributing](CONTRIBUTING.md) | Setup, testing, code style, CI/CD |
+| [Security](SECURITY.md) | Security policy and measures |
 
 ---
 
@@ -183,8 +188,8 @@ hft-trading-system/
 │   └── tests/
 ├── hft-trade-bot/               # C++20: HFT execution engine
 ├── hft-executor/                # Rust: order executor
-├── web-ui/                      # React 18: dashboard (227 components)
-├── docs/                        # 15 documentation files
+├── web-ui/                      # React 18: dashboard (289 components, 116 test files)
+├── docs/                        # 13 documentation files + 4 guides + 7 theory docs
 ├── monitoring/                  # Prometheus + Grafana config
 ├── docker-compose.yml           # Development
 ├── docker-compose.prod.yml      # Production (+ PostgreSQL, Redis, Prometheus, Grafana)
