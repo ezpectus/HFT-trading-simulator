@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Server, Wifi, Clock, MapPin } from 'lucide-react'
-import { ICONS } from '../utils/ui-helpers'
+import { ICONS, statusColor } from '../utils/ui-helpers'
 
 const MOCK_DATACENTERS = [
   { id: 'dc-tokyo', name: 'Tokyo (TY3)', region: 'APAC', latency: 0.3, status: 'online', uptime: 99.98, colo: true },
@@ -25,10 +25,10 @@ function statusIcon(status) {
   return ICONS.red()
 }
 
-function statusColor(status) {
-  if (status === 'online') return 'text-accent-green'
-  if (status === 'degraded') return 'text-accent-yellow'
-  return 'text-accent-red'
+const STATUS_MAP = {
+  online: 'text-accent-green',
+  degraded: 'text-accent-yellow',
+  default: 'text-accent-red',
 }
 
 const Colocation = memo(function Colocation() {
@@ -73,7 +73,7 @@ const Colocation = memo(function Colocation() {
         <div className="space-y-0.5">
           {MOCK_DATACENTERS.map(dc => (
             <div key={dc.id} className="flex items-center gap-2 py-1 px-1.5 bg-bg-700">
-              <MapPin size={10} className={statusColor(dc.status)} />
+              <MapPin size={10} className={statusColor(dc.status, STATUS_MAP)} />
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] text-gray-300 truncate">{dc.name}</span>
               </div>
@@ -81,7 +81,7 @@ const Colocation = memo(function Colocation() {
               {dc.colo && (
                 <span className="text-[8px] text-accent-purple bg-accent-purple/10 px-1 rounded">COLO</span>
               )}
-              <span className={`text-[10px] font-mono w-12 text-right ${statusColor(dc.status)}`}>
+              <span className={`text-[10px] font-mono w-12 text-right ${statusColor(dc.status, STATUS_MAP)}`}>
                 {dc.status === 'offline' ? '—' : `${dc.latency.toFixed(1)}ms`}
               </span>
               {statusIcon(dc.status)}

@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { GitCompare, TrendingUp, TrendingDown, Zap, AlertTriangle } from 'lucide-react'
+import { statusColor, statusBg } from '../utils/ui-helpers'
 
 const MOCK_PAIRS = [
   { id: 1, pairA: 'BTC/USDT', pairB: 'ETH/USDT', corr: 0.85, spread: 1.2, zScore: 2.1, status: 'open', pnl: 245 },
@@ -10,16 +11,16 @@ const MOCK_PAIRS = [
   { id: 6, pairA: 'ETH/USDT', pairB: 'LINK/USDT', corr: 0.58, spread: -0.3, zScore: -0.5, status: 'closed', pnl: 45 },
 ]
 
-function statusColor(status) {
-  if (status === 'open') return 'text-accent-green'
-  if (status === 'signal') return 'text-accent-yellow'
-  return 'text-gray-500'
+const STATUS_MAP = {
+  open: 'text-accent-green',
+  signal: 'text-accent-yellow',
+  default: 'text-gray-500',
 }
 
-function statusBg(status) {
-  if (status === 'open') return 'bg-accent-green/20'
-  if (status === 'signal') return 'bg-accent-yellow/20'
-  return 'bg-bg-600'
+const STATUS_BG_MAP = {
+  open: 'bg-accent-green/20',
+  signal: 'bg-accent-yellow/20',
+  default: 'bg-bg-600',
 }
 
 function zScoreColor(z) {
@@ -84,7 +85,7 @@ const PairsArb = memo(function PairsArb() {
                 <span className={`text-[9px] font-mono w-10 ${zScoreColor(pair.zScore)}`}>
                   z={pair.zScore.toFixed(1)}
                 </span>
-                <span className={`text-[8px] px-1 rounded ${statusBg(pair.status)} ${statusColor(pair.status)} w-12 text-center`}>
+                <span className={`text-[8px] px-1 rounded ${statusBg(pair.status, STATUS_BG_MAP)} ${statusColor(pair.status, STATUS_MAP)} w-12 text-center`}>
                   {pair.status.toUpperCase()}
                 </span>
                 <span className={`text-[9px] font-mono w-12 text-right ${pair.pnl >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>

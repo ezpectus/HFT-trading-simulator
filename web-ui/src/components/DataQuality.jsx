@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { ShieldCheck, Database, Activity } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { ICONS } from '../utils/ui-helpers'
+import { ICONS, statusColor } from '../utils/ui-helpers'
 
 const MOCK_CHECKS = [
   { id: 'candles-fresh', name: 'Candle Freshness', status: 'pass', detail: 'Last candle 2s ago', threshold: '< 10s' },
@@ -31,10 +31,12 @@ function statusIcon(status) {
   return ICONS.red()
 }
 
-function statusColor(status) {
-  if (status === 'pass' || status === 'healthy') return 'text-accent-green'
-  if (status === 'warn' || status === 'degraded') return 'text-accent-yellow'
-  return 'text-accent-red'
+const STATUS_MAP = {
+  pass: 'text-accent-green',
+  healthy: 'text-accent-green',
+  warn: 'text-accent-yellow',
+  degraded: 'text-accent-yellow',
+  default: 'text-accent-red',
 }
 
 const DataQuality = memo(function DataQuality() {
@@ -55,7 +57,7 @@ const DataQuality = memo(function DataQuality() {
           <ShieldCheck size={14} className="text-accent-blue" />
           <span className="text-sm font-medium">Data Quality</span>
         </div>
-        <span className={`text-sm font-mono font-bold ${statusColor(stats.score >= 80 ? 'pass' : stats.score >= 60 ? 'warn' : 'fail')}`}>
+        <span className={`text-sm font-mono font-bold ${statusColor(stats.score >= 80 ? 'pass' : stats.score >= 60 ? 'warn' : 'fail', STATUS_MAP)}`}>
           {stats.score}%
         </span>
       </div>
@@ -84,7 +86,7 @@ const DataQuality = memo(function DataQuality() {
             <div key={check.id} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
               {statusIcon(check.status)}
               <span className="text-[10px] text-gray-300 flex-1 truncate">{check.name}</span>
-              <span className={`text-[9px] ${statusColor(check.status)}`}>{check.detail}</span>
+              <span className={`text-[9px] ${statusColor(check.status, STATUS_MAP)}`}>{check.detail}</span>
             </div>
           ))}
         </div>

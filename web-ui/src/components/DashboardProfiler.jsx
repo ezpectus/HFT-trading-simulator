@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Gauge, Cpu, MemoryStick, AlertTriangle, Zap } from 'lucide-react'
+import { statusColor, statusBg } from '../utils/ui-helpers'
 
 const MOCK_PANELS = [
   { name: 'CandleChart', renderTime: 12.5, mountTime: 45.2, rerenders: 8, cpu: 2.1, status: 'ok' },
@@ -21,16 +22,16 @@ const MOCK_METRICS = [
   { metric: 'Layout Shifts', value: 0.05, unit: 'CLS', target: 0.1, status: 'ok' },
 ]
 
-function statusColor(status) {
-  if (status === 'ok') return 'text-accent-green'
-  if (status === 'warn') return 'text-accent-yellow'
-  return 'text-accent-red'
+const STATUS_MAP = {
+  ok: 'text-accent-green',
+  warn: 'text-accent-yellow',
+  default: 'text-accent-red',
 }
 
-function statusBg(status) {
-  if (status === 'ok') return 'bg-accent-green/20'
-  if (status === 'warn') return 'bg-accent-yellow/20'
-  return 'bg-accent-red/20'
+const STATUS_BG_MAP = {
+  ok: 'bg-accent-green/20',
+  warn: 'bg-accent-yellow/20',
+  default: 'bg-accent-red/20',
 }
 
 const DashboardProfiler = memo(function DashboardProfiler() {
@@ -60,7 +61,7 @@ const DashboardProfiler = memo(function DashboardProfiler() {
           <div key={m.metric} className="p-1.5 bg-bg-700 border border-bg-600">
             <div className="text-[9px] text-gray-600 truncate">{m.metric}</div>
             <div className="flex items-center justify-between">
-              <span className={`text-sm font-mono ${statusColor(m.status)}`}>
+              <span className={`text-sm font-mono ${statusColor(m.status, STATUS_MAP)}`}>
                 {m.value}{m.unit}
               </span>
               <span className="text-[8px] text-gray-600">/{m.target}{m.unit}</span>
@@ -87,7 +88,7 @@ const DashboardProfiler = memo(function DashboardProfiler() {
                 {p.rerenders}rr
               </span>
               <span className="text-[9px] font-mono text-gray-500 w-10 text-right">{p.cpu.toFixed(1)}%</span>
-              <span className={`text-[8px] uppercase px-1 rounded ${statusBg(p.status)} ${statusColor(p.status)} w-14 text-center`}>
+              <span className={`text-[8px] uppercase px-1 rounded ${statusBg(p.status, STATUS_BG_MAP)} ${statusColor(p.status, STATUS_MAP)} w-14 text-center`}>
                 {p.status}
               </span>
             </div>

@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
-import { ICONS } from '../utils/ui-helpers'
+import { ICONS, statusColor } from '../utils/ui-helpers'
 
 const MOCK_FILLS = [
   { id: 1, orderId: 'ord_8a3f', symbol: 'BTC/USDT', side: 'BUY', reqQty: 0.5, fillQty: 0.5, reqPrice: 44100, fillPrice: 44102, partialFill: false, latency: 45, venue: 'Binance', status: 'filled' },
@@ -19,10 +19,10 @@ function statusIcon(status) {
   return ICONS.red()
 }
 
-function statusColor(status) {
-  if (status === 'filled') return 'text-accent-green'
-  if (status === 'partial') return 'text-accent-yellow'
-  return 'text-accent-red'
+const STATUS_MAP = {
+  filled: 'text-accent-green',
+  partial: 'text-accent-yellow',
+  default: 'text-accent-red',
 }
 
 const FillAnalytics = memo(function FillAnalytics() {
@@ -95,7 +95,7 @@ const FillAnalytics = memo(function FillAnalytics() {
                 <span className="text-[9px] font-mono text-gray-400 w-16">{f.fillQty}/{f.reqQty}</span>
                 <span className="text-[9px] font-mono text-gray-300 w-16">${f.fillPrice || '—'}</span>
                 <span className="text-[9px] font-mono text-gray-500 w-12 text-right">{f.latency}ms</span>
-                <span className={`text-[8px] uppercase ${statusColor(f.status)} w-10 text-right`}>{f.status}</span>
+                <span className={`text-[8px] uppercase ${statusColor(f.status, STATUS_MAP)} w-10 text-right`}>{f.status}</span>
               </div>
               {f.partialFill && (
                 <div className="text-[8px] text-accent-yellow pl-4 mt-0.5">

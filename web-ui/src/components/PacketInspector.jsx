@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { Network, ArrowDown, ArrowUp, Filter, AlertTriangle } from 'lucide-react'
+import { statusColor } from '../utils/ui-helpers'
 
 const MOCK_PACKETS = [
   { id: 1, ts: '12:45:32.100', dir: 'IN', proto: 'WS', size: 342, src: 'ws.binance.com:443', type: 'trade', status: 'ok' },
@@ -22,8 +23,9 @@ function dirIcon(dir) {
   return dir === 'IN' ? <ArrowDown size={10} className="text-accent-green" /> : <ArrowUp size={10} className="text-accent-blue" />
 }
 
-function statusColor(status) {
-  return status === 'ok' ? 'text-accent-green' : 'text-accent-red'
+const STATUS_MAP = {
+  ok: 'text-accent-green',
+  default: 'text-accent-red',
 }
 
 function typeColor(type) {
@@ -129,7 +131,7 @@ const PacketInspector = memo(function PacketInspector() {
             <div><span className="text-gray-600">Protocol:</span> <span className="text-gray-300">{selectedPacket.proto}</span></div>
             <div><span className="text-gray-600">Type:</span> <span className={typeColor(selectedPacket.type)}>{selectedPacket.type}</span></div>
             <div><span className="text-gray-600">Size:</span> <span className="text-gray-300 font-mono">{selectedPacket.size} bytes</span></div>
-            <div><span className="text-gray-600">Status:</span> <span className={statusColor(selectedPacket.status)}>{selectedPacket.status}</span></div>
+            <div><span className="text-gray-600">Status:</span> <span className={statusColor(selectedPacket.status, STATUS_MAP)}>{selectedPacket.status}</span></div>
             <div className="col-span-2"><span className="text-gray-600">Source:</span> <span className="text-gray-300 font-mono">{selectedPacket.src}</span></div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Search, Zap, TrendingUp, AlertTriangle } from 'lucide-react'
+import { statusColor, statusBg } from '../utils/ui-helpers'
 
 const MOCK_OPPORTUNITIES = [
   { id: 1, type: 'Triangular', path: 'BTC → ETH → USDT → BTC', profit: 0.85, capital: 10000, estProfit: 85, latency: 120, confidence: 0.92, status: 'active' },
@@ -12,23 +13,14 @@ const MOCK_OPPORTUNITIES = [
   { id: 8, type: 'Cross-Exchange', path: 'ETH: OKX → Bybit', profit: 0.08, capital: 40000, estProfit: 32, latency: 90, confidence: 0.48, status: 'closing' },
 ]
 
+const STATUS_COLOR_MAP = { active: 'text-accent-green', fading: 'text-accent-yellow', closing: 'text-accent-red', default: 'text-gray-400' }
+const STATUS_BG_MAP = { active: 'bg-accent-green/20', fading: 'bg-accent-yellow/20', closing: 'bg-accent-red/20', default: 'bg-gray-600/20' }
+
 const MOCK_SCAN_STATS = [
   { exchange: 'Binance', opps: 12, avgProfit: 0.42, scanned: 450 },
   { exchange: 'OKX', opps: 8, avgProfit: 0.35, scanned: 380 },
   { exchange: 'Bybit', opps: 5, avgProfit: 0.28, scanned: 320 },
 ]
-
-function statusColor(status) {
-  if (status === 'active') return 'text-accent-green'
-  if (status === 'fading') return 'text-accent-yellow'
-  return 'text-accent-red'
-}
-
-function statusBg(status) {
-  if (status === 'active') return 'bg-accent-green/20'
-  if (status === 'fading') return 'bg-accent-yellow/20'
-  return 'bg-accent-red/20'
-}
 
 const ArbScanner = memo(function ArbScanner() {
   const stats = useMemo(() => {
@@ -79,7 +71,7 @@ const ArbScanner = memo(function ArbScanner() {
           {MOCK_OPPORTUNITIES.map(opp => (
             <div key={opp.id} className="py-1 px-1.5 bg-bg-700">
               <div className="flex items-center gap-2">
-                <span className={`text-[8px] px-1 rounded ${statusBg(opp.status)} ${statusColor(opp.status)} w-12 text-center`}>
+                <span className={`text-[8px] px-1 rounded ${statusBg(opp.status, STATUS_BG_MAP)} ${statusColor(opp.status, STATUS_COLOR_MAP)} w-12 text-center`}>
                   {opp.status.toUpperCase()}
                 </span>
                 <span className="text-[9px] text-gray-500 w-20 truncate">{opp.type}</span>

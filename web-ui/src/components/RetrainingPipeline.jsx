@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Database, Cpu, RefreshCw, AlertTriangle } from 'lucide-react'
-import { ICONS } from '../utils/ui-helpers'
+import { ICONS, statusColor } from '../utils/ui-helpers'
 
 const MOCK_PIPELINES = [
   { id: 1, name: 'TrendFollowing Model', status: 'idle', lastRun: '2h ago', nextRun: 'in 4h', accuracy: 0.82, drift: 0.05, version: 'v2.3.1' },
@@ -26,11 +26,11 @@ function statusIcon(status) {
   return ICONS.gray()
 }
 
-function statusColor(status) {
-  if (status === 'completed') return 'text-accent-green'
-  if (status === 'running') return 'text-accent-blue'
-  if (status === 'failed') return 'text-accent-red'
-  return 'text-gray-500'
+const STATUS_MAP = {
+  completed: 'text-accent-green',
+  running: 'text-accent-blue',
+  failed: 'text-accent-red',
+  default: 'text-gray-500',
 }
 
 function driftColor(drift) {
@@ -89,7 +89,7 @@ const RetrainingPipeline = memo(function RetrainingPipeline() {
                 {statusIcon(p.status)}
                 <span className="text-[10px] text-gray-300 flex-1 truncate">{p.name}</span>
                 <span className="text-[8px] text-gray-600 font-mono">{p.version}</span>
-                <span className={`text-[8px] uppercase ${statusColor(p.status)} w-16 text-center`}>{p.status}</span>
+                <span className={`text-[8px] uppercase ${statusColor(p.status, STATUS_MAP)} w-16 text-center`}>{p.status}</span>
               </div>
               <div className="flex items-center gap-3 mt-0.5 pl-4 text-[9px]">
                 <span className="text-gray-500">Acc: <span className="text-gray-300 font-mono">{(p.accuracy * 100).toFixed(0)}%</span></span>
@@ -114,7 +114,7 @@ const RetrainingPipeline = memo(function RetrainingPipeline() {
               <span className="text-[8px] text-gray-600 font-mono w-4">{i + 1}</span>
               {statusIcon(step.status)}
               <span className="text-[10px] text-gray-300 flex-1">{step.name}</span>
-              <span className={`text-[9px] font-mono ${statusColor(step.status)}`}>{step.duration}</span>
+              <span className={`text-[9px] font-mono ${statusColor(step.status, STATUS_MAP)}`}>{step.duration}</span>
             </div>
           ))}
         </div>

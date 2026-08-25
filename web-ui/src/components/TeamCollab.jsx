@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { Users, MessageSquare, Share2, UserCircle } from 'lucide-react'
+import { statusColor } from '../utils/ui-helpers'
 
 const MOCK_TEAM = [
   { id: 1, name: 'Alice', role: 'Admin', status: 'online', action: 'Reviewing BTC/USDT signals' },
@@ -23,10 +24,10 @@ const MOCK_SHARED = [
   { id: 3, type: 'alert', name: 'BTC > $45k Alert', sharedBy: 'Carol', ts: '1d ago' },
 ]
 
-function statusColor(status) {
-  if (status === 'online') return 'text-accent-green'
-  if (status === 'away') return 'text-accent-yellow'
-  return 'text-gray-600'
+const STATUS_MAP = {
+  online: 'text-accent-green',
+  away: 'text-accent-yellow',
+  default: 'text-gray-600',
 }
 
 function statusDot(status) {
@@ -71,7 +72,7 @@ const TeamCollab = memo(function TeamCollab({ addToast }) {
               </div>
               <span className="text-[10px] text-gray-300 w-12">{member.name}</span>
               <span className="text-[9px] text-gray-600 w-12">{member.role}</span>
-              <span className={`text-[9px] truncate flex-1 ${statusColor(member.status)}`}>{member.action}</span>
+              <span className={`text-[9px] truncate flex-1 ${statusColor(member.status, STATUS_MAP)}`}>{member.action}</span>
             </div>
           ))}
         </div>

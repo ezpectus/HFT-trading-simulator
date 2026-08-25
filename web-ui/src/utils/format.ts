@@ -36,10 +36,3 @@ export function formatTime(ts: number): string {
   return d.toLocaleTimeString('en-US', { hour12: false })
 }
 
-export function colorForSide(side: string): string {
-  return side === 'BUY' || side === 'LONG' ? 'text-accent-green' : 'text-accent-red'
-}
-
-export function bgColorForSide(side: string): string {
-  return side === 'BUY' || side === 'LONG' ? 'bg-accent-green' : 'bg-accent-red'
-}

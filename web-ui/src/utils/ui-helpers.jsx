@@ -12,8 +12,16 @@ export function sideColor(side) {
   return side === 'BUY' || side === 'LONG' ? 'text-accent-green' : 'text-accent-red'
 }
 
+export function sideBg(side) {
+  return side === 'BUY' || side === 'LONG' ? 'bg-accent-green' : 'bg-accent-red'
+}
+
 export function statusColor(status, map = {}) {
   return map[status] || map.default || 'text-accent-red'
+}
+
+export function statusBg(status, map = {}) {
+  return map[status] || map.default || 'bg-accent-red/20'
 }
 
 export function statusIcon(status, map = {}) {

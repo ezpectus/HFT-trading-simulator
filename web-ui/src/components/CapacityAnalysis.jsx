@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Gauge, TrendingUp, AlertTriangle, Maximize2 } from 'lucide-react'
 import { formatVolume } from '../utils/format'
+import { statusColor, statusBg } from '../utils/ui-helpers'
 
 const MOCK_STRATEGIES = [
   { name: 'TrendFollowing', currentAUM: 500000, maxCapacity: 5000000, utilization: 10, alphaDecay: 0.5, status: 'scalable' },
@@ -17,16 +18,16 @@ const MOCK_CAPACITY_CURVE = [
   { aum: 2000, alpha: 3.2 }, { aum: 3000, alpha: 1.5 }, { aum: 5000, alpha: 0.5 },
 ]
 
-function statusColor(status) {
-  if (status === 'scalable') return 'text-accent-green'
-  if (status === 'moderate') return 'text-accent-yellow'
-  return 'text-accent-red'
+const STATUS_MAP = {
+  scalable: 'text-accent-green',
+  moderate: 'text-accent-yellow',
+  default: 'text-accent-red',
 }
 
-function statusBg(status) {
-  if (status === 'scalable') return 'bg-accent-green/20'
-  if (status === 'moderate') return 'bg-accent-yellow/20'
-  return 'bg-accent-red/20'
+const STATUS_BG_MAP = {
+  scalable: 'bg-accent-green/20',
+  moderate: 'bg-accent-yellow/20',
+  default: 'bg-accent-red/20',
 }
 
 function utilColor(util) {
@@ -82,7 +83,7 @@ const CapacityAnalysis = memo(function CapacityAnalysis() {
             <div key={s.name} className="py-1 px-1.5 bg-bg-700">
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-[10px] text-gray-300 w-28 truncate">{s.name}</span>
-                <span className={`text-[8px] px-1 rounded ${statusBg(s.status)} ${statusColor(s.status)} w-16 text-center`}>
+                <span className={`text-[8px] px-1 rounded ${statusBg(s.status, STATUS_BG_MAP)} ${statusColor(s.status, STATUS_MAP)} w-16 text-center`}>
                   {s.status.toUpperCase()}
                 </span>
                 <span className={`text-[9px] font-mono w-10 text-right ${utilColor(s.utilization)}`}>

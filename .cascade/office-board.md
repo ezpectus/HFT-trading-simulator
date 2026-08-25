@@ -3,12 +3,19 @@
 > Фаза 2 (Рефакторинг): АКТИВНА
 > План: docs/REFACTORING_PLAN_10DAYS.md
 
+## Прогресс
+- **DONE:** 80 задач (REF-51..110, REF-501..520)
+- **TODO:** 492 задачи
+- **JS тесты:** 857 тестов, 0 failures (commit a039f4c)
+- **Python тесты:** фиксы применены (test_validator, test_comm_circuit_breaker, test_signal_publisher, test_db, test_backtester, test_tracker, test_integration, test_e2e_pipeline, test_strategy_risk_backtest)
+- **Следующий приоритет:** REF-01..50 (DRY refactoring) → REF-521..540 (config updates)
+
 ---
 ## ФАЗА 4 — Code Quality: Refactoring, Optimization & Static Analysis
 
 ### Категория A: DRY — Centralize duplicated helper functions
 
-### REF-01: Centralize `statusColor` across 11 components ⬜ TODO
+### REF-01: Centralize `statusColor` across 11 components ✅ DONE
 **Описание:** `statusColor` дублируется в 11 компонентах с разной логикой маппинга статусов.
 - Компоненты: `ArbScanner`, `CapacityAnalysis`, `Colocation`, `DashboardProfiler`, `DataQuality`, `FillAnalytics`, `LatencyPanel`, `PacketInspector`, `PairsArb`, `RetrainingPipeline`, `TeamCollab`
 - Решение: использовать `statusColor(status, map)` из `ui-helpers.js`, передавать маппинг как параметр
@@ -16,20 +23,20 @@
 **Сложность:** Низкая
 **Файлы:** 11 компонентов + `web-ui/src/utils/ui-helpers.js`
 
-### REF-02: Centralize `statusBg` across 5 components ⬜ TODO
+### REF-02: Centralize `statusBg` across 5 components ✅ DONE
 **Описание:** `statusBg` дублируется в 5 компонентах с одинаковой логикой (green/yellow/red bg).
 - Компоненты: `ArbScanner`, `CapacityAnalysis`, `DashboardProfiler`, `LatencyPanel`, `PairsArb`
 - Решение: добавить `statusBg(status, map)` в `ui-helpers.js`, импортировать в компонентах
 **Сложность:** Низкая
 **Файлы:** 5 компонентов + `web-ui/src/utils/ui-helpers.js`
 
-### REF-03: Replace `dirColor` with `sideColor` in SignalTracker ⬜ TODO
+### REF-03: Replace `dirColor` with `sideColor` in SignalTracker ✅ DONE
 **Описание:** `SignalTracker.jsx` имеет локальную `dirColor(dir)` — это дубль `sideColor` из `ui-helpers.js`.
 - Решение: импортировать `sideColor` из `ui-helpers.js`, удалить локальную функцию
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/components/SignalTracker.jsx`
 
-### REF-04: Consolidate `colorForSide`/`bgColorForSide` from format.ts into ui-helpers.js ⬜ TODO
+### REF-04: Consolidate `colorForSide`/`bgColorForSide` from format.ts into ui-helpers.js ✅ DONE
 **Описание:** `format.ts` содержит `colorForSide` и `bgColorForSide`, а `ui-helpers.js` — `sideColor` и `pnlBg`. Это дублирование.
 - Решение: убрать `colorForSide`/`bgColorForSide` из `format.ts`, обновить импорты во всех компонентах на `sideColor`/`pnlBg` из `ui-helpers.js`
 - Проверить: `BotStatus.jsx` и другие, импортирующие из `format.ts`

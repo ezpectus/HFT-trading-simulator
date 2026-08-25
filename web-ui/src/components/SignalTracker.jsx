@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Target, TrendingUp, TrendingDown, Crosshair } from 'lucide-react'
-import { pnlColor } from '../utils/ui-helpers'
+import { pnlColor, sideColor } from '../utils/ui-helpers'
 
 const MOCK_SIGNALS = [
   { id: 1, strategy: 'TrendFollowing', symbol: 'BTC/USDT', direction: 'LONG', confidence: 0.82, entryPrice: 43800, currentPrice: 44100, pnl: 0.68, status: 'open', timestamp: '12:30' },
@@ -12,10 +12,6 @@ const MOCK_SIGNALS = [
   { id: 7, strategy: 'FundingArb', symbol: 'BTC/USDT', direction: 'LONG', confidence: 0.58, entryPrice: 43500, currentPrice: 44100, pnl: 1.38, status: 'open', timestamp: '12:00' },
   { id: 8, strategy: 'StatArb', symbol: 'MATIC/USDT', direction: 'SHORT', confidence: 0.69, entryPrice: 0.85, currentPrice: 0.82, pnl: 3.53, status: 'closed', timestamp: '11:00' },
 ]
-
-function dirColor(dir) {
-  return dir === 'LONG' ? 'text-accent-green' : 'text-accent-red'
-}
 
 const SignalTracker = memo(function SignalTracker() {
   const stats = useMemo(() => {
@@ -110,7 +106,7 @@ const SignalTracker = memo(function SignalTracker() {
               <span className="text-[8px] text-gray-600 font-mono w-8">{sig.timestamp}</span>
               <span className="text-[9px] text-gray-400 w-20 truncate">{sig.strategy}</span>
               <span className="text-[9px] text-gray-300 w-10 truncate">{sig.symbol.replace('/USDT', '')}</span>
-              <span className={`text-[9px] font-mono w-8 ${dirColor(sig.direction)}`}>{sig.direction === 'LONG' ? 'L' : 'S'}</span>
+              <span className={`text-[9px] font-mono w-8 ${sideColor(sig.direction)}`}>{sig.direction === 'LONG' ? 'L' : 'S'}</span>
               <span className="text-[9px] font-mono text-gray-500 w-10">{(sig.confidence * 100).toFixed(0)}%</span>
               <span className={`text-[9px] font-mono w-12 text-right ${pnlColor(sig.pnl)}`}>
                 {sig.pnl >= 0 ? '+' : ''}{sig.pnl.toFixed(2)}%
