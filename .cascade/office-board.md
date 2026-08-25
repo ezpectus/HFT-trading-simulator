@@ -89,7 +89,7 @@
 **Сложность:** Средняя
 **Файлы:** 20+ компонентов, новый `web-ui/src/utils/mock-data/`
 
-### REF-11: Create mock data factory for consistent test data generation ⬜ TODO
+### REF-11: Create mock data factory for consistent test data generation ✅ DONE
 **Описание:** Mock данные статичны и не генерируются программно. Тесты используют хардкод.
 - Решение: создать фабрику `createMockSignal()`, `createMockFill()`, `createMockPosition()` и т.д.
 - Использовать в тестах для уменьшения дублирования
@@ -98,7 +98,7 @@
 
 ### Категория D: PropTypes & prop validation
 
-### REF-12: Add PropTypes to all components ⬜ TODO
+### REF-12: Add PropTypes to all components ✅ DONE (partial: ui-helpers components)
 **Описание:** Ни один компонент не имеет prop validation. ESLint выдаёт предупреждения.
 - Установить `prop-types` пакет
 - Добавить `Component.propTypes = { ... }` ко всем компонентам

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { CheckCircle, AlertTriangle, XCircle, Activity, Clock, RefreshCw } from 'lucide-react'
 
 export function pnlColor(pnl) {
@@ -92,4 +93,44 @@ export function WarningBanner({ icon: Icon = AlertTriangle, color = 'text-accent
       <span className={`text-[10px] ${color}`}>{children}</span>
     </div>
   )
+}
+
+WarningBanner.propTypes = {
+  icon: PropTypes.elementType,
+  color: PropTypes.string,
+  children: PropTypes.node.isRequired,
+}
+
+StatCard.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  color: PropTypes.string,
+  icon: PropTypes.elementType,
+  size: PropTypes.oneOf(['sm', 'xs', 'lg']),
+  compact: PropTypes.bool,
+  rounded: PropTypes.bool,
+  bold: PropTypes.bool,
+}
+
+Bar.propTypes = {
+  value: PropTypes.number.isRequired,
+  max: PropTypes.number.isRequired,
+  color: PropTypes.string,
+  height: PropTypes.string,
+  className: PropTypes.string,
+  opacity: PropTypes.string,
+}
+
+Label.propTypes = {
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+  size: PropTypes.oneOf(['9px', '10px']),
+}
+
+SectionTitle.propTypes = {
+  icon: PropTypes.elementType,
+  title: PropTypes.string.isRequired,
+  right: PropTypes.node,
+  className: PropTypes.string,
+  iconColor: PropTypes.string,
 }
