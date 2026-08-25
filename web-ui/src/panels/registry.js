@@ -841,7 +841,7 @@ export const PANELS = [
     props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
   { id: 'strategy-correlation', name: 'Strategy Correlation', category: 'risk', component: StrategyCorrelation,
     props: () => ({}) },
-  { id: 'walk-forward', name: 'Walk-Forward Analysis', category: 'strategy', component: WalkForwardViewer,
+  { id: 'walk-forward-viewer', name: 'Walk-Forward Viewer', category: 'strategy', component: WalkForwardViewer,
     props: () => ({}) },
   { id: 'realtime-attribution', name: 'Realtime PnL Attribution', category: 'portfolio', component: RealtimeAttribution,
     props: () => ({}) },
