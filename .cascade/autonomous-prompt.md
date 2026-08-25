@@ -71,14 +71,17 @@ You are working on a multi-language HFT trading system with:
 - **Bug log:** 188 bugs found, all fixed
 - **JS tests:** 857 tests, 0 failures (isolate: true)
 - **Python tests:** 32+ unit tests, integration tests, strategy tests
-- **Verification plan:** `.cascade/verification-plan.md` — systematic audit checklist
+- **memo():** 289/289 components wrapped in memo() (3 error boundaries excluded) ✅
+- **Verification plan:** `.cascade/verification-plan.md` — audit checklist updated
+- **Git:** All commits pushed to origin/master ✅
 
 ## Next Steps
-The office-board is fully cleared. Future work:
-1. Run full test suites (JS + Python) and fix any failures
-2. Push all commits to origin
-3. Execute verification-plan.md audit items
-4. Add new task batches to office-board.md as needed
+The office-board is fully cleared. Verification plan audit mostly complete. Remaining:
+1. User should run full test suites (JS + Python) and fix any failures
+2. ⚠️ Security: ApiClient.jsx stores apiKey/apiSecret in localStorage plaintext — consider sessionStorage or encryption
+3. Docs freshness: Verify docs/ match current code structure
+4. Config verification: Verify settings.yaml/shared_config.yaml match current code
+5. Add new task batches to office-board.md as needed
 
 ## Doc Update Protocol (MANDATORY — after every code change)
 
@@ -205,7 +208,7 @@ docs/              — 13 docs + 4 guides
 - `cn()` utility in `web-ui/src/utils/cn.js` for conditional Tailwind class merging
 - Pre-commit hook is broken — always use `--no-verify`
 - 289 React components, 6 hooks, 11 utils, 93 test files
-- 283/289 components wrapped in `memo()` (6 without: 3 error boundaries, LoadingSkeleton, ReconnectBanner, Toast)
+- 289/289 components wrapped in `memo()` (3 error boundaries excluded — ChunkRetryBoundary, PanelErrorBoundary, TopErrorBoundary)
 - Panel registry: `web-ui/src/panels/registry.js` — all panels must resolve
 - Hooks: `useLocalStorage`, `useInterval`, `usePrevious` (+ 3 others)
 - Utils: `ui-helpers.tsx`, `format.ts`, `patterns.ts`, `timeframes.ts`, `cn.js`, `mock-data/`
