@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Empirical Dynamic Modeling (EDM) ───────────────────────────────────────
 // Implements Takens' embedding theorem and Convergent Cross Mapping (CCM)
@@ -216,7 +216,7 @@ const ccm = (X, Y, E, tau, libSizes) => {
   return results
 }
 
-export default function EmpiricalDynamicModeling({ candles, symbol, exchange, symbols }) {
+function EmpiricalDynamicModeling({ candles, symbol, exchange, symbols }) {
   const [maxE, setMaxE] = useState(8)
   const [maxTau, setMaxTau] = useState(15)
   const [forecastSteps, setForecastSteps] = useState(5)
@@ -450,3 +450,5 @@ export default function EmpiricalDynamicModeling({ candles, symbol, exchange, sy
     </div>
   )
 }
+
+export default memo(EmpiricalDynamicModeling)

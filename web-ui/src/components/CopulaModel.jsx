@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Copula Dependency Model ─────────────────────────────────────────────────
 // Models non-linear dependency between assets using copula theory.
@@ -215,7 +215,7 @@ const logGamma = (z) => {
   return -tmp + Math.log(2.506628274631 * ser / z)
 }
 
-export default function CopulaModel({ candles, symbols, exchange }) {
+function CopulaModel({ candles, symbols, exchange }) {
   const [pairA, setPairA] = useState(0)
   const [pairB, setPairB] = useState(1)
   const [copulaType, setCopulaType] = useState('clayton')
@@ -491,3 +491,5 @@ export default function CopulaModel({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(CopulaModel)

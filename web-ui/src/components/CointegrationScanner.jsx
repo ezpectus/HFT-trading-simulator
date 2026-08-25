@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Link2, GitCompare, AlertCircle } from 'lucide-react'
 
 // Augmented Dickey-Fuller (ADF) test on OLS residuals:
@@ -125,7 +125,7 @@ function calcCorrelation(a, b) {
   return den > 0 ? num / den : 0
 }
 
-export default function CointegrationScanner({ candles, symbols, exchange }) {
+function CointegrationScanner({ candles, symbols, exchange }) {
   const pairs = useMemo(() => {
     if (!candles || candles.length < 50 || !symbols || symbols.length < 2) return []
 
@@ -291,3 +291,5 @@ export default function CointegrationScanner({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(CointegrationScanner)

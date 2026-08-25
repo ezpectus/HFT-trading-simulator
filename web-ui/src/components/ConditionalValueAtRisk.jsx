@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Conditional Value at Risk (CVaR) / Expected Shortfall ──────────────────
 // Computes VaR, CVaR (Expected Shortfall), and performs CVaR-optimal
@@ -138,7 +138,7 @@ const cvarOptimize = (allReturns, alpha = 0.95, maxIter = 200, lr = 0.01) => {
   return { w, zeta, portVaR, portCVaR, portMean, portStd, sharpe }
 }
 
-export default function ConditionalValueAtRisk({ candles, symbols, exchange }) {
+function ConditionalValueAtRisk({ candles, symbols, exchange }) {
   const [alpha, setAlpha] = useState(0.95)
   const [lookback, setLookback] = useState(100)
   const [optimize, setOptimize] = useState(true)
@@ -355,3 +355,5 @@ export default function ConditionalValueAtRisk({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(ConditionalValueAtRisk)

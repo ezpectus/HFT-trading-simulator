@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Cesaro Summability & Fejer Kernel (Averaging for Trend Extraction) ---
 // Uses Cesaro means and Fejer kernels to extract smooth trends from
@@ -77,7 +77,7 @@ const fejerKernel = (x, N) => {
   return (1 / (N + 1)) * (num / den) ** 2
 }
 
-export default function CesaroFejerKernel({ candles, symbol, exchange }) {
+function CesaroFejerKernel({ candles, symbol, exchange }) {
   const [N, setN] = useState(10)
   const [lookback, setLookback] = useState(100)
 
@@ -304,3 +304,5 @@ export default function CesaroFejerKernel({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(CesaroFejerKernel)

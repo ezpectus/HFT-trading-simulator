@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Cameron-Martin Formula (Gaussian Shift Theorem for Drift) ---
 // Uses the Cameron-Martin theorem to quantify how a deterministic shift
@@ -27,7 +27,7 @@ const computeReturns = (prices) => {
   return rets
 }
 
-export default function CameronMartinFormula({ candles, symbol, exchange }) {
+function CameronMartinFormula({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(150)
   const [windowSize, setWindowSize] = useState(30)
   const [shiftMode, setShiftMode] = useState('constant')
@@ -265,3 +265,5 @@ export default function CameronMartinFormula({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(CameronMartinFormula)

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Black-Litterman Portfolio Allocation ───────────────────────────────────
 // Combines market equilibrium returns (reverse-optimized from market caps)
@@ -87,7 +87,7 @@ const matSub = (A, B) => A.map((row, i) => row.map((v, j) => v - B[i][j]))
 
 const scalarMul = (s, A) => A.map(row => row.map(v => s * v))
 
-export default function BlackLitterman({ candles, symbols, exchange }) {
+function BlackLitterman({ candles, symbols, exchange }) {
   const [riskAversion, setRiskAversion] = useState(2.5)
   const [tau, setTau] = useState(0.05)
   const [lookback, setLookback] = useState(50)
@@ -360,3 +360,5 @@ export default function BlackLitterman({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(BlackLitterman)

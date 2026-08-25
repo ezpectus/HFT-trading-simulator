@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Compressed Sensing (Sparse Signal Recovery) ────────────────────────────
 // Recovers sparse signals from undersampled observations using L1 minimization.
@@ -172,7 +172,7 @@ const dftBasis = (n) => {
   return Psi
 }
 
-export default function CompressedSensing({ candles, symbol, exchange }) {
+function CompressedSensing({ candles, symbol, exchange }) {
   const [sparsity, setSparsity] = useState(5)
   const [sampleRatio, setSampleRatio] = useState(0.5)
   const [lambda, setLambda] = useState(0.01)
@@ -402,3 +402,5 @@ export default function CompressedSensing({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(CompressedSensing)

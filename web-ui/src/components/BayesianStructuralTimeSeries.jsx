@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Bayesian Structural Time Series (BSTS) ─────────────────────────────────
 // State-space model with Kalman filter for decomposing time series into
@@ -150,7 +150,7 @@ const optimizeBSTS = (y, period) => {
   return best
 }
 
-export default function BayesianStructuralTimeSeries({ candles, symbol, exchange }) {
+function BayesianStructuralTimeSeries({ candles, symbol, exchange }) {
   const [period, setPeriod] = useState(7)
   const [lookback, setLookback] = useState(100)
   const [autoOptimize, setAutoOptimize] = useState(true)
@@ -329,3 +329,5 @@ export default function BayesianStructuralTimeSeries({ candles, symbol, exchange
     </div>
   )
 }
+
+export default memo(BayesianStructuralTimeSeries)

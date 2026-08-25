@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Burgers Equation (Nonlinear PDE, Shock Formation) ──────────────────────
 // Models order flow dynamics via the viscous Burgers equation, capturing
@@ -72,7 +72,7 @@ const shockThreshold = (u) => {
   return 2 * std
 }
 
-export default function BurgersEquation({ candles, symbol, exchange }) {
+function BurgersEquation({ candles, symbol, exchange }) {
   const [nu, setNu] = useState(0.01)
   const [nSteps, setNSteps] = useState(200)
   const [dt, setDt] = useState(0.01)
@@ -290,3 +290,5 @@ export default function BurgersEquation({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(BurgersEquation)
