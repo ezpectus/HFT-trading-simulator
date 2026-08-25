@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Layers, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react'
 
-export default function OptionsStrategies() {
+function OptionsStrategies() {
   const [strategy, setStrategy] = useState('straddle')
   const [params, setParams] = useState({
     S: 100,           // Stock price
@@ -374,3 +374,5 @@ export default function OptionsStrategies() {
     </div>
   )
 }
+
+export default memo(OptionsStrategies)

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Plus, Trash2, Calculator } from 'lucide-react'
 
 function normCDF(x) {
@@ -56,7 +56,7 @@ const STRATEGIES = [
   ]},
 ]
 
-export default function OptionsStrategySimulator({ currentPrice }) {
+function OptionsStrategySimulator({ currentPrice }) {
   const [spot, setSpot] = useState(currentPrice || 65000)
   const [daysToExpiry, setDaysToExpiry] = useState(30)
   const [volatility, setVolatility] = useState(50)
@@ -296,3 +296,5 @@ export default function OptionsStrategySimulator({ currentPrice }) {
     </div>
   )
 }
+
+export default memo(OptionsStrategySimulator)

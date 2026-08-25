@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Calculator, TrendingUp, TrendingDown, Activity } from 'lucide-react'
 
-export default function OptionsPricing() {
+function OptionsPricing() {
   const [params, setParams] = useState({
     S: 100,      // Stock price
     K: 100,      // Strike price
@@ -192,3 +192,5 @@ export default function OptionsPricing() {
     </div>
   )
 }
+
+export default memo(OptionsPricing)
