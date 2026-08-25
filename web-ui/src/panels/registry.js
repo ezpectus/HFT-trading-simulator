@@ -264,6 +264,10 @@ const TeamCollab = lazy(() => import('../components/TeamCollab'))
 const StrategyVersionControl = lazy(() => import('../components/StrategyVersionControl'))
 const OptionsChain = lazy(() => import('../components/OptionsChain'))
 const Microstructure = lazy(() => import('../components/Microstructure'))
+const TickReplay = lazy(() => import('../components/TickReplay'))
+const PacketInspector = lazy(() => import('../components/PacketInspector'))
+const WidgetSDK = lazy(() => import('../components/WidgetSDK'))
+const SentimentDashboard = lazy(() => import('../components/SentimentDashboard'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -779,6 +783,14 @@ export const PANELS = [
   { id: 'options-chain', name: 'Options Chain', category: 'orderflow', component: OptionsChain,
     props: (ctx) => ({ currentPrice: ctx.currentPrice }) },
   { id: 'microstructure', name: 'Microstructure Analysis', category: 'orderflow', component: Microstructure,
+    props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
+  { id: 'tick-replay', name: 'Tick Replay', category: 'orderflow', component: TickReplay,
+    props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
+  { id: 'packet-inspector', name: 'Packet Inspector', category: 'config', component: PacketInspector,
+    props: () => ({}) },
+  { id: 'widget-sdk', name: 'Widget SDK', category: 'export', component: WidgetSDK,
+    props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
+  { id: 'sentiment-dashboard', name: 'Sentiment Dashboard', category: 'strategy', component: SentimentDashboard,
     props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
 ]
 
