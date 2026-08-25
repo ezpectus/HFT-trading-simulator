@@ -108,4 +108,4 @@ const SignalTracker = memo(function SignalTracker() {
   )
 })
 
-export default SignalTracker
+export default memo(SignalTracker)

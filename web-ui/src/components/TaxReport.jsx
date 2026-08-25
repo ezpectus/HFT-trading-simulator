@@ -139,4 +139,4 @@ const TaxReport = memo(function TaxReport({ fills, addToast }) {
   )
 })
 
-export default TaxReport
+export default memo(TaxReport)

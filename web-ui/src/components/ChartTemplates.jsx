@@ -105,4 +105,4 @@ const ChartTemplates = memo(function ChartTemplates({ symbol, addToast }) {
   )
 })
 
-export default ChartTemplates
+export default memo(ChartTemplates)

@@ -202,4 +202,4 @@ const WsManager = memo(function WsManager({ exchange, signals, toasts, addToast 
   )
 })
 
-export default WsManager
+export default memo(WsManager)

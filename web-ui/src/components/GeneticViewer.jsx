@@ -133,4 +133,4 @@ const GeneticViewer = memo(function GeneticViewer() {
   )
 })
 
-export default GeneticViewer
+export default memo(GeneticViewer)

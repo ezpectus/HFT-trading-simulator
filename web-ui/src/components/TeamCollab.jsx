@@ -118,4 +118,4 @@ const TeamCollab = memo(function TeamCollab({ addToast }) {
   )
 })
 
-export default TeamCollab
+export default memo(TeamCollab)

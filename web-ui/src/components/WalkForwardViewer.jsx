@@ -111,4 +111,4 @@ const WalkForwardViewer = memo(function WalkForwardViewer() {
   )
 })
 
-export default WalkForwardViewer
+export default memo(WalkForwardViewer)

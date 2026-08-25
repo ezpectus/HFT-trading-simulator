@@ -299,7 +299,7 @@ npx vitest run --coverage         # With coverage report
 npx vitest                        # Watch mode
 ```
 
-Test files are in `web-ui/src/test/`. Current coverage: 38 test files, 525+ tests covering:
+Test files are in `web-ui/src/test/`. Current coverage: 116 test files, 857+ tests covering:
 - Component rendering and empty states (EmptyState, SignalFeed, BotStatus, FillsPanel)
 - Form validation (OrderForm quantity/margin validation)
 - Error boundaries (retry, auto-disable after 3+ errors)
@@ -458,7 +458,7 @@ hft-trading-system/
 │   ├── config/config.yaml
 │   └── CMakeLists.txt
 ├── hft-executor/                 # Rust: order executor (FFI + WebSocket)
-├── web-ui/                       # React 18: dashboard (227 components)
+├── web-ui/                       # React 18: dashboard (289 components, 116 test files)
 │   ├── src/
 │   │   ├── components/           # UI components (React.lazy)
 │   │   ├── panels/               # Panel registry

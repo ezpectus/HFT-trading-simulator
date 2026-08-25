@@ -253,4 +253,4 @@ const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConn
   )
 })
 
-export default BotStatus
+export default memo(BotStatus)

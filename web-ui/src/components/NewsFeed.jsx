@@ -119,4 +119,4 @@ const NewsFeed = memo(function NewsFeed({ newsEvent, signals, addToast }) {
   )
 })
 
-export default NewsFeed
+export default memo(NewsFeed)

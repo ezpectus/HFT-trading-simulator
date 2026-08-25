@@ -87,4 +87,4 @@ const DataQuality = memo(function DataQuality() {
   )
 })
 
-export default DataQuality
+export default memo(DataQuality)

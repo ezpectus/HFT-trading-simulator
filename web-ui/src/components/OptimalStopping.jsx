@@ -387,4 +387,4 @@ const OptimalStopping = memo(({ candles, symbol, exchange, currentPrice }) => {
   )
 })
 
-export default OptimalStopping
+export default memo(OptimalStopping)

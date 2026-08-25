@@ -152,4 +152,4 @@ const SentimentDashboard = memo(function SentimentDashboard({ symbol }) {
   )
 })
 
-export default SentimentDashboard
+export default memo(SentimentDashboard)

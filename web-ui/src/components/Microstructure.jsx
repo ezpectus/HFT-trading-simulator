@@ -131,4 +131,4 @@ const Microstructure = memo(function Microstructure({ symbol }) {
   )
 })
 
-export default Microstructure
+export default memo(Microstructure)

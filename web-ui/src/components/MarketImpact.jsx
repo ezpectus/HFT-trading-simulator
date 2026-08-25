@@ -129,4 +129,4 @@ const MarketImpact = memo(function MarketImpact({ candles, symbol, exchange, cur
   )
 })
 
-export default MarketImpact
+export default memo(MarketImpact)

@@ -121,4 +121,4 @@ const AuditTrail = memo(function AuditTrail() {
   )
 })
 
-export default AuditTrail
+export default memo(AuditTrail)

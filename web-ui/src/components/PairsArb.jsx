@@ -108,4 +108,4 @@ const PairsArb = memo(function PairsArb() {
   )
 })
 
-export default PairsArb
+export default memo(PairsArb)

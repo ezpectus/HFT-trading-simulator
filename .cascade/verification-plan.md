@@ -22,7 +22,8 @@
 
 ### 2.1 Запустить полный тест-ран
 - **Команда:** `cd web-ui && npx vitest run`
-- **Ожидание:** 857 тестов, 0 failures (commit a039f4c)
+- **Ожидание:** 857+ тестов, 0 failures
+- **Файлов:** 116 test files (actual count Aug 25)
 - **Проверка:** Если упали — зафиксировать какие
 
 ### 2.2 Flaky тесты
@@ -47,6 +48,7 @@
 
 ### 3.1 Запустить полный тест-ран
 - **Команда:** `cd ai-signal-bot && python -m pytest -v`
+- **Файлов:** 155 test files (ai-signal-bot) + 36 (exchange_simulator)
 - **Проверка:** Сколько тестов, сколько падает
 
 ### 3.2 Незакоммиченные фиксы
@@ -62,14 +64,10 @@
 ## 4. web-ui компоненты — аудит качества
 
 ### 4.1 Компоненты без memo()
-- **Статус:** ✅ ALL CLEAR — All 289 components now wrapped in memo()
-  - `ChunkRetryBoundary.jsx` — error boundary (OK, не нужно)
-  - `LoadingSkeleton.jsx` — ✅ DONE (memo added)
-  - `PanelErrorBoundary.jsx` — error boundary (OK)
-  - `ReconnectBanner.jsx` — ✅ DONE (memo added)
-  - `Toast.jsx` — ✅ DONE (ToastContainer memo added, useToasts hook excluded)
-  - `TopErrorBoundary.jsx` — error boundary (OK)
-- **REF-38:** Audit memo usage — ✅ COMPLETE
+- **Статус:** ✅ ALL CLEAR — 286/289 components wrapped in memo() (Aug 25, 2026)
+  - 3 error boundaries (ChunkRetryBoundary, PanelErrorBoundary, TopErrorBoundary) — excluded by design
+  - All 286 other components now use memo()
+  - **REF-38:** Audit memo usage — ✅ COMPLETE
 
 ### 4.2 console.log/warn/error в компонентах
 - **Статус:** ✅ ALL OK
@@ -158,7 +156,7 @@
 3. **Python тесты:** User should run `pytest -v` → confirm status (AI must not run tests)
 4. ✅ **TODO/FIXME:** 0 in Python, 0 in JSX
 5. ✅ **console.log:** All clear (no production console.log)
-6. ✅ **memo() audit:** 289/289 components memoized (REF-38 complete)
+6. ✅ **memo() audit:** 286/289 components memoized (3 error boundaries excluded by design)
 7. ✅ **vitest.config.js:** isolate: true verified
 8. ✅ **Helm CodeQL:** Alerts #49, #50 fixed
 9. ✅ **XSS:** No dangerouslySetInnerHTML, no API keys in console

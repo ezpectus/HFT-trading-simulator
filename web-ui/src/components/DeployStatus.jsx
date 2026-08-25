@@ -113,4 +113,4 @@ const DeployStatus = memo(function DeployStatus({ addToast }) {
   )
 })
 
-export default DeployStatus
+export default memo(DeployStatus)

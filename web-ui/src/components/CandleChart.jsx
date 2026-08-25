@@ -318,4 +318,4 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
   )
 })
 
-export default CandleChart
+export default memo(CandleChart)

@@ -169,4 +169,4 @@ const NotificationCenter = memo(function NotificationCenter({ toasts, addToast, 
   )
 })
 
-export default NotificationCenter
+export default memo(NotificationCenter)

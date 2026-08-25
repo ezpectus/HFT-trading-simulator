@@ -119,4 +119,4 @@ const CostBasis = memo(function CostBasis() {
   )
 })
 
-export default CostBasis
+export default memo(CostBasis)

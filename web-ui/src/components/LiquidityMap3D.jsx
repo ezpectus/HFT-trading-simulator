@@ -117,4 +117,4 @@ const LiquidityMap3D = memo(function LiquidityMap3D({ currentPrice }) {
   )
 })
 
-export default LiquidityMap3D
+export default memo(LiquidityMap3D)

@@ -124,4 +124,4 @@ const DashboardProfiler = memo(function DashboardProfiler() {
   )
 })
 
-export default DashboardProfiler
+export default memo(DashboardProfiler)

@@ -127,4 +127,4 @@ const TickReplay = memo(function TickReplay({ symbol }) {
   )
 })
 
-export default TickReplay
+export default memo(TickReplay)

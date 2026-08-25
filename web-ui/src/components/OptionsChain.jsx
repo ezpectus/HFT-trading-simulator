@@ -144,4 +144,4 @@ const OptionsChain = memo(function OptionsChain({ currentPrice }) {
   )
 })
 
-export default OptionsChain
+export default memo(OptionsChain)

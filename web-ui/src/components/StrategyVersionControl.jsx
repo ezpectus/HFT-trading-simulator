@@ -119,4 +119,4 @@ const StrategyVersionControl = memo(function StrategyVersionControl({ addToast }
   )
 })
 
-export default StrategyVersionControl
+export default memo(StrategyVersionControl)

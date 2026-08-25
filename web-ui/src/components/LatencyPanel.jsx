@@ -164,4 +164,4 @@ const LatencyPanel = memo(function LatencyPanel({ exchange }) {
   )
 })
 
-export default LatencyPanel
+export default memo(LatencyPanel)

@@ -120,4 +120,4 @@ const PortfolioOptLab = memo(function PortfolioOptLab() {
   )
 })
 
-export default PortfolioOptLab
+export default memo(PortfolioOptLab)

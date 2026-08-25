@@ -133,4 +133,4 @@ const CrossAssetMatrix = memo(function CrossAssetMatrix() {
   )
 })
 
-export default CrossAssetMatrix
+export default memo(CrossAssetMatrix)

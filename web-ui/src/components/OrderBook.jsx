@@ -164,7 +164,7 @@ const OrderBook = memo(function OrderBook({ exchange, symbol, currentPrice, orde
   )
 })
 
-export default OrderBook
+export default memo(OrderBook)
 
 function OrderBookRow({ row, maxTotal, maxQty, side, heatmap }) {
   const totalPct = (row.total / maxTotal) * 100

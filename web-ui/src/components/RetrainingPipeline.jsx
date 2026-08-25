@@ -107,4 +107,4 @@ const RetrainingPipeline = memo(function RetrainingPipeline() {
   )
 })
 
-export default RetrainingPipeline
+export default memo(RetrainingPipeline)

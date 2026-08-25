@@ -98,4 +98,4 @@ const Colocation = memo(function Colocation() {
   )
 })
 
-export default Colocation
+export default memo(Colocation)

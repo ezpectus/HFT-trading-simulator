@@ -148,4 +148,4 @@ const SymbolHeatmap = memo(function SymbolHeatmap({ candles, prices, symbols, on
   )
 })
 
-export default SymbolHeatmap
+export default memo(SymbolHeatmap)

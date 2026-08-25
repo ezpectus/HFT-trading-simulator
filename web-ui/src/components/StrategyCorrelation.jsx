@@ -124,4 +124,4 @@ const StrategyCorrelation = memo(function StrategyCorrelation() {
   )
 })
 
-export default StrategyCorrelation
+export default memo(StrategyCorrelation)

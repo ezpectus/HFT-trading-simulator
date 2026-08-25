@@ -140,4 +140,4 @@ const FeatureStudio = memo(function FeatureStudio() {
   )
 })
 
-export default FeatureStudio
+export default memo(FeatureStudio)

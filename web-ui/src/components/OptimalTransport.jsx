@@ -315,4 +315,4 @@ const OptimalTransport = memo(function OptimalTransport({ candles, symbol, excha
   )
 })
 
-export default OptimalTransport
+export default memo(OptimalTransport)

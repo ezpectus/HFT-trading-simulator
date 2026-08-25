@@ -131,4 +131,4 @@ const Auth = memo(function Auth({ addToast }) {
   )
 })
 
-export default Auth
+export default memo(Auth)

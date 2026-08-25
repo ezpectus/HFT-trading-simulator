@@ -113,4 +113,4 @@ const RegimeDetector = memo(function RegimeDetector({ symbol }) {
   )
 })
 
-export default RegimeDetector
+export default memo(RegimeDetector)

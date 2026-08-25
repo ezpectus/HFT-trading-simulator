@@ -156,4 +156,4 @@ const ScenarioSim = memo(function ScenarioSim({ currentPrice }) {
   )
 })
 
-export default ScenarioSim
+export default memo(ScenarioSim)

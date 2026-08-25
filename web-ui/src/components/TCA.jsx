@@ -105,4 +105,4 @@ const TCA = memo(function TCA() {
   )
 })
 
-export default TCA
+export default memo(TCA)

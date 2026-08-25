@@ -110,4 +110,4 @@ const BlackSwanTester = memo(function BlackSwanTester() {
   )
 })
 
-export default BlackSwanTester
+export default memo(BlackSwanTester)

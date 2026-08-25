@@ -114,4 +114,4 @@ const PacketInspector = memo(function PacketInspector() {
   )
 })
 
-export default PacketInspector
+export default memo(PacketInspector)

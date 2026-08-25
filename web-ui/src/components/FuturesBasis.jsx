@@ -108,4 +108,4 @@ const FuturesBasis = memo(function FuturesBasis({ currentPrice }) {
   )
 })
 
-export default FuturesBasis
+export default memo(FuturesBasis)

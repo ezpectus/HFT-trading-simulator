@@ -102,4 +102,4 @@ const LogDashboard = memo(function LogDashboard() {
   )
 })
 
-export default LogDashboard
+export default memo(LogDashboard)

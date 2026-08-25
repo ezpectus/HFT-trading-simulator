@@ -145,4 +145,4 @@ const SessionMarkers = memo(function SessionMarkers({ fills, symbol }) {
   )
 })
 
-export default SessionMarkers
+export default memo(SessionMarkers)

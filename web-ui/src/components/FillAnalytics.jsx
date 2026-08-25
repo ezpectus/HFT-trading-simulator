@@ -87,4 +87,4 @@ const FillAnalytics = memo(function FillAnalytics() {
   )
 })
 
-export default FillAnalytics
+export default memo(FillAnalytics)

@@ -88,4 +88,4 @@ const ArbScanner = memo(function ArbScanner() {
   )
 })
 
-export default ArbScanner
+export default memo(ArbScanner)

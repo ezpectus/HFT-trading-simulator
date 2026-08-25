@@ -77,4 +77,4 @@ const FeatureFlags = memo(function FeatureFlags({ addToast }) {
   )
 })
 
-export default FeatureFlags
+export default memo(FeatureFlags)

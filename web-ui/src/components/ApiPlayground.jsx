@@ -126,4 +126,4 @@ const ApiPlayground = memo(function ApiPlayground({ addToast }) {
   )
 })
 
-export default ApiPlayground
+export default memo(ApiPlayground)

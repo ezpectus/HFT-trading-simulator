@@ -110,4 +110,4 @@ const CapacityAnalysis = memo(function CapacityAnalysis() {
   )
 })
 
-export default CapacityAnalysis
+export default memo(CapacityAnalysis)

@@ -135,4 +135,4 @@ function formatPriceShort(price) {
   return price.toFixed(0)
 }
 
-export default VolSurface
+export default memo(VolSurface)

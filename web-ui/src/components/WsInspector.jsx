@@ -145,4 +145,4 @@ const WsInspector = memo(function WsInspector({ exchange, signals }) {
   )
 })
 
-export default WsInspector
+export default memo(WsInspector)

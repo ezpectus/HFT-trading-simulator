@@ -131,4 +131,4 @@ const SlippageAnalytics = memo(function SlippageAnalytics({ symbol }) {
   )
 })
 
-export default SlippageAnalytics
+export default memo(SlippageAnalytics)

@@ -148,4 +148,4 @@ const DatabaseViewer = memo(function DatabaseViewer({ addToast }) {
   )
 })
 
-export default DatabaseViewer
+export default memo(DatabaseViewer)

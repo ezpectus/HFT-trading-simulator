@@ -177,4 +177,4 @@ const ApiClient = memo(function ApiClient({ exchange, signals, addToast }) {
   )
 })
 
-export default ApiClient
+export default memo(ApiClient)

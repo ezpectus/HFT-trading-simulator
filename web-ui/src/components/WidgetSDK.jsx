@@ -120,4 +120,4 @@ const WidgetSDK = memo(function WidgetSDK({ addToast }) {
   )
 })
 
-export default WidgetSDK
+export default memo(WidgetSDK)

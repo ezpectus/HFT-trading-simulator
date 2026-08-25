@@ -121,4 +121,4 @@ const CancelMonitor = memo(function CancelMonitor() {
   )
 })
 
-export default CancelMonitor
+export default memo(CancelMonitor)

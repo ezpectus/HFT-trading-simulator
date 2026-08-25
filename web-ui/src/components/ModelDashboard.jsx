@@ -153,4 +153,4 @@ const ModelDashboard = memo(function ModelDashboard({ addToast }) {
   )
 })
 
-export default ModelDashboard
+export default memo(ModelDashboard)

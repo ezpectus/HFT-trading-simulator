@@ -252,4 +252,4 @@ const MLInsights = memo(function MLInsights({ signals, candles, symbol }) {
   )
 })
 
-export default MLInsights
+export default memo(MLInsights)

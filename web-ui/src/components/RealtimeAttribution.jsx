@@ -114,4 +114,4 @@ const RealtimeAttribution = memo(function RealtimeAttribution() {
   )
 })
 
-export default RealtimeAttribution
+export default memo(RealtimeAttribution)

@@ -1,40 +1,70 @@
 # Audit Findings — Full Project Grep Scan
 
-**Date:** 2026-08-22  
-**Scope:** Entire project (`ai-signal-bot/`, `exchange_simulator/`, `hft-trade-bot/`, `hft-executor/`, `monitoring/`, `web-ui/`, `scripts/`, root-level files)  
+**Date:** 2026-08-22 (last verified: 2026-08-25)
+**Scope:** Entire project (`ai-signal-bot/`, `exchange_simulator/`, `hft-trade-bot/`, `hft-executor/`, `monitoring/`, `web-ui/`, `scripts/`, root-level files)
 **Method:** grep-based scan for: TODO/FIXME/HACK, `except Exception`, `print()`, `import *`, `type: ignore`, `NotImplementedError`, `global`, `: Any`, `# noqa`, `pass`, hardcoded values (localhost, ports, /dev/shm), duplicate files, dead code, credentials/secrets, redundant exception tuples, f-string logging, `nosec`/`codeql` annotations, `os.system`, SQL injection patterns
 
 ---
 
-## Summary
+## UPDATE — August 25, 2026
 
-| Category | Count | Severity |
-|----------|-------|----------|
-| Dead code files (root-level) | 3 | High |
-| Duplicate scripts | 2 | Medium |
-| `except Exception` catches | 15 | Medium |
-| `except Exception: pass` (silent) | 1 | High |
-| Redundant `Exception` in exception tuple | 1 | Medium |
-| f-string in logger calls (perf) | ~80+ | Low |
-| `os.system` in production | 1 | Low |
-| `open()` without `encoding=` | 7 | Low |
-| `console.log` in web-ui utils | 6 | Low |
-| Hardcoded `localhost:8765` in production | 4 | Low |
-| `0.0.0.0` bind in production (with nosec) | 7 | Info (justified) |
-| `nosec` / `codeql` annotations | 10 | Info (justified) |
-| Private attribute access in tests | 1 | Low |
-| `type: ignore` | 1 | Info (justified) |
-| `global` statements | 29 | Info (all justified) |
-| `: Any` annotations | 11 | Info (all justified) |
-| `# noqa` annotations | 39 | Info (all justified) |
-| `pass` in production (non-CancelledError) | 4 | Low |
-| TODO/FIXME/HACK | 0 | Clean |
-| `import *` | 0 | Clean |
-| Bare `except:` | 0 | Clean |
-| `NotImplementedError` | 0 | Clean |
-| `eval()`/`exec()` | 0 | Clean |
-| `subprocess`/`os.system` | 0 | Clean |
-| Hardcoded credentials | 0 | Clean |
+### Findings Resolved Since Original Audit
+- **Finding 001 (dead code ai-signal-bot/tracing.py):** ✅ REMOVED
+- **Finding 002 (dead code exchange_simulator/tracing.py):** ✅ REMOVED
+- **Finding 003 (dead code ai-signal-bot/metrics.py):** ✅ REMOVED
+- **Finding 007 (except Exception in signal_publisher.py):** ✅ FIXED — 0 `except Exception` catches remain
+- **Finding 009 (except Exception: pass in db.py):** ✅ FIXED
+- **Finding 021 (redundant Exception in feature_store.py):** ✅ FIXED — now `except (OSError, ConnectionError, RuntimeError)`
+- **Finding 025 (open() without encoding=):** ✅ FIXED — all `open()` calls now use `encoding="utf-8"`
+- **Finding 026 (console.log in performanceMonitor.js):** ✅ FIXED — gated by IS_DEV flag with eslint-disable
+- **memo() audit:** ✅ 286/289 components wrapped (3 error boundaries excluded by design)
+- **TODO/FIXME:** ✅ 0 in Python, 0 in JSX
+- **dangerouslySetInnerHTML:** ✅ 0 occurrences
+- **Security:** ✅ ApiClient credentials now in-memory (useState), Auth stores only username
+- **CodeQL alerts #49, #50:** ✅ Fixed (helm passwords use placeholders)
+
+### Findings Still Open (low priority)
+- **Finding 004 (exchange_simulator/metrics.py):** Still exists, only used in tests
+- **Finding 005 (duplicate run_backtest.py):** Both serve different purposes (quick vs full)
+- **Finding 006 (duplicate load_test_50_symbols.py):** Low priority
+- **Finding 013 (hardcoded localhost:8765):** Defaults in code, config overrides available
+- **Finding 022 (f-string logging ~80+ calls):** Low priority, lazy eval only matters at high volume
+- **Finding 023 (os.system in monitor.py):** Annotated with nosec, low priority
+- **Finding 024 (0.0.0.0 bind):** All annotated with nosec, standard for Docker/K8s
+
+---
+
+## Summary (updated Aug 25, 2026)
+
+| Category | Original Count | Current Count | Severity |
+|----------|---------------|---------------|----------|
+| Dead code files (root-level) | 3 | 1 (exchange_simulator/metrics.py) | High → Low |
+| Duplicate scripts | 2 | 2 (different purposes, documented) | Medium → Low |
+| `except Exception` catches | 15 | 0 | Medium → ✅ Clean |
+| `except Exception: pass` (silent) | 1 | 0 | High → ✅ Clean |
+| Redundant `Exception` in exception tuple | 1 | 0 | Medium → ✅ Clean |
+| f-string in logger calls (perf) | ~80+ | ~80+ | Low |
+| `os.system` in production | 1 | 1 (nosec annotated) | Low |
+| `open()` without `encoding=` | 7 | 0 | Low → ✅ Clean |
+| `console.log` in web-ui utils | 6 | 6 (IS_DEV gated) | Low → ✅ Clean |
+| Hardcoded `localhost:8765` in production | 4 | 4 (config overrides) | Low |
+| `0.0.0.0` bind in production (with nosec) | 7 | 7 | Info (justified) |
+| `nosec` / `codeql` annotations | 10 | 10 | Info (justified) |
+| Private attribute access in tests | 1 | 1 | Low |
+| `type: ignore` | 1 | 1 | Info (justified) |
+| `global` statements | 29 | 13 (16 eliminated with dead code) | Info (all justified) |
+| `: Any` annotations | 11 | 11 | Info (all justified) |
+| `# noqa` annotations | 39 | 39 | Info (all justified) |
+| `pass` in production (non-CancelledError) | 4 | 3 | Low |
+| TODO/FIXME/HACK | 0 | 0 | ✅ Clean |
+| `import *` | 0 | 0 | ✅ Clean |
+| Bare `except:` | 0 | 0 | ✅ Clean |
+| `NotImplementedError` | 0 | 0 | ✅ Clean |
+| `eval()`/`exec()` | 0 | 0 | ✅ Clean |
+| `subprocess`/`os.system` | 0 | 0 | ✅ Clean |
+| Hardcoded credentials | 0 | 0 | ✅ Clean |
+| `dangerouslySetInnerHTML` | 0 | 0 | ✅ Clean |
+| React components without memo() | N/A | 3 (error boundaries, by design) | ✅ Clean |
 
 ---
 

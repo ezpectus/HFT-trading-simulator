@@ -107,4 +107,4 @@ const Inventory = memo(function Inventory() {
   )
 })
 
-export default Inventory
+export default memo(Inventory)

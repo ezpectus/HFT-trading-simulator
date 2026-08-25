@@ -132,4 +132,4 @@ const DrawingTools = memo(function DrawingTools({ symbol, addToast }) {
   )
 })
 
-export default DrawingTools
+export default memo(DrawingTools)

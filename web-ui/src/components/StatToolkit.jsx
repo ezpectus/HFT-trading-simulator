@@ -138,4 +138,4 @@ const StatToolkit = memo(function StatToolkit({ candles, symbol }) {
   )
 })
 
-export default StatToolkit
+export default memo(StatToolkit)

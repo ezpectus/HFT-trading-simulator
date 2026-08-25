@@ -109,4 +109,4 @@ const ThemeSwitcher = memo(function ThemeSwitcher({ addToast }) {
   )
 })
 
-export default ThemeSwitcher
+export default memo(ThemeSwitcher)

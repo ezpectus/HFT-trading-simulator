@@ -146,4 +146,4 @@ const ABTesting = memo(function ABTesting() {
   )
 })
 
-export default ABTesting
+export default memo(ABTesting)

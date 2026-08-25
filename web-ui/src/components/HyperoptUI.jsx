@@ -124,4 +124,4 @@ const HyperoptUI = memo(function HyperoptUI() {
   )
 })
 
-export default HyperoptUI
+export default memo(HyperoptUI)

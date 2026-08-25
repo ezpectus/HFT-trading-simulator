@@ -119,4 +119,4 @@ const OnChainAnalytics = memo(function OnChainAnalytics({ symbol }) {
   )
 })
 
-export default OnChainAnalytics
+export default memo(OnChainAnalytics)
