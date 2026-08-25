@@ -252,6 +252,10 @@ const SessionMarkers = lazy(() => import('../components/SessionMarkers'))
 const TaxReport = lazy(() => import('../components/TaxReport'))
 const LatencyPanel = lazy(() => import('../components/LatencyPanel'))
 const MarketImpact = lazy(() => import('../components/MarketImpact'))
+const Inventory = lazy(() => import('../components/Inventory'))
+const Colocation = lazy(() => import('../components/Colocation'))
+const ABTesting = lazy(() => import('../components/ABTesting'))
+const ScenarioSim = lazy(() => import('../components/ScenarioSim'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -744,6 +748,14 @@ export const PANELS = [
     props: (ctx) => ({ exchange: ctx.exchange }) },
   { id: 'market-impact', name: 'Market Impact Analysis', category: 'risk', component: MarketImpact,
     props: (ctx) => ({ candles: ctx.exchange.candles, symbol: ctx.selectedSymbol, currentPrice: ctx.currentPrice, orderbooks: ctx.exchange.orderbooks }) },
+  { id: 'inventory', name: 'Inventory Manager', category: 'portfolio', component: Inventory,
+    props: () => ({}) },
+  { id: 'colocation', name: 'Colocation Status', category: 'config', component: Colocation,
+    props: () => ({}) },
+  { id: 'ab-testing', name: 'A/B Testing', category: 'strategy', component: ABTesting,
+    props: () => ({}) },
+  { id: 'scenario-sim', name: 'Scenario Simulator', category: 'risk', component: ScenarioSim,
+    props: (ctx) => ({ currentPrice: ctx.currentPrice }) },
 ]
 
 // Default visible panels (all visible by default except advanced math panels)
