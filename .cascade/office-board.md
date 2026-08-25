@@ -435,7 +435,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 > уровня Citadel/Two Sigma/Jane Street research UI.
 > Каждый компонент — отдельная задача. Группировать в пачки по 3-5 компонентов.
 
-### WD-01: Real-time Candlestick Chart с WebSocket обновлением
+### WD-01: Real-time Candlestick Chart с WebSocket обновлением ✅ DONE
 **Описание:** Live candlestick chart (lightweight-charts или canvas-based).
 - WebSocket подписка на candle updates (тип `candle_update` от exchange-simulator)
 - При новом тике — обновление последней свечи (не перерисовка всего графика)
@@ -452,7 +452,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/charts/CandlestickChart.jsx` (новый), `web-ui/src/hooks/useCandleStream.js` (новый)
 **Зависимости:** exchange-simulator WS должен отправлять `candle_update` events (уже есть)
 
-### WD-02: Real-time Order Book (L2 Depth) визуализация
+### WD-02: Real-time Order Book (L2 Depth) визуализация ✅ DONE
 **Описание:** Живой стакан ордеров как на Binance/Bybit.
 - WebSocket подписка на `depth_update` (bid/ask levels)
 - 2 колонки: bids (зелёные) слева, asks (красные) справа
@@ -468,7 +468,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/orderbook/OrderBook.jsx` (новый), `web-ui/src/hooks/useOrderBookStream.js` (новый)
 **Зависимости:** exchange-simulator WS должен отправлять `depth_update` (проверить)
 
-### WD-03: Trade Tape (Time & Sales) — лента сделок в реальном времени
+### WD-03: Trade Tape (Time & Sales) — лента сделок в реальном времени ✅ DONE
 **Описание:** Лента последних сделок как в профессиональных терминалах.
 - WebSocket подписка на `trade` events
 - Вертикальный скролл-список: время | цена | объём | сторона (buy/sell)
@@ -482,7 +482,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/trades/TradeTape.jsx` (новый), `web-ui/src/hooks/useTradeStream.js` (новый)
 
-### WD-04: Symbol Selector с real-time switching
+### WD-04: Symbol Selector с real-time switching ✅ DONE
 **Описание:** Компонент выбора торгового символа с instant switching.
 - Выпадающий список 50 символов с поиском по имени (BTC, ETH, SOL...)
 - Каждый символ показывает: имя, текущая цена, % изменения за 24h (зелёный/красный)
@@ -497,7 +497,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/symbol/SymbolSelector.jsx` (новый), `web-ui/src/stores/useSymbolStore.js` (расширение)
 **Зависимости:** WD-01, WD-02, WD-03 (подписываются на symbol change)
 
-### WD-05: Positions & PnL Dashboard
+### WD-05: Positions & PnL Dashboard ✅ DONE
 **Описание:** Таблица открытых позиций с real-time PnL.
 - WebSocket подписка на `position_update` и `fill` events
 - Таблица: символ | сторона | размер | entry price | mark price | PnL ($) | PnL (%) | duration
@@ -512,7 +512,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/positions/PositionsTable.jsx` (новый), `web-ui/src/hooks/usePositionStream.js` (новый)
 
-### WD-06: Strategy Signals Feed — live поток сигналов
+### WD-06: Strategy Signals Feed — live поток сигналов ✅ DONE
 **Описание:** Real-time лента сигналов от стратегий (как у ai-signal-bot).
 - WebSocket подписка на `signal` events от ai-signal-bot (port 8766)
 - Карточки сигналов: стратегия | символ | направление (LONG/SHORT/NEUTRAL) | confidence | SL | TP | R:R | reason
@@ -526,7 +526,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/signals/SignalFeed.jsx` (новый), `web-ui/src/components/signals/SignalCard.jsx` (новый), `web-ui/src/hooks/useSignalStream.js` (новый)
 
-### WD-07: Risk Metrics Panel — VaR, Drawdown, Exposure
+### WD-07: Risk Metrics Panel — VaR, Drawdown, Exposure ✅ DONE
 **Описание:** Панель риск-метрик в real-time.
 - WebSocket подписка на `metrics_update` (или polling каждые 5 сек)
 - Метрики: VaR (95%, 99%), CVaR, Current Drawdown, Max Drawdown, Sharpe, Sortino, Calmar
@@ -539,7 +539,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/risk/RiskPanel.jsx` (новый), `web-ui/src/components/risk/ExposureDonut.jsx` (новый), `web-ui/src/components/risk/EquityCurve.jsx` (новый)
 
-### WD-08: Multi-Symbol Heatmap — обзор всех 50 символов
+### WD-08: Multi-Symbol Heatmap — обзор всех 50 символов ✅ DONE
 **Описание:** Heatmap сетка 50 символов с real-time % изменения.
 - Сетка 10×5 (или адаптивная) с ячейками по каждому символу
 - Цвет ячейки: зелёный (рост) → красный (падение), интенсивность = magnitude %
@@ -552,7 +552,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/heatmap/SymbolHeatmap.jsx` (новый)
 
-### WD-09: Latency & System Health Monitor
+### WD-09: Latency & System Health Monitor ✅ DONE
 **Описание:** Панель системных метрик для HFT monitoring.
 - WebSocket подписка на `system_metrics` от Prometheus exporter
 - Метрики: WS latency (ms), REST latency (ms), signal generation time (ms), order execution time (ms)
@@ -567,7 +567,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/HealthMonitor.jsx` (новый), `web-ui/src/components/system/LatencyChart.jsx` (новый)
 
-### WD-10: Backtest Lab — запуск и визуализация бэктестов
+### WD-10: Backtest Lab — запуск и визуализация бэктестов ✅ DONE
 **Описание:** Интерфейс для запуска бэктестов из web-ui.
 - Форма: выбор стратегии, символа(ов), периода, параметров
 - Параметры зависят от стратегии (динамическая форма из config schema)
@@ -582,7 +582,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/backtest/BacktestLab.jsx` (новый), `web-ui/src/components/backtest/BacktestResults.jsx` (новый), `web-ui/src/components/backtest/BacktestCompare.jsx` (новый)
 
-### WD-11: Layout System — draggable & detachable panels
+### WD-11: Layout System — draggable & detachable panels ✅ DONE
 **Описание:** Настраиваемый layout как в Bloomberg Terminal.
 - Grid layout с drag-and-drop панелями (react-grid-layout или аналог)
 - Каждый компонент (chart, orderbook, tape, signals, risk, heatmap) — панель
@@ -596,7 +596,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/layout/DashboardGrid.jsx` (новый), `web-ui/src/components/layout/Panel.jsx` (новый), `web-ui/src/stores/useLayoutStore.js` (новый)
 **Зависимости:** WD-01 through WD-10 (все компоненты должны быть панелями)
 
-### WD-12: WebSocket Connection Manager — единый менеджер WS соединений
+### WD-12: WebSocket Connection Manager — единый менеджер WS соединений ✅ DONE
 **Описание:** Централизованный менеджер всех WS подписок.
 - Единый класс WsManager: подключение к exchange-simulator (8765) + ai-signal-bot (8766)
 - Channel-based подписки: `candles:{symbol}`, `depth:{symbol}`, `trades:{symbol}`, `signals`, `positions`, `metrics`
@@ -612,7 +612,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/services/WsManager.js` (новый), `web-ui/src/hooks/useWsChannel.js` (новый)
 **Зависимости:** Все WD компоненты используют этот менеджер
 
-### WD-13: API Layer — REST клиент для исторических данных
+### WD-13: API Layer — REST клиент для исторических данных ✅ DONE
 **Описание:** Единый REST клиент для запросов к backend.
 - Endpoints: `/api/candles/{symbol}?tf=5m&limit=1000`, `/api/orderbook/{symbol}`, `/api/positions`, `/api/signals`, `/api/metrics`, `/api/backtest/run`, `/api/symbols`
 - Кэширование: in-memory LRU (1000 candles × 50 symbols = 50K objects, ~5MB)
@@ -625,7 +625,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/services/ApiClient.js` (новый), `web-ui/src/api/endpoints.js` (новый)
 
-### WD-14: Performance Optimization — 60 FPS под нагрузкой
+### WD-14: Performance Optimization — 60 FPS под нагрузкой ✅ DONE
 **Описание:** Оптимизация рендеринга для real-time данных.
 - React.memo для всех компонентов-панелей (не re-render при symbol change если не подписан)
 - Canvas rendering для: candlestick chart, order book, heatmap, trade tape (не DOM)
@@ -641,7 +641,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** Все компоненты WD-01 — WD-13
 **Зависимости:** Выполняется после WD-12 (WsManager) и WD-13 (ApiClient)
 
-### WD-15: Mobile Responsive — планшет/телефон адаптация
+### WD-15: Mobile Responsive — планшет/телефон адаптация ✅ DONE
 **Описание:** Адаптивная версия для iPad/телефона.
 - Breakpoints: desktop (>1200px), tablet (768-1200px), mobile (<768px)
 - Tablet: 2-column layout, tabbed panels, swipe между символами
@@ -653,7 +653,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/layout/MobileLayout.jsx` (новый), CSS media queries во всех компонентах
 
-### WD-16: Order Execution Panel — ручная торговля
+### WD-16: Order Execution Panel — ручная торговля ✅ DONE
 **Описание:** Панель для ручного размещения ордеров (как на Binance/Bybit).
 - Форма: символ (auto из symbol store), сторона (Buy/Sell), тип (Market/Limit/Stop-Limit)
 - Поля: цена (для limit), размер, leverage (1x-20x для futures)
@@ -671,7 +671,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/trading/OrderPanel.jsx` (новый), `web-ui/src/components/trading/OpenOrders.jsx` (новый), `web-ui/src/hooks/useOrderExecution.js` (новый)
 **Зависимости:** WD-04 (symbol), WD-12 (WS), WD-13 (API)
 
-### WD-17: Alert System — price & strategy alerts
+### WD-17: Alert System — price & strategy alerts ✅ DONE
 **Описание:** Система уведомлений о рыночных событиях.
 - Типы алертов:
   - Price alert: цена пересекла уровень (above/below X)
@@ -691,7 +691,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/alerts/AlertManager.jsx` (новый), `web-ui/src/components/alerts/AlertModal.jsx` (новый), `web-ui/src/stores/useAlertStore.js` (новый)
 
-### WD-18: Order Flow & CVD (Cumulative Volume Delta)
+### WD-18: Order Flow & CVD (Cumulative Volume Delta) ✅ DONE
 **Описание:** Продвинутый анализ потока ордеров как в Bookmap/Exocharts.
 - CVD линия: кумулятивная дельта (buy volume - sell volume) поверх candlestick chart
 - CVD divergence detection: цена растёт, CVD падает → bearish divergence (alert)
@@ -706,7 +706,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/charts/OrderFlowChart.jsx` (новый), `web-ui/src/components/charts/CVDOverlay.jsx` (новый), `web-ui/src/components/charts/FootprintChart.jsx` (новый)
 **Зависимости:** WD-01 (chart), WD-03 (trade tape data)
 
-### WD-19: Correlation Matrix — 50 symbols correlation
+### WD-19: Correlation Matrix — 50 symbols correlation ✅ DONE
 **Описание:** Матрица корреляции между всеми символами.
 - Heatmap матрица 50×50 с корреляцией Пирсона (по returns за N периодов)
 - Цвет: -1 (красный) → 0 (серый) → +1 (зелёный)
@@ -721,7 +721,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/analysis/CorrelationMatrix.jsx` (новый), `web-ui/src/components/analysis/SpreadChart.jsx` (новый)
 
-### WD-20: Funding Rate & Liquidation Feed
+### WD-20: Funding Rate & Liquidation Feed ✅ DONE
 **Описание:** Crypto-specific: ставки финансирования и ливидации.
 - Funding rate таблица: символ | текущая ставка | следующая ставка | время до следующей
   (положительная = longs платят shorts, отрицательная = наоборот)
@@ -738,7 +738,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/crypto/FundingRatePanel.jsx` (новый), `web-ui/src/components/crypto/LiquidationFeed.jsx` (новый)
 **Зависимости:** exchange-simulator должен отправлять funding/liquidation events (проверить)
 
-### WD-21: ML Model Insights — что думают модели
+### WD-21: ML Model Insights — что думают модели ✅ DONE
 **Описание:** Визуализация предсказаний ML моделей (как в Two Sigma research UI).
 - Model predictions таблица: модель | символ | предсказание (up/down/neutral) | confidence | horizon
 - Models: LSTM, Transformer, RL Agent, AutoML, Price Predictor
@@ -754,7 +754,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/ml/ModelInsights.jsx` (новый), `web-ui/src/components/ml/ModelDetail.jsx` (новый), `web-ui/src/components/ml/PredictionOverlay.jsx` (новый)
 **Зависимости:** ai-signal-bot должен экспортировать model predictions через WS/API
 
-### WD-22: Replay Mode — перемотка исторических данных
+### WD-22: Replay Mode — перемотка исторических данных ✅ DONE
 **Описание:** Проигрыватель истории как в TradingView replay.
 - Выбор даты/времени старта replay
 - Controls: play/pause/step forward/step backward/speed (1x, 2x, 5x, 10x)
@@ -769,7 +769,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/replay/ReplayControls.jsx` (новый), `web-ui/src/stores/useReplayStore.js` (новый), `web-ui/src/services/ReplayEngine.js` (новый)
 **Зависимости:** WD-01, WD-02, WD-03 (все real-time компоненты должны поддерживать replay mode)
 
-### WD-23: Trade Journal & Analytics
+### WD-23: Trade Journal & Analytics ✅ DONE
 **Описание:** Журнал сделок с аналитикой (как в TraderSync/Tradervue).
 - Trade journal таблица: дата | символ | сторона | entry | exit | PnL | duration | стратегия | tags | notes
 - При клике на trade — детальная карточка с графиком (entry/exit markers)
@@ -789,7 +789,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/journal/TradeJournal.jsx` (новый), `web-ui/src/components/journal/TradeDetail.jsx` (новый), `web-ui/src/components/journal/JournalAnalytics.jsx` (новый)
 
-### WD-24: Notification Center & Activity Log
+### WD-24: Notification Center & Activity Log ✅ DONE
 **Описание:** Центр уведомлений и лог активности.
 - Notification dropdown (колокольчик в шапке): unread count badge
 - Типы: info, warning, error, success, trade, signal, system
@@ -806,7 +806,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/notifications/NotificationCenter.jsx` (новый), `web-ui/src/components/notifications/ActivityLog.jsx` (новый), `web-ui/src/stores/useNotificationStore.js` (новый)
 
-### WD-25: Settings & Configuration Panel
+### WD-25: Settings & Configuration Panel ✅ DONE
 **Описание:** Настройки системы из web-ui (без редактирования YAML).
 - Tabs: Trading, Strategies, Risk, Notifications, API Keys, System
 - Trading: symbols list (enable/disable), timeframe, signal interval, paper/live toggle
@@ -827,7 +827,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/settings/SettingsPanel.jsx` (новый), `web-ui/src/components/settings/StrategyConfig.jsx` (новый), `web-ui/src/components/settings/RiskConfig.jsx` (новый)
 
-### WD-26: Market Structure & Pattern Detection
+### WD-26: Market Structure & Pattern Detection ✅ DONE
 **Описание:** Автоматическое распознавание структуры рынка на графике.
 - Auto-detect и отрисовка на candlestick chart:
   - Higher highs / lower lows (трендовые линии auto-draw)
@@ -846,7 +846,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/charts/PatternOverlay.jsx` (новый), `web-ui/src/services/PatternDetector.js` (новый), `web-ui/src/workers/patternWorker.js` (новый)
 **Зависимости:** WD-01 (chart), WD-14 (Web Workers)
 
-### WD-27: Multi-Exchange View — агрегация бирж
+### WD-27: Multi-Exchange View — агрегация бирж ✅ DONE
 **Описание:** Сравнение данных с разных бирж (если подключено несколько).
 - Multi-exchange order book: стаканы Binance/Bybit/OKX рядом для одного символа
 - Spread между биржами: best bid на A vs best ask на B → arbitrage opportunity
@@ -860,7 +860,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/multiexchange/ExchangeComparison.jsx` (новый), `web-ui/src/components/multiexchange/ArbOpportunities.jsx` (новый)
 **Зависимости:** Multiple exchange connections в backend
 
-### WD-28: Session Statistics & Daily Report
+### WD-28: Session Statistics & Daily Report ✅ DONE
 **Описание:** Статистика торговой сессии и ежедневный отчёт.
 - Real-time session stats (с начала дня):
   - Trades executed, signals generated, win rate, avg R:R
@@ -883,7 +883,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/stats/SessionStats.jsx` (новый), `web-ui/src/components/stats/DailyReport.jsx` (новый), `web-ui/src/components/stats/WeeklyReport.jsx` (новый)
 
-### WD-29: Dark Pool / Whale Activity Tracker
+### WD-29: Dark Pool / Whale Activity Tracker ✅ DONE
 **Описание:** Отслеживание крупной активности (как в Whale Alert).
 - Large order detection: ордера > $100K с alert
 - Whale wallet tracking: (если есть on-chain data) крупные переводы на/с бирж
@@ -900,7 +900,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/whale/WhaleTracker.jsx` (новый), `web-ui/src/components/whale/LargeOrderDetector.jsx` (новый)
 **Зависимости:** WD-03 (trade tape), WD-18 (order flow)
 
-### WD-30: Keyboard Shortcuts & Command Palette
+### WD-30: Keyboard Shortcuts & Command Palette ✅ DONE
 **Описание:** Система горячих клавиш и command palette (как в VS Code / TradingView).
 - Command palette (Ctrl+K / Cmd+K): поиск по всем действиям
   - "Switch to BTC" → меняет символ
@@ -925,7 +925,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/system/CommandPalette.jsx` (новый), `web-ui/src/hooks/useKeyboardShortcuts.js` (новый), `web-ui/src/stores/useShortcutStore.js` (новый)
 
-### WD-31: Technical Indicators Library — chart overlays
+### WD-31: Technical Indicators Library — chart overlays ✅ DONE
 **Описание:** Библиотека индикаторов для наложения на candlestick chart.
 - Доступные индикаторы (toggle on/off, настроить параметры):
   - Trend: SMA, EMA, WMA, VWMA, Hull MA, Supertrend, Parabolic SAR, Ichimoku Cloud
@@ -944,7 +944,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/indicators/IndicatorPanel.jsx` (новый), `web-ui/src/services/IndicatorEngine.js` (новый), `web-ui/src/workers/indicatorWorker.js` (новый)
 **Зависимости:** WD-01 (chart), WD-14 (Web Workers)
 
-### WD-32: Drawing Tools — trend lines, fib, shapes
+### WD-32: Drawing Tools — trend lines, fib, shapes ✅ DONE
 **Описание:** Инструменты рисования на графике (как в TradingView).
 - Инструменты:
   - Trend line (2 точки, auto-snap to OHLC)
@@ -972,7 +972,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/charts/DrawingToolbar.jsx` (новый), `web-ui/src/services/DrawingManager.js` (новый)
 **Зависимости:** WD-01 (chart)
 
-### WD-33: Alternative Chart Types — Renko, P&F, Heikin-Ashi
+### WD-33: Alternative Chart Types — Renko, P&F, Heikin-Ashi ✅ DONE
 **Описание:** Альтернативные типы графиков для разного анализа.
 - Heikin-Ashi: сглаженные свечи (trend visualization)
 - Renko: bricks по цене (noise filtering, trend detection)
@@ -991,7 +991,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/charts/ChartTypeSelector.jsx` (новый), `web-ui/src/services/ChartTransformers.js` (новый)
 **Зависимости:** WD-01 (chart)
 
-### WD-34: Volume Profile & Session VWAP
+### WD-34: Volume Profile & Session VWAP ✅ DONE
 **Описание:** Профиль объёма по цене + VWAP сессии.
 - Volume Profile (горизонтальная гистограмма слева/справа от графика):
   - Объём по каждому ценовому уровню за выбранный период
@@ -1015,7 +1015,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/charts/VolumeProfile.jsx` (новый), `web-ui/src/components/charts/SessionVWAP.jsx` (новый), `web-ui/src/services/VolumeProfileEngine.js` (новый)
 **Зависимости:** WD-01 (chart)
 
-### WD-35: Market Scanner / Screener
+### WD-35: Market Scanner / Screener ✅ DONE
 **Описание:** Сканер рынка для поиска торговых возможностей среди 50 символов.
 - Фильтры (combinable, AND/OR logic):
   - Price: above/below X, % change > X, new high/low (20/50/100 period)
@@ -1036,7 +1036,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/scanner/MarketScanner.jsx` (новый), `web-ui/src/components/scanner/FilterBuilder.jsx` (новый), `web-ui/src/stores/useScannerStore.js` (новый)
 
-### WD-36: News Feed & Economic Calendar
+### WD-36: News Feed & Economic Calendar ✅ DONE
 **Описание:** Новости и события влияющие на рынок.
 - Crypto news feed (RSS/API):
   - Источники: CoinDesk, The Block, CryptoSlate, Twitter (key accounts)
@@ -1058,7 +1058,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/news/NewsFeed.jsx` (новый), `web-ui/src/components/news/EconomicCalendar.jsx` (новый), `web-ui/src/hooks/useNewsFeed.js` (новый)
 
-### WD-37: Authentication & User Management
+### WD-37: Authentication & User Management ✅ DONE
 **Описание:** Система авторизации для multi-user доступа.
 - Login page: username/password (JWT tokens)
 - 2FA: TOTP (Google Authenticator), backup codes
@@ -1077,7 +1077,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/auth/LoginPage.jsx` (новый), `web-ui/src/components/auth/UserManager.jsx` (новый), `web-ui/src/stores/useAuthStore.js` (новый), `web-ui/src/services/AuthService.js` (новый)
 
-### WD-38: Strategy Marketplace Browser
+### WD-38: Strategy Marketplace Browser ✅ DONE
 **Описание:** Браузер стратегий из StrategyMarketplace (plugin system).
 - Список доступных стратегий (из Git registry):
   - Имя, автор, описание, версия, рейтинг (stars), downloads
@@ -1098,7 +1098,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/marketplace/StrategyBrowser.jsx` (новый), `web-ui/src/components/marketplace/StrategyDetail.jsx` (новый), `web-ui/src/stores/useMarketplaceStore.js` (новый)
 
-### WD-39: Database Browser & SQL Query Tool
+### WD-39: Database Browser & SQL Query Tool ✅ DONE
 **Описание:** Инструмент для просмотра и запросов к БД (admin only).
 - Table viewer: список таблиц (signals, trades, equity_curve, candles, orders)
   - При клике — первые 100 строк с пагинацией
@@ -1121,7 +1121,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/database/DatabaseBrowser.jsx` (новый), `web-ui/src/components/database/SqlEditor.jsx` (новый), `web-ui/src/components/database/SchemaViewer.jsx` (новый)
 
-### WD-40: Raw WebSocket Inspector
+### WD-40: Raw WebSocket Inspector ✅ DONE
 **Описание:** Инспектор raw WS сообщений для debugging.
 - Два WS потока: exchange-simulator (8765) и ai-signal-bot (8766)
 - Raw message list: timestamp | direction (recv/send) | channel | payload (truncated)
@@ -1144,7 +1144,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/debug/WsInspector.jsx` (новый), `web-ui/src/components/debug/MessageDetail.jsx` (новый)
 **Зависимости:** WD-12 (WsManager)
 
-### WD-41: Deployment & CI/CD Dashboard
+### WD-41: Deployment & CI/CD Dashboard ✅ DONE
 **Описание:** Управление деплоями из web-ui.
 - Pipeline status: текущий CI/CD run (GitHub Actions)
   - Stage: lint → test → build → docker → deploy
@@ -1166,7 +1166,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/deploy/DeployDashboard.jsx` (новый), `web-ui/src/components/deploy/PipelineView.jsx` (новый), `web-ui/src/components/deploy/LogViewer.jsx` (новый)
 
-### WD-42: Feature Flags Manager
+### WD-42: Feature Flags Manager ✅ DONE
 **Описание:** Управление feature flags без редеплоя.
 - Список фичей с toggle on/off:
   - Strategies: trend, meanrev, fft, statarb, sentiment, market_making, ml_ensemble
@@ -1184,7 +1184,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/settings/FeatureFlags.jsx` (новый), `web-ui/src/stores/useFeatureFlagStore.js` (новый)
 
-### WD-43: Tax Report & Compliance Export
+### WD-43: Tax Report & Compliance Export ✅ DONE
 **Описание:** Генерация отчётов для налогов и compliance.
 - Trade history export:
   - FIFO / LIFO / Specific Identification methods
@@ -1210,7 +1210,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/tax/TaxReport.jsx` (новый), `web-ui/src/components/tax/TradeExport.jsx` (новый), `web-ui/src/services/TaxCalculator.js` (новый)
 
-### WD-44: Chart Templates & Sharing
+### WD-44: Chart Templates & Sharing ✅ DONE
 **Описание:** Шаблоны графиков и share функционал.
 - Chart templates:
   - Save current chart state: symbol, timeframe, indicators, drawings, chart type
@@ -1235,7 +1235,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/components/charts/ChartTemplates.jsx` (новый), `web-ui/src/components/charts/ScreenshotTool.jsx` (новый), `web-ui/src/stores/useTemplateStore.js` (новый)
 
-### WD-45: Onboarding Wizard
+### WD-45: Onboarding Wizard ✅ DONE
 **Описание:** Мастер начальной настройки при первом запуске.
 - Step 1: Welcome — обзор возможностей (carousel slides)
 - Step 2: Exchange connection — API key/secret, test connection, paper/live toggle
@@ -1254,7 +1254,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/components/onboarding/OnboardingWizard.jsx` (новый), `web-ui/src/components/onboarding/WizardSteps.jsx` (новый)
 
-### WD-46: Theme Customization & Accessibility
+### WD-46: Theme Customization & Accessibility ✅ DONE
 **Описание:** Кастомизация внешнего вида и accessibility.
 - Themes:
   - Dark (default): тёмный фон, зелёный/красный свечи
@@ -1282,7 +1282,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Низкая
 **Файлы:** `web-ui/src/components/settings/ThemeCustomizer.jsx` (новый), `web-ui/src/stores/useThemeStore.js` (новый)
 
-### WD-47: Statistical Analysis Toolkit
+### WD-47: Statistical Analysis Toolkit ✅ DONE
 **Описание:** Инструменты статистического анализа для research.
 - Tests:
   - Augmented Dickey-Fuller (ADF): stationarity test для price series
@@ -1315,7 +1315,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/analysis/StatToolkit.jsx` (новый), `web-ui/src/components/analysis/PairsAnalysis.jsx` (новый), `web-ui/src/services/StatEngine.js` (новый)
 **Зависимости:** WD-14 (Web Workers for computation)
 
-### WD-48: Model Performance Dashboard
+### WD-48: Model Performance Dashboard ✅ DONE
 **Описание:** Дашборд производительности ML моделей.
 - Per-model metrics:
   - Classification: accuracy, precision, recall, F1, ROC-AUC
@@ -1349,7 +1349,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Файлы:** `web-ui/src/components/ml/ModelDashboard.jsx` (новый), `web-ui/src/components/ml/ConfusionMatrix.jsx` (новый), `web-ui/src/components/ml/RocCurve.jsx` (новый), `web-ui/src/components/ml/ShapValues.jsx` (новый)
 **Зависимости:** WD-21 (model insights)
 
-### WD-49: Performance Attribution & Benchmark
+### WD-49: Performance Attribution & Benchmark ✅ DONE
 **Описание:** Атрибуция результатов и сравнение с бенчмарком.
 - Benchmark comparison:
   - Buy & Hold BTC/ETH (default benchmark)
@@ -1394,7 +1394,7 @@ TODO/FIXME/HACK, `import *`, bare `except:`, `NotImplementedError`, `eval()`/`ex
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/components/attribution/PerformanceAttribution.jsx` (новый), `web-ui/src/components/attribution/BenchmarkComparison.jsx` (новый), `web-ui/src/components/attribution/DrawdownAnalysis.jsx` (новый), `web-ui/src/components/attribution/TradeAnalysis.jsx` (новый)
 
-### WD-50: Trading Session Markers & Market Hours
+### WD-50: Trading Session Markers & Market Hours ✅ DONE
 **Описание:** Отметка торговых сессий и часов на графике.
 - Session markers (vertical bands на chart):
   - Asian session: 00:00-09:00 UTC (синий)
