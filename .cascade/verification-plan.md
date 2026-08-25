@@ -14,7 +14,7 @@
 - **Статус:** ✅ All committed — working tree clean
 
 ### 1.3 Неотправленные коммиты на origin
-- **Статус:** ⚠️ ~25+ local commits ahead of origin/master — need `git push origin master`
+- **Статус:** ✅ All commits pushed to origin/master
 
 ---
 
@@ -92,37 +92,12 @@
 
 ---
 
-## 5. Office board — незавершённые задачи
+## 5. Office board — статус
 
-### 5.1 REF-01..50 (текущий приоритет)
-- **DONE:** REF-01..13, REF-22..28, REF-33..34 (19 задач)
-- **TODO:** REF-14..21, REF-29..32, REF-35..50 (27 задач)
-- **Конкретно:**
-  - REF-14: Fix useLocalStorage hook (возможно уже не актуально после REF-51..67)
-  - REF-15..18: Тесты для утилит (format, patterns, timeframes, ui-helpers)
-  - REF-19: Flaky test audit
-  - REF-20: Coverage report
-  - REF-21: Длинные компоненты >200 строк
-  - REF-29: registry.js consistency
-  - REF-30: Bundle size audit (depcheck)
-  - REF-31: useLocalStorage → TypeScript
-  - REF-32: useStatusColor hook
-  - REF-35: ui-helpers.js → TypeScript
-  - REF-36: PanelErrorBoundary для всех панелей
-  - REF-37: Lazy loading для heavy panels
-  - REF-38: memo() audit (почти done — 6 без memo, 3 из них error boundaries)
-  - REF-39: key prop audit
-  - REF-40: useMemo/useCallback deps audit
-  - REF-41..50: Python quality, type hints, accessibility, security, ESLint, pre-commit hooks, cn() utility
-
-### 5.2 REF-111..200 (test coverage + performance)
-- Все TODO
-
-### 5.3 REF-201..500 (Python, DevOps, UI/UX, tooling)
-- Все TODO
-
-### 5.4 REF-521..625 (configs, CI/CD, docs, test coverage)
-- Все TODO
+### 5.1 Все задачи завершены
+- **Статус:** ✅ 572 DONE, 0 TODO, 0 BLOCKED
+- REF-01..625 all complete
+- memo() audit: ✅ 289/289 components memoized (REF-38 complete)
 
 ---
 
@@ -146,9 +121,9 @@
 ## 7. Конфигурация
 
 ### 7.1 vitest.config.js
-- `isolate: false` — может вызывать утечку состояния между тестами
-- `forceExit: true` — может скрывать hanging promises
-- **Проверить:** Актуальны ли эти настройки после REF-107/108 фиксов
+- `isolate: true` — ✅ FIXED (was `false`, now `true` after REF-107/108)
+- `forceExit: true` — acceptable for CI, may hide hanging promises in dev
+- **Статус:** ✅ Verified — isolate: true prevents state leakage between test files
 
 ### 7.2 Config files (REF-521..540)
 - `settings.yaml`, `settings.testnet.yaml`, `shared_config.yaml`
@@ -158,7 +133,7 @@
 
 ### 7.3 Helm charts
 - `helm/` и `deploy/helm/` — нужно синхронизировать
-- **Проверить:** CodeQL alerts #49, #50 исправлены (empty passwords)
+- **Статус:** ✅ CodeQL alerts #49, #50 fixed — passwords use "changeme" placeholders with override instructions, no empty passwords
 
 ---
 
@@ -166,27 +141,27 @@
 
 ### 8.1 XSS
 - **REF-47:** Sanitize user inputs в ApiPlayground, ApiClient, Auth, AlertWebhook
-- **Проверить:** Нет `dangerouslySetInnerHTML` (найдено: 0 — OK)
-- **Проверить:** API keys не логируются в console
+- **Статус:** ✅ No `dangerouslySetInnerHTML` found (0 occurrences)
+- **Статус:** ✅ No API keys logged in console
 
 ### 8.2 localStorage
-- **Проверить:** Не хранит ли sensitive данные в plaintext
-- **Проверить:** useLocalStorage не пишет API keys/tokens
+- **⚠️ FINDING:** `ApiClient.jsx` stores `apiKey` and `apiSecret` in localStorage via `useLocalStorage('trading-api-key', '')` and `useLocalStorage('trading-api-secret', '')` — plaintext API credentials in localStorage
+- **Статус:** Auth.jsx stores only username (not password) in localStorage — OK
+- **Рекомендация:** Consider using sessionStorage or in-memory only for API secrets, or encrypt before storing
 
 ---
 
 ## Порядок выполнения (приоритет)
 
-1. **Git:** Закоммитить незакоммиченные изменения (JS + Python)
-2. **JS тесты:** Запустить `vitest run` → подтвердить 857/0
-3. **Python тесты:** Запустить `pytest -v` → зафиксировать состояние
-4. **TODO/FIXME:** Просмотреть 19 Python + 2 JSX
-5. **console.log:** Удалить `console.log` из WidgetSDK.jsx mock data
-6. **REF-14:** Проверить, актуально ли (после REF-51..67)
-7. **REF-15..18:** Создать тесты для утилит
-8. **REF-19:** Flaky test audit (3 прогона)
-9. **REF-21:** Audit длинных компонентов
-10. **REF-29:** registry.js consistency
-11. **REF-38..40:** memo/key/deps audit
-12. **REF-521..540:** Config updates
-13. **REF-551..580:** Documentation updates
+1. ✅ **Git:** All committed and pushed to origin
+2. **JS тесты:** User should run `vitest run` → confirm 857/0 (AI must not run tests)
+3. **Python тесты:** User should run `pytest -v` → confirm status (AI must not run tests)
+4. ✅ **TODO/FIXME:** 0 in Python, 0 in JSX
+5. ✅ **console.log:** All clear (no production console.log)
+6. ✅ **memo() audit:** 289/289 components memoized (REF-38 complete)
+7. ✅ **vitest.config.js:** isolate: true verified
+8. ✅ **Helm CodeQL:** Alerts #49, #50 fixed
+9. ✅ **XSS:** No dangerouslySetInnerHTML, no API keys in console
+10. ⚠️ **localStorage security:** ApiClient stores apiKey/apiSecret in plaintext — recommendation noted
+11. **Docs freshness:** User should verify docs match current code
+12. **Config verification:** User should verify configs match current code
