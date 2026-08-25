@@ -268,6 +268,10 @@ const TickReplay = lazy(() => import('../components/TickReplay'))
 const PacketInspector = lazy(() => import('../components/PacketInspector'))
 const WidgetSDK = lazy(() => import('../components/WidgetSDK'))
 const SentimentDashboard = lazy(() => import('../components/SentimentDashboard'))
+const OnChainAnalytics = lazy(() => import('../components/OnChainAnalytics'))
+const FuturesBasis = lazy(() => import('../components/FuturesBasis'))
+const VolSurface = lazy(() => import('../components/VolSurface'))
+const PairsArb = lazy(() => import('../components/PairsArb'))
 
 // Category metadata
 export const CATEGORIES = [
@@ -792,6 +796,14 @@ export const PANELS = [
     props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
   { id: 'sentiment-dashboard', name: 'Sentiment Dashboard', category: 'strategy', component: SentimentDashboard,
     props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
+  { id: 'onchain-analytics', name: 'On-Chain Analytics', category: 'risk', component: OnChainAnalytics,
+    props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
+  { id: 'futures-basis', name: 'Futures Basis', category: 'risk', component: FuturesBasis,
+    props: (ctx) => ({ currentPrice: ctx.currentPrice }) },
+  { id: 'vol-surface', name: 'Volatility Surface', category: 'risk', component: VolSurface,
+    props: (ctx) => ({ currentPrice: ctx.currentPrice }) },
+  { id: 'pairs-arb', name: 'Pairs Arbitrage', category: 'strategy', component: PairsArb,
+    props: () => ({}) },
 ]
 
 // Default visible panels (all visible by default except advanced math panels)
