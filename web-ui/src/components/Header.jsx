@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Wifi, WifiOff, TrendingUp, TrendingDown, Zap, Pause, Play, FastForward, Volume2, VolumeX, Sun, Moon, Power } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -14,7 +15,7 @@ const SPEED_OPTIONS = [
   { value: 5, label: '5x', icon: FastForward },
 ]
 
-export default function Header({
+export default memo(function Header({
   exchanges,
   symbols,
   selectedExchange,
@@ -238,4 +239,4 @@ export default function Header({
       )}
     </header>
   )
-}
+})

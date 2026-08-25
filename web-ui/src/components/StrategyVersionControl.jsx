@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { GitBranch, Tag, RotateCcw } from 'lucide-react'
-import { ICONS, StatCard, WarningBanner } from '../utils/ui-helpers'
+import { ICONS, StatCard, WarningBanner, CLASS } from '../utils/ui-helpers'
 
 const MOCK_VERSIONS = [
   { id: 'v2.3.1', tag: 'latest', date: '2024-08-25', author: 'Alice', changes: 3, status: 'active', desc: 'Tighten risk limits, add CVaR check' },
@@ -68,7 +68,7 @@ const StrategyVersionControl = memo(function StrategyVersionControl({ addToast }
               className={`flex items-center gap-2 py-1 px-1.5 bg-bg-700 cursor-pointer hover:bg-bg-600 transition-colors ${selected === version.id ? 'ring-1 ring-accent-purple' : ''}`}
             >
               {statusIcon(version.status)}
-              <span className="text-[10px] font-mono text-gray-300 w-14">{version.id}</span>
+              <span className={`${CLASS.mono10} w-14`}>{version.id}</span>
               {version.tag && (
                 <span className={`text-[8px] px-1 rounded ${version.tag === 'latest' ? 'bg-accent-green/20 text-accent-green' : 'bg-accent-blue/20 text-accent-blue'}`}>
                   <Tag size={7} className="inline mr-0.5" />{version.tag}

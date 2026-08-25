@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { X, ChevronRight, ChevronLeft, Zap, CandlestickChart, Bot, Newspaper, Check } from 'lucide-react'
 
 const STORAGE_KEY = 'trading-sim-onboarded'
@@ -31,7 +31,7 @@ const STEPS = [
   },
 ]
 
-export default function OnboardingTutorial() {
+export default memo(function OnboardingTutorial() {
   const [visible, setVisible] = useState(false)
   const [step, setStep] = useState(0)
 
@@ -122,4 +122,4 @@ export default function OnboardingTutorial() {
       </div>
     </div>
   )
-}
+})

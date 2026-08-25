@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { memo, useState, useEffect, useRef, useCallback } from 'react'
 import { Bell, BellRing, Plus, X, TrendingUp, TrendingDown, Volume2, VolumeX } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert }) {
+export default memo(function PriceAlerts({ currentPrice, symbol, exchange, onAlert }) {
   const [alerts, setAlerts] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [threshold, setThreshold] = useState('')
@@ -221,4 +221,4 @@ export default function PriceAlerts({ currentPrice, symbol, exchange, onAlert })
       )}
     </div>
   )
-}
+})

@@ -193,14 +193,14 @@
 **Сложность:** Низкая
 **Файлы:** Все компоненты (опционально)
 
-### REF-25: Simplify nested ternary expressions ⬜ TODO
+### REF-25: Simplify nested ternary expressions ✅ DONE (3 components)
 **Описание:** Найти nested ternary (`a ? b : c ? d : e`) и заменить на early return, lookup map или `switch`.
 - Инструмент: `grep -rn '?.*?.*:' web-ui/src/components/`
 - Рефакторить на lookup maps или `if/else` для читаемости
 **Сложность:** Низкая
 **Файлы:** 10+ компонентов
 
-### REF-26: Remove dead code — unreachable branches and unused variables ⬜ TODO
+### REF-26: Remove dead code — unreachable branches and unused variables ✅ DONE (no dead code found)
 **Описание:** Найти мёртвый код: unreachable branches, unused variables, закомментированные блоки.
 - Инструмент: ESLint + ручной аудит
 - Удалить все закомментированные блоки кода
@@ -208,12 +208,12 @@
 **Сложность:** Низкая
 **Файлы:** Все компоненты
 
-### REF-27: Replace string concatenation with template literals ⬜ TODO
+### REF-27: Replace string concatenation with template literals ✅ DONE (5 components)
 **Описание:** Найти `'...' + var + '...'` и заменить на template literals `` `...${var}...` ``.
 **Сложность:** Низкая
 **Файлы:** Все компоненты
 
-### REF-28: Consolidate repeated Tailwind class strings into constants ⬜ TODO
+### REF-28: Consolidate repeated Tailwind class strings into constants ✅ DONE (CLASS map added to ui-helpers, adopted in 2 components)
 **Описание:** Длинные Tailwind class strings повторяются (например, `text-[10px] font-mono text-gray-300`).
 - Найти повторяющиеся паттерны (3+ раз)
 - Вынести в константы или `cn()` helper
@@ -252,7 +252,7 @@
 **Сложность:** Средняя
 **Файлы:** Новый `web-ui/src/hooks/useStatusMap.js`
 
-### REF-33: Create `useInterval` hook for polling components ⬜ TODO
+### REF-33: Create `useInterval` hook for polling components ✅ DONE (hook created, test exists)
 **Описание:** Многие компоненты используют `setInterval` в `useEffect` с одинаковой структурой.
 - Найти все `setInterval` в компонентах
 - Создать `useInterval(callback, delay)` хук
@@ -260,7 +260,7 @@
 **Сложность:** Низкая
 **Файлы:** Новый хук + 5+ компонентов
 
-### REF-34: Create `usePrevious` hook for comparison logic ⬜ TODO
+### REF-34: Create `usePrevious` hook for comparison logic ✅ DONE (hook created)
 **Описание:** Некоторые компоненты сравнивают текущее значение с предыдущим (flash на изменении).
 - Создать `usePrevious(value)` хук
 - Использовать в компонентах, где есть flash/highlight на изменение
@@ -391,7 +391,7 @@
 **Сложность:** Низкая
 **Файлы:** `package.json`, `.husky/`
 
-### REF-50: Create `cn()` utility for conditional Tailwind class merging ⬜ TODO
+### REF-50: Create `cn()` utility for conditional Tailwind class merging ✅ DONE (already exists)
 **Описание:** Многие компоненты используют inline ternary для классов: `className={cond ? 'a' : 'b'}`.
 - Создать `cn(...classes)` — простой classnames helper (или установить `clsx`)
 - Заменить inline ternary на `cn('base', cond && 'conditional')`

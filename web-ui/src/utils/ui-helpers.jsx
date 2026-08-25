@@ -1,6 +1,17 @@
 import PropTypes from 'prop-types'
 import { CheckCircle, AlertTriangle, XCircle, Activity, Clock, RefreshCw } from 'lucide-react'
 
+export const CLASS = {
+  mono10: 'text-[10px] font-mono text-gray-300',
+  mono9: 'text-[9px] font-mono text-gray-400',
+  mono10Bold: 'text-[10px] font-mono font-bold',
+  label10: 'text-[10px] text-gray-600 uppercase',
+  label9: 'text-[9px] text-gray-600 uppercase',
+  panelBase: 'p-3 bg-bg-800 text-gray-200 text-xs space-y-2',
+  cardBorder: 'p-2 bg-bg-700 border border-bg-600',
+  rowBorder: 'flex items-center justify-between py-0.5 border-b border-bg-600/50',
+}
+
 export function pnlColor(pnl) {
   return pnl >= 0 ? 'text-accent-green' : 'text-accent-red'
 }

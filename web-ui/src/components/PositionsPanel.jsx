@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { X, Layers, AlertTriangle } from 'lucide-react'
 import { formatPrice, formatUsd, colorForSide } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
@@ -5,7 +6,7 @@ import { EmptyState } from './LoadingSkeleton'
 const EXCHANGE_FEES = { binance: 0.04, bybit: 0.06, okx: 0.05 }
 const LEVERAGE = 10
 
-export default function PositionsPanel({ accounts, onClose, currentPrices }) {
+export default memo(function PositionsPanel({ accounts, onClose, currentPrices }) {
   const allPositions = []
 
   for (const [exId, acc] of Object.entries(accounts || {})) {
@@ -137,4 +138,4 @@ export default function PositionsPanel({ accounts, onClose, currentPrices }) {
       </div>
     </div>
   )
-}
+})

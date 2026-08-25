@@ -1,8 +1,8 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { memo, useState, useRef, useCallback, useEffect } from 'react'
 import { PlayCircle, StopCircle, Download, Upload, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSessionRecorder } from '../hooks/useSessionRecorder'
 
-export default function SessionReplay({ accounts, fills, signals, candles, prices, orderbooks, symbol, exchange }) {
+export default memo(function SessionReplay({ accounts, fills, signals, candles, prices, orderbooks, symbol, exchange }) {
   const {
     isRecording, snapshotCount, savedRecordings,
     startRecording, updateData, captureSnapshot, stopRecording,
@@ -260,4 +260,4 @@ export default function SessionReplay({ accounts, fills, signals, candles, price
       )}
     </div>
   )
-}
+})

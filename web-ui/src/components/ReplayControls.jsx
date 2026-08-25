@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react'
+import { memo, useState, useRef } from 'react'
 import { Pause, Play, Rewind, FastForward, History } from 'lucide-react'
 
-export default function ReplayControls({ paused, onToggle, onScrub, candleCount }) {
+export default memo(function ReplayControls({ paused, onToggle, onScrub, candleCount }) {
   const [scrubOffset, setScrubOffset] = useState(0)
   const debounceRef = useRef(null)
 
@@ -78,4 +78,4 @@ export default function ReplayControls({ paused, onToggle, onScrub, candleCount 
       )}
     </div>
   )
-}
+})

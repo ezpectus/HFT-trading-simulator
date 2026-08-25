@@ -1,6 +1,7 @@
+import { memo } from 'react'
 import { useExchange } from '../contexts/ExchangeContext'
 
-export default function ExchangeSelector() {
+export default memo(function ExchangeSelector() {
   const { selectedExchange, switchExchange, availableExchanges, exchangeThemes } = useExchange()
 
   return (
@@ -35,4 +36,4 @@ export default function ExchangeSelector() {
       </div>
     </div>
   )
-}
+})

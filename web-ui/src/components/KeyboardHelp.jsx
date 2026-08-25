@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { X, Keyboard } from 'lucide-react'
 
 const SHORTCUTS = [
@@ -18,7 +18,7 @@ const SHORTCUTS = [
   { keys: ['Esc'], desc: 'Close overlays / dialogs' },
 ]
 
-export default function KeyboardHelp() {
+export default memo(function KeyboardHelp() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -82,4 +82,4 @@ export default function KeyboardHelp() {
       </div>
     </div>
   )
-}
+})

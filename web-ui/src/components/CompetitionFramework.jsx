@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { Trophy, Swords, BarChart3, RefreshCw } from 'lucide-react'
 
 const STORAGE_KEY = 'trading-sim-competition-results'
@@ -61,7 +61,7 @@ function runMockTournament(strategies, seed = Date.now()) {
   return results
 }
 
-export default function CompetitionFramework() {
+export default memo(function CompetitionFramework() {
   const [selected, setSelected] = useState(new Set(DEFAULT_STRATEGIES.map(s => s.id)))
   const [results, setResults] = useState(null)
   const [tournamentSeed, setTournamentSeed] = useState(null)
@@ -152,4 +152,4 @@ export default function CompetitionFramework() {
       )}
     </div>
   )
-}
+})

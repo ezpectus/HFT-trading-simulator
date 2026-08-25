@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { FileText, Download } from 'lucide-react'
 
 function generateReportHTML(accounts, fills, candles, symbol, exchange) {
@@ -169,7 +169,7 @@ function generateReportHTML(accounts, fills, candles, symbol, exchange) {
 </html>`
 }
 
-export default function SessionReportExport({ accounts, fills, candles, symbol, exchange }) {
+export default memo(function SessionReportExport({ accounts, fills, candles, symbol, exchange }) {
   const [generating, setGenerating] = useState(false)
 
   const handleExport = () => {
@@ -247,4 +247,4 @@ export default function SessionReportExport({ accounts, fills, candles, symbol, 
       </div>
     </div>
   )
-}
+})

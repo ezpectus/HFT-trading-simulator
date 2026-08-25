@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { Webhook, Plus, X, Check, TestTube } from 'lucide-react'
 
 const WEBHOOK_KEY = 'trading-sim-webhooks'
@@ -11,7 +11,7 @@ const EVENT_TYPES = [
   { id: 'daily_summary', label: 'Daily Summary' },
 ]
 
-export default function AlertWebhook({ fills, toasts }) {
+export default memo(function AlertWebhook({ fills, toasts }) {
   const [webhooks, setWebhooks] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [newUrl, setNewUrl] = useState('')
@@ -190,4 +190,4 @@ export default function AlertWebhook({ fills, toasts }) {
       </div>
     </div>
   )
-}
+})

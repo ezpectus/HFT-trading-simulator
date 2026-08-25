@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { FlaskConical, X } from 'lucide-react'
 
-export default function MockModeBanner() {
+export default memo(function MockModeBanner() {
   const [dismissed, setDismissed] = useState(false)
   const [isMock, setIsMock] = useState(false)
 
@@ -31,4 +31,4 @@ export default function MockModeBanner() {
       </button>
     </div>
   )
-}
+})

@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { Settings, Save, RotateCcw } from 'lucide-react'
 
 const SYMBOLS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT']
 const EXCHANGES = ['binance', 'bybit', 'okx']
 
-export default function ConfigPanel({ onConfigUpdate, fundingRates, weekendMode }) {
+export default memo(function ConfigPanel({ onConfigUpdate, fundingRates, weekendMode }) {
   const [expanded, setExpanded] = useState(false)
   const [volatility, setVolatility] = useState({
     'BTC/USDT': 0.8,
@@ -167,4 +167,4 @@ export default function ConfigPanel({ onConfigUpdate, fundingRates, weekendMode 
       )}
     </div>
   )
-}
+})

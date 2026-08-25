@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { FlaskConical, Plus, X, Play, Save } from 'lucide-react'
 
 const CONDITIONS = [
@@ -21,7 +21,7 @@ const ACTIONS = [
 
 const SAVED_KEY = 'trading-sim-strategies'
 
-export default function StrategyBuilder({ currentPrice }) {
+export default memo(function StrategyBuilder({ currentPrice }) {
   const [rules, setRules] = useState([
     { id: Date.now(), condition: 'rsi_below', value: 30, action: 'buy', qty: 0.1 }
   ])
@@ -193,4 +193,4 @@ export default function StrategyBuilder({ currentPrice }) {
       )}
     </div>
   )
-}
+})

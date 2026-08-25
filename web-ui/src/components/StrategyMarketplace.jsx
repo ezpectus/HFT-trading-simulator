@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { memo, useState, useRef } from 'react'
 import { Store, Download, Upload, Trash2, Search, FileJson, Check, X } from 'lucide-react'
 import { useStrategyMarketplace } from '../hooks/useStrategyMarketplace'
 
@@ -14,7 +14,7 @@ const TAG_COLORS = {
   'volume': 'bg-accent-green/20 text-accent-green',
 }
 
-export default function StrategyMarketplace() {
+export default memo(function StrategyMarketplace() {
   const { importedStrategies, allStrategies, downloadStrategy, uploadStrategy, deleteImported, importStrategy } = useStrategyMarketplace()
   const [search, setSearch] = useState('')
   const [filterTag, setFilterTag] = useState(null)
@@ -175,4 +175,4 @@ export default function StrategyMarketplace() {
       </div>
     </div>
   )
-}
+})

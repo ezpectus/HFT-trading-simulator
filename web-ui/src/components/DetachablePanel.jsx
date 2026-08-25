@@ -1,6 +1,7 @@
+import { memo } from 'react'
 import { ExternalLink, X } from 'lucide-react'
 
-export default function DetachablePanel({ panelId, onDetach, isDetached, children, title }) {
+export default memo(function DetachablePanel({ panelId, onDetach, isDetached, children, title }) {
   return (
     <div className="relative bg-bg-800  overflow-hidden h-full">
       {/* Detach button overlay */}
@@ -14,4 +15,4 @@ export default function DetachablePanel({ panelId, onDetach, isDetached, childre
       {children}
     </div>
   )
-}
+})

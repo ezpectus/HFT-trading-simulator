@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { memo, useState, useEffect, useRef, useCallback } from 'react'
 import { Play, Square, Clock } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -7,7 +7,7 @@ const STRATEGIES = [
   { id: 'vwap', label: 'VWAP', desc: 'Volume-Weighted Average Price' },
 ]
 
-export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol, _exchange }) {
+export default memo(function ExecutionBot({ currentPrice, onSubmit, connected, symbol, _exchange }) {
   const [strategy, setStrategy] = useState('twap')
   const [side, setSide] = useState('BUY')
   const [totalQty, setTotalQty] = useState(1.0)
@@ -235,4 +235,4 @@ export default function ExecutionBot({ currentPrice, onSubmit, connected, symbol
       )}
     </div>
   )
-}
+})

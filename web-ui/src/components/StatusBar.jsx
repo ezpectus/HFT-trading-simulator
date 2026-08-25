@@ -1,7 +1,8 @@
+import { memo } from 'react'
 import { Clock, CandlestickChart, Bot, Activity, Wifi, Percent, Flame, Moon, DollarSign, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { formatTime } from '../utils/format'
 
-export default function StatusBar({ exchange, signals, selectedExchange, selectedSymbol, candleCount, exchangeLatency, signalLatency }) {
+export default memo(function StatusBar({ exchange, signals, selectedExchange, selectedSymbol, candleCount, exchangeLatency, signalLatency }) {
   const totalPositions = Object.values(exchange.accounts || {}).reduce(
     (s, a) => s + Object.keys(a.positions || {}).length, 0
   )
@@ -185,4 +186,4 @@ export default function StatusBar({ exchange, signals, selectedExchange, selecte
       </div>
     </footer>
   )
-}
+})

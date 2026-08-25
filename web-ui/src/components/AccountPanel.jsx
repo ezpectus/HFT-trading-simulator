@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { Wallet, TrendingUp, TrendingDown, Trophy, ArrowUpDown } from 'lucide-react'
 import { formatUsd, formatPct } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
@@ -10,7 +10,7 @@ const SORT_OPTIONS = [
   { id: 'balance', label: 'Balance' },
 ]
 
-export default function AccountPanel({ accounts }) {
+export default memo(function AccountPanel({ accounts }) {
   const exchangeIds = Object.keys(accounts)
   const [sortMode, setSortMode] = useState('pnl')
 
@@ -145,7 +145,7 @@ export default function AccountPanel({ accounts }) {
       })}
     </div>
   )
-}
+})
 
 function Stat({ label, value, color = 'text-gray-200' }) {
   return (

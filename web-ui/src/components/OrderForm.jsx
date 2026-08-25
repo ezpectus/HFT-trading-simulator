@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { ShoppingCart, Loader2, Calculator, AlertTriangle } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -7,7 +7,7 @@ const EXCHANGE_SLIPPAGE = { binance: 2.0, bybit: 3.0, okx: 2.5 }
 const DEFAULT_LEVERAGE = 10
 const MAINTENANCE_MARGIN_RATE = 0.005 // 0.5%
 
-export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, connected, balance, tradingActive = true }) {
+export default memo(function OrderForm({ exchange, symbol, currentPrice, onSubmit, connected, balance, tradingActive = true }) {
   const [side, setSide] = useState('BUY')
   const [orderType, setOrderType] = useState('MARKET')
   const [quantity, setQuantity] = useState('0.01')
@@ -406,4 +406,4 @@ export default function OrderForm({ exchange, symbol, currentPrice, onSubmit, co
       </form>
     </div>
   )
-}
+})

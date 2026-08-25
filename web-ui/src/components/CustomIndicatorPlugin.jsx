@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { memo, useState, useCallback } from 'react'
 import { Trash2, Sliders, Code, Play, Save } from 'lucide-react'
 
 const PRESETS = [
@@ -49,7 +49,7 @@ const VARIABLES = [
   { name: 'close[n]', desc: 'Close n bars ago' },
 ]
 
-export default function CustomIndicatorPlugin({ candles, symbol }) {
+export default memo(function CustomIndicatorPlugin({ candles, symbol }) {
   const [indicators, setIndicators] = useState([])
   const [name, setName] = useState('My Indicator')
   const [formula, setFormula] = useState('ema(close, 9) - ema(close, 21)')
@@ -320,4 +320,4 @@ export default function CustomIndicatorPlugin({ candles, symbol }) {
       )}
     </div>
   )
-}
+})

@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { Link2, TrendingUp, TrendingDown, Wallet, Activity, Database } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { Label, SectionTitle } from '../utils/ui-helpers'
+import { Label, SectionTitle, CLASS } from '../utils/ui-helpers'
 
 const MOCK_METRICS = [
   { metric: 'Active Addresses', value: 1245000, change: 5.2, trend: 'up' },
@@ -96,7 +96,7 @@ const OnChainAnalytics = memo(function OnChainAnalytics({ symbol }) {
           {MOCK_WHALES.map(whale => (
             <div key={whale.address} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
               <span className="text-[9px] font-mono text-gray-400 w-24 truncate">{whale.address}</span>
-              <span className="text-[10px] font-mono text-gray-300 w-16">{formatVolume(whale.balance)}</span>
+              <span className={`${CLASS.mono10} w-16`}>{formatVolume(whale.balance)}</span>
               <span className={`text-[10px] font-mono w-14 text-right ${trendColor(whale.change)}`}>
                 {whale.change >= 0 ? '+' : ''}{whale.change}
               </span>

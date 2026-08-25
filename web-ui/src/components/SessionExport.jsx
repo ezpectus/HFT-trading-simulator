@@ -1,7 +1,7 @@
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { Download, FileJson } from 'lucide-react'
 
-export default function SessionExport({ accounts, fills, candles, signals, config }) {
+export default memo(function SessionExport({ accounts, fills, candles, signals, config }) {
   const exportJSON = useCallback(() => {
     const session = {
       exportedAt: new Date().toISOString(),
@@ -117,4 +117,4 @@ export default function SessionExport({ accounts, fills, candles, signals, confi
       </div>
     </div>
   )
-}
+})
