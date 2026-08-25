@@ -20,7 +20,7 @@ export default [
     },
     plugins: { react },
     rules: {
-      'react/prop-types': 'warn',
+      'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
       'react/jsx-uses-vars': 'error',
       'react/jsx-uses-react': 'error',

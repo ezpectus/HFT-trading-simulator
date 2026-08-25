@@ -118,17 +118,17 @@
 
 ## КРИТЕРИИ ГОТОВНОСТИ
 
-- [ ] `curl localhost:8775/health` → 200 (exchange simulator)
-- [ ] `curl localhost:9090/health` → 200 (ai-signal-bot)
-- [ ] `curl localhost:9091/health` → 200 (hft-trade-bot)
-- [ ] `curl localhost:9092/health` → агрегированный статус всех 3 сервисов
-- [ ] `curl localhost:3000/health` → 200 (web-ui)
-- [ ] Prometheus скрейпит все 4 таргета (UP)
-- [ ] Alert rules совпадают с фактическими именами метрик
-- [ ] docker-compose healthchecks — HTTP, не TCP
-- [ ] Helm probes — httpGet, не tcpSocket
-- [ ] SIGTERM → graceful shutdown (exit 0, состояние сохранено)
-- [ ] WS reconnect с экспоненциальным backoff
+- [x] `curl localhost:8775/health` → 200 (exchange simulator) — Task 1 [FIXED]
+- [x] `curl localhost:9090/health` → 200 (ai-signal-bot) — Task 5 [FIXED]
+- [x] `curl localhost:9091/health` → 200 (hft-trade-bot) — Task 2 [OK]
+- [x] ~~`curl localhost:9092/health`~~ → N/A (HealthAggregator deprecated, Task 4 [N/A])
+- [x] `curl localhost:3000/health` → 200 (web-ui) — Task 6 [FIXED]
+- [x] Prometheus скрейпит все 4 таргета (UP) — Tasks 1,5,6,10,11 [FIXED]
+- [x] Alert rules совпадают с фактическими именами метрик — Task 11 [FIXED]
+- [x] docker-compose healthchecks — HTTP, не TCP — Task 2 [FIXED]
+- [x] Helm probes — httpGet, не tcpSocket — Task 3 [FIXED]
+- [x] SIGTERM → graceful shutdown (exit 0, состояние сохранено) — Task 8 [FIXED]
+- [x] WS reconnect с экспоненциальным backoff — Task 9 [FIXED]
 
 ---
 
