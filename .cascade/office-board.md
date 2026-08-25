@@ -52,14 +52,14 @@
 **Сложность:** Средняя
 **Файлы:** 20+ компонентов + `web-ui/src/utils/ui-helpers.js`
 
-### REF-06: Adopt `Bar` component across all components ✅ DONE (partial: 1 component)
+### REF-06: Adopt `Bar` component across all components ✅ DONE (8 components)
 **Описание:** `Bar` создан в `ui-helpers.js`, но не используется. Паттерн progress-bar повторяется в множестве компонентов.
 - Найти все inline progress bars (`flex-1 h-* bg-bg-600` + inner `div` with `width: %`)
 - Заменить на `<Bar value={...} max={...} color="..." />`
 **Сложность:** Средняя
 **Файлы:** 10+ компонентов
 
-### REF-07: Adopt `WarningBanner` component across all components ✅ DONE (partial: 1 component)
+### REF-07: Adopt `WarningBanner` component across all components ✅ DONE (15 components)
 **Описание:** `WarningBanner` создан, но не используется. Паттерн warning/alert banner повторяется.
 - Найти все inline warning banners (`flex items-center gap-* p-* bg-accent-*/10 border`)
 - Заменить на `<WarningBanner icon={...} color="...">text</WarningBanner>`
@@ -81,7 +81,7 @@
 
 ### Категория C: DRY — Centralize mock data
 
-### REF-10: Extract all MOCK_ data into centralized mock data files ⬜ TODO
+### REF-10: Extract all MOCK_ data into centralized mock data files ✅ DONE (partial: 10 components)
 **Описание:** 20+ компонентов содержат inline `MOCK_*` массивы данных.
 - Компоненты: `ABTesting`, `ApiPlayground`, `ArbScanner`, `AuditTrail`, `BlackSwanTester`, `CancelMonitor`, `Colocation`, `DataQuality`, `DashboardProfiler`, `FuturesBasis`, `PairsArb`, `RetrainingPipeline`, `TeamCollab`, `FillAnalytics`, `CapacityAnalysis` и др.
 - Решение: создать `web-ui/src/utils/mock-data/components/` директорию, вынести mock данные по категориям

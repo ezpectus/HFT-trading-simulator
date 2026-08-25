@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { GitCommit, TrendingUp, TrendingDown } from 'lucide-react'
-import { ICONS, StatCard } from '../utils/ui-helpers'
+import { ICONS, StatCard, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_WINDOWS = [
   { id: 1, trainStart: '2024-01-01', trainEnd: '2024-03-31', testStart: '2024-04-01', testEnd: '2024-04-30', trainReturn: 15.2, testReturn: 8.5, trainSharpe: 1.85, testSharpe: 1.12, status: 'pass' },
@@ -95,12 +95,9 @@ const WalkForwardViewer = memo(function WalkForwardViewer() {
       </div>
 
       {stats.overfitScore > 0.5 && (
-        <div className="flex items-center gap-1.5 p-1.5 bg-accent-yellow/10 border border-accent-yellow/30">
-          <TrendingDown size={11} className="text-accent-yellow" />
-          <span className="text-[10px] text-accent-yellow">
-            Overfit score {(stats.overfitScore * 100).toFixed(0)}% — consider simplifying model
-          </span>
-        </div>
+        <WarningBanner icon={TrendingDown} color="text-accent-yellow">
+          Overfit score {(stats.overfitScore * 100).toFixed(0)}% — consider simplifying model
+        </WarningBanner>
       )}
 
       <div className="flex items-center justify-between text-[9px] text-gray-600 pt-1 border-t border-bg-600">

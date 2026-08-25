@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
-import { GitBranch, Tag, RotateCcw, AlertTriangle } from 'lucide-react'
-import { ICONS, StatCard } from '../utils/ui-helpers'
+import { GitBranch, Tag, RotateCcw } from 'lucide-react'
+import { ICONS, StatCard, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_VERSIONS = [
   { id: 'v2.3.1', tag: 'latest', date: '2024-08-25', author: 'Alice', changes: 3, status: 'active', desc: 'Tighten risk limits, add CVaR check' },
@@ -111,12 +111,9 @@ const StrategyVersionControl = memo(function StrategyVersionControl({ addToast }
       )}
 
       {selectedVersion && selectedVersion.id !== 'v2.3.1' && (
-        <div className="flex items-center gap-1.5 p-1.5 bg-accent-yellow/10 border border-accent-yellow/30">
-          <AlertTriangle size={11} className="text-accent-yellow" />
-          <span className="text-[10px] text-accent-yellow">
-            Rolling back will deactivate v2.3.1
-          </span>
-        </div>
+        <WarningBanner color="text-accent-yellow">
+          Rolling back will deactivate v2.3.1
+        </WarningBanner>
       )}
     </div>
   )

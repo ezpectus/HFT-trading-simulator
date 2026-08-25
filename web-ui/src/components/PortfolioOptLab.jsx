@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { FlaskConical, Sliders, TrendingUp, PieChart } from 'lucide-react'
-import { StatCard } from '../utils/ui-helpers'
+import { StatCard, Bar } from '../utils/ui-helpers'
 
 const MOCK_ASSETS = [
   { symbol: 'BTC', return: 12.5, vol: 45.2, weight: 35, optimal: 28 },
@@ -105,12 +105,8 @@ const PortfolioOptLab = memo(function PortfolioOptLab() {
                 <span className="text-[9px] font-mono text-gray-600 w-10 text-right">{a.vol.toFixed(0)}%</span>
               </div>
               <div className="flex items-center gap-1 mt-0.5">
-                <div className="flex-1 h-1.5 bg-bg-600 rounded-full overflow-hidden">
-                  <div className="h-full bg-accent-blue opacity-50" style={{ width: `${a.weight}%` }} />
-                </div>
-                <div className="flex-1 h-1.5 bg-bg-600 rounded-full overflow-hidden">
-                  <div className="h-full bg-accent-purple opacity-70" style={{ width: `${a.optimal}%` }} />
-                </div>
+                <Bar value={a.weight} max={100} color="bg-accent-blue" height="h-1.5" opacity="opacity-50" />
+                <Bar value={a.optimal} max={100} color="bg-accent-purple" height="h-1.5" />
               </div>
             </div>
           ))}

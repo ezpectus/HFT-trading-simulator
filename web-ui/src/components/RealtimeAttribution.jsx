@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { PieChart, TrendingUp, TrendingDown, Activity } from 'lucide-react'
-import { pnlColor, StatCard } from '../utils/ui-helpers'
+import { pnlColor, StatCard, Bar } from '../utils/ui-helpers'
 
 const MOCK_ATTRIBUTION = [
   { source: 'TrendFollowing', pnl: 1250, pct: 35, color: 'bg-accent-blue' },
@@ -63,9 +63,7 @@ const RealtimeAttribution = memo(function RealtimeAttribution() {
           {MOCK_ATTRIBUTION.map(a => (
             <div key={a.source} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
               <span className="text-[10px] text-gray-300 w-24 truncate">{a.source}</span>
-              <div className="flex-1 h-2 bg-bg-600 rounded-full overflow-hidden">
-                <div className={`h-full ${a.color} opacity-70`} style={{ width: `${Math.abs(a.pct)}%` }} />
-              </div>
+              <Bar value={Math.abs(a.pct)} max={100} color={a.color} />
               <span className={`text-[9px] font-mono w-14 text-right ${pnlColor(a.pnl)}`}>
                 {a.pnl >= 0 ? '+' : ''}${a.pnl}
               </span>

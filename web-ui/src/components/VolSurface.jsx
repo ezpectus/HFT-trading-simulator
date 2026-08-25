@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Box, Layers, TrendingDown } from 'lucide-react'
-import { StatCard } from '../utils/ui-helpers'
+import { StatCard, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_VOL_SURFACE = [
   { strike: 38000, dte: 7, iv: 38 }, { strike: 40000, dte: 7, iv: 40 }, { strike: 42000, dte: 7, iv: 42 },
@@ -123,12 +123,9 @@ const VolSurface = memo(function VolSurface({ currentPrice }) {
       </div>
 
       {/* Skew note */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-accent-yellow/10 border border-accent-yellow/30">
-        <TrendingDown size={11} className="text-accent-yellow" />
-        <span className="text-[10px] text-accent-yellow">
-          Vol skew: puts trading at premium (bearish skew)
-        </span>
-      </div>
+      <WarningBanner icon={TrendingDown} color="text-accent-yellow">
+        Vol skew: puts trading at premium (bearish skew)
+      </WarningBanner>
     </div>
   )
 })

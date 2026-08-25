@@ -55,11 +55,11 @@ export function StatCard({ label, value, color = 'text-gray-300', icon: Icon, si
   )
 }
 
-export function Bar({ value, max, color = 'bg-accent-blue', height = 'h-2' }) {
+export function Bar({ value, max, color = 'bg-accent-blue', height = 'h-2', className = 'flex-1', opacity = 'opacity-70' }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
   return (
-    <div className={`flex-1 ${height} bg-bg-600 rounded overflow-hidden`}>
-      <div className={`h-full ${color} opacity-70`} style={{ width: `${pct}%` }} />
+    <div className={`${className} ${height} bg-bg-600 rounded-full overflow-hidden`}>
+      <div className={`h-full ${color} ${opacity}`} style={{ width: `${pct}%` }} />
     </div>
   )
 }
@@ -88,7 +88,7 @@ export function WarningBanner({ icon: Icon = AlertTriangle, color = 'text-accent
   const border = color.replace('text-', 'border-') + '/30'
   return (
     <div className={`flex items-center gap-1.5 p-1.5 ${bg} border ${border}`}>
-      <Icon size={11} className={color} />
+      {Icon && <Icon size={11} className={color} />}
       <span className={`text-[10px] ${color}`}>{children}</span>
     </div>
   )

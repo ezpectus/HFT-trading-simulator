@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Radio, Activity, Waves, TrendingUp, TrendingDown } from 'lucide-react'
+import { Bar } from '../utils/ui-helpers'
 
 const MOCK_REGIMES = [
   { name: 'Trending Up', probability: 0.65, icon: 'up', color: 'text-accent-green', bg: 'bg-accent-green' },
@@ -68,9 +69,7 @@ const RegimeDetector = memo(function RegimeDetector({ symbol }) {
             <div key={regime.name} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
               {regimeIcon(regime.icon)}
               <span className="text-[10px] text-gray-300 w-28 truncate">{regime.name}</span>
-              <div className="flex-1 h-2 bg-bg-600 rounded-full overflow-hidden">
-                <div className={`h-full ${regime.bg} opacity-70`} style={{ width: `${regime.probability * 100}%` }} />
-              </div>
+              <Bar value={regime.probability * 100} max={100} color={regime.bg} />
               <span className={`text-[9px] font-mono w-10 text-right ${regime.color}`}>
                 {(regime.probability * 100).toFixed(0)}%
               </span>

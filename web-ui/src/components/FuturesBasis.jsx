@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Calendar, DollarSign } from 'lucide-react'
 import { formatPrice } from '../utils/format'
-import { StatCard } from '../utils/ui-helpers'
+import { StatCard, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_BASIS = [
   { expiry: '1W', days: 7, spot: 44100, futures: 44250, basis: 150, basisPct: 0.34, funding: 0.012, apr: 17.8 },
@@ -106,12 +106,9 @@ const FuturesBasis = memo(function FuturesBasis({ currentPrice }) {
       </div>
 
       {/* Opportunity alert */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-accent-green/10 border border-accent-green/30">
-        <DollarSign size={11} className="text-accent-green" />
-        <span className="text-[10px] text-accent-green">
-          Best opportunity: 3M expiry at {stats.bestBasis.apr.toFixed(1)}% APR
-        </span>
-      </div>
+      <WarningBanner icon={DollarSign} color="text-accent-green">
+        Best opportunity: 3M expiry at {stats.bestBasis.apr.toFixed(1)}% APR
+      </WarningBanner>
     </div>
   )
 })

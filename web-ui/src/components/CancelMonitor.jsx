@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { XCircle, Filter, AlertTriangle, Clock } from 'lucide-react'
-import { StatCard } from '../utils/ui-helpers'
+import { StatCard, Bar, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_CANCELS = [
   { id: 1, orderId: 'ord_8a3f', symbol: 'BTC/USDT', side: 'BUY', reason: 'Price moved', latency: 3200, ts: '12:45:32', source: 'user' },
@@ -66,9 +66,7 @@ const CancelMonitor = memo(function CancelMonitor() {
           {CANCEL_REASONS.map(r => (
             <div key={r.reason} className="flex items-center gap-2">
               <span className="text-[9px] text-gray-400 flex-1 truncate">{r.reason}</span>
-              <div className="w-20 h-2 bg-bg-600 rounded-full overflow-hidden">
-                <div className="h-full bg-accent-red opacity-70" style={{ width: `${r.pct}%` }} />
-              </div>
+              <Bar value={r.pct} max={100} color="bg-accent-red" className="w-20" />
               <span className="text-[9px] font-mono text-gray-500 w-6 text-right">{r.count}</span>
             </div>
           ))}
@@ -112,12 +110,9 @@ const CancelMonitor = memo(function CancelMonitor() {
       </div>
 
       {stats.riskCancels > 0 && (
-        <div className="flex items-center gap-1.5 p-1.5 bg-accent-orange/10 border border-accent-orange/30">
-          <AlertTriangle size={11} className="text-accent-orange" />
-          <span className="text-[10px] text-accent-orange">
-            {stats.riskCancels} risk-triggered cancels — review risk parameters
-          </span>
-        </div>
+        <WarningBanner icon={AlertTriangle} color="text-accent-orange">
+          {stats.riskCancels} risk-triggered cancels — review risk parameters
+        </WarningBanner>
       )}
 
       <div className="flex items-center justify-between text-[9px] text-gray-600 pt-1 border-t border-bg-600">

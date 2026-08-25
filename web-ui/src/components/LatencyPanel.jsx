@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Activity, Zap, TrendingDown, Server, Wifi } from 'lucide-react'
+import { WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_LATENCY_POINTS = Array.from({ length: 20 }, (_, i) => ({
   t: i,
@@ -166,12 +167,9 @@ const LatencyPanel = memo(function LatencyPanel({ exchange }) {
 
       {/* Slowest hop alert */}
       {slowestHop.latency > 5 && (
-        <div className="flex items-center gap-1.5 p-1.5 bg-accent-yellow/10 border border-accent-yellow/30">
-          <TrendingDown size={11} className="text-accent-yellow" />
-          <span className="text-[10px] text-accent-yellow">
-            Slowest: {slowestHop.hop} ({slowestHop.latency.toFixed(1)}ms)
-          </span>
-        </div>
+        <WarningBanner icon={TrendingDown} color="text-accent-yellow">
+          Slowest: {slowestHop.hop} ({slowestHop.latency.toFixed(1)}ms)
+        </WarningBanner>
       )}
     </div>
   )

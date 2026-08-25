@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
-import { TrendingUp, TrendingDown, AlertTriangle, Boxes } from 'lucide-react'
+import { TrendingUp, TrendingDown, Boxes } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
-import { pnlColor, sideColor, StatCard } from '../utils/ui-helpers'
+import { pnlColor, sideColor, StatCard, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_INVENTORY = [
   { symbol: 'BTC/USDT', side: 'LONG', qty: 0.5, avgPrice: 43250, currentPrice: 44100, pnl: 425, pnlPct: 1.96, weight: 35.2 },
@@ -99,12 +99,9 @@ const Inventory = memo(function Inventory() {
 
       {/* Concentration warning */}
       {concentrated && (
-        <div className="flex items-center gap-1.5 p-1.5 bg-accent-yellow/10 border border-accent-yellow/30">
-          <AlertTriangle size={11} className="text-accent-yellow" />
-          <span className="text-[10px] text-accent-yellow">
-            High concentration: position {'>'} 25% of portfolio
-          </span>
-        </div>
+        <WarningBanner color="text-accent-yellow">
+          High concentration: position {'>'} 25% of portfolio
+        </WarningBanner>
       )}
 
       {/* Footer stats */}

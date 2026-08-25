@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { TrendingDown, BarChart3, Activity, AlertTriangle } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { StatCard } from '../utils/ui-helpers'
+import { StatCard, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_SLIPPAGE = [
   { symbol: 'BTC/USDT', orderSize: 0.5, expected: 44100, filled: 44102.5, slippageBps: 5.7, venue: 'Binance' },
@@ -124,12 +124,9 @@ const SlippageAnalytics = memo(function SlippageAnalytics({ symbol }) {
       </div>
 
       {/* Warning */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-accent-orange/10 border border-accent-orange/30">
-        <AlertTriangle size={11} className="text-accent-orange" />
-        <span className="text-[10px] text-accent-orange">
-          Large orders ({'>50k'}) show {Math.round(MOCK_SIZE_BUCKETS[4].avgSlip)}bps avg slippage — split orders
-        </span>
-      </div>
+      <WarningBanner icon={AlertTriangle} color="text-accent-orange">
+        Large orders ({'>50k'}) show {Math.round(MOCK_SIZE_BUCKETS[4].avgSlip)}bps avg slippage — split orders
+      </WarningBanner>
     </div>
   )
 })

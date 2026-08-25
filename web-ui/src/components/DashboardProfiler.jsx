@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Gauge, Cpu, MemoryStick, AlertTriangle, Zap } from 'lucide-react'
-import { statusColor, statusBg } from '../utils/ui-helpers'
+import { statusColor, statusBg, Bar, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_PANELS = [
   { name: 'CandleChart', renderTime: 12.5, mountTime: 45.2, rerenders: 8, cpu: 2.1, status: 'ok' },
@@ -106,21 +106,16 @@ const DashboardProfiler = memo(function DashboardProfiler() {
           <span className="text-[10px] text-gray-600 uppercase">Memory Usage</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-3 bg-bg-600 rounded-full overflow-hidden">
-            <div className="h-full bg-accent-blue opacity-70" style={{ width: '72%' }} />
-          </div>
+          <Bar value={72} max={100} color="bg-accent-blue" height="h-3" />
           <span className="text-[10px] font-mono text-gray-300">145MB / 200MB</span>
         </div>
       </div>
 
       {/* Alerts */}
       {stats.critical > 0 && (
-        <div className="flex items-center gap-1.5 p-1.5 bg-accent-red/10 border border-accent-red/30">
-          <AlertTriangle size={11} className="text-accent-red" />
-          <span className="text-[10px] text-accent-red">
-            {stats.critical} critical panel(s) — {stats.slowest.name} is slowest ({stats.slowest.renderTime.toFixed(1)}ms)
-          </span>
-        </div>
+        <WarningBanner icon={AlertTriangle} color="text-accent-red">
+          {stats.critical} critical panel(s) — {stats.slowest.name} is slowest ({stats.slowest.renderTime.toFixed(1)}ms)
+        </WarningBanner>
       )}
 
       <div className="flex items-center justify-between text-[9px] text-gray-600 pt-1 border-t border-bg-600">

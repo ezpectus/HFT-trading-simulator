@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react'
 import { TrendingDown, BarChart3, Activity, Zap } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
-import { StatCard } from '../utils/ui-helpers'
+import { StatCard, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_IMPACT_LEVELS = [
   { size: '1k', cost: 0.5, priceImpact: 0.01, marketShare: 0.1 },
@@ -128,12 +128,9 @@ const MarketImpact = memo(function MarketImpact({ candles, symbol, exchange, cur
       )}
 
       {/* Warning */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-accent-yellow/10 border border-accent-yellow/30">
-        <Zap size={11} className="text-accent-yellow" />
-        <span className="text-[10px] text-accent-yellow">
-          Orders {'>'} $50k may move price {'>'} 0.8%
-        </span>
-      </div>
+      <WarningBanner icon={Zap} color="text-accent-yellow">
+        Orders {'>'} $50k may move price {'>'} 0.8%
+      </WarningBanner>
     </div>
   )
 })

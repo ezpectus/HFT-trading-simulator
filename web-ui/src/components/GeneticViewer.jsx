@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { Dna, Trophy, Users, TrendingUp } from 'lucide-react'
-import { StatCard } from '../utils/ui-helpers'
+import { StatCard, Bar, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_GENERATIONS = [
   { gen: 1, best: 0.45, avg: 0.28, worst: 0.12, diversity: 0.85, population: 50 },
@@ -121,9 +121,7 @@ const GeneticViewer = memo(function GeneticViewer() {
           {MOCK_OPERATORS.map(op => (
             <div key={op.op} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
               <span className="text-[10px] text-gray-300 w-20">{op.op}</span>
-              <div className="flex-1 h-2 bg-bg-600 rounded-full overflow-hidden">
-                <div className="h-full bg-accent-purple opacity-70" style={{ width: `${op.pct}%` }} />
-              </div>
+              <Bar value={op.pct} max={100} color="bg-accent-purple" />
               <span className="text-[9px] font-mono text-gray-400 w-10 text-right">{op.count}</span>
               <span className="text-[9px] text-gray-600 w-8 text-right">{op.pct}%</span>
             </div>
@@ -132,11 +130,9 @@ const GeneticViewer = memo(function GeneticViewer() {
       </div>
 
       {stats.currentGen.diversity < 0.4 && (
-        <div className="flex items-center gap-1.5 p-1.5 bg-accent-yellow/10 border border-accent-yellow/30">
-          <span className="text-[10px] text-accent-yellow">
-            Low diversity ({(stats.currentGen.diversity * 100).toFixed(0)}%) — consider increasing mutation rate
-          </span>
-        </div>
+        <WarningBanner icon={null} color="text-accent-yellow">
+          Low diversity ({(stats.currentGen.diversity * 100).toFixed(0)}%) — consider increasing mutation rate
+        </WarningBanner>
       )}
     </div>
   )
