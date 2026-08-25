@@ -4,7 +4,7 @@
 #   1. exchange_simulator  — simulated crypto exchange (WebSocket server)
 #   2. ai-signal-bot       — Python AI signal generator
 #   3. hft-trade-bot       — C++20 v2.0 HFT execution engine (sub-millisecond)
-#   4. web-ui              — React web dashboard (204 panels, TradingView-style)
+#   4. web-ui              — React web dashboard (278 panels, TradingView-style)
 #   5. prometheus          — metrics scraping (all components)
 #   6. grafana             — monitoring dashboards (5 pre-built)
 #

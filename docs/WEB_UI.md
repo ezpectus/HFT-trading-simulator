@@ -1,6 +1,6 @@
 # Web UI Dashboard
 
-Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **227 React components**, **204 registered panels** across 7 categories, **75+ advanced mathematical model components**, **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
+Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **289 React components**, **278 registered panels** across 7 categories, **75+ advanced mathematical model components**, **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
 
 ## Theory: UI architecture and why this stack
 
@@ -11,10 +11,10 @@ state → React updates DOM. Vanilla JS: manually manipulate DOM
 (error-prone, hard to maintain).
 
 **Component model:** UI is split into reusable components. Composition
-over inheritance. 227 components = modular, testable, reusable.
+over inheritance. 289 components = modular, testable, reusable.
 
 **Virtual DOM:** React diffs the virtual DOM, applies minimal real DOM
-updates. For 204 panels with real-time updates — critical performance.
+updates. For 278 panels with real-time updates — critical performance.
 
 **Ecosystem:** React 18 concurrent rendering, hooks, Context API,
 React.lazy (code splitting). Mature ecosystem (TradingView charts,
@@ -41,13 +41,13 @@ backtest requests.
 - OrderContext: positions, fills, balance
 - ThemeContext: dark/light, accent colors
 
-**React.lazy + Suspense:** Code splitting. 204 panels = not all
+**React.lazy + Suspense:** Code splitting. 278 panels = not all
 needed simultaneously. Lazy load = initial bundle smaller. Suspense
 fallback = loading spinner.
 
-### Registry pattern — 204 panels
+### Registry pattern — 278 panels
 
-**Registry:** Single file registers all 204 panels. Adding a panel =
+**Registry:** Single file registers all 278 panels. Adding a panel =
 1 entry, 0 changes to App.jsx. Open-Closed Principle (SOLID).
 
 **Categories:** Trading, Order Flow, Technical Analysis, Math Models,
@@ -87,7 +87,7 @@ Trading dashboards must be accessible to all users.
 - **Market Regime** — Trending/ranging/volatile auto-detection
 - **Sentiment Indicator** — News sentiment gauge
 
-### Analytics (204 panels in 7 categories)
+### Analytics (278 panels in 7 categories)
 
 #### Order Flow
 - Cumulative Volume Delta (CVD)
@@ -287,7 +287,7 @@ Browser (React 18 + Vite 8)
   |-- Category: Export               (3 panels)
   |-- Category: Config               (2 panels)
   |-- Advanced Math Models           (75+ panels, V1-V15)
-  +-- Total: 204 registered panels, 227 component files
+  +-- Total: 278 registered panels, 289 component files
 ```
 
 ## Configuration
@@ -323,7 +323,7 @@ All variables are optional — defaults use localhost. For Docker, ports are map
 
 | Optimization | Implementation |
 |-------------|----------------|
-| React.lazy code splitting | All 204 panels lazy-loaded with `React.lazy()` + Suspense fallbacks |
+| React.lazy code splitting | All 278 panels lazy-loaded with `React.lazy()` + Suspense fallbacks |
 | ChunkRetryBoundary | Automatic retry on chunk load failure (3 retries with exponential backoff) |
 | Preload-on-hover | Hovering a category preloads all panels in that category |
 | List Virtualization | `VirtualList.jsx` — generic windowed list renderer with overscan, applied to FillsPanel and SignalFeed |
@@ -479,7 +479,7 @@ CI/CD runs JS lint + test as a dedicated job in GitHub Actions.
 
 ## Panel Registry System
 
-All sidebar panels are registered in `src/panels/registry.js` (204 panels, 227 component imports) and rendered by `PanelContainer.jsx` with ErrorBoundary + Suspense per panel.
+All sidebar panels are registered in `src/panels/registry.js` (278 panels, 271 component imports) and rendered by `PanelContainer.jsx` with ErrorBoundary + Suspense per panel.
 
 ### Key Infrastructure Components
 

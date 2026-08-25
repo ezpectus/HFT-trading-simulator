@@ -29,7 +29,7 @@ Educational high-frequency trading simulator. C++20 signal engine, Python quant 
        ▼              ▼              ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                    WEB UI (React 18)                             │
-│  204 panels · PWA · WCAG AA · WebSocket :3000                    │
+│  278 panels · PWA · WCAG AA · WebSocket :3000                    │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -120,7 +120,7 @@ Open **http://localhost:3000**.
 - FFI interface for C++ interop
 
 ### Web UI (React 18)
-- 204 panels with React.lazy code splitting
+- 278 panels with React.lazy code splitting
 - Dark/light/auto theme, PWA, WCAG AA accessibility
 - Backtest comparison, session replay, strategy competition
 - Real-time WebSocket data, mock mode for standalone demo
