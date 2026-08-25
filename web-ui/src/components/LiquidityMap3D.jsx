@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Box, Layers, Eye } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_LIQUIDITY = [
   { priceLevel: 43900, bidVol: 12.5, askVol: 8.2, depth: 20.7, imbalance: 0.60 },
@@ -49,24 +50,10 @@ const LiquidityMap3D = memo(function LiquidityMap3D({ currentPrice }) {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Bid Depth</div>
-          <span className="text-sm font-mono text-accent-green">{stats.totalBid.toFixed(1)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Ask Depth</div>
-          <span className="text-sm font-mono text-accent-red">{stats.totalAsk.toFixed(1)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Imbalance</div>
-          <span className={`text-sm font-mono ${imbalanceColor(stats.overallImb)}`}>
-            {(stats.overallImb * 100).toFixed(0)}%
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Max Depth</div>
-          <span className="text-sm font-mono text-accent-purple">{stats.maxDepth.toFixed(1)}</span>
-        </div>
+        <StatCard label="Bid Depth" value={stats.totalBid.toFixed(1)} color="text-accent-green" compact />
+        <StatCard label="Ask Depth" value={stats.totalAsk.toFixed(1)} color="text-accent-red" compact />
+        <StatCard label="Imbalance" value={`${(stats.overallImb * 100).toFixed(0)}%`} color={imbalanceColor(stats.overallImb)} compact />
+        <StatCard label="Max Depth" value={stats.maxDepth.toFixed(1)} color="text-accent-purple" compact />
       </div>
 
       {/* 3D-style depth visualization */}

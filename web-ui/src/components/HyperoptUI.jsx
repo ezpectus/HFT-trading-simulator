@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { Sliders, Play, CheckCircle, TrendingUp, Clock } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_TRIALS = [
   { id: 1, params: 'lr=0.01, bs=64, layers=3', score: 0.82, sharpe: 1.85, status: 'completed' },
@@ -56,22 +57,10 @@ const HyperoptUI = memo(function HyperoptUI() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Trials</div>
-          <span className="text-sm font-mono text-gray-300">{stats.completed}/{stats.total}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Best Score</div>
-          <span className="text-sm font-mono text-accent-green">{stats.best.score.toFixed(2)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Score</div>
-          <span className="text-sm font-mono text-gray-300">{stats.avgScore.toFixed(2)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Best Sharpe</div>
-          <span className="text-sm font-mono text-accent-blue">{stats.best.sharpe.toFixed(2)}</span>
-        </div>
+        <StatCard label="Trials" value={`${stats.completed}/${stats.total}`} color="text-gray-300" compact />
+        <StatCard label="Best Score" value={stats.best.score.toFixed(2)} color="text-accent-green" compact />
+        <StatCard label="Avg Score" value={stats.avgScore.toFixed(2)} color="text-gray-300" compact />
+        <StatCard label="Best Sharpe" value={stats.best.sharpe.toFixed(2)} color="text-accent-blue" compact />
       </div>
 
       {/* Best trial */}

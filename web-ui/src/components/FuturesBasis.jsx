@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Calendar, DollarSign } from 'lucide-react'
 import { formatPrice } from '../utils/format'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_BASIS = [
   { expiry: '1W', days: 7, spot: 44100, futures: 44250, basis: 150, basisPct: 0.34, funding: 0.012, apr: 17.8 },
@@ -50,20 +51,9 @@ const FuturesBasis = memo(function FuturesBasis({ currentPrice }) {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Best APR</div>
-          <span className="text-sm font-mono text-accent-green">{stats.bestAPR.toFixed(1)}%</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Max Basis</div>
-          <span className="text-sm font-mono text-accent-yellow">{stats.bestBasis.basisPct.toFixed(2)}%</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Structure</div>
-          <span className={`text-sm font-mono ${stats.contango ? 'text-accent-green' : 'text-accent-red'}`}>
-            {stats.contango ? 'Contango' : 'Backwardation'}
-          </span>
-        </div>
+        <StatCard label="Best APR" value={`${stats.bestAPR.toFixed(1)}%`} color="text-accent-green" />
+        <StatCard label="Max Basis" value={`${stats.bestBasis.basisPct.toFixed(2)}%`} color="text-accent-yellow" />
+        <StatCard label="Structure" value={stats.contango ? 'Contango' : 'Backwardation'} color={stats.contango ? 'text-accent-green' : 'text-accent-red'} />
       </div>
 
       {/* Basis table */}

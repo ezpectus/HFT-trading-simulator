@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { FlaskConical, Sliders, TrendingUp, PieChart } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_ASSETS = [
   { symbol: 'BTC', return: 12.5, vol: 45.2, weight: 35, optimal: 28 },
@@ -60,22 +61,10 @@ const PortfolioOptLab = memo(function PortfolioOptLab() {
 
       {/* Selected method stats */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Sharpe</div>
-          <span className="text-sm font-mono text-accent-green">{selectedMethod.sharpe.toFixed(2)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Return</div>
-          <span className="text-sm font-mono text-accent-blue">{selectedMethod.return.toFixed(1)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Volatility</div>
-          <span className="text-sm font-mono text-accent-yellow">{selectedMethod.vol.toFixed(1)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Max DD</div>
-          <span className="text-sm font-mono text-accent-red">{selectedMethod.maxDD.toFixed(1)}%</span>
-        </div>
+        <StatCard label="Sharpe" value={selectedMethod.sharpe.toFixed(2)} color="text-accent-green" compact />
+        <StatCard label="Return" value={`${selectedMethod.return.toFixed(1)}%`} color="text-accent-blue" compact />
+        <StatCard label="Volatility" value={`${selectedMethod.vol.toFixed(1)}%`} color="text-accent-yellow" compact />
+        <StatCard label="Max DD" value={`${selectedMethod.maxDD.toFixed(1)}%`} color="text-accent-red" compact />
       </div>
 
       {/* Efficient frontier */}

@@ -1,6 +1,7 @@
 import { memo, useMemo, useState } from 'react'
 import { Layers, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
 import { formatPrice } from '../utils/format'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_CALLS = [
   { strike: 38000, iv: 45, delta: 0.12, gamma: 0.0001, theta: -8.5, volume: 1250, oi: 5420, bid: 120, ask: 125 },
@@ -55,22 +56,10 @@ const OptionsChain = memo(function OptionsChain({ currentPrice }) {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">PCR</div>
-          <span className="text-[11px] font-mono text-accent-yellow">{stats.pcr}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg IV</div>
-          <span className="text-[11px] font-mono text-gray-300">{stats.avgIV.toFixed(0)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Call Vol</div>
-          <span className="text-[11px] font-mono text-accent-green">{stats.totalCallVol.toLocaleString()}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Put Vol</div>
-          <span className="text-[11px] font-mono text-accent-red">{stats.totalPutVol.toLocaleString()}</span>
-        </div>
+        <StatCard label="PCR" value={stats.pcr} color="text-accent-yellow" size="xs" compact />
+        <StatCard label="Avg IV" value={`${stats.avgIV.toFixed(0)}%`} color="text-gray-300" size="xs" compact />
+        <StatCard label="Call Vol" value={stats.totalCallVol.toLocaleString()} color="text-accent-green" size="xs" compact />
+        <StatCard label="Put Vol" value={stats.totalPutVol.toLocaleString()} color="text-accent-red" size="xs" compact />
       </div>
 
       {/* Chain table */}

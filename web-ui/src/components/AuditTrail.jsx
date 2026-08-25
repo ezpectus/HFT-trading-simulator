@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { History, User, Edit, Trash2, Plus, Settings, DollarSign, Shield } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_AUDIT_ENTRIES = [
   { id: 1, ts: '2024-08-25 12:45', user: 'admin', action: 'CONFIG_UPDATE', resource: 'risk.max_position_size', oldValue: '0.10', newValue: '0.08', icon: 'settings' },
@@ -63,18 +64,9 @@ const AuditTrail = memo(function AuditTrail() {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Config Changes</div>
-          <span className="text-sm font-mono text-accent-yellow">{stats.configChanges}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Orders</div>
-          <span className="text-sm font-mono text-accent-green">{stats.orders}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Circuit Breaks</div>
-          <span className="text-sm font-mono text-accent-red">{stats.circuitBreaks}</span>
-        </div>
+        <StatCard label="Config Changes" value={stats.configChanges} color="text-accent-yellow" compact />
+        <StatCard label="Orders" value={stats.orders} color="text-accent-green" compact />
+        <StatCard label="Circuit Breaks" value={stats.circuitBreaks} color="text-accent-red" compact />
       </div>
 
       {/* User filter */}

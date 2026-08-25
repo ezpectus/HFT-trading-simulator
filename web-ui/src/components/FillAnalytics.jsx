@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
-import { ICONS, statusColor } from '../utils/ui-helpers'
+import { ICONS, statusColor, StatCard } from '../utils/ui-helpers'
 
 const MOCK_FILLS = [
   { id: 1, orderId: 'ord_8a3f', symbol: 'BTC/USDT', side: 'BUY', reqQty: 0.5, fillQty: 0.5, reqPrice: 44100, fillPrice: 44102, partialFill: false, latency: 45, venue: 'Binance', status: 'filled' },
@@ -48,22 +48,10 @@ const FillAnalytics = memo(function FillAnalytics() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Fill Rate</div>
-          <span className="text-sm font-mono text-accent-green">{stats.fillRate.toFixed(0)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Partial</div>
-          <span className="text-sm font-mono text-accent-yellow">{stats.partialRate.toFixed(0)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Latency</div>
-          <span className="text-sm font-mono text-gray-300">{stats.avgLatency.toFixed(0)}ms</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Rejected</div>
-          <span className="text-sm font-mono text-accent-red">{stats.rejected}</span>
-        </div>
+        <StatCard label="Fill Rate" value={`${stats.fillRate.toFixed(0)}%`} color="text-accent-green" />
+        <StatCard label="Partial" value={`${stats.partialRate.toFixed(0)}%`} color="text-accent-yellow" />
+        <StatCard label="Avg Latency" value={`${stats.avgLatency.toFixed(0)}ms`} color="text-gray-300" />
+        <StatCard label="Rejected" value={stats.rejected} color="text-accent-red" />
       </div>
 
       {/* Fill quality distribution */}

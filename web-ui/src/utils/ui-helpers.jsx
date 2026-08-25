@@ -39,15 +39,18 @@ export const ICONS = {
   spinning: (size = 10) => <RefreshCw size={size} className="text-accent-blue animate-spin" />,
 }
 
-export function StatCard({ label, value, color = 'text-gray-300', icon: Icon, size = 'sm' }) {
+export function StatCard({ label, value, color = 'text-gray-300', icon: Icon, size = 'sm', compact = false, rounded = false, bold = false }) {
   const valueSize = size === 'lg' ? 'text-sm' : size === 'xs' ? 'text-[11px]' : 'text-sm'
+  const padding = compact ? 'p-1.5' : 'p-2'
+  const rounding = rounded ? ' rounded' : ''
+  const fontWeight = bold ? ' font-bold' : ''
   return (
-    <div className="p-2 bg-bg-700 border border-bg-600">
+    <div className={`${padding} bg-bg-700 border border-bg-600${rounding}`}>
       <div className="flex items-center gap-1 mb-0.5">
         {Icon && <Icon size={10} className="text-gray-600" />}
         <span className="text-[9px] text-gray-600">{label}</span>
       </div>
-      <span className={`${valueSize} font-mono font-bold ${color}`}>{value}</span>
+      <span className={`${valueSize} font-mono${fontWeight} ${color}`}>{value}</span>
     </div>
   )
 }

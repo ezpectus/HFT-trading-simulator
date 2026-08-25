@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Grid3x3, TrendingUp, TrendingDown } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const ASSETS = ['BTC', 'ETH', 'SOL', 'AVAX', 'LINK', 'DOT', 'MATIC', 'ATOM']
 
@@ -63,22 +64,10 @@ const CrossAssetMatrix = memo(function CrossAssetMatrix() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">High Corr</div>
-          <span className="text-sm font-mono text-accent-red">{stats.highCorr}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Low Corr</div>
-          <span className="text-sm font-mono text-accent-green">{stats.lowCorr}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Return</div>
-          <span className="text-sm font-mono text-accent-green">{stats.avgReturn.toFixed(1)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Best</div>
-          <span className="text-[10px] font-mono text-accent-green truncate">{stats.bestAsset.asset}</span>
-        </div>
+        <StatCard label="High Corr" value={stats.highCorr} color="text-accent-red" compact />
+        <StatCard label="Low Corr" value={stats.lowCorr} color="text-accent-green" compact />
+        <StatCard label="Avg Return" value={`${stats.avgReturn.toFixed(1)}%`} color="text-accent-green" compact />
+        <StatCard label="Best" value={stats.bestAsset.asset} color="text-accent-green" size="xs" compact />
       </div>
 
       {/* Correlation matrix */}

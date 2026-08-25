@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { TrendingUp, TrendingDown, AlertTriangle, Boxes } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
-import { pnlColor, sideColor } from '../utils/ui-helpers'
+import { pnlColor, sideColor, StatCard } from '../utils/ui-helpers'
 
 const MOCK_INVENTORY = [
   { symbol: 'BTC/USDT', side: 'LONG', qty: 0.5, avgPrice: 43250, currentPrice: 44100, pnl: 425, pnlPct: 1.96, weight: 35.2 },
@@ -46,32 +46,10 @@ const Inventory = memo(function Inventory() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Total PnL</div>
-          <span className={`text-[11px] font-mono font-bold ${pnlColor(portfolio.totalPnl)}`}>
-            ${portfolio.totalPnl >= 0 ? '+' : ''}{portfolio.totalPnl.toFixed(0)}
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Gross Exp</div>
-          <span className="text-[11px] font-mono text-gray-300">
-            ${formatVolume(portfolio.grossExposure)}
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Net Exp</div>
-          <span className={`text-[11px] font-mono ${pnlColor(portfolio.netExposure)}`}>
-            ${formatVolume(portfolio.netExposure)}
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Win/Loss</div>
-          <span className="text-[11px] font-mono">
-            <span className="text-accent-green">{portfolio.winners}</span>
-            <span className="text-gray-600">/</span>
-            <span className="text-accent-red">{portfolio.losers}</span>
-          </span>
-        </div>
+        <StatCard label="Total PnL" value={`$${portfolio.totalPnl >= 0 ? '+' : ''}${portfolio.totalPnl.toFixed(0)}`} color={pnlColor(portfolio.totalPnl)} size="xs" compact bold />
+        <StatCard label="Gross Exp" value={`$${formatVolume(portfolio.grossExposure)}`} color="text-gray-300" size="xs" compact />
+        <StatCard label="Net Exp" value={`$${formatVolume(portfolio.netExposure)}`} color={pnlColor(portfolio.netExposure)} size="xs" compact />
+        <StatCard label="Win/Loss" value={`${portfolio.winners}/${portfolio.losers}`} color="text-gray-300" size="xs" compact />
       </div>
 
       {/* Long/Short bar */}

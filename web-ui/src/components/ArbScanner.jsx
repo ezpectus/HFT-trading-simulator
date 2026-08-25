@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Search, Zap, TrendingUp, AlertTriangle } from 'lucide-react'
-import { statusColor, statusBg } from '../utils/ui-helpers'
+import { statusColor, statusBg, StatCard } from '../utils/ui-helpers'
 
 const MOCK_OPPORTUNITIES = [
   { id: 1, type: 'Triangular', path: 'BTC → ETH → USDT → BTC', profit: 0.85, capital: 10000, estProfit: 85, latency: 120, confidence: 0.92, status: 'active' },
@@ -43,22 +43,10 @@ const ArbScanner = memo(function ArbScanner() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Active</div>
-          <span className="text-sm font-mono text-accent-green">{stats.active}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Est Profit</div>
-          <span className="text-sm font-mono text-accent-green">${stats.totalEstProfit}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Spread</div>
-          <span className="text-sm font-mono text-gray-300">{stats.avgProfit.toFixed(2)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Best</div>
-          <span className="text-sm font-mono text-accent-yellow">{stats.best.profit.toFixed(2)}%</span>
-        </div>
+        <StatCard label="Active" value={stats.active} color="text-accent-green" />
+        <StatCard label="Est Profit" value={`$${stats.totalEstProfit}`} color="text-accent-green" />
+        <StatCard label="Avg Spread" value={`${stats.avgProfit.toFixed(2)}%`} color="text-gray-300" />
+        <StatCard label="Best" value={`${stats.best.profit.toFixed(2)}%`} color="text-accent-yellow" />
       </div>
 
       {/* Opportunities */}

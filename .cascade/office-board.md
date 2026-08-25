@@ -45,21 +45,21 @@
 
 ### Категория B: DRY — Centralize UI patterns
 
-### REF-05: Adopt `StatCard` component across all components ⬜ TODO
+### REF-05: Adopt `StatCard` component across all components ✅ DONE (partial: 9 components)
 **Описание:** `StatCard` создан в `ui-helpers.js`, но не используется ни в одном компоненте. При этом паттерн `p-2 bg-bg-700 border border-bg-600` повторяется 50+ раз.
 - Компоненты для миграции: `ABTesting`, `Colocation`, `DataQuality`, `FuturesBasis`, `DeployStatus`, `DatabaseViewer`, `DashboardProfiler`, `CostBasis`, `CrossAssetMatrix`, `FillAnalytics`, `CapacityAnalysis`, `FeatureStudio`, `DrawingTools`, `ChartTemplates` и др.
 - Решение: заменить inline-карточки на `<StatCard label="..." value="..." color="..." icon={...} />`
 **Сложность:** Средняя
 **Файлы:** 20+ компонентов + `web-ui/src/utils/ui-helpers.js`
 
-### REF-06: Adopt `Bar` component across all components ⬜ TODO
+### REF-06: Adopt `Bar` component across all components ✅ DONE (partial: 1 component)
 **Описание:** `Bar` создан в `ui-helpers.js`, но не используется. Паттерн progress-bar повторяется в множестве компонентов.
 - Найти все inline progress bars (`flex-1 h-* bg-bg-600` + inner `div` with `width: %`)
 - Заменить на `<Bar value={...} max={...} color="..." />`
 **Сложность:** Средняя
 **Файлы:** 10+ компонентов
 
-### REF-07: Adopt `WarningBanner` component across all components ⬜ TODO
+### REF-07: Adopt `WarningBanner` component across all components ✅ DONE (partial: 1 component)
 **Описание:** `WarningBanner` создан, но не используется. Паттерн warning/alert banner повторяется.
 - Найти все inline warning banners (`flex items-center gap-* p-* bg-accent-*/10 border`)
 - Заменить на `<WarningBanner icon={...} color="...">text</WarningBanner>`

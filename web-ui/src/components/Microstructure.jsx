@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Activity, BarChart3, Waves, Gauge } from 'lucide-react'
 import { formatVolume } from '../utils/format'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_SPREADS = [
   { time: '12:40', bid: 44098, ask: 44102, spread: 4, depth: 12500 },
@@ -61,24 +62,10 @@ const Microstructure = memo(function Microstructure({ symbol }) {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Spread</div>
-          <span className={`text-[11px] font-mono ${spreadColor(stats.avgSpread)}`}>{stats.avgSpread.toFixed(1)}bps</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Depth</div>
-          <span className="text-[11px] font-mono text-accent-blue">{formatVolume(stats.avgDepth)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Buy Press</div>
-          <span className={`text-[11px] font-mono ${stats.buyPressure > 55 ? 'text-accent-green' : stats.buyPressure < 45 ? 'text-accent-red' : 'text-gray-300'}`}>
-            {stats.buyPressure.toFixed(1)}%
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Imbalance</div>
-          <span className="text-[11px] font-mono text-accent-yellow">{(stats.l10Imbalance * 100).toFixed(1)}%</span>
-        </div>
+        <StatCard label="Avg Spread" value={`${stats.avgSpread.toFixed(1)}bps`} color={spreadColor(stats.avgSpread)} size="xs" compact />
+        <StatCard label="Depth" value={formatVolume(stats.avgDepth)} color="text-accent-blue" size="xs" compact />
+        <StatCard label="Buy Press" value={`${stats.buyPressure.toFixed(1)}%`} color={stats.buyPressure > 55 ? 'text-accent-green' : stats.buyPressure < 45 ? 'text-accent-red' : 'text-gray-300'} size="xs" compact />
+        <StatCard label="Imbalance" value={`${(stats.l10Imbalance * 100).toFixed(1)}%`} color="text-accent-yellow" size="xs" compact />
       </div>
 
       {/* Spread trend */}

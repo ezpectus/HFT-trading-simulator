@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { GitCompare, TrendingUp, TrendingDown, Zap, AlertTriangle } from 'lucide-react'
-import { statusColor, statusBg } from '../utils/ui-helpers'
+import { statusColor, statusBg, StatCard } from '../utils/ui-helpers'
 
 const MOCK_PAIRS = [
   { id: 1, pairA: 'BTC/USDT', pairB: 'ETH/USDT', corr: 0.85, spread: 1.2, zScore: 2.1, status: 'open', pnl: 245 },
@@ -50,24 +50,10 @@ const PairsArb = memo(function PairsArb() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Open</div>
-          <span className="text-sm font-mono text-accent-green">{stats.openCount}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Signals</div>
-          <span className="text-sm font-mono text-accent-yellow">{stats.signalCount}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Open PnL</div>
-          <span className={`text-sm font-mono ${stats.totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
-            {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl}
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Corr</div>
-          <span className="text-sm font-mono text-gray-300">{stats.avgCorr.toFixed(2)}</span>
-        </div>
+        <StatCard label="Open" value={stats.openCount} color="text-accent-green" />
+        <StatCard label="Signals" value={stats.signalCount} color="text-accent-yellow" />
+        <StatCard label="Open PnL" value={`${stats.totalPnl >= 0 ? '+' : ''}${stats.totalPnl}`} color={stats.totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red'} />
+        <StatCard label="Avg Corr" value={stats.avgCorr.toFixed(2)} color="text-gray-300" />
       </div>
 
       {/* Pairs table */}

@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { Dna, Trophy, Users, TrendingUp } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_GENERATIONS = [
   { gen: 1, best: 0.45, avg: 0.28, worst: 0.12, diversity: 0.85, population: 50 },
@@ -53,24 +54,10 @@ const GeneticViewer = memo(function GeneticViewer() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Best Fitness</div>
-          <span className="text-sm font-mono text-accent-green">{stats.currentGen.best.toFixed(2)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Fitness</div>
-          <span className="text-sm font-mono text-gray-300">{stats.currentGen.avg.toFixed(2)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Diversity</div>
-          <span className={`text-sm font-mono ${stats.currentGen.diversity > 0.4 ? 'text-accent-green' : 'text-accent-yellow'}`}>
-            {(stats.currentGen.diversity * 100).toFixed(0)}%
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Improvement</div>
-          <span className="text-sm font-mono text-accent-blue">+{stats.improvement.toFixed(0)}%</span>
-        </div>
+        <StatCard label="Best Fitness" value={stats.currentGen.best.toFixed(2)} color="text-accent-green" compact />
+        <StatCard label="Avg Fitness" value={stats.currentGen.avg.toFixed(2)} color="text-gray-300" compact />
+        <StatCard label="Diversity" value={`${(stats.currentGen.diversity * 100).toFixed(0)}%`} color={stats.currentGen.diversity > 0.4 ? 'text-accent-green' : 'text-accent-yellow'} compact />
+        <StatCard label="Improvement" value={`+${stats.improvement.toFixed(0)}%`} color="text-accent-blue" compact />
       </div>
 
       {/* Fitness evolution chart */}

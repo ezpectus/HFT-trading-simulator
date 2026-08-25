@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { Users, MessageSquare, Share2, UserCircle } from 'lucide-react'
-import { statusColor } from '../utils/ui-helpers'
+import { statusColor, StatCard } from '../utils/ui-helpers'
 
 const MOCK_TEAM = [
   { id: 1, name: 'Alice', role: 'Admin', status: 'online', action: 'Reviewing BTC/USDT signals' },
@@ -76,6 +76,13 @@ const TeamCollab = memo(function TeamCollab({ addToast }) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-3 gap-1">
+        <StatCard label="Online" value={onlineCount} color="text-accent-green" />
+        <StatCard label="Messages" value={messages.length} color="text-gray-300" />
+        <StatCard label="Shared" value={MOCK_SHARED.length} color="text-accent-blue" />
       </div>
 
       {/* Chat */}

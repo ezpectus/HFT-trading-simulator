@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Server, Wifi, Clock, MapPin } from 'lucide-react'
-import { ICONS, statusColor } from '../utils/ui-helpers'
+import { ICONS, statusColor, StatCard } from '../utils/ui-helpers'
 
 const MOCK_DATACENTERS = [
   { id: 'dc-tokyo', name: 'Tokyo (TY3)', region: 'APAC', latency: 0.3, status: 'online', uptime: 99.98, colo: true },
@@ -53,18 +53,9 @@ const Colocation = memo(function Colocation() {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Latency</div>
-          <span className="text-sm font-mono text-accent-green">{stats.avgLatency.toFixed(1)}ms</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Colo Sites</div>
-          <span className="text-sm font-mono text-accent-blue">{stats.coloCount}</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Connections</div>
-          <span className="text-sm font-mono text-gray-300">{stats.totalConns}</span>
-        </div>
+        <StatCard label="Avg Latency" value={`${stats.avgLatency.toFixed(1)}ms`} color="text-accent-green" />
+        <StatCard label="Colo Sites" value={stats.coloCount} color="text-accent-blue" />
+        <StatCard label="Connections" value={stats.totalConns} color="text-gray-300" />
       </div>
 
       {/* Datacenters */}

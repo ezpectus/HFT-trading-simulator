@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Calculator, TrendingUp, TrendingDown, BookOpen } from 'lucide-react'
 import { formatPrice } from '../utils/format'
-import { pnlColor } from '../utils/ui-helpers'
+import { pnlColor, StatCard } from '../utils/ui-helpers'
 
 const MOCK_POSITIONS = [
   { symbol: 'BTC/USDT', qty: 0.85, avgCost: 42150, currentPrice: 44100, unrealized: 1657.5, realized: 320, lots: [{ qty: 0.5, price: 41800, date: '2024-08-20' }, { qty: 0.35, price: 42650, date: '2024-08-22' }] },
@@ -34,30 +34,10 @@ const CostBasis = memo(function CostBasis() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Unrealized</div>
-          <span className={`text-sm font-mono ${pnlColor(stats.totalUnrealized)}`}>
-            {stats.totalUnrealized >= 0 ? '+' : ''}${stats.totalUnrealized.toFixed(0)}
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Realized</div>
-          <span className={`text-sm font-mono ${pnlColor(stats.totalRealized)}`}>
-            {stats.totalRealized >= 0 ? '+' : ''}${stats.totalRealized.toFixed(0)}
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Total PnL</div>
-          <span className={`text-sm font-mono ${pnlColor(stats.totalPnl)}`}>
-            {stats.totalPnl >= 0 ? '+' : ''}${stats.totalPnl.toFixed(0)}
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">ROI</div>
-          <span className={`text-sm font-mono ${pnlColor(stats.roi)}`}>
-            {stats.roi >= 0 ? '+' : ''}{stats.roi.toFixed(1)}%
-          </span>
-        </div>
+        <StatCard label="Unrealized" value={`${stats.totalUnrealized >= 0 ? '+' : ''}$${stats.totalUnrealized.toFixed(0)}`} color={pnlColor(stats.totalUnrealized)} compact />
+        <StatCard label="Realized" value={`${stats.totalRealized >= 0 ? '+' : ''}$${stats.totalRealized.toFixed(0)}`} color={pnlColor(stats.totalRealized)} compact />
+        <StatCard label="Total PnL" value={`${stats.totalPnl >= 0 ? '+' : ''}$${stats.totalPnl.toFixed(0)}`} color={pnlColor(stats.totalPnl)} compact />
+        <StatCard label="ROI" value={`${stats.roi >= 0 ? '+' : ''}${stats.roi.toFixed(1)}%`} color={pnlColor(stats.roi)} compact />
       </div>
 
       {/* Positions table */}

@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { Network, ArrowDown, ArrowUp, Filter, AlertTriangle } from 'lucide-react'
-import { statusColor } from '../utils/ui-helpers'
+import { statusColor, StatCard } from '../utils/ui-helpers'
 
 const MOCK_PACKETS = [
   { id: 1, ts: '12:45:32.100', dir: 'IN', proto: 'WS', size: 342, src: 'ws.binance.com:443', type: 'trade', status: 'ok' },
@@ -68,22 +68,10 @@ const PacketInspector = memo(function PacketInspector() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">In</div>
-          <span className="text-[11px] font-mono text-accent-green">{(stats.inBytes / 1024).toFixed(1)}KB</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Out</div>
-          <span className="text-[11px] font-mono text-accent-blue">{(stats.outBytes / 1024).toFixed(1)}KB</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">WS Pkts</div>
-          <span className="text-[11px] font-mono text-gray-300">{stats.wsCount}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Errors</div>
-          <span className="text-[11px] font-mono text-accent-red">{stats.errors}</span>
-        </div>
+        <StatCard label="In" value={`${(stats.inBytes / 1024).toFixed(1)}KB`} color="text-accent-green" size="xs" />
+        <StatCard label="Out" value={`${(stats.outBytes / 1024).toFixed(1)}KB`} color="text-accent-blue" size="xs" />
+        <StatCard label="WS Pkts" value={stats.wsCount} color="text-gray-300" size="xs" />
+        <StatCard label="Errors" value={stats.errors} color="text-accent-red" size="xs" />
       </div>
 
       {/* Filter */}

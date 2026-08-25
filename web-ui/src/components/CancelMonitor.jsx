@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { XCircle, Filter, AlertTriangle, Clock } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_CANCELS = [
   { id: 1, orderId: 'ord_8a3f', symbol: 'BTC/USDT', side: 'BUY', reason: 'Price moved', latency: 3200, ts: '12:45:32', source: 'user' },
@@ -52,22 +53,10 @@ const CancelMonitor = memo(function CancelMonitor() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Total</div>
-          <span className="text-sm font-mono text-accent-red">{stats.totalCancels}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">User</div>
-          <span className="text-sm font-mono text-gray-300">{stats.userCancels}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">System</div>
-          <span className="text-sm font-mono text-accent-yellow">{stats.systemCancels}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Risk</div>
-          <span className="text-sm font-mono text-accent-orange">{stats.riskCancels}</span>
-        </div>
+        <StatCard label="Total" value={stats.totalCancels} color="text-accent-red" compact />
+        <StatCard label="User" value={stats.userCancels} color="text-gray-300" compact />
+        <StatCard label="System" value={stats.systemCancels} color="text-accent-yellow" compact />
+        <StatCard label="Risk" value={stats.riskCancels} color="text-accent-orange" compact />
       </div>
 
       {/* Cancel reasons breakdown */}

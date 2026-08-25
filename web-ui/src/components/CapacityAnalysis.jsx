@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Gauge, TrendingUp, AlertTriangle, Maximize2 } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { statusColor, statusBg } from '../utils/ui-helpers'
+import { statusColor, statusBg, StatCard, Bar } from '../utils/ui-helpers'
 
 const MOCK_STRATEGIES = [
   { name: 'TrendFollowing', currentAUM: 500000, maxCapacity: 5000000, utilization: 10, alphaDecay: 0.5, status: 'scalable' },
@@ -57,22 +57,10 @@ const CapacityAnalysis = memo(function CapacityAnalysis() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Total AUM</div>
-          <span className="text-[11px] font-mono text-gray-300">${formatVolume(stats.totalAUM)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Max Cap</div>
-          <span className="text-[11px] font-mono text-gray-300">${formatVolume(stats.totalMax)}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Scalable</div>
-          <span className="text-[11px] font-mono text-accent-green">{stats.scalable}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Constrained</div>
-          <span className="text-[11px] font-mono text-accent-red">{stats.constrained}</span>
-        </div>
+        <StatCard label="Total AUM" value={`$${formatVolume(stats.totalAUM)}`} color="text-gray-300" size="xs" />
+        <StatCard label="Max Cap" value={`$${formatVolume(stats.totalMax)}`} color="text-gray-300" size="xs" />
+        <StatCard label="Scalable" value={stats.scalable} color="text-accent-green" size="xs" />
+        <StatCard label="Constrained" value={stats.constrained} color="text-accent-red" size="xs" />
       </div>
 
       {/* Strategy capacity table */}
@@ -91,12 +79,7 @@ const CapacityAnalysis = memo(function CapacityAnalysis() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 bg-bg-600 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${s.utilization < 50 ? 'bg-accent-green' : s.utilization < 75 ? 'bg-accent-yellow' : 'bg-accent-red'}`}
-                    style={{ width: `${s.utilization}%` }}
-                  />
-                </div>
+                <Bar value={s.utilization} max={100} color={s.utilization < 50 ? 'bg-accent-green' : s.utilization < 75 ? 'bg-accent-yellow' : 'bg-accent-red'} />
                 <span className="text-[9px] text-gray-500 font-mono">
                   ${formatVolume(s.currentAUM)} / ${formatVolume(s.maxCapacity)}
                 </span>

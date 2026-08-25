@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { FlaskConical, CheckCircle, TrendingUp, Users } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_EXPERIMENTS = [
   {
@@ -91,18 +92,9 @@ const ABTesting = memo(function ABTesting() {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Experiments</div>
-          <span className="text-sm font-mono text-gray-300">{stats.total}</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Completed</div>
-          <span className="text-sm font-mono text-accent-green">{stats.completed}</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Total Trades</div>
-          <span className="text-sm font-mono text-accent-blue">{stats.totalTrades}</span>
-        </div>
+        <StatCard label="Experiments" value={stats.total} color="text-gray-300" />
+        <StatCard label="Completed" value={stats.completed} color="text-accent-green" />
+        <StatCard label="Total Trades" value={stats.totalTrades} color="text-accent-blue" />
       </div>
 
       {/* Experiments */}

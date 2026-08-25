@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { ShieldCheck, Database, Activity } from 'lucide-react'
 import { formatVolume } from '../utils/format'
-import { ICONS, statusColor } from '../utils/ui-helpers'
+import { ICONS, statusColor, StatCard } from '../utils/ui-helpers'
 
 const MOCK_CHECKS = [
   { id: 'candles-fresh', name: 'Candle Freshness', status: 'pass', detail: 'Last candle 2s ago', threshold: '< 10s' },
@@ -64,18 +64,9 @@ const DataQuality = memo(function DataQuality() {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-1">
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Passed</div>
-          <span className="text-sm font-mono text-accent-green">{stats.passed}</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Warnings</div>
-          <span className="text-sm font-mono text-accent-yellow">{stats.warned}</span>
-        </div>
-        <div className="p-2 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Failed</div>
-          <span className="text-sm font-mono text-accent-red">{stats.failed}</span>
-        </div>
+        <StatCard label="Passed" value={stats.passed} color="text-accent-green" />
+        <StatCard label="Warnings" value={stats.warned} color="text-accent-yellow" />
+        <StatCard label="Failed" value={stats.failed} color="text-accent-red" />
       </div>
 
       {/* Health checks */}

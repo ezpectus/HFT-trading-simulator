@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Target, TrendingUp, TrendingDown, Crosshair } from 'lucide-react'
-import { pnlColor, sideColor } from '../utils/ui-helpers'
+import { pnlColor, sideColor, StatCard } from '../utils/ui-helpers'
 
 const MOCK_SIGNALS = [
   { id: 1, strategy: 'TrendFollowing', symbol: 'BTC/USDT', direction: 'LONG', confidence: 0.82, entryPrice: 43800, currentPrice: 44100, pnl: 0.68, status: 'open', timestamp: '12:30' },
@@ -53,26 +53,10 @@ const SignalTracker = memo(function SignalTracker() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Win Rate</div>
-          <span className={`text-sm font-mono ${stats.winRate >= 60 ? 'text-accent-green' : 'text-accent-yellow'}`}>
-            {stats.winRate.toFixed(0)}%
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg PnL</div>
-          <span className={`text-sm font-mono ${pnlColor(stats.avgPnl)}`}>
-            {stats.avgPnl >= 0 ? '+' : ''}{stats.avgPnl.toFixed(2)}%
-          </span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Conf</div>
-          <span className="text-sm font-mono text-gray-300">{(stats.avgConf * 100).toFixed(0)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Signals</div>
-          <span className="text-sm font-mono text-gray-300">{MOCK_SIGNALS.length}</span>
-        </div>
+        <StatCard label="Win Rate" value={`${stats.winRate.toFixed(0)}%`} color={stats.winRate >= 60 ? 'text-accent-green' : 'text-accent-yellow'} />
+        <StatCard label="Avg PnL" value={`${stats.avgPnl >= 0 ? '+' : ''}${stats.avgPnl.toFixed(2)}%`} color={pnlColor(stats.avgPnl)} />
+        <StatCard label="Avg Conf" value={`${(stats.avgConf * 100).toFixed(0)}%`} color="text-gray-300" />
+        <StatCard label="Signals" value={MOCK_SIGNALS.length} color="text-gray-300" />
       </div>
 
       {/* By strategy */}

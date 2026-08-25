@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { CloudLightning, AlertTriangle, TrendingDown, Shield } from 'lucide-react'
+import { StatCard } from '../utils/ui-helpers'
 
 const MOCK_SCENARIOS = [
   { id: 1, name: '2008 Financial Crisis', crashPct: -38.6, duration: 540, recoveryDays: 1200, portfolioImpact: -28.5, var95: -18.2, status: 'tested' },
@@ -45,22 +46,10 @@ const BlackSwanTester = memo(function BlackSwanTester() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Worst Impact</div>
-          <span className="text-sm font-mono text-accent-red">{stats.worstImpact.toFixed(1)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Impact</div>
-          <span className="text-sm font-mono text-accent-orange">{stats.avgImpact.toFixed(1)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Max VaR95</div>
-          <span className="text-sm font-mono text-accent-red">{stats.maxVar.toFixed(1)}%</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Survival</div>
-          <span className="text-sm font-mono text-accent-green">PASS</span>
-        </div>
+        <StatCard label="Worst Impact" value={`${stats.worstImpact.toFixed(1)}%`} color="text-accent-red" compact />
+        <StatCard label="Avg Impact" value={`${stats.avgImpact.toFixed(1)}%`} color="text-accent-orange" compact />
+        <StatCard label="Max VaR95" value={`${stats.maxVar.toFixed(1)}%`} color="text-accent-red" compact />
+        <StatCard label="Survival" value="PASS" color="text-accent-green" compact />
       </div>
 
       {/* Scenario results */}

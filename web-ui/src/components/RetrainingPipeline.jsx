@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
-import { Database, Cpu, RefreshCw, AlertTriangle } from 'lucide-react'
-import { ICONS, statusColor } from '../utils/ui-helpers'
+import { Database, Cpu, RefreshCw } from 'lucide-react'
+import { ICONS, statusColor, StatCard, WarningBanner } from '../utils/ui-helpers'
 
 const MOCK_PIPELINES = [
   { id: 1, name: 'TrendFollowing Model', status: 'idle', lastRun: '2h ago', nextRun: 'in 4h', accuracy: 0.82, drift: 0.05, version: 'v2.3.1' },
@@ -61,22 +61,10 @@ const RetrainingPipeline = memo(function RetrainingPipeline() {
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-1">
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Running</div>
-          <span className="text-sm font-mono text-accent-blue">{stats.running}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Completed</div>
-          <span className="text-sm font-mono text-accent-green">{stats.completed}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Failed</div>
-          <span className="text-sm font-mono text-accent-red">{stats.failed}</span>
-        </div>
-        <div className="p-1.5 bg-bg-700 border border-bg-600">
-          <div className="text-[9px] text-gray-600">Avg Acc</div>
-          <span className="text-sm font-mono text-gray-300">{(stats.avgAcc * 100).toFixed(0)}%</span>
-        </div>
+        <StatCard label="Running" value={stats.running} color="text-accent-blue" />
+        <StatCard label="Completed" value={stats.completed} color="text-accent-green" />
+        <StatCard label="Failed" value={stats.failed} color="text-accent-red" />
+        <StatCard label="Avg Acc" value={`${(stats.avgAcc * 100).toFixed(0)}%`} color="text-gray-300" />
       </div>
 
       {/* Pipeline list */}
@@ -122,12 +110,9 @@ const RetrainingPipeline = memo(function RetrainingPipeline() {
 
       {/* Drift alert */}
       {stats.highDrift > 0 && (
-        <div className="flex items-center gap-1.5 p-1.5 bg-accent-yellow/10 border border-accent-yellow/30">
-          <AlertTriangle size={11} className="text-accent-yellow" />
-          <span className="text-[10px] text-accent-yellow">
-            {stats.highDrift} model(s) with high drift — retraining recommended
-          </span>
-        </div>
+        <WarningBanner>
+          {stats.highDrift} model(s) with high drift — retraining recommended
+        </WarningBanner>
       )}
 
       <div className="flex items-center gap-1.5 text-[9px] text-gray-600 pt-1 border-t border-bg-600">
