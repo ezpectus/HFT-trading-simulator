@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { Database, Cpu } from 'lucide-react'
+import { Database, Cpu, RefreshCw, AlertTriangle } from 'lucide-react'
 import { ICONS } from '../utils/ui-helpers'
 
 const MOCK_PIPELINES = [

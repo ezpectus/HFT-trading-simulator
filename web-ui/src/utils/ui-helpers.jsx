@@ -54,8 +54,8 @@ export function Bar({ value, max, color = 'bg-accent-blue', height = 'h-2' }) {
 }
 
 export function WarningBanner({ icon: Icon = AlertTriangle, color = 'text-accent-yellow', children }) {
-  const bg = color.replace('text-', 'bg-').replace('accent-', 'accent-/') + '/10'
-  const border = color.replace('text-', 'border-').replace('accent-', 'accent-/') + '/30'
+  const bg = color.replace('text-', 'bg-') + '/10'
+  const border = color.replace('text-', 'border-') + '/30'
   return (
     <div className={`flex items-center gap-1.5 p-1.5 ${bg} border ${border}`}>
       <Icon size={11} className={color} />

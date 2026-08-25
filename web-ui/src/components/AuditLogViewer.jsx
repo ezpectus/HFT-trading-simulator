@@ -267,7 +267,7 @@ export default function AuditLogViewer({ auditLogs = [], onExport, onFilter }) {
                             </div>
                           )}
                         </div>
-                        {Object.keys(log.metadata).length > 0 && (
+                        {log.metadata && Object.keys(log.metadata).length > 0 && (
                           <div className="mt-2">
                             <span className="text-gray-500">Metadata:</span>
                             <pre className="mt-1 p-2 bg-bg-800  overflow-x-auto text-gray-300">

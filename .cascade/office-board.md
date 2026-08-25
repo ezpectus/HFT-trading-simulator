@@ -2155,27 +2155,27 @@
 
 ## ФАЗА 13 — Static Analysis Bug Fixes
 
-### REF-501: Static analysis — audit all React components for runtime bugs ⬜ TODO
+### REF-501: Static analysis — audit all React components for runtime bugs ✅ DONE
 **Описание:** Go through every .jsx component. Check for: undefined vars, wrong prop types, missing null checks, broken conditionals, incorrect hook usage. Fix bugs that cause incorrect behavior.
 **Сложность:** Высокая
 **Файлы:** All `web-ui/src/components/*.jsx` (51 files)
 
-### REF-502: Static analysis — audit all hooks for bugs ⬜ TODO
+### REF-502: Static analysis — audit all hooks for bugs ✅ DONE
 **Описание:** Check useLocalStorage, useExchangeData, useMockData, useNotifications, usePerformance, useDetachablePanels. Verify cleanup, edge cases, race conditions.
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/hooks/` (6 files)
 
-### REF-503: Static analysis — audit all utils for bugs ⬜ TODO
+### REF-503: Static analysis — audit all utils for bugs ✅ DONE
 **Описание:** Check indicators.js, backtestEngine.js, mockData.js, format.ts, patterns.ts, performance.ts, timeframes.ts, auditExport.js, performanceMonitor.js. Verify math correctness, edge cases.
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/utils/` (11 files)
 
-### REF-504: Static analysis — audit panel registry for broken imports ⬜ TODO
+### REF-504: Static analysis — audit panel registry for broken imports ✅ DONE
 **Описание:** Check registry.js — verify every panel import resolves, no dead references, all categories correct.
 **Сложность:** Средняя
 **Файлы:** `web-ui/src/panels/registry.js`, `web-ui/src/panels/PanelContainer.jsx`
 
-### REF-505: Static analysis — audit App.jsx for bugs ⬜ TODO
+### REF-505: Static analysis — audit App.jsx for bugs ✅ DONE
 **Описание:** Check context providers, routing, WS connection, error boundaries, lazy loading.
 **Сложность:** Высокая
 **Файлы:** `web-ui/src/App.jsx`

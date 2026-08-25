@@ -159,6 +159,19 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
     }
   }, [activeIndicators.rsi])
 
+  // Sync time scales between main chart and RSI chart
+  useEffect(() => {
+    if (!rsiChartRef.current || !chartRef.current) return
+    const ts = chartRef.current.timeScale()
+    const rs = rsiChartRef.current.timeScale()
+    const unsubTs = ts.subscribeVisibleLogicalRangeChange(range => rs.setVisibleLogicalRange(range))
+    const unsubRs = rs.subscribeVisibleLogicalRangeChange(range => ts.setVisibleLogicalRange(range))
+    return () => {
+      unsubTs()
+      unsubRs()
+    }
+  }, [activeIndicators.rsi])
+
   // Update data
   useEffect(() => {
     if (!candleSeriesRef.current || !candles.length) return
@@ -220,14 +233,6 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
       const rsiValues = calcRSI(closes, 14)
       const rsiData = rsiValues.map((v, i) => ({ time: times[i], value: v })).filter(d => !isNaN(d.value))
       rsiSeriesRef.current.setData(rsiData)
-    }
-
-    // Sync time scales between main chart and RSI
-    if (rsiChartRef.current && chartRef.current) {
-      const ts = chartRef.current.timeScale()
-      const rs = rsiChartRef.current.timeScale()
-      ts.subscribeVisibleLogicalRangeChange(range => rs.setVisibleLogicalRange(range))
-      rs.subscribeVisibleLogicalRangeChange(range => ts.setVisibleLogicalRange(range))
     }
 
     // Set trade markers from fills

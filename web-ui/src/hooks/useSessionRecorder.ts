@@ -171,6 +171,15 @@ export function useSessionRecorder() {
         return { ok: false, error: 'Invalid recording format' }
       }
       const rec = parsed as SessionRecording
+      if (!rec.metadata) {
+        rec.metadata = {
+          schemaVersion: 1,
+          totalTrades: 0,
+          finalBalance: 0,
+          peakEquity: 0,
+          maxDrawdown: 0,
+        }
+      }
       const next = [rec, ...savedRecordings].slice(0, 20)
       persistRecordings(next)
       return { ok: true, rec }

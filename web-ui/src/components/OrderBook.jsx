@@ -68,6 +68,7 @@ const OrderBook = memo(function OrderBook({ exchange, symbol, currentPrice, orde
 
   const imbPct = (imbalance * 100).toFixed(1)
   const imbColor = imbalance > 0.1 ? 'text-accent-green' : imbalance < -0.1 ? 'text-accent-red' : 'text-gray-400'
+  const totalDepth = bidDepth + askDepth
 
   return (
     <div className="h-full flex flex-col">
@@ -96,8 +97,8 @@ const OrderBook = memo(function OrderBook({ exchange, symbol, currentPrice, orde
           </span>
         </div>
         <div className="flex h-1.5 rounded-full overflow-hidden bg-bg-600">
-          <div className="bg-accent-green/60" style={{ width: `${(bidDepth / (bidDepth + askDepth)) * 100}%` }} />
-          <div className="bg-accent-red/60" style={{ width: `${(askDepth / (bidDepth + askDepth)) * 100}%` }} />
+          <div className="bg-accent-green/60" style={{ width: `${totalDepth > 0 ? (bidDepth / totalDepth) * 100 : 50}%` }} />
+          <div className="bg-accent-red/60" style={{ width: `${totalDepth > 0 ? (askDepth / totalDepth) * 100 : 50}%` }} />
         </div>
         <div className="flex justify-between text-[9px] text-gray-600 font-mono mt-0.5">
           <span className="text-accent-green/70">{formatVolume(bidDepth)}</span>
