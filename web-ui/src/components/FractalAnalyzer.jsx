@@ -1,6 +1,5 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Waves, Activity, GitBranch } from 'lucide-react'
-import { formatPrice } from '../utils/format'
 
 // Hurst Exponent via R/S (Rescaled Range) analysis:
 // For each lag n: R(n)/S(n) = c · n^H
@@ -172,7 +171,7 @@ function calcAutocorrelation(series, maxLag = 20) {
   return acf
 }
 
-export default function FractalAnalyzer({ candles, symbol, exchange }) {
+function FractalAnalyzer({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -333,3 +332,5 @@ export default function FractalAnalyzer({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(FractalAnalyzer)

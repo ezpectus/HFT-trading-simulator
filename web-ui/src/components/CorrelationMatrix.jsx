@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Grid3x3 } from 'lucide-react'
 
 /**
@@ -35,7 +35,7 @@ function corrColor(corr) {
   return 'bg-accent-red/80 text-white'
 }
 
-export default function CorrelationMatrix({ candles, exchange, symbols }) {
+function CorrelationMatrix({ candles, exchange, symbols }) {
   const matrix = useMemo(() => {
     const closes = {}
     for (const sym of symbols) {
@@ -113,3 +113,5 @@ export default function CorrelationMatrix({ candles, exchange, symbols }) {
     </div>
   )
 }
+
+export default memo(CorrelationMatrix)

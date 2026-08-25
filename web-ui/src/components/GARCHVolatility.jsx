@@ -1,6 +1,5 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { TrendingUp, Activity, BarChart3 } from 'lucide-react'
-import { formatPrice, formatPct } from '../utils/format'
 
 // Log returns: r_t = ln(P_t / P_{t-1})
 function calcLogReturns(closes) {
@@ -139,7 +138,7 @@ function calcParkinsonVol(highs, lows, period = 20) {
   }
 }
 
-export default function GARCHVolatility({ candles, symbol, exchange }) {
+function GARCHVolatility({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -290,3 +289,5 @@ export default function GARCHVolatility({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(GARCHVolatility)

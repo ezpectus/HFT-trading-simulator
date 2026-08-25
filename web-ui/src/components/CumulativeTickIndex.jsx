@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
-import { Activity, TrendingUp, TrendingDown, Gauge } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Activity, Gauge } from 'lucide-react'
 
-export default function CumulativeTickIndex({ candles, fills, symbol, exchange }) {
+function CumulativeTickIndex({ candles, fills, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -167,3 +167,5 @@ export default function CumulativeTickIndex({ candles, fills, symbol, exchange }
     </div>
   )
 }
+
+export default memo(CumulativeTickIndex)

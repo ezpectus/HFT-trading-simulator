@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Grid3x3, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 
-export default function FootprintChart({ candles, fills, symbol, exchange }) {
+function FootprintChart({ candles, fills, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -190,3 +190,5 @@ export default function FootprintChart({ candles, fills, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(FootprintChart)

@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Globe, AlertCircle, ArrowRight } from 'lucide-react'
 import { calcRSI, calcSMA } from '../utils/indicators'
 
-export default function CrossMarketDivergence({ candles, symbols, exchange }) {
+function CrossMarketDivergence({ candles, symbols, exchange }) {
   const data = useMemo(() => {
     if (!symbols || symbols.length < 2) return null
 
@@ -215,3 +215,5 @@ export default function CrossMarketDivergence({ candles, symbols, exchange }) {
     </div>
   )
 }
+
+export default memo(CrossMarketDivergence)

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Cramér-Rao Lower Bound (Information-Theoretic Estimation Limits) ───────
 // Computes the Cramér-Rao lower bound (CRLB) for parameter estimation,
@@ -113,7 +113,7 @@ const invert3x3 = (M) => {
   return inv
 }
 
-export default function CramerRaoBound({ candles, symbol, exchange }) {
+function CramerRaoBound({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(100)
   const [nSamples, setNSamples] = useState(50)
 
@@ -319,3 +319,5 @@ export default function CramerRaoBound({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(CramerRaoBound)

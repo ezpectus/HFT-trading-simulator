@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Free Energy Principle (Active Inference for Trading) ───────────────────
 // Implements the Free Energy Principle (Friston) for trading decisions:
@@ -107,7 +107,7 @@ const generatePolicies = (nStates, nActions, horizon) => {
   return policies
 }
 
-export default function FreeEnergyPrinciple({ candles, symbol, exchange }) {
+function FreeEnergyPrinciple({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(50)
   const [precision, setPrecision] = useState(0.01)
   const [lr, setLr] = useState(0.1)
@@ -328,3 +328,5 @@ export default function FreeEnergyPrinciple({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(FreeEnergyPrinciple)

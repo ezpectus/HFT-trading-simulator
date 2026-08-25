@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Fokker-Planck Equation (Probability Density Evolution) ────────────────
 // Solves the Fokker-Planck (forward Kolmogorov) equation to track how the
@@ -81,7 +81,7 @@ const solveFokkerPlanck = (xGrid, p0, muFn, sigmaFn, dt, nSteps) => {
   return { finalP: p, history }
 }
 
-export default function FokkerPlanckEquation({ candles, symbol, exchange }) {
+function FokkerPlanckEquation({ candles, symbol, exchange }) {
   const [modelType, setModelType] = useState('ou')
   const [nSteps, setNSteps] = useState(200)
   const [dt, setDt] = useState(0.01)
@@ -327,3 +327,5 @@ export default function FokkerPlanckEquation({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(FokkerPlanckEquation)
