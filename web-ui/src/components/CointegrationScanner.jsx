@@ -288,7 +288,7 @@ export default function CointegrationScanner({ candles, symbols, exchange }) {
               <span>ρ={p.correlation.toFixed(2)}</span>
               <span>β={p.beta.toFixed(3)}</span>
               <span>R²={p.rSquared.toFixed(2)}</span>
-              <span>HL={isFinite(p.halfLife) ? p.halfLife.toFixed(0) + 'd' : '∞'}</span>
+              <span>HL={isFinite(p.halfLife) ? `${p.halfLife.toFixed(0)}d` : '∞'}</span>
             </div>
             <div className="text-[7px] font-mono text-gray-600 mt-0.5">
               ADF t={p.adfTStat.toFixed(2)} {p.isCointegrated ? '(stationary)' : '(not coint.)'}

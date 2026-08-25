@@ -233,6 +233,7 @@ export default function ArzelaAscoli({ candles, symbol, exchange }) {
       {/* Indicator family */}
       <div className="bg-bg-700  p-3">
         <div className="text-xs text-gray-400 mb-1">Indicator Family F = {'{f_p : p=2,4,...,' + maxParam + '}'} (varying parameter)</div>
+
         <svg width={W} height={H} className="bg-bg-900 ">
           <line x1={P} y1={H / 2} x2={W - P} y2={H / 2} stroke="#1e2530" />
           <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#1e2530" />

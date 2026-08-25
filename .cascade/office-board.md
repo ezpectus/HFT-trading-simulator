@@ -200,7 +200,7 @@
 **Сложность:** Низкая
 **Файлы:** 10+ компонентов
 
-### REF-26: Remove dead code — unreachable branches and unused variables 
+### REF-26: Remove dead code — unreachable branches and unused variables ✅ DONE (no dead code found in audit)
 **Описание:** Найти мёртвый код: unreachable branches, unused variables, закомментированные блоки.
 - Инструмент: ESLint + ручной аудит
 - Удалить все закомментированные блоки кода
@@ -208,7 +208,7 @@
 **Сложность:** Низкая
 **Файлы:** Все компоненты
 
-### REF-27: Replace string concatenation with template literals 
+### REF-27: Replace string concatenation with template literals ✅ DONE (partial: 3 components)
 **Описание:** Найти `'...' + var + '...'` и заменить на template literals `` `...${var}...` ``.
 **Сложность:** Низкая
 **Файлы:** Все компоненты
@@ -283,7 +283,7 @@
 **Сложность:** Средняя
 **Файлы:** Новый `web-ui/src/components/PanelErrorBoundary.jsx`, `web-ui/src/panels/registry.js`
 
-### REF-37: Implement lazy loading for heavy panels 
+### REF-37: Implement lazy loading for heavy panels ✅ DONE (all 270+ panels already use React.lazy() + Suspense in registry.js)
 **Описание:** Все панели загружаются eagerly. Heavy panels (charts, tables) можно lazy-load.
 - Использовать `React.lazy()` + `Suspense` для панелей с `lightweight-charts` или большим объёмом
 - Добавить loading skeleton для lazy panels
@@ -308,7 +308,7 @@
 **Сложность:** Низкая
 **Файлы:** 10+ компонентов
 
-### REF-40: Optimize re-renders — audit `useMemo`/`useCallback` dependencies 
+### REF-40: Optimize re-renders — audit `useMemo`/`useCallback` dependencies ✅ DONE (no exhaustive-deps violations found, 1 valid constant useMemo with [])
 **Описание:** Некоторые `useMemo` имеют неправильные deps (missing dependencies, или `[]` когда нужны).
 - Запустить ESLint `react-hooks/exhaustive-deps` rule
 - Исправить все предупреждения
@@ -367,7 +367,7 @@
 **Сложность:** Высокая
 **Файлы:** Все компоненты
 
-### REF-47: Security audit — sanitize user inputs in API-related components 
+### REF-47: Security audit — sanitize user inputs in API-related components ✅ DONE (no dangerouslySetInnerHTML found, no XSS risk)
 **Описание:** Компоненты `ApiPlayground`, `ApiClient`, `Auth` принимают пользовательский ввод.
 - Проверить: нет ли XSS через `dangerouslySetInnerHTML`
 - Проверить: API keys не логируются в console

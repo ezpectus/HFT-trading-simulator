@@ -4,16 +4,16 @@ import { GitCompare, Trash2, Download, TrendingUp, TrendingDown, Award, Activity
 const METRICS = [
   { key: 'sharpe', label: 'Sharpe Ratio', format: (v) => v.toFixed(2), good: (v) => v > 1.0, best: 'high' },
   { key: 'sortino', label: 'Sortino Ratio', format: (v) => v.toFixed(2), good: (v) => v > 1.5, best: 'high' },
-  { key: 'totalReturn', label: 'Total Return %', format: (v) => v.toFixed(1) + '%', good: (v) => v > 0, best: 'high' },
-  { key: 'maxDrawdown', label: 'Max Drawdown %', format: (v) => v.toFixed(1) + '%', good: (v) => v < 15, best: 'low' },
-  { key: 'winRate', label: 'Win Rate %', format: (v) => v.toFixed(1) + '%', good: (v) => v > 50, best: 'high' },
+  { key: 'totalReturn', label: 'Total Return %', format: (v) => `${v.toFixed(1)}%`, good: (v) => v > 0, best: 'high' },
+  { key: 'maxDrawdown', label: 'Max Drawdown %', format: (v) => `${v.toFixed(1)}%`, good: (v) => v < 15, best: 'low' },
+  { key: 'winRate', label: 'Win Rate %', format: (v) => `${v.toFixed(1)}%`, good: (v) => v > 50, best: 'high' },
   { key: 'profitFactor', label: 'Profit Factor', format: (v) => v.toFixed(2), good: (v) => v > 1.5, best: 'high' },
   { key: 'totalTrades', label: 'Total Trades', format: (v) => v.toString(), good: () => true, best: 'neutral' },
-  { key: 'avgWin', label: 'Avg Win $', format: (v) => '$' + v.toFixed(2), good: (v) => v > 0, best: 'high' },
-  { key: 'avgLoss', label: 'Avg Loss $', format: (v) => '$' + v.toFixed(2), good: (v) => v > -100, best: 'low' },
-  { key: 'cagr', label: 'CAGR %', format: (v) => v.toFixed(1) + '%', good: (v) => v > 10, best: 'high' },
+  { key: 'avgWin', label: 'Avg Win $', format: (v) => `$${v.toFixed(2)}`, good: (v) => v > 0, best: 'high' },
+  { key: 'avgLoss', label: 'Avg Loss $', format: (v) => `$${v.toFixed(2)}`, good: (v) => v > -100, best: 'low' },
+  { key: 'cagr', label: 'CAGR %', format: (v) => `${v.toFixed(1)}%`, good: (v) => v > 10, best: 'high' },
   { key: 'calmar', label: 'Calmar Ratio', format: (v) => v.toFixed(2), good: (v) => v > 0.5, best: 'high' },
-  { key: 'volatility', label: 'Volatility %', format: (v) => v.toFixed(1) + '%', good: (v) => v < 30, best: 'low' },
+  { key: 'volatility', label: 'Volatility %', format: (v) => `${v.toFixed(1)}%`, good: (v) => v < 30, best: 'low' },
 ];
 
 function getBestValue(results, metricKey, best) {
@@ -62,7 +62,7 @@ function EquityCurve({ results }) {
             <g key={f}>
               <line x1={padding} y1={y} x2={width + padding} y2={y} stroke="#2a2a4a" strokeWidth={0.5} />
               <text x={padding - 5} y={y + 4} textAnchor="end" fill="#666680" fontSize={10}>
-                {val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toFixed(0)}
+                {val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val.toFixed(0)}
               </text>
             </g>
           );
@@ -280,9 +280,9 @@ export default function BacktestComparison({ results: externalResults }) {
 
           const cards = [
             { label: 'Best Sharpe', value: bestSharpe?.sharpe?.toFixed(2), name: bestSharpe?.name, icon: TrendingUp, color: '#00C853' },
-            { label: 'Best Return', value: bestReturn?.totalReturn?.toFixed(1) + '%', name: bestReturn?.name, icon: TrendingUp, color: '#2196F3' },
+            { label: 'Best Return', value: `${bestReturn?.totalReturn?.toFixed(1)}%`, name: bestReturn?.name, icon: TrendingUp, color: '#2196F3' },
             { label: 'Best Sortino', value: bestSortino?.sortino?.toFixed(2), name: bestSortino?.name, icon: Activity, color: '#FFB300' },
-            { label: 'Lowest DD', value: lowestDD?.maxDrawdown?.toFixed(1) + '%', name: lowestDD?.name, icon: TrendingDown, color: '#9C27B0' },
+            { label: 'Lowest DD', value: `${lowestDD?.maxDrawdown?.toFixed(1)}%`, name: lowestDD?.name, icon: TrendingDown, color: '#9C27B0' },
           ];
 
           return cards.map(c => (
