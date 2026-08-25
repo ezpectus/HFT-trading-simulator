@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Markov-Switching GARCH (Regime-Switching Volatility) ────────────────────
 // Combines a hidden Markov chain (regime switching) with GARCH volatility
@@ -165,7 +165,7 @@ const estimateParams = (returns, nRegimes = 2) => {
   return { params: best, logLik: bestLL }
 }
 
-export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
+function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(100)
   const [nRegimes, setNRegimes] = useState(2)
 
@@ -378,3 +378,5 @@ export default function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(MarkovSwitchingGARCH)

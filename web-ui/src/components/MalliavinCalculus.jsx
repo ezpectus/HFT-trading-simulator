@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Malliavin Calculus (Sensitivity Estimation via Monte Carlo) ────────────
 // Uses Malliavin calculus to compute Greeks (sensitivities) of financial
@@ -155,7 +155,7 @@ const malliavinGreeks = (paths, brownianPaths, S0, K, T, r, sigma, nSteps) => {
   }
 }
 
-export default function MalliavinCalculus({ candles, symbol, exchange }) {
+function MalliavinCalculus({ candles, symbol, exchange }) {
   const [nPaths, setNPaths] = useState(1000)
   const [nSteps, setNSteps] = useState(50)
   const [strikePct, setStrikePct] = useState(1.0)
@@ -358,3 +358,5 @@ export default function MalliavinCalculus({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(MalliavinCalculus)

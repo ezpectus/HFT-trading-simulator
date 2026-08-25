@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { BarChart3, Info } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function MarketProfile({ candles, symbol, exchange }) {
+function MarketProfile({ candles, symbol, exchange }) {
   const profile = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -192,3 +192,5 @@ export default function MarketProfile({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(MarketProfile)

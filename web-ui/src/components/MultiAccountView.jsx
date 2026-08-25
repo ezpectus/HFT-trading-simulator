@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { Layers, Wallet, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Layers, Wallet } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
-export default function MultiAccountView({ accounts, exchanges }) {
+function MultiAccountView({ accounts, exchanges }) {
   const aggregated = useMemo(() => {
     const perExchange = {}
     let totalEquity = 0
@@ -168,3 +168,5 @@ export default function MultiAccountView({ accounts, exchanges }) {
     </div>
   )
 }
+
+export default memo(MultiAccountView)

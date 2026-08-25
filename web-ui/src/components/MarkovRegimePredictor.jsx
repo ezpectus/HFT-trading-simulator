@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Shuffle, TrendingUp, Activity } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -95,7 +95,7 @@ function predictNextRegime(matrix, regimes, currentRegime) {
   return matrix[idx].map((prob, j) => ({ regime: regimes[j], prob }))
 }
 
-export default function MarkovRegimePredictor({ candles, symbol, exchange }) {
+function MarkovRegimePredictor({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -298,3 +298,5 @@ export default function MarkovRegimePredictor({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(MarkovRegimePredictor)

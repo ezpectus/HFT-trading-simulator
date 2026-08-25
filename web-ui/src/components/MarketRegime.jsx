@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
-import { Activity, TrendingUp, Minus, Waves, AlertTriangle } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Activity, TrendingUp, Minus, AlertTriangle } from 'lucide-react'
 
-export default function MarketRegime({ candles, symbol, exchange }) {
+function MarketRegime({ candles, symbol, exchange }) {
   const regime = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -152,6 +152,8 @@ export default function MarketRegime({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(MarketRegime)
 
 function Metric({ label, value, color }) {
   return (

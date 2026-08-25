@@ -1,8 +1,8 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
+import { memo, useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { Film, Play, Pause, SkipBack, SkipForward, Clock, Layers } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 
-export default function MarketDepthReplay({ candles, orderbooks, fills, symbol, exchange }) {
+function MarketDepthReplay({ candles, orderbooks, fills, symbol, exchange }) {
   const [playing, setPlaying] = useState(false)
   const [currentIdx, setCurrentIdx] = useState(-1)
   const [speed, setSpeed] = useState(1)
@@ -284,3 +284,5 @@ export default function MarketDepthReplay({ candles, orderbooks, fills, symbol, 
     </div>
   )
 }
+
+export default memo(MarketDepthReplay)

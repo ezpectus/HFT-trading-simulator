@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Dice5, Play, Info } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
@@ -59,7 +59,7 @@ function runMonteCarlo(trades, runs, initialBalance) {
   }
 }
 
-export default function MonteCarlo({ accounts }) {
+function MonteCarlo({ accounts }) {
   const [runs, setRuns] = useState(100)
   const [result, setResult] = useState(null)
   const [running, setRunning] = useState(false)
@@ -160,6 +160,8 @@ export default function MonteCarlo({ accounts }) {
     </div>
   )
 }
+
+export default memo(MonteCarlo)
 
 function PStat({ label, value, color, small }) {
   return (

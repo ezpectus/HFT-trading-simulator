@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // --- Malliavin-Stein Sensitivity (Greeks via Integration by Parts) ---
 // Combines Malliavin calculus with Stein's method to compute
@@ -118,7 +118,7 @@ function erf(x) {
 }
 const normalCDF = (x) => 0.5 * (1 + erf(x / Math.sqrt(2)))
 
-export default function MalliavinSteinSensitivity({ candles, symbol, exchange }) {
+function MalliavinSteinSensitivity({ candles, symbol, exchange }) {
   const [lookback] = useState(100)
   const [nSims, setNSims] = useState(10000)
   const [K, setK] = useState(1.0)
@@ -321,3 +321,5 @@ export default function MalliavinSteinSensitivity({ candles, symbol, exchange })
     </div>
   )
 }
+
+export default memo(MalliavinSteinSensitivity)

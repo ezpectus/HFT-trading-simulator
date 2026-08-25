@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
-import { Target, TrendingUp, TrendingDown, Send, Clock } from 'lucide-react'
+import { memo, useMemo, useState } from 'react'
+import { Target, Send } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { calcATR } from '../utils/indicators'
 
-export default function MITOrderSimulator({ candles, accounts, currentPrice, symbol, exchange, onSubmit }) {
+function MITOrderSimulator({ candles, accounts, currentPrice, symbol, exchange, onSubmit }) {
   const [side, setSide] = useState('BUY')
   const [touchPrice, setTouchPrice] = useState('')
   const [quantity, setQuantity] = useState('0.1')
@@ -242,3 +242,5 @@ export default function MITOrderSimulator({ candles, accounts, currentPrice, sym
     </div>
   )
 }
+
+export default memo(MITOrderSimulator)
