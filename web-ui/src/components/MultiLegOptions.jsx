@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Layers, Plus, Minus, Info } from 'lucide-react'
+import { memo, useState, useMemo } from 'react'
+import { Layers, Plus, Minus } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
 const STRATEGIES = [
@@ -33,7 +33,7 @@ function estimateOptionPrice(spot, strike, type, daysToExpiry, volPct) {
   return intrinsic + timeValue
 }
 
-export default function MultiLegOptions({ currentPrice }) {
+function MultiLegOptions({ currentPrice }) {
   const [strategy, setStrategy] = useState('straddle')
   const [spot, setSpot] = useState(currentPrice || 65000)
   const [daysToExpiry, setDaysToExpiry] = useState(30)
@@ -205,3 +205,5 @@ export default function MultiLegOptions({ currentPrice }) {
     </div>
   )
 }
+
+export default memo(MultiLegOptions)

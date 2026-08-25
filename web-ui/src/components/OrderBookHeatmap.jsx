@@ -1,10 +1,10 @@
-import { useMemo, useRef, useEffect, useState } from 'react'
+import { memo, useMemo, useRef, useEffect, useState } from 'react'
 import { Grid3x3 } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
 const MAX_HISTORY = 30
 
-export default function OrderBookHeatmap({ orderbookData, currentPrice }) {
+function OrderBookHeatmap({ orderbookData, currentPrice }) {
   const historyRef = useRef([])
   const [, forceUpdate] = useState(0)
 
@@ -152,3 +152,5 @@ export default function OrderBookHeatmap({ orderbookData, currentPrice }) {
     </div>
   )
 }
+
+export default memo(OrderBookHeatmap)

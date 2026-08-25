@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
-import { Layers, TrendingUp, TrendingDown, CheckCircle2, XCircle } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Layers, CheckCircle2 } from 'lucide-react'
 import { calcRSI, calcEMA, calcSMA } from '../utils/indicators'
 import { formatPrice } from '../utils/format'
 
-export default function MultiTimeframeConfluence({ candles, symbol, exchange }) {
+function MultiTimeframeConfluence({ candles, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -194,3 +194,5 @@ export default function MultiTimeframeConfluence({ candles, symbol, exchange }) 
     </div>
   )
 }
+
+export default memo(MultiTimeframeConfluence)

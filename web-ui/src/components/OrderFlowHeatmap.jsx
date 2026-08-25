@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { Grid3x3, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Grid3x3 } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function OrderFlowHeatmap({ candles, fills, symbol, exchange }) {
+function OrderFlowHeatmap({ candles, fills, symbol, exchange }) {
   const data = useMemo(() => {
     const symCandles = candles
       .filter(c => c.exchange === exchange && c.symbol === symbol)
@@ -269,3 +269,5 @@ export default function OrderFlowHeatmap({ candles, fills, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(OrderFlowHeatmap)

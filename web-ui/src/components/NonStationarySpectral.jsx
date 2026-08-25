@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Non-Stationary Spectral Analysis (STFT + CWT) ──────────────────────────
 // Short-Time Fourier Transform (STFT) and Continuous Wavelet Transform (CWT)
@@ -91,7 +91,7 @@ const dominantFreqOverTime = (stftFrames, fs = 1) => {
   })
 }
 
-export default function NonStationarySpectral({ candles, symbol, exchange }) {
+function NonStationarySpectral({ candles, symbol, exchange }) {
   const [windowSize, setWindowSize] = useState(16)
   const [hopSize, setHopSize] = useState(4)
   const [nScales, setNScales] = useState(20)
@@ -298,3 +298,5 @@ export default function NonStationarySpectral({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(NonStationarySpectral)
