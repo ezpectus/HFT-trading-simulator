@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Isolation Forest Anomaly Detection ──────────────────────────────────────
 // Implements the Isolation Forest algorithm for unsupervised anomaly detection.
@@ -165,7 +165,7 @@ const extractAnomalyFeatures = (candles) => {
   return features
 }
 
-export default function IsolationForest({ candles, symbol, exchange }) {
+function IsolationForest({ candles, symbol, exchange }) {
   const [nTrees, setNTrees] = useState(100)
   const [subSampleSize, setSubSampleSize] = useState(64)
   const [threshold, setThreshold] = useState(0.65)
@@ -370,3 +370,5 @@ export default function IsolationForest({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(IsolationForest)

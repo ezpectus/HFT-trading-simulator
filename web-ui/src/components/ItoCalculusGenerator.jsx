@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Itô Calculus Generator (Infinitesimal Generator of Diffusions) ─────────
 // Computes the infinitesimal generator A of an Itô diffusion, which
@@ -62,7 +62,7 @@ const expectedHittingTime = (xGrid, mu, sigma, targetIdx) => {
   return T
 }
 
-export default function ItoCalculusGenerator({ candles, symbol, exchange }) {
+function ItoCalculusGenerator({ candles, symbol, exchange }) {
   const [modelType, setModelType] = useState('ou')
   const [lookback, setLookback] = useState(100)
   const [funcType, setFuncType] = useState('identity')
@@ -310,3 +310,5 @@ export default function ItoCalculusGenerator({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(ItoCalculusGenerator)

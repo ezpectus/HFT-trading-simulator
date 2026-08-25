@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Plus, X, LineChart, Settings2 } from 'lucide-react'
 import { calcSMA, calcEMA, calcRSI, calcBollingerBands } from '../utils/indicators'
 
@@ -12,7 +12,7 @@ const INDICATOR_DEFS = [
   ], color: '#10b981' },
 ]
 
-export default function IndicatorBuilder({ candles, onIndicatorsChange }) {
+function IndicatorBuilder({ candles, onIndicatorsChange }) {
   const [indicators, setIndicators] = useState([])
   const [showAdd, setShowAdd] = useState(false)
 
@@ -160,3 +160,5 @@ export default function IndicatorBuilder({ candles, onIndicatorsChange }) {
     </div>
   )
 }
+
+export default memo(IndicatorBuilder)

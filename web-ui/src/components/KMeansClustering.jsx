@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── K-Means Market Clustering ───────────────────────────────────────────────
 // Unsupervised ML for market regime detection using K-Means clustering.
@@ -212,7 +212,7 @@ const normalize = (features, keys) => {
   return { normalized, stats }
 }
 
-export default function KMeansClustering({ candles, symbol, exchange }) {
+function KMeansClustering({ candles, symbol, exchange }) {
   const [k, setK] = useState(4)
   const [windowSize, setWindowSize] = useState(20)
   const [autoK, setAutoK] = useState(true)
@@ -475,3 +475,5 @@ export default function KMeansClustering({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(KMeansClustering)

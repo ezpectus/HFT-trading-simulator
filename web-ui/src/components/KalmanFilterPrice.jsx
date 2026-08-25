@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { Crosshair, Activity, Filter } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
@@ -95,7 +95,7 @@ class KalmanFilter2D {
   }
 }
 
-export default function KalmanFilterPrice({ candles, symbol, exchange }) {
+function KalmanFilterPrice({ candles, symbol, exchange }) {
   const [modelType, setModelType] = useState('1d')
   const [processNoise, setProcessNoise] = useState(0.0001)
   const [measurementNoise, setMeasurementNoise] = useState(0.01)
@@ -337,3 +337,5 @@ export default function KalmanFilterPrice({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(KalmanFilterPrice)

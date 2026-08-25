@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Calculator, FunctionSquare, AlertCircle } from 'lucide-react'
 import { calcSMA, calcEMA, calcRSI, calcATR, calcBollingerBands, calcMACD } from '../utils/indicators'
 
@@ -145,7 +145,7 @@ function evalAST(node, ctx) {
   throw new Error('Unknown node type')
 }
 
-export default function IndicatorFormulaParser({ candles, symbol, exchange }) {
+function IndicatorFormulaParser({ candles, symbol, exchange }) {
   const [formula, setFormula] = useState('EMA(closes, 9) - EMA(closes, 21)')
   const [error, setError] = useState(null)
 
@@ -387,3 +387,5 @@ export default function IndicatorFormulaParser({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(IndicatorFormulaParser)

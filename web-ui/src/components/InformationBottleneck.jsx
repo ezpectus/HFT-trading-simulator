@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 
 // ─── Information Bottleneck (Rate-Distortion Optimization) ──────────────────
 // Finds optimal compression of return signals by trading off information
@@ -165,7 +165,7 @@ const informationBottleneck = (X, Y, nClusters, beta, maxIter = 100) => {
   }
 }
 
-export default function InformationBottleneck({ candles, symbol, exchange }) {
+function InformationBottleneck({ candles, symbol, exchange }) {
   const [nClusters, setNClusters] = useState(4)
   const [beta, setBeta] = useState(5)
   const [nBins, setNBins] = useState(10)
@@ -378,3 +378,5 @@ export default function InformationBottleneck({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(InformationBottleneck)

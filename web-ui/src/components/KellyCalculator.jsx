@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Percent, Info } from 'lucide-react'
 
-export default function KellyCalculator({ accounts }) {
+function KellyCalculator({ accounts }) {
   const [fractionalKelly, setFractionalKelly] = useState(0.5)
 
   const stats = useMemo(() => {
@@ -107,6 +107,8 @@ export default function KellyCalculator({ accounts }) {
     </div>
   )
 }
+
+export default memo(KellyCalculator)
 
 function Stat({ label, value, color = 'text-gray-200' }) {
   return (

@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { GitBranch, TrendingUp, TrendingDown } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { GitBranch } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-export default function KagiChart({ candles, symbol, exchange }) {
+function KagiChart({ candles, symbol, exchange }) {
   const [reversalPct] = useMemo(() => [0.04], [])
 
   const data = useMemo(() => {
@@ -182,3 +182,5 @@ export default function KagiChart({ candles, symbol, exchange }) {
     </div>
   )
 }
+
+export default memo(KagiChart)
