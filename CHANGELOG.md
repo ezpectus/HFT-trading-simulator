@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-28 (Repo cleanup — remove stray files)
+
+### Removed
+- `audit-eslint.txt`, `audit-pytest.txt`, `audit-vitest.txt` — audit output artifacts, not source code
+- `package-lock.json` (root) — duplicate, real lockfile is in `web-ui/`
+- `ci-test.bat`, `ci-test.sh` — duplicates `scripts/ci/test.sh` and `run_all_tests.py`
+- `run-all-tests.bat`, `run-all-tests.sh` — duplicates `run_all_tests.py` (universal runner)
+- `run-cpp-tests.bat` — narrow scope, covered by `scripts/ci/test.sh`
+- `build-docker.bat` — covered by `make prod-build` (Makefile.prod)
+- `docker.bat`, `docker.sh` — covered by `docker-compose` commands in README
+- `start.bat`, `start.sh` — covered by `no-docker.bat`/`no-docker.sh` + `docker-compose up`
+- `verify.bat`, `verify.sh` — duplicates `run_all_tests.py`
+- `audit/SECURITY-AUDIT-REPORT.md` — stale (Aug 7), superseded by `PROJECT_AUDIT.md` + `docs/AUDIT_FINDINGS.md`
+- Untracked from git (kept on disk, already in .gitignore): `.cascade/` (21 files), `.sops.yaml`, `README_PROJECT_OVERVIEW.md`, `error_monitor.py`, `price_monitor.py`, `run_logger.py`, `trade_csv_logger.py`, `run_all_tests.py`, `docs/REFACTORING_PLAN_10DAYS.md`, `deploy/k8s/secrets.enc.yaml`
+
+### Changed
+- `.gitignore`: Added `audit-*.txt` pattern to prevent re-committing audit output
+
+### Rationale
+Public repo contained stray files: audit command outputs, duplicate scripts serving same purpose as existing ones, and files already listed in .gitignore but still tracked by git. Cleanup makes repo cleaner for public viewing. No functionality affected — all removed files were either duplicates or internal artifacts.
+
 ## [Unreleased] — 2026-08-25 (README + docs freshness update)
 
 ### Changed

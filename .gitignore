@@ -203,6 +203,7 @@ deploy/k8s/secrets.enc.yaml
 # ─── Root-level stray files ───
 /package-lock.json
 /build/
+audit-*.txt
 
 # ─── Internal analysis (not for public repo) ───
 PROJECT_MEGA_ANALYSIS.txt
