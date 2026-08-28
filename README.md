@@ -2,9 +2,10 @@
 
 ![CI](https://img.shields.io/github/actions/workflow/status/ezpectus/HFT-TradeBot--Lite-version/ci.yml?branch=main&label=CI)
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
+![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 
-Educational high-frequency trading simulator. C++20 signal engine, Python quant models, Rust executor, shared-memory IPC. Zero real money — 100% for learning.
+Educational high-frequency trading simulator v2.2.0. C++20 signal engine, Python quant models, Rust executor, shared-memory IPC. Zero real money — 100% for learning.
 
 ---
 

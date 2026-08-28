@@ -343,7 +343,7 @@ cd ai-signal-bot
 python -m pytest tests/ -v --tb=short --cov=src --cov-report=xml
 ```
 
-Exchange simulator: 18 test files, 579+ tests covering:
+Exchange simulator: 36 test files, 579+ tests covering:
 - Exchange order matching, fees, slippage, partial fills
 - Market simulator: GBM price generation, correlation, funding history
 - Liquidation engine: partial liquidation, insurance fund, SL/TP
@@ -354,7 +354,7 @@ Exchange simulator: 18 test files, 579+ tests covering:
 - Arbitrage detection, config validation, data export
 - WebSocket server, order book streaming, integration dataflow
 
-AI signal bot: 25 test files, 568+ tests covering:
+AI signal bot: 155 test files, 568+ tests covering:
 - Signal validation: confidence, R:R ratio, drawdown, position limits, cooldown
 - Circuit breaker: closed/open/half-open states, failure threshold, recovery
 - Metrics server: Prometheus format, counters, gauges, HTTP endpoint, server lifecycle
@@ -382,7 +382,7 @@ cd hft-trade-bot/build
 ctest --output-on-failure
 ```
 
-Test files are in `hft-trade-bot/tests/`. Current coverage: 29 doctest test files (risk_manager, pressure_model, signal_engine, position_manager, momentum_breakout, market_making, statistical_arb, mean_reversion, smart_order_router, order_manager, latency_tracker, position_manager_v1, portfolio_risk, pre_trade_risk, position_manager_v2, candle_aggregator, trade_handler, order_book_manager, kill_switch, shm_heartbeat, shm_market_data, shm_bulk, adaptive_order_selector, system_monitor, order_type_selector, fix_message, signal_engine_v2, property_based, signal_engine_v3) + 10 CTest-based test files, 700+ test cases covering:
+Test files are in `hft-trade-bot/tests/`. Current coverage: 49 C++ test files (doctest + CTest), 700+ test cases covering:
 
 ### CI Pipeline
 

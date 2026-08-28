@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-08-28 (Version sync + test count updates)
+
+### Changed
+- `web-ui/package.json`: Version 2.0.0→2.2.0, description "44+ math models"→"52 quant models"
+- `README.md`: Added version badge (2.2.0), added version to description
+- `CONTRIBUTING.md`: Exchange simulator test count 18→36, AI signal bot 25→155, C++ 29+10→49
+- `docs/TESTING.md`: JS test count 103→120 (116 unit + 4 E2E), total 345→362, unit pyramid 341→358
+
+### Rationale
+Version was inconsistent (package.json 2.0.0 vs PROJECT_AUDIT 2.2.0). Test counts in CONTRIBUTING.md and TESTING.md were stale from early development phase. All numbers now reflect actual file counts.
+
 ## [Unreleased] — 2026-08-28 (Repo cleanup — remove stray files)
 
 ### Removed

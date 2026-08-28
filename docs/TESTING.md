@@ -20,7 +20,7 @@ Static (all)               — ruff, eslint, clang-format, rustfmt
 
 **Why a pyramid, not an inverted (ice cream cone)?**
 - **Unit tests:** Fast (ms), isolated, deterministic. Find bugs in
-  individual functions. 193 Python + 49 C++ + 99 JS = 341 total.
+  individual functions. 193 Python + 49 C++ + 116 JS = 358 total.
 - **Integration tests:** Slower (seconds), test component interaction.
   WebSocket connection, signal flow, backtest pipeline.
 - **E2E tests:** Slowest (minutes), test full user journey.
@@ -81,14 +81,14 @@ numerical precision (tolerance-based assertions).
 
 ## Overview
 
-The system has **345 test files** across three languages:
+The system has **362 test files** across three languages:
 
 | Language | Files | Framework | Location |
 |----------|-------|-----------|----------|
 | **Python** | 193 | pytest + Hypothesis | `ai-signal-bot/tests/`, `exchange_simulator/tests/`, `monitoring/tests/` |
 | **C++** | 49 | doctest | `hft-trade-bot/tests/` |
-| **JavaScript** | 103 | Vitest + Playwright | `web-ui/src/test/`, `web-ui/e2e/` |
-| **Total** | **345** | | |
+| **JavaScript** | 120 | Vitest + Playwright | `web-ui/src/test/`, `web-ui/e2e/` |
+| **Total** | **362** | | |
 
 ---
 
@@ -192,9 +192,9 @@ Randomized invariant testing for C++ components.
 
 ---
 
-## JavaScript Tests (103 files)
+## JavaScript Tests (120 files)
 
-### Unit Tests (99 files)
+### Unit Tests (116 files)
 
 **Framework:** Vitest
 **Location:** `web-ui/src/test/`

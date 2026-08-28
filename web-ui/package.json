@@ -1,9 +1,9 @@
 {
   "name": "trading-sim-web-ui",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.2.0",
   "type": "module",
-  "description": "HFT Trading System Dashboard — 278 panels, 44+ math models, React 18 + Vite 8",
+  "description": "HFT Trading System Dashboard — 278 panels, 52 quant models, React 18 + Vite 8",
   "keywords": [
     "trading",
     "hft",
