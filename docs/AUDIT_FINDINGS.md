@@ -24,10 +24,27 @@
 ### Round 2 (тот же день)
 - **S004 расширен:** +79 `assert ... is not None` в 44 тестовых файлах → всего ~839 слабых assert'ов.
 - **S026:** `JSON.parse(JSON.stringify(...))` deep-copy хак в `useSessionRecorder.ts` — нужен `structuredClone()`.
-- **Доп. чисто:** `localStorage`/`sessionStorage` — 0, `key={index}` — 0, `Date.now()`/`new Date()` — 0 (подтверждает отсутствие реальных данных), `document.`/`window.` — 0, `sys.exit` в src — 0, `lru_cache` — 0, old typing (`Dict[`/`List[`) — 0, Rust `unwrap`/`panic!`/`todo!` — 0, C++ `catch(...)` только top-level в main.cpp.
 
-### Подтверждено чистым (0 совпадений)
-`import *`, bare `except:`, `except Exception: pass`, `eval`/`exec`/`pickle.loads`/`shell=True`/`verify=False`/`yaml.load`, f-string SQL, `pytest.mark.skip`/`xfail`, `Optional[`/`Union[` (modern syntax), `NotImplementedError`, mutable default args, `== True/None`, `datetime.utcnow`, `dangerouslySetInnerHTML`, пустые `catch {}` в web-ui.
+### Round 3 (тот же день) — коррекция методологии
+**Обнаружен BRE-баг:** grep использует BRE — `|` это литерал, не alternation. Все поиски с `|` дали ложные нули. Перепроверено индивидуально.
+
+**Исправленные находки:**
+- **S001:** `fetch(` — 1 вызов (не 0), `ApiClient.jsx`/`useWebSocket.ts` существуют. API-слой есть, но ~99% панелей его не используют.
+- **S002:** `setInterval` — 24, `setTimeout` — 45. Панели обновляются, но рандомом.
+- **S006:** `Mock(`/`MagicMock(` — 131 в 13 файлах (не 0). Всего 156 моков без spec.
+- **S027 (новый):** `List[` 877 + `Dict[` 136 + `Tuple[` 108 = 1121 старый typing в ~150 файлах. Смешано с modern syntax.
+- **S028 (новый):** `or {}`/`or []` — 12 в 9 файлах (None-masking).
+- **S029 (новый):** `toBeTruthy()` — 15 в 4 тестовых файлах.
+- **S030 (новый):** `console.*` — 26 в 13 файлах, не все IS_DEV-gated.
+- **S031 (новый):** `0.0.0.0` binds — 9 в 8 файлах.
+- **S032 (новый):** `-> dict` без контрактов — 145 в 76 файлах.
+- **S033 (новый):** `time.sleep` в тестах — 7 в 4 файлах.
+- **S034 (новый):** `assert True`/`== True` — 3 в 2 файлах.
+
+**Снятые ложные тревоги:** `FIXME` (FIX protocol), `eval(` (`model.eval()`), `HACK` (EventType.HACK), `shell=True` (nosec), `pytest.mark.skip` (skipif с reason), `innerHTML` (комментарий), `var ` (имена переменных), `alert(` (onAlert/removeAlert), `document.`/`window.` (локальные переменные/легитимный DOM), `Date.now()`/`new Date()` (52+90 — легитимные timestamps).
+
+### Подтверждено чистым (0 совпадений, проверено индивидуально)
+`TODO`, `import *`, bare `except:`, `except Exception: pass`, `eval`/`exec`/`pickle.loads`/`verify=False`/`yaml.load`, f-string SQL, `pytest.mark.xfail`, `Optional[`/`Union[`, `NotImplementedError`, mutable default args, `== True/None`, `datetime.utcnow`, `dangerouslySetInnerHTML`, пустые `catch {}`, `key={index}`, `sys.exit` в src, `lru_cache`, `.index(`, `model_dump(`, `status_code in`, `assert callable`/`issubclass`.
 
 ### Инфра
 - `.windsurf/` был закоммичен (2 workflow-файла) — добавлен в `.gitignore`, убран из индекса.
