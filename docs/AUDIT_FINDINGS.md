@@ -21,6 +21,11 @@
 ### Коррекции старого аудита
 - **Finding 022 (f-string logging):** заявлено ~80+, фактически ~14 (`attribution.py` 10, `competition.py` 4). Завышено в 6 раз.
 
+### Round 2 (тот же день)
+- **S004 расширен:** +79 `assert ... is not None` в 44 тестовых файлах → всего ~839 слабых assert'ов.
+- **S026:** `JSON.parse(JSON.stringify(...))` deep-copy хак в `useSessionRecorder.ts` — нужен `structuredClone()`.
+- **Доп. чисто:** `localStorage`/`sessionStorage` — 0, `key={index}` — 0, `Date.now()`/`new Date()` — 0 (подтверждает отсутствие реальных данных), `document.`/`window.` — 0, `sys.exit` в src — 0, `lru_cache` — 0, old typing (`Dict[`/`List[`) — 0, Rust `unwrap`/`panic!`/`todo!` — 0, C++ `catch(...)` только top-level в main.cpp.
+
 ### Подтверждено чистым (0 совпадений)
 `import *`, bare `except:`, `except Exception: pass`, `eval`/`exec`/`pickle.loads`/`shell=True`/`verify=False`/`yaml.load`, f-string SQL, `pytest.mark.skip`/`xfail`, `Optional[`/`Union[` (modern syntax), `NotImplementedError`, mutable default args, `== True/None`, `datetime.utcnow`, `dangerouslySetInnerHTML`, пустые `catch {}` в web-ui.
 
