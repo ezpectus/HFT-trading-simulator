@@ -6,6 +6,29 @@
 
 ---
 
+## UPDATE — September 11, 2026 (AI Slop Audit round 2)
+
+Полный прогон по `.windsurf/workflows/ai_slop_audit.md`. Детальная доска: `.cascade/office-board.md` (S001–S025).
+
+### Новые находки
+- **S001 (Critical):** `web-ui/src` — 460 файлов, ~290 компонентов, **0 реальных API-вызовов** (нет `fetch`/`axios`/`ApiClient`). Все панели — моки.
+- **S002 (Critical):** `Math.random()` как live-метрики — 88 вхождений в 36 файлах. `setInterval`/`setTimeout` — 0: панели даже не обновляются.
+- **S003 (Critical):** `MOCK_*` inline-данные — 378 вхождений в 50 компонентах.
+- **S004 (High):** 566 `assert len(` + 194 `assert isinstance(` в тестах — проверяют размер/тип, не значения.
+- **S005:** `range(len(` — 84 в 38 файлах. **S006:** `patch()` без autospec — 25 в 9 файлах. **S007:** `time.time()` — 71 в 23 файлах.
+- **S013:** `json.loads` в `real_market_data.py` без per-message try — битое сообщение убивает WS-loop → reconnect (3 места).
+
+### Коррекции старого аудита
+- **Finding 022 (f-string logging):** заявлено ~80+, фактически ~14 (`attribution.py` 10, `competition.py` 4). Завышено в 6 раз.
+
+### Подтверждено чистым (0 совпадений)
+`import *`, bare `except:`, `except Exception: pass`, `eval`/`exec`/`pickle.loads`/`shell=True`/`verify=False`/`yaml.load`, f-string SQL, `pytest.mark.skip`/`xfail`, `Optional[`/`Union[` (modern syntax), `NotImplementedError`, mutable default args, `== True/None`, `datetime.utcnow`, `dangerouslySetInnerHTML`, пустые `catch {}` в web-ui.
+
+### Инфра
+- `.windsurf/` был закоммичен (2 workflow-файла) — добавлен в `.gitignore`, убран из индекса.
+
+---
+
 ## UPDATE — August 25, 2026
 
 ### Findings Resolved Since Original Audit

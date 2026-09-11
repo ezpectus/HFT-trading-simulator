@@ -159,6 +159,9 @@ api_keys/
 # ─── Cascade AI workspace (internal, not for public repo) ───
 .cascade/
 
+# ─── Windsurf AI workflows (internal, not for public repo) ───
+.windsurf/
+
 # ─── Internal docs (deleted — content absorbed into public docs) ───
 docs/FUTURE_TODO.md
 docs/PROGRESS.md
