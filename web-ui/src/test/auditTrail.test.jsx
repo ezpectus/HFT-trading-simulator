@@ -2,39 +2,45 @@ import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import AuditTrail from '../components/AuditTrail'
 
+const FILLS = [
+  { order_id: 'o1', symbol: 'BTC/USDT', exchange: 'binance', side: 'BUY', filled_qty: 0.2, price: 44100, timestamp: 1700000001 },
+  { order_id: 'o2', symbol: 'ETH/USDT', exchange: 'okx', side: 'SELL', filled_qty: 2, price: 2400, timestamp: 1700000002 },
+]
+const SIGNALS = [
+  { timestamp: 1700000005, strategy: 'TrendFollower', symbol: 'BTC/USDT', exchange: 'binance', direction: 'LONG', confidence: 82 },
+]
+
 describe('AuditTrail', () => {
-  it('renders audit entries with timestamps and users', () => {
-    render(<AuditTrail />)
+  it('renders real fill and signal entries', () => {
+    render(<AuditTrail fills={FILLS} signals={SIGNALS} />)
     expect(screen.getByText('Audit Trail')).toBeInTheDocument()
-    expect(screen.getByText('2024-08-25 12:45')).toBeInTheDocument()
-    expect(screen.getAllByText('admin').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('trader1').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('ORDER_FILL').length).toBe(2)
+    expect(screen.getAllByText('SIGNAL').length).toBe(1)
+    expect(screen.getByText('3 entries')).toBeInTheDocument()
   })
 
-  it('shows summary counts (config changes, orders, circuit breaks)', () => {
-    render(<AuditTrail />)
-    expect(screen.getByText('Config Changes')).toBeInTheDocument()
-    expect(screen.getByText('Orders')).toBeInTheDocument()
-    expect(screen.getByText('Circuit Breaks')).toBeInTheDocument()
+  it('shows summary counts', () => {
+    render(<AuditTrail fills={FILLS} signals={SIGNALS} />)
+    expect(screen.getByText('Fills')).toBeInTheDocument()
+    expect(screen.getByText('Signals')).toBeInTheDocument()
+    expect(screen.getByText('Total')).toBeInTheDocument()
   })
 
-  it('filters entries by user on button click', () => {
-    render(<AuditTrail />)
-    const traderBtns = screen.getAllByText('trader1')
-    const traderBtn = traderBtns.find(el => el.tagName === 'BUTTON')
-    fireEvent.click(traderBtn)
-    expect(screen.getAllByText('ORDER_SUBMIT').length).toBeGreaterThan(0)
-    expect(screen.queryByText('CONFIG_UPDATE')).not.toBeInTheDocument()
+  it('filters entries by source (exchange or strategy)', () => {
+    render(<AuditTrail fills={FILLS} signals={SIGNALS} />)
+    const btns = screen.getAllByText('TrendFollower')
+    fireEvent.click(btns.find(el => el.tagName === 'BUTTON'))
+    expect(screen.getAllByText('SIGNAL').length).toBe(1)
+    expect(screen.queryByText('ORDER_FILL')).not.toBeInTheDocument()
   })
 
-  it('shows old and new values for config changes', () => {
-    render(<AuditTrail />)
-    expect(screen.getAllByText('0.10').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('0.08').length).toBeGreaterThan(0)
+  it('shows fill details', () => {
+    render(<AuditTrail fills={FILLS} signals={[]} />)
+    expect(screen.getByText('BUY 0.2 @ 44100')).toBeInTheDocument()
   })
 
-  it('shows retention info in footer', () => {
-    render(<AuditTrail />)
-    expect(screen.getByText('Retention: 90 days')).toBeInTheDocument()
+  it('shows empty state with no activity', () => {
+    render(<AuditTrail fills={[]} signals={[]} />)
+    expect(screen.getByText(/No activity yet/)).toBeInTheDocument()
   })
 })

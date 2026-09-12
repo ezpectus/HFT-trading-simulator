@@ -1,109 +1,134 @@
-import { memo } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import { Calendar, DollarSign } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { StatCard, WarningBanner, SectionTitle } from '../utils/ui-helpers'
 
-const MOCK_BASIS = [
-  { expiry: '1W', days: 7, spot: 44100, futures: 44250, basis: 150, basisPct: 0.34, funding: 0.012, apr: 17.8 },
-  { expiry: '2W', days: 14, spot: 44100, futures: 44480, basis: 380, basisPct: 0.86, funding: 0.011, apr: 22.4 },
-  { expiry: '1M', days: 30, spot: 44100, futures: 44950, basis: 850, basisPct: 1.93, funding: 0.010, apr: 23.5 },
-  { expiry: '3M', days: 90, spot: 44100, futures: 46800, basis: 2700, basisPct: 6.12, funding: 0.009, apr: 24.9 },
-  { expiry: '6M', days: 180, spot: 44100, futures: 49200, basis: 5100, basisPct: 11.57, funding: 0.008, apr: 23.5 },
-  { expiry: '1Y', days: 365, spot: 44100, futures: 53500, basis: 9400, basisPct: 21.32, funding: 0.007, apr: 21.3 },
-]
-
-const MOCK_HISTORY = [
-  { day: 'D-7', basis1M: 1.45, basis3M: 4.80 },
-  { day: 'D-6', basis1M: 1.52, basis3M: 5.10 },
-  { day: 'D-5', basis1M: 1.68, basis3M: 5.45 },
-  { day: 'D-4', basis1M: 1.75, basis3M: 5.62 },
-  { day: 'D-3', basis1M: 1.82, basis3M: 5.80 },
-  { day: 'D-2', basis1M: 1.88, basis3M: 5.95 },
-  { day: 'D-1', basis1M: 1.93, basis3M: 6.12 },
-]
-
 function basisColor(pct) {
-  if (pct < 1) return 'text-accent-green'
-  if (pct < 5) return 'text-accent-yellow'
-  if (pct < 15) return 'text-accent-orange'
+  if (Math.abs(pct) < 0.05) return 'text-accent-green'
+  if (Math.abs(pct) < 0.2) return 'text-accent-yellow'
+  if (Math.abs(pct) < 0.5) return 'text-accent-orange'
   return 'text-accent-red'
 }
 
-const STATS = {
-  bestAPR: Math.max(...MOCK_BASIS.map(b => b.apr)),
-  bestBasis: MOCK_BASIS.reduce((max, b) => b.basisPct > max.basisPct ? b : max, MOCK_BASIS[0]),
-  contango: MOCK_BASIS.every(b => b.futures > b.spot),
-}
+/**
+ * Futures Basis — perp funding rates (per exchange) and cross-exchange
+ * spot basis from live prices. Term-structure expiries require a futures
+ * feed and are not shown.
+ */
+const FuturesBasis = memo(function FuturesBasis({ currentPrice, fundingRates, prices, symbol }) {
+  const funding = useMemo(() =>
+    Object.entries(fundingRates || {}).map(([ex, rate]) => ({
+      ex,
+      rate,
+      apr: rate * 3 * 365 * 100, // 3 funding periods/day
+    })),
+  [fundingRates])
 
-const FuturesBasis = memo(function FuturesBasis({ currentPrice }) {
-  const spot = currentPrice ?? 44100
+  const basis = useMemo(() => {
+    if (!symbol) return null
+    const rows = []
+    for (const [key, px] of Object.entries(prices || {})) {
+      const [ex, sym] = key.split('|')
+      if (sym === symbol) rows.push({ ex, px })
+    }
+    if (rows.length < 2) return null
+    const ref = Math.min(...rows.map(r => r.px))
+    for (const r of rows) {
+      r.basis = r.px - ref
+      r.basisPct = ref > 0 ? (r.basis / ref) * 100 : 0
+    }
+    rows.sort((a, b) => a.px - b.px)
+    return { rows, spreadPct: rows[rows.length - 1].basisPct, cheapest: rows[0], richest: rows[rows.length - 1] }
+  }, [prices, symbol])
 
-  const stats = STATS
+  // Accumulate observed cross-exchange spread (5s throttle, cap 60)
+  const historyRef = useRef([])
+  useEffect(() => {
+    if (!basis) return
+    const last = historyRef.current[historyRef.current.length - 1]
+    if (last && Date.now() - last.t < 5000) return
+    historyRef.current.push({ t: Date.now(), v: basis.spreadPct })
+    if (historyRef.current.length > 60) historyRef.current.shift()
+  }, [basis])
+  const history = historyRef.current
+  const histMax = Math.max(...history.map(h => h.v), 0.01)
+
+  const bestFunding = funding.length ? funding.reduce((a, b) => (Math.abs(b.apr) > Math.abs(a.apr) ? b : a)) : null
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <SectionTitle icon={Calendar} title="Futures Basis" iconColor="text-accent-purple" right={<span className="text-[10px] text-gray-600">Spot: ${formatPrice(spot, 0)}</span>} />
+      <SectionTitle icon={Calendar} title="Futures Basis" iconColor="text-accent-purple" right={<span className="text-[10px] text-gray-600">Spot: ${formatPrice(currentPrice ?? 0, 0)}</span>} />
 
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-1">
-        <StatCard label="Best APR" value={`${stats.bestAPR.toFixed(1)}%`} color="text-accent-green" />
-        <StatCard label="Max Basis" value={`${stats.bestBasis.basisPct.toFixed(2)}%`} color="text-accent-yellow" />
-        <StatCard label="Structure" value={stats.contango ? 'Contango' : 'Backwardation'} color={stats.contango ? 'text-accent-green' : 'text-accent-red'} />
-      </div>
+      {funding.length === 0 && !basis ? (
+        <div className="text-gray-500 text-[10px] p-2">No funding or cross-exchange price data yet</div>
+      ) : (
+        <>
+          {/* Summary */}
+          <div className="grid grid-cols-3 gap-1">
+            <StatCard label="Venues" value={basis ? basis.rows.length : 0} color="text-gray-300" />
+            <StatCard label="X-Exch Spread" value={basis ? `${basis.spreadPct.toFixed(3)}%` : '—'} color="text-accent-yellow" />
+            <StatCard label="Max Funding APR" value={bestFunding ? `${bestFunding.apr.toFixed(1)}%` : '—'} color="text-accent-green" />
+          </div>
 
-      {/* Basis table */}
-      <div>
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Basis by Expiry</div>
-        <div className="space-y-0.5">
-          {MOCK_BASIS.map(b => (
-            <div key={b.expiry} className="grid grid-cols-6 gap-1 py-0.5 px-1.5 bg-bg-700 items-center">
-              <span className="text-[10px] text-gray-300 font-mono">{b.expiry}</span>
-              <span className="text-[10px] font-mono text-gray-400">${formatPrice(b.futures, 0)}</span>
-              <span className={`text-[10px] font-mono ${basisColor(b.basisPct)}`}>+{b.basis}</span>
-              <span className={`text-[10px] font-mono ${basisColor(b.basisPct)}`}>{b.basisPct.toFixed(2)}%</span>
-              <span className="text-[10px] font-mono text-gray-500">{b.funding.toFixed(3)}%</span>
-              <span className="text-[10px] font-mono text-accent-green">{b.apr.toFixed(1)}%</span>
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-6 gap-1 mt-0.5 text-[8px] text-gray-600 px-1.5">
-          <span>Expiry</span>
-          <span>Futures</span>
-          <span>Basis</span>
-          <span>Basis%</span>
-          <span>Fund/8h</span>
-          <span>APR</span>
-        </div>
-      </div>
-
-      {/* Basis history chart */}
-      <div className="p-2 bg-bg-700 border border-bg-600">
-        <div className="text-[10px] text-gray-600 uppercase mb-1">Basis Trend (7 days)</div>
-        <div className="flex items-end gap-1 h-16">
-          {MOCK_HISTORY.map((h, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-              <div className="flex items-end gap-0.5 h-12">
-                <div className="w-1.5 bg-accent-blue" style={{ height: `${(h.basis1M / 2.5) * 100}%` }} />
-                <div className="w-1.5 bg-accent-purple" style={{ height: `${(h.basis3M / 7) * 100}%` }} />
+          {/* Funding rates */}
+          {funding.length > 0 && (
+            <div>
+              <div className="text-[10px] text-gray-600 uppercase mb-1">Perp Funding by Exchange</div>
+              <div className="space-y-0.5">
+                {funding.map(f => (
+                  <div key={f.ex} className="grid grid-cols-3 gap-1 py-0.5 px-1.5 bg-bg-700 items-center">
+                    <span className="text-[10px] text-gray-300 font-mono">{f.ex}</span>
+                    <span className={`text-[10px] font-mono ${f.rate >= 0 ? 'text-accent-red' : 'text-accent-green'}`}>
+                      {(f.rate * 100).toFixed(4)}%/8h
+                    </span>
+                    <span className="text-[10px] font-mono text-accent-green text-right">{f.apr.toFixed(1)}% APR</span>
+                  </div>
+                ))}
               </div>
-              <span className="text-[7px] text-gray-600">{h.day}</span>
             </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-3 mt-1 text-[8px]">
-          <span className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-accent-blue" />1M Basis
-          </span>
-          <span className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-accent-purple" />3M Basis
-          </span>
-        </div>
-      </div>
+          )}
 
-      {/* Opportunity alert */}
-      <WarningBanner icon={DollarSign} color="text-accent-green">
-        Best opportunity: 3M expiry at {stats.bestBasis.apr.toFixed(1)}% APR
-      </WarningBanner>
+          {/* Cross-exchange basis */}
+          {basis && (
+            <div>
+              <div className="text-[10px] text-gray-600 uppercase mb-1">Cross-Exchange Basis ({symbol})</div>
+              <div className="space-y-0.5">
+                {basis.rows.map(r => (
+                  <div key={r.ex} className="grid grid-cols-3 gap-1 py-0.5 px-1.5 bg-bg-700 items-center">
+                    <span className="text-[10px] text-gray-300 font-mono">{r.ex}</span>
+                    <span className="text-[10px] font-mono text-gray-400">${formatPrice(r.px, 0)}</span>
+                    <span className={`text-[10px] font-mono text-right ${basisColor(r.basisPct)}`}>
+                      {r.basisPct >= 0 ? '+' : ''}{r.basisPct.toFixed(3)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Spread history */}
+          {history.length > 1 && (
+            <div className="p-2 bg-bg-700 border border-bg-600">
+              <div className="text-[10px] text-gray-600 uppercase mb-1">Observed Spread (session)</div>
+              <div className="flex items-end gap-px h-12">
+                {history.map((h, i) => (
+                  <div key={i} className="flex-1 bg-accent-blue opacity-70" style={{ height: `${Math.max(3, (h.v / histMax) * 100)}%` }} />
+                ))}
+              </div>
+              <div className="flex justify-between mt-0.5 text-[8px] text-gray-600">
+                <span>{history.length} samples</span>
+                <span>max {histMax.toFixed(3)}%</span>
+              </div>
+            </div>
+          )}
+
+          {basis && basis.spreadPct > 0.1 && (
+            <WarningBanner icon={DollarSign} color="text-accent-green">
+              Basis spread {basis.spreadPct.toFixed(3)}%: buy {basis.cheapest.ex}, sell {basis.richest.ex}
+            </WarningBanner>
+          )}
+        </>
+      )}
     </div>
   )
 })

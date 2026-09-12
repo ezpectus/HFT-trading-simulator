@@ -2,34 +2,39 @@ import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import OptionsChain from '../components/OptionsChain'
 
+const NOW_S = Math.floor(Date.now() / 1000)
+const CANDLES = Array.from({ length: 60 }, (_, i) => ({
+  symbol: 'BTC/USDT', exchange: 'binance', timestamp: NOW_S - (60 - i) * 60,
+  open: 44000 + Math.sin(i / 4) * 200, high: 44200 + Math.sin(i / 4) * 200,
+  low: 43800 + Math.sin(i / 4) * 200, close: 44000 + Math.sin(i / 4) * 200, volume: 100,
+}))
+
 describe('OptionsChain', () => {
-  it('renders options chain with strikes', () => {
-    render(<OptionsChain currentPrice={44100} />)
+  it('renders BS-priced chain from real realized vol', () => {
+    render(<OptionsChain currentPrice={44100} candles={CANDLES} exchange="binance" symbol="BTC/USDT" />)
     expect(screen.getByText('Options Chain')).toBeInTheDocument()
-    expect(screen.getAllByText('$38,000').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('$44,000').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('$50,000').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Realized σ')).toBeInTheDocument()
+    expect(screen.getByText('Exp. Move')).toBeInTheDocument()
   })
 
-  it('shows summary stats (PCR, IV, volumes)', () => {
-    render(<OptionsChain currentPrice={44100} />)
-    expect(screen.getByText('PCR')).toBeInTheDocument()
-    expect(screen.getByText('Avg IV')).toBeInTheDocument()
-    expect(screen.getByText('Call Vol')).toBeInTheDocument()
-    expect(screen.getByText('Put Vol')).toBeInTheDocument()
+  it('shows strike rows with call/put prices and deltas', () => {
+    render(<OptionsChain currentPrice={44100} candles={CANDLES} exchange="binance" symbol="BTC/USDT" />)
+    // strikes render as formatted prices; deltas carry Δ suffix
+    expect(screen.getAllByText(/Δ/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/^\$/).length).toBeGreaterThan(4)
   })
 
-  it('shows strike details on click', () => {
-    render(<OptionsChain currentPrice={44100} />)
-    const strikeEls = screen.getAllByText('$44,000')
-    fireEvent.click(strikeEls[0].closest('div[class*="cursor"]') || strikeEls[0])
-    expect(screen.getByText('Delta: 0.58')).toBeInTheDocument()
-    expect(screen.getByText('Delta: -0.42')).toBeInTheDocument()
+  it('shows BS greeks on strike click', () => {
+    const { container } = render(<OptionsChain currentPrice={44100} candles={CANDLES} exchange="binance" symbol="BTC/USDT" />)
+    fireEvent.click(container.querySelector('.cursor-pointer'))
+    expect(screen.getByText(/BS greeks/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Delta:/).length).toBe(2) // call + put
+    expect(screen.getAllByText(/Gamma:/).length).toBe(2)
+    expect(screen.getAllByText(/Theta\/d:/).length).toBe(2)
   })
 
-  it('handles null currentPrice with fallback', () => {
-    render(<OptionsChain currentPrice={null} />)
-    expect(screen.getByText('Options Chain')).toBeInTheDocument()
-    expect(screen.getByText('BTC/USDT @ $44,100')).toBeInTheDocument()
+  it('shows empty state without candles', () => {
+    render(<OptionsChain currentPrice={44100} candles={[]} exchange="binance" symbol="BTC/USDT" />)
+    expect(screen.getByText(/Need candles to estimate realized vol/)).toBeInTheDocument()
   })
 })
