@@ -920,3 +920,12 @@ Repo-wide zero-importer scan завершён по всем кодовым ба�
 - web-ui/src: единственный остаток — ExchangeSelector (S126 keep-решение).
 - scripts: 4 zero-ref = живые entry-points (Makefile targets benchmark/walk-forward; ci-equivalence верификатор; run-all.sh local-CI).
 - Находок: 0. Паттерн zero-importer исчерпан repo-wide.
+
+## Round 52 — 2026-09-12 — slop-verify: S125 self-QA + Medium/Low tail → 11/11 VERIFIED
+
+Post-fix adversarial verify:
+
+- S125 (High): 5 WS endpoints dispatched (signal_publisher:217-230), shm+alerting wired behind flags (run.py:181-186), sync_state+funding stored (ws_client:182-198), 5 панелей send+consume (registry:408-681), results routed (useExchangeData:304-316) — VERIFIED.
+- S126: keep-решение на месте — VERIFIED.
+- Old tail: S072 (nginx headers), S073 (compose pins), S077 (price_feed удалены), S083 (OCO на fill-путях), S084 (nested pkg), S089 (candles_data), S099 (ConnectionClosed+kelly caps), S108 (ci-equivalence прогнан — PASS), S118 (.pyc purge держится, 3 инертных residue) — все VERIFIED.
+- WRONG/ROTTED: 0.
