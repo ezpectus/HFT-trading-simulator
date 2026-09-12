@@ -880,3 +880,19 @@ No WRONG/ROTTED entries — nothing reopened.
 - **S111 (High):** retro-stamp — механизм проверен в R41 (fills_batch:114 + error→lastError).
 
 Итого за R48: 24 claims verified, 0 wrong/rotted.
+
+## Round 48d — slop-verify batch 4 (11 claims, all VERIFIED)
+
+- **S035:** nested `candles[exchange][symbol]` — 0 sites (remaining `[a][b]` = matrix math).
+- **S036:** `format.ts` — 7 exports живы.
+- **S039:** HAMMER/SHOOTING_STAR — реальные wick/body условия (patterns.ts:45-62).
+- **S040:** `initPerformanceMonitoring()` вызывается в DashboardProfiler:33; INP вместо устаревшего FID.
+- **S051:** `islice`-хвост deque — exchange.py:12,122.
+- **S062:** `submit_order` bool-контракт с doc "callers must not book position on false" (order_executor.h:96-98).
+- **S064:** `unwind_buy_leg` lambda — order_executor.h:223+.
+- **S066:** nightly-backtest — реальный `sys.exit(1)` гейт (:212), `::error::` аннотации, avg<-5% регрессия.
+- **S067:** deploy health-check — 9092 = prod-published порт ai-bot metrics (docker-compose.prod.yml:101 `9092:9090`); все 4 endpoint'а = реальные prod-порты.
+- **S075:** README — 0 Rust/SOR/FIX/mmap фантомов.
+- **S004:** weak-assert доля 13% (507/3774) — остаток = легитимные len/type guards, claim держится.
+
+R48 итог: **34 claims verified, 0 WRONG/ROTTED.** S050 (2 теста ловили баги — исторический claim) не стемпан: нет дешёвого способа adversarial-проверки.
