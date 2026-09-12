@@ -666,3 +666,33 @@ All six registry entries now pass live ctx props. Their tests were rewritten: ol
 
 - refactor: `range(len())` → `zip`/`enumerate`/`np.arange` in rkhs, free_energy, emd, hmc, plotter (S005 partial)
 - test: exact-value asserts in test_portfolio, init-bound tests in test_vae (S034 continued)
+
+## Round 6 addendum — S042: failing tests caught real bugs
+
+Two pre-existing test failures turned out to be **real defects**, not stale tests:
+
+- **`hmc.py::grad_log_posterior`** — claimed analytical GARCH(1,1) gradient but was
+  inconsistent with `log_posterior` in three ways: (1) no prior gradient
+  (-10ω, -5α, -5β missing entirely), (2) different variance recursion —
+  prev-return `r²[t-1]` vs objective's current-return `r²[t]`,
+  (3) wrong seed derivatives: h₋₁ = ω/(1−α−β) has ∂/∂ω = 1/(1−α−β),
+  ∂/∂α = ∂/∂β = ω/(1−α−β)² — code seeded [1.0, r²[0], h[0]].
+  Rewritten to differentiate the actual objective. Finite-diff test now passes.
+- **`emd.py::sift`** — maxima/minima are interior-only, so the cubic-spline
+  envelopes *extrapolated* at indices 0 and n−1 and diverged over 50 sift
+  iterations (IMF mean −13.5 on a ±2.5 signal). Fixed with endpoint-anchored
+  knots (index 0 and n−1 pinned to h[0]/h[-1]) — standard EMD endpoint handling.
+  `test_imf_has_zero_mean` now passes.
+
+Verification: `pytest tests/test_emd.py tests/test_hmc.py tests/test_rkhs.py tests/test_free_energy.py` — **138/138 green** (was 136/138).
+
+### S043 — deque slicing → TypeError (8 failing tests, one root cause)
+
+`_order_history` was changed to `deque(maxlen=10000)` (`exchange.py:60`) but
+`get_order_history` still sliced it (`self._order_history[-limit:]`).
+`collections.deque` has no `__getitem__` slice support → `TypeError` on every
+call. Same bug in `arbitrage.py:256` (`_closed_history`). Downstream victims:
+`data_export.py` (export summary/orders), arbitrage integration. Fixed with
+`islice` tail (no full-deque copy) in exchange.py and `list()` wrap in
+arbitrage.py. `market_simulator.py` `[-n:]` sites are plain lists — clean.
+**88/88 green** across the 5 previously-failing test files.
