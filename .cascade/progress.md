@@ -896,3 +896,11 @@ No WRONG/ROTTED entries — nothing reopened.
 - **S004:** weak-assert доля 13% (507/3774) — остаток = легитимные len/type guards, claim держится.
 
 R48 итог: **34 claims verified, 0 WRONG/ROTTED.** S050 (2 теста ловили баги — исторический claim) не стемпан: нет дешёвого способа adversarial-проверки.
+
+## Round 49 — 2026-09-12 — slop-audit: zero-importer sweep → S125+S126
+
+Repo-wide zero-importer scan (модули без prod-импортеров):
+
+- **S125 (new, High, open):** ai-bot dead-cluster ~1900 строк — `communication/shm_*` остров (4 файла, 641 строка: hft↔bot SHM-канал, run.py не инстанцирует), `monitoring/alerting.py` (271), `risk/{cvar,position_sizing,stress_test}` (579, читает только __init__-реэкспорт), `strategies/funding_arb_detector.py` (269), `technical_analysis/{hawkes_funcs,hawkes_model}` (204). Все живут через test-only импорты.
+- **S126 (new, Medium, open):** web-ui dead-residue — `ExchangeSelector.jsx` (не в registry), `useInterval.{js,ts}` оба твина, `usePerformance.js`, `auditExport.js`, `cn.js` — все test-only.
+- ЧИСТО: exchange_simulator — 0 мёртвых prod-модулей (все ZERO-хиты = pytest-collected tests + entry points); walk_forward/helpers живы (run_backtest.py, run.py); web-ui остальные файлы импортируются.

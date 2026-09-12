@@ -1403,3 +1403,15 @@ First QA pass over the R26–R35 done-log era (never re-checked until now):
 | S095 | High | src/research deleted | dir absent, 0 orphan imports |
 
 No WRONG/ROTTED entries.
+
+## Round 49 — 2026-09-12 — zero-importer sweep → S125 dead-module cluster + S126 web-ui residue
+
+- **S125 (High) → Open.** Systematic zero-importer scan of `ai-signal-bot/src` (70 modules): 11 modules (~1900 lines) have no production importer — they survive only through their own test files or `risk/__init__.py` re-exports:
+  - `communication/shm_ring_buffer.py` (327) + `shm_signal_producer.py` (99) + `shm_market_data_writer.py` (124) + `shm_fill_consumer.py` (91) — a designed hft↔bot SHM IPC island; `run.py` instantiates none of them (only a health-check name mentions "shm").
+  - `monitoring/alerting.py` (271) — `AlertSystem`, test-only.
+  - `risk/cvar.py` (179) + `position_sizing.py` (198) + `stress_test.py` (202) — imported only by `risk/__init__.py` re-export + own tests.
+  - `strategies/funding_arb_detector.py` (269) — `FundingRateArbitrageDetector`, test-only.
+  - `technical_analysis/hawkes_funcs.py` (113, zero refs at all) + `hawkes_model.py` (91, test-only).
+  Same class as S117 — needs per-domain wire-vs-delete calls.
+- **S126 (Medium) → Open.** web-ui zero-importer residue: `ExchangeSelector.jsx` (no importers, absent from panel registry — cannot mount), `useInterval.js`+`.ts` (both twins dead), `usePerformance.js`, `utils/auditExport.js`, `utils/cn.js` — each survives only via its own test file (~1000 lines incl. tests).
+- **Verified clean:** `exchange_simulator` — zero dead prod modules (all scan hits are pytest-collected tests/entry points); `walk_forward.py` live via `run_backtest.py`+`optimizer.py`+script; `utils/helpers.py` live via `run.py`.
