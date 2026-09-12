@@ -1303,3 +1303,10 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 - **S116 (Low) — Open.** `signal_publisher` implements a full auth handshake (`auth`→`auth_ok`/`auth_failed`+close) that is unreachable: `run.py:83` never passes `auth_token` (default `''` = off), no config key feeds it, and the web-ui has **no auth client at all** — arming it would lock the UI out with an unhandled `auth_failed`. Looks like security, works as neither. Options: wire the token through config + a UI auth message, or delete the handshake as dead code.
 - Signal→UI completeness: bot emits `auth_ok`/`auth_failed`/`signal`/`signal_history`/`market_regime`/`circuit_breaker_status`/`backtest_result`/`comparison_result` — all except the dead auth pair are handled.
 - ЧИСТО: all `JSON.parse(localStorage)` guarded; `new Function` in CustomIndicatorPlugin is eval-by-design (self-XSS only); `useWebSocket` sends `sync_state`+`subscribe` on open; README test claims: none.
+
+## Round 36b — 2026-09-12 — dead modules + pyc residue
+
+- **S117 (Medium) — Open.** `src/portfolio/` (4 modules, ~630 lines) + `src/pricing/volatility_surface.py` (214 lines, SVI/SABR) have **zero live importers** — consumed only by their own ~41 tests. Same unwired-feature class as `database/` (S109); decide together.
+- **S118 (Low) → Done.** 162 stale `.pyc` files — bytecode of deleted modules (`fix_client`, `real_exchange_client`, `portfolio_optimizer`, `hawkes`...) and deleted tests inside live `__pycache__` dirs. S104 removed whole husks but missed scattered residue. Purged all `__pycache__` (regenerates).
+- Verified clean: liquidation/SL-TP math correct (priority order, force_close margin bypass, insurance-fund deficit cover); `data_collection` is live (real-order path); `signal_validation`/`monitoring`/`utils` wired via run.py.
+- **Verified:** 41 dead-module tests still green post-purge.
