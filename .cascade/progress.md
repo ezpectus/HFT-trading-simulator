@@ -910,3 +910,13 @@ Repo-wide zero-importer scan (модули без prod-импортеров):
 - **S125 → Done (wire all).** Backend: `analysis_requests.py` (5 WS endpoints — cvar_analysis, stress_test, position_size, hawkes_fit, funding_arb_scan) + диспетч в signal_publisher; SHM-канал в run.py за `shm.enabled` (producer/market/fill-consumer + fills→db); AlertSystem за `alerting.enabled` (4 ops-правила, env-каналы); ws_client: sync_state + funding_rates; config: shm/alerting секции + 11 properties; багфикс push_signal_dict (секунды→ns). UI: 5 панелей — backend-кнопки (HawkesProcess→hawkes_fit, CVaR→cvar_analysis, PosSize→position_size, FundingHistory→funding_arb_scan, RiskDashboard→stress_test) + 5 result-стейтов в useSignalData + registry props. +30 backend-тестов, полный suite 1519 green.
 - **S126 → Done (keep).** User выбрал keep-all — 6 файлов остаются utility library; закрыто без изменений.
 - Protocol docs: WEBSOCKET_PROTOCOL.md — 5 новых request/response типов + summary table; .env.prod.example — ALERT_* env names.
+
+## Round 51 — 2026-09-12 — slop-audit: zero-importer sweep tail (C++/scripts/web-ui residue) → clean
+
+Repo-wide zero-importer scan завершён по всем кодовым базам:
+
+- hft-trade-bot: 42 исходника, **0 мёртвых** (все .cpp в CMake SOURCES; pch.h — target_precompile_headers; aligned_types.h/ws_client.h широко инклудятся — первый прогон дал false-positive из-за `../`-prefixed include-строк).
+- exchange_simulator: 24 файла, 0.
+- web-ui/src: единственный остаток — ExchangeSelector (S126 keep-решение).
+- scripts: 4 zero-ref = живые entry-points (Makefile targets benchmark/walk-forward; ci-equivalence верификатор; run-all.sh local-CI).
+- Находок: 0. Паттерн zero-importer исчерпан repo-wide.
