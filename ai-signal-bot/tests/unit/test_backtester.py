@@ -51,7 +51,7 @@ class TestBacktesterRun:
         result = bt.run(candles, strategy, symbol="BTC/USDT", warmup=50)
         assert isinstance(result, BacktestResult)
         assert result.initial_balance == 10000.0
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == 51  # 100 candles - warmup 50 + initial point
 
     def test_no_trades_neutral_market(self):
         candles = make_candles(100, trend=0.0, seed=99)
@@ -66,10 +66,11 @@ class TestBacktesterRun:
         bt = Backtester()
         strategy = TrendFollowingStrategy(ema_fast=9, ema_slow=21)
         result = bt.run(candles, strategy, warmup=50)
-        # Any open position should be closed at end
-        # Check that trades with "END" reason exist if there was an open position
-        [t for t in result.trades if t.exit_reason == "END"]
-        # Can't guarantee there's always one, but the logic should handle it
+        # Every recorded trade has an exit reason; if any trades occurred the
+        # last must close by END (final bar force-close) or SL/TP/signal
+        assert all(t.exit_reason for t in result.trades)
+        assert not result.trades or result.trades[-1].exit_reason in (
+            "END", "TAKE_PROFIT", "STOP_LOSS", "SIGNAL_EXIT")
         assert isinstance(result.final_balance, float)
 
     def test_equity_curve_starts_at_initial(self):
@@ -140,7 +141,7 @@ class TestBacktesterMetrics:
         bt = Backtester()
         strategy = TrendFollowingStrategy(ema_fast=9, ema_slow=21)
         result = bt.run(candles, strategy, warmup=50)
-        assert isinstance(result.recovery_factor, float)
+        assert result.recovery_factor >= 0  # |return|/max_drawdown is non-negative
 
 
 class TestTrade:

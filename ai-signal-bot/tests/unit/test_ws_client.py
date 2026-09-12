@@ -4,6 +4,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import websockets
 
 from src.communication.ws_client import ExchangeClient
 
@@ -102,7 +103,7 @@ class TestSubmitOrder:
 
     @pytest.mark.asyncio
     async def test_trading_stopped(self, client):
-        client._ws = AsyncMock()
+        client._ws = AsyncMock(spec=websockets.WebSocketClientProtocol)
         client._connected = True
         client._trading_active = False
         await client.submit_order("BTC/USDT", "buy", 1.0)
@@ -110,7 +111,7 @@ class TestSubmitOrder:
 
     @pytest.mark.asyncio
     async def test_order_sent(self, client):
-        client._ws = AsyncMock()
+        client._ws = AsyncMock(spec=websockets.WebSocketClientProtocol)
         client._connected = True
         client._trading_active = True
         await client.submit_order("BTC/USDT", "buy", 1.0, exchange="binance", stop_loss=49000, take_profit=51000)
@@ -132,7 +133,7 @@ class TestClosePosition:
 
     @pytest.mark.asyncio
     async def test_close_sent(self, client):
-        client._ws = AsyncMock()
+        client._ws = AsyncMock(spec=websockets.WebSocketClientProtocol)
         await client.close_position("ETH/USDT", exchange="okx")
         client._ws.send.assert_called_once()
         sent = json.loads(client._ws.send.call_args[0][0])
@@ -144,7 +145,7 @@ class TestClosePosition:
 class TestDisconnect:
     @pytest.mark.asyncio
     async def test_disconnect_clears_state(self, client):
-        client._ws = AsyncMock()
+        client._ws = AsyncMock(spec=websockets.WebSocketClientProtocol)
         ws_mock = client._ws
         client._connected = True
         await client.disconnect()

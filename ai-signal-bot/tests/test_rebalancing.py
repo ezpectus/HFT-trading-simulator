@@ -26,7 +26,8 @@ class TestRebalancing:
 
     def test_rebalancing_strategy_creation(self):
         strategy = RebalancingStrategy()
-        assert strategy is not None
+        assert isinstance(strategy, RebalancingStrategy)
+        assert strategy.transaction_cost == 0.001  # default cost model
 
     def test_rebalance_drift_based(self):
         strategy = RebalancingStrategy()

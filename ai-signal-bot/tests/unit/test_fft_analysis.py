@@ -80,10 +80,8 @@ class TestDominantCycles:
         n = 128
         closes = [100 + 10 * math.sin(2 * math.pi * i / 16) for i in range(n)]
         cycles = dominant_cycles(closes, top_n=3)
-        assert len(cycles) > 0
-        # Should find a cycle near period 16
-        periods = [c[0] for c in cycles]
-        assert any(10 < p < 25 for p in periods)
+        assert len(cycles) == 1  # pure 16-bar sine → exactly one dominant cycle
+        assert cycles[0][0] == pytest.approx(16, rel=0.1)
 
     def test_empty_input(self):
         cycles = dominant_cycles([], top_n=3)

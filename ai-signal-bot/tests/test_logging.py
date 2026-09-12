@@ -7,15 +7,15 @@ from src.observability.logging import get_logger, setup_logging
 class TestLogging:
     def test_get_logger_returns_logger(self):
         log = get_logger("test_module")
-        assert log is not None
+        assert log.bind().info is not None and hasattr(log, "bind")  # structlog proxy exposes bind/info
 
     def test_setup_logging_idempotent(self):
         setup_logging(service="test", level="DEBUG")
         setup_logging(service="test", level="INFO")  # should not reconfigure
         log = get_logger("test")
-        assert log is not None
+        assert callable(log.info) and callable(log.bind)  # working structlog proxy
 
     def test_setup_logging_with_json(self):
         setup_logging(service="test_json", level="INFO", json_logs=True)
         log = get_logger("test_json")
-        assert log is not None
+        assert callable(log.info) and callable(log.bind)  # json-mode logger still works

@@ -61,7 +61,7 @@ class TestBacktestEngineRun:
         result = engine.run(candles, always_long, "BTCUSDT")
         assert isinstance(result, BacktestResult)
         assert result.total_trades > 0
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == 50  # 100 candles - lookback 50
 
     def test_neutral_strategy_no_trades(self):
         np.random.seed(42)
@@ -116,7 +116,7 @@ class TestBacktestMetrics:
         engine = BacktestEngine()
         candles = make_candles(200, trend=0.003)
         result = engine.run(candles, always_long, "BTCUSDT")
-        assert isinstance(result.sharpe_ratio, float)
+        assert result.sharpe_ratio > 0  # always-long on uptrend earns positive sharpe
 
     def test_total_return(self):
         np.random.seed(42)

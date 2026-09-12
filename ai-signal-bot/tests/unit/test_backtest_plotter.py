@@ -53,13 +53,13 @@ class TestBacktestPlotter:
         import matplotlib
         matplotlib.use("Agg")
         fig = plotter.plot_equity_curve(mock_result, "Test Equity")
-        assert fig is not None
+        assert fig.axes and fig.axes[0].lines  # plotted line exists
 
     def test_plot_trade_pnl(self, plotter, mock_result):
         import matplotlib
         matplotlib.use("Agg")
         fig = plotter.plot_trade_pnl(mock_result, "Test PnL")
-        assert fig is not None
+        assert fig.axes and len(fig.axes[0].patches) > 0  # bar chart rendered
 
     def test_plot_trade_pnl_no_trades(self, plotter):
         import matplotlib
@@ -74,21 +74,21 @@ class TestBacktestPlotter:
             equity_curve=[10000], trades=[],
         )
         fig = plotter.plot_trade_pnl(result)
-        assert fig is not None
+        assert fig.axes  # zero-trade result still renders axes
 
     def test_plot_comparison(self, plotter, mock_result):
         import matplotlib
         matplotlib.use("Agg")
         results = {"Strategy A": mock_result}
         fig = plotter.plot_comparison(results)
-        assert fig is not None
+        assert fig.axes and fig.axes[0].lines  # comparison line plotted
 
     def test_plot_metrics_radar(self, plotter, mock_result):
         import matplotlib
         matplotlib.use("Agg")
         results = {"Strategy A": mock_result}
         fig = plotter.plot_metrics_radar(results)
-        assert fig is not None
+        assert fig.axes and fig.axes[0].lines  # radar polygon drawn
 
     def test_save_all(self, plotter, mock_result):
         import matplotlib

@@ -39,8 +39,8 @@ class TestStrategyOptimizer:
         assert len(results) == 4  # 2 ema_fast × 2 ema_slow × 1 adx_threshold
         assert all(hasattr(r, "fitness") for r in results)
         # Results should be sorted by fitness descending
-        for i in range(len(results) - 1):
-            assert results[i].fitness >= results[i + 1].fitness
+        for a, b in zip(results, results[1:], strict=False):
+            assert a.fitness >= b.fitness
 
     def test_grid_search_empty(self):
         candles = make_trending_candles(n=10, slope=0.5)
@@ -104,7 +104,7 @@ class TestStrategyOptimizer:
             test_size=50,
             warmup=50,
         )
-        assert len(results) > 0
+        assert len(results) == 4  # 400 candles, warmup 50, train 150 + test 50 → 4 windows
 
     def test_sharpe_fitness(self):
         from src.backtesting.backtester import BacktestResult

@@ -61,7 +61,7 @@ class TestSignalBotConfig:
 
     def test_load_without_validation(self, config_file):
         cfg = SignalBotConfig.load(config_file, validate=False)
-        assert cfg.raw is not None
+        assert cfg.raw["trading"] is not None or isinstance(cfg.raw, dict)
 
     def test_validate_returns_no_errors_for_valid_config(self, config_file):
         cfg = SignalBotConfig.load(config_file, validate=False)

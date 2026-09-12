@@ -42,6 +42,7 @@ class TestTrendFollowingStrategy:
         candles = make_candles(100, trend=0.0)
         result = strategy.analyze("BTC/USDT", candles)
         assert isinstance(result, Signal)
+        assert result.direction == SignalDirection.NEUTRAL  # ranging market → no entry
 
     def test_name_attribute(self, strategy):
         assert strategy.name == "trend_following"

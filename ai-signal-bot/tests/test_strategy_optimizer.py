@@ -11,7 +11,7 @@ class TestStrategyOptimizer:
         return StrategyOptimizer(Backtester(initial_balance=10000))
 
     def test_creation(self, optimizer):
-        assert optimizer is not None
+        assert optimizer.fitness_fn is not None  # default sharpe fitness bound
 
     def test_grid_search_returns_results(self, optimizer):
         from src.strategies.strategies import TrendFollowingStrategy
@@ -30,5 +30,5 @@ class TestStrategyOptimizer:
             candles=candles, symbol="BTC/USDT", warmup=30,
         )
         assert isinstance(results, list)
-        assert len(results) > 0
+        assert len(results) == 2  # grid: ema_fast×2 · ema_slow×1 · adx×1
         assert all(isinstance(r, OptimizationResult) for r in results)

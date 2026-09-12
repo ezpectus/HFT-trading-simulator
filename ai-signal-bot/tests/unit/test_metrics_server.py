@@ -121,7 +121,7 @@ class TestMetricsCollector:
     def test_render_returns_string(self):
         mc = MetricsCollector()
         result = mc.render()
-        assert isinstance(result, str)
+        assert "# HELP ai_signal_bot_" in result and "# TYPE" in result  # prometheus exposition format
 
     def test_render_ends_with_newline(self):
         mc = MetricsCollector()

@@ -34,7 +34,7 @@ class TestRunBacktest:
         assert "win_rate" in r
         assert "equity_curve" in r
         assert "final_balance" in r
-        assert len(r["equity_curve"]) > 0
+        assert len(r["equity_curve"]) == 151  # 200 candles - warmup 50 + initial point
 
     @pytest.mark.asyncio
     async def test_backtest_all_strategies(self, publisher):

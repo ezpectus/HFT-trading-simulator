@@ -238,4 +238,4 @@ class TestStrategyOptimizer:
             test_size=10,
             warmup=5,
         )
-        assert len(results) > 0
+        assert len(results) == 7  # 100 candles, warmup 5, train 20 + test 10 → 7 windows

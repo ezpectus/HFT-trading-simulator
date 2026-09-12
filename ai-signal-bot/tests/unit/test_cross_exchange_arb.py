@@ -79,7 +79,7 @@ class TestExecutionResult:
 
 class TestCrossExchangeArbEngine:
     def test_init_defaults(self):
-        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(), "okx": MagicMock()})
+        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(spec=["place_order"]), "okx": MagicMock(spec=["place_order"])})
         assert "BTC/USDT" in engine.symbols
         assert engine.min_profit_bps == 5.0
         assert engine.max_position_usd == 1000.0
@@ -88,7 +88,7 @@ class TestCrossExchangeArbEngine:
 
     def test_init_custom(self):
         engine = CrossExchangeArbEngine(
-            exchanges={"binance": MagicMock()},
+            exchanges={"binance": MagicMock(spec=["place_order"])},
             symbols=["BTC/USDT"],
             min_profit_bps=10.0,
             max_position_usd=5000.0,
@@ -100,25 +100,25 @@ class TestCrossExchangeArbEngine:
         assert engine.max_open_positions == 10
 
     def test_update_price(self):
-        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(), "okx": MagicMock()})
+        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(spec=["place_order"]), "okx": MagicMock(spec=["place_order"])})
         ep = ExchangePrice("binance", bid=50000, ask=50010, bid_qty=1, ask_qty=1)
         engine.update_price("BTC/USDT", "binance", ep)
         assert "BTC/USDT" in engine.prices
         assert "binance" in engine.prices["BTC/USDT"]
 
     def test_detect_opportunity_no_prices(self):
-        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(), "okx": MagicMock()})
+        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(spec=["place_order"]), "okx": MagicMock(spec=["place_order"])})
         assert engine._detect_opportunity("BTC/USDT") is None
 
     def test_detect_opportunity_single_exchange(self):
-        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(), "okx": MagicMock()})
+        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(spec=["place_order"]), "okx": MagicMock(spec=["place_order"])})
         ep = ExchangePrice("binance", bid=50000, ask=50010, bid_qty=1, ask_qty=1)
         engine.update_price("BTC/USDT", "binance", ep)
         assert engine._detect_opportunity("BTC/USDT") is None
 
     def test_detect_opportunity_two_exchanges(self):
         engine = CrossExchangeArbEngine(
-            exchanges={"binance": MagicMock(), "okx": MagicMock()},
+            exchanges={"binance": MagicMock(spec=["place_order"]), "okx": MagicMock(spec=["place_order"])},
             min_profit_bps=0.0,
         )
         engine.update_price("BTC/USDT", "binance", ExchangePrice("binance", bid=50050, ask=50000, bid_qty=1, ask_qty=1))
@@ -129,7 +129,7 @@ class TestCrossExchangeArbEngine:
             assert opp.sell_exchange == "okx"
 
     def test_get_stats(self):
-        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock()})
+        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(spec=["place_order"])})
         stats = engine.get_stats()
         assert "opportunities_detected" in stats
         assert "opportunities_executed" in stats
@@ -140,14 +140,14 @@ class TestCrossExchangeArbEngine:
 
     @pytest.mark.asyncio
     async def test_stop_without_start(self):
-        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock()})
+        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(spec=["place_order"])})
         await engine.stop()
         assert engine._running is False
 
     @pytest.mark.asyncio
     async def test_execute_leg_no_method(self):
-        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock()})
-        client = MagicMock()
+        engine = CrossExchangeArbEngine(exchanges={"binance": MagicMock(spec=["place_order"])})
+        client = MagicMock(spec=["place_order"])
         del client.place_order
         result = await engine._execute_leg(client, "BTC/USDT", "buy", 1.0, 50000)
         assert result.success is False

@@ -148,7 +148,7 @@ class TestConfigValidator:
         del raw["trading"]
         cfg = SignalBotConfig(raw=raw)
         errors, _ = cfg.validate()
-        assert len(errors) > 0
+        assert len(errors) == 2  # missing section + symbols-not-list
         assert any("trading" in e for e in errors)
 
     def test_many_positions_warning(self):

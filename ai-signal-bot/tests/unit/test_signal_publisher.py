@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import websockets
 
+from src.communication.circuit_breaker import CircuitBreaker
 from src.communication.signal_publisher import SignalPublisher
 
 
@@ -105,7 +106,7 @@ class TestBroadcastSignal:
     @pytest.mark.asyncio
     async def test_circuit_breaker_blocks_signal(self, publisher):
         """Signal should be blocked when circuit breaker is open."""
-        publisher.circuit_breaker = AsyncMock()
+        publisher.circuit_breaker = AsyncMock(spec=CircuitBreaker)
         publisher.circuit_breaker.allow_signal.return_value = False
         publisher.circuit_breaker.state.value = "open"
         signal = {"symbol": "BTC/USDT", "direction": "LONG", "confidence": 80}
@@ -116,7 +117,7 @@ class TestBroadcastSignal:
     @pytest.mark.asyncio
     async def test_circuit_breaker_records_blocked_metric(self, publisher):
         """Blocked signals should increment the metrics counter."""
-        publisher.circuit_breaker = AsyncMock()
+        publisher.circuit_breaker = AsyncMock(spec=CircuitBreaker)
         publisher.circuit_breaker.allow_signal.return_value = False
         publisher.circuit_breaker.state.value = "open"
         await publisher.broadcast_signal({"symbol": "BTC/USDT", "direction": "LONG"})

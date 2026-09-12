@@ -30,10 +30,10 @@ from src.communication.metrics_server import MetricsCollector
 
 def make_market(price=50000.0):
     """Create a mock MarketSimulator with a fixed price."""
-    market = MagicMock()
+    market = MagicMock(spec=MarketSimulator)
     market.get_price.return_value = price
     market.symbols = ["BTC/USDT"]
-    market.generate_order_book.return_value = MagicMock()
+    market.generate_order_book.return_value = MagicMock(spec=["bids", "asks", "best_bid", "best_ask"])
     market.get_history.return_value = []
     return market
 
@@ -275,8 +275,8 @@ class TestSimulatorLoadTest:
             for ex in ["binance", "bybit", "okx"]:
                 ob = sim.generate_order_book(ex, "BTC/USDT")
                 assert ob is not None
-                assert len(ob.bids) > 0
-                assert len(ob.asks) > 0
+                assert len(ob.bids) == 20  # order_book_depth=20
+                assert len(ob.asks) == 20
         elapsed = time.time() - start
 
         # 300 order book generations should complete quickly

@@ -124,9 +124,9 @@ class TestMACD:
     def test_histogram_is_difference(self):
         candles = make_candles([100 + i for i in range(50)])
         macd_line, signal_line, histogram = macd(candles)
-        for i in range(len(candles)):
-            if not math.isnan(macd_line[i]) and not math.isnan(signal_line[i]):
-                assert histogram[i] == pytest.approx(macd_line[i] - signal_line[i])
+        for m, s, h in zip(macd_line, signal_line, histogram, strict=True):
+            if not math.isnan(m) and not math.isnan(s):
+                assert h == pytest.approx(m - s)
 
 
 class TestBollingerBands:

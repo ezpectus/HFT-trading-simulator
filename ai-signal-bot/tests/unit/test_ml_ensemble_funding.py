@@ -109,7 +109,7 @@ class TestFeatureEngineer:
     def test_bollinger_pos(self):
         closes = np.arange(30, dtype=float)
         pos = FeatureEngineer._bollinger_pos(closes, 20)
-        assert isinstance(pos, float)
+        assert pos > 0.5  # monotonic ramp: last close well above band mean (z-score/2 convention)
 
     def test_momentum(self):
         closes = np.array([100, 105, 110], dtype=float)
@@ -132,7 +132,7 @@ class TestFeatureEngineer:
         lows = np.array([100, 101, 102], dtype=float)
         closes = np.array([103, 104, 105], dtype=float)
         cci = FeatureEngineer._cci(highs, lows, closes, 3)
-        assert isinstance(cci, float)
+        assert cci > 0  # closes above typical-price mean → positive CCI
 
     def test_mfi(self):
         highs = np.array([105] * 20, dtype=float)

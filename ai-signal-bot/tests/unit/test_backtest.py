@@ -40,7 +40,7 @@ class TestBacktestEngine:
         candles = make_candles(100)
         result = engine.run(candles, dummy_strategy, "BTCUSDT")
         assert result.final_equity > 0
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == 50  # 100 candles - lookback 50
         assert result.total_trades >= 0
 
     def test_empty_candles(self):

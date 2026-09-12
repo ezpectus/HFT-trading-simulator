@@ -84,7 +84,7 @@ class TestHealthChecker:
 
     @pytest.mark.asyncio
     async def test_check_readiness_unhealthy_ws(self):
-        ws_client = MagicMock()
+        ws_client = MagicMock(spec=["connected"])
         ws_client.connected = False
         checker = HealthChecker(ws_client=ws_client)
         result = await checker.check_readiness()
@@ -92,7 +92,7 @@ class TestHealthChecker:
 
     @pytest.mark.asyncio
     async def test_check_readiness_healthy_ws(self):
-        ws_client = MagicMock()
+        ws_client = MagicMock(spec=["connected"])
         ws_client.connected = True
         checker = HealthChecker(ws_client=ws_client)
         result = await checker.check_readiness()
@@ -123,7 +123,7 @@ class TestHealthChecker:
 
     @pytest.mark.asyncio
     async def test_check_readiness_degraded_exchange(self):
-        exchange = MagicMock()
+        exchange = MagicMock(spec=["is_trading_active"])
         exchange.is_trading_active = False
         checker = HealthChecker(exchange=exchange)
         result = await checker.check_readiness()
@@ -133,7 +133,7 @@ class TestHealthChecker:
 class TestTracing:
     def test_get_tracer_noop(self):
         tracer = get_tracer("test")
-        assert tracer is not None
+        assert hasattr(tracer, "start_as_current_span")  # no-op tracer still exposes OTel API
 
     def test_noop_tracer_span(self):
         tracer = get_tracer("test")
@@ -150,7 +150,7 @@ class TestTracing:
 class TestLogging:
     def test_get_logger(self):
         log = get_logger("test_module")
-        assert log is not None
+        assert callable(log.info) and callable(log.bind)  # working logger contract
 
     def test_bind_context_no_crash(self):
         bind_context(symbol="BTC/USDT", strategy="trend")

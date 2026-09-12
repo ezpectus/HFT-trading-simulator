@@ -17,4 +17,5 @@ class TestHealthChecks:
 
     def test_health_checker_creation(self):
         checker = HealthChecker()
-        assert checker is not None
+        assert isinstance(checker, HealthChecker)
+        assert hasattr(checker, "check_liveness") and hasattr(checker, "check_readiness")

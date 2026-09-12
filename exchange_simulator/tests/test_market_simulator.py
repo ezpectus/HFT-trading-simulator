@@ -83,11 +83,11 @@ class TestMarketSimulator:
         # Bids should be below asks
         assert ob.best_bid < ob.best_ask
         # Bid levels should be descending
-        for i in range(len(ob.bids) - 1):
-            assert ob.bids[i].price > ob.bids[i + 1].price
+        for a, b in zip(ob.bids, ob.bids[1:], strict=False):
+            assert a.price > b.price
         # Ask levels should be ascending
-        for i in range(len(ob.asks) - 1):
-            assert ob.asks[i].price < ob.asks[i + 1].price
+        for a, b in zip(ob.asks, ob.asks[1:], strict=False):
+            assert a.price < b.price
 
     def test_order_book_quantities_decay(self, market):
         ob = market.generate_order_book("binance", "BTC/USDT")
