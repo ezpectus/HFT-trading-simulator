@@ -2,11 +2,9 @@
 # Production configuration — real exchanges, real DB, real risk limits
 # ─────────────────────────────────────────────────────────────────────────────
 # C++20 HFT trading engine for live trading with:
-#   - Real exchange WebSocket connections (Binance, OKX, Bybit)
 #   - PostgreSQL trade persistence
 #   - Redis hot state cache
 #   - SHM IPC for Python↔C++ communication
-#   - FIX 4.4 protocol support (optional)
 #   - Kill switch with auto-cancel and auto-close
 #   - Prometheus metrics on :9091
 #
@@ -15,12 +13,10 @@
 #
 # Sections:
 #   system                    — mode, version, logging
-#   exchange                  — real exchange connections + simulator fallback
+#   exchange                  — exchange simulator endpoint
 #   ipc                       — shared memory IPC for Python↔C++
-#   fix                       — FIX 4.4 session config (optional)
 #   signal_engine_v2          — native C++ signal engine weights/thresholds
 #   pressure_model            — L2 microstructure toxicity detection
-#   smart_order_router        — cross-exchange order routing
 #   adaptive_order_selector   — dynamic order type selection
 #   risk                      — production risk limits + kill switch
 #   database                  — PostgreSQL DSN and pool config
@@ -36,58 +32,10 @@ system:
   log_file: logs/hft_trade_bot.log
 
 # ── Exchange configuration ──
-# Active exchanges listed in priority order (first = primary for order routing)
+# Exchange simulator connection
 exchange:
-  active:
-    - binance
-    - okx
-    - bybit
-
-  fallback_to_simulator: true   # Fall back to local simulator if all real exchanges down
+  fallback_to_simulator: true
   simulator_ws_url: "ws://exchange_simulator:8765"
-
-  binance:
-    enabled: true
-    ws_url: "wss://fstream.binance.com"    # Binance Futures WebSocket
-    rest_url: "https://fapi.binance.com"   # Binance Futures REST API
-    api_key: "${BINANCE_API_KEY}"          # Read from environment variable
-    api_secret: "${BINANCE_API_SECRET}"
-    rate_limit:
-      weight_per_min: 1200                 # API weight limit per minute
-      orders_per_10s: 300                  # Max orders per 10 seconds
-      orders_per_min: 1200                 # Max orders per minute
-    fees:
-      maker_bps: 0.02                      # 0.02% maker fee
-      taker_bps: 0.04                      # 0.04% taker fee
-
-  okx:
-    enabled: true
-    ws_url: "wss://ws.okx.com:8443"        # OKX WebSocket
-    rest_url: "https://www.okx.com"        # OKX REST API
-    api_key: "${OKX_API_KEY}"
-    api_secret: "${OKX_API_SECRET}"
-    passphrase: "${OKX_PASSPHRASE}"        # OKX requires passphrase
-    inst_type: "SWAP"                      # Instrument type: SWAP (perpetual)
-    rate_limit:
-      req_per_2s: 20                       # 20 requests per 2 seconds
-      order_req_per_2s: 60                 # 60 order requests per 2 seconds
-    fees:
-      maker_bps: 0.02
-      taker_bps: 0.05
-
-  bybit:
-    enabled: true
-    ws_url: "wss://stream.bybit.com"       # Bybit WebSocket
-    rest_url: "https://api.bybit.com"      # Bybit REST API
-    api_key: "${BYBIT_API_KEY}"
-    api_secret: "${BYBIT_API_SECRET}"
-    category: "linear"                     # linear (USDT) | inverse (coin)
-    rate_limit:
-      orders_per_min: 120
-      queries_per_min: 600
-    fees:
-      maker_bps: 0.01
-      taker_bps: 0.06
 
 # ── SHM IPC configuration ──
 # Shared memory ring buffers for Python↔C++ communication
@@ -106,17 +54,6 @@ ipc:
     shm_name: "/hft_kill_switch"           # Kill switch SHM flag
     trigger_file: "/tmp/kill_switch"       # File-based trigger (touch to activate)
     poll_interval_ms: 1000                 # Check interval
-
-# ── FIX 4.4 session configuration ──
-# Enable when connecting to a FIX gateway (e.g., institutional access)
-fix:
-  enabled: false                           # Enable when connecting to FIX gateway
-  sender_comp_id: "HFTBOT"                 # Our sender ID
-  target_comp_id: "EXCHANGE"               # Exchange's target ID
-  seq_file: "logs/fix_seq.txt"             # Sequence number persistence
-  heart_bt_int: 30                         # Heartbeat interval (seconds)
-  username: "${FIX_USERNAME}"
-  password: "${FIX_PASSWORD}"
 
 # ── Signal engine v2 ──
 # 6-indicator weighted composite (weights must sum to 1.0)
@@ -152,14 +89,6 @@ pressure_model:
   obi_levels: [5, 10, 20]                  # Order book depth levels for OBI
   toxicity_threshold: 0.7                  # Toxicity score above this = toxic
   microprice_enabled: true                 # Calculate microprice from L2
-
-# ── Smart order router ──
-# Routes orders across exchanges for best execution
-smart_order_router:
-  strategy: best_effective                 # best_price | lowest_latency | lowest_fees | best_effective | depth_aware
-  anti_toxic_backoff: true                 # Back off from toxic exchanges
-  toxic_threshold: 5                       # Skip exchange with ≥5 toxic events
-  toxic_cooldown_seconds: 30               # Cooldown after toxicity detected
 
 # ── Adaptive order selector ──
 # Dynamically selects order type based on confidence + spread

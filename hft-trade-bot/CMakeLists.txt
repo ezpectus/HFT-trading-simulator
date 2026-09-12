@@ -357,16 +357,12 @@ if(NOT WIN32)
     endif()
 endif()
 
-# FIX 4.4 protocol tests
-add_hft_test(test_fix tests/test_fix.cpp)
-
 # Latency tracker tests
 add_hft_test(test_latency_tracker tests/test_latency_tracker.cpp)
 
-# ─── New unit tests (monitoring, network, exchange config) ───
+# ─── New unit tests (monitoring, network) ───
 add_hft_test(test_monitoring tests/unit/test_monitoring.cpp)
 add_hft_test(test_network tests/unit/test_network.cpp)
-add_hft_test(test_exchange_config tests/unit/test_exchange_config.cpp)
 
 # ─── Integration tests ───
 if(NOT WIN32)
@@ -419,9 +415,6 @@ add_doctest_test(test_doctest_statistical_arb tests/test_doctest_statistical_arb
 
 # Mean reversion v2 doctest tests (Kalman filter, OU params, z-score tracking, signals)
 add_doctest_test(test_doctest_mean_reversion tests/test_doctest_mean_reversion.cpp)
-
-# Smart order router v2 doctest tests (5 strategies, toxic backoff, depth-aware, ExchangeBase)
-add_doctest_test(test_doctest_smart_order_router tests/test_doctest_smart_order_router.cpp)
 
 # Order manager doctest tests (lifecycle, partial fill, timeout, modify, slot reuse)
 add_doctest_test(test_doctest_order_manager tests/test_doctest_order_manager.cpp)
@@ -477,9 +470,6 @@ add_doctest_test(test_doctest_system_monitor tests/test_doctest_system_monitor.c
 
 # Order type selector + core types doctest tests (select branches, limit_price, OrderBook methods, Position PnL, side conversion)
 add_doctest_test(test_doctest_order_type_selector tests/test_doctest_order_type_selector.cpp)
-
-# FIX message doctest tests (build, finalize, parse, checksum validation round-trip, field access, edge cases)
-add_doctest_test(test_doctest_fix_message tests/test_doctest_fix_message.cpp)
 
 # Property-based tests (random market data + invariant checking: SL/TP always closes, PnL consistency, weighted avg entry)
 add_doctest_test(test_doctest_property_based tests/test_doctest_property_based.cpp)

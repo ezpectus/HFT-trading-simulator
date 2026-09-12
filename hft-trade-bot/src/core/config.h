@@ -78,12 +78,6 @@ struct Config {
     double v2_toxic_penalty{0.5};
     int    v2_body_direction_lookback{5};
 
-    // Smart order router v2
-    bool smart_router_enabled{true};
-    int  router_strategy{
-        3}; // 0=BestPrice, 1=LowestLatency, 2=LowestFees, 3=BestEffective, 4=DepthAware
-    int router_toxic_threshold{5};
-
     // Signal Engine V3 — HMM regime detection
     bool signal_engine_v3_enabled{false}; // Off by default, opt-in
 
@@ -118,27 +112,9 @@ struct Config {
     bool        is_production{false};
     std::string system_version{"2.0.0"};
 
-    // Real exchange adapters
-    struct ExchangeConfig {
-        bool        enabled{false};
-        std::string ws_url;
-        std::string rest_url;
-        std::string api_key;
-        std::string api_secret;
-        std::string passphrase;     // OKX only
-        std::string inst_type;      // OKX: SWAP
-        std::string category;       // Bybit: linear
-        double      maker_bps{2.0}; // Binance default: 0.02% = 2 bps
-        double      taker_bps{5.0}; // Binance default: 0.05% = 5 bps
-        int         rate_limit_weight_per_min{1200};
-        int         rate_limit_orders_per_min{1200};
-    };
     std::vector<std::string> active_exchanges;
     bool                     fallback_to_simulator{true};
     std::string              simulator_ws_url{"ws://localhost:8765"};
-    ExchangeConfig           binance_cfg;
-    ExchangeConfig           okx_cfg;
-    ExchangeConfig           bybit_cfg;
 
     // IPC / SHM
     bool        ipc_enabled{false};
@@ -150,13 +126,6 @@ struct Config {
     int         ipc_market_data_max_symbols{10};
     std::string kill_switch_trigger_file{"logs/kill_switch_trigger"};
     int         kill_switch_poll_interval_ms{250};
-
-    // FIX 4.4
-    bool        fix_enabled{false};
-    std::string fix_sender_comp_id{"HFTBOT"};
-    std::string fix_target_comp_id{"EXCHANGE"};
-    std::string fix_seq_file{"logs/fix_seq.txt"};
-    int         fix_heart_bt_int{30};
 
     // Database (PostgreSQL)
     std::string db_dsn;
@@ -205,12 +174,8 @@ struct Config {
                 s.clear();
             }
         };
-        zero(binance_cfg.api_key);    zero(binance_cfg.api_secret);    zero(binance_cfg.passphrase);
-        zero(okx_cfg.api_key);        zero(okx_cfg.api_secret);        zero(okx_cfg.passphrase);
-        zero(bybit_cfg.api_key);      zero(bybit_cfg.api_secret);      zero(bybit_cfg.passphrase);
         zero(db_dsn);
         zero(redis_url);
-        zero(fix_seq_file);
     }
 
     static Config load(const std::string& path);

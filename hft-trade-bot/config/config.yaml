@@ -11,7 +11,6 @@
 #   hft_strategies           — V1 indicator toggles and periods
 #   signal_engine_v2         — V2 native C++ signal engine parameters
 #   pressure_model           — L2 microstructure toxicity detection
-#   smart_order_router       — Cross-exchange order routing strategy
 #   adaptive_order_selector  — Dynamic order type (IOC/FOK/GTD/PostOnly)
 #   latency_optimization     — Thread pinning, latency histograms
 #   logging                  — Log level and file path
@@ -127,13 +126,6 @@ pressure_model:
   toxic_size_threshold: 5.0     # Trades > 5× median size = toxic
   obi_threshold: 0.15           # |OBI| > 0.15 = significant imbalance
   pressure_threshold: 0.2       # |pressure| > 0.2 = significant
-
-# ─── Smart Order Router V2 ───
-# Routes orders across exchanges for best execution
-smart_order_router:
-  enabled: true
-  strategy: 3                   # 0=BestPrice, 1=LowestLatency, 2=LowestFees, 3=BestEffective, 4=DepthAware
-  toxic_threshold: 5            # Skip exchange with ≥5 toxic events
 
 # ─── Adaptive Order Type Selection ───
 # Dynamically selects IOC/FOK/GTD/PostOnly based on confidence + spread

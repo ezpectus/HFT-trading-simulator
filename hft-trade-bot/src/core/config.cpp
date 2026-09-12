@@ -30,9 +30,6 @@ Config Config::load(const std::string& path) {
     // ─── Production: IPC / SHM ───
     detail::parse_prod_ipc(cfg, root);
 
-    // ─── Production: FIX 4.4 ───
-    detail::parse_prod_fix(cfg, root);
-
     // ─── Production: Signal Engine V2 weights ───
     detail::parse_prod_v2_weights(cfg, root);
 
@@ -43,8 +40,8 @@ Config Config::load(const std::string& path) {
         if (pm["toxic_penalty"]) cfg.v2_toxic_penalty = pm["toxic_penalty"].as<double>();
     }
 
-    // ─── Production: smart order router, v3, adaptive ───
-    detail::parse_prod_router(cfg, root);
+    // ─── Production: v3 engine, adaptive selector ───
+    detail::parse_prod_engines(cfg, root);
 
     // ─── Production: risk (extended) ───
     detail::parse_prod_risk(cfg, root);

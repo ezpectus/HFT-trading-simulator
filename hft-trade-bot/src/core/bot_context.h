@@ -6,10 +6,6 @@
 #include "data/types.h"
 #include "execution/adaptive_order_selector_v2.h"
 #include "execution/order_executor.h"
-#include "execution/smart_order_router_v2.h"
-#include "exchange/BinanceAdapter.h"
-#include "exchange/BybitAdapter.h"
-#include "exchange/OKXAdapter.h"
 #include "ipc/shm_fill_producer.h"
 #include "ipc/shm_market_data.h"
 #include "ipc/shm_signal_consumer.h"
@@ -32,21 +28,6 @@
 #include <vector>
 
 namespace hft {
-
-class SimExchange : public ExchangeBase {
-  public:
-    SimExchange(const std::string& id, double maker_bps, double taker_bps, SignalReceiver& receiver)
-        : ExchangeBase(id, maker_bps, taker_bps), receiver_(receiver) {}
-
-    double best_bid(const std::string& symbol) const override { return receiver_.get_best_bid(symbol); }
-    double best_ask(const std::string& symbol) const override { return receiver_.get_best_ask(symbol); }
-    double mid_price(const std::string& symbol) const override { return receiver_.get_mid_price(symbol); }
-    double bid_depth(const std::string& symbol, int levels) const override { return receiver_.get_bid_depth(symbol, levels); }
-    double ask_depth(const std::string& symbol, int levels) const override { return receiver_.get_ask_depth(symbol, levels); }
-
-  private:
-    SignalReceiver& receiver_;
-};
 
 struct SymbolEntry {
     std::string symbol;
@@ -75,7 +56,6 @@ struct BotContext {
     std::unique_ptr<SignalEngineV3>          engine_v3;
     std::unique_ptr<SignalEngine>            engine_v1;
     std::unique_ptr<PressureModel>           pressure_model;
-    std::unique_ptr<SmartOrderRouterV2>      router;
     std::unique_ptr<AdaptiveOrderSelectorV2> adaptive_selector;
     std::unique_ptr<KillSwitch>              kill_switch;
     SystemMonitor                            sys_monitor;
@@ -88,13 +68,6 @@ struct BotContext {
     std::unique_ptr<ipc::ShmSignalConsumer> shm_signal_consumer;
     std::unique_ptr<ipc::ShmFillProducer>   shm_fill_producer;
     std::unique_ptr<ipc::ShmMarketData>     shm_market_data;
-
-    std::unique_ptr<BinanceAdapter> real_binance;
-    std::unique_ptr<OKXAdapter>     real_okx;
-    std::unique_ptr<BybitAdapter>   real_bybit;
-    std::unique_ptr<SimExchange>    sim_binance;
-    std::unique_ptr<SimExchange>    sim_okx;
-    std::unique_ptr<SimExchange>    sim_bybit;
 
     SPSCQueue<Signal, 16> ai_signal_queue;
     std::mutex            ai_signal_queue_mtx;

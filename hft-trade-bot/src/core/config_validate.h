@@ -74,14 +74,6 @@ inline void validate_production_limits(const Config& cfg) {
         spdlog::warn("Config: max_leverage={} should be >= 1", cfg.max_leverage);
     if (cfg.min_margin_ratio < 0 || cfg.min_margin_ratio > 1)
         spdlog::warn("Config: min_margin_ratio={} out of range [0, 1]", cfg.min_margin_ratio);
-    for (const auto* ec : {&cfg.binance_cfg, &cfg.okx_cfg, &cfg.bybit_cfg}) {
-        if (ec->enabled) {
-            if (ec->maker_bps < 0 || ec->maker_bps > 100)
-                spdlog::warn("Config: maker_bps={} out of range [0, 100]", ec->maker_bps);
-            if (ec->taker_bps < 0 || ec->taker_bps > 100)
-                spdlog::warn("Config: taker_bps={} out of range [0, 100]", ec->taker_bps);
-        }
-    }
 }
 
 inline void validate_config(const Config& cfg) {

@@ -49,21 +49,6 @@ system:
   mode: "production"
 exchange:
   default: binance
-  adapters:
-    binance:
-      enabled: true
-      ws_url: "wss://fstream.binance.com"
-      rest_url: "https://fapi.binance.com"
-      api_key_env: "BINANCE_API_KEY"
-      api_secret_env: "BINANCE_API_SECRET"
-    okx:
-      enabled: false
-      ws_url: "wss://ws.okx.com:8443"
-      rest_url: "https://www.okx.com"
-    bybit:
-      enabled: false
-      ws_url: "wss://stream.bybit.com"
-      rest_url: "https://api.bybit.com"
 ipc:
   enabled: true
   signals_shm: "/hft_signals"
@@ -89,9 +74,6 @@ symbols:
         auto config = hft::Config::load(path);
         CHECK(config.is_production == true);
         CHECK(config.default_exchange == "binance");
-        CHECK(config.binance_cfg.enabled == true);
-        CHECK(config.binance_cfg.ws_url == "wss://fstream.binance.com");
-        CHECK(config.okx_cfg.enabled == false);
         CHECK(config.ipc_enabled == true);
         CHECK(config.ipc_signals_shm == "/hft_signals");
         CHECK(config.ipc_fills_shm == "/hft_fills");

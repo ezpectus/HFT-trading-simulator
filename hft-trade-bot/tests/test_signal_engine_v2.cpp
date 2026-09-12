@@ -2,14 +2,13 @@
 //
 // Tests: InlineEMA, InlineRSI, InlineADX, InlineVWAP, InlineATR, SignalEngineV2,
 //        Params::validate, PressureModel, Spinlock, SPSCQueue, ObjectPool,
-//        LatencyHistogram, CircuitBreaker, SmartOrderRouterV2, AdaptiveOrderSelectorV2
+//        LatencyHistogram, CircuitBreaker, AdaptiveOrderSelectorV2
 //
 // Build: g++ -std=c++20 -I src tests/test_signal_engine_v2.cpp src/strategies/signal_engine_v2.cpp
 // -o test_signal_engine_v2 -lfmt Run:   ./test_signal_engine_v2
 #include "../src/data/aligned_types.h"
 #include "../src/data/types.h"
 #include "../src/execution/adaptive_order_selector_v2.h"
-#include "../src/execution/smart_order_router_v2.h"
 #include "../src/strategies/pressure_model.h"
 #include "../src/strategies/signal_engine_v2.h"
 #include "../src/utils/low_latency.h"
@@ -913,128 +912,6 @@ TEST(test_pressure_model_predicted_impact) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Smart Order Router V2 Tests
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class MockExchange : public ExchangeBase {
-  public:
-    MockExchange(const std::string& id, double maker, double taker, double bid, double ask,
-                 double depth, int64_t latency)
-        : ExchangeBase(id, maker, taker), bid_(bid), ask_(ask), depth_(depth) {
-        record_latency(latency);
-    }
-
-    double best_bid(const std::string&) const override { return bid_; }
-    double best_ask(const std::string&) const override { return ask_; }
-    double mid_price(const std::string&) const override { return (bid_ + ask_) / 2.0; }
-    double bid_depth(const std::string&, int) const override { return depth_; }
-    double ask_depth(const std::string&, int) const override { return depth_; }
-
-  private:
-    double bid_, ask_, depth_;
-};
-
-TEST(test_smart_router_best_price) {
-    MockExchange ex1("binance", 0.02, 0.04, 99.5, 100.5, 10.0, 500);
-    MockExchange ex2("okx", 0.01, 0.03, 99.0, 100.0, 10.0, 800);
-
-    SmartOrderRouterV2::RoutingConfig config;
-    config.strategy = SmartOrderRouterV2::Strategy::BEST_PRICE;
-    SmartOrderRouterV2 router(config);
-    router.add_exchange(&ex1);
-    router.add_exchange(&ex2);
-
-    auto decision = router.route("BTC/USDT", true, 1.0); // Buy
-    // OKX has lower ask (100.0 vs 100.5)
-    ASSERT_EQ(std::string(decision.exchange), "okx");
-}
-
-TEST(test_smart_router_lowest_latency) {
-    MockExchange ex1("binance", 0.02, 0.04, 99.5, 100.5, 10.0, 200);
-    MockExchange ex2("okx", 0.01, 0.03, 99.0, 100.0, 10.0, 800);
-
-    SmartOrderRouterV2::RoutingConfig config;
-    config.strategy = SmartOrderRouterV2::Strategy::LOWEST_LATENCY;
-    SmartOrderRouterV2 router(config);
-    router.add_exchange(&ex1);
-    router.add_exchange(&ex2);
-
-    auto decision = router.route("BTC/USDT", true, 1.0);
-    ASSERT_EQ(std::string(decision.exchange), "binance"); // Lower latency
-}
-
-TEST(test_smart_router_lowest_fees) {
-    MockExchange ex1("binance", 0.02, 0.04, 99.5, 100.5, 10.0, 500);
-    MockExchange ex2("okx", 0.01, 0.03, 99.0, 100.0, 10.0, 800);
-
-    SmartOrderRouterV2::RoutingConfig config;
-    config.strategy     = SmartOrderRouterV2::Strategy::LOWEST_FEES;
-    config.prefer_maker = true;
-    SmartOrderRouterV2 router(config);
-    router.add_exchange(&ex1);
-    router.add_exchange(&ex2);
-
-    auto decision = router.route("BTC/USDT", true, 1.0);
-    // OKX has lower maker fee (0.01 vs 0.02)
-    ASSERT_EQ(std::string(decision.exchange), "okx");
-}
-
-TEST(test_smart_router_best_effective) {
-    MockExchange ex1("binance", 0.02, 0.04, 99.5, 100.5, 10.0, 500);
-    MockExchange ex2("okx", 0.01, 0.03, 99.0, 100.0, 10.0, 800);
-
-    SmartOrderRouterV2::RoutingConfig config;
-    config.strategy = SmartOrderRouterV2::Strategy::BEST_EFFECTIVE;
-    SmartOrderRouterV2 router(config);
-    router.add_exchange(&ex1);
-    router.add_exchange(&ex2);
-
-    auto decision = router.route("BTC/USDT", true, 1.0);
-    // OKX: 100.0 * (1 + 0.01/10000) = 100.001
-    // Binance: 100.5 * (1 + 0.02/10000) = 100.502
-    // OKX is better effective price
-    ASSERT_EQ(std::string(decision.exchange), "okx");
-}
-
-TEST(test_smart_router_toxic_backoff) {
-    MockExchange ex1("binance", 0.02, 0.04, 99.5, 100.5, 10.0, 500);
-    MockExchange ex2("okx", 0.01, 0.03, 99.0, 100.0, 10.0, 800);
-
-    // Make OKX toxic
-    for (int i = 0; i < 5; ++i) {
-        ex2.record_toxic_event();
-    }
-
-    SmartOrderRouterV2::RoutingConfig config;
-    config.strategy        = SmartOrderRouterV2::Strategy::BEST_PRICE;
-    config.toxic_threshold = 5;
-    SmartOrderRouterV2 router(config);
-    router.add_exchange(&ex1);
-    router.add_exchange(&ex2);
-
-    auto decision = router.route("BTC/USDT", true, 1.0);
-    // OKX should be skipped due to toxic events
-    ASSERT_EQ(std::string(decision.exchange), "binance");
-}
-
-TEST(test_smart_router_no_available) {
-    MockExchange ex1("binance", 0.02, 0.04, 99.5, 100.5, 10.0, 500);
-
-    // Make binance toxic
-    for (int i = 0; i < 5; ++i) {
-        ex1.record_toxic_event();
-    }
-
-    SmartOrderRouterV2::RoutingConfig config;
-    config.toxic_threshold = 5;
-    SmartOrderRouterV2 router(config);
-    router.add_exchange(&ex1);
-
-    auto decision = router.route("BTC/USDT", true, 1.0);
-    ASSERT_EQ(std::string(decision.exchange), ""); // No available exchange
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // Adaptive Order Selector V2 Tests
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1121,7 +998,6 @@ int main() {
     printf("\n── Signal Engine V2 (6 indicators, composite, SL/TP, leverage) ──\n");
     printf("\n── Params Validation ──\n");
     printf("\n── Pressure Model ──\n");
-    printf("\n── Smart Order Router V2 ──\n");
     printf("\n── Adaptive Order Selector V2 ──\n");
     printf("\n── Thread Affinity ──\n");
 

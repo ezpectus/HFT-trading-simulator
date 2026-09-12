@@ -34,26 +34,6 @@ inline std::string expand_env(const std::string& s) {
     return result;
 }
 
-inline void parse_exchange_node(const YAML::Node& node, Config::ExchangeConfig& ec) {
-    if (!node) return;
-    if (node["enabled"]) ec.enabled = node["enabled"].as<bool>();
-    if (node["ws_url"]) ec.ws_url = node["ws_url"].as<std::string>();
-    if (node["rest_url"]) ec.rest_url = node["rest_url"].as<std::string>();
-    if (node["api_key"]) ec.api_key = expand_env(node["api_key"].as<std::string>());
-    if (node["api_secret"]) ec.api_secret = expand_env(node["api_secret"].as<std::string>());
-    if (node["passphrase"]) ec.passphrase = expand_env(node["passphrase"].as<std::string>());
-    if (node["inst_type"]) ec.inst_type = node["inst_type"].as<std::string>();
-    if (node["category"]) ec.category = node["category"].as<std::string>();
-    if (auto fees = node["fees"]) {
-        if (fees["maker_bps"]) ec.maker_bps = fees["maker_bps"].as<double>();
-        if (fees["taker_bps"]) ec.taker_bps = fees["taker_bps"].as<double>();
-    }
-    if (auto rl = node["rate_limit"]) {
-        if (rl["weight_per_min"]) ec.rate_limit_weight_per_min = rl["weight_per_min"].as<int>();
-        if (rl["orders_per_min"]) ec.rate_limit_orders_per_min = rl["orders_per_min"].as<int>();
-    }
-}
-
 inline void parse_dev_config(Config& cfg, const YAML::Node& root) {
     if (auto ex = root["exchange"]) {
         if (ex["websocket_url"]) cfg.ws_url = ex["websocket_url"].as<std::string>();
@@ -132,11 +112,6 @@ inline void parse_v2_dev(Config& cfg, const YAML::Node& root) {
 }
 
 inline void parse_dev_extras(Config& cfg, const YAML::Node& root) {
-    if (auto sr = root["smart_order_router"]) {
-        if (sr["enabled"]) cfg.smart_router_enabled = sr["enabled"].as<bool>();
-        if (sr["strategy"]) cfg.router_strategy = sr["strategy"].as<int>();
-        if (sr["toxic_threshold"]) cfg.router_toxic_threshold = sr["toxic_threshold"].as<int>();
-    }
     if (auto v3 = root["signal_engine_v3"]) {
         if (v3["enabled"]) cfg.signal_engine_v3_enabled = v3["enabled"].as<bool>();
     }
@@ -187,19 +162,7 @@ inline void parse_prod_exchanges(Config& cfg, const YAML::Node& root) {
             cfg.simulator_ws_url = ex["simulator_ws_url"].as<std::string>();
             cfg.ws_url = cfg.simulator_ws_url;
         }
-        parse_exchange_node(ex["binance"], cfg.binance_cfg);
-        parse_exchange_node(ex["okx"], cfg.okx_cfg);
-        parse_exchange_node(ex["bybit"], cfg.bybit_cfg);
-        if (cfg.is_production) {
-            if (cfg.binance_cfg.enabled && cfg.binance_cfg.api_key.empty())
-                spdlog::warn("Binance API key is empty — set BINANCE_API_KEY env var");
-            if (cfg.okx_cfg.enabled && cfg.okx_cfg.api_key.empty())
-                spdlog::warn("OKX API key is empty — set OKX_API_KEY env var");
-            if (cfg.bybit_cfg.enabled && cfg.bybit_cfg.api_key.empty())
-                spdlog::warn("Bybit API key is empty — set BYBIT_API_KEY env var");
-        }
         if (!cfg.active_exchanges.empty()) cfg.default_exchange = cfg.active_exchanges[0];
-        if (cfg.binance_cfg.enabled && !cfg.binance_cfg.ws_url.empty()) cfg.ws_url = cfg.binance_cfg.ws_url;
     }
 }
 
@@ -222,16 +185,6 @@ inline void parse_prod_ipc(Config& cfg, const YAML::Node& root) {
             if (ks["trigger_file"]) cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
             if (ks["poll_interval_ms"]) cfg.kill_switch_poll_interval_ms = ks["poll_interval_ms"].as<int>();
         }
-    }
-}
-
-inline void parse_prod_fix(Config& cfg, const YAML::Node& root) {
-    if (auto fix = root["fix"]) {
-        if (fix["enabled"]) cfg.fix_enabled = fix["enabled"].as<bool>();
-        if (fix["sender_comp_id"]) cfg.fix_sender_comp_id = fix["sender_comp_id"].as<std::string>();
-        if (fix["target_comp_id"]) cfg.fix_target_comp_id = fix["target_comp_id"].as<std::string>();
-        if (fix["seq_file"]) cfg.fix_seq_file = fix["seq_file"].as<std::string>();
-        if (fix["heart_bt_int"]) cfg.fix_heart_bt_int = fix["heart_bt_int"].as<int>();
     }
 }
 
@@ -260,18 +213,7 @@ inline void parse_prod_v2_weights(Config& cfg, const YAML::Node& root) {
     }
 }
 
-inline void parse_prod_router(Config& cfg, const YAML::Node& root) {
-    if (auto sr = root["smart_order_router"]) {
-        if (sr["strategy"]) {
-            std::string strat = sr["strategy"].as<std::string>();
-            if (strat == "best_price") cfg.router_strategy = 0;
-            else if (strat == "lowest_latency") cfg.router_strategy = 1;
-            else if (strat == "lowest_fees") cfg.router_strategy = 2;
-            else if (strat == "best_effective") cfg.router_strategy = 3;
-            else if (strat == "depth_aware") cfg.router_strategy = 4;
-        }
-        if (sr["toxic_threshold"]) cfg.router_toxic_threshold = sr["toxic_threshold"].as<int>();
-    }
+inline void parse_prod_engines(Config& cfg, const YAML::Node& root) {
     if (auto v3 = root["signal_engine_v3"]) {
         if (v3["enabled"]) cfg.signal_engine_v3_enabled = v3["enabled"].as<bool>();
     }
