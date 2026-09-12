@@ -13,9 +13,18 @@ import asyncio
 import importlib.util
 import time
 from dataclasses import dataclass
-from typing import Any  # Any: ccxt/aiohttp objects lack type stubs
+from typing import Any, TypedDict  # Any: ccxt/aiohttp objects lack type stubs
 
 from src.observability.logging import get_logger
+
+
+class AccountHealth(TypedDict, total=False):
+    connected: bool
+    reason: str
+    error: str
+    exchange: str
+    testnet: bool
+
 
 logger = get_logger(__name__)
 
@@ -379,12 +388,12 @@ class RealAccountManager:
                 logger.error("[RealAccount] User data stream error: %s", e)
                 await asyncio.sleep(5)
 
-    async def get_health(self) -> dict:
+    async def get_health(self) -> AccountHealth:
         """Check exchange account connectivity."""
         if not self._exchange:
-            return {"connected": False, "reason": "Not initialized"}
+            return AccountHealth(connected=False, reason="Not initialized")
         try:
             await self._exchange.fetch_balance()
-            return {"connected": True, "exchange": self.exchange_name, "testnet": self.testnet}
+            return AccountHealth(connected=True, exchange=self.exchange_name, testnet=self.testnet)
         except Exception as e:
-            return {"connected": False, "error": str(e)}
+            return AccountHealth(connected=False, error=str(e))

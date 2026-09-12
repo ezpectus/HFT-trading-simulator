@@ -10,13 +10,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.communication.shm_fill_consumer import ShmFillConsumer
+from src.communication.shm_ring_buffer import ShmRingBuffer
 
 
 @pytest.fixture
 def consumer():
     """Create a ShmFillConsumer with mocked buffer."""
     c = ShmFillConsumer(name="/test_fills", capacity=64)
-    c._buffer = MagicMock()
+    c._buffer = MagicMock(spec=ShmRingBuffer)
     c._buffer.try_pop.return_value = None
     c._buffer.bulk_pop.return_value = []
     c._buffer.size.return_value = 0
@@ -26,8 +27,8 @@ def consumer():
 class TestInit:
     def test_init_success(self):
         c = ShmFillConsumer(name="/test_fills", capacity=128)
-        with patch("src.communication.shm_fill_consumer.ShmRingBuffer") as mock_rb:
-            mock_instance = MagicMock()
+        with patch("src.communication.shm_fill_consumer.ShmRingBuffer", autospec=True) as mock_rb:
+            mock_instance = MagicMock(spec=ShmRingBuffer)
             mock_rb.return_value = mock_instance
             result = c.init()
             assert result is True
@@ -35,7 +36,7 @@ class TestInit:
 
     def test_init_failure(self):
         c = ShmFillConsumer(name="/test_fills", capacity=128)
-        with patch("src.communication.shm_fill_consumer.ShmRingBuffer",
+        with patch("src.communication.shm_fill_consumer.ShmRingBuffer", autospec=True,
                    side_effect=OSError("SHM open failed")):
             result = c.init()
             assert result is False
@@ -130,8 +131,8 @@ class TestClose:
 class TestContextManager:
     def test_context_manager_calls_init_and_close(self):
         c = ShmFillConsumer(name="/test_fills", capacity=64)
-        with patch("src.communication.shm_fill_consumer.ShmRingBuffer") as mock_rb:
-            mock_instance = MagicMock()
+        with patch("src.communication.shm_fill_consumer.ShmRingBuffer", autospec=True) as mock_rb:
+            mock_instance = MagicMock(spec=ShmRingBuffer)
             mock_rb.return_value = mock_instance
             with c as ctx:
                 assert ctx is c

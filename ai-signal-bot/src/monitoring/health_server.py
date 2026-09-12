@@ -11,12 +11,26 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Callable
+from typing import TypedDict
 
 from aiohttp import web
 
 from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+class ComponentHealth(TypedDict, total=False):
+    healthy: bool
+    error: str
+    message: str
+
+
+class HealthReport(TypedDict):
+    healthy: bool
+    uptime_seconds: float
+    timestamp: float
+    components: dict[str, ComponentHealth]
 
 
 class HealthServer:
@@ -43,7 +57,7 @@ class HealthServer:
         """Register a health check function. Should return dict with 'healthy' bool."""
         self._checks[name] = check_fn
 
-    async def _check_component(self, name: str) -> dict:
+    async def _check_component(self, name: str) -> ComponentHealth:
         """Run a registered health check by name."""
         if name in self._checks:
             try:
@@ -52,19 +66,19 @@ class HealthServer:
                     result = await result
                 return result
             except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
-                return {"healthy": False, "error": str(e)}
-        return {"healthy": True, "message": f"No {name} check registered"}
+                return ComponentHealth(healthy=False, error=str(e))
+        return ComponentHealth(healthy=True, message=f"No {name} check registered")
 
-    async def _check_exchange(self) -> dict:
+    async def _check_exchange(self) -> ComponentHealth:
         return await self._check_component("exchange")
 
-    async def _check_database(self) -> dict:
+    async def _check_database(self) -> ComponentHealth:
         return await self._check_component("database")
 
-    async def _check_shm(self) -> dict:
+    async def _check_shm(self) -> ComponentHealth:
         return await self._check_component("shm")
 
-    async def _check_all(self) -> dict:
+    async def _check_all(self) -> HealthReport:
         """Run all health checks in parallel."""
         exchange, database, shm = await asyncio.gather(
             self._check_exchange(),
@@ -78,16 +92,16 @@ class HealthServer:
             shm.get("healthy", False)
         )
 
-        return {
-            "healthy": all_healthy,
-            "uptime_seconds": time.monotonic() - self._start_time,
-            "timestamp": time.time(),
-            "components": {
+        return HealthReport(
+            healthy=all_healthy,
+            uptime_seconds=time.monotonic() - self._start_time,
+            timestamp=time.time(),
+            components={
                 "exchange": exchange,
                 "database": database,
                 "shm": shm,
             },
-        }
+        )
 
     async def _handle_health(self, request: web.Request) -> web.Response:
         result = await self._check_all()

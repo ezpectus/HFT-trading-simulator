@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.communication.shm_ring_buffer import ShmRingBuffer
 from src.communication.shm_signal_producer import ShmSignalProducer
 
 
@@ -16,7 +17,7 @@ from src.communication.shm_signal_producer import ShmSignalProducer
 def producer():
     """Create a ShmSignalProducer with mocked buffer."""
     p = ShmSignalProducer(name="/test_signals", capacity=64)
-    p._buffer = MagicMock()
+    p._buffer = MagicMock(spec=ShmRingBuffer)
     p._buffer.try_push.return_value = True
     p._buffer.bulk_push.return_value = 0
     p._buffer.size.return_value = 0
@@ -26,8 +27,8 @@ def producer():
 class TestInit:
     def test_init_success(self):
         p = ShmSignalProducer(name="/test_signals", capacity=128)
-        with patch("src.communication.shm_signal_producer.ShmRingBuffer") as mock_rb:
-            mock_instance = MagicMock()
+        with patch("src.communication.shm_signal_producer.ShmRingBuffer", autospec=True) as mock_rb:
+            mock_instance = MagicMock(spec=ShmRingBuffer)
             mock_rb.return_value = mock_instance
             result = p.init()
             assert result is True
@@ -35,7 +36,7 @@ class TestInit:
 
     def test_init_failure(self):
         p = ShmSignalProducer(name="/test_signals", capacity=128)
-        with patch("src.communication.shm_signal_producer.ShmRingBuffer",
+        with patch("src.communication.shm_signal_producer.ShmRingBuffer", autospec=True,
                    side_effect=OSError("SHM creation failed")):
             result = p.init()
             assert result is False
@@ -205,8 +206,8 @@ class TestClose:
 class TestContextManager:
     def test_context_manager_calls_init_and_close(self):
         p = ShmSignalProducer(name="/test_signals", capacity=64)
-        with patch("src.communication.shm_signal_producer.ShmRingBuffer") as mock_rb:
-            mock_instance = MagicMock()
+        with patch("src.communication.shm_signal_producer.ShmRingBuffer", autospec=True) as mock_rb:
+            mock_instance = MagicMock(spec=ShmRingBuffer)
             mock_rb.return_value = mock_instance
             with p as ctx:
                 assert ctx is p

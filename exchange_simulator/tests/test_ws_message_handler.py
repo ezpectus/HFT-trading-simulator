@@ -6,13 +6,23 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from websockets.asyncio.server import ServerConnection
 
 from exchange_simulator.websocket_server import ExchangeWebSocketServer
+
+_MARKET_SURFACE = [
+    '_candle_count', '_volatility', 'candles_to_next_funding', 'current_timestamp',
+    'exchanges', 'generate_order_book', 'get_all_prices', 'get_funding_rates',
+    'get_latest_candles', 'get_news_event', 'get_price', 'is_weekend_mode',
+    'next_candle', 'symbols',
+]
+_ORDER_SURFACE = ['id', 'symbol', 'exchange', 'side', 'order_type', 'quantity',
+                  'price', 'status', 'filled_price', 'filled_quantity', 'fee', 'to_dict']
 
 
 @pytest.fixture
 def mock_market():
-    market = MagicMock()
+    market = MagicMock(spec=_MARKET_SURFACE)
     market.symbols = ["BTC/USDT"]
     market.exchanges = ["binance"]
     market.current_timestamp = 1000000
@@ -25,12 +35,12 @@ def mock_market():
 @pytest.fixture
 def capturing_exchange():
     """Exchange whose submit_order records kwargs and returns a filled order."""
-    ex = MagicMock()
+    ex = MagicMock(spec=['submit_order', 'submit_calls', 'account', 'get_account_status', 'fee_pct', 'slippage_bps'])
     ex.submit_calls = []
 
     def _submit(**kwargs):
         ex.submit_calls.append(kwargs)
-        order = MagicMock()
+        order = MagicMock(spec=_ORDER_SURFACE)
         order.status.value = "FILLED"
         order.filled_price = 65000.0
         order.filled_quantity = kwargs["quantity"]
@@ -57,7 +67,7 @@ class TestOrderSubmission:
     @pytest.mark.asyncio
     async def test_trading_stopped_rejects(self, server, capturing_exchange):
         server._trading_active = False
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order", "exchange": "binance", "symbol": "BTC/USDT",
             "side": "BUY", "quantity": 0.1,
@@ -72,7 +82,7 @@ class TestOrderSubmission:
         """Regression for S083: stop/limit/trail/iceberg/oco params must reach
         exchange.submit_order — previously every one of them was dropped."""
         server._trading_active = True
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order", "exchange": "binance", "symbol": "BTC/USDT",
             "side": "SELL", "quantity": 0.5, "order_type": "STOP_LIMIT",
@@ -96,7 +106,7 @@ class TestOrderSubmission:
     @pytest.mark.asyncio
     async def test_defaults_for_absent_advanced_params(self, server, capturing_exchange):
         server._trading_active = True
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order", "exchange": "binance", "symbol": "BTC/USDT",
             "side": "BUY", "quantity": 0.1,
@@ -109,7 +119,7 @@ class TestOrderSubmission:
     @pytest.mark.asyncio
     async def test_rejects_nan_quantity(self, server, capturing_exchange):
         server._trading_active = True
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order", "exchange": "binance", "symbol": "BTC/USDT",
             "side": "BUY", "quantity": "NaN",
@@ -121,7 +131,7 @@ class TestOrderSubmission:
     @pytest.mark.asyncio
     async def test_fill_broadcast_to_other_clients(self, server):
         server._trading_active = True
-        ws, other = AsyncMock(), AsyncMock()
+        ws, other = AsyncMock(spec=ServerConnection), AsyncMock(spec=ServerConnection)
         server.clients.add(other)
         await server._handle_message(ws, {
             "type": "order", "exchange": "binance", "symbol": "BTC/USDT",
