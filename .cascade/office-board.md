@@ -109,6 +109,8 @@
 | **S094** | Advanced-ордера регистрируются, но НИКОГДА не срабатывают | `check_advanced_orders()` (`exchange_advanced_orders.py:14`) имеет **0 вызовов** — ни ws-loop, ни __main__, ни даже тесты. Stop-limit/trailing-stop/iceberg ордера попадают в `_pending_*` dict'ы как PENDING и висят там вечно — API принимает их, отдаёт PENDING, и они молча никогда не исполняются. Вместе с S083 (OCO): вся рекламируемая advanced-order поверхность декоративна — 4/4 типа не работают end-to-end. | High | [ ] Open |
 | **S095** | `src/research/` — ВСЕ 34 модуля мёртвы (7578 строк) + `technical_analysis/` 20/25 мёртвы | README: "52 quant models in trading logic". Реальность: research/ 34 модуля (affine_arithmetic, koopman, malliavin, pontryagin, rmt…) — **0 не-тестовых вызовов у всех**; technical_analysis/ 25 модулей — проводятся только `indicators`, `fft_analysis`, `hawkes_funcs`, `hawkes_model`; остальные 20 (bayesian_*, copula, garch, kalman, wavelet…) мертвы. ~11.5k строк квант-математики не кормят ничего — торговый цикл использует EMA/RSI/ADX/FFT. ~118 тест-файлов тестируют этот мёртвый код. | High | [ ] Open |
 | **S096** | hft-trade-bot: `market_data/` слой мёртв + ещё ~1000 строк | `candle_aggregator.h` (145), `order_book_manager.h` (281), `trade_handler.h` (212) — живут только в doctest'ах; реальные данные приходят через `shm_market_data`/`signal_receiver` напрямую в bot_loop. Плюс `simd_indicators.h` (227), `symbol_map.h` (129). Довесок к S088 → суммарный мёртвый C++ ~6700 строк. `obi_utils`/`inline_indicators` ЖИВЫ (используются signal_engine_v2.h). | High | [ ] Open |
+| **S097** | `hybrid_mode: true` в config.yaml молча игнорируется | `exchange_simulator/config.yaml:332` заявляет "real prices + simulated microstructure", но `__main__.py:55` конструирует `MarketSimulator` БЕЗ `hybrid_mode`/`price_feed_manager` → дефолт False. Флаг врёт: real-price путь недостижим даже когда включён в конфиге. Дополнение к S077 (price_feed_* недостижимы даже при включённом флаге). | Medium | [ ] Open |
+| **S098** | `_execute_arbitrage` не проверяет rejection ног | `ws_broadcast.py:306-330`: buy/sell ордера отправляются, статусы проверяются ТОЛЬКО на :342 для fill-broadcast — но opportunity закрывается "AUTO_EXECUTED" и profit логируется/пишется в trade_csv ДО проверки. С багами S081/S082 обе ноги могут быть REJECTED — арб всё равно "исполнен" в логах. Плюс :345-348 — `orjson.dumps`/`json.dumps` результаты выбрасываются (dead serialization). | High | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -200,6 +202,8 @@
 - `exchange_factory` + `real_account` — настоящие ccxt-адаптеры, wired в run.py:342 для live-режима
 - hft `pressure_model`/`low_latency`/`obi_utils`/`inline_indicators`/`types`/`aligned_types`/`signal.h` — живые
 - C++ real-адаптеры Binance/OKX/Bybit конструируются при `is_production && smart_router_enabled` (но route() мёртв — S059)
+- `market_simulator` GBM-ядро настоящее: correlated z (shared+idio), news events, weekend mode, wick/high/low/volume synthesis — разумный симулятор
+- funding `rng.gauss(0,0.0002)` per-exchange — осознанный сим-дизайн, funding pipeline живой до UI
 
 ---
 

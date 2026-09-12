@@ -913,3 +913,18 @@ Rotation target: hft exchange adapters, market_data/strategy headers, ws_prometh
 - `ws_prometheus.py` emits real exposition format (contrast: hft /metrics JSON — S069)
 - `exchange_factory` + `real_account` are real ccxt adapters, wired in run.py:342 for live mode
 - C++ real exchange adapters ARE constructed when `is_production && smart_router_enabled` — but route() never called (S059)
+
+## Round 18 — audit branch: market_simulator internals + ws_broadcast
+
+Rotation target: GBM/news/funding core, orderbook broadcast, arbitrage auto-execution, hybrid-mode flag.
+
+### New findings S097–S098
+
+**S097 — `hybrid_mode: true` in config.yaml is silently ignored.** `exchange_simulator/config.yaml:332` advertises "real prices + simulated microstructure", but `__main__.py:55` constructs `MarketSimulator` without `hybrid_mode`/`price_feed_manager` — default False. The flag lies: the real-price path is unreachable even when configured on. Extends S077 — the price_feed_* island is unreachable even when its own switch is flipped.
+
+**S098 — `_execute_arbitrage` never checks leg rejections.** `ws_broadcast.py:306-330`: buy/sell orders are submitted, the opportunity is closed as "AUTO_EXECUTED" and profit is logged + written to trade_csv BEFORE any status check (statuses only gate the fill broadcast at :342). With S081/S082 accounting bugs both legs can be REJECTED and the arb still logs as executed. Plus dead serialization at :345-348 — `orjson.dumps`/`json.dumps` results discarded.
+
+### ЧИСТО
+
+- market_simulator GBM core is real: shared+idiosyncratic correlated shocks, news events, weekend mode, honest wick/volume synthesis
+- funding `rng.gauss(0,0.0002)` per exchange — deliberate sim design, live pipeline to UI
